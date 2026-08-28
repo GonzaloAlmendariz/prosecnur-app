@@ -184,9 +184,9 @@ describe("el orden de la cadena propia es el del sorteo, no el de la puntuación
       fila({ operational_code: "R 1.2", titular_operational_code: "CH 1", sample_role: "chain_reserve", replacement_order: 2, stratum: "ARQ / M / G1" }),
     ];
     const r = candidatosDeReemplazo(filas, filas[0]);
-    expect(r.cadena.map((c) => c.fila.operational_code)).toEqual(["R 1.1", "R 1.2"]);
+    expect(r.cadena.mejores.map((c) => c.fila.operational_code)).toEqual(["R 1.1", "R 1.2"]);
     // …y la puntuación viaja igual, para poder enseñarla
-    expect(r.cadena[1].parecido).toBeGreaterThan(r.cadena[0].parecido);
+    expect(r.cadena.mejores[1].parecido).toBeGreaterThan(r.cadena.mejores[0].parecido);
   });
 });
 
@@ -219,11 +219,11 @@ describe("la facultad es frontera dura, no una preferencia", () => {
 
   it("y el conjunto completo se queda dentro de la facultad del que cae", () => {
     const r = candidatosDeReemplazo(escena, caido, { mujeres: 40, hombres: 0 });
-    const todos = [...r.cadena, ...r.otra_cadena, ...r.extra].map((c) => c.fila.faculty);
+    const todos = [...r.cadena.mejores, ...r.otra_cadena.mejores, ...r.extra.mejores].map((c) => c.fila.faculty);
     expect(todos.every((f) => f === "ARQ")).toBe(true);
     // …aunque el de Derecho cerraria mas brecha: por eso el filtro va en el
     // origen y no en la puntuacion.
-    expect([...r.otra_cadena, ...r.extra].map((c) => c.fila.operational_code)).not.toContain("E-DER");
+    expect([...r.otra_cadena.mejores, ...r.extra.mejores].map((c) => c.fila.operational_code)).not.toContain("E-DER");
   });
 });
 
@@ -248,10 +248,32 @@ describe("nunca devuelve «no hay reemplazo»", () => {
       fila({ operational_code: "E1", sample_role: "extra_reserve_pool", stratum: "ARQ / F / G2" }),
     ];
     const r = candidatosDeReemplazo(filas, filas[0], { mujeres: 20, hombres: 0 });
-    expect(r.cadena).toHaveLength(0);
-    expect(r.otra_cadena.map((c) => c.fila.operational_code)).toEqual(["R 2.1"]);
-    expect(r.extra.map((c) => c.fila.operational_code)).toEqual(["E1"]);
+    expect(r.cadena.mejores).toHaveLength(0);
+    expect(r.cadena.disponibles).toBe(0);
+    expect(r.otra_cadena.mejores.map((c) => c.fila.operational_code)).toEqual(["R 2.1"]);
+    expect(r.extra.mejores.map((c) => c.fila.operational_code)).toEqual(["E1"]);
     // y cada uno dice en qué se aleja
-    expect(r.otra_cadena[0].concesiones.length).toBeGreaterThan(0);
+    expect(r.otra_cadena.mejores[0].concesiones.length).toBeGreaterThan(0);
+  });
+});
+
+
+describe("el contador dice cuántas HAY, no cuántas se enseñan", () => {
+  it("con más candidatos que el tope, `disponibles` no se recorta", () => {
+    // Sobre el simulacro de campo malo, CH 1 tiene 9 reservas disponibles en su
+    // cadena y la solapa decía «Su cadena 3» —el tope del motor— como si fuera
+    // el inventario. Quien lo lee entiende que la cadena está casi agotada.
+    const caido = fila({ operational_code: "CH 1", sample_role: "titular",
+                         titular_operational_code: "CH 1" });
+    const reservas = Array.from({ length: 9 }, (_, i) =>
+      fila({
+        operational_code: `R 1.${i + 1}`,
+        sample_role: "chain_reserve", titular_operational_code: "CH 1",
+        replacement_order: i + 1, sample_status: "en_reserva",
+        operational_status: "planificada",
+      }));
+    const r = candidatosDeReemplazo([caido, ...reservas], caido);
+    expect(r.cadena.disponibles).toBe(9);
+    expect(r.cadena.mejores).toHaveLength(3);
   });
 });

@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { Popover } from "../../../../components/Popover";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import {
   apiMonitoreoAulasActivarReemplazo,
@@ -183,10 +184,6 @@ export function RegistroDeCampo({
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
   const [activando, setActivando] = useState(false);
-  // El popover de elección. Va aquí y no en una superficie nueva porque ESTE es
-  // el sitio donde ya vive la única acción que activa un reemplazo: separar la
-  // elección de la activación habría dejado dos caminos para lo mismo.
-  const [eligiendo, setEligiendo] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   // La advertencia de ponderación de la reserva activada. Vive aparte de `ok`
@@ -376,7 +373,11 @@ export function RegistroDeCampo({
         motivo: form.motivo.trim(),
         ...(elegida ? { elegida } : {}),
       });
-      setEligiendo(false);
+      // Cerrar el popover por su propia vía pública: `Popover` es deliberadamente
+      // NO controlado —lleva su estado dentro— y escucha Escape en `window`. Un
+      // Escape sintético es exactamente lo que hace el usuario al cerrarlo a
+      // mano; alcanzar sus internals para lo mismo sería peor.
+      if (elegida) window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       // El mensaje del motor dice la consecuencia —cuántas reservas quedan, o
       // que la cadena se agotó y esa meta se queda sin cubrir—, así que se
       // muestra tal cual en vez de resumirlo aquí.
@@ -762,31 +763,42 @@ export function RegistroDeCampo({
                       {activando ? "Activando…" : "Activar reemplazo"}
                     </button>
                   ) : null}
-                  {aulaPuedeReemplazarse(form.estado, activa) ? (
-                    <button
-                      type="button"
-                      className="registro-campo-elegir"
-                      onClick={() => setEligiendo(true)}
-                      disabled={guardando || activando}
-                      title="Compara las reservas disponibles y elige cuál entra, en vez de seguir el orden"
+                  {aulaPuedeReemplazarse(form.estado, activa) && activa ? (
+                    // Con la primitiva compartida: el BOTÓN se queda donde está
+                    // —`Popover` clona el trigger en su sitio— y sólo el panel se
+                    // portalea a `body`. Montado en el flujo, la caja empujaba el
+                    // formulario entero hacia abajo, que es justo lo que un
+                    // popover no puede hacer.
+                    <Popover
+                      side="top"
+                      align="start"
+                      maxWidth={440}
+                      ariaLabel={`Elegir qué reserva entra por ${etiquetaDeAula(activa)}`}
+                      className="aulas-reemplazo-pop"
+                      trigger={
+                        <button
+                          type="button"
+                          className="registro-campo-elegir"
+                          disabled={guardando || activando}
+                          title="Compara las reservas disponibles y elige cuál entra, en vez de seguir el orden"
+                        >
+                          <Search size={14} /> Elegir reemplazo
+                        </button>
+                      }
                     >
-                      <Search size={14} /> Elegir reemplazo
-                    </button>
+                      <AulasPopoverReemplazo
+                        caido={activa}
+                        filas={agenda}
+                        onElegir={(fila) => {
+                          const cod = String(fila.operational_code ?? fila.classroom_id ?? "").trim();
+                          if (cod) void activarReemplazo(cod);
+                        }}
+                      />
+                    </Popover>
                   ) : null}
                   {ok ? <span className="registro-campo-ok">{ok}</span> : null}
                   {error ? <span className="registro-campo-error">{error}</span> : null}
                 </div>
-                {eligiendo && activa ? (
-                  <AulasPopoverReemplazo
-                    caido={activa}
-                    filas={agenda}
-                    onElegir={(fila) => {
-                      const cod = String(fila.operational_code ?? fila.classroom_id ?? "").trim();
-                      if (cod) void activarReemplazo(cod);
-                    }}
-                    onCerrar={() => setEligiendo(false)}
-                  />
-                ) : null}
                 {avisoPeso ? (
                   <p className="registro-campo-peso">
                     <TriangleAlert size={13} aria-hidden="true" />

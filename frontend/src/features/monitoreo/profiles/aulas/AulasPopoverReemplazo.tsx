@@ -221,7 +221,7 @@ export function AulasPopoverReemplazo({
   // La cadena primero SIEMPRE que tenga algo: es la guia del procedimiento. Si
   // esta agotada se abre en el primer grupo con candidatos, para no obligar a
   // un click que solo sirve para descubrir que la lista esta vacia.
-  const inicial = GRUPOS.find((g) => candidatos[g.id].length)?.id ?? "cadena";
+  const inicial = GRUPOS.find((g) => candidatos[g.id].disponibles)?.id ?? "cadena";
   const activo: OrigenDeCandidato = grupo ?? inicial;
   // Hay brecha con la que medir cuando alguien la pasa Y pide algo: una brecha
   // de cero es una facultad cubierta, y ahí «cierra brecha» tampoco significa
@@ -230,7 +230,8 @@ export function AulasPopoverReemplazo({
   // barra a «0 %» que se leia como «ninguno ayuda».
   const hayBrecha = Boolean(brecha && (brecha.mujeres > 0 || brecha.hombres > 0));
 
-  const lista = candidatos[activo];
+  const grupoActivo = candidatos[activo];
+  const lista = grupoActivo.mejores;
   const meta = GRUPOS.find((g) => g.id === activo)!;
 
   return (
@@ -259,12 +260,19 @@ export function AulasPopoverReemplazo({
             onClick={() => setGrupo(g.id)}
           >
             {g.titulo}
-            <span className="aulas-reemplazo-cuenta">{candidatos[g.id].length}</span>
+            <span className="aulas-reemplazo-cuenta">{candidatos[g.id].disponibles}</span>
           </button>
         ))}
       </nav>
 
-      <p className="aulas-reemplazo-pie">{meta.pie}</p>
+      <p className="aulas-reemplazo-pie">
+        {meta.pie}
+        {grupoActivo.disponibles > lista.length ? (
+          // Se declara el recorte en vez de dejar que «3 de 9» parezca «3».
+          // Un tope silencioso se lee como inventario completo.
+          <> Se muestran las <b>{lista.length} mejores</b> de {grupoActivo.disponibles}.</>
+        ) : null}
+      </p>
 
       {lista.length ? (
         <ol className="aulas-reemplazo-lista">
@@ -283,8 +291,8 @@ export function AulasPopoverReemplazo({
         // cuál ir. Los otros dos siguen a un click.
         <p className="aulas-reemplazo-vacio">
           Aquí no queda ninguna.{" "}
-          {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].length).length
-            ? <>Sí hay en {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].length).map((g) => g.titulo).join(" y ")}.</>
+          {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).length
+            ? <>Sí hay en {GRUPOS.filter((g) => g.id !== activo && candidatos[g.id].disponibles).map((g) => g.titulo).join(" y ")}.</>
             : <>Tampoco en los otros dos grupos: hay que pedir aulas nuevas.</>}
         </p>
       )}
