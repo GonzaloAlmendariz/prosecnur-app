@@ -62,21 +62,24 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
           <>Todo el contacto se hizo por <strong>{mejor.medio}</strong>, así que no hay con qué comparar.</>
         )}
       </p>
-      <ul className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-medio-cabecera" aria-hidden="true">
-          <span>Medio</span>
-          <span>{medios.length > 1 ? "Agenda" : "Resultado"}</span>
+      <ul role="table"
+        aria-label="Medios de contacto"
+        className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* Roles de tabla sobre la rejilla: la cabecera estaba oculta. */}
+        <li className="aulas-medio-cabecera" role="row">
+          <span role="columnheader">Medio</span>
+          <span role="columnheader">{medios.length > 1 ? "Agenda" : "Resultado"}</span>
           {/* **El estadístico va en la cabecera de su columna, no en un pie.**
               Es mediana y no promedio, y eso hay que decirlo siempre: un
               «Intentos: 3» sin apellido se lee como promedio. Dicho aquí ocupa
               dos palabras y está donde se mira el número; el pie queda libre
               para la justificación, que sólo hace falta cuando hay medios que
               comparar y el estadístico decide cuál gana. */}
-          <span>Intentos · <em>mediana</em></span>
+          <span role="columnheader">Intentos · <em>mediana</em></span>
         </li>
         {medios.map((m) => (
-          <li key={m.medio}>
-            <span className="aulas-medio-nombre">
+          <li key={m.medio} role="row">
+            <span role="rowheader" className="aulas-medio-nombre">
               {m.medio}
               <em>{fmt(m.agendadas)} de {fmt(m.aulas)}</em>
             </span>
@@ -87,14 +90,16 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
                 un solo medio queda la cifra sola, que es el dato de verdad: qué
                 proporción de lo contactado por ahí llegó a agendarse. */}
             {medios.length > 1 ? (
+              <span role="cell" className="aulas-medio-barra-celda">
               <span className="aulas-medio-barra" role="img"
                 aria-label={`${m.tasa} % agendadas por ${m.medio}`}>
                 <i style={{ width: `${Math.max(4, m.tasa)}%`, background: COLOR_RESULTADO.efectiva }}>
                   {m.tasa.toLocaleString("es-PE")} %
                 </i>
               </span>
+              </span>
             ) : (
-              <span className="aulas-medio-solo">
+              <span role="cell" className="aulas-medio-solo">
                 <strong>{m.tasa.toLocaleString("es-PE")} %</strong> agendadas
               </span>
             )}
@@ -105,7 +110,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
                 unidad —la añadía mal—. En un panel titulado «Medio de contacto»,
                 «2 med.» se lee como **2 medios**, que es la lectura natural y es
                 falsa: son 2 intentos. */}
-            <span className="aulas-medio-intentos">
+            <span role="cell" className="aulas-medio-intentos">
               {m.intentos == null ? "—" : m.intentos.toLocaleString("es-PE")}
             </span>
           </li>

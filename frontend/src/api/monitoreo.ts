@@ -718,6 +718,15 @@ export type MonitoreoAulasConfig = {
    * cálculo de muestra calculó para cada curso-horario.
    */
   aula_valida?: { modo?: "esperado" | "proporcion"; alfa?: number; umbral?: number; exige?: string } | null;
+  /**
+   * A partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * El motor lo aceptaba desde siempre —misma doctrina que `aula_valida`: sin
+   * declarar no juzga— pero **no estaba en este tipo**, así que el frontend no
+   * podía enviarlo y la pantalla decía qué faltaba sin dejar ponerlo. Una
+   * capacidad sin consumidor.
+   */
+  duracion_sospecha_min?: number | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   schema: "monitoreo_aulas_universitarias_v1" | string;
@@ -775,6 +784,13 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   faculty_key: string;
   /** `null` = facultad del plan sin cuota en el diseño: no hay denominador. */
   cuota: number | null;
+  /**
+   * La τ que dimensionó ESTA facultad. `null` cuando el diseño no la trazó o
+   * cuando el bloque degradó a la meta del plan. Existe porque `tasa_esperada`
+   * —la compartida— queda en `null` justo cuando las τ difieren por facultad,
+   * que en HSVG2026 es siempre: van de 0,409 a 0,800.
+   */
+  tau_prevista: number | null;
   respuestas_validas: number;
   /** `null` en las filas sin cuota: sin denominador no hay resta. */
   brecha: number | null;
@@ -810,9 +826,138 @@ export type MonitoreoAulasAvanceCuota = {
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
 };
 
+/**
+ * Una facultad en el seguimiento de τ (ADR 0082).
+ *
+ * `senal` es lo único que autoriza a pintar una fila en rojo, y la dispara la
+ * BANDA, nunca el punto: con dos o tres aulas aplicadas la τ de una facultad es
+ * ruido, y el motor lo sabe —el mismo repo midió que dos tercios de la varianza
+ * entre facultades del histórico es error de estimación—.
+ */
+export type MonitoreoAulasEfectividadFacultad = {
+  facultad: string;
+  faculty_key: string;
+  /** La τ que el diseño supuso. `null` cuando no trazó esta facultad. */
+  tau_previsto: number | null;
+  /** Efectivas de plataforma / elegibles de las aulas aplicadas. */
+  tau_observado: number | null;
+  /** Extremos de la banda al 95 %. `null` con menos de dos aulas aplicadas. */
+  banda_bajo: number | null;
+  banda_alto: number | null;
+  aulas_aplicadas: number;
+  elegibles_aplicados: number;
+  /** Aforo del plan vigente que todavía no se aplicó. */
+  elegibles_pendientes: number;
+  efectivas: number;
+  /**
+   * Alumnos de diferencia ATRIBUIBLES A τ, no brecha contra la cuota: esa vive
+   * en `avance_cuota` y tiene otro denominador. Negativo = por debajo.
+   */
+  alumnos_corte: number | null;
+  /** El mismo cálculo extendido al aforo pendiente. */
+  alumnos_cierre: number | null;
+  /**
+   * El veredicto de la BANDA: ¿τ difiere de lo supuesto? Es la GUARDA contra el
+   * ruido, no el disparador. Medido sobre 2025: por sí sola detecta caídas de
+   * 13,6 pp de mediana y el escenario que importa vale 2–4 pp.
+   */
+  senal: "bajo" | "sobre" | "conforme" | "sin_banda" | "sin_previsto";
+  /**
+   * El veredicto del MARGEN, y **éste es el que decide**: ¿la proyección cierra
+   * la cuota? `riesgo_firme` = ni proyectando al extremo optimista de la banda.
+   * Una facultad puede rendir bajo su τ y estar `holgado`: en la selección 2026
+   * el margen mediano es +49,2 % de la cuota.
+   */
+  riesgo: "holgado" | "ajustado" | "riesgo" | "riesgo_firme" | "sin_campo" | "sin_cuota" | "sin_cumplimiento";
+  /** La cuota de alumnos del diseño para esta facultad. */
+  cuota: number | null;
+  /** Válidas de plataforma ya conseguidas. Sale de `avance_cuota`, no se recalcula. */
+  conseguido: number | null;
+  /** `conseguido + elegibles_pendientes × τ observada`. Nunca × τ prevista. */
+  proyectado: number | null;
+  /** La misma proyección a los extremos de la banda. */
+  proyectado_optimista: number | null;
+  proyectado_pesimista: number | null;
+  /** `proyectado − cuota`. Negativo = no cierra. */
+  margen_restante: number | null;
+  residual: number | null;
+  residual_k: number | null;
+  /**
+   * `sin_base` = el residual vale 1 porque el histórico no le dio base propia
+   * (nueve de quince facultades en HSVG2026), no porque se midiera en 1.
+   * `sin_dato` = el plan no trae la columna, que es otra cosa.
+   */
+  residual_base: "propia" | "sin_base" | "sin_dato";
+  reservas_libres: number;
+  /**
+   * Aulas del banco de extras sin aplicar. Recurso DISTINTO de la reserva de
+   * cadena —el banco no reemplaza a nadie— pero sirve igual para tapar un
+   * hueco de margen, y contar sólo la cadena dejaba veinte facultades en
+   * «0 libres» con 73 aulas de banco delante.
+   */
+  banco_disponible: number;
+  /** `null` cuando ni cadena ni banco alcanzan a cerrar el déficit. */
+  reservas_necesarias: number | null;
+  /** De las necesarias, cuántas salen de la cadena y cuántas del banco. */
+  reservas_de_cadena: number;
+  reservas_de_banco: number;
+  reservas_alcanzan: boolean;
+  /** Alumnos que seguirían faltando con TODA la reserva libre activada. */
+  sin_cubrir: number | null;
+  estado: "ok" | "sin_previsto" | "sin_campo";
+};
+
+/**
+ * La τ del diseño contra la del campo. Contrato congelado con el motor: la UI
+ * lo proyecta sin recalcular tasas, bandas ni déficits.
+ */
+export type MonitoreoAulasEfectividadSeguimiento = {
+  schema: "monitoreo_aulas_efectividad_seguimiento_v1" | string;
+  generado_en: string;
+  fuente: "design_targets" | "plan_expected";
+  vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
+  motivo: string;
+  criterio: {
+    numerador: string;
+    denominador: string;
+    /** Qué dispara la señal: el margen restante. */
+    disparador: string;
+    /** Qué papel juega la banda: acotar la proyección. */
+    guarda: string;
+    senal: string;
+    no_cubre: string;
+  };
+  total: {
+    tau_previsto: number | null;
+    tau_observado: number | null;
+    banda_bajo: number | null;
+    banda_alto: number | null;
+    aulas_aplicadas: number;
+    elegibles_aplicados: number;
+    efectivas: number;
+  /**
+   * Rinden bajo su τ con evidencia que lo sostiene. NO es lo mismo que estar en
+   * riesgo de no cerrar, y publicarlo como un solo número fue lo que el
+   * backtest mostró que engaña.
+   */
+    facultades_bajo_su_tau: number;
+    /** Las que su proyección no cierra la cuota. Éste es el número que decide. */
+    facultades_en_riesgo: number;
+    /** Sólo el déficit de las que están en riesgo: no se compensa entre facultades. */
+    alumnos_en_riesgo: number;
+  };
+  facultades: MonitoreoAulasEfectividadFacultad[];
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
+  /**
+   * El supuesto que dimensionó, contrastado con el campo (ADR 0082). Llega
+   * SIEMPRE, también sin plan: sin aulas aplicadas la pantalla tiene que poder
+   * decirlo, que es distinto de quedarse sin superficie.
+   */
+  efectividad_seguimiento?: MonitoreoAulasEfectividadSeguimiento | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo

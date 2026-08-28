@@ -33,6 +33,23 @@ import { esVisitaComprometida } from "./visitaComprometida";
  *
  * ## Lo que NO hace
  *
+ * ## Las dos llegadas
+ *
+ * La proyección corría con **una sola tasa**: la que el campo lleva. Eso
+ * responde «¿a dónde llego si sigo rindiendo como rindo?» pero no «¿a dónde
+ * habría llegado si rindiera lo que el diseño supuso?», que es exactamente el
+ * contraste que el ADR 0082 manda hacer.
+ *
+ * La segunda llegada **no es otra tasa**: es la suma del `expected_valid` de las
+ * aulas agendadas, o sea lo que el diseño calculó para ESAS aulas, cada una con
+ * su tamaño. Eso es mejor que multiplicar una tasa por un número de aulas —una
+ * agenda de tres aulas grandes no es la misma que una de tres pequeñas— y no
+ * cruza ninguna fuente: es el plan, igual que los elegibles.
+ *
+ * Y con la misma cautela que la serie diaria: `expected_valid` colapsa tres
+ * cosas y sólo vale de vara la de origen `diseno`. Las que no la traen no se
+ * cuentan, y se dice **sobre cuántas** se calculó.
+ *
  * **No proyecta más allá de la agenda.** Si a una facultad le quedan tres aulas
  * agendadas y con ellas no llega, la respuesta es «no llega con lo agendado», no
  * una fecha inventada suponiendo que aparecerán más. Ese es justo el momento en
@@ -66,7 +83,17 @@ export type ProyeccionDeFacultad = {
    * el encargo. «Si agendamos tres aulas y se tiene previsto que haya cien
    * elegibles, pero se prevén sesenta, eso hay que mostrarlo.»
    */
-  dias: Array<{ fecha: string; aulas: number; elegibles: number; esperadas: number; acumuladas: number }>;
+  dias: Array<{
+    fecha: string; aulas: number; elegibles: number; esperadas: number; acumuladas: number;
+    /**
+     * Lo que el DISEÑO calculó para las aulas de ese día: la suma de su
+     * `expected_valid` de origen `diseno`. `null` si ninguna la trae.
+     */
+    esperadasPorDiseno: number | null;
+    acumuladasPorDiseno: number | null;
+    /** Cuántas de las aulas del día traen vara del diseño. */
+    aulasConDiseno: number;
+  }>;
   cuotas: CuotaProyectada[];
   /** `observada` o `meta`, según de dónde salió el reparto por sexo. */
   reparto: "observada" | "meta" | "sin dato";
@@ -78,6 +105,15 @@ export type ProyeccionDeFacultad = {
   corte: string;
   /** Todas sus cuotas cubiertas con lo agendado. */
   alcanzaTodo: boolean;
+  /**
+   * Lo que el DISEÑO calculó para TODA la agenda por delante. `null` si ninguna
+   * de sus aulas agendadas trae vara del diseño: entonces no hay segunda
+   * llegada que enseñar y se calla, en vez de dar un cero que se leería como
+   * «el diseño no esperaba nada de ellas».
+   */
+  esperadasPorDisenoTotal: number | null;
+  /** De cuántas aulas agendadas sale ese total, de las `aulasAgendadas`. */
+  aulasConDiseno: number;
 };
 
 function texto(valor: unknown): string {
@@ -112,7 +148,7 @@ export function proyeccionPorAgenda(
     partes.map((p) => texto(p.operational_code)).filter(Boolean),
   );
 
-  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number }>>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; metaDiseno: number; aulasConDiseno: number }>>();
   for (const fila of agenda) {
     const codigo = texto(fila.operational_code);
     if (codigo && conParte.has(codigo)) continue;
@@ -124,9 +160,17 @@ export function proyeccionPorAgenda(
     const facultad = texto(fila.faculty) || "Sin facultad";
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, metaDiseno: 0, aulasConDiseno: 0 };
     dia.aulas += 1;
     dia.elegibles += numero(fila.eligible_n);
+    // La vara del diseño de ESA aula. Sólo la de origen `diseno`: ver la
+    // cabecera. Una meta escrita a mano no es lo que el diseño calculó, y el
+    // techo de elegibles no es una meta en absoluto.
+    const metaDiseno = numero(fila.expected_valid);
+    if (texto(fila.meta_origen) === "diseno" && metaDiseno > 0) {
+      dia.metaDiseno += metaDiseno;
+      dia.aulasConDiseno += 1;
+    }
     dias.set(fecha, dia);
   }
 
@@ -142,18 +186,28 @@ export function proyeccionPorAgenda(
 
   return [...facultades].map((facultad) => {
     const esperadoPorAula = esperadoPorFacultad.get(facultad) ?? media;
-    const agendaDeLaFacultad = [...(porFacultad.get(facultad) ?? new Map<string, { aulas: number; elegibles: number }>())]
+    const agendaDeLaFacultad = [...(porFacultad.get(facultad) ?? new Map<string, { aulas: number; elegibles: number; metaDiseno: number; aulasConDiseno: number }>())]
       .sort(([a], [b]) => a.localeCompare(b));
     let acumuladas = 0;
+    let acumuladasDiseno = 0;
+    let aulasConDisenoTotal = 0;
     const dias = agendaDeLaFacultad.map(([fecha, dia]) => {
       const esperadas = dia.aulas * esperadoPorAula;
       acumuladas += esperadas;
+      acumuladasDiseno += dia.metaDiseno;
+      aulasConDisenoTotal += dia.aulasConDiseno;
       return {
         fecha,
         aulas: dia.aulas,
         elegibles: dia.elegibles,
         esperadas: redondea(esperadas),
         acumuladas: redondea(acumuladas),
+        esperadasPorDiseno: dia.aulasConDiseno ? redondea(dia.metaDiseno) : null,
+        // El acumulado del diseño arrastra los días anteriores aunque ESTE no
+        // traiga vara: si no, la segunda línea caería a cero al primer día sin
+        // meta y parecería que el diseño dejó de pedir nada.
+        acumuladasPorDiseno: aulasConDisenoTotal ? redondea(acumuladasDiseno) : null,
+        aulasConDiseno: dia.aulasConDiseno,
       };
     });
     const aulasAgendadas = agendaDeLaFacultad.reduce((n, [, dia]) => n + dia.aulas, 0);
@@ -200,6 +254,8 @@ export function proyeccionPorAgenda(
       reparto,
       corte: ultimoConParte,
       alcanzaTodo: cuotasProyectadas.length > 0 && cuotasProyectadas.every((c) => c.alcanza),
+      esperadasPorDisenoTotal: aulasConDisenoTotal ? redondea(acumuladasDiseno) : null,
+      aulasConDiseno: aulasConDisenoTotal,
     } satisfies ProyeccionDeFacultad;
   }).sort((a, b) => Number(a.alcanzaTodo) - Number(b.alcanzaTodo)
     || a.facultad.localeCompare(b.facultad, "es"));

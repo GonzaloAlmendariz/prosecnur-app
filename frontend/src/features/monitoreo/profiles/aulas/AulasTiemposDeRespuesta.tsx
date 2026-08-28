@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Clock, TriangleAlert } from "../../../../vendor/lucide-react";
+import { AulasUmbralDeDuracion } from "./AulasUmbralDeDuracion";
 import { tiemposDeRespuesta } from "./tiemposDeRespuesta";
 import { fmt } from "./kpisDeAulas";
 
@@ -25,7 +26,23 @@ import { fmt } from "./kpisDeAulas";
 const fmtUnDecimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
 const min = (n: number | null) => (n === null ? "—" : `${fmtUnDecimal(n)} min`);
 
-export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
+export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
+  tiempos: unknown;
+  /**
+   * Declarar a partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * **La capacidad ya existía en el motor y no tenía consumidor**:
+   * `duracion_sospecha_min` se acepta en la config de aulas con la misma
+   * doctrina que `aula_valida` —«sin declarar no juzga»— pero **cero
+   * referencias en el frontend**, así que no había dónde ponerlo.
+   *
+   * El número lo pone quien conoce el cuestionario, no el motor, y el propio
+   * módulo dice por qué: medido en `acnur_acg`, **no hay valle donde cortar**
+   * —<5 min marca el 4,3 % de las respuestas y <7 min el 13,6 %, la cifra se
+   * triplica entre cinco y siete—.
+   */
+  onDeclararUmbral?: (minutos: number) => void | Promise<void>;
+}) {
   const t = useMemo(() => tiemposDeRespuesta(tiempos), [tiempos]);
 
   if (!t.disponible) {
@@ -82,6 +99,18 @@ export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
           <Clock size={13} aria-hidden="true" /> {t.umbral.leyenda} Mientras no se
           declare, aquí se describe cuánto se tarda y no se señala a nadie.
         </p>
+      )}
+
+      {/* El mismo control que vive en Fuentes: aquí se **afina** viendo la
+          distribución que está justo encima; allí se **declara** antes de que
+          llegue la primera respuesta. Un solo componente para que las dos
+          pantallas no se contradigan. */}
+      {onDeclararUmbral && (
+        <AulasUmbralDeDuracion
+          declarado={t.umbral.declarado}
+          minutos={t.umbral.minutos}
+          onDeclarar={onDeclararUmbral}
+        />
       )}
 
       {destacan.length > 0 && (

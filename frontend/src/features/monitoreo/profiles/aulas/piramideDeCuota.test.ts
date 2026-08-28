@@ -198,11 +198,11 @@ describe("celdasPrevistas indexa por facultad y sexo", () => {
     // de Arte.
     const mapa = celdasPrevistas([
       { facultad: "Derecho", esperadoPorAula: 20, aulasAgendadas: 2, dias: [], reparto: "observada",
-        alcanzaTodo: false, corte: "", cuotas: [
+        alcanzaTodo: false, corte: "", esperadasPorDisenoTotal: null, aulasConDiseno: 0, cuotas: [
           { sexo: "Mujer", meta: 100, observadas: 10, faltan: 90, esperadasDeLaAgenda: 40,
             alcanza: false, fechaDeCruce: null, faltanAlCerrarAgenda: 50 }] },
       { facultad: "Arte", esperadoPorAula: 20, aulasAgendadas: 0, dias: [], reparto: "observada",
-        alcanzaTodo: true, corte: "", cuotas: [
+        alcanzaTodo: true, corte: "", esperadasPorDisenoTotal: null, aulasConDiseno: 0, cuotas: [
           { sexo: "Mujer", meta: 10, observadas: 10, faltan: 0, esperadasDeLaAgenda: 0,
             alcanza: true, fechaDeCruce: null, faltanAlCerrarAgenda: 0 }] },
     ]);

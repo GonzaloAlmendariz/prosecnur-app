@@ -2,7 +2,11 @@ const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
   contact_date: "Fecha de llamada",
-  contact_attempts: "Número de intentos",
+  // «Intentos» y no «Número de intentos»: las celdas llevan UN dígito y la
+  // cabecera es la que fija el ancho, porque `.es-cifra` va con
+  // `white-space: nowrap`. Diecisiete caracteres de rótulo sobre celdas de uno
+  // se comían una columna entera de la tabla de agenda.
+  contact_attempts: "Intentos",
   scheduled_date: "Fecha agendada",
   scheduled_day: "Día",
   scheduled_time: "Hora",

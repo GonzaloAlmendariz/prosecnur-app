@@ -176,6 +176,8 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
       ) : null}
 
       <ul
+        role="table"
+        aria-label="Aulas por pedir, por facultad"
         className={`aulas-anticipacion-lista${hayBanco ? " con-banco" : ""}`}
         data-qa-geometry-capacity="owned"
         data-qa-geometry-member
@@ -185,37 +187,42 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
             delante, la primera columna numérica que lee el ojo salta —232, 196,
             191, 186, 169, 163, 153, 168…— y la tabla parece desordenada cuando
             está ordenada por otra cosa. */}
-        <li className="aulas-anticipacion-cabecera" aria-hidden="true">
-          <span>Facultad</span>
-          <span>Pedir</span>
-          {hayBanco ? <span>Banco</span> : null}
-          <span>Cubren</span>
-          <span>Faltan</span>
-          {cuandos.size > 1 ? <span>Cuándo</span> : null}
+        {/* Roles de tabla sobre la rejilla, no `<table>`: la cabecera estaba
+            oculta y un lector de pantalla recibía las cifras sin nombre. **Las
+            columnas condicionales llevan el rol DENTRO de su condicional**, o la
+            fila declararía más celdas de las que pinta. */}
+        <li className="aulas-anticipacion-cabecera" role="row">
+          <span role="columnheader">Facultad</span>
+          <span role="columnheader">Pedir</span>
+          {hayBanco ? <span role="columnheader">Banco</span> : null}
+          <span role="columnheader">Cubren</span>
+          <span role="columnheader">Faltan</span>
+          {cuandos.size > 1 ? <span role="columnheader">Cuándo</span> : null}
         </li>
         {conBrecha.map((f) => (
-          <li key={f.facultad} className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
+          <li key={f.facultad} role="row" className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-anticipacion-nombre"
+              rol="rowheader"
               enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
-            <span className="aulas-anticipacion-pedir">
+            <span role="cell" className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>
             {/* Extras de ESA facultad sin usar. `null` es «no se sabe», que no es
                 cero: pintarlo como cero acusaría de una escasez no medida. */}
             {hayBanco ? (
-              <span className={f.bancoAlcanza === false ? "aulas-anticipacion-ya" : ""}>
+              <span role="cell" className={f.bancoAlcanza === false ? "aulas-anticipacion-ya" : ""}>
                 {f.bancoDisponible == null ? <em>S/D</em> : fmt(f.bancoDisponible)}
               </span>
             ) : null}
             {/* Las que cubrirían la brecha si TODAS se aplicaran. Se enseña al
                 lado de las que hay que pedir para que el margen se vea, en vez de
                 aparecer como un número inflado sin explicación. */}
-            <span>{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
+            <span role="cell">{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
             {/* Lo que falta Y DE QUÉ. Sumar los dos sexos escondía la mitad de
                 la instrucción: «pide 12 en Gestión» con 52 mujeres y 24 hombres
                 de brecha. El banco se elige por composición, así que el pedido
                 también. */}
-            <span className="aulas-anticipacion-faltan" title={
+            <span role="cell" className="aulas-anticipacion-faltan" title={
               f.faltanPorSexo.length
                 ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${x.sexo}`).join(" · ")
                 : undefined
@@ -226,7 +233,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
               ) : null}
             </span>
             {cuandos.size > 1 ? (
-              <span className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
+              <span role="cell" className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
                 {cuando(f)}
               </span>
             ) : null}

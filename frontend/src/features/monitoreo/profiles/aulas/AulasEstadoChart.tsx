@@ -2,8 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_SEPARADOR_BARRA } from "../../coloresDeResultado";
+import { fuenteDeCifraEnBarra, fuenteDeEjeAulas } from "./ejesDeAulas";
+import { COLOR_SEPARADOR_BARRA, tintaSobre } from "../../coloresDeResultado";
 import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
 import { fmt } from "./kpisDeAulas";
 
@@ -147,6 +147,9 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
     // «2,109». Dos formatos para el mismo numero, a dos centimetros.
     text: [estado.aulas ? fmt(estado.aulas) : ""],
     textposition: "inside",
+    // Sin esto Plotly escribe su gris #444 encima del relleno: sobre
+    // «sin agendar» daba 2,66 de contraste y la cifra no se leia.
+    insidetextfont: fuenteDeCifraEnBarra(tintaSobre(estado.color)),
     insidetextanchor: "middle",
     hovertemplate: `${estado.etiqueta}: %{x} de ${total}<extra></extra>`,
   }));

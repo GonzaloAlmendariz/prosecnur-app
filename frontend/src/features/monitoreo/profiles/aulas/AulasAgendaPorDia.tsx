@@ -18,7 +18,7 @@ import { fmt } from "./kpisDeAulas";
 /** Alto por debajo del cual la franja de días no cabe junto a una tabla usable. */
 const ALTO_COMPACTO = 820;
 
-export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
+export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Cursos-horario que tiene el plan de verdad, sin el banco.
    *
@@ -27,6 +27,15 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
    * recorte de payload como si fuera el universo — medido: «ninguno de los 42»
    * sobre un plan de 686. */
   totalDelPlan?: number;
+  /**
+   * Cuántas filas del plan **llegaron** y cuántas hay de verdad.
+   *
+   * No se deduce aquí comparando con `totalDelPlan`: ése cuenta titulares y
+   * `filas` trae además las reservas encadenadas, así que la comparación daría
+   * un recorte fantasma o lo escondería. Lo sabe el sitio que recibe el
+   * payload, y el backend ya publica `course_status_total` justo para esto.
+   */
+  recorte?: { recibidas: number; total: number };
 }) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona la ventana
   // y la franja tiene que abrirse o cerrarse con ella.
@@ -103,6 +112,20 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
           <strong>{diasDeCampo}</strong> {diasDeCampo === 1 ? "día de campo" : "días de campo"}
           {desde ? <> · de {desde} a {hasta}</> : null}
           {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
+          {/* **El recorte del payload se declara donde se ven sus cifras.**
+              `course_status` llega topeado a 500 filas, así que «sin fecha» y
+              el reparto de la leyenda están contados sobre lo que cupo, no
+              sobre el plan. La rama vacía ya lo decía —«la agenda dibuja los N
+              que caben en esta vista»— pero la franja normal no, y ahí es donde
+              se leen. Medido sobre HSVG2026: la franja decía «355 sin fecha»
+              mientras el tile de al lado decía «Por agendar 29», y 355 es
+              exactamente 500 − 145. Dos cifras para lo mismo, factor 12, sin
+              que nada avisara de que una está recortada. */}
+          {recorte && recorte.recibidas < recorte.total ? (
+            <> · <em className="aulas-agenda-recorte">
+              contado sobre {fmt(recorte.recibidas)} de {fmt(recorte.total)} filas del plan
+            </em></>
+          ) : null}
         </summary>
       <ol className="aulas-agenda-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {dias.map((dia) => (

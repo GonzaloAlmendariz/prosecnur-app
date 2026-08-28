@@ -1,0 +1,291 @@
+/* La τ del diseño contra la del campo (ADR 0082).
+ *
+ * Hoja propia y no un bloque más de `aulasMonitoreo.css`, que ya pasa de 5 000
+ * líneas. Las clases llevan prefijo `aulas-tau-` para que el contrato de CSS sin
+ * dueño las reconozca como del perfil.
+ *
+ * La geometría es la de una tabla: el nombre cede el ancho y las cifras se leen
+ * EN COLUMNA entre facultades, que es lo único que permite comparar de un
+ * vistazo. El marco lleva `overflow-x` propio para que la tabla nunca empuje el
+ * scroll horizontal de la página. */
+
+.mon-profile-page.is-aulas-flow .aulas-tau {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+/* El supuesto del estudio, en una línea. No es una tarjeta: es el encabezado
+   que da sentido a todo lo de abajo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sello {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+/* TABLA de verdad, no una lista con grid.
+ *
+ * El encabezado anterior era un `li` con `aria-hidden="true"`: un lector de
+ * pantalla recibía cinco columnas de números sin un solo nombre. Y llevaba
+ * `text-transform: uppercase` a 10 px, que convertía «τ campo» en «Τ CAMPO» —
+ * tau mayúscula, que se lee como una T latina—. Las dos cosas se arreglan
+ * volviendo a `<table>` con `<th scope>` y rótulos en castellano llano. */
+.mon-profile-page.is-aulas-flow .aulas-tau-marco {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--aulas-txt);
+}
+
+/* El `caption` nombra la tabla para quien no ve el encabezado de la sección.
+   Se oculta visualmente pero NO con `display:none`, que lo quitaría también
+   del árbol de accesibilidad. */
+.mon-profile-page.is-aulas-flow .aulas-tau-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla thead th {
+  padding: 4px 10px 6px;
+  border-bottom: 1px solid var(--pulso-border-soft);
+  color: var(--pulso-text-soft);
+  /* 11px y sin uppercase: a 10 px en mayúsculas el encabezado competía con los
+     datos y rompía las letras griegas. */
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla th.es-num,
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla td.aulas-tau-cifra {
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr > * {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--pulso-border-soft);
+  vertical-align: middle;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+/* La primera celda es `th scope="row"`: identifica la fila. */
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre-celda {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  border-left: 3px solid transparent;
+  font-weight: 400;
+  text-align: left;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-bajo .aulas-tau-nombre-celda {
+  border-left-color: var(--pulso-danger-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-bajo {
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-sobre .aulas-tau-nombre-celda {
+  border-left-color: var(--pulso-success-fg);
+}
+
+/* El foco cruza toda la sección y aquí se RESALTA, no filtra: filtrar
+   destruiría la comparación entre facultades, que es lo único que esta tabla
+   aporta. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-en-foco {
+  outline: 1px solid var(--pulso-accent);
+  outline-offset: -1px;
+}
+
+/* EL VEREDICTO EN PALABRA, no sólo en color: quien no distingue los tonos —o
+   mira la pantalla proyectada, o la imprime— recibía el dato principal de la
+   fila únicamente por el borde. */
+.mon-profile-page.is-aulas-flow .aulas-tau-chip {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-riesgo { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-aviso { color: var(--pulso-warning-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-ok { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-neutro { color: var(--pulso-text-faint); }
+
+/* La leyenda es VISUAL y vive junto a la tabla. Antes el significado de la
+   marca y de la barra sólo estaba en prosa al pie, que es pedirle al lector que
+   memorice una explicación para decodificar un gráfico que tiene delante. */
+.mon-profile-page.is-aulas-flow .aulas-tau-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-muestra-vara {
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-muestra-banda {
+  width: 22px;
+  height: 9px;
+  border-radius: 5px 0 0 5px;
+  background: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra {
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Columna de texto: se alinea con su encabezado, a la izquierda. */
+.mon-profile-page.is-aulas-flow .aulas-tau-respaldo {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-debil {
+  color: var(--pulso-text-faint);
+}
+
+/* LA BARRA VA DE 0 A 100 %, con la marca en lo previsto y el relleno desde la
+ * izquierda. Antes era un segmento flotante sobre una escala recortada al
+ * máximo observado, y no se podía leer: un segmento sin extremos conocidos no
+ * dice qué es «lleno» y obliga a decodificarlo con la leyenda. Con relleno, la
+ * lectura es inmediata: la barra llega o no llega a la marca. */
+.mon-profile-page.is-aulas-flow .aulas-tau-pista {
+  display: block;
+  position: relative;
+  /* Ancho mínimo real: la barra es el gráfico de la fila y a menos de esto deja
+     de poder leerse dónde cae la marca. La tabla scrollea antes que aplastarla. */
+  min-width: 140px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 14px;
+  border-radius: 7px 0 0 7px;
+  background: var(--pulso-text-faint);
+  opacity: 0.5;
+}
+
+/* Verde si llega o pasa la marca, granate si se queda corto. El color habla de
+   la TASA; el veredicto de la fila —si la cuota cierra— lo lleva el chip, que
+   es otra pregunta y por eso no comparten señal. */
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-mejor {
+  background: var(--pulso-success-fg);
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-peor {
+  background: var(--pulso-danger-fg);
+  opacity: 0.55;
+}
+
+/* El margen de error va como NÚMERO junto a la tasa, no como bigote sobre la
+   barra. Dibujado ahí quedaba feo y, peor, no se sabía qué medía: una línea que
+   cruza el relleno se lee como parte del relleno. */
+.mon-profile-page.is-aulas-flow .aulas-tau-error {
+  margin-left: 5px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+/* LA MARCA: lo que el diseño supuso. Va por encima de todo —es la vara contra
+   la que se lee la barra— y de borde a borde del alto para que se distinga del
+   relleno aunque caiga dentro de él. */
+.mon-profile-page.is-aulas-flow .aulas-tau-vara {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie {
+  margin: 2px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie code {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
