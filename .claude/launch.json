@@ -2,6 +2,44 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend 8799 sin proyecto (diagnostico)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8799",
+        "PULSO_OPEN_BROWSER": "false"
+      },
+      "port": 8799
+    },
+    {
+      "name": "Backend HSVG26ULT (8787)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8787",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+      },
+      "port": 8787
+    },
+    {
+      "name": "Backend HSVG26ULT (8799)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8799",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/HSTVG2026/HSVG26ULT.pulso"
+      },
+      "port": 8799
+    },
+    {
       "name": "Backend Conta 10-08 (8806)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
