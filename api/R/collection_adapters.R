@@ -315,8 +315,28 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   )
 }
 
+# Lo que viaja dentro del enlace personalizado, y por tanto lo que llega a Kobo
+# como identificador de la respuesta.
+#
+# El curso-horario (`MAT146-0205` en 2025, `mat202_0591` en 2026) va antes que el
+# `unit_id`, que es un slug de infraestructura —`unit-aulas-ch-1-50200d1467`— que
+# no le dice nada a quien mira una respuesta suelta en Kobo y ocupa 26 caracteres
+# de QR. Es la decision L2, zanjada el 2026-08-27: el operativo de 2025 mando el
+# curso-horario en sus 1.098 aulas.
+#
+# Ademas es la clave con la que Monitoreo cuenta: `.monitoreo_aulas_contar_por_fila()`
+# prueba `classroom_id` y luego `collection_unit_id`, asi que el cambio NO obliga
+# a reimprimir lo ya repartido —lo viejo sigue emparejando por el segundo intento—
+# ni a migrar lo ya recogido.
+#
+# `link_key` y `prefill_value` siguen delante: son la salida explicita para un
+# plan que declare a mano que quiere otra cosa.
 .ca_unit_value <- function(unit) {
-  .ca_text(unit$link_key %||% unit$prefill_value %||% unit$logical_collector_id %||% unit$unit_id)
+  dims <- if (is.list(unit$dimensions)) unit$dimensions else list()
+  .ca_text(
+    unit$link_key %||% unit$prefill_value %||% unit$logical_collector_id %||%
+      dims$classroom_id %||% unit$unit_id
+  )
 }
 
 .ca_manual_access <- function(unit, target) {
@@ -340,10 +360,22 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
       (identical(adapter_id, "aulas_v1") && identical(.ca_text(target$provider), "kobo"))) {
     base_url <- .ca_text(target$base_access_url %||% target$survey_url %||% target$url)
     # Con el asset conocido, el campo por defecto es la ruta XPath completa
-    # (`/<asset_uid>/collectorID`): es el formato del enlace real que Gonzalo
-    # confirmo en produccion, no el nombre pelado (`collectorID`) que Enketo
-    # tambien puede rechazar segun el servidor. `prefill_field` sigue siendo
-    # la salida de escape explicita para quien lo necesite pelado.
+    # (`/<asset_uid>/collectorID`).
+    #
+    # Hay dos enlaces reales y NO coinciden. El del operativo de **2025**
+    # —`…/single/85uFK5JQ?d[collectorID]=MAT146-0205`— lleva el campo pelado. El
+    # de **2026**, que es el formulario de este estudio, lleva la ruta completa:
+    #
+    #   https://ee-eu.kobotoolbox.org/single/ccIcHAqm
+    #     ?d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=PRUEBA_2026
+    #     &returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fnoticias%2Fenlace
+    #
+    # Gonzalo lo confirmo el 2026-08-27. Manda el formulario que se va a usar: un
+    # campo que el servidor no resuelve deja la respuesta SIN identificador y no
+    # se descubre hasta el analisis. Los 24 caracteres que ahorra la forma pelada
+    # no valen ese riesgo.
+    #
+    # `prefill_field` sigue siendo la salida de escape para el nombre pelado.
     asset_uid <- .ca_text(target$asset_uid)
     default_field <- if (nzchar(asset_uid)) paste0("/", asset_uid, "/collectorID") else "collectorID"
     field <- .ca_text(target$prefill_field, default_field)

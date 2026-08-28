@@ -64,7 +64,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   # se titulaba con `unit.label` —«1ges08_0601», el nombre academico— y ese codigo
   # solo aparecia de refilon, dentro del rol de un reemplazo («Reemplazo de CH 3»).
   # En un papel impreso eso no se corrige despues.
-  "unit.unit_id", "unit.operational_code", "unit.label", "unit.role",
+  "unit.unit_id", "unit.operational_code", "unit.codigo_ficha", "unit.label", "unit.role",
   "unit.replacement_for", "unit.group",
   "unit.faculty", "unit.program", "unit.course_name", "unit.schedule", "unit.venue",
   "unit.teacher", "unit.sample_label", "unit.eligible_n",
@@ -264,7 +264,23 @@ COLLECTION_MATERIAL_BINDINGS <- c(
             )
             next
           }
-          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding"))) {
+          # `lines` es cuantos renglones de escritura pide este campo. Existe
+          # para «Observaciones», que es la casilla que se llena justo cuando
+          # pasa algo que ninguna otra previo, y con media linea despues de su
+          # etiqueta prometia sitio sin darlo. Se declara en el campo y NO como
+          # una fila extra sin etiqueta: el contrato de al lado exige que toda
+          # linea diga a quien la llena lo que va en ella, y una fila fantasma
+          # seria justo la excepcion que ese contrato existe para evitar.
+          if (!is.null(cell$lines)) {
+            n <- suppressWarnings(as.integer(cell$lines))
+            if (length(n) != 1L || is.na(n) || n < 1L || n > 3L) {
+              problems[[length(problems) + 1L]] <- .cm_problem(
+                paste0(cell_path, ".lines"), "bad_form_lines_count",
+                "lines debe ser un entero entre 1 y 3."
+              )
+            }
+          }
+          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding", "lines"))) {
             problems[[length(problems) + 1L]] <- .cm_problem(
               paste0(cell_path, ".", nm), "form_field_not_allowed",
               "Cada campo del formulario solo admite label, span y binding."

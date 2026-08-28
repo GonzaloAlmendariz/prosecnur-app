@@ -822,21 +822,32 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
   audit$matched_classrooms <- length(unique(raw_key[matched]))
   if (!any(matched)) return(list(data = raw, audit = audit))
 
+  # Las formas PEGADAS van primero, y no son un alias mas: son las que ganan.
+  # `.cm_aulas_text_key()` conserva los guiones bajos, asi que
+  # `correo_pucp_docente` NO casa con la columna `CORREOPUCPDOCENTE`; y peor,
+  # `Nombre de docente` si resuelve —por el `reverse_hit` de `.cm_aulas_col()`,
+  # que acepta que el nombre de la columna este contenido en el candidato— a la
+  # columna `DOCENTE`, que es el CODIGO del profesor. Medido sobre el libro de
+  # HSVG2026: 1.473 de 1.512 unidades salian con «00008764» donde va
+  # «UGARTE GUERRA, FRANCISCO JAVIER», y el correo con el mismo codigo.
+  # El nombre del docente se imprime en la ficha que alguien lleva al aula.
   teacher_lookup <- .cm_aulas_catalog_lookup(
     catalogo,
     catalog_key,
-    unique(c("Nombre de docente", "Nombre del docente", "Nombre docente", "Profesor", "Profesora", "Docente", mapping$teacher))
+    unique(c("NOMBREDOCENTE", "nombredocente", "Nombre de docente", "Nombre del docente", "Nombre docente", "Profesor", "Profesora", "Docente", mapping$teacher))
   )
   teacher_email_lookup <- .cm_aulas_catalog_lookup(
     catalogo,
     catalog_key,
-    unique(c(mapping$teacher_email, "Correo PUCP", "Correo alternativo", "Correo Agora", "Correo docente"))
+    unique(c("CORREOPUCPDOCENTE", "correopucpdocente", mapping$teacher_email, "Correo PUCP", "Correo alternativo", "Correo Agora", "Correo docente"))
   )
 
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher", teacher_lookup)
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher_email", teacher_email_lookup)
   audit$teacher_values <- sum(nzchar(.cm_aulas_values(raw, "teacher", "")))
   audit$teacher_email_values <- sum(nzchar(.cm_aulas_values(raw, "teacher_email", "")))
+  # Día, hora y aula desde `SESIONES`; lógica en calc_muestra_aulas_sesiones.R.
+  raw <- calc_muestra_aulas_anotar_sesiones(raw, catalogo, raw_key, catalog_key, mapping)
   # (H8a) Señales de criterios (tipo de docente/sede/nivel del curso) desde el
   # catálogo cuando la base no las trae; lógica en calc_muestra_aulas_catalogo.R.
   .cm_aulas_enrich_criterios_desde_catalogo(raw, catalogo, mapping, raw_key, catalog_key, audit)
@@ -1165,6 +1176,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   section <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$section), "")
   schedule <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$schedule), "")
   classroom_label <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$classroom_label), "")
+  # Columnas sintéticas del enriquecido; ver calc_muestra_aulas_sesiones.R.
+  venue <- .cm_aulas_values(raw, "venue", "")
+  sesiones_dia_hora <- .cm_aulas_values(raw, "sesiones_dia_hora", "")
   # Por la vía sintética, como el docente: el mapeo puede apuntar a una columna
   # que sólo existe en el catálogo (`MODALIDADCURSO` en el proyecto de Gonzalo) y
   # entonces el resolver contra la base no encuentra nada. El enriquecido escribe
@@ -1354,6 +1368,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     section = section,
     schedule = schedule,
     classroom_label = classroom_label,
+    venue = venue,
+    sesiones_dia_hora = sesiones_dia_hora,
     modality = modality,
     session_type = session_type,
     teacher = teacher,
@@ -1397,6 +1413,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       course_name = .cm_aulas_mode(course_name[idx_all], ""),
       section = .cm_aulas_mode(section[idx_all], ""),
       schedule = .cm_aulas_mode(schedule[idx_all], ""),
+      venue = .cm_aulas_mode(venue[idx_all], ""),
+      sesiones_dia_hora = .cm_aulas_mode(sesiones_dia_hora[idx_all], ""),
       modality = .cm_aulas_mode(modality[idx_all], ""),
       session_type = .cm_aulas_mode(session_type[idx_all], ""),
       teacher = calc_muestra_aulas_docente_contacto(teacher[idx_all], teacher_type[idx_all]),
@@ -4486,7 +4504,8 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "replacement_chain_code", "operational_sequence",
     "selection_slot_id", "sample_role", "wave", "replacement_order",
     "orden", "classroom_id", "label", "course_id",
-    "course_name", "section", "schedule", "modality", "session_type", "teacher",
+    "course_name", "section", "schedule", "venue", "sesiones_dia_hora",
+    "modality", "session_type", "teacher",
     "teacher_email", "teacher_type", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
     "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
