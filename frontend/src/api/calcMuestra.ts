@@ -365,6 +365,21 @@ export type CalcMuestraEstrato = {
   /** Por qué se agregó. Obligatoria cuando el origen es `operativa`. */
   aulas_base_nota?: string;
   aulas_extra_operativas?: number;
+  /**
+   * Promedio del tamaño de conglomerado del estrato. **Guarda el promedio y
+   * nada más.**
+   *
+   * Se deja dicho porque durante un tiempo no fue así: al sellar la decisión de
+   * alumnos por CH, aquí se materializaba el estadístico ELEGIDO —P25 incluido—
+   * y de paso se ponía `mediana_conglomerado` en 0. El campo decía «promedio»
+   * guardando otra cosa, y sellar borraba la mediana medida del marco, con lo
+   * que un estudio que después quisiera `min_media_mediana` se quedaba sin con
+   * qué. Desde 2026-08-27 el divisor sellado tiene campo propio
+   * (`divisor_conglomerado`) y éste volvió a su significado.
+   *
+   * Si alguien vuelve a necesitar materializar un divisor, va en
+   * `divisor_conglomerado`, NO aquí.
+   */
   promedio_conglomerado: number;
   /**
    * El divisor SELLADO por la decisión de alumnos por CH, con su estadístico
