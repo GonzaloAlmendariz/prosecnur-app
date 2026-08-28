@@ -187,7 +187,9 @@ test_that("la decision firmada baja el minimo al divisor de cada estrato", {
   )
 
   for (componente in resuelto$estudio$componentes) {
-    divisores <- vapply(componente$marco$estratos, `[[`, numeric(1), "promedio_conglomerado")
+    # El divisor sellado tiene campo propio desde `bfaa0d9b`; el par
+    # promedio/mediana del marco queda intacto al lado.
+    divisores <- vapply(componente$marco$estratos, `[[`, numeric(1), "divisor_conglomerado")
     expect_equal(divisores, c(20, 40))
     # **La fijacion de titulares SOBREVIVE al recalculo.** Este test exigia
     # `c(0, 0)`: el resolver borraba `aulas_base_fijas` de forma incondicional
@@ -222,7 +224,7 @@ test_that("el minimo se distingue de los tres estadisticos viejos por la ruta re
     )
     vapply(
       resuelto$estudio$componentes[[1]]$marco$estratos,
-      `[[`, numeric(1), "promedio_conglomerado"
+      `[[`, numeric(1), "divisor_conglomerado"
     )
   }
   expect_equal(divisores("p25"), c(15, 30))
