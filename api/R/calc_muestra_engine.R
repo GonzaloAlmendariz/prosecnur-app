@@ -1061,6 +1061,19 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
       aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
+      # Promedio del tamaño de conglomerado del estrato. GUARDA EL PROMEDIO Y
+      # NADA MAS.
+      #
+      # Se deja dicho porque durante un tiempo no fue asi: al sellar la decision
+      # de alumnos por CH se materializaba aqui el estadistico ELEGIDO —P25
+      # incluido— y se ponia `mediana_conglomerado` en 0. El campo decia
+      # «promedio» guardando otra cosa, y sellar borraba la mediana medida del
+      # marco, con lo que un estudio que despues quisiera `min_media_mediana` se
+      # quedaba sin con que. Desde 2026-08-27 («la separacion para el 5») el
+      # divisor sellado tiene campo propio y este volvio a su significado.
+      #
+      # Si hay que materializar un divisor otra vez, va en
+      # `divisor_conglomerado`, NO aqui.
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
       # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
@@ -2471,6 +2484,19 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
       aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
+      # Promedio del tamaño de conglomerado del estrato. GUARDA EL PROMEDIO Y
+      # NADA MAS.
+      #
+      # Se deja dicho porque durante un tiempo no fue asi: al sellar la decision
+      # de alumnos por CH se materializaba aqui el estadistico ELEGIDO —P25
+      # incluido— y se ponia `mediana_conglomerado` en 0. El campo decia
+      # «promedio» guardando otra cosa, y sellar borraba la mediana medida del
+      # marco, con lo que un estudio que despues quisiera `min_media_mediana` se
+      # quedaba sin con que. Desde 2026-08-27 («la separacion para el 5») el
+      # divisor sellado tiene campo propio y este volvio a su significado.
+      #
+      # Si hay que materializar un divisor otra vez, va en
+      # `divisor_conglomerado`, NO aqui.
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
       # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
