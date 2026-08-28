@@ -5684,7 +5684,8 @@
    columnas y con el máximo veintiocho, y un alto proporcional haría que la
    malla cambiara de tamaño al mover un slider (C2). */
 .aulas-carga {
-  --aulas-carga-celda: 30px;
+  --aulas-carga-celda: 34px;
+  --aulas-carga-ancho: 36px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -5723,6 +5724,34 @@
 .aulas-carga-exportar:hover { border-color: var(--pulso-border-strong); }
 .aulas-carga-exportar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
 
+.aulas-carga-acciones { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; }
+/* Segmentado y no dos botones sueltos: las dos lecturas del mismo plan son
+   alternativas —una excluye a la otra— y el control tiene que decirlo. */
+.aulas-carga-eje {
+  display: inline-flex;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--pulso-surface);
+}
+.aulas-carga-eje button {
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.aulas-carga-eje button + button { border-left: 1px solid var(--pulso-border); }
+.aulas-carga-eje button:hover { color: var(--pulso-text); }
+.aulas-carga-eje button.es-activo {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 14%, var(--pulso-surface));
+  color: var(--pulso-module-monitoring);
+}
+.aulas-carga-eje button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+
 .aulas-carga-controles {
   display: flex;
   align-items: center;
@@ -5733,16 +5762,10 @@
   border-radius: 10px;
   background: var(--pulso-surface);
 }
-.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--pulso-text-soft); }
+.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--pulso-text-soft); }
+.aulas-carga-controles > label em { display: block; font-style: normal; font-size: 11px; color: var(--pulso-text-faint); }
 .aulas-carga-controles strong { color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums; }
 .aulas-carga-controles input[type="range"] { width: 210px; accent-color: var(--pulso-module-monitoring); }
-.aulas-carga-momento { display: inline-flex; border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; }
-.aulas-carga-momento button {
-  border: 0; background: var(--pulso-surface); color: var(--pulso-text-soft);
-  padding: 7px 13px; font-size: 12.5px; cursor: pointer;
-}
-.aulas-carga-momento button[aria-pressed="true"] { background: var(--pulso-module-monitoring); color: var(--pulso-surface); }
-.aulas-carga-momento button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
 
 .aulas-carga-kpis { display: flex; gap: 22px; margin: 0 0 0 auto; }
 .aulas-carga-kpis div { display: flex; flex-direction: column; }
@@ -5768,10 +5791,22 @@
   font-size: 12.5px; color: var(--pulso-text-soft); white-space: nowrap;
 }
 .aulas-carga-malla td { padding: 0; }
+/* El rótulo que separa las fechas del carril de «por agendar». Sin él, una fila
+   «martes» entre fechas concretas se lee como una fecha más del calendario. */
+.aulas-carga-malla tbody tr.aulas-carga-carril th {
+  text-align: left;
+  padding: 14px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  border-top: 1px solid var(--pulso-border);
+}
+.aulas-carga-malla tbody tr.es-por-agendar th { font-style: italic; color: var(--pulso-text-faint); }
 .aulas-carga-celda {
   display: flex; align-items: center; justify-content: center;
-  height: var(--aulas-carga-celda); min-width: 28px; border-radius: 4px;
-  font-size: 11.5px; font-variant-numeric: tabular-nums;
+  height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
+  font-size: 12.5px; font-variant-numeric: tabular-nums; font-weight: 500;
 }
 
 .aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }

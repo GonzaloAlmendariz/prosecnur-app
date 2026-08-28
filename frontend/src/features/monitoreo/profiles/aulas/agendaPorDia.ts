@@ -58,7 +58,7 @@ function texto(valor: unknown) {
  * semana escrito a mano puede no corresponder a la fecha, y entonces el grupo
  * diría un día y contendría otro.
  */
-function etiquetaDeFecha(fecha: string) {
+export function etiquetaDeFecha(fecha: string) {
   if (!fecha) return "Sin fecha agendada";
   const [y, m, d] = fecha.split("-").map((n) => Number(n));
   if (!y || !m || !d) return fecha;
