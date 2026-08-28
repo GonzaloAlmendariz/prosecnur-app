@@ -71,7 +71,9 @@ Hoja «Base de control». Responde **si lo recogido vale**.
 | D2 | **Ver QUÉ respuestas no pasan y por cuál filtro** | ☑ | **Existe de punta a punta**: `monitoreo_aulas_cadena_filtros()` publica el desglose con **dos lecturas distintas** —`caen` en cascada y `caen_solo_aqui`— y `AulasCadenaDeFiltros` lo dibuja. No lo veía porque **mi fixture declaraba `valid_filters` vacío**. Novena falsa ausencia de la sesión |
 | D8 | **El embudo de Fuentes cuenta las descartadas con otro criterio que la etapa de al lado** | ☐ | ver § abajo — dice «−67 descartadas» y caen **174** |
 | D3 | **Declarar el instrumento** (qué XLSForm rige) desde Fuentes | ☐ | distinto de D1 |
-| D4 | **S1 · la meta cuenta reservas dormidas**: 25 922 = 3 150 titulares + 22 772 de 1 259 reservas | ⛔ | varas: titulares 3 150 · cuota facultad 4 050 · objetivo 2 500 · sobremuestra 3 750. **Cuál manda lo decide Gonzalo** |
+| D4 | **La meta cuenta reservas dormidas**: hoy 26 543, sumando las 1 259 reservas que sólo entran si cae su titular | ◐ | **DECIDIDO (27-08): la meta es el `n_objetivo` del escenario ACTIVO → 2 500.** Falta aplicarlo. Ver § abajo |
+| D16 | **La selección no estampa a qué componente pertenece** | ☐ | el vínculo entre el sorteo y su objetivo se deduce por coincidencia de un número; por eso 165 y 174 convivieron sin que nada chillara |
+| D17 | **`aulas_base_total` del componente queda viejo cuando el sorteo se recorre** | ☐ | el componente activo guarda 165 y el sorteo, 47 min posterior, dio 174. Nada marca la cifra como caduca |
 | D5 | **C-F procedencia**, tercera pregunta: ¿de qué corrida del sorteo sale cada cifra? | ⚠ | sólo el KPI «Cursos-horario» estampa el `selection_run_id` |
 | D6 | **Abuso de tablas sin complemento visual** (Gonzalo) | ☐ | ver § abajo |
 | D7 | **Códigos poco entendibles para una persona común** (Gonzalo) | ☐ | «CH 1», «M1», `sin_contactar`, «70T» |
@@ -427,6 +429,40 @@ moverse juntos y viven separados, el comentario que explica la relación no la
 protege —la documenta para quien ya está mirando ese archivo, que es justo quien
 no la va a romper—. La rompe el que toca el otro. La única defensa es que exista
 **una sola fuente**, o un gate que compare las dos.
+
+### D4 · decidido — la meta es 2 500, y el 165 era una foto vieja
+
+**La decisión (Gonzalo, 27-08).** «Cumplimiento en respuestas» mide contra el
+`n_objetivo` del **escenario activo** del cálculo de muestra. Hoy eso es **2 500**.
+No es hardcodear un número: es leer el objetivo del componente cuyo escenario
+está activo, coherente con que lo que declara Cálculo de muestra es lo que
+Monitoreo usa.
+
+**Las cuatro varas, con su procedencia verificada en el `.pulso` real:**
+
+| vara | qué es | dónde vive |
+|---|---|---|
+| **2 500** | `n_objetivo` de Universidad — la fórmula da 2 310, redondeado a múltiplo de 100 | `cmp-cine0qk8`, escenario **activo** |
+| 3 750 | `n_operativo` del mismo: 2 500 + 1 250 de sobremuestra | mismo componente |
+| 4 050 | `n_objetivo` de Facultades — fórmula 3 727 | `cmp-cine0qk8-fac`, **inactivo** |
+| 3 150 | suma del `expected_valid` de las 174 titulares: lo que el diseño predice | derivado del plan |
+
+**El susto del 165 contra el 174, y por qué se resuelve.** El componente activo
+declara `aulas_base_total = 165`; el sorteo que salió a campo tiene **174** aulas
+en 73 estratos. No son dos alternativas: **el 165 está caduco**.
+
+1. El sorteo se sella a las **14:28** y los dos componentes se computaron a las
+   **13:41**. Lo que corrió después manda sobre lo guardado antes — ADR 0066.
+2. El componente de Facultades es **incoherente consigo mismo**: declara 174
+   aulas base pero dice necesitar 294. No puede ser el dueño del sorteo de 174.
+3. **La aritmética lo cierra.** Las 174 titulares tienen meta de diseño de 3 150.
+   Contra 2 500 eso es un colchón del 26 %, razonable. Contra 4 050 sería el
+   78 %: estarías planificando quedarte corto desde el día cero, y un sorteo no
+   se diseña para fallar.
+
+**La regla que sale de aquí, y que vale más que el número:** el **objetivo** se
+lee del escenario activo; el **número de aulas** se lee de la selección que
+corrió, nunca del `aulas_base_total` guardado en el componente.
 
 ## Los criterios de encuesta efectiva salen del XLSForm 2026, no del calco
 
