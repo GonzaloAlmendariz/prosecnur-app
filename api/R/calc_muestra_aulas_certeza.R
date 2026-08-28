@@ -168,6 +168,38 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # suficiente un diseño que solo cierra agotando el respaldo.
   sim_selector$replacement_waves <- 0L
 
+  # POR QUE τ Y NO LA TASA DE CADA AULA, que el marco ya trae
+  #
+  # `tasa_efectividad_aula` (rendimiento del tramo x factor de la facultad)
+  # viaja en cada fila, y la certificacion de lo YA sorteado la usa —
+  # `calc_muestra_aulas_certificacion.R` suma `efectivas_esperadas`, metodo
+  # `suma_esperadas`—. Aca se usa τ, que sale de la MISMA columna pero no es
+  # lo mismo: τ es su media ponderada por elegibles sobre el marco ENTERO de
+  # la facultad (`calc_muestra_aulas_tasas_facultad`).
+  #
+  # Las dos coinciden solo si lo sorteado reproduce la mezcla de tamanos del
+  # marco, y el sorteo no la reproduce: toma las aulas con probabilidad
+  # proporcional a su tamano, asi que se lleva mas aulas grandes —las de tasa
+  # baja— de las que pesan en el marco. La tasa esperada de un sorteo PPS es
+  # la media ponderada por el CUADRADO del tamano, y esa es menor que τ
+  # siempre que el rendimiento caiga con el tamano, que es lo que hacen los
+  # tramos.
+  #
+  # Asi que **τ no es el lado seguro**: es optimista en la media. Medido sobre
+  # HSVG2026 el 2026-08-28, la razon entre las dos tasas va de 0,954 a 1,000
+  # en las quince facultades, y vale exactamente 1 solo en la que tiene todas
+  # sus aulas en un tramo. Lo que τ si conserva es la dispersion de los netos
+  # —multiplicar por una constante no la toca— y por eso la COLA queda mas
+  # baja. Los dos efectos empujan en sentidos opuestos.
+  #
+  # Con sorteos pareados sobre el proyecto vivo, cambiar de tasa mueve el
+  # minimo certificado en 2 de 15 facultades y el total de titulares sube de
+  # 174 a 175 — no baja. Evidencia y decision:
+  # docs/qa/checklist-certeza-tasa-por-aula-2026-08-28.md.
+  #
+  # No se cambia porque cambiarlo es una decision de contrato —`estratos$tau`
+  # dejaria de gobernar la simulacion— por un efecto del tamano del ruido de
+  # la propia simulacion. Queda declarado y no implicito.
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
   sorteadas <- integer(corridas)
