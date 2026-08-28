@@ -75,6 +75,22 @@ export type CandidatoDeReemplazo = {
 
 export type BrechaPorSexo = { mujeres: number; hombres: number };
 
+/**
+ * Un grupo de candidatos: cuántos HAY y cuáles son los mejores.
+ *
+ * Las dos cifras hacen falta y son distintas. La solapa mostraba
+ * `mejores.length` —el tope, 3— como si fuera el inventario: sobre el simulacro
+ * de campo malo, CH 1 tiene **9 reservas disponibles en su cadena** y la solapa
+ * decía «Su cadena 3». Quien la lee entiende que la cadena está casi agotada y
+ * decide con eso.
+ */
+export type GrupoDeCandidatos = {
+  /** Cuántos candidatos admisibles hay en el grupo, sin recortar. */
+  disponibles: number;
+  /** Los mejores, hasta `tope`. */
+  mejores: CandidatoDeReemplazo[];
+};
+
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const numero = (v: unknown): number => {
   const n = typeof v === "number" ? v : Number(v);
@@ -291,7 +307,7 @@ export function candidatosDeReemplazo(
   caido: MonitoreoAulasPlanRow,
   brecha: BrechaPorSexo = { mujeres: 0, hombres: 0 },
   tope = 3,
-): Record<OrigenDeCandidato, CandidatoDeReemplazo[]> {
+): Record<OrigenDeCandidato, GrupoDeCandidatos> {
   const puntuar = (fila: MonitoreoAulasPlanRow, origen: OrigenDeCandidato): CandidatoDeReemplazo => {
     const { parecido, concesiones } = parecidoCon(caido, fila);
     const ayuda = ayudaCon(fila, brecha);
@@ -304,19 +320,18 @@ export function candidatosDeReemplazo(
       concesiones,
     };
   };
-  const mejores = (lista: MonitoreoAulasPlanRow[], origen: OrigenDeCandidato) =>
-    lista
-      .map((f) => puntuar(f, origen))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, tope);
+  const mejores = (lista: MonitoreoAulasPlanRow[], origen: OrigenDeCandidato): GrupoDeCandidatos => {
+    const puntuados = lista.map((f) => puntuar(f, origen)).sort((a, b) => b.total - a.total);
+    return { disponibles: puntuados.length, mejores: puntuados.slice(0, tope) };
+  };
+
+  // Dentro de la propia cadena manda el orden del sorteo, no la puntuación: el
+  // reemplazo 1 es el reemplazo 1. La puntuación viaja para poder enseñarla, no
+  // para reordenar la guía.
+  const propia = cadenaPropia(filas, caido).map((f) => puntuar(f, "cadena"));
 
   return {
-    // Dentro de la propia cadena manda el orden del sorteo, no la puntuación:
-    // el reemplazo 1 es el reemplazo 1. La puntuación viaja para poder
-    // enseñarla, no para reordenar la guía.
-    cadena: cadenaPropia(filas, caido)
-      .map((f) => puntuar(f, "cadena"))
-      .slice(0, tope),
+    cadena: { disponibles: propia.length, mejores: propia.slice(0, tope) },
     otra_cadena: mejores(reservasDisponibles(filas, caido), "otra_cadena"),
     extra: mejores(bolsonExtra(filas, caido.faculty), "extra"),
   };

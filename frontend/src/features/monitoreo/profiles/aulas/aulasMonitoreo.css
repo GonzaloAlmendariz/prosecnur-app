@@ -5864,6 +5864,51 @@
    Parecido y ayuda nunca se funden en una barra: son la eleccion, y una sola
    barra la escondería.
    --------------------------------------------------------------------------- */
+/* Dentro de la primitiva compartida (`components/Popover`), el MARCO ya lo pone
+ * `.pulso-popover`: borde, sombra, fondo, radio y padding. Repetirlos aquí
+ * dibujaba una tarjeta dentro de otra, con doble borde y doble aire.
+ *
+ * Y el panel flota: montado en el flujo del formulario, la caja empujaba el
+ * registro entero hacia abajo, que es justo lo que un popover no puede hacer.
+ */
+.pulso-popover.aulas-reemplazo-pop { padding: 0; }
+
+.aulas-reemplazo-pop .aulas-reemplazo-popover {
+  /* Conserva su ancho declarado (`min(420px, 92vw)`). Con `auto` el panel se
+   * dimensiona al contenido y las tres columnas de la tabla de sexo lo dejaban
+   * estrecho y apretado; el `maxWidth={440}` del trigger le da sitio de sobra.
+   */
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Scrollea la LISTA, no el panel: así la cabecera y las tres solapas —con sus
+ * contadores— siguen a la vista mientras se baja por los candidatos. Con el
+ * panel entero desplazándose se pierde de vista en qué grupo se está mirando,
+ * que es la mitad de la decisión.
+ */
+.aulas-reemplazo-pop .aulas-reemplazo-lista {
+  max-height: min(46vh, 400px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* El corte del final se DIFUMINA en vez de partir una fila por la mitad.
+   *
+   * Primero intente la tecnica clasica de sombras de scroll —cuatro capas de
+   * `background`, dos `local` y dos `scroll`—: no pinta nada aqui, porque las
+   * tarjetas de candidato son blanco OPACO y tapan el fondo del contenedor. La
+   * mascara si actua sobre lo ya pintado, tarjetas incluidas.
+   *
+   * Se aplica siempre, tambien cuando la lista no desborda: ahi el ultimo
+   * candidato termina con un borde suave, que es un acabado normal de tarjeta.
+   * El caso que habia que evitar es el otro —«se parece 100 %» cortado a la
+   * mitad—, que se lee como render roto y no como que hay mas abajo.
+   */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+}
+
 .aulas-reemplazo-popover {
   display: grid;
   gap: 10px;
