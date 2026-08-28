@@ -670,6 +670,24 @@ export type MonitoreoAulasPlanRow = {
   course_name: string;
   section: string;
   schedule: string;
+  /**
+   * El RANGO horario del curso-horario, tal como lo declara el catálogo:
+   * `"MAR 14:00-16:00 · MIE 10:00-12:00"`. No es lo mismo que `schedule`
+   * —que dice cuándo empieza— ni que `scheduled_time` —cuándo se agendó—:
+   * es el único campo que permite saber cuántas aulas están EN CURSO a la
+   * vez, y de ahí cuántos aplicadores hacen falta simultáneamente.
+   */
+  sesiones_dia_hora?: string;
+  /** Salón donde se dicta (`"A501"`, `"LFIA"`). Vacío si el catálogo no lo trae. */
+  venue?: string;
+  /**
+   * En qué momento de la clase entra la aplicación, cuando el docente ya lo
+   * acordó: `"inicio" | "intermedio" | "final"`. Hasta 2025 esto vivía en las
+   * observaciones en prosa libre y no se podía agregar. Vacío mientras el aula
+   * no esté agendada — ahí el momento todavía no se sabe y la carga se cuenta
+   * como banda plausible sobre el rango de la clase.
+   */
+  scheduled_moment?: string;
   teacher: string;
   teacher_email: string;
   faculty: string;
@@ -4764,10 +4782,26 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
 export async function apiMonitoreoAulasActivarReemplazo(payload: {
   operational_code: string;
   motivo?: string;
+  /**
+   * Qué reserva entra. Vacío o ausente = la que toca por orden de cadena, que
+   * es lo que este endpoint hizo siempre y sigue siendo el respaldo.
+   *
+   * Con código entra ESA, y el motor comprueba que exista, no sea la caída,
+   * siga dormida y sea de la misma facultad. La frontera de facultad es dura:
+   * «el bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
+   * otra».
+   */
+  elegida?: string;
 }) {
   return handle<{
     ok: true;
     activada: string | null;
+    /**
+     * De dónde salió la que entró: `cadena` es seguir el plan, `otra_cadena` y
+     * `extra` son decisiones distintas. Se declara en vez de deducirse del
+     * código, porque quien activa tiene que ver qué está eligiendo.
+     */
+    origen?: "cadena" | "otra_cadena" | "extra" | "";
     reemplazada: string;
     agotada: boolean;
     mensaje: string;

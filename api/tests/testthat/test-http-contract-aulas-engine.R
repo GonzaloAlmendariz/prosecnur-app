@@ -48,3 +48,73 @@ test_that("un alias valido NO tropieza con el gate del motor (control)", {
   )
   expect_false(identical(r$json$error$code %||% "", "E_CALC_MUESTRA_AULAS_ENGINE"))
 })
+
+# Contrato HTTP de la reserva ELEGIDA.
+#
+# El motor acepta `elegida` desde hace varios commits y esta bien probado en
+# unitario, pero la RUTA no leia el campo del body: la eleccion moria en el
+# wire y la activacion seguia la cadena como si nadie hubiera elegido. Es la
+# forma HTTP del mismo patron —una capacidad escrita que nadie puede consumir—
+# y por eso el gate va aqui y no en el engine.
+
+.aulas_plan_eleccion_http <- function() {
+  fila <- function(cod, rol, tit, orden, fac, est) list(
+    classroom_id = cod, operational_code = cod, sample_role = rol,
+    titular_operational_code = tit, replacement_for = tit,
+    replacement_order = orden, faculty = fac,
+    sample_status = est, operational_status = if (est == "agendada") "agendada" else "planificada",
+    eligible_n = 30, expected_valid = 15, course_name = paste("Curso", cod)
+  )
+  list(
+    fila("CH 1", "titular", "CH 1", 0, "DERECHO", "agendada"),
+    fila("R 1.1", "chain_reserve", "CH 1", 1, "DERECHO", "en_reserva"),
+    fila("R 1.2", "chain_reserve", "CH 1", 2, "DERECHO", "en_reserva"),
+    fila("CH 2", "titular", "CH 2", 0, "DERECHO", "aplicada"),
+    fila("R 2.1", "chain_reserve", "CH 2", 1, "DERECHO", "en_reserva")
+  )
+}
+
+.aulas_sembrar_plan_http <- function(srv, sid, plan) {
+  http_post_json(srv, "/api/monitoreo/config", sid = sid, body = list(
+    monitoreo_profile = list(family = "aulas_universitarias", variant = "multi_actor",
+                             status = "active", route_selected = TRUE),
+    aulas_universitarias = list(enabled = TRUE, plan = plan)
+  ))
+}
+
+test_that("la reserva ELEGIDA viaja por el wire y entra ESA", {
+  srv <- http_contract_server()
+  creada <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))
+  expect_identical(creada$status, 200L)
+  sid <- creada$json$session_id
+
+  sembrada <- .aulas_sembrar_plan_http(srv, sid, .aulas_plan_eleccion_http())
+  skip_if_not(identical(sembrada$status, 200L),
+              paste("no se pudo sembrar el plan:", sembrada$status))
+
+  # `R 2.1` es de OTRA cadena, ya resuelta (su titular CH 2 se aplico), misma
+  # facultad. Sin `elegida` entraria `R 1.1` por orden de cadena.
+  r <- http_post_json(srv, "/api/monitoreo/aulas/activar-reemplazo", sid = sid,
+                      body = list(operational_code = "CH 1", motivo = "docente_no_autoriza",
+                                  elegida = "R 2.1"))
+  expect_identical(r$status, 200L)
+  expect_identical(as.character(r$json$activada), "R 2.1")
+  # El origen se declara: activar de otra cadena no es seguir el plan.
+  expect_identical(as.character(r$json$origen), "otra_cadena")
+})
+
+test_that("sin `elegida` la ruta sigue la cadena (control del mismo wire)", {
+  # Sin este control, el test de arriba pasaria igual si la ruta activara
+  # siempre `R 2.1` por cualquier otra razon.
+  srv <- http_contract_server()
+  creada <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))
+  sid <- creada$json$session_id
+  sembrada <- .aulas_sembrar_plan_http(srv, sid, .aulas_plan_eleccion_http())
+  skip_if_not(identical(sembrada$status, 200L),
+              paste("no se pudo sembrar el plan:", sembrada$status))
+
+  r <- http_post_json(srv, "/api/monitoreo/aulas/activar-reemplazo", sid = sid,
+                      body = list(operational_code = "CH 1", motivo = "docente_no_autoriza"))
+  expect_identical(r$status, 200L)
+  expect_identical(as.character(r$json$activada), "R 1.1")
+})

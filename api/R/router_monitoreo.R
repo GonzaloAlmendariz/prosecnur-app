@@ -4938,7 +4938,13 @@ mount_monitoreo <- function(pr) {
         ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
       out <- monitoreo_aulas_activar_reemplazo(
         plan, codigo,
-        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", "")
+        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", ""),
+        # Cual reserva entra. Vacio = la que toca por orden de cadena, que es lo
+        # que la ruta hacia siempre y sigue siendo el respaldo. Con codigo, entra
+        # ESA: el motor comprueba que exista, no sea la caida, siga dormida y sea
+        # de la misma facultad, y si algo falla devuelve su E_* en vez de activar
+        # otra por su cuenta.
+        elegida = .monitoreo_scalar(body$elegida %||% body$chosen %||% "", "")
       )
       session_set(sid, "monitoreo_aulas_plan", out$plan)
       cfg <- s$monitoreo_config %||% list()
@@ -4954,6 +4960,10 @@ mount_monitoreo <- function(pr) {
            # mensaje operativo. La escribio Calculo de muestra para el momento
            # de la activacion y no llegaba a quien activa.
            advertencia_peso = out$advertencia_peso %||% "",
+           # De donde salio la que entro: `cadena` es seguir el plan, y
+           # `otra_cadena` o `extra` son decisiones distintas que el operativo
+           # tiene que ver declaradas, no deducir del codigo.
+           origen = out$origen %||% "",
            state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/generar-libro", wrap_endpoint(function(req, res, ...) {
