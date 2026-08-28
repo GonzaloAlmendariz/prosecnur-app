@@ -436,7 +436,15 @@
 #
 # Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
 # crecimiento: alli queda solo el paso del valor.
-.POBLACION_4_ALTO_SLOT_IN <- 2.565
+#
+# 2.82, no 2.565: el contrato de `poblacion_4` dejo de usar el placeholder de la
+# plantilla y declara los cuatro huecos por coordenadas, recuperando el aire que
+# la lamina tenia sin dibujar (titulo termina en 1.10, base empieza en 6.91:
+# 5.81 in para dos filas, contra las dos de 2.565 + 0.68 de hueco muerto).
+# Este valor tiene que seguir al del contrato — es el mismo cajon medido desde
+# el otro lado, y si divergen el graficador calcula sobre un alto que no existe,
+# que es justo el defecto que dejo las cuatro etiquetas ilegibles de la 13.
+.POBLACION_4_ALTO_SLOT_IN <- 2.82
 
 
 # =============================================================================

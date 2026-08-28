@@ -1031,10 +1031,30 @@
     slots  = list(
       title        = list(type = "title", type_idx = 1),
 
-      up_left      = list(type = "pic",   type_idx = 1),
-      up_right     = list(type = "pic",   type_idx = 2),
-      bottom_left  = list(type = "pic",   type_idx = 3),
-      bottom_right = list(type = "pic",   type_idx = 4),
+      # Los cuatro huecos se declaran por coordenadas, no por el placeholder de
+      # la plantilla, para recuperar el alto que la lámina tenía sin usar.
+      #
+      # Medido: el título termina en 1.10 y la banda de la base empieza en 6.91,
+      # así que hay 5,81 in para dos filas. La plantilla las declara de 2,565
+      # con 0,68 in de aire repartido en tres huecos (arriba 0,23, medio 0,22,
+      # abajo 0,24) que no dibujan nada. Subidas a 2,82 queda un gap de 0,11
+      # entre filas y 0,04 de margen sobre la base.
+      #
+      # Por qué importa: el panel de cada cuadrante es `alto − cabecera −
+      # leyenda`, y de él salen TODAS las barras. Con dos series —perfil contra
+      # la ola anterior— un cuadrante de cuatro categorías son ocho barras, y
+      # esas 0,26 in de más son la diferencia entre la cifra a 10 pt y a 11,7.
+      # Va en la misma dirección que ya señalaba `graficador_grosor_piso.R`: el
+      # entregable aprobado saca las barras más gruesas porque su panel es más
+      # alto.
+      #
+      # Los cuatro llevan imágenes, así que el `<p:ph/>` vacío que emite un
+      # `ph_location()` por coordenadas no arrastra propiedades de párrafo — la
+      # trampa que sí afecta a los slots de texto.
+      up_left      = list(type = "pic", type_idx = 1, loc = list(left = 0.51, top = 1.12, width = 5.17, height = 2.82)),
+      up_right     = list(type = "pic", type_idx = 2, loc = list(left = 7.78, top = 1.12, width = 5.17, height = 2.82)),
+      bottom_left  = list(type = "pic", type_idx = 3, loc = list(left = 0.50, top = 4.05, width = 5.17, height = 2.82)),
+      bottom_right = list(type = "pic", type_idx = 4, loc = list(left = 7.78, top = 4.05, width = 5.17, height = 2.82)),
 
       base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       icon         = list(type = "body",  type_idx = 2)
@@ -1172,17 +1192,29 @@
   # Hasta que existió, tres gráficos se armaban con `poblacion_4` dejando un
   # slot vacío — y entonces los tres se repartían el alto de cuatro.
   #
-  # El orden de los `pic` sigue el del layout: 1 = izquierda arriba,
-  # 2 = izquierda abajo, 3 = derecha alto.
+  # EL ORDEN DE LOS `pic` NO ES EL DE LA LECTURA. Aquí decía «1 = izquierda
+  # arriba, 2 = izquierda abajo, 3 = derecha alto», por analogía con
+  # `poblacion_4` —donde sí es así—, y nadie lo midió contra la plantilla.
+  # Medido con `officer::layout_properties()` sobre `poblacion_3`:
+  #
+  #   pic 1 -> offx 7.78, cy 5.34  = DERECHA (el panel alto)
+  #   pic 2 -> offx 0.51, offy 1.33 = izquierda arriba
+  #   pic 3 -> offx 0.50, offy 4.11 = izquierda abajo
+  #
+  # Con el mapeo anterior los tres paneles salían rotados una posición: el
+  # gráfico declarado «superior_izquierda» aterrizaba en el panel alto de la
+  # derecha. Se vio al migrar las láminas de perfil de ACRD CONTA, que es el
+  # primer mazo real que usa este layout — el defecto llevaba aquí desde que se
+  # escribió el contrato, sin ejercitar.
   # ------------------------------------------------------------
   poblacion_3 = list(
     layout = "poblacion_3",
     slots  = list(
       title        = list(type = "title", type_idx = 1),
 
-      up_left      = list(type = "pic",   type_idx = 1),
-      bottom_left  = list(type = "pic",   type_idx = 2),
-      right        = list(type = "pic",   type_idx = 3),
+      up_left      = list(type = "pic",   type_idx = 2),
+      bottom_left  = list(type = "pic",   type_idx = 3),
+      right        = list(type = "pic",   type_idx = 1),
 
       base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
       icon         = list(type = "body",  type_idx = 2)
