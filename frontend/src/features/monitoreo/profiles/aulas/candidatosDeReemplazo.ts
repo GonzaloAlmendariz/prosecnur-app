@@ -1,0 +1,261 @@
+import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+
+/**
+ * A quién ir cuando un aula no sale, ordenado por lo que de verdad decide.
+ *
+ * ## El modelo, dicho por quien dirige el estudio
+ *
+ * «No es que los reemplazos no estén atados a su titular en forma de cadena, sí
+ * lo están, pero es una guía de procedimiento de cómo aplicar los reemplazos.
+ * Lo que nos da la cadena es una guía de: ¿con quién podemos reemplazar los
+ * titulares? Y si cae un reemplazo uno, ¿cuál sería el otro? Mas no es un
+ * requisito exclusivo y fundamental.»
+ *
+ * O sea: **la cadena es el orden recomendado, no un candado.** Se sigue por
+ * defecto; cuando no alcanza, se toma el mejor disponible de otra cadena o del
+ * bolsón extra, y se declara en qué se aleja. Esta lista **nunca dice “no hay
+ * reemplazo”**: dice cuál es el mejor y qué se concede al tomarlo.
+ *
+ * Y la equivalencia es preferencia, no requisito: «no es un requisito exclusivo
+ * y siempre mandatorio de que sea exactamente igual al aula que estás
+ * reemplazando, porque no podemos hacer eso, nos estaríamos ahorcando
+ * demasiado».
+ *
+ * ## Qué significa DISPONIBLE
+ *
+ * También suyo, y es una definición operativa, no una del sorteo: una reserva
+ * queda al aire «cuando ya se aplicó su titular o ya se aplicó un reemplazo
+ * previo, entonces esas quedan al aire». Se lee del estado de aplicación de su
+ * cadena, no del rol que le tocó en el sorteo.
+ *
+ * ## Por qué dos puntuaciones y no una
+ *
+ * Porque colapsarlas esconde la única decisión que hay que tomar. El
+ * **parecido** protege el diseño —sustituir un aula por otra que se le parece—;
+ * la **ayuda** cierra la cuota que de verdad falta, que casi siempre es de un
+ * sexo. Medido en el caso más ajustado de HSVG2026 (cae CH 118, ARQUITECTURA /
+ * M / G1, con brecha de 30 mujeres y 5 hombres): R 115.1 gana en parecido
+ * (0,435) y R 111.1 en ayuda (0,676), y empatan en total. Con un solo número,
+ * el coordinador nunca sabría que estaba eligiendo entre esas dos cosas.
+ */
+
+/** De dónde sale el candidato. La cadena primero: es la guía del procedimiento. */
+export type OrigenDeCandidato = "cadena" | "otra_cadena" | "extra";
+
+export type CandidatoDeReemplazo = {
+  fila: MonitoreoAulasPlanRow;
+  origen: OrigenDeCandidato;
+  /** Cuánto se parece al aula que cae, 0-1. */
+  parecido: number;
+  /** Cuánto de la brecha por sexo cierra, 0-1. */
+  ayuda: number;
+  /** La mezcla con la que se ordena. Las dos partes se muestran igual. */
+  total: number;
+  /**
+   * En qué se aleja, en palabras. Vacío cuando es de la misma celda: ahí no hay
+   * nada que conceder y decir «misma celda» sería ruido.
+   */
+  concesiones: string[];
+};
+
+export type BrechaPorSexo = { mujeres: number; hombres: number };
+
+const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+const numero = (v: unknown): number => {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** El grupo de tamaño va al final del estrato: `FACULTAD / F / G2`. */
+const grupoDeTamano = (fila: MonitoreoAulasPlanRow): string => {
+  const partes = texto(fila.stratum).split("/");
+  return partes.length >= 3 ? partes[partes.length - 1].trim() : "";
+};
+
+const sexoDominante = (fila: MonitoreoAulasPlanRow): string => {
+  const partes = texto(fila.stratum).split("/");
+  return partes.length >= 3 ? partes[partes.length - 2].trim() : "";
+};
+
+/**
+ * Estados en los que una cadena ya se resolvió y sus eslabones quedan libres.
+ *
+ * Lista ABIERTA por diseño: se nombra lo que libera, y cualquier otro estado
+ * deja la reserva comprometida. Al revés —nombrar lo que retiene— un estado
+ * nuevo que nadie mapeara liberaría reservas que su cadena todavía necesita, y
+ * el error caro es ofrecer un aula que no está libre.
+ */
+const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada", "en_cierre"]);
+
+const seResolvio = (fila: MonitoreoAulasPlanRow | undefined): boolean =>
+  !!fila && ESTADOS_QUE_LIBERAN.has(texto(fila.operational_status).toLowerCase());
+
+/**
+ * Reservas al aire: las de una cadena cuyo titular —o algún eslabón previo— ya
+ * se aplicó. Excluye la cadena del aula que cae, que se ofrece aparte y primero.
+ */
+export function reservasDisponibles(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  caido: MonitoreoAulasPlanRow,
+): MonitoreoAulasPlanRow[] {
+  const porCadena = new Map<string, MonitoreoAulasPlanRow[]>();
+  for (const f of filas) {
+    const clave = texto(f.titular_operational_code) || texto(f.operational_code);
+    if (!clave) continue;
+    const lista = porCadena.get(clave) ?? [];
+    lista.push(f);
+    porCadena.set(clave, lista);
+  }
+
+  const cadenaDelCaido = texto(caido.titular_operational_code) || texto(caido.operational_code);
+  const libres: MonitoreoAulasPlanRow[] = [];
+
+  for (const [clave, cadena] of porCadena) {
+    if (clave === cadenaDelCaido) continue;
+    // La cadena se resolvió si CUALQUIERA de sus eslabones ya salió. Basta uno:
+    // el slot está cubierto y los demás dejan de estar comprometidos.
+    if (!cadena.some(seResolvio)) continue;
+    for (const f of cadena) {
+      if (texto(f.sample_role) === "titular") continue;
+      if (seResolvio(f)) continue; // ésa es la que cubrió el slot
+      libres.push(f);
+    }
+  }
+  return libres;
+}
+
+/** Los eslabones de la propia cadena que todavía no salieron. */
+export function cadenaPropia(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  caido: MonitoreoAulasPlanRow,
+): MonitoreoAulasPlanRow[] {
+  const clave = texto(caido.titular_operational_code) || texto(caido.operational_code);
+  if (!clave) return [];
+  return filas
+    .filter((f) => {
+      if (texto(f.operational_code) === texto(caido.operational_code)) return false;
+      if (texto(f.sample_role) === "titular") return false;
+      if (texto(f.titular_operational_code) !== clave) return false;
+      return !seResolvio(f);
+    })
+    .sort((a, b) => numero(a.replacement_order) - numero(b.replacement_order));
+}
+
+/** El bolsón extra, incluidas las aulas de una ampliación declarada. */
+export function bolsonExtra(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+): MonitoreoAulasPlanRow[] {
+  return filas.filter((f) => texto(f.sample_role) === "extra_reserve_pool" && !seResolvio(f));
+}
+
+/** Cuánto se parece un candidato al aula que cae, y qué se concede al tomarlo. */
+export function parecidoCon(
+  caido: MonitoreoAulasPlanRow,
+  cand: MonitoreoAulasPlanRow,
+): { parecido: number; concesiones: string[] } {
+  const mismaCelda = texto(cand.stratum) === texto(caido.stratum) && texto(caido.stratum) !== "";
+  const mismaFacultad = texto(cand.faculty) === texto(caido.faculty);
+  const gC = grupoDeTamano(caido);
+  const gX = grupoDeTamano(cand);
+  const mismoTamano = gC !== "" && gC === gX;
+  const sC = sexoDominante(caido);
+  const sX = sexoDominante(cand);
+  const mismoSexo = sC !== "" && sC === sX;
+  const mismoNivel = texto(cand.level) === texto(caido.level) && texto(caido.level) !== "";
+
+  const eC = numero(caido.eligible_n);
+  const eX = numero(cand.eligible_n);
+  const cercania = eC > 0 ? Math.max(0, 1 - Math.abs(eX - eC) / eC) : 0;
+
+  const parecido =
+    0.35 * (mismaCelda ? 1 : 0) +
+    0.2 * (mismaFacultad ? 1 : 0) +
+    0.15 * (mismoTamano ? 1 : 0) +
+    0.15 * (mismoSexo ? 1 : 0) +
+    0.1 * cercania +
+    0.05 * (mismoNivel ? 1 : 0);
+
+  // Sólo se nombra lo que se concede. Un candidato de la misma celda no lleva
+  // etiquetas: no hay nada que advertir y llenarlo de «mismo todo» es ruido.
+  const concesiones: string[] = [];
+  if (!mismaFacultad) concesiones.push(`otra facultad (${texto(cand.faculty) || "sin declarar"})`);
+  else if (!mismaCelda) {
+    if (!mismoSexo && sX) concesiones.push(`mayoría ${sX === "F" ? "femenina" : "masculina"}, no ${sC === "F" ? "femenina" : "masculina"}`);
+    if (!mismoTamano && gX) concesiones.push(`tamaño ${gX}, no ${gC}`);
+  }
+  if (eC > 0 && Math.abs(eX - eC) / eC > 0.3) {
+    concesiones.push(`${eX} elegibles frente a ${eC}`);
+  }
+  return { parecido, concesiones };
+}
+
+/**
+ * Cuánto de la brecha cierra su composición esperada.
+ *
+ * `sex_top_*` da el reparto observado del aula; se le aplica su propia tasa
+ * porque entrar a un aula de treinta no produce treinta encuestas. Se acredita
+ * sólo hasta la brecha: traer doscientas mujeres donde faltan treinta no es
+ * cinco veces mejor que traer treinta.
+ */
+export function ayudaCon(
+  cand: MonitoreoAulasPlanRow & { sex_top_1?: string; sex_top_1_n?: number; sex_top_2_n?: number; tasa_efectividad_aula?: number },
+  brecha: BrechaPorSexo,
+): number {
+  const total = Math.max(0, brecha.mujeres) + Math.max(0, brecha.hombres);
+  if (total <= 0) return 0;
+  const tasa = numero(cand.tasa_efectividad_aula) > 0 ? numero(cand.tasa_efectividad_aula) : 0.55;
+  const n1 = numero(cand.sex_top_1_n);
+  const n2 = numero(cand.sex_top_2_n);
+  const dominante = texto(cand.sex_top_1).toUpperCase();
+  const mujeres = dominante === "M" ? n2 : n1;
+  const hombres = dominante === "M" ? n1 : n2;
+  const cierraM = Math.min(mujeres * tasa, Math.max(0, brecha.mujeres));
+  const cierraH = Math.min(hombres * tasa, Math.max(0, brecha.hombres));
+  return (cierraM + cierraH) / total;
+}
+
+/** Peso del parecido en el total. La ayuda se lleva el resto. */
+export const PESO_DEL_PARECIDO = 0.6;
+
+/**
+ * Los mejores candidatos, agrupados por origen y ordenados dentro de cada uno.
+ *
+ * La cadena propia va primero **siempre**, aunque otro candidato puntúe más:
+ * es la guía del procedimiento y saltársela sin decirlo convertiría una
+ * recomendación en una decisión tomada por la máquina.
+ */
+export function candidatosDeReemplazo(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  caido: MonitoreoAulasPlanRow,
+  brecha: BrechaPorSexo = { mujeres: 0, hombres: 0 },
+  tope = 3,
+): Record<OrigenDeCandidato, CandidatoDeReemplazo[]> {
+  const puntuar = (fila: MonitoreoAulasPlanRow, origen: OrigenDeCandidato): CandidatoDeReemplazo => {
+    const { parecido, concesiones } = parecidoCon(caido, fila);
+    const ayuda = ayudaCon(fila, brecha);
+    return {
+      fila,
+      origen,
+      parecido,
+      ayuda,
+      total: PESO_DEL_PARECIDO * parecido + (1 - PESO_DEL_PARECIDO) * ayuda,
+      concesiones,
+    };
+  };
+  const mejores = (lista: MonitoreoAulasPlanRow[], origen: OrigenDeCandidato) =>
+    lista
+      .map((f) => puntuar(f, origen))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, tope);
+
+  return {
+    // Dentro de la propia cadena manda el orden del sorteo, no la puntuación:
+    // el reemplazo 1 es el reemplazo 1. La puntuación viaja para poder
+    // enseñarla, no para reordenar la guía.
+    cadena: cadenaPropia(filas, caido)
+      .map((f) => puntuar(f, "cadena"))
+      .slice(0, tope),
+    otra_cadena: mejores(reservasDisponibles(filas, caido), "otra_cadena"),
+    extra: mejores(bolsonExtra(filas), "extra"),
+  };
+}

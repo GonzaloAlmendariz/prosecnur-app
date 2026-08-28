@@ -5673,3 +5673,236 @@
   font-style: normal;
   font-size: 0.88em;
 }
+
+/* ── Carga de campo ────────────────────────────────────────────────────────
+   La malla es una tabla de verdad y no un grid de divs: el eje es día × franja
+   y cada celda tiene dos encabezados que la nombran. Con divs el lector de
+   pantalla lee ciento ochenta números sueltos.
+
+   El alto de la celda es fijo (`--aulas-carga-celda`) y NO se deriva del número
+   de franjas vivas: con el control de duración al mínimo se pintan quince
+   columnas y con el máximo veintiocho, y un alto proporcional haría que la
+   malla cambiara de tamaño al mover un slider (C2). */
+.aulas-carga {
+  --aulas-carga-celda: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.aulas-carga-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.aulas-carga-cab h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-carga-cab p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  max-width: 62ch;
+}
+.aulas-carga-exportar {
+  flex: none;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.aulas-carga-exportar:hover { border-color: var(--pulso-border-strong); }
+.aulas-carga-exportar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
+
+.aulas-carga-controles {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+.aulas-carga-controles > label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--pulso-text-soft); }
+.aulas-carga-controles strong { color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums; }
+.aulas-carga-controles input[type="range"] { width: 210px; accent-color: var(--pulso-module-monitoring); }
+.aulas-carga-momento { display: inline-flex; border: 1px solid var(--pulso-border); border-radius: 8px; overflow: hidden; }
+.aulas-carga-momento button {
+  border: 0; background: var(--pulso-surface); color: var(--pulso-text-soft);
+  padding: 7px 13px; font-size: 12.5px; cursor: pointer;
+}
+.aulas-carga-momento button[aria-pressed="true"] { background: var(--pulso-module-monitoring); color: var(--pulso-surface); }
+.aulas-carga-momento button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+
+.aulas-carga-kpis { display: flex; gap: 22px; margin: 0 0 0 auto; }
+.aulas-carga-kpis div { display: flex; flex-direction: column; }
+.aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
+.aulas-carga-kpis dd {
+  margin: 0 0 3px; order: 1;
+  font-size: 26px; font-weight: 600; line-height: 1;
+  color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums;
+}
+.aulas-carga-kpis dd.es-texto { font-size: 15px; padding-top: 8px; }
+
+/* El scroll horizontal vive aquí y sólo aquí: la malla no cabe en 1024 y el
+   cuerpo de la página nunca debe desplazarse de lado (C4). */
+.aulas-carga-malla-scroll { overflow-x: auto; }
+.aulas-carga-malla { border-collapse: separate; border-spacing: 2px; width: 100%; }
+.aulas-carga-malla th {
+  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 6px; white-space: nowrap;
+}
+.aulas-carga-malla thead th:first-child { width: 96px; }
+.aulas-carga-malla tbody th {
+  text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
+  font-size: 12.5px; color: var(--pulso-text-soft); white-space: nowrap;
+}
+.aulas-carga-malla td { padding: 0; }
+.aulas-carga-celda {
+  display: flex; align-items: center; justify-content: center;
+  height: var(--aulas-carga-celda); min-width: 28px; border-radius: 4px;
+  font-size: 11.5px; font-variant-numeric: tabular-nums;
+}
+
+.aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
+.aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-carga-leyenda li { display: inline-flex; align-items: center; gap: 5px; }
+.aulas-carga-leyenda i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.aulas-carga-pabellones { margin: 0; font-size: 12.5px; color: var(--pulso-text-soft); }
+.aulas-carga-pabellones strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-carga-aviso, .aulas-carga-vacio {
+  margin: 0; padding: 12px 14px; border-radius: 8px;
+  background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border);
+  color: var(--pulso-warn-fg); font-size: 12.5px;
+}
+.aulas-carga-vacio { max-width: 64ch; }
+
+@media (max-width: 900px) {
+  .aulas-carga-kpis { margin-left: 0; width: 100%; }
+  .aulas-carga-controles input[type="range"] { width: 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Popover de reemplazo. A quien ir cuando un aula no sale.
+
+   La jerarquia visual sigue la de la decision: primero de que grupo se elige
+   (solapas), luego el candidato, y dentro de el las DOS medidas separadas.
+   Parecido y ayuda nunca se funden en una barra: son la eleccion, y una sola
+   barra la escondería.
+   --------------------------------------------------------------------------- */
+.aulas-reemplazo-popover {
+  display: grid;
+  gap: 10px;
+  width: min(420px, 92vw);
+  padding: 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 18%);
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+}
+
+.aulas-reemplazo-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+.aulas-reemplazo-titulo { margin: 0; font-size: 14px; font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-sub { margin: 2px 0 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+.aulas-reemplazo-cerrar {
+  border: 0; background: none; cursor: pointer; padding: 0 4px;
+  color: var(--pulso-text-soft); font-size: 18px; line-height: 1;
+}
+
+.aulas-reemplazo-solapas { display: flex; gap: 4px; border-bottom: 1px solid var(--pulso-border); }
+.aulas-reemplazo-solapa {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 9px; border: 0; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer;
+  color: var(--pulso-text-soft); font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-medium);
+}
+.aulas-reemplazo-solapa.es-activa { color: var(--pulso-text); border-bottom-color: var(--pulso-module-monitoreo, var(--pulso-text)); }
+.aulas-reemplazo-cuenta {
+  min-width: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--pulso-surface-muted); color: var(--pulso-text-soft);
+  font-size: 9px; font-variant-numeric: tabular-nums; text-align: center;
+}
+
+.aulas-reemplazo-pie { margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+.aulas-reemplazo-lista { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.aulas-reemplazo-item {
+  display: grid; gap: 5px; padding: 9px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 9px;
+  background: var(--pulso-surface-muted);
+}
+/* El primero se distingue por BORDE, no por relleno: un fondo saturado detras
+   de dos barras de color deja las barras sin contraste propio. */
+.aulas-reemplazo-item.es-mejor { border-color: var(--pulso-text-soft); background: var(--pulso-surface); }
+
+.aulas-reemplazo-cabeza { display: flex; align-items: center; gap: 6px; }
+.aulas-reemplazo-puesto {
+  display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--pulso-text-soft); color: var(--pulso-surface);
+  font-size: 9px; font-weight: var(--pulso-weight-semibold);
+}
+.aulas-reemplazo-codigo { font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-sello {
+  padding: 1px 6px; border-radius: 8px;
+  background: var(--pulso-text); color: var(--pulso-surface);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.aulas-reemplazo-curso { margin: 0; font-size: var(--aulas-txt); }
+.aulas-reemplazo-datos { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+.aulas-reemplazo-datos span { white-space: nowrap; }
+
+.aulas-reemplazo-medidas { display: grid; gap: 3px; }
+.aulas-reemplazo-medida { display: grid; grid-template-columns: 72px minmax(0, 1fr) 34px; align-items: center; gap: 6px; }
+.aulas-reemplazo-medida em { color: var(--pulso-text-soft); font-size: var(--aulas-min); font-style: normal; }
+.aulas-reemplazo-medida strong { font-size: var(--aulas-min); font-variant-numeric: tabular-nums; text-align: right; }
+.aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
+.aulas-reemplazo-barra i { display: block; height: 100%; border-radius: 3px; }
+.aulas-reemplazo-barra.es-parecido i { background: #002457; }
+.aulas-reemplazo-barra.es-ayuda i { background: #168a55; }
+
+/* El ambar de `parcial` (#b97611) da 3,71 de contraste a 10 px sobre el fondo
+   del item: por debajo del piso, y medido en pantalla. A este tamano el aviso
+   necesita tinta de texto; el ambar se queda en el rotulo, que es corto y va en
+   semibold, donde 3,71 con peso si se sostiene. */
+.aulas-reemplazo-concesiones { margin: 0; color: var(--pulso-text); font-size: var(--aulas-min); }
+.aulas-reemplazo-concesiones span { color: #8a570d; font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-concesiones.es-limpia { color: var(--pulso-text-soft); }
+
+.aulas-reemplazo-elegir {
+  justify-self: start; margin-top: 2px; padding: 4px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 7px;
+  background: var(--pulso-surface); cursor: pointer;
+  color: var(--pulso-text); font-size: var(--aulas-min); font-weight: var(--pulso-weight-medium);
+}
+
+.aulas-reemplazo-vacio { margin: 0; padding: 10px; border-radius: 9px; background: var(--pulso-surface-muted); color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* El reparto por sexo, en dos lecturas: a cuanta gente se entra (elegibles) y
+   cuantas encuestas salen (esperadas). Van en tabla y no en prosa porque se
+   comparan entre candidatos: la columna alinea, la frase no. */
+.aulas-reemplazo-sexo { width: 100%; border-collapse: collapse; font-size: var(--aulas-min); }
+.aulas-reemplazo-sexo th {
+  padding: 2px 8px 2px 0; color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium); text-align: left; white-space: nowrap;
+}
+.aulas-reemplazo-sexo th em { font-style: normal; opacity: 0.7; }
+.aulas-reemplazo-sexo td { padding: 2px 8px 2px 0; color: var(--pulso-text-soft); white-space: nowrap; }
+.aulas-reemplazo-sexo td b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-sexo td.es-total {
+  color: var(--pulso-text); font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums; text-align: right; width: 34px;
+}
