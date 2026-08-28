@@ -120,7 +120,10 @@ export function AulasCargaDeCampo({
    * posible—, que es justo la distinción que esta vista existe para mostrar.
    */
   const celda = (firme: number, plausible: number) => {
-    if (firme + plausible === 0) return { background: "var(--pulso-surface-2)", color: "var(--pulso-text-faint)" };
+    // La celda vacía NO se pinta: transparente deja pasar la regla de la hora
+    // que lleva el `td`, y así la estructura de la malla la dan las horas y no
+    // un campo de bloques grises compitiendo con los ocupados.
+    if (firme + plausible === 0) return { background: "transparent", color: "var(--pulso-text-faint)" };
     if (firme > 0) {
       const t = firme / topeFirme;
       return {
@@ -137,6 +140,24 @@ export function AulasCargaDeCampo({
   };
 
   const primeraPorAgendar = malla.filas.findIndex((f) => f.porAgendar);
+  /**
+   * Qué filas abren una semana nueva, para separarlas con una regla.
+   *
+   * Quince fechas seguidas se leen como una lista plana; en semanas se leen como
+   * el operativo que son. Se detecta por el día de la semana yendo hacia atrás o
+   * repitiéndose —las fechas vienen ordenadas—, y no por «es lunes»: un campo
+   * que arranca un miércoles no tiene lunes en su primera semana.
+   */
+  const abreSemana = useMemo(() => {
+    const marcas = new Set<string>();
+    let previo = -Infinity;
+    for (const fila of malla.filas) {
+      if (fila.porAgendar || fila.fecha === undefined) continue;
+      if (previo !== -Infinity && fila.dia <= previo) marcas.add(fila.clave);
+      previo = fila.dia;
+    }
+    return marcas;
+  }, [malla]);
   const cuando = malla.pico ? `${malla.pico.fila.etiqueta} ${comoHora(malla.pico.franja)}` : "—";
 
   return (
@@ -252,9 +273,17 @@ export function AulasCargaDeCampo({
           <thead>
             <tr>
               <th scope="col">{eje === "calendario" ? "Fecha" : "Día"}</th>
-              {vivas.map((j) => (
-                <th key={j} scope="col">{comoHora(malla.franjas[j])}</th>
-              ))}
+              {vivas.map((j) => {
+                const enPunto = malla.franjas[j] % 60 === 0;
+                return (
+                  <th key={j} scope="col" className={enPunto ? "es-hora" : "es-media"}>
+                    {/* La media hora no se rotula: 25 etiquetas de 30 en 30 son
+                        el mismo dato repetido. La regla vertical de `es-hora`
+                        basta para saber en qué hora cae cada celda. */}
+                    {enPunto ? comoHora(malla.franjas[j]) : <span className="pulso-sr-only">{comoHora(malla.franjas[j])}</span>}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -270,20 +299,35 @@ export function AulasCargaDeCampo({
                     </th>
                   </tr>
                 ) : null}
-                <tr className={fila.porAgendar ? "es-por-agendar" : undefined}>
+                <tr
+                  className={[
+                    fila.porAgendar ? "es-por-agendar" : "",
+                    abreSemana.has(fila.clave) ? "abre-semana" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined}
+                >
                   <th scope="row">{fila.etiqueta}</th>
-                  {vivas.map((j) => {
+                  {vivas.map((j, k) => {
                     const firme = malla.firmes[d][j];
                     const plausible = malla.plausibles[d][j];
                     const n = firme + plausible;
+                    // En el carril la cifra se escribe sólo cuando CAMBIA. Es una
+                    // banda continua: repetir «2» en veinticinco celdas seguidas
+                    // no añade nada y tapa la forma, que es lo que esa fila viene
+                    // a mostrar; cada escalón queda rotulado una vez. En las
+                    // fechas cada celda es una cita distinta y su número va
+                    // siempre.
+                    const previa = k > 0 ? malla.firmes[d][vivas[k - 1]] + malla.plausibles[d][vivas[k - 1]] : 0;
+                    const rotula = !fila.porAgendar || n !== previa;
                     return (
-                      <td key={j}>
+                      <td key={j} className={malla.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
                         <span
                           className="aulas-carga-celda"
                           style={celda(firme, plausible)}
                           title={tituloDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible, malla.aulas[d][j])}
                         >
-                          {n || ""}
+                          {n && rotula ? n : ""}
                         </span>
                       </td>
                     );

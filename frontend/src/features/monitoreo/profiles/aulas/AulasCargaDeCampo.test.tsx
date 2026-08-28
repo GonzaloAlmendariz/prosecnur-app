@@ -89,6 +89,53 @@ describe("AulasCargaDeCampo", () => {
     expect(html).toContain("1 aula tiene hora acordada pero no fecha");
   });
 
+  it("solo rotula las horas en punto; la media hora queda para lectores de pantalla", () => {
+    const html = renderToStaticMarkup(
+      <AulasCargaDeCampo filas={[aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00" })]} />,
+    );
+    // 25 etiquetas de 30 en 30 son el mismo dato repetido; la regla vertical
+    // de `es-hora` es la que dice en que hora cae cada celda.
+    expect(html).toContain('class="es-hora"');
+    expect(html).toContain('class="es-media"');
+    expect(html).toMatch(/es-media[^>]*><span class="pulso-sr-only">10:30<\/span>/);
+  });
+
+  it("el carril rotula solo donde cambia: es una banda, no veinticinco cuentas", () => {
+    // Dos aulas sin agendar cubriendo 10:00-12:00 dan «2» en cuatro franjas
+    // seguidas. Se escribe una vez.
+    const html = renderToStaticMarkup(
+      <AulasCargaDeCampo
+        filas={[
+          // Dos con fecha y dos sin ella: asi la vista abre en calendario, que
+          // es el unico eje con carril.
+          aula({ classroom_id: "f", sesiones_dia_hora: "LUN 08:00-09:00", scheduled_time: "08:00", scheduled_date: "2026-09-14" }),
+          aula({ classroom_id: "g", sesiones_dia_hora: "LUN 08:00-09:00", scheduled_time: "08:00", scheduled_date: "2026-09-21" }),
+          aula({ classroom_id: "a", sesiones_dia_hora: "MAR 10:00-12:00" }),
+          aula({ classroom_id: "b", sesiones_dia_hora: "MAR 10:00-12:00" }),
+        ]}
+      />,
+    );
+    const i = html.indexOf("es-por-agendar");
+    expect(i).toBeGreaterThan(-1);
+    const carril = html.slice(i);
+    // «2» aparece en cuatro franjas de 30 min, pero rotulado una sola vez.
+    expect((carril.match(/>2<\/span>/g) ?? []).length).toBe(1);
+  });
+
+  it("separa las semanas del calendario en vez de dar una lista plana", () => {
+    const html = renderToStaticMarkup(
+      <AulasCargaDeCampo
+        filas={[
+          aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-14" }),
+          aula({ classroom_id: "b", sesiones_dia_hora: "MAR 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-15" }),
+          // Lunes de la semana siguiente: aqui empieza semana.
+          aula({ classroom_id: "c", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-21" }),
+        ]}
+      />,
+    );
+    expect((html.match(/abre-semana/g) ?? []).length).toBe(1);
+  });
+
   it("sin horario en el catalogo lo dice en vez de pintar una malla vacia", () => {
     const html = renderToStaticMarkup(
       <AulasCargaDeCampo filas={[aula({ classroom_id: "a", sesiones_dia_hora: "" })]} />,
