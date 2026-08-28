@@ -215,6 +215,9 @@
    sin borde de alerta ni acento lateral, para que no compita con el aviso de
    «falta calcular» que puede estar justo encima. */
 .cmv2-tasafac-regla {
+  /* Medida de lectura de la casa. Sin esto, a 1440 la línea llega a ~1.270px
+   * —del orden de 200 caracteres— y el ojo pierde el renglón al volver. */
+  max-width: 760px;
   margin: 0 0 12px;
   padding: 10px 12px;
   border: 1px solid var(--pulso-border-soft, var(--pulso-border));
@@ -347,6 +350,9 @@
 }
 
 .cmv2-curva-cierre {
+  /* Medida de lectura de la casa. Sin esto, a 1440 la línea llega a ~1.270px
+   * —del orden de 200 caracteres— y el ojo pierde el renglón al volver. */
+  max-width: 760px;
   margin: 9px 0 0;
   font-size: 11px;
   line-height: 1.5;
