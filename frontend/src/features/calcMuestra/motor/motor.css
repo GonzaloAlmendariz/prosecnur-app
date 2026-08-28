@@ -1998,6 +1998,7 @@
    * los cinco viewports de la matriz de QA. Cuesta una línea de 10px. */
   .rec-resumen-item-copy > .rec-resumen-desglose {
     display: flex;
+    font-size: 9px;
   }
 
   .rec-resumen-item strong {
@@ -2023,14 +2024,19 @@
  *
  * Envuelve en vez de recortarse, por la misma razón que el nombre del KPI: en
  * la franja el ancho lo reparte `1fr`, así que sólo crece el alto de la fila. */
-.rec-resumen-desglose {
+.rec-resumen-item-copy > .rec-resumen-desglose {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 4px;
+  gap: 0 3px;
   min-width: 0;
-  font-size: 10px;
-  line-height: 1.3;
+  /* Media talla por debajo de la nota: es una cifra de apoyo y compite con el
+   * número de arriba, no lo reemplaza. A 9px las tres partes entran en una sola
+   * línea dentro de una sexta parte de 1280 —donde a 10px envolvían— y siguen
+   * legibles en 1024. */
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
   color: var(--pulso-text-muted);
 }
 
