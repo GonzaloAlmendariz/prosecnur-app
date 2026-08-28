@@ -2,7 +2,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
+// El CONTENIDO, no la ventana: `createPortal` pinta en `document.body`, así
+// que un render estático del modal devuelve cadena vacía.
+import { ContenidoDeReemplazo } from "./AulasPopoverReemplazo";
 
 /**
  * Un cero medido y un cero por no medir no pueden verse igual.
@@ -38,7 +40,7 @@ const RESERVAS = [
 
 const pinta = (brecha?: { mujeres: number; hombres: number }) =>
   renderToStaticMarkup(
-    <AulasPopoverReemplazo caido={CAIDO} filas={RESERVAS} brecha={brecha} />,
+    <ContenidoDeReemplazo caido={CAIDO} filas={RESERVAS} brecha={brecha} />,
   );
 
 describe("«cierra brecha» sólo se dibuja si hay brecha que cerrar", () => {
