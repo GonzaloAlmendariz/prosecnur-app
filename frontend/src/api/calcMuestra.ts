@@ -338,6 +338,20 @@ export type CalcMuestraEstrato = {
   sobremuestra_fija?: number;
   aulas_base_fijas?: number;
   /**
+   * Hasta dónde llegó la CERTIFICACIÓN, aparte de dónde quedó la base.
+   *
+   * `aulas_base_origen` es un solo campo y sólo puede nombrar UN dueño, así que
+   * un estrato con dos decisiones encima pierde la primera. Medido en HSVG 2026
+   * el 2026-08-27: Derecho tenía 18 por certificación —la fórmula pedía 16— y
+   * al subirlo a 19 con el stepper quedó entero como `operativa`; el total
+   * seguía siendo 174 pero la descomposición decía 6 aulas de certificación y
+   * 3 operativas, en vez de 8 y 1.
+   *
+   * Con esto la descomposición se deriva sin ambigüedad:
+   * fórmula → `aulas_base_certificada` → `aulas_base`.
+   */
+  aulas_base_certificada?: number;
+  /**
    * De dónde sale `aulas_base_fijas`. Sin esta etiqueta los tres orígenes
    * producen números idénticos a la vista y el sustento no puede reconstruir
    * el diseño: en HSVG2026 `max(fórmula, certeza)` da 173 y el final es 174,
@@ -448,6 +462,8 @@ export type CalcMuestraAulasEstrato = {
   /** Lo que pide la fórmula, siempre, aunque el estrato traiga una fijación.
    *  Sin esto la pantalla no puede decir cuánto se apartó una decisión. */
   aulas_formula?: number;
+  /** Hasta dónde llegó la certificación. 0 si no pidió nada sobre la fórmula. */
+  aulas_base_certificada?: number;
   /** De dónde sale `aulas_base`. Vacío en resultados anteriores al campo. */
   aulas_base_origen?: "" | "formula" | "certificacion" | "operativa";
   /** El motivo de una agregación operativa. */

@@ -47,7 +47,12 @@ export function estratosConAulaExtra(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: Math.round(aulasActuales) + 1, aulas_base_origen: "operativa" as const };
+    return {
+      ...e,
+      aulas_base_fijas: Math.round(aulasActuales) + 1,
+      aulas_base_certificada: Number(e.aulas_base_certificada) || 0,
+      aulas_base_origen: "operativa" as const,
+    };
   });
   return tocado ? nuevos : null;
 }
@@ -74,7 +79,26 @@ export function estratosConAjusteAula(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: nuevo, aulas_base_origen: "operativa" as const };
+    // El ajuste NO borra lo que pidio la certificacion.
+    //
+    // Antes ponia `operativa` a secas, y con eso un estrato que ya venia
+    // certificado perdia su primera decision: Derecho tenia 18 por
+    // certificacion —la formula pedia 16— y al subirlo a 19 quedaba entero
+    // como operativa. El total seguia bien; la descomposicion decia 6 aulas de
+    // certificacion y 3 operativas, cuando eran 8 y 1.
+    //
+    // El nivel certificado se conserva y el origen nombra a quien fijo el
+    // valor ACTUAL: volver exactamente al numero certificado devuelve el
+    // origen a la certificacion, porque ahi ya no queda decision del analista.
+    const certificada = Number(e.aulas_base_certificada) || 0;
+    return {
+      ...e,
+      aulas_base_fijas: nuevo,
+      aulas_base_certificada: certificada,
+      aulas_base_origen: (certificada > 0 && nuevo === certificada
+        ? "certificacion"
+        : "operativa") as "certificacion" | "operativa",
+    };
   });
   return tocado ? nuevos : null;
 }
@@ -106,7 +130,12 @@ export function estratosConAulasFijadas(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: nuevo, aulas_base_origen: "certificacion" as const };
+    return {
+      ...e,
+      aulas_base_fijas: nuevo,
+      aulas_base_certificada: nuevo,
+      aulas_base_origen: "certificacion" as const,
+    };
   });
   return tocado ? nuevos : null;
 }
@@ -258,7 +287,12 @@ export function estratosConMinimosCertificados(
     const objetivo = porFacultad.get(claveFacultad(e.label));
     if (objetivo == null) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: objetivo, aulas_base_origen: "certificacion" as const };
+    return {
+      ...e,
+      aulas_base_fijas: objetivo,
+      aulas_base_certificada: objetivo,
+      aulas_base_origen: "certificacion" as const,
+    };
   });
   return tocado ? nuevos : null;
 }

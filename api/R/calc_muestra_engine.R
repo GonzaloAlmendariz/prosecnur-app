@@ -1057,6 +1057,7 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
       aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
       aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
@@ -1423,6 +1424,30 @@ calc_muestra_calcular_componente <- function(comp) {
     } else {
       ""
     }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
+    }
     aulas_reemplazo <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
     } else {
@@ -1442,6 +1467,7 @@ calc_muestra_calcular_componente <- function(comp) {
       tau             = tau_e,
       aulas_base      = aulas_base,
       aulas_formula   = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
       aulas_base_origen = aulas_base_origen,
       aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_reemplazo,
@@ -1790,6 +1816,30 @@ calc_muestra_calcular_componente <- function(comp) {
     } else {
       ""
     }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
+    }
     aulas_extra <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
     } else {
@@ -1804,6 +1854,7 @@ calc_muestra_calcular_componente <- function(comp) {
       tau = tau_e,
       aulas_base = aulas_base,
       aulas_formula = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
       aulas_base_origen = aulas_base_origen,
       aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_extra,
@@ -2416,6 +2467,7 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
       aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
       aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
