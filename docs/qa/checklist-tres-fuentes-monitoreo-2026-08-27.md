@@ -25,7 +25,7 @@ Hoja «Aulas Agendadas». Responde el trabajo de **quien llama al docente**.
 | A4 | Anticipación: cuántos días antes hay que llamar | ☑ | `DIAS_DE_ANTICIPACION = 7`; medición independiente da **exactamente 7** |
 | A5 | Las reservas dormidas no se cuentan como «por agendar» | ☑ | `seVaAAgendar()` |
 | A6 | El recorte del payload se declara donde se leen sus cifras | ☑ | franja: «contado sobre 500 de 1 512 filas» |
-| A7 | **`TASA_DE_CAIDA = 0.235` es un promedio que esconde un abanico de 2,3×**: llamado antes del campo **16 %**, llamado durante **36 %** | ⛔ | cambiarla mueve `aulasAPedir` en toda la alerta |
+| A7 | **`TASA_DE_CAIDA = 0.235` no se reproduce desde el libro de 2025**, y «caída» significa dos cosas | ⛔ | medido sobre el libro real: ver § abajo. **Mi «16 % / 36 %» anterior era falso y queda retirado** |
 | A8 | **El eje de `sample_status` no se declara**: sigue la **agendación**, no la aplicación, y en pantalla se lee como «el estado del aula» | ☐ | ver § «El error de medición» |
 | A9 | **El gráfico de aulas agendadas se comprime demasiado** (Gonzalo) | ☐ | `AulasAgendaPorDia` |
 | A10 | **Se sigue agendando en la semana 2** — en 2025 **no**: una sola llamada. Ninguna superficie lo dice | ☐ | — |
@@ -463,6 +463,126 @@ en 73 estratos. No son dos alternativas: **el 165 está caduco**.
 **La regla que sale de aquí, y que vale más que el número:** el **objetivo** se
 lee del escenario activo; el **número de aulas** se lee de la selección que
 corrió, nunca del `aulas_base_total` guardado en el componente.
+
+### El 40 apareció: sale del fixture, no del libro
+
+`TASA_DE_CAIDA = 0.235` se documenta como «medidos sobre la hoja *Aulas
+Agendadas* del **libro real**». No sale de ahí. Sale del fixture sintético
+`aulas_campo.pulso`, donde los 170 titulares se reparten en **130 aplicadas, 16
+agendadas sin aplicar y 24 sin estado**: los no aplicados son 16 + 24 = **40**.
+
+En el libro real la misma cuenta da **21 de 170 = 12,4 %**. Y el 23,5 % no
+aparece en ninguna celda de las 19 hojas del libro.
+
+No es un error de cálculo: es un rótulo que atribuye una cifra a una fuente que
+no la produce. Mismo patrón que «un rótulo promete otro número», aplicado a la
+procedencia en vez de al valor.
+
+### Los libros crecen a lo ANCHO, y ninguna hoja resumen tiene el total
+
+Aviso de Gonzalo, y es una regla para el importador, no una curiosidad de 2025:
+los libros de **agendación** y de **registro de campo** ponen un bloque de
+columnas por tipo de aula —titular, reemplazo 1, 2, 3…— uno detrás de otro. En
+«Aulas Agendadas» son **12 bloques**: el primero de 21 columnas (lleva
+`ID.MATCH`) y los once siguientes de 20. La etiqueta lo confirma: el bloque *b*
+lleva «Muestra 0*b*».
+
+**Leerlo con paso 21 en todos desplaza los offsets** y hace que el «status» del
+bloque 2 salgan fechas y el del 3, nombres de día. Pasó en la primera pasada.
+
+Y lo que de verdad importa: **el total de aulas aplicadas no está en ninguna
+hoja resumen.**
+
+| | aulas con fecha de aplicación |
+|---|---|
+| barrido horizontal completo | **199** |
+| hoja «Aulas Aplicadas (Campo)» | 170 |
+| de más en el horizontal | **29**, de los que **26 son las «aulas adicionales»** |
+
+Los 170 están todos dentro de los 199. Y **6 de los 29 que faltan son
+titulares**: la hoja de campo no es un registro completo ni de su propio tipo de
+aula. Leer sólo la hoja que parece completa devuelve un subconjunto sin que nada
+avise —y da 143 titulares aplicados en vez de **149**, o sea 15,9 % de caída en
+vez de **12,4 %**—.
+
+### A7 · la constante no se reproduce, y «caída» son dos cosas
+
+Medido sobre `Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx`, hoja «Aulas
+Agendadas», 170 filas. La hoja repite un bloque por eslabón de la cadena: el
+primero tiene 21 columnas (lleva `ID.MATCH`) y los siguientes 20 — leerla con
+paso 21 desplaza todo y hace que el status del eslabón 2 salgan fechas.
+
+**Primero: retiro una cifra mía.** Este checklist decía «llamado antes del campo
+16 %, llamado durante 36 %, abanico de 2,3×». **No reproduce.** La escribí sin
+dejar la derivación, y hoy no la puedo sustanciar. Los números reales están
+abajo y el efecto es más fuerte, pero eso no salva la afirmación: era falsa.
+
+**La constante tampoco reproduce.** El código dice «de 170 titulares, 40
+necesitaron reemplazo (23,5 %)». Ninguna definición da 40:
+
+| qué se cuenta | n | tasa |
+|---|---|---|
+| el titular **no llegó a aplicarse** | 21 | 12,4 % |
+| `STATUS = REEMPLAZADA` | 24 | 14,1 % |
+| **usó algún reemplazo** | 46 | 27,1 % |
+| aulas de reemplazo consumidas | 50 | 29,4 % |
+| todo lo que no es `AGENDADA` | 51 | 30,0 % |
+| **lo que declara la constante** | **40** | **23,5 %** |
+
+**Por qué es difícil: «reemplazo» significa dos cosas.**
+
+| | usó reemplazo | no lo usó |
+|---|---|---|
+| el titular **sí** se aplicó | **25** | 124 |
+| el titular **no** se aplicó | **21** | 0 |
+
+Hay 25 aulas donde el titular salió **y además** entró un reemplazo: eso es
+refuerzo, no caída. Las 19 marcadas «EN RESERVA 1» se aplicaron *y* consumieron
+reserva. Sólo **21 son caídas** en el sentido que la fórmula necesita —el titular
+no ocurrió y hubo que poner otro—. Es otra vez la veta de «una palabra para dos
+cosas», ahora en el eje del reemplazo.
+
+**El «efecto de llamar antes» NO existe: es A2 visto por un proxy mal leído.**
+
+Primero medí que llamando antes del 8 de septiembre caía el 5,3 % y llamando
+después el 21,3 %, y lo presenté como un abanico de 4× por anticipación. Gonzalo
+lo objetó —«casi el 100 % se llamó antes de que empezara el campo»— y al
+comprobarlo se cae:
+
+| grupo | n | intentos (mediana) | necesitó >1 intento |
+|---|---|---|---|
+| llamado 2-5 sep | 95 | **1** | 41 % |
+| llamado 8+ sep | 75 | **3** | **88 %** |
+
+**`FECHA.DE.LLAMADA` no registra cuándo se decidió llamar: registra cuándo se
+logró contactar.** El equipo llamó a todos desde el 2 de septiembre; los que
+contestaron a la primera quedaron fechados 2-5 y los que costaron tres intentos
+acabaron fechados 8+. Leí una variable de **resultado** como si fuera una
+**decisión**.
+
+La anticipación nunca fue el problema: cero aulas se llamaron después de su
+propia sesión, mediana 7 días, mínimo 0.
+
+Lo que hay debajo es la caída por insistencia, que **ya es A2 y ya avisa**:
+
+| intentos | aulas | caen |
+|---|---|---|
+| 1 | 64 | **4,7 %** |
+| 2 | 41 | 14,6 % |
+| 3 | 29 | 13,8 % |
+| 4+ | 33 | ~20 % |
+
+**Queda vivo de A7 sólo lo primero**: la constante no se reproduce y «reemplazo»
+mezcla sustitución con refuerzo. No hay palanca de «llamar antes» que ganar.
+
+**Lo que está en juego.** Para una brecha de 50 aulas, `aulasAPedir` da: 53 al
+5,3 %, 58 al 12,4 %, 64 al 21,3 %, 66 al 23,5 % (hoy), 69 al 27,1 %. **Dieciséis
+aulas de diferencia** para la misma brecha: cuántos docentes se molestan y cuánta
+reserva se quema.
+
+**Pendiente de decisión**, y va en dos pasos: primero qué evento cuenta como
+caída —sin eso la tasa no se puede fijar—, y después si es una sola tasa o dos
+según se llame antes o durante el campo.
 
 ## Los criterios de encuesta efectiva salen del XLSForm 2026, no del calco
 
