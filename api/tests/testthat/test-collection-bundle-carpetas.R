@@ -174,3 +174,66 @@ test_that("la escuela viaja del marco a la ficha", {
     list(program = "ARQUITECTURA"),
     c("program", "escuela", "school", "especialidad", "carrera", "programa")), "ARQUITECTURA")
 })
+
+test_that("el codigo del archivo ordena por cadena, no alfabeticamente", {
+  # El sistema de archivos ordena alfabeticamente y eso destroza el orden del
+  # operativo: «CH 1, CH 10, CH 100, …, CH 2». Medido sobre el paquete de
+  # HSVG2026 —174 titulares, 1.259 reemplazos, 79 extras—, los TRES cajones
+  # salian desordenados: quien busca la cadena 2 la encuentra despues de la 19.
+  padded <- vapply(
+    c("R 1.2", "R 10.2", "R 2.2", "R 100.2", "R 11.2"),
+    .cmj_codigo_ordenable, character(1), ancho = 3L, USE.NAMES = FALSE
+  )
+  expect_identical(
+    sort(padded),
+    c("R 001.2", "R 002.2", "R 010.2", "R 011.2", "R 100.2")
+  )
+
+  # Se acolcha el numero de la CADENA, no el del reemplazo: dentro de
+  # «Reemplazo 02» todas comparten ese `.2`, y acolcharlo solo alargaria.
+  expect_identical(.cmj_codigo_ordenable("R 5.3", 3L), "R 005.3")
+  expect_identical(.cmj_codigo_ordenable("CH 5", 3L), "CH 005")
+  expect_identical(.cmj_codigo_ordenable("EXTRA 12", 3L), "EXTRA 012")
+})
+
+test_that("el ancho sale del plan y no se fija", {
+  # Un estudio de 40 aulas no necesita tres digitos; uno de 1.200 necesita cuatro.
+  pag <- function(...) lapply(list(...), function(x) list(unit = list(operational_code = x)))
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 9")), 1L)
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 174")), 3L)
+  expect_identical(.cmj_ancho_codigo(pag("CH 1", "CH 1200")), 4L)
+  # Sin numeros no se inventa un ancho.
+  expect_identical(.cmj_ancho_codigo(pag("AULA-A")), 1L)
+  expect_identical(.cmj_ancho_codigo(list()), 1L)
+})
+
+test_that("un codigo que no reconocemos pasa tal cual", {
+  # Es preferible una ficha fuera de orden a una con el codigo reescrito a ojo.
+  for (crudo in c("AULA-A", "", "SIN NUMERO")) {
+    expect_identical(.cmj_codigo_ordenable(crudo, 3L), crudo)
+  }
+  # Y un ancho invalido no toca nada.
+  expect_identical(.cmj_codigo_ordenable("CH 5", NA), "CH 5")
+  expect_identical(.cmj_codigo_ordenable("CH 5", 0L), "CH 5")
+})
+
+test_that("los reemplazos se reparten en una carpeta por nivel", {
+  # 1.259 reemplazos dejaban 380 fichas en una sola carpeta, que es el mismo
+  # problema que los tres cajones vinieron a resolver, un nivel mas abajo.
+  expect_identical(.cmj_carpeta_de_rol("titular"), "Titulares")
+  expect_identical(.cmj_carpeta_de_rol("extra_reserve_pool"), "Adicionales")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 1L), file.path("Reemplazos", "Reemplazo 01"))
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 11L), file.path("Reemplazos", "Reemplazo 11"))
+
+  # El cero a la izquierda: sin el, «Reemplazo 10» se cuela entre el 1 y el 2.
+  niveles <- vapply(c(1L, 2L, 10L, 11L), function(n) {
+    basename(.cmj_carpeta_de_rol("chain_reserve", n))
+  }, character(1))
+  expect_identical(sort(niveles), niveles)
+
+  # Sin orden declarado NO se inventa un nivel: la ficha va al cajon a secas.
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve"), "Reemplazos")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", NA), "Reemplazos")
+  # Y no hay tope: si un estudio llega a 14, hay carpeta 14.
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 14L), file.path("Reemplazos", "Reemplazo 14"))
+})

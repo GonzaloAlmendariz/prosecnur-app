@@ -54,9 +54,9 @@
 #' Un rol que no conocemos NO se reparte a ojo: va a «Otros» y se ve. Meterlo en
 #' cualquiera de los tres cajones cambiaria en silencio lo que alguien lleva a
 #' campo.
-.cmj_carpeta_de_rol <- function(role_key) {
+.cmj_carpeta_de_rol <- function(role_key, replacement_order = NULL) {
   key <- tolower(gsub("[ -]+", "_", trimws(as.character(role_key %||% "")[1])))
-  switch(
+  cajon <- switch(
     key,
     titular = "Titulares",
     chain_reserve = "Reemplazos",
@@ -64,6 +64,72 @@
     extra_reserve_pool = "Adicionales",
     "Otros"
   )
+  if (!identical(cajon, "Reemplazos")) return(cajon)
+  # **Los reemplazos se reparten por NIVEL dentro de su cajon.**
+  #
+  # Los tres cajones no bastaban. Medido sobre el paquete de HSVG2026: los 1.259
+  # reemplazos dejaban **380 fichas en una sola carpeta** (Ciencias e Ingenieria),
+  # que es el mismo problema que los cajones vinieron a resolver, un nivel mas
+  # abajo. Separando por nivel esa carpeta baja a 37 como maximo y 8 de mediana.
+  #
+  # El cero a la izquierda no es adorno: sin el, el sistema de archivos ordena
+  # «Reemplazo 1, Reemplazo 10, Reemplazo 11, Reemplazo 2» y el decimo se cuela
+  # entre el primero y el segundo. Las cadenas de este estudio llegan a once.
+  n <- suppressWarnings(as.integer(replacement_order %||% NA))
+  if (length(n) != 1L || is.na(n) || n < 1L) return(cajon)
+  file.path(cajon, sprintf("Reemplazo %02d", n))
+}
+
+#' El codigo operativo con su numero acolchado, para que la carpeta ordene.
+#'
+#' El sistema de archivos ordena alfabeticamente, y eso destroza el orden del
+#' operativo: «CH 1, CH 10, CH 100, CH 101, …, CH 2». Medido sobre el paquete de
+#' HSVG2026, con 174 titulares, 1.259 reemplazos en cadenas de hasta 11 y 79
+#' extras, **los tres cajones salen desordenados**: quien busca la cadena 2 la
+#' encuentra despues de la 19.
+#'
+#' Se acolcha SOLO el numero que ordena dentro de la carpeta —el de la cadena o
+#' el del extra—, no el orden del reemplazo: dentro de «Reemplazo 02» todas las
+#' fichas comparten ese `.2`, asi que acolcharlo tambien solo alargaria el
+#' nombre. «CH 001», «R 001.2», «EXTRA 01».
+#'
+#' El ancho se calcula del plan, no se fija: un estudio de 40 aulas no necesita
+#' tres digitos y uno de 1.200 necesita cuatro.
+#'
+#' Un codigo sin numero —o con una forma que no reconocemos— pasa TAL CUAL. Es
+#' preferible una ficha fuera de orden a una con el codigo reescrito a ojo.
+#'
+#' @param codigo codigo operativo («CH 5», «R 5.3», «EXTRA 12»).
+#' @param ancho digitos a los que acolchar.
+#' @return el codigo con su numero acolchado.
+#' @keywords internal
+.cmj_codigo_ordenable <- function(codigo, ancho) {
+  codigo <- trimws(as.character(codigo %||% "")[1])
+  ancho <- suppressWarnings(as.integer(ancho))
+  if (!nzchar(codigo) || length(ancho) != 1L || is.na(ancho) || ancho < 1L) return(codigo)
+  m <- regmatches(codigo, regexec("^([^0-9]*?)\\s*([0-9]+)(.*)$", codigo))[[1]]
+  if (length(m) != 4L) return(codigo)
+  prefijo <- trimws(m[[2]])
+  numero <- sprintf(paste0("%0", ancho, "d"), as.integer(m[[3]]))
+  paste0(if (nzchar(prefijo)) paste0(prefijo, " ") else "", numero, m[[4]])
+}
+
+#' Cuantos digitos hace falta acolchar para que este plan ordene.
+#'
+#' @param paginas `compiled$pages`.
+#' @return entero >= 1.
+#' @keywords internal
+.cmj_ancho_codigo <- function(paginas) {
+  numeros <- vapply(paginas %||% list(), function(p) {
+    m <- regmatches(
+      .crf_txt(p$unit$operational_code, ""),
+      regexec("^[^0-9]*?\\s*([0-9]+)", .crf_txt(p$unit$operational_code, ""))
+    )[[1]]
+    if (length(m) == 2L) suppressWarnings(as.integer(m[[2]])) else NA_integer_
+  }, integer(1))
+  numeros <- numeros[is.finite(numeros)]
+  if (!length(numeros)) return(1L)
+  max(1L, nchar(as.character(max(numeros))))
 }
 
 # Vista de una sola pagina sobre un `compiled` ya armado, para poder llamar a
@@ -167,10 +233,13 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     # dos unidades de la misma facultad comparten label (dos secciones del
     # mismo curso, por ejemplo).
     seen_names <- new.env(parent = emptyenv())
+    # Un solo ancho para todo el paquete: mezclarlos entre carpetas haria que
+    # «CH 01» y «CH 001» convivieran en el mismo zip.
+    ancho_codigo <- .cmj_ancho_codigo(compiled$pages)
     for (i in seq_len(n_pages)) {
       page_i <- compiled$pages[[i]]
       facultad <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
-      cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key)
+      cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key, page_i$unit$replacement_order)
       folder <- file.path(facultad, cajon)
       folder_path <- file.path(fichas_dir, folder)
       dir.create(folder_path, recursive = TRUE, showWarnings = FALSE)
@@ -186,7 +255,8 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       #
       # El marco trae el label en minuscula y en una carpeta de cientos de PDF
       # la caja uniforme deja escanear la lista sin leerla entera.
-      codigo <- .crf_txt(page_i$unit$operational_code, "")
+      # Acolchado para que la carpeta ordene por cadena y no alfabeticamente.
+      codigo <- .cmj_codigo_ordenable(.crf_txt(page_i$unit$operational_code, ""), ancho_codigo)
       curso <- toupper(
         .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
       )
