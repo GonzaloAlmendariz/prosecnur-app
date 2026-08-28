@@ -5684,8 +5684,9 @@
    columnas y con el máximo veintiocho, y un alto proporcional haría que la
    malla cambiara de tamaño al mover un slider (C2). */
 .aulas-carga {
-  --aulas-carga-celda: 34px;
-  --aulas-carga-ancho: 36px;
+  --aulas-carga-celda: 28px;
+  --aulas-carga-ancho: 30px;
+  --aulas-carga-celda-carril: 22px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -5785,7 +5786,18 @@
   font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
   text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 6px; white-space: nowrap;
 }
-.aulas-carga-malla thead th:first-child { width: 96px; }
+.aulas-carga-malla thead th:first-child { width: 104px; }
+/* La regla vertical de cada hora en punto. Sin ella, en una malla dispersa —15
+   fechas con cuatro celdas cada una— no hay forma de saber en qué columna cae un
+   cuadrito suelto sin recorrer la fila con el dedo. */
+.aulas-carga-malla th.es-hora, .aulas-carga-malla td.es-hora { box-shadow: inset 1px 0 0 var(--pulso-border); }
+.aulas-carga-malla thead th.es-media { box-shadow: none; }
+
+/* Corte de semana: quince fechas seguidas son una lista; en semanas son un
+   operativo. */
+.aulas-carga-malla tbody tr.abre-semana > * { border-top: 1px solid var(--pulso-border-strong); }
+.aulas-carga-malla tbody tr.abre-semana > th { padding-top: 7px; }
+.aulas-carga-malla tbody tr.abre-semana td .aulas-carga-celda { margin-top: 5px; }
 .aulas-carga-malla tbody th {
   text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
   font-size: 12.5px; color: var(--pulso-text-soft); white-space: nowrap;
@@ -5802,7 +5814,24 @@
   color: var(--pulso-text-faint);
   border-top: 1px solid var(--pulso-border);
 }
+/* El carril se pinta MENOS que el calendario. Con la misma altura y saturación
+   que las fechas, cinco filas de banda continua eran lo más ruidoso de la
+   pantalla —y son lo menos accionable: un patrón semanal, no un día al que
+   mandar gente—. El operativo tiene que leerse primero. */
 .aulas-carga-malla tbody tr.es-por-agendar th { font-style: italic; color: var(--pulso-text-faint); }
+.aulas-carga-malla tbody tr.es-por-agendar .aulas-carga-celda {
+  height: var(--aulas-carga-celda-carril);
+  font-size: 10.5px;
+  opacity: 0.66;
+  /* Banda continua, no fichas sueltas. Lo que el carril dice es «en todo este
+     tramo puede caer la aplicación», y trocearlo en cuadritos de 30 minutos lo
+     dibuja como veinticinco cuentas independientes: una precisión que el dato
+     no tiene. Los márgenes negativos cierran el `border-spacing`. */
+  border-radius: 0;
+  margin: 0 -1px;
+}
+.aulas-carga-malla tbody tr.es-por-agendar td:first-of-type .aulas-carga-celda { border-radius: 4px 0 0 4px; margin-left: 0; }
+.aulas-carga-malla tbody tr.es-por-agendar td:last-child .aulas-carga-celda { border-radius: 0 4px 4px 0; margin-right: 0; }
 .aulas-carga-celda {
   display: flex; align-items: center; justify-content: center;
   height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
