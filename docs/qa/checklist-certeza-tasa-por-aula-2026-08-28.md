@@ -33,8 +33,9 @@ Y la restricción, también suya: **no se cambia sobre un estudio en curso**.
 | 7 | Decisión: adoptar o declarar el conservadurismo deliberado | `calc_muestra_aulas_certeza.R` (bloque sobre `.cm_certeza_evaluar`) | ◐ **recomendación puesta y motor documentado**; la ratifica Gonzalo |
 | 8 | Si se adopta: test de regresión | `api/tests/testthat/test-calc-muestra-aulas-certeza.R` | 🔒 **bloqueado** — depende de la 7; el trabajo está especificado abajo |
 | 9 | Si se adopta: sección del documento de diseño muestral | `~/Documents/Pulso/HSTVG2026/Diseno-muestral-HSVG2026_v2.html` | 🔒 **bloqueado** — depende de la 7; y el documento ya dice qué tasa usa (ver abajo) |
-| 10 | *Nuevo*: reconciliar bruto/neto entre `certificacion.R` y `certeza.R` | `calc_muestra_aulas_certificacion.R` | ☐ **abierto** — 365 encuestas y el veredicto de EE.GG. Letras |
+| 10 | *Nuevo*: reconciliar bruto/neto entre `certificacion.R` y `certeza.R` | `calc_muestra_aulas_certificacion.R` | ☐ **abierto** — ~150 encuestas; **ni bruto ni neto**, ver la corrección |
 | 11 | *Nuevo*: el ADR 0082 describe tramos sellados que el proyecto vivo no tiene | `docs/adrs/0082-la-tau-del-diseno-…md` | ☐ **abierto** |
+| 12 | *Nuevo*: el `ya_medidas` por aula de 2025, para limpiar los tramos por TRAMO y no por facultad | base 2025 (no está en el sello) | ☐ **abierto** — es lo que falta para cerrar el 10 |
 
 ## Ítem 2 — el mecanismo, exacto
 
@@ -167,6 +168,13 @@ Contabilidad certifica **igual en 3**, y su probabilidad con 2 aulas **baja** de
 78,9 % a 76,0 %.
 
 ### Hallazgo 2 — la inconsistencia grande no es la tasa: es el traslape
+
+> **CORREGIDO el 2026-08-28.** Las cifras «neta» de abajo descuentan el
+> traslape dos veces: el 7,2 % ya está dentro de la tasa de 2025. El
+> veredicto «EE.GG. Letras no llega» **queda retirado** — con la tasa
+> limpia da 1,056. Lee la sección «Corrección del Hallazgo 2» antes de
+> usar cualquier número de aquí. La brecha real entre superficies no es
+> de 365 encuestas sino de **~150** (3 148,9 contra 2 998,9).
 
 Sobre los 174 titulares realmente sorteados:
 
@@ -451,3 +459,114 @@ para la planificación operativa».
 Así que no falta la frase: falta el **porqué**, y falta decir que la
 certificación de lo ya sorteado usa la otra tasa y además no descuenta
 repetidos. Eso es lo que habría que agregar, se adopte o no el cambio.
+
+## Corrección del Hallazgo 2 (2026-08-28, tras la revisión de la sesión par)
+
+La sesión «Selección de 174 aulas» objetó el Hallazgo 2 con este argumento: τ se
+midió con `unidad = "encuentro_en_curso_horario_aplicado"`, así que **el traslape
+de 2025 ya estaría dentro de la tasa**, y `únicos × τ` lo descontaría dos veces.
+Pidió verificar contra la base 2025 si un alumno ya encuestado contó como
+efectiva en la segunda aula.
+
+**No hace falta ir a la base: el sello lo publica.** `calc_muestra_referencia_asistencia$encuentros`
+trae el embudo entero de las 194 aulas aplicadas de 2025:
+
+```
+elegibles (padrón)      6 232
+asistentes              4 931
+asistentes_elegibles    4 871
+ya_medidas                446   <- los que YA habían respondido en otra aula
+no_elegibles               60
+elegibles_presentes     4 425   = 4 871 − 446
+efectivas               3 303
+```
+
+Su premisa **queda confirmada**: en 2025 un repetido no volvía a contar como
+efectiva; se registraba como `ya_medidas` y salía de la base que podía
+responder. Y también tienen razón en que la tasa de los tramos es la de
+denominador **padrón** —`rendimiento = efectivas/elegibles` = 3 303/6 232 =
+0,530—, no la que el sello declara (`efectividad = efectivas/elegibles_presentes`
+= 0,746). Acepto la corrección: **mi vara neta descontaba dos veces.**
+
+**Pero su arreglo sobrecorrige, y la diferencia es medible.** El traslape
+incrustado en la tasa de 2025 es `ya_medidas / elegibles` = 446/6 232 =
+**7,16 %** → factor ×1,0771. Extrapolando los repetidos a los ausentes (los
+repetidos son el 9,16 % de los asistentes elegibles) el techo es ×1,1008. El
+traslape de 2026 es **11,4 %**. **No son el mismo número, y no hay razón para
+que lo sean**: el traslape entre las 194 aulas aplicadas de 2025 y el traslape
+entre las 174 sorteadas de 2026 son dos cantidades distintas.
+
+Su prueba de consistencia —`brutos × τ_brutos` ≈ `únicos × τ_únicos`— es una
+identidad: las dos valen `efectivas`, siempre, para la MISMA población. Que
+3 232 y 3 231 coincidan no es evidencia de nada; el paso que hay que justificar
+es que el traslape de 2025 iguale al de 2026, y medido no lo iguala.
+
+Las tres varas sobre los 174 titulares de ULT1:
+
+| | total | cobertura | EE.GG. Letras |
+|---|---:|---:|---:|
+| **bruta** (`certificacion.R`, sin descontar nada) | 3 148,9 | 1,260 | **1,110** |
+| **neta** (mi Hallazgo 2 — doble descuento) | 2 784,3 | 1,114 | **0,980** |
+| **corregida** (únicos × tasa limpia, factor global ×1,0771) | 2 998,9 | 1,200 | **1,056** |
+| corregida con el techo ×1,1008 | 3 064,9 | 1,226 | 1,079 |
+
+**EE.GG. Letras sí cierra** —queda entre 1,056 y 1,079—, así que retiro el
+«no llega». Pero no cierra con 1,110: la vara bruta le sobra entre 3 % y 5 %, y
+al total entre 3 % y 5 % también. Para una reunión de aprobación, «la celda más
+ajustada tiene 8 % de margen» y «tiene 4 %» no son la misma frase.
+
+### Por qué ninguna convención global es correcta
+
+El traslape incrustado de 2025 **no es uniforme**. Por facultad, factor
+`elegibles/(elegibles − ya_medidas)`:
+
+| facultad | elegibles 2025 | ya_medidas | factor |
+|---|---:|---:|---:|
+| EDUCACION | 126 | 22 | 1,2115 |
+| CIENCIAS Y ARTES DE LA COMUN. | 249 | 33 | 1,1528 |
+| CIENCIAS E INGENIERIA | 1 212 | 147 | 1,1380 |
+| PSICOLOGÍA | 145 | 14 | 1,1069 |
+| CIENCIAS SOCIALES | 462 | 40 | 1,0948 |
+| DERECHO | 637 | 38 | 1,0634 |
+| ESTUDIOS GENERALES LETRAS | 1 035 | 61 | 1,0626 |
+| ARQUITECTURA Y URBANISMO | 237 | 12 | 1,0533 |
+| ESTUDIOS GENERALES CIENCIAS | 1 192 | 53 | 1,0465 |
+| GESTIÓN Y ALTA DIRECCIÓN | 299 | 12 | 1,0418 |
+| ARTES ESCÉNICAS | 183 | 6 | 1,0339 |
+| ARTE Y DISEÑO | 295 | 8 | 1,0279 |
+| CIENCIAS CONTABLES · GASTRONOMÍA · LETRAS Y CC.HH. | 54 · 53 · 53 | **0 · 0 · 0** | **1,0000** |
+
+Tres facultades tuvieron **cero** repetidos en 2025. Para ellas la tasa no trae
+nada incrustado, y la vara bruta las sobreacredita por el traslape entero de
+2026: Contabilidad quedaría en 2,070 cuando la cuenta correcta da 1,518, y
+Letras y CC.HH. en 1,670 contra 1,426. Adoptar la vara bruta «porque τ ya trae
+el traslape» es cierto en Ciencias e Ingeniería (+13,8 %) y falso en tres
+facultades.
+
+### Lo que no se puede cerrar con lo sellado
+
+El factor correcto no es por facultad: **es por tramo de tamaño**, porque la
+tasa que se corrige es la del tramo, estimada sobre todas las facultades. El
+sello no lo permite — sus embudos van por facultad, horario, tipo de sesión,
+nivel, tipo de docente y modalidad, pero **no por tamaño de aula**, y los
+escalones de las cadenas traen `efectivas` y `elegibles` por aula pero **no
+`ya_medidas`**. Para el factor exacto hace falta el `ya_medidas` por aula de la
+base 2025. Mientras tanto lo defendible es el escalar global (+7,7 % a +10,1 %),
+con el aviso de que el traslape probablemente crece con el tamaño del aula, y
+entonces EE.GG. Letras —todas sus aulas grandes— llevaría un factor mayor que
+el global.
+
+Aviso adicional: 43 de las 194 aulas de 2025 tienen `residual_negativo`
+(efectivas > elegibles_presentes; la primera cadena registra 16 efectivas sobre
+14 elegibles). Cualquier recálculo de los tramos tropieza con eso antes que con
+el traslape.
+
+### Sobre `eligible_n_neto` (aviso de la sesión par, aceptado)
+
+Tienen razón en general: `eligible_n_neto` descuenta **sólo dentro del
+estrato**, así que sobre las 174 titulares completas no da los únicos globales.
+Mi verificación estaba acotada a la certeza —que simula **un estrato a la vez**,
+con `rows$stratum` forzado a la facultad— y ahí sí es exacta: medida sobre un
+sorteo de 3 aulas de Contabilidad, `Σ eligible_n_neto` = 71 y los únicos que
+cuenta la certeza = 71. La fórmula `Σ eligible_n_neto × tasa` vale para la
+certeza y **no** vale para evaluar una selección completa de varias facultades.
