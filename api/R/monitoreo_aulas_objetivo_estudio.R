@@ -31,13 +31,10 @@
 #' NULL y quien llama decide, porque un objetivo equivocado es peor que ninguno.
 #' @keywords internal
 .maoe_escenario_activo <- function(estudio) {
-  escenarios <- estudio$workspace$escenarios %||% list()
-  if (!is.list(escenarios) || !length(escenarios)) return(NULL)
-  for (esc in escenarios) {
-    if (!is.list(esc)) next
-    if (isTRUE(esc$activo)) return(esc)
-  }
-  NULL
+  # Delega en la capa que posee el estudio. Tener aqui una segunda copia de
+  # «cual es el activo» fue lo que dejo a los selectores de certificacion
+  # acertando por orden en vez de por regla.
+  .cm_estudio_escenario_activo(estudio)
 }
 
 #' El componente al que apunta un escenario, o NULL.
