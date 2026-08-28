@@ -332,7 +332,11 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
   it("ninguna atribuida sigue siendo su propio caso", () => {
     const kpi = aulasKpis(dashboard(2220, [[3743, 0]]), "avance")
       .find((k) => k.label === "Válidas")!;
-    expect(kpi.pista).toContain("ninguna atribuida");
+    // Dice CELDA, no curso-horario: es lo que `quotas_sex_faculty` mide. Un
+    // simulacro enseño la tarjeta diciendo «ninguna atribuida a un
+    // curso-horario» con 20 aulas ya en su meta dos paneles mas abajo.
+    expect(kpi.pista).toContain("celda sexo × facultad");
+    expect(kpi.pista).not.toContain("curso-horario");
   });
 });
 

@@ -4,6 +4,7 @@ import {
   BarChart3,
   BarChartBig,
   Boxes,
+  CalendarClock,
   CalendarRange,
   ClipboardCheck,
   Clock,
@@ -223,6 +224,16 @@ export const MONITOREO_PESTANAS = {
       // plan, y la agenda no tiene sitio para un tercer panel: su stack reparte
       // el alto entre dos.
       pestana("aulas", "modelo", "contacto", "Contacto", "Qué medio agenda mejor", PhoneCall),
+      // Última de agendación a propósito: cierra el recorrido «qué aulas son →
+      // a dónde ir → a quién llamo → cuánta gente hace falta». Las tres
+      // anteriores listan el plan; ésta lo dimensiona, y sólo tiene sentido
+      // cuando ya se sabe qué aulas son.
+      //
+      // Es la única superficie que lee el RANGO horario y no la hora de inicio:
+      // sobre el plan de HSVG 2026 el pico contado por hora de inicio daba 8
+      // aulas simultáneas y contado por rango da 19, que es el número que
+      // dimensiona el equipo de campo.
+      pestana("aulas", "modelo", "carga", "Carga", "Cuántos aplicadores por franja", CalendarClock),
     ],
     avance: [
       pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),

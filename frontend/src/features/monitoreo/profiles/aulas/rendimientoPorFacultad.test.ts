@@ -151,8 +151,12 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     // vuelven a ser indistinguibles—.
     const bloque = kpis.slice(kpis.indexOf("function validasKpi"));
     const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
+    // Se afirma «de Kobo», que es lo que este guard protege, y no la frase
+    // entera: la rama de sin-atribucion cambio de redaccion —decia
+    // «curso-horario» midiendo celdas sexo × facultad— y un aserto sobre el
+    // literal completo convertia esa correccion en un rojo ajeno.
     expect(cuerpo).toContain("respuestas de Kobo que pasan el filtro");
-    expect(cuerpo).toContain("de Kobo · ninguna atribuida a un curso-horario");
+    expect(cuerpo).toContain("de Kobo · ninguna");
   });
 });
 

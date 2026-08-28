@@ -73,6 +73,8 @@ import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeE
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { historiaDeCadena } from "./historiaDeCadena";
+import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
+import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasAvanceProyectado } from "./AulasAvanceProyectado";
@@ -920,9 +922,25 @@ function renderAulasView(
             bloque de medios. Y en ninguna de las dos aporta —una dice a dónde
             ir y la otra a quién llamar—; el mismo panel sigue en la pestaña
             Agenda, a un click. */}
-        {pestana === "facultad" || pestana === "contacto"
+        {pestana === "facultad" || pestana === "contacto" || pestana === "carga"
           ? null
           : <HandoffTracePanel dashboard={dashboard} />}
+        {pestana === "carga" ? (
+          <section
+            className="mon-profile-panel"
+            // Sección única en su pestaña: no compite en alto con ninguna
+            // hermana, así que su geometría es intrínseca (C1).
+            data-qa-geometry-group="aulas-carga-panel"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <AulasCargaDeCampo
+              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              onExportar={(opciones) =>
+                descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
+              }
+            />
+          </section>
+        ) : null}
         {pestana === "contacto" ? (
         <section
           // Clase propia: el stack de Agenda reparte el alto entre DOS filas con
@@ -987,7 +1005,7 @@ function renderAulasView(
         </section>
         ) : null}
         {pestana === "agenda"
-          || (pestana !== "facultad" && pestana !== "contacto") ? (
+          || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
         <section
           // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
           // por día y tabla— y la regla común declara dos. Un hijo de más se
@@ -1075,7 +1093,7 @@ function renderAulasView(
         </section>
         ) : null}
         {pestana === "agenda"
-          || (pestana !== "facultad" && pestana !== "contacto") ? (
+          || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
           <>
           {/* **En su propio panel, y no dentro del de la agenda.**
               El panel «Aulas agendadas» reparte su alto en filas fijas y la de

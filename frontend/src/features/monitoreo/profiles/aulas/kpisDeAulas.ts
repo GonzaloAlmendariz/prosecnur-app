@@ -344,13 +344,25 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     label: "Válidas",
     icono: CheckCircle2,
     value: fmt(dashboard?.kpis?.respuestas_validas),
+    // **Dice CELDA y no curso-horario, porque es lo que mide.**
+    //
+    // `atribuidas` sale de `quotas_sex_faculty`: es la atribucion a una celda
+    // SEXO × FACULTAD, que necesita el sexo de cada respuesta. La atribucion al
+    // curso-horario es otra —va por el enlace del recopilador— y puede estar
+    // funcionando cuando esta falla.
+    //
+    // Visto en un simulacro: la tarjeta decia «ninguna atribuida a un
+    // curso-horario» mientras dos paneles mas abajo se contaban 1 471
+    // respuestas cubriendo la meta de sus aulas y 20 aulas en meta. Las dos
+    // cifras eran correctas y el rotulo era el que mentia: faltaba el sexo, no
+    // el aula, y mandaba a revisar el enlace en vez del mapeo de la variable.
     pista: validas > 0 && atribuidas === 0
-      ? "de Kobo · ninguna atribuida a un curso-horario"
+      ? "de Kobo · ninguna cae en una celda sexo × facultad"
       : fuera > 0
         ? `${fmt(fuera)} no entran en ninguna celda de cuota`
         : "respuestas de Kobo que pasan el filtro",
     detalle: validas > 0 && atribuidas === 0
-      ? "Sin atribución no se pueden repartir por facultad ni por sexo, así que no cuentan para ninguna cuota."
+      ? "Sin el sexo de cada respuesta no se pueden repartir por celda, así que no cuentan para ninguna cuota. La atribución al curso-horario es otra cosa y puede estar bien: mírala en «Llegaron a su meta»."
       : fuera > 0
         ? `${fmt(atribuidas)} de ${fmt(validas)} caen en una celda sexo × facultad. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
         : undefined,
