@@ -88,7 +88,6 @@
   audit$campus_values <- 0L
   audit$course_level_values <- 0L
   audit$modality_values <- 0L
-  audit$classroom_values <- 0L
   if (!is.data.frame(raw) || !nrow(raw) || !is.data.frame(catalogo) || !nrow(catalogo)) {
     return(list(data = raw, audit = audit))
   }
@@ -118,12 +117,6 @@
   modal <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "modality", concat = FALSE)
   raw <- modal$data
   audit$modality_values <- modal$filled
-  # AULA. El ambiente fisico del dictado vive casi siempre solo en el catalogo,
-  # igual que la modalidad. Sin rellenarlo, el criterio «Aula asignada» no tiene
-  # columna sobre la que evaluar y su bucket «Sin aula asignada» no se enumera.
-  aula <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "classroom", concat = FALSE)
-  raw <- aula$data
-  audit$classroom_values <- aula$filled
   list(data = raw, audit = audit)
 }
 
@@ -204,7 +197,6 @@
     # El aula tal como viene en el reporte. Los genericos van SIEMPRE porque en
     # un catalogo de curso-horario no hay homonima que temer: "aula"/"salon"/
     # "ambiente" solo pueden ser el ambiente fisico del dictado.
-    classroom      = c(mapping$classroom, "aula", "salon", "ambiente", "local_aula", "aula_reporte"),
     character(0)
   )
   unique(.cm_aulas_chr_vec(base))
@@ -286,10 +278,9 @@
     enrolled_total = stats::setNames(numeric(0), character(0)),
     faculty_curso = stats::setNames(character(0), character(0)),
     campus = stats::setNames(character(0), character(0)),
-    classroom = stats::setNames(character(0), character(0)),
     columns = list(modality = "", session_type = "", teacher_type = "",
                    course_level = "", condicion_curso = "", enrolled_total = "",
-                   faculty_curso = "", campus = "", classroom = ""),
+                   faculty_curso = "", campus = ""),
     used = FALSE
   )
   if (!nrow(catalogo)) return(vacio)
@@ -306,8 +297,7 @@
     course_level = .cm_criterios_col_course_level_catalogo(catalogo, mapping),
     condicion_curso = col_of("condicion_curso"),
     enrolled_total = col_of("enrolled_total"), faculty_curso = col_of("faculty_curso"),
-    campus = col_of("campus"),
-    classroom = col_of("classroom")
+    campus = col_of("campus")
   )
   val <- function(col) if (nzchar(col)) .cm_aulas_values(catalogo, col, "") else character(nrow(catalogo))
 
@@ -324,7 +314,6 @@
     enrolled_total = .cm_catalogo_num_by_key(val(cols$enrolled_total), catalog_key, "max"),
     faculty_curso = .cm_catalogo_modal_by_key(val(cols$faculty_curso), catalog_key),
     campus = .cm_catalogo_modal_by_key(val(cols$campus), catalog_key),
-    classroom = .cm_catalogo_modal_by_key(val(cols$classroom), catalog_key),
     columns = cols,
     used = TRUE
   )
