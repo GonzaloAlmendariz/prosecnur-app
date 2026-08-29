@@ -375,7 +375,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     return "var(--pulso-border-strong)";
   };
 
-  /** Las cuotas que aplican a la vista: las de la facultad, o las del estudio. */
+  /**
+   * Las cuotas que aplican a la vista: las de la facultad, o las del estudio.
+   *
+   * **Y hay que DECIR cuál de las dos**, porque son universos distintos y
+   * conviven en la misma leyenda. Medido en pantalla el 2026-08-29 con la vista
+   * «Todas las facultades»: el chip verde decía «Meta de lo visitado 67» —el eje
+   * acaba en 200 y la serie llega a 54— mientras los de sexo decían «Hombres
+   * 348/1.730» y «Mujeres 319/1.761». Esos dos suman 3.491, que es la suma de
+   * las quince cuotas por facultad del estudio entero. Nada avisaba del cambio
+   * de denominador dentro de la misma línea.
+   *
+   * Aquí no hay nada que arreglar en la cifra: la agregación es correcta y en
+   * esa vista es la única cuota que existe. Lo que se arregla es el rótulo.
+   */
+  const cuotasSonDelEstudio = !(elegida && proyectada);
   const cuotasVisibles = elegida && proyectada
     ? proyectada.cuotas.map((c) => ({ sexo: c.sexo, meta: c.meta, observadas: c.observadas }))
     : (() => {
@@ -406,6 +420,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     metasSeñaladas: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
     /** Las cuotas que NO caben en el eje: se declaran en vez de dibujarse. */
     metasFueraDeEscala: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
+    /** `true` cuando las cuotas son las del estudio entero y no las de una facultad. */
+    cuotasSonDelEstudio: boolean;
     hayObservadasPorSexo: boolean;
     etiqueta: string;
   } => {
@@ -663,7 +679,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     const { caben: metasSeñaladas, fuera: metasFueraDeEscala } = repartirMetasPorEscala(metasDeSexo, tope);
     return {
       tope, escalones, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
-      metasFueraDeEscala,
+      metasFueraDeEscala, cuotasSonDelEstudio,
       // Cuántas de las conseguidas llevan sexo declarado en el libro. Si es menos
       // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
       cubiertasPorSexo: hayLibroPorSexo ? cubiertas : null,
@@ -904,6 +920,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {acumulado.series.map((se) => (
                 <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
                   {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
+                  {acumulado.cuotasSonDelEstudio ? " del estudio" : ""}
                   {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
                 </em>
               ))}
@@ -916,12 +933,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {/* Lo que no cabe en el eje se DICE, con su cifra. Recortarlo y
                   callarlo dejaría la pantalla igual que si la cuota no
                   existiera. */}
-              {acumulado.metasFueraDeEscala.map((m) => (
-                <em key={`fuera-${m.sexo}`} className="es-ausente">
-                  la cuota de {m.sexo.toLowerCase()} ({fmt(m.meta)}) no cabe en la
-                  escala de este gráfico
+              {/* Una sola vez, no una por sexo: el motivo es el mismo para las
+                  dos y repetirlo llenaba la leyenda con dos frases largas que
+                  decían lo mismo. */}
+              {acumulado.metasFueraDeEscala.length ? (
+                <em className="es-ausente">
+                  {acumulado.cuotasSonDelEstudio
+                    ? `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) son las del estudio entero: no se dibujan sobre un eje de aulas visitadas`
+                    : `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) no caben en la escala de este gráfico`}
                 </em>
-              ))}
+              ) : null}
               {acumulado.cubiertasPorSexo != null
                 && acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal ? (
                 <em className="es-ausente">
@@ -1120,8 +1141,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </p>
           <p className="mon-profile-muted aulas-serie-pie">
             El <strong>sólido</strong> es lo conseguido y el <strong>punteado</strong>,
-            lo que se infiere de las aulas ya agendadas; las horizontales son la meta
-            y las cuotas de cada sexo.
+            lo que se infiere de las aulas ya agendadas; {acumulado.metasSeñaladas.length
+              ? "las horizontales son la meta y las cuotas de cada sexo."
+              : "la horizontal es la meta."}
+            {/* El pie prometía «y las cuotas de cada sexo» SIEMPRE, y desde que
+                esas cuotas dejan de dibujarse cuando son las del estudio entero,
+                la frase mandaba a buscar dos líneas que no están. Se dice lo que
+                hay: es el mismo defecto —un rótulo que promete otro contenido—
+                que este panel viene arreglando, y lo introduje yo al dejar de
+                pintarlas. */}
           </p>
         </div>
       ) : null}
