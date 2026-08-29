@@ -1301,3 +1301,34 @@ duplicar el cálculo. Con él, `align-self: start` en la rama sin malla.
 Lo que **no** vale: poner `align-content: start` dentro del panel. Subiría el
 contenido pero dejaría el marco igual de alto, que es exactamente el hueco sin
 dueño que la norma rechaza.
+
+---
+
+## 63 · El ítem 42, reparado sin duplicar el cálculo
+
+La reparación que quedó especificada en la 62, hecha:
+`hayHorarioDeCurso(plan)` sale a `cargaDeCampo.ts` —donde vive `aulasDelPlan()`,
+que es quien lo sabe— y lo preguntan los dos: el panel para elegir entre la malla
+y su aviso, y `AulasSeccionModelo` para decidir si le da el `1fr` del stack. Sin
+malla, `align-self: start`.
+
+Medido en pantalla: el panel pasa de ~1.000 px a ~125. El vacío de abajo deja de
+estar dentro de un marco; es el fondo de la página, que sí tiene dueño.
+
+**Dos cosas del proceso que valen más que el arreglo.**
+
+La primera: `conHorario` **no se pudo eliminar**, porque el aviso del pie —«N de
+M aulas no declaran horario»— lo necesita. Así que quedan dos expresiones del
+mismo número: `titulares − sinHorario` en el panel y `unidades.length > 0` en el
+helper. Son iguales por definición, pero «por definición» es exactamente lo que
+se rompe cuando alguien toca `aulasDelPlan()`. Van atadas con un test de
+equivalencia sobre cuatro casos —sin filas, todas sin horario, mezcla, todas con
+horario—, que es más barato que forzar una sola expresión y menos frágil que
+confiar en el comentario.
+
+La segunda: el typecheck me paró **tres veces** en este arreglo —un `conHorario`
+huérfano, un import mal cosido y un `eje: "fecha"` que no existe (los valores son
+`"semana" | "calendario"`)—. Las tres las habría dado por buenas si no lo hubiera
+corrido después de cada paso; y las tres veces `vitest` estaba en **verde**,
+porque los tests no compilan el archivo entero. Con TS estricto, el typecheck no
+es un trámite del final: es el que sabe.

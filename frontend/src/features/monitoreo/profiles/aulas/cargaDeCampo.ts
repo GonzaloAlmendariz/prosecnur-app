@@ -221,6 +221,25 @@ type AulaDeCarga = {
  * ofrece al agendar. Las demás sesiones son margen de reprogramación y contarlas
  * también inflaría la carga con visitas que no van a ocurrir.
  */
+/**
+ * ¿Hay al menos un curso-horario con sesión reconocible?
+ *
+ * Lo pregunta el panel para elegir entre la malla y su aviso, y **también quien
+ * lo envuelve**, para no darle el alto de la pantalla a un párrafo de tres
+ * líneas: el stack de Agenda reparte con `minmax(0, 1fr)` —regla que existe para
+ * que la tabla de «Aulas agendadas» no se quede en 88 px— y en la pestaña de
+ * carga esa fila es este panel. Medido el 2026-08-29: un aviso de 60 px dentro
+ * de un marco de ~1.000, con 940 de vacío sin dueño.
+ *
+ * Vive aquí y no en el componente porque es una propiedad del PLAN, y así los
+ * dos consumidores preguntan lo mismo en vez de calcularlo cada uno. No depende
+ * del eje ni de la duración: `conHorario` era `titulares.length − sinHorario`,
+ * que es exactamente cuántas unidades quedaron.
+ */
+export function hayHorarioDeCurso(plan: readonly MonitoreoAulasPlanRow[]): boolean {
+  return aulasDelPlan(plan).unidades.length > 0;
+}
+
 function aulasDelPlan(plan: readonly MonitoreoAulasPlanRow[]): { unidades: AulaDeCarga[]; sinHorario: number } {
   const titulares = plan.filter((f) => !f.sample_role || f.sample_role === "titular");
   const primeras = new Map<string, AulaDeCarga>();
