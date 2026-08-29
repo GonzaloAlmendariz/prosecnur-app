@@ -107,6 +107,15 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
         {resto > 0 ? (
           <> · <strong>{fmt(resto)}</strong> sin sexo declarado</>
         ) : null}
+        {/* **El orden, dicho donde se ordena.**
+            La lista va por mujeres descendente —el caso que motiva la vista es
+            «me faltan mujeres en esta facultad»— y eso hace que con «Todas»
+            activo se vean sólo aulas de una facultad: las de Estudios Generales
+            Letras traen 27 mujeres de media y las de Ciencias e Ingeniería, 8.
+            Sin decirlo, el filtro parece roto.
+            Va en ESTE componente y no en el subtítulo del panel de fuera: aquí
+            está el `sort` y no pueden separarse. */}
+        <em>{" "}· las que más mujeres traen primero</em>
       </p>
 
       {/* Las facultades como filtro Y como resumen a la vez: la misma fila dice
