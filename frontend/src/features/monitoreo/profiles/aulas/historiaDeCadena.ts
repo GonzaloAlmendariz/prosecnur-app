@@ -124,7 +124,16 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
       .map((fila) => {
         const codigo = texto(fila.operational_code);
         const validas = numero(fila.respuestas_validas);
-        const meta = numero(fila.expected_valid);
+        // **La meta se publica en personas enteras.** `expected_valid` es
+        // `elegibles x tasa` y llega fraccionaria por construcción: la tabla
+        // mostraba «META 24.6» y «CH 88, 18 de 24.6». Es la QUINTA vez que el
+        // mismo defecto aparece hoy, y las cuatro anteriores las arreglé donde
+        // las vi en vez de barrer las tablas.
+        //
+        // Hacia ARRIBA, como `.mac_brecha()` y `fmtCuenta()`: es una meta que
+        // hay que ALCANZAR, y con 24 no se cumple una de 24,6. La comparación
+        // `cumple` usa la meta ya redondeada, que es contra la que se juzga.
+        const meta = Math.ceil(numero(fila.expected_valid) - 1e-9);
         return {
           codigo,
           // El titular es el orden 0 aunque el plan no lo diga: es de donde sale
