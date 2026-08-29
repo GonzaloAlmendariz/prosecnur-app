@@ -43,9 +43,6 @@ const DEUDA_CONOCIDA = new Set([
   "--pulso-warn-soft",
   "--pulso-warn-text",
   "--pulso-warning",
-  "--pulso-warning-bg",
-  "--pulso-warning-border",
-  "--pulso-warning-fg",
 ]);
 
 const DEFINICION = /(--pulso-[A-Za-z0-9_-]+)\s*:/g;

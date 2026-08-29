@@ -33,7 +33,7 @@ no a ojo:
 | 7 | El conteo de aulas sale de la selección, no de `aulas_base_total` | `monitoreo_aulas_metas_diseno.R` | **cerrado sin cambio** — ver abajo |
 | 8 | `TASA_DE_CAIDA` no reproduce del libro: retirar o rehacer | `kpisDeAulas.ts` | **bloqueado** — depende de A7 |
 | 9 | Alertas específicas por sexo | pestaña `avance/cuotas` | **cerrado sin cambio** — ya existían: «19 de 30 celdas no van a llegar» y el detalle por celda |
-| 10 | Un sexo en código (`1`/`2`) no puede dar cero mudo | `monitoreo_aulas_avance_cuota.R` | **mitad cerrada** — ver abajo |
+| 10 | Un sexo en código (`1`/`2`) no puede dar cero mudo | `monitoreo_aulas_avance_cuota.R` + `AulasCuotasResumen.tsx` | **cerrado** — el motor ya publicaba la causa; faltaba pintarla donde se lee el cero, bitácora 38 |
 | 11 | Un 500 transitorio deja «Preparando vista» para siempre | `AulasMonitoreoPage.tsx` | **falsificado** — `loadView` tiene `finally` que apaga `loading`; el efecto de montaje es incondicional |
 | 12 | Registro coloquial en las etiquetas de estado | `.mac_etiqueta_estado()` + propuestas de tramos | **nuevo** — ver abajo |
 | 13 | Alumnos con decimales («aporta 6,1») | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** `1dbb99fb` |
@@ -46,6 +46,7 @@ no a ojo:
 | 20 | «Mujer» se contaba como hombre en dos superficies y se descartaba en una tercera | `avanceParaCliente.ts` · `brechaDeLaFacultad.ts` · `celdasPorFacultad.ts` | **cerrado** — ver bitácora 35 |
 | 21 | El mismo defecto de sexo en R, en el camino del diseño | `sexo_por_facultad.R` · `libro_generar.R` · `certificacion.R` | **cerrado** — `.pulso_sexo_fm()`, ver bitácora 36 |
 | 22 | Un `@export` mío se lo llevó el helper de al lado | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** — ver bitácora 37 |
+| 23 | `--pulso-warning-*` no existe: 16 usos, 6 sin respaldo | 16 archivos de CSS/TSX | **cerrado** — es `--pulso-warn-*`, ver bitácora 39 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

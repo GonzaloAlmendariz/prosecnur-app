@@ -142,7 +142,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-chip.es-riesgo { color: var(--pulso-danger-fg); }
-.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-aviso { color: var(--pulso-warning-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-chip.es-aviso { color: var(--pulso-warn-fg); }
 .mon-profile-page.is-aulas-flow .aulas-tau-chip.es-ok { color: var(--pulso-success-fg); }
 .mon-profile-page.is-aulas-flow .aulas-tau-chip.es-neutro { color: var(--pulso-text-faint); }
 

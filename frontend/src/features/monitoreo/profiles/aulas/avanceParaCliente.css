@@ -130,7 +130,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-riesgo { color: var(--pulso-danger-fg); }
-.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-aviso { color: var(--pulso-warning-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-aviso { color: var(--pulso-warn-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-ok { color: var(--pulso-success-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cliente-chip.es-neutro { color: var(--pulso-text-faint); }
 

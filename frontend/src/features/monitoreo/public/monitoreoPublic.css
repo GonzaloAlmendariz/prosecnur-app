@@ -106,7 +106,7 @@
 }
 
 .mon-public-metric.is-warning strong {
-  color: var(--pulso-warning-fg);
+  color: var(--pulso-warn-fg);
 }
 
 .mon-public-metric.is-danger strong {
@@ -503,7 +503,7 @@
 }
 
 .mon-public-map-canvas i.is-warning {
-  background: var(--pulso-warning-fg);
+  background: var(--pulso-warn-fg);
 }
 
 .mon-public-panel {
@@ -621,7 +621,7 @@
 }
 
 .mon-public-daily-bar .is-warning {
-  background: var(--pulso-warning-fg);
+  background: var(--pulso-warn-fg);
 }
 
 .mon-public-status-bars {
@@ -689,7 +689,7 @@
 }
 
 .mon-public-line-chart .target-line {
-  stroke: var(--pulso-warning-fg);
+  stroke: var(--pulso-warn-fg);
   stroke-dasharray: 4 4;
   stroke-width: 1.8;
 }

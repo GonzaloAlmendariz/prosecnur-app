@@ -3626,9 +3626,9 @@
 
 .pulso-gv2-text-input-control.is-warning,
 .pulso-gv2-number-input.is-warning {
-  border-color: var(--pulso-warning-border) !important;
-  background: var(--pulso-warning-bg) !important;
-  box-shadow: inset 0 1px 1px rgba(217, 119, 6, 0.18), 0 0 0 3px color-mix(in srgb, var(--pulso-warning-bg) 30%, transparent) !important;
+  border-color: var(--pulso-warn-border) !important;
+  background: var(--pulso-warn-bg) !important;
+  box-shadow: inset 0 1px 1px rgba(217, 119, 6, 0.18), 0 0 0 3px color-mix(in srgb, var(--pulso-warn-bg) 30%, transparent) !important;
 }
 
 .pulso-gv2-text-input-control.is-error,
@@ -3738,7 +3738,7 @@
 }
 
 .pulso-gv2-field-status.is-warning {
-  color: var(--pulso-warning-fg);
+  color: var(--pulso-warn-fg);
 }
 
 .pulso-gv2-field-status.is-error {
