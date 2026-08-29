@@ -124,10 +124,17 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
                   dice nada: una fila que repite «0 · 0» compite por la atención
                   con las que sí piden algo. */}
               {f.mujeresFalta || f.hombresFalta ? (
+                /* **Se dice contra qué vara, porque NO es la de arriba.** El
+                   número grande va contra la meta del PLAN —aulas por su tasa—
+                   y estas dos contra la CUOTA del diseño. Visto en pantalla:
+                   «397 respuestas faltan» con «31 mujeres» y «114 hombres»
+                   debajo, que suman 145. Quien lee suma y no le cuadra, y el
+                   rótulo prometía un número que no era. */
                 <em className="aulas-facultad-sexo">
+                  {"para su cuota, "}
                   {f.mujeresFalta ? `faltan ${fmtCuenta(f.mujeresFalta)} mujeres` : ""}
-                  {f.mujeresFalta && f.hombresFalta ? " · " : ""}
-                  {f.hombresFalta ? `faltan ${fmtCuenta(f.hombresFalta)} hombres` : ""}
+                  {f.mujeresFalta && f.hombresFalta ? " y " : ""}
+                  {f.hombresFalta ? `${fmtCuenta(f.hombresFalta)} hombres` : ""}
                 </em>
               ) : null}
             </span>
