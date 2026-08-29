@@ -1368,3 +1368,37 @@ ruidoso acaba silenciado —que es peor que no tenerlo, como ya me pasó con el
 contrato estático del `capacity-drift`—. Queda escrito el alcance por si se
 quiere una pasada deliberada por Monitoreo entero: son ~15 frases reales fuera de
 aulas.
+
+---
+
+## 65 · `consultas/extras`: la última vista, y el perfil queda recorrido
+
+Cuadra exacto, y esta vez lo comprobé número a número:
+
+- 30.808 mujeres + 31.596 hombres = **62.404 alumnos** ✓
+- los quince chips por facultad —467, 351, 233, 227, 158, 127, 104, 63, 52, 47,
+  36, 22, 16, 12, 1— suman **1.916** ✓
+- y la limitación está declarada con su causa: «Para saber si el banco alcanza
+  hace falta la hoja "Base de control" del libro: de ahí sale la tasa con la que
+  responde un aula, y sin ella proyectar sus alumnos sería inventar».
+
+Lo único: con el chip «Todas» activo, la tabla enseña **sólo** aulas de Estudios
+Generales Letras, lo que se lee como un filtro roto. No lo es —la lista va por
+mujeres descendente, y EGL trae 27 mujeres por aula contra las 8 de Ciencias e
+Ingeniería— y el `sort` lo razona: «el caso que motiva la vista es *me faltan
+mujeres en esta facultad*». Faltaba decirlo en pantalla.
+
+Ahora la frase del inventario termina en «**· las que más mujeres traen
+primero**». Va en `AulasBancoExtras`, **donde está el `sort`**, y no en el
+subtítulo del panel de fuera: si lo pongo allí, cambiar el orden aquí deja el
+rótulo mintiendo, que es el defecto que llevo todo el loop cerrando y sería
+absurdo crearlo yo en el último panel.
+
+### El perfil, recorrido
+
+`fuentes` · `modelo/{agenda,facultad,contacto,carga}` ·
+`calidad/{controles,registro,base,abiertas}` ·
+`consultas/{brechas,reemplazos,parte,extras}` ·
+`avance/{cuotas,resumen,estratos,rendimiento,efectividad,salidas}`. Diecinueve
+vistas. Quedan sólo dos paneles bajo el pliegue de `avance/resumen` —«Dónde falta
+más» y «Cursos-horario vencidos sin aplicar»—, que piden una captura alta.
