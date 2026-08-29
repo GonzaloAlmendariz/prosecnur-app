@@ -19,6 +19,9 @@ export type CeldaDeFacultad = {
   hombresDeficit: number;
   /** El déficit proyectado de la facultad entera; el orden se decide con esto. */
   deficit: number;
+  /** La cuota de cada celda: dónde está la meta, para poder marcarla. */
+  mujeresCuota: number;
+  hombresCuota: number;
 };
 
 /**
@@ -54,7 +57,7 @@ export function celdasPorFacultad(celdas: ReadonlyArray<MonitoreoRow>): CeldaDeF
       facultad,
       mujeresLogrado: 0, mujeresPendiente: 0, mujeresDeficit: 0,
       hombresLogrado: 0, hombresPendiente: 0, hombresDeficit: 0,
-      deficit: 0,
+      deficit: 0, mujeresCuota: 0, hombresCuota: 0,
     };
     // **Tres tramos, no dos, y esto es lo que hace honesto al gráfico.**
     //
@@ -66,11 +69,14 @@ export function celdasPorFacultad(celdas: ReadonlyArray<MonitoreoRow>): CeldaDeF
     const logrado = Math.max(0, Math.round(num(c.logrado)));
     const pendiente = Math.max(0, Math.round(num(c.aporte_pendiente)));
     const deficit = Math.max(0, Math.ceil(num(c.brecha) - 1e-9));
+    const cuota = Math.max(0, Math.round(num(c.cuota)));
     if (sexo === "F") {
+      fila.mujeresCuota += cuota;
       fila.mujeresLogrado += logrado;
       fila.mujeresPendiente += pendiente;
       fila.mujeresDeficit += deficit;
     } else {
+      fila.hombresCuota += cuota;
       fila.hombresLogrado += logrado;
       fila.hombresPendiente += pendiente;
       fila.hombresDeficit += deficit;

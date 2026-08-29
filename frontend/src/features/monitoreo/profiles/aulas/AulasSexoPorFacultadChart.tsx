@@ -85,13 +85,28 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
     },
   ];
 
+  // **Dónde está la meta.** Sin marcarla, una celda que se pasa se ve igual que
+  // una justa: medido, 6 de las 30 celdas superan su cuota —ARTES ESCÉNICAS
+  // hombres tiene cuota 30 y va a tener 36— y la barra solo se alargaba. En un
+  // gráfico sobre CUMPLIR cuotas, la cuota tiene que verse.
+  const marcas = {
+    type: "scatter",
+    mode: "markers",
+    name: "Cuota",
+    y: eje,
+    x: par((f) => [f.mujeresCuota, f.hombresCuota]),
+    marker: { symbol: "line-ns-open", size: 14, line: { width: 2 },
+              color: COLOR_RESULTADO.pendiente },
+    hovertemplate: "%{y}: cuota %{x}<extra></extra>",
+  };
+
   const deficitTotal = filas.reduce((s, f) => s + f.deficit, 0);
   const cubiertas = filas.filter((f) => f.deficit === 0).length;
 
   return (
     <div className="aulas-cobertura-chart">
       <PlotlyChart
-        data={data}
+        data={[...data, marcas]}
         height={Math.max(240, 22 * eje.length + 56)}
         ariaLabel="Respuestas recogidas y por recoger, por facultad y sexo"
         layout={{
