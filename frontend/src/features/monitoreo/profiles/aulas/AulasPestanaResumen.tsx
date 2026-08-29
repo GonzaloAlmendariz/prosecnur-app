@@ -250,7 +250,15 @@ export function AulasPestanaResumen({
                     pestaña. El denominador es la meta del PLAN, no la cuota de sexo, y
                     por eso el contador lo dice. */}
                 <h3>Dónde falta más</h3>
-                <span>contra la meta del plan</span>
+                {/* **Contra la CUOTA, no contra el pronóstico.** Gonzalo:
+                    «el avance se mide sobre las cuotas del plan, no sobre lo
+                    que nosotros hemos pronosticado que va a suceder… nos
+                    interesa llegar a dos mil quinientos con las cuotas que
+                    hemos establecido por sexo en cada facultad. Esa es nuestra
+                    meta». El pronóstico —elegibles por su tasa— sigue
+                    publicándose como `meta_prevista` porque dimensiona el
+                    operativo, pero no es la vara del avance. */}
+                <span>contra la cuota del estudio, por sexo</span>
               </div>
               <AulasPerfilPorFacultad
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}

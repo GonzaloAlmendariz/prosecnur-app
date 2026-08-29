@@ -1855,10 +1855,69 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (length(v) == 1L && is.finite(v)) v else NA_real_
     }
     fac <- as.character(avance_por_facultad$faculty)
+    # **EL AVANCE SE MIDE CONTRA LA CUOTA, no contra lo pronosticado.**
+    #
+    # Gonzalo, 2026-08-29: «el avance se mide sobre las cuotas del plan, no
+    # sobre lo que nosotros hemos pronosticado que va a suceder. Lo que
+    # pronosticamos nos sirve para el diseño, para el dimensionamiento de las
+    # aulas, pero a nosotros nos interesa llegar a dos mil quinientos con las
+    # cuotas que hemos establecido por sexo en cada facultad. Esa es nuestra
+    # meta.»
+    #
+    # Esta tabla publicaba como `meta` la suma de `expected_valid` —elegibles
+    # por su tasa—, que es el PRONOSTICO. Medido sobre «campo malo»: esa suma da
+    # **3.145,7** frente a una cuota de **2.500**, un 26 % mas alta. Por
+    # facultad, CIENCIAS E INGENIERIA publicaba «faltan 397» cuando contra su
+    # cuota faltan **232**: 165 respuestas de deficit inflado, un 71 % de mas.
+    #
+    # El pronostico no se tira: pasa a `meta_prevista`, que es lo que dimensiono
+    # el operativo y sigue haciendo falta para leer si el campo rinde. Pero la
+    # META es la cuota.
+    cuota_de <- function(f) {
+      dos <- c(por(f, "F", "cuota"), por(f, "M", "cuota"))
+      if (all(is.na(dos))) return(NA_real_)
+      sum(dos, na.rm = TRUE)
+    }
+    avance_por_facultad$meta_prevista <<- avance_por_facultad$meta
+    .cuota <- vapply(fac, cuota_de, numeric(1))
+    avance_por_facultad$meta <<- ifelse(is.na(.cuota),
+                                        avance_por_facultad$meta_prevista, .cuota)
+    avance_por_facultad$meta_origen <<- ifelse(is.na(.cuota), "prevista", "cuota")
+    # **La brecha es la SUMA DE LAS CELDAS, no la resta del total.**
+    #
+    # Un hombre de mas no cubre a una mujer que falta. Restar sobre el total
+    # deja que un sexo compense al otro, y eso es justo lo que la cuota por sexo
+    # existe para impedir — la misma doctrina del ADR 0079 para facultades.
+    #
+    # **Observado, no hipotetico.** En «campo malo», GASTRONOMIA, HOTELERIA Y
+    # TURISMO lleva mujeres 10 de 12 y hombres 14 de 9: el total da 24 sobre una
+    # cuota de 21 y la facultad se publicaba con **cero faltan**, con dos
+    # mujeres todavia cortas. Es el primer caso medido del agregado engañando, y
+    # aparecio al hacer que las partes sumaran el total.
+    # **Lo que falta AHORA, no lo que faltaría después de aplicar lo agendado.**
+    #
+    # La `brecha` de una celda es `cuota - PROYECCION`, y la de la facultad es
+    # `cuota - logrado`. Mezclarlas hacía que las partes no sumaran el total:
+    # visto en pantalla, «397 respuestas faltan» con «31 mujeres» y «114
+    # hombres» debajo. Con la vara unica —la cuota— las dos celdas tienen que
+    # sumar lo que le falta a su facultad, o el lector suma y no le cuadra.
+    falta_ahora <- function(f, sexo) {
+      cq <- por(f, sexo, "cuota"); lo <- por(f, sexo, "logrado")
+      if (!is.finite(cq)) return(NA_real_)
+      max(0, ceiling(cq - (if (is.finite(lo)) lo else 0) - 1e-9))
+    }
+    .por_celdas <- vapply(fac, function(f) {
+      dos <- c(falta_ahora(f, "F"), falta_ahora(f, "M"))
+      if (all(is.na(dos))) return(NA_real_)
+      sum(dos, na.rm = TRUE)
+    }, numeric(1))
+    .por_total <- ceiling(pmax(0, avance_por_facultad$meta -
+                               avance_por_facultad$respuestas_validas) - 1e-9)
+    avance_por_facultad$brecha <<- ifelse(is.na(.por_celdas), .por_total, .por_celdas)
     avance_por_facultad$mujeres_logrado  <<- vapply(fac, por, numeric(1), "F", "logrado")
-    avance_por_facultad$mujeres_deficit  <<- vapply(fac, por, numeric(1), "F", "brecha")
+    avance_por_facultad$mujeres_deficit  <<- vapply(fac, falta_ahora, numeric(1), "F")
     avance_por_facultad$hombres_logrado  <<- vapply(fac, por, numeric(1), "M", "logrado")
-    avance_por_facultad$hombres_deficit  <<- vapply(fac, por, numeric(1), "M", "brecha")
+    avance_por_facultad$hombres_deficit  <<- vapply(fac, falta_ahora, numeric(1), "M")
     # La bandera que la tabla necesitaba: **esta facultad tiene alguna celda que
     # no va a cerrar**, aunque su total diga que si.
     # Una celda cuenta como corta cuando su deficit es mayor que cero. `NA`
