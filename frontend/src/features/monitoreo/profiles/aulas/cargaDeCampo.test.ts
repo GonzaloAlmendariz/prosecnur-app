@@ -10,6 +10,7 @@ import {
   leerHora,
   leerSesiones,
   porPabellon,
+  hayHorarioDeCurso,
   sesionesDelPlan,
 } from "./cargaDeCampo";
 import { libroDeCargaDeCampo } from "./cargaDeCampoExcel";
@@ -482,4 +483,38 @@ describe("libro de Excel por fecha", () => {
     );
     expect(html).toContain("Por agendar");
   });
+});
+
+describe("hayHorarioDeCurso y el conteo del panel no se separan", () => {
+  /**
+   * El panel decide su rama vacía con `hayHorarioDeCurso()` y quien lo envuelve
+   * decide con la misma llamada si le da el alto de la pantalla —sin malla, un
+   * aviso de 60 px recibía un marco de ~1.000 con 940 de vacío—. El pie del
+   * panel, en cambio, sigue necesitando el conteo: `titulares − sinHorario`.
+   *
+   * Son dos expresiones del mismo número. Este test las ata.
+   */
+  const titular = (p: Record<string, unknown>) => ({ sample_role: "titular", ...p }) as never;
+
+  const casos: Array<[string, unknown[]]> = [
+    ["sin ninguna fila", []],
+    ["todas sin horario", [titular({ operational_code: "CH 1" }), titular({ operational_code: "CH 2" })]],
+    ["mezcla", [
+      titular({ operational_code: "CH 1", scheduled_date: "2026-09-01", scheduled_time: "08:00" }),
+      titular({ operational_code: "CH 2" }),
+    ]],
+    ["todas con horario", [
+      titular({ operational_code: "CH 1", scheduled_date: "2026-09-01", scheduled_time: "08:00" }),
+    ]],
+  ];
+
+  for (const [nombre, plan] of casos) {
+    it(`coinciden ${nombre}`, () => {
+      const filas = plan as never[];
+      const malla = calcularCarga(filas, { duracionMin: 60, eje: "calendario" });
+      const titulares = filas.filter((f) => !(f as { sample_role?: string }).sample_role
+        || (f as { sample_role?: string }).sample_role === "titular").length;
+      expect(hayHorarioDeCurso(filas)).toBe(titulares - malla.sinHorario > 0);
+    });
+  }
 });

@@ -175,6 +175,11 @@
    430. A la tabla le quedaban 88 px —TRES filas de 236—, que es lo que se
    sentia como «scroll interno muy agresivo»: no es que el scroll corriera
    mucho, es que la ventana por la que se mira era diminuta. */
+/* Sin malla que dibujar, el panel de carga NO toma el `1fr` del stack: su
+   contenido es un aviso de tres lineas y el resto seria un hueco sin dueno. Con
+   malla si lo toma, porque la rejilla de dias x franjas si usa el alto. */
+.mon-profile-page.is-aulas-flow .mon-profile-panel.es-sin-malla { align-self: start; }
+
 .mon-profile-page.is-aulas-flow .mon-profile-stack.aulas-agenda-stack {
   /* SIN `> ` desde `.aulas-mon-view`: el stack cuelga de
      `div#aulas-mon-panel-agenda`, no de la vista, asi que el combinador de hijo

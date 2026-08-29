@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
+import { hayHorarioDeCurso } from "./cargaDeCampo";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
@@ -72,9 +73,17 @@ export function AulasSeccionModelo({
           : traza}
         {pestana === "carga" ? (
           <section
-            className="mon-profile-panel"
-            // Sección única en su pestaña: no compite en alto con ninguna
-            // hermana, así que su geometría es intrínseca (C1).
+            // **`intrinsic` era la declaración correcta y el CSS no la
+            // cumplía.** El stack de Agenda reparte con `grid-template-rows:
+            // auto minmax(0, 1fr)` —regla necesaria para que la tabla de «Aulas
+            // agendadas» no se quede en 88 px— y aquí esa segunda fila es este
+            // panel: sin malla que dibujar, un aviso de 60 px recibía un marco
+            // de ~1.000, con 940 de vacío sin dueño. El gate no lo ve, y hace
+            // bien: el `capacity` va en el contenedor de datos, nunca en el
+            // panel, así que el hueco del marco no lo mira nadie.
+            className={`mon-profile-panel${
+              hayHorarioDeCurso(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[])
+                ? "" : " es-sin-malla"}`}
             data-qa-geometry-group="aulas-carga-panel"
             data-qa-geometry-contract="intrinsic"
           >

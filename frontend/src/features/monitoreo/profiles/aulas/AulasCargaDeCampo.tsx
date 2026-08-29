@@ -5,6 +5,7 @@ import {
   calcularCarga,
   comoHora,
   ejeSugerido,
+  hayHorarioDeCurso,
   porPabellon,
   type EjeDeCarga,
   type OpcionesDeCarga,
@@ -96,9 +97,16 @@ export function AulasCargaDeCampo({
   const escala = (matriz: number[][]) => Math.max(2, ...malla.filas.map((_, d) => Math.max(...matriz[d])));
   const topeFirme = escala(malla.firmes);
   const topePlausible = escala(malla.plausibles);
-  const conHorario = filas.filter((f) => !f.sample_role || f.sample_role === "titular").length - malla.sinHorario;
+  // Cuántas aulas SÍ entran en la malla. La usa el aviso del pie, y la rama
+  // vacía se decide con `hayHorarioDeCurso()`, que es la misma pregunta que hace
+  // quien envuelve este panel para decidir si le da el alto de la pantalla.
+  // Son dos expresiones del mismo número —`titulares − sinHorario` es por
+  // definición `unidades.length`— y `cargaDeCampo.test.ts` fija que no se
+  // separen.
+  const conHorario = filas.filter((f) => !f.sample_role || f.sample_role === "titular").length
+    - malla.sinHorario;
 
-  if (!conHorario) {
+  if (!hayHorarioDeCurso(filas)) {
     return (
       <section className="aulas-carga" data-qa-geometry-group="aulas-carga" data-qa-geometry-contract="intrinsic">
         <header className="aulas-carga-cab">
