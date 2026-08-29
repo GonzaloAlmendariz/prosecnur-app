@@ -59,7 +59,8 @@ no a ojo:
 | 33 | La tarjeta «Corte» daba `generated_at`, el reloj de la máquina | `kpisDeAulas.ts` | **cerrado** — usa `corteDelEstudio()`, que ya existía para esto; y arreglado un desfase de un día por parsear `YYYY-MM-DD` como UTC, bitácora 50 |
 | 34 | El corte sale del parte de campo (2/9) y no de la plataforma (5/9) | `corteDelEstudio.ts` | **bloqueado** — decisión tuya, hermano del 17 |
 | 35 | Un `capacity-drift` que SÍ declara su miembro | `ui-quick-check.mjs` | **cerrado** — era del GATE: `closest()` se incluye a sí mismo y declaraba invisible a un `<details>` cerrado que sí es visible, bitácora 52 |
-| 36 | Español sin tildes en pantalla («Se quedo a medias», «Los numeros… cuadran») | `monitoreo_aulas_etiquetas.R` y otros | **mitad cerrada** — cinco frases del archivo canónico corregidas con guard en su test; el resto medido y sin tocar porque hay claves internas mezcladas, bitácora 54 |
+| 36 | Español sin tildes en pantalla | `monitoreo_aulas_etiquetas.R` y siete archivos más | **cerrado** — cinco frases del archivo canónico con guard en su test, más las quince restantes una por una dejando intactos los alias `"validas"` y `"seleccion"`, bitácoras 54 y su commit `15e4e4f3` |
+| 37 | Un contrato `equal` donde el gate medía el título contra el contenido | `AulasHistoriaCadena.tsx` | **cerrado** — son secciones independientes: `intrinsic`, bitácora 55 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

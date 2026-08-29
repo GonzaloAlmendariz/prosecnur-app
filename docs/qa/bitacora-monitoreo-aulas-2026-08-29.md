@@ -1021,3 +1021,40 @@ sexo que escribí yo hoy en `avance_cuota.R`—. **No se barren a ciegas**: en e
 misma búsqueda aparecen `"validas"`, `"seleccion"` y `"quien aplico"` que son
 **claves internas**, no texto, y tildarlas rompería el consumo. Hay que separar
 cadena mostrada de clave antes de tocar, una por una.
+
+---
+
+## 55 · Un contrato `equal` que el propio archivo desmentía (ítem 37)
+
+`consultas/reemplazos` reporta `equal-frame-drift` sobre
+`monitoring-aulas-cadenas` con `memberHeights: [13, 852]`. Trece píxeles es un
+`<h4>`, no una tarjeta.
+
+La causa es un malentendido de la declaración, y vale escribirlo porque es fácil
+de repetir: **`data-qa-geometry-group` en un elemento repetido no declara «estos
+hermanos miden igual»**. Declara «este elemento es un grupo, y sus miembros son
+sus hijos». El grupo estaba puesto en cada `<section>` repetida por desenlace con
+`contract="equal"`, y su comentario decía «sus miembros son variantes del MISMO
+rol» pensando en las secciones **entre sí**. El gate lo leyó como debía: exigió
+que el `<h4>` del título midiera lo mismo que el contenido.
+
+Y el contrato correcto lo dice el propio archivo doce líneas más abajo: «las
+abiertas van en tabla y las cerradas narradas: **no es una inconsistencia, es que
+son dos preguntas distintas**». Dos presentaciones y dos volúmenes distintos son
+secciones independientes → `intrinsic`. Con eso, `geometryIssues` pasa de 1 a 0 y
+el frontend queda en 2.081 tests con typecheck limpio.
+
+**Declarar el grupo fue correcto** —sin él la superficie era invisible para el
+gate, ni conforme ni no conforme—; lo que estaba mal era el contrato. Es la
+tercera forma distinta que toma el mismo error de fondo esta semana: **una
+superficie declara algo que no es lo que el gate va a medir**.
+
+### Sospecha levantada y descartada
+
+La columna «Reservas» dice **4 en las 180 filas**, y el libro declara 507
+reservas para 193 cadenas: 4 × 193 = 772 > 507. Parecía una constante falsa.
+No lo es: la columna es `eslabones.length − 1` —las reservas que el diseño
+asignó a esa cadena, cuatro para todas— y el 507 del «Status de aplicación» son
+sólo las que están **despiertas**; el resto duerme o está en el banco. Las dos
+cifras son compatibles. Segunda sospecha del día que mirar levanta y medir
+descarta.
