@@ -269,6 +269,47 @@ no rompen. Es exactamente la mitad del contrato que sí se puede medir sin datos
   no derrame. El defecto más caro del pulido anterior —151 px de mapa
   encima de una tabla— no lo detecta ningún medidor de scroll.
 
+#### Segunda pasada, 2026-08-29 — CON datos, y tres formas de medir mal
+
+Se consiguió poblar el perfil: el proyecto de referencia `hsvg2026` **no sirve**
+—devuelve `E_NO_CALC_MUESTRA`, no trae selección— así que se abrió una copia del
+`.pulso` del sorteo real, se eligió el modo y se importó el plan: **174
+cursos-horario cargados**, tablas con 174 y 400 filas según la vista.
+
+Lo medido mientras la sesión aguantó, en 1024×600 y ya con datos:
+
+| Superficie | Grupos | Filas | Recortes | Derrames | No conformes |
+|---|---:|---:|---:|---:|---:|
+| `avance/resumen` | 10 | 400 | 0 | 0 | 0 |
+| `avance/rendimiento` | 12 | 0 | 0 | 0 | 0 |
+| `avance/cuotas` | 3 | 30 | 0 | 0 | 0 |
+| `modelo/contacto` | 2 | 174 | 0 | 0 | 0 |
+| `modelo/carga` | 2 | 174 | 0 | 0 | 0 |
+
+**TRES FORMAS DE MEDIR MAL, y las tres dieron el mismo cero tranquilizador:**
+
+1. **Medir antes de que la vista se asiente.** Con 1,4 s de espera todas las
+   superficies daban «2 grupos» idénticos; con 4 s, `resumen` daba 10 y 400
+   filas. El barrido uniforme era el síntoma: **un resultado que no varía entre
+   vistas distintas está midiendo otra cosa.**
+2. **Confiar en `data-audit-ready`.** No es un booleano sino un NOMBRE
+   (`"monitoreo-aulas"`), así que está presente desde que monta y no dice nada
+   sobre si el dashboard terminó. Hubo que estabilizar por contenido: dos
+   muestras seguidas con el mismo número de grupos, filas y longitud de texto.
+3. **No vigilar el `sid`.** A mitad del barrido la sesión cambió —de `20a3a4e5`
+   a `5e1dc6ad`— y con ella se perdió el plan importado: a partir de ahí TODAS
+   las vistas daban «2 grupos, 0 filas» y el estabilizador las declaraba
+   estables, porque un vacío es perfectamente estable. **El cero de un vacío y
+   el cero de un marco correcto se escriben igual.**
+
+**Por eso esta pasada NO cierra E1**: la mitad de las superficies quedaron sin
+medir con datos. Lo que sí queda es el método —estabilizar por contenido y
+comprobar el `sid` antes y después de cada medición— y las cinco filas de
+arriba, que se tomaron con sesión viva.
+
+**Sigue sin medirse**: escala de radios y tipografía, y el resto de superficies
+con datos.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
