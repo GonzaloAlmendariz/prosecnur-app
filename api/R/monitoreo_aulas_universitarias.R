@@ -1833,6 +1833,44 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     data = tracked_df,
     FUN = function(x) sum(x, na.rm = TRUE)
   )
+  # **Y su corte por SEXO, porque el total puede tapar una celda corta.**
+  #
+  # Gonzalo: «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU
+  # CUOTA DE SEXO». Esta tabla decia `faculty · aulas · respuestas_validas ·
+  # brecha · meta` y ninguna de las cinco columnas conoce el sexo, asi que una
+  # facultad podia leerse cubierta con su celda de mujeres cuarenta corta. Es su
+  # propio patron: el agregado esconde lo que muerde por celda.
+  #
+  # No se recalcula nada: se toman las celdas que `monitoreo_aulas_avance_sexo_facultad()`
+  # ya produjo unas lineas arriba. Dos lecturas del mismo dato acabarian
+  # discrepando.
+  local({
+    celdas <- .mau_avance_celdas %||% list()
+    if (!length(celdas) || !nrow(avance_por_facultad)) return(invisible(NULL))
+    por <- function(fac, sexo, campo) {
+      hit <- Filter(function(c1) identical(as.character(c1$faculty %||% ""), fac) &&
+                      identical(toupper(as.character(c1$sex %||% "")), sexo), celdas)
+      if (!length(hit)) return(NA_real_)
+      v <- suppressWarnings(as.numeric(hit[[1]][[campo]] %||% NA))
+      if (length(v) == 1L && is.finite(v)) v else NA_real_
+    }
+    fac <- as.character(avance_por_facultad$faculty)
+    avance_por_facultad$mujeres_logrado  <<- vapply(fac, por, numeric(1), "F", "logrado")
+    avance_por_facultad$mujeres_deficit  <<- vapply(fac, por, numeric(1), "F", "brecha")
+    avance_por_facultad$hombres_logrado  <<- vapply(fac, por, numeric(1), "M", "logrado")
+    avance_por_facultad$hombres_deficit  <<- vapply(fac, por, numeric(1), "M", "brecha")
+    # La bandera que la tabla necesitaba: **esta facultad tiene alguna celda que
+    # no va a cerrar**, aunque su total diga que si.
+    # Una celda cuenta como corta cuando su deficit es mayor que cero. `NA`
+    # significa que esa celda no existe para la facultad —no que este bien—, y
+    # por eso NO cuenta: inventar una alarma sobre una celda ausente es peor que
+    # callarla, y el caso se ve en `mujeres_deficit` valiendo NA.
+    corta <- function(x) !is.na(x) & x > 0
+    avance_por_facultad$celda_corta <<- corta(avance_por_facultad$mujeres_deficit) |
+                                       corta(avance_por_facultad$hombres_deficit)
+    invisible(NULL)
+  })
+
   # La que mas lejos esta de su meta primero: es a donde va el equipo mañana.
   avance_por_facultad <- avance_por_facultad[order(-avance_por_facultad$brecha,
                                                    avance_por_facultad$faculty), , drop = FALSE]
