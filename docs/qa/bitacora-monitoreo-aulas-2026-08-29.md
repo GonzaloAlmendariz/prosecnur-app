@@ -1332,3 +1332,39 @@ huérfano, un import mal cosido y un `eje: "fecha"` que no existe (los valores s
 corrido después de cada paso; y las tres veces `vitest` estaba en **verde**,
 porque los tests no compilan el archivo entero. Con TS estricto, el typecheck no
 es un trámite del final: es el que sabe.
+
+---
+
+## 64 · `calidad/abiertas`: dos tildes más, y por qué el guard no se extiende
+
+Vista sana en todo lo demás: el vacío declara su causa **y** lo que se vería al
+resolverla —«Con el instrumento cargado, aquí se leen las respuestas de cada
+pregunta abierta ordenadas por las que conviene mirar primero»—, y el panel mide
+lo que mide su contenido, lo que confirma que el arreglo del stack de la 63 era
+específico de Agenda y no tocó nada más.
+
+Dos frases de `monitoreo_texto_abierto.R` seguían sin tildes: «no trae
+instrumento, **asi** que no se sabe **que** preguntas son abiertas» y «o no
+**estan** en la base». Corregidas. Nótese que «qué» no puede vivir en una lista
+negra —sin tilde es correcto casi siempre— así que este caso no lo habría cazado
+el guard del ítem 36 ni ningún guard razonable: lo cazó mirar la pantalla.
+
+### Por qué NO extiendo el guard, medido
+
+Probé la heurística obvia —auditar las cadenas **largas** (>30 caracteres) de
+`api/R/monitoreo_*.R`, asumiendo que una clave interna no llega a esa longitud—.
+Da **43 ocurrencias** y no sirve:
+
+- muchas son **expresiones regulares**, no frases:
+  `"mail|correo|telefono|celular|phone|codigo|cod|pulso|cv_id|^cv$|^id$"`,
+  `"^(codpulso|caso|estado|distrito|...|validas|válidas|cuota|...)\\b"`. Un guard
+  que las marque obliga a exentarlas una a una y muere de ruido;
+- y las que sí son frases están en `monitoreo_router_acreditacion.R`,
+  `monitoreo_router_handoff.R` y `monitoreo_engine.R`, o sea en los perfiles de
+  **acreditación y territorial**, fuera de este loop.
+
+Distinguir regex de frase con precisión cuesta más de lo que vale, y un guard
+ruidoso acaba silenciado —que es peor que no tenerlo, como ya me pasó con el
+contrato estático del `capacity-drift`—. Queda escrito el alcance por si se
+quiere una pasada deliberada por Monitoreo entero: son ~15 frases reales fuera de
+aulas.
