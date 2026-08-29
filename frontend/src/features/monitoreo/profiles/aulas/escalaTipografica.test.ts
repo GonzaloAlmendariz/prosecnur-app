@@ -20,6 +20,21 @@ import { describe, expect, it } from "vitest";
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const css = fs.readFileSync(path.join(aqui, "aulasMonitoreo.css"), "utf8");
 
+describe("la escala de radios del perfil de aulas", () => {
+  it("ningún radio literal cae entre dos peldaños de la escala", () => {
+    // La escala vive en `tokens.css`: 10 · 14 · 16 · 20 · 999. Lo que se
+    // prohíbe NO es cualquier literal —un 3 px en una barra de 5 px de alto es
+    // correcto y el registro de acreditación avisa de 301 botones en radio 8
+    // que eran el control nativo de la app— sino los que caen ENTRE peldaños,
+    // que es donde se cuela una esquina a ojo. El 12 del popover de reemplazos
+    // era eso: entre el 10 y el 14.
+    const entrePeldanos = [...css.matchAll(/border-radius:\s*(\d+(?:\.\d+)?)px/g)]
+      .map((m) => Number(m[1]))
+      .filter((n) => (n > 10 && n < 14) || (n > 14 && n < 16) || (n > 16 && n < 20));
+    expect(entrePeldanos, `radios entre peldaños: ${entrePeldanos.join(", ")}`).toEqual([]);
+  });
+});
+
 describe("la escala tipográfica del perfil de aulas", () => {
   it("declara su suelo, y sigue siendo 10 px", () => {
     // Si alguien baja el token, este test lo hace explícito en vez de dejar que

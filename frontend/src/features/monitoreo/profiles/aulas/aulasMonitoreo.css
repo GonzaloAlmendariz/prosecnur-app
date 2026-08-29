@@ -6007,7 +6007,9 @@
   width: min(420px, 92vw);
   padding: 14px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);  /* mismo motivo que el handoff:
+     el 12 no está en la escala. NO verificado en la app —el popover no monta
+     sin reemplazos registrados— y se cambia por escala, no por comprobación. */
   background: var(--pulso-surface);
   box-shadow: 0 18px 48px rgb(15 23 42 / 18%);
   color: var(--pulso-text);

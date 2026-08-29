@@ -1426,7 +1426,12 @@
   min-height: 82px;
   padding: 10px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  /* El token de TARJETA, que es lo que estas fichas son: borde, relleno y un
+     par etiqueta/valor. Estaba en un 12 literal, que no está en la escala de
+     `tokens.css` —10 · 14 · 16 · 20 · 999— y caía justo entre dos peldaños.
+     Medido en la app antes de cambiarlo: la caja sigue en 223x40 y nada
+     recorta; sólo cambia la esquina. */
+  border-radius: var(--pulso-radius-card);
   background: rgba(255, 255, 255, 0.9);
 }
 
