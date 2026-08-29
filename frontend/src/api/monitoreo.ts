@@ -926,6 +926,50 @@ export type MonitoreoAulasEfectividadFacultad = {
 };
 
 /**
+ * Un aula del banco propuesta para una celda de cuota concreta.
+ *
+ * Contrato congelado con `monitoreo_aulas_reserva_dirigida()`: la UI proyecta
+ * `motivo` y las cifras sin recalcular aportes ni solapes.
+ */
+export type MonitoreoAulasCandidatoDirigido = {
+  classroom_id: string;
+  faculty: string;
+  sexo: string;
+  elegibles_del_sexo: number;
+  solape_estimado: number;
+  aporte_esperado: number;
+  tasa_efectividad: number;
+  /** `false` cuando el aula no trae padrón y el solape es una estimación. */
+  solape_medible: boolean;
+  motivo: string;
+};
+
+/**
+ * Para cada celda de cuota que NO va a llegar, a qué aula del banco ir.
+ *
+ * Va al grano de facultad×sexo, que es UN NIVEL MÁS FINO que
+ * `reservas_alcanzan`. Esa bandera es por facultad y puede decir que las
+ * reservas alcanzan mientras la celda de mujeres de esa misma facultad no tiene
+ * ni un aula de banco que ayude, porque las que quedan son de composición
+ * masculina. El total no compensa lo que no se compensa entre celdas.
+ *
+ * Lista vacía significa que no hay decisión que tomar —ninguna celda en
+ * déficit, o el estudio no tiene banco—, no que el dato falte.
+ */
+export type MonitoreoAulasReservaDirigida = {
+  faculty: string;
+  sex: string;
+  /** Cuántos faltan en la celda. */
+  brecha: number;
+  candidatos: MonitoreoAulasCandidatoDirigido[];
+  aporte_de_los_candidatos: number;
+  /** Si con esos candidatos se cierra la brecha. Las dos cifras hacen falta. */
+  alcanza: boolean;
+  /** La frase que ya redacta el motor; no se reescribe en la UI. */
+  etiqueta: string;
+};
+
+/**
  * La τ del diseño contra la del campo. Contrato congelado con el motor: la UI
  * lo proyecta sin recalcular tasas, bandas ni déficits.
  */
@@ -1069,6 +1113,13 @@ export type MonitoreoAulasDashboard = {
 	   *  `quotas_sex_faculty`, no en su lugar: una dice dónde estás y la otra si
 	   *  vas a llegar. Las frases vienen del motor. */
 	  avance_sexo_facultad?: Array<Record<string, unknown>>;
+	  /**
+	   * Para cada celda de cuota en déficit, a qué aula del banco ir. Grano
+	   * facultad×sexo: un nivel POR DEBAJO de `reservas_alcanzan`, que es por
+	   * facultad y puede decir que alcanzan mientras una celda concreta no
+	   * tiene ni un aula de banco que ayude.
+	   */
+	  reserva_dirigida?: MonitoreoAulasReservaDirigida[];
 	  brechas: MonitoreoRow[];
 	  reemplazos: MonitoreoRow[];
 	  /** El parte de campo de cada aula, con su resta ya hecha por el motor. */

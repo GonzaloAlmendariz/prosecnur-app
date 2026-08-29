@@ -9,8 +9,13 @@ import { avanceCuota } from "./avanceCuota";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import { parteDeCampo } from "./parteDeCampo";
-import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../api/monitoreo";
+import type {
+  MonitoreoAulasDashboard,
+  MonitoreoAulasReservaDirigida,
+  MonitoreoRow,
+} from "../../../../api/monitoreo";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
+import { AulasReservaDirigida } from "./AulasReservaDirigida";
 
 /**
  * La pestaña «cuotas» del perfil de aulas.
@@ -153,6 +158,13 @@ export function AulasPestanaCuotas({
                 </span>
               </div>
               <AulasAvanceCuota vista={cuotaDiseno} />
+              {/* Y para las celdas que no llegan, a qué aula del banco ir. El
+                  motor ya lo resolvía y no había dónde leerlo: va aquí porque
+                  es donde están las celdas de las que habla, y un nivel por
+                  debajo de `reservas_alcanzan`, que es por facultad. */}
+              <AulasReservaDirigida
+                celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
+              />
             </section>
     </>
   );

@@ -9,8 +9,8 @@ import { ContenidoDeReemplazo } from "./AulasPopoverReemplazo";
 /**
  * Un cero medido y un cero por no medir no pueden verse igual.
  *
- * Montado en Registro de campo el popover NO recibe brecha —esa vista no tiene
- * las cuotas por facultad—, y los tres candidatos salían con una barra de
+ * Cuando se escribió esto, Registro de campo NO pasaba brecha —nadie producía
+ * una en todo el perfil— y los tres candidatos salían con una barra de
  * «cierra brecha 0 %». Eso se lee como una afirmación sobre las aulas
  * («ninguna ayuda a cerrar nada») cuando la verdad es que ahí no se está
  * midiendo eso. Comprobado en pantalla sobre el simulacro de campo malo, con
