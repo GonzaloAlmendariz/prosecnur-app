@@ -533,6 +533,30 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   }, unidades %||% list())
 }
 
+#' Lee el libro que ya esta en `path`, si lo hay, para no pisar lo editado.
+#'
+#' Degrada a vacio ante cualquier problema de lectura —archivo a medio escribir,
+#' hoja renombrada, xlsx de otra herramienta—: preservar es un extra sobre
+#' generar, y un libro ilegible no puede impedir que se genere uno nuevo. Lo que
+#' no se pudo leer se comporta como el estado anterior, que era pisar.
+.calg_del_disco <- function(path) {
+  vacio <- list(plan = list(), partes = list())
+  if (!length(path) || !nzchar(path[1]) || !file.exists(path[1])) return(vacio)
+  leido <- tryCatch(aulas_libro_importar(path[1]), error = function(e) NULL)
+  if (!is.list(leido)) return(vacio)
+  # Del disco solo viajan los campos QUE EL EQUIPO EDITA, mas las claves con
+  # las que la fusion empareja. La identidad —docente, curso, facultad,
+  # elegibles— la manda el plan, y sin este recorte un docente corregido en el
+  # plan no llegaba nunca al libro porque el valor viejo del disco ganaba.
+  claves <- c("operational_code", "classroom_id", "collection_unit_id")
+  plan <- lapply(leido$plan %||% list(), function(fila) {
+    if (!is.list(fila)) return(NULL)
+    fila[intersect(names(fila), c(claves, AULAS_LIBRO_CAMPOS_DEL_EQUIPO))]
+  })
+  list(plan = Filter(function(x) length(x) > 0, plan),
+       partes = leido$partes %||% list())
+}
+
 #' Genera el libro operativo completo del estudio.
 #'
 #' @param unidades filas del plan (formato largo).
@@ -543,6 +567,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 #'   no lo que el aplicador anota en su parte.
 #' @return la ruta escrita.
 #' @export
+
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
                                efectivas = NULL, responses = NULL, validas = NULL,
                                cuotas = NULL, cfg = list()) {
@@ -554,6 +579,29 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "El plan solo trae banco de extras sin usar: no hay aulas agendadas que llevar al libro.")
   }
+  # LO QUE EL EQUIPO EDITO EN EL ARCHIVO MANDA (ADR pendiente; Gonzalo,
+  # 2026-08-28: «la aplicacion lee los primeros dos y genera el tercero SIN
+  # REESCRIBIR LAS PRIMERAS DOS, que son las que constantemente estan
+  # editandose»).
+  #
+  # Medido antes de esto: generar, editar a mano la fecha de agendamiento y los
+  # intentos de contacto, y regenerar SIN importar devolvia la hoja al estado
+  # del plan —fecha vacia, intentos de 77 a 2— sin error y sin aviso. El camino
+  # seguro (importar y luego regenerar) existia y funcionaba, pero nada imponia
+  # ese orden ni detectaba que el archivo era mas nuevo que el ultimo import.
+  #
+  # No se inventa una fusion: se reusa `aulas_libro_fusionar_plan()`, la misma
+  # que el importador ya aplica, con su lista declarada de campos que el libro
+  # POSEE. Esa proteccion por declaracion es la que impide que un cero de
+  # plantilla borre un dato del plan.
+  #
+  # `control` NO se relee: la Base de control es SALIDA y no la edita nadie
+  # (regla del dueno, 2026-08-24). Volver a leerla la convertiria en entrada.
+  del_disco <- .calg_del_disco(path)
+  if (length(del_disco$plan)) {
+    unidades <- aulas_libro_fusionar_plan(unidades, del_disco$plan)$plan
+  }
+  if (length(del_disco$partes)) partes <- del_disco$partes
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
