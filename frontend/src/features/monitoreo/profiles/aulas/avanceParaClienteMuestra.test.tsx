@@ -52,6 +52,11 @@ describe("la muestra que enseña el panel del cliente", () => {
   // pasa en el estudio real.
   const filas: Array<[string, number, number]> = [["Derecho", 2000, 400], ["Gestion", 1400, 267]];
 
+  // OJO: que el motor publique 2.500 es una hipótesis del test, no lo que pasa
+  // hoy. `metas_diseno.R:117` define `total_cuota` como la suma de las cuotas
+  // por facultad, así que en HSVG2026 vale 3.491 igual que la suma. El test fija
+  // que la fuente sea UNA —la del motor— para que el día que ese total cambie,
+  // el panel lo siga.
   it("usa el total del motor, no la suma de sus filas", () => {
     const html = pinta(cuota(2500, filas));
     expect(html).toContain("2500");

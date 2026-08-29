@@ -85,10 +85,18 @@ export function AulasAvanceParaCliente({
   // dos cifras del diseño —2.500 de objetivo, 3.750 de operativo— y presentada
   // como el tamaño del estudio.
   //
-  // El motor YA publica el total en `avance_cuota$total$cuota`, y en la rama
-  // vigente lo saca del diseño (`vig$dt$total_cuota`) en vez de resumar. Se usa
-  // ése. La suma de filas queda de respaldo para cuando el motor no puede
-  // afirmar un total (NA), y entonces sí es lo mejor que hay.
+  // El motor publica el total en `avance_cuota$total$cuota` y se usa ése: una
+  // sola lectura en vez de dos que pueden separarse. **Pero no vale 2.500.**
+  // `monitoreo_aulas_metas_diseno.R:117` lo define como
+  // `round(sum(cuotas_por_facultad))`, o sea el MISMO 3.491 — comprobado en
+  // pantalla el 2026-08-29, tras cambiar la fuente el número no se movió—. El
+  // objetivo del estudio vive en `n_objetivo` del componente activo y no viaja
+  // a Monitoreo.
+  //
+  // Por eso lo que se arregla aquí es el RÓTULO, que es lo inequívoco: 3.491 no
+  // es «una muestra», es lo que suman las cuotas. Cuál de los dos debe presidir
+  // el panel del cliente —el objetivo, 2.500, o el reparto operativo— es una
+  // decisión metodológica pendiente, anotada como ítem 24.
   //
   // `totalFaltan` NO cambia: ahí la suma sin netear es lo correcto, es lo que
   // dice la nota de debajo, y `total.brecha` del motor viene neteada.
@@ -106,7 +114,8 @@ export function AulasAvanceParaCliente({
     <div className="aulas-cliente" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cliente-cabeza">
         <span>
-          De una muestra de <strong>{personas(totalMuestra)}</strong> alumnos se llevan{" "}
+          Las cuotas por facultad suman{" "}
+          <strong>{personas(totalMuestra)}</strong> alumnos; se llevan{" "}
           <strong>{personas(totalConseguidas)}</strong>.
         </span>
         {totalFaltan > 0 ? (

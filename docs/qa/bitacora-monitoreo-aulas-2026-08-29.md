@@ -421,3 +421,44 @@ Dos lecciones, y la segunda es la que vale:
 
 Como el renombrado dejó los tres nombres falsos sin un solo uso, las tres deudas
 quedan **pagadas** y salen de la lista: el trinquete cumple su función.
+
+---
+
+## 40 · Volví a mirar la pantalla y uno de los tres arreglos no se veía
+
+Cuatro ticks reparando sin capturar. Captura de `avance/cuotas` con
+`aulas_con_respuestas.pulso` (`tmp/visual-qa/quick/2026-08-29T17-49-24-399Z/`),
+comprobando las tres cosas que debían haber cambiado:
+
+| | Qué debía verse | Qué se ve |
+|---|---|---|
+| a | «una muestra de 3.491» → 2.500 | **sigue 3.491** |
+| b | los «Faltan» dejan de netear entre sexos | ✓ el total pasó de 2.825 a **2.824** y ya cuadra con la tarjeta; la nota dice «celda a celda… o en un sexo» |
+| c | el gráfico dice «las aulas que faltan» | ✓ (pestaña Estratos, ya verificado) |
+
+**La (a) no funcionó y el motivo importa.** Cambié la fuente del número —de una
+suma en el frontend a `avance_cuota$total$cuota` del motor— creyendo que ese
+total era el objetivo del diseño. No lo es:
+`monitoreo_aulas_metas_diseno.R:117` lo define como
+`round(sum(cuotas_por_facultad))`, o sea **el mismo 3.491**. El commit anterior
+dio a entender que el panel pasaría a decir 2.500; no lo hizo.
+
+El cambio de fuente sigue valiendo —una lectura en vez de dos que pueden
+separarse, que es la regla que el propio backend escribió— pero no era la
+reparación del rótulo.
+
+Lo inequívoco sí se arregla: 3.491 **no es una muestra**, es lo que suman las
+cuotas. La frase pasa a «Las cuotas por facultad suman 3.491 alumnos; se llevan
+667».
+
+**Lo que queda abierto, ítem 24, y es tuyo:** el objetivo del estudio es
+`n_objetivo = 2500` y vive en el componente activo de Cálculo de muestra; el
+reparto por facultad suma 3.491 y el operativo con sobremuestra es 3.750.
+Ninguno de los dos primeros llega hoy a Monitoreo salvo por esa suma. **¿Cuál
+debe presidir el panel del cliente?** Si es el objetivo, hay que hacerlo viajar
+—`n_objetivo` no está en `design_targets`—; si es el reparto, la frase de ahora
+ya es correcta y no hay nada más que hacer.
+
+La lección, otra vez: **un arreglo verificado por tests no está verificado.** Los
+tres mutantes pasaron, el typecheck pasó, 2.063 tests pasaron, y el número de la
+pantalla era el mismo. Sólo lo dice la captura.
