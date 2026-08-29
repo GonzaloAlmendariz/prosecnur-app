@@ -13,7 +13,10 @@ describe("embudoDelAula", () => {
     expect(e.asistentes).toBe(100);
     expect(e.pasos.map((p) => p.quedan)).toEqual([100, 90, 70]);
     expect(e.pasos.map((p) => p.pierde)).toEqual([0, 10, 20]);
-    expect(e.pasos.map((p) => p.pct)).toEqual([100, 90, 70]);
+    // Sin redondear: el modelo publica el cociente exacto y la vista decide el
+    // formato. Antes salian enteros y la frase decia «92%» junto a una columna
+    // que decia «89.3 %».
+    expect(e.pasos.map((p) => Math.round(p.pct))).toEqual([100, 90, 70]);
   });
 
   it("el descuadre es lo declarado menos lo que la cadena implica", () => {

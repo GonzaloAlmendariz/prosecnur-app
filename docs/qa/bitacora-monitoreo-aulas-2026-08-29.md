@@ -1128,3 +1128,30 @@ Es la misma familia que el «Aplicada 0 / APLICADAS 48» del ítem 32 y que las 
 lecturas de «meta»: **la app tiene dos ejes reales —lo que declara el campo y lo
 que llega a la plataforma— y cada vez que un rótulo no dice cuál de los dos es,
 las cifras se leen como una contradicción.**
+
+---
+
+## 58 · El mismo cociente con dos formatos, dentro del mismo panel (ítem 39)
+
+`consultas/parte` es de los paneles mejor construidos del perfil: el embudo
+cuadra exacto —28 + 31 = 59 asistentes, −2 rechazos, −3 duplicados, 54
+efectivas— y declara su límite con la causa: «No se puede saber si alguna aula se
+aplicó en otro salón: el plan agendado no trae salón para ningún curso-horario».
+
+Lo que no cuadraba era el formato. La frase decía **«92%»** —entero y con el
+símbolo pegado— y la columna «% asistencia» de la tabla que tiene justo debajo
+decía **«89.3 %»** y **«93.5 %»**. El mismo cociente, 54 de 59, con dos formatos
+a dos centímetros; y el 91,5 % que publica «Qué está rindiendo más» por otro
+camino tampoco casaba con el 92.
+
+La causa: `embudoDelAula.ts` redondeaba a entero **en el modelo**. Redondear es
+una decisión de presentación y va en la vista, que además es donde vive el
+formato de la casa —un decimal y espacio antes del «%», como en
+`aulasPresentation.ts:575`, `AulasTextoAbierto`, `AulasAlcanceDelBanco` y
+`AulasAvanceParaCliente`—. Ahora dice **91.5 %** y coincide.
+
+El test del modelo pasa a `Math.round(p.pct)`: sigue fijando el mismo contrato
+—100, 90, 70— sin atarlo a una decisión de formato que no es suya.
+
+Verificado en pantalla. Y de paso el `aria-label` de cada barra, que llevaba el
+mismo entero pegado.

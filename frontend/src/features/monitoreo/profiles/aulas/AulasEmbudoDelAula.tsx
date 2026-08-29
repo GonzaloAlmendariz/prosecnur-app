@@ -6,6 +6,17 @@ import { embudoDelAula } from "./embudoDelAula";
 import { fmt } from "./kpisDeAulas";
 
 /**
+ * El porcentaje como lo escribe la casa: un decimal y espacio antes del «%».
+ *
+ * Es el formato de `aulasPresentation.ts:575`, `AulasTextoAbierto`,
+ * `AulasAlcanceDelBanco` y `AulasAvanceParaCliente`. Aquí se publicaba «92%»
+ * —entero y con el símbolo pegado— mientras la columna «% asistencia» del mismo
+ * panel decía «89.3 %». El cociente era el mismo, 54 de 59.
+ */
+const pctTexto = (n: number) =>
+  `${n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+
+/**
  * De cuántos estaban en el aula a cuántas respuestas quedaron.
  *
  * El parte recoge la cadena entera y la pestaña la enseñaba fila a fila. Sumada,
@@ -56,7 +67,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
       ) : (
         <p className="aulas-cadenas-lectura">
           De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
-          <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{ultimo.pct}%</strong>
+          <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{pctTexto(ultimo.pct)}</strong>
           {e.pasosSinDeclarar.length ? (
             <em>{" "}· sin contar {e.pasosSinDeclarar[0]}, que ningún parte declara</em>
           ) : null}
@@ -69,7 +80,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
             <span
               className="aulas-embudo-carril"
               role="img"
-              aria-label={`${p.etiqueta}: quedan ${p.quedan}, ${p.pct}%`}
+              aria-label={`${p.etiqueta}: quedan ${p.quedan}, ${pctTexto(p.pct)}`}
             >
               <i style={{ width: `${p.pct}%`, background: COLOR_RESULTADO.efectiva }} />
             </span>
