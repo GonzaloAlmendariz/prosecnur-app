@@ -689,3 +689,41 @@ Sin esa corrección, adoptar la tasa del aula es cambiar un instrumento que no
 responde por otro que responde mal en el 13,6 % de los casos. Es defendible,
 pero no es una mejora limpia, **y el ADR debería decirlo en esos términos en
 vez de presentarla como la opción correcta.**
+
+## 17. Lo más transferible de esta revisión
+
+No es ninguno de los hallazgos sueltos. Es que **tres veces distintas el
+agregado dijo que no pasaba nada y las tres veces pasaba algo:**
+
+```
+composición por sexo    +8,5 puntos en Artes Escénicas    −0,45 global
+esperado por aula       −8,15 % en Arte y Diseño          −0,81 % global
+                        +6,93 % en Ciencias Contables
+mínimo certificado      14 aulas de caída en la suma       1 en el total
+                        de la certeza
+```
+
+La causa de fondo es la misma: **la cuota es por facultad y las facultades no
+se compensan entre sí**, así que cualquier verificación que sume antes de
+comparar está midiendo la magnitud equivocada. Una facultad que se queda corta
+no se arregla porque otra sobre.
+
+Pero conviene no confundir los mecanismos, porque se arreglan distinto.
+
+**Los dos primeros son cancelación por signos opuestos.** Las diferencias
+existen, son grandes, y se anulan al sumar porque van en direcciones contrarias.
+Se detecta mirando la distribución en vez del total: si la diferencia absoluta
+acumulada es mucho mayor que la neta, hay algo que el promedio está tapando. En
+el caso de la tasa, 1.484 encuestas de diferencia absoluta contra 19 de
+diferencia neta.
+
+**El tercero no.** Ahí el total no se aplana por signos sino porque
+`max(fórmula, certeza)` **absorbe las bajas y solo deja pasar las subidas**. Es
+una asimetría del propio criterio de diseño, no del promedio. No se detecta
+mirando la distribución: se detecta preguntando **qué transformación hay entre
+lo que se midió y el número que se publica.**
+
+De ahí sale la regla operativa, que vale para cualquier verificación de este
+motor: **no cerrar una comprobación con el agregado.** Si solo se puede
+reportar un número, que sea el peor por facultad. Y si el total y el peor por
+facultad cuentan historias distintas, manda el segundo.
