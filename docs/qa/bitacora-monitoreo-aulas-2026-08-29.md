@@ -767,3 +767,33 @@ banda o si dos tramos se repiten entre sí. Lleva además el control de que el
 fixture sirve —si `aulasKpis(null, …)` devolviera lista vacía, el contrato
 pasaría sin comparar nada, que es verde por ausencia—. Mutante comprobado:
 restaurar «Aplicada» deja 1 rojo.
+
+---
+
+## 49 · La tercera meta la había puesto yo (y arreglarla cerró el ítem 30 casi entero)
+
+Primera captura de `avance/salidas`. Ahí la meta dice **3.491**, igual que
+Cuotas. Y el pie del ritmo, que yo acababa de pasar a `fmtCuenta`, decía
+**3.492**. No son dos granos: es **la misma cantidad** —3.491,4— con dos
+redondeos, y el segundo lo introduje yo en el arreglo de los decimales.
+
+`fmtCuenta` redondea hacia arriba y para «lo que falta» es lo correcto. Para una
+**meta** no: una meta no es lo que hace falta conseguir de más, es una cantidad
+ya fijada, y el motor la publica redondeada al entero más cercano en
+`avance_cuota$total$cuota`.
+
+Corregido, y de paso el faltante se calcula sobre la meta **mostrada**:
+
+> Faltan **2.824** para la meta total de **3.491**
+
+Con lo que 667 + 2.824 = 3.491 cuadra a la vista, y ese 2.824 es exactamente el
+de la banda de KPIs y el de la tabla del cliente. **Del ítem 30 quedan dos
+cifras en vez de tres**, y la que queda —2.923, por curso-horario— ya declara su
+grano en el rótulo («suma de metas por curso-horario»). Lo que sigue abierto para
+Gonzalo es sólo si esa lectura por curso-horario debe convivir con la de celda o
+si una de las dos preside.
+
+La lección, otra vez sobre mí: **un formateador correcto para una magnitud no lo
+es para la de al lado.** «Lo que falta» va hacia arriba; «la meta» no. Y el
+único sitio donde se vio fue una captura de una pestaña distinta de la que
+toqué.
