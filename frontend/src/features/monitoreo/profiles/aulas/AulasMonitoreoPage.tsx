@@ -668,25 +668,40 @@ function diasDeCampoDelCorte(partes: ReadonlyArray<MonitoreoRow>): number {
   return dias.size;
 }
 
-function renderAulasView(
-  view: MonitoreoSeccion,
-  dashboard: MonitoreoAulasDashboard | null,
-  operations: ReactNode,
-  vacioSinTablero: ReactNode,
-  registro: ReactNode,
+function renderAulasView({
+  view,
+  dashboard,
+  operations,
+  vacioSinTablero,
+  registro,
+  fuentes,
+  pestana,
+  foco,
+  onFoco,
+  volumen = {},
+  criterioDeEfectiva = null,
+  criterioDeAula = null,
+  irAPestana = null,
+  onDeclararUmbralDeDuracion = null,
+}: {
+  view: MonitoreoSeccion;
+  dashboard: MonitoreoAulasDashboard | null;
+  operations: ReactNode;
+  vacioSinTablero: ReactNode;
+  registro: ReactNode;
   /** Las fuentes del estudio; Fuentes es la sección que promete decir cuáles son. */
-  fuentes: ReadonlyArray<MonitoreoSource>,
-  pestana: string,
+  fuentes: ReadonlyArray<MonitoreoSource>;
+  pestana: string;
   /** Corte elegido en el resumen de cuotas; vive en la URL, no en un estado suelto. */
-  foco: FocoDeCuota,
-  onFoco: (foco: FocoDeCuota) => void,
+  foco: FocoDeCuota;
+  onFoco: (foco: FocoDeCuota) => void;
   /**
    * Cuánto trajo la plataforma: `n_rows` y `variables` del ESTADO, no del
    * tablero. Se pasan porque esta función no ve el estado —recibe sólo el
    * dashboard—, y sin ellos la tarjeta de la fuente describía igual una base de
    * 3 700 filas y 43 columnas que una de 3 700 y dos.
    */
-  volumen: { filas?: number; columnas?: number } = {},
+  volumen?: { filas?: number; columnas?: number };
   /**
    * Qué cuenta como encuesta EFECTIVA en este estudio, ya construido.
    *
@@ -695,14 +710,14 @@ function renderAulasView(
    * config. Gonzalo: «la sección de fuentes no deja declarar las variables que
    * definen a una encuesta efectiva».
    */
-  criterioDeEfectiva: ReactNode = null,
+  criterioDeEfectiva?: ReactNode;
   /**
    * La declaración de qué es un aula válida, ya construida.
    *
    * Se pasa hecha —como `criterioDeEfectiva`— porque esta función no ve el
    * estado ni sabe guardar, y el control necesita las dos cosas.
    */
-  criterioDeAula: ReactNode = null,
+  criterioDeAula?: ReactNode;
   /**
    * Cambia de pestaña dentro de la misma sección.
    *
@@ -712,7 +727,7 @@ function renderAulasView(
    * función y no se resuelve aquí porque quien recuerda la pestaña activa de
    * cada sección es el componente de arriba.
    */
-  irAPestana: ((clave: string) => void) | null = null,
+  irAPestana?: ((clave: string) => void) | null;
   /**
    * Declarar a partir de cuántos minutos una respuesta es sospechosa.
    *
@@ -721,8 +736,8 @@ function renderAulasView(
    * panel de tiempos, junto a la distribución con la que se elige el número.
    * Sacarlo a un nodo aparte lo alejaría del histograma que lo justifica.
    */
-  onDeclararUmbralDeDuracion: ((minutos: number) => void | Promise<void>) | null = null,
-) {
+  onDeclararUmbralDeDuracion?: ((minutos: number) => void | Promise<void>) | null;
+}) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
   // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
@@ -1378,79 +1393,91 @@ export default function AulasMonitoreoPage() {
                 // lo único que dice DÓNDE quedó publicado.
                 onPublished={() => { void loadView(seccionActiva, true, true); }}
               />
-            ) : renderAulasView(
-              seccionActiva,
+            ) : renderAulasView({
+              view: seccionActiva,
               dashboard,
-              <AulasOperationsPanel
-                config={aulasConfig}
-                sources={state?.sources ?? []}
-                busy={busy}
-                origen={state?.aulas_origen}
-                onImportPlan={() => { void importPlan(); }}
-                onSyncField={() => { void syncField(); }}
-                onGenerarLibro={() => { void generarLibro(); }}
-                onImportarLibro={(archivo) => { void importarLibro(archivo); }}
-              />,
-              <VacioSinTablero
-                planImportado={imported}
-                fuentesActivas={activeSources}
-                fuentesDeclaradas={sourceTotal}
-                onIrAFuentes={() => setActiveView("fuentes")}
-              />,
-              <RegistroDeCampo
-                // Del TABLERO, no de la config: el plan dejo de viajar ahi y
-                // `agenda` es un superconjunto suyo —mismos campos mas
-                // `respuestas_validas` y `brecha`— que ademas se reconstruye en
-                // cada peticion, tambien antes de la primera respuesta.
-                agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
-                // La hoja de partes, sólo para el contador: sin ella el panel
-                // decía «0 con parte» mientras Consultas enseñaba «210 partes».
-                partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
-                onGuardado={() => { void loadView(seccionActiva, true, true); }}
-                // La dirección abre el aula: `?foco=aula:CH 21` deja el
-                // formulario puesto sobre ella, que es donde vive la única
-                // acción que activa su reemplazo. Antes había que buscarla
-                // entre 196 filas, y quien la veía caer en la ruta del día no
-                // tenía cómo llegar hasta aquí.
-                codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
-                onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
-              />,
-              state?.sources ?? [],
-              pestanaActiva,
+              operations: (
+                <AulasOperationsPanel
+                  config={aulasConfig}
+                  sources={state?.sources ?? []}
+                  busy={busy}
+                  origen={state?.aulas_origen}
+                  onImportPlan={() => { void importPlan(); }}
+                  onSyncField={() => { void syncField(); }}
+                  onGenerarLibro={() => { void generarLibro(); }}
+                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
+                />
+              ),
+              vacioSinTablero: (
+                <VacioSinTablero
+                  planImportado={imported}
+                  fuentesActivas={activeSources}
+                  fuentesDeclaradas={sourceTotal}
+                  onIrAFuentes={() => setActiveView("fuentes")}
+                />
+              ),
+              registro: (
+                <RegistroDeCampo
+                  // Del TABLERO, no de la config: el plan dejo de viajar ahi y
+                  // `agenda` es un superconjunto suyo —mismos campos mas
+                  // `respuestas_validas` y `brecha`— que ademas se reconstruye en
+                  // cada peticion, tambien antes de la primera respuesta.
+                  agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+                  // La hoja de partes, sólo para el contador: sin ella el panel
+                  // decía «0 con parte» mientras Consultas enseñaba «210 partes».
+                  partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
+                  onGuardado={() => { void loadView(seccionActiva, true, true); }}
+                  // La dirección abre el aula: `?foco=aula:CH 21` deja el
+                  // formulario puesto sobre ella, que es donde vive la única
+                  // acción que activa su reemplazo. Antes había que buscarla
+                  // entre 196 filas, y quien la veía caer en la ruta del día no
+                  // tenía cómo llegar hasta aquí.
+                  codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
+                  onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
+                />
+              ),
+              fuentes: state?.sources ?? [],
+              pestana: pestanaActiva,
               foco,
-              cambiarFoco,
-              {
-                filas: Number(state?.n_rows ?? 0) || undefined,
-                columnas: (state?.variables ?? []).length || undefined,
-              },
+              onFoco: cambiarFoco,
+              volumen: (
+                {
+                  filas: Number(state?.n_rows ?? 0) || undefined,
+                  columnas: (state?.variables ?? []).length || undefined,
+                }
+              ),
               // El panel del criterio, ya construido: el render no ve el estado
               // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
               // no hay nada que elegir y el panel sería un formulario vacío.
-              filtrosEfectiva && (state?.variables ?? []).length ? (
-                <AulasFiltrosDeEfectiva
-                  filtros={filtrosEfectiva}
-                  variables={state?.variables ?? []}
-                  criterio={((dashboard?.validation ?? []).find(
-                    (c) => (c as { check?: string }).check === "valid_response_criterion",
-                  )?.detail as string | undefined) || undefined}
-                  guardando={guardandoCriterio}
-                  onChange={setFiltrosEfectiva}
-                  onGuardar={() => { void guardarCriterio(); }}
-                />
-              ) : null,
+              criterioDeEfectiva: (
+                filtrosEfectiva && (state?.variables ?? []).length ? (
+                  <AulasFiltrosDeEfectiva
+                    filtros={filtrosEfectiva}
+                    variables={state?.variables ?? []}
+                    criterio={((dashboard?.validation ?? []).find(
+                      (c) => (c as { check?: string }).check === "valid_response_criterion",
+                    )?.detail as string | undefined) || undefined}
+                    guardando={guardandoCriterio}
+                    onChange={setFiltrosEfectiva}
+                    onGuardar={() => { void guardarCriterio(); }}
+                  />
+                ) : null
+              ),
               // La vara de aula válida, también construida aquí por lo mismo.
-              <AulasCriterioDeAula
-                criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
-                hayMetas={metasDelDiseno}
-                onGuardar={guardarCriterioDeAula}
-              />,
+              criterioDeAula: (
+                <AulasCriterioDeAula
+                  criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
+                  hayMetas={metasDelDiseno}
+                  onGuardar={guardarCriterioDeAula}
+                />
+              ),
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
-              (clave) => elegirPestana(seccionActiva, clave),
+              irAPestana: (clave) => elegirPestana(seccionActiva, clave),
               // El umbral de duración sospechosa: el motor lo aceptaba desde
               // siempre y no había dónde ponerlo.
-              guardarUmbralDeDuracion,
-            )}
+              onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
+            })}
           </div>
       </MonitoreoWorkbenchChrome>
     </div>
