@@ -41,7 +41,7 @@ MONITOREO_AULAS_CRUCE_CAMPOS <- list(
   # en 0-1 o en 0-100 y el motor no las normaliza.
   list(campo = "attendance_pct", etiqueta = "el % de asistencia", tipo = "numero",
        unidad = "porcentaje"),
-  list(campo = "applied_by", etiqueta = "quien aplico", tipo = "texto")
+  list(campo = "applied_by", etiqueta = "quién aplicó", tipo = "texto")
 )
 
 .mach_num <- function(valor) {

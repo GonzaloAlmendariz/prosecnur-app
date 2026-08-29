@@ -535,7 +535,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
         "la banda al 95 % acota la proyeccion; riesgo firme es que ni su ",
         "extremo optimista cierre la cuota"
       ),
-      senal = "la banda tambien dice si tau difiere de lo supuesto, que es otra pregunta",
+      senal = "la banda también dice si tau difiere de lo supuesto, que es otra pregunta",
       no_cubre = paste0(
         "Por qué cambió el rendimiento. El bloque horario, el tipo de curso y ",
         "el agotamiento del campo se midieron en 2025 y ninguno es derivable ",

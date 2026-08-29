@@ -1147,10 +1147,10 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   switch(crit$modo %||% "sin_datos",
     sin_datos = "Todavía no hay respuestas que contar.",
     declarada_ausente = sprintf(
-      "El estudio declara la columna de estado '%s' y la base no la trae, asi que se conto por '%s': %d de %d respuestas.",
+      "El estudio declara la columna de estado '%s' y la base no la trae, así que se contó por '%s': %d de %d respuestas.",
       crit$declarada %||% "", crit$columna %||% "(ninguna)", validas, total),
     sin_columna = sprintf(
-      "La base no trae columna de estado, asi que cuentan las %d respuestas. Si el formulario marca incompletas, declara cual es esa columna.",
+      "La base no trae columna de estado, así que cuentan las %d respuestas. Si el formulario marca incompletas, declara cuál es esa columna.",
       total),
     por_columna = sprintf(
       "Cuentan las respuestas cuyo '%s' está en la lista de estados válidos: %d de %d.",
@@ -1170,7 +1170,7 @@ monitoreo_aulas_criterio_texto <- function(crit) {
         sprintf("Una respuesta cuenta si cumple %d condiciones a la vez (%s): %d de %d.",
                 length(nombres), paste(nombres, collapse = ", "), validas, total),
         if (length(ausentes)) sprintf(
-          " La base no trae %s, asi que %s no se aplico.",
+          " La base no trae %s, así que %s no se aplicó.",
           paste(sprintf("'%s'", ausentes), collapse = " ni "),
           if (length(ausentes) == 1L) "esa condicion" else "esas condiciones"
         ) else ""
@@ -2232,9 +2232,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       "El tablero agrega por aula/collector/link.",
       identificadores$detail,
       if (any(huerfanas)) {
-        sprintf("%d respuestas validas no corresponden a ninguna aula del plan.", sum(huerfanas))
+        sprintf("%d respuestas válidas no corresponden a ninguna aula del plan.", sum(huerfanas))
       } else if (length(valid_response)) {
-        "Todas las respuestas validas se atribuyeron a un aula del plan."
+        "Todas las respuestas válidas se atribuyeron a un aula del plan."
       } else {
         # El estado ya dice `sin_datos`; el texto tiene que decir lo mismo. Con
         # cero respuestas, «todas se atribuyeron» afirma un recuento que no se
@@ -2251,7 +2251,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (length(partes_campo)) {
-        "Los numeros de cada parte de campo cuadran."
+        "Los números de cada parte de campo cuadran."
       } else {
         "No hay partes de campo que comprobar."
       },
@@ -2266,7 +2266,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         )
       } else if (cruce$comparables > 0L) {
         sprintf(
-          "Las %d aulas que estan en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quien aplico.",
+          "Las %d aulas que están en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quién aplicó.",
           cruce$comparables
         )
       } else {

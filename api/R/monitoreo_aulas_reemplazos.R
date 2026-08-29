@@ -247,7 +247,7 @@ monitoreo_aulas_activacion_texto <- function(res) {
         res$reemplazada))
     }
     return(sprintf(
-      "%s cae y su cadena de reemplazos ya se agoto: se habian usado %s. No queda reserva equivalente, asi que la meta de ese curso-horario se queda sin cubrir.",
+      "%s cae y su cadena de reemplazos ya se agotó: se habían usado %s. No queda reserva equivalente, así que la meta de ese curso-horario se queda sin cubrir.",
       res$reemplazada, usadas))
   }
   sprintf("%s pasa a reemplazada y entra %s en su lugar. Quedan %s reservas en la cadena.",

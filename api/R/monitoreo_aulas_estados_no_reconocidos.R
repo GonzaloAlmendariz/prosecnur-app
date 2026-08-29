@@ -75,8 +75,8 @@ monitoreo_aulas_estados_no_reconocidos_texto <- function(x) {
     paste0(
       "%d aulas se cuentan como SIN CONTACTAR sin estarlo: su STATUS MUESTRA trae un ",
       "valor que el lector no reconoce, y todo lo no reconocido se lee como vacio. %s%s ",
-      "Mientras siga asi se pueden ofrecer como reserva libre, o mandar a llamar, aulas ",
-      "que ya estan en campo. Corrige la hoja o pide que se añada ese estado."
+      "Mientras siga así se pueden ofrecer como reserva libre, o mandar a llamar, aulas ",
+      "que ya están en campo. Corrige la hoja o pide que se añada ese estado."
     ),
     x$total,
     nombres,
