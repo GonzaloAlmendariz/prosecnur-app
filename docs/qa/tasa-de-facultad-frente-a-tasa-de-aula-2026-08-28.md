@@ -357,19 +357,25 @@ midió.
 
 **Y no era robusta a la cuota.** Al rastrear por qué la reejecución no
 reproducía los niveles del barrido original apareció que hay **dos juegos de
-cuotas por sexo circulando**, construidos con mecanismos distintos:
+cuotas por sexo circulando**. Los dos se construyen igual, redondeando las
+mujeres y sacando los hombres por diferencia, y los dos suman exactamente la
+cuota de su facultad. **Lo que los separa es la proporción de sexo con la que
+reparten:**
 
 ```
-por resta        mujeres = redondeo(cuota × proporción del marco)
-                 hombres = cuota − mujeres
-                 EE.GG. Letras 241 y 156, Psicología 58 y 17
-
-independiente    cada sexo se redondea por separado
-                 EE.GG. Letras hombres 157, Psicología hombres 18
+                          el motor    el entregable    elegibles del marco
+Estudios Generales Letras   0,6039        0,6060             0,6062
+Psicología                  0,7599        0,7750             0,7752
 ```
 
-El primero garantiza que mujeres más hombres den la cuota de la facultad, y lo
-cumple en las quince. El segundo no.
+El entregable reparte según **la composición del marco elegible**, y coincide
+con ella a dos diezmilésimas. El motor usa la del componente del estudio. En
+Psicología la diferencia es de un punto y medio, que no es redondeo de nada.
+
+Y el motor tiene razón: **repartir la cuota por sexo según el marco es
+circular**, porque el marco ya está filtrado por criterios que pueden
+correlacionar con el sexo, y entonces la cuota heredaría el sesgo del filtro en
+vez de reflejar la población objetivo.
 
 Un uno de diferencia parece nada y decide el barrido, porque **cambia qué celda
 manda**. Con el reparto por resta, el mínimo de la semilla 4444 lo fija
@@ -387,6 +393,11 @@ De ahí se sigue una recomendación concreta: **al criterio del barrido hay que
 fijarle la procedencia de la cuota por celda igual que la de la tasa.** Sin eso
 declarado, dos barridos del mismo estudio eligen semillas distintas sin que
 ninguno esté mal.
+
+Y el invariante que lo comprueba no es que las cifras sumen la cuota, porque
+eso lo cumplen los dos juegos: es de procedencia. **La proporción con la que se
+reparte la cuota tiene que ser la que publica el estrato del componente**, no
+la del marco. Se verifica en una línea y hoy el entregable no la cumple.
 
 Y lo que más cambia no es el podio sino el filtro: **treinta candidatas cierran
 las 30 celdas con la vara vieja y treinta y ocho con la nueva.** Ocho
