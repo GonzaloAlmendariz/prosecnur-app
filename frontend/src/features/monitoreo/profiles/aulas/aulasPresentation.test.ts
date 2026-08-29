@@ -10,6 +10,7 @@ import {
   presentAulasRow,
   summarizeAulasValidation,
 } from "./aulasPresentation";
+import { fuenteDelPageDeAulas } from "./fuenteDelPerfil";
 
 const featureDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -193,7 +194,10 @@ describe("aulasPresentation", () => {
   });
 
   it("conecta la presentación pura con las tablas y el resumen de calidad", () => {
-    const page = fs.readFileSync(path.join(featureDir, "AulasMonitoreoPage.tsx"), "utf8");
+    // El PAGE y sus trozos: las tablas se mudaron a `AulasSeccion*` al partir
+    // el page-file, y la conexión con la presentación pura sigue siendo la
+    // misma. Ver `fuenteDelPerfil.ts`.
+    const page = fuenteDelPageDeAulas();
 
     expect(page).toContain("presentAulasRow(row, enProporcion)");
     // La escala sale de TODAS las filas, no de las que sobreviven al recorte.
@@ -280,7 +284,11 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
     // y los campos por grupo del libro— y no a otro vector del motor. Un vector
     // del motor puede publicar columnas que ninguna tabla muestra; lo que hay
     // que etiquetar es lo que se ve.
-    const pagina = fuente2("AulasMonitoreoPage.tsx");
+    // El page MÁS sus trozos: las `preferredColumns` viajaron a `AulasSeccion*`
+    // al partir el page-file. El guard cuenta cuántas columnas ve y falla si
+    // bajan, así que leer sólo el page lo habría dejado ciego justo donde este
+    // comentario avisa que ya se quedó ciego una vez.
+    const pagina = fuenteDelPageDeAulas();
     const libro = fuente2("AulasControlDelLibro.tsx");
     const pedidas = [...pagina.matchAll(/preferredColumns=\{\[([^\]]*)\]/g)]
       .flatMap((m) => literalesDe(m[1]));
