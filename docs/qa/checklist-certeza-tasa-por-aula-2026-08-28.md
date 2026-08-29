@@ -1412,3 +1412,69 @@ igual que la vara. Hoy hay al menos dos juegos de cuotas circulando —el de
 `distribucion_sub` y el del Excel— y difieren en las celdas que deciden. Sin eso
 declarado, dos barridos del mismo estudio pueden elegir semillas distintas sin
 que ninguno esté mal.
+
+---
+
+# Las dos cuotas por sexo: no es el redondeo ni una foto vieja (2026-08-28)
+
+La sesión par confirmó que su barrido usó 156 y 17, y propuso dos cosas que
+**hay que corregir antes de que se den por buenas**.
+
+## 1 · `distribucion_sub` NO viola el invariante
+
+Su hipótesis era que el juego oficial publica 241 mujeres y 157 hombres para
+EE.GG. Letras, sumando 398 contra una cuota de 397, y que eso sería «un hallazgo
+aparte y probablemente más importante». **No lo es: publica 240 y 157.**
+
+Verificado en las quince:
+
+    facultades donde mujeres + hombres != cuota:  0 de 15
+    TOTAL  cuota 2 500  ·  hombres 1 261  ·  mujeres 1 239  ·  suma 2 500
+
+Los **dos** juegos cumplen el invariante. Por lo tanto el invariante es correcto
+como regla pero **no discrimina entre ellos**: la regla «si un juego lo viola, no
+es el que hay que usar» no aplica acá porque ninguno lo viola.
+
+## 2 · El mecanismo tampoco los distingue
+
+Aplicando su mecanismo —redondear las mujeres, los hombres por diferencia— a la
+proporción **del motor**:
+
+    EE.GG. Letras   397 × 0,6039 = 239,75 -> 240 mujeres, 157 hombres
+    Psicología       75 × 0,7599 =  56,99 ->  57 mujeres,  18 hombres
+
+que es **exactamente `distribucion_sub`**. El motor ya hace efectivamente eso. La
+diferencia no está en cómo se redondea.
+
+## 3 · Lo que sí los distingue: la proporción de sexo
+
+| | EE.GG. Letras | Psicología |
+|---|---:|---:|
+| motor (`N_b / (N_a + N_b)`) | **0,6039** | **0,7599** |
+| Excel del barrido | **0,606** | **0,775** |
+
+Con 0,606 salen 241 y 156; con 0,775 salen 58 y 17. **Ahí está el ±1.**
+
+## 4 · Y NO es el patrón de la foto vieja
+
+Es la distinción que importa. La proporción del motor es **idéntica en los tres
+estados del proyecto**:
+
+    ESTUDIOS GENERALES LETRAS   DEF 0,6039 · ULT1 0,6039 · ULT2 0,6039
+    PSICOLOGÍA                  DEF 0,7599 · ULT1 0,7599 · ULT2 0,7599
+
+Así que **no se congeló en un marco anterior**, como sí pasó con τ. La proporción
+del Excel viene de otra base de población —no del `N_a/N_b` de los estratos en
+ningún estado conocido del estudio—, y en Psicología la diferencia es de 1,5
+puntos, que no es redondeo.
+
+Conviene no meterlo en la misma bolsa que la τ congelada: aquella se reconstruye
+exacto desde un marco identificable y su arreglo es recalcular; ésta sale de una
+fuente que todavía no está identificada.
+
+## El invariante que sí discriminaría
+
+Ya que `M + F = cuota` lo cumplen los dos, el que separa es sobre la
+**procedencia**: la proporción de sexo usada para repartir la cuota tiene que ser
+la misma que publica el estrato del componente (`N_a`, `N_b`). Es comprobable en
+una línea y hoy el Excel no la cumple.
