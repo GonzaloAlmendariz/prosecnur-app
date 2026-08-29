@@ -69,7 +69,11 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
         ) : (
           <>Ninguna facultad ha bajado su ritmo de forma apreciable.</>
         )}{" "}
-        · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} de campo,
+        {/* «con parte de campo» y no «de campo» a secas: estas fechas salen de
+            los PARTES, y el ritmo diario cuenta los días con respuestas en la
+            plataforma. Dos ejes, dos cifras —2 contra 5 en el estudio real— y
+            hasta ahora las mismas palabras. */}
+        · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} con parte de campo,
         de {dm(fechas[0])} a {dm(fechas[fechas.length - 1])}
       </p>
       {/* Cabecera, como en los demás paneles del perfil: sin ella el «−37,9 %»

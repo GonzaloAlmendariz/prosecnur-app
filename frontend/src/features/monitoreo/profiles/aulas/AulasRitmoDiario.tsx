@@ -79,8 +79,15 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
   return (
     <div className="aulas-ritmo">
       <p className="aulas-cadenas-lectura">
+        {/* **«de recolección», no «de campo».** Este panel cuenta los días con
+            RESPUESTAS en la plataforma —del 1/9 al 5/9 en el estudio real— y
+            «Encuestas por día de cada facultad», dos pestañas más allá, decía
+            «2 días de campo, de 01/09 a 02/09» contando los días con PARTE.
+            Los dos números son correctos y son dos ejes; lo que no puede ser es
+            que compartan las mismas tres palabras. Medido el 2026-08-29: 5
+            contra 2. */}
         <strong>{fmt(total)}</strong> respuestas en <strong>{fmt(conCampo)}</strong>{" "}
-        {conCampo === 1 ? "día de campo" : "días de campo"}
+        {conCampo === 1 ? "día de recolección" : "días de recolección"}
         {/* `fmt` conserva el decimal del dato y aquí son RESPUESTAS: «139,8 al
             día» son personas partidas. Tercera vez que aparece el mismo defecto
             en una jornada, así que va con `fmtCuenta`, que redondea y no
