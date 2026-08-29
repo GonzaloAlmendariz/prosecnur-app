@@ -151,8 +151,12 @@ export function escalaDeEje(maximo: number): { tope: number; escalones: number[]
   return { tope, escalones };
 }
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null }: {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null, facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
+  /** La facultad elegida, si viene de la URL. Manda sobre el estado local. */
+  facultadEnFoco?: string;
+  /** Para escribirla en la URL cuando alguien elige otra. */
+  onFoco?: (foco: { tipo: "facultad"; valor: string }) => void;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
   /** El plan, sólo para los elegibles de cada aula ya aplicada. */
@@ -179,7 +183,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     () => proyeccionPorAgenda(agenda, partes, cuotas),
     [agenda, partes, cuotas],
   );
-  const [foco, setFoco] = useState("");
+  // **La facultad elegida viaja en la URL.**
+  //
+  // Era un `useState` suelto, y eso rompe la regla de la casa —«toda vista es
+  // enlazable»— con una consecuencia práctica: no se puede mandar el enlace de
+  // la serie de una facultad, ni capturarla para revisarla. La pirámide de
+  // Cuotas ya lo resuelve con `?foco=facultad:X` y esta pestaña YA recibe ese
+  // foco para otro panel; sólo faltaba usarlo aquí.
+  //
+  // El estado local se conserva como respaldo para cuando el padre no pasa
+  // `onFoco`: la serie se monta en más de un sitio y quedarse sin selector
+  // sería peor que no ser enlazable.
+  const [focoLocal, setFocoLocal] = useState("");
+  const foco = facultadEnFoco ?? focoLocal;
+  const setFoco = (valor: string) => {
+    setFocoLocal(valor);
+    if (onFoco) onFoco({ tipo: "facultad", valor });
+  };
   // El hover de verdad. El `title` nativo tarda un segundo, no se puede estilar y
   // en un punto de 7 px es casi imposible de acertar: «el hover tiene que
   // funcionar en los gráficos».
