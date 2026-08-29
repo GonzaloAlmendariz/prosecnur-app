@@ -60,7 +60,13 @@ export function AulasSeccionFuentes({
               <h3>Del plan a las encuestas que cuentan</h3>
               <span>dónde está cada curso-horario ahora mismo</span>
             </div>
-            <div data-qa-geometry-capacity="owned">
+            {/* `capacity="owned"` NO basta: el runner elige miembros con
+                `querySelectorAll("[data-qa-geometry-member]")` y sin ese atributo
+                cae a TODOS los hijos visibles del grupo, donde el
+                `mon-profile-panel-head` entra como si fuera datos y sus 5 px de
+                padding salen como `capacity-drift`. Son dos atributos distintos:
+                uno dice quién posee el vacío, el otro quién se mide. */}
+            <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
               <FlujoVertical
                 etapas={embudo}
                 orientacion="horizontal"

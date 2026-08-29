@@ -105,7 +105,10 @@ export function AulasCargaDeCampo({
           <h3>Carga de campo</h3>
           <p>Cuántos aplicadores hacen falta a la vez, según el horario de cada curso.</p>
         </header>
-        <p className="aulas-carga-vacio">
+        {/* La rama vacía declara lo mismo que la de datos: es donde el grupo
+            se quedaba sin contenedor declarado y el `header` entraba en la
+            medida con sus 4 px. */}
+        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
           El plan no trae el horario de los cursos-horario. Se completa al construir el marco desde el catálogo
           de Cursos-Horarios, que es de donde sale el rango de cada sesión.
         </p>
@@ -198,7 +201,7 @@ export function AulasCargaDeCampo({
         </div>
       </header>
 
-      <div className="aulas-carga-controles">
+      <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <label>
           <span>
             Duración de la aplicación: <strong>{fmt(duracionMin)} min</strong>
