@@ -226,6 +226,63 @@ tramos 2 a 4 sería trabajar donde no duele.
 se midió; y 3.000 × 153 sigue siendo un archivo pequeño frente a un export real
 de un estudio largo.
 
+#### E1, primera pasada el 2026-08-29 — y el tablero decía ocho pestañas cuando son DIECISÉIS
+
+**Corrección de scope antes que nada.** Este GOAL decía «las ocho pestañas del
+perfil» porque las deduje de los bloques `pestana !== "…"` del page-file, y eso
+sólo cubría parte. El catálogo real
+(`frontend/src/lib/navegacion/catalogos/monitoreo.ts`) declara **dieciséis
+pestañas en cuatro secciones**, más `fuentes` que es una superficie sin
+pestañas: **diecisiete superficies**.
+
+| Sección | Pestañas |
+|---|---|
+| `fuentes` | — (superficie única) |
+| `modelo` | agenda · facultad · contacto · carga |
+| `avance` | resumen · estratos · cuotas · rendimiento · efectividad · salidas |
+| `calidad` | registro · controles · base · abiertas |
+| `consultas` | reemplazos · brechas |
+
+**Lo medido**, sobre las diecisiete, en 1440×1000 y 1024×600:
+
+| | 1440×1000 | 1024×600 |
+|---|---:|---:|
+| Superficies recorridas | 17 | 17 |
+| Recortes | **0** | **0** |
+| Grupos no conformes | **0** | **0** |
+| Grupos declarados que se montan | 3 a 12 por vista | igual |
+
+**Y el límite, que es la mitad de la noticia: el proyecto trae CERO registros y
+cero fuentes activas.** Todas las superficies estaban en estado vacío. Un
+contrato `equal` con cero o un miembro no puede derivar, así que ese «0 no
+conformes» **no prueba que los marcos cuadren con datos**: prueba que los vacíos
+no rompen. Es exactamente la mitad del contrato que sí se puede medir sin datos
+—toda superficie contiene su propio vacío— y se declara como tal.
+
+**Qué queda pendiente y por qué**, para que nadie lo lea como aprobado:
+
+- **Recorrido con datos**: importar el plan desde cálculo de muestra y repetir.
+  Ahí es donde aparecen los recortes de tabla y la deriva de marcos, que es lo
+  que el registro de pulido encontró en acreditación y telefónico.
+- **Escala de radios y tipografía**: no medida en esta pasada.
+- **Solapes entre hermanos**: el medidor de esta pasada mira recorte y deriva,
+  no derrame. El defecto más caro del pulido anterior —151 px de mapa
+  encima de una tabla— no lo detecta ningún medidor de scroll.
+
+## Cómo se midió, para repetirlo
+
+Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
+del build. El medidor se instala una vez en `window.__medir` y se navega
+empujando la URL con `history.pushState` más un `popstate`, sin recargar: el
+warm start tarda ~3 minutos y repetirlo diecisiete veces por viewport habría
+hecho inviable la pasada.
+
+Cuatro trampas que costaron intentos: el bootstrap **no** abre el proyecto solo
+aunque el log diga «sesión cargada»; `form_input` no dispara el `onChange` de
+React y hay que usar el setter nativo; **`window.__pulsoNav` no existe en el
+build servido**, es del dev server con Vite; y Monitoreo pide elegir el modo la
+primera vez, que es por qué el `.pulso` traía `monitoreo: pending`.
+
 ### N · Que no crezca un archivo gigante — pedido explícito del dueño
 
 | | Ítem | Estado |
@@ -288,7 +345,7 @@ por primera vez.
 
 | | Ítem | Estado |
 |---|---|---|
-| E1 | **Auditar las ocho pestañas de aulas** con los detectores medidos: recortes, solapes, contenido cortado, escala de radios y tipografía. Una fila por pestaña, con su cifra | ☐ ninguna auditada |
+| E1 | **Auditar las DIECISIETE superficies de aulas** (el «ocho» era un error de scope) con los detectores medidos: recortes, solapes, contenido cortado, escala de radios y tipografía. Una fila por pestaña, con su cifra | ☐ ninguna auditada |
 | E2 | **Declarar el Contrato de Superficie (C1)** en las superficies de aulas que no lo tengan: sin declaración el gate no puede aprobar | ☐ |
 | E3 | **Matriz de viewports**: 1440×1000 y 1024×600 mínimo | ☐ |
 | E4 | **Un día de muy pocos casos** no puede romper la codificación de una barra apilada. Medido en Ritmo diario de telefónico; comprobar si la serie de aulas tiene el mismo defecto | ☐ |
