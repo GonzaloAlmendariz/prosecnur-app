@@ -1446,3 +1446,48 @@ Ese guard lleva además su propio control de que el regex funciona («sin esto, 
 regex roto daría verde en los treinta y pico archivos sin haber mirado
 ninguno»). Es el mismo criterio con el que escribí los míos hoy, y aquí me
 devolvió el favor.
+
+---
+
+## 67 · Segunda vuelta: el simulacro abre las ramas que nunca se vieron
+
+Todo el loop se ha medido sobre `aulas_con_respuestas.pulso` —48 aplicadas, 3
+partes, campo recién empezado— así que media app salía por su rama vacía. Traídos
+al scratchpad de esta sesión los tres simulacros de mitad de operativo
+(`HSVG2026_sem15_{como_2025,campo_flojo,campo_malo}.pulso`, 1.424 filas de plan,
+`route_selected = TRUE`).
+
+**Con `como_2025` aparecen ramas que nadie había visto, y cuadran:**
+
+- `consultas/reemplazos`: «Cerraron con reemplazo **14**» (antes 0), y
+  «62 cerraron con el titular · 14 con un reemplazo · 98 sin cerrar» = **174
+  cadenas** ✓. La columna «Lo más cerca» enseña por fin reservas ganando —«R
+  89.1, 16 de 25»—, que es para lo que existe el panel. Y «Reservas» varía
+  (11, 9, 8…), lo que confirma que el 4 constante del otro proyecto era del
+  dato y no un defecto, como se midió en la 55.
+- `avance/cuotas`: «Cierran con lo agendado **23** de 30» (antes 0), «2.668 de
+  2.500 personas · **21 de 30 celdas cumplidas**», «Cuota por recoger 170 · 90
+  hombres · 80 mujeres» (90 + 80 = 170 ✓).
+
+Y ahí se gana el sueldo la nota del ítem 19: **se llevan 2.668 sobre una meta de
+2.500 y aun así faltan 170**, porque cubrir de más en una facultad —o en un
+sexo— no cubre lo que falta en otra. Sin esa frase, esas dos cifras juntas se
+leen como un error.
+
+### Dos hallazgos nuevos, medidos y sin tocar
+
+**(a) La resta no cuadra a la vista.** En EDUCACION · Hombres:
+
+> «No va a llegar: **falta 1 encuesta** · 45% de cerrar · Lleva 1 de 4: **faltan
+> 3** y las aulas que faltan por aplicar **aportan 3**.»
+
+3 − 3 = 0, no 1. Lo más probable es que el aporte real sea 2,x y el déficit 0,y,
+y que cada cifra se redondee por su lado —el déficit hacia arriba, como manda la
+regla cauta, y el aporte hacia abajo—. Las dos serían correctas y la frase, no.
+Es el patrón del 2.824/2.825, y aquí **dentro de una sola oración**.
+
+**(b) Concordancia.** «**1** de 30 celdas con objetivo no **van** a llegar».
+
+Ninguno se toca hasta medirlo: la (a) exige ver de dónde salen las tres cifras
+—`brecha`, `aporte_pendiente` y el «faltan N» del veredicto— y con qué redondeo
+llega cada una.
