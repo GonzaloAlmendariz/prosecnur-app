@@ -76,6 +76,13 @@ export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
         )}
       </p>
 
+      {/* **Sobre qué se calculan.** La frase de arriba deja DOS denominadores en
+          pantalla —las que contestaron y las que dijeron algo distinto— y estos
+          tres porcentajes salían desnudos, así que no había forma de saber
+          cuál. En el motor los cuatro son `100 * sum(x) / n` con
+          `n = contestadas` (`monitoreo_texto_abierto.R`), o sea el primero.
+          Una línea, una vez, en vez de repetir la base en cada ítem. */}
+      <p className="aulas-abiertas-base">De las que contestaron:</p>
       <ul className="aulas-abiertas-perfil">
         <li><span>{pct(q.pctRelleno)}</span><small>rellenó sin decir nada</small></li>
         <li><span>{pct(q.pctRepetida)}</span><small>repite otra respuesta</small></li>
