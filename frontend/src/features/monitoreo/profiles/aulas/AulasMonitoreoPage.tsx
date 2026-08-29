@@ -85,6 +85,7 @@ import "./aulasMonitoreo.css";
 // `aulasReemplazos.css`.
 import "./aulasReemplazos.css";
 import "./aulasCargaDeCampo.css";
+import "./aulasTextoAbierto.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
