@@ -2230,7 +2230,7 @@
 }
 
 .cmv2-chain-empty-slot[data-con-pool] {
-  border-color: color-mix(in srgb, var(--pulso-warning-fg, var(--pulso-text-muted)) 22%, var(--pulso-border));
+  border-color: color-mix(in srgb, var(--pulso-warn-fg, var(--pulso-text-muted)) 22%, var(--pulso-border));
 }
 
 /* Resumen de riesgos para las pestañas cuyo tema NO son los riesgos. La lista

@@ -1084,7 +1084,7 @@ function IssuesPanel({ issues }: { issues: ValidationIssue[] }) {
 
 function RequirementPanel({ title, text }: { title: string; text: string }) {
   return (
-    <div style={{ ...panelStyle, borderColor: "var(--pulso-warning-border)", background: "#fff9eb" }}>
+    <div style={{ ...panelStyle, borderColor: "var(--pulso-warn-border)", background: "#fff9eb" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 13 }}>
         <AlertCircle size={14} /> {title}
       </div>
@@ -1317,7 +1317,7 @@ function toneColor(tone: Tone | ValidationIssue["kind"]) {
   if (tone === "idle") return "var(--pulso-text-soft)";
   if (tone === "ok") return "var(--pulso-success-fg, #157347)";
   if (tone === "error") return "var(--pulso-danger-fg, #b42318)";
-  return "var(--pulso-warning-fg, #96620f)";
+  return "var(--pulso-warn-fg, #96620f)";
 }
 
 const panelStyle: React.CSSProperties = {

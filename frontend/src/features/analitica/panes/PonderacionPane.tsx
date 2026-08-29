@@ -232,8 +232,8 @@ function DecisionAid() {
           background: conviene ? "var(--pulso-success-soft, #E9F6EE)" : "var(--pulso-warning-soft, #FBF3E2)",
         }}>
           {conviene ? <CheckCircle2 size={17} style={{ color: "var(--pulso-success-fg)" }} />
-            : <Info size={17} style={{ color: "var(--pulso-warning-fg, #9A6B12)" }} />}
-          <span style={{ fontSize: 12.5, color: conviene ? "var(--pulso-success-fg)" : "var(--pulso-warning-fg, #9A6B12)" }}>
+            : <Info size={17} style={{ color: "var(--pulso-warn-fg, #9A6B12)" }} />}
+          <span style={{ fontSize: 12.5, color: conviene ? "var(--pulso-success-fg)" : "var(--pulso-warn-fg, #9A6B12)" }}>
             {conviene
               ? "Ponderar tiene sentido aquí. Configura los objetivos abajo."
               : comparar
@@ -447,9 +447,9 @@ function Diagnostico({ preview, nEff, deff, loss, cap, onCap }: {
 
           {(preview.warnings ?? []).map((w, i) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, padding: "10px 12px", borderRadius: 8, background: w.level === "warn" ? "var(--pulso-warning-soft, #FBF3E2)" : "var(--pulso-primary-soft)" }}>
-              {w.level === "warn" ? <AlertTriangle size={16} style={{ color: "var(--pulso-warning-fg, #9A6B12)", flexShrink: 0, marginTop: 1 }} />
+              {w.level === "warn" ? <AlertTriangle size={16} style={{ color: "var(--pulso-warn-fg, #9A6B12)", flexShrink: 0, marginTop: 1 }} />
                 : <Info size={16} style={{ color: "var(--pulso-primary)", flexShrink: 0, marginTop: 1 }} />}
-              <span style={{ fontSize: 12, color: w.level === "warn" ? "var(--pulso-warning-fg, #9A6B12)" : "var(--pulso-text)" }}>{w.message}</span>
+              <span style={{ fontSize: 12, color: w.level === "warn" ? "var(--pulso-warn-fg, #9A6B12)" : "var(--pulso-text)" }}>{w.message}</span>
             </div>
           ))}
 
@@ -467,7 +467,7 @@ function StatCard({ label, value, tone }: { label: string; value: React.ReactNod
   return (
     <div style={{ background: "var(--pulso-surface-2)", borderRadius: 8, padding: 12 }}>
       <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 600, color: tone === "warn" ? "var(--pulso-warning-fg, #9A6B12)" : "var(--pulso-text)" }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 600, color: tone === "warn" ? "var(--pulso-warn-fg, #9A6B12)" : "var(--pulso-text)" }}>{value}</div>
     </div>
   );
 }

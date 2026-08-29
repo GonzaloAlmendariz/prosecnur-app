@@ -1080,6 +1080,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* La causa de un cero, encima de las cifras que explica. Tono de advertencia y
+   no de error: el dato no está roto, falta declarar una equivalencia. */
+.mon-profile-page.is-aulas-flow .aulas-cuota-aviso {
+  margin: 0 0 var(--pulso-space-2, 8px);
+  padding: var(--pulso-space-2, 8px) var(--pulso-space-3, 12px);
+  border-left: 2px solid var(--pulso-warn-fg);
+  border-radius: var(--pulso-radius-sm, 4px);
+  background: var(--pulso-warn-bg, transparent);
+  font-size: var(--aulas-txt);
+  color: var(--pulso-warn-fg, var(--pulso-text-soft));
+}
+
 /* ── Historia de la cadena ───────────────────────────────────────────────
    Cada cadena es una fila con sus eslabones en línea: titular → en reserva 1 →
    en reserva 2, y el que cerró marcado. Se lee de izquierda a derecha como
@@ -5457,7 +5469,7 @@
    que el hueco es lo accionable de la línea: se marca en el tono de aviso, sin
    pasar a alarma —no anotar todavía no rompe nada, sólo queda pendiente—. */
 .mon-profile-page.is-aulas-flow .aulas-observaciones-hueco {
-  color: var(--pulso-warning-text, var(--pulso-text-soft));
+  color: var(--pulso-warn-fg, var(--pulso-text-soft));
   font-weight: 600;
 }
 

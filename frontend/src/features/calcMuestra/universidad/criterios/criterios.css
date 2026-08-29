@@ -298,7 +298,7 @@
   background: color-mix(in srgb, var(--pulso-border) 30%, transparent);
   color: var(--pulso-text);
 }
-.cmv2-crit-col-warn { color: var(--pulso-warning-fg, var(--pulso-text-muted)); }
+.cmv2-crit-col-warn { color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
 
 .cmv2-crit-card-body {
   padding: 12px 14px;

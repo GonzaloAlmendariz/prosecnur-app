@@ -368,3 +368,56 @@ cuanto inserté un helper delante de una función exportada.
 Separados los dos bloques y regenerado: **el NAMESPACE no cambió ni una línea**
 —el `export()` ya estaba, sólo le faltaba su `@export` en el sitio correcto— y
 las cinco comprobaciones del contrato pasan.
+
+---
+
+## 38 · La causa del cero, donde se lee el cero (ítem 10, la mitad que faltaba)
+
+El motor ya tenía hecha la parte difícil. `monitoreo_aulas_avance_cuota.R:518`
+detecta que la columna de sexo existe y **ninguno** de sus valores se reconoce
+—una base de Kobo sin decodificar trae el NOMBRE de la opción del XLSForm, y el
+instrumento de HSVG2026 usa `1` = Mujer y `2` = Hombre—, y publica la causa con
+los valores que llegaron. Deliberadamente no adivina que `1` es mujer: otro
+estudio puede numerarlo al revés.
+
+Lo que faltaba era el último eslabón: ese aviso viajaba en la columna `warning`
+de las treinta filas y la UI lo pintaba **sólo como una columna más de la tabla**,
+rotulada «Advertencia» y repetida treinta veces, mientras el panel de al lado
+decía «0 de 30 celdas cumplidas» sobre mil quinientas respuestas ya atribuidas a
+su aula. Ahora sale encima de las cifras que explica, en
+`AulasCuotasResumen`. Tres tests, con el mutante comprobado.
+
+## 39 · Una familia de tokens que nunca existió
+
+Al darle estilo al aviso escribí `var(--pulso-warning-fg)` copiando el CSS de al
+lado. **No existe.** El token de la casa es `--pulso-warn-fg` —sin `-ing`— y la
+familia falsa estaba referenciada en **dieciséis sitios**, seis de ellos sin
+respaldo, o sea declaraciones inválidas: `avanceParaCliente.css:133` pintaba el
+chip de aviso con el color heredado, y `editor-v2.css` y `monitoreoPublic.css`
+tenían `background: var(--pulso-warning-bg) !important` sin fondo ninguno.
+Renombrados los dieciséis. Quedan dos `--pulso-warning-soft` en Analítica con
+respaldo hex: `--pulso-warn-soft` **tampoco** existe, así que renombrarlos sería
+cambiar un token inexistente por otro; se dejan y siguen en la lista de deuda.
+
+**Y el barrido con `sed` se llevó por delante el propio test que lo vigila.**
+`tokensDefinidos.contract.test.ts` lleva un `DEUDA_CONOCIDA` con los huérfanos
+tolerados, y mi `sed -i` sobre «todo archivo que mencione `pulso-warning-`»
+reescribió también esas tres entradas de la lista, convirtiéndolas en nombres
+que **sí** están definidos. El test lo cazó por su trinquete —«estos tokens ya no
+están huérfanos, quítalos para que la lista sólo encoja»— y no por el chequeo
+principal.
+
+Dos lecciones, y la segunda es la que vale:
+
+1. Un `sed -i` sobre el resultado de un `grep -rl` toca **todo** archivo que
+   mencione el patrón, incluidos los tests, los fixtures y las listas de
+   excepciones que hablan *de* ese patrón. Mirar `git status` después de un
+   barrido, no sólo el gate.
+2. **El rojo se localiza antes de atribuirlo.** Mi primera lectura fue «esto ya
+   estaba rojo, es de otra sesión», y para comprobarlo miré HEAD: el nombre no
+   estaba en la lista de HEAD, o sea que la entrada la había escrito yo hacía
+   dos minutos. Sin ese paso habría committeado una lista de deuda corrompida
+   diciendo que el rojo era ajeno.
+
+Como el renombrado dejó los tres nombres falsos sin un solo uso, las tres deudas
+quedan **pagadas** y salen de la lista: el trinquete cumple su función.
