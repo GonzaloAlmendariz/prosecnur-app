@@ -163,7 +163,15 @@ export function AulasPestanaResumen({
                     suyo, pero éste ocurre antes de que la tabla vea nada: el motor
                     manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
                     afirmaba que el estudio tiene 500 aulas. */}
-                <span>{contadorDeAulas(aulaRows.length)}</span>
+                {/* **Qué lo distingue del gráfico de al lado**, que hasta ahora
+                    llevaba EL MISMO subtítulo: los dos reparten los mismos N
+                    cursos-horario en barras y nada decía que contestan preguntas
+                    distintas. La razón vive en la cabecera de `AulasEstadoChart`
+                    y no llegaba a la pantalla: «va antes que la cobertura porque
+                    contesta la pregunta anterior… y sobre todo separa "sin
+                    agendar" de "agendada y aún sin empezar", que la cobertura
+                    mete en el mismo saco». */}
+                <span>{contadorDeAulas(aulaRows.length)} · en qué punto del circuito está cada una</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -215,7 +223,11 @@ export function AulasPestanaResumen({
                     curso-horario», la tabla del mismo stack. Cambiar un choque por
                     otro no es renombrar. */}
                 <h3>Cursos-horario por cobertura</h3>
-                <span>{contadorDeAulas(aulaRows.length)}</span>
+                {/* Y ésta, cuánto lleva recogido cada una. Su cabecera dice por
+                    qué existe: «el promedio esconde la forma —sesenta aulas al
+                    50 % y sesenta al 100 % dan el mismo avance global que ciento
+                    veinte al 75 %, y piden decisiones opuestas». */}
+                <span>{contadorDeAulas(aulaRows.length)} · cuánto lleva recogido cada una</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}

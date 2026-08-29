@@ -53,3 +53,29 @@ describe("los dos paneles de calidad dicen de dónde sale cada uno", () => {
     expect(calidad).toContain("lo que calcula el equipo");
   });
 });
+
+describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
+  // G1. «Status de aplicación» y «Cursos-horario por cobertura» conviven en la
+  // misma pestaña, reparten los MISMOS N cursos-horario en barras y llevaban el
+  // MISMO subtítulo: el conteo, idéntico en los dos. La razón de que sean dos
+  // vive en la cabecera de `AulasEstadoChart` —«separa sin agendar de agendada
+  // y aún sin empezar, que la cobertura mete en el mismo saco»— y no llegaba a
+  // la pantalla.
+  const resumen = fs.readFileSync(path.join(aqui, "AulasPestanaResumen.tsx"), "utf8")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("el de status dice que mira el punto del circuito", () => {
+    expect(resumen).toContain("en qué punto del circuito está cada una");
+  });
+
+  it("y el de cobertura, cuánto lleva recogido", () => {
+    expect(resumen).toContain("cuánto lleva recogido cada una");
+  });
+
+  it("y sus subtítulos ya no son idénticos", () => {
+    // El guard que importa: si alguien vuelve a dejarlos iguales, esto salta.
+    const subtitulos = [...resumen.matchAll(/<span>\{contadorDeAulas\(aulaRows\.length\)\}([^<]*)<\/span>/g)]
+      .map((m) => m[1].trim());
+    expect(new Set(subtitulos).size).toBe(subtitulos.length);
+  });
+});
