@@ -81,6 +81,32 @@ anoche sin verla, **no había manera de verla** porque la vista no era
 alcanzable, y sólo salió al obligarme a capturar todo. Dieciocho horas de algo
 entregado y roto sin que ningún gate pudiera avisar.
 
+### 2026-08-29 · rendimiento del tablero
+
+Ataqué el coste de verificar, que es lo que me llevaba a no mirar: una captura
+tardaba de tres a nueve minutos porque el tablero se reconstruye entero en cada
+petición.
+
+| # | Hipótesis | Resultado |
+|---|---|---|
+| 25 | El plan se normaliza dos veces por tablero | **✓ 5,4 → 3,9 s** `d5435ecd` |
+| 26 | Marcar el plan normalizado con un atributo | ✗ se pierde al convertir a data.frame |
+| 27 | `reserva_por_celda` recorre el banco por celda | ✗ **el banco son 77 aulas, no 1.173**; la función tarda 0,05 s |
+| 28 | El plan se convierte a registros dos veces | **✓ 3,9 → 3,3 s** `f3c06734` |
+| 29 | Partir el normalizador para evitar el viaje redondo | ✗ 0,04 s sobre 5 corridas: ruido |
+
+**5,4 → 3,29 s, un 39 % menos.** Tres de cinco hipótesis falsadas, y las tres
+por medir en vez de creerme el diagnóstico.
+
+**La trampa que costó dos de ellas**: `Rprof` atribuye el coste de un argumento
+perezoso a la función que lo recibe. `reserva_por_celda` salía como el 17,7 %
+del tablero cuando medida aparte tarda 0,05 s — el resto era la conversión del
+argumento. Antes de optimizar lo que el perfil señala, medir esa función sola.
+
+**Y la segunda**: comparar una corrida contra otra no distingue nada cuando el
+rango va de 3,2 a 3,9 s. Hay que comparar medianas de cinco corridas contra la
+línea base revertida con `git stash`.
+
 ## El patrón de los seis defectos
 
 Los seis que aparecieron al mirar tienen la misma forma: **algo ausente
