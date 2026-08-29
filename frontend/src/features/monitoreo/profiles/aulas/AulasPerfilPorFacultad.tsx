@@ -114,6 +114,22 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
               ) : (
                 <em className="es-cumplida">meta cumplida</em>
               )}
+              {/* **De qué lado va corta.** El número de arriba es el total de la
+                  facultad y puede leerse cubierto con una celda de sexo corta:
+                  «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU
+                  CUOTA DE SEXO». Sin esta línea la fila contesta la pregunta
+                  equivocada.
+
+                  Se escribe sólo el lado que falta. Con las dos cubiertas no se
+                  dice nada: una fila que repite «0 · 0» compite por la atención
+                  con las que sí piden algo. */}
+              {f.mujeresFalta || f.hombresFalta ? (
+                <em className="aulas-facultad-sexo">
+                  {f.mujeresFalta ? `faltan ${fmtCuenta(f.mujeresFalta)} mujeres` : ""}
+                  {f.mujeresFalta && f.hombresFalta ? " · " : ""}
+                  {f.hombresFalta ? `faltan ${fmtCuenta(f.hombresFalta)} hombres` : ""}
+                </em>
+              ) : null}
             </span>
           </li>
         ))}
