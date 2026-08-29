@@ -248,6 +248,24 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
             enviadas ya pasan su umbral: eso lo decide el equipo, no la app.
           </>
         ) : null}
+        {/* **De dónde sale lo conseguido, cuando no sale de un solo sitio.**
+            La brecha es meta menos conseguido, y el conseguido recorre tres
+            numeradores distintos: la efectiva de plataforma —la única que el
+            ADR 0082 reconoce como τ—, la cuenta del aplicador en el parte, y lo
+            que la hoja da por enviado. Con más de uno en juego, el faltante de
+            un aula NO es comparable con el de su vecina, y callarlo es
+            exactamente el defecto que ese ADR nombra: un rótulo que promete
+            otro número. Con todo de plataforma no se dice nada, porque no hay
+            nada que advertir. */}
+        {r.mezclaDeOrigenes ? (
+          <>
+            {" "}Ojo al comparar: {fmt(r.origenes.plataforma)} de estas aulas
+            miden lo conseguido con las respuestas que llegaron a la plataforma,
+            {r.origenes.parte ? ` ${fmt(r.origenes.parte)} con lo que anotó el aplicador al salir` : ""}
+            {r.origenes.hoja ? ` y ${fmt(r.origenes.hoja)} con lo que la hoja da por enviado` : ""}.
+            Son cuentas distintas del mismo aula.
+          </>
+        ) : null}
       </p>
     </div>
   );

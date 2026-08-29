@@ -25,7 +25,16 @@ const num = (v: unknown): number | null => {
 
 const txt = (v: unknown) => String(v ?? "").trim();
 
+/**
+ * Los tres numeradores que conviven en Monitoreo, en el orden en que la cadena
+ * de respaldo los prueba. Sólo el primero es τ (ADR 0082); los otros dos son
+ * cuadre y llevan su propio rótulo, nunca el de τ.
+ */
+export type Origenes = { plataforma: number; parte: number; hoja: number };
+
 export type AulaPorCerrar = {
+  /** De cuál de los tres numeradores salió lo conseguido de ESTA aula. */
+  origen: keyof Origenes;
   codigo: string;
   /** La del plan, adosada por el motor. Vacía si el código no cruzó. */
   facultad: string;
@@ -44,6 +53,13 @@ export type AulaPorCerrar = {
 
 export type LoQueFalta = {
   aulas: AulaPorCerrar[];
+  /** Cuántas aulas salieron de cada numerador. */
+  origenes: Origenes;
+  /**
+   * Más de un numerador en juego. Con esto en `true` la brecha de un aula no es
+   * comparable con la de su vecina, y el panel lo tiene que decir.
+   */
+  mezclaDeOrigenes: boolean;
   /** Evaluadas y no efectivas. Incluye las que no traen cifras. */
   noEfectivas: number;
   /**
@@ -125,7 +141,22 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
     // mandaba a buscar dos columnas que ya no existen.
     const porUmbral = faltaT !== null || faltaP !== null;
     const meta = num(fila.expected_valid) ?? num(fila.efectivas_esperadas);
-    const logrado = num(fila.efectivas_obtenidas) ?? num(fila.effective_surveys) ?? enviadas;
+    // **DE DÓNDE SALE LO CONSEGUIDO, y no es una sola cosa.** La cadena recorre
+    // los TRES numeradores que conviven en Monitoreo: la efectiva de plataforma
+    // —la única que el ADR 0082 reconoce como τ—, la cuenta del aplicador en el
+    // parte, y lo que la hoja del equipo da por enviado. Viajaban los tres bajo
+    // un mismo número y el panel no decía cuál, que es el defecto que ese ADR
+    // nombra: «el parte y la Base de control NO producen τ, se muestran como
+    // cuadre, con su propio rótulo, nunca junto a τ bajo el mismo nombre».
+    //
+    // La cadena NO se retira: sin ella el panel se queda mudo mientras la
+    // plataforma no ha traído nada, que es justo el principio del campo. Se
+    // declara, igual que `meta_origen` declara el otro lado de la resta.
+    const dePlataforma = num(fila.efectivas_obtenidas);
+    const delParte = num(fila.effective_surveys);
+    const logrado = dePlataforma ?? delParte ?? enviadas;
+    const origen: keyof Origenes = dePlataforma !== null ? "plataforma"
+      : delParte !== null ? "parte" : "hoja";
 
     if (!porUmbral && (meta === null || meta <= 0 || logrado === null)) {
       sinCifras += 1;
@@ -149,6 +180,7 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
       faltan,
       enviadas: base,
       umbral,
+      origen,
       falla: !porUmbral
         ? "meta"
         : faltaT !== null && faltaP !== null
@@ -162,8 +194,17 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
   // De la más barata a la más cara: es el orden en que se hace el trabajo, y el
   // que hace que la curva acumulada tenga sentido de leer.
   aulas.sort((a, b) => a.faltan - b.faltan || a.codigo.localeCompare(b.codigo, "es"));
+  const origenes: Origenes = { plataforma: 0, parte: 0, hoja: 0 };
+  for (const a of aulas) origenes[a.origen] += 1;
+  // Mezcla = más de un numerador en juego. Es lo que el panel tiene que decir:
+  // con todo de plataforma no hay nada que advertir, y con dos fuentes la
+  // brecha de un aula no es comparable con la de su vecina.
+  const usados = (Object.values(origenes) as number[]).filter((n) => n > 0).length;
+
   return {
     aulas,
+    origenes,
+    mezclaDeOrigenes: usados > 1,
     noEfectivas,
     evaluadas,
     costoTotal: aulas.reduce((s, a) => s + a.faltan, 0),
