@@ -63,6 +63,39 @@ describe("AulasReservaDirigida", () => {
   it("marca el solape estimado, que no es lo mismo que medido", () => {
     const out = html([celda({ candidatos: [cand("R 1"), cand("R 2", { solape_medible: false })] })]);
     expect(out.match(/solape estimado/g) ?? []).toHaveLength(1);
+    expect(out).not.toContain("en todas");
+  });
+
+  it("si NINGUNO trae padron lo dice una vez, no una por linea", () => {
+    // Visto en pantalla sobre el fixture de aulas: cinco candidatos y cinco
+    // «solape estimado» seguidos. Repetido cinco veces deja de distinguir.
+    const out = html([celda({ candidatos: [
+      cand("R 1", { solape_medible: false }),
+      cand("R 2", { solape_medible: false }),
+      cand("R 3", { solape_medible: false }),
+    ] })]);
+    expect(out.match(/solape estimado/g) ?? []).toHaveLength(1);
+    expect(out).toContain("solape estimado en todas");
+  });
+
+  it("no repite la cola que el encabezado ya dice, y la conserva en el title", () => {
+    // El motor redacta el motivo para ir SOLO. Bajo un encabezado que ya nombra
+    // facultad y sexo, la cola se repetia una vez por candidato y tapaba lo
+    // unico que los distingue: cuanto aporta cada uno.
+    const out = html([celda({
+      faculty: "DERECHO", sex: "M",
+      candidatos: [cand("R 9", { motivo: "Aporta 16 de 29 a la cuota de hombres de DERECHO" })],
+    })]);
+    expect(out).toContain(">Aporta 16 de 29<");
+    expect(out).toContain('title="Aporta 16 de 29 a la cuota de hombres de DERECHO"');
+  });
+
+  it("si la frase del motor cambia, se muestra entera: no se recorta a ciegas", () => {
+    const out = html([celda({
+      faculty: "DERECHO", sex: "M",
+      candidatos: [cand("R 9", { motivo: "Aporta 16 de 29 a otra cosa" })],
+    })]);
+    expect(out).toContain("Aporta 16 de 29 a otra cosa");
   });
 
   it("una celda sin candidatos sigue apareciendo: es la que mas obliga", () => {
