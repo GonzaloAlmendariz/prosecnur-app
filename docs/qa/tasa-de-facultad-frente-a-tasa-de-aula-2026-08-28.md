@@ -434,8 +434,23 @@ clasifica en un tramo de tamaño que no les toca.
 **No se sostiene todavía, y hay que declararlo así al citarlo:**
 
 - Los niveles absolutos de la reejecución del barrido no reproducen los del
-  barrido original, y la causa no está identificada. Solo la comparación entre
-  varas dentro de una misma definición es utilizable.
+  barrido original. Quedan descartadas tres causas: la fuente de cuota (las 30
+  celdas son idénticas en los dos marcos y suman 2.500 en ambos), el marco (la
+  cobertura no se mueve entre ULT1 y ULT2, aunque el solape sí encaja con ULT2
+  y confirma que el barrido corrió sobre ese marco) y la fuente de la tasa (usar
+  la derivada del marco en vez de la sellada mueve menos de una milésima). Queda
+  por revisar la definición de cobertura por celda y la configuración del sorteo
+  del barrido original. El desajuste no es un factor constante: 0,6 % para la
+  semilla 202 y 3,1 % para la 4444, e invierte el orden entre ambas. Solo la
+  comparación entre varas dentro de una misma definición es utilizable.
+- **Hay dos tasas de facultad conviviendo.** La sellada en `aulas_por_estrato` y
+  la derivada del marco por `calc_muestra_aulas_tasas_facultad` difieren en ocho
+  de las quince facultades, hasta un 4,19 % en Gastronomía. La sellada no sale
+  de la mezcla de tamaños de ninguno de los dos marcos, ni el de 1.512 ni el de
+  1.392: coincide con siete facultades en ambos casos, y las que más difieren
+  son precisamente las de factor de facultad 1,000, donde la tasa debería ser la
+  mezcla pura. Si una superficie lee la sellada y otra la derivada, publican
+  tasas distintas para la misma facultad. No se persiguió.
 - El factor de limpieza del traslape se aplica **por facultad como proxy**. El
   correcto sería por tramo de tamaño, y no se puede derivar de lo sellado: los
   embudos van por facultad y los escalones de las cadenas no traen el conteo de
