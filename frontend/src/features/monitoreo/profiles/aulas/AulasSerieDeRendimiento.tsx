@@ -413,6 +413,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // cada una con su tamaño. Una agenda de tres aulas grandes no es la misma
     // que una de tres pequeñas, y una tasa por un número de aulas no distingue
     // las dos.
+    //
+    // **CUÁL de las dos varas del diseño es ésta.** `expected_valid` hereda
+    // `efectivas_esperadas`, que el motor compone como `elegibles × tasa DEL
+    // AULA` (`calc_muestra_aulas_efectividad.R`): ajusta por el tamaño de cada
+    // aula. El panel de seguimiento de arriba contrasta contra la otra vara, la
+    // **tasa de la facultad**, que es la que dividió la cuota. Las dos suman lo
+    // mismo por facultad y difieren aula por aula, así que esta línea y aquel
+    // porcentaje NO son la misma referencia y no deben leerse como si lo
+    // fueran. Al cambiar de vara aquí hay que cambiar el rótulo: el defecto
+    // caro de este repo es un rótulo que promete otro número.
     const disenoDeLaAgenda = proyectada
       ? { total: proyectada.esperadasPorDisenoTotal, conVara: proyectada.aulasConDiseno, agendadas: proyectada.aulasAgendadas }
       : proyeccion.reduce<{ total: number | null; conVara: number; agendadas: number }>((acc, f) => ({
@@ -1040,7 +1050,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               <em className="es-gris">Techo: los elegibles del día</em>
               {varaDelDiseno?.porAula != null ? (
                 <em className="es-zona">
-                  El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por aula
+                  El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por aula,
+                  ajustado por su tamaño
                   {varaDelDiseno.conVara < varaDelDiseno.todas
                     ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} aulas`
                     : ""}
@@ -1321,7 +1332,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       </p>
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
-          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada aula y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
+          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada aula —con la tasa del aula, que ajusta por su tamaño, no con la tasa de la facultad del panel de arriba— y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
           : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
       </div>

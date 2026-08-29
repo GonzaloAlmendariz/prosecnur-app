@@ -89,6 +89,15 @@ const FIELD_LABELS: Record<string, string> = {
   // efectivas» dice de dónde sale la cifra; «Efectivas esperadas» sólo repite
   // el identificador en castellano.
   efectivas_esperadas: "Meta de efectivas del aula",
+  // **Las dos varas del diseño, nombradas por su diferencia.** El motor publica
+  // dos esperados por aula y hasta el 2026-08-28 ninguno tenía etiqueta aquí, así
+  // que la tabla los mostraba con el identificador crudo. No son sinónimos:
+  // `tasa_efectividad_aula` ajusta por el tamaño del salón y `tasa_facultad` es
+  // el promedio con el que se dividió la cuota. Suman lo mismo por facultad y
+  // difieren aula por aula, de modo que la etiqueta tiene que decir cuál es.
+  tasa_efectividad_aula: "Tasa del aula, por su tamaño",
+  tasa_facultad: "Tasa de la facultad",
+  esperadas_facultad: "Esperadas según la facultad",
   efectivas_obtenidas: "Efectivas que llegaron",
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",

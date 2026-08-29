@@ -85,7 +85,11 @@ describe("el pie de columnas no se repite panel tras panel", () => {
   // imprimía palabra por palabra las tres veces: 191 de las 896 palabras de
   // prosa de la pestaña, un tercio de la prosa larga.
   const filas = [aula("Derecho", 100, 40), aula("Arte", 100, 20)];
-  const columnas = "es lo que deja cada visita";
+  // El centinela cambió el 2026-08-28 con el rótulo: la columna pasó de «Por
+  // aula» a «Por visita» porque el motor ya usa «tasa del aula» para el
+  // pronóstico del diseño. Con el rótulo nuevo la frase anterior quedaba
+  // circular («Por visita es lo que deja cada visita»).
+  const columnas = "es lo que deja cada aula visitada";
   const tramos = "no un corte de la";
 
   it("el primer panel sí explica las columnas", () => {
