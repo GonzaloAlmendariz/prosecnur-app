@@ -436,6 +436,12 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     course_name = get(c("course_name", "curso", "nombre_curso"), ""),
     section = get(c("section", "seccion"), ""),
     schedule = get(c("schedule", "horario"), ""),
+    # El RANGO de la clase y el salon, que `schedule` no dice: aquel es el
+    # CODIGO del horario —«0591»— y este el tramo real —«MAR 14:00-16:00»—.
+    # Sin ellos la agenda de campo no puede saber cuantas aulas estan en curso
+    # a la vez, que es lo que fija cuantos aplicadores hacen falta.
+    sesiones_dia_hora = get(c("sesiones_dia_hora", "sesiones", "sesiones_y_aula"), ""),
+    venue = get(c("venue", "aula_fisica", "salon"), ""),
     modality = get(c("modality", "modalidad"), ""),
     session_type = get(c("session_type", "tipo_sesion", "tipo_sesión"), ""),
     teacher = get(c("teacher", "docente"), ""),
@@ -574,6 +580,7 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     scheduled_date = get(c("scheduled_date", "fecha_agendada"), ""),
     scheduled_day = get(c("scheduled_day", "dia"), ""),
     scheduled_time = get(c("scheduled_time", "hora_agendada"), ""),
+    scheduled_moment = get(c("scheduled_moment", "momento", "momento_de_la_clase"), ""),
     # --- Eje de APLICACION (hoja «Aulas Aplicadas (Campo)») --------------
     application_status = get(c("application_status", "status_de_aplicacion"), ""),
     # Ya habian respondido en otra aula: ni rechazo ni efectiva.
@@ -1279,7 +1286,16 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     # FECHA, que es lo que trae `FECHA DE APLICACION` del libro. Sin ella la
     # vista de agenda tendria que unir dos listas por codigo para saber que dia
     # es cada aula.
-    "scheduled_date", "scheduled_day", "scheduled_time",
+    "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
+    # El RANGO horario del curso, no un instante: «MAR 14:00-16:00 · MIE
+    # 10:00-12:00». `schedule` dice cuando EMPIEZA y `scheduled_*` cuando se
+    # agendo; ninguno de los dos permite saber cuantas aulas estan en curso a la
+    # vez, que es lo que fija cuantos aplicadores hacen falta. Medido sobre el
+    # plan de HSVG 2026: contando por hora de inicio el pico daba 8 aulas
+    # simultaneas; contando el rango real, 19. `venue` viaja al lado porque la
+    # carga se reparte por pabellon y sin el la agenda no puede agrupar por
+    # edificio. Los dos salen del catalogo en `calc_muestra_aulas_sesiones.R`.
+    "sesiones_dia_hora", "venue",
     # `sample_status` viaja con el estado porque el escalon de agendamiento sale
     # de el: sin publicarlo, la vista no puede explicar por que un aula esta en
     # «Agendada» o en «Reemplazada».

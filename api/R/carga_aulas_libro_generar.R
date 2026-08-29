@@ -117,6 +117,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
         .calg_num_txt(u$contact_attempts),
         .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
         .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
+        # El bloque se escribe A MANO aqui y su cabecera sale de
+        # `AULAS_AGENDADAS_BLOQUE`: son dos listas que nadie ata. Agregar el
+        # campo alla sin agregarlo aca desalinea la hoja entera —medido: la
+        # cabecera pasa a 21 por bloque, las celdas siguen en 20, y `rbind`
+        # recicla en silencio dejando UN bloque de 22 columnas en vez de tres
+        # de 64—. Y son DOS los sitios que escriben la parte de agenda a mano:
+        # este y el de «Aulas Aplicadas (Campo)». Un campo nuevo va en ambos.
+        .calg_txt(u$scheduled_moment),
         .calg_txt(u$link),
         .calg_txt(u$notes %||% u$replacement_note)
       )
@@ -311,6 +319,9 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
       .calg_num_txt(u$contact_attempts),
       .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
       .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
+      # Segundo sitio donde la parte de agenda se escribe a mano; ver la nota de
+      # `aulas_libro_hoja_agendadas`. Un campo nuevo se agrega en los DOS.
+      .calg_txt(u$scheduled_moment),
       .calg_txt(u$link), .calg_txt(u$notes %||% u$replacement_note),
       # Parte de campo del primer intento: los dos denominadores como referencia
       # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.

@@ -12,6 +12,13 @@ const FIELD_LABELS: Record<string, string> = {
   scheduled_date: "Fecha agendada",
   scheduled_day: "Día",
   scheduled_time: "Hora",
+  // El momento acordado con el docente. Hasta 2025 vivia en OBSERVACIONES en
+  // prosa libre y por eso no se podia agregar ni leer desde la agenda.
+  scheduled_moment: "Momento de la clase",
+  // El RANGO horario declarado del curso —«MAR 14:00-16:00»—, distinto de
+  // `schedule` (cuando empieza) y de `scheduled_time` (cuando se agendo).
+  sesiones_dia_hora: "Sesiones",
+  venue: "Salón",
   // Parte de campo (L32/L45): lo que el equipo anota en el aula.
   actual_room: "Aula real",
   // `CANTIDAD DE ASISTENTES` en el libro; el registro ya lo dice así.
