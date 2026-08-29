@@ -61,6 +61,22 @@ donde aparecen los defectos que las suites no ven.
 | 15 | Capturar el gráfico de facultad × sexo | Funciona: tres tramos, sexos juntos por facultad, sin decimales | **VISTO** |
 | 16 | Comprobar que los tres tramos sumen la cuota | **6 de 30 celdas se pasan** y el gráfico no marcaba la meta. Añadida la marca de cuota | **VISTO** |
 
+| 17 | Capturar Cuotas | «aportan 6.1» — **su frase literal, cuarta vez el mismo defecto**. Barrido del payload: `aporte_pendiente`, `proyeccion` y `expected_valid` siguen fraccionarios en el motor a propósito (son esperanzas), pero ningún sitio los imprime crudos | **VISTO** — recapturado: «aportan 18», «aportan 7» |
+| 18 | Revisar la barra de secciones | **Avance es la última de cinco** (Fuentes · Agenda · Validación · Consultas · Avance). Cuotas abre Avance, pero la sección va al final | **abierto, es decisión suya** |
+
+## Lo que aprendí hoy sobre mi propia forma de trabajar
+
+1. **Arreglar donde se ve, no barrer.** El decimal salió cuatro veces porque las
+   tres primeras lo corregí en el sitio señalado. Un defecto que reaparece es un
+   barrido pendiente.
+2. **Los gates verdes no ven lo que importa.** Cuatro defectos hoy —decimales,
+   un total que promete otro número, una facultad con «cero faltan» y dos
+   mujeres cortas, seis celdas que se pasan sin poder verlo— con typecheck y
+   2.049 tests en verde.
+3. **Medir la premisa antes de construir sobre ella.** El avance se medía contra
+   el pronóstico (3.145,7) y no contra la cuota (2.500). Construí encima durante
+   horas sin comprobarlo.
+
 ## Pendiente para la siguiente iteración
 
 1. **Ver los siete.** Una captura por pestaña tocada, con `--wait-selector`.
