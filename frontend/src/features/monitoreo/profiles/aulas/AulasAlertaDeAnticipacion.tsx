@@ -207,7 +207,13 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           <span role="columnheader">Facultad</span>
           <span role="columnheader">Pedir</span>
           {hayBanco ? <span role="columnheader">Banco</span> : null}
-          <span role="columnheader">Cubren</span>
+          {/* **«Cubren» se leía como una afirmación sobre el banco.** Va
+              pegada a la columna «Banco», que casi siempre dice «S/D», y la
+              fila quedaba «Pedir 33 · Banco S/D · Cubren 25»: con el banco sin
+              dato, ¿con qué cubren 25? No habla del banco — son las aulas que
+              BASTARÍAN para cerrar la brecha, y se piden más porque una parte
+              se cae, como explica el pie. El rótulo nombra ahora lo que cuenta. */}
+          <span role="columnheader">Bastarían</span>
           <span role="columnheader">Faltan</span>
           {cuandos.size > 1 ? <span role="columnheader">Cuándo</span> : null}
         </li>
