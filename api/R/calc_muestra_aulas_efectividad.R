@@ -341,6 +341,37 @@
     # aula se aplique. El riesgo del docente NO descuenta efectivas (la cadena
     # repone caidas); vive en p_aplicada_ref para presupuesto y cadena.
     aula_frame$efectivas_esperadas <- round(el * r * factor, 1)
+    # LA MISMA CUENTA CON LA TASA DE LA FACULTAD, al lado.
+    #
+    # Las dos columnas responden preguntas distintas y hasta ahora solo existia
+    # una. `efectivas_esperadas` usa la tasa del aula, que ajusta por su tamano;
+    # esta usa el promedio de su facultad, que es la vara con la que se
+    # dimensiono la muestra y con la que se mide el cumplimiento de la cuota.
+    # Sin las dos en el frame, comparar exige multiplicar por fuera y cada
+    # superficie lo hacia a su manera —medido: la matriz de seleccion publicaba
+    # la de facultad y la app la del aula, con 120 de 174 aulas discrepando y
+    # hasta doce encuestas de diferencia en una sola—.
+    #
+    # La tasa que se usa aqui es la DERIVADA del marco vigente, la misma que
+    # `calc_muestra_aulas_tasas_facultad` publica, y no la sellada en el
+    # estudio: asi las dos columnas salen del mismo marco y su diferencia es
+    # solo el grano. La sellada puede ser de un marco anterior —lo es en
+    # HSVG2026— y mezclarlas haria que esta comparacion midiera dos efectos.
+    aula_frame$tasa_facultad <- local({
+      fac <- toupper(trimws(as.character(aula_frame$faculty %||% "")))
+      inc <- aula_frame$included
+      ok <- nzchar(fac) & is.finite(r) & el > 0
+      if (!is.null(inc)) ok <- ok & (inc %in% TRUE)
+      out <- rep(NA_real_, nrow(aula_frame))
+      for (ff in unique(fac[ok])) {
+        idx <- ok & fac == ff
+        tot <- sum(el[idx])
+        if (tot <= 0) next
+        out[fac == ff] <- sum(el[idx] * r[idx] * factor[idx]) / tot
+      }
+      round(out, 4)
+    })
+    aula_frame$esperadas_facultad <- round(el * aula_frame$tasa_facultad, 1)
     # **El denominador propio, al lado del del aula.**
     #
     # `eligible_n` cuenta TODOS los elegibles de la seccion, sean de la facultad
