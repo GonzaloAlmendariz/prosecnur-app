@@ -443,14 +443,69 @@ clasifica en un tramo de tamaño que no les toca.
   del barrido original. El desajuste no es un factor constante: 0,6 % para la
   semilla 202 y 3,1 % para la 4444, e invierte el orden entre ambas. Solo la
   comparación entre varas dentro de una misma definición es utilizable.
-- **Hay dos tasas de facultad conviviendo.** La sellada en `aulas_por_estrato` y
-  la derivada del marco por `calc_muestra_aulas_tasas_facultad` difieren en ocho
-  de las quince facultades, hasta un 4,19 % en Gastronomía. La sellada no sale
-  de la mezcla de tamaños de ninguno de los dos marcos, ni el de 1.512 ni el de
-  1.392: coincide con siete facultades en ambos casos, y las que más difieren
-  son precisamente las de factor de facultad 1,000, donde la tasa debería ser la
-  mezcla pura. Si una superficie lee la sellada y otra la derivada, publican
-  tasas distintas para la misma facultad. No se persiguió.
+- Nada más queda sin resolver de esta lista. Lo que estaba abierto sobre la
+  tasa sellada quedó explicado y pasa a la sección siguiente.
+
+## 14. El tau del estudio es la foto de un marco que ya no existe
+
+Apareció al final, descartando otras causas, y tiene consecuencia directa sobre
+el documento de diseño.
+
+**La tasa de facultad sellada no se recalcula cuando el marco se reconstruye.**
+Sale exacta de la mezcla de tamaños de un marco anterior a los dos que este
+estudio usó:
+
+```
+marco de HSVG26DEF, 1 632 aulas       11 de 15 exactas, las otras 4 a 0,0004
+marco de HSVG26ULT, 1 512 aulas        3 de 15
+marco de HSVG26ULT2, 1 392 aulas       3 de 15
+```
+
+Entre el primero y el último salieron 240 aulas por depuración de criterios, y
+la tasa nunca se volvió a calcular. El dimensionamiento entero, que divide la
+cuota entre el producto del primer cuartil de elegibles por esta tasa, corrió
+con la tasa de un marco que ya no existe.
+
+El patrón de qué facultades coinciden lo confirma. Las que no perdieron aulas
+en la depuración coinciden con los tres marcos: Ciencias Contables se mantuvo
+en 10 y Letras y Ciencias Humanas en 14. Las que perdieron muchas solo
+coinciden con el primero: Arquitectura pasó de 34 a 20 y a 19, Gestión y Alta
+Dirección de 58 a 49, Gastronomía de 23 a 21, Educación de 20 a 17.
+
+**Y de ahí sale el problema concreto: el documento publica una tasa y el
+estudio dimensionó con otra.** La sección 4.4 recomputa desde el marco vigente,
+así que su tabla es internamente coherente, pero no es la tasa que dividió la
+cuota:
+
+| Facultad | La que publica el documento | La que usó el diseño | Dif. |
+|---|---:|---:|---:|
+| Gastronomía, Hotelería y Turismo | 0,7105 | 0,6819 | −4,0 % |
+| Educación | 0,6452 | 0,6226 | −3,5 % |
+| Artes Escénicas | 0,7525 | 0,7399 | −1,7 % |
+| Ciencias Sociales | 0,5524 | 0,5482 | −0,8 % |
+| Arquitectura y Urbanismo | 0,5485 | 0,5461 | −0,4 % |
+
+Dos números distintos con el mismo nombre en el mismo estudio.
+
+**La dirección es conservadora.** La tasa sellada es más baja que la del marco
+vigente en todas las que difieren, y una tasa más baja pide más aulas, no
+menos. El estudio está sobredimensionado por este motivo, así que no urge para
+el operativo en curso.
+
+**Y hay un invariante que lo caza.** Con factor de facultad igual a 1,000, la
+tasa tiene que ser idéntica a la mezcla de tamaños del marco vigente, porque el
+segundo factor es la unidad. Nueve de las quince facultades cumplen esa
+condición por construcción, así que la comprobación no tiene falsos positivos.
+Es de la misma familia que el control de Letras y Ciencias Humanas: una
+propiedad estructural que ninguna reescritura puede violar sin estar mal.
+
+Conviene no confundirlo con la calibración embebida, aunque sean del mismo
+género. Aquella no sale de ninguna base conocida y su arreglo es encontrar la
+procedencia o construir el escritor que falta. Esta sale exacta de un marco
+identificable y fechado, y su arreglo es recalcularla cuando el marco se
+reconstruye.
+
+## 15. Lo que queda abierto
 - El factor de limpieza del traslape se aplica **por facultad como proxy**. El
   correcto sería por tramo de tamaño, y no se puede derivar de lo sellado: los
   embudos van por facultad y los escalones de las cadenas no traen el conteo de
@@ -459,8 +514,6 @@ clasifica en un tramo de tamaño que no les toca.
   desalineamiento de bins aporta 0,8 de los 6,4 puntos de optimismo, y el
   propio archivo se contradice: el encabezado las atribuye a la base de 2025 y
   el bloque de las piernas dice que son «de otra ola».
-
-## 14. Lo que queda abierto
 
 Tres cosas, ninguna urgente para el operativo en curso, todas registradas en
 `auditoria-motor-aulas-2026-08-28.md`:
