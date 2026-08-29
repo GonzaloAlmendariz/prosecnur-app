@@ -93,11 +93,16 @@ test_that("un tau ilegal NO habilita el modo global: cae a embebida declarada", 
     "calibracion_embebida"
   )
   # El normalizador de config preserva la clave declarada (lista cerrada S2).
+  # `rendimiento_fuente` entro el 2026-08-28 con el ADR 0083: los tramos
+  # sellados pueden NO ser del historico aunque el bloque diga "historico", y
+  # sin esta clave el sello movia los cinco numeros de sitio sin reparar el
+  # rotulo que miente. Vacia cuando nadie la declara, como `periodo`.
   cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(fuente = "historico", periodo = "2025-2")))
   expect_identical(cfg$efectividad,
                    list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
                         tau_base = NA_real_, por_facultad = NULL,
-                        rendimiento_tramos = NULL, tasa_aplicacion = NULL))
+                        rendimiento_tramos = NULL, rendimiento_fuente = "",
+                        tasa_aplicacion = NULL))
 })
 
 test_that("la proyeccion del workspace NO borra la procedencia (septima lista cerrada)", {
@@ -107,7 +112,8 @@ test_that("la proyeccion del workspace NO borra la procedencia (septima lista ce
   expect_identical(ws$efectividad,
                    list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
                         tau_base = NA_real_, por_facultad = NULL,
-                        rendimiento_tramos = NULL, tasa_aplicacion = NULL))
+                        rendimiento_tramos = NULL, rendimiento_fuente = "",
+                        tasa_aplicacion = NULL))
   # Sin declaracion la clave queda NULL (no un default disfrazado).
   expect_null(.cm_normalize_workspace_aulas_config(list())$efectividad)
 })

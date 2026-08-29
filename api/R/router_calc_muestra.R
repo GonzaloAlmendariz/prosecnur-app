@@ -858,6 +858,11 @@ mount_calc_muestra <- function(pr) {
       config <- calc_muestra_aulas_sellar_efectividad(
         config, s$calc_muestra_referencia_asistencia %||% NULL
       )
+      # Y los tramos de rendimiento, DESPUES del multiplicador porque solo
+      # actua sobre `fuente == "historico"` y es el sello de arriba quien la
+      # pone. Invertir el orden lo dejaria sin efecto la primera vez y sellaria
+      # recien en la segunda construccion (ADR 0083).
+      config <- calc_muestra_aulas_sellar_rendimiento(config)
       # Las lecturas de payload también fallan con stop() crudo (tabla
       # malformada, hoja inexistente): dentro del tryCatch se traducen al
       # mismo 400 accionable en vez de filtrarse como 500 E_INTERNAL. Un

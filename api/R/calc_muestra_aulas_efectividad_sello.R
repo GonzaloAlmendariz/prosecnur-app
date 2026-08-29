@@ -182,3 +182,55 @@ calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
   estudio$componentes <- comps
   estudio
 }
+
+#' Sella los tramos de rendimiento por tamano en la config del estudio.
+#'
+#' EL TERCER ESLABON, y repara un rotulo que miente. Medido el 2026-08-28 sobre
+#' el `.pulso` del sorteo vigente de HSVG2026: `efectividad$fuente` dice
+#' `"historico"` con seis facultades selladas, y `rendimiento_tramos` es NULL.
+#' Es decir, la mitad del calculo —el factor por facultad— viene del historico y
+#' la otra mitad —el rendimiento por tamano— viene de la calibracion embebida
+#' del codigo, sin que ninguna superficie lo diga. Las tres piernas estaban
+#' vacias en las 1.392 aulas del marco, que es la firma de que no hay sello.
+#'
+#' **Sellar aqui no cambia ningun numero, y eso es estructural, no una
+#' promesa.** Lo que se escribe es `.CM_EFECTIVIDAD_TRAMOS_EMBEBIDOS`, el mismo
+#' objeto que `.cm_efectividad_rendimiento()` usa cuando no hay sello y por el
+#' mismo camino de evaluacion. Cambia de donde se lee, no que se calcula.
+#'
+#' **Solo actua sobre `fuente == "historico"`**, y no por comodidad: el
+#' normalizador de config unicamente conserva `rendimiento_tramos` dentro de esa
+#' rama, asi que escribirlos con otra fuente los perderia en silencio. Ademas es
+#' justo el caso que hay que reparar: un estudio con otra fuente ya se declara
+#' `calibracion_embebida` y no engana a nadie.
+#'
+#' Sin periodo inventado. La procedencia de la calibracion embebida se
+#' contradice consigo misma —el encabezado la atribuye a la base 2025 y el
+#' bloque de las piernas dice que es de otra ola, registrado en
+#' `docs/qa/auditoria-motor-aulas-2026-08-28.md`— y el ADR 0083 declara
+#' explicitamente que NO resuelve eso. Escribir una fecha aqui seria inventar la
+#' respuesta a una pregunta abierta.
+#'
+#' Tampoco se escribe una marca de tiempo: la config alimenta el `frame_hash` y
+#' un sello con reloj propio lo movería en cada build.
+#'
+#' Aditivo y conservador, como el sello del multiplicador: si el estudio YA
+#' declara sus tramos no se toca nada.
+#'
+#' @param config config del marco ya normalizada.
+#' @return la config, con `efectividad$rendimiento_tramos` sellado cuando
+#'   correspondia.
+#' @export
+calc_muestra_aulas_sellar_rendimiento <- function(config) {
+  if (!is.list(config)) return(config)
+  ef <- config$efectividad
+  if (!is.list(ef)) return(config)
+  if (!identical(as.character(ef$fuente)[1], "historico")) return(config)
+  if (length(ef$rendimiento_tramos %||% list())) return(config)
+  ef$rendimiento_tramos <- .CM_EFECTIVIDAD_TRAMOS_EMBEBIDOS
+  # De donde salen ESTOS tramos, al lado de ellos: el resto del bloque dice
+  # "historico" y estos cinco no lo son.
+  ef$rendimiento_fuente <- "calibracion_embebida"
+  config$efectividad <- ef
+  config
+}
