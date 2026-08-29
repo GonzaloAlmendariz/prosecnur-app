@@ -155,3 +155,85 @@ test_that("sin marco el estudio sale intacto", {
   expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, NULL), est)
   expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, list()), est)
 })
+
+# --- La curva por tramo, que hasta ahora tenía lector y no tenía escritor ----
+#
+# `cfg$efectividad$rendimiento_tramos` lo lee el motor desde que se escribió y
+# de ahí sale `rendimiento_ref`, pero nadie lo producía: de las dos mitades del
+# plan 1b se construyó sólo el multiplicador por facultad. Sin sello rige la
+# calibración embebida, que el propio archivo declara «de otra ola».
+
+# Un tramo con `k` aulas de `elegibles` que rindieron `tasa` cada una.
+.sello_tramo_aulas <- function(k, elegibles, tasa) {
+  lapply(seq_len(k), function(i) .sello_esc("aplicado", elegibles * tasa, elegibles))
+}
+# Los cinco tramos con respaldo de sobra y una tasa distinta y reconocible cada uno.
+.sello_cadenas_cinco <- function(k = 12L, tasas = c(0.80, 0.70, 0.60, 0.50, 0.40)) {
+  tam <- c(10, 20, 30, 40, 60)   # uno dentro de cada tramo: <=15, 16-25, 26-35, 36-50, >50
+  list(.sello_cadena("UNA", unlist(
+    lapply(seq_along(tam), function(i) .sello_tramo_aulas(k, tam[i], tasas[i])),
+    recursive = FALSE)))
+}
+
+test_that("la curva por tramo sale de la razon de sumas del historico", {
+  tr <- calc_muestra_aulas_sello_tramos(.sello_cadenas_cinco())
+  expect_length(tr, 5L)
+  expect_equal(vapply(tr, `[[`, 0, "tasa"), c(0.80, 0.70, 0.60, 0.50, 0.40))
+  # Bordes ascendentes y el último abierto, que es lo que el lector exige.
+  expect_equal(vapply(tr, function(x) x$hasta, 0), c(15, 25, 35, 50, NA_real_))
+})
+
+test_that("aulas de distinto tamano dentro de un tramo se agregan por razon de sumas", {
+  # Un tramo con dos aulas muy distintas: 10 de 0,90 y 40 de 0,40 dentro del
+  # mismo bin no dan el promedio simple (0,65) sino 13/50 = 0,26... la razón de
+  # sumas pondera por elegibles, que es la regla declarada.
+  mezcla <- c(.sello_tramo_aulas(6L, 26, 0.90), .sello_tramo_aulas(6L, 35, 0.40))
+  base <- .sello_cadenas_cinco()[[1L]]$escalones
+  # se reemplaza el tercer tramo (26-35) por la mezcla
+  sin_t3 <- Filter(function(e) e$elegibles != 30, base)
+  tr <- calc_muestra_aulas_sello_tramos(list(.sello_cadena("UNA", c(sin_t3, mezcla))))
+  esperado <- (6 * 26 * 0.90 + 6 * 35 * 0.40) / (6 * 26 + 6 * 35)
+  expect_equal(tr[[3L]]$tasa, round(esperado, 4))
+})
+
+test_that("si a UN tramo le falta respaldo no se sella NINGUNO", {
+  # Cuatro tramos con doce aulas y el quinto con once: sellar cuatro correría
+  # los bordes y reasignaría en silencio las aulas del ausente al vecino.
+  flojo <- list(.sello_cadena("UNA", c(
+    unlist(lapply(c(10, 20, 30, 40), function(t) .sello_tramo_aulas(12L, t, 0.6)), recursive = FALSE),
+    .sello_tramo_aulas(11L, 60, 0.4)
+  )))
+  expect_length(calc_muestra_aulas_sello_tramos(flojo), 0L)
+  # Con la doceava sí sella: la guarda es el umbral y nada más.
+  expect_length(calc_muestra_aulas_sello_tramos(.sello_cadenas_cinco(k = 12L)), 5L)
+})
+
+test_that("una tasa fuera de (0, 1] no se sella capada: no se sella", {
+  # El lector rechaza `tasa > 1` y correría los bordes. Mejor no sellar.
+  malo <- .sello_cadenas_cinco(tasas = c(0.80, 1.20, 0.60, 0.50, 0.40))
+  expect_length(calc_muestra_aulas_sello_tramos(malo), 0L)
+})
+
+test_that("sellar la efectividad incorpora la curva junto al multiplicador", {
+  cfg <- calc_muestra_aulas_normalize_config(list())
+  ref <- list(cadenas_reemplazo = list(filas = .sello_cadenas_cinco()))
+  out <- calc_muestra_aulas_sellar_efectividad(cfg, ref)
+  expect_identical(out$efectividad$fuente, "historico")
+  expect_length(out$efectividad$rendimiento_tramos, 5L)
+  # Y el lector del motor los acepta tal cual salen del escritor.
+  cal <- .cm_efectividad_calibracion(calc_muestra_aulas_normalize_config(out))
+  expect_length(cal$rendimiento_tramos, 5L)
+  expect_equal(.cm_efectividad_rendimiento(40, cal$rendimiento_tramos), 0.50)
+})
+
+test_that("una curva declarada por el estudio manda sobre la derivada", {
+  propia <- list(list(hasta = 30, tasa = 0.9), list(hasta = NA_real_, tasa = 0.1))
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico", rendimiento_tramos = propia
+  )))
+  out <- calc_muestra_aulas_sellar_efectividad(cfg, list(
+    cadenas_reemplazo = list(filas = .sello_cadenas_cinco())
+  ))
+  expect_length(out$efectividad$rendimiento_tramos, 2L)
+  expect_equal(out$efectividad$rendimiento_tramos[[1L]]$tasa, 0.9)
+})

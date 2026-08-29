@@ -1540,3 +1540,94 @@ calcula antes de filtrar y no lo tiene.
 **El motor tiene razón; el entregable, no.** Y el invariante de procedencia —la
 proporción del reparto tiene que ser la del estrato del componente, no la del
 marco— queda como el criterio correcto, ahora con la razón medida detrás.
+
+---
+
+# IMPLEMENTADO — los tres arreglos (2026-08-28)
+
+Gonzalo autorizó los tres. Cada uno con su regresión, y cada regresión
+verificada revirtiendo el arreglo para verla en rojo.
+
+## 1 · La certeza conserva la estratificación del diseño
+
+`calc_muestra_aulas_certeza` ya no reescribe `rows$stratum`. Los tests viejos no
+lo ejercitaban —usan `strata_cols` de un solo eje— así que hubo que construir el
+fixture: dos estratos con la **misma masa de elegibles** (80 y 80) y tamaños
+opuestos, ocho aulas de 10 contra dos de 40. Con la estratificación viva, un
+sorteo de 2 toma una de cada estrato y rinde **siempre 50**; colapsado, el PPS se
+lleva las dos grandes o dos chicas y la cola se hunde. La segunda regresión
+comprueba justamente eso —que el fixture separa las dos conductas— para que el
+verde no pueda ser coincidencia.
+
+Verificado con el motor real sobre `HSVG26ULT2`:
+
+| Facultad | asignadas | certeza vieja | **certeza estratificada** |
+|---|---:|---:|---:|
+| CIENCIAS CONTABLES | 3 | 3 | **2** |
+| ESTUDIOS GENERALES CIENCIAS | 22 | 22 | **24** |
+| ESTUDIOS GENERALES LETRAS | 20 | 20 | **23** |
+
+Y `aulas_efectivas` sigue devolviendo exactamente lo pedido (22 → 22,00;
+18 → 18,00), que es la guarda de que el reparto entre estratos no pierde aulas.
+
+## 2 · El escritor de `rendimiento_tramos`
+
+`calc_muestra_aulas_sello_tramos()` deriva la curva del histórico por razón de
+sumas sobre los mismos cortes que el lector usa (15/25/35/50), y
+`calc_muestra_aulas_sellar_efectividad()` la incorpora junto al multiplicador por
+facultad. El router ya llamaba a esa función antes de construir el marco, así
+que queda conectado sin tocar el endpoint.
+
+Sobre el histórico de HSVG2026 produce **0,8091 · 0,6422 · 0,5657 · 0,5005 ·
+0,4093** — exactamente los tramos que el ADR 0082 dice que el estudio tiene
+sellados y no tenía.
+
+Tres decisiones de diseño, con su regresión cada una:
+
+- **Todo o nada.** Si a un tramo le falta respaldo (k < 12) no se sella ninguno:
+  sellar cuatro de cinco correría los bordes del lector y reasignaría en
+  silencio las aulas del tramo ausente al vecino.
+- **Una tasa fuera de (0, 1] tampoco se sella**, ni capada. El lector la
+  rechazaría y deformaría la curva; mejor quedarse en la embebida, que al menos
+  se declara como tal.
+- **Sin piernas.** Los escalones traen `efectivas` y `elegibles` y nada más, así
+  que no hay con qué descomponer en asistencia × respuesta × validez.
+  `tasa_asistencia_aula` sigue en NA, como ya estaba.
+
+### CONSECUENCIA QUE HAY QUE DECIDIR: el estudio pasa de 165 a 175 aulas
+
+El sello **no toca ningún `.pulso` existente** — actúa cuando se reconstruye el
+marco. Pero en la próxima reconstrucción de HSVG2026, τ cae un 6,3 % y la
+fórmula pide **diez aulas más**:
+
+| Facultad | τ hoy | τ sellada | dif | fórmula hoy | nueva |
+|---|---:|---:|---:|---:|---:|
+| DERECHO | 0,5622 | 0,5136 | −8,6 % | 16 | **18** |
+| ESTUDIOS GENERALES CIENCIAS | 0,4087 | 0,3795 | −7,2 % | 22 | **23** |
+| ARQUITECTURA Y URBANISMO | 0,5629 | 0,5230 | −7,1 % | 8 | **9** |
+| ESTUDIOS GENERALES LETRAS | 0,4192 | 0,3900 | −7,0 % | 18 | **19** |
+| PSICOLOGÍA | 0,6767 | 0,6344 | −6,3 % | 5 | **6** |
+| GESTIÓN Y ALTA DIRECCIÓN | 0,5659 | 0,5313 | −6,1 % | 6 | **7** |
+| CIENCIAS Y ARTES DE LA COMUN. | 0,6702 | 0,6347 | −5,3 % | 7 | 7 |
+| CIENCIAS E INGENIERIA | 0,5285 | 0,5014 | −5,1 % | 38 | **40** |
+| resto | | | −4 % a +1 % | | sin cambio |
+| **TOTAL** | | | **−6,3 %** | **165** | **175** |
+
+Letras y CC.HH. es la única que **sube** (+1,1 %), porque sus catorce aulas caben
+en el primer tramo y ahí la curva sellada es más alta que la embebida
+(0,8091 contra 0,80).
+
+No es un efecto colateral: es exactamente lo que significa dimensionar con la
+calibración correcta en vez de con una que está 6 % alta. Pero es una decisión
+del estudio, no una reparación, y por eso queda escrita acá antes de que aparezca
+sola en una pantalla.
+
+## 3 · El eje de sexo suma aula por aula
+
+`.cm_certificacion_esperadas_sexo()` suma `sex_n × tasa_efectividad_aula` por
+aula, con la tasa derivada de `efectivas_esperadas / eligible_n` si la columna no
+viaja, y la tasa plana como fallback **declarado** en el nuevo campo `metodo` de
+cada celda — la misma forma que ya tenía la rama de facultad.
+
+Verificado sobre `HSVG26ULT2`: las 30 celdas pasan a `suma_esperadas` y **ninguna
+cae**, como estaba previsto.
