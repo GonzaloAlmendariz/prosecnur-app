@@ -28,3 +28,23 @@ export function fuenteDelPerfilDeAulas(): string {
     .map((f) => fs.readFileSync(path.join(aqui, f), "utf8"))
     .join("\n");
 }
+
+/**
+ * El page-file MÁS los trozos en que se está partiendo: `AulasPestana*.tsx` y
+ * `AulasSeccion*.tsx`.
+ *
+ * Es la misma superficie que antes era un solo archivo, y sirve para los
+ * contratos que hablan de ESA pantalla —qué títulos tiene, cómo se distinguen—
+ * y no del perfil entero. Usar `fuenteDelPerfilDeAulas()` para esto arrastra
+ * los componentes hoja, que tienen sus propios encabezados y nunca estuvieron
+ * bajo ese contrato: al probarlo aparecieron cinco «choques» que sólo eran eso.
+ */
+export function fuenteDelPageDeAulas(): string {
+  return fs.readdirSync(aqui)
+    .filter((f) => f === "AulasMonitoreoPage.tsx"
+      || ((f.startsWith("AulasPestana") || f.startsWith("AulasSeccion")) && f.endsWith(".tsx")))
+    .filter((f) => !f.endsWith(".test.tsx"))
+    .sort()
+    .map((f) => fs.readFileSync(path.join(aqui, f), "utf8"))
+    .join("\n");
+}

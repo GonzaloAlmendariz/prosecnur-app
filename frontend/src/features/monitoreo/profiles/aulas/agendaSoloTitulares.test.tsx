@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 const fuente = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), "AulasMonitoreoPage.tsx"),
@@ -26,8 +27,10 @@ describe("la agenda lista titulares y declara sus reservas", () => {
   it("cuenta las reservas en vez de esconderlas", () => {
     // Sin esto, las 507 desaparecerían sin dejar rastro y el agendador no sabría
     // que tiene plan B.
+    // La FUNCIÓN sigue en el page-file, que es donde se declara; el RÓTULO se
+    // mudó con la sección Modelo. Cada uno se busca donde le toca.
     expect(fuente).toContain("function agendaReservas");
-    expect(fuente).toContain("reservas detrás");
+    expect(fuenteDelPerfilDeAulas()).toContain("reservas detrás");
   });
 
   it("la cuenta de reservas mira sólo las de cadena, no el banco", () => {
