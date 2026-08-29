@@ -537,14 +537,32 @@ export function aulasKpis(
     // La sección de la agenda y el registro: cuántas hay, cuántas se
     // registraron y cuántas no han recibido ni una respuesta.
     const estado = estadoDeAplicacion((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[]);
+    const deTramo = (clave: string) =>
+      estado.estados.find((e) => e.clave === clave)?.aulas ?? 0;
+    const sinFecha = deTramo("pendiente");
+    const agendadasConFecha = deTramo("lista");
     return [
       planKpi(dashboard),
       registroKpi(dashboard),
       {
+        // **La pista nombraba sólo la mitad, y era la que valía cero.**
+        //
+        // `sinSalirACampo` suma los tramos `pendiente` («Sin agendar») y `lista`
+        // («Agendada»), como dice su propio comentario en `estadoDeAplicacion`.
+        // La pista decía «agendadas que aún no salen a campo» sobre 145 aulas
+        // de las que —medido el 2026-08-29— **ninguna estaba agendada**: el
+        // Status de aplicación de esa misma sesión daba «Agendada 0», y el panel
+        // de abajo, «145 sin fecha, al final de su facultad». Llamar agendado a
+        // lo que no tiene fecha invierte la decisión: una agendada se espera, una
+        // sin fecha hay que salir a agendarla.
+        //
+        // Se declara el reparto, que además es lo que decide.
         label: "Sin empezar",
         icono: AlertCircle,
         value: fmt(estado.sinSalirACampo),
-        pista: "agendadas que aún no salen a campo",
+        pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
+          : !sinFecha ? "agendadas, todavía sin salir a campo"
+            : `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`,
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
     ];

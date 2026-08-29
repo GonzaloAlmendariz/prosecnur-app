@@ -1155,3 +1155,38 @@ El test del modelo pasa a `Math.round(p.pct)`: sigue fijando el mismo contrato
 
 Verificado en pantalla. Y de paso el `aria-label` de cada barra, que llevaba el
 mismo entero pegado.
+
+---
+
+## 59 · «Agendadas» eran las que no tenían fecha (ítem 40)
+
+`modelo/facultad`, primera vez. La tarjeta decía:
+
+> **SIN EMPEZAR · 145 ·** *agendadas que aún no salen a campo*
+
+y el panel de debajo, en la misma pantalla:
+
+> «193 cursos-horario en 15 facultades, por el día en que empieza cada una ·
+> **145 sin fecha**, al final de su facultad»
+
+Si están sin fecha no están agendadas. Y el «Status de aplicación» de la misma
+sesión lo confirma: **«Agendada 0»**.
+
+Medido: `sinSalirACampo` suma los tramos `pendiente` («Sin agendar») y `lista`
+(«Agendada») —lo dice su propio comentario en `estadoDeAplicacion.ts`— y la pista
+nombraba **sólo la segunda mitad, que es la que valía cero**.
+
+No es cosmético: **invierte la decisión**. Una agendada se espera; una sin fecha
+hay que salir a agendarla, y son 145 de 193. La pista declara ahora el reparto —
+«todavía sin fecha: hay que agendarlas» cuando ninguna tiene fecha, «agendadas,
+todavía sin salir a campo» cuando todas la tienen, y «60 sin fecha · 40
+agendadas» cuando es mezcla, que es el caso de un operativo a medias y el que más
+engaña.
+
+Cuatro tests, con el mutante comprobado (volver a la pista fija deja 3 rojos) y
+con el control de que el valor sigue siendo la suma de los dos tramos, para que
+nadie «simplifique» la pista tomando uno solo y deje al número hablando de otro
+conjunto. Verificado en pantalla.
+
+Es la quinta vez que el mismo eje —lo que declara el campo contra lo que hay
+realmente— produce un rótulo que dice lo contrario de lo que muestra.
