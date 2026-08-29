@@ -68,6 +68,19 @@ donde aparecen los defectos que las suites no ven.
 | 20 | Barrer el payload buscando el patrón | `partes_campo` 9 de 14 campos vacíos · `control_calidad` 5 de 10 · `agenda` 56 de 98 · **`avance_sexo_facultad` 0 de 16** | medido |
 | 21 | Capturar la base de control, que usa los booleanos vacíos | **Ya está bien resuelta**, y es el estándar: «304 sin evaluar en el libro… se llenan en el Excel del equipo y vuelven al importar» | **VISTO**, sin cambio |
 
+### 2026-08-29 · noche, segunda tanda
+
+| # | Qué hice | Qué encontré | Estado |
+|---|---|---|---|
+| 22 | Capturar Rendimiento | «Pedir 33 · Banco S/D · **Cubren 25**» — la columna no hablaba del banco, son las que *bastarían*. Renombrada | **VISTO** `5e9501f5` |
+| 23 | Ir a verificar la banda de anoche | **No se podía llegar**: la facultad elegida era un `useState` suelto y no viajaba en la URL, contra la regla de la casa | **VISTO** `241d68bb` |
+| 24 | Con el foco ya enlazable, mirar la banda | **Era invisible** al 13 % de opacidad sobre las barras grises. Subida al 24 % con borde | **VISTO** `1d30a9f8` |
+
+La cadena de 23 y 24 es la que más dice de cómo trabajaba: entregué la banda
+anoche sin verla, **no había manera de verla** porque la vista no era
+alcanzable, y sólo salió al obligarme a capturar todo. Dieciocho horas de algo
+entregado y roto sin que ningún gate pudiera avisar.
+
 ## El patrón de los seis defectos
 
 Los seis que aparecieron al mirar tienen la misma forma: **algo ausente
