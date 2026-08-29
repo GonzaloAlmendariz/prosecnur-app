@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+
+import { aulasKpis } from "./kpisDeAulas";
+
+/**
+ * «Sin empezar» suma dos tramos y tiene que decir cuál pesa.
+ *
+ * `sinSalirACampo` = «Sin agendar» + «Agendada». La pista decía «agendadas que
+ * aún no salen a campo» sobre 145 aulas de las que ninguna estaba agendada:
+ * medido el 2026-08-29, el Status de aplicación de esa misma sesión daba
+ * «Agendada 0» y el panel de abajo «145 sin fecha, al final de su facultad».
+ * Llamar agendado a lo que no tiene fecha invierte la decisión: una agendada se
+ * espera, una sin fecha hay que salir a agendarla.
+ */
+
+const fila = (application_state: string) => ({ application_state, sample_role: "titular" });
+const tablero = (pendientes: number, listas: number) => ({
+  course_status: [
+    ...Array.from({ length: pendientes }, () => fila("pendiente")),
+    ...Array.from({ length: listas }, () => fila("lista")),
+  ],
+  kpis: {},
+}) as never;
+
+const sinEmpezar = (t: never) => aulasKpis(t, "modelo").find((k) => k.label === "Sin empezar");
+
+describe("la pista de «Sin empezar»", () => {
+  it("con ninguna agendada dice que hay que agendarlas", () => {
+    const k = sinEmpezar(tablero(145, 0));
+    expect(k?.value).toBe("145");
+    expect(k?.pista).toContain("sin fecha");
+    expect(k?.pista).not.toContain("agendadas,");
+  });
+
+  it("con todas agendadas no habla de fechas que faltan", () => {
+    const k = sinEmpezar(tablero(0, 40));
+    expect(k?.pista).toBe("agendadas, todavía sin salir a campo");
+  });
+
+  it("con las dos, declara el reparto", () => {
+    // El caso que importa en un operativo a medias: sin el reparto, 100 se lee
+    // como «ya están agendadas» y nadie sale a agendar las 60 que faltan.
+    const k = sinEmpezar(tablero(60, 40));
+    expect(k?.value).toBe("100");
+    expect(k?.pista).toContain("60");
+    expect(k?.pista).toContain("40");
+  });
+
+  it("el total sigue siendo la suma de los dos tramos", () => {
+    // El control del arreglo: si alguien «simplificara» la pista tomando sólo un
+    // tramo, el valor y la pista dejarían de hablar del mismo conjunto.
+    expect(sinEmpezar(tablero(7, 3))?.value).toBe("10");
+  });
+});
