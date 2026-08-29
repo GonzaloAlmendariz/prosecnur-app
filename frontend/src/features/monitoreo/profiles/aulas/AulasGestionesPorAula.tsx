@@ -17,10 +17,25 @@ import { UMBRAL_DE_RIESGO } from "./agendamiento";
 export function AulasGestionesPorAula({ distribucion }: {
   distribucion: ReadonlyArray<{ gestiones: number; aulas: number; enRiesgo: boolean }>;
 }) {
-  // Sin ninguna gestión anotada no hay distribución que dibujar. Un histograma
-  // de una sola barra en cero se leería como «todas salen a la primera», que es
-  // lo contrario de lo que pasa cuando nadie apuntó nada.
-  if (!distribucion.length) return null;
+  // Sin ninguna gestión anotada no hay HISTOGRAMA que dibujar: una sola barra en
+  // cero se leería como «todas salen a la primera», que es lo contrario de lo
+  // que pasa cuando nadie apuntó nada.
+  //
+  // Pero devolver `null` dejaba a su panel con sólo el encabezado, y el runner
+  // lo contaba a él como el contenedor de datos del grupo
+  // `monitoring-aulas-table`: `capacity-drift` con 5 px de interior muerto,
+  // medido en `modelo/agenda` sobre el proyecto derivado. Es el mismo defecto
+  // que ya estaba documentado en `AulasControlDelLibro` —con datos el grupo iba
+  // verde y el fallo sólo existía en el estado vacío—, así que el vacío vive
+  // dentro de la caja y dice de dónde saldría el dato (C3).
+  if (!distribucion.length) {
+    return (
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        Todavía no hay gestiones anotadas. Se llenan desde el registro de campo,
+        cuando el equipo apunta cuántas llamadas costó cerrar cada aula.
+      </p>
+    );
+  }
 
   const tope = Math.max(...distribucion.map((d) => d.aulas), 1);
   const enRiesgo = distribucion.filter((d) => d.enRiesgo).reduce((n, d) => n + d.aulas, 0);
