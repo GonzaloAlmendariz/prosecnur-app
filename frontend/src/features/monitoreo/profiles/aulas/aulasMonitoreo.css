@@ -2478,6 +2478,21 @@
 /* `flex` en LOS DOS lados, no `block` en uno.
    Con un solo hijo, `block` valía; con el relleno y su sombra son dos, y en
    `block` se apilarían en vertical en vez de encadenarse. */
+/* La pista se queda con TODO lo que sobra tras la cifra, y es contra ella
+   contra la que el carril mide su porcentaje. `min-width: 0` para que pueda
+   encoger por debajo de su contenido en vez de empujar la fila. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-pista {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* El carril crece hacia el CENTRO de la pirámide, o sea pegado a la cifra: a la
+   izquierda de su pista en el lado derecho, y a la derecha en el izquierdo. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-pista {
+  justify-content: flex-end;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-piramide-carril {
   display: flex;
   flex: none;
@@ -2516,6 +2531,12 @@
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-cifra {
   flex: none;
+  /* Todas las filas reservan lo mismo para la cifra; si no, la pista mide
+     distinto en cada una y el 100 % del carril dejaría de ser comparable entre
+     facultades, que es justo lo que la pirámide existe para comparar.
+     «faltarán 1.234» y «cierra 12/09» son los textos más largos que produce
+     `veredicto()`. */
+  min-width: 6.4rem;
   color: var(--pulso-text-soft);
   font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;

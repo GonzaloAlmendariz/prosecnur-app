@@ -103,6 +103,14 @@ function Lado({ lado, tope, hacia }: {
       title={lectura}
     >
       <span className={`aulas-piramide-cifra es-${v.estado}`}>{v.texto}</span>
+      {/* La PISTA es la escala; el carril es el dato. Estaban fundidos en un
+          solo elemento: el carril llevaba `width: ${carril}%` siendo hijo
+          directo del lado, y un porcentaje en un hijo flex se resuelve contra
+          el contenedor ENTERO, no contra lo que sobra tras la cifra. La fila
+          con la meta más alta llega al 100 % y se salía 11 px por debajo de su
+          vecina —medido a 1440x1000 sobre el fixture de aulas—. Con la pista,
+          el 100 % es el ancho de la pista y no puede desbordar. */}
+      <span className="aulas-piramide-pista">
       <span className="aulas-piramide-carril" style={{ width: `${carril}%` }}
         role="img" aria-label={lectura}>
         <i style={{ width: `${relleno}%`, background: tono(lado) }} />
@@ -117,6 +125,7 @@ function Lado({ lado, tope, hacia }: {
             style={{ width: `${lado.previsto}%`, "--aulas-previsto-tono": tono(lado) } as React.CSSProperties}
           />
         ) : null}
+      </span>
       </span>
     </span>
   );
