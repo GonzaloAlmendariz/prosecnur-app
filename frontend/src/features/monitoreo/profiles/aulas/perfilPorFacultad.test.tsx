@@ -114,7 +114,10 @@ describe("perfilDesdeElMotor", () => {
     expect(derecho.meta).toBe(664);
     expect(derecho.falta).toBe(164);
     expect(derecho.cubierto).toBe(500);
-    expect(derecho.avance).toBe(75);
+    expect(derecho.avance).toBe(75.3)  // un decimal, igual que `avanceEnRespuestas()`: las dos
+    // funciones calculan el mismo avance y el panel usa una u otra segun llegue
+    // el resumen del motor. Con dos redondeos, la misma pantalla decia «20%» o
+    // «19,6 %» segun la fuente.;
   });
 
   it("una facultad sin nombre se rotula, no se descarta", () => {
@@ -155,5 +158,29 @@ describe("AulasPerfilPorFacultad y el bloque del motor", () => {
 
     expect(html).toContain("DERECHO");
     expect(html).not.toContain("CIENCIAS");
+  });
+});
+
+describe("las dos rutas del perfil redondean igual", () => {
+  /**
+   * `perfilPorFacultad()` calcula desde el plan y `perfilDesdeElMotor()` desde
+   * `avance_por_facultad`; el panel usa una u otra según llegue el resumen. Con
+   * redondeos distintos —`Math.round(100·x/meta)` contra
+   * `Math.round(1000·x/meta)/10`— la MISMA pantalla enseñaba «20%» o «19,6 %»
+   * según la fuente, y nadie podía saber cuál estaba viendo.
+   */
+  it("el avance del motor conserva su decimal", () => {
+    const [f] = perfilDesdeElMotor([
+      { facultad: "Derecho", aulas: 10, respuestas_validas: 130, meta: 662, brecha: 532 },
+    ] as never[]).facultades;
+    // 130 de 662 es 19,6 %, no 20 %.
+    expect(f!.avance).toBe(19.6);
+  });
+
+  it("y una meta cero no lo manda a NaN", () => {
+    const [f] = perfilDesdeElMotor([
+      { facultad: "Derecho", aulas: 1, respuestas_validas: 0, meta: 0, brecha: 0 },
+    ] as never[]).facultades;
+    expect(f!.avance).toBe(0);
   });
 });

@@ -38,7 +38,7 @@ const UNIDADES = "cursos-horario|aulas|respuestas|reservas|filas|celdas|titulare
 // Se excluyen las interpolaciones que llevan comillas dentro: `${n === 1 ?
 // "reserva" : "reservas"}` produce TEXTO, no una cifra, y formatearlo no
 // significaría nada.
-const SIN_FORMATO = String.raw`\$\{(?!fmt\(|fmtCuenta\(|[^}]*toLocaleString)[^}"']*\}`;
+const SIN_FORMATO = String.raw`\$\{(?!fmt\(|fmtCuenta\(|pctPerfil\(|[^}]*toLocaleString)[^}"']*\}`;
 
 /**
  * Las formas en que una cifra llega a la frase, medidas en el perfil:
