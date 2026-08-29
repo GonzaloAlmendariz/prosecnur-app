@@ -1259,3 +1259,45 @@ agenda.
 
 **Sexta vez** que el eje campo/operativo produce un defecto, y la primera en que
 manda a alguien a hacer trabajo inútil en vez de sólo confundir una cifra.
+
+---
+
+## 62 · `modelo/carga`: un panel de 1.000 px con un aviso de 60 (ítem 42)
+
+El vacío está **bien declarado** y es de los mejores del perfil: dice la causa y
+además cómo se llena —«El plan no trae el horario de los cursos-horario. Se
+completa al construir el marco desde el catálogo de Cursos-Horarios, que es de
+donde sale el rango de cada sesión»—.
+
+Lo que está mal es la composición: ese aviso vive en un panel que ocupa **todo el
+alto de la pantalla**, unos 1.000 px, con ~940 de vacío absoluto debajo. Es C3 —
+«un hueco sin borde, material, propósito ni dueño no es aire: es rotura de
+composición».
+
+**Y el gate da `geometryIssues=0`, correctamente.** El `capacity="owned"` está en
+la `<p>` del aviso, que es el contenedor de datos, y esa `<p>` mide lo que mide
+su texto: sin drift. La norma es explícita en que `capacity` va al contenedor de
+datos y **nunca al panel**, así que el gate hace lo que debe; el hueco que sobra
+es del marco, y eso no lo mira nadie.
+
+Medido el porqué: `AulasSeccionModelo` envuelve el panel en un stack con
+`grid-template-rows: auto minmax(0, 1fr)` (`aulasMonitoreo.css:178`), y su propio
+comentario explica que esa regla existe para que la tabla de «Aulas agendadas» no
+se quede en 88 px. Correcto para `agenda`; en `carga` la segunda fila es este
+panel, que recibe todo el sobrante aunque su contenido sea un párrafo.
+
+Otra vez **la superficie declara una cosa y hace otra**: el `<section>` dice
+`data-qa-geometry-contract="intrinsic"` —«sección única en su pestaña, así que su
+geometría es intrínseca», dice su comentario— y el CSS del stack la estira a
+`1fr`. Séptima forma del mismo error de fondo.
+
+**Reparación propuesta, NO aplicada** —exige una decisión y no la improviso al
+final de un tick—: el panel sólo debe tomar `1fr` cuando hay malla que dibujar.
+Eso pide que `AulasSeccionModelo` sepa si hay horario, y hoy sólo lo sabe
+`AulasCargaDeCampo` por dentro (`conHorario`). La salida limpia es exportar de
+ese módulo un `hayHorarioDeCurso(filas)` y usarlo en los dos sitios, en vez de
+duplicar el cálculo. Con él, `align-self: start` en la rama sin malla.
+
+Lo que **no** vale: poner `align-content: start` dentro del panel. Subiría el
+contenido pero dejaría el marco igual de alto, que es exactamente el hueco sin
+dueño que la norma rechaza.
