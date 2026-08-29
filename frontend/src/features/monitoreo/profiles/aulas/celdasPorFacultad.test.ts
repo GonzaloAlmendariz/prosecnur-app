@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { celdasPorFacultad } from "./celdasPorFacultad";
@@ -81,5 +83,48 @@ describe("los tres tramos", () => {
       celda({ faculty: "DERECHO", sex: "M", logrado: 0, aporte_pendiente: 6.1, brecha: 0 }),
     ]);
     expect(f.hombresPendiente).toBe(6);
+  });
+});
+
+describe("el gráfico no puede llamar «agendadas» a lo que no lo es", () => {
+  // Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: la tarjeta decía
+  // «Cierran con lo agendado: 0 de 30» y el gráfico de al lado, sobre esas
+  // mismas 30 celdas, enseñaba seis sin déficit. Parecía una contradicción y no
+  // lo era: son DOS DENOMINADORES.
+  //
+  //   · La tarjeta proyecta sobre la AGENDA — aulas con fecha comprometida.
+  //   · El gráfico dibuja `aporte_pendiente`, que sale de
+  //     `monitoreo_aulas_avance_sexo_facultad()` sobre `tracked_df`: las aulas
+  //     EN JUEGO sin aplicar, tengan fecha o no. Es un conjunto mayor, así que
+  //     cierra más celdas. Ambas cifras eran correctas.
+  //
+  // Lo que estaba mal era el rótulo del gráfico, que decía «Aportarán las aulas
+  // agendadas» y «Con todas las aulas agendadas aplicadas». El número prometido
+  // no era el entregado, y quien restara las dos superficies encontraría un
+  // hueco inexistente.
+  //
+  // Este guard mira la fuente porque el rótulo vive en el markup de Plotly y no
+  // hay DOM que interrogar sin arrancar el motor de gráficos.
+  const fuente = readFileSync(
+    new URL("./AulasSexoPorFacultadChart.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("ninguna etiqueta visible del gráfico dice «agendad-»", () => {
+    // Sólo las cadenas que ve el usuario: `name:`, `hovertemplate:` y el pie.
+    // Los comentarios SÍ nombran la agenda, y deben poder hacerlo: explican
+    // justo esta distinción.
+    const visibles = [
+      ...fuente.matchAll(/^\s*(?:name|hovertemplate):\s*"([^"]*)"/gm),
+    ].map((m) => m[1]);
+    expect(visibles.length).toBeGreaterThan(3);
+    expect(visibles.filter((t) => /agendad/i.test(t))).toEqual([]);
+  });
+
+  it("el pie tampoco lo dice", () => {
+    const pie = fuente.slice(fuente.indexOf("mon-profile-table-recorte"));
+    // El texto del pie, sin los comentarios que lo preceden.
+    expect(/quedaría un déficit de/.test(pie)).toBe(true);
+    expect(/aulas agendadas/i.test(pie)).toBe(false);
   });
 });

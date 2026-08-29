@@ -63,11 +63,20 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
       orientation: "h",
       // El tramo que faltaba. Sin él las dos barras no suman la cuota y la
       // ámbar acaba llamándose «faltan» siendo el déficit proyectado.
-      name: "Aportarán las aulas agendadas",
+      //
+      // **Y no dice «agendadas», que es lo que decía y era falso.** El
+      // `aporte_pendiente` que dibuja sale de `monitoreo_aulas_avance_sexo_facultad()`
+      // sobre `tracked_df`, o sea las aulas EN JUEGO —titular o reserva
+      // despierta de cada cadena— que aún no están aplicadas, tengan fecha o
+      // no. Tener fecha es otra cosa y la mide otra tarjeta: «Cierran con lo
+      // agendado» proyecta SÓLO sobre la agenda y por eso puede decir 0 de 30
+      // mientras aquí seis celdas salen sin déficit. No se contradicen: son dos
+      // denominadores, y el que estaba mal nombrado era éste.
+      name: "Aportarán las aulas que faltan",
       y: eje,
       x: par((f) => [f.mujeresPendiente, f.hombresPendiente]),
       marker: { color: COLOR_RESULTADO.parcial },
-      hovertemplate: "%{y}: %{x} de lo agendado<extra></extra>",
+      hovertemplate: "%{y}: %{x} de las aulas del plan que faltan por aplicar<extra></extra>",
     },
     {
       type: "bar",
@@ -128,7 +137,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
         config={{ displayModeBar: false, responsive: true }}
       />
       <p className="mon-profile-table-recorte">
-        Con todas las aulas agendadas aplicadas quedaría un déficit de{" "}
+        Aplicando todas las aulas que quedan en el plan quedaría un déficit de{" "}
         {fmt(deficitTotal)} respuestas, repartido en {fmt(filas.length)}{" "}
         {filas.length === 1 ? "facultad" : "facultades"}.
         {cubiertas

@@ -163,7 +163,7 @@ evaluar en el libro» y explica cómo se llenan. Ninguno de los seis lo hacía.
 
 ---
 
-## 33 · Dos superficies cuentan las mismas 30 celdas y no dicen lo mismo
+## 33 · CORREGIDA — no eran dos cuentas de lo mismo, era un rótulo mentiroso
 
 Capturas: `tmp/visual-qa/quick/2026-08-29T16-47-20-544Z/` (con Plotly pintado) y
 `…T16-58-23-693Z/` (alto completo). Proyecto: `aulas_con_respuestas.pulso`,
@@ -236,3 +236,42 @@ Dos cosas más que aprendí del runner en este tick, y que valen como trampa:
   panel: su `issues=0` no dice nada de Monitoreo. Se arregla derivando
   (`api/scripts/derivar_monitoreo_aulas.R`, que sella `route_selected = TRUE`) o
   usando un proyecto que ya lo traiga.
+
+---
+
+## 33b · La corrección de la 33: verifiqué el denominador y me lo tumbó
+
+Escribí en la 33 que la tarjeta y el gráfico eran «dos lecturas del mismo dato».
+Antes de repararlo fui a medir de qué come cada una, y **no lo son**:
+
+- `avance_sexo_facultad` sale de `monitoreo_aulas_avance_sexo_facultad()` sobre
+  `tracked_df`, que es `seguidas[monitoreo_aulas_en_juego(seguidas), ]` —el
+  titular o la reserva despierta de cada cadena—. La función **no filtra por
+  fecha**: su `aporte_pendiente` cuenta toda aula viva sin aplicar, agendada o
+  no.
+- `proyeccionPorAgenda()` proyecta sólo sobre filas con `scheduled_date` y
+  `esVisitaComprometida(sample_status)`.
+
+El primer conjunto contiene al segundo, así que el gráfico cierra más celdas que
+la tarjeta. **«0 de 30» y «seis sin déficit» son las dos correctas.** No había
+contradicción que reparar y la reparación que dejé especificada —hacer que el
+KPI leyera la tabla del gráfico— habría roto un número bueno.
+
+Lo que sí estaba mal era el **rótulo del gráfico**: llamaba «Aportarán las aulas
+agendadas» a un tramo que cuenta el plan vivo entero, y su pie decía «Con todas
+las aulas agendadas aplicadas». El número prometido no era el entregado, y quien
+restara las dos superficies encontraría un hueco inexistente. Corregido a
+«Aportarán las aulas que faltan» / «Aplicando todas las aulas que quedan en el
+plan», con guard en `celdasPorFacultad.test.ts` que se comprobó rojo al
+restaurar el rótulo viejo.
+
+**Queda abierto, y es tuyo:** `proyeccionPorAgenda()` saca el rendimiento
+esperado (`serieDeRendimiento(partes)`) **y** su fecha de corte del **parte de
+campo**, no de la plataforma. Con la regla que repetiste esta semana, esa
+proyección debería construirse sobre `start`/`end`/`collectorID` de Kobo. No lo
+cambio por mi cuenta: decide qué debe alimentar la proyección de la agenda.
+
+La lección: **la 33 nació de comparar dos cifras en una captura sin ir a ver sus
+denominadores.** El tell estaba a la vista —una tarjeta dice «con lo agendado» y
+la otra superficie dice «del plan»— y aun así escribí «dos lecturas del mismo
+dato». Es la trampa de siempre: una palabra para dos cosas.
