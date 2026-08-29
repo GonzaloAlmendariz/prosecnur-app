@@ -443,9 +443,27 @@ calc_muestra_aulas_certeza <- function(frame, config = list(), estratos = list()
       next
     }
     rows <- aula_frame[idx, , drop = FALSE]
-    # Un solo estrato por corrida: la cuota del sorteo es el candidato, no una
-    # repartición proporcional dentro del subconjunto.
-    rows$stratum <- rep(estrato$key, nrow(rows))
+    # SE CONSERVA LA ESTRATIFICACIÓN DEL DISEÑO, y esto antes no era así.
+    #
+    # Hasta el 2026-08-28 aquí se hacía `rows$stratum <- estrato$key`, con el
+    # argumento de que así `n_aulas` significa «el candidato» y no una
+    # repartición. Pero el motor sortea POR `stratum`
+    # (`.cm_aulas_select_once_engine` filtra `stratum == st`), así que colapsarlo
+    # borraba los otros ejes de `strata_cols` —en HSVG2026, `sex_top_1` y
+    # `size_group`— y la simulación dejaba de sortear como sortea el estudio.
+    #
+    # Lo que costaba, medido con las mismas semillas sobre EE.GG. Letras con 20
+    # aulas: colapsado daba media 416,0 y P(cumple) 0,988; estratificado da 369,5
+    # y 0,000. La selección REAL de esas 20 aulas rinde 378,6 — pegada al
+    # estratificado y lejos del colapsado. La certeza publicaba un rendimiento
+    # que el diseño no puede producir, porque dejaba al PPS concentrarse en aulas
+    # grandes justo donde `size_group` se lo prohíbe.
+    #
+    # `n_aulas` sigue siendo el candidato: el subconjunto es de UNA facultad y
+    # `.cm_aulas_quota_estratos` reparte ese total entre los estratos presentes,
+    # sin `faculty_targets` porque `.cm_certeza_selector_sin_afijacion` los quita.
+    # Que el reparto devuelva el total pedido lo vigila `aulas_efectivas`, que ya
+    # viaja en cada punto de la curva.
     rownames(rows) <- NULL
 
     tau <- if (is.finite(estrato$tau)) estrato$tau else .CM_CERTEZA_TAU_FALLBACK
