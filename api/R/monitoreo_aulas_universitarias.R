@@ -413,6 +413,24 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
 }
 
 monitoreo_aulas_normalize_plan <- function(plan = list()) {
+  # **Camino rapido: un plan ya normalizado se devuelve tal cual.**
+  #
+  # Medido sobre el simulacro de campo malo, 1.424 aulas: el tablero tarda
+  # 5,0 s y **`monitoreo_aulas_normalize_plan()` es el 49,6 % de ese tiempo**,
+  # llamada DOS veces por tablero —una dentro de `normalize_config()` sobre
+  # `config$plan`, otra en el propio `monitoreo_aulas_dashboard()` sobre el
+  # mismo plan—. Dentro de ella el coste es la conversion ida y vuelta entre
+  # data.frame y lista de registros: 18 conversiones por tablero.
+  #
+  # La funcion ya era idempotente —resuelve alias que en la segunda pasada ya
+  # estan resueltos— asi que la segunda vuelta produce lo mismo y solo cuesta.
+  # La marca lo hace explicito y comprobable.
+  #
+  # La marca viaja en la LISTA que esta funcion devuelve. Si alguien reconstruye
+  # esa lista —un `lapply`, un viaje por JSON— el atributo se pierde y se vuelve
+  # a normalizar, que es lo correcto: mas vale pagar de mas que creerse una
+  # marca sobre datos que ya no son los mismos.
+  if (isTRUE(attr(plan, "plan_normalizado", exact = TRUE))) return(plan)
   df <- .monitoreo_aulas_df(plan, "plan")
   if (!nrow(df)) return(list())
   col <- function(candidates) .monitoreo_aulas_col(df, candidates)
@@ -777,7 +795,9 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   )
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
   rownames(out) <- NULL
-  .monitoreo_aulas_records(out)
+  res <- .monitoreo_aulas_records(out)
+  attr(res, "plan_normalizado") <- TRUE
+  res
 }
 
 # Localiza una fila del plan por cualquiera de sus identificadores.
@@ -1698,6 +1718,22 @@ monitoreo_aulas_criterio_texto <- function(crit) {
 
 monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list()) {
   cfg <- monitoreo_aulas_normalize_config(config)
+  # **El plan se normaliza UNA vez, no dos.**
+  #
+  # `normalize_config()` ya normalizo `config$plan`, y el caso normal es que el
+  # `plan` que llega aqui SEA ese mismo objeto: el router hace
+  # `aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan`. Normalizarlo otra
+  # vez costaba la mitad del tablero — medido sobre 1.424 aulas:
+  # `monitoreo_aulas_normalize_plan()` es el **49,6 %** de los 5,0 s, llamada dos
+  # veces, con 18 conversiones lista↔data.frame entre las dos.
+  #
+  # Se compara con el plan CRUDO de la config, no con el normalizado: si son el
+  # mismo objeto de partida, el resultado de normalizarlos es el mismo y basta
+  # con reusar el que ya se hizo. Si el llamador pasa otro plan —y puede—, se
+  # normaliza como siempre.
+  plan_crudo <- config[["plan"]] %||% config[["agenda"]]
+  ya_normalizado <- !is.null(plan) && !is.null(plan_crudo) && identical(plan, plan_crudo)
+  plan <- if (ya_normalizado) cfg[["plan"]] else plan
   plan_df <- .monitoreo_aulas_df(plan %||% cfg[["plan"]], "plan")
   if (!nrow(plan_df)) {
     return(list(
@@ -1726,7 +1762,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       validation = list()
     ))
   }
-  plan_df <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan_df), "plan")
+  # Con `ya_normalizado` la marca de arriba no sobrevive al paso por
+  # `.monitoreo_aulas_df()`, asi que la decision viaja en una bandera y no en un
+  # atributo. Sin esto el plan se normalizaba DOS veces por tablero.
+  plan_df <- if (ya_normalizado) plan_df
+             else .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan_df), "plan")
   tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- plan_df
   status <- plan_df$operational_status
