@@ -186,6 +186,46 @@ es trabajar sobre el libro equivocado.
 | S9 | **La app no puede vigilar el archivo del equipo**, y eso es estructural: el libro llega subido o por `file_id`, nunca por una ruta estable del disco del usuario. Cualquier diseño de frescura tiene que partir de ahí en vez de suponer un watcher | ☐ declarado |
 | S10 | **Decidir si el arreglo de S2 se conecta o se retira.** Conectarlo exige que la app genere sobre una ruta estable, que es otra decisión. Dejarlo desconectado y sin declarar sería exactamente la deuda que este GOAL persigue | ☐ decisión |
 
+#### S4, medido el 2026-08-29 — el lazo dentro de la app NO se degrada con la escala
+
+Banco sintético y determinista (`<scratchpad>/bench_s4.R`, semilla 202), 174
+aulas titulares como HSVG2026, cronometrado por tramos porque un total no dice
+qué arreglar. Segundos:
+
+| Tramo | 100 resp · 3 col | 3.000 · 3 col | 3.000 · 153 col |
+|---|---:|---:|---:|
+| Efectivas por aula | 0,18 | 0,14 | 0,13 |
+| Dashboard, cálculo completo | 0,34 | 0,25 | 0,27 |
+| Dashboard cacheado, miss | 0,65 | 0,25 | 0,26 |
+| Dashboard cacheado, **hit** | **0,00** | **0,00** | **0,00** |
+| Generar el libro | 0,74 | 0,65 | 0,43 |
+
+**El hallazgo es que no hay hallazgo aquí, y eso vale.** El dueño advirtió «a
+veces cien datos y a veces tres mil, y eso es normal»: multiplicar las
+respuestas por 30 y las columnas por 51 **no degrada ningún tramo**. El lazo
+completo dentro de la app se queda por debajo de 1,3 s en el peor caso, y el
+caché sirve en cero. Lo que preocupaba de la escala no está en estos cuatro
+tramos.
+
+**Dónde queda entonces el problema de frescura.** En lo que este banco NO puede
+medir: el tramo 1, Kobo → sesión, que necesita credenciales, y el bloqueo
+intermitente del hilo de plumber (A6, ~178 s en 1 de 3 corridas). Optimizar los
+tramos 2 a 4 sería trabajar donde no duele.
+
+**Dos guardas que salvaron la medición**, y por eso el banco las lleva escritas:
+
+- La primera corrida daba **suma 0 de efectivas**: el fixture ponía
+  `classroom_id` distinto de `operational_code` y
+  `.monitoreo_aulas_contar_por_fila()` empareja por el primero. En el plan real
+  **coinciden en las 196 filas** (medido el 2026-08-16, decisión L2). Sin la
+  guarda habría cronometrado una tubería vacía y publicado los tiempos.
+- El «miss» del tercer escenario era **un hit disfrazado**: el token del caché
+  no incluía el ancho, así que los dos escenarios de 3.000 lo compartían.
+
+**Límites declarados, no estimados**: los datos son sintéticos; el tramo Kobo no
+se midió; y 3.000 × 153 sigue siendo un archivo pequeño frente a un export real
+de un estudio largo.
+
 ### N · Que no crezca un archivo gigante — pedido explícito del dueño
 
 | | Ítem | Estado |
