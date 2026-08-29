@@ -310,6 +310,48 @@ arriba, que se tomaron con sesión viva.
 **Sigue sin medirse**: escala de radios y tipografía, y el resto de superficies
 con datos.
 
+#### Tercera pasada, 2026-08-29 — las 17 con datos, y un hallazgo de verdad
+
+Barrido completo con el plan importado (174 cursos-horario) y la sesión
+verificada estable en las diecisiete:
+
+| | Resultado |
+|---|---|
+| Superficies | **17 de 17** |
+| Recortes | **0** |
+| Derrames entre hermanos | **0** |
+| Grupos no conformes | **0** |
+| `sid` estable en todas | **sí** |
+
+**EL HALLAZGO: una tabla tarda entre 8 y 11 segundos en aparecer, y mientras
+tanto la pantalla parece vacía.**
+
+Cinco de las diecisiete superficies daban resultados distintos al medirlas dos
+veces —salir y volver—, y dos de ellas por 174 filas enteras: `modelo/agenda` y
+`modelo/carga` pasaban de tabla vacía a tabla llena. La serie temporal sobre una
+primera visita a Agenda lo fija:
+
+```
+3s: 0 filas · 6s: 0 filas · 8s: 0 filas · 11s: 174 filas · 25s: 174 filas
+```
+
+No está rota: **llega tarde**. Pero durante esos once segundos la superficie es
+indistinguible de «no hay nada que ver», y el medidor no encontró ningún
+indicador de carga montado. Para quien abre Agenda a las 8 de la mañana con el
+campo empezando, once segundos de tabla vacía es la respuesta equivocada a la
+única pregunta que trae.
+
+Las otras tres discrepancias son del mismo mecanismo en menor escala:
+`modelo/facultad` 3→2 grupos, `calidad/controles` 3→2, `calidad/abiertas` 1→2.
+
+**Qué NO es este hallazgo.** No es pérdida de sesión: el `sid` se mantuvo en las
+diecisiete. La pasada anterior lo atribuyó a eso y se corrige aquí.
+
+**Consecuencia para el método**, y vale para cualquier QA visual de este perfil:
+esperar a que la vista «deje de cambiar» NO basta, porque se está quieta ocho
+segundos antes de llenarse. Un vacío es perfectamente estable. Hay que medir dos
+veces y exigir que coincidan, que es lo que destapó esto.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
