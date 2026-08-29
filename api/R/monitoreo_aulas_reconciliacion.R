@@ -101,22 +101,44 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
     if (length(v) != 1L || !is.finite(v)) NA_real_ else v
   }
   txt <- function(x) as.character(x %||% "")
+  # **El parte llega con las claves en español y salia vacio.**
+  #
+  # Medido el 2026-08-29 sobre el simulacro de campo malo: de los 14 campos que
+  # publica esta funcion, **solo `operational_code` llegaba con valor; los otros
+  # 13 vacios en los 152 partes**. El estado guarda cada parte como
+  # `fecha · aplicador · asistentes · enviadas · validas`, todos llenos, y aqui
+  # se pedian `applied_at`, `applied_by`, `observed_students`,
+  # `applied_surveys`, `effective_surveys`. Ninguna coincidia, asi que el panel
+  # «Partes de campo» enseñaba 152 filas con solo un codigo.
+  #
+  # Es el mismo patron que `monitoreo_aulas_normalize_plan()` ya resuelve con
+  # sus listas de alias —`get(c("applied_by", "aplicador", "aplicadora"), "")`—
+  # y de la que esta capa se quedo fuera. Se toma el PRIMERO que traiga valor:
+  # si el libro real escribe la clave en ingles, esa manda.
+  primero <- function(p, claves) {
+    for (k in claves) {
+      v <- p[[k]]
+      if (!is.null(v) && length(v) == 1L && !is.na(v) &&
+          (!is.character(v) || nzchar(trimws(v)))) return(v)
+    }
+    NULL
+  }
   out <- list()
   for (p in partes) {
     if (!is.list(p)) next
     d <- monitoreo_aulas_parte_descuadre(p)
     out[[length(out) + 1L]] <- list(
       operational_code = txt(p$operational_code %||% p$classroom_id),
-      observed_students = num(p$observed_students),
+      observed_students = num(primero(p, c("observed_students", "asistentes", "alumnos_en_aula", "aforo_observado"))),
       # El `% ASISTENCIA` que el equipo escribe a mano en la hoja. Se publica
       # tal cual —no se deriva de `observed_students`— porque el numerador y el
       # denominador que uso el equipo son suyos, y porque un porcentaje que no
       # cuadra con los asistentes que la misma fila declara es en si mismo un
       # hallazgo del cuadre.
-      attendance_pct = num(p$attendance_pct),
-      refusals = num(p$refusals),
-      duplicates = num(p$duplicates),
-      effective_surveys = num(p$effective_surveys),
+      attendance_pct = num(primero(p, c("attendance_pct", "pct_asistencia", "porcentaje_asistencia"))),
+      refusals = num(primero(p, c("refusals", "rechazos"))),
+      duplicates = num(primero(p, c("duplicates", "duplicados"))),
+      effective_surveys = num(primero(p, c("effective_surveys", "validas", "efectivas"))),
       # `esperado` es la cuenta que implican los otros tres numeros; sin los dos
       # imprescindibles no hay identidad que comprobar y se publica vacio en vez
       # de un cero que parecerian datos.
@@ -134,11 +156,18 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
       # aplico» de «se aplico y no vino nadie».
       #
       # Son dos hechos MUY distintos para quien decide si reagendar.
-      application_status = txt(p$application_status %||% p$status),
-      applied_by = txt(p$applied_by %||% p$applicator),
-      actual_room = txt(p$actual_room),
-      applied_at = txt(p$applied_at %||% paste(txt(p$applied_date), txt(p$applied_time))),
-      field_note = txt(p$field_note %||% p$observaciones)
+      application_status = txt(primero(p, c("application_status", "status", "estado_aplicacion"))),
+      applied_by = txt(primero(p, c("applied_by", "aplicador", "aplicadora", "applicator"))),
+      actual_room = txt(primero(p, c("actual_room", "aula_real", "salon_real"))),
+      # `fecha` es la clave que usa el estado; la del libro llega como
+      # `applied_date`. Se prueban todas y sólo se cae al `paste` cuando hay
+      # fecha y hora sueltas.
+      applied_at = local({
+        directo <- primero(p, c("applied_at", "fecha", "fecha_aplicacion"))
+        if (!is.null(directo)) txt(directo)
+        else trimws(paste(txt(p$applied_date), txt(p$applied_time)))
+      }),
+      field_note = txt(primero(p, c("field_note", "nota_campo", "observaciones")))
     )
   }
   out
