@@ -28,30 +28,44 @@
   p
 }
 
+# LOS CINCO TRAMOS EMBEBIDOS, en la MISMA forma con la que la config los sella.
+#
+# Estaban escritos como cinco asignaciones sueltas dentro de
+# `.cm_efectividad_rendimiento()`, y sacarlos aqui no es orden: es lo que hace
+# que sellarlos NO pueda mover un numero (ADR 0083). El sellador escribe
+# exactamente este objeto y el motor lo evalua por el MISMO camino que un sello
+# del estudio, asi que las dos ramas son la misma cuenta. Mantener dos copias
+# de estos cinco numeros —una para calcular y otra para sellar— es el defecto
+# que este repo ya pago varias veces: dos listas que nadie ata.
+#
+# El ultimo tramo lleva `hasta = NA`, que el evaluador y el normalizador leen
+# como infinito; no se escribe `Inf` porque la config viaja a JSON.
+.CM_EFECTIVIDAD_TRAMOS_EMBEBIDOS <- list(
+  list(hasta = 15, tasa = 0.80),
+  list(hasta = 25, tasa = 0.69),
+  list(hasta = 35, tasa = 0.56),
+  list(hasta = 50, tasa = 0.55),
+  list(hasta = NA_real_, tasa = 0.44)
+)
+
 .cm_efectividad_rendimiento <- function(eligible_n, tramos = NULL) {
   e <- suppressWarnings(as.numeric(eligible_n))
   e[!is.finite(e)] <- 0
   # Tramos sellados en la config (plan 1b): la curva es DATO del estudio, no
-  # codigo. Sin sello, la calibracion embebida (y la fila lo declara).
-  if (is.list(tramos) && length(tramos)) {
-    r <- rep(NA_real_, length(e))
-    restante <- rep(TRUE, length(e))
-    for (tr in tramos) {
-      hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
-      if (!is.finite(hasta)) hasta <- Inf
-      tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
-      idx <- restante & e <= hasta
-      r[idx] <- tasa
-      restante <- restante & !idx
-    }
-    return(r)
-  }
+  # codigo. Sin sello rigen los embebidos, POR ESTE MISMO CAMINO — ver la nota
+  # de `.CM_EFECTIVIDAD_TRAMOS_EMBEBIDOS`. La procedencia la declara
+  # `.cm_efectividad_calibracion()` como `calibracion_embebida`.
+  if (!is.list(tramos) || !length(tramos)) tramos <- .CM_EFECTIVIDAD_TRAMOS_EMBEBIDOS
   r <- rep(NA_real_, length(e))
-  r[e <= 15] <- 0.80
-  r[e > 15 & e <= 25] <- 0.69
-  r[e > 25 & e <= 35] <- 0.56
-  r[e > 35 & e <= 50] <- 0.55
-  r[e > 50] <- 0.44
+  restante <- rep(TRUE, length(e))
+  for (tr in tramos) {
+    hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
+    if (!is.finite(hasta)) hasta <- Inf
+    tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
+    idx <- restante & e <= hasta
+    r[idx] <- tasa
+    restante <- restante & !idx
+  }
   r
 }
 
@@ -213,6 +227,12 @@
         rendimiento_tramos <- limpio_t
       }
     }
+    # DE DONDE SALEN ESOS TRAMOS. El resto del bloque dice "historico" y los
+    # tramos pueden no serlo: `calc_muestra_aulas_sellar_rendimiento()` sella
+    # los embebidos y los marca `calibracion_embebida`. Sin esta linea la clave
+    # se perderia aqui —esta funcion construye su retorno campo a campo— y el
+    # sello volveria a no declarar nada, que es el defecto que repara.
+    rendimiento_fuente <- chr1(ef$rendimiento_fuente)
     # Tasa de aplicacion por tipo de docente (capa OPERATIVA): {tipo, tasa, k}.
     ta_in <- ef$tasa_aplicacion
     tasa_aplicacion <- NULL
@@ -232,6 +252,7 @@
     return(list(fuente = "historico", periodo = periodo, tau = NA_real_,
                 tau_base = tau_base, por_facultad = por_facultad,
                 rendimiento_tramos = rendimiento_tramos,
+                rendimiento_fuente = rendimiento_fuente,
                 tasa_aplicacion = tasa_aplicacion))
   }
   if (identical(fuente, "tau_global") && is.finite(tau) && tau > 0 && tau <= 1) {
