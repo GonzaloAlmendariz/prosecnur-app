@@ -700,3 +700,39 @@ Ninguna está mal. Pero quien mira Resumen y luego Cuotas ve 2.825 y 2.824 y no
 tiene cómo saber que son dos preguntas distintas. Es hermano del ítem 24: hace
 falta decidir **cuál preside** y que las demás digan su grano en el rótulo, como
 ya hace «suma de metas por curso-horario». No lo decido solo.
+
+---
+
+## 47 · Dos ceros que no se leían, y una taxonomía que se contradice con la banda
+
+Bajando por `avance/resumen`, dos superficies escondían sus ceros de formas
+distintas y las dos se arreglan igual: **escribiéndolos**.
+
+**«Status de aplicación»** creaba una traza por estado, así que su leyenda
+listaba seis entradas —Sin agendar, Agendada, Aplicada, En cierre, Reemplazada,
+En reserva— sobre una barra con tres segmentos. No era un vacío oculto sino un
+cero declarado, pero el lector no tenía cómo saber **cuál** estaba en cero sin
+pasar el cursor. El conteo pasa a la propia leyenda: «Sin agendar 2.061 ·
+Agendada 0 · Aplicada 0 · En cierre 48 · Reemplazada 0 · En reserva 507».
+
+**«Cursos-horario por cobertura»** dejaba la fila «Muy por debajo (menos de la
+mitad)» sin barra y sin cifra entre cuatro que sí las tenían, y eso se lee como
+un hueco de renderizado. Escribir el cero **no bastó**: comprobado en pantalla,
+Plotly con `textposition: "auto"` sobre una barra de ancho cero no tiene dónde
+meter el texto y no lo saca fuera por su cuenta. Se le dice punto a punto —
+`outside` cuando la barra no existe— más `cliponaxis: false`.
+
+**Y no es una contradicción con el gráfico de acumulado, donde el cero se omite a
+propósito.** Allí el cero es un déficit cubierto —buena noticia— y su etiqueta
+compite con las celdas que sí piden algo. Aquí es cuántos cursos-horario cayeron
+en esa banda: que sean cero describe la forma del reparto. Queda escrito en los
+dos sitios para que nadie los «armonice».
+
+### Lo que destapó la leyenda nueva (ítem 31)
+
+Con los conteos a la vista, «Status de aplicación» dice **«Aplicada 0 · En cierre
+48»** mientras la banda de KPIs, dos centímetros más arriba, dice **«APLICADAS
+48»**. Las dos pueden ser ciertas —una habla del punto del circuito y la otra del
+hecho de haberse aplicado— pero conviven sin distinguirse, y un lector que busque
+«aplicadas» encuentra 0 y 48 en la misma pantalla. Es el conflicto de taxonomías
+de estado, otra vez. **No se toca hasta medir** de dónde sale cada una.

@@ -54,6 +54,8 @@ no a ojo:
 | 28 | «528 alumnos en riesgo» contra una columna que suma 535 | `AulasEfectividadSeguimiento.tsx` | **cerrado** — los dos eran correctos; se elige la suma de los techos, bitácora 45 |
 | 29 | Decimales en respuestas en el pie del ritmo (sexta vez) | `AulasRitmoDiario.tsx` | **cerrado** — estaba una línea debajo de donde ya se arregló, bitácora 46 |
 | 30 | Tres cifras del «cuánto falta» con tres granos (2.824 / 2.825 / 2.923) y dos metas totales (3.572 / 3.492) | varias superficies | **bloqueado** — decisión tuya, hermano del 24, bitácora 46 |
+| 31 | Dos ceros que no se leían: leyenda de seis estados con tres segmentos, y un tramo de cobertura sin cifra | `AulasEstadoChart.tsx` · `AulasCoberturaChart.tsx` | **cerrado** — el conteo va en la leyenda y el cero va fuera de la barra, bitácora 47 |
+| 32 | «Aplicada 0» en Status contra «APLICADAS 48» en la banda | `AulasEstadoChart.tsx` + `kpisDeAulas.ts` | **nuevo** — sin tocar hasta medir de dónde sale cada una |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

@@ -133,7 +133,13 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
   const data = estados.map((estado) => ({
     type: "bar",
     orientation: "h",
-    name: estado.etiqueta,
+    // **El conteo va EN la leyenda.** El gráfico crea una traza por estado,
+    // incluidos los que valen cero, así que la leyenda listaba seis entradas
+    // sobre una barra con tres segmentos y no había forma de saber cuáles
+    // estaban en cero sin pasar el cursor. Un cero declarado sólo cuenta como
+    // declarado si se lee: «Agendada 0» dice lo que «Agendada» junto a una
+    // barra que no aparece deja adivinar.
+    name: `${estado.etiqueta} ${fmt(estado.aulas)}`,
     y: ["Cursos-horario"],
     x: [estado.aulas],
     marker: {
