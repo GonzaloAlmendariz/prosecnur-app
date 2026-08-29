@@ -887,3 +887,52 @@ deducidos del código salieron falsos— es que el miembro sea un
 tamaño. Se comprueba con la pila viva preguntando al DOM: si
 `group.querySelectorAll("[data-qa-geometry-member]")` devuelve el `details` y
 qué dice de él el criterio de visibilidad del runner.
+
+---
+
+## 52 · El `capacity-drift` era del gate, no del markup (ítem 35)
+
+Medido leyendo el criterio del propio runner, sin levantar nada:
+
+```js
+const closedDetails = el.closest("details:not([open])");
+if (closedDetails) {
+  const visibleSummary = closedDetails.querySelector(":scope > summary");
+  if (!visibleSummary || (el !== visibleSummary && !visibleSummary.contains(el))) return false;
+}
+```
+
+**`closest()` se incluye a sí mismo.** Para un `<details>` cerrado devuelve el
+propio elemento; entonces `el !== visibleSummary` y el summary no lo contiene, y
+lo declara **invisible**. Pero un `details` cerrado sí se ve —es exactamente la
+caja de su summary— y su marco cuenta.
+
+Consecuencia: en «Cuánto cuesta cerrar un aula» el contenedor de datos es un
+`<details>` cerrado que **sí** declara `data-qa-geometry-member`; el filtro lo
+descartaba, el auditor se quedaba con cero miembros explícitos, caía a los hijos
+del grupo y **medía la cabecera del panel**. Ése es el `capacity-drift` que
+llevaba ocho apariciones: **no era del markup, era del gate**.
+
+La norma dice «cerrado, sólo el `summary` participa de la geometría». Eso excluye
+a los **descendientes** ocultos, no al contenedor. El guard pasa a
+`closedDetails && closedDetails !== el`.
+
+**Medición del arreglo**, que aquí importa más que un test porque es un gate
+compartido:
+
+| vista | antes | después |
+|---|---|---|
+| `modelo/agenda` | `geometryIssues=1` | **0** |
+| `fuentes` | 6 grupos, 0 issues | 6 grupos, 0 issues |
+| `avance/resumen` | 10 grupos, 0 issues | 10 grupos, 0 issues |
+| `avance/cuotas` | 6 grupos, 0 issues | 6 grupos, 0 issues |
+
+Sin test propio, y con el motivo: lo único que podría afirmar un test aquí es la
+presencia de una subcadena en el runner, y un guard así envejece sin vigilar
+nada. La evidencia es el 1→0 con tres vistas intactas, y el porqué queda escrito
+en el código con su caso medido.
+
+**Lo que NO afirmo:** que esto explique las ocho apariciones. Explica ésta, y la
+causa que yo venía dando —«el panel no declara su miembro»— era cierta en las que
+reparé declarando el miembro. Que haya dos causas distintas bajo el mismo síntoma
+es justamente lo que me hizo perder el diagnóstico general durante todo el día.
