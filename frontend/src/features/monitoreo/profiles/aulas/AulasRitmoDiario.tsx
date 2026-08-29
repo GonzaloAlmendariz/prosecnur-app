@@ -1,5 +1,5 @@
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { fmt } from "./kpisDeAulas";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cómo avanzó la recolección, día por día.
@@ -66,7 +66,11 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(total)}</strong> respuestas en <strong>{fmt(conCampo)}</strong>{" "}
         {conCampo === 1 ? "día de campo" : "días de campo"}
-        {media > 0 ? <> · {fmt(media)} al día</> : null}
+        {/* `fmt` conserva el decimal del dato y aquí son RESPUESTAS: «139,8 al
+            día» son personas partidas. Tercera vez que aparece el mismo defecto
+            en una jornada, así que va con `fmtCuenta`, que redondea y no
+            inventa medias encuestas. */}
+        {media > 0 ? <> · {fmtCuenta(media)} al día</> : null}
         {mejor ? <> · el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
       </p>
       <ol className="aulas-ritmo-dias" data-qa-geometry-capacity="owned" data-qa-geometry-member>
