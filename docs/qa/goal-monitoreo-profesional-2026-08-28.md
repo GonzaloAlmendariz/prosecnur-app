@@ -394,6 +394,43 @@ significa «la vista aún declara trabajo pendiente»— y se ignoró. Las tres
 pasadas siguen siendo válidas en su resultado geométrico porque el doble
 muestreo las salvó, pero el gate correcto habría ahorrado dos de ellas.
 
+#### E1b, 2026-08-29 — escala de radios y tipografía, la parte que faltaba
+
+**Tipografía** (`8a834c48`). El perfil declara su escala en su propio CSS —12,
+11 y 10 px, el último para «ejes, marcas y rotulos micro»— y tenía **seis
+literales por debajo**: un 9,5 px en el badge «Estás aquí» y cinco de 9 px en el
+registro y la familia de reemplazos, todos con vecinos que ya usaban el token.
+
+**Radios** (`9b7efc61`). Medidos en la app y **por proporción**: 23 elementos
+fuera de la escala de `tokens.css` (10 · 14 · 16 · 20 · 999), de los cuales
+**sólo dos son del perfil de aulas**. Los dos caían entre el 10 y el 14.
+
+| | Dentro de aulas | Chrome compartido |
+|---|---:|---:|
+| Radios fuera de escala | **2** | **21** |
+
+Los 21 restantes —`pulso-module-tile` a 12, `pulso-brand-link` a 15,
+`pulso-module-switcher` a 17, `pulso-command-bar` a 18, `pulso-nav-cluster` a
+21— son del chrome que comparten los cuatro modos de Monitoreo. **Declarados y
+no tocados**, que es lo que el scope de este GOAL pide.
+
+**Lo que se verificó y lo que no**, dicho por separado porque no es lo mismo:
+
+- El badge y las fichas del handoff se comprobaron EN LA APP inyectando el
+  cambio y midiendo antes y después. El badge pasa de 67×18 a 70×19 y las
+  fichas siguen en 223×40; ninguno recorta.
+- Los cinco literales de reemplazos y el radio de su popover **no se pudieron
+  ver**: el widget no monta sin reemplazos registrados. Se cambiaron por razón
+  de escala, no por comprobación, y así queda escrito en el código.
+
+**Los guards no prohíben cualquier literal**, que daría docenas de falsos
+positivos: el de tipografía compara contra el suelo que el propio perfil
+declara, y el de radios sólo caza los que caen ENTRE peldaños, que es donde se
+cuela una esquina puesta a ojo.
+
+**Deuda declarada fuera de scope:** un `<strong>` a 8 px con el texto «Sin act.»
+en `.pulso-context-tab-rail-meta`, del chrome compartido.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
