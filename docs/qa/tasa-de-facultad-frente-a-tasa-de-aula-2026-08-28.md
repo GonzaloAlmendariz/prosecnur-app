@@ -241,12 +241,56 @@ Exactamente el mismo número. **La elección de vara no mueve el
 dimensionamiento**, y eso cierra el argumento que quedaba: no se puede
 defender la tasa del aula diciendo que dimensiona mejor, porque no lo hace.
 
-Dos cosas del método conviene tenerlas presentes al leer esa tabla. **La suma
-de la columna de certeza no es un total de diseño**: el diseño toma el máximo
-entre fórmula y certeza en cada facultad y después suma, así que las bajas de
-la certeza quedan absorbidas por la fórmula y solo pasan las subidas. Y **la
-convención de traslape vale cinco aulas en el total** (177 contra 172), más que
-la elección de vara.
+### El mínimo certificado, facultad por facultad
+
+Con la tasa limpia de traslape, que es la convención correcta:
+
+| Facultad | Fórmula | Asignadas hoy | Con tasa de facultad | Con tasa del aula |
+|---|---:|---:|---:|---:|
+| Arquitectura y Urbanismo | 8 | 8 | 7 | 7 |
+| Arte y Diseño | 15 | 15 | 10 | **11** |
+| Artes Escénicas | 8 | 8 | 5 | 5 |
+| Ciencias Contables | 2 | 3 | 2 | 2 |
+| Ciencias e Ingeniería | 37 | 37 | 30 | 30 |
+| Ciencias Sociales | 12 | 12 | 11 | 11 |
+| Ciencias y Artes de la Comun. | 7 | 7 | 6 | 6 |
+| Derecho | 16 | 19 | 18 | 18 |
+| Educación | 3 | 3 | 2 | 2 |
+| Estudios Generales Ciencias | 22 | 22 | **23** | **23** |
+| Estudios Generales Letras | 18 | 20 | **21** | **21** |
+| Gastronomía, Hotelería y Turismo | 3 | 3 | 3 | 3 |
+| Gestión y Alta Dirección | 6 | 7 | 7 | 7 |
+| Letras y Ciencias Humanas | 3 | 4 | 3 | 3 |
+| Psicología | 5 | 6 | 5 | 5 |
+
+Arte y Diseño es la única que difiere, y por una.
+
+### Los agregados, y por qué no se leen de la columna
+
+| | Tasa de facultad, cruda | Tasa del aula, cruda | Tasa de facultad, limpia | Tasa del aula, limpia |
+|---|---:|---:|---:|---:|
+| Σ certeza | 167 | 166 | 153 | 154 |
+| Σ max(fórmula, certeza) | 177 | 176 | **172** | **172** |
+| Más una aula operativa en Derecho | 178 | 177 | 173 | 173 |
+
+Referencias: la fórmula sola da **165** y las asignadas hoy son **174**. La
+reconstrucción del número vigente cuadra exacto: `max(fórmula, certeza del
+simulador colapsado)` da 173, más una aula operativa en Derecho, 174.
+
+Tres cosas que esa tabla esconde si se lee rápido:
+
+**La suma de la columna de certeza no es un total de diseño.** El diseño toma
+el máximo entre fórmula y certeza en cada facultad y después suma. Por eso
+catorce aulas de caída en la Σ certeza se convierten en una sola en el total:
+`max()` absorbe las bajas y solo deja pasar las subidas.
+
+**El 167 a 153 de la Σ certeza es casi todo la limpieza de traslape, no la
+estratificación.** Con la estratificación corregida y sin limpiar la tasa, la
+suma también da 167, el mismo número que la corrida guardada pero con una
+composición muy distinta. Esa coincidencia engaña si no se abre.
+
+**La convención de traslape vale cinco aulas en el total** (177 contra 172),
+más que la elección de vara, que vale cero.
 
 ## 9. Lo que sí mueve el dimensionamiento es otra cosa
 
@@ -276,6 +320,22 @@ pagan con las bajas**: la cuota es por facultad y no se compensa entre ellas.
 No es casualidad que sean las dos de Estudios Generales. Son las de tasa más
 baja (0,409 y 0,419) y las de aulas más grandes, o sea las que el simulador
 colapsado más favorecía.
+
+El colapso es deliberado y tiene su razón: sin él, `n_aulas` se repartiría
+entre estratos y dejaría de significar «el candidato». Lo que no estaba medido
+es su costo. El efecto es inflar a la vez la media y la dispersión, con la
+desviación creciendo entre 1,22 y 1,48 veces, porque deja al muestreo
+proporcional concentrarse en aulas grandes.
+
+### Cómo se midió
+
+Sorteos pareados: un solo evaluador sortea una vez por candidato y publica los
+dos rendimientos sobre el mismo conjunto, con las semillas en función del
+estrato y del número de aulas, de modo que ambos brazos ven exactamente los
+mismos sorteos y la diferencia no puede venir del azar. Mil corridas escaladas
+por tamaño de marco, `cube_balanceado`, semilla y configuración del estudio,
+y búsqueda monótona del mínimo con probabilidad de cumplir por encima de 0,95
+arrancando en la fórmula.
 
 ## 10. Para elegir entre sorteos, tampoco cambia el ganador
 
@@ -309,7 +369,83 @@ absolutos del barrido original** y la causa no está identificada. La comparaci�
 entre varas dentro de una misma definición se sostiene; las cifras absolutas de
 cobertura mínima no deben citarse hasta cuadrar esa diferencia.
 
-## 11. Lo que queda abierto
+## 11. El control que valida cualquier reescritura futura
+
+Letras y Ciencias Humanas tiene sus diez aulas del marco en un solo tramo de
+tamaño. Como las dos tasas comparten el ajuste de facultad y solo difieren en
+el primer factor, **para esa facultad son literalmente el mismo número**, y
+cualquier cálculo que las haga divergir tiene un defecto por construcción.
+
+Sirvió dos veces en esta revisión, por caminos independientes. En la
+comparación aula por aula da exactamente 0,00 de diferencia absoluta media,
+la única de las quince. Y en la certificación, el brazo con el error de netos
+daba 28,2 contra 28,7 donde tenía que dar lo mismo; corregido da 28,2 contra
+28,2 con probabilidades de 0,997 idénticas al último decimal.
+
+**Ese es el caso con el que hay que escribir la regresión** si alguna vez se
+reescriben las tasas: no hace falta conocer el valor correcto, basta con que
+las dos columnas coincidan donde tienen que coincidir.
+
+## 12. Los números que se descartaron en el camino
+
+Esta revisión se hizo en paralelo entre dos sesiones midiendo lo mismo por
+caminos distintos, y cinco afirmaciones se cayeron al contrastarlas. Quedan
+registradas porque las cinco eran plausibles y ninguna se habría detectado con
+una sola medición.
+
+| Se afirmó | Es | Por qué |
+|---|---|---|
+| La tasa del aula sube el total de 174 a 175 | Empatan, 172 y 172 | Medido sobre el simulador con los estratos colapsados |
+| La tasa del aula ahorra nueve aulas | Ahorra cero | Uso de la columna de netos por estrato fuera de su alcance |
+| Estudios Generales Letras cierra con 20 usando la tasa del aula | Necesita 21 con las dos | El mismo error de netos |
+| La brecha entre las dos varas de cobertura son 365 encuestas | Unas 150 | Doble descuento del traslape |
+| La diferencia entre tasas no es significativa, p = 0,473 | p = 0,003 contra la tasa global | Medido sobre cadenas en vez de escalones |
+
+Las dos primeras y la tercera vienen del mismo mecanismo, que conviene nombrar
+porque es reutilizable: **un acotamiento válido que caduca cuando cambia lo que
+lo hacía válido, y nada avisa.** La columna de netos por estrato era exacta
+mientras el simulador colapsaba los estratos a la facultad, y dejó de serlo al
+corregir la estratificación, que es una reparación en otro archivo. Con el
+error, la sobrecuenta iba de 2,07 % en Letras y Ciencias Humanas a 11,11 % en
+Ciencias Sociales, del mismo tamaño que las diferencias que se querían medir.
+
+La quinta es del mismo tipo en el otro sentido: la cadena era la unidad
+correcta para lo que se medía al principio y dejó de serlo al comparar
+pronosticadores por aula, porque una cadena agrega varios escalones y los
+clasifica en un tramo de tamaño que no les toca.
+
+## 13. Qué se sostiene y qué no
+
+**Se sostiene:**
+
+- La tasa de la facultad es la media ponderada de las tasas de sus aulas, con
+  siete de quince coincidiendo a menos de 0,002.
+- El patrón por tamaño, monótono y sin excepciones en los extremos: 0 de 124 en
+  el tramo chico contra 221 de 221 en el grande.
+- Las dos varas dimensionan igual: catorce de quince facultades, y 172 en el
+  total con ambas.
+- La simulación de certeza colapsa los estratos, verificado en el código y
+  medido, con validación contra la selección real.
+- Estudios Generales Ciencias y Estudios Generales Letras quedan cortas por una
+  aula, con cualquier vara.
+- En el barrido, la semilla 202 gana con las dos varas, y el filtro pasa de 30
+  a 38 candidatas que cierran las treinta celdas.
+
+**No se sostiene todavía, y hay que declararlo así al citarlo:**
+
+- Los niveles absolutos de la reejecución del barrido no reproducen los del
+  barrido original, y la causa no está identificada. Solo la comparación entre
+  varas dentro de una misma definición es utilizable.
+- El factor de limpieza del traslape se aplica **por facultad como proxy**. El
+  correcto sería por tramo de tamaño, y no se puede derivar de lo sellado: los
+  embudos van por facultad y los escalones de las cadenas no traen el conteo de
+  repetidos.
+- La procedencia de las cinco tasas embebidas sigue sin explicar. El
+  desalineamiento de bins aporta 0,8 de los 6,4 puntos de optimismo, y el
+  propio archivo se contradice: el encabezado las atribuye a la base de 2025 y
+  el bloque de las piernas dice que son «de otra ola».
+
+## 14. Lo que queda abierto
 
 Tres cosas, ninguna urgente para el operativo en curso, todas registradas en
 `auditoria-motor-aulas-2026-08-28.md`:
