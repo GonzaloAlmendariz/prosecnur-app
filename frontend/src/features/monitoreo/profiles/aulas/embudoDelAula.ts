@@ -29,6 +29,14 @@ export type EmbudoDelAula = {
   partes: number;
   asistentes: number;
   pasos: PasoDelEmbudo[];
+  /**
+   * Los descuentos que NINGÚN parte declara.
+   *
+   * No es lo mismo «no hubo rechazos» que «nadie los anotó», y el embudo
+   * dibujaba lo segundo como lo primero: con los 152 partes sin rechazos ni
+   * duplicados la cadena salía `4.386 → 4.386 → 4.386 · 100 %`.
+   */
+  pasosSinDeclarar: string[];
   /** Efectivas declaradas por el equipo, que no tienen por qué cuadrar. */
   declaradas: number;
   /** Diferencia entre lo que implica la cadena y lo declarado. */
@@ -45,14 +53,27 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
   let rechazos = 0;
   let duplicados = 0;
   let declaradas = 0;
+  // **Un paso que NADIE declara no es un paso de cero.**
+  //
+  // `num()` convierte la ausencia en 0, así que un parte sin rechazos ni
+  // duplicados producía la cadena `4.386 → 4.386 → 4.386 · 100 %`: el embudo
+  // afirmaba conversión total cuando lo que pasa es que esos dos pasos no se
+  // anotaron. Visto en pantalla sobre «campo malo», donde los 152 partes traen
+  // asistentes y efectivas pero ninguno de los dos descuentos, y el aviso de
+  // debajo ya decía que el equipo declaró 2.791 menos de lo que implica la
+  // cadena. Se cuenta cuántos partes lo declaran para poder decirlo.
+  let conRechazos = 0;
+  let conDuplicados = 0;
   for (const f of filas) {
     asistentes += num(f.observed_students);
     rechazos += num(f.refusals);
     duplicados += num(f.duplicates);
     declaradas += num(f.effective_surveys);
+    if (f.refusals != null && f.refusals !== "" && Number.isFinite(Number(f.refusals))) conRechazos += 1;
+    if (f.duplicates != null && f.duplicates !== "" && Number.isFinite(Number(f.duplicates))) conDuplicados += 1;
   }
 
-  const vacio = { partes: filas.length, asistentes: 0, pasos: [], declaradas, descuadre: 0 };
+  const vacio = { partes: filas.length, asistentes: 0, pasos: [], pasosSinDeclarar: [], declaradas, descuadre: 0 };
   if (!asistentes) return vacio;
 
   const trasRechazos = asistentes - rechazos;
@@ -69,12 +90,27 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
       // paso funcionaba solo porque no tiene resta. Un rotulo pegado a un numero
       // que no es el suyo se lee mal aunque los dos numeros esten bien.
       { clave: "asistentes", etiqueta: "Estaban en el aula", quedan: asistentes, pierde: 0, pct: 100 },
-      { clave: "rechazos", etiqueta: "Sin los que no quisieron responder", quedan: trasRechazos, pierde: rechazos, pct: pct(trasRechazos) },
-      { clave: "duplicados", etiqueta: "Sin los que ya habían respondido", quedan: trasDuplicados, pierde: duplicados, pct: pct(trasDuplicados) },
+      // Los dos descuentos sólo entran si ALGÚN parte los declara. Sin eso el
+      // paso no dice «no hubo rechazos», dice «nadie lo anotó», y dibujarlo
+      // afirma lo primero.
+      ...(conRechazos
+        ? [{ clave: "rechazos", etiqueta: "Sin los que no quisieron responder", quedan: trasRechazos, pierde: rechazos, pct: pct(trasRechazos) }]
+        : []),
+      ...(conDuplicados
+        ? [{ clave: "duplicados", etiqueta: "Sin los que ya habían respondido", quedan: trasDuplicados, pierde: duplicados, pct: pct(trasDuplicados) }]
+        : []),
+    ],
+    /** Cuántos partes declaran cada descuento, para poder decir qué falta. */
+    pasosSinDeclarar: [
+      ...(conRechazos ? [] : ["los que no quisieron responder"]),
+      ...(conDuplicados ? [] : ["los que ya habían respondido"]),
     ],
     declaradas,
     // Lo que la cadena implica contra lo que el equipo escribió. No se corrige
     // ninguno de los dos: el cuadre es de ellos y esto sólo lo dice.
-    descuadre: declaradas - trasDuplicados,
+    // Sin los dos descuentos la cadena no implica nada, y restar sobre ella
+    // producia un descuadre de 2.791 que era el hueco de los pasos que faltan,
+    // no un desajuste del equipo.
+    descuadre: conRechazos && conDuplicados ? declaradas - trasDuplicados : 0,
   };
 }
