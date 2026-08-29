@@ -223,7 +223,13 @@ export function AulasSeccionCalidad({
           {/* Se queda: los controles los deriva el motor —el libro no trae hoja
               de validación—, así que no hay encabezado que copiar. */}
           <h3>Validación de cursos-horario</h3>
-          <span>{summary.label}</span>
+          {/* **De dónde sale esta lista, porque abajo hay otra.** Los dos
+              paneles de esta sección son control de calidad y el comentario que
+              los separa ya avisaba del riesgo —«que una fila parezca respaldar a
+              la otra»— pero eso vivía en el código y no en la pantalla. Aquí es
+              lo que la app deriva; abajo, lo que el equipo calcula en su Excel.
+              Son dos medidas distintas del mismo operativo. */}
+          <span>{summary.label} · lo que deriva la app</span>
         </div>
         {/* Avisos y no tabla: el detalle de un control es una frase entera y en
             una celda de tres columnas se lee mal. Es además el lenguaje que ya
@@ -258,7 +264,7 @@ export function AulasSeccionCalidad({
               hoja», se leia como el ancho de la HOJA, que son 39. */}
           <span>
             {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)}`
+              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)} · lo que calcula el equipo`
               : "Sin datos"}
           </span>
         </div>

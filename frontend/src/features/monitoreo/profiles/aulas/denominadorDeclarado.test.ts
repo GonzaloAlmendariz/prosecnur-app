@@ -34,3 +34,22 @@ describe("los porcentajes de respuestas abiertas declaran su base", () => {
     expect(cuerpo).toContain("dijeron algo distinto");
   });
 });
+
+describe("los dos paneles de calidad dicen de dónde sale cada uno", () => {
+  // C5. La sección de Validación apila DOS controles de calidad y el comentario
+  // que los separa ya avisaba del riesgo —«separarlos evita que una fila
+  // parezca respaldar a la otra»— pero eso vivía en el código. Arriba es lo que
+  // la app deriva; abajo, lo que el equipo calcula en su Excel. Son dos medidas
+  // distintas del mismo operativo, y quien las lee tiene que poder saberlo sin
+  // abrir el repositorio.
+  const calidad = fs.readFileSync(path.join(aqui, "AulasSeccionCalidad.tsx"), "utf8")
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("el panel del motor dice que lo deriva la app", () => {
+    expect(calidad).toContain("lo que deriva la app");
+  });
+
+  it("y el del libro, que lo calcula el equipo", () => {
+    expect(calidad).toContain("lo que calcula el equipo");
+  });
+});
