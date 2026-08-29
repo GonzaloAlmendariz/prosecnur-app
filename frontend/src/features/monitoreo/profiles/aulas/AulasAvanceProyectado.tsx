@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { avanceProyectado, celdasEvaluables, celdasQuePidenAccion, type CeldaAvance } from "./avanceProyectado";
-import { fmt } from "./kpisDeAulas";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Si cada celda de cuota **va a llegar**, y si el campo se comporta como el
@@ -110,9 +110,11 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                 <b
                   className="aulas-avance-prob"
                   data-nivel={f.probabilidad >= 0.9 ? "alta" : f.probabilidad >= 0.6 ? "media" : "baja"}
-                  title={"Supone que las respuestas de un aula son independientes entre sí. "
-                    + "El rendimiento varía de aula a aula, así que la incertidumbre real es mayor "
-                    + "y esta cifra es una cota superior de la confianza."}
+                  title={f.dispersion
+                    ? `Corregida por la dispersión medida en este estudio: las aulas ya aplicadas `
+                      + `varían ×${f.dispersion.toFixed(1)} más de lo que supondría la independencia `
+                      + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} aulas con campo.`
+                    : "Sin dispersión medida no se publica probabilidad."}
                 >
                   {Math.round(f.probabilidad * 100)}% de cerrar
                 </b>
@@ -121,7 +123,10 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                    diferencia importa. Pasa cuando alguna aula pendiente de la
                    celda no declara su tasa. */
                 <b className="aulas-avance-prob" data-nivel="sin-medir"
-                   title="Alguna de las aulas que faltan no declara su tasa de efectividad, así que no se puede calcular.">
+                   title={f.dispersionN < 20
+                     ? `Todavía no hay bastante campo para medir cuánto varía el rendimiento entre aulas `
+                       + `(${fmtCuenta(f.dispersionN)} aplicadas). Sin eso, un porcentaje fingiría una precisión que no hay.`
+                     : "Alguna de las aulas que faltan no declara su tasa de efectividad, así que no se puede calcular."}>
                   sin medir
                 </b>
               )}

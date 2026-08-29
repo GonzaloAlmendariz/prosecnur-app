@@ -36,6 +36,9 @@ export type CeldaAvance = {
    * cuando el motor no pudo medirla, que NO es lo mismo que cero.
    */
   prob_cierre?: unknown;
+  /** Sobredispersión medida del estudio, y sobre cuántas aulas. */
+  dispersion?: unknown;
+  dispersion_n?: unknown;
 };
 
 export type FilaAvance = {
@@ -60,6 +63,12 @@ export type FilaAvance = {
    * 0 %; se dice que no se pudo medir.
    */
   probabilidad: number | null;
+  /**
+   * Lo que corrige esa probabilidad y sobre cuántas aulas se midió. Va a la
+   * pantalla porque un «×4,4» sin su denominador no es comprobable.
+   */
+  dispersion: number | null;
+  dispersionN: number;
 };
 
 /**
@@ -143,6 +152,14 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
         if (c.prob_cierre === null || c.prob_cierre === undefined || c.prob_cierre === "") return null;
         const v = Number(c.prob_cierre);
         return Number.isFinite(v) && v >= 0 && v <= 1 ? v : null;
+      })(),
+      dispersion: (() => {
+        const v = Number(c.dispersion);
+        return Number.isFinite(v) && v >= 1 ? v : null;
+      })(),
+      dispersionN: (() => {
+        const v = Number(c.dispersion_n);
+        return Number.isFinite(v) && v >= 0 ? v : 0;
       })(),
     };
   });

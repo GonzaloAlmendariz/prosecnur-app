@@ -225,6 +225,54 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   stats::setNames(pmax(0, as.numeric(esperadas) * (1 - tasa)), names(esperadas))
 }
 
+#' Cuanto MAS varia el campo de lo que la binomial supone.
+#'
+#' La probabilidad de cierre suponia independencia entre las respuestas de un
+#' aula, y eso es optimista: el rendimiento varia de aula a aula. Medido sobre
+#' los tres simulacros de HSVG2026 a semana y media, con ~151 aulas aplicadas
+#' cada uno, la dispersion real es de **2,8 a 4,4** — o sea que la desviacion
+#' estandar salia entre 1,7 y 2,1 veces demasiado pequeña, y la probabilidad se
+#' iba a 0 o a 100 sin decir nada: 12 celdas a «0 %», 4 a «100 %» y solo dos en
+#' medio, de 30.
+#'
+#' Se estima **del propio estudio** y no de un `deff` traido de otro sitio: es
+#' el estadistico de Pearson de un quasi-Poisson sobre las aulas ya aplicadas.
+#'
+#' **Alrededor de la media CALIBRADA, no de la del diseño.** Es la correccion que
+#' decide: si el campo rinde un 56 % de lo previsto —el escenario «campo malo»—,
+#' el Pearson crudo da 6,09 y esta contando el SESGO como si fuera ruido. Netos
+#' del sesgo son 4,44. Sesgo y dispersion son dos cosas y la app ya publica la
+#' primera aparte, como `calibracion`.
+#'
+#' @param plan filas del plan ya normalizadas (con `respuestas_validas` y
+#'   `expected_valid`).
+#' @return lista con `phi` y `n`, o `phi = NA` si no hay aulas suficientes.
+#' @keywords internal
+.MAC_MINIMO_PARA_DISPERSION <- 20L
+
+.mac_dispersion_observada <- function(plan = list()) {
+  vacio <- list(phi = NA_real_, n = 0L)
+  if (!length(plan)) return(vacio)
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(.monitoreo_scalar(x, NA))[1])
+    if (is.finite(v)) v else NA_real_
+  }
+  y <- vapply(plan, function(f) if (is.list(f)) num(f$respuestas_validas) else NA_real_, numeric(1))
+  mu <- vapply(plan, function(f) if (is.list(f)) num(f$expected_valid) else NA_real_, numeric(1))
+  # Solo aulas con campo: `y > 0` excluye las que aun no se aplicaron, que no
+  # dicen nada de la dispersion y la hundirian hacia cero.
+  ok <- is.finite(y) & is.finite(mu) & mu > 0 & y > 0
+  n <- sum(ok)
+  if (n < .MAC_MINIMO_PARA_DISPERSION) return(list(phi = NA_real_, n = as.integer(n)))
+  y <- y[ok]; mu <- mu[ok]
+  r <- sum(y) / sum(mu)
+  if (!is.finite(r) || r <= 0) return(list(phi = NA_real_, n = as.integer(n)))
+  phi <- sum((y - r * mu)^2 / (r * mu)) / (n - 1)
+  # Por debajo de 1 no se encoge la varianza: menos dispersion que la binomial
+  # seria un artefacto del estimador, no una noticia buena.
+  list(phi = if (is.finite(phi)) max(1, round(phi, 2)) else NA_real_, n = as.integer(n))
+}
+
 #' Probabilidad de que una celda cierre su cuota.
 #'
 #' Normal sobre la suma de los aportes pendientes:
@@ -242,15 +290,21 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
 #' @param cuota meta de la celda.
 #' @param proyeccion logrado mas aporte esperado de lo pendiente.
 #' @param varianza suma de varianzas de los aportes pendientes.
+#' @param phi sobredispersion medida del estudio. **Sin ella no hay
+#'   probabilidad**: la binomial sola da una confianza que el campo no respalda,
+#'   y antes de que haya aulas aplicadas no hay con que medirla. Publicar un
+#'   porcentaje ahi seria fingir precision justo cuando menos se sabe.
 #' @return probabilidad en [0,1], o `NA`.
 #' @keywords internal
-.mac_probabilidad_de_cierre <- function(cuota, proyeccion, varianza) {
+.mac_probabilidad_de_cierre <- function(cuota, proyeccion, varianza, phi = NA_real_) {
   cuota <- suppressWarnings(as.numeric(cuota)[1])
   proyeccion <- suppressWarnings(as.numeric(proyeccion)[1])
   varianza <- suppressWarnings(as.numeric(varianza)[1])
   if (!is.finite(cuota) || cuota <= 0) return(NA_real_)
   if (!is.finite(proyeccion) || !is.finite(varianza) || varianza <= 0) return(NA_real_)
-  round(stats::pnorm((proyeccion - cuota) / sqrt(varianza)), 3)
+  phi <- suppressWarnings(as.numeric(phi)[1])
+  if (!is.finite(phi) || phi <= 0) return(NA_real_)
+  round(stats::pnorm((proyeccion - cuota) / sqrt(varianza * phi)), 3)
 }
 
 #' Avance por celda facultad x sexo, con las cuatro series.
@@ -273,6 +327,10 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
   # Varianza del aporte PENDIENTE, con la misma clave pero sin el sufijo
   # aplicada/pendiente: lo aplicado no aporta incertidumbre.
   accv <- new.env(parent = emptyenv())
+  # La sobredispersion del estudio: UNA vez para todas las celdas. Es una
+  # propiedad del campo, no de la celda, y estimarla por celda daria un phi
+  # sobre un puñado de aulas que se movería mas que el dato que corrige.
+  disp <- .mac_dispersion_observada(plan)
   origenes <- character(0)
   for (fila in plan) {
     if (!is.list(fila)) next
@@ -323,7 +381,11 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
       estado = estado,
       # La misma pregunta que `estado` —«va a llegar?»— con la incertidumbre
       # puesta. `NA` cuando no hay varianza medible, que es distinto de 0.
-      prob_cierre = .mac_probabilidad_de_cierre(cuota, proyeccion, varianza),
+      prob_cierre = .mac_probabilidad_de_cierre(cuota, proyeccion, varianza, disp$phi),
+      # Lo que corrige esa probabilidad, para poder declararlo en pantalla: sin
+      # decir sobre cuantas aulas se midio, un «x4,4» no es comprobable.
+      dispersion = disp$phi,
+      dispersion_n = disp$n,
       previsto_origen = origen,
       etiqueta = .mac_etiqueta_estado(estado, brecha),
       etiqueta_calibracion = .mac_etiqueta_calibracion(cal)
