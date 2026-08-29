@@ -57,6 +57,14 @@ monitoreo_aulas_reconciliacion_partes <- function(partes = list(), tolerancia = 
     if (is.null(d) || abs(d$diferencia) <= tolerancia) next
     out[[length(out) + 1L]] <- list(
       operational_code = as.character(p$operational_code %||% p$classroom_id %||% ""),
+      # A QUIEN PREGUNTARLE, que es lo que el aviso no tenia. ADR 0077, clausula
+      # 4: «toda alerta de calidad nombra a quien llamar y que preguntarle, o no
+      # se emite». El descuadre decia el aula y su aritmetica y ahi paraba, asi
+      # que quien lo leia tenia que ir a otra pantalla a averiguar quien estuvo
+      # en esa aula. Los alias son los mismos que `monitoreo_aulas_universitarias.R`
+      # ya acepta al componer el parte: un libro llenado en castellano trae
+      # `aplicador`, no `applied_by`.
+      aplicador = trimws(as.character(p$applied_by %||% p$aplicador %||% p$aplicadora %||% "")),
       intento = as.integer(p$intento %||% 1L),
       asistentes = suppressWarnings(as.numeric(p$observed_students %||% NA)),
       rechazos = suppressWarnings(as.numeric(p$refusals %||% NA)),
@@ -144,7 +152,7 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
 monitoreo_aulas_descuadre_texto <- function(hallazgo) {
   faltan <- hallazgo$diferencia < 0
   sprintf(
-    "%s: %s asistentes menos %s rechazos y %s duplicados dan %s, pero el parte declara %s efectivas (%s %s).",
+    "%s: %s asistentes menos %s rechazos y %s duplicados dan %s, pero el parte declara %s efectivas (%s %s).%s",
     hallazgo$operational_code,
     format(hallazgo$asistentes, trim = TRUE),
     format(hallazgo$rechazos %||% 0, trim = TRUE),
@@ -152,6 +160,10 @@ monitoreo_aulas_descuadre_texto <- function(hallazgo) {
     format(hallazgo$esperado, trim = TRUE),
     format(hallazgo$efectivas, trim = TRUE),
     if (faltan) "faltan" else "sobran",
-    format(abs(hallazgo$diferencia), trim = TRUE)
+    format(abs(hallazgo$diferencia), trim = TRUE),
+    # Sin aplicador NO se inventa un destinatario: un parte sin `applied_by` es
+    # comun al principio del campo, y un «—» sugeriria que hay alguien a quien
+    # llamar. El aviso sale igual, porque la aritmetica no cuadra igual.
+    if (nzchar(hallazgo$aplicador %||% "")) sprintf(" Lo aplico %s.", hallazgo$aplicador) else ""
   )
 }
