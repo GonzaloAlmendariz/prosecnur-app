@@ -1204,6 +1204,43 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   table(keys[mask])
 }
 
+#' La fecha de aplicacion de cada aula, SEGUN LA PLATAFORMA.
+#'
+#' Gonzalo, y ya lo habia dicho antes: «tienes que entender que lo que contamos
+#' son las efectivas en plataforma… tienes la informacion de cuando inicia la
+#' encuesta, cuando finaliza, si es efectiva o no. Lo que se registra en campo es
+#' una cosa, pero lo que a nosotros nos importa es lo que sale en la plataforma».
+#'
+#' **Toda la lectura temporal de Avance estaba muerta por leer la fuente
+#' equivocada.** Nueve modulos del perfil —serie de rendimiento, ritmo por
+#' facultad, pronostico de cierre, corte del estudio— toman la fecha de
+#' `applied_at`, que viene de la hoja de campo del libro. Medido sobre el
+#' simulacro de campo malo: `applied_at` vacio en los 152 partes y en las 1.424
+#' filas del plan, mientras las 1.595 respuestas traen `_submission_time`,
+#' `start` y `end` COMPLETOS, con `collectorID` enlazando 151 aulas y doce dias
+#' de campo (7 al 18 de septiembre). El dato estaba; se miraba donde no.
+#'
+#' Se toma la PRIMERA respuesta del aula y no la ultima: es cuando se aplico. La
+#' ultima puede ser un rezagado que contesto por la noche.
+#'
+#' @param response_classroom aula de cada respuesta, ya resuelta.
+#' @param responses las respuestas de la plataforma.
+#' @return vector nombrado aula -> fecha ISO, o vacio si no hay con que.
+#' @keywords internal
+.monitoreo_aulas_fecha_de_plataforma <- function(response_classroom, responses) {
+  if (!is.data.frame(responses) || !nrow(responses)) return(character(0))
+  aulas <- trimws(as.character(response_classroom %||% character(0)))
+  if (length(aulas) != nrow(responses)) return(character(0))
+  col <- .monitoreo_aulas_col(responses, c("_submission_time", "submission_time", "end", "start"))
+  if (!nzchar(col)) return(character(0))
+  crudo <- as.character(responses[[col]])
+  fecha <- substr(trimws(crudo), 1, 10)
+  ok <- nzchar(aulas) & grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", fecha)
+  if (!any(ok)) return(character(0))
+  # La primera respuesta de cada aula.
+  tapply(fecha[ok], aulas[ok], min, simplify = TRUE)
+}
+
 .monitoreo_aulas_course_status <- function(plan_df, responses, cfg, valid_response, response_classroom) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
   total_counts <- .monitoreo_aulas_named_counts(response_classroom)
@@ -1704,6 +1741,27 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # copias. Antes esta linea solo miraba `classroom_id`, asi que brechas,
   # estratos y reemplazos se calculaban sobre ceros.
   plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
+  # **La fecha de aplicacion sale de la PLATAFORMA, no del parte de campo.**
+  #
+  # Aqui es donde tiene que ir: `plan_df` es lo que alimenta la agenda y con
+  # ella la serie, el ritmo, el pronostico y el corte. Sin esto los cuatro salen
+  # vacios, porque `applied_at` solo se llena si el equipo anota la hoja de
+  # campo — y el registro de campo es una cosa y lo que cuenta es otra. Si el
+  # parte SI trae fecha, esa gana: es una declaracion explicita del aplicador.
+  .fecha_plataforma <- .monitoreo_aulas_fecha_de_plataforma(response_classroom, responses)
+  if (length(.fecha_plataforma)) {
+    .de_plataforma <- unname(.fecha_plataforma[as.character(plan_df$classroom_id)])
+    if ("collection_unit_id" %in% names(plan_df)) {
+      .por_unidad <- unname(.fecha_plataforma[as.character(plan_df$collection_unit_id)])
+      .falta <- is.na(.de_plataforma)
+      .de_plataforma[.falta] <- .por_unidad[.falta]
+    }
+    plan_df$fecha_plataforma <- ifelse(is.na(.de_plataforma), "", .de_plataforma)
+    .sin_parte <- !nzchar(trimws(as.character(plan_df$applied_at %||% "")))
+    plan_df$applied_at <- ifelse(.sin_parte & nzchar(plan_df$fecha_plataforma),
+                                 plan_df$fecha_plataforma,
+                                 as.character(plan_df$applied_at %||% ""))
+  }
   meta_plan <- suppressWarnings(as.numeric(plan_df$expected_valid))
   meta_plan[!is.finite(meta_plan)] <- 0
   # Personas enteras, igual que arriba y que `.mac_brecha()`.
