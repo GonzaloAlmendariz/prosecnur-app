@@ -56,6 +56,8 @@ no a ojo:
 | 30 | Cifras del «cuánto falta» con granos distintos | varias superficies | **reducido** — el 2.825/3.492 era un redondeo mío y ya cuadra en 2.824/3.491 (bitácora 49); queda **bloqueado** sólo si la lectura por curso-horario (2.923 de 3.572) debe convivir con la de celda |
 | 31 | Dos ceros que no se leían: leyenda de seis estados con tres segmentos, y un tramo de cobertura sin cifra | `AulasEstadoChart.tsx` · `AulasCoberturaChart.tsx` | **cerrado** — el conteo va en la leyenda y el cero va fuera de la barra, bitácora 47 |
 | 32 | «Aplicada 0» en Status contra «APLICADAS 48» en la banda | `estadoDeAplicacion.ts` | **cerrado** — el tramo `en_aplicacion` estaba rotulado con el participio de terminado; ahora «En aplicación», con contrato que lo vigila, bitácora 48 |
+| 33 | La tarjeta «Corte» daba `generated_at`, el reloj de la máquina | `kpisDeAulas.ts` | **cerrado** — usa `corteDelEstudio()`, que ya existía para esto; y arreglado un desfase de un día por parsear `YYYY-MM-DD` como UTC, bitácora 50 |
+| 34 | El corte sale del parte de campo (2/9) y no de la plataforma (5/9) | `corteDelEstudio.ts` | **bloqueado** — decisión tuya, hermano del 17 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
