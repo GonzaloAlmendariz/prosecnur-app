@@ -107,6 +107,21 @@ argumento. Antes de optimizar lo que el perfil señala, medir esa función sola.
 rango va de 3,2 a 3,9 s. Hay que comparar medianas de cinco corridas contra la
 línea base revertida con `git stash`.
 
+### 2026-08-29 · las capturas que faltaban
+
+| # | Qué hice | Qué encontré | Estado |
+|---|---|---|---|
+| 30 | Capturar `modelo/facultad` | «A dónde ir cada día» está bien resuelta. **Sin defecto**, y lo digo en vez de fabricar uno | **VISTO** |
+| 31 | Capturar `avance/efectividad` | La mejor superficie del perfil, y **ya trataba la incertidumbre con intervalos** (± 6, ± 8, ± 27 pts). Corregí mi propuesta de fundirla | **VISTO** |
+| 32 | Capturar `consultas/reemplazos` | «META 24.6» y «18 de 24.6». **Quinta vez el decimal** | **VISTO** `48e4a1a1` — recapturado: «META 25», «18 de 25» |
+
+**Por qué la quinta se escapó**, que es lo que importa: el mecanismo existía
+—`COLUMNAS_DE_CUENTA` redondea `expected_valid` al pintar, desde el 23 de
+agosto— pero esa tabla muestra una `meta` **derivada**, con otra clave y fuera
+de la lista, y además dentro de un texto donde ningún formateador de columna
+llega. Es el patrón de la lista cerrada: sólo protege lo que alguien recordó
+registrar.
+
 ## El patrón de los seis defectos
 
 Los seis que aparecieron al mirar tienen la misma forma: **algo ausente
