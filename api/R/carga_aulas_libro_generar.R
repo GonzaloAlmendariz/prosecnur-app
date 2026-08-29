@@ -462,7 +462,10 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     # El reparto por sexo esperado sale del plan POR AULA. Cual de los dos es
     # mujeres lo dice `sex_top_1`, no la posicion: en otro estudio el mayoritario
     # puede ser el otro.
-    top1 <- toupper(substr(.calg_txt(u$sex_top_1), 1, 1))
+    # NO la inicial: "Mujer" daba "M" y la ficha de campo salia con las
+    # mujeres esperadas en el renglon de hombres y al reves. Ver
+    # `.pulso_sexo_fm()`.
+    top1 <- .pulso_sexo_fm(u$sex_top_1)
     n1 <- .calg_num_txt(u$sex_top_1_n)
     n2 <- .calg_num_txt(u$sex_top_2_n)
     if (identical(top1, "F") || identical(top1, "M")) {

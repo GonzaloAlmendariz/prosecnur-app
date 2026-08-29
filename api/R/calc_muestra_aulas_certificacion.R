@@ -125,7 +125,9 @@
   for (lado in c("sex_top_1", "sex_top_2")) {
     col_n <- paste0(lado, "_n")
     if (!lado %in% names(filas) || !col_n %in% names(filas)) next
-    sexo <- toupper(as.character(filas[[lado]]))
+    # Comparar contra los literales "F"/"M" descartaba en silencio un padron
+    # etiquetado ("Mujer"), y la facultad salia con cero elegibles de ese sexo.
+    sexo <- .pulso_sexo_fm(filas[[lado]])
     n <- suppressWarnings(as.numeric(filas[[col_n]]))
     n[!is.finite(n)] <- 0
     for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx])

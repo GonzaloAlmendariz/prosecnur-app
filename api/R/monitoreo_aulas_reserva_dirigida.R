@@ -72,17 +72,6 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
   list(elegibles = del_sexo, netos = max(0, del_sexo - solape), solape = solape)
 }
 
-#' Candidatos del banco para cerrar una celda facultad x sexo.
-#'
-#' @param pool lista de aulas disponibles fuera del plan.
-#' @param facultad facultad de la celda.
-#' @param sexo `"F"` o `"M"`.
-#' @param tasa_aula función que da la tasa de efectividad de un aula por su
-#'   número de elegibles; por defecto, la del rendimiento por tramo.
-#' @param ya_medidos ids de alumnos ya medidos en otras aulas.
-#' @param tope cuántos candidatos devolver.
-#' @return lista ordenada por aporte esperado a ESA celda.
-#' @export
 #' Personas, no decimales.
 #'
 #' Gonzalo, viendo la pantalla: «a veces veo que te refieres a los alumnos como
@@ -106,6 +95,22 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
   ifelse(is.finite(v), floor(v + 1e-9), NA_real_)
 }
 
+# El bloque de arriba documenta el helper interno y el de aqui la funcion
+# publica. Estaban PEGADOS —`@export` y luego `#' Personas, no decimales`—
+# y roxygen los funde en uno solo que termina en el objeto siguiente: el
+# `@export` se lo llevaba `.mard_personas` y esta funcion se quedaba fuera
+# del NAMESPACE. En dev no se nota; en el binario, si.
+#' Candidatos del banco para cerrar una celda facultad x sexo.
+#'
+#' @param pool lista de aulas disponibles fuera del plan.
+#' @param facultad facultad de la celda.
+#' @param sexo `"F"` o `"M"`.
+#' @param tasa_aula función que da la tasa de efectividad de un aula por su
+#'   número de elegibles; por defecto, la del rendimiento por tramo.
+#' @param ya_medidos ids de alumnos ya medidos en otras aulas.
+#' @param tope cuántos candidatos devolver.
+#' @return lista ordenada por aporte esperado a ESA celda.
+#' @export
 monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo = "F",
                                              tasa_aula = NULL, ya_medidos = character(0),
                                              tope = 5L) {

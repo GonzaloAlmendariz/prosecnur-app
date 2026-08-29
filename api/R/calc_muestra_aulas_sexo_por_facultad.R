@@ -40,11 +40,10 @@ NULL
   if (!is.data.frame(df) || !nrow(df)) return(list(f = numeric(0), m = numeric(0)))
   cols <- c("sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n")
   if (!all(cols %in% names(df))) return(vacio)
-  clave <- function(x) {
-    k <- toupper(trimws(as.character(x)))
-    ifelse(substr(k, 1, 1) %in% c("F", "M"), substr(k, 1, 1), NA_character_)
-  }
-  k1 <- clave(df$sex_top_1); k2 <- clave(df$sex_top_2)
+  # `substr(k, 1, 1)`: "Mujer" daba "M" y toda la columna de mujeres se sumaba
+  # a los hombres. `sex_top_1` viene del padron tal cual, asi que sus etiquetas
+  # son las del cliente. Ver `.pulso_sexo_fm()`.
+  k1 <- .pulso_sexo_fm(df$sex_top_1); k2 <- .pulso_sexo_fm(df$sex_top_2)
   n1 <- suppressWarnings(as.numeric(df$sex_top_1_n))
   n2 <- suppressWarnings(as.numeric(df$sex_top_2_n))
   n1[!is.finite(n1)] <- 0; n2[!is.finite(n2)] <- 0
