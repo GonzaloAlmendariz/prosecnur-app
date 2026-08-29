@@ -129,10 +129,18 @@ test_that("no se escribe en comp$estratos, que es otra ruta", {
   expect_equal(out$componentes[[1]]$estratos[[1]]$tau, 0)
 })
 
-test_that("un estrato que ya declara su tau manda sobre el marco", {
+# CONTRATO CAMBIADO EL 2026-08-28. Antes decía «un estrato que ya declara su tau
+# manda sobre el marco» y fijaba que un campo lleno frenaba el refresco. Pero
+# esta función es el ÚNICO escritor de `e$tau` en el motor —el frontend sólo lo
+# lee—, así que ese «declarado» nunca era una declaración: era su propio valor
+# de la corrida anterior, y la τ quedaba congelada para siempre en el primer
+# marco con el que se calculó. Medido en HSVG2026: sus quince τ salían del marco
+# de HSVG26DEF (1 632 aulas) con el vigente en 1 392.
+test_that("un tau puesto por el motor NO frena el refresco: se recalcula", {
   frame <- list(tasas_efectividad_facultad = list(list(facultad = "DERECHO", tasa = 0.562)))
   out <- calc_muestra_aulas_resolver_tau_estratos(.tau_estudio(list(label = "DERECHO", tau = 0.9)), frame)
-  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0.9)
+  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0.562)
+  expect_identical(out$componentes[[1]]$marco$estratos[[1]]$tau_origen, "marco")
 })
 
 test_that("una facultad sin tasa publicada se queda en cero y cae al global", {
@@ -236,4 +244,74 @@ test_that("una curva declarada por el estudio manda sobre la derivada", {
   ))
   expect_length(out$efectividad$rendimiento_tramos, 2L)
   expect_equal(out$efectividad$rendimiento_tramos[[1L]]$tasa, 0.9)
+})
+
+# --- La curva sellada publica su respaldo ------------------------------------
+
+test_that("cada tramo sellado dice de cuantas aulas sale", {
+  tr <- calc_muestra_aulas_sello_tramos(.sello_cadenas_cinco(k = 14L))
+  expect_equal(vapply(tr, `[[`, 0L, "k"), rep(14L, 5L))
+  # Y el respaldo SOBREVIVE al lector: una curva sin procedencia es
+  # indistinguible de una constante escrita a mano.
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico", tau_base = 1, rendimiento_tramos = tr
+  )))
+  expect_equal(vapply(cfg$efectividad$rendimiento_tramos, `[[`, 0L, "k"), rep(14L, 5L))
+})
+
+test_that("un sello viejo sin k se lee igual y publica NA, no un cero", {
+  viejo <- list(list(hasta = 30, tasa = 0.7), list(hasta = NA_real_, tasa = 0.4))
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico", tau_base = 1, rendimiento_tramos = viejo
+  )))
+  ks <- vapply(cfg$efectividad$rendimiento_tramos, `[[`, 0L, "k")
+  expect_true(all(is.na(ks)))
+  expect_equal(vapply(cfg$efectividad$rendimiento_tramos, `[[`, 0, "tasa"), c(0.7, 0.4))
+})
+
+# --- La tau del estrato se REFRESCA, y declara de donde sale -----------------
+
+.taurf_estudio <- function(tau = 0, origen = NULL) {
+  e <- list(label = "DERECHO", tau = tau)
+  if (!is.null(origen)) e$tau_origen <- origen
+  list(componentes = list(list(marco = list(estratos = list(e)))))
+}
+.taurf_frame <- function(tasa = 0.61, hash = "hash-nuevo") list(
+  frame_hash = hash,
+  tasas_efectividad_facultad = list(list(facultad = "DERECHO", tasa = tasa))
+)
+.taurf_de <- function(est) est$componentes[[1]]$marco$estratos[[1]]
+
+test_that("una tau vieja del motor se refresca con el marco vigente", {
+  # Este era el defecto: la funcion es el UNICO escritor de e$tau, asi que un
+  # campo lleno no era una declaracion, era su propio valor anterior — y
+  # frenaba el refresco para siempre.
+  est <- calc_muestra_aulas_resolver_tau_estratos(.taurf_estudio(tau = 0.55), .taurf_frame(0.61))
+  e <- .taurf_de(est)
+  expect_equal(e$tau, 0.61)
+  expect_identical(e$tau_origen, "marco")
+  expect_identical(e$tau_frame_hash, "hash-nuevo")
+})
+
+test_that("una tau declarada a mano se respeta, y solo esa", {
+  est <- calc_muestra_aulas_resolver_tau_estratos(
+    .taurf_estudio(tau = 0.55, origen = "manual"), .taurf_frame(0.61)
+  )
+  expect_equal(.taurf_de(est)$tau, 0.55)
+  expect_identical(.taurf_de(est)$tau_origen, "manual")
+
+  # Y la marca del propio motor NO frena nada: es la que hay que refrescar.
+  est2 <- calc_muestra_aulas_resolver_tau_estratos(
+    .taurf_estudio(tau = 0.55, origen = "marco"), .taurf_frame(0.61)
+  )
+  expect_equal(.taurf_de(est2)$tau, 0.61)
+})
+
+test_that("una facultad sin tasa publicada se queda como estaba", {
+  est <- calc_muestra_aulas_resolver_tau_estratos(
+    .taurf_estudio(tau = 0.55),
+    list(frame_hash = "h", tasas_efectividad_facultad = list(list(facultad = "OTRA", tasa = 0.9)))
+  )
+  expect_equal(.taurf_de(est)$tau, 0.55)
+  expect_null(.taurf_de(est)$tau_origen)
 })
