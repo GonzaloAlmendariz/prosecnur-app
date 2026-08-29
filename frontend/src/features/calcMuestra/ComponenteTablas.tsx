@@ -34,7 +34,9 @@ export function EstratosTable({
   const subALabel = facultades ? "Mujeres" : "Sub A";
   const subBLabel = facultades ? "Hombres" : "Sub B";
   const avgLabel = "Promedio unidad";
-  const tauLabel = "Rendimiento";
+  // «Rendimiento» a secas nombraba tambien el rendimiento por tamano del
+  // aula y el rendimiento del embudo historico, que son otras dos cosas.
+  const tauLabel = "Tasa de la facultad";
   const addLabel = facultades ? "Agregar facultad" : "Agregar estrato";
   function update(index: number, patch: Partial<CalcMuestraEstrato>) {
     const next = estratos.map((e, i) => (i === index ? { ...e, ...patch } : e));

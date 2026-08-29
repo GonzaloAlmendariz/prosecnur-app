@@ -54,10 +54,10 @@ export function TasaEfectividadFacultadCard({
   return (
     <section
       className="cmv2-generales-card cmv2-tasafac"
-      aria-label="La tasa de efectividad de cada facultad"
+      aria-label="La tasa de cada facultad"
     >
       <header>
-        <strong>La tasa de efectividad de cada facultad</strong>
+        <strong>La tasa de cada facultad</strong>
         <span>
           el aula típica de cada facultad ({fraseEstadistico(estadistico)}, arriba) rinde ese
           tamaño × tasa efectivas; la cuota se divide entre ese rendimiento para llegar a los

@@ -51,13 +51,13 @@ export function SustentoDimensionamientoCard({
             </>
           ) : (
             <>
-              ; la tasa de efectividad <strong>es propia de cada facultad</strong>{" "}
+              ; la tasa <strong>es propia de cada facultad</strong>{" "}
               y se construye por estandarización, en dos partes: su{" "}
-              <strong>composición por tamaño</strong> (qué mezcla de aulas grandes
+              <strong>rendimiento por tamaño</strong> (qué mezcla de aulas grandes
               y chicas tiene en el marco vigente, donde las chicas rinden más)
-              por su <strong>razón observado/esperado</strong> del estudio
+              por el <strong>ajuste de la facultad</strong> del estudio
               anterior, que recoge lo que rindió por encima o por debajo de lo que
-              su tamaño predecía. La sección Cálculo, en «Tasa de efectividad por
+              su tamaño predecía. La sección Cálculo, en «La tasa de cada
               facultad», abre esa cuenta término a término
             </>
           )}

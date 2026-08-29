@@ -13,9 +13,15 @@ const src = (rel: string) =>
   readFileSync(resolve(__dirname, "..", rel), "utf8");
 
 describe("idioma de Cursos-horario requeridos", () => {
-  it("la tabla principal enseña la tasa de efectividad (la cadena no se rompe)", () => {
+  it("la tabla principal enseña la tasa de la facultad (la cadena no se rompe)", () => {
+    // El rotulo paso de «Tasa de efectividad» a «Tasa de la facultad» el
+    // 2026-08-28: aquel nombraba TRES cosas distintas en la app —el promedio de
+    // la facultad, el rendimiento por tamano del aula y la efectividad del
+    // embudo historico, que se mide sobre los presentes y no sobre el padron—.
     const tab = src("CalculoCursosHorarioFacultadTab.tsx");
-    expect(tab).toContain("<th>Tasa de efectividad</th>");
+    expect(tab).toContain("<th>Tasa de la facultad</th>");
+    // Y no vuelve al nombre ambiguo.
+    expect(tab).not.toContain("<th>Tasa de efectividad</th>");
     // MUDADO 2026-08-21: la cadena dejó de ser un párrafo dentro del tab y es
     // un diagrama propio (Gonzalo: «hay un cuadro de texto gigante llamado "la
     // cadena completa por facultad"; debería explicarse de forma más dinámica»).
