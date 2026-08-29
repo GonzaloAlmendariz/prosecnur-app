@@ -568,6 +568,21 @@ vigente en todas las que difieren, y una tasa más baja pide más aulas, no
 menos. El estudio está sobredimensionado por este motivo, así que no urge para
 el operativo en curso.
 
+**El mecanismo exacto está en una línea.**
+`calc_muestra_aulas_resolver_tau_estratos`, que es quien baja la tasa a los
+estratos, hace esto antes de escribir:
+
+```r
+declarado <- as.numeric(e$tau %||% 0)[1]
+if (is.finite(declarado) && declarado > 0) next
+```
+
+**Un estrato que ya declara su tasa manda.** La función es aditiva: rellena los
+que están en cero y no toca los que ya tienen valor. La primera vez que se
+selló, la tasa entró; las dos reconstrucciones posteriores del marco la
+encontraron declarada y la dejaron intacta. Ahí es donde vive el arreglo si el
+ADR propone uno.
+
 **Y hay un invariante que lo caza.** Con factor de facultad igual a 1,000, la
 tasa tiene que ser idéntica a la mezcla de tamaños del marco vigente, porque el
 segundo factor es la unidad. Nueve de las quince facultades cumplen esa
