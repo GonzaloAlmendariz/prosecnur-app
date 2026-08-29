@@ -25,7 +25,14 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
     return (
       // Vacío legítimo: sin partes no hay cadena que angostar, y decirlo evita
       // que un embudo en cero se lea como «se perdió todo».
-      <p className="mon-profile-muted">
+      //
+      // **Y declara lo mismo que la rama con datos**, igual que
+      // `AulasControlDelLibro`: sin `member`, el grupo `monitoring-aulas-consultas`
+      // se queda sin contenedor de datos declarado y el runner cae a los hijos
+      // directos del `section`, donde el encabezado del panel «Partes de campo»
+      // entra como si lo fuera → `capacity-drift` con 5 px. Medido en
+      // `consultas/parte` sobre el proyecto derivado.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay partes de campo con asistentes declarados.
       </p>
     );
@@ -34,7 +41,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
   const ultimo = e.pasos[e.pasos.length - 1];
 
   return (
-    <div className="aulas-embudo">
+    <div className="aulas-embudo" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
         <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{ultimo.pct}%</strong>
