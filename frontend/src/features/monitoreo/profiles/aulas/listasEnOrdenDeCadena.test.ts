@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,7 +93,11 @@ describe("las dos cifras del objetivo declaran su procedencia", () => {
     fs.readFileSync(path.join(aqui, archivo), "utf8");
 
   it("la barra de cumplimiento dice que suma metas por curso-horario", () => {
-    expect(fuente("AulasMonitoreoPage.tsx")).toContain("suma de metas por curso-horario");
+    // En el PERFIL, no en un archivo concreto: la barra vive hoy en
+    // `AulasPestanaResumen.tsx` porque el page-file se está partiendo en una
+    // pestaña por fichero. Lo que este test protege es que la unidad esté
+    // declarada, no dónde.
+    expect(fuenteDelPerfilDeAulas()).toContain("suma de metas por curso-horario");
   });
 
   it("y la tarjeta de cuota dice que sus celdas son sexo × facultad", () => {
