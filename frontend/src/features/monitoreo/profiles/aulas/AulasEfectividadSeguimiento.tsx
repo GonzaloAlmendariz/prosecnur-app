@@ -160,6 +160,39 @@ const pct = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 /**
+ * Los alumnos que faltan EN TOTAL, con la misma regla cauta que cada fila.
+ *
+ * La cabecera decía «528 alumnos en riesgo» y la columna «Alumnos» de esas doce
+ * facultades sumaba **535**. Ninguno de los dos estaba mal: el motor suma los
+ * déficits crudos (`round(sum(...), 1)` en
+ * `monitoreo_aulas_efectividad_seguimiento.R:562`) y cada fila los redondea
+ * HACIA ARRIBA en magnitud, a propósito —«decir que faltan 22 cuando faltan
+ * 22,4 es prometer que se cierra con menos de lo que hace falta»—. Doce filas
+ * redondeando hacia arriba explican los siete de diferencia.
+ *
+ * Pero quien suma la columna encuentra el hueco y desconfía de las dos cifras.
+ * Y el argumento que justifica el redondeo por fila vale igual para el total:
+ * como cada facultad hay que cubrirla por separado (ADR 0079, que es lo que ya
+ * hace el motor al sumar sólo las que están en riesgo), lo que de verdad hace
+ * falta es la suma de los techos, no el techo de la suma.
+ *
+ * Se calcula sobre las MISMAS filas que se pintan: no es una segunda lectura
+ * del dato, es la única, con su regla de presentación aplicada una sola vez.
+ */
+export function alumnosQueFaltanEnTotal(
+  filas: ReadonlyArray<{ riesgo?: string | null; margen_restante?: number | null }>,
+): number {
+  let total = 0;
+  for (const f of filas) {
+    if (f.riesgo !== "riesgo" && f.riesgo !== "riesgo_firme") continue;
+    const v = f.margen_restante;
+    if (v == null || !Number.isFinite(v) || v >= 0) continue;
+    total += Math.ceil(-v);
+  }
+  return total;
+}
+
+/**
  * El veredicto en PALABRAS, además de en color.
  *
  * El estado se transmitía sólo por el borde de color de la fila. Quien no
@@ -297,7 +330,7 @@ export function AulasEfectividadSeguimiento({
         </span>
         {t.facultades_en_riesgo > 0 ? (
           <span>
-            <strong>{fmt(Math.round(t.alumnos_en_riesgo))}</strong> alumnos en riesgo en{" "}
+            <strong>{fmt(alumnosQueFaltanEnTotal(filas))}</strong> alumnos en riesgo en{" "}
             {fmt(t.facultades_en_riesgo)} {t.facultades_en_riesgo === 1 ? "facultad" : "facultades"}.
           </span>
         ) : (
