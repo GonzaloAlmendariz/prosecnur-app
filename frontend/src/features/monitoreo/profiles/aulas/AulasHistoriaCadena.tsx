@@ -191,12 +191,24 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           <section
             key={grupo.desenlace}
             className="aulas-cadenas-grupo"
-            // Repetida por desenlace: sus miembros son variantes del MISMO rol
-            // y comparten marco, así que el contrato es `equal` y no
-            // `intrinsic`. Sin declararlo, esta superficie era invisible para
-            // el gate: ni conforme ni no conforme, sencillamente no medida.
+            // Repetida por desenlace. Declararla fue lo correcto —sin grupo
+            // esta superficie era invisible para el gate: ni conforme ni no
+            // conforme, sencillamente no medida— pero el contrato estaba
+            // equivocado, y el propio archivo lo desmiente doce líneas más
+            // abajo: «las abiertas van en tabla y las cerradas narradas: no es
+            // una inconsistencia, es que son dos preguntas distintas». Dos
+            // presentaciones distintas y dos volúmenes distintos son secciones
+            // INDEPENDIENTES, o sea `intrinsic`.
+            //
+            // Y `equal` no significaba lo que el comentario anterior creía. Un
+            // `data-qa-geometry-group` no declara «estos elementos hermanos
+            // miden igual»: declara «este elemento es un grupo, y sus miembros
+            // son sus hijos». Con `equal` el gate exigía que el `<h4>` del
+            // título midiera lo mismo que el contenido, y reportaba
+            // `equal-frame-drift · memberHeights: [13, 852]`. Medido el
+            // 2026-08-29 en `consultas/reemplazos`.
             data-qa-geometry-group="monitoring-aulas-cadenas"
-            data-qa-geometry-contract="equal"
+            data-qa-geometry-contract="intrinsic"
           >
             <h4>
               {grupo.titulo}
