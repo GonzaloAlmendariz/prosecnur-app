@@ -50,6 +50,10 @@ export function AulasSeccionFuentes({
         {embudo.length ? (
           <section
             className="mon-profile-panel aulas-embudo-panel"
+            // El grupo FALTABA, y sin él la declaración de contrato era letra
+            // muerta: `ui-quick-check` recorre `[data-qa-geometry-group]` y a
+            // esta sección no la veía. Tres del perfil estaban así.
+            data-qa-geometry-group="monitoring-aulas-embudo"
             data-qa-geometry-contract="intrinsic"
           >
             <div className="mon-profile-panel-head">
@@ -82,6 +86,7 @@ export function AulasSeccionFuentes({
           // wrapper de datos hace que el padding del encabezado se lea como
           // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
           // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
+        data-qa-geometry-group="monitoring-aulas-fuentes"
         data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
@@ -111,7 +116,11 @@ export function AulasSeccionFuentes({
             una es parte de eso. Hasta ahora no se podía declarar en aulas —los
             perfiles hermanos sí— y el motor sólo admitía una condición. */}
         {criterioDeEfectiva ? (
-          <section className="mon-profile-panel" data-qa-geometry-contract="intrinsic">
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-criterio-efectiva"
+            data-qa-geometry-contract="intrinsic"
+          >
             <div className="mon-profile-panel-head">
               <h3>Qué cuenta como encuesta efectiva</h3>
               <span className="mon-profile-panel-hint">

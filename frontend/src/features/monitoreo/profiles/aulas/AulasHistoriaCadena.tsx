@@ -188,7 +188,16 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         if (!propias.length) return null;
         const maxEslabones = propias.reduce((max, h) => Math.max(max, h.eslabones.length), 1);
         return (
-          <section key={grupo.desenlace} className="aulas-cadenas-grupo">
+          <section
+            key={grupo.desenlace}
+            className="aulas-cadenas-grupo"
+            // Repetida por desenlace: sus miembros son variantes del MISMO rol
+            // y comparten marco, así que el contrato es `equal` y no
+            // `intrinsic`. Sin declararlo, esta superficie era invisible para
+            // el gate: ni conforme ni no conforme, sencillamente no medida.
+            data-qa-geometry-group="monitoring-aulas-cadenas"
+            data-qa-geometry-contract="equal"
+          >
             <h4>
               {grupo.titulo}
               <span>{propias.length}</span>
