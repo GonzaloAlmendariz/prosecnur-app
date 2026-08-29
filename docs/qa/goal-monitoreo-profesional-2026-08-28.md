@@ -529,6 +529,38 @@ condición de verificación.**
   otro y el ADR 0082 lo sostiene; en Validación son dos fuentes distintas y
   declarar un orden habría sido peor que no declarar nada.
 
+#### G2, 2026-08-29 — las tablas del perfil, medidas con filas reales
+
+Ocho tablas recorridas con el plan cargado, comprobando dos cosas: que las
+columnas de cifras lleven dígitos tabulares —sin ellos los números no alinean y
+una columna se lee mal— y que ninguna repita el contenido de otra fila a fila.
+
+| Superficie | Tabla | Sin tabular | Redundancia |
+|---|---|---|---|
+| `modelo/contacto` | 174 × 5 | 0 | 0 |
+| `modelo/carga` | 174 × 5 | 0 | 0 |
+| `modelo/agenda` | 174 × 12 | 0 | 0 |
+| `avance/cuotas` | 30 × 4 | 0 | 0 |
+| `avance/estratos` | 73 × 3 | 0 | 0 |
+| `consultas/brechas` | 174 × 7 | 0 | 0 |
+| `consultas/reemplazos` | 174 × 6 y 400 × 8 | 0 | 0 |
+
+**Limpio.** El patrón que el registro de acreditación midió en Consultas —435
+cadenas redundantes, tres columnas repitiendo debajo lo que ya decían arriba— no
+aparece en aulas.
+
+**Dos huecos de cobertura, declarados y no inferidos:** `avance/resumen` no se
+midió porque su marca de readiness no llegó a limpiarse en 22 s, y
+`calidad/base` no tiene tabla porque el proyecto no tiene libro importado. **No
+son ceros: son no-medidos.**
+
+**Y el detector dio un falso positivo antes de servir.** La primera corrida
+señaló «TELÉFONO ≡ GESTIONES en 40 de 40 filas» en Contacto. Mirado en pantalla,
+las dos columnas mostraban «—»: no hay teléfonos ni gestiones en este proyecto,
+y comparar dos marcadores de vacío da igualdad perfecta. El detector ahora los
+ignora. **Es el tercer detector de este loop que acusa en falso antes de
+afinarse**, y los tres se cazaron mirando lo que señalaban en vez de contarlo.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
