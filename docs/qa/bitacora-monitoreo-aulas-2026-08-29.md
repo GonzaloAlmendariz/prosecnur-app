@@ -552,3 +552,33 @@ pero **engañosas** si ese número no es del universo del gráfico. Lo correcto 
 sería declararlo fuera de escala, sino no ponerlo ahí. **No se toca hasta
 medirlo**: de dónde sale `cuotasVisibles[].meta` y contra qué denominador, y si
 `se.conseguidas` cuenta lo mismo que la serie verde.
+
+---
+
+## 43 · Dos universos en una leyenda (ítem 26), y el residuo que dejé al arreglarlo
+
+Medido, y la aritmética lo cierra sin margen: `cuotasVisibles`
+(`AulasSerieDeRendimiento.tsx:379`) tiene dos ramas. Con una facultad elegida
+salen de ella; en la vista «Todas las facultades» —que es la de la captura— se
+agregan TODAS, y **1.730 + 1.761 = 3.491**, exactamente la suma de las quince
+cuotas por facultad que ya estaba medida. El resto del gráfico habla de las aulas
+visitadas: eje 0–200, serie en 54, meta 67.
+
+O sea que no era que «no cupieran»: **son de otro universo**. El comentario del
+código ya lo decía —«las de la facultad, o las del estudio»— y lo que faltaba era
+que el lector pudiera saber cuál. Los chips dicen ahora «Hombres 348/1.730 **del
+estudio**» y la declaración dice el motivo real: «las cuotas por sexo (1.730 y
+1.761) son las del estudio entero: no se dibujan sobre un eje de aulas
+visitadas». Una vez, no una por sexo.
+
+**Y el residuo, que es la parte que vale.** Al dejar de dibujar esas dos
+horizontales, el pie del gráfico —«las horizontales son la meta **y las cuotas de
+cada sexo**»— pasó a mandar a buscar dos líneas que ya no están. Es exactamente
+el defecto que este panel lleva todo el día corrigiendo, **introducido por mí en
+el arreglo anterior**, y sólo se vio en la captura: typecheck y 2.070 tests
+estaban en verde con el pie mintiendo. Ahora dice «la horizontal es la meta»
+cuando no hay cuotas dibujadas.
+
+La regla que sale de aquí: **un arreglo que deja de pintar algo tiene que revisar
+todo lo que nombraba a ese algo.** El pie, la leyenda y el `aria-label` son
+consumidores del mismo contenido y ninguno se entera solo.
