@@ -50,6 +50,8 @@ no a ojo:
 | 24 | ¿Qué número preside el panel del cliente: el objetivo (2.500) o el reparto (3.491)? | `metas_diseno.R:117` + `AulasAvanceParaCliente.tsx` | **bloqueado** — decisión tuya, bitácora 40 |
 | 25 | Trazas de la serie pintadas sobre la tabla de «A quién hay que agendar» | `AulasSerieDeRendimiento.tsx` | **cerrado** — medido en el DOM (2.628 px fuera), se dibuja lo que cabe y se declara lo que no, bitácora 41 |
 | 26 | La leyenda del acumulado mezcla dos universos: meta 67 y «Hombres 348/1.730» | `AulasSerieDeRendimiento.tsx` | **cerrado** — son las del estudio (1.730+1.761 = 3.491); los chips lo dicen y el pie dejó de prometer líneas que no están, bitácora 43 |
+| 27 | Efectividad: «suponía que respondería el — de los alumnos» y una leyenda que promete una vara ausente | `AulasEfectividadSeguimiento.tsx` | **cerrado** — el guard tenía que ser `isFinite`, no `!= null`, bitácora 44 |
+| 28 | «528 alumnos en riesgo» contra una columna que suma 535 | `AulasEfectividadSeguimiento.tsx` | **nuevo** — leído de la captura, sin tocar hasta medirlo |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

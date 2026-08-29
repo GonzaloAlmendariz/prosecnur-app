@@ -582,3 +582,48 @@ cuando no hay cuotas dibujadas.
 La regla que sale de aquí: **un arreglo que deja de pintar algo tiene que revisar
 todo lo que nombraba a ese algo.** El pie, la leyenda y el `aria-label` son
 consumidores del mismo contenido y ninguno se entera solo.
+
+---
+
+## 44 · Efectividad: una frase con un guion dentro, y tres intentos para arreglarla
+
+Primera captura de `avance/efectividad` en todo el loop. El panel «El campo
+contra la tasa que dimensionó la muestra» abría con:
+
+> En las 48 aulas ya aplicadas, la **tasa de la facultad** suponía que
+> respondería el **—** de los alumnos.
+
+Un guion **dentro de una oración**. El motivo estaba dicho dos líneas más abajo
+—«el estudio importado no publica metas del diseño»— pero eso no arregla la
+frase: un vacío se declara, no se incrusta. Y la leyenda anunciaba «▎dónde se
+esperaba llegar» cuando esa vara no se dibuja en ninguna de las quince barras.
+
+**Costó tres intentos y los tres errores son trampas ya documentadas.**
+
+1. Condicioné la frase con `hayPrevisto`, un flag que calculé sobre las FILAS,
+   cuando la frase habla del AGREGADO. La captura salió idéntica. Una palabra
+   para dos cosas, dentro de mi propio arreglo.
+2. Lo cambié a `t.tau_previsto != null` y la captura **volvió a salir idéntica**:
+   el valor no es `null`, es `NaN`, y `NaN != null` es `true`. El `pct` local de
+   ese archivo (línea ~159) escribe «—» con `!Number.isFinite(n)`, así que el
+   guard tenía que preguntar lo mismo que el texto. Es el `Number(null) === 0`
+   de siempre con otro disfraz.
+3. Y de paso: buscaba el `pct` importado de `formatoComun`, que devuelve «S/D»
+   —no «—»—. Estuve dos vueltas mirando la función equivocada. **El formateador
+   que escribe un texto se localiza por el TEXTO que produce**, no por su
+   nombre.
+
+Vale también para la vara: se pintaba con `left: NaN%`, que el navegador
+descarta, así que la leyenda prometía una marca invisible aunque la fila
+«existiera». También pasa a `Number.isFinite`.
+
+Y un cuarto, mío y del método: escribí `pnpm … tsc | head -3; echo "exit=$?"` y
+el `$?` era el del `head`. Dijo `exit=0` con el typecheck **rojo** —lo delataba
+la línea de error impresa justo encima—. Es la trampa del exit code en un pipe,
+ya anotada, y aquí casi me hace commitear con TS roto.
+
+**Pendiente de medir (ítem 27):** la cabecera dice «528 alumnos en riesgo en 12
+facultades» y la columna «Alumnos» de esas doce filas suma **535** leyendo la
+captura (157+98+60+19+17+13+3+1+59+58+48+2). Puede ser redondeo por fila contra
+un total sin redondear, o puede ser otro denominador. **No se toca hasta
+medirlo**, que hoy tres diagnósticos deducidos salieron falsos.
