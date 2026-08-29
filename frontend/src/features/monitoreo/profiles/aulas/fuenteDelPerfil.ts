@@ -48,3 +48,24 @@ export function fuenteDelPageDeAulas(): string {
     .map((f) => fs.readFileSync(path.join(aqui, f), "utf8"))
     .join("\n");
 }
+
+/**
+ * TODAS las hojas de estilo del perfil, concatenadas.
+ *
+ * `aulasMonitoreo.css` se está partiendo (N1 del GOAL 2026-08-28) y los
+ * contratos que enumeraban las hojas POR NOMBRE dejan de ver lo que se muda:
+ * `cssSinDuenoTests` listaba cuatro ficheros y el primer corte —la cadena de
+ * reemplazos— habría quedado fuera de su vigilancia sin que nada fallara. Es la
+ * misma lista cerrada que ya mordió en el lado TS y que allí resolvió
+ * `fuenteDelPerfilDeAulas()`.
+ *
+ * Un test que compruebe una regla de UNA hoja concreta sigue leyéndola directo.
+ * Ésta es para los contratos que hablan del perfil entero.
+ */
+export function cssDelPerfilDeAulas(): string {
+  return fs.readdirSync(aqui)
+    .filter((f) => f.endsWith(".css"))
+    .sort()
+    .map((f) => fs.readFileSync(path.join(aqui, f), "utf8"))
+    .join("\n");
+}

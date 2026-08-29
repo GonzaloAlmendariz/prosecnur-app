@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cssDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 /**
  * Ningún tamaño de letra del perfil baja del suelo que el propio perfil declara.
@@ -18,7 +19,9 @@ import { describe, expect, it } from "vitest";
  * compara contra lo declarado y nada más.
  */
 const aqui = path.dirname(fileURLToPath(import.meta.url));
-const css = fs.readFileSync(path.join(aqui, "aulasMonitoreo.css"), "utf8");
+// Todas las hojas del perfil: la madre se está partiendo y un literal fuera de
+// escala que se mude no puede dejar de vigilarse por cambiar de fichero.
+const css = cssDelPerfilDeAulas();
 
 describe("la escala de radios del perfil de aulas", () => {
   it("ningún radio literal cae entre dos peldaños de la escala", () => {
