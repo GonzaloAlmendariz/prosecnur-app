@@ -1126,3 +1126,93 @@ antes de citar estas cifras absolutas en ningún lado.
    sd 0,0201; separar candidatas por milésimas es decidir por ruido. Tratar como
    empatadas las que caen dentro de una centésima y desempatar por solape — que
    es exactamente lo que Gonzalo hizo a mano el 27-08.
+
+---
+
+# RESULTADO FINAL — las quince facultades con el simulador estratificado
+
+Corrida pareada, 1 000 corridas escaladas, `cube_balanceado`, semilla y config
+del estudio, **con la estratificación del diseño** (`faculty · sex_top_1 ·
+size_group`) y con el brazo de la tasa del aula corregido (`netos × tasa
+ponderada de lo sorteado`, no `Σ eligible_n_neto × tasa`, que sobrecontaba entre
+2 % y 11 %).
+
+Números con la **tasa limpia de traslape**, que es la convención correcta:
+
+| Facultad | fórmula | asignadas hoy | **tasa de la facultad** | **tasa del aula** | P(cumple) con las asignadas |
+|---|---:|---:|---:|---:|---|
+| ARQUITECTURA Y URBANISMO | 8 | 8 | 7 | 7 | 1,000 / 1,000 |
+| ARTE Y DISEÑO | 15 | 15 | **10** | **11** | 1,000 / 1,000 |
+| ARTES ESCÉNICAS | 8 | 8 | 5 | 5 | 1,000 / 1,000 |
+| CIENCIAS CONTABLES | 2 | 3 | 2 | 2 | 1,000 / 1,000 |
+| CIENCIAS E INGENIERIA | 37 | 37 | 30 | 30 | 1,000 / 1,000 |
+| CIENCIAS SOCIALES | 12 | 12 | 11 | 11 | 0,983 / 0,981 |
+| CIENCIAS Y ARTES DE LA COMUN. | 7 | 7 | 6 | 6 | 0,990 / 0,977 |
+| DERECHO | 16 | 19 | 18 | 18 | **0,000 / 0,000** (con 16) |
+| EDUCACION | 3 | 3 | 2 | 2 | 1,000 / 1,000 |
+| **ESTUDIOS GENERALES CIENCIAS** | 22 | **22** | **23** | **23** | **0,450 / 0,431** |
+| **ESTUDIOS GENERALES LETRAS** | 18 | **20** | **21** | **21** | **0,000 / 0,000** (con 18) |
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 3 | 3 | 3 | 3 | 1,000 / 1,000 |
+| GESTIÓN Y ALTA DIRECCIÓN | 6 | 7 | 7 | 7 | 0,174 / 0,229 (con 6) |
+| LETRAS Y CIENCIAS HUMANAS | 3 | 4 | 3 | 3 | 0,997 / 0,997 |
+| PSICOLOGÍA | 5 | 6 | 5 | 5 | 0,601 / 0,550 (con 5) |
+| **TOTAL** | **165** | **174** | **153** | **154** | |
+
+## Conclusión 1 — entre varas, no hay diferencia
+
+**Catorce de quince facultades dan el mismo número.** La única que difiere es
+Arte y Diseño, por una aula. El total es 153 contra 154: **una aula en 174**, muy
+por debajo del ruido de la propia simulación (Derecho se re-certifica en 18 o 19
+según la corrida).
+
+Aplicando la regla del diseño `max(fórmula, certeza)`, **las dos varas dan
+exactamente 172**.
+
+Esto **cierra la pregunta del encargo original y la contesta al revés de las dos
+respuestas que di antes**:
+
+| medición | resultado | por qué estaba mal |
+|---|---|---|
+| simulador colapsado | la tasa del aula sube 174 → 175 | el simulador no estratificaba como el diseño |
+| estratificado, brazo con bug | la tasa del aula ahorra 9 aulas | `eligible_n_neto` sobrecontaba 2–11 % |
+| **estratificado, corregido** | **empate: 153 contra 154** | — |
+
+El control que lo garantiza: **Letras y CC.HH. da 28,2 y 28,2, P = 0,997 y
+0,997, idénticas hasta el último decimal**, que es lo que tiene que pasar cuando
+todas las aulas caben en un tramo y las dos tasas son el mismo número.
+
+**Entonces el argumento para la tasa del aula no puede ser que dimensione mejor
+—no lo hace— sino el estructural: responde la pregunta del aula, que la tasa de
+la facultad no responde.** Para hojas de ruta, dotación de encuestadores y
+Monitoreo hace falta el número del aula; para dimensionar, da igual cuál se use.
+
+## Conclusión 2 — el hallazgo real es la estratificación, y deja dos facultades cortas
+
+Lo que sí mueve el diseño, y con cualquier vara:
+
+| Facultad | asignadas | necesarias | |
+|---|---:|---:|---|
+| ESTUDIOS GENERALES CIENCIAS | 22 | **23** | falta 1 |
+| ESTUDIOS GENERALES LETRAS | 20 | **21** | falta 1 |
+| CIENCIAS CONTABLES | 3 | 2 | sobra 1 |
+| DERECHO | 19 | 18 | sobra 1 |
+| LETRAS Y CIENCIAS HUMANAS | 4 | 3 | sobra 1 |
+| PSICOLOGÍA | 6 | 5 | sobra 1 |
+
+Con la regla del diseño el total pasa de **174 a 172**, pero **la composición
+cambia**: cuatro facultades sobran una y las dos de Estudios Generales faltan
+una. Y como la cuota no se compensa entre facultades (ADR 0079), el sobrante de
+Derecho no cubre el faltante de EE.GG. Letras.
+
+Las dos que faltan son, además, **las de τ más bajo del estudio** (0,409 y
+0,419) y las de aulas más grandes. No es casualidad: son las que el simulador
+colapsado más favorecía, porque las dejaba concentrarse en aulas grandes.
+
+## Qué queda por hacer, en orden
+
+1. **Estratificar la certeza** como el diseño. Es la reparación real y la única
+   que cambia números.
+2. **La calibración** (`rendimiento_tramos` sin escritor, −6,4 % de optimismo).
+3. **La tasa**: para dimensionar da igual; cámbiese por coherencia con las otras
+   dos superficies, no por precisión. El eje de sexo (`certificacion.R`) sigue
+   siendo el cambio más barato y el único que hoy aplana sin defensa.
