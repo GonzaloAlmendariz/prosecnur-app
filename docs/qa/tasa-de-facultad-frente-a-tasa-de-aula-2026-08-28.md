@@ -575,3 +575,85 @@ los tramos pero elimina las inversiones.
 composición por sexo covaría con el tamaño en siete de doce facultades, con
 signo variable. Cambiarlo es de una línea, pero conviene hacerlo junto con la
 curva continua y no antes.
+
+## 16. El veredicto: ¿una es mejor que la otra?
+
+Con toda la evidencia sobre la mesa, y sin inclinar la balanza.
+
+**No. Ninguna es mejor que la otra, y no por empate accidental sino porque
+miden a distinto grano.** La pregunta solo tiene respuesta si primero se dice
+mejor para qué.
+
+### Lo que dice cada prueba
+
+| Prueba | Resultado | Favorece a |
+|---|---|---|
+| Relación entre ambas | Una es el promedio ponderado de la otra | ninguna |
+| Predicción, validación cruzada | p = 0,093 contra la tasa de facultad, Wilcoxon 0,044 | inclina al aula, no concluye |
+| Predicción contra la tasa global única | p = 0,003 | al aula, contra un rival que nadie propone |
+| Dimensionamiento por certificación | 14 de 15 facultades igual, total 172 con ambas | ninguna |
+| Barrido de 50 sorteos, ganador | la misma semilla con las dos varas | ninguna |
+| Barrido, candidatas que cierran | 30 con facultad, 38 con aula | al aula |
+| Cobertura de las 30 celdas de sexo | 0 por debajo de 1 con las dos | ninguna |
+| Dirección del sesgo | 7 facultades a cada lado, neto −0,21 % | ninguna |
+| Sobre las 1.392 aulas del marco | 906 contra 467, neto de 19 encuestas | ninguna en agregado |
+
+Siete pruebas no discriminan. Dos inclinan hacia la tasa del aula y ninguna
+hacia la de facultad. Pero de esas dos, una compara contra un rival que nadie
+propone y la otra es borderline.
+
+### Dónde sí hay una diferencia real
+
+No está en ninguna de esas pruebas. Está en qué pregunta puede contestar cada
+una.
+
+**Sobre un aula concreta, la tasa de facultad no responde.** Le asigna a un
+aula de 14 elegibles el mismo rendimiento por persona que a una de 53 de la
+misma facultad. Eso no es imprecisión: es que la pregunta «cuánto rinde esta
+aula» no está en su definición. La del aula sí la contesta.
+
+**Sobre un agregado, las dos son equivalentes por construcción**, y cuando
+difieren es porque el conjunto está sesgado en tamaños. Si reproduce la mezcla
+del marco, dan idéntico resultado.
+
+Ese sería el argumento decisivo, si no fuera por lo que sigue.
+
+### El defecto de la que sí responde
+
+La tasa del aula no es monótona. Con los cinco escalones vigentes, un aula de
+26 elegibles espera un 16 % menos que una de 25, y **190 de las 1.392 aulas del
+marco están a un elegible de un borde**. Hay 3.796 pares de aulas de la misma
+facultad donde la más grande espera menos que la más chica.
+
+La tasa de facultad no tiene ese problema, precisamente porque no distingue.
+
+Y ninguna de las dos modela la dispersión de un aula alrededor de su tramo, así
+que la del aula parece más precisa de lo que la evidencia respalda.
+
+### El veredicto
+
+**Con la implementación vigente, ninguna es mejor.** La del aula gana en
+especificidad y pierde en coherencia interna; la de facultad gana en
+estabilidad y pierde por no responder la pregunta del aula. Ninguna de las dos
+ventajas se puede cuantificar, porque las pruebas de precisión no discriminan.
+
+Una precisión que evita un error de lectura frecuente: que 906 aulas favorezcan
+a una vara y 467 a la otra **no significa que una sea más optimista**. Significa
+que las aulas del marco son, en su mayoría, más grandes que el promedio de su
+facultad. Es una propiedad de la distribución, no de las tasas.
+
+### Qué cambiaría el veredicto
+
+Una sola cosa, y está medida: **si los cinco escalones se reemplazan por una
+curva continua, el defecto de la tasa del aula desaparece** y con él la única
+objeción sustantiva. La curva empata en precisión con los tramos, así que no
+gana por ahí, pero es monótona y elimina las inversiones de raíz.
+
+Con esa corrección la respuesta pasaría a ser: equivalentes para agregados, y
+la del aula estrictamente mejor para el grano de aula, que es donde hoy no hay
+alternativa.
+
+Sin esa corrección, adoptar la tasa del aula es cambiar un instrumento que no
+responde por otro que responde mal en el 13,6 % de los casos. Es defendible,
+pero no es una mejora limpia, **y el ADR debería decirlo en esos términos en
+vez de presentarla como la opción correcta.**
