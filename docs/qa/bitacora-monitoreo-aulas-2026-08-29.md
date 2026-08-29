@@ -52,6 +52,15 @@ decimales en personas, y un rótulo que promete un número distinto del que
 entrega. Eso zanja la discusión: mirar no es una comprobación de cortesía, es
 donde aparecen los defectos que las suites no ven.
 
+### 2026-08-29 · noche
+
+| # | Qué hice | Qué encontré | Estado |
+|---|---|---|---|
+| 13 | Su aviso: «el avance se mide sobre las cuotas, no sobre lo pronosticado» | La meta publicada era **3.145,7** (suma de `expected_valid`) frente a una cuota de **2.500**. CIENCIAS E INGENIERIA decía «faltan 397» cuando faltan **232** | **VISTO** |
+| 14 | Cuadrar las partes con el total | **Primer caso REAL del agregado engañando**: GASTRONOMÍA, mujeres 10 de 12 y hombres 14 de 9, se publicaba con «cero faltan» y faltaban 2 mujeres. La brecha pasa a ser la suma de celdas | **VISTO** |
+| 15 | Capturar el gráfico de facultad × sexo | Funciona: tres tramos, sexos juntos por facultad, sin decimales | **VISTO** |
+| 16 | Comprobar que los tres tramos sumen la cuota | **6 de 30 celdas se pasan** y el gráfico no marcaba la meta. Añadida la marca de cuota | **VISTO** |
+
 ## Pendiente para la siguiente iteración
 
 1. **Ver los siete.** Una captura por pestaña tocada, con `--wait-selector`.
