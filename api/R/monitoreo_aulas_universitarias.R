@@ -1225,7 +1225,21 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # siempre 0 y "0" >= "30" da FALSE.
   meta <- suppressWarnings(as.numeric(rows$expected_valid))
   meta[!is.finite(meta)] <- 0
-  rows$brecha <- pmax(0, meta - rows$respuestas_validas)
+  # **La brecha son PERSONAS, y una persona no se parte.**
+  #
+  # Gonzalo, viendo «faltan 236.1 respuestas» en el grafico de estratos: «como
+  # vas a poner decimales». La meta de un aula sale de `elegibles x tasa` y es
+  # fraccionaria por construccion, pero lo que falta RECOGER son encuestas
+  # enteras y asi es como se lee, se reparte y se suma por estrato.
+  #
+  # Hacia ARRIBA, que es la misma regla que `.mac_brecha()` ya aplica a las
+  # celdas de cuota —«es el unico sitio del avance donde se redondea hacia
+  # arriba, porque es lo unico que se PIDE»—: si faltan 0,1 encuestas falta una
+  # persona. Esta capa se habia quedado fuera de esa regla.
+  #
+  # La META no se toca: se sigue calculando exacta y las decisiones que dependen
+  # de ella no se mueven. Lo que se redondea es lo que se publica como falta.
+  rows$brecha <- ceiling(pmax(0, meta - rows$respuestas_validas) - 1e-9)
   rows$brecha[!is.finite(rows$brecha)] <- 0
   # El escalon de agendamiento sale de STATUS MUESTRA, no del estado operativo.
   #
@@ -1692,7 +1706,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
   meta_plan <- suppressWarnings(as.numeric(plan_df$expected_valid))
   meta_plan[!is.finite(meta_plan)] <- 0
-  plan_df$brecha <- pmax(0, meta_plan - plan_df$respuestas_validas)
+  # Personas enteras, igual que arriba y que `.mac_brecha()`.
+  plan_df$brecha <- ceiling(pmax(0, meta_plan - plan_df$respuestas_validas) - 1e-9)
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
   # El plan SEGUIDO: un aula por slot, no una por fila.
   #
