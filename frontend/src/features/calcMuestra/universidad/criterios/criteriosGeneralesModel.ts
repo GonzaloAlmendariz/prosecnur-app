@@ -142,7 +142,7 @@ export function criteriosGeneralesDeEstudio({
       // efectividad» en Propuestas, «rinde alrededor del N%» en Objetivo y
       // «Factor de asistencia (τ)» aqui—, y la letra griega quedo enterrada en
       // las superficies desde la serie 1b. Un solo nombre para una sola cosa.
-      concepto: "Tasa de efectividad",
+      concepto: "Tasa de la facultad",
       hoy: fmtCifra(p.tau, 2),
       claveHistorica: "tasa_respuesta_asumida",
     },

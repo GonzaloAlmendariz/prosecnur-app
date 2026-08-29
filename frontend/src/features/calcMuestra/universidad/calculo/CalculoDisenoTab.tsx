@@ -299,7 +299,7 @@ export function CalculoDisenoTab({
               <>
                 <label className="cmv2-did-slider cmv2-calc-tau">
                   <div className="cmv2-did-slider-head">
-                    <span>Tasa de efectividad global (respaldo)</span>
+                    <span>Tasa global de respaldo</span>
                     <output>{Math.round(tau * 100)}%</output>
                   </div>
                   <input
