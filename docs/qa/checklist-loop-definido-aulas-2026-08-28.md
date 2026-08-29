@@ -65,6 +65,7 @@ no a ojo:
 | 39 | El mismo cociente con dos formatos en el mismo panel: «92%» junto a «89.3 %» | `embudoDelAula.ts` · `AulasEmbudoDelAula.tsx` | **cerrado** — el redondeo bajó del modelo a la vista, bitácora 58 |
 | 40 | «SIN EMPEZAR 145 · agendadas» sobre 145 que no tienen fecha | `kpisDeAulas.ts` | **cerrado** — la pista declara el reparto, bitácora 59 |
 | 41 | «A quién llamar» incluía 38 aulas ya aplicadas | `colaDeContacto.ts` | **cerrado** — se excluyen y se declaran; 183 → 145, que cuadra con «Sin empezar», bitácora 61 |
+| 42 | `modelo/carga`: panel de ~1.000 px con un aviso de 60 y 940 de vacío | `AulasSeccionModelo.tsx` + `aulasMonitoreo.css:178` | **nuevo** — medido, reparación especificada y no aplicada, bitácora 62 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
