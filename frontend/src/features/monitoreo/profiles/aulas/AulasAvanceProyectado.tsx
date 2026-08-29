@@ -14,8 +14,11 @@ import { fmt } from "./kpisDeAulas";
  * hombres, con un sesgo de composición de +3,4 pp hacia mujeres que estuvo ahí
  * todo el campo sin que nadie pudiera verlo.
  *
- * **Es el único panel del perfil que manda a alguien a un aula**, así que va
- * separado de los referenciales y encabeza por lo que exige una decisión hoy.
+ * Va separado de los referenciales y encabeza por lo que exige una decisión hoy.
+ * Decía «es el único panel del perfil que manda a alguien a un aula» y dejó de
+ * serlo: `AulasReservaDirigida` va justo debajo y nombra códigos de aula
+ * concretos del banco. Los dos se leen seguidos a propósito — éste dice qué
+ * celda no llega, aquél a dónde ir por ella.
  *
  * Ninguna frase se redacta aquí: vienen del motor, que es donde vive el test
  * anti-jerga. Con dos redacciones vivas del mismo estado, la pantalla acaba
