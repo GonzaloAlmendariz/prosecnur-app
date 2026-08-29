@@ -1,4 +1,4 @@
-import { fmt } from "./kpisDeAulas";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 // El orden de los sexos es UNO en todo el perfil: si esta lista y la tabla de
 // cuotas lo definieran cada una, acabarían discrepando en cuanto una cambiara.
 import { ORDEN_SEXO } from "./ordenFacultadSexo";
@@ -115,7 +115,11 @@ export function porqueDeLaCelda(c: CeldaAvance): string {
   if (cuota <= 0) return "";
   const falta = Math.max(0, cuota - logrado);
   const p = pendiente > 0
-    ? `las aulas que faltan por aplicar aportan ${fmt(pendiente)}`
+    // `fmt` conserva el decimal del aporte esperado y son PERSONAS: «aportan
+    // 14.1» es un décimo de alumno. Cuarta vez que el mismo defecto sale hoy
+    // —reserva dirigida, brecha por estrato, ritmo diario y aquí—, así que
+    // `fmtCuenta`, que redondea sin inventar medias encuestas.
+    ? `las aulas que faltan por aplicar aportan ${fmtCuenta(pendiente)}`
     : "no quedan aulas por aplicar";
   return `Lleva ${fmt(logrado)} de ${fmt(cuota)}: faltan ${fmt(falta)} y ${p}.`;
 }
