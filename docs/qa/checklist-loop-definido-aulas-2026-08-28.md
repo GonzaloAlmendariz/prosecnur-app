@@ -42,6 +42,8 @@ no a ojo:
 | 16 | Sin `--wait-selector` el runner da verde sobre un gráfico en blanco | `scripts/ui-quick-check.mjs` | **nuevo** — ver bitácora 34 |
 | 17 | `proyeccionPorAgenda` proyecta con el parte de campo, no con la plataforma | `proyeccionPorAgenda.ts:135` | **bloqueado** — decisión tuya |
 | 18 | «El avance que ve el cliente» llamaba muestra a la suma de cuotas (3.491 con objetivo 2.500) | `AulasAvanceParaCliente.tsx` | **cerrado** |
+| 19 | La tabla del cliente neteaba la cuota entre sexos dentro de la facultad | `avanceParaCliente.ts` | **cerrado** — era el ±1 de 2.824/2.825 |
+| 20 | «Mujer» se contaba como hombre en dos superficies y se descartaba en una tercera | `avanceParaCliente.ts` · `brechaDeLaFacultad.ts` · `celdasPorFacultad.ts` | **cerrado** — ver bitácora 35 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

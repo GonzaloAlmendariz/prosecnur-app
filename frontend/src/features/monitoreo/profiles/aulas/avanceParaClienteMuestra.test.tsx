@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { MonitoreoAulasAvanceCuota } from "../../../../api/monitoreo";
+import type { MonitoreoAulasAvanceCuota, MonitoreoRow } from "../../../../api/monitoreo";
 import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
 
 /**
@@ -71,5 +71,89 @@ describe("la muestra que enseña el panel del cliente", () => {
     // objetivo y 667 conseguidas, la resta neta daría 1.833; lo correcto es la
     // suma por facultad: (2000−400) + (1400−267) = 2.733.
     expect(pinta(cuota(2500, filas))).toContain("2733");
+  });
+});
+
+describe("la cuota no se compensa entre sexos dentro de una facultad", () => {
+  /**
+   * El norte de Gonzalo: «lo que me interesa es que TODAS LAS FACULTADES
+   * CUMPLAN CON SU CUOTA DE SEXO».
+   *
+   * `faltan` restaba los totales de la facultad, así que un excedente de
+   * hombres tapaba un déficit de mujeres. Aplicaba el ADR 0079 entre facultades
+   * y se lo saltaba un nivel más abajo, que es donde vive la meta. Por eso la
+   * tabla decía «Faltan 2.825» y la tarjeta de arriba «Cuota por recoger
+   * 2.824», que sí suma celda a celda: no era un redondeo, eran dos cantidades
+   * distintas con el mismo nombre.
+   */
+  const celda = (facultad: string, sex: string, target: number, observed: number) =>
+    ({ faculty: facultad, sex, target, observed }) as unknown as MonitoreoRow;
+
+  // Derecho: mujeres 100/40 (faltan 60), hombres 100/130 (sobran 30).
+  // Neteando da 100+100−170 = 30. Sin netear, 60. La segunda es la que hay que
+  // salir a buscar; la primera manda un equipo a menos de la mitad.
+  const celdas = [
+    celda("Derecho", "Mujer", 100, 40),
+    celda("Derecho", "Hombre", 100, 130),
+  ];
+
+  const conCeldas = () => renderToStaticMarkup(
+    <AulasAvanceParaCliente
+      avanceCuota={cuota(200, [["Derecho", 200, 170]])}
+      celdasSexo={celdas}
+    />,
+  ).replace(/(\d)[\s,.  ](?=\d{3}\b)/g, "$1");
+
+  it("suma el déficit de cada sexo en vez de restar los totales", () => {
+    const html = conCeldas();
+    expect(html).toContain(">60<");
+    expect(html).not.toContain(">30<");
+  });
+
+  it("sin el sexo trazado cae a la resta de la facultad y no inventa un reparto", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceParaCliente avanceCuota={cuota(200, [["Derecho", 200, 170]])} />,
+    );
+    expect(html).toContain(">30<");
+  });
+});
+
+describe("«Mujer» no es un hombre", () => {
+  /**
+   * El `sex` de `quotas_sex_faculty` sale de la columna del estudio tal cual
+   * (`monitoreo_aulas_universitarias.R:1586`). `audit_reference.R:231` mapea
+   * `"1" = "Mujer"`, así que ese literal es un valor real y no una hipótesis.
+   *
+   * Tres superficies del perfil lo trataban mal, cada una a su manera:
+   *   · `avanceParaCliente` probaba `/^(f|fem)/` y luego `/^(m|masc|varon|hombre)/`
+   *     y contaba las mujeres como HOMBRES;
+   *   · `brechaDeLaFacultad` recortaba a la inicial —«Mujer» → «M»— igual;
+   *   · `celdasPorFacultad` comparaba contra `"F"`/`"M"` y las DESCARTABA,
+   *     dejando el gráfico vacío sin decir por qué.
+   * Las tres usan ahora `sexSeriesKind`, el clasificador de la casa.
+   */
+  const conEtiquetas = (mujer: string, hombre: string) => renderToStaticMarkup(
+    <AulasAvanceParaCliente
+      avanceCuota={cuota(200, [["Derecho", 200, 170]])}
+      celdasSexo={[
+        { faculty: "Derecho", sex: mujer, target: 100, observed: 40 },
+        { faculty: "Derecho", sex: hombre, target: 100, observed: 130 },
+      ] as unknown as MonitoreoRow[]}
+    />,
+  ).replace(/(\d)[\s,.  ](?=\d{3}\b)/g, "$1");
+
+  it("las etiquetas en palabra dan lo mismo que los códigos", () => {
+    expect(conEtiquetas("Mujer", "Hombre")).toBe(conEtiquetas("F", "M"));
+  });
+
+  it("y no invierten las columnas: la de mujeres lleva 40, no 130", () => {
+    // El mutante que importa. Si «Mujer» volviera a caer en la rama de hombres
+    // el HTML seguiría teniendo un 40 y un 130 —sólo que cambiados de sitio—,
+    // así que se mira el ORDEN de las celdas: muestra M, muestra H, lleva M,
+    // lleva H.
+    const cifras = [...conEtiquetas("Mujer", "Hombre")
+      .matchAll(/aulas-cliente-cifra[^>]*">(\d+)</g)].map((m) => m[1]);
+    expect(cifras.slice(0, 4)).toEqual(["200", "100", "100", "170"]);
+    expect(cifras.slice(4, 6)).toEqual(["40", "130"]);
   });
 });

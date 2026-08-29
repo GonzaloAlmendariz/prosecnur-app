@@ -3,6 +3,7 @@ import type {
   MonitoreoAulasEfectividadSeguimiento,
   MonitoreoRow,
 } from "../../../../api/monitoreo";
+import { sexSeriesKind } from "../../../calcMuestra/sexoPalette";
 
 /**
  * El avance como lo lee el cliente: por facultad y por sexo.
@@ -71,8 +72,21 @@ function clave(nombre: unknown): string {
     .replace(/^_|_$/g, "");
 }
 
-const ES_MUJER = /^(f|fem)/;
-const ES_HOMBRE = /^(m|masc|varon|hombre)/;
+/**
+ * **«Mujer» empieza por `m`.**
+ *
+ * Aquí había dos regex propias, `/^(f|fem)/` y `/^(m|masc|varon|hombre)/`,
+ * probadas en ese orden. Un estudio cuya variable de sexo diga «Mujer» —que es
+ * literalmente lo que mapea `audit_reference.R:231`, `"1" = "Mujer"`— fallaba
+ * la primera, casaba la segunda y **contaba todas las mujeres como hombres**,
+ * sin un solo aviso. El `sex` de `quotas_sex_faculty` sale de la columna del
+ * estudio tal cual (`monitoreo_aulas_universitarias.R:1586`), así que sus
+ * valores son los que el cliente escribió, no un código fijo.
+ *
+ * `sexSeriesKind` es el clasificador de la casa y ya resuelve el caso: prueba
+ * pertenencia exacta antes que subcadena, así que «m» sola es hombre y «mujer»
+ * es mujer.
+ */
 
 export function avanceParaCliente(
   avanceCuota: MonitoreoAulasAvanceCuota | null | undefined,
@@ -93,8 +107,9 @@ export function avanceParaCliente(
     const s = texto(c.sex).toLowerCase();
     const t = num(c.target);
     const o = num(c.observed);
-    if (ES_MUJER.test(s)) { actual.fT = t; actual.fO = o; }
-    else if (ES_HOMBRE.test(s)) { actual.mT = t; actual.mO = o; }
+    const kind = sexSeriesKind(s);
+    if (kind === "female") { actual.fT = t; actual.fO = o; }
+    else if (kind === "male") { actual.mT = t; actual.mO = o; }
     sexo.set(k, actual);
   }
 
@@ -102,6 +117,19 @@ export function avanceParaCliente(
   for (const f of efectividad?.facultades ?? []) {
     if (f.faculty_key) aplicadas.set(f.faculty_key, f.aulas_aplicadas);
   }
+
+  /**
+   * Lo que falta en la facultad SIN netear entre sexos: cada celda aporta su
+   * propio déficit. `null` cuando alguna de las dos celdas no está trazada —no
+   * se puede sumar lo que no se conoce— y entonces manda la resta de la
+   * facultad.
+   */
+  const faltanPorSexo = (sx: { fT: number | null; fO: number | null; mT: number | null; mO: number | null } | undefined) => {
+    if (!sx) return null;
+    const { fT, fO, mT, mO } = sx;
+    if (fT == null || fO == null || mT == null || mO == null) return null;
+    return Math.max(0, fT - fO) + Math.max(0, mT - mO);
+  };
 
   const delPlan = new Map<string, number>();
   for (const r of avancePorFacultad) {
@@ -128,9 +156,24 @@ export function avanceParaCliente(
       aulasDelPlan: delPlan.get(k) ?? null,
       // Sin cap: pasarse de la cuota es un hecho, no un error.
       avance: cuota != null && cuota > 0 ? conseguidas / cuota : null,
-      // Acotado en 0: el superávit de una facultad NO descuenta lo que falta en
-      // otra, y un negativo aquí invitaría a sumarlo (ADR 0079).
-      faltan: cuota != null ? Math.max(0, cuota - conseguidas) : null,
+      // **La cuota tampoco se compensa ENTRE SEXOS dentro de una facultad.**
+      //
+      // Aquí decía `max(0, cuota - conseguidas)` con los totales de la
+      // facultad, o sea que un excedente de hombres tapaba un déficit de
+      // mujeres. El acotado en 0 aplicaba el ADR 0079 entre facultades y se
+      // saltaba el mismo argumento un nivel más abajo, que es donde vive la
+      // meta: «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU
+      // CUOTA DE SEXO».
+      //
+      // Medido el 2026-08-29 sobre HSVG2026: por eso la tabla decía «Faltan
+      // 2.825» y la tarjeta «Cuota por recoger 2.824» tres centímetros más
+      // arriba —ella sí suma celda a celda—. No era un redondeo: eran dos
+      // cantidades distintas con el mismo nombre.
+      //
+      // Cuando el sexo no está trazado no hay dos celdas que sumar y la resta de
+      // la facultad es lo único que hay; se usa ésa, que es lo mismo que hacía
+      // antes y no inventa un reparto.
+      faltan: faltanPorSexo(sx) ?? (cuota != null ? Math.max(0, cuota - conseguidas) : null),
     };
   })
   // La que peor va abre la tabla: es lo que se mira primero. Sin cuota, al
