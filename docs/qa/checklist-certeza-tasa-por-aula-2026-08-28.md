@@ -802,3 +802,88 @@ negaba.
 **Orden correcto**: primero la estratificación de la certeza, después la
 elección de tasa. Elegir la tasa sobre este simulador es optimizar el modelo
 equivocado.
+
+---
+
+# El sello de tramos que el ADR 0082 describe NUNCA EXISTIÓ (2026-08-28)
+
+La sesión par preguntó lo correcto: «¿el ADR describe un sellado que nunca se
+aplicó, o se aplicó y algo lo borró? No es lo mismo un documento que se adelantó
+que un sello que se perdió». **Es lo primero, y se comprueba de dos maneras
+independientes.**
+
+## 1 · `rendimiento_tramos` tiene lector y no tiene escritor
+
+Barrido del repositorio entero. Todas las apariciones fuera de docs y tests
+están en `calc_muestra_aulas_efectividad.R`, y **todas son el LECTOR**
+(`.cm_efectividad_normalize_config` parseando la clave desde la config). Los
+tests la construyen a mano como fixture. **No hay ningún productor**: ni
+endpoint, ni función de sello, ni acción del frontend.
+
+`calc_muestra_aulas_efectividad_sello.R` —el módulo que sí sella— sella
+**únicamente `por_facultad`**, el multiplicador residual que Gonzalo pidió el
+2026-08-25. Esa mitad del plan 1b se construyó; la de los tramos, no.
+
+## 2 · Ningún `.pulso` del estudio lo tiene, y los que sí tienen residual lo tienen
+
+| proyecto | `fuente` | `rendimiento_tramos` | `por_facultad` |
+|---|---|---:|---:|
+| HSTVG26 (22-07) | NULL | 0 | 0 |
+| HSVG2026 (24-08) | NULL | 0 | 0 |
+| HSVG26DEF (26-08) | NULL | 0 | 0 |
+| **HSVG26ULT (26-08)** | historico | **0** | **6** |
+| **HSVG26ULT2 (27-08)** | historico | **0** | **6** |
+
+Los dos proyectos posteriores al sello llevan los seis residuales y **cero
+tramos**. Si el sello de tramos se hubiera perdido, habría al menos un `.pulso`
+con tramos y sin residual, o con los dos. No lo hay: el residual aparece cuando
+se construyó su escritor, y los tramos nunca aparecen porque el suyo no se
+escribió.
+
+**Conclusión: no es un sello perdido, es un contrato con lector y sin escritor.**
+Corregirlo no es «re-aplicar» nada; es construir el escritor o cambiar la
+calibración embebida.
+
+## Por qué la embebida difiere de la base que dice usar
+
+Las dos declaran la misma fuente —las 194 aulas aplicadas de 2025— y dan números
+distintos. La causa está escrita en el propio encabezado del motor
+(`calc_muestra_aulas_efectividad.R:13`):
+
+> `Bins sobre ELEGIBLES (v1; la base 2025 bineó sobre su tamaño de aula).`
+
+Es decir: **los cortes se calcularon binando por tamaño de aula y se aplican
+binando por elegibles.** Un aula de 40 matriculados con 28 elegibles entró al
+tramo 36–50 al calibrar y cae en el 26–35 al aplicarse. Eso desplaza aulas entre
+tramos y explica que el desvío se concentre justo en los tramos densos —16-25
++7,4 %, 36-50 +9,9 %, >50 +7,5 %— y sea nulo en los extremos, donde hay menos
+aulas que cambien de bin.
+
+Está declarado como limitación conocida de la v1. Lo que no está declarado es
+que su efecto sobre el esperado del estudio vigente es **−6,0 % sobre ULT1**
+(3 149,0 → 2 959,1) y **−6,4 % sobre ULT2** (3 157,3 → 2 954,0, medido por la
+sesión par).
+
+## Los tres escenarios acumulados (medición de la sesión par sobre ULT2)
+
+| escenario | esperado | cobertura | peor celda | celdas < 1 |
+|---|---:|---:|---:|---:|
+| 1 · vigente (embebidos, vara bruta) | 3 157 | 1,263 | 1,111 | 0 |
+| 2 · + calibración de su propia base 2025 | 2 954 | 1,182 | 1,039 | 0 |
+| 3 · + descuento de repetidos | 2 814 | 1,126 | **0,972** | **2** |
+
+En el escenario 3 caen **EE.GG. Letras (0,972)** y **EE.GG. Ciencias (0,992)**,
+con Derecho al filo en 1,031. Coincide en dirección con lo que dio la simulación
+estratificada por otro camino —P(cumple) = 0,286 para EE.GG. Letras con 20
+aulas—: **los dos métodos, calibración y simulación, señalan la misma facultad.**
+
+## Orden de urgencia, revisado
+
+1. **La calibración** es la más urgente, y por una razón que no es su tamaño: es
+   la única de las tres que **ya está dentro de un número publicado**. La sección
+   7.2 del documento de diseño dice cuánto se espera de cada celda, y ese número
+   lleva 6,4 % de optimismo que no viene de una decisión sino de un bin mal
+   alineado.
+2. **La estratificación de la certeza**, porque sin ella no se puede decidir la
+   tasa.
+3. **La tasa** (uso 1). El uso 3 —sexo— es independiente de los tres.
