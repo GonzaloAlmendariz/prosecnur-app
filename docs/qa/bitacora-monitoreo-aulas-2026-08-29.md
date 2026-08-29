@@ -736,3 +736,34 @@ Con los conteos a la vista, «Status de aplicación» dice **«Aplicada 0 · En 
 hecho de haberse aplicado— pero conviven sin distinguirse, y un lector que busque
 «aplicadas» encuentra 0 y 48 en la misma pantalla. Es el conflicto de taxonomías
 de estado, otra vez. **No se toca hasta medir** de dónde sale cada una.
+
+---
+
+## 48 · El rótulo estaba en el tramo equivocado (ítem 32)
+
+Medido en el motor, y no era una taxonomía legítima en conflicto: era un
+participio mal puesto.
+
+- `cerrando` = `operational_status ∈ {aplicada, cerrada}` **o**
+  `válidas ≥ meta` (`monitoreo_aulas_universitarias.R:1332`). **Ahí caen las
+  aplicadas.** Se rotula «En cierre».
+- `en_aplicacion` = tiene respuestas pero **todavía no** es `aplicada` ni
+  `cerrada` (línea 1335). O sea, **en curso**. Se rotulaba «Aplicada».
+
+«Aplicada» es participio de terminado y era la misma palabra que el KPI
+«APLICADAS» de la banda, dos centímetros más arriba. De ahí el «Aplicada 0» junto
+a «APLICADAS 48»: las 48 estaban en el tramo de al lado. Pasa a **«En
+aplicación»**, que es lo que dice su propia clave.
+
+**Y no es la primera vez en ese mismo array.** El tramo `cerrando` se llamaba
+«Cumple» y chocaba con el KPI «Llegaron a su meta» y con «Meta cumplida» del
+gráfico de cobertura —tres cosas con la misma palabra—; ya se había renombrado a
+mano, con su comentario y todo, **una línea más abajo del que seguía roto**.
+Nada lo vigilaba.
+
+Ahora sí: `rotulosNoColisionan.contract.test.ts` normaliza a minúsculas, sin
+tildes y sin la `s` del plural, y falla si algún tramo usa una palabra de la
+banda o si dos tramos se repiten entre sí. Lleva además el control de que el
+fixture sirve —si `aulasKpis(null, …)` devolviera lista vacía, el contrato
+pasaría sin comparar nada, que es verde por ausencia—. Mutante comprobado:
+restaurar «Aplicada» deja 1 rojo.

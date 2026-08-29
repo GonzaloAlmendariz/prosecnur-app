@@ -59,7 +59,20 @@ export type EstadoDeAplicacion = {
 export const TRAMOS_DE_APLICACION = [
   { clave: "pendiente", etiqueta: "Sin agendar", color: COLOR_RESULTADO.pendiente },
   { clave: "lista", etiqueta: "Agendada", color: COLOR_AULA_LISTA },
-  { clave: "en_aplicacion", etiqueta: "Aplicada", color: COLOR_RESULTADO.parcial },
+  // **«En aplicación», no «Aplicada»**, que es el participio de terminado y era
+  // la MISMA palabra que el KPI «APLICADAS» de la banda, dos centímetros más
+  // arriba. Medido el 2026-08-29: la leyenda decía «Aplicada 0» junto a una
+  // banda que decía «APLICADAS 48», y las 48 estaban en «En cierre».
+  //
+  // La clave lo dice sola —`en_aplicacion`— y el motor también
+  // (`monitoreo_aulas_universitarias.R:1335`): aquí cae lo que TIENE respuestas
+  // pero todavía NO es `aplicada` ni `cerrada`; en cuanto lo es, pasa a
+  // `cerrando`. O sea, en curso.
+  //
+  // Es la misma reparación que ya se le hizo al tramo de al lado cuando se
+  // llamaba «Cumple» —ver el comentario de abajo—: dos superficies no pueden
+  // usar la misma palabra para dos ejes distintos.
+  { clave: "en_aplicacion", etiqueta: "En aplicación", color: COLOR_RESULTADO.parcial },
   // «Cumple» era la MISMA palabra que el KPI de arriba y que «Meta cumplida» del
   // grafico de cobertura, para tres cosas distintas. Este tramo no dice que un
   // aula llego a su meta: el motor lo define como `aplicada|cerrada` **O**
