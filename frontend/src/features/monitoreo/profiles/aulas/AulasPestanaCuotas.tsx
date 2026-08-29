@@ -104,6 +104,17 @@ export function AulasPestanaCuotas({
               <AulasAvanceProyectado
                 celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
               />
+              {/* Y pegado a él, el remedio: a qué aula del banco ir para cerrar
+                  justo esas celdas. Estaba en la sección de abajo y el runner lo
+                  medía en y=4930, o sea a tres mil píxeles del panel que dice
+                  «no va a llegar». Diagnóstico y remedio se leen juntos o no se
+                  leen. No se solapan: aquél proyecta con las aulas del PLAN que
+                  faltan por aplicar, éste manda al BANCO, que es otro recurso y
+                  otra decisión. Y va un nivel por debajo de `reservas_alcanzan`,
+                  que es por facultad y no por celda. */}
+              <AulasReservaDirigida
+                celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
+              />
               {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
                   contra SU propia meta. Se ve de qué lado va corta cada facultad, que
                   es la pregunta con la que se sale a campo, y es además quien lleva el
@@ -158,13 +169,6 @@ export function AulasPestanaCuotas({
                 </span>
               </div>
               <AulasAvanceCuota vista={cuotaDiseno} />
-              {/* Y para las celdas que no llegan, a qué aula del banco ir. El
-                  motor ya lo resolvía y no había dónde leerlo: va aquí porque
-                  es donde están las celdas de las que habla, y un nivel por
-                  debajo de `reservas_alcanzan`, que es por facultad. */}
-              <AulasReservaDirigida
-                celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
-              />
             </section>
     </>
   );
