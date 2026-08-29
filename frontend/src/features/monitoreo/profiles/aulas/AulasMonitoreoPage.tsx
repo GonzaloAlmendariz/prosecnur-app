@@ -84,6 +84,7 @@ import "./aulasMonitoreo.css";
 // Después de la hoja madre, nunca antes: ver la cabecera de
 // `aulasReemplazos.css`.
 import "./aulasReemplazos.css";
+import "./aulasCargaDeCampo.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
