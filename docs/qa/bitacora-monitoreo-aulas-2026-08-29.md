@@ -160,3 +160,79 @@ evaluar en el libro» y explica cómo se llenan. Ninguno de los seis lo hacía.
    Efectividad, y las dos nuevas —Decisiones y Calendario—.
 3. El registro académico de las etiquetas (ítem 12 del checklist), con el mapeo
    propuesto y sin aplicar.
+
+---
+
+## 33 · Dos superficies cuentan las mismas 30 celdas y no dicen lo mismo
+
+Capturas: `tmp/visual-qa/quick/2026-08-29T16-47-20-544Z/` (con Plotly pintado) y
+`…T16-58-23-693Z/` (alto completo). Proyecto: `aulas_con_respuestas.pulso`,
+714 registros, 667 válidas.
+
+En la MISMA pantalla (`monitoreo/aulas/avance/estratos`):
+
+- La tarjeta **«Cierran con lo agendado: 0 de 30 celdas sexo × facultad con
+  objetivo»**.
+- El gráfico **«Avance por facultad y sexo»**, que dibuja esas mismas 30 celdas,
+  enseña **seis o siete sin déficit** —DERECHO·Hombres, CIENCIAS E
+  INGENIERÍA·Mujeres, GESTIÓN·Hombres, ARTE Y DISEÑO·Hombres, LETRAS Y CIENCIAS
+  HUMANAS·Hombres, ESTUDIOS GENERALES CIENCIAS·Mujeres—. La etiqueta numérica se
+  omite a propósito cuando el déficit es cero, así que «sin número» ES «cierra».
+- Su pie: «quedaría un déficit de 271 respuestas, repartido en 15 facultades»,
+  **sin** la frase «N alcanzan su cuota en los dos sexos», que sólo se imprime si
+  hay alguna. O sea: 0 facultades cubiertas en AMBOS sexos, que es compatible con
+  6 celdas cerradas y no con 0.
+
+**La causa: cada superficie lo calcula por su cuenta, y de fuentes distintas.**
+
+| | Fuente | Dónde se calcula |
+|---|---|---|
+| Gráfico | `dashboard.avance_sexo_facultad` | backend, `monitoreo_aulas_avance_sexo_facultad()` sobre el **plan** (aplicada/pendiente) |
+| Tarjeta | `proyeccionPorAgenda(agenda, parteDeCampo(partes_campo, agenda), quotas_sex_faculty)` | frontend, `kpisDeAulas.ts:263` |
+
+Dos agravantes:
+
+1. La tarjeta mete el **parte de campo**. Gonzalo, esta semana: «lo que contamos
+   son las efectivas en plataforma… lo que se registra en campo es una cosa,
+   pero lo que a nosotros nos importa es lo que sale en la plataforma».
+2. El backend ya escribió la regla que esto rompe, en
+   `monitoreo_aulas_universitarias.R:1894`: «No se recalcula nada: se toman las
+   celdas que `monitoreo_aulas_avance_sexo_facultad()` ya produjo unas líneas
+   arriba. **Dos lecturas del mismo dato acabarían discrepando.**»
+
+**Reparación (siguiente tick):** `cierreKpi()` cuenta sobre
+`dashboard.avance_sexo_facultad` —`cuota > 0` como evaluables,
+`ceil(brecha − 1e-9) <= 0` como cerradas— en vez de rearmar la proyección. NO se
+toca `proyeccionPorAgenda`, que tiene otros consumidores. Los seis tests de
+`kpisDeAulas.test.ts:247-300` cambian de fixture; **hay que conservar el mutante
+que matan**: una celda con `cuota = 0` no cuenta como cerrada ni infla el
+denominador (el defecto real «10 de 30» con cero aulas agendadas). Y añadir el
+test que faltaba: las dos superficies dan el mismo número sobre el mismo payload.
+
+## 34 · El runner dio verde sobre un gráfico que no se pintó
+
+La captura `…T16-58-23-693Z` a 1440x1600, **sin** `--wait-selector`, salió con
+**700 px de hueco blanco** donde va el gráfico —Plotly no había pintado— y el
+runner reportó:
+
+`ok=true issues=0 geometryIssues=0 geometryCoverageMisses=0 overflow=0`
+
+Verde por conformidad, no por ausencia: aquí el gate aprobó un panel cuyo
+contenido principal no existía en la página medida. No es un fallo de C1–C4 —el
+contenedor estaba declarado y su marco intacto—, es que **ninguna cláusula
+comprueba que dentro haya algo**. Sirve de aviso para toda captura de una vista
+con Plotly: **sin `--wait-selector` la evidencia no vale**, y el `issues=0` de
+esa corrida tampoco.
+
+Dos cosas más que aprendí del runner en este tick, y que valen como trampa:
+
+- `--wait-selector` se evalúa **antes** de `--ir`, así que sobre la ruta de
+  aterrizaje. Un `waitSelectorMisses=1` con el selector de la vista de destino
+  es falsa alarma; aun así la espera que introduce es lo que deja pintar a
+  Plotly, que es para lo que sirve aquí.
+- Un `.pulso` **sin `monitoreo_config`** deja al shell en «¿Qué tipo de estudio
+  vas a monitorear?» y **el `--ir` no llega a ninguna parte**. Las capturas
+  anteriores con `hsvg2026_trabajo.pulso` medían esa pantalla de elección, no el
+  panel: su `issues=0` no dice nada de Monitoreo. Se arregla derivando
+  (`api/scripts/derivar_monitoreo_aulas.R`, que sella `route_selected = TRUE`) o
+  usando un proyecto que ya lo traiga.

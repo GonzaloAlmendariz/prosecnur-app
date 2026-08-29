@@ -38,6 +38,8 @@ no a ojo:
 | 12 | Registro coloquial en las etiquetas de estado | `.mac_etiqueta_estado()` + propuestas de tramos | **nuevo** — ver abajo |
 | 13 | Alumnos con decimales («aporta 6,1») | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** `1dbb99fb` |
 | 14 | La probabilidad de cierre saturaba en 0/100 | `monitoreo_aulas_calibracion.R` | **cerrado** `1dbb99fb` |
+| 15 | «Cierran con lo agendado» contradice al gráfico de las mismas 30 celdas | `kpisDeAulas.ts:263` (`cierreKpi`) | **nuevo** — medido, ver bitácora 33 |
+| 16 | Sin `--wait-selector` el runner da verde sobre un gráfico en blanco | `scripts/ui-quick-check.mjs` | **nuevo** — ver bitácora 34 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
