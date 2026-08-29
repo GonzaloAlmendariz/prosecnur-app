@@ -252,3 +252,83 @@ test_that("un component_id que no existe no inventa un componente", {
   # Y el llamador cae a su respaldo en vez de quedarse sin filas.
   expect_equal(.cm_certificacion_componente_facultad(est)[[1]]$cuota, 4050)
 })
+
+# --- El eje de sexo suma aula por aula, no aplana la tasa -------------------
+#
+# La rama de facultad ya sumaba `efectivas_esperadas`; las celdas de sexo
+# aplanaban esa misma tasa y con eso borraban la covarianza entre el tamaño del
+# aula y su composición por sexo. El fixture la hace máxima a propósito: las
+# aulas chicas son de mujeres y rinden alto, las grandes son de hombres y
+# rinden bajo. Con la tasa plana los dos sexos comparten rendimiento; aula por
+# aula, no.
+.cert_sexo_seleccion <- function(con_tasa = TRUE) {
+  d <- data.frame(
+    classroom_id = c("P1", "P2", "P3", "P4"),
+    faculty = "FACULTAD MIXTA",
+    sample_role = "titular",
+    wave = "M1",
+    eligible_n = c(10, 10, 50, 50),
+    sex_top_1 = c("F", "F", "M", "M"),
+    sex_top_1_n = c(10, 10, 50, 50),
+    sex_top_2 = "",
+    sex_top_2_n = 0,
+    stringsAsFactors = FALSE
+  )
+  # Chicas 0,80 · grandes 0,40. Tasa plana de la facultad: 96/120 = 0,80.
+  if (con_tasa) {
+    d$tasa_efectividad_aula <- c(0.80, 0.80, 0.40, 0.40)
+    d$efectivas_esperadas <- d$eligible_n * d$tasa_efectividad_aula
+  }
+  list(selection = d)
+}
+
+.cert_sexo_estudio <- function() list(
+  componentes = list(list(resultado = list(
+    aulas_por_estrato = list(list(estrato = "FACULTAD MIXTA", cuota = 96, tau = 0.5)),
+    distribucion_sub = list(
+      list(estrato = "FACULTAD MIXTA", sub = "F", n = 16),
+      list(estrato = "FACULTAD MIXTA", sub = "M", n = 40)
+    )
+  )))
+)
+
+.cert_sexo_filas <- function(sel) {
+  out <- calc_muestra_aulas_adjuntar_certificacion(
+    sel, .cert_sexo_estudio(), .cert_referencia()
+  )
+  fila <- out$certificacion_facultad$filas[[1L]]
+  setNames(fila$sexo, vapply(fila$sexo, `[[`, "", "sexo"))
+}
+
+test_that("las celdas de sexo usan la tasa de cada aula y no la plana de la facultad", {
+  sx <- .cert_sexo_filas(.cert_sexo_seleccion(con_tasa = TRUE))
+
+  expect_identical(sx$F$metodo, "suma_esperadas")
+  expect_identical(sx$M$metodo, "suma_esperadas")
+  # Mujeres: 20 elegibles en aulas que rinden 0,80 -> 16, no 20 x 0,80 de la
+  # tasa plana (que aquí coincide) sino la suma real aula por aula.
+  expect_equal(sx$F$esperadas, 16)
+  # Hombres: 100 elegibles en aulas que rinden 0,40 -> 40. Con la tasa plana de
+  # la facultad (96/120 = 0,80) habrían salido 80, el doble.
+  expect_equal(sx$M$esperadas, 40)
+  expect_equal(sx$M$margen, 1)
+  expect_true(sx$M$cubre)
+})
+
+test_that("sin tasa por aula la celda de sexo cae a la plana y lo DECLARA", {
+  sx <- .cert_sexo_filas(.cert_sexo_seleccion(con_tasa = FALSE))
+
+  expect_identical(sx$F$metodo, "tasa_plana")
+  expect_identical(sx$M$metodo, "tasa_plana")
+  # τ del diseño 0,5 sobre los elegibles del sexo: 100 x 0,5 = 50 hombres.
+  expect_equal(sx$M$esperadas, 50)
+  expect_equal(sx$F$esperadas, 10)
+})
+
+test_that("aplanar la tasa habria dado otra respuesta: el fixture lo separa", {
+  # Guarda contra el verde por coincidencia: si el fixture no distinguiera las
+  # dos varas, los dos tests de arriba pasarian sin ejercitar nada.
+  por_aula <- .cert_sexo_filas(.cert_sexo_seleccion(con_tasa = TRUE))
+  plana <- .cert_sexo_filas(.cert_sexo_seleccion(con_tasa = FALSE))
+  expect_false(isTRUE(all.equal(por_aula$M$esperadas, plana$M$esperadas)))
+})
