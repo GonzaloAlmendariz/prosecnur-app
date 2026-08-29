@@ -98,6 +98,33 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
             </span>
             <span className="aulas-avance-dicho">
               <strong>{f.etiqueta}</strong>
+              {/* **La misma pregunta, con la incertidumbre puesta.** El veredicto
+                  de al lado sale de un umbral: «ajustada» es tanto una celda que
+                  supera su cuota por una encuesta como una que la supera por
+                  cien. La probabilidad separa esos dos casos.
+
+                  Va PEGADA al veredicto y no en un panel aparte porque no es
+                  otra pregunta: es la misma. Y el `title` lleva la salvedad,
+                  porque un porcentaje sin decir qué supone es peor que no darlo. */}
+              {f.probabilidad !== null ? (
+                <b
+                  className="aulas-avance-prob"
+                  data-nivel={f.probabilidad >= 0.9 ? "alta" : f.probabilidad >= 0.6 ? "media" : "baja"}
+                  title={"Supone que las respuestas de un aula son independientes entre sí. "
+                    + "El rendimiento varía de aula a aula, así que la incertidumbre real es mayor "
+                    + "y esta cifra es una cota superior de la confianza."}
+                >
+                  {Math.round(f.probabilidad * 100)}% de cerrar
+                </b>
+              ) : (
+                /* Un `null` NO se pinta como 0 %: son cosas distintas y la
+                   diferencia importa. Pasa cuando alguna aula pendiente de la
+                   celda no declara su tasa. */
+                <b className="aulas-avance-prob" data-nivel="sin-medir"
+                   title="Alguna de las aulas que faltan no declara su tasa de efectividad, así que no se puede calcular.">
+                  sin medir
+                </b>
+              )}
               {/* La causa, sólo donde hay algo que explicar. */}
               {f.porque ? <em>{f.porque}</em> : null}
               {/* Y cómo se está comportando el campo, que es otra pregunta. */}
