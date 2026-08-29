@@ -423,6 +423,14 @@ export function RegistroDeCampo({
       // wrapper de datos hace que el padding del encabezado se lea como
       // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
       // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
+      //
+      // El `data-qa-geometry-contract` de aquí abajo es INERTE y se deja a
+      // propósito: `ui-quick-check` lee el contrato del mismo elemento que
+      // lleva el grupo, así que éste no lo mide nadie. Pero
+      // `AulasCompactWorkbenchLayout.test.ts` exige que TODO panel declare su
+      // contrato en su etiqueta de apertura, y esa convención documenta qué es
+      // el panel aunque el runner no la consuma. Las dos reglas conviven y el
+      // conflicto está anotado; quitarlo por «inerte» rompe el test.
     data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">

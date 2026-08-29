@@ -96,7 +96,6 @@ export function AulasSeccionModelo({
           // viole ni dueño que auditar. Un contenido que desborda sin dueño es
           // invisible para el.
           className="mon-profile-panel aulas-contacto-panel"
-          data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
             {/* El título cubre las DOS cosas que hay dentro. Decía «Qué medio
@@ -108,7 +107,17 @@ export function AulasSeccionModelo({
           </div>
           {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la
               pantalla tiene que tener un solo recorrido. */}
-          <div className="aulas-contacto-cuerpo">
+          {/* El grupo va en el CUERPO y no en la sección: puesto arriba, los
+              px de padding del encabezado se leen como capacidad inflada, que
+              es la trampa que el contrato de superficie documenta. Antes no
+              estaba en ninguno de los dos y el panel era invisible para el
+              gate —ni conforme ni no conforme, no medido—, justo lo que su
+              propio comentario dice que hay que evitar. */}
+          <div
+            className="aulas-contacto-cuerpo"
+            data-qa-geometry-group="monitoring-aulas-contacto"
+            data-qa-geometry-contract="intrinsic"
+          >
             <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
             {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
                 por eso comparten pestaña; el medio dice con qué y la cola con
