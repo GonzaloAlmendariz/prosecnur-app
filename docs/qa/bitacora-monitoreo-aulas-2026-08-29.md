@@ -38,10 +38,19 @@ Plotly pinte y la imagen engaña.
 | 6 | La fecha salía del parte, vacío en los 152 | Sale de la plataforma: 151 aulas, once días. Revive serie, ritmo, pronóstico y corte | **sin ver** |
 | 7 | Cuotas abre Avance | Lo pidió él | **sin ver** |
 | 8 | El parte llegaba con 13 de 14 campos vacíos | Claves en español en el estado, en inglés en el publicador. Ahora 5 de 14 | **sin ver** |
-| 9 | El avance por facultad no conocía el sexo | Ahora cada fila dice de qué lado va corta | **sin ver** |
+| 9 | El avance por facultad no conocía el sexo | Ahora cada fila dice de qué lado va corta | **VISTO** |
+| 10 | Capturar Resumen con `--wait-selector` | El ritmo diario está vivo: «1.538 respuestas en 11 días de campo», barras del 7 al 18/9. Antes vacío | **VISTO** |
+| 11 | En esa captura: «139,8 al día» | Decimal en respuestas, **tercera vez en el día**. Ahora «140 al día» | **VISTO** |
+| 12 | En esa captura: «397 respuestas faltan · faltan 31 mujeres · 114 hombres» | 31+114=145, no 397. Dos varas sin declarar: el total va contra la meta del PLAN y las celdas contra la CUOTA. Ahora «para su cuota, faltan 31 mujeres y 114 hombres» | **VISTO** |
 
 **Nueve cambios y siete sin verificar en pantalla.** Eso es exactamente lo que
 él señaló, y es la deuda que se paga primero.
+
+**Y en cuanto miré, la captura encontró dos defectos que ningún test habría
+cazado** (11 y 12). Los dos son de la misma familia que él ya había señalado:
+decimales en personas, y un rótulo que promete un número distinto del que
+entrega. Eso zanja la discusión: mirar no es una comprobación de cortesía, es
+donde aparecen los defectos que las suites no ven.
 
 ## Pendiente para la siguiente iteración
 
