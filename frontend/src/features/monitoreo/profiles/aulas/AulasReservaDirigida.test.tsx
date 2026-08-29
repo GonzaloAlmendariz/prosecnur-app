@@ -112,12 +112,19 @@ describe("AulasReservaDirigida", () => {
     expect(out).toContain('data-qa-geometry-contract="intrinsic"');
   });
 
-  it("EL CASO QUE JUSTIFICA LA SUPERFICIE: el agregado dice que alcanzan y la celda no", () => {
-    // `reservas_alcanzan` es por FACULTAD; esto es por facultad×sexo. Una
-    // facultad con banco de sobra puede tener su celda de mujeres sin una sola
-    // aula util, porque las del banco son de composicion masculina. El total no
-    // compensa lo que no se compensa entre celdas, y hasta ahora la pantalla
-    // solo ensenaba el total.
+  it("dos celdas de la misma facultad se leen por separado, y manda la que no cierra", () => {
+    // POSIBLE POR EL GRANO, NO OBSERVADO. `reservas_alcanzan` sale de
+    // `cierre$alcanzan` (monitoreo_aulas_efectividad_seguimiento.R:475) sobre el
+    // deficit en ALUMNOS de la facultad, sin dimension de sexo; esto es por
+    // facultad×sexo. Asi que una facultad con banco de sobra puede tener su
+    // celda de mujeres sin una sola aula util. Medido sobre el proyecto
+    // derivado: ahi NO pasa —las 15 facultades dicen que alcanzan y las 9
+    // celdas cierran—, asi que estos datos son sinteticos y lo que fija el test
+    // es el RENDERIZADO, no que la divergencia ocurra.
+    //
+    // Lo que sostiene la superficie sin depender de eso: dice QUE aulas del
+    // banco sirven a cada celda y cuanto aporta cada una, y eso ningun agregado
+    // lo puede decir.
     const out = html([
       celda({ sex: "M", alcanza: true, brecha: 5,
               etiqueta: "Con 2 aulas del banco se cierra: aportan 9 y faltan 5" }),
