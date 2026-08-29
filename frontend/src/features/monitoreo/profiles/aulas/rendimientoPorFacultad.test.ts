@@ -131,10 +131,14 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
   //
   // El resumen ya nombraba su fuente («de Kobo»); este panel no nombraba la
   // suya.
-  const page = fs.readFileSync(
-    path.resolve(__dirname, "AulasMonitoreoPage.tsx"),
-    "utf8",
-  );
+  // El 2026-08-29 la pestaña «Rendimiento» salió del page-file a su propio
+  // archivo, así que el rótulo se busca en los DOS: el test comprueba que la
+  // pista existe, no dónde vive. Buscar sólo en el page haría que mover una
+  // pestaña —que es trabajo declarado del GOAL— rompiera un contrato de
+  // vocabulario que no cambió.
+  const page = ["AulasMonitoreoPage.tsx", "AulasPestanaRendimiento.tsx"]
+    .map((f) => fs.readFileSync(path.resolve(__dirname, f), "utf8"))
+    .join("\n");
 
   test("el subtítulo dice que las encuestas son del parte", () => {
     expect(page).toContain("<span>encuestas del parte, por aula visitada</span>");
