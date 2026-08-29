@@ -42,10 +42,26 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
 
   return (
     <div className="aulas-embudo" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-      <p className="aulas-cadenas-lectura">
-        De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
-        <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{ultimo.pct}%</strong>
-      </p>
+      {/* **Sin los descuentos no hay cadena que leer.** Con los 152 partes sin
+          rechazos ni duplicados la frase decía «De 4.386 personas en el aula
+          quedaron 4.386 respuestas · 100 %», que afirma conversión total cuando
+          lo que pasa es que nadie anotó esos dos pasos. Se dice cuáles faltan
+          en vez de dibujar una cadena que no se midió. */}
+      {e.pasosSinDeclarar.length >= 2 ? (
+        <p className="aulas-cadenas-lectura">
+          <strong>{fmt(e.asistentes)}</strong> personas estaban en el aula. La
+          cadena hasta las efectivas no se puede leer: ningún parte declara{" "}
+          {e.pasosSinDeclarar.join(" ni ")}.
+        </p>
+      ) : (
+        <p className="aulas-cadenas-lectura">
+          De <strong>{fmt(e.asistentes)}</strong> personas en el aula quedaron{" "}
+          <strong>{fmt(ultimo.quedan)}</strong> respuestas · <strong>{ultimo.pct}%</strong>
+          {e.pasosSinDeclarar.length ? (
+            <em>{" "}· sin contar {e.pasosSinDeclarar[0]}, que ningún parte declara</em>
+          ) : null}
+        </p>
+      )}
       <ol className="aulas-embudo-pasos">
         {e.pasos.map((p) => (
           <li key={p.clave}>
