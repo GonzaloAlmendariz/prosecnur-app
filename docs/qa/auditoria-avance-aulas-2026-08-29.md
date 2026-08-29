@@ -55,3 +55,69 @@ por la atención con preguntas que no son la que decide.
 
 **Nada de esto se toca sin su palabra.** El error de esta sesión fue construir
 antes de entender.
+
+---
+
+# Propuesta de estructura
+
+**Encargo suyo, 2026-08-29**: «la pestaña más importante debería estar al
+inicio… pero también quiero que te plantees no solo estas seis pestañas, cómo
+mejorar cada una, sino pueden haber más, pueden haber hasta dos más, pero todas
+tienen que tener un propósito real».
+
+## El orden ya cambió
+
+`a756bafd`: **Cuotas · Resumen · Estratos · Rendimiento · Efectividad · Salidas**.
+
+## Qué propósito tiene hoy cada una, medido
+
+| pestaña | superficies | la pregunta que contesta | veredicto |
+|---|---:|---|---|
+| **Cuotas** | 7 | ¿Cada celda facultad×sexo va a cerrar? | **Es el norte.** Se queda como está |
+| **Resumen** | 7 | ¿Cómo va el operativo hoy? | Propósito claro, pero 7 paneles y ninguno conoce el sexo |
+| **Estratos** | 2 | — | **Perdió su identidad.** Ver abajo |
+| **Rendimiento** | 9 | ¿Cuánto rinde cada aula y cada facultad? | Nueve paneles para una pregunta |
+| **Efectividad** | 1 | ¿El campo se comporta como el supuesto? | Un panel solo en una pestaña |
+| Salidas | — | Llevárselo | Se queda |
+
+## Los tres problemas de propósito
+
+**1. Estratos ya no es una pestaña.** Su gráfico pasó a ser facultad×sexo
+—o sea, es Cuotas— y lo que queda propio es la tabla del estrato del SORTEO, que
+es documentación del diseño y no monitoreo. **Propuesta: retirarla**, moviendo su
+tabla a un desplegable dentro de Cuotas.
+
+**2. Rendimiento (9 paneles) y Efectividad (1) son la misma pregunta.** El ADR
+0082 las separó a propósito, pero 9 contra 1 no es una separación, es un
+desbalance. **Propuesta: fundirlas** en una sola, «Rendimiento», con la
+efectividad como su primer panel.
+
+**3. `avance_por_facultad` no tiene sexo.** El panel «cada facultad contra su
+meta» de Resumen puede decir que una facultad va bien mientras su celda de
+mujeres va corta. Medido sobre los tres simulacros: en `como_2025` **tres**
+facultades cubren su total y ninguna tenía celda corta, así que el mecanismo
+pudo dispararse tres veces y no lo hizo — es **posible, no observado**. En
+`campo_malo` ninguna cubre su total y la prueba no puede dispararse.
+**Propuesta: darle el corte por sexo**, que es barato y elimina la duda.
+
+## Las dos pestañas nuevas, cada una con su porqué
+
+**A · Decisiones** — *¿qué decidimos, y qué falta decidir?*
+Hoy las decisiones están repartidas: la reserva dirigida vive dentro de Cuotas,
+los reemplazos activados en Consultas, y el banco en Rendimiento. Son la misma
+pregunta operativa —**a qué aula mando gente mañana**— y quien la tiene que
+contestar hoy visita tres sitios.
+
+**B · Calendario** — *¿llegamos a la fecha?*
+Existe desde `8b754bec`, que resucitó la fecha: once días de campo, ritmo
+diario, pronóstico de cierre y corte del estudio. Ahora mismo esos cuatro
+paneles están dispersos entre Resumen y Rendimiento, contestando una pregunta
+—**el tiempo**— que no es la de ninguna de las dos.
+
+## Resultado
+
+**Seis pestañas, no ocho**: Cuotas · Decisiones · Calendario · Resumen ·
+Rendimiento · Salidas. Se retira Estratos, se funde Efectividad, y las dos
+nuevas recogen paneles que ya existen y hoy están fuera de sitio.
+
+**Nada de esto se implementa sin su palabra.**
