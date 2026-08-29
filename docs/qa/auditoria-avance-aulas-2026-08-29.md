@@ -121,3 +121,34 @@ Rendimiento · Salidas. Se retira Estratos, se funde Efectividad, y las dos
 nuevas recogen paneles que ya existen y hoy están fuera de sitio.
 
 **Nada de esto se implementa sin su palabra.**
+
+
+---
+
+# Corrección de esta propuesta, tras ver Efectividad
+
+**Propuse fundir Efectividad dentro de Rendimiento sin haberla capturado.** Al
+verla, la propuesta era mala.
+
+Es una sola superficie pero es la más densa del perfil, y contesta una pregunta
+que ninguna otra contesta: **¿el campo responde como la tasa suponía?**
+
+> En las 152 aulas ya aplicadas, la tasa de la facultad suponía que respondería
+> el **52,0 %** de los alumnos. Está respondiendo el **28,7 %**. **798 alumnos
+> en riesgo en 12 facultades.**
+
+Por facultad da lo esperado, lo que va respondiendo **con su intervalo**
+(± 6 pts, ± 8 pts, ± 27 pts según cuántas aulas la respaldan), la comparación
+visual, los alumnos en riesgo y la acción: «hacen falta 14 de 311».
+
+**Y ya trataba la incertidumbre con intervalos.** Cuando construí la
+probabilidad de cierre inventé un convenio propio —un porcentaje con su
+salvedad en el `title`— habiendo aquí, en el mismo perfil, un convenio
+establecido y mejor: el punto con su ± pts. Debí mirarlo antes de construir.
+
+**Estructura revisada**: Cuotas · Decisiones · Calendario · Resumen ·
+Rendimiento · **Efectividad** · Salidas. Se retira sólo Estratos.
+
+Y queda un pendiente que sale de aquí: **unificar el convenio de incertidumbre**.
+Hoy el perfil dice «± 8 pts» en un sitio y «85 % de cerrar» en otro para la
+misma clase de afirmación.
