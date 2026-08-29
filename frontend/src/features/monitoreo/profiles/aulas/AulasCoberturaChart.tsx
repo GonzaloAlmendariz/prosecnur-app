@@ -126,11 +126,24 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     marker: { color: rellenos },
     // `String()` dejaba «1355» a dos centimetros del «1,259» del panel de al
     // lado: el mismo numero en dos formatos. Va por el formateador de la casa.
-    text: tramos.map((t) => (t.aulas ? fmt(t.aulas) : "")).reverse(),
+    // **El cero SÍ se escribe aquí**, y no es una contradicción con el gráfico
+    // de acumulado, donde se omite a propósito. Allí el cero es un DÉFICIT
+    // cubierto —buena noticia— y su etiqueta compite con las celdas que sí
+    // piden algo. Aquí es cuántos cursos-horario cayeron en esa banda de
+    // cobertura: que sean cero describe la forma del reparto, y sin número la
+    // fila queda con su etiqueta al lado de nada, que se lee como un hueco de
+    // renderizado. Medido en pantalla: «Muy por debajo (menos de la mitad)»
+    // aparecía sin barra y sin cifra entre cuatro filas que sí las tenían.
+    text: tramos.map((t) => fmt(t.aulas)).reverse(),
     // «auto» deja que Plotly saque la cifra fuera cuando la barra es corta, y
     // ahi el fondo es el papel, no el relleno. Por eso las dos tintas se
     // declaran por separado en vez de forzar una sola.
-    textposition: "auto",
+    // Un `auto` sobre una barra de ancho CERO no pinta nada: Plotly no tiene
+    // dónde meter el texto dentro y no lo saca fuera por su cuenta. Comprobado
+    // en pantalla — con el cero ya escrito, la fila seguía apareciendo vacía—.
+    // Se le dice punto a punto: fuera cuando la barra no existe.
+    textposition: tramos.map((t) => (t.aulas ? "auto" : "outside")).reverse(),
+    cliponaxis: false,
     insidetextfont: fuenteDeCifraEnBarra(rellenos.map(tintaSobre)),
     outsidetextfont: fuenteDeCifraEnBarra(COLOR_ACUMULADO),
     hovertemplate: "%{y}: %{x} cursos-horario<extra></extra>",
