@@ -1266,3 +1266,83 @@ De las 174 vigentes a las 173 corregidas:
 Neto −1. Pero **las dos subidas no se pagan con las tres bajas**: la cuota es por
 facultad y no se compensa entre ellas (ADR 0079). Que sobre una en Psicología no
 cubre que falte una en EE.GG. Letras.
+
+---
+
+# El τ del estudio es una foto de un marco que ya no existe (2026-08-28)
+
+La sesión par encontró que el τ sellado en `aulas_por_estrato` no se reconstruye
+con la fórmula que el documento describe: cinco facultades con factor 1,000
+—donde τ **debería ser exactamente** la mezcla de tamaños de su marco— no
+cuadran. Y dejó la dicotomía abierta: ¿el documento describe un cálculo que el
+código no hace, o el código guardó el resultado de un cálculo anterior?
+
+**Es lo segundo, y se comprueba exacto.**
+
+## La prueba
+
+`calc_muestra_aulas_tasas_facultad` sobre el marco de **`HSVG26DEF.pulso`**
+(26-08) reproduce el τ sellado en **las quince facultades, a cuatro decimales,
+diferencia 0,0000**. Ninguna otra lo hace:
+
+| fuente probada | coincide |
+|---|---:|
+| marco de ULT1 (1 512 aulas) | 7 de 15 |
+| marco de ULT2 (1 392 aulas) | 7 de 15 |
+| marco de ULT2 sin filtrar `included` (5 269 filas) | 5 de 15 |
+| media por aula sin ponderar | 1 de 15 |
+| **marco de HSVG26DEF (1 632 aulas)** | **15 de 15** |
+
+## Tres marcos, un τ congelado en el primero
+
+| | aulas elegibles | elegibles |
+|---|---:|---:|
+| HSVG26DEF · 26-08 | **1 632** | 56 346 |
+| HSVG26ULT · 26-08 09:33 | 1 512 | 52 399 |
+| HSVG26ULT2 · 27-08 | 1 392 | — |
+
+Entre DEF y ULT2 salieron **240 aulas** por depuración de criterios, y **el τ no
+se recalculó**. El dimensionamiento entero —`cuota / (P25 × τ)`— corrió con la
+tasa del marco viejo.
+
+## Y el documento publica un τ distinto del que dimensionó
+
+La sección 4.4 del documento de diseño recomputa desde el marco de **ULT1**, así
+que su tabla es internamente coherente (Arquitectura: 20 aulas, 779 elegibles,
+mezcla 0,5485, factor 1,000, τ 0,5485). Pero el estudio dimensionó con el τ de
+**DEF**:
+
+| Facultad | τ que publica el documento | τ que usó el diseño | dif |
+|---|---:|---:|---:|
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 0,7105 | **0,6819** | −4,0 % |
+| EDUCACION | 0,6452 | **0,6226** | −3,5 % |
+| ARQUITECTURA Y URBANISMO | 0,5485 | **0,5461** | −0,4 % |
+| ARTES ESCÉNICAS | 0,7525 | **0,7399** | −1,7 % |
+| CIENCIAS SOCIALES | 0,5524 | **0,5482** | −0,8 % |
+
+**Son dos números distintos con el mismo nombre en el mismo estudio**: el que la
+tabla muestra y el que dividió la cuota.
+
+## Dirección del error: conservadora
+
+El τ sellado es **más bajo** que el del marco vigente en las que difieren, y una
+τ más baja pide **más** aulas. Así que el estudio está sobredimensionado por este
+motivo, no subdimensionado. No es urgente para el campo en curso.
+
+## Por qué pasó, y qué lo evita
+
+`aulas_por_estrato$tau` sale de `e$tau`, el τ **declarado en el estrato del
+componente**, que el frontend escribe una vez. El marco se puede reconstruir
+cuantas veces se quiera —y se reconstruyó dos— sin que nada vuelva a tocar ese
+campo ni avise de que quedó viejo.
+
+Es la segunda cifra de este mismo motor que no se reconstruye con la fórmula que
+la describe; la otra es la calibración embebida. **Pero son de clases distintas y
+conviene no juntarlas**: la calibración embebida no sale de ninguna base
+conocida, y ésta sale exacta de un marco identificable. Una es de origen
+desconocido; la otra es una foto fechada.
+
+El invariante que lo habría cazado: **con `factor_facultad = 1,000`, τ tiene que
+ser idéntica a la mezcla de tamaños del marco vigente.** Nueve de las quince
+facultades cumplen esa condición por construcción, así que da un test barato y
+sin falsos positivos.
