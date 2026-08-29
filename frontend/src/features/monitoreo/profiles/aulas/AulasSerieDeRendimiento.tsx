@@ -1150,6 +1150,37 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {/* El esperado sólo con una facultad elegida: veinte líneas punteadas
                 sobre veinte sólidas no se leen, y encima el esperado es lo que se
                 mira DESPUÉS de decidir a quién mirar. */}
+            {/* **La banda del esperado, DEBAJO de su línea.** El esperado es una
+                media posterior y se dibujaba solo: con dos aulas visitadas y con
+                treinta el punteado se ve igual, y no significa lo mismo. Es el
+                mismo defecto que la probabilidad de cierre repara en las celdas.
+
+                Va sin borde y muy translúcida: no es un dato más, es el ancho
+                del que ya está dibujado. Se salta los días sin banda en vez de
+                interpolarlos —una banda inventada es peor que ninguna—. */}
+            {elegida ? (() => {
+              const conBanda = elegida.dias
+                .map((d, i) => ({ d, i }))
+                .filter(({ d }) => d.esperadoBanda !== null);
+              if (conBanda.length < 2) return null;
+              const arriba = conBanda.map(({ d, i }) => `${xa(i)},${y(d.esperadoBanda!.alto)}`);
+              const abajo = [...conBanda].reverse().map(({ d, i }) => `${xa(i)},${y(d.esperadoBanda!.bajo)}`);
+              return (
+                <polygon
+                  points={[...arriba, ...abajo].join(" ")}
+                  fill={COLOR_RESULTADO.pendiente}
+                  fillOpacity="0.13"
+                  stroke="none"
+                >
+                  <title>
+                    Banda del 90 % del esperado. Hereda el mismo supuesto que la
+                    probabilidad de cierre —las respuestas de un aula no son
+                    independientes del todo—, así que la banda real es algo más
+                    ancha que ésta.
+                  </title>
+                </polygon>
+              );
+            })() : null}
             {elegida ? (
               <polyline points={elegida.dias.map((d, i) => `${xa(i)},${y(d.esperado)}`).join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.pendiente} strokeWidth="2"

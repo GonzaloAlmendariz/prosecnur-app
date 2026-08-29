@@ -115,6 +115,16 @@ export type DiaDeRendimiento = {
   /** Media posterior Gamma-Poisson con el prior del estudio a esa fecha. */
   esperado: number;
   /**
+   * La banda del 90 % alrededor de ese esperado, o `null` cuando la posterior
+   * es demasiado débil para que la aproximación valga.
+   *
+   * El esperado es una media posterior y se dibujaba como una línea sola, que
+   * es exactamente el defecto que la probabilidad de cierre repara en las
+   * celdas: un estimador puntual leído como si fuera cierto. Con dos aulas
+   * visitadas y con treinta el punteado se ve igual, y no significa lo mismo.
+   */
+  esperadoBanda: { bajo: number; alto: number } | null;
+  /**
    * Lo que el DISEÑO supuso que dejaría cada una de las aulas de ese día, en
    * encuestas por aula. `null` cuando ninguna trae meta del diseño.
    *
@@ -164,6 +174,38 @@ const redondea = (n: number) => Math.round(n * 10) / 10;
  *   misma razón que en `rendimientoPorFacultad`: si cada superficie uniera por su
  *   cuenta podrían discrepar en de qué facultad es un aula.
  */
+/**
+ * Los extremos de la banda creíble del esperado.
+ *
+ * La posterior de un Gamma-Poisson conjugado es `Gamma(alfa, beta)` con
+ * `alfa = efectivas + peso*media` y `beta = aulas + peso`, y su media es
+ * `alfa/beta` — que es justo lo que ya se dibuja. Los cuantiles salen por
+ * **Wilson-Hilferty**, que aproxima la Gamma con un cubo de una normal:
+ *
+ *     q(p) ~= (alfa/beta) * (1 - 1/(9*alfa) + z_p/(3*sqrt(alfa)))^3
+ *
+ * Se usa porque no hay `qgamma` en el navegador y traer una libreria de
+ * estadistica por dos cuantiles no se paga. **La aproximacion se degrada con
+ * `alfa` pequeña**, asi que por debajo de `ALFA_MINIMA` se devuelve `null` en
+ * vez de una banda que no vale: una banda inventada es peor que ninguna, porque
+ * la banda es justo la promesa de que se conoce la incertidumbre.
+ */
+const Z_90 = 1.6448536269514722;   // cuantil 0,95 de la normal: banda central del 90 %
+const ALFA_MINIMA = 5;
+
+export function bandaDelEsperado(alfa: number, beta: number): { bajo: number; alto: number } | null {
+  if (!Number.isFinite(alfa) || !Number.isFinite(beta) || alfa < ALFA_MINIMA || beta <= 0) return null;
+  const media = alfa / beta;
+  const cuantil = (z: number) => {
+    const t = 1 - 1 / (9 * alfa) + z / (3 * Math.sqrt(alfa));
+    return media * Math.max(0, t) ** 3;
+  };
+  const bajo = cuantil(-Z_90);
+  const alto = cuantil(Z_90);
+  if (!Number.isFinite(bajo) || !Number.isFinite(alto) || alto <= bajo) return null;
+  return { bajo: redondea(bajo), alto: redondea(alto) };
+}
+
 export function serieDeRendimiento(
   partes: ReadonlyArray<MonitoreoRow>,
   /** El plan, sólo para los elegibles de cada aula: el parte no los trae. */
@@ -282,6 +324,7 @@ export function serieDeRendimiento(
         aulasAcumuladas: aulasAcum,
         efectivasAcumuladas: efectivasAcum,
         esperado: redondea((efectivasAcum + PESO_DEL_PRIOR * media) / (aulasAcum + PESO_DEL_PRIOR)),
+        esperadoBanda: bandaDelEsperado(efectivasAcum + PESO_DEL_PRIOR * media, aulasAcum + PESO_DEL_PRIOR),
         metaPorAula: dia.aulasConDiseno ? redondea(dia.metaDiseno / dia.aulasConDiseno) : null,
         aulasConDiseno: dia.aulasConDiseno,
       } satisfies DiaDeRendimiento;
