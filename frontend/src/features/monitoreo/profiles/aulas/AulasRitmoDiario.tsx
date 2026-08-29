@@ -56,7 +56,22 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
   const { dias, dias_con_campo: conCampo, mejor_dia: mejor, media_diaria: media, meta } = ritmo;
   const tope = dias.reduce((max, d) => Math.max(max, d.validas), 0);
   const total = dias[dias.length - 1]?.acumulado ?? 0;
-  const falta = Math.max(0, meta - total);
+  // **La meta se muestra REDONDEADA y el faltante se calcula sobre esa misma
+  // cifra**, para que la resta cuadre y para que coincida con el resto de la
+  // app.
+  //
+  // Al pasar el pie a `fmtCuenta` —que redondea hacia arriba, y para «lo que
+  // falta» es lo correcto— la meta salió **3.492** mientras Cuotas y Salidas
+  // dicen **3.491**: la misma cantidad (3.491,4) con dos redondeos. Eso no son
+  // dos granos legítimos, es una inconsistencia, y la introduje yo.
+  //
+  // Una meta no es «lo que hace falta conseguir de más»: es una cantidad ya
+  // fijada, y el motor la publica redondeada al entero más cercano en
+  // `avance_cuota$total$cuota`. Se muestra igual aquí. Y el faltante se saca de
+  // la meta MOSTRADA, así que 667 + 2.824 = 3.491 cuadra a la vista y da el
+  // mismo número que la banda de KPIs y que la tabla del cliente.
+  const metaEntera = Math.round(meta);
+  const falta = Math.max(0, metaEntera - total);
   // Cuántos días más al ritmo medio. Es una división, no un pronóstico, y por
   // eso se dice «al ritmo de» y no «terminará el».
   const diasAlRitmo = media > 0 && falta > 0 ? Math.ceil(falta / media) : 0;
@@ -114,7 +129,7 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
               arreglaron**: se corrigió la media diaria y no este pie. Hacia
               arriba en los dos, que es la regla de una meta y de lo que falta
               para cumplirla: quedarse a 0,4 de una persona es quedarse corto. */}
-          Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(meta)}
+          Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(metaEntera)}
           {diasAlRitmo
             ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
             : ""}
