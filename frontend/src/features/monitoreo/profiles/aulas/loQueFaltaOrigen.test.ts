@@ -66,3 +66,22 @@ describe("la brecha declara el origen de lo conseguido", () => {
     expect(r.mezclaDeOrigenes).toBe(true);
   });
 });
+
+describe("los rótulos no prometen τ cuando miden otra cosa", () => {
+  it("el alcance del banco nombra su numerador y lo distingue de la efectiva", async () => {
+    // ADR 0082, cláusula 3: el parte y la Base de control NO producen τ,
+    // producen el cuadre, y van «con su propio rótulo, nunca junto a τ bajo el
+    // mismo nombre». Este panel proyecta con `sent_total` y decía «la tasa a la
+    // que han respondido las aulas», que es la forma exacta de nombrar τ.
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const aqui = path.dirname(fileURLToPath(import.meta.url));
+    const fuente = fs.readFileSync(path.join(aqui, "AulasAlcanceDelBanco.tsx"), "utf8");
+    // El cuerpo, sin comentarios: uno de ellos cita la frase vieja para
+    // explicar por qué se cambió, y un detector ingenuo la contaría.
+    const cuerpo = fuente.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+    expect(cuerpo).toContain("da por enviado");
+    expect(cuerpo).not.toContain("han respondido las aulas aplicadas");
+  });
+});
