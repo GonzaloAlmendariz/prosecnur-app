@@ -98,10 +98,18 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
       <p className="mon-profile-muted aulas-alcance-base">
         {/* De dónde sale la proyección. Sin esto, «1 430» parece un dato del
             banco y es una cuenta hecha con la tasa a la que responden las aulas
-            ya aplicadas. */}
-        Con la tasa a la que han respondido las aulas aplicadas:{" "}
+            ya aplicadas.
+
+            **Y CON QUÉ NUMERADOR, que es lo que faltaba.** Esta tasa se calcula
+            con `sent_total` —lo que la Base de control da por ENVIADO—, no con
+            las respuestas que llegaron a la plataforma y pasaron los filtros.
+            Decía «han respondido», que es la forma exacta de nombrar τ, y el
+            ADR 0082 lo señaló por su nombre: el parte y la Base de control no
+            producen τ, producen el cuadre, y van con su propio rótulo. */}
+        Con lo que la Base de control da por enviado en las aulas aplicadas:{" "}
         <strong>{pct(r.tasa.tasa)}</strong> de su población elegible, medida en{" "}
-        {fmt(r.tasa.aulas)} aulas. La banda es la variación entre aulas, que es
+        {fmt(r.tasa.aulas)} aulas. No es la efectiva de plataforma, que es la que
+        define el cumplimiento del estudio. La banda es la variación entre aulas, que es
         alta —{fmt(Math.round(r.tasa.sd * 100))} puntos—, así que una cifra sola
         prometería una precisión que no hay.
         {r.caida > 0 ? (
