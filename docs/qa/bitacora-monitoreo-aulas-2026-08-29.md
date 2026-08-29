@@ -1058,3 +1058,38 @@ asignó a esa cadena, cuatro para todas— y el 507 del «Status de aplicación�
 sólo las que están **despiertas**; el resto duerme o está en el banco. Las dos
 cifras son compatibles. Segunda sospecha del día que mirar levanta y medir
 descarta.
+
+---
+
+## 56 · `calidad/registro`: sana, y el límite del arreglo de las tildes
+
+`geometryIssues=0`. Cuatro sospechas y ninguna era defecto:
+
+- **«Aulas aplicadas (campo)» con 700 filas donde 652 no tienen registro.** El
+  título parece prometer 700 aplicadas. Ya está resuelto y documentado en
+  `RegistroDeCampo.tsx:449`: el nombre es deliberado —es la hoja del libro— y el
+  antetítulo «HOJA DEL LIBRO» más el contador «652 de 700 todavía sin registrar»
+  lo convierten en lo que es, un destino del libro.
+- **«Ningún equipo se separa de las 18.0 encuestas por aula» con Perez en 25,0 y
+  Rojas en 14,5.** No se contradice: «no se separa» significa que su banda
+  —±31,4 y ±22,2— contiene la media del estudio, y la nota del pie lo explica.
+- **«8 rechazos/100» con una sola aula.** Está normalizado por cien encuestas y
+  el pie lo dice: «en bruto, quien hace más aulas parece siempre el más
+  problemático».
+- **Punto decimal en «18.0» y «94.9».** Es el formato correcto de `es-PE`, que
+  usa coma para los miles y punto para los decimales.
+
+### El límite del ítem 36, y hay que respetarlo
+
+En esta pantalla se leen «El docente **pidio** empezar al final de la clase» y
+«Docente **cancelo** la clase», sin tilde. **No se tocan.** Son observaciones
+tecleadas por el campo, o sea datos del cliente, y la regla es explícita: «la
+información tal cual como viene en la DTI, no cambies nada ni normalices».
+
+Queda escrito porque es exactamente lo contrario de lo que acabo de hacer en el
+ítem 36 y la distinción es fácil de perder: **las frases que escribe la app se
+tildan; el dato que llega de la fuente se muestra tal cual.** Un barrido de
+tildes que no distinga las dos cosas corrompe datos de cliente.
+
+Tercer tick seguido en que mirar levanta sospechas y medirlas las descarta. Sin
+cambios de código.
