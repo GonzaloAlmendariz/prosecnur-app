@@ -1,4 +1,5 @@
 import type { BrechaPorSexo } from "./candidatosDeReemplazo";
+import { sexSeriesKind } from "../../../calcMuestra/sexoPalette";
 
 /**
  * Lo que le falta por sexo a la facultad de un aula, para elegir su reemplazo.
@@ -40,14 +41,22 @@ export function brechaDeLaFacultad(
     // `sex_key` es el sexo ya normalizado por el motor a F/M; `sex` es como
     // venía en la columna. Se prefiere la clave y sólo se cae al crudo cuando
     // no viaja, porque es la que el propio motor usó para agregar.
-    const sexo = String(celda.sex_key ?? celda.sex ?? "").trim().toLocaleUpperCase().slice(0, 1);
-    if (sexo !== "F" && sexo !== "M") continue;
+    // **El `slice(0, 1)` sobre el crudo contaba las mujeres como hombres.**
+    // «Mujer» recortado a su primera letra es «M». La clave del motor sí viene
+    // normalizada a F/M y se sigue prefiriendo; lo que cambia es el respaldo:
+    // cuando no viaja, el crudo se clasifica con `sexSeriesKind`, que es el
+    // criterio de la casa, en vez de mirarle la inicial.
+    const key = String(celda.sex_key ?? "").trim().toLocaleUpperCase();
+    const kind = key === "F" ? "female"
+      : key === "M" ? "male"
+      : sexSeriesKind(String(celda.sex ?? "").trim());
+    if (kind !== "female" && kind !== "male") continue;
 
     const falta = Number(celda.missing);
     if (!Number.isFinite(falta)) continue;
 
     vistas += 1;
-    if (sexo === "F") brecha.mujeres += Math.max(0, falta);
+    if (kind === "female") brecha.mujeres += Math.max(0, falta);
     else brecha.hombres += Math.max(0, falta);
   }
 

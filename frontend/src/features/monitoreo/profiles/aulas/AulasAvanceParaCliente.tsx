@@ -119,7 +119,7 @@ export function AulasAvanceParaCliente({
         )}
         {/* Los faltantes no se netean, y quien vea el total querrá restarlo. */}
         <span className="aulas-cliente-nota">
-          lo que falta se suma por facultad: cubrir de más en una no cubre otra
+          lo que falta se suma celda a celda: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
         </span>
       </p>
 

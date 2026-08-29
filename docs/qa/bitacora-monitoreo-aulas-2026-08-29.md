@@ -275,3 +275,46 @@ La lección: **la 33 nació de comparar dos cifras en una captura sin ir a ver s
 denominadores.** El tell estaba a la vista —una tarjeta dice «con lo agendado» y
 la otra superficie dice «del plan»— y aun así escribí «dos lecturas del mismo
 dato». Es la trampa de siempre: una palabra para dos cosas.
+
+---
+
+## 35 · «Mujer» empieza por eme
+
+Salió persiguiendo el ±1 entre «Cuota por recoger 2.824» y «Faltan 2.825». No era
+redondeo: eran **dos cantidades distintas con el mismo nombre**. La tarjeta suma
+`max(0, target − observed)` celda a celda; la tabla del cliente restaba los
+TOTALES de la facultad, o sea que un excedente de hombres tapaba un déficit de
+mujeres. Aplicaba el ADR 0079 entre facultades y se lo saltaba un nivel más
+abajo, que es donde vive la meta: «TODAS LAS FACULTADES CUMPLAN CON SU CUOTA DE
+SEXO».
+
+Al escribir el test de eso apareció lo gordo. El `sex` de `quotas_sex_faculty`
+**sale de la columna del estudio tal cual**
+(`monitoreo_aulas_universitarias.R:1586`), y `audit_reference.R:231` mapea
+`"1" = "Mujer", "2" = "Hombre"`. Tres superficies del perfil lo trataban mal,
+cada una a su manera y ninguna avisando:
+
+| Superficie | Cómo clasificaba | Qué pasaba con «Mujer» |
+|---|---|---|
+| `avanceParaCliente.ts` | `/^(f|fem)/` y luego `/^(m|masc|varon|hombre)/` | falla la primera, **casa la segunda**: contada como hombre |
+| `brechaDeLaFacultad.ts` | `.slice(0, 1)` del crudo | «Mujer» → «M»: contada como hombre |
+| `celdasPorFacultad.ts` | `=== "F"` / `=== "M"` | **descartada**; el gráfico entero sale vacío |
+
+Las dos primeras son de las que no dan error: los totales por facultad siguen
+cuadrando y la columna de mujeres enseña las cifras de los hombres. La tercera es
+la lista cerrada que se traga lo que no reconoce.
+
+Existía desde el principio el clasificador de la casa —`sexSeriesKind` en
+`calcMuestra/sexoPalette.ts`, que prueba pertenencia exacta antes que subcadena,
+así que «m» sola es hombre y «mujer» es mujer— y `AulasSerieDeRendimiento` ya lo
+usaba. Las tres pasan a usarlo.
+
+Por qué no lo cazó nadie: **el estudio real trae `F`/`M`**, así que las tres
+funcionan sobre HSVG2026. El defecto sólo se ve con un estudio cuya variable de
+sexo esté etiquetada, que es exactamente lo que produce el proyecto de auditoría.
+Un fixture con los códigos buenos no prueba el clasificador; el test nuevo compara
+`("Mujer","Hombre")` contra `("F","M")` y exige que den lo mismo, y además mira el
+ORDEN de las celdas —si se invirtieran, el HTML seguiría teniendo un 40 y un 130—.
+
+Cuatro tests nuevos. Comprobados contra dos mutantes: restaurar el neteo entre
+sexos deja 1 rojo; restaurar las regex caseras deja 3.

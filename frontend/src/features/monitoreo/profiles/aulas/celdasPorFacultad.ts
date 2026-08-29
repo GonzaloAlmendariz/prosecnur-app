@@ -1,4 +1,5 @@
 import type { MonitoreoRow } from "../../../../api/monitoreo";
+import { sexSeriesKind } from "../../../calcMuestra/sexoPalette";
 
 const num = (v: unknown) => {
   const n = Number(v);
@@ -50,8 +51,14 @@ export function celdasPorFacultad(celdas: ReadonlyArray<MonitoreoRow>): CeldaDeF
 
   for (const c of celdas) {
     const facultad = txt(c.faculty) || "Sin facultad";
-    const sexo = txt(c.sex).toUpperCase();
-    if (sexo !== "F" && sexo !== "M") continue;
+    // No se compara contra `"F"`/`"M"` literales: el `sex` sale de la columna
+    // del estudio tal cual (`monitoreo_aulas_universitarias.R:1586`), y uno que
+    // diga «Mujer»/«Hombre» —el mapeo del proyecto de auditoría— caía en este
+    // `continue` y dejaba el panel entero vacío sin decir por qué. Descartar en
+    // silencio lo que no se reconoce es el defecto, no la protección.
+    const kind = sexSeriesKind(txt(c.sex));
+    if (kind !== "female" && kind !== "male") continue;
+    const sexo = kind === "female" ? "F" : "M";
 
     const fila = porFacultad.get(facultad) ?? {
       facultad,
