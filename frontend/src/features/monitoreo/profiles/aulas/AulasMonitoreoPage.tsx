@@ -24,46 +24,26 @@ import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
-import { AulasBancoExtras } from "./AulasBancoExtras";
-import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
-import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
-import { AulasCambioDeAula } from "./AulasCambioDeAula";
-import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
-import { AulasCadenaChart } from "./AulasCadenaChart";
-import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import { AulasPestanaResumen } from "./AulasPestanaResumen";
 import { AulasPestanaCuotas } from "./AulasPestanaCuotas";
 import { AulasPestanaEfectividad } from "./AulasPestanaEfectividad";
 import { AulasPestanaEstratos } from "./AulasPestanaEstratos";
 import { AulasSeccionModelo } from "./AulasSeccionModelo";
-import { AulasControles } from "./AulasControles";
-import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
+import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
+import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
-import { columnasDeLaTabla } from "./columnasDeLaTabla";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
-import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
-import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
-import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
-import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
-import { AulasFichaDeAula } from "./AulasFichaDeAula";
-import { AulasTextoAbierto } from "./AulasTextoAbierto";
-import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
-import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
-import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
-import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
-import { historiaDeCadena } from "./historiaDeCadena";
 import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
-import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
-import { AulasUmbralDeDuracion } from "./AulasUmbralDeDuracion";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
@@ -91,7 +71,6 @@ import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import { railDeAulas } from "./railDeAulas";
-import { parteDeCampo } from "./parteDeCampo";
 import {
   aulasFieldLabel,
   escalaDeProporciones,
@@ -759,112 +738,16 @@ function renderAulasView(
   })();
 
   if (view === "fuentes") {
-    // Las operaciones (importar plan / sincronizar campo) se muestran incluso
-    // sin dashboard: importar el plan es justamente la acción de arranque.
-    const embudo = embudoDelOperativo(dashboard?.kpis);
     return (
-      <div className="mon-profile-stack aulas-fuentes-stack">
-        {operations}
-        {/* **El recorrido, con su merma en cada paso.** Es el patrón 4 del
-            catálogo: Cálculo tiene un mapa que va de las filas leídas a los
-            titulares y contesta «¿de dónde salió este número?» sin salir de la
-            pantalla; Monitoreo enseñaba KPIs sueltos sin decir cómo se encadenan.
-            Ver docs/qa/roles-del-operativo-de-aulas-2026-08-22.md.
-            Vacío cuando no hay plan: el embudo de ceros no explica nada. */}
-        {embudo.length ? (
-          <section
-            className="mon-profile-panel aulas-embudo-panel"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Del plan a las encuestas que cuentan</h3>
-              <span>dónde está cada curso-horario ahora mismo</span>
-            </div>
-            <div data-qa-geometry-capacity="owned">
-              <FlujoVertical
-                etapas={embudo}
-                orientacion="horizontal"
-                ariaLabel="Recorrido del operativo: del plan a las encuestas válidas"
-              />
-              {/* **La explicación debajo de las cifras**, patrón 5 del catálogo.
-                  Cálculo pone bajo su cadena de conversión un párrafo que explica
-                  por qué el divisor son elegibles y por qué las reservas no
-                  cambian la muestra; un analista que lo abre entiende el cálculo.
-                  Aquí cada frase corresponde a una regla del motor, no a una
-                  intuición — las referencias están en `embudoDelOperativo.ts`. */}
-              {explicacionDelEmbudo(dashboard?.kpis).map((frase) => (
-                <p className="aulas-embudo-prosa" key={frase.slice(0, 32)}>{frase}</p>
-              ))}
-            </div>
-          </section>
-        ) : null}
-        <section
-          className="mon-profile-panel"
-          // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
-          // 5 px de holgura se leen como `capacity-drift` del panel. Es la trampa
-          // que la norma describe —declarar el grupo en el `section` en vez del
-          // wrapper de datos hace que el padding del encabezado se lea como
-          // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
-          // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
-        data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Antes decía «Fuente y plan» y era una tabla campo/valor que
-                repetía la corrida y el marco —ya son tarjetas de «Operación del
-                plan», justo arriba— y el sello de generación, que es el «Corte»
-                de la banda. Lo que faltaba era esto: qué se está leyendo. */}
-            <h3>De dónde salen las respuestas</h3>
-            {/* El libro cuenta como fuente: de él salen el plan, el parte de
-                campo y el control. Si no se contara, la cuenta diría una menos
-                de las que la lista enseña. */}
-            <span>{(() => {
-              const n = fuentes.length + (dashboard?.libro ? 1 : 0);
-              return n === 1 ? "1 fuente" : `${fmt(n)} fuentes`;
-            })()}</span>
-          </div>
-          <AulasFuentesDelEstudio
-            fuentes={fuentes}
-            anonimas={Boolean(dashboard?.anonymous_responses)}
-            libro={(dashboard?.libro ?? null) as ReciboDelLibro | null}
-            filas={volumen.filas}
-            columnas={volumen.columnas}
-          />
-        </section>
-        {/* **Qué cuenta como efectiva**, aquí y no en otra sección: Fuentes es la
-            que promete decir de dónde salen las respuestas, y de qué vale cada
-            una es parte de eso. Hasta ahora no se podía declarar en aulas —los
-            perfiles hermanos sí— y el motor sólo admitía una condición. */}
-        {criterioDeEfectiva ? (
-          <section className="mon-profile-panel" data-qa-geometry-contract="intrinsic">
-            <div className="mon-profile-panel-head">
-              <h3>Qué cuenta como encuesta efectiva</h3>
-              <span className="mon-profile-panel-hint">
-                hasta cuatro condiciones, y se cumplen todas
-              </span>
-            </div>
-            {criterioDeEfectiva}
-            {/* **El umbral de duración también se declara aquí, al principio.**
-                Gonzalo: «el umbral es menos de 5 minutos, configurable a 8 u
-                otros números, pero **lo ideal es definirlos al principio**».
-                Una respuesta contestada en dos minutos no vale, igual que una
-                sin consentimiento: es parte de «de qué vale cada una», que es lo
-                que esta sección promete. En Validación está el MISMO control,
-                junto a la distribución, porque el número se afina viendo la
-                forma del dato — pero el sitio para fijarlo antes de que llegue
-                la primera respuesta es éste. */}
-            {onDeclararUmbralDeDuracion ? (
-              <AulasUmbralDeDuracion
-                declarado={umbralDeDuracion.declarado}
-                minutos={umbralDeDuracion.minutos}
-                onDeclarar={onDeclararUmbralDeDuracion}
-                leyenda={umbralDeDuracion.declarado
-                  ? `Ahora se marcan las de menos de ${umbralDeDuracion.minutos} min.`
-                  : "Cuánto tiene que durar una respuesta para contar."}
-              />
-            ) : null}
-          </section>
-        ) : null}
-      </div>
+      <AulasSeccionFuentes
+        dashboard={dashboard}
+        operations={operations}
+        fuentes={fuentes}
+        volumen={volumen}
+        criterioDeEfectiva={criterioDeEfectiva}
+        umbralDeDuracion={umbralDeDuracion}
+        onDeclararUmbralDeDuracion={onDeclararUmbralDeDuracion}
+      />
     );
   }
   // El vacío lo pone la página, que es la que sabe si el plan está importado.
@@ -885,481 +768,28 @@ function renderAulasView(
     );
   }
   if (view === "calidad") {
-    // **El registro de campo abre Validación.**
-    //
-    // Estaba en «Agenda de cursos-horario», que es otro trabajo: agendar es
-    // conseguir la cita y el control de campo empieza cuando se sale. Y va
-    // primero porque esta sección la usan dos personas —el jefe de campo, que
-    // entra por lo que pasó en el aula, y el analista, que entra por los
-    // controles— y lo que se registra viene antes de lo que se valida.
-    if (pestana === "abiertas") {
-      return (
-        <div className="mon-profile-stack aulas-tablas-apiladas">
-        {/* **La calidad de lo que se escribió a mano.** Capacidad que no
-            existía en ningún perfil de Monitoreo. Es un visualizador: ordena
-            por dónde empezar a leer y no esconde respuestas. Como el de
-            tiempos, se muestra aunque este estudio no traiga instrumento.
-            Tiene pestaña propia —«Respuestas abiertas»— porque leerlas es un
-            trabajo entero y no algo que se mire de paso entre otros seis
-            paneles. */}
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-table"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            <h3>Lo que se escribió a mano</h3>
-            <span>calidad de las respuestas abiertas</span>
-          </div>
-          <AulasTextoAbierto bloque={dashboard.texto_abierto} />
-        </section>
-        </div>
-      );
-    }
-    if (pestana === "registro") {
-      return (
-        <div className="mon-profile-stack">
-          {registro}
-          {/* **Lo que el campo reportó, que hasta hoy no se leía en ninguna
-              pantalla.** `field_note` tenía formulario de entrada y cero
-              superficies de lectura: el aplicador anotaba lo que vio en el aula
-              y eso no llegaba a nadie. Va aquí, debajo del registro, porque es
-              la misma pestaña y la misma persona: quien registra y quien lee lo
-              registrado son el jefe de campo. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Lo que reportó el campo</h3>
-              <span>observaciones de partes y registros</span>
-            </div>
-            {/* Las DOS fuentes: el parte del libro y el registro de esta app,
-                que guarda su `field_note` en la fila del plan. El panel leía
-                sólo la primera mientras su vacío decía «se escriben al registrar
-                un aula» — el camino que no miraba. */}
-            <AulasObservacionesDeCampo
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-              registros={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* **Cómo trabaja cada equipo, en Validación y no enterrado en
-              Avance.** Es lo que el jefe de campo viene a ver, y existía sólo
-              como el cuarto de nueve paneles de otra sección midiendo encuestas
-              por aula. Aquí va con su banda: se está juzgando el trabajo de
-              personas y una diferencia de cinco encuestas entre el primero y el
-              último cabe entera en el ruido. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cómo trabaja cada equipo</h3>
-              <span>producción y calidad por aplicador</span>
-            </div>
-            <AulasTrabajoDeLosEquipos
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* La pregunta del analista: ¿lo de plataforma coincide con lo que se
-              vio en el aula? Va en la misma pestaña que el registro porque es el
-              contraste de lo que ahí se anota. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>El parte contra la plataforma</h3>
-              <span>lo declarado y lo que llegó</span>
-            </div>
-            <AulasParteContraPlataforma
-              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
-              agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
-            />
-          </section>
-          {/* **El control de tiempos, que el Excel anterior tenía y la app no.**
-              Va en Validación porque es pregunta del analista, y se muestra
-              aunque este estudio no traiga marcas de tiempo: el panel dice que
-              faltan. Un panel que desaparece cuando no hay dato deja al usuario
-              sin saber que el dato existe. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cuánto se tarda en responder</h3>
-              <span>duración por respuesta y por aula</span>
-            </div>
-            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos}
-              onDeclararUmbral={onDeclararUmbralDeDuracion ?? undefined} />
-          </section>
-
-          {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
-              puede saber si el criterio trabaja: un filtro que acepta todos los
-              valores da el mismo número que no tener filtro. Va en Validación
-              porque es la pregunta del analista sobre su propio criterio. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Qué descarta cada filtro</h3>
-              <span>la cadena de validez, paso a paso</span>
-            </div>
-            <AulasCadenaDeFiltros bloque={dashboard.cadena_filtros} />
-          </section>
-        </div>
-      );
-    }
-    const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
-    const summary = summarizeAulasValidation(rows);
-    const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
-    const controlResumen = (dashboard.control_calidad_resumen ?? null) as ResumenDeControl | null;
-    // Cada pestaña muestra SU panel, y el reparto es POSITIVO —«¿es ésta?»— y no
-    // por negación de la otra: con dos bastaría negar, pero en Consultas la
-    // negación ya falló al llegar la cuarta y no hay razón para repetirla acá.
-    const enBase = pestana === "base";
     return (
-      <div className="mon-profile-stack aulas-tablas-apiladas">
-      {/* **La ficha del aula en foco.** Va primero porque quien la abrió
-          viene a verla, y se gobierna con `foco=aula:<codigo>`, igual que el
-          detalle de facultad de esta misma sección. Cerrarla limpia el foco
-          y la sección vuelve a su lectura completa. */}
-      {foco?.tipo === "aula" ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Ficha del curso-horario</h3>
-          <span>lo esperado, lo conseguido y lo que anotó el campo</span>
-        </div>
-        <AulasFichaDeAula
-          codigo={foco.valor}
-          fuentes={{
-            agenda: (dashboard.agenda ?? []) as Array<Record<string, unknown>>,
-            partes: (dashboard.partes_campo ?? []) as Array<Record<string, unknown>>,
-            control: (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>,
-            brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
-          }}
-          onCerrar={() => onFoco(null)}
-          // El foco viaja en la URL, así que el registro se abre ya sobre esta
-          // aula: `codigoEnFoco` lo recoge del mismo `foco=aula:<codigo>`.
-          onRegistrar={irAPestana ? () => irAPestana("registro") : undefined}
-        />
-      </section>
-      ) : null}
-      {enBase ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Se queda: los controles los deriva el motor —el libro no trae hoja
-              de validación—, así que no hay encabezado que copiar. */}
-          <h3>Validación de cursos-horario</h3>
-          <span>{summary.label}</span>
-        </div>
-        {/* Avisos y no tabla: el detalle de un control es una frase entera y en
-            una celda de tres columnas se lee mal. Es además el lenguaje que ya
-            usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
-        <AulasControles filas={rows} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
-      </section>
-      )}
-      {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
-          por eso comparten sección, pero no son la misma medida: arriba lo que
-          deriva el motor, aquí lo que el equipo calcula en su Excel. Separarlos
-          evita que una fila parezca respaldar a la otra, y ahora además cada uno
-          recibe la vista entera en vez de competir por el alto. */}
-      {enBase ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
-              buscarlo en su libro. */}
-          <h3>Base de control</h3>
-          {/* «filas de la hoja» y no «aulas»: son las que trae el libro que llena
-              el equipo, y no tienen por qué ser las del plan —aquí 210 contra
-              196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
-              perfil cuya unidad es el curso-horario. El recibo del libro ya usa
-              este mismo lenguaje: «210 filas de control». */}
-          {/* Y cuantas columnas: en 1440 solo caben nueve, asi que dos tercios
-              de la tabla viven a la derecha del borde. La sombra de
-              desplazamiento ensena que hay mas; el numero dice cuanto mas.
-              «en la tabla» y no «columnas» a secas: pegado a «filas de la
-              hoja», se leia como el ancho de la HOJA, que son 39. */}
-          <span>
-            {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)}`
-              : "Sin datos"}
-          </span>
-        </div>
-        {/* La vara, junto al veredicto que produce. Declararla en una pantalla
-            de ajustes la dejaría lejos de su resultado, que es lo que hacía que
-            nadie supiera cuál era. */}
-        {criterioDeAula}
-        <AulasControlDelLibro
-          filas={control}
-          resumen={controlResumen}
-          criterio={(dashboard.criterio_validez ?? null) as never}
-        />
-      </section>
-      ) : null}
-      {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
-          —el veredicto primero, la cola de trabajo después— y en la misma
-          pestaña porque sale del mismo dato: en una pestaña propia habría que
-          saltar entre las dos para saber de qué aula se habla. */}
-      {enBase && control.length ? (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Lo que falta para cerrar</h3>
-          <span>
-            en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un aula corta
-            no obliga a nada si su facultad cierra igual
-          </span>
-        </div>
-        <AulasLoQueFalta filas={control} facultadEnFoco={facultadEnFoco} onFoco={onFoco} />
-      </section>
-      ) : null}
-      </div>
+      <AulasSeccionCalidad
+        dashboard={dashboard}
+        criterioDeAula={criterioDeAula}
+        facultadEnFoco={facultadEnFoco}
+        foco={foco}
+        irAPestana={irAPestana}
+        onDeclararUmbralDeDuracion={onDeclararUmbralDeDuracion}
+        onFoco={onFoco}
+        pestana={pestana}
+        registro={registro}
+      />
     );
   }
   if (view === "consultas") {
-    // Las tres listas van en paneles propios. Concatenadas producian una tabla
-    // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
-    // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
-    const reemplazos = reemplazosEnOrdenDeCadena(dashboard.reemplazos);
-    const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
-    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], (dashboard.agenda ?? []) as MonitoreoRow[]);
-    // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
-    // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
-    // reemplazo» es parte de la respuesta.
-    // El BANCO fuera de la agenda. Las aulas extra no cuelgan de ningún titular,
-    // no tienen fecha y no están agendadas: son respaldo del estrato para cerrar
-    // la cuota, y desde hace poco tienen su propia pestaña. Metidas aquí añadían
-    // 40 filas sin fecha a una tabla de 196 que sí importan, y hacían que el
-    // panel dijera «236 cursos-horario» dos dedos debajo de un KPI que decía
-    // 196: la misma palabra con dos cifras.
-    const agendaFilas = ((dashboard.agenda ?? []) as MonitoreoAulasPlanRow[])
-      .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool");
-    // La MISMA función que escribe la lectura: el contador de la cabecera y el
-    // renglón de abajo no pueden salir de dos cuentas distintas.
-    const cadenas = historiaDeCadena(agendaFilas);
-    // Cada pestaña muestra SU panel, y el reparto es POSITIVO. Con dos bastaba
-    // negar la otra; con tres hubo que negar dos; con la cuarta —Extras— la
-    // negación volvía a fallar y la cadena se pintaba encima. Preguntar «¿es
-    // esta pestaña?» en vez de «¿no es ninguna de las otras?» hace que la
-    // siguiente pestaña que se añada no herede el panel de nadie.
-    const enParte = pestana === "parte";
-    const enBrechas = pestana === "brechas";
-    const enExtras = pestana === "extras";
-    const enCadena = !enParte && !enBrechas && !enExtras;
     return (
-      <div className="mon-profile-stack aulas-tablas-apiladas">
-        {enCadena ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: el libro no tiene hoja de cadena, la expresa por
-                bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
-                n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
-            <h3>Cadena de reemplazos</h3>
-            {/* En CADENAS, que es la unidad de la lectura de abajo. Decía «50
-                filas» dos renglones encima de «3 con un reemplazo · 21 sin
-                cerrar», que suman 24: el mismo panel daba dos números para lo
-                que se lee como la misma cosa. La cuenta sale de la MISMA función
-                que escribe la lectura. */}
-            <span>{(() => {
-              const n = cadenas.historias.length;
-              return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
-            })()}</span>
-          </div>
-          {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
-              lo que se pregunta al cerrar el operativo; después cuánta reserva
-              se gastó. La tabla de abajo queda como el detalle fila a fila. */}
-          <AulasHistoriaCadena filas={agendaFilas} />
-          {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
-              reservas y caídas, así que un titular sin ninguna reserva —el caso
-              de L54— no aparecería y el gráfico diría que el plan tiene un
-              colchón que no tiene. */}
-          <AulasCadenaChart filas={agendaFilas} />
-          {/* Y DÓNDE aguanta. El consumo de arriba es del operativo entero; la
-              cuota, en cambio, es por facultad: veinte reservas libres no
-              sirven si la facultad que perdió un aula tiene cero. */}
-          <AulasColchonPorFacultad filas={agendaFilas} />
-          {/* La tabla cambia de unidad y lo dice: la lectura cuenta cadenas y
-              aquí va cada aula de esas cadenas, la que cayó y sus reservas. Sin
-              este renglón, 24 arriba y 50 abajo se leen como una contradicción. */}
-          <p className="mon-profile-muted">
-            Cada cadena, aula por aula: la que cayó y sus reservas.
-          </p>
-          <DataTable
-            rows={reemplazos}
-            empty="Ningún curso-horario ha necesitado reemplazo."
-            // El ORDEN y el ESTADO van delante del rol: con seis reservas del
-            // mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten
-            // en las seis filas, y lo que hay que ver es cuál sigue y cuáles ya
-            // se usaron.
-            // `motivo` y no `replacement_reason`: el motivo vive en un campo
-            // distinto según el papel de la fila —la que cae lo lleva en
-            // `replacement_reason` y la que entra en `activation_reason`—, así
-            // que sobre las 26 filas de reserva esa columna era estructuralmente
-            // vacía. El motor lo resuelve en una sola columna.
-            preferredColumns={["operational_code", "faculty", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
-          />
-        </section>
-        ) : null}
-        {enBrechas ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
-                columna del libro la trae escrita. */}
-            <h3>Cursos-horario con brecha</h3>
-            <span>{fmt(brechas.length)} filas</span>
-          </div>
-          {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
-              concentran lo que falta, y puede ser al revés. Esto lo dice. */}
-          <AulasConcentracionBrecha filas={(dashboard.brechas ?? []) as MonitoreoRow[]} />
-          <DataTable
-            rows={brechas}
-            empty="Ningún curso-horario tiene brecha abierta."
-            // Siete y se declaran: la octava la rellenaba el payload con
-            // `classroom_id`, que en las 86 filas vale lo mismo que
-            // `operational_code`. `faculty` entra a mano porque es el corte con
-            // el que se reparte el trabajo, no porque toque por orden.
-            preferredColumns={["operational_code", "label", "faculty", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
-            maxColumns={7}
-          />
-        </section>
-        ) : null}
-        {enParte ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* «Partes de campo» y no «Aulas aplicadas (campo)», que es como se
-                llama el panel del registro en Agenda: son dos superficies
-                distintas sobre la misma hoja —allí se llena un parte, aquí se
-                leen todos— y el guard de títulos rechaza que compartan nombre.
-                Lo pilló al escribirlo. */}
-            <h3>Partes de campo</h3>
-            <span>{cuadre.label}</span>
-          </div>
-          {/* De qué hoja sale. Las otras dos superficies del libro llevan el
-              nombre EXACTO de la suya —«Aulas agendadas» y «Base de control»,
-              que es a lo que el equipo va a buscarlas—; ésta se llama «partes de
-              campo», que es como se dice, y la hoja se llama «Aulas Aplicadas
-              (Campo)». Sin decirlo, quien busca en su libro no sabe cuál abrir. */}
-          <p className="mon-profile-muted">
-            De la hoja «Aulas Aplicadas (Campo)» del libro: lo que anotó quien
-            estuvo en el aula.
-          </p>
-          {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
-              duplicados pesen más que los rechazos. */}
-          <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
-          {/* La resta ya viene hecha del motor —el mismo helper que decide el
-              descuadre—, así que esta línea y el aviso de Validación no pueden
-              discrepar. Es el destino que le faltaba a «Cuadre del parte de
-              campo», que nombraba las aulas sin dar dónde mirarlas. */}
-          {cuadre.descuadrados ? (
-            <p className="aulas-parte-aviso">
-              <strong>{fmt(cuadre.descuadrados)}</strong>{" "}
-              {cuadre.descuadrados === 1 ? "parte no cuadra" : "partes no cuadran"}: asistentes
-              menos rechazos y duplicados no dan las efectivas declaradas. Se ven primero.
-            </p>
-          ) : null}
-          {/* El cambio de aula va DESPUÉS del descuadre, no en medio.
-              Metido entre el embudo y esta frase, partía la narración: el
-              lector iba «5 390 → 4 865 → el equipo declaró 4 863, DOS MENOS» y
-              se cruzaba con «30 aulas en otro salón» antes de leer la frase que
-              explica esos dos. Son dos hechos del mismo parte, pero uno explica
-              al anterior y el otro no. */}
-          <AulasCambioDeAula
-            partes={cuadre.filas as MonitoreoRow[]}
-            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          />
-          <DataTable
-            rows={cuadre.filas}
-            empty="Todavía no se ha registrado ningún parte de campo."
-            // SÓLO las columnas del parte, más el código para saber de qué aula
-            // es. Añadir facultad, curso u horario la convertiría en una segunda
-            // Agenda, y de eso ya hay una.
-            // Nueve y no ocho: `% Asistencia` va pegada a los asistentes que
-            // califica. Es el único de los once campos de la hoja que se leía y
-            // no llegaba a ninguna pantalla, y es el número que dice si el 70 %
-            // del padrón era alcanzable —con 55 % de asistencia no se llega ni
-            // respondiendo todos los presentes—.
-            // El parte dice DOS cosas y la tabla solo enseñaba una: la
-            // aritmetica del cuadre. Lo otro —si se aplico, en que aula de
-            // verdad, que dia y quien estuvo— es lo que el aplicador reporta y
-            // solo vive en esta hoja. Va primero porque es lo que se pregunta
-            // antes de mirar si las cuentas cuadran.
-            maxColumns={13}
-            preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia"]}
-          />
-        </section>
-        ) : null}
-        {enExtras ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-extras"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            {/* «Extras» es el nombre del dato: el plan las trae con
-                `wave = "Extra"`. La descripción dice para qué sirven, que es lo
-                que no se deduce del nombre —y que yo tenía mal: no reemplazan
-                a nadie—. */}
-            {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
-                guard de títulos lo caza. Dos paneles que terminan igual se
-                confunden en el rail y en el historial de navegación. */}
-            <h3>Aulas extra disponibles</h3>
-            <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
-          </div>
-          <p className="mon-profile-muted">
-            No reemplazan a ningún curso-horario: son aulas adicionales para
-            cerrar la cuota de hombres y mujeres de cada facultad.
-          </p>
-          {/* **Antes del inventario, no después.** La frase de arriba dice que
-              estas aulas existen para cerrar la cuota; lo primero que hay que
-              saber es si la cierran. Puesto debajo quedaba tras una tabla de 73
-              filas, y la respuesta se leía al final del catálogo —el mismo orden
-              que la Base de control ya sigue: veredicto, después detalle—. En el
-              mismo panel porque es una sola decisión. */}
-          <AulasAlcanceDelBanco
-            banco={dashboard.banco_extras ?? null}
-            control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
-            quotas={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
-            agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-            partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
-          />
-          <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
-        </section>
-        ) : null}
-      </div>
+      <AulasSeccionConsultas
+        dashboard={dashboard}
+        Tabla={DataTable}
+        pestana={pestana}
+        reemplazosEnOrdenDeCadena={reemplazosEnOrdenDeCadena}
+      />
     );
   }
   // **Las derivaciones de Avance se mudaron con sus pestañas.** `quotaRows`,

@@ -13,9 +13,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPageDeAulas } from "./fuenteDelPerfil";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
-const fuente = fs.readFileSync(path.join(aqui, "AulasMonitoreoPage.tsx"), "utf8");
+// Las dos listas (`const … = new Set([…])`) siguen declarándose en el
+// page-file, pero las `preferredColumns` viajaron a `AulasSeccion*` al
+// partirlo. Se lee el page MÁS sus trozos: es la misma superficie.
+const fuente = fuenteDelPageDeAulas();
 
 const listaDe = (nombre: string) => {
   const bloque = (fuente.match(new RegExp(`const ${nombre} = new Set\\(\\[([\\s\\S]*?)\\]\\)`)) ?? [])[1] ?? "";
