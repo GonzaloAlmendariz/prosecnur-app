@@ -211,26 +211,37 @@ terminan diciendo cosas distintas de la misma base.
 - **Objetivo**: encontrar una medida de duración que no dependa de `end`, o
   declarar explícitamente su margen. Sin eso, ninguna alerta de tiempo es
   defendible.
-- **⛔ Bloqueado, y el 2026-08-29 se acotó por qué.** La pregunta ya no es si
-  Kobo expone marcas de tiempo: **sí las expone**, `start` y `end` viajan en cada
-  respuesta. El bloqueo es que **ningún dato disponible las conserva**:
+- **✅ Contestado el 2026-08-29, y la respuesta es que SÍ se mide** — con un
+  margen que hay que declarar.
 
-  | fuente | respuestas | con duración > 0 | mediana |
-  |---|---:|---:|---:|
-  | simulacro `campo_malo` | 1.595 | **0** | — |
-  | `acnur_acg` (Kobo real, anonimizado) | 1.732 | 103 | **1.440 min** |
-  | `acnur_pdm` (Kobo real, anonimizado) | 2.726 | 30 | **1.440 min** |
+  Kobo expone `start` y `end` en cada respuesta. Medido sobre los dos proyectos
+  de referencia con Kobo real:
 
-  1.440 minutos son exactamente 24 horas, y sólo el 6 % y el 1 % tienen alguna
-  diferencia: el anonimizador conserva la fecha y arrasa la hora, así que
-  `end − start` da días enteros. El simulacro directamente pone las dos iguales.
+  | proyecto | con duración | mediana | p10 | p90 | < 3 min |
+  |---|---:|---:|---:|---:|---:|
+  | `acnur_acg` | **100 %** | 16,9 min | 6,2 | **603,7** | **40** |
+  | `acnur_pdm` | 16 % | 29,5 min | 14,0 | 166,9 | 0 |
 
-  **Qué desbloquea el ítem**: un export de Kobo sin anonimizar, o que
-  `pulso_anonimizar.R` conserve la hora del día —que no identifica a nadie— y
-  desplace sólo la fecha. Lo segundo es barato y sirve para siempre.
+  **El margen es asimétrico, y eso decide el uso.** El p90 de 603 minutos —diez
+  horas— es el problema que este ítem anticipaba: `end` es cuando se ENVÍA el
+  formulario, no cuando acabó la entrevista, así que uno que se queda abierto
+  infla la cola alta sin límite. La cola baja no tiene ese sesgo: nadie envía
+  antes de terminar.
 
-  Si con datos reales resultara que tampoco hay señal, la respuesta honesta
-  sigue siendo que la duración no se mide y el ítem se cierra diciendo eso.
+  **Conclusión: la duración sirve como detector de suelo, no como media.** Las
+  40 entrevistas de menos de 3 minutos de `acnur_acg` son una señal de calidad
+  real y defendible. Una «duración media» sobre estos datos no lo es.
+
+  **Corrección de un commit anterior de hoy** (`4f34db5d`): dije que el dato
+  estaba degradado —«1.440 minutos, el anonimizador arrasa la hora»—. Era **mi
+  parseo**: `as.POSIXct` no lee el separador `T` ni el desfase `-05:00`, así que
+  casi todo salía `NA`. Las marcas están completas y con milisegundos
+  (`2026-05-13T17:51:31.999-05:00`). El anonimizador no toca las fechas, lo
+  comprobé después.
+
+  Queda por hacer: publicar el detector de suelo y su umbral. El simulacro de
+  HSVG2026 no sirve para probarlo —pone `start` y `end` iguales en las 1.595
+  respuestas— así que se prueba con `acnur_acg`.
 
 **M8 · Qué se está escribiendo en las preguntas abiertas** ☑ *(2026-08-15)*
 - **Dónde vive**: `api/R/monitoreo_abiertas.R` (archivo propio) y el rol nuevo
