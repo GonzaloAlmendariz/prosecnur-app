@@ -1346,3 +1346,69 @@ El invariante que lo habría cazado: **con `factor_facultad = 1,000`, τ tiene q
 ser idéntica a la mezcla de tamaños del marco vigente.** Nueve de las quince
 facultades cumplen esa condición por construcción, así que da un test barato y
 sin falsos positivos.
+
+---
+
+# El cabo del barrido, cerrado: era la cuota, no la cobertura (2026-08-28)
+
+Quedaba sin explicar por qué mis niveles no reproducían los del barrido del
+27-08. Descartados ya el marco, la fuente de cuota de facultad y la fuente del τ,
+**la diferencia está en la cuota de la celda de sexo**, y reproduce exacto.
+
+## La verificación
+
+Celdas más ajustadas de cada semilla, sobre ULT2:
+
+| semilla | celda que manda | esperadas | cuota 157 | cuota 156 | barrido original |
+|---|---|---:|---:|---:|---:|
+| 202 | EE.GG. Letras · hombres | 168,6 | 1,0741 | **1,0810** | **1,0810** |
+| 4444 | EE.GG. Letras · hombres | 169,1 | 1,0768 | **1,0837** | **1,0837** |
+
+**Al cuarto decimal, las dos.** El barrido original usó **156** para EE.GG.
+Letras hombres donde `distribucion_sub` publica **157** — el mismo 156 que cita
+la sección 7.2 del documento de diseño.
+
+Y hay una segunda: para que el mínimo de la 4444 sea EE.GG. Letras y no
+Psicología, la cuota de **Psicología hombres** tiene que haber sido **≤ 17**
+donde `distribucion_sub` publica **18** (con 18 su cobertura es 1,0516, por
+debajo del 1,0837 que el barrido reportó como mínimo).
+
+## De dónde NO sale ese 156
+
+No es un redondeo del reparto por sexo. El reparto exacto sobre la cuota
+publicada da:
+
+    EE.GG. LETRAS  hombres   157,25  ->  round 157 · floor 157   (publicado 157)
+    PSICOLOGÍA     hombres    18,01  ->  round  18 · floor  18   (publicado  18)
+
+Ni redondeando ni truncando se llega a 156 y 17. Tendría que venir de una base de
+cuota ~0,8 % más baja, o de otra fuente — la sesión par declaró que su barrido
+leía las cuotas de la hoja `Resumen por facultad` de un Excel, que no tengo.
+
+## Lo que esto sí demuestra, y no es menor
+
+**El ganador del barrido lo decide el denominador.**
+
+| | cuota del `distribucion_sub` | cuota del barrido original |
+|---|---|---|
+| 202 | 1,0741 | 1,0810 |
+| 4444 | **1,0516** | **1,0837** |
+| **gana** | **202** | **4444** |
+
+Un ±1 en una cuota de sexo cambia qué celda manda —en la 4444, Psicología
+hombres (cuota 18) o EE.GG. Letras hombres (cuota 156)— y con eso cambia el
+ganador. Las celdas de cuota chica son las peligrosas: **Psicología hombres tiene
+cuota 18, así que una unidad vale 5,6 % de su cobertura**, mientras que en
+EE.GG. Letras hombres vale 0,6 %.
+
+Es el mismo argumento de resolución que ya aplicaba a la elección de vara, pero
+más agudo: el criterio discrimina en milésimas y **una unidad de cuota en una
+celda chica vale decenas de milésimas**.
+
+## Recomendación que se suma a las anteriores
+
+Al criterio del barrido hay que fijarle la **procedencia de la cuota por celda**,
+igual que la vara. Hoy hay al menos dos juegos de cuotas circulando —el de
+`distribucion_sub` y el del Excel— y difieren en las celdas que deciden. Sin eso
+declarado, dos barridos del mismo estudio pueden elegir semillas distintas sin
+que ninguno esté mal.
