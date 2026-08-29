@@ -14,7 +14,12 @@ describe("loQueFaltaParaCerrar", () => {
       fila({ cumple_total: true, cumple_poblacion: false, sent_total: 14, threshold_total: 10, threshold_population: 18 }),
     ]);
     expect(r.aulas).toEqual([
-      { codigo: "CH 1", facultad: "", faltan: 4, enviadas: 14, umbral: 18, falla: "poblacion" },
+      // `origen: "hoja"`: esta fila no trae efectivas de plataforma ni del
+      // parte, sólo `sent_total`. Es justo el caso que hace falta declarar —el
+      // faltante se mide contra lo que la hoja da por enviado— y por eso el
+      // campo entra también aquí en vez de omitirse del aserto.
+      { codigo: "CH 1", facultad: "", faltan: 4, enviadas: 14, umbral: 18,
+        falla: "poblacion", origen: "hoja" },
     ]);
     expect(r.costoTotal).toBe(4);
 
@@ -105,8 +110,12 @@ describe("loQueFaltaParaCerrar", () => {
 });
 
 describe("porFacultad", () => {
+  // `origen` entró el 2026-08-29: cada aula declara de cuál de los tres
+  // numeradores salió lo conseguido. Aquí es «plataforma» porque estos casos
+  // miden el reparto por facultad, no la procedencia.
   const aula = (facultad: string, faltan: number, codigo: string) => ({
-    codigo, facultad, faltan, enviadas: 0, umbral: faltan, falla: "total" as const,
+    codigo, facultad, faltan, enviadas: 0, umbral: faltan,
+    falla: "total" as const, origen: "plataforma" as const,
   });
 
   it("encabeza la facultad que más aulas cierra, no la más barata", () => {
