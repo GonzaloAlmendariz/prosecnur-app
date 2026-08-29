@@ -211,10 +211,26 @@ terminan diciendo cosas distintas de la misma base.
 - **Objetivo**: encontrar una medida de duración que no dependa de `end`, o
   declarar explícitamente su margen. Sin eso, ninguna alerta de tiempo es
   defendible.
-- **⛔ Bloqueado por una pregunta abierta**: ¿existe en Kobo/ODK una marca de
-  tiempo por pregunta o por página que permita medir la entrevista real? Si no
-  existe, la respuesta honesta es que la duración no se mide y el ítem se cierra
-  diciendo eso.
+- **⛔ Bloqueado, y el 2026-08-29 se acotó por qué.** La pregunta ya no es si
+  Kobo expone marcas de tiempo: **sí las expone**, `start` y `end` viajan en cada
+  respuesta. El bloqueo es que **ningún dato disponible las conserva**:
+
+  | fuente | respuestas | con duración > 0 | mediana |
+  |---|---:|---:|---:|
+  | simulacro `campo_malo` | 1.595 | **0** | — |
+  | `acnur_acg` (Kobo real, anonimizado) | 1.732 | 103 | **1.440 min** |
+  | `acnur_pdm` (Kobo real, anonimizado) | 2.726 | 30 | **1.440 min** |
+
+  1.440 minutos son exactamente 24 horas, y sólo el 6 % y el 1 % tienen alguna
+  diferencia: el anonimizador conserva la fecha y arrasa la hora, así que
+  `end − start` da días enteros. El simulacro directamente pone las dos iguales.
+
+  **Qué desbloquea el ítem**: un export de Kobo sin anonimizar, o que
+  `pulso_anonimizar.R` conserve la hora del día —que no identifica a nadie— y
+  desplace sólo la fecha. Lo segundo es barato y sirve para siempre.
+
+  Si con datos reales resultara que tampoco hay señal, la respuesta honesta
+  sigue siendo que la duración no se mide y el ítem se cierra diciendo eso.
 
 **M8 · Qué se está escribiendo en las preguntas abiertas** ☑ *(2026-08-15)*
 - **Dónde vive**: `api/R/monitoreo_abiertas.R` (archivo propio) y el rol nuevo
