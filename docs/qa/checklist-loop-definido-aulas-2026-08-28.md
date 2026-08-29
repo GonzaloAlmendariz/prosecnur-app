@@ -41,12 +41,13 @@ no a ojo:
 | 15 | El gráfico llamaba «agendadas» al plan vivo entero | `AulasSexoPorFacultadChart.tsx` | **cerrado** — no era la contradicción que creí, ver bitácora 33b |
 | 16 | Sin `--wait-selector` el runner da verde sobre un gráfico en blanco | `scripts/ui-quick-check.mjs` | **nuevo** — ver bitácora 34 |
 | 17 | `proyeccionPorAgenda` proyecta con el parte de campo, no con la plataforma | `proyeccionPorAgenda.ts:135` | **bloqueado** — decisión tuya |
-| 18 | «El avance que ve el cliente» llamaba muestra a la suma de cuotas (3.491 con objetivo 2.500) | `AulasAvanceParaCliente.tsx` | **cerrado** |
+| 18 | «El avance que ve el cliente» llamaba muestra a la suma de cuotas | `AulasAvanceParaCliente.tsx` | **cerrado a medias** — rótulo corregido; el número sigue siendo 3.491 porque el total del motor ES esa suma, ver bitácora 40 |
 | 19 | La tabla del cliente neteaba la cuota entre sexos dentro de la facultad | `avanceParaCliente.ts` | **cerrado** — era el ±1 de 2.824/2.825 |
 | 20 | «Mujer» se contaba como hombre en dos superficies y se descartaba en una tercera | `avanceParaCliente.ts` · `brechaDeLaFacultad.ts` · `celdasPorFacultad.ts` | **cerrado** — ver bitácora 35 |
 | 21 | El mismo defecto de sexo en R, en el camino del diseño | `sexo_por_facultad.R` · `libro_generar.R` · `certificacion.R` | **cerrado** — `.pulso_sexo_fm()`, ver bitácora 36 |
 | 22 | Un `@export` mío se lo llevó el helper de al lado | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** — ver bitácora 37 |
 | 23 | `--pulso-warning-*` no existe: 16 usos, 6 sin respaldo | 16 archivos de CSS/TSX | **cerrado** — es `--pulso-warn-*`, ver bitácora 39 |
+| 24 | ¿Qué número preside el panel del cliente: el objetivo (2.500) o el reparto (3.491)? | `metas_diseno.R:117` + `AulasAvanceParaCliente.tsx` | **bloqueado** — decisión tuya, bitácora 40 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
