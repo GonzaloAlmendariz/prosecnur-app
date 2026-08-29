@@ -11,6 +11,7 @@ import { corteDelEstudio } from "./corteDelEstudio";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import type { TablaDelPerfil } from "./tablaDelPerfil";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
 /**
@@ -37,13 +38,7 @@ export function AulasPestanaResumen({
    * con SU forma, no como `Record<string, unknown>`: un tipo laxo aquí dejaría
    * pasar una llamada sin `rows` ni `empty`.
    */
-  tabla: (props: {
-    rows: Array<Record<string, unknown>>;
-    empty: string;
-    preferredColumns?: string[];
-    totalReal?: number;
-    maxColumns?: number;
-  }) => ReactNode;
+  tabla: TablaDelPerfil;
   facultadEnFoco: string | undefined;
   onFoco: (foco: FocoDeCuota) => void;
 }): ReactNode {
