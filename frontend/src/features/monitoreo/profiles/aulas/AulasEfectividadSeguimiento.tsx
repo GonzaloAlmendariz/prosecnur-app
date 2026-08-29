@@ -215,6 +215,20 @@ export function AulasEfectividadSeguimiento({
     () => (bloque?.facultades ?? []).filter((f) => f.tau_previsto != null || f.aulas_aplicadas > 0),
     [bloque],
   );
+  /**
+   * Si NINGUNA facultad trae tasa prevista, media pantalla habla de algo que no
+   * existe: la vara de «dónde se esperaba llegar» sólo se dibuja por fila
+   * cuando `tau_previsto != null`, así que con el estudio de HSVG2026 —que no
+   * publica metas del diseño— la leyenda anunciaba una marca que no aparece en
+   * ninguna de las quince barras, y la frase de cabecera decía literalmente
+   * «suponía que respondería el — de los alumnos», con el guion metido dentro
+   * de la oración.
+   *
+   * Un vacío se declara; no se incrusta en una frase. El motivo ya está dicho
+   * en el sello de abajo («el estudio importado no publica metas del diseño»),
+   * así que aquí sólo hay que dejar de prometer.
+   */
+  const hayPrevisto = filas.some((f) => Number.isFinite(f.tau_previsto));
 
 
   // C3: el vacío es SUYO y dice cuál de los dos vacíos es. «Sin diseño» y «sin
@@ -257,9 +271,29 @@ export function AulasEfectividadSeguimiento({
           dos porcentajes juntos son dos números sin pregunta. */}
       <p className="aulas-tau-cabeza">
         <span>
-          En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas, la <strong>tasa de la
-          facultad</strong> suponía que respondería el <strong>{pct(t.tau_previsto)}</strong>{" "}
-          de los alumnos. Está respondiendo el <strong>{pct(t.tau_observado)}</strong>.
+          {/* Dos correcciones que costaron dos capturas, y las dos son trampas
+              ya conocidas de esta casa:
+              1. Esta frase habla del AGREGADO, así que se decide con
+                 `t.tau_previsto` y no con el flag de las FILAS.
+              2. Y con `Number.isFinite`, NO con `!= null`: el `pct` local de
+                 este archivo (línea ~159) escribe «—» cuando el valor no es
+                 finito, y `NaN != null` es `true`. Preguntar por `null` deja
+                 pasar el `NaN` y la frase sigue con el guion dentro. Es el mismo
+                 `Number(null) === 0` de siempre. */}
+          {Number.isFinite(t.tau_previsto) ? (
+            <>
+              En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas, la <strong>tasa de la
+              facultad</strong> suponía que respondería el <strong>{pct(t.tau_previsto)}</strong>{" "}
+              de los alumnos. Está respondiendo el <strong>{pct(t.tau_observado)}</strong>.
+            </>
+          ) : (
+            <>
+              En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas está respondiendo el{" "}
+              <strong>{pct(t.tau_observado)}</strong> de los alumnos. El estudio no
+              declara la tasa con la que se dimensionó, así que no hay contra qué
+              compararlo.
+            </>
+          )}
         </span>
         {t.facultades_en_riesgo > 0 ? (
           <span>
@@ -286,7 +320,11 @@ export function AulasEfectividadSeguimiento({
       {/* La leyenda es VISUAL y va junto a la tabla, no en prosa al pie: quien
           mira la barra tiene que poder decodificarla ahí mismo. */}
       <p className="aulas-tau-leyenda">
-        <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> dónde se esperaba llegar</span>
+        {/* La vara sólo se lista si alguna fila la dibuja: una leyenda que
+            describe una marca ausente manda a buscarla por quince barras. */}
+        {hayPrevisto ? (
+          <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> dónde se esperaba llegar</span>
+        ) : null}
         <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> hasta dónde va, de 0 a 100 %</span>
       </p>
 
@@ -365,7 +403,10 @@ export function AulasEfectividadSeguimiento({
                         />
                       ) : null}
                       {/* LA MARCA: lo que el diseño supuso. Es la vara. */}
-                      {f.tau_previsto != null ? (
+                      {/* `isFinite` y no `!= null`: con `NaN` la vara se pinta
+                          en `left: NaN%`, que el navegador descarta, así que la
+                          leyenda prometía una marca invisible. */}
+                      {f.tau_previsto != null && Number.isFinite(f.tau_previsto) ? (
                         <span className="aulas-tau-vara" style={{ left: pos(f.tau_previsto) }} />
                       ) : null}
                     </span>
