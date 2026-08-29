@@ -32,7 +32,10 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
 
   if (!filas.length) {
     return (
-      <p className="mon-profile-muted">
+      // Declara lo mismo que la rama con datos: es la regla que
+      // `vaciosDeclarados.contract.test.ts` vigila, y me cazó la omisión por
+      // segunda vez hoy.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay cuotas por sexo y facultad con las que comparar. Se llenan
         al declarar la cuota del estudio en Cálculo de muestra.
       </p>
@@ -104,7 +107,10 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
   const cubiertas = filas.filter((f) => f.deficit === 0).length;
 
   return (
-    <div className="aulas-cobertura-chart">
+    // El contenedor de datos del panel «Avance por facultad y sexo». Sin
+    // declararlo, el runner cae a los hijos directos del `section` y mide su
+    // encabezado como si fuera datos — el patrón que salió siete veces.
+    <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <PlotlyChart
         data={[...data, marcas]}
         height={Math.max(240, 22 * eje.length + 56)}
