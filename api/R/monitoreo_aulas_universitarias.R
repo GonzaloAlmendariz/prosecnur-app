@@ -1865,6 +1865,16 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Es la unidad con la que se dirige el operativo: «todo debe ser por facultad».
   # El estrato —facultad/sexo/tamaño— sigue publicandose aparte porque es la
   # unidad del DISEÑO, y no son la misma pregunta.
+  # **El plan a registros, UNA vez.**
+  #
+  # `.monitoreo_aulas_records(plan_df)` aparecia dos veces en la salida —la
+  # agenda y la reserva dirigida— y convierte las 1.424 filas cada vez. En el
+  # perfil ese coste se atribuia a `monitoreo_aulas_reserva_por_celda()`, que
+  # salia como el 17,7 % del tablero: R evalua los argumentos de forma perezosa,
+  # asi que la conversion se cobraba dentro de la llamada. Medida aparte, esa
+  # funcion tarda 0,05 s sobre un banco de 77 aulas; el resto era la conversion.
+  .agenda_registros <- .monitoreo_aulas_records(plan_df)
+
   avance_por_facultad <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)),
           respuestas_validas = tracked_df$respuestas_validas,
@@ -2336,7 +2346,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       representativity_effective_score = representativity$effective_score,
       representativity_score_loss = representativity$score_loss
     ),
-    agenda = .monitoreo_aulas_records(plan_df),
+    agenda = .agenda_registros,
     course_status = course_status,
     # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
     # 2 615 se leia como «el estudio tiene 500 aulas».
@@ -2393,7 +2403,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # Y para las celdas que NO van a llegar, a que aula del banco ir. Solo donde
     # hay decision que tomar: una celda asegurada no necesita candidatos.
     reserva_dirigida = monitoreo_aulas_reserva_por_celda(
-      .mau_avance_celdas, .monitoreo_aulas_records(plan_df)
+      .mau_avance_celdas, .agenda_registros
     ),
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
