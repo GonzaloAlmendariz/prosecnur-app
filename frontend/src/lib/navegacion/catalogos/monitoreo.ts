@@ -236,9 +236,18 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "modelo", "carga", "Carga", "Cuántos aplicadores por franja", CalendarClock),
     ],
     avance: [
-      pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),
+      // **El orden lo fijó Gonzalo el 2026-08-29**: «la pestaña más importante
+      // debería estar al inicio, entonces los cierres de cuota por facultad y
+      // el avance general deben estar al principio».
+      //
+      // Es su norte, y estaba tercero: «lo que me interesa es que TODAS LAS
+      // FACULTADES CUMPLAN CON SU CUOTA DE SEXO. Ese es lo fundamental de todo
+      // esto». Quien abre Avance se encontraba antes con dos pantallas del
+      // operativo —cuántas aulas se aplicaron, cómo va cada estrato del
+      // sorteo— y la pregunta que decide quedaba detrás.
+      pestana("aulas", "avance", "cuotas", "Cuotas", "Cierre de cuota por facultad y sexo", Target),
+      pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
       pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
-      pestana("aulas", "avance", "cuotas", "Cuotas", "Sexo por facultad", Target),
       // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
       // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
       // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
