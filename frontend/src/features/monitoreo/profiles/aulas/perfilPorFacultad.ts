@@ -20,6 +20,19 @@ export type FacultadEnAvance = AvanceEnRespuestas & {
   facultad: string;
   /** Cursos-horario del plan en esa facultad. */
   aulas: number;
+  /**
+   * De qué lado va corta la facultad, en personas.
+   *
+   * El total puede leerse cubierto con una celda de sexo corta —el agregado
+   * esconde lo que muerde por celda— y la cuota es por facultad Y sexo.
+   *
+   * `null` significa **no se sabe**, no «va bien»: sólo el motor lo calcula, a
+   * partir de las celdas de cuota, y la derivación que trabaja sobre las filas
+   * del plan no tiene con qué.
+   */
+  mujeresFalta: number | null;
+  hombresFalta: number | null;
+  celdaCorta: boolean;
 };
 
 function texto(valor: unknown) {
@@ -44,6 +57,12 @@ export function perfilPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
       facultad,
       aulas: propias.length,
       ...avanceEnRespuestas(propias),
+      // El corte por sexo sólo lo sabe el motor —sale de las celdas de cuota—,
+      // así que esta derivación, que trabaja sobre las filas del plan, declara
+      // que no lo tiene en vez de fingir un cero. `null` no es «va bien».
+      mujeresFalta: null as number | null,
+      hombresFalta: null as number | null,
+      celdaCorta: false,
     }))
     // Primero donde más falta: es el orden con el que se decide a dónde mandar
     // al equipo. La tasa sola pondría arriba una facultad a la que le faltan
@@ -66,6 +85,12 @@ export type FilaDeFacultadDelMotor = {
   meta?: unknown;
   brecha?: unknown;
   respuestas_validas?: unknown;
+  /** El corte por sexo del motor; `null` cuando la facultad no tiene la celda. */
+  mujeres_deficit?: unknown;
+  hombres_deficit?: unknown;
+  mujeres_logrado?: unknown;
+  hombres_logrado?: unknown;
+  celda_corta?: unknown;
 };
 
 /**
@@ -96,6 +121,13 @@ export function perfilDesdeElMotor(filas: ReadonlyArray<FilaDeFacultadDelMotor>)
         aulasConBrecha: falta > 0 ? 1 : 0,
         avance: meta ? Math.round((100 * cubierto) / meta) : 0,
         sinMeta: 0,
+        // **El corte por sexo, que es lo que decide.** El total puede leerse
+        // cubierto con una celda corta: es el patrón del agregado que esconde
+        // lo que muerde por celda. `null` cuando la facultad no tiene esa celda
+        // —no es que vaya bien, es que no existe—.
+        mujeresFalta: f.mujeres_deficit == null ? null : Math.max(0, num(f.mujeres_deficit)),
+        hombresFalta: f.hombres_deficit == null ? null : Math.max(0, num(f.hombres_deficit)),
+        celdaCorta: f.celda_corta === true,
       };
     })
     .filter((f) => f.meta > 0 || f.aulas > 0);

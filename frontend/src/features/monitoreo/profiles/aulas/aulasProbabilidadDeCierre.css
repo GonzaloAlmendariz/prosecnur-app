@@ -26,3 +26,14 @@
   font-weight: var(--pulso-weight-medium);
   font-style: italic;
 }
+
+/* De qué lado va corta una facultad, bajo su cifra total.
+   Va en su propia línea y en tono apagado: el número grande sigue siendo el
+   total, y esto lo matiza. */
+.aulas-facultad-sexo {
+  display: block;
+  font-size: 0.72rem;
+  font-style: normal;
+  color: var(--pulso-warn-fg);
+  font-variant-numeric: tabular-nums;
+}
