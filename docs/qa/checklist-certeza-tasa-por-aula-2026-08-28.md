@@ -1478,3 +1478,65 @@ Ya que `M + F = cuota` lo cumplen los dos, el que separa es sobre la
 **procedencia**: la proporción de sexo usada para repartir la cuota tiene que ser
 la misma que publica el estrato del componente (`N_a`, `N_b`). Es comprobable en
 una línea y hoy el Excel no la cumple.
+
+---
+
+# La circularidad del reparto por sexo, medida (2026-08-28)
+
+La sesión par rastreó la proporción del entregable a la **composición del marco
+elegible** y argumentó que usarla es circular: el marco ya está filtrado por
+criterios que pueden correlacionar con el sexo, así que la cuota heredaría el
+sesgo del filtro. **Confirmo la procedencia y el argumento deja de ser teórico.**
+
+## Procedencia, confirmada
+
+| | componente (`N_a/N_b`) | marco elegible | entregable |
+|---|---:|---:|---:|
+| ESTUDIOS GENERALES LETRAS | 0,6039 | **0,6062** | 0,606 |
+| PSICOLOGÍA | 0,7599 | **0,7752** | 0,775 |
+
+## Cuánto mueve el filtro la composición por sexo
+
+Diferencia entre la proporción de mujeres del **marco elegible** y la del marco
+**sin filtrar**:
+
+| Facultad | sin filtrar | elegible | desplazamiento |
+|---|---:|---:|---:|
+| **ARTES ESCÉNICAS** | 0,5301 | 0,6147 | **+8,5 pts** |
+| **EDUCACION** | 0,8142 | 0,8865 | **+7,2 pts** |
+| **LETRAS Y CIENCIAS HUMANAS** | 0,5699 | 0,6348 | **+6,5 pts** |
+| CIENCIAS SOCIALES | 0,5338 | 0,5496 | +1,6 |
+| GESTIÓN Y ALTA DIRECCIÓN | 0,5796 | 0,5938 | +1,4 |
+| CIENCIAS E INGENIERIA | 0,2581 | 0,2440 | −1,4 |
+| resto | | | < 1,4 pts |
+| **GLOBAL** | 0,4982 | 0,4937 | −0,45 |
+
+**El filtro no es neutral al sexo**, y en tres facultades mueve la composición
+entre 6,5 y 8,5 puntos. En el agregado casi no se nota (−0,45), que es
+justamente por qué se pasa por alto: **el sesgo es por facultad, y la cuota es
+por facultad.**
+
+## Y mueve las celdas que deciden
+
+Traducido a cuotas, con la cuota de facultad vigente:
+
+| Facultad | cuota | con el componente | con el marco | cambio en hombres |
+|---|---:|---|---|---|
+| ARTES ESCÉNICAS | 64 | 34 M · 30 H | 39 M · 25 H | **−17 %** |
+| EDUCACION | 24 | 20 M · 4 H | 21 M · 3 H | **−25 %** |
+| LETRAS Y CC.HH. | 23 | 13 M · 10 H | 15 M · 8 H | **−20 %** |
+
+En las facultades chicas la elección de fuente mueve la cuota de hombres entre
+un 17 % y un 25 %. Y son celdas de cuota 3, 8 y 10 — del mismo tamaño que
+Psicología hombres (18), que es la que decidió el ganador del barrido.
+
+## Conclusión
+
+El argumento del par se sostiene y ahora tiene magnitud: **repartir por la
+composición del marco importa el sesgo del filtro de criterios a la cuota**, y
+ese sesgo llega a 8,5 puntos en una facultad. La proporción del componente se
+calcula antes de filtrar y no lo tiene.
+
+**El motor tiene razón; el entregable, no.** Y el invariante de procedencia —la
+proporción del reparto tiene que ser la del estrato del componente, no la del
+marco— queda como el criterio correcto, ahora con la razón medida detrás.
