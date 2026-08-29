@@ -114,3 +114,45 @@ describe("el denominador del titular", () => {
     expect(celdasEvaluables(filas)).toBe(0);
   });
 });
+
+describe("la resta de la lectura cuadra a la vista", () => {
+  /**
+   * Medido con `HSVG2026_sem15_como_2025.pulso`: EDUCACION · Hombres decía
+   * «No va a llegar: falta 1 encuesta» junto a «Lleva 1 de 4: faltan 3 y las
+   * aulas que faltan por aplicar aportan 3». 3 − 3 = 0, no 1.
+   *
+   * El aporte real era 2,1 y se publicaba con `fmtCuenta`, que redondea HACIA
+   * ARRIBA: la regla de una meta que hay que cumplir, no la de un aporte
+   * esperado. Prometer 3 cuando se esperan 2,1 es prometer de más, y el repo ya
+   * lo tenía escrito en `.mard_personas()`.
+   */
+  const enDeficit = (p: Record<string, unknown>) =>
+    ({ estado: "deficit_proyectado", faculty: "Educacion", sex: "M", ...p }) as never;
+
+  it("el aporte se redondea hacia abajo y la resta cuadra", () => {
+    const p = porqueDeLaCelda(enDeficit({ cuota: 4, logrado: 1, aporte_pendiente: 2.1 }));
+    expect(p).toContain("faltan 3");
+    expect(p).toContain("aportan 2");
+    expect(p).not.toContain("aportan 3");
+  });
+
+  it("un aporte entero no se toca", () => {
+    expect(porqueDeLaCelda(enDeficit({ cuota: 10, logrado: 2, aporte_pendiente: 5 })))
+      .toContain("aportan 5");
+  });
+
+  it("un 3 con error binario sigue siendo 3, con la tolerancia de la casa", () => {
+    // El control del epsilon: sin él, el redondeo hacia abajo se comería una
+    // persona entera por un error de coma flotante.
+    //
+    // La tolerancia es `1e-9`, la MISMA que usa `.mard_personas()` en R. El
+    // primer intento de este test usó 2,9999999 —que se aparta `1e-7`— y falló:
+    // el equivocado era el test. Un 2,9999999 de verdad se redondea a 2, y está
+    // bien que así sea; lo que se tolera es el ruido binario, no un decimal
+    // real.
+    expect(porqueDeLaCelda(enDeficit({ cuota: 10, logrado: 2, aporte_pendiente: 3 - 1e-12 })))
+      .toContain("aportan 3");
+    expect(porqueDeLaCelda(enDeficit({ cuota: 10, logrado: 2, aporte_pendiente: 2.9999999 })))
+      .toContain("aportan 2");
+  });
+});

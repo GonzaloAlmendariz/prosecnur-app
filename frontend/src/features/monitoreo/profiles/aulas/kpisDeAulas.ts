@@ -115,6 +115,29 @@ export function fmt(value: unknown, fallback = "0") {
  * No confundir con el `pct()` de `monitoreo/core/formatoComun`, que redondea a
  * entero, pega el símbolo y escribe «S/D»: ése sirve a otros perfiles.
  */
+/**
+ * Lo que un aula va a APORTAR, en personas enteras y **hacia abajo**.
+ *
+ * No es `fmtCuenta()`, que redondea hacia arriba: esa es la regla de una META
+ * que hay que cumplir. Un aporte esperado es lo contrario —prometer 3 cuando se
+ * esperan 2,1 es prometer de más— y la regla ya estaba escrita en
+ * `monitoreo_aulas_reserva_dirigida.R`, en el comentario de `.mard_personas()`:
+ * «hacia abajo y no al más cercano… `fmtCuenta()` del frontend redondea hacia
+ * arriba por el motivo contrario, y las dos reglas son correctas en su sitio».
+ *
+ * Estaba aplicada al revés en `avanceProyectado`, y se veía: «Lleva 1 de 4:
+ * faltan 3 y las aulas que faltan por aplicar aportan 3» junto a un veredicto
+ * que decía «falta 1 encuesta». 3 − 3 = 0, no 1. Con el aporte real (2,1) hacia
+ * abajo, la resta cuadra.
+ */
+export function fmtAporte(value: unknown, fallback = "0") {
+  if (value == null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  // El epsilon evita que un 3 guardado como 2,9999999 se lea como 2.
+  return Math.max(0, Math.floor(n + 1e-9)).toLocaleString("es-PE");
+}
+
 export function pctPerfil(n: number) {
   return `${n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 }
