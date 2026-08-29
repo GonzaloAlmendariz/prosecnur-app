@@ -1491,3 +1491,50 @@ Es el patrón del 2.824/2.825, y aquí **dentro de una sola oración**.
 Ninguno se toca hasta medirlo: la (a) exige ver de dónde salen las tres cifras
 —`brecha`, `aporte_pendiente` y el «faltan N» del veredicto— y con qué redondeo
 llega cada una.
+
+---
+
+## 68 · El aporte se prometía de más, con la regla escrita al lado (ítems 46 y 47)
+
+Medidas las tres cifras de «No va a llegar: falta 1 encuesta · Lleva 1 de 4:
+faltan 3 y las aulas que faltan por aplicar aportan 3»:
+
+| cifra | de dónde | formato |
+|---|---|---|
+| «falta 1 encuesta» | `.mac_etiqueta_estado(estado, brecha)` en R | entero |
+| «faltan 3» | `cuota − logrado` en el frontend | crudo |
+| «aportan 3» | `aporte_pendiente` | `fmtCuenta`, **hacia arriba** |
+
+El aporte real era **2,1** y subía a 3. Por eso 3 − 3 = 0 en pantalla mientras el
+veredicto decía 1.
+
+**Y el repo ya tenía la regla escrita, aplicada al revés.** El comentario de
+`.mard_personas()` en `monitoreo_aulas_reserva_dirigida.R` —del ítem 13, de este
+mismo loop— dice:
+
+> «**Hacia abajo y no al más cercano.** Es lo que un aula va a APORTAR, no lo que
+> hay que alcanzar: prometer 17 cuando se esperan 16,6 es prometer de más…
+> `fmtCuenta()` del frontend redondea hacia arriba por el motivo contrario —una
+> meta que hay que cumplir— y las dos reglas son correctas en su sitio.»
+
+`fmtCuenta` estaba en el sitio equivocado. Ahora hay `fmtAporte()` junto a
+`fmt`/`fmtCuenta`/`pctPerfil`, con el porqué y añadido al detector de
+`cifrasConFormato`. Verificado: «faltan 3 … **aportan 2**» y el veredicto «falta
+1 encuesta» cuadran.
+
+De paso el ítem 47: «1 de 30 celdas con objetivo no **van** a llegar» → «no
+**va**». Sólo se veía con este simulacro, que es el primero donde ese contador
+baja a uno.
+
+### El test del epsilon estaba mal, no el código
+
+Escribí un control «un 3 guardado como 2,9999999 sigue siendo 3» y falló. El
+equivocado era el test: la tolerancia de la casa es `1e-9` —la misma que usa
+`.mard_personas()` en R— y 2,9999999 se aparta `1e-7`. Un 2,9999999 **de verdad**
+debe redondearse a 2; lo que se tolera es el ruido binario, no un decimal real.
+El test quedó fijando las dos cosas: `3 − 1e-12` da 3, y `2,9999999` da 2.
+
+Es la tercera vez hoy que un rojo mío resultó ser un test equivocado y no un
+defecto —`named character(0)`, el `eje: "fecha"` inexistente y éste—, y las tres
+veces la salida fue alinearse con la regla que el repo ya tenía en vez de
+aflojar la comprobación.

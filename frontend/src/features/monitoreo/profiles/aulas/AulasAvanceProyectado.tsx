@@ -63,7 +63,11 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
           ? `Ninguna de las ${fmt(filas.length)} celdas declara objetivo, así que no hay proyección que hacer.`
           : piden === 0
             ? `Ninguna de las ${fmt(evaluables)} celdas con objetivo se queda corta con lo que falta por aplicar.`
-            : `${fmt(piden)} de ${fmt(evaluables)} celdas con objetivo no van a llegar con lo que falta por aplicar.`}
+            // Concordancia: con una sola celda decía «1 de 30 celdas … no VAN
+            // a llegar». Visto con el simulacro `como_2025`, que es el primero
+            // en el que este número baja a uno.
+            : `${fmt(piden)} de ${fmt(evaluables)} celdas con objetivo no ${
+              piden === 1 ? "va" : "van"} a llegar con lo que falta por aplicar.`}
         {/* Las que no se evalúan se dicen aparte, no se esconden en el
             denominador: son trabajo de gabinete, no de campo. */}
         {filas.length > evaluables

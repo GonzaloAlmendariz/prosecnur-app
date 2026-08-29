@@ -1,4 +1,4 @@
-import { fmt, fmtCuenta } from "./kpisDeAulas";
+import { fmt, fmtAporte } from "./kpisDeAulas";
 // El orden de los sexos es UNO en todo el perfil: si esta lista y la tabla de
 // cuotas lo definieran cada una, acabarían discrepando en cuanto una cambiara.
 import { ORDEN_SEXO } from "./ordenFacultadSexo";
@@ -117,9 +117,15 @@ export function porqueDeLaCelda(c: CeldaAvance): string {
   const p = pendiente > 0
     // `fmt` conserva el decimal del aporte esperado y son PERSONAS: «aportan
     // 14.1» es un décimo de alumno. Cuarta vez que el mismo defecto sale hoy
-    // —reserva dirigida, brecha por estrato, ritmo diario y aquí—, así que
-    // `fmtCuenta`, que redondea sin inventar medias encuestas.
-    ? `las aulas que faltan por aplicar aportan ${fmtCuenta(pendiente)}`
+    // —reserva dirigida, brecha por estrato, ritmo diario y aquí—.
+    //
+    // Pero `fmtCuenta` era el redondeo EQUIVOCADO: va hacia arriba, que es la
+    // regla de una meta que hay que cumplir. Esto es un APORTE esperado, y ahí
+    // prometer de más es el error caro. Medido con el simulacro `como_2025`:
+    // «Lleva 1 de 4: faltan 3 y las aulas que faltan por aplicar aportan 3»
+    // junto a un veredicto que decía «falta 1 encuesta» —3 − 3 = 0, no 1—,
+    // porque el aporte real era 2,1 y subía a 3.
+    ? `las aulas que faltan por aplicar aportan ${fmtAporte(pendiente)}`
     : "no quedan aulas por aplicar";
   return `Lleva ${fmt(logrado)} de ${fmt(cuota)}: faltan ${fmt(falta)} y ${p}.`;
 }
