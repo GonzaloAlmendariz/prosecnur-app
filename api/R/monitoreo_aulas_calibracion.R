@@ -184,6 +184,75 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   list(valores = v, origen = "composicion_del_aula")
 }
 
+#' Cuanta INCERTIDUMBRE aporta un aula pendiente a su celda.
+#'
+#' El estado de una celda se decide hoy con un umbral sobre una proyeccion
+#' puntual: `asegurada` si supera la cuota por el margen, `ajustada` si la
+#' iguala. Una celda al 100,1 % de su cuota se declara tan segura como una al
+#' 150 %, y eso es lo que esta funcion existe para reparar.
+#'
+#' Si el aporte de un aula se modela como Binomial(n_sexo, tasa), entonces
+#' `media = n_sexo * tasa` —que es justo lo que devuelve
+#' `.mac_esperadas_por_sexo()`— y **`varianza = media * (1 - tasa)`**. Asi que
+#' no hace falta ningun dato nuevo: basta la tasa del aula, que sale de sus
+#' propias esperadas sobre sus elegibles.
+#'
+#' **Sin tasa no hay varianza, y entonces no hay probabilidad.** Devuelve `NA`
+#' en vez de suponer una tasa: una probabilidad calculada sobre un supuesto
+#' inventado es peor que no darla.
+#'
+#' @param fila fila del plan.
+#' @param esperadas vector de esperadas por sexo de esa aula.
+#' @return vector con la misma forma que `esperadas`, o `NA` si no hay tasa.
+#' @keywords internal
+.mac_varianza_por_sexo <- function(fila, esperadas) {
+  if (!length(esperadas)) return(esperadas)
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(.monitoreo_scalar(x, NA))[1])
+    if (is.finite(v)) v else NA_real_
+  }
+  elegibles <- num(fila$eligible_n %||% fila$elegibles)
+  esperadas_aula <- num(fila$expected_valid %||% fila$efectivas_esperadas)
+  tasa <- num(fila$tasa_efectividad_aula)
+  if (!is.finite(tasa) && is.finite(elegibles) && elegibles > 0 && is.finite(esperadas_aula)) {
+    tasa <- esperadas_aula / elegibles
+  }
+  # Una tasa fuera de (0,1) no es una tasa. Con 1 exacta la varianza es cero, y
+  # eso afirmaria certeza absoluta sobre el campo, que nunca la hay.
+  if (!is.finite(tasa) || tasa <= 0 || tasa >= 1) {
+    return(stats::setNames(rep(NA_real_, length(esperadas)), names(esperadas)))
+  }
+  stats::setNames(pmax(0, as.numeric(esperadas) * (1 - tasa)), names(esperadas))
+}
+
+#' Probabilidad de que una celda cierre su cuota.
+#'
+#' Normal sobre la suma de los aportes pendientes:
+#' `P = pnorm((proyeccion - cuota) / sd)`. Con `sd` cero o no finito devuelve
+#' `NA`: sin varianza medible no hay probabilidad que dar.
+#'
+#' **Supone independencia entre los alumnos de un aula, y eso es optimista.**
+#' El rendimiento varia de aula a aula, asi que la varianza real es mayor y la
+#' probabilidad que sale de aqui es una COTA SUPERIOR de la confianza. Se dice
+#' en pantalla, no solo aqui. No se infla por ningun factor de diseno: el `deff`
+#' medido de HSVG 2025 (1,29 / 1,55) es el de sus estimaciones ponderadas, que
+#' es otra cosa que la varianza de un conteo por celda, y aplicarlo aqui seria
+#' vestir de medida un supuesto.
+#'
+#' @param cuota meta de la celda.
+#' @param proyeccion logrado mas aporte esperado de lo pendiente.
+#' @param varianza suma de varianzas de los aportes pendientes.
+#' @return probabilidad en [0,1], o `NA`.
+#' @keywords internal
+.mac_probabilidad_de_cierre <- function(cuota, proyeccion, varianza) {
+  cuota <- suppressWarnings(as.numeric(cuota)[1])
+  proyeccion <- suppressWarnings(as.numeric(proyeccion)[1])
+  varianza <- suppressWarnings(as.numeric(varianza)[1])
+  if (!is.finite(cuota) || cuota <= 0) return(NA_real_)
+  if (!is.finite(proyeccion) || !is.finite(varianza) || varianza <= 0) return(NA_real_)
+  round(stats::pnorm((proyeccion - cuota) / sqrt(varianza)), 3)
+}
+
 #' Avance por celda facultad x sexo, con las cuatro series.
 #'
 #' @param plan lista de filas del plan; cada una con `faculty`,
@@ -201,6 +270,9 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
   # previsto es el denominador de la calibracion y solo puede contar aulas que
   # ya ocurrieron. Meter las pendientes ahi pintaria de rojo el primer dia.
   acc <- new.env(parent = emptyenv())
+  # Varianza del aporte PENDIENTE, con la misma clave pero sin el sufijo
+  # aplicada/pendiente: lo aplicado no aporta incertidumbre.
+  accv <- new.env(parent = emptyenv())
   origenes <- character(0)
   for (fila in plan) {
     if (!is.list(fila)) next
@@ -210,9 +282,18 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     esp <- .mac_esperadas_por_sexo(fila)
     if (!length(esp$valores)) next
     origenes <- c(origenes, esp$origen)
+    # La varianza SOLO de las pendientes: lo aplicado ya ocurrio y no aporta
+    # incertidumbre a si la celda va a cerrar. `NA` en una sola aula envenena la
+    # suma a proposito —es lo correcto—: si no se sabe cuanto varia una de las
+    # que faltan, no se puede afirmar una probabilidad para esa celda.
+    varz <- if (aplicada) NULL else .mac_varianza_por_sexo(fila, esp$valores)
     for (sx in names(esp$valores)) {
       k <- paste0(fac, "|", sx, "|", if (aplicada) "ap" else "pe")
       acc[[k]] <- (acc[[k]] %||% 0) + esp$valores[[sx]]
+      if (!is.null(varz)) {
+        kv <- paste0(fac, "|", sx)
+        accv[[kv]] <- (accv[[kv]] %||% 0) + varz[[sx]]
+      }
     }
   }
   origen <- if (!length(origenes)) "sin_dato"
@@ -227,6 +308,7 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     pendiente <- acc[[paste0(fac, "|", sx, "|pe")]] %||% 0
     proyeccion <- (if (is.finite(logrado)) logrado else 0) + pendiente
     pool <- suppressWarnings(as.numeric(pool_restante[[paste0(fac, "|", sx)]] %||% NA_real_)[1])
+    varianza <- accv[[paste0(fac, "|", sx)]] %||% NA_real_
     estado <- .mac_estado_proyectado(cuota, proyeccion, pool)
     brecha <- .mac_brecha(cuota, proyeccion)
     cal <- .mac_calibracion(logrado, previsto)
@@ -239,6 +321,9 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
       brecha = brecha,
       calibracion = if (is.finite(cal)) round(cal, 3) else NA_real_,
       estado = estado,
+      # La misma pregunta que `estado` —«va a llegar?»— con la incertidumbre
+      # puesta. `NA` cuando no hay varianza medible, que es distinto de 0.
+      prob_cierre = .mac_probabilidad_de_cierre(cuota, proyeccion, varianza),
       previsto_origen = origen,
       etiqueta = .mac_etiqueta_estado(estado, brecha),
       etiqueta_calibracion = .mac_etiqueta_calibracion(cal)
