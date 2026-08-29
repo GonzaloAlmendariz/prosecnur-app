@@ -1189,8 +1189,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 <polygon
                   points={[...arriba, ...abajo].join(" ")}
                   fill={COLOR_RESULTADO.pendiente}
-                  fillOpacity="0.13"
-                  stroke="none"
+                  // **0,13 la hacía invisible.** Verificado en captura sobre
+                  // DERECHO: la banda se calculaba y se dibujaba, y encima de
+                  // las barras grises del techo no se distinguía nada. Una
+                  // banda que no se ve es lo mismo que no tenerla, y peor:
+                  // hace creer que el esperado no la tiene.
+                  fillOpacity="0.24"
+                  stroke={COLOR_RESULTADO.pendiente}
+                  strokeOpacity="0.45"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
                 >
                   <title>
                     Banda del 90 % del esperado. Hereda el mismo supuesto que la
