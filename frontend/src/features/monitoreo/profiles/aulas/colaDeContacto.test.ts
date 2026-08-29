@@ -81,3 +81,53 @@ describe("un componente no usa dos unidades para la misma poblacion", () => {
     expect(visible).not.toMatch(/"aula" : "aulas"/);
   });
 });
+
+describe("la cola no manda a llamar lo que ya se aplicó", () => {
+  /**
+   * `tieneCita()` mira `sample_status`, y en cuanto un aula se aplica ese estado
+   * deja de ser «agendada»: el aula volvía a la cola de contacto.
+   *
+   * Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: 10 citas fijadas +
+   * 183 por contactar = 193, con 48 aplicadas. O sea 38 aulas ya aplicadas en la
+   * lista de a quién llamar, en la pantalla que existe para repartir llamadas.
+   */
+  const fila = (p: Record<string, unknown>) => p as never;
+
+  it("una aplicada sin cita sale de la cola y se cuenta aparte", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "aplicada", operational_status: "aplicada" }),
+      fila({ operational_code: "CH 2", sample_status: "sin contactar", operational_status: "planificada" }),
+    ]);
+    expect(out.pendientes.map((p) => p.codigo)).toEqual(["CH 2"]);
+    expect(out.yaAplicadasSinCita).toBe(1);
+  });
+
+  it("«cerrada» cuenta igual que «aplicada»", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "sin contactar", operational_status: "cerrada" }),
+    ]);
+    expect(out.pendientes).toHaveLength(0);
+    expect(out.yaAplicadasSinCita).toBe(1);
+  });
+
+  it("una agendada aplicada sigue en CITAS, no en la cuenta aparte", () => {
+    // El control: las citadas ya llevaban su propio flag `aplicada` y ese lado
+    // no cambia. Si esta exclusión se les aplicara también, desaparecerían las
+    // citas conseguidas, que son el resultado del trabajo de quien agenda.
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "agendada", operational_status: "aplicada",
+             scheduled_date: "2026-09-01" }),
+    ]);
+    expect(out.citadas).toHaveLength(1);
+    expect(out.citadas[0]!.aplicada).toBe(true);
+    expect(out.yaAplicadasSinCita).toBe(0);
+  });
+
+  it("sin aplicadas el contador es 0 y no inventa un vacío", () => {
+    const out = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "sin contactar", operational_status: "planificada" }),
+    ]);
+    expect(out.pendientes).toHaveLength(1);
+    expect(out.yaAplicadasSinCita).toBe(0);
+  });
+});
