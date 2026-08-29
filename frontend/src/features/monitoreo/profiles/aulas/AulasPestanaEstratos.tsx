@@ -44,7 +44,15 @@ export function AulasPestanaEstratos({
             >
               <div className="mon-profile-panel-head">
                 <h3>Avance por estrato</h3>
-                <span>{fmt(estratoRows.length)} filas</span>
+                {/* El subtítulo decía «N filas», que es lo único que la tabla de
+                    abajo ya enseña por sí sola. «Estrato» es la única palabra
+                    técnica de esta pestaña que no se explica en ninguna parte:
+                    los VALORES sí se traducen —`etiquetaDeEstrato()` convierte
+                    «GESTIÓN Y ALTA DIRECCIÓN / F / G3» en algo legible— pero la
+                    palabra no. Se dice qué es, sin nombrar las columnas del
+                    corte: son configurables por estudio (`estratos_selector`) y
+                    escribirlas aquí sería falso en cuanto alguien las cambie. */}
+                <span>los grupos con los que se repartió la muestra · {fmt(estratoRows.length)}</span>
               </div>
               {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
                   contesta la pregunta del día siguiente —a dónde mando el equipo— que
