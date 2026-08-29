@@ -32,15 +32,16 @@ no a ojo:
 | 6 | La meta sale del escenario ACTIVO | `.cm_estudio_componente_activo()` | **cerrado** `ce7203b2` |
 | 7 | El conteo de aulas sale de la selección, no de `aulas_base_total` | `monitoreo_aulas_metas_diseno.R` | **cerrado sin cambio** — ver abajo |
 | 8 | `TASA_DE_CAIDA` no reproduce del libro: retirar o rehacer | `kpisDeAulas.ts` | **bloqueado** — depende de A7 |
-| 9 | Alertas específicas por sexo | avance por celda | pendiente |
+| 9 | Alertas específicas por sexo | pestaña `avance/cuotas` | **cerrado sin cambio** — ya existían: «19 de 30 celdas no van a llegar» y el detalle por celda |
 | 10 | Un sexo en código (`1`/`2`) no puede dar cero mudo | `monitoreo_aulas_avance_cuota.R` | **mitad cerrada** — ver abajo |
-| 11 | Un 500 transitorio deja «Preparando vista» para siempre | `AulasMonitoreoPage.tsx` | **nuevo** — hipótesis por verificar |
+| 11 | Un 500 transitorio deja «Preparando vista» para siempre | `AulasMonitoreoPage.tsx` | **falsificado** — `loadView` tiene `finally` que apaga `loading`; el efecto de montaje es incondicional |
 | 12 | Registro coloquial en las etiquetas de estado | `.mac_etiqueta_estado()` + propuestas de tramos | **nuevo** — ver abajo |
 | 13 | Alumnos con decimales («aporta 6,1») | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** `1dbb99fb` |
 | 14 | La probabilidad de cierre saturaba en 0/100 | `monitoreo_aulas_calibracion.R` | **cerrado** `1dbb99fb` |
 | 15 | El gráfico llamaba «agendadas» al plan vivo entero | `AulasSexoPorFacultadChart.tsx` | **cerrado** — no era la contradicción que creí, ver bitácora 33b |
-| 17 | `proyeccionPorAgenda` proyecta con el parte de campo, no con la plataforma | `proyeccionPorAgenda.ts:135` | **bloqueado** — decisión tuya |
 | 16 | Sin `--wait-selector` el runner da verde sobre un gráfico en blanco | `scripts/ui-quick-check.mjs` | **nuevo** — ver bitácora 34 |
+| 17 | `proyeccionPorAgenda` proyecta con el parte de campo, no con la plataforma | `proyeccionPorAgenda.ts:135` | **bloqueado** — decisión tuya |
+| 18 | «El avance que ve el cliente» llamaba muestra a la suma de cuotas (3.491 con objetivo 2.500) | `AulasAvanceParaCliente.tsx` | **cerrado** |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
