@@ -1481,7 +1481,21 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const round2 = (value) => Math.round(value * 100) / 100;
     const isVisibleElement = (el) => {
       const closedDetails = el.closest("details:not([open])");
-      if (closedDetails) {
+      // `closest()` SE INCLUYE A SI MISMO, asi que para un `<details>` cerrado
+      // devolvia el propio elemento y lo declaraba invisible: no es su
+      // `summary` y su `summary` no lo contiene. Pero un `details` cerrado si se
+      // ve —es exactamente la caja de su summary— y su marco cuenta.
+      //
+      // Medido el 2026-08-29 en `monitoreo/aulas/modelo/agenda`: el contenedor
+      // de datos de «Cuanto cuesta cerrar un aula» es un `<details>` cerrado que
+      // SI declara `data-qa-geometry-member`, y este filtro lo descartaba. Con
+      // cero miembros explicitos el auditor cae a los hijos del grupo y mide la
+      // cabecera del panel, que es el `capacity-drift` espurio que llevaba ocho
+      // apariciones.
+      //
+      // La norma dice «cerrado, solo el `summary` participa de la geometria»:
+      // eso excluye a los DESCENDIENTES ocultos, no al contenedor.
+      if (closedDetails && closedDetails !== el) {
         const visibleSummary = closedDetails.querySelector(":scope > summary");
         if (!visibleSummary || (el !== visibleSummary && !visibleSummary.contains(el))) return false;
       }
