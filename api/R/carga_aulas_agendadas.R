@@ -41,6 +41,16 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "scheduled_date",   titulos = c("FECHA DE APLICACION", "FECHA AGENDADA")),
   list(campo = "scheduled_day",    titulos = c("DIA")),
   list(campo = "scheduled_time",   titulos = c("HORA")),
+  # EN QUE MOMENTO de la clase entra la aplicacion. Hasta 2025 esto vivia en
+  # OBSERVACIONES en prosa libre —«Puede realizarse en la mitad de clase de 8 a
+  # 8:15am», «seria ideal a las 9:30am»— y por eso nadie podia agregarlo: la
+  # agenda de campo no sabia si el aplicador entra al empezar la clase o al
+  # cerrarla, que es lo que decide si dos aulas de la misma franja chocan.
+  #
+  # Vocabulario cerrado a tres valores (`inicio`, `intermedio`, `final`) porque
+  # es lo que el docente responde. La hora exacta, cuando la pide, sigue yendo
+  # en HORA; este campo dice donde cae dentro de la sesion.
+  list(campo = "scheduled_moment", titulos = c("MOMENTO DE LA CLASE", "MOMENTO")),
   list(campo = "link",             titulos = c("ENLACE DE LA FICHA")),
   list(campo = "notes",            titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS"))
 )
@@ -265,6 +275,12 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         scheduled_date = fecha("scheduled_date"),
         scheduled_day = val("scheduled_day"),
         scheduled_time = val("scheduled_time"),
+        # CUARTO sitio que enumera los campos del bloque: `AULAS_AGENDADAS_BLOQUE`
+        # da los titulos, las dos hojas del generador escriben los valores y esta
+        # lista los devuelve. Un campo que falte aqui se escribe en el Excel, se
+        # lee de vuelta y se descarta en silencio: el barrido de ida y vuelta de
+        # `test-carga-aulas-libro-roundtrip.R` es lo unico que lo caza.
+        scheduled_moment = val("scheduled_moment"),
         link = val("link"),
         replacement_note = val("notes"),
         sample_role = if (b == 1L) "titular" else "chain_reserve",

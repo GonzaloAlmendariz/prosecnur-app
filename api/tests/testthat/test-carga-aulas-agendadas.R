@@ -36,9 +36,13 @@
 }
 
 test_that("el ancho de bloque se deduce de la hoja, no se asume", {
-  # El estudio de 2025 trae 241 columnas: 1 + 12 x 20.
-  expect_identical(aulas_agendadas_n_bloques(241L), 12L)
-  expect_identical(aulas_agendadas_n_bloques(41L), 2L)
+  # El bloque paso de 20 a 21 columnas el 2026-08-28, al entrar MOMENTO DE LA
+  # CLASE. Los libros de 2025 traen bloques de 20 y se siguen leyendo: el
+  # arranque de cada bloque sale de los TITULOS —el codigo de curso-horario se
+  # repite una vez por bloque— y no de esta division, que quedo como respaldo
+  # para una hoja intacta del formato vigente.
+  expect_identical(aulas_agendadas_n_bloques(1L + 12L * AULAS_AGENDADAS_ANCHO_BLOQUE), 12L)
+  expect_identical(aulas_agendadas_n_bloques(1L + 2L * AULAS_AGENDADAS_ANCHO_BLOQUE), 2L)
   expect_identical(aulas_agendadas_n_bloques(1L), 0L)
   expect_identical(aulas_agendadas_n_bloques(NA), 0L)
 })

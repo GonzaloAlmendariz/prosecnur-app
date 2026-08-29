@@ -61,8 +61,8 @@ test_that("la profundidad de la cadena sale del plan, no de una constante", {
   aulas_libro_generar(cortas, path)
   hojas <- readxl::read_excel(path, sheet = "Aulas Agendadas", col_names = FALSE, .name_repair = "minimal")
 
-  # 1 columna de id + 2 bloques de 20.
-  expect_identical(ncol(hojas), 41L)
+  # 1 columna de id + 2 bloques del ancho vigente.
+  expect_identical(ncol(hojas), 1L + 2L * AULAS_AGENDADAS_ANCHO_BLOQUE)
 })
 
 test_that("el parte de campo generado trae la identidad y espera el resto", {
@@ -400,11 +400,20 @@ test_that("un % que llega en 0-100 NO se formatea como porcentaje", {
 })
 
 test_that("el semaforo de la hoja de campo cae sobre STATUS DE APLICACIÓN", {
-  # `STATUS DE APLICACIÓN` es la columna 33 (AG) porque su bloque lleva los 20
-  # titulos de agenda en medio. Contando solo los titulos de campo daba la 13
-  # (M), que es `MEDIO DE CONTACTO`: la regla existia y no teñia nada.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
-  expect_true(grepl('sqref="AG[0-9]', xml))
+  # `STATUS DE APLICACIÓN` cae despues del ID MATCH y de TODOS los titulos de
+  # agenda, que van en medio del bloque. Contando solo los titulos de campo daba
+  # la 13 (M), que es `MEDIO DE CONTACTO`: la regla existia y no teñia nada.
+  #
+  # La letra se DERIVA del ancho vigente en vez de fijarse: cuando el bloque de
+  # agenda crecio de 20 a 21 campos, la columna paso de AG a AH y este aserto
+  # era lo unico que quedaba apuntando al sitio viejo.
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  letra <- openxlsx::int2col(
+    which(as.character(unlist(cab[1, ], use.names = FALSE)) == "STATUS DE APLICACIÓN")[[1]])
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"), collapse = "")
+  expect_true(grepl(sprintf('sqref="%s[0-9]', letra), xml), info = letra)
   expect_false(grepl('sqref="M[0-9]', xml))
 })
 
