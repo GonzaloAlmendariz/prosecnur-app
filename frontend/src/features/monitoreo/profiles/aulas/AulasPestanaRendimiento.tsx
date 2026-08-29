@@ -81,6 +81,11 @@ export function AulasPestanaRendimiento({
                 <span>encuestas por aula visitada · y lo que cabe esperar</span>
               </div>
               <AulasSerieDeRendimiento
+                // La facultad elegida viaja en la URL, igual que en la
+                // pirámide: sin esto la serie de una facultad no se puede
+                // enlazar ni capturar.
+                facultadEnFoco={facultadEnFoco}
+                onFoco={onFoco}
                 partes={parteDeCampo(
                   (dashboard.partes_campo ?? []) as MonitoreoRow[],
                   (dashboard.agenda ?? []) as MonitoreoRow[],
