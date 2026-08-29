@@ -107,15 +107,41 @@ dispersión.** La secuencia importa: con la curva, un rango se puede construir
 sobre residuos observados; sin ella, el rango estaría absorbiendo un defecto del
 instrumento en vez de medir incertidumbre real.
 
-**Trabajo 2.** Ajustar la curva sobre las 194 aulas de 2025, validarla contra
-los tramos, y decidir el reemplazo con ADR.
+**Trabajo 2 — DECIDIDO** con el
+[ADR 0083](../adrs/0083-la-calibracion-de-rendimiento-se-sella-y-es-monotona.md)
+(2026-08-28). Se eligió **C, la curva**, pero al medir para decidir apareció un
+hecho que este plan no contemplaba y que va primero:
+
+**El estudio en curso corre sobre un respaldo que nunca declaró.** En el `.pulso`
+del sorteo vigente `rendimiento_tramos` es NULL y las tres piernas están vacías
+en las 1.392 aulas. HSVG2026 no usa los tramos sellados que documenta la tabla
+de piernas (0,809 · 0,642 · …) sino la calibración embebida del código
+(0,80 · 0,69 · 0,56 · 0,55 · 0,44), y ninguna pantalla lo dice. Por eso el ADR
+sella **antes** de curvar: cambiar el respaldo del código movería en silencio
+todo estudio que nunca selló.
+
+Bordes remedidos con las tasas que el estudio realmente usa: 25→26 cae 15,6 % y
+50→51 cae 18,4 %, con diez tamaños invertidos (un aula de 51 espera menos que
+una de 41). Sobre el marco: 190 de 1.392 a un elegible de un borde, 3.727 de
+123.688 pares de la misma facultad invertidos.
 
 ## Parte 3 · El agregado manda, y ya está así
 
 Tercera pregunta, y la respuesta es que el diseño ya te da la razón: **el
 disparador de activación de reservas es el margen agregado por facultad, no el
-cumplimiento de un aula.** Se decidió con backtest y la regla por aula se probó
-y se descartó por no detectar nada.
+cumplimiento de un aula.** Se decidió con el backtest E1 sobre el campo
+2025 (opción «d», 2026-08-26) y **ya está implementado** en
+`monitoreo_aulas_efectividad_seguimiento.R`.
+
+Corrección de esta línea, 2026-08-28: antes decía que «la regla por aula se
+probó y se descartó por no detectar nada». Eso nunca se probó. Lo que el
+backtest midió y descartó como disparador es el **test de banda sobre τ, por
+facultad**: detecta caídas de 13,6 pp de mediana cuando el escenario que
+importa vale 2 a 4 pp, cero de quince facultades lo habrían detectado, y su
+única señal fue falsa. La banda no se retiró, quedó como guarda contra el
+ruido, que es su mitad buena, y el disparador pasó a ser el consumo del margen.
+El grano por facultad nunca estuvo en discusión: lo que cambió fue el
+estadístico.
 
 Lo que falta no es cambiar el criterio sino **cerrar el circuito**:
 
@@ -179,17 +205,42 @@ hoy dejó tres ejemplos de por qué, la tasa congelada, la calibración de orige
 desconocido y la proporción de otra fuente, ninguna de las cuales rompía un test
 pero las tres se cazan con una comprobación que se cumple por construcción.
 
-## Lo que hay que decidir antes de arrancar
+## Lo que había que decidir antes de arrancar — CERRADO el 2026-08-28
 
-Tres cosas, y ninguna es técnica:
+Las tres quedaron resueltas por encargo de Gonzalo («toma la decisión, genera el
+ADR, que el loop no necesite nada de mí»). Ninguna vuelve a la mesa salvo que él
+la reabra.
 
-**Cuánto de esto entra al estudio en curso.** Los trabajos 1, 3 y 4 mejoran la
-lectura sin cambiar ningún número. El 2 y el 5 cambian cómo se calcula y no
-deberían tocar un operativo andando.
+**Cuánto entra al estudio en curso: sólo lo que no mueve un número.** Los
+trabajos 1, 3 y 4 mejoran la lectura y entran. El 2 y el 5 cambian cómo se
+calcula y **no tocan HSVG2026**, pero esto no se sostiene por disciplina sino
+por construcción: el ADR 0083 hace que el motor evalúe lo que el estudio selló,
+así que un estudio sellado con escalones sigue con escalones sin que nadie tenga
+que acordarse. El invariante que lo comprueba es la suma **3.157,8** sobre los
+174 titulares.
 
-**Si el rango se descarta o se pospone.** Si se pospone, hay que decir qué dato
-del campo lo habilitaría.
+**El rango se pospone, y esto es lo que lo habilita:** los residuos de la curva
+contra campo observado. Cuando HSVG2026 cierre, sus aulas aplicadas dan una
+segunda medición independiente de la de 2025 y la dispersión por tamaño sale de
+ahí. Sobre escalones no se construye, porque estaría midiendo el escalón.
 
-**Y con qué frecuencia se revisa.** Esto termina siendo un ciclo que corre
-mientras dure el campo, y conviene fijar cada cuánto se mira antes de empezar,
-no después.
+**Cadencia del loop: dos revisiones por semana mientras haya campo, una al mes
+fuera de campo.** No es una preferencia, sale de la ventana medida en el
+backtest E1. El campo se concentra —86 · 68 · 36 · 4 aulas por semana, 98 %
+aplicado al cerrar la semana 3— y con 7 días de anticipación **la señal de la
+semana 2 es la última accionable**. Una cadencia semanal gasta la mitad de las
+oportunidades útiles que existen; una quincenal las gasta todas.
+
+## Lo que el loop puede hacer sin preguntar
+
+Orden de ataque, ya desbloqueado:
+
+1. **Sellar el respaldo** (ADR 0083, decisión 1). Es lo que repara el hallazgo
+   nuevo y no depende de la curva. Empieza por aquí.
+2. **El invariante de monotonicidad** como test sobre el marco entero. Hoy falla
+   en 3.727 pares y ése es su valor de partida.
+3. **El invariante del sello**: 3.157,8 sobre los 174 titulares, antes y después.
+4. **La forma curva en el esquema de config** (ADR 0083, decisión 2).
+5. **Trabajo 4**, que sólo dependía del 3 y el 3 ya está hecho.
+
+El trabajo 5 sigue esperando al 2, y su propio invariante antes que su fórmula.

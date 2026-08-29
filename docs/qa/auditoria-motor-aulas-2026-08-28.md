@@ -234,7 +234,11 @@ tramos, p = 0,47) salvo una variante quasibinomial que gana 0,150 encuestas
 (p = 0,012), pero sí **elimina las inversiones de raíz** por ser monótona
 creciente. El argumento para la curva es la monotonicidad, no la precisión.
 
-Estado: **abierto**, con ADR pendiente.
+Estado: **decidido** el 2026-08-28 por el [ADR 0083](../adrs/0083-la-calibracion-de-rendimiento-se-sella-y-es-monotona.md), implementación pendiente. Se eligió la curva por su monotonicidad, y al medir para
+decidir se confirmó sobre el `.pulso` vigente el hallazgo del lector sin escritor:
+`rendimiento_tramos` es NULL y las tres piernas están vacías en las 1.392 aulas, así
+que HSVG2026 corre sobre la calibración embebida (0,80 · 0,69 · 0,56 · 0,55 · 0,44) y
+no sobre los tramos de la tabla de piernas. Sellar el respaldo va antes que curvar.
 
 ## Implicancias para HSVG2026
 
