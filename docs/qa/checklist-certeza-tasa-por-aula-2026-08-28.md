@@ -988,6 +988,12 @@ Así que lo que hay que medir no es cuánto cambia la cobertura de la 202 —eso
 lo midió la sesión par: sube de 1,081 a 1,101— sino **cuánto varía ese
 desplazamiento entre candidatas**, y compararlo contra lo que las separa.
 
+> **SUPERSEDIDO el 2026-08-28.** Sí se pudo: un sorteo completo del pipeline
+> tarda **29,6 s** y con la semilla 202 reproduce la corrida guardada **174 de
+> 174**. Lo que fallaba era mi atajo de un `dispatch` suelto. El barrido real de
+> 50 semillas está más abajo, en «El barrido de 50, corrido de verdad». Lo de
+> esta sección queda como el proxy que se usó mientras tanto.
+
 ## Lo que no se pudo hacer
 
 El barrido guardó las métricas de las 50 pero no las selecciones, así que
@@ -1063,3 +1069,60 @@ Lo que sí queda establecido para el próximo estudio:
    ruido. Conviene declarar un umbral de indiferencia —por ejemplo, tratar como
    empatadas las que estén dentro de una centésima— y desempatar por solape, que
    es lo que Gonzalo hizo a mano.
+
+---
+
+# El barrido de 50, corrido de verdad (2026-08-28)
+
+50 semillas con el **pipeline completo** —`calc_muestra_aulas_seleccionar`, que
+elige entre 500 candidatas por semilla—, 29,6 s cada una. **Validado: la semilla
+202 reproduce la corrida guardada 174 de 174 titulares.** El criterio (mínima
+cobertura entre las 30 celdas de sexo) se calculó con las dos varas sobre cada
+selección.
+
+| | tasa de la facultad | tasa del aula |
+|---|---:|---:|
+| candidatas que cierran las 30 celdas | **30 de 50** | **38 de 50** |
+| ganadora | **202** (1,0741) | **202** (1,1053) |
+| Spearman entre los dos ordenamientos | colspan | **0,906** |
+| desplazamiento aula − facultad | media **+0,0235** · sd **0,0201** · rango −0,0300 a +0,0659 | |
+
+## Las tres lecturas
+
+**1 · La 202 gana con las dos varas.** Puesto 1 en los dos ordenamientos. La
+decisión que se tomó era robusta a la elección de vara — no hay nada que
+lamentar en la selección que salió a campo.
+
+**2 · Pero el ordenamiento sí se mueve, y la 4444 es el ejemplo.** Con la tasa
+de la facultad queda **4ª**; con la tasa del aula cae al **puesto 11**. Spearman
+0,906: alto, no 1. Si la 202 no hubiera estado en el juego, la ganadora habría
+dependido de la vara.
+
+**3 · El filtro es lo que más cambia.** Pasan 30 candidatas con la vara vieja y
+**38 con la nueva**. Ocho selecciones que el criterio descartaba por no cerrar
+las 30 celdas sí las cierran cuando se mide con la tasa del aula. Ése es el
+efecto grande, más que el reordenamiento del podio.
+
+## Lo que este barrido NO dice
+
+**No reproduce los niveles del barrido original y no sé por qué.** El barrido del
+27-08 reportó la 4444 en 1,0837 y la 202 en 1,0810, con la 4444 ganando. Este da
+1,0516 y 1,0741, con la 202 ganando cómodamente. Reproduzco la *selección* de la
+202 al aula exacta, así que la diferencia no está en el sorteo: está en cómo se
+calcula la cobertura, o en sobre qué marco corrió aquel barrido (ULT1 es del
+26-08 y ULT2 del 27-08, el mismo día del barrido).
+
+Por eso **de aquí no se sigue que el barrido original estuviera mal**. Lo que se
+sostiene es la comparación entre varas dentro de una misma definición, que es la
+pregunta que se hizo. Cuadrar los niveles es trabajo aparte y hay que hacerlo
+antes de citar estas cifras absolutas en ningún lado.
+
+## Recomendación para el próximo estudio
+
+1. **El criterio del barrido debe usar la tasa del aula.** Compara selecciones de
+   aulas concretas cuyo tamaño ya se conoce; promediarlo descarta información y,
+   medido, descarta ocho candidatas válidas de cada cincuenta.
+2. **Declarar un umbral de indiferencia.** El desplazamiento entre varas tiene
+   sd 0,0201; separar candidatas por milésimas es decidir por ruido. Tratar como
+   empatadas las que caen dentro de una centésima y desempatar por solape — que
+   es exactamente lo que Gonzalo hizo a mano el 27-08.
