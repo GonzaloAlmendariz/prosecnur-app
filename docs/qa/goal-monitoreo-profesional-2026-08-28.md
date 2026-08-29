@@ -30,6 +30,18 @@ Y el acotamiento, que manda sobre todo lo anterior:
 > Nos centramos exclusivamente en monitoreo de aulas porque **este es nuestro
 > scope principal**.»
 
+Y la sinergia, que condiciona todos los frentes:
+
+> «Hay **tres elementos en constante sinergia**: por un lado Kobo, por otro la
+> aplicación, y por otro el Excel. El Excel da información sobre la
+> **agendación** y el **registro de campo**. La aplicación **lee los primeros
+> dos y genera el tercero** —básicamente la base de control, pero puede generar
+> otras hojas adicionales— **sin reescribir las primeras dos, que son las que
+> constantemente están editándose** y que lee. Esas tres tienen que estar en
+> sinergia completa. Y la idea no es que se demoren: **un control y un monitoreo
+> prácticamente en tiempo real de cuando el aplicador está en el aula**. A veces
+> vamos a tener cien datos y a veces tres mil, **y eso es normal**.»
+
 ## El scope, literal
 
 Dentro:
@@ -75,6 +87,32 @@ Cada ítem viene de una medición ya hecha, no de una impresión:
 
 Ocho frentes. Los frentes no se hacen en orden; dentro de un frente las
 dependencias se dicen.
+
+### S · La sinergia Kobo ↔ aplicación ↔ Excel — frente NUEVO y transversal
+
+Lo que hay hoy, verificado el 2026-08-28 sobre el código:
+
+- **Un solo libro con tres hojas**: `Aulas Agendadas`, `Aulas Aplicadas
+  (Campo)` y `Base de control` (`AULAS_LIBRO_HOJAS` en `carga_aulas_libro.R`).
+- `aulas_libro_importar()` **lee las tres**; ninguna es obligatoria y lo que
+  falta se declara en `hojas_ausentes` en vez de mostrar un cero silencioso.
+- `aulas_libro_generar()` **escribe las tres y guarda con `overwrite = TRUE`**,
+  y **nunca lee el archivo existente**: no hay `read.xlsx`, ni `loadWorkbook`,
+  ni `file.exists` en todo el generador. Compone las tres hojas desde el estado
+  de sesión.
+- Quién edita qué, según el dueño (2026-08-24): la **Base de control no la
+  edita nadie**, es salida; la **agendación sí**; el **registro de campo a
+  veces**.
+
+| | Ítem | Estado |
+|---|---|---|
+| S1 | **Regenerar el libro pisa las dos hojas que el equipo edita.** El generador escribe agendación y registro de campo desde el estado de sesión y sobrescribe el archivo entero; nada compara con lo que hay en disco ni avisa. Si alguien editó después del último import, esas ediciones se pierden **en silencio**. Es el defecto central de este frente | ☐ verificado, sin reparar |
+| S2 | **Separar lo que la app escribe de lo que el equipo edita.** El dueño lo pidió literal: generar la base de control y las hojas adicionales **sin reescribir las dos primeras** | ☐ |
+| S3 | **Robustez a la edición externa**: una corrección en agendación o en registro de campo tiene que llegar a la app sin fricción. La regla del dueño es «lo que produzca la app tiene prioridad», que **no significa ignorar la corrección** sino que la app es la fuente y el Excel un canal de edición acotado | ☐ |
+| S4 | **Medir el lazo completo Kobo → app → Excel** con el reloj en la mano. Hoy no existe esa medición para aulas | ☐ |
+| S5 | **Escala 100 ↔ 3.000 y que eso sea normal.** Todo lo de este frente se mide en los dos extremos; una solución que sirva a 100 y se caiga a 3.000 no cierra el ítem | ☐ regla del frente |
+| S6 | **`Base de control` se lee de vuelta al importar** aunque sea salida pura. Es deliberado —las filas ya registradas vuelven al libro al regenerarlo— pero convierte una salida en entrada y merece revisarse a la luz de S2 | ☐ |
+| S7 | **Casi en tiempo real mientras el aplicador está en el aula.** Es el norte del frente: qué latencia es aceptable, qué se refresca solo y qué exige una acción | ☐ |
 
 ### N · Que no crezca un archivo gigante — pedido explícito del dueño
 
@@ -175,6 +213,8 @@ por primera vez.
 - **Medir en la app, no leer CSS.** Auditar a ojo es inviable.
 - **El proyecto de referencia decide el resultado.** Para aulas, el `.pulso` de
   HSVG2026; hay copia de trabajo en el scratchpad.
+- **Todo se mide a las dos escalas**: ~100 y ~3.000 registros. Las dos son
+  normales y una solución que sólo sirva a una no cierra su ítem.
 - **Verde por conformidad, no por ausencia.** Se reportan tres números:
   conformes, no conformes y **no declaradas**.
 - **Un frente terminado no cierra el GOAL.** Sólo Gonzalo lo cierra.
