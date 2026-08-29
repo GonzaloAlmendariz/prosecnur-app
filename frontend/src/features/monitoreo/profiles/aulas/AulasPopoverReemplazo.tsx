@@ -238,9 +238,10 @@ export function ContenidoDeReemplazo({
   const activo: OrigenDeCandidato = grupo ?? inicial;
   // Hay brecha con la que medir cuando alguien la pasa Y pide algo: una brecha
   // de cero es una facultad cubierta, y ahí «cierra brecha» tampoco significa
-  // nada. Montado en Registro de campo el popover no recibe brecha —esa vista
-  // no tiene las cuotas—, y sin esta bandera los tres candidatos salian con una
-  // barra a «0 %» que se leia como «ninguno ayuda».
+  // nada. Sin esta bandera los tres candidatos salían con una barra a «0 %» que
+  // se leía como «ninguno ayuda». Registro de campo SÍ la pasa desde que
+  // `brechaDeLaFacultad()` la produce de `quotas_sex_faculty`; antes no había
+  // productor en todo el perfil y el orden colapsaba a puro parecido.
   const hayBrecha = Boolean(brecha && (brecha.mujeres > 0 || brecha.hombres > 0));
 
   const grupoActivo = candidatos[activo];

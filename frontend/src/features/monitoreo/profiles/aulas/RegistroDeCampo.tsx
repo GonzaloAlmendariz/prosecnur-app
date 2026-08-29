@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
+import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
@@ -159,6 +160,12 @@ function formDesdeFila(row: MonitoreoAulasPlanRow | null): RegistroForm {
 type Props = {
   agenda: MonitoreoAulasPlanRow[];
   /**
+   * Las celdas de cuota por sexo y facultad (`dashboard.quotas_sex_faculty`).
+   * Con ellas el popover de reemplazo ordena por lo que a la facultad le
+   * falta y no sólo por parecido; sin ellas se comporta como antes.
+   */
+  celdasSexo?: ReadonlyArray<Record<string, unknown>>;
+  /**
    * La hoja de partes del libro, sólo para decir cuántas aulas YA lo tienen.
    * El registro no la edita: la escribe fila a fila con el formulario.
    */
@@ -177,6 +184,7 @@ type Props = {
 };
 
 export function RegistroDeCampo({
+  celdasSexo,
   agenda, partes = [], onGuardado, codigoEnFoco = "", onElegir,
 }: Props) {
   const [seleccion, setSeleccion] = useState<string>("");
@@ -790,6 +798,10 @@ export function RegistroDeCampo({
                     abierto
                     caido={activa}
                     filas={agenda}
+                    // Lo que le falta a SU facultad, que es contra lo que se
+                    // elige: el motor ya lo tiene por celda y hasta ahora no
+                    // llegaba hasta aquí.
+                    brecha={brechaDeLaFacultad(celdasSexo, String(activa.faculty ?? ""))}
                     onElegir={(fila) => {
                       const cod = String(fila.operational_code ?? fila.classroom_id ?? "").trim();
                       if (cod) void activarReemplazo(cod);

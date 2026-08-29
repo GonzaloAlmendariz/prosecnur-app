@@ -1439,6 +1439,10 @@ export default function AulasMonitoreoPage() {
                   // La hoja de partes, sólo para el contador: sin ella el panel
                   // decía «0 con parte» mientras Consultas enseñaba «210 partes».
                   partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
+                  // Las cuotas por sexo, para que elegir un reemplazo mire lo
+                  // que a la facultad le falta. Es el mismo bloque que pinta la
+                  // pestaña de cuotas.
+                  celdasSexo={(dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
                   onGuardado={() => { void loadView(seccionActiva, true, true); }}
                   // La dirección abre el aula: `?foco=aula:CH 21` deja el
                   // formulario puesto sobre ella, que es donde vive la única
