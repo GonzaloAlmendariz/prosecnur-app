@@ -64,6 +64,27 @@ donde aparecen los defectos que las suites no ven.
 | 17 | Capturar Cuotas | «aportan 6.1» — **su frase literal, cuarta vez el mismo defecto**. Barrido del payload: `aporte_pendiente`, `proyeccion` y `expected_valid` siguen fraccionarios en el motor a propósito (son esperanzas), pero ningún sitio los imprime crudos | **VISTO** — recapturado: «aportan 18», «aportan 7» |
 | 18 | Revisar la barra de secciones | **Avance es la última de cinco** (Fuentes · Agenda · Validación · Consultas · Avance). Cuotas abre Avance, pero la sección va al final | **abierto, es decisión suya** |
 
+| 19 | Capturar Consultas | Los partes ya traen aplicador, asistentes, efectivas y fecha. **Y el embudo decía «de 4.386 quedaron 4.386 · 100 %»** sobre dos pasos que nadie anota, acusando además al equipo de un descuadre de 2.791 que era el hueco | **VISTO** — `5cb20112` |
+| 20 | Barrer el payload buscando el patrón | `partes_campo` 9 de 14 campos vacíos · `control_calidad` 5 de 10 · `agenda` 56 de 98 · **`avance_sexo_facultad` 0 de 16** | medido |
+| 21 | Capturar la base de control, que usa los booleanos vacíos | **Ya está bien resuelta**, y es el estándar: «304 sin evaluar en el libro… se llenan en el Excel del equipo y vuelven al importar» | **VISTO**, sin cambio |
+
+## El patrón de los seis defectos
+
+Los seis que aparecieron al mirar tienen la misma forma: **algo ausente
+presentado como algo medido.**
+
+| dónde | la ausencia | se leía como |
+|---|---|---|
+| reserva dirigida, ritmo, brecha, aporte | — | decimales de persona |
+| perfil por facultad | dos varas sin declarar | un total que no cuadraba |
+| avance por facultad | la cuota de sexo | «cero faltan» con 2 mujeres cortas |
+| gráfico de cuotas | la cuota | seis celdas pasándose sin verse |
+| probabilidad de cierre | la dispersión | 0 % o 100 % y nada en medio |
+| embudo del parte | rechazos y duplicados | 100 % de conversión |
+
+Y el contraejemplo, que es el estándar: la **base de control** dice «304 sin
+evaluar en el libro» y explica cómo se llenan. Ninguno de los seis lo hacía.
+
 ## Lo que aprendí hoy sobre mi propia forma de trabajar
 
 1. **Arreglar donde se ve, no barrer.** El decimal salió cuatro veces porque las
