@@ -4537,6 +4537,10 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
     "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
     "factor_facultad", "facultad_k", "tasa_efectividad_aula",
+    # Las DOS varas del esperado, juntas y con nombre propio: la del aula
+    # ajusta por su tamano y la de la facultad es la que dimensiono la muestra.
+    # Publicar solo una obligaba a cada consumidor a reconstruir la otra.
+    "tasa_facultad", "esperadas_facultad",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",

@@ -537,6 +537,16 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # la escribe por fila y aqui no se recalcula: si el productor cambia de
     # ecuacion, la tasa que se ensena tiene que seguir siendo la suya.
     tasa_efectividad_aula = getn(c("tasa_efectividad_aula"), NA_real_),
+    # LA OTRA VARA, para que Monitoreo pueda distinguirlas igual que Calculo.
+    # `expected_valid` de arriba usa la del aula, que es la meta operativa de
+    # ESE salon. Estas dos traen la de la facultad, que es con la que se
+    # dimensiono la muestra y con la que se mide la cuota: un aula que rinde
+    # por debajo de su propia meta tuvo un problema, y una que rinde por debajo
+    # de la de su facultad pero cumple la suya solo es mas grande que el
+    # promedio, y eso ya estaba previsto. Sin las dos, los dos casos se ven
+    # iguales y el segundo dispara una alarma que no existe.
+    tasa_facultad = getn(c("tasa_facultad"), NA_real_),
+    esperadas_facultad = getn(c("esperadas_facultad"), NA_real_),
     # La tasa unica de los estudios SIN historico: ahi el esperado es
     # `elegibles x efectividad_tau` y no hay tramo ni factor de facultad que
     # aplicar —`rendimiento_ref` y `p_aplicada_ref` llegan vacios—. Aviso de la
@@ -1301,6 +1311,9 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     # «Agendada» o en «Reemplazada».
     "responsible", "collector_id", "sample_status", "operational_status", "application_state",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
+    # Las dos varas del esperado, para que la vista pueda separar «este salon
+    # rindio mal» de «este salon es mas grande que el promedio de su facultad».
+    "tasa_efectividad_aula", "tasa_facultad", "esperadas_facultad",
     "filter_passed", "filter_rejected", "brecha", "link", "updated_at"
   ), names(rows))
   out <- rows[, cols, drop = FALSE]
