@@ -352,6 +352,48 @@ esperar a que la vista «deje de cambiar» NO basta, porque se está quieta ocho
 segundos antes de llenarse. Un vacío es perfectamente estable. Hay que medir dos
 veces y exigir que coincidan, que es lo que destapó esto.
 
+#### CORRECCIÓN del 2026-08-29 — el hallazgo de los 11 s estaba mal contado
+
+La pasada anterior publicó que Agenda muestra «once segundos de tabla vacía sin
+ningún indicador de carga». **Las dos mitades de esa frase son falsas** y las
+dos se comprobaron midiendo, no razonando.
+
+**El indicador existe, y es el propio contrato de QA.** `AulasMonitoreoPage`
+declara `data-audit-ready={loading ? "false" : "monitoreo-aulas"}`
+(línea ~1236). Medido sobre una primera visita:
+
+```
+3s ready=false f=0 · 5s ready=false f=0 · 7s ready=false f=0
+9s ready=false f=0 · 11s ready=monitoreo-aulas f=174
+```
+
+**La marca vale `"false"` durante los nueve segundos y cambia exactamente cuando
+llegan las 174 filas.** El contrato de readiness funciona. Yo lo descarté en la
+pasada anterior escribiendo que «no es un booleano sino un nombre» tras UNA sola
+observación —hecha, precisamente, cuando ya estaba lista—. Es la forma más cara
+de mirar: comprobar un gate una vez, en el único momento en que no puede fallar.
+
+Para la persona tampoco está mudo: durante la carga el chrome muestra
+`Avance … Recargar … Sin act.` con puntos suspensivos donde luego van los
+valores.
+
+**Y no son «once segundos cada primera visita»: es el camino FRÍO.** Repetida la
+medición con el dashboard ya calculado, la vista está lista **a los 4 segundos y
+con los 174 datos puestos**. Lo que tarda es la primera computación tras
+importar el plan, no cada entrada a la pestaña.
+
+**Qué queda en pie, entonces:** una espera de ~9 s en frío, correctamente
+declarada por la app. Es un ítem de rendimiento del frente A/B, no un defecto de
+contrato de superficie, y **no justifica tocar el estado vacío de ninguna
+superficie** —que era el trabajo que la pasada anterior proponía—.
+
+**Y la consecuencia de método, que es lo que de verdad se llevó esta pasada:**
+todas las mediciones de E1 se hicieron sin usar `data-audit-ready` como gate,
+teniéndolo delante. El skill `/ver-ui` lo dice literal —`marca-en-false`
+significa «la vista aún declara trabajo pendiente»— y se ignoró. Las tres
+pasadas siguen siendo válidas en su resultado geométrico porque el doble
+muestreo las salvó, pero el gate correcto habría ahorrado dos de ellas.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
