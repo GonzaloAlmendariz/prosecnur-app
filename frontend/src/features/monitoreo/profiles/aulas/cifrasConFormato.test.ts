@@ -27,14 +27,18 @@ const UNIDADES = "cursos-horario|aulas|respuestas|reservas|filas|celdas|titulare
 /**
  * `${algo} aulas` — una cifra metida en la frase sin pasar por el formateador.
  *
- * Se exige `fmt(` o `toLocaleString` dentro de la interpolación. Una operación
+ * Se exige `fmt(`, `fmtCuenta(` o `toLocaleString` dentro de la interpolación.
+ * `fmtCuenta()` entró después que este guard y es MÁS estricto que `fmt()`
+ * —redondea hacia arriba porque media respuesta no existe—, así que dejarlo
+ * fuera empujaba a usar el formateador menos correcto para una cuenta. Una
+ * operación
  * —`${total - enJuego}`— también cuenta como cruda: el resultado es igual de
  * grande que sus operandos.
  */
 // Se excluyen las interpolaciones que llevan comillas dentro: `${n === 1 ?
 // "reserva" : "reservas"}` produce TEXTO, no una cifra, y formatearlo no
 // significaría nada.
-const SIN_FORMATO = String.raw`\$\{(?!fmt\(|[^}]*toLocaleString)[^}"']*\}`;
+const SIN_FORMATO = String.raw`\$\{(?!fmt\(|fmtCuenta\(|[^}]*toLocaleString)[^}"']*\}`;
 
 /**
  * Las formas en que una cifra llega a la frase, medidas en el perfil:
