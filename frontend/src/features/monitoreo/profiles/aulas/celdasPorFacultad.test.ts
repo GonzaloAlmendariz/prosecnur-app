@@ -128,3 +128,28 @@ describe("el gráfico no puede llamar «agendadas» a lo que no lo es", () => {
     expect(/aulas agendadas/i.test(pie)).toBe(false);
   });
 });
+
+describe("el pie del gráfico cuenta las facultades que ponen déficit", () => {
+  /**
+   * Visto con `HSVG2026_sem15_como_2025.pulso`, el primero en que el déficit
+   * total baja a 1: «quedaría un déficit de 1 respuestas, repartido en 15
+   * facultades». El 15 eran TODAS las del gráfico, cerradas incluidas. Un
+   * déficit de 1 está en una facultad, y decir quince manda a buscar en catorce
+   * sitios donde no hay nada.
+   */
+  const fuenteChart = readFileSync(
+    new URL("./AulasSexoPorFacultadChart.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("el «repartido en» no usa el total de filas", () => {
+    // `filas.length` en esa frase es justo el defecto: cuenta las cerradas.
+    const pie = fuenteChart.slice(fuenteChart.indexOf("Aplicando todas las aulas"));
+    expect(pie).toContain("fmt(conDeficit)");
+    expect(pie.slice(0, pie.indexOf("</p>"))).not.toContain("fmt(filas.length)");
+  });
+
+  it("y `conDeficit` se deriva de las filas con déficit > 0", () => {
+    expect(fuenteChart).toContain("filas.filter((f) => f.deficit > 0).length");
+  });
+});
