@@ -106,7 +106,7 @@ Lo que hay hoy, verificado el 2026-08-28 sobre el código:
 
 | | Ítem | Estado |
 |---|---|---|
-| S1 | **MEDIDO el 2026-08-28, ver abajo.** Regenerar sin importar borra la edición; importar antes la conserva | ☑ medido, sin reparar |
+| S1 | **MEDIDO y luego CORREGIDO el 2026-08-29: mal encuadrado, ver abajo.** Regenerar sin importar borra la edición; importar antes la conserva | ☑ medido, sin reparar |
 | S1b | ~~Regenerar el libro pisa las dos hojas que el equipo edita.~~ El generador escribe agendación y registro de campo desde el estado de sesión y sobrescribe el archivo entero; nada compara con lo que hay en disco ni avisa. Si alguien editó después del último import, esas ediciones se pierden **en silencio**. Es el defecto central de este frente | ☐ verificado, sin reparar |
 | S2 | **Separar lo que la app escribe de lo que el equipo edita.** El dueño lo pidió literal: generar la base de control y las hojas adicionales **sin reescribir las dos primeras** | ☐ |
 | S3 | **Robustez a la edición externa**: una corrección en agendación o en registro de campo tiene que llegar a la app sin fricción. La regla del dueño es «lo que produzca la app tiene prioridad», que **no significa ignorar la corrección** sino que la app es la fuente y el Excel un canal de edición acotado | ☐ |
@@ -148,6 +148,43 @@ primeras tal como estén en el disco. Descartadas: fusionar en cada regeneració
 (mantiene el archivo único pero deja la fusión como punto de fallo silencioso)
 y limitarse a avisar del desfase (pone en el operador la carga de un orden que
 la app puede garantizar).
+
+#### CORRECCIÓN del 2026-08-29 — S1 estaba mal encuadrado, y S2 no se activa
+
+Al medir S3 apareció el dato que cambia los dos hallazgos anteriores: **hay un
+solo sitio que genera el libro y su destino es siempre una ruta nueva**.
+
+```r
+destino <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
+```
+
+`router_monitoreo.R:4979`. Un UUID por generación, dentro del directorio de
+descargas de la sesión. **La app nunca escribe sobre un archivo existente.**
+
+**Qué significa para S1.** Reporté que «regenerar borra la edición sin avisar».
+Es cierto en el experimento —que regeneraba sobre la misma ruta— y **falso en
+el flujo real de la app**: el archivo que el equipo edita vive en su disco, la
+app nunca lo toca, y lo que emite es un archivo nuevo. Nada se destruye. Medir
+sobre un escenario que el producto no produce es la forma cara de fabricar un
+defecto.
+
+**Qué significa para S2.** El arreglo es correcto a nivel de función y sus once
+tests lo prueban, pero **por el único sitio que lo llama no se activa nunca**:
+`.calg_del_disco(destino)` recibe siempre una ruta inexistente y devuelve vacío.
+Comprobado. Es una capacidad escrita, tipada y testeada que nadie consume.
+
+**El riesgo real, reencuadrado.** No es destrucción, es **divergencia**: el
+equipo edita su copia, alguien regenera sin haberla subido, y quedan dos libros
+distintos sin que nada diga cuál está al día. El daño no es perder una celda,
+es trabajar sobre el libro equivocado.
+
+**Lo que esto abre, y sustituye a S2 y S3 tal como estaban escritos:**
+
+| | Ítem | Estado |
+|---|---|---|
+| S8 | **El libro generado declara de qué import salió.** El recibo `monitoreo_aulas_libro` ya guarda `importado_en`, y lo consume `AulasFuentesDelEstudio.tsx`; lo que falta es que esa marca viaje DENTRO del libro, para que dos copias se puedan comparar sin adivinar | ☐ |
+| S9 | **La app no puede vigilar el archivo del equipo**, y eso es estructural: el libro llega subido o por `file_id`, nunca por una ruta estable del disco del usuario. Cualquier diseño de frescura tiene que partir de ahí en vez de suponer un watcher | ☐ declarado |
+| S10 | **Decidir si el arreglo de S2 se conecta o se retira.** Conectarlo exige que la app genere sobre una ruta estable, que es otra decisión. Dejarlo desconectado y sin declarar sería exactamente la deuda que este GOAL persigue | ☐ decisión |
 
 ### N · Que no crezca un archivo gigante — pedido explícito del dueño
 
