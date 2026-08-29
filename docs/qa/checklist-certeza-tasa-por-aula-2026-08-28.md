@@ -720,3 +720,85 @@ Monitoreo—, y aplicada a celdas de sexo borra la covarianza de arriba.
 El orden importa: el **3** se puede hacer solo, hoy, y deja las tres superficies
 coherentes en la unidad «aula». El **1** es el único que toca contrato y es el
 que menos paga.
+
+---
+
+# HALLAZGO MAYOR — la certeza no simula el sorteo del estudio (2026-08-28)
+
+Apareció auditando con la sesión par por qué no coincidíamos en el efecto PPS.
+Ellos midieron que sobre la muestra realizada τ no es optimista (razón 1,002) y
+yo que en expectativa sí (0,954–1,000). **Los dos teníamos razón, sobre dos
+sorteos distintos**, y la diferencia es un defecto.
+
+## El defecto
+
+`calc_muestra_aulas_certeza` hace, antes de simular:
+
+```r
+rows$stratum <- rep(estrato$key, nrow(rows))
+```
+
+y el motor sortea **por `stratum`** — `.cm_aulas_select_once_engine` recorre
+`names(quotas)` y filtra `aula_frame$stratum == st`. El diseño de HSVG2026
+declara `strata_cols = faculty, sex_top_1, size_group`. Al reescribir `stratum`
+con la clave de facultad, **la simulación pierde dos de los tres ejes de
+estratificación, entre ellos el de tamaño**.
+
+Es deliberado —el comentario del motor lo justifica: sin colapsar, `n_aulas` se
+repartiría entre estratos y dejaría de significar «el candidato»— pero su costo
+no estaba medido.
+
+## Lo que cuesta, medido con las mismas semillas
+
+| Facultad | n | | media | p05 | sd | P(cumple) | tasa sorteada |
+|---|---:|---|---:|---:|---:|---:|---:|
+| EE.GG. Letras | 20 | colapsado (hoy) | **416,0** | 400,8 | 8,99 | **0,988** | 0,4141 |
+| | | estratificado (diseño) | **369,5** | 358,9 | 6,56 | **0,000** | 0,4298 |
+| Derecho | 19 | colapsado | 393,2 | 374,9 | 10,16 | 1,000 | 0,5632 |
+| | | estratificado | 377,8 | 362,9 | 8,32 | 0,944 | 0,5686 |
+| Contabilidad | 3 | colapsado | 39,0 | 27,7 | 6,38 | 1,000 | 0,6326 |
+| | | estratificado | 32,5 | 27,1 | 4,30 | 1,000 | 0,6617 |
+
+**El colapso infla el rendimiento medio y la dispersión** (sd ×1,22 a ×1,48),
+porque deja al PPS concentrarse en aulas grandes — justo lo que el diseño le
+prohíbe al estratificar por `size_group`.
+
+**La prueba de que el estratificado es el modelo correcto**: la selección REAL de
+esas 20 aulas de EE.GG. Letras rinde **378,6** (904 únicos × τ). El simulador
+estratificado da 369,5; el colapsado, 416,0. El que reproduce la realidad es el
+que la certeza no corre.
+
+## Y esto invierte la evaluación de la tasa
+
+Con la estratificación del diseño y la tasa limpia de traslape, EE.GG. Letras
+contra su cuota de 397:
+
+| n | τ limpia · media / p05 / P | tasa por aula limpia · media / p05 / P |
+|---:|---|---|
+| 20 | 392,7 / 380,9 / **0,286** | 419,4 / 409,1 / **0,998** |
+| 21 | 412,5 / 400,1 / 0,984 | 439,3 / 429,2 / 1,000 |
+| 22 | 432,8 / 421,0 / 1,000 | 465,0 / 454,3 / 1,000 |
+
+**Con τ hacen falta 21 aulas; con la tasa por aula bastan 20.** Lo contrario de
+lo que dio la medición sobre el simulador colapsado, donde las dos empataban en
+20 y el total subía de 174 a 175.
+
+El mecanismo es limpio: estratificar por `size_group` **fuerza aulas chicas**
+dentro de la muestra, y las chicas rinden muy por encima de τ —hasta 0,80 contra
+el τ de 0,4188 de esa facultad—. τ se las cobra a tasa de facultad; la tasa por
+aula, no.
+
+## Consecuencia para todo lo anterior de este documento
+
+**El cuadro de los ítems 5 y 6 —«la tasa por aula sube el total de 174 a 175»—
+está medido sobre un simulador que no reproduce el diseño, y por tanto no
+decide nada.** No lo borro porque es la medición correcta de lo que el motor
+hace hoy; pero la pregunta «¿τ o tasa por aula?» no se puede contestar hasta que
+la simulación estratifique como el estudio. La evidencia de EE.GG. Letras apunta
+a que con el diseño real la tasa por aula pide **menos** aulas, que es justo lo
+que el encargo original esperaba y la medición sobre el simulador colapsado
+negaba.
+
+**Orden correcto**: primero la estratificación de la certeza, después la
+elección de tasa. Elegir la tasa sobre este simulador es optimizar el modelo
+equivocado.
