@@ -68,6 +68,7 @@ no a ojo:
 | 42 | `modelo/carga`: panel de ~1.000 px con un aviso de 60 y 940 de vacío | `cargaDeCampo.ts` · `AulasSeccionModelo.tsx` · `aulasMonitoreo.css` | **cerrado** — `hayHorarioDeCurso()` compartido y `align-self: start` sin malla; de 1.000 px a 125, bitácora 63 |
 | 43 | Dos frases sin tilde en `monitoreo_texto_abierto.R` | `monitoreo_texto_abierto.R` | **cerrado** — «así que no se sabe qué» y «no están en la base»; el guard no se extiende a Monitoreo entero, con el motivo medido en la bitácora 64 |
 | 44 | El banco de extras no decía su orden: con «Todas» parecía filtrado a una facultad | `AulasBancoExtras.tsx` | **cerrado** — «las que más mujeres traen primero», dicho donde está el `sort`, bitácora 65 |
+| 45 | El avance salía «20%» o «19,6 %» según la fuente, y sin decir qué medía | `perfilPorFacultad.ts` · `AulasPerfilPorFacultad.tsx` · `kpisDeAulas.ts` | **cerrado** — un decimal en las dos rutas y un solo `pctPerfil()`, bitácora 66 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

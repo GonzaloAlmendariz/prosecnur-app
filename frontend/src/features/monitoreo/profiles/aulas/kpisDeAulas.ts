@@ -103,6 +103,22 @@ export function fmt(value: unknown, fallback = "0") {
  * que corresponde a algo que hay que ALCANZAR. El dato exacto no se toca: esto
  * es presentación, y el motor sigue calculando con la fracción.
  */
+/**
+ * El porcentaje del perfil de aulas: **un decimal y espacio antes del «%»**.
+ *
+ * Vive aquí, junto a `fmt` y `fmtCuenta`, porque el perfil entero lo importa de
+ * este módulo. Lo escribí dos veces como helper local —`pctTexto` en el embudo y
+ * `pctCasa` en el perfil por facultad— antes de darme cuenta de que estaba
+ * creando el mismo problema que llevo cerrando: dos sitios formateando lo mismo
+ * acaban separándose.
+ *
+ * No confundir con el `pct()` de `monitoreo/core/formatoComun`, que redondea a
+ * entero, pega el símbolo y escribe «S/D»: ése sirve a otros perfiles.
+ */
+export function pctPerfil(n: number) {
+  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+}
+
 export function fmtCuenta(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
   const n = Number(value);

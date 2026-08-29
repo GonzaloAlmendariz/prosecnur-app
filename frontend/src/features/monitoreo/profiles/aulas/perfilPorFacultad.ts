@@ -119,7 +119,13 @@ export function perfilDesdeElMotor(filas: ReadonlyArray<FilaDeFacultadDelMotor>)
         excedente: Math.max(0, validas - cubierto),
         falta,
         aulasConBrecha: falta > 0 ? 1 : 0,
-        avance: meta ? Math.round((100 * cubierto) / meta) : 0,
+        // **Un decimal, igual que `avanceEnRespuestas()`.** Las dos funciones
+        // calculan el MISMO avance y el panel usa una u otra según llegue el
+        // resumen del motor, así que con dos redondeos la misma pantalla
+        // enseñaba «20%» o «19,6 %» según la fuente. Medido el 2026-08-29:
+        // «Dónde falta más» decía 20 % para Ciencias e Ingeniería y la tabla
+        // del cliente, 19.6 % del mismo cociente (130 de 662).
+        avance: meta ? Math.round((1000 * cubierto) / meta) / 10 : 0,
         sinMeta: 0,
         // **El corte por sexo, que es lo que decide.** El total puede leerse
         // cubierto con una celda corta: es el patrón del agregado que esconde

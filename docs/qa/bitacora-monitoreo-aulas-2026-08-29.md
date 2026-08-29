@@ -1402,3 +1402,47 @@ absurdo crearlo yo en el último panel.
 `avance/{cuotas,resumen,estratos,rendimiento,efectividad,salidas}`. Diecinueve
 vistas. Quedan sólo dos paneles bajo el pliegue de `avance/resumen` —«Dónde falta
 más» y «Cursos-horario vencidos sin aplicar»—, que piden una captura alta.
+
+---
+
+## 66 · Dos funciones del mismo módulo redondeaban distinto (ítem 45)
+
+«Dónde falta más», bajo el pliegue de `avance/resumen`, cuadra celda a celda:
+138 + 394 = 532, 275 + 187 = 462, 132 + 316 = 448, 251 + 125 = 376,
+110 + 51 = 161, 84 + 76 = 160 ✓, y coinciden con la tabla del cliente tras el
+arreglo del ítem 19.
+
+Lo que no: el «**20%**» de al lado. Es el avance conseguido —130 de 662— y la
+tabla del cliente publica **19.6 %** del mismo cociente. Medido, y la causa es
+peor que un formato:
+
+| función | redondeo |
+|---|---|
+| `avanceEnRespuestas()` | `Math.round(1000·x/meta)/10` → **19,6** |
+| `perfilDesdeElMotor()` | `Math.round(100·x/meta)` → **20** |
+
+Las dos calculan el mismo avance, y el panel **usa una u otra según llegue
+`avance_por_facultad` del motor**. O sea que la misma pantalla cambiaba de
+precisión según la fuente, sin que nadie pudiera saber cuál estaba viendo.
+Unificadas en un decimal, con dos tests que lo fijan.
+
+Y el rótulo: «532 respuestas faltan · 20%» pegaba dos cifras de sentido opuesto y
+se leía como «falta el 20 %». Ahora dice «**19.6 % conseguido**».
+
+### Lo que me delató el guard de la casa
+
+Al formatear escribí un `pctCasa()` local… **y ya había escrito un `pctTexto()`
+local en el embudo dos ticks antes**. Dos helpers con el mismo propósito: el
+problema que llevo todo el loop cerrando, creado por mí, dos veces.
+
+Lo cazó `cifrasConFormato.test.ts`, un guard que exige que toda cifra
+interpolada pase por un formateador conocido y que no reconocía ninguno de los
+dos. Su cabecera ya decía que la lista «crece cuando aparezca otra forma», así
+que la respuesta correcta no era silenciarlo: **un solo `pctPerfil()` en
+`kpisDeAulas.ts`** —junto a `fmt` y `fmtCuenta`, de donde todo el perfil
+importa—, usado por los dos paneles y añadido al detector.
+
+Ese guard lleva además su propio control de que el regex funciona («sin esto, un
+regex roto daría verde en los treinta y pico archivos sin haber mirado
+ninguno»). Es el mismo criterio con el que escribí los míos hoy, y aquí me
+devolvió el favor.
