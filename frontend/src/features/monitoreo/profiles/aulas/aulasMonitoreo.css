@@ -5329,6 +5329,14 @@
   border-color: var(--pulso-module-monitoring-border);
 }
 
+/* **El suelo tipográfico del perfil es `--aulas-min` (10 px) y lo declara este
+   mismo archivo**: «ejes, marcas y rotulos micro». El 2026-08-29 había seis
+   literales por debajo —un 9,5 en este badge y cinco 9 en el registro y la
+   familia de reemplazos—, todos con vecinos que ya usaban el token. Medido en
+   la app antes de tocarlos: el badge pasa de 67x18 a 70x19 sin recortar y sin
+   mover a su contenedor. Los de reemplazos NO se pudieron ver en la app —el
+   widget no monta sin reemplazos registrados— y se cambian por la misma razón
+   de escala, no por haberlos comprobado. */
 .mon-profile-page.is-aulas-flow .mon-aulas-fase-aqui {
   position: absolute;
   top: -8px;
@@ -5338,7 +5346,7 @@
   border: 1px solid var(--pulso-module-monitoring-border);
   background: var(--pulso-module-monitoring-soft);
   color: var(--pulso-module-monitoring);
-  font-size: 9.5px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -5521,7 +5529,7 @@
 .mon-profile-page.is-aulas-flow .registro-campo-hoja {
   margin: 0 0 1px;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--aulas-min);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -5552,7 +5560,7 @@
   margin-right: 6px;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: var(--aulas-min);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -6048,7 +6056,7 @@
   flex: 0 0 auto;
   min-width: 16px; padding: 0 4px; border-radius: 8px;
   background: var(--pulso-surface-muted); color: var(--pulso-text-soft);
-  font-size: 9px; font-variant-numeric: tabular-nums; text-align: center;
+  font-size: var(--aulas-min); font-variant-numeric: tabular-nums; text-align: center;
 }
 
 .aulas-reemplazo-pie { margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
@@ -6067,13 +6075,13 @@
 .aulas-reemplazo-puesto {
   display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
   background: var(--pulso-text-soft); color: var(--pulso-surface);
-  font-size: 9px; font-weight: var(--pulso-weight-semibold);
+  font-size: var(--aulas-min); font-weight: var(--pulso-weight-semibold);
 }
 .aulas-reemplazo-codigo { font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
 .aulas-reemplazo-sello {
   padding: 1px 6px; border-radius: 8px;
   background: var(--pulso-text); color: var(--pulso-surface);
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: var(--aulas-min); text-transform: uppercase; letter-spacing: 0.04em;
 }
 
 .aulas-reemplazo-curso { margin: 0; font-size: var(--aulas-txt); }
