@@ -106,13 +106,48 @@ Lo que hay hoy, verificado el 2026-08-28 sobre el código:
 
 | | Ítem | Estado |
 |---|---|---|
-| S1 | **Regenerar el libro pisa las dos hojas que el equipo edita.** El generador escribe agendación y registro de campo desde el estado de sesión y sobrescribe el archivo entero; nada compara con lo que hay en disco ni avisa. Si alguien editó después del último import, esas ediciones se pierden **en silencio**. Es el defecto central de este frente | ☐ verificado, sin reparar |
+| S1 | **MEDIDO el 2026-08-28, ver abajo.** Regenerar sin importar borra la edición; importar antes la conserva | ☑ medido, sin reparar |
+| S1b | ~~Regenerar el libro pisa las dos hojas que el equipo edita.~~ El generador escribe agendación y registro de campo desde el estado de sesión y sobrescribe el archivo entero; nada compara con lo que hay en disco ni avisa. Si alguien editó después del último import, esas ediciones se pierden **en silencio**. Es el defecto central de este frente | ☐ verificado, sin reparar |
 | S2 | **Separar lo que la app escribe de lo que el equipo edita.** El dueño lo pidió literal: generar la base de control y las hojas adicionales **sin reescribir las dos primeras** | ☐ |
 | S3 | **Robustez a la edición externa**: una corrección en agendación o en registro de campo tiene que llegar a la app sin fricción. La regla del dueño es «lo que produzca la app tiene prioridad», que **no significa ignorar la corrección** sino que la app es la fuente y el Excel un canal de edición acotado | ☐ |
 | S4 | **Medir el lazo completo Kobo → app → Excel** con el reloj en la mano. Hoy no existe esa medición para aulas | ☐ |
 | S5 | **Escala 100 ↔ 3.000 y que eso sea normal.** Todo lo de este frente se mide en los dos extremos; una solución que sirva a 100 y se caiga a 3.000 no cierra el ítem | ☐ regla del frente |
 | S6 | **`Base de control` se lee de vuelta al importar** aunque sea salida pura. Es deliberado —las filas ya registradas vuelven al libro al regenerarlo— pero convierte una salida en entrada y merece revisarse a la luz de S2 | ☐ |
 | S7 | **Casi en tiempo real mientras el aplicador está en el aula.** Es el norte del frente: qué latencia es aceptable, qué se refresca solo y qué exige una acción | ☐ |
+
+#### S1, medido end to end el 2026-08-28
+
+Experimento sobre un plan de dos aulas: generar el libro, editar a mano dos
+celdas de «Aulas Agendadas» —la fecha de agendamiento y el número de intentos
+de contacto— y volver a generar.
+
+| Camino | Fecha editada | Intentos editados |
+|---|---|---|
+| Lo escrito a mano | `2026-09-99-EDITADO` | 77 |
+| **(A) Regenerar SIN importar** | **vacío** | **2** (el del plan) |
+| **(B) Importar y luego regenerar** | `2026-09-99-EDITADO` | 77 |
+
+**El camino seguro existe y funciona; el peligroso no avisa.** Regenerar sin
+importar devuelve la hoja al estado del plan y la edición desaparece sin
+error, sin comparación con el disco y sin aviso. Nada en la app impone el
+orden ni detecta que el archivo es más nuevo que el último import.
+
+**Por qué el round trip existente no lo cazaba.** `test-carga-aulas-libro-roundtrip.R`
+tiene veinte tests y varios se llaman «el agendamiento ya registrado NO se
+borra al regenerar», pero su ciclo es `generar → importar`: prueban que la app
+relee lo que **ella misma** escribió. Ninguno introduce una edición externa
+entre medias, que es el caso real —la hoja «está constantemente editándose»—.
+Es cobertura que parece cubrir y mide otra cosa.
+
+**La decisión, para que el próximo tick la implemente.** Se toma la vía que
+el dueño pidió literalmente: **la app deja de reescribir las dos hojas que el
+equipo edita.** El libro se genera entero **la primera vez** —de ahí salen la
+cadena, los enlaces QR y la estructura— y a partir de ahí las regeneraciones
+escriben sólo «Base de control» y las hojas adicionales, preservando las dos
+primeras tal como estén en el disco. Descartadas: fusionar en cada regeneración
+(mantiene el archivo único pero deja la fusión como punto de fallo silencioso)
+y limitarse a avisar del desfase (pone en el operador la carga de un orden que
+la app puede garantizar).
 
 ### N · Que no crezca un archivo gigante — pedido explícito del dueño
 
