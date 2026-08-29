@@ -107,7 +107,7 @@ export function AulasRendimientoPorFacultad({
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="aulas-rendimiento-cabecera" role="row">
           <span role="columnheader">{unidad}</span>
-          <span role="columnheader">Por aula</span>
+          <span role="columnheader">Por visita</span>
           <span role="columnheader">Ajustado</span>
           <span role="columnheader">De los asistentes</span>
           <span role="columnheader">Del potencial</span>
@@ -159,11 +159,17 @@ export function AulasRendimientoPorFacultad({
           Antes decía «ordenadas por lo que deja cada visita» —que es la columna
           «Por aula» llamada de otra forma, dos nombres para lo mismo dentro del
           mismo panel— y explicaba asistentes y potencial antes que «Ajustado»,
-          que va en medio: quien lee tenía que saltar. */}
+          que va en medio: quien lee tenía que saltar.
+
+          Y el 2026-08-28 «Por aula» pasa a «Por visita». El motor llama «tasa
+          del aula» a otra cosa: la fracción de elegibles que responde según el
+          tamaño del salón, que es un PRONÓSTICO del diseño. Esta columna es un
+          RESULTADO del campo, encuestas conseguidas por aula visitada. Eran dos
+          números distintos con el mismo nombre dentro del mismo módulo. */}
       <p className="mon-profile-muted aulas-rendimiento-pie">
         {explicaLasColumnas ? (
           <>
-            <strong>Por aula</strong> es lo que deja cada visita, y por eso ordena la lista.{" "}
+            <strong>Por visita</strong> es lo que deja cada aula visitada, y por eso ordena la lista.{" "}
             <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
             {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
             afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}

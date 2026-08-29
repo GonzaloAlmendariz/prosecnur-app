@@ -1376,7 +1376,10 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           <h3>Lo que falta para cerrar</h3>
-          <span>en encuestas, sobre el umbral que la hoja calculó</span>
+          <span>
+            en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un aula corta
+            no obliga a nada si su facultad cierra igual
+          </span>
         </div>
         <AulasLoQueFalta filas={control} facultadEnFoco={facultadEnFoco} onFoco={onFoco} />
       </section>
@@ -1926,7 +1929,17 @@ function renderAulasView(
               El rótulo corto de la pestaña es sinónimo de «Rendimiento» en
               castellano y lo que las separa es el numerador; aquí se declara. */}
           <h3>El campo contra la tasa que dimensionó la muestra</h3>
-          <span>por facultad · numerador de plataforma</span>
+          {/* EL ORDEN DE LECTURA, dicho donde se lee. Esta vista y «Lo que
+              falta para cerrar» contestan preguntas distintas, y la de aquí
+              manda por lo que midió el ADR 0082 sobre el campo 2025: de 196
+              aulas agendadas sólo 2 no se aplicaron, así que perder un aula ya
+              lo resuelven las cadenas de reemplazo. Lo que ninguna cadena
+              cubre es que la asistencia baje en general, y eso sólo se ve
+              sumando la facultad: con τ un 5 % por debajo de lo previsto,
+              EE.GG. Ciencias cierra 4,1 alumnos corta sin que ningún aula
+              suelta lo anuncie. Por eso el déficit se acumula por facultad y
+              no se compensa entre ellas (ADR 0079). */}
+          <span>por facultad. Primera lectura: decide si hay que activar reservas</span>
         </div>
         <AulasEfectividadSeguimiento
           bloque={dashboard.efectividad_seguimiento}

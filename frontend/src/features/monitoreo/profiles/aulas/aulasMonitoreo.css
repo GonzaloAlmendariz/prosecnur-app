@@ -6113,9 +6113,9 @@
 .aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
 .aulas-reemplazo-barra i { display: block; height: 100%; border-radius: 3px; }
 .aulas-reemplazo-barra.es-parecido i { background: #002457; }
-.aulas-reemplazo-barra.es-ayuda i { background: #168a55; }
+.aulas-reemplazo-barra.es-ayuda i { background: var(--pulso-resultado-efectiva); }
 
-/* El ambar de `parcial` (#b97611) da 3,71 de contraste a 10 px sobre el fondo
+/* El ambar de `--pulso-resultado-parcial` da 3,71 de contraste a 10 px sobre el fondo
    del item: por debajo del piso, y medido en pantalla. A este tamano el aviso
    necesita tinta de texto; el ambar se queda en el rotulo, que es corto y va en
    semibold, donde 3,71 con peso si se sostiene. */

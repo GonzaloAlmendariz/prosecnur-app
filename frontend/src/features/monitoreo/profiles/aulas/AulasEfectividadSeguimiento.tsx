@@ -119,8 +119,8 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
   if (f.riesgo === "sin_cumplimiento") return "No se pudo leer lo conseguido de esta facultad.";
 
   const falta = f.margen_restante != null && f.margen_restante < 0 ? Math.round(Math.abs(f.margen_restante)) : 0;
-  const porque = f.senal === "bajo" ? " Rinde por debajo de su tasa prevista."
-    : f.senal === "sobre" ? " Rinde por encima de su tasa prevista."
+  const porque = f.senal === "bajo" ? " Rinde por debajo de la tasa prevista para su facultad."
+    : f.senal === "sobre" ? " Rinde por encima de la tasa prevista para su facultad."
     : "";
 
   if (f.riesgo === "holgado") return `Su proyección cierra la cuota con margen.${porque}`;
@@ -191,7 +191,7 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
  * fila— no existía para un lector de pantalla ni para quien navega con teclado.
  */
 function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
-  if (f.tau_previsto == null) return "El diseño no supuso una tasa para esta facultad.";
+  if (f.tau_previsto == null) return "El diseño no supuso una tasa de facultad para esta.";
   const esperado = `Se esperaba ${pct(f.tau_previsto)}`;
   if (f.tau_observado == null) return `${esperado}; todavía sin aulas aplicadas.`;
   if (f.banda_bajo == null || f.banda_alto == null) {
@@ -257,9 +257,9 @@ export function AulasEfectividadSeguimiento({
           dos porcentajes juntos son dos números sin pregunta. */}
       <p className="aulas-tau-cabeza">
         <span>
-          En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas se esperaba que respondiera el{" "}
-          <strong>{pct(t.tau_previsto)}</strong> de los alumnos. Está respondiendo el{" "}
-          <strong>{pct(t.tau_observado)}</strong>.
+          En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas, la <strong>tasa de la
+          facultad</strong> suponía que respondería el <strong>{pct(t.tau_previsto)}</strong>{" "}
+          de los alumnos. Está respondiendo el <strong>{pct(t.tau_observado)}</strong>.
         </span>
         {t.facultades_en_riesgo > 0 ? (
           <span>
