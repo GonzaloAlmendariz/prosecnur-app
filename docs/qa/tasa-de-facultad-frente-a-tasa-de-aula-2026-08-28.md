@@ -373,9 +373,41 @@ con ella a dos diezmilésimas. El motor usa la del componente del estudio. En
 Psicología la diferencia es de un punto y medio, que no es redondeo de nada.
 
 Y el motor tiene razón: **repartir la cuota por sexo según el marco es
-circular**, porque el marco ya está filtrado por criterios que pueden
-correlacionar con el sexo, y entonces la cuota heredaría el sesgo del filtro en
-vez de reflejar la población objetivo.
+circular**, porque el marco ya está filtrado por criterios que correlacionan
+con el sexo, y entonces la cuota hereda el sesgo del filtro en vez de reflejar
+la población objetivo.
+
+Eso no es una objeción teórica. Comparando la proporción de mujeres del marco
+elegible contra la del marco sin filtrar:
+
+```
+ARTES ESCÉNICAS            0,5301 -> 0,6147    +8,5 puntos
+EDUCACIÓN                  0,8142 -> 0,8865    +7,2
+LETRAS Y CIENCIAS HUMANAS  0,5699 -> 0,6348    +6,5
+CIENCIAS SOCIALES          0,5338 -> 0,5496    +1,6
+CIENCIAS E INGENIERÍA      0,2581 -> 0,2440    −1,4
+GLOBAL                     0,4982 -> 0,4937    −0,45
+```
+
+**El filtro de criterios no es neutral al sexo**, y en tres facultades mueve la
+composición entre seis y ocho puntos y medio.
+
+Fíjese en el global: **menos de medio punto**. Ahí está por qué esto pasa
+inadvertido. El sesgo se cancela en el agregado, y la cuota no es agregada sino
+por facultad. Es el mismo mecanismo que ya apareció con la tasa: el agregado no
+consuela porque las facultades no se compensan entre sí.
+
+Y cae justo donde el criterio es más sensible:
+
+```
+ARTES ESCÉNICAS   cuota 64   componente 34 M y 30 H   marco 39 M y 25 H   −17 % de hombres
+EDUCACIÓN         cuota 24   componente 20 M y  4 H   marco 21 M y  3 H   −25 %
+LETRAS Y CC.HH.   cuota 23   componente 13 M y 10 H   marco 15 M y  8 H   −20 %
+```
+
+Entre un 17 % y un 25 % en la cuota de hombres, sobre celdas de tamaño 3, 8 y
+10, que es el mismo orden que la celda de Psicología hombres que terminó
+decidiendo el ganador del barrido.
 
 Un uno de diferencia parece nada y decide el barrido, porque **cambia qué celda
 manda**. Con el reparto por resta, el mínimo de la semilla 4444 lo fija
