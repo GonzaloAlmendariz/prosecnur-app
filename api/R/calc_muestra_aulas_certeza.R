@@ -173,60 +173,56 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # `tasa_efectividad_aula` (rendimiento del tramo x factor de la facultad)
   # viaja en cada fila, y la certificacion de lo YA sorteado la usa —
   # `calc_muestra_aulas_certificacion.R` suma `efectivas_esperadas`, metodo
-  # `suma_esperadas`—. Aca se usa τ, que sale de la MISMA columna pero no es
-  # lo mismo: τ es su media ponderada por elegibles sobre el marco ENTERO de
-  # la facultad (`calc_muestra_aulas_tasas_facultad`).
+  # `suma_esperadas`—. Aca se usa τ, que sale de la MISMA columna pero no es lo
+  # mismo: τ es su media ponderada por elegibles sobre el marco ENTERO de la
+  # facultad (`calc_muestra_aulas_tasas_facultad`). Las dos coinciden solo si lo
+  # sorteado reproduce la mezcla de tamanos del marco.
   #
-  # Las dos coinciden solo si lo sorteado reproduce la mezcla de tamanos del
-  # marco, y el sorteo no la reproduce: toma las aulas con probabilidad
-  # proporcional a su tamano, asi que se lleva mas aulas grandes —las de tasa
-  # baja— de las que pesan en el marco. La tasa esperada de un sorteo PPS es
-  # la media ponderada por el CUADRADO del tamano, y esa es menor que τ
-  # siempre que el rendimiento caiga con el tamano, que es lo que hacen los
-  # tramos.
+  # ADVERTENCIA, medida el 2026-08-28: CUAL DE LAS DOS CONVIENE DEPENDE DE UN
+  # DEFECTO QUE ESTA UNAS LINEAS MAS ARRIBA. `calc_muestra_aulas_certeza`
+  # sobreescribe `rows$stratum` con la clave de la facultad, y el motor sortea
+  # POR `stratum` (`.cm_aulas_select_once_engine` filtra `stratum == st`). El
+  # diseno de HSVG2026 estratifica por `faculty, sex_top_1, size_group`: al
+  # colapsarlo se pierden DOS de los tres ejes, entre ellos el de tamano. Esta
+  # simulacion no sortea como sortea el estudio.
   #
-  # Asi que **τ no es el lado seguro**: es optimista en la media. Medido sobre
-  # HSVG2026 el 2026-08-28, la razon entre las dos tasas va de 0,954 a 1,000
-  # en las quince facultades, y vale exactamente 1 solo en la que tiene todas
-  # sus aulas en un tramo. Lo que τ si conserva es la dispersion de los netos
-  # —multiplicar por una constante no la toca— y por eso la COLA queda mas
-  # baja. Los dos efectos empujan en sentidos opuestos.
+  # Medido sobre EE.GG. Letras con 20 aulas, mismas semillas:
   #
-  # Con sorteos pareados sobre el proyecto vivo, cambiar de tasa mueve el
-  # minimo certificado en 2 de 15 facultades y el total de titulares sube de
-  # 174 a 175 — no baja. Evidencia y decision:
+  #   colapsado (lo que corre hoy)  media 416,0  sd  8,99  P(cumple) 0,988
+  #   estratificado (el diseno)     media 369,5  sd  6,56  P(cumple) 0,000
+  #
+  # El colapso deja al PPS concentrarse en aulas grandes, que el diseno le
+  # prohibe. La seleccion REAL de esas 20 aulas rinde 378,6 — pegada al valor
+  # estratificado y lejos del colapsado. Es decir: la certeza publica un
+  # rendimiento que el diseno no puede producir.
+  #
+  # Y de ahi sale que la comparacion entre tasas se invierta segun el modelo:
+  #
+  #   con el colapso           las dos tasas casi empatan (total 174 vs 175)
+  #   con la estratificacion   τ pide 21 aulas en EE.GG. Letras (P=0,286 con 20)
+  #                            y la tasa por aula certifica con 20 (P=0,998)
+  #
+  # Porque estratificar por `size_group` FUERZA aulas chicas en la muestra, y
+  # las chicas rinden muy por encima de τ (0,80 contra el τ de 0,4188 de esa
+  # facultad). τ se las cobra a tasa de facultad; la tasa por aula no.
+  #
+  # POR ESO NO SE CAMBIA LA TASA AQUI TODAVIA: elegir entre τ y la tasa por aula
+  # sobre un simulador que no reproduce el diseno es optimizar el modelo
+  # equivocado. Primero la estratificacion, despues la tasa. Evidencia y cuadros:
   # docs/qa/checklist-certeza-tasa-por-aula-2026-08-28.md.
   #
-  # No se cambia porque cambiarlo es una decision de contrato —`estratos$tau`
-  # dejaria de gobernar la simulacion— por un efecto del tamano del ruido de
-  # la propia simulacion. Queda declarado y no implicito.
+  # (El colapso es deliberado —lo pide el comentario de `.cm_certeza_evaluar`,
+  # para que `n_aulas` signifique el candidato y no una reparticion—. El costo
+  # no estaba medido; ahora lo esta.)
   #
-  # Y OJO CON EL OTRO EXTREMO: la tasa YA TRAE PARTE DEL TRASLAPE
-  #
-  # Los tramos que alimentan `tasa_efectividad_aula` son `efectivas/elegibles`
-  # de 2025 con denominador PADRON, y ese padron incluye a quienes ya habian
-  # respondido en otra aula: el sello publica `ya_medidas = 446` sobre
-  # `elegibles = 6 232` (`referencia_asistencia$encuentros`). Esos 446 no podian
-  # convertir, asi que **el 7,2 % del traslape esta dentro de la tasa** y
-  # multiplicar los unicos netos por ella lo descuenta dos veces.
-  #
-  # Lo que NO se sigue de eso es que haya que volver al padron bruto. El
-  # traslape incrustado de 2025 (7,2 %; 10,1 % si se extrapola a los ausentes)
-  # NO es el traslape de 2026 (11,4 %), y no tienen por que serlo: son dos
-  # poblaciones. Ademas no es uniforme — por facultad va de x1,000 en las tres
-  # que no tuvieron repetidos en 2025 (Contabilidad, Gastronomia, Letras y
-  # CC.HH.) a x1,2115 en Educacion.
-  #
-  # Es decir: `brutos x tasa` sobreacredita y `unicos x tasa` subacredita, y
-  # ninguna de las dos convenciones globales es la correcta. La cuenta correcta
-  # limpia la tasa de su traslape 2025 y recien entonces la aplica a los unicos
-  # de 2026. El factor exacto es POR TRAMO DE TAMANO y no se puede derivar de lo
-  # sellado (los embudos van por facultad, no por tamano, y los escalones no
-  # traen `ya_medidas`); hace falta el `ya_medidas` por aula de la base 2025.
-  #
-  # Esto se deja escrito para que nadie "corrija" `certificacion.R` hacia el
-  # neto ni la certeza hacia el bruto creyendo que cierra la brecha: las dos
-  # correcciones ingenuas estan mal, en sentidos opuestos.
+  # OJO CON EL OTRO EXTREMO: la tasa YA TRAE PARTE DEL TRASLAPE. Los tramos son
+  # `efectivas/elegibles` de 2025 con denominador PADRON, que incluye a quienes
+  # ya habian respondido en otra aula: el sello publica `ya_medidas = 446` sobre
+  # `elegibles = 6 232`. Ese 7,2 % esta dentro de la tasa, asi que multiplicar
+  # los unicos netos por ella lo descuenta dos veces. Pero tampoco vale volver
+  # al padron bruto: 7,2 % no es el 11,4 % de traslape de 2026, y el factor por
+  # facultad va de x1,000 a x1,2115. Ninguna de las dos convenciones globales es
+  # correcta — se limpia la tasa y RECIEN se aplica a los unicos.
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
   sorteadas <- integer(corridas)
