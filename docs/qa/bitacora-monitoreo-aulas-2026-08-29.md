@@ -936,3 +936,35 @@ en el código con su caso medido.
 causa que yo venía dando —«el panel no declara su miembro»— era cierta en las que
 reparé declarando el miembro. Que haya dos causas distintas bajo el mismo síntoma
 es justamente lo que me hizo perder el diagnóstico general durante todo el día.
+
+---
+
+## 53 · `consultas/brechas`: dos sospechas comprobadas, las dos sanas
+
+Captura limpia —`geometryIssues=0`, y sin ningún `capacity-drift` ahora que el
+gate ya no descarta los `<details>` cerrados—. Dos cosas parecían defectos y
+ninguna lo era. Se anotan para que otro tick no las reabra.
+
+**1. «ESTADO OPERATIVO: Planificada» no está en el juego de tramos.** Las 180
+filas muestran «Planificada», que no existe en el vocabulario de
+`application_state` («Sin agendar / Agendada / En aplicación / En cierre /
+Reemplazada / En reserva»). Parecía un tercer juego de palabras para el mismo
+eje. **No lo es**, y el repo ya lo tenía escrito: `EstadoEnCelda.tsx` documenta
+que «este vocabulario es DISTINTO del de `application_state`, y por eso necesita
+su propia tabla», con su caso medido. `operational_status` es el estado del aula
+—planificada, contactada, en campo, aplicada…— y `application_state` es el tramo
+del circuito. Dos ejes deliberados, y cada columna rotula el suyo: «Estado
+operativo» aquí, «Status de aplicación» allá.
+
+**2. «CADENAS SIN CERRAR 180» junto a «BRECHAS 180».** Dos tarjetas vecinas con
+el mismo número invitan a pensar que una sobra. Son conceptos distintos: la
+primera cuenta **cadenas** —titular más sus reservas, vía `historiaDeCadena()`— y
+la segunda **cursos-horario** por debajo de su meta. Coinciden porque ninguna
+reserva ha entrado todavía; en cuanto se active un reemplazo divergen. Cada pista
+declara su eje.
+
+Vale la pena decirlo porque es el reverso del día: **de los hallazgos que
+perseguí, los que salieron de mirar la pantalla eran reales y los que deduje del
+código eran falsos**; aquí, mirar levantó dos sospechas y medir las tumbó. El
+tick sin hallazgo es un resultado, no un tick perdido, siempre que quede escrito
+qué se comprobó.
