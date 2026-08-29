@@ -20,10 +20,10 @@ test_that("ninguna frase publicable usa jerga", {
 test_that("el pasado y el futuro no se confunden entre si", {
   # Las dos lecturas conviven en la misma pantalla: una dice donde estas y la
   # otra si vas a llegar. Si las frases se parecieran, la pantalla mentiria.
-  expect_match(monitoreo_aulas_etiqueta_celda("alcanzada"), "Ya llego")
+  expect_match(monitoreo_aulas_etiqueta_celda("alcanzada"), "Ya llegó")
   expect_match(.mac_etiqueta_estado("asegurada"), "Va a llegar")
   expect_false(grepl("Va a llegar", monitoreo_aulas_etiqueta_celda("alcanzada")))
-  expect_false(grepl("Ya llego", .mac_etiqueta_estado("asegurada")))
+  expect_false(grepl("Ya llegó", .mac_etiqueta_estado("asegurada")))
 })
 
 test_that("el caso peor suena como el caso peor", {
@@ -42,7 +42,7 @@ test_that("cada tramo lleva su denominador, para no tener que recordar el corte"
   }
   # Los extremos no lo necesitan y no deben sobreexplicar.
   expect_identical(monitoreo_aulas_etiqueta_tramo("nulo"), "Sin respuestas")
-  expect_identical(monitoreo_aulas_etiqueta_tramo("pleno"), "Llego a lo esperado")
+  expect_identical(monitoreo_aulas_etiqueta_tramo("pleno"), "Llegó a lo esperado")
 })
 
 test_that("una clave desconocida no inventa una frase tranquilizadora", {
@@ -102,4 +102,39 @@ test_that("ninguna frase del payload cae en la jerga prohibida", {
   d <- monitoreo_aulas_dashboard(plan, data.frame(), list())
   frases <- vapply(d$course_status_cobertura, function(x) as.character(x$etiqueta %||% ""), character(1))
   expect_false(any(grepl(MONITOREO_AULAS_JERGA_PROHIBIDA, frases, ignore.case = TRUE)))
+})
+
+# Las frases publicables se escriben en español, con sus tildes.
+#
+# Medido el 2026-08-29 en pantalla: `avance/resumen` mostraba «Se quedo a
+# medias», «Llego a la mayor parte» y «Casi llego», y `calidad/controles` frases
+# como «Los numeros de cada parte de campo cuadran». No era una convencion del
+# archivo —en el MISMO vector conviven «Empezó, todavía no llega» y «habrá que
+# ponderar»—, era una inconsistencia: unas se escribieron con tilde y otras no.
+# `DESCRIPTION` declara `Encoding: UTF-8` y 387 archivos de `api/R` ya llevan
+# tildes, asi que no hay barrera tecnica.
+#
+# El guard es una lista negra corta y solo de casos INEQUIVOCOS: nada de «mas»,
+# «solo» o «esta», que existen con y sin tilde segun la funcion.
+test_that("ninguna frase publicable pierde una tilde inequivoca", {
+  sin_tilde <- c("llego", "quedo", "aplico", "numeros", "estan", "validas",
+                 "identificacion", "aplicacion", "seleccion", "dias", "tambien",
+                 "asi", "aqui", "ademas", "minimo", "maximo", "ultimo",
+                 "codigo", "metodo", "analisis", "atencion", "sesion",
+                 "version", "revision", "deficit", "porcentaje minimo")
+  frases <- monitoreo_aulas_etiquetas_publicables()
+  # Palabra entera y sin distinguir mayusculas: «Llego» al principio de la frase
+  # es el caso que se colo cuatro veces.
+  patron <- paste0("\\b(", paste(sin_tilde, collapse = "|"), ")\\b")
+  # `unname`: las frases vienen de `vapply`, que las devuelve CON NOMBRES, y un
+  # `named character(0)` no es `identical` a `character(0)`. El primer intento
+  # de este test fallo por eso teniendo cero culpables.
+  culpables <- unname(frases[grepl(patron, frases, ignore.case = TRUE, perl = TRUE)])
+  expect_identical(culpables, character(0))
+})
+
+test_that("el guard de tildes mira algo: la lista de frases no esta vacia", {
+  # Sin este control, vaciar `monitoreo_aulas_etiquetas_publicables()` dejaria el
+  # test de arriba en verde sin comprobar una sola frase. Verde por ausencia.
+  expect_gt(length(monitoreo_aulas_etiquetas_publicables()), 20L)
 })
