@@ -68,6 +68,8 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   pendientes: PendienteDeContacto[];
   citadas: CitaFijada[];
   esfuerzo: EsfuerzoDeFacultad[];
+  /** Cuántas se sacaron de la cola por estar ya aplicadas. Se declara, no se calla. */
+  yaAplicadasSinCita: number;
 } {
   const pendientes: PendienteDeContacto[] = [];
   // **Las citadas también salen, con su horario.**
@@ -77,6 +79,8 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   // agenda necesita las dos mitades, y la fecha que consiguió es el resultado
   // de su trabajo, no un dato de archivo.
   const citadas: CitaFijada[] = [];
+  /** Aplicadas cuyo `sample_status` ya no dice «agendada»: ni cola ni cita. */
+  let yaAplicadasSinCita = 0;
   const porFacultad = new Map<string, number[]>();
 
   for (const fila of filas) {
@@ -109,6 +113,22 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     if (dormida) continue;
     // Lo que ya cayó tampoco se persigue: su reemplazo es otro asunto.
     if (texto(fila.sample_status).toLowerCase().startsWith("reemplazada")) continue;
+    // **Ni lo que ya se aplicó.**
+    //
+    // `tieneCita()` mira `sample_status`, y en cuanto un aula se aplica ese
+    // estado deja de ser «agendada»: el aula volvía a la cola de contacto.
+    // Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: 10 citas fijadas
+    // + 183 por contactar = 193, con **48 aplicadas**; o sea que 38 aulas ya
+    // aplicadas estaban en la lista de a quién llamar.
+    //
+    // Es el mismo par de ejes de siempre —`sample_status` es el del muestreo y
+    // `operational_status` el del operativo— y aquí manda el segundo: llamar a
+    // un aula que ya se aplicó es trabajo perdido, y en una pantalla que existe
+    // para repartir llamadas eso es lo caro.
+    if (["aplicada", "cerrada"].includes(texto(fila.operational_status).toLowerCase())) {
+      yaAplicadasSinCita += 1;
+      continue;
+    }
     pendientes.push({
       codigo: texto(fila.operational_code),
       facultad,
@@ -135,5 +155,5 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     .map(([facultad, xs]) => ({ facultad, aulas: xs.length, intentos: mediana(xs) }))
     .sort((x, y) => (y.intentos ?? 0) - (x.intentos ?? 0) || y.aulas - x.aulas);
 
-  return { pendientes, citadas, esfuerzo };
+  return { pendientes, citadas, esfuerzo, yaAplicadasSinCita };
 }

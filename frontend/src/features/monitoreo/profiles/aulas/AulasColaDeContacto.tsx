@@ -49,7 +49,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { pendientes, citadas, esfuerzo } = useMemo(() => colaDeContacto(filas), [filas]);
+  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita } = useMemo(() => colaDeContacto(filas), [filas]);
   // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
   // permanente entrena a no mirar la banda.
   const resumen = useMemo(() => {
@@ -95,6 +95,14 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             {pendientes.length === 1 ? "curso-horario sigue" : "cursos-horario siguen"} sin cita ·
             el que más lleva va por <strong>{fmt(pendientes[0].intentos)}</strong>{" "}
             {pendientes[0].intentos === 1 ? "intento" : "intentos"}
+            {/* Las que salieron de la cola por estar ya aplicadas se DICEN. Si
+                el contador baja de 183 a 145 sin explicar por qué, quien lo
+                estaba usando para repartir llamadas no sabe si mejoró el dato o
+                se perdió trabajo. */}
+            {yaAplicadasSinCita ? (
+              <em>{" "}· {fmt(yaAplicadasSinCita)} más ya se aplicaron sin cita registrada,
+                así que no están en la cola</em>
+            ) : null}
           </>
         ) : (
           <>Todos los cursos-horario del plan tienen cita: no queda nadie a quien llamar.</>

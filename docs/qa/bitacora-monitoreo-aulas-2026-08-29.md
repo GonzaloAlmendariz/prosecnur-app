@@ -1219,3 +1219,43 @@ equipo», «de la hoja», «del libro»—, y cuando está, es una instrucción.
 
 Cuarto tick seguido en que mirar levanta una sospecha y medirla la descarta.
 Sin cambios de código.
+
+---
+
+## 61 · La lista de a quién llamar tenía 38 aulas ya aplicadas (ítem 41)
+
+`modelo/contacto`, primera vez. Aplicando la comprobación barata —de qué conjunto
+habla cada número— salieron dos que no podían ser los dos ciertos:
+
+- la tarjeta: «SIN EMPEZAR **145**» (193 − 48 aplicadas);
+- el panel: «**183** cursos-horario siguen sin cita» y «Por contactar **183**»,
+  con «Citas fijadas **10**». Y 10 + 183 = 193.
+
+Con 48 aplicadas y sólo 10 citadas, 38 aulas aplicadas tenían que estar en los
+183. Medido en el código y confirmado: `tieneCita()` mira **`sample_status`**, y
+en cuanto un aula se aplica ese estado deja de ser «agendada», así que el aula
+**vuelve a la cola de contacto**.
+
+Es otra vez el par de ejes de siempre —`sample_status` es el del muestreo y
+`operational_status` el del operativo— y aquí manda el segundo sin discusión:
+llamar a un aula que ya se aplicó es trabajo perdido, y esta pantalla existe para
+repartir llamadas. El propio modelo ya distinguía el caso: las **citadas**
+llevaban un flag `aplicada`; las pendientes no lo miraban.
+
+Ahora la cola las excluye **y lo declara**:
+
+> «145 cursos-horario siguen sin cita · el que más lleva va por 0 intentos · *38
+> más ya se aplicaron sin cita registrada, así que no están en la cola*»
+
+Y el 145 es exactamente el «SIN EMPEZAR 145» de la tarjeta de arriba: los dos
+números que no cuadraban son ahora el mismo. Declararlo importa: un contador que
+baja de 183 a 145 sin decir por qué deja a quien reparte llamadas sin saber si
+mejoró el dato o se perdió trabajo.
+
+Cuatro tests con mutante comprobado, incluido el control de que las **citadas**
+aplicadas siguen en su lista —si la exclusión se les aplicara también,
+desaparecerían las citas conseguidas, que son el resultado del trabajo de quien
+agenda.
+
+**Sexta vez** que el eje campo/operativo produce un defecto, y la primera en que
+manda a alguien a hacer trabajo inútil en vez de sólo confundir una cifra.

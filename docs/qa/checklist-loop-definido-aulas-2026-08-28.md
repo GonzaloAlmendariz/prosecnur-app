@@ -64,6 +64,7 @@ no a ojo:
 | 38 | «Días de campo» son dos ejes: 5 con respuestas y 2 con parte | `AulasRitmoDiario.tsx` · `AulasRitmoPorFacultad.tsx` | **cerrado** — «días de recolección» y «días con parte de campo», bitácora 57 |
 | 39 | El mismo cociente con dos formatos en el mismo panel: «92%» junto a «89.3 %» | `embudoDelAula.ts` · `AulasEmbudoDelAula.tsx` | **cerrado** — el redondeo bajó del modelo a la vista, bitácora 58 |
 | 40 | «SIN EMPEZAR 145 · agendadas» sobre 145 que no tienen fecha | `kpisDeAulas.ts` | **cerrado** — la pista declara el reparto, bitácora 59 |
+| 41 | «A quién llamar» incluía 38 aulas ya aplicadas | `colaDeContacto.ts` | **cerrado** — se excluyen y se declaran; 183 → 145, que cuadra con «Sin empezar», bitácora 61 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
