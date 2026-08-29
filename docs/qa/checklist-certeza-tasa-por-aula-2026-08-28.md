@@ -964,3 +964,102 @@ Eso importa para la decisión: **cambiar los valores embebidos sería reemplazar
 una constante sin procedencia por otra**, mientras que construir el escritor de
 `rendimiento_tramos` deja cada estudio calibrado contra su propio histórico y
 hace la pregunta innecesaria.
+
+---
+
+# El barrido de 50 semillas: ¿cambia la ganadora al cambiar de vara? (2026-08-28)
+
+Encargo de Gonzalo. Vocabulario acordado: **tasa de la facultad** y **tasa del
+aula**; los pronósticos, **esperadas según la facultad** y **esperadas según el
+aula**.
+
+## Por qué esta pregunta es distinta de la del Monte Carlo
+
+En la simulación la pregunta es **de nivel**: ¿cuántas aulas hacen falta? Ahí una
+vara sesgada mueve la respuesta directamente.
+
+En el barrido la pregunta es **de orden**: entre 50 candidatas, ¿cuál gana? Y
+para eso el nivel no importa. **Si las dos varas desplazaran a todas las
+candidatas en la misma cantidad, el ordenamiento se conservaría y daría igual con
+cuál se eligió.** El barrido sería robusto a la vara y no habría nada que
+corregir.
+
+Así que lo que hay que medir no es cuánto cambia la cobertura de la 202 —eso ya
+lo midió la sesión par: sube de 1,081 a 1,101— sino **cuánto varía ese
+desplazamiento entre candidatas**, y compararlo contra lo que las separa.
+
+## Lo que no se pudo hacer
+
+El barrido guardó las métricas de las 50 pero no las selecciones, así que
+re-rankear exige volver a sortear. **Y no alcanza con un sorteo por semilla**:
+verificado, un `.cm_aulas_select_once_dispatch` con la semilla 202 devuelve 174
+aulas en 1 segundo pero **sólo 44 de las 174 titulares reales** (25,3 %), porque
+la selección de producción elige entre `candidate_pool_size = 500` candidatas por
+el objetivo. Reproducir el barrido exige 50 corridas completas del pipeline.
+
+Lo que sí se puede, y contesta la pregunta: **generar 50 candidatas del mismo
+diseño y medir si las dos varas las ordenan igual.** No son las mismas 50 del
+barrido —sus identidades no se corresponden— pero el fenómeno que se pregunta es
+el mismo y se mide sobre el mismo marco, las mismas cuotas y el mismo motor.
+
+## El resultado
+
+50 candidatas, criterio del barrido (mínima cobertura entre las 30 celdas):
+
+| | tasa de la facultad | tasa del aula |
+|---|---:|---:|
+| candidatas que cierran las 30 celdas | **25 de 50** | **30 de 50** |
+| rango de la cobertura mínima | 0,8000 – 1,0540 | 0,8000 – 1,0850 |
+| ganadora | semilla 6451 | semilla 6135 |
+
+*(el barrido real dio 24 de 50 con la vara de facultad; 25 de 50 aquí es una
+señal de que la población de candidatas se comporta igual.)*
+
+**El ordenamiento cambia:**
+
+| puesto | por tasa de la facultad | su puesto con la tasa del aula |
+|---|---|---|
+| 1 | 6451 | 2 |
+| 2 | 80 | 3 |
+| 3 | 716 | 5 |
+| 4 | 1372 | **15** |
+| 5 | 4606 | **11** |
+
+y la ganadora por tasa del aula, la 6135, **es la novena** por tasa de facultad.
+Spearman entre los dos ordenamientos: **0,822** — alto, pero muy lejos de 1.
+
+## El argumento que lo cierra, y es de magnitudes
+
+    separacion entre la 1ª y la 2ª candidata (vara de facultad)   0,0039
+    desplazamiento al cambiar de vara: media +0,0239  sd  0,0284
+                                       rango  -0,0873 a +0,0663
+
+**El desplazamiento típico es siete veces mayor que lo que separa a las dos
+mejores candidatas, y no es constante: su desviación estándar (0,0284) es del
+orden de su media (0,0239), y cambia de signo entre candidatas.** Ese es el punto:
+si fuera un corrimiento parejo no importaría, pero varía tanto entre candidatas
+como para reordenarlas.
+
+Traducido: **el criterio discriminaba en milésimas y las dos varas difieren en
+centésimas.** La semilla que gana la decide la vara, no la calidad del diseño.
+Eso es coherente con lo que ya se sabía del barrido real: la 4444 ganaba con
+1,0837 y la 202 quedaba en 1,0810 — **2,7 milésimas de diferencia**, y Gonzalo
+eligió la 202 por el solape justamente porque esa diferencia caía bajo el error
+del estimador. Tenía razón entonces por una razón, y ahora hay una segunda: a esa
+resolución el criterio tampoco distingue entre varas.
+
+## Qué significa para la 202, que es lo que ya está en campo
+
+**Nada malo.** Su cobertura mínima *mejora* al medirla con la tasa del aula
+(1,081 → 1,101), y con la vara correcta cierran más candidatas, no menos. La
+selección que salió no está en riesgo por esto.
+
+Lo que sí queda establecido para el próximo estudio:
+
+1. **El criterio del barrido debe usar la tasa del aula**, porque compara
+   selecciones concretas de aulas concretas y el tamaño de cada una ya se conoce.
+2. **La tercera cifra decimal del criterio no es información.** Separar
+   candidatas por 0,003 cuando la elección de vara mueve 0,028 es decidir por
+   ruido. Conviene declarar un umbral de indiferencia —por ejemplo, tratar como
+   empatadas las que estén dentro de una centésima— y desempatar por solape, que
+   es lo que Gonzalo hizo a mano.
