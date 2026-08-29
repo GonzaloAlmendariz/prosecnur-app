@@ -1,0 +1,28 @@
+/* La probabilidad de que una celda cierre su cuota.
+   Hoja propia: `aulasMonitoreo.css` está congelado a crecimiento. */
+
+.aulas-avance-prob {
+  font-size: 0.72rem;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  /* Cursor de ayuda porque la salvedad vive en el `title`: sin señal, nadie
+     descubre que este número supone independencia entre respuestas. */
+  cursor: help;
+}
+
+/* Tres niveles y no un degradado: la pregunta que contesta es «¿me tengo que
+   ocupar de ésta hoy?», y para eso tres respuestas bastan. El color NO es el
+   único canal — el número está escrito al lado. */
+.aulas-avance-prob[data-nivel="alta"] { color: var(--pulso-success-fg); }
+.aulas-avance-prob[data-nivel="media"] { color: var(--pulso-warn-fg); }
+.aulas-avance-prob[data-nivel="baja"] { color: var(--pulso-danger-fg); }
+
+/* «sin medir» va en el tono apagado y sin peso: es una ausencia declarada, no
+   una alarma. Pintarla como «baja» diría que la celda va mal, y lo que pasa es
+   que no se sabe. */
+.aulas-avance-prob[data-nivel="sin-medir"] {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-medium);
+  font-style: italic;
+}

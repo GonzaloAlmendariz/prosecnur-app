@@ -31,6 +31,11 @@ export type CeldaAvance = {
   previsto_origen?: unknown;
   etiqueta?: unknown;
   etiqueta_calibracion?: unknown;
+  /**
+   * Probabilidad de que la celda cierre su cuota, en [0,1]. `null`/ausente
+   * cuando el motor no pudo medirla, que NO es lo mismo que cero.
+   */
+  prob_cierre?: unknown;
 };
 
 export type FilaAvance = {
@@ -48,6 +53,13 @@ export type FilaAvance = {
   porque: string;
   /** El origen del previsto; `""` cuando el motor no lo declara. */
   origen: string;
+  /**
+   * La misma pregunta que `estado` —«¿va a llegar?»— con la incertidumbre
+   * puesta. `null` cuando alguna aula pendiente de la celda no declara tasa: sin
+   * saber cuánto varía, no hay probabilidad que dar. Un `null` NO se pinta como
+   * 0 %; se dice que no se pudo medir.
+   */
+  probabilidad: number | null;
 };
 
 /**
@@ -120,6 +132,18 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
       etiquetaCalibracion: txt(c.etiqueta_calibracion),
       porque: porqueDeLaCelda(c),
       origen: txt(c.previsto_origen),
+      // `num()` devuelve 0 para lo que no es número, y aquí 0 significa «no va
+      // a cerrar» — que es una afirmación fuerte y distinta de «no se pudo
+      // medir». Por eso se comprueba a mano en vez de reutilizar `num`.
+      probabilidad: (() => {
+        // `Number(null)` es 0 y `Number("")` también, así que la ausencia se
+        // descarta ANTES de convertir. Sin esta línea una celda sin medir se
+        // publicaba como «0 % de cerrar», que es la afirmación contraria.
+        // Lo cazó su propio test.
+        if (c.prob_cierre === null || c.prob_cierre === undefined || c.prob_cierre === "") return null;
+        const v = Number(c.prob_cierre);
+        return Number.isFinite(v) && v >= 0 && v <= 1 ? v : null;
+      })(),
     };
   });
   // La facultad es la unidad: se le calcula su urgencia (la de su celda más
