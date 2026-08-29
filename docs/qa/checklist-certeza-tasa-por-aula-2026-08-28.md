@@ -570,3 +570,153 @@ con `rows$stratum` forzado a la facultad— y ahí sí es exacta: medida sobre u
 sorteo de 3 aulas de Contabilidad, `Σ eligible_n_neto` = 71 y los únicos que
 cuenta la certeza = 71. La fórmula `Σ eligible_n_neto × tasa` vale para la
 certeza y **no** vale para evaluar una selección completa de varias facultades.
+
+---
+
+# Evaluación — tasa por aula contra τ de facultad, en los tres usos
+
+Encargo de Gonzalo (2026-08-28): «evaluar las ventajas y desventajas de usar la
+tasa de aulas vs τ de facultad en la simulación y en la fórmula para sacar los
+esperados por aula a nivel sexo y a nivel facultad».
+
+**Son tres decisiones distintas y hoy el motor contesta cada una de un modo
+diferente.** Antes de opinar, qué usa cada superficie:
+
+| Uso | Dónde vive | Qué usa hoy |
+|---|---|---|
+| 1 · Simulación de certeza | `.cm_certeza_evaluar` | **τ de facultad** — `netos × τ` |
+| 2 · Esperado por aula, agregado a facultad | `efectivas_esperadas` + `certificacion.R` (`suma_esperadas`) | **tasa por aula** — `Σ eᵢ·rᵢ` |
+| 3 · Esperado por celda de sexo | `certificacion.R`, rama `sexo_filas` | **tasa PLANA** — `Σ e_sexo × (Σeᵢrᵢ / Σeᵢ)` |
+
+El uso 3 es el que nadie había mirado: aplana la tasa que el uso 2 acaba de
+componer aula por aula.
+
+## El hecho que ordena los tres
+
+τ **es** la media de la tasa por aula ponderada por elegibles sobre el marco de
+la facultad. De ahí sale todo:
+
+- Sobre un conjunto cuya mezcla de tamaños reproduce la del marco, **las dos dan
+  exactamente lo mismo**. No es aproximación: es identidad. Letras y CC.HH. lo
+  demuestra en cada medición de este documento —sus 14 aulas caben en un tramo y
+  los dos brazos coinciden dígito a dígito.
+- Sobre un conjunto sesgado hacia aulas grandes —y el sorteo PPS lo está— τ
+  sobreacredita, porque las grandes son las de tasa baja.
+- Sobre **un aula suelta**, τ simplemente no responde la pregunta: le atribuye a
+  un aula de 14 elegibles el mismo rendimiento por elegible que a una de 50.
+
+## Uso 1 — la simulación
+
+Medido con sorteos pareados sobre los 174 titulares: cambiar a la tasa por aula
+mueve el mínimo certificado en 2 de 15 facultades, las dos hacia **más** aulas, y
+el total de `Σ max(fórmula, certeza)` sube de **174 a 175**. Detalle en el cuadro
+de los ítems 5 y 6.
+
+- **A favor**: insesgada respecto de la mezcla del conjunto sorteado; alinea la
+  simulación con lo que ya hacen la certificación y Monitoreo.
+- **En contra**: el efecto es **más chico que el ruido de la propia simulación**
+  —Derecho se re-certifica en 18 o en 19 según la corrida, con p = 0,951 sobre
+  205 sorteos— y cuesta un cambio de contrato (`estratos[].tau` deja de
+  gobernar) más seis pruebas reescritas.
+
+## Uso 2 — el esperado por aula agregado a facultad
+
+**Aquí no hay decisión pendiente: ya usa la tasa por aula, y está bien.** Lo que
+τ cambiaría, medido sobre los 174 titulares realmente sorteados:
+
+| Facultad | n | por aula | τ plana | dif |
+|---|---:|---:|---:|---:|
+| ARTE Y DISEÑO | 15 | 175,3 | 190,9 | **−8,15 %** |
+| ARTES ESCÉNICAS | 8 | 102,8 | 108,8 | −5,49 % |
+| EDUCACION | 3 | 48,3 | 50,4 | −4,17 % |
+| CIENCIAS Y ARTES DE LA COMUN. | 7 | 105,6 | 109,0 | −3,16 % |
+| CIENCIAS SOCIALES | 12 | 190,9 | 196,8 | −2,99 % |
+| CIENCIAS E INGENIERIA | 37 | 671,3 | 683,8 | −1,84 % |
+| ARQUITECTURA Y URBANISMO | 8 | 170,1 | 173,1 | −1,73 % |
+| GESTIÓN Y ALTA DIRECCIÓN | 7 | 134,1 | 134,7 | −0,47 % |
+| LETRAS Y CIENCIAS HUMANAS | 4 | 38,4 | 38,4 | **−0,00 %** |
+| DERECHO | 19 | 424,2 | 422,8 | +0,34 % |
+| GASTRONOMÍA | 3 | 41,4 | 40,9 | +1,19 % |
+| ESTUDIOS GENERALES CIENCIAS | 22 | 469,2 | 463,9 | +1,16 % |
+| PSICOLOGÍA | 6 | 95,2 | 93,3 | +2,07 % |
+| ESTUDIOS GENERALES LETRAS | 20 | 440,6 | 429,1 | +2,67 % |
+| CIENCIAS CONTABLES | 3 | 41,4 | 38,7 | **+6,93 %** |
+| **TOTAL** | 174 | **3 148,9** | **3 174,8** | **−0,81 %** |
+
+En agregado casi da igual (−0,81 %), pero **por facultad el rango es de −8,15 % a
++6,93 %**, y ahí es donde se decide el operativo de cada una. Un τ plano le
+promete a Arte y Diseño 16 encuestas que no va a producir y le esconde a
+Contabilidad 3 que sí. Como la cuota es por facultad y no se compensa entre
+facultades (ADR 0079), la compensación global no consuela.
+
+## Uso 3 — el esperado por celda de sexo
+
+Hoy `certificacion.R` aplana: calcula `tasa = esperadas/elegibles` de la facultad
+y la multiplica por los elegibles de cada sexo. Eso **borra la correlación entre
+tamaño del aula y composición por sexo**, que existe y no es chica:
+
+| Facultad | aulas | cor(elegibles, % mujeres) | % mujeres en el tercio chico → grande |
+|---|---:|---:|---|
+| EDUCACION | 17 | **−0,721** | 97,0 % → 86,0 % |
+| ARQUITECTURA Y URBANISMO | 20 | **+0,377** | 64,7 % → 72,2 % |
+| ARTES ESCÉNICAS | 58 | **−0,321** | 70,4 % → 52,9 % |
+| CIENCIAS E INGENIERIA | 417 | +0,226 | 20,8 % → 28,8 % |
+| ARTE Y DISEÑO | 110 | +0,153 | 76,4 % → 81,5 % |
+| resto | | −0,10 a +0,05 | plano |
+| GLOBAL | 1 512 | −0,181 | |
+
+**Cambia de signo entre facultades**, así que no hay corrección global que lo
+arregle: en Educación las aulas chicas son casi sólo de mujeres y en
+Arquitectura es al revés.
+
+Efecto medido sobre las 30 celdas de los 174 titulares (tasa por aula contra
+tasa plana):
+
+- rango: **−6,8 %** (Educación hombres) a **+3,6 %** (Arquitectura hombres);
+- diez de las treinta celdas se mueven menos de 1 %;
+- **0 de 30 celdas cambian de veredicto.**
+
+Que hoy no cambie ningún veredicto es una propiedad de esta muestra, no una
+garantía: el término que se está borrando es una covarianza real que en dos
+facultades es fuerte, y la celda más castigada es una de cuota 4.
+
+## Las desventajas de la tasa por aula, que también son reales
+
+No es gratis, y conviene tenerlas escritas:
+
+**1. Traslada al aula una tasa estimada sobre un BIN.** El escalón produce
+inversiones: un aula más grande puede esperar MENOS encuestas que una más chica
+de la misma facultad. Medido sobre el marco, **4 565 de 167 995 pares de aulas
+de la misma facultad (2,7 %) están invertidos** — por ejemplo, en EE.GG. Letras
+un aula de 42 elegibles espera 21,4 y una de 51 espera 20,8. Los saltos:
+
+    25 elegibles × 0,69 = 17,25      26 elegibles × 0,56 = 14,56   (−16 %)
+    50 elegibles × 0,55 = 27,50      51 elegibles × 0,44 = 22,44   (−18 %)
+
+Y **206 aulas del marco (13,6 %) caen justo en un borde** (15/16, 25/26, 35/36,
+50/51), donde un elegible de más o de menos mueve el esperado un 16 %. τ no
+tiene este problema: es un número por facultad.
+
+**2. Aparenta una precisión que no tiene.** Ninguna de las dos modela la
+dispersión de un aula alrededor de la tasa de su tramo. τ, al multiplicar por una
+constante, conserva toda la dispersión de los netos y deja un colchón —accidental,
+pero colchón—; la tasa por aula lo comprime y el gate queda más flojo en la cola.
+
+**3. Más superficie que auditar**: 27 valores distintos en el marco contra 15.
+
+Y las de τ, para no idealizarla: es **optimista en la media** sobre cualquier
+conjunto sorteado por PPS (razón medida 0,954–1,000 en las quince facultades),
+**no sirve por aula** —y por tanto no puede alimentar hojas de ruta, dotación ni
+Monitoreo—, y aplicada a celdas de sexo borra la covarianza de arriba.
+
+## Recomendación, por uso
+
+| Uso | Qué hacer | Por qué |
+|---|---|---|
+| **2 · facultad** | **Dejar como está** (tasa por aula) | Ya es correcto; τ le erraría a Arte y Diseño por 8 % y a Contabilidad por 7 % |
+| **3 · sexo** | **Cambiar a tasa por aula** — el mejor candidato | Coste ≈ una línea, sin cambio de contrato, 0 de 30 veredictos se mueven hoy, y corrige un aplanamiento sin defensa sobre una covarianza que llega a −0,72 |
+| **1 · simulación** | **No ahora**; si se hace, junto con el 3 y con un ADR | El efecto (174→175) es menor que el ruido de la propia simulación, y cuesta contrato + 6 pruebas |
+
+El orden importa: el **3** se puede hacer solo, hoy, y deja las tres superficies
+coherentes en la unidad «aula». El **1** es el único que toca contrato y es el
+que menos paga.
