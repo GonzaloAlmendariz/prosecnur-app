@@ -204,7 +204,11 @@ describe("aulasPresentation", () => {
     expect(page).toContain("escalaDeProporciones(rows)");
     expect(page).toContain("aulasFieldLabel(column)");
     expect(page).toContain("const summary = summarizeAulasValidation(rows)");
-    expect(page).toContain("<span>{summary.label}</span>");
+    // Que el resumen SE PINTE, no el markup exacto que lo envuelve. La
+    // aserción anterior fijaba `<span>{summary.label}</span>` entero y se rompió
+    // al añadir al subtítulo de dónde sale ese panel —«· lo que deriva la app»,
+    // C5 del GOAL—, que no toca la conexión que este test protege.
+    expect(page).toContain("{summary.label}");
     expect(page).not.toMatch(/\{fmt\(rows\.length\)\} alertas/);
   });
 });
