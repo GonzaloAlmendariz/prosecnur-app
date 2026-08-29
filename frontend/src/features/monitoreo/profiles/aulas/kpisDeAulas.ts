@@ -31,6 +31,7 @@ import { pct } from "../../core/formatoComun";
  * desvío contra la muestra planificada.
  */
 import { summarizeAulasValidation } from "./aulasPresentation";
+import { corteDelEstudio } from "./corteDelEstudio";
 import { cuotasResumen } from "./cuotasResumen";
 import { parteDeCampo } from "./parteDeCampo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
@@ -113,10 +114,21 @@ export function fmtCuenta(value: unknown, fallback = "0") {
   return new Intl.NumberFormat("es-PE").format(entero === 0 ? 0 : entero);
 }
 
-/** Sólo la fecha del sello ISO del tablero; la hora no decide nada. */
+/**
+ * Sólo la fecha del sello ISO del tablero; la hora no decide nada.
+ *
+ * **Un `YYYY-MM-DD` pelado NO pasa por `new Date()`.** La especificación lo
+ * parsea como medianoche UTC, y `toLocaleDateString` lo devuelve al huso del
+ * lector: en Lima —UTC−5— `2026-09-05` sale como **4/9/2026**. El día del corte
+ * del estudio es justo un `YYYY-MM-DD` sin hora, así que se formatea a mano
+ * desde sus tres números. Con hora sí se deja a `Date`, que es lo que quiere el
+ * sello del tablero.
+ */
 function fecha(iso: unknown) {
   const texto = typeof iso === "string" ? iso.trim() : "";
   if (!texto) return "";
+  const soloDia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
+  if (soloDia) return `${Number(soloDia[3])}/${Number(soloDia[2])}/${soloDia[1]}`;
   const d = new Date(texto);
   return Number.isNaN(d.getTime()) ? texto.slice(0, 10) : d.toLocaleDateString("es-PE");
 }
@@ -392,7 +404,28 @@ export function aulasKpis(
   if (seccion === "fuentes") {
     // De dónde viene todo: el plan, lo que se leyó y cuándo se calculó. Es la
     // misma tríada que telefónico pone en su sección de fuentes.
-    const sello = fecha(dashboard?.generated_at);
+    // **El corte del estudio NO es `generated_at`.**
+    //
+    // `corteDelEstudio.ts` existe exactamente por esto y su cabecera lo explica:
+    // ese sello dice cuándo se CALCULÓ el tablero —el reloj de la máquina que lo
+    // abrió— y sobre un estudio reabierto o simulado dice cualquier cosa. El
+    // módulo ya resolvía el «hoy» del estudio como el último día con parte de
+    // campo, y esta tarjeta, que es la que publica la palabra «Corte» en la
+    // banda, seguía leyendo el sello.
+    //
+    // Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: la tarjeta decía
+    // **29/8/2026** con partes del 1/9 al 5/9 y con Salidas diciendo «corte
+    // 05/09/26». Dos capas, dos lecturas de la misma regla — que es la frase que
+    // el propio `corteDelEstudio` usa para describir el defecto hermano.
+    //
+    // Cuando no hay ni un parte no hay reloj de campo: el módulo devuelve el
+    // sello y lo declara con `esDelCampo: false`, y aquí se dice en la pista en
+    // vez de afirmar un corte que nadie midió.
+    const corte = corteDelEstudio(
+      (dashboard?.partes_campo ?? []) as MonitoreoRow[],
+      dashboard?.generated_at,
+    );
+    const sello = fecha(corte.dia);
     return [
       planKpi(dashboard),
       {
@@ -409,7 +442,9 @@ export function aulasKpis(
         label: "Corte",
         icono: RefreshCw,
         value: sello || "Pendiente",
-        pista: sello ? "todo el atraso se mide contra este día" : "todavía sin tablero generado",
+        pista: !sello ? "todavía sin tablero generado"
+          : corte.esDelCampo ? "último día con parte; todo el atraso se mide contra él"
+            : "sello del tablero: todavía no hay ningún parte de campo con el que fijar el corte",
         tone: sello ? "neutral" : "warn",
       },
     ];

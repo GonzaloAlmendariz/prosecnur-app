@@ -797,3 +797,42 @@ La lección, otra vez sobre mí: **un formateador correcto para una magnitud no 
 es para la de al lado.** «Lo que falta» va hacia arriba; «la meta» no. Y el
 único sitio donde se vio fue una captura de una pestaña distinta de la que
 toqué.
+
+---
+
+## 50 · La tarjeta «Corte» daba el reloj de la máquina (ítem 33)
+
+Primera captura de la sección `fuentes`. La banda decía **CORTE 29/8/2026** con
+la pista «todo el atraso se mide contra este día», mientras Salidas decía «corte
+05/09/26» y el panel de vencidos «al 2 de setiembre». Tres fechas para una
+palabra.
+
+Medido: `sello = fecha(dashboard?.generated_at)`. Y el repo **ya tenía escrito
+que eso está mal**: `corteDelEstudio.ts` existe para resolverlo y su cabecera
+dice «**No es `generated_at`.** Ese sello dice cuándo se calculó el tablero, o
+sea el reloj de la máquina que lo abrió, y sobre un estudio reabierto o simulado
+dice cualquier cosa», con un caso medido —«al 27 de agosto» sobre un estudio
+sincronizado al 12/09—. La tarjeta que publica la palabra «Corte» en la banda era
+la única que no lo usaba. Dos capas, dos lecturas de la misma regla, que es la
+frase que ese mismo comentario emplea para el defecto hermano.
+
+Ahora sale del módulo y dice **2/9/2026 · «último día con parte»**, que concuerda
+con el panel de vencidos. Sin partes cae al sello **y lo declara**, en vez de
+afirmar un corte que nadie midió.
+
+**Y el test cazó un desfase de un día que introduje al arreglarlo.** `fecha()`
+pasaba el valor por `new Date()`, y un `YYYY-MM-DD` pelado se parsea como
+medianoche **UTC**: en Lima, `2026-09-05` salía **4/9/2026**. El sello del
+tablero lleva hora y no tenía el problema; el día del corte no la lleva. Se
+formatea a mano desde sus tres números.
+
+### Lo que queda a la vista, y es suyo (ítem 34)
+
+El corte ya no es el reloj de la máquina, pero **sale del parte de campo**: el
+último `applied_at` es el 2/9 mientras las respuestas llegan por plataforma hasta
+el 5/9 —es lo que muestra el ritmo y lo que dice Salidas—. Con la regla que
+Gonzalo repitió esta semana —«lo que contamos son las efectivas en plataforma»—
+el «hoy» del estudio debería salir de la última respuesta, no del último parte.
+`corteDelEstudio` está construido a propósito sobre los partes y con su
+razonamiento escrito, así que cambiarlo es una decisión de diseño, no un typo.
+Hermano del ítem 17.
