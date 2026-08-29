@@ -1190,3 +1190,32 @@ conjunto. Verificado en pantalla.
 
 Es la quinta vez que el mismo eje —lo que declara el campo contra lo que hay
 realmente— produce un rótulo que dice lo contrario de lo que muestra.
+
+---
+
+## 60 · `calidad/base`: la tentación de formatear el dato del cliente
+
+Vista sana, `geometryIssues=0`, y todo lo que podría leerse como vacío está
+declarado: «Este estudio **no ha declarado** qué es un aula válida» con su enlace
+para hacerlo; «0 Los dos · 0 Sólo uno · 0 Ninguno» con «193 aulas sin sus dos
+umbrales en la hoja · 100 %»; «0 efectivas de 0 evaluadas» con «193 sin evaluar
+en el libro».
+
+Lo que sí tienta: la columna «% DE EFECTIVAS…» muestra **`0.409434`,
+`0.8083333`, `0.6428571`** —proporciones crudas con siete decimales bajo un
+rótulo que dice «%»—. Después de haber pasado el día unificando formatos, la
+mano se va sola.
+
+**Sería el error.** La cabecera declara «193 filas de la hoja · 18 columnas en la
+tabla · **lo que calcula el equipo**», y el propio panel lo repite: «Las 3
+columnas de validador son del equipo: las llena en su Excel y la app no las
+calcula» y «Es el corte que el equipo escribió en el libro, no un criterio que la
+app verifique». Es un volcado del libro, con los valores y los nombres del libro.
+
+Es el mismo límite del ítem 36 con otra cara, y conviene tenerlo junto: **lo que
+la app calcula, la app lo formatea; lo que la app vuelca, se muestra tal cual.**
+La señal que los separa está en la propia superficie —«lo que calcula el
+equipo», «de la hoja», «del libro»—, y cuando está, es una instrucción.
+
+Cuarto tick seguido en que mirar levanta una sospecha y medirla la descarta.
+Sin cambios de código.
