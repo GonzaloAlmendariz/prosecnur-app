@@ -24,7 +24,6 @@ import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
-import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
 import { agendamiento } from "./agendamiento";
@@ -35,26 +34,18 @@ import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
-import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
-import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
-import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
-import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
-import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
-import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
-import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
-import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import { AulasPestanaResumen } from "./AulasPestanaResumen";
-import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
-import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
-import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
+import { AulasPestanaCuotas } from "./AulasPestanaCuotas";
+import { AulasPestanaEfectividad } from "./AulasPestanaEfectividad";
+import { AulasPestanaEstratos } from "./AulasPestanaEstratos";
 import { AulasControles } from "./AulasControles";
-import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
@@ -63,11 +54,8 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
-import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
 import { AulasFichaDeAula } from "./AulasFichaDeAula";
-import { dondeSeSaca } from "./dondeSeSaca";
-import { fichaDeAula } from "./fichaDeAula";
 import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
@@ -77,16 +65,8 @@ import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
-import { AulasCoberturaChart } from "./AulasCoberturaChart";
-import { AulasPiramideCuota } from "./AulasPiramideCuota";
-import { AulasAvanceProyectado } from "./AulasAvanceProyectado";
-import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
-import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
-import { AulasAvanceCuota } from "./AulasAvanceCuota";
-import { avanceCuota } from "./avanceCuota";
-import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
-import { AulasEstadoChart } from "./AulasEstadoChart";
-import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
+import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
@@ -117,7 +97,6 @@ import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
-import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import { railDeAulas } from "./railDeAulas";
 import { parteDeCampo } from "./parteDeCampo";
 import {
@@ -132,7 +111,6 @@ import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
-import { pct } from "../../core/formatoComun";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
@@ -1613,44 +1591,11 @@ function renderAulasView(
       </div>
     );
   }
-  // Avance: las tres miradas del mismo campo, cada una en su panel. Antes las
-  // cuotas y el avance por estrato COMPETIAN por un solo panel —`quotaRows.length
-  // ? quotaRows : avance_por_estrato`—, y como un estudio de cursos-horario
-  // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
-  // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
-  // Por FACULTAD, y dentro de ella por sexo. Venía ordenada por `missing`
-  // descendente, así que las dos celdas de una misma facultad salían separadas
-  // por doce filas y no se podía leer cómo va ninguna. La urgencia sigue: ahora
-  // la que más pide es la FACULTAD que más pide, no la celda suelta.
-  const quotaRows = ordenarPorFacultadYSexo(
-    (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-    (fila) => Number(fila.missing ?? 0),
-  );
-  // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
-  // doce celdas; con foco, sólo las de esa facultad o ese sexo.
-  const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (
-    foco.tipo === "facultad" ? String(fila.faculty ?? "") === foco.valor
-      : String(fila.sex ?? "") === foco.valor
-  ));
-  const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
-  // El view-model del cumplimiento contra el diseño se calcula UNA vez y
-  // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
-  // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
-  const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
-
-  // `stratum` es una CLAVE del motor —facultad / sexo predominante / tramo de
-  // tamaño, pegados—, no una etiqueta. Se traduce para la vista y sólo para la
-  // vista: el original sigue siendo el que empareja.
-  // Sin `useMemo`: `renderAulasView` NO es un componente —lo dice el comentario
-  // de su propia cabecera— y un hook aquí es una violación de las reglas de
-  // hooks que sólo funciona por accidente.
-  const estratoRowsLegibles = estratoRows.map((fila) => {
-    const clave = fila.stratum ?? fila.estrato;
-    if (typeof clave !== "string" || !clave) return fila;
-    return fila.stratum
-      ? { ...fila, stratum: etiquetaDeEstrato(clave) }
-      : { ...fila, estrato: etiquetaDeEstrato(clave) };
-  });
+  // **Las derivaciones de Avance se mudaron con sus pestañas.** `quotaRows`,
+  // `quotaEnFoco` y `cuotaDiseno` viven en `AulasPestanaCuotas`; `estratoRows`
+  // y `estratoRowsLegibles`, en `AulasPestanaEstratos`. Dejarlas aquí las
+  // convertía en código muerto: cada pestaña ya las calcula. Mover el JSX sin
+  // mover el peso habría dejado el archivo igual de gordo.
   return (
     // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
     // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
@@ -1664,57 +1609,13 @@ function renderAulasView(
         facultadEnFoco={facultadEnFoco}
         onFoco={onFoco}
       />
-      {pestana !== "estratos" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Avance por estrato</h3>
-          <span>{fmt(estratoRows.length)} filas</span>
-        </div>
-        {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
-            contesta la pregunta del día siguiente —a dónde mando el equipo— que
-            la tabla obliga a resolver restando de cabeza. */}
-        <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
-        {/* La tabla dice el estrato con las mismas palabras que el eje del
-            gráfico que tiene encima. Enseñaba la clave cruda —«GESTIÓN Y ALTA
-            DIRECCIÓN / F / G3»— mientras el eje, ya traducido, decía otra cosa
-            para la misma fila. */}
-        <DataTable rows={estratoRowsLegibles} empty="No hay avance por estrato preparado." />
-      </section>
-      )}
-      {pestana !== "efectividad" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* C1: el título dice contra qué se mide, no «Efectividad» a secas.
-              El rótulo corto de la pestaña es sinónimo de «Rendimiento» en
-              castellano y lo que las separa es el numerador; aquí se declara. */}
-          <h3>El campo contra la tasa que dimensionó la muestra</h3>
-          {/* EL ORDEN DE LECTURA, dicho donde se lee. Esta vista y «Lo que
-              falta para cerrar» contestan preguntas distintas, y la de aquí
-              manda por lo que midió el ADR 0082 sobre el campo 2025: de 196
-              aulas agendadas sólo 2 no se aplicaron, así que perder un aula ya
-              lo resuelven las cadenas de reemplazo. Lo que ninguna cadena
-              cubre es que la asistencia baje en general, y eso sólo se ve
-              sumando la facultad: con τ un 5 % por debajo de lo previsto,
-              EE.GG. Ciencias cierra 4,1 alumnos corta sin que ningún aula
-              suelta lo anuncie. Por eso el déficit se acumula por facultad y
-              no se compensa entre ellas (ADR 0079). */}
-          <span>por facultad. Primera lectura: decide si hay que activar reservas</span>
-        </div>
-        <AulasEfectividadSeguimiento
-          bloque={dashboard.efectividad_seguimiento}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      )}
+      <AulasPestanaEstratos dashboard={dashboard} pestana={pestana} tabla={DataTable} />
+      <AulasPestanaEfectividad
+        dashboard={dashboard}
+        pestana={pestana}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+      />
       <AulasPestanaRendimiento
         dashboard={dashboard}
         pestana={pestana}
@@ -1722,115 +1623,14 @@ function renderAulasView(
         onFoco={onFoco}
         diasDeCampoDelCorte={diasDeCampoDelCorte}
       />
-      {pestana !== "cuotas" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La tabla que se le enseña al cliente, y la misma que va al PDF y a
-              la hoja «Cómo va el campo» del libro: un contenido en tres
-              soportes. Va PRIMERO en la pestaña porque es la lectura de
-              conjunto; el detalle celda a celda viene después. */}
-          <h3>El avance que ve el cliente</h3>
-          <span>contra la cuota del diseño, por sexo</span>
-        </div>
-        <AulasAvanceParaCliente
-          avanceCuota={dashboard.avance_cuota}
-          celdasSexo={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
-          efectividad={dashboard.efectividad_seguimiento}
-          avancePorFacultad={(dashboard.avance_por_facultad ?? []) as MonitoreoRow[]}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
-      </section>
-      )}
-      {pestana !== "cuotas" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Cuota sexo por facultad</h3>
-          {/* En CELDAS, que es la unidad del cruce sexo × facultad y la que usa
-              la lectura de abajo («5 de 12 celdas cumplidas»). «Filas» nombraba
-              la tabla, que ahora puede ir filtrada. */}
-          <span>{fmt(quotaRows.length)} celdas</span>
-        </div>
-        {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
-            una respuesta de faltar doscientas. Sólo el total y su lectura — los
-            dos desagregados que había aquí decían lo mismo que la pirámide, y
-            dos gráficos del mismo cruce le quitaban protagonismo al que sí
-            contesta la pregunta. */}
-        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
-        {/* Y justo debajo, la otra pregunta: **¿va a llegar?** El resumen de
-            arriba dice dónde está cada celda; ésta proyecta lo que aportarán
-            las aulas que faltan por aplicar y avisa si el campo está rindiendo
-            distinto de lo previsto. Es el único panel del perfil que manda a
-            alguien a un aula, y por eso encabeza por lo que exige decisión. */}
-        <AulasAvanceProyectado
-          celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
-        />
-        {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
-            contra SU propia meta. Se ve de qué lado va corta cada facultad, que
-            es la pregunta con la que se sale a campo, y es además quien lleva el
-            foco: elegir una facultad enfoca el detalle de abajo y el foco viaja
-            en la URL (`?foco=facultad:Derecho`) para que la vista siga siendo
-            enlazable.
-
-            Recibe TODAS las filas, no las enfocadas: es el control, y filtrada
-            se quedaría en una sola fila sin forma de elegir otra ni de soltar el
-            foco. Quien se filtra es la tabla, que es el detalle. */}
-        <AulasPiramideCuota
-          filas={quotaRows as MonitoreoRow[]}
-          foco={foco}
-          onFoco={onFoco}
-          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-        />
-        {/* La tabla filtrada lo dice: la cabecera del panel cuenta las 12 celdas
-            del estudio y con un foco puesto abajo se ven dos. Un contador que no
-            cuadra con lo que hay debajo es lo que llevo el día arreglando. */}
-        {foco ? (
-          <p className="mon-profile-muted">
-            Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} celdas.
-            Vuelve a pulsar su fila en la pirámide para ver todas.
-          </p>
-        ) : null}
-        {/* El vacío de la tabla, en términos de tabla. La causa la explica el
-            resumen que encabeza la sección: repetirla aquí la convertía en la
-            tercera copia literal de la misma frase en la misma pantalla. */}
-        <DataTable rows={quotaEnFoco} empty="Sin celdas de cuota que listar." />
-      </section>
-      )}
-      {pestana !== "cuotas" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La OTRA vara de la pestaña: arriba, las celdas de sexo del plan;
-              aquí, lo recogido contra la cuota de ALUMNOS del cálculo de
-              muestra —más baja que la meta del plan por diseño—, con
-              titulares caídos y reservas incluidos. «… contra el diseño» y no
-              «… por facultad» ni «… de la cuota»: esas colas ya tienen dueño
-              y el guard de títulos caza a quien termina igual que un vecino. */}
-          <h3>Cumplimiento contra el diseño</h3>
-          {/* El chip declara el denominador —y su degradación, si la hay—; el
-              porqué viaja en el title, como el `detalle` de los KPIs. */}
-          <span title={cuotaDiseno.procedencia.detalle || undefined}>
-            {cuotaDiseno.procedencia.chip}
-          </span>
-        </div>
-        <AulasAvanceCuota vista={cuotaDiseno} />
-      </section>
-      )}
+      <AulasPestanaCuotas
+        dashboard={dashboard}
+        pestana={pestana}
+        foco={foco}
+        facultadEnFoco={facultadEnFoco}
+        onFoco={onFoco}
+        tabla={DataTable}
+      />
     </div>
   );
 }
