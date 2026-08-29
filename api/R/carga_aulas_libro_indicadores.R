@@ -153,7 +153,8 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   "Las respuestas no traen fecha legible, asi que no se puede repartir el avance por dia."
 }
 
-aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo") {
+aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo",
+                                             procedencia = NULL) {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
   titulo <- openxlsx::createStyle(fontSize = 16, textDecoration = "bold",
@@ -325,6 +326,53 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
       type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
     )
     fila <- fila + n + 1L
+  }
+
+  # DE DONDE SALIO ESTE LIBRO, dentro del propio libro.
+  #
+  # El riesgo de la sinergia app <-> Excel no es que la app destruya el archivo
+  # del equipo —no lo toca: genera uno nuevo cada vez— sino la DIVERGENCIA:
+  # alguien edita su copia, otro genera sin haberla subido, y quedan dos libros
+  # sin nada que diga cual esta al dia. Abrir los dos y comparar esta seccion lo
+  # resuelve sin adivinar.
+  #
+  # El dato ya existia y no tenia consumidor dentro del libro: el recibo
+  # `monitoreo_aulas_libro` que compone `aulas_libro_importar_en_sesion()`.
+  #
+  # `importado_en` viene del ESTADO, no del reloj de aqui: dos generaciones del
+  # mismo estado escriben lo mismo. (La cabecera de esta hoja si lee
+  # `Sys.Date()`, que es anterior a esto y por eso el libro ya cambiaba de un
+  # dia para otro.)
+  if (is.list(procedencia) && length(procedencia)) {
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, "De dónde salió este libro", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
+    fila <- fila + 1L
+    r <- procedencia$resumen %||% list()
+    leido <- as.character(procedencia$importado_en %||% "")[1]
+    filas_proc <- list(
+      list("Última vez que la app leyó un libro lleno",
+           if (nzchar(leido)) leido else "Ninguna: sale sólo del plan"),
+      list("Aulas que traía esa lectura", r$unidades),
+      list("Partes de campo que traía", r$partes_de_campo),
+      list("Filas de control que traía", r$filas_de_control)
+    )
+    for (f in filas_proc) {
+      openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)
+      openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+      v <- f[[2]]
+      if (is.null(v) || !length(v)) v <- "—"
+      openxlsx::writeData(wb, hoja, v[1], startCol = 2, startRow = fila)
+      fila <- fila + 1L
+    }
+    # La frase que convierte el dato en una accion: sin esto son cuatro cifras
+    # que nadie sabe para que mirar.
+    openxlsx::writeData(
+      wb, hoja,
+      "Si editaste el libro después de esa fecha y no lo subiste, la app todavía no lo sabe.",
+      startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, pie, rows = fila, cols = 1)
+    fila <- fila + 2L
   }
 
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 30)
