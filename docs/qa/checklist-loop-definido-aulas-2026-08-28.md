@@ -35,6 +35,9 @@ no a ojo:
 | 9 | Alertas específicas por sexo | avance por celda | pendiente |
 | 10 | Un sexo en código (`1`/`2`) no puede dar cero mudo | `monitoreo_aulas_avance_cuota.R` | **mitad cerrada** — ver abajo |
 | 11 | Un 500 transitorio deja «Preparando vista» para siempre | `AulasMonitoreoPage.tsx` | **nuevo** — hipótesis por verificar |
+| 12 | Registro coloquial en las etiquetas de estado | `.mac_etiqueta_estado()` + propuestas de tramos | **nuevo** — ver abajo |
+| 13 | Alumnos con decimales («aporta 6,1») | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** `1dbb99fb` |
+| 14 | La probabilidad de cierre saturaba en 0/100 | `monitoreo_aulas_calibracion.R` | **cerrado** `1dbb99fb` |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
@@ -231,3 +234,39 @@ abierto; lo que falta es la decisión, no el permiso.
 `frontend/src/features/calcMuestra/CalcMuestraPage.tsx`: 3 930 líneas contra
 3 878 de línea base (+52). Entró en `2f0c825f` desde otra sesión. No se le sube
 la línea base a trabajo ajeno; queda dicho para que su autor decida.
+
+
+## 12 · El registro no es el de un informe de investigación
+
+**Gonzalo, 2026-08-29, y no es la primera vez que lo corrige**: «me preocupa
+mucho el lenguaje que utilizas… cuando dices "va a llegar", "al filo", "no
+llega". Tienes que ser consciente de que estamos en un contexto académico de
+investigación.»
+
+La corrección nace de una propuesta mía —tres tramos «va a llegar / al filo / no
+llega»— pero **el problema ya está publicado**, no sólo en lo que propuse. Lo que
+`.mac_etiqueta_estado()` emite hoy:
+
+- «Va a llegar, con margen»
+- «Va a llegar, sin margen: hay que vigilarla»
+- «No va a llegar: faltan 7 encuestas»
+- «No va a llegar y ya no quedan aulas: … y habrá que ponderar»
+
+El vocabulario **interno** del motor sí es el correcto y ya existe:
+`asegurada`, `ajustada`, `deficit_proyectado`, `deficit_no_subsanable`. Lo que
+se degradó es la traducción a pantalla.
+
+Mapeo propuesto, a confirmar por él antes de aplicarlo en bloque —son las frases
+más visibles del perfil y se leen en cada celda:
+
+| estado | hoy | propuesto |
+|---|---|---|
+| `asegurada` | Va a llegar, con margen | Cuota cubierta con margen |
+| `ajustada` | Va a llegar, sin margen: hay que vigilarla | Cuota cubierta sin margen |
+| `deficit_proyectado` | No va a llegar: faltan 7 encuestas | Déficit proyectado: 7 encuestas |
+| `deficit_no_subsanable` | No va a llegar y ya no quedan aulas… habrá que ponderar | Déficit sin reserva disponible: requiere ponderación |
+| `sin_cuota` | Sin cuota trazada | Sin cuota asignada |
+
+**No se aplica hasta que él confirme el mapeo.** El registro es suyo, y cambiar
+en bloque las frases más leídas del perfil por mi criterio es exactamente lo que
+esta corrección señala.
