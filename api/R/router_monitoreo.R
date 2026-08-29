@@ -5010,7 +5010,10 @@ mount_monitoreo <- function(pr) {
         } else NULL,
         error = function(e) NULL
       )
+      # Y la procedencia, para que el libro diga de que lectura salio: es lo
+      # unico que permite comparar dos copias sin adivinar cual esta al dia.
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
+                          procedencia = s$monitoreo_aulas_libro %||% NULL,
                           efectivas = efectivas, responses = respuestas,
                           validas = validas,
                           # Las cuotas del diseño, para el avance por facultad y
