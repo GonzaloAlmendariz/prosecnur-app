@@ -7,6 +7,7 @@ import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette"
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";
 import { serieDeRendimiento, veredictoDeCeldaDeCuota } from "./serieDeRendimiento";
 import { fmt } from "./kpisDeAulas";
+import { anchoDeBarraDelDia } from "./anchoDeBarra";
 
 /**
  * El rendimiento diario de cada facultad, y el que cabe esperar de la próxima
@@ -1176,7 +1177,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {elegida ? elegida.dias.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
-              const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
+              const ancho = anchoDeBarraDelDia(fechas.length);
               // **La tercera altura: lo que el DISEÑO supuso de cada una de esas
               //   aulas.** La barra era el techo y la línea lo conseguido, así que
               //   el gráfico comparaba el campo consigo mismo y con la media del
@@ -1222,7 +1223,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {proyectada ? proyectada.dias.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
-              const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
+              const ancho = anchoDeBarraDelDia(fechas.length);
               return (
                 <g key={`techo-${d.fecha}`}>
                   <rect x={xp(i) - ancho / 2} y={y(techo)}
