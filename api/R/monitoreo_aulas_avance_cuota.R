@@ -524,7 +524,7 @@
       aviso_sexo <- sprintf(
         paste0("La columna «%s» trae valores que no se reconocen como sexo (%s%s). ",
                "Se esperan etiquetas como «Mujer»/«Hombre» o «F»/«M»; una base sin ",
-               "decodificar trae el codigo de la opcion. Mientras no se declare la ",
+               "decodificar trae el código de la opción. Mientras no se declare la ",
                "equivalencia, ninguna respuesta cae en su celda."),
         sex_col, muestra, if (length(crudos) > 4L) ", …" else ""
       )

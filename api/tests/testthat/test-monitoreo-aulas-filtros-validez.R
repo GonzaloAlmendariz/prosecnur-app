@@ -98,7 +98,7 @@ test_that("el criterio NOMBRA los filtros, y avisa del que no se pudo aplicar", 
   expect_true(grepl("estado, consentimiento", txt, fixed = TRUE))
   # Y la que no se pudo aplicar se dice, o un error de tipeo pasaria por criterio.
   expect_true(grepl("columna_que_no_existe", txt, fixed = TRUE))
-  expect_true(grepl("no se aplico", txt, fixed = TRUE))
+  expect_true(grepl("no se aplicó", txt, fixed = TRUE))
 })
 
 test_that("los filtros SOBREVIVEN al normalizador de config", {

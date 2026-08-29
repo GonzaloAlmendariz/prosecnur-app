@@ -45,13 +45,13 @@ monitoreo_aulas_identificadores <- function(responses = data.frame(), anonimo = 
   if (!nrow(con_datos)) {
     return(list(
       status = "ok",
-      detail = "La base no trae columnas de identificacion personal con datos.",
+      detail = "La base no trae columnas de identificación personal con datos.",
       columnas = list()
     ))
   }
   cols <- as.character(con_datos$columna)
   detalle <- sprintf(
-    "%d columna%s de identificacion personal con datos: %s.%s",
+    "%d columna%s de identificación personal con datos: %s.%s",
     length(cols), if (length(cols) == 1L) "" else "s",
     paste(utils::head(cols, 5L), collapse = ", "),
     if (length(cols) > 5L) sprintf(" y %d mas.", length(cols) - 5L) else ""

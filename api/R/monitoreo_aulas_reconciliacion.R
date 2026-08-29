@@ -193,6 +193,6 @@ monitoreo_aulas_descuadre_texto <- function(hallazgo) {
     # Sin aplicador NO se inventa un destinatario: un parte sin `applied_by` es
     # comun al principio del campo, y un «—» sugeriria que hay alguien a quien
     # llamar. El aviso sale igual, porque la aritmetica no cuadra igual.
-    if (nzchar(hallazgo$aplicador %||% "")) sprintf(" Lo aplico %s.", hallazgo$aplicador) else ""
+    if (nzchar(hallazgo$aplicador %||% "")) sprintf(" Lo aplicó %s.", hallazgo$aplicador) else ""
   )
 }
