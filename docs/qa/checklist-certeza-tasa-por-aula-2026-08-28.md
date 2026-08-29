@@ -1156,7 +1156,14 @@ Números con la **tasa limpia de traslape**, que es la convención correcta:
 | GESTIÓN Y ALTA DIRECCIÓN | 6 | 7 | 7 | 7 | 0,174 / 0,229 (con 6) |
 | LETRAS Y CIENCIAS HUMANAS | 3 | 4 | 3 | 3 | 0,997 / 0,997 |
 | PSICOLOGÍA | 5 | 6 | 5 | 5 | 0,601 / 0,550 (con 5) |
-| **TOTAL** | **165** | **174** | **153** | **154** | |
+| **Σ certeza** | **165** | **174** | **153** | **154** | |
+| **Σ max(fórmula, certeza)** | | | **172** | **172** | |
+| **+ el aula operativa de Derecho** | | | **173** | **173** | |
+
+> **Cuidado con la fila `Σ certeza`.** 153 y 154 son la suma de los mínimos
+> certificados, y **el diseño nunca usa esa suma**: usa
+> `Σ max(fórmula, certeza)`. El número comparable con el 174 vigente es el
+> **173** de la última fila. La reconciliación completa está abajo.
 
 ## Conclusión 1 — entre varas, no hay diferencia
 
@@ -1216,3 +1223,46 @@ colapsado más favorecía, porque las dejaba concentrarse en aulas grandes.
 3. **La tasa**: para dimensionar da igual; cámbiese por coherencia con las otras
    dos superficies, no por precisión. El eje de sexo (`certificacion.R`) sigue
    siendo el cambio más barato y el único que hoy aplana sin defensa.
+
+## Reconciliación con el 174, porque la fila `Σ certeza` se presta a confusión
+
+`Σ certeza` (153/154) **no es un total de diseño**. El diseño aplica
+`max(fórmula, certeza)` facultad por facultad y después suma. Las tres cifras
+que hay que comparar:
+
+| | fórmula | Σ certeza | Σ max(fórmula, certeza) | + operativa | **total** |
+|---|---:|---:|---:|---:|---:|
+| **vigente** — simulador colapsado, tasa de la facultad, sin limpiar traslape | 165 | **167** | 173 | +1 (Derecho) | **174** |
+| **corregido** — estratificado + tasa limpia, tasa de la facultad | 165 | **153** | 172 | +1 | **173** |
+| **corregido** — estratificado + tasa limpia, tasa del aula | 165 | **154** | 172 | +1 | **173** |
+
+**El total baja de 174 a 173. Una aula, no veinte.**
+
+Dos cosas explican por qué `Σ certeza` sí cae tanto (167 → 153) mientras el total
+casi no se mueve:
+
+1. **Casi todo el 167 → 153 es la tasa limpia**, no la estratificación. Con la
+   estratificación y la tasa **sin** limpiar, la suma de certezas también da
+   **167** — el mismo número que la corrida guardada, con composición distinta.
+2. **`max` absorbe las bajas.** Cuando la certeza baja por debajo de la fórmula
+   —Artes Escénicas de 8 a 5, Ciencias e Ingeniería de 34 a 30— el diseño se
+   queda con la fórmula y la baja no llega al total. Sólo pasan al total las
+   **subidas**.
+
+## Lo que sí cambia: la composición
+
+De las 174 vigentes a las 173 corregidas:
+
+| Facultad | hoy | corregido | |
+|---|---:|---:|---|
+| ESTUDIOS GENERALES CIENCIAS | 22 | **23** | **+1** |
+| ESTUDIOS GENERALES LETRAS | 20 | **21** | **+1** |
+| CIENCIAS CONTABLES | 3 | 2 | −1 |
+| LETRAS Y CIENCIAS HUMANAS | 4 | 3 | −1 |
+| PSICOLOGÍA | 6 | 5 | −1 |
+| DERECHO | 19 | 19 | = (18 certificadas + 1 operativa) |
+| las otras nueve | | | sin cambio |
+
+Neto −1. Pero **las dos subidas no se pagan con las tres bajas**: la cuota es por
+facultad y no se compensa entre ellas (ADR 0079). Que sobre una en Psicología no
+cubre que falte una en EE.GG. Letras.
