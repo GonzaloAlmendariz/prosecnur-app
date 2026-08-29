@@ -462,3 +462,48 @@ ya es correcta y no hay nada más que hacer.
 La lección, otra vez: **un arreglo verificado por tests no está verificado.** Los
 tres mutantes pasaron, el typecheck pasó, 2.063 tests pasaron, y el número de la
 pantalla era el mismo. Sólo lo dice la captura.
+
+---
+
+## 41 · Medido en el DOM: dos líneas a 2.628 px de su caja (ítem 25)
+
+Ni Plotly ni la animación. `AulasSerieDeRendimiento` dibuja SVG a mano y la
+medición en el DOM lo dejó sin dudas:
+
+| elemento | `stroke` | sale por arriba | `top` |
+|---|---|---|---|
+| `<line>` cuota | `--aulas-sexo-mujer` | **2.628 px** | −1384 |
+| `<line>` cuota | `--aulas-sexo-hombre` | **2.575 px** | −1332 |
+| `<polyline>` ×4 | series por sexo | 187–331 px | 912–1057 |
+
+Con el SVG en `top 1243` y la tabla en `508–1086`, las polylines caen justo
+encima de la tabla. Las dos `<line>` se van muy por encima de la pantalla.
+
+**Dos causas, y ninguna es la que supuse leyendo el código.** La primera:
+`techo = max(ultimo, meta, sobremuestra, ...proyectadas)` **no incluye las
+cuotas por sexo**, y con un tope de unos 400 contra cuotas de 1.730 y 1.761 la
+`y` de `MARGEN + UTIL − UTIL*v/tope` se va muy negativa. La segunda: el CSS pone
+`overflow: visible` en el SVG —para que un trazo del borde no se corte a la
+mitad— y con eso el pintado no tiene tope ninguno.
+
+Meter las cuotas en la escala tampoco valía: aplastaría la serie observada —348
+sobre 1.761— contra el suelo, y leer el avance es para lo que existe el panel.
+Así que **se dibuja lo que cabe y se dice lo que no**, con su cifra, más un
+`<clipPath>` que garantiza que nada vuelva a salirse por otra vía. Un recorte
+mudo habría cambiado un estropicio visible por una ausencia silenciosa.
+
+Verificado en pantalla, no sólo en tests: la tabla quedó limpia, el párrafo del
+pie se lee entero y aparecen «la cuota de hombres (1.730) no cabe en la escala de
+este gráfico» y su pareja.
+
+**Cómo se midió, que es lo reutilizable.** `elementsFromPoint` sobre una rejilla
+en el rect de la tabla devolvió **cero**: `overflow: visible` saca el PINTADO
+fuera del viewport del SVG, pero el hit-testing sigue recortado, así que por ahí
+no se ve nada. Lo que sí lo mide es recorrer `svg.querySelectorAll('*')` y
+comparar cada `getBoundingClientRect().top` con el del SVG. Y al revés: después
+del arreglo esos rects **siguen** diciendo 331 px, porque un `clipPath` recorta
+el pintado y no el bbox — ahí la única prueba es la captura.
+
+**Y el runner sigue sin verlo**: `derrames=0 solapes=0 desbordes=0 issues=0` en
+las cuatro corridas, antes y después. Ninguna cláusula del contrato comprueba que
+un trazo se quede dentro de su caja. Sigue siendo el ítem 16.

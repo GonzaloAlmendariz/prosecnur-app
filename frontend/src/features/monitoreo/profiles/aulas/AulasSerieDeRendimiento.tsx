@@ -140,6 +140,27 @@ function pistaEnPalabras(trozos: ReadonlyArray<TrozoDePista>): string {
       : t.cifras.map((c) => `${c.valor} ${c.de}`).join(" · "))).join(", ");
 }
 
+/**
+ * Separa las metas que caben en el eje de las que no.
+ *
+ * Vive fuera del componente para poder probarse: el invariante es que **toda
+ * meta acaba en exactamente uno de los dos lados**, porque el lado «fuera» es
+ * el que se declara en pantalla y el lado «cabe» es el que se dibuja. Si una se
+ * perdiera entre los dos, volvería el silencio que este arreglo vino a quitar.
+ */
+export function repartirMetasPorEscala<T extends { meta: number }>(
+  metas: ReadonlyArray<T>, tope: number,
+): { caben: T[]; fuera: T[] } {
+  const caben: T[] = [];
+  const fuera: T[] = [];
+  for (const m of metas) {
+    // Un tope no finito o cero no autoriza a dibujar: sin escala no hay sitio
+    // donde poner la línea, y suponer que cabe la manda al infinito.
+    (Number.isFinite(tope) && tope > 0 && m.meta <= tope ? caben : fuera).push(m);
+  }
+  return { caben, fuera };
+}
+
 export function escalaDeEje(maximo: number): { tope: number; escalones: number[] } {
   const bruto = Math.max(1, maximo);
   const magnitud = Math.pow(10, Math.floor(Math.log10(bruto / 4)));
@@ -377,6 +398,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     }>;
     repartoObservado: boolean;
     metasSeñaladas: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
+    /** Las cuotas que NO caben en el eje: se declaran en vez de dibujarse. */
+    metasFueraDeEscala: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
     hayObservadasPorSexo: boolean;
     etiqueta: string;
   } => {
@@ -614,11 +637,27 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esas aulas`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
-    const metasSeñaladas = cuotasVisibles
+    // **Una meta por encima del tope del eje NO se dibuja: se declara.**
+    //
+    // Medido el 2026-08-29 en el DOM: estas dos líneas salían a `y = -1384 px` y
+    // `-1332 px`, o sea 2.628 px por encima del gráfico, cruzando la tabla del
+    // panel de arriba y tachando su párrafo. `techo` sale de
+    // `max(ultimo, meta, sobremuestra, ...proyectadas)` y NO incluye las cuotas
+    // por sexo: con un tope de unos 400 y cuotas de 1.730 y 1.761, la `y` de
+    // `MARGEN + UTIL - UTIL*v/tope` se va muy negativa.
+    //
+    // Meterlas en la escala tampoco vale: aplastaría la serie observada —348
+    // sobre 1.761— contra el suelo y el gráfico dejaría de leerse, que es
+    // exactamente lo que este panel existe para hacer. Se dibuja lo que cabe y
+    // **se dice** lo que no, con su cifra: descartar en silencio sería cambiar
+    // un estropicio visible por una ausencia muda.
+    const metasDeSexo = cuotasVisibles
       .filter((c) => c.meta > 0)
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
+    const { caben: metasSeñaladas, fuera: metasFueraDeEscala } = repartirMetasPorEscala(metasDeSexo, tope);
     return {
       tope, escalones, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
+      metasFueraDeEscala,
       // Cuántas de las conseguidas llevan sexo declarado en el libro. Si es menos
       // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
       cubiertasPorSexo: hayLibroPorSexo ? cubiertas : null,
@@ -868,6 +907,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   31 el primer día y las series de sexo arrancan dos días después,
                   no porque no hubiera aulas sino porque el libro calla su
                   reparto. */}
+              {/* Lo que no cabe en el eje se DICE, con su cifra. Recortarlo y
+                  callarlo dejaría la pantalla igual que si la cuota no
+                  existiera. */}
+              {acumulado.metasFueraDeEscala.map((m) => (
+                <em key={`fuera-${m.sexo}`} className="es-ausente">
+                  la cuota de {m.sexo.toLowerCase()} ({fmt(m.meta)}) no cabe en la
+                  escala de este gráfico
+                </em>
+              ))}
               {acumulado.cubiertasPorSexo != null
                 && acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal ? (
                 <em className="es-ausente">
@@ -885,6 +933,20 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             <svg className="aulas-serie-grafico es-acumulado" viewBox="0 0 100 100"
               preserveAspectRatio="none" role="img"
               aria-label={acumulado.etiqueta}>
+              {/* **La garantía estructural: nada se pinta fuera de la caja.**
+                  El SVG lleva `overflow: visible` en el CSS —para que un trazo
+                  del borde no se corte a la mitad— y eso, con una `y` fuera de
+                  escala, deja pintar SIN LÍMITE: medido, dos líneas a 2.628 px
+                  por encima, cruzando el panel de arriba. Arreglada la escala,
+                  esto es lo que impide que vuelva a pasar por otra vía. El
+                  margen de 2 unidades conserva el grosor de los trazos del
+                  borde, que es para lo que estaba el `overflow`. */}
+              <defs>
+                <clipPath id="aulas-serie-caja">
+                  <rect x="-2" y="-2" width="104" height="104" />
+                </clipPath>
+              </defs>
+              <g clipPath="url(#aulas-serie-caja)">
               {/* LA ZONA DE LO AGENDADO. Gonzalo: «el grafico sigue sin
                   diferenciar el pasado del futuro o lo previsto». Y era exacto: la
                   unica separacion era una vertical punteada del MISMO gris que la
@@ -965,6 +1027,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   strokeWidth="2.5" strokeDasharray="6 4" strokeLinejoin="round"
                   vectorEffect="non-scaling-stroke" opacity="0.85" />
               ) : null))}
+              </g>
             </svg>
             {porVenir.length ? (
               <>

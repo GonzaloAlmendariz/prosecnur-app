@@ -48,7 +48,7 @@ no a ojo:
 | 22 | Un `@export` mío se lo llevó el helper de al lado | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** — ver bitácora 37 |
 | 23 | `--pulso-warning-*` no existe: 16 usos, 6 sin respaldo | 16 archivos de CSS/TSX | **cerrado** — es `--pulso-warn-*`, ver bitácora 39 |
 | 24 | ¿Qué número preside el panel del cliente: el objetivo (2.500) o el reparto (3.491)? | `metas_diseno.R:117` + `AulasAvanceParaCliente.tsx` | **bloqueado** — decisión tuya, bitácora 40 |
-| 25 | Trazas de la serie pintadas sobre la tabla de «A quién hay que agendar» | `AulasSerieDeRendimiento.tsx` | **nuevo** — reproducido dos veces; el runner da `derrames=0` |
+| 25 | Trazas de la serie pintadas sobre la tabla de «A quién hay que agendar» | `AulasSerieDeRendimiento.tsx` | **cerrado** — medido en el DOM (2.628 px fuera), se dibuja lo que cabe y se declara lo que no, bitácora 41 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
