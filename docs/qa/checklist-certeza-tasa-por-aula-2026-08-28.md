@@ -846,6 +846,11 @@ calibración embebida.
 
 ## Por qué la embebida difiere de la base que dice usar
 
+> **CORREGIDO tras la réplica de la sesión par.** Lo de abajo atribuía el 6 %
+> entero al desalineamiento de bins. Medido, ese mecanismo explica **0,8 de los
+> 6,4 puntos**. La procedencia real está más abajo, en «Lo que sí explica la
+> diferencia».
+
 Las dos declaran la misma fuente —las 194 aulas aplicadas de 2025— y dan números
 distintos. La causa está escrita en el propio encabezado del motor
 (`calc_muestra_aulas_efectividad.R:13`):
@@ -887,3 +892,75 @@ aulas—: **los dos métodos, calibración y simulación, señalan la misma facu
 2. **La estratificación de la certeza**, porque sin ella no se puede decidir la
    tasa.
 3. **La tasa** (uso 1). El uso 3 —sexo— es independiente de los tres.
+
+## Lo que sí explica la diferencia (2026-08-28, corrigiendo lo anterior)
+
+Mi atribución al desalineamiento de bins estaba sobredimensionada. La sesión par
+la midió sobre los 174 titulares, comparando binar por matriculados contra binar
+por elegibles:
+
+    aulas que cambian de tramo     11 de 174  (6 %)
+    reciben una tasa MAYOR         11
+    reciben una tasa MENOR          0
+    efecto sobre el esperado       +0,8 %
+
+**El signo confirma el mecanismo** —ninguna aula se mueve hacia el lado
+conservador— pero la magnitud es 0,8 de los 6,4 puntos. En el marco 2026 la
+razón elegibles/matriculados tiene mediana 1,000, así que casi ninguna aula cruza
+un corte.
+
+### La procedencia: el archivo se contradice a sí mismo
+
+`calc_muestra_aulas_efectividad.R` dice dos cosas incompatibles sobre de dónde
+salen los cinco valores embebidos:
+
+- **Línea 7**: «Calibración 2025 (base ADR 0060, 230 intentadas / 194 aplicadas),
+  medida el 2026-08-18 […] ≤15: 0.80 · 16–25: 0.69 · 26–35: 0.56 · 36–50: 0.55 ·
+  >50: 0.44».
+- **Línea 85**: «**La calibracion embebida es de otra ola** y su producto no sale
+  de esta descomposicion; inventarle una seria publicar una lectura que nadie
+  midio».
+
+El encabezado los atribuye a la base 2025 del estudio; el bloque de las piernas
+dice que son de otra ola. Las reconstrucciones le dan la razón al segundo.
+
+### Tres pruebas de que no salen de esta base
+
+**1 · Ninguna reagrupación los reproduce** (medición de la sesión par):
+
+| | ≤15 | 16-25 | 26-35 | 36-50 | >50 |
+|---|---:|---:|---:|---:|---:|
+| **embebido** | 0,800 | **0,690** | 0,560 | **0,550** | **0,440** |
+| aplicados (194) | 0,809 | 0,642 | 0,566 | 0,500 | 0,409 |
+| todos los escalones | 0,809 | 0,642 | 0,566 | 0,500 | 0,409 |
+| sin residual negativo | 0,786 | 0,635 | 0,564 | 0,500 | 0,409 |
+| mediana por aula | 0,809 | 0,650 | 0,547 | 0,479 | 0,407 |
+| promedio simple por aula | 0,808 | 0,648 | 0,564 | 0,506 | 0,414 |
+
+Los tramos 1 y 3 caen cerca en todas; **2, 4 y 5 están sistemáticamente más altos
+en lo embebido que en cualquier reconstrucción**, y no es redondeo: 0,6422 no
+redondea a 0,690 ni 0,5005 a 0,550.
+
+**2 · Ni siquiera con cortes libres.** Barrí todos los juegos de cuatro cortes
+entre 10 y 58 elegibles buscando el que más se acerque a los cinco valores
+embebidos sobre las 194 aulas. El mejor —cortes en 15, 20, 38 y 41— da
+`0,8091 · 0,7026 · 0,5715 · 0,5625 · 0,4319`, con un **desvío máximo de 0,0126**.
+Mejor que los cortes oficiales (0,0495), pero sigue sin reproducirlos: **no hay
+binning de esta base que los produzca**.
+
+**3 · La hipótesis de las 230 intentadas queda cerrada.** Sumar las 36 aulas no
+aplicadas metería elegibles con cero efectivas: la razón bajaría de 0,5300 a
+~0,4470. Sólo puede **bajar** el rendimiento, nunca subirlo, y lo embebido está
+por encima.
+
+### Cómo debe quedar dicho
+
+**El efecto está medido y es −6,4 % de optimismo sobre el esperado del estudio.
+La procedencia de los cinco valores embebidos NO está explicada**: no son los de
+su base 2025 y el propio archivo dice que son de otra ola, sin decir cuál. El
+desalineamiento de bins aporta 0,8 puntos; los otros 5,6 no se han explicado.
+
+Eso importa para la decisión: **cambiar los valores embebidos sería reemplazar
+una constante sin procedencia por otra**, mientras que construir el escritor de
+`rendimiento_tramos` deja cada estudio calibrado contra su propio histórico y
+hace la pregunta innecesaria.
