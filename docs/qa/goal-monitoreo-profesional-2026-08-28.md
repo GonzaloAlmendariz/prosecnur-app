@@ -431,6 +431,41 @@ cuela una esquina puesta a ojo.
 **Deuda declarada fuera de scope:** un `<strong>` a 8 px con el texto «Sin act.»
 en `.pulso-context-tab-rail-meta`, del chrome compartido.
 
+#### C1, 2026-08-29 — el inventario de jerga, y sale mejor de lo esperado
+
+Medido sobre el texto VISIBLE de las 17 superficies —entre etiquetas, más
+`title`, `placeholder` y `aria-label`, y con los comentarios excluidos, que es
+donde este loop ya se equivocó dos veces—.
+
+**La jerga dura NO llega a pantalla.** Cero apariciones visibles de **τ, deff,
+p25, π y afijación**. Verificado en crudo, porque un cero es justo lo que un
+detector mal escrito devuelve: las 12 apariciones de τ en el perfil están
+**todas dentro de comentarios**.
+
+Lo que sí se ve, por frecuencia: cuota (30), reserva (30), efectiva (17),
+curso-horario (16), titular (14), brecha (7), elegibles (6), estrato (4),
+umbral (3), ponderación (2), banda (1).
+
+**Y la mayoría no hay que tocarla, que es la otra mitad del veredicto:**
+
+- **Vocabulario del operativo, fijado por el dueño o por ADR**: cuota, reserva,
+  titular, curso-horario, efectiva —ésta definida en el ADR 0082—. Traducirlas
+  sería inventar un segundo idioma para lo que el equipo ya nombra así.
+- **Se auto-glosan en su propia frase**: «la banda, la mitad central de…», «el
+  umbral de asistentes», «había más presentes que elegibles». No necesitan nada.
+
+**Un solo cambio, y donde no había información.** «Estrato» era la única
+palabra técnica sin explicar en ninguna parte: sus VALORES sí se traducen
+—`etiquetaDeEstrato()` convierte «GESTIÓN Y ALTA DIRECCIÓN / F / G3» en algo
+legible— pero la palabra no. El subtítulo del panel decía «N filas», que es lo
+único que la tabla de abajo ya enseña sola; ahora dice qué es un estrato. **No
+se nombran las columnas del corte** porque son configurables por estudio
+(`estratos_selector`) y escribirlas sería falso en cuanto alguien las cambie.
+
+Queda vivo para C2/C3: `ponderación` aparece en dos rótulos de columna
+(«Estado de ponderación», «Advertencia de ponderación») del diccionario, y ahí
+no hay sitio para una glosa sin alargar la cabecera.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
