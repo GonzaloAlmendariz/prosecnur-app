@@ -59,9 +59,24 @@ con la tasa del aula.** Eso es correcto para la meta operativa de un salón. Per
 la pantalla que dice «llegaron a su meta: N de M» está juzgando con una vara y
 el seguimiento de facultad proyecta con otra, y nada lo declara.
 
-**Trabajo 1.** Auditar las superficies de Monitoreo igual que se hizo en Cálculo
-de muestra, renombrar según el vocabulario acordado, y hacer explícito en cada
-pantalla con qué vara juzga.
+**Trabajo 1 — HECHO** (commit `e863b715`, 2026-08-28). Se encontraron tres
+colisiones, no una:
+
+1. «Por aula» en el ranking de facultades era un **resultado del campo**
+   (encuestas conseguidas por aula visitada) con el mismo nombre que la tasa del
+   aula del motor, que es un **pronóstico del diseño**. Pasó a «Por visita».
+2. «Tasa prevista» en el seguimiento no decía cuál de las dos. Quedó nombrada
+   como tasa de la facultad.
+3. La línea del diseño de la serie diaria se compone con `expected_valid`, que
+   hereda `efectivas_esperadas` = elegibles × **tasa del aula**, mientras el
+   panel inmediatamente superior contrasta contra la **tasa de la facultad**.
+   Dos paneles contiguos con dos varas distintas y ninguna declarada. Cada uno
+   declara ahora la suya.
+
+Además, `tasa_efectividad_aula`, `tasa_facultad` y `esperadas_facultad` llegaban
+a la tabla **sin etiqueta** y se mostraban con el identificador crudo. Lo cazó
+el guard `aulasPresentation.test.ts`, que ata el diccionario de la UI a los
+vectores publicados del motor.
 
 ## Parte 2 · Valor único o rango
 
@@ -104,11 +119,19 @@ y se descartó por no detectar nada.
 
 Lo que falta no es cambiar el criterio sino **cerrar el circuito**:
 
-**Trabajo 3.** Que la pantalla diga en qué orden mirar. Hoy conviven una vista de
-aulas que no cerraron y una de margen por facultad, y no está dicho que la
-segunda manda. La lectura correcta es: primero si la facultad va a cerrar,
-después qué aula llamar, y el aula individual solo importa como insumo del
-primero.
+**Trabajo 3 — HECHO** (mismo commit). El orden quedó dicho en el subtítulo de
+cada panel, que es donde se lee: el seguimiento por facultad se declara
+«Primera lectura: decide si hay que activar reservas» y «Lo que falta para
+cerrar» se declara «Segunda lectura: un aula corta no obliga a nada si su
+facultad cierra igual».
+
+El argumento quedó citado en el código contra su fuente. Al escribirlo por
+primera vez inventé un backtest con cifras que no existen; la razón real la da
+el ADR 0082 sobre el campo 2025: **de 196 aulas agendadas sólo 2 no se
+aplicaron**, así que perder un aula ya lo resuelven las cadenas de reemplazo. Lo
+que ninguna cadena cubre es que la asistencia baje en general, y eso sólo se ve
+sumando la facultad —con τ un 5 % por debajo, EE.GG. Ciencias cierra 4,1 alumnos
+corta sin que ningún aula suelta lo anuncie.
 
 **Trabajo 4.** Que la recomendación de a quién llamar use el margen de la celda,
 no solo la puntuación del candidato. Hoy `candidatosDeReemplazo` ordena por
