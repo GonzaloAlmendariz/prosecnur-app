@@ -52,6 +52,8 @@ no a ojo:
 | 26 | La leyenda del acumulado mezcla dos universos: meta 67 y «Hombres 348/1.730» | `AulasSerieDeRendimiento.tsx` | **cerrado** — son las del estudio (1.730+1.761 = 3.491); los chips lo dicen y el pie dejó de prometer líneas que no están, bitácora 43 |
 | 27 | Efectividad: «suponía que respondería el — de los alumnos» y una leyenda que promete una vara ausente | `AulasEfectividadSeguimiento.tsx` | **cerrado** — el guard tenía que ser `isFinite`, no `!= null`, bitácora 44 |
 | 28 | «528 alumnos en riesgo» contra una columna que suma 535 | `AulasEfectividadSeguimiento.tsx` | **cerrado** — los dos eran correctos; se elige la suma de los techos, bitácora 45 |
+| 29 | Decimales en respuestas en el pie del ritmo (sexta vez) | `AulasRitmoDiario.tsx` | **cerrado** — estaba una línea debajo de donde ya se arregló, bitácora 46 |
+| 30 | Tres cifras del «cuánto falta» con tres granos (2.824 / 2.825 / 2.923) y dos metas totales (3.572 / 3.492) | varias superficies | **bloqueado** — decisión tuya, hermano del 24, bitácora 46 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

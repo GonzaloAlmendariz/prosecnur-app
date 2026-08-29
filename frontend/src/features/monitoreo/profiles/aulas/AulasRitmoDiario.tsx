@@ -107,7 +107,14 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
               pueden colgar de un aula —que sobre este corte son cero, porque
               llegan sin identificar su curso-horario—. Una de las dos tenía que
               decir cuál es la suya. */}
-          Faltan <strong>{fmt(falta)}</strong> para la meta total de {fmt(meta)}
+          {/* `fmtCuenta` y NO `fmt`: son RESPUESTAS y aquí salían con decimal
+              —«Faltan 2.824,4 para la meta total de 3.491,4»—. Es exactamente
+              el defecto que el comentario de arriba dice haber cazado ya tres
+              veces, y estaba **una línea más abajo del sitio donde lo
+              arreglaron**: se corrigió la media diaria y no este pie. Hacia
+              arriba en los dos, que es la regla de una meta y de lo que falta
+              para cumplirla: quedarse a 0,4 de una persona es quedarse corto. */}
+          Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(meta)}
           {diasAlRitmo
             ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
             : ""}

@@ -656,3 +656,47 @@ Cinco tests, con el mutante comprobado (volver al crudo deja 1 rojo) y con los
 tres casos que no se ven a ojo: sólo cuentan las facultades en riesgo, un
 excedente no descuenta lo que falta en otra, y un `NaN` colándose habría escrito
 «NaN alumnos en riesgo».
+
+---
+
+## 46 · Decimales en respuestas, sexta vez, una línea debajo de donde ya se arregló
+
+Primera captura de `avance/resumen`. El pie del ritmo decía:
+
+> Faltan **2 824,4** para la meta total de **3 491,4** · 22 días más al ritmo de
+> estos 5
+
+Personas partidas, que es lo que Gonzalo ya corrigió dos veces. Lo demoledor es
+dónde estaba: el comentario de la línea 68 de ese mismo archivo dice
+literalmente «aquí son RESPUESTAS… **tercera vez** que aparece el mismo
+defecto», y arregló la media diaria —`fmtCuenta(media)`— dejando el pie de
+cincuenta líneas más abajo con `fmt`. **Se arregló donde se miró.** Corregido con
+`fmtCuenta`, que redondea hacia arriba: quedarse a 0,4 de una persona es quedarse
+corto.
+
+Barrido del resto del perfil buscando el mismo patrón —`fmt(` sobre campos que
+vienen de una esperanza—: **el único caso real era ése**.
+`AulasHistoriaCadena` imprime `meta.toLocaleString` en crudo tres veces y parecía
+el siguiente, pero `historiaDeCadena.ts:136` ya hace
+`Math.ceil(expected_valid − 1e-9)`, así que ahí la meta ya llega entera. Un
+`toLocaleString` crudo no es un defecto si el productor ya redondeó.
+
+### Lo que destapa, y es decisión suya (ítem 29)
+
+Con el pie ya en enteros, la misma app publica **tres cifras del «cuánto falta»,
+las tres correctas y con tres granos distintos**:
+
+| cifra | dónde | qué suma |
+|---|---|---|
+| **2.824** | banda de KPIs y tabla del cliente | Σ por celda sexo × facultad de `max(0, cuota − observado)` |
+| **2.825** | pie del ritmo, en Resumen | meta total (3.492) − conseguidas (667) |
+| **2.923** | «Cumplimiento en respuestas» | Σ por curso-horario de lo que falta a su meta |
+
+Y dos metas totales conviviendo a dos paneles de distancia: **3.572** («suma de
+metas por curso-horario», rotulada) y **3.492** («la meta total», sin decir su
+grano).
+
+Ninguna está mal. Pero quien mira Resumen y luego Cuotas ve 2.825 y 2.824 y no
+tiene cómo saber que son dos preguntas distintas. Es hermano del ítem 24: hace
+falta decidir **cuál preside** y que las demás digan su grano en el rótulo, como
+ya hace «suma de metas por curso-horario». No lo decido solo.
