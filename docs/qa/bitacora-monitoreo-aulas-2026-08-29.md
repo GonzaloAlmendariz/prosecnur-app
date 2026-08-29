@@ -1093,3 +1093,38 @@ tildes que no distinga las dos cosas corrompe datos de cliente.
 
 Tercer tick seguido en que mirar levanta sospechas y medirlas las descarta. Sin
 cambios de código.
+
+---
+
+## 57 · «Días de campo» eran dos cosas (ítem 38), y los siete paneles de abajo
+
+Bajé por fin al pliegue de `avance/rendimiento` —los siete paneles que llevaban
+todo el loop sin mirarse—. `geometryIssues=0` en los doce grupos.
+
+**Cinco están sanos y cuadran entre sí**: «Qué está rindiendo más» (2 aulas · 54
+encuestas en ARQUITECTURA), «Quién consigue más» (Rojas 29 + Perez 25 = 54),
+«Franja horaria» (29 + 25 = 54) y «Día de la semana» (Martes, 54) cuentan lo
+mismo por cuatro cortes distintos y suman igual. «Cuándo se termina de aplicar el
+plan» y «Consumo de la reserva» declaran su vacío con su causa —«hacen falta al
+menos tres días de campo para proyectar» y «ningún curso-horario ha sido
+reemplazado todavía»—.
+
+**Y el sexto destapó una palabra con dos significados.**
+
+| panel | dice | cuenta |
+|---|---|---|
+| Resumen › Ritmo | «667 respuestas en **5 días de campo**» | días con RESPUESTAS en plataforma (1/9–5/9) |
+| Rendimiento › Encuestas por día | «**2 días de campo**, de 01/09 a 02/09» | días con PARTE de campo |
+
+Los dos cálculos son correctos —uno sale de `ritmo.dias_con_campo` del motor y
+el otro de `fechas.length` sobre los partes— y son **dos ejes**, justo la
+distinción plataforma/parte que Gonzalo lleva repitiendo. Lo que no puede ser es
+que compartan las mismas tres palabras a dos pestañas de distancia.
+
+Ahora dicen «**5 días de recolección**» y «**2 días con parte de campo**».
+Verificado en pantalla, los dos. No se toca ningún cálculo: era el rótulo.
+
+Es la misma familia que el «Aplicada 0 / APLICADAS 48» del ítem 32 y que las dos
+lecturas de «meta»: **la app tiene dos ejes reales —lo que declara el campo y lo
+que llega a la plataforma— y cada vez que un rótulo no dice cuál de los dos es,
+las cifras se leen como una contradicción.**
