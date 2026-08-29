@@ -37,32 +37,6 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   "effective_surveys", "application_status", "application_date", "field_notes"
 )
 
-#' Los campos que EL EQUIPO edita: el subconjunto que el disco puede pisar al
-#' REGENERAR.
-#'
-#' `AULAS_LIBRO_CAMPOS_PROPIOS` es la lista para IMPORTAR, y ahi el libro manda
-#' en los tres grupos —identidad, ciclo de contacto y parte— porque importar es
-#' traer la realidad de campo a la app.
-#'
-#' Regenerar es la direccion contraria y la identidad no se negocia: el repo ya
-#' lo fijo en «la identidad del aula la manda el PLAN, no el registro»
-#' (`test-carga-aulas-libro-roundtrip.R`), y el dueno lo dijo con los mismos
-#' terminos: el Excel da informacion sobre **la agendacion y el registro de
-#' campo**, no sobre quien es el docente ni cuantos elegibles tiene el aula.
-#'
-#' Sin esta separacion, un docente corregido en el plan no llegaba nunca al
-#' libro: el valor viejo del disco ganaba por estar en la lista de importacion.
-#' @export
-AULAS_LIBRO_CAMPOS_DEL_EQUIPO <- c(
-  # Estado y ciclo de contacto
-  "sample_status", "contact_medium", "contact_date", "contact_attempts",
-  "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
-  "replacement_note", "notes",
-  # Parte de campo
-  "actual_room", "attendees", "refusals", "duplicates", "applied_surveys",
-  "effective_surveys", "application_status", "application_date", "field_notes"
-)
-
 #' Fusiona las filas del libro sobre el plan existente.
 #'
 #' El libro manda en lo que el libro sabe —estado, ciclo de contacto,

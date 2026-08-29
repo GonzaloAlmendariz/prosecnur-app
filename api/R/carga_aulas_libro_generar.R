@@ -533,29 +533,6 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   }, unidades %||% list())
 }
 
-#' Lee el libro que ya esta en `path`, si lo hay, para no pisar lo editado.
-#'
-#' Degrada a vacio ante cualquier problema de lectura —archivo a medio escribir,
-#' hoja renombrada, xlsx de otra herramienta—: preservar es un extra sobre
-#' generar, y un libro ilegible no puede impedir que se genere uno nuevo. Lo que
-#' no se pudo leer se comporta como el estado anterior, que era pisar.
-.calg_del_disco <- function(path) {
-  vacio <- list(plan = list(), partes = list())
-  if (!length(path) || !nzchar(path[1]) || !file.exists(path[1])) return(vacio)
-  leido <- tryCatch(aulas_libro_importar(path[1]), error = function(e) NULL)
-  if (!is.list(leido)) return(vacio)
-  # Del disco solo viajan los campos QUE EL EQUIPO EDITA, mas las claves con
-  # las que la fusion empareja. La identidad —docente, curso, facultad,
-  # elegibles— la manda el plan, y sin este recorte un docente corregido en el
-  # plan no llegaba nunca al libro porque el valor viejo del disco ganaba.
-  claves <- c("operational_code", "classroom_id", "collection_unit_id")
-  plan <- lapply(leido$plan %||% list(), function(fila) {
-    if (!is.list(fila)) return(NULL)
-    fila[intersect(names(fila), c(claves, AULAS_LIBRO_CAMPOS_DEL_EQUIPO))]
-  })
-  list(plan = Filter(function(x) length(x) > 0, plan),
-       partes = leido$partes %||% list())
-}
 
 #' Genera el libro operativo completo del estudio.
 #'
@@ -579,29 +556,24 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "El plan solo trae banco de extras sin usar: no hay aulas agendadas que llevar al libro.")
   }
-  # LO QUE EL EQUIPO EDITO EN EL ARCHIVO MANDA (ADR pendiente; Gonzalo,
-  # 2026-08-28: «la aplicacion lee los primeros dos y genera el tercero SIN
-  # REESCRIBIR LAS PRIMERAS DOS, que son las que constantemente estan
-  # editandose»).
+  # EL LIBRO NO PRESERVA LO QUE HAYA EN `path`, Y ES DELIBERADO.
   #
-  # Medido antes de esto: generar, editar a mano la fecha de agendamiento y los
-  # intentos de contacto, y regenerar SIN importar devolvia la hoja al estado
-  # del plan —fecha vacia, intentos de 77 a 2— sin error y sin aviso. El camino
-  # seguro (importar y luego regenerar) existia y funcionaba, pero nada imponia
-  # ese orden ni detectaba que el archivo era mas nuevo que el ultimo import.
+  # Se implemento la preservacion el 2026-08-28 y se retiro el 2026-08-29 al
+  # medir el flujo real: el unico sitio que genera escribe SIEMPRE en una ruta
+  # nueva —`uuid::UUIDgenerate()` en `router_monitoreo.R`— y el front descarga
+  # por enlace efimero porque, en sus palabras, «no hay donde guardar un Excel
+  # operativo dentro del proyecto, y sacarlo es justo el punto». El archivo que
+  # el equipo edita vive en SU disco y la app no lo toca nunca.
   #
-  # No se inventa una fusion: se reusa `aulas_libro_fusionar_plan()`, la misma
-  # que el importador ya aplica, con su lista declarada de campos que el libro
-  # POSEE. Esa proteccion por declaracion es la que impide que un cero de
-  # plantilla borre un dato del plan.
+  # Preservar era, por tanto, codigo que no corre. Peor: sus tests se leian como
+  # la garantia de que regenerar conserva lo editado, que es falsa. Cobertura
+  # que parece cubrir es el defecto que este modulo ya pago dos veces.
   #
-  # `control` NO se relee: la Base de control es SALIDA y no la edita nadie
-  # (regla del dueno, 2026-08-24). Volver a leerla la convertiria en entrada.
-  del_disco <- .calg_del_disco(path)
-  if (length(del_disco$plan)) {
-    unidades <- aulas_libro_fusionar_plan(unidades, del_disco$plan)$plan
-  }
-  if (length(del_disco$partes)) partes <- del_disco$partes
+  # El ciclo real es subir -> importar -> generar nuevo, y lo que conserva el
+  # trabajo del equipo es el ESTADO DE SESION que el router arrastra (`partes`,
+  # `control`), no el archivo. El riesgo que queda no es destruccion sino
+  # DIVERGENCIA entre dos copias, y eso se ataca declarando la procedencia
+  # dentro del libro.
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
