@@ -222,7 +222,94 @@ simplemente es más grande que el promedio de su facultad.
 Los nombres viejos, `tau` y `efectividad estimada del aula`, se retiran: se
 leen como sinónimos y no lo son.
 
-## 8. Lo que queda abierto
+## 8. Para dimensionar la muestra, las dos dan lo mismo
+
+La pregunta se midió de verdad: cuántas aulas certifica cada facultad con una
+vara y con la otra, sobre las quince, con sorteos pareados de mil corridas y
+con la estratificación del diseño.
+
+**Catorce de las quince facultades dan el mismo número.** Solo Arte y Diseño
+difiere, y por una. Y en el total, que el diseño calcula como
+`max(fórmula, certeza)` facultad por facultad:
+
+```
+Σ max(fórmula, certeza) con la tasa de la facultad   172
+Σ max(fórmula, certeza) con la tasa del aula         172
+```
+
+Exactamente el mismo número. **La elección de vara no mueve el
+dimensionamiento**, y eso cierra el argumento que quedaba: no se puede
+defender la tasa del aula diciendo que dimensiona mejor, porque no lo hace.
+
+Dos cosas del método conviene tenerlas presentes al leer esa tabla. **La suma
+de la columna de certeza no es un total de diseño**: el diseño toma el máximo
+entre fórmula y certeza en cada facultad y después suma, así que las bajas de
+la certeza quedan absorbidas por la fórmula y solo pasan las subidas. Y **la
+convención de traslape vale cinco aulas en el total** (177 contra 172), más que
+la elección de vara.
+
+## 9. Lo que sí mueve el dimensionamiento es otra cosa
+
+La simulación de certeza reescribe `rows$stratum` con la facultad antes de
+sortear, y el motor sortea por `stratum`. Como el diseño declara
+`strata_cols = faculty, sex_top_1, size_group`, la simulación **pierde dos de
+los tres ejes, incluido el de tamaño**, y deja al muestreo proporcional
+concentrarse en aulas grandes, que es justo lo que la estratificación por
+tamaño le prohíbe.
+
+Medido sobre Estudios Generales Letras con sus veinte aulas:
+
+```
+simulador colapsado, el que corre    media 416,0    P(cumple) 0,988
+simulador estratificado, el diseño   media 369,5    P(cumple) 0,000
+la selección REAL de esas 20 aulas   378,6
+```
+
+El que reproduce la realidad es el que la certeza no corre.
+
+Corregida la estratificación, **dos facultades quedan cortas por una aula con
+cualquiera de las dos varas**: Estudios Generales Ciencias necesitaría 23 en
+vez de 22, y Estudios Generales Letras 21 en vez de 20. Tres bajan una
+(Contables, Letras y Ciencias Humanas, Psicología), pero **las subidas no se
+pagan con las bajas**: la cuota es por facultad y no se compensa entre ellas.
+
+No es casualidad que sean las dos de Estudios Generales. Son las de tasa más
+baja (0,409 y 0,419) y las de aulas más grandes, o sea las que el simulador
+colapsado más favorecía.
+
+## 10. Para elegir entre sorteos, tampoco cambia el ganador
+
+El barrido que eligió la semilla 202 entre cincuenta candidatas calculaba su
+criterio, la cobertura mínima entre las 30 celdas de sexo, con la tasa de la
+facultad. Se rehizo con las dos varas, corriendo el pipeline completo sobre las
+cincuenta semillas.
+
+```
+la 202 queda primera con la tasa de la facultad     min 1,0741
+la 202 queda primera con la tasa del aula           min 1,1053
+correlación de orden entre ambos rankings           0,906
+```
+
+**La decisión que salió a campo era robusta a la vara.** Pero el ordenamiento
+sí se mueve: la 4444, que quedaba cuarta, cae al puesto once. Si la 202 no
+hubiera estado en el juego, la ganadora habría dependido de con qué vara se
+midió.
+
+Y lo que más cambia no es el podio sino el filtro: **treinta candidatas cierran
+las 30 celdas con la vara vieja y treinta y ocho con la nueva.** Ocho
+selecciones válidas que el criterio descartaba.
+
+El argumento de magnitud lo cierra: el desplazamiento entre varas tiene una
+desviación de 0,0201 mientras el barrido separaba a la 4444 de la 202 por
+0,0027. **El criterio discriminaba en milésimas y las varas difieren en
+centésimas.**
+
+Una salvedad que hay que declarar: esta reejecución **no reproduce los niveles
+absolutos del barrido original** y la causa no está identificada. La comparación
+entre varas dentro de una misma definición se sostiene; las cifras absolutas de
+cobertura mínima no deben citarse hasta cuadrar esa diferencia.
+
+## 11. Lo que queda abierto
 
 Tres cosas, ninguna urgente para el operativo en curso, todas registradas en
 `auditoria-motor-aulas-2026-08-28.md`:
