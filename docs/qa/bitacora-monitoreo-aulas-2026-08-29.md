@@ -507,3 +507,48 @@ el pintado y no el bbox — ahí la única prueba es la captura.
 **Y el runner sigue sin verlo**: `derrames=0 solapes=0 desbordes=0 issues=0` en
 las cuatro corridas, antes y después. Ninguna cláusula del contrato comprueba que
 un trazo se quede dentro de su caja. Sigue siendo el ítem 16.
+
+---
+
+## 42 · El mismo defecto en el SVG de al lado, y uno nuevo en su leyenda
+
+Antes de capturar otra pestaña miré si el arreglo del 41 estaba completo. **No lo
+estaba**: `AulasSerieDeRendimiento` tiene DOS svg y sólo recorté el del acumulado.
+El segundo —el diario— comparte `overflow: visible` y tiene su propio agujero de
+escala: `valores` (línea ~266) no incluye **el borde alto de la banda de
+credibilidad**, que sí se dibuja (~1249). El comentario de esas mismas líneas
+cuenta que esto ya pasó una vez ahí con las barras: «un elemento que no cabe en
+su eje no es un elemento mal pintado: es un eje mal calculado». Tercera vez.
+
+Aquí la banda **sí** es del orden de la serie, así que se arregla el eje —entra
+en el máximo— en vez de declararla fuera. `esperadoDelEstudio` se calcula
+DESPUÉS del techo y no se puede incluir sin reordenar; para eso queda el
+`<clipPath>`.
+
+Con `id` propio y no el del acumulado: los `id` de SVG son del documento entero,
+así que apuntar al del otro gráfico funciona… hasta que el acumulado no se
+renderiza. Y una referencia de `clip-path` que no resuelve **no deja el elemento
+sin recortar: lo deja sin dibujar**.
+
+### Lo nuevo, y hay que medirlo antes de tocarlo (ítem 26)
+
+En la captura `…T18-24-04-172Z`, con el gráfico ya entero y la tabla limpia:
+
+- el eje del acumulado va de **0 a 200**, la serie verde llega a **~54** y la
+  línea de meta está en **67**;
+- el pie dice «54 de 67 encuestas que el plan espera de las aulas visitadas · con
+  lo agendado se llegaría a 162»;
+- y los chips de sexo de la MISMA leyenda dicen **«Hombres 348/1.730»** y
+  **«Mujeres 319/1.761»**.
+
+348 y 1.730 no pueden ser del mismo universo que un gráfico cuyo eje acaba en 200
+y cuya meta es 67. **El chip verde habla de las aulas visitadas y los de sexo
+parecen hablar del estudio entero**, en la misma línea y sin distinguirlo. Es el
+patrón de una palabra para dos cosas, dentro de una sola leyenda.
+
+Y tiene un efecto sobre lo que acabo de escribir: las declaraciones «la cuota de
+hombres (1.730) no cabe en la escala de este gráfico» son literalmente ciertas
+pero **engañosas** si ese número no es del universo del gráfico. Lo correcto no
+sería declararlo fuera de escala, sino no ponerlo ahí. **No se toca hasta
+medirlo**: de dónde sale `cuotasVisibles[].meta` y contra qué denominador, y si
+`se.conseguidas` cuenta lo mismo que la serie verde.

@@ -272,6 +272,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // se veía cortado contra el borde del panel. Un elemento que no cabe en su
     // eje no es un elemento mal pintado: es un eje mal calculado.
     ...(elegida ? f.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)) : []),
+    // **Y el borde ALTO de la banda de credibilidad**, que también se dibuja
+    // (línea ~1249) y no estaba aquí. Es el mismo defecto que el comentario de
+    // arriba cuenta de las barras y el que se acaba de reparar en el gráfico de
+    // acumulado: un elemento que no cabe en su eje es un eje mal calculado. La
+    // banda es del mismo orden que la serie, así que incluirla no aplasta nada.
+    ...f.dias.map((d) => d.esperadoBanda?.alto ?? 0),
   ]);
   const techosDeAgenda = proyectada
     ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
@@ -1163,11 +1169,28 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {escalones.map((m) => <li key={m}><span>{fmt(m)}</span><i /></li>)}
         </ul>
         <div className="aulas-serie-lienzo">
-          <svg className="aulas-serie-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
+          <svg className="aulas-serie-grafico es-diario" viewBox="0 0 100 100" preserveAspectRatio="none"
             role="img"
             aria-label={elegida
               ? `Rendimiento diario de ${elegida.facultad}; esperado ${elegida.esperadoFinal} encuestas por aula`
               : `Rendimiento diario de ${fmt(facultades.length)} facultades; media del estudio ${mediaDelEstudio}`}>
+            {/* La misma garantía que en el acumulado, y por el mismo motivo:
+                `overflow: visible` deja pintar sin tope, y aquí `esperadoDelEstudio`
+                se calcula DESPUÉS del techo del eje —no se puede incluir sin
+                reordenar— así que el recorte es lo que impide que un día
+                proyectado alto se vaya sobre el panel de arriba.
+
+                Con `id` PROPIO y no el del acumulado: los `id` de SVG son del
+                documento entero, así que apuntar al del otro gráfico parece que
+                funciona… hasta que el acumulado no se renderiza. Una referencia
+                de `clip-path` que no resuelve no deja el elemento sin recortar:
+                lo deja SIN DIBUJAR. */}
+            <defs>
+              <clipPath id="aulas-serie-caja-diario">
+                <rect x="-2" y="-2" width="104" height="104" />
+              </clipPath>
+            </defs>
+            <g clipPath="url(#aulas-serie-caja-diario)">
             {/* LA ZONA DE LO AGENDADO, debajo de todo. Ver el comentario del
                 acumulado: la raya sola no separaba nada porque iba del color de
                 la rejilla. */}
@@ -1367,6 +1390,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 fill="none" stroke={COLOR_RESULTADO.parcial} strokeWidth="2.5"
                 strokeDasharray="6 4" vectorEffect="non-scaling-stroke" />
             ) : null}
+            </g>
           </svg>
             {porVenir.length ? (
               <>
