@@ -355,6 +355,39 @@ sí se mueve: la 4444, que quedaba cuarta, cae al puesto once. Si la 202 no
 hubiera estado en el juego, la ganadora habría dependido de con qué vara se
 midió.
 
+**Y no era robusta a la cuota.** Al rastrear por qué la reejecución no
+reproducía los niveles del barrido original apareció que hay **dos juegos de
+cuotas por sexo circulando**, construidos con mecanismos distintos:
+
+```
+por resta        mujeres = redondeo(cuota × proporción del marco)
+                 hombres = cuota − mujeres
+                 EE.GG. Letras 241 y 156, Psicología 58 y 17
+
+independiente    cada sexo se redondea por separado
+                 EE.GG. Letras hombres 157, Psicología hombres 18
+```
+
+El primero garantiza que mujeres más hombres den la cuota de la facultad, y lo
+cumple en las quince. El segundo no.
+
+Un uno de diferencia parece nada y decide el barrido, porque **cambia qué celda
+manda**. Con el reparto por resta, el mínimo de la semilla 4444 lo fija
+Estudios Generales Letras hombres y da 1,0837; con el independiente lo fija
+Psicología hombres y cae a 1,0516. **Con un juego gana la 4444 y con el otro
+gana la 202.**
+
+La razón es la resolución: **Psicología hombres tiene cuota de 18, así que una
+unidad vale un 5,6 % de su cobertura**, mientras que en Estudios Generales
+Letras hombres vale un 0,6 %. El criterio del barrido discriminaba entre
+candidatas en milésimas y una unidad de cuota en una celda chica vale decenas
+de milésimas.
+
+De ahí se sigue una recomendación concreta: **al criterio del barrido hay que
+fijarle la procedencia de la cuota por celda igual que la de la tasa.** Sin eso
+declarado, dos barridos del mismo estudio eligen semillas distintas sin que
+ninguno esté mal.
+
 Y lo que más cambia no es el podio sino el filtro: **treinta candidatas cierran
 las 30 celdas con la vara vieja y treinta y ocho con la nueva.** Ocho
 selecciones válidas que el criterio descartaba.
