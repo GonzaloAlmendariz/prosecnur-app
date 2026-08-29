@@ -133,7 +133,13 @@ export function AulasSeccionFuentes({
                 hasta cuatro condiciones, y se cumplen todas
               </span>
             </div>
-            {criterioDeEfectiva}
+            {/* El contenedor de datos del panel, declarado: sin `member` el
+                runner cae a los hijos directos del `section` y mide el
+                encabezado como si lo fuera —`capacity-drift` con 5 px, séptima
+                vez del mismo patrón—. */}
+            <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+              {criterioDeEfectiva}
+            </div>
             {/* **El umbral de duración también se declara aquí, al principio.**
                 Gonzalo: «el umbral es menos de 5 minutos, configurable a 8 u
                 otros números, pero **lo ideal es definirlos al principio**».
