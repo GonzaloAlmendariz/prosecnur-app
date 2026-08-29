@@ -627,3 +627,32 @@ facultades» y la columna «Alumnos» de esas doce filas suma **535** leyendo la
 captura (157+98+60+19+17+13+3+1+59+58+48+2). Puede ser redondeo por fila contra
 un total sin redondear, o puede ser otro denominador. **No se toca hasta
 medirlo**, que hoy tres diagnósticos deducidos salieron falsos.
+
+---
+
+## 45 · 528 contra 535: los dos eran correctos y por eso había que elegir (ítem 28)
+
+Medido, y no era un error de nadie. El motor
+(`monitoreo_aulas_efectividad_seguimiento.R:562`) suma los déficits **crudos** de
+las facultades en riesgo —ya sin compensar entre ellas, ADR 0079— y el frontend
+lo redondeaba al entero más cercano: **528**. Cada fila, en cambio, redondea su
+faltante **hacia arriba en magnitud** a propósito, y el comentario que lo
+justifica es explícito: «decir que faltan 22 cuando faltan 22,4 es prometer que
+se cierra con menos de lo que hace falta, que es el error caro en una pantalla
+que decide si se activan reservas». Doce filas redondeando hacia arriba explican
+los siete de diferencia: la columna sumaba **535**.
+
+Los dos números eran correctos bajo su propia regla, y justo por eso el lector
+que suma la columna encuentra un hueco y desconfía de las dos cifras.
+
+**Se elige el 535**, y el argumento es el mismo que ya justifica el redondeo por
+fila: como cada facultad hay que cubrirla por separado, lo que de verdad hace
+falta es la suma de los techos y no el techo de la suma. Se calcula sobre las
+MISMAS filas que se pintan —`alumnosQueFaltanEnTotal()`—, así que no es una
+segunda lectura del dato: es la única, con su regla de presentación aplicada una
+sola vez. Verificado en pantalla: la cabecera dice 535 y la columna suma 535.
+
+Cinco tests, con el mutante comprobado (volver al crudo deja 1 rojo) y con los
+tres casos que no se ven a ojo: sólo cuentan las facultades en riesgo, un
+excedente no descuenta lo que falta en otra, y un `NaN` colándose habría escrito
+«NaN alumnos en riesgo».
