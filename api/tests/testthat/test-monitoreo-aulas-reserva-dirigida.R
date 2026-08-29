@@ -55,10 +55,19 @@ test_that("descuenta a los alumnos ya medidos en otra aula", {
 
   # Y con la mitad medidas, aporta la mitad: el descuento es proporcional, no
   # un todo o nada.
+  #
+  # «La mitad» con MEDIA persona de tolerancia, no exacta: desde que el aporte
+  # se publica en personas enteras —un aula no aporta 6,1 alumnos—, partir por
+  # dos y truncar no da lo mismo que truncar y partir por dos. La propiedad que
+  # importa —proporcional y no todo-o-nada— se conserva; la igualdad exacta era
+  # un artefacto de publicar decimales.
   mitad <- monitoreo_aulas_reserva_dirigida(pool, "DERECHO", "F",
                                             ya_medidos = c("s1", "s2"))
   expect_equal(mitad[[1]]$solape_estimado, 2)
-  expect_equal(mitad[[1]]$aporte_esperado, limpio[[1]]$aporte_esperado / 2)
+  expect_equal(mitad[[1]]$aporte_esperado, limpio[[1]]$aporte_esperado / 2, tolerance = 0.5)
+  expect_true(mitad[[1]]$aporte_esperado < limpio[[1]]$aporte_esperado)
+  # Y sigue siendo una persona entera.
+  expect_equal(mitad[[1]]$aporte_esperado, floor(mitad[[1]]$aporte_esperado))
 })
 
 test_that("declara si el solape se pudo medir, en vez de suponer que no hay", {

@@ -83,6 +83,29 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
 #' @param tope cuántos candidatos devolver.
 #' @return lista ordenada por aporte esperado a ESA celda.
 #' @export
+#' Personas, no decimales.
+#'
+#' Gonzalo, viendo la pantalla: «a veces veo que te refieres a los alumnos como
+#' si fueran numeros decimales, como te falta por aplicar un aula y esta aporta
+#' seis punto uno, como si hubiera un decimo de alumno en esa aula. Eso esta
+#' mal.» Tiene razon y el defecto era de esta capa: el aporte de un aula es una
+#' esperanza, pero lo que un aula entrega son personas enteras y asi es como se
+#' lee la frase.
+#'
+#' **Hacia abajo y no al mas cercano.** Es lo que un aula va a APORTAR, no lo
+#' que hay que alcanzar: prometer 17 cuando se esperan 16,6 es prometer de mas,
+#' y en una decision de a que aula ir eso se paga. `fmtCuenta()` del frontend
+#' redondea hacia arriba por el motivo contrario —una meta que hay que
+#' cumplir— y las dos reglas son correctas en su sitio.
+#'
+#' La DECISION (`alcanza`) sigue calculandose sobre el valor exacto: redondear
+#' antes de comparar movería el veredicto por una decima.
+#' @keywords internal
+.mard_personas <- function(x) {
+  v <- suppressWarnings(as.numeric(x))
+  ifelse(is.finite(v), floor(v + 1e-9), NA_real_)
+}
+
 monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo = "F",
                                              tasa_aula = NULL, ya_medidos = character(0),
                                              tope = 5L) {
@@ -106,18 +129,18 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
       classroom_id = .monitoreo_scalar(a$classroom_id %||% a$operational_code %||% "", ""),
       faculty = .monitoreo_scalar(a$faculty %||% "", ""),
       sexo = sexo,
-      elegibles_del_sexo = round(ap$elegibles, 1),
-      solape_estimado = round(ap$solape, 1),
+      elegibles_del_sexo = .mard_personas(ap$elegibles),
+      solape_estimado = .mard_personas(ap$solape),
       # El aporte que cierra la celda: alumnos de ESA facultad y ESE sexo, netos
       # de lo ya medido, por la tasa de efectividad del aula.
-      aporte_esperado = round(ap$netos * tasa, 1),
+      aporte_esperado = .mard_personas(ap$netos * tasa),
       tasa_efectividad = round(tasa, 3),
       solape_medible = nzchar(.monitoreo_scalar(a$unique_student_ids %||% "", "")),
       # **La marca, sin la cual esto no se puede usar.** Sirve para correr la
       # estimacion con y sin estas encuestas: un peso no permite comprobarlo.
       origen_dirigido = TRUE,
       motivo = sprintf("Aporta %s de %s a la cuota de %s de %s",
-                       round(ap$netos * tasa, 1), round(ap$elegibles, 1),
+                       .mard_personas(ap$netos * tasa), .mard_personas(ap$elegibles),
                        if (identical(sexo, "F")) "mujeres" else "hombres",
                        .monitoreo_scalar(a$faculty %||% "", ""))
     )
@@ -170,7 +193,7 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
       sex = .monitoreo_scalar(c1$sex %||% "", ""),
       brecha = brecha,
       candidatos = cand,
-      aporte_de_los_candidatos = round(aporte, 1),
+      aporte_de_los_candidatos = .mard_personas(aporte),
       # **Si el banco alcanza o no.** Es la frase que decide, y por eso dice las
       # dos cifras: un «hay 5 candidatos» no responde si con esos 5 se cierra.
       alcanza = length(cand) > 0 && aporte >= brecha,
@@ -179,11 +202,11 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
         else if (aporte >= brecha)
           sprintf("Con %d aula%s del banco se cierra: aportan %s y faltan %d",
                   length(cand), if (length(cand) == 1L) "" else "s",
-                  round(aporte, 1), brecha)
+                  .mard_personas(aporte), brecha)
         else
           sprintf("El banco no alcanza: sus %d aula%s aportan %s y faltan %d",
                   length(cand), if (length(cand) == 1L) "" else "s",
-                  round(aporte, 1), brecha)
+                  .mard_personas(aporte), brecha)
     )
   })
   out
