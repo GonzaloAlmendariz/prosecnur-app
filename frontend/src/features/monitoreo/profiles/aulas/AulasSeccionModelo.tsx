@@ -1,0 +1,280 @@
+import type { ReactNode } from "react";
+
+import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
+import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
+import { AulasColaDeContacto } from "./AulasColaDeContacto";
+import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
+import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
+import { agendamiento } from "./agendamiento";
+import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
+import { fmt } from "./kpisDeAulas";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
+import type { TablaDelPerfil } from "./tablaDelPerfil";
+import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+
+/**
+ * La sección «Modelo» del perfil de aulas: preparación, contacto, por facultad
+ * y agenda.
+ *
+ * **Por qué esta sale por SECCIÓN y las otras salieron por pestaña.** Las cinco
+ * anteriores eran bloques `pestana !== "…"` independientes. Aquí no: las tres
+ * pestañas —`carga`, `contacto`, `facultad`— comparten una cabecera y conviven
+ * con dos paneles de cajón de sastre cuya condición es
+ * `pestana === "agenda" || (pestana !== "facultad" && … && …)`. Esa condición
+ * NO es de las tres pestañas: las EXCLUYE. Partirla por pestaña habría roto el
+ * reparto, que es el mismo tropiezo que su propio comentario documenta al
+ * contar por qué el reparto se escribe en positivo desde que son tres.
+ *
+ * `renderAulasView` reparte por sección —fuentes, modelo, calidad, consultas— y
+ * ésa es la unidad natural del corte.
+ */
+export function AulasSeccionModelo({
+  dashboard, pestana, facultadEnFoco, onFoco, tabla, traza, agendaRows, agendaReservas,
+}: {
+  dashboard: MonitoreoAulasDashboard;
+  pestana: string;
+  facultadEnFoco: string | undefined;
+  onFoco: (foco: FocoDeCuota) => void;
+  tabla: TablaDelPerfil;
+  /** El panel de traza del handoff, que sigue viviendo en el page-file. */
+  traza: ReactNode;
+  agendaRows: (dashboard: MonitoreoAulasDashboard | null) => Array<Record<string, unknown>>;
+  agendaReservas: (dashboard: MonitoreoAulasDashboard | null) => number;
+}): ReactNode {
+  const Tabla = tabla;
+  return (
+      // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
+      // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
+      // ya no compite es la tabla contra el registro.
+      // El reparto es POSITIVO —«¿es esta pestaña?»— desde que son tres. Con dos
+      // bastaba negar la otra; al llegar la tercera, «no es registro» incluye
+      // «por facultad» y la agenda se pintaba también ahí. Es literalmente el
+      // mismo tropiezo que ya costó el reparto de Consultas al llegar su cuarta
+      // pestaña, y por eso acá se escribe positivo desde el principio.
+      <div className={`mon-profile-stack aulas-agenda-stack${
+        pestana === "facultad" ? " is-ruta" : ""}`}>
+        {/* La preparación NO entra en «Por facultad». A 1366x768 la sección
+            entera dispone de 367 px y ese panel se lleva 158: a la ruta le
+            quedaban 198, o sea una ventana de 104 px para 5 538 de contenido
+            —el «scroll interno muy agresivo» que ya costó una queja en la
+            agenda—. Sin él, la ruta se queda con los 367. No se pierde nada:
+            el mismo panel está en las otras dos pestañas de la sección, a un
+            click. */}
+        {/* La preparación NO entra en «Por facultad» ni en «Contacto». En las
+            dos la sección dispone de 367 px a 1366x768 y ese panel se lleva
+            159: en la ruta dejaba la lista en 104 px y en Contacto ahogaba el
+            bloque de medios. Y en ninguna de las dos aporta —una dice a dónde
+            ir y la otra a quién llamar—; el mismo panel sigue en la pestaña
+            Agenda, a un click. */}
+        {pestana === "facultad" || pestana === "contacto" || pestana === "carga"
+          ? null
+          : traza}
+        {pestana === "carga" ? (
+          <section
+            className="mon-profile-panel"
+            // Sección única en su pestaña: no compite en alto con ninguna
+            // hermana, así que su geometría es intrínseca (C1).
+            data-qa-geometry-group="aulas-carga-panel"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <AulasCargaDeCampo
+              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              onExportar={(opciones) =>
+                descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
+              }
+            />
+          </section>
+        ) : null}
+        {pestana === "contacto" ? (
+        <section
+          // Clase propia: el stack de Agenda reparte el alto entre DOS filas con
+          // `height: 100%`, y esta pestaña mete dos paneles en uno. Sin ella, a
+          // 1024x600 la seccion quedaba en 54 px, el bloque de medios en CERO y
+          // 421 px de contenido desbordaban SIN NINGUN dueño de scroll —medido—.
+          // El gate no lo vio: da ok=true porque no hay grupo declarado que se
+          // viole ni dueño que auditar. Un contenido que desborda sin dueño es
+          // invisible para el.
+          className="mon-profile-panel aulas-contacto-panel"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* El título cubre las DOS cosas que hay dentro. Decía «Qué medio
+                agenda mejor», que es sólo la primera: quien buscara «a quién
+                llamo hoy» no lo encontraba ahí, y la superficie no declaraba lo
+                que contiene (C1). Cada bloque lleva ahora su propio rótulo. */}
+            <h3>Cómo se consigue la cita</h3>
+            <span>el medio y la cola de contacto</span>
+          </div>
+          {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la
+              pantalla tiene que tener un solo recorrido. */}
+          <div className="aulas-contacto-cuerpo">
+            <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+            {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
+                por eso comparten pestaña; el medio dice con qué y la cola con
+                quién. */}
+            <AulasColaDeContacto
+              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              facultadEnFoco={facultadEnFoco}
+              onFoco={onFoco}
+            />
+          </div>
+        </section>
+        ) : null}
+        {pestana === "facultad" ? (
+        <section
+          // `mon-profile-panel` a secas y NO `aulas-agenda-panel`: aquella clase
+          // tiene su grid afinado a TRES hijos —cabecera, banda de días y
+          // tabla— y este panel tiene dos. Reusándola, la lista recibía la fila
+          // del medio —118 px para 5 538 de contenido, cuatro filas visibles— y
+          // quedaban 223 px muertos debajo. Medido antes de cambiarla.
+          className="mon-profile-panel aulas-ruta-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* «Ruta por facultad» terminaba igual que «Cuota sexo por
+                facultad» y el guard de títulos lo tumbó. El nombre dice ahora lo
+                que la vista CONTESTA —a dónde hay que ir cada día—; que sea por
+                facultad ya lo dice la pestaña. */}
+            <h3>A dónde ir cada día</h3>
+            {/* La MISMA fuente que la tabla de la pestaña de al lado: si cada
+                una sacara sus filas por su cuenta, las dos vistas de la misma
+                agenda podrían enseñar cuentas distintas. */}
+            <span>{(() => {
+              const n = agendaRows(dashboard).length;
+              return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
+            })()}</span>
+          </div>
+          <AulasAgendaPorFacultad filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+        </section>
+        ) : null}
+        {pestana === "agenda"
+          || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
+        <section
+          // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
+          // por día y tabla— y la regla común declara dos. Un hijo de más se
+          // lleva una fila declarada y se dibuja encima del siguiente; medido:
+          // los días se pintaban sobre la tabla. Es el mismo tropiezo que ya
+          // costó el reparto de alto del banner de KPIs.
+          className="mon-profile-panel aulas-agenda-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* La hoja del libro se llama así y estas son sus filas: las
+                escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
+                `aulas_agendadas_leer()`. */}
+            <h3>Aulas agendadas</h3>
+            {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. Y las
+                reservas se declaran al lado en vez de listarse: existen, pero no
+                son trabajo del agendador hasta que una titular se cae. */}
+            <span>
+              {fmt(agendaRows(dashboard).length)} cursos-horario
+              {agendaReservas(dashboard)
+                ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
+                : ""}
+            </span>
+          </div>
+          {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
+              entrar a Agenda— y después la tabla, que es donde se busca un
+              curso-horario concreto. La tabla NO se va: en esta sección sirve. */}
+          {/* Sin el banco, por lo mismo: un aula sin fecha no tiene día en el
+              que contarse, y las 40 caían en el tramo «sin fecha». */}
+          <AulasAgendaPorDia
+            filas={((dashboard.course_status ?? []) as MonitoreoAulasPlanRow[])
+              .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool")}
+            // El plan de verdad, no lo que cupo en el payload: `course_status`
+            // llega topeado a 500 filas y contar las recibidas hacía decir
+            // «ninguno de los 42» sobre un plan de 686.
+            //
+            // Y son los TITULARES, no el plan entero: desde que la agenda lista
+            // titulares, decir «ninguno de los 700» al pie de una tabla de 193
+            // vuelve a poner dos denominadores en la misma pantalla. Es el mismo
+            // efecto colateral que dejó «Libro de 2616 aulas» sobre un libro de
+            // 190: al cambiar lo que se cuenta hay que revisar quién lo cuenta.
+            totalDelPlan={
+              Number(dashboard.kpis?.aulas_titulares ?? 0)
+              || Number(dashboard.course_status_total_plan ?? 0)
+              || 0
+            }
+            // El recorte se calcula AQUÍ, que es donde se ven las dos cifras:
+            // cuántas filas trajo el payload y cuántas hay de verdad. El panel
+            // no puede deducirlo de `totalDelPlan`, que cuenta titulares
+            // mientras `filas` trae además las reservas encadenadas.
+            recorte={{
+              recibidas: ((dashboard.course_status ?? []) as unknown[]).length,
+              total: Number(dashboard.course_status_total ?? 0),
+            }}
+          />
+          {/* **La cola de las gestiones, que la mediana esconde.** Los dos tiles
+              de arriba dicen «cuestan más de una» y «van por la tercera», pero
+              con la mediana no se ve cuántas están en la cola cara: en 2025 la
+              mediana fue 2 y aun así 33 de 170 llegaron a la cuarta llamada. La
+              distribución ya la calculaba `agendamiento.ts`; sólo publicaba su
+              centro. */}
+          <Tabla
+            rows={agendaRows(dashboard)}
+            empty="No hay agenda importada para cursos-horario."
+            // El rol y a quién reemplaza van delante de la sección y el
+            // responsable: con una cadena de seis, las siete filas del mismo
+            // titular sólo se distinguían por su código. La tabla recorta a
+            // ocho columnas y lo declara, así que el orden decide qué se ve.
+            // La AGENDA enseña lo que la agenda recoge. Medido: la hoja «Aulas
+            // Agendadas» trae 20 campos por eslabón —el ciclo de contacto
+            // entero: a quién se llama, por qué medio, qué día, cuántos
+            // intentos, en qué quedó y para cuándo— y la tabla no mostraba NI
+            // UNO: enseñaba curso, facultad, rol, a quién reemplaza, sesiones,
+            // nombre del curso, horario, ficha y estado de ficha. Todo eso se
+            // puede mirar en otras superficies; el ciclo de contacto sólo vive
+            // aquí. El orden es el de quien agenda: a quién llamo, cómo, cuándo
+            // llamé, cuántas veces, en qué quedó, para cuándo quedó.
+            maxColumns={12}
+            // «Qué toca» va DELANTE del status: la acción manda sobre el
+            // estado del que sale. Es el orden que ya usa la tabla de Cálculo,
+            // donde «A coordinar» cierra la fila con lo accionable.
+            preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
+          />
+        </section>
+        ) : null}
+        {pestana === "agenda"
+          || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
+          <>
+          {/* **En su propio panel, y no dentro del de la agenda.**
+              El panel «Aulas agendadas» reparte su alto en filas fijas y la de
+              la franja va a `minmax(0, 1fr)`: metiendo aquí un cuarto hijo, esa
+              fila se quedó en **0 px** —medido— y la lista de días se pintó
+              encima de su leyenda. Es exactamente la compresión de la que se
+              queja el encargo, causada por añadir sin mirar el presupuesto
+              vertical del contenedor.
+
+              El propio panel lo advierte en su comentario y no lo leí a tiempo:
+              «este panel tiene TRES filas —cabecera, lectura por día y tabla— y
+              la regla común declara dos. Un hijo de más se lleva una fila
+              declarada y se dibuja encima del siguiente». */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cuánto cuesta cerrar un aula</h3>
+              <span>llamadas hasta la cita, y cuántas están en la cola cara</span>
+            </div>
+            <AulasGestionesPorAula
+              // **`agenda`, no `course_status`**: es la fuente que usan los dos
+              // tiles de gestiones de esta misma sección, y la única que trae el
+              // ciclo de contacto entero. `course_status` viaja recortado a 500
+              // filas y con menos columnas, así que la distribución salía vacía
+              // y el histograma no se dibujaba —con los tiles de al lado
+              // marcando 119 y 29 sobre los mismos datos—.
+              distribucion={agendamiento(
+                ((dashboard.agenda ?? []) as Array<Record<string, unknown>>),
+              ).distribucionDeGestiones}
+            />
+          </section>
+          </>
+        ) : null}
+      </div>
+  );
+}

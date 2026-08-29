@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { fuenteDelPageDeAulas } from "./fuenteDelPerfil";
 
 /**
  * Dos superficies distintas no pueden llamarse igual.
@@ -27,8 +28,16 @@ function titulos(tsx: string) {
   return [...tsx.matchAll(/<h3>([^<{]+)<\/h3>/g)].map((m) => m[1].trim());
 }
 
-const archivos = ["AulasMonitoreoPage.tsx", "RegistroDeCampo.tsx", "AulasOperationsPanel.tsx"];
-const todos = archivos.flatMap((n) => titulos(fuente(n)));
+// El page y sus trozos, más los otros dos de siempre. Las pestañas y las
+// secciones están saliendo del page-file a ficheros propios (GOAL 2026-08-28)
+// y una lista fija dejaba de ver un título en cuanto se mudaba, sin que el
+// título hubiera cambiado. Se usa el lector del PAGE y no el del perfil
+// entero: éste arrastra los componentes hoja, que tienen sus propios
+// encabezados y nunca estuvieron bajo este contrato.
+const todos = [
+  ...titulos(fuenteDelPageDeAulas()),
+  ...["RegistroDeCampo.tsx", "AulasOperationsPanel.tsx"].flatMap((n) => titulos(fuente(n))),
+];
 
 describe("los títulos de panel del perfil de aulas", () => {
   it("son todos distintos entre sí", () => {
