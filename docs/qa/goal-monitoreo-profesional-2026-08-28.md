@@ -503,6 +503,32 @@ así que la tabla está vacía. Implementar sobre esa suposición es lo que este
 loop ya pagó dos veces. **Queda como hallazgo con su cláusula, su dato y su
 condición de verificación.**
 
+#### El frente C, cerrado el 2026-08-29
+
+| | Resultado |
+|---|---|
+| **C1** jerga | La dura —τ, deff, p25, π, afijación— **no llega a pantalla**. Lo que se ve es vocabulario del operativo o se auto-glosa. Una glosa en Estratos (`4bd2bb69`) |
+| **C2** causa | Las 4 superficies que avisan **sí** la dicen. El hallazgo real salió del ADR 0077 cl. 4: el descuadre no nombraba al aplicador (`bb02fc40`, `335d7ed8`) |
+| **C3** qué hacer | Cubierta por C2: los avisos revisados dicen hecho, causa y acción |
+| **C4** denominador | 17 porcentajes revisados; sólo 3 no declaraban su base, con **dos denominadores en pantalla** y ninguno dicho (`a493d68d`) |
+| **C5** orden de lectura | Los dos paneles de calidad declaran su procedencia (`cd0e755d`) |
+
+**Lo que este frente enseñó sobre medir, y vale para los que quedan:**
+
+- **Ninguno de los tres hallazgos reales salió de un detector.** Salieron de
+  leer el ADR y de seguir el dato hasta su consumidor. Los detectores por
+  palabra clave fallaron en las dos direcciones: uno dio CERO en un panel que
+  cumplía —expresaba la causa sin decir la palabra— y otro dio 105 falsos
+  positivos que eran estados vacíos.
+- **Tres veces el defecto era que el código sabía algo que la pantalla no
+  decía.** El comentario de Validación avisaba de «que una fila parezca
+  respaldar a la otra»; el motor calculaba los porcentajes sobre `contestadas`;
+  el parte traía `applied_by`. En los tres, el arreglo fue publicar lo que ya
+  existía, no calcular nada nuevo.
+- **No inventar jerarquía donde no la hay.** En Avance sí manda un panel sobre
+  otro y el ADR 0082 lo sostiene; en Validación son dos fuentes distintas y
+  declarar un orden habría sido peor que no declarar nada.
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
