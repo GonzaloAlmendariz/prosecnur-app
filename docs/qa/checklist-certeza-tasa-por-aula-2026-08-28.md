@@ -1631,3 +1631,77 @@ cada celda — la misma forma que ya tenía la rama de facultad.
 
 Verificado sobre `HSVG26ULT2`: las 30 celdas pasan a `suma_esperadas` y **ninguna
 cae**, como estaba previsto.
+
+---
+
+# Las tres decisiones, tomadas (2026-08-28)
+
+Vara de Gonzalo, textual: «lo que yo no quiero es hardcodear nada, pero sí que
+todo esté válido en el motor y que funcione correctamente. Sin alterar lo que ya
+tenemos, porque es lo que tenemos y tiene que haber trazabilidad, pero sí
+dejarlo como si es beneficioso para el motor en el siguiente sorteo».
+
+## 1 · La calibración: sello automático, con procedencia
+
+**Se deja automático**, porque ya cumple la restricción: actúa al reconstruir el
+marco, así que ningún `.pulso` guardado cambia y el próximo sorteo sí lo recibe.
+
+Y es lo contrario de hardcodear: hoy los cinco valores están **escritos en el
+código** sin procedencia conocida; con el sello cada estudio los deriva de **su
+propio histórico**. Se agregó `k` por tramo —cuántas aulas lo sostienen— y el
+lector lo conserva: una curva sellada sin procedencia sería indistinguible de
+una constante a mano, que es justo lo que este sello existe para no ser.
+
+    hasta  15   tasa 0,8091   k=26        hasta  50   tasa 0,5005   k=50
+    hasta  25   tasa 0,6422   k=53        hasta Inf   tasa 0,4093   k=27
+    hasta  35   tasa 0,5657   k=38        respaldo total: 194 aulas aplicadas
+
+Un sello viejo sin `k` publica NA, no un cero — tiene su regresión.
+
+## 2 · El NAMESPACE: regenerado
+
+Añade **26 exports y borra cero**, y se verificó uno por uno que los 26 tienen su
+`@export` contiguo a su propia función —la trampa que exportaría otra—. Sin esto
+esas funciones existen en dev y **no en el binario instalado**, que es donde
+corren los jobs `callr`.
+
+`calc_muestra_aulas_sello_tramos` NO se exporta: sólo la llama
+`calc_muestra_aulas_sellar_efectividad`, en el mismo namespace, y la regla de la
+casa reserva `@export` para lo alcanzable desde fuera.
+
+## 3 · El τ del estrato: se refresca, y declara de dónde sale
+
+La medición hace fácil la decisión, porque **separa las dos cosas**:
+
+| escenario | fórmula |
+|---|---:|
+| A · τ congelada del marco DEF (lo que el estudio tiene hoy) | **165** |
+| B · τ refrescada del marco vigente, tramos embebidos | **165** |
+| C · τ refrescada + tramos sellados | **175** |
+
+**El τ congelado no cambia el dimensionamiento.** Los diez aulas salen enteras de
+la calibración. Así que refrescarlo no altera ninguna cifra del estudio: es
+saneamiento puro.
+
+El mecanismo del defecto: la función decía «un estrato que YA declara su τ
+manda», pero **es el único escritor de ese campo** —verificado por barrido; el
+frontend sólo lo lee— así que lo que frenaba el refresco era su propio valor de
+la corrida anterior. Ahora recalcula siempre y sella `tau_origen = "marco"` más
+el `tau_frame_hash`, con una puerta **explícita** `tau_origen = "manual"` para
+una declaración humana. Antes esa puerta se deducía de que el campo estuviera
+lleno, y eso es exactamente lo que fallaba.
+
+Los dos campos entran también al tipo de TypeScript, para que la procedencia
+sobreviva el viaje al frontend y vuelta.
+
+### Contrato actualizado a propósito
+
+`test-calc-muestra-aulas-efectividad-sello.R` fijaba el comportamiento aditivo
+(«un estrato que ya declara su tau manda»). Se reescribió al contrato nuevo con
+la nota de por qué cambió, en vez de borrarlo.
+
+## Gate
+
+    typecheck TS ............ limpio
+    NAMESPACE ............... +26 / -0, contrato verde
+    suites del area ......... 91 archivos · 2 792 PASS · 0 FAIL

@@ -161,7 +161,7 @@ calc_muestra_aulas_sello_tramos <- function(cadenas_filas,
     # prefiere no sellar a sellar una curva que el lector va a deformar.
     if (!is.finite(tasa) || tasa <= 0 || tasa > 1) return(list())
     out[[i]] <- list(hasta = if (is.finite(bordes[[i]])) bordes[[i]] else NA_real_,
-                     tasa = round(tasa, 4))
+                     tasa = round(tasa, 4), k = d$k)
   }
   out
 }
@@ -226,12 +226,28 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
 #' (`calc_muestra_aulas_tasas_facultad`), que hasta ahora sólo consumían dos
 #' tarjetas de la UI. Esto lo conecta al cálculo sin recalcular nada.
 #'
-#' Aditivo: un estrato que YA declara su τ manda. Una facultad sin tasa
-#' publicada se queda en 0 y cae al global, que es el neutro declarado.
+#' SE REFRESCA, y hasta el 2026-08-28 no se refrescaba. La regla era «un estrato
+#' que YA declara su τ manda», y como esta función es el ÚNICO escritor de
+#' `e$tau` en el motor —verificado por barrido; el frontend sólo lo lee— ese
+#' «declarado» nunca era una declaración: era el valor que esta misma función
+#' había puesto en una corrida anterior. Resultado: la τ quedaba congelada en el
+#' marco con el que se calculó por primera vez y ninguna reconstrucción la
+#' movía. Medido en HSVG2026: sus quince τ salen exactas del marco de
+#' `HSVG26DEF.pulso` (1 632 aulas) mientras el marco vigente tiene 1 392 — 240
+#' aulas salieron por depuración de criterios y la tasa no se enteró.
+#'
+#' Ahora se recalcula siempre desde el marco vigente y se sella de dónde salió:
+#' `tau_origen = "marco"` y `tau_frame_hash`. La puerta para una declaración
+#' humana queda abierta y explícita —`tau_origen = "manual"` se respeta— en vez
+#' de deducirse de que el campo esté lleno, que es lo que fallaba.
+#'
+#' No altera ningún proyecto guardado: corre al recalcular. Y medido sobre
+#' HSVG2026 **no cambia el dimensionamiento** (165 aulas con la τ congelada y
+#' 165 con la refrescada): lo que arregla es la trazabilidad, no la cifra.
 #'
 #' @param estudio estudio con sus componentes.
 #' @param frame marco de aulas vigente.
-#' @return el estudio, con `tau` por estrato donde el marco lo publica.
+#' @return el estudio, con `tau` por estrato y su procedencia.
 #' @export
 calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
   filas <- frame$tasas_efectividad_facultad %||% NULL
@@ -251,12 +267,16 @@ calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
     if (!length(estratos)) next
     for (j in seq_along(estratos)) {
       e <- estratos[[j]]
-      declarado <- suppressWarnings(as.numeric(e$tau %||% 0)[1])
-      if (is.finite(declarado) && declarado > 0) next
+      # Sólo una declaración EXPLÍCITA frena el refresco. Que el campo esté
+      # lleno no alcanza: lo llenó esta misma función la vez anterior.
+      if (identical(.cm_aulas_scalar(e$tau_origen %||% "", ""), "manual")) next
       clave <- .cm_criterios_fac_key(e$label %||% e$estrato %||% "")
       tasa <- por_clave[[clave]]
       if (is.null(tasa)) next
       e$tau <- tasa
+      e$tau_origen <- "marco"
+      # De QUÉ marco, para que una τ vieja se pueda reconocer sin recalcularla.
+      e$tau_frame_hash <- .cm_aulas_scalar(frame$frame_hash %||% "", "")
       estratos[[j]] <- e
     }
     comps[[i]]$marco$estratos <- estratos
