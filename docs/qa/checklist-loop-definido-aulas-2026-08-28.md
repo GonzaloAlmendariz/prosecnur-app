@@ -62,6 +62,7 @@ no a ojo:
 | 36 | Español sin tildes en pantalla | `monitoreo_aulas_etiquetas.R` y siete archivos más | **cerrado** — cinco frases del archivo canónico con guard en su test, más las quince restantes una por una dejando intactos los alias `"validas"` y `"seleccion"`, bitácoras 54 y su commit `15e4e4f3` |
 | 37 | Un contrato `equal` donde el gate medía el título contra el contenido | `AulasHistoriaCadena.tsx` | **cerrado** — son secciones independientes: `intrinsic`, bitácora 55 |
 | 38 | «Días de campo» son dos ejes: 5 con respuestas y 2 con parte | `AulasRitmoDiario.tsx` · `AulasRitmoPorFacultad.tsx` | **cerrado** — «días de recolección» y «días con parte de campo», bitácora 57 |
+| 39 | El mismo cociente con dos formatos en el mismo panel: «92%» junto a «89.3 %» | `embudoDelAula.ts` · `AulasEmbudoDelAula.tsx` | **cerrado** — el redondeo bajó del modelo a la vista, bitácora 58 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

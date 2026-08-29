@@ -78,7 +78,13 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
 
   const trasRechazos = asistentes - rechazos;
   const trasDuplicados = trasRechazos - duplicados;
-  const pct = (n: number) => Math.round((100 * n) / asistentes);
+  // **Sin redondear en el modelo.** El porcentaje se redondeaba aquí a entero y
+  // la frase publicaba «92%» mientras la columna «% asistencia» del MISMO panel
+  // decía «89.3 %» y «93.5 %»: el mismo cociente —54 de 59— con dos formatos a
+  // dos centímetros. Redondear es una decisión de presentación y se toma en la
+  // vista, que además es donde vive el formato de la casa: un decimal y espacio
+  // antes del «%».
+  const pct = (n: number) => (100 * n) / asistentes;
 
   return {
     partes: filas.length,
