@@ -247,7 +247,12 @@ terminan diciendo cosas distintas de la misma base.
   misma trampa en la que yo caí: «`strptime` no acepta el offset con dos puntos
   (`-05:00`) que escriben Kobo».
 
-  **Lo único que falta es DECLARAR EL UMBRAL, y es una decisión metodológica.**
+  **Y el umbral YA lo declaró él**, en `AulasSeccionFuentes.tsx`: «el umbral es
+  menos de 5 minutos, configurable a 8 u otros números, pero lo ideal es
+  definirlos al principio». La medición lo respalda: con p10 de 6,2 min y 40
+  respuestas bajo 3, un corte en 5 separa señal de ruido.
+
+  **Lo único que falta es publicar el detector con ese umbral.**
   Con los datos de arriba, el suelo defendible está entre 3 y 6 minutos: 40
   respuestas de `acnur_acg` caen bajo 3 min y el p10 es 6,2. Por arriba no hay
   umbral defendible, y eso debe decirse en la pantalla en vez de fijar uno.
