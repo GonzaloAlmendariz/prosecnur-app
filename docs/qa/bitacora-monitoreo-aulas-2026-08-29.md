@@ -968,3 +968,56 @@ perseguí, los que salieron de mirar la pantalla eran reales y los que deduje de
 código eran falsos**; aquí, mirar levantó dos sospechas y medir las tumbó. El
 tick sin hallazgo es un resultado, no un tick perdido, siempre que quede escrito
 qué se comprobó.
+
+---
+
+## 54 · Español sin tildes en la pantalla (ítem 36)
+
+Primera captura de `calidad/controles`. Once reglas, y varias hablan así:
+
+> «Los **numeros** de cada parte de campo cuadran.»
+> «Las 3 aulas que **estan** en las dos hojas dicen lo mismo en asistentes, % de
+> asistencia y quien **aplico**.»
+> «La base no trae columnas de **identificacion** personal con datos.»
+> «Todas las respuestas **validas** se atribuyeron a un aula del plan.»
+
+Y lo mismo en los tramos de cobertura de `avance/resumen`: «Se **quedo** a
+medias», «**Llego** a la mayor parte», «Casi **llego**».
+
+**No es una convención ni una barrera técnica.** `DESCRIPTION` declara
+`Encoding: UTF-8` y **387** archivos de `api/R` ya llevan tildes. Y la prueba
+definitiva está dentro del propio vector de frases publicables, donde conviven
+
+> «Empezó, todavía no llega» · «habrá que ponderar» · «El campo está rindiendo…»
+
+con
+
+> «Ya llego a su cuota» · «Llego a lo esperado» · «Se quedo a medias»
+
+Unas se escribieron con tilde y otras no: es una inconsistencia, no un criterio.
+
+Corregidas las **cinco** frases del archivo canónico
+(`monitoreo_aulas_etiquetas.R`) y añadido el guard donde vive la vara: el test
+que ya auditaba la jerga ahora falla si alguna frase publicable contiene una
+palabra de una lista negra **sólo de casos inequívocos** —nada de «mas», «solo»
+o «esta», que existen con y sin tilde según la función—. Con su control de que
+la lista de frases no esté vacía, para que vaciarla no lo deje en verde por
+ausencia. Mutante comprobado: quitar una tilde deja 1 rojo.
+
+Dos tests existentes fijaban la cadena vieja y se actualizaron: cambio
+deliberado de contrato, no regresión.
+
+**Y mi propio guard falló con cero culpables**, por una trampa que vale anotar:
+`vapply` devuelve el vector **con nombres**, así que filtrar sin coincidencias da
+un `named character(0)` que no es `identical` a `character(0)`. Se resuelve con
+`unname`.
+
+### Lo que queda medido y NO tocado
+
+Fuera del archivo canónico hay más frases sin tilde —`monitoreo_aulas_universitarias.R`
+(8), `identificadores.R` (2), `estados_no_reconocidos.R` (2), `reconciliacion.R`
+(2), `cruce_hojas.R`, `reemplazos.R`, `efectividad_seguimiento.R`, y el aviso del
+sexo que escribí yo hoy en `avance_cuota.R`—. **No se barren a ciegas**: en esa
+misma búsqueda aparecen `"validas"`, `"seleccion"` y `"quien aplico"` que son
+**claves internas**, no texto, y tildarlas rompería el consumo. Hay que separar
+cadena mostrada de clave antes de tocar, una por una.

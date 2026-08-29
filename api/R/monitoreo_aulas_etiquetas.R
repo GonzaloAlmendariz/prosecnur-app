@@ -40,7 +40,7 @@ MONITOREO_AULAS_JERGA_PROHIBIDA <- paste(
 monitoreo_aulas_etiqueta_celda <- function(estado) {
   switch(as.character(estado)[1],
     sin_cuota = "Sin cuota trazada",
-    alcanzada = "Ya llego a su cuota",
+    alcanzada = "Ya llegó a su cuota",
     en_progreso = "Empezó, todavía no llega",
     # `sin_avance` es el caso PEOR y la frase tiene que sonar como tal: el
     # nombre viejo, «pendiente», tranquilizaba justo donde habia que mirar.
@@ -48,7 +48,7 @@ monitoreo_aulas_etiqueta_celda <- function(estado) {
     # Los mismos cuatro estados con las claves que emite el tablero. Sin esto
     # la celda salia rotulada «Sin estado» teniendo estado.
     sin_meta = "Sin cuota trazada",
-    cumplida = "Ya llego a su cuota",
+    cumplida = "Ya llegó a su cuota",
     en_riesgo = "Empezó, todavía no llega",
     pendiente = "Todavía sin ninguna encuesta",
     "Sin estado"
@@ -109,10 +109,10 @@ monitoreo_aulas_celda_en_deuda <- function(estado) {
 #' @export
 monitoreo_aulas_etiqueta_tramo <- function(tramo) {
   switch(as.character(tramo)[1],
-    pleno = "Llego a lo esperado",
-    satisfactorio = "Casi llego (90-100 % de lo esperado)",
-    parcial = "Llego a la mayor parte (75-90 %)",
-    insuficiente = "Se quedo a medias (50-75 %)",
+    pleno = "Llegó a lo esperado",
+    satisfactorio = "Casi llegó (90-100 % de lo esperado)",
+    parcial = "Llegó a la mayor parte (75-90 %)",
+    insuficiente = "Se quedó a medias (50-75 %)",
     critico = "Muy por debajo (menos de la mitad)",
     nulo = "Sin respuestas",
     "Sin evaluar"
