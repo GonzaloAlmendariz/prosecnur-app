@@ -71,6 +71,8 @@ no a ojo:
 | 45 | El avance salía «20%» o «19,6 %» según la fuente, y sin decir qué medía | `perfilPorFacultad.ts` · `AulasPerfilPorFacultad.tsx` · `kpisDeAulas.ts` | **cerrado** — un decimal en las dos rutas y un solo `pctPerfil()`, bitácora 66 |
 | 46 | «falta 1 encuesta» junto a «faltan 3 y aportan 3» en la misma oración | `avanceProyectado.ts` · `kpisDeAulas.ts` | **cerrado** — el aporte se redondeaba hacia arriba; `fmtAporte()` va hacia abajo, bitácora 68 |
 | 47 | «1 de 30 celdas … no van a llegar» | `AulasAvanceProyectado.tsx` | **cerrado** — concordancia |
+| 48 | «déficit de 1 respuestas, repartido en 15 facultades» con el déficit en una sola | `AulasSexoPorFacultadChart.tsx` | **cerrado** — cuenta las que ponen déficit, bitácora 69 |
+| 49 | La tabla de estratos mezcla «88.2» con «17» y «100» en la misma columna | `AulasPestanaEstratos.tsx` | **nuevo** — comprobar antes si son porcentajes o índices |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se

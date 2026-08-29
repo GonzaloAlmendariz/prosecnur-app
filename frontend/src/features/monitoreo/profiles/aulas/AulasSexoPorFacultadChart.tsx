@@ -114,6 +114,9 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
 
   const deficitTotal = filas.reduce((s, f) => s + f.deficit, 0);
   const cubiertas = filas.filter((f) => f.deficit === 0).length;
+  // Las que ponen algo en ese déficit. `filas.length` son TODAS las del gráfico,
+  // incluidas las que ya cerraron.
+  const conDeficit = filas.filter((f) => f.deficit > 0).length;
 
   return (
     // El contenedor de datos del panel «Avance por facultad y sexo». Sin
@@ -137,9 +140,18 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
         config={{ displayModeBar: false, responsive: true }}
       />
       <p className="mon-profile-table-recorte">
+        {/* **«repartido en» cuenta las que TIENEN déficit, no todas.** Con el
+            simulacro de mitad de operativo el déficit total baja a 1 y la frase
+            decía «un déficit de 1 respuestas, repartido en 15 facultades»: el 15
+            eran todas las del gráfico. Un déficit de 1 está en una facultad, y
+            decir quince manda a buscar en catorce sitios donde no hay nada.
+            Y la concordancia, que sólo se ve cuando el número baja a uno. */}
         Aplicando todas las aulas que quedan en el plan quedaría un déficit de{" "}
-        {fmt(deficitTotal)} respuestas, repartido en {fmt(filas.length)}{" "}
-        {filas.length === 1 ? "facultad" : "facultades"}.
+        {fmt(deficitTotal)} {deficitTotal === 1 ? "respuesta" : "respuestas"}
+        {conDeficit
+          ? <>, repartido en {fmt(conDeficit)}{" "}
+            {conDeficit === 1 ? "facultad" : "facultades"}</>
+          : null}.
         {cubiertas
           ? ` ${fmt(cubiertas)} ${cubiertas === 1 ? "alcanza" : "alcanzan"} su cuota en los dos sexos.`
           : ""}

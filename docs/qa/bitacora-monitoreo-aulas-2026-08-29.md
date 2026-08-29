@@ -1538,3 +1538,39 @@ Es la tercera vez hoy que un rojo mío resultó ser un test equivocado y no un
 defecto —`named character(0)`, el `eje: "fecha"` inexistente y éste—, y las tres
 veces la salida fue alinearse con la regla que el repo ya tenía en vez de
 aflojar la comprobación.
+
+---
+
+## 69 · «Repartido en 15 facultades» un déficit de 1 (ítem 48)
+
+Con datos reales el gráfico de `avance/estratos` se ve por fin como debe: treinta
+barras de tres tramos, las marcas de cuota visibles, ordenado por déficit. Y su
+pie —**que edité yo en el ítem 15**— decía:
+
+> «quedaría un déficit de **1 respuestas**, repartido en **15 facultades**.
+> 14 alcanzan su cuota en los dos sexos.»
+
+Dos defectos en una frase, y los dos sólo aparecen cuando el número baja a uno,
+que es justo lo que el simulacro de mitad de operativo hace posible:
+
+- **concordancia**: «1 respuestas»;
+- y el grave: **`filas.length` son TODAS las facultades del gráfico**, cerradas
+  incluidas. Un déficit de 1 está en una facultad; decir quince manda a buscar en
+  catorce sitios donde no hay nada. Ahora cuenta las que ponen algo en ese
+  déficit —`filas.filter((f) => f.deficit > 0)`— y cuando no hay ninguna, la
+  frase no menciona reparto.
+
+Verificado: «un déficit de **1 respuesta**, repartido en **1 facultad**».
+
+Es la misma familia del ítem 40 —«SIN EMPEZAR 145 · agendadas» sobre 145 sin
+fecha—: **un rótulo que nombra un conjunto distinto del que cuenta el número**.
+Y es la segunda vez que lo cometo yo al redactar una frase.
+
+### Anotado sin tocar (ítem 49)
+
+La tabla de estratos publica «88.2», «85.7», «66.4» con un decimal y «**17**» y
+«**100**» sin él, en la misma columna. Es `maximumFractionDigits` sin
+`minimumFractionDigits`. Mismo patrón que el ítem 39; se repara con
+`pctPerfil()`, pero hay que comprobar antes si esas columnas son porcentajes o
+índices —«Avance de cursos-horario» y «Avance de respuestas» podrían no llevar
+símbolo a propósito—.
