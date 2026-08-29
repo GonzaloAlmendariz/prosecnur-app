@@ -74,7 +74,28 @@ export function AulasAvanceParaCliente({
     );
   }
 
-  const totalMuestra = filas.reduce((s, f) => s + (f.muestra ?? 0), 0);
+  // **La muestra del estudio NO es la suma de las cuotas por facultad.**
+  //
+  // Medido el 2026-08-29 sobre HSVG2026: el diseño declara `n_objetivo = 2500`
+  // y `meta: tipo=objetivo · valor=2500 · variable_control=facultad_sexo`;
+  // sumar las quince filas da 3.491, porque una cuota por celda no se netea
+  // entre celdas (ADR 0079) y el reparto con mínimos por estrato sobrepasa el
+  // objetivo por construcción. Este panel se llama «El avance que ve el
+  // cliente» y abría diciendo «De una muestra de 3.491 alumnos»: ninguna de las
+  // dos cifras del diseño —2.500 de objetivo, 3.750 de operativo— y presentada
+  // como el tamaño del estudio.
+  //
+  // El motor YA publica el total en `avance_cuota$total$cuota`, y en la rama
+  // vigente lo saca del diseño (`vig$dt$total_cuota`) en vez de resumar. Se usa
+  // ése. La suma de filas queda de respaldo para cuando el motor no puede
+  // afirmar un total (NA), y entonces sí es lo mejor que hay.
+  //
+  // `totalFaltan` NO cambia: ahí la suma sin netear es lo correcto, es lo que
+  // dice la nota de debajo, y `total.brecha` del motor viene neteada.
+  const cuotaDelMotor = Number(avanceCuota?.total?.cuota);
+  const totalMuestra = Number.isFinite(cuotaDelMotor) && cuotaDelMotor > 0
+    ? cuotaDelMotor
+    : filas.reduce((s, f) => s + (f.muestra ?? 0), 0);
   const totalConseguidas = filas.reduce((s, f) => s + f.conseguidas, 0);
   // Los faltantes se SUMAN, no se netean: el superávit de una facultad no cubre
   // lo que falta en otra (ADR 0079).
