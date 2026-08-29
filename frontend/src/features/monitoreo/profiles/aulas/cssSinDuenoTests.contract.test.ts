@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { cssDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 /**
  * Ninguna regla del perfil debe estilar una clase que ya no existe.
@@ -43,8 +44,10 @@ function fuentesDelFrontend(dir: string, acc: string[] = []): string[] {
 
 describe("el CSS del perfil no estila clases que ya no existen", () => {
   it("cada clase propia que declara la hoja la usa algún componente", () => {
-    const css = ["aulasMonitoreo.css", "registroDeCampo.css", "efectividadSeguimiento.css", "avanceParaCliente.css"]
-      .map((f) => readFileSync(join(AQUI, f), "utf-8")).join("\n");
+    // TODAS las hojas del perfil, no una lista de cuatro nombres: la hoja
+    // madre se está partiendo y lo que se mude quedaría fuera de vigilancia sin
+    // que nada fallara. Ver `fuenteDelPerfil.ts`.
+    const css = cssDelPerfilDeAulas();
     const declaradas = new Set(
       [...css.matchAll(/\.((?:aulas|registro-campo)[a-z0-9-]*)/g)].map((m) => m[1]),
     );

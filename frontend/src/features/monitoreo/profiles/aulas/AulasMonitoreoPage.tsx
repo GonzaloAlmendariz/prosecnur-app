@@ -81,6 +81,9 @@ import type { MonitoreoReportScope } from "../types";
 import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
+// Después de la hoja madre, nunca antes: ver la cabecera de
+// `aulasReemplazos.css`.
+import "./aulasReemplazos.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
