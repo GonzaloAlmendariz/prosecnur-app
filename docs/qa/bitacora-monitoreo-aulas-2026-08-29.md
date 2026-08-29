@@ -318,3 +318,53 @@ ORDEN de las celdas —si se invirtieran, el HTML seguiría teniendo un 40 y un 
 
 Cuatro tests nuevos. Comprobados contra dos mutantes: restaurar el neteo entre
 sexos deja 1 rojo; restaurar las regex caseras deja 3.
+
+---
+
+## 36 · El mismo defecto estaba en R, y en el camino del diseño
+
+Barrido tras la 35. En el frontend no quedaba nada más —los territoriales usan
+pertenencia exacta, que es el patrón correcto, y `avanceProyectado.ts:136` y
+`AulasReservaDirigida.tsx:65` caen al literal crudo sin confundir—. En R había
+tres, y **producen la cuota de sexo contra la que Monitoreo mide**:
+
+| Sitio | Cómo clasificaba | Con «Mujer» |
+|---|---|---|
+| `calc_muestra_aulas_sexo_por_facultad.R:45` | `substr(k, 1, 1) %in% c("F","M")` | → «M», **contada como hombre** |
+| `carga_aulas_libro_generar.R:465` | `toupper(substr(…, 1, 1))` | → «M», la ficha de campo sale con las mujeres esperadas en el renglón de hombres |
+| `calc_muestra_aulas_certificacion.R:128` | `sexo == "F"` / `== "M"` | **descartada**: la facultad sale con cero elegibles de ese sexo |
+
+No había clasificador canónico en R —`.cm_dist_sex_key` sólo normaliza texto para
+agrupar—, y por eso cada sitio se hizo el suyo. Ahora hay uno,
+`.pulso_sexo_fm()` en `helpers_calc_comunes.R`, con el mismo criterio que
+`sexSeriesKind` del frontend: **pertenencia exacta antes que subcadena**, para
+que «m» a secas siga siendo hombre y «Mujer» sea mujer. Lo que no reconoce
+devuelve `NA` y nunca cae a un sexo por descarte.
+
+Cinco tests, uno de ellos el control del orden del criterio: si se probara
+subcadena primero, «m» no casaría `grepl("hombre|masculin|varon")` y saldría
+`NA`, rompiendo el caso que hoy funciona en todos los estudios reales.
+
+**Y el propio test cazó un defecto en mi helper**: `out[pend & grepl(…, k[pend])]`
+cruzaba un vector recortado con una máscara de longitud completa, o sea
+reciclaje silencioso de R. Salía como *warning*, no como error, y habría corrido
+la clasificación. El `grepl` va sobre `k` entero.
+
+## 37 · Un `@export` mío se lo había llevado el helper de al lado
+
+Al correr `test-namespace-contract.R` como seguro barato aparecieron dos rojos, y
+eran **de mi propio tick del ítem 13**. Al meter `.mard_personas` en
+`monitoreo_aulas_reserva_dirigida.R` dejé su bloque de documentación pegado
+justo detrás del `#' @export` de la función pública. Roxygen funde comentarios
+`#'` contiguos en un solo bloque que se aplica al objeto siguiente: el `@export`
+se lo llevó `.mard_personas` —un helper interno, con punto inicial— y
+`monitoreo_aulas_reserva_dirigida` se quedó fuera del NAMESPACE, que conservaba
+su `export()` huérfano.
+
+En `pkgload::load_all` no se nota nada; en el binario instalado, la función
+pública deja de existir. Es el patrón que ya estaba anotado y volvió a pasar en
+cuanto inserté un helper delante de una función exportada.
+
+Separados los dos bloques y regenerado: **el NAMESPACE no cambió ni una línea**
+—el `export()` ya estaba, sólo le faltaba su `@export` en el sitio correcto— y
+las cinco comprobaciones del contrato pasan.

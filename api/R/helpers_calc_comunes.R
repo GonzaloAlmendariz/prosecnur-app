@@ -467,3 +467,48 @@ calc_bool <- function(x, default = FALSE) {
   units <- .pulso_pct_unidades(p, dec = dec, metodo = metodo)
   list(units = units, labels = .pulso_fmt_pct_unidades(units, dec))
 }
+
+#' Clasifica un valor de sexo en `"F"` / `"M"`, o `NA` si no es ninguno.
+#'
+#' **«Mujer» empieza por eme.** Tres sitios del motor se hacían su propia
+#' clasificación y dos de ellas miraban la primera letra
+#' (`substr(k, 1, 1) %in% c("F", "M")`), así que un padrón que etiquete
+#' «Mujer»/«Hombre» —o «MUJER», o «Masculino»— metía **todas las mujeres en la
+#' cuenta de hombres**, sin un solo aviso y con los totales por facultad
+#' cuadrando. El tercero comparaba contra los literales y las descartaba en
+#' silencio, dejando la facultad en cero.
+#'
+#' No es hipotético: `sex_top_1` sale del padrón de la universidad **tal cual**
+#' —la regla de la casa es no normalizar lo que viene de la DTI— y
+#' `audit_reference.R` mapea `"1" = "Mujer", "2" = "Hombre"`. Que HSVG2026
+#' traiga `F`/`M` es una propiedad de ESE archivo, no del formato.
+#'
+#' El criterio es el mismo que el `sexSeriesKind` del frontend: **pertenencia
+#' exacta primero, subcadena después**, para que `"M"` a secas siga siendo
+#' hombre y `"Mujer"` sea mujer. Lo que no se reconoce devuelve `NA` y quien
+#' llame decide; nunca cae a un sexo por descarte.
+#'
+#' @param x Vector de valores de sexo tal como vienen del dato.
+#' @return Vector carácter de la misma longitud con `"F"`, `"M"` o `NA`.
+#' @keywords internal
+.pulso_sexo_fm <- function(x) {
+  k <- tolower(trimws(as.character(x)))
+  k <- gsub("[^a-z]", "", iconv(k, to = "ASCII//TRANSLIT", sub = ""))
+  fem <- c("f", "fem", "femenino", "femenina", "female", "mujer", "mujeres", "m2")
+  masc <- c("m", "masc", "masculino", "masculina", "male", "hombre", "hombres",
+            "varon", "varones", "h")
+  out <- rep(NA_character_, length(k))
+  # Pertenencia exacta antes que subcadena: al revés, "m" caería en el
+  # `grepl("mujer")` de nadie pero "mujer" sí casa un `grepl("m")`, que es
+  # exactamente el error que esto viene a cerrar.
+  out[k %in% fem] <- "F"
+  out[k %in% masc] <- "M"
+  # El `grepl` va sobre `k` ENTERO, no sobre `k[pend]`: cruzar un vector
+  # recortado con una mascara de longitud completa recicla en silencio y la
+  # clasificacion sale corrida. Lo cazo el test de los valores desconocidos.
+  pend <- is.na(out) & nzchar(k)
+  out[pend & grepl("mujer|femenin|female", k)] <- "F"
+  pend <- is.na(out) & nzchar(k)
+  out[pend & grepl("hombre|masculin|varon", k)] <- "M"
+  out
+}

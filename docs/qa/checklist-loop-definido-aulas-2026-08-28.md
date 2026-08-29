@@ -44,6 +44,8 @@ no a ojo:
 | 18 | «El avance que ve el cliente» llamaba muestra a la suma de cuotas (3.491 con objetivo 2.500) | `AulasAvanceParaCliente.tsx` | **cerrado** |
 | 19 | La tabla del cliente neteaba la cuota entre sexos dentro de la facultad | `avanceParaCliente.ts` | **cerrado** — era el ±1 de 2.824/2.825 |
 | 20 | «Mujer» se contaba como hombre en dos superficies y se descartaba en una tercera | `avanceParaCliente.ts` · `brechaDeLaFacultad.ts` · `celdasPorFacultad.ts` | **cerrado** — ver bitácora 35 |
+| 21 | El mismo defecto de sexo en R, en el camino del diseño | `sexo_por_facultad.R` · `libro_generar.R` · `certificacion.R` | **cerrado** — `.pulso_sexo_fm()`, ver bitácora 36 |
+| 22 | Un `@export` mío se lo llevó el helper de al lado | `monitoreo_aulas_reserva_dirigida.R` | **cerrado** — ver bitácora 37 |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
