@@ -12,6 +12,20 @@ import { fmt } from "./kpisDeAulas";
 /** El mismo formato que el resto del perfil: «3,743» y no «3743». */
 
 /**
+ * ⚠ SIN MONTAR desde el 2026-08-29.
+ *
+ * Dibujaba el estrato del SORTEO —`FACULTAD / F / G3`, que la etiqueta traduce
+ * como «mayoría mujeres · 41 alumnos o más»— y ese sexo es el dominante del
+ * aula, no el del alumno. Gonzalo: «cómo vas a poner mayoría hombres o mayoría
+ * mujeres cuando eso no me interesa; lo que me interesa es cuántos hombres y
+ * cuántas mujeres». El panel pasó a `AulasSexoPorFacultadChart`, que sale de la
+ * celda de cuota.
+ *
+ * **No se borra sin decidirlo aparte.** La lectura por estrato de diseño sigue
+ * siendo válida para otra pregunta —si el sorteo cubrió sus grupos— y ese es un
+ * panel que no existe todavía. Si se decide que no hace falta, se borra con su
+ * test y su entrada en `componentesSinMontar`.
+ *
  * Dónde falta más, de un vistazo.
  *
  * La tabla de `avance_por_estrato` trae los mismos números, pero contesta mal la

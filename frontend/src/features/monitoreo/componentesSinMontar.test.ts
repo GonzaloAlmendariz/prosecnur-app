@@ -17,8 +17,12 @@ import path from "node:path";
 
 const RAIZ = path.resolve(__dirname);
 
-/** Los seis medidos el 2026-08-19, cada uno marcado en su archivo. */
+/**
+ * Los seis medidos el 2026-08-19, más el de aulas que quedó suelto el
+ * 2026-08-29. Cada uno marcado en su archivo.
+ */
 const SIN_MONTAR_CONOCIDOS = [
+  "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",
   "TerritorialModelWorkbench.tsx::RouteSheetStrip",

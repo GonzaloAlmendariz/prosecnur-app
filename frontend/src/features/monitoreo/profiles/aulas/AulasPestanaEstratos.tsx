@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
+import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../api/monitoreo";
@@ -43,7 +43,7 @@ export function AulasPestanaEstratos({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                <h3>Avance por estrato</h3>
+                <h3>Avance por facultad y sexo</h3>
                 {/* El subtítulo decía «N filas», que es lo único que la tabla de
                     abajo ya enseña por sí sola. «Estrato» es la única palabra
                     técnica de esta pestaña que no se explica en ninguna parte:
@@ -52,12 +52,14 @@ export function AulasPestanaEstratos({
                     palabra no. Se dice qué es, sin nombrar las columnas del
                     corte: son configurables por estudio (`estratos_selector`) y
                     escribirlas aquí sería falso en cuanto alguien las cambie. */}
-                <span>los grupos con los que se repartió la muestra · {fmt(estratoRows.length)}</span>
+                <span>cuántas y cuántos faltan por facultad · {fmt(estratoRows.length)} estratos de diseño abajo</span>
               </div>
               {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
                   contesta la pregunta del día siguiente —a dónde mando el equipo— que
                   la tabla obliga a resolver restando de cabeza. */}
-              <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
+              <AulasSexoPorFacultadChart
+                celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
+              />
               {/* La tabla dice el estrato con las mismas palabras que el eje del
                   gráfico que tiene encima. Enseñaba la clave cruda —«GESTIÓN Y ALTA
                   DIRECCIÓN / F / G3»— mientras el eje, ya traducido, decía otra cosa
