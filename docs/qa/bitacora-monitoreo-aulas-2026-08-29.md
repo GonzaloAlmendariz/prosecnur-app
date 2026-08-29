@@ -836,3 +836,54 @@ el «hoy» del estudio debería salir de la última respuesta, no del último pa
 `corteDelEstudio` está construido a propósito sobre los partes y con su
 razonamiento escrito, así que cambiarlo es una decisión de diseño, no un typo.
 Hermano del ítem 17.
+
+---
+
+## 51 · Las claves de sección no son las etiquetas, y un `capacity-drift` que sí declara su miembro
+
+**Dos cosas, y la primera me costó un tick entero.** `--ir monitoreo/aulas/agenda`
+no existe. El runner escupe el manifiesto y ahí está la respuesta: las secciones
+de este perfil son
+
+`fuentes · modelo · calidad · consultas · avance`
+
+aunque la barra superior las rotule **Fuentes · Agenda · Validación · Consultas ·
+Avance**. «Agenda» es `modelo` (con pestañas `agenda`, `facultad`, `contacto`,
+`carga`) y «Validación» es `calidad` (`registro`, `controles`, `base`,
+`abiertas`). Las direcciones completas del perfil:
+
+```
+monitoreo/aulas/fuentes
+monitoreo/aulas/modelo/{agenda,facultad,contacto,carga}
+monitoreo/aulas/calidad/{registro,controles,base,abiertas}
+monitoreo/aulas/consultas/{reemplazos,brechas,parte,extras}
+monitoreo/aulas/avance/{cuotas,resumen,estratos,rendimiento,efectividad,salidas}
+```
+
+Para el usuario no hay defecto —ve «Agenda» y navega—, pero quien captura por
+dirección se estrella. Anotado aquí para no volver a perder un tick.
+
+### El octavo `capacity-drift`, y mi diagnóstico estaba incompleto
+
+`monitoreo/aulas/modelo/agenda` reporta `geometryIssues=1`:
+
+```
+capacity-drift · [data-qa-geometry-group="monitoring-aulas-table"]
+  members: [div.mon-profile-panel-head] · unusedInteriorBottom: 5
+```
+
+Mismo patrón que las siete veces anteriores: el runner mide la cabecera. **Pero
+aquí la reparación conocida YA está aplicada**: el contenedor de datos
+—`AulasGestionesPorAula`— declara `data-qa-geometry-member` en sus dos ramas, y
+la que se renderiza es la de datos (se ve su `summary`: «0 de 10 aulas con
+gestión anotada van por la 3.ª llamada o más»). El runner acepta el atributo por
+presencia, no por valor, y sólo filtra por `isVisibleElement` y por que su
+`closest("[data-qa-geometry-group]")` sea el grupo. Aun así cayó al fallback.
+
+O sea que **«no declara su miembro» no explica los ocho casos**: hay al menos
+otra causa. La hipótesis a medir —y sólo a medir, que hoy tres diagnósticos
+deducidos del código salieron falsos— es que el miembro sea un
+`<details>` cerrado y `isVisibleElement` lo descarte por alguna condición de
+tamaño. Se comprueba con la pila viva preguntando al DOM: si
+`group.querySelectorAll("[data-qa-geometry-member]")` devuelve el `details` y
+qué dice de él el criterio de visibilidad del runner.
