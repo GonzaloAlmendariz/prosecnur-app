@@ -466,6 +466,43 @@ Queda vivo para C2/C3: `ponderación` aparece en dos rótulos de columna
 («Estado de ponderación», «Advertencia de ponderación») del diccionario, y ahí
 no hay sitio para una glosa sin alargar la cabecera.
 
+#### C2, 2026-08-29 — dos detectores fallidos y un hallazgo con ADR detrás
+
+**Los dos primeros detectores fueron malos, y eso es la mitad del resultado.**
+
+1. Buscar «porque / razón / causa / motivo» en las superficies que avisan.
+   `AulasConcentracionBrecha` salió con CERO menciones y resultó cumplir de
+   sobra: «N de M cursos-horario concentran la mitad de lo que falta · la
+   brecha está repartida: no hay unas pocas que lo cierren». **Expresa la causa
+   sin decir la palabra.**
+2. Buscar avisos que declaren un hecho sin explicarlo. Devolvió **105**, y casi
+   todos eran ESTADOS VACÍOS —«el plan no declara estratos que comparar»—, que
+   sí dicen su causa: no hay nada que enseñar porque el plan no lo trae.
+
+Leídas a mano, las cuatro superficies que avisan cumplen:
+`AulasEfectividadSeguimiento` compone un `porque` explícito y lo añade al
+veredicto; `AulasAlertaDeAnticipacion` dice hecho, causa y consecuencia en una
+frase —«se están cayendo más que entonces: la lista está pidiendo de menos»—;
+`AulasControlDelLibro` y `AulasConcentracionBrecha` igual.
+
+**El hallazgo aparece al leer el ADR en vez de suponerlo.** El 0077 no pide
+«causa» en general: su cláusula 4 dice que **toda alerta de calidad nombra a
+quién llamar y qué preguntarle, o no se emite** —«Revisar duración» no le sirve
+a nadie; «¿Mary ya actualizó el formulario en su equipo?» sí—.
+
+`AulasControles` emite alertas de calidad con severidades `revisar` y
+`advertencia`, y sus frases dicen el hecho y su aritmética —«CH 31: 26
+asistentes menos 1 rechazos y 3 duplicados dan 22, pero el parte declara 21
+efectivas»— **pero no nombran al aplicador**. Y el dato está: `applied_by`
+figura entre los campos que `monitoreo_aulas_control.R` declara para el control.
+
+**No se implementa en esta pasada, y por qué:** no se pudo comprobar que
+`applied_by` llegue poblado hasta el componente. Los controles salen de la hoja
+«Base de control» del libro, y el proyecto disponible no tiene libro importado,
+así que la tabla está vacía. Implementar sobre esa suposición es lo que este
+loop ya pagó dos veces. **Queda como hallazgo con su cláusula, su dato y su
+condición de verificación.**
+
 ## Cómo se midió, para repetirlo
 
 Pila propia en el **8791** para no tocar el 8787 del usuario, sirviendo el SPA
