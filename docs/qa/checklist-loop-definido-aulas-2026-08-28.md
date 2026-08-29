@@ -69,6 +69,8 @@ no a ojo:
 | 43 | Dos frases sin tilde en `monitoreo_texto_abierto.R` | `monitoreo_texto_abierto.R` | **cerrado** — «así que no se sabe qué» y «no están en la base»; el guard no se extiende a Monitoreo entero, con el motivo medido en la bitácora 64 |
 | 44 | El banco de extras no decía su orden: con «Todas» parecía filtrado a una facultad | `AulasBancoExtras.tsx` | **cerrado** — «las que más mujeres traen primero», dicho donde está el `sort`, bitácora 65 |
 | 45 | El avance salía «20%» o «19,6 %» según la fuente, y sin decir qué medía | `perfilPorFacultad.ts` · `AulasPerfilPorFacultad.tsx` · `kpisDeAulas.ts` | **cerrado** — un decimal en las dos rutas y un solo `pctPerfil()`, bitácora 66 |
+| 46 | «falta 1 encuesta» junto a «faltan 3 y aportan 3» en la misma oración | `.mac_etiqueta_estado()` / `AulasAvanceProyectado` | **nuevo** — visto con el simulacro `como_2025`, sin tocar hasta medir los tres redondeos, bitácora 67 |
+| 47 | «1 de 30 celdas … no van a llegar» | mismo panel | **nuevo** — concordancia |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
