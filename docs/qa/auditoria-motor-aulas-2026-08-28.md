@@ -3,9 +3,8 @@
 Fecha: 2026-08-28. Proyecto medido: `HSVG26ULT2.pulso` (segundo sorteo, semilla
 202, 174 titulares sobre un marco de 1.392 cursos-horario).
 
-Esta auditoría empezó por una pregunta de Gonzalo sobre la matriz de selección:
-por qué aparecían dos columnas de encuestas esperadas con nombres casi
-idénticos. Al seguir el hilo se destapó que el entregable y el motor calculan
+Esta auditoría empezó por una pregunta sobre la matriz de selección: por qué
+aparecían dos columnas de encuestas esperadas con nombres casi idénticos. Al seguir el hilo se destapó que el entregable y el motor calculan
 cosas distintas, y de ahí en adelante cada verificación abrió otra. Se hizo en
 paralelo con la sesión `claude/gallant-pike-78dba6`, que trabajó el mismo motor
 desde el lado de la simulación de certeza; los hallazgos de una y otra se
@@ -81,7 +80,7 @@ Consecuencia: corregir la calibración no es re-aplicar un sello perdido, es
 construir el escritor que falta. Cambiar las constantes embebidas sería
 reemplazar una cifra sin origen por otra, y afectaría a todos los proyectos.
 
-Estado: **abierto**, decisión de Gonzalo.
+Estado: **abierto**, pendiente de decisión.
 
 ## 4. La simulación de certeza colapsa los estratos
 
