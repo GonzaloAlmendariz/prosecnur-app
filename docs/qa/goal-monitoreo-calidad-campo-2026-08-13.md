@@ -239,9 +239,21 @@ terminan diciendo cosas distintas de la misma base.
   (`2026-05-13T17:51:31.999-05:00`). El anonimizador no toca las fechas, lo
   comprobé después.
 
-  Queda por hacer: publicar el detector de suelo y su umbral. El simulacro de
-  HSVG2026 no sirve para probarlo —pone `start` y `end` iguales en las 1.595
-  respuestas— así que se prueba con `acnur_acg`.
+  **Y la capacidad ya está construida y montada**, comprobado después: el motor
+  la calcula (`monitoreo_aulas_tiempos()` sobre `monitoreo_tiempos_respuesta.R`),
+  viaja en el payload como `tiempos`, y el perfil la pinta con
+  `AulasTiemposDeRespuesta` y `AulasUmbralDeDuracion` en la sección Fuentes. El
+  motor además parsea bien el desfase de Kobo, y su comentario documenta la
+  misma trampa en la que yo caí: «`strptime` no acepta el offset con dos puntos
+  (`-05:00`) que escriben Kobo».
+
+  **Lo único que falta es DECLARAR EL UMBRAL, y es una decisión metodológica.**
+  Con los datos de arriba, el suelo defendible está entre 3 y 6 minutos: 40
+  respuestas de `acnur_acg` caen bajo 3 min y el p10 es 6,2. Por arriba no hay
+  umbral defendible, y eso debe decirse en la pantalla en vez de fijar uno.
+
+  El simulacro de HSVG2026 no sirve para probarlo —pone `start` y `end` iguales
+  en las 1.595 respuestas— así que se prueba con `acnur_acg`.
 
 **M8 · Qué se está escribiendo en las preguntas abiertas** ☑ *(2026-08-15)*
 - **Dónde vive**: `api/R/monitoreo_abiertas.R` (archivo propio) y el rol nuevo
