@@ -960,6 +960,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   {fmt(acumulado.conseguidasEnTotal)} encuestas
                 </em>
               ) : null}
+              {/* **La OTRA razón por la que no suman, que no tenía nota.**
+                  `cubiertasPorSexo` sólo es distinto de `null` cuando el reparto
+                  viene del libro, así que la frase de arriba cubre esa rama. En
+                  la otra —el respaldo— las series de sexo salen de las
+                  respuestas atribuidas y la verde, de `effective_surveys` del
+                  parte: dos ejes, no una cobertura incompleta. Medido con
+                  `HSVG2026_sem15_como_2025.pulso`: 1.291 + 1.377 = 2.668 válidas
+                  de plataforma contra 2.817 del parte, con el reparto COMPLETO.
+                  Sin esta línea la diferencia no tiene explicación en pantalla. */}
+              {acumulado.cubiertasPorSexo == null && acumulado.hayObservadasPorSexo ? (
+                <em className="es-ausente">
+                  las dos de sexo salen de las respuestas atribuidas y la verde,
+                  del parte: por eso no suman
+                </em>
+              ) : null}
             </span>
           </p>
         <div className="aulas-serie-plot es-acumulado">

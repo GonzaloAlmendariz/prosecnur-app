@@ -1645,3 +1645,36 @@ declara». Aquí el reparto está **completo** —suman todas las válidas— y 
 diferencia con la verde es el eje, no la cobertura. **La explicación existente no
 cubre este caso**, y escribir una nueva sin medir de dónde sale cada serie sería
 apostar. Se mide antes de tocar.
+
+---
+
+## 72 · Dos causas para la misma diferencia, y sólo una tenía nota (ítem 51)
+
+Medidas las dos ramas que producen las líneas de sexo del acumulado:
+
+1. **Del libro** (`seriesDelLibro`, cuando `hayLibroPorSexo`): acumulados por sexo
+   que declara el parte.
+2. **El respaldo** (`cuotasVisibles`): el **nivel** sale de las respuestas
+   atribuidas —plataforma— y **la forma de la curva** se toma del acumulado
+   diario del parte, que es lo único con fecha. El comentario lo razona: «el
+   nivel de hoy es el que declara la cuota; la forma se toma del acumulado
+   diario».
+
+Con `como_2025` está activa la segunda: 1.291 + 1.377 = **2.668**, las válidas de
+plataforma, contra **2.817** del parte en la verde.
+
+**Y la nota que explicaba la diferencia sólo cubría la rama 1.** Está bien
+guardada —`cubiertasPorSexo` sólo deja de ser `null` cuando el reparto viene del
+libro— así que en el respaldo no salía ninguna, y ahí la diferencia no tenía
+explicación en pantalla. Peor: la explicación disponible («el reparto sólo se
+conoce en las aulas cuyo libro lo declara») **habría sido falsa**, porque aquí el
+reparto está completo.
+
+Ahora el respaldo tiene la suya: «**las dos de sexo salen de las respuestas
+atribuidas y la verde, del parte: por eso no suman**». Verificado en pantalla.
+
+La lección, que es la del ítem 35 en otra forma: **un mismo síntoma puede tener
+dos causas, y una nota que sólo explica una es peor que ninguna** — porque el
+lector la aplica al caso que no le toca. Lo que hizo falta para verlo fue un
+proyecto donde la segunda rama se activa; con el campo recién empezado nunca lo
+hacía.
