@@ -270,3 +270,32 @@ describe("los dos estados de la misma fila, en desacuerdo", () => {
     expect(r.estadosEnDesacuerdo).toBe(0);
   });
 });
+
+describe("«sin medio de contacto» cuenta las que aún hay que agendar", () => {
+  /**
+   * La condición de la fecha estaba en el código y no en el nombre: se cuentan
+   * sólo las que siguen sin fecha, porque una ya agendada no necesita que la
+   * llamen. Medido sobre HSVG2026 «como 2025»: 33 de las 174 en juego no
+   * declaran medio y el contador marca 0, porque las 174 tienen fecha.
+   */
+  it("una sin medio pero YA agendada no cuenta", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "agendada" }),
+    ]);
+    expect(r.sinMedioDeContacto).toBe(0);
+  });
+
+  it("una sin medio y sin fecha sí: no hay por dónde llamarla", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", sample_status: "sin_contactar" }),
+    ]);
+    expect(r.sinMedioDeContacto).toBe(1);
+  });
+
+  it("con medio anotado no cuenta aunque siga sin fecha", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", contact_medium: "Llamada", sample_status: "sin_contactar" }),
+    ]);
+    expect(r.sinMedioDeContacto).toBe(0);
+  });
+});

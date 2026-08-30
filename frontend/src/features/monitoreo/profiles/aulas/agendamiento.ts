@@ -67,11 +67,18 @@ export type Agendamiento = {
    */
   estadosEnDesacuerdo: number;
   /**
-   * Las que siguen en juego y **no tienen medio de contacto anotado**.
+   * Las que **siguen sin fecha** y no tienen medio de contacto anotado.
    *
    * En 2025 fueron 14 de 170 y **se cayeron las catorce**. No es que sean
    * difíciles: es que no hay por dónde llamarlas, y una reserva se activa antes
    * si eso se ve el primer día en vez del último.
+   *
+   * **La condición de la fecha estaba en el código y no en el nombre.** Se
+   * cuentan sólo las que aún hay que agendar —una que ya tiene fecha no
+   * necesita que la llamen— pero el rótulo decía «sin medio de contacto» a
+   * secas. Medido sobre HSVG2026 «como 2025»: **33 de las 174 en juego no
+   * declaran medio** y el contador marca **0**, porque las 174 tienen fecha.
+   * Quien compare las dos cifras no puede reconciliarlas sin leer el código.
    */
   sinMedioDeContacto: number;
   /** Mediana de intentos entre las que registran alguno. */

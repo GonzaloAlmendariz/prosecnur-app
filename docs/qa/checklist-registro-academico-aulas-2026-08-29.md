@@ -2823,3 +2823,35 @@ mal armado: usé «CODIGO OPERATIVO» como título del código cuando los que el
 reconoce son «CURSO-HORARIO» y «CURSO HORARIO», así que la función salía por el
 `return` temprano y parecía que el filtro no funcionaba. **Un fixture que no casa
 con el lector produce exactamente el mismo síntoma que un bug.**
+
+### Vuelta 56 · Un rótulo que promete un universo y cuenta otro
+
+Aplicada la pregunta del universo a los **22 tiles de KPI** del perfil, el que
+saltó fue «Sin medio de contacto · ni teléfono ni correo anotado».
+
+| | |
+|---|---|
+| En juego | 174 |
+| **Sin medio declarado** | **33** |
+| Lo que el tile cuenta | **0** |
+
+La cuenta exige **además** que sigan sin fecha —`else if (!tieneFecha)`— y eso es
+deliberado y defendible: una que ya está agendada no necesita que la llamen. Su
+docblock lo respalda con la medición de 2025, «14 de 170 y se cayeron las
+catorce».
+
+**Pero ni el rótulo ni el docblock lo decían.** Con 33 aulas sin medio y un
+contador en 0, quien compare las dos cifras no puede reconciliarlas sin leer el
+código. No es un defecto de cálculo: es un rótulo que promete un universo y
+cuenta otro.
+
+Cambia sólo lo que dice, no lo que cuenta: «ni teléfono ni correo anotado, **entre
+las que aún hay que agendar**». Tres casos que fijan el criterio: la sin medio ya
+agendada no cuenta, la sin medio y sin fecha sí, y la que tiene medio no cuenta
+aunque siga sin fecha.
+
+**Quinta variante de la misma familia en este tramo**, y la más sutil: las cuatro
+anteriores contaban de más, ésta cuenta de menos. En las cinco, el número era
+correcto y **el nombre describía otro conjunto**.
+
+147 archivos / 1.759 tests, typecheck limpio.
