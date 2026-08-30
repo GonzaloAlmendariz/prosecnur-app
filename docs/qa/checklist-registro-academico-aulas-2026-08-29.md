@@ -1878,3 +1878,48 @@ encuestas— se cierran…»—, así que se queda.
 seis archivos rotos. El comentario va antes del elemento.
 
 147 archivos / 1.738 tests, typecheck limpio.
+
+### Vuelta 32 · Barrido de metáforas, y una función que se contradecía entre sus ramas
+
+Tras el «Escalera de esfuerzo» tocaba preguntar qué otros gráficos se bautizan en
+vez de describirse. De los siete que quedaban, **cinco describen bien** —«N
+cursos-horario, M cumplen», «N cursos-horario cubren el X % de lo que falta»,
+«Efectivas»/«Faltan» con el eje en «respuestas»— y tres llevan metáfora **en el
+nombre del componente**: colchón, embudo, cadena.
+
+| Metáfora | ¿Llega a pantalla? |
+|---|---|
+| embudo | **no** — sólo símbolos y comentarios |
+| colchón | sí, en un subtítulo; es de uso común en español administrativo y se entiende |
+| cadena | sí, y **está definida en su panel**: «Cadena de reemplazos» |
+
+**Tres falsas ausencias de mis propios greps en un solo barrido**, y la tercera es
+nueva: `grep -v "Aulas[A-Z]"` se aplica a la **línea entera de salida, que
+incluye el path**, así que borró todas las líneas de `AulasCadenaChart.tsx` —el
+archivo que buscaba— y me devolvió «no aparece» sobre un `aria-label` que empieza
+por «Cadenas». Un filtro que casa con el nombre del archivo elimina el archivo
+entero.
+
+**El hallazgo real está en `dondeEstanLasOtras`**, y es de los que se ven leyendo
+la función entera: sus **tres ramas explican lo mismo y una se desvía**.
+
+| Rama | Decía |
+|---|---|
+| dormidas + banco | «esperan en reserva —**sólo entran si cae su titular**— y N están en el banco» |
+| **sólo banco** | «están en el banco, **sin asignar a ninguna cadena**» |
+| sólo dormidas | «esperan en reserva: **sólo entran si cae su titular**» |
+
+Dos ramas explican el mecanismo con palabras que no exigen saber nada del diseño;
+la del medio lo nombra con un término del modelo de datos que **sólo se define
+tres secciones más allá**, en el panel «Cadena de reemplazos» de Consultas. Quien
+lee este pie está en Resumen. Pasa a «sin un titular al que respalden», que es lo
+mismo dicho como lo dicen sus hermanas.
+
+**El fixture del test costó dos intentos y eso enseña algo del componente**: la
+rama del medio no se alcanza poniendo `en_reserva = banco`, porque `enJuegoDe`
+descuenta las dormidas **y** el banco, así que `fuera` acaba siendo el doble. Se
+alcanza con banco y **sin** reservas encadenadas: un estudio con banco y ninguna
+cadena montada. Comprobado que muerde: con la frase vieja, rojo en ese test y
+sólo en ése.
+
+147 archivos / 1.740 tests, typecheck limpio.

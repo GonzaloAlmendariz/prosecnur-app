@@ -40,7 +40,12 @@ function dondeEstanLasOtras(fuera: number, banco: number): string {
   if (dormidas > 0 && enBanco > 0) {
     return `Las otras ${fmt(dormidas)} esperan en reserva —sólo entran si cae su titular— y ${fmt(enBanco)} están en el banco.`;
   }
-  if (enBanco > 0) return `Las otras ${fmt(enBanco)} están en el banco, sin asignar a ninguna cadena.`;
+  // **La misma función explicaba el mecanismo en dos ramas y lo nombraba en la
+  // tercera.** Las otras dos dicen «sólo entran si cae su titular», que se
+  // entiende sin saber nada del diseño; ésta decía «sin asignar a ninguna
+  // cadena», y «cadena» sólo se define en la sección Consultas, en el panel
+  // «Cadena de reemplazos». Quien lee esto está en Resumen.
+  if (enBanco > 0) return `Las otras ${fmt(enBanco)} están en el banco, sin un titular al que respalden.`;
   return `Las otras ${fmt(dormidas)} esperan en reserva: sólo entran si cae su titular.`;
 }
 
