@@ -73,7 +73,15 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
         // leyendo esta misma pantalla.
         <p className="mon-profile-table-recorte">
           <strong>{fmt(v.indeterminadas)}</strong>{" "}
-          {v.indeterminadas === 1 ? "aula sin sus dos umbrales" : "aulas sin sus dos umbrales"} en
+          {/* **«Filas de la hoja», igual que cuatro líneas más arriba.** Esta
+              frase decía «aulas» sobre EL MISMO denominador que la de arriba
+              llama filas, en el mismo componente. Y la decisión ya estaba tomada
+              en el panel que lo envuelve: «"filas de la hoja" y no "aulas": son
+              las que trae el libro que llena el equipo, y no tienen por qué ser
+              las del plan… llamarlas "aulas" ponía dos cifras con el mismo
+              nombre en un perfil cuya unidad es el curso-horario». Medido sobre
+              `campo_malo`: 304 filas de la hoja contra 152 partes de campo. */}
+          {v.indeterminadas === 1 ? "fila sin sus dos umbrales" : "filas sin sus dos umbrales"} en
           la hoja · {aulas ? Math.round((100 * v.indeterminadas) / aulas) : 0} %
         </p>
       ) : null}
