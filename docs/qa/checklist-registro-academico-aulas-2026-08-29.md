@@ -1140,3 +1140,63 @@ cursos-horario del plan tienen».
 **Se quedan, además de las ocho familias ya declaradas**: las dos locuciones
 adverbiales —«Cumplimiento aula por aula», «Cada cadena, aula por aula»— y
 «formulario de aplicación en aulas», que nombra un formulario concreto.
+
+### Vuelta 17 · Un panel que perdía su miembro justo cuando todo iba bien
+
+El `capacity-drift` que Avance > Resumen arrastraba desde el turno anterior no
+señalaba un defecto de la cabecera: señalaba que **el contenedor de datos del
+panel no se estaba reconociendo como miembro**, y el auditor caía a los hijos del
+grupo hasta medir el `mon-profile-panel-head` y sus 4-5 px de padding.
+
+La causa está en qué rama de `AulasFrenteDelOperativo` se renderiza. El
+componente declaraba `data-qa-geometry-member` en **dos** de sus tres ramas:
+
+| Rama | ¿Declaraba miembro? |
+|---|---|
+| Estado vacío (`mon-profile-muted`) | sí |
+| Hay vencidos **con** pendientes (`ul.aulas-frente-lista`) | sí |
+| Hay vencidos y **cero** pendientes | **no** |
+
+La tercera es justo la del proyecto en `como_2025` —«los 131 cursos-horario que
+ya pasaron su fecha tienen su parte en el libro»—: no es el estado vacío, y
+`f.pendientes.length` es 0, así que no se pinta la lista. El panel quedaba sin un
+solo miembro explícito **precisamente en el caso en que el operativo va al día**.
+
+La declaración pasa al contenedor `div.aulas-frente`, que es lo único presente en
+las tres ramas y lo que el contrato pide («el contenedor visible de datos»); la
+lista deja de declararla para no anidar dos miembros midiendo lo mismo.
+
+**Es la segunda avería de esta familia con causa distinta.** La primera, ya
+reparada en el runner, era un `<details>` cerrado cuyo miembro el filtro
+descartaba; aquí el miembro no existe en esa rama. El síntoma es idéntico —el
+auditor mide la cabecera— y por eso conviene leerlo siempre como «falta un
+miembro», nunca como «sobra padding en el head».
+
+**Comprobado que el gate muerde**, que era obligatorio porque las 16 direcciones
+del repaso salieron en cero y un pleno así no distingue «conforme» de «no mide»:
+
+| | `ok` | `geometryIssues` |
+|---|---|---|
+| Con la declaración | `true` | **0** |
+| Revertida | `false` | **1** |
+
+**Y el detector con que leí esa prueba dio un falso vacío**: extraía
+`issues=N geometryIssues=N` como si fueran contiguos, y en la línea real van
+separados por diez campos. Devolvió cadena vacía en vez de rojo. Es la tercera
+vez en este loop que un grep mío afirma «no hay» cuando lo que pasa es que no
+casa — y las tres veces el patrón fue el mismo: **buscar la forma exacta que
+esperaba encontrar en vez del término**.
+
+### Indicación D · Ninguna de las dos pestañas nuevas está justificada por el payload
+
+La pregunta «¿faltan dos pestañas?» se contesta con evidencia, no con criterio:
+la única categoría del triaje C5 que autoriza añadir superficie es la **3, vacío
+por desconexión** —el backend ya lo calcula y el frontend no lo consume—.
+
+Censo de `MonitoreoAulasDashboard`: **39 claves de primer nivel, las 39 con al
+menos un consumidor** fuera de `api/monitoreo.ts`. Cero huérfanas.
+
+De modo que **no hay ningún dato ya calculado esperando una pestaña**. Queda
+acotado a lo que mide: el payload del dashboard, no los demás endpoints del
+perfil. Si aparece una pestaña justificada, tendrá que salir de un motor que hoy
+no publica al dashboard, y eso se dice como tal.

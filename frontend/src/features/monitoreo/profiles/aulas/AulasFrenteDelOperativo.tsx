@@ -54,7 +54,20 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
   const ancho = f.vencidas ? Math.round((100 * f.vencidasConParte) / f.vencidas) : 100;
 
   return (
-    <div className="aulas-frente">
+    /* **El contenedor declara la capacidad, no sus ramas.**
+
+       Estaba declarada en el estado vacío y en la lista de pendientes, y
+       ninguna de las dos se renderiza cuando hay datos y CERO pendientes —el
+       caso «los 131 cursos-horario que ya pasaron su fecha tienen su parte en el
+       libro»—. Sin un solo miembro explícito, el auditor de geometría cae a los
+       hijos del grupo y mide el `mon-profile-panel-head`, cuyos 4-5 px de
+       padding declaraba como `capacity-drift`.
+
+       Es la misma avería que ya se reparó en el runner para un `<details>`
+       cerrado, con otra causa: allí el filtro descartaba al miembro, aquí el
+       miembro no existe en esa rama. La declaración va al contenedor visible de
+       datos, que es lo que el contrato pide y lo único que está en las tres. */
+    <div className="aulas-frente" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-frente-lectura">
         {f.vencidas === 0 ? (
           <>Todavía no vence ningún curso-horario: los <strong>{fmt(f.conFecha)}</strong> con fecha
@@ -85,7 +98,7 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
         </div>
       ) : null}
       {f.pendientes.length ? (
-        <ul className="aulas-frente-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <ul className="aulas-frente-lista">
           {f.pendientes.map((a) => (
             <li key={a.codigo}>
               {/* Los DÍAS delante: es lo que ordena la lista y lo que decide a
