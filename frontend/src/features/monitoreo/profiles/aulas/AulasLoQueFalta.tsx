@@ -119,7 +119,8 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         {conCinco ? (
           <>
             {" · "}
-            <strong>{fmt(conCinco)}</strong> están a cinco o menos
+            <strong>{fmt(conCinco)}</strong>{" "}
+            {fmt(conCinco) === "1" ? "está" : "están"} a cinco o menos
           </>
         ) : null}
       </p>
