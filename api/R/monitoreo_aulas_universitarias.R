@@ -2306,11 +2306,19 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (!enlaces$comprobable) {
         "El plan todavia no trae enlaces de recopilador que comprobar."
       } else if (enlaces$enlaces > 0L) {
+        # **La causa, cuando se puede probar.** «23 enlaces repetidos» dice que
+        # hay un problema; «el enlace lleva solo los 8 primeros caracteres del
+        # identificador» dice como se arregla y de una vez para todas.
+        causa <- if (is.na(enlaces$truncado)) "" else sprintf(
+          paste0(" El enlace lleva solo los %d primeros caracteres del identificador ",
+                 "del curso-horario, asi que dos que empiecen igual caen en el mismo."),
+          enlaces$truncado
+        )
         sprintf(
           paste0("%d cursos-horario comparten %d enlaces con otro: sus respuestas entran ",
-                 "por la misma puerta y no se pueden separar despues (%s). Revisa el ",
+                 "por la misma puerta y no se pueden separar despues (%s).%s Revisa el ",
                  "enlace en el plan antes de que entre mas campo."),
-          enlaces$aulas, enlaces$enlaces, paste(enlaces$ejemplos, collapse = "; ")
+          enlaces$aulas, enlaces$enlaces, paste(enlaces$ejemplos, collapse = "; "), causa
         )
       } else {
         "Cada curso-horario en juego tiene su propio enlace de recopilador."

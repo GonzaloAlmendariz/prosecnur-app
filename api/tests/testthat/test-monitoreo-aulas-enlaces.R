@@ -83,3 +83,41 @@ test_that("un enlace compartido sale como «warning», no como «review»", {
   # Con enlaces y sin repetidos, correcto.
   expect_equal(monitoreo_aulas_estado_control(TRUE, FALSE, "warning"), "ok")
 })
+
+# --- la CAUSA, cuando se puede probar ----------------------------------------
+
+test_that("detecta que el enlace es el identificador truncado, y a cuántos caracteres", {
+  # Medido sobre HSVG2026 «como 2025»: las 1.424 filas tienen la cola del enlace
+  # igual a los 8 primeros caracteres de su `classroom_id`, sin una excepción.
+  # No es un error aislado: quien generó los enlaces cortó el identificador a
+  # ocho, y con ids de once eso colisiona en cuanto dos comparten ese prefijo.
+  f <- data.frame(
+    operational_code = c("CH 11", "CH 35", "CH 99"),
+    classroom_id = c("1ind53_0833", "1ind53_0832", "9uni77_1104"),
+    link = c("https://ee.kobotoolbox.org/x/1ind53_0",
+             "https://ee.kobotoolbox.org/x/1ind53_0",
+             "https://ee.kobotoolbox.org/x/9uni77_1"),
+    stringsAsFactors = FALSE
+  )
+  expect_equal(monitoreo_aulas_enlaces_compartidos(f)$truncado, 8L)
+})
+
+test_that("no inventa la causa cuando la relación no es sistemática", {
+  # Con enlaces que no derivan del identificador, decir «está truncado» sería
+  # atribuir un mecanismo que no se ha visto.
+  f <- data.frame(
+    operational_code = c("CH 1", "CH 2"),
+    classroom_id = c("aula_uno", "aula_dos"),
+    link = c("https://kobo/x/formularioA", "https://kobo/x/formularioA"),
+    stringsAsFactors = FALSE
+  )
+  expect_true(is.na(monitoreo_aulas_enlaces_compartidos(f)$truncado))
+})
+
+test_that("sin columna de identificador tampoco se afirma nada", {
+  f <- data.frame(operational_code = c("CH 1", "CH 2"),
+                  link = c("u1", "u1"), stringsAsFactors = FALSE)
+  r <- monitoreo_aulas_enlaces_compartidos(f)
+  expect_equal(r$enlaces, 1L)
+  expect_true(is.na(r$truncado))
+})
