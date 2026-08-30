@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { COLOR_MARCA_DE_META, COLOR_RESULTADO } from "../../coloresDeResultado";
 import { celdasPorFacultad } from "./celdasPorFacultad";
 import { fmt } from "./kpisDeAulas";
 
@@ -107,8 +107,10 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
     name: "Cuota",
     y: eje,
     x: par((f) => [f.mujeresCuota, f.hombresCuota]),
+    // Tinta, no un color de dato: llevaba `COLOR_RESULTADO.pendiente`, que es el
+    // MISMO gris del segmento «Déficit proyectado» de esta barra.
     marker: { symbol: "line-ns-open", size: 14, line: { width: 2 },
-              color: COLOR_RESULTADO.pendiente },
+              color: COLOR_MARCA_DE_META },
     hovertemplate: "%{y}: cuota %{x}<extra></extra>",
   };
 
