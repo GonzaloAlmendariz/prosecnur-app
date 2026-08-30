@@ -77,7 +77,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Para saber si el banco alcanza hace falta la hoja «Base de control» del
-        libro: de ahí sale la tasa con la que responde un aula, y sin ella
+        libro: de ahí sale la tasa con la que responde un curso-horario, y sin ella
         proyectar sus alumnos sería inventar.
       </p>
     );
@@ -109,7 +109,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
             Decía «han respondido», que es la forma exacta de nombrar τ, y el
             ADR 0082 lo señaló por su nombre: el parte y la Base de control no
             producen τ, producen el cuadre, y van con su propio rótulo. */}
-        Con lo que la Base de control da por enviado en las aulas aplicadas:{" "}
+        Con lo que la Base de control da por enviado en los cursos-horario aplicados:{" "}
         <strong>{pct(r.tasa.tasa)}</strong> de su población elegible, medida en{" "}
         {fmt(r.tasa.aulas)} aulas. No es la efectiva de plataforma, que es la que
         define el cumplimiento del estudio. La banda es la variación entre aulas, que es
@@ -118,7 +118,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
         {r.caida > 0 ? (
           <>
             {" "}Y descontando el <strong>{(r.caida * 100).toFixed(0)} %</strong>{" "}
-            que se cae: un aula del banco tampoco llega siempre a aplicarse.
+            que se cae: un curso-horario del banco tampoco llega siempre a aplicarse.
           </>
         ) : null}
       </p>

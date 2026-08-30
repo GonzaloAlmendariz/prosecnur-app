@@ -7,7 +7,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * **La unidad del estudio se llama curso-horario, y el perfil todavía dice
- * «aula» en 63 frases.**
+ * «aula» en 53 frases.**
  *
  * No son sinónimos. El ADR 0060 fija el principio: «cada vez que el operativo
  * **visita un curso-horario** se produce un encuentro con cada estudiante
@@ -55,7 +55,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
-const TOPE = 63;
+const TOPE = 53;
 
 /** Con determinante o cifra delante: en prosa siempre lo lleva; en código, no. */
 const EN_PROSA =

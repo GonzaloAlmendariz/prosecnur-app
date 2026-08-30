@@ -1051,3 +1051,28 @@ que viene del equipo.
 extra» del popover de reemplazo— y no hay nada que indique lo contrario. Tras
 tres frenos del repo por renombrar términos establecidos, la carga de la prueba
 está en cambiar, no en dejar.
+
+## Deuda de vocabulario · los cuatro archivos que más acumulaban
+
+Quince frases revisadas una a una. **Doce cambiadas, tres se quedan** y cada una
+con su motivo:
+
+- «Duración de la aplicación **dentro del aula**, en minutos» — ahí el aula es el
+  **espacio físico** donde dura la sesión, no la unidad de muestreo.
+- «"Banco" son **las aulas extra** de esa facultad» — término del operativo, el
+  mismo «bolsón extra» del popover.
+- «el banco de extras no tiene **las aulas** que se piden» — habla del banco, así
+  que arrastra el mismo vocabulario. Se deja por prudencia.
+
+El ratchet baja de **63 a 53**.
+
+**Y de paso, una concordancia que el cambio destapó**: «Ninguna aula evaluada se
+quedó **corta**» pasa a «Ningún curso-horario evaluado se quedó **corto**». El
+género venía del sustantivo viejo y habría quedado descolgado.
+
+## Comprobación cruzada del embudo entre simulacros
+
+`como_2025`: 174 titulares · **18 con reemplazo activado** · −22 → 152 aplicadas ·
+2.817 recibidas · −149 → 2.668 que cuentan. Todas las restas cierran, y el «18»
+es **el mismo que en `campo_malo`** — correcto, porque los reemplazos dependen del
+registro y no del rendimiento. La reparación del «174» se sostiene en los dos.

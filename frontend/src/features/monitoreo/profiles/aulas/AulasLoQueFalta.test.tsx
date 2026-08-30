@@ -18,7 +18,7 @@ describe("AulasLoQueFalta · los vacíos", () => {
     const html = renderToStaticMarkup(
       <AulasLoQueFalta filas={[{ operational_code: "CH 1", cumple_total: true, cumple_poblacion: true }]} />,
     );
-    expect(html).toContain("Ninguna aula evaluada se quedó corta");
+    expect(html).toContain("Ningún curso-horario evaluado se quedó corto");
     expect(html).not.toContain("Sin datos");
   });
 

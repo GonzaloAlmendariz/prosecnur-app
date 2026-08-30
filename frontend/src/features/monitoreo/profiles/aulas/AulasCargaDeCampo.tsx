@@ -213,7 +213,7 @@ export function AulasCargaDeCampo({
         <label>
           <span>
             Duración de la aplicación: <strong>{fmt(duracionMin)} min</strong>
-            <em>sólo afecta a las aulas ya agendadas</em>
+            <em>sólo afecta a los cursos-horario ya agendados</em>
           </span>
           <input
             type="range"
@@ -270,7 +270,7 @@ export function AulasCargaDeCampo({
 
       {eje === "calendario" && malla.fechas === 0 ? (
         <p className="aulas-carga-aviso">
-          Ninguna aula tiene fecha todavía, así que el calendario sólo puede mostrar el carril de las que
+          Ningún curso-horario tiene fecha todavía, así que el calendario sólo puede mostrar el carril de las que
           faltan agendar. El patrón semanal es la lectura que dimensiona el equipo mientras tanto.
         </p>
       ) : null}
@@ -372,7 +372,7 @@ export function AulasCargaDeCampo({
       {eje === "calendario" && malla.agendadasSinFecha > 0 ? (
         <p className="aulas-carga-aviso">
           {malla.agendadasSinFecha === 1
-            ? "1 aula tiene hora acordada pero no fecha, así que no cabe"
+            ? "1 curso-horario tiene hora acordada pero no fecha, así que no cabe"
             : `${fmt(malla.agendadasSinFecha)} aulas tienen hora acordada pero no fecha, así que no caben`}{" "}
           en el calendario. {malla.agendadasSinFecha === 1 ? "Aparece" : "Aparecen"} en el patrón semanal.
         </p>
