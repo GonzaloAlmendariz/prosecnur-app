@@ -207,3 +207,40 @@ describe("la cuarta unidad de esfuerzo: el día de la semana", () => {
     expect(filas.map((f) => f.facultad)).toEqual(["Domingo"]);
   });
 });
+
+describe("las columnas se explican solas en los cuatro paneles", () => {
+  /**
+   * El pie define «Por visita», «Ajustado», «De los asistentes» y «Del
+   * potencial», pero **sólo lo pinta el primero de los cuatro paneles que usan
+   * esta tabla**: «Quién consigue más», «Franja horaria del operativo» y «Día
+   * de la semana» llegan con `explicaLasColumnas={false}` para no repetir el
+   * párrafo cuatro veces. Comprobado en pantalla el 2026-08-29: uno con leyenda
+   * y tres sin ella, publicando «Ajustado» y «Del potencial» sin decir qué son.
+   *
+   * La definición se ató al `title` de cada cabecera, que viaja con la columna
+   * en los cuatro. Este guard mira el fuente porque es donde vive la regla: en
+   * un render de un solo panel no se distingue el que sí lleva pie del que no.
+   */
+  const fuente = fs.readFileSync(
+    path.resolve(__dirname, "AulasRendimientoPorFacultad.tsx"),
+    "utf8",
+  );
+
+  it.each(["Por visita", "Ajustado", "De los asistentes", "Del potencial"])(
+    "«%s» lleva su definición en la cabecera",
+    (columna) => {
+      // La cabecera y su `title` en el mismo elemento: se busca el bloque que
+      // abre con `title=` y contiene el nombre de la columna.
+      const bloque = new RegExp(
+        `<span role="columnheader" title=[^>]+>\\s*${columna}\\s*<`,
+      );
+      expect(bloque.test(fuente), `«${columna}» no declara qué mide`).toBe(true);
+    },
+  );
+
+  it("y el pie sigue existiendo para el panel que sí lo pinta", () => {
+    // El control: si alguien retirase el párrafo pensando que los `title` lo
+    // sustituyen, el panel principal perdería su explicación visible.
+    expect(fuente).toContain("corrige el tamaño de la muestra");
+  });
+});
