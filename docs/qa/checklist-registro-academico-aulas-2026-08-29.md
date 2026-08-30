@@ -712,3 +712,30 @@ que el propio `RegistroDeCampo` documenta; queda anotado.
 **El resto del perfil no tiene overlays**: censados los componentes con
 `role="dialog"`, `aria-modal` o clase de overlay, el único es el de reemplazo.
 `AulasFichaDeAula` parecía uno y no lo es —se monta en línea dentro de Calidad—.
+
+### El popover, abierto y evaluado por primera vez
+
+Para llegar a él hacen falta **tres pasos**, y por eso el barrido automático
+nunca lo tocó: entrar en `calidad/registro`, seleccionar un curso-horario de la
+lista de 1.347, y poner el formulario en un estado de caída —`sin_acceso`,
+`cancelada` o `reemplazo_pendiente`— **con el aula siendo titular o reserva de
+cadena** (`aulaPuedeReemplazarse`). Guionizado a mano, el contrato nuevo se
+comporta como debe: el botón sale con `aria-haspopup="dialog"` y
+`aria-expanded="false"`, y al pulsarlo pasa a **`true`** con el diálogo montado.
+
+**El diálogo está bien construido** y no se toca: tiene nombre accesible
+—«Reemplazar CH 43»—, da el contexto del curso-horario, separa los tres orígenes
+de reserva, explica el criterio de orden —«el orden que fijó el sorteo; es la
+guía: se sigue salvo que no sirva»— y **declara su tope**: «se muestran las 3
+mejores de 5».
+
+**Lo corregido**: sus porcentajes pegaban el signo al número —«se parece 100%»,
+«cierra brecha 17%»— siendo el único sitio del perfil que lo hacía. Las otras
+tres superficies con este mismo formato —la alerta de anticipación, el criterio
+de aula y el propio registro de campo desde el que se abre este diálogo— lo
+separan. Ahora también.
+
+**No se toca el vocabulario del equipo**: «reservas al aire» y «bolsón extra» son
+del operativo y esta superficie la usa el jefe de campo, no la autoridad que lee
+Avance. Corregirlos sería el error que el ADR 0057 advierte, en su versión de
+registro.
