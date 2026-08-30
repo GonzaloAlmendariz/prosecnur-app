@@ -44,7 +44,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
     // tres paneles a la vez.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Los partes no dicen quién aplicó cada aula, así que no hay producción que
+        Los partes no dicen quién aplicó cada curso-horario, así que no hay producción que
         repartir. El aplicador se anota al registrar el aula.
       </p>
     );
@@ -58,13 +58,13 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         {r.distinguibles === 0 ? (
           <>
             Ningún equipo se separa de las <strong>{fmt1(r.mediaDelEstudio)}</strong>{" "}
-            encuestas por aula del estudio
+            encuestas por curso-horario del estudio
           </>
         ) : (
           <>
             <strong>{fmt(r.distinguibles)}</strong>{" "}
             {r.distinguibles === 1 ? "equipo se separa" : "equipos se separan"} de las{" "}
-            {fmt1(r.mediaDelEstudio)} encuestas por aula del estudio
+            {fmt1(r.mediaDelEstudio)} encuestas por curso-horario del estudio
           </>
         )}
       </p>
@@ -82,7 +82,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
             </span>
             <span className="aulas-equipos-n"><strong>{fmt1(e.porAula)}</strong></span>
             <span className="aulas-equipos-por">
-              por aula en {e.aulas} · ±{fmt1(2 * e.ee)}
+              por curso-horario en {e.aulas} · ±{fmt1(2 * e.ee)}
               {e.rechazosPorCien !== null && e.rechazosPorCien > 0
                 ? ` · ${fmtUnDecimal(e.rechazosPorCien)} rechazos/100`
                 : ""}

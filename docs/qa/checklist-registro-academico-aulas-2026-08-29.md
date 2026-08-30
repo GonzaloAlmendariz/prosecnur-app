@@ -755,3 +755,42 @@ mismo módulo». Un find-replace la habría destruido.
 Dos frases se resistieron al primer intento por tener un salto de línea en medio,
 y una de ellas resultó vivir en un `<title>` de SVG: texto publicable que leen el
 navegador y el lector de pantalla, no un comentario. Cerradas las dos.
+
+---
+
+## Viewports pequeños · las seis pestañas a 1366×768, 1280×720 y 1024×600
+
+Dieciocho capturas. **Cuatro pestañas limpias** —Cuotas, Estratos, Rendimiento y
+Efectividad: `ok=true`, cero incidencias, cero desbordes—. Y el
+`equal-frame-drift` de la banda que se reparó en `ba0a033e` **no reaparece a
+1024×600**, que era el viewport donde vivía.
+
+Las otras dos, medidas de verdad y no dadas por buenas:
+
+**Resumen · 3 incidencias**, una por viewport. Reverificadas con salida propia
+—el `report.json` se sobrescribe cuando varias corridas comparten carpeta, así
+que el detalle del primer barrido se había perdido—: son las tres el
+`capacity-drift` ya caracterizado de «Cursos-horario vencidos sin aplicar», con
+4–5 px en su `.mon-profile-panel-head`. Nada nuevo.
+
+**Salidas · 1 incidencia a 1024×600, y es un falso positivo del detector.** Un
+`scroll-unreachable` que declara `atEnd: true` pero `lastContentReachable:
+false`, con el «último contenido» en un `<small>` que dice «en 15 facultades» y
+un `lastContentBottom` de **−252 px**: negativo, o sea por encima del viewport.
+Ese `small` es la pista de un KPI de la banda, que está arriba del todo; el
+detector lo eligió por orden de DOM y no por orden visual.
+
+Comprobado en pantalla a 1024×600: **el contenido sí es alcanzable** — con el
+scroll al final se lee «Validación y soporte · Opcional para revisión interna»,
+que es el último bloque real. No se toca la app por un rojo que no corresponde a
+un defecto, y se deja escrito para que no se persiga otra vez.
+
+### Y cinco frases más de vocabulario
+
+`AulasTrabajoDeLosEquipos.tsx`, incluidas **dos ramas del mismo párrafo**. El
+ratchet baja a **64**.
+
+De `aulasPresentation.ts` no se toca ninguna de sus cuatro, y por decisión: «Tasa
+del aula» es el nombre que el motor da a otra cantidad, «Tamaño de aula» describe
+el salón y «Peso del aula» es el término de ponderación. Revisar frase por frase
+significa también dejar las que están bien.
