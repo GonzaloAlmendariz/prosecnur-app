@@ -786,6 +786,22 @@ export function RegistroDeCampo({
                       onClick={() => setEligiendo(true)}
                       disabled={guardando || activando}
                       title="Compara las reservas disponibles y elige cuál entra, en vez de seguir el orden"
+                      /* **El disparador declara lo que abre.**
+
+                         Lo que despliega es un `role="dialog"` con
+                         `aria-modal`, y el botón no lo decía: un lector de
+                         pantalla lo anunciaba como un botón cualquiera, sin
+                         avisar de que va a abrir un diálogo modal ni de si ya
+                         está abierto.
+
+                         Y tenía una segunda consecuencia, medida el 2026-08-29:
+                         el barrido de popovers del runner busca justamente
+                         `aria-haspopup` y `aria-expanded`, así que **este
+                         overlay nunca entró en el gate**. Todas las corridas del
+                         perfil reportaban `popovers=0`, que se leía como «no hay
+                         ninguno» cuando significaba «ninguno se declara». */
+                      aria-haspopup="dialog"
+                      aria-expanded={eligiendo}
                     >
                       <Search size={14} /> Elegir reemplazo
                     </button>

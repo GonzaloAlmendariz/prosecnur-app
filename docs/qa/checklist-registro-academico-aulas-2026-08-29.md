@@ -684,3 +684,31 @@ pendiente sin tocar nada.
 principal de «Cómo rinde cada facultad, día a día». Sus **dos ramas** —la del
 conjunto y la de una facultad elegida— más el aviso de «con tan pocas aulas».
 Cerradas las tres; el ratchet baja de **88 a 86**.
+
+---
+
+## Popovers · el `popovers=0` era verde por ausencia
+
+Todas las corridas del runner sobre este perfil reportaban `popovers=0`. Se leía
+como «no hay popovers que revisar»; significa otra cosa.
+
+El barrido busca disparadores por `aria-haspopup` y `aria-expanded`. Medido en
+pantalla: **cero elementos del perfil declaran ninguno de los dos**. Y sí hay un
+overlay real —`AulasPopoverReemplazo`, con `role="dialog"` y `aria-modal="true"`—
+que abre el botón «Elegir reemplazo» del registro de campo.
+
+**Reparado el contrato del disparador**: ahora declara `aria-haspopup="dialog"` y
+`aria-expanded`. La ganancia es doble y la primera es la que más vale: un lector
+de pantalla anunciaba ese botón como uno cualquiera, sin avisar de que abre un
+diálogo modal ni de si ya está abierto.
+
+**La cobertura del gate sigue pendiente, y se dice en vez de darla por buena.**
+El disparador vive detrás de seleccionar un aula caída: en
+`monitoreo/aulas/calidad/registro` no está en el DOM —comprobado, `hayBotonElegir:
+false` y sólo tres botones, los del chrome—, así que el barrido automático no
+llega a abrirlo. El camino es la dirección canónica con `?foco=aula:<código>`,
+que el propio `RegistroDeCampo` documenta; queda anotado.
+
+**El resto del perfil no tiene overlays**: censados los componentes con
+`role="dialog"`, `aria-modal` o clase de overlay, el único es el de reemplazo.
+`AulasFichaDeAula` parecía uno y no lo es —se monta en línea dentro de Calidad—.
