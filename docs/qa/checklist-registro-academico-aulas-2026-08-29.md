@@ -187,3 +187,29 @@ calibre pasó el gate en verde a la primera. Ahora tiene tres, con el caso real
 de Arquitectura y un control de que el chip se pinta —sin él, «no contiene Cuota
 cumplida» pasaría también con un chip que no apareciera nunca—. Comprobado que
 muerde: rojo al devolver el criterio viejo.
+
+### Vuelta 5 · Una tarjeta que no decía de qué
+
+«APLICADAS 152» estaba en una banda donde la tarjeta vecina, «VÁLIDAS 2,668»,
+cuenta **personas**. Quien no diseñó el estudio compara 152 con 2.668 sin nada
+que le avise de que son cursos-horario contra encuestas. Pasa a **«Cursos-horario
+aplicados»**, que es el nombre con que el glosario de columnas ya traducía ese
+mismo dato (`aulas_aplicadas`), así que la tarjeta y la tabla lo llaman igual.
+
+**El renombrado debilitaba un guard, y eso se dice en vez de callarlo.** Mientras
+el KPI se llamó «Aplicadas» a secas, la comparación de cadena completa del guard
+de rótulos impedía además que un tramo se llamara «Aplicada» —el defecto que lo
+hizo nacer: `en_aplicacion` significa *tiene respuestas pero todavía no es
+aplicada ni cerrada*, o sea EN CURSO—. Con la unidad en el rótulo, esa
+protección deja de venir sola. Se reafirma con un contrato propio sobre el tramo
+que falló de verdad, en lugar de inventar un guard más listo que nadie ha
+necesitado. Comprobado que muerde.
+
+Geometría verificada tras el cambio: el rótulo pasa a dos líneas y la banda
+conserva su marco — 12 grupos, 0 incidencias, 0 desbordes, a 1440×1000 y
+1280×720.
+
+**Sintaxis del runner para reusar una pila viva** (costó una corrida
+descubrirla): `--url http://127.0.0.1:PUERTO/ --api real --api-url
+http://127.0.0.1:PUERTO_API`. `--api` es un MODO (`auto` / `stub` / `real`), no
+una URL.

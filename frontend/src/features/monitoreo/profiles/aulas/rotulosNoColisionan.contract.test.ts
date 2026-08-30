@@ -36,7 +36,28 @@ describe("los rótulos de tramo no chocan con los de la banda", () => {
     // El control de que el fixture sirve. Con `aulasKpis(null, …)` devolviendo
     // una lista vacía, el test pasaría sin comparar nada — verde por ausencia.
     expect(etiquetasDeBanda.size).toBeGreaterThan(3);
-    expect(etiquetasDeBanda.has("aplicada")).toBe(true);
+    expect(etiquetasDeBanda.has("cursos-horario aplicado")).toBe(true);
+  });
+
+  /**
+   * **Aviso de alcance, para que no pase inadvertido.**
+   *
+   * El KPI se llamaba «Aplicadas» a secas y la comparación de arriba es de
+   * cadena completa, así que mientras duró ese rótulo el guard impedía además
+   * que un tramo se llamase «Aplicada» —el defecto que lo hizo nacer—. Al
+   * ponerle la unidad al KPI («Cursos-horario aplicados»), esa protección
+   * concreta deja de venir sola.
+   *
+   * Se reafirma aquí, sobre el tramo que falló de verdad, en vez de intentar un
+   * guard más listo que nadie ha necesitado todavía: `en_aplicacion` es «tiene
+   * respuestas pero todavía NO es aplicada ni cerrada»
+   * (`monitoreo_aulas_universitarias.R:1335`), o sea EN CURSO, y «Aplicada» es
+   * el participio de terminado.
+   */
+  it("y el tramo en curso no se llama con el participio de terminado", () => {
+    const enCurso = TRAMOS_DE_APLICACION.find((t) => t.clave === "en_aplicacion");
+    expect(enCurso, "el tramo `en_aplicacion` desapareció: revisa este contrato").toBeDefined();
+    expect(raiz(enCurso!.etiqueta)).not.toBe("aplicada");
   });
 
   it("ningún tramo de aplicación usa una palabra de la banda", () => {
