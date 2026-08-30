@@ -2989,3 +2989,35 @@ Lo que se ha hecho para que Avance se lea sin haber diseñado el estudio:
 elemento las 10 direcciones fuera de Avance— sigue en curso, y ahí es donde
 aparecerán los defectos que este loop aún no ha tocado. **La cierra Gonzalo, no
 yo.**
+
+### Vuelta 61 · Los bloques que alimentan las secciones fuera de Avance, cuadrados
+
+Primer barrido de la indicación C con el método de cruzar cifras. Los dieciocho
+bloques del payload que alimentan `fuentes`, `modelo`, `calidad` y `consultas`:
+
+| Bloque | Filas | Cuadra con |
+|---|---|---|
+| `agenda` | 1.424 | el plan entero |
+| `reemplazos` | 1.347 | 1.424 − 77 del banco ✔ |
+| `partes_campo` | 152 | las aplicadas ✔ |
+| `control_calidad` | **304** | **152 × 2 sexos** ✔ (152 códigos distintos, sexos F/M) |
+| `course_status` | 500 | recorte declarado ✔ |
+| `brechas` | 98 | `kpis.brechas` ✔ |
+| `quotas_sex_faculty` | 30 | 15 facultades × 2 ✔ |
+| `avance_por_estrato` | 72 | facultad × sexo × tamaño ✔ |
+
+**Sin descuadres.** El único bloque vacío es `criterio_aula`, y es **vacío
+legítimo con su causa dentro del propio código**: «Gonzalo: "ni siquiera hemos
+definido si un aula es válida al 70 % o no"». El módulo devuelve `NULL` cuando el
+estudio no lo declara y el panel lo dice —«Este estudio no ha declarado qué es un
+curso-horario válido»—, con la asimetría explicada: el criterio de **respuesta**
+válida sí se declara en la app, el de **aula** válida no existía en ninguna parte.
+
+Y su decisión de diseño, que conviene no perder: el criterio propio **no
+reemplaza** al veredicto de la hoja, «lo pone al lado […] donde las dos difieren,
+eso es lo que hay que mirar. Sustituir uno por otro sería cambiar de dueño la
+decisión sin que nadie lo pida».
+
+**Lo que este barrido no cubre**: mide que las cifras cuadren entre bloques, no
+que cada panel diga lo que su cifra significa. Eso es lo que queda de la
+indicación C, panel por panel.
