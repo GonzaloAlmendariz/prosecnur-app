@@ -2921,3 +2921,35 @@ aplicación en aulas»—.
 `geometryIssues=0` en todas. Se lanzó a propósito después de acumular tantos
 cambios —motor, KPIs, avisos, vocabulario y dos reparaciones de geometría— y es
 la comprobación que faltaba para que la indicación A siga en pie.
+
+### Vuelta 59 · Barrido de tecnicismos en Avance: uno solo, y estaba en un vacío
+
+La indicación I tiene un test comprobable: **buscar en los textos de Avance los
+términos que exigen saber de diseño muestral**. Barridos quince —estrato, deff,
+ponderación, cuantil, posterior, bayesiano, dispersión, percentil, varianza,
+sesgo, desviación, calibración, mediana, tau, τ— sobre los archivos de la
+sección **sin sus comentarios**, que es lo que se publica:
+
+| Término | Apariciones | Veredicto |
+|---|---|---|
+| `tau` | 46 | **nombres de campo** (`f.tau_previsto`), no texto; la letra griega no llega a pantalla (vuelta 31) |
+| `estrato` | 17 | «Estratos» es el **nombre de una pestaña**, así que el término es del producto… salvo uno |
+| `dispersi` | 7 | campo del payload, en un `title` |
+| `mediana` | 2 | «días que pasaron de mediana entre llamar y tener cita»: se entiende |
+| `calibra` | 2 | `etiquetaCalibracion`, texto del motor ya revisado |
+
+**El único escape real** estaba en el vacío del gráfico de cobertura: «77 son
+reservas del banco y tampoco entran: **esperan en su estrato** y contarlas como
+"sin respuestas" las volvería una alarma». Ahí «estrato» es el grupo del sorteo,
+y quien lee no tiene por qué saberlo. Pasa a «**esperan disponibles para su
+facultad y sexo**», que es la misma información en el registro llano que el perfil
+ya usa para el banco —«sin un titular al que respalden»—.
+
+**Cuatro greps míos fallaron antes de este barrido**, todos por el shell: `-r` con
+lista explícita de archivos, un archivo inexistente que hace fallar el comando
+entero, y dos bucles que devolvían cero sin error. Lo resolvió hacerlo en Node.
+**Un barrido que devuelve cero hay que probarlo con un término que se sabe que
+está** — «estrato» en la pestaña de Estratos era ese control, y es lo que
+destapó que el comando no funcionaba.
+
+148 archivos / 1.762 tests, typecheck limpio.
