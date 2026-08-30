@@ -24438,13 +24438,39 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
   reemplazos <- .monitoreo_publication_nonempty_df(reports$reemplazos %||% list())
   validacion <- .monitoreo_publication_nonempty_df(reports$validation %||% list())
   kpis <- reports$kpis %||% list()
+  # **`reemplazos_usados` NO cuenta reemplazos, y esta hoja va al cliente.**
+  #
+  # El KPI suma reservas con `replacement_for` en estado agendada/en campo/
+  # aplicada/cerrada/parcial, o sea reservas EN JUEGO. Sobre HSVG2026 «como
+  # 2025» vale 174 —el numero de titulares— mientras los titulares que de
+  # verdad se cayeron y fueron sustituidos son 18.
+  #
+  # El frontend ya lo tenia advertido en tres sitios (`embudoDelOperativo.R`
+  # ~40, `kpisDeAulas.ts` ~684 y el badge del rail) y ninguna de las tres
+  # advertencias llego hasta aqui: la hoja del cliente seguia publicando 174
+  # bajo el rotulo «Reemplazos usados».
+  #
+  # La cifra correcta es el tramo `reemplazada` del reparto que el motor ya
+  # publica, que es el estado del TITULAR sustituido.
+  reemplazados <- {
+    tramos <- reports$course_status_estados %||% list()
+    n <- 0L
+    for (tramo in tramos) {
+      if (identical(.monitoreo_scalar(tramo$clave, ""), "reemplazada")) {
+        n <- as.integer(.monitoreo_num(tramo$aulas, 0))
+      }
+    }
+    n
+  }
   resumen <- data.frame(
-    Indicador = c("Aulas planificadas", "Aulas aplicadas", "Aulas parciales", "Reemplazos usados", "Respuestas validas", "Brechas aula"),
+    # «Cursos-horario reemplazados» y no «Reemplazos usados»: lo que se cuenta
+    # es cuantos titulares hubo que sustituir, no cuantas reservas hay en juego.
+    Indicador = c("Aulas planificadas", "Aulas aplicadas", "Aulas parciales", "Cursos-horario reemplazados", "Respuestas validas", "Brechas aula"),
     Valor = c(
       kpis$total_aulas %||% 0L,
       kpis$aulas_aplicadas %||% 0L,
       kpis$aulas_parciales %||% 0L,
-      kpis$reemplazos_usados %||% 0L,
+      reemplazados,
       kpis$respuestas_validas %||% 0L,
       kpis$brechas %||% 0L
     ),
