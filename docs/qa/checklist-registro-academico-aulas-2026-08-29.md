@@ -2759,3 +2759,35 @@ normal entrena a no mirarlo, y el día que avise de verdad ya nadie le hace caso
 Es peor que no tener el aviso.
 
 147 archivos / 1.759 tests, typecheck limpio.
+
+### Vuelta 54 · El ratchet de vocabulario sólo vigilaba la mitad de la pantalla
+
+Aplicada la pregunta de la vuelta anterior a los avisos que **ya existían**, la
+lista de validación tenía dos activos y el primero traía un escape:
+
+> `warning` · `sex_faculty_quota` · «**9 celdas sexo x facultad** con brecha.»
+
+**«Celda» es exactamente el término que el vocabulario retiró de la pantalla** en
+las vueltas 1 y 2 —jerga de tabla estadística para quien lee un tablero— y el
+ratchet que lo vigila **mira los archivos del frontend**. Este texto sale del
+motor, y `presentDetail` lo pinta tal cual: ya traducía «sexo x facultad» → «sexo
+por facultad», pero no «celdas».
+
+**Medido el alcance del hueco**: **14 textos** de `monitoreo_aulas_*.R` usan
+«aula» o «celda» y ninguno está cubierto por ese ratchet. No todos son
+infractores —«aula» es la palabra justa cuando se habla del salón físico— pero
+ninguno estaba vigilado.
+
+Reparado **en R y no en `presentDetail`**: traducir en la presentación es tapar,
+y el texto vive en el motor. Ahora dice «**9 grupos de facultad y sexo con
+brecha**», verificado en el payload.
+
+Con su guard, que fija lo corregido sin perseguir los catorce: comprueba que
+ninguna línea de `sprintf` publicable diga «celda(s) sexo», con su control de
+fixture.
+
+**El patrón, que es el mismo de todo este tramo**: un guard declara que vigila
+algo y cubre sólo una parte del camino. Ya pasó con el ratchet ciego a las cifras
+interpoladas (vuelta 18) y con el control de fixture que no veía una alternativa
+muerta del regex. **Un ratchet vale lo que su alcance, y el alcance hay que
+medirlo, no suponerlo.**

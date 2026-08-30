@@ -2263,7 +2263,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         sprintf("%d respuestas repetidas.", respuestas_repetidas)
       },
       .monitoreo_aulas_representatividad_texto(representativity),
-      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(monitoreo_aulas_celda_en_deuda(quota_status))) else "Sin cuota sexo x facultad detectable.",
+      # **«grupos de facultad y sexo», no «celdas».** El vocabulario de la casa
+      # retiro «celda» de la pantalla —es jerga de tabla estadistica para quien
+      # lee un tablero— y el ratchet que lo vigila mira el FRONTEND, asi que no
+      # podia ver este texto: el detalle sale del motor y `presentDetail` lo
+      # pinta tal cual. Medido el 2026-08-30: 14 textos de `monitoreo_aulas_*.R`
+      # usan «aula» o «celda» y ninguno esta cubierto por ese ratchet.
+      if (length(quota_status)) sprintf("%s grupos de facultad y sexo con brecha.", sum(monitoreo_aulas_celda_en_deuda(quota_status))) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (length(partes_campo)) {
