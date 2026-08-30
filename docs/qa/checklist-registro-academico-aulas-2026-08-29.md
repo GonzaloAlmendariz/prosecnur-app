@@ -213,3 +213,27 @@ conserva su marco — 12 grupos, 0 incidencias, 0 desbordes, a 1440×1000 y
 descubrirla): `--url http://127.0.0.1:PUERTO/ --api real --api-url
 http://127.0.0.1:PUERTO_API`. `--api` es un MODO (`auto` / `stub` / `real`), no
 una URL.
+
+### Vuelta 6 · La reparación no había llegado a la tabla
+
+En Avance > Resumen, el mismo recorte del payload se declaraba de dos maneras en
+la misma pantalla:
+
+- «Estado de aplicación» y «Cursos-horario por cobertura» → «se ven **500 de
+  1,424** cursos-horario»
+- «Avance por curso-horario» (la tabla) → «**500 filas**»
+
+Y la nota del primero dice, textual, para qué se creó ese contador: «el motor
+manda 500 filas de las 2 615 del plan, y **sin decirlo la pantalla afirmaba que
+el estudio tiene 500 aulas**». La reparación se aplicó a los dos gráficos y no a
+la tabla — que es donde más pesa, porque una tabla se lee como un censo: quien la
+recorre hasta el final cree haber visto el plan entero, y ha visto un tercio.
+
+En Consultas había otro «98 filas», pero ése **no escondía un recorte**: coincide
+con el KPI «Brechas» de la banda —98 y 98—, comprobado en pantalla. Ahí «filas»
+sólo fallaba en no nombrar la unidad.
+
+Guard: ningún panel del perfil puede resumir su contenido con «filas». No puede
+comprobar el recorte —eso no se lee del fuente— pero sí que el subtítulo nombre
+lo que hay dentro, que es lo que fuerza a usar `contadorDeCursosHorario` cuando
+el payload viene cortado. Verificado que muerde.

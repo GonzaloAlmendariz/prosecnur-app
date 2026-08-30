@@ -198,3 +198,37 @@ describe("el perfil no publica «celda» como unidad de cuota", () => {
     expect(culpables, culpables.join("\n")).toEqual([]);
   });
 });
+
+/**
+ * **Un subtítulo de panel nombra lo que hay dentro, no «filas».**
+ *
+ * Dos motivos, y el segundo es el que muerde.
+ *
+ * El primero: «filas» no dice nada. Un panel titulado «Cursos-horario con
+ * brecha» con el subtítulo «98 filas» obliga a deducir que las filas son
+ * cursos-horario.
+ *
+ * El segundo: **el payload de Monitoreo llega recortado a 500 filas** y el
+ * perfil ya tiene una función para declararlo —`contadorDeCursosHorario`, que
+ * escribe «se ven 500 de 1,424 cursos-horario»—. Dos paneles de Resumen la
+ * usaban y la TABLA no: decía «500 filas» de un plan de 1.424, que es el mismo
+ * defecto que su vecina da por resuelto —«sin decirlo la pantalla afirmaba que
+ * el estudio tiene 500 aulas»—. En una tabla pesa más que en un gráfico, porque
+ * quien la recorre hasta el final cree haber visto el censo completo.
+ *
+ * El guard mira el subtítulo y no el recorte porque el recorte no se puede leer
+ * del fuente; lo que sí se puede es exigir que ningún panel resuma su contenido
+ * con una palabra que no nombra su unidad.
+ */
+describe("ningún panel se resume en «filas»", () => {
+  it.each(fuentes.filter((f) => f.endsWith(".tsx")))("%s", (archivo) => {
+    const fuente = fs
+      .readFileSync(path.join(aqui, archivo), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const culpables = [...fuente.matchAll(/[^\n]{0,80}filas<\/span>/g)].map(
+      (m) => `${archivo}: …${m[0].trim()}`,
+    );
+    expect(culpables, culpables.join("\n")).toEqual([]);
+  });
+});
