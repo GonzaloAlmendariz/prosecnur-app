@@ -308,3 +308,35 @@ del perfil; lo que el detector coge es el encabezado, que es hermano.
 **No se toca por 4 px sin entender el detector**, porque la declaración es del
 grupo entero y cambiarla afecta a todos los paneles de Avance. Queda pendiente
 con su diagnóstico, no cerrado en falso.
+
+### Vuelta 9 · Un aviso de recorte que había caducado
+
+Los dos gráficos de Resumen llevaban el subtítulo «se ven **500** de 1,424
+cursos-horario», y medido en pantalla **los seis tramos de «Estado de aplicación»
+suman exactamente 1.424**. El aviso era falso: quien lo leía creía que le faltaba
+el 65 % de lo que estaba viendo.
+
+La causa la dice el propio código, en el tipo de la prop que ambos reciben: *«el
+reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan»*. El
+aviso fue correcto mientras el gráfico repartía `filas`, y **se quedó escrito
+cuando pasó a preferir el resumen del motor** — una salvedad que caducó.
+
+Ahora el subtítulo distingue las dos causas, porque el gráfico todavía cae a las
+filas recortadas si el motor no manda su reparto:
+
+- con reparto del motor → «**1,424 cursos-horario**»
+- sin él → «se ven 500 de 1,424 cursos-horario»
+
+La tabla conserva el aviso de recorte: es el único de los tres que sí pinta las
+500. En pantalla, los dos gráficos declaran 1.424 y sus tramos suman 1.424.
+
+**De paso, una sospecha descartada midiendo.** «Vencidos sin aplicar» dice 131 +
+1.216 = 1.347 sobre un plan de 1.424, y los 77 que faltaban parecían un hueco sin
+explicar. El pie del panel vecino los nombra: son las reservas del banco. No se
+escribió nada hasta comprobarlo.
+
+**Y el test se sondeó antes de escribirlo.** La primera versión afirmaba que el
+gráfico publica 269 —la suma del resumen— y salió roja: descuenta las 70 del
+banco y publica **199 en juego**. Comprobado imprimiendo el render en vez de
+deducirlo, con un control en el caso contrario (2, las filas que viajan) para que
+la aserción distinga de dónde sale la cifra.
