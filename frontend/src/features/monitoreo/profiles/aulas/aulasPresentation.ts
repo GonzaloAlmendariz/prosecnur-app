@@ -30,7 +30,10 @@ export const FIELD_LABELS: Record<string, string> = {
   refusals: "Cantidad de rechazos",
   // Las dos columnas de la resta, que el libro NO trae: las calcula el motor
   // con la identidad asistentes − rechazos − duplicados = efectivas.
-  esperado: "Efectivas que implican",
+  // «que implican» pedía un sujeto y no lo tenía. El motor lo dice: «`esperado`
+  // es la cuenta que implican los otros tres números» —asistentes, rechazos y
+  // duplicados—, que son las tres columnas de al lado en esta misma tabla.
+  esperado: "Efectivas que implica el parte",
   diferencia: "Diferencia",
   // `DUPLICADOS (YA RESPONDIERON)`, con el paréntesis del propio Excel.
   duplicates: "Duplicados (ya respondieron)",
