@@ -74,6 +74,34 @@ columnas fijas existe; falta decidir si se hace.
 y hombres en vez de mayoritario/minoritario? Si sí, es una vuelta con cambio en
 el motor y en el ADR 0082, no un cambio de rótulo.
 
+**L · Una aula «parcial» promete otra vez lo que ya recogió.**
+
+Medido en R el 2026-08-30 con un aula que prometía 40 efectivas y una celda que
+ya lleva 30 logradas:
+
+| `operational_status` | `previsto` | `aporte_pendiente` | `proyeccion` |
+|---|---|---|---|
+| aplicada | 20 | 0 | 30 |
+| cerrada | 20 | 0 | 30 |
+| agendada | NA | 20 | 50 |
+| **parcial** | **NA** | **20** | **50** |
+
+Una «parcial» ya pasó por campo, y el motor la trata igual que a una «agendada»
+que todavía no ha ido: le sigue esperando 20 efectivas. Además deja `previsto` en
+NA, así que **esa celda no puede calibrarse**: la calibración es
+`logrado / previsto` y sin previsto no hay razón que medir.
+
+**Hoy no se manifiesta**: este estudio tiene 152 aplicada, 18 reemplazada, 22
+agendada y 1.232 planificada, **ninguna parcial**. `kpis.aulas_parciales` existe y
+vale 0.
+
+**Por qué no lo reparo solo**: la respuesta depende de si una parcial se
+reintenta. Si se reintenta, esperarle más es correcto y lo que falta es sólo el
+`previsto`. Si no se reintenta, debería contar como aplicada —igual que
+«cerrada», que sí se corrigió— porque lo que iba a dar ya lo dio.
+
+**La pregunta**: cuando un curso-horario queda «parcial», ¿se vuelve a él?
+
 ## Inventario de lo que hay que evaluar
 
 Seis pestañas en Avance —`cuotas`, `resumen`, `estratos`, `rendimiento`,
