@@ -107,7 +107,7 @@ export function embudoDelOperativo(
     },
     {
       id: "aplicadas",
-      label: "Aplicadas en campo",
+      label: "Aplicados en campo",
       valor: fmt(aplicadas),
       // **«registradas en esta app», no «con parte de campo».**
       //

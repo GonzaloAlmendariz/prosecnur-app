@@ -44,13 +44,13 @@ export const FIELD_LABELS: Record<string, string> = {
   // quedaron homónimas, y el censo del glosario —153 entradas— no tenía ninguna
   // otra pareja.
   application_status: "Estado declarado en el parte",
-  applied_at: "Aplicada el",
+  applied_at: "Aplicado el",
   // El parte trae la fecha y la hora SEPARADAS —son dos columnas de su hoja— y
   // ademas `applied_at`, que es la marca compuesta. Sin etiqueta propia,
   // `applied_date` llegaba a la tabla como jerga en cuanto se pidio mostrarla.
   applied_date: "Fecha de aplicación",
   applied_time: "Hora de aplicación",
-  applied_by: "Aplicada por",
+  applied_by: "Aplicado por",
   field_note: "Nota de campo",
   // Por qué esta fila está en la cadena. Lo compone el motor a partir del campo
   // que corresponde al papel de la fila: la que cae lleva su motivo de
@@ -60,7 +60,7 @@ export const FIELD_LABELS: Record<string, string> = {
   // Activación de reemplazos (L5/L49).
   activated_at: "Activada el",
   activation_reason: "Motivo de activación",
-  replaced_at: "Reemplazada el",
+  replaced_at: "Reemplazado el",
   // Composición de la muestra: el dato que el libro NO trae (L67).
   sex_top_1: "Sexo mayoritario",
   sex_top_1_n: "Estudiantes del sexo mayoritario",
@@ -308,20 +308,20 @@ export const STATUS_LABELS: Record<string, string> = {
    * Contrato de Superficie prohíbe, cometido dentro de la lista de validación.
    */
   sin_datos: "Sin comprobar",
-  planificada: "Planificada",
-  contactada: "Contactada",
-  agendada: "Agendada",
+  planificada: "Planificado",
+  contactada: "Contactado",
+  agendada: "Agendado",
   en_campo: "En campo",
-  aplicada: "Aplicada",
+  aplicada: "Aplicado",
   parcial: "Parcial",
   sin_acceso: "Sin acceso",
-  cancelada: "Cancelada",
+  cancelada: "Cancelado",
   reemplazo_pendiente: "Reemplazo pendiente",
-  reemplazada: "Reemplazada",
-  cerrada: "Cerrada",
+  reemplazada: "Reemplazado",
+  cerrada: "Cerrado",
   cerrando: "Cierre en curso",
   en_aplicacion: "En aplicación",
-  lista: "Lista",
+  lista: "Listo",
   pendiente: "Pendiente",
   cumplida: "Cumplida",
   en_riesgo: "En riesgo",
@@ -418,17 +418,17 @@ export function presentDetail(value: unknown) {
  * select del registro, y la tabla que pinta esa misma columna no lo alcanzaba.
  */
 export const ESTADOS_OPERATIVOS: Array<{ value: string; label: string }> = [
-  { value: "planificada", label: "Planificada" },
-  { value: "contactada", label: "Contactada" },
-  { value: "agendada", label: "Agendada" },
+  { value: "planificada", label: "Planificado" },
+  { value: "contactada", label: "Contactado" },
+  { value: "agendada", label: "Agendado" },
   { value: "en_campo", label: "En campo" },
-  { value: "aplicada", label: "Aplicada" },
+  { value: "aplicada", label: "Aplicado" },
   { value: "parcial", label: "Parcial" },
   { value: "sin_acceso", label: "Sin acceso" },
-  { value: "cancelada", label: "Cancelada" },
+  { value: "cancelada", label: "Cancelado" },
   { value: "reemplazo_pendiente", label: "Reemplazo pendiente" },
-  { value: "reemplazada", label: "Reemplazada" },
-  { value: "cerrada", label: "Cerrada" },
+  { value: "reemplazada", label: "Reemplazado" },
+  { value: "cerrada", label: "Cerrado" },
 ];
 
 export const MOTIVOS_DE_REEMPLAZO: Array<{ value: string; label: string }> = [

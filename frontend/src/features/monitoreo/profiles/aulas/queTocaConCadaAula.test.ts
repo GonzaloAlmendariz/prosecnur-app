@@ -37,18 +37,18 @@ describe("queTocaConCadaAula", () => {
     // campo, CH 1 a CH 5 salían «Sin contactar · —» estando aplicadas.
     expect(queTocaConCadaAula(
       { sample_status: "agendada", scheduled_date: "2026-08-11", applied_at: "2026-08-11" }, CORTE,
-    )).toBe("Aplicada");
-    expect(queTocaConCadaAula({ operational_status: "aplicada" }, CORTE)).toBe("Aplicada");
-    expect(queTocaConCadaAula({ operational_status: "cerrada" }, CORTE)).toBe("Aplicada");
+    )).toBe("Aplicado");
+    expect(queTocaConCadaAula({ operational_status: "aplicada" }, CORTE)).toBe("Aplicado");
+    expect(queTocaConCadaAula({ operational_status: "cerrada" }, CORTE)).toBe("Aplicado");
     // Y manda sobre el estado de muestra vacío, que es el caso de la simulación.
     expect(queTocaConCadaAula(
       { sample_status: "sin_contactar", operational_status: "aplicada" }, CORTE,
-    )).toBe("Aplicada");
+    )).toBe("Aplicado");
   });
 
   it("una reemplazada sale del trabajo del agendador", () => {
     // Su reserva ocupó su sitio: llamar a ese docente sería un error.
-    expect(queTocaConCadaAula({ sample_status: "reemplazada" }, CORTE)).toBe("Reemplazada");
+    expect(queTocaConCadaAula({ sample_status: "reemplazada" }, CORTE)).toBe("Reemplazado");
   });
 
   it("una que está en reserva tampoco se llama", () => {
