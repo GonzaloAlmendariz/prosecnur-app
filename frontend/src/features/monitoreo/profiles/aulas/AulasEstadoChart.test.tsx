@@ -157,3 +157,41 @@ describe("reparte lo que publica el motor, no las filas que viajan", () => {
     expect(out).toContain("2 cursos-horario");
   });
 });
+
+describe("las tres ramas del pie explican el mecanismo con las mismas palabras", () => {
+  /**
+   * `dondeEstanLasOtras` tiene tres ramas y **la del medio se desviaba**: las
+   * otras dos dicen «sólo entran si cae su titular», que se entiende sin saber
+   * nada del diseño muestral, y ésta decía «sin asignar a ninguna cadena».
+   *
+   * «Cadena» sólo se define en la sección Consultas, en el panel «Cadena de
+   * reemplazos», y quien lee este pie está en Resumen. Un término del modelo de
+   * datos usado a tres secciones de donde se define.
+   */
+  const conBanco = (banco: number, enReserva: number) =>
+    renderToStaticMarkup(
+      <AulasEstadoChart
+        filas={[]}
+        resumen={[
+          { clave: "lista", aulas: 2 }, { clave: "cerrando", aulas: 20 },
+          ...(enReserva ? [{ clave: "en_reserva", aulas: enReserva }] : []),
+        ] as never}
+        desconocidasMotor={0}
+        bancoMotor={banco}
+      />);
+
+  it("cuando TODO lo que queda fuera es banco, tampoco se nombra la cadena", () => {
+    // Banco SIN reservas encadenadas dormidas: `fuera === banco` y no hay
+    // dormidas que nombrar. Es la rama que se desviaba, y se da en un estudio
+    // que tiene banco pero ninguna cadena montada.
+    const out = conBanco(5, 0);
+    expect(out).toContain("sin un titular al que respalden");
+    expect(out).not.toContain("cadena");
+  });
+
+  it("y con dormidas Y banco sigue diciendo el mecanismo, como siempre", () => {
+    const out = conBanco(30, 70);
+    expect(out).toMatch(/sólo entran si cae su titular/);
+    expect(out).not.toContain("cadena");
+  });
+});
