@@ -82,10 +82,20 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
       <p className="aulas-control-titular">
         {/* Dos redacciones, no una con la palabra intercalada: «102 aulas
             evaluadas efectivas» encadena dos adjetivos y se lee torcido. */}
+        {/* **«grupos de curso-horario y sexo», no «aulas».** Este veredicto NO
+            cuenta aulas: la hoja está en formato largo, con una fila por
+            curso-horario y sexo, y el motor cuenta filas —medido: 304 filas
+            sobre 152 cursos-horario, cada uno con su «F» y su «M», e
+            `indeterminadas: 304`—. Decir «aulas» prometía un número que es el
+            DOBLE de las aulas que existen.
+
+            Es la misma reparación que ya se hizo con «de 30 celdas sexo ×
+            facultad» → «de 30 grupos de facultad y sexo»: la unidad de la cuota
+            de sexo es el grupo, y el rótulo tiene que nombrarla. */}
         {sinEvaluar ? (
-          <><strong>{v.efectivas}</strong> efectivas de {evaluadas} evaluadas</>
+          <><strong>{v.efectivas}</strong> efectivos de {evaluadas} grupos evaluados</>
         ) : (
-          <><strong>{v.efectivas}</strong> de {evaluadas} aulas efectivas</>
+          <><strong>{v.efectivas}</strong> de {evaluadas} grupos de curso-horario y sexo</>
         )}
         {pct !== null ? <span> · {pct} %</span> : null}
       </p>
