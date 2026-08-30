@@ -54,7 +54,12 @@ const GRUPOS: Array<{ id: OrigenDeCandidato; titulo: string; pie: string }> = [
   },
 ];
 
-const pct = (v: number) => `${Math.round(v * 100)}%`;
+// **Con el espacio**, como el resto del perfil: `pctCorto` en la alerta de
+// anticipación, `fmtPct` en el criterio de aula y el `p` del propio registro de
+// campo, que es la pantalla desde la que se abre este diálogo. Era el único que
+// pegaba el signo al número —«se parece 100%» junto a «68.9 %» dos pantallas
+// atrás—, y ese chip queda a un click del formulario que sí lo separa.
+const pct = (v: number) => `${Math.round(v * 100)} %`;
 
 /**
  * El reparto por sexo del aula, en elegibles y en respuestas esperadas.
