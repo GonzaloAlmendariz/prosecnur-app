@@ -119,7 +119,7 @@ export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
             <TriangleAlert size={13} aria-hidden="true" />
             {destacan.length === 1
               ? "Un curso-horario se sale del resto"
-              : `${fmt(destacan.length)} aulas se salen del resto`}
+              : `${fmt(destacan.length)} cursos-horario se salen del resto`}
           </p>
           <ul className="aulas-tiempos-lista">
             {destacan.map((a) => (

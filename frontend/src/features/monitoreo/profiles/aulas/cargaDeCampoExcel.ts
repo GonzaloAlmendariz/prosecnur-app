@@ -94,7 +94,7 @@ export function libroDeCargaDeCampo(
     .join("");
 
   const pico = malla.pico
-    ? `${fmt(malla.pico.firmes)} confirmados y hasta ${fmt(malla.pico.firmes + malla.pico.plausibles)} · ${malla.pico.fila.etiqueta} ${comoHora(malla.pico.franja)} · ${fmt(malla.pico.aulas)} aulas en curso`
+    ? `${fmt(malla.pico.firmes)} confirmados y hasta ${fmt(malla.pico.firmes + malla.pico.plausibles)} · ${malla.pico.fila.etiqueta} ${comoHora(malla.pico.franja)} · ${fmt(malla.pico.aulas)} cursos-horario en curso`
     : "sin datos";
   const lectura = esCalendario
     ? `Calendario: una fila por fecha agendada, sobre ${fmt(malla.fechas)} días de campo.`
@@ -112,7 +112,7 @@ export function libroDeCargaDeCampo(
 <h2 style="margin:0 0 4px;font-size:15pt">Carga de campo</h2>
 <p style="margin:0 0 3px;font-size:10pt;color:#4B515A">Cuántos aplicadores hacen falta a la vez, sobre el rango horario de cada curso.</p>
 <p style="margin:0 0 4px;font-size:9.5pt;color:#7C838D">${esc(lectura)} Aplicación de ${fmt(opciones.duracionMin)} minutos · pico: ${esc(pico)}.</p>
-<p style="margin:0 0 14px;font-size:9.5pt;color:#7C838D">En <b>negrita sobre color</b>, los cursos-horario con hora ya agendada. En <i>cursiva sobre fondo claro</i>, el rango posible de las que faltan agendar: ahí la aplicación puede caer en cualquier punto de la clase. ${fmt(malla.agendadas)} de ${fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora.${esc(sinFecha)}</p>
+<p style="margin:0 0 14px;font-size:9.5pt;color:#7C838D">En <b>negrita sobre color</b>, los cursos-horario con hora ya agendada. En <i>cursiva sobre fondo claro</i>, el rango posible de las que faltan agendar: ahí la aplicación puede caer en cualquier punto de la clase. ${fmt(malla.agendadas)} de ${fmt(malla.agendadas + malla.porAgendar)} cursos-horario ya tienen hora.${esc(sinFecha)}</p>
 <table cellspacing="0" cellpadding="0">${cabecera}${cuerpo}</table>
 <p style="margin:18px 0 6px;font-size:11pt;font-weight:bold">Detalle por sesión</p>
 <table cellspacing="0" cellpadding="0"><tr>${[

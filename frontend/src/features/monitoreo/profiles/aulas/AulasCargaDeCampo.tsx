@@ -373,7 +373,7 @@ export function AulasCargaDeCampo({
         <p className="aulas-carga-aviso">
           {malla.agendadasSinFecha === 1
             ? "1 curso-horario tiene hora acordada pero no fecha, así que no cabe"
-            : `${fmt(malla.agendadasSinFecha)} aulas tienen hora acordada pero no fecha, así que no caben`}{" "}
+            : `${fmt(malla.agendadasSinFecha)} cursos-horario tienen hora acordada pero no fecha, así que no caben`}{" "}
           en el calendario. {malla.agendadasSinFecha === 1 ? "Aparece" : "Aparecen"} en el patrón semanal.
         </p>
       ) : null}

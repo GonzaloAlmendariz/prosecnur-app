@@ -55,7 +55,16 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
-const TOPE = 23;
+// 23 → 17 el 2026-08-30, cerradas seis frases de PROSA con cifra: «N aulas
+// tienen hora acordada», «N aulas se salen del resto», «N aulas de referencia»,
+// «N aulas en curso», «N de M aulas ya tienen hora» y «N encuestas en N aulas».
+//
+// Las que quedan no son del mismo tipo y por eso no cayeron con ellas: cuatro son
+// CABECERAS de columna —«Tamaño de aula», «Meta de efectivas del aula», «Tasa del
+// aula», «Peso del aula»— y alargarlas a «curso-horario» choca con el ancho, que
+// a 1024 ya deja 66 px por rótulo; dos son la locución «aula por aula»; y el
+// resto habla del aula como ESPACIO, que es correcto.
+const TOPE = 17;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.

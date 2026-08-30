@@ -1495,7 +1495,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${xa(i)}%`, top: `${y(d.porAula)}%` }}
-              aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} aulas`}
+              aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} cursos-horario`}
               onMouseEnter={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onFocus={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onMouseLeave={() => setPista(null)}
