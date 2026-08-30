@@ -2160,3 +2160,38 @@ para el mismo conjunto (`seguidas` y `tracked_df`), la pregunta útil es cuál
 usa cada consumidor.
 
 147 archivos / 1.750 tests, typecheck limpio, suites de R verdes.
+
+### Vuelta 39 · El barrido de `total_aulas`, cerrado — y un espejo que no lee nadie
+
+Aplicada la regla de la vuelta 38 —cuando el motor tiene dos variables para el
+mismo conjunto, la pregunta es cuál usa cada consumidor—, los cinco consumidores
+de `total_aulas`:
+
+| Consumidor | Veredicto |
+|---|---|
+| `railDeAulas` (badge de Registro) | reparado en la vuelta 38 |
+| `monitoreo_engine` (hoja del cliente) | reparado en la vuelta 38 |
+| `kpisDeAulas.ts` | **ya estaba bien**, y con el mismo razonamiento: usa `aulas_titulares` y publica las reservas aparte en la pista |
+| `handoffSummary` | **correcto con el universo grande**: es la entrega a campo, y todas las aulas necesitan su ficha, reservas incluidas |
+| `router_monitoreo.R` (espejo al home) | **sin consumidor** |
+
+**`kpisDeAulas` ya llevaba la reparación y tampoco se propagó.** Su comentario
+describe el mismo defecto —«dos cifras casi con el mismo nombre a un dedo de
+distancia»— y la misma solución. Van tres veces en este loop que una doctrina
+escrita en un módulo no llega a sus vecinos: la brecha por celdas, el KPI de
+reemplazos y ahora ésta.
+
+**El espejo del router no lo lee nadie**: ni el frontend ni R consumen
+`kpis$aulas_total`, `kpis$aulas_aplicadas` ni `kpis$respuestas_validas_aulas` de
+este dashboard —los `aulas_total` que aparecen en el frontend son de Cálculo de
+muestra, otro campo con el mismo nombre—. No es defecto, pero sí un riesgo
+latente: quien lo conecte al home publicará 1.347 junto a 152. Queda anotado
+**donde se escribe**, con la cifra y con qué campo usar en su lugar.
+
+**Lo que NO pude verificar, y lo digo**: el badge no aparece en el `report.json`
+del QA visual, porque ese informe sólo lista elementos con atributos de
+geometría y el rail queda fuera del panel medido —lo mismo que pasó en la vuelta
+21 con la línea del avance—. La evidencia del badge son sus siete tests con
+prueba del reverso, no una captura.
+
+147 archivos / 1.750 tests, typecheck limpio, suite de publicación verde.
