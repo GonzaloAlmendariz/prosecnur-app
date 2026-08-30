@@ -2179,8 +2179,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # De declaracion de diseño a control de verdad: ver
   # `monitoreo_aulas_identificadores.R`.
   identificadores <- monitoreo_aulas_identificadores(responses, isTRUE(cfg$anonymous_responses))
+  # Dos cursos-horario con el mismo enlace: sus respuestas entran por la misma
+  # puerta y no se pueden separar. Ver `monitoreo_aulas_enlaces.R`.
+  enlaces <- monitoreo_aulas_enlaces_compartidos(tracked_df)
   validation <- data.frame(
-    check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion"),
+    check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion", "shared_collector_link"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       identificadores$status,
@@ -2229,7 +2232,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # por criterio deliberado— y cuando no hay columna y por tanto cuenta
       # TODO, que es una decision que conviene tomar a sabiendas.
       monitoreo_aulas_estado_control(nrow(responses) > 0L,
-                                     criterio$modo %in% c("declarada_ausente", "sin_columna"))
+                                     criterio$modo %in% c("declarada_ausente", "sin_columna")),
+      # Sin enlaces no se puede comprobar: `sin_datos`, no «ok». Es la misma
+      # regla que el resto de la lista aprendio.
+      monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L)
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
@@ -2286,7 +2292,22 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         "El libro todavia no trae la hoja «Base de control» que comprobar."
       },
       monitoreo_aulas_estados_no_reconocidos_texto(estados_raros),
-      monitoreo_aulas_criterio_texto(criterio)
+      monitoreo_aulas_criterio_texto(criterio),
+      # **Dice a donde ir, no solo que hay un problema.** Un aviso que declarara
+      # «25 enlaces repetidos» y nada mas obliga a buscar cuales a mano en un
+      # libro de mil filas.
+      if (!enlaces$comprobable) {
+        "El plan todavia no trae enlaces de recopilador que comprobar."
+      } else if (enlaces$enlaces > 0L) {
+        sprintf(
+          paste0("%d cursos-horario comparten %d enlaces con otro: sus respuestas entran ",
+                 "por la misma puerta y no se pueden separar despues (%s). Revisa el ",
+                 "enlace en el plan antes de que entre mas campo."),
+          enlaces$aulas, enlaces$enlaces, paste(enlaces$ejemplos, collapse = "; ")
+        )
+      } else {
+        "Cada curso-horario en juego tiene su propio enlace de recopilador."
+      }
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE

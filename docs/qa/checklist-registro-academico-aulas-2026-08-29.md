@@ -2500,3 +2500,52 @@ descubriría.
 enlaces de las filas en campo y declare los repetidos, con su lista. Va en el
 control de calidad junto a las otras siete, no en un panel nuevo. No se construye
 en esta vuelta para no dejar el motor a medias con el turno cerrándose.
+
+### Vuelta 48 · El detector de enlaces compartidos, construido y medido
+
+La regla número doce de `validation`, con el hallazgo de la vuelta anterior
+convertido en control permanente.
+
+**Sobre el proyecto real dice**:
+
+> 51 cursos-horario comparten 23 enlaces con otro: sus respuestas entran por la
+> misma puerta y no se pueden separar después (CH 20 y CH 21; CH 94 y CH 97;
+> **R 110.1 y CH 109**). Revisa el enlace en el plan antes de que entre más campo.
+
+Son más de los 25 que conté a mano, porque el motor mide sobre `tracked_df` y
+algunos enlaces sirven a tres aulas. **El tercer ejemplo es el peor caso**: la
+reserva de una cadena comparte enlace con el titular de otra.
+
+**El aviso dice a dónde ir.** Sin los códigos, «23 enlaces repetidos» obliga a
+buscarlos a mano en un libro de mil filas; ésa fue la razón de llevar ejemplos en
+la cifra.
+
+**Sólo mira las filas en juego**: una reserva dormida comparte enlace con su
+titular por construcción —es su respaldo— y contarla sería una alarma permanente
+sobre algo que no puede pasar.
+
+**`sin_datos` cuando no hay enlaces**, no «ok»: es la regla que el resto de la
+lista ya había aprendido —«"No se puede comprobar" NO es "correcto"»— y la nueva
+nace con ella. Cinco casos, incluido el de los enlaces vacíos, que **no** cuentan
+como repetidos entre sí: tres aulas sin enlace comparten la cadena vacía, y eso
+es no tenerlo, no compartirlo.
+
+**Dos correcciones a mi propio diagnóstico de la vuelta 47**, las dos por leer
+deprisa:
+
+1. Dije que la regla iba «en el catálogo de reglas del control, cuyas siete
+   claves son campo, cuenta, cuotas…». **Eso no son reglas**:
+   `MONITOREO_AULAS_CONTROL_GRUPOS` son los grupos de columnas de la Base de
+   control. Las reglas viven en `validation`, que tenía once.
+2. Al ver que `CHECK_LABELS` no traía la clave nueva lo llamé «lista cerrada».
+   **Tiene fallback** —`CHECK_LABELS[key] ?? fallbackLabel(key)`— así que una
+   clave nueva se degrada, no desaparece. La etiqueta se añade igual, porque
+   «Shared collector link» no es el vocabulario de la casa.
+
+**Lo que no pude verificar y lo digo**: el `report.json` del QA visual no captura
+la lista de validación —sólo lista elementos con atributos de geometría, el mismo
+límite de la vuelta 21—. Lo comprobado es que la fila viaja en el payload con
+`status=review`, que `summarizeAulasValidation` **no filtra por clave** y por
+tanto la cuenta entre las alertas, y que la etiqueta existe.
+
+147 archivos / 1.755 tests, typecheck limpio, tres suites de R verdes.
