@@ -72,3 +72,37 @@ rechaza terminaciones iguales, así que «Cuánto lleva cada facultad» chocaba 
 **Brecha cerrada**: `cifrasConFormato.test.ts` vigilaba cuentas pegadas a su
 unidad —«aulas», «respuestas»— y por eso no podía ver un porcentaje. Se añadió
 el guard de la coma forzada, que mide la operación y no necesita heurística.
+
+### Vuelta 2 · «celda» estaba en nueve sitios más, y la búsqueda no los vio
+
+La vuelta 1 declaró «cero "celda sexo × facultad"» y era cierto. **También era
+incompleto**: se había buscado la frase larga, y quedaron vivos un subtítulo que
+decía «30 celdas», la lectura «21 de 30 celdas cumplidas», la leyenda de la
+pirámide, el vacío «Sin celdas de cuota que listar», «1 celda de cuota que hoy no
+llega», «Misma celda: no concedes nada» y tres avisos de proyección.
+
+**Se busca el término, no la frase.** Es la misma familia de error que las
+«falsas ausencias» del loop anterior: la comprobación devuelve verde porque
+preguntó por la forma exacta que ya se había corregido.
+
+Título renombrado: «Cuota sexo por facultad» → **«Hombres y mujeres por
+facultad»**. Es lo que el panel enfrenta, dicho sin vocabulario de tabla.
+
+**El guard tardó tres intentos y el primero no servía**:
+
+1. *Por línea* — cazaba la prop `{ celdas }` y los comentarios `{/* … */}`.
+2. *Por literales entre comillas* — **daba verde con el defecto puesto**. La
+   leyenda de la pirámide es texto plano de JSX, suelto entre etiquetas y sin
+   una sola comilla, que es exactamente donde se había escapado.
+3. *Por la palabra con su determinante* — «30 celdas», «esa celda», «Sin
+   celdas». En prosa la palabra siempre lo lleva; en código, nunca.
+
+La versión 3 encontró además **«esas celdas» en una rama que ninguna pantalla
+mostraba**: sólo aparece si el plan declara un tercer valor de sexo, que
+`como_2025` no tiene. Un guard sobre el fuente ve lo que una captura no puede.
+
+Comprobado que muerde: verde con el código limpio → rojo al reintroducir el
+término → verde al restaurar.
+
+`AulasControlDelLibro.tsx` queda exento con su motivo: ahí «celda» es una celda
+de hoja de cálculo de verdad, y es la palabra correcta.

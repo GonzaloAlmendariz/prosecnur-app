@@ -181,7 +181,7 @@ function Candidato({
           <span>Cambias:</span> {c.concesiones.join(" · ")}
         </p>
       ) : (
-        <p className="aulas-reemplazo-concesiones es-limpia">Misma celda: no concedes nada.</p>
+        <p className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: no concedes nada.</p>
       )}
 
       {onElegir ? (

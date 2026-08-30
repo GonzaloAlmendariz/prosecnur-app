@@ -96,11 +96,13 @@ export function AulasPestanaCuotas({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                <h3>Cuota sexo por facultad</h3>
-                {/* En CELDAS, que es la unidad del cruce sexo × facultad y la que usa
-                    la lectura de abajo («5 de 12 celdas cumplidas»). «Filas» nombraba
-                    la tabla, que ahora puede ir filtrada. */}
-                <span>{fmt(quotaRows.length)} celdas</span>
+                <h3>Hombres y mujeres por facultad</h3>
+                {/* En GRUPOS, que es la unidad del cruce de facultad y sexo y la que
+                    usa la lectura de abajo («5 de 12 grupos cumplidos»). «Filas»
+                    nombraba la tabla, que ahora puede ir filtrada; «celdas» nombraba
+                    bien el cruce pero es vocabulario de tabla estadística, y esta
+                    pantalla la abre quien no diseñó la muestra. */}
+                <span>{fmt(quotaRows.length)} grupos</span>
               </div>
               {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
                   una respuesta de faltar doscientas. Sólo el total y su lectura — los
@@ -152,14 +154,14 @@ export function AulasPestanaCuotas({
                   cuadra con lo que hay debajo es lo que llevo el día arreglando. */}
               {foco ? (
                 <p className="mon-profile-muted">
-                  Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} celdas.
+                  Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} grupos.
                   Vuelve a pulsar su fila en la pirámide para ver todas.
                 </p>
               ) : null}
               {/* El vacío de la tabla, en términos de tabla. La causa la explica el
                   resumen que encabeza la sección: repetirla aquí la convertía en la
                   tercera copia literal de la misma frase en la misma pantalla. */}
-              <Tabla rows={quotaEnFoco} empty="Sin celdas de cuota que listar." />
+              <Tabla rows={quotaEnFoco} empty="Sin grupos de cuota que listar." />
             </section>
             <section
               className="mon-profile-panel"
