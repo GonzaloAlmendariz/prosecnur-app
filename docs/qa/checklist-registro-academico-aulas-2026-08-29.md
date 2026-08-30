@@ -274,3 +274,37 @@ preexistente y no lo causaron los rótulos.
 
 Queda como trabajo propio, con su vecino: un `capacity-drift` en «Cursos-horario
 vencidos sin aplicar», que aparece en los tres viewports.
+
+### Vuelta 8 · La banda igualaba columnas, no filas (C2)
+
+`equal-frame-drift` en `monitoring-aulas-kpis` a 1024×600: **[97, 97, 97, 84.5,
+84.5, 84.5]**, delta 12.5 px con tolerancia 2.
+
+El mecanismo: a ≤1180 px la banda pasa a `repeat(3, minmax(0, 1fr))`, o sea tres
+columnas y **dos filas**. En Grid cada fila crece con su propio contenido, y las
+pistas de arriba envuelven a más líneas que las de abajo. El comentario del CSS
+afirmaba lo contrario —«el marco lo comparten las seis tarjetas, así que crece
+parejo (C2)»—, y **es cierto sólo mientras hay una sola fila**.
+
+Reparado con `grid-auto-rows: 1fr` en la regla base de la banda, así vale también
+para el reparto de dos columnas con cuatro tarjetas. El sobrante queda dentro de
+la tarjeta, bajo su pista: capacidad legítima de un grupo de pares (C3), no
+contenido estirado — las tres filas internas de `.aulas-kpi` siguen siendo
+`auto`.
+
+Medido antes y después en la misma corrida: **1 `equal-frame-drift` → 0**.
+
+### El `capacity-drift` que queda, caracterizado
+
+Persiste en los tres viewports, sobre «Cursos-horario vencidos sin aplicar», y
+señala **4 px de alto interior sin usar en su `.mon-profile-panel-head`**.
+
+Es la trampa que el propio contrato documenta: «declarar el grupo en el `section`
+en vez del wrapper de datos hace que 3–4 px de padding de encabezado se lean como
+capacidad inflada». El componente del panel (`AulasFrenteDelOperativo`) **sí**
+declara su `capacity="owned"` en el contenedor de datos, como los otros noventa
+del perfil; lo que el detector coge es el encabezado, que es hermano.
+
+**No se toca por 4 px sin entender el detector**, porque la declaración es del
+grupo entero y cambiarla afecta a todos los paneles de Avance. Queda pendiente
+con su diagnóstico, no cerrado en falso.
