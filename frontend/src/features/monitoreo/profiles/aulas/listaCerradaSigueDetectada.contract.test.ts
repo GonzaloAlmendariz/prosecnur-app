@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { YA_SE_TOCO } from "./estadoDeMuestraLegible";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **La lista cerrada del motor y el detector que la compensa.**
@@ -21,7 +21,7 @@ import { YA_SE_TOCO } from "./estadoDeMuestraLegible";
 const R = new URL("../../../../../../api/R/monitoreo_aulas_universitarias.R", import.meta.url);
 
 function reconocidosPorElMotor(): string[] {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const i = fuente.indexOf("monitoreo_aulas_estado_muestra <- function");
   const bloque = fuente.slice(i, i + 900);
   const m = bloque.match(/switch\(gsub\("[^"]*", "[^"]*", key[^)]*\)([\s\S]*?)\n\s*\)/);

@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **Cuarta lista del perfil atada al motor.**
@@ -19,7 +19,7 @@ const R = new URL("../../../../../../api/R/monitoreo_aulas_universitarias.R", im
 const CORTE = "2026-09-30";
 
 function estadosDelMotor(): string[] {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const m = fuente.match(/monitoreo_aulas_estados_muestra\s*<-\s*function\(\)\s*\{\s*c\(([^)]*)\)/);
   if (!m) throw new Error("no se encontró monitoreo_aulas_estados_muestra() en el motor");
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);

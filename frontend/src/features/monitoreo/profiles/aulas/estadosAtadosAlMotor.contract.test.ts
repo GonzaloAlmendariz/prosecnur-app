@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ESTADOS_DORMIDOS } from "./candidatosDeReemplazo";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **Dos listas del mismo concepto, una en R y otra en TypeScript.**
@@ -21,7 +21,7 @@ import { ESTADOS_DORMIDOS } from "./candidatosDeReemplazo";
 const R = new URL("../../../../../../api/R/monitoreo_aulas_en_juego.R", import.meta.url);
 
 function dormidosDelMotor(): string[] {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const m = fuente.match(/MONITOREO_AULAS_ESTADOS_DORMIDOS\s*<-\s*c\(([^)]*)\)/);
   if (!m) throw new Error("no se encontró MONITOREO_AULAS_ESTADOS_DORMIDOS en el motor");
   return [...m[1].matchAll(/"([^"]*)"/g)].map((x) => x[1]);

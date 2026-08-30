@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ESTADOS_QUE_CAEN } from "./RegistroDeCampo";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **Quinta lista compartida del perfil, y la única que no declaraba nadie.**
@@ -19,7 +19,7 @@ import { ESTADOS_QUE_CAEN } from "./RegistroDeCampo";
 const R = new URL("../../../../../../api/R/monitoreo_aulas_universitarias.R", import.meta.url);
 
 function caidasDelMotor(): string[] {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const m = fuente.match(/operational_status %in% c\(("sin_acceso"[^)]*)\)/);
   if (!m) throw new Error("no se encontró la tripleta de caídas en el motor");
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
