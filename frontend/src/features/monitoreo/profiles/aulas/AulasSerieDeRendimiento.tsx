@@ -931,9 +931,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   Meta de lo visitado {fmt(acumulado.meta)}
                 </em>
               ) : null}
+              {/* **Lo que falta es el SEXO, no el enlace al curso-horario.**
+
+                  `hayObservadasPorSexo` sale de las celdas de cuota con
+                  `observadas > 0`, y esas celdas se llenan con el sexo de cada
+                  respuesta. Si están todas en cero es porque el sexo no llega
+                  —la variable sin mapear, o sin decodificar—, y la atribución al
+                  curso-horario puede estar funcionando perfectamente: va por el
+                  enlace del recopilador, que es otro camino.
+
+                  Decía «Sin respuestas atribuidas a un curso-horario», que manda
+                  a revisar el enlace. `kpisDeAulas` documenta el mismo error ya
+                  cometido y corregido en su tarjeta —«faltaba el sexo, no el
+                  aula, y mandaba a revisar el enlace en vez del mapeo de la
+                  variable»—, y esa corrección no había llegado hasta aquí. */}
               {acumulado.hayObservadasPorSexo ? null : (
                 <em className="es-ausente">
-                  Sin respuestas atribuidas a un curso-horario no hay serie por sexo:
+                  Ninguna respuesta trae el sexo declarado, así que no hay serie por sexo:
                   se señalan sólo las dos cuotas
                 </em>
               )}
