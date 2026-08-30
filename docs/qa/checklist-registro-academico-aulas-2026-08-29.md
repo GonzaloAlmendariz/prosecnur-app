@@ -2082,3 +2082,44 @@ cadenas disponibles— y cambiar qué lista una tabla es decisión de producto, 
 QA. Queda dicho.
 
 147 archivos / 1.746 tests, typecheck limpio, vista sin issues.
+
+### Vuelta 37 · «Reemplazos usados: 174» en la hoja que ve el cliente
+
+El badge de la vuelta 36 llevó al patrón, y el patrón llevó fuera del perfil.
+
+`reemplazos_usados` **no cuenta reemplazos**: suma reservas con
+`replacement_for` en estado agendada / en campo / aplicada / cerrada / parcial,
+o sea reservas **en juego**. Sobre HSVG2026 «como 2025» vale **174** —el número
+de titulares— mientras los titulares que de verdad se cayeron y fueron
+sustituidos son **18**.
+
+**Y el frontend ya lo sabía, en tres sitios**: `embudoDelOperativo.ts` lo dice
+con todas las letras —«`reemplazos_usados` no cuenta reemplazos»— y recibe en su
+lugar el tramo `reemplazada`; `kpisDeAulas.ts` repite la advertencia; y el badge
+del rail cayó en él y se reparó ayer. **Ninguna de las tres advertencias llegó al
+motor de publicación**, que seguía escribiendo en la hoja del cliente:
+
+| Indicador | Valor |
+|---|---|
+| Aulas planificadas | 1.347 |
+| Aulas aplicadas | 152 |
+| **Reemplazos usados** | **174** |
+| Respuestas validas | 2.668 |
+
+Ahora esa fila dice **«Cursos-horario reemplazados: 18»**, tomando el tramo
+`reemplazada` del reparto que el motor ya publica. **También cambia el rótulo**:
+«Reemplazos usados» nombraba una cantidad que la hoja no publicaba, y dejarlo con
+la cifra nueva sólo cambiaría de qué mentía.
+
+Cuatro casos nuevos en una suite propia, incluido el mutante —si alguien
+devolviera el KPI, el test lo ve porque le pone 999— y el de un payload viejo sin
+reparto, donde la cifra honesta es **cero** y no el KPI. Comprobado que muerden:
+con la versión anterior, los cuatro rojos y el de las demás cifras verde.
+
+**El recorrido completo, que es la lección**: badge del rail → el módulo que ya
+advertía del KPI → quién más lo usa → el entregable. Tres advertencias escritas
+en el frontend no protegen al backend, y la que llega al cliente es la del
+backend.
+
+Suites verdes: la nueva, `test-monitoreo-publish-qa.R` y
+`test-monitoreo-aulas-universitarias.R`.
