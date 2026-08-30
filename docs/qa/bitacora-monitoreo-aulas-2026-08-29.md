@@ -1574,3 +1574,39 @@ La tabla de estratos publica «88.2», «85.7», «66.4» con un decimal y «**1
 `pctPerfil()`, pero hay que comprobar antes si esas columnas son porcentajes o
 índices —«Avance de cursos-horario» y «Avance de respuestas» podrían no llevar
 símbolo a propósito—.
+
+---
+
+## 70 · La lista cerrada se tragó dos columnas, y el guard vecino completó el arreglo
+
+El «88.2» junto a «17» y «100» de la tabla de estratos no era un problema de
+`minimumFractionDigits`: era que **esas dos columnas no se reconocían como
+porcentaje**. `COLUMNAS_DE_PORCENTAJE` es un `Set` escrito a mano y
+`avance_aulas_pct` / `avance_respuestas_pct` no estaban en él, pese a acabar en
+`_pct` como todas las demás. Un número que no se reconoce como porcentaje se
+pinta crudo, y de ahí la mezcla.
+
+**No es la primera vez en esa misma lista.** El comentario de `progress_pct` dice
+literalmente: «Sin ella, "Avance" enseñaba "62.3" a secas». Se arregló una
+entrada y las dos hermanas se quedaron fuera, sin nada que lo vigilara. Es la
+lista cerrada que se traga lo que no reconoce, con el agravante de que el
+síntoma ya estaba documentado tres líneas más arriba.
+
+`columnasDePorcentaje.contract.test.ts` cierra la familia: **toda clave `_pct`
+con etiqueta tiene que estar en la lista**, con su control de que el mapa no esté
+vacío. Mutante comprobado.
+
+### Y el guard vecino me obligó a completar el arreglo
+
+Al meterlas en la lista, **falló un contrato que ya existía**: «todo campo de la
+lista lleva "%" o "vs" en su rótulo». Mis dos etiquetas eran «Avance de
+cursos-horario» y «Avance de respuestas», sin símbolo.
+
+Tenía razón, y de paso contestó la pregunta que yo había dejado abierta en el
+ítem 49 —«comprobar antes si son porcentajes o índices»—: si entran en la lista,
+son porcentajes, y entonces el rótulo debe decirlo. Ahora son «**% Avance de
+cursos-horario**» y «**% Avance de respuestas**», y la columna publica «88.2 %»
+y «66.4 %».
+
+Dos guards de la casa en un mismo arreglo: uno que escribí hoy y otro que ya
+estaba. El segundo es el que lo dejó bien.

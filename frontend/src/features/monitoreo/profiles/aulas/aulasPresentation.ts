@@ -1,6 +1,6 @@
 import { segmentoDeEstrato } from "./etiquetaDeEstrato";
 
-const FIELD_LABELS: Record<string, string> = {
+export const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
   contact_date: "Fecha de llamada",
@@ -206,8 +206,12 @@ const FIELD_LABELS: Record<string, string> = {
   application_state: "Status de aplicación",
   aulas: "Cursos-horario",
   aulas_aplicadas: "Cursos-horario aplicados",
-  avance_aulas_pct: "Avance de cursos-horario",
-  avance_respuestas_pct: "Avance de respuestas",
+  // Con su «%» delante, como las demás columnas de porcentaje. Al meterlas en
+  // `COLUMNAS_DE_PORCENTAJE` —donde tenían que estar— el contrato «todo campo de
+  // la lista lleva "%" o "vs" en su rótulo» las tumbó, y con razón: la columna
+  // enseñaba «88.2» y «17» sin decir de qué escala hablaba.
+  avance_aulas_pct: "% Avance de cursos-horario",
+  avance_respuestas_pct: "% Avance de respuestas",
   sex: "Sexo",
   target: "Meta",
   frame_n: "Universo",
@@ -504,7 +508,7 @@ const COLUMNAS_DE_CUENTA = new Set([
   "efectivas_esperadas",
 ]);
 
-const COLUMNAS_DE_PORCENTAJE = new Set([
+export const COLUMNAS_DE_PORCENTAJE = new Set([
   "sent_vs_total",
   "sent_vs_population",
   "short_vs_total",
@@ -517,6 +521,17 @@ const COLUMNAS_DE_PORCENTAJE = new Set([
   // que la lista decide es que la columna ES un porcentaje, no en qué escala
   // viene. Sin ella, «Avance» enseñaba «62.3» a secas.
   "progress_pct",
+  // **Las dos de la tabla de estratos, que se quedaron fuera.** Mismo síntoma
+  // exacto que describe la línea de arriba: en `avance/estratos` la columna
+  // enseñaba «88.2», «85.7» y, en la misma columna, «17» y «100» —sin símbolo y
+  // sin decimal—, porque un número que no se reconoce como porcentaje se pinta
+  // crudo. Medido con `HSVG2026_sem15_como_2025.pulso`.
+  //
+  // Es la lista cerrada que se traga lo que no reconoce: sus claves acaban en
+  // `_pct` igual que las demás y aun así no entraban. El test de abajo cierra la
+  // familia exigiendo que TODA clave `_pct` con etiqueta esté aquí.
+  "avance_aulas_pct",
+  "avance_respuestas_pct",
 ]);
 
 /**
