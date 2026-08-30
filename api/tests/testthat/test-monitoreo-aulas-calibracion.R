@@ -223,3 +223,44 @@ test_that("el origen del previsto VIAJA, porque los dos no valen lo mismo", {
   expect_identical(sin[[1]]$previsto_origen, "sin_dato")
   expect_true(is.na(sin[[1]]$previsto))
 })
+
+# La calibración es `logrado / previsto` sin suelo ni techo, así que una celda
+# diminuta produce una afirmación tan rotunda como una grande.
+#
+# Medido el 2026-08-30 en HSVG2026: EDUCACION/M tiene `previsto` 2,5 y `logrado`
+# 1 —calibración 0,404— y la frase salía «El campo está rindiendo un 60 % menos
+# de lo previsto». Una sentencia sobre el campo de esa celda sacada de UNA
+# encuesta: con dos habría dicho 20 % menos, y con tres, 20 % más.
+#
+# El motor ya aplicaba este criterio a la dispersión —no se publica con menos de
+# `.MAC_MINIMO_PARA_DISPERSION` aulas, y su vista lo declara en vez de callarlo—
+# y no se le había aplicado a la calibración.
+test_that("la etiqueta de calibración declara su base cuando es corta", {
+  frase <- prosecnurapp:::.mac_etiqueta_calibracion(0.404, previsto = 2.5)
+  expect_match(frase, "60 % menos de lo previsto", fixed = TRUE)
+  expect_match(frase, "sobre muy poco", fixed = TRUE)
+  expect_match(frase, "2,5 encuestas previstas", fixed = TRUE)
+})
+
+test_that("con base suficiente no añade salvedad: sería ruido en 29 de 30 celdas", {
+  frase <- prosecnurapp:::.mac_etiqueta_calibracion(0.807, previsto = 45)
+  expect_match(frase, "19 % menos de lo previsto", fixed = TRUE)
+  expect_false(grepl("sobre muy poco", frase, fixed = TRUE))
+})
+
+test_that("el singular no se rompe con una sola encuesta prevista", {
+  expect_match(prosecnurapp:::.mac_etiqueta_calibracion(0.5, previsto = 1),
+               "1 encuesta prevista", fixed = TRUE)
+})
+
+test_that("sin previsto se comporta como antes: la salvedad no se inventa", {
+  expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(1.268),
+               "El campo está rindiendo un 27 % más de lo previsto")
+})
+
+test_that("las dos ramas que no afirman nada siguen intactas", {
+  expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(NA_real_, previsto = 2),
+               "Todavía sin aulas aplicadas con qué comparar")
+  expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(1.001, previsto = 2),
+               "El campo está rindiendo lo previsto")
+})

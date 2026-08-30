@@ -133,13 +133,43 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
 
 # La calibracion en una frase. El numero solo -0,85- no dice ni en que direccion
 # ni de que; la frase dice las dos cosas y no usa la palabra «calibracion».
-.mac_etiqueta_calibracion <- function(cal) {
+#
+# **Y dice sobre cuanto, cuando es poco.** `.mac_calibracion` es `logrado /
+# previsto` sin suelo ni techo, asi que una celda diminuta produce una afirmacion
+# tan rotunda como una grande. Medido el 2026-08-30 en el estudio real:
+# EDUCACION/M tiene `previsto` 2,5 y `logrado` 1, o sea calibracion 0,404, y la
+# frase salia «El campo esta rindiendo un 60 % menos de lo previsto» —una
+# sentencia sobre el campo entero de esa celda, sacada de UNA encuesta—. Con dos
+# habria dicho 20 % menos y con tres, 20 % mas.
+#
+# Este motor ya tenia el criterio al lado y no se le habia aplicado a la
+# calibracion: la dispersion no se publica con menos de
+# `.MAC_MINIMO_PARA_DISPERSION` aulas, y su vista lo dice en vez de callarlo.
+# Aqui igual: la frase se da, porque el dato es el que hay y ocultarlo seria
+# peor, pero declara su base para que nadie la lea como una tendencia asentada.
+.MAC_PREVISTO_MINIMO_PARA_AFIRMAR <- 10
+
+.mac_etiqueta_calibracion <- function(cal, previsto = NA_real_) {
   c1 <- suppressWarnings(as.numeric(cal)[1])
   if (!is.finite(c1)) return("Todavía sin aulas aplicadas con qué comparar")
   pct <- round(abs(c1 - 1) * 100)
   if (pct < 1) return("El campo está rindiendo lo previsto")
-  sprintf("El campo está rindiendo un %d %% %s de lo previsto", pct,
-          if (c1 < 1) "menos" else "más")
+  base <- suppressWarnings(as.numeric(previsto)[1])
+  salvedad <- if (is.finite(base) && base > 0 && base < .MAC_PREVISTO_MINIMO_PARA_AFIRMAR) {
+    sprintf(", pero sobre muy poco: sólo %s de margen", .mac_frase_encuestas(base))
+  } else ""
+  sprintf("El campo está rindiendo un %d %% %s de lo previsto%s", pct,
+          if (c1 < 1) "menos" else "más", salvedad)
+}
+
+# «2,5 encuestas» y no «2.5 encuestas»: el previsto es fraccionario porque
+# reparte por sexo, y la coma es la notacion de la app en prosa.
+.mac_frase_encuestas <- function(x) {
+  n <- suppressWarnings(as.numeric(x)[1])
+  redondo <- abs(n - round(n)) < 0.05
+  cifra <- if (redondo) format(round(n)) else sub("[.]", ",", sprintf("%.1f", n))
+  if (redondo && abs(round(n)) == 1) sprintf("%s encuesta prevista", cifra)
+  else sprintf("%s encuestas previstas", cifra)
 }
 
 
@@ -388,7 +418,7 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
       dispersion_n = disp$n,
       previsto_origen = origen,
       etiqueta = .mac_etiqueta_estado(estado, brecha),
-      etiqueta_calibracion = .mac_etiqueta_calibracion(cal)
+      etiqueta_calibracion = .mac_etiqueta_calibracion(cal, previsto)
     )
   })
 }
