@@ -86,7 +86,7 @@ const TOPE = 23;
 const EN_EL_AULA_LOCATIVO = /\ben\s+el\s+aulas?\b(?!-)/gi;
 
 const EN_PROSA =
-  /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
+  /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|entre|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
 
 /**
  * **Dos formas más que el detector de arriba no puede ver.**

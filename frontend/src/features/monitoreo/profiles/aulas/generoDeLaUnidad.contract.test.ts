@@ -79,8 +79,17 @@ describe("el género de las etiquetas concuerda con la unidad", () => {
     // devuelve DOS resultados y uno solo es ruido —«fecha agendada», declarado
     // arriba—. Sin el mínimo de longitud caza clases CSS (`es-citada`) y trozos
     // de código partidos, que fue por lo que se descartó dos veces antes.
+    // **Cuarto caso: el participio DESPUÉS de una interpolación.** Lo encontré a
+    // ojo en una captura, no con este guard: `<em> · {reemplazadas} reemplazadas
+    // no se registran</em>`. El brazo de JSX pide que el texto empiece justo
+    // tras `>`, y aquí entre medias hay un `{…}`, así que ninguno de los tres
+    // brazos lo veía. Basta con mirar también lo que sigue a una llave que
+    // cierra.
     const patron = new RegExp(
-      `"(${cuerpo}[^"]{0,40})"|>\\s*(${cuerpo}[^<{]{0,40})<|"([^"]{30,200}?\\s${cuerpo}[^"]{0,60})"`,
+      `"(${cuerpo}[^"]{0,40})"`
+      + `|>\\s*(${cuerpo}[^<{]{0,40})<`
+      + `|"([^"]{30,200}?\\s${cuerpo}[^"]{0,60})"`
+      + `|\\}\\s*(${cuerpo}[^<{"]{0,40})`,
       "g",
     );
     const hallados: string[] = [];
@@ -88,7 +97,7 @@ describe("el género de las etiquetas concuerda con la unidad", () => {
     for (const archivo of fuentes(AQUI)) {
       const limpio = sinComentarios(readFileSync(archivo, "utf8"));
       for (const m of limpio.matchAll(patron)) {
-        const literal = (m[1] ?? m[2] ?? m[3]).trim();
+        const literal = (m[1] ?? m[2] ?? m[3] ?? m[4]).trim();
         // El brazo de prosa larga puede cruzar la frontera entre dos literales y
         // traerse código por el medio. Una frase de pantalla no lleva salto de
         // línea ni llaves ni ángulos: eso es lo que separa la prosa del ruido.

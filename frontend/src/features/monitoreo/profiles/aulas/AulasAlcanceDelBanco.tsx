@@ -112,7 +112,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
         Con lo que la Base de control da por enviado en los cursos-horario aplicados:{" "}
         <strong>{pct(r.tasa.tasa)}</strong> de su población elegible, medida en{" "}
         {fmt(r.tasa.aulas)} aulas. No es la efectiva de plataforma, que es la que
-        define el cumplimiento del estudio. La banda es la variación entre aulas, que es
+        define el cumplimiento del estudio. La banda es la variación de un curso-horario a otro, que es
         alta —{fmt(Math.round(r.tasa.sd * 100))} puntos—, así que una cifra sola
         prometería una precisión que no hay.
         {r.caida > 0 ? (
