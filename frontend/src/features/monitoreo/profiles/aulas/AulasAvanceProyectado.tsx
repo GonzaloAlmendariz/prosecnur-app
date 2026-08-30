@@ -32,6 +32,25 @@ const TONO: Record<string, string> = {
   asegurada: COLOR_RESULTADO.efectiva,
 };
 
+/**
+ * **Ni 100 % ni 0 %: el redondeo no puede fabricar certeza.**
+ *
+ * `Math.round(p * 100)` convierte 0,996 en «100 % de cerrar» y 0,004 en «0 %».
+ * Las dos son afirmaciones absolutas que este número no puede sostener: sale de
+ * una posterior Gamma-Poisson corregida por la dispersión medida, y su gracia
+ * —lo dice el comentario de al lado— es justamente separar la celda que supera
+ * su cuota por una encuesta de la que la supera por cien.
+ *
+ * Medido el 2026-08-30 en el estudio real: CIENCIAS E INGENIERIA / M llega con
+ * `prob_cierre` 1 y **está 4 encuestas por debajo de su cuota hoy**. La pantalla
+ * decía «100 % de cerrar» sobre una celda que aún no ha cerrado.
+ */
+export function pctDeCierre(p: number): string {
+  if (p >= 0.995) return ">99 %";
+  if (p > 0 && p < 0.005) return "<1 %";
+  return `${Math.round(p * 100)} %`;
+}
+
 export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<CeldaAvance> | null }) {
   const filas = useMemo(() => avanceProyectado(celdas), [celdas]);
   const piden = celdasQuePidenAccion(filas);
@@ -120,7 +139,7 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                       + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} cursos-horario con campo.`
                     : "Sin dispersión medida no se publica probabilidad."}
                 >
-                  {Math.round(f.probabilidad * 100)}% de cerrar
+                  {pctDeCierre(f.probabilidad)} de cerrar
                 </b>
               ) : (
                 /* Un `null` NO se pinta como 0 %: son cosas distintas y la
