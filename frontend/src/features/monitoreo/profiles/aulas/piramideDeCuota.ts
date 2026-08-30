@@ -78,7 +78,23 @@ function lado(
   const meta = propias.reduce((s, f) => s + numero(f.target), 0);
   const observadas = propias.reduce((s, f) => s + numero(f.observed), 0);
   if (meta <= 0) return null;
-  const cumple = observadas >= meta;
+  // Celda a celda, como en el resto del módulo: pasarse en una no cubre otra.
+  const faltan = propias.reduce((s, f) => s + Math.max(0, numero(f.target) - numero(f.observed)), 0);
+  /**
+   * **Cumple quien no debe nada, no quien suma bastante.**
+   *
+   * Era `observadas >= meta`, que suma el lado entero y por tanto compensa unas
+   * filas con otras — la misma regla que daba tres facultades por «Cerradas»
+   * teniéndoles 17 mujeres pendientes, y que el ADR 0079 prohíbe.
+   *
+   * Hoy las dos expresiones dan lo mismo y por accidente: `quotas_sex_faculty`
+   * sale de un `merge` por `(fac_key, sex_key)`, así que hay exactamente una
+   * fila por facultad y sexo y no hay nada que compensar. Esa equivalencia es
+   * del grano del payload, no de la regla: el día que estas filas se abran por
+   * estrato o por nivel, `observadas >= meta` volvería a decir «cumplida» con
+   * gente faltando. Atarlo a `faltan` cuesta una línea y no depende del grano.
+   */
+  const cumple = faltan === 0;
   // Lo previsto se mide en puntos de SU meta y se recorta a lo que queda por
   // cubrir: una celda que ya cumplió no crece, y una sombra que se pasara de la
   // meta diria que el excedente sirve para algo, que es justo lo que no hace.
@@ -92,8 +108,7 @@ function lado(
     sexo,
     meta,
     observadas,
-    // Celda a celda, como en el resto del módulo: pasarse en una no cubre otra.
-    faltan: propias.reduce((s, f) => s + Math.max(0, numero(f.target) - numero(f.observed)), 0),
+    faltan,
     avance: Math.round((1000 * observadas) / meta) / 10,
     cumple,
     previsto,

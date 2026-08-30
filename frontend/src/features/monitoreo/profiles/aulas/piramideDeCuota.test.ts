@@ -27,6 +27,34 @@ describe("la pirámide de cuota", () => {
     expect(facultades[0].derecha?.avance).toBe(75);
   });
 
+  /**
+   * **Un lado no cumple por compensación, aunque hoy no tenga con qué.**
+   *
+   * `quotas_sex_faculty` sale de un `merge` por `(fac_key, sex_key)`, así que
+   * hoy hay una fila por facultad y sexo y `observadas >= meta` daba lo mismo
+   * que `faltan === 0`. Ese empate es del grano del payload, no de la regla: si
+   * estas filas se abrieran alguna vez por estrato o por nivel, sumar el lado
+   * volvería a declarar «cumplida» una celda con gente faltando —que es
+   * exactamente lo que el ADR 0079 prohíbe y lo que la tabla del cliente ya
+   * hizo una vez con 17 mujeres pendientes en Arquitectura—.
+   *
+   * El invariante lo detecta; una salvedad escrita en un comentario, no.
+   */
+  it("no da por cumplido un lado que suma bastante debiendo en una de sus filas", () => {
+    // 60 de 40 en una y 10 de 30 en la otra: el lado suma 70 sobre 70 y aun así
+    // le faltan 20 personas donde hacen falta.
+    const { facultades } = piramideDeCuota([
+      celda("Derecho", "F", 40, 60),
+      celda("Derecho", "F", 30, 10),
+      celda("Derecho", "M", 50, 50),
+    ]);
+    const lado = facultades[0].izquierda?.sexo === "F"
+      ? facultades[0].izquierda
+      : facultades[0].derecha;
+    expect(lado?.faltan).toBe(20);
+    expect(lado?.cumple).toBe(false);
+  });
+
   it("el lado con más celdas declaradas va a la izquierda", () => {
     // El orden no puede depender del alfabeto ni de cómo devolvió las filas el
     // motor: con «Hombre»/«Mujer» el alfabeto pondría a los hombres primero.

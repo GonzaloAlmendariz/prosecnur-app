@@ -1282,3 +1282,39 @@ loop ya pagó tres veces. El inventario de H pasa de 6 a 23.
 **Anotado para la vuelta de H**: el aria-label de `AulasLoQueFalta` abre con
 «Escalera de esfuerzo», que es una metáfora, no un término. Se decide con el
 elemento delante, no ahora.
+
+### Vuelta 19 · Avance > Cuotas · la pirámide, y una equivalencia que era del grano
+
+Primer elemento de la indicación H. La geometría de `AulasPiramideCuota` está
+bien resuelta y el motivo está escrito en el propio componente: el carril es la
+escala y la pista lo contiene, así que el 100 % no puede desbordar; y la sombra
+de lo agendado se recorta a `100 − relleno`, de modo que **relleno + previsto
+nunca pasa de la meta**. Sumar lo que pinta da lo que promete el rótulo.
+
+Lo que sí apareció es la firma del defecto de la vuelta 4, un nivel más abajo:
+
+    const cumple = observadas >= meta;                              // suma el lado
+    faltan: propias.reduce((s, f) => s + Math.max(0, target - observed), 0)  // por fila
+
+Dos reglas distintas para la misma pregunta, y una de ellas compensa. **Pero
+verificado antes de acusar, y resultó no morder hoy**: `quotas_sex_faculty` sale
+de `merge(targets, observed, by = c("fac_key", "sex_key"))`
+(`monitoreo_aulas_avance_cuota.R` ~571), con `targets` construido en un
+`for (sx in names(celdas))`. Hay **exactamente una fila por facultad y sexo**, así
+que `propias.length === 1` y las dos expresiones dan lo mismo.
+
+**La equivalencia es del grano del payload, no de la regla.** Es justo la forma
+de acotamiento que caduca sin avisar: el día que estas filas se abran por estrato
+o por nivel —que es la clase de cambio que se hace sin mirar este componente—,
+`observadas >= meta` volvería a declarar «cumplida» una celda con gente
+faltando. Un comentario que lo advierta no lo detecta; un invariante sí.
+
+`cumple` pasa a ser `faltan === 0`, que es lo que el ADR 0079 dice de verdad y no
+depende del grano. **No cambia una sola cifra hoy** —los 14 tests existentes
+siguen verdes sin tocarlos—, y el test nuevo fija el caso que hoy no puede
+ocurrir: dos filas del mismo par, una con 60 sobre 40 y otra con 10 sobre 30, que
+suman 70 sobre 70 debiendo 20 personas. Comprobado que muerde: con la regla vieja,
+rojo en ese test y sólo en ése.
+
+Es la segunda vez en este loop que la reparación correcta no es cambiar un
+número, sino **atar dos expresiones que hoy coinciden por casualidad**.
