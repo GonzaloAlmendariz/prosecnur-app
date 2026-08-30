@@ -71,9 +71,26 @@ function medidaDePestana(
     return { badge: cuenta(faltan), estado: ok === total ? "listo" : ok === 0 ? "bloqueado" : "parcial" };
   }
   if (seccion === "consultas" && key === "reemplazos") {
-    // Pendiente = cadenas movidas; sin ninguna, no hay nada que revisar.
-    const filas = n(dashboard?.reemplazos);
-    return { badge: cuenta(filas), estado: filas ? "parcial" : "listo" };
+    /**
+     * **Cadenas MOVIDAS, no filas de la lista.**
+     *
+     * La intención estaba escrita —«Pendiente = cadenas movidas»— y la cuenta
+     * era `dashboard.reemplazos.length`, que trae **el plan entero sin banco**:
+     * titulares y sus reservas, movidas o no. Medido sobre HSVG2026 «como
+     * 2025», el badge decía **1.347** y los reemplazos que de verdad ocurrieron
+     * son **18** —cifra en la que coinciden tres fuentes: las filas con
+     * `replaced_at`, las que están en estado `reemplazada`, y el reparto
+     * `course_status_estados` del motor—.
+     *
+     * Un badge es un número desnudo al lado de una etiqueta: si dice 1.347
+     * junto a «Reemplazos», lo que el lector entiende es que hubo mil
+     * trescientos reemplazos.
+     */
+    const filas = (dashboard?.reemplazos ?? []) as Array<Record<string, unknown>>;
+    const movidas = filas.filter((fila) => (
+      String(fila.sample_status ?? "").trim().toLowerCase().startsWith("reemplazada")
+    )).length;
+    return { badge: cuenta(movidas), estado: movidas ? "parcial" : "listo" };
   }
   if (seccion === "consultas" && key === "brechas") {
     const filas = n(dashboard?.brechas);

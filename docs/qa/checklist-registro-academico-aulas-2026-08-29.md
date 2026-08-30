@@ -2041,3 +2041,44 @@ fixture**, no como conformidad: es la diferencia entre «comprobado que no pasa�
 Los descartes legítimos —el banco, las dormidas, las reemplazadas en la cola de
 contacto— se quedan como están: descartar lo que no pertenece al universo no es
 lo mismo que perder un caso que sí.
+
+### Vuelta 36 · El badge de «Reemplazos» decía 1.347 y los reemplazos son 18
+
+Primer hallazgo de la indicación C fuera de Avance, y salió de cruzar los badges
+del rail entre sí —que es el método 1 de este loop: dos superficies que dicen lo
+mismo con nombres distintos—.
+
+Los cinco badges del rail, medidos a la vez:
+
+| Pestaña | Badge | Qué cuenta |
+|---|---|---|
+| Avance > Resumen | 98 | `kpis.brechas`, cursos-horario bajo su meta |
+| Avance > Cuotas | 9 | celdas de cuota sin cerrar (30 − 21) |
+| Avance > Estratos | 43 | estratos con brecha |
+| Consultas > Brechas | 98 | el mismo 98, desde `dashboard.brechas` — coherente |
+| **Consultas > Reemplazos** | **1.347** | `dashboard.reemplazos.length` |
+
+**`dashboard.reemplazos` trae el plan entero sin banco**: 1.347 filas, de las que
+1.155 son reservas dormidas y 165 están agendadas sin haberse movido nunca. Los
+reemplazos que de verdad ocurrieron son **18**, y en eso coinciden tres fuentes
+independientes: las filas con `replaced_at`/`activated_at`, las que están en
+estado `reemplazada`, y el reparto `course_status_estados` del motor.
+
+**La intención estaba escrita en el propio comentario** —«Pendiente = cadenas
+movidas; sin ninguna, no hay nada que revisar»— y la cuenta decía otra cosa. Un
+badge es un número desnudo al lado de una etiqueta: 1.347 junto a «Reemplazos» se
+lee como mil trescientos reemplazos.
+
+El archivo **no tenía ningún test**; ahora tiene tres, incluido el que distingue
+«reagendada» de «reemplazada» para que un estado parecido no se cuele por el
+prefijo. Comprobado que muerden: con la cuenta vieja, los tres rojos.
+
+**Comprobado además dónde queda el 1.347 en pantalla**: sólo en «Mostrando 400 de
+1.347 filas», el aviso de recorte de la tabla, que es correcto y honesto.
+
+**Anotado sin tocar**: esa tabla lista las 1.347 filas bajo una pestaña llamada
+«Reemplazos». Puede ser deliberado —para elegir un reemplazo hay que ver las
+cadenas disponibles— y cambiar qué lista una tabla es decisión de producto, no de
+QA. Queda dicho.
+
+147 archivos / 1.746 tests, typecheck limpio, vista sin issues.
