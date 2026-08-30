@@ -65,6 +65,20 @@
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  /* **Todas las filas miden lo mismo, no solo todas las columnas.**
+
+     En una sola fila el marco se comparte solo y por eso la nota de la pista
+     dice que «crece parejo (C2)». En cuanto la banda se parte —tres columnas a
+     1180 px, dos con cuatro tarjetas— cada fila del grid crece por su cuenta
+     con su propio contenido, y las pistas de arriba envuelven a mas lineas que
+     las de abajo: medido a 1024x600, tres tarjetas de 97 px contra tres de
+     84.5, con la tolerancia del contrato en 2.
+
+     Con `1fr` las filas implicitas comparten el alto de la mayor. El sobrante
+     queda DENTRO de la tarjeta, debajo de su pista, que es capacidad legitima
+     de un grupo de pares (C3) y no contenido estirado: las tres filas internas
+     de `.aulas-kpi` siguen siendo `auto`. */
+  grid-auto-rows: 1fr;
   gap: 8px;
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
