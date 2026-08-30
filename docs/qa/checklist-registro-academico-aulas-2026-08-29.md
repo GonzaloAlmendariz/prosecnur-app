@@ -857,3 +857,28 @@ y cazado sólo por mirar la pantalla.
 Los dos tests del embudo llevan ahora el control que faltaba: se les pasa un
 `reemplazos_usados: 174` en el payload junto al conteo real de 7, y afirman que
 **el 174 no puede colarse**.
+
+### Corrección · «agenda viaja recortada» era falso
+
+En el commit anterior escribí, dentro del código, que el conteo dio 0 porque
+«`agenda` viaja recortada y sin el `application_state` que el motor deriva». **La
+primera mitad no es cierta** y la comprobación estaba a un grep:
+`visitaComprometida.ts` ya lo decía —«`dashboard.agenda` es **el plan entero**»— y
+el motor lo confirma: `agenda = .monitoreo_aulas_records(plan_df)`, sin filtro.
+
+La causa real es sólo la segunda mitad: `application_state` se deriva **después y
+sobre otro objeto** (`monitoreo_aulas_universitarias.R:1332`), así que no viaja
+en `agenda` y el conteo salía 0.
+
+El payload trae **tres cosas distintas**, y confundirlas es lo que costó el
+intento fallido. Queda escrito en el sitio donde se necesita:
+
+| bloque | alcance | estado derivado |
+|---|---|---|
+| `agenda` | el plan **entero** | **no** |
+| `course_status` | recortado a **500** filas | sí |
+| `course_status_estados` | reparto sobre **todas** | sí (agregado) |
+
+Escribir una explicación a medias en el código es el mismo defecto que este loop
+lleva quince vueltas persiguiendo en la UI: una superficie que declara algo que no
+es lo que pasa. Vale igual para un comentario.
