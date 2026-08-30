@@ -15,8 +15,9 @@
 .mapr_reports <- function(reemplazada = 18L, con_kpi = 174L) {
   list(
     kpis = list(
-      total_aulas = 1347L, aulas_aplicadas = 152L, aulas_parciales = 0L,
-      reemplazos_usados = con_kpi, respuestas_validas = 2668L, brechas = 98L
+      total_aulas = 1347L, aulas_titulares = 174L, aulas_aplicadas = 152L,
+      aulas_parciales = 0L, reemplazos_usados = con_kpi,
+      respuestas_validas = 2668L, brechas = 98L
     ),
     course_status_estados = list(
       list(clave = "cerrando", aulas = 152L),
@@ -58,8 +59,30 @@ test_that("sin reparto de estados la cifra es cero y no el KPI", {
 
 test_that("las demás cifras del resumen siguen saliendo del KPI", {
   reports <- .mapr_reports()
-  expect_equal(.mapr_valor(reports, "Aulas planificadas"), 1347L)
+  expect_equal(.mapr_valor(reports, "Cursos-horario del plan, con reservas"), 1347L)
   expect_equal(.mapr_valor(reports, "Aulas aplicadas"), 152L)
   expect_equal(.mapr_valor(reports, "Respuestas validas"), 2668L)
   expect_equal(.mapr_valor(reports, "Brechas aula"), 98L)
+})
+
+# --- el universo: lo que hay que aplicar contra el tamano del plan ------------
+
+test_that("«a aplicar» son los titulares y el plan con reservas va aparte", {
+  # `total_aulas` cuenta el plan sin banco: 174 titulares mas 1.173 reservas
+  # encadenadas. Junto a «aplicadas 152», publicarlo como «Aulas planificadas»
+  # hacia leer 152 de 1.347 —un 11 %— donde va un 87 %.
+  reports <- .mapr_reports()
+  expect_equal(.mapr_valor(reports, "Cursos-horario a aplicar"), 174L)
+  expect_equal(.mapr_valor(reports, "Cursos-horario del plan, con reservas"), 1347L)
+  # Y el rotulo viejo ya no existe: nombraba el plan entero como si fuera lo que
+  # hay que aplicar.
+  expect_true(is.na(.mapr_valor(reports, "Aulas planificadas")))
+})
+
+test_that("sin `aulas_titulares` cae al plan sin banco, que es la conducta anterior", {
+  # Un payload anterior a que el KPI existiera no puede saber cuantos titulares
+  # hay; publicar cero seria peor que publicar el plan.
+  reports <- .mapr_reports()
+  reports$kpis$aulas_titulares <- NULL
+  expect_equal(.mapr_valor(reports, "Cursos-horario a aplicar"), 1347L)
 })

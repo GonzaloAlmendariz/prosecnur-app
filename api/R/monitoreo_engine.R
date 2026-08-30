@@ -24465,8 +24465,21 @@ monitoreo_export_workbook <- function(data, config = list(), path) {
   resumen <- data.frame(
     # «Cursos-horario reemplazados» y no «Reemplazos usados»: lo que se cuenta
     # es cuantos titulares hubo que sustituir, no cuantas reservas hay en juego.
-    Indicador = c("Aulas planificadas", "Aulas aplicadas", "Aulas parciales", "Cursos-horario reemplazados", "Respuestas validas", "Brechas aula"),
+    # **«Planificadas» eran 1.347 y las que hay que aplicar son 174.**
+    #
+    # `total_aulas` cuenta el plan sin banco: titulares MAS sus reservas
+    # encadenadas. Junto a «aplicadas 152», el lector hace 152 de 1.347 y lee un
+    # 11 % de avance donde va un 87 %. Las 1.173 reservas no se aplican salvo que
+    # caiga su titular, asi que no son aulas planificadas para aplicar: son
+    # respaldo, y el propio motor ya las separa en `tracked_df`.
+    #
+    # Se publican las dos, con su nombre: lo que hay que aplicar y el tamano del
+    # plan con sus respaldos. Quitar la segunda perderia informacion real.
+    Indicador = c("Cursos-horario a aplicar", "Cursos-horario del plan, con reservas",
+                  "Aulas aplicadas", "Aulas parciales", "Cursos-horario reemplazados",
+                  "Respuestas validas", "Brechas aula"),
     Valor = c(
+      kpis$aulas_titulares %||% kpis$total_aulas %||% 0L,
       kpis$total_aulas %||% 0L,
       kpis$aulas_aplicadas %||% 0L,
       kpis$aulas_parciales %||% 0L,

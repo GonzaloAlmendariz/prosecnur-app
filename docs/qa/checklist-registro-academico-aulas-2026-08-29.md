@@ -2123,3 +2123,40 @@ backend.
 
 Suites verdes: la nueva, `test-monitoreo-publish-qa.R` y
 `test-monitoreo-aulas-universitarias.R`.
+
+### Vuelta 38 · Un universo con respaldo dentro, en dos sitios más — y una rama muerta
+
+Tirando del hilo del KPI, el mismo universo apareció otras dos veces.
+
+**`total_aulas` cuenta el plan sin banco: 174 titulares más 1.173 reservas.** Y
+el propio motor ya separa las dos cosas —`seguidas` es el plan sin banco y
+`tracked_df` sólo las que están en juego—, con un comentario que lo explica
+entero: «fuera el banco y fuera los eslabones dormidos de cada cadena: de `CH 5`
+→ `R 5.1` → `R 5.2` sólo una está en juego a la vez». El KPI usa `seguidas`.
+
+**1. La hoja del cliente.** Publicaba «Aulas planificadas 1.347» junto a «Aulas
+aplicadas 152»: quien lo lee hace 152 de 1.347 y ve un **11 %** donde va un
+**87 %**. Ahora publica las dos con su nombre —«Cursos-horario a aplicar: 174» y
+«Cursos-horario del plan, con reservas: 1.347»—, porque quitar la segunda
+perdería información real.
+
+**2. El badge de «Registro de campo».** Decía `total_aulas − aplicadas` =
+**1.195** donde esperan parte **22**. Y al ir a repararlo apareció que **nunca se
+pintaba**: la rama comprobaba `seccion === "modelo"` y la pestaña se declara en
+el catálogo como `calidad/registro`. La medida estaba escrita, con su comentario
+y su intención —«Nunca "listo": siempre puede entrar otra aplicación»— y no
+casaba jamás.
+
+**Barrido de las siete ramas del rail contra el catálogo**: seis casan, una
+—`modelo/registro`— no existía. Es la única. Ahora hay un guard que lo comprueba
+sobre la fuente, porque **una rama muerta no se ve de ninguna otra forma**: no
+rompe el typecheck, no rompe ningún test, y en pantalla sólo falta un número que
+nadie echa de menos. Comprobado que muerde: nombra al infractor por su clave.
+
+**Tres superficies con el mismo universo en tres vueltas** —el pronóstico de
+cierre, la hoja del cliente y este badge—, todas con la misma forma: contar el
+respaldo como si fuera trabajo pendiente. Cuando el motor tiene dos variables
+para el mismo conjunto (`seguidas` y `tracked_df`), la pregunta útil es cuál
+usa cada consumidor.
+
+147 archivos / 1.750 tests, typecheck limpio, suites de R verdes.
