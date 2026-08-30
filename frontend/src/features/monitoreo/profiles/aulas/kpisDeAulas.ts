@@ -611,7 +611,10 @@ export function aulasKpis(
           label: "Sin medio de contacto",
           icono: PhoneCall,
           value: fmt(ag.sinMedioDeContacto),
-          pista: "ni teléfono ni correo anotado",
+          // El rótulo decía «sin medio de contacto» y la cuenta exige ADEMÁS
+          // que sigan sin fecha: una ya agendada no necesita que la llamen. Sin
+          // decirlo, 33 sin medio conviven con un contador en 0.
+          pista: "ni teléfono ni correo anotado, entre las que aún hay que agendar",
           detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todas. No es que sean difíciles: es que no hay por dónde llamarlas.",
           tone: "warn",
         });
