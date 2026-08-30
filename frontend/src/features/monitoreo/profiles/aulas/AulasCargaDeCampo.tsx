@@ -260,7 +260,7 @@ export function AulasCargaDeCampo({
                 <dd className="es-texto">{cuando}</dd>
               </div>
               <div>
-                <dt>Aulas en curso entonces</dt>
+                <dt>Cursos-horario en curso entonces</dt>
                 <dd>{fmt(malla.pico?.aulas ?? 0)}</dd>
               </div>
             </>

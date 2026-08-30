@@ -245,12 +245,12 @@ export function AulasSeccionConsultas({
             {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
                 guard de títulos lo caza. Dos paneles que terminan igual se
                 confunden en el rail y en el historial de navegación. */}
-            <h3>Aulas extra disponibles</h3>
+            <h3>Cursos-horario extra disponibles</h3>
             <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
           </div>
           <p className="mon-profile-muted">
-            No reemplazan a ningún curso-horario: son aulas adicionales para
-            cerrar la cuota de hombres y mujeres de cada facultad.
+            No reemplazan a ningún curso-horario: son cursos-horario adicionales
+            para cerrar la cuota de hombres y mujeres de cada facultad.
           </p>
           {/* **Antes del inventario, no después.** La frase de arriba dice que
               estas aulas existen para cerrar la cuota; lo primero que hay que

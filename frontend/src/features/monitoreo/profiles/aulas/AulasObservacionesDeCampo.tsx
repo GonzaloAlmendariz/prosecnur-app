@@ -47,7 +47,7 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           // observaciones sobre aulas ya gestionadas deja de ser un vacío
           // neutro: dice que lo anotado se está quedando fuera de la app.
           ? `Ninguno de los ${fmt(r.partes)} cursos-horario gestionados trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
-          : "Todavía no hay aulas gestionadas. Las observaciones se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
+          : "Todavía no hay cursos-horario gestionados. Las observaciones se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
       </p>
     );
   }

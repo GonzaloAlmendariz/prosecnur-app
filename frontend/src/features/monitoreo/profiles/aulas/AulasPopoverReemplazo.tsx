@@ -50,7 +50,7 @@ const GRUPOS: Array<{ id: OrigenDeCandidato; titulo: string; pie: string }> = [
   {
     id: "extra",
     titulo: "Bolsón extra",
-    pie: "Aulas adicionales, fuera de toda cadena. No cargan peso de diseño.",
+    pie: "Cursos-horario adicionales, fuera de toda cadena. No cargan peso de diseño.",
   },
 ];
 

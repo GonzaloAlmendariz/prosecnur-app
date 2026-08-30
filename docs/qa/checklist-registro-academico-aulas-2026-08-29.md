@@ -2855,3 +2855,37 @@ anteriores contaban de más, ésta cuenta de menos. En las cinco, el número era
 correcto y **el nombre describía otro conjunto**.
 
 147 archivos / 1.759 tests, typecheck limpio.
+
+### Vuelta 57 · La tercera ceguera del ratchet, cerrada — y un título de panel escapado
+
+La tercera ceguera estaba anotada desde la vuelta 27 y sin reparar. Al mirar los
+títulos de los paneles fuera de Avance apareció lo que dejaba pasar:
+**«Aulas extra disponibles»**, un `<h3>` visible, con su prosa debajo diciendo
+«son **aulas** adicionales». Ninguna de las dos la contaba el ratchet.
+
+**Las dos formas que el detector no podía ver**, y por qué: `EN_PROSA` exige un
+determinante o una cifra **delante**, y en prosa hay dos sitios donde el
+sustantivo no lo lleva.
+
+| Forma | Ejemplo | Cuántas |
+|---|---|---|
+| Al abrir un literal | `<h3>Aulas extra…`, `aria-label="Aulas por pedir…"` | **10** |
+| Tras verbo copulativo o de existencia | «son aulas adicionales», «no quedan aulas», «hay aulas gestionadas» | **3** |
+
+El `["`>]` del primer patrón es lo que lo separa de un identificador de código:
+`AulasSeccionModelo` no va precedido de comilla ni de `>`.
+
+**Seis frases reparadas**, entre ellas dos `aria-label` —lo único que oye quien no
+ve la pantalla— y el título del panel. **Cinco se quedan y por qué**: «Aulas
+agendadas» y «Aulas aplicadas (campo)» son **nombres de hoja del libro**; «Aula
+real», «Aula» y el `<span>Aula {venue}</span>` nombran el **salón físico**, que es
+justo la palabra correcta.
+
+**El ratchet pasa de 27 a 34**, y es la tercera vez en este loop que ampliarlo
+sube el número: 15 → 34 → 27 → 34. Cada ampliación destapa frases que llevaban
+ahí desde el principio. **Un ratchet mide lo que ve, y lo que ve hay que
+comprobarlo, no suponerlo** — es la misma lección que la vuelta 54 dio con los
+textos del motor.
+
+148 archivos / 1.762 tests, typecheck limpio. Un contrato actualizado, que
+afirmaba el texto viejo.
