@@ -2586,3 +2586,38 @@ enlaces se generan en Kobo por formulario y varios cursos-horario comparten
 formulario, la colisión es de configuración allá; y si se pegan a mano en la
 columna, es de transcripción. El aviso ya nombra los pares —«CH 20 y CH 21; CH 94
 y CH 97; R 110.1 y CH 109»— para poder ir a mirarlos.
+
+### Vuelta 50 · La causa del enlace compartido, probada: se truncó a ocho caracteres
+
+Con «nunca jamás debería pasar» sobre la mesa, el aviso tenía que decir **cómo se
+arregla**, no sólo que hay un problema.
+
+**Medido, y es sistemático**: las **1.424 filas** del plan tienen la cola de su
+enlace igual a los **8 primeros caracteres** de su `classroom_id`, **sin una sola
+excepción**.
+
+```
+1ind53_0833  →  .../1ind53_0
+1ind53_0832  →  .../1ind53_0
+```
+
+No es un error aislado: **quien generó los enlaces cortó el identificador a
+ocho**, y con identificadores de once eso colisiona en cuanto dos aulas comparten
+ese prefijo. El aviso ahora lo dice: «El enlace lleva sólo los 8 primeros
+caracteres del identificador del curso-horario, así que dos que empiecen igual
+caen en el mismo».
+
+**No se inventa la causa cuando no se puede probar.** El diagnóstico exige que la
+relación se cumpla en más del 90 % de las filas y con un único largo; si no,
+devuelve `NA` y el aviso se queda en la consecuencia. Tres casos nuevos, incluido
+el de enlaces que no derivan del identificador.
+
+**Lo que quedó sin poder comprobarse, y por qué**: el `.pulso` sólo trae
+`state.rds` y `manifest.json` —**sin `files/`**— así que el Excel original no está
+y no se puede saber si llegó ya colisionado o si algo lo rompió al importar. Lo
+que sí está descartado es que lo trunque la app: ni el anonimizador, ni el motor,
+ni el generador del libro, ni la carga, y no hay un solo `substr`/`strtrim` sobre
+`link` o `classroom_id` en `api/R`.
+
+**Estado del control**: `warning`, con los pares nombrados y la causa. Doce reglas
+en `validation`.

@@ -53,5 +53,37 @@ monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
   }, character(1), USE.NAMES = FALSE)
 
   list(enlaces = length(repes), aulas = as.integer(cuantas),
-       comprobable = TRUE, ejemplos = ejemplos)
+       comprobable = TRUE, ejemplos = ejemplos,
+       truncado = .maen_largo_truncado(en_juego))
+}
+
+#' Cuantos caracteres del identificador conserva el enlace, si es que lo trunca.
+#'
+#' **El diagnostico que convierte «comparten enlace» en algo arreglable.** Medido
+#' sobre HSVG2026 «como 2025»: las **1.424 filas** tienen la cola del enlace igual
+#' a los **8 primeros caracteres** de su `classroom_id`, sin una sola excepcion.
+#' No es un error aislado: quien genero los enlaces corto el identificador a ocho,
+#' y con ids de once eso colisiona en cuanto dos aulas comparten ese prefijo.
+#'
+#' Devuelve `NA_integer_` cuando la relacion no es sistematica —menos del 90 % de
+#' las filas—, porque entonces el enlace viene de otro sitio y decir «esta
+#' truncado» seria inventar la causa.
+#'
+#' @param filas data.frame con `link` y `classroom_id`.
+#' @return entero con el largo conservado, o `NA_integer_`.
+#' @export
+.maen_largo_truncado <- function(filas) {
+  if (!is.data.frame(filas) || !nrow(filas)) return(NA_integer_)
+  if (!all(c("link", "classroom_id") %in% names(filas))) return(NA_integer_)
+  link <- trimws(as.character(filas$link))
+  id <- trimws(as.character(filas$classroom_id))
+  ok <- nzchar(link) & nzchar(id)
+  if (!any(ok)) return(NA_integer_)
+  colas <- sub(".*/", "", link[ok])
+  ids <- id[ok]
+  es_prefijo <- startsWith(ids, colas) & nchar(colas) < nchar(ids)
+  if (mean(es_prefijo) < 0.9) return(NA_integer_)
+  largos <- unique(nchar(colas[es_prefijo]))
+  if (length(largos) != 1L) return(NA_integer_)
+  as.integer(largos)
 }
