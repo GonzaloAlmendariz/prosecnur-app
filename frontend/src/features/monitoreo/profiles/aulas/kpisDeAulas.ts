@@ -364,12 +364,23 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   }
   const mayor = [...porFacultad.entries()].sort((a, b) => b[1] - a[1])[0];
   return {
-    label: "Brechas",
+    // **«Brechas» no decía brecha de qué**, y la tarjeta de al lado —«Cuota por
+    // recoger 170»— también cuenta lo que falta, pero en PERSONAS. Las dos
+    // cifras se leían como dos cuentas del mismo hueco cuando son dos ejes: 170
+    // son alumnos que faltan para la cuota del estudio; 98, cursos-horario que
+    // no llegaron a su propia meta (`sum(tracked_df$brecha > 0)`,
+    // `monitoreo_aulas_universitarias.R:2342`).
+    //
+    // Con el nombre completo queda además a la vista que es el complemento de
+    // «Llegaron a su meta», que es la tarjeta vecina por el otro lado.
+    label: "Cursos-horario bajo su meta",
     icono: AlertCircle,
     value: fmt(brechas),
     pista: porFacultad.size
-      ? `cursos-horario en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? "facultad" : "facultades"}`
-      : "cursos-horario por debajo de su meta",
+      ? `en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? "facultad" : "facultades"}`
+      // No es «ninguno»: el desglose sale de `course_status`, que puede llegar
+      // recortado. Se dice que falta el reparto, no que no haya brechas.
+      : "sin el desglose por facultad",
     detalle: mayor
       ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. El corte de `
         + `\`course_status\` puede venir recortado, así que el reparto por facultad se lee como orden de magnitud.`
