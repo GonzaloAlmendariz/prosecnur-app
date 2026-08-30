@@ -25,9 +25,20 @@ export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
   if (!t.disponible) {
     return (
       <div className="aulas-abiertas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        {/* **No se afirma la ausencia: se dice el motivo, que ya la explica.**
+            Decía «Este estudio no tiene preguntas abiertas que revisar» y a
+            continuación el motivo del motor, que en dos de sus tres casos dice
+            justo lo contrario —«no se SABE qué preguntas son abiertas»—. Las dos
+            frases juntas se leían como una contradicción, y además empezaban
+            igual.
+
+            Los tres motivos son autosuficientes: «no trae instrumento, así que
+            no se sabe qué preguntas son abiertas», «el instrumento no declara
+            tipo y nombre de sus preguntas» y «el instrumento no tiene ni una
+            pregunta de texto abierto» (`monitoreo_texto_abierto.R:145-158`).
+            Sólo el tercero permite afirmar que no las hay. */}
         <p className="aulas-cadenas-lectura">
-          Este estudio <strong>no tiene preguntas abiertas que revisar</strong>.{" "}
-          {t.motivo}
+          <strong>{t.motivo || "No hay nada que revisar en esta pestaña."}</strong>
         </p>
         <p className="mon-profile-muted">
           Con el instrumento cargado, aquí se leen las respuestas de cada

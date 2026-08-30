@@ -993,3 +993,30 @@ tres veces.
 control que pide revisión dice su causa y su remedio —«7 columnas de la Base de
 control tienen datos pero su cabecera está vacía en el Excel, así que no se
 leyeron. Ponles nombre en la hoja para que entren»—.
+
+## Validación · `calidad/abiertas` · afirmar una ausencia que no se sabe
+
+El panel decía, en dos frases seguidas:
+
+> «Este estudio **no tiene preguntas abiertas que revisar**. Este estudio **no
+> trae instrumento, así que no se sabe** qué preguntas son abiertas.»
+
+Son incompatibles: si no se sabe, no se puede afirmar que no las hay. Y las dos
+empiezan igual, así que además se leen como un tartamudeo.
+
+La primera frase la pone el frontend, fija; la segunda la produce el motor. Y el
+motor tiene **tres** motivos posibles (`monitoreo_texto_abierto.R:145-158`):
+
+| motivo | ¿permite afirmar que no las hay? |
+|---|---|
+| «no trae instrumento, así que no se sabe qué preguntas son abiertas» | **no** |
+| «el instrumento no declara tipo y nombre de sus preguntas» | **no** |
+| «el instrumento no tiene ni una pregunta de texto abierto» | sí |
+
+La frase fija era correcta en **uno de tres** casos. Retirada: los tres motivos
+se explican solos, y ahora el panel dice sólo lo que se puede afirmar, seguido de
+qué se vería con el instrumento cargado.
+
+Es el mismo defecto que este loop viene cazando en las cifras —afirmar más de lo
+que el dato permite—, aquí sobre un vacío: **la diferencia entre «no hay» y «no
+se sabe» es justo la que un lector no técnico no puede reconstruir solo**.
