@@ -175,7 +175,20 @@ export function AulasPestanaCuotas({
                     titulares caídos y reservas incluidos. «… contra el diseño» y no
                     «… por facultad» ni «… de la cuota»: esas colas ya tienen dueño
                     y el guard de títulos caza a quien termina igual que un vecino. */}
-                <h3>Cumplimiento contra el diseño</h3>
+                {/* **El título dice contra QUÉ**, porque hay otro «Cumplimiento» en
+                    Resumen y las dos cifras no se parecen: aquí 2.668 de 2.500
+                    —106.7 %— y allá 2.336 de 3.227 —72.4 %—. Las dos son correctas y
+                    parten de las MISMAS 2.668 respuestas; lo que cambia es contra qué
+                    se miden y qué se deja fuera. Ésta las cuenta todas contra la cuota
+                    de alumnos del cálculo de muestra; la otra topa cada aula en su
+                    meta, así que las 332 que sobran en aulas ya cumplidas no le suman
+                    (2.336 + 332 = 2.668).
+
+                    Con los nombres viejos —«contra el diseño» y «en respuestas»— un
+                    lector que pase de una pestaña a otra ve 106.7 % y 72.4 % sin nada
+                    que le diga por qué, y la conclusión razonable es que una de las
+                    dos está mal. */}
+                <h3>Cumplimiento de la cuota del estudio</h3>
                 {/* El chip declara el denominador —y su degradación, si la hay—; el
                     porqué viaja en el title, como el `detalle` de los KPIs. */}
                 <span title={cuotaDiseno.procedencia.detalle || undefined}>

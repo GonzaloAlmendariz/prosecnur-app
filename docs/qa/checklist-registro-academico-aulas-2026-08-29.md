@@ -106,3 +106,46 @@ término → verde al restaurar.
 
 `AulasControlDelLibro.tsx` queda exento con su motivo: ahí «celda» es una celda
 de hoja de cálculo de verdad, y es la palabra correcta.
+
+### Vuelta 3 · Dos «Cumplimiento» que no decían en qué se diferencian
+
+En la misma sección Avance, dos pestañas publicaban:
+
+| Pestaña | Panel | Cifra |
+|---|---|---|
+| Cuotas | «Cumplimiento contra el diseño» | 2.668 de 2.500 = **106.7 %** |
+| Resumen | «Cumplimiento en respuestas» | 2.336 de 3.227 = **72.4 %** |
+
+**Las dos son correctas y parten de las mismas 2.668 respuestas.** Lo que cambia
+es contra qué se miden y qué dejan fuera: Cuotas las cuenta todas contra la cuota
+de alumnos del cálculo de muestra; Resumen topa cada aula en su meta, así que las
+332 que sobran en aulas ya cumplidas no le suman. La aritmética lo confirma:
+**2.336 + 332 = 2.668**.
+
+El defecto no estaba en el cálculo sino en el nombre: «contra el diseño» y «en
+respuestas» no separan nada —las dos se miden en respuestas—, así que quien pasa
+de una pestaña a otra ve 106.7 % y 72.4 % y concluye, razonablemente, que una de
+las dos está mal.
+
+- «Cumplimiento contra el diseño» → **«Cumplimiento de la cuota del estudio»**
+- «Cumplimiento en respuestas» → **«Cumplimiento aula por aula»**
+
+### Un anglicismo que hacía de distinción
+
+«Status de aplicación» → «Estado de aplicación», y con eso salió a la luz algo
+que llevaba tiempo escondido: en `FIELD_LABELS` había **dos claves distintas**
+—`application_status`, la columna que el equipo escribe en el parte, y
+`application_state`, el estado que el motor deriva del avance— y **se distinguían
+sólo porque una decía «Status» y la otra «Estado»**. Un anglicismo haciendo de
+distinción, que no le dice nada a quien lee. Al traducirlo quedaron homónimas y
+ningún test se puso rojo.
+
+Ahora cada una nombra su fuente, que es el criterio con que telefónico separó
+«Declaradas efectivas» de «Efectivas Kobo»:
+
+- `application_status` → «Estado declarado en el parte»
+- `application_state` → «Estado según el avance»
+
+Censo del glosario: **153 entradas, una sola pareja repetida** —la que el propio
+cambio creó—, así que el guard nuevo arranca sin deuda. Verificado que muerde:
+verde → rojo al reintroducir la colisión → verde al restaurar.
