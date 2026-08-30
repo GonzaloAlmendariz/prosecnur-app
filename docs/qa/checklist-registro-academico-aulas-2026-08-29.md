@@ -512,3 +512,64 @@ territorial y acreditación siguen diciendo «meta».
 «Procesables 2.668» y «Válidas 2.668» coinciden porque no hay descarte entre esos
 dos pasos, y el componente tiene una rama que lo explica cuando los tres granos
 son iguales.
+
+---
+
+## Indicación D · ¿Se pueden agregar dos pestañas más?
+
+> «evaluar si se pueden agregar dos pestañas más, **solo sí y solo sí lo
+> amerita**»
+
+**Respuesta: no lo amerita.** No como contenido nuevo. Lo que sí aparece medido
+es un desequilibrio de reparto, que se resuelve moviendo y no añadiendo — y esa
+decisión es del contrato de navegación, así que se deja planteada.
+
+### Por qué no
+
+**1. No hay contenido calculado esperando superficie.** El Contrato de Superficie
+sólo autoriza añadir en un caso: C5 categoría 3, «el backend ya lo calcula y el
+frontend no lo consume». Censados los **34 campos** que el motor publica en el
+dashboard de aulas, **ninguno queda sin consumidor**. (El detector señaló
+`criterio_aula`; comprobado, sí se consume, por `state.aulas_universitarias.
+aula_valida` en vez de por el nombre del campo. Falso positivo del método, no
+hueco de la app.)
+
+**2. Las seis pestañas cubren las seis preguntas.**
+
+| Pestaña | Qué contesta |
+|---|---|
+| Cuotas | ¿cuánto llevamos contra lo comprometido, por facultad y sexo? |
+| Resumen | ¿cómo va el conjunto y a qué ritmo? |
+| Estratos | ¿cómo se reparte contra el diseño del sorteo? |
+| Rendimiento | ¿qué rinde, quién rinde y cuándo cerramos? |
+| Efectividad | ¿el campo se comporta como supuso el modelo? |
+| Salidas | ¿qué se puede entregar hoy y con qué corte? |
+
+**3. Una pestaña que reagrupe lo que ya existe es duplicar navegación**, que la
+casa prohíbe: «UI nueva se cuelga de una de las cinco dimensiones; nunca duplicar
+la navegación de una dimensión en otra».
+
+### Lo que sí está desequilibrado
+
+Paneles por pestaña, contados sobre el fuente:
+
+| Pestaña | Paneles |
+|---|---|
+| Rendimiento | **9** |
+| Resumen | 7 |
+| Cuotas | 3 |
+| Estratos | 1 |
+| Efectividad | 1 |
+| Salidas | 1 |
+
+Y dentro de Rendimiento conviven dos clases de panel: siete de **diagnóstico**
+—qué rinde, quién, cuándo, y cuándo se cierra— y dos de **acción**: «A quién hay
+que agendar» y «Consumo de la reserva», que son decisiones de reposición.
+
+Si algo amerita, es **mover esos dos**, no crear contenido. Toca el contrato de
+navegación y el registro de `modules.ts`, así que queda como decisión del dueño y
+no se ejecuta desde el loop.
+
+Anotado también: «Franja horaria del operativo» y «Día de la semana» son dos
+paneles del mismo corte temporal y el primero está vacío en este estudio —el
+triaje C5 de ese vacío sigue pendiente de ver `campo_flojo`—.
