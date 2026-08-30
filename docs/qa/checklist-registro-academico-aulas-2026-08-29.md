@@ -2233,3 +2233,35 @@ pantalla que ya recibió una línea nueva en este loop.
 **Un campo sin consumidor no es una brecha si su información llega por otro
 camino.** Comprobarlo cuesta una medición y evita añadir una cifra redundante a
 una pantalla densa.
+
+### Vuelta 41 · «Cumple quien no debe nada», barrida — y un caso límite sin definir
+
+Segunda doctrina del índice, y toca el norte del encargo. Cinco sitios deciden si
+algo cumple:
+
+| Sitio | Criterio | Veredicto |
+|---|---|---|
+| `piramideDeCuota` | `faltan === 0` | correcto (vuelta 19) |
+| `serieDeRendimiento` | `celda.faltan === 0` | correcto |
+| `perfilPorFacultad` ×2 | `falta === 0` | correcto |
+| `historiaDeCadena` | `validas >= meta` | **correcto**, y aquí está el matiz |
+
+El quinto parecía el infractor —usa la suma y no lo que falta— pero **su grano es
+un aula**, y un aula no tiene sub-celdas de sexo: no hay nada que compensar
+dentro. La doctrina prohíbe sumar por encima de las celdas, no sumar dentro de
+una. Cinco de cinco.
+
+**Leyendo la función entera aparece otra cosa**, que es el método que más ha
+dado: `queCerro` busca el primer eslabón que cumple **por sí solo**, mientras las
+`validas` de la cadena **suman todos los eslabones**. Si un titular dejara 10 de
+20 y su reserva 15, la cadena tendría 25 sobre 20 y saldría como **«abierta»**.
+
+**Medido: 0 casos en las 174 cadenas de este corte.** Y no lo reparo, porque no
+está claro que sea un defecto: «qué eslabón cerró» tiene una respuesta legítima
+—ninguno— cuando ninguno llegó solo, y decidir si una cadena «cerró» por la suma
+de sus intentos parciales es una decisión de dominio, no de QA. Queda declarado
+con su cifra para que se decida cuando aparezca el primer caso.
+
+**Vacío por fixture, otra vez, y por eso se dice**: cero hoy no es cero siempre.
+Un titular parcial más una reserva parcial es un escenario perfectamente posible
+en un operativo con aulas que se cortan a medias.
