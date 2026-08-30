@@ -36,7 +36,30 @@ const entero = (v: unknown): number => {
  * el sitio de un vacío que sí podría decir qué falta — es la misma regla que el
  * resto del perfil aplica a sus paneles.
  */
-export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined): FlujoEtapa[] {
+/**
+ * **`reemplazos_usados` no cuenta reemplazos.**
+ *
+ * El motor lo define como reservas cuyo `operational_status` ya salió del estado
+ * inicial —`agendada`, `en_campo`, `aplicada`, `cerrada` o `parcial`
+ * (`monitoreo_aulas_universitarias.R:2330`)—, o sea **reservas en juego**, no
+ * titulares que se cayeron y fueron sustituidos.
+ *
+ * El repo ya lo sabía: `kpisDeAulas.ts` lo retiró de un KPI con esta nota —«el
+ * KPI `reemplazos_usados` del motor NO sirve aquí… con el registro vacío decía
+ * "0" mientras el panel de al lado decía "3 cerraron con un reemplazo"»— y esta
+ * superficie se quedó con él. Medido sobre `campo_malo`: el embudo decía «174
+ * con reemplazo activado» y «ya han entrado 174» mientras Consultas contaba
+ * «Cerraron con reemplazo 3».
+ *
+ * Se recibe en su lugar el conteo del tramo `reemplazada`, que es el estado del
+ * **titular sustituido** y por tanto lo que la frase promete. No se recalcula
+ * aquí: lo pasa quien ya lo tiene de `estadoDeAplicacion()`, para no crear una
+ * segunda regla de lo mismo.
+ */
+export function embudoDelOperativo(
+  cifras: CifrasDelOperativo | null | undefined,
+  titularesReemplazados?: number | null,
+): FlujoEtapa[] {
   const c = cifras ?? {};
   const titulares = entero(c.aulas_titulares);
   if (!titulares) return [];
@@ -63,7 +86,7 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
   // La heurística del motor sigue sirviendo donde nació —estudios que no
   // declaran criterio— y ahí las dos cuentas coinciden.
   const rechazadas = Math.max(0, recibidas - validas);
-  const reemplazos = entero(c.reemplazos_usados);
+  const reemplazos = entero(titularesReemplazados);
 
   const etapas: FlujoEtapa[] = [
     {
@@ -143,7 +166,13 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
  * - el banco no cuelga de ningún titular: es respaldo del estrato, no aulas que
  *   alguien vaya a visitar (`:1873`).
  */
-export function explicacionDelEmbudo(cifras: CifrasDelOperativo | null | undefined): string[] {
+/** Misma corrección que `embudoDelOperativo`: la frase de las reservas hablaba
+ *  con `reemplazos_usados`, que cuenta reservas en juego y no titulares
+ *  sustituidos. */
+export function explicacionDelEmbudo(
+  cifras: CifrasDelOperativo | null | undefined,
+  titularesReemplazados?: number | null,
+): string[] {
   const c = cifras ?? {};
   const titulares = entero(c.aulas_titulares);
   if (!titulares) return [];
@@ -174,7 +203,7 @@ export function explicacionDelEmbudo(cifras: CifrasDelOperativo | null | undefin
   ];
 
   // Las reservas sólo se explican si las hay: sin cadena, la frase sobra.
-  const reemplazos = entero(c.reemplazos_usados);
+  const reemplazos = entero(titularesReemplazados);
   frases.push(
     reemplazos
       ? `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `

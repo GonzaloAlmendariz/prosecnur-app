@@ -832,3 +832,28 @@ Queda medido y con el análisis hecho.
 mismo denominador del pronóstico de cierre; los 77 que faltan hasta 1.424 son las
 reservas del banco, que el panel vecino nombra. Y el embudo es exacto en sus
 restas: 174 − 22 = 152 aplicadas, y 1.595 − 57 = 1.538 que cuentan.
+
+### Reparado · el embudo hablaba con una cifra que cuenta otra cosa
+
+`reemplazos_usados` está definido en el motor como reservas cuyo
+`operational_status` ya salió del estado inicial —agendada, en campo, aplicada,
+cerrada o parcial (`monitoreo_aulas_universitarias.R:2330`)—, o sea **reservas en
+juego**, no titulares sustituidos. Por eso decía 174.
+
+El embudo recibe ahora el conteo del tramo `reemplazada`, que es el estado del
+**titular sustituido** y lo que la frase promete. En pantalla: «titulares
+sorteados · **18** con reemplazo activado» y «ya han entrado **18**», coherente
+con el tramo «Reemplazada 18» de Avance.
+
+**Y el primer intento salió mal de una forma que vale registrar.** Conté el tramo
+sobre `dashboard.agenda` con `estadoDeAplicacion()`: dio **0**, la frase entera
+desapareció de la pantalla… **y el gate quedó verde** —typecheck en 0 y 2.464
+tests—. `agenda` viaja recortada y sin el `application_state` que el motor
+deriva; el bloque bueno es `course_status_estados`, el mismo que pinta los tramos
+en Avance. Es el patrón que este loop lleva persiguiendo desde la vuelta 9
+—confundir la fuente recortada con el reparto del motor— cometido esta vez por mí
+y cazado sólo por mirar la pantalla.
+
+Los dos tests del embudo llevan ahora el control que faltaba: se les pasa un
+`reemplazos_usados: 174` en el payload junto al conteo real de 7, y afirman que
+**el 174 no puede colarse**.

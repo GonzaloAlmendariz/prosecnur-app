@@ -66,11 +66,18 @@ describe("embudoDelOperativo", () => {
   });
 
   it("los reemplazos activados se declaran en la procedencia del plan", () => {
-    // Es la cifra que explica por qué el plan de hoy no es el sorteo de ayer.
-    const e = embudoDelOperativo({
-      aulas_titulares: 193, aulas_aplicadas: 12, reemplazos_usados: 7,
-    });
+    // Es la cifra que explica por qué el plan de hoy no es el sorteo de ayer, y
+    // llega como argumento: `reemplazos_usados` del payload NO sirve —cuenta
+    // reservas cuyo estado operativo ya salió del inicial, no titulares
+    // sustituidos—. Medido sobre `campo_malo`: decía «174 con reemplazo
+    // activado» mientras Consultas contaba «Cerraron con reemplazo 3».
+    const e = embudoDelOperativo(
+      { aulas_titulares: 193, aulas_aplicadas: 12, reemplazos_usados: 174 },
+      7,
+    );
     expect(e[0].detalle).toContain("7 con reemplazo activado");
+    // El control que importa: el número del payload no puede colarse.
+    expect(e[0].detalle).not.toContain("174");
   });
 
   it("sin reemplazos no inventa la frase", () => {
@@ -131,8 +138,12 @@ describe("explicacionDelEmbudo", () => {
   });
 
   it("con reservas ya activadas lo cuenta, sin cambiar el total del plan", () => {
-    const frases = explicacionDelEmbudo({ aulas_titulares: 193, reemplazos_usados: 7 });
+    const frases = explicacionDelEmbudo(
+      { aulas_titulares: 193, reemplazos_usados: 174 },
+      7,
+    );
     expect(frases.join(" ")).toContain("ya han entrado 7");
+    expect(frases.join(" ")).not.toContain("174");
     expect(frases.join(" ")).toContain("no se suma a él");
   });
 

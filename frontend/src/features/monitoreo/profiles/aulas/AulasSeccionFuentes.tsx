@@ -37,7 +37,18 @@ export function AulasSeccionFuentes({
 }): ReactNode {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
-    const embudo = embudoDelOperativo(dashboard?.kpis);
+    // El conteo del tramo `reemplazada` —el titular sustituido—, que es lo que
+    // el embudo promete cuando dice «con reemplazo activado».
+    //
+    // **Del reparto del MOTOR, no de `agenda`.** El primer intento contó sobre
+    // `agenda` con `estadoDeAplicacion()` y salió 0, así que la frase entera
+    // desapareció de la pantalla: `agenda` viaja recortada y sin el
+    // `application_state` que el motor deriva. `course_status_estados` es el
+    // mismo bloque que pinta los tramos en Avance —donde se leen las 18— y está
+    // calculado sobre todas las filas.
+    const reemplazadas = ((dashboard?.course_status_estados ?? []) as Array<{ clave?: string; aulas?: number }>)
+      .find((e) => e.clave === "reemplazada")?.aulas ?? null;
+    const embudo = embudoDelOperativo(dashboard?.kpis, reemplazadas);
   return (
       <div className="mon-profile-stack aulas-fuentes-stack">
         {operations}
@@ -78,7 +89,7 @@ export function AulasSeccionFuentes({
                   cambian la muestra; un analista que lo abre entiende el cálculo.
                   Aquí cada frase corresponde a una regla del motor, no a una
                   intuición — las referencias están en `embudoDelOperativo.ts`. */}
-              {explicacionDelEmbudo(dashboard?.kpis).map((frase) => (
+              {explicacionDelEmbudo(dashboard?.kpis, reemplazadas).map((frase) => (
                 <p className="aulas-embudo-prosa" key={frase.slice(0, 32)}>{frase}</p>
               ))}
             </div>
