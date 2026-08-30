@@ -153,7 +153,7 @@ export function AulasPestanaRendimiento({
             >
               <div className="mon-profile-panel-head">
                 <h3>Quién consigue más</h3>
-                <span>encuestas por aula, según quién aplicó</span>
+                <span>encuestas por curso-horario, según quién aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={parteDeCampo(
@@ -179,7 +179,7 @@ export function AulasPestanaRendimiento({
                     más» y el guard lo tumbó. El título nombra la unidad, que además es
                     la del libro. */}
                 <h3>Franja horaria del operativo</h3>
-                <span>encuestas por aula, según cuándo se aplicó</span>
+                <span>encuestas por curso-horario, según cuándo se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={parteDeCampo(
@@ -210,7 +210,7 @@ export function AulasPestanaRendimiento({
                     El título nombra la unidad y no termina como ningún otro, que es
                     la regla que el guard de títulos sujeta. */}
                 <h3>Día de la semana</h3>
-                <span>encuestas por aula, según qué día se aplicó</span>
+                <span>encuestas por curso-horario, según qué día se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={parteDeCampo(

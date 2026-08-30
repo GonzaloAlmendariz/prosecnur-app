@@ -599,3 +599,47 @@ siempre. Verificado que muerde: 93 → 95 al introducir dos frases, rojo.
 son frases casi iguales —la firma del patrón «una reparación llega a una rama y
 no a la otra»—, los diez que hay son singular/plural u opuestos deliberados. El
 patrón no tiene más casos vivos en el perfil.
+
+---
+
+## Segunda vuelta · `campo_flojo`
+
+El simulacro con rendimiento bajo: mismos **152 cursos-horario aplicados** pero
+**2.040 válidas** contra 2.668, y **34 llegaron a su meta** contra 76.
+
+### Las reparaciones se sostienen con datos distintos
+
+| Comprobación | `como_2025` | `campo_flojo` |
+|---|---|---|
+| «Llegaron a su meta» + «bajo su meta» = «con meta» | 76 + 98 = 174 ✓ | **34 + 140 = 174 ✓** |
+| Filas «Cuota cumplida» con gente faltando | 0 ✓ | **0 ✓** (5 cumplidas, todas con «Faltan 0») |
+| Filas de Efectividad contra su cabecera | 2.668/5.356 = 49.8 % ✓ | **2.040/5.356 = 38.1 % ✓** |
+| Cursos-horario de las filas contra la banda | 152 ✓ | **152 ✓** |
+| «Cuota por recoger» desglosada por sexo | 90 + 80 = 170 ✓ | **308 + 241 = 549 ✓** |
+
+**Y activa una rama que `como_2025` no tenía**: el veredicto «**No cierra**», en 7
+facultades, donde el otro simulacro sólo llegaba a «Puede no cerrar», «Justo» y
+«Cubierta».
+
+**Un falso verde propio, cazado a tiempo.** La primera comprobación de
+contradicciones leyó la columna «Faltan» por un índice equivocado; con
+`Number(undefined) > 0` siempre falso, **todas las filas habrían pasado**. Se
+rehízo leyendo la última celda de cada fila, y ahí sí se ve que las cinco
+cumplidas tienen 0.
+
+### Cinco frases más de vocabulario
+
+En la pantalla de Rendimiento quedaban tres subtítulos —«encuestas por aula,
+según quién / cuándo / qué día se aplicó»— y dos lecturas de la tabla. Revisadas
+una a una y cerradas: el ratchet baja de **93 a 88**.
+
+No se toca «Cumplimiento aula por aula»: ahí «aula por aula» es locución
+adverbial —una por una—, no un conteo de unidades. Es exactamente el caso que el
+ADR 0057 pone como ejemplo de por qué no se automatiza.
+
+### Triaje C5 de «Franja horaria del operativo»
+
+`campo_flojo` también dice «Todo el trabajo está en Sin hora»: **dos de tres
+simulacros sin hora**, y los tres derivan del mismo estudio. El panel declara su
+vacío correctamente, que es lo que C5 exige; queda confirmar con `campo_malo` si
+la categoría es 1 (el estudio no la trae) o 2 (deuda del fixture).
