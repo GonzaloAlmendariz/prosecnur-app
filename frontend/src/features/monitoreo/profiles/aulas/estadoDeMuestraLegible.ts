@@ -23,7 +23,12 @@
  * contactar» no puede ser cierto, venga de donde venga.
  */
 
-const YA_SE_TOCO = new Set(["aplicada", "cerrada", "parcial", "en_campo", "agendada", "contactada"]);
+/**
+ * Se exporta sólo para `listaCerradaSigueDetectada.contract.test.ts`, que
+ * comprueba que las palabras que el motor NO reconoce siguen todas aquí. Si una
+ * se cayera, su contradicción dejaría de señalarse en silencio.
+ */
+export const YA_SE_TOCO = new Set(["aplicada", "cerrada", "parcial", "en_campo", "agendada", "contactada"]);
 
 const COMO_SE_LEE: Record<string, string> = {
   aplicada: "ya se aplicó",
