@@ -174,12 +174,23 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                 /* Un `null` NO se pinta como 0 %: son cosas distintas y la
                    diferencia importa. Pasa cuando alguna aula pendiente de la
                    celda no declara su tasa. */
-                <b className="aulas-avance-prob" data-nivel="sin-medir"
-                   title={f.dispersionN < 20
+                <b className="aulas-avance-prob"
+                   data-nivel={f.aportePendiente <= 0 ? "cerrada" : "sin-medir"}
+                   title={f.aportePendiente <= 0
+                     // **«Ya cerró» no es «no se pudo medir».** Estas celdas
+                     // decían «sin medir · Alguno de los cursos-horario que
+                     // faltan no declara su tasa», y era falso por partida
+                     // doble: no falta ninguno —`aporte_pendiente` es 0— y no
+                     // hay nada que calcular porque ya llegaron. Medido el
+                     // 2026-08-30: **12 de las 30 celdas**, todas con logrado
+                     // por encima de su cuota, mostrando como problema lo que
+                     // es el mejor resultado posible.
+                     ? "Ya llegó a su cuota y no queda ningún curso-horario por aplicar: no hay nada que proyectar."
+                     : f.dispersionN < 20
                      ? `Todavía no hay bastante campo para medir cuánto varía el rendimiento entre aulas `
                        + `(${fmtCuenta(f.dispersionN)} aplicadas). Sin eso, un porcentaje fingiría una precisión que no hay.`
                      : "Alguno de los cursos-horario que faltan no declara su tasa de efectividad, así que no se puede calcular."}>
-                  sin medir
+                  {f.aportePendiente <= 0 ? "ya llegó" : "sin medir"}
                 </b>
               )}
               {/* La causa, sólo donde hay algo que explicar. */}

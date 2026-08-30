@@ -18,6 +18,12 @@
 .aulas-avance-prob[data-nivel="media"] { color: var(--pulso-warn-fg); }
 .aulas-avance-prob[data-nivel="baja"] { color: var(--pulso-danger-fg); }
 
+/* «ya llegó» va en el tono de «alta», que es lo que es: la celda alcanzó su
+   cuota y no le queda nada por aplicar. Antes caía en «sin medir» —apagada y con
+   un título que decía que faltaba un dato—, así que el mejor resultado posible
+   se leía como un hueco. Doce de las treinta celdas estaban así. */
+.aulas-avance-prob[data-nivel="cerrada"] { color: var(--pulso-success-fg); }
+
 /* «sin medir» va en el tono apagado y sin peso: es una ausencia declarada, no
    una alarma. Pintarla como «baja» diría que la celda va mal, y lo que pasa es
    que no se sabe. */
