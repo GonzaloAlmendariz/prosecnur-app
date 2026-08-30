@@ -420,3 +420,40 @@ parte».
 Anotado sin cambiar: «Franja horaria del operativo» dice «Todo el trabajo está en
 Sin hora», o sea que el estudio no trae la hora. El vacío está declarado, pero el
 panel ocupa una caja entera para decir que no hay dato — triaje C5 pendiente.
+
+### Vuelta 13 · Dos palabras para la unidad del estudio
+
+En Avance > Rendimiento, **35 frases decían «aulas» y 2 «cursos-horario»**; en
+Resumen y Estratos era al revés. No son sinónimos: el ADR 0060 fija que «cada vez
+que el operativo **visita un curso-horario** se produce un encuentro con cada
+estudiante matriculado en él», y un aula física puede albergar varios
+cursos-horario.
+
+El repo ya había tomado la decisión —el ADR 0057 documenta la unificación «aula»
+→ «curso-horario» en el motor— y advierte contra automatizarla:
+
+> «El mismo término puede ser correcto en una frase e incorrecto en la de al
+> lado… Un find-replace la habría convertido en una frase falsa. Los barridos de
+> vocabulario se revisan frase por frase.»
+
+Así que se revisaron una a una las **16 frases** con el sentido inequívoco de *lo
+que el operativo visita*: los dos subtítulos de panel, la lectura de la tabla de
+rendimiento, su fila, el `title` de «Por visita», el pie, la serie del acumulado,
+las tres del pronóstico de cierre y las tres de la tabla del cliente —donde
+«Aulas aplicadas» era el mismo dato que la banda ya llama «Cursos-horario
+aplicados»—. Quedan sin tocar las de Efectividad, que se revisarán con esa
+pestaña.
+
+**El defecto lo cometí yo y lo cazó la pantalla.** El pronóstico tiene **dos
+ramas** del mismo párrafo —una con variación entre días y otra sin ella— y el
+primer barrido cambió sólo la primera, que no es la que se muestra. Es el mismo
+patrón que vengo persiguiendo, y la comprobación en pantalla lo destapó: de 35
+menciones a 2, luego a 1, luego a 0.
+
+**Lo que cuadró**: 1.347 − 152 = 1.195 ✓ · 132 en 6 días = 22/día ✓ · 18
+reemplazados coincide con el tramo «Reemplazada 18» de Resumen ✓ · y la
+proyección al 28/12 se reproduce: 1.195 ÷ 14 por día ≈ 85 días de campo, que a
+seis días por semana desde el 18/09 caen el 27–28/12 ✓.
+
+Geometría tras el cambio, con rótulos más largos: **24 grupos, 0 incidencias, 0
+desbordes** a 1440×1000 y 1024×600.

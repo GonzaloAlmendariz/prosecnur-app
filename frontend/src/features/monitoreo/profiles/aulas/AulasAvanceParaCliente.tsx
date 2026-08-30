@@ -163,7 +163,7 @@ export function AulasAvanceParaCliente({
       <div className="aulas-cliente-marco">
         <table className="aulas-cliente-tabla">
           <caption className="aulas-cliente-caption">
-            Avance por facultad y sexo contra la cuota del diseño, con las aulas aplicadas
+            Avance por facultad y sexo contra la cuota del diseño, con los cursos-horario aplicados
           </caption>
           {/* CABECERA AGRUPADA. Con una sola fila, «Mujeres» y «Hombres»
               aparecían DOS veces —bajo la muestra y bajo lo conseguido— y nada
@@ -188,7 +188,7 @@ export function AulasAvanceParaCliente({
               <th scope="col" className="es-num">Total</th>
               <th scope="col" className="es-num">Mujeres</th>
               <th scope="col" className="es-num">Hombres</th>
-              <th scope="col" className="es-num">Aulas aplicadas</th>
+              <th scope="col" className="es-num">Cursos-horario aplicados</th>
               <th scope="col" className="es-num">Avance</th>
               <th scope="col" className="es-num">Faltan</th>
             </tr>
@@ -231,7 +231,7 @@ export function AulasAvanceParaCliente({
       <p className="aulas-cliente-pie">
         <strong>Muestra</strong> es la cuota que el diseño fijó para esa facultad, y{" "}
         <strong>se lleva</strong> lo recogido que pasó los filtros del estudio.{" "}
-        <strong>Aulas aplicadas</strong> se cuenta sobre las del plan de esa facultad.{" "}
+        <strong>Cursos-horario aplicados</strong> se cuenta sobre los del plan de esa facultad.{" "}
         La sobremuestra operativa no llega a Monitoreo, así que esta tabla no la compara.
       </p>
     </div>

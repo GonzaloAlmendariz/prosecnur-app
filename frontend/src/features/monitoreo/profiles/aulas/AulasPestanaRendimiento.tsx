@@ -78,7 +78,7 @@ export function AulasPestanaRendimiento({
                     y por eso son dos paneles: el ranking se mira para repartir hoy, la
                     serie para ver si una facultad se está apagando. */}
                 <h3>Cómo rinde cada facultad, día a día</h3>
-                <span>encuestas por aula visitada · y lo que cabe esperar</span>
+                <span>encuestas por curso-horario visitado · y lo que cabe esperar</span>
               </div>
               <AulasSerieDeRendimiento
                 // La facultad elegida viaja en la URL, igual que en la
@@ -111,7 +111,7 @@ export function AulasPestanaRendimiento({
                     pestaña vecina cuenta como VÁLIDAS —3 700—. Sin nombrar la fuente,
                     dos cifras separadas por una pestaña y con 1 163 de diferencia se
                     leen como la misma. */}
-                <span>encuestas del parte, por aula visitada</span>
+                <span>encuestas del parte, por curso-horario visitado</span>
               </div>
               {/* Las filas del parte YA UNIDAS a su facultad, que es lo que devuelve
                   `parteDeCampo`. Pasando el parte crudo salían las 210 aulas bajo
