@@ -573,3 +573,29 @@ no se ejecuta desde el loop.
 Anotado también: «Franja horaria del operativo» y «Día de la semana» son dos
 paneles del mismo corte temporal y el primero está vacío en este estudio —el
 triaje C5 de ese vacío sigue pendiente de ver `campo_flojo`—.
+
+### Vuelta 16 · El barrido de vocabulario estaba más incompleto de lo que dije
+
+**Corrección de mi propio reporte.** Al cerrar Rendimiento dije «de 35 menciones
+a 0». Era cierto **en esa pantalla**, y da a entender algo que no es: medido
+sobre el fuente del perfil entero, **quedan 93 frases con «aula» en prosa,
+repartidas en 34 archivos** —21 sólo en `AulasSerieDeRendimiento.tsx`—. Lo
+cerrado son las 30 frases visibles en Avance con el proyecto de referencia; el
+resto vive en Fuentes, Agenda, Validación, Consultas y en ramas que `como_2025`
+no activa.
+
+No se cierran de una tanda, y el ADR 0057 prohíbe el atajo: «los barridos de
+vocabulario se revisan frase por frase», con un caso vivo que lo justifica —«cinco
+aulas con el rendimiento medio» describe unidades imaginarias de un cálculo, no
+cursos-horario del plan—.
+
+Así que queda un **ratchet**: `vocabularioDeLaUnidad.contract.test.ts` fija el
+tope en 93 y sólo deja bajarlo. Su mensaje de fallo dice qué archivos acumulan
+más y que, si vienes de cerrar frases, bajes el tope. Lleva el control de fixture
+que este repo ya aprendió a exigir: si el contador diera cero, el tope pasaría
+siempre. Verificado que muerde: 93 → 95 al introducir dos frases, rojo.
+
+**Y una comprobación que salió limpia**: barridos los ternarios cuyas dos ramas
+son frases casi iguales —la firma del patrón «una reparación llega a una rama y
+no a la otra»—, los diez que hay son singular/plural u opuestos deliberados. El
+patrón no tiene más casos vivos en el perfil.
