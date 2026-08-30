@@ -188,7 +188,12 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
             <>
               {sinMeta ? " " : ""}
               {fmt(bancoMotor)} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
-              {" "}esperan en su estrato y contarlas como «sin respuestas» las volvería una alarma.
+              {/* «esperan en su estrato» exigía saber qué es un estrato del
+                  sorteo. El perfil ya dice esto mismo en palabras llanas cuando
+                  habla del banco —«sin un titular al que respalden»— y ésta es
+                  la otra mitad: para qué esperan. */}
+              {" "}esperan disponibles para su facultad y sexo, y contarlas como «sin respuestas»
+              las volvería una alarma.
             </>
           ) : null}
           {dormidasMotor ? (
