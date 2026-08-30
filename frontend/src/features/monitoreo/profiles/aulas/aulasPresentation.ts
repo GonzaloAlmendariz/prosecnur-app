@@ -210,7 +210,13 @@ export const FIELD_LABELS: Record<string, string> = {
   respuestas_validas: "Respuestas válidas",
   filter_passed: "Filtros aprobados",
   filter_rejected: "Filtros rechazados",
-  brecha: "Brecha",
+  // **«Brecha» son RESPUESTAS**, y la palabra contaba dos cosas en el perfil:
+  // aquí, personas que faltan; en la banda de Avance, cursos-horario por debajo
+  // de su meta (esa tarjeta ya se llama «Cursos-horario bajo su meta»).
+  // Comprobado por aritmética en la tabla de estratos: 291 válidas + 147 de
+  // brecha = 438 de meta, y 291/438 es el 66.4 % que publica «% Avance de
+  // respuestas» en esa misma fila.
+  brecha: "Respuestas que faltan",
   // `STATUS DE APLICACIÓN` en «Aulas Aplicadas (Campo)».
   application_state: "Estado según el avance",
   aulas: "Cursos-horario",
