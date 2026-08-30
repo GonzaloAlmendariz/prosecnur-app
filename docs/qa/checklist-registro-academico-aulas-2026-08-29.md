@@ -932,3 +932,31 @@ contradicción: son dos cosas distintas, cada una en su sitio.
 **Lo que cuadra**: 174 + 1.173 reservas = 1.347, igual que en Fuentes; el panel
 declara su recorte —«500 de 1.424»—; y la comparación histórica dice su fuente:
 «en 2025 ésas se cayeron el doble que las cerradas en una o dos».
+
+## Sección Validación · `calidad/base`
+
+**Resuelta la anotación de las 304.** No había contradicción: el panel declara
+«**304 filas de la hoja**», que son las de la hoja «Base de control» del Excel y
+no tienen por qué ser una por parte. En `campo_malo` son 304 contra 152 partes de
+campo, y el subtítulo lo dice.
+
+**Pero el mismo componente se contradecía a cuatro líneas de distancia.** La
+lectura de arriba dice «Reparto de las 304 **filas de la hoja**» y la de abajo
+decía «304 **aulas** sin sus dos umbrales» — mismo denominador, dos unidades.
+
+Y la decisión ya estaba tomada en el panel que lo envuelve, con su motivo:
+
+> «"filas de la hoja" y no "aulas": son las que trae el libro que llena el
+> equipo, y no tienen por qué ser las del plan —aquí 210 contra 196—. Llamarlas
+> "aulas" ponía dos cifras con el mismo nombre en un perfil cuya unidad es el
+> curso-horario.»
+
+Otra reparación que llegó a un sitio y no al de al lado. Corregido; en pantalla
+las dos frases dicen ya «filas de la hoja». El ratchet baja a **62**.
+
+**Lo que está bien y no se toca**: el panel declara que el veredicto es del
+equipo y no de la app —«es el corte que el equipo escribió en el libro, no un
+criterio que la app verifique»—, dice qué columnas faltan por llenar y por dónde
+vuelven, y avisa de lo que ese corte **no** decide: «no dice a qué aula conviene
+ir: un aula con 100 elegibles al 40 % rinde 40 encuestas, y una con 20 al 70 %
+rinde 14».
