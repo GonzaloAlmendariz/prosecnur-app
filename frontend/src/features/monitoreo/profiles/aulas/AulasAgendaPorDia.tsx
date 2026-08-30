@@ -123,7 +123,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
               que nada avisara de que una está recortada. */}
           {recorte && recorte.recibidas < recorte.total ? (
             <> · <em className="aulas-agenda-recorte">
-              contado sobre {fmt(recorte.recibidas)} de {fmt(recorte.total)} filas del plan
+              contado sobre {fmt(recorte.recibidas)} de {fmt(recorte.total)} cursos-horario del plan
             </em></>
           ) : null}
         </summary>

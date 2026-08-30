@@ -183,6 +183,15 @@ export function AulasSeccionModelo({
             {/* La hoja del libro se llama así y estas son sus filas: las
                 escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
                 `aulas_agendadas_leer()`. */}
+            {/* **No se renombra a «Cursos-horario agendados», y el guard tiene
+                razón.** «Aulas agendadas» es el nombre de una HOJA del libro que
+                el equipo llena en Excel —junto a «Aulas Aplicadas (Campo)» y
+                «Base de control», las tres que Fuentes enumera—, y llamarla como
+                la hoja es lo que deja reconocerla sin explicación.
+
+                El subtítulo sí dice «174 cursos-horario», que es la unidad. Que
+                el título nombre la hoja y el subtítulo la unidad no es una
+                contradicción: son dos cosas distintas y cada una en su sitio. */}
             <h3>Aulas agendadas</h3>
             {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. Y las
                 reservas se declaran al lado en vez de listarse: existen, pero no
@@ -276,7 +285,7 @@ export function AulasSeccionModelo({
             data-qa-geometry-contract="intrinsic"
           >
             <div className="mon-profile-panel-head">
-              <h3>Cuánto cuesta cerrar un aula</h3>
+              <h3>Cuánto cuesta cerrar un curso-horario</h3>
               <span>llamadas hasta la cita, y cuántas están en la cola cara</span>
             </div>
             <AulasGestionesPorAula
