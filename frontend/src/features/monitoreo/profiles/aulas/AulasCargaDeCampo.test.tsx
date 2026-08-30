@@ -86,7 +86,7 @@ describe("AulasCargaDeCampo", () => {
       />,
     );
     // Una sola: el aviso concuerda en singular.
-    expect(html).toContain("1 aula tiene hora acordada pero no fecha");
+    expect(html).toContain("1 curso-horario tiene hora acordada pero no fecha");
   });
 
   it("solo rotula las horas en punto; la media hora queda para lectores de pantalla", () => {

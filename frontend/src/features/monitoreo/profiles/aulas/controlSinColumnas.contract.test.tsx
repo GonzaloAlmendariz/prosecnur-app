@@ -64,14 +64,14 @@ describe("la Base de control no pinta una tabla de una sola columna", () => {
 /**
  * Destapado por la reparación de arriba: al dejar de pintar la tabla de 190
  * códigos, «Lo que falta para cerrar» quedó a la vista y decía
- * «Ninguna aula evaluada se quedó corta» con **cero aulas evaluadas**.
+ * «Ningún curso-horario evaluado se quedó corto» con **cero aulas evaluadas**.
  *
  * Cierto por vacuidad, y se lee como la mejor noticia del operativo cuando lo
  * que pasa es que el libro llegó con sus filas y sin un solo veredicto. Misma
  * familia que `e7d7e058` («un control que no miró nada no es un control que
  * pasó»), esta vez en el frontend.
  */
-describe("«ninguna se quedó corta» necesita que alguna esté evaluada", () => {
+describe("«ninguna se quedó corto» necesita que alguna esté evaluada", () => {
   const fila = (t: boolean | null, p: boolean | null) => ({
     operational_code: "CH 1", cumple_total: t, cumple_poblacion: p,
     sent_total: 10, threshold_total: 20, threshold_population: 20,
@@ -80,13 +80,13 @@ describe("«ninguna se quedó corta» necesita que alguna esté evaluada", () =>
   it("sin veredictos no anuncia la buena noticia", () => {
     const html = renderToStaticMarkup(
       <AulasLoQueFalta filas={[fila(null, null), fila(null, null)]} />);
-    expect(html).not.toMatch(/se quedó corta/);
-    expect(html).toMatch(/todavía no evalúa ninguna aula/i);
+    expect(html).not.toMatch(/se quedó corto/);
+    expect(html).toMatch(/todavía no evalúa ningún curso-horario/i);
   });
 
   it("con todas evaluadas y en regla SI la anuncia — el control discrimina", () => {
     const html = renderToStaticMarkup(<AulasLoQueFalta filas={[fila(true, true)]} />);
-    expect(html).toMatch(/se quedó corta/);
+    expect(html).toMatch(/se quedó corto/);
   });
 
   it("cuenta las evaluadas, no las que faltan", () => {

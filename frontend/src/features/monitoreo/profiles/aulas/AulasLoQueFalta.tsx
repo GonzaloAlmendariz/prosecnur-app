@@ -49,7 +49,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // estados con distinta acción —celebrar o ir a llenar la hoja—.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        El libro todavía no evalúa ninguna aula, así que no se puede decir
+        El libro todavía no evalúa ningún curso-horario, así que no se puede decir
         cuáles se quedaron cortas. El veredicto sale de las dos columnas de
         umbral de «Base de control».
       </p>
@@ -61,7 +61,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // llegaron—. Decirlo como «sin datos» la haría parecer un fallo del panel.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ninguna aula evaluada se quedó corta: las que el libro evalúa alcanzaron
+        Ningún curso-horario evaluado se quedó corto: las que el libro evalúa alcanzaron
         sus dos umbrales.
       </p>
     );
@@ -241,7 +241,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         {grupos.filas.length > 6 ? <>Las seis facultades que más cierran, de {fmt(grupos.filas.length)}. </> : null}
         {/* El cruce con el plan se cuenta, no se da por hecho: en este mismo
             perfil catorce campos que parecían llegar eran homónimos. */}
-        {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estas aulas no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
+        {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estos cursos-horario no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
         {r.sinCifras ? <>Otras {fmt(r.sinCifras)} se quedaron cortas y el libro no trae con qué medirles el faltante. </> : null}
         {r.contradicciones ? (
           <>
