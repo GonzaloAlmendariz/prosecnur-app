@@ -1961,3 +1961,45 @@ pantalla diría «faltan 891» a dos paneles de un «faltan 170». Queda escrito
 cabecera, que es donde lo leerá quien decida montarlo.
 
 249 archivos / 2.561 tests de Monitoreo en verde.
+
+### Vuelta 34 · «Qué medio agenda mejor» hablaba de 121 de 152 sin decirlo
+
+El módulo descartaba en silencio toda fila sin `contact_medium`:
+
+```ts
+const medio = texto(fila.contact_medium);
+if (!medio) continue;
+```
+
+**Pero el descarte no era todo ilegítimo, y eso hubo que medirlo antes de
+repararlo.** De las 1.188 filas contactables sin medio declarado:
+
+| Rol | Filas | ¿Es un fallo? |
+|---|---|---|
+| `chain_reserve` | **1.173** | **no** — una reserva dormida no se ha contactado y no tiene por qué declarar medio |
+| `titular` | **15** | sí en 13 de ellas, que **ya están aplicadas** |
+
+Acotado a lo que de verdad es un hueco: **de las 152 filas con parte, 31 no
+declaran por qué medio se agendaron** —13 titulares y 18 reservas activadas—.
+Alguien las contactó y no dejó por dónde. El panel decía «Llamada agenda el X %»
+sobre las otras 121 **como si fueran todas**: una de cada cinco fuera del cálculo
+y ni una palabra.
+
+Ahora el panel abre diciendo sobre cuántas se mide y cuántas quedan fuera. Va
+arriba y no al pie: quien lee un porcentaje necesita saber antes sobre cuántos
+casos se calcula.
+
+**El módulo ya tenía la disciplina y no la había aplicado a este descarte**:
+contaba `intentosDescartados` para los intentos fuera de rango. La misma idea, un
+descarte más arriba.
+
+Tres casos nuevos: la aplicada sin medio cuenta; la que no tiene parte **no**
+cuenta —es el caso de las 1.173 dormidas, y contarlas sería una falsa alarma—; y
+el banco no entra ni aplicado, porque no se contacta. Comprobado que muerde: sin
+la cuenta, rojo en el primero.
+
+Vista `ok=true`, 0 issues, 0 de geometría. 147 archivos / 1.743 tests.
+
+**Los otros tres de la tanda, conformes**: el embudo tiene su guarda de cero una
+línea antes de dividir y publica `descuadre` y `pasosSinDeclarar` en vez de
+inventar pasos; `agendaPorDia` y `concentracionBrecha` cierran sus cuentas.

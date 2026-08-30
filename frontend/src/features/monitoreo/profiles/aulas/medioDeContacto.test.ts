@@ -10,7 +10,7 @@ describe("medioDeContacto", () => {
     // El caso real: la columna de intentos del libro trae 45909 y 23252, y con
     // ellos la MEDIA del correo sale 19,65 en vez de 3. Creerse ese número
     // llevaría a prohibir el correo.
-    const [m] = medioDeContacto([
+    const { medios: [m] } = medioDeContacto([
       fila({ contact_medium: "Correo", contact_attempts: 3, sample_status: "agendada" }),
       fila({ contact_medium: "Correo", contact_attempts: 3, sample_status: "agendada" }),
       fila({ contact_medium: "Correo", contact_attempts: 45909, sample_status: "agendada" }),
@@ -22,7 +22,7 @@ describe("medioDeContacto", () => {
   });
 
   it("ordena por lo que más agenda", () => {
-    const salida = medioDeContacto([
+    const { medios: salida } = medioDeContacto([
       ...Array.from({ length: 8 }, () =>
         fila({ contact_medium: "Llamada", contact_attempts: 2, sample_status: "agendada" })),
       ...Array.from({ length: 2 }, () =>
@@ -39,21 +39,21 @@ describe("medioDeContacto", () => {
 
   it("«reagendada» también cuenta como conseguida", () => {
     // El medio consiguió la cita; que luego se moviera es otra historia.
-    const [m] = medioDeContacto([
+    const { medios: [m] } = medioDeContacto([
       fila({ contact_medium: "Llamada", sample_status: "reagendada" }),
     ]);
     expect(m.agendadas).toBe(1);
   });
 
   it("el banco no se contacta", () => {
-    const salida = medioDeContacto([
+    const { medios: salida } = medioDeContacto([
       fila({ contact_medium: "Llamada", sample_role: "extra_reserve_pool", sample_status: "en_reserva" }),
     ]);
     expect(salida).toHaveLength(0);
   });
 
   it("sin intentos declarados la mediana es nula, no cero", () => {
-    const [m] = medioDeContacto([fila({ contact_medium: "Llamada", sample_status: "agendada" })]);
+    const { medios: [m] } = medioDeContacto([fila({ contact_medium: "Llamada", sample_status: "agendada" })]);
     expect(m.intentos).toBeNull();
   });
 });
@@ -85,5 +85,45 @@ describe("no se ordenan dos medios que el dato no distingue", () => {
 
   it("un medio sin aulas no se compara", () => {
     expect(difereDeVerdad(medio("A", 0, 0), medio("B", 40, 100))).toBe(false);
+  });
+});
+
+describe("lo que el panel no mira, lo cuenta", () => {
+  /**
+   * Las filas sin `contact_medium` salían del cálculo en silencio. La mayoría es
+   * legítima —una reserva dormida no se ha contactado y no tiene por qué
+   * declarar medio— pero **las que ya tienen parte sí se contactaron**: alguien
+   * las agendó y no dejó por dónde.
+   *
+   * Medido sobre HSVG2026 «como 2025»: de las 152 filas con parte, 31 no
+   * declaran medio —13 titulares y 18 reservas— y el panel hablaba de las otras
+   * 121 como si fueran todas. Una de cada cinco.
+   */
+  it("cuenta las aplicadas que no declaran medio", () => {
+    const { medios, aplicadasSinMedio } = medioDeContacto([
+      fila({ contact_medium: "Llamada", sample_status: "agendada", applied_at: "2026-08-10" }),
+      fila({ applied_at: "2026-08-10" }),
+      fila({ applied_at: "2026-08-11" }),
+    ]);
+    expect(medios).toHaveLength(1);
+    expect(aplicadasSinMedio).toBe(2);
+  });
+
+  it("una fila sin medio y SIN parte no cuenta: no se ha contactado todavía", () => {
+    // Es el caso de las 1.173 reservas dormidas: no declarar medio es lo
+    // correcto, y contarlas como hueco de registro sería una falsa alarma.
+    const { aplicadasSinMedio } = medioDeContacto([
+      fila({ contact_medium: "Correo", sample_status: "agendada" }),
+      fila({ sample_role: "chain_reserve" }),
+      fila({ sample_role: "chain_reserve" }),
+    ]);
+    expect(aplicadasSinMedio).toBe(0);
+  });
+
+  it("el banco no entra ni siquiera aplicado: no se contacta", () => {
+    const { aplicadasSinMedio } = medioDeContacto([
+      fila({ sample_role: "extra_reserve_pool", applied_at: "2026-08-10" }),
+    ]);
+    expect(aplicadasSinMedio).toBe(0);
   });
 });
