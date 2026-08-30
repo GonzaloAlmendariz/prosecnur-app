@@ -3,7 +3,7 @@ import type {
   MonitoreoAulasAvanceCuotaFacultad,
   MonitoreoAulasAvanceCuotaTotal,
 } from "../../../../api/monitoreo";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Cumplimiento contra la cuota del DISEÑO, listo para pintar.
@@ -97,14 +97,45 @@ function texto(valor: unknown): string {
 
 
 /** Porcentaje con coma decimal y a lo sumo un decimal; sin cap. */
-function pctTexto(n: number): string {
-  return String(Math.round(n * 10) / 10).replace(".", ",");
-}
+/**
+ * **El porcentaje se escribe como lo escribe el Perú.**
+ *
+ * Aquí había un formateador propio que forzaba la coma decimal —`87,4`— con un
+ * `.replace(".", ",")`. Es la convención de España; la de Perú, que es la que
+ * `Intl` aplica bajo `es-PE` y la que usa el resto del perfil, pone **punto
+ * decimal y coma de millar**: `2,668` alumnos avanzan un `88.1 %`.
+ *
+ * El resultado era que la misma pestaña de Cuotas publicaba «88.1 %» en la
+ * tabla por facultad y «88,1%» en la barra de tres centímetros más arriba —dos
+ * notaciones para la misma cifra, y con la coma haciendo de decimal en una y de
+ * millar en la otra, que es lo que obliga a releer—. Se usa `pctPerfil()`, que
+ * ya es el formateador de la casa y añade el espacio antes del signo.
+ */
 
-/** τ con coma decimal; «—» cuando difiere por facultad, más fiel que ocultarla. */
-function tauTexto(tasa: number | null): string {
-  if (tasa == null) return "—";
-  return tasa.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+/**
+ * **La tasa se nombra, no se escribe en griego.**
+ *
+ * El chip decía «cuota del diseño · τ 0,53». Es la misma cantidad que Cálculo
+ * de muestra publica —`tasa_esperada` es el `tau` que ese módulo trazó por
+ * facultad, con `source = "calc-muestra"`—, y allá ya se decidió no publicar la
+ * letra: «la tasa de efectividad se nombra, no se escribe en griego… quien
+ * recibe la app veía "τ 53%" sin saber ni qué es ni de dónde viene»
+ * (`CalculoPropuestasTab.tsx`). Monitoreo se quedó con la letra, así que el
+ * mismo número tenía dos presentaciones según el módulo.
+ *
+ * Se dice en porcentaje porque es lo que la vuelve legible sin definición: «53
+ * %» se entiende como *de cada cien alumnos elegibles del aula responden 53*;
+ * «0,53» obliga a preguntar 0,53 de qué.
+ *
+ * Cuando no hay una tasa única —el motor deja `NA` si las facultades tienen
+ * tasas distintas, para no promediar a escondidas lo que el diseño trazó por
+ * separado— se dice eso mismo. Antes iba un «—», que se decidió «más fiel que
+ * ocultarla»: se conserva la intención de no ocultarla y se sustituye el guion,
+ * que no significa nada, por el hecho.
+ */
+function tasaDeEfectividadTexto(tasa: number | null): string {
+  if (tasa == null) return "tasa de efectividad sin valor único";
+  return `tasa de efectividad ${pctPerfil(tasa * 100)}`;
 }
 
 function notasDeFila(bruta: MonitoreoAulasAvanceCuotaFacultad): string[] {
@@ -174,9 +205,9 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
   return {
     ...base, cumplida,
     cifra: cumplida ? null : fmt(brecha),
-    lectura: cumplida ? `cuota cumplida · ${pctTexto(avance ?? 0)}%` : `faltan · ${pctTexto(avance ?? 0)}%`,
+    lectura: cumplida ? `cuota cumplida · ${pctPerfil(avance ?? 0)}` : `faltan · ${pctPerfil(avance ?? 0)}`,
     titulo: notas.join(" · "),
-    aria: `${facultad}: ${pctTexto(avance ?? 0)}% de su cuota del diseño`,
+    aria: `${facultad}: ${pctPerfil(avance ?? 0)} de su cuota del diseño`,
   };
 }
 
@@ -202,7 +233,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const degradada = vigencia === "obsoleta" || vigencia === "sin_diseno" || fuente === "plan_expected";
   const chipBase = degradada
     ? "contra la meta del plan"
-    : `cuota del diseño · τ ${tauTexto(numeroONulo(bloque.tasa_esperada))}`;
+    : `cuota del diseño · ${tasaDeEfectividadTexto(numeroONulo(bloque.tasa_esperada))}`;
   const procedencia: ProcedenciaDeCuota = {
     chip: vigencia === "no_verificable" ? `${chipBase} (sello sin verificar)` : chipBase,
     detalle: motivo,
@@ -254,9 +285,9 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       validas: numero(t.respuestas_validas),
       brecha: Math.max(0, numero(t.brecha)),
       avance: avanceTotal,
-      avanceTexto: pctTexto(avanceTotal),
+      avanceTexto: pctPerfil(avanceTotal),
       relleno: Math.max(0, Math.min(100, avanceTotal)),
-      aria: `${pctTexto(avanceTotal)}% de la ${etiqueta.toLowerCase()}`,
+      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()}`,
       notas: notasTotal,
     },
     filas,

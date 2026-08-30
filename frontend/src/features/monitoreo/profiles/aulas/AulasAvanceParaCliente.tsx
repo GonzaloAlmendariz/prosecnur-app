@@ -128,7 +128,7 @@ export function AulasAvanceParaCliente({
         )}
         {/* Los faltantes no se netean, y quien vea el total querrá restarlo. */}
         <span className="aulas-cliente-nota">
-          lo que falta se suma celda a celda: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
+          lo que falta se suma grupo a grupo: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
         </span>
       </p>
 
@@ -146,8 +146,8 @@ export function AulasAvanceParaCliente({
           <thead>
             <tr className="aulas-cliente-grupos">
               <td />
-              <th scope="colgroup" colSpan={3}>La muestra que le toca</th>
-              <th scope="colgroup" colSpan={3}>Lo que se lleva</th>
+              <th scope="colgroup" colSpan={3}>Cuota asignada</th>
+              <th scope="colgroup" colSpan={3}>Encuestas logradas</th>
               <td />
               <td />
               <td />

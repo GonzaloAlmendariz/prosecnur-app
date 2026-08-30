@@ -151,12 +151,18 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     // vuelven a ser indistinguibles—.
     const bloque = kpis.slice(kpis.indexOf("function validasKpi"));
     const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
-    // Se afirma «de Kobo», que es lo que este guard protege, y no la frase
-    // entera: la rama de sin-atribucion cambio de redaccion —decia
-    // «curso-horario» midiendo celdas sexo × facultad— y un aserto sobre el
-    // literal completo convertia esa correccion en un rojo ajeno.
-    expect(cuerpo).toContain("respuestas de Kobo que pasan el filtro");
-    expect(cuerpo).toContain("de Kobo · ninguna");
+    // Lo protegido es que la tarjeta **nombre su fuente**, no la marca concreta.
+    // Decía «de Kobo»; ahora dice «de la plataforma», que además de leerse sin
+    // saber qué es Kobo no se vuelve falso en un estudio que recoja por
+    // SurveyMonkey. El guard mide por eso la propiedad —las dos ramas nombran
+    // la fuente— y no el literal, que es lo que convertía cada mejora de
+    // redacción en un rojo ajeno.
+    const nombraLaFuente = /de (la plataforma|Kobo|SurveyMonkey)/g;
+    const menciones = cuerpo.match(nombraLaFuente) ?? [];
+    expect(
+      menciones.length,
+      `la tarjeta de Válidas dejó de nombrar su fuente: sin eso, sus respuestas y las del parte de campo vuelven a ser indistinguibles`,
+    ).toBeGreaterThanOrEqual(2);
   });
 });
 

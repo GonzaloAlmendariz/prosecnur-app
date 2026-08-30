@@ -68,7 +68,7 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
       <p className="aulas-cuota-lectura">
         <strong>{fmt(total.validas)}</strong> de <strong>{fmt(total.cuota)}</strong> personas ·{" "}
         {/* SIN cap: pasarse de 100 es información, no un error de la barra. */}
-        {total.avanceTexto}%
+        {total.avanceTexto}
         {/* Las mermas no se ocultan: fuera de universo y sin aula del plan son
             respuestas que existieron y no cuentan aquí, y callarlas haría que
             esta cifra y la de Procesamiento parecieran contradecirse. */}

@@ -215,7 +215,7 @@ function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // de distancia el redondeo separa las dos cifras en uno. Decir de dónde
     // sale cada una es lo que impide leer esa diferencia como un error.
     detalle: cuota.celdas
-      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} celdas sexo × facultad · lo que falta se suma celda a celda`
+      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} grupos de facultad y sexo · lo que falta se suma grupo a grupo`
       : "el plan no declara cuotas de sexo por facultad",
   };
 }
@@ -335,11 +335,11 @@ function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     icono: CalendarRange,
     value: evaluables.length ? fmt(cierran) : "S/D",
     pista: evaluables.length
-      ? `de ${fmt(evaluables.length)} celdas sexo × facultad con objetivo${pistaSinObjetivo}`
+      ? `de ${fmt(evaluables.length)} grupos de facultad y sexo con meta${pistaSinObjetivo}`
       : "el estudio no declara cuotas por sexo y facultad",
     tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
     detalle: evaluables.length
-      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las celdas que no declaran cuota quedan fuera de la cuenta, porque no hay objetivo que cerrar. Las que no cierran se ven una a una en Cuotas."
+      ? "Cuenta los grupos que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
       : undefined,
   };
 }
@@ -408,14 +408,14 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // cifras eran correctas y el rotulo era el que mentia: faltaba el sexo, no
     // el aula, y mandaba a revisar el enlace en vez del mapeo de la variable.
     pista: validas > 0 && atribuidas === 0
-      ? "de Kobo · ninguna cae en una celda sexo × facultad"
+      ? "de la plataforma · ninguna cae en un grupo de facultad y sexo"
       : fuera > 0
-        ? `${fmt(fuera)} no entran en ninguna celda de cuota`
-        : "respuestas de Kobo que pasan el filtro",
+        ? `${fmt(fuera)} no entran en ningún grupo con cuota`
+        : "respuestas de la plataforma que pasan los controles de validez",
     detalle: validas > 0 && atribuidas === 0
-      ? "Sin el sexo de cada respuesta no se pueden repartir por celda, así que no cuentan para ninguna cuota. La atribución al curso-horario es otra cosa y puede estar bien: mírala en «Llegaron a su meta»."
+      ? "Sin el sexo de cada respuesta no se pueden repartir por grupo, así que no cuentan para ninguna cuota. La atribución al curso-horario es otra cosa y puede estar bien: mírala en «Llegaron a su meta»."
       : fuera > 0
-        ? `${fmt(atribuidas)} de ${fmt(validas)} caen en una celda sexo × facultad. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
+        ? `${fmt(atribuidas)} de ${fmt(validas)} caen en un grupo de facultad y sexo. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
         : undefined,
   };
 }

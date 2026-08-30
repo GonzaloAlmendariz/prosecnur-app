@@ -61,7 +61,10 @@ describe("avanceCuota", () => {
     expect(vista.filas.map((f) => f.facultad)).toEqual(["Gestión", "Derecho", "Arte"]);
     // El chip dice contra QUÉ se mide y con qué tasa; sin él la barra de este
     // panel y la de «Cuota sexo por facultad» parecen medir lo mismo.
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ 0,53");
+    // La letra griega no se publica: es la misma decisión que Cálculo de
+    // muestra ya tomó para esta cifra, y en porcentaje se entiende sin
+    // definición.
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 %");
     expect(vista.procedencia.degradada).toBe(false);
     expect(vista.vacio).toBeNull();
     expect(vista.total?.etiqueta).toBe("Cuota del diseño");
@@ -150,9 +153,14 @@ describe("avanceCuota", () => {
     }));
     // La cifra dice la verdad: capar el número escondería el sobremuestreo.
     expect(vista.total?.avance).toBe(137.5);
-    expect(vista.total?.avanceTexto).toBe("137,5");
+    // **Punto decimal: es la convención peruana, no un error de tipeo.**
+    // `es-PE` escribe `2,668` con coma de millar y `137.5` con punto decimal.
+    // Estas tres aserciones fijaban la coma española, que era lo que producía
+    // un formateador local ya retirado, y por eso Cuotas publicaba dos
+    // notaciones para la misma cifra.
+    expect(vista.total?.avanceTexto).toBe("137.5 %");
     expect(vista.filas[0].avance).toBe(137.5);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137,5%");
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137.5 %");
     // El ancho sí se capa: una barra al 137 % rompería el carril (C2).
     expect(vista.total?.relleno).toBe(100);
     expect(vista.filas[0].relleno).toBe(100);
@@ -199,7 +207,9 @@ describe("avanceCuota", () => {
     // La τ difiere por facultad: esconderla diría «aquí no hay tasa» cuando lo
     // cierto es «no hay UNA tasa».
     const vista = avanceCuota(bloque({ tasa_esperada: null }));
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ —");
+    // Sin una tasa única el motor deja NA para no promediar a escondidas; el
+    // chip lo dice en vez de pintar un guion.
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad sin valor único");
   });
 
   test("un sello sin verificar se declara en el chip, no se calla", () => {
@@ -210,7 +220,7 @@ describe("avanceCuota", () => {
       vigencia: "no_verificable",
       motivo: "El sello del diseño no se pudo verificar contra el marco.",
     }));
-    expect(vista.procedencia.chip).toBe("cuota del diseño · τ 0,53 (sello sin verificar)");
+    expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 % (sello sin verificar)");
     expect(vista.procedencia.detalle).toContain("no se pudo verificar");
   });
 
@@ -221,7 +231,7 @@ describe("avanceCuota", () => {
     // «0 faltan» es una resta que nadie preguntó; lo que se lee es que cerró.
     expect(vista.filas[0].cifra).toBeNull();
     expect(vista.filas[0].cumplida).toBe(true);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102,6%");
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 %");
     expect(vista.cumplidas).toBe(1);
   });
 });

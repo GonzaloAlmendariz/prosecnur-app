@@ -135,10 +135,10 @@ describe("el KPI de cuota", () => {
     // Va al `title`: la banda es un grupo de marco igual (C2) y una tarjeta con
     // una línea más rompería el marco de las otras cinco.
     expect(cuotaKpi(tablero())?.detalle).toContain("416 de 800 personas");
-    expect(cuotaKpi(tablero())?.detalle).toContain("2 de 4 celdas");
+    expect(cuotaKpi(tablero())?.detalle).toContain("2 de 4 grupos de facultad y sexo");
     // 800 − 416 son 384 aquí por casualidad; con celdas pasadas de meta no
     // cuadraría, y por eso el detalle dice cómo se suma.
-    expect(cuotaKpi(tablero())?.detalle).toContain("celda a celda");
+    expect(cuotaKpi(tablero())?.detalle).toContain("grupo a grupo");
   });
 
   it("distingue «sin cuotas declaradas» de «cuota cumplida»", () => {
@@ -250,7 +250,7 @@ describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
     // agendadas a ~20 por aula las cubren de sobra.
     const k = cierre(tableroCon(30, 10, 5));
     expect(k?.value).toBe("2");
-    expect(k?.pista).toContain("2 celdas");
+    expect(k?.pista).toContain("2 grupos");
   });
 
   it("sin nada agendado no cierra ninguna, y avisa", () => {
@@ -289,14 +289,14 @@ describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
       ],
     });
     expect(k?.value).toBe("0");
-    expect(k?.pista).toBe("de 2 celdas sexo × facultad con objetivo · 2 sin objetivo declarado");
+    expect(k?.pista).toBe("de 2 grupos de facultad y sexo con meta · 2 sin objetivo declarado");
     expect(k?.tone).toBe("warn");
   });
 
   it("sin celdas mudas la pista no menciona objetivos ausentes", () => {
     // El control del mutante: si el sufijo se imprimiera siempre, esta pista
     // diria «· 0 sin objetivo declarado» y estaria inventando un vacio.
-    expect(cierre(tableroCon(30, 10, 5))?.pista).toBe("de 2 celdas sexo × facultad con objetivo");
+    expect(cierre(tableroCon(30, 10, 5))?.pista).toBe("de 2 grupos de facultad y sexo con meta");
   });
 });
 
@@ -315,7 +315,7 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
     // 1 558 y cuyo banco entero no alcanza.
     const kpi = aulasKpis(dashboard(2220, [[3743, 2185]]), "avance")
       .find((k) => k.label === "Válidas")!;
-    expect(kpi.pista).toBe("35 no entran en ninguna celda de cuota");
+    expect(kpi.pista).toBe("35 no entran en ningún grupo con cuota");
     expect(kpi.detalle).toContain("2,185 de 2,220");
     expect(kpi.detalle).toContain("lo que les falta es el sexo");
   });
@@ -325,7 +325,7 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
     // al target— esta tarjeta acusaría en un corte sano.
     const kpi = aulasKpis(dashboard(2185, [[3743, 2185]]), "avance")
       .find((k) => k.label === "Válidas")!;
-    expect(kpi.pista).toBe("respuestas de Kobo que pasan el filtro");
+    expect(kpi.pista).toBe("respuestas de la plataforma que pasan los controles de validez");
     expect(kpi.detalle).toBeUndefined();
   });
 
@@ -335,7 +335,7 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
     // Dice CELDA, no curso-horario: es lo que `quotas_sex_faculty` mide. Un
     // simulacro enseño la tarjeta diciendo «ninguna atribuida a un
     // curso-horario» con 20 aulas ya en su meta dos paneles mas abajo.
-    expect(kpi.pista).toContain("celda sexo × facultad");
+    expect(kpi.pista).toContain("grupo de facultad y sexo");
     expect(kpi.pista).not.toContain("curso-horario");
   });
 });
