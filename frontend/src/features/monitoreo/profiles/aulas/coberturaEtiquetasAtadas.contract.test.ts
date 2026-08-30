@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { coberturaPorAula } from "./coberturaPorAula";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **Las dos listas de etiquetas del mismo tramo, atadas.**
@@ -23,7 +23,7 @@ import { coberturaPorAula } from "./coberturaPorAula";
 const R = new URL("../../../../../../api/R/monitoreo_aulas_etiquetas.R", import.meta.url);
 
 function etiquetasDelMotor(): Map<string, string> {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const bloque = fuente.slice(fuente.indexOf("monitoreo_aulas_etiqueta_tramo"));
   const mapa = new Map<string, string>();
   for (const m of bloque.matchAll(/^\s{4}(\w+)\s*=\s*"([^"]+)"/gm)) mapa.set(m[1], m[2]);

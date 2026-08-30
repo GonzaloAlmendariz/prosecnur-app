@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MOTIVOS_DE_REEMPLAZO, aulasMotivoLabel } from "./aulasPresentation";
+import { fuenteDelMotor } from "./fuenteDelMotor.testutil";
 
 /**
  * **Tercera lista del perfil que vivía en dos sitios sin que nada los atara.**
@@ -21,7 +21,7 @@ import { MOTIVOS_DE_REEMPLAZO, aulasMotivoLabel } from "./aulasPresentation";
 const R = new URL("../../../../../../api/R/monitoreo_aulas_universitarias.R", import.meta.url);
 
 function motivosDelMotor(): string[] {
-  const fuente = readFileSync(R, "utf8");
+  const fuente = fuenteDelMotor(R);
   const m = fuente.match(/monitoreo_aulas_motivos_reemplazo\s*<-\s*function\(\)\s*\{\s*c\(([^)]*)\)/);
   if (!m) throw new Error("no se encontró monitoreo_aulas_motivos_reemplazo() en el motor");
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
