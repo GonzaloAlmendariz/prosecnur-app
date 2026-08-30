@@ -46,7 +46,7 @@ const tituloDeCelda = (fila: string, hora: string, firme: number, plausible: num
     `${fila} ${hora}`,
     `${fmt(firme)} confirmados`,
     plausible ? `hasta ${fmt(plausible)} por agendar` : "",
-    `${fmt(enCurso)} aulas en curso`,
+    `${fmt(enCurso)} cursos-horario en curso`,
   ]
     .filter(Boolean)
     .join(" · ");

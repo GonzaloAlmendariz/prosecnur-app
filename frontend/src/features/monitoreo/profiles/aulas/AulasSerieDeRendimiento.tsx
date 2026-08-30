@@ -1230,7 +1230,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por
                   curso-horario, ajustado por su tamaño
                   {varaDelDiseno.conVara < varaDelDiseno.todas
-                    ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} aulas`
+                    ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} cursos-horario`
                     : ""}
                 </em>
               ) : (

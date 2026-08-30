@@ -2889,3 +2889,35 @@ textos del motor.
 
 148 archivos / 1.762 tests, typecheck limpio. Un contrato actualizado, que
 afirmaba el texto viejo.
+
+### Vuelta 58 · Once frases más, el ratchet a 23, y las 16 direcciones limpias
+
+Con el detector ya viendo las tres formas, quedaban 34 frases y **once eran
+reparables**. `AulasCriterioDeAula` acumulaba cuatro —«Un aula cumple con el
+X %», «qué es un aula válida»— y era el panel que **define qué cuenta**, así que
+publicaba la unidad equivocada justo donde se explica el criterio.
+
+| Archivo | Reparadas |
+|---|---|
+| `AulasCriterioDeAula` | 4 |
+| `AulasPronosticoDeCierre` | 2 (`aria-label` y `title`) |
+| `AulasAlertaDeAnticipacion` | 2 |
+| `AulasSerieDeRendimiento`, `AulasCargaDeCampo`, `AulasAvanceProyectado` | 1 cada uno |
+
+Con las concordancias que arrastra el cambio: «Un aula» → «Un curso-horario»,
+«Ninguna aula» → «Ningún curso-horario», «un aula válida» → «un curso-horario
+válido».
+
+**El ratchet baja de 34 a 23**, y esta vez baja de verdad: no es una ampliación
+del detector sino once frases menos. De las 23 que quedan, la mayoría son las
+familias ya declaradas intocables —el salón físico («dentro del aula, en
+minutos», «Aula real»), los nombres de hoja del libro («Aulas agendadas»,
+«Aulas aplicadas (campo)»), las locuciones «aula por aula» y el «formulario de
+aplicación en aulas»—.
+
+### El repaso visual completo, tras veinticinco vueltas de cambios
+
+**Las 16 direcciones del perfil, sin un solo hallazgo**: `ok=true`, `issues=0` y
+`geometryIssues=0` en todas. Se lanzó a propósito después de acumular tantos
+cambios —motor, KPIs, avisos, vocabulario y dos reparaciones de geometría— y es
+la comprobación que faltaba para que la indicación A siga en pie.

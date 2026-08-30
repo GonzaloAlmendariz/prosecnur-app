@@ -117,7 +117,7 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                   title={f.dispersion
                     ? `Corregida por la dispersión medida en este estudio: los cursos-horario ya aplicados `
                       + `varían ×${f.dispersion.toFixed(1)} más de lo que supondría la independencia `
-                      + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} aulas con campo.`
+                      + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} cursos-horario con campo.`
                     : "Sin dispersión medida no se publica probabilidad."}
                 >
                   {Math.round(f.probabilidad * 100)}% de cerrar
