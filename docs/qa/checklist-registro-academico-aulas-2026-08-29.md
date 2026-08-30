@@ -2953,3 +2953,39 @@ está** — «estrato» en la pestaña de Estratos era ese control, y es lo que
 destapó que el comando no funcionaba.
 
 148 archivos / 1.762 tests, typecheck limpio.
+
+### Vuelta 60 · Términos del producto: todos definidos donde se usan
+
+Segundo test de la indicación I: **términos propios del producto usados donde no
+se definen**, que es lo que destapó «cadena» en Resumen (vuelta 32). Barridos
+trece sobre los archivos de Avance sin comentarios:
+
+| Término | Veredicto |
+|---|---|
+| «el plan» (14 archivos), «reserva» (8) | del dominio y comprensibles sin definición |
+| «el banco» (5) | se define al lado: «los cursos-horario extra de esa facultad» |
+| «el corte» (3) | **definido en su propio KPI**: «último día con parte; todo el atraso se mide contra él» |
+| «cadena», «dormidas» | nombres de clase CSS y de variable, no texto |
+
+**Sin hallazgos**, y esta vez el cero está comprobado con un control: «estrato»
+—que sí tenía un escape— salió del mismo barrido en la vuelta anterior, así que
+el método muerde.
+
+### Balance de la indicación I
+
+Lo que se ha hecho para que Avance se lea sin haber diseñado el estudio:
+
+| Frente | Estado |
+|---|---|
+| Vocabulario de la unidad | ratchet de 93 → **23**, con las tres cegueras del detector cerradas |
+| Tecnicismos de diseño muestral | 15 barridos, **1 escape** reparado; la letra griega no llega a pantalla |
+| Términos del producto | 13 barridos, **todos definidos** donde se usan |
+| Los 22 gráficos en pantalla | rótulo y aritmética, **7 reparados** |
+| Avisos y KPIs | 5 con el universo mal delimitado, **los 5 corregidos** |
+| Contradicciones entre paneles vecinos | 4 resueltas: los dos «Cumplimiento», la brecha de `avance_cuota`, el universo del pronóstico, el reparto de Cobertura |
+| Comprobación visual | **16 de 16 direcciones limpias** |
+
+**Lo que queda abierto y por qué**: la indicación C —evaluar elemento por
+elemento las 10 direcciones fuera de Avance— sigue en curso, y ahí es donde
+aparecerán los defectos que este loop aún no ha tocado. **La cierra Gonzalo, no
+yo.**
