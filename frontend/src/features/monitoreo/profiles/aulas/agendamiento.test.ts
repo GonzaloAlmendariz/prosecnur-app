@@ -207,13 +207,13 @@ describe("fecha prevista no es cita cerrada", () => {
   it("cuenta las que tienen fecha y siguen sin contacto logrado", () => {
     const r = agendamiento([
       aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "agendada", contact_attempts: 1 }),
-      aula({ operational_code: "CH 2", scheduled_date: "2026-09-19", sample_status: "sin_contactar", contact_medium: "Llamada", contact_attempts: 3 }),
-      aula({ operational_code: "CH 3", scheduled_date: "2026-09-20", sample_status: "sin_contactar", contact_medium: "Correo", contact_attempts: 5 }),
+      aula({ operational_code: "CH 2", scheduled_date: "2026-09-19", sample_status: "sin_contactar", operational_status: "agendada", contact_medium: "Llamada", contact_attempts: 3 }),
+      aula({ operational_code: "CH 3", scheduled_date: "2026-09-20", sample_status: "sin_contactar", operational_status: "agendada", contact_medium: "Correo", contact_attempts: 5 }),
     ]);
     expect(r.agendadas).toBe(3);
     expect(r.porAgendar).toBe(0);
     // Las dos que nadie confirmó no desaparecen tras el «por agendar 0».
-    expect(r.sinContactoLogrado).toBe(2);
+    expect(r.estadosEnDesacuerdo).toBe(2);
   });
 
   it("una sin fecha y sin contactar no cuenta aquí: ésa ya está en «por agendar»", () => {
@@ -221,13 +221,52 @@ describe("fecha prevista no es cita cerrada", () => {
       aula({ operational_code: "CH 1", sample_status: "sin_contactar", contact_attempts: 2 }),
     ]);
     expect(r.porAgendar).toBe(1);
-    expect(r.sinContactoLogrado).toBe(0);
+    expect(r.estadosEnDesacuerdo).toBe(0);
   });
 
   it("con todo confirmado no hay ninguna", () => {
     const r = agendamiento([
       aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "agendada" }),
     ]);
-    expect(r.sinContactoLogrado).toBe(0);
+    expect(r.estadosEnDesacuerdo).toBe(0);
+  });
+});
+
+describe("los dos estados de la misma fila, en desacuerdo", () => {
+  /**
+   * `sample_status` y `operational_status` pueden contradecirse. La primera
+   * versión de este contador miraba sólo el primero y decía «sin contacto
+   * logrado», eligiendo uno de los dos como verdadero sin poder probarlo.
+   *
+   * Medido sobre HSVG2026 «como 2025», los tres pares del plan en juego:
+   * agendada/aplicada 152 · agendada/agendada 13 · **sin_contactar/agendada 9**.
+   */
+  it("no cuenta una fila cuyo estado operativo también dice «sin contactar»", () => {
+    // Ahí no hay contradicción: los dos dicen lo mismo, y esa fila está
+    // simplemente por agendar.
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18",
+             sample_status: "sin_contactar", operational_status: "sin_contactar" }),
+    ]);
+    expect(r.estadosEnDesacuerdo).toBe(0);
+  });
+
+  it("cuenta también «aplicada» y «cerrada», no sólo «agendada»", () => {
+    // Si el operativo dice que ya se aplicó, el «sin contactar» del otro campo
+    // es todavía más contradictorio.
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18",
+             sample_status: "sin_contactar", operational_status: "aplicada" }),
+      aula({ operational_code: "CH 2", scheduled_date: "2026-09-19",
+             sample_status: "sin_contactar", operational_status: "cerrada" }),
+    ]);
+    expect(r.estadosEnDesacuerdo).toBe(2);
+  });
+
+  it("sin estado operativo no se afirma nada", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "sin_contactar" }),
+    ]);
+    expect(r.estadosEnDesacuerdo).toBe(0);
   });
 });

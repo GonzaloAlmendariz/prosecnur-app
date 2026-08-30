@@ -549,17 +549,19 @@ export function aulasKpis(
        *
        * Contar por fecha sigue siendo correcto para «cuántas se pueden visitar»,
        * que es lo que mide `agendamiento`. Lo que faltaba es no dejar que «Por
-       * agendar 0» esconda a las que se intentó y no se logró: nueve en este
-       * corte, con medio declarado y de tres a cinco gestiones.
+       * agendar 0» esconda a nueve filas cuyos DOS estados se contradicen: el de
+       * muestra dice «sin contactar» y el operativo dice «agendada». La primera
+       * versión de este tile decía «sin contacto logrado», que elegía uno de los
+       * dos como verdadero sin poder probarlo.
        *
        * Mismo patrón que el descuadre de abajo: sólo aparece cuando las hay.
        */
-      if (ag.sinContactoLogrado > 0) {
+      if (ag.estadosEnDesacuerdo > 0) {
         tiles.push({
-          label: "Sin contacto logrado",
+          label: "Estados que se contradicen",
           icono: CalendarClock,
-          value: fmt(ag.sinContactoLogrado),
-          pista: "tienen fecha prevista y nadie ha confirmado con el docente",
+          value: fmt(ag.estadosEnDesacuerdo),
+          pista: "el estado de muestra dice «sin contactar» y el operativo, que ya está agendada",
           tone: "warn",
         });
       }
