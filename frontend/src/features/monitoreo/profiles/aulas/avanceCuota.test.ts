@@ -67,7 +67,11 @@ describe("avanceCuota", () => {
     expect(vista.procedencia.chip).toBe("cuota del diseño · tasa de efectividad 53.0 %");
     expect(vista.procedencia.degradada).toBe(false);
     expect(vista.vacio).toBeNull();
-    expect(vista.total?.etiqueta).toBe("Cuota del diseño");
+    // La CANTIDAD se llama igual salga de donde salga; el chip de arriba dice
+    // de dónde. El otro caso lo comprueba con el denominador degradado.
+    expect(vista.total?.etiqueta).toBe("Cuota del estudio");
+    // Y quien no ve el chip lo oye: la procedencia entra en el aria.
+    expect(vista.total?.aria).toContain("cuota del diseño · tasa de efectividad 53.0 %");
   });
 
   test("degradado a obsoleta: el chip cambia de denominador y el motivo viaja", () => {
@@ -82,7 +86,11 @@ describe("avanceCuota", () => {
     expect(vista.procedencia.degradada).toBe(true);
     // El porqué no se pierde en la degradación: va al title/aria del chip.
     expect(vista.procedencia.detalle).toContain("se resorteó el 2026-04-12");
-    expect(vista.total?.etiqueta).toBe("Meta del plan");
+    // **La etiqueta NO cambia con la procedencia**, que es lo que la hacía
+    // duplicar al chip: en la misma cabecera decían «cuota del diseño» dos
+    // veces. Lo que cambia es el chip, y ahora también el aria.
+    expect(vista.total?.etiqueta).toBe("Cuota del estudio");
+    expect(vista.total?.aria).toContain("contra la meta del plan");
   });
 
   test("sin_diseno también degrada, sin exigir el estado obsoleta", () => {

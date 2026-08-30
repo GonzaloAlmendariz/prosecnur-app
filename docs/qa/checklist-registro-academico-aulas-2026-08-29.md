@@ -1615,3 +1615,44 @@ destapa. Queda anotado como pendiente.
 
 Vista con `ok=true`, 0 issues, 0 de geometría. 249 archivos / 2.550 tests de
 Monitoreo en verde.
+
+### Vuelta 26 · J.1 · La cantidad tiene un nombre; de dónde sale lo dice el chip
+
+Primera pieza de la indicación J. En la cabecera del panel de Cuotas convivían
+**tres rótulos para dos cosas**:
+
+| Elemento | Decía |
+|---|---|
+| Título del panel | «Cumplimiento de la cuota **del estudio**» |
+| Chip de procedencia | «cuota **del diseño** · tasa de efectividad 53.0 %» |
+| Etiqueta de la barra | «Cuota **del diseño**» (o «Meta del plan» si degradaba) |
+
+Y `AulasCuotasResumen` —compartido por otras cuatro pestañas— llamaba «Cuota del
+estudio» a **la misma cantidad**. Comprobado antes de tocar nada, porque dos
+nombres pueden esconder dos cifras: `avance_cuota.total.cuota` = **2.500** y la
+suma de `quotas_sex_faculty.target` = **2.500**; válidas **2.668** en las dos. Es
+un problema de rótulo, no de cálculo.
+
+La etiqueta pasa a **«Cuota del estudio»** siempre. La cantidad no cambia de
+nombre según de dónde salga: eso lo dice el chip, que está en la misma cabecera y
+a dos centímetros. **Verificado que el aviso de degradación no se pierde**: el
+chip dice «contra la meta del plan» y está visible junto a la barra; y como quien
+no ve la pantalla tampoco ve el chip, la procedencia entra ahora en el
+`aria-label` de la barra.
+
+**Y esto es lo que desatasca la indicación J**: «diseño» hacía de dos cosas a la
+vez —de dónde salió la META, y lo que se esperaba aportar con las aulas
+calculadas, que es lo que el motor llama `previsto` y el encargo llama «lo
+diseñado»—. Reservar la palabra para lo segundo es lo que permite separar las
+tres cantidades sin que se pisen.
+
+Los dos contratos que afirmaban el texto viejo pasan a fijar el invariante: **la
+etiqueta es la misma con el denominador vigente y con el degradado, y lo que
+cambia es el chip y el aria**. En pantalla: «Cuota del estudio» sí, «Cuota del
+diseño» ya no como etiqueta, y «cuota del diseño ·» sobrevive sólo en el chip.
+Vista `ok=true`, 0 issues, 0 de geometría; 147 archivos / 1.729 tests.
+
+**Pendiente de J, anotado**: `AulasCuotasResumen` sigue sin recibir la
+procedencia, así que en Resumen, Rendimiento y Efectividad la meta se publica sin
+decir de dónde sale. Y falta lo principal: **contrastar las tres cantidades donde
+el lector las necesita juntas**, que es Rendimiento.
