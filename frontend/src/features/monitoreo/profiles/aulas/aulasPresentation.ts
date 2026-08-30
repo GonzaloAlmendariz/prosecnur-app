@@ -275,6 +275,11 @@ const CHECK_LABELS: Record<string, string> = {
   // Qué se está contando como respuesta válida. Se resolvía en silencio, y
   // contar TODO o filtrar por una columna equivocada dan números muy distintos.
   valid_response_criterion: "Criterio de respuesta válida",
+  // La atribución de una respuesta a su curso-horario va por el enlace: dos
+  // aulas con el mismo reciben las respuestas por la misma puerta y no hay
+  // forma de separarlas después. El rótulo nombra la CONSECUENCIA —el enlace
+  // compartido— y no el mecanismo del truncamiento, que vive en el detalle.
+  shared_collector_link: "Cursos-horario que comparten enlace",
 };
 
 /**
