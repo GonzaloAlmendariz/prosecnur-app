@@ -10,6 +10,7 @@ import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
+import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -75,10 +76,17 @@ export function AulasPestanaResumen({
    * La tabla es el único caso donde sigue siendo cierto: ésa sí pinta
    * `aulaRows`.
    */
-  const contadorDeLoQueReparte = (resumenDelMotor: unknown) =>
-    contadorDeAulas(
-      Array.isArray(resumenDelMotor) && resumenDelMotor.length ? totalAulas : aulaRows.length,
-    );
+  /**
+   * Cada rótulo dice lo que reparte SU gráfico: cobertura reparte los que
+   * tienen meta —174— y estado reparte el plan entero —1.424—. La regla y su
+   * porqué viven en `contadorDeLoQueReparte.ts`, con sus tres casos probados.
+   */
+  const contadorDelReparto = (resumenDelMotor: unknown) =>
+    contadorDeLoQueReparte(resumenDelMotor, {
+      total: totalAulas,
+      filasQueViajan: aulaRows.length,
+      delBanco: aulasExtra,
+    });
   return (
     <>
             <section
@@ -199,7 +207,7 @@ export function AulasPestanaResumen({
                     contesta la pregunta anterior… y sobre todo separa "sin
                     agendar" de "agendada y aún sin empezar", que la cobertura
                     mete en el mismo saco». */}
-                <span>{contadorDeLoQueReparte(dashboard.course_status_estados)} · en qué punto del circuito está cada una</span>
+                <span>{contadorDelReparto(dashboard.course_status_estados)} · en qué punto del circuito está cada una</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -255,7 +263,7 @@ export function AulasPestanaResumen({
                     qué existe: «el promedio esconde la forma —sesenta aulas al
                     50 % y sesenta al 100 % dan el mismo avance global que ciento
                     veinte al 75 %, y piden decisiones opuestas». */}
-                <span>{contadorDeLoQueReparte(dashboard.course_status_cobertura)} · cuánto lleva recogido cada una</span>
+                <span>{contadorDelReparto(dashboard.course_status_cobertura)} · cuánto lleva recogido cada una</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
