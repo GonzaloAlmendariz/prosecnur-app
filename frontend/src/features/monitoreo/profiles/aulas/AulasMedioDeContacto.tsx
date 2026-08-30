@@ -14,7 +14,7 @@ import { fmt } from "./kpisDeAulas";
  */
 
 export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const medios = useMemo(() => medioDeContacto(filas), [filas]);
+  const { medios, aplicadasSinMedio } = useMemo(() => medioDeContacto(filas), [filas]);
 
   // Dos causas distintas: que no haya cursos-horario, o que los haya y ninguno
   // declare medio. La segunda es un aviso sobre el libro; la primera, no.
@@ -29,6 +29,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
   }
 
   const descartados = medios.reduce((n, m) => n + m.intentosDescartados, 0);
+  const conMedio = medios.reduce((n, m) => n + m.aulas, 0);
   const mejor = medios[0];
   const peor = medios[medios.length - 1];
 
@@ -37,6 +38,24 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
       {/* Su propio rótulo: el panel contiene dos bloques y el título ya no
           nombra sólo a éste. */}
       <p className="aulas-medio-titulo">Qué medio agenda mejor</p>
+      {/* **Lo que este panel NO está mirando, dicho aquí y no en ningún sitio.**
+
+          Las filas sin medio declarado salían del gráfico en silencio. La
+          mayoría es legítima —una reserva dormida no se ha contactado— pero las
+          que YA tienen parte sí se contactaron, y alguien no dejó por dónde.
+          Medido: 31 de 152, una de cada cinco, mientras el panel hablaba de las
+          otras 121 como si fueran todas.
+
+          Va arriba y no al pie: quien lee «Llamada agenda el 92 %» necesita
+          saber antes sobre cuántas se mide. */}
+      {aplicadasSinMedio > 0 ? (
+        <p className="mon-profile-muted">
+          Se mide sobre <strong>{fmt(conMedio)}</strong>{" "}
+          {conMedio === 1 ? "curso-horario" : "cursos-horario"}:{" "}
+          <strong>{fmt(aplicadasSinMedio)}</strong> ya aplicados no dejaron dicho por qué medio se
+          agendaron.
+        </p>
+      ) : null}
       <p className="aulas-medio-lectura">
         {medios.length > 1 ? (
           difereDeVerdad(mejor, peor) ? (
