@@ -27,16 +27,19 @@ es un estrato, un τ o un *deff*, el elemento no pasa.
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ◐ 16 direcciones del perfil conformes; falta el repaso tras cada cambio |
-| B | Registro académico en todo texto publicable | `monitoreo_aulas_etiquetas.R` + rótulos del perfil | ☐ |
-| C | Evaluación conceptual de **cada elemento** de cada pestaña | inventario por pestaña, abajo | ☐ |
+| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ◐ **16/16 conformes a 1440x1000** (repasos de las vueltas 74 y 95, con `REPASO_FIN`). Falta el extremo: la matriz de la casa pide cinco viewports y sólo se ha medido uno; 1024x600 corriendo |
+| B | Registro académico en todo texto publicable | `monitoreo_aulas_etiquetas.R` + rótulos del perfil | ◐ ratchet de «aula» en **23**, con el detector ampliado tres veces (determinantes, «el aula» con su locativo descontado) · guard de género con tres brazos: literal, JSX plano y prosa larga |
+| C | Evaluación conceptual de **cada elemento** de cada pestaña | inventario por pestaña, abajo | ☑ **barrida entera** en `fuentes`/`modelo`/`calidad`/`consultas`: rótulos, vacíos (30 frases), mapas de etiquetas (16 participios), etiquetas cortadas, saltos, tooltips, orden de tablas, pistas, cifras y los 12 componentes que dibujan. ~14 defectos sobre ~100 elementos |
 | D | ¿Faltan dos pestañas? Sólo si lo amerita | `modules.ts` + secciones del perfil | ☑ **no lo amerita**: 39 de 39 claves del dashboard ya tienen consumidor |
-| E | Revisar la lógica de cada elemento | motores de `api/R/monitoreo_aulas_*.R` | ☐ |
+| E | Revisar la lógica de cada elemento | motores de `api/R/monitoreo_aulas_*.R` | ◐ invariantes de cuota, calibración y `avance_cuota` **verificados y cuadrando** · 192 campos del payload con sólo 2 sin consumidor · pipeline `plan→seguidas→tracked_df` instrumentado · 4 defectos reparados y **3 preguntas abiertas (K, L, los 9 en desacuerdo)** |
 | F | Que se entienda en español: conceptos y términos | todos los rótulos y pistas | ☐ |
 | G | Sin jerga, o con la mínima indispensable | ídem | ☐ |
-| H | Todos los gráficos se ven bien y se entienden | los seis gráficos del perfil | ☐ |
+| H | Todos los gráficos se ven bien y se entienden | los seis gráficos del perfil | ◐ los 22 de Avance (7 reparados) y los 12 de las otras secciones, **sin defecto**; el embudo de Fuentes declara su cambio de unidad. Falta verlos a 1024x600 |
 | I | **Avance como mecanismo de revisión no técnica** | sección `avance` completa | ☐ |
-| J | **Separar meta / lo diseñado / el rendimiento**, y medir lo que falta SIEMPRE contra la meta | `avanceCuota.ts`, `cuotasResumen.ts`, `avance_sexo_facultad` | ☐ nueva el 2026-08-30 |
+| K | Columnas de sexo por «mayoritario/minoritario» | `FIELD_LABELS` + ADR 0082 | ⛔ **bloqueado, exige tu decisión** — detalle abajo |
+| L | Una «parcial» promete otra vez lo ya recogido | `monitoreo_aulas_calibracion.R` | ⛔ **bloqueado, exige tu decisión** — detalle abajo |
+| M | Los 9 con estados en desacuerdo | `agendamiento.ts` + `monitoreo_aulas_en_juego.R` | ⛔ **bloqueado**: agendados en lo operativo y «sin contactar» en la muestra, con el 45 % de la proyección colgando. ¿Cuál campo manda? |
+| J | **Separar meta / lo diseñado / el rendimiento**, y medir lo que falta SIEMPRE contra la meta | `avanceCuota.ts`, `cuotasResumen.ts`, `avance_sexo_facultad` | ☑ **cerrada**, cuatro piezas (`1d4b087a`, `d4da4407`, `89c54c7b` y una descartada por premisa falsa). Comprobado además que `brecha` suma 1 y `missing` 170: la que se mide contra la meta es `missing` |
 
 ## Bloqueado: exige tu decisión, no lo reparo por mi cuenta
 
