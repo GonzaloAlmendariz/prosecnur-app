@@ -48,11 +48,18 @@ MONITOREO_AULAS_COLUMNAS_FECHA <- c(
 #' @param meta meta total del estudio, para el acumulado contra ella.
 #' @return lista con `dias` (fecha, validas, acumulado) y el resumen del ritmo.
 #' @export
+# `brecha` viaja aparte de `meta` porque NO es `meta - acumulado`: es la suma de
+# lo que le falta a cada grupo de facultad y sexo (ADR 0079). Un estudio puede
+# llevar 2.668 sobre una cuota de 2.500 y deber 170 personas donde la cuota no
+# cierra, y la resta da cero justo en ese caso.
 monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
                                          valid_response = logical(0),
-                                         meta = 0) {
+                                         meta = 0,
+                                         brecha = NULL) {
+  .brecha <- suppressWarnings(as.numeric(brecha %||% NA_real_))
+  .brecha <- if (length(.brecha) == 1L && is.finite(.brecha)) max(0, .brecha) else NA_real_
   vacio <- list(dias = list(), dias_con_campo = 0L, mejor_dia = NULL,
-                media_diaria = 0, meta = as.numeric(meta %||% 0))
+                media_diaria = 0, meta = as.numeric(meta %||% 0), brecha = .brecha)
   if (!is.data.frame(responses) || !nrow(responses)) return(vacio)
 
   col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_FECHA)
@@ -97,6 +104,7 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
     # Media sobre los dias CON campo, no sobre el calendario: dividir entre los
     # dias muertos daria un ritmo que ningun dia se parecio al real.
     media_diaria = if (con_campo > 0L) round(sum(as.integer(por_dia)) / con_campo, 1) else 0,
-    meta = as.numeric(meta %||% 0)
+    meta = as.numeric(meta %||% 0),
+    brecha = .brecha
   )
 }

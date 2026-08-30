@@ -2395,6 +2395,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       meta = {
         m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
         if (length(m) == 1L && is.finite(m)) m else 0
+      },
+      # Y la BRECHA del mismo bloque, que no es `meta - acumulado`: suma lo que
+      # le falta a cada grupo de facultad y sexo. Sin ella el pie del ritmo
+      # calculaba la resta y se apagaba entero en cuanto el total superaba la
+      # cuota, callando las 170 personas que sí faltaban.
+      brecha = {
+        b <- suppressWarnings(as.numeric(avance_cuota$total$brecha))
+        if (length(b) == 1L && is.finite(b)) b else NULL
       }
     ),
     quotas_sex_faculty = quotas_sex_faculty,

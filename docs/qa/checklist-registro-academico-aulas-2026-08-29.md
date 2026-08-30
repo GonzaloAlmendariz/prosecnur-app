@@ -1448,3 +1448,43 @@ vieja, rojo sólo en el caso de cobertura.
 
 Vista con `ok=true`, 0 issues y 0 avisos de geometría. 146 archivos / 1.726
 tests.
+
+### Vuelta 23 · El pie del ritmo no publicaba una cifra mala: se callaba
+
+Cuarta superficie con la resta simple, y la más difícil de ver porque su síntoma
+es un silencio.
+
+`AulasRitmoDiario` calculaba `falta = max(0, metaEntera − total)` y **todo el pie
+vive tras un `falta > 0`**. Con 2.668 acumuladas sobre una cuota de 2.500 la
+resta da cero, así que el panel se quedaba en «2.668 respuestas en 12 días» y
+**no decía nada de las 170 personas que faltaban** en los grupos que no cierran.
+Un número equivocado se caza leyendo; una frase que no aparece, no.
+
+El motor pasa a publicar `brecha` dentro de `ritmo_diario`, tomada del mismo
+`avance_cuota$total` del que ya salía `meta`. Verificado en el payload tras
+relanzar: **`brecha: 170`** donde la resta da 0.
+
+**Y la brecha aquí no es de volumen, es de composición.** Cuando el total ya
+supera la meta y aun así falta gente, las respuestas que quedan tienen que caer
+en los grupos cortos, no en cualquiera: prometer «N días más al ritmo de estos
+12» sería falso, porque al ritmo medio no se cierra una cuota por sexo. En ese
+caso el pie dice qué falta y de qué se trata —«Faltan 170 en los grupos de
+facultad y sexo que aún no cierran, aunque el total ya pasa la meta de 2.500»— y
+**se calla los días**. Por debajo de la meta, todo sigue como estaba.
+
+**Mi propia reparación traía un bug y lo cazó el test del fallback.** Escribí
+`Number.isFinite(Number(ritmo.brecha))`, y `Number(null)` es **cero**, no `NaN`:
+un payload sin brecha se leía como brecha cero y apagaba el pie: exactamente el
+silencio que la reparación venía a quitar. El `== null` va delante. Es la tercera
+vez en este loop que una coerción numérica de JavaScript convierte un ausente en
+un cero con significado.
+
+Tres tests: brecha de composición (dice la cifra y no promete días), por debajo
+de la meta (dice los días) y sin brecha del motor (cae a la resta, conducta
+anterior). Vista con `ok=true`, 0 issues, 0 de geometría. 147 archivos / 1.729
+tests, y las tres suites de R del área en verde.
+
+**El patrón, ya en cuatro sitios.** `avance_cuota`, la pirámide, el veredicto de
+la tabla del cliente y ahora el pie del ritmo: cada uno calculaba por su cuenta
+«lo que falta» restando totales. La cifra correcta la publica el motor en un solo
+sitio; cada superficie que la recalcula es una oportunidad de contradecirlo.
