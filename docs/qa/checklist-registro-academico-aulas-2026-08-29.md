@@ -3051,3 +3051,44 @@ aparente de «el aula» arrastrando concordancias— y aparece por la misma vía
 
 Dos contratos actualizados, que afirmaban el texto viejo. 148 archivos / 1.762
 tests, typecheck limpio.
+
+### Vuelta 63 · Dos redacciones vivas del mismo tramo, y el test que faltaba
+
+Aplicada la lección de la vuelta anterior —**leer la escala entera**— a los seis
+conjuntos de etiquetas del perfil, saltó la de cobertura:
+
+| Tramo | Motor | Respaldo del frontend |
+|---|---|---|
+| ≤50 % | «Muy por debajo (menos de la mitad)» | «Crítico (≤50 %)» |
+| 50–75 % | «Se quedó a medias» | «Insuficiente» |
+| 75–90 % | «Llegó a la mayor parte» | «Parcial» |
+| 90–100 % | «Casi llegó» | «Satisfactorio» |
+| ≥100 % | «Llegó a lo esperado» | «Pleno» |
+
+**El gráfico ya elegía bien**: usa la del motor cuando el payload la trae y la
+local sólo como respaldo. Y su comentario había predicho esto con exactitud:
+
+> «con dos redacciones vivas, la del gráfico y la del motor, la pantalla acabaría
+> diciendo dos cosas del mismo tramo **y ningún test lo vería**».
+
+Era literal. El respaldo se quedó en vocabulario técnico mientras el motor pasaba
+al llano, así que **la misma escala se leía de dos maneras según el estado del
+proyecto**.
+
+Alineado el respaldo, y **puesto el test que el propio comentario echaba en
+falta**: lee `monitoreo_aulas_etiquetas.R` —copiar la lista al test sería crear la
+tercera— y compara tramo por tramo, con control de fixture para que un parseo
+roto no lo deje pasar en vacío. Comprobado que muerde: cambiando un solo tramo,
+el fallo nombra el desajuste completo.
+
+**Es el patrón de «dos listas que nadie ata»**, y aquí el aviso estaba escrito en
+el código desde antes. Un comentario que predice un defecto no lo evita: hace
+falta el guard.
+
+**Anotado y no reparado**: las escalas de `estadoDeAplicacion` y
+`AulasColaDeContacto` llevan participios en femenino —«Agendada», «Reemplazada»,
+«Aplicadas»— que concuerdan con «aula» y no con «curso-horario». Es el mismo
+arrastre de género de las vueltas 13 y 62, pero tocarlo cambia rótulos que
+aparecen en varias pestañas y merece su propia vuelta.
+
+149 archivos / 1.764 tests, typecheck limpio.

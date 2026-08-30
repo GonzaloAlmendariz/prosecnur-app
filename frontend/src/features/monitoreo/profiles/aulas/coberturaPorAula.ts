@@ -41,11 +41,20 @@ export type TramoDeCobertura = {
  */
 const TRAMOS = [
   { clave: "nulo", etiqueta: "Sin respuestas", hasta: 0, tono: "pendiente" as const },
-  { clave: "critico", etiqueta: "Crítico (≤50 %)", hasta: 0.5, tono: "parcial" as const },
-  { clave: "insuficiente", etiqueta: "Insuficiente (50–75 %)", hasta: 0.75, tono: "parcial" as const },
-  { clave: "parcial", etiqueta: "Parcial (75–90 %)", hasta: 0.9, tono: "parcial" as const },
-  { clave: "satisfactorio", etiqueta: "Satisfactorio (90–100 %)", hasta: 0.9999, tono: "parcial" as const },
-  { clave: "pleno", etiqueta: "Pleno (≥100 %)", hasta: Infinity, tono: "efectiva" as const },
+  // **Las mismas palabras que el motor, porque es el mismo tramo.**
+  //
+  // El gráfico usa la etiqueta del motor cuando el payload la trae y ésta como
+  // respaldo cuando calcula sin él —así lo dice `AulasCoberturaChart`: «con dos
+  // redacciones vivas, la pantalla acabaría diciendo dos cosas del mismo tramo y
+  // ningún test lo vería»—. El respaldo seguía en el vocabulario técnico
+  // —«Crítico», «Insuficiente», «Satisfactorio»— mientras el motor ya publicaba
+  // el llano, así que la misma escala se leía de dos maneras según el estado del
+  // proyecto. Éstas son las de `monitoreo_aulas_etiquetas.R`.
+  { clave: "critico", etiqueta: "Muy por debajo (menos de la mitad)", hasta: 0.5, tono: "parcial" as const },
+  { clave: "insuficiente", etiqueta: "Se quedó a medias (50-75 %)", hasta: 0.75, tono: "parcial" as const },
+  { clave: "parcial", etiqueta: "Llegó a la mayor parte (75-90 %)", hasta: 0.9, tono: "parcial" as const },
+  { clave: "satisfactorio", etiqueta: "Casi llegó (90-100 % de lo esperado)", hasta: 0.9999, tono: "parcial" as const },
+  { clave: "pleno", etiqueta: "Llegó a lo esperado", hasta: Infinity, tono: "efectiva" as const },
 ];
 
 /** Las claves del motor, en el orden del eje. Exportadas para que el gráfico
