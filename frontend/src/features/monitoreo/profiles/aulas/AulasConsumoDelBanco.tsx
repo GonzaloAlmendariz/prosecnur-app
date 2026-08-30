@@ -75,7 +75,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
             columna. Roles y no `<table>`: la geometría está afinada y el
             defecto es de nombres. */}
         <li className="aulas-banco-consumo-cabecera" role="row">
-          <span role="columnheader">Facultad</span><span role="columnheader">Reemplazadas</span><span role="columnheader">Reserva libre</span><span role="columnheader">Días de reserva</span>
+          <span role="columnheader">Facultad</span><span role="columnheader">Reemplazados</span><span role="columnheader">Reserva libre</span><span role="columnheader">Días de reserva</span>
         </li>
         {facultades.map((f) => (
           <li key={f.facultad} role="row" className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>

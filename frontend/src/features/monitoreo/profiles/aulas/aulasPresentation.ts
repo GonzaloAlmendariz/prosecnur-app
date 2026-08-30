@@ -58,7 +58,7 @@ export const FIELD_LABELS: Record<string, string> = {
   // sola pregunta.
   motivo: "Motivo",
   // Activación de reemplazos (L5/L49).
-  activated_at: "Activada el",
+  activated_at: "Activado el",
   activation_reason: "Motivo de activación",
   replaced_at: "Reemplazado el",
   // Composición de la muestra: el dato que el libro NO trae (L67).
