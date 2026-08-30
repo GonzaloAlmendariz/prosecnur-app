@@ -882,3 +882,30 @@ intento fallido. Queda escrito en el sitio donde se necesita:
 Escribir una explicación a medias en el código es el mismo defecto que este loop
 lleva quince vueltas persiguiendo en la UI: una superficie que declara algo que no
 es lo que pasa. Vale igual para un comentario.
+
+### Fuentes · el resto de la sección, y una falsa alarma mía
+
+**Los tres chips de estado** —«Selección · Conectada», «Marco institucional ·
+Registrado», «Metodología · Trazable»— parecían el caso de «Ajustado» otra vez:
+tres palabras abstractas sin decir de qué. Medido en el panel del navegador, sus
+pistas salían con **`display: none`**.
+
+**No es un defecto.** Esa regla vive dentro de una media query para anchos
+pequeños, con su motivo documentado —el grid se desbordaba 103 px y «Trazable»
+quedaba debajo del botón «Importar plan», solapados 70×5—. A **1440 las tres
+pistas se ven**: el id de la corrida de selección, el hash del padrón y «semilla,
+cuotas y bitácora». Comprobado redimensionando.
+
+El error era mío y de método: **medir en un viewport y concluir sobre todos**. El
+panel del navegador es estrecho y disparaba la media query. Queda anotado junto a
+las otras trampas de medición.
+
+**Lo que sí quedó verificado de la sección**: el aviso de la fuente dice su causa
+—«No se puede abrir en Kobo: la fuente no declara qué formulario es»—, el libro
+declara su cobertura —«3 DE 3 HOJAS»— y sus cifras cuadran con el resto: 1.424
+cursos-horario, 15 facultades, 174 titulares.
+
+**Anotado sin resolver**: el libro dice «152 partes de campo · **304** filas de
+control», y 304 es exactamente el doble. En `como_2025` eran 152 y 152. Puede ser
+el grano propio de la Base de control —dos filas por curso-horario— o un
+duplicado del simulacro; no se afirma ninguna de las dos sin medirlo.
