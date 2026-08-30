@@ -158,6 +158,30 @@ base_control_mapa <- function(titulos) {
 base_control_a_filas <- function(df, titulos) {
   res <- base_control_mapa(titulos)
   mapa <- res$mapa
+  # **«Tienen datos» hay que comprobarlo, no decirlo.**
+  #
+  # El aviso publica «N columnas de la Base de control tienen datos pero su
+  # cabecera esta vacia», y `base_control_mapa()` solo mira los TITULOS: una
+  # columna vacia con cabecera vacia entraba en la cuenta igual que una llena.
+  # Una columna del todo vacia no es un dato que se este perdiendo —es una
+  # columna de sobra en la hoja— y avisar de ella manda a buscar algo que no
+  # existe.
+  #
+  # Es el mismo defecto que este loop corrigio en tres avisos propios: el conteo
+  # estaba bien y el universo mal delimitado.
+  #
+  # Va ANTES de la salida temprana: por ahi se devolvia `sin_nombre` sin filtrar,
+  # asi que una hoja sin `CURSO-HORARIO` reconocible seguia afirmando «tienen
+  # datos» sobre columnas que podian estar vacias.
+  if (is.data.frame(df) && nrow(df)) {
+    res$sin_nombre <- Filter(function(col) {
+      if (col > ncol(df)) return(FALSE)
+      any(nzchar(trimws(as.character(df[[col]]))) & !is.na(df[[col]]))
+    }, res$sin_nombre)
+  } else {
+    # Sin cuerpo no hay datos que perder en ninguna columna.
+    res$sin_nombre <- integer(0)
+  }
   if (!is.data.frame(df) || !nrow(df) || is.null(mapa$operational_code)) {
     return(list(filas = list(), sin_nombre = res$sin_nombre))
   }

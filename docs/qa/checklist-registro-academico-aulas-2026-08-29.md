@@ -2791,3 +2791,35 @@ algo y cubre sólo una parte del camino. Ya pasó con el ratchet ciego a las cif
 interpoladas (vuelta 18) y con el control de fixture que no veía una alternativa
 muerta del regex. **Un ratchet vale lo que su alcance, y el alcance hay que
 medirlo, no suponerlo.**
+
+### Vuelta 55 · El último aviso preexistente también afirmaba «tienen datos» sin mirarlos
+
+`unnamed_control_columns` publica «**7 columnas de la Base de control tienen
+datos** pero su cabecera está vacía en el Excel, así que no se leyeron», y
+`base_control_mapa()` **sólo mira los títulos**: una columna vacía con cabecera
+vacía entraba en la cuenta igual que una llena.
+
+Una columna del todo vacía no es un dato que se esté perdiendo —es una columna de
+sobra en la hoja— y avisar de ella manda a buscar algo que no existe. **Cuarto
+aviso con la misma falta**, y el primero que no había escrito yo: el conteo bien,
+el universo mal delimitado.
+
+Ahora se comprueba que la columna traiga algún valor. Y el filtro va **antes de
+la salida temprana**, porque por ahí se devolvía `sin_nombre` sin filtrar: una
+hoja cuyo `CURSO-HORARIO` no se reconoce seguía afirmando «tienen datos».
+
+Cuatro casos: la columna sin cabecera **con** datos cuenta, la vacía no, la hoja
+sin cuerpo no tiene nada que perder, y una columna de `NA` tampoco cuenta.
+
+**Y una advertencia sobre la cifra en pantalla**: sigue diciendo 7, y es
+correcto que lo haga. `control_sin_nombre` se calcula **al importar el libro** y
+se guarda en el `.pulso`; el tablero lo lee de ahí sin recalcular. La reparación
+vale para la próxima importación, no reescribe un proyecto ya guardado. **No se
+puede saber si esas 7 tenían datos**: haría falta el Excel, y el `.pulso` no lo
+lleva dentro.
+
+**Dos errores míos de método en esta vuelta**, los dos por probar con un fixture
+mal armado: usé «CODIGO OPERATIVO» como título del código cuando los que el mapa
+reconoce son «CURSO-HORARIO» y «CURSO HORARIO», así que la función salía por el
+`return` temprano y parecía que el filtro no funcionaba. **Un fixture que no casa
+con el lector produce exactamente el mismo síntoma que un bug.**
