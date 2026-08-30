@@ -140,7 +140,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           : null}
         {sinDimensionar
           ? <> · <strong>{fmt(sinDimensionar)}</strong> sin dimensionar todavía: hace falta
-              la primera aula aplicada para saber cuánto rinde una</>
+              el primer curso-horario aplicado para saber cuánto rinde uno</>
           : null}
         {/* Las paradas van en la lectura y no sólo en la tabla: son las que
             tienen días de campo perdiéndose ahora mismo. */}
