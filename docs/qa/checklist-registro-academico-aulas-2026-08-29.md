@@ -105,6 +105,20 @@ reintenta. Si se reintenta, esperarle más es correcto y lo que falta es sólo e
 
 **La pregunta**: cuando un curso-horario queda «parcial», ¿se vuelve a él?
 
+**Y decide DOS sitios, no uno** (medido el 2026-08-30 cruzando las listas de los
+dos lados): además del aporte pendiente, `ESTADOS_QUE_LIBERAN` en
+`candidatosDeReemplazo.ts` resuelve si «su cadena ya se resolvió: alguien de ella
+salió», y hoy son sólo `aplicada` y `cerrada`. El motor, contando reservas
+gastadas, sí incluye `parcial`.
+
+  · Si una parcial **se reintenta**: la cadena NO está resuelta, no debe liberarse
+    —lo de hoy es correcto— y lo que falta es sólo el `previsto` de la
+    calibración.
+  · Si **no se reintenta**: debería liberar la cadena Y contar como aplicada,
+    como ya hace «cerrada».
+
+Ninguna de las dos se toca hasta que lo digas.
+
 ## Inventario de lo que hay que evaluar
 
 Seis pestañas en Avance —`cuotas`, `resumen`, `estratos`, `rendimiento`,
