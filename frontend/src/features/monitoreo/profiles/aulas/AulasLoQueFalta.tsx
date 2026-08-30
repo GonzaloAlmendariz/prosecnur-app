@@ -128,9 +128,16 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
           `preserveAspectRatio="none"` que estira la curva a lo ancho estiraría
           también el texto. Es el mismo patrón del pronóstico de cierre. */}
       <div className="aulas-falta-lienzo">
+        {/* **El aria-label describe el gráfico; no lo bautiza.**
+
+            Abría con «Escalera de esfuerzo», que es una metáfora y no un
+            término: dentro del código se entiende —los peldaños son aulas que se
+            van cerrando— pero quien no ve la pantalla oye un nombre propio que
+            nadie le ha definido, y es lo único que oye. El panel ya se llama «Lo
+            que falta para cerrar»; esto dice qué se está mirando. */}
         <svg className="aulas-falta-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
           role="img"
-          aria-label={`Escalera de esfuerzo: ${fmt(costo)} encuestas cierran ${fmt(total)} cursos-horario; ${fmt(conCinco)} necesitan cinco o menos`}>
+          aria-label={`Cursos-horario que se cierran según lo que cuestan: con ${fmt(costo)} encuestas cierran los ${fmt(total)}; ${fmt(conCinco)} necesitan cinco o menos`}>
           {[0.5, 1].map((f) => (
             <line key={f} x1={MARGEN} y1={y(total * f)} x2={100 - MARGEN} y2={y(total * f)}
               stroke="var(--pulso-border)" strokeWidth="1" vectorEffect="non-scaling-stroke"

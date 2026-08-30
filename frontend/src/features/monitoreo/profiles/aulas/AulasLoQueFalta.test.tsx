@@ -105,3 +105,22 @@ describe("AulasLoQueFalta · el foco por facultad", () => {
     expect(html.match(/aria-pressed="false"/g)?.length).toBe(1);
   });
 });
+
+describe("el gráfico se describe, no se bautiza", () => {
+  /**
+   * El `aria-label` abría con «Escalera de esfuerzo». Dentro del código la
+   * metáfora se entiende —los peldaños son aulas que se van cerrando— pero quien
+   * no ve la pantalla oye un nombre propio que nadie le ha definido, y es lo
+   * único que oye del gráfico. El panel ya se llama «Lo que falta para cerrar».
+   */
+  it("el aria-label dice qué se está mirando, sin metáfora", () => {
+    const html = renderToStaticMarkup(
+      <AulasLoQueFalta filas={[
+        { operational_code: "CH 1", cumple_total: false, cumple_poblacion: true, sent_total: 8, threshold_total: 10 },
+        { operational_code: "CH 2", cumple_total: false, cumple_poblacion: true, sent_total: 1, threshold_total: 11 },
+      ] as never} />,
+    );
+    expect(html).toContain("Cursos-horario que se cierran según lo que cuestan");
+    expect(html).not.toContain("Escalera de esfuerzo");
+  });
+});
