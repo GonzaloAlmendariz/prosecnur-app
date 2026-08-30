@@ -190,3 +190,44 @@ describe("agendamiento · una aplicada sin agenda es un descuadre", () => {
     });
   });
 });
+
+describe("fecha prevista no es cita cerrada", () => {
+  /**
+   * `scheduled_date` sale de la columna «FECHA AGENDADA» del Excel, que llega
+   * **pre-rellenada con la fecha prevista de cada curso-horario**. La prueba
+   * está en las reservas dormidas: las 1.173 la traen sin que nadie las haya
+   * agendado, y **1.137 con fecha distinta de la de su titular** —la de su
+   * propio curso, no una heredada—.
+   *
+   * Contar «agendadas» por fecha sigue siendo correcto para «cuántas se pueden
+   * visitar». Lo que no puede pasar es que «Por agendar 0» esconda a las que se
+   * intentó agendar y no se logró: nueve en el corte de HSVG2026 «como 2025»,
+   * con medio declarado y de tres a cinco gestiones.
+   */
+  it("cuenta las que tienen fecha y siguen sin contacto logrado", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "agendada", contact_attempts: 1 }),
+      aula({ operational_code: "CH 2", scheduled_date: "2026-09-19", sample_status: "sin_contactar", contact_medium: "Llamada", contact_attempts: 3 }),
+      aula({ operational_code: "CH 3", scheduled_date: "2026-09-20", sample_status: "sin_contactar", contact_medium: "Correo", contact_attempts: 5 }),
+    ]);
+    expect(r.agendadas).toBe(3);
+    expect(r.porAgendar).toBe(0);
+    // Las dos que nadie confirmó no desaparecen tras el «por agendar 0».
+    expect(r.sinContactoLogrado).toBe(2);
+  });
+
+  it("una sin fecha y sin contactar no cuenta aquí: ésa ya está en «por agendar»", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", sample_status: "sin_contactar", contact_attempts: 2 }),
+    ]);
+    expect(r.porAgendar).toBe(1);
+    expect(r.sinContactoLogrado).toBe(0);
+  });
+
+  it("con todo confirmado no hay ninguna", () => {
+    const r = agendamiento([
+      aula({ operational_code: "CH 1", scheduled_date: "2026-09-18", sample_status: "agendada" }),
+    ]);
+    expect(r.sinContactoLogrado).toBe(0);
+  });
+});
