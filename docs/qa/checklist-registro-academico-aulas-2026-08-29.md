@@ -2302,3 +2302,40 @@ cumplirla— y ya es lo que más ha rendido.
 
 Dos casos nuevos; comprobado que muerden: con el texto viejo, rojo en el primero.
 147 archivos / 1.752 tests, typecheck limpio.
+
+### Vuelta 43 · Los tres numeradores de «lo conseguido», y dos sondas mías que midieron mal
+
+Cuarta doctrina del índice, y es de la familia que más ha rendido:
+
+> «lo conseguido recorre tres numeradores distintos: la efectiva de plataforma
+> —la única que el ADR 0082 reconoce como τ—, la cuenta del aplicador en el
+> parte, y lo que la hoja da por enviado. Con más de uno en juego, el faltante de
+> un aula NO es comparable con el de su vecina.»
+
+`loQueFaltaParaCerrar` los recorre en orden y **declara cuál usó**, y
+`AulasLoQueFalta` avisa cuando se mezclan: «Ojo al comparar: N miden con las
+respuestas de la plataforma, M con lo que anotó el aplicador…».
+
+**Sobre este corte no hay mezcla, y el panel está vacío diciendo por qué**: «El
+libro todavía no evalúa ningún curso-horario, así que no se puede decir cuáles se
+quedaron cortas». Vacío legítimo con su causa declarada, que es lo que C5 pide.
+
+**Comprobado además el caso que ya mordió dos veces en este loop**: `num("")`
+devuelve `null` y no cero —`Number.parseFloat("")` es `NaN`—, así que una cadena
+vacía en `effective_surveys` no se lee como «cero conseguidas». Aquí está bien
+resuelto.
+
+**Dos sondas mías midieron mal antes de dar con esto**, y las dos con la misma
+falta: preguntarle a la estructura equivocada.
+
+1. Conté los tres orígenes sobre `control_calidad` y me salió «hoja: 304», que
+   parecía un dato. **Esa estructura no trae ninguno de los tres campos**: es el
+   control por sexo —`operational_code, faculty, sexo, n, cumple_total,
+   cumple_poblacion, cumple_meta, criterio, efectiva`— y todo caía en la última
+   rama por ausencia, no por origen.
+2. Repetí sobre `agenda` y salió lo mismo, porque ahí `effective_surveys` viaja
+   como **cadena vacía**; los partes sí la traen con valor.
+
+Es la tercera vez en el loop —tras «152 de 152 partes sin facultad» y el reparto
+de badges— que una sonda contra el conjunto equivocado produce una alarma
+perfecta. **Antes de leer un conteo, mirar si la estructura tiene el campo.**
