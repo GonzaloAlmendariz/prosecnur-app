@@ -55,7 +55,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
-const TOPE = 27;
+const TOPE = 34;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.
@@ -74,6 +74,29 @@ const TOPE = 27;
 const EN_PROSA =
   /(?:\b(?:la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
 
+/**
+ * **Dos formas más que el detector de arriba no puede ver.**
+ *
+ * `EN_PROSA` exige un determinante o una cifra DELANTE, y en prosa hay dos
+ * sitios donde el sustantivo no lo lleva:
+ *
+ * 1. **Al empezar un literal de texto**: `<h3>Aulas extra disponibles</h3>`,
+ *    `aria-label="Aulas por pedir"`. Ahí abre la frase.
+ * 2. **Detrás de un verbo copulativo o de existencia**: «son aulas
+ *    adicionales», «no quedan aulas por aplicar», «hay aulas gestionadas».
+ *
+ * Medido el 2026-08-30 al ampliarlo: **10 del primer tipo y 3 del segundo**, y
+ * el ratchet marcaba 27. Entre ellas un título de panel —«Aulas extra
+ * disponibles»— y varios `aria-label`, que es lo único que oye quien no ve la
+ * pantalla.
+ *
+ * El `["`>]` del primero es lo que lo separa de un identificador de código:
+ * `AulasSeccionModelo` no va precedido de comilla ni de `>`.
+ */
+const AL_ABRIR_FRASE = /(?:["`>]\s*)Aulas?\b(?!-)/g;
+const TRAS_VERBO =
+  /\b(?:son|es|hay|quedan|había|habia|serán|seran|fueron)\s+aulas?\b(?!-)/gi;
+
 function frasesConAula() {
   const fuentes = fs
     .readdirSync(aqui)
@@ -85,7 +108,9 @@ function frasesConAula() {
       // Los comentarios explican por qué se retiró y citan el término.
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/[^\n]*/g, "");
-    const n = (fuente.match(EN_PROSA) ?? []).length;
+    const n = (fuente.match(EN_PROSA) ?? []).length
+      + (fuente.match(AL_ABRIR_FRASE) ?? []).length
+      + (fuente.match(TRAS_VERBO) ?? []).length;
     if (n) porArchivo.push([archivo, n]);
   }
   return porArchivo;

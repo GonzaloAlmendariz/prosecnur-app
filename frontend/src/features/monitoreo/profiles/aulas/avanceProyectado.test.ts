@@ -51,7 +51,7 @@ describe("avance proyectado por celda", () => {
 
   it("cuando no quedan aulas, la causa lo dice", () => {
     const p = porqueDeLaCelda(celda({ estado: "deficit_no_subsanable", aporte_pendiente: 0 }));
-    expect(p).toContain("no quedan aulas");
+    expect(p).toContain("no quedan cursos-horario");
   });
 
   it("no explica lo que no necesita explicación", () => {

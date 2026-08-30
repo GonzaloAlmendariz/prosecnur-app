@@ -189,7 +189,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
 
       <ul
         role="table"
-        aria-label="Aulas por pedir, por facultad"
+        aria-label="Cursos-horario por pedir, por facultad"
         className={`aulas-anticipacion-lista${hayBanco ? " con-banco" : ""}`}
         data-qa-geometry-capacity="owned"
         data-qa-geometry-member
