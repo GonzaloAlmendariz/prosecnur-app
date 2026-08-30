@@ -137,7 +137,7 @@ describe("avanceCuota", () => {
     const hueco = vista.filas[0];
     // «faltan» diría que el equipo va lento; aquí no hay aulas de las que
     // recoger, y mandar gente a insistir no arregla un sorteo sin aulas.
-    expect(hueco.lectura).toBe("sin aulas sorteadas");
+    expect(hueco.lectura).toBe("sin cursos-horario sorteados");
     expect(hueco.lectura).not.toContain("faltan");
     // La brecha estructural sigue contada —son 60 de la cuota que el plan no
     // puede dar— y la explicación larga dice de quién es el hueco.
@@ -191,7 +191,7 @@ describe("avanceCuota", () => {
     }));
     // Ocultarlas haría que esta cifra y la de Procesamiento parecieran
     // contradecirse: las respuestas existieron, sólo que aquí no cuentan.
-    expect(conMermas.total?.notas).toEqual(["12 fuera de universo", "3 sin aula del plan"]);
+    expect(conMermas.total?.notas).toEqual(["12 fuera de universo", "3 sin curso-horario del plan"]);
     expect(conMermas.filas[0].subtexto).toContain("5 fuera de universo");
     expect(conMermas.filas[0].subtexto).toContain("2 sin sexo");
 

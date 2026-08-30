@@ -144,7 +144,16 @@ describe("el pie del gráfico cuenta las facultades que ponen déficit", () => {
 
   it("el «repartido en» no usa el total de filas", () => {
     // `filas.length` en esa frase es justo el defecto: cuenta las cerradas.
-    const pie = fuenteChart.slice(fuenteChart.indexOf("Aplicando todas las aulas"));
+    // El ancla se comprueba antes de usarla: si el texto se renombra,
+    // `indexOf` devuelve -1, `slice(-1)` deja «\n» y el fallo sale como
+    // «expected '\n' to contain …», que no dice nada de lo que pasó. Pasó al
+    // cambiar «aulas» por «cursos-horario» en esa frase.
+    const ancla = "Aplicando todos los cursos-horario";
+    expect(
+      fuenteChart.includes(ancla),
+      `el pie del gráfico ya no empieza por «${ancla}»: actualiza el ancla de este test`,
+    ).toBe(true);
+    const pie = fuenteChart.slice(fuenteChart.indexOf(ancla));
     expect(pie).toContain("fmt(conDeficit)");
     expect(pie.slice(0, pie.indexOf("</p>"))).not.toContain("fmt(filas.length)");
   });

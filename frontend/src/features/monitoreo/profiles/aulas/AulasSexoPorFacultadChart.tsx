@@ -72,11 +72,11 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
       // agendado» proyecta SÓLO sobre la agenda y por eso puede decir 0 de 30
       // mientras aquí seis celdas salen sin déficit. No se contradicen: son dos
       // denominadores, y el que estaba mal nombrado era éste.
-      name: "Aportarán las aulas que faltan",
+      name: "Aportarán los cursos-horario que faltan",
       y: eje,
       x: par((f) => [f.mujeresPendiente, f.hombresPendiente]),
       marker: { color: COLOR_RESULTADO.parcial },
-      hovertemplate: "%{y}: %{x} de las aulas del plan que faltan por aplicar<extra></extra>",
+      hovertemplate: "%{y}: %{x} de los cursos-horario del plan que faltan por aplicar<extra></extra>",
     },
     {
       type: "bar",
@@ -146,7 +146,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
             eran todas las del gráfico. Un déficit de 1 está en una facultad, y
             decir quince manda a buscar en catorce sitios donde no hay nada.
             Y la concordancia, que sólo se ve cuando el número baja a uno. */}
-        Aplicando todas las aulas que quedan en el plan quedaría un déficit de{" "}
+        Aplicando todos los cursos-horario que quedan en el plan quedaría un déficit de{" "}
         {fmt(deficitTotal)} {deficitTotal === 1 ? "respuesta" : "respuestas"}
         {conDeficit
           ? <>, repartido en {fmt(conDeficit)}{" "}
