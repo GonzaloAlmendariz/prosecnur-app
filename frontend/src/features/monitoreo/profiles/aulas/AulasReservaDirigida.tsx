@@ -37,7 +37,13 @@ function motivoSinLaCola(motivo: string, sexo: string, facultad: string): string
   return motivo.endsWith(cola) ? motivo.slice(0, -cola.length) : motivo;
 }
 
-export function AulasReservaDirigida({ celdas }: { celdas: ReadonlyArray<MonitoreoAulasReservaDirigida> }) {
+export function AulasReservaDirigida(
+  { celdas, porDebajoHoy }: {
+    celdas: ReadonlyArray<MonitoreoAulasReservaDirigida>;
+    /** Grupos de cuota con falta HOY (`missing > 0`), sin proyectar nada. */
+    porDebajoHoy?: number;
+  },
+) {
   const conDecision = celdas.filter((c) => c && Number(c.brecha) > 0);
   if (!conDecision.length) return null;
 
@@ -54,8 +60,22 @@ export function AulasReservaDirigida({ celdas }: { celdas: ReadonlyArray<Monitor
     >
       <header className="aulas-reserva-dirigida-head">
         <h4>A qué aula del banco ir</h4>
+        {/* **«que hoy no llega» prometía otro número.** El motor filtra esta
+            lista por `estado ∈ {deficit_proyectado, deficit_no_subsanable}`, o
+            sea por el déficit PROYECTADO: una celda que hoy está 38 encuestas
+            por debajo pero que se espera que cierre sola queda fuera. Medido
+            sobre el estudio real: **1 grupo aquí y 9 por debajo de su cuota**,
+            170 encuestas de falta.
+
+            El filtro es deliberado —no se gasta reserva donde se espera cerrar
+            solo— y esta reparación NO lo cambia: lo hace visible. Sin la
+            segunda mitad de la frase, quien lee «1 grupo que hoy no llega» se
+            queda con que sólo falta uno. */}
         <span>
-          {orden.length === 1 ? "1 grupo" : `${fmtCuenta(orden.length)} grupos`} de cuota que hoy no llega
+          {orden.length === 1 ? "1 grupo" : `${fmtCuenta(orden.length)} grupos`} con déficit proyectado
+          {porDebajoHoy && porDebajoHoy > orden.length
+            ? ` · ${fmtCuenta(porDebajoHoy)} están hoy por debajo de su cuota`
+            : ""}
         </span>
       </header>
 

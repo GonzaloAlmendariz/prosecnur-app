@@ -128,6 +128,7 @@ export function AulasPestanaCuotas({
                   que es por facultad y no por celda. */}
               <AulasReservaDirigida
                 celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
+                porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
               />
               {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
                   contra SU propia meta. Se ve de qué lado va corta cada facultad, que
