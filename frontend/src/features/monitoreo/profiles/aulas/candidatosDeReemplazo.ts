@@ -127,8 +127,16 @@ const sexoDominante = (fila: MonitoreoAulasPlanRow): string => {
  * (`api/R/monitoreo_aulas_en_juego.R`). El `"-"` está porque es como el equipo
  * escribe «todavía nada aquí» en el Excel: 1.810 de 2.040 celdas en 2025.
  */
-const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada", "en_cierre"]);
-const ESTADOS_DORMIDOS = new Set(["", "-", "sin_contactar", "en_reserva", "planificada"]);
+// «en_cierre» era un estado FANTASMA: no lo produce ningún sitio del motor
+// —comprobado el 2026-08-30 con un grep sobre `api/R/`— así que esa rama del Set
+// no casaba nunca. El estado de cierre que sí existe es «cerrando», y vive en
+// `course_status`, que es un derivado y no este campo.
+const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada"]);
+// Se exporta sólo para que `estadosAtadosAlMotor.contract.test.ts` la compare
+// con la del motor: la réplica estaba declarada en el comentario de arriba pero
+// no la ataba nada, y una lista de estados que nadie ata es el patrón más caro
+// del repo —la vuelta 82 encontró 329,3 encuestas fantasma por eso mismo—.
+export const ESTADOS_DORMIDOS = new Set(["", "-", "sin_contactar", "en_reserva", "planificada"]);
 
 /** Su cadena ya se resolvió: alguien de ella salió. Eje de aplicación. */
 const seResolvio = (fila: MonitoreoAulasPlanRow | undefined): boolean =>

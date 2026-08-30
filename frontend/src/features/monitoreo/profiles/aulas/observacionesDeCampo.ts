@@ -53,7 +53,11 @@ function tuvoGestion(fila: Fila): boolean {
   if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return true;
   if (txt(fila.applied_at) || txt(fila.applied_date)) return true;
   const estado = txt(fila.operational_status).toLowerCase();
-  if (estado === "aplicada" || estado === "aplicado") return true;
+  // «cerrada» va con «aplicada» en los otros ocho sitios del perfil que
+  // comparan este campo, y aquí faltaba. Casi siempre da igual —una cerrada
+  // trae parte y ya salió por `applied_at` tres líneas arriba— pero una cerrada
+  // sin parte se contaba como sin gestión, que es lo contrario de lo que es.
+  if (estado === "aplicada" || estado === "aplicado" || estado === "cerrada") return true;
   for (const k of ["effective_surveys", "efectivas", "attendees", "asistentes"]) {
     const v = fila[k];
     if (v != null && v !== "" && Number(v) > 0) return true;
