@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
@@ -152,7 +153,7 @@ describe("los elegibles del pasado son el techo de cada día", () => {
       expect(dia.aulas).toBe(2);
       expect(dia.aulasConDiseno).toBe(1);
       // 18, la del diseño. Si contara las dos daría 24 y la vara se iría al techo.
-      expect(dia.metaPorAula).toBe(18);
+      expect(dia.esperadoPorAulaDelDiseno).toBe(18);
     });
 
     it("sin ninguna meta del diseño devuelve null, que es ausencia y no cero", () => {
@@ -161,7 +162,7 @@ describe("los elegibles del pasado son el techo de cada día", () => {
       const partes = [parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 12, operational_code: "A" })];
       const planFilas = [plan({ operational_code: "A", eligible_n: 30, expected_valid: 21, meta_origen: "declarada" })];
       const { facultades } = serieDeRendimiento(partes, planFilas);
-      expect(facultades[0]!.dias[0]!.metaPorAula).toBeNull();
+      expect(facultades[0]!.dias[0]!.esperadoPorAulaDelDiseno).toBeNull();
       expect(facultades[0]!.dias[0]!.aulasConDiseno).toBe(0);
     });
 
@@ -178,7 +179,7 @@ describe("los elegibles del pasado son el techo de cada día", () => {
       const { facultades } = serieDeRendimiento(partes, planFilas);
       const dia = facultades[0]!.dias[0]!;
       expect(dia.aulasConDiseno).toBe(2);
-      expect(dia.metaPorAula).toBe(25);
+      expect(dia.esperadoPorAulaDelDiseno).toBe(25);
     });
 
     it("una meta del diseño en cero no cuenta como vara", () => {
@@ -187,7 +188,40 @@ describe("los elegibles del pasado son el techo de cada día", () => {
       const partes = [parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 9, operational_code: "A" })];
       const planFilas = [plan({ operational_code: "A", eligible_n: 30, expected_valid: 0, meta_origen: "diseno" })];
       const { facultades } = serieDeRendimiento(partes, planFilas);
-      expect(facultades[0]!.dias[0]!.metaPorAula).toBeNull();
+      expect(facultades[0]!.dias[0]!.esperadoPorAulaDelDiseno).toBeNull();
     });
+  });
+});
+
+describe("«meta» nombra la cuota y sólo la cuota", () => {
+  /**
+   * **Encargo del 2026-08-30: la meta, lo diseñado y el rendimiento son tres
+   * cantidades distintas y no pueden compartir palabra.**
+   *
+   * En este módulo `meta` llegó a nombrar dos: `expected_valid` —lo que se
+   * espera de UN aula— y la cuota de una celda de sexo. En pantalla nunca
+   * colisionaron, pero leyendo el código sí, y el defecto es de los que vuelven:
+   * basta que alguien escriba `const metaX = fila.expected_valid`.
+   *
+   * El guard mira la fuente, no el resultado, porque el renombrado no cambia
+   * ninguna cifra y ningún test de comportamiento podría verlo.
+   */
+  const fuente = () => readFileSync(new URL("./serieDeRendimiento.ts", import.meta.url), "utf8");
+
+  it("no hay ninguna variable «meta…» que lea expected_valid", () => {
+    const infractores = [...fuente().matchAll(/\b(meta[A-Za-z]*)\s*[=:][^;\n]*expected_valid/g)]
+      .map((m) => m[1]);
+    expect(
+      infractores,
+      "«meta» es la cuota. Lo que se espera de un aula es `esperado…`: " +
+        infractores.join(", "),
+    ).toEqual([]);
+  });
+
+  it("y el guard mide algo: reconoce el patrón cuando está", () => {
+    // Control de fixture: sin esto, un regex roto daría siempre cero infractores
+    // y el guard pasaría para siempre. Es la lección del ratchet de vocabulario.
+    const muestra = "const metaPorCodigo = numero(fila.expected_valid);";
+    expect([...muestra.matchAll(/\b(meta[A-Za-z]*)\s*[=:][^;\n]*expected_valid/g)]).toHaveLength(1);
   });
 });

@@ -131,7 +131,7 @@ export type DiaDeRendimiento = {
    * Se promedia sobre `aulasConDiseno`, no sobre `aulas`: mezclar las que no
    * tienen vara hundiría la altura sin que nada lo dijera.
    */
-  metaPorAula: number | null;
+  esperadoPorAulaDelDiseno: number | null;
   /** Cuántas de las aulas del día traen meta del diseño. El denominador de arriba. */
   aulasConDiseno: number;
 };
@@ -153,7 +153,7 @@ export type RendimientoDiarioDeFacultad = {
    * con el parte fue el defecto que hizo que el gráfico dijera «llegamos»
    * mientras su pie decía «0 de 196».
    */
-  metaDeLoVisitado: number;
+  esperadoDeLoVisitado: number;
   /** Lo observado en todo el corte, sin encoger. Se enseña al lado. */
   observadoFinal: number | null;
 };
@@ -219,8 +219,8 @@ export function serieDeRendimiento(
   mediaDelEstudio: number;
 } {
   const fechas = new Set<string>();
-  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number; metaDiseno: number; aulasConDiseno: number }>>();
-  const metaVisitadaPorFacultad = new Map<string, number>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number; esperadoDiseno: number; aulasConDiseno: number }>>();
+  const esperadoDeLoVisitadoPorFacultad = new Map<string, number>();
   // El reparto por sexo, aula por aula, tal como lo declara la Base de control.
   const sexoPorCodigo = new Map<string, { mujeres: number; hombres: number }>();
   for (const fila of control) {
@@ -236,19 +236,31 @@ export function serieDeRendimiento(
   // `operational_code`, la misma clave con la que `parteDeCampo` une las dos
   // hojas: si cada superficie uniera por su cuenta podrían discrepar.
   const elegiblesPorCodigo = new Map<string, number>();
-  const metaPorCodigo = new Map<string, number>();
-  // La meta DEL DISEÑO, aparte. `expected_valid` también llega con metas escritas
+  /**
+   * **«Meta» estaba nombrando dos cantidades distintas en este archivo.**
+   *
+   * Aquí era `expected_valid` —lo que se espera de UN aula— y unas líneas más
+   * abajo, en el acumulado por sexo, era la CUOTA de la celda: a lo que hay que
+   * llegar. Son las dos cantidades que el encargo del 2026-08-30 pide separar, y
+   * compartían palabra dentro del mismo módulo. En pantalla nunca colisionaron
+   * —«Meta» es siempre la cuota y lo del aula se dice «el diseño pedía»— pero
+   * leyendo el código sí, y me confundió a mí al auditarlo.
+   *
+   * `meta` queda para la cuota. Lo del aula se llama por lo que es: lo esperado.
+   */
+  const esperadoPorAula = new Map<string, number>();
+  // Lo esperado por aula SEGÚN EL DISEÑO, aparte. `expected_valid` también llega con metas escritas
   // a mano y con el propio techo de elegibles cuando no había ninguna, y el motor
   // lo dice en `meta_origen`. Ver la cabecera: promediarlas juntas daría una vara
   // que en parte es el techo.
-  const metaDelDisenoPorCodigo = new Map<string, number>();
+  const esperadoDelDisenoPorAula = new Map<string, number>();
   for (const fila of plan) {
     const codigo = texto(fila.operational_code);
     if (!codigo) continue;
     elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
-    const meta = numero(fila.expected_valid);
-    metaPorCodigo.set(codigo, meta);
-    if (texto(fila.meta_origen) === "diseno" && meta > 0) metaDelDisenoPorCodigo.set(codigo, meta);
+    const esperado = numero(fila.expected_valid);
+    esperadoPorAula.set(codigo, esperado);
+    if (texto(fila.meta_origen) === "diseno" && esperado > 0) esperadoDelDisenoPorAula.set(codigo, esperado);
   }
 
   for (const fila of partes) {
@@ -258,20 +270,20 @@ export function serieDeRendimiento(
     const efectivas = numero(fila.effective_surveys);
     const codigo = texto(fila.operational_code);
     const elegibles = elegiblesPorCodigo.get(codigo) ?? numero(fila.eligible_n);
-    metaVisitadaPorFacultad.set(
+    esperadoDeLoVisitadoPorFacultad.set(
       facultad,
-      (metaVisitadaPorFacultad.get(facultad) ?? 0) + (metaPorCodigo.get(codigo) ?? 0),
+      (esperadoDeLoVisitadoPorFacultad.get(facultad) ?? 0) + (esperadoPorAula.get(codigo) ?? 0),
     );
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, metaDiseno: 0, aulasConDiseno: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, esperadoDiseno: 0, aulasConDiseno: 0 };
     dia.aulas += 1;
     dia.elegibles += elegibles;
     dia.efectivas += efectivas;
-    const metaDiseno = metaDelDisenoPorCodigo.get(codigo);
-    if (metaDiseno != null) {
-      dia.metaDiseno += metaDiseno;
+    const esperadoDiseno = esperadoDelDisenoPorAula.get(codigo);
+    if (esperadoDiseno != null) {
+      dia.esperadoDiseno += esperadoDiseno;
       dia.aulasConDiseno += 1;
     }
     const sexo = sexoPorCodigo.get(codigo);
@@ -306,7 +318,7 @@ export function serieDeRendimiento(
     let aulasAcum = 0;
     let efectivasAcum = 0;
     const serie = orden.map((fecha) => {
-      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, metaDiseno: 0, aulasConDiseno: 0 };
+      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, esperadoDiseno: 0, aulasConDiseno: 0 };
       aulasAcum += dia.aulas;
       efectivasAcum += dia.efectivas;
       const media = mediaHasta.get(fecha) ?? 0;
@@ -325,7 +337,7 @@ export function serieDeRendimiento(
         efectivasAcumuladas: efectivasAcum,
         esperado: redondea((efectivasAcum + PESO_DEL_PRIOR * media) / (aulasAcum + PESO_DEL_PRIOR)),
         esperadoBanda: bandaDelEsperado(efectivasAcum + PESO_DEL_PRIOR * media, aulasAcum + PESO_DEL_PRIOR),
-        metaPorAula: dia.aulasConDiseno ? redondea(dia.metaDiseno / dia.aulasConDiseno) : null,
+        esperadoPorAulaDelDiseno: dia.aulasConDiseno ? redondea(dia.esperadoDiseno / dia.aulasConDiseno) : null,
         aulasConDiseno: dia.aulasConDiseno,
       } satisfies DiaDeRendimiento;
     });
@@ -336,7 +348,7 @@ export function serieDeRendimiento(
       aulas: aulasAcum,
       efectivas: efectivasAcum,
       esperadoFinal: ultimo?.esperado ?? 0,
-      metaDeLoVisitado: Math.round(metaVisitadaPorFacultad.get(facultad) ?? 0),
+      esperadoDeLoVisitado: Math.round(esperadoDeLoVisitadoPorFacultad.get(facultad) ?? 0),
       observadoFinal: aulasAcum ? redondea(efectivasAcum / aulasAcum) : null,
     } satisfies RendimientoDiarioDeFacultad;
   });

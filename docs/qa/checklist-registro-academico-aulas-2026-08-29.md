@@ -1701,3 +1701,46 @@ facultad» no la cuenta ningún detector, porque el sustantivo abre la frase sin
 determinante delante. Ampliar el regex a ese caso exige distinguirlo de los
 identificadores de código (`AulasAlertaDeAnticipacion`), así que la forma es
 detectar el término al principio de un literal de texto. Queda pendiente.
+
+### Vuelta 28 · J.2 era falsa y J.4 era real
+
+**J.2 no existe, y la premisa la puse yo.** Escribí que `AulasCuotasResumen` es
+«compartido por cuatro pestañas» y que en tres de ellas la meta se publica sin
+decir de dónde sale. Comprobado: **se monta sólo en `AulasPestanaCuotas`**, donde
+el chip de procedencia está en la misma cabecera. Lo que vi fue el `import` en
+las otras tres, y es `import type { FocoDeCuota }` —sólo el tipo, no arrastra
+componente—.
+
+El error es el de siempre en este loop: **contar apariciones de un nombre y
+llamarlas usos**. Un `import` no es un montaje, igual que un campo del payload no
+es una capacidad y un archivo con «Chart» en el nombre no es un gráfico.
+
+*(Deuda menor anotada: `FocoDeCuota` se declara en `AulasCuotasResumen.tsx` y lo
+usan tres pestañas que no usan el componente. El tipo vive en el archivo
+equivocado.)*
+
+**J.4 sí era real.** En `serieDeRendimiento.ts`, `meta` nombraba dos cantidades:
+
+| Sitio | `meta` era | En el vocabulario del encargo |
+|---|---|---|
+| `:249`, `metaPorCodigo`, `metaDelDisenoPorCodigo` | `expected_valid` de **un aula** | **lo diseñado** |
+| `:394`, `celda.meta` | la **cuota** de una celda de sexo | **la meta** |
+
+En pantalla nunca colisionaron —«Meta» es siempre la cuota y lo del aula se dice
+«el diseño pedía»— pero en el código sí, y **me confundió a mí al auditarlo**,
+que es la prueba de que confunde.
+
+`meta` queda para la cuota. Lo del aula pasa a `esperadoPorAula`,
+`esperadoDelDisenoPorAula`, `esperadoDeLoVisitado`, `esperadoPorAulaDelDiseno` y
+el acumulador `esperado`. Renombrado puro: las 1.731 pruebas siguen verdes sin
+tocar ninguna.
+
+**Y como el defecto vuelve solo** —basta que alguien escriba
+`const metaX = fila.expected_valid`—, lleva guard sobre la fuente, que es donde
+se ve: ningún identificador `meta…` puede leer `expected_valid`. Con su control
+de fixture, porque un regex roto daría cero infractores para siempre.
+
+Comprobado que muerde, y **el primer intento de comprobación no valía**: renombrar
+la variable dejaba usos huérfanos y rompía cuatro tests por otra causa, que no
+prueba nada sobre el guard. Introducir el patrón **sin romper el código** da el
+rojo limpio: uno solo, señalando `metaDelAula` por su nombre.

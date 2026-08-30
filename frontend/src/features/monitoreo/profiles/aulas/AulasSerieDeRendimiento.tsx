@@ -437,8 +437,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // ocultando entero. Ocultarlo no era la reparación: era quitar el gráfico que
     // Gonzalo había pedido. La reparación es medir contra lo comparable.
     const meta = elegida
-      ? elegida.metaDeLoVisitado
-      : facultades.reduce((n, f) => n + f.metaDeLoVisitado, 0);
+      ? elegida.esperadoDeLoVisitado
+      : facultades.reduce((n, f) => n + f.esperadoDeLoVisitado, 0);
     // **La proyección del ESTUDIO cuando no hay facultad elegida.** Sin esto la
     // franja teñida de lo agendado ocupaba un tercio del gráfico y estaba
     // completamente en blanco: prometía que ahí hay algo y no dibujaba nada, que
@@ -767,7 +767,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   /** Lo que dice la pista de un día ya aplicado: el techo y lo conseguido. */
   const lineasDelDia = (d: {
     fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null;
-    metaPorAula?: number | null; aulasConDiseno?: number;
+    esperadoPorAulaDelDiseno?: number | null; aulasConDiseno?: number;
   }) => [
     `${dm(d.fecha)} · observado`,
     `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
@@ -775,8 +775,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
     // Sin decir el denominador, un día con una sola aula del diseño y tres
     // visitadas enseñaría una vara que no es la de las tres.
-    ...(d.metaPorAula != null
-      ? [`el diseño pedía ${personasPorAula(d.metaPorAula)} por curso-horario`
+    ...(d.esperadoPorAulaDelDiseno != null
+      ? [`el diseño pedía ${personasPorAula(d.esperadoPorAulaDelDiseno)} por curso-horario`
          + (d.aulasConDiseno && d.aulasConDiseno < d.aulas
             ? ` (de ${fmt(d.aulasConDiseno)} de las ${fmt(d.aulas)}; el resto no trae meta del diseño)`
             : "")]
@@ -794,17 +794,20 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
    */
   const varaDelDiseno = useMemo(() => {
     if (!elegida) return null;
-    let meta = 0;
+    // Lo ESPERADO, no la meta: esta acumulación suma `expected_valid` del
+    // diseño, que es lo que se supuso que dejaría cada aula. La meta es la
+    // cuota, y vive en el acumulado por sexo.
+    let esperado = 0;
     let conVara = 0;
     let todas = 0;
     for (const d of elegida.dias) {
       todas += d.aulas;
-      if (d.metaPorAula != null && d.aulasConDiseno > 0) {
-        meta += d.metaPorAula * d.aulasConDiseno;
+      if (d.esperadoPorAulaDelDiseno != null && d.aulasConDiseno > 0) {
+        esperado += d.esperadoPorAulaDelDiseno * d.aulasConDiseno;
         conVara += d.aulasConDiseno;
       }
     }
-    return { porAula: conVara ? meta / conVara : null, conVara, todas };
+    return { porAula: conVara ? esperado / conVara : null, conVara, todas };
   }, [elegida]);
 
   const indice = elegida ? facultades.indexOf(elegida) : -1;
@@ -1406,7 +1409,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               //
               //   **Tapa sólida y vara punteada**, que es la convención que este
               //   gráfico ya usa: lo medido va sólido y lo supuesto punteado.
-              const vara = d.metaPorAula;
+              const vara = d.esperadoPorAulaDelDiseno;
               return (
                 <g key={`techo-obs-${d.fecha}`}>
                   <rect x={xa(i) - ancho / 2} y={y(techo)}
