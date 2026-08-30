@@ -45,7 +45,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Los partes no dicen quién aplicó cada curso-horario, así que no hay producción que
-        repartir. El aplicador se anota al registrar el aula.
+        repartir. El aplicador se anota al registrar el curso-horario.
       </p>
     );
   }
