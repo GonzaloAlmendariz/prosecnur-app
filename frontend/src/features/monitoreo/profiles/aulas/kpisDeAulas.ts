@@ -345,7 +345,7 @@ function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
       : "el estudio no declara cuotas por sexo y facultad",
     tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
     detalle: evaluables.length
-      ? "Cuenta los grupos que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
+      ? "Cuenta los grupos que llegarían a su cuota con los cursos-horario YA agendados, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
       : undefined,
   };
 }
@@ -572,7 +572,7 @@ export function aulasKpis(
           icono: PhoneCall,
           value: fmt(ag.enUmbralDeRiesgo),
           pista: "gestiones y siguen sin fecha",
-          detalle: "En el campo de 2025, un aula que llegaba a la tercera gestión se caía el doble de veces que una cerrada en una o dos (36 % contra 18 %). Conviene mirar su reserva antes de que se caiga.",
+          detalle: "En el campo de 2025, un curso-horario que llegaba a la tercera gestión se caía el doble de veces que una cerrada en una o dos (36 % contra 18 %). Conviene mirar su reserva antes de que se caiga.",
           tone: "warn",
         });
       }
@@ -584,7 +584,7 @@ export function aulasKpis(
           icono: PhoneCall,
           value: fmt(ag.sinMedioDeContacto),
           pista: "ni teléfono ni correo anotado",
-          detalle: "En 2025 las 14 aulas sin medio de contacto anotado se cayeron todas. No es que sean difíciles: es que no hay por dónde llamarlas.",
+          detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todas. No es que sean difíciles: es que no hay por dónde llamarlas.",
           tone: "warn",
         });
       }

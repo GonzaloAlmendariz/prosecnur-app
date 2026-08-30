@@ -370,7 +370,7 @@ export function AulasControlDelLibro({
       // grupo iba verde, así que el defecto sólo existía en el estado vacío.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         El libro importado no trae la hoja «Base de control», o la trae sin filas.
-        Es la hoja donde el equipo lleva el control de calidad por aula.
+        Es la hoja donde el equipo lleva el control de calidad por curso-horario.
       </p>
     );
   }
@@ -495,7 +495,7 @@ export function AulasControlDelLibro({
         // del panel como si fuera el contenedor de datos.
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
           La hoja trae sus filas pero ninguna columna de control llena, asi que
-          todavia no hay veredicto por aula que mostrar. Se llenan en el Excel
+          todavia no hay veredicto por curso-horario que mostrar. Se llenan en el Excel
           del equipo y vuelven al importar el libro.
         </p>
       ) : (
