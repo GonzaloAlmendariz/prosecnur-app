@@ -46,8 +46,11 @@ describe("la banda de KPIs", () => {
     expect(sinPista.map((k) => k.label)).toEqual([]);
   });
 
-  it("«Aplicadas» dice que la declara el registro, no las respuestas", () => {
-    const aplicadas = aulasKpis(tablero(), "modelo").find((k) => k.label === "Aplicadas");
+  it("«Cursos-horario aplicados» dice que los declara el registro, no las respuestas", () => {
+    // El rótulo lleva la unidad porque la tarjeta vecina —«Válidas»— cuenta
+    // personas, y 152 contra 2.668 no se comparan sin saberlo.
+    const aplicadas = aulasKpis(tablero(), "modelo")
+      .find((k) => k.label === "Cursos-horario aplicados");
     expect(aplicadas?.value).toBe("0");
     expect(aplicadas?.pista).toContain("registro de campo");
   });

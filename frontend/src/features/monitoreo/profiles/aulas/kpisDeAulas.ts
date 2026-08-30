@@ -288,10 +288,16 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
  */
 function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   return {
-    label: "Aplicadas",
+    // **El rótulo dice su unidad.** Decía «Aplicadas» a secas, en una banda
+    // donde la tarjeta de al lado —«Válidas 2,668»— cuenta PERSONAS: quien no
+    // diseñó el estudio compara 152 con 2.668 sin nada que le avise de que son
+    // cursos-horario contra encuestas. Se usa el mismo nombre con que el
+    // glosario de columnas traduce este dato (`aulas_aplicadas`), así que la
+    // tarjeta y la tabla lo llaman igual.
+    label: "Cursos-horario aplicados",
     icono: ClipboardCheck,
     value: fmt(dashboard?.kpis?.aulas_aplicadas),
-    pista: "declaradas en el registro de campo",
+    pista: "declarados en el registro de campo",
     detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
   };
 }
