@@ -1165,6 +1165,19 @@
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
     }
     dashboard$aulas_universitarias_reports <- aulas_dashboard
+    # **Este espejo no tiene consumidor hoy, y el dia que lo tenga hay que mirar
+    # que universo trae.** Barrido del 2026-08-30: ni el frontend ni R leen
+    # `kpis$aulas_total`, `kpis$aulas_aplicadas` ni `kpis$respuestas_validas_aulas`
+    # de este dashboard —los `aulas_total` del frontend son de Calculo de
+    # muestra, otro campo con el mismo nombre—.
+    #
+    # `total_aulas` cuenta el plan SIN BANCO: titulares mas sus reservas
+    # encadenadas (1.347 sobre HSVG2026 «como 2025», de los que 174 son
+    # titulares). Junto a `aulas_aplicadas` invita a leer 152 de 1.347, que es un
+    # 11 % donde va un 87 %: el mismo defecto que ya hubo que reparar en el
+    # pronostico de cierre, en la hoja del cliente y en el badge de Registro.
+    # Quien conecte esto al home debe usar `aulas_titulares` para «lo que hay que
+    # aplicar», y dejar `total_aulas` para «el plan con sus reservas».
     dashboard$kpis$aulas_total <- aulas_dashboard$kpis$total_aulas %||% 0L
     dashboard$kpis$aulas_aplicadas <- aulas_dashboard$kpis$aulas_aplicadas %||% 0L
     dashboard$kpis$respuestas_validas_aulas <- aulas_dashboard$kpis$respuestas_validas %||% 0L
