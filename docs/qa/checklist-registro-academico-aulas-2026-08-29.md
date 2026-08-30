@@ -643,3 +643,44 @@ ADR 0057 pone como ejemplo de por qué no se automatiza.
 simulacros sin hora**, y los tres derivan del mismo estudio. El panel declara su
 vacío correctamente, que es lo que C5 exige; queda confirmar con `campo_malo` si
 la categoría es 1 (el estudio no la trae) o 2 (deuda del fixture).
+
+## Tercera vuelta · `campo_malo`, y el triaje C5 cerrado
+
+El simulacro peor: mismos 152 cursos-horario aplicados y **1.538 válidas**.
+
+### La escala completa, con las tres corridas
+
+| | `como_2025` | `campo_flojo` | `campo_malo` |
+|---|---|---|---|
+| Válidas | 2.668 | 2.040 | **1.538** |
+| Llegaron a su meta | 76 | 34 | **20** |
+| Bajo su meta | 98 | 140 | **154** |
+| **Suma = 174 con meta** | ✓ | ✓ | **✓** |
+| Grupos que cierran (de 30) | 23 | 16 | **7** |
+| Cuota por recoger | 170 | 549 | **974** |
+| Desglose por sexo suma | ✓ | ✓ | **514 + 460 ✓** |
+| Facultades con cuota cumplida | 9 | 5 | **1** |
+| Filas «cumplida» con gente faltando | 0 | 0 | **0** |
+| Media por curso-horario | 18 | 14 | **10** |
+| Aulas por pedir | 14 en 5 fac. | 59 en 9 | **131 en 13** |
+
+Las reparaciones de las quince vueltas anteriores **se sostienen en los tres
+escenarios**, incluido el peor. Y en `campo_flojo` se comprobó además la identidad
+del cumplimiento: **1.891 cubren meta + 149 de más = 2.040 válidas**, y **1.891 +
+1.336 que faltan = 3.227 de meta**, con los «140 cursos-horario» de esa leyenda
+coincidiendo con los de la banda — tres superficies diciendo lo mismo.
+
+### C5 de «Franja horaria del operativo»: cerrado, no hay defecto
+
+**Los tres simulacros dicen «Todo el trabajo está en Sin hora».** Es el estudio el
+que no trae la hora de aplicación, no una carencia del fixture, y el panel lo
+**declara** en vez de pintar una franja inventada o quedarse mudo. Eso es
+exactamente lo que C5 pide de un vacío legítimo (categoría 1). Se cierra el
+pendiente sin tocar nada.
+
+### Tres frases más
+
+`campo_malo` destapó «10 encuestas **por aula** de media del estudio», la lectura
+principal de «Cómo rinde cada facultad, día a día». Sus **dos ramas** —la del
+conjunto y la de una facultad elegida— más el aviso de «con tan pocas aulas».
+Cerradas las tres; el ratchet baja de **88 a 86**.
