@@ -29,7 +29,7 @@ export type ProcedenciaDeCuota = {
 };
 
 export type TotalDeAvanceCuota = {
-  /** «Cuota del diseño» o «Meta del plan», según la procedencia. */
+  /** Siempre «Cuota del estudio»: la cantidad no cambia de nombre según de dónde salga. */
   etiqueta: string;
   cuota: number;
   validas: number;
@@ -274,7 +274,23 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const huerfanas = numero(t.huerfanas);
   if (fueraTotal > 0) notasTotal.push(`${fmt(fueraTotal)} fuera de universo`);
   if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin curso-horario del plan`);
-  const etiqueta = degradada ? "Meta del plan" : "Cuota del diseño";
+  /**
+   * **La cantidad tiene un nombre; de dónde sale lo dice el chip.**
+   *
+   * Era «Cuota del diseño» / «Meta del plan», y en la misma cabecera conviven ya
+   * el título «Cumplimiento de la cuota del estudio» y el chip «cuota del diseño
+   * · tasa de efectividad 53.0 %»: tres rótulos para dos cosas, con dos de ellos
+   * diciendo lo mismo. `AulasCuotasResumen` —compartido por otras cuatro
+   * pestañas— llamaba «Cuota del estudio» a esta misma cantidad, y **es la misma
+   * de verdad**: medido, 2.500 y 2.668 en las dos.
+   *
+   * Y «diseño» hacía de dos cosas a la vez: de dónde salió la META, y lo que se
+   * esperaba aportar con las aulas calculadas —lo que el motor llama `previsto`
+   * y el encargo llama «lo diseñado»—. Reservarlo para lo segundo es lo que
+   * permite distinguir las tres cantidades del estudio: la meta, lo diseñado y
+   * lo que se espera según el rendimiento.
+   */
+  const etiqueta = "Cuota del estudio";
 
   return {
     procedencia,
@@ -287,7 +303,10 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       avance: avanceTotal,
       avanceTexto: pctPerfil(avanceTotal),
       relleno: Math.max(0, Math.min(100, avanceTotal)),
-      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()}`,
+      // La procedencia entra en el aria porque quien no ve la pantalla no ve el
+      // chip que la declara, y sin ella «de la cuota del estudio» suena igual
+      // con el denominador del diseño que con el del plan degradado.
+      aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
       notas: notasTotal,
     },
     filas,
