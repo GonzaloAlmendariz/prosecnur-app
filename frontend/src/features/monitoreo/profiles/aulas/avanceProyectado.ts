@@ -56,6 +56,8 @@ export type FilaAvance = {
   porque: string;
   /** El origen del previsto; `""` cuando el motor no lo declara. */
   origen: string;
+  /** Lo que aún se espera recibir. En 0 la celda ya cerró: nada que proyectar. */
+  aportePendiente: number;
   /**
    * La misma pregunta que `estado` —«¿va a llegar?»— con la incertidumbre
    * puesta. `null` cuando alguna aula pendiente de la celda no declara tasa: sin
@@ -151,6 +153,10 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
       etiquetaCalibracion: txt(c.etiqueta_calibracion),
       porque: porqueDeLaCelda(c),
       origen: txt(c.previsto_origen),
+      // Hace falta para distinguir «no se pudo medir» de «no queda nada que
+      // medir»: sin aporte pendiente la celda ya cerró y no hay proyección que
+      // hacer, que es un caso distinto de que falte un dato.
+      aportePendiente: num(c.aporte_pendiente),
       // `num()` devuelve 0 para lo que no es número, y aquí 0 significa «no va
       // a cerrar» — que es una afirmación fuerte y distinta de «no se pudo
       // medir». Por eso se comprueba a mano en vez de reutilizar `num`.
