@@ -38,6 +38,42 @@ es un estrato, un τ o un *deff*, el elemento no pasa.
 | I | **Avance como mecanismo de revisión no técnica** | sección `avance` completa | ☐ |
 | J | **Separar meta / lo diseñado / el rendimiento**, y medir lo que falta SIEMPRE contra la meta | `avanceCuota.ts`, `cuotasResumen.ts`, `avance_sexo_facultad` | ☐ nueva el 2026-08-30 |
 
+## Bloqueado: exige tu decisión, no lo reparo por mi cuenta
+
+**K · Las columnas de sexo del plan se presentan como «mayoritario / minoritario».**
+
+`FIELD_LABELS` rotula cuatro columnas que la tabla del plan SÍ pinta —comprobado
+que `sex_top_*` no está en `COLUMNAS_DE_INFRAESTRUCTURA`, así que no se filtran—:
+
+| Columna | Cabecera hoy | Qué trae la celda |
+|---|---|---|
+| `sex_top_1` | Sexo mayoritario | «F» o «M» |
+| `sex_top_1_n` | Estudiantes del sexo mayoritario | el conteo |
+| `sex_top_2` | Sexo minoritario | el otro |
+| `sex_top_2_n` | Estudiantes del sexo minoritario | su conteo |
+
+**Por qué lo levanto**: dijiste textual «cómo vas a poner mayoría hombres o mayoría
+mujeres cuando eso no me interesa; lo que me interesa es cuántos hombres y cuántas
+mujeres». Para leer cuántas mujeres hay en un curso-horario, hoy hay que cruzar
+dos columnas y ver cuál de las dos dice «F». Y ya hay precedente de que esta
+construcción se malinterpreta: `sub_a` es el sexo MÁS FRECUENTE y se leyó como
+«mujeres», lo que invirtió una tabla de cuotas entera.
+
+**Por qué NO lo toco**: `sex_top_1` no es sólo un rótulo. Es variable de
+estratificación y de balanceo (ADR 0082, `balance_vars`), y el motor lo calcula
+como `names(sex_tab)[1]`, la categoría más frecuente. Reordenarlo a columnas
+fijas de mujeres y hombres es un cambio de modelo, no de presentación.
+
+**Lo que sí está comprobado y juega a favor de poder hacerlo**: el motor de
+Monitoreo YA resuelve `sex_top_1` a «F»/«M» para el avance de cuota
+(`monitoreo_aulas_avance_cuota.R:90-95`) y el frontend hace lo mismo en
+`candidatosDeReemplazo.ts:287`. El dato para presentar «Mujeres» y «Hombres» como
+columnas fijas existe; falta decidir si se hace.
+
+**La pregunta**: ¿quieres que la tabla del plan muestre columnas fijas de mujeres
+y hombres en vez de mayoritario/minoritario? Si sí, es una vuelta con cambio en
+el motor y en el ADR 0082, no un cambio de rótulo.
+
 ## Inventario de lo que hay que evaluar
 
 Seis pestañas en Avance —`cuotas`, `resumen`, `estratos`, `rendimiento`,
