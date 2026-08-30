@@ -643,7 +643,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? ` (de ${fmt(disenoDeLaAgenda.conVara)} de las ${fmt(disenoDeLaAgenda.agendadas)} agendadas)`
       : "";
     const segundaLlegada = alCerrarPorDiseno != null && Math.abs(alCerrarPorDiseno - alCerrar) >= 1
-      ? ` · con lo que el diseño pedía de esas aulas, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
+      ? ` · con lo que el diseño pedía de esos cursos-horario, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
       : "";
     const lectura = meta > 0
       ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados · ${
@@ -656,7 +656,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             ? `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, por encima de esa meta`
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
         }${segundaLlegada}`
-      : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esas aulas`;
+      : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esos cursos-horario`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
     // **Una meta por encima del tope del eje NO se dibuja: se declara.**
@@ -771,16 +771,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   }) => [
     `${dm(d.fecha)} · observado`,
     `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
-    `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por aula`,
+    `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por curso-horario`,
     // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
     // Sin decir el denominador, un día con una sola aula del diseño y tres
     // visitadas enseñaría una vara que no es la de las tres.
     ...(d.metaPorAula != null
-      ? [`el diseño pedía ${personasPorAula(d.metaPorAula)} por aula`
+      ? [`el diseño pedía ${personasPorAula(d.metaPorAula)} por curso-horario`
          + (d.aulasConDiseno && d.aulasConDiseno < d.aulas
             ? ` (de ${fmt(d.aulasConDiseno)} de las ${fmt(d.aulas)}; el resto no trae meta del diseño)`
             : "")]
-      : d.aulas ? ["ninguna de esas aulas trae meta del diseño"] : []),
+      : d.aulas ? ["ninguno de esos cursos-horario trae meta del diseño"] : []),
   ];
 
   /**
@@ -950,7 +950,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {acumulado.metasFueraDeEscala.length ? (
                 <em className="es-ausente">
                   {acumulado.cuotasSonDelEstudio
-                    ? `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) son las del estudio entero: no se dibujan sobre un eje de aulas visitadas`
+                    ? `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) son las del estudio entero: no se dibujan sobre un eje de cursos-horario visitados`
                     : `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) no caben en la escala de este gráfico`}
                 </em>
               ) : null}
@@ -1167,7 +1167,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </p>
           <p className="mon-profile-muted aulas-serie-pie">
             El <strong>sólido</strong> es lo conseguido y el <strong>punteado</strong>,
-            lo que se infiere de las aulas ya agendadas; {acumulado.metasSeñaladas.length
+            lo que se infiere de los cursos-horario ya agendados; {acumulado.metasSeñaladas.length
               ? "las horizontales son la meta y las cuotas de cada sexo."
               : "la horizontal es la meta."}
             {/* El pie prometía «y las cuotas de cada sexo» SIEMPRE, y desde que
@@ -1183,7 +1183,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       <div className="aulas-serie-bloque"
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-serie-rotulo">
-          <b>Día a día <i>· encuestas por aula, con los elegibles de fondo</i></b>
+          <b>Día a día <i>· encuestas por curso-horario, con los elegibles de fondo</i></b>
           {/* **Las tres alturas, nombradas.** El gráfico dibujaba techo, vara y
               línea sin decir cuál era cuál: había que deducirlo del pie, tres
               bandas más abajo, y el pie es prosa. Con la leyenda las tres se
@@ -1194,15 +1194,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               <em className="es-gris">Techo: los elegibles del día</em>
               {varaDelDiseno?.porAula != null ? (
                 <em className="es-zona">
-                  El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por aula,
-                  ajustado por su tamaño
+                  El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por
+                  curso-horario, ajustado por su tamaño
                   {varaDelDiseno.conVara < varaDelDiseno.todas
                     ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} aulas`
                     : ""}
                 </em>
               ) : (
                 <em className="es-ausente">
-                  El plan no trae la meta del diseño de estas aulas: no hay vara que dibujar
+                  El plan no trae la meta del diseño de estos cursos-horario: no hay vara que dibujar
                 </em>
               )}
               <em style={{ "--aulas-serie-color": COLOR_RESULTADO.efectiva } as React.CSSProperties}>
@@ -1226,7 +1226,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           <svg className="aulas-serie-grafico es-diario" viewBox="0 0 100 100" preserveAspectRatio="none"
             role="img"
             aria-label={elegida
-              ? `Rendimiento diario de ${elegida.facultad}; esperado ${elegida.esperadoFinal} encuestas por aula`
+              ? `Rendimiento diario de ${elegida.facultad}; esperado ${elegida.esperadoFinal} encuestas por curso-horario`
               : `Rendimiento diario de ${fmt(facultades.length)} facultades; media del estudio ${mediaDelEstudio}`}>
             {/* La misma garantía que en el acumulado, y por el mismo motivo:
                 `overflow: visible` deja pintar sin tope, y aquí `esperadoDelEstudio`
@@ -1342,8 +1342,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 >
                   <title>
                     Banda del 90 % del esperado. Hereda el mismo supuesto que la
-                    probabilidad de cierre —las respuestas de un aula no son
-                    independientes del todo—, así que la banda real es algo más
+                    probabilidad de cierre —las respuestas de un curso-horario
+                    no son independientes del todo—, así que la banda real es algo más
                     ancha que ésta.
                   </title>
                 </polygon>
@@ -1533,7 +1533,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       </p>
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
-          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada aula —con la tasa del aula, que ajusta por su tamaño, no con la tasa de la facultad del panel de arriba— y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
+          ? "Las barras son el techo de cada día —los elegibles de sus cursos-horario, por curso-horario— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada curso-horario —con la tasa del aula, que ajusta por su tamaño, no con la tasa de la facultad del panel de arriba— y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de los cursos-horario YA AGENDADOS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
           : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
       </div>
@@ -1547,7 +1547,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       {elegida && proyectada && proyectada.cuotas.length ? (
         <table className="aulas-serie-cuotas">
           <caption>
-            Cuota de {elegida.facultad} y lo que aportan sus aulas agendadas
+            Cuota de {elegida.facultad} y lo que aportan sus cursos-horario agendados
             {proyectada.reparto === "meta" ? (
               <em>
                 {" "}· el reparto por sexo sale de la META, porque esta facultad
@@ -1592,7 +1592,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           callarlo deja la pantalla igual que si la agenda estuviera llena. */}
       {elegida && proyectada && !proyectada.aulasAgendadas ? (
         <p className="aulas-serie-aviso">
-          <strong>{elegida.facultad}</strong> no tiene ninguna aula agendada por delante:
+          <strong>{elegida.facultad}</strong> no tiene ningún curso-horario agendado por delante:
           sin agenda no hay nada que inferir, y lo que falte de su cuota no va a llegar solo.
           {proyectada.cuotas.some((c) => c.faltan > 0)
             ? ` Le faltan ${fmt(proyectada.cuotas.reduce((n, c) => n + c.faltan, 0))} encuestas de cuota.`
