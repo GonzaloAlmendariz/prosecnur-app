@@ -2233,9 +2233,16 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # TODO, que es una decision que conviene tomar a sabiendas.
       monitoreo_aulas_estado_control(nrow(responses) > 0L,
                                      criterio$modo %in% c("declarada_ausente", "sin_columna")),
-      # Sin enlaces no se puede comprobar: `sin_datos`, no «ok». Es la misma
-      # regla que el resto de la lista aprendio.
-      monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L)
+      # **`warning` y no `review`: esto no se revisa, se arregla.**
+      #
+      # Regla del operativo (Gonzalo, 2026-08-30): «cada curso-horario debe tener
+      # un enlace al forms», y dos aulas con el mismo no producen una duda que
+      # mirar sino respuestas que ya no se pueden separar. `review` lo ponia al
+      # nivel de «conviene comprobar esto»; el estudio necesita verlo con el
+      # aviso mas fuerte que la lista sabe dar.
+      #
+      # Sin enlaces sigue siendo `sin_datos`, no «ok»: no se pudo comprobar.
+      monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L, "warning")
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",

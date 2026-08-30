@@ -2549,3 +2549,40 @@ límite de la vuelta 21—. Lo comprobado es que la fila viaja en el payload con
 tanto la cuenta entre las alertas, y que la etiqueta existe.
 
 147 archivos / 1.755 tests, typecheck limpio, tres suites de R verdes.
+
+### Vuelta 49 · «Nunca jamás debería pasar» — severidad y rastreo del origen
+
+Gonzalo el 2026-08-30, al ver el hallazgo: «**cada curso-horario debe tener un
+enlace al forms**».
+
+**El control sube a `warning`.** Lo dejé en `review` y eso lo ponía al nivel de
+«conviene comprobar esto»: dos aulas con el mismo enlace no producen una duda que
+mirar, producen respuestas que ya no se pueden separar. Verificado en el payload:
+`status=warning`.
+
+**El rastreo del origen, hasta donde llega la evidencia:**
+
+| Eslabón | Qué hace | ¿Trunca? |
+|---|---|---|
+| `pulso_anonimizar.R` | no menciona `link` ni `classroom_id` | no |
+| Motor de monitoreo | no escribe `link` | no |
+| Generador del libro (`carga_aulas_libro_generar`) | escribe `u$link` **tal cual** | no |
+| Carga del Excel (`carga_aulas_agendadas`) | lee la columna «ENLACE DE LA FICHA» | no |
+| Búsqueda de `substr`/`strtrim` sobre `link` o `classroom_id` en todo `api/R` | **cero coincidencias** | no |
+
+**Ningún punto de la app trunca el enlace**: entra ya así por la columna «ENLACE
+DE LA FICHA». El formato es de un formulario Enketo de Kobo
+(`ee.kobotoolbox.org/x/<id>`), donde ese `<id>` es del formulario en Kobo, **no**
+el `classroom_id` —aunque en este corte se parezcan—.
+
+**Lo que NO pude comprobar, y lo digo**: si el estudio real colisiona igual. El
+proyecto de referencia versionado `hsvg2026` **no trae operativo** —0 filas de
+plan, es el de marco de aulas a escala— así que no sirve de contraste, y el único
+dato es el simulacro. Con el control ya puesto, el estudio real lo dirá en cuanto
+se abra.
+
+**Dos preguntas que quedan del lado del operativo, no del código**: si los
+enlaces se generan en Kobo por formulario y varios cursos-horario comparten
+formulario, la colisión es de configuración allá; y si se pegan a mano en la
+columna, es de transcripción. El aviso ya nombra los pares —«CH 20 y CH 21; CH 94
+y CH 97; R 110.1 y CH 109»— para poder ir a mirarlos.
