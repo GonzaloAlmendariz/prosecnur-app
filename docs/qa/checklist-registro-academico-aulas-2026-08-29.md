@@ -794,3 +794,41 @@ De `aulasPresentation.ts` no se toca ninguna de sus cuatro, y por decisión: «T
 del aula» es el nombre que el motor da a otra cantidad, «Tamaño de aula» describe
 el salón y «Peso del aula» es el término de ponderación. Revisar frase por frase
 significa también dejar las que están bien.
+
+---
+
+## Sección Fuentes · «ya han entrado 174» contra «Cerraron con reemplazo 3»
+
+Primera pasada por una de las cuatro secciones sin evaluar, y el primer método
+—leer dos superficies vecinas— da un defecto de dos órdenes de magnitud.
+
+El embudo «Del plan a las encuestas que cuentan» dice, sobre `campo_malo`:
+
+- «174 titulares sorteados · **174 con reemplazo activado**»
+- «Las reservas… entran sólo cuando su titular se cae, y **ya han entrado 174**»
+
+Y en Consultas > Reemplazos, la banda dice «**Cerraron con reemplazo 3**». El
+tramo «Reemplazada» del estado de aplicación cuenta **18**.
+
+**La causa está documentada en el propio repo**, en `kpisDeAulas.ts:684`:
+
+> «El KPI `reemplazos_usados` del motor **NO sirve aquí**: cuenta reservas cuyo
+> estado operativo ya no es "planificada", o sea depende del registro de campo, y
+> con el registro vacío decía "0" mientras el panel de al lado decía "3 cerraron
+> con un reemplazo".»
+
+Se retiró de ese KPI y **sigue alimentando el embudo de Fuentes**
+(`embudoDelOperativo.ts:66` y `:177`). Es, otra vez, una reparación que llegó a
+un sitio y no al otro — el patrón que más ha dado en todo el loop.
+
+**No se repara a la carrera, y por un motivo concreto**: hay tres cifras
+candidatas y no son sinónimas —3 «cerraron con reemplazo» (la reserva alcanzó la
+meta del titular), 18 «reemplazada» (el estado del aula) y 174
+(`reemplazos_usados`)—. Sustituir una cifra engañosa por otra que tampoco
+signifique «reemplazo activado» sería repetir el defecto con distinto número.
+Queda medido y con el análisis hecho.
+
+**Lo que sí cuadra en Fuentes**, comprobado: 174 + 1.173 reservas = 1.347, el
+mismo denominador del pronóstico de cierre; los 77 que faltan hasta 1.424 son las
+reservas del banco, que el panel vecino nombra. Y el embudo es exacto en sus
+restas: 174 − 22 = 152 aplicadas, y 1.595 − 57 = 1.538 que cuentan.
