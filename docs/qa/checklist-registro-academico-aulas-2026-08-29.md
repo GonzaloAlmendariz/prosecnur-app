@@ -389,3 +389,34 @@ Anotado sin cambiar: la pestaña se llama «Estratos» y su primer panel es el
 gráfico por facultad y sexo, que no es de estratos. El subtítulo lo salva
 —«72 estratos de diseño abajo»— y el nombre de la pestaña pertenece al contrato
 de navegación, así que no se toca desde aquí.
+
+### Vuelta 12 · Cuatro paneles con las mismas columnas y sólo uno las explicaba
+
+En Avance > Rendimiento, cuatro paneles comparten la misma tabla —«Qué está
+rindiendo más», «Quién consigue más», «Franja horaria del operativo» y «Día de la
+semana»— con las columnas **Por visita · Ajustado · De los asistentes · Del
+potencial**. Dos de ellas no dicen qué miden por su nombre.
+
+El pie las define bien, pero llega con `explicaLasColumnas={false}` en tres de los
+cuatro para no repetir el mismo párrafo cuatro veces. Comprobado en pantalla:
+**uno con leyenda, tres sin ella**. Quien abre «Quién consigue más» sin haber
+leído antes el pie del otro panel ve dos columnas mudas.
+
+Repetir el párrafo sería el mismo ruido que se quiso evitar, así que la
+definición se ató al `title` de cada cabecera —que es como el perfil ya resuelve
+el detalle de los KPIs— y viaja con la columna en los cuatro. El pie visible se
+conserva donde estaba. Verificado en pantalla: las cuatro cabeceras llevan su
+definición en los cuatro paneles.
+
+Guard sobre el fuente, porque en un render de un solo panel no se distingue el
+que lleva pie del que no. Comprobado que muerde.
+
+**Lo que cuadró y no se tocó**: «Se cae 12 % de los titulares (18 de 152 ya
+resueltos)» → 18/152 = 11.8 % ✓. Y los dos paneles vecinos que ponen a DERECHO
+arriba y a LETRAS abajo miden cosas distintas —esperadas contra conseguidas— y
+sus subtítulos ya lo distinguen: «y lo que cabe esperar» frente a «encuestas del
+parte».
+
+Anotado sin cambiar: «Franja horaria del operativo» dice «Todo el trabajo está en
+Sin hora», o sea que el estudio no trae la hora. El vacío está declarado, pero el
+panel ocupa una caja entera para decir que no hay dato — triaje C5 pendiente.

@@ -105,12 +105,31 @@ export function AulasRendimientoPorFacultad({
       <ul className="aulas-rendimiento-lista" role="table"
         aria-label={`Rendimiento por ${unidad.toLowerCase()}`}
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* **La explicación viaja con la columna.**
+            El pie de abajo dice qué es cada una, pero sólo lo pinta el primero
+            de los cuatro paneles que usan esta tabla: los otros tres —«Quién
+            consigue más», «Franja horaria del operativo» y «Día de la semana»—
+            llegan con `explicaLasColumnas={false}` para no repetir el párrafo
+            cuatro veces, y publicaban «Ajustado» y «Del potencial» mudas.
+            Comprobado en pantalla: uno con leyenda, tres sin ella.
+
+            No se duplica el párrafo —sería el mismo ruido que se quiso evitar—:
+            la definición va en el `title` de cada cabecera, que es como el
+            perfil resuelve el detalle de los KPIs y no gasta un píxel. */}
         <li className="aulas-rendimiento-cabecera" role="row">
           <span role="columnheader">{unidad}</span>
-          <span role="columnheader">Por visita</span>
-          <span role="columnheader">Ajustado</span>
-          <span role="columnheader">De los asistentes</span>
-          <span role="columnheader">Del potencial</span>
+          <span role="columnheader" title="Encuestas conseguidas por cada aula visitada. Es un resultado del campo, no el pronóstico del diseño.">
+            Por visita
+          </span>
+          <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas afortunadas no encabeza la lista.`}>
+            Ajustado
+          </span>
+          <span role="columnheader" title="Qué proporción de quienes asistieron al aula acabó respondiendo. Mide el trabajo dentro del aula.">
+            De los asistentes
+          </span>
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya. Lo que le falta es lo que queda por recoger.">
+            Del potencial
+          </span>
         </li>
         {filas.map((f) => (
           <li key={f.facultad} role="row"
