@@ -3021,3 +3021,33 @@ decisión sin que nadie lo pida».
 **Lo que este barrido no cubre**: mide que las cifras cuadren entre bloques, no
 que cada panel diga lo que su cifra significa. Eso es lo que queda de la
 indicación C, panel por panel.
+
+### Vuelta 62 · Un peldaño de la escalera en masculino entre dos femeninos
+
+Buscadas las funciones de texto con tres o más ramas —el método que destapó
+`dondeEstanLasOtras`— salieron cuatro en el perfil, y **`bandaEnPalabras` está
+bien construida**: sus cuatro ramas comparten registro, cada una dice qué falta y
+la tercera lleva la cautela estadística que corresponde —«con un solo
+curso-horario: todavía no se puede afirmar una diferencia»—.
+
+**El hallazgo está justo encima**, en la escalera de veredictos del mismo panel.
+Es deliberada y está documentada —«una escalera de cuatro peldaños —Cubierta ·
+Justo · Puede no cerrar · No cierra— dice cuánto correr; una de tres, no»— pero
+**mezcla géneros**:
+
+| Peldaño | |
+|---|---|
+| Cubierta | femenino |
+| **Justo** | **masculino** |
+| Puede no cerrar / No cierra | verbos |
+
+El sujeto es la facultad de la fila, y «Cubierta» ya concuerda con ella. Un
+adjetivo en masculino entre dos femeninos hace dudar de a qué se refiere: pasa a
+**«Justa»**.
+
+Es el mismo tipo de defecto que el «Ningún aula» de la vuelta 13 —el masculino
+aparente de «el aula» arrastrando concordancias— y aparece por la misma vía:
+**leer la escala entera en vez de cada rótulo por separado**.
+
+Dos contratos actualizados, que afirmaban el texto viejo. 148 archivos / 1.762
+tests, typecheck limpio.

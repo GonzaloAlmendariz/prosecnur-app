@@ -210,7 +210,10 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
   // todavía alcanza». Una escalera de cuatro peldaños —Cubierta · Justo ·
   // Puede no cerrar · No cierra— dice cuánto correr; una de tres, no.
   riesgo: { texto: "Puede no cerrar", tono: "aviso" },
-  ajustado: { texto: "Justo", tono: "aviso" },
+  // «Justa» y no «Justo»: el sujeto de la escalera es la facultad de la fila, y
+  // el peldaño de al lado ya concuerda en femenino —«Cubierta»—. Un adjetivo en
+  // masculino entre dos femeninos hace dudar de a qué se refiere.
+  ajustado: { texto: "Justa", tono: "aviso" },
   holgado: { texto: "Cubierta", tono: "ok" },
   sin_campo: { texto: "Sin campo", tono: "neutro" },
   sin_cuota: { texto: "Sin cuota", tono: "neutro" },
