@@ -2717,3 +2717,45 @@ repetirlo: *si para escribir el aviso hay que elegir entre dos campos que
 discrepan, el aviso es la discrepancia*.
 
 147 archivos / 1.758 tests, typecheck limpio.
+
+### Vuelta 53 · Tercer aviso mío corregido, y el patrón que los explica todos
+
+Pasada la misma vara al último de mis avisos de este loop, el de la vuelta 34
+tampoco aguantó. De las 31 «aplicadas sin medio»:
+
+| | |
+|---|---|
+| `chain_reserve` con **cero intentos** | **18** |
+| titulares con 1 a 7 gestiones | **13** |
+
+**Las 18 reservas no tenían por qué declarar medio**: entraron al caer su titular
+y heredaron la cita, así que nadie las contactó. Contarlas como hueco de registro
+era una falsa alarma sobre el 58 % del aviso.
+
+Ahora sólo cuenta las que **tuvieron gestión** —parte, `contact_attempts > 0` y
+sin medio—: **13**, que sí son un hueco real. Verificado en pantalla: «Se mide
+sobre 159 cursos-horario: 13 se gestionaron y no dejaron dicho por qué medio».
+
+### Los tres avisos, y qué tenían en común
+
+| Vuelta | Decía | Dice |
+|---|---|---|
+| 47-50 | «51 cursos-horario comparten enlace» | `sin_datos`: son bases sin personalizar, el paso anterior |
+| 46 | «Sin contacto logrado · nadie ha confirmado» | «Estados que se contradicen» |
+| 34 | «31 ya aplicados no dejaron dicho por qué medio» | «13 se gestionaron y no dejaron dicho por qué medio» |
+
+**Los tres cometían la misma falta con tres disfraces**: contar dentro de una
+alarma casos que son normales. El enlace base compartido es el paso previo; una
+reserva activada no se contacta; un `sin_contactar` puede ser un estado sin
+mapear. En los tres, el conteo era correcto y **el universo estaba mal
+delimitado**.
+
+Y los tres se cazaron con la misma pregunta: **¿qué son exactamente los casos que
+estoy contando?** Repartirlos por rol, por estado y por gestiones cuesta una
+medición y deshace la alarma o la confirma.
+
+**El coste de no hacerlo es alto y asimétrico**: un aviso que grita sobre lo
+normal entrena a no mirarlo, y el día que avise de verdad ya nadie le hace caso.
+Es peor que no tener el aviso.
+
+147 archivos / 1.759 tests, typecheck limpio.

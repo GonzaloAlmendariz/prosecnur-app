@@ -52,8 +52,8 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
         <p className="mon-profile-muted">
           Se mide sobre <strong>{fmt(conMedio)}</strong>{" "}
           {conMedio === 1 ? "curso-horario" : "cursos-horario"}:{" "}
-          <strong>{fmt(aplicadasSinMedio)}</strong> ya aplicados no dejaron dicho por qué medio se
-          agendaron.
+          <strong>{fmt(aplicadasSinMedio)}</strong> se gestionaron y no dejaron dicho por qué
+          medio.
         </p>
       ) : null}
       <p className="aulas-medio-lectura">
