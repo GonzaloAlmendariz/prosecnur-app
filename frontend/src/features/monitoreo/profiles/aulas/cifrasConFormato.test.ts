@@ -118,3 +118,32 @@ describe("las cifras del perfil de aulas van formateadas", () => {
     expect([..."`${total - enJuego} reservas`".matchAll(CIFRA_CRUDA)]).toHaveLength(1);
   });
 });
+
+/**
+ * **La coma no es el separador decimal en el Perú.**
+ *
+ * `es-PE` escribe `2,668` con coma de MILLAR y `88.1` con punto decimal, y es
+ * lo que `Intl` produce en todo el perfil. Tres formateadores locales hacían
+ * `.replace(".", ",")` para imponer la convención española, así que la pestaña
+ * de Cuotas publicaba «88.1 %» en la tabla por facultad y «88,1%» en la barra
+ * de arriba: dos notaciones para la misma cifra, con la coma actuando de
+ * decimal en una y de millar en la otra.
+ *
+ * El guard anterior no podía verlo porque sólo miraba CUENTAS pegadas a su
+ * unidad —«aulas», «respuestas»—, y un porcentaje no lleva ninguna de esas
+ * palabras. Éste mira la operación, que es exacta y no necesita heurística.
+ */
+describe("el perfil no fuerza la coma decimal", () => {
+  it.each(fuentes)("%s", (archivo) => {
+    const fuente = fs.readFileSync(path.join(aqui, archivo), "utf8");
+    const lineas = fuente.split("\n");
+    const culpables = lineas
+      .map((linea, i) => ({ linea, n: i + 1 }))
+      // Se excluye la prosa: la nota de `avanceCuota.ts` cita la operación para
+      // explicar por qué se retiró, y citarla no es cometerla.
+      .filter(({ linea }) => !/^\s*(\*|\/\/)/.test(linea))
+      .filter(({ linea }) => linea.includes('replace(".", ",")'))
+      .map(({ n, linea }) => `${archivo}:${n} ${linea.trim()}`);
+    expect(culpables, culpables.join("\n")).toEqual([]);
+  });
+});

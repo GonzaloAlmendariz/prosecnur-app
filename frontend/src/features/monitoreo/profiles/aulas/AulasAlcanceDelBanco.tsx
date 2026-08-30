@@ -5,6 +5,7 @@ import { alcanceDelBanco, faltaTrasLaAgenda } from "./alcanceDelBanco";
 import type { BancoDeExtras } from "./AulasBancoExtras";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { pctPerfil } from "./kpisDeAulas";
 import { caidaObservada, DESENLACES_MINIMOS } from "./tasaDeCaida";
 import { fmt } from "./kpisDeAulas";
 
@@ -21,7 +22,9 @@ import { fmt } from "./kpisDeAulas";
  * después de gastarlo todo.
  */
 
-const pct = (n: number) => `${(n * 100).toFixed(1).replace(".", ",")} %`;
+// Punto decimal y coma de millar: la convención peruana, que es la que usa el
+// resto del perfil. Ver la nota de `avanceCuota.ts`.
+const pct = (n: number) => pctPerfil(n * 100);
 
 const VEREDICTO = {
   alcanza: "El banco alcanza para cerrar la cuota",

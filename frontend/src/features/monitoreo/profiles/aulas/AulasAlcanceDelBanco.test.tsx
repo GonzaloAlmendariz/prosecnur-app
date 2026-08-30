@@ -106,7 +106,7 @@ describe("AulasAlcanceDelBanco", () => {
     const html = renderToStaticMarkup(
       <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Letras", 300, 0]])} />,
     );
-    expect(html).toContain("50,0 %");
+    expect(html).toContain("50.0 %");
     expect(html).toContain("medida en 3 aulas");
   });
 });

@@ -62,11 +62,23 @@ export function AulasPestanaCuotas({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                {/* La tabla que se le enseña al cliente, y la misma que va al PDF y a
-                    la hoja «Cómo va el campo» del libro: un contenido en tres
-                    soportes. Va PRIMERO en la pestaña porque es la lectura de
-                    conjunto; el detalle celda a celda viene después. */}
-                <h3>El avance que ve el cliente</h3>
+                {/* La tabla que se entrega, y la misma que va al PDF y a la hoja
+                    «Cómo va el campo» del libro: un contenido en tres soportes. Va
+                    PRIMERO en la pestaña porque es la lectura de conjunto; el detalle
+                    grupo a grupo viene después.
+
+                    El título decía «El avance que ve el cliente». Nombraba al lector
+                    en tercera persona desde dentro del equipo, y esta pantalla es
+                    justamente la que ese lector abre: quien la recibe leía un rótulo
+                    que hablaba de él como si no estuviera delante. El título dice
+                    ahora de qué trata la tabla, que es lo que un encabezado debe
+                    hacer.
+
+                    No se llama «Avance por facultad y sexo» porque ese nombre ya es
+                    el del gráfico de Estratos, y el guard de títulos lo rechaza con
+                    razón: dos paneles homónimos en un mismo perfil obligan a abrir
+                    los dos para saber cuál se está citando. */}
+                <h3>Cuota asignada y encuestas logradas</h3>
                 <span>contra la cuota del diseño, por sexo</span>
               </div>
               <AulasAvanceParaCliente
