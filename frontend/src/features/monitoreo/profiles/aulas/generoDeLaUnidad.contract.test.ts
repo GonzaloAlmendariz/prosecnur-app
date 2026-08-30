@@ -32,6 +32,7 @@ const RAICES = [
 /** Femeninos legítimos: su sujeto no es la unidad. */
 const OTRO_SUJETO = new Map<string, string>([
   ["descartadas por el filtro", "las ENCUESTAS que el filtro de validez rechaza, no cursos-horario"],
+  ["tienen parte y no tienen fecha agendada", "la FECHA, que es femenina y está bien así"],
 ]);
 
 /**
@@ -71,13 +72,27 @@ describe("el género de las etiquetas concuerda con la unidad", () => {
     // Dos formas de escribir un rótulo, y la segunda faltaba: «Reemplazadas»
     // era una cabecera de columna en JSX plano —`<span …>Reemplazadas</span>`—
     // sin comillas alrededor, así que el barrido de literales no la alcanzaba.
-    const patron = new RegExp(`"(${cuerpo}[^"]{0,40})"|>\\s*(${cuerpo}[^<{]{0,40})<`, "g");
+    // **Tercer brazo: la prosa larga.** Los dos de arriba miran el principio del
+    // literal, y una pista de KPI decía «…y el operativo, que ya está agendada»
+    // con setenta caracteres por delante. Se restringe a literales de 30+ y a
+    // participio precedido de espacio: medido sobre el perfil entero, ese brazo
+    // devuelve DOS resultados y uno solo es ruido —«fecha agendada», declarado
+    // arriba—. Sin el mínimo de longitud caza clases CSS (`es-citada`) y trozos
+    // de código partidos, que fue por lo que se descartó dos veces antes.
+    const patron = new RegExp(
+      `"(${cuerpo}[^"]{0,40})"|>\\s*(${cuerpo}[^<{]{0,40})<|"([^"]{30,200}?\\s${cuerpo}[^"]{0,60})"`,
+      "g",
+    );
     const hallados: string[] = [];
 
     for (const archivo of fuentes(AQUI)) {
       const limpio = sinComentarios(readFileSync(archivo, "utf8"));
       for (const m of limpio.matchAll(patron)) {
-        const literal = (m[1] ?? m[2]).trim();
+        const literal = (m[1] ?? m[2] ?? m[3]).trim();
+        // El brazo de prosa larga puede cruzar la frontera entre dos literales y
+        // traerse código por el medio. Una frase de pantalla no lleva salto de
+        // línea ni llaves ni ángulos: eso es lo que separa la prosa del ruido.
+        if (/[\n{}<>`]/.test(literal)) continue;
         if (!esRotulo(literal) || OTRO_SUJETO.has(literal)) continue;
         hallados.push(`${archivo.split("/aulas/")[1]}: "${literal}"`);
       }

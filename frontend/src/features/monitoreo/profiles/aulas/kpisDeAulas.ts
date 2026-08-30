@@ -561,7 +561,7 @@ export function aulasKpis(
           label: "Estados que se contradicen",
           icono: CalendarClock,
           value: fmt(ag.estadosEnDesacuerdo),
-          pista: "el estado de muestra dice «sin contactar» y el operativo, que ya está agendada",
+          pista: "el estado de muestra dice «sin contactar» y el operativo, que ya está agendado",
           tone: "warn",
         });
       }
