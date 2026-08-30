@@ -27,10 +27,10 @@ es un estrato, un τ o un *deff*, el elemento no pasa.
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ◐ en curso |
+| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ◐ 16 direcciones del perfil conformes; falta el repaso tras cada cambio |
 | B | Registro académico en todo texto publicable | `monitoreo_aulas_etiquetas.R` + rótulos del perfil | ☐ |
 | C | Evaluación conceptual de **cada elemento** de cada pestaña | inventario por pestaña, abajo | ☐ |
-| D | ¿Faltan dos pestañas? Sólo si lo amerita | `modules.ts` + secciones del perfil | ☐ |
+| D | ¿Faltan dos pestañas? Sólo si lo amerita | `modules.ts` + secciones del perfil | ☑ **no lo amerita**: 39 de 39 claves del dashboard ya tienen consumidor |
 | E | Revisar la lógica de cada elemento | motores de `api/R/monitoreo_aulas_*.R` | ☐ |
 | F | Que se entienda en español: conceptos y términos | todos los rótulos y pistas | ☐ |
 | G | Sin jerga, o con la mínima indispensable | ídem | ☐ |
