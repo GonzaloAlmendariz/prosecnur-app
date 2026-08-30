@@ -193,12 +193,12 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
     return {
       ...base, cumplida: false,
       cifra: brecha > 0 ? fmt(brecha) : null,
-      lectura: "sin aulas sorteadas",
+      lectura: "sin cursos-horario sorteados",
       titulo: [
         "El sorteo no le asignó aulas: su cuota no puede salir del plan actual. Es un hueco del diseño de campo, no retraso del equipo.",
         ...notas,
       ].join(" · "),
-      aria: `${facultad}: sin aulas sorteadas para su cuota`,
+      aria: `${facultad}: sin cursos-horario sorteados para su cuota`,
     };
   }
 
@@ -273,7 +273,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const fueraTotal = numero(t.fuera_universo);
   const huerfanas = numero(t.huerfanas);
   if (fueraTotal > 0) notasTotal.push(`${fmt(fueraTotal)} fuera de universo`);
-  if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin aula del plan`);
+  if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin curso-horario del plan`);
   const etiqueta = degradada ? "Meta del plan" : "Cuota del diseño";
 
   return {

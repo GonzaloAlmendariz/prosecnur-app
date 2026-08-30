@@ -46,8 +46,8 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           // Con la norma puesta —siempre se anota algo al gestionar—, cero
           // observaciones sobre aulas ya gestionadas deja de ser un vacío
           // neutro: dice que lo anotado se está quedando fuera de la app.
-          ? `Ninguna de las ${fmt(r.partes)} aulas gestionadas trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
-          : "Todavía no hay aulas gestionadas. Las observaciones se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
+          ? `Ninguna de las ${fmt(r.partes)} aulas gestionadas trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
+          : "Todavía no hay aulas gestionadas. Las observaciones se escriben al agendar o registrar un curso-horario aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
       </p>
     );
   }
@@ -103,7 +103,7 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               ))}
               {/* Las aulas primero: una observación repetida en ocho aulas es
                   otra cosa que la misma frase en una. */}
-              <strong>{o.aulas === 1 ? "1 aula" : `${fmt(o.aulas)} aulas`}</strong>
+              <strong>{o.aulas === 1 ? "1 curso-horario" : `${fmt(o.aulas)} cursos-horario`}</strong>
               {o.aplicadores.length ? <> · {o.aplicadores.join(", ")}</> : null}
               {o.facultades.length === 1 ? <> · {o.facultades[0]}</> : null}
               {o.facultades.length > 1 ? <> · {fmt(o.facultades.length)} facultades</> : null}

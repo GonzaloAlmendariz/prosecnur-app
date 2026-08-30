@@ -1076,3 +1076,29 @@ género venía del sustantivo viejo y habría quedado descolgado.
 2.817 recibidas · −149 → 2.668 que cuentan. Todas las restas cierran, y el «18»
 es **el mismo que en `campo_malo`** — correcto, porque los reemplazos dependen del
 registro y no del rendimiento. La reparación del «174» se sostiene en los dos.
+
+## Deuda de vocabulario · segundo lote
+
+Nueve frases más: las tres de observaciones de campo —dos de ellas **las dos
+ramas del mismo párrafo**—, las tres de `avanceCuota` y las tres del gráfico de
+sexo por facultad, incluida su leyenda. **Verificado en pantalla que la leyenda
+más larga cabe entera, sin recorte.**
+
+Se quedan las cuatro de `aulasPresentation.ts` —«Tamaño de aula», «Tasa del
+aula», «Peso del aula», «Meta de efectivas del aula»—, que son términos técnicos
+con significado propio, y las tres de `AulasCriterioDeAula`, donde «aula válida»
+es el nombre del criterio que el estudio declara (`aula_valida` en el estado) y
+renombrar sólo el texto crearía un desajuste con el campo.
+
+El ratchet baja a **44**.
+
+### Un test que se rompió al renombrar, y por qué merecía arreglarse
+
+`celdasPorFacultad.test.ts` anclaba su comprobación con
+`slice(indexOf("Aplicando todas las aulas"))`. Al cambiar esa frase, `indexOf`
+devolvió −1, `slice(-1)` dejó `"\n"` y el fallo salió como **«expected '\n' to
+contain 'fmt(conDeficit)'»** — que no dice nada de lo que pasó.
+
+Ahora comprueba que el ancla existe **antes** de usarla, con un mensaje que dice
+qué hacer. Un test frágil no es un defecto del producto, pero un test que falla
+con un mensaje ilegible cuesta la misma media hora que un defecto.
