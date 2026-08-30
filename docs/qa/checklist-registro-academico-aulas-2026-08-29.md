@@ -2003,3 +2003,41 @@ Vista `ok=true`, 0 issues, 0 de geometría. 147 archivos / 1.743 tests.
 **Los otros tres de la tanda, conformes**: el embudo tiene su guarda de cero una
 línea antes de dividir y publica `descuadre` y `pasosSinDeclarar` en vez de
 inventar pasos; `agendaPorDia` y `concentracionBrecha` cierran sus cuentas.
+
+### Vuelta 35 · El barrido de descartes silenciosos: cero muerden hoy, y por qué eso no basta
+
+Tras el defecto del medio de contacto tocaba preguntar quién más tira filas sin
+contarlas. Treinta módulos del perfil usan `continue`; medidos sobre el corte
+real, **ninguno de los descartes se lleva un solo caso**:
+
+| Módulo | Descarta por | Casos en este corte |
+|---|---|---|
+| `produccionPorAplicador` | sin `applied_by`, sin efectivas | **0** |
+| `ritmoPorFacultad` | parte sin fecha | **0** |
+| `parteContraPlataforma` | parte sin código | **0** |
+| `registroPorFacultad` | fila del plan sin facultad | **0** de 1.424 |
+
+**Y varios de los que parecían no contar, sí cuentan**: `coberturaPorAula` lleva
+`sinMeta`, `perdidaDelControl` lleva `sinRevisar`, `consumoDelBanco` lleva
+`sinFecha` y `aulaRealVsAgendada` lleva `sinSalonAgendado`. Mi detector los
+marcó como infractores porque buscaba otras palabras: **un barrido por
+vocabulario del código encuentra lo que su autor llamó igual que yo**, no lo que
+hace lo mismo con otro nombre.
+
+**Dos errores de medición míos en el mismo barrido**, y el segundo casi produce
+un hallazgo falso de los grandes: medí «partes sin facultad» sobre
+`partes_campo` y salió **152 de 152**, que leído deprisa es «el panel de registro
+sale vacío». `facultadesDelRegistro` itera el **plan** —donde `faculty` está en
+las 1.424 filas— y usa los partes sólo como conjunto de códigos. Medir el
+conjunto equivocado da una alarma perfecta.
+
+**Lo que este cero no dice.** Que ningún descarte muerda hoy no prueba que la
+disciplina esté: los cuatro siguen sin contar lo que tiran, y el día que un
+estudio traiga partes sin aplicador o sin fecha desaparecerán del panel igual que
+desaparecían las 31 del medio de contacto. Queda declarado como **vacío por
+fixture**, no como conformidad: es la diferencia entre «comprobado que no pasa» y
+«comprobado que no puede pasar».
+
+Los descartes legítimos —el banco, las dormidas, las reemplazadas en la cola de
+contacto— se quedan como están: descartar lo que no pertenece al universo no es
+lo mismo que perder un caso que sí.
