@@ -832,14 +832,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         {elegida ? (
           <>
             <strong>{elegida.facultad}</strong> deja <strong>{personasPorAula(elegida.observadoFinal)}</strong>{" "}
-            encuestas por aula en {fmt(elegida.aulas)} {elegida.aulas === 1 ? "aula" : "aulas"} ·
+            encuestas por curso-horario en {fmt(elegida.aulas)}{" "}
+            {elegida.aulas === 1 ? "curso-horario" : "cursos-horario"} ·
             se espera <strong>{personasPorAula(elegida.esperadoFinal)}</strong> de la siguiente
-            {elegida.aulas < 5 ? " (con tan pocas aulas, el esperado se apoya en la media del estudio)" : ""}
+            {elegida.aulas < 5 ? " (con tan pocos cursos-horario, el esperado se apoya en la media del estudio)" : ""}
           </>
         ) : (
           <>
             <strong>{fmt(facultades.length)}</strong> facultades ·{" "}
-            <strong>{personasPorAula(mediaDelEstudio)}</strong> encuestas por aula de media del estudio ·
+            <strong>{personasPorAula(mediaDelEstudio)}</strong> encuestas por curso-horario de media del estudio ·
             de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong>{" "}
             ({facultades[0].facultad}) a{" "}
             <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong>{" "}
