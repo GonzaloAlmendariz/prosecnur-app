@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { ESTADOS_DORMIDOS } from "./candidatosDeReemplazo";
 
 /**
  * Cuánta reserva lleva gastada el operativo.
@@ -15,10 +16,21 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  *
  * **Misma definición que `monitoreo_aulas_reservas_disponibles()`** en
  * `api/R/monitoreo_aulas_reemplazos.R`: si las dos divergen, el gráfico dice que
- * quedan reservas que el motor ya no ofrece, o al revés. La cadena vacía cuenta
- * como libre porque un plan recién importado no trae estado.
+ * quedan reservas que el motor ya no ofrece, o al revés.
+ *
+ * **Y divergían.** El motor resuelve «libre» con
+ * `MONITOREO_AULAS_ESTADOS_DORMIDOS` —cinco valores— y aquí había una lista
+ * propia de tres: faltaban `"-"` y `"planificada"`, así que una reserva en
+ * cualquiera de esos dos estados el motor la ofrecía y el gráfico la daba por
+ * gastada. Hoy no se ve —este estudio no tiene ninguno de los dos en
+ * `sample_status`— pero `"-"` no es raro: es como el equipo escribe «todavía
+ * nada aquí», y en 2025 fueron **1.810 de 2.040 celdas**.
+ *
+ * Se importa la lista en vez de repetirla: ya está atada al motor por
+ * `estadosAtadosAlMotor.contract.test.ts`, y una cuarta copia sería una cuarta
+ * cosa que mantener sincronizada a mano.
  */
-const ESTADOS_LIBRES = new Set(["en_reserva", "sin_contactar", ""]);
+const ESTADOS_LIBRES = ESTADOS_DORMIDOS;
 
 export type TramoDeConsumo = {
   etiqueta: string;
