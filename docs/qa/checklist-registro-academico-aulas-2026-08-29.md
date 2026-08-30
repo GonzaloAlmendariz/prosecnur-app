@@ -2339,3 +2339,39 @@ falta: preguntarle a la estructura equivocada.
 Es la tercera vez en el loop —tras «152 de 152 partes sin facultad» y el reparto
 de badges— que una sonda contra el conjunto equivocado produce una alarma
 perfecta. **Antes de leer un conteo, mirar si la estructura tiene el campo.**
+
+### Vuelta 44 · «Casi todas descuadran → no es el campo, es el mapeo», barrida
+
+Quinta doctrina del índice, y es la que más se parece a la indicación I: un panel
+que liste «151 de 152 descuadran» **estaría acusando al equipo de un error de
+configuración**.
+
+Los cuatro módulos que comparan dos fuentes, comprobados:
+
+| Módulo | Cómo cumple |
+|---|---|
+| `parteContraPlataforma` | es donde la doctrina está escrita, con su umbral |
+| `aulaRealVsAgendada` | **la cumple y la mejora**: nombra cuál de las dos hojas falla |
+| `embudoDelAula` | sólo publica descuadre si los pasos están declarados |
+| `loQueFaltaParaCerrar` | declara el origen de cada numerador |
+
+**`aulaRealVsAgendada` es el ejemplar.** Cuando no hay nada comparable dice «el
+plan agendado no trae salón para ningún curso-horario, así que no hay contra qué
+comparar», y su comentario guarda el defecto anterior: «"N sin salón reconocible
+en una de las dos hojas" manda a revisar el libro de campo cuando el que falta es
+el plan». La rama general también nombra cuál falla **cuando una sola lo
+explica**, y sólo dice «una de las dos» cuando de verdad fallan las dos.
+
+**`embudoDelAula` cierra el mismo hueco por otro lado**: su descuadre sólo se
+publica `conRechazos && conDuplicados`, porque —según su propio comentario—
+«producía un descuadre de 2.791 que era el hueco de los pasos que faltan». Un
+descuadre calculado sobre pasos sin declarar no mide el campo: mide lo que no se
+anotó.
+
+**Medido en el corte**: cero aulas comparables por salón —ninguna fila trae
+`actual_room`— y el panel lo dice con su causa. Vacío legítimo declarado.
+
+**Cinco doctrinas barridas, un defecto encontrado** (el vacío de la serie por
+sexo, vuelta 42). Las otras cuatro se cumplían, y tres de ellas con más cuidado
+del que el índice prometía. El método sigue valiendo: es más barato comprobar una
+doctrina que buscar defectos a ciegas.
