@@ -43,10 +43,27 @@ function medidaDePestana(
     const filas = n(dashboard?.agenda);
     return { estado: filas ? "listo" : "parcial" };
   }
-  if (seccion === "modelo" && key === "registro") {
-    // Pendiente = aulas sin parte de campo. Nunca «listo»: siempre puede entrar
-    // otra aplicación.
-    const total = Number(kpis?.total_aulas ?? 0);
+  // **La sección es `calidad`, no `modelo`.** La pestaña se declara en el
+  // catálogo como `pestana("aulas", "calidad", "registro", "Registro de campo",
+  // …)`, así que esta rama no casaba nunca: la medida estaba escrita, con su
+  // comentario y su intención, y «Registro de campo» salía sin badge. Es la
+  // única de las siete ramas del rail que apuntaba a una pestaña inexistente.
+  if (seccion === "calidad" && key === "registro") {
+    /**
+     * Pendiente = cursos-horario sin parte de campo. Nunca «listo»: siempre
+     * puede entrar otra aplicación.
+     *
+     * **El universo son los titulares, no el plan sin banco.** `total_aulas`
+     * cuenta 1.347 sobre HSVG2026 «como 2025» —174 titulares más 1.173 reservas
+     * encadenadas— y una reserva dormida no espera ningún parte: sólo sale a
+     * campo si cae su titular. El badge decía **1.195** donde faltan **22**.
+     *
+     * Es la tercera superficie con este universo: ya pasó en el pronóstico de
+     * cierre y en el resumen que va al cliente. `aulas_titulares` es la cifra
+     * que el motor ya publica para esto; el respaldo a `total_aulas` cubre un
+     * payload anterior a que existiera.
+     */
+    const total = Number(kpis?.aulas_titulares ?? kpis?.total_aulas ?? 0);
     const aplicadas = Number(kpis?.aulas_aplicadas ?? 0);
     return { badge: cuenta(Math.max(0, total - aplicadas)), estado: "parcial" };
   }
