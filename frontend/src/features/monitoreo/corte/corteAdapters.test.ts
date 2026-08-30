@@ -204,3 +204,41 @@ describe("corteAulas", () => {
     expect(readiness.puedePublicarCliente).toBe(true);
   });
 });
+
+describe("cada perfil dice cómo se llama la cifra contra la que compara", () => {
+  /**
+   * **La misma palabra para 2.500 y para 3.227.**
+   *
+   * La tarjeta de Salidas rotulaba siempre «meta N». En aulas la cifra que
+   * recibe es `ritmo_diario.meta`, que el motor toma de
+   * `avance_cuota$total$cuota` —lo dice su propio comentario: «es el denominador
+   * global de `avance_cuota`: la cuota del diseño vigente»—, o sea **2.500**.
+   * Y en Avance > Resumen, «meta» nombra otra cosa: la suma de metas por
+   * curso-horario, **3.227**. Dos cifras distintas bajo la misma palabra, a una
+   * pestaña de distancia.
+   *
+   * El número es correcto; mentía el nombre. Por eso el rótulo lo declara el
+   * perfil y no se renombra para todos: territorial y acreditación sí publican
+   * una meta.
+   */
+  const tableroDeAulas = {
+    generated_at: "2026-07-20T10:00:00Z",
+    kpis: { total_aulas: 3, aulas_aplicadas: 2, respuestas_validas: 18, filter_passed: 24, brechas: 1 },
+    agenda: [],
+    // Lo que el motor manda aquí es `avance_cuota$total$cuota`.
+    ritmo_diario: { dias: [], dias_con_campo: 0, media_diaria: 0, meta: 2500 },
+  } as unknown as MonitoreoAulasDashboard;
+
+  it("aulas llama cuota a la cuota", () => {
+    const corte = corteAulas(estado(), tableroDeAulas);
+    expect(corte.meta).toBe(2500);
+    expect(corte.metaEtiqueta).toBe("cuota");
+  });
+
+  it("los demás perfiles siguen diciendo meta", () => {
+    // El control que distingue: sin él, poner «cuota» por defecto en el
+    // contrato pasaría esta suite igual y renombraría a los otros dos.
+    expect(corteTerritorial(estado(), null).metaEtiqueta).toBe("meta");
+    expect(corteAcreditacion(estado(), []).metaEtiqueta).toBe("meta");
+  });
+});

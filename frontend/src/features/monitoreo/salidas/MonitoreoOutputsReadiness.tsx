@@ -78,7 +78,7 @@ export function MonitoreoOutputsReadiness({
         <div className="is-oficial">
           <dt>Válidas</dt>
           <dd>{fmt(corte.oficial, "sin determinar")}</dd>
-          <small>{corte.meta != null ? `meta ${fmt(corte.meta)}` : "sin meta declarada"}</small>
+          <small>{corte.meta != null ? `${corte.metaEtiqueta} ${fmt(corte.meta)}` : `sin ${corte.metaEtiqueta} declarada`}</small>
         </div>
       </dl>
 
