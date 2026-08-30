@@ -1840,3 +1840,41 @@ pantalla, a varios viewports, sería cambiar ocho decisiones de diseño a ciegas
 el resultado probable es que valores pequeños desaparezcan. Queda declarado como
 deuda de consistencia con su tabla, que es lo que permite decidirlo de una vez
 cuando toque.
+
+### Vuelta 31 · Efectividad cierra Avance, y un gráfico que se bautizaba a sí mismo
+
+**`AulasEfectividadSeguimiento` es el panel modelo de la indicación J**, y ya lo
+era antes de que ella existiera: contrasta lo supuesto contra lo observado
+—«Se esperaba 69,3 % y va responiendo X %», «rinde por debajo de la tasa prevista
+para su facultad»— y lo hace con cautela estadística: «con un solo curso-horario
+todavía no se puede afirmar una diferencia».
+
+Comprobado además que **la letra griega no llega a pantalla**: `τ` aparece
+sólo en comentarios de código, ni en el JSX ni en los textos que publica el motor.
+Su propio módulo lo dejó escrito —«"0.693" no significa nada para quien no diseñó
+la muestra»—.
+
+**Con esto Avance queda cerrada entera: 12 de 12 gráficos.**
+
+### El gráfico de «Lo que falta para cerrar» se bautizaba a sí mismo
+
+Su `aria-label` abría con **«Escalera de esfuerzo»**. Dentro del código la
+metáfora se entiende —los peldaños son aulas que se van cerrando, y el módulo lo
+explica— pero quien no ve la pantalla oye un nombre propio que nadie le ha
+definido, **y es lo único que oye del gráfico**. El panel ya se llama «Lo que
+falta para cerrar»; el `aria-label` tiene que decir qué se está mirando, no
+ponerle nombre:
+
+> Cursos-horario que se cierran según lo que cuestan: con N encuestas cierran los
+> M; K necesitan cinco o menos
+
+**Censo de «esfuerzo» antes de tocar, porque la palabra está por todo el
+módulo**: casi todos los usos son nombres de variable y comentarios. En pantalla
+sólo hay dos, y el otro **se define solo** —«Con la mitad del esfuerzo —N
+encuestas— se cierran…»—, así que se queda.
+
+**Y de paso, un error mío que el gate cazó en el acto**: puse el comentario JSX
+*entre los atributos* del `<svg>`, que no es sintaxis válida. Typecheck en 2 y
+seis archivos rotos. El comentario va antes del elemento.
+
+147 archivos / 1.738 tests, typecheck limpio.
