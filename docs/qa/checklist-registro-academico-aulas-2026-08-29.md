@@ -2375,3 +2375,42 @@ anotó.
 sexo, vuelta 42). Las otras cuatro se cumplían, y tres de ellas con más cuidado
 del que el índice prometía. El método sigue valiendo: es más barato comprobar una
 doctrina que buscar defectos a ciegas.
+
+### Vuelta 45 · «Aplicada sin fecha agendada», barrida — y una pregunta que no me toca a mí
+
+Sexta doctrina, y es una regla del operativo tuya: «si no se agenda un aula, no se
+aplica; esa situación no puede suceder». Por eso la combinación no es un estado
+sino un **descuadre**: se cuenta, no se bloquea, y no suma a `agendadas`.
+
+**Cumplida, y el KPI la publica bien**: el tile «Aplicadas sin agenda» aparece
+**sólo cuando las hay**, porque —dice su comentario— «un "0 descuadres"
+permanente entrena a no mirarlo». Medido en el corte: **0 descuadres**, las 152
+aplicadas tienen fecha.
+
+**Lo que apareció al medir es otra cosa, y es de dominio.** «Agendada» se define
+de dos maneras en el perfil:
+
+| Criterio | Cuántas (sobre las 174 en juego) |
+|---|---|
+| Por **fecha** (`agendamiento`) | **174** |
+| Por **estado** (`medioDeContacto`) | **165** |
+| Discrepan | **9** |
+
+Las nueve están en estado `sin_contactar` **y tienen fecha, medio declarado y 3 a
+5 intentos**. O sea: se intentó contactarlas varias veces y no se logró.
+
+El módulo elige la fecha con un criterio explícito —«manda el hecho»— y excluye a
+esas nueve del tile de riesgo con otro igual de razonado: «una que costó cuatro
+llamadas pero ya está agendada no es un pronóstico, es una historia». **Están
+declaradas** en «Cuestan más de una gestión», así que no desaparecen.
+
+**La pregunta que queda, y es tuya, no mía**: esas nueve tienen fecha pero nadie
+logró contacto. Si `scheduled_date` sale de una cita cerrada, «Agendadas 174 ·
+Por agendar 0» es correcto. Si sale del horario en que ese curso se dicta —y algo
+apunta a eso: **las 1.347 filas la traen, incluidas las 1.173 reservas dormidas
+que nadie ha agendado**—, entonces esas nueve no están agendadas, y el panel dice
+que no queda nada por agendar cuando quedan nueve con cinco intentos fallidos.
+
+No lo cambio: el criterio actual está razonado y documentado, y sustituirlo por
+otro sin saber de dónde sale la fecha sería cambiar una decisión tuya por una
+suposición mía. Queda como **bloqueado**, no pendiente.
