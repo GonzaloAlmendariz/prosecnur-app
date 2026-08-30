@@ -1369,3 +1369,38 @@ darlo por bueno habría cerrado la pestaña como conforme.
 código anterior cargado —un cambio en R no se ve sin relanzar—, así que la
 evidencia de hoy es el payload medido antes de la reparación más los tests
 después. Queda relanzar y capturar la pestaña.
+
+### Vuelta 21 · La reparación verificada en pantalla, y la contradicción que destapó
+
+Relanzado el backend —arrancó a las 08:02 y el motor se tocó a las 08:43, así que
+llevaba 41 minutos con el código anterior— la misma sonda sobre el payload real
+devuelve:
+
+| | antes | después |
+|---|---|---|
+| Arquitectura, `avance_cuota.brecha` | 0 | **17** |
+| Facultades cumplidas debiendo por sexo | **3** | **0** |
+| Total, brecha | 0 | **170** |
+
+En pantalla el KPI publica ya «Cuota por recoger: 170 — 2.668 de 2.500 personas ·
+21 de 30 grupos de facultad y sexo», y la vista sale con `ok=true`, cero issues y
+cero avisos de geometría.
+
+**Y esa reparación destapa una contradicción aparente**: la cabecera dice
+**106.7 %** y a su lado **170 por recoger**. Las dos son ciertas —el estudio
+lleva 168 personas de más y le faltan 170 donde la cuota no cierra— pero nada lo
+explicaba, y quien no diseñó el estudio concluye que una de las dos está mal. Es
+justo el fallo que este loop lleva cazando: un hecho publicado sin su causa.
+
+Se añade una línea que sólo aparece cuando de verdad chocan —cuota superada **y**
+algo por recoger—: «Se ha recogido de más en unas facultades y todavía falta en
+otras: pasarse en un grupo no cubre al que va corto». Con la cuota a medias o
+cerrada de verdad no se pinta, porque ahí no hay nada que explicar.
+
+**El QA visual no podía comprobar esa línea, y eso es del instrumento.** El
+`report.json` sólo lista los elementos que llevan atributos de geometría: la
+`ol.aulas-facultades-lista` aparece y `p.aulas-cuota-lectura` no, así que buscar
+la frase ahí devolvía «no está» tanto si se pintaba como si no. Se comprueba con
+un test de componente —tres casos: chocan, a medias, cerrada— y no con el
+barrido visual. **Un "no aparece" en el report no es una ausencia en pantalla**:
+es una pregunta hecha al instrumento equivocado.

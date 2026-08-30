@@ -74,6 +74,22 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
             esta cifra y la de Procesamiento parecieran contradecirse. */}
         {total.notas.length ? <em> · {total.notas.join(" · ")}</em> : null}
       </p>
+      {/* **Por qué conviven un 106.7 % y un «170 por recoger».**
+
+          Desde que la brecha suma los grupos de facultad y sexo en vez de restar
+          el total, las dos cifras pueden apuntar a lados contrarios y las dos son
+          ciertas: el estudio lleva 168 personas de más y a la vez le faltan 170
+          donde la cuota aún no se cubre. Sin esta línea, quien no diseñó el
+          estudio ve una contradicción y deja de fiarse de las dos.
+
+          Sólo aparece cuando de verdad chocan —cuota superada Y algo por
+          recoger—; en cualquier otro caso sobra y no se pinta. */}
+      {total.brecha > 0 && total.avance >= 100 ? (
+        <p className="aulas-cuota-lectura mon-profile-muted">
+          Se ha recogido de más en unas facultades y todavía falta en otras:
+          pasarse en un grupo no cubre al que va corto.
+        </p>
+      ) : null}
       <div className="aulas-facultades">
         <p className="aulas-facultades-lectura">
           <strong>{fmt(filas.length)}</strong>{" "}
