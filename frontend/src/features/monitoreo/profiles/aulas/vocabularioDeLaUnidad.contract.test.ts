@@ -55,11 +55,24 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
-const TOPE = 15;
+const TOPE = 27;
 
-/** Con determinante o cifra delante: en prosa siempre lo lleva; en código, no. */
+/**
+ * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.
+ *
+ * **La alternativa `${...}` va FUERA del `\b`, y ahí estuvo ciego el detector.**
+ * Con `\b` delante del grupo entero, `\b\$` exige un carácter de palabra
+ * inmediatamente antes del `$` — y en un template literal al `${` siempre lo
+ * precede un espacio, un backtick o un paréntesis. La alternativa casaba sólo en
+ * `x${n} aulas`, que no existe en el código real: veinte frases con la cifra
+ * interpolada —«${fmt(f.vencidas)} aulas», las MÁS visibles en pantalla— se
+ * contaban como cero.
+ *
+ * El `(?!-)` final descarta `${className} aulas-foco-boton`: el guion cuenta
+ * como frontera de palabra, así que un nombre de clase CSS casaba como prosa.
+ */
 const EN_PROSA =
-  /\b(?:la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|\d+|\$\{[^}]{0,40}\})\s+aulas?\b/gi;
+  /(?:\b(?:la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
 
 function frasesConAula() {
   const fuentes = fs
@@ -100,5 +113,24 @@ describe("el vocabulario de la unidad sólo puede mejorar", () => {
     // siempre, que es el verde por ausencia que este repo ya se ha comido.
     const total = frasesConAula().reduce((n, [, c]) => n + c, 0);
     expect(total).toBeGreaterThan(0);
+  });
+
+  /**
+   * **Un total distinto de cero no prueba que el regex esté entero.**
+   *
+   * El control de arriba pasaba con la alternativa `${...}` muerta: el detector
+   * seguía devolviendo 15 por las otras alternativas, así que «no da cero» no
+   * podía ver el agujero. En un regex compuesto, cada alternativa necesita su
+   * propio caso o queda sin proteger.
+   */
+  it.each([
+    ["cifra interpolada", "`${fmt(f.vencidas)} aulas vencidas con parte`", true],
+    ["interpolada tras preposición", "`de ${fmt(p.universo)} aulas; cierre`", true],
+    ["cifra literal", "30 aulas de la facultad", true],
+    ["determinante", "ninguna aula tiene parte", true],
+    ["nombre de clase CSS", "className={`${c} aulas-foco-boton`}", false],
+    ["identificador de código", "const aulasPorFacultad = 1", false],
+  ])("la alternativa «%s» %s", (_nombre, muestra, deberiaCasar) => {
+    expect(new RegExp(EN_PROSA.source, "gi").test(muestra)).toBe(deberiaCasar);
   });
 });

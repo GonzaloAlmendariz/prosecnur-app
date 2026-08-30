@@ -19,7 +19,7 @@ describe("el aviso del libro lee la fusión", () => {
       ...base,
       fusion: { actualizadas: 0, nuevas: 190, intactas: 190 },
     });
-    expect(r.texto).toContain("Ninguna de las 190 aulas del libro estaba en el plan");
+    expect(r.texto).toContain("Ninguno de los 190 cursos-horario del libro estaba en el plan");
     expect(r.texto).toContain("es de otro sorteo");
     expect(r.tono).toBe("atencion");
   });
@@ -29,7 +29,7 @@ describe("el aviso del libro lee la fusión", () => {
       ...base,
       fusion: { actualizadas: 188, nuevas: 2, intactas: 0 },
     });
-    expect(r.texto).toContain("188 aulas del plan se actualizaron y 2 no estaban en él");
+    expect(r.texto).toContain("188 cursos-horario del plan se actualizaron y 2 no estaban en él");
     expect(r.texto).not.toContain("otro sorteo");
     expect(r.tono).toBe("ok");
   });
@@ -47,7 +47,7 @@ describe("el aviso del libro lee la fusión", () => {
 
   it("sin fusión el aviso queda como estaba", () => {
     const r = avisoLibroImportado(base);
-    expect(r.texto).toContain("Entraron 190 aulas");
+    expect(r.texto).toContain("Entraron 190 cursos-horario");
     expect(r.tono).toBe("ok");
   });
 

@@ -1200,3 +1200,85 @@ De modo que **no hay ningún dato ya calculado esperando una pestaña**. Queda
 acotado a lo que mide: el payload del dashboard, no los demás endpoints del
 perfil. Si aparece una pestaña justificada, tendrá que salir de un motor que hoy
 no publica al dashboard, y eso se dice como tal.
+
+### Vuelta 18 · El ratchet de vocabulario estaba ciego a la mitad de su trabajo
+
+Al empezar la indicación H salió primero un defecto del **detector**, no de la
+pantalla: el regex del ratchet declaraba cubrir las frases con la cifra
+interpolada —«`${fmt(f.vencidas)} aulas`»— y **no casaba ni una**.
+
+La causa es un `\b` mal colocado. El patrón era
+`\b(?:la|las|…|\d+|\$\{…\})\s+aulas?\b`, con el `\b` delante del grupo **entero**,
+así que la alternativa `${…}` exigía un carácter de palabra inmediatamente antes
+del `$`. En un template literal al `${` siempre lo precede un espacio, un backtick
+o un paréntesis: la alternativa sólo casaba en `x${n} aulas`, que no existe en el
+código real.
+
+| | frases contadas |
+|---|---|
+| Detector con el `\b` mal puesto | **15** |
+| Detector reparado | **34** |
+
+Las veinte invisibles eran justo las **más visibles en pantalla**, las que llevan
+una cifra delante. El `(?!-)` añadido descarta además `${className}
+aulas-foco-boton`: el guion cuenta como frontera de palabra, así que un nombre de
+clase CSS se contaba como prosa.
+
+**Por qué el control de fixture no lo vio, que es la lección.** El test ya tenía
+un guard contra el verde por ausencia: «si el contador diera cero, el ratchet no
+protegería nada». Pero el regex **no daba cero** —daba 15 por las otras
+alternativas—, así que un control de «no da cero» no puede ver una alternativa
+muerta dentro de un patrón compuesto. Ahora hay un caso por alternativa:
+
+| Alternativa | Muestra | Casa |
+|---|---|---|
+| cifra interpolada | `` `${fmt(f.vencidas)} aulas vencidas` `` | sí |
+| interpolada tras preposición | `` `de ${fmt(p.universo)} aulas` `` | sí |
+| cifra literal | `30 aulas de la facultad` | sí |
+| determinante | `ninguna aula tiene parte` | sí |
+| nombre de clase CSS | ``className={`${c} aulas-foco-boton`}`` | **no** |
+| identificador de código | `const aulasPorFacultad = 1` | **no** |
+
+Comprobado que muerde: con el regex viejo, **rojo exactamente en las dos
+alternativas interpoladas** y verde en las otras cuatro.
+
+**Una segunda forma de ceguera, y ésta sigue viva**: cuando la cifra y el
+sustantivo están separados por un ternario de singular/plural
+—`${f.actualizadas} ${f.actualizadas === 1 ? "aula del plan se actualizó" : …}`—
+el patrón `${…} aulas` nunca llega a formarse. Esa frase se reparó a mano; el
+detector todavía no la habría encontrado.
+
+**Ocho frases reparadas**, todas texto de pantalla y varias contradiciéndose
+dentro del propio archivo —`cargaDeCampoExcel` decía «aulas» en la línea 104 y
+«cursos-horario» en la 115—:
+
+| Archivo | Decía | Dice |
+|---|---|---|
+| `avisoLibroImportado` ×3 | «Entraron 269 aulas» · «Ninguna de las 190 aulas del libro» | «Entraron 269 cursos-horario» · «Ninguno de los 190 cursos-horario» |
+| `avisoLibroImportado` (ternario) | «188 aulas del plan se actualizaron» | «188 cursos-horario del plan se actualizaron» |
+| `cargaDeCampoExcel` | «190 aulas tienen hora pero no fecha» | «190 cursos-horario tienen hora pero no fecha» |
+| `AulasFrenteDelOperativo` | aria-label «aulas vencidas con parte» | «cursos-horario vencidos con parte» |
+| `AulasLoQueFalta` | aria-label «cierran N aulas» | «cierran N cursos-horario» |
+| `AulasObservacionesDeCampo` | «Ninguna de las N aulas gestionadas» | «Ninguno de los N cursos-horario gestionados» |
+
+**El ratchet queda en 27**, y esta vez el número es el real. Los cinco contratos
+que afirmaban el texto viejo se actualizaron: ninguno era una regresión.
+
+### El inventario de gráficos decía seis y son veintitrés
+
+La indicación H hablaba de «los seis gráficos del perfil», que es lo que sale al
+contar los archivos con `Chart` en el nombre. Censo por lo que hacen, no por cómo
+se llaman:
+
+- **4 gráficos Plotly** (`AulasBrechaEstratoChart`, `AulasCoberturaChart`,
+  `AulasEstadoChart`, `AulasSexoPorFacultadChart`), ninguno de los cuales aparece
+  al buscar `role="img"` o `<svg>`.
+- **19 componentes con 26 elementos `role="img"`**, gráficos construidos con
+  divs: carriles, barras, pirámides, embudos.
+
+Contar por el nombre en vez de por la función es la misma falsa ausencia que este
+loop ya pagó tres veces. El inventario de H pasa de 6 a 23.
+
+**Anotado para la vuelta de H**: el aria-label de `AulasLoQueFalta` abre con
+«Escalera de esfuerzo», que es una metáfora, no un término. Se decide con el
+elemento delante, no ahora.

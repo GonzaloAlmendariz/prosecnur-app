@@ -101,7 +101,7 @@ export function libroDeCargaDeCampo(
     : "Patrón semanal: cada curso-horario en el día de su horario recurrente.";
   const sinFecha =
     esCalendario && malla.agendadasSinFecha > 0
-      ? ` ${fmt(malla.agendadasSinFecha)} aulas tienen hora pero no fecha y no caben en el calendario.`
+      ? ` ${fmt(malla.agendadasSinFecha)} cursos-horario tienen hora pero no fecha y no caben en el calendario.`
       : "";
 
   return `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">
