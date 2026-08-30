@@ -2195,3 +2195,41 @@ geometría y el rail queda fuera del panel medido —lo mismo que pasó en la vu
 prueba del reverso, no una captura.
 
 147 archivos / 1.750 tests, typecheck limpio, suite de publicación verde.
+
+### Vuelta 40 · La doctrina «contra la cuota, no contra el pronóstico», barrida
+
+Aplicado el patrón más productivo del loop —una doctrina escrita en un comentario
+no llega sola a sus vecinos— sobre el índice de decisiones documentadas del
+perfil. La primera candidata era de denominador, y es de Gonzalo, textual:
+
+> «el avance se mide sobre las cuotas del plan, no sobre lo que nosotros hemos
+> pronosticado que va a suceder… nos interesa llegar a dos mil quinientos con las
+> cuotas que hemos establecido por sexo en cada facultad. Esa es nuestra meta».
+
+El pronóstico se sigue publicando como `meta_prevista` «porque dimensiona el
+operativo, pero no es la vara del avance».
+
+**Nadie lo usa como denominador**: `meta_prevista` no tiene un solo consumidor en
+el frontend. La doctrina se cumple.
+
+Y de paso la medición deja la cifra, que no estaba escrita en ningún sitio:
+
+| | |
+|---|---|
+| Suma de cuotas (la meta) | **2.500** |
+| Suma de `meta_prevista` (lo diseñado) | **3.146** |
+| Facultades donde difieren | **15 de 15**, siempre al alza |
+
+O sea, el diseño compró aforo para 3.146 personas para asegurar 2.500.
+
+**Parecía un vacío por desconexión —el motor lo calcula y nadie lo muestra— y no
+lo es.** La relación entre lo observado y lo previsto **sí llega al lector**, por
+otra vía y mejor: `etiqueta_calibracion` la publica en porcentaje y **por celda**
+—«El campo está rindiendo un 14 % menos de lo previsto», 18 % en Ciencias
+Sociales mujeres, 7 % en EE.GG. Letras mujeres— y se pinta en Cuotas. Un total de
+estudio en personas sería la misma información, menos accionable y en una
+pantalla que ya recibió una línea nueva en este loop.
+
+**Un campo sin consumidor no es una brecha si su información llega por otro
+camino.** Comprobarlo cuesta una medición y evita añadir una cifra redundante a
+una pantalla densa.
