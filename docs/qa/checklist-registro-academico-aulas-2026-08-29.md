@@ -1923,3 +1923,41 @@ cadena montada. Comprobado que muerde: con la frase vieja, rojo en ese test y
 sólo en ése.
 
 147 archivos / 1.740 tests, typecheck limpio.
+
+### Vuelta 33 · Aritmética de los de fuera de Avance, y un inventario mío que sobraba en uno
+
+**Los dos de reserva, conformes.** `consumoDeCadena` distingue los roles con su
+motivo escrito —«El banco NO es una cadena»— y la aritmética cierra sobre datos
+reales: 174 titulares + 1.173 reservas encadenadas + 77 de banco = 1.424, que es
+la agenda entera; las 174 cadenas tienen reserva, ninguna se queda sin, y las 18
+reservas con parte son exactamente las 18 que el motor cuenta como `reemplazada`.
+
+**`AulasBrechaEstratoChart` no se pinta, y el repo ya lo sabía.** Está declarado
+en `componentesSinMontar.test.ts`, un guard que existe precisamente porque «un
+componente definido y nunca referenciado no lo ve nadie: ni el typecheck, ni los
+tests, ni el gate visual, que sólo mira lo que se dibuja».
+
+De modo que **mi inventario de la indicación H sobraba en uno**: son **22
+gráficos en pantalla**, no 23. Conté por definición y no por montaje — el mismo
+error de leer imports como usos que ya me pasó con `AulasCuotasResumen`, ahora al
+revés.
+
+**Lo que la medición sí aporta, y va a su marca.** El componente ya explicaba por
+qué se retiró —el estrato del sorteo lleva el sexo *dominante del aula* y no el
+del alumno; «cómo vas a poner mayoría hombres o mayoría mujeres cuando eso no me
+interesa»— y que no se borra sin decidirlo aparte. Le faltaba la cifra que hace
+peligroso volver a montarlo:
+
+| | |
+|---|---|
+| Brecha sumada sobre los 72 estratos | **891** |
+| Brecha del estudio entero | **170** |
+| Válidas, en los dos | **2.668** |
+
+No es un error de cuenta: el estrato es `facultad / sexo / tamaño` y sus brechas
+no se compensan entre grupos de tamaño, mientras la cuota se mide sobre
+`facultad / sexo`. Como el componente publica `brechaTotal`, montado tal cual la
+pantalla diría «faltan 891» a dos paneles de un «faltan 170». Queda escrito en su
+cabecera, que es donde lo leerá quien decida montarlo.
+
+249 archivos / 2.561 tests de Monitoreo en verde.
