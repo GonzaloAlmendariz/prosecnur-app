@@ -117,3 +117,43 @@ describe("el banco tampoco está «en juego», aunque el motor no lo marque dorm
     expect(out).toContain("en el banco");
   });
 });
+
+describe("reparte lo que publica el motor, no las filas que viajan", () => {
+  /**
+   * **La premisa del subtítulo.**
+   *
+   * El panel se rotula con `contadorDeLoQueReparte`, que dice «1,424
+   * cursos-horario» cuando el motor manda su reparto y «se ven 500 de 1,424»
+   * cuando no. Ese rótulo sólo es honesto mientras el gráfico se comporte así,
+   * y durante un tiempo no lo fue al revés: llevaba el aviso de recorte con el
+   * reparto completo puesto, y medido en pantalla sus seis tramos sumaban 1.424
+   * mientras el subtítulo prometía 500. Quien lo leía creía que le faltaba el
+   * 65 % de lo que estaba viendo.
+   *
+   * El aviso era correcto cuando el gráfico repartía `filas`, y se quedó escrito
+   * cuando pasó a preferir el resumen del motor: una salvedad que caducó.
+   */
+  const pocasFilas = [
+    { operational_code: "CH 1", application_state: "cerrando" },
+    { operational_code: "CH 2", application_state: "cerrando" },
+  ] as never;
+
+  it("con resumen del motor cuenta sobre el total del motor, no sobre las filas", () => {
+    const out = renderToStaticMarkup(
+      <AulasEstadoChart filas={pocasFilas} resumen={resumen as never} desconocidasMotor={0} />,
+    );
+    // 3 + 2 + 16 + 152 + 26 + 70 = 269, menos las 70 del banco que no salen a
+    // campo = 199 en juego. Lo que importa es que NO son las 2 que viajan.
+    expect(out).toContain("199");
+  });
+
+  it("sin resumen del motor sí se reparte lo que viaja", () => {
+    // El control que distingue: si el gráfico ignorara `filas` siempre, la
+    // aserción de arriba pasaría sin probar de dónde salen las cifras.
+    const out = renderToStaticMarkup(
+      <AulasEstadoChart filas={pocasFilas} resumen={null} desconocidasMotor={0} />,
+    );
+    expect(out).not.toContain("199");
+    expect(out).toContain("2 cursos-horario");
+  });
+});

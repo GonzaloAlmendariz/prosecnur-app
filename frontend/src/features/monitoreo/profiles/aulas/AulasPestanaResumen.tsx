@@ -57,6 +57,28 @@ export function AulasPestanaResumen({
   );
   const contadorDeAulas = (visibles: number) =>
     contadorDeCursosHorario(visibles, totalAulas, aulasExtra);
+  /**
+   * **Lo que reparte un gráfico no siempre es lo que viaja.**
+   *
+   * Los dos gráficos de esta pestaña prefieren el reparto que publica el motor
+   * —`course_status_estados` y `course_status_cobertura`, calculados «sobre
+   * TODAS las filas y no sobre las 500 que viajan», como dice el tipo de su
+   * prop— y sólo caen a las filas recortadas cuando ese reparto no llega.
+   *
+   * Los dos llevaban igualmente el aviso «se ven 500 de 1,424 cursos-horario»,
+   * y con el reparto del motor puesto es **falso**: medido en pantalla, los seis
+   * tramos de «Estado de aplicación» suman exactamente 1.424. El aviso nació
+   * cuando el gráfico repartía las 500 filas y se quedó escrito cuando pasó a
+   * usar el total; quien lo lee cree que le falta el 65 % de los datos que está
+   * viendo.
+   *
+   * La tabla es el único caso donde sigue siendo cierto: ésa sí pinta
+   * `aulaRows`.
+   */
+  const contadorDeLoQueReparte = (resumenDelMotor: unknown) =>
+    contadorDeAulas(
+      Array.isArray(resumenDelMotor) && resumenDelMotor.length ? totalAulas : aulaRows.length,
+    );
   return (
     <>
             <section
@@ -177,7 +199,7 @@ export function AulasPestanaResumen({
                     contesta la pregunta anterior… y sobre todo separa "sin
                     agendar" de "agendada y aún sin empezar", que la cobertura
                     mete en el mismo saco». */}
-                <span>{contadorDeAulas(aulaRows.length)} · en qué punto del circuito está cada una</span>
+                <span>{contadorDeLoQueReparte(dashboard.course_status_estados)} · en qué punto del circuito está cada una</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -233,7 +255,7 @@ export function AulasPestanaResumen({
                     qué existe: «el promedio esconde la forma —sesenta aulas al
                     50 % y sesenta al 100 % dan el mismo avance global que ciento
                     veinte al 75 %, y piden decisiones opuestas». */}
-                <span>{contadorDeAulas(aulaRows.length)} · cuánto lleva recogido cada una</span>
+                <span>{contadorDeLoQueReparte(dashboard.course_status_cobertura)} · cuánto lleva recogido cada una</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
