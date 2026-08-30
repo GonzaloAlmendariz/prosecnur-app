@@ -198,7 +198,7 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
       {facultades.some((f) => f.izquierda?.previsto || f.derecha?.previsto) ? (
         <p className="aulas-piramide-leyenda">
           <i aria-hidden="true" />
-          Lo rayado es lo que traerán las aulas ya agendadas. Si no llega al final
+          Lo rayado es lo que traerán los cursos-horario ya agendados. Si no llega al final
           de su carril, ese grupo no cierra con lo que hay.
         </p>
       ) : null}

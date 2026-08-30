@@ -27,7 +27,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
     // tres paneles a la vez.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ningún aula tiene parte y respuestas a la vez, así que no hay nada que
+        Ningún curso-horario tiene parte y respuestas a la vez, así que no hay nada que
         cruzar todavía.
       </p>
     );

@@ -125,7 +125,7 @@ export function porqueDeLaCelda(c: CeldaAvance): string {
     // «Lleva 1 de 4: faltan 3 y las aulas que faltan por aplicar aportan 3»
     // junto a un veredicto que decía «falta 1 encuesta» —3 − 3 = 0, no 1—,
     // porque el aporte real era 2,1 y subía a 3.
-    ? `las aulas que faltan por aplicar aportan ${fmtAporte(pendiente)}`
+    ? `los cursos-horario que faltan por aplicar aportan ${fmtAporte(pendiente)}`
     : "no quedan aulas por aplicar";
   return `Lleva ${fmt(logrado)} de ${fmt(cuota)}: faltan ${fmt(falta)} y ${p}.`;
 }

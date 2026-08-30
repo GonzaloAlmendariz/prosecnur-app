@@ -97,7 +97,7 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
           100 es más que 14 de 20. */}
       <p className="mon-profile-muted aulas-umbrales-nota">
         Es el corte que el equipo escribió en el libro, no un criterio que la app
-        verifique. No dice a qué aula conviene ir: un aula con 100 elegibles al 40 %
+        verifique. No dice a qué curso-horario conviene ir: uno con 100 elegibles al 40 %
         rinde 40 encuestas, y una con 20 al 70 % rinde 14.
       </p>
     </div>

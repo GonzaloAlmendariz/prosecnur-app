@@ -1120,3 +1120,23 @@ Dos detalles del método que se repiten y ya son rutina:
 - **Los saltos de línea rompen la búsqueda**: tres frases de este lote no casaron
   al primer intento por tener el corte en medio. Se localizan por `grep -n` y se
   sustituyen con el salto incluido.
+
+## Deuda de vocabulario · lote final
+
+Dieciocho frases más, en diecisiete archivos. **El ratchet baja de 33 a 15**, y
+lo que queda es prácticamente la lista de intocables.
+
+**Un error de español que salió de paso**: `AulasParteContraPlataforma` decía
+«**Ningún** aula tiene parte y respuestas a la vez». *Aula* es femenino —lleva
+«el/un» sólo por su *a* tónica, pero el determinante concuerda en femenino: «ninguna
+aula»—. Al pasar a «Ningún curso-horario» se resuelve solo, pero conviene dejarlo
+anotado: el masculino aparente de «el aula» arrastra concordancias equivocadas.
+
+Otras concordancias del lote: «ninguna aula **sola**» → «ningún curso-horario
+**solo**», «Un aula se sale» → «Un curso-horario se sale», «Esta aula espera» →
+«Este curso-horario espera», «Todas las aulas del plan **tienen**» → «Todos los
+cursos-horario del plan tienen».
+
+**Se quedan, además de las ocho familias ya declaradas**: las dos locuciones
+adverbiales —«Cumplimiento aula por aula», «Cada cadena, aula por aula»— y
+«formulario de aplicación en aulas», que nombra un formulario concreto.

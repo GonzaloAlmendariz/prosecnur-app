@@ -260,7 +260,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
             nada que advertir. */}
         {r.mezclaDeOrigenes ? (
           <>
-            {" "}Ojo al comparar: {fmt(r.origenes.plataforma)} de estas aulas
+            {" "}Ojo al comparar: {fmt(r.origenes.plataforma)} de estos cursos-horario
             miden lo conseguido con las respuestas que llegaron a la plataforma,
             {r.origenes.parte ? ` ${fmt(r.origenes.parte)} con lo que anotó el aplicador al salir` : ""}
             {r.origenes.hoja ? ` y ${fmt(r.origenes.hoja)} con lo que la hoja da por enviado` : ""}.

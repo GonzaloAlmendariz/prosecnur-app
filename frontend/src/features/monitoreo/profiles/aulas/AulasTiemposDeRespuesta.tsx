@@ -118,7 +118,7 @@ export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
           <p className="aulas-tiempos-titulo">
             <TriangleAlert size={13} aria-hidden="true" />
             {destacan.length === 1
-              ? "Un aula se sale del resto"
+              ? "Un curso-horario se sale del resto"
               : `${fmt(destacan.length)} aulas se salen del resto`}
           </p>
           <ul className="aulas-tiempos-lista">
@@ -139,7 +139,7 @@ export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
           </ul>
           <p className="mon-profile-muted">
             El rango entre paréntesis es hasta dónde puede moverse esa mediana con
-            los casos que tiene. Se listan sólo las aulas cuyo rango no alcanza al
+            los casos que tiene. Se listan sólo los cursos-horario cuyo rango no alcanza al
             resto del estudio: las demás difieren dentro de lo esperable.
           </p>
         </>

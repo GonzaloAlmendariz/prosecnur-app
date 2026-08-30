@@ -22,7 +22,7 @@ function dm(iso: string): string {
 const MOTIVOS: Record<string, string> = {
   "sin-dias": "Ningún parte de campo trae fecha, así que no hay ritmo que proyectar.",
   "pocos-dias": "Hacen falta al menos tres días de campo para proyectar: con dos, la fecha de cierre sería un accidente.",
-  "ya-cerrado": "Todas las aulas del plan tienen parte de campo.",
+  "ya-cerrado": "Todos los cursos-horario del plan tienen parte de campo.",
   "sin-ritmo": "El ritmo observado es cero, así que no hay nada que proyectar.",
 };
 

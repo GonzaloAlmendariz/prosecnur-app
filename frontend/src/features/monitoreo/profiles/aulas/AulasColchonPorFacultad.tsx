@@ -108,7 +108,7 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
       <p className="mon-profile-muted aulas-colchon-pie">
         <strong>Agotadas</strong> son cadenas que tenían reserva y ya la usaron;
         <strong> sin dotar</strong>, las que el diseño muestral nunca dotó. La reserva cuenta
-        para la facultad del aula que reemplaza. Los extras no aparecen acá: no reponen a
+        para la facultad del curso-horario que reemplaza. Los extras no aparecen acá: no reponen a
         nadie y su reparto por facultad está en su pestaña.
       </p>
     </div>
