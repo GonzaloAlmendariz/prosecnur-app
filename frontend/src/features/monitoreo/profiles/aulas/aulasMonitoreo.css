@@ -630,8 +630,23 @@
    * espacio: lo pide prestado al vecino. Con mínimo 0 las tarjetas se encogen
    * y truncan su rótulo, que es lo que corresponde — truncar es legible y
    * pisar al de al lado no. */
+  /* **Dos columnas, no tres: el VALOR no se trunca.**
+   *
+   * Lo de arriba sigue en pie —el mínimo en píxeles pedía prestado al vecino y
+   * por eso el mínimo es 0—, pero razonaba sobre «su rótulo», y con tres
+   * columnas también se truncaba el valor. Medido el 2026-08-30 a 1024x600: 347
+   * px de grid daban 112 por tarjeta, 66 para el texto tras el icono, y ahí
+   * «Conectada» y «Registrado» (70 px) se cortaban. El Contrato acepta elipsis
+   * en una etiqueta larga y **la prohíbe en dato operativo** (C4), y un estado es
+   * dato.
+   *
+   * Con dos, cada texto tiene 125 px: los cuatro valores entran enteros y sólo
+   * «MARCO INSTITUCIONAL» (138) se queda con elipsis, que es una etiqueta y
+   * puede. Comprobado que la grid **sigue sin desbordar**, así que no reabre el
+   * solape con «Importar plan» que motivó la regla. El precio es una fila más de
+   * alto, y a cambio se lee lo que importa. */
   .mon-profile-page.is-aulas-flow .aulas-ops-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 5px;
   }
 
