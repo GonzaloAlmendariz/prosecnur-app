@@ -131,7 +131,15 @@ export function embudoDelOperativo(
       id: "recibidas",
       label: "Respuestas recibidas",
       valor: fmt(recibidas),
-      detalle: "filas que llegaron de la plataforma",
+      // **Aquí cambia lo que se cuenta, y por eso la cifra sube.** Con datos
+      // reales el flujo va 174 → 152 → 2.817 → 2.668: un embudo que se
+      // multiplica por 18 en el tercer peldaño. No es un error de cálculo, es
+      // que los dos primeros cuentan cursos-horario y los dos últimos cuentan
+      // respuestas. Los rótulos ya lo decían por separado —«Aplicados en campo»
+      // y «Respuestas recibidas»— pero nadie enunciaba el salto, y la arista
+      // entre ambos va vacía a propósito: entre unidades distintas no hay merma
+      // que restar. Quien lee de arriba abajo veía crecer un embudo.
+      detalle: "respuestas, ya no cursos-horario: por eso sube",
       estado: "ready",
       merma: rechazadas ? { n: rechazadas, label: "descartadas por el filtro" } : undefined,
     });
