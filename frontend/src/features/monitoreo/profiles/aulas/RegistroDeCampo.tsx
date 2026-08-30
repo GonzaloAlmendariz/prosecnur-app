@@ -474,7 +474,7 @@ export function RegistroDeCampo({
       {filas.length === 0 ? (
         <p className="registro-campo-vacio">
           No hay agenda de cursos-horario. Importa el plan desde el cálculo de muestra
-          para registrar lo que pasa en cada aula.
+          para registrar lo que pasa en cada curso-horario.
         </p>
       ) : (
         <div className="registro-campo-cuerpo">
@@ -600,7 +600,7 @@ export function RegistroDeCampo({
                   const p = (v: number) => `${Math.round(v * 100)} %`;
                   return (
                     <p className="registro-campo-meta">
-                      Esta aula espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
+                      Este curso-horario espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
                       {pq.elegibles} elegibles{" "}
                       {/* `p_aplicada` sólo aparece si es factor de ESTA meta.
                           Desde el rediseño «1b» del cálculo de muestra dejó de

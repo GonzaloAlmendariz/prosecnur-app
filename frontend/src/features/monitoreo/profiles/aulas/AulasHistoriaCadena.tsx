@@ -174,7 +174,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
       {juntaronSinCerrar ? (
         <p className="aulas-cadenas-matiz">
           En <strong>{juntaronSinCerrar}</strong> de las abiertas la cadena ya juntó
-          lo que pide el hueco, pero <strong>ninguna aula sola</strong> alcanzó su propia meta:
+          lo que pide el hueco, pero <strong>ningún curso-horario solo</strong> alcanzó su propia meta:
           por eso siguen contando como brecha en el resto del perfil.
         </p>
       ) : null}

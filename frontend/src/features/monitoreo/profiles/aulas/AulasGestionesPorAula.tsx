@@ -32,7 +32,7 @@ export function AulasGestionesPorAula({ distribucion }: {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         Todavía no hay gestiones anotadas. Se llenan desde el registro de campo,
-        cuando el equipo apunta cuántas llamadas costó cerrar cada aula.
+        cuando el equipo apunta cuántas llamadas costó cerrar cada curso-horario.
       </p>
     );
   }

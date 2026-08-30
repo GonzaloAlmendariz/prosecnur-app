@@ -40,19 +40,19 @@ describe("las cadenas que juntaron lo que pide el hueco sin cerrar", () => {
     const html = pinta(cadena("CH 1", 0, 15, 17, 28));
     expect(html).toContain("sin cerrar");
     expect(html).toMatch(/En <strong>1<\/strong> de las abiertas/);
-    expect(html).toContain("ninguna aula sola");
+    expect(html).toContain("ningún curso-horario solo");
   });
 
   it("no se dice nada cuando no hay ninguna", () => {
     // La cadena junta 5 y el hueco pide 15: abierta y sin contradicción que
     // explicar. Una nota que aparece siempre deja de leerse.
     const html = pinta(cadena("CH 2", 0, 15, 5, 28));
-    expect(html).not.toContain("ninguna aula sola");
+    expect(html).not.toContain("ningún curso-horario solo");
   });
 
   it("tampoco cuando la cadena SÍ cerró", () => {
     // La reserva alcanzó su propia meta: no hay nada raro que reconciliar.
     const html = pinta(cadena("CH 3", 0, 15, 30, 28));
-    expect(html).not.toContain("ninguna aula sola");
+    expect(html).not.toContain("ningún curso-horario solo");
   });
 });

@@ -102,7 +102,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
       </ul>
       <p className="mon-profile-muted aulas-banco-consumo-pie">
         <strong>Días de reserva</strong> son los días de campo que la reserva libre cubriría al
-        ritmo de reemplazos de esa facultad. El estudio no declara un máximo de aulas: el techo
+        ritmo de reemplazos de esa facultad. El estudio no declara un máximo de cursos-horario: el techo
         que se mide aquí es agotar la reserva.
       </p>
     </div>

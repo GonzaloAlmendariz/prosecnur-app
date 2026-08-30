@@ -144,8 +144,8 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
                 el neto, así que puede señalar más facultades que ésta, que
                 cuenta encuestas: decirlo evita que las dos cifras se lean como
                 una contradicción. */}
-            «A quién hay que agendar», en Avance, cuenta lo mismo en aulas por
-            pedir y puede señalar más facultades.{" "}
+            «A quién hay que agendar», en Avance, cuenta lo mismo en cursos-horario
+            por pedir y puede señalar más facultades.{" "}
             {/* La cuenta optimista, dicha. Es la que sale de restar totales, y
                 es la que uno hace de cabeza mirando el inventario. */}
             Sumado por facultad faltarían <strong>{fmt(r.deficit)}</strong>{" "}

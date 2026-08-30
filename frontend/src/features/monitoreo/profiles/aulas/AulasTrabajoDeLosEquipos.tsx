@@ -97,7 +97,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         {/* Qué significa el ± y por qué está. Sin esto, la lista ordenada se lee
             como un ranking de personas. */}
         El ± es lo que puede moverse la media de un equipo por el reparto de
-        aulas que le tocó. Cuando dos bandas se solapan, la diferencia entre esos
+        cursos-horario que le tocó. Cuando dos bandas se solapan, la diferencia entre esos
         equipos no se puede atribuir a cómo trabajan.
         {" "}Rechazos y duplicados van por cada cien encuestas conseguidas: en
         bruto, quien hace más aulas parece siempre el más problemático.
