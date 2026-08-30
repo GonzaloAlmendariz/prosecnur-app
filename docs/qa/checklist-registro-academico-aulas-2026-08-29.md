@@ -36,6 +36,7 @@ es un estrato, un τ o un *deff*, el elemento no pasa.
 | G | Sin jerga, o con la mínima indispensable | ídem | ☐ |
 | H | Todos los gráficos se ven bien y se entienden | los seis gráficos del perfil | ☐ |
 | I | **Avance como mecanismo de revisión no técnica** | sección `avance` completa | ☐ |
+| J | **Separar meta / lo diseñado / el rendimiento**, y medir lo que falta SIEMPRE contra la meta | `avanceCuota.ts`, `cuotasResumen.ts`, `avance_sexo_facultad` | ☐ nueva el 2026-08-30 |
 
 ## Inventario de lo que hay que evaluar
 
@@ -1533,3 +1534,84 @@ que fuerza dos puntos de ancho mínimo, así que un excedente de una respuesta
 sobre 3.227 se dibuja como si fuera el 2 %. Es una decisión de visibilidad
 razonable —sin ella no se vería— pero exagera lo pequeño y no está justificada en
 el código. Queda anotada, no tocada.
+
+## Indicación J — tres cantidades que hay que dejar de mezclar
+
+Encargo de Gonzalo el 2026-08-30, a mitad de la vuelta 25:
+
+> «tenemos que hacer una diferencia bastante sólida y consistenciada entre a lo
+> que tenemos que llegar, que son las metas, y lo que se espera llegar con las
+> aulas, que es lo diseñado al principio del estudio […] y también contrastarlo
+> con el rendimiento que se está viendo hasta el momento. […] **¿Cuánto nos falta
+> para llegar a la meta?** Y no nos importa cuánto nos falte para llegar a lo
+> calculado, sino cuánto nos falta para llegar a la meta simplemente. Y por otro
+> lado es cuánto esperamos llegar por un lado en base al diseño y cuánto
+> esperamos llegar en base a […] cómo va el rendimiento en aquella facultad.»
+
+**Las tres cantidades, y el motor ya las tiene separadas.** Una celda de
+`avance_sexo_facultad` trae hoy:
+
+```json
+{"cuota":290, "logrado":252, "previsto":294.2, "aporte_pendiente":40.3,
+ "proyeccion":292.3, "brecha":0, "calibracion":0.857,
+ "previsto_origen":"composicion_del_aula",
+ "etiqueta_calibracion":"El campo está rindiendo un 14 % menos de lo previsto"}
+```
+
+| Cantidad | Campo | Qué es |
+|---|---|---|
+| **La meta** | `cuota` | a lo que hay que llegar. **La única contra la que se mide lo que falta.** |
+| **Lo diseñado** | `previsto` (`previsto_origen`) | lo que se esperaba aportar con las aulas calculadas al inicio |
+| **El rendimiento** | `proyeccion`, `calibracion` | lo que se espera ahora, calibrado con lo que el campo está rindiendo |
+
+**Lo primero, la parte dura de su indicación: comprobada y sin defecto.** Ningún
+sitio mide «lo que falta» contra lo previsto. El único que resta contra lo
+esperado es `proyeccionPorAgenda.ts:244`, y calcula otra cosa
+—`faltanAlCerrarAgenda`, lo que faltará **cuando la agenda se acabe**—, que es
+justamente una de las distinciones que él pide. Barrido hecho en front y en R,
+con la resta en los dos sentidos.
+
+**Donde sí hay materia: los nombres.** La misma cantidad se llama de dos maneras
+en dos superficies de la misma sección, y una de las dos pierde información:
+
+| Sitio | Rótulo | ¿Dice de dónde sale la meta? |
+|---|---|---|
+| `avanceCuota.ts:277` | «Cuota del diseño», o **«Meta del plan»** si el sello degradó | sí |
+| `AulasCuotasResumen.tsx:109` | «Cuota del estudio», fijo | **no** |
+
+`AulasCuotasResumen` recibe sólo las filas de cuota, así que **la procedencia no
+le llega**: no puede decirlo aunque quiera. Y es un componente compartido por
+cuatro pestañas —Cuotas, Resumen, Rendimiento y Efectividad—, así que el rótulo
+inconsistente se repite en las cuatro.
+
+**Y «diseño» hace de dos cosas a la vez**: en «Cuota del diseño» dice de dónde
+salió la meta; en «lo diseñado» dice lo que se esperaba aportar. Son cosas
+distintas y comparten palabra, que es el patrón «una palabra para dos cosas».
+
+### Vuelta 25 · Estratos · un color que significaba dos cosas
+
+`AulasSexoPorFacultadChart` apila Recogidas + Aportarán + Déficit proyectado y
+marca la Cuota con un `line-ns-open` encima, que es el diseño correcto: la barra
+llega a la proyección y la marca dice dónde está la meta. Medido: 27 de 30 celdas
+no suman la cuota, y **debe ser así** —`logrado + aporte_pendiente` es la
+proyección, que puede pasarse—.
+
+Lo que no era correcto: la marca de «Cuota» y el segmento «Déficit proyectado»
+usaban **el mismo `COLOR_RESULTADO.pendiente`**. Dos cosas distintas del mismo
+gris, y una de ellas es el dato que decide si una facultad cumple su cuota por
+sexo.
+
+El propio `coloresDeResultado.ts` lleva la doctrina escrita —«una vista que se
+quedara atrás pintaba dos cosas distintas del mismo color»— y el precedente:
+`COLOR_ACUMULADO` existe aparte porque «no es un resultado: es la serie que los
+suma». La marca de una meta es igual de no-resultado, así que ahora tiene
+`COLOR_MARCA_DE_META`, con nombre propio para que un cambio en la serie acumulada
+no mueva las marcas de las metas.
+
+**Los dos guards de color no podían verlo.** Vigilan que el hex no se escriba a
+mano y que la paleta no tenga duplicados; ninguno vigila que **una constante
+signifique dos cosas dentro del mismo gráfico**, que es el hueco que este caso
+destapa. Queda anotado como pendiente.
+
+Vista con `ok=true`, 0 issues, 0 de geometría. 249 archivos / 2.550 tests de
+Monitoreo en verde.

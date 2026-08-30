@@ -52,6 +52,20 @@ export const COLORES_DE_RESULTADO_EXCLUSIVOS = [
   COLOR_RESULTADO.pendiente,
 ] as const;
 
+/**
+ * **La marca de una meta no es un desenlace: es la vara contra la que se miden.**
+ *
+ * `AulasSexoPorFacultadChart` pintaba la marca de «Cuota» con
+ * `COLOR_RESULTADO.pendiente`, el mismo gris con que pinta el segmento «Déficit
+ * proyectado» de la misma barra. Dos cosas distintas del mismo color, y una de
+ * ellas es justo el dato que decide si una facultad cumple su cuota por sexo.
+ *
+ * Comparte valor con `COLOR_ACUMULADO` porque las dos son tinta y no color de
+ * dato, pero lleva nombre propio: reusar el del acumulado haría que el próximo
+ * cambio de la serie acumulada moviera, sin querer, la marca de las metas.
+ */
+export const COLOR_MARCA_DE_META = "#17212f";
+
 /** Trazo claro con el que se separan las barras apiladas entre sí. */
 export const COLOR_SEPARADOR_BARRA = "rgba(255, 255, 255, 0.72)";
 
