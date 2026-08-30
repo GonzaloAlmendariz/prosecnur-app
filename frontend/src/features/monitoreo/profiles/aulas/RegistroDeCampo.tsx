@@ -631,7 +631,7 @@ export function RegistroDeCampo({
                       {pq.factorFacultad !== null && Math.abs(pq.factorFacultad - 1) > 0.001 ? (
                         <>
                           {" "}× {p(pq.factorFacultad)} de su facultad
-                          {pq.facultadK ? ` (${fmt(pq.facultadK)} aulas de referencia)` : ""}
+                          {pq.facultadK ? ` (${fmt(pq.facultadK)} cursos-horario de referencia)` : ""}
                         </>
                       ) : null}
                       .
