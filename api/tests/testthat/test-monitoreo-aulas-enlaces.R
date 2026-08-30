@@ -67,3 +67,19 @@ test_that("un enlace repetido por TRES aulas cuenta las tres", {
   expect_equal(r$enlaces, 1L)
   expect_equal(r$aulas, 3L)
 })
+
+# --- la severidad: esto no se revisa, se arregla -----------------------------
+
+test_that("un enlace compartido sale como «warning», no como «review»", {
+  # Regla del operativo (Gonzalo, 2026-08-30): «cada curso-horario debe tener un
+  # enlace al forms». Dos aulas con el mismo no producen una duda que mirar sino
+  # respuestas que ya no se pueden separar.
+  expect_equal(
+    monitoreo_aulas_estado_control(TRUE, TRUE, "warning"),
+    "warning"
+  )
+  # Y sin nada que comprobar sigue siendo `sin_datos`: no se pudo mirar.
+  expect_equal(monitoreo_aulas_estado_control(FALSE, FALSE, "warning"), "sin_datos")
+  # Con enlaces y sin repetidos, correcto.
+  expect_equal(monitoreo_aulas_estado_control(TRUE, FALSE, "warning"), "ok")
+})
