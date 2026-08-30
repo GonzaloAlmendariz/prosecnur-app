@@ -48,7 +48,15 @@ const ESTADOS_CON_MOTIVO = new Set(["sin_acceso", "cancelada", "reemplazo_pendie
 // Estados en los que el aula CAE y tiene sentido ofrecer su reemplazo. No
 // incluye `reemplazada`: esa ya lo fue, y volver a activar consumiría otra
 // reserva de la cadena sin que nadie lo haya pedido.
-const ESTADOS_QUE_CAEN = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente"]);
+//
+// **La misma tripleta decide en el motor qué entra en el reporte `brechas`**
+// (`monitoreo_aulas_universitarias.R`, junto a `brecha > 0`), y eso no lo
+// declaraba ningún comentario: se encontró comparando las listas de literales de
+// los dos lados. Son dos usos del mismo concepto —«el aula cayó»— y si divergen,
+// el motor cuenta como caída una que aquí no se puede reemplazar, o al revés.
+// `estadosQueCaenSonLosDelMotor.contract.test.ts` las compara; si algún día la
+// diferencia es deliberada, hay que decirlo ahí.
+export const ESTADOS_QUE_CAEN = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente"]);
 
 /** Si en este estado procede ofrecer la activación de la cadena. */
 export function aulaPuedeReemplazarse(estado: string, row: MonitoreoAulasPlanRow | null): boolean {
