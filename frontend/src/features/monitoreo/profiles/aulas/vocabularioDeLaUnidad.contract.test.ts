@@ -35,7 +35,15 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  * su mensaje de fallo.
  */
 
-/** Medido el 2026-08-29, después de cerrar las seis pestañas de Avance. */
+/**
+ * **Es un PISO, no un censo.** El detector exige un determinante o una cifra
+ * delante —«las aulas», «304 aulas»— para no cazar identificadores de código, y
+ * eso deja fuera las frases donde la palabra abre el literal: `"aulas sin sus
+ * dos umbrales"` no contaba, y corregirla no movió este número. Sirve para lo
+ * que se creó —impedir que la deuda crezca— pero su cifra es una cota inferior.
+ *
+ * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
+ */
 const TOPE = 63;
 
 /** Con determinante o cifra delante: en prosa siempre lo lleva; en código, no. */

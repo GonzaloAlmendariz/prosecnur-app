@@ -952,7 +952,17 @@ Y la decisión ya estaba tomada en el panel que lo envuelve, con su motivo:
 > curso-horario.»
 
 Otra reparación que llegó a un sitio y no al de al lado. Corregido; en pantalla
-las dos frases dicen ya «filas de la hoja». El ratchet baja a **62**.
+las dos frases dicen ya «filas de la hoja».
+
+**Corrección sobre el ratchet**: escribí que bajaba a 62 y **sigue en 63**. La
+frase corregida era `"aula sin sus dos umbrales" : "aulas sin sus dos umbrales"`,
+con la palabra al principio del literal y **sin determinante delante**, y el
+detector exige uno —«las aulas», «304 aulas»— para no cazar identificadores de
+código. Nunca la contó.
+
+Es una limitación real del contador, no un fallo del arreglo: **el ratchet mide
+menos de lo que hay**. Sirve igual para lo que se creó —impedir que la deuda
+crezca— pero su número es un piso, no un censo.
 
 **Lo que está bien y no se toca**: el panel declara que el veredicto es del
 equipo y no de la app —«es el corte que el equipo escribió en el libro, no un
