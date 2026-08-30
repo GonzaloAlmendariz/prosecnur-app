@@ -370,15 +370,21 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     # **Un curso-horario reemplazado no aporta ni va a aportar.**
     #
     # Salio del plan por su reserva y esa reserva viaja en el MISMO plan con su
-    # propio `expected_valid`. Contando las dos, lo que se espera recibir se
-    # cuenta dos veces. Medido en HSVG2026 el 2026-08-30: 18 reemplazadas con
-    # 329,3 efectivas esperadas, y sus 18 reservas ya aplicadas con 317,2 que
-    # estan en `logrado`. El aporte pendiente total era 534,8, asi que **el 62 %
-    # de lo que se esperaba recibir correspondia a aulas muertas**, y de ahi
-    # salian 25 de 30 celdas «asegurada» con 9 por debajo de su cuota.
+    # propio `expected_valid`: contarlas juntas seria contar dos veces lo que se
+    # espera recibir.
     #
-    # Se excluye del calculo entero, no se pasa a «aplicada»: no aporto nada, asi
-    # que meterla en el denominador de la calibracion la hundiria igual de falso.
+    # **Hoy no llegan hasta aqui, y conviene saber por que.** `tracked_df` se
+    # construye con `monitoreo_aulas_en_juego`, que agrupa por CADENA —titular
+    # mas sus reservas— y deja **una sola fila viva por cadena**: si hay reserva
+    # despierta gana la de mayor `replacement_order`, y el titular reemplazado se
+    # queda fuera. Comprobado en HSVG2026 el 2026-08-30: de 1.347 seguidas salen
+    # 174 en juego (152 aplicadas + 22 agendadas) y **ni una sola reemplazada**,
+    # aunque «reemplazada» no este en `MONITOREO_AULAS_ESTADOS_DORMIDOS`.
+    #
+    # Se deja igualmente porque esta funcion recibe una lista de filas y no puede
+    # dar por hecho quien la filtro antes: sus propias pruebas la llaman con
+    # planes que si traen reemplazadas. Es defensa en profundidad, no el arreglo
+    # de un defecto observado.
     if (identical(estado_op, "reemplazada")) next
     # `cerrada` es aplicada y terminada. Estaba cayendo del lado de las
     # pendientes por comparar contra la cadena «aplicada» a secas, cuando el
