@@ -1610,3 +1610,38 @@ y «66.4 %».
 
 Dos guards de la casa en un mismo arreglo: uno que escribí hoy y otro que ya
 estaba. El segundo es el que lo dejó bien.
+
+---
+
+## 71 · El acumulado cuenta el parte y no lo decía (ítem 50)
+
+Con datos de mitad de operativo el gráfico se ve entero por primera vez: las tres
+líneas, la banda del día a día y —esto valida el ítem 26— **las cuotas por sexo
+dibujadas**, «Hombres 1.291/1.261 del estudio ✓», porque aquí sí caben en la
+escala. Cuando no caben se declaran; cuando caben se pintan.
+
+Su pie decía «**2.817** de 2.771 encuestas que el plan espera de las aulas
+visitadas» mientras la banda decía «**2.668** válidas». Lo conseguido en 152
+aulas no puede superar el total de válidas, así que el numerador era otra cosa.
+Medido: `efectivasAcumuladas` suma `effective_surveys` de los **partes de campo**
+(`ritmoPorFacultad.ts:84`); el campo declaró 149 más de las que pasaron el filtro
+de la plataforma.
+
+El panel vecino sí lo declara —«encuestas **del parte**, por aula visitada»— y
+éste no. Ahora dice «Acumulado por día · **encuestas del parte contra la meta**».
+Cuál de los dos ejes DEBE mandar es otra pregunta, es de Gonzalo y ya está
+abierta como ítem 17; esto sólo dice cuál se está mirando.
+
+### Y lo que eso destapa, medido pero SIN tocar (ítem 51)
+
+En la misma leyenda: «Hombres **1.291**/1.261» y «Mujeres **1.377**/1.239».
+**1.291 + 1.377 = 2.668**, que son exactamente las válidas de plataforma. O sea
+que en un mismo gráfico conviven **la línea verde del parte (2.817) y las dos
+líneas de sexo de la plataforma (2.668)**.
+
+Hay una nota al pie que ya explica que las cifras de sexo no suman la verde,
+pero por otro motivo: «el reparto sólo se conoce en las aulas cuyo libro lo
+declara». Aquí el reparto está **completo** —suman todas las válidas— y la
+diferencia con la verde es el eje, no la cobertura. **La explicación existente no
+cubre este caso**, y escribir una nueva sin medir de dónde sale cada serie sería
+apostar. Se mide antes de tocar.

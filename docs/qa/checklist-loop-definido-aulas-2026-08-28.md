@@ -73,6 +73,8 @@ no a ojo:
 | 47 | «1 de 30 celdas … no van a llegar» | `AulasAvanceProyectado.tsx` | **cerrado** — concordancia |
 | 48 | «déficit de 1 respuestas, repartido en 15 facultades» con el déficit en una sola | `AulasSexoPorFacultadChart.tsx` | **cerrado** — cuenta las que ponen déficit, bitácora 69 |
 | 49 | La tabla de estratos mezcla «88.2» con «17» y «100» en la misma columna | `aulasPresentation.ts` | **cerrado** — no era el formato: las dos columnas faltaban en `COLUMNAS_DE_PORCENTAJE`; guard que cierra la familia, bitácora 70 |
+| 50 | El acumulado contaba el parte (2.817) y no lo decía, junto a «2.668 válidas» | `AulasSerieDeRendimiento.tsx` | **cerrado** — «encuestas del parte contra la meta», bitácora 71 |
+| 51 | En un mismo gráfico, la verde es del parte (2.817) y las de sexo de plataforma (2.668) | `AulasSerieDeRendimiento.tsx` | **nuevo** — la nota que explica la diferencia no cubre este caso; medir antes de tocar |
 
 **El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
 cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
