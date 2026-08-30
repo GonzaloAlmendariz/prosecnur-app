@@ -168,7 +168,7 @@ describe("la τ del diseño contra la del campo", () => {
     const sinDiseno = render(bloque({ vigencia: "sin_diseno", facultades: [] }));
     const sinCampo = render(bloque({ vigencia: "vigente", facultades: [] }));
     expect(sinDiseno).toContain("no trae la tasa de efectividad");
-    expect(sinCampo).toContain("Todavía no hay aulas aplicadas");
+    expect(sinCampo).toContain("Todavía no hay cursos-horario aplicados");
     expect(sinDiseno).not.toEqual(sinCampo);
   });
 
@@ -279,7 +279,7 @@ describe("la τ del diseño contra la del campo", () => {
   it("el pie dice que los alumnos se proyectan a lo que se viene respondiendo", () => {
     const html = render(bloque());
     expect(html).toContain("respondan igual que las de hasta ahora");
-    expect(html).toContain("compró aulas de más");
+    expect(html).toContain("compró cursos-horario de más");
   });
 
   it("las DOS tasas se leen como número, no sólo la observada", () => {
@@ -392,17 +392,17 @@ describe("la frase del veredicto concuerda", () => {
     // la función que la produce estaba muerta; el archivo ya advertía que una
     // cifra mal concordada delata que nadie miró la fila de un solo elemento.
     const t = leer({ reservas_necesarias: 1, margen_restante: -1, reservas_de_cadena: 1, reservas_de_banco: 0 });
-    expect(t).toContain("1 aula de su cadena cierra el 1 que falta");
+    expect(t).toContain("1 curso-horario de su cadena cierra el 1 que falta");
     expect(t).not.toContain("los 1 que faltan");
   });
 
   it("en plural mantiene el plural", () => {
     const t = leer({ reservas_necesarias: 14, margen_restante: -188, reservas_de_cadena: 14, reservas_de_banco: 0 });
-    expect(t).toContain("14 aulas de su cadena cierran los 188 que faltan");
+    expect(t).toContain("14 cursos-horario de su cadena cierran los 188 que faltan");
   });
 
   it("mezclando cadena y banco, el origen va junto al sujeto", () => {
     const t = leer({ reservas_necesarias: 9, margen_restante: -40, reservas_de_cadena: 5, reservas_de_banco: 4 });
-    expect(t).toContain("9 aulas (5 de cadena y 4 de banco) cierran los 40 que faltan");
+    expect(t).toContain("9 cursos-horario (5 de cadena y 4 de banco) cierran los 40 que faltan");
   });
 });

@@ -114,7 +114,7 @@ const margenError = (f: MonitoreoAulasEfectividadFacultad): string | null => {
 function lectura(f: MonitoreoAulasEfectividadFacultad): string {
   // Primero el MARGEN, que es lo que decide. El veredicto de la banda se añade
   // detrás porque explica el porqué, no porque mande.
-  if (f.riesgo === "sin_campo") return "Todavía no tiene aulas aplicadas: no hay tasa con la que proyectar.";
+  if (f.riesgo === "sin_campo") return "Todavía no tiene cursos-horario aplicados: no hay tasa con la que proyectar.";
   if (f.riesgo === "sin_cuota") return "El diseño no le trazó cuota: no hay margen que medir.";
   if (f.riesgo === "sin_cumplimiento") return "No se pudo leer lo conseguido de esta facultad.";
 
@@ -130,7 +130,7 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
     ? "No cierra la cuota ni en el mejor escenario del dato"
     : "Su proyección no cierra la cuota";
   const aMano = f.reservas_libres + f.banco_disponible;
-  if (aMano === 0) return `${firme}: faltan ${fmt(falta)} y no le queda ninguna aula de respaldo.`;
+  if (aMano === 0) return `${firme}: faltan ${fmt(falta)} y no le queda ningún curso-horario de respaldo.`;
   if (f.reservas_alcanzan && f.reservas_necesarias != null) {
     const de = f.reservas_de_banco > 0 && f.reservas_de_cadena > 0
       ? ` (${fmt(f.reservas_de_cadena)} de cadena y ${fmt(f.reservas_de_banco)} de banco)`
@@ -139,7 +139,7 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
     // cierra de su cadena los 1 que faltan»: nadie lo había visto porque la
     // función estaba muerta. Y el sujeto va junto a su origen —«14 aulas de su
     // cadena cierran…»—, que es como se dice.
-    const sujeto = f.reservas_necesarias === 1 ? "aula" : "aulas";
+    const sujeto = f.reservas_necesarias === 1 ? "curso-horario" : "cursos-horario";
     const verbo = f.reservas_necesarias === 1 ? "cierra" : "cierran";
     const objeto = falta === 1 ? "el 1 que falta" : `los ${fmt(falta)} que faltan`;
     return `${firme}: ${fmt(f.reservas_necesarias)} ${sujeto}${de} ${verbo} ${objeto}.`;
@@ -226,9 +226,9 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
 function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
   if (f.tau_previsto == null) return "El diseño no supuso una tasa de facultad para esta.";
   const esperado = `Se esperaba ${pct(f.tau_previsto)}`;
-  if (f.tau_observado == null) return `${esperado}; todavía sin aulas aplicadas.`;
+  if (f.tau_observado == null) return `${esperado}; todavía sin cursos-horario aplicados.`;
   if (f.banda_bajo == null || f.banda_alto == null) {
-    return `${esperado} y va respondiendo ${pct(f.tau_observado)}, con una sola aula: todavía no se puede afirmar una diferencia.`;
+    return `${esperado} y va respondiendo ${pct(f.tau_observado)}, con un solo curso-horario: todavía no se puede afirmar una diferencia.`;
   }
   const rel = f.senal === "bajo" ? "por debajo de lo previsto"
     : f.senal === "sobre" ? "por encima de lo previsto"
@@ -278,8 +278,8 @@ export function AulasEfectividadSeguimiento({
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {bloque.vigencia === "sin_diseno"
-          ? "El estudio importado no trae la tasa de efectividad que dimensionó las aulas, así que no hay vara contra la que medir el campo."
-          : "Todavía no hay aulas aplicadas: la tasa que rinde el campo se puede empezar a medir con la primera."}
+          ? "El estudio importado no trae la tasa de efectividad que dimensionó los cursos-horario, así que no hay vara contra la que medir el campo."
+          : "Todavía no hay cursos-horario aplicados: la tasa que rinde el campo se puede empezar a medir con el primero."}
       </p>
     );
   }
@@ -315,13 +315,13 @@ export function AulasEfectividadSeguimiento({
                  `Number(null) === 0` de siempre. */}
           {Number.isFinite(t.tau_previsto) ? (
             <>
-              En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas, la <strong>tasa de la
+              En los {fmt(t.aulas_aplicadas)} cursos-horario ya aplicados, la <strong>tasa de la
               facultad</strong> suponía que respondería el <strong>{pct(t.tau_previsto)}</strong>{" "}
               de los alumnos. Está respondiendo el <strong>{pct(t.tau_observado)}</strong>.
             </>
           ) : (
             <>
-              En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas está respondiendo el{" "}
+              En los {fmt(t.aulas_aplicadas)} cursos-horario ya aplicados está respondiendo el{" "}
               <strong>{pct(t.tau_observado)}</strong> de los alumnos. El estudio no
               declara la tasa con la que se dimensionó, así que no hay contra qué
               compararlo.
@@ -409,7 +409,7 @@ export function AulasEfectividadSeguimiento({
                       enFoco={enFoco} onFoco={onFoco}>
                       {f.facultad}
                       <em>
-                        {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "aula aplicada" : "aulas aplicadas"} ·{" "}
+                        {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"} ·{" "}
                         {fmt(f.efectivas)} de {fmt(f.elegibles_aplicados)} alumnos
                         {f.residual_base === "sin_base" ? " · sin base histórica propia" : ""}
                       </em>
@@ -468,11 +468,11 @@ export function AulasEfectividadSeguimiento({
 
       <p className="aulas-tau-pie">
         <strong>Alumnos</strong> son los que van a sobrar o a faltar para la cuota de la facultad,
-        contando que las aulas que quedan por aplicar respondan igual que las de hasta ahora. No es
-        lo mismo que responder por debajo de lo esperado: el diseño compró aulas de más, así que una
+        contando que los cursos-horario que quedan por aplicar respondan igual que las de hasta ahora. No es
+        lo mismo que responder por debajo de lo esperado: el diseño compró cursos-horario de más, así que una
         facultad puede responder poco y llegar a su cuota igual.{" "}
-        <strong>± pts</strong> es cuánto puede moverse todavía el porcentaje con las aulas que lleva:
-        cuantas menos aulas, más grande.
+        <strong>± pts</strong> es cuánto puede moverse todavía el porcentaje con los cursos-horario que lleva:
+        cuantos menos cursos-horario, más grande.
       </p>
     </div>
   );

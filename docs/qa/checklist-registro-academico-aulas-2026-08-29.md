@@ -457,3 +457,28 @@ seis días por semana desde el 18/09 caen el 27–28/12 ✓.
 
 Geometría tras el cambio, con rótulos más largos: **24 grupos, 0 incidencias, 0
 desbordes** a 1440×1000 y 1024×600.
+
+### Vuelta 14 · Avance > Efectividad
+
+**El panel está bien construido**, comprobado antes de tocarlo: sumadas sus
+quince filas dan **2.668 respuestas sobre 5.356 alumnos = 49.8 %**, exactamente
+lo que declara su cabecera, y sus cursos-horario suman **152**. Cada fila también
+cuadra (355/1.010 = 35.2 %, 92/138 = 66.7 %, 126/246 = 51.2 %). Y su pie explica
+«± pts» sin jerga: «cuánto puede moverse todavía el porcentaje con los
+cursos-horario que lleva: cuantos menos, más grande».
+
+Aquí sólo tocaba cerrar el barrido de vocabulario: **catorce frases** revisadas
+una a una. Dos de ellas eran otra vez **las dos ramas del mismo párrafo**, que es
+ya la quinta aparición del patrón.
+
+**Y el barrido destapó un desborde que estaba latente.** «19 cursos-horario
+aplicados» es más largo que «19 aulas aplicadas», y el panel pasó de **1
+`overflow-x` a 9**. Medido con los cambios en `stash` para separar lo mío de lo
+que ya había.
+
+La causa no era la longitud sino un `white-space: nowrap` heredado del botón de
+foco: con `nowrap`, el `overflow-wrap: anywhere` del contenedor **no llega a
+aplicarse nunca**. La línea de detalle envuelve ahora, que es la reparación que
+el contrato admite —es dato operativo y no se recorta ni se le baja el cuerpo—.
+
+Resultado: **de 9 a 0**, incluida la incidencia que ya existía antes del cambio.
