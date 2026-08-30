@@ -882,7 +882,17 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {/* El rotulo dice QUE mide el grafico. Sin el habia que deducirlo del
               pie, tres bandas mas abajo. */}
           <p className="aulas-serie-rotulo">
-            <b>Acumulado por día <i>· encuestas conseguidas contra la meta</i></b>
+            {/* **«del parte», porque de ahí salen.** `efectivasAcumuladas` suma
+                `effective_surveys` de los partes de campo
+                (`ritmoPorFacultad.ts:84`), no las válidas de plataforma. Medido
+                con `HSVG2026_sem15_como_2025.pulso`: este pie decía «2.817 de
+                2.771» mientras la banda decía «2.668 válidas» —el campo declaró
+                149 más de las que pasaron el filtro— y nada distinguía los dos
+                ejes. El panel vecino, «Qué está rindiendo más», sí lo declara:
+                «encuestas del parte, por aula visitada».
+                Cuál de los dos ejes DEBE mandar es otra pregunta, y es de
+                Gonzalo (ítem 17); esto sólo dice cuál se está mirando. */}
+            <b>Acumulado por día <i>· encuestas del parte contra la meta</i></b>
             {/* Una sola línea de leyenda y sólo con lo que se está dibujando. Con
                 las cuatro explicaciones fijas más el aviso más la sobremuestra, el
                 hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
