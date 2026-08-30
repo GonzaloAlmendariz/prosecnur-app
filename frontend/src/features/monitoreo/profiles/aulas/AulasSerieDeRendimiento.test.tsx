@@ -517,3 +517,36 @@ describe("las dos expectativas se contrastan en la misma frase", () => {
     expect(titular.slice(0, titular.indexOf("</p>"))).not.toContain("el diseño pedía");
   });
 });
+
+describe("el vacío de la serie por sexo manda a revisar lo que de verdad falta", () => {
+  /**
+   * `hayObservadasPorSexo` sale de las celdas de cuota con `observadas > 0`, y
+   * esas celdas se llenan con **el sexo de cada respuesta**. Si están todas en
+   * cero es porque el sexo no llega —la variable sin mapear o sin decodificar—,
+   * y la atribución al curso-horario puede estar funcionando: va por el enlace
+   * del recopilador, que es otro camino.
+   *
+   * El vacío decía «Sin respuestas atribuidas a un curso-horario», que manda a
+   * revisar el enlace. `kpisDeAulas` documenta ese mismo error ya cometido y
+   * corregido en su tarjeta, y la corrección no había llegado aquí.
+   */
+  const conCuotas = (observadas: number) => renderToStaticMarkup(
+    <AulasSerieDeRendimiento
+      partes={[aplicada("2026-08-10", 20, "A1"), aplicada("2026-08-11", 22, "A2")]}
+      cuotas={[
+        { faculty: "Derecho", sex: "F", target: 40, observed: observadas },
+        { faculty: "Derecho", sex: "M", target: 30, observed: observadas },
+      ] as unknown as MonitoreoRow[]}
+    />);
+
+  it("sin sexo en ninguna respuesta, lo dice por su nombre", () => {
+    const html = conCuotas(0);
+    expect(html).toContain("Ninguna respuesta trae el sexo declarado");
+    // Y NO manda a revisar el enlace, que puede estar bien.
+    expect(html).not.toContain("Sin respuestas atribuidas a un curso-horario");
+  });
+
+  it("con sexo declarado no aparece el aviso", () => {
+    expect(conCuotas(12)).not.toContain("Ninguna respuesta trae el sexo declarado");
+  });
+});

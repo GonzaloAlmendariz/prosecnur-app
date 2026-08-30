@@ -2265,3 +2265,40 @@ con su cifra para que se decida cuando aparezca el primer caso.
 **Vacío por fixture, otra vez, y por eso se dice**: cero hoy no es cero siempre.
 Un titular parcial más una reserva parcial es un escenario perfectamente posible
 en un operativo con aulas que se cortan a medias.
+
+### Vuelta 42 · Un vacío que mandaba a revisar el enlace cuando lo que falta es el sexo
+
+Tercera doctrina del índice: **hay dos atribuciones distintas y confundirlas
+manda a revisar lo que no es**. La respuesta se atribuye a una celda sexo ×
+facultad —que necesita el sexo— y a un curso-horario —que va por el enlace del
+recopilador—, y una puede fallar con la otra funcionando.
+
+`kpisDeAulas` documenta el caso ya cometido y corregido en su tarjeta:
+
+> «la tarjeta decía "ninguna atribuida a un curso-horario" mientras dos paneles
+> más abajo se contaban 1.471 respuestas cubriendo la meta de sus aulas y 20
+> aulas en meta. Las dos cifras eran correctas y el rótulo era el que mentía:
+> faltaba el sexo, no el aula, y mandaba a revisar el enlace en vez del mapeo de
+> la variable.»
+
+**Y esa corrección no había llegado al vacío de la serie por sexo**, que decía
+«Sin respuestas atribuidas a un curso-horario no hay serie por sexo». Su
+condición es `hayObservadasPorSexo`, que sale de las celdas de cuota con
+`observadas > 0` —y esas celdas se llenan con el sexo—. Si están todas en cero,
+lo que falta es el sexo; el enlace puede estar perfecto.
+
+Ahora dice **«Ninguna respuesta trae el sexo declarado»**, que es lo que hay que
+ir a arreglar.
+
+**Los otros dos sitios que hablan de atribución al curso-horario son correctos**:
+el estado vacío de la tabla de aulas y el comentario que explica por qué el
+pronóstico proyecta aulas y no respuestas. Ahí el enlace **sí** es el tema.
+
+**Cuarto caso del patrón en el loop**: una doctrina escrita en un módulo no llega
+a sus vecinos. Van la brecha por celdas, el KPI de reemplazos, el universo con
+respaldo y ahora las dos atribuciones. El método que los encuentra es siempre el
+mismo —leer el comentario que explica una decisión y preguntar quién más debería
+cumplirla— y ya es lo que más ha rendido.
+
+Dos casos nuevos; comprobado que muerden: con el texto viejo, rojo en el primero.
+147 archivos / 1.752 tests, typecheck limpio.
