@@ -86,3 +86,55 @@ describe("pronosticoDeCierre", () => {
     expect(sumarDiasDeCampo("2028-02-28", 1)).toBe("2028-02-29");
   });
 });
+
+/**
+ * **El universo son los slots, no las filas del plan.**
+ *
+ * Medido sobre HSVG2026 «como 2025»: 174 titulares, 1.173 reservas encadenadas y
+ * 77 del banco. Excluyendo sólo el banco —que es lo que hacía— el universo salía
+ * 1.347 y el panel publicaba «152 de 1.347 aulas del plan» con «faltan 1.195»,
+ * proyectando al ritmo observado cuándo se aplican mil trescientas aulas que
+ * nadie va a aplicar. Lo que falta son 22.
+ */
+describe("una reserva encadenada no es una aula que haya que aplicar", () => {
+  const titular = (codigo: string) => fila({ operational_code: codigo, sample_role: "titular" });
+  const reserva = (codigo: string, de: string) =>
+    fila({ operational_code: codigo, sample_role: "chain_reserve", titular_operational_code: de });
+
+  it("las reservas no entran al universo, igual que el banco", () => {
+    const plan = [
+      titular("CH 1"), titular("CH 2"), titular("CH 3"),
+      reserva("R 1", "CH 1"), reserva("R 2", "CH 1"), reserva("R 3", "CH 2"),
+      fila({ operational_code: "EXTRA 1", sample_role: "extra_reserve_pool" }),
+    ];
+    const p = pronosticoDeCierre([aplicada("CH 1", "2026-08-10")], plan);
+    expect(p.universo).toBe(3);
+    expect(p.aplicadas).toBe(1);
+    expect(p.faltan).toBe(2);
+  });
+
+  it("pero una reserva aplicada cubre el slot de su titular", () => {
+    // El titular cayó y salió su reserva: el slot está cubierto y el numerador
+    // tiene que verlo. Contar sólo titulares lo perdería.
+    const plan = [titular("CH 1"), titular("CH 2"), reserva("R 1", "CH 1")];
+    const p = pronosticoDeCierre([aplicada("R 1", "2026-08-10")], plan);
+    expect(p.universo).toBe(2);
+    expect(p.aplicadas).toBe(1);
+  });
+
+  it("un titular y su reserva aplicados son UN slot, no dos", () => {
+    const plan = [titular("CH 1"), titular("CH 2"), reserva("R 1", "CH 1")];
+    const p = pronosticoDeCierre(
+      [aplicada("CH 1", "2026-08-10"), aplicada("R 1", "2026-08-11")], plan);
+    expect(p.aplicadas).toBe(1);
+    expect(p.faltan).toBe(1);
+  });
+
+  it("una reserva sin titular declarado no se atribuye a ningún slot", () => {
+    // No sabemos cuál cubre, e inventarlo inflaría el numerador.
+    const plan = [titular("CH 1"), fila({ operational_code: "R X", sample_role: "chain_reserve" })];
+    const p = pronosticoDeCierre([aplicada("R X", "2026-08-10")], plan);
+    expect(p.universo).toBe(1);
+    expect(p.aplicadas).toBe(0);
+  });
+});

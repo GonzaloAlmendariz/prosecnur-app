@@ -1744,3 +1744,49 @@ Comprobado que muerde, y **el primer intento de comprobación no valía**: renom
 la variable dejaba usos huérfanos y rompía cuatro tests por otra causa, que no
 prueba nada sobre el guard. Introducir el patrón **sin romper el código** da el
 rojo limpio: uno solo, señalando `metaDelAula` por su nombre.
+
+### Vuelta 29 · Rendimiento · el pronóstico proyectaba mil trescientas aulas que nadie va a aplicar
+
+El panel «Cuándo se termina de aplicar el plan» excluía del universo el banco
+—con un comentario que lo justifica: «los extras no son aulas que haya que
+aplicar para cerrar, son respaldo del estrato»— y **dejaba dentro las reservas
+encadenadas**, que son respaldo por el mismo motivo y con el mismo argumento.
+
+Composición real del plan, medida:
+
+| Rol | Filas |
+|---|---|
+| `titular` | **174** |
+| `chain_reserve` | **1.173** |
+| `extra_reserve_pool` (banco, ya excluido) | 77 |
+
+| | decía | dice |
+|---|---|---|
+| Universo | **1.347** | **174** |
+| Aplicadas | 152 | 152 |
+| Faltan | **1.195** | **22** |
+
+Un factor de 54 en «lo que falta», y una fecha de cierre proyectada al ritmo
+observado sobre mil trescientas aulas que sólo salen a campo si cae su titular.
+
+**El universo son los slots, uno por titular** — y una reserva aplicada cuenta,
+pero **por el slot del suyo**. De las 152 aplicadas, 134 son titulares y 18 son
+reservas que cubrieron al suyo: exactamente las 18 que el motor cuenta como
+`reemplazada`, y 134 + 18 = 152 cuadra con lo que el panel ya publicaba. Contar
+sólo titulares habría dado 134 y perdido las que sí se aplicaron.
+
+Cuatro casos nuevos, ninguno cubierto antes —el fixture del archivo sólo tenía
+aulas sin rol y un extra del banco—: las reservas fuera del universo, la reserva
+aplicada que cubre a su titular, el titular **y** su reserva aplicados contando
+como **un** slot, y la reserva sin titular declarado, que no se atribuye a
+ninguno porque no se sabe cuál cubre. Comprobado que muerden: con la regla vieja,
+los cuatro rojos y los seis anteriores verdes.
+
+En pantalla: «152 de 174»; «1,347» ya no aparece. Vista `ok=true`, 0 issues, 0 de
+geometría.
+
+**Por qué no lo vio nadie antes**: el cambio de lógica pasó el gate en verde a la
+primera. Ningún test tocaba roles, así que el universo podía valer 174 o 1.347 y
+las diez pruebas del archivo decían lo mismo. Es la tercera vez en este loop que
+un verde a la primera en un cambio de lógica señala un hueco de cobertura y no un
+acierto.
