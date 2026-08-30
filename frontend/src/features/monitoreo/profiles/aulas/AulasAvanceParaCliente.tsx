@@ -35,16 +35,44 @@ const personas = (n: number | null, esFaltante = false) => {
 /**
  * El veredicto en palabra, no sólo en color.
  *
- * `ajustada` existe porque «cerrada» y «le falta poco» piden cosas distintas y
+ * «Le falta poco» existe porque cumplida y casi cumplida piden cosas distintas y
  * un umbral binario las junta: a 95 % de la cuota no hay que salir corriendo,
  * pero tampoco se puede dar por cerrada.
+ *
+ * ## Se decide con lo que FALTA, no con el avance
+ *
+ * Decía `f.avance >= 1` → «Cerrada», y `avance` es el cociente de los TOTALES de
+ * la facultad, que compensa un sexo con el otro. `faltan`, en cambio, ya suma el
+ * déficit de cada sexo por separado (`avanceParaCliente.ts`), tal como manda el
+ * ADR 0079 y el encargo: «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN
+ * CON SU CUOTA DE SEXO. Ese es lo fundamental de todo esto».
+ *
+ * Con las dos reglas conviviendo, **la misma fila decía «Cerrada» y «Faltan
+ * 17»**. Medido en pantalla el 2026-08-29 con `como_2025`:
+ *
+ *   Arquitectura     cuota 125 (85 M / 40 H) · lleva 126 (68 M / 58 H) · faltan 17
+ *   Ciencias e Ing.  cuota 528 (130 M / 398 H) · lleva 535 (141 M / 394 H) · faltan 4
+ *   Educación        cuota 24 (20 M / 4 H) · lleva 33 (32 M / 1 H) · faltan 3
+ *
+ * A Arquitectura le faltan 17 mujeres y le sobran 18 hombres: el total sale a
+ * 100.8 % y la cuota que importa está sin cerrar. Quien lee la tabla —que es la
+ * que va al PDF y al libro— se llevaba tres facultades por cerradas.
+ *
+ * El umbral de «le falta poco» también pasa a medirse sobre lo que falta: un
+ * avance del 100.8 % no dice nada de si el hueco que queda es de 4 personas o de
+ * 17.
  */
+const CASI = 0.1;
+
 function veredicto(f: FilaAvanceCliente): { texto: string; tono: string } {
   if (f.muestra == null) return { texto: "Sin cuota", tono: "es-neutro" };
-  if (f.avance == null) return { texto: "Sin dato", tono: "es-neutro" };
-  if (f.avance >= 1) return { texto: "Cerrada", tono: "es-ok" };
-  if (f.avance >= 0.9) return { texto: "Le falta poco", tono: "es-aviso" };
-  return { texto: "Abierta", tono: "es-riesgo" };
+  if (f.avance == null || f.faltan == null) return { texto: "Sin dato", tono: "es-neutro" };
+  if (f.faltan === 0) return { texto: "Cuota cumplida", tono: "es-ok" };
+  // Sobre la cuota, que es el tamaño contra el que un hueco es grande o chico.
+  if (f.muestra > 0 && f.faltan <= f.muestra * CASI) {
+    return { texto: "Le falta poco", tono: "es-aviso" };
+  }
+  return { texto: "Cuota pendiente", tono: "es-riesgo" };
 }
 
 export function AulasAvanceParaCliente({
