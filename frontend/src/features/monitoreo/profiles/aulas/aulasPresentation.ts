@@ -117,8 +117,8 @@ export const FIELD_LABELS: Record<string, string> = {
   // La columna del libro se llama «ELEGIBLES: BASE DEL %»: es el padrón, y está
   // ahí como denominador visible del porcentaje esperado. No es una meta.
   elegibles_esperados: "Elegibles (base del %)",
-  mujeres_esperadas: "Mujeres que espera el aula",
-  hombres_esperados: "Hombres que espera el aula",
+  mujeres_esperadas: "Mujeres que espera el curso-horario",
+  hombres_esperados: "Hombres que espera el curso-horario",
   last_response_day: "Último día de respuesta",
   non_respondents: "Asistentes que no respondieron",
   attendance_pct: "% Asistencia",
@@ -436,12 +436,12 @@ export const ESTADOS_OPERATIVOS: Array<{ value: string; label: string }> = [
 
 export const MOTIVOS_DE_REEMPLAZO: Array<{ value: string; label: string }> = [
   { value: "docente_no_autoriza", label: "El docente no autoriza" },
-  { value: "aula_no_existe", label: "El aula no existe" },
+  { value: "aula_no_existe", label: "El curso-horario no existe" },
   { value: "horario_cambio", label: "Cambió el horario" },
   { value: "virtual_no_presencial", label: "Es virtual, no presencial" },
   { value: "baja_asistencia", label: "Muy baja asistencia" },
   { value: "cruce_logistico", label: "Cruce logístico" },
-  { value: "aula_ya_aplicada", label: "El aula ya se aplicó" },
+  { value: "aula_ya_aplicada", label: "El curso-horario ya se aplicó" },
   { value: "incidencia_etica", label: "Incidencia ética" },
   { value: "otro", label: "Otro" },
 ];

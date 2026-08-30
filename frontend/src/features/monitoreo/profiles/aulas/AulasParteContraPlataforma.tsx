@@ -47,7 +47,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
           {fmt(r.comparables)} cursos-horario comparables. Con esa proporción el problema
           no está en lo que anotó el campo: es que las respuestas no se están
           atribuyendo al mismo curso-horario que declara el parte. Revisa qué
-          columna identifica el aula en la base, en Fuentes.
+          columna identifica el curso-horario en la base, en Fuentes.
         </p>
       </div>
     );

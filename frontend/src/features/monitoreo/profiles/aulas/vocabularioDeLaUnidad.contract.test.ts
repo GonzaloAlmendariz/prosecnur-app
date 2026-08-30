@@ -71,8 +71,22 @@ const TOPE = 23;
  * El `(?!-)` final descarta `${className} aulas-foco-boton`: el guion cuenta
  * como frontera de palabra, así que un nombre de clase CSS casaba como prosa.
  */
+/**
+ * **«en el aula» es el SALÓN, y no cuenta.** Al añadir «el» a los determinantes,
+ * el detector destapó ocho frases: cuatro hablaban de la unidad —«cerrar el
+ * aula», «el aula se cae», «identifica el aula», «registrar el aula»— y se
+ * corrigieron; las otras cuatro son locativas —«personas estaban en el aula»,
+ * «quien estuvo en el aula»— y ahí «aula» es el espacio físico donde ocurrió la
+ * sesión, que es su significado correcto.
+ *
+ * La frontera resultó ser exactamente la preposición: con «en» delante es un
+ * lugar, sin ella es la unidad. Por eso se descuenta el locativo en vez de
+ * mantener una lista de frases, que caducaría a la primera reescritura.
+ */
+const EN_EL_AULA_LOCATIVO = /\ben\s+el\s+aulas?\b(?!-)/gi;
+
 const EN_PROSA =
-  /(?:\b(?:la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
+  /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
 
 /**
  * **Dos formas más que el detector de arriba no puede ver.**
@@ -110,7 +124,10 @@ function frasesConAula() {
       .replace(/\/\/[^\n]*/g, "");
     const n = (fuente.match(EN_PROSA) ?? []).length
       + (fuente.match(AL_ABRIR_FRASE) ?? []).length
-      + (fuente.match(TRAS_VERBO) ?? []).length;
+      + (fuente.match(TRAS_VERBO) ?? []).length
+      // El locativo lo cuenta `EN_PROSA` por su «el», y hay que descontarlo: ahí
+      // «aula» es el salón, no la unidad.
+      - (fuente.match(EN_EL_AULA_LOCATIVO) ?? []).length;
     if (n) porArchivo.push([archivo, n]);
   }
   return porArchivo;

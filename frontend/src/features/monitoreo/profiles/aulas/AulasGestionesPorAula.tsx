@@ -71,7 +71,7 @@ export function AulasGestionesPorAula({ distribucion }: {
         ))}
       </ol>
       <p className="mon-profile-muted aulas-gestiones-pie">
-        Llamadas hasta cerrar el aula. A partir de la {UMBRAL_DE_RIESGO}.ª el aula
+        Llamadas hasta cerrar el curso-horario. A partir de la {UMBRAL_DE_RIESGO}.ª el curso-horario
         se cae el doble de veces, y eso se sabe antes de que se caiga.
       </p>
     </details>
