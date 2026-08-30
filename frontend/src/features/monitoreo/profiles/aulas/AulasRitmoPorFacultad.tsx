@@ -44,7 +44,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {partes.length
           ? `Ninguno de los ${fmt(partes.length)} partes de campo trae fecha de aplicación, así que no se puede seguir el ritmo.`
-          : "Todavía no hay partes de campo: el ritmo aparece en cuanto se registre la primera aula aplicada."}
+          : "Todavía no hay partes de campo: el ritmo aparece en cuanto se registre el primer curso-horario aplicado."}
       </p>
     );
   }
