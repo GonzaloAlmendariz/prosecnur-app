@@ -182,7 +182,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
       {sinBanco > 0 ? (
         <p className="aulas-anticipacion-sinbanco">
           En <strong>{fmt(sinBanco)}</strong> {sinBanco === 1 ? "facultad" : "facultades"}{" "}
-          el banco de extras no tiene las aulas que se piden: eso no se resuelve
+          el banco de extras no tiene los cursos-horario que se piden: eso no se resuelve
           llamando, se resuelve ampliando la muestra en Cálculo de muestra.
         </p>
       ) : null}
@@ -270,7 +270,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
         llamar sin que la facultad se quede parada: se cuenta desde el día en que
         se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
         que pasaron de mediana entre llamar a un curso-horario y aplicarlo, también en 2025.
-        {hayBanco ? " «Banco» son las aulas extra de esa facultad que siguen sin usarse." : ""}
+        {hayBanco ? " «Banco» son los cursos-horario extra de esa facultad que siguen sin usarse." : ""}
       </p>
     </div>
   );

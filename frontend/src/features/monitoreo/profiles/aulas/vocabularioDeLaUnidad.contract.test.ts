@@ -55,7 +55,7 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
-const TOPE = 34;
+const TOPE = 23;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.

@@ -112,7 +112,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         </ul>
       <div className="aulas-pronostico-lienzo">
       <svg className="aulas-pronostico-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
-        role="img" aria-label={`${fmt(p.aplicadas)} de ${fmt(p.universo)} aulas; cierre estimado entre ${dm(pronto)} y ${dm(tarde)}`}>
+        role="img" aria-label={`${fmt(p.aplicadas)} de ${fmt(p.universo)} cursos-horario; cierre estimado entre ${dm(pronto)} y ${dm(tarde)}`}>
         {/* La rejilla. Va primero para quedar detras de todo. */}
         {marcas.map((m) => (
           <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
@@ -155,7 +155,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
             79 % del dibujo. */}
         <span className="aulas-pronostico-hoy"
           style={{ left: `${x(desde)}%`, top: `${y(p.aplicadas)}%` }}
-          title={`${fmt(p.aplicadas)} de ${fmt(p.universo)} aulas al ${dm(p.ultimaFecha)}`} />
+          title={`${fmt(p.aplicadas)} de ${fmt(p.universo)} cursos-horario al ${dm(p.ultimaFecha)}`} />
       </div>
       </div>
       <p className="aulas-pronostico-eje">
