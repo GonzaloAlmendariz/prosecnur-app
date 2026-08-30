@@ -24,6 +24,9 @@ import { describe, expect, it } from "vitest";
 const RAICES = [
   "aplicad", "agendad", "reagendad", "reemplazad",
   "contactad", "citad", "cerrad", "descartad", "planificad", "cancelad",
+  // «Activada el» vivía en FIELD_LABELS y esta lista no la veía. El campo se
+  // escribe en `plan[[pos]]$activated_at`, o sea sobre un curso-horario.
+  "activad",
 ];
 
 /** Femeninos legítimos: su sujeto no es la unidad. */
@@ -64,14 +67,19 @@ function sinComentarios(src: string): string {
 describe("el género de las etiquetas concuerda con la unidad", () => {
   it("ningún rótulo del perfil habla del curso-horario en femenino", () => {
     const mayus = RAICES.map((r) => r[0].toUpperCase() + r.slice(1)).join("|");
-    const patron = new RegExp(`"((?:${RAICES.join("|")}|${mayus})a(?:s)?\\b[^"]{0,40})"`, "g");
+    const cuerpo = `(?:${RAICES.join("|")}|${mayus})a(?:s)?\\b`;
+    // Dos formas de escribir un rótulo, y la segunda faltaba: «Reemplazadas»
+    // era una cabecera de columna en JSX plano —`<span …>Reemplazadas</span>`—
+    // sin comillas alrededor, así que el barrido de literales no la alcanzaba.
+    const patron = new RegExp(`"(${cuerpo}[^"]{0,40})"|>\\s*(${cuerpo}[^<{]{0,40})<`, "g");
     const hallados: string[] = [];
 
     for (const archivo of fuentes(AQUI)) {
       const limpio = sinComentarios(readFileSync(archivo, "utf8"));
       for (const m of limpio.matchAll(patron)) {
-        if (!esRotulo(m[1]) || OTRO_SUJETO.has(m[1])) continue;
-        hallados.push(`${archivo.split("/aulas/")[1]}: "${m[1]}"`);
+        const literal = (m[1] ?? m[2]).trim();
+        if (!esRotulo(literal) || OTRO_SUJETO.has(literal)) continue;
+        hallados.push(`${archivo.split("/aulas/")[1]}: "${literal}"`);
       }
     }
 
