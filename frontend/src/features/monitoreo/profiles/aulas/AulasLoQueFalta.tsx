@@ -130,7 +130,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       <div className="aulas-falta-lienzo">
         <svg className="aulas-falta-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
           role="img"
-          aria-label={`Escalera de esfuerzo: ${fmt(costo)} encuestas cierran ${fmt(total)} aulas; ${fmt(conCinco)} necesitan cinco o menos`}>
+          aria-label={`Escalera de esfuerzo: ${fmt(costo)} encuestas cierran ${fmt(total)} cursos-horario; ${fmt(conCinco)} necesitan cinco o menos`}>
           {[0.5, 1].map((f) => (
             <line key={f} x1={MARGEN} y1={y(total * f)} x2={100 - MARGEN} y2={y(total * f)}
               stroke="var(--pulso-border)" strokeWidth="1" vectorEffect="non-scaling-stroke"
