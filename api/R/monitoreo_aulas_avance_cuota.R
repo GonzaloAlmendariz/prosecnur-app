@@ -214,7 +214,8 @@
 # cuando el bloque degrada a la meta del plan.
 .monitoreo_aulas_avance_cuota <- function(plan_df, tracked_df, responses, cfg,
                                           valid_response = logical(0),
-                                          response_classroom = character(0)) {
+                                          response_classroom = character(0),
+                                          celdas_sexo = NULL) {
   vig <- .monitoreo_aulas_avance_vigencia(cfg)
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
   total_validas <- as.integer(sum(atr$valid))
@@ -323,10 +324,46 @@
     num_total <- sum(vapply(filas, function(x) as.numeric(x$respuestas_validas), numeric(1)))
   }
 
+  # **La brecha es la SUMA DE LAS CELDAS, no la resta del total.**
+  #
+  # Un hombre de mas no cubre a una mujer que falta. La doctrina ya estaba
+  # escrita y aplicada en `avance_por_facultad`
+  # (`monitoreo_aulas_universitarias.R` ~1936, con el caso observado de
+  # GASTRONOMIA) y NUNCA se propago hasta aqui: las dos estructuras viajan en el
+  # mismo payload y se pintan en la misma seccion de Avance con reglas
+  # distintas.
+  #
+  # Medido sobre HSVG2026 «como 2025»: `avance_por_facultad` publicaba 17, 4 y 3
+  # de brecha para ARQUITECTURA, CIENCIAS E INGENIERIA y EDUCACION, mientras
+  # `avance_cuota` publicaba CERO para las tres y su panel las contaba entre las
+  # «cumplidas» — Arquitectura con 126 de 125 y diecisiete mujeres pendientes.
+  #
+  # `NULL` o sin celdas para esa facultad cae a la resta simple, igual que hace
+  # el vecino: una facultad sin desglose de sexo no tiene celdas que sumar, y
+  # fabricarle una brecha de cero seria peor que la resta.
+  falta_por_celdas <- local({
+    if (!length(celdas_sexo)) return(function(k) NA_real_)
+    keys <- vapply(celdas_sexo, function(c) {
+      .cm_criterios_fac_key(.monitoreo_scalar(c$faculty, ""))
+    }, character(1))
+    faltas <- vapply(celdas_sexo, function(c) {
+      tg <- .monitoreo_num(c$target, NA_real_)
+      ob <- .monitoreo_num(c$observed, 0)
+      if (!is.finite(tg)) return(NA_real_)
+      max(0, tg - (if (is.finite(ob)) ob else 0))
+    }, numeric(1))
+    function(k) {
+      cuales <- keys == k & is.finite(faltas)
+      if (!any(cuales)) return(NA_real_)
+      sum(faltas[cuales])
+    }
+  })
+
   filas <- lapply(filas, function(x) {
     cuota <- x$cuota
     if (is.finite(cuota)) {
-      x$brecha <- max(0, cuota - x$respuestas_validas)
+      por_celdas <- falta_por_celdas(.monitoreo_scalar(x$faculty_key, ""))
+      x$brecha <- if (is.finite(por_celdas)) por_celdas else max(0, cuota - x$respuestas_validas)
       # `> 0` y no `>= 0`: una cuota en cero no es una meta cumplida, es una
       # meta sin denominador — NA y no Inf. El avance por encima de 100 se
       # publica SIN cap: pasarse de la cuota es un hecho, no un error.
@@ -350,7 +387,13 @@
   total <- list(
     cuota = if (is.finite(cuota_total)) cuota_total else NA_real_,
     respuestas_validas = as.integer(num_total),
-    brecha = if (is.finite(cuota_total)) max(0, cuota_total - num_total) else NA_real_,
+    # **Las partes suman el total.** Restar el total por su lado publicaba
+    # «cero faltan» arriba con 17, 4 y 3 en tres filas de abajo: quien suma la
+    # columna no llega nunca a la cifra de la cabecera.
+    brecha = if (is.finite(cuota_total)) {
+      b <- vapply(filas, function(x) .monitoreo_num(x$brecha, NA_real_), numeric(1))
+      if (all(is.na(b))) max(0, cuota_total - num_total) else sum(b, na.rm = TRUE)
+    } else NA_real_,
     avance_pct = if (is.finite(cuota_total) && cuota_total > 0) {
       round(100 * num_total / cuota_total, 1)
     } else NA_real_,

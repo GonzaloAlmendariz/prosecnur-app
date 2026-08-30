@@ -1318,3 +1318,54 @@ rojo en ese test y sólo en ése.
 
 Es la segunda vez en este loop que la reparación correcta no es cambiar un
 número, sino **atar dos expresiones que hoy coinciden por casualidad**.
+
+### Vuelta 20 · Dos brechas del mismo payload, en la misma pantalla, con reglas contrarias
+
+El hallazgo más grave desde la vuelta 4, y esta vez está en el motor.
+
+`avance_por_facultad` y `avance_cuota` viajan **en el mismo payload** y se pintan
+**en la misma sección de Avance**. Medido contra la pila con
+`HSVG2026_sem15_como_2025`:
+
+| Facultad | meta | válidas | `avance_por_facultad` | `avance_cuota` | déficit real por sexo |
+|---|---|---|---|---|---|
+| Arquitectura y Urbanismo | 125 | 126 | **17** | **0** | 17 mujeres |
+| Ciencias e Ingeniería | 528 | 535 | **4** | **0** | 4 |
+| Educación | 24 | 33 | **3** | **0** | 3 |
+
+La primera suma los déficits de sus celdas de sexo; la segunda restaba
+`max(0, cuota − válidas)` sobre el total de la facultad, que **deja que un sexo
+compense al otro**. Su panel contaba esas tres entre las «cumplidas»
+—`cumplida = estado === "ok" && brecha === 0`— y su cabecera publicaba
+**brecha 0 con avance 106.7 %** mientras tres filas de abajo debían 24 personas.
+
+**La doctrina ya estaba escrita, aplicada y con un caso observado… en la otra
+estructura.** El comentario de `monitoreo_aulas_universitarias.R` ~1936 dice
+«la brecha es la SUMA DE LAS CELDAS, no la resta del total» y cita Gastronomía,
+con dos mujeres cortas publicadas como cero. Esa reparación **nunca se propagó
+a la superficie gemela**, y nada lo detectaba porque cada una tiene sus propios
+tests y ninguno las compara.
+
+La reparación pasa `quotas_sex_faculty` —ya calculado unas líneas antes, en el
+mismo llamador— a `.monitoreo_aulas_avance_cuota()`, y la brecha de cada
+facultad sale de sus celdas. **El fallback sigue vivo y tiene su test**: una
+facultad sin desglose de sexo cae a la resta simple, porque fabricarle un cero
+sería peor. El total pasa a sumar las brechas de sus filas, que es lo que
+permite que la columna cuadre con la cabecera.
+
+Dos tests nuevos, con las cifras exactas de Arquitectura (125 = 85 F + 40 M,
+logradas 126 = 68 F + 58 M). Comprobado que muerden: con la resta simple, rojo
+en los dos asserts del caso —`brecha` y `total$brecha`— y verde en el del
+fallback.
+
+**Cómo apareció, que es lo replicable**: no leyendo código, sino midiendo el
+payload real y **cruzando dos estructuras que dicen lo mismo con nombres
+distintos**. El primer intento de sonda devolvió «0 facultades y 0 celdas»
+porque el dashboard del perfil vive en `dashboard.aulas_universitarias_reports`
+y yo leía un nivel más arriba. Ese cero era un fallo de sonda, no una ausencia:
+darlo por bueno habría cerrado la pestaña como conforme.
+
+**Pendiente de esta vuelta**: verlo en pantalla. El backend de la pila lleva el
+código anterior cargado —un cambio en R no se ve sin relanzar—, así que la
+evidencia de hoy es el payload medido antes de la reparación más los tests
+después. Queda relanzar y capturar la pestaña.
