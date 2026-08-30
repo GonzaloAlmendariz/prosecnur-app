@@ -340,3 +340,27 @@ gráfico publica 269 —la suma del resumen— y salió roja: descuenta las 70 d
 banco y publica **199 en juego**. Comprobado imprimiendo el render en vez de
 deducirlo, con un control en el caso contrario (2, las filas que viajan) para que
 la aserción distinga de dónde sale la cifra.
+
+### Vuelta 10 · «Meta» y «cuota» no son lo mismo, y el panel las mezclaba
+
+«Dónde falta más» se rotula «contra la **cuota** del estudio, por sexo» y su
+lectura decía «15 facultades · 9 con su **meta** cumplida». En este perfil son
+dos denominadores distintos: la meta es por curso-horario y suma 3.227; la cuota
+es por facultad y sexo y suma 2.500.
+
+No era sólo una palabra mal puesta: **el panel mide contra una vara u otra según
+la rama**. Con el bloque del motor mide contra la cuota —su docstring en R lo
+titula «Avance por facultad y sexo contra la cuota del diseño» y sale de
+`design_targets`— y sin él cae al cálculo local, que mide contra la meta del plan
+(`expected_valid`), como declara la cabecera de su propio módulo. La frase fija
+era exacta en una rama e incorrecta en la otra.
+
+Cuál manda está comprobado en las dos puntas: por el motor, y en pantalla, donde
+Ciencias Sociales da **63.1 % y faltan 55** tanto en este panel como en la
+pestaña de Cuotas. Ahora la palabra sigue a la vara, con test que lo fija en los
+dos casos y un control en el contrario.
+
+**Lo que sí cuadraba**, comprobado antes de tocar nada: 28 + 27 = 55 y 10 + 38 =
+48 en las filas; 9 cumplidas + 6 con déficit = 15 facultades, coherente con el
+«Faltan 170 repartidos en 6 facultades» de Cuotas; y en «Ritmo de la
+recolección», 2.668 respuestas en 11 días = 243 al día.

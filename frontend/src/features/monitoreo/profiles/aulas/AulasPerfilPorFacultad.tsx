@@ -27,7 +27,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { facultades, sinFacultad, tope, cumplidas } = useMemo(
+  const { facultades, sinFacultad, tope, cumplidas, vara } = useMemo(
     // El bloque del motor manda porque agrega sobre el conjunto correcto: un
     // aula por slot y sin banco. Calcularlo aquí sobre `course_status` medía
     // 500 filas de 2 615, reservas dormidas incluidas. El cálculo local se
@@ -56,7 +56,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
       <p className="aulas-facultades-lectura">
         <strong>{fmt(facultades.length)}</strong>{" "}
         {facultades.length === 1 ? "facultad" : "facultades"} ·{" "}
-        <strong>{fmt(cumplidas)}</strong> con su meta cumplida
+        <strong>{fmt(cumplidas)}</strong> con su {vara === "cuota del estudio" ? "cuota" : "meta"} cumplida
         {sinFacultad ? <> · {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
       </p>
       {/* El envoltorio lleva el scroll; la rejilla conserva su `1fr`, que es lo
@@ -117,7 +117,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
                   <em>{" "}respuestas faltan · {pctPerfil(f.avance)} conseguido</em>
                 </>
               ) : (
-                <em className="es-cumplida">meta cumplida</em>
+                <em className="es-cumplida">{vara === "cuota del estudio" ? "cuota" : "meta"} cumplida</em>
               )}
               {/* **De qué lado va corta.** El número de arriba es el total de la
                   facultad y puede leerse cubierto con una celda de sexo corta:
