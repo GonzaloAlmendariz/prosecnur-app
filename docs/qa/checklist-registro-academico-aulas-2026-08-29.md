@@ -1020,3 +1020,34 @@ qué se vería con el instrumento cargado.
 Es el mismo defecto que este loop viene cazando en las cifras —afirmar más de lo
 que el dato permite—, aquí sobre un vacío: **la diferencia entre «no hay» y «no
 se sabe» es justo la que un lector no técnico no puede reconstruir solo**.
+
+## Consultas · la última sección
+
+**`consultas/parte`** · El panel está bien construido y no se toca. Declara lo que
+**no** se puede leer y por qué: «la cadena hasta las efectivas no se puede leer:
+ningún parte declara los que no quisieron responder ni los que ya habían
+respondido», y «no se puede saber si alguna aula se aplicó en otro salón: el plan
+agendado no trae salón para ningún curso-horario, así que no hay contra qué
+comparar los 152 partes». Las dos son causa + consecuencia, que es el patrón
+correcto.
+
+Sus columnas —«CANTIDAD DE ASISTENTES», «CANTIDAD DE EFECTIVAS»— parecían
+candidatas a simplificarse. **No se tocan**: son los títulos literales del Excel
+que el equipo llena; el motor las lee y las escribe por ese nombre
+(`carga_aulas_aplicadas.R`, `carga_aulas_libro_generar.R`). Cambiarlas rompería
+la lectura del libro, además de contradecir la instrucción de no normalizar lo
+que viene del equipo.
+
+**`consultas/extras`** · Todo cuadra, y cuadra **entre secciones**:
+
+- «77 extras» coincide con los 77 del banco que ya nombraban Fuentes y Resumen
+- 1.805 mujeres + 910 hombres = **2.715 alumnos** ✓
+- explica qué son y qué no: «no reemplazan a ningún curso-horario: son aulas
+  adicionales para cerrar la cuota de hombres y mujeres de cada facultad»
+- y declara su límite sin saltárselo: «para saber si el banco alcanza hace falta
+  la hoja "Base de control"… sin ella proyectar sus alumnos sería inventar»
+
+«Aulas extra» queda como está: es el término del operativo —el mismo «bolsón
+extra» del popover de reemplazo— y no hay nada que indique lo contrario. Tras
+tres frenos del repo por renombrar términos establecidos, la carga de la prueba
+está en cambiar, no en dejar.
