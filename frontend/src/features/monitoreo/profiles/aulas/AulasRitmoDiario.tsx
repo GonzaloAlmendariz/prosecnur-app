@@ -24,6 +24,12 @@ export type RitmoDiario = {
   mejor_dia?: { fecha: string; validas: number } | null;
   media_diaria: number;
   meta: number;
+  /**
+   * Lo que falta según el motor, que **no es `meta - acumulado`**: suma lo que
+   * le debe cada grupo de facultad y sexo (ADR 0079). `null` en payloads
+   * anteriores a que el motor la publicara.
+   */
+  brecha?: number | null;
 };
 
 /** «Lun 10/08», que es como se nombra un día de campo en el resto del perfil. */
@@ -71,10 +77,37 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
   // la meta MOSTRADA, así que 667 + 2.824 = 3.491 cuadra a la vista y da el
   // mismo número que la banda de KPIs y que la tabla del cliente.
   const metaEntera = Math.round(meta);
-  const falta = Math.max(0, metaEntera - total);
+  /**
+   * **Lo que falta lo dice el motor, no esta resta.**
+   *
+   * `metaEntera - total` da CERO en cuanto el acumulado supera la cuota, y sobre
+   * este corte eso pasa con 2.668 sobre 2.500 mientras siguen faltando 170
+   * personas en los grupos que no cierran. El pie entero está tras un
+   * `falta > 0`, así que el panel no publicaba una cifra equivocada: **se
+   * callaba**, que es más difícil de ver.
+   *
+   * La resta se queda como respaldo para un payload que aún no traiga la
+   * brecha; con ella, manda la del motor.
+   */
+  // `Number(null)` es CERO, no `NaN`: comprobar sólo `isFinite` hacía que un
+  // payload sin brecha se leyera como brecha cero y apagara el pie entero, que
+  // es justo el silencio que esta reparación viene a quitar. El `== null` va
+  // primero y cubre `null` y `undefined` de una vez.
+  const brechaDelMotor = ritmo.brecha == null ? Number.NaN : Number(ritmo.brecha);
+  const falta = Number.isFinite(brechaDelMotor)
+    ? Math.max(0, brechaDelMotor)
+    : Math.max(0, metaEntera - total);
+  /**
+   * **Cuando el total ya cubre la meta y aun así falta gente, la brecha es de
+   * composición y no de volumen**: las respuestas que quedan tienen que caer en
+   * los grupos cortos, no en cualquiera. Prometer «N días más al ritmo de» sería
+   * falso —al ritmo medio no se cierra una cuota por sexo—, así que ahí el pie
+   * dice lo que falta y de qué se trata, y se calla los días.
+   */
+  const brechaDeComposicion = falta > 0 && total >= metaEntera;
   // Cuántos días más al ritmo medio. Es una división, no un pronóstico, y por
   // eso se dice «al ritmo de» y no «terminará el».
-  const diasAlRitmo = media > 0 && falta > 0 ? Math.ceil(falta / media) : 0;
+  const diasAlRitmo = media > 0 && falta > 0 && !brechaDeComposicion ? Math.ceil(falta / media) : 0;
 
   return (
     <div className="aulas-ritmo">
@@ -136,7 +169,16 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
               arreglaron**: se corrigió la media diaria y no este pie. Hacia
               arriba en los dos, que es la regla de una meta y de lo que falta
               para cumplirla: quedarse a 0,4 de una persona es quedarse corto. */}
-          Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(metaEntera)}
+          {brechaDeComposicion ? (
+            <>
+              Faltan <strong>{fmtCuenta(falta)}</strong> en los grupos de facultad y sexo que
+              aún no cierran, aunque el total ya pasa la meta de {fmtCuenta(metaEntera)}
+            </>
+          ) : (
+            <>
+              Faltan <strong>{fmtCuenta(falta)}</strong> para la meta total de {fmtCuenta(metaEntera)}
+            </>
+          )}
           {diasAlRitmo
             ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
             : ""}
