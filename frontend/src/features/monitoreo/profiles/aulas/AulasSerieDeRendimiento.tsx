@@ -1504,7 +1504,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {proyectada ? proyectada.dias.map((d, i) => {
             const lineas = [
               `${dm(d.fecha)} · inferido de la agenda`,
-              `${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"}`,
+              `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario agendado" : "cursos-horario agendados"}`,
               d.elegibles ? `${fmt(d.elegibles)} elegibles · ~${personasProyectadas(d.esperadas)} esperadas` : `~${personasProyectadas(d.esperadas)} esperadas`,
             ];
             const px = xp(i);
