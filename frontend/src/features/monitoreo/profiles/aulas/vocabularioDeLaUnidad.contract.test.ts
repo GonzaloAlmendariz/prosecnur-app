@@ -42,6 +42,17 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  * dos umbrales"` no contaba, y corregirla no movió este número. Sirve para lo
  * que se creó —impedir que la deuda crezca— pero su cifra es una cota inferior.
  *
+ * **Cuánto es «un piso», medido.** Se probaron dos detectores más amplios: uno
+ * que cuenta la palabra siempre que no forme parte de un identificador da 314, y
+ * otro que exige contexto de frase da 123 — pero los dos siguen cazando código
+ * (`const aulas = banco.disponibles`, `filas, falta, aulas`), en torno al 14 %
+ * de lo que devuelven. **Un ratchet con falsos positivos es peor que uno
+ * incompleto**: bloquea trabajo legítimo, porque el número no se puede bajar
+ * arreglando prosa.
+ *
+ * Así que se conserva el preciso, y la magnitud real queda escrita aquí: la
+ * deuda ronda las **120 frases**, no las 63 que este contador ve.
+ *
  * Medido el 2026-08-29, después de cerrar las seis pestañas de Avance.
  */
 const TOPE = 63;
