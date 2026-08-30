@@ -26,6 +26,17 @@ import { fmt } from "./kpisDeAulas";
  * panel que no existe todavía. Si se decide que no hace falta, se borra con su
  * test y su entrada en `componentesSinMontar`.
  *
+ * **Y si se decide montarlo, su denominador hay que decirlo.** Medido el
+ * 2026-08-30 sobre `HSVG2026_sem15_como_2025`: los 72 estratos suman **891** de
+ * brecha, mientras el estudio entero debe **170**. Las válidas coinciden —2.668
+ * en los dos— así que no es un error de cuenta: el estrato es
+ * `facultad / sexo / tamaño` y sus brechas no se compensan entre grupos de
+ * tamaño, mientras la cuota se mide sobre `facultad / sexo`. Montado tal cual, y
+ * como este componente publica `brechaTotal`, la pantalla diría «faltan 891» a
+ * dos paneles de un «faltan 170» sin nada que los reconcilie: exactamente la
+ * clase de contradicción que ya obligó a renombrar los dos «Cumplimiento» de
+ * Avance.
+ *
  * Dónde falta más, de un vistazo.
  *
  * La tabla de `avance_por_estrato` trae los mismos números, pero contesta mal la
