@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
 import { aulasKpis } from "./kpisDeAulas";
+import { FIELD_LABELS } from "./aulasPresentation";
 
 /**
  * Dos superficies de la misma pantalla no pueden llamar igual a dos ejes
@@ -48,5 +49,40 @@ describe("los rótulos de tramo no chocan con los de la banda", () => {
   it("y los tramos no se repiten entre sí", () => {
     const vistas = TRAMOS_DE_APLICACION.map((t) => raiz(t.etiqueta));
     expect(new Set(vistas).size).toBe(vistas.length);
+  });
+});
+
+/**
+ * **Y dos columnas distintas tampoco pueden llamarse igual.**
+ *
+ * El guard de arriba compara los tramos de aplicación con la banda de KPIs.
+ * `FIELD_LABELS` —el glosario que pone nombre a cada columna de tabla— no lo
+ * vigilaba nadie, y ahí vivían `application_status` y `application_state`: la
+ * primera es la columna «STATUS DE APLICACIÓN» que el equipo escribe en el
+ * parte, la segunda el estado que el motor deriva del avance. Dos cosas
+ * distintas que se distinguían **sólo porque una decía «Status» y la otra
+ * «Estado»** — un anglicismo haciendo de distinción, que no le dice nada a
+ * quien lee. Al traducir el anglicismo quedaron homónimas y nada se puso rojo.
+ *
+ * El censo del glosario en ese momento —153 entradas— no tenía ninguna otra
+ * pareja, así que el contrato arranca sin deuda: cualquier repetido es nuevo.
+ */
+describe("el glosario de columnas no repite rótulos", () => {
+  it("ninguna pareja de claves comparte etiqueta", () => {
+    const porRotulo = new Map<string, string[]>();
+    for (const [clave, rotulo] of Object.entries(FIELD_LABELS)) {
+      const r = raiz(String(rotulo));
+      porRotulo.set(r, [...(porRotulo.get(r) ?? []), clave]);
+    }
+    const repetidos = [...porRotulo.entries()]
+      .filter(([, claves]) => claves.length > 1)
+      .map(([r, claves]) => `«${r}» ← ${claves.join(", ")}`);
+    expect(repetidos, repetidos.join("\n")).toEqual([]);
+  });
+
+  it("el glosario está poblado: si no, este contrato no prueba nada", () => {
+    // El mismo control de fixture que el de la banda: un glosario vacío pasaría
+    // sin comparar nada.
+    expect(Object.keys(FIELD_LABELS).length).toBeGreaterThan(100);
   });
 });

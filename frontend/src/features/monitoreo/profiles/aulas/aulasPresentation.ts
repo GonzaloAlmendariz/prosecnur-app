@@ -34,7 +34,16 @@ export const FIELD_LABELS: Record<string, string> = {
   diferencia: "Diferencia",
   // `DUPLICADOS (YA RESPONDIERON)`, con el paréntesis del propio Excel.
   duplicates: "Duplicados (ya respondieron)",
-  application_status: "Estado de aplicación",
+  // **Cada uno nombra su fuente**, que es el criterio con que telefónico separó
+  // «Declaradas efectivas» de «Efectivas Kobo». Éste es la columna «STATUS DE
+  // APLICACIÓN» que el equipo escribe en el parte; `application_state`, más
+  // abajo, es el estado que el motor DERIVA del avance
+  // (`monitoreo_aulas_universitarias.R:1332`). Son dos cosas distintas y hasta
+  // ahora se distinguían sólo porque una decía «Status» y la otra «Estado»: un
+  // anglicismo haciendo de distinción, que no informa a nadie. Al traducirlo
+  // quedaron homónimas, y el censo del glosario —153 entradas— no tenía ninguna
+  // otra pareja.
+  application_status: "Estado declarado en el parte",
   applied_at: "Aplicada el",
   // El parte trae la fecha y la hora SEPARADAS —son dos columnas de su hoja— y
   // ademas `applied_at`, que es la marca compuesta. Sin etiqueta propia,
@@ -149,7 +158,7 @@ export const FIELD_LABELS: Record<string, string> = {
   en_juego: "En juego",
   // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
   // · REEMPLAZADA. El rótulo es la columna.
-  sample_status: "Status de muestra",
+  sample_status: "Estado de muestra",
   // La columna que dice qué hacer, no qué pasa. Patrón 7 del catálogo: la tabla
   // de Cálculo termina en «A coordinar» por la misma razón.
   que_toca: "Qué toca",
@@ -203,7 +212,7 @@ export const FIELD_LABELS: Record<string, string> = {
   filter_rejected: "Filtros rechazados",
   brecha: "Brecha",
   // `STATUS DE APLICACIÓN` en «Aulas Aplicadas (Campo)».
-  application_state: "Status de aplicación",
+  application_state: "Estado según el avance",
   aulas: "Cursos-horario",
   aulas_aplicadas: "Cursos-horario aplicados",
   // Con su «%» delante, como las demás columnas de porcentaje. Al meterlas en

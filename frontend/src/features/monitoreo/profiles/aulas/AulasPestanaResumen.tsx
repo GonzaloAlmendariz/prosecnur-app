@@ -71,7 +71,13 @@ export function AulasPestanaResumen({
                     «Cobertura de la meta», que cuenta cursos-horario. Dos nombres casi
                     iguales para dos unidades distintas, con la distinción escondida en
                     un contador de 11 px —y en un comentario de código—. */}
-                <h3>Cumplimiento en respuestas</h3>
+                {/* «En respuestas» nombraba la UNIDAD, y el otro «Cumplimiento» de
+                    Avance —el de Cuotas— también se mide en respuestas: el título no
+                    separaba nada. Lo que de verdad distingue a este panel es que mide
+                    AULA POR AULA, sin compensar entre aulas: por eso las 332 que
+                    sobran en aulas ya cumplidas quedan fuera de su numerador y aquí
+                    sale 72.4 % donde Cuotas saca 106.7 %. */}
+                <h3>Cumplimiento aula por aula</h3>
                 {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
                     recortado a 500 filas. */}
                 {/* Una meta de respuestas no puede ser fraccionaria: sale de
@@ -158,7 +164,7 @@ export function AulasPestanaResumen({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                <h3>Status de aplicación</h3>
+                <h3>Estado de aplicación</h3>
                 {/* El recorte del PAYLOAD se declara aquí. La tabla ya declara el
                     suyo, pero éste ocurre antes de que la tabla vea nada: el motor
                     manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
