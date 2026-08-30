@@ -51,7 +51,7 @@ export function AulasGestionesPorAula({ distribucion }: {
           porque el resumen lleva el número; la forma se abre cuando se quiere
           mirar la cola. */}
       <summary className="aulas-gestiones-lectura">
-        <strong>{fmt(enRiesgo)}</strong> de {fmt(total)} aulas con gestión anotada van
+        <strong>{fmt(enRiesgo)}</strong> de {fmt(total)} cursos-horario con gestión anotada van
         por la {UMBRAL_DE_RIESGO}.ª llamada o más
         <small>
           en 2025 ésas se cayeron el doble que las cerradas en una o dos

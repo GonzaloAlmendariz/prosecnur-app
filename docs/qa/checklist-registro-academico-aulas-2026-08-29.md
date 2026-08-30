@@ -909,3 +909,26 @@ cursos-horario, 15 facultades, 174 titulares.
 control», y 304 es exactamente el doble. En `como_2025` eran 152 y 152. Puede ser
 el grano propio de la Base de control —dos filas por curso-horario— o un
 duplicado del simulacro; no se afirma ninguna de las dos sin medirlo.
+
+## Sección Agenda (`modelo/agenda`)
+
+**Lo corregido**: «Cuánto cuesta cerrar un aula» → «Cuánto cuesta cerrar un
+curso-horario», y sus dos lecturas —«contado sobre 500 de 1.424 **filas** del
+plan» y «63 de 156 **aulas** con gestión anotada»— pasan a nombrar la unidad.
+
+**Lo que el guard impidió, y tenía razón**: renombré «Aulas agendadas» a
+«Cursos-horario agendados» y `titulosDePanel.test.ts` se puso rojo con su motivo
+escrito: *«Agenda y registro no son vistas nuestras: son las dos hojas que el
+equipo llena en Excel, traídas a la app. Que se llamen como la hoja es lo que
+deja reconocerlas sin explicación.»*
+
+Es cierto y verificable: Fuentes enumera las tres hojas del libro —«Aulas
+Agendadas», «Aulas Aplicadas (Campo)», «Base de control»—. **Revertido**, con la
+razón anotada en el propio sitio para que no se vuelva a intentar.
+
+Que el título nombre la hoja y su subtítulo diga «174 cursos-horario» no es una
+contradicción: son dos cosas distintas, cada una en su sitio.
+
+**Lo que cuadra**: 174 + 1.173 reservas = 1.347, igual que en Fuentes; el panel
+declara su recorte —«500 de 1.424»—; y la comparación histórica dice su fuente:
+«en 2025 ésas se cayeron el doble que las cerradas en una o dos».
