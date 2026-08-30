@@ -232,3 +232,34 @@ describe("ningún panel se resume en «filas»", () => {
     expect(culpables, culpables.join("\n")).toEqual([]);
   });
 });
+
+/**
+ * **Un contador que baja a uno no puede llevar el verbo en plural.**
+ *
+ * Medido el 2026-08-29 en `calidad/controles`: la lectura decía «**1 piden
+ * revisión** · 1 advertencia · 1 correcto». Las dos vecinas concordaban con su
+ * ternario y ésta no, en la misma frase. Otras dos tenían la misma forma: «1
+ * faltan, en N cursos-horario» y «1 están a cinco o menos».
+ *
+ * El guard busca la firma exacta —una cifra en `<strong>` seguida de un verbo en
+ * plural, sin ternario que lo module— porque es lo que se puede afirmar del
+ * fuente. La concordancia general no se puede comprobar así; esta forma sí.
+ *
+ * Y la regla al repararlo: **el verbo concuerda con el número QUE SE MUESTRA**,
+ * no con el valor interno. `fmtCuenta` redondea hacia arriba, así que 0,4 se
+ * pinta «1» y un `valor === 1` habría dejado «1 faltan» igual.
+ */
+describe("los verbos concuerdan con su contador", () => {
+  const VERBOS_PLURALES =
+    "piden|tienen|están|estan|van|cuentan|quedan|faltan|llegan|salen|entran|siguen|caen|suman|cierran|aportan";
+  it.each(fuentes.filter((f) => f.endsWith(".tsx")))("%s", (archivo) => {
+    const fuente = fs
+      .readFileSync(path.join(aqui, archivo), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const culpables = [
+      ...fuente.matchAll(new RegExp(`<strong>\\{[^}]{1,40}\\}</strong>\\s*(?:${VERBOS_PLURALES})\\b`, "g")),
+    ].map((m) => `${archivo}: ${m[0].replace(/\s+/g, " ")}`);
+    expect(culpables, culpables.join("\n")).toEqual([]);
+  });
+});

@@ -970,3 +970,26 @@ criterio que la app verifique»—, dice qué columnas faltan por llenar y por d
 vuelven, y avisa de lo que ese corte **no** decide: «no dice a qué aula conviene
 ir: un aula con 100 elegibles al 40 % rinde 40 encuestas, y una con 20 al 70 %
 rinde 14».
+
+## Validación · `calidad/controles` · el verbo en plural con un solo caso
+
+La lectura decía «**1 piden revisión** · 1 advertencia · 9 correctos». Las dos
+vecinas concuerdan con su ternario y **ésta no**, en la misma frase.
+
+Buscada la firma en todo el perfil —una cifra en `<strong>` seguida de verbo
+plural sin ternario—, aparecieron **dos más**: «1 faltan, en N cursos-horario» y
+«1 están a cinco o menos». Las tres corregidas.
+
+**La regla al repararlo, que no es la obvia**: el verbo concuerda con el número
+**que se muestra**, no con el valor interno. `fmtCuenta` redondea hacia arriba, y
+0,4 se pinta «1»; un `valor === 1` habría dejado «1 faltan» exactamente igual. Se
+compara contra el texto ya formateado.
+
+Guard sobre esa firma exacta, verificado que muerde. La concordancia en general
+no se puede comprobar desde el fuente; esta forma sí, y es la que se ha visto
+tres veces.
+
+**Lo que cuadra en la pestaña**: «2 alertas» = 1 revisión + 1 advertencia ✓, y el
+control que pide revisión dice su causa y su remedio —«7 columnas de la Base de
+control tienen datos pero su cabecera está vacía en el Excel, así que no se
+leyeron. Ponles nombre en la hoja para que entren»—.

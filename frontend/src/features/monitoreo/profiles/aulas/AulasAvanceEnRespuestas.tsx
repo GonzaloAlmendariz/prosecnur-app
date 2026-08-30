@@ -107,7 +107,12 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
           <strong>{fmt(a.cubierto)}</strong> cubren meta
         </li>
         <li className="es-falta">
-          <strong>{fmtCuenta(a.falta)}</strong> faltan, en {fmt(a.aulasConBrecha)} cursos-horario
+          {/* Concuerda con el número QUE SE MUESTRA, no con `a.falta`:
+              `fmtCuenta` redondea hacia arriba, así que 0,4 se pinta «1» y el
+              verbo tiene que seguir a lo pintado. */}
+          <strong>{fmtCuenta(a.falta)}</strong>{" "}
+          {fmtCuenta(a.falta) === "1" ? "falta" : "faltan"}, en{" "}
+          {fmt(a.aulasConBrecha)} cursos-horario
         </li>
         {a.excedente ? (
           <li className="es-excedente">
