@@ -149,3 +149,41 @@ Ahora cada una nombra su fuente, que es el criterio con que telefónico separó
 Censo del glosario: **153 entradas, una sola pareja repetida** —la que el propio
 cambio creó—, así que el guard nuevo arranca sin deuda. Verificado que muerde:
 verde → rojo al reintroducir la colisión → verde al restaurar.
+
+### Vuelta 4 · «Cerrada» y «Faltan 17» en la misma fila
+
+El hallazgo más grave de la sección, y no era de redacción.
+
+El chip de veredicto se decidía con `avance >= 1` —el cociente de los **totales**
+de la facultad, que compensa un sexo con el otro— mientras la columna «Faltan»,
+en la misma fila, ya sumaba el déficit de cada sexo por separado. Con las dos
+reglas conviviendo, la tabla que va al cliente, al PDF y al libro daba tres
+facultades por cerradas teniéndolas abiertas:
+
+| Facultad | Chip | Cuota (M/H) | Lleva (M/H) | Avance | Faltan |
+|---|---|---|---|---|---|
+| Arquitectura | ~~Cerrada~~ | 125 (85/40) | 126 (68/58) | 100.8 % | **17** |
+| Ciencias e Ing. | ~~Cerrada~~ | 528 (130/398) | 535 (141/394) | 101.3 % | **4** |
+| Educación | ~~Cerrada~~ | 24 (20/4) | 33 (32/1) | 137.5 % | **3** |
+
+A Arquitectura le faltan 17 mujeres y le sobran 18 hombres. Va justo contra el
+encargo: «lo que me interesa es que TODAS LAS FACULTADES CUMPLAN CON SU CUOTA DE
+SEXO. Ese es lo fundamental de todo esto» — y contra el ADR 0079, que la columna
+«Faltan» sí respetaba.
+
+**El veredicto se decide ahora con lo que falta**, y el umbral de «le falta poco»
+se mide sobre el hueco y no sobre el avance: un 100.8 % no dice si lo que queda
+son 4 personas o 17. Los nombres pasan además a hablar de la **cuota** y no de la
+facultad —«Abierta»/«Cerrada» se leían como si la facultad estuviese cerrada
+administrativamente—: **Cuota cumplida · Le falta poco · Cuota pendiente**.
+
+En pantalla: Arquitectura y Educación pasan a «Cuota pendiente», Ciencias e
+Ingeniería a «Le falta poco», y **ninguna fila dice «cumplida» con gente
+faltando**.
+
+**El veredicto no tenía un solo test.** Los siete de este archivo cubrían la
+construcción de las filas, no el chip; por eso un cambio de lógica de este
+calibre pasó el gate en verde a la primera. Ahora tiene tres, con el caso real
+de Arquitectura y un control de que el chip se pinta —sin él, «no contiene Cuota
+cumplida» pasaría también con un chip que no apareciera nunca—. Comprobado que
+muerde: rojo al devolver el criterio viejo.

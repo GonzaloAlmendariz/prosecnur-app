@@ -162,3 +162,56 @@ describe("«Mujer» no es un hombre", () => {
     expect(cifras.slice(4, 6)).toEqual(["40", "130"]);
   });
 });
+
+describe("el veredicto no da por cerrada una facultad a la que le faltan mujeres", () => {
+  /**
+   * **«Cerrada» y «Faltan 17» en la misma fila.**
+   *
+   * El chip se decidía con `avance >= 1`, el cociente de los TOTALES de la
+   * facultad, que compensa un sexo con el otro; la columna «Faltan», en cambio,
+   * ya sumaba el déficit de cada sexo por separado. Con las dos reglas
+   * conviviendo, la tabla que va al cliente —y al PDF, y al libro— daba tres
+   * facultades por cerradas teniéndolas abiertas.
+   *
+   * El caso es el real, medido en pantalla el 2026-08-29 con `como_2025`:
+   * Arquitectura tiene cuota 125 (85 mujeres / 40 hombres), lleva 126 (68 / 58)
+   * y le faltan 17 mujeres. El total sale a 100.8 %.
+   *
+   * Va contra el encargo, que es explícito: «lo que me interesa es que TODAS LAS
+   * FACULTADES CUMPLAN CON SU CUOTA DE SEXO. Ese es lo fundamental de todo
+   * esto».
+   */
+  const arquitectura = renderToStaticMarkup(
+    <AulasAvanceParaCliente
+      avanceCuota={cuota(125, [["Arquitectura", 125, 126]])}
+      celdasSexo={[
+        { faculty: "Arquitectura", sex: "Mujer", target: 85, observed: 68 },
+        { faculty: "Arquitectura", sex: "Hombre", target: 40, observed: 58 },
+      ] as unknown as MonitoreoRow[]}
+    />,
+  );
+
+  it("con 17 mujeres de menos no dice que la cuota está cumplida", () => {
+    expect(arquitectura).not.toContain("Cuota cumplida");
+  });
+
+  it("y lo que falta sigue siendo 17, no la resta de los totales", () => {
+    // 126 − 125 daría 0 y es lo que hacía parecer cerrada la fila.
+    expect(arquitectura).toContain(">17<");
+  });
+
+  it("una facultad sin déficit en ningún sexo sí cierra", () => {
+    const cerrada = renderToStaticMarkup(
+      <AulasAvanceParaCliente
+        avanceCuota={cuota(125, [["Arquitectura", 125, 130]])}
+        celdasSexo={[
+          { faculty: "Arquitectura", sex: "Mujer", target: 85, observed: 85 },
+          { faculty: "Arquitectura", sex: "Hombre", target: 40, observed: 45 },
+        ] as unknown as MonitoreoRow[]}
+      />,
+    );
+    // El control de que el test distingue: sin él, «no contiene Cuota cumplida»
+    // pasaría también con un chip que no se pintara nunca.
+    expect(cerrada).toContain("Cuota cumplida");
+  });
+});
