@@ -187,8 +187,9 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                      // es el mejor resultado posible.
                      ? "Ya llegó a su cuota y no queda ningún curso-horario por aplicar: no hay nada que proyectar."
                      : f.dispersionN < 20
-                     ? `Todavía no hay bastante campo para medir cuánto varía el rendimiento entre aulas `
-                       + `(${fmtCuenta(f.dispersionN)} aplicadas). Sin eso, un porcentaje fingiría una precisión que no hay.`
+                     ? `Todavía no hay bastante campo para medir cuánto varía el rendimiento de un `
+                       + `curso-horario a otro (${fmtCuenta(f.dispersionN)} aplicados). Sin eso, un porcentaje `
+                       + `fingiría una precisión que no hay.`
                      : "Alguno de los cursos-horario que faltan no declara su tasa de efectividad, así que no se puede calcular."}>
                   {f.aportePendiente <= 0 ? "ya llegó" : "sin medir"}
                 </b>

@@ -44,7 +44,7 @@ describe("«todavía sin registrar» no cuenta aulas muertas", () => {
       ...Array.from({ length: 18 }, (_, i) => aula(`CH 1${i}`, "agendada", "agendada")),
       ...Array.from({ length: 152 }, (_, i) => aula(`CH 2${i}`, "agendada", "aplicada")),
     ]);
-    expect(html).toContain("26 reemplazadas no se registran");
+    expect(html).toContain("26 reemplazados no se registran");
   });
 
   it("sin reemplazadas no sobra la frase ni cambia el denominador", () => {

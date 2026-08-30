@@ -578,7 +578,7 @@ export function RegistroDeCampo({
                         y aquí pone 170, sin explicación se lee como aulas
                         perdidas. */}
                     {reemplazadas ? (
-                      <em> · {reemplazadas} reemplazadas no se registran</em>
+                      <em> · {reemplazadas} reemplazados no se registran</em>
                     ) : null}
                   </p>
                 ) : null}

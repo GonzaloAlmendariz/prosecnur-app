@@ -239,7 +239,7 @@ export function AulasPestanaRendimiento({
                     conviene decidir si sobra uno; mientras tanto, que al menos se
                     distingan. */}
                 <h3>Encuestas por día de cada facultad</h3>
-                <span>producción diaria, sin dividir entre aulas</span>
+                <span>producción diaria, sin dividir por curso-horario</span>
               </div>
               <AulasRitmoPorFacultad
                 facultadEnFoco={facultadEnFoco}
