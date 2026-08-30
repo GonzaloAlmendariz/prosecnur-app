@@ -2304,7 +2304,20 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # «25 enlaces repetidos» y nada mas obliga a buscar cuales a mano en un
       # libro de mil filas.
       if (!enlaces$comprobable) {
-        "El plan todavia no trae enlaces de recopilador que comprobar."
+        # Dos ausencias distintas y el lector necesita saber cual: sin enlaces no
+        # hay nada, y con enlaces base sin personalizar el estudio esta en el
+        # paso anterior —los QR todavia no se han generado— y eso NO es un
+        # problema, es el orden del trabajo.
+        if ((enlaces$sin_personalizar %||% 0L) > 0L) {
+          sprintf(
+            paste0("Los %d enlaces del plan son direcciones base, sin el parametro por ",
+                   "unidad que distingue a cada curso-horario. Se comprobara cuando se ",
+                   "generen los enlaces personalizados y sus QR."),
+            enlaces$sin_personalizar
+          )
+        } else {
+          "El plan todavia no trae enlaces de recopilador que comprobar."
+        }
       } else if (enlaces$enlaces > 0L) {
         # **La causa, cuando se puede probar.** «23 enlaces repetidos» dice que
         # hay un problema; «el enlace lleva solo los 8 primeros caracteres del

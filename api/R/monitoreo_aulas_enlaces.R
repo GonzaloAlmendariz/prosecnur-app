@@ -28,7 +28,8 @@
 #'   los comparten), `comprobable` y `ejemplos`.
 #' @export
 monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
-  vacio <- list(enlaces = 0L, aulas = 0L, comprobable = FALSE, ejemplos = character(0))
+  vacio <- list(enlaces = 0L, aulas = 0L, comprobable = FALSE, ejemplos = character(0),
+                truncado = NA_integer_, sin_personalizar = 0L)
   if (!is.data.frame(en_juego) || !nrow(en_juego) || !("link" %in% names(en_juego))) return(vacio)
 
   link <- trimws(as.character(en_juego$link))
@@ -38,11 +39,38 @@ monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
   con_link <- nzchar(link)
   if (!any(con_link)) return(vacio)
 
+  # **Una URL de captura BASE se comparte por diseño, y eso no es el defecto.**
+  #
+  # `captureUrl.ts` y su espejo en R lo definen: la URL de captura es «la
+  # direccion sobre la que se cuelgan los parametros de personalizacion POR
+  # UNIDAD (`?d[campo]=valor` en Kobo)» y que despues se convierte en QR. Dos
+  # aulas pueden compartir la base si cada QR lleva su `collectorID`: lo que
+  # separa las respuestas es el parametro, no la direccion.
+  #
+  # Asi que este control solo tiene algo que decir cuando los enlaces YA estan
+  # personalizados. Sin un solo parametro en el plan —medido sobre HSVG2026
+  # «como 2025»: 0 de 1.424 con `?`, 0 con `collectorID`, 0 con campo `qr`— el
+  # estudio esta en el paso ANTERIOR y avisar aqui seria una alarma sobre un
+  # estado normal. `sin_datos`, que es lo que la lista usa para «no se pudo
+  # comprobar».
+  #
+  # Lo escribo despues de haberme equivocado: la primera version comparaba las
+  # bases y declaraba 51 cursos-horario en conflicto sobre un proyecto que
+  # todavia no habia generado sus QR.
+  personalizados <- grepl("[?]", link, perl = TRUE)
+  if (!any(personalizados)) {
+    return(list(enlaces = 0L, aulas = 0L, comprobable = FALSE,
+                ejemplos = character(0), truncado = NA_integer_,
+                sin_personalizar = sum(con_link)))
+  }
+  con_link <- con_link & personalizados
+
   link <- link[con_link]
   codigo <- codigo[con_link]
   repes <- names(which(table(link) > 1L))
   if (!length(repes)) {
-    return(list(enlaces = 0L, aulas = 0L, comprobable = TRUE, ejemplos = character(0)))
+    return(list(enlaces = 0L, aulas = 0L, comprobable = TRUE, ejemplos = character(0),
+                truncado = NA_integer_, sin_personalizar = 0L))
   }
 
   cuantas <- sum(link %in% repes)
@@ -54,7 +82,7 @@ monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
 
   list(enlaces = length(repes), aulas = as.integer(cuantas),
        comprobable = TRUE, ejemplos = ejemplos,
-       truncado = .maen_largo_truncado(en_juego))
+       truncado = .maen_largo_truncado(en_juego), sin_personalizar = 0L)
 }
 
 #' Cuantos caracteres del identificador conserva el enlace, si es que lo trunca.
@@ -79,7 +107,9 @@ monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
   id <- trimws(as.character(filas$classroom_id))
   ok <- nzchar(link) & nzchar(id)
   if (!any(ok)) return(NA_integer_)
-  colas <- sub(".*/", "", link[ok])
+  # Sin el parametro por unidad: lo que se compara con el identificador es la
+  # direccion, no el `?d[collectorID]=...` que se cuelga encima.
+  colas <- sub("[?].*$", "", sub(".*/", "", link[ok]))
   ids <- id[ok]
   es_prefijo <- startsWith(ids, colas) & nchar(colas) < nchar(ids)
   if (mean(es_prefijo) < 0.9) return(NA_integer_)
