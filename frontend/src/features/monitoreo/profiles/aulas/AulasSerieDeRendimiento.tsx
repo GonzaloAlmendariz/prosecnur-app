@@ -834,7 +834,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             <strong>{elegida.facultad}</strong> deja <strong>{personasPorAula(elegida.observadoFinal)}</strong>{" "}
             encuestas por curso-horario en {fmt(elegida.aulas)}{" "}
             {elegida.aulas === 1 ? "curso-horario" : "cursos-horario"} ·
-            se espera <strong>{personasPorAula(elegida.esperadoFinal)}</strong> de la siguiente
+            {/* **Las dos expectativas, juntas y en la misma unidad.**
+
+                Estaban las dos en esta vista y nunca en la misma frase: lo que el
+                diseño pidió vivía en la leyenda del gráfico, tres bandas más
+                abajo, y lo que cabe esperar según el rendimiento, aquí. Son
+                cantidades distintas y contestan preguntas distintas —«¿con qué se
+                dimensionó?» y «¿qué va a dejar la próxima?»—, así que separarlas
+                obligaba a recordar una cifra mientras se busca la otra.
+
+                Va en medio, entre lo conseguido y lo esperado, porque ése es el
+                orden en que se leen: lo que se pidió, lo que se logra, lo que se
+                espera. Sin vara del diseño no se escribe nada: la leyenda ya
+                declara ese caso y repetirlo aquí sería ruido. */}
+            {varaDelDiseno?.porAula != null ? (
+              <> el diseño pedía <strong>{personasPorAula(varaDelDiseno.porAula)}</strong> ·</>
+            ) : null}
+            {" "}se espera <strong>{personasPorAula(elegida.esperadoFinal)}</strong> de la siguiente
             {elegida.aulas < 5 ? " (con tan pocos cursos-horario, el esperado se apoya en la media del estudio)" : ""}
           </>
         ) : (

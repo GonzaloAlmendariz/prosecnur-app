@@ -457,3 +457,63 @@ describe("una celda sin cuota declarada no es una cuota cumplida", () => {
     expect(veredictoDeCeldaDeCuota(celda(Number.NaN, 0), n, f).clase).toBe("es-sin-cuota");
   });
 });
+
+
+/**
+ * **Las tres cantidades del estudio, juntas y en la misma unidad.**
+ *
+ * Encargo de Gonzalo el 2026-08-30: separar «a lo que tenemos que llegar, que
+ * son las metas», «lo que se espera llegar con las aulas, que es lo diseñado al
+ * principio del estudio» y «cuánto esperamos llegar en base a […] cómo va el
+ * rendimiento en aquella facultad».
+ *
+ * Las dos expectativas ya se calculaban —la vara del diseño sale de
+ * `expected_valid` con `meta_origen === "diseno"`, y el esperado es la media
+ * posterior de un Gamma-Poisson— pero vivían separadas: una en la leyenda del
+ * gráfico y otra en el titular, tres bandas más arriba.
+ */
+describe("las dos expectativas se contrastan en la misma frase", () => {
+  const conVara = (fecha: string, efectivas: number, codigo: string): MonitoreoRow =>
+    ({
+      faculty: "Derecho", applied_at: fecha, effective_surveys: efectivas,
+      operational_code: codigo,
+    }) as unknown as MonitoreoRow;
+  const planConDiseno = (codigo: string): MonitoreoRow =>
+    ({
+      faculty: "Derecho", operational_code: codigo, eligible_n: 40,
+      expected_valid: 30, meta_origen: "diseno",
+    }) as unknown as MonitoreoRow;
+
+  const pintarConFoco = () => renderToStaticMarkup(
+    <AulasSerieDeRendimiento
+      partes={[conVara("2026-08-10", 20, "A1"), conVara("2026-08-11", 22, "A2"),
+               conVara("2026-08-12", 19, "A3")]}
+      plan={[planConDiseno("A1"), planConDiseno("A2"), planConDiseno("A3")]}
+      facultadEnFoco="Derecho"
+    />);
+
+  it("el titular dice lo conseguido, lo que pidió el diseño y lo que cabe esperar", () => {
+    const html = pintarConFoco();
+    expect(html).toContain("el diseño pedía");
+    expect(html).toContain("se espera");
+    // Y en el mismo párrafo: son tres cifras de la misma unidad que se comparan
+    // entre sí, no tres datos sueltos.
+    const titular = html.slice(html.indexOf("aulas-cadenas-lectura"));
+    const fin = titular.indexOf("</p>");
+    const frase = titular.slice(0, fin);
+    expect(frase).toContain("el diseño pedía");
+    expect(frase).toContain("se espera");
+  });
+
+  it("sin vara del diseño no se escribe nada: la leyenda ya declara ese caso", () => {
+    // Sin `meta_origen: "diseno"` no hay vara, y una frase que dijera «el diseño
+    // pedía —» afirmaría más de lo que se sabe.
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento
+        partes={[conVara("2026-08-10", 20, "A1"), conVara("2026-08-11", 22, "A2")]}
+        facultadEnFoco="Derecho"
+      />);
+    const titular = html.slice(html.indexOf("aulas-cadenas-lectura"));
+    expect(titular.slice(0, titular.indexOf("</p>"))).not.toContain("el diseño pedía");
+  });
+});

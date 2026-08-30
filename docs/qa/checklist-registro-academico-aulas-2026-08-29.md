@@ -1656,3 +1656,48 @@ Vista `ok=true`, 0 issues, 0 de geometría; 147 archivos / 1.729 tests.
 procedencia, así que en Resumen, Rendimiento y Efectividad la meta se publica sin
 decir de dónde sale. Y falta lo principal: **contrastar las tres cantidades donde
 el lector las necesita juntas**, que es Rendimiento.
+
+### Vuelta 27 · J.3 · Las dos expectativas estaban en la misma vista y nunca en la misma frase
+
+Lo que la indicación J pide de las dos expectativas **ya se calculaba, y bien**:
+
+- **Lo diseñado**: la vara sale de `expected_valid`, y el módulo documenta que esa
+  columna «colapsa tres cosas distintas» —`diseno`, `declarada` y `elegibles`, que
+  *no es una meta, es el techo*—, así que la vara **sólo cuenta las aulas con
+  `meta_origen === "diseno"`** y se divide entre ésas.
+- **El rendimiento**: el esperado es «bayesiano de verdad», media posterior de un
+  Gamma-Poisson, `(efectivas + peso × media) / (aulas + peso)`. Con un aula
+  observada se apoya en la media del estudio; con treinta, en lo suyo. La
+  intuición del encargo —«lo que yo intuyo que ya calculamos de forma
+  bayesiana»— era correcta.
+
+Lo que faltaba es que se pudieran **comparar**. Estaban repartidas así:
+
+| Cantidad | Dónde se decía |
+|---|---|
+| Lo diseñado | Rendimiento, en la leyenda del gráfico |
+| Lo esperado según el rendimiento | Rendimiento, en el titular, tres bandas más arriba |
+| La comparación de las dos | **Cuotas**, en un `<small>`: «El campo está rindiendo un 14 % menos de lo previsto» |
+
+Tres sitios, dos pestañas, y para contrastarlas había que recordar una cifra
+mientras se busca la otra.
+
+El titular pasa a llevar las tres en la misma frase y en la misma unidad:
+
+> ARQUITECTURA deja **14.2** encuestas por curso-horario en 12 · el diseño pedía
+> **20.3** · se espera **14.5** de la siguiente
+
+En ese orden porque es el de la lectura: lo que se pidió, lo que se logra, lo que
+se espera. **Sin vara del diseño no se escribe nada** —la leyenda ya declara ese
+caso y una frase que dijera «el diseño pedía —» afirmaría más de lo que se sabe—,
+y eso tiene su propio test.
+
+Comprobado que muerde: quitando la cifra del diseño, rojo en el test del titular
+y sólo en ése. Vista `ok=true`, 0 issues, 0 de geometría. 147 archivos / 1.731
+tests.
+
+**Una tercera ceguera del ratchet de vocabulario, anotada**: «Aulas por pedir, por
+facultad» no la cuenta ningún detector, porque el sustantivo abre la frase sin
+determinante delante. Ampliar el regex a ese caso exige distinguirlo de los
+identificadores de código (`AulasAlertaDeAnticipacion`), así que la forma es
+detectar el término al principio de un literal de texto. Queda pendiente.
