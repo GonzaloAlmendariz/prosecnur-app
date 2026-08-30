@@ -42,10 +42,20 @@ export function AulasSeccionFuentes({
     //
     // **Del reparto del MOTOR, no de `agenda`.** El primer intento contó sobre
     // `agenda` con `estadoDeAplicacion()` y salió 0, así que la frase entera
-    // desapareció de la pantalla: `agenda` viaja recortada y sin el
-    // `application_state` que el motor deriva. `course_status_estados` es el
-    // mismo bloque que pinta los tramos en Avance —donde se leen las 18— y está
-    // calculado sobre todas las filas.
+    // desapareció de la pantalla.
+    //
+    // El payload trae TRES cosas distintas y confundirlas es lo que costó ese
+    // intento:
+    //
+    //   · `agenda` — el plan ENTERO (`.monitoreo_aulas_records(plan_df)`), sin
+    //     recortar, pero **sin `application_state`**: ese campo lo deriva el
+    //     motor más tarde y sobre otro objeto
+    //     (`monitoreo_aulas_universitarias.R:1332`). Por eso el conteo dio 0.
+    //   · `course_status` — recortado a 500 filas, con el estado ya derivado.
+    //   · `course_status_estados` — el REPARTO del motor sobre todas las filas,
+    //     que es el que pinta los tramos en Avance y donde se leen las 18.
+    //
+    // Se usa el tercero.
     const reemplazadas = ((dashboard?.course_status_estados ?? []) as Array<{ clave?: string; aulas?: number }>)
       .find((e) => e.clave === "reemplazada")?.aulas ?? null;
     const embudo = embudoDelOperativo(dashboard?.kpis, reemplazadas);
