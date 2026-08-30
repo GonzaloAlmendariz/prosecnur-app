@@ -516,3 +516,36 @@ test_that("sin columna de sexo no se inventa un aviso sobre ella", {
   celda <- .avc_celda(d, "F")
   expect_false(grepl("no se reconocen", as.character(celda$warning %||% "")))
 })
+
+# --- la brecha suma celdas, no resta totales (ADR 0079) -----------------------
+
+test_that("una facultad que se pasa en un sexo y debe en el otro NO sale con brecha cero", {
+  # ARQUITECTURA en HSVG2026 «como 2025»: cuota 125 (85 F / 40 M) y 126
+  # logradas, 68 F y 58 H. El total dice 126 sobre 125 y aun asi le faltan 17
+  # mujeres. Restar sobre el total publicaba brecha CERO y el panel de Cuotas la
+  # contaba entre las «cumplidas», mientras `avance_por_facultad` —del mismo
+  # payload y la misma pantalla— publicaba 17.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 200, eligible = 400))
+  d <- .avc_dash(
+    plan,
+    .avc_resp(rep("A1", 126), sexo = c(rep("F", 68), rep("M", 58))),
+    dt = .avc_dt(list(.avc_fac("FAC1", 125, F = 85, M = 40)))
+  )
+  fila <- .avc_fila(d$avance_cuota, "FAC1")
+  expect_equal(fila$respuestas_validas, 126L)
+  expect_equal(fila$avance_pct, 100.8)
+  # 85 - 68 = 17 mujeres; los hombres sobran y no cubren nada.
+  expect_equal(fila$brecha, 17)
+  # Y las partes suman el total: la cabecera no puede decir cero con 17 abajo.
+  expect_equal(d$avance_cuota$total$brecha, 17)
+})
+
+test_that("sin celdas de sexo la brecha sigue siendo la resta del total", {
+  # Una facultad sin desglose no tiene celdas que sumar; fabricarle un cero
+  # seria peor que la resta. Es el fallback, y tiene que seguir vivo.
+  plan <- list(.avc_aula("A2", "FAC2", expected = 200, eligible = 400))
+  d <- .avc_dash(plan, .avc_resp(rep("A2", 30)),
+                 dt = .avc_dt(list(.avc_fac("FAC2", 50))))
+  fila <- .avc_fila(d$avance_cuota, "FAC2")
+  expect_equal(fila$brecha, 20)
+})

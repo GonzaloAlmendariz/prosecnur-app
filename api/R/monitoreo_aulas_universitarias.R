@@ -1841,7 +1841,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # El avance contra la CUOTA del diseño: numerador sobre el plan entero,
   # denominador del bloque de metas mientras su sello siga vigente, y meta del
   # plan —declarada como tal— cuando no lo este.
-  avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
+  # Recibe las celdas de sexo YA calculadas arriba: la brecha de una facultad
+  # es la suma de las suyas, no la resta de su total (ADR 0079).
+  avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
+                                               celdas_sexo = quotas_sex_faculty)
   # El SUPUESTO que dimensionó, contrastado con el campo (ADR 0082). Comparte
   # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
   # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
