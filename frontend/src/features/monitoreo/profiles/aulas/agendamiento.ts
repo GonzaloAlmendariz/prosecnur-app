@@ -46,7 +46,9 @@ export type Agendamiento = {
    */
   enUmbralDeRiesgo: number;
   /**
-   * Las que tienen fecha pero **nadie logró contacto todavía**.
+   * Filas donde `sample_status` dice «sin contactar» y `operational_status` dice
+   * que ya está agendada, aplicada o cerrada: **los dos estados de la misma fila
+   * se contradicen** y uno está desactualizado.
    *
    * `scheduled_date` NO prueba una cita cerrada: sale de la columna «FECHA
    * AGENDADA» del Excel, que llega **pre-rellenada con la fecha prevista de cada
@@ -63,7 +65,7 @@ export type Agendamiento = {
    *
    * Se cuentan aparte para que «Por agendar 0» no las esconda.
    */
-  sinContactoLogrado: number;
+  estadosEnDesacuerdo: number;
   /**
    * Las que siguen en juego y **no tienen medio de contacto anotado**.
    *
@@ -128,7 +130,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   let conInsistencia = 0;
   let enUmbralDeRiesgo = 0;
   let sinMedioDeContacto = 0;
-  let sinContactoLogrado = 0;
+  let estadosEnDesacuerdo = 0;
   const intentos: number[] = [];
   const porMedio = new Map<string, number>();
 
@@ -166,10 +168,32 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
       // historia.
       if (n >= UMBRAL_DE_RIESGO && !tieneFecha) enUmbralDeRiesgo += 1;
     }
-    // Con fecha prevista y sin contacto logrado: el estado es quien sabe si hay
-    // cita, y la fecha sólo dice cuándo se dicta ese curso-horario.
-    if (tieneFecha && txt(fila.sample_status).toLowerCase().replace(/[\s-]+/g, "_") === "sin_contactar") {
-      sinContactoLogrado += 1;
+    /**
+     * **Los dos estados de la misma fila, en desacuerdo.**
+     *
+     * La primera versión de esto contaba «sin contacto logrado» mirando sólo
+     * `sample_status === "sin_contactar"`, y eso afirmaba más de lo que se
+     * sabe: esas mismas nueve filas traen `operational_status = "agendada"`.
+     * Uno de los dos está desactualizado y no se puede decidir cuál desde aquí.
+     *
+     * Lo que sí es un hecho comprobable es que **se contradicen**, y eso es lo
+     * que hay que ir a corregir. Medido sobre HSVG2026 «como 2025», los tres
+     * pares que existen en el plan en juego:
+     *
+     * | `sample_status` / `operational_status` | filas |
+     * |---|---|
+     * | agendada / aplicada | 152 |
+     * | agendada / agendada | 13 |
+     * | **sin_contactar / agendada** | **9** |
+     *
+     * Las nueve llevan además de tres a cinco gestiones y `contact_date` vacío.
+     */
+    const estadoMuestra = txt(fila.sample_status).toLowerCase().replace(/[\s-]+/g, "_");
+    const estadoOperativo = txt(fila.operational_status).toLowerCase().replace(/[\s-]+/g, "_");
+    if (estadoMuestra === "sin_contactar"
+        && (estadoOperativo === "agendada" || estadoOperativo === "aplicada"
+            || estadoOperativo === "cerrada")) {
+      estadosEnDesacuerdo += 1;
     }
     const medio = txt(fila.contact_medium);
     if (medio) porMedio.set(medio, (porMedio.get(medio) ?? 0) + 1);
@@ -200,7 +224,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     // Lo que de verdad queda por agendar: ni con fecha, ni ya aplicada.
     porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
-    sinContactoLogrado,
+    estadosEnDesacuerdo,
     distribucionDeGestiones,
     enUmbralDeRiesgo,
     sinMedioDeContacto,

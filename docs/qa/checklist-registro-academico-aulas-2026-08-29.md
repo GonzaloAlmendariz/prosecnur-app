@@ -2668,3 +2668,52 @@ identificador a 8 caracteres —1.424 de 1.424—, así que si los QR se generan
 colgando el parámetro sobre esa base, funcionarán; pero si algún flujo usa la
 base como identificador, colisiona. El control lo dirá cuando lleguen los
 parámetros.
+
+### Vuelta 52 · Mi segundo aviso también afirmaba de más, y la corrección da un hallazgo mejor
+
+Aplicada a mis propios avisos la lección de la vuelta anterior —**buscar si el
+repo ya define qué es correcto para ese campo antes de avisar**— el de la vuelta
+46 no aguantó el examen.
+
+`MONITOREO_AULAS_ESTADOS_DORMIDOS` incluye `sin_contactar`, y
+`monitoreo_aulas_estados_no_reconocidos.R` avisa de que ese mismo valor es
+**el que sale por defecto cuando el estado no se reconoce**: «"aplicada",
+"contactada", "en campo", "cerrada", "parcial" y "efectiva" salen las seis como
+`sin_contactar`».
+
+Miradas de cerca, las nueve traen **dos estados que se contradicen**:
+
+```
+sample_status      = "sin_contactar"
+operational_status = "agendada"          ← dice lo contrario
+contact_date       = ""                    con 3 a 5 gestiones
+```
+
+Los tres pares que existen en el plan en juego:
+
+| `sample_status` / `operational_status` | Filas |
+|---|---|
+| agendada / aplicada | 152 |
+| agendada / agendada | 13 |
+| **sin_contactar / agendada** | **9** |
+
+**Mi tile decía «Sin contacto logrado · nadie ha confirmado con el docente», y
+eso elige uno de los dos estados como verdadero sin poder probarlo.** Uno está
+desactualizado y desde el frontend no se puede decidir cuál.
+
+Ahora dice lo que sí es un hecho: **«Estados que se contradicen · el estado de
+muestra dice "sin contactar" y el operativo, que ya está agendada»**. Es más
+corto, es comprobable, y manda a corregir el registro en vez de a llamar a un
+docente que quizá ya confirmó.
+
+Tres casos nuevos: la fila donde los dos estados dicen «sin contactar» —que **no**
+es contradicción, es una por agendar—, la que el operativo da por aplicada o
+cerrada —contradicción mayor—, y la que no trae estado operativo, donde no se
+afirma nada. Verificado en pantalla: el tile nuevo sale y el anterior ya no.
+
+**Dos avisos míos corregidos en dos vueltas seguidas**, los dos por lo mismo:
+afirmar una causa cuando el dato sólo soporta un hecho. El patrón para no
+repetirlo: *si para escribir el aviso hay que elegir entre dos campos que
+discrepan, el aviso es la discrepancia*.
+
+147 archivos / 1.758 tests, typecheck limpio.
