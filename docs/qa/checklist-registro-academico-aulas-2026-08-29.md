@@ -1404,3 +1404,47 @@ la frase ahí devolvía «no está» tanto si se pintaba como si no. Se comprueb
 un test de componente —tres casos: chocan, a medias, cerrada— y no con el
 barrido visual. **Un "no aparece" en el report no es una ausencia en pantalla**:
 es una pregunta hecha al instrumento equivocado.
+
+### Vuelta 22 · Avance > Resumen · un rótulo que contaba lo que reparte el gráfico de al lado
+
+Los dos gráficos de Resumen reparten universos distintos, y eso es correcto:
+
+| panel | reparte | qué es |
+|---|---|---|
+| Estado de aplicación | **1.424** | el plan entero, con 1.232 en reserva |
+| Cursos-horario por cobertura | **174** | los que tienen meta |
+
+Lo que no era correcto es que **los dos rotulaban 1.424**. El helper se llamaba
+`contadorDeLoQueReparte` y no miraba lo que reparte: sólo comprobaba que el
+resumen fuese un array no vacío y devolvía el total en los dos casos.
+
+```ts
+const contadorDeLoQueReparte = (resumenDelMotor: unknown) =>
+  contadorDeAulas(
+    Array.isArray(resumenDelMotor) && resumenDelMotor.length ? totalAulas : aulaRows.length,
+  );
+```
+
+**Y ese helper es una reparación mía anterior.** Los dos paneles decían «se ven
+500 de 1.424», falso desde que el motor reparte sobre todas las filas. Verifiqué
+la suma —«los seis tramos de Estado de aplicación suman exactamente 1.424»,
+está escrito en el comentario— **en un panel**, y apliqué la conclusión a los
+dos. Es la misma falta que ya costó una vuelta al medir un solo viewport, un
+nivel más fino: **comprobar en una superficie y concluir sobre su vecina.**
+
+Reparar sólo la suma no bastaba: `contadorDeCursosHorario` dispara «se ven X de
+Y» en cuanto el total supera lo visible, así que cobertura habría pasado de
+«1.424» a **«se ven 174 de 1.424»** — un aviso de recorte igual de falso, porque
+a cobertura no le faltan 1.250 filas: es que 1.250 no tienen meta que cubrir. Un
+reparto con universo propio se rotula con el suyo y sin denominador ajeno, y el
+banco sólo se nombra cuando el universo es el que lo contiene.
+
+La función sale del page-file a `contadorDeLoQueReparte.ts` con firma explícita
+—era lógica calculable enterrada en un componente— y tiene sus cuatro casos:
+reparto del plan entero, reparto de universo propio, sin reparto (donde el aviso
+de recorte **sí** corresponde) y reparto con todo a cero, que se trata como
+ausente y no como un universo de cero. Comprobado que muerde: con la regla
+vieja, rojo sólo en el caso de cobertura.
+
+Vista con `ok=true`, 0 issues y 0 avisos de geometría. 146 archivos / 1.726
+tests.
