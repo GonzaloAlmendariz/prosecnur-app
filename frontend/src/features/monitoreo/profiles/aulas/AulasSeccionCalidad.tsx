@@ -265,18 +265,44 @@ export function AulasSeccionCalidad({
           <span>
             {control.length
               ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)} · lo que calcula el equipo`
-              : "Sin datos"}
+              : dashboard.libro ? "Hoja de control sin filas" : "Libro sin importar"}
           </span>
         </div>
         {/* La vara, junto al veredicto que produce. Declararla en una pantalla
             de ajustes la dejaría lejos de su resultado, que es lo que hacía que
             nadie supiera cuál era. */}
         {criterioDeAula}
-        <AulasControlDelLibro
-          filas={control}
-          resumen={controlResumen}
-          criterio={(dashboard.criterio_validez ?? null) as never}
-        />
+        {/* **El vacío dice cuál de las dos causas es.** Sin filas, esta sección
+            pintaba la tabla con sus cabeceras y cero filas bajo un pie de dos
+            palabras, «Sin datos», mientras el panel hermano de más abajo —«Lo
+            que falta para cerrar»— comprobaba `control.length` y desaparecía
+            entero: dos tratamientos del mismo vacío en la misma sección.
+
+            Y el motor YA distingue las dos causas —`libro` llega `NULL` cuando
+            el estudio nunca importó uno, «que es distinto de un libro sin
+            hojas», dice su propio comentario—, pero ese campo sólo lo consumía
+            la sección de Fuentes. Vacío por desconexión, que es la única
+            categoría del triaje C5 que autoriza añadir.
+
+            No es un caso de laboratorio: `control_calidad` sale de los partes
+            de campo, así que éste es el estado del día 1 de cualquier estudio. */}
+        {control.length ? (
+          <AulasControlDelLibro
+            filas={control}
+            resumen={controlResumen}
+            criterio={(dashboard.criterio_validez ?? null) as never}
+          />
+        ) : (
+          <p
+            className="mon-profile-muted"
+            data-qa-geometry-capacity="owned"
+            data-qa-geometry-member="true"
+          >
+            {dashboard.libro
+              ? "El libro del operativo está importado, pero su hoja de control todavía no trae ninguna fila: la revisión aparece en cuanto el equipo registre la primera."
+              : "Este estudio todavía no ha importado el libro del operativo, así que no hay hoja de control que revisar."}
+          </p>
+        )}
       </section>
       ) : null}
       {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
