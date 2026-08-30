@@ -75,6 +75,20 @@ export function perfilPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     /** La meta más alta marca la escala de las barras. */
     tope: facultades.reduce((max, f) => Math.max(max, f.meta), 0),
     cumplidas: facultades.filter((f) => f.falta === 0 && f.meta > 0).length,
+    /**
+     * **Contra qué se está midiendo**, porque no es lo mismo en las dos ramas y
+     * el panel lo publica en palabra.
+     *
+     * Ésta mide contra la meta del PLAN —`expected_valid` de cada
+     * curso-horario, como dice la cabecera del módulo—; `perfilDesdeElMotor`
+     * mide contra la cuota del diseño. Son dos denominadores distintos y el
+     * panel decía «con su meta cumplida» en los dos casos, debajo de un
+     * subtítulo que afirmaba «contra la cuota del estudio». En este perfil
+     * «meta» y «cuota» son cosas distintas —la meta es por aula, la cuota por
+     * facultad y sexo—, así que la misma frase era exacta en una rama e
+     * incorrecta en la otra.
+     */
+    vara: "meta del plan" as const,
   };
 }
 
@@ -145,5 +159,10 @@ export function perfilDesdeElMotor(filas: ReadonlyArray<FilaDeFacultadDelMotor>)
     sinFacultad: 0,
     tope: facultades.reduce((max, f) => Math.max(max, f.meta), 0),
     cumplidas: facultades.filter((f) => !f.falta).length,
+    // El bloque del motor se titula «Avance por facultad y sexo contra la cuota
+    // del diseño» (`carga_aulas_libro_avance_facultad.R`) y sale de
+    // `design_targets`. Comprobado además contra la pestaña de Cuotas: Ciencias
+    // Sociales da 63.1 % y faltan 55 en las dos superficies.
+    vara: "cuota del estudio" as const,
   };
 }

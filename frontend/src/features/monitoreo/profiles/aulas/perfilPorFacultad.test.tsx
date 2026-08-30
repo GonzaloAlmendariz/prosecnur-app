@@ -184,3 +184,50 @@ describe("las dos rutas del perfil redondean igual", () => {
     expect(f!.avance).toBe(0);
   });
 });
+
+describe("el panel dice contra qué está midiendo", () => {
+  /**
+   * **En este perfil «meta» y «cuota» son cosas distintas.**
+   *
+   * La meta es por curso-horario —`expected_valid`, y suma 3.227 en el
+   * estudio—; la cuota es por facultad y sexo, y suma 2.500. El panel usa una
+   * vara u otra según le llegue el resumen del motor, y decía «con su meta
+   * cumplida» en los dos casos, justo debajo de un subtítulo que afirma «contra
+   * la cuota del estudio».
+   *
+   * Cuál manda está comprobado en las dos puntas: el bloque del motor se titula
+   * «Avance por facultad y sexo contra la cuota del diseño»
+   * (`carga_aulas_libro_avance_facultad.R`) y sale de `design_targets`; y en
+   * pantalla, Ciencias Sociales da 63.1 % y faltan 55 tanto aquí como en la
+   * pestaña de Cuotas, que mide contra la cuota.
+   */
+  const conMotor = () => renderToStaticMarkup(
+    <AulasPerfilPorFacultad
+      filas={[] as unknown as MonitoreoAulasPlanRow[]}
+      resumen={[{ faculty: "DERECHO", aulas: 18, meta: 664, brecha: 0 }]}
+    />,
+  );
+
+  const sinMotor = () => renderToStaticMarkup(
+    <AulasPerfilPorFacultad
+      filas={[
+        { faculty: "DERECHO", expected_valid: 10, respuestas_validas: 10 },
+      ] as unknown as MonitoreoAulasPlanRow[]}
+      resumen={[]}
+    />,
+  );
+
+  it("con el bloque del motor habla de la cuota", () => {
+    const html = conMotor();
+    expect(html).toContain("cuota cumplida");
+    expect(html).not.toContain("meta cumplida");
+  });
+
+  it("con el cálculo local habla de la meta del plan, que es otro denominador", () => {
+    // El control que distingue: si el componente dijera siempre «cuota», la
+    // aserción de arriba pasaría sin probar que la palabra sigue a la vara.
+    const html = sinMotor();
+    expect(html).toContain("meta cumplida");
+    expect(html).not.toContain("cuota cumplida");
+  });
+});
