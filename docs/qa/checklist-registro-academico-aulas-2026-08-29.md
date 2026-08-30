@@ -739,3 +739,19 @@ separan. Ahora también.
 del operativo y esta superficie la usa el jefe de campo, no la autoridad que lee
 Avance. Corregirlos sería el error que el ADR 0057 advierte, en su versión de
 registro.
+
+### Deuda de vocabulario · el componente que más acumulaba
+
+`AulasSerieDeRendimiento.tsx` tenía **19 de las 86 frases** con «aula». Revisadas
+una a una y cerradas 18; el ratchet baja de **86 a 68**.
+
+**La que no se toca, y es la que da sentido a revisar en vez de reemplazar**: «la
+tasa **del aula**». El motor llama así a otra cosa —la fracción de elegibles que
+responde según el tamaño del salón—, y ese nombre ya costó una corrección
+anterior, cuando la columna «Por aula» de rendimiento se renombró a «Por visita»
+justamente porque eran «dos números distintos con el mismo nombre dentro del
+mismo módulo». Un find-replace la habría destruido.
+
+Dos frases se resistieron al primer intento por tener un salto de línea en medio,
+y una de ellas resultó vivir en un `<title>` de SVG: texto publicable que leen el
+navegador y el lector de pantalla, no un comentario. Cerradas las dos.
