@@ -96,7 +96,7 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
     return (
       <p className="mon-profile-muted">
         {aviso || (sinMeta
-          ? `Las ${fmt(sinMeta)} celdas de cuota del plan no declaran objetivo.`
+          ? `Los ${fmt(sinMeta)} grupos de cuota del plan no declaran objetivo.`
           : "El plan no declara composición por sexo para estos cursos-horario.")}
       </p>
     );
@@ -110,7 +110,7 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
       <p className="aulas-cuota-lectura">
         <strong>{general.logrado.toLocaleString("es-PE")}</strong> de{" "}
         <strong>{general.meta.toLocaleString("es-PE")}</strong> personas ·{" "}
-        {general.celdasCumplidas} de {general.celdas} celdas cumplidas
+        {general.celdasCumplidas} de {general.celdas} grupos cumplidos
         {sinMeta ? ` · ${sinMeta} sin objetivo declarado` : ""}
       </p>
 

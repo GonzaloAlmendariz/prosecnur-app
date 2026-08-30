@@ -116,7 +116,7 @@ function Lado({ lado, tope, hacia }: {
         <i style={{ width: `${relleno}%`, background: tono(lado) }} />
         {/* **La sombra de lo que la agenda va a traer.** Sale del relleno hacia
             la meta, en el mismo carril y con la misma escala, así que si no
-            llega al final del carril esa celda no cierra —y eso se ve sin leer
+            llega al final del carril ese grupo no cierra —y eso se ve sin leer
             ninguna cifra—. Va rayada y translúcida porque es previsión y no
             dato: confundirla con lo recogido sería peor que no dibujarla. */}
         {lado.previsto ? (
@@ -169,8 +169,8 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
       // enfrentar.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinMeta
-          ? `Las ${fmt(sinMeta)} celdas de cuota del plan no declaran objetivo.`
-          : "Sin celdas que enfrentar."}
+          ? `Los ${fmt(sinMeta)} grupos de cuota del plan no declaran objetivo.`
+          : "Sin grupos que enfrentar."}
       </p>
     );
   }
@@ -199,7 +199,7 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
         <p className="aulas-piramide-leyenda">
           <i aria-hidden="true" />
           Lo rayado es lo que traerán las aulas ya agendadas. Si no llega al final
-          de su carril, esa celda no cierra con lo que hay.
+          de su carril, ese grupo no cierra con lo que hay.
         </p>
       ) : null}
       <ol className="aulas-piramide-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -233,7 +233,7 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
         // tercer valor de sexo no cabe. Se dice en vez de desaparecer.
         <p className="mon-profile-muted">
           El plan declara además {otros.join(", ")}; una pirámide sólo enfrenta dos
-          lados, así que esas celdas se ven en la tabla de abajo.
+          lados, así que esos grupos se ven en la tabla de abajo.
         </p>
       ) : null}
       {sinMeta ? (

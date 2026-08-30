@@ -147,3 +147,54 @@ describe("el perfil no fuerza la coma decimal", () => {
     expect(culpables, culpables.join("\n")).toEqual([]);
   });
 });
+
+/**
+ * **«Celda» es vocabulario de tabla estadística, y esta pantalla no la lee un
+ * analista.**
+ *
+ * El perfil llamaba «celda sexo × facultad» al cruce que tiene cuota propia. Es
+ * exacto y es como se piensa por dentro; el problema es quién abre Avance —una
+ * autoridad universitaria, que no participó en el diseño muestral— y tiene que
+ * ir a buscar qué es una celda para leer «23 de 30». Se dice «grupo de facultad
+ * y sexo», que nombra lo mismo sin pedir nada prestado.
+ *
+ * El guard existe porque retirarlo a mano falló dos veces seguidas: la primera
+ * pasada buscó la frase larga —«celda sexo × facultad», «celda a celda»— y dejó
+ * vivos un subtítulo que decía «30 celdas», una lectura de «21 de 30 celdas
+ * cumplidas» y cuatro más. **Se busca el término, no la frase.**
+ *
+ * `AulasControlDelLibro.tsx` queda fuera y no por descuido: ahí «celda» es una
+ * celda de hoja de cálculo de verdad —«la hoja dice "…"»— y es la palabra
+ * correcta para eso.
+ */
+describe("el perfil no publica «celda» como unidad de cuota", () => {
+  const EXENTOS = new Set(["AulasControlDelLibro.tsx"]);
+  /**
+   * **Se busca la palabra con su determinante, no el literal.**
+   *
+   * La primera versión de este guard extraía los literales entre comillas y
+   * plantillas, y NO MORDÍA: la leyenda que se había escapado —«si no llega al
+   * final de su carril, ese grupo no cierra»— es texto plano de JSX, suelto
+   * entre etiquetas y sin una sola comilla. Se comprobó reintroduciendo el
+   * término y viendo el guard en verde.
+   *
+   * Mirar el fuente entero, en cambio, caza la prop `{ celdas }` y el import de
+   * `celdasPorFacultad`, que son código y no publican nada. Lo que separa una
+   * cosa de otra es que en prosa la palabra lleva delante un artículo, un
+   * demostrativo o una cifra: «30 celdas», «esa celda», «Sin celdas», «Misma
+   * celda». En código nunca.
+   *
+   * `AulasControlDelLibro.tsx` queda fuera y no por descuido: ahí «celda» es
+   * una celda de hoja de cálculo de verdad y es la palabra correcta.
+   */
+  const EN_PROSA = /\b(?:la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|ninguna|ningún|ningun|otra|otras|misma|mismas|sin|de|del|en|por|\d+)\s+celdas?\b/gi;
+  it.each(fuentes.filter((f) => !EXENTOS.has(f)))("%s", (archivo) => {
+    // Los comentarios citan la palabra retirada para explicar por qué se fue.
+    const fuente = fs
+      .readFileSync(path.join(aqui, archivo), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const culpables = [...fuente.matchAll(EN_PROSA)].map((m) => `${archivo}: …${m[0]}…`);
+    expect(culpables, culpables.join("\n")).toEqual([]);
+  });
+});

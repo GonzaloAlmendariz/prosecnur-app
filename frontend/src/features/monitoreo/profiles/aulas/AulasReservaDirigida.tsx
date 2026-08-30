@@ -55,7 +55,7 @@ export function AulasReservaDirigida({ celdas }: { celdas: ReadonlyArray<Monitor
       <header className="aulas-reserva-dirigida-head">
         <h4>A qué aula del banco ir</h4>
         <span>
-          {orden.length === 1 ? "1 celda" : `${fmtCuenta(orden.length)} celdas`} de cuota que hoy no llega
+          {orden.length === 1 ? "1 grupo" : `${fmtCuenta(orden.length)} grupos`} de cuota que hoy no llega
         </span>
       </header>
 
