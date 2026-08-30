@@ -343,3 +343,44 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
   });
 });
 
+describe("la tarjeta de brechas dice brecha de qué", () => {
+  /**
+   * Se llamaba «Brechas» a secas y compartía banda con «Cuota por recoger», que
+   * también cuenta lo que falta pero en PERSONAS. Las dos se leían como dos
+   * cuentas del mismo hueco cuando son dos ejes distintos: la cuota son alumnos
+   * que faltan para el objetivo del estudio; la brecha, cursos-horario que no
+   * llegaron a su propia meta (`sum(tracked_df$brecha > 0)` en
+   * `monitoreo_aulas_universitarias.R:2342`).
+   *
+   * No tenía ni un test, que es por lo que el renombrado pasó el gate sin
+   * despeinar a nadie.
+   */
+  const brechas = (extra: Record<string, unknown> = {}) =>
+    aulasKpis(tablero(extra), "avance").find((k) => k.label === "Cursos-horario bajo su meta");
+
+  it("el rótulo nombra la unidad que cuenta", () => {
+    const k = brechas({
+      course_status: [
+        { faculty: "Derecho", brecha: 30 },
+        { faculty: "Ciencias", brecha: 12 },
+      ],
+    });
+    expect(k, "la tarjeta desapareció de la banda de Avance").toBeDefined();
+    expect(k?.value).toBe("92");
+    expect(k?.pista).toBe("en 2 facultades");
+  });
+
+  it("sin desglose no dice «ninguno»: dice que falta el reparto", () => {
+    // `course_status` puede llegar recortado. Una pista que negara las brechas
+    // contradiría al número grande, que sigue diciendo 92.
+    const k = brechas();
+    expect(k?.value).toBe("92");
+    expect(k?.pista).toContain("desglose");
+    expect(k?.pista).not.toContain("ninguno");
+  });
+
+  it("una sola facultad se dice en singular", () => {
+    expect(brechas({ course_status: [{ faculty: "Derecho", brecha: 30 }] })?.pista)
+      .toBe("en 1 facultad");
+  });
+});

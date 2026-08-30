@@ -237,3 +237,40 @@ Guard: ningún panel del perfil puede resumir su contenido con «filas». No pue
 comprobar el recorte —eso no se lee del fuente— pero sí que el subtítulo nombre
 lo que hay dentro, que es lo que fuerza a usar `contadorDeCursosHorario` cuando
 el payload viene cortado. Verificado que muerde.
+
+### Vuelta 7 · «Brechas» no decía brecha de qué
+
+La banda de Avance ponía juntas dos cifras de «lo que falta» en unidades
+distintas y sin decirlo:
+
+- «CUOTA POR RECOGER **170**» · 90 hombres · 80 mujeres → **personas**
+- «BRECHAS **98**» · cursos-horario en 15 facultades → **cursos-horario**
+
+Son dos ejes, no dos cuentas del mismo hueco: 170 son alumnos que faltan para la
+cuota del estudio; 98, cursos-horario que no llegaron a su propia meta
+(`sum(tracked_df$brecha > 0)`, `monitoreo_aulas_universitarias.R:2342`). Pasa a
+**«Cursos-horario bajo su meta»**.
+
+Con el nombre completo la banda se vuelve aritméticamente legible: **76
+«Llegaron a su meta» + 98 «bajo su meta» = 174 «cursos-horario con meta»**, que
+es el denominador que la propia tarjeta vecina declara. Antes esa relación no se
+podía ver.
+
+La pista sin desglose decía «cursos-horario por debajo de su meta»; ahora dice
+«sin el desglose por facultad», porque `course_status` puede llegar recortado y
+negar el reparto contradiría al número grande, que sigue diciendo 98.
+
+**`brechasKpi` tampoco tenía un solo test** —el renombrado pasó el gate en verde,
+igual que el veredicto de la vuelta 4—. Ahora tiene tres, verificados en los dos
+sentidos.
+
+### Un `equal-frame-drift` que NO es de esta tanda
+
+A 1024×600 la banda se parte en dos filas y las tres de arriba miden 97 px contra
+84.5 las de abajo: **C2 roto, delta 12.5 px con tolerancia 2**. Lo destapó el
+runner al comprobar mis rótulos largos, así que medí el mismo viewport con los
+cambios en `stash`: **las alturas son idénticas antes y después**, o sea que es
+preexistente y no lo causaron los rótulos.
+
+Queda como trabajo propio, con su vecino: un `capacity-drift` en «Cursos-horario
+vencidos sin aplicar», que aparece en los tres viewports.
