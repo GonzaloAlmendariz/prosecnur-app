@@ -102,7 +102,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
     // equivocado que salió en cinco paneles del perfil.
     <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-pronostico-lectura">
-        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas aplicadas ·
+        <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario aplicados ·
         faltan <strong>{fmt(p.faltan)}</strong> · al ritmo de estos{" "}
         {fmt(p.diasConCampo)} días cierra hacia el <strong>{dm(fin)}</strong>
       </p>
@@ -183,7 +183,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
       <p className="mon-profile-muted aulas-pronostico-pie">
         {sinVariacion ? (
           <>
-            Proyectado al ritmo observado de <strong>{fmt(p.ritmoLento ?? 0)}</strong> aulas por día
+            Proyectado al ritmo observado de <strong>{fmt(p.ritmoLento ?? 0)}</strong> cursos-horario por día
             de campo, igual todos los días, contando todos los días menos el domingo. Sin
             variación entre días no
             hay banda que dibujar: la fecha es <strong>{dm(fin)}</strong> mientras el ritmo se
@@ -191,14 +191,15 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           </>
         ) : (
           <>
-            Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong> aulas
-            por día de campo (entre {fmt(p.ritmoLento ?? 0)} y {fmt(p.ritmoRapido ?? 0)} según el
+            Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong>{" "}
+            cursos-horario por día de campo (entre {fmt(p.ritmoLento ?? 0)} y{" "}
+            {fmt(p.ritmoRapido ?? 0)} según el
             día), contando todos los días menos el domingo. Con un día flojo
             cerraría el <strong>{dm(tarde)}</strong>; con uno bueno,
             el <strong>{dm(pronto)}</strong>.
           </>
         )}{" "}
-        No descuenta las aulas que aún no tienen fecha ni supone que el ritmo mejore.
+        No descuenta los cursos-horario que aún no tienen fecha ni supone que el ritmo mejore.
       </p>
     </div>
   );

@@ -89,7 +89,7 @@ export function AulasRendimientoPorFacultad({
           <>Todo el trabajo está en <strong>{filas[0].facultad}</strong></>
         )}
         {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
-        {fmt(aulas)} {aulas === 1 ? "aula visitada" : "aulas visitadas"}
+        {fmt(aulas)} {aulas === 1 ? "curso-horario visitado" : "cursos-horario visitados"}
       </p>
       {/* SEMÁNTICA DE TABLA SOBRE LA REJILLA, no `<table>`.
           La cabecera iba con `aria-hidden="true"`, así que un lector de pantalla
@@ -118,10 +118,10 @@ export function AulasRendimientoPorFacultad({
             perfil resuelve el detalle de los KPIs y no gasta un píxel. */}
         <li className="aulas-rendimiento-cabecera" role="row">
           <span role="columnheader">{unidad}</span>
-          <span role="columnheader" title="Encuestas conseguidas por cada aula visitada. Es un resultado del campo, no el pronóstico del diseño.">
+          <span role="columnheader" title="Encuestas conseguidas por cada curso-horario visitado. Es un resultado del campo, no el pronóstico del diseño.">
             Por visita
           </span>
-          <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas afortunadas no encabeza la lista.`}>
+          <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
             Ajustado
           </span>
           <span role="columnheader" title="Qué proporción de quienes asistieron al aula acabó respondiendo. Mide el trabajo dentro del aula.">
@@ -143,7 +143,7 @@ export function AulasRendimientoPorFacultad({
               enFoco={clave === "faculty" && f.facultad === facultadEnFoco}
               onFoco={clave === "faculty" ? onFoco : undefined}>
               {f.facultad}
-              <em>{fmt(f.aulas)} {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.efectivas)} encuestas</em>
+              <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} encuestas</em>
             </NombreDeFacultad>
             {/* La barra mide POR AULA, que es la pregunta del panel. Escala
                 compartida entre facultades: normalizar cada una a sí misma haría
@@ -188,10 +188,11 @@ export function AulasRendimientoPorFacultad({
       <p className="mon-profile-muted aulas-rendimiento-pie">
         {explicaLasColumnas ? (
           <>
-            <strong>Por visita</strong> es lo que deja cada aula visitada, y por eso ordena la lista.{" "}
+            <strong>Por visita</strong> es lo que deja cada curso-horario visitado, y por eso ordena la lista.{" "}
             <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
             {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
-            afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}
+            cursos-horario afortunados no encabeza. <strong>De los asistentes</strong> mide el trabajo
+            dentro del curso-horario;{" "}
             <strong>del potencial</strong>, cuánto queda por recoger.
           </>
         ) : null}

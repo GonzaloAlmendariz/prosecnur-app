@@ -646,7 +646,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? ` · con lo que el diseño pedía de esas aulas, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
       : "";
     const lectura = meta > 0
-      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de las aulas visitadas · ${
+      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados · ${
           alCerrar >= meta
             // **La cifra se dice también cuando se pasa.** Decir sólo «se pasa
             // de esa meta» dejaba la segunda llegada —la del diseño— sin nada

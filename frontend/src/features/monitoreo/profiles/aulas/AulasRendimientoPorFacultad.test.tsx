@@ -89,7 +89,7 @@ describe("el pie de columnas no se repite panel tras panel", () => {
   // aula» a «Por visita» porque el motor ya usa «tasa del aula» para el
   // pronóstico del diseño. Con el rótulo nuevo la frase anterior quedaba
   // circular («Por visita es lo que deja cada visita»).
-  const columnas = "es lo que deja cada aula visitada";
+  const columnas = "es lo que deja cada curso-horario visitado";
   const tramos = "no un corte de la";
 
   it("el primer panel sí explica las columnas", () => {

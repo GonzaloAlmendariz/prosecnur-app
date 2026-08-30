@@ -137,7 +137,7 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
   const page = fuenteDelPerfilDeAulas();
 
   test("el subtítulo dice que las encuestas son del parte", () => {
-    expect(page).toContain("<span>encuestas del parte, por aula visitada</span>");
+    expect(page).toContain("<span>encuestas del parte, por curso-horario visitado</span>");
   });
 
   test("la fuente vecina sigue nombrando la suya", () => {
