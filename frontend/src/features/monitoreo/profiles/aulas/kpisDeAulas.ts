@@ -562,6 +562,13 @@ export function aulasKpis(
           icono: CalendarClock,
           value: fmt(ag.estadosEnDesacuerdo),
           pista: "el estado de muestra dice «sin contactar» y el operativo, que ya está agendado",
+          // **Cuánto depende de la contradicción, no sólo cuántas hay.** El
+          // conteo solo deja al lector sin saber si son nueve casos sueltos o
+          // media proyección. Medido el 2026-08-30: esas 9 aportan 168 de las
+          // 373,5 efectivas del aporte pendiente.
+          detalle: ag.esperadasEnDesacuerdo > 0
+            ? `De ellas se esperan ${fmt(ag.esperadasEnDesacuerdo)} encuestas, así que la proyección de cierre se apoya en filas cuyos dos estados no coinciden. Cuál manda —lo agendado o lo contactado— decide si esas encuestas cuentan.`
+            : undefined,
           tone: "warn",
         });
       }
