@@ -138,6 +138,11 @@ export function corteAulas(
     procesable: numero(kpis?.filter_passed),
     oficial: numero(kpis?.respuestas_validas),
     meta,
+    // Es la CUOTA del diseño, no la meta: el motor la toma de
+    // `avance_cuota$total$cuota` y lo dice en su comentario. Llamarla «meta»
+    // aquí la enfrentaba con la meta de Resumen —3.227 contra 2.500— bajo la
+    // misma palabra y a una pestaña de distancia.
+    metaEtiqueta: "cuota",
     cutAt: state?.synced_at || dashboard?.generated_at || "",
     hasSnapshot: Boolean(state?.has_snapshot),
     generationStatus: state?.generation_status,

@@ -482,3 +482,33 @@ aplicarse nunca**. La línea de detalle envuelve ahora, que es la reparación qu
 el contrato admite —es dato operativo y no se recorta ni se le baja el cuerpo—.
 
 Resultado: **de 9 a 0**, incluida la incidencia que ya existía antes del cambio.
+
+### Vuelta 15 · Avance > Salidas · «meta 2.500» y «meta 3.227» a una pestaña
+
+Primero, una corrección de mi propia sonda: leí «pestaña vacía» porque buscaba
+`.mon-profile-panel` y Salidas no usa esa clase. Tiene contenido; el error era de
+la medición, no de la app.
+
+**El defecto real**: la tarjeta «Válidas» rotulaba «**meta 2,500**» mientras
+Avance > Resumen rotula «**meta 3,227** · suma de metas por curso-horario». Dos
+cifras distintas bajo la misma palabra, a una pestaña de distancia.
+
+El número es correcto y el nombre mentía: el motor toma esa cifra de
+`avance_cuota$total$cuota` y lo dice en su propio comentario —«es el denominador
+global de `avance_cuota`: **la cuota del diseño vigente**»—. O sea, 2.500 es la
+cuota, no la meta.
+
+La tarjeta vive en `features/monitoreo/salidas/`, **compartida con territorial y
+acreditación**, donde «meta» sí es correcto. Por eso no se renombró para todos:
+el contrato del corte gana un `metaEtiqueta` que cada perfil declara, con «meta»
+por defecto, y sólo `corteAulas` —que es del perfil— dice «cuota».
+
+Test en los dos sentidos, con el control que importa: si «cuota» se pusiera por
+defecto en el contrato, la suite también se pone roja, porque afirma que
+territorial y acreditación siguen diciendo «meta».
+
+**Lo que ya estaba bien**: 2.817 − 2.668 = 149, y el salto lo declara como
+«−149 · Respuestas fuera del filtro declarado para la aplicación en aula» ✓.
+«Procesables 2.668» y «Válidas 2.668» coinciden porque no hay descarte entre esos
+dos pasos, y el componente tiene una rama que lo explica cuando los tres granos
+son iguales.

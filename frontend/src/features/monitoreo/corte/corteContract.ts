@@ -41,6 +41,20 @@ export type MonitoreoCorte = {
   /** Válidas defendibles que cuentan como avance. `null` = no determinado. */
   oficial: number | null;
   meta: number | null;
+  /**
+   * **Cómo se llama esa cifra en ESTE perfil.**
+   *
+   * La tarjeta de Salidas rotulaba siempre «meta N», y en aulas la cifra que
+   * recibe es `avance_cuota$total$cuota` —la CUOTA del diseño, 2.500—, mientras
+   * «meta» en esa misma sección nombra otra cosa: la suma de metas por
+   * curso-horario, que son 3.227. Dos cifras distintas bajo la misma palabra, a
+   * una pestaña de distancia.
+   *
+   * El número es correcto; lo que mentía era el nombre. Se deja que cada perfil
+   * declare el suyo en vez de renombrar para todos: territorial y acreditación
+   * sí publican una meta.
+   */
+  metaEtiqueta: string;
   brecha: number | null;
   avancePct: number | null;
   cutAt: string;
@@ -56,6 +70,8 @@ export type MonitoreoCorteInput = {
   procesable?: number | null;
   oficial?: number | null;
   meta?: number | null;
+  /** Cómo se llama esa cifra en este perfil. Por defecto, «meta». */
+  metaEtiqueta?: string;
   cutAt?: string | null;
   hasSnapshot?: boolean;
   generationStatus?: MonitoreoGenerationStatus | null;
@@ -133,6 +149,7 @@ export function construirCorte(input: MonitoreoCorteInput): MonitoreoCorte {
     procesable,
     oficial,
     meta,
+    metaEtiqueta: input.metaEtiqueta || "meta",
     brecha,
     avancePct,
     cutAt: input.cutAt || "",
