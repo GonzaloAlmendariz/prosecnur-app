@@ -364,3 +364,28 @@ dos casos y un control en el contrario.
 48 en las filas; 9 cumplidas + 6 con déficit = 15 facultades, coherente con el
 «Faltan 170 repartidos en 6 facultades» de Cuotas; y en «Ritmo de la
 recolección», 2.668 respuestas en 11 días = 243 al día.
+
+### Vuelta 11 · Avance > Estratos
+
+La pestaña tiene el gráfico «Avance por facultad y sexo» y, debajo, la tabla de
+los 72 estratos del sorteo.
+
+**Lo que ya estaba bien**, comprobado antes de tocar: la tabla cuadra en las
+cuatro filas verificadas —291 válidas + 147 de brecha = 438 de meta, y 291/438 =
+66.4 %, que es lo que publica «% Avance de respuestas» en esa misma fila; 15 de
+17 cursos-horario = 88.2 %—. Y el gráfico ya reparte por facultad × sexo **del
+alumno** y no por el estrato del sorteo, que fue lo que Gonzalo pidió: «cómo vas
+a poner mayoría hombres o mayoría mujeres cuando eso no me interesa; lo que me
+interesa es cuántos hombres y cuántas mujeres». El estrato se conserva sólo en la
+tabla de abajo, y el subtítulo lo declara: «72 estratos de diseño abajo».
+
+**Lo corregido**: la columna «Brecha». Son **respuestas** que faltan —lo prueba
+la aritmética de arriba— y la misma palabra contaba cursos-horario en la banda de
+Avance, donde la tarjeta ya pasó a llamarse «Cursos-horario bajo su meta». Ahora
+dice «Respuestas que faltan», y con eso la fila se explica sola: válidas + faltan
+= meta, y su cociente es el porcentaje de al lado.
+
+Anotado sin cambiar: la pestaña se llama «Estratos» y su primer panel es el
+gráfico por facultad y sexo, que no es de estratos. El subtítulo lo salva
+—«72 estratos de diseño abajo»— y el nombre de la pestaña pertenece al contrato
+de navegación, así que no se toca desde aquí.
