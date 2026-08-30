@@ -245,6 +245,23 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* **Salidas no cabe en una fila que puede valer cero.**
+ *
+ * El `min-height: 0` de arriba es lo que deja que esta vista ceda su alto y el
+ * scroll lo lleve el panel; en las otras cinco pestañas de Avance funciona
+ * —medido: 4835, 1815, 1053, 4423 y 839 px, todas con alto igual a su
+ * contenido—. Pero el workbench de salidas es una sola pieza que no scrollea por
+ * dentro, así que al quedarse sin fila colapsaba a 0 con 802 px dentro:
+ * `avance/salidas` a 1024x600, con el panel en 360 px y la banda de KPIs más el
+ * bloque de calidad ocupando 350. El resultado era `scroll-unreachable` (C4).
+ *
+ * Con `:has()` porque es una excepción del CONTENIDO, no de la pestaña: si otra
+ * vista monta el mismo workbench, hereda la reparación. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .mon-outputs-workbench) {
+  min-height: min-content;
+  grid-template-rows: minmax(min-content, 1fr);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-mon-view:has(.mon-profile-error) {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
