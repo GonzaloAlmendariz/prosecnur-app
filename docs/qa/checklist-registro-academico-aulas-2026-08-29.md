@@ -1102,3 +1102,21 @@ contain 'fmt(conDeficit)'»** — que no dice nada de lo que pasó.
 Ahora comprueba que el ancla existe **antes** de usarla, con un mensaje que dice
 qué hacer. Un test frágil no es un defecto del producto, pero un test que falla
 con un mensaje ilegible cuesta la misma media hora que un defecto.
+
+## Deuda de vocabulario · tercer lote
+
+Once frases más, repartidas en seis archivos: los tres avisos históricos de
+`kpisDeAulas` —«en el campo de 2025, un curso-horario que llegaba a la tercera
+gestión…»—, las dos del avance en respuestas, las dos de la proyección, las dos
+del control del libro y las dos de la sección de calidad.
+
+**El ratchet baja a 33**, desde los 93 iniciales. Verificado en pantalla con los
+siete paneles de Resumen montados: cero «aulas» en la sección.
+
+Dos detalles del método que se repiten y ya son rutina:
+
+- **El género sigue al sustantivo**: «un aula **corta**» → «un curso-horario
+  **corto**».
+- **Los saltos de línea rompen la búsqueda**: tres frases de este lote no casaron
+  al primer intento por tener el corte en medio. Se localizan por `grep -n` y se
+  sustituyen con el salto incluido.

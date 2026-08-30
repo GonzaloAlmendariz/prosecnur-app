@@ -115,7 +115,7 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                   className="aulas-avance-prob"
                   data-nivel={f.probabilidad >= 0.9 ? "alta" : f.probabilidad >= 0.6 ? "media" : "baja"}
                   title={f.dispersion
-                    ? `Corregida por la dispersión medida en este estudio: las aulas ya aplicadas `
+                    ? `Corregida por la dispersión medida en este estudio: los cursos-horario ya aplicados `
                       + `varían ×${f.dispersion.toFixed(1)} más de lo que supondría la independencia `
                       + `entre respuestas, medido sobre ${fmtCuenta(f.dispersionN)} aulas con campo.`
                     : "Sin dispersión medida no se publica probabilidad."}
@@ -130,7 +130,7 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
                    title={f.dispersionN < 20
                      ? `Todavía no hay bastante campo para medir cuánto varía el rendimiento entre aulas `
                        + `(${fmtCuenta(f.dispersionN)} aplicadas). Sin eso, un porcentaje fingiría una precisión que no hay.`
-                     : "Alguna de las aulas que faltan no declara su tasa de efectividad, así que no se puede calcular."}>
+                     : "Alguno de los cursos-horario que faltan no declara su tasa de efectividad, así que no se puede calcular."}>
                   sin medir
                 </b>
               )}

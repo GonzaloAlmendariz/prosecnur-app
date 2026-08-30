@@ -150,7 +150,7 @@ export function AulasSeccionCalidad({
           >
             <div className="mon-profile-panel-head">
               <h3>Cuánto se tarda en responder</h3>
-              <span>duración por respuesta y por aula</span>
+              <span>duración por respuesta y por curso-horario</span>
             </div>
             <AulasTiemposDeRespuesta tiempos={dashboard.tiempos}
               onDeclararUmbral={onDeclararUmbralDeDuracion ?? undefined} />
@@ -292,7 +292,7 @@ export function AulasSeccionCalidad({
         <div className="mon-profile-panel-head">
           <h3>Lo que falta para cerrar</h3>
           <span>
-            en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un aula corta
+            en encuestas, sobre el umbral que la hoja calculó. Segunda lectura: un curso-horario corto
             no obliga a nada si su facultad cierra igual
           </span>
         </div>

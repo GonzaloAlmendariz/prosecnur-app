@@ -90,7 +90,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
       {validasTotales > 0 && a.validas === 0 ? (
         <p className="aulas-avance-sin-atribuir">
           Las <strong>{fmt(validasTotales)}</strong> respuestas del corte llegan sin identificar
-          su curso-horario, así que ninguna cuenta para la meta de un aula.
+          su curso-horario, así que ninguna cuenta para la meta de un curso-horario.
         </p>
       ) : null}
       <div className="aulas-avance-carril" role="img" aria-label={`${a.avance}% de la meta cubierta`}>
@@ -117,7 +117,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
         {a.excedente ? (
           <li className="es-excedente">
             {/* La frase entera: sin ella, «excedente» se lee como logro. */}
-            <strong>{fmt(a.excedente)}</strong> de más en aulas que ya cumplieron — no cubren
+            <strong>{fmt(a.excedente)}</strong> de más en cursos-horario que ya cumplieron — no cubren
             la falta de ninguna otra
           </li>
         ) : null}
