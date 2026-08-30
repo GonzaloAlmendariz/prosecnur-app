@@ -255,8 +255,15 @@
  * `avance/salidas` a 1024x600, con el panel en 360 px y la banda de KPIs más el
  * bloque de calidad ocupando 350. El resultado era `scroll-unreachable` (C4).
  *
- * Con `:has()` porque es una excepción del CONTENIDO, no de la pestaña: si otra
- * vista monta el mismo workbench, hereda la reparación. */
+ * Con `:has()` porque es una excepción del CONTENIDO, no de la pestaña.
+ *
+ * **Y aquí, no en `.mon-outputs-workbench`.** Ese componente lo montan CUATRO
+ * perfiles —telefónico, acreditación, territorial y aulas— y sólo se ha medido
+ * el defecto en éste. Poner ahí el `min-height` habría exportado a los otros
+ * tres un cambio sin verificar; comprobado ademas que **no hace falta**: con
+ * esta regla sola, `avance/salidas` da `geometryIssues=0` a 1024 y a 1440. Si
+ * algún día aparece el mismo colapso en otro perfil, la señal es la misma —una
+ * sección con altura 0 y contenido dentro— y la reparación, su propia regla. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .mon-outputs-workbench) {
   min-height: min-content;
   grid-template-rows: minmax(min-content, 1fr);

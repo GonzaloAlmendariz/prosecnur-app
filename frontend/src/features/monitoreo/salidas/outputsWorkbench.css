@@ -3,19 +3,6 @@
   gap: 16px;
   width: 100%;
   color: var(--pulso-text);
-  /* **No se encoge por debajo de lo que contiene.**
-   *
-   * Es el único hijo de una fila `minmax(0, 1fr)`, así que sin esto se estira a
-   * lo que quede de fila… y cuando no queda nada, a cero. Medido el 2026-08-30 en
-   * `avance/salidas` a 1024x600: el panel tiene 360 px, la banda de KPIs y el
-   * bloque de calidad se comen 350, y esta sección quedaba en **altura 0 con 802
-   * px de contenido dentro**. El `overflow` del panel generaba 824 px de scroll
-   * hacia algo que el layout no reservaba, y el runner lo veía como
-   * `scroll-unreachable` (C4). A 1440x1000 no pasaba porque la fila tenía sitio.
-   *
-   * `min-content` y no una altura fija: lo que se declara es que el marco
-   * contiene su contenido (C2), no cuánto mide. */
-  min-height: min-content;
 }
 
 .mon-outputs-workbench__head {
