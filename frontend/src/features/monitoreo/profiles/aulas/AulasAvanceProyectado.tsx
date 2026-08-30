@@ -58,6 +58,15 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
   // objetivo declarado no van a llegar ni dejan de hacerlo. Contarlas hacía que
   // este panel y el KPI de arriba dijeran «10 de 30» significando lo contrario.
   const evaluables = celdasEvaluables(filas);
+  // Sólo cuentan las celdas que declaran objetivo: las que no, no calibran nada.
+  const origenes = filas.reduce(
+    (acc, f) => {
+      if (f.origen === "composicion_del_aula") acc.derivado += 1;
+      else if (f.origen === "hoja_de_control") acc.hoja += 1;
+      return acc;
+    },
+    { derivado: 0, hoja: 0 },
+  );
 
   // **Nada verde por ausencia, pero un solo dueño del aviso.**
   //
@@ -77,6 +86,8 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
     <div className="aulas-avance-proyectado" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       {/* El titular dice cuántas piden decisión, no cuántas hay: el denominador
           a la vista y sin obligar a contar filas. Cero es cero, no «todo bien». */}
+      {/* Se cuenta aquí y no en el normalizador: es una lectura del conjunto,
+          no un campo de la celda. */}
       <p className="aulas-avance-titular">
         {evaluables === 0
           ? `Ninguno de los ${fmt(filas.length)} grupos declara objetivo, así que no hay proyección que hacer.`
@@ -93,6 +104,24 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
           ? ` ${fmt(filas.length - evaluables)} más no declaran objetivo.`
           : null}
       </p>
+      {/* **De dónde sale «lo previsto», que es contra lo que se calibra.**
+          El motor lo pide por escrito —«el origen viaja en el payload: una
+          calibración sobre un previsto derivado mide el supuesto y el campo a la
+          vez, y quien lea tiene que poder saberlo»— y el campo llegaba hasta el
+          normalizador y ahí se quedaba: nadie lo pintaba.
+
+          Va una vez al pie y no en cada celda porque es el mismo para todas
+          —medido: 30 de 30 `composicion_del_aula`—, y repetirlo treinta veces
+          sería ruido. Si algún día conviven las dos fuentes, esta línea lo dirá
+          contando cuántas hay de cada una. */}
+      {origenes.derivado > 0 ? (
+        <p className="mon-profile-muted aulas-avance-origen">
+          {origenes.hoja > 0
+            ? `${fmt(origenes.derivado)} de ${fmt(origenes.derivado + origenes.hoja)} grupos calculan lo previsto repartiendo lo que promete cada curso-horario según la composición de sus elegibles`
+            : "Lo previsto se calcula repartiendo lo que promete cada curso-horario según la composición de sus elegibles"}
+          , que supone que la efectividad no depende del sexo. En 2025 la composición lograda se fue 3.4 puntos hacia las mujeres.
+        </p>
+      ) : null}
 
       <ul className="aulas-avance-lista">
         {filas.map((f, i) => {
