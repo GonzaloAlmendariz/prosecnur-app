@@ -81,7 +81,7 @@ export function AulasRendimientoPorFacultad({
             los tres y además es más corto. */}
         {filas.length > 1 ? (
           <>
-            De <strong>{personasPorAula(filas[0].porAula)}</strong> por aula ({filas[0].facultad}) a{" "}
+            De <strong>{personasPorAula(filas[0].porAula)}</strong> por curso-horario ({filas[0].facultad}) a{" "}
             <strong>{personasPorAula(filas[filas.length - 1].porAula)}</strong>{" "}
             ({filas[filas.length - 1].facultad})
           </>
@@ -153,7 +153,7 @@ export function AulasRendimientoPorFacultad({
                 celda, el lector perdería la posición en la fila. */}
             <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
-              aria-label={`${personasPorAula(f.porAula)} encuestas por aula`}>
+              aria-label={`${personasPorAula(f.porAula)} encuestas por curso-horario`}>
               <i style={{
                 width: `${Math.max(4, (100 * (f.porAula ?? 0)) / tope)}%`,
                 background: (f.porAula ?? 0) >= media ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
