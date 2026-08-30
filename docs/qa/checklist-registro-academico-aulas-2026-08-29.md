@@ -2453,3 +2453,50 @@ agendar».
 **La lección**: dejé la pregunta como bloqueada y era contestable con tres
 mediciones. Antes de escalar una decisión de dominio, conviene agotar lo que el
 dato ya dice.
+
+### Vuelta 47 · Dos cursos-horario comparten enlace y nada lo dice
+
+Del patrón nuevo —campos que llegan pre-rellenados y se leen como hechos— salió
+primero un barrido limpio y después un hallazgo que no esperaba.
+
+**El barrido, limpio.** De los campos que traen las 1.155 reservas dormidas, sólo
+`scheduled_date` engañaba (vuelta 46). `contact_attempts` viene como **cero
+explícito**, no como pre-relleno: los 174 titulares sí tienen intentos > 0.
+*(Mi primera medición dijo «100 %» porque contaba la presencia del campo y `"0"`
+es una cadena presente. Cuarta vez que una sonda mía mide lo que no es.)*
+
+**El hallazgo**: los enlaces del recopilador **colisionan entre cursos-horario
+distintos**.
+
+| | |
+|---|---|
+| Filas que salen a campo | **192** |
+| Enlaces distintos | **158** |
+| Enlaces compartidos por cadenas distintas | **25** |
+
+El enlace lleva el `classroom_id` **truncado**:
+
+```
+CH 11   id="1ind53_0833"   link=".../1ind53_0"
+CH 35   id="1ind53_0832"   link=".../1ind53_0"
+```
+
+Dos aulas que sólo difieren en el último dígito reciben **el mismo formulario**.
+Los `classroom_id` **no** colisionan —192 distintos para 192 filas—, así que el
+truncamiento ocurre al construir el enlace, fuera de la app: ni el anonimizador
+ni el motor tocan ese campo, viene del proyecto.
+
+**Lo que sí es de la app: nadie lo detecta.** Comprobado en tres sitios —los
+motores de `monitoreo_aulas_*`, la carga de `carga_aulas_*` y el catálogo de
+reglas del control de calidad, cuyas siete claves son `campo`, `cuenta`,
+`cuotas`, `curso`, `duracion`, `esperado`, `horario`—. Ninguna mira el enlace.
+
+**Por qué importa**: la atribución de una respuesta a su curso-horario va por el
+enlace del recopilador. Con 25 enlaces sirviendo a dos aulas cada uno, esas
+respuestas no se pueden separar, y el estudio lo descubriría al cuadrar — o no lo
+descubriría.
+
+**SIGUIENTE, con el diseño ya hecho**: una regla de control que compare los
+enlaces de las filas en campo y declare los repetidos, con su lista. Va en el
+control de calidad junto a las otras siete, no en un panel nuevo. No se construye
+en esta vuelta para no dejar el motor a medias con el turno cerrándose.
