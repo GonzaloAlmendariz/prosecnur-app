@@ -264,3 +264,54 @@ test_that("las dos ramas que no afirman nada siguen intactas", {
   expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(1.001, previsto = 2),
                "El campo está rindiendo lo previsto")
 })
+
+# **Un curso-horario reemplazado no aporta ni va a aportar.**
+#
+# Salió del plan por su reserva, y esa reserva viaja en el MISMO plan con su
+# propio `expected_valid`. Contando las dos, lo que se espera recibir se cuenta
+# dos veces.
+#
+# Medido en HSVG2026 el 2026-08-30: 18 reemplazadas con 329,3 efectivas
+# esperadas y sus 18 reservas YA aplicadas con 317,2 que están en `logrado`. El
+# aporte pendiente total era 534,8, así que el 62 % de lo que se esperaba recibir
+# correspondía a aulas muertas. De ahí salían 25 de 30 celdas «asegurada» con 9
+# por debajo de su cuota.
+.mac_fila_prueba <- function(estado, esperadas, rol = "titular") {
+  list(faculty = "EDUCACION", operational_status = estado, sample_role = rol,
+       expected_valid = esperadas, sex_top_1 = "F", sex_top_1_n = 1,
+       sex_top_2 = "M", sex_top_2_n = 1)
+}
+
+test_that("una reemplazada no suma a lo que queda por recibir", {
+  cuotas <- list(list(faculty = "EDUCACION", sex = "F", target = 10))
+  con <- prosecnurapp::monitoreo_aulas_avance_sexo_facultad(
+    list(.mac_fila_prueba("aplicada", 20), .mac_fila_prueba("reemplazada", 40)), cuotas)
+  sin <- prosecnurapp::monitoreo_aulas_avance_sexo_facultad(
+    list(.mac_fila_prueba("aplicada", 20)), cuotas)
+  celda <- function(x) Filter(function(c1) identical(c1$sex, "F"), x)[[1]]
+  # La reemplazada aportaba 20 a la mitad F: con ella, `aporte_pendiente` subía.
+  expect_equal(celda(con)$aporte_pendiente, celda(sin)$aporte_pendiente)
+  expect_equal(celda(con)$previsto, celda(sin)$previsto)
+})
+
+test_that("una cerrada cuenta como aplicada, no como pendiente", {
+  cuotas <- list(list(faculty = "EDUCACION", sex = "F", target = 10))
+  cerrada <- prosecnurapp::monitoreo_aulas_avance_sexo_facultad(
+    list(.mac_fila_prueba("cerrada", 20)), cuotas)
+  aplicada <- prosecnurapp::monitoreo_aulas_avance_sexo_facultad(
+    list(.mac_fila_prueba("aplicada", 20)), cuotas)
+  celda <- function(x) Filter(function(c1) identical(c1$sex, "F"), x)[[1]]
+  # Lo suyo va al `previsto` —lo que las aplicadas debían aportar—, no a lo que
+  # falta por recibir. Es el mismo criterio que `aulas_aplicadas`, que cuenta
+  # `operational_status %in% c("aplicada", "cerrada")`.
+  expect_equal(celda(cerrada)$previsto, celda(aplicada)$previsto)
+  expect_equal(celda(cerrada)$aporte_pendiente, celda(aplicada)$aporte_pendiente)
+})
+
+test_that("una agendada SÍ sigue siendo aporte pendiente: es la que aún puede llegar", {
+  cuotas <- list(list(faculty = "EDUCACION", sex = "F", target = 10))
+  celdas <- prosecnurapp::monitoreo_aulas_avance_sexo_facultad(
+    list(.mac_fila_prueba("aplicada", 20), .mac_fila_prueba("agendada", 40)), cuotas)
+  celda <- Filter(function(c1) identical(c1$sex, "F"), celdas)[[1]]
+  expect_gt(celda$aporte_pendiente, 0)
+})
