@@ -81,6 +81,31 @@ describe("los códigos de curso-horario ordenan por número, no por letra", () =
     expect(orden).toEqual(["CH 9", "CH 21", "CH 100", "CH 174"]);
   });
 
+  /**
+   * **El motor ordena lo mismo, por otro camino.**
+   *
+   * `monitoreo_aulas_orden_codigo()` (`monitoreo_aulas_cruce_hojas.R`) parte el
+   * código en prefijo, primer número y segundo número y ordena por los tres;
+   * aquí es un `localeCompare` con `numeric`. Dos implementaciones distintas del
+   * mismo orden, y su comentario ya declaraba el parentesco.
+   *
+   * Medido el 2026-08-30 contra el motor, con esta misma lista: **coinciden en
+   * todo**, incluido el caso que los separaría si `numeric` leyera decimales
+   * —«R 89.9» antes que «R 89.10»—, porque `Intl` los trata como dos segmentos,
+   * 89 y 9 contra 89 y 10, igual que el R.
+   *
+   * La secuencia va escrita porque desde vitest no se puede llamar al motor. Se
+   * regenera con:
+   *   Rscript -e 'pkgload::load_all("api"); v <- c(…);
+   *               cat(v[monitoreo_aulas_orden_codigo(v)])'
+   */
+  it("coincide con el orden del motor, incluidos los dos números del reemplazo", () => {
+    const revuelto = ["R 89.10", "CH 100", "R 9.1", "CH 9", "R 89.9", "CH 21", "R 10.1", "CH 89"];
+    expect([...revuelto].sort(comparaCodigos)).toEqual(
+      ["CH 9", "CH 21", "CH 89", "CH 100", "R 9.1", "R 10.1", "R 89.9", "R 89.10"],
+    );
+  });
+
   it("los reemplazos con decimal caen junto a su titular", () => {
     // «R 89.1» es la reserva de CH 89: entre CH 89 y CH 90, no al final.
     const orden = ["CH 90", "CH 89", "CH 9"].sort(comparaCodigos);
