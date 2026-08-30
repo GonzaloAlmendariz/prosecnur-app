@@ -366,7 +366,27 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     if (!is.list(fila)) next
     fac <- .monitoreo_text_key(.monitoreo_scalar(fila$faculty %||% fila$stratum %||% "", ""))
     if (!nzchar(fac)) next
-    aplicada <- identical(.monitoreo_aulas_status(fila$operational_status %||% ""), "aplicada")
+    estado_op <- .monitoreo_aulas_status(fila$operational_status %||% "")
+    # **Un curso-horario reemplazado no aporta ni va a aportar.**
+    #
+    # Salio del plan por su reserva y esa reserva viaja en el MISMO plan con su
+    # propio `expected_valid`. Contando las dos, lo que se espera recibir se
+    # cuenta dos veces. Medido en HSVG2026 el 2026-08-30: 18 reemplazadas con
+    # 329,3 efectivas esperadas, y sus 18 reservas ya aplicadas con 317,2 que
+    # estan en `logrado`. El aporte pendiente total era 534,8, asi que **el 62 %
+    # de lo que se esperaba recibir correspondia a aulas muertas**, y de ahi
+    # salian 25 de 30 celdas «asegurada» con 9 por debajo de su cuota.
+    #
+    # Se excluye del calculo entero, no se pasa a «aplicada»: no aporto nada, asi
+    # que meterla en el denominador de la calibracion la hundiria igual de falso.
+    if (identical(estado_op, "reemplazada")) next
+    # `cerrada` es aplicada y terminada. Estaba cayendo del lado de las
+    # pendientes por comparar contra la cadena «aplicada» a secas, cuando el
+    # resto del motor cuenta las dos juntas —`aulas_aplicadas` es
+    # `operational_status %in% c("aplicada", "cerrada")`—. En este estudio no hay
+    # ninguna todavia; el dia que la haya, su aporte ya recibido se habria
+    # contado como aporte por recibir.
+    aplicada <- estado_op %in% c("aplicada", "cerrada")
     esp <- .mac_esperadas_por_sexo(fila)
     if (!length(esp$valores)) next
     origenes <- c(origenes, esp$origen)
