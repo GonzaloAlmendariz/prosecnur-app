@@ -67,6 +67,15 @@ export type Agendamiento = {
    */
   estadosEnDesacuerdo: number;
   /**
+   * Cuántas efectivas se esperan de esas filas contradictorias.
+   *
+   * El conteo dice que hay una contradicción; esto dice cuánto depende de ella.
+   * Medido en HSVG2026 el 2026-08-30: las 9 en desacuerdo aportan **168 de las
+   * 373,5 efectivas del aporte pendiente, el 45 %** — la proyección de cierre se
+   * apoya en filas cuyos dos estados no se ponen de acuerdo.
+   */
+  esperadasEnDesacuerdo: number;
+  /**
    * Las que **siguen sin fecha** y no tienen medio de contacto anotado.
    *
    * En 2025 fueron 14 de 170 y **se cayeron las catorce**. No es que sean
@@ -138,6 +147,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   let enUmbralDeRiesgo = 0;
   let sinMedioDeContacto = 0;
   let estadosEnDesacuerdo = 0;
+  let esperadasEnDesacuerdo = 0;
   const intentos: number[] = [];
   const porMedio = new Map<string, number>();
 
@@ -201,6 +211,8 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
         && (estadoOperativo === "agendada" || estadoOperativo === "aplicada"
             || estadoOperativo === "cerrada")) {
       estadosEnDesacuerdo += 1;
+      const esperadas = Number(fila.expected_valid);
+      if (Number.isFinite(esperadas) && esperadas > 0) esperadasEnDesacuerdo += esperadas;
     }
     const medio = txt(fila.contact_medium);
     if (medio) porMedio.set(medio, (porMedio.get(medio) ?? 0) + 1);
@@ -232,6 +244,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
     estadosEnDesacuerdo,
+    esperadasEnDesacuerdo: Math.round(esperadasEnDesacuerdo),
     distribucionDeGestiones,
     enUmbralDeRiesgo,
     sinMedioDeContacto,
