@@ -2621,3 +2621,50 @@ ni el generador del libro, ni la carga, y no hay un solo `substr`/`strtrim` sobr
 
 **Estado del control**: `warning`, con los pares nombrados y la causa. Doce reglas
 en `validation`.
+
+### Vuelta 51 · Mi control daba una alarma falsa, y lo corregí
+
+**El hallazgo de las vueltas 47-50 estaba mal interpretado, y el error es mío.**
+
+`captureUrl.ts` —y su espejo en R— define el modelo: una URL de captura es «la
+dirección sobre la que se **cuelgan los parámetros de personalización por
+unidad** (`?d[campo]=valor` en Kobo) y que después se convierte en QR». Es decir:
+**dos aulas pueden compartir la dirección base** si cada QR lleva su
+`collectorID`. Lo que separa las respuestas es el parámetro, no la URL.
+
+Medido sobre el simulacro:
+
+| | |
+|---|---|
+| Enlaces con `?` (algún parámetro) | **0** de 1.424 |
+| Con `collectorID` en la URL | **0** |
+| Filas con campo `qr` | **0** |
+| Con `collection_unit_id` | **0** |
+
+O sea: **el estudio está en el paso anterior**. Todavía no se han generado los
+enlaces personalizados ni sus QR, y mi control declaraba **51 cursos-horario en
+conflicto** sobre un estado perfectamente normal.
+
+**Construí un control sin entender el modelo de datos completo**, y lo peor que
+puede hacer un control es gritar sobre lo que está bien: entrena a no mirarlo, y
+el día que avise de verdad nadie le hace caso.
+
+**Corregido, con los tres estados que el dato admite:**
+
+| Estado del plan | Qué dice |
+|---|---|
+| Enlaces base, sin parámetro | **`sin_datos`** — «Los 174 enlaces del plan son direcciones base, sin el parámetro por unidad que distingue a cada curso-horario. Se comprobará cuando se generen los enlaces personalizados y sus QR.» |
+| Personalizados y distintos | `ok` |
+| **Personalizados y colisionando** | `warning` con los pares y la causa |
+
+Verificado en el payload real: `status=sin_datos` con ese detalle.
+
+Cuatro casos nuevos, incluido el de la **mezcla** —si alguno está personalizado,
+se comprueban ésos y una base sin parámetro no tapa el conflicto—. Y el
+diagnóstico del truncamiento pasa a comparar la dirección **sin** el parámetro.
+
+**Lo que sigue en pie del hallazgo**: los enlaces base se generaron truncando el
+identificador a 8 caracteres —1.424 de 1.424—, así que si los QR se generan
+colgando el parámetro sobre esa base, funcionarán; pero si algún flujo usa la
+base como identificador, colisiona. El control lo dirá cuando lleguen los
+parámetros.
