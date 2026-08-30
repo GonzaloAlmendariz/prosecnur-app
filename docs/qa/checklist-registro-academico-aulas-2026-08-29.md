@@ -1488,3 +1488,48 @@ tests, y las tres suites de R del área en verde.
 la tabla del cliente y ahora el pie del ritmo: cada uno calculaba por su cuenta
 «lo que falta» restando totales. La cifra correcta la publica el motor en un solo
 sitio; cada superficie que la recalcula es una oportunidad de contradecirlo.
+
+### Vuelta 24 · El barrido del patrón, cerrado con evidencia
+
+Cuatro superficies habían recalculado «lo que falta» restando totales, así que
+tocaba barrer las demás antes de seguir. Siete sitios restan meta menos logrado
+en el perfil, y **los siete están bien**:
+
+| Sitio | Resta | Veredicto |
+|---|---|---|
+| `avanceParaCliente.ts:176` | por sexo, con la resta sólo de respaldo | correcto |
+| `avanceProyectado.ts:116` | dentro de `porqueDeLaCelda`, grano de celda | correcto |
+| `AulasSerieDeRendimiento:576` y `:609` | por sexo (`proyeccionDelSexo`, `c.sexo`) | correcto |
+| `perfilPorFacultad.ts:126` | deriva al revés: `cubierto = meta − brecha` del motor | correcto |
+| `proyeccionPorAgenda.ts:226` | por celda de sexo | correcto |
+| `AulasRitmoDiario.tsx:99` | el respaldo de la vuelta 23 | correcto |
+
+El barrido se repitió **sin** `Math.max` y con la resta invertida, porque exigir
+la forma exacta es la falsa ausencia que este loop ya pagó varias veces. Sólo
+salieron comentarios.
+
+Y apareció el sitio canónico que ya tenía la doctrina escrita:
+`brechaDeLaFacultad.ts` lee el `missing` del motor «en vez de restar
+`target − observed` por su cuenta: el backend ya aplicó ahí el `max(0, …)` y dos
+restas del mismo dato empiezan a discrepar». Sus dos consumidores son los
+correctos.
+
+**Los cuatro defectos eran los únicos que restaban a nivel de facultad o de
+total.** Todo lo demás resta por celda, que es el grano en que la resta sí
+equivale a la brecha.
+
+### Avance > Resumen, cerrada: los cinco gráficos
+
+| Gráfico | Veredicto |
+|---|---|
+| `AulasEstadoChart` | conforme — usa el reparto del motor sobre todas las filas, no las 500 recortadas |
+| `AulasCoberturaChart` | reparado en la vuelta 22 (rotulaba 1.424 sobre un gráfico de 174) |
+| `AulasRitmoDiario` | reparado en la vuelta 23 (el pie se callaba) |
+| `AulasPerfilPorFacultad` | conforme — barra y rótulo pintan el mismo `cubierto/meta`, el excedente va fuera de la meta y `celdaCorta` declara el corte por sexo |
+| `AulasAvanceEnRespuestas` | conforme — `anchoCubierto + pendiente = 100`, el excedente pegado fuera, y el `<li>` concuerda con el número mostrado y no con `a.falta` |
+
+**Observado y no reparado, dicho**: `anchoExcedente` lleva un `Math.max(2, …)`
+que fuerza dos puntos de ancho mínimo, así que un excedente de una respuesta
+sobre 3.227 se dibuja como si fuera el 2 %. Es una decisión de visibilidad
+razonable —sin ella no se vería— pero exagera lo pequeño y no está justificada en
+el código. Queda anotada, no tocada.
