@@ -193,6 +193,19 @@
   font-size: var(--aulas-min);
   font-style: normal;
   font-variant-numeric: tabular-nums;
+  /* **La línea de detalle envuelve.**
+
+     Hereda `white-space: nowrap` del botón de foco, y con `nowrap` el
+     `overflow-wrap: anywhere` del contenedor no llega a aplicarse nunca: la
+     línea sale entera y desborda su celda. Estaba latente y lo destapó una
+     frase más larga —«19 cursos-horario aplicados» donde antes decía «19 aulas
+     aplicadas»—, que subió el `overflow-x` del panel de 1 a 9 en las mismas
+     dos resoluciones.
+
+     La reparación es dejarla partir, no acortar el texto ni bajarle el cuerpo:
+     son dato operativo —cuántos se aplicaron y cuántos alumnos respondieron— y
+     el contrato no admite recortarlo. */
+  white-space: normal;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-cifra {
