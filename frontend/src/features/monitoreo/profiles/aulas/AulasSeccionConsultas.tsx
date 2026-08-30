@@ -140,7 +140,12 @@ export function AulasSeccionConsultas({
             {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
                 columna del libro la trae escrita. */}
             <h3>Cursos-horario con brecha</h3>
-            <span>{fmt(brechas.length)} filas</span>
+            {/* «Cursos-horario», no «filas»: el subtítulo de un panel nombra lo
+                que hay dentro, y aquí coincide con el KPI «Brechas» de la banda
+                —98 y 98—, así que la cuenta es completa y no esconde un recorte.
+                En Resumen sí lo escondía: la tabla decía «500 filas» de un
+                payload de 1.424. */}
+            <span>{fmt(brechas.length)} cursos-horario</span>
           </div>
           {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
               concentran lo que falta, y puede ser al revés. Esto lo dice. */}

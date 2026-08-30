@@ -281,7 +281,19 @@ export function AulasPestanaResumen({
             >
               <div className="mon-profile-panel-head">
                 <h3>Avance por curso-horario</h3>
-                <span>{fmt(aulaRows.length)} filas</span>
+                {/* **La reparación no había llegado a esta tabla.** Los dos paneles
+                    de arriba declaran el recorte del payload con
+                    `contadorDeAulas` —«se ven 500 de 1,424 cursos-horario»— y éste
+                    seguía diciendo «500 filas». Es el mismo defecto que la nota de
+                    «Estado de aplicación» da por resuelto: «el motor manda 500 filas
+                    de las 2 615 del plan, y sin decirlo la pantalla afirmaba que el
+                    estudio tiene 500 aulas».
+
+                    Aquí pesa más que en los gráficos, porque una tabla se lee como
+                    un censo: quien la recorre hasta el final cree haber visto el
+                    plan entero, y ha visto un tercio. «Filas» tampoco nombraba lo
+                    que hay en cada una. */}
+                <span>{contadorDeAulas(aulaRows.length)}</span>
               </div>
               {/* El orden, DICHO. La tabla no abre por código ni alfabéticamente: la
                   ordena el motor por dónde está el aula en el circuito —en campo,
