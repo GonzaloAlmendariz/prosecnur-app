@@ -537,6 +537,32 @@ export function aulasKpis(
       // la agenda, o el parte se anoto en la fila equivocada. El tile aparece
       // sólo cuando las hay —un «0 descuadres» permanente entrena a no mirarlo—
       // y en tono de alerta, porque pide una correccion.
+      /**
+       * **Fecha prevista no es cita cerrada, y este panel promete lo segundo.**
+       *
+       * Arriba está escrito que «agendar es llamar al docente y cerrar una
+       * cita», y «Agendadas» se cuenta por tener `scheduled_date`. Esa columna
+       * llega **pre-rellenada con la fecha prevista de cada curso-horario**: las
+       * 1.173 reservas dormidas la traen sin que nadie las haya agendado, y
+       * 1.137 de ellas con fecha distinta de la de su titular —la de su propio
+       * curso—.
+       *
+       * Contar por fecha sigue siendo correcto para «cuántas se pueden visitar»,
+       * que es lo que mide `agendamiento`. Lo que faltaba es no dejar que «Por
+       * agendar 0» esconda a las que se intentó y no se logró: nueve en este
+       * corte, con medio declarado y de tres a cinco gestiones.
+       *
+       * Mismo patrón que el descuadre de abajo: sólo aparece cuando las hay.
+       */
+      if (ag.sinContactoLogrado > 0) {
+        tiles.push({
+          label: "Sin contacto logrado",
+          icono: CalendarClock,
+          value: fmt(ag.sinContactoLogrado),
+          pista: "tienen fecha prevista y nadie ha confirmado con el docente",
+          tone: "warn",
+        });
+      }
       if (ag.aplicadasSinAgenda > 0) {
         tiles.push({
           label: "Aplicadas sin agenda",

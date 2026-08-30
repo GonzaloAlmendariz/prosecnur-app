@@ -46,6 +46,25 @@ export type Agendamiento = {
    */
   enUmbralDeRiesgo: number;
   /**
+   * Las que tienen fecha pero **nadie logró contacto todavía**.
+   *
+   * `scheduled_date` NO prueba una cita cerrada: sale de la columna «FECHA
+   * AGENDADA» del Excel, que llega **pre-rellenada con la fecha prevista de cada
+   * curso-horario**. La prueba está en las reservas dormidas: las 1.173 traen
+   * fecha —nadie ha agendado una reserva dormida— y **1.137 de ellas la tienen
+   * DISTINTA de la de su titular**, o sea la de su propio curso, no una heredada.
+   *
+   * Así que contar «agendadas» por fecha es correcto para «cuántas se pueden
+   * visitar», que es lo que este módulo mide, pero deja fuera una pregunta que
+   * el mismo panel promete: `kpisDeAulas` define que «agendar es llamar al
+   * docente y cerrar una cita». Nueve cursos-horario de este corte tienen fecha,
+   * medio declarado y de tres a cinco intentos, y su estado sigue en
+   * `sin_contactar`: se intentó y no se logró.
+   *
+   * Se cuentan aparte para que «Por agendar 0» no las esconda.
+   */
+  sinContactoLogrado: number;
+  /**
    * Las que siguen en juego y **no tienen medio de contacto anotado**.
    *
    * En 2025 fueron 14 de 170 y **se cayeron las catorce**. No es que sean
@@ -109,6 +128,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   let conInsistencia = 0;
   let enUmbralDeRiesgo = 0;
   let sinMedioDeContacto = 0;
+  let sinContactoLogrado = 0;
   const intentos: number[] = [];
   const porMedio = new Map<string, number>();
 
@@ -146,6 +166,11 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
       // historia.
       if (n >= UMBRAL_DE_RIESGO && !tieneFecha) enUmbralDeRiesgo += 1;
     }
+    // Con fecha prevista y sin contacto logrado: el estado es quien sabe si hay
+    // cita, y la fecha sólo dice cuándo se dicta ese curso-horario.
+    if (tieneFecha && txt(fila.sample_status).toLowerCase().replace(/[\s-]+/g, "_") === "sin_contactar") {
+      sinContactoLogrado += 1;
+    }
     const medio = txt(fila.contact_medium);
     if (medio) porMedio.set(medio, (porMedio.get(medio) ?? 0) + 1);
     else if (!tieneFecha) sinMedioDeContacto += 1;
@@ -175,6 +200,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     // Lo que de verdad queda por agendar: ni con fecha, ni ya aplicada.
     porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
+    sinContactoLogrado,
     distribucionDeGestiones,
     enUmbralDeRiesgo,
     sinMedioDeContacto,

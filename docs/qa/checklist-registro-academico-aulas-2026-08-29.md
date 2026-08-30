@@ -2414,3 +2414,42 @@ que no queda nada por agendar cuando quedan nueve con cinco intentos fallidos.
 No lo cambio: el criterio actual está razonado y documentado, y sustituirlo por
 otro sin saber de dónde sale la fecha sería cambiar una decisión tuya por una
 suposición mía. Queda como **bloqueado**, no pendiente.
+
+### Vuelta 46 · La pregunta bloqueada, contestada por evidencia — y «Por agendar 0» escondía nueve
+
+La vuelta anterior dejó bloqueada una pregunta de dominio: ¿`scheduled_date` es
+una cita cerrada o el horario del curso? **Se podía contestar sin preguntar, y
+así se hizo.**
+
+| Evidencia | Qué dice |
+|---|---|
+| El campo se lee de la columna «FECHA AGENDADA» / «FECHA DE APLICACIÓN» del Excel | parecía una cita |
+| Las **1.173 reservas dormidas** la traen, y nadie agenda una reserva dormida | no puede ser sólo cita |
+| **1.137 de esas 1.173 tienen fecha DISTINTA de la de su titular** | no es herencia: es la fecha de **su propio** curso-horario |
+
+O sea: **la columna llega pre-rellenada con la fecha prevista de cada
+curso-horario**, y el agendador la confirma o la cambia. Tener fecha **no prueba
+que haya cita**.
+
+**Y ahí el panel se contradecía consigo mismo.** `kpisDeAulas` abre diciendo que
+«agendar es llamar al docente y cerrar una cita» y contaba «Agendadas» por tener
+fecha. Con las nueve del corte —fecha, medio declarado y de tres a cinco
+gestiones, estado `sin_contactar`— publicaba **«Agendadas 174 · Por agendar 0»**:
+cero por agendar mientras nueve llevan cinco intentos sin lograr contacto.
+
+**No se cambia el criterio, se añade lo que faltaba.** Contar por fecha sigue
+siendo correcto para «cuántas se pueden visitar», que es lo que `agendamiento`
+mide y lo que su comentario declara. Lo que no puede pasar es que «Por agendar 0»
+las esconda, así que hay un tile nuevo —**«Sin contacto logrado: 9 · tienen fecha
+prevista y nadie ha confirmado con el docente»**— que sigue el patrón del propio
+archivo: aparece sólo cuando las hay, porque «un "0" permanente entrena a no
+mirarlo».
+
+Tres casos nuevos, incluido el que evita la doble cuenta: una **sin** fecha y sin
+contactar no entra aquí, porque ésa ya está en «Por agendar». Comprobado que
+muerden. Verificado en pantalla: el tile sale junto a «Agendadas» y «Por
+agendar».
+
+**La lección**: dejé la pregunta como bloqueada y era contestable con tres
+mediciones. Antes de escalar una decisión de dominio, conviene agotar lo que el
+dato ya dice.
