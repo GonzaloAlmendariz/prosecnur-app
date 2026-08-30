@@ -73,7 +73,18 @@ export function medioDeContacto(
        * El módulo ya contaba `intentosDescartados` por la misma razón; esto
        * aplica la misma disciplina al descarte de más arriba.
        */
-      if (texto(fila.applied_at)) aplicadasSinMedio += 1;
+      // **Sólo cuenta si hubo gestión.** Una reserva que se activó al caer su
+      // titular hereda la cita: nadie la contactó, así que no tiene medio que
+      // declarar y contarla seria una falsa alarma.
+      //
+      // Medido sobre HSVG2026 «como 2025»: de las 31 con parte y sin medio, **18
+      // son reservas con CERO intentos** —las activadas— y 13 son titulares con
+      // entre 1 y 7 gestiones. Sólo esos 13 son un hueco de registro: se les
+      // contactó y no se anotó por dónde.
+      const gestiones = Number(fila.contact_attempts);
+      if (texto(fila.applied_at) && Number.isFinite(gestiones) && gestiones > 0) {
+        aplicadasSinMedio += 1;
+      }
       continue;
     }
     let m = porMedio.get(medio);

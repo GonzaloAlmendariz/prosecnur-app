@@ -99,14 +99,26 @@ describe("lo que el panel no mira, lo cuenta", () => {
    * declaran medio —13 titulares y 18 reservas— y el panel hablaba de las otras
    * 121 como si fueran todas. Una de cada cinco.
    */
-  it("cuenta las aplicadas que no declaran medio", () => {
+  it("cuenta las que se GESTIONARON y no declaran medio", () => {
     const { medios, aplicadasSinMedio } = medioDeContacto([
-      fila({ contact_medium: "Llamada", sample_status: "agendada", applied_at: "2026-08-10" }),
-      fila({ applied_at: "2026-08-10" }),
-      fila({ applied_at: "2026-08-11" }),
+      fila({ contact_medium: "Llamada", sample_status: "agendada", applied_at: "2026-08-10", contact_attempts: 1 }),
+      fila({ applied_at: "2026-08-10", contact_attempts: 2 }),
+      fila({ applied_at: "2026-08-11", contact_attempts: 3 }),
     ]);
     expect(medios).toHaveLength(1);
     expect(aplicadasSinMedio).toBe(2);
+  });
+
+  it("una reserva activada SIN gestiones no cuenta: heredó la cita de su titular", () => {
+    // Medido sobre HSVG2026 «como 2025»: de las 31 con parte y sin medio, 18 son
+    // reservas con CERO intentos —las que entraron al caer su titular— y 13 son
+    // titulares con 1 a 7 gestiones. Sólo esos 13 son un hueco de registro.
+    const { aplicadasSinMedio } = medioDeContacto([
+      fila({ sample_role: "chain_reserve", applied_at: "2026-08-10", contact_attempts: 0 }),
+      fila({ sample_role: "chain_reserve", applied_at: "2026-08-11" }),
+      fila({ applied_at: "2026-08-12", contact_attempts: 4 }),
+    ]);
+    expect(aplicadasSinMedio).toBe(1);
   });
 
   it("una fila sin medio y SIN parte no cuenta: no se ha contactado todavía", () => {
