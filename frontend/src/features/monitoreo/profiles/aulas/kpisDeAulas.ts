@@ -515,7 +515,7 @@ export function aulasKpis(
       const ag = agendamiento((dashboard?.agenda ?? []) as Array<Record<string, unknown>>);
       const tiles: AulasKpi[] = [
         {
-          label: "Agendadas",
+          label: "Agendados",
           icono: CalendarCheck,
           value: fmt(ag.agendadas),
           // Con su denominador: «160» y «160 de 186» dicen lo mismo del
@@ -567,7 +567,7 @@ export function aulasKpis(
       }
       if (ag.aplicadasSinAgenda > 0) {
         tiles.push({
-          label: "Aplicadas sin agenda",
+          label: "Aplicados sin agenda",
           icono: CalendarClock,
           value: fmt(ag.aplicadasSinAgenda),
           pista: "tienen parte y no tienen fecha agendada",
@@ -648,7 +648,7 @@ export function aulasKpis(
         icono: AlertCircle,
         value: fmt(estado.sinSalirACampo),
         pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
-          : !sinFecha ? "agendadas, todavía sin salir a campo"
+          : !sinFecha ? "agendados, todavía sin salir a campo"
             : `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`,
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },

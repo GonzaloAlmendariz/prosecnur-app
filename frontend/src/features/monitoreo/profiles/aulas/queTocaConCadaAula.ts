@@ -37,9 +37,9 @@ export type FilaDeAgenda = {
 export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   const aplicacion = clave(fila.operational_status);
   const tieneParte = Boolean(texto(fila.applied_at) || texto(fila.applied_date));
-  // Aplicada o cerrada: el agendador ya no tiene nada que hacer aquí.
+  // Aplicado o cerrado: el agendador ya no tiene nada que hacer aquí.
   //
-  // **«Aplicada», no «—».** El guion decía bien que no toca nada y no decía por
+  // **«Aplicado», no «—».** El guion decía bien que no toca nada y no decía por
   // qué, y en esa misma fila la columna de al lado marca «Sin contactar»
   // —`sample_status` llega vacío del libro y el motor lo normaliza así—. Las dos
   // juntas se leen como un aula olvidada. Medido el 2026-08-24 con la
@@ -49,11 +49,11 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   // Sigue sin ser una acción, que es lo que esta columna promete para el resto
   // de filas; es el motivo de que no haya ninguna, y eso es justo lo que
   // faltaba para poder leer la fila entera.
-  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "Aplicada";
+  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "Aplicado";
 
   const estado = clave(fila.sample_status);
-  // Una reemplazada salió del plan por su reserva: ya no se llama a este docente.
-  if (estado === "reemplazada") return "Reemplazada";
+  // Un reemplazado salió del plan por su reserva: ya no se llama a este docente.
+  if (estado === "reemplazada") return "Reemplazado";
   if (estado === "en_reserva") return "En reserva";
 
   const fecha = texto(fila.scheduled_date);

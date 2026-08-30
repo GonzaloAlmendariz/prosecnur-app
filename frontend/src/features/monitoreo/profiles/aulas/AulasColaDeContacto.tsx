@@ -59,7 +59,10 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
       { clase: "es-sin-empezar", etiqueta: "Sin contactar", n: pendientes.length - insistiendo },
       { clase: "es-insistiendo", etiqueta: "Insistiendo", n: insistiendo },
       { clase: "es-citada", etiqueta: "Con cita", n: citadas.length - aplicadas },
-      { clase: "es-aplicada", etiqueta: "Aplicadas", n: aplicadas },
+      // «Aplicados»: la unidad es el curso-horario. Los otros tres peldaños no
+      // llevan género —«Sin contactar», «Insistiendo», «Con cita»— y éste se
+      // quedó en el femenino de «aula».
+      { clase: "es-aplicada", etiqueta: "Aplicados", n: aplicadas },
     ].filter((x) => x.n > 0);
   }, [pendientes, citadas]);
   // Hay desglose sólo si algún grupo mezcla estados; si cada grupo es de un
@@ -190,7 +193,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   </td>
                   <td>
                     <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
-                      {c.aplicada ? "Aplicada" : "Con cita"}
+                      {c.aplicada ? "Aplicado" : "Con cita"}
                     </span>
                   </td>
                 </tr>

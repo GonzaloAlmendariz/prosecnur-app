@@ -5,7 +5,7 @@ import { aulasKpis } from "./kpisDeAulas";
 /**
  * «Sin empezar» suma dos tramos y tiene que decir cuál pesa.
  *
- * `sinSalirACampo` = «Sin agendar» + «Agendada». La pista decía «agendadas que
+ * `sinSalirACampo` = «Sin agendar» + «Agendado». La pista decía «agendadas que
  * aún no salen a campo» sobre 145 aulas de las que ninguna estaba agendada:
  * medido el 2026-08-29, el Status de aplicación de esa misma sesión daba
  * «Agendada 0» y el panel de abajo «145 sin fecha, al final de su facultad».
@@ -29,12 +29,16 @@ describe("la pista de «Sin empezar»", () => {
     const k = sinEmpezar(tablero(145, 0));
     expect(k?.value).toBe("145");
     expect(k?.pista).toContain("sin fecha");
-    expect(k?.pista).not.toContain("agendadas,");
+    // «agendados,» con la o de la unidad: al pasar el participio a masculino, esta
+    // negativa se cumplía sola contra el texto viejo y el test se apagaba en
+    // silencio. Una aserción negativa sobre un literal caduca cuando el literal
+    // se mueve.
+    expect(k?.pista).not.toContain("agendados,");
   });
 
   it("con todas agendadas no habla de fechas que faltan", () => {
     const k = sinEmpezar(tablero(0, 40));
-    expect(k?.pista).toBe("agendadas, todavía sin salir a campo");
+    expect(k?.pista).toBe("agendados, todavía sin salir a campo");
   });
 
   it("con las dos, declara el reparto", () => {

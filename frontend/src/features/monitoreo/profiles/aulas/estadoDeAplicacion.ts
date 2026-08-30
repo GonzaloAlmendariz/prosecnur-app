@@ -58,7 +58,11 @@ export type EstadoDeAplicacion = {
  */
 export const TRAMOS_DE_APLICACION = [
   { clave: "pendiente", etiqueta: "Sin agendar", color: COLOR_RESULTADO.pendiente },
-  { clave: "lista", etiqueta: "Agendada", color: COLOR_AULA_LISTA },
+  // **Los participios concuerdan con la UNIDAD, que es masculina.** «Agendada» y
+  // «Reemplazada» venían de cuando la unidad se llamaba «aula»; con
+  // curso-horario arrastran un femenino que ya no tiene sujeto. Es el mismo
+  // rastro que dejó «Ningún aula» y que «Justo» entre dos femeninos.
+  { clave: "lista", etiqueta: "Agendado", color: COLOR_AULA_LISTA },
   // **«En aplicación», no «Aplicada»**, que es el participio de terminado y era
   // la MISMA palabra que el KPI «APLICADAS» de la banda, dos centímetros más
   // arriba. Medido el 2026-08-29: la leyenda decía «Aplicada 0» junto a una
@@ -84,7 +88,7 @@ export const TRAMOS_DE_APLICACION = [
   // reserva tomó el relevo. Medido sobre el estudio de 196: de las 48 que decían
   // «Sin agendar», 26 eran éstas y 22 estaban agendadas con fecha —ni una sola
   // estaba realmente sin agendar—.
-  { clave: "reemplazada", etiqueta: "Reemplazada", color: COLOR_RESULTADO.revision },
+  { clave: "reemplazada", etiqueta: "Reemplazado", color: COLOR_RESULTADO.revision },
   // `EN RESERVA n` en **STATUS MUESTRA**. Tampoco pertenece al eje de
   // agendamiento: una reserva del banco no está sin agendar, es que NO hay que
   // agendarla salvo que caiga su titular. Contarla entre las pendientes le
