@@ -143,7 +143,7 @@ describe("la τ del diseño contra la del campo", () => {
     // sólo por el borde de color de la fila.
     expect(render(bloque({ facultades: [fac({ riesgo: "riesgo_firme" })] }))).toContain("No cierra");
     expect(render(bloque({ facultades: [fac({ riesgo: "holgado" })] }))).toContain("Cubierta");
-    expect(render(bloque({ facultades: [fac({ riesgo: "ajustado" })] }))).toContain("Justo");
+    expect(render(bloque({ facultades: [fac({ riesgo: "ajustado" })] }))).toContain("Justa");
   });
 
   it("la leyenda de la barra es visual y vive junto a la tabla, no sólo en el pie", () => {
@@ -336,7 +336,7 @@ describe("los dos riesgos no se dicen igual", () => {
     const palabras = (["holgado", "ajustado", "riesgo", "riesgo_firme"] as const)
       .map((r) => render(bloque({ facultades: [fac({ riesgo: r })] })));
     expect(palabras[0]).toContain("Cubierta");
-    expect(palabras[1]).toContain("Justo");
+    expect(palabras[1]).toContain("Justa");
     expect(palabras[2]).toContain("Puede no cerrar");
     expect(palabras[3]).toContain("No cierra");
   });
