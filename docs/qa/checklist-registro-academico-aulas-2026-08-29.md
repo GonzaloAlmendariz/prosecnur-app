@@ -1790,3 +1790,53 @@ primera. Ningún test tocaba roles, así que el universo podía valer 174 o 1.34
 las diez pruebas del archivo decían lo mismo. Es la tercera vez en este loop que
 un verde a la primera en un cambio de lógica señala un hueco de cobertura y no un
 acierto.
+
+### Vuelta 30 · Avance > Rendimiento, cerrada: los seis
+
+| Gráfico | Veredicto |
+|---|---|
+| `AulasSerieDeRendimiento` | vuelta 27: las tres cantidades juntas en el titular |
+| `AulasPronosticoDeCierre` | vuelta 29: el universo eran 1.347 y son 174 |
+| `AulasAlertaDeAnticipacion` | **conforme** — dimensiona con el rendimiento observado y `null` cuando no se sabe; y el contraste supuesto-contra-observado que pide la indicación J **ya existe**: `tasaDeCaida.ts` compara la caída real contra la de 2025 (0,235) con la banda calculada «con la p de referencia, no con la observada, que es lo que hace que la banda sea la del supuesto y no la del dato» |
+| `AulasConsumoDelBanco` | conforme |
+| `AulasRendimientoPorFacultad` | conforme — el plan sólo se usa como *lookup* de `eligible_n`; cuenta sobre partes, así que el rol no le afecta |
+| `AulasRitmoPorFacultad` | conforme |
+
+**El barrido del universo, cerrado.** Tras el defecto del pronóstico tocaba
+preguntar quién más cuenta filas del plan sin mirar el rol. Trece módulos usan el
+plan sin `sample_role`, y **ninguno lo necesita**: o lo usan como *lookup* por
+código (`rendimientoPorFacultad` con `eligible_n`, `serieDeRendimiento` con
+`expected_valid`) o cuentan partes, no aulas del plan. El defecto estaba sólo en
+`pronosticoDeCierre`.
+
+### Observado y no tocado: ocho mínimos de ancho sin criterio común
+
+Ocho gráficos fuerzan un ancho o alto mínimo para que un valor pequeño se vea, y
+el mínimo va de 1 a 8 puntos sin regla:
+
+| Gráfico | Mínimo | Se aplica a |
+|---|---|---|
+| `AulasConcentracionBrecha` | 1 % | el dato |
+| `AulasPopoverReemplazo` · `AulasAvanceEnRespuestas` | 2 % | el dato |
+| `AulasMedioDeContacto` · `AulasRendimientoPorFacultad` | 4 % | el dato |
+| `AulasAgendaPorDia` | 6 % | el dato |
+| `AulasPiramideCuota` | 6 % | **la pista**, no el dato |
+| `AulasPerfilPorFacultad` | 8 % | **la pista**, no el dato |
+| `AulasRitmoPorFacultad` | 8 % | el dato |
+
+Los dos de la pista son legítimos sin discusión: el mínimo evita que la escala de
+una facultad pequeña sea invisible, y el dato se dibuja **dentro**. El resto es un
+compromiso real —sin mínimo, un 0,5 % no se ve y el lector cree que no hay dato—
+pero con un 4 % o un 8 %, un 0,5 y un 4 se dibujan igual.
+
+**Un caso que parecía el peor y no lo es**: `AulasRitmoPorFacultad` pinta un 3 %
+de altura cuando las efectivas son **cero**. No miente, porque ese caso va en
+`--pulso-border` y no en el verde de efectiva: es una marca de posición, y su
+comentario lo justifica —«una facultad parada tres días es lo que hay que ver»—.
+Distinguir por color es lo que lo salva.
+
+**No se toca ninguno.** Unificar ocho mínimos visuales sin ver cada gráfico en
+pantalla, a varios viewports, sería cambiar ocho decisiones de diseño a ciegas, y
+el resultado probable es que valores pequeños desaparezcan. Queda declarado como
+deuda de consistencia con su tabla, que es lo que permite decidirlo de una vez
+cuando toque.
