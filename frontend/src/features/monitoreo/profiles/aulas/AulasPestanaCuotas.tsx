@@ -157,7 +157,12 @@ export function AulasPestanaCuotas({
               {foco ? (
                 <p className="mon-profile-muted">
                   Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} grupos.
-                  Vuelve a pulsar su fila en la pirámide para ver todas.
+                  {/* Apuntaba a la pirámide —«vuelve a pulsar su fila»— que
+                      obliga a scrollear hasta ella. Desde que el selector vive
+                      fijo en la cabecera, el camino corto es su botón «Todas»,
+                      siempre a la vista. La pirámide sigue pudiendo, pero la
+                      instrucción señala el control permanente. */}
+                  Con «Todas», arriba, vuelves a ver todos los grupos.
                 </p>
               ) : null}
               {/* El vacío de la tabla, en términos de tabla. La causa la explica el
