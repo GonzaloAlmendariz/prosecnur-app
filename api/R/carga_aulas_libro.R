@@ -46,6 +46,28 @@ aulas_libro_importar <- function(path) {
   control <- if (presentes[[3]]) base_control_leer(path) else list(filas = list(), sin_nombre = integer(0))
 
   ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
+  .calb_ensamblar(plan, partes, control, ausentes)
+}
+
+#' Arma el resultado del import a partir de las tres hojas ya leidas.
+#'
+#' **Existe porque el libro tiene DOS puertas y solo una llegaba hasta aqui.**
+#' El `.xlsx` entra por `aulas_libro_importar()`; la pestaña que el equipo llena
+#' en linea entra por `carga_aulas_desde_sheets.R`, que sabe convertir los
+#' valores de la API en las mismas tres estructuras —usa las mismas
+#' `aulas_agendadas_a_plan()`, `aulas_aplicadas_a_partes()` y
+#' `base_control_a_filas()`— y no tenia con que rematar: el conteo del resumen
+#' vivia dentro del lector de Excel. Ese modulo llevaba escrito desde antes sin
+#' un solo consumidor.
+#'
+#' Duplicar el recuento habria sido la quinta lista paralela del dia. Se extrae
+#' una vez y las dos puertas la llaman.
+#'
+#' @param plan,partes lista de unidades y de partes ya leidos.
+#' @param control `list(filas, sin_nombre)`.
+#' @param ausentes hojas que no venian en la fuente.
+#' @keywords internal
+.calb_ensamblar <- function(plan, partes, control, ausentes = list()) {
 
   con_estado <- sum(vapply(plan, function(r) nzchar(r$sample_status %||% ""), logical(1)))
   rol <- function(x) vapply(plan, function(r) identical(r$sample_role, x), logical(1))
