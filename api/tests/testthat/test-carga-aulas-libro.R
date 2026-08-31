@@ -144,3 +144,39 @@ test_that("cada campo del parte que el libro escribe tiene su entrada en la cons
   faltan <- setdiff(usados, names(prosecnurapp:::.MONITOREO_AULAS_PARTE_ALIAS))
   expect_equal(faltan, character(0))
 })
+
+# ---------------------------------------------------------------------------
+# «Base de control necesita saber lo que las otras dos saben» (Gonzalo).
+#
+# No lo sabia: de sus 43 columnas salian vacias FECHA AGENDADA y HORA —que
+# estan en la unidad del plan, al lado— y las de campo, porque la funcion ni
+# recibia los partes. El parte va en CASTELLANO a proposito: es el vocabulario
+# que produce la app y el que dejo vacia la otra hoja durante meses.
+# ---------------------------------------------------------------------------
+
+test_that("la base de control recoge lo que saben agenda y campo", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        sample_role = "titular", course_name = "MATEMATICAS",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08", scheduled_time = "17:00"))
+  partes <- list(list(operational_code = "CH 1", asistentes = 25,
+                      aplicador = "APL-3", fecha = "2026-09-08",
+                      hora = "17:15", estado = "APLICADA"))
+  hoja <- aulas_libro_hoja_control(unidades, control = list(), partes = partes)
+  plano <- as.character(unlist(hoja))
+  for (v in c("2026-09-08", "17:00", "APL-3", "17:15", "APLICADA", "25")) {
+    expect_true(v %in% plano, info = paste("la base de control no recogio:", v))
+  }
+})
+
+test_that("sin partes la base de control se escribe igual, solo sin la parte de campo", {
+  # El caso del dia 1: hay agenda y todavia no hay campo. La hoja tiene que
+  # salir con sus filas y su agenda, no caerse ni quedarse en blanco.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08"))
+  hoja <- aulas_libro_hoja_control(unidades, control = list())
+  plano <- as.character(unlist(hoja))
+  expect_true("2026-09-08" %in% plano)
+  expect_true("CH 1" %in% plano)
+})

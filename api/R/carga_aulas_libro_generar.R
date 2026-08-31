@@ -385,7 +385,8 @@ aulas_libro_grupos_control <- function() {
   })
 }
 
-aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL) {
+aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL,
+                                     partes = list()) {
   escritos <- .calg_control_escritos()
   campos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
   claves <- vapply(escritos, function(spec) spec$campo, character(1))
@@ -403,6 +404,24 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     if (!is.list(r)) next
     cod <- .calg_txt(r$operational_code, .calg_txt(r$classroom_id))
     if (nzchar(cod)) por_aula[[cod]] <- r
+  }
+
+  # **Lo que saben las otras dos hojas.**
+  #
+  # Gonzalo, definiendo el insumo: «base de control necesita saber lo que las
+  # otras dos saben». No lo sabia: de sus 43 columnas salian vacias FECHA
+  # AGENDADA y HORA —que estan en la propia unidad del plan, aqui al lado— y
+  # las seis de campo —aplicador, fecha y hora de aplicacion, estado,
+  # asistentes— porque la funcion ni siquiera recibia los partes.
+  #
+  # Se leen por la constante de alias, no por nombre literal: es el mismo
+  # defecto que dejo vacia la hoja «Aulas Aplicadas (Campo)» y que
+  # `.MONITOREO_AULAS_PARTE_ALIAS` existe para cerrar.
+  parte_de <- list()
+  for (pt in (partes %||% list())) {
+    if (!is.list(pt)) next
+    cod <- .calg_txt(pt$operational_code, .calg_txt(pt$classroom_id))
+    if (nzchar(cod)) parte_de[[cod]] <- pt
   }
 
   # **Titulares Y cualquier aula que ya tenga control registrado.**
@@ -435,6 +454,23 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     pon("HORARIO", .calg_txt(u$schedule))
     pon("MATRICULADOS TOTALES", .calg_num_txt(u$enrolled_total))
     pon("MATRICULADOS POBLACION", .calg_num_txt(u$eligible_n))
+
+    # Lo que sabe AGENDA, que viaja en la propia unidad.
+    pon("FECHA AGENDADA", .calg_txt(u$scheduled_date))
+    pon("HORA", .calg_txt(u$scheduled_time))
+
+    # Y lo que sabe CAMPO, del parte de esta aula si lo hay.
+    pt <- parte_de[[.calg_txt(u$operational_code)]]
+    if (!is.null(pt)) {
+      pv <- function(clave) .calg_txt(
+        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[[clave]]))
+      pon("APLICADOR", pv("aplicador"))
+      pon("FECHA DE APLICACION", pv("fecha"))
+      pon("HORA DE APLICACION", pv("hora"))
+      pon("STATUS DE APLICACION", pv("estado"))
+      pon("N ASISTENTES EN AULA", .calg_num_txt(
+        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)))
+    }
 
     # **Lo esperado, que sale del plan, y lo obtenido, que sale de la
     # plataforma.** Sustituye a `70T`/`70P`, que eran ese mismo 70 % reducido a
@@ -588,7 +624,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
-    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas)
+    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
   )
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
