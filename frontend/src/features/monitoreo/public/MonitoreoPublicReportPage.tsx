@@ -163,7 +163,7 @@ export default function MonitoreoPublicReportPage({ artifact }: { artifact: Publ
   if (!payload) {
     return (
       <section className="mon-public-page">
-        <EmptyState icon={<BarChart3 size={18} />} title="Sin reporte publicado" hint="El corte publico no contiene un reporte de Monitoreo disponible." />
+        <EmptyState icon={<BarChart3 size={18} />} title="Sin reporte publicado" hint="El corte público no contiene un reporte de Monitoreo disponible." />
       </section>
     );
   }
@@ -195,7 +195,7 @@ export default function MonitoreoPublicReportPage({ artifact }: { artifact: Publ
       ) : payload.territorial ? (
         <TerritorialReport payload={payload} />
       ) : (
-        <EmptyState icon={<BarChart3 size={18} />} title="Perfil no disponible" hint="Este reporte publico no tiene un perfil de Monitoreo compatible." />
+        <EmptyState icon={<BarChart3 size={18} />} title="Perfil no disponible" hint="Este reporte público no tiene un perfil de Monitoreo compatible." />
       )}
     </section>
   );

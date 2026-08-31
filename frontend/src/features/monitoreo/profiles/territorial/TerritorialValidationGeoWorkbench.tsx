@@ -1392,7 +1392,7 @@ function TerritorialValidationGeoRouteMap({
           <div className="mon-territorial-route-map-placeholder" role="status">
             <span><MapPin size={18} /></span>
             <strong>Sin geometria territorial</strong>
-            <em>No hay cartografia o puntos GPS para dibujar en este corte.</em>
+            <em>No hay cartografía o puntos GPS para dibujar en este corte.</em>
           </div>
         )}
         {/* El pie del mapa era un <text> del SVG anclado a `MAP_HEIGHT - 18`: se
