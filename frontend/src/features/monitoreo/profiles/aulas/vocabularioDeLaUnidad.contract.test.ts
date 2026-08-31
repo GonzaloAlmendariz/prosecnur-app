@@ -101,8 +101,13 @@ const TOPE = 13;
  */
 const EN_EL_AULA_LOCATIVO = /\ben\s+el\s+aulas?\b(?!-)/gi;
 
+// El cierre de etiqueta cuenta como contexto: la cifra suele ir envuelta y
+// entonces antes de «aulas» no hay determinante sino `</strong>`. Encontrado el
+// 2026-08-30 MIRANDO una captura —«77 aulas extra en 3 facultades»—, con el
+// título del mismo panel diciendo ya «Cursos-horario extra disponibles». Es la
+// misma familia que el `}` de la interpolación.
 const EN_PROSA =
-  /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|entre|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\})\s+aulas?\b(?!-)/gi;
+  /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|entre|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\}|<\/\w+>)\s+aulas?\b(?!-)/gi;
 
 /**
  * **Dos formas más que el detector de arriba no puede ver.**

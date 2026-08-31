@@ -40,7 +40,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
             medir. Misma familia que `c4af437d`. */}
         {p.universo ? (
           <p className="aulas-pronostico-lectura">
-            <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas del plan
+            <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> cursos-horario del plan
             tienen parte de campo.
           </p>
         ) : (
