@@ -327,7 +327,25 @@ export const STATUS_LABELS: Record<string, string> = {
   cerrada: "Cerrado",
   cerrando: "Cierre en curso",
   en_aplicacion: "En aplicación",
-  lista: "Listo",
+  /**
+   * **«Listo» era la única palabra de la escala que se leía como final.**
+   *
+   * El estado sale de `application_state` y significa que el curso-horario ya
+   * tiene cita y todavía no sale a campo: el motor lo pone cuando la fila está
+   * `agendada` o `contactada` (`monitoreo_aulas_universitarias.R`, ~1005). Su
+   * escala completa es pendiente → lista → en_aplicacion → cerrando.
+   *
+   * Con el rótulo viejo, la tabla «Avance por curso-horario» abría con doce
+   * filas que decían «0 de 27 respuestas · Listo». Quien la lee sin conocer el
+   * vocabulario entiende que esas aulas terminaron sin recoger nada, que es lo
+   * contrario de lo que pasa: aún no han salido. Un rótulo que promete un
+   * número distinto del que enseña la fila de al lado.
+   *
+   * «Por aplicar» ordena la escala sola —Pendiente, Por aplicar, En aplicación,
+   * Cierre en curso— y no colisiona con «Agendado», que en esa misma fila ya lo
+   * usa la columna `sample_status` con otro significado.
+   */
+  lista: "Por aplicar",
   pendiente: "Pendiente",
   cumplida: "Cumplida",
   en_riesgo: "En riesgo",

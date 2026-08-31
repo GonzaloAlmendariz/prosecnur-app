@@ -1,6 +1,6 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
-import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
+import { caidasPorFiltro, contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
 import { fmt } from "./kpisDeAulas";
 import { columnasConDato } from "./columnasConDato";
 import { perdidaDelControl } from "./perdidaDelControl";
@@ -358,6 +358,10 @@ export function AulasControlDelLibro({
   criterio?: CriterioDelEstudio | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
+  // Cuál de los filtros declarados decide. Ver `caidasPorFiltro`.
+  const porFiltro = caidasPorFiltro(criterio);
+  const totalCriterio = Number(criterio?.total ?? 0);
+  const caenEnTotal = Math.max(0, totalCriterio - Number(criterio?.validas ?? 0));
   // **La cuarta cifra de «cuántas encuestas hay», y la única sin dibujar.**
   // La cadena es asistentes → enviadas → válidas → efectivas del parte, y esta
   // tabla trae `sent_total` y `valid_total` aula por aula: para saber cuánto se
@@ -472,6 +476,42 @@ export function AulasControlDelLibro({
               </>
             )}
           </p>
+        ) : null}
+        {/* **Qué filtro decide, que es la pregunta siguiente.**
+
+            Arriba se lee cuántos filtros declara el estudio y cuáles; eso deja
+            sin contestar cuál de ellos tumba las respuestas. El motor ya lo
+            tenía contado y el dato viajaba dentro de `criterio_validez` sin
+            consumidor: sobre este corte, «filtro» tumba 109 y `consent_1` sólo
+            7, y con la lectura vieja los tres pesaban igual.
+
+            La segunda cifra es la que evita el error de sumarlos: son las que
+            caen SÓLO por ese filtro, o sea lo que se recuperaría quitándolo.
+            Cuando es mucho menor que la primera, ese filtro está tumbando
+            respuestas que otro ya tumbaba. */}
+        {porFiltro.length ? (
+          <>
+          {/* **La lista necesita su denominador, y la frase de arriba no se lo
+              da.** El párrafo de validadores sólo se pinta cuando la hoja trae
+              columnas de validador; en un estudio sin ellas —el caso de este
+              corte— la lista quedaba suelta bajo el texto anterior y se leía
+              «filtro · 109 se caen» sin decir de qué son 109. */}
+          <p className="mon-profile-muted aulas-control-filtros-cabecera">
+            <strong>{fmt(caenEnTotal)}</strong> de <strong>{fmt(totalCriterio)}</strong> respuestas
+            no pasan los filtros del estudio. Cuál las tumba:
+          </p>
+          <ul className="aulas-control-filtros">
+            {porFiltro.map((f) => (
+              <li key={f.nombre}>
+                <span className="aulas-control-filtro-nombre">{f.nombre}</span>
+                <strong>{fmt(f.caen)}</strong> se caen
+                {f.soloEste !== f.caen ? (
+                  <span className="mon-profile-muted"> · {fmt(f.soloEste)} sólo por éste</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          </>
         ) : null}
         <p className="aulas-cadenas-lectura">
           {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el

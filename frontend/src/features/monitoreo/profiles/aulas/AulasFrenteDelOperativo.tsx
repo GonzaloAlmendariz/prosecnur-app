@@ -97,6 +97,29 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
           <i style={{ width: `${100 - ancho}%`, background: COLOR_RESULTADO.rechazo }} />
         </div>
       ) : null}
+      {/* **El carril iba desnudo, y lleno de verde miente.**
+
+          Sus dos hermanas de la misma pestana —«Cumplimiento aula por aula» y
+          «Estado de aplicacion»— llevan la leyenda debajo, con su punto de color
+          y su cifra. Esta no, y en el caso al dia queda una franja verde de todo
+          el ancho sin una sola marca: lo que un lector entiende de eso es «el
+          estudio va al 100 %», cuando lo que dice es «de los 131 que ya
+          vencieron, todos tienen parte» con 1.216 aun por venir.
+
+          El denominador es lo vencido, no el plan, y la leyenda es donde eso se
+          puede decir. Se reusa la lista del panel hermano para que las tres
+          barras de la pestana se lean igual. */}
+      {f.vencidas ? (
+        <ul className="aulas-avance-mermas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          <li className="es-cubierto">
+            <strong>{fmt(f.vencidasConParte)}</strong> con parte
+          </li>
+          <li className="es-sin-parte">
+            <strong>{fmt(f.vencidas - f.vencidasConParte)}</strong> sin parte
+          </li>
+          <li className="es-sin-meta">de <strong>{fmt(f.vencidas)}</strong> ya vencidos</li>
+        </ul>
+      ) : null}
       {f.pendientes.length ? (
         <ul className="aulas-frente-lista">
           {f.pendientes.map((a) => (
