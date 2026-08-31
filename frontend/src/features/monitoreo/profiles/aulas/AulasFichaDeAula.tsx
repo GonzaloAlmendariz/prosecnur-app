@@ -29,6 +29,8 @@ type Fuentes = {
   partes?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   control?: ReadonlyArray<Readonly<Record<string, unknown>>>;
   brechas?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  /** `banco_extras.por_facultad`; sólo lo usa la salida, no la ficha. */
+  banco?: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }>;
 };
 
 export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
@@ -44,8 +46,12 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
   // brechas— se quedaban sin facultad y la salida no aparecía nunca.
   const ficha = useMemo(() => fichaDeAula(codigo, fuentes), [codigo, fuentes]);
   const salida = useMemo(
-    () => dondeSeSaca(ficha.facultad, (fuentes.agenda ?? []) as MonitoreoAulasPlanRow[]),
-    [ficha.facultad, fuentes.agenda],
+    () => dondeSeSaca(
+      ficha.facultad,
+      (fuentes.agenda ?? []) as MonitoreoAulasPlanRow[],
+      fuentes.banco ?? [],
+    ),
+    [ficha.facultad, fuentes.agenda, fuentes.banco],
   );
   if (!ficha.existe) {
     return (
@@ -152,7 +158,19 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
               {salida.cadenasAgotadas > 0
                 ? `: sus ${fmtOGuion(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
                 : "; el diseño no le dio ninguna."}{" "}
-              Lo que quede tiene que salir del banco de extras.
+              {/* **Mandaba al banco de extras sin mirar si lo hay.** Sobre HSVG
+                  2026 el bolsón está en 3 facultades y las otras 12 lo tienen
+                  vacío, así que la frase enviaba a un sitio sin nada justo a las
+                  que peor lo tienen. Ahora el bloque del banco enumera las 15
+                  con su cero, y esto puede decirlo. */}
+              {salida.bolsonLibre === null
+                ? "Lo que quede tiene que salir del banco de extras."
+                : salida.bolsonLibre > 0
+                  ? <>Lo que quede tiene que salir de su banco de extras, que
+                      guarda <strong>{fmtOGuion(salida.bolsonLibre)}</strong>.</>
+                  : <>Y su banco de extras está vacío: lo que falte no se
+                      resuelve llamando, se resuelve ampliando la muestra en
+                      Cálculo de muestra.</>}
             </>
           )}
         </p>

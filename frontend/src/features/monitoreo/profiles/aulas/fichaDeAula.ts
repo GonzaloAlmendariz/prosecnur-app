@@ -82,6 +82,8 @@ export function fichaDeAula(
     partes?: ReadonlyArray<Fila>;
     control?: ReadonlyArray<Fila>;
     brechas?: ReadonlyArray<Fila>;
+    /** `banco_extras.por_facultad`; sólo lo usa la salida, no la ficha. */
+    banco?: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }>;
   },
 ): FichaDeAula {
   const enPlan = buscar(fuentes.agenda ?? [], codigo);
