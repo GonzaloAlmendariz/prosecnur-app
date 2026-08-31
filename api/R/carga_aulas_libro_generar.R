@@ -884,6 +884,15 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   .calg_tipar_fechas(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                      cols_agenda_en_campo(c("FECHA DE LLAMADA",
                                             "FECHA DE APLICACIÓN")), desde = 2L)
+  # **La fecha del bloque de CAMPO, que es otra columna con el mismo nombre.**
+  #
+  # `cols_agenda_en_campo` tipa las que la hoja repite de la agenda; ésta la
+  # escribe el aplicador. Estaba sin tipar desde siempre y no se veía porque la
+  # hoja salía VACÍA: al reparar los alias del parte —el mismo día— la columna
+  # se llenó y aparecieron sus 152 fechas como texto. Un defecto tapado por
+  # otro.
+  .calg_tipar_fechas(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
+                     cols_campo("FECHA DE APLICACIÓN"), desde = 2L)
   # `ID MATCH` es un correlativo, y como texto se ordena «1, 10, 100, 11». El
   # lector NO se ve afectado: lo usa como marcador de CABECERA para detectar los
   # bloques (`which(claves == "ID MATCH")` en carga_aulas_aplicadas.R), no como
@@ -897,6 +906,25 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
                       c(cols_control, cols_control_pct,
                         vapply(razones_control, function(r) r$cols, integer(1))),
                       desde = 2L)
+  # Las columnas que la hoja de control gano al conectarla con agenda y campo.
+  # Se tipan aparte porque `cols_control` es una lista fija de conteos y estas
+  # son dos fechas y un aforo: meterlas ahi las habria tratado como numeros.
+  #
+  # «HORARIO» NO se tipa a proposito: sus valores son «0703», un horario, y como
+  # numero se leeria 703.
+  local({
+    fechas <- vapply(c("FECHA AGENDADA", "FECHA DE APLICACION"),
+                     .calg_col_control, integer(1), USE.NAMES = FALSE)
+    fechas <- fechas[fechas > 0L]
+    if (length(fechas)) {
+      .calg_tipar_fechas(wb, "Base de control", hojas[["Base de control"]], fechas, desde = 2L)
+    }
+    asistentes <- .calg_col_control("N ASISTENTES EN AULA")
+    if (length(asistentes) && !is.na(asistentes) && asistentes > 0L) {
+      .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
+                          asistentes, desde = 2L)
+    }
+  })
 
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
