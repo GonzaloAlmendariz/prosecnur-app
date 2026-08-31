@@ -104,6 +104,50 @@ test_that("un aula sin `sent_total` no se juzga en ningun modo", {
 })
 
 
+test_that("la meta de la Base de control SI llega al contraste en modo esperado", {
+  # Las filas de la Base de control emiten `efectivas_esperadas`
+  # (carga_base_control.R) — `expected_valid` es el alias del PLAN y no viaja
+  # en esas filas. El contraste leia solo el alias: la meta llegaba NA en TODAS
+  # las filas y «comparadas = 0» siempre, con la hoja llena. El espejo correcto
+  # es el de `monitoreo_aulas_control_meta()`: `expected_valid` con fallback a
+  # `efectivas_esperadas`.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 0.7)))
+  filas <- list(
+    # 18 efectivas contra vara 14 (= 0.7 x 20): llega, y la hoja coincide.
+    list(operational_code = "A", efectivas_esperadas = 20,
+         efectivas_obtenidas = 18, sent_total = 18, efectiva = TRUE),
+    # 10 contra 14: no llega, y la hoja tambien lo dice.
+    list(operational_code = "B", efectivas_esperadas = 20,
+         efectivas_obtenidas = 10, sent_total = 10, efectiva = FALSE)
+  )
+  # Numerador y sent_total van IGUALES a proposito: este test aisla el hueco de
+  # la meta, no la eleccion de numerador (esa vive en el test de abajo).
+  r <- monitoreo_aulas_contraste_veredicto(filas, crit)
+  expect_identical(r[["comparadas"]], 2L)
+  expect_identical(r[["discrepan"]], 0L)
+})
+
+test_that("el modo esperado juzga con la EFECTIVA, no con el total de enviadas", {
+  # La respuesta que cuenta es la EFECTIVA: la que llego y paso los filtros.
+  # `sent_total` es el TOTAL de enviadas —un cuadre de campo, no la efectiva—
+  # y usarlo de numerador daba por llegada un aula con 50 enviadas y 10
+  # efectivas. El orden correcto: `efectivas_obtenidas` → `effective_surveys`
+  # → `sent_total` como ultimo recurso.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 0.7)))
+  # Vara: 0.7 x 20 = 14. Con 10 efectivas el aula NO llega, aunque envio 50.
+  r <- monitoreo_aulas_veredicto_propio(
+    list(efectivas_obtenidas = 10, sent_total = 50), crit, 20)
+  expect_false(r[["efectiva"]])
+  # Sin la columna de plataforma, el parte respalda — y sigue siendo 10, no 50.
+  r2 <- monitoreo_aulas_veredicto_propio(
+    list(effective_surveys = 10, sent_total = 50), crit, 20)
+  expect_false(r2[["efectiva"]])
+  # Y `sent_total` solo queda como ULTIMO recurso: un aula que no trae mas que
+  # las enviadas se sigue juzgando en vez de quedarse sin vara.
+  r3 <- monitoreo_aulas_veredicto_propio(list(sent_total = 15), crit, 20)
+  expect_true(r3[["efectiva"]])
+})
+
 test_that("el criterio declarado PERSISTE en la config normalizada", {
   # El normalizador es la whitelist de la config: lo que no nombra, no persiste.
   # Ya se comio a `valid_filters` una vez, y una superficie para declarar el

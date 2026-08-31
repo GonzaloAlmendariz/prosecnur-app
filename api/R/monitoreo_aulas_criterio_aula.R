@@ -69,17 +69,29 @@ monitoreo_aulas_criterio_aula <- function(cfg = list()) {
 monitoreo_aulas_veredicto_propio <- function(fila, criterio, meta = NA_real_) {
   vacio <- list(asistentes = NA, matriculados = NA, efectiva = NA)
   if (is.null(criterio) || !is.list(fila)) return(vacio)
-  enviadas <- .mca_num(fila$sent_total)
-  if (!is.finite(enviadas)) return(vacio)
   if (identical(criterio$modo, "esperado")) {
+    # La respuesta que cuenta es la EFECTIVA (D-L12): la que llego y paso los
+    # filtros. `sent_total` es el TOTAL de enviadas —un cuadre de campo, no la
+    # efectiva— y juzgar con el daba por llegada un aula con 50 enviadas y 10
+    # efectivas. El orden es el mismo que ya usa `monitoreo_aulas_control_meta()`:
+    # `efectivas_obtenidas` (plataforma) → `effective_surveys` (parte) →
+    # `sent_total` como ULTIMO recurso, para que un aula que no trae mas que
+    # las enviadas se siga juzgando en vez de quedarse sin vara. `[[` y no `$`:
+    # regla de la casa contra el partial matching.
+    efectivas <- .mca_num(fila[["efectivas_obtenidas"]])
+    if (!is.finite(efectivas)) efectivas <- .mca_num(fila[["effective_surveys"]])
+    if (!is.finite(efectivas)) efectivas <- .mca_num(fila[["sent_total"]])
+    if (!is.finite(efectivas)) return(vacio)
     m <- .mca_num(meta)
     # Sin meta del diseño no se juzga: el aula no falla, es que no hay vara.
     # Caer aqui a una proporcion inventada seria justo lo que este modo viene a
     # quitar.
     if (!is.finite(m) || m <= 0) return(vacio)
-    llega <- enviadas >= criterio$alfa * m
+    llega <- efectivas >= criterio$alfa * m
     return(list(asistentes = NA, matriculados = NA, efectiva = llega))
   }
+  enviadas <- .mca_num(fila$sent_total)
+  if (!is.finite(enviadas)) return(vacio)
   # Los dos denominadores del operativo, cada uno con su nombre en la hoja:
   # asistentes es quien estaba en el aula, matriculados es quien podia estar.
   asistentes <- .mca_num(fila$observed_students)
@@ -118,7 +130,16 @@ monitoreo_aulas_contraste_veredicto <- function(filas = list(), criterio = NULL)
     if (!is.list(f)) next
     # La meta viaja en la propia fila cuando el plan se cruzo antes; si no, el
     # modo «esperado» deja el aula sin juzgar en vez de inventarle una vara.
-    propio <- monitoreo_aulas_veredicto_propio(f, criterio, .mca_num(f$expected_valid))
+    # `expected_valid` es el alias del PLAN; las filas de la Base de control
+    # emiten `efectivas_esperadas` (carga_base_control.R) y leyendo solo el
+    # alias la meta llegaba NA en TODAS y «comparadas = 0» con la hoja llena.
+    # El espejo correcto es el de `monitoreo_aulas_control_meta()`
+    # (monitoreo_aulas_control.R): `expected_valid` con fallback a
+    # `efectivas_esperadas`, con `[[` y no `$` por la regla de la casa contra
+    # el partial matching.
+    meta_fila <- .mca_num(f[["expected_valid"]])
+    if (!is.finite(meta_fila)) meta_fila <- .mca_num(f[["efectivas_esperadas"]])
+    propio <- monitoreo_aulas_veredicto_propio(f, criterio, meta_fila)
     hoja <- f$efectiva
     hoja <- if (is.null(hoja) || !length(hoja) || is.na(hoja[[1]])) NA else as.logical(hoja[[1]])
     # Solo se comparan las que las DOS resolvieron: una indeterminada no

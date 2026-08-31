@@ -1424,6 +1424,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         .monitoreo_aulas_valid_response(responses, cfg),
         .monitoreo_aulas_response_classroom(responses, cfg)
       ),
+      # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
+      # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
+      dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
       brechas = list(),
       reemplazos = list(),
       validation = list()
@@ -2160,6 +2163,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # No es cumplimiento: el déficit que publica es el ATRIBUIBLE A τ, y su
     # denominador son las aulas ya aplicadas, no la cuota.
     efectividad_seguimiento = efectividad_seguimiento,
+    # Las DOS tasas al grano de AULA: la prevista del diseño y la vara de su
+    # facultad lado a lado, contra la observada, con banda y señal. SEÑALA, no
+    # descarta (mandato B3). Sobre `plan_df` entero porque el propio bloque
+    # decide quien entra —titulares y quien tenga señal de campo—; las
+    # `respuestas_validas` por fila ya estan calculadas arriba. La logica vive
+    # en monitoreo_aulas_dos_tasas.R.
+    dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload. Es el denominador global de
