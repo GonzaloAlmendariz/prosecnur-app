@@ -43,6 +43,16 @@ function fuentesDelFrontend(dir: string, acc: string[] = []): string[] {
 }
 
 describe("el CSS del perfil no estila clases que ya no existen", () => {
+  // **Timeout explícito: éste no es un test de lógica, es un escaneo de disco.**
+  //
+  // Lee TODAS las hojas del perfil y TODOS sus componentes. Aislado tarda ~3 s,
+  // y el límite de 5 s de vitest está pensado para tests que no tocan I/O: en
+  // paralelo con los otros 170 archivos se pasaba, y el rojo decía «timed out»
+  // sobre un contrato que se cumple. Medido: añadir UN archivo de test al
+  // directorio bastaba para cruzarlo.
+  //
+  // No es subir el límite para tapar un fallo —el aserto no cambia—: es que el
+  // límite por defecto no aplica a lo que este test hace.
   it("cada clase propia que declara la hoja la usa algún componente", () => {
     // TODAS las hojas del perfil, no una lista de cuatro nombres: la hoja
     // madre se está partiendo y lo que se mude quedaría fuera de vigilancia sin
@@ -65,5 +75,5 @@ describe("el CSS del perfil no estila clases que ya no existen", () => {
       return true;
     });
     expect(huerfanas.sort()).toEqual([]);
-  });
+  }, 30_000);
 });

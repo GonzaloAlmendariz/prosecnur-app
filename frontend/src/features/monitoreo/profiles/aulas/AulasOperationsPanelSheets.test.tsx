@@ -12,21 +12,23 @@ import { AulasOperationsPanel } from "./AulasOperationsPanel";
  * captura no hace.
  */
 
-const CONFIG = {} as never;
+type Props = Parameters<typeof AulasOperationsPanel>[0];
 
-function pintar(props: Partial<Parameters<typeof AulasOperationsPanel>[0]> = {}) {
-  return renderToStaticMarkup(
-    <AulasOperationsPanel
-      config={CONFIG}
-      sources={[] as never}
-      busy={false}
-      onImportPlan={() => {}}
-      onSyncField={() => {}}
-      onGenerarLibro={() => {}}
-      onImportarLibro={() => {}}
-      {...(props as never)}
-    />,
-  );
+// `as never` en el spread no compila —«Spread types may only be created from
+// object types»— y `as Props` obligaria a construir un config entero. Se tipa
+// el parcial y se ensancha en la llamada, que es donde el compilador ya sabe
+// que las obligatorias estan puestas.
+function pintar(props: Partial<Props> = {}) {
+  const base = {
+    config: {} as Props["config"],
+    sources: [] as Props["sources"],
+    busy: false,
+    onImportPlan: () => {},
+    onSyncField: () => {},
+    onGenerarLibro: () => {},
+    onImportarLibro: () => {},
+  };
+  return renderToStaticMarkup(<AulasOperationsPanel {...base} {...props} />);
 }
 
 describe("AulasOperationsPanel — leer del Sheets", () => {
