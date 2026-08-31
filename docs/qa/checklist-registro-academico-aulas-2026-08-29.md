@@ -152,7 +152,55 @@ gastadas, sí incluye `parcial`.
   · Si **no se reintenta**: debería liberar la cadena Y contar como aplicada,
     como ya hace «cerrada».
 
-Ninguna de las dos se toca hasta que lo digas.
+**M · Nueve curso-horario con los dos estados en desacuerdo.**
+
+La tabla los listaba como bloqueados sin el material para decidir, que es lo que
+convierte una decisión de dos minutos en otra sesión. Medido el 2026-08-31 sobre
+la simulación de 15 días, cruzando los dos campos en los 174 titulares:
+
+| `sample_status` (muestra) | `operational_status` (operativo) | Cuántos |
+|---|---|---|
+| agendada | aplicada | 134 |
+| reemplazada | reemplazada | 18 |
+| agendada | agendada | 13 |
+| **sin_contactar** | **agendada** | **9** |
+
+Los nueve son `CH 8, 12, 20, 24, 32, 38, 50, 58, 67`. Uno de los dos campos dice
+que a ese curso-horario todavía no lo ha llamado nadie, y el otro que ya tiene
+día y hora.
+
+**Cuánto cuelga.** Los nueve suman **351 elegibles**, el **48 %** de los 727 que
+quedan por aplicar (los otros 13, que sí concuerdan, suman 376). Y caen en las
+tres facultades que peor van: Ciencias e Ingeniería 5, Estudios Generales
+Ciencias 3, Estudios Generales Letras 1.
+
+**Por qué importa cuál manda.** Los dos campos tienen consumidores distintos y
+ninguno consulta al otro:
+
+| Campo | Quién lo lee | Qué decide |
+|---|---|---|
+| `sample_status` | `monitoreo_aulas_en_juego.R`, `_reemplazos.R`, `_banco_extras.R` | Si la unidad está dormida, o sea si se puede activar como reemplazo |
+| `operational_status` | `monitoreo_aulas_calibracion.R`, el KPI de aplicadas | Si ya pasó por campo |
+
+Con `sin_contactar` mandando, esos nueve están **dormidos** y por tanto
+disponibles para reemplazar a otro. Con `agendada` mandando, están comprometidos
+y no se pueden tocar. Hoy conviven las dos lecturas: para la agenda están
+agendados y para el motor de reemplazos siguen libres.
+
+**La pregunta**: cuando los dos estados se contradicen, ¿cuál manda? Las dos
+respuestas son defendibles y llevan a código distinto:
+
+  · Manda **lo operativo** (`agendada`): alguien ya consiguió la cita y el campo
+    de muestra se quedó sin actualizar. Entonces hay que dejar de ofrecerlos como
+    reemplazo, porque activarlos pisaría una cita ya acordada.
+  · Manda **la muestra** (`sin_contactar`): la cita es un dato viejo o un error
+    de carga. Entonces siguen disponibles, y lo que falta es limpiar la agenda.
+
+Lo que **no** es defendible es lo de hoy, que es responder las dos cosas según
+quién pregunte. La app ya lo dice en Agenda con el indicador «Estados que se
+contradicen», así que el conflicto está nombrado; falta resolverlo.
+
+Ninguna de las tres se toca hasta que lo digas.
 
 ## Inventario de lo que hay que evaluar
 
