@@ -70,7 +70,7 @@ export const FIELD_LABELS: Record<string, string> = {
   sex_top_2: "Sexo minoritario",
   sex_top_2_n: "Estudiantes del sexo minoritario",
   enrolled_total: "Matriculados total DTI",
-  size_group: "Tamaño de aula",
+  size_group: "Tamaño del curso-horario",
   modality: "Modalidad",
   session_type: "Tipo de sesión",
   // «Base de control» (L29): el control de calidad por aula. Ninguno de estos
@@ -100,14 +100,17 @@ export const FIELD_LABELS: Record<string, string> = {
   // del campo con espacios, porque eso no es traducir, es disimular. «Meta de
   // efectivas» dice de dónde sale la cifra; «Efectivas esperadas» sólo repite
   // el identificador en castellano.
-  efectivas_esperadas: "Meta de efectivas del aula",
+  efectivas_esperadas: "Meta de efectivas del curso-horario",
   // **Las dos varas del diseño, nombradas por su diferencia.** El motor publica
   // dos esperados por aula y hasta el 2026-08-28 ninguno tenía etiqueta aquí, así
   // que la tabla los mostraba con el identificador crudo. No son sinónimos:
   // `tasa_efectividad_aula` ajusta por el tamaño del salón y `tasa_facultad` es
   // el promedio con el que se dividió la cuota. Suman lo mismo por facultad y
-  // difieren aula por aula, de modo que la etiqueta tiene que decir cuál es.
-  tasa_efectividad_aula: "Tasa del aula, por su tamaño",
+  // difieren curso-horario a curso-horario, de modo que la etiqueta tiene que
+  // decir cuál es. **Por eso el sujeto no se puede recortar**: «Tasa del
+  // curso-horario» frente a «Tasa de la facultad» es justo el contraste, igual
+  // que «Peso del curso-horario» frente a «Peso del estudiante».
+  tasa_efectividad_aula: "Tasa del curso-horario, por su tamaño",
   tasa_facultad: "Tasa de la facultad",
   esperadas_facultad: "Esperadas según la facultad",
   efectivas_obtenidas: "Efectivas que llegaron",
@@ -138,7 +141,7 @@ export const FIELD_LABELS: Record<string, string> = {
   selection_run_id: "Corrida de selección",
   pi_final: "Probabilidad de selección",
   probability_source: "Origen de la probabilidad",
-  weight_classroom: "Peso del aula",
+  weight_classroom: "Peso del curso-horario",
   weight_student: "Peso del estudiante",
   nonresponse_policy: "Política de no respuesta",
   representativity_score: "Puntaje de representatividad",
