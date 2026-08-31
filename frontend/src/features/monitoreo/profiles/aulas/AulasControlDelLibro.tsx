@@ -1,6 +1,6 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
-import { caidasPorFiltro, contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
+import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
 import { fmt } from "./kpisDeAulas";
 import { columnasConDato } from "./columnasConDato";
 import { perdidaDelControl } from "./perdidaDelControl";
@@ -358,10 +358,6 @@ export function AulasControlDelLibro({
   criterio?: CriterioDelEstudio | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
-  // Cuál de los filtros declarados decide. Ver `caidasPorFiltro`.
-  const porFiltro = caidasPorFiltro(criterio);
-  const totalCriterio = Number(criterio?.total ?? 0);
-  const caenEnTotal = Math.max(0, totalCriterio - Number(criterio?.validas ?? 0));
   // **La cuarta cifra de «cuántas encuestas hay», y la única sin dibujar.**
   // La cadena es asistentes → enviadas → válidas → efectivas del parte, y esta
   // tabla trae `sent_total` y `valid_total` aula por aula: para saber cuánto se
@@ -489,36 +485,19 @@ export function AulasControlDelLibro({
             caen SÓLO por ese filtro, o sea lo que se recuperaría quitándolo.
             Cuando es mucho menor que la primera, ese filtro está tumbando
             respuestas que otro ya tumbaba. */}
-        {porFiltro.length ? (
-          <>
-          {/* **La lista necesita su denominador, y la frase de arriba no se lo
-              da.** El párrafo de validadores sólo se pinta cuando la hoja trae
-              columnas de validador; en un estudio sin ellas —el caso de este
-              corte— la lista quedaba suelta bajo el texto anterior y se leía
-              «filtro · 109 se caen» sin decir de qué son 109. */}
-          <p className="mon-profile-muted aulas-control-filtros-cabecera">
-            <strong>{fmt(caenEnTotal)}</strong> de <strong>{fmt(totalCriterio)}</strong> respuestas
-            no pasan los filtros del estudio. Cuál las tumba:
-          </p>
-          <ul className="aulas-control-filtros" role="list">
-            {porFiltro.map((f) => (
-              <li key={f.nombre} role="listitem">
-                <span className="aulas-control-filtro-nombre">{f.nombre}</span>
-                {/* La cifra en su propia celda y alineada a la derecha: en flex
-                    empujaba al texto, y «109», «28» y «7» dejaban «se caen»
-                    empezando en tres x distintas. */}
-                <strong>{fmt(f.caen)}</strong>
-                <span>
-                  se caen
-                  {f.soloEste !== f.caen ? (
-                    <span className="mon-profile-muted">, {fmt(f.soloEste)} sólo por éste</span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-          </>
-        ) : null}
+        {/* **El desglose por filtro NO va aqui: ya vive en Fuentes.**
+
+            Lo puse en los dos sitios el mismo dia sin darme cuenta: el motor
+            lo dice en «Que cuenta como encuesta efectiva» —«de las 144 que no
+            cuentan, 109 por filtro»— que es donde el criterio SE CONFIGURA y
+            donde la cifra explica lo que acabas de tocar. Repetirlo en la hoja
+            del libro no añade lectura, solo otra copia que mantener.
+
+            Es ademas la queja literal de Gonzalo sobre esta familia de
+            paneles, ya anotada en `AulasFiltrosDeEfectiva`: «todos los
+            elementos visuales siguen bastante verborreados en esta seccion».
+            El dato sigue viajando en `criterio_validez.por_filtro` y
+            `caidasPorFiltro()` sigue exportado para quien lo necesite. */}
         <p className="aulas-cadenas-lectura">
           {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
               plan sigue, y llamarlas igual confundía dos denominadores. */}
