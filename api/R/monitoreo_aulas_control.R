@@ -25,13 +25,13 @@
 MONITOREO_AULAS_CONTROL_GRUPOS <- list(
   list(
     clave = "curso",
-    etiqueta = "Informacion del curso",
+    etiqueta = "Información del curso",
     campos = c("wave", "operational_code", "course_name", "room", "schedule",
                "enrolled_total", "eligible_n")
   ),
   list(
     clave = "campo",
-    etiqueta = "Informacion del campo",
+    etiqueta = "Información del campo",
     campos = c("scheduled_date", "scheduled_time", "applied_by", "applied_date",
                "applied_time", "application_status")
   ),
