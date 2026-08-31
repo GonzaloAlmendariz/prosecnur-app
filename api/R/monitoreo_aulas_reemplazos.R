@@ -72,10 +72,28 @@
 
   fac_cand <- .mar_txt(cand$faculty)
   fac_caida <- .mar_txt(caida$faculty)
-  if (nzchar(fac_caida) && nzchar(fac_cand) && !identical(fac_cand, fac_caida)) {
+  # LA FACULTAD SE COMPARA SIEMPRE, TAMBIEN CUANDO VIENE VACIA.
+  #
+  # Exigir que las DOS fueran no vacias dejaba pasar el caso peor: un
+  # curso-horario sin facultad declarada aceptaba cualquier candidato, de la
+  # facultad que fuera. Y el frontend lo ofrecia, porque `bolsonExtra()` tenia
+  # el mismo agujero -un `!fac ||` que desactivaba el filtro-, asi que la
+  # frontera dura se caia en las dos capas a la vez y por la misma razon.
+  #
+  # Con `identical` a secas los dos escenarios quedan bien: si el estudio no
+  # reparte por facultad ambas son "" y pasa, y si reparte pero esta fila no la
+  # declara no se puede afirmar que respete la frontera, asi que no pasa.
+  if (!identical(fac_cand, fac_caida)) {
     stop_api(409, "E_REEMPLAZO_OTRA_FACULTAD",
-             sprintf("'%s' es de %s y '%s' de %s: un reemplazo no cruza de facultad.",
-                     elegida, fac_cand, codigo, fac_caida))
+             if (!nzchar(fac_caida) || !nzchar(fac_cand)) {
+               sprintf(paste0("No se puede comprobar que '%s' y '%s' sean de la misma facultad ",
+                              "porque %s no la declara, y un reemplazo no cruza de facultad."),
+                       elegida, codigo,
+                       if (!nzchar(fac_caida)) sprintf("'%s'", codigo) else sprintf("'%s'", elegida))
+             } else {
+               sprintf("'%s' es de %s y '%s' de %s: un reemplazo no cruza de facultad.",
+                       elegida, fac_cand, codigo, fac_caida)
+             })
   }
 
   # De donde sale, para que el plan lo recuerde. Un reemplazo de su cadena y uno

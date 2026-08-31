@@ -217,8 +217,20 @@ export function cadenaPropia(
  * declarada.
  *
  * «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
- * otra.» Sin `facultad` no se filtra —quien llame así se lleva todo—, pero
- * `candidatosDeReemplazo()` siempre la pasa.
+ * otra.» La facultad del aula que cae se COMPARA siempre, también cuando llega
+ * vacía, y eso cubre los dos escenarios:
+ *
+ * - **El estudio no reparte por facultad.** Ni el aula que cae ni las extras la
+ *   declaran, `"" === ""` y el bolsón entero sigue disponible.
+ * - **El estudio sí reparte y esta fila viene sin facultad.** Las extras sí la
+ *   traen, ninguna iguala a `""` y el bolsón sale vacío. Es lo correcto: no se
+ *   ofrece lo que no se puede garantizar que respeta la frontera.
+ *
+ * Antes un `!fac ||` desactivaba el filtro cuando la facultad venía vacía, y
+ * entonces el segundo escenario ofrecía el bolsón de TODAS las facultades. El
+ * motor tampoco lo ataja: `E_REEMPLAZO_OTRA_FACULTAD` exige que las dos
+ * facultades sean no vacías (`monitoreo_aulas_reemplazos.R:75`), así que con la
+ * del aula caída en blanco la ofrecía la pantalla y la aceptaba el backend.
  */
 export function bolsonExtra(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
@@ -230,7 +242,7 @@ export function bolsonExtra(
       texto(f.sample_role) === "extra_reserve_pool" &&
       !seResolvio(f) &&
       sigueDormida(f) &&
-      (!fac || texto(f.faculty) === fac),
+      texto(f.faculty) === fac,
   );
 }
 
