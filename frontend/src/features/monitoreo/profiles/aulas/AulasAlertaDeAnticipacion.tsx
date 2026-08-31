@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { FacultadDelBanco } from "./AulasBancoExtras";
+import { etiquetaDeSexo } from "./etiquetaDeSexo";
 import {
   DIAS_DE_ANTICIPACION,
   TASA_DE_CAIDA,
@@ -242,12 +243,12 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
                 también. */}
             <span role="cell" className="aulas-anticipacion-faltan" title={
               f.faltanPorSexo.length
-                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${x.sexo}`).join(" · ")
+                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${etiquetaDeSexo(x.sexo)}`).join(" · ")
                 : undefined
             }>
               {fmt(f.faltan)}
               {f.faltanPorSexo.length > 1 && f.faltanPorSexo[0].faltan >= f.faltan * CARGA_QUE_MANDA ? (
-                <em> · {fmt(f.faltanPorSexo[0].faltan)} {f.faltanPorSexo[0].sexo.toLowerCase()}</em>
+                <em> · {fmt(f.faltanPorSexo[0].faltan)} {etiquetaDeSexo(f.faltanPorSexo[0].sexo)}</em>
               ) : null}
             </span>
             {cuandos.size > 1 ? (
