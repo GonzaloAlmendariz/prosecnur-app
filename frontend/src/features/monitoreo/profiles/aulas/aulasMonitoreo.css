@@ -2073,7 +2073,10 @@
 
 .mon-profile-page.is-aulas-flow .aulas-agenda-lista li {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr) 116px;
+  /* La tercera columna tenia 116px para «13 · todas con respuestas», que no
+     cabe: el texto envolvia y la segunda linea quedaba sin alinear con nada.
+     168px es lo que mide la lectura mas larga sin partirse. */
+  grid-template-columns: 118px minmax(0, 1fr) 168px;
   align-items: center;
   gap: 10px;
 }
@@ -2104,10 +2107,17 @@
   min-width: 2px;
 }
 
+/* **Dos columnas, no un flujo de texto.**
+   En flex, la cifra empujaba al texto y cada fila empezaba su lectura en una x
+   distinta: «9», «13» y «56» desplazaban «todas con respuestas» tres anchos
+   diferentes. Con la cifra en su propia columna alineada a la derecha, las
+   unidades quedan una debajo de otra y todas las lecturas arrancan a la misma
+   altura, que es lo que hace legible una columna de veinte filas. */
 .mon-profile-page.is-aulas-flow .aulas-agenda-cifra {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
   color: var(--pulso-text);
   font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
@@ -2129,8 +2139,8 @@
    larga —eso el contrato lo admite—, es un dato operativo ilegible y ademas
    engañoso, porque las dos mitades se leen como dos cifras. */
 .mon-profile-page.is-aulas-flow .aulas-agenda-cifra strong {
-  flex-shrink: 0;
   white-space: nowrap;
+  text-align: right;
 }
 
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:

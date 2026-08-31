@@ -148,12 +148,28 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
                 />
               ))}
             </span>
-            <span className="aulas-agenda-cifra">
-              <strong>{dia.aulas}</strong>
-              {/* El punto es un carácter de verdad y no un `::before`: el total
-                  del día y los que no empezaron quedaban pegados —«19» y «3»—
-                  y el texto se leía «193 sin empezar». */}
-              <em>{" · "}{dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"}</em>
+            {/* **El separador se fue, y la separación la hace la rejilla.**
+
+                El punto medio estaba aquí como carácter de verdad porque el
+                total del día y los que no empezaron quedaban pegados —«19» y
+                «3»— y el texto se leía «193 sin empezar». Un `::before` no
+                valía: separaba a la vista y el lector de pantalla seguía
+                diciendo el número de tres cifras.
+
+                Ahora la cifra vive en su propia columna del grid, así que ya no
+                hay flujo de texto donde pegarse, y lo que el lector de pantalla
+                anuncia lo fija el `aria-label` de la fila. El punto ya no
+                separaba nada: sólo se veía. */}
+            <span
+              className="aulas-agenda-cifra"
+              aria-label={`${dia.aulas} ${dia.aulas === 1 ? "curso-horario" : "cursos-horario"}, ${
+                dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"
+              }`}
+            >
+              <strong aria-hidden="true">{dia.aulas}</strong>
+              <em aria-hidden="true">
+                {dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"}
+              </em>
             </span>
           </li>
         ))}
