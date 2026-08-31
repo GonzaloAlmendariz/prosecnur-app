@@ -41,8 +41,13 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   "selection_slot_id",
   # Estado y ciclo de contacto
   "sample_status", "contact_medium", "contact_date", "contact_attempts",
-  "scheduled_date", "scheduled_day", "scheduled_time", "link",
-  "replacement_note", "notes"
+  # `scheduled_moment` entra el 2026-08-31 (A3 del checklist del operativo):
+  # el bloque de agenda lo escribe y el lector lo emite, pero fuera de esta
+  # lista una correccion de horario hecha en el Excel solo se aplicaba si el
+  # plan estaba vacio — contra la regla del 08-24 («robusta a actualizarse
+  # desde el Excel» en agenda y registro).
+  "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
+  "link", "replacement_note", "notes"
 )
 
 #' Fusiona las filas del libro sobre el plan existente.
