@@ -108,7 +108,7 @@ Dirección de toda la columna de comprobación:
 | **E11** | **Fixture sintética del operativo de aulas** — plan con titulares, reservas de cadena y banco; partes de campo; respuestas de plataforma; base de control | La pestaña deja de mostrar el vacío y lista las quince facultades con cifras | ☐ **SIGUIENTE** |
 | E0 | ADR 0082 + motor + `tau_prevista` por fila + tabla + marca de residual sin base | La tabla muestra τ prevista y observada por facultad, y las nueve sin base propia lo dicen en su fila | ☑ código · ☐ **UI** |
 | E10 | El disparador es el consumo del margen; la banda queda como guarda | Una facultad con `senal: bajo` y `riesgo: holgado` **no** sale pintada; la que no cierra, sí | ☑ código · ☐ **UI** |
-| E4 | El banco entra al conteo de reservas | Una facultad sin reservas de cadena pero con banco deja de decir «sin reservas libres» | ☐ |
+| E4 | El banco entra al conteo de reservas | Una facultad sin reservas de cadena pero con banco deja de decir «sin reservas libres» | ☑ `354ef628`, y el problema resultó ser el contrario del enunciado: la ficha mandaba al banco **siempre**, tuviera o no. Sobre HSVG 2026 el bolsón está en 3 facultades y **12 lo tienen vacío**. Tres frases distintas según haya extras, no haya, o el estudio no publique banco. `bolsonLibre` va aparte de `reservasLibres`: son dos recursos con procedimiento distinto |
 | E2 | Ventana de reacción (7 días de anticipación) | La fila en riesgo dice «pedir antes del DD/MM»; sin margen, lo dice distinto | ☐ |
 | E3 | El sexo en la decisión de reservas | La fila dice de qué sexo es lo que falta, no sólo cuántos alumnos | ☐ |
 | E5 | Sesgo de agotamiento | La proyección muestra dos cifras: a la τ acumulada y a la de los últimos días | ☐ |
