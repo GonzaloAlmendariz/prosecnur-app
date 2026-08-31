@@ -384,3 +384,47 @@ describe("la tarjeta de brechas dice brecha de qué", () => {
       .toBe("en 1 facultad");
   });
 });
+
+describe("cuando los dos estados se contradicen, manda el operativo", () => {
+  // Gonzalo, 2026-08-31: «se supone que en las aulas titulares se agendan a
+  // primer momento antes del campo». La agenda es previa al campo por diseño,
+  // así que un titular con fecha no puede estar sin contactar: el dato bueno es
+  // la fecha y el que hay que corregir es `sample_status`.
+  const conDesfase = (): MonitoreoAulasDashboard => ({
+    course_status: [
+      // Dos que concuerdan y tres con la muestra desactualizada. Las cinco
+      // están agendadas en el operativo, o sea las cinco tienen cita.
+      { application_state: "lista", sample_status: "agendada", operational_status: "agendada" },
+      { application_state: "lista", sample_status: "agendada", operational_status: "agendada" },
+      { application_state: "lista", sample_status: "sin_contactar", operational_status: "agendada" },
+      { application_state: "lista", sample_status: "sin_contactar", operational_status: "agendada" },
+      { application_state: "lista", sample_status: "sin_contactar", operational_status: "agendada" },
+    ],
+  } as unknown as MonitoreoAulasDashboard);
+
+  it("las cuenta con cita, no como sin contactar", () => {
+    const kpi = aulasKpis(conDesfase(), "modelo").find((k) => k.label === "Sin empezar");
+    expect(kpi, "no está el KPI «Sin empezar»").toBeTruthy();
+    // Las CINCO tienen cita. Antes decía «2 con cita · 3 sin contactar
+    // todavía», que manda a llamar a docentes que ya dieron hora.
+    expect(kpi?.pista).toContain("5 con cita");
+    expect(kpi?.pista).not.toContain("sin contactar");
+  });
+
+  it("y declara cuántas tienen la muestra sin actualizar, en vez de esconderlo", () => {
+    // Arreglar el recuento y callar el desfase sería tapar un dato que hay que
+    // ir a corregir en el Excel.
+    const kpi = aulasKpis(conDesfase(), "modelo").find((k) => k.label === "Sin empezar");
+    expect(kpi?.pista).toContain("3 sin actualizar en la muestra");
+  });
+
+  it("sin desfase, la pista no inventa la advertencia", () => {
+    const limpio = {
+      course_status: [
+        { application_state: "lista", sample_status: "agendada", operational_status: "agendada" },
+      ],
+    } as unknown as MonitoreoAulasDashboard;
+    const kpi = aulasKpis(limpio, "modelo").find((k) => k.label === "Sin empezar");
+    expect(kpi?.pista).not.toContain("sin actualizar");
+  });
+});
