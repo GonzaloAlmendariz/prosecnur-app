@@ -527,7 +527,19 @@ test_that("una respuesta que no es de ninguna aula del plan se avisa", {
   # El control: antes esto tambien valia "ok", porque el chequeo miraba si la
   # respuesta TENIA colector, no si ese colector era de alguna aula del plan.
   expect_identical(huerfana$status, "warning")
-  expect_match(huerfana$detail, "^1 respuestas validas no corresponden")
+  # Concuerda en singular: «1 respuestas validas no corresponden» era el texto
+  # viejo y decia tres cosas mal a la vez.
+  expect_match(huerfana$detail, "^1 respuesta v\u00e1lida no corresponde")
+
+  # Y en plural, para que la otra rama del sprintf tambien quede fijada: con una
+  # sola asercion, quien colapse el condicional rompe solo la que nadie mira.
+  dos_huerfanas <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = c(rep(uid[1], 5), "unit-fantasma", "otra-fantasma"),
+               stringsAsFactors = FALSE),
+    "unmapped_valid_responses"
+  )
+  expect_match(dos_huerfanas$detail, "^2 respuestas v\u00e1lidas no corresponden")
 })
 
 test_that("un aula llena no se denuncia como colectores duplicados", {
@@ -561,7 +573,7 @@ test_that("un aula llena no se denuncia como colectores duplicados", {
     "duplicate_responses"
   )
   expect_identical(repetida$status, "review")
-  expect_match(repetida$detail, "^1 respuestas repetidas")
+  expect_match(repetida$detail, "^1 respuesta repetida\\.")
 })
 
 test_that("sin identificador de respuesta el aviso lo dice, no calla ni alarma", {

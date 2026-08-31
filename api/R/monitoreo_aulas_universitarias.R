@@ -2272,7 +2272,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       "El tablero agrega por curso-horario, recopilador y enlace.",
       identificadores$detail,
       if (any(huerfanas)) {
-        sprintf("%d respuestas válidas no corresponden a ningún curso-horario del plan.", sum(huerfanas))
+        sprintf(
+          if (sum(huerfanas) == 1L) "%d respuesta válida no corresponde a ningún curso-horario del plan."
+          else "%d respuestas válidas no corresponden a ningún curso-horario del plan.",
+          sum(huerfanas)
+        )
       } else if (length(valid_response)) {
         "Todas las respuestas válidas se atribuyeron a un curso-horario del plan."
       } else {
