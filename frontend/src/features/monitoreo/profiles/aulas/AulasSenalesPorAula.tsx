@@ -1,12 +1,12 @@
 import type { MonitoreoAulasDosTasas } from "../../../../api/monitoreo";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import { ptsDeBanda, senalesPorAula, tasaEnPct, type AulaMedida } from "./senalesPorAula";
 import "./senalesPorAula.css";
 
 /**
- * La señal de cada curso-horario contra SU tasa prevista, con la vara de su
- * facultad en la misma fila (unidad B3, hermana del panel de facultad de ADR
- * 0082 que vive arriba).
+ * La señal de cada curso-horario contra SU tasa prevista, con la tasa prevista
+ * de su facultad en la misma fila (unidad B3, hermana del panel de facultad de
+ * ADR 0082 que vive arriba).
  *
  * **Por qué las dos varas juntas.** Un curso-horario bajo su propia meta tuvo
  * un problema; uno bajo la de su facultad pero sobre la suya sólo es más grande
@@ -18,6 +18,11 @@ import "./senalesPorAula.css";
  * publica el motor, aquí sólo se ordena la lectura —lo señalado primero, lo
  * conforme agregado, lo sin contraste con su motivo— y ninguna rama esconde un
  * curso-horario por su tasa.
+ *
+ * Tras el rechazo metodológico (B1): sólo lo APLICADO se contrasta. El
+ * encabezado cuenta a los aplicados fuera de su margen y a nadie más; los
+ * pendientes y retirados van en grupos propios con su estado literal, porque
+ * sumarlos al «se salen» era prometer rendimiento y entregar agenda.
  */
 
 /** La línea secundaria de una fila compacta: sólo lo que esa fila tiene. */
@@ -28,6 +33,52 @@ function detalleDeLista(a: AulaMedida): string {
   if (a.facultad) partes.push(a.facultad);
   return partes.join(" · ");
 }
+
+/**
+ * La línea de un pendiente: su estado literal primero —es lo que lo distingue
+ * de otro pendiente— y lo que el diseño espera de él, nunca una observada que
+ * no existe.
+ */
+function detalleDePendiente(a: AulaMedida): string {
+  const partes: string[] = [a.estadoOperativo ?? "aún sin gestión"];
+  if (a.facultad) partes.push(a.facultad);
+  // `pctPerfil` directo y no `tasaEnPct`: la prevista ya está comprobada no
+  // nula, y el guard de cifras crudas (`cifrasConFormato.test.ts`) reconoce a
+  // los formateadores del perfil por su nombre.
+  if (a.tasaPrevista != null && a.elegibles != null) {
+    partes.push(`prevista ${pctPerfil(a.tasaPrevista * 100)} de ${fmt(a.elegibles)} elegibles`);
+  } else if (a.tasaPrevista != null) {
+    partes.push(`prevista ${pctPerfil(a.tasaPrevista * 100)}`);
+  } else if (a.elegibles != null) {
+    partes.push(`${fmt(a.elegibles)} elegibles`);
+  }
+  return partes.join(" · ");
+}
+
+/** La línea de un retirado: el estado literal ES el motivo, y viaja tal cual. */
+function detalleDeRetirada(a: AulaMedida): string {
+  const partes: string[] = [a.estadoOperativo ?? "sin estado escrito"];
+  if (a.facultad) partes.push(a.facultad);
+  return partes.join(" · ");
+}
+
+/** La línea de un descuadre: los números que no cuadran, no una tasa armada con ellos. */
+function detalleDeDescuadre(a: AulaMedida): string {
+  const partes: string[] = [];
+  if (a.efectivas != null && a.elegibles != null) {
+    partes.push(`${fmt(a.efectivas)} efectivas de ${fmt(a.elegibles)} elegibles`);
+  }
+  if (a.facultad) partes.push(a.facultad);
+  if (a.numerador === "parte") partes.push("del parte");
+  return partes.join(" · ");
+}
+
+/**
+ * Sólo presentación: el motor escribe nombres de campo entre acentos graves
+ * (`estado_operativo`) y en pantalla ese tic de código es ruido. El TEXTO no
+ * se toca — el dueño del idioma del criterio es el motor (M4).
+ */
+const sinGraves = (s: string) => s.replace(/`/g, "");
 
 export function AulasSenalesPorAula({
   bloque, facultadEnFoco,
@@ -57,9 +108,12 @@ export function AulasSenalesPorAula({
     );
   }
 
-  const { senalados, conformes, sinMedir, desconocidos } = res;
+  const { senalados, descuadres, conformes, sinMedir, pendientes, retiradas, desconocidos, criterio } = res;
   const bajo = senalados.filter((a) => a.senal === "bajo").length;
   const sobre = senalados.length - bajo;
+  // SOLO los contrastados (aplicados con banda): ni pendientes ni retirados ni
+  // descuadres entran al numerador o al denominador del encabezado (hallazgo
+  // 2) — el rótulo viejo prometía rendimiento y entregaba agenda.
   const contrastables = senalados.length + conformes.length;
   const reparto = [
     bajo > 0 ? `${fmt(bajo)} por debajo` : "",
@@ -69,19 +123,20 @@ export function AulasSenalesPorAula({
   return (
     <div className="aulas-dt" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       {/* C1: la primera frase dice qué se contó y sobre cuántos, antes de la
-          primera cifra suelta. */}
+          primera cifra suelta. «Aplicados» es la palabra que separa el
+          rendimiento de la agenda. */}
       <p className="aulas-dt-cabeza">
         <span>
           {senalados.length > 0 ? (
             <>
-              De los <strong>{fmt(contrastables)}</strong> cursos-horario con
-              margen trazado, <strong>{fmt(senalados.length)}</strong>{" "}
+              De los <strong>{fmt(contrastables)}</strong> cursos-horario
+              aplicados con margen trazado, <strong>{fmt(senalados.length)}</strong>{" "}
               {senalados.length === 1 ? "se sale del suyo" : "se salen del suyo"}: {reparto}.
             </>
           ) : contrastables > 0 ? (
             <>
               Ninguno de los <strong>{fmt(contrastables)}</strong> cursos-horario
-              con margen trazado se sale del suyo.
+              aplicados con margen trazado se sale del suyo.
             </>
           ) : (
             <>Ningún curso-horario tiene todavía margen que contrastar; el porqué va abajo, grupo por grupo.</>
@@ -99,11 +154,31 @@ export function AulasSenalesPorAula({
         </span>
       </p>
 
+      {/* El descuadre con nombre propio (hallazgo 1): más efectivas que
+          elegibles es una inconsistencia de números, no un logro, y no se
+          pliega — plegado se leería como un detalle menor. */}
+      {descuadres.length > 0 ? (
+        <div className="aulas-dt-descuadre">
+          <p className="aulas-dt-descuadre-titulo">
+            <strong>{fmt(descuadres.length)}</strong> con las cuentas
+            descuadradas: más efectivas que elegibles — algún número está mal
+            (atribución, aforo o plataforma).
+          </p>
+          <ul className="aulas-dt-lista">
+            {descuadres.map((a) => (
+              <li key={a.clave}>
+                {a.codigo} <em>{detalleDeDescuadre(a)}</em>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {senalados.length > 0 ? (
         <div className="aulas-dt-marco">
           <table className="aulas-dt-tabla">
             <caption className="aulas-dt-caption">
-              Cursos-horario fuera de su margen, con su tasa prevista y la vara de su facultad al lado
+              Cursos-horario fuera de su margen, con su tasa prevista y la tasa prevista de su facultad al lado
             </caption>
             <thead>
               <tr>
@@ -114,21 +189,26 @@ export function AulasSenalesPorAula({
                     para la misma columna se leerían como dos medidas. */}
                 <th scope="col" className="es-num">Se esperaba</th>
                 <th scope="col" className="es-num">Va respondiendo</th>
-                <th scope="col" className="es-num">Vara de su facultad</th>
+                {/* M3: es la tasa de DISEÑO de la facultad. «Vara» a secas era
+                    una palabra para dos cosas al lado de un panel que habla en
+                    observadas. */}
+                <th scope="col" className="es-num">Prevista de su facultad</th>
               </tr>
             </thead>
             <tbody>
               {senalados.map((a) => (
                 <tr
-                  key={a.codigo}
+                  key={a.clave}
                   className={a.facultad === facultadEnFoco ? "es-en-foco" : undefined}
                 >
                   <th scope="row" className="aulas-dt-codigo">
                     {a.codigo}
                     <em className="aulas-dt-detalle">
                       {a.facultad}
+                      {/* N6: el denominador son los ELEGIBLES del aula, no sus
+                          alumnos — el aforo completo es otro número. */}
                       {a.efectivas != null && a.elegibles != null
-                        ? ` · ${fmt(a.efectivas)} efectivas de ${fmt(a.elegibles)} alumnos`
+                        ? ` · ${fmt(a.efectivas)} efectivas de ${fmt(a.elegibles)} elegibles`
                         : ""}
                       {/* El origen sólo cuando NO es el de la cabecera: marcarlo
                           siempre ahogaría la excepción, que es lo que informa. */}
@@ -165,7 +245,7 @@ export function AulasSenalesPorAula({
           </summary>
           <ul className="aulas-dt-lista">
             {conformes.map((a) => (
-              <li key={a.codigo}>
+              <li key={a.clave}>
                 {a.codigo} <em>{detalleDeLista(a)}</em>
               </li>
             ))}
@@ -173,8 +253,8 @@ export function AulasSenalesPorAula({
         </details>
       ) : null}
 
-      {/* Los que no se pudieron contrastar, cada grupo con su motivo: un vacío
-          que diagnostica, no un hueco (C3). */}
+      {/* Los aplicados que no se pudieron contrastar, cada grupo con su motivo:
+          un vacío que diagnostica, no un hueco (C3). */}
       {sinMedir.map((g) => (
         <details key={g.senal} className="aulas-dt-grupo">
           <summary>
@@ -183,13 +263,57 @@ export function AulasSenalesPorAula({
           </summary>
           <ul className="aulas-dt-lista">
             {g.aulas.map((a) => (
-              <li key={a.codigo}>
+              <li key={a.clave}>
                 {a.codigo} <em>{detalleDeLista(a)}</em>
               </li>
             ))}
           </ul>
         </details>
       ))}
+
+      {/* La agenda, aparte del rendimiento (hallazgo 1): la prevista es
+          condicional a aplicarse, así que del pendiente se enseña lo que se
+          espera —con su estado literal— y ningún juicio. */}
+      {pendientes.length > 0 ? (
+        <details className="aulas-dt-grupo">
+          <summary>
+            <strong>{fmt(pendientes.length)}</strong>{" "}
+            {pendientes.length === 1
+              ? "curso-horario aún sin aplicar"
+              : "cursos-horario aún sin aplicar"}{" "}
+            — se enseña lo que se espera de cada uno; el rendimiento se juzga
+            recién cuando se apliquen
+          </summary>
+          <ul className="aulas-dt-lista">
+            {pendientes.map((a) => (
+              <li key={a.clave}>
+                {a.codigo} <em>{detalleDePendiente(a)}</em>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+
+      {/* Los retirados: dejarlos en «bajo, 0%» duplicaría el asiento del hueco
+          a perpetuidad; su reemplazo o cancelación ya responde por ellos. */}
+      {retiradas.length > 0 ? (
+        <details className="aulas-dt-grupo">
+          <summary>
+            <strong>{fmt(retiradas.length)}</strong>{" "}
+            {retiradas.length === 1
+              ? "ya no se aplicará por esta vía"
+              : "ya no se aplicarán por esta vía"}{" "}
+            — el estado operativo de cada uno dice por qué
+          </summary>
+          <ul className="aulas-dt-lista">
+            {retiradas.map((a) => (
+              <li key={a.clave}>
+                {a.codigo} <em>{detalleDeRetirada(a)}</em>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {/* Una señal nueva del motor no se traga en silencio: se enseña con su
           nombre para que la brecha de versiones se vea. */}
@@ -198,6 +322,17 @@ export function AulasSenalesPorAula({
           <strong>{fmt(desconocidos.length)}</strong> con una señal que esta
           vista aún no reconoce ({[...new Set(desconocidos.map((a) => a.senal))].join(", ")})
         </p>
+      ) : null}
+
+      {/* M4: el criterio lo dice el MOTOR y se enseña tal cual — el mínimo de
+          elegibles, la z y la clasificación por estado viven en el payload, no
+          tecleados aquí, así que si el motor cambia, este texto cambia solo. */}
+      {criterio.estados || criterio.banda ? (
+        <details className="aulas-dt-criterio">
+          <summary>Cómo se clasifica y se traza el margen, según el motor</summary>
+          {criterio.estados ? <p>{sinGraves(criterio.estados)}</p> : null}
+          {criterio.banda ? <p>{sinGraves(criterio.banda)}</p> : null}
+        </details>
       ) : null}
     </div>
   );

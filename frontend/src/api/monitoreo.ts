@@ -1033,19 +1033,46 @@ export type MonitoreoAulasEfectividadSeguimiento = {
 export type MonitoreoAulasDosTasasAula = {
   codigo: string;
   facultad: string;
+  /**
+   * El `operational_status` LITERAL de la fila («agendada», «reemplazada»…),
+   * tal como se escribió en el plan; ausente cuando no hay estado (o cuando el
+   * equipo puso el «-» de relleno). Es lo que distingue en la vista los cuatro
+   * casos de `pendiente` y los cuatro de `retirada` (B3, 2026-08-31).
+   */
+  estado_operativo?: string | null;
   elegibles?: number | null;
-  /** El numerador ya elegido por el motor; `numerador` dice de cuál fuente. */
+  /**
+   * Los campos del CONTRASTE —`efectivas`, `numerador`, `tasa_observada`,
+   * `banda`— sólo viajan en el aula APLICADA (aplicada/cerrada/parcial). En
+   * `pendiente`/`retirada` el motor NO los emite: ahí el 0 sería relleno de
+   * agenda, no medición, y emitirlo invitaría a leer un juicio donde no lo hay.
+   */
   efectivas?: number | null;
   /** De dónde sale la cifra: la efectiva de plataforma manda, el parte respalda. */
   numerador?: "plataforma" | "parte" | string | null;
   /** La tasa del DISEÑO para esta aula (`tasa_efectividad_aula`). */
   tasa_prevista?: number | null;
-  /** La vara AGREGADA: la tasa de su facultad, tal como viaja en la fila del plan. */
+  /** La vara AGREGADA: la tasa PREVISTA de su facultad, tal como viaja en la fila del plan. */
   tasa_facultad?: number | null;
   tasa_observada?: number | null;
-  /** Media banda, en proporción: 2*sqrt(p*(1-p)/elegibles) sobre la prevista. */
+  /** Media banda, en proporción: z*sqrt(p*(1-p)/elegibles) con la z de la casa (1.959964) sobre la prevista. */
   banda?: number | null;
-  senal: "conforme" | "bajo" | "sobre" | "sin_banda" | "sin_previsto" | "sin_datos" | string;
+  /**
+   * `pendiente` = pre-aplicación (la prevista es condicional a aplicarse, B1);
+   * `retirada` = su desenlace ya no es aplicarse por esta vía; `descuadre` =
+   * más efectivas que elegibles, inconsistencia de números y no un logro.
+   */
+  senal:
+    | "conforme"
+    | "bajo"
+    | "sobre"
+    | "descuadre"
+    | "sin_banda"
+    | "sin_previsto"
+    | "sin_datos"
+    | "pendiente"
+    | "retirada"
+    | string;
 };
 
 /**
@@ -1061,6 +1088,12 @@ export type MonitoreoAulasDosTasas = {
   criterio: {
     numerador: string;
     denominador: string;
+    /**
+     * Cómo se clasifica por `operational_status` (B1): sólo lo aplicado se
+     * contrasta; pendiente/retirada con su porqué. Opcional porque el bloque
+     * existió antes de esta regla y un backend anterior no lo emite.
+     */
+    estados?: string | null;
     banda: string;
     vara_agregada: string;
     senal: string;

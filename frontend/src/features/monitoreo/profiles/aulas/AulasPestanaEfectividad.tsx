@@ -59,7 +59,7 @@ export function AulasPestanaEfectividad({
             {/* La MISMA pregunta un grano más abajo: es el «en paralelo» del
                 mandato B3 —la granular junto a la agregada—. Arriba la facultad
                 dice si la cuota cierra; aquí cada curso-horario se compara con
-                SU tasa prevista y con la vara de su facultad en la misma fila,
+                SU tasa prevista y con la tasa prevista de su facultad en la misma fila,
                 porque el agregado esconde lo que muerde fila a fila. */}
             <section
               className="mon-profile-panel"
@@ -73,7 +73,7 @@ export function AulasPestanaEfectividad({
                 <h3>Cada curso-horario contra su propio margen</h3>
                 <span>
                   efectivas de plataforma —el parte respalda— contra la tasa
-                  prevista de cada uno, con la vara de su facultad al lado
+                  prevista de cada uno, con la tasa prevista de su facultad al lado
                 </span>
               </div>
               <AulasSenalesPorAula

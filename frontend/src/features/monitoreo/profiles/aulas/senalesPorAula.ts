@@ -12,12 +12,27 @@ import { pctPerfil } from "./kpisDeAulas";
  * único que decide es el ORDEN de lectura. Si recalculara tasas o bandas, dos
  * superficies del mismo número acabarían discrepando —así nacieron las tres
  * tasas homónimas que el ADR 0082 vino a separar—.
+ *
+ * Tras el rechazo metodológico (B1): el contraste es CONDICIONAL al estado
+ * aplicado. `pendiente` (pre-aplicación) y `retirada` (su desenlace ya no es
+ * aplicarse por esta vía) son grupos con motivo propio y JAMÁS se mezclan con
+ * «bajo» —eso era catalogar por agenda—; `descuadre` (más efectivas que
+ * elegibles) tiene nombre propio porque es una inconsistencia de números, no
+ * un logro disfrazable de «sobre».
  */
 
 /** La fila ya saneada: cifras finitas o `null`, nunca un NaN que se cuele al formato. */
 export type AulaMedida = {
+  /**
+   * La clave de React: el código cuando existe y un sustituto estable por
+   * posición cuando viene vacío (N5) — dos filas sin código no pueden
+   * compartir clave. El rótulo VISIBLE es otra cosa: «(sin código)».
+   */
+  clave: string;
   codigo: string;
   facultad: string;
+  /** El `operational_status` literal («agendada», «reemplazada»…), si viajó. */
+  estadoOperativo: string | null;
   elegibles: number | null;
   efectivas: number | null;
   numerador: string | null;
@@ -42,8 +57,23 @@ export type SenalesPorAula =
       estado: "medido";
       /** Bajo primero (el más hundido delante), luego sobre (el más pasado delante). */
       senalados: AulaMedida[];
+      /**
+       * Más efectivas que elegibles: ALGÚN número está mal (atribución, aforo
+       * o plataforma). Grupo propio y no «sobre»: disfrazado de logro, un
+       * error de datos se leería como buena noticia. Tampoco suma al «se
+       * salen» del encabezado: su tasa no es contrastable.
+       */
+      descuadres: AulaMedida[];
       conformes: AulaMedida[];
       sinMedir: GrupoSinContrastar[];
+      /**
+       * Aún sin aplicar (B1): la prevista del diseño es condicional a
+       * aplicarse, así que todavía no hay rendimiento que juzgar. Se enseña lo
+       * que se espera de cada uno, con su estado literal.
+       */
+      pendientes: AulaMedida[];
+      /** Su desenlace ya no es aplicarse por esta vía; el estado literal dice cuál. */
+      retiradas: AulaMedida[];
       /**
        * Señales que esta pantalla no reconoce. Se enseñan con su nombre en vez
        * de caer a un grupo equivocado: una lista cerrada que se traga lo que no
@@ -52,6 +82,13 @@ export type SenalesPorAula =
       desconocidos: AulaMedida[];
       /** Todos los cursos-horario del bloque: nadie sale del conteo por su señal. */
       medidos: number;
+      /**
+       * Los textos del motor, consumidos tal cual (M4): el umbral de la banda
+       * y la clasificación por estado se dicen donde se calculan, no se
+       * reescriben aquí — si cambia el mínimo de elegibles o la z, la UI no
+       * puede quedarse mintiendo.
+       */
+      criterio: { banda: string | null; estados: string | null };
     };
 
 /**
@@ -64,10 +101,12 @@ const num = (v: unknown): number | null =>
 const texto = (v: unknown): string | null =>
   typeof v === "string" && v.length > 0 ? v : null;
 
-function sanear(a: MonitoreoAulasDosTasasAula): AulaMedida {
+function sanear(a: MonitoreoAulasDosTasasAula, i: number): AulaMedida {
   return {
+    clave: texto(a.codigo) ?? `sin-codigo-${i + 1}`,
     codigo: texto(a.codigo) ?? "(sin código)",
     facultad: texto(a.facultad) ?? "",
+    estadoOperativo: texto(a.estado_operativo),
     elegibles: num(a.elegibles),
     efectivas: num(a.efectivas),
     numerador: texto(a.numerador),
@@ -84,13 +123,15 @@ const desvio = (a: AulaMedida): number =>
   a.tasaObservada != null && a.tasaPrevista != null ? a.tasaObservada - a.tasaPrevista : 0;
 
 /**
- * Los motivos, uno por señal y dichos hacia quien mira la pantalla. El límite
- * de los 16 elegibles y el ±25 vienen del motor (`.madt_ELEGIBLES_MINIMOS`):
- * aquí sólo se traducen, no se deciden.
+ * Los motivos, uno por señal y dichos hacia quien mira la pantalla. Aquí no va
+ * NINGUNA cifra del motor (M4): ni el mínimo de elegibles ni el ancho que
+ * tendría la banda —esas viven en `criterio.banda` del payload y la vista las
+ * enseña tal cual—. El «±25 puntos» que estuvo tecleado aquí habría mentido en
+ * cuanto el motor cambiara su `ELEGIBLES_MINIMOS` o su z.
  */
 const MOTIVOS: Record<GrupoSinContrastar["senal"], string> = {
   sin_banda:
-    "con tan pocos elegibles el margen mediría más de ±25 puntos y cualquier cifra saldría conforme; la tasa se enseña sin juzgarla",
+    "con tan pocos elegibles el margen sería tan ancho que cualquier cifra saldría conforme; la tasa se enseña sin juzgarla",
   sin_previsto:
     "el diseño no publicó una tasa prevista para estos, así que no hay margen que trazar",
   sin_datos:
@@ -117,15 +158,31 @@ export function senalesPorAula(
     .map((senal) => ({ senal, motivo: MOTIVOS[senal], aulas: de(senal) }))
     .filter((g) => g.aulas.length > 0);
 
-  const conocidas = new Set(["bajo", "sobre", "conforme", "sin_banda", "sin_previsto", "sin_datos"]);
+  const conocidas = new Set([
+    "bajo", "sobre", "conforme", "descuadre",
+    "sin_banda", "sin_previsto", "sin_datos",
+    "pendiente", "retirada",
+  ]);
 
   return {
     estado: "medido",
     senalados,
+    descuadres: de("descuadre"),
     conformes: de("conforme"),
     sinMedir,
+    // En orden de plan, tal como viajan: el estado literal de cada fila es lo
+    // que distingue una «agendada» de una «en_campo» o una «reemplazada» de
+    // una «sin_acceso».
+    pendientes: de("pendiente"),
+    retiradas: de("retirada"),
     desconocidos: aulas.filter((a) => !conocidas.has(a.senal)),
     medidos: aulas.length,
+    // `criterio.estados` es opcional: el bloque existió antes de la regla B1 y
+    // un backend anterior no lo emite; la vista degrada callando esa línea.
+    criterio: {
+      banda: texto(bloque.criterio?.banda),
+      estados: texto(bloque.criterio?.estados),
+    },
   };
 }
 
