@@ -53,6 +53,21 @@ function disponibles(f: MonitoreoAulasEfectividadFacultad): string {
 }
 
 /**
+ * Cuántas reservas hay que activar, concordando con la cifra.
+ *
+ * **Es la misma reparación que `disponibles()` ya lleva escrita arriba** —«1
+ * libres» se leyó en pantalla y por eso ese helper existe—, y esta rama se
+ * quedó fuera: publicaba «hacen falta 1 de 118», visto a 1440 en ESTUDIOS
+ * GENERALES CIENCIAS. Una cifra mal concordada delata que nadie miró la fila
+ * con un solo elemento, que es justo la fila más fácil de cerrar.
+ */
+function faltan(necesarias: number, aMano: number): string {
+  return necesarias === 1
+    ? `hace falta 1 de ${fmt(aMano)}`
+    : `hacen falta ${fmt(necesarias)} de ${fmt(aMano)}`;
+}
+
+/**
  * Cuando activar TODO lo que queda todavía no cierra.
  *
  * Este caso caía en `disponibles()`, que lista los recursos sin decir que no
@@ -457,7 +472,7 @@ export function AulasEfectividadSeguimiento({
                       derecha bajo un encabezado alineado a la izquierda. */}
                   <td className="aulas-tau-respaldo">
                     {enRiesgo && f.reservas_alcanzan && f.reservas_necesarias != null
-                      ? `hacen falta ${fmt(f.reservas_necesarias)} de ${fmt(f.reservas_libres + f.banco_disponible)}`
+                      ? faltan(f.reservas_necesarias, f.reservas_libres + f.banco_disponible)
                       : enRiesgo && !f.reservas_alcanzan
                         ? noAlcanzan(f)
                         : disponibles(f)}

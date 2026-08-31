@@ -406,3 +406,31 @@ describe("la frase del veredicto concuerda", () => {
     expect(t).toContain("9 cursos-horario (5 de cadena y 4 de banco) cierran los 40 que faltan");
   });
 });
+
+describe("la columna de respaldo concuerda con su cifra", () => {
+  /**
+   * «hacen falta 1 de 118», visto a 1440 en ESTUDIOS GENERALES CIENCIAS.
+   *
+   * Es la misma reparación que `disponibles()` ya llevaba escrita en este
+   * archivo —«1 libres» se leyó en pantalla, y por eso ese helper existe— y
+   * esta rama se quedó fuera: una capa aprendió la regla y la de al lado no.
+   * Sólo se ve en la fila en riesgo cuyas reservas alcanzan, que es además la
+   * más fácil de cerrar.
+   */
+  const conNecesarias = (n: number) => render(bloque({
+    facultades: [fac({
+      riesgo: "riesgo", reservas_necesarias: n,
+      reservas_libres: 118, banco_disponible: 0, reservas_alcanzan: true,
+    })],
+  }));
+
+  it("con una sola reserva necesaria dice «hace falta 1»", () => {
+    const html = conNecesarias(1);
+    expect(html).toContain("hace falta 1 de 118");
+    expect(html).not.toContain("hacen falta 1");
+  });
+
+  it("con varias mantiene el plural", () => {
+    expect(conNecesarias(4)).toContain("hacen falta 4 de 118");
+  });
+});
