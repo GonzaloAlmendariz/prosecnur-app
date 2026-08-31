@@ -182,12 +182,18 @@ describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
       <AulasSerieDeRendimiento partes={partes} control={control} />);
   }
 
-  it("el hover del día sin reparto dice que el libro todavía no lo declara", () => {
+  it("el hover del día sin reparto dice que EL PARTE no lo declara", () => {
     // Gonzalo: «¿por qué las líneas de hombre y mujer recién salen el 11 de
     // agosto y no el 10?». Porque el libro calla el reparto de esas aulas, no
     // porque no hubiera aulas: el 10/08 la verde ya valía 31. Eso tenía que
     // poder leerse en el gráfico, y no se podía.
-    expect(conLibroAMedias()).toContain("sin sexo declarado todavía");
+    //
+    // El rótulo nombra LA FUENTE desde el 2026-08-31: «sin sexo declarado
+    // todavía» era correcto respecto al parte y contradictorio en pantalla,
+    // porque la leyenda de al lado muestra las series de sexo de PLATAFORMA.
+    // Visto en vivo con Educación en foco: el globo negaba el sexo mientras
+    // arriba se leía «Mujeres 32/20 ✓».
+    expect(conLibroAMedias()).toContain("el parte no declara sexo");
   });
 
   it("el hover del día con reparto da el desglose Y su cobertura", () => {
