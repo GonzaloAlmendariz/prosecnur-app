@@ -109,18 +109,21 @@ aulas_libro_importar <- function(path) {
   )
 }
 
-#' Deja el libro importado en la sesion.
+#' Aplica a la sesion un libro YA importado, venga de donde venga.
 #'
 #' El plan se guarda tal cual lo entiende Monitoreo, y las otras dos hojas
 #' quedan a su lado sin fusionarse: el parte de campo y el control son medidas
 #' distintas del mismo aula y mezclarlas perderia de cual viene cada numero.
 #'
-#' @param sid sesion.
-#' @param path ruta al libro.
-#' @return el resumen de la importacion.
-#' @export
-aulas_libro_importar_en_sesion <- function(sid, path) {
-  out <- aulas_libro_importar(path)
+#'
+#' Se separa de `aulas_libro_importar_en_sesion()` porque el libro tiene dos
+#' puertas —el `.xlsx` y la pestaña de Sheets— y lo que hay que hacer con el
+#' resultado es identico: fusionar el plan, guardar partes y control, y anotar
+#' en la config lo que la lectura declaro. Escribirlo dos veces significaria que
+#' una puerta puede ganar un paso y la otra no, y la sesion quedaria distinta
+#' segun de donde entro el libro.
+#' @keywords internal
+.calb_aplicar_en_sesion <- function(sid, out) {
   if (length(out$plan)) {
     # FUSION, no reemplazo. El libro no lleva la composicion muestral —es un
     # artefacto de campo— asi que sobrescribir el plan entero dejaba las cuotas
@@ -154,4 +157,41 @@ aulas_libro_importar_en_sesion <- function(sid, path) {
     resumen = out$resumen
   ))
   out
+}
+
+#' Importa el libro desde un `.xlsx` y lo aplica a la sesion.
+#'
+#' Puerta 1 de dos. La otra es `aulas_libro_importar_sheets_en_sesion()`; las
+#' dos rematan en `.calb_aplicar_en_sesion()`.
+#' @param sid sesion.
+#' @param path ruta del `.xlsx`.
+#' @return el resumen de la importacion.
+#' @export
+aulas_libro_importar_en_sesion <- function(sid, path) {
+  .calb_aplicar_en_sesion(sid, aulas_libro_importar(path))
+}
+
+#' Importa el libro desde las pestañas de un Google Sheets y lo aplica.
+#'
+#' Puerta 2. Es lo que pidio quien dirige el estudio: «que desde ese [.pulso]
+#' pueda publicar y leer lo que se ponga en el sheets (leer agenda y registro de
+#' campo)». Aqui esta el LEER; publicar es otra cosa y la cabecera de
+#' `carga_aulas_desde_sheets.R` explica por que no se hace a la ligera.
+#'
+#' @param sid sesion.
+#' @param spreadsheet_id id del documento de Sheets.
+#' @param pestanas nombres por clave; por defecto los del libro de la app.
+#' @return el resumen de la importacion, con la misma forma que el del `.xlsx`.
+#' @export
+aulas_libro_importar_sheets_en_sesion <- function(sid, spreadsheet_id, pestanas = list()) {
+  hojas <- aulas_libro_leer_de_sheets(spreadsheet_id, pestanas)
+  if (!length(hojas)) {
+    # Se distingue de «el documento no trae las hojas»: aqui NINGUNA pestaña
+    # respondio, que casi siempre es el id o el permiso, no el contenido.
+    stop_api(422, "E_AULAS_SHEETS_SIN_PESTANAS",
+             paste("No se pudo leer ninguna de las tres pestañas del libro.",
+                   "Comprueba el enlace del documento y que la cuenta conectada",
+                   "tenga acceso."))
+  }
+  .calb_aplicar_en_sesion(sid, aulas_libro_importar_valores(hojas))
 }
