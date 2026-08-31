@@ -23,9 +23,16 @@
 # declara en `numerador`.
 
 # Una fila normalizada del plan, con solo lo que cada caso necesita.
+#
+# `estado` es el `operational_status` del plan (vocabulario de
+# `monitoreo_aulas_estados()`). Solo se CONTRASTA el aula aplicada
+# (aplicada/cerrada/parcial = MONITOREO_AULAS_ESTADOS_APLICADOS): la prevista
+# del diseño es CONDICIONAL a que el aula se aplique
+# (calc_muestra_aulas_efectividad.R), y la mitad facultad ya condiciona igual
+# (`mide <- aplicada & elegibles > 0`).
 .mdt_fila <- function(codigo, facultad = "Ciencias", elegibles = 40,
                       prevista = NULL, plataforma = NULL, parte = NULL,
-                      tasa_facultad = NULL, rol = "titular") {
+                      tasa_facultad = NULL, rol = "titular", estado = NULL) {
   fila <- list(
     operational_code = codigo,
     faculty = facultad,
@@ -36,6 +43,7 @@
   if (!is.null(plataforma)) fila[["respuestas_validas"]] <- plataforma
   if (!is.null(parte)) fila[["effective_surveys"]] <- parte
   if (!is.null(tasa_facultad)) fila[["tasa_facultad"]] <- tasa_facultad
+  if (!is.null(estado)) fila[["operational_status"]] <- estado
   fila
 }
 
@@ -48,23 +56,29 @@
 }
 
 test_that("dentro del margen el aula es CONFORME y no se le pone nombre", {
-  # prevista 0.60, elegibles 40: banda = 2*sqrt(0.6*0.4/40) = 0.1549.
+  # AJUSTADO (B1/M1): la fila lleva estado aplicada porque solo el aula
+  # aplicada se contrasta —la prevista es condicional a aplicarse—, y la z de
+  # la banda es la de la casa (1.959964 = .maes_Z), no un 2 redondeado.
+  # prevista 0.60, elegibles 40: banda = 1.959964*sqrt(0.6*0.4/40) = 0.1518.
   # 22 efectivas dan 0.55 observada: a 0.05 de la prevista, dentro de banda.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 22)
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 22,
+              estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_true(is.list(aula))
   expect_identical(aula[["senal"]], "conforme")
   expect_equal(aula[["tasa_observada"]], 0.55, tolerance = 1e-3)
-  expect_equal(aula[["banda"]], 2 * sqrt(0.6 * 0.4 / 40), tolerance = 1e-3)
+  expect_equal(aula[["banda"]], 1.959964 * sqrt(0.6 * 0.4 / 40), tolerance = 1e-6)
   # Doctrina de tasaDeCaida: dentro del margen no hay direccion ni veredicto.
   expect_null(aula[["direccion"]])
 })
 
 test_that("fuera de banda por debajo, la señal es «bajo» — señalar, no descartar", {
+  # AJUSTADO (B1): estado aplicada, porque solo el aula aplicada se contrasta.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 10)
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 10,
+              estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "bajo")
@@ -72,19 +86,24 @@ test_that("fuera de banda por debajo, la señal es «bajo» — señalar, no des
 })
 
 test_that("fuera de banda por encima, la señal es «sobre»", {
+  # AJUSTADO (B1): estado aplicada, porque solo el aula aplicada se contrasta.
   # Pasarse tambien se señala: 30 de 40 con prevista 0.30 es 0.75 observada.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.30, plataforma = 30)
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.30, plataforma = 30,
+              estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "sobre")
 })
 
 test_that("con muy pocos elegibles no hay banda: la cifra se enseña, no se juzga", {
+  # AJUSTADO (B1): `sin_banda` es un resultado del CONTRASTE, asi que tambien
+  # exige estado aplicada.
   # Un aula de 3 elegibles no da para una banda binomial honesta. La señal lo
   # dice (`sin_banda`) y la observada VIAJA igual: enseñar sin juzgar.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 3, prevista = 0.60, plataforma = 2)
+    .mdt_fila("CH 1", elegibles = 3, prevista = 0.60, plataforma = 2,
+              estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "sin_banda")
@@ -92,16 +111,21 @@ test_that("con muy pocos elegibles no hay banda: la cifra se enseña, no se juzg
 })
 
 test_that("sin tasa prevista del diseño la señal es «sin_previsto», no un juicio", {
+  # AJUSTADO (B1): estado aplicada para aislar el hueco del DISEÑO del estado
+  # operativo — sin el, la fila caeria en «pendiente» y este test mediria otra
+  # cosa.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, plataforma = 22)
+    .mdt_fila("CH 1", elegibles = 40, plataforma = 22, estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "sin_previsto")
 })
 
 test_that("sin plataforma ni parte no hay datos, y se declara «sin_datos»", {
+  # AJUSTADO (B1): estado aplicada — un aula aplicada sin numerador es un hueco
+  # de DATOS; sin estado seria «pendiente», que es otro hueco.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60)
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "sin_datos")
@@ -110,11 +134,15 @@ test_that("sin plataforma ni parte no hay datos, y se declara «sin_datos»", {
 })
 
 test_that("el numerador se declara: plataforma manda y el parte respalda", {
+  # AJUSTADO (B1): estado aplicada en las dos filas; el test aisla la eleccion
+  # de numerador dentro del regimen contrastado.
   res <- monitoreo_aulas_dos_tasas(list(
     # Con las dos fuentes, gana la efectiva de PLATAFORMA (22, no 99).
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 22, parte = 99),
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 22, parte = 99,
+              estado = "aplicada"),
     # Sin plataforma, el parte entra como respaldo y se dice.
-    .mdt_fila("CH 2", elegibles = 40, prevista = 0.60, plataforma = NULL, parte = 22)
+    .mdt_fila("CH 2", elegibles = 40, prevista = 0.60, plataforma = NULL, parte = 22,
+              estado = "aplicada")
   ))
   a1 <- .mdt_aula(res, "CH 1")
   expect_identical(a1[["efectivas"]], 22)
@@ -128,9 +156,10 @@ test_that("las DOS varas viajan lado a lado: la del aula y la de su facultad", {
   # Un aula bajo su propia meta tuvo un problema; una bajo la de su facultad
   # pero sobre la suya solo es mas grande que el promedio. Sin las dos tasas en
   # la misma fila los dos casos se ven iguales.
+  # AJUSTADO (B1): estado aplicada, porque solo el aula aplicada se contrasta.
   res <- monitoreo_aulas_dos_tasas(list(
     .mdt_fila("CH 1", elegibles = 40, prevista = 0.55, plataforma = 22,
-              tasa_facultad = 0.62)
+              tasa_facultad = 0.62, estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_equal(aula[["tasa_prevista"]], 0.55, tolerance = 1e-6)
@@ -138,9 +167,14 @@ test_that("las DOS varas viajan lado a lado: la del aula y la de su facultad", {
 })
 
 test_that("cero efectivas es un DATO: observada 0 y señal «bajo», no sin_datos", {
-  # El cero de plataforma es una medicion —nadie paso los filtros—, no un hueco.
+  # AJUSTADO (B1, punto 5 del contrato): el «cero es dato» queda CONDICIONADO
+  # al estado aplicada. En el tablero real TODAS las filas llevan
+  # respuestas_validas = 0 —tambien las que aun no entran a campo—, asi que el
+  # cero solo es una medicion cuando el aula se APLICO; sin estado la fila es
+  # «pendiente» (test de abajo), no un «bajo, 0%» catalogado por agenda.
   res <- monitoreo_aulas_dos_tasas(list(
-    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 0)
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 0,
+              estado = "aplicada")
   ))
   aula <- .mdt_aula(res, "CH 1")
   expect_identical(aula[["senal"]], "bajo")
@@ -185,4 +219,141 @@ test_that("el criterio se describe solo: numerador, banda y la vara agregada", {
   # Y que la vara agregada es la de la fila (`tasa_facultad`), dicho ahi.
   texto <- paste(unlist(Filter(is.character, crit)), collapse = " ")
   expect_true(grepl("tasa_facultad", texto))
+})
+
+# ── B1: la prevista es CONDICIONAL a aplicarse; el estado condiciona la señal ──
+#
+# `efectivas_esperadas = elegibles x tasa del aula — CONDICIONAL a que el aula
+# se aplique` (calc_muestra_aulas_efectividad.R). Contrastar un aula que aun no
+# se aplico contra esa prevista la cataloga por AGENDA, no por rendimiento: en
+# el tablero real toda fila lleva `respuestas_validas = 0` (no NA), asi que un
+# titular «planificada» salia observada 0% y señal «bajo». La mitad facultad ya
+# condiciona (`mide <- aplicada & elegibles > 0`, con
+# MONITOREO_AULAS_ESTADOS_APLICADOS = aplicada/cerrada/parcial); esta mitad
+# tiene que degradar igual.
+
+test_that("un titular en estado PRE-aplicacion es «pendiente», no un «bajo, 0%»", {
+  # Los cuatro estados previos del vocabulario de `monitoreo_aulas_estados()`.
+  # La fila viaja con su prevista y sus elegibles —para que la vista enseñe que
+  # se espera de ella—, con el estado literal en `estado_operativo`, y sin
+  # bajo/sobre: todavia no hay rendimiento que juzgar.
+  for (est in c("planificada", "contactada", "agendada", "en_campo")) {
+    res <- monitoreo_aulas_dos_tasas(list(
+      .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 0,
+                estado = est)
+    ))
+    aula <- .mdt_aula(res, "CH 1")
+    expect_true(is.list(aula), info = est)
+    expect_identical(aula[["senal"]], "pendiente", info = est)
+    expect_identical(aula[["estado_operativo"]], est, info = est)
+    expect_equal(aula[["tasa_prevista"]], 0.60, tolerance = 1e-6, info = est)
+    expect_equal(aula[["elegibles"]], 40, tolerance = 1e-9, info = est)
+  }
+  # Y el estado VACIO —un titular que aun no lleva gestion— degrada igual:
+  # pendiente, no un contraste contra una prevista condicional.
+  res <- monitoreo_aulas_dos_tasas(list(
+    .mdt_fila("CH 2", elegibles = 40, prevista = 0.60, plataforma = 0)
+  ))
+  expect_identical(.mdt_aula(res, "CH 2")[["senal"]], "pendiente")
+})
+
+test_that("un titular reemplazado o cancelado es «retirada», jamas «bajo» a perpetuidad", {
+  # El titular reemplazado ya tiene su reserva rindiendo por el: dejarlo en
+  # «bajo, 0%» duplica el asiento del hueco para siempre.
+  for (est in c("reemplazada", "cancelada")) {
+    res <- monitoreo_aulas_dos_tasas(list(
+      .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 0,
+                estado = est)
+    ))
+    aula <- .mdt_aula(res, "CH 1")
+    expect_true(is.list(aula), info = est)
+    expect_identical(aula[["senal"]], "retirada", info = est)
+    expect_identical(aula[["estado_operativo"]], est, info = est)
+  }
+})
+
+# ── B1b: la reserva ACTIVADA entra por su estado, no solo por sus numeros ─────
+
+test_that("una reserva APLICADA con 0 efectivas y sin parte es VISIBLE y «bajo»", {
+  # El caso mas alarmante del tablero: la reserva entro al operativo, se aplico
+  # y no rindio nada. Con la entrada solo por parte/plataforma>0 esa fila era
+  # INVISIBLE —desaparecia del grano aula mientras la τ̂ de facultad si la
+  # contaba—. Aplicada y con 0 se contrasta: observada 0 y señal «bajo».
+  res <- monitoreo_aulas_dos_tasas(list(
+    .mdt_fila("CH 9", elegibles = 40, prevista = 0.60, plataforma = 0,
+              rol = "chain_reserve", estado = "aplicada"),
+    .mdt_fila("CH 20", elegibles = 40, prevista = 0.60, plataforma = 0,
+              rol = "extra_reserve_pool", estado = "aplicada")
+  ))
+  reserva <- .mdt_aula(res, "CH 9")
+  expect_true(is.list(reserva))
+  expect_identical(reserva[["senal"]], "bajo")
+  expect_equal(reserva[["tasa_observada"]], 0, tolerance = 1e-9)
+  # El banco extra es el otro rol de respaldo y entra por la misma puerta.
+  banco <- .mdt_aula(res, "CH 20")
+  expect_true(is.list(banco))
+  expect_identical(banco[["senal"]], "bajo")
+})
+
+test_that("una reserva con estado operativo ACTIVO entra aunque no rinda aun; la dormida no", {
+  # Activa = cualquier estado de gestion no vacio: en el plan una reserva
+  # dormida NO lleva `operational_status`. Una contactada ya esta en el
+  # operativo —se enseña «pendiente»—; la dormida con el 0 calculado que el
+  # tablero escribe en todas las filas sigue fuera.
+  res <- monitoreo_aulas_dos_tasas(list(
+    .mdt_fila("CH 9", elegibles = 35, prevista = 0.60, plataforma = 0,
+              rol = "chain_reserve", estado = "contactada"),
+    .mdt_fila("CH 11", elegibles = 35, prevista = 0.60, plataforma = 0,
+              rol = "chain_reserve")
+  ))
+  activa <- .mdt_aula(res, "CH 9")
+  expect_true(is.list(activa))
+  expect_identical(activa[["senal"]], "pendiente")
+  expect_null(.mdt_aula(res, "CH 11"))
+})
+
+# ── M1: la banda es un PISO y la z es la de la casa ──────────────────────────
+
+test_that("M1: la banda usa z = 1.959964 (.maes_Z) y el criterio la declara PISO", {
+  # La banda binomial asume independencia intra-aula, que NO se cumple (deff
+  # medido 2025: 1,29–1,55): la banda real es MAS ancha y esta es un piso. El
+  # criterio lo tiene que decir, y la z se alinea con la mitad facultad
+  # (1.959964, no un 2 redondeado): dos superficies vecinas, una sola z.
+  res <- monitoreo_aulas_dos_tasas(list(
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 22,
+              estado = "aplicada")
+  ))
+  aula <- .mdt_aula(res, "CH 1")
+  expect_equal(aula[["banda"]], 1.959964 * sqrt(0.6 * 0.4 / 40), tolerance = 1e-9)
+  texto <- paste(unlist(Filter(is.character, res[["criterio"]])), collapse = " ")
+  expect_true(grepl("piso|independencia|deff", texto, ignore.case = TRUE))
+})
+
+# ── N2: el descuadre tiene nombre propio y la prevista rota no grita en R ────
+
+test_that("mas efectivas que elegibles en un aula aplicada es «descuadre», no «sobre»", {
+  # «Sobre» dice que el campo rindio mas que lo previsto; 55 efectivas en 40
+  # elegibles dice que ALGUN numero esta mal (atribucion, aforo o plataforma).
+  # Son dos hallazgos distintos y el segundo no puede disfrazarse del primero.
+  res <- monitoreo_aulas_dos_tasas(list(
+    .mdt_fila("CH 1", elegibles = 40, prevista = 0.60, plataforma = 55,
+              estado = "aplicada")
+  ))
+  expect_identical(.mdt_aula(res, "CH 1")[["senal"]], "descuadre")
+})
+
+test_that("una prevista fuera de [0,1] degrada a «sin_banda» en silencio", {
+  # sqrt(p*(1-p)) con p fuera de rango es NaN CON warning de R: la señal ya
+  # degradaba bien pero el warning se colaba al log del tablero. Degradar
+  # declarando, sin ruido.
+  expect_silent(
+    res <- monitoreo_aulas_dos_tasas(list(
+      .mdt_fila("CH 1", elegibles = 40, prevista = 1.2, plataforma = 22,
+                estado = "aplicada"),
+      .mdt_fila("CH 2", elegibles = 40, prevista = -0.1, plataforma = 22,
+                estado = "aplicada")
+    ))
+  )
+  expect_identical(.mdt_aula(res, "CH 1")[["senal"]], "sin_banda")
+  expect_identical(.mdt_aula(res, "CH 2")[["senal"]], "sin_banda")
 })
