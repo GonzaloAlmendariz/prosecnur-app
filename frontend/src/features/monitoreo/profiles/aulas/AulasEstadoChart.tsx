@@ -209,7 +209,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
       <PlotlyChart
         data={data}
         height={104}
-        ariaLabel="Cursos-horario por status de aplicación"
+        ariaLabel="Cursos-horario por estado de aplicación"
         layout={{
           // La escala de eje del perfil, no el default compartido de Plotly.
           font: fuenteDeEjeAulas(),
