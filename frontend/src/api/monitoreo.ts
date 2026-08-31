@@ -1022,6 +1022,51 @@ export type MonitoreoAulasEfectividadSeguimiento = {
   facultades: MonitoreoAulasEfectividadFacultad[];
 };
 
+/**
+ * Un aula del bloque `dos_tasas`, con sus dos varas LADO A LADO.
+ *
+ * Contrato congelado con `monitoreo_aulas_dos_tasas()`: la UI proyecta señal,
+ * tasas y banda sin recalcular nada. La señal SEÑALA, no veredicta —el motor no
+ * publica ningún campo «válido»/«cumple» y ninguna aula sale del cálculo por su
+ * tasa—, y `conforme` va sin dirección a propósito.
+ */
+export type MonitoreoAulasDosTasasAula = {
+  codigo: string;
+  facultad: string;
+  elegibles?: number | null;
+  /** El numerador ya elegido por el motor; `numerador` dice de cuál fuente. */
+  efectivas?: number | null;
+  /** De dónde sale la cifra: la efectiva de plataforma manda, el parte respalda. */
+  numerador?: "plataforma" | "parte" | string | null;
+  /** La tasa del DISEÑO para esta aula (`tasa_efectividad_aula`). */
+  tasa_prevista?: number | null;
+  /** La vara AGREGADA: la tasa de su facultad, tal como viaja en la fila del plan. */
+  tasa_facultad?: number | null;
+  tasa_observada?: number | null;
+  /** Media banda, en proporción: 2*sqrt(p*(1-p)/elegibles) sobre la prevista. */
+  banda?: number | null;
+  senal: "conforme" | "bajo" | "sobre" | "sin_banda" | "sin_previsto" | "sin_datos" | string;
+};
+
+/**
+ * Las dos tasas de efectividad al grano de AULA (unidad B3, 2026-08-31).
+ *
+ * Hermano de `efectividad_seguimiento`, que contesta la MISMA pregunta al grano
+ * facultad: sin las dos tasas en la misma fila, «bajo su propia meta» y «bajo
+ * la de su facultad pero sobre la suya» se ven iguales. `criterio` es el bloque
+ * autodescriptivo del motor (numerador, banda, vara agregada, señal).
+ */
+export type MonitoreoAulasDosTasas = {
+  aulas: MonitoreoAulasDosTasasAula[];
+  criterio: {
+    numerador: string;
+    denominador: string;
+    banda: string;
+    vara_agregada: string;
+    senal: string;
+  };
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1031,6 +1076,12 @@ export type MonitoreoAulasDashboard = {
    * decirlo, que es distinto de quedarse sin superficie.
    */
   efectividad_seguimiento?: MonitoreoAulasEfectividadSeguimiento | null;
+  /**
+   * La misma pregunta al grano AULA: señal por curso-horario contra su propia
+   * tasa prevista, con la vara de su facultad al lado. Ausente en payloads
+   * anteriores al bloque (backend viejo): la vista lo declara, no revienta.
+   */
+  dos_tasas?: MonitoreoAulasDosTasas | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo
