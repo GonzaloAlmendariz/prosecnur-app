@@ -2156,6 +2156,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # sesion justo para no perder de cual medida viene cada numero.
   partes_campo <- cfg$partes_campo %||% list()
   descuadres <- monitoreo_aulas_reconciliacion_partes(partes_campo)
+  # **Cuantos partes tienen identidad que comprobar**, que no es lo mismo que
+  # cuantos partes hay. El control decidia con `length(partes_campo) > 0L`, asi
+  # que un lote entero sin asistentes ni efectivas —o con las columnas que el
+  # motor no supiera leer— publicaba «Los numeros de cada parte de campo
+  # cuadran» sobre partes que nadie comprobo. Es la misma correccion que el
+  # cruce entre hojas, en el control de al lado.
+  partes_comprobables <- sum(vapply(
+    partes_campo,
+    function(p) is.list(p) && !is.null(monitoreo_aulas_parte_descuadre(p)),
+    logical(1)
+  ))
 
   # El criterio de validez se resolvia en silencio, y contar TODO o filtrar por
   # una columna equivocada dan numeros muy distintos.
@@ -2207,7 +2218,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
-      monitoreo_aulas_estado_control(length(partes_campo) > 0L, length(descuadres) > 0L),
+      monitoreo_aulas_estado_control(partes_comprobables > 0L, length(descuadres) > 0L),
       # El cruce entre las dos hojas. `ok` cuando coinciden Y cuando no hay con
       # que comparar no se finge que cuadran: eso se dice en el detalle.
       #
@@ -2233,7 +2244,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # STATUS MUESTRA con valores que el lector no reconoce. `review` y no
       # `warning` porque se arregla en la hoja o añadiendo el estado, no en
       # campo.
-      if (estados_raros$total > 0L) "review" else "ok",
+      # Comprobable es que HAYA plan: sin filas, «ok» afirmaba que se miraron
+      # los estados de un conjunto vacio.
+      monitoreo_aulas_estado_control(
+        length(plan %||% cfg$plan %||% list()) > 0L,
+        estados_raros$total > 0L,
+        "review"
+      ),
       # Que criterio de validez se aplico. `review` cuando el estudio declaro
       # una columna que la base no trae —un error de tipeo en la config pasaba
       # por criterio deliberado— y cuando no hay columna y por tanto cuenta
@@ -2279,8 +2296,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (length(quota_status)) sprintf("%s grupos de facultad y sexo con brecha.", sum(monitoreo_aulas_celda_en_deuda(quota_status))) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
+      } else if (partes_comprobables > 0L) {
+        sprintf(
+          "Los números de los %d partes de campo comprobables cuadran.",
+          partes_comprobables
+        )
       } else if (length(partes_campo)) {
-        "Los números de cada parte de campo cuadran."
+        # Hay partes y ninguno declara lo que hace falta para la identidad:
+        # decir «cuadran» afirmaba una comprobacion que no se hizo.
+        sprintf(
+          "Los %d partes de campo no declaran asistentes y efectivas, así que no hay identidad que comprobar.",
+          length(partes_campo)
+        )
       } else {
         "No hay partes de campo que comprobar."
       },
