@@ -2,6 +2,7 @@ import { fmt, fmtAporte } from "./kpisDeAulas";
 // El orden de los sexos es UNO en todo el perfil: si esta lista y la tabla de
 // cuotas lo definieran cada una, acabarían discrepando en cuanto una cambiara.
 import { ORDEN_SEXO } from "./ordenFacultadSexo";
+import { etiquetaDeSexo } from "./etiquetaDeSexo";
 
 /**
  * El avance por celda facultad × sexo, ordenado por lo que hay que hacer.
@@ -141,7 +142,9 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
     return {
       clave: `${facultad}|${sexo}`,
       facultad,
-      sexo: sexo === "F" ? "Mujeres" : sexo === "M" ? "Hombres" : sexo || "Sin sexo",
+      // La MISMA traducción que el resto del perfil: dos copias de esta regla
+      // fue lo que dejó «38 m» en la tabla de anticipación.
+      sexo: etiquetaDeSexo(sexo, { mayuscula: true }) || "Sin sexo",
       cuota: num(c.cuota),
       logrado: num(c.logrado),
       proyeccion: num(c.proyeccion),
