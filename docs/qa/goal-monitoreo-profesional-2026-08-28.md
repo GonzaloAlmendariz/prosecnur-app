@@ -182,7 +182,7 @@ es trabajar sobre el libro equivocado.
 
 | | Ítem | Estado |
 |---|---|---|
-| S8 | **El libro generado declara de qué import salió.** El recibo `monitoreo_aulas_libro` ya guarda `importado_en`, y lo consume `AulasFuentesDelEstudio.tsx`; lo que falta es que esa marca viaje DENTRO del libro, para que dos copias se puedan comparar sin adivinar | ☐ |
+| S8 | **El libro generado declara de qué import salió.** El recibo `monitoreo_aulas_libro` ya guarda `importado_en`, y lo consume `AulasFuentesDelEstudio.tsx`; lo que falta es que esa marca viaje DENTRO del libro, para que dos copias se puedan comparar sin adivinar | ☑ **ya viaja** (medido 2026-08-31): `router_monitoreo.R:5029` pasa `procedencia = s$monitoreo_aulas_libro` a `aulas_libro_generar()`, que la lleva hasta `aulas_libro_escribir_indicadores()` y escribe `importado_en` en la hoja de indicadores (`carga_aulas_libro_indicadores.R:352`). O sea, la marca SÍ está dentro del libro y dos copias se pueden comparar |
 | S9 | **La app no puede vigilar el archivo del equipo**, y eso es estructural: el libro llega subido o por `file_id`, nunca por una ruta estable del disco del usuario. Cualquier diseño de frescura tiene que partir de ahí en vez de suponer un watcher | ☐ declarado |
 | S10 | **Decidir si el arreglo de S2 se conecta o se retira.** Conectarlo exige que la app genere sobre una ruta estable, que es otra decisión. Dejarlo desconectado y sin declarar sería exactamente la deuda que este GOAL persigue | ☐ decisión |
 
