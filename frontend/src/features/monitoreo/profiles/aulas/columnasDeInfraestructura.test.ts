@@ -60,3 +60,36 @@ describe("las columnas de infraestructura no rellenan la tabla", () => {
     expect(pedidas, `tablas que piden infraestructura: ${pedidas.join(", ")}`).toEqual([]);
   });
 });
+
+describe("el sexo dominante del aula no entra en las tablas del operativo", () => {
+  // Gonzalo, 2026-08-31: «las columnas de sexo del plan nos sirven para ver las
+  // cuotas por sexo de cada facultad; a nivel operativo no nos importa a qué
+  // segmentos pertenezca el aula, eso sólo es a nivel de la selección del aula».
+  it("las cuatro columnas del sorteo están excluidas", () => {
+    for (const campo of ["sex_top_1", "sex_top_2", "sex_top_1_n", "sex_top_2_n"]) {
+      expect(infraestructura, `falta ${campo}`).toContain(campo);
+    }
+  });
+
+  it("y donde el sexo SÍ decide, se resuelve a mujeres y hombres", () => {
+    // La decisión no es esconder el sexo: es no enseñar el DOMINANTE crudo.
+    // Las dos superficies que lo usan para decidir traducen la «F» a su
+    // conteo, y eso tiene que seguir así. Ya hay precedente de que la
+    // construcción se malinterpreta: `sub_a` es el sexo más frecuente y se leyó
+    // como «mujeres», lo que invirtió una tabla de cuotas entera.
+    const popover = fs.readFileSync(path.join(aqui, "AulasPopoverReemplazo.tsx"), "utf8");
+    const candidatos = fs.readFileSync(path.join(aqui, "candidatosDeReemplazo.ts"), "utf8");
+    for (const [nombre, src] of [["el popover", popover], ["los candidatos", candidatos]] as const) {
+      // Las dos formas que hay hoy: comparar `sex_top_1` en línea, o pasarlo
+      // por una variable. Lo que se exige es que el dominante se RESUELVA y
+      // salgan de ahí un conteo de mujeres y otro de hombres, no cómo se
+      // escriba.
+      expect(src, `${nombre} ya no lee sex_top_1`).toContain("sex_top_1");
+      // En un archivo van pegados y en el otro pasan por una variable, así que
+      // se comprueban por separado en vez de exigir una forma concreta.
+      expect(src, `${nombre} dejó de normalizar la caja`).toContain("toUpperCase()");
+      expect(src, `${nombre} dejó de comparar contra "M"`).toMatch(/===\s*"M"/);
+      expect(src, `${nombre} ya no deriva mujeres y hombres`).toMatch(/mujeres[\s\S]{0,200}hombres/);
+    }
+  });
+});

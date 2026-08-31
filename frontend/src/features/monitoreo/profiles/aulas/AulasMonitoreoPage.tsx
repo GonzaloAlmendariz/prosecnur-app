@@ -162,6 +162,21 @@ const COLUMNAS_DE_INFRAESTRUCTURA = new Set([
   // Identificadores técnicos con su equivalente legible ya en la tabla:
   // `operational_code` es «CH 1» y `course_name` el nombre del curso.
   "classroom_id", "course_id", "unit_id",
+  // **El sexo DOMINANTE del aula es vocabulario del sorteo, no del operativo.**
+  //
+  // Gonzalo, 2026-08-31: «las columnas de sexo del plan nos sirven para ver las
+  // cuotas por sexo de cada facultad; a nivel operativo no nos importa a qué
+  // segmentos pertenezca el aula, eso sólo es a nivel de la selección del
+  // aula».
+  //
+  // `sex_top_1` dice CUÁL sexo domina —«F» o «M»—, que es con lo que se repartió
+  // la muestra. Quien monitorea necesita cuántas mujeres y cuántos hombres, y
+  // eso ya está donde decide: las cuotas por facultad y sexo en Avance, y el
+  // desglose de cada candidata en la ventana de reemplazo, que resuelven la F
+  // a su conteo en vez de enseñarla cruda. Ya hay precedente de que la
+  // construcción se malinterpreta: `sub_a` es el sexo MÁS FRECUENTE y se leyó
+  // como «mujeres», lo que invirtió una tabla de cuotas entera.
+  "sex_top_1", "sex_top_2", "sex_top_1_n", "sex_top_2_n",
 ]);
 
 function compactColumns(
