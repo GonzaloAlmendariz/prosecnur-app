@@ -43,14 +43,17 @@ const txt = (v: unknown) => String(v ?? "").trim();
  *
  * Cuentan cuatro señales, y la primera es la decisiva: **si trae nota, alguien
  * la escribió**, y una unidad no puede quedar fuera del denominador de su
- * propia observación. Las otras tres —cita fijada, paso por campo, cifra
- * declarada— se miran todas porque una fila corregida a mano en el Excel puede
- * traer los números sin el estado, o el estado sin la hora, y descartarla por
- * el campo que le falta borraría un aula que sí se gestionó.
+ * propia observación. Las otras tres —paso por campo, estado, cifra declarada—
+ * se miran todas porque una fila corregida a mano en el Excel puede traer los
+ * números sin el estado, o el estado sin la hora, y descartarla por el campo
+ * que le falta borraría un aula que sí se gestionó.
+ *
+ * **La quinta, la fecha programada, es débil y va con veto.** El plan la trae
+ * para toda su agenda, tocada o no, así que sólo cuenta cuando el estado no
+ * dice «planificada». El comentario de esa línea lleva la medición.
  */
 function tuvoGestion(fila: Fila): boolean {
   if (txt(fila.field_note) || txt(fila.replacement_note)) return true;
-  if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return true;
   if (txt(fila.applied_at) || txt(fila.applied_date)) return true;
   const estado = txt(fila.operational_status).toLowerCase();
   // «cerrada» va con «aplicada» en los otros ocho sitios del perfil que
@@ -62,6 +65,21 @@ function tuvoGestion(fila: Fila): boolean {
     const v = fila[k];
     if (v != null && v !== "" && Number(v) > 0) return true;
   }
+  // **La fecha programada es la señal DÉBIL, y va al final con un veto.** El
+  // plan del cálculo de muestra trae `scheduled_date` para TODAS sus filas —es
+  // el día que le toca a ese curso-horario, no una cita que alguien fijó—, así
+  // que aceptarla a secas daba por gestionada la agenda entera. Medido el
+  // 2026-08-30 sobre el estudio de 1.424: las 1.424 filas entraban por esta
+  // línea y ninguna por otra, incluidas **1.232 en «planificada»**, y el panel
+  // publicaba «ninguno de los 1.424 cursos-horario gestionados trae
+  // observación» —una acusación al equipo por 1.232 aulas que nadie ha tocado
+  // todavía—. Con el veto, el denominador es 192: 152 aplicadas, 22 agendadas
+  // y 18 reemplazadas.
+  //
+  // El veto es sólo sobre esta señal: una fila «planificada» que traiga nota,
+  // aplicación o cifras ya salió por las condiciones de arriba, que es el caso
+  // del Excel corregido a mano que este perfil documenta.
+  if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return estado !== "planificada";
   return false;
 }
 
