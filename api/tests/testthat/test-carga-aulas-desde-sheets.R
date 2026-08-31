@@ -112,3 +112,63 @@ test_that("las dos puertas devuelven la MISMA forma", {
                sort(c("plan", "partes", "control", "hojas_ausentes",
                       "control_sin_nombre", "agenda_campos_ausentes", "resumen")))
 })
+
+# ---------------------------------------------------------------------------
+# La lectura de las tres pestañas. SIN RED: se sustituye `.monitoreo_google_api`.
+# ---------------------------------------------------------------------------
+
+test_that("lee las tres pestañas por su nombre canonico", {
+  pedidas <- character(0)
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, ...) {
+      pedidas <<- c(pedidas, utils::URLdecode(sub(".*/values/", "", url)))
+      list(values = list(as.list(c("ID MATCH", "CURSO-HORARIO")), as.list(c("1", "CH 1"))))
+    },
+    .package = "prosecnurapp"
+  )
+  out <- aulas_libro_leer_de_sheets("abc123")
+  expect_equal(sort(names(out)), sort(c("agendadas", "aplicadas", "control")))
+  # Los nombres por defecto son los del libro que genera la app: es el caso
+  # normal —el equipo sube ese archivo a Drive y trabaja sobre el—.
+  expect_true(any(grepl("Aulas Agendadas", pedidas, fixed = TRUE)))
+  expect_true(any(grepl("Base de control", pedidas, fixed = TRUE)))
+})
+
+test_that("una pestaña que no existe se omite en vez de fallar", {
+  # El operativo empieza con la agenda y la hoja de campo aparece dias despues.
+  # Fallar por eso obligaria al equipo a crear pestañas vacias para sincronizar.
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, ...) {
+      if (grepl("Campo", utils::URLdecode(url), fixed = TRUE)) stop("404")
+      list(values = list(as.list(c("ID MATCH", "CURSO-HORARIO")), as.list(c("1", "CH 1"))))
+    },
+    .package = "prosecnurapp"
+  )
+  out <- aulas_libro_leer_de_sheets("abc123")
+  expect_false("aplicadas" %in% names(out))
+  expect_true("agendadas" %in% names(out))
+})
+
+test_that("sin id no se llama a la API siquiera", {
+  llamadas <- 0L
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, ...) { llamadas <<- llamadas + 1L; list() },
+    .package = "prosecnurapp"
+  )
+  expect_error(aulas_libro_leer_de_sheets(""), class = "api_error")
+  expect_equal(llamadas, 0L)
+})
+
+test_that("un nombre de pestaña con comilla no rompe el rango", {
+  # `'Aulas 'X''` es sintaxis valida de A1 solo si la comilla va duplicada.
+  visto <- ""
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, ...) {
+      visto <<- utils::URLdecode(sub(".*/values/", "", url))
+      list(values = list(as.list("ID MATCH"), as.list("1")))
+    },
+    .package = "prosecnurapp"
+  )
+  aulas_libro_leer_de_sheets("abc", list(agendadas = "Aulas 'X'", aplicadas = "", control = ""))
+  expect_equal(visto, "'Aulas ''X'''")
+})

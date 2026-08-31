@@ -5142,6 +5142,37 @@ mount_monitoreo <- function(pr) {
         saved_project = !is.null(saved_project)
       )
     })) |>
+    # **La otra puerta del mismo ciclo.** El `.xlsx` de arriba sirve para el
+    # cierre; esto es para el operativo en marcha, cuando el equipo trabaja
+    # sobre la pestaña en linea y nadie quiere descargar un archivo para ver
+    # como va. Devuelve exactamente el mismo payload: quien llame no tiene que
+    # saber por donde entro el libro.
+    #
+    # NO publica. Ver la cabecera de `carga_aulas_desde_sheets.R`: las tres
+    # hojas las llena el equipo y escribir encima borraria su trabajo.
+    plumber::pr_post("/api/monitoreo/aulas/importar-sheets", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      # Se acepta el ENLACE entero, no solo el id: es lo que el equipo copia de
+      # la barra del navegador, y pedirles que extraigan las 44 letras del medio
+      # es un paso donde equivocarse en silencio.
+      id <- .monitoreo_scalar(parsed$spreadsheet_id %||% parsed$id, "")
+      if (!nzchar(id)) id <- .monitoreo_scalar(parsed$url %||% parsed$enlace, "")
+      m <- regmatches(id, regexec("/spreadsheets/d/([a-zA-Z0-9_-]+)", id))[[1]]
+      if (length(m) == 2L) id <- m[[2]]
+      out <- aulas_libro_importar_sheets_en_sesion(sid, id, parsed$pestanas %||% list())
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        resumen = out$resumen,
+        hojas_ausentes = out$hojas_ausentes,
+        control_sin_nombre = out$control_sin_nombre,
+        fusion = out$fusion,
+        agenda_campos_ausentes = out$agenda_campos_ausentes,
+        state = .monitoreo_state_payload(sid),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/import-from-calc-muestra", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)

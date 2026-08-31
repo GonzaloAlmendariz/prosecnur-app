@@ -159,3 +159,54 @@ aulas_libro_importar_valores <- function(hojas = list()) {
   ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
   .calb_ensamblar(plan, partes, control, ausentes)
 }
+
+#' Trae las filas crudas de una pestaña.
+#'
+#' Se pide `values` en crudo y no un `data.frame` como hace
+#' `monitoreo_sheets_read_source()`: la cabecera del libro no siempre esta en la
+#' fila 1 —la agenda si, las otras dos en la 2— y ese detalle ya lo resuelve
+#' `aulas_libro_desde_valores()`. Convertir aqui obligaria a decidirlo dos veces.
+#' @keywords internal
+.cads_valores_de_pestana <- function(spreadsheet_id, pestana) {
+  rango <- sprintf("'%s'", gsub("'", "''", pestana))
+  url <- paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values/",
+                utils::URLencode(rango, reserved = TRUE))
+  payload <- .monitoreo_google_api(url)
+  payload$values %||% list()
+}
+
+#' Lee las tres pestañas del libro de aulas de un Google Sheets.
+#'
+#' **Una pestaña que no existe NO es un error.** El operativo empieza con la
+#' agenda y la hoja de campo aparece dias despues; fallar por eso obligaria al
+#' equipo a crear pestañas vacias para poder sincronizar. Lo que no se pudo leer
+#' se omite y `aulas_libro_importar_valores()` lo declara en `hojas_ausentes`,
+#' igual que hace el `.xlsx` cuando le falta una hoja.
+#'
+#' @param spreadsheet_id id del documento.
+#' @param pestanas nombres por clave (`agendadas`, `aplicadas`, `control`). Por
+#'   defecto los del libro que genera la app, que es el caso normal: el equipo
+#'   sube ese archivo a Drive y trabaja sobre el.
+#' @return lista de `values` por clave, lista para `aulas_libro_importar_valores()`.
+#' @export
+aulas_libro_leer_de_sheets <- function(spreadsheet_id, pestanas = list()) {
+  id <- as.character(spreadsheet_id %||% "")[1]
+  if (!nzchar(trimws(id))) {
+    stop_api(400, "E_AULAS_SHEETS_SIN_ID",
+             "Falta el identificador del Google Sheets del libro de aulas.")
+  }
+  por_defecto <- stats::setNames(
+    lapply(AULAS_LIBRO_HOJAS, function(x) x$hoja),
+    vapply(AULAS_LIBRO_HOJAS, function(x) x$clave, character(1))
+  )
+  nombres <- utils::modifyList(por_defecto, as.list(pestanas %||% list()))
+
+  out <- list()
+  for (clave in names(por_defecto)) {
+    pestana <- as.character(nombres[[clave]] %||% "")[1]
+    if (!nzchar(trimws(pestana))) next
+    valores <- tryCatch(.cads_valores_de_pestana(id, pestana), error = function(e) NULL)
+    if (!is.null(valores) && length(valores)) out[[clave]] <- valores
+  }
+  out
+}
