@@ -741,7 +741,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   ? [{ tenue: `sexo en ${fmt(conSexo[i] ?? 0)} de ${fmt(Math.round(v))}` }]
                   : []),
               ]
-              : [{ tenue: "sin sexo declarado todavía" }]),
+              // «sin sexo declarado todavía» era correcto en su fuente y
+              // ambiguo en pantalla: el punto habla del PARTE, y la leyenda de
+              // al lado muestra las series de sexo de PLATAFORMA («del estudio»).
+              // Visto en vivo con Educación en foco: el globo decía que no había
+              // sexo mientras arriba se leía «Mujeres 32/20 ✓». Nombrar la
+              // fuente deshace la contradicción, igual que en «efectivas del
+              // parte».
+              : [{ tenue: "el parte no declara sexo" }]),
           ] as TrozoDePista[],
         })),
         ...proyectadas.map((v, i) => ({
