@@ -635,6 +635,30 @@ export function aulasKpis(
       estado.estados.find((e) => e.clave === clave)?.aulas ?? 0;
     const sinFecha = deTramo("pendiente");
     const agendadasConFecha = deTramo("lista");
+    // **El tramo «lista» NO quiere decir «tiene cita».** Medido el 2026-08-30
+    // sobre el estudio de 174 titulares: los 22 de este sello son **13
+    // `agendada` + 9 `sin_contactar`**, y la pista decía «agendados, todavía
+    // sin salir a campo» sobre los 22. Los 9 son justo los que la cola de
+    // contacto de Modelo publica como «siguen sin cita · el que más lleva va
+    // por 5 intentos», a dos bloques de distancia.
+    //
+    // Es la advertencia que este mismo comentario ya traía —«llamar agendado a
+    // lo que no tiene fecha invierte la decisión: una agendada se espera, una
+    // sin fecha hay que salir a agendarla»— con el eje equivocado: se miró
+    // `application_state`, que agrupa las dos, en vez de `sample_status`, que
+    // las separa.
+    const enLista = ((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[])
+      .filter((f) => String(f.application_state ?? "").trim() === "lista");
+    //
+    // **Sólo se separa si TODAS declaran su estado.** Asumir «sin cita» donde
+    // no hay `sample_status` es el mismo error al revés: se estaría afirmando
+    // que nadie contactó a filas que no dicen nada.
+    const declaran = enLista.filter((f) => String(f.sample_status ?? "").trim() !== "");
+    const conCita = declaran.filter((f) => {
+      const s = String(f.sample_status ?? "").trim().toLowerCase();
+      return s.startsWith("agendada") || s.startsWith("reagendada");
+    }).length;
+    const sinCita = declaran.length === enLista.length ? declaran.length - conCita : 0;
     return [
       planKpi(dashboard),
       registroKpi(dashboard),
@@ -655,8 +679,9 @@ export function aulasKpis(
         icono: AlertCircle,
         value: fmt(estado.sinSalirACampo),
         pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
-          : !sinFecha ? "agendados, todavía sin salir a campo"
-            : `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`,
+          : sinFecha ? `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`
+            : sinCita ? `${fmt(conCita)} con cita · ${fmt(sinCita)} sin contactar todavía`
+              : "agendados, todavía sin salir a campo",
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
     ];
