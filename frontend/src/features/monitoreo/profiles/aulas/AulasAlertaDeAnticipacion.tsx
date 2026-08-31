@@ -261,13 +261,15 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
       </ul>
 
       <p className="mon-profile-muted aulas-anticipacion-pie">
-        {/* «40 de cada 170» y no «24 de cada 100»: redondear la tasa dejaba en la
-            misma frase un 24 % y un «(40 de 170)» que da 23,5 —dos cifras del
-            mismo hecho a cinco palabras de distancia—. La fracción real no
-            necesita redondeo. */}
+        {/* «21 de cada 170» y no «12 de cada 100»: redondear la tasa deja en la
+            misma frase dos cifras del mismo hecho a cinco palabras de
+            distancia. La fracción real no necesita redondeo — y es la fracción
+            de CAÍDAS (titular sin aplicar cubierto por reemplazo), no la de
+            «usó algún reemplazo», que en 2025 también contaba 25 refuerzos
+            (checklist-tres-fuentes §A7). */}
         Se piden más aulas de las que cubren la brecha porque una parte no llega a
-        aplicarse: en el operativo de 2025, <strong>40 de cada 170</strong>{" "}
-        titulares acabaron necesitando reemplazo. La fecha es el último día para
+        aplicarse: en el operativo de 2025, <strong>21 de cada 170</strong>{" "}
+        titulares cayeron y un reemplazo ocupó su lugar. La fecha es el último día para
         llamar sin que la facultad se quede parada: se cuenta desde el día en que
         se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
         que pasaron de mediana entre llamar a un curso-horario y aplicarlo, también en 2025.

@@ -40,7 +40,7 @@ import { TASA_DE_CAIDA } from "./alertaDeAnticipacion";
  * ## Y no se declara diferencia hasta que la haya
  *
  * Con pocos desenlaces, cualquier tasa se parece a cualquier otra. Se compara
- * contra una banda de **dos errores estándar** alrededor del 23,5 % —el margen
+ * contra una banda de **dos errores estándar** alrededor del 12,4 % —el margen
  * que tendría una muestra de ese tamaño si el estudio se cayera igual que
  * 2025—, y sólo fuera de esa banda se dice que va distinto. Dentro, se enseña la
  * cifra sin veredicto, que es lo honesto: se ve el dato y no se le pone nombre.
