@@ -561,7 +561,13 @@ export function aulasKpis(
           label: "Estados que se contradicen",
           icono: CalendarClock,
           value: fmt(ag.estadosEnDesacuerdo),
-          pista: "el estado de muestra dice «sin contactar» y el operativo, que ya está agendado",
+          // **Manda el operativo, y eso se dice.** Gonzalo, 2026-08-31: «se
+          // supone que en las aulas titulares se agendan a primer momento antes
+          // del campo». La agenda es previa por diseño, así que la fecha es el
+          // dato bueno y el de muestra es el que hay que corregir. Decir sólo
+          // «se contradicen» deja al lector eligiendo, y ya no hay nada que
+          // elegir.
+          pista: "tienen fecha y el estado de muestra dice «sin contactar»: manda la fecha, hay que corregir la muestra",
           // **Cuánto depende de la contradicción, no sólo cuántas hay.** El
           // conteo solo deja al lector sin saber si son nueve casos sueltos o
           // media proyección. Medido el 2026-08-30: esas 9 aportan 168 de las
@@ -654,9 +660,31 @@ export function aulasKpis(
     // no hay `sample_status` es el mismo error al revés: se estaría afirmando
     // que nadie contactó a filas que no dicen nada.
     const declaran = enLista.filter((f) => String(f.sample_status ?? "").trim() !== "");
+    //
+    // **Cuando los dos estados se contradicen, manda el OPERATIVO.**
+    //
+    // Gonzalo, 2026-08-31: «se supone que en las aulas titulares se agendan a
+    // primer momento antes del campo». La agenda es previa al campo por diseño,
+    // así que un titular con fecha no puede estar sin contactar: lo que está
+    // desactualizado es `sample_status`, y las nueve filas lo confirman por su
+    // cuenta —llevan de tres a cinco gestiones anotadas—.
+    //
+    // Antes se miraba sólo la muestra y esas nueve salían como «sin contactar
+    // todavía», que manda a llamar a docentes que ya dieron hora.
+    const conAgenda = (f: MonitoreoAulasPlanRow) => {
+      const op = String(f.operational_status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      return op === "agendada" || op === "aplicada" || op === "cerrada";
+    };
     const conCita = declaran.filter((f) => {
       const s = String(f.sample_status ?? "").trim().toLowerCase();
-      return s.startsWith("agendada") || s.startsWith("reagendada");
+      return s.startsWith("agendada") || s.startsWith("reagendada") || conAgenda(f);
+    }).length;
+    // Las que tienen cita en el operativo y la muestra aún no lo dice: es un
+    // dato que hay que corregir, y se declara en vez de esconderse detrás del
+    // recuento ya arreglado.
+    const muestraDesfasada = declaran.filter((f) => {
+      const s = String(f.sample_status ?? "").trim().toLowerCase();
+      return !s.startsWith("agendada") && !s.startsWith("reagendada") && conAgenda(f);
     }).length;
     const sinCita = declaran.length === enLista.length ? declaran.length - conCita : 0;
     return [
@@ -681,7 +709,9 @@ export function aulasKpis(
         pista: !agendadasConFecha ? "todavía sin fecha: hay que agendarlas"
           : sinFecha ? `${fmt(sinFecha)} sin fecha · ${fmt(agendadasConFecha)} agendadas`
             : sinCita ? `${fmt(conCita)} con cita · ${fmt(sinCita)} sin contactar todavía`
-              : "agendados, todavía sin salir a campo",
+              : muestraDesfasada
+                ? `${fmt(conCita)} con cita · ${fmt(muestraDesfasada)} sin actualizar en la muestra`
+                : "agendados, todavía sin salir a campo",
         tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
     ];
