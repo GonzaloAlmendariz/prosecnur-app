@@ -194,7 +194,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
                   distintas. Ese dato ya está arriba para el conjunto y abajo
                   aula por aula. */}
               <span className="aulas-falta-por">
-                {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.costo)} encuestas
+                {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.costo)} encuestas
               </span>
             </li>
           ))}

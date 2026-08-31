@@ -61,7 +61,7 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
             <summary>
               <span className="aulas-ruta-nombre">{f.facultad}</span>
               <span className="aulas-ruta-cuenta">
-                {fmt(f.aulas.length)} {f.aulas.length === 1 ? "aula" : "aulas"}
+                {fmt(f.aulas.length)} {f.aulas.length === 1 ? "curso-horario" : "cursos-horario"}
                 {f.enMarcha ? <em> · {fmt(f.enMarcha)} en marcha</em> : null}
               </span>
               <span className="aulas-ruta-desde">
