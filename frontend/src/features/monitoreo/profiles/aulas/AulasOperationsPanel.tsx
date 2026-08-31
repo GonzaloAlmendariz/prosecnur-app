@@ -55,10 +55,14 @@ export type AulasOperationsPanelProps = {
   onGenerarLibro: () => void;
   /** Relee el libro que alguien llenó. */
   onImportarLibro: (archivo: File) => void;
+  /** Lee el libro desde las tres pestañas de un Google Sheets. Recibe el enlace
+   *  tal como se copia del navegador; el backend extrae el id. */
+  onLeerDeSheets?: (enlace: string) => void;
 };
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
+  onLeerDeSheets,
 }: AulasOperationsPanelProps) {
   const entradaLibro = useRef<HTMLInputElement | null>(null);
   const hayPlan = aulasHayPlan(config);
@@ -219,6 +223,36 @@ export function AulasOperationsPanel({
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
           <span>Leer libro llenado</span>
         </button>
+        {/* **La otra puerta del mismo ciclo.**
+
+            El botón de al lado lee el archivo; éste lee la pestaña que el
+            equipo llena en línea, que es lo que pasa mientras el operativo está
+            en marcha y nadie quiere descargar un `.xlsx` para ver cómo va.
+
+            Va junto a los otros dos y no en un panel propio: son tres formas de
+            la misma operación —traer al operativo lo que el equipo escribió— y
+            separarlas obligaría a saber de antemano cuál toca.
+
+            El `prompt` pide el ENLACE y no el id: es lo que se copia de la
+            barra del navegador. */}
+        {onLeerDeSheets ? (
+          <button
+            type="button"
+            onClick={() => {
+              const enlace = window.prompt(
+                "Pega el enlace del Google Sheets del libro:",
+              );
+              if (enlace && enlace.trim()) onLeerDeSheets(enlace.trim());
+            }}
+            disabled={busy || !hayPlan}
+            title={hayPlan
+              ? "Lee las tres pestañas del Sheets y actualiza el operativo"
+              : "Primero importa el plan de cursos-horario"}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
+            <span>Leer del Sheets</span>
+          </button>
+        ) : null}
         <input
           ref={entradaLibro}
           type="file"
