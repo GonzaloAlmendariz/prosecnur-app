@@ -180,3 +180,74 @@ test_that("sin partes la base de control se escribe igual, solo sin la parte de 
   expect_true("2026-09-08" %in% plano)
   expect_true("CH 1" %in% plano)
 })
+
+# ---------------------------------------------------------------------------
+# Las fechas se escriben como FECHAS, en las tres hojas.
+#
+# Se cazó con un censo del xlsx y llegó por partida doble el mismo día: las
+# columnas que la Base de control ganó al conectarla con agenda y campo salieron
+# sin tipar, y la «FECHA DE APLICACIÓN» del bloque de campo llevaba sin tipar
+# desde siempre —no se veía porque esa hoja salía VACÍA, y sólo apareció al
+# reparar los alias del parte: un defecto tapado por otro—.
+#
+# Importa porque quien dirige el campo ORDENA por fecha para saber qué toca
+# mañana, y como texto «2026-09-10» va antes que «2026-09-9».
+# ---------------------------------------------------------------------------
+
+test_that("las fechas del libro se escriben como fechas y no como texto", {
+  destino <- withr::local_tempfile(fileext = ".xlsx")
+  unidades <- list(list(
+    operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+    faculty = "DERECHO", enrolled_total = 40, eligible_n = 30,
+    scheduled_date = "2026-09-08", contact_date = "2026-09-01"
+  ))
+  partes <- list(list(operational_code = "CH 1", asistentes = 25, validas = 18,
+                      aplicador = "APL-3", fecha = "2026-09-08"))
+  aulas_libro_generar(unidades = unidades, path = destino, partes = partes,
+                      control = list(), cfg = list())
+
+  # Se comprueba por el TIPO que devuelve la relectura, no por el XML: una
+  # columna tipada vuelve como fecha o numero, y una de texto como cadena. Es
+  # ademas lo que le pasa al equipo cuando ordena la hoja.
+  # **SIN `detectDates`**: esa opcion convierte el texto «2026-09-08» en fecha
+  # al leer, o sea hace exactamente lo que el test quiere detectar y lo tapa.
+  # Comprobado con un mutante: quitando el tipado del generador, con
+  # `detectDates` el test seguia verde. Sin el, una columna tipada vuelve como
+  # NUMERO (el serial de Excel) y una de texto como cadena.
+  agenda <- openxlsx::read.xlsx(destino, sheet = "Aulas Agendadas",
+                                check.names = FALSE)
+  # `read.xlsx` cambia los espacios por puntos aunque se le pase
+  # `check.names = FALSE`, asi que «FECHA DE LLAMADA» llega como
+  # «FECHA.DE.LLAMADA». Comparar literal devolvia NULL siempre y el test se
+  # saltaba solo.
+  # **TODAS las columnas con ese titulo, no la primera.** La hoja de campo tiene
+  # SEIS «FECHA DE APLICACIÓN» —una por bloque de intento, y ademas la de agenda
+  # y la de campo dentro del mismo bloque— y quedarse con la primera hacia que
+  # el guard comprobara una columna que tipa OTRA llamada: el mutante que quita
+  # el tipado de la de campo pasaba verde.
+  cols <- function(df, titulo) {
+    clave <- gsub("[ .]+", " ", trimws(titulo))
+    i <- which(gsub("[ .]+", " ", trimws(names(df))) == clave)
+    lapply(i, function(k) df[[k]])
+  }
+  # Solo las que traen dato: los bloques de reemplazo sin usar salen vacios y
+  # como `character`, y eso no es un defecto de tipado.
+  con_dato <- function(lista) Filter(function(v) any(!is.na(v) & nzchar(trimws(as.character(v)))), lista)
+  # **Las columnas TIENEN que existir con dato.** Sin esto el test se saltaba
+  # solo: los `if` caian en `next`, testthat lo marcaba SKIP y pasaba sin
+  # comprobar nada. Un guard que no muerde es peor que ninguno.
+  for (titulo in c("FECHA DE LLAMADA", "FECHA DE APLICACIÓN")) {
+    vs <- con_dato(cols(agenda, titulo))
+    expect_true(length(vs) > 0, info = paste("la agenda no trae con dato", titulo))
+    # `character` es el sintoma: «2026-09-10» se ordena antes que «2026-09-9».
+    for (v in vs) {
+      expect_false(is.character(v), info = paste("va como texto en la agenda:", titulo))
+    }
+  }
+
+  campo <- openxlsx::read.xlsx(destino, sheet = "Aulas Aplicadas (Campo)",
+                               startRow = 2, check.names = FALSE)
+  vs <- con_dato(cols(campo, "FECHA DE APLICACIÓN"))
+  expect_true(length(vs) > 0, info = "la hoja de campo no trae FECHA DE APLICACIÓN con dato")
+  for (v in vs) expect_false(is.character(v), info = "va como texto en la hoja de campo")
+})
