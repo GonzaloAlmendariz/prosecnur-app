@@ -103,13 +103,13 @@ Módulo `monitoreo` · ruta `/monitoreo` · 111 direcciones.
 | `monitoreo/aulas/modelo/agenda` | pestana | Agenda | sí | 81fc4871 | sí | — |
 | `monitoreo/aulas/modelo/facultad` | pestana | Por facultad | sí | 01c3741d | sí | — |
 | `monitoreo/aulas/modelo/contacto` | pestana | Contacto | sí | 6fde84e8 | sí | — |
-| `monitoreo/aulas/modelo/carga` | pestana | Carga | sí | d5c60440 | **no** | — |
+| `monitoreo/aulas/modelo/carga` | pestana | Carga | sí | d5c60440 | sí | — |
 | `monitoreo/aulas/avance` | seccion | Avance | sí | 244b6aa2 | sí | — |
 | `monitoreo/aulas/avance/cuotas` | pestana | Cuotas | sí | ad957ac4 | sí | — |
 | `monitoreo/aulas/avance/resumen` | pestana | Resumen | sí | 5087ac28 | sí | — |
 | `monitoreo/aulas/avance/estratos` | pestana | Estratos | sí | a5e236b5 | sí | — |
 | `monitoreo/aulas/avance/rendimiento` | pestana | Rendimiento | sí | 47e77bcd | sí | — |
-| `monitoreo/aulas/avance/efectividad` | pestana | Efectividad | sí | 83561eda | **no** | — |
+| `monitoreo/aulas/avance/efectividad` | pestana | Efectividad | sí | 83561eda | sí | — |
 | `monitoreo/aulas/avance/salidas` | pestana | Salidas | sí | 615799e8 | sí | — |
 | `monitoreo/aulas/calidad` | seccion | Validación | sí | 0cec608c | sí | — |
 | `monitoreo/aulas/calidad/registro` | pestana | Registro de campo | sí | 40ef5ffd | sí | — |
