@@ -17,8 +17,36 @@ import { fmt } from "./kpisDeAulas";
  */
 type TramoContado = { clave: string; aulas: number };
 
-/** Las que de verdad tienen que salir a campo: ni dormidas ni de banco. */
-function enJuegoDe(estados: ReadonlyArray<TramoContado>, banco?: number): number {
+/**
+ * Las que de verdad tienen que salir a campo: ni dormidas ni de banco.
+ *
+ * **Se cuenta desde el total, no desde los tramos, y ése es el arreglo.**
+ * Derivarlo como «lo que no está en `en_reserva`, menos el banco» descuenta el
+ * banco DOS VECES cuando el banco sí cae en ese tramo. Medido el 2026-08-30
+ * sobre el estudio de 1.424: las 77 del banco están las 77 en
+ * `sample_status: en_reserva`, así que `vivas` (192) ya las excluía y la resta
+ * publicaba **115 en juego** cuando el motor marca `en_juego` en **174** —156
+ * titulares vivos más 18 reservas activadas—. La pantalla decía que había 59
+ * cursos-horario menos en campo de los que hay.
+ *
+ * Y las 192 tampoco eran la respuesta: incluían los 18 titulares reemplazados,
+ * que ya no salen, ADEMÁS de las 18 reservas que los sustituyeron.
+ *
+ * `dormidas` las cuenta el motor sin el banco (`sum(!en_juego & !del_banco)`),
+ * así que `total − dormidas − banco` da exactamente `sum(en_juego)`: el banco
+ * nunca lleva `en_juego`, medido 174 = 156 titulares + 18 reservas y cero del
+ * banco. Sin ese dato se cae a la forma anterior, que es la que acertaba
+ * cuando el motor clasificaba el banco como «Sin agendar».
+ */
+function enJuegoDe(
+  estados: ReadonlyArray<TramoContado>,
+  banco?: number,
+  total?: number,
+  dormidas?: number,
+): number {
+  if (typeof total === "number" && typeof dormidas === "number") {
+    return Math.max(0, total - dormidas - (banco ?? 0));
+  }
   const vivas = estados
     .filter((e) => e.clave !== "en_reserva")
     .reduce((n, e) => n + e.aulas, 0);
@@ -49,7 +77,7 @@ function dondeEstanLasOtras(fuera: number, banco: number): string {
   return `Las otras ${fmt(dormidas)} esperan en reserva: sólo entran si cae su titular.`;
 }
 
-export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor }: {
+export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor, dormidasMotor }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
@@ -70,6 +98,13 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
    * `course_status_banco`. Sólo faltaba consumirlo.
    */
   bancoMotor?: number;
+  /**
+   * Reservas dormidas contadas por el motor SIN el banco
+   * (`sum(!en_juego & !del_banco)`). Es lo que permite contar «en juego» desde
+   * el total en vez de derivarlo de los tramos, que es donde se colaba el doble
+   * descuento del banco.
+   */
+  dormidasMotor?: number;
 }) {
   const { estados, desconocidas, total, sinSalirACampo, enJuego } = useMemo(
     () => {
@@ -98,7 +133,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
               estados
                 .filter((e) => e.clave === "pendiente" || e.clave === "lista")
                 .reduce((n, e) => n + e.aulas, 0) - (bancoMotor ?? 0),
-              enJuegoDe(estados, bancoMotor),
+              enJuegoDe(estados, bancoMotor, total, dormidasMotor),
             ),
             // **El denominador de esa frase no es el total.**
             //
@@ -110,7 +145,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
             // otra. Las que están en juego son el total menos las dormidas.
             // Menos las dormidas por estado Y menos el banco, que el motor
             // cuenta aparte porque no siempre cae en `en_reserva`.
-            enJuego: enJuegoDe(estados, bancoMotor),
+            enJuego: enJuegoDe(estados, bancoMotor, total, dormidasMotor),
           };
         }
       }

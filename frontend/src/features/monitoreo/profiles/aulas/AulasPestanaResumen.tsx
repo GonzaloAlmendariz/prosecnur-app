@@ -223,6 +223,7 @@ export function AulasPestanaResumen({
                 // pie decía «2.109 de 2.109 cursos-horario en juego» sobre un
                 // operativo de 193 visitas.
                 bancoMotor={dashboard.course_status_banco}
+                dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
             {/* Los dos que se parecen, en pareja. Medido a 1440: cobertura ocupa 239 px
