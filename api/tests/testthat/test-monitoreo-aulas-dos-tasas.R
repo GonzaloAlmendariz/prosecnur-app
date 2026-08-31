@@ -296,10 +296,10 @@ test_that("una reserva APLICADA con 0 efectivas y sin parte es VISIBLE y «bajo�
 })
 
 test_that("una reserva con estado operativo ACTIVO entra aunque no rinda aun; la dormida no", {
-  # Activa = cualquier estado de gestion no vacio: en el plan una reserva
-  # dormida NO lleva `operational_status`. Una contactada ya esta en el
-  # operativo —se enseña «pendiente»—; la dormida con el 0 calculado que el
-  # tablero escribe en todas las filas sigue fuera.
+  # Activa = un estado de gestion REAL (contactada en adelante). OJO: este
+  # fixture va crudo; el camino real pasa por el normalizador, que escribe
+  # «planificada» en toda fila sin estado — ese caso lo pinnea el test
+  # post-normalizador de abajo, que es el que cazo la regresion del banco.
   res <- monitoreo_aulas_dos_tasas(list(
     .mdt_fila("CH 9", elegibles = 35, prevista = 0.60, plataforma = 0,
               rol = "chain_reserve", estado = "contactada"),
@@ -310,6 +310,33 @@ test_that("una reserva con estado operativo ACTIVO entra aunque no rinda aun; la
   expect_true(is.list(activa))
   expect_identical(activa[["senal"]], "pendiente")
   expect_null(.mdt_aula(res, "CH 11"))
+})
+
+test_that("tras el normalizador, el banco dormido sigue fuera: «planificada» por default no es gestion", {
+  # El normalizador escribe «planificada» en TODA fila sin estado (default del
+  # row-builder y de .monitoreo_aulas_status en monitoreo_aulas_universitarias),
+  # asi que «estado no vacio» dejaba entrar el banco de reservas ENTERO como
+  # «pendiente»: cientos de filas que nadie planea visitar, prometiendo agenda.
+  # Este test pasa el fixture por monitoreo_aulas_normalize_plan() ANTES del
+  # engine — el camino real del dashboard — que es el test que habria cazado
+  # la regresion (un sin-hallazgos vale lo que el fixture).
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "CH 1", classroom_id = "CH 1", sample_role = "titular",
+         faculty = "X", eligible_n = 40, tasa_efectividad_aula = 0.6),
+    list(operational_code = "R 1.1", classroom_id = "R 1.1", sample_role = "chain_reserve",
+         faculty = "X", eligible_n = 35, tasa_efectividad_aula = 0.6),
+    list(operational_code = "R 1.2", classroom_id = "R 1.2", sample_role = "chain_reserve",
+         faculty = "X", eligible_n = 35, tasa_efectividad_aula = 0.6,
+         operational_status = "contactada")
+  ))
+  res <- monitoreo_aulas_dos_tasas(plan)
+  # La dormida (default «planificada») queda fuera; la contactada entra como
+  # pendiente; el TITULAR planificado si es pendiente: su agenda es real.
+  expect_null(.mdt_aula(res, "R 1.1"))
+  activa <- .mdt_aula(res, "R 1.2")
+  expect_true(is.list(activa))
+  expect_identical(activa[["senal"]], "pendiente")
+  expect_identical(.mdt_aula(res, "CH 1")[["senal"]], "pendiente")
 })
 
 # ── M1: la banda es un PISO y la z es la de la casa ──────────────────────────
