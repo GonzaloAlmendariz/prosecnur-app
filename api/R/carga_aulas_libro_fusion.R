@@ -22,6 +22,17 @@
 #'
 #' Sale de lo que las tres hojas realmente preguntan
 #' (`carga_aulas_agendadas.R` y `carga_aulas_aplicadas.R`).
+#'
+#' El bloque «Parte de campo» que la lista declaraba (2026-08-31: `actual_room`,
+#' `attendees`, `refusals`, `duplicates`, `applied_surveys`,
+#' `effective_surveys`, `application_status`, `application_date`,
+#' `field_notes`) se retiro por muerto, medido: la fusion solo procesa
+#' `out$plan` —la hoja de agenda— y ese lector no emite campos de parte, asi
+#' que el bloque era inalcanzable; y cuatro de los nueve nombres (`attendees`,
+#' `applied_surveys`, `application_date`, `field_notes`) no los emite NINGUN
+#' lector. Los partes viajan por `out$partes` -> `monitoreo_aulas_partes_campo`
+#' (`.calb_aplicar_en_sesion`), no por esta lista. Los campos de agenda quedan
+#' intactos.
 #' @export
 AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   # Identidad y agenda
@@ -31,10 +42,7 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   # Estado y ciclo de contacto
   "sample_status", "contact_medium", "contact_date", "contact_attempts",
   "scheduled_date", "scheduled_day", "scheduled_time", "link",
-  "replacement_note", "notes",
-  # Parte de campo
-  "actual_room", "attendees", "refusals", "duplicates", "applied_surveys",
-  "effective_surveys", "application_status", "application_date", "field_notes"
+  "replacement_note", "notes"
 )
 
 #' Fusiona las filas del libro sobre el plan existente.
