@@ -1617,6 +1617,13 @@
 
 .mon-profile-page.is-aulas-flow .aulas-umbrales-celdas li {
   display: grid;
+  /* **Aqui el `auto` por fila es CORRECTO y no se toca.** El contenedor es
+     `repeat(auto-fit, minmax(150px, 1fr))`: una rejilla de TARJETAS que se
+     reparten en varias columnas, no filas de una misma tabla. Dos tarjetas
+     que caen una al lado de otra no tienen por que compartir el reparto
+     interno, y forzarlo con subgrid las estira a todo el ancho y rompe el
+     auto-fit. El patron «rejilla declarada en el li» solo es defecto cuando
+     los `li` son filas que se leen en columna. */
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 8px;
@@ -1820,15 +1827,21 @@
    conviven sin que ninguno quede suelto. */
 .mon-profile-page.is-aulas-flow .aulas-control-casos {
   display: grid;
-  gap: 4px;
+  gap: 4px 8px;
   margin: 5px 0 0;
   padding: 0;
   list-style: none;
+  /* El reparto vive aqui y no en el `li`: dentro del `li` cada fila mide
+     su propio `auto` y las columnas dejan de coincidir entre filas. */
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-casos li {
   display: grid;
+  /* Fallback y luego subgrid: ver la nota del contenedor. */
+  grid-column: 1 / -1;
   grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: subgrid;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
@@ -2313,9 +2326,14 @@
    para que las cifras queden alineadas y se comparen de un vistazo. */
 .mon-profile-page.is-aulas-flow .aulas-control-filtros-cabecera { margin: 8px 0 0; }
 
+/* Tres columnas comunes a todas las filas. La rejilla vive en el `ul` porque
+   `auto` dentro de un `li` mide solo SU fila: «109», «28» y «7» dejaban «se
+   caen» empezando en tres x distintas. */
 .mon-profile-page.is-aulas-flow .aulas-control-filtros {
   display: grid;
-  gap: 2px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 2px 8px;
   margin: 4px 0 0;
   padding: 0;
   list-style: none;
@@ -2324,19 +2342,17 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-filtros li {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+  display: contents;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-filtro-nombre {
-  min-width: 96px;
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
   color: var(--pulso-text);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-filtros strong {
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* ── Por facultad ────────────────────────────────────────────────────────────
@@ -3610,8 +3626,19 @@
   min-width: 0;
 }
 
+/* El reparto sube al `ul`: la ultima pista era `auto`, asi que cada fila la
+   dimensionaba con SU estado y el `1fr` de al lado quedaba con un ancho
+   distinto en cada una. El comentario de abajo ya avisaba de esto —«va fijo y
+   no max-content porque cada fila es su propia grilla»—: se resolvia una
+   columna a mano y quedaban las otras. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul {
+  display: grid;
+  grid-template-columns: 108px 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul > li {
   display: grid;
+  grid-column: 1 / -1;
   /* Cuándo · código · dónde · docente · estado. «Dónde» y «docente» ceden
      ancho; las otras tres tienen el suyo para que se lean en columna. */
   /* La columna del codigo pasa de 74 a 98 px: con «reemplaza a CH 21» debajo,
@@ -3620,6 +3647,7 @@
      cada fila es su propia grilla: dejarlo crecer desalinearia las columnas
      entre filas, que es peor que el recorte. */
   grid-template-columns: 108px 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 8px;
   padding: 3px 0;
@@ -5176,16 +5204,22 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-pasos {
   display: grid;
-  gap: 4px;
+  gap: 4px 12px;
   margin: 0;
   padding: 0;
   list-style: none;
   counter-reset: paso;
+  /* El reparto vive aqui y no en el `li`: dentro del `li` cada fila mide
+     su propio `auto` y las columnas dejan de coincidir entre filas. */
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-pasos li {
   display: grid;
+  /* Fallback y luego subgrid: ver la nota del contenedor. */
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   gap: 12px;
   align-items: baseline;
   padding: 6px 10px;

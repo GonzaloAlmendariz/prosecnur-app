@@ -500,14 +500,20 @@ export function AulasControlDelLibro({
             <strong>{fmt(caenEnTotal)}</strong> de <strong>{fmt(totalCriterio)}</strong> respuestas
             no pasan los filtros del estudio. Cuál las tumba:
           </p>
-          <ul className="aulas-control-filtros">
+          <ul className="aulas-control-filtros" role="list">
             {porFiltro.map((f) => (
-              <li key={f.nombre}>
+              <li key={f.nombre} role="listitem">
                 <span className="aulas-control-filtro-nombre">{f.nombre}</span>
-                <strong>{fmt(f.caen)}</strong> se caen
-                {f.soloEste !== f.caen ? (
-                  <span className="mon-profile-muted"> · {fmt(f.soloEste)} sólo por éste</span>
-                ) : null}
+                {/* La cifra en su propia celda y alineada a la derecha: en flex
+                    empujaba al texto, y «109», «28» y «7» dejaban «se caen»
+                    empezando en tres x distintas. */}
+                <strong>{fmt(f.caen)}</strong>
+                <span>
+                  se caen
+                  {f.soloEste !== f.caen ? (
+                    <span className="mon-profile-muted">, {fmt(f.soloEste)} sólo por éste</span>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
