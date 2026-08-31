@@ -59,8 +59,13 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
  *   mediana en los titulares (rango 0–21). Los reemplazos se agendaron más
  *   justos —5 y 4,5 días—, pero se toma el del titular porque el error barato es
  *   pedir con demasiado margen, no con poco.
- * - **Caída**: de 170 titulares, **40 necesitaron reemplazo (23,5 %)**. Pedir
- *   exactamente las aulas que faltan es pedir de menos.
+ * - **Caída**: de 170 titulares de 2025, **21 cayeron (12,4 %)** — el titular
+ *   no llegó a aplicarse y un reemplazo ocupó su lugar. «Necesitó reemplazo»
+ *   NO es la vara: 25 aulas más consumieron reserva con el titular aplicado
+ *   (refuerzo, no caída) y contarlas infla la tasa a niveles que ninguna
+ *   definición del libro reproduce. Derivación completa en
+ *   docs/qa/checklist-tres-fuentes-monitoreo-2026-08-27.md (§A7).
+ *   Pedir exactamente las aulas que faltan sigue siendo pedir de menos.
  *
  * Los dos son constantes **declaradas y fechadas**, no estimadas del corte en
  * curso: con dos semanas de campo la tasa de caída propia todavía es ruido, y
@@ -70,8 +75,8 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
 /** Días entre llamar a un aula y aplicarla. Mediana de los titulares, 2025. */
 export const DIAS_DE_ANTICIPACION = 7;
 
-/** Proporción de titulares que en 2025 acabaron necesitando reemplazo. */
-export const TASA_DE_CAIDA = 0.235;
+/** Titulares de 2025 cuya aplicación cayó y la cubrió un reemplazo: 21 de 170. */
+export const TASA_DE_CAIDA = 21 / 170;
 
 export type UrgenciaDeAgenda = "sin brecha" | "hay margen" | "pedir ahora" | "sin agenda";
 
