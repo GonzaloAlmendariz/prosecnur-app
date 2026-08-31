@@ -111,7 +111,13 @@ export function AulasCargaDeCampo({
       <section className="aulas-carga" data-qa-geometry-group="aulas-carga" data-qa-geometry-contract="intrinsic">
         <header className="aulas-carga-cab">
           <h3>Carga de campo</h3>
-          <p>Cuántos aplicadores hacen falta a la vez, según el horario de cada curso.</p>
+          {/* «Según el horario» admite justo la lectura que esta pantalla
+              existe para corregir: la de contar por hora de INICIO, que sobre
+              el plan de HSVG 2026 da un pico de 8 y el rango real da 19. La
+              rama con datos ya lo dice con precisión y el Excel también; ésta,
+              que es la que se ve mientras el plan no trae horarios, era la
+              única de las tres que se prestaba al malentendido. */}
+          <p>Cuántos aplicadores hacen falta a la vez, sobre el rango horario de cada curso.</p>
         </header>
         {/* La rama vacía declara lo mismo que la de datos: es donde el grupo
             se quedaba sin contenedor declarado y el `header` entraba en la
