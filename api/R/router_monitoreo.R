@@ -5259,7 +5259,7 @@ mount_monitoreo <- function(pr) {
       profile$status <- "active"
       profile$route_selected <- TRUE
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
-      session_set(sid, "monitoreo_aulas_plan", plan)
+      cfg <- monitoreo_aulas_registrar_en_sesion(sid, cfg, updates, plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, agenda = plan, aulas_universitarias = cfg$aulas_universitarias, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
