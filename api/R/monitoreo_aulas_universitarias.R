@@ -2284,7 +2284,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (!nzchar(respuesta_id_col)) {
         "La fuente no trae identificador de respuesta; no se puede comprobar."
       } else {
-        sprintf("%d respuestas repetidas.", respuestas_repetidas)
+        sprintf("%d respuesta%s repetida%s.", respuestas_repetidas,
+                if (respuestas_repetidas == 1L) "" else "s",
+                if (respuestas_repetidas == 1L) "" else "s")
       },
       .monitoreo_aulas_representatividad_texto(representativity),
       # **«grupos de facultad y sexo», no «celdas».** El vocabulario de la casa
@@ -2293,7 +2295,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # podia ver este texto: el detalle sale del motor y `presentDetail` lo
       # pinta tal cual. Medido el 2026-08-30: 14 textos de `monitoreo_aulas_*.R`
       # usan «aula» o «celda» y ninguno esta cubierto por ese ratchet.
-      if (length(quota_status)) sprintf("%s grupos de facultad y sexo con brecha.", sum(monitoreo_aulas_celda_en_deuda(quota_status))) else "Sin cuota sexo x facultad detectable.",
+      if (length(quota_status)) local({
+        n_brecha <- sum(monitoreo_aulas_celda_en_deuda(quota_status))
+        sprintf("%s grupo%s de facultad y sexo con brecha.", n_brecha,
+                if (n_brecha == 1L) "" else "s")
+      }) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (partes_comprobables > 0L) {
@@ -2338,8 +2344,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       },
       if ((cfg$control_sin_nombre %||% 0L) > 0L) {
         sprintf(
-          "%d columnas de la Base de control tienen datos pero su cabecera está vacía en el Excel, así que no se leyeron. Ponles nombre en la hoja para que entren.",
-          cfg$control_sin_nombre
+          "%d columna%s de la Base de control con datos y la cabecera vacía en el Excel, así que no se leyeron. Ponles nombre en la hoja para que entren.",
+          cfg$control_sin_nombre,
+          if (identical(as.integer(cfg$control_sin_nombre), 1L) ) "" else "s"
         )
       } else if (length(cfg$control %||% list()) || (cfg$control_sin_nombre %||% 0L) > 0L) {
         "Todas las columnas con datos de la Base de control tienen nombre."

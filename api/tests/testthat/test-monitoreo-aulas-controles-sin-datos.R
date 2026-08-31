@@ -82,3 +82,20 @@ test_that("con plan y estados reconocidos el control si es ok", {
   d <- monitoreo_aulas_dashboard(.mcs_plan(), data.frame(), list())
   expect_identical(.mcs_estado(d, "unknown_sample_status"), "ok")
 })
+
+# --- Los avisos concuerdan con su cifra ---------------------------------------
+#
+# El barrido de plurales, como el de tildes y el de vocabulario, se habia hecho
+# solo sobre el frontend. En el motor quedaban 19 candidatos; estos tres son los
+# que valen 1 con mas frecuencia, y los tres son avisos que se leen enteros
+# cuando saltan.
+
+test_that("una sola columna sin nombre no dice «1 columnas»", {
+  d <- monitoreo_aulas_dashboard(.mcs_plan(), data.frame(), list(control_sin_nombre = 1L))
+  expect_match(.mcs_detalle(d, "unnamed_control_columns"), "^1 columna de la Base")
+})
+
+test_that("con varias mantiene el plural", {
+  d <- monitoreo_aulas_dashboard(.mcs_plan(), data.frame(), list(control_sin_nombre = 7L))
+  expect_match(.mcs_detalle(d, "unnamed_control_columns"), "^7 columnas de la Base")
+})
