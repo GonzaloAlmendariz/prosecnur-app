@@ -58,13 +58,13 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         {r.distinguibles === 0 ? (
           <>
             Ningún equipo se separa de las <strong>{fmt1(r.mediaDelEstudio)}</strong>{" "}
-            encuestas por curso-horario del estudio
+            efectivas por curso-horario del estudio
           </>
         ) : (
           <>
             <strong>{fmt(r.distinguibles)}</strong>{" "}
             {r.distinguibles === 1 ? "equipo se separa" : "equipos se separan"} de las{" "}
-            {fmt1(r.mediaDelEstudio)} encuestas por curso-horario del estudio
+            {fmt1(r.mediaDelEstudio)} efectivas por curso-horario del estudio
           </>
         )}
       </p>
@@ -99,7 +99,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
         El ± es lo que puede moverse la media de un equipo por el reparto de
         cursos-horario que le tocó. Cuando dos bandas se solapan, la diferencia entre esos
         equipos no se puede atribuir a cómo trabajan.
-        {" "}Rechazos y duplicados van por cada cien encuestas conseguidas: en
+        {" "}Rechazos y duplicados van por cada cien efectivas conseguidas: en
         bruto, quien hace más aulas parece siempre el más problemático.
       </p>
     </div>
