@@ -880,7 +880,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         {elegida ? (
           <>
             <strong>{elegida.facultad}</strong> deja <strong>{personasPorAula(elegida.observadoFinal)}</strong>{" "}
-            encuestas por curso-horario en {fmt(elegida.aulas)}{" "}
+            efectivas por curso-horario en {fmt(elegida.aulas)}{" "}
             {elegida.aulas === 1 ? "curso-horario" : "cursos-horario"} ·
             {/* **Las dos expectativas, juntas y en la misma unidad.**
 
@@ -904,7 +904,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         ) : (
           <>
             <strong>{fmt(facultades.length)}</strong> facultades ·{" "}
-            <strong>{personasPorAula(mediaDelEstudio)}</strong> encuestas por curso-horario de media del estudio ·
+            <strong>{personasPorAula(mediaDelEstudio)}</strong> efectivas por curso-horario de media del estudio ·
             de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong>{" "}
             ({facultades[0].facultad}) a{" "}
             <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong>{" "}
