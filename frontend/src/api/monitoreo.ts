@@ -840,6 +840,17 @@ export type MonitoreoAulasAvanceCuota = {
   /** τ compartida; `null` cuando difiere por facultad. */
   tasa_esperada: number | null;
   tasa_fuente: "tau_disenio" | "certificacion" | "sin_tasa" | "";
+  /**
+   * La meta del diseño y su sobremuestra, cuando el estudio las declara.
+   *
+   * El operativo compara contra las dos: la meta es lo que hay que conseguir y
+   * la sobremuestra hasta dónde se compró aforo. `meta_operativa` es la suma, o
+   * sea el techo. Vienen `null` en un estudio que no las publica, y ahí la
+   * pantalla se calla en vez de inventar un techo.
+   */
+  meta_diseno?: number | null;
+  sobremuestra?: number | null;
+  meta_operativa?: number | null;
   total: MonitoreoAulasAvanceCuotaTotal;
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
 };

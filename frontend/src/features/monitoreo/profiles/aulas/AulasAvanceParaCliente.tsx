@@ -77,12 +77,18 @@ function veredicto(f: FilaAvanceCliente): { texto: string; tono: string } {
 
 export function AulasAvanceParaCliente({
   avanceCuota, celdasSexo = [], efectividad = null, avancePorFacultad = [],
-  facultadEnFoco, onFoco,
+  diseno = null, facultadEnFoco, onFoco,
 }: {
   avanceCuota: MonitoreoAulasAvanceCuota | null | undefined;
   celdasSexo?: ReadonlyArray<MonitoreoRow>;
   efectividad?: MonitoreoAulasEfectividadSeguimiento | null;
   avancePorFacultad?: ReadonlyArray<MonitoreoRow>;
+  /**
+   * Las metas del diseño, cuando el estudio las publica. De aquí sale la
+   * comparación contra la SOBREMUESTRA, que hasta ahora no llegaba a Monitoreo
+   * y por eso el pie de esta tabla declaraba que no la comparaba.
+   */
+  diseno?: { meta_diseno?: unknown; sobremuestra?: unknown; meta_operativa?: unknown } | null;
   facultadEnFoco?: string;
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
@@ -136,6 +142,22 @@ export function AulasAvanceParaCliente({
   // Los faltantes se SUMAN, no se netean: el superávit de una facultad no cubre
   // lo que falta en otra (ADR 0079).
   const totalFaltan = filas.reduce((s, f) => s + (f.faltan ?? 0), 0);
+
+  // **La sobremuestra, si el diseño la publica.** Se calla entera cuando no
+  // está: inventar un techo sería peor que no tenerlo.
+  const num = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const techo = num(diseno?.meta_operativa);
+  const extra = num(diseno?.sobremuestra);
+  const sobremuestra = techo ? (
+    <span>
+      Con la sobremuestra el techo es <strong>{personas(techo)}</strong>
+      {extra ? <> ({personas(extra)} sobre la meta)</> : null}, y se lleva el{" "}
+      <strong>{Math.round((totalConseguidas / techo) * 100)} %</strong> de ese techo.
+    </span>
+  ) : null;
   const abiertas = filas.filter((f) => (f.faltan ?? 0) > 0).length;
 
   return (
@@ -154,6 +176,13 @@ export function AulasAvanceParaCliente({
         ) : (
           <span>Todas las facultades tienen su cuota cubierta.</span>
         )}
+        {/* **La segunda vara, cuando el estudio la declara.**
+            El operativo compara contra dos cifras: la meta, que es lo que hay
+            que conseguir, y la sobremuestra, que es hasta dónde se compró aforo.
+            Gonzalo: «sobrellegar a la muestra no es una necesidad [...] la
+            sobremuestra podría servir como un valor referencial», así que se
+            dice como referencia y nunca como algo que falte. */}
+        {sobremuestra}
         {/* Los faltantes no se netean, y quien vea el total querrá restarlo. */}
         <span className="aulas-cliente-nota">
           lo que falta se suma grupo a grupo: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
@@ -235,7 +264,9 @@ export function AulasAvanceParaCliente({
         <strong>Avance del total</strong> compensa un sexo con el otro;{" "}
         <strong>Faltan</strong> suma el déficit de cada sexo por separado y es el que
         decide el estado. Por eso una facultad pasa del 100 % y sigue pendiente.{" "}
-        La sobremuestra operativa no llega a Monitoreo, así que esta tabla no la compara.
+        La <strong>sobremuestra</strong> es hasta dónde se compró aforo, no una segunda meta:
+        lo que decide el cierre sigue siendo la cuota de cada facultad y sexo. Aparece arriba
+        cuando el estudio la declara.
       </p>
     </div>
   );

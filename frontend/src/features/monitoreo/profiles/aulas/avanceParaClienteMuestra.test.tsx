@@ -215,3 +215,53 @@ describe("el veredicto no da por cerrada una facultad a la que le faltan mujeres
     expect(cerrada).toContain("Cuota cumplida");
   });
 });
+
+describe("la sobremuestra, cuando el diseño la declara", () => {
+  // Gonzalo, 2026-08-31: el operativo compara contra DOS cifras, «cuánto es la
+  // meta de la muestra, cuánto es la meta de la sobremuestra, y cuánto íbamos».
+  // La segunda no llegaba a Monitoreo y el pie de esta tabla lo declaraba.
+  const conDiseno = {
+    schema: "monitoreo_aulas_avance_cuota_v1",
+    fuente: "design_targets",
+    vigencia: "vigente",
+    motivo: "",
+    tasa_esperada: null,
+    tasa_fuente: "tau_disenio",
+    meta_diseno: 2500,
+    sobremuestra: 1250,
+    meta_operativa: 3750,
+    total: { cuota: 2500, respuestas_validas: 2616, brecha: 0, avance_pct: 104 },
+    facultades: [
+      { facultad: "Derecho", cuota: 2500, respuestas_validas: 2616, brecha: 0, avance_pct: 104 },
+    ],
+  } as unknown as MonitoreoAulasAvanceCuota;
+
+  it("dice el techo y qué parte de él se lleva", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceParaCliente avanceCuota={conDiseno} diseno={conDiseno} />,
+    );
+    expect(html).toContain("3,750");
+    // Y la sobremuestra por separado: 1.250 sobre la meta.
+    expect(html).toContain("1,250");
+    // 2.616 de 3.750 es el 70 %.
+    expect(html).toContain("70 %");
+  });
+
+  it("se calla entera si el estudio no la declara", () => {
+    // Inventar un techo sería peor que no tenerlo: la mayoría de los estudios
+    // no publican sobremuestra y la tabla no debe suponerla.
+    const html = renderToStaticMarkup(
+      <AulasAvanceParaCliente avanceCuota={conDiseno} diseno={null} />,
+    );
+    expect(html).not.toContain("el techo es");
+  });
+
+  it("el pie ya no dice que no la compara", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceParaCliente avanceCuota={conDiseno} diseno={conDiseno} />,
+    );
+    expect(html).not.toContain("no la compara");
+    // Y sigue diciendo lo que sí decide, que no es la sobremuestra.
+    expect(html).toContain("no una segunda meta");
+  });
+});

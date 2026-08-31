@@ -410,6 +410,19 @@
     motivo = vig$motivo,
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
+    # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**
+    #
+    # El operativo compara el avance contra DOS cifras: la meta -lo que hay que
+    # conseguir- y la sobremuestra -hasta dónde se compró aforo-. La segunda
+    # vivía en `componente$resultado` del estudio y moría ahí, así que la tabla
+    # de cuotas sólo podía comparar contra la primera y lo declaraba en su pie.
+    #
+    # Viajan por el mismo bloque que las metas por facultad y con su misma
+    # vigencia: si el sello no cuadra, no se publican, porque una sobremuestra
+    # de otro sorteo es peor que ninguna.
+    meta_diseno = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_diseno, NA_real_) else NA_real_,
+    sobremuestra = if (length(vig$facultades)) .monitoreo_num(vig$dt$sobremuestra, NA_real_) else NA_real_,
+    meta_operativa = if (length(vig$facultades)) .monitoreo_num(vig$dt$meta_operativa, NA_real_) else NA_real_,
     total = total,
     facultades = filas
   )
