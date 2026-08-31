@@ -2344,7 +2344,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       } else if (length(cfg$control %||% list()) || (cfg$control_sin_nombre %||% 0L) > 0L) {
         "Todas las columnas con datos de la Base de control tienen nombre."
       } else {
-        "El libro todavia no trae la hoja «Base de control» que comprobar."
+        "El libro todavía no trae la hoja «Base de control» que comprobar."
       },
       monitoreo_aulas_estados_no_reconocidos_texto(estados_raros),
       monitoreo_aulas_criterio_texto(criterio),
@@ -2364,7 +2364,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
             enlaces$sin_personalizar
           )
         } else {
-          "El plan todavia no trae enlaces de recopilador que comprobar."
+          "El plan todavía no trae enlaces de recopilador que comprobar."
         }
       } else if (enlaces$enlaces > 0L) {
         # **La causa, cuando se puede probar.** «23 enlaces repetidos» dice que
@@ -2372,12 +2372,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         # identificador» dice como se arregla y de una vez para todas.
         causa <- if (is.na(enlaces$truncado)) "" else sprintf(
           paste0(" El enlace lleva solo los %d primeros caracteres del identificador ",
-                 "del curso-horario, asi que dos que empiecen igual caen en el mismo."),
+                 "del curso-horario, así que dos que empiecen igual caen en el mismo."),
           enlaces$truncado
         )
         sprintf(
           paste0("%d cursos-horario comparten %d enlaces con otro: sus respuestas entran ",
-                 "por la misma puerta y no se pueden separar despues (%s).%s Revisa el ",
+                 "por la misma puerta y no se pueden separar después (%s).%s Revisa el ",
                  "enlace en el plan antes de que entre mas campo."),
           enlaces$aulas, enlaces$enlaces, paste(enlaces$ejemplos, collapse = "; "), causa
         )
