@@ -2257,6 +2257,39 @@
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: var(--pulso-resultado-pendiente); }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-meta::before { background: var(--pulso-border); }
+/* «Vencidos sin aplicar» reusa esta leyenda y necesita el color de su segundo
+   segmento, que ahi no es lo pendiente sino lo que ya se perdio. */
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-parte::before { background: var(--pulso-resultado-rechazo); }
+
+/* Qué filtro decide. Una linea por filtro, el nombre en la columna izquierda
+   para que las cifras queden alineadas y se comparen de un vistazo. */
+.mon-profile-page.is-aulas-flow .aulas-control-filtros-cabecera { margin: 8px 0 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-control-filtros {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-filtros li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-filtro-nombre {
+  min-width: 96px;
+  font-family: var(--pulso-font-mono, ui-monospace, monospace);
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-filtros strong {
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Por facultad ────────────────────────────────────────────────────────────
    El carril de cada facultad mide SU meta contra la meta más alta, y el relleno

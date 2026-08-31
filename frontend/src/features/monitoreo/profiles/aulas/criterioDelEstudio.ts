@@ -24,7 +24,34 @@ export type CriterioDelEstudio = {
   columna?: string;
   validas?: number;
   total?: number;
+  /**
+   * Cuántas respuestas tumba CADA filtro, y cuántas tumba él solo.
+   *
+   * Lo calcula `.monitoreo_aulas_caidas_por_filtro()` y viajaba dentro de
+   * `criterio_validez` sin que nadie lo leyera: la pantalla decía cuántos
+   * filtros declara el estudio y no cuál de ellos decide. Medido sobre este
+   * corte, «filtro» tumba 109 y `consent_1` sólo 7: son dos papeles muy
+   * distintos bajo la misma palabra.
+   *
+   * `solo_este` es lo que se recuperaría quitando ese filtro y dejando los
+   * otros. Sin él, tres filtros que tumban 109, 28 y 7 parecen sumar 144
+   * cuando pueden estar cayendo sobre las mismas respuestas.
+   */
+  por_filtro?: Array<{ var?: string; caen?: number; solo_este?: number }>;
 };
+
+/** Los filtros con su cuenta, ordenados por lo que tumban. Descarta los vacíos. */
+export function caidasPorFiltro(criterio: CriterioDelEstudio | null | undefined) {
+  const filas = Array.isArray(criterio?.por_filtro) ? criterio.por_filtro : [];
+  return filas
+    .map((f) => ({
+      nombre: String(f?.var ?? "").trim(),
+      caen: Number.isFinite(Number(f?.caen)) ? Number(f.caen) : 0,
+      soloEste: Number.isFinite(Number(f?.solo_este)) ? Number(f.solo_este) : 0,
+    }))
+    .filter((f) => f.nombre)
+    .sort((a, b) => b.caen - a.caen);
+}
 
 const lista = (v: string[] | string | undefined): string[] => {
   if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
