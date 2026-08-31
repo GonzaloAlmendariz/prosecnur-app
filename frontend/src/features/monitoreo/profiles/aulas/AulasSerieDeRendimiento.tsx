@@ -462,7 +462,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         let suma = ultimo;
         return porVenir.map((fecha) => (suma += porFecha.get(fecha) ?? 0));
       })();
-    const techo = Math.max(ultimo, meta, sobremuestra ?? 0, ...proyectadas, 1);
+    // **La sobremuestra es del ESTUDIO, no de la facultad que se esté mirando.**
+    //
+    // Con una facultad en foco la meta del gráfico pasa a ser la suya —93 en
+    // Educación— mientras la sobremuestra sigue valiendo 3.750, el aforo
+    // comprado para el estudio entero. Meterla en el techo escalaba el eje a
+    // 4.000 con todos los datos por debajo de 120: las líneas quedaban
+    // aplastadas contra el suelo e ilegibles. Se vio en pantalla el mismo día
+    // que se conectó la sobremuestra a este gráfico.
+    //
+    // No se reparte por facultad aquí, aunque el libro sí lo haga con el ratio
+    // del diseño: allí la referencia es la CUOTA de cada facultad, y la de este
+    // gráfico es «lo que el plan espera de los cursos-horario visitados», que
+    // es otro denominador. Aplicarle el mismo ratio mezclaría dos cosas.
+    const sobremuestraDelEstudio = foco ? null : sobremuestra;
+    const techo = Math.max(ultimo, meta, sobremuestraDelEstudio ?? 0, ...proyectadas, 1);
     const { tope, escalones } = escalaDeEje(techo);
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
     const observado = observadas.map((v, i) => `${xa(i)},${yy(v)}`).join(" ");
@@ -953,7 +967,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               )}
                 {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
                   pantalla igual tanto si el estudio la tiene como si no. */}
-              {sobremuestra && sobremuestra > acumulado.meta ? (
+              {/* Con una facultad en foco no se dice ni que la hay ni que falta: la
+                  cifra existe pero es del estudio entero, y enseñarla al lado de la
+                  meta de una facultad invita a compararlas. */}
+              {foco ? null : sobremuestra && sobremuestra > acumulado.meta ? (
                 <em style={{ "--aulas-serie-color": COLOR_RESULTADO.revision } as React.CSSProperties}>
                   Sobremuestra {fmt(sobremuestra)}
                   {acumulado.series.length && acumulado.series.every((se) => se.alcanza) ? " · referencia" : " · referencia, no obligatoria"}
