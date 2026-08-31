@@ -86,6 +86,7 @@ export function AulasPestanaCuotas({
                 celdasSexo={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
                 efectividad={dashboard.efectividad_seguimiento}
                 avancePorFacultad={(dashboard.avance_por_facultad ?? []) as MonitoreoRow[]}
+                diseno={dashboard.avance_cuota}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
               />

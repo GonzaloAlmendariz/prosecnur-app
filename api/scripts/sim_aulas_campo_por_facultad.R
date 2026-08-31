@@ -96,7 +96,13 @@ metas$selection_run_id <- run
 metas$frame_hash <- hash
 st$monitoreo_config$selection_run_id <- run
 st$monitoreo_config$frame_hash <- hash
+# EL CONFIG VIVE EN DOS SITIOS, igual que el parte, y el motor lee el de DENTRO:
+# `router_monitoreo.R:1107` hace `aulas_cfg <- cfg$aulas_universitarias`. Escribir
+# solo el de la raiz deja la pantalla igual y parece que el cambio no llego.
 st$monitoreo_config$design_targets <- metas
+st$monitoreo_config$aulas_universitarias$design_targets <- metas
+st$monitoreo_config$aulas_universitarias$selection_run_id <- run
+st$monitoreo_config$aulas_universitarias$frame_hash <- hash
 vig <- prosecnurapp:::.monitoreo_aulas_avance_vigencia(st$monitoreo_config)
 cat(sprintf("  vigencia: %s (%d facultades)\n", vig$vigencia, length(vig$facultades)))
 
