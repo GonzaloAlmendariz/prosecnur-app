@@ -1425,7 +1425,14 @@ export default function AulasMonitoreoPage() {
               tone="monitoreo"
               current="monitoreo"
               compact
-              title="Seguimiento de la intervención por cursos-horario"
+              // «Seguimiento de la INTERVENCIÓN» convivía con el eyebrow
+              // «APLICACIÓN por cursos-horario» en el mismo bloque: dos palabras
+              // para lo mismo, que es la ambigüedad que este perfil lleva todo
+              // el día pagando. «Intervención» es palabra del dueño (cita del
+              // 18/08 en AulasMatrizUmbrales), pero el vocabulario dominante de
+              // la pantalla es «aplicación» —estados, fechas, KPIs— y el bloque
+              // ya lo usa de eyebrow. Se unifica hacia el dominante.
+              title="Seguimiento de la aplicación por cursos-horario"
               // **La franja en prosa era la propia franja.** Decía «lee el plan
               // del cálculo de muestra y sus enlaces QR/PDF para medir avance,
               // caídas, reemplazos y brechas» —26 palabras— y justo debajo están
