@@ -18,32 +18,6 @@
 #' @return lista con `esperado`, `declarado` y `diferencia`, o `NULL` si el
 #'   parte no trae numeros suficientes para comprobar nada.
 #' @export
-#' Las claves con las que cada numero del parte puede llegar.
-#'
-#' El libro real se llena en castellano y el lector conserva sus nombres, asi
-#' que toda capa que lea un parte necesita la misma lista. Vivian sueltas dentro
-#' de `monitoreo_aulas_partes_publicados()` y `monitoreo_aulas_parte_descuadre()`
-#' leia solo la inglesa: dos lecturas de la misma regla, y la que decidia si un
-#' parte cuadra era la ciega.
-#' @noRd
-.MONITOREO_AULAS_PARTE_ALIAS <- list(
-  asistentes = c("observed_students", "asistentes", "alumnos_en_aula", "aforo_observado"),
-  efectivas  = c("effective_surveys", "validas", "efectivas"),
-  rechazos   = c("refusals", "rechazos"),
-  duplicados = c("duplicates", "duplicados")
-)
-
-#' El primer alias que traiga valor, o NULL.
-#' @noRd
-.monitoreo_aulas_parte_primero <- function(parte, claves) {
-  for (k in claves) {
-    v <- parte[[k]]
-    if (!is.null(v) && length(v) == 1L && !is.na(v) &&
-        (!is.character(v) || nzchar(trimws(v)))) return(v)
-  }
-  NULL
-}
-
 monitoreo_aulas_parte_descuadre <- function(parte) {
   num <- function(claves) {
     v <- suppressWarnings(as.numeric(.monitoreo_aulas_parte_primero(parte, claves) %||% NA))
@@ -171,7 +145,7 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
       # denominador que uso el equipo son suyos, y porque un porcentaje que no
       # cuadra con los asistentes que la misma fila declara es en si mismo un
       # hallazgo del cuadre.
-      attendance_pct = num(primero(p, c("attendance_pct", "pct_asistencia", "porcentaje_asistencia"))),
+      attendance_pct = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$asistencia_pct)),
       refusals = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$rechazos)),
       duplicates = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$duplicados)),
       effective_surveys = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$efectivas)),
@@ -193,7 +167,7 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
       #
       # Son dos hechos MUY distintos para quien decide si reagendar.
       application_status = txt(primero(p, c("application_status", "status", "estado_aplicacion"))),
-      applied_by = txt(primero(p, c("applied_by", "aplicador", "aplicadora", "applicator"))),
+      applied_by = txt(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$aplicador)),
       actual_room = txt(primero(p, c("actual_room", "aula_real", "salon_real"))),
       # `fecha` es la clave que usa el estado; la del libro llega como
       # `applied_date`. Se prueban todas y sólo se cae al `paste` cuando hay

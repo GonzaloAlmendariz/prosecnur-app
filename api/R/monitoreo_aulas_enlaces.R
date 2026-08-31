@@ -99,7 +99,7 @@ monitoreo_aulas_enlaces_compartidos <- function(en_juego = data.frame()) {
 #'
 #' @param filas data.frame con `link` y `classroom_id`.
 #' @return entero con el largo conservado, o `NA_integer_`.
-#' @export
+#' @noRd
 .maen_largo_truncado <- function(filas) {
   if (!is.data.frame(filas) || !nrow(filas)) return(NA_integer_)
   if (!all(c("link", "classroom_id") %in% names(filas))) return(NA_integer_)
