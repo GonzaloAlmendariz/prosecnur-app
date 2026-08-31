@@ -44,6 +44,16 @@ export function parteDeCampo(
     // `cuadra` viene del motor y puede ser nulo: un parte sin asistentes ni
     // efectivas no tiene identidad que comprobar, y tratarlo como descuadre
     // inventaría un problema que nadie declaró.
+    //
+    // **Ese nulo llegó a significar otra cosa, y este panel lo publicaba.**
+    // Medido el 2026-08-30: los 152 partes del estudio salían «152 sin
+    // comprobar» teniendo asistentes y efectivas los 152. No era que no
+    // declararan lo suficiente: el motor leía `observed_students` mientras el
+    // libro escribe `asistentes`, así que devolvía nulo por no entender la
+    // clave. Reparado en `monitoreo_aulas_parte_descuadre()`, los 152 se
+    // comprueban y 144 no cuadran. Un contador de «sin comprobar» alto con las
+    // columnas llenas es la firma de esa clase de ceguera, no de un parte
+    // incompleto.
     descuadra: fila.cuadra === false,
     magnitud: Math.abs(numero(fila.diferencia) ?? 0),
     };

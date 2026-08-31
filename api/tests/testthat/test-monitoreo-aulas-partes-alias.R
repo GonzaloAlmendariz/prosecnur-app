@@ -42,11 +42,31 @@ test_that("un campo vacio NO gana al que si trae valor", {
 
 test_that("lo que el parte no trae sigue vacio, no se inventa", {
   out <- monitoreo_aulas_partes_publicados(list(.pa_estado()))[[1]]
-  # Sin rechazos ni duplicados no hay identidad del cuadre que comprobar.
+  # Un numero que el parte no declara se publica vacio: un cero pareceria un
+  # dato del equipo.
   expect_true(is.na(out$refusals))
   expect_true(is.na(out$duplicates))
-  expect_true(is.na(out$esperado))
   expect_identical(out$field_note, "")
+})
+
+test_that("el cuadre se calcula aunque el parte venga solo en castellano", {
+  # **Este aserto vivia invertido, y pasaba por el defecto.** Decia
+  # `expect_true(is.na(out$esperado))` con el comentario «sin rechazos ni
+  # duplicados no hay identidad que comprobar» — que contradice al contrato
+  # vecino, `test-monitoreo-aulas-reconciliacion.R`: «rechazos y duplicados
+  # ausentes SI valen cero». Pasaban los dos porque `.pa_estado()` escribe
+  # `asistentes`/`validas` y `monitoreo_aulas_parte_descuadre()` leia solo
+  # `observed_students`: devolvia NULL por no entender el castellano, no por la
+  # regla que el comentario invocaba.
+  #
+  # Medido el 2026-08-30 sobre el estudio de 152 partes —0 con la clave
+  # inglesa, 152 con la castellana— eso dejaba el cuadre sin comprobar en
+  # TODOS, y el control de Validacion publicaba «Los numeros de cada parte de
+  # campo cuadran» en verde.
+  out <- monitoreo_aulas_partes_publicados(list(.pa_estado()))[[1]]
+  expect_equal(out$esperado, 30)
+  expect_equal(out$diferencia, -12)
+  expect_false(out$cuadra)
 })
 
 test_that("fecha y hora sueltas siguen componiendose", {
