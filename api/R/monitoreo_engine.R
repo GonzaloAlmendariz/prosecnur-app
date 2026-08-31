@@ -5958,7 +5958,7 @@ monitoreo_sync_source <- function(source, since = NULL, progress = NULL, sid = N
       sync_mode <- "full"
     }
     if (!is.null(progress)) {
-      progress(6L, 8L, sprintf("Kobo: %s respuestas recibidas", format(as.integer(payload$count %||% 0L), big.mark = ",", trim = TRUE)))
+      progress(6L, 8L, local({ n_kobo <- as.integer(payload$count %||% 0L); sprintf("Kobo: %s respuesta%s recibida%s", format(n_kobo, big.mark = ",", trim = TRUE), if (identical(n_kobo, 1L)) "" else "s", if (identical(n_kobo, 1L)) "" else "s") }))
       progress(7L, 8L, "Kobo: normalizando respuestas")
     }
     data <- kobo_api_flatten_results(payload$results)
