@@ -63,7 +63,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
           ) : null}
         </p>
       )}
-      <ol className="aulas-embudo-pasos">
+      <ol className="aulas-embudo-pasos" role="list">
         {e.pasos.map((p) => (
           <li key={p.clave}>
             <span className="aulas-embudo-rotulo">{p.etiqueta}</span>
