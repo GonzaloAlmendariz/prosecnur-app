@@ -87,11 +87,19 @@ function repartoPorSexo(f: MonitoreoAulasPlanRow) {
     elegibles: { mujeres, hombres, total: mujeres + hombres },
     // Hacia abajo: media persona no se encuesta, y una meta redondeada hacia
     // arriba prometería gente que el aula no tiene.
-    esperadas: {
-      mujeres: Math.floor(mujeres * tasa),
-      hombres: Math.floor(hombres * tasa),
-      total: Math.floor((mujeres + hombres) * tasa),
-    },
+    //
+    // **Y el total es la SUMA de las dos, no un tercer redondeo.** Redondear
+    // por separado el total rompe la aditividad de la fila: con 29 elegibles
+    // (5 mujeres, 24 hombres) y tasa 0,52 salía «2 mujeres · 12 hombres · 15»,
+    // porque `floor(29 × 0,52) = 15` mientras `floor(2,6) + floor(12,48) = 14`.
+    // Visto a 1440 el 2026-08-30 en las dos solapas del popover: **los seis
+    // candidatos mostrados fallaban por uno**, siempre de más en el total.
+    // Tres celdas en una línea donde dos tienen que sumar la tercera.
+    esperadas: (() => {
+      const eM = Math.floor(mujeres * tasa);
+      const eH = Math.floor(hombres * tasa);
+      return { mujeres: eM, hombres: eH, total: eM + eH };
+    })(),
     tasa,
   };
 }

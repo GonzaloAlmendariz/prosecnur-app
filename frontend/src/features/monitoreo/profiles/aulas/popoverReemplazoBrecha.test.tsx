@@ -62,3 +62,52 @@ describe("«cierra brecha» sólo se dibuja si hay brecha que cerrar", () => {
     expect(html).not.toContain("cierra brecha");
   });
 });
+
+describe("la fila de esperadas suma", () => {
+  /**
+   * Tres celdas en una línea donde dos tienen que dar la tercera. Salían de
+   * tres `Math.floor` independientes —uno por sexo y otro sobre el total—, y
+   * la suma de redondeos no es el redondeo de la suma.
+   *
+   * Visto a 1440 el 2026-08-30 en las dos solapas del popover, la primera vez
+   * que se miró esa superficie: **los seis candidatos mostrados fallaban por
+   * uno**, siempre de más en el total. Con 29 elegibles (5 mujeres, 24
+   * hombres) y tasa 0,52: `floor(2,6) + floor(12,48) = 14` contra
+   * `floor(29 × 0,52) = 15`.
+   *
+   * Redondear hacia abajo se queda —«una meta redondeada hacia arriba
+   * prometería gente que el aula no tiene»—; lo que cambia es que el total no
+   * se calcula aparte.
+   */
+  const conReparto = (mujeres: number, hombres: number, tasa: number) => {
+    const caido = fila("CH 9");
+    const reserva = fila("R 9.1", {
+      sample_role: "chain_reserve", titular_operational_code: "CH 9",
+      replacement_order: 1, sample_status: "en_reserva", operational_status: "planificada",
+      // `sex_top_1` es el sexo DOMINANTE, no «mujeres»: con "M" el primero son
+      // hombres. Se declara así para no invertir la tabla.
+      sex_top_1: "M", sex_top_1_n: hombres, sex_top_2_n: mujeres,
+      eligible_n: mujeres + hombres, tasa_efectividad_aula: tasa,
+    });
+    return renderToStaticMarkup(
+      <ContenidoDeReemplazo caido={caido} filas={[caido, reserva]} />,
+    );
+  };
+
+  it("el caso real: 5 mujeres y 24 hombres al 0,52 dan 14, no 15", () => {
+    const html = conReparto(5, 24, 0.52);
+    // 2 + 12 = 14. El total ya no se redondea por su cuenta.
+    expect(html).toContain("<b>2</b> mujeres");
+    expect(html).toContain("<b>12</b> hombres");
+    expect(html).toContain(">14<");
+    expect(html).not.toContain(">15<");
+  });
+
+  it("cuando no hay resto, las tres cifras coinciden igual", () => {
+    // El control: si el arreglo fuera «restar uno siempre», este caso fallaría.
+    const html = conReparto(10, 10, 0.5);
+    expect(html).toContain("<b>5</b> mujeres");
+    expect(html).toContain("<b>5</b> hombres");
+    expect(html).toContain(">10<");
+  });
+});
