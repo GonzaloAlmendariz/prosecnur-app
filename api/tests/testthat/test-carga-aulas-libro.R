@@ -97,3 +97,50 @@ test_that("el libro importado queda en la sesion sin fusionar las tres medidas",
   expect_true("monitoreo_aulas_control" %in% names(s))
   expect_identical(s$monitoreo_aulas_libro$resumen$unidades, 1L)
 })
+
+# ---------------------------------------------------------------------------
+# El parte llega en CASTELLANO y la hoja tiene que llenarse igual.
+#
+# Cuarta vez que la misma regla se lee en una capa que no conocia los alias. La
+# cabecera de `.MONITOREO_AULAS_PARTE_ALIAS` ya contaba las tres anteriores:
+# «una capa aprendio los alias y las otras dos no se enteraron; por eso son UNA
+# constante y no tres listas». El generador del libro era la cuarta: escribia la
+# hoja leyendo solo nombres ingleses, y sobre un .pulso real —152 partes, todos
+# castellanos— salian las 192 filas vacias y releer el libro devolvia 0 partes.
+#
+# El test usa el vocabulario CASTELLANO a proposito: con el ingles pasaria
+# igual antes y despues del arreglo, que es como se colo las cuatro veces.
+# ---------------------------------------------------------------------------
+
+test_that("la hoja de campo se llena con un parte en castellano", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        faculty = "DERECHO", enrolled_total = 40, eligible_n = 30))
+  parte_es <- list(operational_code = "CH 1", classroom_id = "aula_1",
+                   asistentes = 25, validas = 18, aplicador = "APL-3",
+                   fecha = "2026-09-08", rechazos = 4, duplicados = 3)
+  hoja <- aulas_libro_hoja_aplicadas(unidades, partes = list(parte_es))
+  plano <- as.character(unlist(hoja))
+  for (v in c("25", "18", "APL-3", "2026-09-08", "4", "3")) {
+    expect_true(v %in% plano, info = paste("falta en la hoja:", v))
+  }
+})
+
+test_that("el vocabulario ingles sigue funcionando: los alias suman, no sustituyen", {
+  unidades <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                        enrolled_total = 40, eligible_n = 30))
+  parte_en <- list(operational_code = "CH 1", classroom_id = "aula_1",
+                   observed_students = 25, effective_surveys = 18,
+                   applied_by = "APL-3", applied_date = "2026-09-08")
+  plano <- as.character(unlist(aulas_libro_hoja_aplicadas(unidades, partes = list(parte_en))))
+  for (v in c("25", "18", "APL-3", "2026-09-08")) expect_true(v %in% plano)
+})
+
+test_that("cada campo del parte que el libro escribe tiene su entrada en la constante", {
+  # El guard de fondo: si alguien añade una columna al bloque de campo y la lee
+  # por nombre literal, este aserto no la ve —pero si la lee por alias y se
+  # olvida de declararlo, salta aqui en vez de en un libro vacio.
+  usados <- c("asistentes", "asistencia_pct", "rechazos", "duplicados",
+              "efectivas", "aplicador", "aula", "fecha", "hora", "estado", "nota")
+  faltan <- setdiff(usados, names(prosecnurapp:::.MONITOREO_AULAS_PARTE_ALIAS))
+  expect_equal(faltan, character(0))
+})

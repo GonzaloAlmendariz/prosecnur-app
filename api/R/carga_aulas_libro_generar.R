@@ -137,11 +137,25 @@ aulas_libro_hoja_agendadas <- function(unidades) {
 # Celdas del parte de campo en el orden de `.calg_titulos_campo()`. Con `parte`
 # nulo salen los dos denominadores y el resto en blanco, que es el libro nuevo.
 .cap_celdas_parte <- function(parte, unidad, titulos_campo) {
-  v <- function(x) .calg_txt((parte %||% list())[[x]])
-  n <- function(x) .calg_num_txt((parte %||% list())[[x]])
+  # **Por ALIAS, no por nombre literal.**
+  #
+  # Esto leia `parte$observed_students`, `parte$effective_surveys`… o sea el
+  # vocabulario que produce el lector del libro. Pero hay un segundo productor
+  # —la propia app— que los escribe en castellano, y sobre el .pulso de
+  # HSVG2026 (152 partes, todos castellanos) la hoja de campo salia con sus
+  # 192 filas VACIAS. Releer ese libro devolvia 0 partes.
+  #
+  # `.MONITOREO_AULAS_PARTE_ALIAS` existe justo para esto y su cabecera ya
+  # contaba el mismo caso en otras capas: «una capa aprendio los alias y las
+  # otras dos no se enteraron; por eso son UNA constante y no tres listas».
+  # Esta era la cuarta.
+  pa <- function(clave) .monitoreo_aulas_parte_primero(
+    parte %||% list(), .MONITOREO_AULAS_PARTE_ALIAS[[clave]])
+  v <- function(x) .calg_txt(pa(x))
+  n <- function(x) .calg_num_txt(pa(x))
   celdas <- c(
     .calg_num_txt(unidad$enrolled_total), .calg_num_txt(unidad$eligible_n),
-    n("observed_students"),
+    n("asistentes"),
     # **El % de asistencia VUELVE al libro.** Estaba en blanco con el comentario
     # de que «lo calcula la hoja del equipo con sus formulas», pero el libro que
     # generamos no llevaba formula ninguna: escribia texto vacio. Y el LECTOR si
@@ -149,15 +163,9 @@ aulas_libro_hoja_agendadas <- function(unidades) {
     # perdia justo esa columna. No se deriva —medido sobre 152 partes: no sale
     # de ninguno de los dos denominadores de la hoja— porque es el numero que
     # pone el equipo.
-    n("attendance_pct"),
-    n("refusals"), n("duplicates"), n("effective_surveys"),
-    # Los nombres son los que produce el LECTOR (`carga_aulas_aplicadas.R`),
-    # que es de donde vienen los partes en un estudio real. Los alias cubren a
-    # quien los arme a mano.
-    .calg_txt((parte %||% list())$applied_by %||% (parte %||% list())$applicator),
-    v("actual_room"),
-    .calg_txt((parte %||% list())$applied_date %||% (parte %||% list())$applied_at),
-    v("applied_time"), v("application_status"), v("field_note")
+    n("asistencia_pct"),
+    n("rechazos"), n("duplicados"), n("efectivas"),
+    v("aplicador"), v("aula"), v("fecha"), v("hora"), v("estado"), v("nota")
   )
   length(celdas) <- length(titulos_campo)
   celdas[is.na(celdas)] <- ""
@@ -716,6 +724,16 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   cols_campo <- function(titulos) unlist(lapply(titulos, function(t)
     vapply(seq_len(intentos_campo), function(b) col_campo(t, b), integer(1))))
 
+  # Las columnas de AGENDA que la hoja de campo repite delante de las suyas.
+  # Hermana de `cols_campo`, y va aqui por lo mismo: `formatos` las necesita.
+  col_agenda_en_campo <- function(titulo, b) {
+    (b - 1L) * ancho_campo + 1L + which(.calg_titulos_agenda() == titulo)
+  }
+  cols_agenda_en_campo <- function(titulos) unlist(lapply(titulos, function(t) {
+    if (!length(which(.calg_titulos_agenda() == t))) return(integer(0))
+    vapply(seq_len(intentos_campo), function(b) col_agenda_en_campo(t, b), integer(1))
+  }))
+
   # Cada columna con su paleta. Las dos ultimas las pidio Gonzalo comparando con
   # el Sheets que el equipo usa: «chips desplegables para los status y dias de
   # la semana». Son las dos columnas que el agendador recorre en VERTICAL para
@@ -781,6 +799,17 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
          cols = cols_de(c("enrolled_total", "eligible_n", "contact_attempts"))),
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
          tipo = "numero", cols = cols_campo(.calg_campo_numeros())),
+    # Las columnas de agenda que esta hoja repite: sin su formato, una fecha
+    # tipada sale como «46 245» y el arreglo se lee como una averia peor.
+    list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
+         tipo = "numero", cols = cols_agenda_en_campo(
+           c("MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN",
+             "NÚMERO DE INTENTOS", "NIVEL DEL CURSO"))),
+    list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
+         tipo = "fecha", cols = cols_agenda_en_campo(
+           c("FECHA DE LLAMADA", "FECHA DE APLICACIÓN"))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         tipo = "numero", cols = cols_de("level")),
     # El tipo de esta columna lo decide la escala de lo que llego, no una
     # preferencia: en 0-1 se enseña como porcentaje, en 0-100 como decimal.
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
@@ -789,13 +818,45 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
          cols = cols_campo("% ASISTENCIA"))
   ), razones_control)
 
+  # **La hoja de campo repite las columnas de agenda, y nadie las estaba tipando.**
+  #
+  # Medido el 2026-08-31 abriendo el xlsx: 960 numeros y 192 FECHAS guardados
+  # como texto en «Aulas Aplicadas (Campo)». El tipado se habia hecho para
+  # «Aulas Agendadas» —`contact_date`, `scheduled_date`, matriculados,
+  # intentos— y la hoja de campo, que copia esas mismas columnas delante de las
+  # suyas, se quedo fuera. Es la misma regla leida en dos capas.
+  #
+  # Lo caro es la fecha: quien dirige el campo ordena por «FECHA DE APLICACIÓN»
+  # para saber que toca mañana, y como texto «2026-09-10» se ordena antes que
+  # «2026-09-9». El comentario de `formato_fecha` ya avisaba de esto para la
+  # otra hoja.
   .calg_tipar_fechas(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
                      cols_de(c("contact_date", "scheduled_date")), desde = 1L)
   .calg_tipar_numeros(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
-                      cols_de(c("enrolled_total", "eligible_n", "contact_attempts")),
+                      # `level` entra ahora: «NIVEL DEL CURSO» es un numero (2,
+                      # 3, 5…) y salia como texto en los doce bloques, asi que
+                      # no se podia filtrar «solo primeros ciclos» con un >=.
+                      cols_de(c("enrolled_total", "eligible_n", "contact_attempts", "level")),
                       desde = 1L)
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                       cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
+  .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
+                      cols_agenda_en_campo(c("MATRICULADOS TOTAL DTI",
+                                             "MATRICULADOS POBLACIÓN",
+                                             "NÚMERO DE INTENTOS",
+                                             "NIVEL DEL CURSO")), desde = 2L)
+  .calg_tipar_fechas(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
+                     cols_agenda_en_campo(c("FECHA DE LLAMADA",
+                                            "FECHA DE APLICACIÓN")), desde = 2L)
+  # `ID MATCH` es un correlativo, y como texto se ordena «1, 10, 100, 11». El
+  # lector NO se ve afectado: lo usa como marcador de CABECERA para detectar los
+  # bloques (`which(claves == "ID MATCH")` en carga_aulas_aplicadas.R), no como
+  # clave de fila, asi que el tipo de sus valores le da igual.
+  .calg_tipar_numeros(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]], 1L, desde = 1L)
+  .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
+                      vapply(seq_len(intentos_campo),
+                             function(b) (b - 1L) * ancho_campo + 1L, integer(1)),
+                      desde = 2L)
   .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
                       c(cols_control, cols_control_pct,
                         vapply(razones_control, function(r) r$cols, integer(1))),

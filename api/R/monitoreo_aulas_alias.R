@@ -28,7 +28,18 @@
   duplicados = c("duplicates", "duplicados"),
   # Los usa tambien el cruce entre las dos hojas, que leia por nombre exacto.
   asistencia_pct = c("attendance_pct", "pct_asistencia", "porcentaje_asistencia"),
-  aplicador  = c("applied_by", "aplicador", "aplicadora", "applicator")
+  aplicador  = c("applied_by", "aplicador", "aplicadora", "applicator"),
+  # Los cuatro de abajo entran el 2026-08-31 con la CUARTA capa que se
+  # descubrio ciega: el generador del libro. Escribia la hoja «Aulas Aplicadas
+  # (Campo)» leyendo solo los nombres ingleses, asi que sobre el .pulso de
+  # HSVG2026 —152 partes, todos en castellano— salian las 192 filas VACIAS, y
+  # al releer ese libro el lector devolvia 0 partes: el ciclo de campo entero
+  # roto en silencio. Mismas cifras que la vez anterior, otro consumidor.
+  fecha      = c("applied_date", "applied_at", "fecha", "fecha_aplicacion"),
+  hora       = c("applied_time", "hora", "hora_aplicacion"),
+  aula       = c("actual_room", "aula", "salon"),
+  estado     = c("application_status", "estado", "status", "status_aplicacion"),
+  nota       = c("field_note", "nota", "observaciones", "observacion")
 )
 
 #' El primer alias que traiga valor, o NULL.
