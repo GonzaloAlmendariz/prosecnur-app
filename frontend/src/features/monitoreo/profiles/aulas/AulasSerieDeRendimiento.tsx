@@ -131,13 +131,19 @@ type TrozoDePista =
   /** Una fila de cifras con su color: `● 1 366   ● 995`. */
   | { cifras: Array<{ valor: string; color: string; de: string }> }
   /** Texto secundario, mas tenue y mas pequeño. */
-  | { tenue: string };
+  | { tenue: string }
+  /** La cifra que la tarjeta viene a dar, con su unidad. Ver `lineasDelDia`. */
+  | { titular: string; unidad: string };
 
 /** Lo que lee un lector de pantalla: el globo pintado, en palabras. */
 function pistaEnPalabras(trozos: ReadonlyArray<TrozoDePista>): string {
-  return trozos.map((t) => (typeof t === "string" ? t
-    : "tenue" in t ? t.tenue
-      : t.cifras.map((c) => `${c.valor} ${c.de}`).join(" · "))).join(", ");
+  return trozos.map((t) => {
+    if (typeof t === "string") return t;
+    if ("tenue" in t) return t.tenue;
+    // El titular se lee con su unidad: «18 efectivas del parte», no «18».
+    if ("titular" in t) return `${t.titular} ${t.unidad}`;
+    return t.cifras.map((c) => `${c.valor} ${c.de}`).join(" · ");
+  }).join(", ");
 }
 
 /**
@@ -767,6 +773,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const trozo = (t: TrozoDePista, k: number) => {
     if (typeof t === "string") return <span key={k}>{t}</span>;
     if ("tenue" in t) return <span key={k} className="es-tenue">{t.tenue}</span>;
+    if ("titular" in t) {
+      return (
+        <span key={k} className="es-titular">
+          <b>{t.titular}</b> {t.unidad}
+        </span>
+      );
+    }
     return (
       <span key={k} className="es-cifras">
         {t.cifras.map((c) => (
@@ -783,9 +796,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null;
     esperadoPorAulaDelDiseno?: number | null; aulasConDiseno?: number;
   }) => [
-    `${dm(d.fecha)} · observado`,
-    `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario" : "cursos-horario"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
-    `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por curso-horario`,
+    // **«Encuestas» no decia de que numero hablaba.** Gonzalo, sobre esta misma
+    // tarjeta: «no entiendo si con "encuesta" te refieres a "efectivas", porque
+    // eso tiene que estar bien claro». El numero SIEMPRE fue `d.efectivas`, y
+    // el rotulo generico obligaba a adivinarlo.
+    //
+    // Se dice ademas DE QUE FUENTE son. En este perfil conviven dos cuentas que
+    // no coinciden —lo que el aplicador anoto en el parte y lo que llego a la
+    // plataforma, que es lo que mide el KPI «VÁLIDAS»— y el panel «El parte
+    // contra la plataforma» existe precisamente para compararlas. Un numero sin
+    // su fuente en un sitio donde hay dos es medio dato.
+    //
+    // El orden tambien cambia: primero la cifra que se viene a buscar, despues
+    // con que se compara, y el contexto al final. Antes las cuatro lineas
+    // pesaban igual y habia que leerlas enteras para encontrar el dato.
+    { tenue: `${dm(d.fecha)} · observado` },
+    { titular: fmt(d.efectivas), unidad: "efectivas del parte" },
+    `${personasPorAula(d.porAula)} por curso-horario`,
     // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
     // Sin decir el denominador, un día con una sola aula del diseño y tres
     // visitadas enseñaría una vara que no es la de las tres.
@@ -795,6 +822,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             ? ` (de ${fmt(d.aulasConDiseno)} de las ${fmt(d.aulas)}; el resto no trae meta del diseño)`
             : "")]
       : d.aulas ? ["ninguno de esos cursos-horario trae meta del diseño"] : []),
+    {
+      tenue: `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario" : "cursos-horario"}`
+        + (d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""),
+    },
   ];
 
   /**
@@ -882,21 +913,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         )}
       </p>
 
-      <div className="aulas-serie-mando">
-        <button type="button" className={foco ? "" : "is-activa"} onClick={() => setFoco("")}>
-          Todas
-        </button>
-        <button type="button" aria-label="Facultad anterior" onClick={() => mover(-1)}>‹</button>
-        <select value={foco} onChange={(e) => setFoco(e.currentTarget.value)} aria-label="Facultad">
-          <option value="">Todas las facultades</option>
-          {facultades.map((f) => (
-            <option key={f.facultad} value={f.facultad}>
-              {f.facultad} · {personasPorAula(f.esperadoFinal)} esperadas
-            </option>
-          ))}
-        </select>
-        <button type="button" aria-label="Facultad siguiente" onClick={() => mover(1)}>›</button>
-      </div>
+      {/* **El selector se fue a la cabecera de la seccion.**
+          Aqui se movia con el scroll y solo existia en esta pestaña, teniendo el
+          perfil nueve listas de las mismas veinte facultades. Vive ahora en
+          `AulasSelectorDeFacultad`, montado en `MonitoreoWorkbenchHead`. */}
 
       {/* Cuando la cuota no tiene con qué medirse, el acumulado NO se dibuja.
           Dejarlo pintaba la línea gris del parte —228— cruzando por encima de una

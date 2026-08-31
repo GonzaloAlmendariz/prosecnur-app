@@ -89,7 +89,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
           <li key={f.facultad} role="row" className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-ritmofac-nombre"
               rol="rowheader"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
+              enFoco={f.facultad === facultadEnFoco}>
               {f.facultad}
               <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>
             </NombreDeFacultad>

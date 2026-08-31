@@ -93,16 +93,19 @@ describe("AulasLoQueFalta · el foco por facultad", () => {
     expect(html).toContain("encuestas cierran las 3 aulas");
   });
 
-  it("con onFoco cada facultad es pulsable y la enfocada se marca", () => {
+  it("la facultad en foco se marca, y el nombre NO es un botón", () => {
+    // Los nombres dejaron de ser botones el 2026-08-31: el foco se pone desde
+    // el selector de la cabecera, que es permanente y existe en todas las
+    // pestañas. Gonzalo: «no es necesario que sean botones cuando ya tenemos un
+    // selector arriba». Lo que esta lista sigue debiendo es REFLEJARLO.
     const html = renderToStaticMarkup(
       <AulasLoQueFalta filas={filas} facultadEnFoco="Derecho" onFoco={() => {}} />,
     );
-    expect(html).toContain("aulas-foco-boton");
     expect(html).toContain("es-en-foco");
-    // `aria-pressed` y no `aria-selected`: es un interruptor, igual que en las
-    // otras cinco listas. El control de que la marca no se pone en todas.
-    expect(html.match(/aria-pressed="true"/g)?.length).toBe(1);
-    expect(html.match(/aria-pressed="false"/g)?.length).toBe(1);
+    expect(html).not.toContain("aulas-foco-boton");
+    expect(html).not.toContain("aria-pressed");
+    // La marca se pone en UNA, no en todas: es lo que hace util la señal.
+    expect(html.match(/es-en-foco/g)?.length).toBe(1);
   });
 });
 

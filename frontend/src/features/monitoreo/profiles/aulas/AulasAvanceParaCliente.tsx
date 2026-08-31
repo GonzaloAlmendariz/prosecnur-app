@@ -233,7 +233,7 @@ export function AulasAvanceParaCliente({
                   <th scope="row" className="aulas-cliente-nombre-celda">
                     <span className={`aulas-cliente-chip ${v.tono}`}>{v.texto}</span>
                     <NombreDeFacultad facultad={f.facultad} className="aulas-cliente-nombre"
-                      enFoco={enFoco} onFoco={onFoco}>
+                      enFoco={enFoco}>
                       {f.facultad}
                     </NombreDeFacultad>
                   </th>

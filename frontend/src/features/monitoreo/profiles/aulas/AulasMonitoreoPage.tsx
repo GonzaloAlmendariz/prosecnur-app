@@ -42,6 +42,7 @@ import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { AulasSelectorDeFacultad } from "./AulasSelectorDeFacultad";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
@@ -977,6 +978,24 @@ export default function AulasMonitoreoPage() {
   // a la URL—.
   const [focoTexto, escribirFoco] = useFocoMonitoreo();
   const foco = focoDesdeTexto(focoTexto);
+  /**
+   * Las facultades del estudio, para el selector de la cabecera.
+   *
+   * Salen de `quotas_sex_faculty`, la lista que fija el DISEÑO: tomarlas de lo
+   * que aparece en el parte dejaría fuera justo las que no han empezado, que
+   * son las que hay que ir a mirar. Orden alfabético porque el selector se
+   * recorre a mano con las flechas y el orden por rendimiento cambia cada día.
+   */
+  const facultadesDelEstudio = useMemo(() => {
+    const filas = (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+    const vistas = new Set<string>();
+    for (const f of filas) {
+      const nombre = String(f.faculty ?? f.facultad ?? "").trim();
+      if (nombre) vistas.add(nombre);
+    }
+    return [...vistas].sort((a, b) => a.localeCompare(b, "es"));
+  }, [dashboard]);
+  const facultadDeLaCabecera = foco?.tipo === "facultad" ? foco.valor : "";
   const cambiarFoco = useCallback(
     (siguiente: FocoDeCuota) => escribirFoco(textoDesdeFoco(siguiente) || null),
     [escribirFoco],
@@ -1357,6 +1376,16 @@ export default function AulasMonitoreoPage() {
             title={activeDef.label}
             detail={activeDef.desc}
             pestanaLabel={pestanaActivaLabel}
+            // El selector manda sobre la SECCIÓN entera, así que vive en la
+            // cabecera y no dentro de un panel: ahí se movía con el scroll y
+            // sólo existía en la pestaña que lo montaba.
+            control={(
+              <AulasSelectorDeFacultad
+                facultades={facultadesDelEstudio}
+                valor={facultadDeLaCabecera}
+                onFoco={cambiarFoco}
+              />
+            )}
           />
           )
         }
