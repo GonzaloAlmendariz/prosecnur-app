@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
-import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import {
@@ -203,8 +203,27 @@ export function RegistroDeCampo({
   // otra vez, crudo, daba `aula:CH 1` contra un `operational_code` que es
   // `CH 1`, así que nunca casaba y el formulario se quedaba en «Elige un
   // curso-horario de la lista». El mecanismo existía; duplicarlo lo rompía.
-  const [seleccion, setSeleccion] = useState<string>("");
-  const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
+  //
+  // Y la dirección manda DESDE EL PRIMER RENDER: el initializer resuelve el
+  // foco de llegada, porque el efecto de abajo recién corre tras el montaje —
+  // la ficha parpadeaba vacía un frame y en render estático no abría nunca—.
+  // El efecto queda para los cambios de foco posteriores.
+  const filaEnFoco = (codigo: string): MonitoreoAulasPlanRow | null => {
+    const buscado = codigo.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!buscado) return null;
+    return agenda.find((r) => {
+      const clave = String(r.operational_code ?? r.classroom_id ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+      return clave === buscado;
+    }) ?? null;
+  };
+  const [seleccion, setSeleccion] = useState<string>(() => {
+    const fila = filaEnFoco(codigoEnFoco);
+    return fila ? String(fila.operational_code ?? fila.classroom_id) : "";
+  });
+  const [form, setForm] = useState<RegistroForm>(() => {
+    const fila = filaEnFoco(codigoEnFoco);
+    return fila ? formDesdeFila(fila) : FORM_VACIO;
+  });
   const [guardando, setGuardando] = useState(false);
   const [activando, setActivando] = useState(false);
   // La ventana de elección. Va aquí y no en una superficie nueva porque ESTE es
@@ -609,6 +628,26 @@ export function RegistroDeCampo({
                 <p className="registro-campo-contexto">
                   {etiquetaDeAula(activa)}
                   {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
+                </p>
+                {/* El enlace de aplicación A LA MANO: quien registra es quien lo
+                    reparte cuando el QR impreso no alcanza. Lo escribe la
+                    entrega de Recopiladores en `row.link`; sin él, el motivo es
+                    un dato y no un hueco (patrón de Fuentes). */}
+                <p className="registro-campo-contexto">
+                  {String(activa.link ?? "").trim() ? (
+                    <a
+                      href={String(activa.link ?? "").trim()}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={String(activa.link ?? "").trim()}
+                    >
+                      <ExternalLink size={12} aria-hidden="true" /> Enlace de la ficha
+                    </a>
+                  ) : (
+                    <span className="aulas-fuente-sin-enlace">
+                      <Link2Off size={12} aria-hidden="true" /> Sin enlace de ficha: lo escribe la entrega de Recopiladores
+                    </span>
+                  )}
                 </p>
                 {/* **Por qué esta aula espera lo que espera.**
                     Gonzalo: «el que monitorea tiene que saber por qué estamos
