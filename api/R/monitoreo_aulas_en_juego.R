@@ -20,6 +20,26 @@
 # 2 040 celdas de STATUS MUESTRA en el estudio de 2025.
 MONITOREO_AULAS_ESTADOS_DORMIDOS <- c("", "-", "sin_contactar", "en_reserva", "planificada")
 
+# Estados en los que el aula YA SE APLICO, y por tanto su cadena esta resuelta.
+#
+# «parcial» esta dentro por decision de quien dirige el estudio: «en principio
+# una aplicacion en un aula que te cataloga como parcial si cuenta». Se aplico,
+# se recogieron respuestas, y esa cadena no tiene que pedir otro reemplazo.
+#
+# Hasta ahora la regla vivia repetida como `c("aplicada", "cerrada")` literal en
+# ocho sitios de R y siete del frontend, y ya habia DIVERGIDO: la linea 1704 de
+# `monitoreo_aulas_universitarias.R` —el reparto por estrato— si contaba la
+# parcial y las demas no. Ese es el sintoma exacto de una regla sin nombre: no
+# se corrige en un sitio, se corrige en el que alguien recuerda.
+#
+# **Donde NO se usa, y por que.** La calibracion de rendimiento
+# (`monitoreo_aulas_calibracion.R`) sigue con `c("aplicada", "cerrada")` a
+# proposito: mide cuantas respuestas rinde un aula para PREDECIR las que faltan,
+# y una parcial rindio menos por definicion. Meterla ahi arrastraria la
+# prediccion hacia abajo con un caso que no representa a los que vienen. Contar
+# y predecir son dos preguntas distintas sobre el mismo estado.
+MONITOREO_AULAS_ESTADOS_APLICADOS <- c("aplicada", "cerrada", "parcial")
+
 .maej_dormido <- function(estado) {
   v <- tolower(trimws(as.character(estado %||% "")))
   # `en reserva 3` es el vocabulario del Excel para la reserva que aun espera.

@@ -131,7 +131,20 @@ const sexoDominante = (fila: MonitoreoAulasPlanRow): string => {
 // —comprobado el 2026-08-30 con un grep sobre `api/R/`— así que esa rama del Set
 // no casaba nunca. El estado de cierre que sí existe es «cerrando», y vive en
 // `course_status`, que es un derivado y no este campo.
-const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada"]);
+/**
+ * Estados en los que el aula ya se aplicó, así que su cadena está resuelta.
+ *
+ * «parcial» entra por decisión de quien dirige el estudio: «en principio una
+ * aplicación en un aula que te cataloga como parcial sí cuenta». Se aplicó y se
+ * recogieron respuestas; pedir otro reemplazo por ella sería mandar al equipo a
+ * un aula que ya se visitó.
+ *
+ * Réplica de `MONITOREO_AULAS_ESTADOS_APLICADOS` (`monitoreo_aulas_en_juego.R`)
+ * y ATADA a ella por `estadosAtadosAlMotor.contract.test.ts`, igual que
+ * `ESTADOS_DORMIDOS`. Sin esa atadura son dos listas que nadie compara, que es
+ * exactamente lo que la nota de abajo describe como el patrón más caro del repo.
+ */
+export const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada", "parcial"]);
 // Se exporta sólo para que `estadosAtadosAlMotor.contract.test.ts` la compare
 // con la del motor: la réplica estaba declarada en el comentario de arriba pero
 // no la ataba nada, y una lista de estados que nadie ata es el patrón más caro

@@ -1,4 +1,7 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+// La misma lista que libera una cadena de reemplazo: llamar a un aula que
+// ya se aplicó —parcial incluida— es el mismo trabajo perdido en las dos.
+import { ESTADOS_QUE_LIBERAN } from "./candidatosDeReemplazo";
 
 /**
  * A quién hay que llamar, y cuánto ha costado agendar.
@@ -106,7 +109,7 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
         fecha: texto(fila.scheduled_date),
         hora: texto(fila.scheduled_time),
         intentos: Number.isFinite(intentos) ? intentos : 0,
-        aplicada: ["aplicada", "cerrada"].includes(texto(fila.operational_status).toLowerCase()),
+        aplicada: ESTADOS_QUE_LIBERAN.has(texto(fila.operational_status).toLowerCase()),
       });
       continue;
     }
@@ -125,7 +128,7 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     // `operational_status` el del operativo— y aquí manda el segundo: llamar a
     // un aula que ya se aplicó es trabajo perdido, y en una pantalla que existe
     // para repartir llamadas eso es lo caro.
-    if (["aplicada", "cerrada"].includes(texto(fila.operational_status).toLowerCase())) {
+    if (ESTADOS_QUE_LIBERAN.has(texto(fila.operational_status).toLowerCase())) {
       yaAplicadasSinCita += 1;
       continue;
     }

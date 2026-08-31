@@ -204,7 +204,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   rol <- .maac_chr_col(plan_df, "sample_role")
   est <- .maac_chr_col(plan_df, "sample_status")
   apl <- .maac_chr_col(plan_df, "operational_status")
-  rol == "chain_reserve" & .maej_dormido(est) & !(apl %in% c("aplicada", "cerrada"))
+  rol == "chain_reserve" & .maej_dormido(est) & !(apl %in% MONITOREO_AULAS_ESTADOS_APLICADOS)
 }
 
 #' El BANCO de extras disponible de cada facultad.
@@ -221,7 +221,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   if (!n) return(rep(FALSE, 0))
   rol <- .maac_chr_col(plan_df, "sample_role")
   apl <- .maac_chr_col(plan_df, "operational_status")
-  rol == "extra_reserve_pool" & !(apl %in% c("aplicada", "cerrada"))
+  rol == "extra_reserve_pool" & !(apl %in% MONITOREO_AULAS_ESTADOS_APLICADOS)
 }
 
 #' Cuántas de esas reservas cierran un déficit, y cuánto queda si no alcanzan.
@@ -308,7 +308,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   # Se usa el MISMO predicado que el KPI, no uno propio: dos superficies
   # vecinas que cuentan lo mismo de dos maneras acaban discrepando.
   aplicada <- if (n_plan) {
-    .maac_chr_col(plan_df, "operational_status") %in% c("aplicada", "cerrada")
+    .maac_chr_col(plan_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS
   } else logical(0)
   elegibles <- if (n_plan) .maac_num_col(plan_df, "eligible_n") else numeric(0)
   elegibles[!is.finite(elegibles) | elegibles < 0] <- 0
@@ -336,7 +336,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   fk_track <- .maac_fac_key(.maac_chr_col(tracked_df, "faculty"))
   el_track <- .maac_num_col(tracked_df, "eligible_n")
   el_track[!is.finite(el_track) | el_track < 0] <- 0
-  apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% c("aplicada", "cerrada")
+  apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS
   pend <- !apl_track & el_track > 0
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
 
