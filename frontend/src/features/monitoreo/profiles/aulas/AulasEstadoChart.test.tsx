@@ -195,3 +195,78 @@ describe("las tres ramas del pie explican el mecanismo con las mismas palabras",
     expect(out).not.toContain("cadena");
   });
 });
+
+/**
+ * **El banco se descontaba dos veces cuando cae en `en_reserva`.**
+ *
+ * `enJuegoDe` derivaba las vivas de los tramos —«todo lo que no es
+ * `en_reserva`»— y luego restaba el banco. Eso sólo es correcto si el banco NO
+ * está en ese tramo, que es el caso que motivó el descuento (2026-08-23: el
+ * motor clasificaba las 1.916 del banco como «Sin agendar»).
+ *
+ * Medido el 2026-08-30 sobre el estudio de 1.424: las 77 del banco están las 77
+ * en `en_reserva`, así que las vivas (192) ya las excluían y el pie publicaba
+ * **115 en juego** cuando el motor marca `en_juego` en **174** —156 titulares
+ * vivos + 18 reservas activadas—. 59 cursos-horario menos de los que hay en
+ * campo, en el titular de Resumen.
+ *
+ * Se cuenta desde el total con las dormidas del motor, que las cuenta SIN el
+ * banco, así que `total − dormidas − banco` da `sum(en_juego)` en los dos
+ * escenarios.
+ */
+const REAL = [
+  { clave: "pendiente", aulas: 0 },
+  { clave: "lista", aulas: 22 },
+  { clave: "en_aplicacion", aulas: 0 },
+  { clave: "cerrando", aulas: 152 },
+  { clave: "reemplazada", aulas: 18 },
+  { clave: "en_reserva", aulas: 1232 },
+];
+
+const conMotor = (r: typeof REAL, banco: number, dormidas: number) =>
+  renderToStaticMarkup(
+    <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0}
+      bancoMotor={banco} dormidasMotor={dormidas} />,
+  );
+
+describe("el banco no se descuenta dos veces", () => {
+  it("con el banco DENTRO de `en_reserva`, en juego son 174 y no 115", () => {
+    // 1.424 − 1.173 dormidas − 77 banco = 174.
+    const out = conMotor(REAL, 77, 1173);
+    expect(out).toContain("174");
+    expect(out).not.toContain("115");
+  });
+
+  it("y el pie reparte las otras sin contar el banco dos veces", () => {
+    // fuera = 1.424 − 174 = 1.250 = 1.173 en reserva + 77 en banco. Antes decía
+    // «1.232 y 77», que suman 1.309: el mismo banco en los dos sumandos.
+    const out = conMotor(REAL, 77, 1173);
+    expect(out).toContain("1,173");
+    expect(out).toContain("77");
+    expect(out).not.toContain("1,232 esperan");
+  });
+
+  it("con el banco FUERA de `en_reserva` sigue acertando", () => {
+    // El caso de 2026-08-23, que es el que motivó el descuento: el motor metía
+    // el banco en «Sin agendar». 200 totales, 70 del banco en `pendiente`, 30
+    // dormidas de verdad → en juego 100.
+    const comoEn2025 = [
+      { clave: "pendiente", aulas: 70 },
+      { clave: "lista", aulas: 10 },
+      { clave: "en_aplicacion", aulas: 0 },
+      { clave: "cerrando", aulas: 90 },
+      { clave: "reemplazada", aulas: 0 },
+      { clave: "en_reserva", aulas: 30 },
+    ];
+    expect(conMotor(comoEn2025, 70, 30)).toContain("100");
+  });
+
+  it("sin el dato del motor cae a la forma anterior, no a cero", () => {
+    // `dormidasMotor` es opcional: un backend viejo no lo emite y la vista no
+    // puede quedarse en blanco por eso.
+    const out = renderToStaticMarkup(
+      <AulasEstadoChart filas={[]} resumen={REAL as never} desconocidasMotor={0} bancoMotor={77} />,
+    );
+    expect(out).toContain("115");
+  });
+});
