@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 
 import {
-  apiMonitoreoAulasGenerarLibro,
-  apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,

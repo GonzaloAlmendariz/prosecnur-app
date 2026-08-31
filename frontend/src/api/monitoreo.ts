@@ -4807,12 +4807,15 @@ export async function apiMonitoreoAulasGenerarLibro() {
 /**
  * Relee el libro que alguien llenó. `hojas_ausentes` dice cuáles de las tres no
  * venían: el resultado no finge que estaban vacías.
+ *
+ * Solo `file_id`: el archivo sube antes por `apiUpload` (/api/files/upload).
+ * La firma aceptaba también un `File` directo, pero esa vía multipart está
+ * documentada rota en el propio router (router_monitoreo.R, endpoint
+ * importar-libro) y ningún llamador la usaba: un tipo que ofrece un camino
+ * que no funciona es una promesa falsa.
  */
-export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: string }) {
-  const esArchivo = origen instanceof File;
-  const cuerpo = esArchivo
-    ? (() => { const fd = new FormData(); fd.append("file", origen); return fd; })()
-    : JSON.stringify({ file_id: origen.file_id });
+export async function apiMonitoreoAulasImportarLibro(origen: { file_id: string }) {
+  const cuerpo = JSON.stringify({ file_id: origen.file_id });
   return handle<{
     ok: true;
     resumen: {
@@ -4832,10 +4835,9 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
     agenda_campos_ausentes?: string[] | null;
     state: MonitoreoState;
   }>(
-    // Sin `Content-Type` cuando va `FormData`: el navegador pone el boundary.
     await apiFetch("/api/monitoreo/aulas/importar-libro", {
       method: "POST",
-      headers: esArchivo ? headers() : headers({ "Content-Type": "application/json" }),
+      headers: headers({ "Content-Type": "application/json" }),
       body: cuerpo,
     }),
   );
