@@ -196,3 +196,40 @@
   color: var(--pulso-text-faint);
   font-style: normal;
 }
+
+/* El descuadre a la vista y con nombre propio (hallazgo 1): más efectivas que
+   elegibles es una inconsistencia de números —no un logro— y no se pliega,
+   porque plegado se leería como un detalle menor. El tono es el de AVISO, no
+   el rojo de riesgo: pide cuadrar números, no dicta un descarte. */
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre {
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo {
+  margin: 0;
+  color: var(--pulso-warn-fg);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El criterio del motor, tal cual viaja (M4): la cifra del umbral vive en el
+   payload y no aquí. Plegado y al final: es referencia, no primera lectura. */
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio {
+  min-width: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio summary {
+  cursor: pointer;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-criterio p {
+  margin: 4px 0 0;
+  /* Un párrafo del motor puede ser largo; el ancho de lectura lo acota. */
+  max-width: 72ch;
+}

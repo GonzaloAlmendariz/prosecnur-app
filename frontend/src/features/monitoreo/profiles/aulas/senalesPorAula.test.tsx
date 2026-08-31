@@ -12,6 +12,11 @@ import { ptsDeBanda, senalesPorAula, tasaEnPct } from "./senalesPorAula";
  * mirada —bajo primero, luego sobre—, agrega lo conforme, y a lo que no se pudo
  * contrastar le pone su motivo en vez de esconderlo. Nada de aquí recalcula:
  * tasas, banda y señal las publica `monitoreo_aulas_dos_tasas()`.
+ *
+ * Tras el rechazo metodológico (B1, 2026-08-31) el contraste es CONDICIONAL al
+ * estado aplicado: `pendiente` y `retirada` son grupos con motivo propio —jamás
+ * un «bajo» por agenda—, `descuadre` tiene nombre propio, y el encabezado
+ * cuenta SOLO a los aplicados fuera de su margen.
  */
 
 const aula = (
@@ -32,12 +37,37 @@ const aula = (
   ...extra,
 });
 
+/**
+ * Una fila NO contrastada, como la emite el motor: con estado literal, prevista
+ * y elegibles, y SIN efectivas/numerador/tasa_observada/banda — esos son los
+ * campos del contraste y en agenda invitarían a leer un juicio que no hay.
+ */
+const enAgenda = (
+  codigo: string,
+  senal: "pendiente" | "retirada",
+  estado: string | null,
+  extra: Partial<MonitoreoAulasDosTasasAula> = {},
+): MonitoreoAulasDosTasasAula => ({
+  codigo,
+  facultad: "Ciencias",
+  estado_operativo: estado,
+  elegibles: 40,
+  tasa_prevista: 0.6,
+  tasa_facultad: 0.55,
+  senal,
+  ...extra,
+});
+
 const bloque = (aulas: MonitoreoAulasDosTasasAula[]): MonitoreoAulasDosTasas => ({
   aulas,
   criterio: {
     numerador: "la efectiva de plataforma primero; el parte como respaldo",
     denominador: "los elegibles de la propia aula",
-    banda: "2*sqrt(p*(1-p)/elegibles) con p = la prevista",
+    // Textos DISTINTIVOS a propósito: los asserts de M4 comprueban que la
+    // vista enseña ESTE texto —el del payload— y no una copia tecleada que
+    // mentiría en cuanto el motor cambie su mínimo de elegibles o su z.
+    estados: "ESTADOS-DEL-MOTOR: solo se contrasta lo aplicado; lo previo viaja como `pendiente`",
+    banda: "BANDA-DEL-MOTOR: con menos de 19 elegibles no se arma y mediria mas de ±24 puntos",
     vara_agregada: "la tasa de la facultad viaja al lado",
     senal: "conforme dentro de la banda; bajo/sobre solo fuera",
   },
@@ -99,6 +129,66 @@ describe("senalesPorAula agrupa sin descartar", () => {
   });
 });
 
+describe("los grupos del contraste condicionado (B1: solo lo aplicado se contrasta)", () => {
+  it("pendiente y retirada van a su grupo con su estado literal, jamás a «bajo» ni a desconocidos", () => {
+    const res = senalesPorAula(bloque([
+      aula("CH B", "bajo", { tasa_observada: 0.4 }),
+      enAgenda("CH P", "pendiente", "agendada"),
+      enAgenda("CH Q", "pendiente", "en_campo"),
+      enAgenda("CH R", "retirada", "sin_acceso"),
+    ]));
+    if (res.estado !== "medido") throw new Error(`estado inesperado: ${res.estado}`);
+    expect(res.senalados.map((a) => a.codigo)).toEqual(["CH B"]);
+    expect(res.pendientes.map((a) => a.codigo)).toEqual(["CH P", "CH Q"]);
+    expect(res.pendientes.map((a) => a.estadoOperativo)).toEqual(["agendada", "en_campo"]);
+    expect(res.retiradas.map((a) => a.codigo)).toEqual(["CH R"]);
+    expect(res.retiradas[0].estadoOperativo).toBe("sin_acceso");
+    // Reconocidos: no viajan como «señal que esta vista no reconoce».
+    expect(res.desconocidos).toEqual([]);
+    // Y nadie sale del conteo por su señal.
+    expect(res.medidos).toBe(4);
+  });
+
+  it("el descuadre tiene nombre propio: no es «sobre» ni engrosa a los señalados", () => {
+    const res = senalesPorAula(bloque([
+      aula("CH D", "descuadre", { efectivas: 55, tasa_observada: 1.375 }),
+      aula("CH A", "conforme"),
+    ]));
+    if (res.estado !== "medido") throw new Error(`estado inesperado: ${res.estado}`);
+    expect(res.descuadres.map((a) => a.codigo)).toEqual(["CH D"]);
+    expect(res.senalados).toEqual([]);
+    expect(res.desconocidos).toEqual([]);
+  });
+
+  it("una fila pendiente sin estado escrito queda sin literal, no con uno inventado", () => {
+    const res = senalesPorAula(bloque([
+      enAgenda("CH P", "pendiente", null),
+    ]));
+    if (res.estado !== "medido") throw new Error(`estado inesperado: ${res.estado}`);
+    expect(res.pendientes).toHaveLength(1);
+    expect(res.pendientes[0].estadoOperativo).toBeNull();
+  });
+
+  it("dos filas sin código no comparten clave (N5)", () => {
+    const res = senalesPorAula(bloque([
+      aula("", "conforme"),
+      aula("", "conforme"),
+    ]));
+    if (res.estado !== "medido") throw new Error(`estado inesperado: ${res.estado}`);
+    const claves = res.conformes.map((a) => a.clave);
+    expect(new Set(claves).size).toBe(2);
+    // El rótulo visible sigue diciendo que falta el código; la clave es otra cosa.
+    expect(res.conformes[0].codigo).toBe("(sin código)");
+  });
+
+  it("los textos del criterio viajan tal cual del payload (M4)", () => {
+    const res = senalesPorAula(bloque([aula("CH A", "conforme")]));
+    if (res.estado !== "medido") throw new Error(`estado inesperado: ${res.estado}`);
+    expect(res.criterio.banda).toContain("BANDA-DEL-MOTOR");
+    expect(res.criterio.estados).toContain("ESTADOS-DEL-MOTOR");
+  });
+});
+
 describe("los formatos de la superficie", () => {
   it("la banda se dice en puntos enteros, como el panel de facultad", () => {
     // 0,1549 de proporción son ±15 puntos: la misma regla que `margenError`.
@@ -141,9 +231,93 @@ describe("AulasSenalesPorAula proyecta sin veredictos", () => {
     expect(plano).toMatch(/60[.,]0 %/);
     expect(plano).toMatch(/52[.,]0 %/);
     expect(plano).toContain("± 15 pts");
+    // N6: el denominador de la tasa son los ELEGIBLES del aula, no «alumnos».
+    expect(plano).toContain("22 efectivas de 40 elegibles");
+    expect(plano).not.toContain("alumnos");
     // La palabra prohibida: la señal no es un veredicto de validez.
     expect(plano.toLowerCase()).not.toContain("válida");
     expect(plano.toLowerCase()).not.toContain("no cumple");
+  });
+
+  it("el encabezado cuenta SOLO aplicados fuera de su margen: la agenda no suma (hallazgo 2)", () => {
+    const html = renderToStaticMarkup(
+      <AulasSenalesPorAula bloque={bloque([
+        aula("CH B", "bajo", { tasa_observada: 0.4 }),
+        aula("CH A", "conforme"),
+        enAgenda("CH P1", "pendiente", "agendada"),
+        enAgenda("CH P2", "pendiente", "en_campo"),
+        enAgenda("CH R", "retirada", "reemplazada"),
+      ])} />,
+    );
+    const plano = texto(html);
+    // 1 de 2 (bajo + conforme): ni los 2 pendientes ni el retirado entran al
+    // numerador o al denominador — el rótulo viejo prometía rendimiento y
+    // entregaba agenda.
+    expect(plano).toContain("De los 2 cursos-horario aplicados");
+    expect(plano).toContain("1 se sale del suyo");
+    expect(plano).not.toContain("3 se salen");
+    expect(plano).not.toContain("De los 5");
+    // El estado literal de cada uno, visible en su grupo.
+    expect(plano).toContain("agendada");
+    expect(plano).toContain("en_campo");
+    expect(plano).toContain("reemplazada");
+  });
+
+  it("pendientes y retiradas se pliegan con su porqué y el criterio del motor acompaña", () => {
+    const html = renderToStaticMarkup(
+      <AulasSenalesPorAula bloque={bloque([
+        enAgenda("CH P1", "pendiente", "agendada"),
+        enAgenda("CH P2", "pendiente", "planificada"),
+        enAgenda("CH R", "retirada", "cancelada"),
+      ])} />,
+    );
+    const plano = texto(html);
+    expect(plano).toContain("2 cursos-horario aún sin aplicar");
+    expect(plano).toContain("ya no se aplicará");
+    // La clasificación por estado la dice el motor (M4), no una copia local.
+    expect(plano).toContain("ESTADOS-DEL-MOTOR");
+    // Lo que se espera del pendiente, sin una observada fantasma.
+    expect(plano).toMatch(/prevista 60[.,]0 % de 40 elegibles/);
+  });
+
+  it("el umbral de la banda sale del payload, no de un «±25 puntos» tecleado (M4)", () => {
+    const html = renderToStaticMarkup(
+      <AulasSenalesPorAula bloque={bloque([
+        aula("CH F", "sin_banda", { elegibles: 3, banda: null }),
+      ])} />,
+    );
+    const plano = texto(html);
+    expect(plano).not.toContain("±25");
+    expect(plano).not.toContain("± 25");
+    expect(plano).toContain("BANDA-DEL-MOTOR");
+    // Los acentos graves con que el motor marca campos no llegan a pantalla.
+    expect(plano).not.toContain("`");
+  });
+
+  it("la columna agregada se rotula «Prevista de su facultad» (M3)", () => {
+    const html = renderToStaticMarkup(
+      <AulasSenalesPorAula bloque={bloque([
+        aula("CH C", "bajo", { tasa_observada: 0.4 }),
+      ])} />,
+    );
+    const plano = texto(html);
+    // Es la tasa de DISEÑO de la facultad; «vara» a secas era una palabra para
+    // dos cosas al lado de un panel que habla en observadas.
+    expect(plano).toContain("Prevista de su facultad");
+    expect(plano).not.toContain("Vara de su facultad");
+  });
+
+  it("el descuadre se enseña con sus cuentas y no infla el encabezado", () => {
+    const html = renderToStaticMarkup(
+      <AulasSenalesPorAula bloque={bloque([
+        aula("CH D", "descuadre", { efectivas: 55, tasa_observada: 1.375 }),
+      ])} />,
+    );
+    const plano = texto(html);
+    expect(plano.toLowerCase()).toContain("descuadr");
+    // La inconsistencia se dice con los números que no cuadran, no con una tasa.
+    expect(plano).toContain("55 efectivas de 40 elegibles");
+    expect(plano).not.toContain("se salen del suyo");
   });
 
   it("el numerador de respaldo se declara en su fila, no se confunde con plataforma", () => {
