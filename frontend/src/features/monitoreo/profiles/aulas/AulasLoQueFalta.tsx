@@ -235,11 +235,13 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
             puesto se ven tres aulas y se leen como si fueran todas. */}
         {facultadEnFoco ? (
           <>
-            Las {enFoco.length > 10 ? "diez más baratas de " : ""}{fmt(enFoco.length)}{" "}
-            {enFoco.length === 1 ? "aula" : "aulas"} de {facultadEnFoco}, que es la facultad en foco.{" "}
+            {/* «Los … cursos-horario»: el sujeto es la unidad, y aquí sí está
+                escrito, así que arrastraba artículo y sustantivo. */}
+            Los {enFoco.length > 10 ? "diez más baratos de " : ""}{fmt(enFoco.length)}{" "}
+            {enFoco.length === 1 ? "curso-horario" : "cursos-horario"} de {facultadEnFoco}, que es la facultad en foco.{" "}
           </>
         ) : total > 10 ? (
-          <>Las diez más baratas; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </>
+          <>Los diez más baratos; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </>
         ) : null}
         {conDiez > conCinco ? <>Con diez o menos cierran {fmt(conDiez)}. </> : null}
         {conLaMitad ? <>Con la mitad del esfuerzo —{fmt(Math.round(costo / 2))} encuestas— se cierran {fmt(conLaMitad)} de las {fmt(total)}. </> : null}
@@ -249,7 +251,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         {/* El cruce con el plan se cuenta, no se da por hecho: en este mismo
             perfil catorce campos que parecían llegar eran homónimos. */}
         {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estos cursos-horario no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
-        {r.sinCifras ? <>Otras {fmt(r.sinCifras)} se quedaron cortas y el libro no trae con qué medirles el faltante. </> : null}
+        {r.sinCifras ? <>Otros {fmt(r.sinCifras)} se quedaron cortos y el libro no trae con qué medirles el faltante. </> : null}
         {r.contradicciones ? (
           <>
             En {fmt(r.contradicciones)} el libro dice que no cumple aunque las
