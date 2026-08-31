@@ -163,6 +163,60 @@ monitoreo_aulas_partes_upsert <- function(partes = list(), updates = list(), pla
   partes
 }
 
+# La DIRECCION INVERSA (A10): que campo del plan se llena con que numero del
+# parte. Los nombres de la derecha son las claves de
+# `.MONITOREO_AULAS_PARTE_ALIAS`: el parte puede venir del lector del libro
+# (nombres canonicos) o de un libro real en castellano, y el alias lee ambos.
+.PARTE_APP_AL_PLAN <- c(
+  observed_students = "asistentes", refusals = "rechazos",
+  duplicates = "duplicados", effective_surveys = "efectivas",
+  applied_by = "aplicador", actual_room = "aula",
+  applied_at = "fecha", applied_time = "hora", field_note = "nota"
+)
+
+#' Copia al plan lo que los partes de primer intento saben.
+#'
+#' Es la inversa de `monitoreo_aulas_partes_upsert`: los partes que ENTRAN del
+#' libro llegan al plan, que es lo que lee la pestaña «Registro de campo»
+#' (`row.observed_students`, `row.applied_by`...). Sin este puente, importar un
+#' libro llenado en Excel dejaba los formularios de la app vacios.
+#'
+#' PATCH, no reemplazo: solo pisa con valores que el parte trae (el cero es
+#' dato; el vacio no blanquea), y los reintentos (`intento > 1`) no tocan el
+#' plan — son otra vuelta de campo. `operational_status` NO se toca: el estado
+#' del circuito y el `application_status` del parte son taxonomias distintas.
+#' @noRd
+monitoreo_aulas_plan_desde_partes <- function(plan = list(), partes = list()) {
+  plan <- .parte_app_filas(plan)
+  partes <- .parte_app_filas(partes)
+  if (!length(plan) || !length(partes)) return(plan)
+  for (pt in partes) {
+    if (!is.list(pt)) next
+    intento <- suppressWarnings(as.integer(pt[["intento"]] %||% 1L))
+    if (!length(intento) || is.na(intento)) intento <- 1L
+    if (intento != 1L) next
+    code <- .alf_txt(pt[["operational_code"]])
+    if (!nzchar(code)) code <- .alf_txt(pt[["classroom_id"]])
+    if (!nzchar(code)) next
+    for (i in seq_along(plan)) {
+      fila <- plan[[i]]
+      if (!is.list(fila)) next
+      fcod <- .alf_txt(fila[["operational_code"]])
+      if (!nzchar(fcod)) fcod <- .alf_txt(fila[["classroom_id"]])
+      if (!identical(fcod, code)) next
+      for (campo in names(.PARTE_APP_AL_PLAN)) {
+        valor <- .monitoreo_aulas_parte_primero(
+          pt, .MONITOREO_AULAS_PARTE_ALIAS[[.PARTE_APP_AL_PLAN[[campo]]]]
+        )
+        if (is.null(valor)) next
+        fila[[campo]] <- valor
+      }
+      plan[[i]] <- fila
+    }
+  }
+  plan
+}
+
 #' Registra en sesion el plan actualizado Y los partes que el update trae.
 #'
 #' Reemplaza al `session_set(sid, "monitoreo_aulas_plan", plan)` del endpoint
