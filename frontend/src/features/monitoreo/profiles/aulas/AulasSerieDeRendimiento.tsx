@@ -1576,7 +1576,24 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       {/* Sin repetir la última fecha: ya está en el eje por día, dos líneas más
           arriba, y verla dos veces se lee como dos datos distintos. */}
       <p className="aulas-serie-eje">
-        <span>{fmt(aplicadas.length)} días con parte</span>
+        {/* **Con foco, «11 días con parte» era del ESTUDIO.**
+
+            El eje recorre los días del estudio y eso está bien —sin ellos no
+            hay con qué comparar—, pero el rótulo se leía como «esta facultad
+            tuvo parte once días» cuando Educación tuvo dos. Es la misma cifra
+            global colada en un contexto de facultad que aplastaba el eje dos
+            paneles más arriba.
+
+            Se dicen las dos: la suya primero, que es la que se ha pedido al
+            poner el foco, y el total detrás como referencia. */}
+        {elegida ? (
+          <span>
+            {fmt(elegida.dias.filter((d) => (d.porAula ?? null) !== null).length)} de{" "}
+            {fmt(aplicadas.length)} días con parte
+          </span>
+        ) : (
+          <span>{fmt(aplicadas.length)} días con parte</span>
+        )}
         {porVenir.length
           ? <span>{fmt(porVenir.length)} días agendados por delante</span>
           : <span>sin días agendados por delante</span>}
