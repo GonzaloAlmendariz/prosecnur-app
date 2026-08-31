@@ -1669,22 +1669,31 @@
   margin-bottom: 4px;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-embudo-pasos {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+/* Un embudo son barras que se comparan entre si, asi que TIENEN que salir del
+   mismo cero. Con la rejilla solo en el `li`, cada paso medía su propio `auto`
+   y la barra de «Efectivas» arrancaba en otra x que la de «Estaban en el
+   aula», que es justo lo que un embudo no puede permitirse. Misma causa y
+   misma reparacion que en la concentracion de brecha.
 
-.mon-profile-page.is-aulas-flow .aulas-embudo-pasos li {
+   NO VERIFICADO EN PANTALLA: con el parte de este estudio el embudo tiene un
+   solo paso —«ningun parte declara los que no quisieron responder ni los que
+   ya habian respondido»— y con una sola fila las columnas coinciden siempre.
+   Se repara por la causa, medida y verificada en el vecino. */
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos {
   display: grid;
   grid-template-columns: minmax(150px, auto) minmax(0, 1fr) minmax(96px, auto);
   align-items: center;
-  gap: 10px;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos li {
+  display: contents;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-embudo-carril {
@@ -5033,9 +5042,18 @@
   color: var(--pulso-text);
 }
 
+/* Las columnas se calculan sobre TODAS las filas, no fila a fila.
+   Con la rejilla declarada solo en el `li`, cada fila medía su propio `auto`:
+   «9 min» y «10.5 min» arrancaban en x distintas y el paréntesis de al lado
+   tambien, así que trece filas de duraciones bailaban en vez de compararse.
+   Aquí no vale `display: contents` como en la concentración —el `li` es una
+   píldora con fondo, padding y radio, y contents le quitaría la caja—: se usa
+   `subgrid`, que conserva la caja y hereda las columnas del padre. La línea
+   anterior queda como fallback para un motor sin subgrid. */
 .mon-profile-page.is-aulas-flow .aulas-tiempos-lista {
   display: grid;
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -5043,7 +5061,9 @@
 
 .mon-profile-page.is-aulas-flow .aulas-tiempos-lista li {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: subgrid;
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
