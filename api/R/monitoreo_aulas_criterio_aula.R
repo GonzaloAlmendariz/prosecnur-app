@@ -87,7 +87,16 @@ monitoreo_aulas_veredicto_propio <- function(fila, criterio, meta = NA_real_) {
     # Caer aqui a una proporcion inventada seria justo lo que este modo viene a
     # quitar.
     if (!is.finite(m) || m <= 0) return(vacio)
-    llega <- efectivas >= criterio$alfa * m
+    # M2 (DECISION DEL LEAD, B3 2026-08-31): la vara se redondea ANTES de
+    # juzgar — `floor(alfa * meta + 0.5)`, espejo exacto de
+    # `monitoreo_aulas_control_meta()` (monitoreo_aulas_control.R:212). Una
+    # vara de 17,4 encuestas no existe en el mundo: se piden 17, y comparar
+    # contra la fraccionaria decia FALSE (17 < 17,4) donde la hoja —y el
+    # espejo— dicen que el aula llego: dos varas para la misma meta discrepan
+    # solas. `floor(x + 0.5)` y NO `round()`: R redondea al par
+    # (`round(16.5)` es 16) y la mitad de los empates caeria hacia abajo sin
+    # avisar.
+    llega <- efectivas >= floor(criterio$alfa * m + 0.5)
     return(list(asistentes = NA, matriculados = NA, efectiva = llega))
   }
   enviadas <- .mca_num(fila$sent_total)

@@ -148,6 +148,28 @@ test_that("el modo esperado juzga con la EFECTIVA, no con el total de enviadas",
   expect_true(r3[["efectiva"]])
 })
 
+test_that("M2: el modo esperado juzga con la meta REDONDEADA, espejo de control_meta", {
+  # `monitoreo_aulas_control_meta()` ya juzga con `logrado >= floor(meta + 0.5)`
+  # porque una vara de 17.4 encuestas no existe en el mundo: se piden 17. El
+  # veredicto propio comparaba contra la vara FRACCIONARIA y con
+  # efectivas_esperadas = 17.4, alfa = 1 y 17 obtenidas decia FALSE (17 < 17.4)
+  # donde la hoja —y el espejo— dicen que el aula llego. Dos varas para la
+  # misma meta discrepan solas.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 1)))
+  r <- monitoreo_aulas_veredicto_propio(list(efectivas_obtenidas = 17), crit, 17.4)
+  expect_true(r[["efectiva"]])
+  # El borde del redondeo: 17.6 pide 18 (floor(18.1)) y 17 NO llega.
+  r2 <- monitoreo_aulas_veredicto_propio(list(efectivas_obtenidas = 17), crit, 17.6)
+  expect_false(r2[["efectiva"]])
+  # Y por el camino del contraste: con la meta redondeada la app coincide con
+  # la hoja; con la fraccionaria, esta misma fila salia como discrepancia.
+  filas <- list(list(operational_code = "A", efectivas_esperadas = 17.4,
+                     efectivas_obtenidas = 17, efectiva = TRUE))
+  rc <- monitoreo_aulas_contraste_veredicto(filas, crit)
+  expect_identical(rc[["comparadas"]], 1L)
+  expect_identical(rc[["discrepan"]], 0L)
+})
+
 test_that("el criterio declarado PERSISTE en la config normalizada", {
   # El normalizador es la whitelist de la config: lo que no nombra, no persiste.
   # Ya se comio a `valid_filters` una vez, y una superficie para declarar el
