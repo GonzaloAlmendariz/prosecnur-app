@@ -61,16 +61,17 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 //
 // Las que quedan no son del mismo tipo:
 //
-//   · cuatro son CABECERAS de columna del libro de control —«Tamaño de aula»,
-//     «Meta de efectivas del aula», «Tasa del aula», «Peso del aula»—. **Su ancho
-//     no está medido**: esa tabla no se pinta en el estudio de referencia, que
-//     tiene el libro sin columnas llenas. Las cabeceras que SÍ se ven —18 en
-//     `consultas/reemplazos`— no se truncan ni a 1024x600, así que la objeción
-//     del ancho no se sostiene por lo medido hasta hoy; lo que falta es un
-//     proyecto con libro lleno donde comprobarlo.
+//   · 17 → 13: cerradas las cuatro CABECERAS del libro de control. El sujeto NO
+//     se recortó —«Tasa del curso-horario» frente a «Tasa de la facultad», «Peso
+//     del curso-horario» frente a «Peso del estudiante»: el sujeto es justo el
+//     contraste que las distingue—, así que se alargan. **Su ancho sigue sin
+//     medirse**: esa tabla no se pinta en el estudio de referencia, que tiene el
+//     libro sin columnas llenas. Red de seguridad: `AulasControlDelLibro` da a
+//     cada cabecera su `title` con el texto completo, así que una elipsis ahí es
+//     recuperable y C4 la admite en etiqueta.
 //   · dos son la locución «aula por aula», impracticable en curso-horario.
 //   · el resto habla del aula como ESPACIO, que es correcto y no se toca.
-const TOPE = 17;
+const TOPE = 13;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.
