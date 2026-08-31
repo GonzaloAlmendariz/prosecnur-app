@@ -45,8 +45,13 @@ export function AulasConcentracionBrecha({ filas }: { filas: ReadonlyArray<Monit
       <ul className="aulas-concentracion-tramos">
         {c.tramos.map((t) => (
           <li key={t.aulas}>
+            {/* «Los», no «Las»: el sujeto elidido es el curso-horario. Lo
+                delataba su propio `aria-label`, que dice «N cursos-horario
+                cubren el X%» —quien ve la pantalla leía un género y quien la
+                escucha oía la unidad correcta—. Ningún detector podía verlo: el
+                sustantivo no está en la frase, sólo su concordancia. */}
             <span className="aulas-concentracion-rotulo">
-              Las <strong>{fmt(t.aulas)}</strong> con más brecha
+              Los <strong>{fmt(t.aulas)}</strong> con más brecha
             </span>
             <span className="aulas-concentracion-carril" role="img"
               aria-label={`${fmt(t.aulas)} cursos-horario cubren el ${t.pct}% de lo que falta`}>

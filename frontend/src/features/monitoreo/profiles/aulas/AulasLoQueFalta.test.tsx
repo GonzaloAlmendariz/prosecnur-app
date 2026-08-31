@@ -85,7 +85,7 @@ describe("AulasLoQueFalta · el foco por facultad", () => {
     // Sólo el aula de Letras en la lista; las dos de Derecho fuera.
     expect(html).toContain("CH 3");
     expect(html).not.toContain("CH 1");
-    expect(html).toContain("1 aula de Letras, que es la facultad en foco");
+    expect(html).toContain("1 curso-horario de Letras, que es la facultad en foco");
     // El bloque de facultades NO se filtra: existe para comparar unas con
     // otras, y con una sola fila no compara nada.
     expect(html).toContain("Derecho");
