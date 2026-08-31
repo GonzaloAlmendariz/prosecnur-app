@@ -1,5 +1,6 @@
 import type { MonitoreoAulasReservaDirigida } from "../../../../api/monitoreo";
 import { fmtCuenta } from "./kpisDeAulas";
+import { etiquetaDeSexo } from "./etiquetaDeSexo";
 
 /**
  * A qué aula del banco ir por cada celda de cuota que no va a llegar.
@@ -82,7 +83,10 @@ export function AulasReservaDirigida(
       <ul className="aulas-reserva-dirigida-lista">
         {orden.map((celda) => {
           const clave = `${celda.faculty}‧${celda.sex}`;
-          const enPalabras = celda.sex === "F" ? "mujeres" : celda.sex === "M" ? "hombres" : celda.sex;
+          // La tercera copia de esta traducción en el perfil. De las tres, una
+          // —la de `alertaDeAnticipacion`— no traducía y publicaba «faltan 48 ·
+          // 38 m»; ésta sí, pero el mecanismo es el mismo. Una sola función.
+          const enPalabras = etiquetaDeSexo(celda.sex);
           // Cuando NINGUNO trae padrón, la marca por línea deja de distinguir y
           // sólo repite: se dice una vez en la celda. Si unos sí y otros no, la
           // marca por línea es la que informa y se queda donde está.
