@@ -189,7 +189,7 @@ export function AulasAvanceParaCliente({
               <th scope="col" className="es-num">Mujeres</th>
               <th scope="col" className="es-num">Hombres</th>
               <th scope="col" className="es-num">Cursos-horario aplicados</th>
-              <th scope="col" className="es-num">Avance</th>
+              <th scope="col" className="es-num">Avance del total</th>
               <th scope="col" className="es-num">Faltan</th>
             </tr>
           </thead>
@@ -232,6 +232,9 @@ export function AulasAvanceParaCliente({
         <strong>Muestra</strong> es la cuota que el diseño fijó para esa facultad, y{" "}
         <strong>se lleva</strong> lo recogido que pasó los filtros del estudio.{" "}
         <strong>Cursos-horario aplicados</strong> se cuenta sobre los del plan de esa facultad.{" "}
+        <strong>Avance del total</strong> compensa un sexo con el otro;{" "}
+        <strong>Faltan</strong> suma el déficit de cada sexo por separado y es el que
+        decide el estado. Por eso una facultad pasa del 100 % y sigue pendiente.{" "}
         La sobremuestra operativa no llega a Monitoreo, así que esta tabla no la compara.
       </p>
     </div>
