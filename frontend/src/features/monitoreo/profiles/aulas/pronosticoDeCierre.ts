@@ -94,6 +94,15 @@ export function pronosticoDeCierre(
       slotDe.set(codigo, codigo);
       continue;
     }
+    // **El respaldo a `replacement_for` es de riesgo conocido y hoy no se usa.**
+    // Ese campo no es estable entre proyectos: en el estudio de 2.615 filas
+    // llevaba el `classroom_id` del titular y CERO de sus 202 valores existían
+    // como fila —la medición está en `consumoDeCadena.ts`, que por eso lo
+    // descarta—, mientras que en el de 1.424 trae códigos operativos y mapea
+    // 174 de 174. Aquí no muerde: medido el 2026-08-30, las **1.173 reservas
+    // traen `titular_operational_code`**, así que el respaldo nunca se evalúa.
+    // Si alguna vez se evalúa sobre un proyecto del primer tipo, el slot
+    // apuntaría a un titular inexistente y se contaría de más.
     const titular = texto(fila.titular_operational_code) || texto(fila.replacement_for);
     if (titular) slotDe.set(codigo, titular);
   }

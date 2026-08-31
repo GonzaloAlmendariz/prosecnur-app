@@ -53,6 +53,14 @@ function texto(valor: unknown): string {
  * distintos, CERO coincidían con un titular y ninguno existía siquiera como
  * fila, así que cada reserva formaba una cadena huérfana con un titular que no
  * existe. `titular_operational_code` sí mapea: 1 774 de 1 774.
+ *
+ * **Y no porque `replacement_for` venga siempre mal: porque viene INCONSISTENTE.**
+ * Medido el 2026-08-30 sobre el estudio de 1.424 filas, ese mismo campo trae
+ * códigos operativos —«CH 3», «CH 4»— y sus 174 valores distintos existen los
+ * 174 como fila, justo al revés que en el estudio de 2.615. Un campo que en un
+ * proyecto es `classroom_id` y en otro es código operativo no se puede usar
+ * como clave, y eso vale más que «viene mal»: `titular_operational_code`
+ * mapea en los dos.
  */
 function titularDe(fila: MonitoreoAulasPlanRow): string {
   return texto(fila.titular_operational_code)
