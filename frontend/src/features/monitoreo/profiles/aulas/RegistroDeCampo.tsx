@@ -31,6 +31,8 @@ import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
+import { PANEL_REEMPLAZO_AULAS } from "../../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
@@ -195,6 +197,12 @@ export function RegistroDeCampo({
   celdasSexo,
   agenda, partes = [], onGuardado, codigoEnFoco = "", onElegir,
 }: Props) {
+  // **La selección se queda en `useState`, y es deliberado.** El foco YA es
+  // direccionable por otro camino: llega como `codigoEnFoco` desde el padre,
+  // que extrae el código de `?foco=aula:<código>` —con su prefijo—. Leerlo aquí
+  // otra vez, crudo, daba `aula:CH 1` contra un `operational_code` que es
+  // `CH 1`, así que nunca casaba y el formulario se quedaba en «Elige un
+  // curso-horario de la lista». El mecanismo existía; duplicarlo lo rompía.
   const [seleccion, setSeleccion] = useState<string>("");
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
@@ -202,7 +210,12 @@ export function RegistroDeCampo({
   // La ventana de elección. Va aquí y no en una superficie nueva porque ESTE es
   // el sitio donde ya vive la única acción que activa un reemplazo: separar la
   // elección de la activación habría dejado dos caminos para lo mismo.
-  const [eligiendo, setEligiendo] = useState(false);
+  const panelReemplazo = usePanelDireccionable(PANEL_REEMPLAZO_AULAS);
+  const eligiendo = panelReemplazo.abierto;
+  const setEligiendo = (abierto: boolean) => {
+    if (abierto) panelReemplazo.abrir();
+    else panelReemplazo.cerrar();
+  };
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   // La advertencia de ponderación de la reserva activada. Vive aparte de `ok`
