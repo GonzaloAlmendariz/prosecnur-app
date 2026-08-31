@@ -249,7 +249,7 @@
     409,
     "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM",
     paste(
-      "No se encontro un XLSForm exacto para empaquetar.",
+      "No se encontró un XLSForm exacto para empaquetar.",
       "Sube el XLSForm del formulario (la ultima version descargada de Kobo) antes de generar el paquete."
     )
   )
@@ -360,7 +360,7 @@
         409,
         "E_MONITOREO_PROCESSING_HANDOFF_XLSFORM_INCOMPATIBLE",
         sprintf(
-          "El XLSForm exacto no calza con la data procesable despues de alinear columnas: %s",
+          "El XLSForm exacto no calza con la data procesable después de alinear columnas: %s",
           .monitoreo_scalar(compatibility$message, "incompatible")
         )
       )
@@ -438,7 +438,7 @@
     "1. En la otra PC, abrir Prosecnur.",
     "2. Cargar el XLSForm de este paquete.",
     "3. Cargar el XLSX principal como data.",
-    "4. Continuar el flujo de Procesamiento/Validacion/Codificacion segun corresponda."
+    "4. Continuar el flujo de Procesamiento/Validación/Codificación según corresponda."
   ), readme_path, useBytes = TRUE)
 
   zip_name <- paste(project_slug, universe_slug, "processing-handoff", cut_slug, sep = "-")

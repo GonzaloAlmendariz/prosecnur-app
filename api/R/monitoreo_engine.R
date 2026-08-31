@@ -8644,7 +8644,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   entries <- list.files(".", recursive = TRUE, all.files = TRUE, no.. = TRUE)
   zip::zip(tmp_out, files = entries)
   setwd(old_wd)
-  if (!file.exists(tmp_out)) stop("No se pudo crear el XLSX minimo.", call. = FALSE)
+  if (!file.exists(tmp_out)) stop("No se pudo crear el XLSX mínimo.", call. = FALSE)
   file.rename(tmp_out, path)
   invisible(path)
 }
