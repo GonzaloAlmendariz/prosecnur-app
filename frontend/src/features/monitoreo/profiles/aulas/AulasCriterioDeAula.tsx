@@ -99,8 +99,8 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
             Se compara con lo que el diseño esperaba de cada curso-horario
             (`efectivas_esperadas` del cálculo de muestra).{" "}
             {hayMetas > 0
-              ? `${fmt(hayMetas)} cursos-horario del plan la traen; las que no, quedarán sin juzgar.`
-              : "Ningún curso-horario del plan la trae, así que este criterio no podría juzgar ninguna: el plan tiene que venir del cálculo de muestra."}
+              ? `${fmt(hayMetas)} cursos-horario del plan la traen; los que no, quedarán sin juzgar.`
+              : "Ningún curso-horario del plan la trae, así que este criterio no podría juzgar ninguno: el plan tiene que venir del cálculo de muestra."}
           </p>
         </div>
       ) : null}
