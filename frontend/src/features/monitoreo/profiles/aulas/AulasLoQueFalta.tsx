@@ -61,7 +61,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // llegaron—. Decirlo como «sin datos» la haría parecer un fallo del panel.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ningún curso-horario evaluado se quedó corto: las que el libro evalúa alcanzaron
+        Ningún curso-horario evaluado se quedó corto: los que el libro evalúa alcanzaron
         sus dos umbrales.
       </p>
     );

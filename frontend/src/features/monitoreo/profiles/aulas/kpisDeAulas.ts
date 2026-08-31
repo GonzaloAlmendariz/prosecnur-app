@@ -578,7 +578,7 @@ export function aulasKpis(
           icono: CalendarClock,
           value: fmt(ag.aplicadasSinAgenda),
           pista: "tienen parte y no tienen fecha agendada",
-          detalle: "No deberia ocurrir: sin agendar no se aplica. Revisa la fecha en la hoja de agenda o si el parte se anoto en la fila que no era.",
+          detalle: "No debería ocurrir: sin agendar no se aplica. Revisa la fecha en la hoja de agenda o si el parte se anotó en la fila que no era.",
           tone: "warn",
         });
       }
@@ -622,7 +622,7 @@ export function aulasKpis(
           // que sigan sin fecha: una ya agendada no necesita que la llamen. Sin
           // decirlo, 33 sin medio conviven con un contador en 0.
           pista: "ni teléfono ni correo anotado, entre las que aún hay que agendar",
-          detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todas. No es que sean difíciles: es que no hay por dónde llamarlas.",
+          detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todos. No es que sean difíciles: es que no hay por dónde llamarlos.",
           tone: "warn",
         });
       }
