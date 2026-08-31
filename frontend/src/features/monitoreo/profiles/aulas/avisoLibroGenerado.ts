@@ -49,7 +49,7 @@ function queLleva(res: { unidades: number; titulares?: number | null; reservas?:
   const titulares = typeof res.titulares === "number" ? res.titulares : null;
   const reservas = typeof res.reservas === "number" ? res.reservas : null;
   if (titulares === null || reservas === null || titulares + reservas !== res.unidades) {
-    return `${miles(res.unidades)} ${res.unidades === 1 ? "aula" : "aulas"}`;
+    return `${miles(res.unidades)} ${res.unidades === 1 ? "curso-horario" : "cursos-horario"}`;
   }
   const cursos = `${miles(titulares)} ${titulares === 1 ? "curso-horario" : "cursos-horario"}`;
   if (reservas === 0) return cursos;

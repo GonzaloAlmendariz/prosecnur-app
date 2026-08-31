@@ -106,6 +106,20 @@ const EN_EL_AULA_LOCATIVO = /\ben\s+el\s+aulas?\b(?!-)/gi;
 // 2026-08-30 MIRANDO una captura —«77 aulas extra en 3 facultades»—, con el
 // título del mismo panel diciendo ya «Cursos-horario extra disponibles». Es la
 // misma familia que el `}` de la interpolación.
+/**
+ * **La pluralización por ternario**, que ninguno de los otros patrones ve.
+ *
+ * `x === 1 ? "aula" : "aulas"` no lleva determinante ni interpolación delante:
+ * es el término solo, entre comillas. Encontrado el 2026-08-30 al reparar cuatro
+ * frases que el contador seguía sin ver —y por eso el número no bajaba—.
+ *
+ * Se busca el patrón completo y no el literal suelto: `"aula"` a secas también es
+ * una CLAVE —`FocoDeCuota` la usa como tipo, y `"aulas"` nombra al perfil
+ * entero—, y esas no se tocan. Medido: de 18 literales exactos en el perfil, 4
+ * eran pluralización y 14 identificadores.
+ */
+const PLURAL_TERNARIO = /\?\s*"aula"\s*:\s*"aulas"/g;
+
 const EN_PROSA =
   /(?:\b(?:el|la|las|los|una|unas|un|esa|esas|este|esta|estas|ese|cada|entre|ninguna|ningún|ningun|otra|otras|misma|sin|de|del|en|por|su|sus|primera|primer|segunda|segundo|alguna|algún|algun|aquella|dicha|toda|todas|cualquier|única|unica|nueva|propia|\d+)|\$\{[^}]{0,40}\}|<\/\w+>)\s+aulas?\b(?!-)/gi;
 
@@ -148,7 +162,8 @@ function frasesConAula() {
       + (fuente.match(TRAS_VERBO) ?? []).length
       // El locativo lo cuenta `EN_PROSA` por su «el», y hay que descontarlo: ahí
       // «aula» es el salón, no la unidad.
-      - (fuente.match(EN_EL_AULA_LOCATIVO) ?? []).length;
+      - (fuente.match(EN_EL_AULA_LOCATIVO) ?? []).length
+      + (fuente.match(PLURAL_TERNARIO) ?? []).length;
     if (n) porArchivo.push([archivo, n]);
   }
   return porArchivo;

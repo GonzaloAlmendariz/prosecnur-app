@@ -770,7 +770,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     esperadoPorAulaDelDiseno?: number | null; aulasConDiseno?: number;
   }) => [
     `${dm(d.fecha)} · observado`,
-    `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
+    `${fmt(d.aulas)} ${d.aulas === 1 ? "curso-horario" : "cursos-horario"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
     `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por curso-horario`,
     // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
     // Sin decir el denominador, un día con una sola aula del diseño y tres
