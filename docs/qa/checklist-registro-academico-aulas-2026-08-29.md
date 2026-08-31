@@ -27,19 +27,54 @@ es un estrato, un τ o un *deff*, el elemento no pasa.
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ◐ **16/16 a 1440x1000 y 16/16 a 1024x600**, tras reparar los dos defectos que sólo salían en el extremo pequeño. Los tres viewports intermedios de la matriz **no se han medido**, y el runner no detecta recorte por elipsis: eso lo encontró el ojo |
+| A | Comprobación visual de cada pestaña, no lectura de código | runner `ui-quick-check` + capturas | ☑ **19/19 a 1440x1000** el 2026-08-31 sobre el `.pulso` de simulación de 15 días, más Efectividad en 1366x768 y 1024x600. Antes eran 16: faltaban `modelo/carga`, `modelo/facultad` y `avance/efectividad`. **Toda pestaña con gráfico exige `--post-click-wait-selector ".js-plotly-plot"`**: sin eso el runner da `ok=true issues=0` con el gráfico sin pintar, y por poco declaro roto Estratos, que estaba perfecto. El runner sigue sin detectar recorte por elipsis: eso lo encuentra el ojo |
 | B | Registro académico en todo texto publicable | `monitoreo_aulas_etiquetas.R` + rótulos del perfil | ◐ ratchet de «aula» **de 93 a 13**, que es su suelo útil: las 13 restantes son la locución «aula por aula» y el aula como ESPACIO, donde la palabra está bien · guard de género con cuatro brazos · 5 listas atadas al motor |
 | C | Evaluación conceptual de **cada elemento** de cada pestaña | inventario por pestaña, abajo | ☑ **barrida entera** en `fuentes`/`modelo`/`calidad`/`consultas`: rótulos, vacíos (30 frases), mapas de etiquetas (16 participios), etiquetas cortadas, saltos, tooltips, orden de tablas, pistas, cifras y los 12 componentes que dibujan. ~14 defectos sobre ~100 elementos |
 | D | ¿Faltan dos pestañas? Sólo si lo amerita | `modules.ts` + secciones del perfil | ☑ **no lo amerita**: 39 de 39 claves del dashboard ya tienen consumidor |
 | E | Revisar la lógica de cada elemento | motores de `api/R/monitoreo_aulas_*.R` | ◐ invariantes de cuota, calibración y `avance_cuota` cuadrando · 192 campos del payload con sólo 2 sin consumidor · pipeline `plan→seguidas→tracked_df` instrumentado · **1 divergencia real entre motor y pantalla** («reserva libre») · 6 defectos reparados y **3 preguntas abiertas** |
 | F | Que se entienda en español: conceptos y términos | todos los rótulos y pistas | ☐ |
 | G | Sin jerga, o con la mínima indispensable | ídem | ☐ |
-| H | Todos los gráficos se ven bien y se entienden | los seis gráficos del perfil | ◐ los 22 de Avance (7 reparados) y los 12 de las otras secciones **sin defecto** · el embudo de Fuentes declara su cambio de unidad · falta el ojo sobre los intermedios |
-| I | **Avance como mecanismo de revisión no técnica** | sección `avance` completa | ☐ |
+| H | Todos los gráficos se ven bien y se entienden | los seis gráficos del perfil | ☑ los 22 de Avance (7 reparados) y los 12 de las otras secciones **sin defecto**; el embudo de Fuentes declara su cambio de unidad. El 2026-08-31 se comprobaron además con Plotly ya montado: el de estratos separa los tres tramos y la marca de cuota, y el de carga por aplicador dibuja las bandas que impiden atribuir a un equipo una diferencia que no se sostiene |
+| I | **Avance como mecanismo de revisión no técnica** | sección `avance` completa | ◐ tres defectos de lectura reparados el 2026-08-31, todos del tipo «el número está bien y el rótulo miente»: la columna «Avance» no decía de qué total hablaba y convivía con «Cuota pendiente» en la misma fila (`b49333db`); el bloque de calidad mandaba a declarar quién recolecta con los 152 partes ya firmados (`9551aff0`); y el banco salía «S/D» en 12 facultades donde el dato es cero, lo que además impedía que se disparara nunca la única alerta que manda a Cálculo de muestra (`729a9fa1`). Falta el barrido de F y G sobre los rótulos de `avance` |
 | K | Columnas de sexo por «mayoritario/minoritario» | `FIELD_LABELS` + ADR 0082 | ⛔ **bloqueado, exige tu decisión** — detalle abajo |
 | L | Una «parcial» promete otra vez lo ya recogido | `monitoreo_aulas_calibracion.R` | ⛔ **bloqueado, exige tu decisión** — detalle abajo |
 | M | Los 9 con estados en desacuerdo | `agendamiento.ts` + `monitoreo_aulas_en_juego.R` | ⛔ **bloqueado**: agendados en lo operativo y «sin contactar» en la muestra, con el 45 % de la proyección colgando. ¿Cuál campo manda? |
 | J | **Separar meta / lo diseñado / el rendimiento**, y medir lo que falta SIEMPRE contra la meta | `avanceCuota.ts`, `cuotasResumen.ts`, `avance_sexo_facultad` | ☑ **cerrada**, cuatro piezas (`1d4b087a`, `d4da4407`, `89c54c7b` y una descartada por premisa falsa). Comprobado además que `brecha` suma 1 y `missing` 170: la que se mide contra la meta es `missing` |
+
+## Los dos insumos para la capacitación del 2026-08-31
+
+Ambos en `~/Desktop/prosecnur-demo/`. Ninguno se versiona: son artefactos.
+
+**`HSVG2026-simulacion-15dias.pulso`** · 1,9 MB. Sale del corte real de la
+semana 15 con dos cosas añadidas.
+
+1. **Las metas del diseño.** Sin ellas la vigencia decía «El estudio importado
+   no publica metas del diseño» y `tau_previsto` era **NA en las 15
+   facultades**: la pestaña Efectividad existe para comparar diseño contra
+   campo y no tenía contra qué. Se extraen del estudio de calc-muestra con
+   `.monitoreo_aulas_metas_diseno()` y se sellan con `selection_run_id` /
+   `frame_hash` de la selección real (`sel_aulas_20260827160944_f5c12730`,
+   semilla 202). El sello es legítimo, no inventado: los 1.392 códigos de esa
+   selección están todos en el plan.
+2. **Rendimiento distinto por facultad**, para que se vean los tres casos a la
+   vez. Se reescalan las respuestas reales de cada aula por un factor de su
+   facultad: Estudios Generales Letras 0,72, Ciencias Sociales 0,88, Derecho
+   1,12. Resultado: **2 por debajo, 2 por encima, 11 conformes**.
+
+Trampa que costó dos intentos: **el parte de campo se reescala con las
+respuestas, y vive en dos sitios.** La app lee
+`monitoreo_config$aulas_universitarias$partes_campo`, no el del nivel superior.
+Sin reescalarlo, «El parte contra la plataforma» pasaba de 92 descuadres a 98
+con las diez peores TODAS de la facultad simulada peor y diferencias de +18:
+parece un problema de datos de esa facultad y es artefacto. Reescalado queda en
+**89 con máximo +4**, por debajo del corte real. `asistentes` no se toca: la
+historia es que respondieron menos, no que fuera menos gente.
+
+**`Guia-Monitoreo-cursos-horario.pdf`** · 7 páginas, sección por sección y
+pestaña por pestaña, sin em-dash. Lleva la tabla de los tres casos con qué
+hacer en cada uno, la fila de Educación como ejemplo de por qué un 137,5 % de
+avance convive con «cuota pendiente», y por qué la señal la dispara la banda y
+no el punto.
 
 ## Bloqueado: exige tu decisión, no lo reparo por mi cuenta
 
