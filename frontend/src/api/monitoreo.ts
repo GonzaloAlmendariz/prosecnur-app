@@ -4841,6 +4841,38 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
   );
 }
 
+/** La respuesta del import es la misma venga del `.xlsx` o del Sheets. */
+export type MonitoreoAulasImportacion = Awaited<
+  ReturnType<typeof apiMonitoreoAulasImportarLibro>
+>;
+
+/**
+ * Relee el libro desde las tres pestañas de un Google Sheets.
+ *
+ * La otra puerta del mismo ciclo: el `.xlsx` sirve para el cierre, esto para el
+ * operativo en marcha, cuando el equipo trabaja sobre la pestaña en línea y
+ * nadie quiere descargar un archivo para ver cómo va.
+ *
+ * Acepta el **enlace entero** que se copia de la barra del navegador; el
+ * backend extrae el id. Pedir las 44 letras del medio es un paso donde
+ * equivocarse en silencio.
+ *
+ * Devuelve exactamente lo mismo que `apiMonitoreoAulasImportarLibro`, así que
+ * quien la llame no tiene que ramificar por procedencia.
+ */
+export async function apiMonitoreoAulasImportarSheets(
+  enlace: string,
+  pestanas?: { agendadas?: string; aplicadas?: string; control?: string },
+) {
+  return handle<MonitoreoAulasImportacion>(
+    await apiFetch("/api/monitoreo/aulas/importar-sheets", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ url: enlace, ...(pestanas ? { pestanas } : {}) }),
+    }),
+  );
+}
+
 export async function apiMonitoreoAulasActivarReemplazo(payload: {
   operational_code: string;
   motivo?: string;

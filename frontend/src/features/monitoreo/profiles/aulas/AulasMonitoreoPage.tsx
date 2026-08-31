@@ -8,6 +8,7 @@ import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vend
 import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasImportarLibro,
+  apiMonitoreoAulasImportarSheets,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
@@ -1090,6 +1091,30 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * La misma operación por la otra puerta: el Sheets en vez del archivo.
+   *
+   * No hay paso de subida —no hay nada que subir— pero de ahí en adelante es
+   * idéntico, y el aviso se arma con el MISMO `avisoLibroImportado`: la
+   * respuesta tiene la misma forma venga de donde venga, y ramificar aquí por
+   * procedencia sería inventar una diferencia que el backend ya no hace.
+   */
+  const leerDeSheets = useCallback(async (enlace: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasImportarSheets(enlace);
+      setState(res.state);
+      setAviso(avisoLibroImportado(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer el Sheets.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
 
   useEffect(() => {
     void loadView(seccionActiva);
@@ -1437,6 +1462,7 @@ export default function AulasMonitoreoPage() {
                   onSyncField={() => { void syncField(); }}
                   onGenerarLibro={() => { void generarLibro(); }}
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
+                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
                 />
               ),
               vacioSinTablero: (
