@@ -2123,6 +2123,16 @@
   font-style: normal;
 }
 
+/* **El total del dia no se parte NUNCA.** Es un flex, y al estrecharse la
+   columna el navegador partia dentro del propio numero: «13» salia como «1» y
+   «3» en dos lineas, y «28» como «2» y «8». No es una elipsis en una etiqueta
+   larga —eso el contrato lo admite—, es un dato operativo ilegible y ademas
+   engañoso, porque las dos mitades se leen como dos cifras. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-cifra strong {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja
    ENCIMA de la tabla —medido—.
