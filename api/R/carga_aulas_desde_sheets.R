@@ -108,3 +108,54 @@ aulas_libro_desde_fuente <- function(values, rol) {
   if (!nzchar(hoja)) return(list())
   aulas_libro_desde_valores(values, hoja)
 }
+
+#' Importa el libro completo desde los valores de tres pestañas de Sheets.
+#'
+#' **La otra puerta del ciclo, ahora conectada.** Este modulo sabia convertir
+#' los valores de la API en plan, partes y control desde que se escribio, y
+#' nadie lo llamaba: `aulas_libro_desde_valores()` no tenia un solo consumidor
+#' en todo el repo. Lo que faltaba no era la conversion sino el remate —el
+#' recuento del resumen vivia dentro del lector de Excel—, asi que se extrajo a
+#' `.calb_ensamblar()` y las dos puertas lo comparten.
+#'
+#' El resultado tiene la MISMA forma que `aulas_libro_importar()`, que es lo que
+#' permite que `aulas_libro_importar_en_sesion()` no tenga que saber por donde
+#' entro el libro.
+#'
+#' Una hoja que no venga se declara en `hojas_ausentes`, igual que en el `.xlsx`:
+#' leer solo la agenda es un caso normal —el jefe de campo llena la suya en otro
+#' momento— y no un error.
+#'
+#' @param hojas lista con `agendadas`, `aplicadas` y/o `control`; cada una son
+#'   las filas tal como las devuelve la API de Sheets (`values`).
+#' @return La misma estructura que `aulas_libro_importar()`.
+#' @export
+aulas_libro_importar_valores <- function(hojas = list()) {
+  hojas <- hojas %||% list()
+  trae <- function(k) {
+    v <- hojas[[k]]
+    !is.null(v) && length(v) > 0L
+  }
+  presentes <- vapply(c("agendadas", "aplicadas", "control"), trae, logical(1))
+  if (!any(presentes)) {
+    stop_api(
+      422, "E_AULAS_LIBRO_SIN_HOJAS",
+      "Ninguna de las tres pestañas del operativo de aulas trajo filas.",
+      details = list(esperadas = lapply(AULAS_LIBRO_HOJAS, function(x) x$hoja))
+    )
+  }
+
+  plan <- if (presentes[["agendadas"]]) aulas_libro_desde_valores(hojas$agendadas, "agendadas") else list()
+  partes <- if (presentes[["aplicadas"]]) aulas_libro_desde_valores(hojas$aplicadas, "aplicadas") else list()
+  # `base_control_a_filas()` devuelve la lista de filas a secas; el ensamblado
+  # espera la forma del lector de Excel, que ademas lleva `sin_nombre`.
+  filas_control <- if (presentes[["control"]]) aulas_libro_desde_valores(hojas$control, "control") else list()
+  control <- if (is.list(filas_control) && !is.null(filas_control$filas)) {
+    filas_control
+  } else {
+    list(filas = filas_control, sin_nombre = integer(0))
+  }
+
+  ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
+  .calb_ensamblar(plan, partes, control, ausentes)
+}
