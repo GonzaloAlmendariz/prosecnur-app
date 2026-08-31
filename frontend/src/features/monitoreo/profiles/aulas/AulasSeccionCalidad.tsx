@@ -205,6 +205,7 @@ export function AulasSeccionCalidad({
             partes: (dashboard.partes_campo ?? []) as Array<Record<string, unknown>>,
             control: (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>,
             brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
+            banco: dashboard.banco_extras?.por_facultad ?? [],
           }}
           onCerrar={() => onFoco(null)}
           // El foco viaja en la URL, así que el registro se abre ya sobre esta

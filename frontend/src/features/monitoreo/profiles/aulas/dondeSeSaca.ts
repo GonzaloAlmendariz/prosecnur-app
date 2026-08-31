@@ -21,8 +21,19 @@ import { colchonPorFacultad } from "./consumoDeCadena";
 
 export type DondeSeSaca = {
   facultad: string;
-  /** Reservas de esa facultad que siguen sin usarse. */
+  /** Reservas de CADENA de esa facultad que siguen sin usarse. */
   reservasLibres: number;
+  /**
+   * Extras de su bolsón que siguen sin usarse, o `null` si el estudio no
+   * publica banco.
+   *
+   * Va aparte de `reservasLibres` porque son dos recursos con procedimiento
+   * distinto -la cadena sigue el orden del sorteo y el bolsón se elige-, pero
+   * hace falta aquí: sin él, la ficha manda al banco de extras sin saber si esa
+   * facultad tiene alguno. Medido sobre HSVG 2026: **12 de 15 lo tienen
+   * vacío**.
+   */
+  bolsonLibre: number | null;
   /** Cadenas de esa facultad que ya gastaron todas sus reservas. */
   cadenasAgotadas: number;
   /** Cadenas que nunca tuvieron reserva: no las gastó el campo. */
@@ -34,25 +45,40 @@ export type DondeSeSaca = {
 export function dondeSeSaca(
   facultad: string,
   agenda: ReadonlyArray<MonitoreoAulasPlanRow>,
+  /**
+   * `banco_extras.por_facultad`. Enumera TODAS las facultades del plan, con
+   * cero donde no hay: una que no aparezca es que el estudio no publica banco,
+   * y eso no es lo mismo que tenerlo vacío.
+   */
+  banco: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }> = [],
 ): DondeSeSaca {
   const limpia = facultad.trim();
   const vacio: DondeSeSaca = {
     facultad: limpia,
     reservasLibres: 0,
+    bolsonLibre: null,
     cadenasAgotadas: 0,
     cadenasSinColchon: 0,
     conocida: false,
   };
   if (!limpia) return vacio;
 
+  const suyoEnBanco = banco.find(
+    (b) => String(b.faculty ?? "").trim().toLowerCase() === limpia.toLowerCase(),
+  );
+  const bolsonLibre = suyoEnBanco && typeof suyoEnBanco.disponibles === "number"
+    ? suyoEnBanco.disponibles
+    : null;
+
   const suya = colchonPorFacultad(agenda).find(
     (f) => f.facultad.trim().toLowerCase() === limpia.toLowerCase(),
   );
-  if (!suya) return vacio;
+  if (!suya) return { ...vacio, bolsonLibre };
 
   return {
     facultad: suya.facultad,
     reservasLibres: suya.libres,
+    bolsonLibre,
     cadenasAgotadas: suya.agotadas,
     cadenasSinColchon: suya.nuncaTuvo,
     conocida: true,
