@@ -107,11 +107,21 @@
   codigo <- trimws(as.character(codigo %||% "")[1])
   ancho <- suppressWarnings(as.integer(ancho))
   if (!nzchar(codigo) || length(ancho) != 1L || is.na(ancho) || ancho < 1L) return(codigo)
-  m <- regmatches(codigo, regexec("^([^0-9]*?)\\s*([0-9]+)(.*)$", codigo))[[1]]
+  # El prefijo se conserva LITERAL, con su separacion o sin ella. Comerse el
+  # espacio y reponerlo despues inventaba uno donde no lo habia: `URB209_0601`
+  # -un codigo academico entero, no «URB» + 209- salia como `URB 209_0601`.
+  m <- regmatches(codigo, regexec("^([^0-9]*)([0-9]+)(.*)$", codigo))[[1]]
   if (length(m) != 4L) return(codigo)
-  prefijo <- trimws(m[[2]])
-  numero <- sprintf(paste0("%0", ancho, "d"), as.integer(m[[3]]))
-  paste0(if (nzchar(prefijo)) paste0(prefijo, " ") else "", numero, m[[4]])
+  # Solo se acolcha el ordinal de una CADENA, que es lo que trae separador antes
+  # del numero: `CH 5`, `R 5.3`, `MAT-01`, `AULA_7`. Un codigo academico compacto
+  # (`URB209_0601`, `1ARC66_0601`) no lleva separador y no es un ordinal: pasa
+  # entero. Acolcharlo daba `01ARC66_0601`, que ya es otro codigo.
+  if (!grepl("[ _-]$", m[[2]])) return(codigo)
+  # Y el acolchado RELLENA, nunca encoge. `MAT-01` es el codigo del aula tal
+  # como viene del marco; recalcularlo a `MAT-1` porque en este paquete basta un
+  # digito reescribe un identificador para ordenar una carpeta.
+  ancho <- max(ancho, nchar(m[[3]]))
+  paste0(m[[2]], sprintf(paste0("%0", ancho, "d"), as.integer(m[[3]])), m[[4]])
 }
 
 #' Cuantos digitos hace falta acolchar para que este plan ordene.
