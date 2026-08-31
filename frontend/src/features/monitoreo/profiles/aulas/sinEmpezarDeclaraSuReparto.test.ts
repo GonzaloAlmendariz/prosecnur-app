@@ -56,3 +56,47 @@ describe("la pista de «Sin empezar»", () => {
     expect(sinEmpezar(tablero(7, 3))?.value).toBe("10");
   });
 });
+
+/**
+ * **Y «Agendado» tampoco es un tramo homogéneo.**
+ *
+ * Medido el 2026-08-30 sobre el estudio de 174 titulares: los 22 de este sello
+ * eran **13 `agendada` + 9 `sin_contactar`**, y la pista decía «agendados,
+ * todavía sin salir a campo» sobre los 22. Los 9 son exactamente los que la
+ * cola de contacto publica dos bloques más abajo, en la misma pantalla, como
+ * «9 cursos-horario siguen sin cita · el que más lleva va por 5 intentos».
+ *
+ * Es la misma advertencia de arriba —una agendada se espera, una sin cita hay
+ * que salir a conseguirla— sobre el otro eje: `application_state` agrupa las
+ * dos y `sample_status` las separa.
+ */
+const conEstado = (agendadas: number, sinContactar: number) => ({
+  course_status: [
+    ...Array.from({ length: agendadas }, () => ({
+      application_state: "lista", sample_role: "titular", sample_status: "agendada",
+    })),
+    ...Array.from({ length: sinContactar }, () => ({
+      application_state: "lista", sample_role: "titular", sample_status: "sin_contactar",
+    })),
+  ],
+  kpis: {},
+}) as never;
+
+describe("«Agendado» se separa cuando el tramo mezcla estados", () => {
+  it("con 13 agendadas y 9 sin contactar, dice el reparto", () => {
+    const k = sinEmpezar(conEstado(13, 9));
+    expect(k?.value).toBe("22");
+    expect(k?.pista).toBe("13 con cita · 9 sin contactar todavía");
+  });
+
+  it("con todas agendadas no inventa un reparto", () => {
+    expect(sinEmpezar(conEstado(5, 0))?.pista).toBe("agendados, todavía sin salir a campo");
+  });
+
+  it("si NINGUNA declara su estado, no se afirma que no tienen cita", () => {
+    // El control del arreglo. Sin `sample_status` no se sabe, y asumir «sin
+    // contactar» es el mismo error que asumir «agendada»: los cuatro tests de
+    // arriba usan ese fixture y tienen que seguir midiendo lo suyo.
+    expect(sinEmpezar(tablero(0, 40))?.pista).toBe("agendados, todavía sin salir a campo");
+  });
+});
