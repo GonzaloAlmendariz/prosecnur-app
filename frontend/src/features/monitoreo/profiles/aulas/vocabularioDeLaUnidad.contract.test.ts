@@ -169,6 +169,101 @@ function frasesConAula() {
   return porArchivo;
 }
 
+/**
+ * **Lo que queda cuando la palabra ya se cambió: la CONCORDANCIA.**
+ *
+ * El ratchet de arriba cuenta la palabra «aula», así que deja de ver una frase
+ * en cuanto alguien escribe «curso-horario» y no toca el resto. Y el resto
+ * seguía en femenino. Medido el 2026-08-31 leyendo las 774 frases visibles de
+ * Avance, cuatro llegaron así hasta la pantalla:
+ *
+ *   «los 14 cursos-horario ... se cayeron TODAS ... no hay por donde LLAMARLAS»
+ *   «N cursos-horario del plan la traen; LAS QUE no, quedarán sin juzgar»
+ *   «este criterio no podría juzgar NINGUNA»
+ *   «Ningún curso-horario evaluado se quedó corto: LAS QUE el libro evalúa...»
+ *
+ * El tope es CERO porque están cerradas. Un tope de cero exige el control de
+ * fixture de más abajo con más razón que uno alto: sin él, un regex roto
+ * pasaría siempre y en silencio.
+ *
+ * **Dos femeninos que NO entran, y por qué el detector tuvo que afinarse.**
+ *
+ * `la traen` / `la trae`: ahí el femenino es la meta (`efectivas_esperadas`),
+ * no el curso-horario.
+ *
+ * Y `ninguna` sólo cuenta cuando NO va delante de un sustantivo. La primera
+ * versión marcaba dos frases correctas: «llegan sin identificar su
+ * curso-horario, así que ninguna cuenta para la meta» —ninguna RESPUESTA— y «no
+ * cruzan con ninguna facultad del plan». Un determinante femenino delante de un
+ * sustantivo femenino es correcto por definición; lo sospechoso es el
+ * `ninguna` que cierra la frase, como en «no podría juzgar ninguna:».
+ */
+const FEMENINO_TRAS_UNIDAD = new RegExp(
+  String.raw`cursos?-horario(?:[^"\n]{0,70}?)\b(?:` +
+    String.raw`todas|estas|esas|aquellas|las que|aplicadas|agendadas|caídas|dormidas` +
+    String.raw`|visitadas|evaluadas|juzgadas|llamarlas|contarlas|activarlas` +
+    // `ninguna` sólo si cierra: seguida de puntuación o de fin de literal.
+    String.raw`|ninguna(?=\s*(?:[:.,;»]|$))` +
+    String.raw`)\b`,
+  "gi",
+);
+
+function concordanciasEnFemenino() {
+  const fuentes = fs
+    .readdirSync(aqui)
+    .filter((f) => (f.endsWith(".ts") || f.endsWith(".tsx")) && !f.includes(".test."));
+  const porArchivo: Array<[string, string[]]> = [];
+  for (const archivo of fuentes) {
+    const fuente = fs
+      .readFileSync(path.join(aqui, archivo), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const hits = fuente.match(FEMENINO_TRAS_UNIDAD) ?? [];
+    if (hits.length) porArchivo.push([archivo, hits]);
+  }
+  return porArchivo;
+}
+
+describe("la unidad concuerda en masculino", () => {
+  it("ninguna frase habla de cursos-horario en femenino", () => {
+    const porArchivo = concordanciasEnFemenino();
+    const detalle = porArchivo
+      .map(([f, hits]) => `${f}: «${hits[0].replace(/\s+/g, " ").slice(0, 80)}»`)
+      .join(" · ");
+    expect(
+      porArchivo.length,
+      "El cambio de «aula» a «curso-horario» dejó la concordancia en femenino. " +
+        `El ratchet de la palabra no lo ve, porque la palabra ya no está: ${detalle}`,
+    ).toBe(0);
+  });
+
+  it("y el detector mide algo: con tope cero, un regex roto pasaría siempre", () => {
+    // El control de fixture, que aquí es obligatorio. Las cuatro frases reales
+    // que se cerraron el 2026-08-31, para que un regex que deje de casarlas
+    // falle en vez de dar verde.
+    const cerradas = [
+      "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todas.",
+      "12 cursos-horario del plan la traen; las que no, quedarán sin juzgar.",
+      "Ningún curso-horario del plan la trae, así que no podría juzgar ninguna: el plan...",
+      "Ningún curso-horario evaluado se quedó corto: las que el libro evalúa alcanzaron.",
+    ];
+    for (const frase of cerradas) {
+      expect(new RegExp(FEMENINO_TRAS_UNIDAD.source, "gi").test(frase), frase).toBe(true);
+    }
+    // Y no casa lo que es correcto. Las dos últimas son frases reales que la
+    // primera versión del detector marcó por error: el sustantivo femenino que
+    // va detrás de `ninguna` es quien manda.
+    for (const frase of [
+      "12 cursos-horario del plan la traen; los que no, quedarán sin juzgar.",
+      "La prueba está en las reservas dormidas de ese curso-horario.",
+      "llegan sin identificar su curso-horario, así que ninguna cuenta para la meta.",
+      "3 de estos cursos-horario no cruzan con ninguna facultad del plan por su código.",
+    ]) {
+      expect(new RegExp(FEMENINO_TRAS_UNIDAD.source, "gi").test(frase), frase).toBe(false);
+    }
+  });
+});
+
 describe("el vocabulario de la unidad sólo puede mejorar", () => {
   it(`no supera las ${TOPE} frases con «aula» medidas al cerrar Avance`, () => {
     const porArchivo = frasesConAula();
