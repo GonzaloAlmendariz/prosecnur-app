@@ -146,6 +146,51 @@ MONITOREO_AULAS_ESTADOS_VALIDOS <- c(
   "validation_status_approved", "approved"
 )
 
+#' En CUAL condicion se cae cada respuesta que no cuenta.
+#'
+#' El criterio ya decia cuantas pasan -«2.616 de 2.760»- y eso no dice donde
+#' esta el problema. Con tres condiciones a la vez, 144 descartadas pueden ser
+#' 144 sin consentimiento o 144 fuera de la poblacion, y se hacen cosas
+#' distintas en cada caso.
+#'
+#' Se cuentan DOS cosas por filtro, y la segunda es la que decide:
+#'
+#' - `caen`: cuantas incumplen ese filtro, se cumplan o no los demas. Suma mas
+#'   que el total de descartadas, porque una respuesta puede fallar varios.
+#' - `solo_este`: cuantas fallan ESE y ninguno mas. Es lo accionable: si arreglas
+#'   ese filtro, esas entran. Las que fallan dos no las salva tocar uno.
+#'
+#' Un filtro cuya columna no esta en la base NO se evalua, igual que en
+#' `.monitoreo_aulas_valid_response()`: se declara aparte y no se cuenta como
+#' que todas lo incumplen.
+#'
+#' @param data respuestas.
+#' @param cfg config de aulas.
+#' @return lista de listas con `var`, `caen`, `solo_este`; vacia si no hay filtros.
+#' @keywords internal
+.monitoreo_aulas_caidas_por_filtro <- function(data, cfg) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  filtros <- monitoreo_aulas_filtros_de_validez(cfg)
+  aplicables <- Filter(function(f) f$var %in% names(data), filtros)
+  if (!length(aplicables)) return(list())
+
+  # Una matriz de incumplimiento: una columna por filtro aplicable.
+  falla <- vapply(aplicables, function(f) {
+    !(.monitoreo_text_key(data[[f$var]]) %in% .monitoreo_text_key(f$values))
+  }, logical(nrow(data)))
+  if (is.null(dim(falla))) falla <- matrix(falla, nrow = nrow(data))
+  cuantos_fallan <- rowSums(falla)
+
+  lapply(seq_along(aplicables), function(i) {
+    list(
+      var = aplicables[[i]]$var,
+      caen = as.integer(sum(falla[, i])),
+      # Falla este y ninguno mas.
+      solo_este = as.integer(sum(falla[, i] & cuantos_fallan == 1L))
+    )
+  })
+}
+
 #' Que criterio de validez se aplico, para poder decirlo.
 #'
 #' El criterio se resolvia en silencio: nadie sabia si el tablero contaba TODO
@@ -168,6 +213,7 @@ monitoreo_aulas_criterio_validez <- function(data, cfg = list()) {
       columna = "", modo = "por_filtros",
       filtros = vapply(filtros, function(f) f$var, character(1)),
       filtros_ausentes = vapply(filtros[ausentes], function(f) f$var, character(1)),
+      por_filtro = .monitoreo_aulas_caidas_por_filtro(data, cfg),
       validas = as.integer(sum(.monitoreo_aulas_valid_response(data, cfg))),
       total = as.integer(nrow(data))
     ))
@@ -220,9 +266,43 @@ monitoreo_aulas_criterio_texto <- function(crit) {
           " La base no trae %s, así que %s no se aplicó.",
           paste(sprintf("'%s'", ausentes), collapse = " ni "),
           if (length(ausentes) == 1L) "esa condicion" else "esas condiciones"
-        ) else ""
+        ) else "",
+        # **Y en CUAL se cae lo que no cuenta.** «2.616 de 2.760» dice cuantas
+        # se pierden y no donde: 144 descartadas pueden ser 144 sin
+        # consentimiento o 144 fuera de la poblacion, y se hace algo distinto en
+        # cada caso. Se ordena por la que mas descarta, que es por donde se
+        # empieza a mirar.
+        .monitoreo_aulas_texto_por_filtro(crit$por_filtro %||% list(), total - validas)
       )
     }
+  )
+}
+
+#' La frase que dice en cual condicion se cae lo descartado.
+#'
+#' Se dice `solo_este` y no `caen`, porque es la cifra accionable: son las que
+#' entrarian si esa condicion se resolviera. Cuando una respuesta falla dos, no
+#' la salva arreglar una, y eso se declara aparte en vez de repartirla.
+#'
+#' @param por_filtro lo que devuelve `.monitoreo_aulas_caidas_por_filtro()`.
+#' @param descartadas cuantas no cuentan en total.
+#' @return frase, o `""` si no hay nada que decir.
+#' @keywords internal
+.monitoreo_aulas_texto_por_filtro <- function(por_filtro, descartadas) {
+  if (!length(por_filtro) || !is.finite(descartadas) || descartadas <= 0) return("")
+  solos <- vapply(por_filtro, function(f) as.integer(f$solo_este %||% 0L), integer(1))
+  nombres <- vapply(por_filtro, function(f) as.character(f$var %||% ""), character(1))
+  con_algo <- solos > 0L
+  if (!any(con_algo)) return("")
+  ord <- order(-solos[con_algo])
+  partes <- sprintf("%d por '%s'", solos[con_algo][ord], nombres[con_algo][ord])
+  varias <- descartadas - sum(solos)
+  paste0(
+    sprintf(" De las %d que no cuentan, %s.", descartadas,
+            paste(partes, collapse = " · ")),
+    if (varias == 1L) " La otra falla más de una condición, así que no la recupera arreglar una sola."
+    else if (varias > 0) sprintf(" Las otras %d fallan más de una condición, así que no las recupera arreglar una sola.", varias)
+    else ""
   )
 }
 
