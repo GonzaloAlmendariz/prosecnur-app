@@ -579,9 +579,9 @@ primera vez, que es por qué el `.pulso` traía `monitoreo: pending`.
 
 | | Ítem | Estado |
 |---|---|---|
-| N1 | **`aulasMonitoreo.css` tiene 6.149 líneas.** Es la hoja más grande del perfil y ya concentra el estilo de las ocho pestañas. Partirla por superficie, con el kit común aparte | ☐ |
-| N2 | **`AulasMonitoreoPage.tsx` tiene 2.949 líneas** y monta las ocho pestañas. Cada pestaña debería ser su propio archivo y la página quedarse en el enrutado | ☐ |
-| N3 | **`monitoreo_aulas_universitarias.R` tiene 2.352 líneas**, más de un tercio del backend de aulas. Regla de extracción en caliente: cada fix que lo toque saca su tema a `monitoreo_aulas_<tema>.R` | ☐ permanente |
+| N1 | **`aulasMonitoreo.css` tiene 6.149 líneas.** Es la hoja más grande del perfil y ya concentra el estilo de las ocho pestañas. Partirla por superficie, con el kit común aparte | ◐ **5.699 hoy, 450 menos** (medido 2026-08-31). Sigue siendo la hoja más grande del perfil |
+| N2 | **`AulasMonitoreoPage.tsx` tiene 2.949 líneas** y monta las ocho pestañas. Cada pestaña debería ser su propio archivo y la página quedarse en el enrutado | ☑ **1.505 hoy, 1.444 menos** (medido 2026-08-31): las ocho pestañas ya viven en su propio archivo (`AulasPestanaCuotas.tsx`, `AulasPestanaEfectividad.tsx`…) y la página quedó en el enrutado |
+| N3 | **`monitoreo_aulas_universitarias.R` tiene 2.352 líneas**, más de un tercio del backend de aulas. Regla de extracción en caliente: cada fix que lo toque saca su tema a `monitoreo_aulas_<tema>.R` | ⚠ **VA AL REVÉS: 2.691 hoy, +339 sobre la línea del GOAL** (medido 2026-08-31). Desde que se escribió esto suma **+372 netas**, y **+119 son del loop del registro académico**: tres fixes lo tocaron y ninguno extrajo su tema, que es justo lo que esta regla pide. Deuda reconocida, no ajena. El siguiente fix que entre aquí saca su tema antes de añadir |
 | N4 | Cuando N1 y N2 estén hechos, **proponer líneas base de congelamiento** para lo que quede, en `agentic/manifest.json` | ☐ depende de N1, N2 |
 
 ### A · Frescura del dato — «el tema central» según el dueño (2026-07-23)
