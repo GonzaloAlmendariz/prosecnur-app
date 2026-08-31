@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { PANEL_REEMPLAZO_AULAS, PANELES_POR_MODULO } from "../../../../lib/navegacion/manifiesto";
+import { panelAbiertoEn, searchConPanel } from "../../../../lib/navegacion/paneles";
 import { describe, expect, it, vi } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -142,6 +143,21 @@ describe("el popover de reemplazo es direccionable", () => {
   it("está declarado en el manifiesto de monitoreo, que es lo que recorre el QA", () => {
     const ids = (PANELES_POR_MODULO.monitoreo ?? []).map((p) => p.id);
     expect(ids).toContain("aulas-reemplazo");
+  });
+
+  it("la dirección canónica lo abre y su ausencia lo deja cerrado", () => {
+    // **La mitad que sí se puede probar sin navegador.** Este repo no usa
+    // @testing-library/react —lo declara `AccessSection.test.tsx`— y
+    // `renderToStaticMarkup` no corre efectos, así que el montaje real se
+    // comprueba con el runner. Lo que se fija aquí es que el id de la URL y el
+    // del panel declarado son el mismo: si divergen, `?panel=…` deja de abrirlo
+    // y el popover vuelve a ser invisible para el QA sin que nada falle.
+    expect(panelAbiertoEn("?panel=aulas-reemplazo", PANEL_REEMPLAZO_AULAS)).toBe(true);
+    expect(panelAbiertoEn("?panel=otro-cualquiera", PANEL_REEMPLAZO_AULAS)).toBe(false);
+    expect(panelAbiertoEn("", PANEL_REEMPLAZO_AULAS)).toBe(false);
+    // Y la dirección que escribe el propio botón es la que se puede pegar.
+    expect(searchConPanel("?seccion=calidad", PANEL_REEMPLAZO_AULAS))
+      .toContain("panel=aulas-reemplazo");
   });
 
   it("con el panel cerrado, la vista no lo monta", () => {
