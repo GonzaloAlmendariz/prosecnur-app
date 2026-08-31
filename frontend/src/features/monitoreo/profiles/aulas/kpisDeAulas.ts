@@ -690,8 +690,15 @@ export function aulasKpis(
         // —que sigue mostrando las once— la explica la propia pista; callarla
         // dejaria dos fuentes del mismo hecho discrepando sin que nadie lo diga.
         value: fmt(alertas.evaluados),
+        // **Con su sustantivo, que si no parece una discordancia.** La otra rama
+        // dice «reglas evaluadas» y el femenino es correcto —son REGLAS—, pero
+        // esta lo elidía y quedaba «CONTROLES · 11 · evaluadas», con el rótulo en
+        // masculino justo encima. Visto a ojo en la captura de
+        // `calidad/controles` a 1024 el 2026-08-30: parece un error de género y
+        // no lo es, que es la peor clase de duda porque lleva a «arreglar» lo
+        // que está bien.
         pista: alertas.sinComprobar
-          ? `evaluadas · ${alertas.sinComprobar} sin comprobar`
+          ? `reglas evaluadas · ${alertas.sinComprobar} sin comprobar`
           : "reglas evaluadas sobre este corte",
       },
       {
