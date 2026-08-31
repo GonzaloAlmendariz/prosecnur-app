@@ -203,3 +203,49 @@ describe("recorteTabla con el total real del motor", () => {
     expect(recorteTabla(payload, 400, "fila", 12).etiqueta).toBe("Mostrando 400 de 500 filas");
   });
 });
+
+describe("el bloqueo del corte incompleto dice CUÁL de los tres estados es", () => {
+  /**
+   * Un mensaje único —«incompleto o desactualizado»— cubría `partial`, `stale`
+   * y `failed`, que piden cosas distintas: en `partial` la sincronización
+   * terminó con errores y repetirla puede no arreglar nada, mientras que en
+   * `stale` basta con volver a sincronizar. El sistema tiene el estado exacto,
+   * así que la disyunción era pérdida de información, no cautela.
+   *
+   * Visto en la pestaña Salidas del perfil de cursos-horario, a 1440.
+   */
+  const mensaje = (generationStatus: string) =>
+    readinessDeSalidas(construirCorte({
+      ingesta: 1400, procesable: 1300, oficial: 1283, meta: 1200,
+      hasSnapshot: true, generationStatus,
+    })).bloqueos.find((b) => b.codigo === "CORTE_INCOMPLETO")?.mensaje ?? "";
+
+  it("«partial» nombra los errores de la sincronización", () => {
+    expect(mensaje("partial")).toContain("terminó con errores");
+    expect(mensaje("partial")).not.toContain(" o desactualizado");
+  });
+
+  it("«stale» dice que quedó viejo, que es lo que se arregla sincronizando", () => {
+    expect(mensaje("stale")).toContain("desactualizado");
+    expect(mensaje("stale")).not.toContain("errores");
+  });
+
+  it("«failed» no se disfraza de corte incompleto", () => {
+    expect(mensaje("failed")).toContain("falló");
+  });
+
+  it("un estado desconocido nombra el valor en vez de inventarle una causa", () => {
+    // Sin esto, un estado nuevo del backend caería en la rama de otro y el
+    // aviso afirmaría una causa que nadie comprobó.
+    const texto = mensaje("reindexing");
+    expect(texto).toContain("reindexing");
+    expect(texto).not.toContain("errores");
+    expect(texto).not.toContain("falló");
+  });
+
+  it("los tres mensajes conocidos son distintos entre sí", () => {
+    const todos = ["partial", "stale", "failed"].map(mensaje);
+    expect(new Set(todos).size).toBe(3);
+    expect(todos.every((t) => t.length > 0)).toBe(true);
+  });
+});

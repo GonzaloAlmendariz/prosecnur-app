@@ -189,6 +189,38 @@ export type MonitoreoSalidaReadiness = {
  * mayor que cero. El conteo crudo del snapshot no habilita nada — ese era el
  * defecto que permitía emitir un PDF "oficial" con cero válidas.
  */
+/**
+ * Por qué este corte no se puede publicar, dicho por su nombre.
+ *
+ * El mensaje era uno solo —«El corte está incompleto o desactualizado; vuelve a
+ * sincronizar»— para tres estados que significan cosas distintas y piden cosas
+ * distintas, **teniendo el sistema el dato exacto**: `partial` es una
+ * sincronización que terminó CON ERRORES (resincronizar puede no arreglar nada
+ * si el error persiste), `stale` es un corte que quedó viejo (ahí sí basta
+ * volver a sincronizar) y `failed` es una generación que no llegó a terminar.
+ * Una disyunción deja al lector eligiendo entre dos diagnósticos cuando abajo
+ * hay uno.
+ *
+ * El bloqueo de al lado, `FUENTES_INCOMPLETAS`, ya nombra su causa con las dos
+ * cifras; éste se había quedado en el «o».
+ */
+function mensajeDeCorteIncompleto(estado: MonitoreoGenerationStatus): string {
+  if (estado === "partial") {
+    return "La última sincronización terminó con errores, así que el corte está incompleto: revisa Fuentes antes de publicar.";
+  }
+  if (estado === "stale") {
+    return "El corte quedó desactualizado desde la última sincronización; vuelve a sincronizar antes de publicar.";
+  }
+  if (estado === "failed") {
+    return "La generación del corte falló y no hay nada completo que publicar: vuelve a sincronizar desde Fuentes.";
+  }
+  // Un estado que el contrato no conoce todavía. Se dice que no está completo
+  // —que es lo comprobado— y se nombra el valor en vez de inventarle una causa.
+  return estado
+    ? `El corte no está completo (estado «${estado}»); vuelve a sincronizar antes de publicar.`
+    : "El corte todavía no está completo; vuelve a sincronizar antes de publicar.";
+}
+
 export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadiness {
   const bloqueos: MonitoreoBloqueoSalida[] = [];
 
@@ -215,7 +247,7 @@ export function readinessDeSalidas(corte: MonitoreoCorte): MonitoreoSalidaReadin
     if (corte.generationStatus !== "complete") {
       bloqueos.push({
         codigo: "CORTE_INCOMPLETO",
-        mensaje: "El corte está incompleto o desactualizado; vuelve a sincronizar antes de publicar.",
+        mensaje: mensajeDeCorteIncompleto(corte.generationStatus),
         direccion: "seccion=fuentes",
       });
     }
