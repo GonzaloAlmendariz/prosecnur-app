@@ -550,3 +550,42 @@ describe("el vacío de la serie por sexo manda a revisar lo que de verdad falta"
     expect(conCuotas(12)).not.toContain("Ninguna respuesta trae el sexo declarado");
   });
 });
+
+describe("la cuenta se nombra igual se lea o se escuche", () => {
+  /**
+   * Gonzalo, sobre la tarjeta del día: «no entiendo si con "encuesta" te
+   * refieres a "efectivas", porque eso tiene que estar bien claro».
+   *
+   * La tarjeta se arregló primero y el `aria-label` de cada punto se quedó
+   * atrás diciendo «encuestas»: quien ve la pantalla leía una cosa y quien la
+   * escucha oía la palabra ambigua. Es el mismo defecto que este perfil ya tuvo
+   * con el género de «Los N con más brecha», que también sólo se veía en el
+   * `aria-label`.
+   *
+   * **Se mira el FUENTE y no un render**, como hace `rendimientoPorFacultad`:
+   * el punto vive en el «Día a día», que sólo se dibuja con plan, elegibles y
+   * varios días, y construir ese fixture para comprobar una palabra cuesta más
+   * de lo que cubre. Lo que se defiende es la regla, y la regla está escrita.
+   */
+  const fuente = readFileSync(
+    new URL("./AulasSerieDeRendimiento.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("el punto del día se anuncia con «efectivas del parte»", () => {
+    const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
+    const delDia = etiquetas.filter((e) => e.includes("observado"));
+    expect(delDia.length).toBeGreaterThan(0);
+    for (const e of delDia) expect(e).toContain("efectivas del parte");
+  });
+
+  it("y ninguna etiqueta cuenta «encuestas» a secas", () => {
+    // «encuestas DEL PARTE» sí puede quedarse: ahí la fuente está dicha, y es
+    // lo que distingue esta cuenta de la de plataforma. Lo que no puede quedar
+    // es una cifra seguida de «encuestas» sin más.
+    const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
+    for (const e of etiquetas) {
+      expect(e, `«${e}» no dice de qué cuenta habla`).not.toMatch(/\}\s*encuestas(?!\s+del parte)/);
+    }
+  });
+});

@@ -1532,7 +1532,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${xa(i)}%`, top: `${y(d.porAula)}%` }}
-              aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} cursos-horario`}
+              // Lo que se OYE tiene que decir lo mismo que lo que se lee: la
+              // tarjeta ya dice «efectivas del parte» y este aria-label seguia
+              // en «encuestas», que es justo la palabra que no distinguia de
+              // que cuenta se hablaba.
+              aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} efectivas del parte en ${fmt(d.aulas)} cursos-horario`}
               onMouseEnter={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onFocus={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onMouseLeave={() => setPista(null)}
