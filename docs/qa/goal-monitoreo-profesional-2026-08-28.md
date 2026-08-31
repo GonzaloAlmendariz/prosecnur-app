@@ -112,7 +112,7 @@ Lo que hay hoy, verificado el 2026-08-28 sobre el código:
 | S3 | **Robustez a la edición externa**: una corrección en agendación o en registro de campo tiene que llegar a la app sin fricción. La regla del dueño es «lo que produzca la app tiene prioridad», que **no significa ignorar la corrección** sino que la app es la fuente y el Excel un canal de edición acotado | ☐ |
 | S4 | **Medir el lazo completo Kobo → app → Excel** con el reloj en la mano. Hoy no existe esa medición para aulas | ☐ |
 | S5 | **Escala 100 ↔ 3.000 y que eso sea normal.** Todo lo de este frente se mide en los dos extremos; una solución que sirva a 100 y se caiga a 3.000 no cierra el ítem | ☐ regla del frente |
-| S6 | **`Base de control` se lee de vuelta al importar** aunque sea salida pura. Es deliberado —las filas ya registradas vuelven al libro al regenerarlo— pero convierte una salida en entrada y merece revisarse a la luz de S2 | ☐ |
+| S6 | **`Base de control` se lee de vuelta al importar** aunque sea salida pura. Es deliberado —las filas ya registradas vuelven al libro al regenerarlo— pero convierte una salida en entrada y merece revisarse a la luz de S2 | ☐ **depende de S2, que es decisión**. El hecho ya está confirmado y la app lo dice sola: Controles avisa «7 columnas de la Base de control con datos y la cabecera vacía en el Excel, así que no se leyeron», y la pestaña declara que se llenan en el Excel del equipo y vuelven al importar. O sea que el ida y vuelta no es tácito. Lo que falta es la decisión, no la medición |
 | S7 | **Casi en tiempo real mientras el aplicador está en el aula.** Es el norte del frente: qué latencia es aceptable, qué se refresca solo y qué exige una acción | ☐ |
 
 #### S1, medido end to end el 2026-08-28
