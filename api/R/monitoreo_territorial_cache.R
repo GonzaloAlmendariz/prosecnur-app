@@ -1004,7 +1004,7 @@
                                                    progress_path = NULL) {
   s <- readRDS(session_path)
   sid <- .monitoreo_scalar(s$id, "")
-  if (!nzchar(sid)) stop("Sesion invalida para preparar mapa territorial.", call. = FALSE)
+  if (!nzchar(sid)) stop("Sesión inválida para preparar mapa territorial.", call. = FALSE)
   .session_env[[sid]] <- s
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
   report("prepare", current = 0L, total = 1L, percent = 5, message = "Preparando mapa territorial...")

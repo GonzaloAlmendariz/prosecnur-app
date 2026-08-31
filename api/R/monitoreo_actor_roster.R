@@ -247,7 +247,7 @@ monitoreo_actor_roster_conflict <- function(sources = list(), incoming = list(),
       return(list(
         code = "E_MONITOREO_ACTOR_SIN_CANAL_TELEFONICO",
         message = sprintf(
-          "%s no tiene canal telefonico declarado. Activalo en Actores antes de conectar su hoja de barrido.",
+          "%s no tiene canal telefónico declarado. Actívalo en Actores antes de conectar su hoja de barrido.",
           actor
         )
       ))

@@ -227,7 +227,7 @@
   stop_api(
     409,
     "E_MONITOREO_PUBLIC_PROFILE",
-    "El reporte publico de Monitoreo soporta acreditacion y territorial."
+    "El reporte público de Monitoreo soporta acreditación y territorial."
   )
 }
 .monitoreo_public_collector_source_channel <- function(source) {
