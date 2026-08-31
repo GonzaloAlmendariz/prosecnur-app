@@ -25,6 +25,7 @@ export function MonitoreoWorkbenchChrome({
   clarity = null,
   status = null,
   isTerritorial = false,
+  perfil,
   hasReportStatus = false,
   ariaLabel = "Mesa de trabajo de monitoreo",
   ariaLive = "off",
@@ -85,7 +86,7 @@ export function MonitoreoWorkbenchChrome({
               status) y un hijo de más se lleva una fila declarada — medido, el
               bloque quedaba en 25 px. Acá encabeza el contenido sin discutirle
               el marco a nadie (C2). */}
-          {muestraCalidad ? <CalidadDeCampo calidad={calidad} /> : null}
+          {muestraCalidad ? <CalidadDeCampo calidad={calidad} perfil={perfil} /> : null}
           {children}
         </div>
       </main>

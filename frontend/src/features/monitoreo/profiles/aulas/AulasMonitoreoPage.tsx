@@ -1287,6 +1287,7 @@ export default function AulasMonitoreoPage() {
           pasan las clases de aulas (`mainClassName`/`contentClassName`) para no
           perder la hoja del perfil, que gobierna stacks, tablas y gráficos. */}
       <MonitoreoWorkbenchChrome
+        perfil="aulas"
         seccionActiva={seccionActiva}
         ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
         className="is-aulas"
