@@ -252,10 +252,16 @@ test_that("el estado se tiñe, y solo el estado", {
     expect_true(any(grepl(estado, textos, fixed = TRUE)), info = estado)
   }
 
-  # Una regla por bloque de cadena y no una por columna con validacion: colgarlo
-  # de las validaciones teñia tambien «MEDIO DE CONTACTO» y «DÍA».
+  # Una regla por bloque de cadena y por PALETA. Eran 3 —el semaforo de estados
+  # en titular + dos reservas— y son 9 desde que «MEDIO DE CONTACTO» y «DÍA»
+  # tienen la suya: Gonzalo las pidio con color porque son las dos columnas que
+  # el agendador recorre en vertical para repartir su jornada.
+  #
+  # Lo que el guard defiende no cambia: cada columna lleva LA SUYA. El defecto
+  # que evitaba era colgar el semaforo de ESTADOS de las validaciones, que
+  # teñia esas dos con reglas que ninguna de sus celdas casa.
   rangos <- regmatches(xml, gregexpr('conditionalFormatting sqref="[^"]+"', xml))[[1]]
-  expect_equal(length(rangos), 3L)   # titular + dos reservas
+  expect_equal(length(rangos), 9L)   # 3 paletas x (titular + dos reservas)
 })
 
 test_that("la hoja de aplicadas tiñe su propio estado", {
@@ -605,11 +611,16 @@ test_that("el semaforo de la agenda cae sobre STATUS MUESTRA", {
 
   campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
   esperada <- openxlsx::int2col(1L + which(campos == "sample_status"))
-  otra <- openxlsx::int2col(1L + which(campos == "contact_medium"))
+  con_paleta <- openxlsx::int2col(1L + which(campos == "contact_medium"))
+  sin_paleta <- openxlsx::int2col(1L + which(campos == "teacher"))
 
   cols <- columnas_con_formato_condicional(libro, "Aulas Agendadas")
   expect_true(esperada %in% cols)
-  expect_false(otra %in% cols)
+  # `contact_medium` YA lleva color, con su propia paleta: se pidio asi. Lo que
+  # sigue sin tenerlo es una columna de texto libre, que es donde un formato por
+  # valor no significaria nada.
+  expect_true(con_paleta %in% cols)
+  expect_false(sin_paleta %in% cols)
 })
 
 test_that("el telefono del docente NO es un numero", {
