@@ -237,6 +237,30 @@ describe("el bolsón extra", () => {
     ];
     expect(bolsonExtra(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
   });
+
+  it("con el aula caída sin facultad no ofrece el bolsón de las demás", () => {
+    // «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás
+    // de otra.» Un `!fac ||` desactivaba el filtro justo cuando la facultad
+    // venía vacía, y entonces se ofrecía el bolsón ENTERO. El motor tampoco lo
+    // ataja: exige que las dos facultades sean no vacías para rechazar.
+    const filas = [
+      fila({ operational_code: "E-ARQ", sample_role: "extra_reserve_pool", faculty: "ARQ" }),
+      fila({ operational_code: "E-DER", sample_role: "extra_reserve_pool", faculty: "DERECHO" }),
+    ];
+    expect(bolsonExtra(filas, "").map((f) => f.operational_code)).toEqual([]);
+    expect(bolsonExtra(filas, undefined).map((f) => f.operational_code)).toEqual([]);
+  });
+
+  it("si el estudio no reparte por facultad, el bolsón entero sigue disponible", () => {
+    // El otro escenario del mismo cambio: cuando NADIE declara facultad, la
+    // comparación es «"" === ""» y no se pierde nada. Sin este caso, endurecer
+    // el filtro dejaría sin bolsón a los estudios que no usan facultades.
+    const filas = [
+      fila({ operational_code: "E1", sample_role: "extra_reserve_pool", faculty: "" }),
+      fila({ operational_code: "E2", sample_role: "extra_reserve_pool", faculty: "" }),
+    ];
+    expect(bolsonExtra(filas, "").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
+  });
 });
 
 describe("nunca devuelve «no hay reemplazo»", () => {

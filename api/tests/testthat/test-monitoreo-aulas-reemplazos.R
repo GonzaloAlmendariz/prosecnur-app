@@ -417,3 +417,49 @@ test_that("una elegida que no existe se rechaza", {
     class = "api_error"
   )
 })
+
+# --- La facultad es frontera dura, y tambien cuando viene vacia --------------
+#
+# Gonzalo: «el bolson es siempre siempre siempre dentro de la misma facultad,
+# jamas de otra». `E_REEMPLAZO_OTRA_FACULTAD` existia sin una sola prueba.
+
+.mar_error <- function(expr) tryCatch(expr, api_error = function(e) e)
+
+test_that("un candidato de otra facultad no se activa", {
+  err <- .mar_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-DER",
+                                      ahora = "2026-01-01T00:00:00Z"))
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_REEMPLAZO_OTRA_FACULTAD")
+  expect_equal(err$status, 409)
+})
+
+test_that("sin facultad declarada en el aula que cae, tampoco cruza", {
+  # El caso que se colaba: la guarda exigia que las DOS facultades fueran no
+  # vacias, asi que una fila sin facultad aceptaba cualquier candidato. El
+  # frontend lo ofrecia ademas, por el mismo agujero en `bolsonExtra()`.
+  plan <- plan_eleccion()
+  plan <- lapply(plan, function(u) {
+    if (identical(u$operational_code, "CH 1")) u$faculty <- ""
+    u
+  })
+  err <- .mar_error(
+    monitoreo_aulas_activar_reemplazo(plan, "CH 1", elegida = "E-DER",
+                                      ahora = "2026-01-01T00:00:00Z"))
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_REEMPLAZO_OTRA_FACULTAD")
+  # Y el aviso dice la CAUSA, no solo el hecho: que no se puede comprobar, y
+  # cual de las dos no declara su facultad.
+  expect_match(conditionMessage(err), "no la declara")
+  expect_match(conditionMessage(err), "CH 1")
+})
+
+test_that("si el estudio no reparte por facultad, el reemplazo sigue pasando", {
+  # La otra cara del mismo cambio. Endurecer la guarda sin este caso dejaria sin
+  # reemplazos a los estudios que no usan facultades: ahi las dos son "" y son
+  # identicas, asi que pasa.
+  plan <- lapply(plan_eleccion(), function(u) { u$faculty <- ""; u })
+  r <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", elegida = "E-ARQ",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "E-ARQ")
+})
