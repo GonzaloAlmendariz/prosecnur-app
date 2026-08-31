@@ -258,13 +258,39 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     openxlsx::writeData(wb, hoja, ind$facultades, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
     nf <- nrow(ind$facultades)
-    # Las cifras de personas, enteras; el avance, en porcentaje de celda.
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = 2:9,
-                       gridExpand = TRUE, stack = TRUE)
-    openxlsx::addStyle(wb, hoja, porcentaje, rows = (fila + 1L):(fila + nf), cols = 10,
-                       gridExpand = TRUE, stack = TRUE)
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = 11,
-                       gridExpand = TRUE, stack = TRUE)
+    # **Por NOMBRE de columna, nunca por indice.**
+    #
+    # Esto decia `cols = 2:9` enteras, `cols = 10` porcentaje y `cols = 11`
+    # entera. Al insertar «Techo con sobremuestra» delante de «Avance» —el
+    # 2026-08-31, en el commit de al lado— los tres se corrieron una posicion y
+    # la hoja salio con el techo de Arquitectura, 188, pintado como «18800,0 %».
+    # Un indice fijo es una dependencia invisible con el orden de las columnas:
+    # el que las añade no tiene forma de saber que existe.
+    nombres_fac <- names(ind$facultades)
+    col_de <- function(...) which(nombres_fac %in% c(...))
+    cols_pct <- col_de("Avance")
+    cols_num <- setdiff(seq_along(nombres_fac)[-1], cols_pct)
+    if (length(cols_num)) {
+      openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = cols_num,
+                         gridExpand = TRUE, stack = TRUE)
+    }
+    if (length(cols_pct)) {
+      openxlsx::addStyle(wb, hoja, porcentaje, rows = (fila + 1L):(fila + nf), cols = cols_pct,
+                         gridExpand = TRUE, stack = TRUE)
+    }
+    # Bordes en toda la tabla, cabecera incluida: sin ellos una tabla de doce
+    # columnas se lee como una lista de numeros sueltos. Gonzalo: «todas las
+    # tres primeras hojas deberia tener bordes negros sus tablas».
+    openxlsx::addStyle(
+      wb, hoja,
+      openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149"),
+      rows = fila:(fila + nf), cols = seq_along(nombres_fac),
+      gridExpand = TRUE, stack = TRUE
+    )
+    # Y anchos: las cabeceras salian cortadas —«Aulas aplicad», «Conseguidas r»,
+    # «Techo con sob»— porque la columna era mas estrecha que su titulo.
+    openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
+    openxlsx::setColWidths(wb, hoja, cols = 2:length(nombres_fac), widths = 15)
     fila <- fila + nf + 1L
     # El ratio se lee de la TABLA, que es lo que esta en este scope, y no de la
     # config: aqui llega `ind$facultades` ya calculada. Ademas es mas fiel —la

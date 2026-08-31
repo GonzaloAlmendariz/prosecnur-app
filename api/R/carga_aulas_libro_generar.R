@@ -716,11 +716,20 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   cols_campo <- function(titulos) unlist(lapply(titulos, function(t)
     vapply(seq_len(intentos_campo), function(b) col_campo(t, b), integer(1))))
 
+  # Cada columna con su paleta. Las dos ultimas las pidio Gonzalo comparando con
+  # el Sheets que el equipo usa: «chips desplegables para los status y dias de
+  # la semana». Son las dos columnas que el agendador recorre en VERTICAL para
+  # repartir su jornada, y sin color hay que leerlas palabra por palabra.
+  # `paleta` nombra el juego de reglas; sin ella cae al semaforo de estados.
   semaforos <- list(
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("sample_status", b), integer(1))),
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
-         cols = cols_campo("STATUS DE APLICACIÓN"))
+         cols = cols_campo("STATUS DE APLICACIÓN")),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "medio",
+         cols = vapply(bloques, function(b) col_en_bloque("contact_medium", b), integer(1))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "dia",
+         cols = vapply(bloques, function(b) col_en_bloque("scheduled_day", b), integer(1)))
   )
 
   # Que columnas del bloque son numeros y cuales fechas. Por nombre de campo,
