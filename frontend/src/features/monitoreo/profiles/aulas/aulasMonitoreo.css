@@ -2324,37 +2324,6 @@
 
 /* Qué filtro decide. Una linea por filtro, el nombre en la columna izquierda
    para que las cifras queden alineadas y se comparen de un vistazo. */
-.mon-profile-page.is-aulas-flow .aulas-control-filtros-cabecera { margin: 8px 0 0; }
-
-/* Tres columnas comunes a todas las filas. La rejilla vive en el `ul` porque
-   `auto` dentro de un `li` mide solo SU fila: «109», «28» y «7» dejaban «se
-   caen» empezando en tres x distintas. */
-.mon-profile-page.is-aulas-flow .aulas-control-filtros {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  align-items: baseline;
-  gap: 2px 8px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-txt);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-control-filtros li {
-  display: contents;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-control-filtro-nombre {
-  font-family: var(--pulso-font-mono, ui-monospace, monospace);
-  color: var(--pulso-text);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-control-filtros strong {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 /* ── Por facultad ────────────────────────────────────────────────────────────
    El carril de cada facultad mide SU meta contra la meta más alta, y el relleno
    lo cubierto: una facultad grande a medias se ve distinta de una pequeña
