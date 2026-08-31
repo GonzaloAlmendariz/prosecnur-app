@@ -267,3 +267,26 @@ test_that("worker maneja texto extremo sin overflow y conserva QR de URL larga",
   observed <- collection_qr_matrix_from_png(png_path, nrow(expected), dpi = 300)
   expect_identical(observed, expected)
 })
+
+test_that("el acolchado del codigo ordena la cadena sin reescribir el codigo", {
+  padd <- function(x, ancho) .cmj_codigo_ordenable(x, ancho)
+
+  # Para lo que existe: que `CH 10` no quede antes de `CH 5` en la carpeta.
+  expect_identical(padd("CH 5", 2L), "CH 05")
+  expect_identical(padd("R 5.3", 2L), "R 05.3")
+  expect_identical(padd("AULA_7", 2L), "AULA_07")
+
+  # RELLENA, nunca encoge: el codigo del aula viene del marco. Con dos unidades
+  # basta un digito, y eso convertia `MAT-01` en `MAT-1` -otro identificador.
+  expect_identical(padd("MAT-01", 1L), "MAT-01")
+  expect_identical(padd("MAT-01", 3L), "MAT-001")
+
+  # Un codigo academico compacto no es «prefijo + ordinal» y pasa entero. Antes
+  # `URB209_0601` salia como `URB 209_0601` (espacio inventado) y `1ARC66_0601`
+  # como `01ARC66_0601` (cero inventado): dos codigos que ya no existen.
+  expect_identical(padd("URB209_0601", 3L), "URB209_0601")
+  expect_identical(padd("1ARC66_0601", 3L), "1ARC66_0601")
+
+  expect_identical(padd("", 2L), "")
+  expect_identical(padd("SIN-NUMERO", 2L), "SIN-NUMERO")
+})
