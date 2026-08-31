@@ -177,3 +177,35 @@ test_that("una extra con fecha agendada pero en reserva sigue disponible", {
     eligible_n = 10, sample_status = "en_reserva", scheduled_date = "2026-08-24")))
   expect_identical(b$disponibles, 1L)
 })
+
+test_that("una facultad sin banco viaja con cero, no ausente", {
+  # La lista enumeraba solo las facultades CON extras. El consumidor no puede
+  # distinguir «no esta porque tiene 0» de «no esta porque nadie la enumero», y
+  # la tabla de «a quien hay que agendar» —la que manda a llamar— pintaba «S/D»
+  # en las 12 facultades sin bolson del plan de HSVG 2026.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "DERECHO", eligible_n = 30),
+    list(operational_code = "CH 2", sample_role = "titular", faculty = "EDUCACION", eligible_n = 20),
+    list(operational_code = "R 2.1", sample_role = "chain_reserve", faculty = "PSICOLOGIA", eligible_n = 15),
+    list(operational_code = "EXTRA 1", sample_role = "extra_reserve_pool", faculty = "DERECHO",
+         eligible_n = 40, sample_status = "en_reserva")
+  )
+  b <- monitoreo_aulas_banco_extras(plan)
+
+  facs <- vapply(b$por_facultad, function(f) f$faculty, character(1))
+  # Las tres facultades del plan, no solo la que tiene extras.
+  expect_setequal(facs, c("DERECHO", "EDUCACION", "PSICOLOGIA"))
+  # Y la que tiene, primero: el orden por cantidad se conserva.
+  expect_identical(facs[[1]], "DERECHO")
+
+  cero <- Filter(function(f) identical(f$faculty, "EDUCACION"), b$por_facultad)[[1]]
+  expect_identical(as.integer(cero$extras), 0L)
+  expect_identical(as.integer(cero$disponibles), 0L)
+  expect_identical(as.integer(cero$elegibles), 0L)
+
+  # Y el bloque VACIO sigue vacio: «el estudio no publica banco» no es cero, y
+  # el consumidor tiene que poder seguir leyendolo como «no se sabe».
+  expect_identical(monitoreo_aulas_banco_extras(list())$por_facultad, list())
+  sin_extras <- list(list(operational_code = "CH 1", sample_role = "titular", faculty = "DERECHO"))
+  expect_identical(monitoreo_aulas_banco_extras(sin_extras)$por_facultad, list())
+})

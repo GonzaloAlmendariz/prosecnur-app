@@ -102,7 +102,27 @@ monitoreo_aulas_banco_extras <- function(plan = list()) {
          elegibles = suma("eligible_n"),
          mujeres = suma("mujeres"), hombres = suma("hombres"))
   })
-  orden <- order(-vapply(por_facultad, function(f) f$extras, integer(1)),
+  # LAS FACULTADES SIN BANCO TAMBIEN VAN, CON CERO.
+  #
+  # La lista enumeraba solo las que tienen extras, y el consumidor no puede
+  # distinguir «esta facultad no esta porque tiene 0» de «no esta porque nadie
+  # la enumero». Asi que la pintaba como «S/D». Medido el 2026-08-31 sobre el
+  # plan de HSVG 2026: las 77 extras estan en 3 facultades, y las otras 12
+  # salian sin dato en la tabla de «a quien hay que agendar» —justo la que
+  # manda a llamar—, cuando el dato existe y es cero: ahi no hay bolson y hay
+  # que tirar de cadena. `efectividad_seguimiento` ya publicaba el 0 bien.
+  #
+  # Que el bloque venga VACIO sigue significando «el estudio no publica banco»,
+  # que no es cero y el consumidor lo lee como «no se sabe». Eso no cambia.
+  todas <- unique(vapply(plan, function(u) as.character(u$faculty %||% "")[1], character(1)))
+  todas <- todas[nzchar(todas)]
+  faltan <- setdiff(todas, facultades)
+  por_facultad <- c(por_facultad, lapply(faltan, function(f) {
+    list(faculty = f, extras = 0L, disponibles = 0L,
+         elegibles = 0L, mujeres = 0L, hombres = 0L)
+  }))
+
+  orden <- order(-vapply(por_facultad, function(f) as.integer(f$extras), integer(1)),
                  vapply(por_facultad, function(f) f$faculty, character(1)))
   por_facultad <- por_facultad[orden]
 
