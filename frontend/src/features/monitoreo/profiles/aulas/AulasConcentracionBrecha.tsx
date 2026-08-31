@@ -42,9 +42,9 @@ export function AulasConcentracionBrecha({ filas }: { filas: ReadonlyArray<Monit
           ? <>· la brecha está <strong>repartida</strong>: no hay unas pocas que lo cierren</>
           : <>· la brecha está <strong>concentrada</strong>: hay por dónde empezar</>}
       </p>
-      <ul className="aulas-concentracion-tramos">
+      <ul className="aulas-concentracion-tramos" role="list">
         {c.tramos.map((t) => (
-          <li key={t.aulas}>
+          <li key={t.aulas} role="listitem">
             {/* «Los», no «Las»: el sujeto elidido es el curso-horario. Lo
                 delataba su propio `aria-label`, que dice «N cursos-horario
                 cubren el X%» —quien ve la pantalla leía un género y quien la

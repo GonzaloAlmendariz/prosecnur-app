@@ -1725,22 +1725,41 @@
   min-width: 0;
 }
 
+/* **Las cuatro barras tienen que arrancar del mismo cero.**
+
+   La rejilla estaba declarada en cada `li`, asi que cada fila era un grid
+   INDEPENDIENTE y su `auto` medía sólo su propio texto: «Los 5 con más brecha»
+   ocupa 15 px menos que «Los 25 con más brecha», y la barra del 5 empezaba 15
+   px antes que las demás. En un gráfico de barras eso no es desalineación
+   estética: cuatro barras que no comparten origen no se pueden comparar a
+   ojo, y la más corta —justo la del tramo más pequeño— se lee más larga de lo
+   que es.
+
+   La rejilla sube al `ul` y los `li` pasan a `display: contents`, así que las
+   tres columnas se calculan sobre TODAS las filas a la vez. El rótulo va
+   alineado a la derecha, que es como se etiqueta un gráfico de barras
+   horizontales: las etiquetas terminan juntas y las barras salen del mismo
+   punto. `role` explícito porque `display: contents` sobre un `li` se ha
+   comido la semántica de lista en algunos lectores. */
 .mon-profile-page.is-aulas-flow .aulas-concentracion-tramos {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos li {
-  display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) minmax(120px, auto);
-  align-items: center;
-  gap: 10px;
   min-width: 0;
   font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos li {
+  display: contents;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-rotulo {
+  text-align: right;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-concentracion-rotulo strong,
