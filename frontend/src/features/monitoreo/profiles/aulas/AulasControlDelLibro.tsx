@@ -504,8 +504,8 @@ export function AulasControlDelLibro({
         // rama con datos, que es lo que evita que el gate mida el encabezado
         // del panel como si fuera el contenedor de datos.
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-          La hoja trae sus filas pero ninguna columna de control llena, asi que
-          todavia no hay veredicto por curso-horario que mostrar. Se llenan en el Excel
+          La hoja trae sus filas pero ninguna columna de control llena, así que
+          todavía no hay veredicto por curso-horario que mostrar. Se llenan en el Excel
           del equipo y vuelven al importar el libro.
         </p>
       ) : (
