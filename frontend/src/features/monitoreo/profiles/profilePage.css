@@ -20209,3 +20209,27 @@ button.mon-acr-requirement-metric:active {
   font-weight: 600;
   color: var(--pulso-state-partial-fg);
 }
+
+
+/* El control de seccion en la cabecera: a la derecha del titulo y antes de las
+   pastillas, con su propio hueco para que no se pegue a ninguno de los dos.
+   `margin-left: auto` lo empuja al lado libre cuando no hay pastillas. */
+.mon-workbench-head-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* **El control trae su layout puesto.**
+   El selector de facultad se estila con `.mon-profile-page.is-aulas-flow
+   .aulas-serie-mando`, y la cabecera del workbench esta FUERA de ese ancestro:
+   al subirlo aqui perdia su `display: flex` y sus cuatro controles se apilaban
+   en vertical. Se le da el layout tambien desde este lado, que es el que
+   siempre aplica cuando el control vive en la cabecera. */
+.mon-workbench-head-control > * {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}

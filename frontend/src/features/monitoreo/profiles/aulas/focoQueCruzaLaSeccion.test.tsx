@@ -89,47 +89,47 @@ describe("el foco cruza la sección y resalta sin filtrar", () => {
   });
 });
 
-describe("las listas también PONEN el foco, no sólo lo reflejan", () => {
-  // Se veía en cinco listas y sólo se podía elegir en una —la pirámide, en su
-  // propia pestaña—: quien miraba «A quién hay que agendar» y quería seguir a
-  // Derecho tenía que irse a Cuotas, pulsar y volver. Un foco que se ve en cinco
-  // sitios y se pone en uno es media función.
+describe("las listas REFLEJAN el foco; ponerlo es del selector de la cabecera", () => {
+  /**
+   * **Estos guards defendían que cada nombre fuera un botón, y ya no lo es.**
+   *
+   * Se hicieron botones porque el foco se veía en cinco listas y sólo se podía
+   * elegir en una. Gonzalo lo resolvió por el otro lado el 2026-08-31: «no es
+   * necesario que sean botones cuando ya tenemos un selector arriba que toma en
+   * cuenta o todas las facultades o una por una», y «el selector debería tener
+   * una vista privilegiada y permanente arriba y que no se mueva, como el
+   * título y el icono».
+   *
+   * El selector vive ahora en la cabecera del workbench —`AulasSelectorDeFacultad`
+   * en `MonitoreoWorkbenchHead`—, así que existe en TODAS las pestañas de la
+   * sección y no se mueve con el scroll. La intención no cambió: el foco se ve
+   * en todas partes y se pone desde un sitio. Cambió cuál es ese sitio.
+   *
+   * Lo que estas listas siguen debiendo es REFLEJARLO, y eso lo cubre el
+   * `describe` de arriba.
+   */
   const resumen = [
     { faculty: "Derecho", aulas: 9, meta: 100, brecha: 40, respuestas_validas: 60 },
     { faculty: "Arte", aulas: 5, meta: 80, brecha: 30, respuestas_validas: 50 },
   ];
 
-  it("sin `onFoco` el nombre es texto, no un botón", () => {
-    // Las listas que no participen del foco no deben cambiar de semántica.
+  it("los nombres son texto, no botones", () => {
     const html = renderToStaticMarkup(
-      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never} />,
+      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never}
+        facultadEnFoco="Derecho" onFoco={() => {}} />,
     );
     expect(html).not.toContain("aulas-foco-boton");
     expect(html).not.toContain("aria-pressed");
   });
 
-  it("con `onFoco` cada nombre es un botón que dice si está pulsado", () => {
+  it("y aun así se ve cuál está en foco", () => {
+    // Es lo que no se puede perder al quitar el botón: el selector dice cuál
+    // eliges, pero cada lista tiene que enseñar dónde cae.
     const html = renderToStaticMarkup(
       <AulasPerfilPorFacultad filas={[]} resumen={resumen as never}
         facultadEnFoco="Derecho" onFoco={() => {}} />,
     );
-    expect((html.match(/aulas-foco-boton/g) ?? []).length).toBe(2);
-    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
-    expect((html.match(/aria-pressed="false"/g) ?? []).length).toBe(1);
-  });
-
-  it("pulsar la que ya está en foco lo SUELTA", () => {
-    // Es un interruptor, no una opción de un conjunto: por eso `aria-pressed` y
-    // no `aria-selected`. Sin esto no habría forma de volver a verlas todas.
-    const recibido: unknown[] = [];
-    const html = renderToStaticMarkup(
-      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never}
-        facultadEnFoco="Derecho" onFoco={(f) => recibido.push(f)} />,
-    );
-    // El render estático no dispara clicks; se comprueba el contrato del
-    // componente que los construye.
-    expect(html).toContain("Dejar de seguir Derecho");
-    expect(html).toContain("Seguir Arte en toda la sección");
+    expect(cuantas(html)).toBe(1);
   });
 
   it("las lentes que no agrupan por facultad no ponen foco de facultad", () => {

@@ -81,7 +81,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
           <li key={f.facultad} role="row" className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-banco-consumo-nombre"
               rol="rowheader"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
+              enFoco={f.facultad === facultadEnFoco} />
             <span role="cell" className="aulas-banco-consumo-cifra">
               {fmt(f.caidas)}
               {f.ritmo ? <em> · {f.ritmo.toLocaleString("es-PE")}/día</em> : null}

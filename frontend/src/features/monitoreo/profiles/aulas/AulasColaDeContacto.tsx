@@ -263,7 +263,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             {esfuerzo.map((e) => (
               <li key={e.facultad} className={e.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
                 <NombreDeFacultad facultad={e.facultad} className=""
-                  enFoco={e.facultad === facultadEnFoco} onFoco={onFoco} />
+                  enFoco={e.facultad === facultadEnFoco} />
                 <span>
                   {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} ${e.intentos === 1 ? "intento" : "intentos"}`}
                   {/* «cursos-horario», que es lo que cuenta el plan y lo que

@@ -118,17 +118,38 @@ export function AulasRendimientoPorFacultad({
             perfil resuelve el detalle de los KPIs y no gasta un píxel. */}
         <li className="aulas-rendimiento-cabecera" role="row">
           <span role="columnheader">{unidad}</span>
-          <span role="columnheader" title="Encuestas conseguidas por cada curso-horario visitado. Es un resultado del campo, no el pronóstico del diseño.">
-            Por visita
+          {/* **Los cuatro nombres decian el metodo, no el dato.**
+
+              Gonzalo, sobre esta tabla: «no entiendo a que te refieres con
+              ajustado, no se si asistentes efectivos o matriculados; no entiendo
+              a que te refieres con "Del potencial"... son muchas jergas y no se
+              entiende a que te refieres».
+
+              Tenia razon en las cuatro. «Por visita» no decia de QUE cuenta
+              hablaba —y en este perfil conviven las del parte y las de
+              plataforma—; «Ajustado» no decia ajustado DE QUE; «De los
+              asistentes» y «Del potencial» eran dos porcentajes sin
+              denominador, que es justo lo que hay que saber para leerlos.
+
+              Ahora cada cabecera nombra el DATO y su denominador. El `title`
+              conserva el metodo para quien lo quiera. */}
+          {/* «Efectivas por aula» NO: el ratchet de vocabulario lo caza y tiene
+              razon —la unidad de este estudio es el curso-horario—. «Por visita»
+              ya era el rotulo; lo que faltaba era decir DE QUE cuenta habla.
+              El comentario va FUERA del span: dentro rompe el patron con el que
+              `rendimientoPorFacultad.test.ts` comprueba que cada cabecera trae
+              su `title`. */}
+          <span role="columnheader" title="Efectivas del parte de campo conseguidas por cada curso-horario visitado. Es un resultado del campo, no el pronóstico del diseño.">
+            Efectivas por visita
           </span>
           <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
-            Ajustado
+            Ajustado por tamaño
           </span>
-          <span role="columnheader" title="Qué proporción de quienes asistieron al aula acabó respondiendo. Mide el trabajo dentro del aula.">
-            De los asistentes
+          <span role="columnheader" title="Qué proporción de quienes estaban en el aula acabó respondiendo. Mide el trabajo dentro del aula.">
+            De los que asistieron
           </span>
-          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya. Lo que le falta es lo que queda por recoger.">
-            Del potencial
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya. Lo que falta es lo que queda por recoger.">
+            De los elegibles
           </span>
         </li>
         {filas.map((f) => (
@@ -140,10 +161,10 @@ export function AulasRendimientoPorFacultad({
             {/* `rowheader`: identifica la fila, igual que un `th scope="row"`. */}
             <NombreDeFacultad facultad={f.facultad} className="aulas-rendimiento-nombre"
               rol="rowheader"
-              enFoco={clave === "faculty" && f.facultad === facultadEnFoco}
-              onFoco={clave === "faculty" ? onFoco : undefined}>
+              enFoco={clave === "faculty" && f.facultad === facultadEnFoco}>
               {f.facultad}
-              <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} encuestas</em>
+              {/* «encuestas» a secas obligaba a adivinar de que cuenta hablaba. */}
+              <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} efectivas</em>
             </NombreDeFacultad>
             {/* La barra mide POR AULA, que es la pregunta del panel. Escala
                 compartida entre facultades: normalizar cada una a sí misma haría

@@ -66,7 +66,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
         {facultades.map((f) => (
           <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-facultad-nombre"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
+              enFoco={f.facultad === facultadEnFoco}>
               {/* En su propio elemento para poder elipsarlo: como texto suelto
                   dentro del grid genera una caja anónima, y `text-overflow` no
                   se aplica a una caja anónima. Medido: «Ciencias y Artes de la

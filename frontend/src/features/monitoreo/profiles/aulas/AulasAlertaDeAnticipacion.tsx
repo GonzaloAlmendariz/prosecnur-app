@@ -222,7 +222,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           <li key={f.facultad} role="row" className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-anticipacion-nombre"
               rol="rowheader"
-              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
+              enFoco={f.facultad === facultadEnFoco} />
             <span role="cell" className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>

@@ -424,7 +424,7 @@ export function AulasEfectividadSeguimiento({
                         cuando la palabra sola no basta. */}
                     <span className={`aulas-tau-chip es-${v.tono}`} title={lectura(f)}>{v.texto}</span>
                     <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
-                      enFoco={enFoco} onFoco={onFoco}>
+                      enFoco={enFoco}>
                       {f.facultad}
                       <em>
                         {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"} ·{" "}

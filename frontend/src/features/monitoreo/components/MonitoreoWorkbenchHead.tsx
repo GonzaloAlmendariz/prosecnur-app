@@ -26,6 +26,14 @@ type MonitoreoWorkbenchHeadProps = {
   pestanaLabel?: ReactNode;
   /** Readiness de esa pestaña, dicha con palabras. */
   pestanaEstado?: ContextTabRailEstado;
+  /**
+   * Un control que manda sobre TODA la sección, no sobre un panel.
+   *
+   * Vive en la cabecera para que no se mueva con el scroll y para que exista en
+   * todas las pestañas de la sección, no sólo en la que lo montaba. El caso que
+   * lo trajo es el selector de facultad de Cursos-horario.
+   */
+  control?: ReactNode;
 };
 
 function joinClasses(...classes: Array<string | false | null | undefined>) {
@@ -42,6 +50,7 @@ export function MonitoreoWorkbenchHead({
   className,
   pestanaLabel,
   pestanaEstado,
+  control,
 }: MonitoreoWorkbenchHeadProps) {
   const visiblePills = pills.filter((item) => item !== null && item !== undefined && item !== false);
 
@@ -79,6 +88,16 @@ export function MonitoreoWorkbenchHead({
         ) : null}
         {detalleUtil ? <p>{detalleUtil}</p> : null}
       </div>
+      {/* **El control que manda sobre toda la seccion vive AQUI.**
+
+          Gonzalo, sobre el selector de facultad: «el selector deberia tener una
+          vista privilegiada y permanente arriba y que no se mueva, como el
+          titulo y el icono». Estaba dentro de uno de los paneles, asi que se
+          movia con el scroll y solo existia en la pestaña que lo montaba,
+          teniendo el perfil nueve listas de las mismas veinte facultades.
+
+          Es opcional: los perfiles que no lo pasan pintan la cabecera igual. */}
+      {control ? <div className="mon-workbench-head-control">{control}</div> : null}
       {visiblePills.length ? (
         <div className="mon-workbench-pills" aria-label={pillsAriaLabel}>
           {visiblePills.map((pill, index) => (

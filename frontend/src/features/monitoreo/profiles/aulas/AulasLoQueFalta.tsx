@@ -183,7 +183,6 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
                 facultad={f.facultad}
                 className="aulas-falta-fac"
                 enFoco={f.facultad === facultadEnFoco}
-                onFoco={onFoco}
               />
               <span className="aulas-falta-barra">
                 <span style={{ width: `${(f.aulas / grupos.filas[0].aulas) * 100}%` }} />

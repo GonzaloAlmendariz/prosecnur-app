@@ -210,8 +210,7 @@ describe("la cuarta unidad de esfuerzo: el día de la semana", () => {
 
 describe("las columnas se explican solas en los cuatro paneles", () => {
   /**
-   * El pie define «Por visita», «Ajustado», «De los asistentes» y «Del
-   * potencial», pero **sólo lo pinta el primero de los cuatro paneles que usan
+   * El pie define las cuatro columnas de cifras, pero **sólo lo pinta el primero de los cuatro paneles que usan
    * esta tabla**: «Quién consigue más», «Franja horaria del operativo» y «Día
    * de la semana» llegan con `explicaLasColumnas={false}` para no repetir el
    * párrafo cuatro veces. Comprobado en pantalla el 2026-08-29: uno con leyenda
@@ -226,7 +225,15 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
     "utf8",
   );
 
-  it.each(["Por visita", "Ajustado", "De los asistentes", "Del potencial"])(
+  // Los rotulos cambiaron el 2026-08-31: decian el METODO y no el dato, y
+  // Gonzalo no podia leerlos —«no entiendo a que te refieres con ajustado, no se
+  // si asistentes efectivos o matriculados... son muchas jergas»—. Ahora cada
+  // uno nombra el dato y su denominador. El guard es el mismo: que cada cabecera
+  // siga declarando QUE mide en su `title`, se llame como se llame.
+  it.each([
+    "Efectivas por visita", "Ajustado por tamaño",
+    "De los que asistieron", "De los elegibles",
+  ])(
     "«%s» lleva su definición en la cabecera",
     (columna) => {
       // La cabecera y su `title` en el mismo elemento: se busca el bloque que
