@@ -1849,7 +1849,7 @@ function OccurrenceUmpDetail({
   const missingNoticeText = row.status === "completa_sin_reporte"
     ? "Ya cumple la cuota de avance, pero falta el registro operativo de ocurrencias."
     : row.status === "incompleta_sin_reporte"
-      ? "Ya registra avance valido, todavia no completa cuota y falta el registro operativo de ocurrencias."
+      ? "Ya registra avance válido, todavía no completa cuota y falta el registro operativo de ocurrencias."
       : "Registra avance territorial valido, pero falta el registro operativo de ocurrencias.";
   const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
   const subtitle = unexpectedUmp

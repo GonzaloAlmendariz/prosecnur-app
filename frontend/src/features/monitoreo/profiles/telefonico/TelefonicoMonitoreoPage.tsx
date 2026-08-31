@@ -6717,7 +6717,7 @@ function phoneCodPulsoDifferenceParts(comparison: Pick<PhonePlatformComparisonTo
 }
 
 export function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
-  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "todavia no hay cruce que comparar";
+  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "todavía no hay cruce que comparar";
   const parts: string[] = [];
   if (comparison.platformWithoutPhone) parts.push(`${fmt(comparison.platformWithoutPhone)} Kobo con telefono pendiente`);
   if (comparison.phoneWithoutPlatform) parts.push(`${fmt(comparison.phoneWithoutPlatform)} tel. sin Kobo`);
@@ -6985,7 +6985,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
             {totals.mismatch
               ? `${formatMetric(totals.platformWithoutPhone)} efectivas Kobo tienen estado telefónico pendiente.`
               : comparableEffective
-                ? "Las efectivas telefonicas estan alineadas con Kobo por codigo."
+                ? "Las efectivas telefónicas están alineadas con Kobo por código."
                 : "Aún no hay efectivas comparables por código."}
           </p>
         </div>
@@ -16539,17 +16539,17 @@ function AcreditacionAdvanceStorage({
     ? [
       { key: "completed", label: "Tel. efectivas", value: phoneEffective, pct: safePercentValue(phoneEffective, phoneUniverse) ?? 0, hint: "estado efectivo", detail: "Casos que el barrido telefónico declara como efectivos; se contrastan con Kobo por CodPulso." },
       { key: "phone", label: "Sin efectiva tel.", value: phoneSweptWithoutEffective, pct: safePercentValue(phoneSweptWithoutEffective, phoneUniverse) ?? 0, hint: "barridas no efectivas", detail: "Casos ya barridos con un estado telefonico distinto de efectivo." },
-      { key: "pending", label: "Por barrer", value: phonePending, pct: safePercentValue(phonePending, phoneUniverse) ?? 0, hint: "base telefonica", detail: "Casos de la base telefonica que todavia no tienen estado de llamada." },
+      { key: "pending", label: "Por barrer", value: phonePending, pct: safePercentValue(phonePending, phoneUniverse) ?? 0, hint: "base telefonica", detail: "Casos de la base telefónica que todavía no tienen estado de llamada." },
     ]
     : [
       { key: "completed", label: "Efectivas", value: totals.effective, pct: safePercentValue(totals.effective, universe) ?? 0, hint: "del universo", detail: "Respuestas completas que cuentan para el avance." },
       { key: "partial", label: "Parciales", value: totals.partial, pct: safePercentValue(totals.partial, universe) ?? 0, hint: "no cuentan como efectivas", detail: "Respuestas iniciadas o incompletas que no cuentan como efectivas." },
       { key: "refusals", label: "Rechazos", value: totals.refusals, pct: safePercentValue(totals.refusals, universe) ?? 0, hint: "requieren trazabilidad", detail: "Casos con rechazo registrado en plataforma o campo." },
-      { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar", detail: "Casos del universo que todavia no tienen respuesta util para avance." },
+      { key: "pending", label: "Sin respuesta", value: totals.pending, pct: safePercentValue(totals.pending, universe) ?? 0, hint: "por cerrar", detail: "Casos del universo que todavía no tienen respuesta útil para avance." },
     ];
   const legendSegments = isPhoneScope
     ? [
-      { key: "swept", label: "Barridos", value: phoneSwept, pct: safePercentValue(phoneSwept, phoneUniverse) ?? 0, hint: "con estado", tone: "phone", detail: "Casos de la base telefonica que ya tienen algun estado de llamada registrado." },
+      { key: "swept", label: "Barridos", value: phoneSwept, pct: safePercentValue(phoneSwept, phoneUniverse) ?? 0, hint: "con estado", tone: "phone", detail: "Casos de la base telefónica que ya tienen algún estado de llamada registrado." },
       ...segments,
       { key: "platform", label: "Efectivas Kobo", value: phoneContext?.platformEffective ?? totals.effective, pct: safePercentValue(phoneContext?.platformEffective ?? totals.effective, phoneUniverse) ?? 0, hint: "avance", tone: "completed", detail: "Respuestas Kobo completas, no prueba y que pasan el filtro de consentimiento; son las que mandan el avance." },
     ]
