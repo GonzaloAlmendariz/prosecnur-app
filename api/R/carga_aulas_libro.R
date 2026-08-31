@@ -133,6 +133,18 @@ aulas_libro_importar <- function(path) {
     session_set(sid, "monitoreo_aulas_plan", fusion$plan)
     out$fusion <- fusion[c("actualizadas", "nuevas", "intactas")]
   }
+  # A10 (checklist del operativo): el parte importado LLEGA AL PLAN, que es lo
+  # que lee la pestaña «Registro de campo» (`row.observed_students`...). Sin
+  # este paso, importar un libro llenado en Excel dejaba los formularios de la
+  # app vacios: el parte quedaba en `monitoreo_aulas_partes_campo` y ningun
+  # eslabon lo copiaba al plan. Va DESPUES de la fusion —los partes del libro
+  # son mas nuevos que lo que el plan recuerde— y tambien cubre el libro que
+  # llega solo con la hoja de campo (sin `out$plan`).
+  plan_actual <- session_get(sid)$monitoreo_aulas_plan %||% list()
+  if (length(out$partes) && length(plan_actual)) {
+    session_set(sid, "monitoreo_aulas_plan",
+                monitoreo_aulas_plan_desde_partes(plan_actual, out$partes))
+  }
   session_set(sid, "monitoreo_aulas_partes_campo", out$partes)
   session_set(sid, "monitoreo_aulas_control", out$control)
   # El aviso entra a la config para que el tablero pueda mostrarlo: viajaba en
