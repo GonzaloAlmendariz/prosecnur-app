@@ -94,6 +94,12 @@ export function AulasPestanaRendimiento({
                 cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 control={(dashboard.control_calidad ?? []) as MonitoreoRow[]}
+                // **Estaba esperando este dato desde que se escribió.** El
+                // gráfico dibuja la sobremuestra como referencia y hasta ahora
+                // decía «no declarada por el estudio», porque nadie se la
+                // pasaba: el diseño la calcula pero no llegaba a Monitoreo.
+                // Viaja con las metas por facultad y con su misma vigencia.
+                sobremuestra={dashboard.avance_cuota?.meta_operativa ?? null}
               />
             </section>
             <section
