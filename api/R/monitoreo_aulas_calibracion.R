@@ -124,9 +124,9 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
       sprintf("No va a llegar: %s", if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
       else "No va a llegar",
     deficit_no_subsanable = if (is.finite(b) && b > 0)
-      sprintf("No va a llegar y ya no quedan aulas: %s y habrá que ponderar",
+      sprintf("No va a llegar y ya no quedan cursos-horario: %s y habrá que ponderar",
               if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
-      else "No va a llegar y ya no quedan aulas: habrá que ponderar",
+      else "No va a llegar y ya no quedan cursos-horario: habrá que ponderar",
     "Sin estado"
   )
 }
@@ -151,7 +151,7 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
 
 .mac_etiqueta_calibracion <- function(cal, previsto = NA_real_) {
   c1 <- suppressWarnings(as.numeric(cal)[1])
-  if (!is.finite(c1)) return("Todavía sin aulas aplicadas con qué comparar")
+  if (!is.finite(c1)) return("Todavía sin cursos-horario aplicados con qué comparar")
   pct <- round(abs(c1 - 1) * 100)
   if (pct < 1) return("El campo está rindiendo lo previsto")
   base <- suppressWarnings(as.numeric(previsto)[1])

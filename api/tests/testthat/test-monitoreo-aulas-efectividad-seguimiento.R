@@ -81,7 +81,7 @@ test_that("sin plan y sin diseño el bloque viaja igual, declarando su estado", 
   # El criterio se declara SIEMPRE: es lo que impide que otra superficie
   # invente un numerador distinto y lo llame τ.
   expect_match(b$criterio$numerador, "plataforma")
-  expect_match(b$criterio$denominador, "aplicadas")
+  expect_match(b$criterio$denominador, "aplicados")
 })
 
 # --- 1. la τ prevista, presente o ausente DECLARADA ---------------------------

@@ -168,7 +168,7 @@ test_that("una celda sin banco de su facultad lo dice, no devuelve una lista vac
   expect_equal(length(r), 1L)
   expect_equal(length(r[[1]]$candidatos), 0L)
   expect_false(r[[1]]$alcanza)
-  expect_match(r[[1]]$etiqueta, "no tiene aulas de esa facultad")
+  expect_match(r[[1]]$etiqueta, "no tiene cursos-horario de esa facultad")
 })
 
 test_that("sin banco o sin celdas en deficit no devuelve nada", {

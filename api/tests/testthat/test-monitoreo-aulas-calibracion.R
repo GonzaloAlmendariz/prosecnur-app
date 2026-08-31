@@ -157,7 +157,7 @@ test_that("la calibracion se lee en direccion y magnitud, sin decir «calibracio
   expect_identical(.mac_etiqueta_calibracion(1.2), "El campo está rindiendo un 20 % más de lo previsto")
   expect_identical(.mac_etiqueta_calibracion(1), "El campo está rindiendo lo previsto")
   # Sin dato NO es cero ni es «sin calibrar»: es que aun no hay con que comparar.
-  expect_identical(.mac_etiqueta_calibracion(NA), "Todavía sin aulas aplicadas con qué comparar")
+  expect_identical(.mac_etiqueta_calibracion(NA), "Todavía sin cursos-horario aplicados con qué comparar")
 })
 
 test_that("ninguna etiqueta usa jerga prohibida", {
@@ -260,7 +260,7 @@ test_that("sin previsto se comporta como antes: la salvedad no se inventa", {
 
 test_that("las dos ramas que no afirman nada siguen intactas", {
   expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(NA_real_, previsto = 2),
-               "Todavía sin aulas aplicadas con qué comparar")
+               "Todavía sin cursos-horario aplicados con qué comparar")
   expect_equal(prosecnurapp:::.mac_etiqueta_calibracion(1.001, previsto = 2),
                "El campo está rindiendo lo previsto")
 })
