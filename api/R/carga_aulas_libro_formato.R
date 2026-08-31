@@ -220,6 +220,25 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     filas_datos[[hoja]] <- if (is.null(dims)) n_cab else dims[[1]]
     openxlsx::addStyle(wb, hoja, cabecera, rows = seq_len(n_cab), cols = seq_len(n_col),
                        gridExpand = TRUE, stack = TRUE)
+    # **Bordes en toda la tabla, cabecera y datos.**
+    #
+    # Gonzalo, mirando el libro al lado del Sheets que el equipo usa: «todas las
+    # tres primeras hojas deberia tener bordes negros sus tablas». Sin ellos una
+    # rejilla de 241 columnas se lee como una nube de valores: el ojo no tiene
+    # donde apoyarse para seguir una fila hasta el final, que es exactamente lo
+    # que hace quien agenda.
+    #
+    # Van con `stack = TRUE` para no pisar el color de banda de cada bloque ni
+    # el semaforo de estados, que se aplican despues. El gris muy oscuro y no
+    # negro puro: a 241 columnas el negro satura la hoja.
+    if (n_col > 0 && filas_datos[[hoja]] > 0) {
+      openxlsx::addStyle(
+        wb, hoja,
+        openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149"),
+        rows = seq_len(filas_datos[[hoja]]), cols = seq_len(n_col),
+        gridExpand = TRUE, stack = TRUE
+      )
+    }
     # El panel congela las cabeceras Y la primera columna: en una hoja de 241
     # columnas, perder de vista el `ID MATCH` es perder la fila.
     openxlsx::freezePane(wb, hoja, firstActiveRow = n_cab + 1L, firstActiveCol = 2L)
@@ -369,6 +388,33 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
     list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
   )
+  # **El medio de contacto: dos vías que se reparten distinto.**
+  #
+  # Una llamada se hace en el momento y un correo espera respuesta, así que
+  # quien reparte el día necesita separarlas de un vistazo. Los tonos salen de
+  # la misma familia que el semáforo —fondo claro, texto del mismo tono— para
+  # que la hoja no acabe con dos lenguajes de color.
+  paleta_medio <- list(
+    list(texto = "Llamada", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+    list(texto = "Correo", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+    list(texto = "Presencial", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86"))
+  )
+
+  # **El día: seis colores porque la columna se lee en vertical.**
+  #
+  # El agendador no lee un día, lee la COLUMNA entera buscando cuántas caen el
+  # martes. Con un solo tono para todos hay que ir palabra por palabra. La lista
+  # del desplegable es de tres letras (`AULAS_LIBRO_DIA`), y la regla es
+  # `contains`, así que casa igual si alguien escribe «Martes» a mano.
+  paleta_dia <- list(
+    list(texto = "LUN", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+    list(texto = "MAR", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+    list(texto = "MIE", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+    list(texto = "JUE", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+    list(texto = "VIE", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86")),
+    list(texto = "SAB", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
+  )
+
   # **Los números se escriben como números y las fechas como fechas.**
   #
   # Todo salía como texto plano, así que Excel no podía ordenar por fecha ni
@@ -398,13 +444,26 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                        cols = fm$cols, gridExpand = TRUE, stack = TRUE)
   }
 
-  # Sobre las columnas de ESTADO y sólo esas: colgarlo de las validaciones
-  # teñía también «MEDIO DE CONTACTO» y «DÍA», que no llevan estos valores. No
-  # rompía nada —ninguna celda casaba— pero dejaba reglas donde no significan.
+  # **Cada columna con su paleta, no una sola para todas.**
+  #
+  # Antes se teñían sólo las de ESTADO, y con razón: colgar el semáforo de las
+  # validaciones pintaba también «MEDIO DE CONTACTO» y «DÍA» con reglas que
+  # ninguna de sus celdas casa. No rompía nada, pero dejaba reglas donde no
+  # significan, y sobre todo dejaba esas dos columnas en blanco.
+  #
+  # Gonzalo, comparando con el Sheets que el equipo usa de verdad: «chips
+  # desplegables para los status y días de la semana». En su hoja el medio de
+  # contacto y el día TAMBIÉN van con color, y son justo las dos columnas que
+  # el agendador recorre a ojo para repartir su día.
+  #
+  # Cada entrada de `semaforos` puede traer sus propias `reglas`; sin ellas cae
+  # al semáforo de estados, que es lo que hacían todas hasta ahora.
   for (sem in semaforos) {
     if (!length(sem$cols) || !sem$filas) next
+    reglas <- switch(sem$paleta %||% "estado",
+                     medio = paleta_medio, dia = paleta_dia, semaforo)
     for (col in sem$cols) {
-      for (regla in semaforo) {
+      for (regla in reglas) {
         openxlsx::conditionalFormatting(
           wb, sem$hoja, cols = col, rows = seq_len(sem$filas) + sem$desde,
           type = "contains", rule = regla$texto, style = regla$estilo

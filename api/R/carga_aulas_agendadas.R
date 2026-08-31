@@ -21,7 +21,7 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "wave",             titulos = c("MUESTRA")),
   list(campo = "operational_code", titulos = c("CURSO-HORARIO", "CURSO HORARIO")),
   list(campo = "teacher",          titulos = c("NOMBRE DE DOCENTE")),
-  list(campo = "teacher_phone",    titulos = c("TELEFONO DE DOCENTE")),
+  list(campo = "teacher_phone",    titulos = c("TELÉFONO DE DOCENTE", "TELEFONO DE DOCENTE")),
   list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
   list(campo = "course_name",      titulos = c("NOMBRE DEL CURSO")),
   list(campo = "faculty",          titulos = c("FACULTAD")),
@@ -36,10 +36,10 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "eligible_n",       titulos = c("MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
-  list(campo = "contact_attempts", titulos = c("NUMERO DE INTENTOS")),
+  list(campo = "contact_attempts", titulos = c("NÚMERO DE INTENTOS", "NUMERO DE INTENTOS")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
-  list(campo = "scheduled_date",   titulos = c("FECHA DE APLICACION", "FECHA AGENDADA")),
-  list(campo = "scheduled_day",    titulos = c("DIA")),
+  list(campo = "scheduled_date",   titulos = c("FECHA DE APLICACIÓN", "FECHA DE APLICACION", "FECHA AGENDADA")),
+  list(campo = "scheduled_day",    titulos = c("DÍA", "DIA")),
   list(campo = "scheduled_time",   titulos = c("HORA")),
   # EN QUE MOMENTO de la clase entra la aplicacion. Hasta 2025 esto vivia en
   # OBSERVACIONES en prosa libre —«Puede realizarse en la mitad de clase de 8 a
