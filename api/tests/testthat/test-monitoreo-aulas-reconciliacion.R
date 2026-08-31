@@ -193,3 +193,71 @@ test_that("dos reservas del mismo titular no comparten codigo de cadena", {
   expect_identical(sort(cadenas), c("R 4.1", "R 4.2"))
   expect_identical(length(unique(cadenas)), 2L)
 })
+
+# --- El parte llega en castellano y la comprobacion leia solo el ingles -------
+#
+# `monitoreo_aulas_partes_publicados()` ya leia las cuatro claves de cada numero
+# —el libro real se llena en castellano— y `monitoreo_aulas_parte_descuadre()`
+# se quedo fuera de esa reparacion: leia `observed_students` a secas. Dos
+# lecturas de la misma regla, y la ciega era justo la que decide si un parte
+# cuadra.
+#
+# Medido el 2026-08-30 sobre el estudio de 152 partes: **0 de 152 traen
+# `observed_students` y los 152 traen `asistentes`**, igual con
+# `effective_surveys` frente a `validas`. Ni un parte se comprobo, la tabla de
+# Consultas enseñaba «45 asistentes · 28 efectivas» junto a un `esperado` vacio,
+# y el control de Validacion publicaba «Los numeros de cada parte de campo
+# cuadran» en verde sobre 152 partes que nadie habia comprobado. Reparado
+# aparecen 144 descuadres, 24 de ellos con mas efectivas que asistentes.
+
+.mar_parte_es <- function(asist, efec, code = "CH 1", ...) c(list(
+  operational_code = code, asistentes = asist, validas = efec
+), list(...))
+
+test_that("un parte con las claves en castellano se comprueba igual", {
+  d <- monitoreo_aulas_parte_descuadre(.mar_parte_es(45, 28))
+  expect_false(is.null(d))
+  expect_identical(d$esperado, 45)
+  expect_identical(d$diferencia, -17)
+})
+
+test_that("los alias valen para los cuatro numeros, no solo para dos", {
+  d <- monitoreo_aulas_parte_descuadre(
+    .mar_parte_es(27, 23, rechazos = 1, duplicados = 3)
+  )
+  expect_identical(d$esperado, 23)
+  expect_identical(d$diferencia, 0)
+})
+
+test_that("la clave inglesa sigue mandando cuando vienen las dos", {
+  # `primero()` toma el primer alias con valor y el ingles va delante: un libro
+  # real escrito en ingles no puede quedar a merced de una columna castellana.
+  d <- monitoreo_aulas_parte_descuadre(list(
+    observed_students = 20, asistentes = 99,
+    effective_surveys = 20, validas = 1
+  ))
+  expect_identical(d$diferencia, 0)
+})
+
+test_that("el aviso dice que faltan las columnas, no «menos 0 rechazos»", {
+  # Sin columna de rechazos la resta se hace contra cero, y decir «menos 0
+  # rechazos» presenta como declaracion del equipo lo que nadie anoto.
+  h <- monitoreo_aulas_reconciliacion_partes(list(.mar_parte_es(45, 28, "CH 47")))[[1]]
+  texto <- monitoreo_aulas_descuadre_texto(h)
+  expect_match(texto, "45 asistentes")
+  expect_match(texto, "28 efectivas")
+  expect_match(texto, "no anota rechazos ni duplicados")
+  expect_match(texto, "no explica 17")
+  expect_false(grepl("NA", texto, fixed = TRUE))
+})
+
+test_that("mas efectivas que asistentes se dice por su nombre", {
+  # No es una anotacion que falte: es imposible, y no anotar rechazos no lo
+  # explica. 24 de los 144 descuadres del estudio son de este tipo.
+  h <- monitoreo_aulas_reconciliacion_partes(list(.mar_parte_es(14, 15, "CH 161")))[[1]]
+  texto <- monitoreo_aulas_descuadre_texto(h)
+  expect_match(texto, "15 efectivas")
+  expect_match(texto, "sólo 14 asistentes")
+  expect_match(texto, "más de las que cabrían")
+  expect_false(grepl("no anota rechazos", texto, fixed = TRUE))
+})

@@ -18,18 +18,54 @@
 #' @return lista con `esperado`, `declarado` y `diferencia`, o `NULL` si el
 #'   parte no trae numeros suficientes para comprobar nada.
 #' @export
+#' Las claves con las que cada numero del parte puede llegar.
+#'
+#' El libro real se llena en castellano y el lector conserva sus nombres, asi
+#' que toda capa que lea un parte necesita la misma lista. Vivian sueltas dentro
+#' de `monitoreo_aulas_partes_publicados()` y `monitoreo_aulas_parte_descuadre()`
+#' leia solo la inglesa: dos lecturas de la misma regla, y la que decidia si un
+#' parte cuadra era la ciega.
+#' @noRd
+.MONITOREO_AULAS_PARTE_ALIAS <- list(
+  asistentes = c("observed_students", "asistentes", "alumnos_en_aula", "aforo_observado"),
+  efectivas  = c("effective_surveys", "validas", "efectivas"),
+  rechazos   = c("refusals", "rechazos"),
+  duplicados = c("duplicates", "duplicados")
+)
+
+#' El primer alias que traiga valor, o NULL.
+#' @noRd
+.monitoreo_aulas_parte_primero <- function(parte, claves) {
+  for (k in claves) {
+    v <- parte[[k]]
+    if (!is.null(v) && length(v) == 1L && !is.na(v) &&
+        (!is.character(v) || nzchar(trimws(v)))) return(v)
+  }
+  NULL
+}
+
 monitoreo_aulas_parte_descuadre <- function(parte) {
-  num <- function(campo) {
-    v <- suppressWarnings(as.numeric(parte[[campo]] %||% NA))
+  num <- function(claves) {
+    v <- suppressWarnings(as.numeric(.monitoreo_aulas_parte_primero(parte, claves) %||% NA))
     if (length(v) != 1L || !is.finite(v)) NA_real_ else v
   }
-  asistentes <- num("observed_students")
-  efectivas <- num("effective_surveys")
+  # **Las MISMAS listas de alias que usa la publicacion, y por eso viven en un
+  # solo sitio.** Esta funcion leia unicamente la clave inglesa mientras
+  # `monitoreo_aulas_partes_publicados()` ya leia las cuatro, asi que la tabla
+  # enseñaba «45 asistentes · 28 efectivas» y la comprobacion de esa misma fila
+  # devolvia NULL. Medido el 2026-08-30 sobre el estudio de 152 partes: **0 de
+  # 152 traen `observed_students` y los 152 traen `asistentes`** —igual con
+  # `effective_surveys` frente a `validas`—, asi que no se comprobo ni uno y el
+  # control de Validacion publicaba «Los numeros de cada parte de campo
+  # cuadran» en verde. Es el «verde por ausencia» que el Contrato de Superficie
+  # prohibe, y lo cometia justo el control que existe para cazar descuadres.
+  asistentes <- num(.MONITOREO_AULAS_PARTE_ALIAS$asistentes)
+  efectivas <- num(.MONITOREO_AULAS_PARTE_ALIAS$efectivas)
   # Sin estos dos no hay identidad que comprobar. Suponer cero donde no hay
   # dato inventaria un descuadre que quiza no existe.
   if (!is.finite(asistentes) || !is.finite(efectivas)) return(NULL)
-  rechazos <- num("refusals")
-  duplicados <- num("duplicates")
+  rechazos <- num(.MONITOREO_AULAS_PARTE_ALIAS$rechazos)
+  duplicados <- num(.MONITOREO_AULAS_PARTE_ALIAS$duplicados)
   # Rechazos y duplicados SI se asumen cero cuando faltan: son cantidades de
   # eventos que, de no haberse anotado, no ocurrieron.
   if (!is.finite(rechazos)) rechazos <- 0
@@ -66,9 +102,14 @@ monitoreo_aulas_reconciliacion_partes <- function(partes = list(), tolerancia = 
       # `aplicador`, no `applied_by`.
       aplicador = trimws(as.character(p$applied_by %||% p$aplicador %||% p$aplicadora %||% "")),
       intento = as.integer(p$intento %||% 1L),
-      asistentes = suppressWarnings(as.numeric(p$observed_students %||% NA)),
-      rechazos = suppressWarnings(as.numeric(p$refusals %||% NA)),
-      duplicados = suppressWarnings(as.numeric(p$duplicates %||% NA)),
+      # Por alias, igual que la publicacion y que el propio descuadre: leyendo
+      # solo la clave inglesa el aviso salia «45 asistentes menos NA rechazos».
+      asistentes = suppressWarnings(as.numeric(
+        .monitoreo_aulas_parte_primero(p, .MONITOREO_AULAS_PARTE_ALIAS$asistentes) %||% NA)),
+      rechazos = suppressWarnings(as.numeric(
+        .monitoreo_aulas_parte_primero(p, .MONITOREO_AULAS_PARTE_ALIAS$rechazos) %||% NA)),
+      duplicados = suppressWarnings(as.numeric(
+        .monitoreo_aulas_parte_primero(p, .MONITOREO_AULAS_PARTE_ALIAS$duplicados) %||% NA)),
       esperado = d$esperado,
       efectivas = d$declarado,
       diferencia = d$diferencia
@@ -115,30 +156,25 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
   # sus listas de alias —`get(c("applied_by", "aplicador", "aplicadora"), "")`—
   # y de la que esta capa se quedo fuera. Se toma el PRIMERO que traiga valor:
   # si el libro real escribe la clave en ingles, esa manda.
-  primero <- function(p, claves) {
-    for (k in claves) {
-      v <- p[[k]]
-      if (!is.null(v) && length(v) == 1L && !is.na(v) &&
-          (!is.character(v) || nzchar(trimws(v)))) return(v)
-    }
-    NULL
-  }
+  # El mismo lector que usa la comprobacion del descuadre: dos copias de esta
+  # regla fue exactamente el defecto que se reparo aqui.
+  primero <- .monitoreo_aulas_parte_primero
   out <- list()
   for (p in partes) {
     if (!is.list(p)) next
     d <- monitoreo_aulas_parte_descuadre(p)
     out[[length(out) + 1L]] <- list(
       operational_code = txt(p$operational_code %||% p$classroom_id),
-      observed_students = num(primero(p, c("observed_students", "asistentes", "alumnos_en_aula", "aforo_observado"))),
+      observed_students = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)),
       # El `% ASISTENCIA` que el equipo escribe a mano en la hoja. Se publica
       # tal cual —no se deriva de `observed_students`— porque el numerador y el
       # denominador que uso el equipo son suyos, y porque un porcentaje que no
       # cuadra con los asistentes que la misma fila declara es en si mismo un
       # hallazgo del cuadre.
       attendance_pct = num(primero(p, c("attendance_pct", "pct_asistencia", "porcentaje_asistencia"))),
-      refusals = num(primero(p, c("refusals", "rechazos"))),
-      duplicates = num(primero(p, c("duplicates", "duplicados"))),
-      effective_surveys = num(primero(p, c("effective_surveys", "validas", "efectivas"))),
+      refusals = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$rechazos)),
+      duplicates = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$duplicados)),
+      effective_surveys = num(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$efectivas)),
       # `esperado` es la cuenta que implican los otros tres numeros; sin los dos
       # imprescindibles no hay identidad que comprobar y se publica vacio en vez
       # de un cero que parecerian datos.
@@ -180,6 +216,36 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
 #' @export
 monitoreo_aulas_descuadre_texto <- function(hallazgo) {
   faltan <- hallazgo$diferencia < 0
+  # **El aviso dice POR QUE, no solo cuanto** (ADR 0077, clausula 4). Cuando el
+  # libro no trae columna de rechazos ni de duplicados, la resta se hace contra
+  # cero y el descuadre es, casi siempre, justo lo que nadie anoto: decir «menos
+  # 0 rechazos» lo presenta como si el equipo hubiera declarado que no hubo
+  # ninguno. Medido el 2026-08-30: los 152 partes del estudio llegan sin esas
+  # dos columnas, y 144 descuadran por eso.
+  sin_declarar <- !is.finite(hallazgo$rechazos %||% NA_real_) &&
+    !is.finite(hallazgo$duplicados %||% NA_real_)
+  if (sin_declarar && !faltan) {
+    # Mas efectivas que asistentes no es una anotacion que falte: es imposible,
+    # y no anotar rechazos no lo explica. Se dice por su nombre.
+    return(sprintf(
+      "%s: el parte declara %s efectivas y sólo %s asistentes en el aula, %s más de las que cabrían.%s",
+      hallazgo$operational_code,
+      format(hallazgo$efectivas, trim = TRUE),
+      format(hallazgo$asistentes, trim = TRUE),
+      format(abs(hallazgo$diferencia), trim = TRUE),
+      if (nzchar(hallazgo$aplicador %||% "")) sprintf(" Lo aplicó %s.", hallazgo$aplicador) else ""
+    ))
+  }
+  if (sin_declarar) {
+    return(sprintf(
+      "%s: el parte declara %s asistentes y %s efectivas, y no anota rechazos ni duplicados, así que no explica %s.%s",
+      hallazgo$operational_code,
+      format(hallazgo$asistentes, trim = TRUE),
+      format(hallazgo$efectivas, trim = TRUE),
+      format(abs(hallazgo$diferencia), trim = TRUE),
+      if (nzchar(hallazgo$aplicador %||% "")) sprintf(" Lo aplicó %s.", hallazgo$aplicador) else ""
+    ))
+  }
   sprintf(
     "%s: %s asistentes menos %s rechazos y %s duplicados dan %s, pero el parte declara %s efectivas (%s %s).%s",
     hallazgo$operational_code,
