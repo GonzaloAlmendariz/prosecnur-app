@@ -122,8 +122,14 @@
 #
 # OJO: aqui NO se usa `MONITOREO_AULAS_ESTADOS_DORMIDOS` — ese es vocabulario
 # de `sample_status` (el eje del AGENDAMIENTO), no de `operational_status`, y
-# contiene «planificada»: una reserva con operational_status «planificada»
-# esta ACTIVA en el operativo y entra como pendiente.
+# contiene «planificada» — pero «planificada» TAMPOCO abre la puerta: el
+# normalizador escribe ese default en toda fila sin gestion (row-builder y
+# .monitoreo_aulas_status de monitoreo_aulas_universitarias convierten "",
+# "-" y lo desconocido en «planificada»), asi que post-normalizador equivale
+# a «nadie escribio nada» y con ella el banco dormido entero se colaba como
+# «pendiente». Costo asumido y declarado: una reserva marcada planificada a
+# proposito es indistinguible del default y asoma recien con su primer
+# estado real (contactada en adelante) o con datos.
 #
 # El «> 0» de plataforma no contradice que el cero sea dato: en el tablero
 # real TODAS las filas llevan `respuestas_validas` calculado —0 para las
@@ -139,7 +145,7 @@
   plataforma <- .monitoreo_num(fila[["respuestas_validas"]], NA_real_)
   if (is.finite(plataforma) && plataforma > 0) return(TRUE)
   est <- trimws(.monitoreo_scalar(fila[["operational_status"]], ""))
-  nzchar(est) && !identical(est, "-")
+  nzchar(est) && !est %in% c("-", "planificada")
 }
 
 # La señal de un aula APLICADA. SEÑALA, no descarta: ningun valor de aqui saca
