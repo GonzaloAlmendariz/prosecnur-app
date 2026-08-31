@@ -350,11 +350,19 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # eso es deliberado —salian como columnas vacias—. Siguen en la spec para que
   # un libro viejo que las traiga se lea entero, que es lo que comprueba
   # `test-carga-aulas-libro-control-esperado.R`.
+  # Los SIETE de agenda y campo se suman por el mismo motivo, y su presencia
+  # aqui es la señal de que la Base de control ya los escribe: hasta el
+  # 2026-08-31 salian VACIOS —«base de control necesita saber lo que las otras
+  # dos saben», y no lo sabia—, asi que ni siquiera llegaban a esta lista. Su
+  # fuente es el plan y el parte, y el registro no los pisa.
   expect_setequal(perdidos,
                   c("wave", "course_name", "room", "enrolled_total", "eligible_n",
                     "elegibles_esperados",
                     "threshold_total", "threshold_population",
-                    "valid_total", "valid_population"))
+                    "valid_total", "valid_population",
+                    "scheduled_date", "scheduled_time",
+                    "applied_by", "applied_date", "applied_time",
+                    "application_status", "observed_students"))
   expect_identical(as.character(b$control$course_name),
                    as.character(b$u$course_name))
 })

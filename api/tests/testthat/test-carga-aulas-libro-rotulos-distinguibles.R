@@ -83,7 +83,11 @@ test_that("«Aulas Agendadas» conserva su fecha con el nombre de siempre", {
   ruta <- .crd_libro()
   on.exit(unlink(ruta), add = TRUE)
   cab <- .crd_cabeceras(ruta, "Aulas Agendadas")
-  expect_true(any(grepl("^FECHA DE APLICACION", cab)))
+  # Con tilde desde el 2026-08-31: cuatro cabeceras iban sin ella mientras
+  # «MATRICULADOS POBLACIÓN» sí la llevaba, que era inconsistente y no una
+  # decisión. Lo que este control defiende no es la ortografía sino que la hoja
+  # de agenda NO adopte el rótulo de la de campo.
+  expect_true(any(grepl("^FECHA DE APLICACI[OÓ]N", cab)))
   expect_false(any(cab == "FECHA AGENDADA"))
 })
 

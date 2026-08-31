@@ -283,7 +283,14 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
   # `FECHA AGENDADA` es **alias declarado** de `scheduled_date` en
   # `AULAS_AGENDADAS_BLOQUE`, asi que el nombre ya estaba disponible. Se cambia
   # SOLO en esta hoja: en «Aulas Agendadas» no hay con que confundirla.
-  titulos_agenda <- sub("^FECHA DE APLICACION$", "FECHA AGENDADA", .calg_titulos_agenda())
+  #
+  # **Con Y sin tilde.** Este `sub` casaba solo con «FECHA DE APLICACION», y al
+  # anteponer la version acentuada como titulo principal de `scheduled_date`
+  # —el 2026-08-31, arreglando que cuatro cabeceras fueran sin tilde— dejo de
+  # casar: la hoja de campo se quedo con DOS columnas «FECHA DE APLICACIÓN» en
+  # el mismo bloque, que es exactamente lo que este renombrado existe para
+  # impedir. Lo cazo `test-carga-aulas-libro-rotulos-distinguibles`.
+  titulos_agenda <- sub("^FECHA DE APLICACI[OÓ]N$", "FECHA AGENDADA", .calg_titulos_agenda())
   titulos_campo <- .calg_titulos_campo()
 
   grupo <- c()
