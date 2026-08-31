@@ -299,9 +299,27 @@
   align-content: stretch;
 }
 
-/* Agenda (modelo): handoff (auto) + tabla de agenda (1fr) */
+/* Agenda (modelo): handoff (auto) + tabla de agenda (1fr).
+   **El minimo de la segunda fila NO puede ser 0, y ese 0 era el solape.**
+   Medido en el navegador a 1024x600: el stack se queda en 129 px y las filas
+   resuelven a `14px 0px 180px` —la tercera lleva `min-height: 180px` y se lleva
+   lo que hay—. La fila del panel de agenda queda en CERO, pero el panel mide
+   26 px de padding y borde aunque su contenido colapse, asi que se dibujaba de
+   471 a 497 sobre una fila que acaba en 481: **16 px encima de «Cuánto cuesta
+   cerrar un curso-horario»**, la interseccion 920x16 que reporta el runner.
+   Con `26px` de minimo, reproducido en un caso aislado: filas `14px 26px 180px`,
+   solape 0 y **las tres alturas identicas** (14, 26, 180). No cambia nada
+   visible; solo impide que la fila sea mas pequeña que la caja que contiene.
+   Descartados, con medicion: `overflow: hidden` (recorta el interior, no la
+   caja), `height: 0`, `grid-auto-rows`, y `minmax(min-content, 1fr)`, que
+   arregla el solape pero infla la fila a 11.685 px porque el min-content de una
+   tabla de 174 filas es enorme.
+   Va en ESTA regla y no en `.mon-profile-stack.aulas-agenda-stack`: esta tiene
+   cinco clases de especificidad y aquella cuatro, asi que aquella pierde.
+   Esto NO arregla que el panel quede apretado, que es la deuda estructural
+   documentada mas abajo: son dos defectos distintos. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack:has(.mon-aulas-handoff-panel) {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(26px, 1fr);
 }
 
 /* Fuentes: operación del plan y la lista de fuentes, las dos intrínsecas.
