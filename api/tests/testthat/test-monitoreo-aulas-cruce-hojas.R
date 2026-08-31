@@ -156,3 +156,56 @@ test_that("el control llega al tablero como decimo control de Validacion", {
   expect_identical(as.character(fila[[1]]$status), "review")
   expect_match(as.character(fila[[1]]$detail), "CH 1")
 })
+
+# --- Comparable es tener valores, no tener el mismo codigo -------------------
+#
+# El control publicaba «Las 152 aulas que estan en las dos hojas dicen lo mismo
+# en asistentes, % de asistencia y quien aplico» sobre un estudio donde esos
+# tres campos estaban en **0 de 152 partes y 0 de 304 filas de control**: la
+# Base de control de ese estudio es la de sexo (`operational_code, faculty,
+# sexo, n`). `comparables` contaba aulas presentes en las dos hojas —que lo
+# estaban— y `.mach_discrepan_*` devuelve FALSE cuando falta un lado, asi que
+# cero discrepancias se leia como coincidencia. Verde por ausencia.
+#
+# Y ademas leia por nombre exacto: con el libro llenado en castellano no habria
+# comparado nada aunque las columnas estuvieran.
+
+test_that("codigos que coinciden sin valores no cuentan como comparados", {
+  partes <- list(list(operational_code = "CH 1"), list(operational_code = "CH 2"))
+  control <- list(list(operational_code = "CH 1", sexo = "F", n = 12),
+                  list(operational_code = "CH 2", sexo = "M", n = 8))
+  r <- monitoreo_aulas_cruce_hojas(partes, control)
+  expect_identical(r$comparables, 2L)
+  # Ni un valor enfrentado: el control no puede decir que coinciden.
+  expect_identical(r$comparaciones, 0L)
+  expect_length(r$hallazgos, 0L)
+  expect_identical(
+    monitoreo_aulas_estado_control(r$comparaciones > 0L, length(r$hallazgos) > 0L),
+    "sin_datos"
+  )
+})
+
+test_that("el cruce lee las claves en castellano de las dos hojas", {
+  partes <- list(list(operational_code = "CH 1", asistentes = 30, aplicador = "Ana"),
+                 list(operational_code = "CH 2", asistentes = 20, aplicador = "Beto"))
+  control <- list(list(operational_code = "CH 1", asistentes = 30, aplicador = "Ana"),
+                  list(operational_code = "CH 2", asistentes = 25, aplicador = "Beto"))
+  r <- monitoreo_aulas_cruce_hojas(partes, control)
+  # 2 aulas x 2 campos con valor en las dos hojas.
+  expect_identical(r$comparaciones, 4L)
+  expect_length(r$hallazgos, 1L)
+  expect_identical(r$hallazgos[[1]]$operational_code, "CH 2")
+  expect_match(monitoreo_aulas_cruce_texto(r$hallazgos[[1]]), "20")
+  expect_match(monitoreo_aulas_cruce_texto(r$hallazgos[[1]]), "25")
+})
+
+test_that("una hoja en ingles y otra en castellano se enfrentan igual", {
+  # El caso real de la migracion: el parte llega del lector en castellano y la
+  # Base de control se exporto con las cabeceras del libro en ingles.
+  r <- monitoreo_aulas_cruce_hojas(
+    list(list(operational_code = "CH 1", asistentes = 30)),
+    list(list(operational_code = "CH 1", observed_students = 22))
+  )
+  expect_identical(r$comparaciones, 1L)
+  expect_length(r$hallazgos, 1L)
+})

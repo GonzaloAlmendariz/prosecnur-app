@@ -2210,7 +2210,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       monitoreo_aulas_estado_control(length(partes_campo) > 0L, length(descuadres) > 0L),
       # El cruce entre las dos hojas. `ok` cuando coinciden Y cuando no hay con
       # que comparar no se finge que cuadran: eso se dice en el detalle.
-      monitoreo_aulas_estado_control(cruce$comparables > 0L, length(cruce$hallazgos) > 0L),
+      #
+      # **Comprobable es que haya VALORES que comparar, no codigos que
+      # coincidan.** `comparables` cuenta aulas presentes en las dos hojas;
+      # medido el 2026-08-30, las 152 del estudio lo estaban y los tres campos
+      # cruzados no aparecian en ninguna de las dos —la Base de control de ese
+      # estudio es la de sexo—, asi que el control salia verde afirmando una
+      # coincidencia que nunca se comprobo.
+      monitoreo_aulas_estado_control(cruce$comparaciones > 0L, length(cruce$hallazgos) > 0L),
       # Columnas de «Base de control» con datos que la cabecera no bautiza. No
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
@@ -2286,9 +2293,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
             sprintf(" Y %d discrepancia%s mas.", restantes, if (restantes == 1L) "" else "s")
           } else ""
         )
-      } else if (cruce$comparables > 0L) {
+      } else if (cruce$comparaciones > 0L) {
         sprintf(
           "Las %d aulas que están en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quién aplicó.",
+          cruce$comparables
+        )
+      } else if (cruce$comparables > 0L) {
+        # El caso que salia como «dicen lo mismo»: los codigos coinciden y no
+        # hay un solo valor que enfrentar. El aviso dice cual es la causa, que
+        # es lo unico accionable —faltan esas columnas en el libro—.
+        sprintf(
+          "Las %d aulas están en las dos hojas, pero ninguna de las dos trae asistentes, %% de asistencia ni quién aplicó, así que no hay valores que enfrentar.",
           cruce$comparables
         )
       } else {
