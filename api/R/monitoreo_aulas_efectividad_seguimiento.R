@@ -526,7 +526,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
     motivo = vig$motivo,
     criterio = list(
       numerador = "efectiva de plataforma (respuesta que pasa los filtros declarados)",
-      denominador = "elegibles de las aulas aplicadas al corte",
+      denominador = "elegibles de los cursos-horario aplicados al corte",
       disparador = paste0(
         "el margen restante: conseguido + aforo pendiente x tau observada, ",
         "contra la cuota del diseno"

@@ -919,7 +919,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     score = score,
     distance = round(avg_abs %||% NA_real_, 6),
     table = table,
-    warning = if (is.finite(max_abs) && max_abs > 0.10) "La muestra efectiva se aleja más de 10 pp en al menos una celda." else ""
+    warning = if (is.finite(max_abs) && max_abs > 0.10) "La muestra efectiva se aleja más de 10 pp en al menos un grupo de facultad y sexo." else ""
   )
 }
 
@@ -2269,17 +2269,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       monitoreo_aulas_estado_control(enlaces$comprobable, enlaces$enlaces > 0L, "warning")
     ),
     detail = c(
-      "El tablero agrega por aula/collector/link.",
+      "El tablero agrega por curso-horario, recopilador y enlace.",
       identificadores$detail,
       if (any(huerfanas)) {
-        sprintf("%d respuestas válidas no corresponden a ninguna aula del plan.", sum(huerfanas))
+        sprintf("%d respuestas válidas no corresponden a ningún curso-horario del plan.", sum(huerfanas))
       } else if (length(valid_response)) {
-        "Todas las respuestas válidas se atribuyeron a un aula del plan."
+        "Todas las respuestas válidas se atribuyeron a un curso-horario del plan."
       } else {
         # El estado ya dice `sin_datos`; el texto tiene que decir lo mismo. Con
         # cero respuestas, «todas se atribuyeron» afirma un recuento que no se
         # hizo.
-        "Todavía no hay respuestas válidas que atribuir a un aula."
+        "Todavía no hay respuestas válidas que atribuir a un curso-horario."
       },
       if (!nzchar(respuesta_id_col)) {
         "La fuente no trae identificador de respuesta; no se puede comprobar."
@@ -2322,7 +2322,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         )
       } else if (cruce$comparaciones > 0L) {
         sprintf(
-          "Las %d aulas que están en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quién aplicó.",
+          "Los %d cursos-horario que están en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quién aplicó.",
           cruce$comparables
         )
       } else if (cruce$comparables > 0L) {
@@ -2330,11 +2330,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         # hay un solo valor que enfrentar. El aviso dice cual es la causa, que
         # es lo unico accionable —faltan esas columnas en el libro—.
         sprintf(
-          "Las %d aulas están en las dos hojas, pero ninguna de las dos trae asistentes, %% de asistencia ni quién aplicó, así que no hay valores que enfrentar.",
+          "Los %d cursos-horario están en las dos hojas, pero ninguna de las dos trae asistentes, %% de asistencia ni quién aplicó, así que no hay valores que enfrentar.",
           cruce$comparables
         )
       } else {
-        "Ninguna aula está en las dos hojas a la vez, así que no hay nada que cruzar."
+        "Ningún curso-horario está en las dos hojas a la vez, así que no hay nada que cruzar."
       },
       if ((cfg$control_sin_nombre %||% 0L) > 0L) {
         sprintf(
@@ -2659,12 +2659,12 @@ monitoreo_aulas_apply_replacement <- function(current, classroom_id, replacement
   classroom_id <- .monitoreo_scalar(classroom_id, "")
   replacement_id <- .monitoreo_scalar(replacement_id, "")
   if (!nzchar(classroom_id) || !nzchar(replacement_id)) {
-    stop("Se requiere aula caida y aula de reemplazo.", call. = FALSE)
+    stop("Se requiere el curso-horario caído y el de reemplazo.", call. = FALSE)
   }
   idx_old <- .monitoreo_aulas_plan_index(plan_df, classroom_id, classroom_id)
   idx_new <- .monitoreo_aulas_plan_index(plan_df, replacement_id, replacement_id)
-  if (!length(idx_old)) stop("No se encontro el aula caida en el plan.", call. = FALSE)
-  if (!length(idx_new)) stop("No se encontro el aula de reemplazo en el plan.", call. = FALSE)
+  if (!length(idx_old)) stop("No se encontró el curso-horario caído en el plan.", call. = FALSE)
+  if (!length(idx_new)) stop("No se encontró el curso-horario de reemplazo en el plan.", call. = FALSE)
   old_classroom_id <- .monitoreo_scalar(plan_df$classroom_id[[idx_old[[1]]]], classroom_id)
   reason <- .monitoreo_aulas_reason(reason)
   plan_df$operational_status[idx_old] <- "reemplazada"

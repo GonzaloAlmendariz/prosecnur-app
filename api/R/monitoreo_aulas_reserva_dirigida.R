@@ -203,13 +203,13 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
       # dos cifras: un «hay 5 candidatos» no responde si con esos 5 se cierra.
       alcanza = length(cand) > 0 && aporte >= brecha,
       etiqueta = if (!length(cand))
-          "El banco no tiene aulas de esa facultad y ese sexo"
+          "El banco no tiene cursos-horario de esa facultad y ese sexo"
         else if (aporte >= brecha)
-          sprintf("Con %d aula%s del banco se cierra: aportan %s y faltan %d",
+          sprintf("Con %d curso%s-horario del banco se cierra: aportan %s y faltan %d",
                   length(cand), if (length(cand) == 1L) "" else "s",
                   .mard_personas(aporte), brecha)
         else
-          sprintf("El banco no alcanza: sus %d aula%s aportan %s y faltan %d",
+          sprintf("El banco no alcanza: sus %d curso%s-horario aportan %s y faltan %d",
                   length(cand), if (length(cand) == 1L) "" else "s",
                   .mard_personas(aporte), brecha)
     )
