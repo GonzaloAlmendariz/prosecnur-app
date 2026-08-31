@@ -87,7 +87,7 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
   return (
     <div className="aulas-banco">
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(banco.total)}</strong> aulas extra en{" "}
+        <strong>{fmt(banco.total)}</strong> cursos-horario extra en{" "}
         <strong>{fmt(banco.por_facultad.length)}</strong>{" "}
         {banco.por_facultad.length === 1 ? "facultad" : "facultades"} ·{" "}
         <strong>{fmt(banco.elegibles)}</strong> alumnos ·{" "}
@@ -115,7 +115,7 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
             Sin decirlo, el filtro parece roto.
             Va en ESTE componente y no en el subtítulo del panel de fuera: aquí
             está el `sort` y no pueden separarse. */}
-        <em>{" "}· las que más mujeres traen primero</em>
+        <em>{" "}· los que más mujeres traen primero</em>
       </p>
 
       {/* Las facultades como filtro Y como resumen a la vez: la misma fila dice
