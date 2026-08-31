@@ -59,11 +59,17 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 // tienen hora acordada», «N aulas se salen del resto», «N aulas de referencia»,
 // «N aulas en curso», «N de M aulas ya tienen hora» y «N encuestas en N aulas».
 //
-// Las que quedan no son del mismo tipo y por eso no cayeron con ellas: cuatro son
-// CABECERAS de columna —«Tamaño de aula», «Meta de efectivas del aula», «Tasa del
-// aula», «Peso del aula»— y alargarlas a «curso-horario» choca con el ancho, que
-// a 1024 ya deja 66 px por rótulo; dos son la locución «aula por aula»; y el
-// resto habla del aula como ESPACIO, que es correcto.
+// Las que quedan no son del mismo tipo:
+//
+//   · cuatro son CABECERAS de columna del libro de control —«Tamaño de aula»,
+//     «Meta de efectivas del aula», «Tasa del aula», «Peso del aula»—. **Su ancho
+//     no está medido**: esa tabla no se pinta en el estudio de referencia, que
+//     tiene el libro sin columnas llenas. Las cabeceras que SÍ se ven —18 en
+//     `consultas/reemplazos`— no se truncan ni a 1024x600, así que la objeción
+//     del ancho no se sostiene por lo medido hasta hoy; lo que falta es un
+//     proyecto con libro lleno donde comprobarlo.
+//   · dos son la locución «aula por aula», impracticable en curso-horario.
+//   · el resto habla del aula como ESPACIO, que es correcto y no se toca.
 const TOPE = 17;
 
 /**
