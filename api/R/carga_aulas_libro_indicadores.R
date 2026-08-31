@@ -164,13 +164,41 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
                                    fontColour = "#002457", border = "bottom",
                                    borderColour = "#C7D0DD")
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
+  # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
+  #
+  # El decimal opcional existe para las cifras que SI son fraccionarias —«3 157,8
+  # encuestas de la meta» sale de una tasa—. Pero un visor con locale español
+  # pinta el punto del formato como coma, y con 174 escribia «174,»: un numero
+  # que parece cortado. Gonzalo, mirando la hoja: «con comas luego de numeros».
+  #
+  # Asi que hay DOS estilos y cada fila elige el suyo por su valor: entero -> sin
+  # parte decimal; fraccionario -> con un decimal. Es lo unico que evita la coma
+  # sin perder el decimal donde significa algo.
   cifra <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
                                  numFmt = "#,##0.#")
+  cifra_entera <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
+                                        numFmt = "#,##0")
+  # Elige el estilo mirando el valor: `18` con `#,##0.#` sale «18,», y `18.4`
+  # con `#,##0` sale «18» y pierde el dato.
+  estilo_de_cifra <- function(v, entero = cifra_entera, con_decimal = cifra) {
+    x <- suppressWarnings(as.numeric(v))
+    if (length(x) != 1L || !is.finite(x) || abs(x - round(x)) < 1e-9) entero else con_decimal
+  }
+  # El VALOR tambien se redondea, no solo su formato: una meta calculada de una
+  # tasa llegaba como 541.799999999997 y el formato lo tapaba. Basta que alguien
+  # cambie el formato de la celda, la copie o la sume para que el ruido salga.
+  cifra_limpia <- function(v) {
+    x <- suppressWarnings(as.numeric(v))
+    if (length(x) != 1L || !is.finite(x)) v else round(x, 1)
+  }
   pct <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
                                numFmt = "0.0%")
   cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#002457",
                                     fontColour = "#FFFFFF", halign = "left")
-  numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.#")
+  # Las columnas de conteo de la tabla por facultad son enteras por definicion
+  # —muestra, conseguidas, aulas, faltan— asi que van sin parte decimal: aqui el
+  # `.#` solo podia aportar la coma colgando.
+  numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0")
   # `#,##0.#` OMITE el cero decimal, asi que en «Media por aula» un 23.0 salia
   # «23» entre 20.5, 21.9 y 23.8: la misma columna con dos formatos, y el ojo lo
   # lee como si ese equipo tuviera una cifra mas redonda que los demas. Visto en
@@ -195,14 +223,14 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
   fila <- fila + 1L
   # El porcentaje va con su estilo propio: escrito como cifra saldria «0.6».
   filas_meta <- list(
-    list("Encuestas de la meta", m$meta_total, cifra),
-    list("Efectivas conseguidas", m$logrado, cifra),
+    list("Encuestas de la meta", cifra_limpia(m$meta_total), estilo_de_cifra(m$meta_total)),
+    list("Efectivas conseguidas", cifra_limpia(m$logrado), estilo_de_cifra(m$logrado)),
     list("Avance", m$avance, pct),
-    list("Faltan", m$falta, cifra),
+    list("Faltan", cifra_limpia(m$falta), estilo_de_cifra(m$falta)),
     # Que la suma vaya al 59 % no dice cuantas aulas quedan por cerrar: se puede
     # ir alto con la mitad de las aulas a medias.
-    list("Aulas que llegaron a SU meta", m$aulas_cerradas, cifra),
-    list("Aulas del operativo", m$aulas, cifra)
+    list("Aulas que llegaron a SU meta", cifra_limpia(m$aulas_cerradas), estilo_de_cifra(m$aulas_cerradas)),
+    list("Aulas del operativo", cifra_limpia(m$aulas), estilo_de_cifra(m$aulas))
   )
   sin_dato <- 0L
   for (f in filas_meta) {
@@ -291,6 +319,16 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     # «Techo con sob»— porque la columna era mas estrecha que su titulo.
     openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
     openxlsx::setColWidths(wb, hoja, cols = 2:length(nombres_fac), widths = 15)
+    # La cabecera se PARTE en vez de cortarse: «Techo con sobremuestra» son 22
+    # caracteres en una columna de 15, y sin esto salia «Techo con sob». Un
+    # titulo a medias en una tabla de doce columnas obliga a contar posiciones
+    # para saber que se esta leyendo.
+    openxlsx::addStyle(
+      wb, hoja,
+      openxlsx::createStyle(wrapText = TRUE, valign = "bottom", halign = "center"),
+      rows = fila, cols = 2:length(nombres_fac), gridExpand = TRUE, stack = TRUE
+    )
+    openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 30)
     fila <- fila + nf + 1L
     # El ratio se lee de la TABLA, que es lo que esta en este scope, y no de la
     # config: aqui llega `ind$facultades` ya calculada. Ademas es mas fiel —la
