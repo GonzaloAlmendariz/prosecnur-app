@@ -272,11 +272,14 @@ describe("los tres momentos se alcanzan desde el payload, no sólo a mano", () =
 });
 
 describe("las constantes vienen del operativo de 2025 y están declaradas", () => {
-  it("7 días de anticipación y 23.5 % de caída", () => {
-    // Si alguien las cambia, que sea a sabiendas: son la mediana de llamada a
-    // aplicación de los titulares y los 40 reemplazos de 170.
+  it("7 días de anticipación y 12.4 % de caída", () => {
+    // Si alguien las cambia, que sea a sabiendas: la mediana de llamada a
+    // aplicación de los titulares, y las 21 caídas reales de 170 —titular sin
+    // aplicar cubierto por reemplazo—. El 40/170 anterior no lo reproducía
+    // ninguna definición del libro 2025: mezclaba caídas con refuerzos
+    // (checklist-tres-fuentes-monitoreo-2026-08-27.md §A7).
     expect(DIAS_DE_ANTICIPACION).toBe(7);
-    expect(TASA_DE_CAIDA).toBeCloseTo(40 / 170, 2);
+    expect(TASA_DE_CAIDA).toBeCloseTo(21 / 170, 2);
   });
 });
 
