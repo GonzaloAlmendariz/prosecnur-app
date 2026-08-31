@@ -12,14 +12,20 @@
 #
 # Vive en archivo propio: `carga_aulas_libro_indicadores.R` sólo lo llama.
 #
-# LO QUE NO PUEDE PUBLICAR, Y POR QUÉ NO SE INVENTA
+# LA SOBREMUESTRA, Y POR QUÉ AHORA SÍ SE PUBLICA
 #
-# La **sobremuestra** que Gonzalo nombra —la muestra operativa, 3 750 contra la
-# muestra de 2 500 en HSVG2026, ×1,5— **no viaja al libro**: `design_targets`
-# trae `facultad`, `faculty_key`, `cuota`, `cuota_sexo` y `tau`, y ni la
-# sobremuestra ni su ratio están en la config de Monitoreo. Comprobado el
-# 2026-08-27. Publicar aquí una sobremuestra reconstruida sería inventarla, así
-# que la columna no se escribe y la falta se declara en la propia hoja.
+# Hasta el 2026-08-30 esta cabecera decía que la sobremuestra «no viaja al
+# libro»: `design_targets` traía sólo `facultad`, `cuota`, `cuota_sexo` y `tau`.
+# Era cierto, y **dejó de serlo el 2026-08-31**, cuando el bloque pasó a
+# publicar `meta_diseno`, `sobremuestra` y `meta_operativa` (2 500 · 1 250 ·
+# 3 750 en HSVG2026). Una salvedad correcta que caduca por un arreglo propio no
+# avisa sola: seguía aquí escrita como un hecho.
+#
+# Lo que el diseño fija es el TOTAL, no un reparto por facultad. Así que el
+# techo de cada una se deriva del ratio global —3 750 / 2 500 = ×1,5 exacto— y
+# la hoja lo dice en su nota: es una derivación declarada, no una cifra que el
+# estudio haya calculado facultad a facultad. Sin esa nota sería inventarla, que
+# es justo lo que la versión anterior evitaba.
 
 #' Avance por facultad y sexo contra la cuota del diseño.
 #'
@@ -46,6 +52,13 @@
   apl <- vapply(unidades, function(u) .cai_txt(u$operational_status), character(1)) %in%
     c("aplicada", "cerrada")
   clave <- .cm_criterios_fac_key(fac)
+
+  # El ratio del diseño: techo operativo entre meta. Sale del bloque, no se
+  # supone: si el estudio no publica las dos cifras, la columna queda en NA y la
+  # nota de la hoja lo dice. Un 1,5 por defecto sería inventar el aforo.
+  meta_dis <- suppressWarnings(as.numeric(cuotas$meta_diseno %||% NA))
+  oper_dis <- suppressWarnings(as.numeric(cuotas$meta_operativa %||% NA))
+  ratio_sm <- if (is.finite(meta_dis) && meta_dis > 0 && is.finite(oper_dis)) oper_dis / meta_dis else NA_real_
 
   ef_de <- function(codigo) {
     if (is.null(efectivas)) return(NA_real_)
@@ -100,6 +113,10 @@
       Conseguidas = conseguidas,
       `Conseguidas mujeres` = unname(sx[["F"]]),
       `Conseguidas hombres` = unname(sx[["M"]]),
+      # El techo con sobremuestra: hasta dónde se compró aforo. NO es una
+      # segunda meta —lo que decide el cierre sigue siendo `Muestra`— sino el
+      # margen que el operativo tiene antes de quedarse sin campo pagado.
+      `Techo con sobremuestra` = if (is.finite(cuota) && is.finite(ratio_sm)) round(cuota * ratio_sm) else NA_real_,
       Avance = if (is.finite(cuota) && cuota > 0 && is.finite(conseguidas)) conseguidas / cuota else NA_real_,
       Faltan = if (is.finite(cuota) && is.finite(conseguidas)) max(0, cuota - conseguidas) else NA_real_,
       check.names = FALSE, stringsAsFactors = FALSE

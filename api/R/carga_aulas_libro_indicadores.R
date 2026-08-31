@@ -266,11 +266,29 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = 11,
                        gridExpand = TRUE, stack = TRUE)
     fila <- fila + nf + 1L
-    # La sobremuestra NO se publica porque no viaja al libro, y decirlo es mejor
-    # que dejar creer que la tabla la contempla.
+    # El ratio se lee de la TABLA, que es lo que esta en este scope, y no de la
+    # config: aqui llega `ind$facultades` ya calculada. Ademas es mas fiel —la
+    # nota describe lo que la columna hizo de verdad, no lo que la config decia.
+    ratio_hoja <- local({
+      f <- ind$facultades
+      if (!"Techo con sobremuestra" %in% names(f)) return(NA_real_)
+      m <- suppressWarnings(sum(as.numeric(f$Muestra), na.rm = TRUE))
+      t <- suppressWarnings(sum(as.numeric(f$`Techo con sobremuestra`), na.rm = TRUE))
+      if (is.finite(m) && m > 0 && is.finite(t) && t > 0) t / m else NA_real_
+    })
+    # La nota decia que la sobremuestra «no llega al libro». Dejo de ser cierto
+    # el 2026-08-31 y ahora la columna existe, asi que lo que hay que declarar
+    # es OTRA cosa: que el techo por facultad es una DERIVACION del ratio
+    # global, no una cifra que el diseño haya calculado facultad a facultad.
+    # Y sobre todo, cual de las dos decide el cierre.
     openxlsx::writeData(
       wb, hoja,
-      "La muestra es la cuota del diseño. La sobremuestra operativa no llega al libro, así que esta tabla no la compara.",
+      paste0(
+        "La muestra es la cuota del diseño y es la que decide el cierre. ",
+        "El techo con sobremuestra reparte el aforo comprado con el ratio del estudio",
+        if (is.finite(ratio_hoja)) sprintf(" (x%s)", format(round(ratio_hoja, 2), trim = TRUE)) else "",
+        ": es margen operativo, no una segunda meta."
+      ),
       startCol = 1, startRow = fila
     )
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
