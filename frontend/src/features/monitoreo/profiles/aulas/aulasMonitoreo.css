@@ -4351,6 +4351,31 @@
 }
 /* En los extremos del eje el globo se ancla por el lado que CABE: centrado, su
  * mitad se sale del lienzo y el borde del panel lo recorta. */
+/* **La cifra que la tarjeta viene a dar, con el peso que eso implica.**
+
+   El trozo `es-titular` se añadio al markup con la promesa de jerarquia —«la
+   fecha tenue, la cifra destacada»— y quedo SIN regla: el `es-titular` que ya
+   existia en la hoja es de otra cosa (el borde de `.aulas-cadena`), asi que el
+   titular se pintaba con el mismo cuerpo que el contexto y la tarjeta seguia
+   siendo cuatro lineas parejas. Confirmado leyendo la hoja, no en pantalla:
+   el globo solo sale con hover y el runner no lo hace.
+
+   14px sobre los 11 del resto: la cifra domina sin convertir el globo en un
+   cartel. La unidad va al lado en el cuerpo normal, porque «18» sin «efectivas
+   del parte» es justo la ambiguedad que se acaba de quitar. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-titular {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 1px 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-titular b {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-serie-pista.es-derecha {
   transform: translate(calc(-100% + 12px), calc(-100% - 12px));
 }

@@ -812,7 +812,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // pesaban igual y habia que leerlas enteras para encontrar el dato.
     { tenue: `${dm(d.fecha)} · observado` },
     { titular: fmt(d.efectivas), unidad: "efectivas del parte" },
-    `${personasPorAula(d.porAula)} por curso-horario`,
+    // Con UN curso-horario el por-aula es la misma cifra que el titular: visto
+    // en vivo con Educación en foco, el globo decía «20 efectivas del parte»
+    // y debajo «20 por curso-horario» — un eco, y justo en las facultades
+    // chicas, que es donde más se usa el foco. La línea sólo aporta cuando
+    // reparte entre varios.
+    ...(d.aulas > 1 ? [`${personasPorAula(d.porAula)} por curso-horario`] : []),
     // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
     // Sin decir el denominador, un día con una sola aula del diseño y tres
     // visitadas enseñaría una vara que no es la de las tres.
