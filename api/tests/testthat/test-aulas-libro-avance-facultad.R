@@ -101,3 +101,36 @@ test_that("sin efectivas no se publica un cero: se declara NA", {
   expect_true(is.na(out$Conseguidas))
   expect_true(is.na(out$Avance))
 })
+
+# ---------------------------------------------------------------------------
+# El techo con sobremuestra: la salvedad que caduco.
+#
+# Hasta el 2026-08-30 la cabecera del modulo decia que la sobremuestra «no
+# viaja al libro», y era cierto. Dejo de serlo cuando `design_targets` paso a
+# publicar `meta_diseno` y `meta_operativa`. Una salvedad correcta que caduca
+# por un arreglo propio no avisa: por eso hay test.
+# ---------------------------------------------------------------------------
+
+test_that("el techo por facultad sale del ratio del diseño, no de un 1,5 supuesto", {
+  unidades <- list(
+    list(operational_code = "CH 1", faculty = "DERECHO", operational_status = "aplicada"),
+    list(operational_code = "CH 2", faculty = "DERECHO", operational_status = "agendada")
+  )
+  cuotas <- list(
+    meta_diseno = 100, meta_operativa = 250,   # ratio 2,5 y NO 1,5
+    facultades = list(list(facultad = "DERECHO", faculty_key = "derecho", cuota = 40))
+  )
+  t <- prosecnurapp:::.calaf_avance_por_facultad(unidades, c(`CH 1` = 10, `CH 2` = 0), cuotas)
+  expect_true("Techo con sobremuestra" %in% names(t))
+  # 40 x 2,5 = 100. Con un 1,5 cableado saldria 60.
+  expect_equal(t$`Techo con sobremuestra`[[1]], 100)
+})
+
+test_that("sin las dos cifras del diseño la columna queda en NA y no se inventa", {
+  unidades <- list(list(operational_code = "CH 1", faculty = "DERECHO",
+                        operational_status = "aplicada"))
+  # Un estudio viejo: cuotas por facultad pero sin meta_diseno/meta_operativa.
+  cuotas <- list(facultades = list(list(facultad = "DERECHO", faculty_key = "derecho", cuota = 40)))
+  t <- prosecnurapp:::.calaf_avance_por_facultad(unidades, c(`CH 1` = 10), cuotas)
+  expect_true(is.na(t$`Techo con sobremuestra`[[1]]))
+})
