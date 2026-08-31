@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
+import { AulasSenalesPorAula } from "./AulasSenalesPorAula";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../api/monitoreo";
 
@@ -53,6 +54,31 @@ export function AulasPestanaEfectividad({
                 bloque={dashboard.efectividad_seguimiento}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
+              />
+            </section>
+            {/* La MISMA pregunta un grano más abajo: es el «en paralelo» del
+                mandato B3 —la granular junto a la agregada—. Arriba la facultad
+                dice si la cuota cierra; aquí cada curso-horario se compara con
+                SU tasa prevista y con la vara de su facultad en la misma fila,
+                porque el agregado esconde lo que muerde fila a fila. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* C1: el título nombra la unidad Y el margen, que es lo que este
+                    panel añade sobre el de arriba; el numerador se declara en el
+                    subtítulo porque en este perfil conviven tres homónimos. */}
+                <h3>Cada curso-horario contra su propio margen</h3>
+                <span>
+                  efectivas de plataforma —el parte respalda— contra la tasa
+                  prevista de cada uno, con la vara de su facultad al lado
+                </span>
+              </div>
+              <AulasSenalesPorAula
+                bloque={dashboard.dos_tasas}
+                facultadEnFoco={facultadEnFoco}
               />
             </section>
     </>
