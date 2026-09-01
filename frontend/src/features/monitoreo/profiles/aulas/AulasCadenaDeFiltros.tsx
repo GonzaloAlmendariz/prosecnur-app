@@ -42,8 +42,13 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
         </p>
       ) : (
         <p className="aulas-cadenas-lectura">
-          De <strong>{fmt(c.entran)}</strong> respuestas, la cadena deja{" "}
-          <strong>{fmt(c.quedan)}</strong>.
+          {/* «de plataforma» es el puente con la banda del Control, que declara
+              la suya (enviadas del libro): a una pestaña de distancia las dos
+              dicen «cuánto llegó» y pueden coincidir en valor significando
+              cosas opuestas —lo que ENTRA a esta cadena contra lo que SALE de
+              la revisión del equipo. Censo A9-B7, choque 4. */}
+          De <strong>{fmt(c.entran)}</strong> respuestas de plataforma, la cadena
+          deja <strong>{fmt(c.quedan)}</strong>.
         </p>
       )}
 

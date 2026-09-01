@@ -409,7 +409,7 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   // que `observed` no está recortado y la diferencia es real.
   const fuera = Math.max(0, validas - atribuidas);
   return {
-    label: "Válidas",
+    label: "Efectivas",
     icono: CheckCircle2,
     value: fmt(dashboard?.kpis?.respuestas_validas),
     // **Dice CELDA y no curso-horario, porque es lo que mide.**
@@ -428,7 +428,7 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
       ? "de la plataforma · ninguna cae en un grupo de facultad y sexo"
       : fuera > 0
         ? `${fmt(fuera)} no entran en ningún grupo con cuota`
-        : "respuestas de la plataforma que pasan los controles de validez",
+        : "respuestas de la plataforma que pasan los filtros",
     detalle: validas > 0 && atribuidas === 0
       ? "Sin el sexo de cada respuesta no se pueden repartir por grupo, así que no cuentan para ninguna cuota. La atribución al curso-horario es otra cosa y puede estar bien: mírala en «Llegaron a su meta»."
       : fuera > 0
