@@ -146,7 +146,13 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
         effective_surveys = num("effective_surveys"),
         applied_by = val("applied_by"),
         actual_room = val("actual_room"),
-        applied_date = val("applied_date"),
+        # A22: la celda puede venir tipada como FECHA de Excel y `.caa_txt` a
+        # secas entregaba el serial («46282») como si fuera texto; `.caa_fecha`
+        # lo vuelve %Y-%m-%d —el mismo formato que agendadas y que
+        # `.calg_tipar_fechas` parsea al escribir— y deja pasar tal cual lo
+        # tecleado como texto.
+        applied_date = if (is.null(mapa[["applied_date"]])) "" else
+          .caa_fecha(df[i, mapa[["applied_date"]]]),
         applied_time = val("applied_time"),
         application_status = estado,
         field_note = val("field_note"),
