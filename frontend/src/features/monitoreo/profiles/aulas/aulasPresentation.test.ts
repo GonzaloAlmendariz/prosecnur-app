@@ -20,11 +20,10 @@ describe("aulasPresentation", () => {
     // `MUESTRA` es como el Excel del equipo rotula la ola. El rótulo dejó de ser
     // «Ola» —palabra mía— para usar la columna, que es lo que ellos leen.
     expect(aulasFieldLabel("wave")).toBe("Muestra");
-    // Y esta NO se traduce a «efectivas»: las válidas las cuenta el sistema
-    // desde Kobo y las efectivas el encuestador en el aula. Que no cuadren es lo
-    // que detecta el cuadre del parte, así que igualar los nombres borraría la
-    // comparación.
-    expect(aulasFieldLabel("respuestas_validas")).toBe("Respuestas válidas");
+    // «Efectivas» por D-L12; la colisión con la cifra del parte se resuelve por
+    // apellido de fuente, no reteniendo «válidas» (censo cuatro-cifras
+    // 2026-09-01, choque 6).
+    expect(aulasFieldLabel("respuestas_validas")).toBe("Respuestas efectivas");
     // El código lo llama `CURSO-HORARIO` y al descriptivo `SESIONES Y AULA`:
     // estaban cruzados.
     expect(aulasFieldLabel("operational_code")).toBe("Curso-horario");
@@ -42,7 +41,7 @@ describe("aulasPresentation", () => {
     ].map(aulasCheckLabel)).toEqual([
       "Respuestas anónimas",
       "Identificadores personales en la base",
-      "Respuestas válidas sin curso-horario",
+      "Respuestas efectivas sin curso-horario",
       "Respuestas repetidas",
       "Representatividad efectiva",
       "Cuota por sexo y facultad",

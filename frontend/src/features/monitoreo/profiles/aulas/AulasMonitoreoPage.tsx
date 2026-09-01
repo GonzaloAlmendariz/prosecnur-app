@@ -78,6 +78,7 @@ import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRai
 import { railDeAulas } from "./railDeAulas";
 import {
   aulasFieldLabel,
+  aulasFieldTitle,
   escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
@@ -388,7 +389,15 @@ function DataTable({
       <table className="mon-profile-table">
         <thead>
           <tr>{columns.map((column) => (
-            <th key={column} scope="col" className={cifras.has(column) ? "es-cifra" : undefined}>
+            <th
+              key={column}
+              scope="col"
+              className={cifras.has(column) ? "es-cifra" : undefined}
+              // El alcance de un casi homónimo («Respuestas atribuidas» contra
+              // «Respuestas leídas») vive en el title de su cabecera; para las
+              // demás columnas devuelve undefined y no pinta nada.
+              title={aulasFieldTitle(column)}
+            >
               {aulasFieldLabel(column)}
             </th>
           ))}</tr>

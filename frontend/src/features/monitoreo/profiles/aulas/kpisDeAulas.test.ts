@@ -303,7 +303,7 @@ describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
   });
 });
 
-describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
+describe("la tarjeta de Efectivas y las que no entran en ninguna celda", () => {
   const dashboard = (validas: number, celdas: Array<[number, number]>) => ({
     kpis: { respuestas_validas: validas },
     quotas_sex_faculty: celdas.map(([target, observed], i) => ({
@@ -317,7 +317,7 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
     // encuestas hechas quedaban invisibles en un operativo al que le faltan
     // 1 558 y cuyo banco entero no alcanza.
     const kpi = aulasKpis(dashboard(2220, [[3743, 2185]]), "avance")
-      .find((k) => k.label === "Válidas")!;
+      .find((k) => k.label === "Efectivas")!;
     expect(kpi.pista).toBe("35 no entran en ningún grupo con cuota");
     expect(kpi.detalle).toContain("2,185 de 2,220");
     expect(kpi.detalle).toContain("lo que les falta es el sexo");
@@ -327,14 +327,14 @@ describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
     // El control: si la resta se hiciera mal —o si `observed` viniera recortado
     // al target— esta tarjeta acusaría en un corte sano.
     const kpi = aulasKpis(dashboard(2185, [[3743, 2185]]), "avance")
-      .find((k) => k.label === "Válidas")!;
-    expect(kpi.pista).toBe("respuestas de la plataforma que pasan los controles de validez");
+      .find((k) => k.label === "Efectivas")!;
+    expect(kpi.pista).toBe("respuestas de la plataforma que pasan los filtros");
     expect(kpi.detalle).toBeUndefined();
   });
 
   it("ninguna atribuida sigue siendo su propio caso", () => {
     const kpi = aulasKpis(dashboard(2220, [[3743, 0]]), "avance")
-      .find((k) => k.label === "Válidas")!;
+      .find((k) => k.label === "Efectivas")!;
     // Dice CELDA, no curso-horario: es lo que `quotas_sex_faculty` mide. Un
     // simulacro enseño la tarjeta diciendo «ninguna atribuida a un
     // curso-horario» con 20 aulas ya en su meta dos paneles mas abajo.

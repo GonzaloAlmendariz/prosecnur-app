@@ -66,7 +66,10 @@ function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCad
             <th scope="col">Curso-horario</th>
             <th scope="col">Facultad</th>
             <th scope="col" className="es-cifra">Reservas</th>
-            <th scope="col" className="es-cifra">Válidas</th>
+            {/* «Efectivas» y no «Válidas»: D-L12 fijó que la respuesta que pasa
+                los filtros se llama efectiva. La cifra es `respuestas_validas`
+                —la efectiva de plataforma—; la clave interna no se renombra. */}
+            <th scope="col" className="es-cifra">Efectivas</th>
             <th scope="col" className="es-cifra">Meta</th>
             <th scope="col">Lo más cerca</th>
           </tr>
@@ -141,7 +144,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
 
   // **Las cadenas que juntaron lo que pide el hueco sin que ninguna aula sola
   // llegara a la suya.** Es el caso que hace que la tabla se contradiga a la
-  // vista: enseña «válidas 17» al lado de «meta 15» —la del titular, sumando la
+  // vista: enseña «efectivas 17» al lado de «meta 15» —la del titular, sumando la
   // cadena— y el resumen dice «sin cerrar».
   //
   // Las dos cosas son ciertas y la regla es deliberada: una cadena cierra cuando

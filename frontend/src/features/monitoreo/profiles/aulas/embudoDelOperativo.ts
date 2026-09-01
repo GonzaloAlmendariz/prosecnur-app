@@ -129,14 +129,17 @@ export function embudoDelOperativo(
   if (recibidas) {
     etapas.push({
       id: "recibidas",
-      label: "Respuestas recibidas",
+      // «Respuestas leídas», el mismo rótulo que el KPI de Fuentes: los dos
+      // salen de la MISMA clave (`kpis.respuestas_total`, todas las filas de la
+      // base) y «recibidas» era un cuarto nombre para esa cifra.
+      label: "Respuestas leídas",
       valor: fmt(recibidas),
       // **Aquí cambia lo que se cuenta, y por eso la cifra sube.** Con datos
       // reales el flujo va 174 → 152 → 2.817 → 2.668: un embudo que se
       // multiplica por 18 en el tercer peldaño. No es un error de cálculo, es
       // que los dos primeros cuentan cursos-horario y los dos últimos cuentan
       // respuestas. Los rótulos ya lo decían por separado —«Aplicados en campo»
-      // y «Respuestas recibidas»— pero nadie enunciaba el salto, y la arista
+      // y «Respuestas leídas»— pero nadie enunciaba el salto, y la arista
       // entre ambos va vacía a propósito: entre unidades distintas no hay merma
       // que restar. Quien lee de arriba abajo veía crecer un embudo.
       detalle: "respuestas, ya no cursos-horario: por eso sube",

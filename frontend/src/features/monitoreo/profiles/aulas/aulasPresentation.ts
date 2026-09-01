@@ -186,7 +186,10 @@ export const FIELD_LABELS: Record<string, string> = {
   level: "Nivel del curso",
   stratum: "Estrato",
   eligible_n: "Matriculados población",
-  expected_valid: "Válidas esperadas",
+  // Es la META del diseño (`expected_valid`), no un conteo: el mismo nombre que
+  // el encabezado EFECTIVAS ESPERADAS de la Base de control. «Válidas esperadas»
+  // era un residuo del vocabulario que D-L12 retiró.
+  expected_valid: "Efectivas esperadas",
   link: "Enlace de la ficha",
   qr: "Código QR",
   word_link: "Ficha Word",
@@ -208,12 +211,19 @@ export const FIELD_LABELS: Record<string, string> = {
   activation_weight_status: "Estado de ponderación",
   analysis_weight_warning: "Advertencia de ponderación",
   updated_at: "Actualizado",
-  responses_total: "Respuestas totales",
-  // NO se traduce a «efectivas» aunque suene parecido: las válidas las cuenta
-  // el sistema sobre lo que llegó de Kobo y las efectivas las cuenta el
-  // encuestador en el aula. Que no cuadren es justo lo que detecta el cuadre del
-  // parte (L33), así que llamarlas igual borraría la comparación.
-  respuestas_validas: "Respuestas válidas",
+  // «Atribuidas» y no «totales»: `responses_total` cuenta SOLO las respuestas
+  // que la plataforma atribuye a este curso-horario, y «Respuestas totales» era
+  // casi homónimo del KPI «Respuestas leídas» (`kpis.respuestas_total`), que
+  // cuenta TODAS las filas de la base, atribuidas o no. La suma de esta columna
+  // es ≤ ese KPI por construcción; con una palabra de diferencia se leían como
+  // la misma cuenta. El alcance va en `FIELD_TITLES`.
+  responses_total: "Respuestas atribuidas",
+  // «Efectivas» por D-L12: la respuesta que pasa los filtros se llama efectiva,
+  // no válida. La colisión con la cifra del parte no se resuelve reteniendo
+  // «válidas» sino por APELLIDO DE FUENTE — «efectivas del parte» allá, «de
+  // plataforma» acá —; el cuadre del parte (L33) compara fuentes, no nombres.
+  // Censo cuatro-cifras 2026-09-01, choque 6.
+  respuestas_validas: "Respuestas efectivas",
   filter_passed: "Filtros aprobados",
   filter_rejected: "Filtros rechazados",
   // **«Brecha» son RESPUESTAS**, y la palabra contaba dos cosas en el perfil:
@@ -259,7 +269,7 @@ const CHECK_LABELS: Record<string, string> = {
   // del estudio y no lo que la regla mira. El control ahora comprueba lo
   // contrario y serio: si la base arrastra correo, celular, documento o nombre.
   personal_identifiers: "Identificadores personales en la base",
-  unmapped_valid_responses: "Respuestas válidas sin curso-horario",
+  unmapped_valid_responses: "Respuestas efectivas sin curso-horario",
   // `duplicate_collectors` se retiró: en un estudio de aulas el mismo QR lo
   // escanean todos los alumnos, así que el colector se repite por diseño y ese
   // aviso saltaba siempre. Lo anómalo es la misma respuesta dos veces.
@@ -479,6 +489,22 @@ export function aulasMotivoLabel(motivo: unknown) {
 
 export function aulasFieldLabel(field: string) {
   return FIELD_LABELS[field] ?? fallbackLabel(field);
+}
+
+/**
+ * El alcance de una columna cuando su rótulo solo no basta. Va al `title` de la
+ * cabecera —como resuelven sus definiciones las cabeceras de Rendimiento— y no
+ * al rótulo, que se mantiene corto. Solo se declara donde hay un casi homónimo
+ * que confundir; el resto de columnas no lleva title.
+ */
+const FIELD_TITLES: Record<string, string> = {
+  // El casi homónimo es el KPI «Respuestas leídas» (todas las filas de la base).
+  responses_total:
+    "Las respuestas que la plataforma atribuye a este curso-horario. No es el total de la base: ese es «Respuestas leídas», que cuenta también las no atribuidas.",
+};
+
+export function aulasFieldTitle(field: string): string | undefined {
+  return FIELD_TITLES[field];
 }
 
 export function aulasCheckLabel(check: unknown) {

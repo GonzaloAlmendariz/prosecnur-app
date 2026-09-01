@@ -84,8 +84,11 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
     {
       type: "bar",
       orientation: "h",
-      // `CANTIDAD DE EFECTIVAS` es la columna del parte de campo; «Recogidas»
-      // era mío.
+      // «Efectivas» por D-L12: la respuesta que pasa los filtros se llama
+      // efectiva. La cifra es `respuestas_validas` —la efectiva de PLATAFORMA—,
+      // no `CANTIDAD DE EFECTIVAS`, que es la columna del parte de campo y otra
+      // cuenta (una versión anterior de este comentario citaba esa columna como
+      // procedencia, y era la equivocada). «Recogidas» era mío.
       name: "Efectivas",
       y: orden.map((e) => etiquetaDeEstrato(e.estrato)),
       x: orden.map((e) => e.validas),
@@ -113,13 +116,16 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       <PlotlyChart
         data={data}
         height={Math.max(200, 34 * orden.length + 56)}
-        ariaLabel="Respuestas recogidas y brecha por estrato"
+        // «Efectivas», como la leyenda y el hover: el mismo eje con tres
+        // nombres —«Respuestas recogidas», «respuestas», «efectivas»— era un
+        // tercer rótulo para la misma cifra.
+        ariaLabel="Efectivas y brecha por estrato"
         layout={{
           // La escala de eje del perfil, no el default compartido de Plotly.
           font: fuenteDeEjeAulas(),
           barmode: "stack",
           margin: { l: 8, r: 52, t: 30, b: 28 },
-          xaxis: { title: { text: "respuestas" }, zeroline: false, fixedrange: true },
+          xaxis: { title: { text: "efectivas" }, zeroline: false, fixedrange: true },
           yaxis: { automargin: true, fixedrange: true },
           // `PlotlyChart` esconde la leyenda por defecto —casi todos sus usos
           // tienen una serie— y aquí sin ella el verde no se explica: la barra

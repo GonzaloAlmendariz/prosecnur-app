@@ -145,10 +145,14 @@ export function AulasRendimientoPorFacultad({
           <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
             Ajustado por tamaño
           </span>
-          <span role="columnheader" title="Qué proporción de quienes estaban en el aula acabó respondiendo. Mide el trabajo dentro del aula.">
+          {/* Las dos tasas nombran su NUMERADOR en el title —efectivas del
+              parte—, como ya hacía «Efectivas por visita»: el ADR 0082 pide que
+              cada tasa declare de qué cuenta sale, y en este perfil conviven
+              las del parte y las de plataforma. */}
+          <span role="columnheader" title="Qué proporción de quienes estaban en el aula acabó respondiendo: efectivas del parte de campo sobre asistentes. Mide el trabajo dentro del aula.">
             De los que asistieron
           </span>
-          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya. Lo que falta es lo que queda por recoger.">
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya: efectivas del parte de campo sobre elegibles. Lo que falta es lo que queda por recoger.">
             De los elegibles
           </span>
         </li>
