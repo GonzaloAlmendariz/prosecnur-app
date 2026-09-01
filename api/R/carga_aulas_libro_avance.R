@@ -125,6 +125,11 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
   if (sin_dato) {
     poner("Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.")
   }
+  # Con las DOS familias presentes, el puente que las distingue — el MISMO
+  # texto y la MISMA decision que el xlsx, porque ambos viven en
+  # `carga_aulas_libro_puente.R` (B7.3). Fila propia, como la nota de arriba.
+  puente <- .calap_puente_con_datos(sin_dato, ind$aplicadores)
+  if (!is.null(puente)) poner(puente)
   poner("")
 
   # --- Avance por facultad ----------------------------------------------------
