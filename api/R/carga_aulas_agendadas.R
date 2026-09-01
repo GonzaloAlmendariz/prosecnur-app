@@ -142,10 +142,20 @@ AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
   v <- .caa_txt(x)
   if (!nzchar(v)) return("")
   n <- suppressWarnings(as.numeric(v))
-  if (!length(n) || !is.finite(n) || n < 20000 || n > 60000) return(v)
-  # `%d` y no `%s`: un serial con decimales trae la hora, y la parte entera es
-  # el dia.
-  format(as.Date(floor(n), origin = "1899-12-30"), "%Y-%m-%d")
+  if (length(n) && is.finite(n) && n >= 20000 && n <= 60000) {
+    # `%d` y no `%s`: un serial con decimales trae la hora, y la parte entera
+    # es el dia.
+    return(format(as.Date(floor(n), origin = "1899-12-30"), "%Y-%m-%d"))
+  }
+  # La API de Sheets entrega el texto FORMATEADO de la celda («10/09/2026»),
+  # no el serial que Excel si trae; y aguas abajo el Plan del dia ordena y
+  # compara la fecha como texto ISO. dd/mm/yyyy se normaliza aqui — frontera
+  # unica — y cualquier otro texto («por confirmar») pasa sin tocarse.
+  f <- suppressWarnings(as.Date(v, format = "%d/%m/%Y"))
+  if (length(f) == 1L && !is.na(f) && grepl("^\\d{1,2}/\\d{1,2}/\\d{4}$", v)) {
+    return(format(f, "%Y-%m-%d"))
+  }
+  v
 }
 
 .caa_num <- function(x) {
