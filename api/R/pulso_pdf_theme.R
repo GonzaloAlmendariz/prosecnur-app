@@ -126,7 +126,8 @@ pulso_pdf_header <- function(titulo, subtitulo = "", tokens = pulso_pdf_tokens()
 # --- Pie: logo (izq) · periodo (centro) · "Pág. N" (der) · hairline ---------
 # El logo YA identifica a Pulso; el centro NO repite "Fuente: Pulso".
 pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
-                             ty = pulso_pdf_type(), geo = pulso_pdf_geo()) {
+                             ty = pulso_pdf_type(), geo = pulso_pdf_geo(),
+                             pagina = TRUE) {
   m <- geo$margin; right <- 1 - m
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.062, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = 0.7))
@@ -135,9 +136,14 @@ pulso_pdf_footer <- function(page_no, periodo = "", tokens = pulso_pdf_tokens(),
     grid::grid.text(periodo, x = grid::unit(0.5, "npc"), y = grid::unit(0.038, "npc"),
                     gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
   }
-  grid::grid.text(paste0("Pag. ", page_no), x = grid::unit(right, "npc"),
-                  y = grid::unit(0.038, "npc"), just = c("right", "center"),
-                  gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
+  # `pagina = FALSE` deja el pie en solo el logo: en una hoja de UNA pagina que
+  # se reparte suelta por aula, «Pag. 1» no informa nada (dictado de Gonzalo,
+  # 2026-09-01). Los reportes multipagina conservan su numeracion.
+  if (isTRUE(pagina)) {
+    grid::grid.text(paste0("Pag. ", page_no), x = grid::unit(right, "npc"),
+                    y = grid::unit(0.038, "npc"), just = c("right", "center"),
+                    gp = grid::gpar(fontsize = ty$footer, col = tokens$soft))
+  }
   invisible(NULL)
 }
 

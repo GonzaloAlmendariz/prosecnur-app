@@ -176,10 +176,14 @@ test_that("los renglones por defecto son los de la hoja en uso", {
     "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:",
     # Los dos numeros que el cuadre del parte comprueba y que el papel no pedia.
     "Ya respondieron:", "Efectivas:",
-    # Los tres campos nuevos: matriculados (impreso, viene del plan), menores
-    # de edad y observaciones (los dos en blanco, igual que el resto).
-    "N° de alumnos matriculados:", "Menores de edad:", "Observaciones:"
+    # Matriculados (impreso, viene del plan) y observaciones (en blanco).
+    "N° de alumnos matriculados:", "Observaciones:"
   ) %in% etiquetas))
+
+  # «Menores de edad» salio de la hoja (Gonzalo, 2026-09-01): no participa del
+  # cuadre del parte y el libro no tiene columna para el. Su ancho paso al
+  # conteo de asistencia.
+  expect_false("Menores de edad:" %in% etiquetas)
 
   # La hoja no desdobla la aplicacion en fisico y virtual: es una sola cifra.
   expect_false(any(grepl("virtual|físico|fisico", etiquetas, ignore.case = TRUE)))
@@ -206,7 +210,7 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   # Y lo que NO se sabe hasta entrar al aula sigue siendo raya en blanco. Sin
   # esta mitad, un binding de mas -«efectivas», «rechazos»- pasaria sin ruido.
   sin_dato <- c(
-    "N° de alumnos en aula", "Hombres:", "Mujeres:", "Menores de edad:",
+    "N° de alumnos en aula", "Hombres:", "Mujeres:",
     "N° de encuestas aplicadas:", "Rechazos:", "Ya respondieron:", "Efectivas:",
     "Aplicador/a", "Fecha:", "Hora de aplicación:", "Observaciones:"
   )
@@ -426,13 +430,14 @@ test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya 
   expect_collection_material_pdf_valid(pdf_path, rendered)
 })
 
-test_that("los cuatro numeros de cada fila con cuatro campos no se pisan entre si", {
+test_that("los numeros de cada fila densa no se pisan entre si", {
   skip_if_not_installed("png")
-  # Dos filas llevan cuatro campos: el cuadre del parte (aplicadas/rechazos/
-  # ya respondieron/efectivas) y el conteo de asistencia (alumnos en aula/
-  # hombres/mujeres/menores de edad). El riesgo de meter cuatro donde antes
-  # habia menos es que las etiquetas se solapen: aqui se comprueba que las DOS
-  # filas siguen siendo bloques de tinta SEPARADOS, no solo una.
+  # Dos filas llevan varios campos: el cuadre del parte (aplicadas/rechazos/
+  # ya respondieron/efectivas, cuatro) y el conteo de asistencia (alumnos en
+  # aula/hombres/mujeres, tres desde que «Menores de edad» salio el
+  # 2026-09-01). El riesgo de apretar campos es que las etiquetas se solapen:
+  # aqui se comprueba que cada fila densa deja tantos bloques de tinta
+  # SEPARADOS como campos tiene.
   compiled <- .cfx_compiled(collection_material_field_sheet_template())
   dir <- tempfile("cfx-cuatro-"); dir.create(dir)
   png_path <- file.path(dir, "ficha.png")
@@ -441,7 +446,8 @@ test_that("los cuatro numeros de cada fila con cuatro campos no se pisan entre s
   g <- .cfx_grey(png_path)
   L <- prosecnurapp:::.cfc_layout()
   filas <- collection_material_field_form_rows()
-  idx <- which(vapply(filas, function(f) length(f$fields) == 4L, logical(1)))
+  n_campos <- vapply(filas, function(f) length(f$fields), integer(1))
+  idx <- which(n_campos >= 3L)
   expect_length(idx, 2L)
 
   for (fila_idx in idx) {
@@ -451,10 +457,10 @@ test_that("los cuatro numeros de cada fila con cuatro campos no se pisan entre s
     columnas <- which(apply(tramo < 0.5, 2, any))
     expect_gt(length(columnas), 100L, label = sprintf("fila %d", fila_idx))
 
-    # Cuatro etiquetas separadas dejan al menos cuatro bloques de tinta. Si se
+    # N etiquetas separadas dejan al menos N bloques de tinta. Si se
     # pisaran, los bloques se fundirian en menos.
     bloques <- length(which(diff(columnas) > 3L)) + 1L
-    expect_gte(bloques, 4L, label = sprintf("fila %d", fila_idx))
+    expect_gte(bloques, n_campos[[fila_idx]], label = sprintf("fila %d", fila_idx))
     expect_gte(min(columnas), round(L$x_left * ncol(g)) - 4L, label = sprintf("fila %d", fila_idx))
     expect_lte(max(columnas), round(L$x_right * ncol(g)) + 4L, label = sprintf("fila %d", fila_idx))
   }
