@@ -425,7 +425,20 @@
 # ahora: 1 GET de metadata, [addSheet si hay pestañas nuevas], 1 batch de
 # ownership/reset, 1 values:batchUpdate con TODAS las pestañas cambiadas y
 # 1 batch de formato/estado. Con todo sin cambios: 1 solo request.
-.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs) {
+#
+# `format_requests` (B8/W2): quién produce las requests de formato del batch-2
+# — `function(sheet_id, tab_name, rows)`. Con NULL (todos los llamadores
+# previos) sigue siendo `.monitoreo_sheets_professional_format_requests`; el
+# libro de aulas pasa la suya porque la heurística de cabecera del genérico no
+# reconoce sus filas y su regla de anchos emite una request POR COLUMNA (253 en
+# la agenda real). El contrato del batch-2 no cambia: el formato viaja DESPUÉS
+# de los values y solo para pestañas nuevas o con dimensiones cambiadas.
+.monitoreo_sync_sheets_publish_tabs <- function(spreadsheet_id, tabs, format_requests = NULL) {
+  formato_de <- if (is.function(format_requests)) {
+    format_requests
+  } else {
+    .monitoreo_sheets_professional_format_requests
+  }
   spreadsheet_id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(spreadsheet_id)) stop("Falta spreadsheet_id para publicar.", call. = FALSE)
   tab_names <- names(tabs)
@@ -532,7 +545,7 @@
   for (tab_name in names(changed)) {
     p <- changed[[tab_name]]
     if (isTRUE(p$dims_changed)) {
-      batch2 <- c(batch2, .monitoreo_sheets_professional_format_requests(p$tab$sheet_id, tab_name, tabs[[tab_name]]))
+      batch2 <- c(batch2, formato_de(p$tab$sheet_id, tab_name, tabs[[tab_name]]))
     }
     if (nzchar(p$hash)) {
       batch2 <- c(batch2, .monitoreo_sync_sheets_tab_state_requests(
