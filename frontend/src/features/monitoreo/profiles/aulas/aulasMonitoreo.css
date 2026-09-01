@@ -519,8 +519,8 @@
   color: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text));
   font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-heavy);
-  padding: 3px 9px;
-  white-space: nowrap;
+  padding: 3px 9px; min-width: 0; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
 }
 
 @media (max-height: 760px) {
