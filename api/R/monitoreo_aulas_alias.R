@@ -57,3 +57,49 @@
   }
   NULL
 }
+
+#' La clave canonica con la que un identificador de colector se compara.
+#'
+#' El QR viaja con el codigo operativo tal como lo escribe el sorteo —`CH 1`,
+#' `R 6.1`— pero el identificador tambien puede llegar TECLEADO: un aplicador
+#' sin QR escribe `CH1`, `ch 1` o `R6_1`, y con el emparejamiento literal esa
+#' respuesta entra a la plataforma y el avance de su aula queda en 0 sin que
+#' nada avise. La clave canonica absorbe las variantes de tipeo del mismo
+#' codigo: mayusculas, espacios, y `_`/`,` como grafias del punto (dictado de
+#' Gonzalo 2026-09-01: el separador «puede ser lo que funcione mejor»).
+#'
+#' Es UNA funcion y no una por comparador por la misma razon que
+#' `.MONITOREO_AULAS_PARTE_ALIAS` es una constante: el emparejamiento vive en
+#' tres capas (numerador del tablero, celdas de sexo, facultad por respuesta)
+#' y dos normalizaciones distintas ya fueron el defecto una vez.
+#' @noRd
+.monitoreo_aulas_clave_colector <- function(x) {
+  x <- as.character(x %||% character(0))
+  x[is.na(x)] <- ""
+  x <- toupper(trimws(x))
+  x <- gsub("[_,]", ".", x)
+  gsub("[[:space:]]+", "", x)
+}
+
+#' Si el plan admite compararse por clave canonica sin ambiguedad.
+#'
+#' La agregacion por clave suma variantes del MISMO codigo; si el plan tuviera
+#' dos identificadores literales distintos que canonicalizan igual, esa suma
+#' repartiria respuestas ajenas. En ese caso los comparadores caen al
+#' emparejamiento literal de siempre, que nunca inventa un match.
+#' @noRd
+.monitoreo_aulas_claves_sin_colision <- function(literales) {
+  literales <- unique(as.character(literales))
+  literales <- literales[!is.na(literales) & nzchar(trimws(literales))]
+  claves <- .monitoreo_aulas_clave_colector(literales)
+  !anyDuplicated(claves[nzchar(claves)])
+}
+
+#' Conteos por respuesta agregados por clave canonica.
+#' @noRd
+.monitoreo_aulas_counts_por_clave <- function(counts) {
+  claves <- .monitoreo_aulas_clave_colector(names(counts))
+  keep <- nzchar(claves)
+  if (!any(keep)) return(integer(0))
+  vapply(split(as.integer(counts[keep]), claves[keep]), sum, integer(1))
+}
