@@ -166,7 +166,11 @@ aulas_libro_hoja_agendadas <- function(unidades) {
     # pone el equipo.
     n("asistencia_pct"),
     n("rechazos"), n("duplicados"), n("efectivas"),
-    v("aplicador"), v("aula"), v("fecha"), v("hora"), v("estado"), v("nota")
+    v("aplicador"), v("aula"), v("fecha"), v("hora"), v("estado"), v("nota"),
+    # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
+    # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app genera,
+    # otra columna y otra cosa—; en un libro nuevo sale vacio.
+    v("enlace_escaneado")
   )
   length(celdas) <- length(titulos_campo)
   celdas[is.na(celdas)] <- ""
@@ -248,7 +252,12 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   "MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN", "CANTIDAD DE ASISTENTES",
   "% ASISTENCIA", "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)",
   "CANTIDAD DE EFECTIVAS", "APLICADOR", "AULA", "FECHA DE APLICACIÓN",
-  "HORA DE APLICACIÓN", "STATUS DE APLICACIÓN", "OBSERVACIONES SOBRE APLICACIONES"
+  "HORA DE APLICACIÓN", "STATUS DE APLICACIÓN", "OBSERVACIONES SOBRE APLICACIONES",
+  # ULTIMA del bloque a proposito (B6c): en medio correria las posiciones de lo
+  # que el equipo ya tiene repartido en su Sheets. Es la columna MANUAL donde se
+  # pega el enlace del PDF escaneado; la siembra `.cap_celdas_parte`, que solo
+  # devuelve lo que el parte ya traiga.
+  "ENLACE DE FICHA ESCANEADA"
 )
 
 #' Arma la hoja «Aulas Aplicadas (Campo)».
