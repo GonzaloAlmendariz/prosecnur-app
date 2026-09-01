@@ -391,3 +391,77 @@ test_that("B2.2: contenido remoto NO protege «Avance de campo» — jamás resp
   expect_true("Avance contra la meta" %in% celdas)
   expect_false("indicadores tecleados a mano" %in% celdas)
 })
+
+# --- 6. B19: la hoja se organiza en bloques localizables por etiqueta ---------
+#
+# Dictado de Gonzalo (2026-09-01, textual): «tiene una estructura muy, muy
+# fea; no se ven bien las tablas, no se organiza bien, no se entiende cómo se
+# organiza; se ve como toda esa información, no como una tabla». El REDISEÑO
+# es de presentación (las bandas y cabeceras las emite el formato de Sheets —
+# contrato rojo en test-monitoreo-aulas-formato-avance.R); lo que esta sección
+# pinea es el invariante del que ese formato cuelga: los títulos de bloque y
+# las cabeceras de tabla son localizables POR ETIQUETA en el contenido del
+# renderer, y los bloques se separan con al menos una fila en blanco. Los
+# números de la equivalencia xlsx↔Sheets ya están pineados arriba y NO
+# cambian: B19 cambia la presentación, no el contenido.
+
+# El bloque de facultades exige cuotas del diseño (sin ellas no existe, misma
+# regla que el xlsx): un fixture con UNA facultad basta para que la hoja
+# traiga los cuatro bloques.
+.cas_cuotas <- function() list(
+  meta_diseno = 40, meta_operativa = 60,
+  facultades = list(
+    list(facultad = "Letras", cuota = 40, cuota_sexo = list(F = 20, M = 20))
+  )
+)
+
+.cas_modelo_completo <- function() aulas_libro_indicadores(
+  .cas_plan(),
+  efectivas = .cas_efectivas(),
+  responses = .cas_respuestas(),
+  validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
+  partes = .cas_partes(),
+  cuotas = .cas_cuotas()
+)
+
+# La fila (1-based) donde una etiqueta aparece como celda, o NA.
+.cas_fila_de <- function(m, etiqueta) {
+  idx <- which(m == etiqueta, arr.ind = TRUE)
+  if (!nrow(idx)) return(NA_integer_)
+  as.integer(idx[1, "row"])
+}
+
+test_that("B19: los cuatro títulos de bloque y las cabeceras de sus tablas se localizan por etiqueta", {
+  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_completo(), fecha = .cas_fecha()))
+  titulos <- c("Avance contra la meta", "Avance por facultad",
+               "Producción por aplicador", "Avance diario")
+  for (t in titulos) {
+    expect_false(is.na(.cas_fila_de(m, t)),
+                 info = sprintf("título de bloque «%s» ausente", t))
+  }
+  # Cada tabla del modelo lleva su fila de nombres de columna: es la fila que
+  # el formato de B19 viste como cabecera, localizada por su primera etiqueta.
+  for (cab in c("Facultad", "Aplicador", "Dia")) {
+    fila <- .cas_fila_de(m, cab)
+    expect_false(is.na(fila), info = sprintf("cabecera de tabla «%s» ausente", cab))
+  }
+  # Y el orden de los bloques es el del modelo (meta, facultades,
+  # aplicadores, diario): la geometría interna es del renderer, el ORDEN es
+  # del contrato.
+  filas <- vapply(titulos, function(t) .cas_fila_de(m, t), integer(1))
+  expect_true(all(diff(filas) > 0L))
+})
+
+test_that("B19: cada título de bloque llega tras al menos una fila en blanco de separación", {
+  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_completo(), fecha = .cas_fecha()))
+  fila_en_blanco <- function(i) all(!nzchar(m[i, ]))
+  for (t in c("Avance contra la meta", "Avance por facultad",
+              "Producción por aplicador", "Avance diario")) {
+    fila <- .cas_fila_de(m, t)
+    expect_false(is.na(fila), info = sprintf("título «%s» ausente", t))
+    if (!is.na(fila)) {
+      expect_true(fila > 1L && fila_en_blanco(fila - 1L),
+                  info = sprintf("el bloque «%s» no se separa del anterior (fila %d)", t, fila))
+    }
+  }
+})

@@ -74,28 +74,68 @@
   "ELEGIBLES", "APLICADOR", "ESTADO", "ENLACE DE LA FICHA"
 )
 
-# La columna de un título, leyendo la PRIMERA fila como cabecera (la hoja no
+# La fila de cabecera del LISTADO, localizada POR ETIQUETA y no por posición:
+# B20 agrega un bloque selector ARRIBA del listado («VER EL DÍA:» + «PLAN DEL
+# DÍA ELEGIDO»), así que la cabecera ya no es necesariamente la fila 1. Se toma
+# la ÚLTIMA fila que trae «FECHA AGENDADA» y «CURSO-HORARIO» juntas: el área
+# del día elegido puede repetir una cabecera más arriba, pero el listado
+# completo se conserva DEBAJO (contrato B20). En el layout de hoy (sin bloque)
+# resuelve a la fila 1, así que los pines existentes no cambian de contrato.
+.pd_fila_cabecera <- function(hoja) {
+  m <- as.matrix(hoja)
+  candidatas <- which(apply(m, 1, function(f) {
+    f <- as.character(f)
+    ("FECHA AGENDADA" %in% f) && ("CURSO-HORARIO" %in% f)
+  }))
+  if (!length(candidatas)) stop("la hoja no trae la fila de cabecera del listado")
+  candidatas[[length(candidatas)]]
+}
+
+# La columna de un título, leyendo la fila de cabecera del listado (la hoja no
 # lleva nombres de columna, igual que sus hermanas del libro).
 .pd_col <- function(hoja, titulo) {
-  i <- which(as.character(unlist(hoja[1, ], use.names = FALSE)) == titulo)
+  fc <- .pd_fila_cabecera(hoja)
+  i <- which(as.character(unlist(hoja[fc, ], use.names = FALSE)) == titulo)
   if (!length(i)) stop(sprintf("la cabecera no trae «%s»", titulo))
   i[[1]]
 }
 
-# Las celdas de datos de una columna, por su título de cabecera.
+# Las celdas de datos de una columna, por su título de cabecera. Se descartan
+# TODAS las filas hasta la cabecera del listado inclusive: lo que viva arriba
+# (el bloque selector de B20) no es parte del listado.
 .pd_celdas <- function(hoja, titulo) {
-  as.character(hoja[[.pd_col(hoja, titulo)]])[-1]
+  fc <- .pd_fila_cabecera(hoja)
+  as.character(hoja[[.pd_col(hoja, titulo)]])[-seq_len(fc)]
 }
 
 # --- A. la hoja --------------------------------------------------------------
 
-test_that("la cabecera es exacta y en ese orden, como primera fila", {
+# Contrato EVOLUCIONADO por B21 (dictado 2026-09-01): la cabecera ya no puede
+# ser «exactamente los 13» porque la ventana de aplicación entra como columnas
+# INICIO y FIN. Lo que se conserva del pin viejo: los 13 títulos de 2025
+# siguen TODOS, en el MISMO orden relativo, sin duplicados. Lo nuevo: INICIO y
+# FIN presentes y adyacentes (la ventana se lee de un vistazo, no partida).
+test_that("la cabecera trae los 13 títulos de siempre en su orden — y B21 suma INICIO y FIN adyacentes", {
   hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
   expect_true(is.data.frame(hoja))
-  expect_identical(
-    as.character(unlist(hoja[1, ], use.names = FALSE)),
-    .pd_cabecera
-  )
+  fc <- .pd_fila_cabecera(hoja)
+  cabecera <- as.character(unlist(hoja[fc, ], use.names = FALSE))
+  cabecera <- cabecera[nzchar(cabecera)]
+  # Los 13 de 2025, todos y en su orden relativo (el recorte que el equipo
+  # copiaba a mano sigue siendo reconocible).
+  expect_identical(cabecera[cabecera %in% .pd_cabecera], .pd_cabecera)
+  expect_false(any(duplicated(cabecera)))
+  # B21: «si ya tienes la hora exacta y sabes que una encuesta dura veinte
+  # minutos —configurable—, la idea es que haya esta otra columna [inicio y
+  # fin]» (dictado textual).
+  expect_true("INICIO" %in% cabecera,
+              info = "B21: la cabecera no trae la columna INICIO")
+  expect_true("FIN" %in% cabecera,
+              info = "B21: la cabecera no trae la columna FIN")
+  i <- match("INICIO", cabecera)
+  if (!is.na(i) && i < length(cabecera)) {
+    expect_identical(cabecera[[i + 1L]], "FIN")
+  }
 })
 
 test_that("población: sin fecha fuera, retirada fuera, reserva activada dentro", {
@@ -439,9 +479,11 @@ test_that("la lista controlada contiene «Plan del día»", {
   list(operational_code = "CH 12", intento = 1L, aplicador = "Equipo B")
 )
 
-# Las filas de datos (sin cabecera) como matriz de caracteres sin nombres.
+# Las filas de datos del listado (sin cabecera ni bloque selector) como matriz
+# de caracteres sin nombres.
 .pd_matriz <- function(hoja) {
-  m <- as.matrix(hoja[-1, , drop = FALSE])
+  fc <- .pd_fila_cabecera(hoja)
+  m <- as.matrix(hoja[-seq_len(fc), , drop = FALSE])
   dimnames(m) <- NULL
   m
 }
@@ -562,4 +604,361 @@ test_that("B2.1b invariante A13: vocabulario académico en toda la hoja", {
   celdas <- unlist(lapply(hoja, as.character), use.names = FALSE)
   expect_false(any(grepl("c[oó]mo va\\b|c[oó]mo vamos|va respondiendo",
                          tolower(celdas))))
+})
+
+# --- E. B20: el selector de día ------------------------------------------------
+#
+# Dictado de Gonzalo (2026-09-01, textual): «debería tener algún selector de
+# día: quiero escoger qué me toca el día quince… y en función del desplegable
+# —que lógicamente filtra solo los días donde hay aplicación— se muestra lo
+# que se tiene que hacer ese día».
+#
+# Contrato congelado por el lead (oleada v4-app):
+#   1. La hoja gana ARRIBA una celda selectora con etiqueta «VER EL DÍA:» y
+#      dataValidation ONE_OF_LIST cuyas opciones son EXACTAMENTE los días con
+#      aplicación (los mismos grupos de fecha del listado — la retirada no
+#      abre día).
+#   2. Debajo, un área «PLAN DEL DÍA ELEGIDO» poblada por fórmula de filtro
+#      que referencia el selector y el listado completo; el listado se
+#      conserva debajo, como hoy.
+#   3. El reassert del publicador ENMASCARA la celda del selector (precedente
+#      exacto: `.malar_mascara_arrastre` en el `libro_cambio` de
+#      monitoreo_aulas_publicar_libro.R) para no pisar la elección del usuario
+#      en cada Recargar.
+#
+# HALLAZGO DE LOCALE (declarado, decide el pin de la fórmula): la única
+# medición en vivo que el repo posee (monitoreo_aulas_libro_arrastre.R:96-100,
+# 2026-09-01) muestra que el spreadsheet REAL del operativo corre en locale de
+# coma decimal (la hora 3:25 llegó como «0,1423…») y que USER_ENTERED parsea
+# «como si el usuario tipeara» — en ese locale la coma es separador DECIMAL y
+# rompe una fórmula multi-arg. La coma NO puede declararse segura. El
+# separador pineado es «;»: la UI de Sheets lo acepta en todos los locales
+# (comportamiento documentado de los editores de Google; normaliza «;» al
+# separador canónico), pero esa universalidad NO está medida en vivo por este
+# repo — queda anotada como hueco de cierre de B20. El pin duro de esta suite
+# es el negativo: ninguna fórmula que viaje a «Plan del día» contiene coma
+# fuera de comillas.
+
+# Posición (fila, col) 1-based de una etiqueta en los values publicados.
+.pd_pos_en_values <- function(values, etiqueta) {
+  for (i in seq_along(values)) {
+    fila <- trimws(as.character(unlist(values[[i]] %||% list(), use.names = FALSE)))
+    j <- which(fila == etiqueta)
+    if (length(j)) return(c(fila = i, col = j[[1]]))
+  }
+  NULL
+}
+
+# La fila (1-based) de la cabecera del listado dentro de los values publicados.
+.pd_fila_cabecera_values <- function(values) {
+  candidatas <- which(vapply(seq_along(values), function(i) {
+    fila <- trimws(as.character(unlist(values[[i]] %||% list(), use.names = FALSE)))
+    ("FECHA AGENDADA" %in% fila) && ("CURSO-HORARIO" %in% fila)
+  }, logical(1)))
+  if (!length(candidatas)) return(NA_integer_)
+  candidatas[[length(candidatas)]]
+}
+
+# Todas las fórmulas («=…») que algún canal de escritura llevó a una pestaña:
+# el PUT USER_ENTERED del values.update (el canal del arrastre B9), un
+# values:batchUpdate con valueInputOption USER_ENTERED, o un updateCells con
+# `userEnteredValue$formulaValue` en el batchUpdate estructural. El batch RAW
+# no computa fórmulas (quedarían como texto), así que no cuenta como canal.
+.pd_formulas_de <- function(mock, pestana) {
+  sheet_id <- mock$env$sheets[[pestana]]$sheetId
+  formulas <- character(0)
+  recoger <- function(values) {
+    celdas <- as.character(unlist(values %||% list(), use.names = FALSE))
+    celdas[grepl("^\\s*=", celdas)]
+  }
+  for (call in mock$env$calls) {
+    if (grepl("/values/", call$url) && identical(call$method, "PUT") &&
+        grepl("valueInputOption=USER_ENTERED", call$url)) {
+      if (identical(.pd_sin_comillas(call$body$range %||% ""), pestana)) {
+        formulas <- c(formulas, recoger(call$body$values))
+      }
+    } else if (grepl("/values:batchUpdate$", call$url) &&
+               identical(call$body$valueInputOption %||% "", "USER_ENTERED")) {
+      for (entry in call$body$data %||% list()) {
+        if (identical(.pd_sin_comillas(entry$range), pestana)) {
+          formulas <- c(formulas, recoger(entry$values))
+        }
+      }
+    } else if (grepl(":batchUpdate$", call$url)) {
+      for (request in call$body$requests %||% list()) {
+        uc <- request$updateCells
+        if (is.null(uc)) next
+        rid <- uc$range$sheetId %||% uc$start$sheetId
+        if (!identical(rid, sheet_id)) next
+        for (row in uc$rows %||% list()) {
+          for (celda in row$values %||% list()) {
+            fv <- celda$userEnteredValue$formulaValue
+            if (!is.null(fv)) formulas <- c(formulas, as.character(fv))
+          }
+        }
+      }
+    }
+  }
+  formulas
+}
+
+test_that("B20: la hoja publicada abre con «VER EL DÍA:» y «PLAN DEL DÍA ELEGIDO» sobre el listado completo", {
+  skip_if_not_installed("digest")
+  mock <- .pd_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  values <- mock$env$sheets[["Plan del día"]]$values %||% list()
+
+  sel <- .pd_pos_en_values(values, "VER EL DÍA:")
+  area <- .pd_pos_en_values(values, "PLAN DEL DÍA ELEGIDO")
+  expect_false(is.null(sel), info = "B20: la hoja publicada no trae la celda «VER EL DÍA:»")
+  expect_false(is.null(area), info = "B20: la hoja publicada no trae el área «PLAN DEL DÍA ELEGIDO»")
+
+  cab <- .pd_fila_cabecera_values(values)
+  expect_false(is.na(cab), info = "la hoja publicada perdió la cabecera del listado")
+  if (!is.null(sel) && !is.null(area) && !is.na(cab)) {
+    # Selector arriba, área debajo del selector, listado completo debajo de
+    # ambos: el bloque nuevo no reemplaza el recorte por fechas, lo corona.
+    expect_lt(sel[["fila"]], area[["fila"]])
+    expect_lt(area[["fila"]], cab)
+  }
+  # Y el listado sigue completo debajo de su cabecera: las mismas cuatro
+  # filas-aula de siempre, en el mismo orden.
+  if (!is.na(cab)) {
+    col_codigo <- {
+      fila_cab <- trimws(as.character(unlist(values[[cab]], use.names = FALSE)))
+      match("CURSO-HORARIO", fila_cab)
+    }
+    codigos <- vapply(values[seq.int(cab + 1L, length(values))], function(row) {
+      celdas <- as.character(unlist(row %||% list(), use.names = FALSE))
+      if (length(celdas) >= col_codigo) trimws(celdas[[col_codigo]]) else ""
+    }, character(1))
+    expect_identical(codigos[nzchar(codigos)], c("CH 3", "CH 2", "R 5.1", "CH 1"))
+  }
+})
+
+test_that("B20: el desplegable del selector ofrece EXACTAMENTE los días con aplicación", {
+  skip_if_not_installed("digest")
+  mock <- .pd_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  sheet_id <- mock$env$sheets[["Plan del día"]]$sheetId
+
+  # Todas las ONE_OF_LIST que algún batchUpdate dejó sobre la pestaña.
+  listas <- list()
+  for (call in mock$env$calls) {
+    if (!grepl(":batchUpdate$", call$url)) next
+    for (request in call$body$requests %||% list()) {
+      sdv <- request$setDataValidation
+      if (is.null(sdv)) next
+      if (!identical(sdv$range$sheetId, sheet_id)) next
+      cond <- sdv$rule$condition %||% list()
+      if (!identical(cond$type, "ONE_OF_LIST")) next
+      listas[[length(listas) + 1L]] <- vapply(
+        cond$values %||% list(),
+        function(v) as.character(v$userEnteredValue %||% ""), character(1)
+      )
+    }
+  }
+  expect_gte(length(listas), 1L)
+
+  # Los grupos de fecha del listado: 09-08 (CH 2, CH 3), 09-12 (R 5.1) y
+  # 10-01 (CH 1). Ni CH 4 (sin fecha) ni el 09-10 de CH 5: una retirada no
+  # abre día — ofrecerla en el desplegable sería mandar gente a un aula que
+  # ya no existe.
+  dias <- c("2026-09-08", "2026-09-12", "2026-10-01")
+  expect_true(any(vapply(listas, function(l) setequal(l, dias), logical(1))),
+              info = sprintf("opciones publicadas: {%s}",
+                             paste(unlist(listas), collapse = ", ")))
+  expect_false("2026-09-10" %in% unlist(listas))
+})
+
+test_that("B20: el área del día elegido se puebla por fórmula que referencia el selector y el listado", {
+  skip_if_not_installed("digest")
+  mock <- .pd_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  formulas <- .pd_formulas_de(mock, "Plan del día")
+  expect_gte(length(formulas), 1L)
+
+  values <- mock$env$sheets[["Plan del día"]]$values %||% list()
+  sel <- .pd_pos_en_values(values, "VER EL DÍA:")
+  if (length(formulas) && !is.null(sel)) {
+    # Referencia al selector: la celda elegible vive en la fila de su
+    # etiqueta, así que alguna fórmula debe nombrar una celda de esa fila.
+    ref_selector <- sprintf("[A-Z]\\$?%d([^0-9]|$)", sel[["fila"]])
+    expect_true(any(grepl(ref_selector, formulas)),
+                info = sprintf("ninguna fórmula referencia la fila %d del selector: %s",
+                               sel[["fila"]], paste(formulas, collapse = " | ")))
+    # Y al listado completo: algún rango A1 (el recorte se computa en la
+    # hoja, no viaja pre-cocido).
+    expect_true(any(grepl("[A-Z]+[0-9]+:[A-Z]+[0-9]*", formulas)))
+  }
+  # El pin de locale (hallazgo declarado en la cabecera de esta sección):
+  # ninguna fórmula lleva coma fuera de comillas — en el locale medido del
+  # operativo la coma es separador DECIMAL y una fórmula multi-arg con coma
+  # se rompe o cambia de sentido. «;» es el separador permitido.
+  sin_strings <- gsub('"[^"]*"', "", formulas)
+  expect_false(any(grepl(",", sin_strings, fixed = TRUE)),
+               info = sprintf("fórmula con coma (locale-unsafe): %s",
+                              paste(formulas[grepl(",", sin_strings, fixed = TRUE)],
+                                    collapse = " | ")))
+})
+
+test_that("B20: la elección del usuario en el selector sobrevive al Recargar sin cambios", {
+  skip_if_not_installed("digest")
+  mock <- .pd_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  # Siembra completa…
+  monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  values <- mock$env$sheets[["Plan del día"]]$values %||% list()
+  sel <- .pd_pos_en_values(values, "VER EL DÍA:")
+  expect_false(is.null(sel), info = "B20: sin celda «VER EL DÍA:» no hay elección que proteger")
+  if (is.null(sel)) return(invisible(NULL))
+
+  # …el usuario elige un día en la celda selectora (a la derecha de la
+  # etiqueta)…
+  fila <- as.list(values[[sel[["fila"]]]] %||% list())
+  while (length(fila) < sel[["col"]] + 1L) fila[[length(fila) + 1L]] <- ""
+  fila[[sel[["col"]] + 1L]] <- "2026-09-12"
+  values[[sel[["fila"]]]] <- fila
+  mock$env$sheets[["Plan del día"]]$values <- values
+
+  # …y un Recargar con los MISMOS insumos no puede ni pisar la elección ni
+  # declarar «cambió» por ella. Precedente exacto: la máscara de arrastre en
+  # `libro_cambio` — la celda del selector es del USUARIO, como las celdas de
+  # arrastre son de la fórmula, y se compara enmascarada.
+  res <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  accion <- .pd_accion(res, "Plan del día")
+  expect_identical(accion, "sin_cambios",
+                   info = "la edición del selector no es un cambio del libro: la máscara debe excluirla")
+  despues <- mock$env$sheets[["Plan del día"]]$values %||% list()
+  celda <- ""
+  if (sel[["fila"]] <= length(despues)) {
+    fila_d <- as.character(unlist(despues[[sel[["fila"]]]] %||% list(), use.names = FALSE))
+    if (length(fila_d) >= sel[["col"]] + 1L) celda <- trimws(fila_d[[sel[["col"]] + 1L]])
+  }
+  expect_identical(celda, "2026-09-12",
+                   info = "el Recargar pisó la elección del usuario en el selector")
+})
+
+# --- F. B21: la ventana INICIO/FIN --------------------------------------------
+#
+# Dictado (textual): «si ya tienes la hora exacta y sabes que una encuesta
+# dura veinte minutos —configurable—, la idea es que haya esta otra columna
+# [inicio y fin]; sirve para agendación pero más para el registro de campo».
+# DECISIÓN DEL LEAD: la ventana vive en las hojas de la APP — INICIO = la hora
+# pactada parseada con `monitoreo_aulas_hora_parse` (acepta «9:25am» y
+# «15:25»), FIN = inicio + `.mav_DURACION_MIN` (la constante del motor B11,
+# configurable ahí — no otro 20 suelto). Sin hora pactada, ambas vacías: la
+# ventana no se inventa. Formato HH:MM de 24 horas.
+
+# Un día con los cuatro casos de hora pactada.
+.pd_plan_b21 <- function() list(
+  list(operational_code = "CH 21", titular_operational_code = "CH 21",
+       sample_role = "titular", faculty = "Ciencias",
+       course_name = "Curso 21", teacher = "Docente 21", eligible_n = 30,
+       scheduled_date = "2026-09-08", scheduled_time = "9:25am",
+       operational_status = "agendada"),
+  list(operational_code = "CH 22", titular_operational_code = "CH 22",
+       sample_role = "titular", faculty = "Letras",
+       course_name = "Curso 22", teacher = "Docente 22", eligible_n = 25,
+       scheduled_date = "2026-09-08", scheduled_time = "15:25",
+       operational_status = "agendada"),
+  list(operational_code = "CH 23", titular_operational_code = "CH 23",
+       sample_role = "titular", faculty = "Letras",
+       course_name = "Curso 23", teacher = "Docente 23", eligible_n = 28,
+       scheduled_date = "2026-09-08",
+       operational_status = "agendada"),
+  list(operational_code = "CH 24", titular_operational_code = "CH 24",
+       sample_role = "titular", faculty = "Derecho",
+       course_name = "Curso 24", teacher = "Docente 24", eligible_n = 22,
+       scheduled_date = "2026-09-08", scheduled_time = "mediodía",
+       operational_status = "agendada")
+)
+
+test_that("B21: INICIO parsea la hora pactada (am/pm y 24h) y FIN suma la duración; sin hora, vacías", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21())
+  inicio <- stats::setNames(.pd_celdas(hoja, "INICIO"),
+                            .pd_celdas(hoja, "CURSO-HORARIO"))
+  fin <- stats::setNames(.pd_celdas(hoja, "FIN"),
+                         .pd_celdas(hoja, "CURSO-HORARIO"))
+  # Gonzalo teclea con am/pm; el libro trae 24 horas. Ambas se leen con el
+  # MISMO parser del motor B11 y salen canónicas HH:MM.
+  expect_identical(unname(inicio[["CH 21"]]), "09:25")
+  expect_identical(unname(fin[["CH 21"]]), "09:45")
+  expect_identical(unname(inicio[["CH 22"]]), "15:25")
+  expect_identical(unname(fin[["CH 22"]]), "15:45")
+  # Sin hora pactada no hay ventana que declarar — ni inventada ni «00:00».
+  expect_identical(unname(inicio[["CH 23"]]), "")
+  expect_identical(unname(fin[["CH 23"]]), "")
+  # La basura tampoco es una hora: NA declarado del parser = celdas vacías.
+  expect_identical(unname(inicio[["CH 24"]]), "")
+  expect_identical(unname(fin[["CH 24"]]), "")
+  # Formato HH:MM de 24 horas con cero a la izquierda en todo lo no vacío.
+  llenas <- c(inicio, fin)
+  llenas <- llenas[nzchar(llenas)]
+  expect_true(all(grepl("^([01][0-9]|2[0-3]):[0-5][0-9]$", llenas)),
+              info = paste(llenas, collapse = ", "))
+})
+
+test_that("B21: la duración sale de .mav_DURACION_MIN del motor B11, no de otro 20 suelto", {
+  # Se recablea la constante en el namespace y la hoja tiene que seguirla: si
+  # el generador lleva su propio 20, este pin lo delata. Es el «configurable»
+  # del dictado: un solo sitio donde cambiar la duración.
+  ns <- environment(monitoreo_aulas_hora_parse)
+  viejo <- get(".mav_DURACION_MIN", envir = ns)
+  bloqueada <- bindingIsLocked(".mav_DURACION_MIN", ns)
+  if (bloqueada) unlockBinding(".mav_DURACION_MIN", ns)
+  assign(".mav_DURACION_MIN", 45L, envir = ns)
+  withr::defer({
+    assign(".mav_DURACION_MIN", viejo, envir = ns)
+    if (bloqueada) lockBinding(".mav_DURACION_MIN", ns)
+  })
+
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21())
+  fin <- stats::setNames(.pd_celdas(hoja, "FIN"),
+                         .pd_celdas(hoja, "CURSO-HORARIO"))
+  # 09:25 + 45 = 10:10 — solo posible si la duración se LEE del motor.
+  expect_identical(unname(fin[["CH 21"]]), "10:10")
+})
+
+test_that("B21: INICIO/FIN de la hoja dicen lo mismo que la ventana confirmada del motor", {
+  # Dos capas, una sola lectura de la regla: la ventana que el mapa horario
+  # declara confirmada (monitoreo_aulas_ventanas, B11) y la que el plan del
+  # día imprime no pueden divergir para la misma aula.
+  v <- monitoreo_aulas_ventanas(.pd_plan_b21())
+  confirmada <- NULL
+  for (a in v$aulas) {
+    if (identical(a$codigo, "CH 21")) confirmada <- a
+  }
+  expect_false(is.null(confirmada))
+  expect_identical(confirmada$ventana, "confirmada")
+
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21())
+  inicio <- stats::setNames(.pd_celdas(hoja, "INICIO"),
+                            .pd_celdas(hoja, "CURSO-HORARIO"))
+  fin <- stats::setNames(.pd_celdas(hoja, "FIN"),
+                         .pd_celdas(hoja, "CURSO-HORARIO"))
+  expect_identical(unname(inicio[["CH 21"]]), confirmada$inicio)
+  expect_identical(unname(fin[["CH 21"]]), confirmada$fin)
+})
+
+test_that("B21: las filas estructurales no llevan ventana — INICIO y FIN vacíos en totales y sección", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = .pd_partes_b21b())
+  m <- .pd_matriz(hoja)
+  col_fecha <- .pd_col(hoja, "FECHA AGENDADA")
+  col_codigo <- .pd_col(hoja, "CURSO-HORARIO")
+  col_inicio <- .pd_col(hoja, "INICIO")
+  col_fin <- .pd_col(hoja, "FIN")
+  estructurales <- which(!nzchar(m[, col_codigo]) | m[, col_fecha] %in%
+                           c("Total de la jornada", "Pendientes de jornadas anteriores",
+                             "Sin pendientes de jornadas anteriores"))
+  expect_gt(length(estructurales), 0L)
+  expect_true(all(m[estructurales, col_inicio] == ""))
+  expect_true(all(m[estructurales, col_fin] == ""))
 })
