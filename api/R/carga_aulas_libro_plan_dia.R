@@ -9,12 +9,28 @@
 # nombre) y en Sheets es hoja de la APP —se publica siempre, jamás
 # `respetada`—. Su contrato vive en test-carga-aulas-libro-plan-dia.R.
 
-# Los 13 títulos, en el orden del recorte que el equipo copiaba a mano.
+# Los 13 títulos de 2025 en el orden del recorte que el equipo copiaba a mano,
+# más la ventana de B21: INICIO y FIN entran ADYACENTES tras HORA (la ventana
+# se lee de un vistazo, no partida) sin alterar el orden relativo de los 13.
 .capd_CABECERA <- c(
-  "FECHA AGENDADA", "DÍA", "HORA", "CURSO-HORARIO", "NOMBRE DEL CURSO",
-  "FACULTAD", "SESIONES Y AULA", "NOMBRE DE DOCENTE", "TELÉFONO DE DOCENTE",
-  "ELEGIBLES", "APLICADOR", "ESTADO", "ENLACE DE LA FICHA"
+  "FECHA AGENDADA", "DÍA", "HORA", "INICIO", "FIN", "CURSO-HORARIO",
+  "NOMBRE DEL CURSO", "FACULTAD", "SESIONES Y AULA", "NOMBRE DE DOCENTE",
+  "TELÉFONO DE DOCENTE", "ELEGIBLES", "APLICADOR", "ESTADO",
+  "ENLACE DE LA FICHA"
 )
+
+# B21: la ventana de aplicación de una fila-aula. INICIO = la hora pactada
+# parseada con el MISMO parser del motor B11 (`monitoreo_aulas_hora_parse`:
+# am/pm y 24h por igual, basura = NA declarado); FIN = inicio +
+# `.mav_DURACION_MIN` — la constante del motor, leída EN CADA llamada y jamás
+# otro 20 suelto: el «configurable» del dictado es un solo sitio donde cambiar
+# la duración. Sin hora legible no hay ventana que declarar: ambas vacías, ni
+# inventadas ni «00:00».
+.capd_ventana <- function(unidad) {
+  hora <- monitoreo_aulas_hora_parse(.calg_txt(unidad$scheduled_time))[[1]]
+  if (is.na(hora)) return(c("", ""))
+  c(.mav_hhmm(hora), .mav_hhmm(hora + .mav_DURACION_MIN))
+}
 
 # El día de semana en castellano, SIN locale: `format(fecha, "%A")` depende del
 # locale del proceso y en un worker `callr` con C-locale devolvería «Thursday».
@@ -189,10 +205,13 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
     aplicador <- if (is.null(parte1)) "" else .calg_txt(
       .monitoreo_aulas_parte_primero(parte1, .MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]])
     )
+    ventana <- .capd_ventana(u)
     c(
       .calg_txt(u$scheduled_date),
       .capd_dia(u),
       .calg_txt(u$scheduled_time),
+      ventana[[1L]],
+      ventana[[2L]],
       .calg_txt(u$operational_code),
       .calg_txt(u$course_name),
       .calg_txt(u$faculty),

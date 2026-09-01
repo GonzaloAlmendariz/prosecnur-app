@@ -236,7 +236,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   } else {
     1L
   }
-  c(
+  requests <- c(
     monitoreo_aulas_sheets_formato_requests(
       hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas, n_cols = n_cols
     ),
@@ -247,6 +247,17 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
       profundidad = .mafs_bloques(tab_name, n_cols)
     )
   )
+  # B20: el desplegable del selector de día, con la geometría derivada de los
+  # rows realmente publicados (monitoreo_aulas_plan_dia_selector.R).
+  if (identical(tab_name, .malp_hoja_plan_dia())) {
+    requests <- c(requests, .mapds_validacion_requests(sheet_id, rows))
+  }
+  # B19: bandas de título de bloque y cabeceras de tabla de «Avance de campo»,
+  # fila a fila del contenido (monitoreo_aulas_avance_formato.R).
+  if (identical(tab_name, .malp_hoja_avance())) {
+    requests <- c(requests, .maaf_requests(sheet_id, rows))
+  }
+  requests
 }
 
 # --- el publicador ------------------------------------------------------------
@@ -302,9 +313,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   producidas[[.malp_hoja_control()]] <- .malp_df_a_values(
     aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
   )
-  producidas[[.malp_hoja_plan_dia()]] <- .malp_df_a_values(
+  # B20: en Sheets el plan del día viaja coronado por el bloque selector
+  # («VER EL DÍA:» + área por fórmula, monitoreo_aulas_plan_dia_selector.R);
+  # el listado se conserva completo debajo. El resumen cuenta filas del
+  # LISTADO: el bloque es chrome del selector, no datos.
+  plan_dia_listado <- .malp_df_a_values(
     aulas_libro_hoja_plan_dia(unidades, partes = partes)
   )
+  producidas[[.malp_hoja_plan_dia()]] <- .mapds_con_selector(plan_dia_listado)
   # «Avance de campo» (B2.2) se computa con lo que ESTE punto sí tiene: plan +
   # partes + efectivas (+ cuotas del diseño cuando llegan). Sin responses ni
   # validas aquí — el diario de plataforma no es computable y la hoja lo
@@ -346,7 +362,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   app_nuevas <- stats::setNames(!(hojas_app %in% names(tab_map)), hojas_app)
   for (hoja in hojas_app) {
     tabs[[hoja]] <- producidas[[hoja]]
-    filas[[hoja]] <- max(0L, length(producidas[[hoja]]) - .malp_cabeceras(hoja))
+    filas[[hoja]] <- if (identical(hoja, .malp_hoja_plan_dia())) {
+      # Filas de DATOS del listado: el bloque selector de B20 no es un dato.
+      max(0L, length(plan_dia_listado) - .malp_cabeceras(hoja))
+    } else {
+      max(0L, length(producidas[[hoja]]) - .malp_cabeceras(hoja))
+    }
   }
 
   # ¿Cambió el libro? Delta a nivel LIBRO contra los values REMOTOS (la verdad
@@ -358,7 +379,13 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # republicación sin cambios declararía «cambió». Su fuente («Aulas
   # Agendadas») sí se compara entera, así que una edición de agenda sigue
   # contando como cambio del libro.
+  # «Plan del día» se compara con su bloque selector enmascarado (B20, mismo
+  # trato que el arrastre): la celda elegible es del USUARIO y el área de la
+  # fórmula vuelve COMPUTADA de la API — compararlas declararía «cambió» en
+  # cada Recargar y la reasserción pisaría la elección. La geometría sale de
+  # los values LOCALES y se aplica igual a ambos lados.
   bloques_arrastre <- .malar_bloques_arrastre(producidas[[equipo[[2]]]], unidades)
+  geo_selector <- .mapds_geometria(producidas[[.malp_hoja_plan_dia()]])
   libro_cambio <- any(vapply(hojas_libro, function(hoja) {
     if (!(hoja %in% existentes)) return(TRUE)
     local_v <- producidas[[hoja]]
@@ -366,6 +393,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     if (identical(hoja, equipo[[2]])) {
       local_v <- .malar_mascara_arrastre(local_v, bloques_arrastre)
       remoto_v <- .malar_mascara_arrastre(remoto_v, bloques_arrastre)
+    }
+    if (identical(hoja, .malp_hoja_plan_dia())) {
+      local_v <- .mapds_mascara(local_v, geo_selector)
+      remoto_v <- .mapds_mascara(remoto_v, geo_selector)
     }
     !identical(.malp_canonizar(local_v), .malp_canonizar(remoto_v))
   }, logical(1)))
@@ -409,6 +440,15 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     } else {
       acciones[[hoja]] <- "sin_cambios"
     }
+  }
+  # B20: toda escritura efectiva de «Plan del día» (siembra, actualización del
+  # motor o reasserción) dejó vacía la celda de la fórmula del área — el batch
+  # RAW no puede computarla. Se re-PUT-ea por el canal del arrastre
+  # (USER_ENTERED). En un ciclo sin_cambios no se emite nada: la fórmula ya
+  # vive en el documento.
+  hoja_pd <- .malp_hoja_plan_dia()
+  if (acciones[[hoja_pd]] %in% c("sembrada", "actualizada")) {
+    .mapds_formula_publicar(id, hoja_pd, producidas[[hoja_pd]])
   }
 
   list(
