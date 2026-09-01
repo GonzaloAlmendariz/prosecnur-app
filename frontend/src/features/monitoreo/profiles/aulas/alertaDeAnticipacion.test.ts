@@ -152,15 +152,15 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
   it("alcanza cuando quedan al menos las que se piden", () => {
     const [a] = alertaDeAnticipacion([conBrecha()], banco(4));
     expect(a.aulasAPedir).toBe(4);
-    expect(a.bancoDisponible).toBe(4);
-    expect(a.bancoAlcanza).toBe(true);
+    expect(a.reservaDisponible).toBe(4);
+    expect(a.reservaAlcanza).toBe(true);
   });
 
   it("no alcanza cuando quedan menos, aunque el banco sea grande", () => {
     // `extras` es 99: lo que decide es cuántas quedan SIN USAR, no cuántas
     // llegó a haber. Un banco de 99 del que se gastaron 96 no da para 4.
     const [a] = alertaDeAnticipacion([conBrecha()], banco(3));
-    expect(a.bancoAlcanza).toBe(false);
+    expect(a.reservaAlcanza).toBe(false);
   });
 
   it("no saber cuántas quedan no es saber que no queda ninguna", () => {
@@ -168,19 +168,19 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
     // como cero acusaría a la facultad de una escasez que nadie midió, y esta
     // lista manda a gente a trabajar: tiene que poder defenderse.
     const [sinCampo] = alertaDeAnticipacion([conBrecha()], banco(undefined));
-    expect(sinCampo.bancoDisponible).toBeNull();
-    expect(sinCampo.bancoAlcanza).toBeNull();
+    expect(sinCampo.reservaDisponible).toBeNull();
+    expect(sinCampo.reservaAlcanza).toBeNull();
 
     const [sinBanco] = alertaDeAnticipacion([conBrecha()], []);
-    expect(sinBanco.bancoDisponible).toBeNull();
-    expect(sinBanco.bancoAlcanza).toBeNull();
+    expect(sinBanco.reservaDisponible).toBeNull();
+    expect(sinBanco.reservaAlcanza).toBeNull();
   });
 
   it("el banco de otra facultad no cuenta como propio", () => {
     // El banco viene repartido por estrato justamente para que no se mezcle: si
     // se leyera el total, Derecho con 207 taparía a Arquitectura con 12.
     const [a] = alertaDeAnticipacion([conBrecha()], banco(50, "Arquitectura"));
-    expect(a.bancoDisponible).toBeNull();
+    expect(a.reservaDisponible).toBeNull();
   });
 
   it("sin nada que pedir no se juzga el banco", () => {
@@ -189,7 +189,7 @@ describe("si el banco de esa facultad tiene las aulas que se piden", () => {
       banco(0),
     );
     expect(a.aulasAPedir).toBe(0);
-    expect(a.bancoAlcanza).toBeNull();
+    expect(a.reservaAlcanza).toBeNull();
   });
 });
 
@@ -334,7 +334,7 @@ describe("lo que falta, y DE QUÉ", () => {
  *
  * La causa es `esperadoPorAula = 0` antes del primer parte: sin rendimiento no
  * hay entre qué dividir, y ese hueco se estaba resolviendo como cero. Es el
- * mismo error que este archivo ya evita para `bancoDisponible`, donde no saber
+ * mismo error que este archivo ya evita para `reservaDisponible`, donde no saber
  * cuántas quedan no se pinta como que no queda ninguna.
  */
 describe("lo que no se puede dimensionar no vale cero", () => {
@@ -359,6 +359,6 @@ describe("lo que no se puede dimensionar no vale cero", () => {
       [facultad({ facultad: "Derecho", cuotas: [cuota(400)], esperadoPorAula: 0 })],
       [{ faculty: "Derecho", disponibles: 274, extras: 274, elegibles: 274, mujeres: 140, hombres: 134 }],
     );
-    expect(a.bancoAlcanza).toBeNull();
+    expect(a.reservaAlcanza).toBeNull();
   });
 });
