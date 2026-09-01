@@ -16,9 +16,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
-import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, FileCheck2, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
+import { fichaEscaneadaDelParte } from "./fichaEscaneada";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
@@ -331,6 +332,18 @@ export function RegistroDeCampo({
     [filas, seleccion],
   );
 
+  // El escaneo de la ficha que volvió del aula (B6c): vive en el PARTE del
+  // libro, no en la fila del plan —`.PARTE_APP_AL_PLAN` no lo copia—, así que
+  // se resuelve contra la misma hoja de partes que alimenta el contador «con
+  // parte». El resolvedor dice también el motivo del hueco: no es lo mismo un
+  // parte que no trae el enlace que un aula cuyo parte todavía no está.
+  const fichaEscaneada = useMemo(
+    () => (activa
+      ? fichaEscaneadaDelParte(String(activa.operational_code ?? activa.classroom_id ?? ""), partes)
+      : null),
+    [activa, partes],
+  );
+
   // Lo que el registro de ESTA APP marcó como aplicado. Es el otro eje, y el
   // que la lista pinta chip a chip: sin él, la cabecera decía «3 con parte en
   // el libro» mientras diez filas de abajo llevaban su chip «Aplicada», y quien
@@ -633,6 +646,11 @@ export function RegistroDeCampo({
                     reparte cuando el QR impreso no alcanza. Lo escribe la
                     entrega de Recopiladores en `row.link`; sin él, el motivo es
                     un dato y no un hueco (patrón de Fuentes). */}
+                {/* Y al lado, la ficha ESCANEADA (B6c): el escaneo de la hoja
+                    que volvió del aula, pegado por el equipo en el libro. Son
+                    dos cosas —la ficha para aplicar y el escaneo del
+                    resultado— y por eso llevan dos rótulos que no se pisan.
+                    Éste se lee del PARTE, no del plan (ver `fichaEscaneada`). */}
                 <p className="registro-campo-contexto">
                   {String(activa.link ?? "").trim() ? (
                     <a
@@ -646,6 +664,24 @@ export function RegistroDeCampo({
                   ) : (
                     <span className="aulas-fuente-sin-enlace">
                       <Link2Off size={12} aria-hidden="true" /> Sin enlace de ficha: lo escribe la entrega de Recopiladores
+                    </span>
+                  )}
+                  {" · "}
+                  {fichaEscaneada?.estado === "enlace" ? (
+                    <a
+                      href={fichaEscaneada.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={fichaEscaneada.url}
+                    >
+                      <FileCheck2 size={12} aria-hidden="true" /> Ficha escaneada
+                    </a>
+                  ) : (
+                    <span className="aulas-fuente-sin-enlace">
+                      <Link2Off size={12} aria-hidden="true" />{" "}
+                      {fichaEscaneada?.estado === "parte-sin-enlace"
+                        ? "Sin ficha escaneada: el parte no trae su enlace"
+                        : "Sin ficha escaneada: aún sin parte en el libro"}
                     </span>
                   )}
                 </p>
