@@ -108,6 +108,34 @@
   paste0(trimws(substr(valor, 1L, lo)), "…")
 }
 
+# Parte un valor impreso en dos lineas por PALABRAS: lo que cabe en el primer
+# hueco (tras la etiqueta) y el resto para la segunda linea. Devuelve NULL si
+# el valor entero cabe en el primer hueco — el llamador imprime como siempre.
+#
+# Existe porque la elipsis recortaba DATO OPERATIVO: el nombre del curso llega
+# a 128 caracteres y el horario a 141 (cuatro sesiones), y «DELITOS CONTRA LA
+# VIDA, EL CUERPO,…» en la ficha impresa obliga al aplicador a adivinar el
+# resto (lo señaló Gonzalo, 2026-09-01). El aire entre renglones (12 mm, para
+# escribir a mano) admite una segunda linea tipografica de 8.6 pt sin robar
+# renglones de escritura ni mover la geometria de la hoja.
+.cfc_partir <- function(valor, disponible, gp) {
+  if (!nzchar(valor) || disponible <= 0) return(NULL)
+  if (.cfc_text_width(valor, gp) <= disponible) return(NULL)
+  palabras <- strsplit(valor, " ", fixed = TRUE)[[1]]
+  # Ni la primera palabra cabe: no hay corte de palabra digno, que decida el
+  # recortador clasico del llamador.
+  if (.cfc_text_width(palabras[[1]], gp) > disponible) return(NULL)
+  n <- 1L
+  while (n < length(palabras) &&
+         .cfc_text_width(paste(palabras[seq_len(n + 1L)], collapse = " "), gp) <= disponible) {
+    n <- n + 1L
+  }
+  list(
+    primera = paste(palabras[seq_len(n)], collapse = " "),
+    resto = paste(palabras[-seq_len(n)], collapse = " ")
+  )
+}
+
 #' Dibuja el bloque de renglones para llenar a mano.
 #'
 #' @param rows renglones compilados; cada uno con `fields` de `label` y `span`.
@@ -161,17 +189,35 @@
         valor_x <- cursor + .cfc_text_width(label, gp) + L$gap
         valor_gp <- grid::gpar(col = tokens$ink, fontsize = L$label_size, fontface = "plain")
         # El hueco real de esta celda, medido hasta donde empieza la siguiente.
-        impreso <- .cfc_recortar(valor, cursor + span - L$gap - valor_x, valor_gp)
-        if (!nzchar(impreso)) {
-          warnings[[length(warnings) + 1L]] <- list(
-            code = "form_value_no_room", label = label, row = i
+        hueco <- cursor + span - L$gap - valor_x
+        # Un valor que no cabe ENVUELVE a una segunda linea (el ancho de la
+        # celda, colgada en el aire entre renglones) antes de recortarse: la
+        # elipsis queda solo de red cuando ni dos lineas alcanzan. Ver
+        # `.cfc_partir()`.
+        partes <- .cfc_partir(valor, hueco, valor_gp)
+        if (!is.null(partes)) {
+          grid::grid.text(
+            partes$primera, x = valor_x, y = y,
+            just = c("left", "bottom"), default.units = "npc", gp = valor_gp
+          )
+          grid::grid.text(
+            .cfc_recortar(partes$resto, span - L$gap, valor_gp),
+            x = cursor, y = y - 0.014,
+            just = c("left", "bottom"), default.units = "npc", gp = valor_gp
+          )
+        } else {
+          impreso <- .cfc_recortar(valor, hueco, valor_gp)
+          if (!nzchar(impreso)) {
+            warnings[[length(warnings) + 1L]] <- list(
+              code = "form_value_no_room", label = label, row = i
+            )
+          }
+          grid::grid.text(
+            impreso, x = valor_x, y = y,
+            just = c("left", "bottom"), default.units = "npc",
+            gp = valor_gp
           )
         }
-        grid::grid.text(
-          impreso, x = valor_x, y = y,
-          just = c("left", "bottom"), default.units = "npc",
-          gp = valor_gp
-        )
       } else {
         rule_from <- cursor + .cfc_text_width(label, gp) + L$gap
         rule_to <- cursor + span - L$gap

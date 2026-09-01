@@ -593,3 +593,51 @@ test_that("el titulo lleva los DOS codigos: operativo y curso-horario", {
   compiled <- .cfx_compiled(template, dimensions = list(legacy_ref = "CH 1"))
   expect_identical(.crf_block(compiled$pages[[1]], "heading")$value, "CH 1 ROTULO DE LA UNIDAD")
 })
+
+test_that("un curso largo envuelve a segunda linea en vez de recortarse", {
+  skip_if_not_installed("png")
+  # «DELITOS CONTRA LA VIDA, EL CUERPO,…» en la ficha impresa obligaba al
+  # aplicador a adivinar el resto (Gonzalo, 2026-09-01). El nombre real llega a
+  # 128 caracteres contra un p99 de 65: el valor que no cabe en su celda cuelga
+  # una segunda linea tipografica en el aire entre renglones, y la elipsis
+  # queda solo de red cuando ni dos lineas alcanzan.
+  grDevices::png(tempfile(fileext = ".png")); on.exit(grDevices::dev.off(), add = TRUE)
+  gp <- grid::gpar(fontsize = 8.6, fontface = "plain")
+
+  # Cabe entero -> NULL: el llamador imprime como siempre.
+  expect_null(prosecnurapp:::.cfc_partir("CALCULO 1", 0.4, gp))
+  # No cabe -> parte por palabras, sin comerse ninguna.
+  partes <- prosecnurapp:::.cfc_partir(
+    "DELITOS CONTRA LA VIDA, EL CUERPO, LA SALUD Y OTROS BIENES JURIDICOS", 0.18, gp
+  )
+  expect_false(is.null(partes))
+  expect_identical(
+    paste(partes$primera, partes$resto), 
+    "DELITOS CONTRA LA VIDA, EL CUERPO, LA SALUD Y OTROS BIENES JURIDICOS"
+  )
+  expect_lte(prosecnurapp:::.cfc_text_width(partes$primera, gp), 0.18)
+
+  # Y sobre el PNG real: la franja de la segunda linea (bajo la fila del
+  # curso) tiene tinta con el curso largo y esta limpia con el corto.
+  curso_largo <- paste0(
+    "DELITOS CONTRA LA VIDA, EL CUERPO, LA SALUD Y OTROS BIENES JURIDICOS ",
+    "PROTEGIDOS EN EL CODIGO PENAL PERUANO Y LEGISLACION COMPLEMENTARIA"
+  )
+  render_franja <- function(curso) {
+    compiled <- .cfx_compiled(
+      collection_material_field_sheet_template(),
+      dimensions = list(course_name = curso, faculty = "DERECHO")
+    )
+    dir <- tempfile("cfx-envuelve-"); dir.create(dir)
+    png_path <- file.path(dir, "ficha.png")
+    collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+    g <- .cfx_grey(png_path)
+    L <- prosecnurapp:::.cfc_layout()
+    y2 <- L$form_top - L$form_step - 0.014     # baseline de la segunda linea
+    filas_px <- round((1 - (y2 + 0.010)) * nrow(g)):round((1 - (y2 - 0.002)) * nrow(g))
+    cols_px <- round(L$x_left * ncol(g)):round(0.45 * ncol(g))
+    sum(g[filas_px, cols_px] < 0.5)
+  }
+  expect_gt(render_franja(curso_largo), 50L)
+  expect_lt(render_franja("CALCULO 1"), 5L)
+})
