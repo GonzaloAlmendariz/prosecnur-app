@@ -79,7 +79,15 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   # orden de la muestra —que el plan ya trae resuelto— se perdia. Con el factor
   # de niveles en orden de aparicion, el libro conserva el del plan.
   claves <- vapply(unidades, .calg_titular, character(1))
-  grupos <- split(unidades, factor(claves, levels = unique(claves)))
+  # Los niveles salen de la aparicion de los TITULARES, no de la clave a secas:
+  # el plan intercala reservas de otras cadenas tras los primeros titulares
+  # (R 24.6 aparecia antes que CH 15) y con `unique(claves)` la cadena 24 se
+  # colaba a la fila 10 mientras «Aulas Aplicadas» —que itera titulares— ponia
+  # CH 15: dos hojas, dos ordenes, y el ID MATCH arrastrado delataba el desfase
+  # (medido en vivo el 2026-09-01; el M1 de 2025 exige fila a fila). Las cadenas
+  # sin titular en el plan (reserva con parte) van al final, en su aparicion.
+  es_titular <- vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1))
+  grupos <- split(unidades, factor(claves, levels = unique(c(claves[es_titular], claves))))
   profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
   # **Cada bloque dice de quien es.** Repetidos tal cual, los tres bloques
