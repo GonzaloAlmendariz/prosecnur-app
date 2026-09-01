@@ -595,3 +595,46 @@ describe("la cuenta se nombra igual se lea o se escuche", () => {
     }
   });
 });
+
+/**
+ * A17 (checklist operativo 2026-08-31): con «Todas las facultades»,
+ * `avance_cuota.meta_operativa` llegó del JSON de R como el STRING `"NA"` y
+ * atravesó el `?? null` de la pestaña. Aquí entraba al `Math.max` del techo,
+ * `escalaDeEje(NaN)` volvía todas las Y `NaN` y el lienzo quedaba VACÍO bajo
+ * una leyenda con cifras —quince errores de consola incluidos—.
+ *
+ * La frontera ya normaliza (`AulasPestanaRendimiento`), pero este guard es la
+ * defensa de segundo nivel: NINGÚN campo sucio futuro puede vaciar el gráfico,
+ * venga de donde venga. El techo ignora lo no finito en vez de propagarlo.
+ */
+describe("una sobremuestra sucia no vacía el gráfico (A17, C5)", () => {
+  const partes = [
+    aplicada("2026-08-10", 20, "A1"),
+    aplicada("2026-08-11", 22, "A2"),
+    aplicada("2026-08-12", 19, "A3"),
+  ];
+  const agenda = [agendada("2026-08-17", "B1")];
+
+  it("con el string \"NA\" del payload las Y siguen siendo finitas", () => {
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento
+        partes={partes}
+        agenda={agenda}
+        sobremuestra={"NA" as unknown as number}
+      />);
+    expect(html).not.toContain("NaN");
+    // Y el acumulado SE DIBUJA: un lienzo en blanco sin NaN también pasaría el
+    // aserto de arriba (verde por ausencia).
+    expect(html).toMatch(/<polyline points="[\d.]+,[\d.]+/);
+  });
+
+  it("una sobremuestra legítima sigue entrando al techo del eje", () => {
+    // Control positivo del filtro: si `Number.isFinite` descartara de más, el
+    // eje dejaría de subir hasta la sobremuestra. Con datos bajo 65 y una
+    // sobremuestra de 500, el escalón superior tiene que decir 500.
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} agenda={agenda} sobremuestra={500} />);
+    expect(html).toContain(">500<");
+    expect(html).not.toContain("NaN");
+  });
+});

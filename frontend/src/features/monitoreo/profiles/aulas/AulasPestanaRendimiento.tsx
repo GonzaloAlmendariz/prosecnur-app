@@ -6,6 +6,7 @@ import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
+import { numeroONulo } from "./avanceCuota";
 import { parteDeCampo } from "./parteDeCampo";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type {
@@ -99,7 +100,13 @@ export function AulasPestanaRendimiento({
                 // decía «no declarada por el estudio», porque nadie se la
                 // pasaba: el diseño la calcula pero no llegaba a Monitoreo.
                 // Viaja con las metas por facultad y con su misma vigencia.
-                sobremuestra={dashboard.avance_cuota?.meta_operativa ?? null}
+                //
+                // Y se normaliza AQUÍ, en la frontera del payload: con «Todas
+                // las facultades» el JSON de R mandó el STRING "NA", el `?? null`
+                // no lo capturaba y el techo del eje se volvía NaN — el
+                // «Acumulado por día» quedó en blanco bajo una leyenda con
+                // cifras (A17, 2026-08-31). Número finito o null, nada más.
+                sobremuestra={numeroONulo(dashboard.avance_cuota?.meta_operativa)}
               />
             </section>
             <section

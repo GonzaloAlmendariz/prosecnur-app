@@ -84,8 +84,16 @@ function numero(valor: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Distingue el `null` con significado —sin cuota— de un número de verdad. */
-function numeroONulo(valor: unknown): number | null {
+/**
+ * Distingue el `null` con significado —sin cuota— de un número de verdad.
+ *
+ * Exportado porque es la frontera de TODO el bloque `avance_cuota`: el JSON de
+ * R serializa sus campos a veces como string —`meta_operativa` llegó como
+ * `"NA"` con «Todas las facultades" (A17, 2026-08-31)— y quien lea el bloque
+ * fuera de este módulo (la pestaña de Rendimiento le pasa la sobremuestra al
+ * gráfico) tiene que normalizar con la MISMA regla: número finito o `null`.
+ */
+export function numeroONulo(valor: unknown): number | null {
   if (valor == null || valor === "") return null;
   const n = Number(valor);
   return Number.isFinite(n) ? n : null;

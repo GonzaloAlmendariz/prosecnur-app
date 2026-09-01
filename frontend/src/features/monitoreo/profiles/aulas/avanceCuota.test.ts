@@ -4,7 +4,7 @@ import type {
   MonitoreoAulasAvanceCuota,
   MonitoreoAulasAvanceCuotaFacultad,
 } from "../../../../api/monitoreo";
-import { avanceCuota } from "./avanceCuota";
+import { avanceCuota, numeroONulo } from "./avanceCuota";
 
 function facultad(sobre: Partial<MonitoreoAulasAvanceCuotaFacultad> = {}): MonitoreoAulasAvanceCuotaFacultad {
   return {
@@ -241,5 +241,27 @@ describe("avanceCuota", () => {
     expect(vista.filas[0].cumplida).toBe(true);
     expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 %");
     expect(vista.cumplidas).toBe(1);
+  });
+});
+
+// La frontera del bloque `avance_cuota` para quien lo lea desde fuera: el JSON
+// de R serializa sus campos a veces como string, y `meta_operativa` llegó como
+// "NA" con «Todas las facultades» (A17, 2026-08-31). La regla es una sola:
+// número finito o `null`.
+describe("numeroONulo", () => {
+  test("el \"NA\" de R y lo vacío son null, no NaN", () => {
+    expect(numeroONulo("NA")).toBeNull();
+    expect(numeroONulo("")).toBeNull();
+    expect(numeroONulo(null)).toBeNull();
+    expect(numeroONulo(undefined)).toBeNull();
+    expect(numeroONulo("no es número")).toBeNull();
+    expect(numeroONulo(Number.NaN)).toBeNull();
+  });
+
+  test("un número de verdad pasa, venga como venga", () => {
+    expect(numeroONulo(3750)).toBe(3750);
+    expect(numeroONulo("3750")).toBe(3750);
+    expect(numeroONulo("0")).toBe(0);
+    expect(numeroONulo(0)).toBe(0);
   });
 });
