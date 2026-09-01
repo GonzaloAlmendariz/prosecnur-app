@@ -855,6 +855,16 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     for (col in cols) {
       if (col > ncol(datos)) next
       crudo <- as.character(datos[[col]])[-seq_len(desde)]
+      # La celda VACIA se borra en vez de quedarse como el texto "" que dejo
+      # `writeData`: con un "" inline la columna sale mixta (texto + fecha) y
+      # Excel ya no la trata como columna de fechas. Borrar no toca los
+      # rotulos («Total de la jornada», «Pendientes…»), que son texto con
+      # contenido y siguen tolerados.
+      vacias <- which(is.na(crudo) | !nzchar(trimws(crudo)))
+      if (length(vacias)) {
+        openxlsx::deleteData(wb, hoja, cols = col, rows = desde + vacias,
+                             gridExpand = TRUE)
+      }
       fecha <- suppressWarnings(as.Date(crudo, format = "%Y-%m-%d"))
       validas <- which(!is.na(fecha))
       if (!length(validas)) next
