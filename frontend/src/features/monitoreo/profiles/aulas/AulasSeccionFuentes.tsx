@@ -91,7 +91,7 @@ export function AulasSeccionFuentes({
               <FlujoVertical
                 etapas={embudo}
                 orientacion="horizontal"
-                ariaLabel="Recorrido del operativo: del plan a las encuestas válidas"
+                ariaLabel="Recorrido del operativo: del plan a las encuestas efectivas"
               />
               {/* **La explicación debajo de las cifras**, patrón 5 del catálogo.
                   Cálculo pone bajo su cadena de conversión un párrafo que explica
