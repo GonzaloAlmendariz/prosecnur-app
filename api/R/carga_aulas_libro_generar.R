@@ -63,6 +63,36 @@
   max(1L, as.integer(max(por_titular)))
 }
 
+# **Las cadenas del plan, agrupadas y ordenadas UNA sola vez.**
+#
+# Una fila del libro es una cadena: titular + reservas al lado. Dos hojas
+# reparten esa geometria («Aulas Agendadas» y, desde B24, «Aulas Aplicadas
+# (Campo)» con los MISMOS eslabones) y el arrastre de Sheets ancla formulas
+# por la fila que este agrupado produce — tres consumidores y una sola
+# implementacion, porque dos copias fue exactamente como se rompio el espejo
+# en vivo (2026-09-01: agendadas ordenaba por aparicion del TITULAR y la hoja
+# de campo iteraba titulares a secas; el ID MATCH arrastrado delataba el
+# desfase).
+#
+# El orden es el del PLAN, no el alfabetico (`split()` ordenaria «CH 1, CH 10,
+# CH 100»), y los niveles salen de la aparicion de los TITULARES: el plan
+# intercala reservas de otras cadenas (R 24.6 antes que CH 15) y con
+# `unique(claves)` a secas la cadena 24 se colaba adelante. Las cadenas sin
+# titular en el plan van al final, en su aparicion. Dentro de cada grupo, el
+# titular primero y las reservas por `replacement_order`.
+.calg_grupos_cadena <- function(unidades) {
+  if (!length(unidades)) return(list())
+  claves <- vapply(unidades, .calg_titular, character(1))
+  es_titular <- vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1))
+  grupos <- split(unidades, factor(claves, levels = unique(c(claves[es_titular], claves))))
+  lapply(grupos, function(g) {
+    g[order(vapply(g, function(u) {
+      if (identical(.calg_txt(u$sample_role), "titular")) 0
+      else suppressWarnings(as.numeric(u$replacement_order %||% 99))
+    }, numeric(1)))]
+  })
+}
+
 # La celda «SESIONES Y AULA»: las sesiones LEGIBLES por dia si el plan las
 # trae —«LUN 16:00-18:00 L101 · MIE 17:00-20:00 A506», anotadas desde el
 # catalogo DTI con el apareamiento dia↔aula intacto
@@ -173,24 +203,10 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
     v <- if (nzchar(cod)) unname(traslape_daa[cod]) else NA_character_
     if (length(v) != 1L || is.na(v)) "" else as.character(v)
   }
-  # Agrupa por titular: cada fila del Excel es un titular con su cadena al lado.
-  # Por `titular_operational_code` y no por `replacement_for` — ver `.calg_titular`.
-  #
-  # **En el orden del PLAN, no en el alfabetico.** `split()` ordena los grupos
-  # por su clave como TEXTO, asi que el libro salia «CH 1, CH 10, CH 100,
-  # CH 101…»: quien busca «CH 11» lo encontraba noventa filas mas abajo, y el
-  # orden de la muestra —que el plan ya trae resuelto— se perdia. Con el factor
-  # de niveles en orden de aparicion, el libro conserva el del plan.
-  claves <- vapply(unidades, .calg_titular, character(1))
-  # Los niveles salen de la aparicion de los TITULARES, no de la clave a secas:
-  # el plan intercala reservas de otras cadenas tras los primeros titulares
-  # (R 24.6 aparecia antes que CH 15) y con `unique(claves)` la cadena 24 se
-  # colaba a la fila 10 mientras «Aulas Aplicadas» —que itera titulares— ponia
-  # CH 15: dos hojas, dos ordenes, y el ID MATCH arrastrado delataba el desfase
-  # (medido en vivo el 2026-09-01; el M1 de 2025 exige fila a fila). Las cadenas
-  # sin titular en el plan (reserva con parte) van al final, en su aparicion.
-  es_titular <- vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1))
-  grupos <- split(unidades, factor(claves, levels = unique(c(claves[es_titular], claves))))
+  # Agrupa por cadena con el helper COMPARTIDO (ver `.calg_grupos_cadena`): la
+  # hoja de campo replica estos mismos grupos en el mismo orden (B24, el M1 de
+  # 2025 exige fila a fila), asi que la logica vive UNA vez.
+  grupos <- .calg_grupos_cadena(unidades)
   profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
   # **Cada bloque dice de quien es.** Repetidos tal cual, los tres bloques
@@ -203,11 +219,6 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   })))
   filas <- lapply(seq_along(grupos), function(i) {
     g <- grupos[[i]]
-    # El titular primero; las reservas por orden de cadena.
-    orden <- order(vapply(g, function(u) {
-      if (identical(.calg_txt(u$sample_role), "titular")) 0 else suppressWarnings(as.numeric(u$replacement_order %||% 99))
-    }, numeric(1)))
-    g <- g[orden]
     celdas <- unlist(lapply(seq_len(profundidad), function(b) {
       if (b > length(g)) return(rep("", length(titulos_bloque)))
       u <- g[[b]]
@@ -386,26 +397,48 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   "OBSERVACIONES SOBRE APLICACIONES"
 )
 
-#' Arma la hoja «Aulas Aplicadas (Campo)».
+#' Arma la hoja «Aulas Aplicadas (Campo)»: un bloque por ESLABON, espejo de
+#' «Aulas Agendadas».
 #'
-#' Trae la identidad del aula y sus denominadores; el parte lo llena quien
-#' supervisa campo.
+#' B24, dictado textual: «Tiene que ser como aulas agendadas, es el mismo
+#' diseño de columnas por titular o reemplazo pero con la información de
+#' campo». Hasta hoy la hoja armaba TRES bloques fijos por INTENTO de
+#' aplicacion: con una cadena de profundidad 4, agendadas repartia 4 bloques y
+#' aqui el REEMPLAZO 3 no tenia donde vivir. Ahora el bloque b ES el eslabon b
+#' de la cadena —su agenda (codigo incluido) y sus denominadores— y el parte
+#' de una reserva cae en SU bloque, sin fila propia: la hoja va fila a fila
+#' con agendadas (el M1 de 2025) y comparte su agrupado
+#' (`.calg_grupos_cadena`).
+#'
+#' El parametro `intentos` queda ACEPTADO E IGNORADO con B24 (decision
+#' documentada): la profundidad deriva de las cadenas del plan, y un knob que
+#' la contradiga dejaria a las dos hojas divergir — exactamente el defecto que
+#' esta unidad mata. Se conserva en la firma solo para no romper llamadores
+#' historicos que lo nombran; ningun valor cambia la hoja. Los reintentos de
+#' un mismo eslabon ya no tienen bloque propio: el bloque siembra el parte MAS
+#' RECIENTE (mayor `intento`) de su codigo y los anteriores viven solo en la
+#' app (la fusion de partes hace upsert por codigo sin descartarlos).
 #'
 #' @param unidades filas del plan.
-#' @param intentos cuantos bloques de aplicacion se dejan preparados.
+#' @param intentos ignorado desde B24 (la profundidad es la del plan).
+#' @param partes partes de campo ya registrados.
 #' @return data.frame con dos filas de cabecera (grupo y campo).
 #' @export
-aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list()) {
-  intentos <- max(1L, as.integer(intentos))
-  # Partes ya registrados, indexados por codigo operativo e intento.
+aulas_libro_hoja_aplicadas <- function(unidades, intentos = NULL, partes = list()) {
+  # El parte MAS RECIENTE por codigo operativo: mayor `intento` gana; a igual
+  # intento, el ultimo registrado (el orden de la lista es cronologico).
   por_aula <- list()
+  intento_de <- list()
   for (pt in partes) {
     if (!is.list(pt)) next
     cod <- .calg_txt(pt$operational_code, .calg_txt(pt$classroom_id))
     if (!nzchar(cod)) next
     n <- suppressWarnings(as.integer(pt$intento %||% 1L))
     if (!length(n) || !is.finite(n) || n < 1L) n <- 1L
-    por_aula[[sprintf("%s#%d", cod, n)]] <- pt
+    if (is.null(intento_de[[cod]]) || n >= intento_de[[cod]]) {
+      por_aula[[cod]] <- pt
+      intento_de[[cod]] <- n
+    }
   }
   # Desde el contrato v4 (B15) la parte de agenda ya dice «FECHA AGENDADA» de
   # fabrica —es el titulo primario de `scheduled_date`— asi que las dos fechas
@@ -415,60 +448,65 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
   # `test-carga-aulas-libro-rotulos-distinguibles.R`.
   titulos_agenda <- .calg_titulos_agenda()
   titulos_campo <- .calg_titulos_campo()
+  ancho_bloque <- 1L + length(titulos_agenda) + length(titulos_campo)
+
+  # ESPEJO de agendadas: los mismos grupos, en el mismo orden, con la misma
+  # profundidad (una fila por cadena; el agrupado vive una sola vez).
+  grupos <- .calg_grupos_cadena(unidades)
+  profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
   grupo <- c()
   campos <- c()
-  for (b in seq_len(intentos)) {
-    # **«TITULAR» y «REEMPLAZO n», no «muestra».** El vocabulario del estudio
-    # dejo de hablar de muestra 1 y muestra 2: una cadena es un titular y sus
-    # reemplazos, y asi se llaman ya los codigos de las aulas —«CH 4» y su
-    # «R 4.1», «R 4.2»—. La banda decia «MUESTRA DE APLICACIÓN PRINCIPAL» y
-    # «APLICACIÓN DE REEMPLAZO 2», que es el vocabulario viejo y ademas
-    # desalineado: el bloque 2 es el reemplazo 1, no el 2.
-    #
-    # Se puede renombrar sin romper la relectura porque el lector IGNORA esta
-    # fila: `carga_aulas_aplicadas.R` toma los titulos de la fila 2.
+  for (b in seq_len(profundidad)) {
+    # **«TITULAR» y «REEMPLAZO n», no «muestra».** Una cadena es un titular y
+    # sus reemplazos, y asi se llaman ya los codigos («CH 4», «R 4.1»). Desde
+    # B24 la banda dice ademas la verdad geometrica: el bloque b ES el eslabon
+    # b, no un intento. Se puede renombrar sin romper la relectura porque el
+    # lector IGNORA esta fila (`carga_aulas_aplicadas.R` toma la fila 2).
     etiqueta <- if (b == 1L) "TITULAR" else sprintf("REEMPLAZO %d", b - 1L)
-    ancho <- 1L + length(titulos_agenda) + length(titulos_campo)
-    grupo <- c(grupo, etiqueta, rep("", ancho - 1L))
+    grupo <- c(grupo, etiqueta, rep("", ancho_bloque - 1L))
     campos <- c(campos, "ID MATCH", titulos_agenda, titulos_campo)
   }
 
-  # Titulares SIEMPRE, y ademas cualquier unidad con parte registrado: una
-  # reserva activada se aplica igual que un titular —en el estudio de 2025, 26
-  # de los 196 partes son de reservas— y filtrar por rol la borraba del libro.
-  # `names(list())` es NULL y `startsWith(NULL, ...)` lanza: sin partes —el libro
-  # nuevo, que es el caso mas comun— no hay a quien preguntar.
-  claves_parte <- names(por_aula) %||% character(0)
-  con_parte <- vapply(unidades, function(u) {
-    cod <- .calg_txt(u$operational_code)
-    nzchar(cod) && length(claves_parte) > 0L && any(startsWith(claves_parte, paste0(cod, "#")))
-  }, logical(1))
-  titulares <- unidades[vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1)) | con_parte]
-  filas <- lapply(seq_along(titulares), function(i) {
-    u <- titulares[[i]]
-    bloque <- c(
-      as.character(i),
-      # La parte de agenda que esta hoja repite sale de la MISMA spec que la
-      # otra hoja (`.calg_celdas_agenda`): antes eran dos escritores a mano y
-      # un campo nuevo tenia que agregarse en ambos sin que nada lo atara.
-      .calg_celdas_agenda(u),
-      # Parte de campo del primer intento: los dos denominadores como referencia
-      # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.
-      .cap_celdas_parte(por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]], u, titulos_campo)
-    )
-    ancho_bloque <- 1L + length(titulos_agenda) + length(titulos_campo)
-    # Los reintentos tambien devuelven lo suyo: un aula que ya fue a segunda
-    # vuelta pierde ese parte si el bloque sale en blanco.
-    extra <- unlist(lapply(seq_len(intentos - 1L), function(b) {
-      pt <- por_aula[[sprintf("%s#%d", .calg_txt(u$operational_code), b + 1L)]]
-      if (is.null(pt)) return(rep("", ancho_bloque))
-      c(as.character(i), rep("", length(titulos_agenda)),
-        .cap_celdas_parte(pt, u, titulos_campo))
+  filas <- lapply(seq_along(grupos), function(i) {
+    g <- grupos[[i]]
+    unlist(lapply(seq_len(profundidad), function(b) {
+      # Eslabon AUSENTE (la cadena es mas corta que la mas larga): bloque
+      # vacio — sembrar algo inventaria un aula al releer.
+      if (b > length(g)) return(rep("", ancho_bloque))
+      u <- g[[b]]
+      c(as.character(i),
+        # La agenda DEL ESLABON, de la misma spec que la otra hoja
+        # (`.calg_celdas_agenda`): el codigo sembrado es lo que hace que un
+        # parte tecleado en el bloque REEMPLAZO n vuelva bajo SU reserva.
+        .calg_celdas_agenda(u),
+        # Y el parte de ESE eslabon: sus denominadores como referencia (el %
+        # de asistencia de R 1.1 se juzga contra SUS elegibles, no los del
+        # titular) y lo mas reciente que se haya registrado.
+        .cap_celdas_parte(por_aula[[.calg_txt(u$operational_code)]], u, titulos_campo))
     }), use.names = FALSE)
-    c(bloque, if (length(extra)) extra else rep("", ancho_bloque * (intentos - 1L)))
   })
-  as.data.frame(do.call(rbind, c(list(grupo), list(campos), filas)), stringsAsFactors = FALSE)
+
+  # **Fallback: un parte cuyo codigo no ancla en ninguna cadena del plan.**
+  # Que nada muera en silencio: gana una fila propia con su codigo en el
+  # bloque 1 y el parte al lado, agenda en blanco (no hay unidad de la que
+  # derivarla). Antes de B24 ese parte simplemente no se rendia.
+  codigos_plan <- unique(vapply(unidades %||% list(), function(u) {
+    .calg_txt(u$operational_code)
+  }, character(1)))
+  huerfanos <- setdiff(names(por_aula) %||% character(0), codigos_plan)
+  filas_huerfanas <- lapply(seq_along(huerfanos), function(k) {
+    cod <- huerfanos[[k]]
+    c(as.character(length(grupos) + k),
+      .calg_celdas_agenda(list(operational_code = cod)),
+      .cap_celdas_parte(por_aula[[cod]], list(), titulos_campo),
+      rep("", ancho_bloque * (profundidad - 1L)))
+  })
+
+  as.data.frame(
+    do.call(rbind, c(list(grupo), list(campos), filas, filas_huerfanas)),
+    stringsAsFactors = FALSE
+  )
 }
 
 # Los campos de la Base de control que la hoja ESCRIBE: todos menos los que la
@@ -1014,13 +1052,17 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # primer intento. Mismo error de contar columnas a mano que ya habia costado
   # las paginas sin aula; por eso ahora hay UNA funcion que lo calcula.
   ancho_campo <- 1L + length(.calg_titulos_agenda()) + length(.calg_titulos_campo())
-  intentos_campo <- max(1L, floor(ncol(hojas[["Aulas Aplicadas (Campo)"]]) / ancho_campo))
+  # Desde B24 los bloques de la hoja de campo son ESLABONES espejo de
+  # agendadas (ya no «intentos» fijos): la cuenta se lee del ancho real, asi
+  # que bandas, semaforo, validaciones, descuadres y tipado recomputan solos
+  # con la profundidad del plan.
+  bloques_campo <- max(1L, floor(ncol(hojas[["Aulas Aplicadas (Campo)"]]) / ancho_campo))
   col_campo <- function(titulo, b) {
     (b - 1L) * ancho_campo + 1L + length(.calg_titulos_agenda()) +
       which(.calg_titulos_campo() == titulo)
   }
   cols_campo <- function(titulos) unlist(lapply(titulos, function(t)
-    vapply(seq_len(intentos_campo), function(b) col_campo(t, b), integer(1))))
+    vapply(seq_len(bloques_campo), function(b) col_campo(t, b), integer(1))))
 
   # Las columnas de AGENDA que la hoja de campo repite delante de las suyas.
   # Hermana de `cols_campo`, y va aqui por lo mismo: `formatos` las necesita.
@@ -1029,7 +1071,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   }
   cols_agenda_en_campo <- function(titulos) unlist(lapply(titulos, function(t) {
     if (!length(which(.calg_titulos_agenda() == t))) return(integer(0))
-    vapply(seq_len(intentos_campo), function(b) col_agenda_en_campo(t, b), integer(1))
+    vapply(seq_len(bloques_campo), function(b) col_agenda_en_campo(t, b), integer(1))
   }))
 
   # Cada columna con su paleta. Las dos ultimas las pidio Gonzalo comparando con
@@ -1169,7 +1211,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # clave de fila, asi que el tipo de sus valores le da igual.
   .calg_tipar_numeros(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]], 1L, desde = 1L)
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
-                      vapply(seq_len(intentos_campo),
+                      vapply(seq_len(bloques_campo),
                              function(b) (b - 1L) * ancho_campo + 1L, integer(1)),
                       desde = 2L)
   .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
@@ -1240,7 +1282,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       # bloques en el mismo navy: la banda los nombraba pero el color no los
       # distinguia. `pinta_banda`, porque aqui la fila 1 es la banda y la pinta
       # este bucle —el de `agrupados` solo cubre la agenda—.
-      lapply(seq_len(intentos_campo), function(b) list(
+      lapply(seq_len(bloques_campo), function(b) list(
         hoja = "Aulas Aplicadas (Campo)", desde = 2L,
         filas = max(0L, filas_aplicadas), eslabon = b, pinta_banda = TRUE,
         cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
@@ -1279,7 +1321,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # Las bandas de grupo de la hoja de campo: una por intento.
     # La regla de cuadre del parte, una por intento: las efectivas no pueden
     # superar a los asistentes menos rechazos y duplicados.
-    descuadres = lapply(seq_len(intentos_campo), function(b) list(
+    descuadres = lapply(seq_len(bloques_campo), function(b) list(
       hoja = "Aulas Aplicadas (Campo)", desde = 2L,
       filas = max(0L, filas_aplicadas),
       asistentes = col_campo("CANTIDAD DE ASISTENTES", b),
@@ -1288,7 +1330,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       efectivas = col_campo("CANTIDAD DE EFECTIVAS", b)
     )),
     combinar = c(
-      lapply(seq_len(intentos_campo), function(b) list(
+      lapply(seq_len(bloques_campo), function(b) list(
         hoja = "Aulas Aplicadas (Campo)", fila = 1L,
         cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
       )),

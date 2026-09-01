@@ -154,7 +154,13 @@ aulas_libro_importar <- function(path) {
     session_set(sid, "monitoreo_aulas_plan",
                 monitoreo_aulas_plan_desde_partes(plan_actual, out$partes))
   }
-  session_set(sid, "monitoreo_aulas_partes_campo", out$partes)
+  # B24: UPSERT por codigo, no reemplazo wholesale — la hoja de campo siembra
+  # solo el parte MAS RECIENTE de cada eslabon, asi que los intentos
+  # anteriores viven SOLO en la sesion y un reemplazo total los borraba.
+  partes_sesion <- aulas_libro_fusionar_partes(
+    session_get(sid)$monitoreo_aulas_partes_campo %||% list(), out$partes
+  )
+  session_set(sid, "monitoreo_aulas_partes_campo", partes_sesion)
   session_set(sid, "monitoreo_aulas_control", out$control)
   # El aviso entra a la config para que el tablero pueda mostrarlo: viajaba en
   # la respuesta del endpoint y ningun consumidor lo miraba.
@@ -162,7 +168,9 @@ aulas_libro_importar <- function(path) {
   if (is.list(cfg$aulas_universitarias)) {
     cfg$aulas_universitarias$control_sin_nombre <- length(out$control_sin_nombre)
     cfg$aulas_universitarias$agenda_campos_ausentes <- as.list(out$agenda_campos_ausentes)
-    cfg$aulas_universitarias$partes_campo <- out$partes
+    # La config refleja la SESION (fusion incluida): escribir solo lo del libro
+    # perderia los intentos anteriores al guardar/cargar el proyecto.
+    cfg$aulas_universitarias$partes_campo <- partes_sesion
     # Mismo camino que los partes: sin esta linea las filas de «Base de control»
     # se quedaban en `monitoreo_aulas_control` y no las leia NADIE —ni el motor
     # ni la UI—, asi que sus 25 campos propios de control de calidad no existian

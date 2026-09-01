@@ -134,6 +134,65 @@ aulas_libro_fusionar_plan <- function(previo = list(), nuevo = list()) {
   )
 }
 
+#' Fusiona los partes del libro sobre los de la sesion: upsert por codigo.
+#'
+#' B24: la hoja de campo lleva UN bloque por eslabon y siembra solo el parte
+#' MAS RECIENTE de cada codigo, asi que los intentos anteriores viven SOLO en
+#' la app. El `session_set` wholesale que habia aqui los borraba al reimportar:
+#' esta fusion actualiza el parte de MAYOR intento de cada codigo con lo que
+#' el libro trae (conservando su numero de intento — el eslabon del lector no
+#' es un intento) y deja intactos los demas. Un codigo nuevo entra tal cual.
+#' Un parte de la sesion que el libro no menciona SE CONSERVA: su ausencia
+#' significa que la hoja ya no lo enseña, no que la visita no ocurrio.
+#'
+#' @param previos partes de la sesion.
+#' @param nuevos partes leidos del libro.
+#' @return lista de partes fusionada.
+#' @export
+aulas_libro_fusionar_partes <- function(previos = list(), nuevos = list()) {
+  previos <- previos %||% list()
+  nuevos <- nuevos %||% list()
+  if (!length(previos)) return(nuevos)
+  if (!length(nuevos)) return(previos)
+
+  cod_de <- function(p) {
+    if (!is.list(p)) return("")
+    v <- .alf_txt(p[["operational_code"]])
+    if (nzchar(v)) v else .alf_txt(p[["classroom_id"]])
+  }
+  intento_de <- function(p) {
+    n <- suppressWarnings(as.integer(p[["intento"]] %||% 1L))
+    if (!length(n) || is.na(n) || n < 1L) 1L else n
+  }
+
+  # Posicion del parte de MAYOR intento por codigo; a igual intento gana el
+  # ultimo registrado (el orden de la lista es cronologico).
+  idx <- list()
+  for (i in seq_along(previos)) {
+    k <- cod_de(previos[[i]])
+    if (!nzchar(k)) next
+    if (is.null(idx[[k]]) || intento_de(previos[[i]]) >= intento_de(previos[[idx[[k]]]])) {
+      idx[[k]] <- i
+    }
+  }
+
+  out <- previos
+  for (p in nuevos) {
+    k <- cod_de(p)
+    pos <- if (nzchar(k)) idx[[k]] else NULL
+    if (is.null(pos)) {
+      out[[length(out) + 1L]] <- p
+      next
+    }
+    # El libro manda en el contenido; el numero de intento es de la APP (el
+    # `intento` del lector es la posicion del ESLABON, no una visita).
+    actualizado <- p
+    actualizado[["intento"]] <- intento_de(out[[pos]])
+    out[[pos]] <- actualizado
+  }
+  out
+}
+
 .alf_txt <- function(x) {
   v <- suppressWarnings(as.character(x %||% "")[1])
   if (is.na(v)) "" else trimws(v)

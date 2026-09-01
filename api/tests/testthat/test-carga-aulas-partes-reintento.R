@@ -11,13 +11,12 @@
 # en el xlsx (`efectivas = 9` ESTA en la celda) y aun asi desaparece al
 # importar.
 #
-# Estos tests fijan el RESULTADO, no el mecanismo. `ID MATCH` ancla la fila y
-# los bloques 2+ son reintentos DE ESA aula, asi que el parte del intento 2
-# tiene que volver con su codigo y su clave `%s#%d` — da igual si el lector
-# deriva el codigo del bloque 1 de la misma fila o si el generador lo repite en
-# cada bloque. Lo unico que un arreglo NO puede hacer es pisar un codigo
-# tecleado (anatomia 2025: el bloque 2 puede traer OTRA aula) ni fabricar
-# partes por los bloques en blanco.
+# B24 (2026-09-01) cambio el eje de la hoja: los bloques son ESLABONES de la
+# cadena, no visitas — un codigo tiene UN bloque y ahi viaja su parte MAS
+# RECIENTE (mayor intento). La garantia de A16 se muda a la FUSION: el libro
+# actualiza el mayor intento del codigo CONSERVANDO su numero, y los intentos
+# anteriores viven intactos en la sesion. Lo que un arreglo sigue sin poder
+# hacer: perder contenido en silencio o fabricar partes por bloques en blanco.
 
 .a16_plan <- function() list(
   list(classroom_id = "A-01", operational_code = "CH 1",
@@ -58,44 +57,52 @@
   sprintf("%s#%d", as.character(p$operational_code %||% ""),
           as.integer(p$intento %||% 0L)), character(1))
 
-test_that("A16: el parte del intento 2 vuelve entero al releer el libro", {
+test_that("B24: el parte MAS RECIENTE del codigo viaja al libro y vuelve entero", {
   vuelto <- .a16_vuelta()
-  claves <- .a16_claves(vuelto)
+  codigos <- vapply(vuelto, function(p) as.character(p$operational_code %||% ""),
+                    character(1))
+  expect_true("CH 1" %in% codigos)
 
-  # La clave con la que el propio generador indexa: aula + intento.
-  expect_true("CH 1#2" %in% claves)
-
-  r2 <- vuelto[[which(claves == "CH 1#2")[[1]]]]
-  expect_identical(as.character(r2$operational_code), "CH 1")
-  expect_identical(as.integer(r2$intento), 2L)
-  # Los campos del parte, intactos: no basta con que la fila exista.
-  expect_equal(as.numeric(r2$observed_students), 12)
-  expect_equal(as.numeric(r2$refusals), 1)
-  expect_equal(as.numeric(r2$effective_surveys), 9)
-  expect_identical(as.character(r2$applied_by), "Equipo B")
-  expect_identical(as.character(r2$application_status), "APLICADA")
-  expect_identical(as.character(r2$field_note), "segunda visita")
-  # La ficha escaneada del bloque 2 viaja con SU intento: B6(c) fijo el
-  # generador; aqui se cierra el circulo por el xlsx.
-  expect_identical(as.character(r2$scanned_sheet_link %||% ""),
+  r <- vuelto[[which(codigos == "CH 1")[[1]]]]
+  # El contenido es el del intento 2 (el mas reciente), campo a campo.
+  expect_equal(as.numeric(r$observed_students), 12)
+  expect_equal(as.numeric(r$refusals), 1)
+  expect_equal(as.numeric(r$effective_surveys), 9)
+  expect_identical(as.character(r$applied_by), "Equipo B")
+  expect_identical(as.character(r$application_status), "APLICADA")
+  expect_identical(as.character(r$field_note), "segunda visita")
+  expect_identical(as.character(r$scanned_sheet_link %||% ""),
                    "https://drive.google.com/file/d/reintento2/view")
-
-  # Y el intento 1 sigue siendo el suyo: recuperar el reintento no puede
-  # costarle nada al titular de la fila.
-  expect_true("CH 1#1" %in% claves)
-  r1 <- vuelto[[which(claves == "CH 1#1")[[1]]]]
-  expect_equal(as.numeric(r1$effective_surveys), 21)
-  expect_identical(as.character(r1$application_status), "NO APLICADA")
 })
 
-test_that("A16: el conteo de partes tras generar -> leer es el que se escribio", {
-  # Tres escritos, tres de vuelta. Las dos mitades del pin: ni se pierde el
-  # reintento (hoy vuelven 2 de 3) ni el arreglo puede fabricar partes por los
-  # bloques en blanco — CH 2 tiene los bloques 2 y 3 vacios y CH 1 el 3, y un
-  # bloque sin nada tecleado no es un parte.
+test_that("B24: la fusion actualiza el mayor intento del codigo y conserva los anteriores", {
+  # El circuito completo: la sesion tiene CH 1#1 y CH 1#2; el libro vuelve con
+  # el contenido del mas reciente corregido; la fusion pisa el #2 CONSERVANDO
+  # su numero y el #1 queda intacto — nada se pierde en silencio.
   vuelto <- .a16_vuelta()
-  expect_length(vuelto, 3L)
-  expect_setequal(.a16_claves(vuelto), c("CH 1#1", "CH 1#2", "CH 2#1"))
+  codigos <- vapply(vuelto, function(p) as.character(p$operational_code %||% ""),
+                    character(1))
+  del_libro <- vuelto[[which(codigos == "CH 1")[[1]]]]
+  del_libro$effective_surveys <- 11  # correccion tecleada en el libro
+
+  fusion <- aulas_libro_fusionar_partes(.a16_partes(), list(del_libro))
+  claves <- .a16_claves(fusion)
+  expect_setequal(claves, c("CH 1#1", "CH 1#2", "CH 2#1"))
+  f2 <- fusion[[which(claves == "CH 1#2")[[1]]]]
+  expect_equal(as.numeric(f2$effective_surveys), 11)
+  expect_identical(as.integer(f2$intento), 2L)
+  f1 <- fusion[[which(claves == "CH 1#1")[[1]]]]
+  expect_equal(as.numeric(f1$effective_surveys), 21)
+  expect_identical(as.character(f1$application_status), "NO APLICADA")
+})
+
+test_that("B24: vuelve UN parte por codigo con dato y ninguno fabricado", {
+  # Dos codigos con parte, dos de vuelta: el eslabon muestra el mas reciente y
+  # un bloque sin nada tecleado no es un parte.
+  vuelto <- .a16_vuelta()
+  codigos <- vapply(vuelto, function(p) as.character(p$operational_code %||% ""),
+                    character(1))
+  expect_setequal(codigos, c("CH 1", "CH 2"))
 })
 
 # --- Guardas contra el arreglo de mas (anatomia real 2025, nivel lector) -----
