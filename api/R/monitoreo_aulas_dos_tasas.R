@@ -74,6 +74,17 @@
   "pendiente"
 }
 
+# B13b: el RECHAZO tecleado vive en el OTRO eje —`sample_status`, el del
+# agendamiento— y tambien retira: un docente que dijo que no ya no va a
+# aplicarse por esta via, y dejarlo `pendiente` era pedirle gestion a
+# perpetuidad. Se pregunta al normalizador real (acepta «RECHAZO» del libro y
+# `rechazo` del plan por igual), no a una copia de su lista. Solo degrada el
+# balde `pendiente`: un aula con `operational_status` aplicado YA se midio, y
+# ante la contradiccion entre los dos ejes manda la medicion que existe.
+.madt_rechazada <- function(fila) {
+  identical(monitoreo_aulas_estado_muestra(fila[["sample_status"]]), "rechazo")
+}
+
 # El plan puede llegar como data.frame (el `plan_df` del tablero) o como lista
 # de filas (los tests y el estado crudo). Se unifica a lista de listas con el
 # helper que ya usa el resto del payload, sin tope: recortar aqui seria
@@ -197,7 +208,9 @@
       "`pendiente`, con su prevista y sus elegibles a la vista; ",
       "reemplazada/cancelada/sin_acceso/reemplazo_pendiente como `retirada` ",
       "—su desenlace ya no es aplicarse por esta via—, y el estado literal ",
-      "viaja en `estado_operativo`"
+      "viaja en `estado_operativo`. El RECHAZO tecleado en STATUS MUESTRA ",
+      "(el eje del agendamiento) tambien retira lo pendiente: el docente dijo ",
+      "que no y esa aula ya no va a aplicarse por esta via"
     ),
     banda = paste0(
       "1.959964*sqrt(p*(1-p)/elegibles) —la z de la casa, la misma de la ",
@@ -241,6 +254,10 @@ monitoreo_aulas_dos_tasas <- function(plan = list()) {
     tasa_fac <- .monitoreo_num(fila[["tasa_facultad"]], NA_real_)
     estado <- .monitoreo_scalar(fila[["operational_status"]], "")
     balde <- .madt_balde(estado)
+    # B13b: RECHAZO en el eje del agendamiento retira lo que aun estaba
+    # `pendiente` — sin gestion operativa escrita, o con el default
+    # «planificada» del row-builder, que son las dos formas reales del tablero.
+    if (identical(balde, "pendiente") && .madt_rechazada(fila)) balde <- "retirada"
     # El literal viaja tal como se escribio; el vacio y el «-» de relleno no
     # son un estado que enseñar.
     estado_lit <- trimws(estado)

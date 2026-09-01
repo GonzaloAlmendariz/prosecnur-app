@@ -11,11 +11,12 @@
 test_that("los estados se escriben como los ofrece el desplegable", {
   expect_identical(prosecnurapp:::.calg_status_excel("agendada"), "AGENDADA")
   expect_identical(prosecnurapp:::.calg_status_excel("reemplazada"), "REEMPLAZADA")
-  # «EN RESERVA k» describe a la reserva k, y k sale del orden de la cadena.
-  expect_identical(prosecnurapp:::.calg_status_excel("en_reserva", 2), "EN RESERVA 2")
-  expect_identical(prosecnurapp:::.calg_status_excel("en reserva", 3), "EN RESERVA 3")
-  # Si el propio valor ya trae el numero, manda el valor.
-  expect_identical(prosecnurapp:::.calg_status_excel("EN RESERVA 5", 2), "EN RESERVA 5")
+  # B13b (D-B13 cerrada por el dueño): «EN RESERVA k» dejo de sembrarse — la
+  # posicion en cadena ya la dice el codigo R n.k y el desplegable solo ofrece
+  # los cinco tecleables. Toda forma en_reserva siembra el estado inicial.
+  expect_identical(prosecnurapp:::.calg_status_excel("en_reserva", 2), "SIN CONTACTAR")
+  expect_identical(prosecnurapp:::.calg_status_excel("en reserva", 3), "SIN CONTACTAR")
+  expect_identical(prosecnurapp:::.calg_status_excel("EN RESERVA 5", 2), "SIN CONTACTAR")
 })
 
 test_that("un estado que la lista NO ofrece se escribe tal cual, en mayusculas", {

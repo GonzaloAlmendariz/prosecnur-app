@@ -12,8 +12,14 @@ monitoreo_aulas_estados <- function() {
 # puede estar REEMPLAZADA en muestra y APLICADA en campo, porque una cosa es
 # como se consiguio el aula y otra como fue la aplicacion. Medido en el estudio
 # de 2025 sobre 230 aulas contactadas.
+#
+# B13b (D-B13 cerrada): los cinco TECLEABLES del libro son sin_contactar,
+# en_contacto, agendada, reagendada y rechazo. `en_reserva` y `reemplazada`
+# siguen en el vocabulario como DERIVADOS: el plan los publica (la activacion
+# de reemplazos los escribe) y los libros vivos v3 los traen tecleados.
 monitoreo_aulas_estados_muestra <- function() {
-  c("agendada", "reagendada", "en_reserva", "reemplazada", "sin_contactar")
+  c("sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
+    "en_reserva", "reemplazada")
 }
 
 # Estados de la APLICACION, tal como los escribe el parte de campo.
@@ -45,6 +51,11 @@ monitoreo_aulas_estado_muestra <- function(x) {
     agendada = "agendada",
     reagendada = "reagendada",
     reemplazada = "reemplazada",
+    # B13b: los dos tecleables nuevos del dictado. Sin estas ramas, «EN
+    # CONTACTO» y «RECHAZO» degradaban al default y un rechazo tecleado
+    # volvia a la cola de llamadas como si nadie hubiera llamado.
+    en_contacto = "en_contacto",
+    rechazo = "rechazo",
     "sin_contactar"
   )
   out
