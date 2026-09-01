@@ -358,11 +358,14 @@ export function AulasControlDelLibro({
   criterio?: CriterioDelEstudio | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
-  // **La cuarta cifra de «cuántas encuestas hay», y la única sin dibujar.**
-  // La cadena es asistentes → enviadas → válidas → efectivas del parte, y esta
-  // tabla trae `sent_total` y `valid_total` aula por aula: para saber cuánto se
-  // pierde en total había que sumar 190 filas a mano. Medido en 2025: se pierde
-  // el 9-13 %, y no es constante (91 % · 87 % · 88 % por semana).
+  // **La banda compara dos cifras de la misma hoja, no el veredicto.**
+  // `sent_total` es lo que el equipo da por enviado y `efectivas_obtenidas` la
+  // efectiva de plataforma que la app escribe en la fila; `valid_total` es el
+  // veredicto que esta misma tabla pinta como marca de sí/no dos líneas más
+  // abajo, y leerlo como conteo daba «De 770 enviadas cuentan 2» con banderas
+  // 0/1 y apagaba la banda con «SI»/«NO» (checklist A20 · censo de las cuatro
+  // cifras 2026-09-01, choque 1). Medido en 2025 se pierde el 9-13 %, y para
+  // saberlo había que sumar 190 filas a mano.
   const perdida = perdidaDelControl(filas);
   const grupos = resumen?.grupos ?? [];
   const aulas = resumen?.aulas ?? filas.length;
@@ -541,15 +544,21 @@ export function AulasControlDelLibro({
           panel nuevo se lo quitaría a los vecinos. */}
       {perdida ? (
         <p className="aulas-perdida" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          {/* Cada cifra con su fuente, como en el alcance del banco: «enviado»
+              lo declara la hoja y «efectivas» la plataforma; sin decirlo, las
+              dos parecen cuentas de la app. */}
           <span className="aulas-perdida-cifras">
-            De <strong>{fmt(perdida.enviadas)}</strong> enviadas cuentan{" "}
-            <strong>{fmt(perdida.validas)}</strong>
+            De <strong>{fmt(perdida.enviadas)}</strong> que la hoja da por enviado,
+            la plataforma da por efectivas <strong>{fmt(perdida.validas)}</strong>
             {perdida.pierde > 0 ? <> · se pierden {fmt(perdida.pierde)}</> : null}
             {" "}({Math.round(perdida.pasa * 100)} % pasa)
-            {/* Las que nadie ha revisado NO son pérdida: decirlo evita leer el
-                porcentaje como si el libro estuviera completo. */}
+            {/* Las filas sin efectiva de plataforma NO son pérdida: decirlo
+                evita leer el porcentaje como si el libro estuviera completo. */}
             {perdida.sinRevisar > 0 ? (
-              <small> · {fmt(perdida.sinRevisar)} sin revisar todavía, fuera de la cuenta</small>
+              <small>
+                {" "}· {fmt(perdida.sinRevisar)} {perdida.sinRevisar === 1 ? "fila" : "filas"} aún
+                sin efectiva de plataforma, fuera de la comparación
+              </small>
             ) : null}
           </span>
           <span className="aulas-perdida-barra" aria-hidden="true">

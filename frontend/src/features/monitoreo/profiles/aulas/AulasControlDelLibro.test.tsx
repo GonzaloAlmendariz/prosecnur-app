@@ -130,3 +130,108 @@ describe("AulasControlDelLibro · veredicto por aula", () => {
     expect(html).not.toContain("aulas-control-marca");
   });
 });
+
+describe("AulasControlDelLibro · la banda de pérdida no lee el veredicto", () => {
+  // A20 (censo de las cuatro cifras 2026-09-01, choque 1): la banda compara lo
+  // que la hoja da por ENVIADO (`sent_total`, la cuenta del equipo) contra la
+  // efectiva de PLATAFORMA que la app escribe en la MISMA hoja
+  // (`efectivas_obtenidas`). `valid_total` es el veredicto de la columna de al
+  // lado y jamás entra como cifra: con banderas 0/1 la banda decía «De 770
+  // enviadas cuentan 2 (0 % pasa)» y con «SI»/«NO» se apagaba entera.
+  //
+  // La copy exacta es del writer: aquí se fijan las CIFRAS que la banda puede
+  // y no puede decir, leídas del texto del párrafo sin sus etiquetas.
+  function banda(filas: Array<Record<string, unknown>>) {
+    const html = renderToStaticMarkup(
+      <AulasControlDelLibro
+        filas={filas.map((f, i) => ({ operational_code: `CH ${i + 1}`, grupos_con_dato: ["cuenta"], ...f }))}
+        resumen={{
+          aulas: filas.length,
+          grupos: [
+            { clave: "cuenta", etiqueta: "Control - cuenta", campos: 14, aulas_con_dato: filas.length },
+            { clave: "esperado", etiqueta: "Control - esperado", campos: 6, aulas_con_dato: filas.length },
+          ],
+        } as never}
+      />,
+    );
+    const desde = html.indexOf('class="aulas-perdida"');
+    if (desde < 0) return null;
+    // Sólo el párrafo de la banda: la tabla de abajo repite las mismas cifras
+    // celda a celda y un aserto global las cazaría por donde no es.
+    return html.slice(desde, html.indexOf("</p>", desde)).replace(/<[^>]+>/g, " ");
+  }
+
+  it("con banderas 0/1 no dice que de 770 enviadas cuentan 2", () => {
+    const texto = banda([
+      { sent_total: 300, valid_total: 1, efectivas_obtenidas: 271 },
+      { sent_total: 250, valid_total: 0, efectivas_obtenidas: 224 },
+      { sent_total: 220, valid_total: 1, efectivas_obtenidas: 205 },
+    ]);
+    expect(texto).not.toBeNull();
+    expect(texto!).toMatch(/\b700\b/); // la efectiva de plataforma, sumada
+    expect(texto!).toMatch(/\b91\s*%/); // 700 de 770
+    expect(texto!).not.toMatch(/\b768\b/); // la pérdida fabricada del veredicto
+    expect(texto!).not.toMatch(/\b0\s*%/);
+  });
+
+  it("con «SI»/«NO» en el veredicto la banda no se apaga", () => {
+    // La lectura vieja mandaba estas dos filas a «sin revisar» y la banda no se
+    // dibujaba: una hoja llena declarada vacía.
+    const texto = banda([
+      { sent_total: 100, valid_total: "SI", efectivas_obtenidas: 91 },
+      { sent_total: 50, valid_total: "NO", efectivas_obtenidas: 44 },
+    ]);
+    expect(texto).not.toBeNull();
+    expect(texto!).toMatch(/\b150\b/);
+    expect(texto!).toMatch(/\b135\b/);
+    expect(texto!).toMatch(/\b90\s*%/);
+  });
+
+  it("2 009 enviadas y 1 811 efectivas de plataforma: se pierden 198", () => {
+    // `fmt()` pasa por Intl y el separador de miles depende del ICU del runner
+    // (la memoria del repo tiene el caso): el regex admite cualquiera.
+    const texto = banda([{ sent_total: 2009, efectivas_obtenidas: 1811, valid_total: "CUMPLE" }]);
+    expect(texto).not.toBeNull();
+    expect(texto!).toMatch(/2[\s.,]?009/);
+    expect(texto!).toMatch(/1[\s.,]?811/);
+    expect(texto!).toMatch(/\b198\b/);
+    expect(texto!).toMatch(/\b90\s*%/);
+  });
+
+  it("la fila sin efectiva de plataforma no fabrica pérdida ni infla las enviadas", () => {
+    const texto = banda([
+      { sent_total: 100, efectivas_obtenidas: 91, valid_total: "SI" },
+      { sent_total: 200, efectivas_obtenidas: 180 },
+      { sent_total: 40 },
+    ]);
+    expect(texto).not.toBeNull();
+    expect(texto!).toMatch(/\b300\b/); // sólo las filas comparadas
+    expect(texto!).toMatch(/\b271\b/);
+    expect(texto!).toMatch(/\b29\b/);
+    expect(texto!).not.toMatch(/\b340\b/); // la excluida no entra al total
+    // Cuántas quedaron fuera lo declara el resultado (`sinRevisar`, pineado en
+    // perdidaDelControl.test.ts); la frase con que la banda lo diga es del
+    // writer.
+  });
+
+  it("la columna «Válido total» sigue pintando el veredicto, no una cifra", () => {
+    // El verde a conservar: el mismo campo, dos líneas más abajo de la banda,
+    // es una marca de sí/no que sale del motor. El arreglo de la banda no
+    // puede llevárselo.
+    const html = renderToStaticMarkup(
+      <AulasControlDelLibro
+        filas={[{
+          operational_code: "CH 1",
+          grupos_con_dato: ["cuenta"],
+          sent_total: 300,
+          efectivas_obtenidas: 271,
+          valid_total: "1",
+          cumple_total: true,
+        }]}
+        resumen={{ aulas: 1, grupos: [{ clave: "cuenta", etiqueta: "Control - cuenta", campos: 14, aulas_con_dato: 1 }] } as never}
+      />,
+    );
+    expect(html).toContain('title="Válido total"');
+    expect(html).toContain("Válido, según la hoja");
+  });
+});
