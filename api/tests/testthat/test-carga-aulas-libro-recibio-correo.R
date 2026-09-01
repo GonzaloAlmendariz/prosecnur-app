@@ -198,10 +198,12 @@ test_that("contexto B22: los vecinos reales de la spec y la aritmética por tít
 test_that("B22: la spec declara «RECIBIÓ CORREO» entre NÚMERO DE INTENTOS y STATUS MUESTRA", {
   if (!.rc_spec_ok("spec")) return(invisible(NULL))
   idx <- .rc_idx()[[1]]
-  # «a la izquierda de la columna del status» y después de los intentos:
-  # inmediatamente, no en algún lugar intermedio.
-  expect_identical(idx, .rc_idx_campo("contact_attempts") + 1L,
-                   info = "«RECIBIÓ CORREO» no va inmediatamente después de NÚMERO DE INTENTOS")
+  # El dictado B22 textual es «a la izquierda de la columna del status»: el pin
+  # duro es pegado a STATUS MUESTRA. Después de los intentos basta con DESPUÉS
+  # (no inmediatamente): B23 metió «STATUS DE LLAMADA» en medio del clúster de
+  # la llamada, y ese orden lo pinea contrato-v4 — relajado a conciencia
+  # 2026-09-01.
+  expect_gt(idx, .rc_idx_campo("contact_attempts"))
   expect_identical(idx, .rc_idx_campo("sample_status") - 1L,
                    info = "«RECIBIÓ CORREO» no va inmediatamente antes de STATUS MUESTRA")
   # El ancho derivado la cuenta: no hay una segunda lista que actualizar.

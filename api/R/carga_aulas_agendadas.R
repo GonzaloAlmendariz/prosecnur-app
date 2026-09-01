@@ -47,6 +47,12 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
   list(campo = "contact_attempts", titulos = c("NÚMERO DE INTENTOS", "NUMERO DE INTENTOS")),
+  # B23 (dictado 2026-09-01, con el libro en uso): «todos los CH tienen que
+  # tener una columna de estatus de llamada» — el resultado de CADA llamada,
+  # titulares incluidos. NO es STATUS MUESTRA: son ejes distintos (aquel dice
+  # donde esta el aula en el agendamiento; este, como termino la llamada).
+  # Sembrada VACIA en todas partes: el resultado lo teclea el equipo.
+  list(campo = "call_status",      titulos = c("STATUS DE LLAMADA")),
   # B22 (dictado 2026-09-01): «a la izquierda de la columna del status» — si el
   # aula ya recibio el correo del dia 1. A reemplazos y extras se les manda
   # correo hoy y se les llama mañana segun necesidad; a los titulares se les
@@ -302,6 +308,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         contact_medium = val("contact_medium"),
         contact_date = fecha("contact_date"),
         contact_attempts = num("contact_attempts"),
+        # B23: el resultado de la llamada vuelve al plan — es lo que decide el
+        # siguiente movimiento del agendador sobre cada CH.
+        call_status = val("call_status"),
         # B22: el «Sí» del dia 2 tiene que VOLVER — la llamada del dia
         # siguiente se decide «en función de los que necesitemos» leyendo esto.
         email_received = val("email_received"),

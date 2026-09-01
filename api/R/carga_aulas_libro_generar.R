@@ -98,6 +98,10 @@
     contact_medium   = .calg_txt(u$contact_medium),
     contact_date     = .calg_txt(u$contact_date),
     contact_attempts = .calg_num_txt(u$contact_attempts),
+    # B23: eco de lo registrado y nada mas — el resultado de la llamada lo
+    # teclea el equipo, asi que la siembra es VACIA en todos los roles (sin
+    # default: un valor inventado hablaria por una llamada que no ocurrio).
+    call_status      = .calg_txt(u$call_status),
     # B22: eco primero — un «Sí» ya registrado no se re-siembra («escribir
     # vacio siempre borraba el operativo en curso», la regla del bloque). Sin
     # registro, la siembra va POR ROL, no por posicion: reservas y extras
@@ -926,10 +930,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       AULAS_LIBRO_MOMENTO_CLASE,
       # B22: {Sí, No} de «RECIBIÓ CORREO», uniforme en todos los bloques.
       AULAS_LIBRO_RECIBIO_CORREO,
+      # B23: los siete resultados de llamada, en el orden del dictado.
+      AULAS_LIBRO_STATUS_LLAMADA,
       AULAS_LIBRO_STATUS_APLICACION
     ),
     c(titulo_de("sample_status"), titulo_de("contact_medium"), titulo_de("scheduled_day"),
       titulo_de("scheduled_moment"), titulo_de("email_received"),
+      titulo_de("call_status"),
       # Esta es de la hoja de campo, no del bloque de agenda.
       .calg_titulos_campo()[[which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")]])
   )
@@ -980,7 +987,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # la celda vacia del titular.
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("email_received", b), integer(1)),
-         rango = rango_de(titulo_de("email_received")))
+         rango = rango_de(titulo_de("email_received"))),
+    # B23: STATUS DE LLAMADA en cada bloque — «todos los CH», titulares
+    # incluidos, con los siete resultados del dictado.
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("call_status", b), integer(1)),
+         rango = rango_de(titulo_de("call_status")))
   )
 
   # B14: lo que las hojas Extra aportan al formateador — cabeceras, sus
