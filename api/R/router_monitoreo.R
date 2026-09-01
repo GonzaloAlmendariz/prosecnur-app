@@ -5045,69 +5045,26 @@ mount_monitoreo <- function(pr) {
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.
-    # `parsers`: sin declarar `multi`, plumber no descompone el multipart y el
-    # `file` llega NULL, asi que la subida desde la app moria con «indica el
-    # file_id». `json` se conserva para la via del `file_id`.
+    # Solo la via del `file_id` (mas `path` en desarrollo): la rama multipart
+    # que vivio aqui estaba documentada rota —plumber no parseaba la parte
+    # interna del xlsx— y la app dejo de ofrecerla en A4 (36d81fc4); se retiro
+    # entera el 2026-09-01 con sus dos E_* del registry. El libro se sube por
+    # /api/files y se importa por su id.
     plumber::pr_post("/api/monitoreo/aulas/importar-libro",
-                     # PENDIENTE (medido, no supuesto): la subida multipart no
-                     # termina de funcionar. Con `c("multi","json")` el `file`
-                     # llega pero plumber muere al parsear la parte interna —«No
-                     # suitable parser found to handle request body type
-                     # application/vnd.openxmlformats-officedocument…»—; al
-                     # anadir `octet` deja de llegar. La via del `file_id` si
-                     # funciona y es la que usa la app.
-                     parsers = c("multi", "json"),
-                     wrap_endpoint(function(req, res, file = NULL, ...) {
+                     wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
-      # El body solo se parsea como JSON cuando NO viene archivo: con multipart,
-      # `.monitoreo_parse_body()` falla con E_BAD_JSON antes de mirar el `file`.
-      parsed <- if (is.null(file)) .monitoreo_parse_body(req) else list()
+      parsed <- .monitoreo_parse_body(req)
       s <- session_get(sid)
       ruta <- ""
-      # El libro puede llegar SUBIDO —que es como lo manda la app— o por
-      # `file_id` si ya esta en la sesion. Sin la primera via el ciclo «la app
-      # genera, alguien llena, la app relee» solo se podia cerrar con curl.
-      if (!is.null(file)) {
-        extracted <- if (is.raw(file)) {
-          list(bytes = file, original = "libro_aulas.xlsx")
-        } else if (is.list(file) && length(file) >= 1 && is.raw(file[[1]])) {
-          list(bytes = file[[1]], original = names(file)[1] %||% "libro_aulas.xlsx")
-        } else if (is.list(file) && is.raw(file$value)) {
-          list(bytes = file$value, original = file$filename %||% "libro_aulas.xlsx")
-        } else if (is.list(file) && length(file) && is.list(file[[1]])) {
-          # Forma que entrega el parser `multi` de plumber: una lista NOMBRADA
-          # por el fichero, cuyo elemento es a su vez una lista con el raw
-          # dentro. Medido con el diagnostico, no supuesto.
-          interior <- file[[1]]
-          crudo <- Filter(is.raw, interior)
-          if (!length(crudo)) {
-            stop_api(400, "E_AULAS_LIBRO_BAD_FILE", "El libro subido llego vacio.")
-          }
-          list(bytes = crudo[[1]], original = names(file)[1] %||% "libro_aulas.xlsx")
-        } else {
-          stop_api(400, "E_AULAS_LIBRO_BAD_FILE", "No se pudo leer el libro subido.")
-        }
-        original <- .monitoreo_scalar(extracted$original, "libro_aulas.xlsx")
-        if (!tolower(tools::file_ext(original)) %in% c("xls", "xlsx", "xlsm")) {
-          stop_api(400, "E_AULAS_LIBRO_BAD_FILE_TYPE",
-                   "Sube el libro en Excel (.xls, .xlsx o .xlsm) con sus tres hojas.")
-        }
-        meta_subida <- save_upload(sid, "data", original, extracted$bytes)
-        ruta <- as.character(meta_subida$path)
-        s <- session_get(sid)
-      }
       fid <- .monitoreo_scalar(parsed$file_id, "")
-      if (!nzchar(ruta) && nzchar(fid)) {
+      if (nzchar(fid)) {
         meta <- (s$files %||% list())[[fid]]
         if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
           stop_api(404, "E_AULAS_LIBRO_FILE_ID", "El file_id no corresponde a un archivo de la sesion.")
         }
         ruta <- as.character(meta$path)
-      } else if (!nzchar(ruta)) {
+      } else {
         # Solo en desarrollo: permite apuntar a un libro del disco sin subirlo.
-        # El `else` era incondicional y PISABA la ruta que acababa de dejar la
-        # rama multipart con la cadena vacia de `parsed$path`, asi que un archivo
-        # bien recibido moria con «indica el file_id».
         ruta <- .monitoreo_scalar(parsed$path, "")
       }
       if (!nzchar(ruta)) {
