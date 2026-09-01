@@ -167,10 +167,11 @@ test_that("el enlace pegado por el equipo sobrevive generar -> leer", {
 test_that("el enlace de un reintento cae en SU bloque, no en el del titular", {
   # La clave `%s#%d` con la que el generador indexa: el enlace del intento 2 se
   # escribe en la ultima columna del bloque 2. Se fija al nivel del GENERADOR y
-  # no del roundtrip por xlsx a proposito: hoy generar -> leer pierde el parte
-  # del intento 2 ENTERO por un defecto ajeno a esta columna —el bloque de
-  # reintento sale sin CURSO-HORARIO y el lector exige codigo por bloque—, y
-  # ese defecto preexistente no es de B6(c).
+  # no del roundtrip por xlsx a proposito: cuando se escribio, generar -> leer
+  # perdia el parte del intento 2 ENTERO por un defecto ajeno a esta columna.
+  # Ese defecto era A16 y ya esta resuelto —el lector hereda el codigo del
+  # bloque titular cuando el de reintento sale sin CURSO-HORARIO— y el
+  # roundtrip completo lo cubre `test-carga-aulas-partes-reintento.R`.
   partes <- list(
     list(operational_code = "CH 1", intento = 1L, observed_students = 27,
          effective_surveys = 23, application_status = "APLICADA",
