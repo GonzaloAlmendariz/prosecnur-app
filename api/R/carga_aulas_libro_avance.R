@@ -31,6 +31,11 @@
 # Número → celda de texto. Mismo redondeo que `cifra_limpia` del xlsx: el
 # valor se limpia (round a 1), no solo su presentación. Lo no finito sale ""
 # para que el llamador decida su vacío declarado.
+#
+# Los CONTEOS de personas (meta, logrado, falta, «Falta para la meta») llegan
+# ya enteros del modelo desde A9-B6 —la regla direccional vive en
+# `aulas_libro_indicadores()`, compartida con el xlsx—; el round(x, 1) de aquí
+# es para lo fraccionario legítimo, como «Media por aula».
 .cala_num_txt <- function(v) {
   x <- suppressWarnings(as.numeric(v))
   if (length(x) != 1L || !is.finite(x)) return("")

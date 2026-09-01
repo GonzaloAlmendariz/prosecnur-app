@@ -207,6 +207,63 @@ describe("el puente entre esta cuenta y el KPI de válidas", () => {
     expect(html).not.toContain("-10");
   });
 
+  /**
+   * Sin decimales sobre personas — A9-B6 (2026-08-31).
+   *
+   * Visto en pantalla: «1 306,3 cubren meta» y «504,7 de más». El cálculo
+   * local ya redondea por aula, pero el RESUMEN del motor entra crudo al
+   * render y `fmt()` conserva los decimales que trae. Regla congelada: lo
+   * CONSEGUIDO hacia ABAJO (no se declara cubierto lo que no se consiguió),
+   * lo que FALTA hacia ARRIBA (`fmtCuenta` ya lo hace), y las tasas conservan
+   * su decimal.
+   */
+  describe("el resumen del motor no derrama decimales sobre las personas", () => {
+    // El mismo formateador que usa `fmt()`: derivar el esperado de aquí hace al
+    // aserto inmune al runner sin ICU completo, que degrada es-PE a separadores
+    // ingleses — se afirma el número, no el separador.
+    const nf = new Intl.NumberFormat("es-PE");
+    const resumen = {
+      meta: 3157.8, validas: 1811, cubierto: 1306.3, excedente: 504.7,
+      falta: 1851.5, aulas_con_brecha: 92, sin_meta: 0,
+    };
+    const html = () => renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={[]} resumen={resumen as never} validasTotales={0} />,
+    );
+
+    it("lo cubierto se pinta hacia abajo: 1 306,3 son 1 306", () => {
+      const h = html();
+      expect(h).toContain(`<strong>${nf.format(1306)}</strong> cubren meta`);
+      expect(h).not.toContain(`<strong>${nf.format(1306.3)}</strong> cubren meta`);
+    });
+
+    it("el titular dice el mismo cubierto entero, no un techo", () => {
+      // `fmtCuenta` redondea hacia arriba —regla de una META—, pero `cubierto`
+      // es lo CONSEGUIDO: pintar 1 307 declara cubierta una respuesta que no
+      // existe, y contradice al «1 306 cubren meta» de dos líneas más abajo.
+      // La meta 3 157,8 sí va al entero (3 158).
+      expect(html()).toContain(
+        `<strong>${nf.format(1306)}</strong> de <strong>${nf.format(3158)}</strong>`,
+      );
+    });
+
+    it("el excedente también va hacia abajo: 504,7 de más son 504", () => {
+      const h = html();
+      expect(h).toContain(`<strong>${nf.format(504)}</strong> de más`);
+      expect(h).not.toContain(`<strong>${nf.format(504.7)}</strong> de más`);
+    });
+
+    it("lo que falta conserva su techo: 1 851,5 faltan son 1 852", () => {
+      // Pin de conservación (hoy verde): con 1 851 no se cierra la falta.
+      expect(html()).toContain(`<strong>${nf.format(1852)}</strong> faltan`);
+    });
+
+    it("la tasa conserva su decimal: el % de avance no es un conteo", () => {
+      // Pin de conservación (hoy verde). 1306,3/3157,8 y 1306/3158 redondean
+      // igual, así que el aserto sobrevive al arreglo pinte donde pinte.
+      expect(html()).toContain("41.4%");
+    });
+  });
+
   describe("las personas se cuentan enteras", () => {
     const f = (x: Record<string, unknown>) => x as never;
 
