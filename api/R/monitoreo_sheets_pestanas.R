@@ -154,6 +154,11 @@ monitoreo_sheets_pestanas_controladas <- function() {
   # indicadores y la de listas.
   libro_aulas <- c(
     vapply(AULAS_LIBRO_HOJAS, function(x) x$hoja, character(1)),
+    # B14: las dos hojas del banco de extras. Sus nombres viven en
+    # carga_aulas_libro_extras.R (la spec que generadores y lectores comparten),
+    # no como literales aqui: dos listas que nadie ata es el patron que se
+    # traga pestañas.
+    .calx_hojas_extra(),
     "Plan del día",
     # A13a: era «Cómo va el campo»; Gonzalo: «es AVANCE», registro académico.
     "Avance de campo",

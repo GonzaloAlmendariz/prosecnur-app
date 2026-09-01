@@ -429,7 +429,10 @@ test_that("el segundo ciclo sin cambios no reescribe nada y cuesta pocos request
   segundas <- .macl_desde(mock$env$calls, primeras)
   # Ni un values:batchUpdate: la segunda conversación no reescribe.
   expect_false(any(grepl("values:batchUpdate", .macl_urls(segundas), fixed = TRUE)))
-  # Y cuesta pocos requests: 3 lecturas de pestaña + el ciclo sin cambios del
-  # publicador (≤ 3, pineado en test-monitoreo-aulas-publicar-libro.R).
-  expect_lte(length(segundas), 6L)
+  # Y cuesta pocos requests: 5 lecturas de pestaña (las tres del libro + las
+  # dos Extra de B14, que el pin de test-carga-aulas-desde-sheets.R OBLIGA a
+  # pedir para que lo tecleado ahí no muera camino a la app) + el ciclo sin
+  # cambios del publicador (≤ 3, pineado en test-monitoreo-aulas-publicar-
+  # libro.R). Presupuesto subido 6→8 a conciencia el 2026-09-01 por eso.
+  expect_lte(length(segundas), 8L)
 })

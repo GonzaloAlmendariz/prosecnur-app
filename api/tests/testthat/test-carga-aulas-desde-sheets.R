@@ -128,11 +128,19 @@ test_that("lee las tres pestañas por su nombre canonico", {
     .package = "prosecnurapp"
   )
   out <- aulas_libro_leer_de_sheets("abc123")
-  expect_equal(sort(names(out)), sort(c("agendadas", "aplicadas", "control")))
+  # B14 (2026-09-01): el juego de claves crece A CONCIENCIA con las dos hojas
+  # Extra — si el sync no las lee, lo que el equipo teclee ahi muere camino a
+  # la app (el xlsx si hace el ciclo completo). Un libro sin extras las omite
+  # por la regla de la pestaña inexistente, asi que los libros viejos siguen.
+  expect_equal(sort(names(out)),
+               sort(c("agendadas", "aplicadas", "control",
+                      "agendadas_extra", "aplicadas_extra")))
   # Los nombres por defecto son los del libro que genera la app: es el caso
   # normal —el equipo sube ese archivo a Drive y trabaja sobre el—.
   expect_true(any(grepl("Aulas Agendadas", pedidas, fixed = TRUE)))
   expect_true(any(grepl("Base de control", pedidas, fixed = TRUE)))
+  expect_true(any(grepl("Aulas Agendadas (Extra)", pedidas, fixed = TRUE)))
+  expect_true(any(grepl("Aulas Aplicadas (Extra)", pedidas, fixed = TRUE)))
 })
 
 test_that("una pestaña que no existe se omite en vez de fallar", {

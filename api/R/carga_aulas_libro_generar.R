@@ -720,6 +720,11 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
+  # B14: el banco de extras sin usar se captura ANTES del filtro —el filtro es
+  # justo lo que lo saca de las hojas principales— y gana sus dos hojas
+  # propias mas abajo. Un plan que SOLO trae banco sigue sin generar libro
+  # (decision del lead): el segundo E_AULAS_LIBRO_SIN_PLAN de abajo manda.
+  extras <- aulas_libro_extras_banco(unidades, partes = partes, control = control)
   unidades <- .calg_unidades_del_libro(unidades, partes = partes, control = control)
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
@@ -763,16 +768,23 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # `control`), no el archivo. El riesgo que queda no es destruccion sino
   # DIVERGENCIA entre dos copias, y eso se ataca declarando la procedencia
   # dentro del libro.
-  hojas <- list(
-    `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
-    `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
-    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas, partes = partes),
-    # 4.ª hoja de datos (B2.1): el recorte agenda+campo por fecha que en 2025 se
-    # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
-    # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue
-    # penúltima. Es de IDA (sin lector) y vive en carga_aulas_libro_plan_dia.R.
-    `Plan del día` = aulas_libro_hoja_plan_dia(unidades, partes = partes)
-  )
+  hojas <- list(`Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades))
+  # B14: cada hoja Extra va INMEDIATAMENTE despues de su contraparte (decision
+  # del lead) y SOLO si el plan trae banco sin usar: sin extras el juego de
+  # hojas es identico al de hoy, nada de hojas fantasma vacias.
+  if (length(extras)) {
+    hojas[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <- aulas_libro_hoja_agendadas_extra(extras)
+  }
+  hojas[["Aulas Aplicadas (Campo)"]] <- aulas_libro_hoja_aplicadas(unidades, partes = partes)
+  if (length(extras)) {
+    hojas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]] <- aulas_libro_hoja_aplicadas_extra(extras, partes = partes)
+  }
+  hojas[["Base de control"]] <- aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
+  # 4.ª hoja de datos (B2.1): el recorte agenda+campo por fecha que en 2025 se
+  # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
+  # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue
+  # penúltima. Es de IDA (sin lector) y vive en carga_aulas_libro_plan_dia.R.
+  hojas[["Plan del día"]] <- aulas_libro_hoja_plan_dia(unidades, partes = partes)
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
@@ -912,6 +924,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
          cols = vapply(bloques, function(b) col_en_bloque("scheduled_moment", b), integer(1)),
          rango = rango_de(titulo_de("scheduled_moment")))
   )
+
+  # B14: lo que las hojas Extra aportan al formateador — cabeceras, sus
+  # desplegables contra la MISMA hoja «Listas», columna repetida y banda
+  # combinada. Sin extras devuelve fragmentos vacios (carga_aulas_libro_extras.R).
+  extras_fmt <- aulas_libro_extras_formato(hojas, rango_de = rango_de)
+  validaciones <- c(validaciones, extras_fmt$validaciones)
 
   # Las columnas de estado que se tiñen. Se piden por su POSICION dentro del
   # bloque, igual que las validaciones: si el bloque gana un campo, esto sigue
@@ -1111,8 +1129,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
     wb,
-    filas_cabecera = list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L,
-                          `Base de control` = 2L, `Plan del día` = 1L),
+    filas_cabecera = c(
+      list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L,
+           `Base de control` = 2L, `Plan del día` = 1L),
+      # B14: con hojas Extra presentes, entran al mismo circuito de cabecera,
+      # freeze, filtro y anchos que las demas.
+      extras_fmt$filas_cabecera
+    ),
     validaciones = validaciones,
     listas = listas,
     columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(
@@ -1168,7 +1191,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # es un correlativo y `MUESTRA` va antes del codigo, asi que repetir «las
     # dos primeras» dejaba las paginas con un numero de orden, una ola y ningun
     # curso-horario. Se vio en el PDF despues de darlo por arreglado.
-    columnas_repetidas = list(
+    columnas_repetidas = c(list(
       `Aulas Agendadas` = col_en_bloque("operational_code", 1L),
       # Misma idea en la hoja de campo: su bloque es
       # `ID MATCH + titulos_agenda + titulos_campo`, y el codigo va segundo
@@ -1178,7 +1201,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       # se repite en cientos de filas: sus paginas salian rotuladas «M1» y sin
       # decir de que aula hablan. Se repite hasta `CURSO-HORARIO`.
       `Base de control` = .calg_col_control("CURSO-HORARIO")
-    ),
+    ), extras_fmt$columnas_repetidas),
     # Las bandas de grupo de la hoja de campo: una por intento.
     # La regla de cuadre del parte, una por intento: las efectivas no pueden
     # superar a los asistentes menos rechazos y duplicados.
@@ -1199,7 +1222,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       # etiqueta en su primera celda y el resto del tramo en blanco.
       lapply(aulas_libro_grupos_control(), function(g) list(
         hoja = "Base de control", fila = 1L, cols = seq(g$desde, g$hasta)
-      ))
+      )),
+      # B14: la banda «EXTRA» de la hoja de campo Extra, combinada como las
+      # bandas principales.
+      extras_fmt$combinar
     )
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
