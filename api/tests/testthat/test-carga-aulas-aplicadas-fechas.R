@@ -81,14 +81,42 @@ test_that("una celda de fecha REAL vuelve legible, no como serial de Excel", {
   expect_identical(partes[[1]]$applied_date, "2026-09-17")
 })
 
-test_that("una fecha tecleada como texto dd/mm/yyyy sobrevive tal cual", {
-  # La celda NO es fecha para Excel (es texto): el lector no tiene serial que
-  # convertir y no debe inventarse una conversion. Guardia contra un arreglo
-  # que parsee de mas: `.caa_fecha` deja pasar lo no numerico sin tocarlo.
+test_that("una fecha dd/mm/yyyy se normaliza a ISO al leer", {
+  # Pin ABIERTO A CONCIENCIA (2026-09-01, punto 3 de la lectura del libro
+  # vivo): la API de Sheets entrega el texto FORMATEADO («10/09/2026»), no el
+  # serial, y aguas abajo el Plan del dia ordena y compara fechas como texto
+  # ISO («ISO es lexicografico») — un dd/mm entre meses ordena mal y no deriva
+  # dia de semana. `.caa_fecha` es la frontera unica: dd/mm/yyyy tambien se
+  # vuelve %Y-%m-%d.
   path <- .capf_libro("17/09/2026")
   partes <- aulas_aplicadas_leer(path)
   expect_length(partes, 1L)
-  expect_identical(partes[[1]]$applied_date, "17/09/2026")
+  expect_identical(partes[[1]]$applied_date, "2026-09-17")
+})
+
+test_that("un texto que no es fecha sobrevive tal cual", {
+  # La guardia contra parsear de mas sigue: lo que no es serial ni dd/mm/yyyy
+  # ni ISO pasa sin tocarse.
+  path <- .capf_libro("por confirmar")
+  partes <- aulas_aplicadas_leer(path)
+  expect_identical(partes[[1]]$applied_date, "por confirmar")
+})
+
+test_that("la FECHA AGENDADA dd/mm/yyyy del lector de agendadas tambien vuelve ISO", {
+  # El mismo contrato en la otra mitad: la agenda tecleada en Sheets llega
+  # como texto formateado y el plan debe quedar en ISO para el Plan del dia.
+  titulos <- c("ID MATCH", vapply(AULAS_AGENDADAS_BLOQUE,
+                                  function(sp) sp$titulos[[1]], character(1)))
+  fila <- rep("", length(titulos))
+  fila[[1]] <- "1"
+  fila[[which(titulos == "CURSO-HORARIO")]] <- "CH 1"
+  fila[[which(titulos == "FECHA AGENDADA")]] <- "10/09/2026"
+  fila[[which(titulos == "FECHA DE LLAMADA")]] <- "01/09/2026"
+  df <- as.data.frame(rbind(fila), stringsAsFactors = FALSE)
+  vuelta <- aulas_agendadas_a_plan(df, titulos)
+  expect_length(vuelta, 1L)
+  expect_identical(as.character(vuelta[[1]]$scheduled_date), "2026-09-10")
+  expect_identical(as.character(vuelta[[1]]$contact_date), "2026-09-01")
 })
 
 test_that("una celda de fecha vacia queda vacia", {
