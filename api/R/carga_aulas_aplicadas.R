@@ -95,13 +95,31 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
   inicios <- aulas_aplicadas_inicios(titulos)
   if (!length(inicios)) return(list())
   finales <- c(inicios[-1] - 1L, length(titulos))
+  mapas <- lapply(seq_along(inicios), function(b)
+    .cap_mapa(titulos, inicios[[b]], finales[[b]]))
+  # A16: la columna del codigo del bloque TITULAR, para heredarlo en los
+  # reintentos de la misma fila (puede ser NULL si el bloque 1 no trae
+  # `CURSO-HORARIO`; entonces no hay de donde heredar y nada cambia).
+  col_code_titular <- mapas[[1]]$operational_code
 
   partes <- list()
   for (b in seq_along(inicios)) {
-    mapa <- .cap_mapa(titulos, inicios[[b]], finales[[b]])
+    mapa <- mapas[[b]]
     if (!length(mapa) || is.null(mapa$operational_code)) next
     for (i in seq_len(nrow(df))) {
       code <- .caa_txt(df[i, mapa$operational_code])
+      # A16 — el generador escribe los bloques de reintento con la parte de
+      # agenda VACIA, asi que un parte tecleado en el bloque 2 moria aqui y
+      # desaparecia ENTERO al releer el libro. Un reintento sin codigo propio
+      # es un reintento DE LA MISMA aula: hereda el codigo del bloque titular
+      # de su fila. Solo cuando la celda esta vacia: un codigo TECLEADO manda,
+      # porque en la anatomia 2025 el bloque de reemplazo puede traer OTRA
+      # aula (el «R 4.1» aplicado en vez del titular). El bloque en blanco no
+      # fabrica parte: con codigo heredado pasa esta puerta y lo para la
+      # guarda de «cadena que nunca se aplico» de abajo.
+      if (!nzchar(code) && b > 1L && !is.null(col_code_titular)) {
+        code <- .caa_txt(df[i, col_code_titular])
+      }
       if (!nzchar(code)) next
       val <- function(campo) if (is.null(mapa[[campo]])) "" else .caa_txt(df[i, mapa[[campo]]])
       num <- function(campo) if (is.null(mapa[[campo]])) NA_real_ else .caa_num(df[i, mapa[[campo]]])
