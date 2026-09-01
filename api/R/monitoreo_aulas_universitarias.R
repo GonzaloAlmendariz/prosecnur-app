@@ -398,6 +398,11 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # `plan_rows` — un 0 llegaba a `.monitoreo_aulas_df()` y elegir un modo en
     # /monitoreo respondia 500 E_INTERNAL.
     libro = if (is.list(config[["libro"]])) config[["libro"]] else NULL,
+    # El Google Sheets del operativo del libro (unidad B1). Va en la whitelist
+    # o no persiste — la misma trampa que ya se comió a `valid_filters`. El id
+    # NO es secreto (el token sí, ADR 0005): viaja en la config y el `.pulso`.
+    # Acceso `[[` exacto: `libro_sheets_borrador` u otra hermana no es esto.
+    libro_sheets = monitoreo_aulas_libro_sheets_normalizar(config[["libro_sheets"]]),
     quotas = config[["quotas"]] %||% config[["cuotas"]] %||% defaults$quotas,
     variables_control = config[["variables_control"]] %||% config[["variablesControl"]] %||% defaults$variables_control,
     methodology = config[["methodology"]] %||% config[["metodologia"]] %||% defaults$methodology,
