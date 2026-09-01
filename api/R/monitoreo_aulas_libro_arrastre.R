@@ -93,8 +93,13 @@
 # El costo (todo se computa como texto) es cero aquí: la siembra RAW ya escribe
 # el libro entero como texto y el lector normaliza desde texto.
 .malar_formula <- function(hoja_agendadas, col, fila) {
+  # TO_TEXT y no `&""`: la concatenacion convertia el VALOR crudo — la fecha
+  # tecleada 01/09/2026 llegaba como «46266» y la hora 3:25 como «0,1423…»
+  # (medido en vivo el 2026-09-01). TO_TEXT devuelve lo que la celda MUESTRA,
+  # con un solo argumento (sin separadores dependientes del locale) y con
+  # vacio → vacio, que era lo unico que el `&""` compraba.
   sprintf(
-    "=%s!%s%d&\"\"",
+    "=TO_TEXT(%s!%s%d)",
     .monitoreo_sheets_quote_sheet(hoja_agendadas), .malar_col_a1(col), as.integer(fila)
   )
 }
