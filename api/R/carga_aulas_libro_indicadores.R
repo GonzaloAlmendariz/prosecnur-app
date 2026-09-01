@@ -292,13 +292,25 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # sumadas por aplicador, asi que la misma pagina parece decir que no hay
   # efectivas y listarlas. No se contradicen —una sale de PLATAFORMA y la otra
   # de lo que el equipo escribio en su parte— pero sin decirlo, quien lee elige
-  # cual creer. Solo aparece cuando de verdad hay huecos.
+  # cual creer. Esta nota solo aparece cuando de verdad hay huecos; el caso
+  # contrario —las DOS familias presentes, que es cuando de verdad chocan— lo
+  # cubre el puente de abajo (B7.3, `carga_aulas_libro_puente.R`), que ademas
+  # decide solo: con plataforma completa pero sin partes no hay choque y no
+  # escribe nada.
   if (sin_dato) {
     openxlsx::writeData(
       wb, hoja,
       "Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.",
       startCol = 1, startRow = fila
     )
+    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+    fila <- fila + 1L
+  }
+  # Fila propia de ancho completo tras el bloque de meta, NUNCA una celda extra
+  # dentro de una fila etiqueta|valor: las adyacencias col+1 estan pineadas.
+  puente <- .calap_puente_con_datos(sin_dato, ind$aplicadores)
+  if (!is.null(puente)) {
+    openxlsx::writeData(wb, hoja, puente, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 1L
   }
