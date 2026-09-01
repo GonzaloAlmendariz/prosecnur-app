@@ -106,6 +106,99 @@ test_that("el avance se ENSEÑA como porcentaje, no como 0.59", {
   expect_identical(formato_de_celda(libro, "Avance de campo", 2, fila), "0.0%")
 })
 
+# --- A9-B6: sin decimales sobre personas/encuestas ---------------------------
+#
+# Visto en el libro real: «Encuestas de la meta | 3157.8». `cifra_limpia` hace
+# `round(x, 1)` y deja el decimal en la CELDA — el valor, no solo su formato.
+# Media encuesta no existe. Regla congelada (checklist 2026-08-31, A9-B6):
+#   · la META al entero mas proximo — mitades hacia arriba: floor(x + 0.5),
+#     NO el round() banquero de R;
+#   · lo CONSEGUIDO hacia ABAJO — no se declara cubierto lo que no se consiguio;
+#   · lo que FALTA hacia ARRIBA — con 1851 no se cierra una falta de 1851,5;
+#   · tasas y promedios conservan su decimal («Media por aula», «Avance»).
+
+# `expected_valid` llega fraccionario del calculo (eligible_n x rendimiento x
+# factor): 1578.9 x 2 = 3157.8, la cifra vista en el libro.
+.ci_plan_fraccionario <- function() list(
+  list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+       eligible_n = 30, expected_valid = 1578.9),
+  list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+       eligible_n = 30, expected_valid = 1578.9)
+)
+
+# Logrado fraccionario: 1200.4 + 105.9 = 1306.3, la cifra vista en la UI. El
+# escritor no controla que le llega; el contrato es de la celda que produce.
+.ci_efectivas_fraccionarias <- function() c(`CH 1` = 1200.4, `CH 2` = 105.9)
+
+# La hoja del escritor, leida de vuelta: el contrato vive en la CELDA del xlsx,
+# no en el modelo (el motor sigue calculando con la fraccion).
+.ci_hoja_escrita <- function(ind) {
+  libro <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_indicadores(wb, ind)
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+  suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Avance de campo",
+                                       colNames = FALSE, skipEmptyRows = FALSE))
+}
+
+test_that("A9-B6: el bloque de meta escribe enteros — meta al mas proximo, logrado abajo, falta arriba", {
+  ind <- aulas_libro_indicadores(.ci_plan_fraccionario(),
+                                 efectivas = .ci_efectivas_fraccionarias())
+  d <- .ci_hoja_escrita(ind)
+  celda <- function(etq) {
+    fila <- which(as.character(d[[1]]) == etq)
+    expect_length(fila, 1L)
+    suppressWarnings(as.numeric(d[[2]][[fila]]))
+  }
+  # 3157.8 -> 3158 (mas proximo, mitades hacia arriba).
+  expect_equal(celda("Encuestas de la meta"), 3158)
+  # 1306.3 -> 1306 (hacia abajo: la 1307 no se consiguio).
+  expect_equal(celda("Efectivas conseguidas"), 1306)
+  # 3157.8 - 1306.3 = 1851.5 -> 1852 (hacia arriba: con 1851 no se cierra).
+  expect_equal(celda("Faltan"), 1852)
+})
+
+test_that("A9-B6: «Falta para la meta» del diario tambien sube al entero", {
+  # Con la meta fraccionaria, la resta contra el acumulado entero arrastra el
+  # decimal a la columna: 3157.8 - 4 = 3153.8 respuestas por recoger. El numFmt
+  # `#,##0` lo tapa en pantalla, pero el VALOR queda sucio — mismo motivo por el
+  # que `cifra_limpia` redondea el valor y no solo su formato.
+  ind <- aulas_libro_indicadores(.ci_plan_fraccionario(),
+                                 efectivas = .ci_efectivas_fraccionarias(),
+                                 responses = .ci_respuestas(),
+                                 validas = c(TRUE, TRUE, TRUE, TRUE, FALSE))
+  d <- .ci_hoja_escrita(ind)
+  # La columna por NOMBRE, no por indice: la cabecera de la tabla la declara.
+  fila_cab <- which(as.character(d[[1]]) == "Dia")
+  expect_length(fila_cab, 1L)
+  col_falta <- which(as.character(unlist(d[fila_cab, ])) == "Falta para la meta")
+  expect_length(col_falta, 1L)
+  fila_dia <- which(as.character(d[[1]]) == "2026-08-11")
+  expect_length(fila_dia, 1L)
+  expect_equal(suppressWarnings(as.numeric(d[[col_falta]][[fila_dia]])), 3154)
+})
+
+test_that("A9-B6: «Media por aula» conserva su decimal — es un promedio, no un conteo", {
+  # Pin de conservacion (hoy verde): la regla de enteros es de los CONTEOS de
+  # personas. Un arreglo que aplane tambien los promedios repetiria el defecto
+  # ya documentado en el estilo `promedio` («23» entre 20.5 y 23.8).
+  partes <- list(
+    list(operational_code = "CH 1", applied_by = "Equipo Unico", effective_surveys = 8),
+    list(operational_code = "CH 2", applied_by = "Equipo Unico", effective_surveys = 5)
+  )
+  ind <- aulas_libro_indicadores(.ci_plan_fraccionario(), efectivas = NULL,
+                                 partes = partes)
+  d <- .ci_hoja_escrita(ind)
+  fila_cab <- which(as.character(d[[1]]) == "Aplicador")
+  expect_length(fila_cab, 1L)
+  col_media <- which(as.character(unlist(d[fila_cab, ])) == "Media por aula")
+  expect_length(col_media, 1L)
+  fila_apl <- which(as.character(d[[1]]) == "Equipo Unico")
+  expect_length(fila_apl, 1L)
+  # 13 efectivas en 2 aulas: la media ES 6.5 y lo dice.
+  expect_equal(suppressWarnings(as.numeric(d[[col_media]][[fila_apl]])), 6.5)
+})
+
 test_that("las barras no tapan el numero", {
   # Con el navy del libro, la cifra quedaba en negro sobre azul oscuro y no se
   # leia: la barra ayuda a comparar de un vistazo, pero el numero es el dato.

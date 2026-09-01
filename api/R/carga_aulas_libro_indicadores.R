@@ -43,15 +43,32 @@
 #' @param validas vector logico por fila de `responses`: cuales son efectivas.
 #'   Sin el, la serie contaria TODAS las respuestas y no cuadraria con la meta.
 #' @param partes partes de campo, para la produccion por aplicador.
-#' @return lista con `meta`, `diario` y `aplicadores`.
+#' @return lista con `meta`, `diario` y `aplicadores`. Los conteos de personas
+#'   (`meta_total`, `logrado`, `falta`, «Falta para la meta» del diario) salen
+#'   ENTEROS del modelo; las tasas y promedios (`avance`, «Media por aula»)
+#'   conservan su decimal.
 #' @export
 aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL,
                                     partes = list(), validas = NULL,
                                     cuotas = NULL, cfg = list()) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
-  meta_total <- sum(metas[is.finite(metas)])
-  logrado <- if (is.null(efectivas)) NA_real_ else sum(efectivas, na.rm = TRUE)
+
+  # **Los conteos de personas salen ENTEROS del modelo** (A9-B6, checklist
+  # 2026-08-31). `expected_valid` llega fraccionario del calculo (eligible_n x
+  # rendimiento x factor) y el libro decia «Encuestas de la meta | 3157.8»:
+  # media encuesta no existe. Se redondea AQUI y no en los formateadores para
+  # que el xlsx y la pestaña de Sheets hereden el mismo numero sin repetir la
+  # regla —y su direccion, que es por cifra— en cada renderer:
+  #   · la META al entero mas proximo, mitades hacia ARRIBA: floor(x + 0.5).
+  #     NO round(): el de R es banquero y round(3158.5) da 3158;
+  #   · lo CONSEGUIDO hacia abajo: no se declara cubierto lo que no se consiguio;
+  #   · lo que FALTA hacia arriba, y mas abajo se dice desde que valor.
+  # Los BRUTOS se conservan para las tasas y para las restas direccionales.
+  meta_bruta <- sum(metas[is.finite(metas)])
+  logrado_bruto <- if (is.null(efectivas)) NA_real_ else sum(efectivas, na.rm = TRUE)
+  meta_total <- if (is.finite(meta_bruta)) floor(meta_bruta + 0.5) else meta_bruta
+  logrado <- if (is.finite(logrado_bruto)) floor(logrado_bruto) else logrado_bruto
 
   # Cuantas aulas ya llegaron a SU meta, que no es lo mismo que el total: se
   # puede ir al 90 % global con la mitad de las aulas sin cerrar.
@@ -66,11 +83,19 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
     aulas = length(titulares),
     meta_total = meta_total,
     logrado = logrado,
-    # Un 0 de 0 no es 0 %.
-    avance = if (is.finite(meta_total) && meta_total > 0 && is.finite(logrado)) {
-      logrado / meta_total
+    # Un 0 de 0 no es 0 %. La tasa se calcula con los BRUTOS: es un promedio,
+    # no un conteo, y la regla de enteros no la alcanza.
+    avance = if (is.finite(meta_bruta) && meta_bruta > 0 && is.finite(logrado_bruto)) {
+      logrado_bruto / meta_bruta
     } else NA_real_,
-    falta = if (is.finite(meta_total) && is.finite(logrado)) max(0, meta_total - logrado) else NA_real_,
+    # La falta sube al entero desde los BRUTOS, no restando los redondeados:
+    # con meta 10.4 y logrado 3.2 faltan 7.2 -> 8, y el 10 - 3 = 7 de los
+    # redondeados sub-declara — con 7 no se cierra. El precio es que alguna vez
+    # logrado + falta != meta_total en la hoja, y se paga: la regla congelada
+    # es no decirle al campo que falta menos de lo que falta.
+    falta = if (is.finite(meta_bruta) && is.finite(logrado_bruto)) {
+      ceiling(max(0, meta_bruta - logrado_bruto))
+    } else NA_real_,
     aulas_cerradas = cerradas
   )
 
@@ -101,8 +126,12 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
         diario$`Efectivas acumuladas` <- diario$Acumulado
         diario$Acumulado <- NULL
         names(diario)[names(diario) == "Respuestas"] <- "Efectivas del dia"
-        diario$`Falta para la meta` <- if (is.finite(meta_total)) {
-          pmax(0, meta_total - diario$`Efectivas acumuladas`)
+        # Contra la meta BRUTA y hacia arriba: 3157.8 - 4 = 3153.8 respuestas
+        # por recoger es 3154 — con 3153 no se cierra. El numFmt del xlsx
+        # tapaba el decimal en pantalla, pero el VALOR de la celda quedaba
+        # sucio y la pestaña de Sheets (RAW, sin numFmt) lo enseñaba tal cual.
+        diario$`Falta para la meta` <- if (is.finite(meta_bruta)) {
+          ceiling(pmax(0, meta_bruta - diario$`Efectivas acumuladas`))
         } else NA_real_
       }
     }
@@ -170,10 +199,13 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
   # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
   #
-  # El decimal opcional existe para las cifras que SI son fraccionarias —«3 157,8
-  # encuestas de la meta» sale de una tasa—. Pero un visor con locale español
-  # pinta el punto del formato como coma, y con 174 escribia «174,»: un numero
-  # que parece cortado. Gonzalo, mirando la hoja: «con comas luego de numeros».
+  # El decimal opcional existia para las cifras que llegaban fraccionarias
+  # —«3 157,8 encuestas de la meta» salia de una tasa—. Desde A9-B6 los conteos
+  # de personas llegan ya ENTEROS del modelo (la regla de redondeo vive en
+  # `aulas_libro_indicadores()`), asi que aqui el estilo con decimal queda de
+  # red de seguridad para lo fraccionario legitimo. Y la coma: un visor con
+  # locale español pinta el punto del formato como coma, y con 174 escribia
+  # «174,»: un numero que parece cortado. Gonzalo: «con comas luego de numeros».
   #
   # Asi que hay DOS estilos y cada fila elige el suyo por su valor: entero -> sin
   # parte decimal; fraccionario -> con un decimal. Es lo unico que evita la coma
@@ -191,6 +223,8 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # El VALOR tambien se redondea, no solo su formato: una meta calculada de una
   # tasa llegaba como 541.799999999997 y el formato lo tapaba. Basta que alguien
   # cambie el formato de la celda, la copie o la sume para que el ruido salga.
+  # (Los conteos ya llegan enteros del modelo desde A9-B6; esto limpia lo que
+  # siga siendo fraccionario legitimo.)
   cifra_limpia <- function(v) {
     x <- suppressWarnings(as.numeric(v))
     if (length(x) != 1L || !is.finite(x)) v else round(x, 1)

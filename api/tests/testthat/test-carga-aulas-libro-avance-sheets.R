@@ -273,6 +273,91 @@ test_that("B2.2: la publicación completa siembra «Avance de campo» en un docu
   expect_equal(valor_meta, 40)
 })
 
+# --- 5. A9-B6: sin decimales sobre personas/encuestas ------------------------
+#
+# `.cala_num_txt` copia el `round(x, 1)` de `cifra_limpia` y publica «3157.8»
+# como texto en la pestaña. Media encuesta no existe. La regla congelada
+# (checklist 2026-08-31, A9-B6) es la misma que la del xlsx: META al entero mas
+# proximo (floor(x + 0.5)), lo CONSEGUIDO hacia abajo, lo que FALTA hacia
+# arriba; tasas y promedios conservan su decimal. Y los DOS caminos tienen que
+# moverse juntos: el pin de equivalencia de abajo lo fuerza.
+
+.cas_plan_fraccionario <- function() list(
+  # 1578.9 x 2 = 3157.8: la cifra vista en el libro real.
+  list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+       eligible_n = 30, expected_valid = 1578.9),
+  list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+       eligible_n = 30, expected_valid = 1578.9)
+)
+
+# 1200.4 + 105.9 = 1306.3: el logrado fraccionario visto en la UI.
+.cas_efectivas_fraccionarias <- function() c(`CH 1` = 1200.4, `CH 2` = 105.9)
+
+.cas_modelo_fraccionario <- function() aulas_libro_indicadores(
+  .cas_plan_fraccionario(),
+  efectivas = .cas_efectivas_fraccionarias(),
+  responses = .cas_respuestas(),
+  validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
+  # 13 efectivas en 2 aulas: media 6.5, el decimal LEGITIMO que debe sobrevivir.
+  partes = list(
+    list(operational_code = "CH 1", applied_by = "Equipo Unico", effective_surveys = 8),
+    list(operational_code = "CH 2", applied_by = "Equipo Unico", effective_surveys = 5)
+  )
+)
+
+test_that("A9-B6: el bloque de meta publica enteros — meta al mas proximo, logrado abajo, falta arriba", {
+  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_fraccionario(), fecha = .cas_fecha()))
+  # 3157.8 -> 3158; 1306.3 -> 1306; 1851.5 -> 1852.
+  expect_equal(.cas_valor_junto_a(m, "Encuestas de la meta"), 3158)
+  expect_equal(.cas_valor_junto_a(m, "Efectivas conseguidas"), 1306)
+  expect_equal(.cas_valor_junto_a(m, "Faltan"), 1852)
+  # Y en el TEXTO publicado no queda parte decimal: la pestaña va en RAW, lo
+  # que hay en la celda es exactamente lo que el operativo lee.
+  idx <- which(m == "Encuestas de la meta", arr.ind = TRUE)
+  txt <- m[idx[1, "row"], idx[1, "col"] + 1L]
+  expect_false(grepl("[.,][0-9]", txt),
+               info = sprintf("la celda de la meta dice «%s»", txt))
+})
+
+test_that("A9-B6: «Falta para la meta» del diario sube al entero; la media conserva su decimal", {
+  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_fraccionario(), fecha = .cas_fecha()))
+  # 3157.8 - 4 acumuladas = 3153.8 respuestas por recoger -> 3154 (hacia arriba).
+  en_dia <- .cas_numeros_de_fila_con(m, "2026-08-11")
+  expect_true(3154 %in% en_dia,
+              info = sprintf("fila del 2026-08-11: {%s}", paste(en_dia, collapse = ", ")))
+  expect_false(any(abs(en_dia - 3153.8) < 1e-9),
+               info = "la columna publica 3153.8: decimales sobre encuestas")
+  # Pin de conservacion (hoy verde): «Media por aula» es un promedio y su
+  # decimal significa algo — la regla de enteros es de los conteos.
+  en_apl <- .cas_numeros_de_fila_con(m, "Equipo Unico")
+  expect_true(6.5 %in% en_apl,
+              info = sprintf("fila de Equipo Unico: {%s}", paste(en_apl, collapse = ", ")))
+})
+
+test_that("A9-B6: con cifras fraccionarias, xlsx y Sheets siguen diciendo lo mismo", {
+  # Pin de conservacion (hoy verde: ambos publican el mismo round(x, 1)). El
+  # pin de equivalencia de arriba usa enteros 40/30 y no discrimina; este obliga
+  # a que la regla de redondeo aterrice en los DOS caminos a la vez — arreglar
+  # solo `cifra_limpia` o solo `.cala_num_txt` deja al equipo con dos cifras
+  # distintas para la misma etiqueta.
+  ind <- aulas_libro_indicadores(.cas_plan_fraccionario(),
+                                 efectivas = .cas_efectivas_fraccionarias())
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_indicadores(wb, ind)
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Avance de campo",
+                                            colNames = FALSE, skipEmptyRows = FALSE))
+  m <- .cas_celdas(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  for (etq in c("Encuestas de la meta", "Efectivas conseguidas", "Faltan")) {
+    fila <- which(as.character(d[[1]]) == etq)
+    expect_length(fila, 1L)
+    del_xlsx <- suppressWarnings(as.numeric(d[[2]][[fila]]))
+    expect_equal(.cas_valor_junto_a(m, etq), del_xlsx,
+                 info = sprintf("«%s»: xlsx y Sheets divergen", etq))
+  }
+})
+
 test_that("B2.2: contenido remoto NO protege «Avance de campo» — jamás respetada", {
   skip_if_not_installed("digest")
   mock <- .sheets_api_mock()
