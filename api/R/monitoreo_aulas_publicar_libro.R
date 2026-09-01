@@ -378,6 +378,10 @@ mount_monitoreo_aulas_libro <- function(pr) {
       }
       partes <- s$monitoreo_aulas_partes_campo %||% aulas_cfg[["partes_campo"]] %||% list()
       control <- s$monitoreo_aulas_control %||% aulas_cfg[["control"]] %||% list()
+      # Silencio deliberado: las efectivas por aula son un ENRIQUECIMIENTO de
+      # la Base de control (mismo trato que en /aulas/generar-libro) y exigen
+      # snapshot sincronizado; un estudio sin sync aun debe poder publicar su
+      # libro igual. El error del PUBLICADOR, en cambio, si se propaga abajo.
       efectivas <- tryCatch(
         monitoreo_aulas_efectivas_por_aula(
           unidades,
