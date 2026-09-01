@@ -48,10 +48,13 @@
        enrolled_total = 29, eligible_n = 26)
 )
 
-test_that("el bloque de agenda tiene 20 titulos y ninguno es MUESTRA", {
+test_that("el bloque de agenda tiene 21 titulos y ninguno es MUESTRA", {
   campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
-  expect_length(AULAS_AGENDADAS_BLOQUE, 20L)
-  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 20L)
+  # 20 del contrato B8 («sin MUESTRA») + «RECIBIÓ CORREO» de B22 (dictado
+  # 2026-09-01). El numero se pinea LITERAL a proposito: un campo nuevo en la
+  # spec debe pasar por aqui y declararse, no colarse.
+  expect_length(AULAS_AGENDADAS_BLOQUE, 21L)
+  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 21L)
   expect_false("wave" %in% campos)
   # «STATUS MUESTRA» no es «MUESTRA»: se compara el titulo entero.
   titulos <- unlist(lapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos))

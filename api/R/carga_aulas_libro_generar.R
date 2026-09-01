@@ -98,6 +98,22 @@
     contact_medium   = .calg_txt(u$contact_medium),
     contact_date     = .calg_txt(u$contact_date),
     contact_attempts = .calg_num_txt(u$contact_attempts),
+    # B22: eco primero — un «Sí» ya registrado no se re-siembra («escribir
+    # vacio siempre borraba el operativo en curso», la regla del bloque). Sin
+    # registro, la siembra va POR ROL, no por posicion: reservas y extras
+    # arrancan en «No» (a ellos se les manda correo hoy) y el titular queda
+    # VACIO (a los titulares se les llama a todos hoy: el vacio es contenido).
+    # Caso degenerado decidido aqui: una reserva que ocupe el bloque 1 de una
+    # cadena sin titular tambien arranca en «No» — el correo se le envia por
+    # ser reserva, no por la columna en que cayo. Un rol desconocido o vacio
+    # queda "": sembrar «No» ahi hablaria con la voz de un dato que no existe.
+    email_received   = {
+      v <- .calg_txt(u$email_received)
+      rol <- tolower(trimws(.calg_txt(u$sample_role)))
+      if (nzchar(v)) v
+      else if (rol %in% c("chain_reserve", "extra_reserve_pool")) "No"
+      else ""
+    },
     sample_status    = .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
     scheduled_date   = .calg_txt(u$scheduled_date),
     scheduled_day    = .calg_dia_excel(u$scheduled_day),
@@ -908,10 +924,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       # El desplegable NO absoluto de B15: tres momentos y texto libre (la
       # validacion de esta capa ya es allowBlank + sin error duro).
       AULAS_LIBRO_MOMENTO_CLASE,
+      # B22: {Sí, No} de «RECIBIÓ CORREO», uniforme en todos los bloques.
+      AULAS_LIBRO_RECIBIO_CORREO,
       AULAS_LIBRO_STATUS_APLICACION
     ),
     c(titulo_de("sample_status"), titulo_de("contact_medium"), titulo_de("scheduled_day"),
-      titulo_de("scheduled_moment"),
+      titulo_de("scheduled_moment"), titulo_de("email_received"),
       # Esta es de la hoja de campo, no del bloque de agenda.
       .calg_titulos_campo()[[which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")]])
   )
@@ -956,7 +974,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # derivado de la spec — nunca un numero de columna a mano.
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("scheduled_moment", b), integer(1)),
-         rango = rango_de(titulo_de("scheduled_moment")))
+         rango = rango_de(titulo_de("scheduled_moment"))),
+    # B22: {Sí, No} de RECIBIÓ CORREO en cada bloque, titular incluido — la
+    # spec es uniforme y el allowBlank de la casa hace inofensivo el chip en
+    # la celda vacia del titular.
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("email_received", b), integer(1)),
+         rango = rango_de(titulo_de("email_received")))
   )
 
   # B14: lo que las hojas Extra aportan al formateador — cabeceras, sus

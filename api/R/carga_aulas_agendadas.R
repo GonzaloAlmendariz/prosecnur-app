@@ -47,6 +47,13 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
   list(campo = "contact_attempts", titulos = c("NÚMERO DE INTENTOS", "NUMERO DE INTENTOS")),
+  # B22 (dictado 2026-09-01): «a la izquierda de la columna del status» — si el
+  # aula ya recibio el correo del dia 1. A reemplazos y extras se les manda
+  # correo hoy y se les llama mañana segun necesidad; a los titulares se les
+  # llama a todos hoy, asi que su celda va VACIA (la siembra vive en
+  # `.calg_celda_agenda`). Columna uniforme en TODOS los bloques: arrastre,
+  # formato y validaciones la heredan por la spec.
+  list(campo = "email_received",   titulos = c("RECIBIÓ CORREO", "RECIBIO CORREO")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
   # «FECHA AGENDADA» como canonico (B15): en la hoja del agendador esa fecha es
   # la agendada, y «FECHA DE APLICACIÓN» era justo la confusion que el renombre
@@ -295,6 +302,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         contact_medium = val("contact_medium"),
         contact_date = fecha("contact_date"),
         contact_attempts = num("contact_attempts"),
+        # B22: el «Sí» del dia 2 tiene que VOLVER — la llamada del dia
+        # siguiente se decide «en función de los que necesitemos» leyendo esto.
+        email_received = val("email_received"),
         scheduled_date = fecha("scheduled_date"),
         scheduled_day = val("scheduled_day"),
         scheduled_time = val("scheduled_time"),
