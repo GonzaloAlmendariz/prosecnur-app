@@ -733,14 +733,23 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   #
   # Se puede desde que el lector tolera el serial: antes, tipar una fecha la
   # devolvia al plan como «46245».
+  # Solo se reescriben las celdas que SÍ parsean como fecha, por tramos
+  # contiguos: reescribir la columna entera volvía NA todo texto no-fecha
+  # («Total de la jornada», «Pendientes de jornadas anteriores» en «Plan del
+  # día») y lo borraba del xlsx en silencio. Lo no parseado conserva el texto
+  # que `writeData` ya dejó — se tolera la no-fecha en vez de recortar por
+  # código porque este helper sirve a cuatro hojas y no conoce sus columnas.
   .calg_tipar_fechas <- function(wb, hoja, datos, cols, desde) {
     for (col in cols) {
       if (col > ncol(datos)) next
       crudo <- as.character(datos[[col]])[-seq_len(desde)]
       fecha <- suppressWarnings(as.Date(crudo, format = "%Y-%m-%d"))
-      if (!any(!is.na(fecha))) next
-      openxlsx::writeData(wb, hoja, fecha, startCol = col, startRow = desde + 1L,
-                          colNames = FALSE)
+      validas <- which(!is.na(fecha))
+      if (!length(validas)) next
+      for (tramo in split(validas, cumsum(c(1L, diff(validas) != 1L)))) {
+        openxlsx::writeData(wb, hoja, fecha[tramo], startCol = col,
+                            startRow = desde + tramo[[1]], colNames = FALSE)
+      }
     }
   }
 
