@@ -402,6 +402,14 @@
       eligible_n = .collection_first_number(row, c(
         "eligible_n", "matriculados_poblacion", "students_n"
       )),
+      # El OTRO denominador: el total administrativo del aula («MATRICULADOS
+      # TOTAL DTI» en el libro). Calculo de muestra lo escribe como
+      # `enrolled_total` (alias `matriculados_total` en su mapeo); sin cargarlo
+      # aqui, la fila que crea el handoff salia sin matriculados y la hoja de
+      # agendadas imprimia «0».
+      enrolled_total = .collection_first_number(row, c(
+        "enrolled_total", "matriculados_total", "students_total"
+      )),
       # Composicion del aula. La produce Calculo de muestra y es de donde
       # Monitoreo deriva los objetivos de cuota sexo x facultad; sin ella esa
       # seccion del tablero sale vacia para todo plan creado por el handoff.
@@ -931,9 +939,22 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       any(c(unit$unit_id, legacy_ref) %in% row_ids(row))
     }, logical(1)))
     index <- if (length(hits)) hits[[1]] else length(rows) + 1L
+    # El codigo del titular de la cadena, en el idioma operativo. Para las
+    # reservas ya viaja en `dimensions$replacement_for` (la unit lo consume de
+    # `titular_operational_code` primero, con guarda de autorreferencia que lo
+    # vacia en titulares); para un titular es su propio codigo, que es como lo
+    # escribe Calculo de muestra por la via from_calc. Una reserva sin cadena en
+    # origen queda con toc vacio A PROPOSITO: rellenarlo con su propio codigo
+    # taparia la fila fantasma que `E_AULAS_LIBRO_SIN_CADENAS` existe para
+    # declarar.
+    titular_ref <- .collection_first_string(unit$dimensions %||% list(), "replacement_for")
+    if (!nzchar(titular_ref) && identical(as.character(unit$role %||% ""), "titular")) {
+      titular_ref <- legacy_ref
+    }
     row <- if (length(hits)) rows[[index]] else list(
       classroom_id = legacy_ref,
       operational_code = legacy_ref,
+      titular_operational_code = titular_ref,
       label = unit$label,
       sample_role = unit$role,
       wave = unit$group,
@@ -950,6 +971,9 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       # brecha sale 0 y ninguna aula llega nunca a "cerrando". El dato ya viaja
       # en la unidad del plan, solo faltaba copiarlo a la fila.
       eligible_n = .collection_first_number(unit$dimensions %||% list(), "eligible_n") %||% 0,
+      # Y el total administrativo, que es el «MATRICULADOS TOTAL DTI» del libro:
+      # sin el, la hoja de agendadas imprimia «0» en cada fila del handoff.
+      enrolled_total = .collection_first_number(unit$dimensions %||% list(), "enrolled_total") %||% 0,
       stratum = .collection_first_string(unit$dimensions %||% list(), "stratum"),
       sex_top_1 = .collection_first_string(unit$dimensions %||% list(), "sex_top_1"),
       sex_top_1_n = .collection_first_number(unit$dimensions %||% list(), "sex_top_1_n") %||% 0,

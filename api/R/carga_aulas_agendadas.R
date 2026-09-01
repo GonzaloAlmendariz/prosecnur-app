@@ -17,8 +17,14 @@
 # Los 20 campos de un bloque, en orden. El nombre canonico es el de la app; el
 # de la hoja se resuelve por texto normalizado, no por posicion, para que un
 # libro con una columna de mas no descuadre todo lo que viene detras.
+# La columna «MUESTRA» se retiro del bloque el 2026-08-31 (B8 del checklist del
+# operativo). Gonzalo, mirando el libro: «ni siquiera se por que la columna
+# muestra esta ahi cuando curso horario te esta dando todo». La ola (`wave`) es
+# del PLAN —viene de Calculo de muestra— y el libro no debe poder pisarla; un
+# libro viejo que aun la traiga se lee igual, porque el emparejado es por titulo
+# y lo desconocido se ignora. La «Base de control» CONSERVA su columna MUESTRA:
+# esa hoja tiene su propia spec (`carga_base_control.R`).
 AULAS_AGENDADAS_BLOQUE <- list(
-  list(campo = "wave",             titulos = c("MUESTRA")),
   list(campo = "operational_code", titulos = c("CURSO-HORARIO", "CURSO HORARIO")),
   list(campo = "teacher",          titulos = c("NOMBRE DE DOCENTE")),
   list(campo = "teacher_phone",    titulos = c("TELÉFONO DE DOCENTE", "TELEFONO DE DOCENTE")),
@@ -262,7 +268,6 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         teacher_phone = val("teacher_phone"),
         teacher_email = val("teacher_email"),
         schedule = val("label"),
-        wave = val("wave"),
         enrolled_total = num("enrolled_total"),
         eligible_n = num("eligible_n"),
         # Los dos ejes de estado viven separados: `sample_status` es el del

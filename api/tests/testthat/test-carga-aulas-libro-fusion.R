@@ -46,12 +46,18 @@ test_that("un aula nueva del libro entra en vez de descartarse", {
   expect_equal(res$plan[[2]]$operational_code, "CH 99")
 })
 
-test_that("el cero del libro SI pisa: es un dato, no una ausencia", {
-  # `respuestas = 0` es lo que el parte dice, y tratarlo como vacio impediria
-  # corregir un conteo a la baja desde el libro.
+test_that("el parte del plan ya no se pisa desde el libro: el parte en-app es del plan", {
+  # Hasta `dfc9e13c` este pin decia lo contrario —«el cero del libro SI pisa»—
+  # y quedo sin actualizar cuando ese commit retiro el bloque «Parte de campo»
+  # de `AULAS_LIBRO_CAMPOS_PROPIOS` por muerto (ver el comentario en
+  # carga_aulas_libro_fusion.R): la fusion solo procesa la hoja de agenda, cuyo
+  # lector no emite campos de parte, y los partes viajan por `out$partes` ->
+  # `monitoreo_aulas_partes_campo`, no por esta lista. Fuera de la lista, un
+  # `effective_surveys` que llegara por aqui solo llena vacios, no pisa lo que
+  # el plan ya registro en la app.
   previo <- list(list(operational_code = "CH 1", effective_surveys = 12))
   res <- aulas_libro_fusionar_plan(previo, list(list(operational_code = "CH 1", effective_surveys = 0)))
-  expect_equal(res$plan[[1]]$effective_surveys, 0)
+  expect_equal(res$plan[[1]]$effective_surveys, 12)
 })
 
 test_that("sin plan previo la fusion no inventa nada", {

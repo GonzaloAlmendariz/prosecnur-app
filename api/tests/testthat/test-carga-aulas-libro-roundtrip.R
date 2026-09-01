@@ -411,8 +411,13 @@ test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
        titular_operational_code = "CH 2", replacement_for = "CH 2",
        replacement_order = 1, eligible_n = 26, enrolled_total = 29,
        expected_valid = 17),
+  # Un extra activado es cabeza de su propia cadena: lleva su propio codigo
+  # como `titular_operational_code`, la misma convencion que los titulares.
+  # Sin el, `E_AULAS_LIBRO_SIN_CADENAS` lo rechaza en cuanto trae parte
+  # (contrato de test-monitoreo-aulas-libro-estructura.R).
   list(classroom_id = "A-4", operational_code = "X 1", course_name = "C4",
        faculty = "Letras", sample_role = "extra_reserve_pool",
+       titular_operational_code = "X 1",
        eligible_n = 24, enrolled_total = 27, expected_valid = 15)
 )
 

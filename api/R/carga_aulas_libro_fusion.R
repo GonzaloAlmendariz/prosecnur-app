@@ -35,9 +35,11 @@
 #' intactos.
 #' @export
 AULAS_LIBRO_CAMPOS_PROPIOS <- c(
-  # Identidad y agenda
+  # Identidad y agenda. `wave` salio el 2026-08-31 junto con la columna MUESTRA
+  # del bloque de agenda: la ola es del plan (Calculo de muestra) y el libro ya
+  # no la pregunta, asi que tampoco puede pisarla.
   "label", "course_name", "faculty", "level", "teacher", "teacher_phone",
-  "teacher_email", "schedule", "wave", "enrolled_total", "eligible_n",
+  "teacher_email", "schedule", "enrolled_total", "eligible_n",
   "selection_slot_id",
   # Estado y ciclo de contacto
   "sample_status", "contact_medium", "contact_date", "contact_attempts",

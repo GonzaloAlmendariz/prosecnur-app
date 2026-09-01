@@ -19,13 +19,13 @@ test_that("una pestaña de Sheets produce las mismas filas que el .xlsx", {
 
 test_that("las filas dentadas de Sheets no corren las columnas", {
   # La API RECORTA las celdas vacias del final de cada fila. Este es el caso
-  # real: la cabecera trae 20 columnas y la fila de datos llega con 4 porque el
+  # real: la cabecera trae 20 columnas y la fila de datos llega con 3 porque el
   # equipo solo lleno el principio. Sin relleno, `as.data.frame` sobre filas de
   # distinto largo o bien falla o bien recicla, y el lector empieza a leer un
   # campo donde hay otro.
   titulos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos[[1]], character(1))
   cabecera <- as.list(c("ID MATCH", titulos))
-  fila <- list("1", "Muestra 01", "CH 7", "Docente Siete")
+  fila <- list("1", "CH 7", "Docente Siete")
 
   plan <- aulas_libro_desde_valores(list(cabecera, fila), "agendadas")
   expect_length(plan, 1L)
