@@ -1207,25 +1207,13 @@
     tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
   }
   include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
-  # El plan tampoco viaja dentro de `config`. Medido sobre 196 aulas: 333 KB de
-  # un payload de 934, y `dashboard$aulas_universitarias_reports$agenda` es un
-  # SUPERCONJUNTO estricto de esa copia —las mismas 196 filas con los mismos 80
-  # campos, mas `respuestas_validas` y `brecha`—, asi que no se pierde nada.
-  #
-  # Y esta siempre: el tablero de aulas se reconstruye en cada peticion desde
-  # `s$monitoreo_aulas_plan`, no depende de que exista snapshot, asi que el
-  # registro de campo lo tiene desde antes de la primera respuesta.
-  #
-  # Queda `plan_rows` porque hay una pregunta que sigue siendo de la config:
-  # cuantas unidades hay, que es lo que decide si se puede generar el libro.
-  # Mandar 333 KB para contar 196 filas es el intercambio que se deshace aqui.
+  # El plan no viaja dentro de `config` (333 KB medidos): queda `plan_rows`,
+  # contado desde la fuente veraz —la sesion, que es lo que escribe el handoff—.
+  # El porque entero vive en monitoreo_aulas_estado_payload.R (A14).
   cfg_payload <- cfg
-  if (is.list(cfg_payload$aulas_universitarias)) {
-    au <- cfg_payload$aulas_universitarias
-    au$plan_rows <- as.integer(length(au$plan %||% list()))
-    au$plan <- NULL
-    cfg_payload$aulas_universitarias <- au
-  }
+  cfg_payload$aulas_universitarias <- monitoreo_aulas_estado_payload(
+    cfg$aulas_universitarias, s$monitoreo_aulas_plan
+  )
   list(
     ok = TRUE,
     # De que sorteo viene el plan de aulas y si sigue siendo el vigente. La
