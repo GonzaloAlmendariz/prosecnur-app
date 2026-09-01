@@ -503,3 +503,24 @@ test_that("un libro sin columnas sueltas no inventa ninguna", {
   out <- aulas_libro_importar(libro)
   expect_length(out$control_sin_nombre, 0L)
 })
+
+test_that("un libro de antes de A13a —hoja «Cómo va el campo»— sigue importando", {
+  # A13a (2026-08-31) renombró la hoja de indicadores a «Avance de campo»
+  # (Gonzalo: «es AVANCE»). El libro es efímero por sesión, pero un .xlsx
+  # guardado antes del rename puede vivir en el disco del equipo:
+  # `aulas_libro_importar()` lee las TRES hojas de datos por nombre e ignora
+  # las que no conoce, así que el nombre viejo ni rompe el import ni pierde
+  # ninguna de las tres.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.rt_plan(), libro, partes = .rt_partes(),
+                      control = .rt_control())
+  wb <- openxlsx::loadWorkbook(libro)
+  openxlsx::renameWorksheet(wb, "Avance de campo", "Cómo va el campo")
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+  viejo <- aulas_libro_importar(libro)
+  nuevo <- .rt_vuelta()
+  expect_length(viejo$hojas_ausentes, 0L)
+  expect_identical(length(viejo$plan), length(nuevo$plan))
+  expect_identical(length(viejo$partes), length(nuevo$partes))
+  expect_identical(length(viejo$control), length(nuevo$control))
+})

@@ -2,7 +2,7 @@
 #
 # Gonzalo pidió la misma tabla en tres soportes: «una en avance y las otras dos
 # en un PDF para poder enviarlos a sus correos y un excel para poder
-# compartírselos». El Excel es la hoja «Cómo va el campo» del libro y la
+# compartírselos». El Excel es la hoja «Avance de campo» del libro y la
 # pantalla es `AulasAvanceParaCliente`; esto es el tercero.
 #
 # POR QUÉ HACE FALTA UN MODELO PROPIO

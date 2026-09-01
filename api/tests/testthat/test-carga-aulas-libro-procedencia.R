@@ -29,7 +29,8 @@
 # La hoja no es una tabla: son etiquetas y valores sueltos. Se lee entera y se
 # busca el texto, que es como lo vería una persona.
 .pr_hoja <- function(path) {
-  d <- openxlsx::read.xlsx(path, sheet = "Cómo va el campo", colNames = FALSE)
+  # A13a (2026-08-31): la hoja era «Cómo va el campo»; Gonzalo: «es AVANCE».
+  d <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE)
   as.character(unlist(d, use.names = FALSE))
 }
 

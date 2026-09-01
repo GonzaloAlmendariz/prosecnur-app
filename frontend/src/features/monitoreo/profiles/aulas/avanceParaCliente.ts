@@ -10,7 +10,7 @@ import { sexSeriesKind } from "../../../calcMuestra/sexoPalette";
  *
  * Gonzalo lo pidió así: «el reporte de avance por facultad por sexo a la
  * muestra y la sobremuestra y la cantidad de aulas aplicadas». La misma tabla
- * va en tres soportes —esta pantalla, el PDF y la hoja «Cómo va el campo» del
+ * va en tres soportes —esta pantalla, el PDF y la hoja «Avance de campo» del
  * libro—, así que **el contenido se decide una vez**.
  *
  * ## No recalcula: JUNTA lo que el motor ya publica

@@ -45,7 +45,7 @@ el recorte por facultad de esos dos criterios.
 
 | # | Pendiente | Estado | Dónde vive |
 |---|---|---|---|
-| P1 | **La hoja «Cómo va el campo» del libro no se ha mirado NUNCA.** Es la única de las cuatro sin revisar campo por campo. | ☐ | `api/R/carga_aulas_libro*.R` · anatomía en `docs/qa/anatomia-excels-aulas-2026-08-16.md` |
+| P1 | **La hoja «Avance de campo» del libro no se ha mirado NUNCA** (hasta A13a, 2026-08-31, se llamaba «Cómo va el campo»). Es la única de las cuatro sin revisar campo por campo. | ☐ | `api/R/carga_aulas_libro*.R` · anatomía en `docs/qa/anatomia-excels-aulas-2026-08-16.md` |
 | P2 | **El tile «BRECHAS 193 · en 15 facultades» de Consultas** probablemente repite el defecto ya reparado en cadenas: la brecha de un aula sin aplicar no es una brecha, es trabajo pendiente. | ☐ | `brechasKpi(dashboard)` en `kpisDeAulas.ts` |
 | P3 | **Lista final de ajustes de la simulación** (paso 6): el cierre del ejercicio de las 193 aulas con datos de campo. | ☐ | este doc lo sustituye en parte |
 | P4 | **El bundle de 2.616 fichas QR nunca se generó end-to-end.** Compilar funciona (2.616 páginas en 11,5 s); el render tiene que ir por `collection_material_render_job`, no por `collection_material_render_compiled`. | ☐ | `api/R/collection_materials.R` |

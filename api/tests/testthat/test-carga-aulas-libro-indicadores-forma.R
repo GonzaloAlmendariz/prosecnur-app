@@ -1,4 +1,5 @@
-# Tres defectos de la hoja «Como va el campo», los tres vistos en el PDF y
+# Tres defectos de la hoja «Avance de campo» —hasta A13a (2026-08-31) se
+# llamaba «Cómo va el campo»; Gonzalo: «es AVANCE»—, los tres vistos en el PDF y
 # ninguno visible desde el XML sin mirar la pagina entera.
 #
 # 1. `#,##0.#` OMITE el cero decimal, asi que «Media por aula» enseñaba un 23
@@ -14,7 +15,7 @@
 # Los textos de la hoja, aplanados: `skipEmptyRows = FALSE` para que los indices
 # no se corran (trampa conocida de `read.xlsx`).
 .cif_textos <- function(ruta) {
-  d <- openxlsx::read.xlsx(ruta, sheet = "Cómo va el campo", colNames = FALSE,
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
                            skipEmptyRows = FALSE)
   v <- unlist(lapply(d, as.character), use.names = FALSE)
   v[!is.na(v)]
@@ -22,7 +23,7 @@
 
 # En que fila esta un rotulo de la primera columna util.
 .cif_fila_de <- function(ruta, rotulo) {
-  d <- openxlsx::read.xlsx(ruta, sheet = "Cómo va el campo", colNames = FALSE,
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
                            skipEmptyRows = FALSE)
   hit <- which(apply(d, 1, function(r) any(as.character(r) == rotulo, na.rm = TRUE)))
   if (!length(hit)) return(NA_integer_)
@@ -57,7 +58,7 @@ test_that("«Media por aula» declara su decimal aunque sea cero", {
   cab <- .cif_fila_de(ruta, "Media por aula")
   expect_true(is.finite(cab), info = "no se encontro la cabecera de la media")
   formatos <- vapply((cab + 1L):(cab + 2L),
-                     function(f) formato_de_celda(ruta, "Cómo va el campo", 4, f),
+                     function(f) formato_de_celda(ruta, "Avance de campo", 4, f),
                      character(1))
   # Ninguna celda de la media puede llevar un formato que omita el decimal.
   expect_false(any(grepl("0\\.#", formatos)),
