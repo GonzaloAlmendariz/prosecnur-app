@@ -121,6 +121,15 @@
   vapply(AULAS_AGENDADAS_BLOQUE, function(s) .calg_celda_agenda(u, s$campo), character(1))
 }
 
+# ¿El cruce DAA esta activo? UNA implementacion del predicado (B8h fase 2):
+# la hoja de agendadas, el generador xlsx y el publicador de Sheets deciden
+# la MISMA geometria con el, y dos copias del `length(...) > 0` era como se
+# separaban. NULL y character(0) son «sin cruce» — la columna es condicional
+# por dictado del dueño («la DAA es algo particular de este año»).
+.calg_daa_activo <- function(traslape_daa) {
+  length(traslape_daa %||% character(0)) > 0L
+}
+
 #' Arma la hoja «Aulas Agendadas» a partir del plan.
 #'
 #' @param unidades filas del plan (formato largo).
@@ -135,7 +144,7 @@
 #' @export
 aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   titulos_bloque <- .calg_titulos_agenda()
-  con_daa <- length(traslape_daa %||% character(0)) > 0L
+  con_daa <- .calg_daa_activo(traslape_daa)
   if (con_daa) titulos_bloque <- c(titulos_bloque, "TRASLAPE DAA")
   # El veredicto de una unidad, o "" si el cruce no la menciona — celda vacia,
   # nunca NA: un default inventado diria «sin traslape» con la voz de un dato.
@@ -711,12 +720,19 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 #' @param efectivas vector con nombre: respuestas efectivas por codigo operativo.
 #'   Efectiva es la de la PLATAFORMA —encuesta completa que pasa los filtros—,
 #'   no lo que el aplicador anota en su parte.
+#' @param traslape_daa vector nombrado por codigo operativo con el veredicto
+#'   del cruce DAA (`aulas_daa_traslape`), o `NULL`. B8h fase 2: se enhebra a
+#'   `aulas_libro_hoja_agendadas` y ensancha CADA bloque de esa hoja en 1, asi
+#'   que toda la geometria derivada del bloque (desplegables, tintes,
+#'   agrupados, tipado) se calcula con el ancho condicional. Sin cruce, el
+#'   libro es byte-identico al de hoy.
 #' @return la ruta escrita.
 #' @export
 
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
                                efectivas = NULL, responses = NULL, validas = NULL,
-                               cuotas = NULL, cfg = list(), procedencia = NULL) {
+                               cuotas = NULL, cfg = list(), procedencia = NULL,
+                               traslape_daa = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
@@ -768,7 +784,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # `control`), no el archivo. El riesgo que queda no es destruccion sino
   # DIVERGENCIA entre dos copias, y eso se ataca declarando la procedencia
   # dentro del libro.
-  hojas <- list(`Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades))
+  hojas <- list(`Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades, traslape_daa = traslape_daa))
   # B14: cada hoja Extra va INMEDIATAMENTE despues de su contraparte (decision
   # del lead) y SOLO si el plan trae banco sin usar: sin extras el juego de
   # hojas es identico al de hoy, nada de hojas fantasma vacias.
@@ -903,8 +919,16 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Las columnas del desplegable se derivan de la POSICION del campo en el
   # bloque, no de un numero a mano: si manana el bloque gana una columna, esto
   # sigue apuntando al campo correcto.
+  #
+  # B8h fase 2: con el cruce DAA cada bloque de agendadas se ensancha en 1
+  # («TRASLAPE DAA» lo cierra), asi que el PASO entre bloques es condicional.
+  # Todo consumidor de geometria de esta hoja (desplegables, semaforos,
+  # tintes, agrupados, tipado) pasa por `col_en_bloque`/`ancho_bloque_agenda`:
+  # con el paso viejo, cada bloque R1+ apuntaria una columna a la izquierda.
+  con_daa <- .calg_daa_activo(traslape_daa)
+  ancho_bloque_agenda <- AULAS_AGENDADAS_ANCHO_BLOQUE + as.integer(con_daa)
   idx <- function(campo) which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo == campo, logical(1)))
-  col_en_bloque <- function(campo, b) 1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + idx(campo)
+  col_en_bloque <- function(campo, b) 1L + (b - 1L) * ancho_bloque_agenda + idx(campo)
   bloques <- seq_len(profundidad)
   filas_agenda <- nrow(hojas[["Aulas Agendadas"]]) - 1L
 
@@ -1139,8 +1163,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     validaciones = validaciones,
     listas = listas,
     columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(
-      campos_bloque, AULAS_LIBRO_CAMPOS_DE_LA_PERSONA, profundidad,
-      ancho = AULAS_AGENDADAS_ANCHO_BLOQUE, desplazamiento = 1L
+      # B8h fase 2: con el cruce, «TRASLAPE DAA» cierra el bloque y es columna
+      # de la APP —el veredicto lo escribe el cruce, no la persona— asi que
+      # entra al gris de «esto no lo toques» como las demas derivadas.
+      if (con_daa) c(campos_bloque, "traslape_daa") else campos_bloque,
+      AULAS_LIBRO_CAMPOS_DE_LA_PERSONA, profundidad,
+      ancho = ancho_bloque_agenda, desplazamiento = 1L
     )),
     # Un grupo plegable por cada bloque de reemplazo. El titular —el primer
     # bloque— se queda fuera: es la fila que se trabaja siempre y plegarla no
@@ -1149,8 +1177,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     agrupados = if (profundidad > 1L) lapply(2:profundidad, function(b) list(
       hoja = "Aulas Agendadas",
       cols = seq(
-        1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
-        1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE
+        1L + (b - 1L) * ancho_bloque_agenda + 1L,
+        1L + b * ancho_bloque_agenda
       )
     )) else list(),
     # El tinte y el borde de CADA eslabon, titular incluido: `agrupados` solo
@@ -1159,8 +1187,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     tintes = c(
       lapply(seq_len(profundidad), function(b) list(
         hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, eslabon = b,
-        cols = seq(1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
-                   1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE)
+        cols = seq(1L + (b - 1L) * ancho_bloque_agenda + 1L,
+                   1L + b * ancho_bloque_agenda)
       )),
       # La hoja de campo tiene los mismos eslabones y salia con los tres
       # bloques en el mismo navy: la banda los nombraba pero el color no los

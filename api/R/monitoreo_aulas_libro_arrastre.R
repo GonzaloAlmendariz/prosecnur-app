@@ -50,7 +50,15 @@
 # `int2col` es lo que usa la capa hermana del xlsx (carga_aulas_libro_formato.R).
 .malar_col_a1 <- function(col) openxlsx::int2col(as.integer(col))
 
-.malar_ancho_agenda <- function() length(.calg_titulos_agenda())
+# B8h fase 2: con el cruce DAA, «Aulas Agendadas» ensancha CADA bloque en 1
+# («TRASLAPE DAA» lo cierra), asi que el PASO entre bloques del ORIGEN es
+# condicional. El flag viaja por parametro en la cadena de llamadas — nada de
+# estado global. La hoja de campo (el DESTINO) no gana la columna: sus usos
+# con el default (`.malar_ancho_bloque`, `ancho_arrastre`, la mascara) siguen
+# midiendo los 20 de siempre.
+.malar_ancho_agenda <- function(con_daa = FALSE) {
+  length(.calg_titulos_agenda()) + as.integer(isTRUE(con_daa))
+}
 
 .malar_ancho_bloque <- function() {
   1L + .malar_ancho_agenda() + length(.calg_titulos_campo())
@@ -107,12 +115,19 @@
 # Las 21 celdas de arrastre de un bloque (ID MATCH + agenda) para una fila de
 # agendadas dada: ID MATCH ← columna 1 de la fila de la cadena; agenda j ←
 # bloque b de agendadas, misma fila.
-.malar_celdas_bloque <- function(hoja_agendadas, bloque, fila_ag) {
+#
+# `con_daa` corrige SOLO el paso del origen: se siguen arrastrando los 20
+# campos de agenda (la hoja de campo no lleva «TRASLAPE DAA»), pero el bloque
+# b de agendadas vive +(b-1) columnas mas alla cuando el cruce esta activo —
+# con el paso viejo, la formula del bloque R1 arrastraria el ENLACE DE LA
+# FICHA del titular disfrazado de curso.
+.malar_celdas_bloque <- function(hoja_agendadas, bloque, fila_ag, con_daa = FALSE) {
   n_agenda <- .malar_ancho_agenda()
+  paso <- .malar_ancho_agenda(con_daa)
   c(
     list(.malar_formula(hoja_agendadas, 1L, fila_ag)),
     lapply(seq_len(n_agenda), function(j) {
-      .malar_formula(hoja_agendadas, 1L + (bloque - 1L) * n_agenda + j, fila_ag)
+      .malar_formula(hoja_agendadas, 1L + (bloque - 1L) * paso + j, fila_ag)
     })
   )
 }
@@ -135,13 +150,17 @@
 #' @param values el rectángulo de values YA sembrado (con valores).
 #' @param unidades filas del plan con las que se produjeron las dos hojas.
 #' @param hoja_agendadas título de la hoja de agendamiento.
+#' @param con_daa `TRUE` cuando la hoja de agendadas se publicó CON la columna
+#'   condicional «TRASLAPE DAA» (B8h fase 2): el paso entre bloques del origen
+#'   crece en 1 y las fórmulas se emiten a las columnas corridas.
 #' @return invisible: cuántos rangos de fórmulas se escribieron.
 #' @keywords internal
 monitoreo_aulas_libro_arrastre_publicar <- function(spreadsheet_id,
                                                     hoja_campo,
                                                     values,
                                                     unidades,
-                                                    hoja_agendadas = "Aulas Agendadas") {
+                                                    hoja_agendadas = "Aulas Agendadas",
+                                                    con_daa = FALSE) {
   values <- values %||% list()
   bloques <- .malar_bloques_arrastre(values, unidades)
   n_datos <- length(values) - 2L
@@ -163,7 +182,7 @@ monitoreo_aulas_libro_arrastre_publicar <- function(spreadsheet_id,
         length(celdas) <- ancho_arrastre
         lapply(celdas, function(c) if (is.null(c)) "" else c)
       } else {
-        .malar_celdas_bloque(hoja_agendadas, b, fila_ag)
+        .malar_celdas_bloque(hoja_agendadas, b, fila_ag, con_daa = con_daa)
       }
     })
     rango <- sprintf(
