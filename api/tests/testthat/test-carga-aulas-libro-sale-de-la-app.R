@@ -47,7 +47,8 @@ test_that("generar en una ruta nueva no toca ninguna otra", {
 })
 
 test_that("el libro trae SEIS hojas, no tres", {
-  # Las tres operativas, «Plan del día», «Cómo va el campo» (indicadores) y
+  # Las tres operativas, «Plan del día», «Avance de campo» (indicadores; hasta
+  # A13a 2026-08-31 se llamó «Cómo va el campo» — Gonzalo: «es AVANCE») y
   # «Listas» (el origen de los desplegables). «Plan del día» entra con la
   # unidad B2.1 (2026-08-31): en 2025 el equipo tecleaba a mano SEIS hojas
   # «aplicación del día N» —el recorte de la fila agenda+campo por fecha— y en
@@ -59,7 +60,7 @@ test_that("el libro trae SEIS hojas, no tres", {
   aulas_libro_generar(.pe_plan(), libro)
   expect_setequal(readxl::excel_sheets(libro),
                   c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control",
-                    "Plan del día", "Cómo va el campo", "Listas"))
+                    "Plan del día", "Avance de campo", "Listas"))
 })
 
 test_that("las fechas se escriben como FECHAS de Excel, no como texto", {

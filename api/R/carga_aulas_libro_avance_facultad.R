@@ -1,4 +1,4 @@
-# El avance por FACULTAD y por SEXO de la hoja «Cómo va el campo».
+# El avance por FACULTAD y por SEXO de la hoja «Avance de campo».
 #
 # Gonzalo, pidiendo la tabla de avance para el cliente: «centrarse en el reporte
 # de avance por facultad por sexo a la muestra y la sobremuestra y la cantidad

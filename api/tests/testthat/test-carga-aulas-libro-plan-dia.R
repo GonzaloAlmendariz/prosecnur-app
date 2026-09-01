@@ -18,7 +18,7 @@
 #      `.MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]]`; ESTADO legible (no el
 #      interno crudo «en_campo»); ENLACE = row$link.
 #   B) `aulas_libro_generar()` la escribe como 4.ª hoja de datos — después de
-#      «Base de control», ANTES de «Cómo va el campo»; indicadores sigue
+#      «Base de control», ANTES de «Avance de campo»; indicadores sigue
 #      penúltima y «Listas» última. Es hoja DE IDA: sin lector;
 #      `aulas_libro_importar()` la ignora sin error.
 #   C) Es hoja de la APP: `monitoreo_aulas_publicar_libro()` la publica
@@ -166,11 +166,12 @@ test_that("el libro trae SEIS hojas con «Plan del día» en la posición 4", {
   aulas_libro_generar(.pd_plan(), libro)
   hojas <- readxl::excel_sheets(libro)
   expect_length(hojas, 6L)
-  # Después de «Base de control», ANTES de «Cómo va el campo»: quien abre el
+  # Después de «Base de control», ANTES de «Avance de campo»: quien abre el
   # libro para agendar sigue aterrizando en su hoja, y los indicadores siguen
   # penúltimos (lo pinea test-carga-aulas-libro-indicadores.R).
   expect_identical(hojas[[4]], "Plan del día")
-  expect_identical(hojas[[5]], "Cómo va el campo")
+  # A13a (2026-08-31): era «Cómo va el campo»; Gonzalo: «es AVANCE».
+  expect_identical(hojas[[5]], "Avance de campo")
   expect_identical(hojas[[6]], "Listas")
 })
 

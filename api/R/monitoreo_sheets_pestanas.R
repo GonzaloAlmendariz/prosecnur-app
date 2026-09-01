@@ -155,7 +155,8 @@ monitoreo_sheets_pestanas_controladas <- function() {
   libro_aulas <- c(
     vapply(AULAS_LIBRO_HOJAS, function(x) x$hoja, character(1)),
     "Plan del día",
-    "Cómo va el campo",
+    # A13a: era «Cómo va el campo»; Gonzalo: «es AVANCE», registro académico.
+    "Avance de campo",
     "Listas"
   )
 

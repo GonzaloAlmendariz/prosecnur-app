@@ -1,4 +1,8 @@
-# La hoja de indicadores del libro: como va el campo, hoy.
+# La hoja de indicadores del libro: «Avance de campo».
+#
+# Se llamaba «Cómo va el campo» hasta A13a (2026-08-31); Gonzalo, textual:
+# «noto mucha jerga […] no, es AVANCE» — la app y el Sheets hablan en registro
+# académico.
 #
 # Gonzalo la pidio asi: «podria tener una pestaña u hoja con indicadores, pero
 # deben ser indicadores UTILES para el campo y para el analista, como la
@@ -153,7 +157,7 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   "Las respuestas no traen fecha legible, asi que no se puede repartir el avance por dia."
 }
 
-aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo",
+aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                              procedencia = NULL) {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
@@ -210,7 +214,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
   # negrita deja de destacar y sólo pesa.
   porcentaje <- openxlsx::createStyle(halign = "right", numFmt = "0.0%")
 
-  openxlsx::writeData(wb, hoja, "Cómo va el campo", startCol = 1, startRow = 1)
+  openxlsx::writeData(wb, hoja, "Avance de campo", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
   openxlsx::writeData(wb, hoja, paste("Al", format(Sys.Date(), "%d/%m/%Y")),
                       startCol = 1, startRow = 2)

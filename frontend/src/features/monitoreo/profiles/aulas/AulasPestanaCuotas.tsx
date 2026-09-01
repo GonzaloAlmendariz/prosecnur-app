@@ -63,7 +63,7 @@ export function AulasPestanaCuotas({
             >
               <div className="mon-profile-panel-head">
                 {/* La tabla que se entrega, y la misma que va al PDF y a la hoja
-                    «Cómo va el campo» del libro: un contenido en tres soportes. Va
+                    «Avance de campo» del libro: un contenido en tres soportes. Va
                     PRIMERO en la pestaña porque es la lectura de conjunto; el detalle
                     grupo a grupo viene después.
 

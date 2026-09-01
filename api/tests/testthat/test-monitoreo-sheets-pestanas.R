@@ -21,13 +21,14 @@
 
 # Los nombres del libro tal como los produce la app y los relee
 # `aulas_libro_leer_de_sheets()`: las tres hojas de datos vienen de
-# `AULAS_LIBRO_HOJAS` (carga_aulas_libro.R); «Cómo va el campo» y «Listas» de
+# `AULAS_LIBRO_HOJAS` (carga_aulas_libro.R); «Avance de campo» y «Listas» de
 # los generadores de indicadores y formato.
 .msp_hojas_libro <- c(
   "Aulas Agendadas",
   "Aulas Aplicadas (Campo)",
   "Base de control",
-  "Cómo va el campo",
+  # A13a (2026-08-31): era «Cómo va el campo»; Gonzalo: «es AVANCE».
+  "Avance de campo",
   "Listas"
 )
 

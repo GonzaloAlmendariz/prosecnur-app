@@ -1,5 +1,6 @@
 # =============================================================================
-# El avance por facultad y sexo de la hoja «Cómo va el campo»
+# El avance por facultad y sexo de la hoja «Avance de campo»
+# (hasta A13a, 2026-08-31, «Cómo va el campo»; Gonzalo: «es AVANCE»)
 # =============================================================================
 #
 # Encargo de Gonzalo: la tabla de avance al cliente se centra en «el reporte de

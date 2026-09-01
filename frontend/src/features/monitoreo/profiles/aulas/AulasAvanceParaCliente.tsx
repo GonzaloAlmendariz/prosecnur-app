@@ -14,7 +14,7 @@ import "./avanceParaCliente.css";
 /**
  * El avance como se lo enseñas al cliente: por facultad y por sexo.
  *
- * Es la misma tabla que va en el PDF y en la hoja «Cómo va el campo» del libro:
+ * Es la misma tabla que va en el PDF y en la hoja «Avance de campo» del libro:
  * un solo contenido en tres soportes, decidido una vez.
  *
  * Se construye con el criterio que Gonzalo aprobó en la tabla de Efectividad:

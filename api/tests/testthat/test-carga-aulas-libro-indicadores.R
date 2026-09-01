@@ -1,4 +1,6 @@
-# La hoja «Cómo va el campo».
+# La hoja «Avance de campo».
+# A13a (2026-08-31): era «Cómo va el campo»; Gonzalo: «es AVANCE» — el pin del
+# nombre se actualiza deliberadamente, la semántica de cada test no cambia.
 #
 # Gonzalo: «podria tener una pestaña u hoja con indicadores, pero deben ser
 # indicadores UTILES para el campo y para el analista, como la produccion, el
@@ -87,7 +89,7 @@ test_that("la hoja va la ULTIMA: el libro lo abre quien agenda", {
   aulas_libro_generar(.ci_plan(), libro, efectivas = c(`CH 1` = 18))
   hojas <- openxlsx::getSheetNames(libro)
   # Antes de «Listas», que es la oculta.
-  expect_identical(hojas[[length(hojas) - 1L]], "Cómo va el campo")
+  expect_identical(hojas[[length(hojas) - 1L]], "Avance de campo")
   expect_identical(hoja_activa_de(libro), "Aulas Agendadas")
 })
 
@@ -97,11 +99,11 @@ test_that("el avance se ENSEÑA como porcentaje, no como 0.59", {
   # `skipEmptyRows = FALSE`: por defecto `read.xlsx` se salta las filas en
   # blanco, y esta hoja tiene una entre el pie y la primera seccion, asi que el
   # indice de la tabla no era el numero de fila del Excel.
-  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Cómo va el campo",
+  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Avance de campo",
                                             colNames = FALSE, skipEmptyRows = FALSE))
   fila <- which(as.character(d[[1]]) == "Avance")
   expect_length(fila, 1L)
-  expect_identical(formato_de_celda(libro, "Cómo va el campo", 2, fila), "0.0%")
+  expect_identical(formato_de_celda(libro, "Avance de campo", 2, fila), "0.0%")
 })
 
 test_that("las barras no tapan el numero", {
@@ -115,7 +117,7 @@ test_that("las barras no tapan el numero", {
   )
   aulas_libro_generar(.ci_plan(), libro, partes = partes,
                       efectivas = c(`CH 1` = 18, `CH 2` = 12))
-  colores <- colores_databar_de(libro, "Cómo va el campo")
+  colores <- colores_databar_de(libro, "Avance de campo")
   expect_gt(length(colores), 0L)
   for (hex in colores) {
     lum <- mean(grDevices::col2rgb(paste0("#", substr(hex, 3, 8)))[, 1])
