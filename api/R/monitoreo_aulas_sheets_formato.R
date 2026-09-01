@@ -398,7 +398,9 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
       list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE),
       # B22: {Sí, No} de RECIBIÓ CORREO, uniforme en todos los bloques (el
       # titular hereda; su celda va vacia y strict = FALSE no obliga a nada).
-      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO)
+      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO),
+      # B23: STATUS DE LLAMADA — «todos los CH», los siete del dictado.
+      list(campo = "call_status", valores = AULAS_LIBRO_STATUS_LLAMADA)
     )
     for (spec in specs) {
       for (b in seq_len(profundidad)) {

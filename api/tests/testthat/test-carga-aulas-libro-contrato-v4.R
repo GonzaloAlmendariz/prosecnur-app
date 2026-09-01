@@ -28,6 +28,10 @@
   # zona del agendador: lo que ve y lo que registra, junto y en orden de uso
   "teacher", "teacher_phone", "label", "contact_medium", "contact_date",
   "contact_attempts",
+  # B23 (dictado 2026-09-01, con el libro en uso): el resultado de CADA
+  # llamada, en todos los CH — titulares incluidos; el cluster de la
+  # llamada queda junto y RECIBIO CORREO sigue pegado al status muestra.
+  "call_status",
   # B22 (dictado 2026-09-01): a reemplazos y extras se les manda correo hoy
   # y se les llama mañana según necesidad — la marca va A LA IZQUIERDA del
   # status; a los titulares se les llama a todos hoy (celda vacía).
@@ -41,7 +45,7 @@
   "CURSO-HORARIO", "NOMBRE DEL CURSO",
   "NOMBRE DE DOCENTE", "TELÉFONO DE DOCENTE", "SESIONES Y AULA",
   "MEDIO DE CONTACTO", "FECHA DE LLAMADA", "NÚMERO DE INTENTOS",
-  "RECIBIÓ CORREO",
+  "STATUS DE LLAMADA", "RECIBIÓ CORREO",
   # «FECHA AGENDADA», no «FECHA DE APLICACIÓN»: en la hoja del agendador esa
   # fecha es la agendada; el nombre viejo era la confusión que el renombrado de
   # la hoja de campo ya había documentado. El título viejo queda de alias.

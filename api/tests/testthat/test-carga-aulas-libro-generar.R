@@ -424,10 +424,17 @@ test_that("el semaforo de la hoja de campo cae sobre STATUS DE APLICACIÓN", {
 })
 
 test_that("las cuentas de campo entran como numero, no como texto", {
-  # Un numFmt sobre una celda de texto no se ve. La celda de los asistentes
-  # (columna W, la 23) no puede ser una cadena.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
-  celda <- regmatches(xml, regexpr('<c r="W3"[^>]*>', xml))
+  # Un numFmt sobre una celda de texto no se ve. La celda de los asistentes no
+  # puede ser una cadena. La letra se DERIVA por titulo, igual que el semaforo
+  # de arriba: fijada en «W3» sobrevivio de suerte al ensanche de B22 (la col
+  # 23 seguia siendo un numero) y con B23 apuntaba a ENLACE DE LA FICHA.
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  letra <- openxlsx::int2col(
+    which(as.character(unlist(cab[1, ], use.names = FALSE)) == "CANTIDAD DE ASISTENTES")[[1]])
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"), collapse = "")
+  celda <- regmatches(xml, regexpr(sprintf('<c r="%s3"[^>]*>', letra), xml))
   expect_length(celda, 1L)
   expect_false(grepl('t="s"', celda, fixed = TRUE))
   expect_false(grepl('t="str"', celda, fixed = TRUE))

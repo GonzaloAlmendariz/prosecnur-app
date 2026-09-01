@@ -185,10 +185,10 @@ aulas_libro_extras_formato <- function(hojas, rango_de) {
     out$filas_cabecera[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <- 1L
     out$columnas_repetidas[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <- col_ag("operational_code")
     # Los mismos desplegables del bloque de agenda, a profundidad 1.
-    # `email_received` entra con B22: los extras arrancan sembrados «No» y el
-    # equipo marca «Sí» al enviar el correo del dia 1.
+    # `email_received` entra con B22 (los extras arrancan sembrados «No») y
+    # `call_status` con B23 (el resultado de cada llamada, sembrado vacio).
     for (campo in c("sample_status", "contact_medium", "scheduled_day",
-                    "scheduled_moment", "email_received")) {
+                    "scheduled_moment", "email_received", "call_status")) {
       out$validaciones[[length(out$validaciones) + 1L]] <- list(
         hoja = AULAS_LIBRO_HOJA_AGENDADAS_EXTRA, desde = 1L, filas = filas,
         cols = col_ag(campo), rango = rango_de(titulo_de(campo))
@@ -288,7 +288,9 @@ aulas_libro_extras_sheets_requests <- function(sheet_id, tab_name, rows) {
       list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE),
       # B22: {Sí, No} — los extras van sembrados «No» y el correo del dia 1
       # se marca aqui.
-      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO)
+      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO),
+      # B23: el resultado de cada llamada, tambien en el banco.
+      list(campo = "call_status", valores = AULAS_LIBRO_STATUS_LLAMADA)
     )
     for (spec in specs) {
       requests[[length(requests) + 1L]] <- .mafs_validacion_request(

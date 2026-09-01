@@ -136,6 +136,17 @@ AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
 # consumen la hoja «Listas» del xlsx y los ONE_OF_LIST del Sheets publicado.
 AULAS_LIBRO_RECIBIO_CORREO <- c("Sí", "No")
 
+# B23: el desplegable de «STATUS DE LLAMADA», en el orden del dictado
+# (2026-09-01, con el libro en uso): «Efectiva / Contactar después / No
+# contesta / Apagado / Colgó / Rechazo. Ah también, una opción de Contactado
+# por WhatsApp». Es el resultado de CADA llamada — otro eje que STATUS
+# MUESTRA — y se siembra VACIO: lo teclea el equipo. UNA lista para xlsx y
+# Sheets, como sus hermanas.
+AULAS_LIBRO_STATUS_LLAMADA <- c(
+  "Efectiva", "Contactar después", "No contesta", "Apagado", "Colgó",
+  "Rechazo", "Contactado por WhatsApp"
+)
+
 # El desplegable NO absoluto de «MOMENTO DE LA CLASE» (B15, dictado 2026-09-01):
 # tres momentos tecleables y texto libre permitido — el docente puede responder
 # «a las 9:30, tras el control de lectura» y eso sigue siendo un dato valido.

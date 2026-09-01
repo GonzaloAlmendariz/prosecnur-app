@@ -47,6 +47,9 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   # moriria en silencio camino al plan.
   "sample_status", "contact_medium", "contact_date", "contact_attempts",
   "email_received",
+  # B23: el resultado de cada llamada tambien es del libro — la correccion
+  # tecleada («No contesta» -> «Efectiva») debe pisar el valor del plan.
+  "call_status",
   # `scheduled_moment` entra el 2026-08-31 (A3 del checklist del operativo):
   # el bloque de agenda lo escribe y el lector lo emite, pero fuera de esta
   # lista una correccion de horario hecha en el Excel solo se aplicaba si el
