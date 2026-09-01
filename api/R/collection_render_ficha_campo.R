@@ -315,12 +315,10 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
     warnings[[length(warnings) + 1L]] <- list(code = "access_missing", page = page_no)
   }
 
-  # El centro del pie lleva el nombre del estudio: el periodo ya no identifica
-  # nada util en una hoja que se reparte suelta por aula.
-  pulso_pdf_footer(
-    page_no, periodo = .crf_txt(footer$value %||% page$project$name, ""),
-    tokens = tokens, geo = geo
-  )
+  # El pie es SOLO el logo: ni texto al centro ni numero de pagina. En una hoja
+  # de una pagina que se reparte suelta por aula ninguno de los dos identifica
+  # nada, y el logo ya dice de quien es (dictado de Gonzalo, 2026-09-01).
+  pulso_pdf_footer(page_no, periodo = "", tokens = tokens, geo = geo, pagina = FALSE)
   list(warnings = warnings, links = links)
 }
 
@@ -353,9 +351,12 @@ collection_material_field_form_rows <- function() {
     # (`unit.eligible_n`) antes de imprimir la ficha, asi que copiarlo a mano
     # seria un paso de mas que puede fallar.
     fila(campo("N° de alumnos matriculados:", 1, binding = "unit.eligible_n")),
+    # Sin «Menores de edad» (lo quito Gonzalo el 2026-09-01: no participa del
+    # cuadre y el libro no tiene columna para el); su ancho se reparte para que
+    # el conteo de asistencia tenga raya donde escribir de verdad.
     fila(
-      campo("N° de alumnos en aula", 0.28), campo("Hombres:", 0.20),
-      campo("Mujeres:", 0.20), campo("Menores de edad:", 0.32)
+      campo("N° de alumnos en aula", 0.44), campo("Hombres:", 0.28),
+      campo("Mujeres:", 0.28)
     ),
     # Los cuatro numeros que el cuadre del parte comprueba —asistentes menos
     # rechazos menos duplicados igual efectivas— en una sola fila. El papel no

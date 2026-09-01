@@ -135,6 +135,12 @@ collection_material_prueba_snapshot <- function(sid, codigo, etiqueta = NULL) {
     label = etiqueta,
     role = "prueba",
     group = "Prueba",
+    # «Por confirmar» y no vacio: una prueba no pertenece a ninguna facultad,
+    # pero el vacio caia a raya de escritura mientras docente/aula/horario
+    # decian «Por confirmar» — la misma hoja con dos tratos (lo noto Gonzalo,
+    # 2026-09-01). Se iguala AQUI y no en el fallback del render: alla el ""
+    # tambien alimenta la carpeta del bundle y el subtitulo del afiche.
+    faculty = "Por confirmar",
     dimensions = list(legacy_ref = codigo, classroom_id = codigo)
   )
   plan_prueba <- list(
