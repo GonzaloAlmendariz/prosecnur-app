@@ -40,11 +40,18 @@
   1L + AULAS_AGENDADAS_ANCHO_BLOQUE + length(.calg_titulos_campo())
 }
 
+# El ancho del bloque de agendadas, con la columna condicional del cruce DAA
+# cuando esta activo (B8h fase 2: «TRASLAPE DAA» cierra cada bloque). El flag
+# viaja por parametro desde el publicador — nada de estado global.
+.mafs_ancho_agenda <- function(con_daa = FALSE) {
+  AULAS_AGENDADAS_ANCHO_BLOQUE + as.integer(isTRUE(con_daa))
+}
+
 # Cuántos bloques (eslabones o intentos) caben en el ancho publicado.
-.mafs_bloques <- function(hoja, n_cols) {
+.mafs_bloques <- function(hoja, n_cols, con_daa = FALSE) {
   n_cols <- max(1L, .monitoreo_int(n_cols, 1L))
   if (identical(hoja, "Aulas Agendadas")) {
-    return(max(1L, (n_cols - 1L) %/% AULAS_AGENDADAS_ANCHO_BLOQUE))
+    return(max(1L, (n_cols - 1L) %/% .mafs_ancho_agenda(con_daa)))
   }
   if (identical(hoja, "Aulas Aplicadas (Campo)")) {
     return(max(1L, n_cols %/% .mafs_ancho_campo()))
@@ -53,10 +60,12 @@
 }
 
 # Columna (1-based) de un campo del bloque de agenda en el bloque `b`. Por
-# nombre de campo contra la spec, igual que las validaciones del xlsx.
-.mafs_col_agenda <- function(campo, b) {
+# nombre de campo contra la spec, igual que las validaciones del xlsx. Con el
+# cruce DAA activo, el paso entre bloques crece en 1: al paso viejo, todo
+# bloque R1+ caeria una columna a la izquierda.
+.mafs_col_agenda <- function(campo, b, con_daa = FALSE) {
   idx <- which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) identical(s$campo, campo), logical(1)))
-  1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + idx[[1]]
+  1L + (b - 1L) * .mafs_ancho_agenda(con_daa) + idx[[1]]
 }
 
 # Columna (1-based) de un título del parte de campo en el intento `b`.
@@ -71,15 +80,16 @@
 # escala del xlsx: titular navy, reemplazos aclarándose por eslabón
 # (`aulas_libro_colores_eslabon`), y en la «Base de control» los cuatro tramos
 # temáticos con su propia escala. Lo que no cae en ningún bloque queda navy.
-.mafs_colores_banda <- function(hoja, n_cols) {
+.mafs_colores_banda <- function(hoja, n_cols, con_daa = FALSE) {
   navy <- "#002457"
   colores <- rep(navy, n_cols)
   if (identical(hoja, "Aulas Agendadas")) {
-    bloques <- .mafs_bloques(hoja, n_cols)
+    ancho <- .mafs_ancho_agenda(con_daa)
+    bloques <- .mafs_bloques(hoja, n_cols, con_daa)
     tonos <- aulas_libro_colores_eslabon(bloques)
     for (b in seq_len(bloques)) {
-      desde <- 1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L
-      hasta <- min(n_cols, 1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE)
+      desde <- 1L + (b - 1L) * ancho + 1L
+      hasta <- min(n_cols, 1L + b * ancho)
       if (desde <= hasta) colores[desde:hasta] <- tonos[[min(b, length(tonos))]]
     }
   } else if (identical(hoja, "Aulas Aplicadas (Campo)")) {
@@ -166,9 +176,13 @@
 #' @param sheet_id sheetId remoto de la pestaña.
 #' @param n_filas filas publicadas (cabeceras incluidas).
 #' @param n_cols columnas publicadas.
+#' @param con_daa `TRUE` cuando la agenda se publicó con la columna
+#'   condicional «TRASLAPE DAA» (B8h fase 2): el bloque mide una columna más
+#'   y toda la geometría de esta capa se corre con él.
 #' @return lista de requests de batchUpdate, todas sobre `sheet_id`.
 #' @keywords internal
-monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_cols) {
+monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_cols,
+                                                    con_daa = FALSE) {
   hoja <- .monitoreo_scalar(hoja, "")
   n_filas <- max(0L, .monitoreo_int(n_filas, 0L))
   n_cols <- max(1L, .monitoreo_int(n_cols, 1L))
@@ -194,7 +208,7 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
   # color de su eslabón/tramo y fila de títulos navy. `fields` acotado a
   # userEnteredFormat — no toca values ni dataValidation.
   if (n_filas >= 1L) {
-    banda <- .mafs_colores_banda(hoja, n_cols)
+    banda <- .mafs_colores_banda(hoja, n_cols, con_daa)
     filas_formato <- lapply(seq_len(cabeceras), function(fila) {
       colores <- if (fila == 1L) banda else rep("#002457", n_cols)
       list(values = lapply(colores, .mafs_celda_cabecera))
@@ -216,9 +230,9 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
   # `contains` igual que allá: «REAGENDADA» cae en el verde de «AGENDADA» y un
   # estado nuevo simplemente no se tiñe.
   if (n_filas > cabeceras) {
-    bloques <- .mafs_bloques(hoja, n_cols)
+    bloques <- .mafs_bloques(hoja, n_cols, con_daa)
     if (identical(hoja, "Aulas Agendadas")) {
-      cols_status <- vapply(seq_len(bloques), function(b) .mafs_col_agenda("sample_status", b), integer(1))
+      cols_status <- vapply(seq_len(bloques), function(b) .mafs_col_agenda("sample_status", b, con_daa), integer(1))
       cols_status <- cols_status[cols_status <= n_cols]
       if (length(cols_status)) {
         # B13b: «EN CONTACTO» y «RECHAZO» con los MISMOS tonos que su regla
@@ -268,7 +282,7 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
   # ya distinguen lo que se trabaja de lo que se consulta.
   if (identical(hoja, "Aulas Agendadas")) {
     requests[[length(requests) + 1L]] <- .mafs_dim_request(sheet_id, 0L, 1L, 64L)
-    corte_titular <- min(n_cols, 1L + AULAS_AGENDADAS_ANCHO_BLOQUE)
+    corte_titular <- min(n_cols, 1L + .mafs_ancho_agenda(con_daa))
     if (corte_titular > 1L) {
       requests[[length(requests) + 1L]] <- .mafs_dim_request(sheet_id, 1L, corte_titular, 160L)
     }
@@ -358,10 +372,14 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
 #' @param n_filas filas publicadas (cabeceras incluidas).
 #' @param profundidad bloques de la hoja: eslabones de cadena en la agenda,
 #'   intentos en la hoja de campo.
+#' @param con_daa `TRUE` cuando la agenda lleva la columna condicional
+#'   «TRASLAPE DAA» (B8h fase 2): los desplegables y calendarios de bloques
+#'   R1+ se emiten a las columnas corridas.
 #' @return lista de requests setDataValidation (vacía para hojas sin
 #'   desplegables o sin filas de datos).
 #' @keywords internal
-monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas, profundidad) {
+monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas, profundidad,
+                                                         con_daa = FALSE) {
   hoja <- .monitoreo_scalar(hoja, "")
   n_filas <- max(0L, .monitoreo_int(n_filas, 0L))
   profundidad <- max(1L, .monitoreo_int(profundidad, 1L))
@@ -382,7 +400,7 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
     for (spec in specs) {
       for (b in seq_len(profundidad)) {
         requests[[length(requests) + 1L]] <- .mafs_validacion_request(
-          sheet_id, .mafs_col_agenda(spec$campo, b), cabeceras, n_filas, spec$valores
+          sheet_id, .mafs_col_agenda(spec$campo, b, con_daa), cabeceras, n_filas, spec$valores
         )
       }
     }
@@ -391,7 +409,7 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
     for (campo in c("contact_date", "scheduled_date")) {
       for (b in seq_len(profundidad)) {
         requests[[length(requests) + 1L]] <- .mafs_fecha_request(
-          sheet_id, .mafs_col_agenda(campo, b), cabeceras, n_filas
+          sheet_id, .mafs_col_agenda(campo, b, con_daa), cabeceras, n_filas
         )
       }
     }

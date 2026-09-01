@@ -230,7 +230,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # updateCells) y SOLO para pestañas nuevas o con dimensiones cambiadas —
 # republicar sin cambios no reenvía nada, y las hojas del equipo solo pueden
 # recibirlo en su siembra porque `respetada` ni siquiera las mete al motor.
-.malp_formato_requests <- function(sheet_id, tab_name, rows) {
+.malp_formato_requests <- function(sheet_id, tab_name, rows, con_daa = FALSE) {
   rows <- rows %||% list()
   n_filas <- length(rows)
   n_cols <- if (n_filas) {
@@ -240,13 +240,16 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   }
   requests <- c(
     monitoreo_aulas_sheets_formato_requests(
-      hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas, n_cols = n_cols
+      hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas, n_cols = n_cols,
+      con_daa = con_daa
     ),
     monitoreo_aulas_sheets_validaciones_requests(
       hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas,
       # Eslabones en la agenda, intentos en la hoja de campo: se leen del
-      # ancho publicado, que es el rectángulo que de verdad viajó.
-      profundidad = .mafs_bloques(tab_name, n_cols)
+      # ancho publicado, que es el rectángulo que de verdad viajó — con el
+      # ancho condicional del cruce DAA cuando está activo (B8h fase 2).
+      profundidad = .mafs_bloques(tab_name, n_cols, con_daa),
+      con_daa = con_daa
     )
   )
   # B20: el desplegable del selector de día, con la geometría derivada de los
@@ -285,6 +288,11 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 #' @param cuotas bloque `design_targets` de la config de aulas, para el avance
 #'   por facultad de «Avance de campo»; sin él ese bloque no se publica (la
 #'   cuota no se reconstruye, misma regla que el xlsx).
+#' @param traslape_daa vector nombrado por código operativo con el veredicto
+#'   del cruce DAA (`aulas_daa_traslape`), o `NULL`. B8h fase 2: viaja a
+#'   `aulas_libro_hoja_agendadas` —cada bloque gana la columna condicional— y
+#'   TODA la geometría derivada (arrastre, desplegables, calendarios, bandas)
+#'   se emite con el ancho corrido. Sin cruce, ni una request cambia.
 #' @return lista con `ok`, `spreadsheet_id`, `spreadsheet_url`, `updated_at` y
 #'   `hojas`: una entrada `{hoja, accion, filas}` por hoja del libro, con
 #'   `accion` en `sembrada | actualizada | sin_cambios | respetada` y `filas`
@@ -295,7 +303,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            partes = list(),
                                            control = list(),
                                            efectivas = NULL,
-                                           cuotas = NULL) {
+                                           cuotas = NULL,
+                                           traslape_daa = NULL) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(400, "E_SHEETS_SPREADSHEET",
@@ -328,8 +337,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # Dueño por hoja: las Extra son del EQUIPO igual que sus contrapartes —
   # siembra unica y `respetada` al republicar (contrato 4 de B14).
   hojas_equipo <- setdiff(hojas_libro, hojas_app)
+  # B8h fase 2: el cruce DAA es condicional y su flag gobierna toda la
+  # geometría derivada de agendadas (arrastre y formato). Las hojas Extra
+  # quedan FUERA del cruce a propósito (cola declarada del lead).
+  con_daa <- .calg_daa_activo(traslape_daa)
   producidas <- list()
-  producidas[[equipo[[1]]]] <- .malp_df_a_values(aulas_libro_hoja_agendadas(unidades))
+  producidas[[equipo[[1]]]] <- .malp_df_a_values(
+    aulas_libro_hoja_agendadas(unidades, traslape_daa = traslape_daa)
+  )
   producidas[[equipo[[2]]]] <- .malp_df_a_values(aulas_libro_hoja_aplicadas(unidades, partes = partes))
   if (con_extras) {
     producidas[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <-
@@ -445,7 +460,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # `format_requests`, y sin él el batch-2 formatearía el libro con el
   # formateador genérico — freeze de 1 para todas las hojas y un ancho POR
   # COLUMNA, que es justo lo que esta capa reemplaza.
-  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = .malp_formato_requests)
+  # El closure fija `con_daa` para el batch-2: la firma del motor es
+  # `(sheet_id, tab_name, rows)` y el flag no puede viajar por ella.
+  formato_libro <- function(sheet_id, tab_name, rows) {
+    .malp_formato_requests(sheet_id, tab_name, rows, con_daa = con_daa)
+  }
+  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato_libro)
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
 
   for (hoja in names(tabs)) {
@@ -463,7 +483,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   if (equipo[[2]] %in% names(tabs) && !(equipo[[2]] %in% saltadas)) {
     monitoreo_aulas_libro_arrastre_publicar(
       id, equipo[[2]], producidas[[equipo[[2]]]], unidades,
-      hoja_agendadas = equipo[[1]]
+      hoja_agendadas = equipo[[1]],
+      # B8h fase 2: con el cruce, el bloque b de agendadas vive +(b-1)
+      # columnas más allá y las fórmulas se emiten corridas.
+      con_daa = con_daa
     )
   }
   # B14: el MISMO arrastre para el par Extra, parametrizado por hoja origen y
@@ -566,6 +589,15 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     error = function(e) NULL
   )
 
+  # B8h fase 2 (decisión del lead, cerrada): el cruce DAA vive en la SESIÓN —
+  # quien lo computa (hoy el runner de siembra) hace
+  # `session_set(sid, "monitoreo_aulas_daa_traslape", tras)` con el output de
+  # `aulas_daa_traslape` (vector nombrado por código). Nada de config ni
+  # whitelist; sin la clave, NULL y el libro sale como siempre. `[[` y no `$`:
+  # el `$` parcial-matchea. La conversación del sync hereda sola: publica por
+  # esta misma función.
+  traslape_daa <- s[["monitoreo_aulas_daa_traslape"]]
+
   tryCatch(
     monitoreo_aulas_publicar_libro(
       destino,
@@ -575,7 +607,8 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       efectivas = efectivas,
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
-      cuotas = aulas_cfg[["design_targets"]]
+      cuotas = aulas_cfg[["design_targets"]],
+      traslape_daa = traslape_daa
     ),
     # Un api_error del propio publicador conserva su código; solo los
     # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.
