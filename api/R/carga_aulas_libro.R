@@ -45,6 +45,15 @@ aulas_libro_importar <- function(path) {
   partes <- if (presentes[[2]]) aulas_aplicadas_leer(path) else list()
   control <- if (presentes[[3]]) base_control_leer(path) else list(filas = list(), sin_nombre = integer(0))
 
+  # B14: las dos hojas Extra son OPCIONALES —los libros vivos del operativo no
+  # las traen— y se leen con los mismos lectores parametrizados por hoja: la
+  # agenda y los partes de un extra vuelven por codigo como cualquier aula
+  # (carga_aulas_libro_extras.R). No entran a `hojas_ausentes`: su ausencia es
+  # el caso normal, no un hueco que reportar.
+  out_extras <- aulas_libro_extras_importar(path, hojas)
+  plan <- .calx_unir_plan(plan, out_extras$plan)
+  partes <- c(partes, out_extras$partes)
+
   ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
   .calb_ensamblar(plan, partes, control, ausentes)
 }

@@ -131,9 +131,11 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # las otras dos (grupo y campo)—; «Plan del día» no tiene lector y lleva su
 # cabecera como primera fila, y «Avance de campo» cae en el 2 del else: sus
 # dos primeras filas son título y corte, no datos. Sirve para que `filas` del
-# resumen cuente filas de DATOS.
+# resumen cuente filas de DATOS. La agendadas Extra (B14) calca a su
+# contraparte: una fila; la de campo Extra cae en el 2 del else, como la suya.
 .malp_cabeceras <- function(hoja) {
-  if (hoja %in% c("Aulas Agendadas", .malp_hoja_plan_dia())) 1L else 2L
+  if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
+                  .malp_hoja_plan_dia())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -257,7 +259,10 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_avance())) {
     requests <- c(requests, .maaf_requests(sheet_id, rows))
   }
-  requests
+  # B14: los desplegables y calendarios de las pestañas Extra — los mismos
+  # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
+  # Para cualquier otra pestaña devuelve vacío.
+  c(requests, aulas_libro_extras_sheets_requests(sheet_id, tab_name, rows))
 }
 
 # --- el publicador ------------------------------------------------------------
@@ -296,8 +301,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     stop_api(400, "E_SHEETS_SPREADSHEET",
              "Falta el identificador del Google Sheets del operativo de aulas.")
   }
-  # El banco de extras sin usar no va al libro; misma regla que el generador
-  # del `.xlsx` (y mismo E_* cuando no queda nada que publicar).
+  # El banco de extras sin usar no va a las hojas PRINCIPALES; misma regla que
+  # el generador del `.xlsx` (y mismo E_* cuando no queda nada que publicar).
+  # B14: ese banco gana sus dos hojas Extra propias, capturado del plan CRUDO
+  # antes del filtro y ya ordenado (facultad alfabetica, dentro por codigo).
+  extras <- aulas_libro_extras_banco(plan %||% list(), partes = partes, control = control)
   unidades <- .calg_unidades_del_libro(plan %||% list(), partes = partes, control = control)
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
@@ -306,10 +314,29 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
 
   equipo <- .malp_hojas_equipo()
   hojas_app <- .malp_hojas_app()
-  hojas_libro <- c(equipo, hojas_app)
+  con_extras <- length(extras) > 0L
+  # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
+  # lead, B14): este orden manda tanto en el resumen como en el orden de
+  # creacion de pestañas nuevas. Sin extras, el juego es identico al de hoy.
+  hojas_libro <- c(
+    equipo[[1]],
+    if (con_extras) AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
+    equipo[[2]],
+    if (con_extras) AULAS_LIBRO_HOJA_APLICADAS_EXTRA,
+    hojas_app
+  )
+  # Dueño por hoja: las Extra son del EQUIPO igual que sus contrapartes —
+  # siembra unica y `respetada` al republicar (contrato 4 de B14).
+  hojas_equipo <- setdiff(hojas_libro, hojas_app)
   producidas <- list()
   producidas[[equipo[[1]]]] <- .malp_df_a_values(aulas_libro_hoja_agendadas(unidades))
   producidas[[equipo[[2]]]] <- .malp_df_a_values(aulas_libro_hoja_aplicadas(unidades, partes = partes))
+  if (con_extras) {
+    producidas[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <-
+      .malp_df_a_values(aulas_libro_hoja_agendadas_extra(extras))
+    producidas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]] <-
+      .malp_df_a_values(aulas_libro_hoja_aplicadas_extra(extras, partes = partes))
+  }
   producidas[[.malp_hoja_control()]] <- .malp_df_a_values(
     aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
   )
@@ -344,7 +371,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   acciones <- list()
   filas <- list()
   tabs <- list()
-  for (hoja in equipo) {
+  for (hoja in hojas_equipo) {
     contenido <- .malp_filas_con_contenido(remotas[[hoja]] %||% list())
     if (hoja %in% existentes && contenido > 0L) {
       # Del equipo y con contenido: ni un request sobre su sheetId. No entra a
@@ -385,6 +412,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # cada Recargar y la reasserción pisaría la elección. La geometría sale de
   # los values LOCALES y se aplica igual a ambos lados.
   bloques_arrastre <- .malar_bloques_arrastre(producidas[[equipo[[2]]]], unidades)
+  # B14: la hoja de campo Extra arrastra igual que la principal (un bloque) y
+  # su mascara geometrica cubre las mismas columnas derivadas — sin ella cada
+  # republicacion sin cambios declararia «cambio» por las formulas computadas.
+  bloques_arrastre_extra <- if (con_extras) {
+    .malar_bloques_arrastre(producidas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]], extras)
+  } else {
+    0L
+  }
   geo_selector <- .mapds_geometria(producidas[[.malp_hoja_plan_dia()]])
   libro_cambio <- any(vapply(hojas_libro, function(hoja) {
     if (!(hoja %in% existentes)) return(TRUE)
@@ -393,6 +428,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     if (identical(hoja, equipo[[2]])) {
       local_v <- .malar_mascara_arrastre(local_v, bloques_arrastre)
       remoto_v <- .malar_mascara_arrastre(remoto_v, bloques_arrastre)
+    }
+    if (identical(hoja, AULAS_LIBRO_HOJA_APLICADAS_EXTRA)) {
+      local_v <- .malar_mascara_arrastre(local_v, bloques_arrastre_extra)
+      remoto_v <- .malar_mascara_arrastre(remoto_v, bloques_arrastre_extra)
     }
     if (identical(hoja, .malp_hoja_plan_dia())) {
       local_v <- .mapds_mascara(local_v, geo_selector)
@@ -425,6 +464,17 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     monitoreo_aulas_libro_arrastre_publicar(
       id, equipo[[2]], producidas[[equipo[[2]]]], unidades,
       hoja_agendadas = equipo[[1]]
+    )
+  }
+  # B14: el MISMO arrastre para el par Extra, parametrizado por hoja origen y
+  # destino — la maquinaria de monitoreo_aulas_libro_arrastre.R ya ancla por
+  # codigo y los extras (un bloque, una fila por codigo) caen en su geometria.
+  if (con_extras && AULAS_LIBRO_HOJA_APLICADAS_EXTRA %in% names(tabs) &&
+      !(AULAS_LIBRO_HOJA_APLICADAS_EXTRA %in% saltadas)) {
+    monitoreo_aulas_libro_arrastre_publicar(
+      id, AULAS_LIBRO_HOJA_APLICADAS_EXTRA,
+      producidas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]], extras,
+      hoja_agendadas = AULAS_LIBRO_HOJA_AGENDADAS_EXTRA
     )
   }
   for (hoja in hojas_app) {
