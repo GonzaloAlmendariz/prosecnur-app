@@ -5835,3 +5835,16 @@
   color: var(--pulso-text); font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums; text-align: right; width: 34px;
 }
+
+/* ── B25: la agenda es la protagonista de su sección ───────────────────────
+ * Dictado (2026-09-01): «esta tabla es muy pequeña». La deuda estructural
+ * documentada arriba: la tabla repartía el alto con los bloques de encima y
+ * quedaba en ~200 px para 500 filas. Mínimo real para la tabla; lo que no
+ * quepa lo toma `.mon-workbench-content`, que ya declara overflow-y: auto
+ * como capacidad suya (mismo criterio que el stack de Fuentes). */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap {
+  min-height: 420px;
+}
+.mon-profile-page.is-aulas-flow .aulas-mon-view {
+  min-height: max-content;
+}

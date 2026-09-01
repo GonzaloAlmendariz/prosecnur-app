@@ -629,7 +629,7 @@
       "api/R/calc_muestra_aulas.R": 4723,
       "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3930,
       "api/R/graficador_dimensiones.R": 5007,
-      "frontend/src/features/monitoreo/profiles/aulas/aulasMonitoreo.css": 5837
+      "frontend/src/features/monitoreo/profiles/aulas/aulasMonitoreo.css": 5851
     },
     "frozen_growth_exempt": []
   }
