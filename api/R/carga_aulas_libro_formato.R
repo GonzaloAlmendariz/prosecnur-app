@@ -20,7 +20,17 @@
 # AGENDADA (119) · REEMPLAZADA (24) · EN RESERVA 1 (19) · REAGENDADA (8).
 # `EN RESERVA n` se completa con la profundidad real de las cadenas del plan,
 # no con un 1 fijo: un estudio con cadenas de once necesita las once.
-AULAS_LIBRO_STATUS_MUESTRA_BASE <- c("AGENDADA", "REAGENDADA", "REEMPLAZADA")
+#
+# «SIN CONTACTAR» va primero porque es el estado INICIAL del plan: la siembra lo
+# escribe en cada titular recién publicado y el desplegable tiene que ofrecerlo
+# byte a byte, o el chip sale con warning rojo sobre un dato correcto (B13a,
+# reporte del dueño 2026-09-01). La forma es la legible sin guion bajo — la
+# misma que `.capd_estado_legible` da al Plan del día; el lector
+# (`monitoreo_aulas_estado_muestra`) ya la lee igual que `SIN_CONTACTAR` y que
+# la clave interna. Repensar las categorías es D-B13 y espera la poda del dueño.
+AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
+  "SIN CONTACTAR", "AGENDADA", "REAGENDADA", "REEMPLAZADA"
+)
 
 # **Un color por ESLABON, no dos alternando.**
 #

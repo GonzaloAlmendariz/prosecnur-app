@@ -158,6 +158,7 @@
       tipo = as.character(cond[["type"]] %||% ""),
       valores = valores,
       chip = isTRUE(regla[["showCustomUi"]]),
+      estricta = isTRUE(regla[["strict"]]),
       sheet_id = suppressWarnings(as.integer(rango[["sheetId"]] %||% NA_integer_))[1],
       fila_desde = suppressWarnings(as.integer(rango[["startRowIndex"]] %||% NA_integer_))[1],
       col_desde = suppressWarnings(as.integer(rango[["startColumnIndex"]] %||% NA_integer_))[1],
@@ -194,6 +195,21 @@
   idx <- which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) identical(s$campo, campo), logical(1)))[[1]]
   vapply(seq_len(profundidad), function(b) {
     1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + idx
+  }, integer(1))
+}
+
+# Geometría de la hoja de campo, derivada de las MISMAS specs que usan los dos
+# generadores (nunca un 35 a mano): cada bloque de intento mide ID MATCH + las
+# columnas de agenda que repite + los títulos propios del parte.
+.masf_ancho_campo <- function() {
+  1L + AULAS_AGENDADAS_ANCHO_BLOQUE + length(prosecnurapp:::.calg_titulos_campo())
+}
+
+# La columna (1-based) de un título del parte de campo en cada intento.
+.masf_cols_campo <- function(titulo, intentos) {
+  idx <- which(prosecnurapp:::.calg_titulos_campo() == titulo)[[1]]
+  vapply(seq_len(intentos), function(b) {
+    (b - 1L) * .masf_ancho_campo() + 1L + AULAS_AGENDADAS_ANCHO_BLOQUE + idx
   }, integer(1))
 }
 
@@ -333,10 +349,14 @@ test_that("validaciones Sheets: la agenda recibe ONE_OF_LIST con los vocabulario
   vs <- .masf_validaciones_en(reqs)
   expect_gt(length(vs), 0L)
 
-  # Todas ONE_OF_LIST y con chip visible (showCustomUi): sin él no hay
-  # desplegable que ver, que es la queja literal del dictado.
-  expect_true(all(vapply(vs, function(v) identical(v$tipo, "ONE_OF_LIST"), logical(1))))
-  expect_true(all(vapply(vs, function(v) isTRUE(v$chip), logical(1))))
+  # Los desplegables de vocabulario van ONE_OF_LIST con chip visible
+  # (showCustomUi): sin él no hay desplegable que ver, que es la queja literal
+  # del dictado. Desde B12 conviven con validaciones DATE_IS_VALID (el
+  # calendario) en la misma llamada, así que el «todas» se acota a las de
+  # lista — el pin absoluto de antes contradecía al de B12 por construcción.
+  listas <- Filter(function(v) identical(v$tipo, "ONE_OF_LIST"), vs)
+  expect_gt(length(listas), 0L)
+  expect_true(all(vapply(listas, function(v) isTRUE(v$chip), logical(1))))
   expect_true(all(vapply(vs, function(v) identical(v$sheet_id, 222L), logical(1))))
 
   # Ninguna pisa la cabecera, y cada una cubre UNA columna: la lección del
@@ -370,6 +390,78 @@ test_that("validaciones Sheets: la agenda recibe ONE_OF_LIST con los vocabulario
   # Las opciones viejas del medio NO están en ningún desplegable.
   todas <- unlist(lapply(vs, function(v) v$valores), use.names = FALSE)
   expect_false(any(c("Llamada", "Correo Electrónico", "Presencial") %in% todas))
+})
+
+test_that("B12: las columnas de fecha de la agenda reciben el calendario (DATE_IS_VALID)", {
+  # Pedido de Gonzalo (2026-09-01): «apenas aprieto la celda [de FECHA DE
+  # LLAMADA o FECHA AGENDADA] me sale el calendario, ¿es posible?». En Sheets
+  # el date picker aparece cuando la celda lleva dataValidation DATE_IS_VALID;
+  # hoy la siembra solo emite ONE_OF_LIST y las fechas se teclean a ciegas.
+  # Los campos de fecha del bloque de agenda son `contact_date` (FECHA DE
+  # LLAMADA) y `scheduled_date` (FECHA AGENDADA) — por índice derivado de
+  # `AULAS_AGENDADAS_BLOQUE`, no literal.
+  reqs <- monitoreo_aulas_sheets_validaciones_requests(
+    hoja = "Aulas Agendadas", sheet_id = 222L, n_filas = 43L, profundidad = 3L
+  )
+  vs <- .masf_validaciones_en(reqs)
+  fechas <- Filter(function(v) identical(v$tipo, "DATE_IS_VALID"), vs)
+
+  # Una request por columna-hoja, como las ONE_OF_LIST: dos campos de fecha
+  # por eslabón, y ni una más (el presupuesto de batchUpdate es compartido).
+  expect_length(fechas, 6L)
+  esperadas <- sort(c(
+    .masf_cols_bloque("contact_date", 3L),
+    .masf_cols_bloque("scheduled_date", 3L)
+  )) - 1L
+  expect_identical(sort(vapply(fechas, function(v) v$col_desde, integer(1))), esperadas)
+
+  for (v in fechas) {
+    # Cada una cubre UNA columna y arranca bajo la cabecera, igual que las
+    # ONE_OF_LIST de al lado.
+    expect_identical(v$col_hasta - v$col_desde, 1L)
+    expect_true(is.finite(v$fila_desde) && v$fila_desde >= 1L)
+    expect_identical(v$sheet_id, 222L)
+    # DATE_IS_VALID no lleva lista de valores…
+    expect_length(v$valores, 0L)
+    # …y no es estricta: los libros existentes traen fechas tecleadas de todas
+    # las formas y la validación no debe pelearse con ellas (la misma
+    # coherencia `strict = FALSE` de las ONE_OF_LIST de esta capa).
+    expect_false(v$estricta)
+  }
+
+  # Las ONE_OF_LIST existentes no se resienten: el vocabulario sigue viajando.
+  expect_true(any(vapply(vs, function(v) identical(v$tipo, "ONE_OF_LIST"), logical(1))))
+})
+
+test_that("B12: en la hoja de campo el calendario va SOLO en la fecha tecleable del parte", {
+  # B9 sembró las columnas de agenda de cada bloque de la hoja de campo como
+  # FÓRMULAS de arrastre (='Aulas Agendadas'!…): una validación de fecha sobre
+  # una columna de fórmula marcaría lo que computa el arrastre y le diría al
+  # equipo que teclee donde no debe. La única columna de fecha que el parte
+  # TECLEA es FECHA DE APLICACIÓN (posición derivada de `.calg_titulos_campo()`).
+  reqs <- monitoreo_aulas_sheets_validaciones_requests(
+    hoja = "Aulas Aplicadas (Campo)", sheet_id = 333L, n_filas = 20L, profundidad = 3L
+  )
+  vs <- .masf_validaciones_en(reqs)
+  fechas <- Filter(function(v) identical(v$tipo, "DATE_IS_VALID"), vs)
+
+  esperadas <- sort(.masf_cols_campo("FECHA DE APLICACIÓN", 3L)) - 1L
+  expect_identical(sort(vapply(fechas, function(v) v$col_desde, integer(1))), esperadas)
+
+  # Ninguna validación de fecha cae en la banda de arrastre: ID MATCH + las
+  # columnas de agenda de cada bloque, que desde B9 son fórmulas.
+  ancho <- .masf_ancho_campo()
+  arrastre0 <- unlist(lapply(seq_len(3L), function(b) {
+    (b - 1L) * ancho + seq.int(0L, AULAS_AGENDADAS_ANCHO_BLOQUE)
+  }))
+  for (v in fechas) {
+    expect_false(v$col_desde %in% arrastre0)
+    expect_identical(v$col_hasta - v$col_desde, 1L)
+    # Dos filas de cabecera en la hoja de campo: la validación no las pisa.
+    expect_true(is.finite(v$fila_desde) && v$fila_desde >= 2L)
+    expect_identical(v$sheet_id, 333L)
+    expect_false(v$estricta)
+  }
 })
 
 # --- C. integración en el publicador ------------------------------------------
@@ -433,6 +525,80 @@ test_that("siembra a Sheets: values, formato y validaciones viajan, y el formato
   expect_true(any(es_values))
   expect_true(any(con_validacion))
   expect_gt(min(which(con_validacion)), max(which(es_values)))
+})
+
+test_that("B12: la siembra real lleva el calendario a las dos hojas del equipo, nunca a una fórmula", {
+  skip_if_not_installed("digest")
+  mock <- .sheets_api_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .masf_partes()
+  )
+
+  vs <- .masf_validaciones_en(.masf_estructurales(mock$env$calls))
+  fechas <- Filter(function(v) identical(v$tipo, "DATE_IS_VALID"), vs)
+  id_agendadas <- mock$env$sheets[["Aulas Agendadas"]]$sheetId
+  id_aplicadas <- mock$env$sheets[["Aulas Aplicadas (Campo)"]]$sheetId
+
+  # El calendario llega a la agenda (FECHA DE LLAMADA / FECHA AGENDADA) y a la
+  # hoja de campo (FECHA DE APLICACIÓN del parte) en la MISMA siembra.
+  expect_true(any(vapply(fechas, function(v) identical(v$sheet_id, id_agendadas), logical(1))))
+  expect_true(any(vapply(fechas, function(v) identical(v$sheet_id, id_aplicadas), logical(1))))
+
+  # En la hoja de campo, toda fecha validada queda en la banda TECLEABLE del
+  # parte: la posición dentro del bloque (módulo ancho) cae después de
+  # ID MATCH + agenda, que son las columnas de fórmula del arrastre (B9).
+  ancho <- .masf_ancho_campo()
+  de_campo <- Filter(function(v) identical(v$sheet_id, id_aplicadas), fechas)
+  expect_gt(length(de_campo), 0L)
+  for (v in de_campo) {
+    expect_gte(v$col_desde %% ancho, AULAS_AGENDADAS_ANCHO_BLOQUE + 1L)
+  }
+})
+
+test_that("B13a: la siembra y el desplegable de STATUS MUESTRA dicen el mismo vocablo", {
+  skip_if_not_installed("digest")
+  # Reporte del dueño sobre el Sheets real: el chip del estado inicial sale con
+  # warning rojo porque la celda dice `SIN_CONTACTAR` y la lista del
+  # desplegable no lo ofrece. El pin es de COHERENCIA, no de categorías (eso es
+  # D-B13, que espera la poda del dueño): lo que la siembra escribe para el
+  # estado inicial ESTÁ, byte a byte, en la lista de su desplegable, y en forma
+  # legible sin guion bajo — la misma que `.capd_estado_legible` da al Plan del
+  # día.
+  mock <- .sheets_api_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  unidades <- .libro_de_prueba()
+  unidades[[1]]$sample_status <- "sin_contactar" # el estado inicial del plan
+
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = unidades, partes = .masf_partes()
+  )
+
+  # Lo que la siembra ESCRIBIÓ en STATUS MUESTRA del bloque titular.
+  col_status <- .masf_cols_bloque("sample_status", 1L)[[1]]
+  fila <- as.list(mock$env$sheets[["Aulas Agendadas"]]$values[[2]] %||% list())
+  escrito <- if (length(fila) >= col_status) as.character(fila[[col_status]] %||% "") else ""
+  expect_true(nzchar(escrito))
+  expect_false(grepl("_", escrito, fixed = TRUE))
+
+  # Lo que el desplegable de ESA columna ofrece: el vocablo escrito está dentro.
+  id_agendadas <- mock$env$sheets[["Aulas Agendadas"]]$sheetId
+  vs <- .masf_validaciones_en(.masf_estructurales(mock$env$calls))
+  status_vs <- Filter(function(v) {
+    identical(v$sheet_id, id_agendadas) && identical(v$tipo, "ONE_OF_LIST") &&
+      identical(v$col_desde, col_status - 1L)
+  }, vs)
+  expect_gte(length(status_vs), 1L)
+  for (v in status_vs) {
+    expect_true(escrito %in% v$valores, info = sprintf(
+      "la siembra escribe «%s» y el desplegable ofrece %s",
+      escrito, paste(v$valores, collapse = " | ")
+    ))
+  }
 })
 
 test_that("dueño intacto: republicar con hojas del equipo pobladas = cero requests de formato sobre ellas", {

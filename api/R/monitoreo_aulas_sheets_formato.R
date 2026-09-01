@@ -304,6 +304,30 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
   ))
 }
 
+# El date picker de una columna de fecha (B12). En Sheets el calendario
+# aparece cuando la celda lleva dataValidation `DATE_IS_VALID` — pedido
+# literal de Gonzalo (2026-09-01): «apenas aprieto la celda me sale el
+# calendario, ¿es posible?». Sin `values` (la condición no lleva lista) y
+# `strict = FALSE` como las ONE_OF_LIST de esta capa: los libros existentes
+# traen fechas tecleadas de todas las formas y la validación no debe pelearse
+# con ellas. `showCustomUi = TRUE` por coherencia con el resto de la capa: es
+# el «customized UI based on the kind of condition» de la API, que para una
+# fecha es justamente el picker.
+.mafs_fecha_request <- function(sheet_id, col, desde, hasta) {
+  list(setDataValidation = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(desde), endRowIndex = as.integer(hasta),
+      startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)
+    ),
+    rule = list(
+      condition = list(type = "DATE_IS_VALID"),
+      showCustomUi = TRUE,
+      strict = FALSE
+    )
+  ))
+}
+
 #' Requests setDataValidation de UNA hoja del equipo del libro de aulas.
 #'
 #' Los vocabularios son los MISMOS de la hoja «Listas» del xlsx: STATUS
@@ -313,6 +337,13 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
 #' donde un sqref rectangular dejaba el desplegable de STATUS MUESTRA sobre el
 #' nombre del docente. Las hojas de la app no llevan desplegables: nadie
 #' escribe en ellas.
+#'
+#' Las columnas de FECHA llevan `DATE_IS_VALID` (date picker, B12): en la
+#' agenda `contact_date` (FECHA DE LLAMADA) y `scheduled_date` (FECHA
+#' AGENDADA) por eslabón; en la hoja de campo SOLO la fecha que el parte
+#' teclea (FECHA DE APLICACIÓN por intento) — las columnas de agenda que esa
+#' hoja repite son fórmulas de arrastre desde B9 y validarlas marcaría lo que
+#' computa el arrastre.
 #'
 #' @param hoja nombre de la hoja del libro.
 #' @param sheet_id sheetId remoto de la pestaña.
@@ -343,11 +374,27 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
         )
       }
     }
+    # B12: el calendario en las dos fechas del bloque de agenda, una request
+    # por columna-eslabón, igual que las ONE_OF_LIST de arriba.
+    for (campo in c("contact_date", "scheduled_date")) {
+      for (b in seq_len(profundidad)) {
+        requests[[length(requests) + 1L]] <- .mafs_fecha_request(
+          sheet_id, .mafs_col_agenda(campo, b), cabeceras, n_filas
+        )
+      }
+    }
   } else if (identical(hoja, "Aulas Aplicadas (Campo)")) {
     for (b in seq_len(profundidad)) {
       requests[[length(requests) + 1L]] <- .mafs_validacion_request(
         sheet_id, .mafs_col_campo("STATUS DE APLICACIÓN", b), cabeceras, n_filas,
         AULAS_LIBRO_STATUS_APLICACION
+      )
+      # B12: SOLO la fecha que el parte TECLEA. Las columnas de agenda que
+      # esta hoja repite (ID MATCH + bloque) son fórmulas de arrastre (B9):
+      # una validación ahí marcaría lo que computa el arrastre y le diría al
+      # equipo que teclee donde no debe.
+      requests[[length(requests) + 1L]] <- .mafs_fecha_request(
+        sheet_id, .mafs_col_campo("FECHA DE APLICACIÓN", b), cabeceras, n_filas
       )
     }
   }
