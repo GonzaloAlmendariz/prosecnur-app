@@ -390,13 +390,17 @@ collection_material_field_form_rows <- function() {
     # aula cuando el catalogo no la trae.
     fila(campo("Facultad", 0.55, binding = "unit.faculty"),
          campo("Pabellón y aula:", 0.45, binding = "unit.venue")),
-    fila(campo("Curso:", 0.45, binding = "unit.course_name"),
-         campo("Horario del curso:", 0.55, binding = "unit.schedule")),
-    fila(campo("Docente:", 1, binding = "unit.teacher")),
-    # El plan YA sabe cuantos alumnos matriculados tiene la unidad
-    # (`unit.eligible_n`) antes de imprimir la ficha, asi que copiarlo a mano
-    # seria un paso de mas que puede fallar.
-    fila(campo("N° de alumnos matriculados:", 1, binding = "unit.eligible_n")),
+    # Curso y horario van cada uno a FILA COMPLETA: el nombre real llega a 128
+    # caracteres y el horario a 141 (cuatro sesiones), y compartiendo fila ni
+    # la envoltura a dos lineas los salvaba — «…EL PATRIMONIO Y LA LIBE…»
+    # seguia adivinandose (Gonzalo, 2026-09-01). A ancho entero, dos lineas
+    # son ~220 caracteres y la elipsis queda para lo imposible. La fila que
+    # esto cuesta la devuelve docente+matriculados: dos datos IMPRESOS cortos
+    # que no necesitan raya de escritura comparten renglon sin perder nada.
+    fila(campo("Curso:", 1, binding = "unit.course_name")),
+    fila(campo("Horario del curso:", 1, binding = "unit.schedule")),
+    fila(campo("Docente:", 0.60, binding = "unit.teacher"),
+         campo("N° de alumnos matriculados:", 0.40, binding = "unit.eligible_n")),
     # Sin «Menores de edad» (lo quito Gonzalo el 2026-09-01: no participa del
     # cuadre y el libro no tiene columna para el); su ancho se reparte para que
     # el conteo de asistencia tenga raya donde escribir de verdad.

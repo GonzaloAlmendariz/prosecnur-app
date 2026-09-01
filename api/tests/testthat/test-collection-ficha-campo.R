@@ -272,9 +272,13 @@ test_that("matriculados se imprime desde el plan, no se deja en blanco para copi
   # donde termina la etiqueta, señal de que el valor SI se dibujo.
   g <- .cfx_grey(png_path)
   L <- prosecnurapp:::.cfc_layout()
+  # Desde 2026-09-01 matriculados comparte fila con el docente (la fila que
+  # libero curso/horario a ancho completo): se localiza por binding, no por
+  # posicion.
   idx <- which(vapply(
     collection_material_field_form_rows(),
-    function(r) identical(r$fields[[1]]$binding %||% "", "unit.eligible_n"), logical(1)
+    function(r) any(vapply(r$fields, function(f) identical(f$binding %||% "", "unit.eligible_n"), logical(1))),
+    logical(1)
   ))
   expect_length(idx, 1L)
   y <- L$form_top - (idx[[1]] - 1L) * L$form_step
@@ -296,7 +300,8 @@ test_that("sin dato de matriculados, el renglon dice 'Sin dato' en vez de un vac
     any(vapply(r$fields, function(f) identical(f$binding %||% "", "unit.eligible_n"), logical(1)))
   }, bloque$rows)
   expect_length(fila, 1L)
-  expect_identical(fila[[1]]$fields[[1]]$value, "Sin dato")
+  celda <- Filter(function(f) identical(f$binding %||% "", "unit.eligible_n"), fila[[1]]$fields)
+  expect_identical(celda[[1]]$value, "Sin dato")
 })
 
 test_that("el QR domina la pagina y se relee con la geometria de este layout", {
