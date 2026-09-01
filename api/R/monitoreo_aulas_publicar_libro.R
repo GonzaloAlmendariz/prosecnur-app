@@ -10,7 +10,8 @@
 #     remoto no emite ni una escritura sobre ellas y las declara `respetada`.
 #     La regla es de dueño, no de delta: un plan cambiado en la app NO abre la
 #     puerta, y da igual quién puso el contenido (la propia siembra cuenta).
-#   - «Base de control» y «Plan del día» (B2.1) son de la APP. Viajan por el
+#   - «Base de control», «Plan del día» (B2.1) y «Avance de campo» (B2.2) son
+#     de la APP. Viajan por el
 #     motor batch+hash (`monitoreo_sheets_publish_tabs`) y además se reassertan
 #     cuando el LIBRO cambió aunque su rectángulo coincida con el último corte
 #     (ver `.malp_hoja_app_forzada` abajo: cubre la edición manual del remoto
@@ -114,15 +115,19 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 .malp_hojas_equipo <- function() c("Aulas Agendadas", "Aulas Aplicadas (Campo)")
 .malp_hoja_control <- function() "Base de control"
 .malp_hoja_plan_dia <- function() "Plan del día"
+.malp_hoja_avance <- function() "Avance de campo"
 # Las hojas de la APP: se publican SIEMPRE (sembrada/actualizada/sin_cambios,
-# jamás `respetada`) y comparten el trato de delta+reasserción.
-.malp_hojas_app <- function() c(.malp_hoja_control(), .malp_hoja_plan_dia())
+# jamás `respetada`) y comparten el trato de delta+reasserción. «Avance de
+# campo» (B2.2) es la tercera: la hoja de indicadores que el xlsx escribe
+# imperativa llega a Sheets por `aulas_libro_hoja_avance()`.
+.malp_hojas_app <- function() c(.malp_hoja_control(), .malp_hoja_plan_dia(), .malp_hoja_avance())
 
 # Cuántas filas de cabecera lleva cada hoja. Es el MISMO reparto que usa el
 # lector (`aulas_libro_desde_valores`) para las tres con lector —la agenda una,
 # las otras dos (grupo y campo)—; «Plan del día» no tiene lector y lleva su
-# cabecera como primera fila. Sirve para que `filas` del resumen cuente filas
-# de DATOS.
+# cabecera como primera fila, y «Avance de campo» cae en el 2 del else: sus
+# dos primeras filas son título y corte, no datos. Sirve para que `filas` del
+# resumen cuente filas de DATOS.
 .malp_cabeceras <- function(hoja) {
   if (hoja %in% c("Aulas Agendadas", .malp_hoja_plan_dia())) 1L else 2L
 }
@@ -244,10 +249,11 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 
 #' Publica el libro de aulas en el Google Sheets del operativo.
 #'
-#' Produce las cuatro hojas de datos con los MISMOS generadores del `.xlsx`
-#' (`aulas_libro_hoja_agendadas/aplicadas/control/plan_dia`), así que lo
+#' Produce las hojas del libro con los MISMOS generadores del `.xlsx`
+#' (`aulas_libro_hoja_agendadas/aplicadas/control/plan_dia/avance`), así que lo
 #' publicado se relee con `aulas_libro_leer_de_sheets()` sin configurar nada
-#' («Plan del día» es de ida: el lector la ignora). La siembra va
+#' («Plan del día» y «Avance de campo» son de ida: el lector las ignora). La
+#' siembra va
 #' en UNA llamada a `monitoreo_sheets_publish_tabs()` (un solo
 #' values:batchUpdate); el ciclo sin cambios cuesta a lo más tres requests.
 #'
@@ -256,6 +262,9 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 #' @param partes partes de campo ya registrados.
 #' @param control filas de «Base de control» ya registradas.
 #' @param efectivas vector con nombre: efectivas de plataforma por código.
+#' @param cuotas bloque `design_targets` de la config de aulas, para el avance
+#'   por facultad de «Avance de campo»; sin él ese bloque no se publica (la
+#'   cuota no se reconstruye, misma regla que el xlsx).
 #' @return lista con `ok`, `spreadsheet_id`, `spreadsheet_url`, `updated_at` y
 #'   `hojas`: una entrada `{hoja, accion, filas}` por hoja del libro, con
 #'   `accion` en `sembrada | actualizada | sin_cambios | respetada` y `filas`
@@ -265,7 +274,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            plan = list(),
                                            partes = list(),
                                            control = list(),
-                                           efectivas = NULL) {
+                                           efectivas = NULL,
+                                           cuotas = NULL) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(400, "E_SHEETS_SPREADSHEET",
@@ -290,6 +300,17 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   )
   producidas[[.malp_hoja_plan_dia()]] <- .malp_df_a_values(
     aulas_libro_hoja_plan_dia(unidades, partes = partes)
+  )
+  # «Avance de campo» (B2.2) se computa con lo que ESTE punto sí tiene: plan +
+  # partes + efectivas (+ cuotas del diseño cuando llegan). Sin responses ni
+  # validas aquí — el diario de plataforma no es computable y la hoja lo
+  # declara en una celda (C3) — y sin fecha inyectada: el corte se deriva del
+  # modelo, nunca del reloj, o el motor batch+hash compararía dos
+  # publicaciones del MISMO estado como distintas.
+  producidas[[.malp_hoja_avance()]] <- .malp_df_a_values(
+    aulas_libro_hoja_avance(aulas_libro_indicadores(
+      unidades, efectivas = efectivas, partes = partes, cuotas = cuotas
+    ))
   )
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
@@ -432,7 +453,10 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       plan = unidades,
       partes = partes,
       control = control,
-      efectivas = efectivas
+      efectivas = efectivas,
+      # Las cuotas del diseño, para el avance por facultad de «Avance de
+      # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
+      cuotas = aulas_cfg[["design_targets"]]
     ),
     # Un api_error del propio publicador conserva su código; solo los
     # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.
