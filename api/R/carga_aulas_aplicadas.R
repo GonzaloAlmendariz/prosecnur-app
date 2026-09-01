@@ -35,7 +35,14 @@ AULAS_APLICADAS_CAMPO <- list(
   list(campo = "applied_date",       titulos = c("FECHA DE APLICACION")),
   list(campo = "applied_time",       titulos = c("HORA DE APLICACION")),
   list(campo = "application_status",  titulos = c("STATUS DE APLICACION")),
-  list(campo = "field_note",         titulos = c("OBSERVACIONES SOBRE APLICACIONES"))
+  list(campo = "field_note",         titulos = c("OBSERVACIONES SOBRE APLICACIONES")),
+  # Columna MANUAL (B6c, dictado de Gonzalo 2026-08-31): el enlace del PDF de la
+  # ficha QR ESCANEADA que el equipo sube a su Drive. Es dato del equipo: la app
+  # la siembra vacia y la lee de vuelta, nunca la deriva. NO confundir con
+  # `link` («ENLACE DE LA FICHA»), la ficha QR que la app genera y que vive en
+  # la parte de agenda. Un libro viejo sin la columna se lee igual: el
+  # emparejado es por titulo y lo ausente sale como cadena vacia.
+  list(campo = "scanned_sheet_link", titulos = c("ENLACE DE FICHA ESCANEADA"))
 )
 
 #' Columnas donde empieza cada bloque de la hoja.
@@ -124,7 +131,9 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
         applied_date = val("applied_date"),
         applied_time = val("applied_time"),
         application_status = estado,
-        field_note = val("field_note")
+        field_note = val("field_note"),
+        # Cada intento conserva SU enlace: la ficha del reintento es otro PDF.
+        scanned_sheet_link = val("scanned_sheet_link")
       )
     }
   }

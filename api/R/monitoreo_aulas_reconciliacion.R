@@ -177,7 +177,12 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
         if (!is.null(directo)) txt(directo)
         else trimws(paste(txt(p$applied_date), txt(p$applied_time)))
       }),
-      field_note = txt(primero(p, c("field_note", "nota_campo", "observaciones")))
+      field_note = txt(primero(p, c("field_note", "nota_campo", "observaciones"))),
+      # El enlace de la ficha QR ESCANEADA (B6c): columna manual de la hoja de
+      # campo. Mismo precedente que `attendance_pct` y que `application_status`:
+      # un lector que lo lee y un publicador que lo tira dejan el dato muerto
+      # camino a la UI, y la ficha del registro (fase 2) lo busca aqui.
+      scanned_sheet_link = txt(primero(p, .MONITOREO_AULAS_PARTE_ALIAS$enlace_escaneado))
     )
   }
   out

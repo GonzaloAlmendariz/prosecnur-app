@@ -39,7 +39,12 @@
   hora       = c("applied_time", "hora", "hora_aplicacion"),
   aula       = c("actual_room", "aula", "salon"),
   estado     = c("application_status", "estado", "status", "status_aplicacion"),
-  nota       = c("field_note", "nota", "observaciones", "observacion")
+  nota       = c("field_note", "nota", "observaciones", "observacion"),
+  # El enlace de la ficha QR ESCANEADA (B6c, 2026-08-31): columna manual de la
+  # hoja de campo, dato del equipo. La forma castellana es la declarada para un
+  # parte guardado en español; NO confundir con `link`, la ficha QR generada
+  # por la app en la parte de agenda.
+  enlace_escaneado = c("scanned_sheet_link", "enlace_ficha_escaneada")
 )
 
 #' El primer alias que traiga valor, o NULL.
