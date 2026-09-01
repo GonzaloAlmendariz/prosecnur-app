@@ -482,7 +482,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // gráfico es «lo que el plan espera de los cursos-horario visitados», que
     // es otro denominador. Aplicarle el mismo ratio mezclaría dos cosas.
     const sobremuestraDelEstudio = foco ? null : sobremuestra;
-    const techo = Math.max(ultimo, meta, sobremuestraDelEstudio ?? 0, ...proyectadas, 1);
+    // **El techo ignora lo que no es un número finito.** Un solo `NaN` en este
+    // `Math.max` contamina el tope, `escalaDeEje(NaN)` vuelve NaN TODAS las Y y
+    // el lienzo entero queda en blanco bajo una leyenda con cifras. Pasó de
+    // verdad (A17, 2026-08-31): `meta_operativa` llegó del JSON de R como el
+    // STRING "NA", atravesó el `?? null` de la pestaña y vació el acumulado del
+    // estudio. La frontera ya normaliza; este filtro es la garantía de que
+    // ningún campo sucio futuro pueda repetirlo.
+    const techo = Math.max(
+      ...[ultimo, meta, sobremuestraDelEstudio ?? 0, ...proyectadas, 1].filter((v) => Number.isFinite(v)),
+    );
     const { tope, escalones } = escalaDeEje(techo);
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
     const observado = observadas.map((v, i) => `${xa(i)},${yy(v)}`).join(" ");
