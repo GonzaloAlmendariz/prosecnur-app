@@ -631,7 +631,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
-    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
+    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas, partes = partes),
+    # 4.ª hoja de datos (B2.1): el recorte agenda+campo por fecha que en 2025 se
+    # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
+    # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue
+    # penúltima. Es de IDA (sin lector) y vive en carga_aulas_libro_plan_dia.R.
+    `Plan del día` = aulas_libro_hoja_plan_dia(unidades, partes = partes)
   )
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
@@ -875,6 +880,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # otra hoja.
   .calg_tipar_fechas(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
                      cols_de(c("contact_date", "scheduled_date")), desde = 1L)
+  # «Plan del día» ordena POR fecha: su columna 1 se tipa como las demás fechas
+  # del libro, o Excel la ordenaría letra a letra. ELEGIBLES (col. 10) es la
+  # única cuenta de la hoja.
+  .calg_tipar_fechas(wb, "Plan del día", hojas[["Plan del día"]],
+                     which(.capd_CABECERA == "FECHA AGENDADA"), desde = 1L)
+  .calg_tipar_numeros(wb, "Plan del día", hojas[["Plan del día"]],
+                      which(.capd_CABECERA == "ELEGIBLES"), desde = 1L)
   .calg_tipar_numeros(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
                       # `level` entra ahora: «NIVEL DEL CURSO» es un numero (2,
                       # 3, 5…) y salia como texto en los doce bloques, asi que
@@ -936,7 +948,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
     wb,
-    filas_cabecera = list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L, `Base de control` = 2L),
+    filas_cabecera = list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L,
+                          `Base de control` = 2L, `Plan del día` = 1L),
     validaciones = validaciones,
     listas = listas,
     columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(

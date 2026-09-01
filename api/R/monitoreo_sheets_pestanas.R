@@ -25,7 +25,7 @@
 #' Pestañas controladas de la publicación de monitoreo a Google Sheets.
 #'
 #' Sin duplicados. Contiene: la lista heredada del engine (deduplicada), las
-#' pestañas del ejecutivo de aulas en sus dos audiencias, las cinco hojas del
+#' pestañas del ejecutivo de aulas en sus dos audiencias, las seis hojas del
 #' libro operativo de aulas y —como red— todo lo que los generadores de nombres
 #' de publicación declaren por familia × audiencia.
 #'
@@ -147,11 +147,14 @@ monitoreo_sheets_pestanas_controladas <- function() {
     "Consultas"
   )
 
-  # Las cinco hojas del libro operativo de aulas. Las tres de datos salen de la
+  # Las seis hojas del libro operativo de aulas. Las tres de datos salen de la
   # spec del lector (`AULAS_LIBRO_HOJAS`) para que el nombre no pueda derivar
-  # por su cuenta; las otras dos son la hoja de indicadores y la de listas.
+  # por su cuenta; «Plan del día» es la 4.ª hoja de datos (B2.1, de ida: sin
+  # lector, por eso no está en la spec), y las otras dos son la hoja de
+  # indicadores y la de listas.
   libro_aulas <- c(
     vapply(AULAS_LIBRO_HOJAS, function(x) x$hoja, character(1)),
+    "Plan del día",
     "Cómo va el campo",
     "Listas"
   )
