@@ -60,7 +60,11 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full") {
     largo(plan),
     largo(cfg$control),
     largo(cfg$partes_campo),
-    as.character((cfg$libro$leido_en %||% cfg$libro$imported_at %||% "")[1]),
+    # `importado_en` es el nombre que sella el importador (carga_aulas_libro.R);
+    # la linea leia `leido_en`/`imported_at`, que NADIE escribe, y la marca
+    # entraba siempre vacia: corregir una celda a mano y reimportar con los
+    # mismos conteos servia el tablero anterior (A15, 2026-09-01).
+    as.character((cfg$libro$importado_en %||% "")[1]),
     as.character((cfg$agenda_actualizada_en %||% "")[1]),
     sep = "|"
   )
