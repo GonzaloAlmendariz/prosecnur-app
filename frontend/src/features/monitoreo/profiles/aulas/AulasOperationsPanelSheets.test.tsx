@@ -1,9 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AulasOperationsPanel } from "./AulasOperationsPanel";
 
 /**
- * El tercer botón: leer el libro desde el Sheets.
+ * El ciclo del libro contra el Sheets: leer, publicar y el destino recordado.
  *
  * Se verifica por render y no por captura a propósito. Un botón no necesita
  * layout para probarse, y el runner visual depende de que la máquina esté
@@ -31,6 +34,16 @@ function pintar(props: Partial<Props> = {}) {
   return renderToStaticMarkup(<AulasOperationsPanel {...base} {...props} />);
 }
 
+/** Un config con plan, para que los botones del libro no estén apagados. */
+const conPlan = (extra: Record<string, unknown> = {}) =>
+  ({ enabled: true, plan_rows: 5, ...extra }) as unknown as Props["config"];
+
+const RECORDADO = {
+  spreadsheet_id: "LIBRO123",
+  url: "https://docs.google.com/spreadsheets/d/LIBRO123/edit",
+  updated_at: "2026-08-27T14:03:00Z",
+};
+
 describe("AulasOperationsPanel — leer del Sheets", () => {
   it("ofrece el botón cuando hay con qué leer", () => {
     expect(pintar({ onLeerDeSheets: () => {} })).toContain("Leer del Sheets");
@@ -42,15 +55,79 @@ describe("AulasOperationsPanel — leer del Sheets", () => {
     expect(pintar()).not.toContain("Leer del Sheets");
   });
 
-  it("va junto a las otras dos formas de traer el libro, no en un panel aparte", () => {
-    // Son tres formas de la MISMA operación —traer al operativo lo que el
+  it("va junto a las otras formas de mover el libro, no en un panel aparte", () => {
+    // Son formas de la MISMA operación —cruzar el operativo con lo que el
     // equipo escribió— y separarlas obligaría a saber de antemano cuál toca.
-    const html = pintar({ onLeerDeSheets: () => {} });
+    const html = pintar({ onLeerDeSheets: () => {}, onPublicarASheets: () => {} });
     const generar = html.indexOf("Generar libro");
     const archivo = html.indexOf("Leer libro llenado");
     const sheets = html.indexOf("Leer del Sheets");
+    const publicar = html.indexOf("Publicar al Sheets");
     expect(generar).toBeGreaterThan(-1);
     expect(archivo).toBeGreaterThan(generar);
     expect(sheets).toBeGreaterThan(archivo);
+    expect(publicar).toBeGreaterThan(sheets);
+  });
+
+  it("ya no pide el enlace con un prompt: el campo lo reemplaza", () => {
+    // El prompt era un destino de un solo uso: cada lectura volvía a pedirlo y
+    // nada quedaba guardado. El campo persistente es la decisión de Gonzalo
+    // («recordarlo, para escribir sobre él y leer»).
+    const aqui = path.dirname(fileURLToPath(import.meta.url));
+    const fuente = fs.readFileSync(path.join(aqui, "AulasOperationsPanel.tsx"), "utf8");
+    expect(fuente).not.toContain("window.prompt");
+  });
+});
+
+describe("AulasOperationsPanel — el campo del Sheets del operativo", () => {
+  it("muestra el enlace recordado y desde cuándo está guardado", () => {
+    const html = pintar({
+      config: conPlan({ libro_sheets: RECORDADO }),
+      onLeerDeSheets: () => {},
+      onPublicarASheets: () => {},
+    });
+    expect(html).toContain('value="https://docs.google.com/spreadsheets/d/LIBRO123/edit"');
+    expect(html).toContain("Guardado");
+  });
+
+  it("sin recordado, invita a pegarlo una vez", () => {
+    const html = pintar({ config: conPlan(), onLeerDeSheets: () => {}, onPublicarASheets: () => {} });
+    expect(html).toContain('value=""');
+    expect(html).toMatch(/P[ée]galo una vez/);
+  });
+
+  it("el campo tiene nombre accesible", () => {
+    const html = pintar({ config: conPlan(), onLeerDeSheets: () => {} });
+    expect(html).toMatch(/<label[^>]*for="aulas-libro-destino-enlace"/);
+    expect(html).toMatch(/<input[^>]*id="aulas-libro-destino-enlace"/);
+  });
+});
+
+describe("AulasOperationsPanel — publicar al Sheets", () => {
+  it("con destino recordado y plan, el botón está activo", () => {
+    const html = pintar({
+      config: conPlan({ libro_sheets: RECORDADO }),
+      onPublicarASheets: () => {},
+    });
+    // La etiqueta de apertura del botón que contiene el rótulo: desde el
+    // `<button` inmediatamente anterior —un regex desde el inicio adoptaba los
+    // botones de al lado y sus `disabled`—.
+    const fin = html.indexOf("Publicar al Sheets");
+    expect(fin).toBeGreaterThan(-1);
+    const boton = html.slice(html.lastIndexOf("<button", fin), fin);
+    expect(boton).not.toContain("disabled");
+  });
+
+  it("sin destino recordado y campo vacío, explica qué falta en vez de dejar caer un 400", () => {
+    const html = pintar({ config: conPlan(), onPublicarASheets: () => {} });
+    expect(html).toContain("sin él no hay dónde publicar");
+  });
+
+  it("el título del botón cuenta la regla de dueño: las hojas del equipo no se tocan", () => {
+    const html = pintar({
+      config: conPlan({ libro_sheets: RECORDADO }),
+      onPublicarASheets: () => {},
+    });
+    expect(html).toContain("sin tocar las hojas que llena el equipo");
   });
 });
