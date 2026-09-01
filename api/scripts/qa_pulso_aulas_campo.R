@@ -570,7 +570,15 @@ if (ESCALA_2025) {
          # Una de cada trece no se pudo aplicar. Con todas en «APLICADA» la
          # columna no distingue nada y da igual mostrarla que no.
          application_status = if (i %% 13 == 0) "NO APLICADA" else "APLICADA",
-         field_note = if (i %% 9 == 0) "El docente pidio empezar al final de la clase" else "")
+         field_note = if (i %% 9 == 0) "El docente pidio empezar al final de la clase" else "",
+         # La ficha ESCANEADA que el equipo sube al Drive y pega en la columna
+         # manual del libro (B6c). Una de cada cinco la trae y el resto no:
+         # sin ambos casos, la «Ficha escaneada» de la ficha del registro y su
+         # hueco «el parte no trae su enlace» eran inobservables en QA (las dos
+         # DEBT del QA visual del 2026-09-01).
+         scanned_sheet_link = if (i %% 5 == 0) {
+           sprintf("https://drive.google.com/file/d/qa-ficha-%03d/view", i)
+         } else "")
   })
   asistentes_del_parte <- stats::setNames(
     lapply(partes, function(p) p$observed_students),
