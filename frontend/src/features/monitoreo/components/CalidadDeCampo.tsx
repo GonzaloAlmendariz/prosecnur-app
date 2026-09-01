@@ -195,7 +195,7 @@ export default function CalidadDeCampo({
     >
       <header className="mon-calidad-head">
         <div>
-          <h3 id="mon-calidad-titulo">Cómo se está trabajando</h3>
+          <h3 id="mon-calidad-titulo">Desempeño del trabajo de campo</h3>
           <p>
             Lo que se puede corregir mientras el campo sigue abierto. Las alertas
             de avance responden cuánto falta; estas, cómo se está recolectando.

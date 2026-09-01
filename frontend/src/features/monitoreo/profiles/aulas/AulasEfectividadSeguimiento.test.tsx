@@ -290,9 +290,9 @@ describe("la τ del diseño contra la del campo", () => {
       facultades: [fac({ tau_previsto: 0.5, tau_observado: 0.3 })],
     })));
     expect(html).toContain("50|0 %");   // se esperaba
-    expect(html).toContain("30|0 %");   // va respondiendo
-    expect(html).toContain("Se esperaba");
-    expect(html).toContain("Va respondiendo");
+    expect(html).toContain("30|0 %");   // tasa observada
+    expect(html).toContain("Tasa prevista");
+    expect(html).toContain("Tasa observada");
   });
 
   it("los alumnos van en personas enteras y por el lado cauto", () => {

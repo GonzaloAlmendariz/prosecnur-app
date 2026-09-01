@@ -111,7 +111,7 @@ export function AulasSeccionModelo({
                 agenda mejor», que es sólo la primera: quien buscara «a quién
                 llamo hoy» no lo encontraba ahí, y la superficie no declaraba lo
                 que contiene (C1). Cada bloque lleva ahora su propio rótulo. */}
-            <h3>Cómo se consigue la cita</h3>
+            <h3>Agendamiento de la cita</h3>
             <span>el medio y la cola de contacto</span>
           </div>
           {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la

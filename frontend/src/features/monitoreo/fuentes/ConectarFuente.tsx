@@ -678,13 +678,13 @@ export function ConectarFuente({
                 * por definición. */}
               {pieza.papel === "respuestas" && renderCanal ? (
                 <fieldset className="fuentes-conectar-grupo">
-                  <legend>Cómo se aplica</legend>
+                  <legend>Modalidad de aplicación</legend>
                   {renderCanal(canal, setCanal)}
                   {/* La frase decía «Es el canal base de la encuesta: …», que es
                     * repetir el rótulo que está justo encima. Queda lo único que
                     * el rótulo no dice y no se ve en ningún otro sitio. */}
                   <p className="fuentes-conectar-pista is-neutra">
-                    Los recopiladores lo heredan; cada uno puede declarar su excepción.
+                    Los recopiladores la heredan; cada uno puede declarar su excepción.
                   </p>
                 </fieldset>
               ) : null}

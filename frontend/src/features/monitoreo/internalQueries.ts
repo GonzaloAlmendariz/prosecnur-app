@@ -108,7 +108,7 @@ export const INTERNAL_QUERY_TEMPLATES: InternalQueryTemplate[] = [
   {
     id: "avance-general",
     block: "avance",
-    question: "¿Cómo va cada actor o unidad del estudio?",
+    question: "¿Cuál es el avance por actor o unidad del estudio?",
     helper: "Resume efectivas, parciales, rechazos y casos por revisar sin perder que la unidad real es la persona/caso.",
     requiredFilters: ["actor", "date"],
     answerType: "advance",

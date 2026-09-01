@@ -243,15 +243,15 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
  */
 function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
   if (f.tau_previsto == null) return "El diseño no supuso una tasa de facultad para esta.";
-  const esperado = `Se esperaba ${pct(f.tau_previsto)}`;
+  const esperado = `La tasa prevista es ${pct(f.tau_previsto)}`;
   if (f.tau_observado == null) return `${esperado}; todavía sin cursos-horario aplicados.`;
   if (f.banda_bajo == null || f.banda_alto == null) {
-    return `${esperado} y va respondiendo ${pct(f.tau_observado)}, con un solo curso-horario: todavía no se puede afirmar una diferencia.`;
+    return `${esperado} y la observada ${pct(f.tau_observado)}, con un solo curso-horario: todavía no se puede afirmar una diferencia.`;
   }
   const rel = f.senal === "bajo" ? "por debajo de lo previsto"
     : f.senal === "sobre" ? "por encima de lo previsto"
     : "dentro de lo previsto";
-  return `${esperado} y va respondiendo ${pct(f.tau_observado)}, entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}: ${rel}.`;
+  return `${esperado} y la observada ${pct(f.tau_observado)}, entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}: ${rel}.`;
 }
 
 export function AulasEfectividadSeguimiento({
@@ -395,8 +395,8 @@ export function AulasEfectividadSeguimiento({
                   es la efectividad que va ahora». Una barra ilustra una
                   comparación; no la sustituye. */}
               <th scope="col">Facultad</th>
-              <th scope="col" className="es-num">Se esperaba</th>
-              <th scope="col" className="es-num">Va respondiendo</th>
+              <th scope="col" className="es-num">Tasa prevista</th>
+              <th scope="col" className="es-num">Tasa observada</th>
               <th scope="col">Comparación</th>
               <th scope="col" className="es-num">Alumnos</th>
               <th scope="col">Si hace falta más</th>

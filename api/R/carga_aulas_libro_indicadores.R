@@ -222,7 +222,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
 
   m <- ind$meta %||% list()
   fila <- 4L
-  openxlsx::writeData(wb, hoja, "Cómo vamos con la meta", startCol = 1, startRow = fila)
+  openxlsx::writeData(wb, hoja, "Avance contra la meta", startCol = 1, startRow = fila)
   openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
   fila <- fila + 1L
   # El porcentaje va con su estilo propio: escrito como cifra saldria «0.6».
