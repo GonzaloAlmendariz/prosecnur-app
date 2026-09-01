@@ -114,7 +114,7 @@ export function AulasSeccionCalidad({
             data-qa-geometry-contract="intrinsic"
           >
             <div className="mon-profile-panel-head">
-              <h3>Cómo trabaja cada equipo</h3>
+              <h3>Desempeño por equipo</h3>
               <span>producción y calidad por aplicador</span>
             </div>
             <AulasTrabajoDeLosEquipos

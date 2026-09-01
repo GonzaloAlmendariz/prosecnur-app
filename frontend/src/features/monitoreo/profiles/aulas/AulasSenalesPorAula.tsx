@@ -187,8 +187,8 @@ export function AulasSenalesPorAula({
                 {/* Mismos rótulos que la tabla de facultad de arriba a propósito:
                     son la misma pregunta en otro grano, y dos palabras distintas
                     para la misma columna se leerían como dos medidas. */}
-                <th scope="col" className="es-num">Se esperaba</th>
-                <th scope="col" className="es-num">Va respondiendo</th>
+                <th scope="col" className="es-num">Tasa prevista</th>
+                <th scope="col" className="es-num">Tasa observada</th>
                 {/* M3: es la tasa de DISEÑO de la facultad. «Vara» a secas era
                     una palabra para dos cosas al lado de un panel que habla en
                     observadas. */}

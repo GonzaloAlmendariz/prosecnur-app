@@ -77,7 +77,7 @@ export function AulasPestanaRendimiento({
                     día y qué cabe esperar de su próxima aula. Son preguntas distintas
                     y por eso son dos paneles: el ranking se mira para repartir hoy, la
                     serie para ver si una facultad se está apagando. */}
-                <h3>Cómo rinde cada facultad, día a día</h3>
+                <h3>Rendimiento diario de las facultades</h3>
                 <span>encuestas por curso-horario visitado · y lo que cabe esperar</span>
               </div>
               <AulasSerieDeRendimiento
