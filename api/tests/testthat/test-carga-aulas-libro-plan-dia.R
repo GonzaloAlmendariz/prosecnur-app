@@ -101,6 +101,10 @@ test_that("la cabecera es exacta y en ese orden, como primera fila", {
 test_that("población: sin fecha fuera, retirada fuera, reserva activada dentro", {
   hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
   codigos <- .pd_celdas(hoja, "CURSO-HORARIO")
+  # B2.1b: las filas-aula son las de código NO vacío. Las filas de totales y de
+  # sección (sección D) declaran vacío en esta columna justamente para no
+  # confundirse con aulas; hoy el recorte es un no-op.
+  codigos <- codigos[nzchar(codigos)]
   # La reserva activada con fecha entra IGUAL que un titular: el plan del día
   # es de quien va al aula, no del rol de muestreo.
   expect_true(all(c("CH 1", "CH 2", "CH 3", "R 5.1") %in% codigos))
@@ -115,12 +119,15 @@ test_that("población: sin fecha fuera, retirada fuera, reserva activada dentro"
 test_that("orden: fecha ISO ascendente cruzando el mes, y dentro del día por hora", {
   hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
   # 2026-09-08 va antes que 2026-10-01 (lexicográfico ISO, no «8 > 1»), y
-  # dentro del 09-08 las 09:00 antes que las 14:00.
+  # dentro del 09-08 las 09:00 antes que las 14:00. El orden se afirma sobre
+  # las filas-aula (código no vacío): los totales y la sección de B2.1b llevan
+  # rótulo en la columna de fecha y romperían un sort() ciego.
+  codigos <- .pd_celdas(hoja, "CURSO-HORARIO")
   expect_identical(
-    .pd_celdas(hoja, "CURSO-HORARIO"),
+    codigos[nzchar(codigos)],
     c("CH 3", "CH 2", "R 5.1", "CH 1")
   )
-  fechas <- .pd_celdas(hoja, "FECHA AGENDADA")
+  fechas <- .pd_celdas(hoja, "FECHA AGENDADA")[nzchar(codigos)]
   expect_identical(fechas, sort(fechas))
 })
 
@@ -358,4 +365,201 @@ test_that("la lista controlada contiene «Plan del día»", {
   # Y el validador la deja pasar: el motor valida nombres antes de escribir,
   # así que sin esto la publicación reventaría con E_GOOGLE_SHEETS.
   expect_silent(.monitoreo_sheets_validate_controlled_tabs(c("Plan del día")))
+})
+
+# --- D. B2.1b: totales por jornada y pendientes de jornadas anteriores -------
+#
+# Mejora sobre el formato tecleado de 2025 (checklist B2.1b). De la propuesta
+# de cuatro, avanzan SOLO (a) totales por jornada y (c) pendientes de jornadas
+# anteriores; choques de franja (b) y orden por pabellón (d) quedan fuera.
+#
+# Contrato congelado (2026-09-01), mapeo columna a columna:
+#   (a) Al cierre de CADA grupo de fecha agendada, una fila de totales:
+#         FECHA AGENDADA    = «Total de la jornada» (rótulo académico)
+#         CURSO-HORARIO     = "" (jamás un código: la fila no es un aula)
+#         NOMBRE DEL CURSO  = «Aulas agendadas: N»
+#         APLICADOR         = «Con parte rendido: N»
+#         ESTADO            = «Pendientes: N»
+#       Conteos ENTEROS de la POBLACIÓN del día (las retiradas ya están
+#       fuera), con la identidad agendadas = con parte + pendientes. «Con
+#       parte rendido» = existe al menos un parte para ese código.
+#   (c) Sección final tras el último grupo. El generador NO tiene reloj
+#       (cero Sys.Date() a propósito: la hoja es determinista); la frontera
+#       es la ÚLTIMA fecha agendada que ya tiene algún parte rendido.
+#       Pendiente de jornada anterior = aula de la población con fecha
+#       ESTRICTAMENTE anterior a esa frontera y sin parte. Con pendientes:
+#       fila-marcador «Pendientes de jornadas anteriores» (columna de fecha;
+#       código vacío) y debajo una fila por aula con su fecha ORIGINAL
+#       visible, curso, docente y estado legible — pero código VACÍO, para
+#       que ningún recorte por código cuente un aula dos veces. Sin
+#       pendientes (o sin partes, que es no tener frontera): UNA fila final
+#       «Sin pendientes de jornadas anteriores» — C3, jamás la sección
+#       ausente en silencio.
+#
+# Invariantes: los 13 títulos no cambian (lo pinea la sección A); las
+# filas-aula son EXACTAMENTE las de hoy (las mejoras agregan filas, no quitan
+# ni duplican); los estados siguen pasando por `.capd_estado_legible`;
+# vocabulario académico (A13).
+
+# Dos fechas y una retirada, en desorden a propósito (el orden lo pone la
+# hoja): 09-08 trae CH 10 (con parte) y CH 11 (sin parte, la pendiente de
+# jornada anterior); 09-10 trae CH 12 (con parte, fija la frontera) y CH 13
+# (sin parte: pendiente de SU día, no de una jornada anterior). CH 99 está
+# reemplazada: fuera de la población y de los totales.
+.pd_plan_b21b <- function() list(
+  list(operational_code = "CH 12", titular_operational_code = "CH 12",
+       sample_role = "titular", faculty = "Ciencias",
+       course_name = "Curso 12", teacher = "Docente 12", eligible_n = 30,
+       scheduled_date = "2026-09-10", scheduled_time = "10:00",
+       operational_status = "en_campo"),
+  list(operational_code = "CH 11", titular_operational_code = "CH 11",
+       sample_role = "titular", faculty = "Letras",
+       course_name = "Curso 11", teacher = "Docente 11", eligible_n = 25,
+       scheduled_date = "2026-09-08", scheduled_time = "11:00",
+       operational_status = "agendada"),
+  list(operational_code = "CH 99", titular_operational_code = "CH 99",
+       sample_role = "titular", faculty = "Letras",
+       course_name = "Curso 99", teacher = "Docente 99", eligible_n = 20,
+       scheduled_date = "2026-09-08", scheduled_time = "08:00",
+       operational_status = "reemplazada"),
+  list(operational_code = "CH 10", titular_operational_code = "CH 10",
+       sample_role = "titular", faculty = "Ciencias",
+       course_name = "Curso 10", teacher = "Docente 10", eligible_n = 28,
+       scheduled_date = "2026-09-08", scheduled_time = "09:00",
+       operational_status = "agendada"),
+  list(operational_code = "CH 13", titular_operational_code = "CH 13",
+       sample_role = "titular", faculty = "Derecho",
+       course_name = "Curso 13", teacher = "Docente 13", eligible_n = 22,
+       scheduled_date = "2026-09-10", scheduled_time = "14:00",
+       operational_status = "agendada")
+)
+
+.pd_partes_b21b <- function() list(
+  list(operational_code = "CH 10", intento = 1L, aplicador = "Equipo A"),
+  list(operational_code = "CH 12", intento = 1L, aplicador = "Equipo B")
+)
+
+# Las filas de datos (sin cabecera) como matriz de caracteres sin nombres.
+.pd_matriz <- function(hoja) {
+  m <- as.matrix(hoja[-1, , drop = FALSE])
+  dimnames(m) <- NULL
+  m
+}
+
+test_that("B2.1b: el recorte completo — grupo, total, grupo, total, sección", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = .pd_partes_b21b())
+  m <- .pd_matriz(hoja)
+  cols <- vapply(
+    c("FECHA AGENDADA", "CURSO-HORARIO", "NOMBRE DEL CURSO",
+      "NOMBRE DE DOCENTE", "APLICADOR", "ESTADO"),
+    function(t) .pd_col(hoja, t), integer(1)
+  )
+  esperado <- rbind(
+    c("2026-09-08", "CH 10", "Curso 10", "Docente 10", "Equipo A", "AGENDADA"),
+    c("2026-09-08", "CH 11", "Curso 11", "Docente 11", "",         "AGENDADA"),
+    c("Total de la jornada", "", "Aulas agendadas: 2", "",
+      "Con parte rendido: 1", "Pendientes: 1"),
+    c("2026-09-10", "CH 12", "Curso 12", "Docente 12", "Equipo B", "EN CAMPO"),
+    c("2026-09-10", "CH 13", "Curso 13", "Docente 13", "",         "AGENDADA"),
+    c("Total de la jornada", "", "Aulas agendadas: 2", "",
+      "Con parte rendido: 1", "Pendientes: 1"),
+    c("Pendientes de jornadas anteriores", "", "", "", "", ""),
+    # CH 11 con su fecha ORIGINAL visible y SIN código: la sección re-lista,
+    # no duplica aulas ante un recorte por código.
+    c("2026-09-08", "", "Curso 11", "Docente 11", "", "AGENDADA")
+  )
+  expect_identical(unname(m[, cols, drop = FALSE]), esperado)
+})
+
+test_that("B2.1b(a): cada jornada cierra con totales enteros que cuadran, sin código", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = .pd_partes_b21b())
+  m <- .pd_matriz(hoja)
+  totales <- which(m[, .pd_col(hoja, "FECHA AGENDADA")] == "Total de la jornada")
+  # Una por fecha agendada con aulas (la retirada CH 99 no abre jornada extra).
+  expect_length(totales, 2L)
+  entero <- function(x) as.integer(sub("^.*: ", "", x))
+  for (i in totales) {
+    # Jamás un código: la fila de totales no se confunde con un aula.
+    expect_identical(m[i, .pd_col(hoja, "CURSO-HORARIO")], "")
+    agendadas <- m[i, .pd_col(hoja, "NOMBRE DEL CURSO")]
+    con_parte <- m[i, .pd_col(hoja, "APLICADOR")]
+    pendientes <- m[i, .pd_col(hoja, "ESTADO")]
+    # Enteros: nada de decimales sobre aulas (el $ tras [0-9]+ veta «2.0»).
+    expect_match(agendadas, "^Aulas agendadas: [0-9]+$")
+    expect_match(con_parte, "^Con parte rendido: [0-9]+$")
+    expect_match(pendientes, "^Pendientes: [0-9]+$")
+    # Y cuadran: lo agendado del día es con parte + pendiente, sin residuo.
+    expect_identical(entero(agendadas), entero(con_parte) + entero(pendientes))
+  }
+})
+
+test_that("B2.1b(c): la frontera es la última fecha con parte, no el reloj del sistema", {
+  # Solo el 09-08 tiene parte (CH 10): la frontera queda EN 09-08 y nada es
+  # estrictamente anterior — ni CH 11, que es del mismo 09-08 y sin parte.
+  # Determinista por construcción: el generador no consulta Sys.Date().
+  partes <- list(list(operational_code = "CH 10", intento = 1L,
+                      aplicador = "Equipo A"))
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = partes)
+  m <- .pd_matriz(hoja)
+  col1 <- m[, .pd_col(hoja, "FECHA AGENDADA")]
+  # C3, vacío declarado: UNA fila de cierre, jamás la sección ausente ni el
+  # marcador de una lista que no existe.
+  expect_identical(col1[[length(col1)]], "Sin pendientes de jornadas anteriores")
+  expect_false("Pendientes de jornadas anteriores" %in% col1)
+  # Los totales del 09-10 declaran sus dos aulas sin parte COMO pendientes del
+  # día — pendiente de SU jornada no es pendiente de una jornada anterior.
+  totales <- which(col1 == "Total de la jornada")
+  expect_length(totales, 2L)
+  if (length(totales) == 2L) {
+    expect_identical(m[totales[[2]], .pd_col(hoja, "APLICADOR")],
+                     "Con parte rendido: 0")
+    expect_identical(m[totales[[2]], .pd_col(hoja, "ESTADO")], "Pendientes: 2")
+  }
+})
+
+test_that("B2.1b(c): sin partes no hay frontera — vacío declarado y totales en cero", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b())
+  m <- .pd_matriz(hoja)
+  col1 <- m[, .pd_col(hoja, "FECHA AGENDADA")]
+  expect_identical(col1[[length(col1)]], "Sin pendientes de jornadas anteriores")
+  totales <- which(col1 == "Total de la jornada")
+  expect_length(totales, 2L)
+  for (i in totales) {
+    expect_identical(m[i, .pd_col(hoja, "APLICADOR")], "Con parte rendido: 0")
+  }
+})
+
+test_that("B2.1b: los rótulos sobreviven al tipado de fechas del libro", {
+  # `.calg_tipar_fechas` REESCRIBE la columna 1 con el vector parseado: un
+  # rótulo que no parsea como fecha se volvería NA y moriría camino al xlsx
+  # en silencio. Se pinea en el libro real, no solo en el data.frame.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.pd_plan_b21b(), libro, partes = .pd_partes_b21b())
+  hoja <- suppressMessages(readxl::read_excel(
+    libro, sheet = "Plan del día", col_names = FALSE, col_types = "text"
+  ))
+  col1 <- as.character(hoja[[1]])
+  expect_true("Total de la jornada" %in% col1)
+  expect_true("Pendientes de jornadas anteriores" %in% col1)
+})
+
+test_that("B2.1b invariante: las mejoras agregan filas — las filas-aula son las de hoy", {
+  # Con el fixture ORIGINAL de B2.1: mismas cuatro aulas, mismo orden. Y con el
+  # de B2.1b: sus cuatro, sin que la sección duplique a CH 11 ante un recorte
+  # por código (las filas nuevas declaran vacío en CURSO-HORARIO).
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
+  codigos <- .pd_celdas(hoja, "CURSO-HORARIO")
+  expect_identical(codigos[nzchar(codigos)], c("CH 3", "CH 2", "R 5.1", "CH 1"))
+
+  hoja2 <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = .pd_partes_b21b())
+  codigos2 <- .pd_celdas(hoja2, "CURSO-HORARIO")
+  expect_identical(codigos2[nzchar(codigos2)],
+                   c("CH 10", "CH 11", "CH 12", "CH 13"))
+})
+
+test_that("B2.1b invariante A13: vocabulario académico en toda la hoja", {
+  hoja <- aulas_libro_hoja_plan_dia(.pd_plan_b21b(), partes = .pd_partes_b21b())
+  celdas <- unlist(lapply(hoja, as.character), use.names = FALSE)
+  expect_false(any(grepl("c[oó]mo va\\b|c[oó]mo vamos|va respondiendo",
+                         tolower(celdas))))
 })

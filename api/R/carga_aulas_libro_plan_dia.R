@@ -55,6 +55,74 @@
   paste(partes[nzchar(partes)], collapse = " · ")
 }
 
+# Una fila ESTRUCTURAL de la hoja (totales, marcador o pendiente re-listada):
+# solo se escriben las celdas proyectadas por título de cabecera; el resto
+# (DÍA, HORA, FACULTAD, TELÉFONO, ELEGIBLES, SESIONES, ENLACE… y sobre todo
+# CURSO-HORARIO) queda VACÍO — la fila no es un aula y un recorte por código
+# no debe contarla.
+.capd_fila_estructural <- function(...) {
+  celdas <- list(...)
+  fila <- rep("", length(.capd_CABECERA))
+  for (titulo in names(celdas)) {
+    fila[[match(titulo, .capd_CABECERA)]] <- as.character(celdas[[titulo]])
+  }
+  fila
+}
+
+# B2.1b(a): la fila de totales que cierra cada grupo de fecha agendada.
+# Conteos ENTEROS de la población del día (las retiradas ya quedaron fuera al
+# poblar la hoja) con la identidad agendadas = con parte + pendientes.
+.capd_fila_totales <- function(agendadas, rendidos) {
+  .capd_fila_estructural(
+    `FECHA AGENDADA` = "Total de la jornada",
+    `NOMBRE DEL CURSO` = sprintf("Aulas agendadas: %d", as.integer(agendadas)),
+    `APLICADOR` = sprintf("Con parte rendido: %d", as.integer(rendidos)),
+    `ESTADO` = sprintf("Pendientes: %d", as.integer(agendadas - rendidos))
+  )
+}
+
+# B2.1b(c): la sección final de pendientes de jornadas anteriores.
+#
+# El generador NO tiene reloj (cero Sys.Date(): la hoja es determinista); la
+# frontera del «hoy» es la ÚLTIMA fecha agendada de la población con algún
+# parte rendido. Pendiente de jornada anterior = aula con fecha ESTRICTAMENTE
+# anterior a esa frontera y sin parte; la comparación es sobre el ISO
+# `YYYY-MM-DD`, donde el orden lexicográfico ES el cronológico. Sin partes no
+# hay frontera y sin frontera no hay pendientes: sale el vacío declarado (C3),
+# jamás la sección ausente en silencio.
+#
+# Cada pendiente se re-lista con su fecha ORIGINAL, curso, docente y estado
+# legible pero con código VACÍO: la sección re-lista, no duplica aulas ante un
+# recorte por código.
+.capd_seccion_pendientes <- function(poblacion, fechas, codigos, con_parte) {
+  rendidas <- fechas[codigos %in% con_parte]
+  frontera <- if (length(rendidas)) max(rendidas) else ""
+  pendientes <- if (nzchar(frontera)) {
+    which(fechas < frontera & !(codigos %in% con_parte))
+  } else {
+    integer(0)
+  }
+  if (!length(pendientes)) {
+    return(list(.capd_fila_estructural(
+      `FECHA AGENDADA` = "Sin pendientes de jornadas anteriores"
+    )))
+  }
+  c(
+    list(.capd_fila_estructural(
+      `FECHA AGENDADA` = "Pendientes de jornadas anteriores"
+    )),
+    lapply(pendientes, function(i) {
+      u <- poblacion[[i]]
+      .capd_fila_estructural(
+        `FECHA AGENDADA` = fechas[[i]],
+        `NOMBRE DEL CURSO` = .calg_txt(u$course_name),
+        `NOMBRE DE DOCENTE` = .calg_txt(u$teacher),
+        `ESTADO` = .capd_estado_legible(u$operational_status)
+      )
+    })
+  )
+}
+
 #' Arma la hoja «Plan del día» a partir del plan y los partes.
 #'
 #' Población: SOLO filas con `scheduled_date` no vacío, excluyendo los estados
@@ -68,6 +136,12 @@
 #' Orden: `scheduled_date` ascendente (ISO es lexicográfico) y, dentro del
 #' día, `scheduled_time`.
 #'
+#' B2.1b: cada grupo de fecha cierra con una fila «Total de la jornada»
+#' (agendadas = con parte rendido + pendientes) y la hoja termina con la
+#' sección «Pendientes de jornadas anteriores» — o su vacío declarado. Las
+#' filas estructurales llevan CURSO-HORARIO vacío: las filas-aula siguen
+#' siendo exactamente las de siempre.
+#'
 #' @param unidades filas del plan (formato largo).
 #' @param partes partes de campo ya registrados; el APLICADOR sale del intento
 #'   1 por `.MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]]` (mismo índice
@@ -78,6 +152,10 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
   # «Aulas Aplicadas (Campo)»: dos índices distintos para el mismo parte es la
   # clase de lista paralela que este libro ya pagó.
   por_aula <- list()
+  # B2.1b: «con parte rendido» pregunta si el aula YA rindió algún parte, no en
+  # qué intento — un parte de intento >1 sin intento 1 cuenta igual (decisión
+  # aceptada por el lead).
+  con_parte <- character(0)
   for (pt in (partes %||% list())) {
     if (!is.list(pt)) next
     cod <- .calg_txt(pt$operational_code, .calg_txt(pt$classroom_id))
@@ -85,6 +163,7 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
     n <- suppressWarnings(as.integer(pt$intento %||% 1L))
     if (!length(n) || !is.finite(n) || n < 1L) n <- 1L
     por_aula[[sprintf("%s#%d", cod, n)]] <- pt
+    con_parte <- unique(c(con_parte, cod))
   }
 
   poblacion <- Filter(function(u) {
@@ -95,9 +174,12 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
 
   fechas <- vapply(poblacion, function(u) .calg_txt(u$scheduled_date), character(1))
   horas <- vapply(poblacion, function(u) .calg_txt(u$scheduled_time), character(1))
-  poblacion <- poblacion[order(fechas, horas)]
+  orden <- order(fechas, horas)
+  poblacion <- poblacion[orden]
+  fechas <- fechas[orden]
+  codigos <- vapply(poblacion, function(u) .calg_txt(u$operational_code), character(1))
 
-  filas <- lapply(poblacion, function(u) {
+  fila_aula <- function(u) {
     parte1 <- por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]]
     aplicador <- if (is.null(parte1)) "" else .calg_txt(
       .monitoreo_aulas_parte_primero(parte1, .MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]])
@@ -117,7 +199,23 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
       .capd_estado_legible(u$operational_status),
       .calg_txt(u$link)
     )
-  })
+  }
+
+  # B2.1b(a): las aulas de cada fecha y, al cierre del grupo, sus totales. La
+  # retirada no abre jornada: ya quedó fuera de la población.
+  filas <- list()
+  for (fecha in unique(fechas)) {
+    del_dia <- which(fechas == fecha)
+    filas <- c(
+      filas,
+      lapply(poblacion[del_dia], fila_aula),
+      list(.capd_fila_totales(
+        agendadas = length(del_dia),
+        rendidos = sum(codigos[del_dia] %in% con_parte)
+      ))
+    )
+  }
+  filas <- c(filas, .capd_seccion_pendientes(poblacion, fechas, codigos, con_parte))
   as.data.frame(do.call(rbind, c(list(.capd_CABECERA), filas)),
                 stringsAsFactors = FALSE)
 }
