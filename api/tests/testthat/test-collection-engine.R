@@ -615,10 +615,14 @@ test_that("el adapter arma ese enlace sin que nadie configure el campo", {
     asset_uid = "aNNuP72AedZ886EoAUeV5o"
   ))
   binding <- preview$bindings[[1]]
-  # La ruta XPath sin configurar nada, y el CURSO-HORARIO como valor pese a que
-  # la unidad tiene su slug delante: eso ultimo si es de 2025 y sigue en pie.
+  # La ruta XPath sin configurar nada, y el CODIGO OPERATIVO como valor
+  # (dictado del 2026-08-31, supersede la L2 del 08-27 que mandaba el
+  # curso-horario): «CH 1» es lo que el equipo reconoce al mirar una respuesta
+  # suelta en Kobo. El curso-horario queda de fallback para la unidad que no
+  # trae codigo, y lo ya repartido con el valor viejo sigue contando porque
+  # `.monitoreo_aulas_contar_por_fila()` empareja por el segundo intento.
   expect_identical(names(binding$prefill), "/aNNuP72AedZ886EoAUeV5o/collectorID")
-  expect_identical(binding$prefill[[1]], "mat202_0591")
+  expect_identical(binding$prefill[[1]], "CH 1")
 })
 
 test_that("nadie es reemplazo de si mismo, y la cadena apunta en codigo operativo", {

@@ -318,16 +318,19 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
 # Lo que viaja dentro del enlace personalizado, y por tanto lo que llega a Kobo
 # como identificador de la respuesta.
 #
-# El curso-horario (`MAT146-0205` en 2025, `mat202_0591` en 2026) va antes que el
-# `unit_id`, que es un slug de infraestructura —`unit-aulas-ch-1-50200d1467`— que
-# no le dice nada a quien mira una respuesta suelta en Kobo y ocupa 26 caracteres
-# de QR. Es la decision L2, zanjada el 2026-08-27: el operativo de 2025 mando el
-# curso-horario en sus 1.098 aulas.
+# El codigo operativo (`CH 1`, `R 10.1`) va primero: es lo que el equipo
+# reconoce al mirar una respuesta suelta en Kobo (dictado del dueño del
+# 2026-08-31, que reabre y supersede la L2 del 08-27; aquella habia zanjado
+# curso-horario porque era lo que mando el operativo de 2025). `legacy_ref`
+# lo sella `.collection_legacy_unit()` con `operational_code` como primer
+# candidato, y sin codigo operativo cae solo al curso-horario, que sigue
+# delante del `unit_id` —el slug de infraestructura que no le dice nada a
+# nadie y ocupa 26 caracteres de QR.
 #
-# Ademas es la clave con la que Monitoreo cuenta: `.monitoreo_aulas_contar_por_fila()`
-# prueba `classroom_id` y luego `collection_unit_id`, asi que el cambio NO obliga
-# a reimprimir lo ya repartido —lo viejo sigue emparejando por el segundo intento—
-# ni a migrar lo ya recogido.
+# La atribucion no se rompe con el cambio: `.monitoreo_aulas_contar_por_fila()`
+# prueba `classroom_id` (== codigo operativo en el plan real) y luego
+# `collection_unit_id`, asi que lo ya repartido con curso-horario sigue
+# emparejando por el segundo intento —ni reimprimir ni migrar.
 #
 # `link_key` y `prefill_value` siguen delante: son la salida explicita para un
 # plan que declare a mano que quiere otra cosa.
@@ -335,7 +338,7 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   dims <- if (is.list(unit$dimensions)) unit$dimensions else list()
   .ca_text(
     unit$link_key %||% unit$prefill_value %||% unit$logical_collector_id %||%
-      dims$classroom_id %||% unit$unit_id
+      dims$legacy_ref %||% dims$classroom_id %||% unit$unit_id
   )
 }
 
