@@ -503,13 +503,19 @@ test_that("la hoja de campo avisa cuando las efectivas no cuadran", {
   expect_true(grepl("AND(", xml, fixed = TRUE))
 })
 
-test_that("la regla de cuadre se repite en cada intento, no solo en el primero", {
-  # Un aula que se visita dos veces tiene dos bloques de parte y los dos se
-  # llenan a mano. Contar columnas para uno solo ya costo el semaforo.
-  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"),
+test_that("la regla de cuadre se repite en cada eslabon, no solo en el primero", {
+  # B24: los bloques son eslabones y cada uno se llena a mano. La cuenta se
+  # DERIVA del numero real de bloques de la hoja (contar para uno solo ya
+  # costo el semaforo; asumir 3 fijos costo este pin cuando el diseño cambio).
+  libro <- .libro_con_pct(0.61)
+  cab <- openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                             colNames = FALSE, skipEmptyRows = FALSE, rows = 2)
+  bloques <- sum(as.character(unlist(cab[1, ], use.names = FALSE)) == "ID MATCH",
+                 na.rm = TRUE)
+  xml <- paste(.xml_de_hoja_llamada(libro, "Aulas Aplicadas (Campo)"),
                collapse = "")
   n <- length(gregexpr('type="expression"', xml, fixed = TRUE)[[1]])
-  expect_gte(n, 2L)
+  expect_gte(n, bloques)
 })
 
 test_that("declarar de MENOS no se tiñe: es posible y corriente", {

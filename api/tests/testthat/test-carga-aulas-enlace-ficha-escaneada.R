@@ -122,7 +122,9 @@ test_that("el generador siembra la columna del escaneado en cada bloque, vacia",
   hoja <- aulas_libro_hoja_aplicadas(.efe_plan())
   campos <- as.character(unlist(hoja[2, ], use.names = FALSE))
   inicios <- which(campos == "ID MATCH")
-  expect_length(inicios, 3L)
+  # B24: los bloques son ESLABONES — un plan de un titular sin reservas tiene
+  # UN bloque, no los 3 fijos del diseño por intentos.
+  expect_length(inicios, 1L)
   cols_enlace <- which(campos == .efe_titulo)
   # Una por bloque de intento.
   expect_length(cols_enlace, length(inicios))
@@ -167,26 +169,30 @@ test_that("el enlace pegado por el equipo sobrevive generar -> leer", {
   expect_false(grepl("kobotoolbox", as.character(vuelto[[1]]$scanned_sheet_link %||% "")))
 })
 
-test_that("el enlace de un reintento cae en SU bloque, no en el del titular", {
-  # La clave `%s#%d` con la que el generador indexa: el enlace del intento 2 se
-  # escribe en la ultima columna del bloque 2. Se fija al nivel del GENERADOR y
-  # no del roundtrip por xlsx a proposito: cuando se escribio, generar -> leer
-  # perdia el parte del intento 2 ENTERO por un defecto ajeno a esta columna.
-  # Ese defecto era A16 y ya esta resuelto —el lector hereda el codigo del
-  # bloque titular cuando el de reintento sale sin CURSO-HORARIO— y el
-  # roundtrip completo lo cubre `test-carga-aulas-partes-reintento.R`.
+test_that("el enlace de una reserva aplicada cae en el bloque de SU eslabon", {
+  # B24: los bloques son eslabones. El parte de la reserva R 1.1 —con su propio
+  # escaneado— cae en el bloque 2 (su eslabon), y el del titular en el bloque
+  # 1; y para el MISMO codigo con dos visitas, el bloque muestra el escaneado
+  # del intento mas reciente (la garantia de no perder el anterior vive en la
+  # fusion: test-carga-aulas-partes-reintento.R).
+  plan <- c(.efe_plan(), list(
+    list(classroom_id = "A-02", operational_code = "R 1.1",
+         titular_operational_code = "CH 1", sample_role = "chain_reserve",
+         replacement_order = 1, faculty = "Ciencias", course_name = "CURSO 1R",
+         teacher = "Docente 1R", eligible_n = 26, enrolled_total = 29)
+  ))
   partes <- list(
     list(operational_code = "CH 1", intento = 1L, observed_students = 27,
          effective_surveys = 23, application_status = "APLICADA",
          scanned_sheet_link = .efe_enlace("bloque1")),
-    list(operational_code = "CH 1", intento = 2L, observed_students = 12,
+    list(operational_code = "R 1.1", intento = 1L, observed_students = 12,
          effective_surveys = 9, application_status = "APLICADA",
          scanned_sheet_link = .efe_enlace("bloque2"))
   )
-  hoja <- aulas_libro_hoja_aplicadas(.efe_plan(), partes = partes)
+  hoja <- aulas_libro_hoja_aplicadas(plan, partes = partes)
   campos <- as.character(unlist(hoja[2, ], use.names = FALSE))
   # Por NOMBRE, no por «ultima del bloque»: la posicion dentro del parte la
-  # pinea el contrato v4 y aqui solo importa que cada intento conserve SU celda.
+  # pinea el contrato v4 y aqui solo importa que cada eslabon conserve SU celda.
   cols_enlace <- which(campos == .efe_titulo)
   expect_gte(length(cols_enlace), 2L)
   fila <- as.character(unlist(hoja[3, ], use.names = FALSE))

@@ -14,35 +14,37 @@
 #     calcula sobre ese rectángulo).
 #   - Después, SOLO en la siembra, esta capa sobreescribe los rangos de agenda
 #     con fórmulas vía `values.update` (PUT) y `valueInputOption=USER_ENTERED`:
-#     un PUT por bloque, porque ID MATCH + las 20 de agenda son las columnas
-#     1..21 CONTIGUAS de cada bloque. Las 14 columnas de CAMPO (22..35) no se
+#     un PUT por bloque, porque ID MATCH + los titulos de agenda vigentes son
+#     las columnas CONTIGUAS que abren cada bloque (los anchos se DERIVAN de
+#     las specs: el bloque de agenda ya crecio con B22/B23 y volvera a
+#     crecer). Las columnas de CAMPO que cierran el bloque no se
 #     tocan: siguen siendo los valores RAW tecleables del equipo. No se puede
 #     meter la fórmula al batch RAW (quedaría como texto sin computar) ni subir
 #     el batch entero a USER_ENTERED (Sheets parsearía «0205» a 205 y las
 #     fechas por locale — la decisión round-trip de la cabecera del publicador).
 #
-# Geometría (verificada corriendo los generadores, pineada en el test):
+# Geometría (derivada de las MISMAS specs que reparten los generadores):
 #   - «Aulas Agendadas»: 1 fila de cabecera; datos desde la fila 2. Columna 1 =
-#     ID MATCH; bloque b (titular, R1, R2…) = columnas 1+(b-1)*20+1 .. +20.
-#   - Hoja de campo: 2 filas de cabecera; datos desde la fila 3. Bloque b de 35
-#     columnas: ID MATCH en (b-1)*35+1, agenda en +2..+21, campo en +22..+35.
-#   - Ancla POR FILA: la fila de un titular en la hoja de campo arrastra la
-#     fila de SU cadena en agendadas (campo fila 3 ← agendadas fila 2), y el
-#     bloque b arrastra el bloque b de agendadas de ESA MISMA fila: el bloque
-#     «REEMPLAZO 1» enseña la agenda de la reserva 1 de la cadena, que es lo
-#     que se aplica cuando el titular cae.
+#     ID MATCH; bloque b (titular, R1, R2…) a paso `.malar_ancho_agenda()`.
+#   - Hoja de campo: 2 filas de cabecera; datos desde la fila 3. Bloque b de
+#     ancho `.malar_ancho_bloque()`: ID MATCH, agenda, campo.
+#   - Ancla POR FILA: desde B24 las dos hojas comparten el agrupado
+#     (`.calg_grupos_cadena`, una fila por cadena y un bloque por ESLABON), y
+#     el bloque b arrastra el bloque b de agendadas de ESA MISMA fila: el
+#     bloque «REEMPLAZO n» enseña la agenda de la reserva n de la cadena, que
+#     es lo que se aplica cuando el titular cae.
 #
 # La fila destino NO es fila_campo - 1 a ciegas: se resuelve por la CADENA del
 # aula (`titular_operational_code`, la misma regla `.calg_titular` que agrupa
-# agendadas). En el caso normal —una fila de campo por titular, mismo orden—
-# coincide exactamente con N-1; cuando una reserva activada gana fila propia en
-# la hoja de campo (26 de 196 partes en 2025), su fila arrastra la fila de su
-# cadena en vez de descolocar por uno todas las siguientes.
+# agendadas). En el caso normal coincide exactamente con N-1; la resolucion
+# por codigo sostiene ademas las filas fallback de partes que no anclan en
+# ninguna cadena (sin ancla, conservan sus valores copiados).
 #
-# Los bloques se recortan a la PROFUNDIDAD de agendadas: la hoja de campo trae
-# 3 bloques fijos (intentos) pero agendadas solo tiene columnas para su cadena
-# más larga, y una referencia fuera del grid remoto pinta #REF! en todo el
-# bloque. Un bloque sin contraparte se queda como hoy (valores/vacío).
+# Los bloques se recortan al minimo entre lo que la hoja de campo trae y la
+# profundidad de agendadas. Desde B24 las dos hojas van en espejo y ese minimo
+# ES la profundidad; el recorte queda de red por si un rectangulo llega
+# degenerado — una referencia fuera del grid remoto pinta #REF! en todo el
+# bloque.
 
 # --- geometría compartida -----------------------------------------------------
 
@@ -66,28 +68,31 @@
 
 # Cuántos bloques de la hoja de campo tienen contraparte en agendadas: los que
 # el rectángulo de campo trae, recortados a la profundidad de la cadena (los
-# mismos `.calg_*` con los que ambos generadores reparten columnas).
+# mismos `.calg_*` con los que ambos generadores reparten columnas). Desde B24
+# la hoja de campo trae UN bloque por eslabón, así que el mínimo ES la
+# profundidad y el arrastre cubre todos los eslabones; el recorte queda de red
+# para un rectángulo degenerado.
 .malar_bloques_arrastre <- function(values, unidades) {
   if (length(values) < 2L) return(0L)
   n_bloques_campo <- length(values[[2L]] %||% list()) %/% .malar_ancho_bloque()
   min(n_bloques_campo, .calg_profundidad(unidades))
 }
 
-# La fila de «Aulas Agendadas» de cada código operativo. Reproduce el agrupado
-# del generador de agendadas (una fila por cadena, en orden de aparición del
-# plan, clave `.calg_titular`).
+# La fila de «Aulas Agendadas» de cada código operativo. Va por el MISMO
+# agrupado que los dos generadores (`.calg_grupos_cadena`, una fila por
+# cadena): antes reproducía el orden con `unique(claves)` a secas, que con un
+# plan intercalado (R 24.6 antes que CH 15) anclaba la fórmula a la fila de
+# OTRA cadena — el generador ordena por aparición del TITULAR y esta copia no
+# se enteró del arreglo. Una implementación, tres consumidores.
 .malar_filas_agendadas <- function(unidades) {
-  if (!length(unidades)) return(list())
-  claves <- vapply(unidades, .calg_titular, character(1))
-  orden <- unique(claves)
+  grupos <- .calg_grupos_cadena(unidades)
   out <- list()
-  for (u in unidades) {
-    cod <- .calg_txt(u$operational_code)
-    if (!nzchar(cod)) next
-    fila <- match(.calg_titular(u), orden)
-    if (is.na(fila)) next
-    # +1 por la fila de cabecera de agendadas (datos desde la fila 2).
-    out[[cod]] <- fila + 1L
+  for (i in seq_along(grupos)) {
+    for (u in grupos[[i]]) {
+      cod <- .calg_txt(u$operational_code)
+      # +1 por la fila de cabecera de agendadas (datos desde la fila 2).
+      if (nzchar(cod) && is.null(out[[cod]])) out[[cod]] <- i + 1L
+    }
   }
   out
 }
