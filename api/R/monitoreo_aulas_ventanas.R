@@ -204,8 +204,11 @@ monitoreo_aulas_hora_parse <- function(x) {
 #' Las aulas del balde `retirada` (reemplazada/cancelada/sin_acceso/
 #' reemplazo_pendiente — `.madt_balde()`, el MISMO criterio que la población
 #' del Plan del día) quedan fuera de aulas y mapa — DECISIÓN DEL LEAD (B11,
-#' 2026-09-01): un aula cancelada no pide personas. La ausencia de estado no
-#' es un retiro: cae en `pendiente` y entra.
+#' 2026-09-01): un aula cancelada no pide personas. También queda fuera el
+#' RECHAZO tecleado en STATUS MUESTRA (`.madt_rechazada()`, B13b): cita
+#' pactada y luego rechazo es una ventana que ya no pide gente. La ausencia
+#' de estado no es un retiro: cae en `pendiente` y entra. EN CONTACTO es
+#' gestión y se conserva: con rango de curso sale tentativa del día.
 #'
 #' @param plan plan normalizado: lista de filas o data.frame (mismo formato
 #'   que `monitoreo_aulas_dos_tasas`).
@@ -224,6 +227,9 @@ monitoreo_aulas_ventanas <- function(plan = list()) {
     # que el Plan del día. El barrido fino de estados lo pineará después.
     estado <- .monitoreo_scalar(fila[["operational_status"]], "")
     if (identical(.madt_balde(estado), "retirada")) next
+    # B13b: el RECHAZO tecleado en STATUS MUESTRA también saca la ventana del
+    # mapa — mismo helper que dos_tasas y el Plan del día.
+    if (.madt_rechazada(fila)) next
 
     fecha <- .mav_fecha(fila[["scheduled_date"]])
     hora <- .mav_hora_una(.monitoreo_scalar(fila[["scheduled_time"]], ""))

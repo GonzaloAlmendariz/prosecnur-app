@@ -221,8 +221,16 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
       cols_status <- vapply(seq_len(bloques), function(b) .mafs_col_agenda("sample_status", b), integer(1))
       cols_status <- cols_status[cols_status <= n_cols]
       if (length(cols_status)) {
+        # B13b: «EN CONTACTO» y «RECHAZO» con los MISMOS tonos que su regla
+        # del xlsx (carga_aulas_libro_formato.R, semaforo): ambar claro la
+        # gestion en curso, el rojo suave del descuadre lo terminal. «EN
+        # RESERVA» y «REEMPLAZADA» se quedan aunque el desplegable ya no las
+        # ofrezca: los libros vivos v3 las traen escritas y la regla es
+        # `contains` sobre la celda, no sobre la lista de hoy.
         reglas <- list(
           list(texto = "AGENDADA", fondo = "#E3F3E8", tinta = "#155E2E"),
+          list(texto = "EN CONTACTO", fondo = "#FDF3D8", tinta = "#7A5B12"),
+          list(texto = "RECHAZO", fondo = "#FDE7E7", tinta = "#8A1C1C"),
           list(texto = "EN RESERVA", fondo = "#E7EEF9", tinta = "#1B4B8F"),
           list(texto = "REEMPLAZADA", fondo = "#EEF0F3", tinta = "#5B6472")
         )

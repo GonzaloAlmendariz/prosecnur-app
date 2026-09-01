@@ -128,10 +128,12 @@
 #' Población: SOLO filas con `scheduled_date` no vacío, excluyendo los estados
 #' retirados del eje `operational_status` — el balde `retirada` de
 #' `.madt_balde()` (monitoreo_aulas_dos_tasas.R), que es UNA lista y no dos:
-#' reemplazada/cancelada/sin_acceso/reemplazo_pendiente. La AUSENCIA de estado
-#' no es un retiro (cae en `pendiente`), y titulares y reservas activadas con
-#' fecha entran por igual: el plan del día es de quien va al aula, no del rol
-#' de muestreo.
+#' reemplazada/cancelada/sin_acceso/reemplazo_pendiente — y el RECHAZO
+#' tecleado en STATUS MUESTRA (`.madt_rechazada()`, B13b): un aula rechazada
+#' no abre jornada ni suma al total, nadie va a ese salón. La AUSENCIA de
+#' estado no es un retiro (cae en `pendiente`), y titulares y reservas
+#' activadas con fecha entran por igual: el plan del día es de quien va al
+#' aula, no del rol de muestreo.
 #'
 #' Orden: `scheduled_date` ascendente (ISO es lexicográfico) y, dentro del
 #' día, `scheduled_time`.
@@ -169,7 +171,10 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
   poblacion <- Filter(function(u) {
     if (!is.list(u)) return(FALSE)
     if (!nzchar(.calg_txt(u$scheduled_date))) return(FALSE)
-    !identical(.madt_balde(.calg_txt(u$operational_status)), "retirada")
+    if (identical(.madt_balde(.calg_txt(u$operational_status)), "retirada")) return(FALSE)
+    # B13b: cita pactada y luego RECHAZO — la jornada ya no la incluye. Mismo
+    # helper que dos_tasas y ventanas: un criterio, no tres copias.
+    !.madt_rechazada(u)
   }, unidades %||% list())
 
   fechas <- vapply(poblacion, function(u) .calg_txt(u$scheduled_date), character(1))

@@ -9,7 +9,8 @@
 // a traducirlo a una acción en su cabeza, fila por fila, 193 veces.
 //
 // Los estados son los canónicos del motor —`monitoreo_aulas_estados_muestra()`:
-// agendada, reagendada, en_reserva, reemplazada, sin_contactar— más los dos ejes
+// sin_contactar, en_contacto, agendada, reagendada, rechazo, en_reserva,
+// reemplazada— más los dos ejes
 // que el motor mantiene separados a propósito: cómo se consiguió el aula y cómo
 // fue la aplicación.
 
@@ -55,12 +56,18 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   // Un reemplazado salió del plan por su reserva: ya no se llama a este docente.
   if (estado === "reemplazada") return "Reemplazado";
   if (estado === "en_reserva") return "En reserva";
+  // El docente dijo que no: no se le vuelve a llamar; la cadena releva (B13b).
+  if (estado === "rechazo") return "Rechazado";
 
   const fecha = texto(fila.scheduled_date);
   if (!fecha) {
     // Contactada pero sin fecha cerrada: es el caso que más se atasca, y decir
     // «llamar» otra vez sería empezar de cero un trabajo que ya avanzó.
-    return estado === "agendada" || estado === "reagendada" ? "Cerrar fecha" : "Llamar al docente";
+    if (estado === "agendada" || estado === "reagendada") return "Cerrar fecha";
+    // En contacto ya avanzo (llamadas hechas, sin acuerdo): insistir, no
+    // empezar de cero (B13b).
+    if (estado === "en_contacto") return "Volver a llamar";
+    return "Llamar al docente";
   }
 
   // Con fecha: sólo queda esperar… salvo que el día ya pasara sin parte.

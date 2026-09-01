@@ -26,9 +26,12 @@ function estadosDelMotor(): string[] {
 }
 
 describe("cada estado de muestra del motor tiene su acción", () => {
-  it("la lista del motor se lee y trae los cinco de siempre", () => {
+  it("la lista del motor se lee y trae los siete de D-B13", () => {
+    // Cinco tecleables (D-B13, poda del dueño 2026-09-01) + dos derivados que
+    // siguen leyendose de libros vivos.
     expect(estadosDelMotor()).toEqual(
-      ["agendada", "reagendada", "en_reserva", "reemplazada", "sin_contactar"],
+      ["sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
+       "en_reserva", "reemplazada"],
     );
   });
 
@@ -37,6 +40,10 @@ describe("cada estado de muestra del motor tiene su acción", () => {
     // resto sí termina en una acción de contacto, y eso es correcto.
     expect(queTocaConCadaAula({ sample_status: "reemplazada" } as never, CORTE)).toBe("Reemplazado");
     expect(queTocaConCadaAula({ sample_status: "en_reserva" } as never, CORTE)).toBe("En reserva");
+    // B13b: el rechazo del docente tampoco pide llamada — la cadena releva.
+    expect(queTocaConCadaAula({ sample_status: "rechazo" } as never, CORTE)).toBe("Rechazado");
+    // En contacto ya avanzo: la accion es insistir, no empezar de cero.
+    expect(queTocaConCadaAula({ sample_status: "en_contacto" } as never, CORTE)).toBe("Volver a llamar");
   });
 
   it("«agendada» y «reagendada» sin fecha piden cerrar la fecha, no volver a llamar", () => {

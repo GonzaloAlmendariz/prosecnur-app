@@ -16,20 +16,24 @@
 # asi quedan a la vista de quien llena, y Excel no tiene el limite de 255
 # caracteres de la lista inline —`EN RESERVA 1..11` lo rozaria—.
 
-# Vocabulario observado en el estudio de 2025, con sus frecuencias:
-# AGENDADA (119) · REEMPLAZADA (24) · EN RESERVA 1 (19) · REAGENDADA (8).
-# `EN RESERVA n` se completa con la profundidad real de las cadenas del plan,
-# no con un 1 fijo: un estudio con cadenas de once necesita las once.
+# Los CINCO estados TECLEABLES, en el orden del dictado del dueño (D-B13
+# CERRADA, docs/qa/checklist-operativo-aulas-2026-08-31.md; poda textual
+# 2026-09-01): «simplemente pon rechazo. Sin contactar, en contacto, agendada,
+# reagendada y rechazo». Los estados de cadena del vocabulario de 2025 —«EN
+# RESERVA k», «REEMPLAZADA», y los derivados REFUERZO/CERRADA— son de la APP:
+# el código R n.k ya dice la posición en cadena y el desplegable no los ofrece.
+# Lo ya escrito en libros vivos v3 se sigue LEYENDO con su clave de siempre
+# (`monitoreo_aulas_estado_muestra`), y el regenerador conserva «REEMPLAZADA»
+# como dato vivo del export: el desplegable no la ofrece pero la validación
+# (allowBlank / strict = FALSE) la tolera.
 #
 # «SIN CONTACTAR» va primero porque es el estado INICIAL del plan: la siembra lo
-# escribe en cada titular recién publicado y el desplegable tiene que ofrecerlo
-# byte a byte, o el chip sale con warning rojo sobre un dato correcto (B13a,
-# reporte del dueño 2026-09-01). La forma es la legible sin guion bajo — la
-# misma que `.capd_estado_legible` da al Plan del día; el lector
-# (`monitoreo_aulas_estado_muestra`) ya la lee igual que `SIN_CONTACTAR` y que
-# la clave interna. Repensar las categorías es D-B13 y espera la poda del dueño.
+# escribe en TODAS las filas —titulares y reservas— y el desplegable tiene que
+# ofrecerlo byte a byte, o el chip sale con warning rojo sobre un dato correcto
+# (B13a, reporte del dueño 2026-09-01). La forma es la legible sin guion bajo —
+# la misma que `.capd_estado_legible` da al Plan del día.
 AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
-  "SIN CONTACTAR", "AGENDADA", "REAGENDADA", "REEMPLAZADA"
+  "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO"
 )
 
 # **Un color por ESLABON, no dos alternando.**
@@ -104,15 +108,17 @@ AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
 
 #' Las opciones de `STATUS MUESTRA` para una profundidad de cadena dada.
 #'
-#' @param profundidad eslabones de la cadena mas larga del plan.
+#' B13b: los cinco tecleables a CUALQUIER profundidad. `EN RESERVA k` salió del
+#' desplegable —la posición en cadena ya la dice el código R n.k— así que la
+#' lista no depende de cuántos eslabones tenga el estudio. El parámetro se
+#' conserva por contrato de llamada (el generador y el Sheets pasan la
+#' profundidad real) y por si un vocabulario futuro vuelve a necesitarla.
+#'
+#' @param profundidad eslabones de la cadena mas larga del plan (hoy no cambia
+#'   la lista).
 #' @export
 aulas_libro_status_muestra <- function(profundidad = 1L) {
-  n <- max(1L, suppressWarnings(as.integer(profundidad)))
-  if (!is.finite(n)) n <- 1L
-  # Sin el titular: `EN RESERVA k` describe a la reserva k, y el bloque 1 es el
-  # titular. Con profundidad 12 (titular + 11) salen once reservas.
-  reservas <- if (n > 1L) paste("EN RESERVA", seq_len(n - 1L)) else character(0)
-  c(AULAS_LIBRO_STATUS_MUESTRA_BASE, reservas)
+  AULAS_LIBRO_STATUS_MUESTRA_BASE
 }
 
 # Que campos del bloque de agenda llena la PERSONA y cuales trae la app.
@@ -397,10 +403,20 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
   # `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
   # nada: simplemente no se tiñe.
+  #
+  # B13b: «EN CONTACTO» y «RECHAZO» entran al semaforo con los cinco
+  # tecleables. EN CONTACTO en ambar claro —gestion en curso, espera accion,
+  # distinto del verde de lo pactado—; RECHAZO en el rojo suave que ya usa el
+  # descuadre del parte: terminal, y no es un logro. «EN RESERVA» y
+  # «REEMPLAZADA» se QUEDAN aunque el desplegable ya no las ofrezca: los libros
+  # vivos v3 las traen escritas y la regla es `contains` sobre la celda, no
+  # sobre la lista de hoy (mismo criterio que «Llamada» en la paleta de medio).
   semaforo <- list(
     list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
     list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
     list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+    list(texto = "EN CONTACTO", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+    list(texto = "RECHAZO", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
     list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
     list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
     list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))

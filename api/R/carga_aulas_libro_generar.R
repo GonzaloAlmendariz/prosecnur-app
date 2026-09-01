@@ -224,17 +224,27 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   v <- gsub("[ _]+", "_", v)
   if (!nzchar(v)) return("")
   if (startsWith(v, "en_reserva")) {
-    # «EN RESERVA k» describe a la reserva k, y k sale del orden de la cadena.
-    n <- suppressWarnings(as.numeric(gsub("[^0-9]", "", v)))
-    if (!length(n) || !is.finite(n) || n <= 0) n <- orden
-    return(if (is.finite(n) && n > 0) sprintf("EN RESERVA %d", as.integer(n)) else "EN RESERVA 1")
+    # B13b: el eje tecleable de una reserva arranca en «SIN CONTACTAR», igual
+    # que el del titular — la posición en cadena ya viaja en el código R n.k y
+    # «EN RESERVA k» salió del desplegable. La misma rama traduce el derivado
+    # del plan (`en_reserva`) y la forma vieja ya tecleada («EN RESERVA 1»):
+    # reescribirla al regenerar sería escribir fuera del desplegable. `orden`
+    # queda sin uso aquí; se conserva por contrato de llamada (los dos
+    # escritores del bloque de agenda lo pasan).
+    return("SIN CONTACTAR")
   }
   # `sin_contactar` incluido (B13a): el estado INICIAL del plan también se
   # escribe en el vocablo del desplegable — «SIN CONTACTAR», sin guion bajo.
   # La normalización de `v` de arriba colapsa `SIN_CONTACTAR` (la forma que la
   # siembra escribía hasta hoy) y «SIN CONTACTAR» en la misma clave, así que
   # regenerar un libro viejo también sale alineado.
+  #
+  # B13b: `en_contacto` y `rechazo` son tecleables nuevos del dictado (D-B13).
+  # `reemplazada` se QUEDA aunque el desplegable ya no la ofrezca: es el dato
+  # vivo del export —el plan la publica al activar un reemplazo— y la
+  # validación (allowBlank / strict = FALSE) tolera valores fuera de lista.
   conocidos <- c(agendada = "AGENDADA", reagendada = "REAGENDADA",
+                 en_contacto = "EN CONTACTO", rechazo = "RECHAZO",
                  reemplazada = "REEMPLAZADA", sin_contactar = "SIN CONTACTAR")
   # `conocidos[[v]]` con un nombre que no esta REVIENTA («subscript out of
   # bounds») en vez de dar NULL: se pregunta por los nombres.

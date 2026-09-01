@@ -32,7 +32,11 @@ function reconocidosPorElMotor(): string[] {
 describe("la contradicción de la lista cerrada sigue detectándose", () => {
   it("el motor se lee y sigue reconociendo pocos: si abriera la lista, esto avisa", () => {
     const reconocidos = reconocidosPorElMotor();
-    expect(reconocidos).toEqual(["agendada", "reagendada", "reemplazada"]);
+    // B13b (D-B13, poda del dueño): el motor gana en_contacto y rechazo — el
+    // aviso de este pin disparo como debia y la lista se actualiza a conciencia.
+    expect(reconocidos).toEqual(
+      ["agendada", "reagendada", "reemplazada", "en_contacto", "rechazo"],
+    );
   });
 
   it("las palabras reales que el motor NO reconoce están todas en el detector", () => {

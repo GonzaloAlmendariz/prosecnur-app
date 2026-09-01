@@ -97,10 +97,12 @@ test_that("el agendamiento ya registrado NO se borra al regenerar", {
   # lo entiende.
   expect_identical(unname(estados[["CH 1"]]), "AGENDADA")
   expect_identical(unname(estados[["CH 4"]]), "REEMPLAZADA")
-  expect_identical(unname(estados[["R 4.1"]]), "EN RESERVA 1")
+  # B13b: la posicion en cadena la dice el codigo (R 4.1); la siembra escribe
+  # el estado inicial tecleable, no el derivado.
+  expect_identical(unname(estados[["R 4.1"]]), "SIN CONTACTAR")
   expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 1"]]), "agendada")
   expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 4"]]), "reemplazada")
-  expect_identical(monitoreo_aulas_estado_muestra(estados[["R 4.1"]]), "en_reserva")
+  expect_identical(monitoreo_aulas_estado_muestra(estados[["R 4.1"]]), "sin_contactar")
   expect_identical(unname(intentos[["CH 1"]]), "2")
   expect_identical(unname(intentos[["CH 4"]]), "3")
 })
