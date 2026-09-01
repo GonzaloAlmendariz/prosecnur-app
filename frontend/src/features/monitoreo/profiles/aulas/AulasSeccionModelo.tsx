@@ -5,9 +5,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { hayHorarioDeCurso } from "./cargaDeCampo";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
-import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
-import { agendamiento } from "./agendamiento";
 import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
 import { fmt } from "./kpisDeAulas";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -264,44 +262,12 @@ export function AulasSeccionModelo({
           />
         </section>
         ) : null}
-        {pestana === "agenda"
-          || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
-          <>
-          {/* **En su propio panel, y no dentro del de la agenda.**
-              El panel «Aulas agendadas» reparte su alto en filas fijas y la de
-              la franja va a `minmax(0, 1fr)`: metiendo aquí un cuarto hijo, esa
-              fila se quedó en **0 px** —medido— y la lista de días se pintó
-              encima de su leyenda. Es exactamente la compresión de la que se
-              queja el encargo, causada por añadir sin mirar el presupuesto
-              vertical del contenedor.
-
-              El propio panel lo advierte en su comentario y no lo leí a tiempo:
-              «este panel tiene TRES filas —cabecera, lectura por día y tabla— y
-              la regla común declara dos. Un hijo de más se lleva una fila
-              declarada y se dibuja encima del siguiente». */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Cuánto cuesta cerrar un curso-horario</h3>
-              <span>llamadas hasta la cita, y cuántas están en la cola cara</span>
-            </div>
-            <AulasGestionesPorAula
-              // **`agenda`, no `course_status`**: es la fuente que usan los dos
-              // tiles de gestiones de esta misma sección, y la única que trae el
-              // ciclo de contacto entero. `course_status` viaja recortado a 500
-              // filas y con menos columnas, así que la distribución salía vacía
-              // y el histograma no se dibujaba —con los tiles de al lado
-              // marcando 119 y 29 sobre los mismos datos—.
-              distribucion={agendamiento(
-                ((dashboard.agenda ?? []) as Array<Record<string, unknown>>),
-              ).distribucionDeGestiones}
-            />
-          </section>
-          </>
-        ) : null}
+        {/* B25(b), dictado 2026-09-01: el panel «Cuánto cuesta cerrar un
+            curso-horario» salió de esta sección — «aporta información no muy
+            buena… no tiene sentido» aquí, donde se viene a agendar. El motor
+            (agendamiento/colaDeContacto) y AulasGestionesPorAula quedan con
+            sus tests; si el costo de cierre vuelve, será en una superficie de
+            análisis, no en la agenda. */}
       </div>
   );
 }
