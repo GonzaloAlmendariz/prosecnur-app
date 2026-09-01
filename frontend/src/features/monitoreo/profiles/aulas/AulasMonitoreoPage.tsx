@@ -37,6 +37,7 @@ import { AulasSeccionModelo } from "./AulasSeccionModelo";
 import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
 import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
 import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
+import { avisoConversacion } from "./avisoConversacion";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoLibroPublicado } from "./avisoLibroPublicado";
@@ -1302,6 +1303,12 @@ export default function AulasMonitoreoPage() {
     try {
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
+      // La conversación con el Sheets (B7) viaja SOLO con destino recordado.
+      // Sin bloque el aviso ni se toca: el sync se comunica como siempre. Y un
+      // fallo de la conversación NO es un fallo del sync —el corte de campo
+      // sí se recalculó—, así que va como aviso de atención, no a `error`.
+      const conversacion = avisoConversacion(result.libro_conversacion);
+      if (conversacion) setAviso(conversacion);
     } catch (e) {
       setError((e as Error).message);
     } finally {

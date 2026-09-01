@@ -30,7 +30,10 @@ function conFilas(filas: number | null | undefined): string {
   return n === 1 ? " (1 fila)" : ` (${fmt(n)} filas)`;
 }
 
-function fraseDeHoja(h: HojaDelLibroPublicada): string {
+// Exportada porque `avisoConversacion` cuenta la mitad publicada del sync con
+// LA MISMA voz: dos redacciones de la regla de dueño divergirían tarde o
+// temprano (la lección de «dos capas, dos lecturas de la misma regla»).
+export function fraseDeHoja(h: HojaDelLibroPublicada): string {
   const nombre = String(h.hoja ?? "").trim() || "Una hoja sin nombre";
   const accion = String(h.accion ?? "").trim();
   switch (accion) {

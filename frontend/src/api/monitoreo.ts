@@ -5070,8 +5070,64 @@ export async function apiMonitoreoAulasActivarReemplazo(payload: {
   );
 }
 
+/**
+ * La conversación app↔Sheets que el sync de aulas corre cuando hay un
+ * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
+ * las de la app, en ese orden. El bloque viaja SOLO con destino recordado —
+ * ausente no significa «falló»: significa «no participa», y el sync se lee
+ * exactamente como siempre.
+ */
+export type MonitoreoAulasLibroConversacion = {
+  conversado: boolean;
+  /**
+   * Por qué no terminó. Lista ABIERTA: hoy `lectura_fallo` (no se publicó
+   * nada, para no pisar el remoto con datos viejos) y `publicacion_fallo`
+   * (lo leído SÍ quedó en sesión; solo la escritura falló).
+   */
+  motivo?: "lectura_fallo" | "publicacion_fallo" | string;
+  /**
+   * `documento_virgen`: la lectura volvió vacía porque el documento responde
+   * pero no tiene NINGUNA pestaña del libro. No es un fallo — se publica
+   * igual (la siembra crea las hojas) y `leido` viene null.
+   */
+  motivo_lectura?: "documento_virgen" | string;
+  mensaje?: string;
+  /** La mitad leída, sin las listas pesadas (plan/partes/control ya viajan en `state`). */
+  leido?: {
+    fusion?: { actualizadas: number; nuevas: number; intactas: number } | null;
+    hojas_ausentes?: string[];
+    control_sin_nombre?: number[];
+    agenda_campos_ausentes?: string[];
+    resumen?: Partial<{
+      unidades: number;
+      titulares: number;
+      reservas: number;
+      contactadas: number;
+      partes_de_campo: number;
+      filas_de_control: number;
+    }>;
+  } | null;
+  /** La mitad publicada: la misma forma por hoja que `apiMonitoreoAulasPublicarLibro`. */
+  publicado?: {
+    hojas?: MonitoreoAulasHojaPublicada[];
+    spreadsheet_url?: string;
+    updated_at?: string;
+  } | null;
+};
+
+/**
+ * OJO: el `dashboard` de esta respuesta es PRE-conversación — lo que la
+ * conversación importó ya está en `state`, pero el tablero se construyó antes
+ * y se refresca en el siguiente rebuild.
+ */
 export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
-  return handle<{ ok: true; synced_at: string; dashboard: MonitoreoAulasDashboard; state: MonitoreoState }>(
+  return handle<{
+    ok: true;
+    synced_at: string;
+    dashboard: MonitoreoAulasDashboard;
+    state: MonitoreoState;
+    libro_conversacion?: MonitoreoAulasLibroConversacion;
+  }>(
     await apiFetch("/api/monitoreo/aulas/sync", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
