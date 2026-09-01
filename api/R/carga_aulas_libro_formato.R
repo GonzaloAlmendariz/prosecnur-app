@@ -76,10 +76,17 @@ aulas_libro_colores_eslabon <- function(n = 1L) {
   c("#002457", vapply(pasos, function(p) .calf_mezcla("#1D4F8C", "#FFFFFF", p), character(1)))
 }
 
-# Llamada (123) · Correo Electronico (33). El «-» observado (14) NO entra: es
-# como el equipo escribe «todavia nada aqui», y el lector ya lo trata como
-# ausencia. Ofrecerlo en el desplegable lo convertiria en un valor.
-AULAS_LIBRO_MEDIO_CONTACTO <- c("Llamada", "Correo Electrónico", "Presencial")
+# Dictado del dueño (2026-08-31): «la forma de contacto solo debería ser o por
+# teléfono o por correo». Antes ofrecia lo observado en 2025 —Llamada (123),
+# Correo Electronico (33), Presencial— pero el vocabulario del desplegable lo
+# fija quien dirige el operativo, no la frecuencia historica. Los valores
+# viejos ya escritos en libros existentes se siguen LEYENDO igual: ningun
+# lector valida `contact_medium` contra esta lista (el campo viaja como texto
+# libre en `carga_aulas_agendadas.R` y `monitoreo_aulas_universitarias.R`), y
+# el «-» observado sigue fuera por lo mismo de siempre: es «todavia nada
+# aqui», no un valor. Esta constante es la UNICA lista: la consumen el xlsx
+# (hoja «Listas») y los desplegables del Sheets publicado.
+AULAS_LIBRO_MEDIO_CONTACTO <- c("Teléfono", "Correo")
 
 AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 
@@ -394,7 +401,12 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # quien reparte el día necesita separarlas de un vistazo. Los tonos salen de
   # la misma familia que el semáforo —fondo claro, texto del mismo tono— para
   # que la hoja no acabe con dos lenguajes de color.
+  # «Teléfono» lleva el tono que llevaba «Llamada» —es la misma via con el
+  # nombre que dicto el dueño— y las dos reglas viejas se QUEDAN: los libros de
+  # 2025 traen «Llamada» y «Presencial» escritos, y la regla es `contains`
+  # sobre lo que hay en la celda, no sobre lo que ofrece el desplegable de hoy.
   paleta_medio <- list(
+    list(texto = "Teléfono", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
     list(texto = "Llamada", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
     list(texto = "Correo", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
     list(texto = "Presencial", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86"))

@@ -210,6 +210,36 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   invisible(TRUE)
 }
 
+# La capa de formato+desplegables del libro para el batch-2 del motor (B8/W2).
+# Misma firma que el formateador genérico del motor; delega en
+# `monitoreo_aulas_sheets_formato.R`, que copia la paleta y los vocabularios
+# del xlsx. Viaja por `.monitoreo_sync_sheets_publish_tabs(format_requests=)`
+# y por tanto hereda sus dos reglas: DESPUÉS de los values (el reset de una
+# pestaña con dims cambiadas borra formato Y dataValidation con su
+# updateCells) y SOLO para pestañas nuevas o con dimensiones cambiadas —
+# republicar sin cambios no reenvía nada, y las hojas del equipo solo pueden
+# recibirlo en su siembra porque `respetada` ni siquiera las mete al motor.
+.malp_formato_requests <- function(sheet_id, tab_name, rows) {
+  rows <- rows %||% list()
+  n_filas <- length(rows)
+  n_cols <- if (n_filas) {
+    max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
+  } else {
+    1L
+  }
+  c(
+    monitoreo_aulas_sheets_formato_requests(
+      hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas, n_cols = n_cols
+    ),
+    monitoreo_aulas_sheets_validaciones_requests(
+      hoja = tab_name, sheet_id = sheet_id, n_filas = n_filas,
+      # Eslabones en la agenda, intentos en la hoja de campo: se leen del
+      # ancho publicado, que es el rectángulo que de verdad viajó.
+      profundidad = .mafs_bloques(tab_name, n_cols)
+    )
+  )
+}
+
 # --- el publicador ------------------------------------------------------------
 
 #' Publica el libro de aulas en el Google Sheets del operativo.
@@ -302,7 +332,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     !identical(.malp_canonizar(producidas[[hoja]]), .malp_canonizar(remotas[[hoja]]))
   }, logical(1)))
 
-  pub <- monitoreo_sheets_publish_tabs(id, tabs)
+  # Directo a la implementación del motor y no al wrapper del engine: el
+  # wrapper (`monitoreo_sheets_publish_tabs`, archivo congelado) no expone
+  # `format_requests`, y sin él el batch-2 formatearía el libro con el
+  # formateador genérico — freeze de 1 para todas las hojas y un ancho POR
+  # COLUMNA, que es justo lo que esta capa reemplaza.
+  pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = .malp_formato_requests)
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
 
   for (hoja in names(tabs)) {
