@@ -614,7 +614,7 @@
   # `teacher` y `teacher_email` son suyas aunque el mapeo apunte a otra parte.
   ocupadas <- c(
     .cm_aulas_col(raw, mapping$teacher), .cm_aulas_col(raw, mapping$condition),
-    "teacher", "teacher_email"
+    "teacher", "teacher_email", "teacher_phone"
   )
   ocupadas <- .cm_aulas_text_key(ocupadas[nzchar(ocupadas)])
   if (.cm_aulas_text_key(col) %in% ocupadas) return("")

@@ -248,7 +248,7 @@
     # columna, no un nombre de columna.
     session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad", "tipo_curso", "tipo_de_curso", "tipo de curso", "desctipocurso", "desc_tipo_curso", "descripcion_tipo_curso"),
     teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
-    teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"),
+    teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"), teacher_phone = c("teacher_phone", "telefdocente", "telefono_docente", "telefono de docente", "celular_docente", "telefono"),
     teacher_type = c("teacher_type", "tipo_docente", "tipo_de_docente", "tipo de docente", "categoria_docente", "categoría docente", "condicion_docente", "regimen_docente"),
     faculty = c(
       "faculty", "facultad_estudiante", "facultad_alumno", "facultad_de_matricula",
@@ -840,18 +840,18 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
   # «UGARTE GUERRA, FRANCISCO JAVIER», y el correo con el mismo codigo.
   # El nombre del docente se imprime en la ficha que alguien lleva al aula.
   teacher_lookup <- .cm_aulas_catalog_lookup(
-    catalogo,
-    catalog_key,
+    catalogo, catalog_key,
     unique(c("NOMBREDOCENTE", "nombredocente", "Nombre de docente", "Nombre del docente", "Nombre docente", "Profesor", "Profesora", "Docente", mapping$teacher))
   )
   teacher_email_lookup <- .cm_aulas_catalog_lookup(
-    catalogo,
-    catalog_key,
+    catalogo, catalog_key,
     unique(c("CORREOPUCPDOCENTE", "correopucpdocente", mapping$teacher_email, "Correo PUCP", "Correo alternativo", "Correo Agora", "Correo docente"))
   )
 
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher", teacher_lookup)
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "teacher_email", teacher_email_lookup)
+  # B10: teléfono del docente; resolución exacta en calc_muestra_aulas_telefono.R.
+  raw <- .cm_aulas_enrich_teacher_phone(raw, catalogo, mapping, raw_key, catalog_key)
   audit$teacher_values <- sum(nzchar(.cm_aulas_values(raw, "teacher", "")))
   audit$teacher_email_values <- sum(nzchar(.cm_aulas_values(raw, "teacher_email", "")))
   # Día, hora y aula desde `SESIONES`; lógica en calc_muestra_aulas_sesiones.R.
@@ -1202,9 +1202,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # con el agravante de que sus valores sí llegaban al marco: cambiados de sitio,
   # dentro de `teacher_type`.
   teacher <- .cm_aulas_values(raw, .cm_aulas_col_o_sintetica(raw, mapping$teacher, "teacher"), "")
-  teacher_email <- .cm_aulas_values(
-    raw, .cm_aulas_col_o_sintetica(raw, mapping$teacher_email, "teacher_email"), ""
-  )
+  teacher_email <- .cm_aulas_values(raw, .cm_aulas_col_o_sintetica(raw, mapping$teacher_email, "teacher_email"), "")
+  teacher_phone <- .cm_aulas_values(raw, .cm_aulas_col_telefono_docente(raw, mapping), "")
   faculty <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$faculty), "")
   program <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$program), "")
   level <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$level), "")
@@ -1427,6 +1426,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       session_type = .cm_aulas_mode(session_type[idx_all], ""),
       teacher = calc_muestra_aulas_docente_contacto(teacher[idx_all], teacher_type[idx_all]),
       teacher_email = calc_muestra_aulas_docente_contacto(teacher_email[idx_all], teacher_type[idx_all]),
+      teacher_phone = calc_muestra_aulas_docente_contacto(teacher_phone[idx_all], teacher_type[idx_all]),
       faculty = faculty_program$primary,
       program = faculty_program$secondary,
       level = .cm_aulas_mode(level[idx_all], ""),
@@ -4533,7 +4533,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "venue", "sesiones_dia_hora",
     "modality", "session_type", "teacher",
-    "teacher_email", "teacher_type", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
+    "teacher_email", "teacher_phone", "teacher_type", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
     "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
     "factor_facultad", "facultad_k", "tasa_efectividad_aula",
