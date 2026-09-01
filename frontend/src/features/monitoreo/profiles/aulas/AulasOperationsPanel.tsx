@@ -5,11 +5,13 @@
 // muestra y recalcular el corte de campo (/api/monitoreo/aulas/sync).
 // La agenda y las fichas QR siguen viviendo en Recopiladores: ese flujo
 // pertenece al módulo de fichas y este monitoreo solo lo lee.
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { contar } from "../../fuentes/vocabulario";
-import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload } from "../../../../vendor/lucide-react";
+import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload, UploadCloud } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 import { fmt } from "./kpisDeAulas";
+import { enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, textoDelRecordado } from "./destinoDelLibro";
+import "./aulasLibroDestino.css";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
 function aulasOpsShortId(value: unknown, limit = 18) {
@@ -55,16 +57,35 @@ export type AulasOperationsPanelProps = {
   onGenerarLibro: () => void;
   /** Relee el libro que alguien llenó. */
   onImportarLibro: (archivo: File) => void;
-  /** Lee el libro desde las tres pestañas de un Google Sheets. Recibe el enlace
+  /** Lee el libro desde las tres pestañas de un Google Sheets. Recibe el
+   *  destino ya resuelto —el escrito en el campo o el recordado del proyecto—
    *  tal como se copia del navegador; el backend extrae el id. */
   onLeerDeSheets?: (enlace: string) => void;
+  /** Publica el libro al Sheets del operativo. Con enlace lo reemplaza y lo
+   *  recuerda; `undefined` usa el destino ya recordado en el proyecto. */
+  onPublicarASheets?: (enlace?: string) => void;
 };
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
-  onLeerDeSheets,
+  onLeerDeSheets, onPublicarASheets,
 }: AulasOperationsPanelProps) {
   const entradaLibro = useRef<HTMLInputElement | null>(null);
+  // El destino del Sheets del operativo. El estado DURO —qué enlace quedó
+  // recordado— vive en el backend (`libro_sheets` de la config); aquí sólo el
+  // borrador de lo que se está escribiendo: `null` = «no tocado, enseña el
+  // recordado». Se pega una vez y las dos acciones (leer y publicar) lo usan.
+  const recordado = config?.libro_sheets ?? null;
+  const recordadoUrl = enlaceRecordado(recordado);
+  const [enlaceEditado, setEnlaceEditado] = useState<string | null>(null);
+  // Cuando el recordado cambia —típicamente porque la publicación acaba de
+  // guardar lo pegado— el borrador se suelta y el campo enseña la URL canónica.
+  useEffect(() => {
+    setEnlaceEditado(null);
+  }, [recordado?.spreadsheet_id]);
+  const escrito = (enlaceEditado ?? "").trim();
+  const hayDestino = Boolean(escrito || recordadoUrl);
+  const sheetsConectado = Boolean(onLeerDeSheets || onPublicarASheets);
   const hayPlan = aulasHayPlan(config);
   // Cuántas trae ese plan, para poder decir de dónde salió cuando no hay corrida.
   const filasDelPlan = config?.plan_rows ?? config?.plan?.length ?? 0;
@@ -229,28 +250,49 @@ export function AulasOperationsPanel({
             equipo llena en línea, que es lo que pasa mientras el operativo está
             en marcha y nadie quiere descargar un `.xlsx` para ver cómo va.
 
-            Va junto a los otros dos y no en un panel propio: son tres formas de
-            la misma operación —traer al operativo lo que el equipo escribió— y
-            separarlas obligaría a saber de antemano cuál toca.
+            Va junto a los otros dos y no en un panel propio: son formas de la
+            misma operación —cruzar el operativo con lo que el equipo
+            escribió— y separarlas obligaría a saber de antemano cuál toca.
 
-            El `prompt` pide el ENLACE y no el id: es lo que se copia de la
-            barra del navegador. */}
+            El destino sale del campo de abajo (o del recordado del proyecto):
+            el prompt del navegador que vivía aquí pedía el enlace en cada
+            lectura y no guardaba nada. */}
         {onLeerDeSheets ? (
           <button
             type="button"
             onClick={() => {
-              const enlace = window.prompt(
-                "Pega el enlace del Google Sheets del libro:",
-              );
-              if (enlace && enlace.trim()) onLeerDeSheets(enlace.trim());
+              const destino = enlaceParaLeer(escrito, recordado);
+              if (destino) onLeerDeSheets(destino);
             }}
-            disabled={busy || !hayPlan}
-            title={hayPlan
-              ? "Lee las tres pestañas del Sheets y actualiza el operativo"
-              : "Primero importa el plan de cursos-horario"}
+            disabled={busy || !hayPlan || !hayDestino}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : !hayDestino
+                ? "Pega el enlace del Google Sheets del operativo: sin él no hay de dónde leer"
+                : "Lee las tres pestañas del Sheets y actualiza el operativo"}
           >
             {busy ? <Loader2 size={14} className="pulso-spin" /> : <Link2 size={14} />}
             <span>Leer del Sheets</span>
+          </button>
+        ) : null}
+        {/* La vuelta de ese viaje: escribir en el MISMO Sheets lo que la app
+            sabe. Sólo donde la app es dueña —«Base de control»—; las dos hojas
+            del equipo se siembran una única vez si están vacías y después se
+            respetan (regla de Gonzalo: las llenan desde el Sheets, no desde la
+            app). Sin destino no dispara un 400: el título dice qué falta. */}
+        {onPublicarASheets ? (
+          <button
+            type="button"
+            onClick={() => onPublicarASheets(enlaceParaPublicar(escrito))}
+            disabled={busy || !hayPlan || !hayDestino}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : !hayDestino
+                ? "Pega el enlace del Google Sheets del operativo: sin él no hay dónde publicar"
+                : "Escribe la base de control en el Sheets, sin tocar las hojas que llena el equipo"}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
+            <span>Publicar al Sheets</span>
           </button>
         ) : null}
         <input
@@ -270,6 +312,27 @@ export function AulasOperationsPanel({
             estudio de aulas— la barra decía «1 fuentes activas». */}
         <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")} · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
+      {/* El destino de las dos acciones de Sheets: se pega UNA vez y queda
+          recordado en el proyecto (decisión textual de Gonzalo). Va después de
+          los botones para que la banda compacta conserve su par rejilla +
+          acciones; su hoja lo hace ocupar el ancho entero ahí. El valor enseña
+          el recordado hasta que alguien escribe encima; pegar uno nuevo lo
+          reemplaza al publicar. */}
+      {sheetsConectado ? (
+        <div className="aulas-libro-destino">
+          <label htmlFor="aulas-libro-destino-enlace">Sheets del operativo</label>
+          <input
+            id="aulas-libro-destino-enlace"
+            type="url"
+            spellCheck={false}
+            placeholder="Pega el enlace del Google Sheets del libro"
+            value={enlaceEditado ?? recordadoUrl}
+            onChange={(event) => setEnlaceEditado(event.target.value)}
+            disabled={busy}
+          />
+          <small>{textoDelRecordado(recordado)}</small>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -9,6 +9,7 @@ import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
+  apiMonitoreoAulasPublicarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
@@ -38,6 +39,7 @@ import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
 import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
+import { avisoLibroPublicado } from "./avisoLibroPublicado";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
@@ -1134,6 +1136,30 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * La vuelta de ese viaje: publicar el libro al MISMO destino recordado.
+   *
+   * Sin `enlace` el backend usa el que guarda la config (`libro_sheets`); con
+   * enlace lo recuerda ANTES de publicar, así que un fallo de red no pierde lo
+   * pegado. El aviso cuenta hoja por hoja qué pasó —una `respetada` con su
+   * motivo, que es la regla de dueño hecha visible, no un fallo—. La recarga
+   * silenciosa trae la config con el destino recién recordado al campo.
+   */
+  const publicarASheets = useCallback(async (enlace?: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasPublicarLibro(enlace);
+      setAviso(avisoLibroPublicado(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar el libro al Sheets.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
 
   useEffect(() => {
     void loadView(seccionActiva);
@@ -1499,6 +1525,7 @@ export default function AulasMonitoreoPage() {
                   onGenerarLibro={() => { void generarLibro(); }}
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
                   onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
+                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
                 />
               ),
               vacioSinTablero: (

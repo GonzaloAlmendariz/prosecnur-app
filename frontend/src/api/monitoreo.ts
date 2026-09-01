@@ -779,7 +779,22 @@ export type MonitoreoAulasConfig = {
     min_valid_per_class: number;
     warn_partial_under_valid: number;
   };
+  /**
+   * El Google Sheets del operativo, recordado en el proyecto: se pega el
+   * enlace una vez (al publicar el libro o por config) y leer/publicar lo
+   * usan sin volver a pedirlo. El id NO es secreto (el token OAuth sí — ADR
+   * 0005), por eso viaja en la config y en el `.pulso`.
+   */
+  libro_sheets?: MonitoreoAulasLibroSheets | null;
   [key: string]: unknown;
+};
+
+/** El destino recordado del libro de aulas (`cfg.aulas_universitarias.libro_sheets`). */
+export type MonitoreoAulasLibroSheets = {
+  spreadsheet_id?: string;
+  /** URL canónica derivada del id; la UI la enseña sin reconstruirla. */
+  url?: string;
+  updated_at?: string;
 };
 
 import type { BancoDeExtras } from "../features/monitoreo/profiles/aulas/AulasBancoExtras";
@@ -4955,6 +4970,58 @@ export async function apiMonitoreoAulasImportarSheets(
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ url: enlace, ...(pestanas ? { pestanas } : {}) }),
+    }),
+  );
+}
+
+/** Una hoja del libro publicado y qué hizo el publicador con ella. */
+export type MonitoreoAulasHojaPublicada = {
+  hoja: string;
+  /**
+   * Lista ABIERTA a propósito: el motor declara hoy `sembrada` (la pestaña no
+   * existía o estaba vacía), `actualizada`, `sin_cambios` y `respetada` (hoja
+   * del equipo con contenido: ni una escritura sobre ella), pero una acción
+   * nueva tiene que llegar a pantalla con su nombre, no morir en el tipo.
+   */
+  accion: "sembrada" | "actualizada" | "sin_cambios" | "respetada" | string;
+  /** Filas de DATOS, sin cabeceras; en `respetada`, las que el equipo ya tiene. */
+  filas: number;
+};
+
+/**
+ * Publica el libro de aulas en el Google Sheets del operativo.
+ *
+ * La contraparte de `apiMonitoreoAulasImportarSheets`: aquélla lee lo que el
+ * equipo escribió, ésta escribe lo que la app sabe — y SOLO donde la app es
+ * dueña: «Base de control». Las dos hojas del equipo se siembran una única vez
+ * si están vacías y después se respetan (regla textual de Gonzalo: «sin
+ * sobreescribir las dos primeras hojas, que las llenan desde el sheets»).
+ *
+ * Con `enlace` el destino se RECUERDA antes de publicar (aunque la publicación
+ * falle, el enlace pegado no se pierde); sin él se usa el recordado del
+ * proyecto —por eso el body va sin `url`, no con una vacía, que lo olvidaría—.
+ * Acepta el enlace entero de la barra del navegador; el backend extrae el id.
+ *
+ * Errores del contrato: 400 `E_SHEETS_SPREADSHEET` (sin destino o enlace no
+ * parseable) y 409 `E_AULAS_LIBRO_SIN_PLAN`.
+ */
+export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
+  const limpio = enlace?.trim() ?? "";
+  return handle<{
+    ok: true;
+    spreadsheet_id: string;
+    spreadsheet_url: string;
+    updated_at: string;
+    hojas: MonitoreoAulasHojaPublicada[];
+    /** `true` cuando el enlace del body se acaba de recordar en la config. */
+    destino_guardado: boolean;
+    /** El destino recordado tras publicar, para refrescar el campo sin releer todo. */
+    libro_sheets?: MonitoreoAulasLibroSheets | null;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-libro", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(limpio ? { url: limpio } : {}),
     }),
   );
 }
