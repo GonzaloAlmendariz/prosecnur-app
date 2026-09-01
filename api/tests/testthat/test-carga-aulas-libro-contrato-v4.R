@@ -27,7 +27,11 @@
   "operational_code", "course_name",
   # zona del agendador: lo que ve y lo que registra, junto y en orden de uso
   "teacher", "teacher_phone", "label", "contact_medium", "contact_date",
-  "contact_attempts", "sample_status", "scheduled_date", "scheduled_day",
+  "contact_attempts",
+  # B22 (dictado 2026-09-01): a reemplazos y extras se les manda correo hoy
+  # y se les llama mañana según necesidad — la marca va A LA IZQUIERDA del
+  # status; a los titulares se les llama a todos hoy (celda vacía).
+  "email_received", "sample_status", "scheduled_date", "scheduled_day",
   "scheduled_time", "scheduled_moment", "notes",
   # contexto: tiene que estar, pero no a la mano
   "teacher_email", "faculty", "level", "enrolled_total", "eligible_n", "link"
@@ -37,6 +41,7 @@
   "CURSO-HORARIO", "NOMBRE DEL CURSO",
   "NOMBRE DE DOCENTE", "TELÉFONO DE DOCENTE", "SESIONES Y AULA",
   "MEDIO DE CONTACTO", "FECHA DE LLAMADA", "NÚMERO DE INTENTOS",
+  "RECIBIÓ CORREO",
   # «FECHA AGENDADA», no «FECHA DE APLICACIÓN»: en la hoja del agendador esa
   # fecha es la agendada; el nombre viejo era la confusión que el renombrado de
   # la hoja de campo ya había documentado. El título viejo queda de alias.

@@ -395,7 +395,10 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
       # B15: MOMENTO DE LA CLASE, desplegable NO absoluto — la misma lista de
       # la hoja «Listas» del xlsx, y el strict = FALSE del constructor deja
       # pasar el texto libre («a las 9:30, tras el control de lectura»).
-      list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE)
+      list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE),
+      # B22: {Sí, No} de RECIBIÓ CORREO, uniforme en todos los bloques (el
+      # titular hereda; su celda va vacia y strict = FALSE no obliga a nada).
+      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO)
     )
     for (spec in specs) {
       for (b in seq_len(profundidad)) {

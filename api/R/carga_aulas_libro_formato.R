@@ -130,6 +130,12 @@ AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 
 AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
 
+# B22: el desplegable de «RECIBIÓ CORREO» — exactamente Sí y No, con el «No»
+# como default sembrado en reemplazos y extras (dictado 2026-09-01). UNA lista
+# para las dos capas, como el resto de vocabularios de este archivo: la
+# consumen la hoja «Listas» del xlsx y los ONE_OF_LIST del Sheets publicado.
+AULAS_LIBRO_RECIBIO_CORREO <- c("Sí", "No")
+
 # El desplegable NO absoluto de «MOMENTO DE LA CLASE» (B15, dictado 2026-09-01):
 # tres momentos tecleables y texto libre permitido — el docente puede responder
 # «a las 9:30, tras el control de lectura» y eso sigue siendo un dato valido.

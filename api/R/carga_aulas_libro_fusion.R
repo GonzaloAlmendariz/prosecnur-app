@@ -41,8 +41,12 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   "label", "course_name", "faculty", "level", "teacher", "teacher_phone",
   "teacher_email", "schedule", "enrolled_total", "eligible_n",
   "selection_slot_id",
-  # Estado y ciclo de contacto
+  # Estado y ciclo de contacto. `email_received` entra con B22: el libro POSEE
+  # esa marca (su hoja la pregunta) y el flujo del dia 2 es una CORRECCION
+  # «No» -> «Sí» — fuera de esta lista solo llenaria vacios y el «Sí» tecleado
+  # moriria en silencio camino al plan.
   "sample_status", "contact_medium", "contact_date", "contact_attempts",
+  "email_received",
   # `scheduled_moment` entra el 2026-08-31 (A3 del checklist del operativo):
   # el bloque de agenda lo escribe y el lector lo emite, pero fuera de esta
   # lista una correccion de horario hecha en el Excel solo se aplicaba si el

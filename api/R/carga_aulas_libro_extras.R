@@ -184,8 +184,11 @@ aulas_libro_extras_formato <- function(hojas, rango_de) {
     filas <- nrow(ag) - 1L
     out$filas_cabecera[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <- 1L
     out$columnas_repetidas[[AULAS_LIBRO_HOJA_AGENDADAS_EXTRA]] <- col_ag("operational_code")
-    # Los mismos cuatro desplegables del bloque de agenda, a profundidad 1.
-    for (campo in c("sample_status", "contact_medium", "scheduled_day", "scheduled_moment")) {
+    # Los mismos desplegables del bloque de agenda, a profundidad 1.
+    # `email_received` entra con B22: los extras arrancan sembrados «No» y el
+    # equipo marca «Sí» al enviar el correo del dia 1.
+    for (campo in c("sample_status", "contact_medium", "scheduled_day",
+                    "scheduled_moment", "email_received")) {
       out$validaciones[[length(out$validaciones) + 1L]] <- list(
         hoja = AULAS_LIBRO_HOJA_AGENDADAS_EXTRA, desde = 1L, filas = filas,
         cols = col_ag(campo), rango = rango_de(titulo_de(campo))
@@ -282,7 +285,10 @@ aulas_libro_extras_sheets_requests <- function(sheet_id, tab_name, rows) {
       list(campo = "sample_status", valores = aulas_libro_status_muestra(1L)),
       list(campo = "contact_medium", valores = AULAS_LIBRO_MEDIO_CONTACTO),
       list(campo = "scheduled_day", valores = AULAS_LIBRO_DIA),
-      list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE)
+      list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE),
+      # B22: {Sí, No} — los extras van sembrados «No» y el correo del dia 1
+      # se marca aqui.
+      list(campo = "email_received", valores = AULAS_LIBRO_RECIBIO_CORREO)
     )
     for (spec in specs) {
       requests[[length(requests) + 1L]] <- .mafs_validacion_request(
