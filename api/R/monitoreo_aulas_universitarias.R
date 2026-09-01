@@ -186,14 +186,45 @@ BRECHAS_COLUMNAS_PUBLICADAS <- c(
 # brechas, estratos y reemplazos igual de ciegos.
 .monitoreo_aulas_contar_por_fila <- function(rows, counts) {
   if (!is.data.frame(rows) || !nrow(rows)) return(integer(0))
-  por_aula <- as.integer(counts[rows$classroom_id])
-  if ("collection_unit_id" %in% names(rows)) {
-    por_unidad <- as.integer(counts[rows$collection_unit_id])
-    falta <- is.na(por_aula)
-    por_aula[falta] <- por_unidad[falta]
+  aulas <- as.character(rows$classroom_id)
+  unidades <- if ("collection_unit_id" %in% names(rows)) {
+    as.character(rows$collection_unit_id)
+  } else {
+    NULL
   }
-  por_aula[is.na(por_aula)] <- 0L
-  por_aula
+  # Tercera clave: el QR de 2026 viaja con el CODIGO OPERATIVO (`CH 1`) y un
+  # plan que no paso por el handoff de Recopiladores solo tiene el
+  # curso-horario en `classroom_id` — la respuesta nueva caia a 0 en silencio
+  # (medido 2026-09-01 sobre el plan de la demo: `CH 1` -> 0 atribuidas).
+  codigos <- if ("operational_code" %in% names(rows)) {
+    as.character(rows$operational_code)
+  } else {
+    NULL
+  }
+  # El identificador tambien llega TECLEADO (`ch1`, `R6_1`); si el plan no
+  # tiene claves que colisionen, la comparacion corre en el espacio canonico y
+  # esas variantes suman a su aula. Ver `.monitoreo_aulas_clave_colector()`.
+  if (length(counts) && .monitoreo_aulas_claves_sin_colision(c(aulas, unidades, codigos))) {
+    counts <- .monitoreo_aulas_counts_por_clave(counts)
+    aulas <- .monitoreo_aulas_clave_colector(aulas)
+    if (!is.null(unidades)) unidades <- .monitoreo_aulas_clave_colector(unidades)
+    if (!is.null(codigos)) codigos <- .monitoreo_aulas_clave_colector(codigos)
+  }
+  # La fila SUMA las claves unicas que declara, no la primera que matchea: en
+  # la transicion curso-horario -> codigo operativo conviven respuestas
+  # repartidas entre dos claves de la MISMA aula, y el fallback excluyente se
+  # quedaba con una poblacion y perdia la otra en silencio. Claves repetidas
+  # dentro de la fila (post-handoff `classroom_id` == `operational_code`)
+  # cuentan una sola vez.
+  n <- nrow(rows)
+  if (is.null(unidades)) unidades <- rep("", n)
+  if (is.null(codigos)) codigos <- rep("", n)
+  vapply(seq_len(n), function(i) {
+    ks <- unique(c(aulas[[i]], unidades[[i]], codigos[[i]]))
+    ks <- ks[!is.na(ks) & nzchar(ks)]
+    if (!length(ks)) return(0L)
+    sum(as.integer(counts[ks]), na.rm = TRUE)
+  }, integer(1))
 }
 
 .monitoreo_aulas_status <- function(x, default = "planificada") {
@@ -1310,11 +1341,42 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # atribuye el numerador de cumplimiento, y con la precedencia invertida
     # las celdas F+M no cuadraban con el total de su facultad.
     valores <- as.character(plan_df$faculty %||% plan_df$stratum %||% "")
-    lookup <- stats::setNames(valores, as.character(plan_df$classroom_id %||% ""))
-    if ("collection_unit_id" %in% names(plan_df)) {
-      por_unidad <- stats::setNames(valores, as.character(plan_df$collection_unit_id))
+    aulas_plan <- as.character(plan_df$classroom_id %||% "")
+    unidades_plan <- if ("collection_unit_id" %in% names(plan_df)) {
+      as.character(plan_df$collection_unit_id)
+    } else {
+      NULL
+    }
+    # Tercera clave, igual que las otras dos copias: el QR de 2026 viaja el
+    # codigo operativo.
+    codigos_plan <- if ("operational_code" %in% names(plan_df)) {
+      as.character(plan_df$operational_code)
+    } else {
+      NULL
+    }
+    # Mismo espacio canonico que las otras dos copias del emparejamiento; un
+    # identificador tecleado conserva su facultad. Ver
+    # `.monitoreo_aulas_clave_colector()`.
+    if (.monitoreo_aulas_claves_sin_colision(c(aulas_plan, unidades_plan, codigos_plan))) {
+      aulas_plan <- .monitoreo_aulas_clave_colector(aulas_plan)
+      if (!is.null(unidades_plan)) {
+        unidades_plan <- .monitoreo_aulas_clave_colector(unidades_plan)
+      }
+      if (!is.null(codigos_plan)) {
+        codigos_plan <- .monitoreo_aulas_clave_colector(codigos_plan)
+      }
+      response_classroom <- .monitoreo_aulas_clave_colector(response_classroom)
+    }
+    lookup <- stats::setNames(valores, aulas_plan)
+    if (!is.null(unidades_plan)) {
+      por_unidad <- stats::setNames(valores, unidades_plan)
       por_unidad <- por_unidad[nzchar(names(por_unidad))]
       lookup <- c(lookup, por_unidad[!names(por_unidad) %in% names(lookup)])
+    }
+    if (!is.null(codigos_plan)) {
+      por_codigo <- stats::setNames(valores, codigos_plan)
+      por_codigo <- por_codigo[nzchar(names(por_codigo))]
+      lookup <- c(lookup, por_codigo[!names(por_codigo) %in% names(lookup)])
     }
     con_id <- nzchar(response_classroom)
     faculty[con_id] <- as.character(lookup[response_classroom[con_id]] %||% "")

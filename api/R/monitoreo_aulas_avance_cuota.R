@@ -176,10 +176,26 @@
   if (is.data.frame(plan_df) && nrow(plan_df) && n) {
     aulas <- .maac_chr_col(plan_df, "classroom_id")
     unidades <- .maac_chr_col(plan_df, "collection_unit_id")
+    # Tercera clave, igual que el numerador: el QR de 2026 viaja el codigo
+    # operativo y un plan sin handoff solo tiene curso-horario en
+    # `classroom_id`.
+    codigos <- .maac_chr_col(plan_df, "operational_code")
+    # Mismo espacio canonico que el numerador del tablero: un identificador
+    # tecleado (`ch1`, `R6_1`) pertenece a la misma fila que su QR. Ver
+    # `.monitoreo_aulas_clave_colector()`; con claves en colision se compara
+    # literal, como siempre.
+    if (.monitoreo_aulas_claves_sin_colision(c(aulas, unidades, codigos))) {
+      aulas <- .monitoreo_aulas_clave_colector(aulas)
+      unidades <- .monitoreo_aulas_clave_colector(unidades)
+      codigos <- .monitoreo_aulas_clave_colector(codigos)
+      response_classroom <- .monitoreo_aulas_clave_colector(response_classroom)
+    }
     idx_aula <- which(nzchar(aulas) & !duplicated(aulas))
     mapa <- stats::setNames(idx_aula, aulas[idx_aula])
     idx_unidad <- which(nzchar(unidades) & !duplicated(unidades) & !(unidades %in% names(mapa)))
     mapa <- c(mapa, stats::setNames(idx_unidad, unidades[idx_unidad]))
+    idx_codigo <- which(nzchar(codigos) & !duplicated(codigos) & !(codigos %in% names(mapa)))
+    mapa <- c(mapa, stats::setNames(idx_codigo, codigos[idx_codigo]))
     con_id <- nzchar(response_classroom)
     if (any(con_id) && length(mapa)) {
       fila[con_id] <- unname(mapa[response_classroom[con_id]])
