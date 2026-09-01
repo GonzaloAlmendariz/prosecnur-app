@@ -373,7 +373,11 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
     specs <- list(
       list(campo = "sample_status", valores = aulas_libro_status_muestra(profundidad)),
       list(campo = "contact_medium", valores = AULAS_LIBRO_MEDIO_CONTACTO),
-      list(campo = "scheduled_day", valores = AULAS_LIBRO_DIA)
+      list(campo = "scheduled_day", valores = AULAS_LIBRO_DIA),
+      # B15: MOMENTO DE LA CLASE, desplegable NO absoluto — la misma lista de
+      # la hoja «Listas» del xlsx, y el strict = FALSE del constructor deja
+      # pasar el texto libre («a las 9:30, tras el control de lectura»).
+      list(campo = "scheduled_moment", valores = AULAS_LIBRO_MOMENTO_CLASE)
     )
     for (spec in specs) {
       for (b in seq_len(profundidad)) {

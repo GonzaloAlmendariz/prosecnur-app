@@ -25,7 +25,8 @@ test_that("las filas dentadas de Sheets no corren las columnas", {
   # campo donde hay otro.
   titulos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos[[1]], character(1))
   cabecera <- as.list(c("ID MATCH", titulos))
-  fila <- list("1", "CH 7", "Docente Siete")
+  # Orden v4: tras CURSO-HORARIO viene NOMBRE DEL CURSO y recien el docente.
+  fila <- list("1", "CH 7", "Curso Siete", "Docente Siete")
 
   plan <- aulas_libro_desde_valores(list(cabecera, fila), "agendadas")
   expect_length(plan, 1L)

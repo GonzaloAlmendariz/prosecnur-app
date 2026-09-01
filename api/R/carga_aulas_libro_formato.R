@@ -36,19 +36,36 @@ AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
   "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO"
 )
 
-# **Un color por ESLABON, no dos alternando.**
+# **Un color por ESLABON, y de una paleta que se VE distinta (B18).**
 #
-# La banda usaba `#1D4F8C` y `#2F6BB0` en ciclo, asi que el reemplazo 3 repetia
-# el color del 1 y con once reservas la pista dejaba de distinguir. Gonzalo:
-# «las columnas de titular deberian ser de un color, y las columnas de
-# reemplazo uno, reemplazo dos, reemplazo tres y subsiguientes de otros colores
-# para distinguirlos».
+# Dos escalas fallaron antes de esta:
+#   1. Dos azules alternando: el reemplazo 3 repetia el color del 1.
+#   2. UN azul degradado hacia blanco por profundidad: numericamente unico,
+#      visualmente el mismo color (pasos de ~17 RGB) — Gonzalo lo leyo como
+#      «solo el titular y el reemplazo 1 tienen color diferente; luego todas
+#      las demas tienen el mismo color que el reemplazo 1» — y la cola
+#      (#99B0CB) daba 2.2 de contraste con el texto blanco: ilegible.
 #
-# El titular conserva el navy del resto del libro. Los reemplazos van
-# aclarandose desde el: cuanto mas lejos de la cadena, mas claro, que es la
-# jerarquia real —el primero entra antes que el ultimo—. La escala se calcula
-# para la profundidad que tenga el estudio, asi que doce bloques dan doce tonos
-# distintos y no seis repetidos.
+# El dictado (2026-09-01): «cada reemplazo deberia tener un color diferente —
+# por lo menos cinco colores que se repitan y contrasten bien con el encabezado
+# blanco». Paleta CICLICA de cinco tonos: dentro de cualquier ventana de cinco
+# reemplazos consecutivos todos se distinguen (>=40 de distancia RGB por par) y
+# todos sostienen el texto blanco en negrita (contraste WCAG >=3.0, el umbral
+# de texto grande). Repetir esta permitido recien al agotar el ciclo — R6
+# vuelve al color de R1, a cinco bloques de distancia.
+#
+# Los cinco: el azul acero historico del reemplazo, y cuatro companeros de la
+# misma saturacion media —naranja quemado, verde jade, purpura y vino— todos
+# medidos contra el blanco y entre si (test-carga-aulas-libro-color-eslabon.R
+# los verifica computacionalmente, no por hex pineado).
+AULAS_LIBRO_PALETA_ESLABON <- c(
+  "#1D4F8C", # R1 azul acero (el reemplazo de siempre)
+  "#B3541E", # R2 naranja quemado
+  "#1F7A55", # R3 verde jade
+  "#6B4FA3", # R4 purpura
+  "#9C1F45"  # R5 vino
+)
+
 .calf_mezcla <- function(hex, blanco, peso) {
   c1 <- grDevices::col2rgb(hex)[, 1]
   c2 <- grDevices::col2rgb(blanco)[, 1]
@@ -77,6 +94,12 @@ AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
 
 #' La escala de color de los eslabones de una cadena.
 #'
+#' El titular conserva el navy del resto del libro; los reemplazos toman la
+#' paleta ciclica de cinco (`AULAS_LIBRO_PALETA_ESLABON`, B18): R1..R5 tonos
+#' distintos, R6 repite el de R1. Ya no se degrada hacia blanco por
+#' profundidad: esa escala producia tonos «unicos» que el ojo leia como uno
+#' solo y una cola sin contraste.
+#'
 #' @param n cuantos bloques hay, titular incluido.
 #' @return vector de colores; el primero es el titular.
 #' @export
@@ -84,10 +107,11 @@ aulas_libro_colores_eslabon <- function(n = 1L) {
   n <- max(1L, suppressWarnings(as.integer(n)))
   if (!is.finite(n)) n <- 1L
   if (n == 1L) return("#002457")
-  # Del azul medio al claro, sin llegar a perder el contraste con el blanco del
-  # texto: el ultimo eslabon sigue leyendose.
-  pasos <- seq(0, 0.55, length.out = n - 1L)
-  c("#002457", vapply(pasos, function(p) .calf_mezcla("#1D4F8C", "#FFFFFF", p), character(1)))
+  ciclo <- length(AULAS_LIBRO_PALETA_ESLABON)
+  reemplazos <- vapply(seq_len(n - 1L), function(k) {
+    AULAS_LIBRO_PALETA_ESLABON[[((k - 1L) %% ciclo) + 1L]]
+  }, character(1))
+  c("#002457", reemplazos)
 }
 
 # Dictado del dueño (2026-08-31): «la forma de contacto solo debería ser o por
@@ -105,6 +129,16 @@ AULAS_LIBRO_MEDIO_CONTACTO <- c("Teléfono", "Correo")
 AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 
 AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
+
+# El desplegable NO absoluto de «MOMENTO DE LA CLASE» (B15, dictado 2026-09-01):
+# tres momentos tecleables y texto libre permitido — el docente puede responder
+# «a las 9:30, tras el control de lectura» y eso sigue siendo un dato valido.
+# En el xlsx la validacion ya es allowBlank + sin error duro (el patron de todo
+# el libro) y en Sheets viaja como ONE_OF_LIST strict = FALSE. UNA lista para
+# las dos capas, como el resto de vocabularios de este archivo.
+AULAS_LIBRO_MOMENTO_CLASE <- c(
+  "Al inicio de la clase", "En el receso", "Al final de la clase"
+)
 
 #' Las opciones de `STATUS MUESTRA` para una profundidad de cadena dada.
 #'

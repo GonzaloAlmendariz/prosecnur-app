@@ -35,7 +35,8 @@
 # La paleta pineada se LEE del formato xlsx (carga_aulas_libro_formato.R):
 #   #002457 fondo de cabecera + #FFFFFF texto en negrita (estilo `cabecera`,
 #   líneas 206-209; es también `aulas_libro_colores_eslabon(1L)`),
-#   #1D4F8C banda del primer reemplazo (`aulas_libro_colores_eslabon(3L)[[2]]`),
+#   la banda de cada reemplazo con su tono de eslabón (DERIVADO de
+#   `aulas_libro_colores_eslabon`, nunca un hex a mano — B18 cambia la paleta),
 #   #E3F3E8/#155E2E verde del semáforo de estados AGENDADA/APLICADA (l. 384-386).
 #
 # Sin red (mock compartido `.sheets_api_mock`, helper-sheets-mock.R). Todo
@@ -225,12 +226,12 @@
 # --- contexto (verde deliberado): la paleta del xlsx es la que se copia ------
 
 test_that("contexto: los hex pineados son los del formato xlsx", {
-  # Si la paleta del libro Excel cambia, este contexto avisa de que los pines
-  # de abajo quedaron midiendo otra cosa. `aulas_libro_colores_eslabon` es la
-  # misma escala que pinta cabecera y bandas del xlsx
-  # (carga_aulas_libro_formato.R).
+  # El navy del titular es el ancla de marca del libro y se pinea literal; los
+  # tonos de eslabón se DERIVAN de `aulas_libro_colores_eslabon` en los tests
+  # de abajo (B18 los cambia a una paleta cíclica y un literal aquí quedaría
+  # midiendo la paleta vieja).
   expect_identical(aulas_libro_colores_eslabon(1L), "#002457")
-  expect_identical(aulas_libro_colores_eslabon(3L)[1:2], c("#002457", "#1D4F8C"))
+  expect_identical(aulas_libro_colores_eslabon(3L)[[1]], "#002457")
 })
 
 # --- A. formato por hoja ------------------------------------------------------
@@ -249,9 +250,10 @@ test_that("formato Sheets: la cabecera copia la paleta del xlsx (navy + blanco n
     identical(f$fondo, "#002457") && isTRUE(f$negrita) && identical(f$texto, "#FFFFFF")
   }, logical(1))))
 
-  # La banda del primer reemplazo lleva su tono de eslabón (#1D4F8C), que es lo
-  # que distingue titular de reservas en el Excel.
-  expect_true("#1D4F8C" %in% .masf_colores_en(reqs))
+  # La banda del primer reemplazo lleva su tono de eslabón —derivado de la
+  # escala, no un hex a mano—, que es lo que distingue titular de reservas en
+  # el Excel.
+  expect_true(aulas_libro_colores_eslabon(3L)[[2]] %in% .masf_colores_en(reqs))
 
   # Y todo lo emitido apunta a la hoja pedida, no a otra.
   expect_identical(.masf_sheet_ids_en(reqs), 111L)
@@ -461,6 +463,47 @@ test_that("B12: en la hoja de campo el calendario va SOLO en la fecha tecleable 
     expect_true(is.finite(v$fila_desde) && v$fila_desde >= 2L)
     expect_identical(v$sheet_id, 333L)
     expect_false(v$estricta)
+  }
+})
+
+test_that("B15: MOMENTO DE LA CLASE recibe su desplegable NO absoluto en Sheets", {
+  # Dictado (2026-09-01): el momento gana desplegable con tres valores y texto
+  # libre permitido — ONE_OF_LIST strict = FALSE, el patrón que esta capa ya
+  # usa para todo vocabulario. Columnas derivadas de la spec, una por eslabón.
+  reqs <- monitoreo_aulas_sheets_validaciones_requests(
+    hoja = "Aulas Agendadas", sheet_id = 222L, n_filas = 43L, profundidad = 3L
+  )
+  vs <- .masf_validaciones_en(reqs)
+  tres <- c("Al inicio de la clase", "En el receso", "Al final de la clase")
+  momento <- Filter(function(v) setequal(v$valores, tres), vs)
+  expect_identical(
+    sort(vapply(momento, function(v) v$col_desde, integer(1))),
+    .masf_cols_bloque("scheduled_moment", 3L) - 1L
+  )
+  for (v in momento) {
+    expect_identical(v$tipo, "ONE_OF_LIST")
+    expect_true(v$chip)
+    # NO absoluto: el texto libre («a las 9:30, tras el control de lectura»)
+    # sigue siendo válido — es la mitad del dictado.
+    expect_false(v$estricta)
+    expect_identical(v$col_hasta - v$col_desde, 1L)
+  }
+})
+
+test_that("B18: la banda de eslabones del Sheets emite la MISMA paleta que el xlsx", {
+  # Paridad pineada por derivación: cada tono que la escala declara para una
+  # cadena de profundidad 6 tiene que viajar en las requests de la agenda. Si
+  # el Sheets copiara una paleta propia, un cambio de escala los separaría en
+  # silencio (dos capas, dos lecturas de la misma regla).
+  profundidad <- 6L
+  n_cols <- 1L + profundidad * AULAS_AGENDADAS_ANCHO_BLOQUE
+  reqs <- monitoreo_aulas_sheets_formato_requests(
+    hoja = "Aulas Agendadas", sheet_id = 111L, n_filas = 43L, n_cols = n_cols
+  )
+  emitidos <- .masf_colores_en(reqs)
+  for (tono in aulas_libro_colores_eslabon(profundidad)) {
+    expect_true(toupper(tono) %in% toupper(emitidos),
+                info = sprintf("el tono %s de la escala no llega al Sheets", tono))
   }
 })
 

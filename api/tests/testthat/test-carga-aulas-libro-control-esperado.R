@@ -146,7 +146,7 @@ test_that("la base del % es el padron, y la meta es otra columna", {
   u <- list(.ce_aula("CH 1", eleg = 36, esperadas = 17.3))
   fila <- .ce_fila(u)
   expect_equal(fila[[.ce_titulo("ELEGIBLES: BASE DEL %")]], "36")
-  expect_equal(fila[[.ce_titulo("MATRICULADOS POBLACION")]], "36")
+  expect_equal(fila[[.ce_titulo("MATRICULADOS ELEGIBLES")]], "36")
   # La meta NO es ninguna de las dos.
   expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17.3")
 })

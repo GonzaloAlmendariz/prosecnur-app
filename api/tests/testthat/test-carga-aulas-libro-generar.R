@@ -563,17 +563,20 @@ test_that("las siete columnas de identidad del control se llenan de verdad", {
          course_name = "Curso 1", label = "Aula 101", schedule = "Lun 10:00",
          enrolled_total = 34, eligible_n = 30)
   ))
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  # Por CAMPO canonico y no por titulo literal: el titulo es justo lo que un
+  # renombrado (B17: POBLACION → ELEGIBLES) cambia, y este test vigila el
+  # llenado, no el rotulo — el rotulo lo pinea el contrato v4.
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$campo, character(1))
   fila <- unlist(d[3, ], use.names = FALSE)
-  valor <- function(titulo) fila[[which(campos == titulo)[[1]]]]
+  valor <- function(campo) fila[[which(campos == campo)[[1]]]]
 
-  expect_identical(valor("MUESTRA"), "M1")
-  expect_identical(valor("CURSO-HORARIO"), "CH 1")
-  expect_identical(valor("NOMBRE DEL CURSO"), "Curso 1")
-  expect_identical(valor("AULA"), "Aula 101")
-  expect_identical(valor("HORARIO"), "Lun 10:00")
-  expect_identical(valor("MATRICULADOS TOTALES"), "34")
-  expect_identical(valor("MATRICULADOS POBLACION"), "30")
+  expect_identical(valor("wave"), "M1")
+  expect_identical(valor("operational_code"), "CH 1")
+  expect_identical(valor("course_name"), "Curso 1")
+  expect_identical(valor("room"), "Aula 101")
+  expect_identical(valor("schedule"), "Lun 10:00")
+  expect_identical(valor("enrolled_total"), "34")
+  expect_identical(valor("eligible_n"), "30")
 })
 
 test_that("las hojas anchas se imprimen en horizontal", {

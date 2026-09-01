@@ -236,7 +236,7 @@ test_that("las fechas del libro se escriben como fechas y no como texto", {
   # **Las columnas TIENEN que existir con dato.** Sin esto el test se saltaba
   # solo: los `if` caian en `next`, testthat lo marcaba SKIP y pasaba sin
   # comprobar nada. Un guard que no muerde es peor que ninguno.
-  for (titulo in c("FECHA DE LLAMADA", "FECHA DE APLICACIÓN")) {
+  for (titulo in c("FECHA DE LLAMADA", "FECHA AGENDADA")) {
     vs <- con_dato(cols(agenda, titulo))
     expect_true(length(vs) > 0, info = paste("la agenda no trae con dato", titulo))
     # `character` es el sintoma: «2026-09-10» se ordena antes que «2026-09-9».

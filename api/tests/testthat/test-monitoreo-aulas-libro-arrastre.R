@@ -67,16 +67,31 @@
 .mala_hoja_agendadas <- "Aulas Agendadas"
 .mala_hoja_campo <- "Aulas Aplicadas (Campo)"
 
-# Columnas del bloque 1 de la hoja de campo (1 = ID MATCH; agenda = 2..21;
-# campo = 22..35), verificadas contra `.calg_titulos_agenda()` en el test de
-# contexto para que el rojo no pueda significar «conté mal».
+# Columnas del bloque 1 de la hoja de campo (1 = ID MATCH; luego la agenda y
+# luego el parte), DERIVADAS de las mismas specs que usan los generadores.
+# Antes eran literales (12/15/33/35/37) y cada reorden del bloque obligaba a
+# recontarlas a mano; derivadas, el reorden v4 —y cualquier futuro— las
+# recomputa solo. El test de contexto sigue verificando la geometría para que
+# un rojo no pueda significar «conté mal».
+.mala_col_agenda <- function(campo) {
+  idx <- which(vapply(AULAS_AGENDADAS_BLOQUE,
+                      function(s) identical(s$campo, campo), logical(1)))
+  1L + idx[[1]]
+}
+.mala_col_parte <- function(titulo) {
+  1L + AULAS_AGENDADAS_ANCHO_BLOQUE +
+    which(prosecnurapp:::.calg_titulos_campo() == titulo)[[1]]
+}
+.mala_ancho_bloque <- function() {
+  1L + AULAS_AGENDADAS_ANCHO_BLOQUE + length(prosecnurapp:::.calg_titulos_campo())
+}
 .mala_col_id_match <- 1L
-.mala_col_curso <- 2L        # CURSO-HORARIO
-.mala_col_medio <- 12L       # MEDIO DE CONTACTO — el campo que Gonzalo cambió
-.mala_col_status <- 15L      # STATUS MUESTRA — el otro campo que cambió
-.mala_col_status_apl <- 33L  # STATUS DE APLICACIÓN — del equipo, tecleable
-.mala_col_ficha <- 35L       # ENLACE DE FICHA ESCANEADA — del equipo
-.mala_col_curso_b2 <- 37L    # CURSO-HORARIO del bloque 2 (arranca en 36)
+.mala_col_curso <- .mala_col_agenda("operational_code")
+.mala_col_medio <- .mala_col_agenda("contact_medium")   # el campo que Gonzalo cambió
+.mala_col_status <- .mala_col_agenda("sample_status")   # el otro campo que cambió
+.mala_col_status_apl <- .mala_col_parte("STATUS DE APLICACIÓN")  # del equipo, tecleable
+.mala_col_ficha <- .mala_col_parte("ENLACE DE FICHA ESCANEADA")  # del equipo
+.mala_col_curso_b2 <- .mala_ancho_bloque() + .mala_col_agenda("operational_code")
 
 # --- mock: el compartido + captura de valueInputOption y rangos A1 -----------
 

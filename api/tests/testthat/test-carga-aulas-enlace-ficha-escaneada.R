@@ -6,11 +6,12 @@
 #
 # El contrato, congelado por el lead:
 #
-# - La hoja «Aulas Aplicadas (Campo)» gana una columna manual al FINAL de la
-#   parte de campo de CADA bloque de intento. La hoja ES de bloques por intento
+# - La hoja «Aulas Aplicadas (Campo)» gana una columna manual en la parte de
+#   campo de CADA bloque de intento. La hoja ES de bloques por intento
 #   (TITULAR, REEMPLAZO 1, ...: cada bloque abre con `ID MATCH` y trae parte de
-#   agenda + parte de campo), asi que «al final» significa la ultima columna de
-#   cada bloque: agregarla ahi no corre las posiciones de lo ya repartido.
+#   agenda + parte de campo). B6c la puso al FINAL; el orden v4 (B16) la
+#   recoloco dentro del flujo del parte — la SECUENCIA vive en
+#   test-carga-aulas-libro-contrato-v4.R y aqui todo se deriva por nombre.
 # - La app la SIEMBRA vacia y la LEE de vuelta. El enlace —el PDF escaneado que
 #   el equipo sube al Drive— es dato del EQUIPO: la app no lo posee, no lo
 #   deriva y no lo pisa. NO confundir con `link` («ENLACE DE LA FICHA»), que es
@@ -114,19 +115,21 @@ test_that("un libro viejo sin la columna se lee igual y no inventa enlace", {
 
 # --- El generador ----------------------------------------------------------
 
-test_that("el generador siembra la columna al FINAL de cada bloque, vacia", {
+test_that("el generador siembra la columna del escaneado en cada bloque, vacia", {
+  # DÓNDE cae dentro del parte lo pinea el contrato v4 del bloque
+  # (test-carga-aulas-libro-contrato-v4.R); aqui se deriva por NOMBRE para que
+  # un reorden del parte no obligue a recontar nada.
   hoja <- aulas_libro_hoja_aplicadas(.efe_plan())
   campos <- as.character(unlist(hoja[2, ], use.names = FALSE))
   inicios <- which(campos == "ID MATCH")
   expect_length(inicios, 3L)
-  finales <- c(inicios[-1] - 1L, length(campos))
-  # Al FINAL del bloque: en medio correria las posiciones de lo que el equipo
-  # ya tiene repartido en su Sheets.
-  expect_identical(unique(campos[finales]), .efe_titulo)
+  cols_enlace <- which(campos == .efe_titulo)
+  # Una por bloque de intento.
+  expect_length(cols_enlace, length(inicios))
   # Y la celda sale VACIA en un libro nuevo: el enlace lo pega el equipo. En
   # particular NO sale `link` —la ficha QR del plan—, que es el señuelo del
   # fixture: son dos enlaces distintos y la app solo posee el primero.
-  cuerpo <- hoja[-c(1, 2), finales, drop = FALSE]
+  cuerpo <- hoja[-c(1, 2), cols_enlace, drop = FALSE]
   expect_true(all(!nzchar(trimws(as.character(unlist(cuerpo))))))
 })
 
@@ -182,12 +185,13 @@ test_that("el enlace de un reintento cae en SU bloque, no en el del titular", {
   )
   hoja <- aulas_libro_hoja_aplicadas(.efe_plan(), partes = partes)
   campos <- as.character(unlist(hoja[2, ], use.names = FALSE))
-  inicios <- which(campos == "ID MATCH")
-  finales <- c(inicios[-1] - 1L, length(campos))
-  expect_identical(unique(campos[finales]), .efe_titulo)
+  # Por NOMBRE, no por «ultima del bloque»: la posicion dentro del parte la
+  # pinea el contrato v4 y aqui solo importa que cada intento conserve SU celda.
+  cols_enlace <- which(campos == .efe_titulo)
+  expect_gte(length(cols_enlace), 2L)
   fila <- as.character(unlist(hoja[3, ], use.names = FALSE))
-  expect_identical(fila[[finales[[1]]]], .efe_enlace("bloque1"))
-  expect_identical(fila[[finales[[2]]]], .efe_enlace("bloque2"))
+  expect_identical(fila[[cols_enlace[[1]]]], .efe_enlace("bloque1"))
+  expect_identical(fila[[cols_enlace[[2]]]], .efe_enlace("bloque2"))
 })
 
 # --- El payload del tablero ------------------------------------------------
