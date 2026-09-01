@@ -23,7 +23,11 @@
 # Sheets no parsea «0205» a 205 ni interpreta fechas por locale). El costo
 # conocido: ordenar por fecha EN Sheets no funciona todavía; queda anotado para
 # B2 (numberFormat por columna). Es el mismo RAW que ya usa el motor de
-# publicación incremental.
+# publicación incremental. UNA excepción declarada (B9): la siembra de «Aulas
+# Aplicadas (Campo)» lleva FÓRMULAS de arrastre a «Aulas Agendadas»
+# (monitoreo_aulas_libro_arrastre.R) y esa escritura —solo esa— va
+# USER_ENTERED, porque con RAW la fórmula quedaría como texto sin computar. El
+# round-trip no se resiente: la API de lectura devuelve valores computados.
 #
 # El id del spreadsheet NO es secreto (el token OAuth sí — ADR 0005): viaja en
 # la config de monitoreo y por tanto en el `.pulso`, en
@@ -348,9 +352,22 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # ¿Cambió el libro? Delta a nivel LIBRO contra los values REMOTOS (la verdad
   # observable, no la caché de metadata): una pestaña ausente o distinta de lo
   # producido cuenta como cambio. Decide la reasserción de la base de control.
+  # La hoja de campo se compara con sus celdas de ARRASTRE enmascaradas (B9):
+  # son derivadas por fórmula y la API devuelve su resultado computado, que ya
+  # no coincide celda a celda con la copia de valores; sin la máscara cada
+  # republicación sin cambios declararía «cambió». Su fuente («Aulas
+  # Agendadas») sí se compara entera, así que una edición de agenda sigue
+  # contando como cambio del libro.
+  bloques_arrastre <- .malar_bloques_arrastre(producidas[[equipo[[2]]]], unidades)
   libro_cambio <- any(vapply(hojas_libro, function(hoja) {
     if (!(hoja %in% existentes)) return(TRUE)
-    !identical(.malp_canonizar(producidas[[hoja]]), .malp_canonizar(remotas[[hoja]]))
+    local_v <- producidas[[hoja]]
+    remoto_v <- remotas[[hoja]]
+    if (identical(hoja, equipo[[2]])) {
+      local_v <- .malar_mascara_arrastre(local_v, bloques_arrastre)
+      remoto_v <- .malar_mascara_arrastre(remoto_v, bloques_arrastre)
+    }
+    !identical(.malp_canonizar(local_v), .malp_canonizar(remoto_v))
   }, logical(1)))
 
   # Directo a la implementación del motor y no al wrapper del engine: el
@@ -366,6 +383,18 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     # Una sembrada que el motor saltó (metadata rancio sobre pestaña vaciada a
     # mano) no se declara sembrada: no se escribió nada.
     if (hoja %in% saltadas) acciones[[hoja]] <- "sin_cambios"
+  }
+
+  # B9 — el M4 de 2025: recién sembrada la hoja de campo, sus columnas de
+  # agenda (ID MATCH + las 20 de cada bloque) se sobreescriben como FÓRMULAS de
+  # arrastre a «Aulas Agendadas» vía values.update USER_ENTERED (ver
+  # monitoreo_aulas_libro_arrastre.R). Solo en la siembra efectiva: una hoja
+  # respetada no llega aquí y una que el motor saltó no recibió values.
+  if (equipo[[2]] %in% names(tabs) && !(equipo[[2]] %in% saltadas)) {
+    monitoreo_aulas_libro_arrastre_publicar(
+      id, equipo[[2]], producidas[[equipo[[2]]]], unidades,
+      hoja_agendadas = equipo[[1]]
+    )
   }
   for (hoja in hojas_app) {
     if (app_nuevas[[hoja]]) {
