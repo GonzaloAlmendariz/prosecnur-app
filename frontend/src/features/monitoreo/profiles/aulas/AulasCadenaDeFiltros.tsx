@@ -20,7 +20,7 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
     return (
       <div className="aulas-cadena-filtros" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <p className="aulas-cadenas-lectura">
-          Este estudio <strong>no declara filtros de respuesta válida</strong>,
+          Este estudio <strong>no declara filtros de respuesta efectiva</strong>,
           así que cuentan todas las respuestas que llegan.
         </p>
         <p className="mon-profile-muted">

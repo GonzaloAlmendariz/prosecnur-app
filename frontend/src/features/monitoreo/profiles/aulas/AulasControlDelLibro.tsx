@@ -443,7 +443,7 @@ export function AulasControlDelLibro({
       ) : null}
       {/* **De quién son los validadores.**
           La hoja trae columnas VALIDADOR y el estudio declara sus propios
-          filtros de respuesta válida en la app: dos sistemas distintos, juntos
+          filtros de respuesta efectiva en la app: dos sistemas distintos, juntos
           en la misma pantalla y sin nada que dijera cuál es cuál. Aquí no se
           inventa la relación —no la hay— sino que se nombra. */}
       {/* **De qué está hecha esta hoja, en un solo sitio.**
@@ -462,7 +462,7 @@ export function AulasControlDelLibro({
             {" "}de validador {validadores.columnas === 1 ? "es" : "son"} del equipo: las llena
             en su Excel y la app no las calcula.{" "}
             {validadores.sinDeclarar ? (
-              <>Este estudio todavía no declara sus filtros de respuesta válida, así
+              <>Este estudio todavía no declara sus filtros de respuesta efectiva, así
               que no hay con qué compararlas.</>
             ) : (
               <>
