@@ -101,7 +101,8 @@ aulas_libro_hoja_agendadas <- function(unidades) {
       if (b > length(g)) return(rep("", length(titulos_bloque)))
       u <- g[[b]]
       c(
-        .calg_txt(u$wave), .calg_txt(u$operational_code), .calg_txt(u$teacher),
+        # Sin `wave`: la columna MUESTRA salio del bloque el 2026-08-31 (B8).
+        .calg_txt(u$operational_code), .calg_txt(u$teacher),
         .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email),
         .calg_txt(u$course_name), .calg_txt(u$faculty), .calg_txt(u$level),
         .calg_txt(u$label), .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
@@ -326,7 +327,8 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
     u <- titulares[[i]]
     bloque <- c(
       as.character(i),
-      .calg_txt(u$wave), .calg_txt(u$operational_code), .calg_txt(u$teacher),
+      # Sin `wave`: la columna MUESTRA salio del bloque el 2026-08-31 (B8).
+      .calg_txt(u$operational_code), .calg_txt(u$teacher),
       .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email), .calg_txt(u$course_name),
       .calg_txt(u$faculty), .calg_txt(u$level), .calg_txt(u$label),
       .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
@@ -539,6 +541,12 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
       del_plan <- nzchar(fila)
       for (k in seq_along(claves)) {
         if (del_plan[[k]]) next
+        # `wave` NUNCA la escribe el registro, ni en celda vacia: la ola es del
+        # plan (viene de Calculo de muestra) y desde que la columna MUESTRA
+        # salio del bloque de agenda (B8, 2026-08-31) el libro entero dejo de
+        # poder pisarla. Resucitarla desde el control reintroduciria por la
+        # tercera hoja lo que se cerro en las otras dos.
+        if (identical(claves[[k]], "wave")) next
         crudo <- reg[[claves[[k]]]]
         if (is.null(crudo) || length(crudo) != 1L || is.na(crudo)) next
         valor <- if (is.numeric(crudo)) .calg_num_txt(crudo) else .calg_txt(crudo)
@@ -575,6 +583,29 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   unique(codigos)
 }
 
+#' Las reservas que van a entrar al libro SIN su codigo de cadena.
+#'
+#' El generador declara, no mezcla (B8 del checklist del operativo): una reserva
+#' sin `titular_operational_code` no tiene con quien agruparse y `.calg_titular`
+#' la agrupaba por su propio codigo — una fila fantasma que en la siembra real
+#' salio como «combinando muestra uno con muestra dos, y CH uno con CH dos».
+#' Un titular sin toc es legal (su toc es su propio codigo); una reserva no.
+#'
+#' Cubre las reservas de cadena —siempre entran al libro— y los extras
+#' ACTIVADOS por un parte de campo. Asimetria declarada (decision del lead,
+#' 2026-08-31): un extra activado solo por CONTROL sin toc sigue generando.
+#' @keywords internal
+.calg_reservas_sin_cadena <- function(unidades, partes = list()) {
+  con_parte <- .calg_codigos_usados(partes)
+  Filter(function(u) {
+    rol <- tolower(trimws(as.character(u$sample_role %||% "")))
+    if (identical(rol, "titular")) return(FALSE)
+    if (nzchar(.calg_txt(u$titular_operational_code))) return(FALSE)
+    cod <- .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
+    identical(rol, "chain_reserve") || (nzchar(cod) && cod %in% con_parte)
+  }, unidades %||% list())
+}
+
 #' Las unidades que van al libro: todo menos el banco sin usar.
 #' @keywords internal
 .calg_unidades_del_libro <- function(unidades, partes = list(), control = list()) {
@@ -609,6 +640,26 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "El plan solo trae banco de extras sin usar: no hay aulas agendadas que llevar al libro.")
+  }
+  # Una sola basta para disparar: cada una saldria como fila fantasma en el
+  # Excel del equipo, y el agregado esconde lo que muerde por celda.
+  sin_cadena <- .calg_reservas_sin_cadena(unidades, partes = partes)
+  if (length(sin_cadena)) {
+    codigos <- vapply(sin_cadena, function(u) {
+      .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
+    }, character(1))
+    codigos <- unique(codigos[nzchar(codigos)])
+    stop_api(
+      409, "E_AULAS_LIBRO_SIN_CADENAS",
+      sprintf(paste0(
+        "%d fila(s) del plan entrarian al libro sin su codigo de cadena ",
+        "(titular_operational_code): %s. Sin el, cada una saldria como una fila ",
+        "fantasma agrupada bajo un titular que no es el suyo. Vuelve a entregar ",
+        "la seleccion desde Calculo de muestra, que si escribe la cadena, o ",
+        "reimporta el plan desde Recopiladores con la seleccion vigente."
+      ), length(sin_cadena), paste(codigos, collapse = ", ")),
+      details = list(filas = length(sin_cadena), codigos = as.list(codigos))
+    )
   }
   # EL LIBRO NO PRESERVA LO QUE HAYA EN `path`, Y ES DELIBERADO.
   #
