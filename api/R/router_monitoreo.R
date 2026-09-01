@@ -5326,7 +5326,7 @@ mount_monitoreo <- function(pr) {
         response_rows = as.integer(nrow(data))
       ))
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
-      list(ok = TRUE, synced_at = snapshot$synced_at, dashboard = dashboard$aulas_universitarias_reports, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
+      monitoreo_aulas_sync_payload(sid, snapshot, dashboard, saved_project = !is.null(saved_project))
     })) |>
     plumber::pr_get("/api/monitoreo/aulas/state", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

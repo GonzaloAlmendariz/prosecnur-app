@@ -342,6 +342,70 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   )
 }
 
+# --- el núcleo publicable desde una sesión ------------------------------------
+
+#' Publica el libro de aulas al destino recordado con los insumos de la sesión.
+#'
+#' Extraído del mount de `/api/monitoreo/aulas/publicar-libro` (unidad B7) SIN
+#' cambiar conducta, para que la conversación del sync
+#' (`monitoreo_aulas_conversar_libro()`) publique por el MISMO camino que el
+#' botón: mismos insumos, mismos E_* y misma traducción de errores del motor.
+#'
+#' Los insumos son los mismos que /aulas/generar-libro: el libro publicado y el
+#' descargado tienen que decir lo mismo.
+#'
+#' @param sid sesión.
+#' @param cfg config de monitoreo; por defecto la de la sesión.
+#' @param destino id del documento; por defecto el recordado en `cfg`. Va como
+#'   parámetro para que la conversación publique EXACTAMENTE donde leyó.
+#' @return el resumen de `monitoreo_aulas_publicar_libro()`.
+#' @keywords internal
+monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = "") {
+  s <- session_get(sid)
+  if (!is.list(cfg)) cfg <- s$monitoreo_config %||% list()
+  destino <- .monitoreo_scalar(destino, "")
+  if (!nzchar(destino)) destino <- monitoreo_aulas_libro_destino(cfg)
+  if (!nzchar(destino)) {
+    stop_api(400, "E_SHEETS_SPREADSHEET",
+             "Falta el enlace del Google Sheets del operativo: pégalo una vez y queda recordado.")
+  }
+
+  aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
+  unidades <- s$monitoreo_aulas_plan %||% aulas_cfg[["plan"]] %||% list()
+  if (!length(unidades)) {
+    stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
+             "No hay plan de aulas del que publicar el libro. Importa la seleccion de calculo de muestra primero.")
+  }
+  partes <- s$monitoreo_aulas_partes_campo %||% aulas_cfg[["partes_campo"]] %||% list()
+  control <- s$monitoreo_aulas_control %||% aulas_cfg[["control"]] %||% list()
+  # Silencio deliberado: las efectivas por aula son un ENRIQUECIMIENTO de
+  # la Base de control (mismo trato que en /aulas/generar-libro) y exigen
+  # snapshot sincronizado; un estudio sin sync aun debe poder publicar su
+  # libro igual. El error del PUBLICADOR, en cambio, si se propaga abajo.
+  efectivas <- tryCatch(
+    monitoreo_aulas_efectivas_por_aula(
+      unidades,
+      (s$monitoreo_snapshot %||% list())$data,
+      aulas_cfg
+    ),
+    error = function(e) NULL
+  )
+
+  tryCatch(
+    monitoreo_aulas_publicar_libro(
+      destino,
+      plan = unidades,
+      partes = partes,
+      control = control,
+      efectivas = efectivas
+    ),
+    # Un api_error del propio publicador conserva su código; solo los
+    # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.
+    api_error = function(e) stop(e),
+    error = .monitoreo_sheets_stop
+  )
+}
+
 # --- montaje HTTP -------------------------------------------------------------
 
 # Vive aquí y no en `router_monitoreo.R` porque el router está congelado a
@@ -360,8 +424,7 @@ mount_monitoreo_aulas_libro <- function(pr) {
     plumber::pr_post("/api/monitoreo/aulas/publicar-libro", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
-      s <- session_get(sid)
-      cfg <- s$monitoreo_config %||% list()
+      cfg <- session_get(sid)$monitoreo_config %||% list()
 
       # Todo el body con `[[` — el `$` parcial-matchea y este body viene del
       # cliente (la lección de `config$plan` pescando `plan_rows`).
@@ -378,51 +441,11 @@ mount_monitoreo_aulas_libro <- function(pr) {
         cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
         .monitoreo_mark_project_dirty_if_open(sid)
         destino_guardado <- TRUE
-        s <- session_get(sid)
-      }
-      destino <- monitoreo_aulas_libro_destino(cfg)
-      if (!nzchar(destino)) {
-        stop_api(400, "E_SHEETS_SPREADSHEET",
-                 "Falta el enlace del Google Sheets del operativo: pégalo una vez y queda recordado.")
       }
 
-      # Los mismos insumos que /aulas/generar-libro: el libro publicado y el
-      # descargado tienen que decir lo mismo.
-      aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
-      unidades <- s$monitoreo_aulas_plan %||% aulas_cfg[["plan"]] %||% list()
-      if (!length(unidades)) {
-        stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
-                 "No hay plan de aulas del que publicar el libro. Importa la seleccion de calculo de muestra primero.")
-      }
-      partes <- s$monitoreo_aulas_partes_campo %||% aulas_cfg[["partes_campo"]] %||% list()
-      control <- s$monitoreo_aulas_control %||% aulas_cfg[["control"]] %||% list()
-      # Silencio deliberado: las efectivas por aula son un ENRIQUECIMIENTO de
-      # la Base de control (mismo trato que en /aulas/generar-libro) y exigen
-      # snapshot sincronizado; un estudio sin sync aun debe poder publicar su
-      # libro igual. El error del PUBLICADOR, en cambio, si se propaga abajo.
-      efectivas <- tryCatch(
-        monitoreo_aulas_efectivas_por_aula(
-          unidades,
-          (s$monitoreo_snapshot %||% list())$data,
-          aulas_cfg
-        ),
-        error = function(e) NULL
-      )
-
-      out <- tryCatch(
-        monitoreo_aulas_publicar_libro(
-          destino,
-          plan = unidades,
-          partes = partes,
-          control = control,
-          efectivas = efectivas
-        ),
-        # Un api_error del propio publicador conserva su código; solo los
-        # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.
-        api_error = function(e) stop(e),
-        error = .monitoreo_sheets_stop
-      )
+      out <- monitoreo_aulas_publicar_libro_en_sesion(sid, cfg)
       .monitoreo_mark_project_dirty_if_open(sid)
+      aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
       c(out, list(
         destino_guardado = destino_guardado,
         libro_sheets = aulas_cfg[["libro_sheets"]]
