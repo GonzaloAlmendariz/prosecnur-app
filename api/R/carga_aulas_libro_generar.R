@@ -229,8 +229,13 @@ aulas_libro_hoja_agendadas <- function(unidades) {
     if (!length(n) || !is.finite(n) || n <= 0) n <- orden
     return(if (is.finite(n) && n > 0) sprintf("EN RESERVA %d", as.integer(n)) else "EN RESERVA 1")
   }
+  # `sin_contactar` incluido (B13a): el estado INICIAL del plan también se
+  # escribe en el vocablo del desplegable — «SIN CONTACTAR», sin guion bajo.
+  # La normalización de `v` de arriba colapsa `SIN_CONTACTAR` (la forma que la
+  # siembra escribía hasta hoy) y «SIN CONTACTAR» en la misma clave, así que
+  # regenerar un libro viejo también sale alineado.
   conocidos <- c(agendada = "AGENDADA", reagendada = "REAGENDADA",
-                 reemplazada = "REEMPLAZADA")
+                 reemplazada = "REEMPLAZADA", sin_contactar = "SIN CONTACTAR")
   # `conocidos[[v]]` con un nombre que no esta REVIENTA («subscript out of
   # bounds») en vez de dar NULL: se pregunta por los nombres.
   if (v %in% names(conocidos)) return(unname(conocidos[[v]]))
