@@ -63,13 +63,87 @@
   max(1L, as.integer(max(por_titular)))
 }
 
+# La celda «SESIONES Y AULA»: las sesiones LEGIBLES por dia si el plan las
+# trae —«LUN 16:00-18:00 L101 · MIE 17:00-20:00 A506», anotadas desde el
+# catalogo DTI con el apareamiento dia↔aula intacto
+# (`calc_muestra_aulas_sesiones_legible`)— y si no, el `label` de siempre. El
+# dictado B15: «que todo eso se este jalando muy bien, no vaya a ser que jale
+# mal algun numero o interprete mal alguna fecha y el docente pierda seriedad
+# sobre el estudio».
+.calg_sesiones_y_aula <- function(u) {
+  legible <- .calg_txt(u$sesiones_legibles)
+  if (nzchar(legible)) legible else .calg_txt(u$label)
+}
+
+# **Las celdas del bloque de agenda, derivadas de la spec.**
+#
+# Antes habia DOS sitios que escribian estas celdas a mano en un orden que
+# tenia que coincidir con `AULAS_AGENDADAS_BLOQUE` sin que nada los atara: el
+# reorden v4 (B15) habria sido contar columnas dos veces y rezar. Ahora la
+# secuencia vive UNA vez en la spec y este despachador pone cada valor bajo su
+# campo: un reorden futuro se paga tocando solo `carga_aulas_agendadas.R`.
+#
+# A partir de `contact_medium` llena la PERSONA que agenda, pero se DEVUELVE lo
+# que ya este registrado: escribir vacio siempre borraba el operativo en curso.
+# `notes` o `replacement_note`: el lector guarda OBSERVACIONES en
+# `replacement_note`, y leer solo `notes` perdia las 190 observaciones de 2025.
+.calg_celda_agenda <- function(u, campo) {
+  switch(
+    campo,
+    operational_code = .calg_txt(u$operational_code),
+    course_name      = .calg_txt(u$course_name),
+    teacher          = .calg_txt(u$teacher),
+    teacher_phone    = .calg_txt(u$teacher_phone),
+    label            = .calg_sesiones_y_aula(u),
+    contact_medium   = .calg_txt(u$contact_medium),
+    contact_date     = .calg_txt(u$contact_date),
+    contact_attempts = .calg_num_txt(u$contact_attempts),
+    sample_status    = .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
+    scheduled_date   = .calg_txt(u$scheduled_date),
+    scheduled_day    = .calg_dia_excel(u$scheduled_day),
+    scheduled_time   = .calg_txt(u$scheduled_time),
+    scheduled_moment = .calg_txt(u$scheduled_moment),
+    notes            = .calg_txt(u$notes %||% u$replacement_note),
+    teacher_email    = .calg_txt(u$teacher_email),
+    faculty          = .calg_txt(u$faculty),
+    level            = .calg_txt(u$level),
+    enrolled_total   = .calg_num_txt(u$enrolled_total),
+    eligible_n       = .calg_num_txt(u$eligible_n),
+    link             = .calg_txt(u$link),
+    # Un campo que la spec gane y este switch no conozca sale VACIO, no
+    # desalineado: el largo lo fija el vapply de abajo, y el barrido de ida y
+    # vuelta (test-carga-aulas-libro-roundtrip.R) caza el hueco.
+    ""
+  )
+}
+
+.calg_celdas_agenda <- function(u) {
+  vapply(AULAS_AGENDADAS_BLOQUE, function(s) .calg_celda_agenda(u, s$campo), character(1))
+}
+
 #' Arma la hoja «Aulas Agendadas» a partir del plan.
 #'
 #' @param unidades filas del plan (formato largo).
+#' @param traslape_daa vector de caracteres NOMBRADO por codigo operativo con el
+#'   veredicto del cruce DAA (`aulas_daa_traslape`), o `NULL`. La columna
+#'   «TRASLAPE DAA» es CONDICIONAL (B8h, dictado del dueño: «la DAA es algo
+#'   particular de este año, no es una columna que se emplee para otros
+#'   estudios»): sin cruce el bloque queda EXACTAMENTE como declara la spec;
+#'   con cruce, cada bloque la gana al final del contexto. Es una columna DE
+#'   IDA: el lector empareja por titulo contra la spec y la ignora de vuelta.
 #' @return data.frame sin nombres, con la cabecera como primera fila.
 #' @export
-aulas_libro_hoja_agendadas <- function(unidades) {
+aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   titulos_bloque <- .calg_titulos_agenda()
+  con_daa <- length(traslape_daa %||% character(0)) > 0L
+  if (con_daa) titulos_bloque <- c(titulos_bloque, "TRASLAPE DAA")
+  # El veredicto de una unidad, o "" si el cruce no la menciona — celda vacia,
+  # nunca NA: un default inventado diria «sin traslape» con la voz de un dato.
+  daa_de <- function(u) {
+    cod <- .calg_txt(u$operational_code)
+    v <- if (nzchar(cod)) unname(traslape_daa[cod]) else NA_character_
+    if (length(v) != 1L || is.na(v)) "" else as.character(v)
+  }
   # Agrupa por titular: cada fila del Excel es un titular con su cadena al lado.
   # Por `titular_operational_code` y no por `replacement_for` — ver `.calg_titular`.
   #
@@ -108,43 +182,20 @@ aulas_libro_hoja_agendadas <- function(unidades) {
     celdas <- unlist(lapply(seq_len(profundidad), function(b) {
       if (b > length(g)) return(rep("", length(titulos_bloque)))
       u <- g[[b]]
-      c(
-        # Sin `wave`: la columna MUESTRA salio del bloque el 2026-08-31 (B8).
-        .calg_txt(u$operational_code), .calg_txt(u$teacher),
-        .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email),
-        .calg_txt(u$course_name), .calg_txt(u$faculty), .calg_txt(u$level),
-        .calg_txt(u$label), .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
-        # A partir de aqui llena la PERSONA que agenda, pero se DEVUELVE lo que
-        # ya este registrado. Escribir vacio siempre borraba el operativo en
-        # curso: regenerar el libro de un estudio en marcha perdia los estados
-        # de agendamiento y el ciclo de contacto de todas las aulas. Un libro
-        # nuevo no trae estos campos y sale en blanco igual que antes.
-        # `notes` o `replacement_note`: el lector de «Aulas Agendadas» guarda la
-        # columna OBSERVACIONES en `replacement_note`, asi que leer solo `notes`
-        # perdia las 190 observaciones del estudio de 2025 en cada regeneracion.
-        .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
-        .calg_num_txt(u$contact_attempts),
-        .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
-        .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
-        # El bloque se escribe A MANO aqui y su cabecera sale de
-        # `AULAS_AGENDADAS_BLOQUE`: son dos listas que nadie ata. Agregar el
-        # campo alla sin agregarlo aca desalinea la hoja entera —medido: la
-        # cabecera pasa a 21 por bloque, las celdas siguen en 20, y `rbind`
-        # recicla en silencio dejando UN bloque de 22 columnas en vez de tres
-        # de 64—. Y son DOS los sitios que escriben la parte de agenda a mano:
-        # este y el de «Aulas Aplicadas (Campo)». Un campo nuevo va en ambos.
-        .calg_txt(u$scheduled_moment),
-        .calg_txt(u$link),
-        .calg_txt(u$notes %||% u$replacement_note)
-      )
+      # Derivadas de la MISMA spec que la cabecera (`.calg_celdas_agenda`):
+      # antes el bloque se escribia a mano aqui y en la hoja de campo, dos
+      # listas que nadie ataba — un reorden a medias dejaba el telefono bajo el
+      # correo sin que nada fallara. El TRASLAPE DAA cierra el bloque solo
+      # cuando la hoja lo lleva (columna condicional, ver la firma).
+      c(.calg_celdas_agenda(u), if (con_daa) daa_de(u))
     }), use.names = FALSE)
     c(as.character(i), celdas)
   })
   as.data.frame(do.call(rbind, c(list(cabecera), filas)), stringsAsFactors = FALSE)
 }
 
-# Celdas del parte de campo en el orden de `.calg_titulos_campo()`. Con `parte`
-# nulo salen los dos denominadores y el resto en blanco, que es el libro nuevo.
+# Celdas del parte de campo, despachadas POR TITULO contra `titulos_campo`. Con
+# `parte` nulo salen los dos denominadores y el resto en blanco (libro nuevo).
 .cap_celdas_parte <- function(parte, unidad, titulos_campo) {
   # **Por ALIAS, no por nombre literal.**
   #
@@ -158,31 +209,44 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   # contaba el mismo caso en otras capas: «una capa aprendio los alias y las
   # otras dos no se enteraron; por eso son UNA constante y no tres listas».
   # Esta era la cuarta.
+  #
+  # **Y por TITULO, no por posicion**: el orden vive una sola vez en
+  # `.calg_titulos_campo()` (contrato v4, B16) y cada valor cae bajo su
+  # cabecera. Un titulo que este switch no conozca sale vacio, y el barrido de
+  # ida y vuelta lo caza.
   pa <- function(clave) .monitoreo_aulas_parte_primero(
     parte %||% list(), .MONITOREO_AULAS_PARTE_ALIAS[[clave]])
   v <- function(x) .calg_txt(pa(x))
   n <- function(x) .calg_num_txt(pa(x))
-  celdas <- c(
-    .calg_num_txt(unidad$enrolled_total), .calg_num_txt(unidad$eligible_n),
-    n("asistentes"),
-    # **El % de asistencia VUELVE al libro.** Estaba en blanco con el comentario
-    # de que «lo calcula la hoja del equipo con sus formulas», pero el libro que
-    # generamos no llevaba formula ninguna: escribia texto vacio. Y el LECTOR si
-    # lo lee (`carga_aulas_aplicadas.R`), asi que reabrir un libro con partes
-    # perdia justo esa columna. No se deriva —medido sobre 152 partes: no sale
-    # de ninguno de los dos denominadores de la hoja— porque es el numero que
-    # pone el equipo.
-    n("asistencia_pct"),
-    n("rechazos"), n("duplicados"), n("efectivas"),
-    v("aplicador"), v("aula"), v("fecha"), v("hora"), v("estado"), v("nota"),
-    # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
-    # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app genera,
-    # otra columna y otra cosa—; en un libro nuevo sale vacio.
-    v("enlace_escaneado")
-  )
-  length(celdas) <- length(titulos_campo)
-  celdas[is.na(celdas)] <- ""
-  celdas
+  vapply(titulos_campo, function(titulo) {
+    switch(
+      titulo,
+      "MATRICULADOS TOTAL DTI"       = .calg_num_txt(unidad$enrolled_total),
+      "MATRICULADOS ELEGIBLES"       = .calg_num_txt(unidad$eligible_n),
+      "APLICADOR"                    = v("aplicador"),
+      "FECHA DE APLICACIÓN"          = v("fecha"),
+      "HORA DE APLICACIÓN"           = v("hora"),
+      "AULA"                         = v("aula"),
+      "CANTIDAD DE ASISTENTES"       = n("asistentes"),
+      # **El % de asistencia VUELVE al libro.** Estaba en blanco con el
+      # comentario de que «lo calcula la hoja del equipo con sus formulas»,
+      # pero el libro generado no llevaba formula ninguna: escribia vacio. Y el
+      # LECTOR si lo lee (`carga_aulas_aplicadas.R`), asi que reabrir un libro
+      # con partes perdia justo esa columna. No se deriva —medido sobre 152
+      # partes: no sale de ningun denominador— porque lo pone el equipo.
+      "% ASISTENCIA"                 = n("asistencia_pct"),
+      "CANTIDAD DE RECHAZOS"         = n("rechazos"),
+      "DUPLICADOS (YA RESPONDIERON)" = n("duplicados"),
+      "CANTIDAD DE EFECTIVAS"        = n("efectivas"),
+      "STATUS DE APLICACIÓN"         = v("estado"),
+      # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
+      # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app
+      # genera, otra columna y otra cosa—; en un libro nuevo sale vacio.
+      "ENLACE DE FICHA ESCANEADA"    = v("enlace_escaneado"),
+      "OBSERVACIONES SOBRE APLICACIONES" = v("nota"),
+      ""
+    )
+  }, character(1), USE.NAMES = FALSE)
 }
 
 # La columna de un campo de la «Base de control», por nombre. Devuelve 0 si el
@@ -267,20 +331,30 @@ aulas_libro_hoja_agendadas <- function(unidades) {
 # Los titulos de campo que son CUENTAS. El `% ASISTENCIA` no esta: es una
 # razon y su formato depende de la escala que traiga.
 .calg_campo_numeros <- function() c(
-  "MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN", "CANTIDAD DE ASISTENTES",
+  "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES", "CANTIDAD DE ASISTENTES",
   "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS"
 )
 
+# El orden v4 del parte (B16, dictado: «la asistencia, la cantidad de rechazos,
+# los duplicados, la cantidad de efectivas, el nombre del aplicador, el aula,
+# la fecha de aplicacion — tenerlo bien, bien claro»). Los dos denominadores
+# ABREN el parte: son el marcador con que el lector separa agenda de campo
+# (segunda aparicion de MATRICULADOS TOTAL DTI, carga_aulas_aplicadas.R) y el
+# denominador que «% ASISTENCIA» necesita al lado. Despues, el flujo del parte
+# tal como se rinde: quien aplico, cuando, donde, cuanto, con que estado y su
+# evidencia. Las celdas se despachan por titulo (`.cap_celdas_parte`): un
+# reorden futuro se paga tocando SOLO esta lista.
 .calg_titulos_campo <- function() c(
-  "MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN", "CANTIDAD DE ASISTENTES",
-  "% ASISTENCIA", "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)",
-  "CANTIDAD DE EFECTIVAS", "APLICADOR", "AULA", "FECHA DE APLICACIÓN",
-  "HORA DE APLICACIÓN", "STATUS DE APLICACIÓN", "OBSERVACIONES SOBRE APLICACIONES",
-  # ULTIMA del bloque a proposito (B6c): en medio correria las posiciones de lo
-  # que el equipo ya tiene repartido en su Sheets. Es la columna MANUAL donde se
-  # pega el enlace del PDF escaneado; la siembra `.cap_celdas_parte`, que solo
-  # devuelve lo que el parte ya traiga.
-  "ENLACE DE FICHA ESCANEADA"
+  "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES",
+  "APLICADOR", "FECHA DE APLICACIÓN", "HORA DE APLICACIÓN", "AULA",
+  "CANTIDAD DE ASISTENTES", "% ASISTENCIA", "CANTIDAD DE RECHAZOS",
+  "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS",
+  "STATUS DE APLICACIÓN",
+  # La columna MANUAL del enlace del PDF escaneado (B6c): la siembra
+  # `.cap_celdas_parte`, que solo devuelve lo que el parte ya traiga. En v4 va
+  # como evidencia del estado, antes de las observaciones libres.
+  "ENLACE DE FICHA ESCANEADA",
+  "OBSERVACIONES SOBRE APLICACIONES"
 )
 
 #' Arma la hoja «Aulas Aplicadas (Campo)».
@@ -304,26 +378,13 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
     if (!length(n) || !is.finite(n) || n < 1L) n <- 1L
     por_aula[[sprintf("%s#%d", cod, n)]] <- pt
   }
-  # **Las DOS fechas del bloque se llamaban igual.** Esta hoja repite la parte de
-  # agenda y le pega el parte de campo, asi que «FECHA DE APLICACION» sale dos
-  # veces en el mismo bloque: la que se agendo y la que ocurrio. Lo unico que
-  # las distinguia en pantalla era una tilde —«APLICACION» contra
-  # «APLICACIÓN»—, que es una diferencia accidental y que nadie lee como una
-  # distincion de significado. El lector ya lo sufria: separa las dos partes por
-  # la SEGUNDA aparicion de `MATRICULADOS TOTAL DTI`, una heuristica que existe
-  # solo porque los rotulos no se distinguen.
-  #
-  # `FECHA AGENDADA` es **alias declarado** de `scheduled_date` en
-  # `AULAS_AGENDADAS_BLOQUE`, asi que el nombre ya estaba disponible. Se cambia
-  # SOLO en esta hoja: en «Aulas Agendadas» no hay con que confundirla.
-  #
-  # **Con Y sin tilde.** Este `sub` casaba solo con «FECHA DE APLICACION», y al
-  # anteponer la version acentuada como titulo principal de `scheduled_date`
-  # —el 2026-08-31, arreglando que cuatro cabeceras fueran sin tilde— dejo de
-  # casar: la hoja de campo se quedo con DOS columnas «FECHA DE APLICACIÓN» en
-  # el mismo bloque, que es exactamente lo que este renombrado existe para
-  # impedir. Lo cazo `test-carga-aulas-libro-rotulos-distinguibles`.
-  titulos_agenda <- sub("^FECHA DE APLICACI[OÓ]N$", "FECHA AGENDADA", .calg_titulos_agenda())
+  # Desde el contrato v4 (B15) la parte de agenda ya dice «FECHA AGENDADA» de
+  # fabrica —es el titulo primario de `scheduled_date`— asi que las dos fechas
+  # del bloque se distinguen sin el parche del `sub()` que vivia aqui. La
+  # historia del parche (dos columnas que solo separaba una tilde, y el sub que
+  # dejo de casar al acentuar los titulos) queda contada en
+  # `test-carga-aulas-libro-rotulos-distinguibles.R`.
+  titulos_agenda <- .calg_titulos_agenda()
   titulos_campo <- .calg_titulos_campo()
 
   grupo <- c()
@@ -359,19 +420,10 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
     u <- titulares[[i]]
     bloque <- c(
       as.character(i),
-      # Sin `wave`: la columna MUESTRA salio del bloque el 2026-08-31 (B8).
-      .calg_txt(u$operational_code), .calg_txt(u$teacher),
-      .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email), .calg_txt(u$course_name),
-      .calg_txt(u$faculty), .calg_txt(u$level), .calg_txt(u$label),
-      .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
-      .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
-      .calg_num_txt(u$contact_attempts),
-      .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
-      .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
-      # Segundo sitio donde la parte de agenda se escribe a mano; ver la nota de
-      # `aulas_libro_hoja_agendadas`. Un campo nuevo se agrega en los DOS.
-      .calg_txt(u$scheduled_moment),
-      .calg_txt(u$link), .calg_txt(u$notes %||% u$replacement_note),
+      # La parte de agenda que esta hoja repite sale de la MISMA spec que la
+      # otra hoja (`.calg_celdas_agenda`): antes eran dos escritores a mano y
+      # un campo nuevo tenia que agregarse en ambos sin que nada lo atara.
+      .calg_celdas_agenda(u),
       # Parte de campo del primer intento: los dos denominadores como referencia
       # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.
       .cap_celdas_parte(por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]], u, titulos_campo)
@@ -494,7 +546,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     pon("AULA", .calg_txt(u$label))
     pon("HORARIO", .calg_txt(u$schedule))
     pon("MATRICULADOS TOTALES", .calg_num_txt(u$enrolled_total))
-    pon("MATRICULADOS POBLACION", .calg_num_txt(u$eligible_n))
+    pon("MATRICULADOS ELEGIBLES", .calg_num_txt(u$eligible_n))
 
     # Lo que sabe AGENDA, que viaja en la propia unidad.
     pon("FECHA AGENDADA", .calg_txt(u$scheduled_date))
@@ -528,7 +580,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 
     pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas))
     # El denominador del % de al lado. Es el mismo `eligible_n` de
-    # «MATRICULADOS POBLACION»: se repite para que el porcentaje se lea sin
+    # «MATRICULADOS ELEGIBLES»: se repite para que el porcentaje se lea sin
     # cruzar la hoja. NO es una meta — la meta es «EFECTIVAS ESPERADAS».
     pon("ELEGIBLES: BASE DEL %", .calg_num_txt(eleg))
     pon("% EFECTIVAS ESPERADO", .calg_num_txt(pct(esperadas)))
@@ -815,13 +867,26 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       aulas_libro_status_muestra(profundidad),
       AULAS_LIBRO_MEDIO_CONTACTO,
       AULAS_LIBRO_DIA,
+      # El desplegable NO absoluto de B15: tres momentos y texto libre (la
+      # validacion de esta capa ya es allowBlank + sin error duro).
+      AULAS_LIBRO_MOMENTO_CLASE,
       AULAS_LIBRO_STATUS_APLICACION
     ),
     c(titulo_de("sample_status"), titulo_de("contact_medium"), titulo_de("scheduled_day"),
+      titulo_de("scheduled_moment"),
       # Esta es de la hoja de campo, no del bloque de agenda.
       .calg_titulos_campo()[[which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")]])
   )
   hoja_listas <- "Listas"
+  # El rango de una lista, resuelto por SU nombre y no por un indice a mano:
+  # las dos numeraciones que se llevaban a mano (posicion del campo en el
+  # bloque e indice de la lista en «Listas») eran justo el cruce que el test de
+  # «cada desplegable saca sus valores de SU lista» vigila. Asi, añadir una
+  # lista en medio no cruza ninguna validacion.
+  rango_de <- function(titulo) {
+    i <- which(names(listas) == titulo)[[1]]
+    .calf_rango(hoja_listas, i, length(listas[[i]]))
+  }
 
   # Las columnas del desplegable se derivan de la POSICION del campo en el
   # bloque, no de un numero a mano: si manana el bloque gana una columna, esto
@@ -834,13 +899,18 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   validaciones <- list(
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("sample_status", b), integer(1)),
-         rango = .calf_rango(hoja_listas, 1L, length(listas[[1]]))),
+         rango = rango_de(titulo_de("sample_status"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("contact_medium", b), integer(1)),
-         rango = .calf_rango(hoja_listas, 2L, length(listas[[2]]))),
+         rango = rango_de(titulo_de("contact_medium"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("scheduled_day", b), integer(1)),
-         rango = .calf_rango(hoja_listas, 3L, length(listas[[3]])))
+         rango = rango_de(titulo_de("scheduled_day"))),
+    # B15: el desplegable no absoluto de MOMENTO DE LA CLASE, en cada bloque y
+    # derivado de la spec — nunca un numero de columna a mano.
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("scheduled_moment", b), integer(1)),
+         rango = rango_de(titulo_de("scheduled_moment")))
   )
 
   # Las columnas de estado que se tiñen. Se piden por su POSICION dentro del
@@ -896,7 +966,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     vapply(bloques, function(b) col_en_bloque(campo, b), integer(1))))
   filas_control <- nrow(hojas[["Base de control"]]) - 2L
   cols_control <- vapply(
-    c("MATRICULADOS TOTALES", "MATRICULADOS POBLACION",
+    c("MATRICULADOS TOTALES", "MATRICULADOS ELEGIBLES",
       # Las cuentas del bloque nuevo: esperadas, obtenidas y la diferencia.
       "EFECTIVAS ESPERADAS", "EFECTIVAS OBTENIDAS", "EFECTIVAS: DIFERENCIA",
       "ELEGIBLES: BASE DEL %", "MUJERES ESPERADAS", "HOMBRES ESPERADOS"),
@@ -919,7 +989,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Excel y nada obliga a que las cuatro vengan en la misma —un libro con «VS
   # TOTAL» en 0-1 y «ASISTENCIA» en 0-100 es un caso real—.
   razones_control <- Filter(Negate(is.null), lapply(
-    c("VS TOTAL", "VS POBLACION", "CORTAS VS TOTAL", "LARGAS VS TOTAL"),
+    c("VS TOTAL", "VS ELEGIBLES", "CORTAS VS TOTAL", "LARGAS VS TOTAL"),
     function(titulo) {
       col <- .calg_col_control(titulo)
       if (!length(col) || is.na(col) || col <= 0L) return(NULL)
@@ -943,11 +1013,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # tipada sale como «46 245» y el arreglo se lee como una averia peor.
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
          tipo = "numero", cols = cols_agenda_en_campo(
-           c("MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN",
+           c("MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES",
              "NÚMERO DE INTENTOS", "NIVEL DEL CURSO"))),
+    # «FECHA AGENDADA»: el titulo v4 con el que la agenda viaja en esta hoja.
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
          tipo = "fecha", cols = cols_agenda_en_campo(
-           c("FECHA DE LLAMADA", "FECHA DE APLICACIÓN"))),
+           c("FECHA DE LLAMADA", "FECHA AGENDADA"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          tipo = "numero", cols = cols_de("level")),
     # El tipo de esta columna lo decide la escala de lo que llego, no una
@@ -989,12 +1060,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
                       cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                       cols_agenda_en_campo(c("MATRICULADOS TOTAL DTI",
-                                             "MATRICULADOS POBLACIÓN",
+                                             "MATRICULADOS ELEGIBLES",
                                              "NÚMERO DE INTENTOS",
                                              "NIVEL DEL CURSO")), desde = 2L)
   .calg_tipar_fechas(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                      cols_agenda_en_campo(c("FECHA DE LLAMADA",
-                                            "FECHA DE APLICACIÓN")), desde = 2L)
+                                            "FECHA AGENDADA")), desde = 2L)
   # **La fecha del bloque de CAMPO, que es otra columna con el mismo nombre.**
   #
   # `cols_agenda_en_campo` tipa las que la hoja repite de la agenda; ésta la

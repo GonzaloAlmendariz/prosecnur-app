@@ -24,27 +24,35 @@
 # libro viejo que aun la traiga se lee igual, porque el emparejado es por titulo
 # y lo desconocido se ignora. La «Base de control» CONSERVA su columna MUESTRA:
 # esa hoja tiene su propia spec (`carga_base_control.R`).
+#
+# **El orden es el v4 (B15, dictado del dueño 2026-09-01)**: identidad, despues
+# la zona de trabajo del agendador —«el nombre del docente, su numero, las
+# fechas del curso, y que pueda registrar cuando se va a hacer»— y al final el
+# contexto que «tiene que estar, pero no a la mano» (correo, matriculados). Los
+# generadores derivan las celdas de ESTA lista (`.calg_celdas_agenda`), asi que
+# reordenar aqui reordena la hoja entera sin contar columnas en ningun otro
+# sitio. Los lectores emparejan por titulo: un libro v3 con el orden viejo se
+# sigue leyendo igual.
 AULAS_AGENDADAS_BLOQUE <- list(
+  # --- identidad ---
   list(campo = "operational_code", titulos = c("CURSO-HORARIO", "CURSO HORARIO")),
+  list(campo = "course_name",      titulos = c("NOMBRE DEL CURSO")),
+  # --- zona del agendador: lo que ve y lo que registra, en orden de uso ---
   list(campo = "teacher",          titulos = c("NOMBRE DE DOCENTE")),
   list(campo = "teacher_phone",    titulos = c("TELÉFONO DE DOCENTE", "TELEFONO DE DOCENTE")),
-  list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
-  list(campo = "course_name",      titulos = c("NOMBRE DEL CURSO")),
-  list(campo = "faculty",          titulos = c("FACULTAD")),
-  list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
+  # La celda enseña las sesiones LEGIBLES por dia —«LUN 16:00-18:00 L101 ·
+  # MIE 17:00-20:00 A506»— cuando el plan trae `sesiones_legibles` (anotadas
+  # desde el catalogo DTI); sin ellas cae al `label` de siempre.
   list(campo = "label",            titulos = c("SESIONES Y AULA")),
-  list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
-  # Con tilde, que es como lo escribe el equipo en su Excel y como ya lo escribe
-  # la hoja de campo. La variante sin tilde queda de alias: se leyo asi durante
-  # todo 2025 y el equipo tiene esos libros. Sin unificar, la hoja de campo
-  # enseñaba «MATRICULADOS POBLACION» y «MATRICULADOS POBLACIÓN» a veinte
-  # columnas de distancia, que es el mismo dato escrito de dos formas.
-  list(campo = "eligible_n",       titulos = c("MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
   list(campo = "contact_attempts", titulos = c("NÚMERO DE INTENTOS", "NUMERO DE INTENTOS")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
-  list(campo = "scheduled_date",   titulos = c("FECHA DE APLICACIÓN", "FECHA DE APLICACION", "FECHA AGENDADA")),
+  # «FECHA AGENDADA» como canonico (B15): en la hoja del agendador esa fecha es
+  # la agendada, y «FECHA DE APLICACIÓN» era justo la confusion que el renombre
+  # de la hoja de campo ya habia documentado. Las formas viejas quedan de alias:
+  # los libros vivos v3 las traen escritas.
+  list(campo = "scheduled_date",   titulos = c("FECHA AGENDADA", "FECHA DE APLICACIÓN", "FECHA DE APLICACION")),
   list(campo = "scheduled_day",    titulos = c("DÍA", "DIA")),
   list(campo = "scheduled_time",   titulos = c("HORA")),
   # EN QUE MOMENTO de la clase entra la aplicacion. Hasta 2025 esto vivia en
@@ -53,12 +61,22 @@ AULAS_AGENDADAS_BLOQUE <- list(
   # agenda de campo no sabia si el aplicador entra al empezar la clase o al
   # cerrarla, que es lo que decide si dos aulas de la misma franja chocan.
   #
-  # Vocabulario cerrado a tres valores (`inicio`, `intermedio`, `final`) porque
-  # es lo que el docente responde. La hora exacta, cuando la pide, sigue yendo
-  # en HORA; este campo dice donde cae dentro de la sesion.
+  # Desplegable NO absoluto (B15): tres momentos tecleables en la hoja «Listas»
+  # (`AULAS_LIBRO_MOMENTO_CLASE`) y texto libre permitido. La hora exacta,
+  # cuando la pide, sigue yendo en HORA; este campo dice donde cae en la sesion.
   list(campo = "scheduled_moment", titulos = c("MOMENTO DE LA CLASE", "MOMENTO")),
-  list(campo = "link",             titulos = c("ENLACE DE LA FICHA")),
-  list(campo = "notes",            titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS"))
+  list(campo = "notes",            titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS")),
+  # --- contexto: tiene que estar, pero no a la mano ---
+  list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
+  list(campo = "faculty",          titulos = c("FACULTAD")),
+  list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
+  list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
+  # «MATRICULADOS ELEGIBLES» (B17, dictado textual): «aqui no hablamos de
+  # poblacion; matriculados totales de la DTI y matriculados elegibles, que son
+  # los que cumplen los criterios». Las dos formas de POBLACION quedan de alias
+  # de lectura: todo 2025 y los libros vivos v3 las traen escritas.
+  list(campo = "eligible_n",       titulos = c("MATRICULADOS ELEGIBLES", "MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
+  list(campo = "link",             titulos = c("ENLACE DE LA FICHA"))
 )
 
 AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)

@@ -23,7 +23,11 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "room",                titulos = c("AULA")),
   list(campo = "schedule",            titulos = c("HORARIO")),
   list(campo = "enrolled_total",      titulos = c("MATRICULADOS TOTALES")),
-  list(campo = "eligible_n",          titulos = c("MATRICULADOS POBLACION")),
+  # «ELEGIBLES», no «POBLACION» (B17, dictado textual del dueño): «aqui no
+  # hablamos de poblacion; matriculados totales de la DTI y matriculados
+  # elegibles, que son los que cumplen los criterios». El titulo viejo queda de
+  # alias de lectura para los libros vivos v3; el generador escribe el nuevo.
+  list(campo = "eligible_n",          titulos = c("MATRICULADOS ELEGIBLES", "MATRICULADOS POBLACION")),
   # Campo
   list(campo = "scheduled_date",      titulos = c("FECHA AGENDADA")),
   list(campo = "scheduled_time",      titulos = c("HORA")),
@@ -34,7 +38,9 @@ BASE_CONTROL_CAMPOS <- list(
   # Control - cuenta
   list(campo = "sent_total",          titulos = c("TOTAL ENVIADAS")),
   list(campo = "sent_vs_total",       titulos = c("VS TOTAL")),
-  list(campo = "sent_vs_population",  titulos = c("VS POBLACION")),
+  # Mismo barrido B17 que «MATRICULADOS ELEGIBLES»: el denominador de esta
+  # razon son los elegibles, y el rotulo lo dice. «VS POBLACION» de alias.
+  list(campo = "sent_vs_population",  titulos = c("VS ELEGIBLES", "VS POBLACION")),
   list(campo = "validator_1",         titulos = c("VALIDADOR 1")),
   list(campo = "validator_2",         titulos = c("VALIDADOR 2")),
   list(campo = "validator_3",         titulos = c("VALIDADOR 3")),

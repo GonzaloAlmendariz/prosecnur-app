@@ -127,6 +127,34 @@ calc_muestra_aulas_sesiones_partes <- function(sesiones) {
   )
 }
 
+#' Cada sesión completa —día, horario y aula— sin cruzar el apareamiento.
+#'
+#' Es la forma que pide la hoja del agendador (B15): «a veces pueden ser dos
+#' días en pabellones distintos con horarios diferentes». Las dos columnas de
+#' arriba NO sirven para reconstruirla: `aula` deduplica («L101 · A506») y
+#' `horario` agrupa días por franja, así que el emparejo día↔aula se pierde —
+#' y ponerle al docente el aula del otro día es exactamente «jalar mal» el
+#' dato. Aquí cada sesión sale entera y en su orden:
+#' `"LUN 16:00-18:00 L101 · MIE 17:00-20:00 A506"`.
+#'
+#' @param sesiones cadena `SESIONES` del catálogo (separador `<br />`).
+#' @return una cadena; sesiones separadas por « · », vacía si no hay dato.
+#' @export
+calc_muestra_aulas_sesiones_legible <- function(sesiones) {
+  x <- trimws(as.character(sesiones %||% "")[1])
+  if (is.na(x) || !nzchar(x)) return("")
+  trozos <- trimws(unlist(strsplit(x, "<br\\s*/?>", perl = TRUE)))
+  trozos <- trozos[nzchar(trozos)]
+  if (!length(trozos)) return("")
+  legibles <- vapply(trozos, function(t) {
+    p <- .cm_aulas_sesion_partes(t)
+    # `paste` y `trimws`: una sesión sin aula asignada queda como su horario a
+    # secas, no con un espacio colgando.
+    trimws(paste(p$horario, p$aula))
+  }, character(1), USE.NAMES = FALSE)
+  .cm_aulas_sesiones_unir(legibles)
+}
+
 #' Vector a vector, para anotar una tabla entera.
 #'
 #' @param sesiones vector de cadenas `SESIONES`.
@@ -174,13 +202,22 @@ calc_muestra_aulas_anotar_sesiones <- function(raw, catalogo, raw_key, catalog_k
   ))
   if (!nzchar(col)) return(raw)
   valores <- .cm_aulas_values(catalogo, col, "")
-  lookup <- function(parte) {
-    partes <- calc_muestra_aulas_sesiones_columna(valores, parte)
+  lookup_de <- function(partes) {
     keys <- catalog_key[nzchar(catalog_key) & nzchar(partes)]
     vals <- partes[nzchar(catalog_key) & nzchar(partes)]
     if (!length(keys)) return(character(0))
     vapply(split(vals, keys), .cm_aulas_mode, character(1), default = "")
   }
+  lookup <- function(parte) lookup_de(calc_muestra_aulas_sesiones_columna(valores, parte))
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "venue", lookup("aula"))
-  .cm_aulas_fill_from_lookup(raw, raw_key, "sesiones_dia_hora", lookup("horario"))
+  raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "sesiones_dia_hora", lookup("horario"))
+  # La tercera columna conserva el APAREAMIENTO dia↔aula que las otras dos
+  # pierden (B15): es la que la hoja «SESIONES Y AULA» del libro prefiere.
+  # `sesiones_legibles` sigue la misma regla de nombre que sus hermanas: no
+  # casa con ningun alias de otro rol del mapeo (ver la nota de arriba).
+  .cm_aulas_fill_from_lookup(
+    raw, raw_key, "sesiones_legibles",
+    lookup_de(vapply(valores, calc_muestra_aulas_sesiones_legible,
+                     character(1), USE.NAMES = FALSE))
+  )
 }
