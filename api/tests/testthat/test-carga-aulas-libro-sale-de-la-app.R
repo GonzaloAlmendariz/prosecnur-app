@@ -46,15 +46,20 @@ test_that("generar en una ruta nueva no toca ninguna otra", {
   expect_identical(unname(tools::md5sum(destino_a)), antes)
 })
 
-test_that("el libro trae CINCO hojas, no tres", {
-  # Las tres operativas más «Cómo va el campo» (indicadores) y «Listas» (el
-  # origen de los desplegables). Son las «hojas adicionales» que el dueño
-  # describe al hablar de la sinergia, y ya existen.
+test_that("el libro trae SEIS hojas, no tres", {
+  # Las tres operativas, «Plan del día», «Cómo va el campo» (indicadores) y
+  # «Listas» (el origen de los desplegables). «Plan del día» entra con la
+  # unidad B2.1 (2026-08-31): en 2025 el equipo tecleaba a mano SEIS hojas
+  # «aplicación del día N» —el recorte de la fila agenda+campo por fecha— y en
+  # 2026 el libro trae UNA hoja que la app genera con ese recorte, ordenado
+  # por fecha y hora. Su contrato fino vive en
+  # test-carga-aulas-libro-plan-dia.R; aquí solo se pinea que el juego de
+  # hojas del libro es este y ninguno más.
   libro <- withr::local_tempfile(fileext = ".xlsx")
   aulas_libro_generar(.pe_plan(), libro)
   expect_setequal(readxl::excel_sheets(libro),
                   c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control",
-                    "Cómo va el campo", "Listas"))
+                    "Plan del día", "Cómo va el campo", "Listas"))
 })
 
 test_that("las fechas se escriben como FECHAS de Excel, no como texto", {

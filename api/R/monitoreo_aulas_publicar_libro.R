@@ -10,11 +10,12 @@
 #     remoto no emite ni una escritura sobre ellas y las declara `respetada`.
 #     La regla es de dueño, no de delta: un plan cambiado en la app NO abre la
 #     puerta, y da igual quién puso el contenido (la propia siembra cuenta).
-#   - «Base de control» es de la APP. Viaja por el motor batch+hash
-#     (`monitoreo_sheets_publish_tabs`) y además se reasserta cuando el LIBRO
-#     cambió aunque su rectángulo coincida con el último corte (ver
-#     `.malp_control_forzado` abajo: cubre la edición manual del remoto que el
-#     estado por metadata no ve).
+#   - «Base de control» y «Plan del día» (B2.1) son de la APP. Viajan por el
+#     motor batch+hash (`monitoreo_sheets_publish_tabs`) y además se reassertan
+#     cuando el LIBRO cambió aunque su rectángulo coincida con el último corte
+#     (ver `.malp_hoja_app_forzada` abajo: cubre la edición manual del remoto
+#     que el estado por metadata no ve). Contenido remoto NO las protege:
+#     jamás salen `respetada`.
 #
 # `valueInputOption` se queda en RAW — DECISIÓN DEL LEAD, deliberada: prioriza
 # la fidelidad del round-trip con `aulas_libro_leer_de_sheets()` (todo texto;
@@ -112,12 +113,18 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 
 .malp_hojas_equipo <- function() c("Aulas Agendadas", "Aulas Aplicadas (Campo)")
 .malp_hoja_control <- function() "Base de control"
+.malp_hoja_plan_dia <- function() "Plan del día"
+# Las hojas de la APP: se publican SIEMPRE (sembrada/actualizada/sin_cambios,
+# jamás `respetada`) y comparten el trato de delta+reasserción.
+.malp_hojas_app <- function() c(.malp_hoja_control(), .malp_hoja_plan_dia())
 
 # Cuántas filas de cabecera lleva cada hoja. Es el MISMO reparto que usa el
-# lector (`aulas_libro_desde_valores`): la agenda una, las otras dos (grupo y
-# campo). Sirve para que `filas` del resumen cuente filas de DATOS.
+# lector (`aulas_libro_desde_valores`) para las tres con lector —la agenda una,
+# las otras dos (grupo y campo)—; «Plan del día» no tiene lector y lleva su
+# cabecera como primera fila. Sirve para que `filas` del resumen cuente filas
+# de DATOS.
 .malp_cabeceras <- function(hoja) {
-  if (identical(hoja, "Aulas Agendadas")) 1L else 2L
+  if (hoja %in% c("Aulas Agendadas", .malp_hoja_plan_dia())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -177,14 +184,15 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   out
 }
 
-# La reasserción de «Base de control» cuando el motor la saltó por hash. El
+# La reasserción de una hoja de la APP cuando el motor la saltó por hash. El
 # tab_state por developerMetadata describe lo que la APP escribió, no lo que
 # hay: si el equipo editó la pestaña a mano, el hash sigue coincidiendo y el
 # motor no la toca. Cuando el ciclo detectó que el libro cambió (cualquiera de
-# las tres hojas difiere del remoto), la hoja de la app se reescribe igual —
-# mismo rectángulo canónico que describe el estado, así que el metadata remoto
-# queda consistente sin tocarlo.
-.malp_control_forzado <- function(spreadsheet_id, values) {
+# sus hojas difiere del remoto), la hoja de la app se reescribe igual — mismo
+# rectángulo canónico que describe el estado, así que el metadata remoto queda
+# consistente sin tocarlo. Aplica a «Base de control» y «Plan del día» por
+# igual: mismo trato, decidido en B2.1.
+.malp_hoja_app_forzada <- function(spreadsheet_id, hoja, values) {
   padded <- .monitoreo_sync_sheets_padded_rows(.monitoreo_sheets_values_rows(values))
   .monitoreo_google_api(
     paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values:batchUpdate"),
@@ -193,7 +201,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
       # RAW: ver la cabecera del archivo (fidelidad del round-trip).
       valueInputOption = "RAW",
       data = list(list(
-        range = .monitoreo_sheets_quote_sheet(.malp_hoja_control()),
+        range = .monitoreo_sheets_quote_sheet(hoja),
         majorDimension = "ROWS",
         values = padded
       ))
@@ -206,9 +214,10 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 
 #' Publica el libro de aulas en el Google Sheets del operativo.
 #'
-#' Produce las tres hojas de datos con los MISMOS generadores del `.xlsx`
-#' (`aulas_libro_hoja_agendadas/aplicadas/control`), así que lo publicado se
-#' relee con `aulas_libro_leer_de_sheets()` sin configurar nada. La siembra va
+#' Produce las cuatro hojas de datos con los MISMOS generadores del `.xlsx`
+#' (`aulas_libro_hoja_agendadas/aplicadas/control/plan_dia`), así que lo
+#' publicado se relee con `aulas_libro_leer_de_sheets()` sin configurar nada
+#' («Plan del día» es de ida: el lector la ignora). La siembra va
 #' en UNA llamada a `monitoreo_sheets_publish_tabs()` (un solo
 #' values:batchUpdate); el ciclo sin cambios cuesta a lo más tres requests.
 #'
@@ -241,13 +250,16 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
 
   equipo <- .malp_hojas_equipo()
-  hoja_control <- .malp_hoja_control()
-  hojas_libro <- c(equipo, hoja_control)
+  hojas_app <- .malp_hojas_app()
+  hojas_libro <- c(equipo, hojas_app)
   producidas <- list()
   producidas[[equipo[[1]]]] <- .malp_df_a_values(aulas_libro_hoja_agendadas(unidades))
   producidas[[equipo[[2]]]] <- .malp_df_a_values(aulas_libro_hoja_aplicadas(unidades, partes = partes))
-  producidas[[hoja_control]] <- .malp_df_a_values(
+  producidas[[.malp_hoja_control()]] <- .malp_df_a_values(
     aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
+  )
+  producidas[[.malp_hoja_plan_dia()]] <- .malp_df_a_values(
+    aulas_libro_hoja_plan_dia(unidades, partes = partes)
   )
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
@@ -274,9 +286,13 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       filas[[hoja]] <- max(0L, length(producidas[[hoja]]) - .malp_cabeceras(hoja))
     }
   }
-  tabs[[hoja_control]] <- producidas[[hoja_control]]
-  filas[[hoja_control]] <- max(0L, length(producidas[[hoja_control]]) - .malp_cabeceras(hoja_control))
-  control_nueva <- !(hoja_control %in% names(tab_map))
+  # Las hojas de la APP siempre entran al motor: la regla de dueño de arriba no
+  # las alcanza y el contenido remoto no las protege.
+  app_nuevas <- stats::setNames(!(hojas_app %in% names(tab_map)), hojas_app)
+  for (hoja in hojas_app) {
+    tabs[[hoja]] <- producidas[[hoja]]
+    filas[[hoja]] <- max(0L, length(producidas[[hoja]]) - .malp_cabeceras(hoja))
+  }
 
   # ¿Cambió el libro? Delta a nivel LIBRO contra los values REMOTOS (la verdad
   # observable, no la caché de metadata): una pestaña ausente o distinta de lo
@@ -290,22 +306,24 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
 
   for (hoja in names(tabs)) {
-    if (identical(hoja, hoja_control)) next
+    if (hoja %in% hojas_app) next
     # Una sembrada que el motor saltó (metadata rancio sobre pestaña vaciada a
     # mano) no se declara sembrada: no se escribió nada.
     if (hoja %in% saltadas) acciones[[hoja]] <- "sin_cambios"
   }
-  if (control_nueva) {
-    acciones[[hoja_control]] <- "sembrada"
-  } else if (!(hoja_control %in% saltadas)) {
-    acciones[[hoja_control]] <- "actualizada"
-  } else if (libro_cambio) {
-    # El motor la saltó por hash pero el libro cambió: la hoja de la app se
-    # reasserta (ver `.malp_control_forzado`).
-    .malp_control_forzado(id, producidas[[hoja_control]])
-    acciones[[hoja_control]] <- "actualizada"
-  } else {
-    acciones[[hoja_control]] <- "sin_cambios"
+  for (hoja in hojas_app) {
+    if (app_nuevas[[hoja]]) {
+      acciones[[hoja]] <- "sembrada"
+    } else if (!(hoja %in% saltadas)) {
+      acciones[[hoja]] <- "actualizada"
+    } else if (libro_cambio) {
+      # El motor la saltó por hash pero el libro cambió: la hoja de la app se
+      # reasserta (ver `.malp_hoja_app_forzada`).
+      .malp_hoja_app_forzada(id, hoja, producidas[[hoja]])
+      acciones[[hoja]] <- "actualizada"
+    } else {
+      acciones[[hoja]] <- "sin_cambios"
+    }
   }
 
   list(
