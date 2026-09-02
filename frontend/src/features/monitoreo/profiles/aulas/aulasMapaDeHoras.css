@@ -1,0 +1,232 @@
+/* aulasMapaDeHoras.css — el «Mapa de horas» de la Agenda (encargo 2026-09-01).
+ *
+ * Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento
+ * (agentic/manifest.json); la importa `AulasMapaDeHoras.tsx`, su único
+ * consumidor — el mismo precedente que `aulasEslabon.css`. Habla el lenguaje
+ * del perfil: tokens `--pulso-*`, escala tipográfica `--aulas-txt/sec/min` y
+ * el tono del módulo de monitoreo.
+ *
+ * Barras y eje en CSS puro, sin Plotly: el precedente de las barras por día
+ * de la agenda (hoy evolucionadas al calendario).
+ * Cada día es un grid de dos columnas —códigos y pista— y la banda del pico
+ * se repite POR CARRIL con la misma geometría en vez de superponer una capa
+ * que pelee con el auto-placement del grid (probado: un item con fila y
+ * columna explícitas desplaza a los auto-colocados).
+ */
+
+/* ── El stack de la Agenda con TRES paneles ─────────────────────────────────
+ *
+ * El reparto congelado (`aulasMonitoreo.css`) declara DOS filas para el stack
+ * —traza `auto` + tabla `1fr`— y en pantalla corta lo convierte en marco
+ * fijado: `overflow: hidden` y un suelo de 180px que le da al ÚLTIMO panel,
+ * asumiendo que el último es la tabla. Con el mapa detrás de la tabla las dos
+ * suposiciones fallan: el panel nuevo caía en fila implícita, se llevaba el
+ * suelo del último y la tabla quedaba en 26px pintándose encima —medido en el
+ * quick check a 1024x600, intersección 920x16, el mismo número que el propio
+ * archivo documenta—.
+ *
+ * Con el mapa presente, el stack declara sus tres filas y en pantalla corta
+ * deja de fijar el marco: mide su contenido y el recorrido lo lleva
+ * `mon-workbench-content`, que ya declara overflow-y auto como capacidad suya
+ * — la MISMA estrategia que B25 fijó para el resto de alturas. Especificidad
+ * 0-6-0 a propósito: gana a las reglas congeladas (0-5-0) por peso y no por
+ * orden de hojas en el bundle, que entre archivos no está garantizado.
+ *
+ * SIN `>` desde `.aulas-mon-view`, y no por descuido: el stack cuelga de
+ * `div#aulas-mon-panel-agenda`, no de la vista — la hoja congelada documenta
+ * ese mismo tropiezo en su regla del stack, y la primera versión de ésta lo
+ * repitió con el combinador de hijo directo (medido: la regla no casaba y el
+ * mapa caía en fila implícita con el panel en 381px para 1970 de contenido). */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-stack.aulas-agenda-stack:has(.aulas-mapa-horas-panel) {
+  grid-template-rows: auto minmax(26px, 1fr) auto;
+}
+
+/* **La vista mide su contenido, medido y no supuesto.** B25 declaró
+ * `min-height: max-content` para la vista, pero una regla más específica
+ * —`.mon-profile-content > .aulas-mon-view`, 0-4-0 contra 0-3-0— la deja en
+ * `min-height: 0`: sondado en vivo (2026-09-02) con las tres reglas de
+ * min-height que matchean la vista en la Agenda. Con la vista en 586px el
+ * stack repartía 159/26/381 y el mapa pintaba 1970px de contenido por
+ * overflow. Se reestablece la intención de B25 sólo en el régimen que este
+ * panel introduce, con 0-5-0. */
+.mon-profile-page.is-aulas-flow .mon-profile-content > .aulas-mon-view:has(.aulas-mapa-horas-panel) {
+  min-height: max-content;
+}
+
+/* **Y las contribuciones de la agenda se acotan, o `max-content` explota.**
+ * Sondado: con la vista en max-content, la fila de la tabla (`minmax(200px,
+ * 1fr)`) aporta el max-content de las 174 filas —11.167px— y la vista quedaba
+ * en 23.465px. En este régimen la ventana de la tabla es FIJA —el suelo de
+ * B25c como piso y techo: la tabla scrollea dentro de su wrap, que es su
+ * diseño— y la franja del calendario se acota con su scroll ya declarado
+ * (`.aulas-agenda-detalle` lleva overflow-y auto de la hoja congelada). */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-stack.aulas-agenda-stack:has(.aulas-mapa-horas-panel) .mon-profile-panel.aulas-agenda-panel {
+  grid-template-rows: auto auto max(560px, 58vh);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-stack.aulas-agenda-stack:has(.aulas-mapa-horas-panel) .aulas-agenda-detalle {
+  max-height: min(46vh, 460px);
+}
+
+@media (max-height: 760px) {
+  .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-stack.aulas-agenda-stack:has(.aulas-mapa-horas-panel) {
+    grid-template-rows: auto minmax(26px, 1fr) auto;
+    align-content: start;
+    overflow: visible;
+  }
+
+  /* El suelo de 180px del marco fijado era DE LA TABLA; al mapa, último ahora,
+     no le corresponde — un vacío de un renglón dentro de 180px sería el hueco
+     sin dueño que C3 rechaza. La tabla conserva su suelo por su propia regla
+     (`min-height: max(560px, 58vh)` del wrap, B25c), que aquí vuelve a regir
+     porque el panel de agenda ya no es `:last-child`. */
+  .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-stack.aulas-agenda-stack:has(.aulas-mapa-horas-panel) > .mon-profile-panel:last-child {
+    min-height: 0;
+  }
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-horas {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-dia {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-surface-2) 40%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-dia-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-dia-cab h4 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold, 600);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pico-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pico-lectura strong {
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pico-lectura em {
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+/* Columna de códigos + pista. La pista es la unidad de coordenadas: todas las
+   posiciones vienen del helper en porcentaje del eje del día. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-lienzo {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-marcas {
+  position: relative;
+  height: 15px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-marcas span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Los extremos no se salen de la pista: el primero ancla a la izquierda y el
+   último a la derecha. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-marcas span:first-child {
+  transform: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-marcas span:last-child {
+  transform: translateX(-100%);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-codigo {
+  align-self: center;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-carril {
+  position: relative;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--pulso-surface-2);
+}
+
+/* La banda del pico: el tramo del día donde coinciden más citas. Tinte por
+   debajo de las barras; la lectura con cifras vive en la cabecera del día. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-banda {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 16%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-barra {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  min-width: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 78%, #fff);
+}
+
+/* La cita sin pactar dibuja el rango de su curso: hueca y punteada, para que
+   nunca se lea como una cita firme. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-barra.es-tentativa {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-border));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pendientes {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pendientes strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold, 600);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pendientes.es-aviso {
+  color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-nota {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}

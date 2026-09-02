@@ -45,8 +45,9 @@
  * elegirle una fecha cualquiera sería inventarla. Van a un carril propio, «por
  * agendar», con una fila por día de la semana y su banda de siempre.
  */
-import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasFranjas, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { etiquetaDeFecha, fechaIsoReal } from "./agendaPorDia";
+import { minutosDeHora } from "./mapaDeHoras";
 
 export const DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
 export type Dia = (typeof DIAS)[number];
@@ -64,6 +65,37 @@ export type Sesion = {
   curso: string;
   facultad: string;
   elegibles: number;
+  /** El código operativo («CH 12»), o el identificador del aula si no hay. */
+  codigo: string;
+  docente: string;
+  /** La hora pactada tal como está escrita en el libro («6:45 pm»), o "". */
+  horaTexto: string;
+};
+
+/**
+ * Quién ocupa una celda de la malla: el detalle detrás del número (dictado en
+ * vivo 2026-09-02, «cada 30 mins con hover»). `confirmada` distingue el hecho
+ * —cita con hora— del techo —banda de la clase—, la misma frontera que las
+ * dos capas de color.
+ *
+ * La cita confirmada viaja con sus tres señas (dictado, mirando el detalle:
+ * «no me muestras ni la fecha exacta ni la hora en la que se acordó ir ni qué
+ * etapa de la clase es»): la FECHA exacta —clave en el patrón semanal, donde
+ * la fila «sábado» agrega varios sábados—, la HORA pactada tal como se
+ * escribió, y el MOMENTO de la clase si se acordó. Lo que no se acordó va
+ * vacío: no se inventa.
+ */
+export type OcupanteDeCelda = {
+  codigo: string;
+  docente: string;
+  lugar: string;
+  confirmada: boolean;
+  /** `YYYY-MM-DD` agendado, o "". */
+  fecha: string;
+  /** La hora pactada, textual («6:45 pm»); "" en lo no confirmado. */
+  hora: string;
+  /** El momento acordado de la clase, o "" si no se declaró. */
+  momento: "" | MomentoDeClase;
 };
 
 /** `"MAR 14:00-16:00 · MIE 10:00-12:00"` → una entrada por bloque. */
@@ -98,6 +130,9 @@ export function sesionesDelPlan(plan: readonly MonitoreoAulasPlanRow[]): Sesion[
         curso: fila.course_name,
         facultad: fila.faculty,
         elegibles: Number(fila.eligible_n ?? 0),
+        codigo: String(fila.operational_code ?? "").trim() || fila.classroom_id,
+        docente: String(fila.teacher ?? "").trim(),
+        horaTexto: String(fila.scheduled_time ?? "").trim(),
       });
     }
   }
@@ -132,6 +167,13 @@ export type Malla = {
   /** Aulas que PODRÍAN caer en esa franja porque su clase la cubre. Es un techo. */
   plausibles: number[][];
   /**
+   * El detalle detrás de `firmes + plausibles`, celda a celda: qué
+   * cursos-horario ocupan la franja, con docente, lugar y estado. Se anota en
+   * la MISMA pasada que las matrices — dos implementaciones del marcado
+   * divergirían en la primera regla nueva.
+   */
+  quienes: OcupanteDeCelda[][][];
+  /**
    * El momento de mas carga. En el calendario se calcula SOLO sobre las fechas
    * —ver `calcularCarga`—, porque el carril no es un dia sino un patron.
    */
@@ -157,16 +199,59 @@ export type Malla = {
  * aplicador dentro de la clase. Las que faltan agendar no tienen momento —lo
  * decide cada docente— y ocupan su rango entero.
  */
-export type OpcionesDeCarga = { duracionMin: number; pasoMin?: number; eje?: EjeDeCarga };
+export type OpcionesDeCarga = {
+  duracionMin: number;
+  pasoMin?: number;
+  eje?: EjeDeCarga;
+  /** Las ventanas confirmadas del MOTOR: la única fuente de posición horaria. */
+  ventanas?: ReadonlyMap<string, VentanaDelMotor>;
+};
+
+/** La cita confirmada tal como la publicó el motor: fecha ISO y minuto real. */
+export type VentanaDelMotor = { fecha: string; inicioMin: number };
+
+/**
+ * Las ventanas confirmadas del bloque `franjas` del dashboard, por código
+ * operativo. El motor (B11) ya parseó el AM/PM y normalizó la fecha; la malla
+ * POSICIONA desde aquí y jamás desde `scheduled_time` crudo — el bug del
+ * 2026-09-02: «8:00pm» re-parseado en el cliente caía a las 08:00 y el pico
+ * quedaba mal contado.
+ */
+export function ventanasDelMotor(
+  franjas: MonitoreoAulasFranjas | null | undefined,
+): Map<string, VentanaDelMotor> {
+  const out = new Map<string, VentanaDelMotor>();
+  for (const dia of franjas?.dias ?? []) {
+    const fecha = typeof dia?.fecha === "string" ? dia.fecha : "";
+    for (const v of dia?.ventanas ?? []) {
+      if (!v || v.confirmada !== true) continue;
+      const codigo = typeof v.codigo === "string" ? v.codigo.trim() : "";
+      const inicioMin = minutosDeHora(typeof v.inicio === "string" ? v.inicio : "");
+      if (!codigo || inicioMin === null || out.has(codigo)) continue;
+      out.set(codigo, { fecha, inicioMin });
+    }
+  }
+  return out;
+}
 export type MomentoDeClase = "inicio" | "intermedio" | "final";
 
 const MOMENTOS: Record<string, MomentoDeClase> = {
   inicio: "inicio", intermedio: "intermedio", medio: "intermedio", final: "final", cierre: "final",
 };
 
-/** `"08:30"` → minutos. Devuelve null si no es una hora. */
+/**
+ * `"08:30"` → minutos. Devuelve null si no es una hora de 24 horas EXACTA.
+ *
+ * Estricta a propósito (bug medido 2026-09-02): la versión sin ancla final
+ * leía «8:00pm» como las 08:00 —doce horas de error— y la malla pintaba a las
+ * 8 AM una cita acordada a las 8 PM, con el pico mal contado. El AM/PM lo
+ * parsea el MOTOR (B11) y esta vista consume sus ventanas ya normalizadas
+ * (`ventanasDelMotor`): re-parsear aquí es tener dos dueños de la misma hora.
+ * Un texto con sufijo que no llegó con ventana del motor no se posiciona: cae
+ * a la banda plausible en vez de a una adivinanza.
+ */
 export function leerHora(texto: unknown): number | null {
-  const m = /^\s*(\d{1,2}):(\d{2})/.exec(String(texto ?? ""));
+  const m = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(String(texto ?? ""));
   if (!m) return null;
   const min = Number(m[1]) * 60 + Number(m[2]);
   return Number.isFinite(min) && min >= 0 && min < 24 * 60 ? min : null;
@@ -214,6 +299,10 @@ type AulaDeCarga = {
   hora: number | null;
   momento: MomentoDeClase | null;
   fecha: string;
+  codigo: string;
+  docente: string;
+  salon: string;
+  horaTexto: string;
 };
 
 /**
@@ -258,6 +347,10 @@ function aulasDelPlan(plan: readonly MonitoreoAulasPlanRow[]): { unidades: AulaD
           hora,
           momento: suyo,
           fecha,
+          codigo: s.codigo,
+          docente: s.docente,
+          salon: s.salon,
+          horaTexto: s.horaTexto,
         });
       }
     }
@@ -296,9 +389,21 @@ function filasDeCalendario(unidades: readonly AulaDeCarga[]): FilaDeCarga[] {
 
 export function calcularCarga(
   plan: readonly MonitoreoAulasPlanRow[],
-  { duracionMin, pasoMin = 30, eje = "semana" }: OpcionesDeCarga,
+  { duracionMin, pasoMin = 30, eje = "semana", ventanas }: OpcionesDeCarga,
 ): Malla {
   const { unidades, sinHorario } = aulasDelPlan(plan);
+  // La posición horaria del MOTOR manda sobre el texto del libro: donde hay
+  // ventana confirmada, la hora (y la fecha, que llega ya normalizada de
+  // dd/mm a ISO) se toman de ahí. Ver `ventanasDelMotor`.
+  if (ventanas) {
+    for (const u of unidades) {
+      const v = ventanas.get(u.codigo);
+      if (v) {
+        u.hora = v.inicioMin;
+        if (v.fecha) u.fecha = v.fecha;
+      }
+    }
+  }
 
   const franjas: number[] = [];
   for (let m = 7 * 60; m < 22 * 60; m += pasoMin) franjas.push(m);
@@ -313,21 +418,46 @@ export function calcularCarga(
   const aulas = vacia();
   const firmes = vacia();
   const plausibles = vacia();
+  const quienes: OcupanteDeCelda[][][] = filas.map(() => franjas.map(() => []));
 
   const marcar = (matriz: number[][], i: number, desde: number, hasta: number) => {
     franjas.forEach((f, j) => {
       if (desde <= f && hasta > f) matriz[i][j] += 1;
     });
   };
+  // El detalle sigue EXACTAMENTE al número: se anota con la misma regla de
+  // solape que `marcar`, en las mismas llamadas.
+  const anotar = (i: number, desde: number, hasta: number, u: AulaDeCarga, confirmada: boolean) => {
+    franjas.forEach((f, j) => {
+      if (desde <= f && hasta > f) {
+        quienes[i][j].push({
+          codigo: u.codigo,
+          docente: u.docente,
+          lugar: u.salon || u.aula,
+          confirmada,
+          fecha: u.fecha,
+          // La hora pactada sólo existe en la cita confirmada: en la banda
+          // plausible el texto crudo podría ser un «por confirmar» tecleado, y
+          // mostrarlo como hora inventaría un acuerdo.
+          hora: confirmada ? u.horaTexto : "",
+          momento: confirmada ? (u.momento ?? "") : "",
+        });
+      }
+    });
+  };
   const marcarFirme = (i: number, b: Bloque, u: AulaDeCarga) => {
     // Agendada: ocupa la ventana que se acordó y nada más.
     const desde = u.momento ? inicioDeVentana(b.desde, b.hasta, duracionMin, u.momento) : (u.hora as number);
     marcar(firmes, i, desde, desde + duracionMin);
+    anotar(i, desde, desde + duracionMin, u, true);
   };
   // Sin agendar: la banda es la CLASE ENTERA. No se aplica ninguna ventana ni
   // ningún momento, porque el momento todavía no existe: lo fija cada docente al
   // confirmar, y hasta entonces cualquier tramo de su clase es igual de posible.
-  const marcarPlausible = (i: number, b: Bloque) => marcar(plausibles, i, b.desde, b.hasta);
+  const marcarPlausible = (i: number, b: Bloque, u: AulaDeCarga) => {
+    marcar(plausibles, i, b.desde, b.hasta);
+    anotar(i, b.desde, b.hasta, u, false);
+  };
 
   let agendadas = 0;
   let agendadasSinFecha = 0;
@@ -348,14 +478,14 @@ export function calcularCarga(
         const i = indice.get(`por-agendar:${u.primera.dia}`);
         if (i === undefined) continue;
         marcar(aulas, i, u.primera.desde, u.primera.hasta);
-        marcarPlausible(i, u.primera);
+        marcarPlausible(i, u.primera, u);
       }
     } else {
       const i = u.primera.dia;
       if (i < 0 || i >= filas.length) continue;
       marcar(aulas, i, u.primera.desde, u.primera.hasta);
       if (u.hora !== null) marcarFirme(i, u.primera, u);
-      else marcarPlausible(i, u.primera);
+      else marcarPlausible(i, u.primera, u);
     }
   }
   if (eje !== "calendario") {
@@ -395,6 +525,7 @@ export function calcularCarga(
     aulas,
     firmes,
     plausibles,
+    quienes,
     pico,
     picoPorAgendar,
     sinHorario,

@@ -1,15 +1,19 @@
 import { Fragment, useMemo, useState } from "react";
 
-import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasFranjas, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import {
   calcularCarga,
   comoHora,
   ejeSugerido,
   hayHorarioDeCurso,
   porPabellon,
+  ventanasDelMotor,
   type EjeDeCarga,
   type OpcionesDeCarga,
 } from "./cargaDeCampo";
+import { etiquetaDeFecha } from "./agendaPorDia";
+import { hoyISO } from "./calendarioDeAgenda";
+import { semanaInicial, semanasDeCarga } from "./semanasDeCarga";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -51,11 +55,38 @@ const tituloDeCelda = (fila: string, hora: string, firme: number, plausible: num
     .filter(Boolean)
     .join(" · ");
 
+/** «2026-09-12» → «sáb 12/09»: la fecha exacta, corta para una línea de detalle. */
+const fechaCorta = (iso: string): string => {
+  const etiqueta = etiquetaDeFecha(iso); // «Sábado 12/09», o el crudo si no parsea
+  const m = /^(\p{L}+) (.+)$/u.exec(etiqueta);
+  return m ? `${m[1].slice(0, 3).toLowerCase()} ${m[2]}` : etiqueta;
+};
+
+/** El momento pactado de la clase, en palabras del operativo. */
+const MOMENTO_LEGIBLE = { inicio: "al inicio", intermedio: "en el receso", final: "al final" } as const;
+
+/** El nombre accesible de una celda ocupada: sus dos capas, concordadas. */
+const nombreDeCelda = (fila: string, hora: string, firme: number, plausible: number): string => {
+  const partes = [
+    firme ? `${fmt(firme)} ${firme === 1 ? "confirmado" : "confirmados"}` : "",
+    plausible ? `hasta ${fmt(plausible)} por agendar` : "",
+  ].filter(Boolean);
+  return `${fila} ${hora}: ${partes.join(", ")}`;
+};
+
 export function AulasCargaDeCampo({
   filas,
+  franjas,
   onExportar,
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * El bloque `franjas` del dashboard: las ventanas confirmadas YA parseadas
+   * por el motor. La malla posiciona los confirmados desde aquí y nunca desde
+   * `scheduled_time` crudo — el bug del 2026-09-02: «8:00pm» re-parseado en
+   * el cliente pintaba a las 08:00 y el pico quedaba mal contado.
+   */
+  franjas?: MonitoreoAulasFranjas | null;
   /**
    * El libro sale con lo que hay EN PANTALLA —eje y duración—, no con los
    * valores por defecto: la duración es un control y exportar 30 minutos
@@ -70,12 +101,45 @@ export function AulasCargaDeCampo({
   // agendado que estuviera el estudio.
   const [ejeElegido, setEje] = useState<EjeDeCarga | null>(null);
   const eje = ejeElegido ?? ejeSugerido(filas);
+  // La celda explorada (dictado en vivo 2026-09-02: «cada 30 mins con
+  // hover»): hover o foco la asoman, un click la fija. Estado UI efímero de
+  // esta superficie — no es un panel enlazable ni un foco de entidad, el
+  // mismo criterio que el eslabón de la Agenda.
+  const [celdaActiva, setCeldaActiva] = useState<{ d: number; j: number } | null>(null);
+  const [fijada, setFijada] = useState(false);
+  // La semana visible del calendario. `null` = todas: paginar es un gesto del
+  // usuario, no un recorte de apertura.
+  const [semanaIdx, setSemanaIdx] = useState<number | null>(null);
 
+  const ventanas = useMemo(() => ventanasDelMotor(franjas), [franjas]);
   const malla = useMemo(
-    () => calcularCarga(filas, { duracionMin, eje }),
-    [filas, duracionMin, eje],
+    () => calcularCarga(filas, { duracionMin, eje, ventanas }),
+    [filas, duracionMin, eje, ventanas],
   );
   const pabellones = useMemo(() => porPabellon(filas), [filas]);
+  const { semanas, sinSemana } = useMemo(() => semanasDeCarga(malla.filas), [malla]);
+  // Qué filas de fecha están en pantalla. `null` = todas; las fechas sin
+  // semana legible se pintan SIEMPRE — recortarlas al paginar sería perder
+  // filas que la malla completa sí enseña.
+  const visibles = useMemo(() => {
+    if (eje !== "calendario" || semanaIdx === null || !semanas[semanaIdx]) return null;
+    return new Set([...semanas[semanaIdx].indices, ...sinSemana]);
+  }, [eje, semanaIdx, semanas, sinSemana]);
+
+  const cambiarEje = (valor: EjeDeCarga) => {
+    // Los índices de celda y semana son de la malla del eje: al cambiarlo se
+    // sueltan, o apuntarían a otra fila con el mismo número.
+    setEje(valor);
+    setCeldaActiva(null);
+    setFijada(false);
+    setSemanaIdx(null);
+  };
+  const paginar = (delta: number) => {
+    setSemanaIdx((prev) => {
+      const base = prev ?? (delta > 0 ? -1 : semanas.length);
+      return Math.min(semanas.length - 1, Math.max(0, base + delta));
+    });
+  };
 
   // Sólo se pintan las franjas donde ocurre algo: de 07:00 a 22:00 hay treinta
   // columnas y más de un tercio están siempre vacías.
@@ -156,7 +220,10 @@ export function AulasCargaDeCampo({
     };
   };
 
-  const primeraPorAgendar = malla.filas.findIndex((f) => f.porAgendar);
+  // El carril «por agendar» NO se pinta en el calendario (dictado en vivo
+  // 2026-09-02: «el por agendar ya está en patrón semanal, no lo necesitas en
+  // calendario»): es el patrón de lo pendiente y su sitio es el eje semanal.
+  // El KPI «Por agendar, en el pico del patrón» queda declarando dónde vive.
   /**
    * Qué filas abren una semana nueva, para separarlas con una regla.
    *
@@ -201,14 +268,16 @@ export function AulasCargaDeCampo({
                 className={eje === valor ? "es-activo" : ""}
                 aria-pressed={eje === valor}
                 title={ayuda}
-                onClick={() => setEje(valor)}
+                onClick={() => cambiarEje(valor)}
               >
                 {rotulo}
               </button>
             ))}
           </div>
           {onExportar ? (
-            <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje })}>
+            /* El Excel sale con las MISMAS ventanas del motor que la vista:
+               exportar con el texto crudo re-parsearía el «8:00pm». */
+            <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje, ventanas })}>
               Descargar Excel
             </button>
           ) : null}
@@ -276,13 +345,36 @@ export function AulasCargaDeCampo({
 
       {eje === "calendario" && malla.fechas === 0 ? (
         <p className="aulas-carga-aviso">
-          Ningún curso-horario tiene fecha todavía, así que el calendario sólo puede mostrar el carril de las que
-          faltan agendar. El patrón semanal es la lectura que dimensiona el equipo mientras tanto.
+          Ningún curso-horario tiene fecha todavía, así que el calendario no tiene filas que
+          mostrar. El patrón semanal es la lectura que dimensiona el equipo mientras tanto — y es
+          donde vive lo que falta agendar.
         </p>
       ) : null}
 
-      <div className="aulas-carga-malla-scroll">
-        <table className="aulas-carga-malla">
+      {/* El pager por semana (dictado en vivo 2026-09-02: «scrolleable por
+          semana»). Abre en «todas»: paginar es un gesto del usuario, no un
+          recorte de apertura. «Hoy» salta a la semana del reloj del usuario. */}
+      {eje === "calendario" && semanas.length > 1 ? (
+        <div className="aulas-carga-semana" role="group" aria-label="Semana visible">
+          <button type="button" onClick={() => paginar(-1)} aria-label="Semana anterior">‹</button>
+          <strong>
+            {semanaIdx === null || !semanas[semanaIdx]
+              ? `Todas las semanas · ${fmt(semanas.length)}`
+              : `Semana ${fmt(semanaIdx + 1)} de ${fmt(semanas.length)} · ${semanas[semanaIdx].etiqueta}`}
+          </strong>
+          <button type="button" onClick={() => paginar(1)} aria-label="Semana siguiente">›</button>
+          <button type="button" onClick={() => setSemanaIdx(semanaInicial(semanas, hoyISO()))}>Hoy</button>
+          {semanaIdx !== null ? (
+            <button type="button" onClick={() => setSemanaIdx(null)}>Todas</button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="aulas-carga-malla-scroll" data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <table
+          className="aulas-carga-malla"
+          onMouseLeave={() => { if (!fijada) setCeldaActiva(null); }}
+        >
           <caption className="pulso-sr-only">
             Aplicadores ocupados por {eje === "calendario" ? "fecha" : "día"} y franja horaria, con{" "}
             {fmt(duracionMin)} minutos de aplicación
@@ -301,59 +393,130 @@ export function AulasCargaDeCampo({
                   </th>
                 );
               })}
+              {/* El total de la fila: cuántos cursos-horario DISTINTOS pisan
+                  ese día — no la suma de celdas, que repetiría cada banda. */}
+              <th scope="col" className="aulas-carga-total-cab" title="Cursos-horario distintos del día">CH</th>
             </tr>
           </thead>
           <tbody>
             {malla.filas.map((fila, d) => (
               <Fragment key={fila.clave}>
-                {/* El carril de lo que falta agendar se separa con su propio
-                    rótulo: son días de la semana, no fechas, y sin decirlo se
-                    leerían como una fecha más del calendario. */}
-                {eje === "calendario" && d === primeraPorAgendar ? (
-                  <tr className="aulas-carga-carril">
-                    <th scope="row" colSpan={vivas.length + 1}>
-                      Por agendar · todavía sin fecha, sobre el horario del curso
-                    </th>
-                  </tr>
-                ) : null}
-                <tr
-                  className={[
-                    fila.porAgendar ? "es-por-agendar" : "",
-                    abreSemana.has(fila.clave) ? "abre-semana" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ") || undefined}
-                >
+                {fila.porAgendar || (visibles !== null && !visibles.has(d)) ? null : (
+                <tr className={abreSemana.has(fila.clave) ? "abre-semana" : undefined}>
                   <th scope="row">{fila.etiqueta}</th>
-                  {vivas.map((j, k) => {
+                  {vivas.map((j) => {
                     const firme = malla.firmes[d][j];
                     const plausible = malla.plausibles[d][j];
                     const n = firme + plausible;
-                    // En el carril la cifra se escribe sólo cuando CAMBIA. Es una
-                    // banda continua: repetir «2» en veinticinco celdas seguidas
-                    // no añade nada y tapa la forma, que es lo que esa fila viene
-                    // a mostrar; cada escalón queda rotulado una vez. En las
-                    // fechas cada celda es una cita distinta y su número va
-                    // siempre.
-                    const previa = k > 0 ? malla.firmes[d][vivas[k - 1]] + malla.plausibles[d][vivas[k - 1]] : 0;
-                    const rotula = !fila.porAgendar || n !== previa;
+                    // El pico del operativo se marca EN la malla, no sólo en el
+                    // KPI.
+                    const esPico = Boolean(malla.pico && malla.pico.dia === d && malla.pico.franja === malla.franjas[j]);
+                    const activa = celdaActiva?.d === d && celdaActiva?.j === j;
+                    const titulo = tituloDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible, malla.aulas[d][j])
+                      + (esPico ? " · pico del operativo" : "");
                     return (
                       <td key={j} className={malla.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
-                        <span
-                          className="aulas-carga-celda"
-                          style={celda(firme, plausible)}
-                          title={tituloDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible, malla.aulas[d][j])}
-                        >
-                          {n && rotula ? n : ""}
-                        </span>
+                        {n ? (
+                          /* Ocupada = botón: hover o foco asoman su detalle en el
+                             panel de abajo y el click la fija — el equivalente
+                             accesible del hover pedido. Las vacías quedan como
+                             span: cien tab-stops muertos no son acceso. */
+                          <button
+                            type="button"
+                            className={`aulas-carga-celda${esPico ? " es-pico" : ""}${activa ? " es-activa" : ""}`}
+                            style={celda(firme, plausible)}
+                            title={titulo}
+                            aria-label={nombreDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible)
+                              + (esPico ? ". Pico del operativo" : "")}
+                            aria-pressed={fijada && activa}
+                            onMouseEnter={() => { if (!fijada) setCeldaActiva({ d, j }); }}
+                            onFocus={() => { if (!fijada) setCeldaActiva({ d, j }); }}
+                            onClick={() => {
+                              if (fijada && activa) { setFijada(false); return; }
+                              setCeldaActiva({ d, j });
+                              setFijada(true);
+                            }}
+                          >
+                            {n}
+                          </button>
+                        ) : (
+                          <span className="aulas-carga-celda" style={celda(firme, plausible)} title={titulo} />
+                        )}
                       </td>
                     );
                   })}
+                  <td className="aulas-carga-total">
+                    {(() => {
+                      const distintos = new Set<string>();
+                      for (const c of malla.quienes[d]) for (const o of c) distintos.add(o.codigo);
+                      return distintos.size ? fmt(distintos.size) : "";
+                    })()}
+                  </td>
                 </tr>
+                )}
               </Fragment>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* El detalle de la celda explorada: QUIÉNES caen en esa franja. Región
+          fija bajo la malla y no un tooltip flotante: no pelea con el scroll
+          horizontal, la lee el teclado igual que el puntero y el gate puede
+          medirla. */}
+      <div className="aulas-carga-detalle" role="status" data-qa-geometry-member data-qa-geometry-capacity="owned">
+        {(() => {
+          const activa = celdaActiva && malla.quienes[celdaActiva.d]?.[celdaActiva.j]?.length
+            ? celdaActiva
+            : null;
+          if (!activa) {
+            // «La malla» y no «una celda»: el guard del perfil reserva esa
+            // palabra para la hoja de cálculo del equipo.
+            return (
+              <p className="aulas-carga-detalle-vacio">
+                Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada
+                franja de 30 minutos; un click deja la franja fijada.
+              </p>
+            );
+          }
+          const ocupantes = malla.quienes[activa.d][activa.j];
+          const TOPE_LISTA = 8;
+          const grupo = (lista: typeof ocupantes, rotulo: string) => (lista.length ? (
+            <div className="aulas-carga-detalle-grupo">
+              <h4>{rotulo} · {fmt(lista.length)}</h4>
+              <ul>
+                {/* Las tres señas de la cita (dictado: «ni la fecha exacta ni
+                    la hora en la que se acordó ir ni qué etapa de la clase»):
+                    fecha exacta —en el patrón semanal la fila «sábado» agrega
+                    varios sábados—, hora pactada textual y momento acordado.
+                    Lo no acordado se omite, no se inventa. */}
+                {lista.slice(0, TOPE_LISTA).map((o) => (
+                  <li key={o.codigo}>
+                    <strong>{o.codigo}</strong>
+                    {o.docente ? ` · ${o.docente}` : ""}
+                    {o.lugar ? ` · ${o.lugar}` : ""}
+                    {o.fecha ? ` · ${fechaCorta(o.fecha)}` : ""}
+                    {o.hora ? ` · ${o.hora}` : ""}
+                    {o.momento ? ` · ${MOMENTO_LEGIBLE[o.momento]}` : ""}
+                  </li>
+                ))}
+              </ul>
+              {lista.length > TOPE_LISTA ? (
+                <p className="aulas-carga-detalle-mas">… y {fmt(lista.length - TOPE_LISTA)} más — el Excel trae la lista completa.</p>
+              ) : null}
+            </div>
+          ) : null);
+          return (
+            <>
+              <p className="aulas-carga-detalle-titulo">
+                <strong>{malla.filas[activa.d].etiqueta}</strong> · {comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}
+                {fijada ? <em> · fijada; otro click la suelta</em> : null}
+              </p>
+              {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
+              {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
+            </>
+          );
+        })()}
       </div>
 
       <div className="aulas-carga-pie">

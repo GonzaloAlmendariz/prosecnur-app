@@ -173,7 +173,11 @@ describe("calcularCarga", () => {
 describe("leerHora", () => {
   it("lee la hora agendada y descarta lo que no lo es", () => {
     expect(leerHora("08:30")).toBe(510);
-    expect(leerHora("8:05 am")).toBe(485);
+    // «8:05 am» daba 485 de chiripa —el mismo regex leía «8:00pm» como las
+    // 08:00, doce horas de error medidas el 2026-09-02—. El AM/PM lo parsea
+    // el motor y la vista consume sus ventanas; el texto con sufijo se anula
+    // en vez de truncarse. Contrato en horaDelMotor.contract.test.ts.
+    expect(leerHora("8:05 am")).toBeNull();
     expect(leerHora("")).toBeNull();
     expect(leerHora("mañana")).toBeNull();
     expect(leerHora("99:00")).toBeNull();

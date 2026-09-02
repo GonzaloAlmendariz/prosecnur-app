@@ -1115,6 +1115,44 @@ export type MonitoreoAulasDosTasas = {
   };
 };
 
+/**
+ * Una ventana dibujable del mapa de horas: la cita pactada ocupa
+ * [hora, hora+20min] con `confirmada = true`; la franja tentativa del curso
+ * (agendada sin hora, con sesiones legibles) llega con `confirmada = false`.
+ * Horas en `HH:MM` de 24 horas, ya parseadas por el motor (AM/PM incluido).
+ */
+export type MonitoreoAulasFranjaVentana = {
+  codigo: string;
+  inicio: string;
+  fin: string;
+  confirmada: boolean;
+};
+
+/**
+ * Un día del bloque `franjas`: sus ventanas, su pico de carga simultánea
+ * —contado por RANGO real, no por hora de inicio— y los códigos del día sin
+ * hora pactada. Con cero confirmadas el pico dice `aulas = 0` sin franja.
+ */
+export type MonitoreoAulasFranjaDia = {
+  fecha: string;
+  ventanas: MonitoreoAulasFranjaVentana[];
+  pico: { aulas: number; inicio?: string; fin?: string } | null;
+  por_confirmar: string[];
+};
+
+/**
+ * El mapa de horas por día agendado (contrato congelado con
+ * `monitoreo_aulas_franjas()`, 2026-09-02). Derivado del motor de ventanas
+ * B11: la UI dibuja, no recalcula. `personas_fuente = "confirmadas"` declara
+ * que el pico sale SOLO de citas pactadas — una cita sin pactar no pide gente.
+ * La forma defensiva la trata `mapaDeHoras()` en el feature, que es quien
+ * lidia con los escalares envueltos de la frontera jsonlite.
+ */
+export type MonitoreoAulasFranjas = {
+  dias: MonitoreoAulasFranjaDia[];
+  personas_fuente?: string;
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1130,6 +1168,13 @@ export type MonitoreoAulasDashboard = {
    * anteriores al bloque (backend viejo): la vista lo declara, no revienta.
    */
   dos_tasas?: MonitoreoAulasDosTasas | null;
+  /**
+   * El mapa de horas por día: qué ventana ocupa cada cita y cuántas aulas
+   * caen a la vez (el número que dimensiona a los aplicadores). Ausente en
+   * payloads anteriores al bloque (backend viejo): la vista lo declara, no
+   * revienta.
+   */
+  franjas?: MonitoreoAulasFranjas | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo

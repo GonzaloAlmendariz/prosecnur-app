@@ -14,14 +14,19 @@
  */
 
 
-   El alto de la celda es fijo (`--aulas-carga-celda`) y NO se deriva del número
+/* El alto de la celda es fijo (`--aulas-carga-celda`) y NO se deriva del número
    de franjas vivas: con el control de duración al mínimo se pintan quince
    columnas y con el máximo veintiocho, y un alto proporcional haría que la
-   malla cambiara de tamaño al mover un slider (C2). */
+   malla cambiara de tamaño al mover un slider (C2).
+
+   Retune 2026-09-02, dictado en vivo mirando la malla: «no está usando todo el
+   alto y apenas se ve». Las filas pasan de 28 a 36px y la cifra de la celda a
+   14px/600 —el número ES el dato—; el alto sigue FIJO por celda (C2), así que
+   la malla crece con sus filas y el sobrante lo recorre
+   `mon-workbench-content`, no un viewport en el que ya no tiene que caber. */
 .aulas-carga {
-  --aulas-carga-celda: 28px;
-  --aulas-carga-ancho: 30px;
-  --aulas-carga-celda-carril: 22px;
+  --aulas-carga-celda: 36px;
+  --aulas-carga-ancho: 34px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -116,12 +121,26 @@
 /* El scroll horizontal vive aquí y sólo aquí: la malla no cabe en 1024 y el
    cuerpo de la página nunca debe desplazarse de lado (C4). */
 .aulas-carga-malla-scroll { overflow-x: auto; }
-.aulas-carga-malla { border-collapse: separate; border-spacing: 2px; width: 100%; }
+/* `table-layout: fixed` + `width: 100%`: la malla SE COME el ancho disponible
+   (retune 2026-09-02, «más amplio, menos vacío») repartiendo las franjas en
+   columnas iguales; el `min-width` devuelve el scroll horizontal cuando el
+   viewport no da para celdas legibles. Las columnas no bailan con el slider:
+   `vivas` sale de `aulas`, que no depende de la duración. */
+.aulas-carga-malla { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 960px; table-layout: fixed; }
 .aulas-carga-malla th {
   font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
   text-transform: uppercase; letter-spacing: 0.06em; padding: 0 0 6px; white-space: nowrap;
 }
-.aulas-carga-malla thead th:first-child { width: 104px; }
+.aulas-carga-malla thead th:first-child { width: 112px; }
+/* La columna del total de la fila: cursos-horario distintos del día. */
+.aulas-carga-malla th.aulas-carga-total-cab { width: 46px; text-align: right; }
+.aulas-carga-malla td.aulas-carga-total {
+  padding-left: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
 /* La regla vertical de cada hora en punto. Sin ella, en una malla dispersa —15
    fechas con cuatro celdas cada una— no hay forma de saber en qué columna cae un
    cuadrito suelto sin recorrer la fila con el dedo. */
@@ -135,43 +154,72 @@
 .aulas-carga-malla tbody tr.abre-semana td .aulas-carga-celda { margin-top: 5px; }
 .aulas-carga-malla tbody th {
   text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
-  font-size: 12.5px; color: var(--pulso-text-soft); white-space: nowrap;
+  font-size: 13px; color: var(--pulso-text-soft); white-space: nowrap;
 }
 .aulas-carga-malla td { padding: 0; }
-/* El rótulo que separa las fechas del carril de «por agendar». Sin él, una fila
-   «martes» entre fechas concretas se lee como una fecha más del calendario. */
-.aulas-carga-malla tbody tr.aulas-carga-carril th {
-  text-align: left;
-  padding: 14px 0 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 10.5px;
-  color: var(--pulso-text-faint);
-  border-top: 1px solid var(--pulso-border);
-}
-/* El carril se pinta MENOS que el calendario. Con la misma altura y saturación
-   que las fechas, cinco filas de banda continua eran lo más ruidoso de la
-   pantalla —y son lo menos accionable: un patrón semanal, no un día al que
-   mandar gente—. El operativo tiene que leerse primero. */
-.aulas-carga-malla tbody tr.es-por-agendar th { font-style: italic; color: var(--pulso-text-faint); }
-.aulas-carga-malla tbody tr.es-por-agendar .aulas-carga-celda {
-  height: var(--aulas-carga-celda-carril);
-  font-size: 10.5px;
-  opacity: 0.66;
-  /* Banda continua, no fichas sueltas. Lo que el carril dice es «en todo este
-     tramo puede caer la aplicación», y trocearlo en cuadritos de 30 minutos lo
-     dibuja como veinticinco cuentas independientes: una precisión que el dato
-     no tiene. Los márgenes negativos cierran el `border-spacing`. */
-  border-radius: 0;
-  margin: 0 -1px;
-}
-.aulas-carga-malla tbody tr.es-por-agendar td:first-of-type .aulas-carga-celda { border-radius: 4px 0 0 4px; margin-left: 0; }
-.aulas-carga-malla tbody tr.es-por-agendar td:last-child .aulas-carga-celda { border-radius: 0 4px 4px 0; margin-right: 0; }
+/* El carril de «por agendar» se retiró del calendario (dictado en vivo
+   2026-09-02: «el por agendar ya está en patrón semanal, no lo necesitas en
+   calendario»); sus reglas se fueron con él. */
 .aulas-carga-celda {
   display: flex; align-items: center; justify-content: center;
-  height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
-  font-size: 12.5px; font-variant-numeric: tabular-nums; font-weight: 500;
+  width: 100%; height: var(--aulas-carga-celda); min-width: var(--aulas-carga-ancho); border-radius: 4px;
+  /* La cifra es EL dato de la celda: legible de un vistazo (retune 2026-09-02). */
+  font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 600;
 }
+
+/* La celda ocupada es un botón: hover/foco asoman su detalle y el click lo
+   fija — el equivalente accesible del hover. Reset del botón nativo; el color
+   viene del estilo en línea de las dos capas. */
+button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+/* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
+   estilo en línea de la capa plausible ya usa box-shadow y lo taparía. */
+.aulas-carga-celda.es-pico { outline: 2px solid var(--pulso-warn-border); outline-offset: -2px; }
+/* La celda explorada; declarada después del pico para ganar cuando coinciden. */
+.aulas-carga-celda.es-activa { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+
+/* El pager por semana del calendario. */
+.aulas-carga-semana {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  color: var(--pulso-text-soft); font-size: 13px;
+}
+.aulas-carga-semana strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-carga-semana button {
+  height: 26px; min-width: 26px; padding: 0 10px;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: 12.5px; cursor: pointer;
+}
+.aulas-carga-semana button:hover { border-color: var(--pulso-border-strong); }
+.aulas-carga-semana button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
+/* El detalle de la celda explorada: región fija bajo la malla, no un tooltip
+   flotante — no pelea con el scroll horizontal, la lee el teclado y el gate
+   puede medirla. `min-height` para que el marco no salte entre vacío y lleno
+   (C2). */
+.aulas-carga-detalle {
+  min-height: 88px;
+  display: grid; gap: 8px; align-content: start;
+  padding: 10px 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, #fff);
+}
+.aulas-carga-detalle-vacio { margin: 0; color: var(--pulso-text-faint); font-size: 12.5px; }
+.aulas-carga-detalle-titulo { margin: 0; color: var(--pulso-text); font-size: 13px; font-variant-numeric: tabular-nums; }
+.aulas-carga-detalle-titulo em { color: var(--pulso-text-faint); font-size: 11.5px; font-style: normal; }
+.aulas-carga-detalle-grupo h4 {
+  margin: 0 0 4px; color: var(--pulso-text-faint);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.aulas-carga-detalle-grupo ul {
+  display: flex; flex-wrap: wrap; gap: 4px 16px;
+  margin: 0; padding: 0; list-style: none;
+}
+.aulas-carga-detalle-grupo li { color: var(--pulso-text-soft); font-size: 12.5px; }
+.aulas-carga-detalle-grupo li strong { color: var(--pulso-text); }
+.aulas-carga-detalle-mas { margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 11.5px; }
 
 .aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
 .aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--pulso-text-faint); }
