@@ -35,7 +35,10 @@
   # B22 (dictado 2026-09-01): a reemplazos y extras se les manda correo hoy
   # y se les llama mañana según necesidad — la marca va A LA IZQUIERDA del
   # status; a los titulares se les llama a todos hoy (celda vacía).
-  "email_received", "sample_status", "scheduled_date", "scheduled_day",
+  "email_received", "sample_status",
+  # B30 (aviso-dictado 2026-09-02): el lugar PACTADO de la aplicacion — puede
+  # diferir del aula de la clase — «a la derecha de status muestra».
+  "scheduled_venue", "scheduled_date", "scheduled_day",
   "scheduled_time", "scheduled_moment", "notes",
   # contexto: tiene que estar, pero no a la mano
   "teacher_email", "faculty", "level", "enrolled_total", "eligible_n", "link"
@@ -49,7 +52,7 @@
   # «FECHA AGENDADA», no «FECHA DE APLICACIÓN»: en la hoja del agendador esa
   # fecha es la agendada; el nombre viejo era la confusión que el renombrado de
   # la hoja de campo ya había documentado. El título viejo queda de alias.
-  "STATUS MUESTRA", "FECHA AGENDADA", "DÍA", "HORA", "MOMENTO DE LA CLASE",
+  "STATUS MUESTRA", "LUGAR DE APLICACIÓN", "FECHA AGENDADA", "DÍA", "HORA", "MOMENTO DE LA CLASE",
   "OBSERVACIONES",
   "CORREO PUCP DOCENTE", "FACULTAD", "NIVEL DEL CURSO",
   "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES", "ENLACE DE LA FICHA"

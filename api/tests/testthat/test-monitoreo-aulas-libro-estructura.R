@@ -48,18 +48,36 @@
        enrolled_total = 29, eligible_n = 26)
 )
 
-test_that("el bloque de agenda tiene 22 titulos y ninguno es MUESTRA", {
+test_that("el bloque de agenda tiene 23 titulos y ninguno es MUESTRA", {
   campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
-  # 20 del contrato B8 («sin MUESTRA») + «RECIBIÓ CORREO» de B22 + «STATUS
-  # DE LLAMADA» de B23 (dictados 2026-09-01). El numero se pinea LITERAL a
-  # proposito: un campo nuevo en la spec debe pasar por aqui y declararse,
-  # no colarse.
-  expect_length(AULAS_AGENDADAS_BLOQUE, 22L)
-  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 22L)
+  # 20 del contrato B8 («sin MUESTRA») + «RECIBIÓ CORREO» (B22) + «STATUS DE
+  # LLAMADA» (B23) + «LUGAR DE APLICACIÓN» (B30, 2026-09-02). El numero se
+  # pinea LITERAL a proposito: un campo nuevo en la spec debe pasar por
+  # aqui y declararse, no colarse.
+  expect_length(AULAS_AGENDADAS_BLOQUE, 23L)
+  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 23L)
   expect_false("wave" %in% campos)
   # «STATUS MUESTRA» no es «MUESTRA»: se compara el titulo entero.
   titulos <- unlist(lapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos))
   expect_false("MUESTRA" %in% titulos)
+})
+
+
+test_that("B30: el lugar de aplicacion va y VUELVE — es campo propio del libro", {
+  # «Se llena manual con el aula/pabellon confirmado finalmente… pero tiene
+  # que NUTRIR a las demas pestañas/hojas y la app; el codigo siempre va a
+  # tener este formato A206». Si no es campo propio, la fusion lo llenaria
+  # solo en vacio y la correccion moriria en silencio (la trampa de B22).
+  expect_true("scheduled_venue" %in% AULAS_LIBRO_CAMPOS_PROPIOS)
+  titulos <- c("ID MATCH", vapply(AULAS_AGENDADAS_BLOQUE,
+                                  function(sp) sp$titulos[[1]], character(1)))
+  fila <- rep("", length(titulos))
+  fila[[1]] <- "1"
+  fila[[which(titulos == "CURSO-HORARIO")]] <- "CH 1"
+  fila[[which(titulos == "LUGAR DE APLICACIÓN")]] <- "A206"
+  df <- as.data.frame(rbind(fila), stringsAsFactors = FALSE)
+  vuelta <- aulas_agendadas_a_plan(df, titulos)
+  expect_identical(as.character(vuelta[[1]]$scheduled_venue), "A206")
 })
 
 test_that("el libro nuevo no trae MUESTRA en ninguna cabecera de agenda o campo", {
