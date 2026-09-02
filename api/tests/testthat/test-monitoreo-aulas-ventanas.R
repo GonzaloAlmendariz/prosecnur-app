@@ -114,6 +114,17 @@ test_that("el parser lee las cinco formas dictadas — am/pm y 24 horas", {
   expect_equal(monitoreo_aulas_hora_parse("12:00 pm"), 720)
 })
 
+test_that("A29: la hora sin minutos con sufijo tambien se lee — «8pm» es 20:00", {
+  # El equipo teclea rapido: «8pm» aparecio en el libro real y caia a NA (el
+  # regex exigia «:MM»). Con SUFIJO la intencion es inequivoca; sin sufijo,
+  # un «8» a secas sigue siendo NA — demasiado ambiguo para adivinarlo.
+  expect_equal(monitoreo_aulas_hora_parse("8pm"), 1200)
+  expect_equal(monitoreo_aulas_hora_parse("8 am"), 480)
+  expect_equal(monitoreo_aulas_hora_parse("12pm"), 720)
+  expect_equal(monitoreo_aulas_hora_parse("12am"), 0)
+  expect_true(is.na(monitoreo_aulas_hora_parse("8")))
+})
+
 test_that("la basura vuelve como NA declarado: ni cero, ni error", {
   sucio <- c("", "mañana", "99:99", "9:60", NA)
   res <- monitoreo_aulas_hora_parse(sucio)

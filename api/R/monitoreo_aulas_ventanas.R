@@ -48,12 +48,16 @@
 .mav_hora_una <- function(v) {
   if (is.na(v)) return(NA_real_)
   v <- tolower(trimws(v))
-  m <- regmatches(v, regexec("^([0-9]{1,2}):([0-9]{2})[[:space:]]*(a\\.?m\\.?|p\\.?m\\.?)?$", v))[[1]]
+  # Los minutos son opcionales SOLO con sufijo am/pm: «8pm» aparecio en el
+  # libro real y caia a NA. Con sufijo la intencion es inequivoca; un «8» a
+  # secas sigue siendo NA — demasiado ambiguo para adivinarlo (A29).
+  m <- regmatches(v, regexec("^([0-9]{1,2})(?::([0-9]{2}))?[[:space:]]*(a\\.?m\\.?|p\\.?m\\.?)?$", v, perl = TRUE))[[1]]
   if (length(m) < 3L) return(NA_real_)
-  h <- suppressWarnings(as.numeric(m[[2]]))
-  mn <- suppressWarnings(as.numeric(m[[3]]))
-  if (!is.finite(h) || !is.finite(mn) || mn > 59) return(NA_real_)
   sufijo <- if (length(m) >= 4L) m[[4]] else ""
+  if (!nzchar(m[[3]]) && !nzchar(sufijo)) return(NA_real_)
+  h <- suppressWarnings(as.numeric(m[[2]]))
+  mn <- if (nzchar(m[[3]])) suppressWarnings(as.numeric(m[[3]])) else 0
+  if (!is.finite(h) || !is.finite(mn) || mn > 59) return(NA_real_)
   if (nzchar(sufijo)) {
     # Semántica am/pm de verdad: 12:00 pm es mediodía y 12:30 am es la
     # madrugada. El «+12 si pm» ingenuo revienta justo en la franja del
