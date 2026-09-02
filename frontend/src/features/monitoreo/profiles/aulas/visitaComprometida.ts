@@ -3,7 +3,7 @@
  *
  * `dashboard.agenda` es **el plan entero** —`agenda = .monitoreo_aulas_records(plan_df)`
  * en `api/R/monitoreo_aulas_universitarias.R`—: titulares, reservas de cadena y
- * el banco de extras, todas con su `scheduled_date`. Proyectar sobre «tiene
+ * la reserva adicional, todas con su `scheduled_date`. Proyectar sobre «tiene
  * fecha por delante» contaba como trabajo comprometido cosas que nadie va a
  * aplicar, y eso **tapa la brecha justo donde la alerta existe para verla**.
  *
@@ -23,7 +23,7 @@
  *
  * Es el mismo error que el motor ya tenia escrito en otro sitio —«las 639
  * reservas del BANCO no son aulas que alguien vaya a visitar: contarlas como
- * aulas por debajo de su meta convertia el banco en deuda»— cometido de nuevo
+ * aulas por debajo de su meta convertia la reserva adicional en deuda»— cometido de nuevo
  * una capa mas arriba.
  *
  * ## Por qué se excluye en vez de permitir

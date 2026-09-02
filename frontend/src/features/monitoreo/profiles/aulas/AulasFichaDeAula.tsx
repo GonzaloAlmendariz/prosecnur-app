@@ -158,17 +158,18 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
               {salida.cadenasAgotadas > 0
                 ? `: sus ${fmtOGuion(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
                 : "; el diseño no le dio ninguna."}{" "}
-              {/* **Mandaba al banco de extras sin mirar si lo hay.** Sobre HSVG
-                  2026 el bolsón está en 3 facultades y las otras 12 lo tienen
-                  vacío, así que la frase enviaba a un sitio sin nada justo a las
-                  que peor lo tienen. Ahora el bloque del banco enumera las 15
-                  con su cero, y esto puede decirlo. */}
-              {salida.bolsonLibre === null
-                ? "Lo que quede tiene que salir del banco de extras."
-                : salida.bolsonLibre > 0
-                  ? <>Lo que quede tiene que salir de su banco de extras, que
-                      guarda <strong>{fmtOGuion(salida.bolsonLibre)}</strong>.</>
-                  : <>Y su banco de extras está vacío: lo que falte no se
+              {/* **Mandaba a la reserva adicional sin mirar si la hay.** Sobre
+                  HSVG 2026 la reserva adicional está en 3 facultades y las
+                  otras 12 la tienen vacía, así que la frase enviaba a un sitio
+                  sin nada justo a las que peor lo tienen. Ahora el bloque de
+                  la reserva adicional enumera las 15 con su cero, y esto puede
+                  decirlo. */}
+              {salida.reservaAdicionalLibre === null
+                ? "Lo que quede tiene que salir de la reserva adicional."
+                : salida.reservaAdicionalLibre > 0
+                  ? <>Lo que quede tiene que salir de su reserva adicional, que
+                      guarda <strong>{fmtOGuion(salida.reservaAdicionalLibre)}</strong>.</>
+                  : <>Y su reserva adicional está vacía: lo que falte no se
                       resuelve llamando, se resuelve ampliando la muestra en
                       Cálculo de muestra.</>}
             </>

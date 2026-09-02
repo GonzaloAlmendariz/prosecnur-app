@@ -49,7 +49,7 @@ const GRUPOS: Array<{ id: OrigenDeCandidato; titulo: string; pie: string }> = [
   },
   {
     id: "extra",
-    titulo: "Bolsón extra",
+    titulo: "Reserva adicional",
     pie: "Cursos-horario adicionales, fuera de toda cadena. No cargan peso de diseño.",
   },
 ];
@@ -279,7 +279,7 @@ export function ContenidoDeReemplazo({
         className="aulas-reemplazo-solapas"
         role="tablist"
         aria-label="De dónde sacar el reemplazo"
-        data-gliding-opt-out="Estas solapas separan DE DÓNDE sale el candidato —su cadena o el banco—, que es una decisión distinta con su propio recuento; no son el recorrido del módulo. Viven dentro de un popover que se abre sobre una fila, y el indicador deslizante del rail pediría un ancho estable que esta superficie no tiene."
+        data-gliding-opt-out="Estas solapas separan DE DÓNDE sale el candidato —su cadena o la reserva adicional—, que es una decisión distinta con su propio recuento; no son el recorrido del módulo. Viven dentro de un popover que se abre sobre una fila, y el indicador deslizante del rail pediría un ancho estable que esta superficie no tiene."
       >
         {GRUPOS.map((g) => (
           <button

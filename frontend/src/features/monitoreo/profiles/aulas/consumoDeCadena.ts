@@ -72,11 +72,11 @@ function titularDe(fila: MonitoreoAulasPlanRow): string {
  *
  * @returns tramos 0 / 1 / 2 / 3+, más `sinReserva` —cadenas que el diseño
  *   muestral nunca dotó, que NO es lo mismo que una cadena agotada (L54)— y
- *   `reservasLibres`, que es lo que queda en el banco.
+ *   `reservasLibres`, que es lo que queda en la reserva adicional.
  */
 export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
-  // Reservas del banco: sueltas, sin titular al que volver.
-  let enElBanco = 0;
+  // Reservas de la reserva adicional: sueltas, sin titular al que volver.
+  let enLaReservaAdicional = 0;
   const consumidas = new Map<string, number>();
   const disponibles = new Map<string, number>();
   const titulares = new Set<string>();
@@ -85,18 +85,19 @@ export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     const rol = texto(fila.sample_role);
     const cadena = titularDe(fila);
     if (!cadena) continue;
-    // El banco NO es una cadena. `extra_reserve_pool` son reservas sueltas que
-    // el diseño muestral dejó sin colgar de ningún titular: no tienen cadena a
-    // la que pertenecer y no son el titular de nada. Contadas como titulares,
-    // el estudio real HSVG2026 —639 filas de banco frente a 202 titulares—
-    // enseñaba **841 cadenas** donde hay 202, y la frase «N titulares no tienen
-    // ninguna reserva, así que sus metas quedan sin cubrir si caen» pasaba a
-    // hablar de 639 aulas que no tienen meta ni pueden caerse.
+    // La reserva adicional NO es una cadena. `extra_reserve_pool` son reservas
+    // sueltas que el diseño muestral dejó sin colgar de ningún titular: no
+    // tienen cadena a la que pertenecer y no son el titular de nada. Contadas
+    // como titulares, el estudio real HSVG2026 —639 filas de reserva adicional
+    // frente a 202 titulares— enseñaba **841 cadenas** donde hay 202, y la
+    // frase «N titulares no tienen ninguna reserva, así que sus metas quedan
+    // sin cubrir si caen» pasaba a hablar de 639 aulas que no tienen meta ni
+    // pueden caerse.
     //
-    // Van al banco, que es donde el propio panel ya las nombra: «10 todavía en
-    // el banco».
+    // Van a la reserva adicional, que es donde el propio panel ya las nombra:
+    // «10 todavía en la reserva adicional».
     if (rol === "extra_reserve_pool") {
-      enElBanco += 1;
+      enLaReservaAdicional += 1;
       continue;
     }
     if (rol !== "chain_reserve") {
@@ -139,11 +140,11 @@ export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   return {
     tramos,
     sinReserva,
-    // Lo libre de las cadenas MÁS el banco suelto: las dos cosas son reserva
-    // que el operativo todavía no gastó, y separarlas en la cifra haría pensar
-    // que hay menos colchón del que hay.
-    reservasLibres: reservasLibres + enElBanco,
-    enElBanco,
+    // Lo libre de las cadenas MÁS la reserva adicional suelta: las dos cosas
+    // son reserva que el operativo todavía no gastó, y separarlas en la cifra
+    // haría pensar que hay menos colchón del que hay.
+    reservasLibres: reservasLibres + enLaReservaAdicional,
+    enLaReservaAdicional,
     reservasGastadas,
     cadenas: titulares.size - sinReserva,
     total: titulares.size,

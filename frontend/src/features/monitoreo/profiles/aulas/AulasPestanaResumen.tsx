@@ -47,7 +47,7 @@ export function AulasPestanaResumen({
   const Tabla = tabla;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
-  // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
+  // Cuántas de esas filas son EXTRAS de la reserva adicional. Avance cuenta 236 donde Fuentes
   // cuenta 196 «titulares y sus reservas encadenadas», y la diferencia son los
   // 40 extras: la misma palabra con dos cifras y nada que explique el salto.
   // Aquí el 236 es correcto —los extras se aplican y traen respuestas— así que
@@ -85,7 +85,7 @@ export function AulasPestanaResumen({
     contadorDeLoQueReparte(resumenDelMotor, {
       total: totalAulas,
       filasQueViajan: aulaRows.length,
-      delBanco: aulasExtra,
+      deReservaAdicional: aulasExtra,
     });
   return (
     <>
@@ -219,10 +219,10 @@ export function AulasPestanaResumen({
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 resumen={dashboard.course_status_estados ?? null}
                 desconocidasMotor={dashboard.course_status_estados_desconocidos}
-                // El banco, contado por el motor sobre TODAS las filas: sin él, el
-                // pie decía «2.109 de 2.109 cursos-horario en juego» sobre un
-                // operativo de 193 visitas.
-                bancoMotor={dashboard.course_status_banco}
+                // La reserva adicional, contada por el motor sobre TODAS las
+                // filas: sin ella, el pie decía «2.109 de 2.109 cursos-horario
+                // en juego» sobre un operativo de 193 visitas.
+                reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
@@ -270,7 +270,7 @@ export function AulasPestanaResumen({
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 resumen={dashboard.course_status_cobertura ?? null}
                 sinMetaMotor={dashboard.course_status_sin_meta}
-                bancoMotor={dashboard.course_status_banco}
+                reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
@@ -332,7 +332,7 @@ export function AulasPestanaResumen({
                   «CH 74, CH 99, CH 49» se lee como desorden y el lector busca un
                   control de orden que no existe. */}
               <p className="mon-profile-muted">
-                Primero las que están en campo y con más brecha; el banco y las reservas dormidas, al final.
+                Primero las que están en campo y con más brecha; la reserva adicional y las reservas dormidas, al final.
               </p>
               <Tabla
                 rows={aulaRows}

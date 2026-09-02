@@ -34,27 +34,28 @@ const ALTO_COMPACTO = 820;
    apila— asi que se queda aqui. */
 const ALTO_COMPACTO_DEL_GRAFICO = 220;
 
-export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0, dormidasMotor = 0 }: {
+export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, reservaMotor = 0, dormidasMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number; etiqueta?: string }> | null;
   /** Las aulas sin meta declarada, también del motor. */
   sinMetaMotor?: number;
   /**
-   * Reservas del banco, que el motor ya NO reparte en tramos: son aulas
+   * De la reserva adicional, que el motor ya NO reparte en tramos: son aulas
    * adicionales esperando en su estrato, no aulas que alguien vaya a visitar, y
-   * contarlas como «sin respuestas» convertia el banco en alarma —73 de las 121
-   * que salian ahi—. Se recibe para poder NOMBRARLAS: sacarlas del reparto y no
-   * decir donde fueron deja al lector con dos totales que no cuadran entre la
-   * cabecera del panel y este pie.
+   * contarlas como «sin respuestas» convertía la reserva adicional en alarma
+   * —73 de las 121 que salían ahí—. Se recibe para poder NOMBRARLAS: sacarlas
+   * del reparto y no decir dónde fueron deja al lector con dos totales que no
+   * cuadran entre la cabecera del panel y este pie.
    */
-  bancoMotor?: number;
+  reservaMotor?: number;
   /**
    * Reservas de cadena que todavia esperan a que caiga su titular.
    *
-   * Son otra poblacion que el banco y hay que nombrarlas aparte: si no, el pie
-   * deja dos totales que no cuadran —el reparto cuenta 30, el banco 2 108 y el
-   * encabezado dice 2 468— y las 330 que faltan no aparecen en ninguna frase.
+   * Son otra población que la reserva adicional y hay que nombrarlas aparte:
+   * si no, el pie deja dos totales que no cuadran —el reparto cuenta 30, la
+   * reserva adicional 2 108 y el encabezado dice 2 468— y las 330 que faltan
+   * no aparecen en ninguna frase.
    */
   dormidasMotor?: number;
 }) {
@@ -174,7 +175,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
         }}
         config={{ displayModeBar: false, responsive: true }}
       />
-      {sinMeta || bancoMotor || dormidasMotor ? (
+      {sinMeta || reservaMotor || dormidasMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.
         <p className="mon-profile-table-recorte">
@@ -184,21 +185,21 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
               meta, así que {sinMeta === 1 ? "queda" : "quedan"} fuera del reparto.
             </>
           ) : null}
-          {bancoMotor ? (
+          {reservaMotor ? (
             <>
               {sinMeta ? " " : ""}
-              {fmt(bancoMotor)} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
+              {fmt(reservaMotor)} {reservaMotor === 1 ? "es de la reserva adicional y tampoco entra" : "son de la reserva adicional y tampoco entran"}:
               {/* «esperan en su estrato» exigía saber qué es un estrato del
                   sorteo. El perfil ya dice esto mismo en palabras llanas cuando
-                  habla del banco —«sin un titular al que respalden»— y ésta es
-                  la otra mitad: para qué esperan. */}
+                  habla de la reserva adicional —«sin un titular al que
+                  respalden»— y ésta es la otra mitad: para qué esperan. */}
               {" "}esperan disponibles para su facultad y sexo, y contarlas como «sin respuestas»
               las volvería una alarma.
             </>
           ) : null}
           {dormidasMotor ? (
             <>
-              {sinMeta || bancoMotor ? " " : ""}
+              {sinMeta || reservaMotor ? " " : ""}
               {fmt(dormidasMotor)}{" "}
               {dormidasMotor === 1
                 ? "es un reemplazo que todavía espera a su titular"

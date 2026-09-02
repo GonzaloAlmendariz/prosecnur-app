@@ -10,7 +10,8 @@ import { railDeAulas } from "./railDeAulas";
  * **Un badge es un número desnudo al lado de una etiqueta.**
  *
  * El de «Reemplazos» contaba `dashboard.reemplazos.length`, que trae el plan
- * entero sin banco —titulares y sus reservas, movidas o no—. Medido sobre
+ * entero sin la reserva adicional —titulares y sus reservas, movidas o
+ * no—. Medido sobre
  * HSVG2026 «como 2025»: decía **1.347** y los reemplazos que de verdad
  * ocurrieron son **18**. La intención estaba escrita en el propio comentario del
  * código, «Pendiente = cadenas movidas», y la cuenta decía otra cosa.
@@ -57,7 +58,7 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
 
 describe("el badge de Registro cuenta lo que espera parte", () => {
   /**
-   * `total_aulas` cuenta el plan sin banco: titulares **más** sus reservas
+   * `total_aulas` cuenta el plan sin la reserva adicional: titulares **más** sus reservas
    * encadenadas. Una reserva dormida no espera ningún parte —sólo sale a campo
    * si cae su titular—, así que el badge decía 1.195 sobre HSVG2026 «como 2025»
    * donde faltan 22.
@@ -73,7 +74,7 @@ describe("el badge de Registro cuenta lo que espera parte", () => {
     expect(conKpis({ total_aulas: 1347, aulas_titulares: 174, aulas_aplicadas: 152 })).toBe("22");
   });
 
-  it("sin `aulas_titulares` cae al plan sin banco: la conducta anterior", () => {
+  it("sin `aulas_titulares` cae al plan sin la reserva adicional: la conducta anterior", () => {
     // Un payload viejo no trae el KPI; publicar cero pendientes sería peor.
     expect(conKpis({ total_aulas: 1347, aulas_aplicadas: 152 })).toBe("1195");
   });

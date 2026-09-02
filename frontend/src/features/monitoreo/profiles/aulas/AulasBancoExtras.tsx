@@ -34,8 +34,9 @@ export type FacultadDelBanco = {
   extras: number;
   /**
    * Las que todavía no entraron al operativo. `extras` es cuántas EXISTEN y
-   * ésta cuántas QUEDAN: un banco de 207 del que ya se gastaron 190 se leía
-   * como 207, que es el número con el que alguien decide salir a llamar.
+   * ésta cuántas QUEDAN: una reserva adicional de 207 de la que ya se
+   * gastaron 190 se leía como 207, que es el número con el que alguien decide
+   * salir a llamar.
    */
   disponibles?: number;
   elegibles: number;
@@ -70,8 +71,8 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
 
   if (!banco || !banco.total) {
     return (
-      // Vacío legítimo: hay estudios cuyo diseño no dotó banco, y eso es una
-      // decisión de la muestra, no un fallo de la vista.
+      // Vacío legítimo: hay estudios cuyo diseño no dotó de reserva
+      // adicional, y eso es una decisión de la muestra, no un fallo de la vista.
       <p className="mon-profile-muted">
         El plan de este estudio no declara aulas extra: la cuota por facultad
         se cubre sólo con los cursos-horario de la muestra y sus cadenas.
@@ -99,11 +100,11 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
             alumnos son TODOS los elegibles del aula y mujeres/hombres salen de
             las dos categorías de sexo más frecuentes de esa aula, así que lo
             que caiga fuera de esas dos no aparece.
-            Y aquí importa especialmente: el banco existe para cerrar la cuota
-            de hombres y mujeres, o sea que los alumnos sin sexo declarado son
-            justo los que limitan cuánto puede ayudar. Enseñar los dos primeros
-            números y callar el tercero deja creer que el banco cubre más de lo
-            que puede. */}
+            Y aquí importa especialmente: la reserva adicional existe para
+            cerrar la cuota de hombres y mujeres, o sea que los alumnos sin
+            sexo declarado son justo los que limitan cuánto puede ayudar.
+            Enseñar los dos primeros números y callar el tercero deja creer
+            que la reserva adicional cubre más de lo que puede. */}
         {resto > 0 ? (
           <> · <strong>{fmt(resto)}</strong> sin sexo declarado</>
         ) : null}

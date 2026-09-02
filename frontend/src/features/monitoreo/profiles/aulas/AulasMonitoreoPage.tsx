@@ -549,12 +549,12 @@ export function reemplazosEnOrdenDeCadena(
 export function contadorDeCursosHorario(
   visibles: number,
   total: number,
-  delBanco: number,
+  deReservaAdicional: number,
 ): string {
   const base = total > visibles
     ? `se ven ${fmt(visibles)} de ${fmt(total)} cursos-horario`
     : `${fmt(visibles)} cursos-horario`;
-  return delBanco ? `${base} · ${fmt(delBanco)} del banco` : base;
+  return deReservaAdicional ? `${base} · ${fmt(deReservaAdicional)} de la reserva adicional` : base;
 }
 
 function cleanCell(value: unknown) {

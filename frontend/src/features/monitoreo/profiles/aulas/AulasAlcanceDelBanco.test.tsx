@@ -31,13 +31,13 @@ describe("AulasAlcanceDelBanco", () => {
     const html = renderToStaticMarkup(
       <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Derecho", 20, 0], ["Letras", 300, 0]])} />,
     );
-    expect(html).toContain("El banco no alcanza para cerrar la cuota");
+    expect(html).toContain("La reserva adicional no alcanza para cerrar la cuota");
     // Sobre el TEXTO, no sobre el markup: `<strong>200</strong>` aparece también
     // en «rinde 200 encuestas» de la lectura de arriba, así que buscarlo suelto
     // no distinguía el déficit por facultad de la cifra optimista. Un mutante
     // que intercambiaba las dos sobrevivió a ese aserto.
     const texto = html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
-    expect(texto).toContain("faltarían 200 encuestas tras vaciar el banco");
+    expect(texto).toContain("faltarían 200 encuestas tras vaciar la reserva adicional");
     expect(texto).toContain("restando totales saldrían 120");
     // Sólo Letras tiene déficit; Derecho no debe aparecer como problema.
     expect(html).toContain("Letras");
@@ -48,7 +48,7 @@ describe("AulasAlcanceDelBanco", () => {
     const html = renderToStaticMarkup(
       <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Derecho", 20, 0], ["Letras", 30, 0]])} />,
     );
-    expect(html).toContain("El banco alcanza para cerrar la cuota");
+    expect(html).toContain("La reserva adicional alcanza para cerrar la cuota");
     expect(html).toContain("Ninguna facultad se queda corta");
     expect(html).not.toContain("aulas-alcance-lista");
   });
@@ -57,7 +57,7 @@ describe("AulasAlcanceDelBanco", () => {
     // El reparto por facultad se prueba en `faltaTrasLaAgenda`, que es donde
     // vive y donde se puede sembrar sin montar la maquinaria de la proyección.
     // Aquí se fija lo que la pantalla promete: que esa cifra NO es «lo que
-    // falta hoy», porque el banco se abre cuando la agenda se acaba.
+    // falta hoy», porque la reserva adicional se abre cuando la agenda se acaba.
     const html = renderToStaticMarkup(
       <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]}
         quotas={cuota([["Letras", 300, 0]])} />,
