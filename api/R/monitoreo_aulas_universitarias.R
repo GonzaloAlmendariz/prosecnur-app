@@ -662,6 +662,11 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     scheduled_day = get(c("scheduled_day", "dia"), ""),
     scheduled_time = get(c("scheduled_time", "hora_agendada"), ""),
     scheduled_moment = get(c("scheduled_moment", "momento", "momento_de_la_clase"), ""),
+    # B30: el aula/pabellon CONFIRMADO de la aplicacion («A206»), tecleado en
+    # la columna LUGAR DE APLICACIÓN del libro. Esta lista es cerrada: sin
+    # declararlo aqui, el lugar volveria del Excel y se caeria en silencio —
+    # el contrato de campos-declarados lo exige desde la spec del bloque.
+    scheduled_venue = get(c("scheduled_venue", "lugar_de_aplicacion"), ""),
     # --- Eje de APLICACION (hoja «Aulas Aplicadas (Campo)») --------------
     application_status = get(c("application_status", "status_de_aplicacion"), ""),
     # Ya habian respondido en otra aula: ni rechazo ni efectiva.
@@ -1088,6 +1093,9 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # vista de agenda tendria que unir dos listas por codigo para saber que dia
     # es cada aula.
     "scheduled_date", "scheduled_day", "scheduled_time", "scheduled_moment",
+    # B30: el lugar CONFIRMADO viaja con el estado — la vista de agenda dice a
+    # QUE salon ir, y ese es el tecleado en el libro, no el aula de la clase.
+    "scheduled_venue",
     # El RANGO horario del curso, no un instante: «MAR 14:00-16:00 · MIE
     # 10:00-12:00». `schedule` dice cuando EMPIEZA y `scheduled_*` cuando se
     # agendo; ninguno de los dos permite saber cuantas aulas estan en curso a la
