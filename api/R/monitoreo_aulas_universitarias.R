@@ -652,6 +652,12 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     contact_date = get(c("contact_date", "fecha_de_llamada", "fecha_llamada"), ""),
     # Sin los intentos no se puede decir POR QUE un aula sigue sin agendar.
     contact_attempts = getn(c("contact_attempts", "numero_de_intentos", "intentos"), NA_real_),
+    # B23/B22: el resultado de cada llamada y la marca del correo. Esta lista
+    # es cerrada y no declararlos era tragarselos — exactamente lo que el
+    # contrato de campos-declarados existe para cazar (estuvo ROJO desde
+    # f67ffeec hasta aqui sin que ningun gate lo corriera).
+    call_status = get(c("call_status", "status_de_llamada"), ""),
+    email_received = get(c("email_received", "recibio_correo"), ""),
     scheduled_date = get(c("scheduled_date", "fecha_agendada"), ""),
     scheduled_day = get(c("scheduled_day", "dia"), ""),
     scheduled_time = get(c("scheduled_time", "hora_agendada"), ""),
@@ -1505,6 +1511,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # Y las dos tasas por AULA tambien (C2): sin plan viaja vacio y con su
       # criterio declarado. La logica vive en monitoreo_aulas_dos_tasas.R.
       dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
+      # Y el mapa de horas tambien (C2, decision del lead 2026-09-02): sin
+      # plan viaja con dias vacios declarados. La logica vive en
+      # monitoreo_aulas_franjas.R.
+      franjas = monitoreo_aulas_franjas(plan_df),
       brechas = list(),
       reemplazos = list(),
       validation = list()
@@ -2248,6 +2258,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # `respuestas_validas` por fila ya estan calculadas arriba. La logica vive
     # en monitoreo_aulas_dos_tasas.R.
     dos_tasas = monitoreo_aulas_dos_tasas(plan_df),
+    # El mapa de HORAS por dia: ventanas confirmadas y tentativas, pico por
+    # rango real y citas por confirmar. Deriva de monitoreo_aulas_ventanas()
+    # (B11); la logica vive en monitoreo_aulas_franjas.R.
+    franjas = monitoreo_aulas_franjas(plan_df),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload. Es el denominador global de
