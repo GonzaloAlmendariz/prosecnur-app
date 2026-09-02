@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
@@ -6,7 +7,9 @@ import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { hayHorarioDeCurso } from "./cargaDeCampo";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
+import { AulasSelectorDeEslabon } from "./AulasSelectorDeEslabon";
 import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
+import { eslabonVigente, filasDeReemplazo, opcionesDeEslabon } from "./eslabonDeLaAgenda";
 import { fmt } from "./kpisDeAulas";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
@@ -42,6 +45,30 @@ export function AulasSeccionModelo({
   agendaReservas: (dashboard: MonitoreoAulasDashboard | null) => number;
 }): ReactNode {
   const Tabla = tabla;
+  // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
+  // y que muestre esas columnas». En el libro cada eslabón es un bloque de
+  // columnas; en el plan es un juego de FILAS (`sample_role` +
+  // `replacement_order`), así que el desplegable conmuta qué eslabón lista la
+  // tabla, con las mismas columnas del agendador.
+  //
+  // Estado LOCAL a propósito: el eslabón no es un panel (no hay overlay para
+  // `usePanelDireccionable`) ni un `foco` (no identifica una entidad), y
+  // abrirle un parámetro a la gramática por una lente de tabla no tiene
+  // precedente barato. Vive aquí y no en el page-file, que ya carga decenas de
+  // `useState`.
+  const [eslabonElegido, setEslabonElegido] = useState(0);
+  const { opciones, sinOrden } = opcionesDeEslabon(
+    (dashboard.agenda ?? []) as unknown as Array<Record<string, unknown>>,
+  );
+  // Si un Recargar encoge las cadenas, la elección cae a titulares en vez de
+  // dejar la tabla mirando un eslabón que ya no existe.
+  const eslabon = eslabonVigente(opciones, eslabonElegido);
+  // Titulares por `agendaRows` —la MISMA fuente de siempre, compartida con la
+  // carga, el contacto y la ruta—; los reemplazos por el helper, que les da el
+  // mismo tratamiento (qué toca, status legible, orden de cadena).
+  const filasDeLaAgenda = eslabon === 0
+    ? agendaRows(dashboard)
+    : filasDeReemplazo(dashboard, eslabon);
   return (
       // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
       // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
@@ -191,20 +218,49 @@ export function AulasSeccionModelo({
                 el título nombre la hoja y el subtítulo la unidad no es una
                 contradicción: son dos cosas distintas y cada una en su sitio. */}
             <h3>Aulas agendadas</h3>
+            {/* B27: el eslabón que la tabla lista. Va en la cabecera de ESTE
+                panel y no en la del workbench, porque manda sobre esta tabla y
+                el selector de facultad manda sobre la sección entera. */}
+            <AulasSelectorDeEslabon
+              opciones={opciones}
+              valor={eslabon}
+              onCambio={setEslabonElegido}
+            />
             {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. Y las
                 reservas se declaran al lado en vez de listarse: existen, pero no
                 son trabajo del agendador hasta que una titular se cae. */}
+            {/* Con un eslabón de reemplazo en vista, la UNIDAD cambia con el
+                número —«en reemplazo 2»—, no sólo la cifra: es lo que impide
+                que el denominador cambie en silencio bajo el mismo rótulo. Una
+                reserva sin `replacement_order` válido no cae en ningún eslabón
+                y se declara aquí en vez de desaparecer de todas las vistas. */}
             <span>
-              {fmt(agendaRows(dashboard).length)} cursos-horario
-              {agendaReservas(dashboard)
-                ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
-                : ""}
+              {eslabon === 0 ? (
+                <>
+                  {fmt(filasDeLaAgenda.length)} cursos-horario
+                  {agendaReservas(dashboard)
+                    ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
+                    : ""}
+                </>
+              ) : (
+                <>
+                  {fmt(filasDeLaAgenda.length)} cursos-horario en reemplazo {eslabon}
+                  {sinOrden
+                    ? ` · ${fmt(sinOrden)} reservas sin eslabón declarado`
+                    : ""}
+                </>
+              )}
             </span>
           </div>
           {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
               entrar a Agenda— y después la tabla, que es donde se busca un
               curso-horario concreto. La tabla NO se va: en esta sección sirve. */}
-          {/* Sin el banco, por lo mismo: un aula sin fecha no tiene día en el
+          {/* La franja por día es GLOBAL a propósito: lee `course_status` con
+              titulares y reservas juntos y no obedece al eslabón elegido. Es la
+              forma del periodo, no la lista del eslabón; su recorte ya declara
+              su propio denominador («contado sobre X de Y»), y el contador de
+              la cabecera es quien nombra lo que la TABLA enseña. */}
+          {/* Sin la reserva adicional, por lo mismo: un aula sin fecha no tiene día en el
               que contarse, y las 40 caían en el tramo «sin fecha». */}
           <AulasAgendaPorDia
             filas={((dashboard.course_status ?? []) as MonitoreoAulasPlanRow[])
@@ -239,8 +295,13 @@ export function AulasSeccionModelo({
               distribución ya la calculaba `agendamiento.ts`; sólo publicaba su
               centro. */}
           <Tabla
-            rows={agendaRows(dashboard)}
-            empty="No hay agenda importada para cursos-horario."
+            rows={filasDeLaAgenda}
+            // C3: un eslabón sin filas —el hueco de una cadena profunda— deja
+            // su vacío dentro del marco de la tabla, y el copy nombra QUÉ
+            // eslabón está vacío en vez de decir que no hay agenda.
+            empty={eslabon === 0
+              ? "No hay agenda importada para cursos-horario."
+              : `Ninguna cadena llega al reemplazo ${eslabon} en este plan.`}
             // El rol y a quién reemplaza van delante de la sección y el
             // responsable: con una cadena de seis, las siete filas del mismo
             // titular sólo se distinguían por su código. La tabla recorta a
