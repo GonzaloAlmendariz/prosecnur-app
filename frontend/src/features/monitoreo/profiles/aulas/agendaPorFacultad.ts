@@ -47,7 +47,7 @@ function texto(valor: unknown): string {
 }
 
 /**
- * @param filas la agenda ya sin banco —los extras no están agendados y no
+ * @param filas la agenda ya sin la reserva adicional —los extras no están agendados y no
  *   tienen a dónde ir—, tal como la recibe la tabla de al lado.
  */
 export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): FacultadEnAgenda[] {

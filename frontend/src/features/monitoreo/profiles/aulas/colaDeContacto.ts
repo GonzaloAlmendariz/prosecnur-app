@@ -87,7 +87,7 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   const porFacultad = new Map<string, number[]>();
 
   for (const fila of filas) {
-    // El banco no se contacta: no cuelga de ningún titular.
+    // La reserva adicional no se contacta: no cuelga de ningún titular.
     if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const facultad = texto(fila.faculty) || "Sin facultad";
     const intentos = Number(fila.contact_attempts);

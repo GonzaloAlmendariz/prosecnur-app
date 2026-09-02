@@ -53,7 +53,8 @@ function medidaDePestana(
      * Pendiente = cursos-horario sin parte de campo. Nunca «listo»: siempre
      * puede entrar otra aplicación.
      *
-     * **El universo son los titulares, no el plan sin banco.** `total_aulas`
+     * **El universo son los titulares, no el plan sin la reserva adicional.**
+     * `total_aulas`
      * cuenta 1.347 sobre HSVG2026 «como 2025» —174 titulares más 1.173 reservas
      * encadenadas— y una reserva dormida no espera ningún parte: sólo sale a
      * campo si cae su titular. El badge decía **1.195** donde faltan **22**.
@@ -92,7 +93,8 @@ function medidaDePestana(
      * **Cadenas MOVIDAS, no filas de la lista.**
      *
      * La intención estaba escrita —«Pendiente = cadenas movidas»— y la cuenta
-     * era `dashboard.reemplazos.length`, que trae **el plan entero sin banco**:
+     * era `dashboard.reemplazos.length`, que trae **el plan entero sin la
+     * reserva adicional**:
      * titulares y sus reservas, movidas o no. Medido sobre HSVG2026 «como
      * 2025», el badge decía **1.347** y los reemplazos que de verdad ocurrieron
      * son **18** —cifra en la que coinciden tres fuentes: las filas con

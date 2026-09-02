@@ -7,10 +7,11 @@ import { AulasEstadoChart } from "./AulasEstadoChart";
  * El pie de «Status de aplicación» contaba dos conjuntos distintos.
  *
  * Decía «5 de 269 cursos-horario todavía no salen a campo», y de esos 269, 70
- * eran reservas del banco que NO van a salir salvo que caiga su titular. El
- * numerador ya las excluía —sólo suma `pendiente` y `lista`— y el denominador
- * las metía: media fracción contaba una cosa y la otra media, otra. Leído de
- * corrido, decía que 264 cursos-horario ya salieron cuando fueron 194.
+ * eran de la reserva adicional que NO van a salir salvo que caiga su titular.
+ * El numerador ya las excluía —sólo suma `pendiente` y `lista`— y el
+ * denominador las metía: media fracción contaba una cosa y la otra media,
+ * otra. Leído de corrido, decía que 264 cursos-horario ya salieron cuando
+ * fueron 194.
  */
 
 const resumen = [
@@ -43,21 +44,21 @@ describe("el pie de «Status de aplicación» usa el denominador de su numerador
     expect(html(resumen)).toMatch(/esperan en reserva/);
   });
 
-  it("sin banco, el denominador vuelve a ser el total y no sobra la frase", () => {
-    const sinBanco = resumen.filter((e) => e.clave !== "en_reserva");
-    const out = html(sinBanco);
+  it("sin reserva adicional, el denominador vuelve a ser el total y no sobra la frase", () => {
+    const sinReserva = resumen.filter((e) => e.clave !== "en_reserva");
+    const out = html(sinReserva);
     expect(out).toContain("5 de 199");
     expect(out).not.toMatch(/esperan en reserva/);
   });
 });
 
-describe("«banco» no nombra dos conjuntos distintos", () => {
-  it("las dormidas de una cadena no se llaman «del banco»", () => {
+describe("«reserva adicional» no nombra dos conjuntos distintos", () => {
+  it("las dormidas de una cadena no se llaman «de la reserva adicional»", () => {
     // Medido el 2026-08-23 sobre el sorteo del 22: la misma pantalla decía
     // «las otras 507 son reservas que esperan en el banco» y, cuatro renglones
     // más abajo, «1.916 son reservas del banco». La misma palabra para dos
     // conjuntos que no se solapan: las 507 están ENCADENADAS a un titular
-    // concreto y el banco es capacidad sin asignar a nadie.
+    // concreto y la reserva adicional es capacidad sin asignar a nadie.
     //
     // Se mira el RENDER y no el fuente: la primera versión de este test buscaba
     // la frase vieja en el archivo y la encontraba en el comentario que la cita
@@ -69,52 +70,53 @@ describe("«banco» no nombra dos conjuntos distintos", () => {
   });
 });
 
-describe("el banco tampoco está «en juego», aunque el motor no lo marque dormido", () => {
-  const conBanco = (r: typeof resumen, banco: number) =>
+describe("la reserva adicional tampoco está «en juego», aunque el motor no la marque dormida", () => {
+  const conReserva = (r: typeof resumen, reserva: number) =>
     renderToStaticMarkup(
-      <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0} bancoMotor={banco} />,
+      <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0} reservaMotor={reserva} />,
     );
 
   it("lo descuenta del denominador", () => {
     // Medido el 2026-08-23 sobre el sorteo del 22: el motor clasificó las 507
-    // reservas encadenadas como `en_reserva` y las 1.916 del banco como «Sin
-    // agendar». Descontar sólo por estado dejaba «2.109 de 2.109 cursos-horario
-    // en juego» sobre un operativo de 193 visitas: diez veces el trabajo real.
+    // reservas encadenadas como `en_reserva` y las 1.916 de la reserva
+    // adicional como «Sin agendar». Descontar sólo por estado dejaba «2.109 de
+    // 2.109 cursos-horario en juego» sobre un operativo de 193 visitas: diez
+    // veces el trabajo real.
     //
-    // Aquí: denominador 269 − 70 dormidas − 2 de banco = 197, y el numerador
-    // baja igual —5 − 2 = 3— porque el banco cae en `pendiente` y estaba en
-    // los DOS lados de la fracción.
-    const out = conBanco(resumen, 2);
+    // Aquí: denominador 269 − 70 dormidas − 2 de reserva adicional = 197, y el
+    // numerador baja igual —5 − 2 = 3— porque la reserva adicional cae en
+    // `pendiente` y estaba en los DOS lados de la fracción.
+    const out = conReserva(resumen, 2);
     expect(out).toContain("3 de 197");
     expect(out).not.toContain("5 de 199");
   });
 
-  it("el numerador descuenta el banco igual que el denominador", () => {
+  it("el numerador descuenta la reserva adicional igual que el denominador", () => {
     // Arreglar sólo el denominador dejó en pantalla «2.109 de 193»: la misma
     // mitad-y-mitad de antes con los papeles cambiados.
-    const out = conBanco(resumen, 2);
+    const out = conReserva(resumen, 2);
     expect(out).not.toMatch(/5 de 19[0-9]/);
   });
 
-  it("sin banco declarado se comporta como antes", () => {
+  it("sin reserva adicional declarada se comporta como antes", () => {
     // Un payload anterior no manda `course_status_banco`; ahí el descuento por
     // estado es lo único que hay y sigue siendo mejor que nada.
-    expect(conBanco(resumen, 0)).toContain("5 de 199");
+    expect(conReserva(resumen, 0)).toContain("5 de 199");
   });
 
-  it("no baja de cero aunque el banco supere lo que queda", () => {
+  it("no baja de cero aunque la reserva adicional supere lo que queda", () => {
     // Un desglose incoherente no puede producir cifras negativas: la frase
     // diría «−95 de −20», que no significa nada.
-    const out = conBanco(resumen, 5000);
+    const out = conReserva(resumen, 5000);
     expect(out).not.toMatch(/-\d/);
   });
 
-  it("separa las dormidas del banco en vez de meterlas en un saco", () => {
+  it("separa las dormidas de la reserva adicional en vez de meterlas en un saco", () => {
     // «Las otras 2.423 sólo entran si cae su titular» es falso para 1.916 de
-    // ellas: el banco no está asignado a ninguna cadena.
-    const out = conBanco(resumen, 2);
+    // ellas: la reserva adicional no está asignada a ninguna cadena.
+    const out = conReserva(resumen, 2);
     expect(out).toContain("esperan en reserva");
-    expect(out).toContain("en el banco");
+    expect(out).toContain("en la reserva adicional");
   });
 });
 
@@ -142,8 +144,9 @@ describe("reparte lo que publica el motor, no las filas que viajan", () => {
     const out = renderToStaticMarkup(
       <AulasEstadoChart filas={pocasFilas} resumen={resumen as never} desconocidasMotor={0} />,
     );
-    // 3 + 2 + 16 + 152 + 26 + 70 = 269, menos las 70 del banco que no salen a
-    // campo = 199 en juego. Lo que importa es que NO son las 2 que viajan.
+    // 3 + 2 + 16 + 152 + 26 + 70 = 269, menos las 70 de la reserva adicional
+    // que no salen a campo = 199 en juego. Lo que importa es que NO son las 2
+    // que viajan.
     expect(out).toContain("199");
   });
 
@@ -168,7 +171,7 @@ describe("las tres ramas del pie explican el mecanismo con las mismas palabras",
    * reemplazos», y quien lee este pie está en Resumen. Un término del modelo de
    * datos usado a tres secciones de donde se define.
    */
-  const conBanco = (banco: number, enReserva: number) =>
+  const conReserva = (reserva: number, enReserva: number) =>
     renderToStaticMarkup(
       <AulasEstadoChart
         filas={[]}
@@ -177,42 +180,43 @@ describe("las tres ramas del pie explican el mecanismo con las mismas palabras",
           ...(enReserva ? [{ clave: "en_reserva", aulas: enReserva }] : []),
         ] as never}
         desconocidasMotor={0}
-        bancoMotor={banco}
+        reservaMotor={reserva}
       />);
 
-  it("cuando TODO lo que queda fuera es banco, tampoco se nombra la cadena", () => {
-    // Banco SIN reservas encadenadas dormidas: `fuera === banco` y no hay
-    // dormidas que nombrar. Es la rama que se desviaba, y se da en un estudio
-    // que tiene banco pero ninguna cadena montada.
-    const out = conBanco(5, 0);
+  it("cuando TODO lo que queda fuera es reserva adicional, tampoco se nombra la cadena", () => {
+    // Reserva adicional SIN reservas encadenadas dormidas: `fuera === reserva`
+    // y no hay dormidas que nombrar. Es la rama que se desviaba, y se da en un
+    // estudio que tiene reserva adicional pero ninguna cadena montada.
+    const out = conReserva(5, 0);
     expect(out).toContain("sin un titular al que respalden");
     expect(out).not.toContain("cadena");
   });
 
-  it("y con dormidas Y banco sigue diciendo el mecanismo, como siempre", () => {
-    const out = conBanco(30, 70);
+  it("y con dormidas Y reserva adicional sigue diciendo el mecanismo, como siempre", () => {
+    const out = conReserva(30, 70);
     expect(out).toMatch(/sólo entran si cae su titular/);
     expect(out).not.toContain("cadena");
   });
 });
 
 /**
- * **El banco se descontaba dos veces cuando cae en `en_reserva`.**
+ * **La reserva adicional se descontaba dos veces cuando cae en `en_reserva`.**
  *
  * `enJuegoDe` derivaba las vivas de los tramos —«todo lo que no es
- * `en_reserva`»— y luego restaba el banco. Eso sólo es correcto si el banco NO
- * está en ese tramo, que es el caso que motivó el descuento (2026-08-23: el
- * motor clasificaba las 1.916 del banco como «Sin agendar»).
+ * `en_reserva`»— y luego restaba la reserva adicional. Eso sólo es correcto si
+ * la reserva adicional NO está en ese tramo, que es el caso que motivó el
+ * descuento (2026-08-23: el motor clasificaba las 1.916 de la reserva
+ * adicional como «Sin agendar»).
  *
- * Medido el 2026-08-30 sobre el estudio de 1.424: las 77 del banco están las 77
- * en `en_reserva`, así que las vivas (192) ya las excluían y el pie publicaba
- * **115 en juego** cuando el motor marca `en_juego` en **174** —156 titulares
- * vivos + 18 reservas activadas—. 59 cursos-horario menos de los que hay en
- * campo, en el titular de Resumen.
+ * Medido el 2026-08-30 sobre el estudio de 1.424: las 77 de la reserva
+ * adicional están las 77 en `en_reserva`, así que las vivas (192) ya las
+ * excluían y el pie publicaba **115 en juego** cuando el motor marca
+ * `en_juego` en **174** —156 titulares vivos + 18 reservas activadas—. 59
+ * cursos-horario menos de los que hay en campo, en el titular de Resumen.
  *
- * Se cuenta desde el total con las dormidas del motor, que las cuenta SIN el
- * banco, así que `total − dormidas − banco` da `sum(en_juego)` en los dos
- * escenarios.
+ * Se cuenta desde el total con las dormidas del motor, que las cuenta SIN la
+ * reserva adicional, así que `total − dormidas − reserva` da `sum(en_juego)`
+ * en los dos escenarios.
  */
 const REAL = [
   { clave: "pendiente", aulas: 0 },
@@ -223,33 +227,34 @@ const REAL = [
   { clave: "en_reserva", aulas: 1232 },
 ];
 
-const conMotor = (r: typeof REAL, banco: number, dormidas: number) =>
+const conMotor = (r: typeof REAL, reserva: number, dormidas: number) =>
   renderToStaticMarkup(
     <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0}
-      bancoMotor={banco} dormidasMotor={dormidas} />,
+      reservaMotor={reserva} dormidasMotor={dormidas} />,
   );
 
-describe("el banco no se descuenta dos veces", () => {
-  it("con el banco DENTRO de `en_reserva`, en juego son 174 y no 115", () => {
-    // 1.424 − 1.173 dormidas − 77 banco = 174.
+describe("la reserva adicional no se descuenta dos veces", () => {
+  it("con la reserva adicional DENTRO de `en_reserva`, en juego son 174 y no 115", () => {
+    // 1.424 − 1.173 dormidas − 77 de reserva adicional = 174.
     const out = conMotor(REAL, 77, 1173);
     expect(out).toContain("174");
     expect(out).not.toContain("115");
   });
 
-  it("y el pie reparte las otras sin contar el banco dos veces", () => {
-    // fuera = 1.424 − 174 = 1.250 = 1.173 en reserva + 77 en banco. Antes decía
-    // «1.232 y 77», que suman 1.309: el mismo banco en los dos sumandos.
+  it("y el pie reparte las otras sin contar la reserva adicional dos veces", () => {
+    // fuera = 1.424 − 174 = 1.250 = 1.173 en reserva + 77 en la reserva
+    // adicional. Antes decía «1.232 y 77», que suman 1.309: la misma reserva
+    // adicional en los dos sumandos.
     const out = conMotor(REAL, 77, 1173);
     expect(out).toContain("1,173");
     expect(out).toContain("77");
     expect(out).not.toContain("1,232 esperan");
   });
 
-  it("con el banco FUERA de `en_reserva` sigue acertando", () => {
+  it("con la reserva adicional FUERA de `en_reserva` sigue acertando", () => {
     // El caso de 2026-08-23, que es el que motivó el descuento: el motor metía
-    // el banco en «Sin agendar». 200 totales, 70 del banco en `pendiente`, 30
-    // dormidas de verdad → en juego 100.
+    // la reserva adicional en «Sin agendar». 200 totales, 70 de reserva
+    // adicional en `pendiente`, 30 dormidas de verdad → en juego 100.
     const comoEn2025 = [
       { clave: "pendiente", aulas: 70 },
       { clave: "lista", aulas: 10 },
@@ -265,7 +270,7 @@ describe("el banco no se descuenta dos veces", () => {
     // `dormidasMotor` es opcional: un backend viejo no lo emite y la vista no
     // puede quedarse en blanco por eso.
     const out = renderToStaticMarkup(
-      <AulasEstadoChart filas={[]} resumen={REAL as never} desconocidasMotor={0} bancoMotor={77} />,
+      <AulasEstadoChart filas={[]} resumen={REAL as never} desconocidasMotor={0} reservaMotor={77} />,
     );
     expect(out).toContain("115");
   });

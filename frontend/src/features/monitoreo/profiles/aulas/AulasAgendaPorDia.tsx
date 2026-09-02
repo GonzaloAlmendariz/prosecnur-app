@@ -22,7 +22,7 @@ const ALTO_COMPACTO = 820;
 
 export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
-  /** Cursos-horario que tiene el plan de verdad, sin el banco.
+  /** Cursos-horario que tiene el plan de verdad, sin la reserva adicional.
    *
    * `filas` llega recortada: `course_status` se topea a 500 antes de salir del
    * backend. Contar lo que llegó y llamarlo «los N cursos-horario» presentaba un

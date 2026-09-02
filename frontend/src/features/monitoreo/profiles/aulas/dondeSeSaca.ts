@@ -14,9 +14,9 @@ import { colchonPorFacultad } from "./consumoDeCadena";
  * separan en cuanto una cambia, y aquí se separarían en la peor forma posible:
  * la ficha diría que hay de dónde sacar y el panel de al lado que no.
  *
- * **El banco de extras se queda fuera a propósito.** Tiene su propio panel con
- * su tasa observada y su banda; repetir aquí una versión sin banda daría una
- * cifra más optimista y sin su incertidumbre.
+ * **La reserva adicional se queda fuera a propósito.** Tiene su propio panel
+ * con su tasa observada y su banda; repetir aquí una versión sin banda daría
+ * una cifra más optimista y sin su incertidumbre.
  */
 
 export type DondeSeSaca = {
@@ -24,16 +24,16 @@ export type DondeSeSaca = {
   /** Reservas de CADENA de esa facultad que siguen sin usarse. */
   reservasLibres: number;
   /**
-   * Extras de su bolsón que siguen sin usarse, o `null` si el estudio no
-   * publica banco.
+   * Extras de su reserva adicional que siguen sin usarse, o `null` si el
+   * estudio no publica reserva adicional.
    *
    * Va aparte de `reservasLibres` porque son dos recursos con procedimiento
-   * distinto -la cadena sigue el orden del sorteo y el bolsón se elige-, pero
-   * hace falta aquí: sin él, la ficha manda al banco de extras sin saber si esa
-   * facultad tiene alguno. Medido sobre HSVG 2026: **12 de 15 lo tienen
-   * vacío**.
+   * distinto -la cadena sigue el orden del sorteo y la reserva adicional se
+   * elige-, pero hace falta aquí: sin él, la ficha manda a la reserva
+   * adicional sin saber si esa facultad tiene alguna. Medido sobre HSVG 2026:
+   * **12 de 15 la tienen vacía**.
    */
-  bolsonLibre: number | null;
+  reservaAdicionalLibre: number | null;
   /** Cadenas de esa facultad que ya gastaron todas sus reservas. */
   cadenasAgotadas: number;
   /** Cadenas que nunca tuvieron reserva: no las gastó el campo. */
@@ -47,8 +47,8 @@ export function dondeSeSaca(
   agenda: ReadonlyArray<MonitoreoAulasPlanRow>,
   /**
    * `banco_extras.por_facultad`. Enumera TODAS las facultades del plan, con
-   * cero donde no hay: una que no aparezca es que el estudio no publica banco,
-   * y eso no es lo mismo que tenerlo vacío.
+   * cero donde no hay: una que no aparezca es que el estudio no publica
+   * reserva adicional, y eso no es lo mismo que tenerla vacía.
    */
   banco: ReadonlyArray<{ faculty?: unknown; disponibles?: unknown }> = [],
 ): DondeSeSaca {
@@ -56,29 +56,29 @@ export function dondeSeSaca(
   const vacio: DondeSeSaca = {
     facultad: limpia,
     reservasLibres: 0,
-    bolsonLibre: null,
+    reservaAdicionalLibre: null,
     cadenasAgotadas: 0,
     cadenasSinColchon: 0,
     conocida: false,
   };
   if (!limpia) return vacio;
 
-  const suyoEnBanco = banco.find(
+  const suyaEnReservaAdicional = banco.find(
     (b) => String(b.faculty ?? "").trim().toLowerCase() === limpia.toLowerCase(),
   );
-  const bolsonLibre = suyoEnBanco && typeof suyoEnBanco.disponibles === "number"
-    ? suyoEnBanco.disponibles
+  const reservaAdicionalLibre = suyaEnReservaAdicional && typeof suyaEnReservaAdicional.disponibles === "number"
+    ? suyaEnReservaAdicional.disponibles
     : null;
 
   const suya = colchonPorFacultad(agenda).find(
     (f) => f.facultad.trim().toLowerCase() === limpia.toLowerCase(),
   );
-  if (!suya) return { ...vacio, bolsonLibre };
+  if (!suya) return { ...vacio, reservaAdicionalLibre };
 
   return {
     facultad: suya.facultad,
     reservasLibres: suya.libres,
-    bolsonLibre,
+    reservaAdicionalLibre,
     cadenasAgotadas: suya.agotadas,
     cadenasSinColchon: suya.nuncaTuvo,
     conocida: true,

@@ -1,23 +1,23 @@
 /**
- * ¿Alcanza el banco de aulas extra para cerrar la cuota que falta?
+ * ¿Alcanza la reserva adicional de aulas extra para cerrar la cuota que falta?
  *
- * La pestaña del banco dice cuántas aulas hay y cuántos alumnos tienen —«73
- * extras · 2 436 alumnos»—, que es un inventario, no una respuesta. La pregunta
- * que decide el operativo es otra, y es la que Gonzalo repite: «no es que los
- * reemplazos sean una cosa infinita… la idea operativa es que no nos pasemos de
- * determinadas aulas».
+ * La pestaña de la reserva adicional dice cuántas aulas hay y cuántos alumnos
+ * tienen —«73 extras · 2 436 alumnos»—, que es un inventario, no una respuesta.
+ * La pregunta que decide el operativo es otra, y es la que Gonzalo repite: «no
+ * es que los reemplazos sean una cosa infinita… la idea operativa es que no
+ * nos pasemos de determinadas aulas».
  *
- * Medido sobre el corte real: el banco entero rinde **1 430 encuestas** contra
- * **1 558** de cuota pendiente, y **ni el extremo alto de la banda (1 532)
- * llega**. Un inventario de 2 436 alumnos que se lee como reserva de sobra y no
- * cierra la cuota.
+ * Medido sobre el corte real: la reserva adicional entera rinde
+ * **1 430 encuestas** contra **1 558** de cuota pendiente, y **ni el extremo
+ * alto de la banda (1 532) llega**. Un inventario de 2 436 alumnos que se lee
+ * como reserva de sobra y no cierra la cuota.
  *
  * Dos decisiones que hacen honesta la cuenta:
  *
- * 1. **Ningún alumno del banco es una encuesta.** Se proyecta con la tasa de
- *    respuesta OBSERVADA sobre la población elegible —58,7 % en 102 aulas—, y
- *    con su banda: la tasa varía mucho entre aulas (sd 18 pp), así que una cifra
- *    puntual prometería una precisión que no existe.
+ * 1. **Ningún alumno de la reserva adicional es una encuesta.** Se proyecta
+ *    con la tasa de respuesta OBSERVADA sobre la población elegible —58,7 %
+ *    en 102 aulas—, y con su banda: la tasa varía mucho entre aulas (sd 18
+ *    pp), así que una cifra puntual prometería una precisión que no existe.
  * 2. **La cuota no se compensa entre facultades**, igual que en el KPI de cuota
  *    pendiente: pasarse en Derecho no cubre lo que falta en Letras. El déficit
  *    se suma por facultad, no se resta de totales. Restar totales da siempre el
@@ -75,28 +75,28 @@ export function tasaDeRespuestaObservada(filas: ReadonlyArray<FilaDeControl>): T
 
 export type FacultadDelAlcance = {
   facultad: string;
-  /** Alumnos elegibles que quedan en el banco de esa facultad. */
+  /** Alumnos elegibles que quedan en la reserva adicional de esa facultad. */
   elegibles: number;
   /** Encuestas que se esperan de ellos con la tasa observada. */
   rinde: number;
   /** Cuota pendiente de esa facultad. */
   falta: number;
-  /** Lo que seguiría faltando tras vaciar su banco. */
+  /** Lo que seguiría faltando tras vaciar su reserva adicional. */
   deficit: number;
 };
 
 export type AlcanceDelBanco = {
   tasa: TasaObservada;
-  /** La caída aplicada al rendimiento del banco, en 0–1. */
+  /** La caída aplicada al rendimiento de la reserva adicional, en 0–1. */
   caida: number;
-  /** Encuestas esperadas del banco entero. */
+  /** Encuestas esperadas de la reserva adicional entera. */
   rinde: number;
   /** Banda de dos errores estándar, en encuestas. */
   bajo: number;
   alto: number;
   /** Cuota pendiente sumada. */
   falta: number;
-  /** Lo que falta tras vaciar el banco, sumado POR FACULTAD. */
+  /** Lo que falta tras vaciar la reserva adicional, sumado POR FACULTAD. */
   deficit: number;
   /** El mismo déficit calculado restando totales: siempre igual o menor. */
   deficitSiSeCompensara: number;
@@ -107,16 +107,16 @@ export type AlcanceDelBanco = {
 
 /**
  * @param control filas de «Base de control», para la tasa.
- * @param banco elegibles del banco por facultad.
+ * @param banco elegibles de la reserva adicional por facultad.
  * @param falta cuota pendiente por facultad.
- * @param aulasDelBanco cuántas aulas nuevas se abrirían; fija el ruido de la banda.
+ * @param aulasDeReservaAdicional cuántas aulas nuevas se abrirían; fija el ruido de la banda.
  * @param caida proporción de aulas que no llegan a aplicarse, en 0–1.
  */
 export function alcanceDelBanco(
   control: ReadonlyArray<FilaDeControl>,
   banco: ReadonlyArray<{ faculty: string; elegibles: number }>,
   falta: ReadonlyMap<string, number>,
-  aulasDelBanco: number,
+  aulasDeReservaAdicional: number,
   caida = 0,
 ): AlcanceDelBanco | null {
   const tasa = tasaDeRespuestaObservada(control);
@@ -126,13 +126,14 @@ export function alcanceDelBanco(
   // dividida por las aulas que se van a abrir, no por las 102 con que se midió
   // la tasa: abrir tres aulas es mucho más incierto que abrir setenta, y una
   // banda calculada sobre la muestra vieja diría lo contrario.
-  const n = Math.max(1, aulasDelBanco);
+  const n = Math.max(1, aulasDeReservaAdicional);
   const ee = tasa.sd / Math.sqrt(n);
-  // **Un aula del banco también se cae.** Sin esto el banco rendía como si las
-  // 73 se aplicaran todas, y la alerta de anticipación de al lado —que sí pide
-  // sobre el neto— contaba 18 facultades sin aulas suficientes contra las 14 de
-  // aquí. La misma pregunta en dos unidades no puede dar dos respuestas sin que
-  // nadie lo diga; la diferencia era ésta.
+  // **Un aula de la reserva adicional también se cae.** Sin esto la reserva
+  // adicional rendía como si las 73 se aplicaran todas, y la alerta de
+  // anticipación de al lado —que sí pide sobre el neto— contaba 18 facultades
+  // sin aulas suficientes contra las 14 de aquí. La misma pregunta en dos
+  // unidades no puede dar dos respuestas sin que nadie lo diga; la diferencia
+  // era ésta.
   const rendimiento = Math.max(0, 1 - Math.min(1, Math.max(0, caida)));
   const elegiblesTotales = banco.reduce((s, b) => s + Math.max(0, b.elegibles || 0), 0);
   const proyectar = (t: number) => Math.round(elegiblesTotales * Math.max(0, t) * rendimiento);
@@ -166,8 +167,9 @@ export function alcanceDelBanco(
     const falt = Math.max(0, falta.get(f) ?? 0);
     facultades.push({ facultad: f, elegibles, rinde, falta: falt, deficit: Math.max(0, falt - rinde) });
   }
-  // Una facultad con cuota pendiente y SIN banco es el peor caso y no puede
-  // quedarse fuera del recuento por no tener fila en el banco.
+  // Una facultad con cuota pendiente y SIN reserva adicional es el peor caso y
+  // no puede quedarse fuera del recuento por no tener fila en la reserva
+  // adicional.
   for (const [f, falt] of falta) {
     if (vistas.has(f) || falt <= 0) continue;
     facultades.push({ facultad: f, elegibles: 0, rinde: 0, falta: falt, deficit: falt });
@@ -190,10 +192,10 @@ export function alcanceDelBanco(
     facultades,
     // **El veredicto se decide POR FACULTAD, no por totales.**
     //
-    // Con totales decía «el banco alcanza» sobre un corte donde 14 facultades
-    // se quedaban cortas y faltaban 363 encuestas: el titular usaba justo la
-    // cuenta optimista que el pie de este mismo panel desautoriza. Que sobre en
-    // Derecho no cierra la cuota de Letras.
+    // Con totales decía «la reserva adicional alcanza» sobre un corte donde 14
+    // facultades se quedaban cortas y faltaban 363 encuestas: el titular usaba
+    // justo la cuenta optimista que el pie de este mismo panel desautoriza. Que
+    // sobre en Derecho no cierra la cuota de Letras.
     //
     // Y en el extremo desfavorable: `alcanza` sólo si ni con la tasa baja queda
     // déficit; `no alcanza` si ni con la alta desaparece.
@@ -206,9 +208,10 @@ export function alcanceDelBanco(
 /**
  * Lo que faltará por facultad cuando se acabe la agenda comprometida.
  *
- * **No es lo que falta hoy, y la diferencia decide el veredicto.** El banco se
- * abre después de agotar las aulas ya comprometidas, así que pedirle que cubra
- * lo que ésas van a traer es contarlo dos veces. Medido en el corte real:
+ * **No es lo que falta hoy, y la diferencia decide el veredicto.** La reserva
+ * adicional se abre después de agotar las aulas ya comprometidas, así que
+ * pedirle que cubra lo que ésas van a traer es contarlo dos veces. Medido en
+ * el corte real:
  * faltan 1 558 hoy y 1 192 al acabarse la agenda —366 encuestas que ya vienen—.
  *
  * Vive aquí y no en el componente para poder probarse sin montar la vista ni

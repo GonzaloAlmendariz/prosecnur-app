@@ -54,7 +54,7 @@ export function medioDeContacto(
   let aplicadasSinMedio = 0;
 
   for (const fila of filas) {
-    // El banco no se contacta: no cuelga de ningún titular ni tiene agenda.
+    // La reserva adicional no se contacta: no cuelga de ningún titular ni tiene agenda.
     if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const medio = texto(fila.contact_medium);
     if (!medio) {

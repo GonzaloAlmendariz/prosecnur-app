@@ -19,7 +19,7 @@ import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
  */
 export function contadorDeLoQueReparte(
   resumenDelMotor: unknown,
-  { total, filasQueViajan, delBanco }: { total: number; filasQueViajan: number; delBanco: number },
+  { total, filasQueViajan, deReservaAdicional }: { total: number; filasQueViajan: number; deReservaAdicional: number },
 ): string {
   const reparto = Array.isArray(resumenDelMotor) ? resumenDelMotor : [];
   const suma = reparto.reduce(
@@ -28,13 +28,13 @@ export function contadorDeLoQueReparte(
   );
   // Sin reparto del motor el gráfico pinta las filas recortadas, y ahí el aviso
   // «se ven X de Y» sí corresponde.
-  if (!suma) return contadorDeCursosHorario(filasQueViajan, total, delBanco);
+  if (!suma) return contadorDeCursosHorario(filasQueViajan, total, deReservaAdicional);
   /**
    * Con reparto, lo que pinta es su PROPIO universo y no un recorte de otro.
    * Pasar el total como denominador produciría «se ven 174 de 1.424», que es un
    * aviso de recorte igual de falso: a cobertura no le faltan 1.250 filas, es
-   * que 1.250 no tienen meta que cubrir. El banco sólo se nombra cuando el
-   * universo es el que lo contiene.
+   * que 1.250 no tienen meta que cubrir. La reserva adicional sólo se nombra
+   * cuando el universo es el que la contiene.
    */
-  return contadorDeCursosHorario(suma, suma, suma === total ? delBanco : 0);
+  return contadorDeCursosHorario(suma, suma, suma === total ? deReservaAdicional : 0);
 }

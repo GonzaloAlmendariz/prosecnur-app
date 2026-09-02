@@ -67,7 +67,7 @@ describe("consumoDelBanco", () => {
     expect(salida.facultades[0].diasHastaAgotarse).toBeNull();
   });
 
-  it("una reserva en el banco no es consumo", () => {
+  it("una reserva en la reserva adicional no es consumo", () => {
     const salida = consumoDelBanco([
       fila({ operational_code: "CH 1", faculty: "X", titular_operational_code: "CH 1" }),
       fila({ operational_code: "R 1.1", faculty: "X", sample_role: "chain_reserve",

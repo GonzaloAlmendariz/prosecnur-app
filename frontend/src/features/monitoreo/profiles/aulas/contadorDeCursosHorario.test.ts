@@ -22,11 +22,11 @@ describe("contadorDeCursosHorario", () => {
     expect(contadorDeCursosHorario(193, 0, 0)).toBe("193 cursos-horario");
   });
 
-  it("declara aparte las que son del banco", () => {
+  it("declara aparte las que son de la reserva adicional", () => {
     // Avance contaba 236 donde Fuentes contaba 196: la diferencia eran los
     // extras, y la misma palabra daba dos cifras sin explicar el salto.
     expect(contadorDeCursosHorario(236, 2616, 40))
-      .toBe("se ven 236 de 2,616 cursos-horario · 40 del banco");
+      .toBe("se ven 236 de 2,616 cursos-horario · 40 de la reserva adicional");
     expect(contadorDeCursosHorario(196, 196, 0)).toBe("196 cursos-horario");
   });
 

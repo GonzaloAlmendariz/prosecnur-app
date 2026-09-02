@@ -18,39 +18,42 @@ import { fmt } from "./kpisDeAulas";
 type TramoContado = { clave: string; aulas: number };
 
 /**
- * Las que de verdad tienen que salir a campo: ni dormidas ni de banco.
+ * Las que de verdad tienen que salir a campo: ni dormidas ni de la reserva adicional.
  *
  * **Se cuenta desde el total, no desde los tramos, y ése es el arreglo.**
- * Derivarlo como «lo que no está en `en_reserva`, menos el banco» descuenta el
- * banco DOS VECES cuando el banco sí cae en ese tramo. Medido el 2026-08-30
- * sobre el estudio de 1.424: las 77 del banco están las 77 en
- * `sample_status: en_reserva`, así que `vivas` (192) ya las excluía y la resta
- * publicaba **115 en juego** cuando el motor marca `en_juego` en **174** —156
- * titulares vivos más 18 reservas activadas—. La pantalla decía que había 59
- * cursos-horario menos en campo de los que hay.
+ * Derivarlo como «lo que no está en `en_reserva`, menos la reserva adicional»
+ * descuenta la reserva adicional DOS VECES cuando ésta sí cae en ese tramo.
+ * Medido el 2026-08-30 sobre el estudio de 1.424: las 77 de la reserva
+ * adicional están las 77 en `sample_status: en_reserva`, así que `vivas`
+ * (192) ya las excluía y la resta publicaba **115 en juego** cuando el motor
+ * marca `en_juego` en **174** —156 titulares vivos más 18 reservas
+ * activadas—. La pantalla decía que había 59 cursos-horario menos en campo de
+ * los que hay.
  *
  * Y las 192 tampoco eran la respuesta: incluían los 18 titulares reemplazados,
  * que ya no salen, ADEMÁS de las 18 reservas que los sustituyeron.
  *
- * `dormidas` las cuenta el motor sin el banco (`sum(!en_juego & !del_banco)`),
- * así que `total − dormidas − banco` da exactamente `sum(en_juego)`: el banco
- * nunca lleva `en_juego`, medido 174 = 156 titulares + 18 reservas y cero del
- * banco. Sin ese dato se cae a la forma anterior, que es la que acertaba
- * cuando el motor clasificaba el banco como «Sin agendar».
+ * `dormidas` las cuenta el motor sin la reserva adicional
+ * (`sum(!en_juego & !del_banco)`, donde `del_banco` es el nombre que usa el
+ * motor R para este mismo concepto), así que `total − dormidas − reserva` da
+ * exactamente `sum(en_juego)`: la reserva adicional nunca lleva `en_juego`,
+ * medido 174 = 156 titulares + 18 reservas y cero de la reserva adicional. Sin
+ * ese dato se cae a la forma anterior, que es la que acertaba cuando el motor
+ * clasificaba la reserva adicional como «Sin agendar».
  */
 function enJuegoDe(
   estados: ReadonlyArray<TramoContado>,
-  banco?: number,
+  reserva?: number,
   total?: number,
   dormidas?: number,
 ): number {
   if (typeof total === "number" && typeof dormidas === "number") {
-    return Math.max(0, total - dormidas - (banco ?? 0));
+    return Math.max(0, total - dormidas - (reserva ?? 0));
   }
   const vivas = estados
     .filter((e) => e.clave !== "en_reserva")
     .reduce((n, e) => n + e.aulas, 0);
-  return Math.max(0, vivas - (banco ?? 0));
+  return Math.max(0, vivas - (reserva ?? 0));
 }
 
 const acotar = (n: number, techo: number) => Math.min(Math.max(n, 0), techo);
@@ -59,50 +62,52 @@ const acotar = (n: number, techo: number) => Math.min(Math.max(n, 0), techo);
  * Dónde están las que no cuentan como «en juego».
  *
  * Son dos cosas distintas y la frase las metía en una: las ENCADENADAS esperan
- * a que caiga su titular, y el BANCO es capacidad sin asignar a nadie. Decir de
- * las 2.423 que «sólo entran si cae su titular» es falso para 1.916 de ellas.
+ * a que caiga su titular, y la RESERVA ADICIONAL es capacidad sin asignar a
+ * nadie. Decir de las 2.423 que «sólo entran si cae su titular» es falso para
+ * 1.916 de ellas.
  */
-function dondeEstanLasOtras(fuera: number, banco: number): string {
-  const dormidas = Math.max(0, fuera - banco);
-  const enBanco = Math.min(banco, fuera);
-  if (dormidas > 0 && enBanco > 0) {
-    return `Las otras ${fmt(dormidas)} esperan en reserva —sólo entran si cae su titular— y ${fmt(enBanco)} están en el banco.`;
+function dondeEstanLasOtras(fuera: number, reserva: number): string {
+  const dormidas = Math.max(0, fuera - reserva);
+  const enReserva = Math.min(reserva, fuera);
+  if (dormidas > 0 && enReserva > 0) {
+    return `Las otras ${fmt(dormidas)} esperan en reserva —sólo entran si cae su titular— y ${fmt(enReserva)} están en la reserva adicional.`;
   }
   // **La misma función explicaba el mecanismo en dos ramas y lo nombraba en la
   // tercera.** Las otras dos dicen «sólo entran si cae su titular», que se
   // entiende sin saber nada del diseño; ésta decía «sin asignar a ninguna
   // cadena», y «cadena» sólo se define en la sección Consultas, en el panel
   // «Cadena de reemplazos». Quien lee esto está en Resumen.
-  if (enBanco > 0) return `Las otras ${fmt(enBanco)} están en el banco, sin un titular al que respalden.`;
+  if (enReserva > 0) return `Las otras ${fmt(enReserva)} están en la reserva adicional, sin un titular al que respalden.`;
   return `Las otras ${fmt(dormidas)} esperan en reserva: sólo entran si cae su titular.`;
 }
 
-export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor, dormidasMotor }: {
+export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMotor, dormidasMotor }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
   /** Estados que el motor no supo clasificar: se declaran, no se tragan. */
   desconocidasMotor?: number;
   /**
-   * Cuántas de las filas son del banco, contadas por el motor sobre TODAS.
+   * Cuántas de las filas son de la reserva adicional, contadas por el motor
+   * sobre TODAS.
    *
    * `enJuego` las descontaba por ESTADO —las de clave `en_reserva`— y eso sólo
-   * funciona si el motor marca el banco así. Medido el 2026-08-23 sobre el
-   * sorteo del 22: clasificó las 507 reservas encadenadas como `en_reserva` y
-   * las 1.916 del banco como «Sin agendar», así que el pie decía «2.109 de
-   * 2.109 cursos-horario en juego todavía no salen a campo» sobre un operativo
-   * de 193 visitas. Diez veces el trabajo que hay.
+   * funciona si el motor marca así la reserva adicional. Medido el 2026-08-23
+   * sobre el sorteo del 22: clasificó las 507 reservas encadenadas como
+   * `en_reserva` y las 1.916 de la reserva adicional como «Sin agendar», así
+   * que el pie decía «2.109 de 2.109 cursos-horario en juego todavía no salen
+   * a campo» sobre un operativo de 193 visitas. Diez veces el trabajo que hay.
    *
    * El motor ya lo contaba —`attr(recortado, "banco")`, con `en_juego_cs`
-   * excluyendo el banco explícitamente— y lo emite como
+   * excluyendo la reserva adicional explícitamente— y lo emite como
    * `course_status_banco`. Sólo faltaba consumirlo.
    */
-  bancoMotor?: number;
+  reservaMotor?: number;
   /**
-   * Reservas dormidas contadas por el motor SIN el banco
+   * Reservas dormidas contadas por el motor SIN la reserva adicional
    * (`sum(!en_juego & !del_banco)`). Es lo que permite contar «en juego» desde
    * el total en vez de derivarlo de los tramos, que es donde se colaba el doble
-   * descuento del banco.
+   * descuento de la reserva adicional.
    */
   dormidasMotor?: number;
 }) {
@@ -123,29 +128,31 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
           return {
             estados, total,
             desconocidas: desconocidasMotor ?? 0,
-            // El numerador descuenta el banco IGUAL que el denominador. Al
-            // arreglar sólo el de abajo, la frase quedó en «2.109 de 193», que
-            // es la misma mitad-y-mitad de antes con los papeles cambiados:
-            // el banco cae en `pendiente`, así que estaba en los dos lados.
-            // Acotado a [0, en juego] porque un desglose incoherente no puede
-            // producir un numerador negativo ni mayor que su total.
+            // El numerador descuenta la reserva adicional IGUAL que el
+            // denominador. Al arreglar sólo el de abajo, la frase quedó en
+            // «2.109 de 193», que es la misma mitad-y-mitad de antes con los
+            // papeles cambiados: la reserva adicional cae en `pendiente`, así
+            // que estaba en los dos lados. Acotado a [0, en juego] porque un
+            // desglose incoherente no puede producir un numerador negativo ni
+            // mayor que su total.
             sinSalirACampo: acotar(
               estados
                 .filter((e) => e.clave === "pendiente" || e.clave === "lista")
-                .reduce((n, e) => n + e.aulas, 0) - (bancoMotor ?? 0),
-              enJuegoDe(estados, bancoMotor, total, dormidasMotor),
+                .reduce((n, e) => n + e.aulas, 0) - (reservaMotor ?? 0),
+              enJuegoDe(estados, reservaMotor, total, dormidasMotor),
             ),
             // **El denominador de esa frase no es el total.**
             //
             // «5 de 269 cursos-horario todavía no salen a campo» se lee como que
-            // los otros 264 sí salieron, y 70 de esos 269 son reservas del banco
-            // que NO van a salir salvo que caiga su titular. El numerador ya las
-            // excluía —sólo suma `pendiente` y `lista`— y el denominador las
-            // metía: la mitad de la fracción contaba una cosa y la otra mitad,
-            // otra. Las que están en juego son el total menos las dormidas.
-            // Menos las dormidas por estado Y menos el banco, que el motor
-            // cuenta aparte porque no siempre cae en `en_reserva`.
-            enJuego: enJuegoDe(estados, bancoMotor, total, dormidasMotor),
+            // los otros 264 sí salieron, y 70 de esos 269 son de la reserva
+            // adicional que NO van a salir salvo que caiga su titular. El
+            // numerador ya las excluía —sólo suma `pendiente` y `lista`— y el
+            // denominador las metía: la mitad de la fracción contaba una cosa
+            // y la otra mitad, otra. Las que están en juego son el total menos
+            // las dormidas. Menos las dormidas por estado Y menos la reserva
+            // adicional, que el motor cuenta aparte porque no siempre cae en
+            // `en_reserva`.
+            enJuego: enJuegoDe(estados, reservaMotor, total, dormidasMotor),
           };
         }
       }
@@ -157,7 +164,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
           .reduce((n, e) => n + e.aulas, 0),
       };
     },
-    [filas, resumen, desconocidasMotor, bancoMotor],
+    [filas, resumen, desconocidasMotor, reservaMotor],
   );
 
   if (!total) {
@@ -236,14 +243,14 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor
             lector ve 269 en la cabecera y 199 aquí, la diferencia tiene que
             estar dicha.
 
-            «en reserva» y NO «en el banco»: son dos conjuntos distintos y la
-            frase llamaba banco al que no lo es. Medido el 2026-08-23 sobre el
-            sorteo del 22, las dos frases convivían en la misma pantalla —«las
-            otras 507 son reservas que esperan en el banco» y «1.916 son
-            reservas del banco»—, con la misma palabra para 507 y para 1.916.
-            Las 507 están ENCADENADAS a un titular concreto; el banco es
-            capacidad sin asignar. */}
-        {total > enJuego ? ` ${dondeEstanLasOtras(total - enJuego, bancoMotor ?? 0)}` : ""}
+            «en reserva» y NO «en la reserva adicional»: son dos conjuntos
+            distintos y la frase llamaba «banco» al que no lo era. Medido el
+            2026-08-23 sobre el sorteo del 22, las dos frases convivían en la
+            misma pantalla —«las otras 507 son reservas que esperan en el
+            banco» y «1.916 son reservas del banco»—, con la misma palabra
+            para 507 y para 1.916. Las 507 están ENCADENADAS a un titular
+            concreto; la reserva adicional es capacidad sin asignar. */}
+        {total > enJuego ? ` ${dondeEstanLasOtras(total - enJuego, reservaMotor ?? 0)}` : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}
         {desconocidas

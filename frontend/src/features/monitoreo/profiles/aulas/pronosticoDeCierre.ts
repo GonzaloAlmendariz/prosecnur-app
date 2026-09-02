@@ -58,13 +58,14 @@ function mediana(xs: number[]): number {
  * @param partes filas del parte YA unidas a su facultad.
  * @param plan el plan. **El universo son los SLOTS, uno por titular.**
  *
- * El banco ya se excluía —«los extras no son aulas que haya que aplicar para
+ * La reserva adicional ya se excluía —«los extras no son aulas que haya que aplicar para
  * cerrar, son respaldo del estrato»— y ese argumento vale igual, palabra por
  * palabra, para las reservas encadenadas: una reserva sólo sale a campo si cae
  * su titular, así que tampoco es una aula que haya que aplicar.
  *
  * Medido sobre HSVG2026 «como 2025»: el plan tiene 174 titulares, 1.173 reservas
- * encadenadas y 77 del banco. Excluyendo sólo el banco, el universo salía
+ * encadenadas y 77 de la reserva adicional. Excluyendo sólo la reserva
+ * adicional, el universo salía
  * **1.347** y el panel publicaba «152 de 1.347 aulas del plan» con «faltan
  * 1.195», proyectando al ritmo observado cuándo se terminan de aplicar mil
  * trescientas aulas que nadie va a aplicar. Lo que falta son **22**.

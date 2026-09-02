@@ -39,17 +39,18 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
  *   abierta. Ahí el campo YA está parado; es lo más urgente que puede decir esta
  *   lista y antes se confundía con lo anterior.
  *
- * ## Y si el banco de esa facultad no tiene las aulas que se piden
+ * ## Y si la reserva adicional de esa facultad no tiene las aulas que se piden
  *
  * Decir «pide 14 en Educación» sin mirar si existen es mandar a llamar al
- * vacío. El banco de extras **es** el sitio de donde salen esas aulas —no
+ * vacío. La reserva adicional **es** el sitio de donde salen esas aulas —no
  * reemplazan a nadie: existen para cerrar la cuota de hombres y mujeres por
- * facultad— y viene repartido por estrato, no en un montón común.
+ * facultad— y viene repartida por estrato, no en un montón común.
  *
- * Cuando el banco de la facultad no llega, **el problema deja de ser de agenda y
- * pasa a ser de muestra**: no hay llamada que lo arregle, hay que volver a
- * Cálculo de muestra. Se dice con `bancoAlcanza`, y en ese caso la lista tiene
- * que hablar distinto, porque las dos situaciones piden acciones opuestas.
+ * Cuando la reserva adicional de la facultad no llega, **el problema deja de
+ * ser de agenda y pasa a ser de muestra**: no hay llamada que lo arregle, hay
+ * que volver a Cálculo de muestra. Se dice con `reservaAlcanza`, y en ese caso
+ * la lista tiene que hablar distinto, porque las dos situaciones piden
+ * acciones opuestas.
  *
  * ## Los dos umbrales vienen del operativo de 2025, no de una intuición
  *
@@ -89,7 +90,7 @@ export type AlertaDeFacultad = {
    *
    * La lista decía «pide 12 aulas en Gestión» y esa facultad está corta de 52
    * mujeres y 24 hombres: dos tercios de lo que falta es de un lado. Doce aulas
-   * cualesquiera no cierran la celda que falla, y el banco existe justamente
+   * cualesquiera no cierran la celda que falla, y la reserva adicional existe justamente
    * para elegir por composición —«necesitamos bastantes mujeres en determinada
    * facultad, ¿qué extra me garantiza tantos hombres y tantas mujeres?»—.
    *
@@ -106,7 +107,7 @@ export type AlertaDeFacultad = {
    * facultad tiene brecha pero todavía no se sabe cuánto rinde un aula suya:
    * sin rendimiento observado no hay entre qué dividir. Devolver 0 diría «no
    * hace falta ninguna» justo de la facultad a la que más le falta — que es el
-   * mismo error que `bancoDisponible` evita unas líneas más abajo.
+   * mismo error que `reservaDisponible` evita unas líneas más abajo.
    */
   aulasNecesarias: number | null;
   /** Las que hay que pedir contando con que una parte se caerá. `null` igual que arriba. */
@@ -119,16 +120,16 @@ export type AlertaDeFacultad = {
   diasDeAgenda: number;
   /**
    * Extras de ESA facultad que todavía no entraron al operativo. `null` cuando
-   * el estudio no publica banco: no saber cuántas quedan no es lo mismo que
-   * saber que no queda ninguna, y pintarlo como cero acusaría de una escasez
-   * que nadie midió.
+   * el estudio no publica reserva adicional: no saber cuántas quedan no es lo
+   * mismo que saber que no queda ninguna, y pintarlo como cero acusaría de una
+   * escasez que nadie midió.
    */
-  bancoDisponible: number | null;
+  reservaDisponible: number | null;
   /**
-   * Si el banco de la facultad cubre lo que hay que pedir. `null` cuando no hay
-   * banco publicado o no hay nada que pedir.
+   * Si la reserva adicional de la facultad cubre lo que hay que pedir. `null`
+   * cuando no hay reserva adicional publicada o no hay nada que pedir.
    */
-  bancoAlcanza: boolean | null;
+  reservaAlcanza: boolean | null;
   /**
    * Último día útil para llamar sin que la facultad se quede parada: el día del
    * que aún salen `DIAS_DE_ANTICIPACION` días de campo antes de que se acabe su
@@ -155,7 +156,7 @@ export function alertaDeAnticipacion(
 ): AlertaDeFacultad[] {
   // Se indexa por nombre de facultad porque es la clave con la que el motor
   // publica las dos cosas. `disponibles` puede faltar en un payload viejo: ahí
-  // el banco existe pero no se sabe cuánto queda, y eso NO es cero.
+  // la reserva adicional existe pero no se sabe cuánto queda, y eso NO es cero.
   const porFacultad = new Map(banco.map((f) => [f.faculty, f]));
 
   return proyeccion
@@ -199,7 +200,7 @@ export function alertaDeAnticipacion(
           : margen <= 0 ? "pedir ahora" : "hay margen";
 
       const suyo = porFacultad.get(f.facultad);
-      const bancoDisponible = suyo == null
+      const reservaDisponible = suyo == null
         ? null
         : typeof suyo.disponibles === "number" ? suyo.disponibles : null;
 
@@ -216,10 +217,10 @@ export function alertaDeAnticipacion(
         pedirAntesDe: urgencia === "hay margen" && ultimoDiaAgendado
           ? restarDiasDeCampo(ultimoDiaAgendado, DIAS_DE_ANTICIPACION)
           : null,
-        bancoDisponible,
-        bancoAlcanza: bancoDisponible == null || aulasAPedir == null || aulasAPedir <= 0
+        reservaDisponible,
+        reservaAlcanza: reservaDisponible == null || aulasAPedir == null || aulasAPedir <= 0
           ? null
-          : bancoDisponible >= aulasAPedir,
+          : reservaDisponible >= aulasAPedir,
         urgencia,
       } satisfies AlertaDeFacultad;
     })

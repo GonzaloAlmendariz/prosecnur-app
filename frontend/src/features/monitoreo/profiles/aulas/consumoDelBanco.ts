@@ -10,10 +10,10 @@ import { fechaDeAplicacion } from "./ritmoPorFacultad";
  * pasemos de determinadas aulas».
  *
  * **Ese tope de política NO existe como dato**: ninguna configuración del perfil
- * declara un máximo de aulas. Lo que sí existe y sí es un techo real es el
- * banco: cuando una facultad se queda sin reservas libres, un aula que caiga ya
- * no se puede reemplazar. Esta función mide ese techo, que es el único que los
- * datos sostienen.
+ * declara un máximo de aulas. Lo que sí existe y sí es un techo real es la
+ * reserva adicional: cuando una facultad se queda sin reservas libres, un aula
+ * que caiga ya no se puede reemplazar. Esta función mide ese techo, que es el
+ * único que los datos sostienen.
  *
  * `colchonPorFacultad` ya dice cuánto queda; lo que faltaba es **a qué ritmo se
  * gasta**, y eso lo dan las fechas de caída.
@@ -78,7 +78,7 @@ export function consumoDelBanco(
   let sinFecha = 0;
 
   for (const fila of filas) {
-    // Sólo lo que YA cayó. Una reserva en el banco no es consumo.
+    // Sólo lo que YA cayó. Una reserva en la reserva adicional no es consumo.
     if (texto(fila.sample_status) !== "reemplazada") continue;
     const facultad = texto(fila.faculty) || "Sin facultad";
     let f = porFacultad.get(facultad);

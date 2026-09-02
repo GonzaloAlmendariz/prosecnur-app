@@ -50,48 +50,49 @@ describe("de dónde se saca lo que faltó", () => {
   });
 });
 
-describe("el bolsón de esa facultad, que la ficha necesita para no mandar al vacío", () => {
+describe("la reserva adicional de esa facultad, que la ficha necesita para no mandar al vacío", () => {
   // El bloque enumera TODAS las facultades del plan con su cero. Que una no
-  // aparezca es que el estudio no publica banco, que no es lo mismo que
-  // tenerlo vacío, y la ficha dice una cosa distinta en cada caso.
+  // aparezca es que el estudio no publica reserva adicional, que no es lo
+  // mismo que tenerla vacía, y la ficha dice una cosa distinta en cada caso.
   const banco = [
     { faculty: "Derecho", disponibles: 42 },
     { faculty: "Letras", disponibles: 0 },
   ];
 
   test("con extras sin usar, dice cuántos", () => {
-    expect(dondeSeSaca("Derecho", plan, banco).bolsonLibre).toBe(42);
+    expect(dondeSeSaca("Derecho", plan, banco).reservaAdicionalLibre).toBe(42);
   });
 
-  test("con el bolsón vacío dice cero, que NO es lo mismo que no saber", () => {
+  test("con la reserva adicional vacía dice cero, que NO es lo mismo que no saber", () => {
     // Es el caso de 12 de las 15 facultades de HSVG 2026. Antes la ficha
-    // mandaba igual «al banco de extras», que ahí no tiene nada.
-    expect(dondeSeSaca("Letras", plan, banco).bolsonLibre).toBe(0);
+    // mandaba igual «a la reserva adicional», que ahí no tiene nada.
+    expect(dondeSeSaca("Letras", plan, banco).reservaAdicionalLibre).toBe(0);
   });
 
-  test("si el estudio no publica banco, es null y no cero", () => {
-    // Sin este caso, la ficha diría «su banco está vacío» en un estudio que
-    // todavía no ha llegado a tener banco: acusar de escasez sin haber medido.
-    expect(dondeSeSaca("Derecho", plan, []).bolsonLibre).toBeNull();
-    expect(dondeSeSaca("Derecho", plan).bolsonLibre).toBeNull();
-    // Y una facultad que el banco no enumera tampoco se lee como cero.
-    expect(dondeSeSaca("Derecho", plan, [{ faculty: "Otra", disponibles: 5 }]).bolsonLibre).toBeNull();
+  test("si el estudio no publica reserva adicional, es null y no cero", () => {
+    // Sin este caso, la ficha diría «su reserva adicional está vacía» en un
+    // estudio que todavía no ha llegado a tener reserva adicional: acusar de
+    // escasez sin haber medido.
+    expect(dondeSeSaca("Derecho", plan, []).reservaAdicionalLibre).toBeNull();
+    expect(dondeSeSaca("Derecho", plan).reservaAdicionalLibre).toBeNull();
+    // Y una facultad que la reserva adicional no enumera tampoco se lee como cero.
+    expect(dondeSeSaca("Derecho", plan, [{ faculty: "Otra", disponibles: 5 }]).reservaAdicionalLibre).toBeNull();
   });
 
-  test("el bolsón no se suma a las reservas de cadena", () => {
+  test("la reserva adicional no se suma a las reservas de cadena", () => {
     // Son dos recursos con procedimiento distinto: la cadena sigue el orden del
-    // sorteo y el bolsón se elige. Sumarlos aquí escondería cuál se está
-    // gastando.
+    // sorteo y la reserva adicional se elige. Sumarlos aquí escondería cuál se
+    // está gastando.
     const r = dondeSeSaca("Derecho", plan, banco);
     expect(r.reservasLibres).toBe(2);
-    expect(r.bolsonLibre).toBe(42);
+    expect(r.reservaAdicionalLibre).toBe(42);
   });
 
-  test("una facultad desconocida conserva su bolsón medido", () => {
-    // La facultad puede no estar en la AGENDA y sí en el banco: la agenda
-    // recorta y el banco enumera el plan entero.
+  test("una facultad desconocida conserva su reserva adicional medida", () => {
+    // La facultad puede no estar en la AGENDA y sí en la reserva adicional: la
+    // agenda recorta y la reserva adicional enumera el plan entero.
     const r = dondeSeSaca("Derecho", [], banco);
     expect(r.conocida).toBe(false);
-    expect(r.bolsonLibre).toBe(42);
+    expect(r.reservaAdicionalLibre).toBe(42);
   });
 });

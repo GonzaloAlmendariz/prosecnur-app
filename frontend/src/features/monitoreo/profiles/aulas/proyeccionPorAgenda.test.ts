@@ -56,7 +56,7 @@ describe("proyeccionPorAgenda", () => {
   });
 
   it("una reserva dormida no es agenda, aunque lleve fecha", () => {
-    // `dashboard.agenda` es el PLAN ENTERO, y el banco de extras viene con
+    // `dashboard.agenda` es el PLAN ENTERO, y la reserva adicional viene con
     // fecha puesta. Contarlo como trabajo comprometido proyectaba encuestas que
     // nadie iba a recoger y tapaba justo la brecha que esto sirve para ver:
     // sembrar 30 extras mas en una facultad le bajaba la brecha de 152 a 81.
