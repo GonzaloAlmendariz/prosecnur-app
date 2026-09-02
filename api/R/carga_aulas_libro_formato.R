@@ -182,6 +182,10 @@ aulas_libro_status_muestra <- function(profundidad = 1L) {
 # `link` es la excepcion dentro del tramo de la persona: lo produce la app.
 AULAS_LIBRO_CAMPOS_DE_LA_PERSONA <- c(
   "contact_medium", "contact_date", "contact_attempts", "sample_status",
+  # B30: el lugar CONFIRMADO «se llena manual» (dictado 2026-09-02) y no tiene
+  # desplegable, asi que el tinte gris de columna-de-la-app seria su UNICA
+  # señal — y diria justo lo contrario. La celda queda blanca: «escribe aqui».
+  "scheduled_venue",
   "scheduled_date", "scheduled_day", "scheduled_time", "notes"
 )
 

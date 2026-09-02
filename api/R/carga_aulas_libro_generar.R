@@ -149,6 +149,11 @@
       else ""
     },
     sample_status    = .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
+    # B30: eco de lo registrado y nada mas — el lugar CONFIRMADO de la
+    # aplicacion lo teclea el equipo con el aula pactada («A206»), asi que la
+    # siembra es VACIA en todos los roles. `trimws` porque el formato lo pone
+    # la disciplina de entrada, no un validador: nada se rechaza aqui.
+    scheduled_venue  = trimws(.calg_txt(u$scheduled_venue)),
     scheduled_date   = .calg_txt(u$scheduled_date),
     scheduled_day    = .calg_dia_excel(u$scheduled_day),
     scheduled_time   = .calg_txt(u$scheduled_time),

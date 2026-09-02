@@ -50,6 +50,11 @@ AULAS_LIBRO_CAMPOS_PROPIOS <- c(
   # B23: el resultado de cada llamada tambien es del libro — la correccion
   # tecleada («No contesta» -> «Efectiva») debe pisar el valor del plan.
   "call_status",
+  # B30: el lugar de aplicacion CONFIRMADO se teclea en el libro y tiene que
+  # NUTRIR a las demas hojas y a la app. Fuera de esta lista la fusion solo
+  # llenaria vacios y la correccion del aula pactada («A206» -> «A305»)
+  # moriria en silencio camino al plan — la trampa que B22 ya pago.
+  "scheduled_venue",
   # `scheduled_moment` entra el 2026-08-31 (A3 del checklist del operativo):
   # el bloque de agenda lo escribe y el lector lo emite, pero fuera de esta
   # lista una correccion de horario hecha en el Excel solo se aplicaba si el

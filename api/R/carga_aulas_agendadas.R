@@ -61,6 +61,15 @@ AULAS_AGENDADAS_BLOQUE <- list(
   # formato y validaciones la heredan por la spec.
   list(campo = "email_received",   titulos = c("RECIBIÓ CORREO", "RECIBIO CORREO")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
+  # B30 (dictado 2026-09-02): «se les va a agregar la columna de Lugar de
+  # aplicación y tiene que ir a la derecha de status muestra». Es el aula /
+  # pabellon CONFIRMADO finalmente —puede diferir del aula de la clase que
+  # enseña SESIONES Y AULA— y se llena A MANO: texto libre, sin desplegable y
+  # sin validacion dura; el formato «A206» lo pone la disciplina de entrada
+  # del equipo, no un validador. Sembrada VACIA en todos los roles y, una vez
+  # tecleada, NUTRE a las demas hojas y a la app (es campo propio del libro:
+  # `AULAS_LIBRO_CAMPOS_PROPIOS`).
+  list(campo = "scheduled_venue",  titulos = c("LUGAR DE APLICACIÓN", "LUGAR DE APLICACION")),
   # «FECHA AGENDADA» como canonico (B15): en la hoja del agendador esa fecha es
   # la agendada, y «FECHA DE APLICACIÓN» era justo la confusion que el renombre
   # de la hoja de campo ya habia documentado. Las formas viejas quedan de alias:
@@ -324,6 +333,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         # B22: el «Sí» del dia 2 tiene que VOLVER — la llamada del dia
         # siguiente se decide «en función de los que necesitemos» leyendo esto.
         email_received = val("email_received"),
+        # B30: el lugar CONFIRMADO tambien VUELVE — es lo que nutre al plan,
+        # al Plan del dia y a la app; la fusion lo trata como propio del libro.
+        scheduled_venue = val("scheduled_venue"),
         scheduled_date = fecha("scheduled_date"),
         scheduled_day = val("scheduled_day"),
         scheduled_time = val("scheduled_time"),

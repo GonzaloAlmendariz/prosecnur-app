@@ -63,10 +63,16 @@
   toupper(gsub("[_ ]+", " ", v))
 }
 
-# SESIONES Y AULA: lo que el plan sepa de ambas —el horario de sesiones
-# (`schedule`) y el ambiente (`label`)—, unidas cuando vienen las dos. No hay
-# columna 1:1 en el plan para este rótulo de 2025; se declara lo que hay.
+# SESIONES Y AULA: el lugar del día. Precedencia B30 (dictado 2026-09-02): el
+# aula/pabellón CONFIRMADO (`scheduled_venue`, la columna LUGAR DE APLICACIÓN
+# que el equipo teclea en el libro) MANDA cuando existe — es donde se pactó
+# aplicar y puede diferir del aula de la clase. Sin él se cae a lo que el plan
+# sepa del curso: el horario de sesiones (`schedule`) y el ambiente (`label`),
+# unidos cuando vienen los dos — no hay columna 1:1 en el plan para este
+# rótulo de 2025; se declara lo que hay.
 .capd_sesiones_y_aula <- function(unidad) {
+  confirmado <- trimws(.calg_txt(unidad$scheduled_venue))
+  if (nzchar(confirmado)) return(confirmado)
   partes <- c(.calg_txt(unidad$schedule), .calg_txt(unidad$label))
   paste(partes[nzchar(partes)], collapse = " · ")
 }
