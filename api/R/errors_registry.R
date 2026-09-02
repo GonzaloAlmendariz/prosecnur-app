@@ -106,6 +106,8 @@ errores_registrados <- function() {
     "E_BASE_CONTROL_SIN_HOJA",                               "carga_base_control.R",              "422",
     "E_DAA_IAGEN_NO_EXISTE",                                 "carga_daa_iagen.R",                 "400",
     "E_DAA_IAGEN_SIN_HOJAS",                                 "carga_daa_iagen.R",                 "422",
+    "E_DISPONIBILIDAD_APLICADORES_NO_EXISTE",                "carga_disponibilidad_aplicadores.R", "400",
+    "E_DISPONIBILIDAD_APLICADORES_SIN_ESTRUCTURA",           "carga_disponibilidad_aplicadores.R", "422",
     "E_ACREDITACION_BATCH_ACTORS",                           "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_BASE_CONFLICT",                    "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_CACHE_STALE",                      "carga_acreditacion_batch.R",        "indirecto",

@@ -1,0 +1,221 @@
+# B29 — la disponibilidad de los aplicadores, leída del excel codificado
+# (docs/qa/checklist-operativo-aulas-2026-08-31.md).
+#
+# Dictado de Gonzalo (2026-09-02, textual): «super importante: ahora tenemos la
+# disponibilidad de los aplicadores (disponibilidad_codificado.xlsx) y sería
+# bueno poder ir mapeando una distribución equitativa en base a lo agendado que
+# se tiene hasta ahora, pero que pueda ir actualizándose con el paso de los
+# días».
+#
+# La base real, medida por el lead (hoja «Disponibilidad»): fila 1 = día
+# («Lunes»…«Sábado», repetido por columna), fila 2 = franja de 1 hora con
+# rótulos AM/PM («8:00-9:00am», «11:00am-12:00pm», «12:00-1:00pm» — el cruce
+# del mediodía SIN am en la primera parte), filas 3+ = «Nombres» del aplicador
+# + celdas 1/0. Real: 31 aplicadores × 6 días × ~14 franjas (8am–~10pm), sin
+# NA. El fixture de abajo calca esa FORMA con datos 100% SINTÉTICOS: los
+# nombres de la base real son PII y JAMÁS entran al repo.
+#
+# Contrato congelado (diseño del lead, 2026-09-02) —
+# `carga_disponibilidad_aplicadores(path)`, archivo propio
+# `api/R/carga_disponibilidad_aplicadores.R`:
+#
+# - Devuelve una LISTA de aplicadores `{nombre, dias}`; `dias` es lista
+#   nombrada día → bloques `{inicio, fin}` en HH:MM de 24 horas con cero a la
+#   izquierda, semántica [inicio, fin). Las franjas CONTIGUAS con 1 se
+#   FUSIONAN en un bloque (disponible 8-9, 9-10 y 10-11 = un solo
+#   [08:00, 11:00)); los bloques salen en orden ascendente.
+# - La clave del día se pinea en UNA forma: minúscula y SIN tilde («lunes»,
+#   «miercoles», «sabado»). Elegida porque no depende de cómo venga tecleado
+#   el rótulo («Sábado»/«Sabado») ni del locale del proceso, y porque el motor
+#   de reparto deriva el día desde la fecha ISO sin locale (patrón
+#   `.mav_DIAS`).
+# - Tolerancias: celda vacía o basura vale 0 con AVISO en `attr(, "avisos")`
+#   (patrón carga_daa_iagen: se lee lo legible, se avisa lo que no); fila con
+#   nombre vacío se SALTA; espacios dobles en el nombre se colapsan a uno.
+# - Errores registrables (stop_api, códigos que el writer registra en
+#   errors_registry.R): archivo inexistente →
+#   E_DISPONIBILIDAD_APLICADORES_NO_EXISTE (400); hoja sin la estructura
+#   día×franja → E_DISPONIBILIDAD_APLICADORES_SIN_ESTRUCTURA (422).
+#
+# Latitudes DECLARADAS al writer (no pineadas aquí): la redacción exacta de
+# cada aviso (solo se exige que la causa sea perseguible: el nombre del
+# aplicador afectado aparece en algún aviso); si un día sin ningún 1 sale como
+# clave ausente o como lista vacía (el test acepta ambas formas); y cómo ubica
+# la columna de nombres (el fixture pone el rótulo «Nombres» en fila 2,
+# columna 1, calcando la base medida — si la real lo trae en otra celda, se
+# ajusta el LECTOR, no este pin).
+
+# --- fixture: un xlsx sintético con la forma de la base medida ----------------
+
+# La matriz día×franja del fixture: Lunes (4 franjas de 8am a 12pm), Viernes
+# (12pm-2pm y 9-10pm: el cruce del mediodía y la noche) y Sábado (2 de la
+# mañana). Cada fila de `filas` es list(nombre, celdas) con 9 celdas.
+.cda_xlsx <- function(filas) {
+  path <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Disponibilidad")
+  fila_dias <- c("", rep("Lunes", 4L), rep("Viernes", 3L), rep("Sábado", 2L))
+  fila_franjas <- c(
+    "Nombres",
+    "8:00-9:00am", "9:00-10:00am", "10:00-11:00am", "11:00am-12:00pm",
+    "12:00-1:00pm", "1:00-2:00pm", "9:00-10:00pm",
+    "8:00-9:00am", "9:00-10:00am"
+  )
+  cuerpo <- do.call(rbind, lapply(filas, function(f) {
+    c(as.character(f$nombre), as.character(f$celdas))
+  }))
+  m <- rbind(fila_dias, fila_franjas, cuerpo)
+  openxlsx::writeData(wb, "Disponibilidad",
+                      as.data.frame(m, stringsAsFactors = FALSE),
+                      colNames = FALSE)
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  path
+}
+
+# Las filas limpias: puros 1/0, como la base real (sin NA).
+.cda_limpio <- function() list(
+  list(nombre = "Ana Prueba",
+       celdas = c(1, 1, 1, 0, 1, 0, 1, 0, 0)),
+  list(nombre = "Berta  Ficticia", # doble espacio a propósito: se colapsa
+       celdas = c(0, 1, 1, 1, 1, 1, 0, 1, 0))
+)
+
+# Las filas sucias: una celda con basura y una vacía (valen 0 con aviso) y una
+# fila con nombre vacío (se salta).
+.cda_sucio <- function() c(.cda_limpio(), list(
+  list(nombre = "Caso Sucio",
+       celdas = c(1, "x", "", 1, 0, 0, 0, 0, 0)),
+  list(nombre = "",
+       celdas = c(1, 1, 1, 1, 1, 1, 1, 1, 1))
+))
+
+# --- helpers de lectura del contrato ------------------------------------------
+
+.cda_aplicador <- function(res, nombre) {
+  for (a in res) {
+    if (is.list(a) && identical(a[["nombre"]], nombre)) return(a)
+  }
+  NULL
+}
+
+.cda_nombres <- function(res) {
+  vapply(res, function(a) as.character(a[["nombre"]] %||% ""), character(1))
+}
+
+# Los bloques de un día como "HH:MM-HH:MM"; lista vacía si el día no está o no
+# tiene bloques (las dos formas valen — latitud declarada).
+.cda_rangos <- function(res, nombre, dia) {
+  a <- .cda_aplicador(res, nombre)
+  if (is.null(a)) return(character(0))
+  bloques <- a[["dias"]][[dia]]
+  if (is.null(bloques) || !length(bloques)) return(character(0))
+  vapply(bloques, function(b) {
+    sprintf("%s-%s", b[["inicio"]], b[["fin"]])
+  }, character(1))
+}
+
+test_that("B29: cada fila con nombre es un aplicador; el nombre vacío se salta y el doble espacio se colapsa", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_sucio()))
+  expect_true(is.list(res))
+  nombres <- .cda_nombres(res)
+  # Tres aplicadores: la fila de nombre vacío NO fabrica un fantasma con nueve
+  # unos, y «Berta  Ficticia» aterriza con UN espacio.
+  expect_setequal(nombres, c("Ana Prueba", "Berta Ficticia", "Caso Sucio"))
+  expect_false(any(grepl("  ", nombres, fixed = TRUE)))
+})
+
+test_that("B29: los rótulos AM/PM de la fila 2 se vuelven bloques de 24 horas", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_limpio()))
+  # «12:00-1:00pm» es la trampa del mediodía: la primera parte viene SIN
+  # sufijo y un «sin sufijo = am» ingenuo la mandaría a la medianoche
+  # ([00:00, 13:00)). El bloque correcto es [12:00, 13:00).
+  # «9:00-10:00pm» es la noche: [21:00, 22:00), no las 9 de la mañana.
+  expect_identical(.cda_rangos(res, "Ana Prueba", "viernes"),
+                   c("12:00-13:00", "21:00-22:00"))
+  # «11:00am-12:00pm» cruza el meridiano con ambos sufijos: cierra el bloque
+  # de Berta en 12:00 del mediodía, no en 00:00.
+  expect_identical(.cda_rangos(res, "Berta Ficticia", "lunes"), "09:00-12:00")
+  expect_identical(.cda_rangos(res, "Berta Ficticia", "sabado"), "08:00-09:00")
+})
+
+test_that("B29: franjas contiguas con 1 se fusionan en un bloque; las separadas no", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_limpio()))
+  # Ana el lunes: 8-9, 9-10 y 10-11 con 1 y 11-12 con 0 → UN bloque
+  # [08:00, 11:00), no tres de una hora.
+  expect_identical(.cda_rangos(res, "Ana Prueba", "lunes"), "08:00-11:00")
+  # Berta el viernes: 12-1pm y 1-2pm contiguas → [12:00, 14:00).
+  expect_identical(.cda_rangos(res, "Berta Ficticia", "viernes"), "12:00-14:00")
+  # Y lo NO contiguo no se pega: el viernes de Ana (12-1pm y 9-10pm) ya salió
+  # como DOS bloques en el test anterior. Un día sin ningún 1 no inventa
+  # bloques: el sábado de Ana queda vacío (ausente o lista vacía, ambas valen).
+  expect_length(.cda_rangos(res, "Ana Prueba", "sabado"), 0L)
+})
+
+test_that("B29: la clave del día se pinea minúscula y sin tilde — «Sábado» tecleado entra como «sabado»", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_limpio()))
+  a <- .cda_aplicador(res, "Berta Ficticia")
+  expect_true(is.list(a))
+  claves <- names(a[["dias"]] %||% list())
+  catalogo <- c("lunes", "martes", "miercoles", "jueves", "viernes",
+                "sabado", "domingo")
+  expect_true(all(claves %in% catalogo),
+              info = paste("claves:", paste(claves, collapse = ", ")))
+  # Los días CON bloques de Berta son exactamente los tres del fixture, en la
+  # forma pineada: el rótulo trae «Sábado» con tilde y la clave sale «sabado».
+  con_bloques <- claves[vapply(claves, function(d) {
+    length(a[["dias"]][[d]]) > 0L
+  }, logical(1))]
+  expect_setequal(con_bloques, c("lunes", "viernes", "sabado"))
+})
+
+test_that("B29: celda vacía o basura vale 0 con aviso perseguible; el archivo limpio no avisa", {
+  sucio <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_sucio()))
+  # «x» y la celda vacía valen 0: Caso Sucio queda con 8-9 y 11-12 el lunes,
+  # SIN puente inventado por encima de las celdas ilegibles.
+  expect_identical(.cda_rangos(sucio, "Caso Sucio", "lunes"),
+                   c("08:00-09:00", "11:00-12:00"))
+  avisos <- attr(sucio, "avisos", exact = TRUE) %||% character(0)
+  expect_gte(length(avisos), 1L)
+  # La causa se puede perseguir: algún aviso nombra al aplicador afectado.
+  expect_true(any(grepl("Caso Sucio", avisos, fixed = TRUE)),
+              info = paste("avisos:", paste(avisos, collapse = " | ")))
+  # Y el archivo limpio (puros 1/0, como la base real medida) no deja avisos.
+  limpio <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_limpio()))
+  expect_length(attr(limpio, "avisos", exact = TRUE) %||% character(0), 0L)
+})
+
+test_that("B29: archivo inexistente y hoja sin estructura son errores E_* declarados", {
+  err <- tryCatch(
+    carga_disponibilidad_aplicadores(
+      file.path(tempdir(), "no-existe-disponibilidad-b29.xlsx")
+    ),
+    api_error = function(e) e
+  )
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_DISPONIBILIDAD_APLICADORES_NO_EXISTE")
+  expect_equal(as.numeric(err$status), 400)
+
+  # Una hoja que existe pero no trae la matriz día×franja: prosa donde iban
+  # los rótulos. Eso no se degrada en silencio a «cero aplicadores».
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Disponibilidad")
+  openxlsx::writeData(
+    wb, "Disponibilidad",
+    data.frame(x = c("esto no es la matriz", "de disponibilidad por franja"),
+               stringsAsFactors = FALSE),
+    colNames = FALSE
+  )
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  err2 <- tryCatch(carga_disponibilidad_aplicadores(path),
+                   api_error = function(e) e)
+  expect_s3_class(err2, "api_error")
+  expect_identical(err2$code, "E_DISPONIBILIDAD_APLICADORES_SIN_ESTRUCTURA")
+  expect_equal(as.numeric(err2$status), 422)
+
+  # El lector vive en archivo propio (política de crecimiento congelado):
+  # funcionalidad nueva NO va dentro de un monolito existente.
+  expect_true(file.exists(
+    testthat::test_path("..", "..", "R", "carga_disponibilidad_aplicadores.R")
+  ))
+})

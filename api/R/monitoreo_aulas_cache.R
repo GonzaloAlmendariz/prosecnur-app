@@ -34,6 +34,63 @@
 
 .mac_dashboard_env <- new.env(parent = emptyenv())
 
+# --- B29: disponibilidad de aplicadores en el conversar del dashboard ---------
+#
+# Patrón DAA (monitoreo_aulas_publicar_libro.R:599): quien carga la
+# disponibilidad hace `session_set(sid, "monitoreo_aulas_disponibilidad", x)`
+# con la salida de `carga_disponibilidad_aplicadores()`. Este archivo es el
+# único punto con `sid` y dashboard a la vez (`router_monitoreo.R` está
+# congelado a crecimiento), así que el mount vive aquí: CON la clave el payload
+# publica `disponibilidad` (bloque de la vista) y su gemelo `reparto`
+# (recomputado con el plan vigente en cada construcción — «que pueda ir
+# actualizándose con el paso de los días»); SIN la clave, ambos ausentes sin
+# error.
+
+# La disponibilidad vigente de la sesión. `[[` y no `$` (el `$`
+# parcial-matchea), y `required = FALSE`: un sid que no es sesión real (la
+# suite de cache usa "s1"/"s2") simplemente no tiene disponibilidad.
+.mac_disponibilidad_sesion <- function(sid) {
+  if (!nzchar(sid)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  if (!is.list(s)) return(NULL)
+  disp <- s[["monitoreo_aulas_disponibilidad"]]
+  if (is.list(disp) && length(disp)) disp else NULL
+}
+
+# La marca de contenido de la disponibilidad para el token de frescura. A
+# diferencia del libro, esta clave no lleva sello de importación, así que la
+# marca ES el contenido (nombres, días y bloques): editarla invalida aunque el
+# tamaño no cambie — la misma lección que los partes y el control.
+.mac_disponibilidad_marca <- function(disponibilidad) {
+  if (!is.list(disponibilidad) || !length(disponibilidad)) return("0")
+  partes <- vapply(disponibilidad, function(a) {
+    if (!is.list(a)) return("")
+    dias <- a[["dias"]]
+    dias <- if (is.list(dias)) dias else list()
+    claves <- names(dias) %||% character(0)
+    cuerpo <- vapply(claves, function(d) {
+      bloques <- dias[[d]]
+      if (!is.list(bloques) || !length(bloques)) return(d)
+      paste0(d, "=", paste(vapply(bloques, function(b) {
+        paste0(as.character(b[["inicio"]] %||% ""), "-",
+               as.character(b[["fin"]] %||% ""))
+      }, character(1)), collapse = ","))
+    }, character(1))
+    paste0(as.character(a[["nombre"]] %||% ""), ":",
+           paste(cuerpo, collapse = ";"))
+  }, character(1))
+  paste0(length(disponibilidad), "~", paste(partes, collapse = "&"))
+}
+
+# Publica los dos bloques B29 sobre el dashboard ya construido. Sin
+# disponibilidad no toca nada: ausencia declarada, no un bloque vacío.
+.mac_publicar_disponibilidad <- function(dashboard, plan, disponibilidad) {
+  if (is.null(disponibilidad) || !is.list(dashboard)) return(dashboard)
+  dashboard[["disponibilidad"]] <- monitoreo_aulas_disponibilidad_bloque(disponibilidad)
+  dashboard[["reparto"]] <- monitoreo_aulas_reparto(plan, disponibilidad)
+  dashboard
+}
+
 #' El token de frescura del dashboard de aulas.
 #'
 #' Parte del token general del tablero —que ya cubre data, `synced_at` y la
@@ -47,9 +104,14 @@
 #' @param plan filas del plan de aulas.
 #' @param cfg config de aulas ya enriquecida.
 #' @param scope el `report_scope` del request.
+#' @param disponibilidad la disponibilidad de aplicadores vigente (B29), si el
+#'   llamador la tiene a mano. El router congelado no la pasa: para él la
+#'   completa `monitoreo_aulas_dashboard_cached`, el único punto sid-aware,
+#'   con este mismo componente.
 #' @return cadena.
 #' @export
-monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full") {
+monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full",
+                                        disponibilidad = NULL) {
   largo <- function(x) if (is.data.frame(x)) nrow(x) else if (is.list(x)) length(x) else 0L
   # Los partes y el control se comparan por tamaño Y por su marca de lectura: el
   # numero de filas solo no distingue una correccion a mano en el Excel, que es
@@ -66,6 +128,9 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full") {
     # mismos conteos servia el tablero anterior (A15, 2026-09-01).
     as.character((cfg$libro$importado_en %||% "")[1]),
     as.character((cfg$agenda_actualizada_en %||% "")[1]),
+    # B29 (decisión del lead): cambiar la disponibilidad de aplicadores
+    # invalida el dashboard — su reparto viaja dentro del payload cacheado.
+    .mac_disponibilidad_marca(disponibilidad),
     sep = "|"
   )
 }
@@ -81,8 +146,23 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full") {
 #' @export
 monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   sid <- as.character(sid %||% "")[1]
-  if (!nzchar(sid) || !nzchar(as.character(token %||% ""))) {
-    return(list(dashboard = monitoreo_aulas_dashboard(plan, data, cfg), hit = FALSE))
+  token <- as.character(token %||% "")[1]
+  disponibilidad <- .mac_disponibilidad_sesion(sid)
+  # B29 + decisión del lead sobre el hueco de cache: el router (congelado)
+  # deriva el token sin ver la sesión, y la disponibilidad vive SOLO en la
+  # sesión. Este es el único punto sid-aware, así que aquí se completa el
+  # token con el mismo componente que `monitoreo_aulas_cache_token` declara:
+  # cambiar la disponibilidad invalida la cache del dashboard.
+  if (nzchar(token) && !is.null(disponibilidad)) {
+    token <- paste(token, .mac_disponibilidad_marca(disponibilidad), sep = "|")
+  }
+  construir <- function() {
+    .mac_publicar_disponibilidad(
+      monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad
+    )
+  }
+  if (!nzchar(sid) || !nzchar(token)) {
+    return(list(dashboard = construir(), hit = FALSE))
   }
   guardado <- if (exists(sid, envir = .mac_dashboard_env, inherits = FALSE)) {
     get(sid, envir = .mac_dashboard_env, inherits = FALSE)
@@ -90,7 +170,7 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   if (is.list(guardado) && identical(guardado$token, token) && is.list(guardado$dashboard)) {
     return(list(dashboard = guardado$dashboard, hit = TRUE))
   }
-  dashboard <- monitoreo_aulas_dashboard(plan, data, cfg)
+  dashboard <- construir()
   # UNA entrada por sesion: la anterior se reemplaza. Guardar por token dejaria
   # el environment creciendo con cada sync de un operativo largo.
   assign(sid, list(token = token, dashboard = dashboard), envir = .mac_dashboard_env)
