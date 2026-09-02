@@ -5843,7 +5843,9 @@
  * quepa lo toma `.mon-workbench-content`, que ya declara overflow-y: auto
  * como capacidad suya (mismo criterio que el stack de Fuentes). */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap {
-  min-height: 420px;
+  /* B25c: 420 seguia corto en pantalla real («necesita mas alto»); la tabla
+     es el trabajo de la seccion y se lleva el grueso del viewport. */
+  min-height: max(560px, 58vh);
 }
 .mon-profile-page.is-aulas-flow .aulas-mon-view {
   min-height: max-content;

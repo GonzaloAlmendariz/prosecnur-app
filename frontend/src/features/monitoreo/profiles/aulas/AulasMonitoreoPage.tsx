@@ -1032,13 +1032,12 @@ export default function AulasMonitoreoPage() {
   const busy = loading || mutating;
   const refreshTitle = busy
     ? "Actualizando vista de cursos-horario..."
-    : `Recargar ${activeDef.shortLabel ?? activeDef.label} desde la memoria local del proyecto`;
-  const advanceTitle = imported
-    // «snapshot» es como se llama por dentro a la copia descargada de la
-    // plataforma; quien lee el tooltip lo que necesita saber es que se usa lo
-    // que ya está en el proyecto y no se vuelve a la red.
-    ? "Recalcular el corte de campo con las respuestas y la agenda que ya están en el proyecto"
-    : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
+    : imported
+      ? "Carga el excel del equipo (libro de Sheets) y recalcula todo lo demás: agenda, corte de campo y avance"
+      : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
+  const advanceTitle = busy
+    ? "Actualizando vista de cursos-horario..."
+    : "Ver el avance en plataforma (abre la sección Avance con datos frescos)";
 
   /**
    * Relee el estado del proyecto.
@@ -1360,14 +1359,22 @@ export default function AulasMonitoreoPage() {
         nRows={state?.n_rows ?? 0}
         hasSnapshot={Boolean(state?.has_snapshot)}
         syncing={busy}
-        advanceSyncDisabled={busy || !imported}
+        // A26b — semántica dictada por el dueño (2026-09-01): «Avance es para
+        // ver el avance en plataforma; Recargar es para cargar el excel y
+        // todo lo demás». Estaba al revés: «Avance» conversaba con el libro y
+        // «Recargar» solo releía memoria — medido: un Recargar dejó la agenda
+        // en 12 con el libro en 28.
+        advanceSyncDisabled={busy}
         advanceSyncLabel="Avance"
         advanceSyncTitle={advanceTitle}
-        onSyncAdvance={() => { void syncField(); }}
-        syncDisabled={busy}
+        onSyncAdvance={() => {
+          if (seccionActiva !== "avance") setActiveView("avance");
+          void loadView("avance", true);
+        }}
+        syncDisabled={busy || !imported}
         syncLabel="Recargar"
         syncTitle={refreshTitle}
-        onSyncAll={() => { void loadView(seccionActiva, true); }}
+        onSyncAll={() => { void syncField(); }}
         onCambioSeccion={(view) => {
           if (view !== seccionActiva) setActiveView(view);
         }}
