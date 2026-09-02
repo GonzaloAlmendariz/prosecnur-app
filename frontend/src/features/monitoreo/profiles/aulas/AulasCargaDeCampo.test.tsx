@@ -56,7 +56,10 @@ describe("AulasCargaDeCampo", () => {
     expect(html).toContain(">Fecha<");
   });
 
-  it("el carril de lo que falta agendar se rotula: no es una fecha mas", () => {
+  it("el calendario no lista el carril: lo pendiente vive en el patrón semanal", () => {
+    // Dictado en vivo (2026-09-02): «el por agendar ya está en patrón semanal,
+    // no lo necesitas en calendario» — el carril apilaba semanas y desbordaba
+    // la vista. El KPI sigue declarando dónde vive lo pendiente.
     const html = renderToStaticMarkup(
       <AulasCargaDeCampo
         filas={[
@@ -68,8 +71,10 @@ describe("AulasCargaDeCampo", () => {
         ]}
       />,
     );
-    expect(html).toContain("Por agendar · todavía sin fecha");
-    expect(html).toContain("aulas-carga-carril");
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Calendario/);
+    expect(html).not.toContain("Por agendar · todavía sin fecha");
+    expect(html).not.toContain("aulas-carga-carril");
+    expect(html).toContain("Por agendar, en el pico del patrón");
   });
 
   it("declara las agendadas sin fecha en vez de descartarlas en silencio", () => {
@@ -100,14 +105,13 @@ describe("AulasCargaDeCampo", () => {
     expect(html).toMatch(/es-media[^>]*><span class="pulso-sr-only">10:30<\/span>/);
   });
 
-  it("el carril rotula solo donde cambia: es una banda, no veinticinco cuentas", () => {
-    // Dos aulas sin agendar cubriendo 10:00-12:00 dan «2» en cuatro franjas
-    // seguidas. Se escribe una vez.
+  it("las que faltan agendar no se cuelan en las filas por fecha del calendario", () => {
+    // El carril salió del calendario (dictado 2026-09-02); las bandas de lo
+    // pendiente tampoco pueden reaparecer dentro de una fecha: la fila del
+    // 14/09 muestra SU cita, no el patrón del martes.
     const html = renderToStaticMarkup(
       <AulasCargaDeCampo
         filas={[
-          // Dos con fecha y dos sin ella: asi la vista abre en calendario, que
-          // es el unico eje con carril.
           aula({ classroom_id: "f", sesiones_dia_hora: "LUN 08:00-09:00", scheduled_time: "08:00", scheduled_date: "2026-09-14" }),
           aula({ classroom_id: "g", sesiones_dia_hora: "LUN 08:00-09:00", scheduled_time: "08:00", scheduled_date: "2026-09-21" }),
           aula({ classroom_id: "a", sesiones_dia_hora: "MAR 10:00-12:00" }),
@@ -115,11 +119,13 @@ describe("AulasCargaDeCampo", () => {
         ]}
       />,
     );
-    const i = html.indexOf("es-por-agendar");
-    expect(i).toBeGreaterThan(-1);
-    const carril = html.slice(i);
-    // «2» aparece en cuatro franjas de 30 min, pero rotulado una sola vez.
-    expect((carril.match(/>2<\/span>/g) ?? []).length).toBe(1);
+    expect(html).not.toContain("es-por-agendar");
+    // Las franjas del martes pendiente (10:00-12:00) no viven en ninguna fila:
+    // el «2» de su banda no aparece como celda.
+    expect(html).not.toMatch(/>2<\/button>/);
+    // Y las fechas sí están, cada una con su cita.
+    expect(html).toContain("Lunes 14/09");
+    expect(html).toContain("Lunes 21/09");
   });
 
   it("separa las semanas del calendario en vez de dar una lista plana", () => {

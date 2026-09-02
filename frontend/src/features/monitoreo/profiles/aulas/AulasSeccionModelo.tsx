@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
+import { AulasMapaDeHoras } from "./AulasMapaDeHoras";
 import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { hayHorarioDeCurso } from "./cargaDeCampo";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
@@ -114,6 +115,9 @@ export function AulasSeccionModelo({
           >
             <AulasCargaDeCampo
               filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              // Las ventanas del motor: la posición horaria de los confirmados
+              // sale de aquí, nunca del `scheduled_time` crudo (bug 8:00pm).
+              franjas={dashboard.franjas}
               onExportar={(opciones) =>
                 descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
               }
@@ -194,6 +198,7 @@ export function AulasSeccionModelo({
         ) : null}
         {pestana === "agenda"
           || (pestana !== "facultad" && pestana !== "contacto" && pestana !== "carga") ? (
+        <>
         <section
           // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
           // por día y tabla— y la regla común declara dos. Un hijo de más se
@@ -322,6 +327,22 @@ export function AulasSeccionModelo({
             preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
+        {/* El «Mapa de horas» (dictado 2026-09-01: «que el gráfico de la
+            separación de tiempo… se vea mejor»): por día, la ventana de cada
+            cita sobre un eje horario y el pico de carga simultánea — el
+            número que dimensiona a los aplicadores. Panel PROPIO debajo de la
+            tabla: es lectura del mismo plan, no otra navegación, y la sección
+            entera scrollea en `mon-workbench-content`, que ya declara ese
+            alto como capacidad suya (B25). En el stack cae en fila implícita
+            `auto`: mide su contenido, sin pelear el `1fr` de la tabla. */}
+        <section
+          className="mon-profile-panel aulas-mapa-horas-panel"
+          data-qa-geometry-group="aulas-mapa-horas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <AulasMapaDeHoras franjas={dashboard.franjas} />
+        </section>
+        </>
         ) : null}
         {/* B25(b), dictado 2026-09-01: el panel «Cuánto cuesta cerrar un
             curso-horario» salió de esta sección — «aporta información no muy

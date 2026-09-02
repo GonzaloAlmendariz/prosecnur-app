@@ -2104,85 +2104,12 @@
   font-size: var(--aulas-txt);
 }
 
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista li {
-  display: grid;
-  /* La tercera columna tenia 116px para «13 · todas con respuestas», que no
-     cabe: el texto envolvia y la segunda linea quedaba sin alinear con nada.
-     168px es lo que mide la lectura mas larga sin partirse. */
-  grid-template-columns: 118px minmax(0, 1fr) 168px;
-  align-items: center;
-  gap: 10px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-dia {
-  color: var(--pulso-text);
-  font-size: var(--aulas-txt);
-  font-weight: var(--pulso-weight-medium);
-}
-
-/* Las que no tienen fecha no se esconden: son justo las que nadie va a aplicar
-   mañana. Se leen en gris y al final. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-lista li.es-sin-fecha .aulas-agenda-dia {
-  color: var(--pulso-text-soft);
-  font-style: italic;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-barra {
-  display: flex;
-  height: 16px;
-  overflow: hidden;
-  border-radius: 5px;
-  background: var(--pulso-surface-2);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-agenda-barra i {
-  display: block;
-  min-width: 2px;
-}
-
-/* **Dos columnas, no un flujo de texto.**
-   En flex, la cifra empujaba al texto y cada fila empezaba su lectura en una x
-   distinta: «9», «13» y «56» desplazaban «todas con respuestas» tres anchos
-   diferentes. Con la cifra en su propia columna alineada a la derecha, las
-   unidades quedan una debajo de otra y todas las lecturas arrancan a la misma
-   altura, que es lo que hace legible una columna de veinte filas. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-cifra {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 8px;
-  color: var(--pulso-text);
-  font-size: var(--aulas-txt);
-  font-variant-numeric: tabular-nums;
-}
-
-/* El punto medio que separa las dos cifras va en el MARKUP, no aquí. Probado
-   como `::before`: separaba a la vista pero el texto seguía siendo «193 sin
-   empezar», así que un lector de pantalla leía un número de tres dígitos que
-   no existe. Un separador decorativo no arregla un dato. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-cifra em {
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-sec);
-  font-style: normal;
-}
-
-/* **El total del dia no se parte NUNCA.** Es un flex, y al estrecharse la
-   columna el navegador partia dentro del propio numero: «13» salia como «1» y
-   «3» en dos lineas, y «28» como «2» y «8». No es una elipsis en una etiqueta
-   larga —eso el contrato lo admite—, es un dato operativo ilegible y ademas
-   engañoso, porque las dos mitades se leen como dos cifras. */
-.mon-profile-page.is-aulas-flow .aulas-agenda-cifra strong {
-  white-space: nowrap;
-  text-align: right;
-}
+/* La lista de chips de días (`aulas-agenda-lista`/`-barra`/`-cifra`) se retiró
+   el 2026-09-02: la franja evolucionó a la cuadrícula de calendario de
+   `AulasCalendarioDeAgenda.tsx`, con hoja PROPIA (`aulasCalendarioDeAgenda.css`,
+   esta hoja está congelada a crecimiento). Sus lecciones viven en el nuevo
+   markup: el «193 sin empezar» se sigue pronunciando como dos cifras separadas
+   por palabras en el `aria-label` de cada celda. */
 
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorDia } from "./agendaPorDia";
+import { AulasCalendarioDeAgenda } from "./AulasCalendarioDeAgenda";
+import { hoyISO } from "./calendarioDeAgenda";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -49,7 +51,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
     mq.addEventListener("change", alCambiar);
     return () => mq.removeEventListener("change", alCambiar);
   }, []);
-  const { dias, diasDeCampo, tope, sinFecha, desde, hasta, leyenda } = useMemo(
+  const { dias, diasDeCampo, sinFecha, desde, hasta, leyenda } = useMemo(
     () => agendaPorDia(filas),
     [filas],
   );
@@ -127,53 +129,16 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
             </em></>
           ) : null}
         </summary>
-      <ol className="aulas-agenda-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {dias.map((dia) => (
-          <li key={dia.fecha || "sin-fecha"} className={dia.fecha ? "" : "es-sin-fecha"}>
-            <span className="aulas-agenda-dia">{dia.etiqueta}</span>
-            {/* La barra mide el día contra el más cargado, así que la carga
-                relativa se ve sin leer una cifra; el reparto interno dice en qué
-                estado llega ese día. */}
-            <span
-              className="aulas-agenda-barra"
-              style={{ width: `${tope ? Math.max(6, (100 * dia.aulas) / tope) : 0}%` }}
-              role="img"
-              aria-label={`${fmt(dia.aulas)} cursos-horario, ${dia.cumplen} cumplen`}
-            >
-              {dia.tramos.filter((t) => t.aulas > 0).map((tramo) => (
-                <i
-                  key={tramo.clave}
-                  style={{ flexGrow: tramo.aulas, background: tramo.color }}
-                  title={`${tramo.etiqueta}: ${tramo.aulas}`}
-                />
-              ))}
-            </span>
-            {/* **El separador se fue, y la separación la hace la rejilla.**
-
-                El punto medio estaba aquí como carácter de verdad porque el
-                total del día y los que no empezaron quedaban pegados —«19» y
-                «3»— y el texto se leía «193 sin empezar». Un `::before` no
-                valía: separaba a la vista y el lector de pantalla seguía
-                diciendo el número de tres cifras.
-
-                Ahora la cifra vive en su propia columna del grid, así que ya no
-                hay flujo de texto donde pegarse, y lo que el lector de pantalla
-                anuncia lo fija el `aria-label` de la fila. El punto ya no
-                separaba nada: sólo se veía. */}
-            <span
-              className="aulas-agenda-cifra"
-              aria-label={`${dia.aulas} ${dia.aulas === 1 ? "curso-horario" : "cursos-horario"}, ${
-                dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"
-              }`}
-            >
-              <strong aria-hidden="true">{dia.aulas}</strong>
-              <em aria-hidden="true">
-                {dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"}
-              </em>
-            </span>
-          </li>
-        ))}
-      </ol>
+      {/* **De la lista de chips a la cuadrícula de calendario** (dictado
+          2026-09-01: «que… el calendario de CHs a agendar se vea mejor»). La
+          lista decía la carga de cada fecha pero no su FORMA de semana: qué
+          días quedan libres, si el campo cae en fin de semana, cuánto falta
+          desde hoy. La celda conserva la lectura de la fila vieja —total y
+          sin empezar, separados por palabras en el `aria-label`, que es lo
+          que el guard de «193 sin empezar» vigila— y las repisas declaran lo
+          que un calendario no puede colocar: sin fecha, fechas que no
+          existen, años tecleados mal. */}
+      <AulasCalendarioDeAgenda dias={dias} hoy={hoyISO()} />
       </details>
       {/* La leyenda va DEBAJO de las barras y no encima: primero se ve la forma
           del periodo y sólo después se pregunta qué es cada color. Lleva el
