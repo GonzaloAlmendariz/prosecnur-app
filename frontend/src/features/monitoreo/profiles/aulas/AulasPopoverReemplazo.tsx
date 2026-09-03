@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import {
   candidatosDeReemplazo,
   type BrechaPorSexo,
@@ -140,15 +140,18 @@ function Candidato({
         {puesto === 1 ? <span className="aulas-reemplazo-sello">el mejor</span> : null}
       </div>
 
-      {/* Lo que hace falta para decidir: qué curso, dónde, con quién, cuándo.
-          El dónde y el cuándo van como chips del Sistema Pabellón (B33) — el
-          mismo A206 con el mismo tono que la Agenda—; el docente y los
+      {/* Lo que hace falta para decidir: qué curso, dónde, de qué facultad,
+          cuándo. El dónde y el cuándo van como chips del Sistema Pabellón
+          (B33) — el mismo A206 con el mismo tono que la Agenda—, y la
+          facultad como badge (canon B34): al comparar candidatos de tres
+          orígenes hay que ver de dónde es cada uno. El docente y los
           elegibles quedan en su peso de texto. */}
       <p className="aulas-reemplazo-curso">{f.course_name || f.label || "Curso sin nombre"}</p>
-      {f.venue || f.sesiones_dia_hora ? (
+      {f.venue || f.faculty || f.sesiones_dia_hora ? (
         <div className="aulas-chips-fila">
-          {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
           {f.venue ? <ChipLugar lugar={f.venue} /> : null}
+          {f.faculty ? <ChipDato>{f.faculty}</ChipDato> : null}
+          {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
         </div>
       ) : null}
       <p className="aulas-reemplazo-datos">

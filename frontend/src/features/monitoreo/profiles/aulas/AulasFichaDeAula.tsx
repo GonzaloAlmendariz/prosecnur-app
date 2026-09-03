@@ -84,14 +84,17 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
         </button>
       </div>
 
-      {/* La identidad de la cita —dónde, a qué hora, qué día— como fila de
-          chips del Sistema Pabellón (B33): el mismo A206 con el mismo tono que
-          en la Agenda. Sin ninguno de los tres, la fila no se pinta. */}
+      {/* La identidad de la cita —dónde, qué día, a qué hora— como fila de
+          chips del Sistema Pabellón (B33), en el orden del canon de Carga: el
+          mismo A206 con el mismo tono que en la Agenda. La facultad no se
+          repite aquí: la cabecera de arriba ya la dice junto al código (canon
+          B34 satisfecho en su peso). Sin ninguno de los tres, la fila no se
+          pinta. */}
       {(ficha.lugar || ficha.hora || ficha.fecha) && (
         <div className="aulas-chips-fila">
-          {ficha.hora ? <ChipHora>{ficha.hora}</ChipHora> : null}
           {ficha.lugar ? <ChipLugar lugar={ficha.lugar} /> : null}
           {ficha.fecha ? <ChipDato>{ficha.fecha}</ChipDato> : null}
+          {ficha.hora ? <ChipHora>{ficha.hora}</ChipHora> : null}
         </div>
       )}
 

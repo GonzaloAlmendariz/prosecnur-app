@@ -643,21 +643,26 @@ export function RegistroDeCampo({
                   {etiquetaDeAula(activa)}
                   {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
                 </p>
-                {/* La cita a la vista de quien registra: dónde, a qué hora y
-                    qué día, como la fila de chips del Sistema Pabellón (B33) —
-                    el mismo A206 con el mismo tono que la Agenda. El lugar
-                    acordado (B30) gana al salón del catálogo. */}
+                {/* La cita a la vista de quien registra: dónde, de qué
+                    facultad, qué día y a qué hora, como la fila de chips del
+                    Sistema Pabellón (B33) — el mismo A206 con el mismo tono
+                    que la Agenda, en el orden del canon de Carga. El lugar
+                    acordado (B30) gana al salón del catálogo, y la facultad
+                    también es seña del box (canon B34): quien registra piensa
+                    por facultad y el formulario no la decía. */}
                 {(() => {
                   const lugar = String(activa.scheduled_venue ?? "").trim()
                     || String(activa.venue ?? "").trim();
+                  const facultad = String(activa.faculty ?? "").trim();
                   const hora = String(activa.scheduled_time ?? "").trim();
                   const fecha = String(activa.scheduled_date ?? "").trim().slice(0, 10);
-                  if (!lugar && !hora && !fecha) return null;
+                  if (!lugar && !facultad && !hora && !fecha) return null;
                   return (
                     <div className="aulas-chips-fila">
-                      {hora ? <ChipHora>{hora}</ChipHora> : null}
                       {lugar ? <ChipLugar lugar={lugar} /> : null}
+                      {facultad ? <ChipDato>{facultad}</ChipDato> : null}
                       {fecha ? <ChipDato>{fecha}</ChipDato> : null}
+                      {hora ? <ChipHora>{hora}</ChipHora> : null}
                     </div>
                   );
                 })()}
