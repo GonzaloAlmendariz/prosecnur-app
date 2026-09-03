@@ -1,0 +1,14 @@
+/* La historia de cadenas — hoja propia porque `aulasMonitoreo.css` está
+ * congelada a crecimiento (misma doctrina que aulasRutaPorFacultad.css,
+ * aulasFichaDeAula.css y aulasBancoExtras.css). La importa
+ * `AulasHistoriaCadena.tsx`.
+ *
+ * Loop mejora-ui E10 (2026-09-03): el cero de la lectura susurra. En «0
+ * cerraron con el titular · 0 con un reemplazo · 174 sin cerrar» los dos
+ * ceros pesaban igual que el número que sí es la noticia; bajan a tinta
+ * tenue y peso normal — cuarta pieza del lenguaje de la ausencia (E6 el «—»
+ * de la ficha, E8 la tarjeta agotada, E9 el swatch apagado). */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lectura strong.es-cero {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}

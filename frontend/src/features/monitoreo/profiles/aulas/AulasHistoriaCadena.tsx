@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
 import { fmt } from "./kpisDeAulas";
+import "./aulasHistoriaCadena.css";
 
 /**
  * Cómo llegó cada cadena a su meta —o por qué sigue abierta.
@@ -156,12 +157,22 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
     (h) => h.desenlace === "abierta" && h.meta > 0 && h.validas >= h.meta,
   ).length;
 
+  /* Loop mejora-ui E10: el cero de la lectura susurra. «0 cerraron con el
+     titular · 0 con un reemplazo · 174 sin cerrar» ponía los tres números al
+     mismo peso, y los dos ceros —que son la ausencia, no el dato que se viene
+     a buscar— competían con el 174. Mismo lenguaje que el «—» de la ficha
+     (E6) y la tarjeta agotada del banco (E8); la regla vive en
+     aulasHistoriaCadena.css. */
+  const Cuenta = ({ n }: { n: number }) => (
+    n === 0 ? <strong className="es-cero">0</strong> : <strong>{fmt(n)}</strong>
+  );
+
   return (
     <div className="aulas-cadenas">
       <p className="aulas-cadenas-lectura">
-        <strong>{cerraronEnTitular}</strong> cerraron con el titular ·{" "}
-        <strong>{cerraronEnReemplazo}</strong> con un reemplazo ·{" "}
-        <strong>{abiertas}</strong> sin cerrar
+        <Cuenta n={cerraronEnTitular} /> cerraron con el titular ·{" "}
+        <Cuenta n={cerraronEnReemplazo} /> con un reemplazo ·{" "}
+        <Cuenta n={abiertas} /> sin cerrar
         {/* **La unidad, porque cambia a media frase.** Los tres numeros de antes
             son CADENAS y este son CURSOS-HORARIO titulares —el vacio de este
             mismo componente lo dice: «ninguno de los N cursos-horario titulares
