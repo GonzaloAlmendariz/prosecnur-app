@@ -230,3 +230,10 @@
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
 }
+
+/* La familia del día que toca (quinta superficie): sello y atenuado. */
+.aulas-mapa-dia.es-el-que-toca {
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 40%, var(--pulso-border));
+  border-left: 4px solid var(--pulso-module-monitoring);
+}
+.aulas-mapa-dia.es-pasado { opacity: 0.6; }

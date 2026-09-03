@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 
+import { hoyISO } from "./calendarioDeAgenda";
 import type { MonitoreoAulasFranjas } from "../../../../api/monitoreo";
 import { mapaDeHoras, type MapaDia } from "./mapaDeHoras";
 import { fmt } from "./kpisDeAulas";
@@ -23,7 +24,11 @@ import "./aulasMapaDeHoras.css";
  * lo envuelve (AulasSeccionModelo) es un grid de dos filas y cada pieza cae
  * en la suya.
  */
-export function AulasMapaDeHoras({ franjas }: { franjas?: MonitoreoAulasFranjas | null }) {
+export function AulasMapaDeHoras({ franjas, hoy = hoyISO() }: {
+  franjas?: MonitoreoAulasFranjas | null;
+  /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
+  hoy?: string;
+}) {
   const mapa = mapaDeHoras(franjas);
 
   const cabecera = (
@@ -75,9 +80,20 @@ export function AulasMapaDeHoras({ franjas }: { franjas?: MonitoreoAulasFranjas 
     <>
       {cabecera}
       <div className="aulas-mapa-horas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {mapa.dias.map((d) => (
-          <DiaDelMapa key={d.fecha} dia={d} />
-        ))}
+        {/* La familia del día que toca (B43/46/49/57): quinta superficie que
+            lista días — el despliegue inminente lleva su sello y lo pasado
+            se atenúa, la misma lectura en todo el perfil. */}
+        {(() => {
+          const proximo = mapa.dias.find((x) => x.fecha >= hoy)?.fecha ?? null;
+          return mapa.dias.map((d) => (
+            <DiaDelMapa
+              key={d.fecha}
+              dia={d}
+              esElQueToca={d.fecha === proximo}
+              esPasado={d.fecha < hoy}
+            />
+          ));
+        })()}
         {mapa.personasFuente === "confirmadas" ? (
           <p className="aulas-mapa-nota">
             El pico cuenta solo citas confirmadas; la franja punteada es el
@@ -89,11 +105,18 @@ export function AulasMapaDeHoras({ franjas }: { franjas?: MonitoreoAulasFranjas 
   );
 }
 
-function DiaDelMapa({ dia }: { dia: MapaDia }) {
+function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
+  dia: MapaDia;
+  esElQueToca?: boolean;
+  esPasado?: boolean;
+}) {
   return (
-    <article className="aulas-mapa-dia">
+    <article className={`aulas-mapa-dia${esElQueToca ? " es-el-que-toca" : ""}${esPasado ? " es-pasado" : ""}`}>
       <header className="aulas-mapa-dia-cab">
-        <h4>{dia.etiqueta}</h4>
+        <h4>
+          {dia.etiqueta}
+          {esElQueToca ? <span className="aulas-carga-toca">toca</span> : null}
+        </h4>
         {/* El pico del día, como texto y no como tooltip: es el dato que fija
             cuántos aplicadores hacen falta ese día. */}
         <p className="aulas-mapa-pico-lectura">
