@@ -11,6 +11,7 @@ import type {
 import {
   anchoMinimoDeMalla,
   calcularCarga,
+  citasDeLaFila,
   comoHora,
   ejeSugerido,
   hayHorarioDeCurso,
@@ -18,6 +19,7 @@ import {
   porPabellon,
   ventanasDelMotor,
   type EjeDeCarga,
+  type OcupanteDeCelda,
   type OpcionesDeCarga,
 } from "./cargaDeCampo";
 import { AulasAsignacionDeAplicadores } from "./AulasAsignacionDeAplicadores";
@@ -159,6 +161,11 @@ export function AulasCargaDeCampo({
   // mismo criterio que el eslabón de la Agenda.
   const [celdaActiva, setCeldaActiva] = useState<{ d: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
+  // B37 (dictado 2026-09-02: «el calendario se ve mejor»): click en la FECHA
+  // deja el día entero en el detalle — el parte del día sin recorrer diez
+  // celdas con el puntero. El hover de una celda lo tapa transitorio y al
+  // salir el día vuelve; otro click en la fecha lo suelta.
+  const [diaActivo, setDiaActivo] = useState<number | null>(null);
   // La semana visible del calendario. `null` = todas: paginar es un gesto del
   // usuario, no un recorte de apertura.
   const [semanaIdx, setSemanaIdx] = useState<number | null>(null);
@@ -536,7 +543,22 @@ export function AulasCargaDeCampo({
               <Fragment key={fila.clave}>
                 {fila.porAgendar || (visibles !== null && !visibles.has(d)) ? null : (
                 <tr className={abreSemana.has(fila.clave) ? "abre-semana" : undefined}>
-                  <th scope="row">{fila.etiqueta}</th>
+                  <th scope="row">
+                    <button
+                      type="button"
+                      className={`aulas-carga-dia${diaActivo === d ? " es-activo" : ""}`}
+                      aria-pressed={diaActivo === d}
+                      aria-label={`${fila.etiqueta}: ver todas sus citas en el detalle`}
+                      title={`Ver todas las citas de ${fila.etiqueta}`}
+                      onClick={() => {
+                        setDiaActivo(diaActivo === d ? null : d);
+                        setCeldaActiva(null);
+                        setFijada(false);
+                      }}
+                    >
+                      {fila.etiqueta}
+                    </button>
+                  </th>
                   {vivas.map((j) => {
                     const firme = malla.firmes[d][j];
                     const plausible = malla.plausibles[d][j];
@@ -618,24 +640,13 @@ export function AulasCargaDeCampo({
           const activa = celdaActiva && malla.quienes[celdaActiva.d]?.[celdaActiva.j]?.length
             ? celdaActiva
             : null;
-          if (!activa) {
-            // «La malla» y no «una celda»: el guard del perfil reserva esa
-            // palabra para la hoja de cálculo del equipo.
-            return (
-              <p className="aulas-carga-detalle-vacio">
-                Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada
-                franja de 30 minutos; un click deja la franja fijada.
-              </p>
-            );
-          }
-          const ocupantes = malla.quienes[activa.d][activa.j];
           // COMPLETO, sin techo (dictado 2026-09-02: «no pones las cosas
           // completas y actúas como si no tuvieras espacio cuando la pestaña
           // puede darle más espacio sin problema»). El recorte de 8 con «y N
           // más» quedó revocado: la lista larga se reparte en columnas
           // (flex-wrap) y crece hacia abajo — el panel es intrínseco y el
           // scroll lo tiene mon-workbench-content.
-          const grupo = (lista: typeof ocupantes, rotulo: string) => (lista.length ? (
+          const grupo = (lista: OcupanteDeCelda[], rotulo: string) => (lista.length ? (
             <div className="aulas-carga-detalle-grupo">
               <h4>{rotulo} · {fmt(lista.length)}</h4>
               <ul>
@@ -671,16 +682,46 @@ export function AulasCargaDeCampo({
               </ul>
             </div>
           ) : null);
+          if (activa) {
+            const ocupantes = malla.quienes[activa.d][activa.j];
+            return (
+              <>
+                <p className="aulas-carga-detalle-titulo">
+                  <strong>{malla.filas[activa.d].etiqueta}</strong>{" "}
+                  <ChipHora>{comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}</ChipHora>
+                  {fijada ? <em> · fijada; otro click la suelta</em> : null}
+                </p>
+                {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
+                {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
+              </>
+            );
+          }
+          // B37: el parte del día — click en la fecha, todas sus citas de
+          // una vez, cada curso UNA vez y en orden de arranque.
+          if (diaActivo !== null && malla.filas[diaActivo]) {
+            const delDia = citasDeLaFila(malla, diaActivo);
+            if (delDia.length) {
+              return (
+                <>
+                  <p className="aulas-carga-detalle-titulo">
+                    <strong>{malla.filas[diaActivo].etiqueta}</strong>{" "}
+                    <ChipDato>día completo · {fmt(delDia.length)} cursos-horario</ChipDato>
+                    <em> · otro click en la fecha lo suelta</em>
+                  </p>
+                  {grupo(delDia.filter((o) => o.confirmada), "Confirmados")}
+                  {grupo(delDia.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
+                </>
+              );
+            }
+          }
+          // «La malla» y no «una celda»: el guard del perfil reserva esa
+          // palabra para la hoja de cálculo del equipo.
           return (
-            <>
-              <p className="aulas-carga-detalle-titulo">
-                <strong>{malla.filas[activa.d].etiqueta}</strong>{" "}
-                <ChipHora>{comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}</ChipHora>
-                {fijada ? <em> · fijada; otro click la suelta</em> : null}
-              </p>
-              {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
-              {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
-            </>
+            <p className="aulas-carga-detalle-vacio">
+              Pasa el puntero o el foco por la malla para ver qué cursos-horario caen en cada
+              franja de 30 minutos; un click deja la franja fijada. Click en una fecha deja su
+              día completo.
+            </p>
           );
         })()}
       </div>

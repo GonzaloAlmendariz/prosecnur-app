@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { calcularCarga, ventanasDelMotor } from "./cargaDeCampo";
+import { calcularCarga, citasDeLaFila, ventanasDelMotor } from "./cargaDeCampo";
 
 const aula = (over: Partial<MonitoreoAulasPlanRow>): MonitoreoAulasPlanRow =>
   ({
@@ -145,5 +145,30 @@ describe("en el calendario cada fila lista lo suyo", () => {
       { duracionMin: 30, eje: "semana" },
     );
     expect(sinCodigo.quienes[0][franjaDe(sinCodigo, 10 * 60)][0]?.codigo).toBe("1urb01_0501");
+  });
+});
+
+describe("citasDeLaFila — el parte del día entero (B37)", () => {
+  it("dedup por código en orden de arranque: un curso de dos horas aparece UNA vez", () => {
+    // CH 1 confirmada a las 10:00 (ocupa 10:00 y — con 30 min — nada más);
+    // CH 2 sin agendar cubre su clase entera 10:00-12:00 (cuatro franjas).
+    // El parte del día los quiere una vez cada uno, CH 1 primero.
+    const malla = calcularCarga(
+      [
+        aula({ classroom_id: "a", operational_code: "CH 1", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00" }),
+        aula({ classroom_id: "b", operational_code: "CH 2", sesiones_dia_hora: "LUN 10:00-12:00" }),
+      ],
+      { duracionMin: 30, eje: "semana" },
+    );
+    const dia = citasDeLaFila(malla, 0);
+    expect(dia.map((o) => o.codigo)).toEqual(["CH 1", "CH 2"]);
+    expect(dia[0].confirmada).toBe(true);
+    expect(dia[1].confirmada).toBe(false);
+  });
+
+  it("fila sin citas o fuera de rango = lista vacía, no error", () => {
+    const malla = calcularCarga([], { duracionMin: 30, eje: "semana" });
+    expect(citasDeLaFila(malla, 0)).toEqual([]);
+    expect(citasDeLaFila(malla, 99)).toEqual([]);
   });
 });
