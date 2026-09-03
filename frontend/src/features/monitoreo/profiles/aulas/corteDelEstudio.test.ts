@@ -44,3 +44,19 @@ describe("el «hoy» del estudio es el último parte, no el sello del tablero", 
     expect(corteDelEstudio([], "")).toEqual({ dia: "", esDelCampo: false });
   });
 });
+
+describe("el fallback del corte vive en el día LOCAL, no en el de Londres", () => {
+  it("un sello UTC de la noche no adelanta el corte al día siguiente", () => {
+    // 22:00 del día local: en Lima su ISO UTC ya es el día siguiente
+    // («…T03:00:00Z»). El corte tiene que decir el día que el campo vive.
+    const noche = new Date(2026, 8, 2, 22, 0, 0);
+    const esperado = `${noche.getFullYear()}-${String(noche.getMonth() + 1).padStart(2, "0")}-${
+      String(noche.getDate()).padStart(2, "0")}`;
+    expect(corteDelEstudio([], noche.toISOString())).toEqual({ dia: esperado, esDelCampo: false });
+  });
+
+  it("lo no parseable conserva la rebanada de siempre; el vacío queda vacío", () => {
+    expect(corteDelEstudio([], "2026-09-02").dia).toBe("2026-09-02");
+    expect(corteDelEstudio([], "").dia).toBe("");
+  });
+});
