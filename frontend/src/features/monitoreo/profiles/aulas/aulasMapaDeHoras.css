@@ -203,6 +203,20 @@
   background: color-mix(in srgb, var(--pulso-module-monitoring) 78%, #fff);
 }
 
+/* B71 — el segmento de PREPARACIÓN delante de la barra firme: tenue y
+   punteado (mismo lenguaje que el ChipPrep), porque es protocolo previo, no
+   aplicación. Va debajo de la barra en z para que el borde compartido no
+   ensucie. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-prep {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px 0 0 3px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 12%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  border-right: 0;
+}
+
 /* La cita sin pactar dibuja el rango de su curso: hueca y punteada, para que
    nunca se lea como una cita firme. */
 .mon-profile-page.is-aulas-flow .aulas-mapa-barra.es-tentativa {
