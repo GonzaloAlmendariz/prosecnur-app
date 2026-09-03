@@ -130,3 +130,10 @@ test_that("B75: reparto_rango persiste con ambas puntas ISO y la basura se des-d
     cfg$reparto_rango
   )
 })
+
+test_that("B67: reparto_semilla persiste como entero y la basura cae a 0", {
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = 4))$reparto_semilla, 4L)
+  expect_identical(monitoreo_aulas_normalize_config(list())$reparto_semilla, 0L)
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = -2))$reparto_semilla, 0L)
+  expect_identical(monitoreo_aulas_normalize_config(list(reparto_semilla = "tres"))$reparto_semilla, 0L)
+})

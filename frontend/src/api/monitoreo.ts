@@ -764,6 +764,8 @@ export type MonitoreoAulasConfig = {
    * ISO; `{}` lo des-declara (todo el horizonte).
    */
   reparto_rango?: { desde?: string; hasta?: string } | null;
+  /** B67: la semilla del resorteo — rota el desempate del reparto; 0 = alfabeto. */
+  reparto_semilla?: number;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   /**
@@ -1269,6 +1271,8 @@ export type MonitoreoAulasReparto = {
   fuera_de_rango?: Array<{ fecha: string; codigos?: string[]; por_confirmar?: string[] }>;
   /** B75: el rango saneado que rigió este reparto; ausente sin rango. */
   rango?: { desde?: string; hasta?: string } | null;
+  /** B67: con qué sorteo (semilla) se armó este reparto. */
+  semilla?: number;
 };
 
 export type MonitoreoAulasDashboard = {

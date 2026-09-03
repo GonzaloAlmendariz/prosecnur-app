@@ -105,6 +105,7 @@ export function AulasAsignacionDeAplicadores({
   lugares,
   onFijar = null,
   onDeclararRango = null,
+  onResortear = null,
   hoy = hoyISO(),
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
@@ -127,6 +128,12 @@ export function AulasAsignacionDeAplicadores({
    * `null` como prop = superficie de solo lectura, los controles no se pintan.
    */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /**
+   * B67 («no tengo una forma de hacer un resorteo»): pedir OTRO sorteo — se
+   * persiste la semilla siguiente y el reparto rota su desempate. Las
+   * fijaciones y la equidad no cambian.
+   */
+  onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -198,11 +205,30 @@ export function AulasAsignacionDeAplicadores({
           {" "}Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita y
           sale al aula <strong>15 min antes</strong>: su hora completa queda reservada.
         </p>
-        {onDeclararRango ? (
-          <RangoDeDespliegue
-            rango={reparto.rango}
-            onDeclarar={(r) => { void onDeclararRango(r); }}
-          />
+        {onDeclararRango || onResortear ? (
+          <div className="aulas-asigna-mandos">
+            {onDeclararRango ? (
+              <RangoDeDespliegue
+                rango={reparto.rango}
+                onDeclarar={(r) => { void onDeclararRango(r); }}
+              />
+            ) : null}
+            {onResortear ? (
+              <span className="aulas-asigna-resorteo">
+                <button
+                  type="button"
+                  className="aulas-asigna-rango-boton"
+                  title="Otro sorteo con las mismas reglas: rota quién gana los empates; la equidad y lo fijado a mano no cambian"
+                  onClick={() => { void onResortear(reparto.semilla + 1); }}
+                >
+                  Resortear
+                </button>
+                {reparto.semilla > 0 ? (
+                  <em>sorteo n.º {fmt(reparto.semilla + 1)}</em>
+                ) : null}
+              </span>
+            ) : null}
+          </div>
         ) : null}
         {reparto.fueraDeRango.length > 0 ? (
           /* B75: lo aplazado se DECLARA — cuántas citas esperan su tanda y en

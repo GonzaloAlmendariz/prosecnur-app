@@ -764,6 +764,7 @@ function renderAulasView({
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
   onDeclararRango = null,
+  onResortear = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -830,6 +831,8 @@ function renderAulasView({
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** B67: pedir otro sorteo del reparto. */
+  onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -876,6 +879,7 @@ function renderAulasView({
         onConfirmarDuracion={onConfirmarDuracion}
         onImportarDisponibilidad={onImportarDisponibilidad}
         onDeclararRango={onDeclararRango}
+        onResortear={onResortear}
       />
     );
   }
@@ -1378,6 +1382,20 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * B67: otro sorteo — la semilla siguiente se persiste en el config y el
+   * refresco trae el reparto con el desempate rotado; equidad y fijaciones
+   * intactas (contrato del motor).
+   */
+  const resortear = useCallback(async (semillaSiguiente: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_semilla: semillaSiguiente } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const confirmarDuracion = useCallback(async (min: number) => {
     try {
       await apiMonitoreoAulasConfig({ duracion_aplicacion_min: min } as Partial<MonitoreoAulasConfig>);
@@ -1760,6 +1778,7 @@ export default function AulasMonitoreoPage() {
               onConfirmarDuracion: confirmarDuracion,
               onImportarDisponibilidad: importarDisponibilidad,
               onDeclararRango: declararRango,
+              onResortear: resortear,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

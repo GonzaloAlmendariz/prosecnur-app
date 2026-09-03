@@ -39,6 +39,7 @@ export function AulasSeccionModelo({
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
   onDeclararRango = null,
+  onResortear = null,
 }: {
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
@@ -57,6 +58,8 @@ export function AulasSeccionModelo({
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** B67: pedir otro sorteo del reparto. */
+  onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
 }): ReactNode {
   const Tabla = tabla;
   // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
@@ -157,6 +160,7 @@ export function AulasSeccionModelo({
               onConfirmarDuracion={onConfirmarDuracion}
               onImportarDisponibilidad={onImportarDisponibilidad}
               onDeclararRango={onDeclararRango}
+              onResortear={onResortear}
             />
           </section>
         ) : null}

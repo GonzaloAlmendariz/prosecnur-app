@@ -107,6 +107,8 @@ export type RepartoVista = {
   fueraDeRango: Array<{ fecha: string; etiqueta: string; codigos: string[]; porConfirmar: string[] }>;
   /** B75: el rango saneado que rigió; `null` = todo el horizonte. */
   rango: { desde: string; hasta: string } | null;
+  /** B67: con qué sorteo se armó el reparto; 0 = el alfabético de siempre. */
+  semilla: number;
 };
 
 /**
@@ -321,6 +323,7 @@ export function repartoDeAplicadores(
         };
       })
       .filter((f) => f.fecha !== ""),
+    semilla: num(raiz.semilla) ?? 0,
     rango: (() => {
       const r = (raiz.rango ?? null) as Record<string, unknown> | null;
       if (!r) return null;
