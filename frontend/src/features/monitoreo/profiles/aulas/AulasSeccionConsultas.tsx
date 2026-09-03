@@ -23,6 +23,7 @@ import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { historiaDeCadena } from "./historiaDeCadena";
 import { parteDeCampo } from "./parteDeCampo";
+import { soloFacultad } from "./aulasPresentation";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 
 /**
@@ -35,18 +36,27 @@ import type { TablaDelPerfil } from "./tablaDelPerfil";
  */
 export function AulasSeccionConsultas({
   dashboard, Tabla, pestana, reemplazosEnOrdenDeCadena,
+  facultadEnFoco = undefined,
 }: {
   dashboard: MonitoreoAulasDashboard;
   Tabla: TablaDelPerfil;
   pestana: string;
   reemplazosEnOrdenDeCadena: (filas: ReadonlyArray<Record<string, unknown>>) => Array<Record<string, unknown>>;
+  /** B77: la facultad en foco de la cabecera; corta las listas de la sección. */
+  facultadEnFoco?: string;
 }): ReactNode {
     // Las tres listas van en paneles propios. Concatenadas producian una tabla
     // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
-    const reemplazos = reemplazosEnOrdenDeCadena(dashboard.reemplazos);
-    const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
-    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], (dashboard.agenda ?? []) as MonitoreoRow[]);
+    // B77: el foco de facultad corta las fuentes de filas de la sección; el
+    // cuadre del parte se filtra en sus INSUMOS para que sus contadores y sus
+    // filas hablen del mismo subconjunto.
+    const reemplazos = soloFacultad(reemplazosEnOrdenDeCadena(dashboard.reemplazos), facultadEnFoco);
+    const brechas = soloFacultad((dashboard.brechas ?? []) as Array<Record<string, unknown>>, facultadEnFoco);
+    const cuadre = parteDeCampo(
+      soloFacultad((dashboard.partes_campo ?? []) as Array<Record<string, unknown>>, facultadEnFoco) as unknown as MonitoreoRow[],
+      soloFacultad((dashboard.agenda ?? []) as Array<Record<string, unknown>>, facultadEnFoco) as unknown as MonitoreoRow[],
+    );
     // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
     // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
     // reemplazo» es parte de la respuesta.
@@ -56,7 +66,7 @@ export function AulasSeccionConsultas({
     // 40 filas sin fecha a una tabla de 196 que sí importan, y hacían que el
     // panel dijera «236 cursos-horario» dos dedos debajo de un KPI que decía
     // 196: la misma palabra con dos cifras.
-    const agendaFilas = ((dashboard.agenda ?? []) as MonitoreoAulasPlanRow[])
+    const agendaFilas = (soloFacultad((dashboard.agenda ?? []) as Array<Record<string, unknown>>, facultadEnFoco) as unknown as MonitoreoAulasPlanRow[])
       .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool");
     // La MISMA función que escribe la lectura: el contador de la cabecera y el
     // renglón de abajo no pueden salir de dos cuentas distintas.

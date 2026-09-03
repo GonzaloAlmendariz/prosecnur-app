@@ -6,6 +6,7 @@ import {
   aulasCheckLabel,
   aulasFieldLabel,
   aulasStatusLabel,
+  soloFacultad,
   escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
@@ -421,5 +422,27 @@ describe("los códigos del marco no llegan crudos a la tabla", () => {
     // vacía y el defecto se ve como un hueco, no como un error.
     expect(presentAulasRow({ size_group: "G9" }).size_group).toBe("G9");
     expect(presentAulasRow({ sex_top_1: "X" }).sex_top_1).toBe("X");
+  });
+});
+
+describe("soloFacultad (B77) — el corte del foco con su guardia", () => {
+  const filas = [
+    { operational_code: "CH 1", faculty: "DERECHO" },
+    { operational_code: "CH 2", faculty: "EDUCACION" },
+    { operational_code: "CH 3", faculty: "DERECHO" },
+  ];
+
+  it("con foco, quedan solo las filas de esa facultad", () => {
+    expect(soloFacultad(filas, "DERECHO").map((f) => f.operational_code))
+      .toEqual(["CH 1", "CH 3"]);
+  });
+
+  it("sin foco, la lista pasa intacta", () => {
+    expect(soloFacultad(filas, undefined)).toBe(filas);
+  });
+
+  it("GUARDIA: si ninguna fila declara faculty, NO se filtra — vaciar la vista sería mentir", () => {
+    const sinDimension = [{ operational_code: "CH 9" }, { operational_code: "CH 10" }];
+    expect(soloFacultad(sinDimension, "DERECHO")).toBe(sinDimension);
   });
 });

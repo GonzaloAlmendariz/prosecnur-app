@@ -4,6 +4,7 @@ import {
   aulasFieldLabel,
   escalaDeProporciones,
   presentAulasRow,
+  soloFacultad,
   summarizeAulasValidation,
 } from "./aulasPresentation";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
@@ -174,9 +175,12 @@ export function AulasSeccionCalidad({
         </div>
       );
     }
-    const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
+    // B77: el foco de facultad de la cabecera también corta aquí — con la
+    // guardia del helper: una lista sin la dimensión queda intacta.
+    const rows = soloFacultad(
+      (dashboard.validation ?? []) as Array<Record<string, unknown>>, facultadEnFoco);
     const summary = summarizeAulasValidation(rows);
-    const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
+    const control = soloFacultad((dashboard.control_calidad ?? []) as Array<Record<string, unknown>>, facultadEnFoco);
     const controlResumen = (dashboard.control_calidad_resumen ?? null) as ResumenDeControl | null;
     // Cada pestaña muestra SU panel, y el reparto es POSITIVO —«¿es ésta?»— y no
     // por negación de la otra: con dos bastaría negar, pero en Consultas la
