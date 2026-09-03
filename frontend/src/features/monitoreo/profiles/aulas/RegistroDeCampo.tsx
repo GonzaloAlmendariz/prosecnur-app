@@ -846,8 +846,16 @@ export function RegistroDeCampo({
                         nombra la unidad entera: sin el «real» se leería como el
                         aula planificada, que es justo la que puede no ser. */}
                     <span>Aula real</span>
+                    {/* Mismo trato que la fecha (B54): el ejemplo es el salón
+                        AGENDADO — lo que casi siempre es la verdad; el campo
+                        existe justo para cuando NO lo fue. */}
                     <input
                       type="text" value={form.aulaReal}
+                      placeholder={(() => {
+                        const lugar = String(activa.scheduled_venue ?? "").trim()
+                          || String(activa.venue ?? "").trim();
+                        return lugar ? `p. ej. ${lugar}` : "p. ej. A206";
+                      })()}
                       onChange={(e) => set("aulaReal", e.target.value)}
                     />
                   </label>
