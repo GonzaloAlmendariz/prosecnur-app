@@ -17,3 +17,14 @@
   gap: 4px;
   white-space: nowrap;
 }
+
+/* Loop mejora-ui E5: la fecha repetida susurra. Dentro de una facultad las
+   filas van ordenadas por día; cuando la fecha es la misma que la de la fila
+   anterior, baja a tinta tenue y la HORA conserva su voz — el día se lee en
+   la primera fila del grupo y el ojo salta de día en día. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuando.es-mismo-dia {
+  color: color-mix(in srgb, var(--pulso-text-faint) 60%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuando.es-mismo-dia em {
+  color: var(--pulso-text-soft);
+}

@@ -71,9 +71,17 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
               </span>
             </summary>
             <ul>
-              {f.aulas.map((a) => (
+              {f.aulas.map((a, i) => (
                 <li key={a.codigo}>
-                  <span className="aulas-ruta-cuando">
+                  {/* Loop mejora-ui E5: el día canta solo cuando cambia. Cinco
+                      «lun 07/09» seguidos aplanaban la lectura por días — la
+                      fecha repetida susurra (la hora conserva su voz) y el ojo
+                      salta de día en día, que es lo que la vista promete. */}
+                  <span
+                    className={`aulas-ruta-cuando${
+                      i > 0 && !!a.fecha && f.aulas[i - 1].fecha === a.fecha ? " es-mismo-dia" : ""
+                    }`}
+                  >
                     {a.fecha ? fechaCorta(a.fecha) : "—"}
                     {a.hora ? <em> {a.hora}</em> : null}
                   </span>
