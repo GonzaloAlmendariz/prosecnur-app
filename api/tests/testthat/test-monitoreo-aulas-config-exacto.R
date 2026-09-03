@@ -87,3 +87,24 @@ test_that("B36: reparto_fijado sobrevive a la frontera jsonlite — vector nombr
   cfg2 <- monitoreo_aulas_normalize_config(list(reparto_fijado = cfg$reparto_fijado))
   expect_identical(cfg2$reparto_fijado, cfg$reparto_fijado)
 })
+
+test_that("B70: duracion_aplicacion_min persiste, se sanea y cae al default con basura", {
+  # Dictado 2026-09-03: el slider decia 30 y el aviso salia con 20 porque la
+  # duracion nunca viajaba. La clave esta en la whitelist del normalizador:
+  # sin esta entrada, confirmar el slider y guardar la perderia en silencio.
+  cfg <- monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = 45))
+  expect_identical(cfg$duracion_aplicacion_min, 45L)
+
+  # Sin declarar: el default operativo (30, «la aplicacion dura media hora»).
+  expect_identical(monitoreo_aulas_normalize_config(list())$duracion_aplicacion_min, 30L)
+
+  # Fuera de rango o ilegible: default, no un config roto.
+  expect_identical(monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = 2))$duracion_aplicacion_min, 30L)
+  expect_identical(monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = "treinta"))$duracion_aplicacion_min, 30L)
+
+  # Ida y vuelta (como vuelve del .pulso): mismo contrato.
+  expect_identical(
+    monitoreo_aulas_normalize_config(list(duracion_aplicacion_min = cfg$duracion_aplicacion_min))$duracion_aplicacion_min,
+    45L
+  )
+})
