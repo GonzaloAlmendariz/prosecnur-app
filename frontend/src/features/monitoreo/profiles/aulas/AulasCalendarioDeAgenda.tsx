@@ -68,7 +68,7 @@ export function AulasCalendarioDeAgenda({ dias, hoy }: {
                       celda.enRango && celda.fecha < hoy ? "es-pasado" : "",
                     ].filter(Boolean).join(" ") || undefined}
                     aria-current={celda.esHoy ? "date" : undefined}
-                    title={celda.fecha === fechaQueToca ? "El día que toca: el despliegue inminente" : undefined}
+                    title={celda.fecha === fechaQueToca ? "La próxima salida de campo" : undefined}
                   >
                     <span className="aulas-calendario-num">{celda.diaDelMes}</span>
                     {celda.aulas ? (

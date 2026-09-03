@@ -115,7 +115,7 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
       <header className="aulas-mapa-dia-cab">
         <h4>
           {dia.etiqueta}
-          {esElQueToca ? <span className="aulas-carga-toca">toca</span> : null}
+          {esElQueToca ? <span className="aulas-carga-toca">próxima salida</span> : null}
         </h4>
         {/* El pico del día, como texto y no como tooltip: es el dato que fija
             cuántos aplicadores hacen falta ese día. */}

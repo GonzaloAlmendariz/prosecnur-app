@@ -23,7 +23,8 @@ describe("AulasCalendarioDeAgenda — el que toca y lo pasado", () => {
 
   it("la primera fecha con agenda no pasada lleva el anillo y su título", () => {
     expect(html).toContain("es-el-que-toca");
-    expect(html).toContain("El día que toca: el despliegue inminente");
+    // Mapa de jergas 2026-09-03: el title habla de la salida, no de «tocar».
+    expect(html).toContain("La próxima salida de campo");
     // Y es la del 10, no la pasada del 1.
     expect(html).toMatch(/es-el-que-toca[^>]*>[\s\S]{0,80}>10</);
   });

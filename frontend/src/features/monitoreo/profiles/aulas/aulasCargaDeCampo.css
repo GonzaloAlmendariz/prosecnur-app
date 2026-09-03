@@ -388,7 +388,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   font-weight: 600;
   color: var(--pulso-text);
 }
-.aulas-asigna-dia h4 span { font-weight: 400; font-size: 12px; color: var(--pulso-text-faint); }
+/* Solo el conteo «· N citas» se atenúa. La versión `h4 span` a secas también
+   alcanzaba (y le ganaba por especificidad) al sello de la salida — el pill
+   rojo quedó con texto gris de 12px, ilegible; medido en la captura del
+   dictado 2026-09-03. */
+.aulas-asigna-dia h4 .aulas-asigna-conteo { font-weight: 400; font-size: 12px; color: var(--pulso-text-faint); }
 
 /* Lo descubierto, DESTACADO y arriba de su día: es lo que hay que resolver
    antes de esa fecha, no un pie de página. */
@@ -432,7 +436,9 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   border-radius: 7px;
   background: var(--pulso-surface);
   padding: 3px 6px;
-  max-width: 240px;
+  /* El nombre NO se corta: «Automático — Chamorro Rodríguez» necesita aire y
+     240px lo decapitaba (dictado 2026-09-03: «el aplicador se está cortando»). */
+  max-width: min(100%, 380px);
 }
 .aulas-asigna-selector:hover { border-color: var(--pulso-border-strong); }
 .aulas-asigna-selector:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
@@ -595,7 +601,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   .aulas-asigna-cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* El botón «copiar despliegue» del día que toca: al lado del sello, sobrio. */
+/* El botón «copiar aviso del día» de la próxima salida: al lado del sello, sobrio. */
 .aulas-asigna-copiar {
   display: inline-flex; align-items: center; gap: 4px;
   margin-left: 8px;
