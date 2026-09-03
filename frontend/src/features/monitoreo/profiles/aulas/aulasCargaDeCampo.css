@@ -134,6 +134,11 @@
 
 .aulas-carga-kpis { display: flex; gap: 26px; margin: 0 0 0 auto; }
 .aulas-carga-kpis div { display: flex; flex-direction: column; }
+/* Loop mejora-ui E7: el marcador gana arquitectura. Los KPIs anclados a la
+   derecha flotaban como dígitos sueltos frente al vacío del centro; el
+   hairline entre columnas los vuelve UN marcador —el mismo lenguaje de
+   divisores del panel de mandos de E1— y el ojo los recorre como serie. */
+.aulas-carga-kpis div + div { border-left: 1px solid var(--pulso-border); padding-left: 26px; }
 .aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
 .aulas-carga-kpis dd {
   margin: 0 0 3px; order: 1;
