@@ -28,3 +28,16 @@
 .mon-profile-page.is-aulas-flow .aulas-ruta-cuando.es-mismo-dia em {
   color: var(--pulso-text-soft);
 }
+
+/* El choque cita/horario de clase, en su línea bajo el aula (dictado
+   2026-09-03, señalando CH 30: «aquí choca la información»). Misma geometría
+   que la nota — fila completa, sangrado al cuerpo — pero en la tinta de
+   peligro suave: pide corregir la agendación, no pánico. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-choque {
+  grid-column: 1 / -1;
+  padding: 1px 0 2px 108px;
+  color: var(--pulso-danger-fg);
+  font-size: var(--aulas-sec);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

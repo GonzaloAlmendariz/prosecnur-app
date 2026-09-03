@@ -6,6 +6,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasMapaDeHoras } from "./AulasMapaDeHoras";
 import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { hayHorarioDeCurso } from "./cargaDeCampo";
+import { choquesDeHorario } from "./choquesDeHorario";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasSelectorDeEslabon } from "./AulasSelectorDeEslabon";
@@ -233,7 +234,15 @@ export function AulasSeccionModelo({
               return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
             })()}</span>
           </div>
-          <AulasAgendaPorFacultad filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]} />
+          <AulasAgendaPorFacultad
+            filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
+            // El choque cita/horario de clase, desde las ventanas del MOTOR
+            // (choquesDeHorario — dictado 2026-09-03 sobre CH 30).
+            choques={choquesDeHorario(
+              filasDelFoco() as unknown as MonitoreoAulasPlanRow[],
+              dashboard.franjas,
+            )}
+          />
         </section>
         ) : null}
         {pestana === "agenda"

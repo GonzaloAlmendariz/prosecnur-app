@@ -26,7 +26,15 @@ function fechaCorta(iso: string): string {
   return `${dia} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasAgendaPorFacultad({ filas, choques }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * Código → choque cita/horario de clase (`choquesDeHorario`), computado por
+   * la sección desde las ventanas del motor. Opcional: sin él la ruta pinta
+   * como siempre — el aviso es una capa, no una dependencia.
+   */
+  choques?: ReadonlyMap<string, string>;
+}) {
   const facultades = useMemo(() => agendaPorFacultad(filas), [filas]);
 
   if (!facultades.length) {
@@ -134,6 +142,13 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
                       el jefe de práctica»— y el sitio donde sirve es éste, no una
                       columna de una tabla: se lee camino al aula. Ocupa su propia
                       línea sólo cuando existe. */}
+                  {/* El choque cita/horario, EN la fila (dictado 2026-09-03,
+                      señalando CH 30: «aquí choca la información» — cita
+                      12:40, clase hasta 13:00, aplicación de 30). Habla en
+                      rojo suave porque pide acción de agendación, no pánico. */}
+                  {choques?.get(a.codigo) ? (
+                    <span className="aulas-ruta-choque">⚠ {choques.get(a.codigo)}</span>
+                  ) : null}
                   {a.nota ? <span className="aulas-ruta-nota">{a.nota}</span> : null}
                 </li>
               ))}
