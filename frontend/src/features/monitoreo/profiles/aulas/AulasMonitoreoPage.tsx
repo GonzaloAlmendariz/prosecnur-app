@@ -246,12 +246,18 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
+function AulasKpiBand({ dashboard, seccion, pestana, cargando = false, onIr = null }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
   pestana: string;
   /** El proyecto todavía se está leyendo y no hay dashboard con qué contar. */
   cargando?: boolean;
+  /**
+   * Cambia de pestaña dentro de la sección: con él, la tarjeta con `destino`
+   * se vuelve ACCESO — «Por agendar 144» lleva a la cola de Contacto en vez
+   * de solo enunciarla. Sin callback, todo queda de lectura como siempre.
+   */
+  onIr?: ((clave: string) => void) | null;
 }) {
   const kpis = aulasKpis(dashboard, seccion, pestana);
   // **Un cero mientras se carga no es un dato, es una cuenta que aún no se
@@ -282,14 +288,24 @@ function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
     >
       {kpis.map((kpi) => {
         const Icono = kpi.icono;
+        // La tarjeta con destino navega; el resto sigue siendo lectura. El
+        // botón conserva la geometría de la tarjeta (misma clase, C2).
+        const esAcceso = Boolean(kpi.destino && onIr && !enEspera);
+        const Tarjeta: "button" | "div" = esAcceso ? "button" : "div";
         return (
-          <div
+          <Tarjeta
             key={kpi.label}
-            className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
-            title={enEspera ? "Todavía se está leyendo el proyecto" : kpi.detalle}
+            type={esAcceso ? "button" : undefined}
+            onClick={esAcceso ? () => onIr?.(kpi.destino ?? "") : undefined}
+            className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}${esAcceso ? " es-acceso" : ""}`}
+            title={enEspera
+              ? "Todavía se está leyendo el proyecto"
+              : esAcceso ? `${kpi.detalle ?? kpi.label} — click para ir a la lista` : kpi.detalle}
             aria-label={enEspera
               ? `${kpi.label}: todavía se está leyendo el proyecto`
-              : kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+              : esAcceso
+                ? `${kpi.label}: ${kpi.value}. Ir a la lista`
+                : kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
           >
             {/* Ícono y pista son el patrón de telefónico y acreditación: cada
                 cifra se reconoce de un vistazo y dice de dónde sale. Los llevan
@@ -302,7 +318,7 @@ function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
             </span>
             <strong>{enEspera ? "—" : kpi.value}</strong>
             <small>{enEspera ? "leyendo el proyecto" : kpi.pista}</small>
-          </div>
+          </Tarjeta>
         );
       })}
     </div>
@@ -1510,6 +1526,7 @@ export default function AulasMonitoreoPage() {
             seccion={seccionActiva}
             pestana={pestanaActiva}
             cargando={loading}
+            onIr={(clave) => elegirPestana(seccionActiva, clave)}
           />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow

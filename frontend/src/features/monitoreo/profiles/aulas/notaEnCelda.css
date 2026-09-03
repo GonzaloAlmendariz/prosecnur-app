@@ -60,3 +60,10 @@
   color: var(--pulso-text-faint);
   margin-bottom: 2px;
 }
+
+/* La tarjeta-KPI que navega (destino en su modelo): misma geometría que la
+   de lectura, con la mano y un realce de acceso al pasar. Vive en esta hoja
+   por el congelamiento de las madre. */
+button.aulas-kpi { font: inherit; text-align: left; cursor: pointer; }
+button.aulas-kpi.es-acceso:hover { border-color: var(--pulso-module-monitoring); }
+button.aulas-kpi.es-acceso:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
