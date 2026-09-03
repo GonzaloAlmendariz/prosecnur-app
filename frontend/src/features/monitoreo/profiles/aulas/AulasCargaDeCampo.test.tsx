@@ -74,7 +74,11 @@ describe("AulasCargaDeCampo", () => {
     expect(html).toMatch(/aria-pressed="true"[^>]*>Calendario/);
     expect(html).not.toContain("Por agendar · todavía sin fecha");
     expect(html).not.toContain("aulas-carga-carril");
-    expect(html).toContain("Por agendar, en el pico del patrón");
+    // El KPI que declara dónde vive lo pendiente se renombró a «Podrían
+    // sumarse (aún sin hora)» (su title sigue señalando al patrón semanal);
+    // este pin quedó rancio con el nombre viejo, que hoy sólo vive en un
+    // comentario del componente.
+    expect(html).toContain("Podrían sumarse (aún sin hora)");
   });
 
   it("declara las agendadas sin fecha en vez de descartarlas en silencio", () => {
