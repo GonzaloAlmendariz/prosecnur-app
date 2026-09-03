@@ -26,6 +26,7 @@ import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
+import { AccionEnCelda, COLUMNA_DE_ACCION } from "./AccionEnCelda";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { COLUMNAS_DE_NOTA, NotaEnCelda } from "./NotaEnCelda";
 import { identidadEnCelda } from "./AulasSistemaPabellon";
@@ -423,9 +424,11 @@ export function DataTable({
                       familia por su columna, y el peek dice de cuál es. */}
                   {COLUMNAS_DE_ESTADO.has(column)
                     ? <EstadoEnCelda valor={String(row[column] ?? "")} />
-                    : COLUMNAS_DE_NOTA.has(column)
-                      ? <NotaEnCelda texto={String(row[column] ?? "")} origen={COLUMNAS_DE_NOTA.get(column) ?? ""} />
-                      : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
+                    : column === COLUMNA_DE_ACCION
+                      ? <AccionEnCelda valor={String(row[column] ?? "")} />
+                      : COLUMNAS_DE_NOTA.has(column)
+                        ? <NotaEnCelda texto={String(row[column] ?? "")} origen={COLUMNAS_DE_NOTA.get(column) ?? ""} />
+                        : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
                 </td>
               ))}
             </tr>
