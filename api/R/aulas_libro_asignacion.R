@@ -42,7 +42,7 @@
 
 # El croquis del día en palabras del lector (B79: «3 aplicaciones en A», nunca
 # «A×3»): primera entrada completa, las siguientes cortas.
-.ala_croquis <- function(lugares_del_dia) {
+.ala_croquis <- function(lugares_del_dia, primera_completa = TRUE) {
   letras <- character(0)
   for (lg in lugares_del_dia) {
     if (grepl("^[A-ZÁÉÍÓÚ]{1,2}[0-9]{2,4}$", lg, ignore.case = TRUE)) {
@@ -53,7 +53,7 @@
   conteo <- sort(table(letras), decreasing = TRUE)
   partes <- vapply(seq_along(conteo), function(k) {
     n <- as.integer(conteo[[k]]); letra <- names(conteo)[[k]]
-    if (k == 1L) {
+    if (k == 1L && primera_completa) {
       sprintf("%d %s en %s", n, if (n == 1L) "aplicación" else "aplicaciones", letra)
     } else sprintf("%d en %s", n, letra)
   }, character(1))
@@ -120,11 +120,14 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   for (d in (rep[["dias"]] %||% list())) {
     asigs <- d[["asignaciones"]] %||% list()
     lugares_dia <- vapply(asigs, function(a) lugar_de(.ala_txt(a[["codigo"]])), character(1))
-    croquis <- .ala_croquis(lugares_dia)
+    # Dictado 2026-09-03: «no son citas, son aplicaciones». El conteo del día
+    # dice la unidad correcta, y el croquis va todo en corto para no repetir
+    # la palabra («7 aplicaciones — 3 en A · 2 en J»).
+    croquis <- .ala_croquis(lugares_dia, primera_completa = FALSE)
     poner("dia", sprintf(
       "%s — %d %s%s",
       .ala_etiqueta(.ala_txt(d[["fecha"]])), length(asigs),
-      if (length(asigs) == 1L) "cita" else "citas",
+      if (length(asigs) == 1L) "aplicación" else "aplicaciones",
       if (nzchar(croquis)) paste0(" — ", croquis) else ""
     ))
     if (length(asigs)) {
@@ -174,7 +177,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   poner("bloque", "CARGAS POR APLICADOR")
   eq <- rep[["equidad"]] %||% list()
   cargas <- vapply(eq, function(e) as.integer(e[["asignadas"]] %||% 0L), integer(1))
-  poner("cabecera", c("APLICADOR", "CITAS ASIGNADAS"))
+  poner("cabecera", c("APLICADOR", "APLICACIONES ASIGNADAS"))
   for (e in eq) {
     poner("dato", c(.ala_txt(e[["aplicador"]]),
                     as.character(as.integer(e[["asignadas"]] %||% 0L))))

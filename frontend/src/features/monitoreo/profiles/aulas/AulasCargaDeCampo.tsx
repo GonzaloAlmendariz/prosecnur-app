@@ -105,7 +105,7 @@ const SUBTITULO: Record<"disponibilidad" | "asignacion", string> = {
   disponibilidad:
     "Quiénes pueden estar en campo: la oferta declarada del equipo, por día y franja de 30 minutos.",
   asignacion:
-    "Quién va a cada cita pactada: reparto parejo, sin solapes y repetible sobre la disponibilidad.",
+    "Quién va a cada aplicación pactada: reparto parejo, sin solapes y repetible sobre la disponibilidad.",
 };
 
 export function AulasCargaDeCampo({

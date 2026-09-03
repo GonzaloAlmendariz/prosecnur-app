@@ -211,13 +211,14 @@ export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
     0,
   );
 
-  const cita = (n: number) => (n === 1 ? "cita" : "citas");
+  // Dictado 2026-09-03: «no son citas, son aplicaciones» — la unidad del reparto.
+  const unidad = (n: number) => (n === 1 ? "aplicación" : "aplicaciones");
   const base =
     dif === 0
-      ? `Reparto parejo: cada quien lleva ${min} ${cita(min)}`
+      ? `Reparto parejo: cada quien lleva ${min} ${unidad(min)}`
       : dif === 1
-        ? `Reparto parejo: cargas entre ${min} y ${max} — diferencia máxima 1 cita`
-        : `Cargas entre ${min} y ${max} — diferencia de ${dif} citas`;
+        ? `Reparto parejo: cargas entre ${min} y ${max} — diferencia máxima 1 aplicación`
+        : `Cargas entre ${min} y ${max} — diferencia de ${dif} aplicaciones`;
   const colas: string[] = [];
   if (dif > 1) {
     colas.push(
@@ -230,7 +231,7 @@ export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
   }
   if (libres > 0) {
     colas.push(
-      `${libres} ${libres === 1 ? "queda libre" : "quedan libres"} — sin cita en sus horarios`,
+      `${libres} ${libres === 1 ? "queda libre" : "quedan libres"} — sin aplicaciones en sus horarios`,
     );
   }
   return { parejo: dif <= 1, texto: colas.length ? `${base} · ${colas.join(" · ")}` : base };
