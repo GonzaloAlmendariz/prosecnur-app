@@ -471,6 +471,16 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   text-transform: uppercase;
 }
 .aulas-asigna-dia.es-pasado { opacity: 0.6; }
+/* La entrada del día que toca en el rail: la hoja de despliegue en una
+   línea — hora y pabellón de cada aplicador, debajo de su carga. El botón
+   es grid de dos columnas; esta línea ocupa el ancho entero. */
+.aulas-asigna-despliegue {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+}
 .aulas-asigna-ya-paso { font-style: normal; color: var(--pulso-text-faint); font-size: 12px; }
 .aulas-asigna-soltar {
   border: 1px solid var(--pulso-border);
