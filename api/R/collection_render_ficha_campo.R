@@ -475,6 +475,15 @@ collection_material_field_sheet_template <- function(assets = NULL, rows = NULL,
     list(block_id = "registro", type = "form_lines", rows = rows %||% collection_material_field_form_rows()),
     list(block_id = "footer", type = "footer", binding = "project.name")
   ))
+  # El VERSO (B32): croquis del campus con el pabellon del aula resaltado.
+  # Viaja en la MISMA hoja —se imprime a doble cara— y por eso es una segunda
+  # pagina de esta plantilla y no un material aparte: un insumo que venga
+  # «junto a lo demas en el QR, quizas a la vuelta de su ficha» (Gonzalo,
+  # 2026-09-02).
+  verso <- list(
+    list(block_id = "croquis", type = "campus_map", binding = "unit.venue"),
+    list(block_id = "footer", type = "footer", binding = "project.name")
+  )
   template <- list(
     schema = COLLECTION_MATERIAL_TEMPLATE_SCHEMA,
     template_id = "template-ficha-campo-qr-a4-v1",
@@ -483,7 +492,10 @@ collection_material_field_sheet_template <- function(assets = NULL, rows = NULL,
     material_kind = "application_sheet",
     compatible_adapters = list("aulas_v1", "kobo_existing_v1", "manual_links_v1"),
     page = list(size = "A4", orientation = "portrait"),
-    pages = list(list(page_id = "ficha", layout_preset = "field_form", blocks = blocks)),
+    pages = list(
+      list(page_id = "ficha", layout_preset = "field_form", blocks = blocks),
+      list(page_id = "croquis", layout_preset = "croquis_campus", blocks = verso)
+    ),
     brand_ref = "project-brand",
     sensitivity_policy = "operational"
   )

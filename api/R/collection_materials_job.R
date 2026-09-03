@@ -151,11 +151,25 @@
   list(
     schema = compiled$schema,
     pages = compiled$pages[index],
-    page_count = 1L,
+    # `length(index)`, no 1L: desde que la ficha de campo tiene verso (B32),
+    # el PDF de una unidad lleva sus DOS caras.
+    page_count = as.integer(length(index)),
     page_map = compiled$page_map[index],
     warnings = list(),
     layout_fingerprint = compiled$layout_fingerprint
   )
+}
+
+# Indices de pagina agrupados por unidad, en el orden del compilado. El bundle
+# corta un PDF por UNIDAD, no por pagina: con plantillas de una cara ambas
+# cosas coincidian y el corte por pagina parecia correcto — hasta que el verso
+# del croquis convirtio cada ficha en dos paginas y el corte viejo hubiera
+# emitido el croquis como «ficha» aparte.
+.cmj_paginas_por_unidad <- function(compiled) {
+  unit_ids <- vapply(compiled$page_map, function(item) {
+    as.character(item$unit_id %||% "")
+  }, character(1))
+  split(seq_along(unit_ids), factor(unit_ids, levels = unique(unit_ids)))
 }
 
 .cmj_tsv_rows <- function(compiled) {
@@ -237,7 +251,8 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     dir.create(fichas_dir, showWarnings = FALSE)
     tsv_path <- file.path(stage, "accesos.tsv")
 
-    n_pages <- length(compiled$pages)
+    grupos <- .cmj_paginas_por_unidad(compiled)
+    n_unidades <- length(grupos)
     draw_warnings <- list()
     # Cuenta repeticiones de "carpeta/nombre" para no pisar un archivo cuando
     # dos unidades de la misma facultad comparten label (dos secciones del
@@ -246,8 +261,9 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     # Un solo ancho para todo el paquete: mezclarlos entre carpetas haria que
     # «CH 01» y «CH 001» convivieran en el mismo zip.
     ancho_codigo <- .cmj_ancho_codigo(compiled$pages)
-    for (i in seq_len(n_pages)) {
-      page_i <- compiled$pages[[i]]
+    for (i in seq_len(n_unidades)) {
+      indices <- grupos[[i]]
+      page_i <- compiled$pages[[indices[[1]]]]
       facultad <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
       cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key, page_i$unit$replacement_order)
       folder <- file.path(facultad, cajon)
@@ -280,13 +296,13 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       assign(key, count, envir = seen_names)
       file_name <- if (count > 1L) sprintf("%s (%d).pdf", base_name, count) else sprintf("%s.pdf", base_name)
       rendered_unit <- collection_material_render_compiled(
-        .cmj_page_subset(compiled, i), file.path(folder_path, file_name), device = "pdf",
+        .cmj_page_subset(compiled, indices), file.path(folder_path, file_name), device = "pdf",
         brand_assets = snapshot$brand_assets %||% list()
       )
       draw_warnings <- c(draw_warnings, rendered_unit$warnings %||% list())
-      if (i %% 5L == 0L || i == n_pages) {
-        report("render", percent = 40L + as.integer(35 * i / max(1L, n_pages)),
-               message = sprintf("Renderizando ficha %d de %d...", i, n_pages))
+      if (i %% 5L == 0L || i == n_unidades) {
+        report("render", percent = 40L + as.integer(35 * i / max(1L, n_unidades)),
+               message = sprintf("Renderizando ficha %d de %d...", i, n_unidades))
       }
     }
     rendered <- list(warnings = draw_warnings)

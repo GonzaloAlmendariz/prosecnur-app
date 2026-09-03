@@ -80,8 +80,10 @@ test_that("ningun preset emite un PDF donde el QR sea el unico portador del enla
     kinds <- vapply(rendered$links, function(l) as.character(l$kind %||% ""), character(1))
     expect_true("printed_url" %in% kinds, info = preset)
 
-    # 4) El PDF sigue siendo legible para un parser ajeno.
-    expect_identical(qpdf::pdf_length(path), 1L)
+    # 4) El PDF sigue siendo legible para un parser ajeno. Tantas paginas como
+    # declara la plantilla: la ficha de campo lleva verso (croquis B32) y ya
+    # no es una hoja de una sola cara.
+    expect_identical(qpdf::pdf_length(path), as.integer(length(template$pages)))
   }
 })
 
@@ -101,6 +103,6 @@ test_that("sin enlace resuelto el material lo dice, en cualquier preset", {
     path <- file.path(dir, paste0(preset, ".pdf"))
     rendered <- collection_material_render_compiled(compiled, path, device = "pdf")
     expect_length(rendered$links %||% list(), 0L)
-    expect_identical(qpdf::pdf_length(path), 1L)
+    expect_identical(qpdf::pdf_length(path), as.integer(length(template$pages)))
   }
 })
