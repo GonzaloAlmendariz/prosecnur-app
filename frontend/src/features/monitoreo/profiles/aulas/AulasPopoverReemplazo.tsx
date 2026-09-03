@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import {
   candidatosDeReemplazo,
   type BrechaPorSexo,
@@ -139,12 +140,19 @@ function Candidato({
         {puesto === 1 ? <span className="aulas-reemplazo-sello">el mejor</span> : null}
       </div>
 
-      {/* Lo que hace falta para decidir: qué curso, dónde, con quién, cuándo. */}
+      {/* Lo que hace falta para decidir: qué curso, dónde, con quién, cuándo.
+          El dónde y el cuándo van como chips del Sistema Pabellón (B33) — el
+          mismo A206 con el mismo tono que la Agenda—; el docente y los
+          elegibles quedan en su peso de texto. */}
       <p className="aulas-reemplazo-curso">{f.course_name || f.label || "Curso sin nombre"}</p>
+      {f.venue || f.sesiones_dia_hora ? (
+        <div className="aulas-chips-fila">
+          {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
+          {f.venue ? <ChipLugar lugar={f.venue} /> : null}
+        </div>
+      ) : null}
       <p className="aulas-reemplazo-datos">
-        {f.venue ? <span>Aula {f.venue}</span> : null}
         {f.teacher ? <span>{f.teacher}</span> : null}
-        {f.sesiones_dia_hora ? <span>{f.sesiones_dia_hora}</span> : null}
         <span>{f.eligible_n} elegibles</span>
       </p>
 
