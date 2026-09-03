@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { calcularCarga, citasDeLaFila, ventanasDelMotor } from "./cargaDeCampo";
+import { calcularCarga, citasDeLaFila, pabellonesDeLasCitas, ventanasDelMotor } from "./cargaDeCampo";
 
 const aula = (over: Partial<MonitoreoAulasPlanRow>): MonitoreoAulasPlanRow =>
   ({
@@ -170,5 +170,22 @@ describe("citasDeLaFila — el parte del día entero (B37)", () => {
     const malla = calcularCarga([], { duracionMin: 30, eje: "semana" });
     expect(citasDeLaFila(malla, 0)).toEqual([]);
     expect(citasDeLaFila(malla, 99)).toEqual([]);
+  });
+});
+
+describe("pabellonesDeLasCitas — a qué edificios se va ese día", () => {
+  it("cuenta por letra, ordena por volumen y declara «otros» sin tragar", () => {
+    const cita = (lugar: string) => ({
+      codigo: "x", docente: "", lugar, facultad: "", confirmada: true,
+      fecha: "", hora: "", momento: "" as const,
+    });
+    expect(pabellonesDeLasCitas([
+      cita("A703"), cita("A101"), cita("J308"), cita("J203 · J210"),
+      cita("A202"), cita("Polideportivo"), cita(""),
+    ])).toEqual([
+      { pabellon: "A", aulas: 3 },
+      { pabellon: "J", aulas: 2 },
+      { pabellon: "otros", aulas: 1 },
+    ]);
   });
 });

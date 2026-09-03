@@ -656,3 +656,30 @@ export function citasDeLaFila(malla: Malla, d: number): OcupanteDeCelda[] {
   }
   return delDia;
 }
+
+/**
+ * Los pabellones de un juego de citas, contados por edificio (B37+): la
+ * letra del lugar con formato «A206» cuenta a su pabellón; lo confirmado en
+ * espacios con nombre o sin lugar se agrupa como «otros» — declarado, no
+ * tragado. Para el título del parte del día: «a qué edificios se va».
+ */
+export function pabellonesDeLasCitas(
+  citas: readonly OcupanteDeCelda[],
+): Array<{ pabellon: string; aulas: number }> {
+  const cuenta = new Map<string, number>();
+  let otros = 0;
+  for (const o of citas) {
+    const primero = (o.lugar || "").trim().split("·")[0]?.trim() ?? "";
+    if (/^[A-ZÁÉÍÓÚ]{1,2}\d{2,4}$/i.test(primero)) {
+      const letra = primero[0].toUpperCase();
+      cuenta.set(letra, (cuenta.get(letra) ?? 0) + 1);
+    } else if (primero) {
+      otros += 1;
+    }
+  }
+  const lista = [...cuenta.entries()]
+    .map(([pabellon, aulas]) => ({ pabellon, aulas }))
+    .sort((a, b) => b.aulas - a.aulas || a.pabellon.localeCompare(b.pabellon, "es"));
+  if (otros) lista.push({ pabellon: "otros", aulas: otros });
+  return lista;
+}
