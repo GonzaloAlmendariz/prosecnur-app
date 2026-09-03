@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
@@ -43,10 +43,67 @@ const AVISO_LEGIBLE: Record<string, string> = {
   se_solapa: "se solapa con otra cita suya",
 };
 
+/**
+ * B75 (dictado 2026-09-03): «quiero distribuir equitativamente entre de este
+ * día a este día» — desplegar la semana 1 ahora y planear la 2 el jueves. El
+ * rango vive en el config (sobrevive Recargar); declararlo re-particiona el
+ * reparto y lo de fuera queda DECLARADO, no descartado.
+ */
+function RangoDeDespliegue({ rango, onDeclarar }: {
+  rango: { desde: string; hasta: string } | null;
+  onDeclarar: (rango: { desde: string; hasta: string } | null) => void;
+}) {
+  const [desde, setDesde] = useState(rango?.desde ?? "");
+  const [hasta, setHasta] = useState(rango?.hasta ?? "");
+  // Un Recargar puede traer el rango declarado desde otro lado: se adopta.
+  useEffect(() => {
+    setDesde(rango?.desde ?? "");
+    setHasta(rango?.hasta ?? "");
+  }, [rango?.desde, rango?.hasta]);
+  const listo = desde !== "" && hasta !== "";
+  const sinCambio = listo && rango !== null && desde === rango.desde && hasta === rango.hasta;
+  return (
+    <div className="aulas-asigna-rango">
+      <span className="aulas-asigna-rango-rotulo">Repartir solo del</span>
+      <input
+        type="date"
+        value={desde}
+        onChange={(e) => setDesde(e.target.value)}
+        aria-label="Primer día del rango de despliegue"
+      />
+      <span className="aulas-asigna-rango-rotulo">al</span>
+      <input
+        type="date"
+        value={hasta}
+        onChange={(e) => setHasta(e.target.value)}
+        aria-label="Último día del rango de despliegue"
+      />
+      <button
+        type="button"
+        className="aulas-asigna-rango-boton"
+        disabled={!listo || sinCambio}
+        onClick={() => { if (listo) onDeclarar({ desde, hasta }); }}
+      >
+        Aplicar
+      </button>
+      {rango ? (
+        <button
+          type="button"
+          className="aulas-asigna-rango-boton es-limpiar"
+          onClick={() => onDeclarar(null)}
+        >
+          Todo el horizonte
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function AulasAsignacionDeAplicadores({
   reparto,
   lugares,
   onFijar = null,
+  onDeclararRango = null,
   hoy = hoyISO(),
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
@@ -64,6 +121,11 @@ export function AulasAsignacionDeAplicadores({
    * solo lectura y los selectores no se pintan.
    */
   onFijar?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /**
+   * B75: declarar (o limpiar con `null`) el rango de despliegue del reparto.
+   * `null` como prop = superficie de solo lectura, los controles no se pintan.
+   */
+  onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -135,6 +197,27 @@ export function AulasAsignacionDeAplicadores({
           {" "}Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita y
           sale al aula <strong>15 min antes</strong>: su hora completa queda reservada.
         </p>
+        {onDeclararRango ? (
+          <RangoDeDespliegue
+            rango={reparto.rango}
+            onDeclarar={(r) => { void onDeclararRango(r); }}
+          />
+        ) : null}
+        {reparto.fueraDeRango.length > 0 ? (
+          /* B75: lo aplazado se DECLARA — cuántas citas esperan su tanda y en
+             qué días; descartarlo en silencio sería el defecto. */
+          <p className="aulas-carga-aviso aulas-asigna-aplazadas">
+            Fuera del rango elegido: {(() => {
+              const pactadas = reparto.fueraDeRango.reduce((n, f) => n + f.codigos.length, 0);
+              const sinHora = reparto.fueraDeRango.reduce((n, f) => n + f.porConfirmar.length, 0);
+              const dias = reparto.fueraDeRango.length;
+              return `${fmt(pactadas)} ${pactadas === 1 ? "cita pactada" : "citas pactadas"}` +
+                `${sinHora ? ` y ${fmt(sinHora)} por confirmar` : ""}` +
+                ` en ${fmt(dias)} ${dias === 1 ? "día" : "días"}` +
+                ` (${reparto.fueraDeRango[0].etiqueta} → ${reparto.fueraDeRango[dias - 1].etiqueta})`;
+            })()} — esperan su tanda; nada se descarta.
+          </p>
+        ) : null}
         <dl className="aulas-carga-kpis">
           {diaQueToca ? (
             /* El KPI del despliegue va PRIMERO: cuánta gente mueve el día que

@@ -763,6 +763,7 @@ function renderAulasView({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  onDeclararRango = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -827,6 +828,8 @@ function renderAulasView({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad de aplicadores. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** B75: declarar/limpiar el rango de despliegue del reparto. */
+  onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -872,6 +875,7 @@ function renderAulasView({
         onFijarReparto={onFijarReparto}
         onConfirmarDuracion={onConfirmarDuracion}
         onImportarDisponibilidad={onImportarDisponibilidad}
+        onDeclararRango={onDeclararRango}
       />
     );
   }
@@ -1359,6 +1363,20 @@ export default function AulasMonitoreoPage() {
    * franjas, reparto y aviso del día se rearman con ella en el backend. Sin
    * esto el slider era estado local y el aviso salía con los 20 del default.
    */
+  /**
+   * B75: el rango de despliegue del reparto — se persiste en el config
+   * (`reparto_rango`; `{}` lo des-declara) y el refresco forzado trae el
+   * reparto re-particionado con lo aplazado declarado.
+   */
+  const declararRango = useCallback(async (rango: { desde: string; hasta: string } | null) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_rango: rango ?? {} } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const confirmarDuracion = useCallback(async (min: number) => {
     try {
       await apiMonitoreoAulasConfig({ duracion_aplicacion_min: min } as Partial<MonitoreoAulasConfig>);
@@ -1740,6 +1758,7 @@ export default function AulasMonitoreoPage() {
               onFijarReparto: fijarReparto,
               onConfirmarDuracion: confirmarDuracion,
               onImportarDisponibilidad: importarDisponibilidad,
+              onDeclararRango: declararRango,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

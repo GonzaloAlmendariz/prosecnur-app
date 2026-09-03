@@ -298,3 +298,29 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
     expect(veredictoDeEquidad(sinCitas)).toBeNull();
   });
 });
+
+describe("B75 — el rango de despliegue cruza la frontera", () => {
+  it("lo aplazado llega por fecha con su etiqueta, y el rango saneado viaja", () => {
+    const r = repartoDeAplicadores(crudo({
+      dias: [DIA],
+      equidad: [{ aplicador: "Ana Prueba", asignadas: 2 }],
+      fuera_de_rango: [
+        { fecha: "2026-09-18", codigos: ["CH 3"], por_confirmar: [] },
+        // Un solo código puede llegar como escalar (jsonlite).
+        { fecha: "2026-09-19", codigos: [], por_confirmar: "CH 4" },
+      ],
+      rango: { desde: "2026-09-07", hasta: "2026-09-13" },
+    }))!;
+    expect(r.fueraDeRango).toEqual([
+      { fecha: "2026-09-18", etiqueta: "Viernes 18/09", codigos: ["CH 3"], porConfirmar: [] },
+      { fecha: "2026-09-19", etiqueta: "Sábado 19/09", codigos: [], porConfirmar: ["CH 4"] },
+    ]);
+    expect(r.rango).toEqual({ desde: "2026-09-07", hasta: "2026-09-13" });
+  });
+
+  it("sin rango: lista vacía y null — todo el horizonte, sin inventar", () => {
+    const r = repartoDeAplicadores(crudo({ dias: [DIA], equidad: [] }))!;
+    expect(r.fueraDeRango).toEqual([]);
+    expect(r.rango).toBeNull();
+  });
+});

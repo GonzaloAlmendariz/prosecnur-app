@@ -454,6 +454,37 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
 
+/* B75 — el rango de despliegue: dos fechas sobrias en la cabecera de la
+   Asignación; aplicar re-particiona y lo de fuera queda declarado. */
+.aulas-asigna-rango {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--pulso-text-soft);
+}
+.aulas-asigna-rango-rotulo { font-weight: 500; }
+.aulas-asigna-rango input[type="date"] {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 2px 6px;
+}
+.aulas-asigna-rango input[type="date"]:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-rango-boton {
+  border: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  border-radius: 999px;
+  padding: 2px 11px;
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+}
+.aulas-asigna-rango-boton:hover:not(:disabled) { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-asigna-rango-boton:disabled { opacity: 0.45; cursor: default; }
+.aulas-asigna-rango-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-rango-boton.es-limpiar { font-weight: 400; color: var(--pulso-text-soft); }
+.aulas-asigna-aplazadas { max-width: 72ch; }
+
 /* El día QUE TOCA protagoniza y lo pasado se atenúa: el jefe despliega por
    día y la lista no puede pesar parejo. El acento usa el rojo primordial de
    la marca — el estándar validado: color nuevo sin sacrificarlo. */

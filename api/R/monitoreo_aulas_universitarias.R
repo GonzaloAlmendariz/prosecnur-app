@@ -429,6 +429,19 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
         crudo
       }
     }),
+    # **El rango de despliegue del reparto (B75, dictado 2026-09-03).** Misma
+    # doctrina de whitelist. Ambas puntas en ISO o no hay rango (NULL =
+    # todo el horizonte); un rango con basura no rompe el config, se
+    # des-declara. El intercambio desde>hasta lo hace el motor, no aqui: una
+    # sola normalizacion duena del significado.
+    reparto_rango = local({
+      crudo <- config[["reparto_rango"]]
+      if (!is.list(crudo)) return(NULL)
+      d1 <- trimws(as.character(crudo[["desde"]] %||% "")[1])
+      d2 <- trimws(as.character(crudo[["hasta"]] %||% "")[1])
+      es_iso <- function(x) grepl("^\\d{4}-\\d{2}-\\d{2}$", x)
+      if (es_iso(d1) && es_iso(d2)) list(desde = d1, hasta = d2) else NULL
+    }),
     # **Las fijaciones del reparto de aplicadores (B36)** — codigo de cita →
     # aplicador, la voluntad explicita del usuario sobre el greedy. Misma
     # doctrina de whitelist: sin esta entrada, fijar una cita y guardar el
