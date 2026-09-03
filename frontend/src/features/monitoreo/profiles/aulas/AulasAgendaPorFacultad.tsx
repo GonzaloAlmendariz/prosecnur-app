@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorFacultad } from "./agendaPorFacultad";
+import { ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { bloquesDeSesion } from "./sistemaPabellon";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
 import { fmt } from "./kpisDeAulas";
@@ -86,10 +88,24 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
                       </em>
                     ) : null}
                   </span>
-                  {/* DÓNDE, que es lo que se viene a buscar: «LUN 08:00 A101»
-                      lleva el pabellón y el salón. Sin esta columna la vista
-                      diría cuándo y con quién, y no a dónde ir. */}
-                  <span className="aulas-ruta-donde" title={a.donde}>{a.donde || "—"}</span>
+                  {/* DÓNDE, que es lo que se viene a buscar — y en el Sistema
+                      Pabellón el pabellón habla con su color: cada bloque de
+                      sesión va como chip de hora + chip de lugar. Lo que el
+                      parser no entiende se pinta tal cual llegó. */}
+                  <span className="aulas-ruta-donde" title={a.donde}>
+                    {a.donde
+                      ? bloquesDeSesion(a.donde).map((b, i) =>
+                          "crudo" in b ? (
+                            <span key={i}>{b.crudo}</span>
+                          ) : (
+                            <span key={i} className="aulas-ruta-bloque">
+                              <ChipHora>{b.sesion}</ChipHora>
+                              <ChipLugar lugar={b.lugar} />
+                            </span>
+                          ),
+                        )
+                      : "—"}
+                  </span>
                   <span className="aulas-ruta-docente" title={a.docente}>{a.docente || "—"}</span>
                   <span className="aulas-ruta-estado">
                     <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />

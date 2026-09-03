@@ -92,6 +92,7 @@ import "./aulasMonitoreo.css";
 // `aulasReemplazos.css`.
 import "./aulasReemplazos.css";
 import "./aulasCargaDeCampo.css";
+import "./aulasRutaPorFacultad.css";
 import "./aulasTextoAbierto.css";
 import "./aulasReservaDirigida.css";
 import "./aulasProbabilidadDeCierre.css";
