@@ -500,6 +500,18 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-soltar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
 .aulas-asigna-soltar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
+/* Dictado 2026-09-03 (2.ª ronda): la preparación se distingue de la hora
+   pactada — arriba, tenue y sin chip; la cita del docente conserva el chip
+   firme debajo. Dos jerarquías, un solo box. */
+.aulas-asigna-horas { display: inline-flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.aulas-asigna-prep {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
 .aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
 .aulas-asigna-tabla thead th {
