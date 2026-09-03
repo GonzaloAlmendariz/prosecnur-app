@@ -387,7 +387,15 @@ export function AulasCargaDeCampo({
       </header>
 
       {vista === "disponibilidad" ? (
-        <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} demandaFirme={demandaFirme} />
+        <AulasDisponibilidadDeAplicadores
+          oferta={oferta}
+          vivas={vivas}
+          demandaFirme={demandaFirme}
+          // El despliegue inminente sella su fila de semana (hermano de
+          // B43/B46): la oferta de ESE día es la que alimenta el próximo
+          // día de campo.
+          fechaQueToca={repartoVista?.dias.find((x) => x.fecha >= hoy)?.fecha ?? null}
+        />
       ) : null}
       {vista === "asignacion" ? (
         <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} />
