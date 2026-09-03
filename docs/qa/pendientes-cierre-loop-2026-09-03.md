@@ -134,6 +134,8 @@ TODO lo que queda vivo, con su detalle. La fila madre de cada uno sigue en
   aplicadores.
 - **D-S3** — botón «generar libro» directo desde Entrega de cálculo de
   muestra. Sin respuesta aún.
-- **Hoja «Asignación de aplicadores» en el Sheets vivo** — hoy va en el
-  `.xlsx` generado (B68); llevarla también al publicador del libro vivo es
-  decisión aparte (sería otra hoja app-owned, jamás sobre las del equipo).
+- ~~Hoja «Asignación de aplicadores» en el Sheets vivo~~ — **RESUELTA la
+  misma tarde** (0b746bba→f90290a5): cuarta hoja de la app del publicador,
+  sembrada con bandas en el libro vivo; equipo `respetada` ×4 verificado en
+  producción. De la misma tanda: bandas del Plan del día, vocabulario
+  «aplicaciones» y el guardia de CSS concatenable tras la cirugía del bundle.
