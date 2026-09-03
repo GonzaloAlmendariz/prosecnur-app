@@ -62,6 +62,10 @@ export function AulasCalendarioDeAgenda({ dias, hoy }: {
                       celda.esHoy ? "es-hoy" : "",
                       celda.aulas ? "tiene-agenda" : "",
                       celda.fecha === fechaQueToca ? "es-el-que-toca" : "",
+                      // La otra mitad de la familia (B43/B46): lo pasado se
+                      // atenúa también en el mapa del mes. Hoy no cuenta como
+                      // pasado.
+                      celda.enRango && celda.fecha < hoy ? "es-pasado" : "",
                     ].filter(Boolean).join(" ") || undefined}
                     aria-current={celda.esHoy ? "date" : undefined}
                     title={celda.fecha === fechaQueToca ? "El día que toca: el despliegue inminente" : undefined}
