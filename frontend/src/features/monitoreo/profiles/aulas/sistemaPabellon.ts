@@ -55,10 +55,28 @@ export function sesionYLugar(texto: string): { sesion: string; lugar: string } |
   const limpio = String(texto ?? "").trim();
   // El mismo prefijo que reconoce `soloElAula`: día (3-10 letras, punto
   // opcional) y hora `H:MM`. Divergir aquí pintaría con chip lo que aquella
-  // función se niega a recortar.
-  const m = /^([A-Za-zÁÉÍÓÚÑáéíóúñ]{3,10}\.?\s+\d{1,2}:\d{2})\s+(\S.*)$/.exec(limpio);
+  // función se niega a recortar. El RANGO opcional («10:00-13:00») es la
+  // forma en que la ruta por facultad escribe la sesión — sin él, la vista
+  // que existe para decir A DÓNDE ir era la única sin chip de pabellón.
+  const m = /^([A-Za-zÁÉÍÓÚÑáéíóúñ]{3,10}\.?\s+\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?)\s+(\S.*)$/.exec(limpio);
   if (!m) return null;
   return { sesion: m[1], lugar: m[2].trim() };
+}
+
+/**
+ * Un «dónde» multibloque a sus pares sesión+lugar: «LUN 10:00-13:00 A703 ·
+ * MIE 10:00-12:00 V307» → un par por bloque. El bloque que no calza viaja
+ * como `crudo` y se pinta tal cual llegó — la lista cerrada no se traga lo
+ * que no entiende.
+ */
+export function bloquesDeSesion(
+  texto: string,
+): Array<{ sesion: string; lugar: string } | { crudo: string }> {
+  return String(texto ?? "")
+    .split("·")
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => sesionYLugar(b) ?? { crudo: b });
 }
 
 /**

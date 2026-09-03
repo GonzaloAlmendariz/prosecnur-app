@@ -1,0 +1,19 @@
+/* La ruta por facultad — extensión Sistema Pabellón (2026-09-02).
+ *
+ * Hoja propia porque `aulasMonitoreo.css` está congelada a crecimiento: aquí
+ * vive solo lo que la celda «dónde» necesita para componer los chips del
+ * módulo compartido. La importa `AulasAgendaPorFacultad.tsx` DESPUÉS de la
+ * hoja madre (misma doctrina de orden que aulasCargaDeCampo.css). */
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-donde {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  align-items: center;
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-bloque {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}

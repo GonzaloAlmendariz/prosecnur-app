@@ -5,6 +5,7 @@ import {
   esColumnaDeHora,
   esColumnaDeLugar,
   letraDePabellon,
+  bloquesDeSesion,
   sesionYLugar,
   tonoDePabellon,
 } from "./sistemaPabellon";
@@ -97,5 +98,29 @@ describe("las columnas de identidad son listas cerradas", () => {
     // Las fechas NO son horas: en tabla quedan en texto (criterio de sobriedad).
     expect(esColumnaDeHora("scheduled_date")).toBe(false);
     expect(esColumnaDeHora("applied_date")).toBe(false);
+  });
+});
+
+describe("sesionYLugar con rango y bloquesDeSesion (ruta por facultad, 2026-09-02)", () => {
+  it("el rango «10:00-13:00» también parte en sesión y lugar", () => {
+    expect(sesionYLugar("LUN 10:00-13:00 A703")).toEqual({ sesion: "LUN 10:00-13:00", lugar: "A703" });
+    // La forma de una sola hora sigue intacta (contrato previo).
+    expect(sesionYLugar("LUN 08:00 A101")).toEqual({ sesion: "LUN 08:00", lugar: "A101" });
+  });
+
+  it("el multibloque separa por «·»; lo que no calza viaja crudo, no se traga", () => {
+    expect(bloquesDeSesion("MAR 14:00-16:00 V307 · MIE 10:00-12:00 V307")).toEqual([
+      { sesion: "MAR 14:00-16:00", lugar: "V307" },
+      { sesion: "MIE 10:00-12:00", lugar: "V307" },
+    ]);
+    expect(bloquesDeSesion("LUN 10:00-13:00 A703 · por confirmar")).toEqual([
+      { sesion: "LUN 10:00-13:00", lugar: "A703" },
+      { crudo: "por confirmar" },
+    ]);
+    expect(bloquesDeSesion("")).toEqual([]);
+  });
+
+  it("un código académico no es un lugar: el rango sin cola sigue devolviendo null", () => {
+    expect(sesionYLugar("LUN 10:00-13:00")).toBeNull();
   });
 });
