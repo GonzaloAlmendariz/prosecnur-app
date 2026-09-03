@@ -123,15 +123,30 @@ export function textoDelDespliegue(
   dia: DiaDeReparto,
   lugares?: ReadonlyMap<string, string>,
 ): string {
+  // Los edificios del día en el encabezado (B51 en el chat): «A×3 J×2» es el
+  // croquis que el equipo lee antes que la lista.
+  const porEdificio = new Map<string, number>();
   const lineas = dia.asignaciones.map((a) => {
     const lugar = lugares?.get(a.codigo) ?? "";
+    if (/^[A-ZÁÉÍÓÚ]{1,2}\d{2,4}$/i.test(lugar.trim())) {
+      const letra = lugar.trim()[0].toUpperCase();
+      porEdificio.set(letra, (porEdificio.get(letra) ?? 0) + 1);
+    }
     const donde = lugar ? `${lugar} · ${a.codigo}` : a.codigo;
     return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}`;
   });
+  const edificios = [...porEdificio.entries()]
+    .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "es"))
+    .map(([letra, n]) => `${letra}×${n}`)
+    .join(" ");
   const cola = dia.noCubiertos.length
     ? [`Sin nadie asignado: ${dia.noCubiertos.join(", ")}`]
     : [];
-  return [`Despliegue ${dia.etiqueta}`, ...lineas, ...cola].join("\n");
+  return [
+    `Despliegue ${dia.etiqueta}${edificios ? ` — pabellones ${edificios}` : ""}`,
+    ...lineas,
+    ...cola,
+  ].join("\n");
 }
 
 export function repartoDeAplicadores(
