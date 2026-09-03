@@ -11,7 +11,12 @@
  * `AulasMonitoreoPage.tsx`, como las otras dos hijas.
  */
 
-   recorrer muchas respuestas sin que los rotulos compitan con lo que se lee. */
+/* Compacto a propósito: la pestaña existe para recorrer muchas respuestas sin
+   que los rotulos compitan con lo que se lee. (Esta línea perdió su apertura
+   de comentario en a493d68d y el texto suelto, inofensivo en dev porque cada
+   hoja se parsea sola, MATABA todo el CSS posterior del bundle concatenado —
+   el escritorio entero se veía sin estilos. Un cierre sin apertura es veneno
+   de concatenación.) */
 .mon-profile-page.is-aulas-flow .aulas-abiertas {
   display: grid;
   gap: 8px;
@@ -128,3 +133,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-abiertas-meta em {
+  /* Cerrado: el archivo terminaba con este bloque ABIERTO (mismo truncado que
+     aulasReemplazos.css) y en el bundle se tragaba la hoja siguiente. */
+  font-style: normal;
+}
