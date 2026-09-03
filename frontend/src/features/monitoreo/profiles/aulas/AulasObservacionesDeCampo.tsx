@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { MessageSquareText } from "../../../../vendor/lucide-react";
+import { ChipDato } from "./AulasSistemaPabellon";
 import { observacionesDeCampo } from "./observacionesDeCampo";
 import { fmt } from "./kpisDeAulas";
 
@@ -80,8 +81,11 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           </>
         ) : null}
       </p>
+      {/* La lista ENTERA: el techo de doce quedó revocado con el resto (B33).
+          Lo repetido sigue yendo primero, y lo que no quepa lo recorre el
+          scroll de la sección, que es suyo. */}
       <ul className="aulas-observaciones-lista">
-        {r.observaciones.slice(0, 12).map((o) => (
+        {r.observaciones.map((o) => (
           <li key={o.texto}>
             <p className="aulas-observaciones-texto">
               <MessageSquareText size={13} aria-hidden="true" />
@@ -107,21 +111,21 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               {o.aplicadores.length ? <> · {o.aplicadores.join(", ")}</> : null}
               {o.facultades.length === 1 ? <> · {o.facultades[0]}</> : null}
               {o.facultades.length > 1 ? <> · {fmt(o.facultades.length)} facultades</> : null}
+              {/* TODOS los códigos, como badges que envuelven (B33: jamás
+                  «y N más» — la lista se organiza, no se esconde). Una
+                  observación repetida en cuarenta cursos-horario es un patrón
+                  del operativo, y esconder 34 le quitaba justo el tamaño. */}
               {o.codigos.length ? (
                 <span className="aulas-observaciones-codigos">
-                  {o.codigos.slice(0, 6).join(" · ")}
-                  {o.codigos.length > 6 ? ` y ${fmt(o.codigos.length - 6)} más` : ""}
+                  <span className="aulas-chips-fila">
+                    {o.codigos.map((c) => <ChipDato key={c}>{c}</ChipDato>)}
+                  </span>
                 </span>
               ) : null}
             </p>
           </li>
         ))}
       </ul>
-      {r.observaciones.length > 12 ? (
-        <p className="mon-profile-muted">
-          Las doce más repetidas, de {fmt(r.observaciones.length)}.
-        </p>
-      ) : null}
     </div>
   );
 }
