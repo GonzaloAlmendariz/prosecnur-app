@@ -34,6 +34,7 @@ import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../..
  */
 export function AulasSeccionModelo({
   dashboard, pestana, facultadEnFoco, onFoco, tabla, traza, agendaRows, agendaReservas,
+  onFijarReparto = null,
 }: {
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
@@ -44,6 +45,8 @@ export function AulasSeccionModelo({
   traza: ReactNode;
   agendaRows: (dashboard: MonitoreoAulasDashboard | null) => Array<Record<string, unknown>>;
   agendaReservas: (dashboard: MonitoreoAulasDashboard | null) => number;
+  /** Fijar/soltar el aplicador de una cita del reparto (B36); llega a Asignación. */
+  onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
 }): ReactNode {
   const Tabla = tabla;
   // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
@@ -132,6 +135,7 @@ export function AulasSeccionModelo({
               onExportar={(opciones) =>
                 descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
               }
+              onFijarReparto={onFijarReparto}
             />
           </section>
         ) : null}

@@ -734,6 +734,7 @@ function renderAulasView({
   criterioDeAula = null,
   irAPestana = null,
   onDeclararUmbralDeDuracion = null,
+  onFijarReparto = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -788,6 +789,12 @@ function renderAulasView({
    * Sacarlo a un nodo aparte lo alejaría del histograma que lo justifica.
    */
   onDeclararUmbralDeDuracion?: ((minutos: number) => void | Promise<void>) | null;
+  /**
+   * Fijar o soltar el aplicador de una cita del reparto (B36). Función y no
+   * nodo por lo mismo que el umbral: el control vive DENTRO de la tabla de
+   * Asignación, fila por fila.
+   */
+  onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -830,6 +837,7 @@ function renderAulasView({
         traza={<HandoffTracePanel dashboard={dashboard} />}
         agendaRows={agendaRows}
         agendaReservas={agendaReservas}
+        onFijarReparto={onFijarReparto}
       />
     );
   }
@@ -1264,6 +1272,24 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
+  /**
+   * Fijar o soltar el aplicador de una cita (B36, dictado 2026-09-02:
+   * «mecanismo propio de asignación y reasignación, que sea equitativo»).
+   *
+   * Viaja el mapa COMPLETO de fijaciones —la whitelist del config lo
+   * reemplaza entero— y después el mismo refresco forzado que las demás
+   * declaraciones: el reparto recalculado con la fijación viaja en el
+   * dashboard, y sin refresco el selector parecería no hacer nada.
+   */
+  const fijarReparto = useCallback(async (mapa: Record<string, string>) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_fijado: mapa } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
     try {
       await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
@@ -1631,6 +1657,8 @@ export default function AulasMonitoreoPage() {
               // El umbral de duración sospechosa: el motor lo aceptaba desde
               // siempre y no había dónde ponerlo.
               onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
+              // Fijar/reasignar aplicadores del reparto (B36).
+              onFijarReparto: fijarReparto,
             })}
           </div>
       </MonitoreoWorkbenchChrome>
