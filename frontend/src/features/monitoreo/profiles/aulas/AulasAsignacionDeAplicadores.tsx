@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
+import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
 import { mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
@@ -547,6 +548,17 @@ export function AulasAsignacionDeAplicadores({
                   );
                 })}
               </ul>
+              {/* B32 (la mitad de app, componente de la sesión hermana): el
+                  croquis del campus con el pabellón de la persona explorada —
+                  hover o click en el rail pinta A DÓNDE entra en la próxima
+                  salida; sin exploración, el campus queda neutro. */}
+              <AulasCroquisDeCampus
+                lugarResaltado={(() => {
+                  if (!enFoco) return null;
+                  const cita = despliegue.get(enFoco);
+                  return cita ? (lugares?.get(cita.codigo) ?? null) : null;
+                })()}
+              />
             </>
           )}
         </aside>
