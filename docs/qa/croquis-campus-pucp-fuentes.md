@@ -103,6 +103,34 @@ contención del marcador oficial (19 de 21 letras), luego por cercanía ≤ 45 m
 (B a 6 m, E a 11 m). Conflictos de contención los gana el marcador más
 cercano al centroide (así G no se pierde dentro del complejo de E).
 
+## Contraste entre fuentes (oficial ↔ OSM)
+
+Cada letra con marcador oficial se contrastó contra la huella OSM que la
+contiene (o la más cercana). Distancia del marcador oficial al centroide de la
+huella asignada: I 3 m · Q 5 m · B 6 m · N 6 m · H 7 m · R 8 m · G 9 m ·
+X 9 m · Y 9 m · E 11 m · V 11 m · M 12 m · P 13 m · F 14 m · O 14 m · U 15 m ·
+Z 15 m · J 16 m · A 18 m · D 24 m · L 26 m. **Todas ≤ 26 m**: las dos
+fuentes independientes cuentan la misma geografía. Identidades
+verificadas además contra Descubre PUCP (A=lug066, E=fac001, G=fac003,
+H=fac012, I=lug010, L=fac002, O=lug025, R=fac010, X=fac013, Y=fac005,
+Z=lug027).
+
+## Plan de edificaciones incompletas (pedido de Gonzalo, 2026-09-02)
+
+Registro vivo de lo que NO tiene fuente firme, con su vía de mejora. Nada de
+esta lista se dibuja con seguridad falsa: hoy cae al comportamiento declarado.
+
+| Qué | Estado hoy | Cómo se mejora |
+|---|---|---|
+| Pabellón **Y** (Arte y Diseño) | posición **derivada** de 3 marcadores vecinos; huella asignada por contención | confirmación de campo en la jornada 1 (el equipo pasa por la zona de Arte) o consulta a Intendencia de Aulas |
+| Puertas **8** y **10** | posición **aproximada** (marcadores de estacionamiento, proyectadas al borde) | confirmar lado y posición en campo; candidato de fuente: plano de Seguridad PUCP |
+| Letras **S, T, K** (venues reales «S204», «TAMB», «K301») | sin edificio en NINGUNA fuente → verso con `croquis_pabellon_desconocido` | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio; son 10 de 1.392 venues |
+| Venues **numéricos** («101E», «204C», «001E») | sin letra de pabellón → «pabellón por confirmar» declarado | identificar con el equipo a qué aulario pertenecen (posible sufijo de ala); 11 venues |
+| Tokens **SIMB / LEDU / LLET** | LEDU/LLET caen a L por primera letra (paridad B31); SIMB → S desconocida | confirmar con el equipo si son salas de Letras/EEGGLL o locales aparte |
+| Pabellón **P** | marcador oficial vs OSM-CEPREPUC divergen ~100 m (manda el oficial) | confirmar en campo cuál rotula el edificio donde se aplica |
+| Pabellón **I** | oficial ✓, pero OSM ubica ahí a Esc. de Gobierno | confirmar rotulado en campo |
+| Edificios OSM **sin nombre** (~160 huellas) | se dibujan grises, sin rótulo | barrido completo de los 342 POIs de Descubre PUCP para nombrar los que orienten |
+
 ## Marco del croquis
 
 - Bbox geográfico usado: lat [-12.0748, -12.0645], lng [-77.0842, -77.0770].
@@ -111,6 +139,12 @@ cercano al centroide (así G no se pierde dentro del complejo de E).
 - El chip de la B se dibuja con un ajuste declarado de +25 m O / +20 m S
   (está a 25 m reales de la A y dos chips legibles no caben sin tocarse); su
   huella usa el marcador sin ajuste.
+- **Venues con varias aulas**: 301/1.392 en ULT2 vienen como «A204 · A206» y
+  73 cruzan pabellón («H404 · A608»). El verso parte el venue por sus
+  separadores reales, resalta TODOS los pabellones resolubles (cada uno con
+  su pastilla de aula) y el subtítulo dice «según el horario» cuando hay más
+  de uno (dictado 2026-09-02); el token sin edificio se declara
+  (`croquis_pabellon_desconocido`), nunca se elige en silencio.
 - Proyección plana norte-arriba; el factor de aspecto usa cos(12.07°) para
   que 100 m midan lo mismo en ambos ejes.
 - Colores por letra: gemelo R del helper B31
