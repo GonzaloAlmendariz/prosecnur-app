@@ -790,13 +790,21 @@ export function AulasCargaDeCampo({
                   <p className="aulas-carga-detalle-titulo">
                     <strong>{malla.filas[diaActivo].etiqueta}</strong>{" "}
                     <ChipDato>día completo · {fmt(delDia.length)} cursos-horario</ChipDato>
-                    {/* A qué edificios se va ese día: la letra con su color y
-                        su cuenta — el croquis mental antes de salir. */}
-                    {pabellonesDeLasCitas(delDia).map((p) => (
+                    {/* A qué edificios se va ese día — en palabras del lector
+                        (dictado 2026-09-03: «no me gusta el A×3, debe ser
+                        3 aplicaciones en A»): la primera entrada lleva la
+                        palabra completa y las siguientes la abrevian sin
+                        perder el número. */}
+                    {pabellonesDeLasCitas(delDia).map((p, k) => (
                       <span key={p.pabellon} className="aulas-carga-detalle-pabellon">
                         {p.pabellon === "otros"
-                          ? <ChipDato>otros ×{fmt(p.aulas)}</ChipDato>
-                          : <><ChipLugar lugar={p.pabellon} /><em>×{fmt(p.aulas)}</em></>}
+                          ? <ChipDato>{fmt(p.aulas)} en otros edificios</ChipDato>
+                          : <>
+                              <em>{k === 0
+                                ? (p.aulas === 1 ? "1 aplicación en" : `${fmt(p.aulas)} aplicaciones en`)
+                                : `${fmt(p.aulas)} en`}</em>
+                              <ChipLugar lugar={p.pabellon} />
+                            </>}
                       </span>
                     ))}
                     <em> · otro click en la fecha lo suelta</em>

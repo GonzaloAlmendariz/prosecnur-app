@@ -138,8 +138,8 @@ export function textoDelDespliegue(
   dia: DiaDeReparto,
   lugares?: ReadonlyMap<string, string>,
 ): string {
-  // Los edificios del día en el encabezado (B51 en el chat): «A×3 J×2» es el
-  // croquis que el equipo lee antes que la lista.
+  // Los edificios del día en el encabezado (B51 en el chat): el croquis que
+  // el equipo lee antes que la lista, en palabras del lector.
   const porEdificio = new Map<string, number>();
   const lineas = dia.asignaciones.map((a) => {
     const lugar = lugares?.get(a.codigo) ?? "";
@@ -153,10 +153,14 @@ export function textoDelDespliegue(
     const recojo = a.recojo ? ` (recojo ${a.recojo})` : "";
     return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}${recojo}`;
   });
+  // En palabras del lector (dictado 2026-09-03: «no me gusta el A×3, debe
+  // ser 3 aplicaciones en A»): la primera entrada completa, el resto corto.
   const edificios = [...porEdificio.entries()]
     .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "es"))
-    .map(([letra, n]) => `${letra}×${n}`)
-    .join(" ");
+    .map(([letra, n], k) => k === 0
+      ? `${n} ${n === 1 ? "aplicación" : "aplicaciones"} en ${letra}`
+      : `${n} en ${letra}`)
+    .join(" · ");
   const cola = dia.noCubiertos.length
     ? [`Sin nadie asignado: ${dia.noCubiertos.join(", ")}`]
     : [];
@@ -167,7 +171,7 @@ export function textoDelDespliegue(
     ? ["Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada."]
     : [];
   return [
-    `Despliegue ${dia.etiqueta}${edificios ? ` — pabellones ${edificios}` : ""}`,
+    `Despliegue ${dia.etiqueta}${edificios ? ` — ${edificios}` : ""}`,
     ...protocolo,
     ...lineas,
     ...cola,
