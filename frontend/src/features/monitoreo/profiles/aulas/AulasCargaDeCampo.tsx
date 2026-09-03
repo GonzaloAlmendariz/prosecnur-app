@@ -116,6 +116,7 @@ export function AulasCargaDeCampo({
   onExportar,
   onFijarReparto = null,
   onConfirmarDuracion = null,
+  onImportarDisponibilidad = null,
   hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -147,6 +148,8 @@ export function AulasCargaDeCampo({
    * dictado 2026-09-03: el aviso salía con 20 mientras el slider decía 30.
    */
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
+  /** B74: importar el excel de disponibilidad; lo pinta la vista Disponibilidad. */
+  onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -197,9 +200,16 @@ export function AulasCargaDeCampo({
   const [semanaIdx, setSemanaIdx] = useState<number | null>(null);
 
   const ventanas = useMemo(() => ventanasDelMotor(franjas), [franjas]);
+  // B71: los minutos del protocolo, del eco del motor (con el default del
+  // operativo si el payload es viejo) — la malla cuenta la ocupación con los
+  // MISMOS números que el reparto.
+  const preparacionMin = Number.isFinite(franjas?.preparacion_min)
+    ? (franjas!.preparacion_min as number) : 30;
+  const salidaMin = Number.isFinite(franjas?.salida_min)
+    ? (franjas!.salida_min as number) : 15;
   const malla = useMemo(
-    () => calcularCarga(filas, { duracionMin, eje, ventanas }),
-    [filas, duracionMin, eje, ventanas],
+    () => calcularCarga(filas, { duracionMin, eje, ventanas, preparacionMin, salidaMin }),
+    [filas, duracionMin, eje, ventanas, preparacionMin, salidaMin],
   );
   // Los bloques de B29, normalizados. `null` = la sesión no cargó la clave de
   // disponibilidad, y las vistas nuevas declaran qué falta y de dónde sale.
@@ -402,7 +412,7 @@ export function AulasCargaDeCampo({
                exportar con el texto crudo re-parsearía el «8:00pm». Solo en la
                demanda: es el libro de ESA malla, y ofrecerlo delante de la
                oferta prometería un contenido que no trae. */
-            <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje, ventanas })}>
+            <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje, ventanas, preparacionMin, salidaMin })}>
               Descargar Excel
             </button>
           ) : null}
@@ -418,6 +428,7 @@ export function AulasCargaDeCampo({
           // B43/B46): la oferta de ESE día es la que alimenta el próximo
           // día de campo.
           fechaQueToca={repartoVista?.dias.find((x) => x.fecha >= hoy)?.fecha ?? null}
+          onImportar={onImportarDisponibilidad}
         />
       ) : null}
       {vista === "asignacion" ? (
@@ -483,7 +494,9 @@ export function AulasCargaDeCampo({
         </label>
         <dl className="aulas-carga-kpis">
           <div>
-            <dt>Confirmados en el pico</dt>
+            {/* B71: la banda firme cuenta la hora COMPLETA del aplicador
+                (recojo incluido) — el rótulo dice ocupados, no confirmados. */}
+            <dt>Ocupados en el pico</dt>
             <dd>{fmt(malla.pico?.firmes ?? 0)}</dd>
           </div>
           {/* El segundo indicador NO puede sumar el carril al pico de una fecha:
@@ -729,7 +742,17 @@ export function AulasCargaDeCampo({
                             2026-09-02): quien reparte piensa por facultad. */}
                         {o.facultad ? <ChipDato>{o.facultad}</ChipDato> : null}
                         {o.fecha ? <ChipDato>{fechaCorta(o.fecha)}</ChipDato> : null}
-                        {o.hora ? <ChipHora>{o.hora}</ChipHora> : null}
+                        {/* B73 (dictado 2026-09-03): «toda la secuencia y de
+                            qué hora a qué hora… cuándo finaliza». La
+                            preparación en tenue, la aplicación con su FIN. */}
+                        {o.recojo ? (
+                          <span className="aulas-asigna-prep">
+                            recojo {o.recojo}{o.salida ? ` · sale ${o.salida}` : ""}
+                          </span>
+                        ) : null}
+                        {o.rango
+                          ? <ChipHora>{o.rango}</ChipHora>
+                          : o.hora ? <ChipHora>{o.hora}</ChipHora> : null}
                         {o.momento ? <ChipDato>{MOMENTO_LEGIBLE[o.momento]}</ChipDato> : null}
                       </span>
                     ) : null}
@@ -793,7 +816,7 @@ export function AulasCargaDeCampo({
 
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
-          <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
+          <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · su hora completa, del recojo de materiales al fin de la aplicación</li>
           <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una franja verde se ve al pasar el puntero</li>
           {eje === "calendario" ? (
             <li><span className="aulas-carga-toca">próxima salida</span> el primer día de campo que viene: ahí se despliega el equipo</li>

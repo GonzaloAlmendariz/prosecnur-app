@@ -1174,6 +1174,8 @@ export type MonitoreoAulasFranjas = {
   duracion_min?: number;
   /** B71: minutos de preparación previa (recojo + desplazamiento). */
   preparacion_min?: number;
+  /** B71: minutos antes de la pactada en que se sale hacia el aula. */
+  salida_min?: number;
 };
 
 /**
@@ -1255,6 +1257,8 @@ export type MonitoreoAulasReparto = {
   duracion_min?: number;
   /** B71: minutos de preparación previa (recojo + desplazamiento). */
   preparacion_min?: number;
+  /** B71: minutos antes de la pactada en que se sale hacia el aula. */
+  salida_min?: number;
 };
 
 export type MonitoreoAulasDashboard = {
@@ -5109,6 +5113,30 @@ export async function apiMonitoreoAulasImportarLibro(origen: { file_id: string }
 export type MonitoreoAulasImportacion = Awaited<
   ReturnType<typeof apiMonitoreoAulasImportarLibro>
 >;
+
+/**
+ * B74 (dictado 2026-09-03): importa el excel de disponibilidad de
+ * aplicadores. Mismo camino de dos pasos que el libro: el archivo sube antes
+ * por `apiUpload` (kind `aulas_disponibilidad`) y aquí viaja su `file_id`.
+ * La clave de sesión invalida el dashboard (B29) y el reparto se rearma con
+ * la oferta nueva en el siguiente estado.
+ */
+export async function apiMonitoreoAulasDisponibilidad(origen: { file_id: string }) {
+  return handle<{
+    ok: true;
+    /** Cuántos aplicadores trajo el excel. */
+    aplicadores: number;
+    /** Decisiones del lector (celdas ilegibles tomadas como no disponible). */
+    avisos: string[];
+    saved_project: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/disponibilidad", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ file_id: origen.file_id }),
+    }),
+  );
+}
 
 /**
  * Relee el libro desde las tres pestañas de un Google Sheets.

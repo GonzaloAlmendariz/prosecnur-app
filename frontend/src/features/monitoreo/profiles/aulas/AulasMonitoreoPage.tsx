@@ -7,6 +7,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasGenerarLibro,
+  apiMonitoreoAulasDisponibilidad,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
   apiMonitoreoAulasPublicarLibro,
@@ -761,6 +762,7 @@ function renderAulasView({
   onDeclararUmbralDeDuracion = null,
   onFijarReparto = null,
   onConfirmarDuracion = null,
+  onImportarDisponibilidad = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -823,6 +825,8 @@ function renderAulasView({
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
   /** B70: persistir la duración de la aplicación (config del backend). */
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
+  /** B74: importar el excel de disponibilidad de aplicadores. */
+  onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -867,6 +871,7 @@ function renderAulasView({
         agendaReservas={agendaReservas}
         onFijarReparto={onFijarReparto}
         onConfirmarDuracion={onConfirmarDuracion}
+        onImportarDisponibilidad={onImportarDisponibilidad}
       />
     );
   }
@@ -1160,6 +1165,35 @@ export default function AulasMonitoreoPage() {
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * B74 (dictado 2026-09-03): «la pestaña de disponibilidad no tiene ningún
+   * mecanismo para poder importarla… ¿qué pasa si quiero enviarte una
+   * actualizada y volver a hacer una asignación?». La misma vía de dos pasos
+   * que el libro (upload → import por file_id); el refresco forzado trae el
+   * reparto rearmado con la oferta nueva — las fijaciones sobreviven porque
+   * viven en el config, no en la disponibilidad.
+   */
+  const importarDisponibilidad = useCallback(async (archivo: File) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const subido = await apiUpload(archivo, "aulas_disponibilidad");
+      const res = await apiMonitoreoAulasDisponibilidad({ file_id: subido.file_id });
+      setAviso({
+        texto: `Disponibilidad importada: ${fmt(res.aplicadores)} aplicadores` +
+          `${res.avisos.length ? ` · ${fmt(res.avisos.length)} celdas ilegibles tomadas como no disponible` : ""}` +
+          ". El reparto se rearmó con la oferta nueva.",
+        tono: res.avisos.length ? "atencion" : "ok",
+      });
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer la disponibilidad.");
     } finally {
       setMutating(false);
     }
@@ -1705,6 +1739,7 @@ export default function AulasMonitoreoPage() {
               // Fijar/reasignar aplicadores del reparto (B36).
               onFijarReparto: fijarReparto,
               onConfirmarDuracion: confirmarDuracion,
+              onImportarDisponibilidad: importarDisponibilidad,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

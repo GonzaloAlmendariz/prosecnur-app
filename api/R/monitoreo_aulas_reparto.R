@@ -314,7 +314,8 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     # preparación — el aviso y los gráficos lo leen de aquí, no de constantes
     # propias.
     duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
-    preparacion_min = .mav_PREPARACION_MIN
+    preparacion_min = .mav_PREPARACION_MIN,
+    salida_min = .mav_SALIDA_MIN
   )
 }
 

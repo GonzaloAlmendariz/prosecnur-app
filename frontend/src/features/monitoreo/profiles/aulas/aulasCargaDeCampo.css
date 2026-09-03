@@ -512,6 +512,30 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   white-space: nowrap;
 }
 
+/* B74 — importar la disponibilidad desde la app (también en los vacíos, que
+   es donde más muerde su ausencia). Label-botón sobrio con nota tenue. */
+.aulas-dispo-vacio { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.aulas-dispo-importar {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  cursor: pointer;
+  width: fit-content;
+}
+.aulas-dispo-importar:hover { border-color: var(--pulso-module-monitoring); color: var(--pulso-module-monitoring); }
+.aulas-dispo-importar:focus-within { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-dispo-importar em {
+  font-style: normal; font-weight: 400;
+  font-size: 11px; color: var(--pulso-text-faint);
+}
+
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
 .aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
 .aulas-asigna-tabla thead th {

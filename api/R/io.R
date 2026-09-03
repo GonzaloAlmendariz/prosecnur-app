@@ -8,7 +8,11 @@ allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza
                           # dentro, y añadir `octet` hacia que dejara de llegar.
                           # Esta ruta ya sabe guardar binarios y devuelve un
                           # `file_id`, que es lo que el endpoint acepta.
-                          "aulas_libro")
+                          "aulas_libro",
+                          # B74 (dictado 2026-09-03): el excel de disponibilidad
+                          # de aplicadores entra por la app — misma via de dos
+                          # pasos que el libro (upload aqui, import por file_id).
+                          "aulas_disponibilidad")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))
