@@ -418,3 +418,67 @@ test_that("el publicador vive en su archivo propio", {
   skip_if_not(dir.exists(r_dir), "sin fuentes R/ a mano (paquete instalado)")
   expect_true(file.exists(file.path(r_dir, "monitoreo_aulas_publicar_libro.R")))
 })
+
+# --- B68 tercera pata: la hoja «Asignación de aplicadores» -------------------
+
+.mapl_disponibilidad <- function() list(
+  list(nombre = "Ana Prueba", dias = stats::setNames(
+    rep(list(list(list(inicio = "08:00", fin = "22:00"))), 6L),
+    c("lunes", "martes", "miercoles", "jueves", "viernes", "sabado")
+  ))
+)
+
+test_that("B68: con disponibilidad, la asignación entra como hoja de la APP y las del equipo siguen intactas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # Las dos hojas del equipo YA tienen contenido tecleado: el miedo textual de
+  # Gonzalo («tengo miedo de que lo que se está avanzando se sobreescriba o
+  # pierda») es exactamente este escenario.
+  mock$seed("Aulas Agendadas", list(list("ID MATCH"), list("algo del equipo")))
+  mock$seed("Aulas Aplicadas (Campo)", list(list("x"), list("y"), list("tecleado")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes(),
+    disponibilidad = .mapl_disponibilidad(),
+    config_reparto = list(duracion_aplicacion_min = 30L)
+  )
+
+  # La hoja nueva se siembra como hoja de la app…
+  expect_identical(.mapl_accion(res, "Asignación de aplicadores"), "sembrada")
+  # …y las del equipo, CON contenido, no reciben ni un request: respetadas.
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+
+  # El contenido publicado es el del motor: protocolo, día y equidad.
+  vals <- mock$env$sheets[["Asignación de aplicadores"]]$values
+  texto <- paste(unlist(vals), collapse = " | ")
+  expect_match(texto, "ASIGNACIÓN DE APLICADORES")
+  expect_match(texto, "Materiales se recogen 30 min antes")
+  expect_match(texto, "CARGAS POR APLICADOR")
+  expect_match(texto, "Ana Prueba")
+})
+
+test_that("B68: sin disponibilidad la hoja NO juega — ni se crea ni se toca una remota previa", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # Una publicación anterior dejó la hoja; esta sesión no tiene disponibilidad.
+  mock$seed("Asignación de aplicadores", list(list("ASIGNACIÓN DE APLICADORES"), list("contenido previo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  hojas <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  expect_false("Asignación de aplicadores" %in% hojas)
+  # El contenido remoto previo sigue byte a byte.
+  expect_identical(
+    mock$env$sheets[["Asignación de aplicadores"]]$values[[2]][[1]],
+    "contenido previo"
+  )
+})

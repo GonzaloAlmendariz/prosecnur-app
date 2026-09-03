@@ -5,18 +5,23 @@
 # todos por igual, en base a la disponibilidad… que vaya no solo en la
 # aplicación, sino también en el Excel operativo que generamos»).
 #
-# La DOBLE ESCRITURA prometida: la app enseña el reparto en la pestaña de
-# Asignación y el libro generado lleva esta hoja con EL MISMO reparto — el
-# mismo motor (`monitoreo_aulas_reparto`), la misma configuración vigente
-# (fijadas, duración, rango, semilla del resorteo), así que no hay dos
-# verdades que puedan divergir.
+# La DOBLE ESCRITURA prometida — y su tercera pata (mismo día, «¿el Sheets ya
+# está listo para actualizarse con la nueva hoja?»): la app enseña el reparto
+# en la pestaña de Asignación, el `.xlsx` generado lleva esta hoja, y el libro
+# VIVO de Sheets la recibe como CUARTA hoja de la APP del publicador. Un solo
+# constructor de filas (`aulas_libro_filas_asignacion`) alimenta las dos
+# salidas — el xlsx le pone estilos por tipo de fila y Sheets recibe los
+# values planos — para que no existan dos verdades que puedan divergir. El
+# reparto es el del MISMO motor con la MISMA configuración vigente (fijadas,
+# duración, rango, semilla del resorteo).
 #
-# La hoja es APP-OWNED y se regenera entera con cada libro; no existe rama de
-# lectura — el importador no la mira, igual que Base de control.
+# La hoja es APP-OWNED y se regenera entera en cada escritura; el importador
+# no la lee, igual que Base de control. Las hojas del EQUIPO ni se rozan: esa
+# regla vive en el publicador (dueño por hoja, `respetada`).
 #
-# Sin disponibilidad cargada en la sesión no hay reparto que escribir y la
-# hoja NO se crea: una hoja vacía se leería como «nadie asignado», que es
-# mentira — la ausencia del bloque ya la declara la app.
+# Sin disponibilidad cargada no hay reparto que escribir y la hoja NO se crea
+# (ni en el xlsx ni en Sheets): una hoja vacía se leería como «nadie
+# asignado», que es mentira — la ausencia del bloque ya la declara la app.
 
 # El día de semana SIN locale (mismo patrón que .mav_DIAS) y en la palabra
 # completa del libro.
@@ -60,20 +65,21 @@
   se_solapa = "se solapa con otra cita suya"
 )
 
-#' Escribe la hoja «Asignación de aplicadores» sobre el workbook del libro.
+.ala_CABECERA <- c("CURSO-HORARIO", "LUGAR", "RECOJO", "SALE AL AULA",
+                   "APLICACIÓN", "APLICADOR", "FIJADA", "AVISO")
+
+#' Las filas de la hoja de asignación, tipadas — el ÚNICO constructor.
 #'
-#' @param wb workbook de openxlsx ya en construcción.
-#' @param plan el plan COMPLETO de la sesión (el mismo insumo que usa la app),
-#'   no el filtrado del libro: el reparto de la hoja debe ser idéntico al de
-#'   la pestaña de Asignación.
+#' @param plan el plan COMPLETO de la sesión (el mismo insumo que usa la app).
 #' @param disponibilidad la clave de sesión `monitoreo_aulas_disponibilidad`;
-#'   `NULL` o vacía = no se escribe hoja (no hay reparto que contar).
+#'   `NULL` o vacía = `NULL` (no hay hoja que construir).
 #' @param cfg el config de aulas vigente (fijadas, duración, rango, semilla).
-#' @return TRUE si la hoja se escribió; FALSE si no había reparto.
+#' @return `NULL` sin disponibilidad; si hay, lista de filas `{tipo, celdas}`
+#'   con `tipo` en `titulo | nota | dia | cabecera | dato | alerta | bloque`.
 #' @keywords internal
-aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) {
+aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   if (is.null(disponibilidad) || !is.list(disponibilidad) || !length(disponibilidad)) {
-    return(invisible(FALSE))
+    return(NULL)
   }
   cfg <- if (is.list(cfg)) cfg else list()
   rep <- monitoreo_aulas_reparto(
@@ -95,64 +101,38 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
   }
   lugar_de <- function(cod) .ala_txt(lugares[[cod]] %||% "")
 
-  hoja <- "Asignación de aplicadores"
-  openxlsx::addWorksheet(wb, hoja)
-
-  # --- estilos sobrios de la casa: el rojo primordial para las cabeceras ---
-  es_titulo <- openxlsx::createStyle(fontSize = 14, textDecoration = "bold")
-  es_nota <- openxlsx::createStyle(fontColour = "#6B6560", fontSize = 10)
-  es_dia <- openxlsx::createStyle(
-    textDecoration = "bold", fontColour = "#FFFFFF", fgFill = "#A0464E",
-    fontSize = 11
-  )
-  es_cab <- openxlsx::createStyle(
-    textDecoration = "bold", fgFill = "#F3EDEA", border = "bottom",
-    borderColour = "#C9BEB8", fontSize = 10
-  )
-  es_alerta <- openxlsx::createStyle(fontColour = "#8F3A42", textDecoration = "bold")
-  es_bloque <- openxlsx::createStyle(textDecoration = "bold", fontSize = 12)
-
-  fila <- 1L
-  poner <- function(valores, estilo = NULL) {
-    openxlsx::writeData(wb, hoja, t(as.matrix(valores)), startRow = fila,
-                        colNames = FALSE)
-    if (!is.null(estilo)) {
-      openxlsx::addStyle(wb, hoja, estilo, rows = fila,
-                         cols = seq_along(valores), gridExpand = TRUE)
-    }
-    fila <<- fila + 1L
+  filas <- list()
+  poner <- function(tipo, celdas) {
+    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = as.character(celdas))
   }
 
-  poner("ASIGNACIÓN DE APLICADORES", es_titulo)
+  poner("titulo", "ASIGNACIÓN DE APLICADORES")
   semilla <- as.integer(rep[["semilla"]] %||% 0L)
   rango <- rep[["rango"]]
-  poner(sprintf(
+  poner("nota", sprintf(
     "Sorteo: %s · Rango: %s · Generada con el reparto vigente de la app",
     if (semilla > 0L) sprintf("n.º %d", semilla + 1L) else "original (alfabético)",
     if (is.list(rango)) sprintf("del %s al %s", rango[["desde"]], rango[["hasta"]]) else "todo el horizonte"
-  ), es_nota)
-  poner("Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.", es_nota)
-  fila <- fila + 1L
-
-  cabecera <- c("CURSO-HORARIO", "LUGAR", "RECOJO", "SALE AL AULA",
-                "APLICACIÓN", "APLICADOR", "FIJADA", "AVISO")
+  ))
+  poner("nota", "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.")
+  poner("nota", "")
 
   for (d in (rep[["dias"]] %||% list())) {
     asigs <- d[["asignaciones"]] %||% list()
     lugares_dia <- vapply(asigs, function(a) lugar_de(.ala_txt(a[["codigo"]])), character(1))
     croquis <- .ala_croquis(lugares_dia)
-    poner(sprintf(
+    poner("dia", sprintf(
       "%s — %d %s%s",
       .ala_etiqueta(.ala_txt(d[["fecha"]])), length(asigs),
       if (length(asigs) == 1L) "cita" else "citas",
       if (nzchar(croquis)) paste0(" — ", croquis) else ""
-    ), es_dia)
+    ))
     if (length(asigs)) {
-      poner(cabecera, es_cab)
+      poner("cabecera", .ala_CABECERA)
       for (a in asigs) {
         cod <- .ala_txt(a[["codigo"]])
         aviso <- .ala_txt(a[["advertencia"]])
-        poner(c(
+        poner("dato", c(
           cod,
           lugar_de(cod),
           .ala_txt(a[["recojo"]]),
@@ -167,47 +147,100 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
     }
     no_cub <- unlist(d[["no_cubiertos"]] %||% list())
     if (length(no_cub)) {
-      poner(sprintf("Sin nadie asignado: %s", paste(no_cub, collapse = ", ")), es_alerta)
+      poner("alerta", sprintf("Sin nadie asignado: %s", paste(no_cub, collapse = ", ")))
     }
     pend <- unlist(d[["por_confirmar"]] %||% list())
     if (length(pend)) {
-      poner(sprintf("Por confirmar (fecha sin hora pactada): %s",
-                    paste(pend, collapse = ", ")), es_nota)
+      poner("nota", sprintf("Por confirmar (fecha sin hora pactada): %s",
+                            paste(pend, collapse = ", ")))
     }
-    fila <- fila + 1L
+    poner("nota", "")
   }
 
   fuera <- rep[["fuera_de_rango"]] %||% list()
   if (length(fuera)) {
-    poner("FUERA DEL RANGO ELEGIDO — esperan su tanda; nada se descarta", es_alerta)
+    poner("alerta", "FUERA DEL RANGO ELEGIDO — esperan su tanda; nada se descarta")
     for (f in fuera) {
       cods <- c(unlist(f[["codigos"]] %||% list()), unlist(f[["por_confirmar"]] %||% list()))
-      poner(sprintf("%s: %s", .ala_etiqueta(.ala_txt(f[["fecha"]])),
-                    paste(cods, collapse = ", ")), es_nota)
+      poner("nota", sprintf("%s: %s", .ala_etiqueta(.ala_txt(f[["fecha"]])),
+                            paste(cods, collapse = ", ")))
     }
-    fila <- fila + 1L
+    poner("nota", "")
   }
 
-  # --- la equidad, dicha (el «que se vea cómo la distribución se hace a todos
-  # por igual» del dictado): cargas por aplicador con los ceros incluidos y el
-  # veredicto en una línea, el mismo criterio que el rail de la app. ---
-  poner("CARGAS POR APLICADOR", es_bloque)
+  # La equidad, dicha (el «que se vea cómo la distribución se hace a todos por
+  # igual» del dictado): cargas con ceros y el veredicto, mismo criterio que
+  # el rail de la app.
+  poner("bloque", "CARGAS POR APLICADOR")
   eq <- rep[["equidad"]] %||% list()
   cargas <- vapply(eq, function(e) as.integer(e[["asignadas"]] %||% 0L), integer(1))
-  poner(c("APLICADOR", "CITAS ASIGNADAS"), es_cab)
+  poner("cabecera", c("APLICADOR", "CITAS ASIGNADAS"))
   for (e in eq) {
-    poner(c(.ala_txt(e[["aplicador"]]), as.character(as.integer(e[["asignadas"]] %||% 0L))))
+    poner("dato", c(.ala_txt(e[["aplicador"]]),
+                    as.character(as.integer(e[["asignadas"]] %||% 0L))))
   }
   con_carga <- cargas[cargas > 0L]
   if (length(con_carga)) {
     dif <- max(con_carga) - min(con_carga)
     libres <- sum(cargas == 0L)
-    poner(sprintf(
+    poner("nota", sprintf(
       "%s: cargas entre %d y %d entre quienes salen — diferencia máxima %d%s",
       if (dif <= 1L) "Reparto parejo" else "Cargas desparejas (la disponibilidad manda)",
       min(con_carga), max(con_carga), dif,
       if (libres > 0L) sprintf(" · %d quedan libres (sin cita en sus horarios)", libres) else ""
-    ), es_nota)
+    ))
+  }
+  filas
+}
+
+#' Los values de la hoja para el publicador de Sheets: filas planas.
+#'
+#' @return `NULL` sin disponibilidad; si hay, lista de filas (vector character
+#'   por fila) lista para `monitoreo_sheets_publish_tabs()`.
+#' @keywords internal
+aulas_libro_valores_asignacion <- function(plan, disponibilidad, cfg = list()) {
+  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg)
+  if (is.null(filas)) return(NULL)
+  lapply(filas, function(f) as.list(f$celdas))
+}
+
+#' Escribe la hoja «Asignación de aplicadores» sobre el workbook del libro.
+#'
+#' @param wb workbook de openxlsx ya en construcción.
+#' @param plan el plan COMPLETO de la sesión, no el filtrado del libro.
+#' @param disponibilidad la clave de sesión; `NULL` = no se escribe hoja.
+#' @param cfg el config de aulas vigente.
+#' @return TRUE si la hoja se escribió; FALSE si no había reparto.
+#' @keywords internal
+aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) {
+  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg)
+  if (is.null(filas)) return(invisible(FALSE))
+
+  hoja <- "Asignación de aplicadores"
+  openxlsx::addWorksheet(wb, hoja)
+
+  # Estilos sobrios de la casa por TIPO de fila: el rojo primordial para los
+  # días, alerta en su tono, cabeceras con banda.
+  estilos <- list(
+    titulo = openxlsx::createStyle(fontSize = 14, textDecoration = "bold"),
+    nota = openxlsx::createStyle(fontColour = "#6B6560", fontSize = 10),
+    dia = openxlsx::createStyle(textDecoration = "bold", fontColour = "#FFFFFF",
+                                fgFill = "#A0464E", fontSize = 11),
+    cabecera = openxlsx::createStyle(textDecoration = "bold", fgFill = "#F3EDEA",
+                                     border = "bottom", borderColour = "#C9BEB8",
+                                     fontSize = 10),
+    alerta = openxlsx::createStyle(fontColour = "#8F3A42", textDecoration = "bold"),
+    bloque = openxlsx::createStyle(textDecoration = "bold", fontSize = 12)
+  )
+
+  for (i in seq_along(filas)) {
+    f <- filas[[i]]
+    openxlsx::writeData(wb, hoja, t(as.matrix(f$celdas)), startRow = i, colNames = FALSE)
+    est <- estilos[[f$tipo]]
+    if (!is.null(est)) {
+      openxlsx::addStyle(wb, hoja, est, rows = i,
+                         cols = seq_along(f$celdas), gridExpand = TRUE)
+    }
   }
 
   openxlsx::setColWidths(wb, hoja, cols = 1:8,

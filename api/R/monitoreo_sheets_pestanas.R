@@ -162,6 +162,10 @@ monitoreo_sheets_pestanas_controladas <- function() {
     "Plan del día",
     # A13a: era «Cómo va el campo»; Gonzalo: «es AVANCE», registro académico.
     "Avance de campo",
+    # B68 (dictado 2026-09-03): la cuarta hoja de la APP del publicador — el
+    # reparto de aplicadores, condicional a que la sesión tenga
+    # disponibilidad. App-owned, regenerada entera; sin lector.
+    "Asignación de aplicadores",
     "Listas"
   )
 
