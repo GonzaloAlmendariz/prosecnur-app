@@ -120,3 +120,14 @@
 .mon-profile-page.is-aulas-flow .aulas-calendario-repisa.es-aviso {
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text));
 }
+
+/* La familia del día que toca (B43/B46/B49/B57): la primera fecha no pasada
+   con agenda lleva el anillo del rojo de marca en el mapa del mes. */
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-el-que-toca {
+  box-shadow: inset 0 0 0 2px var(--pulso-module-monitoring);
+  border-radius: 6px;
+}
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-el-que-toca .aulas-calendario-num {
+  color: var(--pulso-module-monitoring);
+  font-weight: 700;
+}

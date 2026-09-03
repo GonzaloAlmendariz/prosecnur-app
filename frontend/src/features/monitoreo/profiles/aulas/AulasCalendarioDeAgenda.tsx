@@ -30,6 +30,14 @@ export function AulasCalendarioDeAgenda({ dias, hoy }: {
   const cal = calendarioDeAgenda(dias, hoy);
   // El grupo sin fecha no tiene celda: es la repisa de la superficie.
   const sinFecha = dias.find((d) => !d.fecha)?.aulas ?? 0;
+  // La familia del DÍA QUE TOCA (B43/B46/B49) también vive aquí: la primera
+  // fecha no pasada CON agenda lleva su anillo — el agendador ve en el mapa
+  // del mes cuál es el despliegue inminente.
+  const fechaQueToca = cal.semanas
+    .flat()
+    .filter((c) => c.enRango && c.aulas > 0 && c.fecha >= hoy)
+    .map((c) => c.fecha)
+    .sort()[0] ?? null;
 
   if (!cal.semanas.length && !cal.fechasIlegibles.length) return null;
 
@@ -53,8 +61,10 @@ export function AulasCalendarioDeAgenda({ dias, hoy }: {
                       celda.enRango ? "" : "es-relleno",
                       celda.esHoy ? "es-hoy" : "",
                       celda.aulas ? "tiene-agenda" : "",
+                      celda.fecha === fechaQueToca ? "es-el-que-toca" : "",
                     ].filter(Boolean).join(" ") || undefined}
                     aria-current={celda.esHoy ? "date" : undefined}
+                    title={celda.fecha === fechaQueToca ? "El día que toca: el despliegue inminente" : undefined}
                   >
                     <span className="aulas-calendario-num">{celda.diaDelMes}</span>
                     {celda.aulas ? (
