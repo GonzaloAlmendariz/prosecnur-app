@@ -81,6 +81,12 @@ export type AulasKpi = {
   icono: LucideIcon;
   /** Lectura larga del mismo dato; va al `title`, así que no ocupa alto (C2). */
   detalle?: string;
+  /**
+   * La pestaña (clave de la MISMA sección) donde vive la lista detrás de la
+   * cifra: la tarjeta se vuelve acceso — «Por agendar 144» lleva a la cola.
+   * Sin destino, la tarjeta es solo lectura, como siempre.
+   */
+  destino?: string;
 };
 
 export function fmt(value: unknown, fallback = "0") {
@@ -528,6 +534,8 @@ export function aulasKpis(
           value: fmt(ag.porAgendar),
           pista: "sin fecha cerrada todavía",
           tone: ag.porAgendar ? "warn" : "neutral",
+          // La lista de a quién llamar vive en Contacto: la cifra es la puerta.
+          destino: "contacto",
         },
       ];
       // **Un aula aplicada sin fecha agendada es un descuadre, no un estado.**
@@ -597,6 +605,7 @@ export function aulasKpis(
           icono: PhoneCall,
           value: fmt(ag.conInsistencia),
           pista: `gestiones; la mediana es ${fmt(ag.intentosMedianos)}`,
+          destino: "contacto",
         });
       }
       // **La insistencia describía; ahora también avisa.**
@@ -613,6 +622,7 @@ export function aulasKpis(
           icono: PhoneCall,
           value: fmt(ag.enUmbralDeRiesgo),
           pista: "gestiones y siguen sin fecha",
+          destino: "contacto",
           detalle: "En el campo de 2025, un curso-horario que llegaba a la tercera gestión se caía el doble de veces que una cerrada en una o dos (36 % contra 18 %). Conviene mirar su reserva antes de que se caiga.",
           tone: "warn",
         });
@@ -630,6 +640,7 @@ export function aulasKpis(
           pista: "ni teléfono ni correo anotado, entre las que aún hay que agendar",
           detalle: "En 2025 los 14 cursos-horario sin medio de contacto anotado se cayeron todos. No es que sean difíciles: es que no hay por dónde llamarlos.",
           tone: "warn",
+          destino: "contacto",
         });
       }
       return tiles;
