@@ -532,16 +532,9 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-soltar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
 /* Dictado 2026-09-03 (2.ª ronda): la preparación se distingue de la hora
-   pactada — arriba, tenue y sin chip; la cita del docente conserva el chip
-   firme debajo. Dos jerarquías, un solo box. */
-.aulas-asigna-horas { display: inline-flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-.aulas-asigna-prep {
-  font-size: 10.5px;
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
+   pactada — apilada sobre el chip firme. La secuencia misma es ChipPrep del
+   Sistema Pabellón (3.ª ronda: «como un box como el resto»). */
+.aulas-asigna-horas { display: inline-flex; flex-direction: column; gap: 3px; align-items: flex-start; }
 
 /* B74 — importar la disponibilidad desde la app (también en los vacíos, que
    es donde más muerde su ausencia). Label-botón sobrio con nota tenue. */

@@ -37,6 +37,16 @@ export function ChipDato({ children }: { children: ReactNode }) {
 }
 
 /**
+ * B72/B73 (dictado 2026-09-03: «esto debería salir como un box como el resto
+ * de cosas»): la secuencia de preparación —recojo y salida al aula— como chip
+ * del sistema, en tenue con borde punteado: es protocolo previo, no
+ * identidad, y no compite con el chip firme de la hora pactada.
+ */
+export function ChipPrep({ children }: { children: ReactNode }) {
+  return <span className="aulas-chip aulas-chip-prep">{children}</span>;
+}
+
+/**
  * La celda de una tabla del perfil, cuando su columna es de IDENTIDAD: lugar,
  * hora o el texto «Sesiones y aula» del equipo. Devuelve `null` para todo lo
  * demás y la tabla pinta el texto tal cual — el chip va en las columnas de
