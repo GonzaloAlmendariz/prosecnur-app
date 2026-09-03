@@ -363,3 +363,90 @@ test_that("la lamina suelta del croquis se emite sin venue y sin error", {
   expect_true(file.exists(pdf_path))
   expect_identical(qpdf::pdf_length(pdf_path), 1L)
 })
+
+# --- V2: cursos-horario con DOS pabellones (dictado de Gonzalo, 2026-09-02) ---
+#
+# «Hay algunos cursos horarios que pueden tener dos pabellones a la vez.
+# Entonces, ahí simplemente marcar que puede ser en cualquiera de los dos en
+# función del horario». Medido en el plan real de HSVG26ULT2: 301/1.392 venues
+# traen dos aulas unidas por « · » y 73 CRUZAN pabellon («H404 · A608»,
+# «D102 · H211», «TAMB · Z111»...). Resaltar solo la primera letra dejaba al
+# aplicador sin la mitad de su destino.
+
+test_that("un venue con dos aulas se parte en sus lugares y sus letras", {
+  lugares <- function(x) prosecnurapp:::.ccx_lugares_de_venue(x)
+  letras <- function(x) prosecnurapp:::.ccx_letras_de_venue(x)
+  expect_identical(lugares("H404 · A608"), c("H404", "A608"))
+  expect_identical(lugares("A206"), "A206")
+  expect_identical(lugares(""), character(0))
+  expect_identical(lugares(NULL), character(0))
+  # Dos aulas del MISMO pabellon son un solo destino: la letra no se repite.
+  expect_identical(letras("A204 · A206"), "A")
+  expect_identical(letras("H404 · A608"), c("H", "A"))
+  # El token sin letra de pabellon conserva su lugar en la lista de letras
+  # («TAMB» -> T): quien decide si T existe en el croquis es el dibujante,
+  # que lo declara; el parser no se traga nada en silencio.
+  expect_identical(letras("TAMB · Z111"), c("T", "Z"))
+})
+
+test_that("un venue de dos pabellones resalta los dos edificios", {
+  skip_if_not_installed("png")
+  compiled <- .ccq_compiled(
+    collection_material_field_sheet_template(), dimensions = list(venue = "H404 · A608")
+  )
+  dir <- tempfile("ccq-dos-"); dir.create(dir)
+  png_path <- file.path(dir, "croquis.png")
+  rendered <- collection_material_render_compiled(
+    compiled, png_path, device = "png", page = 2L, dpi = 110
+  )
+  img <- png::readPNG(png_path)
+  paleta <- prosecnurapp:::.ccx_paleta_tonos()
+  # H = (72-65) %% 8 = 7 (processing) y A = 0 (steel): AMBOS interiores plenos.
+  probe_h <- .ccq_probe("H")
+  col_h <- grDevices::col2rgb(paleta[[8L]])[, 1] / 255
+  pixel_h <- .ccq_pixel(img, probe_h$x, probe_h$y)
+  expect_true(
+    all(abs(pixel_h - col_h) <= 0.12),
+    info = sprintf("interior del pabellon H = (%.3f, %.3f, %.3f)", pixel_h[1], pixel_h[2], pixel_h[3])
+  )
+  probe_a <- .ccq_probe("A")
+  col_a <- grDevices::col2rgb(paleta[[1L]])[, 1] / 255
+  pixel_a <- .ccq_pixel(img, probe_a$x, probe_a$y)
+  expect_true(
+    all(abs(pixel_a - col_a) <= 0.12),
+    info = sprintf("interior del pabellon A = (%.3f, %.3f, %.3f)", pixel_a[1], pixel_a[2], pixel_a[3])
+  )
+  # Un tercero sigue en trazo suave: resaltar dos no es resaltar todos.
+  probe_z <- .ccq_probe("Z")
+  expect_gt(mean(.ccq_pixel(img, probe_z$x, probe_z$y)), 0.8)
+  # Dos pabellones REALES no son un desconocido ni un vacio: nada que declarar.
+  expect_false("croquis_pabellon_desconocido" %in% .ccq_codes(rendered))
+  expect_false("croquis_sin_pabellon" %in% .ccq_codes(rendered))
+})
+
+test_that("en un venue mixto el token sin edificio se declara y el resoluble se resalta", {
+  skip_if_not_installed("png")
+  # «TAMB · Z111» existe en el plan real: TAMB no tiene edificio en el croquis
+  # (T no esta en ninguna fuente), Z111 si. El aplicador recibe el resaltado
+  # que SE PUEDE dar y el render declara el que no, en vez de elegir en
+  # silencio o romperse.
+  compiled <- .ccq_compiled(
+    collection_material_field_sheet_template(), dimensions = list(venue = "TAMB · Z111")
+  )
+  dir <- tempfile("ccq-mixto-"); dir.create(dir)
+  png_path <- file.path(dir, "croquis.png")
+  rendered <- collection_material_render_compiled(
+    compiled, png_path, device = "png", page = 2L, dpi = 110
+  )
+  img <- png::readPNG(png_path)
+  paleta <- prosecnurapp:::.ccx_paleta_tonos()
+  # Z = (90-65) %% 8 = 1 (green): resaltada.
+  probe_z <- .ccq_probe("Z")
+  col_z <- grDevices::col2rgb(paleta[[2L]])[, 1] / 255
+  pixel_z <- .ccq_pixel(img, probe_z$x, probe_z$y)
+  expect_true(
+    all(abs(pixel_z - col_z) <= 0.12),
+    info = sprintf("interior del pabellon Z = (%.3f, %.3f, %.3f)", pixel_z[1], pixel_z[2], pixel_z[3])
+  )
+  expect_true("croquis_pabellon_desconocido" %in% .ccq_codes(rendered))
+})

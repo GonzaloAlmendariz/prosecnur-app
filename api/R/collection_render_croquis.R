@@ -55,6 +55,27 @@ CCX_TONOS_DE_PABELLON <- 8L
   codigo %% CCX_TONOS_DE_PABELLON
 }
 
+# Un venue puede traer VARIAS aulas: en ULT2, 301/1.392 vienen como
+# «A204 · A206» y 73 CRUZAN pabellon («H404 · A608») — cursos que se dictan en
+# dos edificios segun la sesion (dictado de Gonzalo, 2026-09-02: «marcar que
+# puede ser en cualquiera de los dos en funcion del horario»). Se parte por
+# los separadores VISTOS en datos reales; no se inventan otros.
+.ccx_lugares_de_venue <- function(venue_raw) {
+  crudo <- trimws(as.character(venue_raw %||% "")[1])
+  if (is.na(crudo) || !nzchar(crudo)) return(character(0))
+  tokens <- trimws(strsplit(crudo, "[·/;,]")[[1]])
+  tokens[nzchar(tokens)]
+}
+
+# Letras de pabellon del venue, unicas y en orden de aparicion. Conserva las
+# que no tienen edificio en el croquis («TAMB» -> T): decidir si T existe y
+# declararlo es del dibujante, no del parser.
+.ccx_letras_de_venue <- function(venue_raw) {
+  letras <- vapply(.ccx_lugares_de_venue(venue_raw), .ccx_letra_de_pabellon,
+                   character(1), USE.NAMES = FALSE)
+  unique(letras[nzchar(letras)])
+}
+
 # Pabellones por letra con su posicion real aproximada (lat/lng WGS84).
 # `fuente`: oficial = marcador directo del mapa oficial; osm = edificio
 # nombrado en OpenStreetMap; derivada = centroide de marcadores oficiales
@@ -211,21 +232,32 @@ CCX_TONOS_DE_PABELLON <- 8L
   pb <- .ccx_pabellones()
   venue <- trimws(as.character(venue_raw %||% "")[1])
   if (is.na(venue)) venue <- ""
-  letra_sel <- .ccx_letra_de_pabellon(venue)
+  lugares <- .ccx_lugares_de_venue(venue)
+  letras_venue <- .ccx_letras_de_venue(venue)
+  # Solo se resalta lo que EXISTE en el croquis; el resto se declara.
+  letras_sel <- letras_venue[letras_venue %in% pb$letra]
   warnings <- list()
+  for (letra in setdiff(letras_venue, letras_sel)) {
+    warnings[[length(warnings) + 1L]] <- list(
+      code = "croquis_pabellon_desconocido", page = page_no, letra = letra
+    )
+  }
 
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
 
   grid::grid.text("CROQUIS DEL CAMPUS PUCP", x = 0.5, y = L$y_title,
     gp = grid::gpar(col = tokens$navy, fontsize = 15, fontface = "bold"))
-  sub <- if (nzchar(letra_sel) && letra_sel %in% pb$letra) {
-    sprintf("Tu lugar de aplicación: PABELLÓN %s · aula %s",
-            letra_sel, toupper(venue))
-  } else if (nzchar(letra_sel)) {
-    warnings[[length(warnings) + 1L]] <- list(
-      code = "croquis_pabellon_desconocido", page = page_no, letra = letra_sel
-    )
-    sprintf("Aula %s — pabellón fuera del croquis", toupper(venue))
+  aulas_txt <- paste(toupper(lugares), collapse = " · ")
+  sub <- if (length(letras_sel) > 1L) {
+    # Dos pabellones a la vez: cualquiera de los dos, segun la sesion del
+    # horario (la cara de la ficha imprime el horario completo).
+    sprintf("Tu lugar de aplicación: PABELLÓN %s · aulas %s — según el horario",
+            paste(letras_sel, collapse = " o "), aulas_txt)
+  } else if (length(letras_sel) == 1L) {
+    sprintf("Tu lugar de aplicación: PABELLÓN %s · %s %s",
+            letras_sel, if (length(lugares) > 1L) "aulas" else "aula", aulas_txt)
+  } else if (length(letras_venue)) {
+    sprintf("Aula %s — pabellón fuera del croquis", aulas_txt)
   } else {
     warnings[[length(warnings) + 1L]] <- list(
       code = "croquis_sin_pabellon", page = page_no
@@ -239,7 +271,7 @@ CCX_TONOS_DE_PABELLON <- 8L
     }
   }
   grid::grid.text(sub, x = 0.5, y = L$y_sub,
-    gp = grid::gpar(col = tokens$soft, fontsize = 10))
+    gp = grid::gpar(col = tokens$soft, fontsize = if (nchar(sub) > 64L) 9 else 10))
   pulso_pdf_hairline(0.08, 0.92, L$y_sub - 0.018, tokens = tokens)
 
   # Terreno.
@@ -265,6 +297,12 @@ CCX_TONOS_DE_PABELLON <- 8L
                      (oeste$x[2] - oeste$x[1]) * geo$page_w) * 180 / pi
   grid::grid.text("Av. José de la Riva Agüero",
     x = mean(oeste$x) - off - 0.018, y = mean(oeste$y), rot = ang_oeste,
+    gp = grid::gpar(col = tokens$faint, fontsize = 7, fontface = "italic"))
+  sur <- .ccx_proyectar(c(-12.0746, -12.0747), c(-77.0838, -77.0770), L)
+  grid::grid.lines(x = sur$x, y = sur$y - 0.011, default.units = "npc",
+    gp = grid::gpar(col = tokens$line, lwd = 5))
+  grid::grid.text("Av. Manuel Cipriano Dulanto",
+    x = mean(sur$x), y = mean(sur$y) - 0.011 - 0.009,
     gp = grid::gpar(col = tokens$faint, fontsize = 7, fontface = "italic"))
 
   # Geometria OSM: verdes -> caminos -> huellas. Si el JSON faltara (paquete a
@@ -297,7 +335,7 @@ CCX_TONOS_DE_PABELLON <- 8L
       if (!is.null(letra_ed)) {
         tono_ed <- .ccx_tono_de_pabellon(letra_ed)
         col_ed <- paleta[[tono_ed + 1L]]
-        resaltada <- nzchar(letra_sel) && identical(letra_ed, letra_sel)
+        resaltada <- letra_ed %in% letras_sel
         grid::grid.polygon(x = p$x, y = p$y, default.units = "npc",
           gp = grid::gpar(
             fill = grDevices::adjustcolor(col_ed, alpha.f = if (resaltada) 0.55 else 0.18),
@@ -348,7 +386,7 @@ CCX_TONOS_DE_PABELLON <- 8L
   for (i in seq_len(nrow(pb))) {
     tono <- .ccx_tono_de_pabellon(pb$letra[i])
     colr <- paleta[[tono + 1L]]
-    if (nzchar(letra_sel) && identical(pb$letra[i], letra_sel)) {
+    if (pb$letra[i] %in% letras_sel) {
       grid::grid.circle(x = ppb$x[i], y = ppb$y[i],
         r = grid::unit(lado * 1.05, "npc"), default.units = "npc",
         gp = grid::gpar(col = colr, lwd = 1.8,
@@ -358,6 +396,44 @@ CCX_TONOS_DE_PABELLON <- 8L
         gp = grid::gpar(fill = colr, col = colr, lwd = 1.4))
       grid::grid.text(pb$letra[i], x = ppb$x[i], y = ppb$y[i],
         gp = grid::gpar(col = "#ffffff", fontsize = 11, fontface = "bold"))
+      # La pastilla con el AULA junto al anillo: la letra dice el edificio, el
+      # codigo dice el salon — y con dos pabellones cada uno carga el suyo.
+      # El sitio se elige esquivando lo ya rotulado (abajo → arriba → derecha
+      # → izquierda): A tiene a B a 25 m, H tiene a Z arriba y al rotulo de
+      # Derecho·CC.SS. abajo; sin esta busqueda alguna pastilla siempre tapa
+      # algo.
+      aulas_de <- lugares[vapply(lugares, function(lg) {
+        identical(.ccx_letra_de_pabellon(lg), pb$letra[i])
+      }, logical(1))]
+      if (length(aulas_de)) {
+        etiqueta <- paste(toupper(aulas_de), collapse = " · ")
+        w_pill <- 0.012 + nchar(etiqueta) * 0.0068
+        obst_x <- c(ppb$x[-i], ph$x, pz$x)
+        obst_y <- c(ppb$y[-i], ph$y, pz$y)
+        obst_hw <- c(rep(lado / 2, nrow(pb) - 1L),
+                     0.010 + nchar(hitos$nombre) * 6.2 * 0.00051,
+                     0.010 + nchar(zonas$nombre) * 6.2 * 0.00051)
+        obst_hh <- c(rep(alto / 2, nrow(pb) - 1L),
+                     rep(0.00625, nrow(hitos)), rep(0.00625, nrow(zonas)))
+        salto <- lado * 1.05 + 0.011
+        salto_x <- lado * 1.05 + w_pill / 2 + 0.004
+        candidatos <- list(
+          c(ppb$x[i], ppb$y[i] - salto), c(ppb$x[i], ppb$y[i] + salto),
+          c(ppb$x[i] + salto_x, ppb$y[i]), c(ppb$x[i] - salto_x, ppb$y[i])
+        )
+        libre <- function(p) !any(
+          abs(obst_x - p[1]) < (obst_hw + w_pill / 2) &
+          abs(obst_y - p[2]) < (obst_hh + 0.0065)
+        )
+        sitio <- candidatos[[1]]
+        for (cand in candidatos) if (libre(cand)) { sitio <- cand; break }
+        grid::grid.roundrect(x = sitio[1], y = sitio[2], width = w_pill, height = 0.013,
+          r = grid::unit(2.6, "pt"), default.units = "npc",
+          gp = grid::gpar(fill = grDevices::adjustcolor("#ffffff", alpha.f = 0.94),
+                          col = colr, lwd = 0.9))
+        grid::grid.text(etiqueta, x = sitio[1], y = sitio[2],
+          gp = grid::gpar(col = colr, fontsize = 6.6, fontface = "bold"))
+      }
     } else {
       grid::grid.roundrect(x = ppb$x[i], y = ppb$y[i], width = lado, height = alto,
         r = grid::unit(2.2, "pt"), default.units = "npc",
@@ -375,6 +451,26 @@ CCX_TONOS_DE_PABELLON <- 8L
     gp = grid::gpar(col = tokens$soft, fill = tokens$soft, lwd = 1.2))
   grid::grid.text("N", x = nx, y = ny + 0.010,
     gp = grid::gpar(col = tokens$soft, fontsize = 7, fontface = "bold"))
+
+  # Barra de escala: 100 m medidos con la MISMA proyeccion del croquis, para
+  # que «que tan lejos queda» tenga respuesta de pie, no solo de vista.
+  metros_ancho <- (L$lng1 - L$lng0) * 111320 * cos(12.07 * pi / 180)
+  barra_w <- 100 / metros_ancho * L$w
+  bx <- L$x0 + 0.014; by <- L$y0 + 0.016
+  grid::grid.lines(x = c(bx, bx + barra_w), y = c(by, by), default.units = "npc",
+    gp = grid::gpar(col = tokens$soft, lwd = 1.4))
+  for (tx in c(bx, bx + barra_w)) {
+    grid::grid.lines(x = c(tx, tx), y = c(by - 0.003, by + 0.003),
+      default.units = "npc", gp = grid::gpar(col = tokens$soft, lwd = 1.4))
+  }
+  grid::grid.text("100 m", x = bx + barra_w / 2, y = by + 0.009,
+    gp = grid::gpar(col = tokens$soft, fontsize = 5.8))
+
+  # Atribucion ODbL de la capa de huellas: obligacion de la licencia y
+  # honestidad del dibujo — las posiciones son nuestras, la geometria no.
+  grid::grid.text("Geometría © colaboradores de OpenStreetMap",
+    x = L$x0 + L$w - 0.010, y = L$y0 + 0.012, just = "right",
+    gp = grid::gpar(col = tokens$faint, fontsize = 4.8))
 
   # Leyenda.
   ly <- L$y_leyenda
