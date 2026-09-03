@@ -63,7 +63,9 @@ export const FIELD_LABELS: Record<string, string> = {
   applied_date: "Fecha de aplicación",
   applied_time: "Hora de aplicación",
   applied_by: "Aplicado por",
-  field_note: "Nota de campo",
+  // B42: las familias de observación se nombran por su origen. El campo se
+  // llama `field_note` pero la familia es «lo que reportó el aplicador».
+  field_note: "Obs. de aplicación",
   // Por qué esta fila está en la cadena. Lo compone el motor a partir del campo
   // que corresponde al papel de la fila: la que cae lleva su motivo de
   // reemplazo y la que entra el de activación. Un solo rótulo porque es una
@@ -213,7 +215,11 @@ export const FIELD_LABELS: Record<string, string> = {
   operational_status: "Estado operativo",
   replacement_for: "Reemplaza a",
   replacement_reason: "Motivo de reemplazo",
-  replacement_note: "Nota de reemplazo",
+  // B42: el nombre del campo es heredado del libro («OBSERVACIONES SOBRE
+  // AULAS AGENDADAS» viaja en `replacement_note`), pero la familia es lo
+  // anotado AL AGENDAR — llamarla «de reemplazo» confundía las tres familias
+  // que el dictado exige distinguir.
+  replacement_note: "Obs. de agendación",
   equivalence_level: "Nivel de equivalencia",
   chain_score: "Puntaje de cadena",
   chain_depth: "Profundidad de cadena",
