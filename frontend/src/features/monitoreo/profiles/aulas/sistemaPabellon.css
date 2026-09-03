@@ -50,3 +50,8 @@
 /* La pareja sesión + aula de «Sesiones y aula», como una sola pieza que puede
    partirse en dos líneas si la celda aprieta. */
 .aulas-chip-sesion { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+/* La fila de badges del sistema: chips alineados bajo el código, en cualquier
+   ficha o formulario del perfil. Es la jerarquía del dictado — código fuerte
+   primero, docente en su peso, chips como fila. */
+.aulas-chips-fila { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }

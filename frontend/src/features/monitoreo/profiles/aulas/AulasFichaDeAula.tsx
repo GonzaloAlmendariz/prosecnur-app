@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { X } from "../../../../vendor/lucide-react";
+import { aulasStatusLabel } from "./aulasPresentation";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { dondeSeSaca } from "./dondeSeSaca";
 import { fichaDeAula } from "./fichaDeAula";
 
@@ -82,6 +84,17 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
         </button>
       </div>
 
+      {/* La identidad de la cita —dónde, a qué hora, qué día— como fila de
+          chips del Sistema Pabellón (B33): el mismo A206 con el mismo tono que
+          en la Agenda. Sin ninguno de los tres, la fila no se pinta. */}
+      {(ficha.lugar || ficha.hora || ficha.fecha) && (
+        <div className="aulas-chips-fila">
+          {ficha.hora ? <ChipHora>{ficha.hora}</ChipHora> : null}
+          {ficha.lugar ? <ChipLugar lugar={ficha.lugar} /> : null}
+          {ficha.fecha ? <ChipDato>{ficha.fecha}</ChipDato> : null}
+        </div>
+      )}
+
       <dl className="aulas-ficha-cifras">
         <div>
           <dt>Se esperaba</dt>
@@ -114,10 +127,13 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
         </div>
       </dl>
 
-      {(ficha.estado || ficha.fecha || ficha.parte.aplicador) && (
+      {/* La fecha subió a la fila de chips: es identidad de la cita, no un
+          dato del pie. El estado pasa por `aulasStatusLabel` — decía la clave
+          del motor («agendada») en la única superficie del perfil que no
+          traducía. */}
+      {(ficha.estado || ficha.parte.aplicador) && (
         <p className="aulas-ficha-pie">
-          {ficha.estado ? <span>{ficha.estado}</span> : null}
-          {ficha.fecha ? <span>{ficha.fecha}</span> : null}
+          {ficha.estado ? <span>{aulasStatusLabel(ficha.estado)}</span> : null}
           {ficha.parte.aplicador ? <span>{ficha.parte.aplicador}</span> : null}
         </p>
       )}
