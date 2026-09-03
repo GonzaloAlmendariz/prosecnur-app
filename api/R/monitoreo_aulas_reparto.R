@@ -110,18 +110,40 @@
 #' con el plan del día siguiente produce el reparto del estado nuevo — sin
 #' memoria entre corridas.
 #'
+#' B36 (dictado 2026-09-02: «mecanismo propio de asignación y reasignación,
+#' que sea equitativo»): `fijadas` es la voluntad explícita del usuario —
+#' código → aplicador. La fijada MANDA: se aplica siempre, primero, marca
+#' `fijada = TRUE`, y lo que la oferta no respalda no la frena sino que viaja
+#' declarado en `advertencia` («sin_disponibilidad», «se_solapa»). El greedy
+#' reparte el resto contándola en la carga y sin pisarle la ventana. Una
+#' fijación cuyo código no tiene cita pactada se devuelve en
+#' `fijadas_sin_cita`, no se traga.
+#'
 #' @param plan plan normalizado: lista de filas o data.frame (mismo formato
 #'   que `monitoreo_aulas_dos_tasas` y `monitoreo_aulas_ventanas`).
 #' @param disponibilidad salida de `carga_disponibilidad_aplicadores()`.
+#' @param fijadas lista nombrada código → aplicador (B36); vacía por defecto.
 #' @return lista con `dias` (por fecha ISO ascendente: `{fecha, asignaciones,
-#'   no_cubiertos, por_confirmar}`) y `equidad` (`{aplicador, asignadas}` en
-#'   orden alfabético, todos los aplicadores, cero incluido).
+#'   no_cubiertos, por_confirmar}`; cada asignación con `fijada` y, si
+#'   aplica, `advertencia`), `equidad` (`{aplicador, asignadas}` en orden
+#'   alfabético — la oferta entera más los fijados externos, cero incluido) y
+#'   `fijadas_sin_cita` (códigos fijados sin cita pactada).
 #' @keywords internal
-monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list()) {
+monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
+                                    fijadas = list()) {
   base <- monitoreo_aulas_ventanas(plan)
   aulas <- base[["aulas"]] %||% list()
   oferta <- .marep_oferta(disponibilidad)
   nombres <- sort(names(oferta) %||% character(0), method = "radix")
+
+  # Las fijaciones saneadas: código y aplicador no vacíos; lo demás se ignora
+  # aquí porque el normalizador del config ya avisó (frontera, no motor).
+  fij <- list()
+  for (nm in (names(fijadas %||% list()) %||% character(0))) {
+    v <- trimws(as.character(fijadas[[nm]] %||% "")[1])
+    cod <- trimws(nm)
+    if (nzchar(cod) && !is.na(v) && nzchar(v)) fij[[cod]] <- v
+  }
 
   # Las citas pactadas (ventana confirmada con fecha) y las pendientes del
   # día (todo lo demás CON fecha: tentativas y sin_ventana — el vocabulario
@@ -163,8 +185,54 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list()) {
   carga <- stats::setNames(rep(0L, length(nombres)), nombres)
   ocupadas <- list() # "nombre\rfecha" -> lista de c(ini, fin) asignadas
   asignaciones <- list()
+  # El minuto de inicio de cada asignación, paralelo por fecha: las fijadas
+  # entran ANTES que las automáticas y el día se reordena por hora al final —
+  # el contrato del payload («greedy por hora ascendente») no cambia.
+  orden_dia <- list()
   no_cubiertos <- list()
+
+  anotar_asignacion <- function(cita, elegido, fijada, advertencia = "") {
+    clave_dia <- paste(elegido, cita$fecha, sep = "\r")
+    ocupadas[[clave_dia]] <<- c(ocupadas[[clave_dia]],
+                                list(c(cita$ini, cita$fin)))
+    item <- list(
+      codigo = cita$codigo,
+      aplicador = elegido,
+      inicio = cita$inicio,
+      fin = cita$fin_hhmm,
+      fijada = fijada
+    )
+    if (nzchar(advertencia)) item[["advertencia"]] <- advertencia
+    asignaciones[[cita$fecha]] <<- c(asignaciones[[cita$fecha]], list(item))
+    orden_dia[[cita$fecha]] <<- c(orden_dia[[cita$fecha]], cita$ini)
+  }
+
+  # PRIMERA pasada — las fijadas (B36): la voluntad del usuario se aplica
+  # siempre; lo que la oferta no respalda viaja declarado, no la frena.
+  codigos_pactados <- vapply(citas, function(x) x$codigo, character(1)) %||% character(0)
   for (cita in citas) {
+    elegido <- fij[[cita$codigo]]
+    if (is.null(elegido)) next
+    dia_token <- .mav_dia_token(cita$fecha)
+    dia_clave <- if (nzchar(dia_token)) .marep_DIA_CLAVE[[dia_token]] else ""
+    cubre <- nzchar(dia_clave) &&
+      .marep_cubre(oferta[[elegido]][[dia_clave]], cita$ini, cita$fin)
+    solapa <- .marep_solapa(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]],
+                            cita$ini, cita$fin)
+    advertencia <- if (solapa) "se_solapa" else if (!cubre) "sin_disponibilidad" else ""
+    # Un fijado externo a la oferta entra a la equidad al verse: sin él la
+    # suma de asignaciones no cuadraría con el resumen.
+    if (!elegido %in% names(carga)) {
+      carga <- c(carga, stats::setNames(0L, elegido))
+    }
+    carga[[elegido]] <- carga[[elegido]] + 1L
+    anotar_asignacion(cita, elegido, fijada = TRUE, advertencia = advertencia)
+  }
+
+  # SEGUNDA pasada — el greedy de siempre sobre lo no fijado, con la carga y
+  # las ventanas de las fijadas ya sembradas.
+  for (cita in citas) {
+    if (!is.null(fij[[cita$codigo]])) next
     dia_token <- .mav_dia_token(cita$fecha)
     dia_clave <- if (nzchar(dia_token)) .marep_DIA_CLAVE[[dia_token]] else ""
     candidatos <- character(0)
@@ -184,33 +252,38 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list()) {
     elegido <- candidatos[order(carga[candidatos], candidatos,
                                 method = "radix")][[1L]]
     carga[[elegido]] <- carga[[elegido]] + 1L
-    clave_dia <- paste(elegido, cita$fecha, sep = "\r")
-    ocupadas[[clave_dia]] <- c(ocupadas[[clave_dia]],
-                               list(c(cita$ini, cita$fin)))
-    asignaciones[[cita$fecha]] <- c(asignaciones[[cita$fecha]], list(list(
-      codigo = cita$codigo,
-      aplicador = elegido,
-      inicio = cita$inicio,
-      fin = cita$fin_hhmm
-    )))
+    anotar_asignacion(cita, elegido, fijada = FALSE)
   }
 
   fechas <- sort(unique(c(
     names(asignaciones), names(no_cubiertos), names(pendientes)
   )))
   dias <- lapply(fechas, function(fecha) {
+    items <- asignaciones[[fecha]] %||% list()
+    if (length(items) > 1L) {
+      o <- order(orden_dia[[fecha]],
+                 vapply(items, function(a) as.character(a$codigo), character(1)),
+                 method = "radix")
+      items <- items[o]
+    }
     list(
       fecha = fecha,
-      asignaciones = asignaciones[[fecha]] %||% list(),
+      asignaciones = items,
       no_cubiertos = as.list(no_cubiertos[[fecha]] %||% character(0)),
       por_confirmar = as.list(pendientes[[fecha]] %||% character(0))
     )
   })
-  equidad <- lapply(nombres, function(n) {
+  equidad <- lapply(sort(names(carga), method = "radix"), function(n) {
     list(aplicador = n, asignadas = as.integer(carga[[n]]))
   })
 
-  list(dias = dias, equidad = equidad)
+  list(
+    dias = dias, equidad = equidad,
+    fijadas_sin_cita = as.list(sort(
+      as.character(setdiff(names(fij) %||% character(0), codigos_pactados)),
+      method = "radix"
+    ))
+  )
 }
 
 #' El bloque de la vista «Disponibilidad de aplicadores».
