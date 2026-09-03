@@ -1194,6 +1194,10 @@ export type MonitoreoAulasRepartoAsignacion = {
   aplicador: string;
   inicio: string;
   fin: string;
+  /** B36: TRUE cuando la puso el usuario (fijación), no el greedy. */
+  fijada?: boolean;
+  /** B36: lo que la oferta no respalda («sin_disponibilidad», «se_solapa»). */
+  advertencia?: string;
 };
 
 /**
@@ -1223,6 +1227,8 @@ export type MonitoreoAulasRepartoEquidad = {
 export type MonitoreoAulasReparto = {
   dias: MonitoreoAulasRepartoDia[];
   equidad: MonitoreoAulasRepartoEquidad[];
+  /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
+  fijadas_sin_cita?: string[];
 };
 
 export type MonitoreoAulasDashboard = {
