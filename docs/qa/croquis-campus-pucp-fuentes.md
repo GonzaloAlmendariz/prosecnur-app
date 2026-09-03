@@ -124,7 +124,7 @@ esta lista se dibuja con seguridad falsa: hoy cae al comportamiento declarado.
 |---|---|---|
 | Pabellón **Y** (Arte y Diseño) | posición **derivada** de 3 marcadores vecinos; huella asignada por contención | confirmación de campo en la jornada 1 (el equipo pasa por la zona de Arte) o consulta a Intendencia de Aulas |
 | Puertas **8** y **10** | posición **aproximada** (marcadores de estacionamiento, proyectadas al borde) | confirmar lado y posición en campo; candidato de fuente: plano de Seguridad PUCP |
-| Letras **S, T, K** (venues reales «S204», «TAMB», «K301») | sin edificio en NINGUNA fuente → verso con `croquis_pabellon_desconocido` | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio; son 10 de 1.392 venues |
+| Letras **S, T, K** (venues reales «S204», «TAMB», «K301») | sin edificio en NINGUNA fuente → verso con `croquis_pabellon_desconocido`. Contrastado además en búsqueda pública (2026-09-03): ni el mapa oficial, ni Descubre, ni OSM, ni la web los nombran | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio; son 10 de 1.392 venues. Pista de campo: «X115 · TAMB» sugiere TAMB cerca de Artes Escénicas |
 | Venues **numéricos** («101E», «204C», «001E») | sin letra de pabellón → «pabellón por confirmar» declarado | identificar con el equipo a qué aulario pertenecen (posible sufijo de ala); 11 venues |
 | Tokens **SIMB / LEDU / LLET** | LEDU/LLET caen a L por primera letra (paridad B31); SIMB → S desconocida | confirmar con el equipo si son salas de Letras/EEGGLL o locales aparte |
 | Pabellón **P** | marcador oficial vs OSM-CEPREPUC divergen ~100 m (manda el oficial) | confirmar en campo cuál rotula el edificio donde se aplica |
