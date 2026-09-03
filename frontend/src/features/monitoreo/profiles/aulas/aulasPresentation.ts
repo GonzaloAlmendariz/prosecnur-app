@@ -22,6 +22,11 @@ export const FIELD_LABELS: Record<string, string> = {
   // El RANGO horario declarado del curso —«MAR 14:00-16:00»—, distinto de
   // `schedule` (cuando empieza) y de `scheduled_time` (cuando se agendo).
   sesiones_dia_hora: "Sesiones",
+  // Su forma para humanos, con el salón —«MAR 14:00-16:00 · V303»—: la que
+  // anota el armador del cálculo y prefiere la hoja «SESIONES Y AULA» del
+  // libro (A23). Llega al plan desde a0250367; sin etiqueta, la tabla que la
+  // recoja enseñaría el nombre crudo del campo.
+  sesiones_legibles: "Sesiones y aula",
   venue: "Salón",
   // Parte de campo (L32/L45): lo que el equipo anota en el aula.
   actual_room: "Aula real",
