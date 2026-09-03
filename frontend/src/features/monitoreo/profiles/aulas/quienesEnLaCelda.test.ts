@@ -47,10 +47,15 @@ describe("calcularCarga anota quiénes ocupan cada celda", () => {
       {
         codigo: "CH 1", docente: "CHINCHAYÁN, RUTH", lugar: "A501", facultad: "F", confirmada: true,
         fecha: "", hora: "10:00", momento: "",
+        // B73 (dictado 2026-09-03): la secuencia completa y el FIN de la
+        // aplicación viajan con el ocupante confirmado; la plausible no
+        // inventa horas.
+        rango: "10:00–10:30", recojo: "09:30", salida: "09:45",
       },
       {
         codigo: "CH 2", docente: "VILELA, MARTA", lugar: "A502", facultad: "F", confirmada: false,
         fecha: "", hora: "", momento: "",
+        rango: "", recojo: "", salida: "",
       },
     ]);
   });
@@ -177,7 +182,7 @@ describe("pabellonesDeLasCitas — a qué edificios se va ese día", () => {
   it("cuenta por letra, ordena por volumen y declara «otros» sin tragar", () => {
     const cita = (lugar: string) => ({
       codigo: "x", docente: "", lugar, facultad: "", confirmada: true,
-      fecha: "", hora: "", momento: "" as const,
+      fecha: "", hora: "", rango: "", recojo: "", salida: "", momento: "" as const,
     });
     expect(pabellonesDeLasCitas([
       cita("A703"), cita("A101"), cita("J308"), cita("J203 · J210"),

@@ -129,5 +129,6 @@ monitoreo_aulas_franjas <- function(plan = list(),
   # del frontend pinten la ocupación real sin constantes propias.
   list(dias = dias, personas_fuente = "confirmadas",
        duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
-       preparacion_min = .mav_PREPARACION_MIN)
+       preparacion_min = .mav_PREPARACION_MIN,
+       salida_min = .mav_SALIDA_MIN)
 }

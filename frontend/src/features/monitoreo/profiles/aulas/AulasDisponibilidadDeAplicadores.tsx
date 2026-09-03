@@ -24,11 +24,43 @@ import { fmt } from "./kpisDeAulas";
  */
 const DIA_DE_SEMANA = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
+/**
+ * B74 (dictado 2026-09-03): «la pestaña de disponibilidad no tiene ningún
+ * mecanismo para poder importarla… ¿qué pasa si quiero enviarte una
+ * actualizada y volver a hacer una asignación?». El botón vive en la vista
+ * —también en sus estados vacíos, que es donde más muerde su ausencia— y
+ * dispara la vía de dos pasos (upload + import) que arma la página.
+ */
+function BotonDeImportarDisponibilidad({ onImportar }: {
+  onImportar?: ((archivo: File) => void | Promise<void>) | null;
+}) {
+  if (!onImportar) return null;
+  return (
+    <label className="aulas-dispo-importar">
+      <input
+        type="file"
+        accept=".xlsx,.xls,.xlsm"
+        hidden
+        onChange={(event) => {
+          const archivo = event.target.files?.[0];
+          // El valor se limpia para que elegir el MISMO archivo dos veces
+          // vuelva a disparar el cambio (mismo idioma que el libro).
+          event.target.value = "";
+          if (archivo) void onImportar(archivo);
+        }}
+      />
+      Importar disponibilidad (.xlsx)
+      <em>reemplaza la oferta cargada y rearma la asignación; lo fijado a mano se conserva</em>
+    </label>
+  );
+}
+
 export function AulasDisponibilidadDeAplicadores({
   oferta,
   vivas,
   demandaFirme = null,
   fechaQueToca = null,
+  onImportar = null,
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   oferta: MallaDeOferta | null;
@@ -48,28 +80,36 @@ export function AulasDisponibilidadDeAplicadores({
    * campo. `null` = sin sello.
    */
   fechaQueToca?: string | null;
+  /** B74: importar/reemplazar el excel de disponibilidad. */
+  onImportar?: ((archivo: File) => void | Promise<void>) | null;
 }) {
   const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
 
   if (!oferta) {
     return (
-      <p className="aulas-carga-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        Este estudio todavía no tiene cargada la disponibilidad de los aplicadores. Sale del
-        libro de disponibilidad del equipo (Excel): al cargarlo en la sesión, esta malla enseña
-        quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación
-        reparte las citas pactadas.
-      </p>
+      <div className="aulas-dispo-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <p className="aulas-carga-vacio">
+          Este estudio todavía no tiene cargada la disponibilidad de los aplicadores. Sale del
+          libro de disponibilidad del equipo (Excel): al cargarlo aquí, esta malla enseña
+          quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación
+          reparte las citas pactadas.
+        </p>
+        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+      </div>
     );
   }
 
   const hayOferta = oferta.disponibles.some((fila) => fila.some((n) => n > 0));
   if (!hayOferta) {
     return (
-      <p className="aulas-carga-aviso" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
-        La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que
-        pintar. Es distinto de no haberla cargado — el marco existe y se llenará con el equipo.
-      </p>
+      <div className="aulas-dispo-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        <p className="aulas-carga-aviso">
+          La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que
+          pintar. Es distinto de no haberla cargado — el marco existe y se llenará con el equipo.
+        </p>
+        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+      </div>
     );
   }
 
@@ -115,6 +155,7 @@ export function AulasDisponibilidadDeAplicadores({
             ? "La oferta declarada del equipo, con las citas confirmadas encima: el anillo dice dónde hay citas y la franja alarma cuando las citas superan a la gente."
             : "La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta con el patrón semanal para ver si la gente alcanza."}
         </p>
+        <BotonDeImportarDisponibilidad onImportar={onImportar} />
         <dl className="aulas-carga-kpis">
           <div>
             <dt>Aplicadores</dt>

@@ -326,7 +326,7 @@ session_schema <- function() {
     "monitoreo_aulas_libro",        "literal", "persistible",    "carga_aulas_libro.R", "session_set", "libro operativo importado: hojas, sello y recibo de la carga",
     "monitoreo_aulas_partes_campo", "literal", "persistible",    "carga_aulas_libro.R", "session_set", "partes de campo leidos de la hoja «Aulas Aplicadas (Campo)»",
     "monitoreo_aulas_control",      "literal", "persistible",    "carga_aulas_libro.R", "session_set", "filas de la hoja «Base de control» que el equipo llena en campo",
-    "monitoreo_aulas_disponibilidad", "literal", "persistible",  "monitoreo_aulas_cache.R", "directa", "B29: la escribe quien carga el excel de disponibilidad (session_set fuera de api/R hoy, patrón DAA); el dashboard la lee con [[ y publica disponibilidad+reparto",
+    "monitoreo_aulas_disponibilidad", "literal", "persistible",  "monitoreo_aulas_cache.R", "directa", "B29/B74: la escribe POST /api/monitoreo/aulas/disponibilidad (router_monitoreo.R) desde el excel subido; el dashboard la lee con [[ y publica disponibilidad+reparto",
     "monitoreo_client_report_pdf", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_production_report_pdf", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_telefonico_report_pdf", "literal", "persistible", "router_monitoreo_telefonico.R", "session_set", "meta del PDF de avance telefonico; analoga a client/production_report_pdf",

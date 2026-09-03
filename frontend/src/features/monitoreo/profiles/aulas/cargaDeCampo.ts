@@ -96,9 +96,23 @@ export type OcupanteDeCelda = {
   fecha: string;
   /** La hora pactada, textual («6:45 pm»); "" en lo no confirmado. */
   hora: string;
+  /**
+   * B73 (dictado 2026-09-03: «no estás mostrando toda la secuencia ni de qué
+   * hora a qué hora… no mencionas cuándo finaliza»): la aplicación completa
+   * «HH:MM–HH:MM», derivada de la posición del motor; "" en lo no confirmado.
+   */
+  rango: string;
+  /** La hora del recojo de materiales (T−preparación); "" sin cita pactada. */
+  recojo: string;
+  /** La hora de salir hacia el aula (T−salida); "" sin cita pactada. */
+  salida: string;
   /** El momento acordado de la clase, o "" si no se declaró. */
   momento: "" | MomentoDeClase;
 };
+
+/** Minutos desde medianoche → «HH:MM» (mismo formato que el motor). */
+const hhmm = (m: number): string =>
+  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 /** `"MAR 14:00-16:00 · MIE 10:00-12:00"` → una entrada por bloque. */
 export function leerSesiones(texto: string | undefined | null): Array<{ dia: number; desde: number; hasta: number }> {
@@ -207,6 +221,14 @@ export type OpcionesDeCarga = {
   eje?: EjeDeCarga;
   /** Las ventanas confirmadas del MOTOR: la única fuente de posición horaria. */
   ventanas?: ReadonlyMap<string, VentanaDelMotor>;
+  /**
+   * B71: minutos de preparación previa (recojo + desplazamiento) — la banda
+   * firme cuenta la OCUPACIÓN [pactada − preparación, pactada + duración].
+   * Del eco `preparacion_min` de franjas; 30 es el protocolo del operativo.
+   */
+  preparacionMin?: number;
+  /** B71: minutos antes de la pactada en que se sale al aula (eco `salida_min`). */
+  salidaMin?: number;
 };
 
 /** La cita confirmada tal como la publicó el motor: fecha ISO y minuto real. */
@@ -445,7 +467,8 @@ export function lugaresDelPlan(plan: readonly MonitoreoAulasPlanRow[]): Map<stri
 
 export function calcularCarga(
   plan: readonly MonitoreoAulasPlanRow[],
-  { duracionMin, pasoMin = 30, eje = "semana", ventanas }: OpcionesDeCarga,
+  { duracionMin, pasoMin = 30, eje = "semana", ventanas,
+    preparacionMin = 30, salidaMin = 15 }: OpcionesDeCarga,
 ): Malla {
   const { unidades, sinHorario } = aulasDelPlan(plan);
   // La posición horaria del MOTOR manda sobre el texto del libro: donde hay
@@ -482,7 +505,10 @@ export function calcularCarga(
   };
   // El detalle sigue EXACTAMENTE al número: se anota con la misma regla de
   // solape que `marcar`, en las mismas llamadas.
-  const anotar = (i: number, desde: number, hasta: number, u: AulaDeCarga, confirmada: boolean) => {
+  const anotar = (
+    i: number, desde: number, hasta: number, u: AulaDeCarga, confirmada: boolean,
+    horas?: { rango: string; recojo: string; salida: string },
+  ) => {
     franjas.forEach((f, j) => {
       if (desde <= f && hasta > f) {
         quienes[i][j].push({
@@ -499,16 +525,28 @@ export function calcularCarga(
           // plausible el texto crudo podría ser un «por confirmar» tecleado, y
           // mostrarlo como hora inventaría un acuerdo.
           hora: confirmada ? u.horaTexto : "",
+          rango: horas?.rango ?? "",
+          recojo: horas?.recojo ?? "",
+          salida: horas?.salida ?? "",
           momento: confirmada ? (u.momento ?? "") : "",
         });
       }
     });
   };
   const marcarFirme = (i: number, b: Bloque, u: AulaDeCarga) => {
-    // Agendada: ocupa la ventana que se acordó y nada más.
+    // Agendada: la cita pactada. B71 (dictado 2026-09-03): lo que se ocupa
+    // es la HORA COMPLETA — recojo de materiales (T−preparación) incluido —
+    // y la banda firme la cuenta entera, para que los cruces de la malla
+    // sean los mismos que ve el reparto.
     const desde = u.momento ? inicioDeVentana(b.desde, b.hasta, duracionMin, u.momento) : (u.hora as number);
-    marcar(firmes, i, desde, desde + duracionMin);
-    anotar(i, desde, desde + duracionMin, u, true);
+    const desdeOcupado = Math.max(0, desde - preparacionMin);
+    marcar(firmes, i, desdeOcupado, desde + duracionMin);
+    anotar(i, desdeOcupado, desde + duracionMin, u, true, {
+      // B73: la tarjeta dice toda la secuencia y de qué hora a qué hora.
+      rango: `${hhmm(desde)}–${hhmm(desde + duracionMin)}`,
+      recojo: hhmm(desdeOcupado),
+      salida: hhmm(Math.max(0, desde - salidaMin)),
+    });
   };
   // Sin agendar: la banda es la CLASE ENTERA. No se aplica ninguna ventana ni
   // ningún momento, porque el momento todavía no existe: lo fija cada docente al

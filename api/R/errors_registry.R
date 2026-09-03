@@ -86,6 +86,8 @@ errores_registrados <- function() {
     "E_AULAS_APLICADAS_SIN_HOJA",                            "carga_aulas_aplicadas.R",           "422",
     "E_AULAS_LIBRO_NO_EXISTE",                               "carga_aulas_libro.R",               "400",
     "E_AULAS_LIBRO_ILEGIBLE",                                "carga_aulas_libro.R",               "422",
+    "E_AULAS_DISPONIBILIDAD_FILE_ID",                        "router_monitoreo.R",                "404",
+    "E_AULAS_DISPONIBILIDAD_SIN_ORIGEN",                     "router_monitoreo.R",                "400",
     "E_AULAS_LIBRO_FILE_ID",                                 "router_monitoreo.R",                "404",
     "E_AULAS_LIBRO_SIN_HOJAS",                               "carga_aulas_libro.R",               "422",
     "E_AULAS_LIBRO_SIN_PLAN",                                "carga_aulas_libro_generar.R",       "409",

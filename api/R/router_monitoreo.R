@@ -5087,6 +5087,47 @@ mount_monitoreo <- function(pr) {
         saved_project = !is.null(saved_project)
       )
     })) |>
+    # B74 (dictado 2026-09-03): «la pestaña de disponibilidad no tiene ningun
+    # mecanismo para poder importarla… ¿que pasa si quiero enviarte una
+    # actualizada y volver a hacer una asignacion?». Hasta hoy la clave la
+    # escribia un runner externo (patron DAA, session_schema.R). El excel sube
+    # por /api/files/upload (kind aulas_disponibilidad) y aqui se importa por
+    # su file_id; la marca de disponibilidad ya vive en el token del dashboard
+    # (B29), asi que el reparto se rearma solo en el siguiente estado.
+    plumber::pr_post("/api/monitoreo/aulas/disponibilidad",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      ruta <- ""
+      fid <- .monitoreo_scalar(parsed$file_id, "")
+      if (nzchar(fid)) {
+        meta <- (s$files %||% list())[[fid]]
+        if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
+          stop_api(404, "E_AULAS_DISPONIBILIDAD_FILE_ID",
+                   "El file_id no corresponde a un archivo de la sesion.")
+        }
+        ruta <- as.character(meta$path)
+      } else {
+        # Solo en desarrollo: permite apuntar al excel del disco sin subirlo.
+        ruta <- .monitoreo_scalar(parsed$path, "")
+      }
+      if (!nzchar(ruta)) {
+        stop_api(400, "E_AULAS_DISPONIBILIDAD_SIN_ORIGEN",
+                 "Indica el file_id del excel de disponibilidad a importar.")
+      }
+      disp <- carga_disponibilidad_aplicadores(ruta)
+      session_set(sid, "monitoreo_aulas_disponibilidad", disp)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        aplicadores = length(disp),
+        # Los avisos del lector, enteros: una celda ilegible tomada como «no
+        # disponible» es una decision que el usuario tiene que ver.
+        avisos = as.list(attr(disp, "avisos") %||% character(0)),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
     # **La otra puerta del mismo ciclo.** El `.xlsx` de arriba sirve para el
     # cierre; esto es para el operativo en marcha, cuando el equipo trabaja
     # sobre la pestaña en linea y nadie quiere descargar un archivo para ver
