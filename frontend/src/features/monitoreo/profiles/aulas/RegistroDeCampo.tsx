@@ -26,6 +26,7 @@ import {
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
 import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
 import { porQueEsaMeta } from "./porQueEsaMeta";
 import { EstadoEnCelda } from "./EstadoEnCelda";
@@ -642,6 +643,24 @@ export function RegistroDeCampo({
                   {etiquetaDeAula(activa)}
                   {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
                 </p>
+                {/* La cita a la vista de quien registra: dónde, a qué hora y
+                    qué día, como la fila de chips del Sistema Pabellón (B33) —
+                    el mismo A206 con el mismo tono que la Agenda. El lugar
+                    acordado (B30) gana al salón del catálogo. */}
+                {(() => {
+                  const lugar = String(activa.scheduled_venue ?? "").trim()
+                    || String(activa.venue ?? "").trim();
+                  const hora = String(activa.scheduled_time ?? "").trim();
+                  const fecha = String(activa.scheduled_date ?? "").trim().slice(0, 10);
+                  if (!lugar && !hora && !fecha) return null;
+                  return (
+                    <div className="aulas-chips-fila">
+                      {hora ? <ChipHora>{hora}</ChipHora> : null}
+                      {lugar ? <ChipLugar lugar={lugar} /> : null}
+                      {fecha ? <ChipDato>{fecha}</ChipDato> : null}
+                    </div>
+                  );
+                })()}
                 {/* El enlace de aplicación A LA MANO: quien registra es quien lo
                     reparte cuando el QR impreso no alcanza. Lo escribe la
                     entrega de Recopiladores en `row.link`; sin él, el motivo es
