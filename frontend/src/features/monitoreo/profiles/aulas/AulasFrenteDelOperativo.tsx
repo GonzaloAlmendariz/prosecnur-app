@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { frenteDelOperativo } from "./frenteDelOperativo";
 import { fmt } from "./kpisDeAulas";
 
@@ -131,14 +132,21 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
               </span>
               <span className="aulas-frente-codigo">{a.codigo}</span>
               <span className="aulas-frente-facultad" title={a.facultad}>{a.facultad}</span>
-              <span className="aulas-frente-cuando">
-                {fechaCorta(a.fecha)}{a.hora ? <em> {a.hora}</em> : null}
-              </span>
+              <span className="aulas-frente-cuando">{fechaCorta(a.fecha)}</span>
               {/* El `title` lleva el texto ENTERO del Excel —«LUN 16:00 V110»—
-                  aunque la celda muestre solo el aula: el vocabulario del equipo
-                  no se pierde, solo deja de repetirse al lado de la columna que
-                  ya dice el dia y la hora. */}
-              <span className="aulas-frente-donde" title={a.sesion || a.donde}>{a.donde || "—"}</span>
+                  aunque la celda muestre la sesión ya ordenada: el vocabulario
+                  del equipo no se pierde. La hora y el aula van como el par de
+                  chips del Sistema Pabellón (B33), el mismo A206 que la
+                  Agenda; la columna de la fecha queda con el día, que es lo
+                  que se compara contra el corte. */}
+              <span className="aulas-frente-donde" title={a.sesion || a.donde || undefined}>
+                {a.hora || a.donde ? (
+                  <span className="aulas-chip-sesion">
+                    {a.hora ? <ChipHora>{a.hora}</ChipHora> : null}
+                    {a.donde ? <ChipLugar lugar={a.donde} /> : null}
+                  </span>
+                ) : "—"}
+              </span>
             </li>
           ))}
         </ul>
