@@ -186,6 +186,10 @@
    fija — el equivalente accesible del hover. Reset del botón nativo; el color
    viene del estilo en línea de las dos capas. */
 button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+/* B39: en celda con confirmados el techo «+N» acompaña sin competir — el
+   número grande es el hecho, el techo es contexto. Hereda el color de la
+   celda (que ya conmuta por contraste) y solo baja peso y tamaño. */
+.aulas-carga-celda .aulas-carga-techo { font-size: 9px; font-weight: 500; opacity: 0.78; margin-left: 1px; vertical-align: super; letter-spacing: -0.02em; }
 button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
 /* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el

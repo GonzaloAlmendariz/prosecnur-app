@@ -54,6 +54,15 @@ describe("las celdas ocupadas se pueden explorar; las vacías no estorban el tec
     expect(html).not.toContain('type="range"');
   });
 
+  it("B39: el número grande de la celda verde es el confirmado; el techo va aparte como «+N»", () => {
+    // Dictado (2026-09-02): «ya no habrían tantos cruces… mostrarlo de una
+    // forma más elegante». La suma pintaba «2» donde el cruce real era 1.
+    // El fixture tiene 1 confirmado + 1 plausible a las 10:00: la celda dice
+    // 1 con techo +1, no un 2 indistinguible.
+    expect(html).toContain("aulas-carga-techo");
+    expect(html).toMatch(/aulas-carga-techo[^>]*>\+1</);
+  });
+
   it("el pico del operativo está marcado EN la malla, no solo en el KPI", () => {
     expect(html).toContain("es-pico");
   });
