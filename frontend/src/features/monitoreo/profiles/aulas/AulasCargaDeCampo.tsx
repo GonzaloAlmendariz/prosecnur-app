@@ -13,6 +13,7 @@ import {
   calcularCarga,
   citasDeLaFila,
   comoHora,
+  pabellonesDeLasCitas,
   ejeSugerido,
   hayHorarioDeCurso,
   lugaresDelPlan,
@@ -728,6 +729,15 @@ export function AulasCargaDeCampo({
                   <p className="aulas-carga-detalle-titulo">
                     <strong>{malla.filas[diaActivo].etiqueta}</strong>{" "}
                     <ChipDato>día completo · {fmt(delDia.length)} cursos-horario</ChipDato>
+                    {/* A qué edificios se va ese día: la letra con su color y
+                        su cuenta — el croquis mental antes de salir. */}
+                    {pabellonesDeLasCitas(delDia).map((p) => (
+                      <span key={p.pabellon} className="aulas-carga-detalle-pabellon">
+                        {p.pabellon === "otros"
+                          ? <ChipDato>otros ×{fmt(p.aulas)}</ChipDato>
+                          : <><ChipLugar lugar={p.pabellon} /><em>×{fmt(p.aulas)}</em></>}
+                      </span>
+                    ))}
                     <em> · otro click en la fecha lo suelta</em>
                   </p>
                   {grupo(delDia.filter((o) => o.confirmada), "Confirmados")}

@@ -640,3 +640,6 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   letter-spacing: 0.04em;
 }
 .aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }
+/* Los edificios del parte del día: letra coloreada + cuenta, en el título. */
+.aulas-carga-detalle-pabellon { display: inline-flex; align-items: center; gap: 2px; margin-left: 7px; }
+.aulas-carga-detalle-pabellon em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); }
