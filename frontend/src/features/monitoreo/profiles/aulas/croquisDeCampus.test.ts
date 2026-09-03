@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BASE_PULSO,
   BORDE_CAMPUS,
   PABELLONES_CAMPUS,
   PUERTAS_CAMPUS,
@@ -19,31 +20,48 @@ import {
 describe("la tabla de pabellones del croquis", () => {
   it("trae las 21 letras del campus, con Y declarada como derivada", () => {
     const letras = PABELLONES_CAMPUS.map((p) => p.letra);
-    expect(letras).toHaveLength(21);
+    expect(letras).toHaveLength(22);
     for (const l of ["A", "D", "E", "G", "H", "I", "J", "L", "M", "N", "O", "P", "Q", "R", "V", "X", "Y", "Z"]) {
       expect(letras, `letra del operativo ${l}`).toContain(l);
     }
+    // K entro por el barrido de Google Maps (Sec. Mecatronica) y lo dice.
+    expect(PABELLONES_CAMPUS.find((p) => p.letra === "K")?.fuente).toBe("google");
     const y = PABELLONES_CAMPUS.find((p) => p.letra === "Y");
     // Y no tiene marcador propio en ninguna fuente: su posición es un
     // centroide de vecinos y el dato lo DICE, igual que en el motor R.
     expect(y?.fuente).toBe("derivada");
   });
 
-  it("la proyección respeta la geografía: norte arriba, este a la derecha", () => {
+  it("la proyección está girada 180 grados: sur arriba, este a la izquierda", () => {
+    // Dictado de Gonzalo (2026-09-03): «inviertas el mapa 180 grados» — el
+    // gemelo de pantalla gira con el papel o dejan de ser el mismo croquis.
     const en = (letra: string) => {
       const p = PABELLONES_CAMPUS.find((x) => x.letra === letra)!;
       return proyectar(p.lat, p.lng);
     };
-    // X es el extremo norte y O el sur: en SVG la y crece hacia abajo.
-    expect(en("X").y).toBeLessThan(en("O").y);
-    // P está al este de O.
-    expect(en("P").x).toBeGreaterThan(en("O").x);
+    // X es el extremo norte: tras el giro queda ABAJO (y SVG crece hacia abajo).
+    expect(en("X").y).toBeGreaterThan(en("O").y);
+    // P está al este: tras el giro queda a la izquierda.
+    expect(en("P").x).toBeLessThan(en("O").x);
     // Todo dentro del lienzo.
     for (const p of PABELLONES_CAMPUS) {
       const { x, y } = proyectar(p.lat, p.lng);
       expect(x).toBeGreaterThanOrEqual(0);
       expect(y).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("la base PULSO PUCP está en su punto confirmado, en el barrio del L", () => {
+    // Dictado (2026-09-03): «resalta dónde está PULSO PUCP siempre». El dueño
+    // corrigió la primera derivación con captura; la coordenada es la del
+    // place público de Google Maps (junto a CIGA) — fuente CONFIRMADA,
+    // gemela del motor R.
+    expect(BASE_PULSO.nombre).toBe("PULSO PUCP");
+    expect(BASE_PULSO.fuente).toBe("confirmada");
+    const ele = PABELLONES_CAMPUS.find((p) => p.letra === "L")!;
+    const dLat = (BASE_PULSO.lat - ele.lat) * 110574;
+    const dLng = (BASE_PULSO.lng - ele.lng) * 111320 * Math.cos((12.07 * Math.PI) / 180);
+    expect(Math.hypot(dLat, dLng)).toBeLessThan(120);
   });
 
   it("el marco trae borde y las cinco puertas", () => {

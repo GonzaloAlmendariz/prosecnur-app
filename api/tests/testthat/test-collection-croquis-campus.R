@@ -132,10 +132,13 @@ test_that("el croquis conoce los 18 pabellones del operativo mas B, F y U, con s
   operativo <- c("A", "D", "E", "G", "H", "I", "J", "L", "M", "N", "O", "P",
                  "Q", "R", "V", "X", "Y", "Z")
   expect_true(all(operativo %in% pab$letra))
-  # B, F y U no estan en la leyenda pero existen en el campus: van en trazo
-  # suave como referencia, porque un croquis con huecos desorienta mas que uno
-  # completo.
-  expect_true(all(c("B", "F", "U") %in% pab$letra))
+  # B, F, K y U no estan en la leyenda pero existen en el campus: van en
+  # trazo suave como referencia, porque un croquis con huecos desorienta mas
+  # que uno completo. La K la entrego el barrido de Google Maps del
+  # 2026-09-03 («PABELLON K, Sec. Mecatronica») — y el venue real «K301»
+  # dejo de caer en desconocido.
+  expect_true(all(c("B", "F", "K", "U") %in% pab$letra))
+  expect_identical(as.character(pab$fuente[pab$letra == "K"]), "google")
 
   # Y no tiene marcador propio en ninguna fuente: su posicion es un centroide
   # de vecinos y la tabla lo DICE. Declarar la procedencia es lo que permite
@@ -143,23 +146,81 @@ test_that("el croquis conoce los 18 pabellones del operativo mas B, F y U, con s
   expect_identical(as.character(pab$fuente[pab$letra == "Y"]), "derivada")
 })
 
-test_that("la proyeccion conserva norte arriba y este a la derecha, dentro de la pagina", {
+test_that("la proyeccion esta girada 180 grados: sur arriba, este a la izquierda", {
+  # Dictado de Gonzalo (2026-09-03): «inviertas el mapa 180 grados». El giro
+  # es contrato, no gusto: el equipo lee el croquis con la zona de aplicacion
+  # dominante (el sur del campus) arriba. La flecha N del dibujo apunta hacia
+  # abajo y sigue diciendo la verdad.
   L <- prosecnurapp:::.ccx_layout()
   expect_true(is.list(L))
 
   centro <- function(letra) .ccq_centro(letra)
-  x_ <- centro("X") # extremo norte del campus
-  o_ <- centro("O") # sur y oeste
-  p_ <- centro("P") # este
-  # Solo monotonicidad y rango, no posiciones exactas: el layout puede
-  # reacomodar margenes sin romper el contrato, pero un croquis con el norte
-  # abajo o un pabellon fuera de la hoja es un mapa que miente.
-  expect_gt(x_$y, o_$y)
-  expect_gt(p_$x, o_$x)
+  x_ <- centro("X") # extremo norte del campus -> ABAJO tras el giro
+  o_ <- centro("O") # sur y oeste -> arriba y a la derecha
+  p_ <- centro("P") # este -> izquierda
+  expect_lt(x_$y, o_$y)
+  expect_lt(p_$x, o_$x)
   for (punto in list(x_, o_, p_)) {
     expect_gte(punto$x, 0); expect_lte(punto$x, 1)
     expect_gte(punto$y, 0); expect_lte(punto$y, 1)
   }
+})
+
+test_that("la base PULSO PUCP esta marcada siempre, con su fuente declarada", {
+  # Dictado de Gonzalo (2026-09-03): «resalta donde esta PULSO PUCP siempre».
+  # La primera posicion se DERIVO junto al L y el dueño la corrigio en vivo
+  # («esta cerca de ahi pero no esta alli») con captura: la coordenada es la
+  # del place publico «PULSO PUCP» de Google Maps, junto a CIGA — fuente
+  # CONFIRMADA, ya no derivada.
+  base <- prosecnurapp:::.ccx_base_pulso()
+  expect_identical(base$nombre, "PULSO PUCP")
+  expect_identical(base$fuente, "confirmada")
+  # En el barrio del pabellon L (el pin real queda a ~90 m de su marcador).
+  pab <- prosecnurapp:::.ccx_pabellones()
+  ele <- pab[pab$letra == "L", ]
+  dist_m <- sqrt(((base$lat - ele$lat) * 110574)^2 +
+                 ((base$lng - ele$lng) * 111320 * cos(12.07 * pi / 180))^2)
+  expect_lt(dist_m, 120)
+
+  # Y se dibuja SIEMPRE: la lamina general (sin venue) tambien la lleva. Se
+  # verifica por pixel en el punto proyectado de la base: navy de la marca,
+  # no el gris del terreno.
+  skip_if_not_installed("png")
+  dir <- tempfile("ccq-pulso-"); dir.create(dir)
+  png_path <- file.path(dir, "lamina.png")
+  collection_croquis_lamina(png_path, venue = NULL, device = "png", dpi = 110)
+  img <- png::readPNG(png_path)
+  p <- prosecnurapp:::.ccx_proyectar(base$lat, base$lng, prosecnurapp:::.ccx_layout())
+  pixel <- .ccq_pixel(img, p$x, p$y)
+  navy <- c(0x00, 0x24, 0x57) / 255
+  expect_true(
+    all(abs(pixel - navy) <= 0.20),
+    info = sprintf("pixel de la base PULSO = (%.3f, %.3f, %.3f)", pixel[1], pixel[2], pixel[3])
+  )
+})
+
+test_that("el verso resalta EXACTAMENTE el aula que la cara del QR imprime", {
+  # Dictado de Gonzalo (2026-09-03): «asegurate que el pabellon que se
+  # resalte sea el que se muestra en el QR en relacion al pabellon
+  # establecido». Las dos caras beben del MISMO campo (unit.venue): este test
+  # fija que el texto impreso en «Pabellon y aula» y el venue crudo que el
+  # verso usa para resaltar son identicos — si alguna cara cambiara de
+  # fuente (p. ej. al aula pactada) sin la otra, aqui truena.
+  compiled <- .ccq_compiled(
+    collection_material_field_sheet_template(), dimensions = list(venue = "D103 · H113")
+  )
+  cara <- compiled$pages[[1]]
+  verso <- compiled$pages[[2]]
+  filas <- Filter(function(b) identical(b$type, "form_lines"), cara$blocks)[[1]]$rows
+  celda <- NULL
+  for (row in filas) for (cell in row$fields) {
+    if (grepl("Pabell", cell$label %||% "")) celda <- cell
+  }
+  expect_false(is.null(celda))
+  expect_identical(celda$value, "D103 · H113")
+  expect_identical(verso$unit$venue_raw, celda$value)
+  # Y las letras que el verso resalta salen de ese mismo texto.
+  expect_identical(prosecnurapp:::.ccx_letras_de_venue(verso$unit$venue_raw), c("D", "H"))
 })
 
 test_that("la ficha de campo gana un verso: pagina croquis_campus con campus_map ligado al aula", {

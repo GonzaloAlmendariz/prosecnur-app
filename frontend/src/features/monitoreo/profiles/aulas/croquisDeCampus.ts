@@ -18,8 +18,8 @@ export interface PabellonDelCroquis {
   letra: string;
   lat: number;
   lng: number;
-  /** oficial | osm | derivada — ver el doc de fuentes. */
-  fuente: "oficial" | "osm" | "derivada";
+  /** oficial | osm | derivada | google — ver el doc de fuentes. */
+  fuente: "oficial" | "osm" | "derivada" | "google";
 }
 
 /** El chip de la B lleva el mismo ajuste declarado que en el verso (+25 m O,
@@ -34,6 +34,7 @@ export const PABELLONES_CAMPUS: readonly PabellonDelCroquis[] = [
   { letra: "H", lat: -12.069614, lng: -77.081231, fuente: "oficial" },
   { letra: "I", lat: -12.070515, lng: -77.078737, fuente: "oficial" },
   { letra: "J", lat: -12.070352, lng: -77.080311, fuente: "oficial" },
+  { letra: "K", lat: -12.07289, lng: -77.082775, fuente: "google" },
   { letra: "L", lat: -12.06753, lng: -77.080201, fuente: "oficial" },
   { letra: "M", lat: -12.071597, lng: -77.081676, fuente: "oficial" },
   { letra: "N", lat: -12.068663, lng: -77.078801, fuente: "oficial" },
@@ -82,11 +83,14 @@ export const HITOS_CAMPUS: ReadonlyArray<{ nombre: string; lat: number; lng: num
   { nombre: "Comedor", lat: -12.070422, lng: -77.081178 },
   { nombre: "Coliseo", lat: -12.066931, lng: -77.07995 },
   { nombre: "CIA", lat: -12.072085, lng: -77.080308 },
+  // Rótulo corrido ~30 m SE del centro real: encima cae el chip del L.
+  { nombre: "Rotonda Letras", lat: -12.06779, lng: -77.07993 },
 ];
 
 // El mismo bbox y factor cos(latitud) del verso: 100 m miden lo mismo en
-// ambos ejes. En SVG la y crece hacia ABAJO, así que el norte queda arriba
-// invirtiendo la latitud.
+// ambos ejes. GIRADO 180 grados igual que el papel (dictado 2026-09-03):
+// sur arriba, este a la izquierda — en SVG (y hacia abajo) eso es y=fracLat
+// directo y x invertida.
 const LAT0 = -12.0748;
 const LAT1 = -12.0645;
 const LNG0 = -77.0842;
@@ -99,10 +103,20 @@ export const CROQUIS_ANCHO = Math.round(CROQUIS_ALTO * ASPECTO);
 
 export function proyectar(lat: number, lng: number): { x: number; y: number } {
   return {
-    x: ((lng - LNG0) / (LNG1 - LNG0)) * CROQUIS_ANCHO,
-    y: (1 - (lat - LAT0) / (LAT1 - LAT0)) * CROQUIS_ALTO,
+    x: (1 - (lng - LNG0) / (LNG1 - LNG0)) * CROQUIS_ANCHO,
+    y: ((lat - LAT0) / (LAT1 - LAT0)) * CROQUIS_ALTO,
   };
 }
+
+/** La base del equipo. Posición CONFIRMADA por el dueño (2026-09-03,
+ * captura) y calzada con el place público «PULSO PUCP» de Google Maps:
+ * junto a CIGA, al oeste del Auditorio de EEGG Letras — gemela del motor R. */
+export const BASE_PULSO = {
+  nombre: "PULSO PUCP",
+  lat: -12.0675895,
+  lng: -77.081028,
+  fuente: "confirmada",
+} as const;
 
 /** «H404 · A608» → ["H404", "A608"]. Los separadores son los VISTOS en datos
  * reales (301/1.392 venues de ULT2 traen dos aulas); no se inventan otros. */

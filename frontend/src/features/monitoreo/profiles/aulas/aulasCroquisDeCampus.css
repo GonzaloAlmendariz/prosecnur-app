@@ -86,3 +86,24 @@
   font-size: 12px;
   color: var(--pulso-text-soft);
 }
+
+/* La base del equipo: pin navy siempre visible, con halo blanco para
+   despegarse de las huellas. */
+.aulas-croquis-base-halo {
+  fill: var(--pulso-surface);
+  stroke: var(--pulso-primary, #002457);
+  stroke-width: 1.5;
+}
+
+.aulas-croquis-base-pin {
+  fill: var(--pulso-primary, #002457);
+}
+
+.aulas-croquis-base-rotulo {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--pulso-primary, #002457);
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 5px;
+}
