@@ -177,6 +177,17 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
     );
   }
 
+  // Loop mejora-ui E9: el swatch de una categoría en cero se apaga hacia el
+  // fondo. La leyenda ya declara el cero en el texto («En cierre 0»), pero el
+  // cuadrito a color pleno junto a ese cero prometía un segmento que la barra
+  // no tiene — seis swatches al mismo volumen para tres segmentos reales. El
+  // color apagado solo vive en la leyenda: una traza en cero no pinta barra.
+  const swatchApagado = (hex: string): string => {
+    const n = hex.replace("#", "");
+    const c = (i: number) => Math.round(parseInt(n.slice(i, i + 2), 16) * 0.3 + 255 * 0.7);
+    return `rgb(${c(0)}, ${c(2)}, ${c(4)})`;
+  };
+
   const data = estados.map((estado) => ({
     type: "bar",
     orientation: "h",
@@ -190,7 +201,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
     y: ["Cursos-horario"],
     x: [estado.aulas],
     marker: {
-      color: estado.color,
+      color: estado.aulas ? estado.color : swatchApagado(estado.color),
       // El trazo blanco es lo que deja ver la frontera entre dos segmentos
       // contiguos cuando uno de ellos es muy corto.
       line: { color: COLOR_SEPARADOR_BARRA, width: 1 },
