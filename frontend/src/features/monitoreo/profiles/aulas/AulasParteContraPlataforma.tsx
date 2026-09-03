@@ -125,8 +125,11 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
           es contra las efectivas, sin descontar el filtro.
         </p>
       ) : null}
+      {/* La lista ENTERA, de mayor a menor diferencia: el techo de diez quedó
+          revocado (B33, principio 3). El orden es la priorización; el scroll
+          de la sección recorre lo que no quepa. */}
       <ul className="aulas-cruce-lista">
-        {r.casos.slice(0, 10).map((c) => (
+        {r.casos.map((c) => (
           <li key={c.codigo}>
             <span className="aulas-cruce-cod">{c.codigo}</span>
             <span className="aulas-cruce-n">
@@ -141,11 +144,6 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
           </li>
         ))}
       </ul>
-      {r.casos.length > 10 ? (
-        <p className="mon-profile-muted">
-          Las diez de mayor diferencia, de {fmt(r.casos.length)}.
-        </p>
-      ) : null}
     </div>
   );
 }

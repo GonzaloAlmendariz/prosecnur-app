@@ -204,8 +204,11 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
           para comparar facultades entre sí —la misma razón por la que la
           pirámide recibe todas las filas: es el control—. Aquí es al revés:
           quien está siguiendo a una facultad quiere SUS aulas. */}
+      {/* La lista ENTERA, del más barato al más caro: el techo de diez quedó
+          revocado (B33, principio 3 — se organiza, no se esconde). El orden es
+          la priorización; el scroll de la sección recorre lo que no quepa. */}
       <ul className="aulas-falta-lista">
-        {enFoco.slice(0, 10).map((a) => (
+        {enFoco.map((a) => (
           <li key={a.codigo}>
             {/* El codigo abre la ficha de esa aula. Es el unico sitio del perfil
                 que lista aulas pintando sus propias filas —`DataTable` no
@@ -236,11 +239,13 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
           <>
             {/* «Los … cursos-horario»: el sujeto es la unidad, y aquí sí está
                 escrito, así que arrastraba artículo y sustantivo. */}
-            Los {enFoco.length > 10 ? "diez más baratos de " : ""}{fmt(enFoco.length)}{" "}
+            Los {fmt(enFoco.length)}{" "}
             {enFoco.length === 1 ? "curso-horario" : "cursos-horario"} de {facultadEnFoco}, que es la facultad en foco.{" "}
           </>
-        ) : total > 10 ? (
-          <>Los diez más baratos; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </>
+        ) : total > 1 ? (
+          /* La lectura del ORDEN, que era lo que el tope decía de paso: la
+             lista va del más barato al más caro y el último dice el peor caso. */
+          <>Del más barato al más caro; el último pide {fmt(r.aulas[total - 1].faltan)} encuestas. </>
         ) : null}
         {conDiez > conCinco ? <>Con diez o menos cierran {fmt(conDiez)}. </> : null}
         {conLaMitad ? <>Con la mitad del esfuerzo —{fmt(Math.round(costo / 2))} encuestas— se cierran {fmt(conLaMitad)} de las {fmt(total)}. </> : null}
