@@ -76,6 +76,47 @@ CCX_TONOS_DE_PABELLON <- 8L
   unique(letras[nzchar(letras)])
 }
 
+# El subtitulo del croquis como funcion PURA del venue: lo que el warning
+# declara tambien se imprime — el aplicador tiene la lamina en la mano, no el
+# log del render (nota del verificador de V2).
+.ccx_subtitulo_croquis <- function(venue_raw) {
+  venue <- trimws(as.character(venue_raw %||% "")[1])
+  if (is.na(venue)) venue <- ""
+  pb <- .ccx_pabellones()
+  lugares <- .ccx_lugares_de_venue(venue)
+  letras_venue <- .ccx_letras_de_venue(venue)
+  letras_sel <- letras_venue[letras_venue %in% pb$letra]
+  aulas_txt <- paste(toupper(lugares), collapse = " · ")
+  base <- if (length(letras_sel) > 1L) {
+    # Dos pabellones a la vez: cualquiera de los dos, segun la sesion del
+    # horario (la cara de la ficha imprime el horario completo).
+    sprintf("Tu lugar de aplicación: PABELLÓN %s · aulas %s — según el horario",
+            paste(letras_sel, collapse = " o "), aulas_txt)
+  } else if (length(letras_sel) == 1L) {
+    sprintf("Tu lugar de aplicación: PABELLÓN %s · %s %s",
+            letras_sel, if (length(lugares) > 1L) "aulas" else "aula", aulas_txt)
+  } else if (length(letras_venue)) {
+    return(sprintf("Aula %s — pabellón fuera del croquis", aulas_txt))
+  } else if (nzchar(venue)) {
+    # Hay venues reales sin letra de pabellon («101E», «SIMB» en HSVG2026):
+    # el aula se conserva en el subtitulo; lo que falta es el pabellon.
+    return(sprintf("Aula %s — pabellón por confirmar", toupper(venue)))
+  } else {
+    return("Pabellón por confirmar")
+  }
+  # El token mixto sin edificio, impreso: «TAMB · Z111» resalta Z y el papel
+  # dice que TAMB quedo fuera, en vez de dejarlo solo en el warning.
+  desconocidas <- setdiff(letras_venue, letras_sel)
+  if (length(desconocidas)) {
+    fuera <- lugares[vapply(lugares, function(lg) {
+      .ccx_letra_de_pabellon(lg) %in% desconocidas
+    }, logical(1))]
+    base <- sprintf("%s (%s fuera del croquis)", base,
+                    paste(toupper(fuera), collapse = " · "))
+  }
+  base
+}
+
 # Pabellones por letra con su posicion real aproximada (lat/lng WGS84).
 # `fuente`: oficial = marcador directo del mapa oficial; osm = edificio
 # nombrado en OpenStreetMap; derivada = centroide de marcadores oficiales
@@ -247,29 +288,12 @@ CCX_TONOS_DE_PABELLON <- 8L
 
   grid::grid.text("CROQUIS DEL CAMPUS PUCP", x = 0.5, y = L$y_title,
     gp = grid::gpar(col = tokens$navy, fontsize = 15, fontface = "bold"))
-  aulas_txt <- paste(toupper(lugares), collapse = " · ")
-  sub <- if (length(letras_sel) > 1L) {
-    # Dos pabellones a la vez: cualquiera de los dos, segun la sesion del
-    # horario (la cara de la ficha imprime el horario completo).
-    sprintf("Tu lugar de aplicación: PABELLÓN %s · aulas %s — según el horario",
-            paste(letras_sel, collapse = " o "), aulas_txt)
-  } else if (length(letras_sel) == 1L) {
-    sprintf("Tu lugar de aplicación: PABELLÓN %s · %s %s",
-            letras_sel, if (length(lugares) > 1L) "aulas" else "aula", aulas_txt)
-  } else if (length(letras_venue)) {
-    sprintf("Aula %s — pabellón fuera del croquis", aulas_txt)
-  } else {
+  if (!length(letras_venue)) {
     warnings[[length(warnings) + 1L]] <- list(
       code = "croquis_sin_pabellon", page = page_no
     )
-    # Hay venues reales sin letra de pabellon («101E», «SIMB» en HSVG2026):
-    # el aula se conserva en el subtitulo; lo que falta es el pabellon.
-    if (nzchar(venue)) {
-      sprintf("Aula %s — pabellón por confirmar", toupper(venue))
-    } else {
-      "Pabellón por confirmar"
-    }
   }
+  sub <- .ccx_subtitulo_croquis(venue)
   grid::grid.text(sub, x = 0.5, y = L$y_sub,
     gp = grid::gpar(col = tokens$soft, fontsize = if (nchar(sub) > 64L) 9 else 10))
   pulso_pdf_hairline(0.08, 0.92, L$y_sub - 0.018, tokens = tokens)

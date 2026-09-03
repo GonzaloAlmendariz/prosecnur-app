@@ -450,3 +450,16 @@ test_that("en un venue mixto el token sin edificio se declara y el resoluble se 
   )
   expect_true("croquis_pabellon_desconocido" %in% .ccq_codes(rendered))
 })
+
+test_that("el subtitulo imprime lo que el warning declara — el papel no lee warnings", {
+  # Nota del verificador de V2: en «TAMB · Z111» la declaracion de que TAMB no
+  # tiene edificio viajaba SOLO en el warning del render. El aplicador tiene
+  # la lamina en la mano, no el log: lo declarado se imprime.
+  sub <- function(v) prosecnurapp:::.ccx_subtitulo_croquis(v)
+  expect_match(sub("TAMB · Z111"), "TAMB fuera del croquis", fixed = TRUE)
+  # Y los casos de siempre no se mueven: la frase nueva es un apendice, no
+  # una reescritura.
+  expect_match(sub("H404 · A608"), "según el horario", fixed = TRUE)
+  expect_match(sub("A206"), "PABELLÓN A · aula A206", fixed = TRUE)
+  expect_identical(sub(""), "Pabellón por confirmar")
+})
