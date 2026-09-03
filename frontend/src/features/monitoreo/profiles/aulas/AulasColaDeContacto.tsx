@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { ChipHora } from "./AulasSistemaPabellon";
 import { colaDeContacto } from "./colaDeContacto";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -185,8 +186,11 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                     <em>{c.facultad}</em>
                   </td>
                   <td className="aulas-cola-cita">
+                    {/* La hora con el chip del Sistema Pabellón (B33): es la
+                        identidad del compromiso, y el mismo cuadrito que la
+                        Agenda. El día queda en texto — densidad manda. */}
                     {diaLegible(c.fecha)}
-                    {c.hora ? <em> · {c.hora}</em> : null}
+                    {c.hora ? <> <ChipHora>{c.hora}</ChipHora></> : null}
                   </td>
                   <td className="aulas-cola-intentos es-num">
                     {c.intentos > 0 ? <strong>{fmt(c.intentos)}</strong> : <span className="es-vacio">—</span>}
