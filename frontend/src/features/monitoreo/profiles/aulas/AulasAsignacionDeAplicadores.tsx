@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { AlertTriangle, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { hoyISO } from "./calendarioDeAgenda";
 import { mapaDeFijaciones, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
@@ -46,6 +47,7 @@ export function AulasAsignacionDeAplicadores({
   reparto,
   lugares,
   onFijar = null,
+  hoy = hoyISO(),
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   reparto: RepartoVista | null;
@@ -62,6 +64,8 @@ export function AulasAsignacionDeAplicadores({
    * solo lectura y los selectores no se pintan.
    */
   onFijar?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
+  hoy?: string;
 }) {
   // El aplicador explorado desde el rail. Estado UI efímero de esta
   // superficie: no es un panel enlazable ni un foco de entidad — el mismo
@@ -137,14 +141,32 @@ export function AulasAsignacionDeAplicadores({
               agende la primera, aparece aquí con su aplicador.
             </p>
           ) : (
-            reparto.dias.map((d) => (
-              <section key={d.fecha} className="aulas-asigna-dia">
+            (() => {
+              // El día QUE TOCA: el primero que no ha pasado. El jefe
+              // despliega gente POR DÍA (dictado 2026-09-02: «cómo se va a
+              // desplegar a los aplicadores») y en una lista donde todas las
+              // fechas pesan igual, la del despliegue inminente no salta.
+              const proximo = reparto.dias.find((x) => x.fecha >= hoy)?.fecha ?? null;
+              return reparto.dias.map((d) => {
+                const esPasado = d.fecha < hoy;
+                const esElQueToca = d.fecha === proximo;
+                return (
+              <section
+                key={d.fecha}
+                className={`aulas-asigna-dia${esElQueToca ? " es-el-que-toca" : ""}${esPasado ? " es-pasado" : ""}`}
+              >
                 <h4>
                   {d.etiqueta}
                   <span>
                     {" "}· {fmt(d.asignaciones.length)}{" "}
                     {d.asignaciones.length === 1 ? "cita repartida" : "citas repartidas"}
                   </span>
+                  {esElQueToca ? (
+                    <span className="aulas-asigna-toca">
+                      {d.fecha === hoy ? "hoy — el que toca" : "el que toca"}
+                    </span>
+                  ) : null}
+                  {esPasado ? <em className="aulas-asigna-ya-paso"> · ya pasó</em> : null}
                 </h4>
                 {d.noCubiertos.length > 0 ? (
                   /* Destacado y ARRIBA de su día: la cita descubierta es lo que
@@ -255,7 +277,9 @@ export function AulasAsignacionDeAplicadores({
                   </p>
                 ) : null}
               </section>
-            ))
+                );
+              });
+            })()
           )}
         </div>
 
