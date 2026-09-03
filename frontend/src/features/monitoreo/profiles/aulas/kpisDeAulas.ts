@@ -801,7 +801,8 @@ export function aulasKpis(
         icono: Link2,
         value: fmt(cadenas.cerraronEnReemplazo),
         pista: "la reserva alcanzó la meta del titular",
-      },
+        destino: "reemplazos",
+        },
       {
         label: "Cadenas sin cerrar",
         icono: Link2Off,
@@ -818,7 +819,8 @@ export function aulasKpis(
             : "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
         detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
-      },
+        destino: "reemplazos",
+        },
       brechasKpi(dashboard),
     ];
   }
