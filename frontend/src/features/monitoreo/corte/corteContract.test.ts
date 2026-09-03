@@ -249,3 +249,24 @@ describe("el bloqueo del corte incompleto dice CUÁL de los tres estados es", ()
     expect(todos.every((t) => t.length > 0)).toBe(true);
   });
 });
+
+describe("el estado vacío no se disfraza de sincronización fallida", () => {
+  it("sin generation_status, el corte queda bloqueado pero el mensaje no inventa errores", () => {
+    // Medido en vivo (2026-09-03, pre-campo): sync_errors vacío y ninguna
+    // generación corrida, y la banda decía «la última sincronización terminó
+    // con errores» — el colapso ""→"partial" fabricaba la historia.
+    const corte = construirCorte({ ingesta: 0, procesable: 0, oficial: 0, meta: 2500 });
+    expect(corte.generationStatus).toBe("");
+    const r = readinessDeSalidas(corte);
+    expect(r.bloqueos.length).toBeGreaterThan(0);
+    const textos = r.bloqueos.map((b) => b.mensaje ?? "").join(" ");
+    expect(textos).not.toContain("terminó con errores");
+  });
+
+  it("con partial declarado de verdad, el mensaje sí nombra los errores", () => {
+    const corte = construirCorte({ ingesta: 10, procesable: 8, oficial: 5, meta: 2500, generationStatus: "partial" });
+    const r = readinessDeSalidas(corte);
+    const textos = r.bloqueos.map((b) => b.mensaje ?? "").join(" ");
+    expect(textos).toContain("terminó con errores");
+  });
+});

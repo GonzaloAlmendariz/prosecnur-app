@@ -154,7 +154,13 @@ export function construirCorte(input: MonitoreoCorteInput): MonitoreoCorte {
     avancePct,
     cutAt: input.cutAt || "",
     hasSnapshot: input.hasSnapshot ?? ingesta > 0,
-    generationStatus: input.generationStatus || "partial",
+    // El vacío se queda vacío: «todavía no se generó» y «la última terminó
+    // con errores» son historias distintas, y el colapso a "partial" hacía
+    // que un estudio SIN primera sincronización se narrara como una que
+    // FALLÓ («revisa Fuentes antes de publicar» sobre un sync_errors vacío,
+    // medido en vivo 2026-09-03 pre-campo). El corte sigue bloqueado igual
+    // (≠ "complete"); solo cambia que el mensaje dice la verdad.
+    generationStatus: input.generationStatus || "",
     saltos,
     fuentes: fuentesRequeridas != null
       ? { activas: conteo(input.fuentesActivas) ?? 0, requeridas: fuentesRequeridas }
