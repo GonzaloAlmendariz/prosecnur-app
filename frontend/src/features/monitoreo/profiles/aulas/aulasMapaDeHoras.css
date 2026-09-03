@@ -251,3 +251,29 @@
   border-left: 4px solid var(--pulso-module-monitoring);
 }
 .aulas-mapa-dia.es-pasado { opacity: 0.6; }
+
+/* Loop mejora-ui E16: la leyenda del mapa, con los MISMOS trazos del lienzo
+   (criterio de los dictados 2026-09-03: un chart declara su vocabulario en
+   llano). Los swatches calcan los mixes de prep/barra/tentativa/banda. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda {
+  margin: 0 0 10px; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+  font-size: 11.5px; color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda i { width: 18px; height: 10px; border-radius: 3px; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda i.es-prep {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 12%, transparent);
+  border-radius: 3px 0 0 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda i.es-aplicacion {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 78%, #fff);
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda i.es-tentativa {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-border));
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-leyenda i.es-pico {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 16%, transparent);
+  height: 14px;
+}
