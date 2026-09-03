@@ -135,7 +135,13 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
                   </span>
                   <span className="aulas-ruta-docente" title={a.docente}>{a.docente || "—"}</span>
                   <span className="aulas-ruta-estado">
-                    <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />
+                    {/* B13b en la ruta (dictado 2026-09-03, CH 90): el RECHAZO
+                        tecleado en STATUS MUESTRA manda sobre el estado
+                        operativo — «Planificado» junto a una nota de rechazo
+                        era mentirle a quien va al aula. */}
+                    {a.esRechazo
+                      ? <EstadoEnCelda valor="Rechazo" />
+                      : <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />}
                   </span>
                   {/* Lo que anotó quien agendó. Es una condición para entrar al
                       aula —«el docente pide llegar 10 min antes», «coordinar con
