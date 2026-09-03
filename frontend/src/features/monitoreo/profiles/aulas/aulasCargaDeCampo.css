@@ -567,6 +567,39 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   font-size: 11px; color: var(--pulso-text-faint);
 }
 
+/* B76 — la lente por aplicador: el desplegable y la semana de la persona. */
+.aulas-dispo-persona {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 500; color: var(--pulso-text-soft);
+}
+.aulas-dispo-persona select {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  max-width: min(100%, 340px);
+}
+.aulas-dispo-persona select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-dispo-semana {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  max-width: 100ch;
+}
+.aulas-dispo-semana strong { color: var(--pulso-text); font-weight: 600; }
+.aulas-dispo-semana-dia { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aulas-dispo-semana-dia em {
+  font-style: normal; font-weight: 600; color: var(--pulso-text);
+  margin-right: 3px;
+}
+/* Con persona elegida: lo suyo salta con el anillo del módulo y lo ajeno
+   recede — los conteos del agregado siguen legibles en tenue. */
+.aulas-carga-celda.es-suyo { box-shadow: 0 0 0 2px var(--pulso-module-monitoring); }
+.aulas-carga-celda.es-ajeno { opacity: 0.28; }
+
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
 .aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
 .aulas-asigna-tabla thead th {

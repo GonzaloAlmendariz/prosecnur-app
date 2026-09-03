@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { anchoMinimoDeMalla, comoHora } from "./cargaDeCampo";
 import { ChipDato, ChipHora } from "./AulasSistemaPabellon";
+import { aplicadoresDeLaOferta, semanaDelAplicador } from "./disponibilidadDeAplicadores";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
@@ -85,6 +86,10 @@ export function AulasDisponibilidadDeAplicadores({
 }) {
   const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
+  // B76 (dictado 2026-09-03): «un desplegable para poder ver disponibilidad
+  // por aplicador» — la lente inversa de la malla: elegir UNA persona y ver
+  // su semana. "" = el agregado de siempre.
+  const [aplicadorElegido, setAplicadorElegido] = useState("");
 
   if (!oferta) {
     return (
@@ -156,6 +161,38 @@ export function AulasDisponibilidadDeAplicadores({
             : "La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta con el patrón semanal para ver si la gente alcanza."}
         </p>
         <BotonDeImportarDisponibilidad onImportar={onImportar} />
+        {(() => {
+          const nombres = aplicadoresDeLaOferta(oferta);
+          if (!nombres.length) return null;
+          return (
+            <label className="aulas-dispo-persona">
+              Ver a
+              <select
+                value={aplicadorElegido}
+                onChange={(e) => setAplicadorElegido(e.target.value)}
+                aria-label="Ver la disponibilidad de un aplicador concreto"
+              >
+                <option value="">Todo el equipo</option>
+                {nombres.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          );
+        })()}
+        {aplicadorElegido ? (() => {
+          const semana = semanaDelAplicador(oferta, aplicadorElegido);
+          return (
+            <p className="aulas-dispo-semana">
+              <strong>{aplicadorElegido}</strong>
+              {semana.length === 0
+                ? " no declaró horas."
+                : semana.map((d) => (
+                    <span key={d.etiqueta} className="aulas-dispo-semana-dia">
+                      <em>{d.etiqueta}</em> {d.bloques.join(" · ")}
+                    </span>
+                  ))}
+            </p>
+          );
+        })() : null}
         <dl className="aulas-carga-kpis">
           <div>
             <dt>Aplicadores</dt>
@@ -229,12 +266,18 @@ export function AulasDisponibilidadDeAplicadores({
                   // alarma, «más citas que gente». El muro de conteos recede
                   // y las franjas que importan al operativo saltan solas.
                   const marca = citas > 0 ? (citas > n ? " es-deficit" : " tiene-citas") : "";
+                  // B76: con una persona elegida, SUS franjas saltan y el
+                  // resto recede — los conteos siguen visibles en tenue.
+                  const lente = aplicadorElegido
+                    ? ((oferta.nombres[i]?.[j] ?? []).includes(aplicadorElegido)
+                        ? " es-suyo" : " es-ajeno")
+                    : "";
                   return (
                     <td key={j} className={oferta.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
                       {n ? (
                         <button
                           type="button"
-                          className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}${marca}`}
+                          className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}${marca}${lente}`}
                           style={celda(n)}
                           title={nombreDeFranja(i, j) + (pico ? " · pico de la oferta" : "")}
                           aria-label={nombreDeFranja(i, j) + (pico ? ". Pico de la oferta" : "")}
