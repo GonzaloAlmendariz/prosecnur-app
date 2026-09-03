@@ -207,7 +207,10 @@ export function AulasPestanaResumen({
                     contesta la pregunta anterior… y sobre todo separa "sin
                     agendar" de "agendada y aún sin empezar", que la cobertura
                     mete en el mismo saco». */}
-                <span>{contadorDelReparto(dashboard.course_status_estados)} · en qué punto del circuito está cada una</span>
+                {/* «cada uno»: la unidad recién nombrada es el curso-horario,
+                    masculino (E17 — el contrato de género caza participios,
+                    no pronombres, y éste se le escapó). */}
+                <span>{contadorDelReparto(dashboard.course_status_estados)} · en qué punto del circuito está cada uno</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
