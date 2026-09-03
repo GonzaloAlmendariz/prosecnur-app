@@ -752,6 +752,12 @@ export type MonitoreoAulasConfig = {
    * capacidad sin consumidor.
    */
   duracion_sospecha_min?: number | null;
+  /**
+   * B70 (dictado 2026-09-03): cuántos minutos dura la aplicación. El slider
+   * de Carga de campo la edita; ventanas/franjas/reparto del backend la
+   * respetan. Default del motor: 30.
+   */
+  duracion_aplicacion_min?: number | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   /**
@@ -1164,6 +1170,10 @@ export type MonitoreoAulasFranjaDia = {
 export type MonitoreoAulasFranjas = {
   dias: MonitoreoAulasFranjaDia[];
   personas_fuente?: string;
+  /** B70: con qué duración de aplicación (min) se armaron las ventanas. */
+  duracion_min?: number;
+  /** B71: minutos de preparación previa (recojo + desplazamiento). */
+  preparacion_min?: number;
 };
 
 /**
@@ -1204,6 +1214,10 @@ export type MonitoreoAulasRepartoAsignacion = {
   fijada?: boolean;
   /** B36: lo que la oferta no respalda («sin_disponibilidad», «se_solapa»). */
   advertencia?: string;
+  /** B71: a qué hora recoge materiales (T−30), dicho por el motor. */
+  recojo?: string;
+  /** B71: a qué hora sale hacia el aula (T−15), dicho por el motor. */
+  salida?: string;
 };
 
 /**
@@ -1237,6 +1251,10 @@ export type MonitoreoAulasReparto = {
   fijadas?: Array<{ codigo: string; aplicador: string }>;
   /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
   fijadas_sin_cita?: string[];
+  /** B70: con qué duración de aplicación (min) se armó el reparto. */
+  duracion_min?: number;
+  /** B71: minutos de preparación previa (recojo + desplazamiento). */
+  preparacion_min?: number;
 };
 
 export type MonitoreoAulasDashboard = {

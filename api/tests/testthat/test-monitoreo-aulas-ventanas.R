@@ -137,7 +137,9 @@ test_that("la basura vuelve como NA declarado: ni cero, ni error", {
   expect_equal(mixto[[3]], 925)
 })
 
-test_that("fecha agendada + hora pactada = ventana confirmada de veinte minutos", {
+test_that("fecha agendada + hora pactada = ventana confirmada de la duracion vigente", {
+  # B70 (dictado 2026-09-03): «la aplicacion dura media hora» — el default
+  # paso de 20 a 30 y la duracion es configurable (duracion_aplicacion_min).
   res <- monitoreo_aulas_ventanas(list(
     .mav_fila("CH 1", fecha = "2026-09-04", hora = "9:25am"),
     .mav_fila("CH 2", fecha = "2026-09-04", hora = "15:25")
@@ -147,11 +149,25 @@ test_that("fecha agendada + hora pactada = ventana confirmada de veinte minutos"
   expect_identical(a1[["ventana"]], "confirmada")
   expect_identical(a1[["fecha"]], "2026-09-04")
   expect_identical(a1[["inicio"]], "09:25")
-  expect_identical(a1[["fin"]], "09:45")
+  expect_identical(a1[["fin"]], "09:55")
   a2 <- .mav_aula(res, "CH 2")
   expect_identical(a2[["ventana"]], "confirmada")
   expect_identical(a2[["inicio"]], "15:25")
-  expect_identical(a2[["fin"]], "15:45")
+  expect_identical(a2[["fin"]], "15:55")
+  # El eco de la duracion saneada viaja en el payload.
+  expect_identical(res[["duracion_min"]], 30L)
+})
+
+test_that("B70: la duracion configurada manda y lo ilegible cae al default", {
+  res <- monitoreo_aulas_ventanas(list(
+    .mav_fila("CH 1", fecha = "2026-09-04", hora = "9:00am")
+  ), duracion_min = 45L)
+  expect_identical(.mav_aula(res, "CH 1")[["fin"]], "09:45")
+  expect_identical(res[["duracion_min"]], 45L)
+  basura <- monitoreo_aulas_ventanas(list(
+    .mav_fila("CH 1", fecha = "2026-09-04", hora = "9:00am")
+  ), duracion_min = "no-numero")
+  expect_identical(.mav_aula(basura, "CH 1")[["fin"]], "09:30")
 })
 
 test_that("agendada sin hora = tentativa con el rango del curso entero", {

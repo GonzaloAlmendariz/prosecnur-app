@@ -31,11 +31,22 @@
 # Cálculo puro sobre estado ya validado: degrada declarando (`sin_ventana`,
 # NA), nunca lanza — por eso aquí no hay `stop_api()` ni `stop()`.
 
-# La aplicación suele durar veinte minutos (dictado de Gonzalo, 2026-09-01):
-# la ventana confirmada es [hora pactada, hora + 20]. Constante interna hoy;
-# si un estudio necesita otra duración, se promueve a configuración — no se
-# edita aquí por aula.
-.mav_DURACION_MIN <- 20L
+# La aplicación dura media hora (dictado de Gonzalo, 2026-09-03: «la
+# aplicación dura media hora»; supersede el «suele durar veinte» del
+# 2026-09-01). Este es el DEFAULT: la promoción a configuración que el
+# comentario original anticipaba ya ocurrió — `duracion_aplicacion_min` del
+# config de aulas (B70) viaja por el parámetro `duracion_min` de los motores.
+.mav_DURACION_MIN <- 30L
+
+# La media hora previa del aplicador (dictado 2026-09-03, B71): se apersona a
+# recoger materiales 30 minutos antes de la hora pactada y sale hacia el aula
+# 15 minutos antes. La OCUPACIÓN real de una cita es [hora - 30, hora +
+# duración]; los solapes honestos se juzgan sobre ella, no sobre la
+# aplicación sola. Constantes del protocolo operativo, no configurables por
+# estudio (a diferencia de la duración): cambiarlas sería cambiar el
+# protocolo de campo.
+.mav_PREPARACION_MIN <- 30L
+.mav_SALIDA_MIN <- 15L
 
 # El día de semana SIN locale, mismo patrón que `.capd_DIAS` (plan del día):
 # `format(fecha, "%a")` depende del locale del proceso y en un worker `callr`
@@ -195,7 +206,7 @@ monitoreo_aulas_hora_parse <- function(x) {
 #'
 #' Por aula: `{codigo, ventana, fecha, inicio, fin}` con `ventana` en
 #' {confirmada, tentativa, sin_ventana} — confirmada = fecha agendada + hora
-#' pactada → [hora, hora + 20 min]; tentativa = agendada sin hora → la franja
+#' pactada → [hora, hora + duración]; tentativa = agendada sin hora → la franja
 #' del curso; sin_ventana = ni hora ni franja legible, con inicio y fin
 #' vacíos (declarado, no inventado).
 #'
@@ -216,9 +227,15 @@ monitoreo_aulas_hora_parse <- function(x) {
 #'
 #' @param plan plan normalizado: lista de filas o data.frame (mismo formato
 #'   que `monitoreo_aulas_dos_tasas`).
+#' @param duracion_min minutos que dura la aplicación (B70): default 30
+#'   (dictado 2026-09-03); el config de aulas (`duracion_aplicacion_min`)
+#'   manda cuando el estudio lo declara.
 #' @return lista con `aulas`, `mapa` y `personas_fuente`.
 #' @keywords internal
-monitoreo_aulas_ventanas <- function(plan = list()) {
+monitoreo_aulas_ventanas <- function(plan = list(),
+                                     duracion_min = .mav_DURACION_MIN) {
+  duracion_min <- suppressWarnings(as.integer(duracion_min %||% .mav_DURACION_MIN)[1])
+  if (is.na(duracion_min) || duracion_min < 1L) duracion_min <- .mav_DURACION_MIN
   filas <- .madt_filas(plan)
   aulas <- list()
   confirmadas <- list() # fecha ISO -> lista de c(ini, fin) en minutos
@@ -239,9 +256,9 @@ monitoreo_aulas_ventanas <- function(plan = list()) {
     hora <- .mav_hora_una(.monitoreo_scalar(fila[["scheduled_time"]], ""))
 
     if (nzchar(fecha) && !is.na(hora)) {
-      # Cita completa: fecha agendada + hora pactada. Veinte minutos.
+      # Cita completa: fecha agendada + hora pactada. La duración configurada.
       ini <- hora
-      fin <- hora + .mav_DURACION_MIN
+      fin <- hora + duracion_min
       aula <- list(
         codigo = codigo, ventana = "confirmada", fecha = fecha,
         inicio = .mav_hhmm(ini), fin = .mav_hhmm(fin)
@@ -254,7 +271,7 @@ monitoreo_aulas_ventanas <- function(plan = list()) {
       # y fecha vacía. Sin día no hay dónde pintarla en el mapa.
       aula <- list(
         codigo = codigo, ventana = "tentativa", fecha = "",
-        inicio = .mav_hhmm(hora), fin = .mav_hhmm(hora + .mav_DURACION_MIN)
+        inicio = .mav_hhmm(hora), fin = .mav_hhmm(hora + duracion_min)
       )
     } else {
       rango <- .mav_rango_curso(fila[["sesiones_dia_hora"]], fecha)
@@ -284,5 +301,8 @@ monitoreo_aulas_ventanas <- function(plan = list()) {
     )
   })
 
-  list(aulas = aulas, mapa = mapa, personas_fuente = "confirmadas")
+  # B70: el eco de la duración YA saneada — los derivados (franjas, reparto)
+  # la leen de aquí en vez de re-sanear cada uno la suya.
+  list(aulas = aulas, mapa = mapa, personas_fuente = "confirmadas",
+       duracion_min = duracion_min)
 }
