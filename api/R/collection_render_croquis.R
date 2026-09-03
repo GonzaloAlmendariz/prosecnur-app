@@ -87,20 +87,22 @@ CCX_TONOS_DE_PABELLON <- 8L
   letras_venue <- .ccx_letras_de_venue(venue)
   letras_sel <- letras_venue[letras_venue %in% pb$letra]
   aulas_txt <- paste(toupper(lugares), collapse = " · ")
+  # Guion corto a proposito: el device pdf() no codifica U+2014 y lo sustituye
+  # con aviso en cada render (medido con las 10 fichas de prueba).
   base <- if (length(letras_sel) > 1L) {
     # Dos pabellones a la vez: cualquiera de los dos, segun la sesion del
     # horario (la cara de la ficha imprime el horario completo).
-    sprintf("Tu lugar de aplicación: PABELLÓN %s · aulas %s — según el horario",
+    sprintf("Tu lugar de aplicación: PABELLÓN %s · aulas %s - según el horario",
             paste(letras_sel, collapse = " o "), aulas_txt)
   } else if (length(letras_sel) == 1L) {
     sprintf("Tu lugar de aplicación: PABELLÓN %s · %s %s",
             letras_sel, if (length(lugares) > 1L) "aulas" else "aula", aulas_txt)
   } else if (length(letras_venue)) {
-    return(sprintf("Aula %s — pabellón fuera del croquis", aulas_txt))
+    return(sprintf("Aula %s - pabellón fuera del croquis", aulas_txt))
   } else if (nzchar(venue)) {
     # Hay venues reales sin letra de pabellon («101E», «SIMB» en HSVG2026):
     # el aula se conserva en el subtitulo; lo que falta es el pabellon.
-    return(sprintf("Aula %s — pabellón por confirmar", toupper(venue)))
+    return(sprintf("Aula %s - pabellón por confirmar", toupper(venue)))
   } else {
     return("Pabellón por confirmar")
   }
