@@ -79,9 +79,21 @@ export function AulasSeccionModelo({
   // Titulares por `agendaRows` —la MISMA fuente de siempre, compartida con la
   // carga, el contacto y la ruta—; los reemplazos por el helper, que les da el
   // mismo tratamiento (qué toca, status legible, orden de cadena).
-  const filasDeLaAgenda = eslabon === 0
+  // B77 (dictado 2026-09-03: «si lo vamos a poner en todo entonces debería
+  // ser capaz de filtrar en todas las secciones»): el selector de Facultad de
+  // la cabecera FILTRA, no solo resalta. UN punto de corte para las cuatro
+  // superficies con filas de curso-horario —tabla, carga, contacto y ruta—;
+  // los bloques de PERSONAS (disponibilidad, asignación) no tienen dimensión
+  // de facultad y quedan globales a propósito, y el mapa de horas agrega un
+  // bloque del motor que aún no sabe filtrar (declarado en B77).
+  const soloFacultad = (rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> =>
+    facultadEnFoco
+      ? rows.filter((r) => String(r["faculty"] ?? "") === facultadEnFoco)
+      : rows;
+  const filasDelFoco = () => soloFacultad(agendaRows(dashboard));
+  const filasDeLaAgenda = soloFacultad(eslabon === 0
     ? agendaRows(dashboard)
-    : filasDeReemplazo(dashboard, eslabon);
+    : filasDeReemplazo(dashboard, eslabon));
   return (
       // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
       // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
@@ -132,7 +144,7 @@ export function AulasSeccionModelo({
             data-qa-geometry-contract="intrinsic"
           >
             <AulasCargaDeCampo
-              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
               // Las ventanas del motor: la posición horaria de los confirmados
               // sale de aquí, nunca del `scheduled_time` crudo (bug 8:00pm).
               franjas={dashboard.franjas}
@@ -183,12 +195,12 @@ export function AulasSeccionModelo({
             data-qa-geometry-group="monitoring-aulas-contacto"
             data-qa-geometry-contract="intrinsic"
           >
-            <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+            <AulasMedioDeContacto filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]} />
             {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
                 por eso comparten pestaña; el medio dice con qué y la cola con
                 quién. */}
             <AulasColaDeContacto
-              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
               facultadEnFoco={facultadEnFoco}
               onFoco={onFoco}
             />
@@ -220,7 +232,7 @@ export function AulasSeccionModelo({
               return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
             })()}</span>
           </div>
-          <AulasAgendaPorFacultad filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+          <AulasAgendaPorFacultad filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]} />
         </section>
         ) : null}
         {pestana === "agenda"
@@ -270,6 +282,7 @@ export function AulasSeccionModelo({
               {eslabon === 0 ? (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario
+                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
                   {agendaReservas(dashboard)
                     ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
                     : ""}
@@ -277,6 +290,7 @@ export function AulasSeccionModelo({
               ) : (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario en reemplazo {eslabon}
+                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
                   {sinOrden
                     ? ` · ${fmt(sinOrden)} reservas sin eslabón declarado`
                     : ""}
