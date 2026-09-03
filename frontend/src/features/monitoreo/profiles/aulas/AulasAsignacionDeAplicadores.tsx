@@ -105,9 +105,11 @@ export function AulasAsignacionDeAplicadores({
   // ser solo un conteo y se vuelve la hoja de DESPLIEGUE (régimen 2026-09-02:
   // «cómo se va a desplegar a los aplicadores»): a qué hora y a qué pabellón
   // entra cada uno. Las asignaciones ya vienen en orden de hora.
-  const despliegue = new Map<string, { inicio: string; codigo: string }>();
+  const despliegue = new Map<string, { inicio: string; codigo: string; recojo: string }>();
   for (const a of diaQueToca?.asignaciones ?? []) {
-    if (!despliegue.has(a.aplicador)) despliegue.set(a.aplicador, { inicio: a.inicio, codigo: a.codigo });
+    if (!despliegue.has(a.aplicador)) {
+      despliegue.set(a.aplicador, { inicio: a.inicio, codigo: a.codigo, recojo: a.recojo });
+    }
   }
 
   const opcionesDeAplicador = reparto.equidad.map((e) => (
@@ -297,9 +299,26 @@ export function AulasAsignacionDeAplicadores({
                                 columna calla, no inventa. */}
                             <td>{lugar ? <ChipLugar lugar={lugar} /> : ""}</td>
                             <td>
-                              {a.inicio && a.fin
-                                ? <ChipHora>{a.inicio}–{a.fin}</ChipHora>
-                                : a.inicio ? <ChipHora>{a.inicio}</ChipHora> : "—"}
+                              {/* Dictado 2026-09-03 (2.ª ronda): «distinguir
+                                  bien en boxes el tiempo de preparación de la
+                                  hora en la que se agendó con el docente». La
+                                  preparación habla en tenue; la cita pactada
+                                  conserva su chip firme. */}
+                              <span
+                                className="aulas-asigna-horas"
+                                title={a.recojo
+                                  ? `Recoge materiales ${a.recojo}${a.salida ? `, sale al aula ${a.salida}` : ""}; la aplicación pactada con el docente es ${a.inicio}${a.fin ? `–${a.fin}` : ""}`
+                                  : undefined}
+                              >
+                                {a.recojo ? (
+                                  <span className="aulas-asigna-prep">
+                                    recojo {a.recojo}{a.salida ? ` · sale ${a.salida}` : ""}
+                                  </span>
+                                ) : null}
+                                {a.inicio && a.fin
+                                  ? <ChipHora>{a.inicio}–{a.fin}</ChipHora>
+                                  : a.inicio ? <ChipHora>{a.inicio}</ChipHora> : "—"}
+                              </span>
                             </td>
                             <td>
                               {onFijar ? (
@@ -416,6 +435,11 @@ export function AulasAsignacionDeAplicadores({
                           if (!cita) return null;
                           return (
                             <span className="aulas-asigna-despliegue">
+                              {/* La misma distinción del box de la tabla: el
+                                  recojo en tenue, la hora pactada en chip. */}
+                              {cita.recojo ? (
+                                <span className="aulas-asigna-prep">recojo {cita.recojo}</span>
+                              ) : null}
                               {cita.inicio ? <ChipHora>{cita.inicio}</ChipHora> : null}
                               {(() => {
                                 const lugar = lugares?.get(cita.codigo) ?? "";

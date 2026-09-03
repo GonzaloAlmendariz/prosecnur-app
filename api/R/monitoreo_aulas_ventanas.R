@@ -263,7 +263,12 @@ monitoreo_aulas_ventanas <- function(plan = list(),
         codigo = codigo, ventana = "confirmada", fecha = fecha,
         inicio = .mav_hhmm(ini), fin = .mav_hhmm(fin)
       )
-      confirmadas[[fecha]] <- c(confirmadas[[fecha]], list(c(ini, fin)))
+      # B71 (dictado 2026-09-03): el mapa del día —y su pico, que fija
+      # cuántos aplicadores hacen falta— cuenta la OCUPACIÓN de la persona
+      # ([recojo, fin]), no la aplicación sola: dos citas cuyas horas
+      # completas se cruzan SON un cruce aunque las aulas no coincidan.
+      confirmadas[[fecha]] <- c(confirmadas[[fecha]],
+                                list(c(max(0, ini - .mav_PREPARACION_MIN), fin)))
     } else if (!is.na(hora)) {
       # Hueco del contrato, decidido aquí y documentado: hora pactada SIN
       # fecha legible. No es confirmada (la cita no tiene día) ni

@@ -134,11 +134,11 @@ test_that("cada fecha agendada es un día del bloque, en orden ISO ascendente y 
 })
 
 test_that("el pico cuenta aulas EN CURSO por rango real —no por hora de inicio— y dice su franja", {
-  # Tres citas (a 30 min, B70): 18:45-19:15, 18:50-19:20 y 19:00-19:30. Por HORA DE INICIO el
-  # pico daría 2 (dos empiezan en la hora 18); por RANGO real, de 19:00 a
-  # 19:15 las tres están EN CURSO a la vez — y ese 3 es el número de
-  # aplicadores que el operativo necesita (el mismo sesgo medido en
-  # universitarias:1087-1090: 8 por inicio contra 19 por rango).
+  # Tres citas (a 30 min, B70): aplicaciones 18:45-19:15, 18:50-19:20 y
+  # 19:00-19:30 — y B71 cuenta la OCUPACIÓN de la persona (recojo T−30):
+  # [18:15,19:15], [18:20,19:20] y [18:30,19:30]. De 18:30 a 19:15 los tres
+  # aplicadores están tomados a la vez; ese 3 es el número que el operativo
+  # necesita (mismo sesgo que medir por inicio: universitarias:1087-1090).
   res <- monitoreo_aulas_franjas(list(
     .maf_fila("CH 1", fecha = "2026-09-08", hora = "6:45 pm"),
     .maf_fila("CH 2", fecha = "2026-09-08", hora = "6:50 pm"),
@@ -152,7 +152,7 @@ test_that("el pico cuenta aulas EN CURSO por rango real —no por hora de inicio
   expect_true(is.list(pico))
   expect_equal(as.numeric(pico[["aulas"]]), 3)
   # La franja del pico es exactamente el tramo donde las tres coinciden.
-  expect_identical(pico[["inicio"]], "19:00")
+  expect_identical(pico[["inicio"]], "18:30")
   expect_identical(pico[["fin"]], "19:15")
 
   # Sin solape el pico es 1, nunca la suma; en empate manda la franja más
