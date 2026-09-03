@@ -521,11 +521,15 @@ export function AulasCargaDeCampo({
                 <dd className="es-texto">{cuando}</dd>
               </div>
               <div>
-                <dt>Por agendar, en el pico del patrón</dt>
+                <dt title="Cursos-horario sin hora pactada cuya clase cruza ese momento, según el patrón semanal: podrían caer ahí al agendarse">
+                  Podrían sumarse (aún sin hora)
+                </dt>
                 <dd>{fmt(malla.picoPorAgendar?.plausibles ?? 0)}</dd>
               </div>
               <div>
-                <dt>Días de campo</dt>
+                <dt title="Fechas distintas con al menos una cita agendada">
+                  Días de campo
+                </dt>
                 <dd>{fmt(malla.fechas)}</dd>
               </div>
             </>

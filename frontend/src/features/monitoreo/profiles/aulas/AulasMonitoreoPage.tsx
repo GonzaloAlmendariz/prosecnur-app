@@ -1194,11 +1194,14 @@ export default function AulasMonitoreoPage() {
     try {
       const subido = await apiUpload(archivo, "aulas_disponibilidad");
       const res = await apiMonitoreoAulasDisponibilidad({ file_id: subido.file_id });
+      const celdasIlegibles = res.avisos.length;
       setAviso({
-        texto: `Disponibilidad importada: ${fmt(res.aplicadores)} aplicadores` +
-          `${res.avisos.length ? ` · ${fmt(res.avisos.length)} celdas ilegibles tomadas como no disponible` : ""}` +
+        texto: "Disponibilidad importada: " + fmt(res.aplicadores) + " aplicadores" +
+          (celdasIlegibles
+            ? " · " + fmt(celdasIlegibles) + " celdas ilegibles tomadas como no disponible"
+            : "") +
           ". El reparto se rearmó con la oferta nueva.",
-        tono: res.avisos.length ? "atencion" : "ok",
+        tono: celdasIlegibles ? "atencion" : "ok",
       });
       await loadView(seccionActiva, true, true);
     } catch (cause) {

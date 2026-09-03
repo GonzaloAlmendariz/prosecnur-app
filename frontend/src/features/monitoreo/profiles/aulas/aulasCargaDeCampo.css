@@ -66,41 +66,50 @@
 .aulas-carga-exportar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
 
 .aulas-carga-acciones { display: flex; align-items: center; gap: 10px; flex: none; flex-wrap: wrap; }
-/* Segmentado y no dos botones sueltos: las dos lecturas del mismo plan son
-   alternativas —una excluye a la otra— y el control tiene que decirlo. */
+/* Segmentado y no dos botones sueltos: las cuatro lecturas del mismo plan son
+   alternativas —una excluye a las otras— y el control tiene que decirlo.
+   Retune 2026-09-03 (dictado: «un selector de vistas con un poco más de
+   espaciado y elegante»): pastilla flotante sobre riel tenue, sin tabiques
+   duros — el activo se levanta con superficie y sombra, no con un tinte. */
 .aulas-carga-eje {
   display: inline-flex;
+  gap: 3px;
+  padding: 4px;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--pulso-surface);
+  border-radius: 11px;
+  background: var(--pulso-surface-2);
 }
 .aulas-carga-eje button {
-  border: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--pulso-text-soft);
-  padding: 7px 12px;
+  padding: 7px 16px;
   font-size: 12.5px;
   font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
   white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
-.aulas-carga-eje button + button { border-left: 1px solid var(--pulso-border); }
-.aulas-carga-eje button:hover { color: var(--pulso-text); }
+.aulas-carga-eje button:hover { color: var(--pulso-text); background: color-mix(in srgb, var(--pulso-surface) 60%, transparent); }
 .aulas-carga-eje button.es-activo {
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 14%, var(--pulso-surface));
+  background: var(--pulso-surface);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 26%, var(--pulso-border));
   color: var(--pulso-module-monitoring);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(41, 20, 22, 0.10);
 }
-.aulas-carga-eje button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+.aulas-carga-eje button:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
 .aulas-carga-controles {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px 28px;
   flex-wrap: wrap;
-  padding: 14px 16px;
+  padding: 16px 20px;
   border: 1px solid var(--pulso-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--pulso-surface);
 }
 .aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--pulso-text-soft); }
@@ -123,7 +132,7 @@
 .aulas-carga-duracion-boton:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
 .aulas-carga-duracion-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
-.aulas-carga-kpis { display: flex; gap: 22px; margin: 0 0 0 auto; }
+.aulas-carga-kpis { display: flex; gap: 26px; margin: 0 0 0 auto; }
 .aulas-carga-kpis div { display: flex; flex-direction: column; }
 .aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }
 .aulas-carga-kpis dd {
@@ -375,12 +384,12 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 .aulas-asigna-dia {
   border: 1px solid var(--pulso-border);
-  border-radius: 10px;
+  border-radius: 11px;
   background: var(--pulso-surface);
-  padding: 12px 14px;
+  padding: 13px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 .aulas-asigna-dia h4 {
   margin: 0;
@@ -567,7 +576,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 /* B76 — la lente por aplicador: el desplegable y la semana de la persona. */
 .aulas-dispo-persona {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center; gap: 9px;
   font-size: 12px; font-weight: 500; color: var(--pulso-text-soft);
 }
 .aulas-dispo-persona select {
@@ -584,8 +593,12 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   margin: 0;
   font-size: 12px;
   color: var(--pulso-text-soft);
-  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  display: flex; flex-wrap: wrap; gap: 5px 18px; align-items: baseline;
   max-width: 100ch;
+  padding: 8px 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 9px;
+  flex-basis: 100%;
 }
 .aulas-dispo-semana strong { color: var(--pulso-text); font-weight: 600; }
 .aulas-dispo-semana-dia { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -599,7 +612,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-carga-celda.es-ajeno { opacity: 0.28; }
 
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
-.aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
+.aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 5px 12px 5px 0; }
 .aulas-asigna-tabla thead th {
   font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
   text-transform: uppercase; letter-spacing: 0.06em;
