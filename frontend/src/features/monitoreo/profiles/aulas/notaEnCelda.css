@@ -1,0 +1,62 @@
+/* El peek de observaciones por fila (B42, dictado 2026-09-02): un botón
+ * chiquito que no ocupa espacio y una nota que se expande EN la fila.
+ * Hoja propia: las hojas madre del perfil están congeladas a crecimiento. */
+
+/* La nota abierta se ancla al botón como capa: dentro de la celda quedaba
+   estrangulada al ancho de su columna (una tira de diez caracteres de ancho,
+   medida en vivo). Vive DENTRO del contenido scrolleable de la tabla, así
+   que el overflow del contenedor no la recorta; abre hacia la izquierda
+   porque su columna es de las últimas. */
+.aulas-nota-peek { display: inline-block; position: relative; }
+.aulas-nota-peek > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  list-style: none;
+}
+.aulas-nota-peek > summary::-webkit-details-marker { display: none; }
+.aulas-nota-peek > summary:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-nota-peek > summary:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-nota-peek[open] > summary {
+  color: var(--pulso-module-monitoring);
+  border-color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+}
+.aulas-nota-texto {
+  display: block;
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  /* `min-width` y no `width`: alguna regla profunda del perfil pisa `width`
+     con !important (medido: width inline de 300px seguía computando 22px,
+     min-width sí gana) y la nota quedaba como tira vertical de un carácter. */
+  min-width: 34ch;
+  max-width: 42ch;
+  box-shadow: 0 8px 24px rgba(16, 21, 31, 0.16);
+  padding: 6px 9px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-module-monitoring);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.aulas-nota-texto > strong {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pulso-text-faint);
+  margin-bottom: 2px;
+}

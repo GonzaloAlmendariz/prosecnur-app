@@ -27,6 +27,7 @@ import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
+import { COLUMNAS_DE_NOTA, NotaEnCelda } from "./NotaEnCelda";
 import { identidadEnCelda } from "./AulasSistemaPabellon";
 import { columnasConDato } from "./columnasConDato";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
@@ -418,9 +419,13 @@ export function DataTable({
                       son los de la franja por día y el tono del lugar deriva
                       de su letra: la misma aula tiene que verse igual en su
                       barra, en su fila y en cualquier otra vista del perfil. */}
+                  {/* Las OBSERVACIONES van plegadas en su botón (B42): cada
+                      familia por su columna, y el peek dice de cuál es. */}
                   {COLUMNAS_DE_ESTADO.has(column)
                     ? <EstadoEnCelda valor={String(row[column] ?? "")} />
-                    : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
+                    : COLUMNAS_DE_NOTA.has(column)
+                      ? <NotaEnCelda texto={String(row[column] ?? "")} origen={COLUMNAS_DE_NOTA.get(column) ?? ""} />
+                      : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
                 </td>
               ))}
             </tr>

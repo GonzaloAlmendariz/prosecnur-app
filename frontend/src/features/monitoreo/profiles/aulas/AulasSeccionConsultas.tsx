@@ -224,8 +224,10 @@ export function AulasSeccionConsultas({
             // verdad, que dia y quien estuvo— es lo que el aplicador reporta y
             // solo vive en esta hoja. Va primero porque es lo que se pregunta
             // antes de mirar si las cuentas cuadran.
-            maxColumns={13}
-            preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia"]}
+            maxColumns={14}
+            // `field_note` = lo que el aplicador comentó de SU aplicación
+            // (B42): plegada en su botón, no ocupa espacio de fila.
+            preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "field_note"]}
           />
         </section>
         ) : null}
