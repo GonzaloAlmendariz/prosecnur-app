@@ -62,6 +62,19 @@ describe("agendaPorFacultad", () => {
     expect(quieta.esLugarConfirmado).toBe(false);
   });
 
+  it("el RECHAZO de STATUS MUESTRA manda sobre el estado operativo (B13b)", () => {
+    // Dictado 2026-09-03, señalando CH 90: nota de rechazo del docente y el
+    // chip en «Planificado» — el rechazo vive en el eje de muestra y la ruta
+    // solo leía el operativo. Mismo criterio contains del motor.
+    const [f] = agendaPorFacultad([
+      fila({ operational_code: "CH 90", faculty: "Derecho", operational_status: "planificada",
+             sample_status: "rechazo" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "CH 91", faculty: "Derecho", operational_status: "planificada" }),
+    ]);
+    expect(f.aulas.find((a) => a.codigo === "CH 90")!.esRechazo).toBe(true);
+    expect(f.aulas.find((a) => a.codigo === "CH 91")!.esRechazo).toBe(false);
+  });
+
   it("lleva la observación de quien agendó", () => {
     // Viaja en `replacement_note` —el motor acepta ahí la columna OBSERVACIONES
     // del libro— y hasta ahora no la pedía ninguna superficie: el dato llegaba,

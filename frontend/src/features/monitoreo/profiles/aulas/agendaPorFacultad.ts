@@ -30,6 +30,15 @@ export type AulaEnAgenda = {
   donde: string;
   /** `donde` es el lugar confirmado (venue a secas), no el compuesto del sorteo. */
   esLugarConfirmado: boolean;
+  /**
+   * El docente RECHAZÓ (B13b: RECHAZO tecleado en STATUS MUESTRA — el mismo
+   * criterio contains del motor y del semáforo del libro). Dictado de Gonzalo
+   * (2026-09-03, señalando CH 90 con su nota de rechazo y el chip en
+   * «Planificado»): «aquí no hay nada que indique que esta aula fue
+   * rechazada» — el estado operativo no sabe del rechazo, que vive en el eje
+   * de muestra, y la ruta solo enseñaba el primero.
+   */
+  esRechazo: boolean;
   estado: string;
   /**
    * Lo que anotó quien agendó. Viaja en `replacement_note` —el motor acepta ahí
@@ -72,6 +81,7 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       hora: texto(fila.scheduled_time),
       donde: texto((fila as { scheduled_venue?: unknown }).scheduled_venue) || texto(fila.label),
       esLugarConfirmado: Boolean(texto((fila as { scheduled_venue?: unknown }).scheduled_venue)),
+      esRechazo: /rechaz/i.test(texto((fila as { sample_status?: unknown }).sample_status)),
       // El estado OPERATIVO y no el de muestra: lo que se pregunta antes de
       // salir es si el aula ya se aplicó, no si es titular o reemplazo.
       estado: texto(fila.operational_status) || "planificada",

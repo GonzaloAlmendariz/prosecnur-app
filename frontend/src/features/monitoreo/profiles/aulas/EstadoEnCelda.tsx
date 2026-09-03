@@ -146,6 +146,10 @@ export function colorDeEstado(valor: string): string | null {
   if (texto.startsWith("en reserva")) {
     return TRAMOS_DE_APLICACION.find((t) => t.clave === "en_reserva")?.color ?? null;
   }
+  // El RECHAZO del eje de MUESTRA (B13b): llega como rótulo propio desde
+  // STATUS MUESTRA y ninguna tabla operativa lo lista — mismo tono que
+  // sin_acceso/cancelada, que son sus vecinos de «el aula cayó».
+  if (texto.startsWith("rechaz")) return COLOR_RESULTADO.rechazo;
   return null;
 }
 
