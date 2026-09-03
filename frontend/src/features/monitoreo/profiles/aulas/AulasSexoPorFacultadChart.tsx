@@ -107,7 +107,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
           del panel se declara EN el panel, en una línea. */}
       <p className="aulas-sexfac-pregunta">
         ¿Cierra cada facultad su cuota de mujeres y de hombres con lo que queda
-        del plan? Cada barra compara lo recogido y lo por llegar contra la
+        del plan? Cada barra compara lo recogido y lo previsto contra la
         meta, que es la marca de tinta.
       </p>
       <ul className="aulas-sexfac-leyenda" aria-hidden="true">
@@ -117,7 +117,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
             el tramo sale de las aulas EN JUEGO sin aplicar (tengan fecha o
             no); «Cierran con lo agendado» proyecta sólo sobre la agenda y es
             otra tarjeta. */}
-        <li><i className="es-pendiente" />Por llegar — lo traerán los cursos-horario sin aplicar</li>
+        <li><i className="es-pendiente" />Efectivas previstas — de los cursos-horario que faltan aplicar</li>
         <li><i className="es-deficit" />Faltaría aun así</li>
         <li><i className="es-cuota" />Meta</li>
       </ul>
@@ -125,7 +125,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
         {planas.map((p) => {
           const total = p.logrado + p.pendiente + p.deficit;
           const detalle = `${p.facultad} · ${p.sexo}: ${fmt(p.logrado)} recogidas · `
-            + `${fmt(p.pendiente)} por llegar de los cursos-horario sin aplicar · `
+            + `${fmt(p.pendiente)} efectivas previstas de los cursos-horario que faltan aplicar · `
             + `faltarían ${fmt(p.deficit)} aun así · meta ${fmt(p.cuota)}`;
           return (
             <li key={`${p.facultad}·${p.sexo}`} className="aulas-sexfac-fila">
@@ -148,7 +148,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
                 {p.cuota > 0 && <i className="aulas-sexfac-cuota" style={{ left: pct(p.cuota) }} title={`Meta ${fmt(p.cuota)}`} />}
                 <em className="aulas-sexfac-cifras" aria-hidden="true">
                   {fmt(p.logrado)} recogidas
-                  {p.pendiente > 0 ? <> · <strong className="es-pendiente">+{fmt(p.pendiente)}</strong> por llegar</> : null}
+                  {p.pendiente > 0 ? <> · <strong className="es-pendiente">+{fmt(p.pendiente)}</strong> previstas</> : null}
                   {p.deficit > 0 ? <> · <strong className="es-deficit">faltarían {fmt(p.deficit)}</strong></> : null}
                   {" "}· meta {fmt(p.cuota)}
                 </em>
