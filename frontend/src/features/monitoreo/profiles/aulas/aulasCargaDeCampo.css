@@ -447,6 +447,31 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-danger-fg);
 }
 .aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
+
+/* El día QUE TOCA protagoniza y lo pasado se atenúa: el jefe despliega por
+   día y la lista no puede pesar parejo. El acento usa el rojo primordial de
+   la marca — el estándar validado: color nuevo sin sacrificarlo. */
+.aulas-asigna-dia.es-el-que-toca {
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  border-left: 4px solid var(--pulso-module-monitoring);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 4%, var(--pulso-surface));
+}
+.aulas-asigna-toca {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.aulas-asigna-dia.es-pasado { opacity: 0.6; }
+.aulas-asigna-ya-paso { font-style: normal; color: var(--pulso-text-faint); font-size: 12px; }
 .aulas-asigna-soltar {
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);

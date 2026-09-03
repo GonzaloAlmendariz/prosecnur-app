@@ -185,3 +185,40 @@ describe("AulasAsignacionDeAplicadores — el mecanismo de fijar (B36)", () => {
     expect(html).not.toContain("soltar");
   });
 });
+
+/**
+ * El día QUE TOCA protagoniza (régimen 2026-09-02: el énfasis es «cómo se va
+ * a desplegar a los aplicadores»): el primer día no pasado lleva su sello,
+ * lo pasado se atenúa y se rotula, y el futuro lejano queda neutro.
+ */
+describe("AulasAsignacionDeAplicadores — el día que toca", () => {
+  const DOS_DIAS = {
+    dias: [
+      { fecha: "2026-09-07", asignaciones: [{ codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20" }], no_cubiertos: [], por_confirmar: [] },
+      { fecha: "2026-09-14", asignaciones: [{ codigo: "CH 2", aplicador: "Ana Prueba", inicio: "09:00", fin: "09:20" }], no_cubiertos: [], por_confirmar: [] },
+    ],
+    equidad: [{ aplicador: "Ana Prueba", asignadas: 2 }],
+  };
+  const pintaCon = (hoy: string) =>
+    renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores reparto={repartoDeAplicadores(DOS_DIAS as unknown as MonitoreoAulasReparto)} hoy={hoy} />,
+    );
+
+  it("entre dos fechas futuras, la primera es la que toca y la otra queda neutra", () => {
+    const html = pintaCon("2026-09-05");
+    expect(html).toMatch(/es-el-que-toca[\s\S]*Lunes 07\/09/);
+    expect(html).not.toContain("es-pasado");
+    expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
+  });
+
+  it("el día de hoy se sella como «hoy — el que toca»", () => {
+    expect(pintaCon("2026-09-07")).toContain("hoy — el que toca");
+  });
+
+  it("lo pasado se atenúa y se rotula; el que toca salta al siguiente", () => {
+    const html = pintaCon("2026-09-10");
+    expect(html).toMatch(/es-pasado[\s\S]*Lunes 07\/09/);
+    expect(html).toContain("ya pasó");
+    expect(html).toMatch(/es-el-que-toca[\s\S]*Lunes 14\/09/);
+  });
+});
