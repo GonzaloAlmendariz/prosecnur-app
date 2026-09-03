@@ -200,3 +200,42 @@ describe("la frontera jsonlite no rompe el mapa", () => {
     expect(m.personasFuente).toBe("confirmadas");
   });
 });
+
+describe("B71 — el segmento de preparación en el mapa", () => {
+  const bloque = (extra: Record<string, unknown> = {}) => ({
+    dias: [{
+      fecha: "2026-09-08",
+      ventanas: [
+        { codigo: "CH 1", inicio: "10:00", fin: "10:30", confirmada: true },
+        { codigo: "CH 2", inicio: "11:00", fin: "13:00", confirmada: false },
+      ],
+      pico: { aulas: 1, inicio: "09:30", fin: "10:30" },
+      por_confirmar: [],
+    }],
+    personas_fuente: "confirmadas",
+    ...extra,
+  }) as unknown as Parameters<typeof mapaDeHoras>[0];
+
+  it("con el eco preparacion_min, la confirmada gana su segmento y el eje abre en el recojo", () => {
+    const mapa = mapaDeHoras(bloque({ preparacion_min: 30 }));
+    if (!mapa.disponible) throw new Error("debía estar disponible");
+    const [v1, v2] = mapa.dias[0].ventanas;
+    expect(v1.recojo).toBe("09:30");
+    expect(v1.prepAnchoPct).toBeGreaterThan(0);
+    // El segmento termina exactamente donde arranca la aplicación.
+    expect(v1.prepDesdePct! + v1.prepAnchoPct!).toBeCloseTo(v1.desdePct, 0);
+    // La tentativa no lleva protocolo: no hay cita pactada que preparar.
+    expect(v2.recojo).toBeUndefined();
+    expect(v2.prepAnchoPct).toBeUndefined();
+    // El eje abre ANTES del recojo (margen + redondeo): el segmento cabe.
+    expect(mapa.dias[0].marcas[0].minuto).toBeLessThanOrEqual(9 * 60 + 30);
+  });
+
+  it("sin el eco (payload viejo), no se inventa protocolo y el eje no cambia", () => {
+    const mapa = mapaDeHoras(bloque());
+    if (!mapa.disponible) throw new Error("debía estar disponible");
+    const [v1] = mapa.dias[0].ventanas;
+    expect(v1.recojo).toBeUndefined();
+    expect(v1.prepAnchoPct).toBeUndefined();
+  });
+});

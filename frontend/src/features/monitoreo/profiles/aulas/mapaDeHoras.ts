@@ -67,6 +67,14 @@ export type MapaVentana = {
   confirmada: boolean;
   desdePct: number;
   anchoPct: number;
+  /**
+   * B71: el segmento de PREPARACIÓN (recojo de materiales + desplazamiento)
+   * delante de la aplicación, solo en confirmadas y solo si el bloque trae
+   * `preparacion_min`. La hora del recojo acompaña para el title.
+   */
+  prepDesdePct?: number;
+  prepAnchoPct?: number;
+  recojo?: string;
 };
 
 export type MapaMarca = { minuto: number; etiqueta: string; posPct: number };
@@ -118,6 +126,10 @@ export function mapaDeHoras(crudo: MonitoreoAulasFranjas | null | undefined): Ma
   if (crudo === null || crudo === undefined) return { disponible: false };
   const raiz = crudo as unknown as Record<string, unknown>;
   const diasCrudos = Array.isArray(raiz.dias) ? raiz.dias : [];
+  // B71: minutos de preparación del eco del motor. Sin eco (payload viejo) es
+  // 0 y el mapa dibuja como siempre — no se inventa protocolo.
+  const prepCrudo = num(raiz.preparacion_min);
+  const prepMin = prepCrudo !== null && prepCrudo > 0 ? prepCrudo : 0;
 
   const dias: MapaDia[] = [];
   for (const diaCrudo of diasCrudos) {
@@ -146,20 +158,33 @@ export function mapaDeHoras(crudo: MonitoreoAulasFranjas | null | undefined): Ma
     let ventanas: MapaVentana[] = [];
     const marcas: MapaMarca[] = [];
     if (legibles.length) {
-      const minIni = Math.min(...legibles.map((v) => v.iniMin));
+      // B71: el eje abre en el primer RECOJO, no en la primera aplicación —
+      // la hora completa del aplicador es lo que el mapa promete enseñar.
+      const inicioOcupado = (v: VentanaLegible) =>
+        v.confirmada && prepMin > 0 ? Math.max(0, v.iniMin - prepMin) : v.iniMin;
+      const minIni = Math.min(...legibles.map(inicioOcupado));
       const maxFin = Math.max(...legibles.map((v) => v.finMin));
       ejeInicio = Math.floor((minIni - MARGEN_MIN) / REDONDEO_MIN) * REDONDEO_MIN;
       ejeFin = Math.ceil((maxFin + MARGEN_MIN) / REDONDEO_MIN) * REDONDEO_MIN;
       const span = ejeFin - ejeInicio;
       const enEje = (minuto: number) => pct(((minuto - ejeInicio) / span) * 100);
-      ventanas = legibles.map((v) => ({
-        codigo: v.codigo,
-        inicio: comoHora(v.iniMin),
-        fin: comoHora(v.finMin),
-        confirmada: v.confirmada,
-        desdePct: enEje(v.iniMin),
-        anchoPct: pct(((v.finMin - v.iniMin) / span) * 100),
-      }));
+      ventanas = legibles.map((v) => {
+        const base: MapaVentana = {
+          codigo: v.codigo,
+          inicio: comoHora(v.iniMin),
+          fin: comoHora(v.finMin),
+          confirmada: v.confirmada,
+          desdePct: enEje(v.iniMin),
+          anchoPct: pct(((v.finMin - v.iniMin) / span) * 100),
+        };
+        if (v.confirmada && prepMin > 0) {
+          const recojoMin = Math.max(0, v.iniMin - prepMin);
+          base.prepDesdePct = enEje(recojoMin);
+          base.prepAnchoPct = pct(((v.iniMin - recojoMin) / span) * 100);
+          base.recojo = comoHora(recojoMin);
+        }
+        return base;
+      });
       const paso = pasoDeMarcas(span);
       for (let m = Math.ceil(ejeInicio / paso) * paso; m <= ejeFin; m += paso) {
         marcas.push({ minuto: m, etiqueta: comoHora(m), posPct: enEje(m) });

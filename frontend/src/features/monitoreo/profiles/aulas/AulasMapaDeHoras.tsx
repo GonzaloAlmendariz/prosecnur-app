@@ -148,7 +148,7 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
               <div
                 className="aulas-mapa-carril"
                 role="img"
-                aria-label={`${v.codigo}: de ${v.inicio} a ${v.fin}${v.confirmada ? "" : ", por confirmar"}`}
+                aria-label={`${v.codigo}: de ${v.inicio} a ${v.fin}${v.recojo ? `, recojo de materiales ${v.recojo}` : ""}${v.confirmada ? "" : ", por confirmar"}`}
               >
                 {/* La banda del pico se repite por carril con la misma
                     geometría: alineada fila a fila se lee como una sola
@@ -160,10 +160,19 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
                     aria-hidden="true"
                   />
                 ) : null}
+                {/* B71: la preparación delante de la aplicación — el carril
+                    enseña la hora COMPLETA del aplicador, no solo el aula. */}
+                {v.prepAnchoPct ? (
+                  <i
+                    className="aulas-mapa-prep"
+                    style={{ left: `${v.prepDesdePct}%`, width: `${v.prepAnchoPct}%` }}
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <i
                   className={`aulas-mapa-barra${v.confirmada ? "" : " es-tentativa"}`}
                   style={{ left: `${v.desdePct}%`, width: `${v.anchoPct}%` }}
-                  title={`${v.codigo} · ${v.inicio}–${v.fin}${v.confirmada ? "" : " · franja del curso, por confirmar"}`}
+                  title={`${v.codigo} · ${v.inicio}–${v.fin}${v.recojo ? ` · recojo ${v.recojo}` : ""}${v.confirmada ? "" : " · franja del curso, por confirmar"}`}
                 />
               </div>
             </Fragment>
