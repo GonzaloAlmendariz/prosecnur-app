@@ -203,7 +203,7 @@ describe("textoDelDespliegue — el despliegue del día listo para el chat", () 
       noCubiertos: ["CH 55"], porConfirmar: [],
     };
     expect(textoDelDespliegue(dia, new Map([["CH 7", "A703"]]))).toBe([
-      "Despliegue Lunes 07/09",
+      "Despliegue Lunes 07/09 — pabellones A×1",
       "• 11:30–11:50 A703 · CH 7 — Aguilar Cuya, Renzo",
       "• 19:45–20:05 CH 9 — Nolasco Rivera, Diego",
       "Sin nadie asignado: CH 55",
