@@ -134,7 +134,9 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
           showlegend: true,
           // `traceorder: normal`: apilado, Plotly invierte la leyenda y la
           // dejaba como «Faltan · Recogidas», al revés de como se lee la barra.
-          legend: { orientation: "h", y: 1.16, x: 0, traceorder: "normal" },
+          // E17: leyenda que informa, no que filtra (mismo motivo que en el
+          // chart de estado — el toggle re-escala y engaña).
+          legend: { orientation: "h", y: 1.16, x: 0, traceorder: "normal", itemclick: false, itemdoubleclick: false },
           bargap: 0.3,
         }}
         config={{ displayModeBar: false, responsive: true }}

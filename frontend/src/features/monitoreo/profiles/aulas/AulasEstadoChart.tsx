@@ -238,7 +238,11 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
           // Igual que en brecha por estrato: `PlotlyChart` esconde la leyenda
           // por defecto, y aquí sin ella los cuatro colores no dicen nada.
           showlegend: true,
-          legend: { orientation: "h", y: 1.5, x: 0, traceorder: "normal" },
+          // E17 (criterio de los dictados: sin interactividad fantasma): el
+          // click en la leyenda escondía un tramo y RE-ESCALABA la barra —
+          // ocultar «En reserva» convertía 190/1392 en casi todo el ancho sin
+          // ningún aviso. La leyenda informa, no filtra.
+          legend: { orientation: "h", y: 1.5, x: 0, traceorder: "normal", itemclick: false, itemdoubleclick: false },
           bargap: 0.35,
         }}
         config={{ displayModeBar: false, responsive: true }}
