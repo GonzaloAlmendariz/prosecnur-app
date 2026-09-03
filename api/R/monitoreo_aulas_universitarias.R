@@ -526,6 +526,13 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # Sin ellos la agenda de campo no puede saber cuantas aulas estan en curso
     # a la vez, que es lo que fija cuantos aplicadores hacen falta.
     sesiones_dia_hora = get(c("sesiones_dia_hora", "sesiones", "sesiones_y_aula"), ""),
+    # La forma LEGIBLE que anota el armador del calculo (B15,
+    # calc_muestra_aulas_anotar_sesiones): «MAR 14:00-16:00 · V303». La hoja
+    # «SESIONES Y AULA» del libro la prefiere, y esta lista cerrada la
+    # tragaba: la unidad llegaba del from_calc solo con el slug
+    # («2civ09_0703») y la siembra tenia que reponerla por injerto (A23,
+    # destapado 2026-09-01). Mismo patron que teacher_phone, dos campos abajo.
+    sesiones_legibles = get(c("sesiones_legibles", "sesiones_legible"), ""),
     venue = get(c("venue", "aula_fisica", "salon"), ""),
     modality = get(c("modality", "modalidad"), ""),
     session_type = get(c("session_type", "tipo_sesion", "tipo_sesión"), ""),
@@ -1124,7 +1131,9 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # simultaneas; contando el rango real, 19. `venue` viaja al lado porque la
     # carga se reparte por pabellon y sin el la agenda no puede agrupar por
     # edificio. Los dos salen del catalogo en `calc_muestra_aulas_sesiones.R`.
-    "sesiones_dia_hora", "venue",
+    # `sesiones_legibles` es su forma para humanos (A23): sin ella aqui, el
+    # estado publicaba el slug donde el libro esperaba «MAR 14:00-16:00 · V303».
+    "sesiones_dia_hora", "sesiones_legibles", "venue",
     # `sample_status` viaja con el estado porque el escalon de agendamiento sale
     # de el: sin publicarlo, la vista no puede explicar por que un aula esta en
     # «Agendada» o en «Reemplazada».
