@@ -4,6 +4,7 @@ import { MessageSquareText } from "../../../../vendor/lucide-react";
 import { ChipDato } from "./AulasSistemaPabellon";
 import { observacionesDeCampo } from "./observacionesDeCampo";
 import { fmt } from "./kpisDeAulas";
+import "./aulasObservacionesDeCampo.css";
 
 /**
  * Lo que el campo reportó.
@@ -85,11 +86,24 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           Lo repetido sigue yendo primero, y lo que no quepa lo recorre el
           scroll de la sección, que es suyo. */}
       <ul className="aulas-observaciones-lista">
-        {r.observaciones.map((o) => (
+        {r.observaciones.map((o) => {
+          /* Loop mejora-ui E11: la fecha tecleada susurra. El equipo antepone
+             «2/09 » a casi toda observación y ese prefijo pesaba igual que las
+             palabras — en una pared de 49 tarjetas, lo que se escanea es QUÉ
+             pasó, no el sello de cuándo. Presentación pura: el texto queda
+             intacto (es contenido tecleado, no se parsea para datos) y sin
+             prefijo reconocible se pinta tal cual. */
+          const conFecha = /^(\d{1,2}\/\d{1,2})\s+([\s\S]*)$/.exec(o.texto);
+          return (
           <li key={o.texto}>
             <p className="aulas-observaciones-texto">
               <MessageSquareText size={13} aria-hidden="true" />
-              {o.texto}
+              {conFecha ? (
+                <>
+                  <span className="aulas-observaciones-fecha">{conFecha[1]}</span>
+                  {" "}{conFecha[2]}
+                </>
+              ) : o.texto}
             </p>
             <p className="aulas-observaciones-quien">
               {/* **De qué columna salió.** El libro tiene dos: «OBSERVACIONES»
@@ -124,7 +138,8 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               ) : null}
             </p>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
