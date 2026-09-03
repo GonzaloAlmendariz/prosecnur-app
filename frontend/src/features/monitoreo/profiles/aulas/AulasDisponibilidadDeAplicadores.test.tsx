@@ -153,6 +153,7 @@ describe("el día que toca sella su fila de oferta (hermano de B43/B46)", () => 
     expect(html).toMatch(/es-el-que-toca[\s\S]{0,120}>lunes</);
     expect(html).toContain(">toca<");
     expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
+    expect(html).toContain("alimenta el próximo día de campo");
   });
 
   it("sin fecha no hay sello", () => {

@@ -292,6 +292,9 @@ export function AulasDisponibilidadDeAplicadores({
               <li><i className="aulas-carga-celda es-deficit" style={celda(1)} aria-hidden="true" />Más citas que gente</li>
             </>
           ) : null}
+          {fechaQueToca ? (
+            <li><span className="aulas-carga-toca">toca</span> su oferta alimenta el próximo día de campo</li>
+          ) : null}
           <li className="aulas-carga-estado">
             {fmt(oferta.aplicadores)} aplicadores declararon disponibilidad
           </li>
