@@ -23,7 +23,7 @@
  * por el mismo motivo que `mapaDeHoras`.
  */
 import type { MonitoreoAulasDisponibilidad } from "../../../../api/monitoreo";
-import { franjasDeMalla } from "./cargaDeCampo";
+import { comoHora, franjasDeMalla } from "./cargaDeCampo";
 import { minutosDeHora } from "./mapaDeHoras";
 
 const uno = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
@@ -178,5 +178,46 @@ export function columnasVivas(
   for (let j = 0; j < nFranjas; j += 1) {
     if (matrices.some((m) => m.some((fila) => (fila[j] ?? 0) > 0))) out.push(j);
   }
+  return out;
+}
+
+/**
+ * B76 (dictado 2026-09-03: «debería tener un desplegable para poder ver
+ * disponibilidad por aplicador»): los nombres de la malla, únicos y en
+ * alfabeto es-PE — las opciones del desplegable.
+ */
+export function aplicadoresDeLaOferta(oferta: MallaDeOferta): string[] {
+  const vistos = new Set<string>();
+  for (const fila of oferta.nombres) {
+    for (const celda of fila) for (const n of celda) if (n) vistos.add(n);
+  }
+  return [...vistos].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/**
+ * B76: la semana de UNA persona, legible — por día, sus franjas contiguas
+ * fusionadas en bloques «HH:MM–HH:MM» (el fin es el cierre de la última
+ * franja de 30). Solo días donde declaró algo; el orden es el de la malla.
+ */
+export function semanaDelAplicador(
+  oferta: MallaDeOferta,
+  nombre: string,
+): Array<{ etiqueta: string; bloques: string[] }> {
+  const out: Array<{ etiqueta: string; bloques: string[] }> = [];
+  oferta.filas.forEach((fila, i) => {
+    const bloques: string[] = [];
+    let inicio: number | null = null;
+    let fin: number | null = null;
+    oferta.franjas.forEach((f, j) => {
+      const suya = (oferta.nombres[i]?.[j] ?? []).includes(nombre);
+      if (suya && inicio === null) { inicio = f; fin = f + 30; return; }
+      if (suya && fin === f) { fin = f + 30; return; }
+      if (inicio !== null) bloques.push(`${comoHora(inicio)}–${comoHora(fin!)}`);
+      inicio = suya ? f : null;
+      fin = suya ? f + 30 : null;
+    });
+    if (inicio !== null) bloques.push(`${comoHora(inicio)}–${comoHora(fin!)}`);
+    if (bloques.length) out.push({ etiqueta: fila.etiqueta, bloques });
+  });
   return out;
 }

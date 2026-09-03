@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasDisponibilidad } from "../../../../api/monitoreo";
 import { calcularCarga } from "./cargaDeCampo";
-import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
+import { aplicadoresDeLaOferta, columnasVivas, mallaDeOferta, semanaDelAplicador } from "./disponibilidadDeAplicadores";
 
 /**
  * La malla de OFERTA es el espejo de la de demanda (dictado 2026-09-02: «deben
@@ -152,5 +152,61 @@ describe("columnasVivas", () => {
   it("sin ninguna matriz ocupada no hay columnas", () => {
     expect(columnasVivas(3, [[[0, 0, 0]]])).toEqual([]);
     expect(columnasVivas(3, [])).toEqual([]);
+  });
+});
+
+describe("B76 — la lente por aplicador", () => {
+  // Dictado 2026-09-03: «debería tener un desplegable para poder ver
+  // disponibilidad por aplicador». Malla mínima artesanal: dos días, cuatro
+  // franjas, dos personas.
+  const franjas = [480, 510, 540, 570]; // 08:00 08:30 09:00 09:30
+  const malla = {
+    franjas,
+    filas: [
+      { clave: "lunes", etiqueta: "lunes" },
+      { clave: "martes", etiqueta: "martes" },
+    ],
+    disponibles: [
+      [2, 2, 1, 0],
+      [0, 1, 1, 1],
+    ],
+    nombres: [
+      [["Ana Prueba", "Berta Ficticia"], ["Ana Prueba", "Berta Ficticia"], ["Ana Prueba"], []],
+      [[], ["Berta Ficticia"], ["Berta Ficticia"], ["Berta Ficticia"]],
+    ],
+    pico: null,
+    aplicadores: 2,
+    fueraDeEje: 0,
+    ilegibles: 0,
+  } as unknown as import("./disponibilidadDeAplicadores").MallaDeOferta;
+
+  it("el desplegable lista nombres únicos en alfabeto", () => {
+    expect(aplicadoresDeLaOferta(malla)).toEqual(["Ana Prueba", "Berta Ficticia"]);
+  });
+
+  it("la semana de una persona fusiona franjas contiguas y cierra la última media hora", () => {
+    expect(semanaDelAplicador(malla, "Ana Prueba")).toEqual([
+      { etiqueta: "lunes", bloques: ["08:00–09:30"] },
+    ]);
+    expect(semanaDelAplicador(malla, "Berta Ficticia")).toEqual([
+      { etiqueta: "lunes", bloques: ["08:00–09:00"] },
+      { etiqueta: "martes", bloques: ["08:30–10:00"] },
+    ]);
+  });
+
+  it("dos bloques del mismo día no se fusionan si hay hueco", () => {
+    const conHueco = {
+      ...malla,
+      filas: [{ clave: "lunes", etiqueta: "lunes" }],
+      disponibles: [[1, 0, 1, 1]],
+      nombres: [[["Ana Prueba"], [], ["Ana Prueba"], ["Ana Prueba"]]],
+    } as unknown as import("./disponibilidadDeAplicadores").MallaDeOferta;
+    expect(semanaDelAplicador(conHueco, "Ana Prueba")).toEqual([
+      { etiqueta: "lunes", bloques: ["08:00–08:30", "09:00–10:00"] },
+    ]);
+  });
+
+  it("quien no declaró nada vuelve vacío, no inventa", () => {
+    expect(semanaDelAplicador(malla, "Nadie Conocido")).toEqual([]);
   });
 });
