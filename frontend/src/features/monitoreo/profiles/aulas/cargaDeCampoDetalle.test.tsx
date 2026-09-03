@@ -128,6 +128,9 @@ describe("B46 — el día que toca, hermanado en el calendario", () => {
     expect(conFechas).toMatch(/es-pasado[\s\S]{0,400}Lunes 07\/09/);
     expect(conFechas).toMatch(/es-el-que-toca[\s\S]{0,400}Lunes 14\/09/);
     expect(conFechas).toContain(">toca<");
+    // La leyenda del pie declara el sello — un rótulo nuevo sin leyenda es
+    // un color que el lector tiene que adivinar.
+    expect(conFechas).toContain("el despliegue inminente");
   });
 
   it("en el patrón semanal no hay sello: los días agregan semanas, no fechas", () => {
