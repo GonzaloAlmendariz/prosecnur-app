@@ -151,9 +151,10 @@ describe("el día que toca sella su fila de oferta (hermano de B43/B46)", () => 
       <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} fechaQueToca="2026-09-07" />,
     );
     expect(html).toMatch(/es-el-que-toca[\s\S]{0,120}>lunes</);
-    expect(html).toContain(">toca<");
+    // Mapa de jergas 2026-09-03: el sello dejó de decir «toca».
+    expect(html).toContain(">próxima salida<");
     expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
-    expect(html).toContain("alimenta el próximo día de campo");
+    expect(html).toContain("cae la próxima salida de campo");
   });
 
   it("sin fecha no hay sello", () => {

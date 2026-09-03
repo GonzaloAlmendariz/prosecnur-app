@@ -177,8 +177,9 @@ export const FIELD_LABELS: Record<string, string> = {
   // · REEMPLAZADA. El rótulo es la columna.
   sample_status: "Estado de muestra",
   // La columna que dice qué hacer, no qué pasa. Patrón 7 del catálogo: la tabla
-  // de Cálculo termina en «A coordinar» por la misma razón.
-  que_toca: "Qué toca",
+  // de Cálculo termina en «A coordinar» por la misma razón. «Qué toca» cayó en
+  // el mapa de jergas del dictado 2026-09-03 («¿qué significa toca?»).
+  que_toca: "Siguiente paso",
   // `MUESTRA` es como el Excel rotula la ola (M1, M2). Se usa su palabra
   // aunque «muestra» tambien nombre el diseño: es la que lee el equipo.
   wave: "Muestra",

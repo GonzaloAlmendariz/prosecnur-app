@@ -134,7 +134,7 @@ export function AulasAsignacionDeAplicadores({
             /* El KPI del despliegue va PRIMERO: cuánta gente mueve el día que
                toca es la cifra con la que se abre la vista. */
             <div>
-              <dt>{diaQueToca.etiqueta} — el que toca</dt>
+              <dt>{diaQueToca.etiqueta} — próxima salida</dt>
               <dd>{fmt(diaQueToca.asignaciones.length)}</dd>
             </div>
           ) : null}
@@ -182,13 +182,13 @@ export function AulasAsignacionDeAplicadores({
               >
                 <h4>
                   {d.etiqueta}
-                  <span>
+                  <span className="aulas-asigna-conteo">
                     {" "}· {fmt(d.asignaciones.length)}{" "}
                     {d.asignaciones.length === 1 ? "cita repartida" : "citas repartidas"}
                   </span>
                   {esElQueToca ? (
                     <span className="aulas-asigna-toca">
-                      {d.fecha === hoy ? "hoy — el que toca" : "el que toca"}
+                      {d.fecha === hoy ? "hoy — salida de campo" : "próxima salida"}
                     </span>
                   ) : null}
                   {esElQueToca && d.asignaciones.length > 0 ? (
@@ -198,7 +198,8 @@ export function AulasAsignacionDeAplicadores({
                     <button
                       type="button"
                       className="aulas-asigna-copiar"
-                      aria-label={`Copiar el despliegue de ${d.etiqueta} para compartirlo con el equipo`}
+                      title="Copia la lista del día — hora, aula y aplicador de cada cita — lista para pegar en el chat del equipo"
+                      aria-label={`Copiar el aviso de ${d.etiqueta}: hora, aula y aplicador de cada cita, para pegarlo en el chat del equipo`}
                       onClick={() => {
                         const texto = textoDelDespliegue(d, lugares);
                         const marca = () => {
@@ -218,7 +219,7 @@ export function AulasAsignacionDeAplicadores({
                     >
                       {copiado
                         ? <><Check size={12} aria-hidden="true" /> copiado</>
-                        : <><Copy size={12} aria-hidden="true" /> copiar despliegue</>}
+                        : <><Copy size={12} aria-hidden="true" /> copiar aviso del día</>}
                     </button>
                   ) : null}
                   {esPasado ? <em className="aulas-asigna-ya-paso"> · ya pasó</em> : null}
@@ -277,7 +278,7 @@ export function AulasAsignacionDeAplicadores({
                       <tr>
                         <th scope="col">Cita</th>
                         <th scope="col">Lugar</th>
-                        <th scope="col">Ventana</th>
+                        <th scope="col">Rango de aplicación</th>
                         <th scope="col">Aplicador</th>
                       </tr>
                     </thead>

@@ -204,9 +204,11 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
       <AulasAsignacionDeAplicadores reparto={repartoDeAplicadores(DOS_DIAS as unknown as MonitoreoAulasReparto)} hoy={hoy} />,
     );
 
-  it("el KPI del despliegue abre la vista: cuántas citas trae el día que toca", () => {
+  it("el KPI del despliegue abre la vista: cuántas citas trae la próxima salida", () => {
+    // «el que toca» cayó en el mapa de jergas (dictado 2026-09-03): el
+    // vocabulario del lector es «próxima salida».
     const html = pintaCon("2026-09-05");
-    expect(html).toMatch(/Lunes 07\/09 — el que toca/);
+    expect(html).toMatch(/Lunes 07\/09 — próxima salida/);
   });
 
   it("entre dos fechas futuras, la primera es la que toca y la otra queda neutra", () => {
@@ -216,8 +218,8 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
   });
 
-  it("el día de hoy se sella como «hoy — el que toca»", () => {
-    expect(pintaCon("2026-09-07")).toContain("hoy — el que toca");
+  it("el día de hoy se sella como «hoy — salida de campo»", () => {
+    expect(pintaCon("2026-09-07")).toContain("hoy — salida de campo");
   });
 
   it("lo pasado se atenúa y se rotula; el que toca salta al siguiente", () => {

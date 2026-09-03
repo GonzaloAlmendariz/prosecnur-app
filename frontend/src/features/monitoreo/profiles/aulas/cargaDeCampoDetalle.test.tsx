@@ -124,13 +124,14 @@ describe("B46 — el día que toca, hermanado en el calendario", () => {
     />,
   );
 
-  it("la fila pasada se atenúa y la próxima lleva su sello «toca»", () => {
+  it("la fila pasada se atenúa y la próxima lleva su sello «próxima salida»", () => {
     expect(conFechas).toMatch(/es-pasado[\s\S]{0,400}Lunes 07\/09/);
     expect(conFechas).toMatch(/es-el-que-toca[\s\S]{0,400}Lunes 14\/09/);
-    expect(conFechas).toContain(">toca<");
+    // Mapa de jergas 2026-09-03: el sello dejó de decir «toca».
+    expect(conFechas).toContain(">próxima salida<");
     // La leyenda del pie declara el sello — un rótulo nuevo sin leyenda es
     // un color que el lector tiene que adivinar.
-    expect(conFechas).toContain("el despliegue inminente");
+    expect(conFechas).toContain("ahí se despliega el equipo");
   });
 
   it("en el patrón semanal no hay sello: los días agregan semanas, no fechas", () => {
@@ -141,6 +142,6 @@ describe("B46 — el día que toca, hermanado en el calendario", () => {
       />,
     );
     expect(semanal).not.toContain("es-el-que-toca");
-    expect(semanal).not.toContain(">toca<");
+    expect(semanal).not.toContain(">próxima salida<");
   });
 });

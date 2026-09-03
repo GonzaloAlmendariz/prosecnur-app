@@ -177,7 +177,7 @@ export function AulasDisponibilidadDeAplicadores({
               <tr key={fila.clave} className={esQueToca ? "es-el-que-toca" : undefined}>
                 <th scope="row">
                   {fila.etiqueta}
-                  {esQueToca ? <span className="aulas-carga-toca">toca</span> : null}
+                  {esQueToca ? <span className="aulas-carga-toca">próxima salida</span> : null}
                 </th>
                 {vivas.map((j) => {
                   const n = oferta.disponibles[i][j];
@@ -293,7 +293,7 @@ export function AulasDisponibilidadDeAplicadores({
             </>
           ) : null}
           {fechaQueToca ? (
-            <li><span className="aulas-carga-toca">toca</span> su oferta alimenta el próximo día de campo</li>
+            <li><span className="aulas-carga-toca">próxima salida</span> ese día de semana cae la próxima salida de campo</li>
           ) : null}
           <li className="aulas-carga-estado">
             {fmt(oferta.aplicadores)} aplicadores declararon disponibilidad

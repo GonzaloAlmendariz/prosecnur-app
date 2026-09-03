@@ -585,7 +585,7 @@ export function AulasCargaDeCampo({
                       {fila.etiqueta}
                     </button>
                     {proximaFecha !== null && fila.fecha === proximaFecha ? (
-                      <span className="aulas-carga-toca">{fila.fecha === hoy ? "hoy" : "toca"}</span>
+                      <span className="aulas-carga-toca">{fila.fecha === hoy ? "hoy" : "próxima salida"}</span>
                     ) : null}
                   </th>
                   {vivas.map((j) => {
@@ -763,7 +763,7 @@ export function AulasCargaDeCampo({
           <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
           <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una franja verde se ve al pasar el puntero</li>
           {eje === "calendario" ? (
-            <li><span className="aulas-carga-toca">toca</span> el primer día no pasado: el despliegue inminente</li>
+            <li><span className="aulas-carga-toca">próxima salida</span> el primer día de campo que viene: ahí se despliega el equipo</li>
           ) : null}
           <li className="aulas-carga-estado">
             {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora
