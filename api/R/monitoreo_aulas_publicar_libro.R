@@ -140,8 +140,11 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # resumen cuente filas de DATOS. La agendadas Extra (B14) calca a su
 # contraparte: una fila; la de campo Extra cae en el 2 del else, como la suya.
 .malp_cabeceras <- function(hoja) {
+  # «Asignación de aplicadores» corona con UNA fila de título: contarle dos
+  # hacía que la capa genérica pintara de navy la nota del sorteo (fila 2) y
+  # congelara una fila de más.
   if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
-                  .malp_hoja_plan_dia())) 1L else 2L
+                  .malp_hoja_plan_dia(), .malp_hoja_asignacion())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de

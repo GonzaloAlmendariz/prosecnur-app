@@ -89,13 +89,30 @@ test_that("B68: el formato de Sheets calca la estética de las otras hojas — b
   reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
   expect_gt(length(reqs), 3L)
 
-  # Cada request es un repeatCell acotado a formato (no toca values).
+  # Cada request toca SOLO formato o geometría (jamás values ni
+  # dataValidation): repeatCell acotado a userEnteredFormat o un ancho/alto
+  # de dimensión acotado a pixelSize.
   for (r in reqs) {
-    expect_identical(r$repeatCell$fields, "userEnteredFormat(backgroundColor,textFormat)")
+    if (!is.null(r$repeatCell)) {
+      expect_true(startsWith(r$repeatCell$fields, "userEnteredFormat("))
+    } else {
+      expect_identical(r$updateDimensionProperties$fields, "pixelSize")
+    }
   }
-  # El título (fila 1) lleva la banda navy de la casa.
-  filas_banda <- vapply(reqs, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  bandas <- Filter(function(r) {
+    !is.null(r$repeatCell) && grepl("backgroundColor", r$repeatCell$fields)
+  }, reqs)
+  filas_banda <- vapply(bandas, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  # El título (fila 1) lleva la banda navy de la casa, a 13 pt y con aire
+  # (alto de fila propio).
   expect_true(1L %in% filas_banda)
+  titulo <- bandas[[which(filas_banda == 1L)[1]]]
+  expect_identical(titulo$repeatCell$cell$userEnteredFormat$textFormat$fontSize, 13L)
+  altos <- Filter(function(r) {
+    !is.null(r$updateDimensionProperties) &&
+      identical(r$updateDimensionProperties$range$dimension, "ROWS")
+  }, reqs)
+  expect_true(0L %in% vapply(altos, function(r) r$updateDimensionProperties$range$startIndex, integer(1)))
   # El día (título de bloque), la cabecera de tabla y la alerta de fuera de
   # rango también ganan banda — derivadas del contenido, no de números mágicos.
   primeras <- vapply(vals, function(row) trimws(as.character(row[[1]] %||% "")), character(1))
@@ -103,6 +120,45 @@ test_that("B68: el formato de Sheets calca la estética de las otras hojas — b
   expect_true(which(primeras == "CURSO-HORARIO")[1] %in% filas_banda)
   expect_true(which(grepl("^FUERA DEL RANGO", primeras))[1] %in% filas_banda)
   expect_true(which(primeras == "CARGAS POR APLICADOR")[1] %in% filas_banda)
-  # Las notas no se tiñen: el protocolo (fila 3) no lleva banda.
-  expect_false(3L %in% filas_banda)
+  # Las notas van en el gris pequeño e itálico del xlsx (el protocolo es la
+  # fila 3): un aparte, no un dato — y jamás en navy.
+  nota <- bandas[[which(filas_banda == 3L)[1]]]
+  fmt_nota <- nota$repeatCell$cell$userEnteredFormat
+  expect_identical(fmt_nota$textFormat$fontSize, 9L)
+  expect_true(isTRUE(fmt_nota$textFormat$italic))
+  expect_false(isTRUE(fmt_nota$textFormat$bold))
+  # Una fila-DATO no se tiñe: el reparto se lee sobre blanco.
+  fila_dato <- which(grepl("^CH ", primeras))[1]
+  if (!is.na(fila_dato)) expect_false(fila_dato %in% filas_banda)
+})
+
+test_that("B68: la hoja publica sus anchos del xlsx y centra las horas", {
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
+  vals <- aulas_libro_valores_asignacion(plan, list(.tla_disp("Ana Prueba")))
+  reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
+
+  # Los anchos cubren las 8 columnas de la tabla, por rangos agrupados.
+  anchos <- Filter(function(r) {
+    !is.null(r$updateDimensionProperties) &&
+      identical(r$updateDimensionProperties$range$dimension, "COLUMNS")
+  }, reqs)
+  expect_gte(length(anchos), 3L)
+  cubiertas <- rep(FALSE, 8L)
+  for (a in anchos) {
+    rg <- a$updateDimensionProperties$range
+    expect_gt(a$updateDimensionProperties$properties$pixelSize, 0L)
+    cubiertas[seq.int(rg$startIndex + 1L, min(8L, rg$endIndex))] <- TRUE
+  }
+  expect_true(all(cubiertas))
+
+  # RECOJO/SALE/APLICACIÓN y FIJADA van centradas a toda la altura publicada.
+  centrados <- Filter(function(r) {
+    !is.null(r$repeatCell) &&
+      identical(r$repeatCell$fields, "userEnteredFormat(horizontalAlignment)")
+  }, reqs)
+  expect_identical(length(centrados), 2L)
+  for (ctr in centrados) {
+    expect_identical(ctr$repeatCell$cell$userEnteredFormat$horizontalAlignment, "CENTER")
+    expect_identical(ctr$repeatCell$range$endRowIndex, length(vals))
+  }
 })
