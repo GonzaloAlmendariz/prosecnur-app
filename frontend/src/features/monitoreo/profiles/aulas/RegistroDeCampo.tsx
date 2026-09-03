@@ -866,8 +866,18 @@ export function RegistroDeCampo({
                   </label>
                   <label className="registro-campo-campo">
                     <span>Fecha y hora de aplicación</span>
+                    {/* El ejemplo del placeholder es LA CITA del aula cuando
+                        existe — enseña el formato con el dato que casi
+                        siempre corresponde—; el fijo «2026-08-16 10:15» era
+                        una fecha vieja que a ojo parecía un valor tecleado. */}
                     <input
-                      type="text" placeholder="2026-08-16 10:15" value={form.momento}
+                      type="text"
+                      placeholder={(() => {
+                        const f = String(activa.scheduled_date ?? "").trim().slice(0, 10);
+                        const h = String(activa.scheduled_time ?? "").trim();
+                        return f ? `p. ej. ${f}${h ? ` ${h}` : " 10:15"}` : "p. ej. 2026-09-07 10:15";
+                      })()}
+                      value={form.momento}
                       onChange={(e) => set("momento", e.target.value)}
                     />
                   </label>
