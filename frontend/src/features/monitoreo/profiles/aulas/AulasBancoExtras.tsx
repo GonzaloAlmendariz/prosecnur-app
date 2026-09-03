@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { fmt } from "./kpisDeAulas";
+import "./aulasBancoExtras.css";
 
 /**
  * Las aulas extra, por facultad.
@@ -138,9 +139,17 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
         </li>
         {banco.por_facultad.map((f) => (
           <li key={f.faculty}>
+            {/* Loop mejora-ui E8: la facultad sin extras se DECLARA (doctrina
+                de los ceros a la vista) pero susurra — doce «0 · 0 M · 0 H» al
+                mismo volumen ahogaban a las tres tarjetas con contenido, que
+                son la respuesta que se viene a buscar. Sigue clickeable: su
+                vacío filtrado también se declara. */}
             <button
               type="button"
-              className={facultad === f.faculty ? "es-activa" : ""}
+              className={[
+                facultad === f.faculty ? "es-activa" : "",
+                f.extras === 0 ? "es-agotada" : "",
+              ].filter(Boolean).join(" ")}
               onClick={() => setFacultad(facultad === f.faculty ? "" : f.faculty)}
             >
               <span className="aulas-banco-nombre">{f.faculty || "Sin facultad"}</span>
