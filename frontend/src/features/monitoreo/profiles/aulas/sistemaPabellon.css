@@ -18,6 +18,15 @@
   color: var(--pulso-text-soft);
   white-space: nowrap;
 }
+/* B72/B73 — la preparación como box del sistema (dictado 2026-09-03): tenue y
+   con borde punteado — protocolo previo, no identidad; los números tabulares
+   alinean con el chip de hora que acompaña. */
+.aulas-chip.aulas-chip-prep {
+  background: transparent;
+  border-style: dashed;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
 /* La hora: sobria, numérica, distinta del lugar — un cuadrito de reloj, no de
    edificio. */
 .aulas-chip-hora {

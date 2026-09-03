@@ -25,7 +25,7 @@ import {
 } from "./cargaDeCampo";
 import { AulasAsignacionDeAplicadores } from "./AulasAsignacionDeAplicadores";
 import { AulasDisponibilidadDeAplicadores } from "./AulasDisponibilidadDeAplicadores";
-import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
 import { repartoDeAplicadores } from "./repartoDeAplicadores";
 import { etiquetaDeFecha } from "./agendaPorDia";
@@ -749,9 +749,11 @@ export function AulasCargaDeCampo({
                             qué hora a qué hora… cuándo finaliza». La
                             preparación en tenue, la aplicación con su FIN. */}
                         {o.recojo ? (
-                          <span className="aulas-asigna-prep">
+                          /* Como BOX del sistema (dictado 2026-09-03: «esto
+                             debería salir como un box como el resto»). */
+                          <ChipPrep>
                             recojo {o.recojo}{o.salida ? ` · sale ${o.salida}` : ""}
-                          </span>
+                          </ChipPrep>
                         ) : null}
                         {o.rango
                           ? <ChipHora>{o.rango}</ChipHora>

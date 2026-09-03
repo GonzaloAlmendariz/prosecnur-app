@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
-import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
+import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { hoyISO } from "./calendarioDeAgenda";
 import { mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
@@ -394,9 +394,9 @@ export function AulasAsignacionDeAplicadores({
                                   : undefined}
                               >
                                 {a.recojo ? (
-                                  <span className="aulas-asigna-prep">
+                                  <ChipPrep>
                                     recojo {a.recojo}{a.salida ? ` · sale ${a.salida}` : ""}
-                                  </span>
+                                  </ChipPrep>
                                 ) : null}
                                 {a.inicio && a.fin
                                   ? <ChipHora>{a.inicio}–{a.fin}</ChipHora>
@@ -521,7 +521,7 @@ export function AulasAsignacionDeAplicadores({
                               {/* La misma distinción del box de la tabla: el
                                   recojo en tenue, la hora pactada en chip. */}
                               {cita.recojo ? (
-                                <span className="aulas-asigna-prep">recojo {cita.recojo}</span>
+                                <ChipPrep>recojo {cita.recojo}</ChipPrep>
                               ) : null}
                               {cita.inicio ? <ChipHora>{cita.inicio}</ChipHora> : null}
                               {(() => {
