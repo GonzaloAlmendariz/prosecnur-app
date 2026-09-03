@@ -97,18 +97,17 @@ export function AulasAsignacionDeAplicadores({
 
   // Los candidatos del selector: la equidad entera, con su carga a la vista —
   // reasignar mirando quién anda cargado es la mitad del «que sea equitativo».
-  // El día QUE TOCA, compartido por los días y el rail: el primero no pasado.
-  const proximo = reparto.dias.find((x) => x.fecha >= hoy)?.fecha ?? null;
+  // El día QUE TOCA, compartido por los días, el rail y los KPIs: el primero
+  // no pasado.
+  const diaQueToca = reparto.dias.find((x) => x.fecha >= hoy) ?? null;
+  const proximo = diaQueToca?.fecha ?? null;
   // La primera cita de cada aplicador en el día que toca — el rail deja de
   // ser solo un conteo y se vuelve la hoja de DESPLIEGUE (régimen 2026-09-02:
   // «cómo se va a desplegar a los aplicadores»): a qué hora y a qué pabellón
   // entra cada uno. Las asignaciones ya vienen en orden de hora.
   const despliegue = new Map<string, { inicio: string; codigo: string }>();
-  if (proximo !== null) {
-    const dia = reparto.dias.find((x) => x.fecha === proximo);
-    for (const a of dia?.asignaciones ?? []) {
-      if (!despliegue.has(a.aplicador)) despliegue.set(a.aplicador, { inicio: a.inicio, codigo: a.codigo });
-    }
+  for (const a of diaQueToca?.asignaciones ?? []) {
+    if (!despliegue.has(a.aplicador)) despliegue.set(a.aplicador, { inicio: a.inicio, codigo: a.codigo });
   }
 
   const opcionesDeAplicador = reparto.equidad.map((e) => (
@@ -131,6 +130,14 @@ export function AulasAsignacionDeAplicadores({
           {onFijar ? " Lo fijado a mano manda sobre el automático y se conserva." : ""}
         </p>
         <dl className="aulas-carga-kpis">
+          {diaQueToca ? (
+            /* El KPI del despliegue va PRIMERO: cuánta gente mueve el día que
+               toca es la cifra con la que se abre la vista. */
+            <div>
+              <dt>{diaQueToca.etiqueta} — el que toca</dt>
+              <dd>{fmt(diaQueToca.asignaciones.length)}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>Citas repartidas</dt>
             <dd>{fmt(reparto.citas)}</dd>

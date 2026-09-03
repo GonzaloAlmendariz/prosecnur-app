@@ -204,6 +204,11 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
       <AulasAsignacionDeAplicadores reparto={repartoDeAplicadores(DOS_DIAS as unknown as MonitoreoAulasReparto)} hoy={hoy} />,
     );
 
+  it("el KPI del despliegue abre la vista: cuántas citas trae el día que toca", () => {
+    const html = pintaCon("2026-09-05");
+    expect(html).toMatch(/Lunes 07\/09 — el que toca/);
+  });
+
   it("entre dos fechas futuras, la primera es la que toca y la otra queda neutra", () => {
     const html = pintaCon("2026-09-05");
     expect(html).toMatch(/es-el-que-toca[\s\S]*Lunes 07\/09/);
