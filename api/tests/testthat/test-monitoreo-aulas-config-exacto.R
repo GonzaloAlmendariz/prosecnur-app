@@ -70,3 +70,20 @@ test_that("la config de estado devuelta por el cliente pasa entera por el normal
   expect_identical(cfg$monitoreo_profile$family, "aulas_universitarias")
   expect_identical(cfg$aulas_universitarias[["plan"]], list())
 })
+
+test_that("B36: reparto_fijado sobrevive a la frontera jsonlite — vector nombrado, no lista", {
+  # plumber parsea {"CH 7": "..."} del body con simplifyVector y entrega un
+  # VECTOR nombrado. El normalizador lo tiraba (`!is.list` → list()) y el
+  # mapa fijado por la UI se perdia en silencio: medido en vivo 2026-09-02
+  # («fijado: []» tras el POST). La frontera acepta ambas formas.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    reparto_fijado = c("CH 7" = "Aquino Dulanto, Alejandro Moises", "CH 9" = "")
+  ))
+  # El valor vacio es SOLTAR: se descarta; el resto sobrevive con su nombre.
+  expect_identical(cfg$reparto_fijado,
+                   list("CH 7" = "Aquino Dulanto, Alejandro Moises"))
+
+  # Y como lista (asi vuelve del .pulso guardado): mismo contrato.
+  cfg2 <- monitoreo_aulas_normalize_config(list(reparto_fijado = cfg$reparto_fijado))
+  expect_identical(cfg2$reparto_fijado, cfg$reparto_fijado)
+})

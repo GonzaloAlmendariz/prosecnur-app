@@ -417,6 +417,10 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # SOLTAR una fijacion: se descarta aqui y la cita vuelve al automatico.
     reparto_fijado = local({
       crudo <- config[["reparto_fijado"]]
+      # jsonlite simplifica {"CH 7": "..."} del body HTTP a VECTOR nombrado,
+      # no lista — sin esta linea el POST de la UI llegaba y el mapa se
+      # perdia en silencio (medido en vivo 2026-09-02).
+      if (is.character(crudo)) crudo <- as.list(crudo)
       if (!is.list(crudo)) crudo <- list()
       limpio <- list()
       for (nm in (names(crudo) %||% character(0))) {

@@ -5178,7 +5178,11 @@ mount_monitoreo <- function(pr) {
       profile$status <- "active"
       profile$route_selected <- TRUE
       cfg$monitoreo_profile <- monitoreo_normalize_profile(profile)
-      session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
+      # Solo cuando el body TRAE plan/agenda: la clave de sesion guarda el plan
+      # FUSIONADO por el sync (fechas y horas del libro) y un POST parcial
+      # —umbral, criterio, fijaciones— la pisaba con el plan del config, sin
+      # fusion: «0 de 174 aulas ya tienen hora», medido en vivo 2026-09-02.
+      if (!is.null(incoming[["plan"]]) || !is.null(incoming[["agenda"]])) session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)
       cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(ok = TRUE, aulas_universitarias = cfg$aulas_universitarias, config = cfg, state = .monitoreo_state_payload(sid), saved_project = !is.null(saved_project))
