@@ -167,9 +167,24 @@
 }
 /* La regla vertical de cada hora en punto. Sin ella, en una malla dispersa —15
    fechas con cuatro celdas cada una— no hay forma de saber en qué columna cae un
-   cuadrito suelto sin recorrer la fila con el dedo. */
-.aulas-carga-malla th.es-hora, .aulas-carga-malla td.es-hora { box-shadow: inset 1px 0 0 var(--pulso-border); }
+   cuadrito suelto sin recorrer la fila con el dedo. Loop mejora-ui E3: medio
+   tono más presente — a la intensidad de --pulso-border la guía se perdía
+   entre los cortes del border-spacing. */
+.aulas-carga-malla th.es-hora, .aulas-carga-malla td.es-hora {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--pulso-border-strong) 60%, var(--pulso-border));
+}
 .aulas-carga-malla thead th.es-media { box-shadow: none; }
+
+/* Loop mejora-ui E3 (hereda B69, la pasada creativa del calendario): el
+   lienzo de planner. Los chips flotaban en blanco puro y una celda suelta de
+   las 15:00 no se podía ubicar; cada media hora vacía es ahora una loseta
+   apenas presente — el campo se lee como superficie de agenda, no como vacío.
+   El CH de la derecha (total) y las cabeceras quedan fuera; la celda ocupada
+   tapa su loseta porque llena el td con el mismo radio. */
+.aulas-carga-malla tbody td:not(.aulas-carga-total) {
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  border-radius: 4px;
+}
 
 /* Corte de semana: quince fechas seguidas son una lista; en semanas son un
    operativo. */
@@ -210,8 +225,13 @@ button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px
 button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 
 /* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
-   estilo en línea de la capa plausible ya usa box-shadow y lo taparía. */
-.aulas-carga-celda.es-pico { outline: 2px solid var(--pulso-warn-border); outline-offset: -2px; }
+   estilo en línea de la capa plausible ya usa box-shadow y lo taparía.
+   E3: a tono de warn-border el anillo se confundía con el borde de la loseta;
+   sube hacia la tinta para que el KPI «momento más cargado» se encuentre. */
+.aulas-carga-celda.es-pico {
+  outline: 2px solid color-mix(in srgb, var(--pulso-warn-fg) 70%, var(--pulso-warn-border));
+  outline-offset: -2px;
+}
 /* B38 — la demanda confirmada sobre la malla de oferta: el anillo verde dice
    «aquí hay citas», la alarma dice «más citas que gente». Van por box-shadow
    interior para convivir con los outlines de es-pico/es-activa. */
