@@ -541,6 +541,27 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-text-faint);
 }
 .aulas-asigna-nota { margin: 0; font-size: 11.5px; color: var(--pulso-text-faint); }
+/* B66 — el veredicto de equidad, dicho arriba de las barras: parejo habla en
+   verde de la casa; el desbalance en el tono neutro-fuerte, no en rojo (no es
+   un error: sus causas van declaradas en la misma línea). */
+.aulas-asigna-veredicto {
+  margin: 0 0 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.aulas-asigna-veredicto.es-parejo {
+  color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-bg) 45%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-success-border) 60%, var(--pulso-border));
+}
+.aulas-asigna-veredicto.es-desparejo {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border-strong);
+}
+
 .aulas-asigna-equidad ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
 /* Cada carga es un botón de fila entera: hover/foco resaltan sus citas y el
