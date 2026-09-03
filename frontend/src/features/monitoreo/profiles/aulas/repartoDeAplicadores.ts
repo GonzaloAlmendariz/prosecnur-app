@@ -112,6 +112,28 @@ export function mapaDeFijaciones(
   return mapa;
 }
 
+/**
+ * El despliegue de un día como texto plano, listo para pegarse en el chat
+ * del equipo (régimen 2026-09-02: «cómo se va a desplegar a los
+ * aplicadores» — el despliegue literal viaja por WhatsApp). Una línea por
+ * cita en orden de hora, con lugar cuando se conoce; lo descubierto se
+ * declara al final, nunca se omite.
+ */
+export function textoDelDespliegue(
+  dia: DiaDeReparto,
+  lugares?: ReadonlyMap<string, string>,
+): string {
+  const lineas = dia.asignaciones.map((a) => {
+    const lugar = lugares?.get(a.codigo) ?? "";
+    const donde = lugar ? `${lugar} · ${a.codigo}` : a.codigo;
+    return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}`;
+  });
+  const cola = dia.noCubiertos.length
+    ? [`Sin nadie asignado: ${dia.noCubiertos.join(", ")}`]
+    : [];
+  return [`Despliegue ${dia.etiqueta}`, ...lineas, ...cola].join("\n");
+}
+
 export function repartoDeAplicadores(
   crudo: MonitoreoAulasReparto | null | undefined,
 ): RepartoVista | null {

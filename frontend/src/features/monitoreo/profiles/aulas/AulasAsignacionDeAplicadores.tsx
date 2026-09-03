@@ -1,9 +1,9 @@
 import { useState } from "react";
 
-import { AlertTriangle, Pin } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { hoyISO } from "./calendarioDeAgenda";
-import { mapaDeFijaciones, type RepartoVista } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, textoDelDespliegue, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -72,6 +72,12 @@ export function AulasAsignacionDeAplicadores({
   // criterio que la franja activa de la malla.
   const [enFoco, setEnFoco] = useState<string | null>(null);
   const [fijado, setFijado] = useState(false);
+  // El «copiado ✓» transitorio del botón de despliegue; efímero de superficie.
+  const [copiado, setCopiado] = useState(false);
+  // Si el portapapeles se niega (permiso, foco, webview restrictivo), el
+  // texto se revela seleccionado para copiarlo a mano: el botón jamás muere
+  // en silencio. "" = oculto.
+  const [textoRevelado, setTextoRevelado] = useState("");
 
   if (!reparto) {
     return (
@@ -178,8 +184,52 @@ export function AulasAsignacionDeAplicadores({
                       {d.fecha === hoy ? "hoy — el que toca" : "el que toca"}
                     </span>
                   ) : null}
+                  {esElQueToca && d.asignaciones.length > 0 ? (
+                    /* El despliegue viaja por WhatsApp: una línea por cita,
+                       en orden de hora, con su lugar — y lo descubierto
+                       declarado al final (textoDelDespliegue). */
+                    <button
+                      type="button"
+                      className="aulas-asigna-copiar"
+                      aria-label={`Copiar el despliegue de ${d.etiqueta} para compartirlo con el equipo`}
+                      onClick={() => {
+                        const texto = textoDelDespliegue(d, lugares);
+                        const marca = () => {
+                          setCopiado(true);
+                          setTimeout(() => setCopiado(false), 2200);
+                        };
+                        // El async clipboard puede rechazar (permiso, foco);
+                        // el fallback de textarea copia igual y el botón
+                        // nunca se queda mudo tras un click.
+                        const aMano = () => setTextoRevelado(texto);
+                        if (!navigator.clipboard?.writeText) { aMano(); return; }
+                        navigator.clipboard.writeText(texto).then(() => {
+                          setTextoRevelado("");
+                          marca();
+                        }).catch(aMano);
+                      }}
+                    >
+                      {copiado
+                        ? <><Check size={12} aria-hidden="true" /> copiado</>
+                        : <><Copy size={12} aria-hidden="true" /> copiar despliegue</>}
+                    </button>
+                  ) : null}
                   {esPasado ? <em className="aulas-asigna-ya-paso"> · ya pasó</em> : null}
                 </h4>
+                {esElQueToca && textoRevelado ? (
+                  /* El peldaño manual: el portapapeles se negó y el texto se
+                     entrega seleccionado — un Cmd/Ctrl+C y listo. */
+                  <div className="aulas-asigna-revelado">
+                    <p>El portapapeles no dio permiso — el despliegue está listo abajo, selecciónalo y cópialo:</p>
+                    <textarea
+                      readOnly
+                      value={textoRevelado}
+                      rows={Math.min(12, textoRevelado.split("\n").length + 1)}
+                      ref={(el) => el?.select()}
+                      aria-label="Despliegue del día para copiar a mano"
+                    />
+                  </div>
+                ) : null}
                 {d.noCubiertos.length > 0 ? (
                   /* Destacado y ARRIBA de su día: la cita descubierta es lo que
                      el jefe de campo tiene que resolver antes de esa fecha — y

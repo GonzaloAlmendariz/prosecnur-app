@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasReparto } from "../../../../api/monitoreo";
-import { mapaDeFijaciones, repartoDeAplicadores } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, repartoDeAplicadores, textoDelDespliegue } from "./repartoDeAplicadores";
 
 /**
  * El bloque `reparto` del dashboard (B29) convertido en modelo de vista para la
@@ -189,5 +189,29 @@ describe("mapaDeFijaciones (B36)", () => {
 
   it("soltar (valor vacío) quita la cita y conserva el resto", () => {
     expect(mapaDeFijaciones(vigentes, "CH 99", "")).toEqual({ "CH 1": "Ana Prueba" });
+  });
+});
+
+describe("textoDelDespliegue — el despliegue del día listo para el chat", () => {
+  it("una línea por cita en orden de hora, con lugar cuando se conoce, y lo descubierto declarado", () => {
+    const dia = {
+      fecha: "2026-09-07", etiqueta: "Lunes 07/09",
+      asignaciones: [
+        { codigo: "CH 7", aplicador: "Aguilar Cuya, Renzo", inicio: "11:30", fin: "11:50", fijada: false, advertencia: "" as const },
+        { codigo: "CH 9", aplicador: "Nolasco Rivera, Diego", inicio: "19:45", fin: "20:05", fijada: false, advertencia: "" as const },
+      ],
+      noCubiertos: ["CH 55"], porConfirmar: [],
+    };
+    expect(textoDelDespliegue(dia, new Map([["CH 7", "A703"]]))).toBe([
+      "Despliegue Lunes 07/09",
+      "• 11:30–11:50 A703 · CH 7 — Aguilar Cuya, Renzo",
+      "• 19:45–20:05 CH 9 — Nolasco Rivera, Diego",
+      "Sin nadie asignado: CH 55",
+    ].join("\n"));
+  });
+
+  it("sin descubiertos no hay cola fantasma", () => {
+    const dia = { fecha: "2026-09-07", etiqueta: "Lunes 07/09", asignaciones: [], noCubiertos: [], porConfirmar: [] };
+    expect(textoDelDespliegue(dia)).toBe("Despliegue Lunes 07/09");
   });
 });
