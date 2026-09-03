@@ -335,11 +335,16 @@ export function AulasSeccionModelo({
             // puede mirar en otras superficies; el ciclo de contacto sólo vive
             // aquí. El orden es el de quien agenda: a quién llamo, cómo, cuándo
             // llamé, cuántas veces, en qué quedó, para cuándo quedó.
-            maxColumns={12}
+            maxColumns={13}
             // «Qué toca» va DELANTE del status: la acción manda sobre el
             // estado del que sale. Es el orden que ya usa la tabla de Cálculo,
             // donde «A coordinar» cierra la fila con lo accionable.
-            preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
+            // `scheduled_venue` tras la hora (B30, dictado: el LUGAR tecleado
+            // «tiene que nutrir a las demás pestañas/hojas y la app»): quien
+            // agenda cierra fecha + hora + LUGAR, y la tabla del ciclo no lo
+            // enseñaba — vivía solo en Carga y en la ficha. El tope sube a 13
+            // para que el enlace de la ficha no se caiga por la columna nueva.
+            preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "scheduled_venue", "link", "label"]}
           />
         </section>
         {/* El «Mapa de horas» (dictado 2026-09-01: «que el gráfico de la
