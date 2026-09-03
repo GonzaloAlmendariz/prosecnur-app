@@ -10,7 +10,7 @@ import { AulasFichaDeAula } from "./AulasFichaDeAula";
  * motor: «agendada» se pinta «Agendado», como en todas las tablas.
  */
 
-const FUENTES = {
+const FUENTES: Record<"agenda" | "partes" | "control" | "brechas", Array<Record<string, unknown>>> = {
   agenda: [{
     operational_code: "CH 31",
     faculty: "Derecho",
