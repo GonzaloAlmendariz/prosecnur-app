@@ -194,16 +194,24 @@ export function AulasDisponibilidadDeAplicadores({
           );
         })() : null}
         <dl className="aulas-carga-kpis">
+          {/* Dictado 2026-09-03 («eso aplica a las barras KPI, que no se
+              entiende»): rótulos en llano con su title, como el patrón. */}
           <div>
-            <dt>Aplicadores</dt>
+            <dt title="Cuántas personas del equipo declararon su disponibilidad en el excel">
+              Aplicadores declarados
+            </dt>
             <dd>{fmt(oferta.aplicadores)}</dd>
           </div>
           <div>
-            <dt>Pico de oferta</dt>
+            <dt title="El máximo de personas libres a la vez en alguna franja de la semana">
+              Máximo libres a la vez
+            </dt>
             <dd>{fmt(oferta.pico?.disponibles ?? 0)}</dd>
           </div>
           <div>
-            <dt>Cuándo</dt>
+            <dt title="El día y la franja donde más gente declaró estar libre">
+              El mejor momento
+            </dt>
             <dd className="es-texto">
               {oferta.pico
                 ? `${oferta.filas[oferta.pico.fila].etiqueta} ${comoHora(oferta.pico.franja)}`

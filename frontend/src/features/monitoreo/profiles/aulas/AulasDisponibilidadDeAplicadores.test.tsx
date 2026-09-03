@@ -56,9 +56,11 @@ describe("AulasDisponibilidadDeAplicadores", () => {
     // La cifra es el dato de la franja, y su nombre accesible dice quiénes.
     // Sin exigir el cierre de la comilla: la franja pico añade su seña detrás.
     expect(html).toMatch(/aria-label="lunes 09:00: 2 disponibles — Ana Prueba, Berta Ficticia/);
-    // Los KPIs de la oferta: cuánta gente y su mejor momento.
-    expect(html).toContain("Aplicadores");
-    expect(html).toContain("Pico de oferta");
+    // Los KPIs de la oferta en llano (dictado 2026-09-03: «las barras KPI no
+    // se entienden»): cuánta gente y su mejor momento, con sus palabras.
+    expect(html).toContain("Aplicadores declarados");
+    expect(html).toContain("Máximo libres a la vez");
+    expect(html).toContain("El mejor momento");
     expect(html).toMatch(/lunes 09:00/);
   });
 
