@@ -52,10 +52,16 @@ const AVISO_LEGIBLE: Record<string, string> = {
  */
 function RangoDeDespliegue({ rango, onDeclarar }: {
   rango: { desde: string; hasta: string } | null;
-  onDeclarar: (rango: { desde: string; hasta: string } | null) => void;
+  onDeclarar: (rango: { desde: string; hasta: string } | null) => void | Promise<void>;
 }) {
   const [desde, setDesde] = useState(rango?.desde ?? "");
   const [hasta, setHasta] = useState(rango?.hasta ?? "");
+  // Feedback del dictado 2026-09-03 («no me permite ni aplicar ni resortear…
+  // es poco intuitivo»): aplicar SÍ trabajaba, pero el refetch tarda segundos
+  // sin ninguna señal y el botón gris de después se leía como roto. El botón
+  // ahora narra su estado: Aplicando… mientras trabaja, Aplicado ✓ cuando el
+  // rango tecleado es el que ya rige.
+  const [ocupado, setOcupado] = useState<"" | "aplicando" | "limpiando">("");
   // Un Recargar puede traer el rango declarado desde otro lado: se adopta.
   useEffect(() => {
     setDesde(rango?.desde ?? "");
@@ -63,6 +69,14 @@ function RangoDeDespliegue({ rango, onDeclarar }: {
   }, [rango?.desde, rango?.hasta]);
   const listo = desde !== "" && hasta !== "";
   const sinCambio = listo && rango !== null && desde === rango.desde && hasta === rango.hasta;
+  const declarar = async (r: { desde: string; hasta: string } | null) => {
+    setOcupado(r ? "aplicando" : "limpiando");
+    try {
+      await onDeclarar(r);
+    } finally {
+      setOcupado("");
+    }
+  };
   return (
     <div className="aulas-asigna-rango">
       <span className="aulas-asigna-rango-rotulo">Repartir solo del</span>
@@ -82,18 +96,23 @@ function RangoDeDespliegue({ rango, onDeclarar }: {
       <button
         type="button"
         className="aulas-asigna-rango-boton"
-        disabled={!listo || sinCambio}
-        onClick={() => { if (listo) onDeclarar({ desde, hasta }); }}
+        disabled={!listo || sinCambio || ocupado !== ""}
+        title={sinCambio
+          ? "Este rango ya rige el reparto; cambia una fecha para mover el corte"
+          : undefined}
+        onClick={() => { if (listo) void declarar({ desde, hasta }); }}
       >
-        Aplicar
+        {ocupado === "aplicando" ? "Aplicando…" : sinCambio ? "Aplicado ✓" : "Aplicar"}
       </button>
       {rango ? (
         <button
           type="button"
           className="aulas-asigna-rango-boton es-limpiar"
-          onClick={() => onDeclarar(null)}
+          disabled={ocupado !== ""}
+          title="Quitar el rango y repartir todas las fechas pactadas"
+          onClick={() => { void declarar(null); }}
         >
-          Todo el horizonte
+          {ocupado === "limpiando" ? "Volviendo…" : "Volver a todo el horizonte"}
         </button>
       ) : null}
     </div>
@@ -141,6 +160,9 @@ export function AulasAsignacionDeAplicadores({
   // superficie: no es un panel enlazable ni un foco de entidad — el mismo
   // criterio que la franja activa de la malla.
   const [enFoco, setEnFoco] = useState<string | null>(null);
+  // El resorteo en curso: mismo feedback que el rango («poco intuitivo» sin
+  // señal de trabajo — el refetch tarda y el click parecía muerto).
+  const [sorteando, setSorteando] = useState(false);
   const [fijado, setFijado] = useState(false);
   // El «copiado ✓» transitorio del botón de despliegue; efímero de superficie.
   const [copiado, setCopiado] = useState(false);
@@ -210,7 +232,7 @@ export function AulasAsignacionDeAplicadores({
             {onDeclararRango ? (
               <RangoDeDespliegue
                 rango={reparto.rango}
-                onDeclarar={(r) => { void onDeclararRango(r); }}
+                onDeclarar={(r) => onDeclararRango(r)}
               />
             ) : null}
             {onResortear ? (
@@ -218,10 +240,20 @@ export function AulasAsignacionDeAplicadores({
                 <button
                   type="button"
                   className="aulas-asigna-rango-boton"
+                  disabled={sorteando}
                   title="Otro sorteo con las mismas reglas: rota quién gana los empates; la equidad y lo fijado a mano no cambian"
-                  onClick={() => { void onResortear(reparto.semilla + 1); }}
+                  onClick={() => {
+                    void (async () => {
+                      setSorteando(true);
+                      try {
+                        await onResortear(reparto.semilla + 1);
+                      } finally {
+                        setSorteando(false);
+                      }
+                    })();
+                  }}
                 >
-                  Resortear
+                  {sorteando ? "Sorteando…" : "Resortear"}
                 </button>
                 {reparto.semilla > 0 ? (
                   <em>sorteo n.º {fmt(reparto.semilla + 1)}</em>

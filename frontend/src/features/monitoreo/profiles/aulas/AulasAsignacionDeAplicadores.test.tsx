@@ -118,6 +118,30 @@ describe("AulasAsignacionDeAplicadores", () => {
     expect(html).toContain("Ana Prueba");
     expect(html).not.toContain("libro de disponibilidad");
   });
+
+  it("con el rango vigente el botón narra el estado: Aplicado ✓, no un gris mudo", () => {
+    // Dictado 2026-09-03 («no me permite ni aplicar ni resortear… es poco
+    // intuitivo»): aplicar sí trabajaba, pero el botón deshabilitado de
+    // después se leía como roto. Con el rango tecleado = el que rige, el
+    // botón lo DICE; y el de limpiar se llama por su acción, no por su
+    // destino a secas.
+    const html = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores({
+          ...REPARTO,
+          rango: { desde: "2026-09-07", hasta: "2026-09-12" },
+          semilla: 1,
+        } as unknown as MonitoreoAulasReparto)}
+        onDeclararRango={() => {}}
+        onResortear={() => {}}
+      />,
+    );
+    expect(html).toContain("Aplicado ✓");
+    expect(html).toContain("Volver a todo el horizonte");
+    // El resorteo declara en cuál sorteo va (semilla 1 = sorteo n.º 2).
+    expect(html).toContain("Resortear");
+    expect(html).toContain("sorteo n.º 2");
+  });
 });
 
 /**
