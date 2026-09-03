@@ -81,9 +81,13 @@ describe("AulasMapaDeHoras", () => {
     expect(vacio.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ")).not.toMatch(/\bde (los |las )?0\b/);
   });
 
-  it("cien pendientes no tapan el mapa: el total se declara y la cola se recorta", () => {
-    // C2: medido sobre la simulación de 15 días — un día traía más de cien
-    // códigos y el muro de texto era el panel entero.
+  it("cuarenta pendientes se muestran COMPLETOS: el techo quedó revocado", () => {
+    // Este pin decía lo contrario —recortar a 12 con «y N más»— y el dueño
+    // revocó ese techo mirando la pantalla (dictado 2026-09-02: «no pones las
+    // cosas completas y actúas como si no tuvieras espacio cuando la pestaña
+    // puede darle más espacio sin problema»). La lista larga se ORGANIZA
+    // —crece hacia abajo y la sección scrollea—, no se esconde. El total sigue
+    // declarado delante, que es lo que deja verificar la lista de un vistazo.
     const muchos = renderToStaticMarkup(
       <AulasMapaDeHoras
         franjas={{
@@ -98,8 +102,8 @@ describe("AulasMapaDeHoras", () => {
       />,
     );
     expect(muchos).toContain("Por confirmar · 40:");
-    expect(muchos).toContain("y 28 más");
-    expect(muchos).not.toContain("CH 40");
+    expect(muchos).toContain("CH 40");
+    expect(muchos).not.toContain("más (la lista completa está en la tabla de la agenda)");
   });
 
   it("una hora ilegible del libro se declara en vez de esfumarse", () => {

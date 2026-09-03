@@ -107,7 +107,13 @@ export function AulasSeccionModelo({
             // de ~1.000, con 940 de vacío sin dueño. El gate no lo ve, y hace
             // bien: el `capacity` va en el contenedor de datos, nunca en el
             // panel, así que el hueco del marco no lo mira nadie.
-            className={`mon-profile-panel${
+            // `aulas-carga-panel` (hoja aulasCargaDeCampo.css): la pestaña es
+            // intrínseca —malla de filas fijas, detalle, pie— y el reparto de
+            // alto del stack la aplastaba a 1024x600: panel de 221 px con 654
+            // de contenido derramándose sin dueño, medido el 2026-09-02 con la
+            // base real. El mínimo es su contenido y el sobrante lo recorre
+            // mon-workbench-content (patrón B25).
+            className={`mon-profile-panel aulas-carga-panel${
               hayHorarioDeCurso(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[])
                 ? "" : " es-sin-malla"}`}
             data-qa-geometry-group="aulas-carga-panel"
@@ -118,6 +124,11 @@ export function AulasSeccionModelo({
               // Las ventanas del motor: la posición horaria de los confirmados
               // sale de aquí, nunca del `scheduled_time` crudo (bug 8:00pm).
               franjas={dashboard.franjas}
+              // Los bloques de B29: la oferta de los aplicadores y su reparto
+              // vigente. Ausentes cuando la sesión no cargó la disponibilidad;
+              // las vistas Disponibilidad y Asignación declaran ese vacío.
+              disponibilidad={dashboard.disponibilidad}
+              reparto={dashboard.reparto}
               onExportar={(opciones) =>
                 descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
               }

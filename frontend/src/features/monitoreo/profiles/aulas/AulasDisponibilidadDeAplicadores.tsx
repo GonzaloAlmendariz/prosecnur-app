@@ -1,0 +1,253 @@
+import { useState } from "react";
+
+import { anchoMinimoDeMalla, comoHora } from "./cargaDeCampo";
+import { ChipDato, ChipHora } from "./AulasChips";
+import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
+import { fmt } from "./kpisDeAulas";
+
+/**
+ * El tercer cuadro de Carga de campo: la malla de OFERTA (dictado 2026-09-02:
+ * «deben haber tres cuadros/visualizaciones: Patrón semanal, Calendario y
+ * Disponibilidad de aplicadores»).
+ *
+ * Espejo deliberado de la malla de demanda: mismas franjas de 30 minutos,
+ * mismo orden de días, mismas convenciones de hover/foco/click y el MISMO
+ * juego de columnas (`vivas` viene compartido desde el contenedor). La lectura
+ * que habilita es comparativa —¿la gente declarada alcanza para el pico de la
+ * demanda?— y esa comparación solo funciona si las dos mallas hablan la misma
+ * geometría.
+ *
+ * La intensidad usa el tono informativo (`--pulso-info-fg`), no el verde de lo
+ * confirmado ni el tono del módulo de lo por agendar: la oferta es una tercera
+ * cosa —capacidad declarada, ni hecho ni techo de demanda— y pintarla con un
+ * color ya cargado de significado la haría pasar por lo que no es.
+ */
+export function AulasDisponibilidadDeAplicadores({
+  oferta,
+  vivas,
+}: {
+  /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
+  oferta: MallaDeOferta | null;
+  /** Columnas visibles COMPARTIDAS con la malla de demanda (lectura conjunta). */
+  vivas: number[];
+}) {
+  const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
+  const [fijada, setFijada] = useState(false);
+
+  if (!oferta) {
+    return (
+      <p className="aulas-carga-vacio" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        Este estudio todavía no tiene cargada la disponibilidad de los aplicadores. Sale del
+        libro de disponibilidad del equipo (Excel): al cargarlo en la sesión, esta malla enseña
+        quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación
+        reparte las citas pactadas.
+      </p>
+    );
+  }
+
+  const hayOferta = oferta.disponibles.some((fila) => fila.some((n) => n > 0));
+  if (!hayOferta) {
+    return (
+      <p className="aulas-carga-aviso" data-qa-geometry-member="true" data-qa-geometry-capacity="owned">
+        La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que
+        pintar. Es distinto de no haberla cargado — el marco existe y se llenará con el equipo.
+      </p>
+    );
+  }
+
+  // El suelo es 2, la misma convención que la demanda: con un máximo de 1, la
+  // única persona disponible se pintaría como saturación total y la malla
+  // diría «oferta plena» donde hay exactamente una.
+  const tope = Math.max(2, ...oferta.disponibles.map((fila) => Math.max(...fila)));
+  const celda = (n: number) => {
+    if (n === 0) return { background: "transparent", color: "var(--pulso-text-faint)" };
+    const t = n / tope;
+    return {
+      background: `color-mix(in srgb, var(--pulso-info-fg) ${Math.round(14 + t * 62)}%, var(--pulso-surface))`,
+      color: t > 0.55 ? "var(--pulso-surface)" : "var(--pulso-text)",
+    };
+  };
+
+  const nombreDeFranja = (i: number, j: number): string => {
+    const n = oferta.disponibles[i][j];
+    const quienes = oferta.nombres[i][j];
+    const base = `${oferta.filas[i].etiqueta} ${comoHora(oferta.franjas[j])}: ${fmt(n)} ${
+      n === 1 ? "disponible" : "disponibles"}`;
+    return quienes.length ? `${base} — ${quienes.join(", ")}` : base;
+  };
+
+  const activa = celdaActiva && oferta.disponibles[celdaActiva.i]?.[celdaActiva.j] > 0
+    ? celdaActiva
+    : null;
+  const esPico = (i: number, j: number) =>
+    Boolean(oferta.pico && oferta.pico.fila === i && oferta.pico.franja === oferta.franjas[j]);
+
+  return (
+    <>
+      <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <p className="aulas-carga-oferta-lead">
+          La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta
+          con el patrón semanal para ver si la gente alcanza.
+        </p>
+        <dl className="aulas-carga-kpis">
+          <div>
+            <dt>Aplicadores</dt>
+            <dd>{fmt(oferta.aplicadores)}</dd>
+          </div>
+          <div>
+            <dt>Pico de oferta</dt>
+            <dd>{fmt(oferta.pico?.disponibles ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Cuándo</dt>
+            <dd className="es-texto">
+              {oferta.pico
+                ? `${oferta.filas[oferta.pico.fila].etiqueta} ${comoHora(oferta.pico.franja)}`
+                : "—"}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="aulas-carga-malla-scroll" data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <table
+          className="aulas-carga-malla"
+          /* El mismo piso de ancho que la demanda: las columnas son las mismas
+             y el espejo se rompería si una malla scrollea donde la otra
+             comprime. */
+          style={{ minWidth: anchoMinimoDeMalla(vivas.length) }}
+          onMouseLeave={() => { if (!fijada) setCeldaActiva(null); }}
+        >
+          <caption className="pulso-sr-only">
+            Aplicadores disponibles por día de semana y franja de 30 minutos
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Día</th>
+              {vivas.map((j) => {
+                const enPunto = oferta.franjas[j] % 60 === 0;
+                return (
+                  <th key={j} scope="col" className={enPunto ? "es-hora" : "es-media"}>
+                    {enPunto
+                      ? comoHora(oferta.franjas[j])
+                      : <span className="pulso-sr-only">{comoHora(oferta.franjas[j])}</span>}
+                  </th>
+                );
+              })}
+              {/* Cuántas personas DISTINTAS tiene el día: el relevo posible,
+                  no la suma de franjas, que contaría a la misma persona una
+                  vez por cada media hora. */}
+              <th scope="col" className="aulas-carga-total-cab" title="Aplicadores distintos del día">Equipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {oferta.filas.map((fila, i) => (
+              <tr key={fila.clave}>
+                <th scope="row">{fila.etiqueta}</th>
+                {vivas.map((j) => {
+                  const n = oferta.disponibles[i][j];
+                  const estaActiva = activa?.i === i && activa?.j === j;
+                  const pico = esPico(i, j);
+                  return (
+                    <td key={j} className={oferta.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
+                      {n ? (
+                        <button
+                          type="button"
+                          className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}`}
+                          style={celda(n)}
+                          title={nombreDeFranja(i, j) + (pico ? " · pico de la oferta" : "")}
+                          aria-label={nombreDeFranja(i, j) + (pico ? ". Pico de la oferta" : "")}
+                          aria-pressed={fijada && estaActiva}
+                          onMouseEnter={() => { if (!fijada) setCeldaActiva({ i, j }); }}
+                          onFocus={() => { if (!fijada) setCeldaActiva({ i, j }); }}
+                          onClick={() => {
+                            if (fijada && estaActiva) { setFijada(false); return; }
+                            setCeldaActiva({ i, j });
+                            setFijada(true);
+                          }}
+                        >
+                          {n}
+                        </button>
+                      ) : (
+                        <span className="aulas-carga-celda" style={celda(n)} />
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="aulas-carga-total">
+                  {(() => {
+                    const distintos = new Set<string>();
+                    for (const quienes of oferta.nombres[i]) for (const n of quienes) distintos.add(n);
+                    if (distintos.size) return fmt(distintos.size);
+                    const max = Math.max(0, ...oferta.disponibles[i]);
+                    return max ? fmt(max) : "";
+                  })()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Quiénes: la región fija bajo la malla, el mismo gesto que la demanda
+          — hover o foco la asoman, un click la fija, el teclado la lee. */}
+      <div className="aulas-carga-detalle" role="status" data-qa-geometry-member data-qa-geometry-capacity="owned">
+        {activa ? (
+          <>
+            <p className="aulas-carga-detalle-titulo">
+              <strong>{oferta.filas[activa.i].etiqueta}</strong>{" "}
+              <ChipHora>{comoHora(oferta.franjas[activa.j])}–{comoHora(oferta.franjas[activa.j] + 30)}</ChipHora>
+              {fijada ? <em> · fijada; otro click la suelta</em> : null}
+            </p>
+            <div className="aulas-carga-detalle-grupo">
+              <h4>Disponibles · {fmt(oferta.disponibles[activa.i][activa.j])}</h4>
+              {oferta.nombres[activa.i][activa.j].length ? (
+                /* Cada persona en su chip (dictado 2026-09-02, sistema de
+                   chips): la lista se escanea, no se lee de corrido. Completa
+                   siempre — los techos quedaron revocados. */
+                <ul className="aulas-carga-nombres">
+                  {oferta.nombres[activa.i][activa.j].map((n) => (
+                    <li key={n}><ChipDato>{n}</ChipDato></li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="aulas-carga-detalle-mas">El bloque no trajo los nombres de esta franja; la cifra es del motor.</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="aulas-carga-detalle-vacio">
+            Pasa el puntero o el foco por la malla para ver quién está disponible en cada franja
+            de 30 minutos; un click deja la franja fijada.
+          </p>
+        )}
+      </div>
+
+      <div className="aulas-carga-pie">
+        <ul className="aulas-carga-leyenda">
+          <li><i style={celda(Math.max(1, Math.round(tope / 3)))} aria-hidden="true" />Poca gente disponible</li>
+          <li><i style={celda(tope)} aria-hidden="true" />Mucha gente disponible</li>
+          <li className="aulas-carga-estado">
+            {fmt(oferta.aplicadores)} aplicadores declararon disponibilidad
+          </li>
+        </ul>
+      </div>
+
+      {oferta.fueraDeEje > 0 || oferta.ilegibles > 0 ? (
+        <p className="aulas-carga-aviso">
+          {oferta.fueraDeEje > 0
+            ? oferta.fueraDeEje === 1
+              ? "1 franja declarada queda fuera del eje de 07:00 a 22:00 y no se pinta."
+              : `${fmt(oferta.fueraDeEje)} franjas declaradas quedan fuera del eje de 07:00 a 22:00 y no se pintan.`
+            : ""}
+          {oferta.fueraDeEje > 0 && oferta.ilegibles > 0 ? " " : ""}
+          {oferta.ilegibles > 0
+            ? oferta.ilegibles === 1
+              ? "1 entrada del bloque llegó ilegible y no se pinta."
+              : `${fmt(oferta.ilegibles)} entradas del bloque llegaron ilegibles y no se pintan.`
+            : ""}
+        </p>
+      ) : null}
+    </>
+  );
+}

@@ -148,4 +148,47 @@ describe("AulasCargaDeCampo", () => {
     );
     expect(html).toContain("no trae el horario");
   });
+
+  it("el control ofrece las cuatro lecturas del dictado", () => {
+    // 2026-09-02, textual: «deben haber tres cuadros/visualizaciones: Patrón
+    // semanal, Calendario y Disponibilidad de aplicadores» y «necesitaríamos
+    // una pestaña de asignación». Cuatro botones SIEMPRE: la ausencia de datos
+    // se declara dentro de la vista, no escondiendo el botón (C2).
+    const html = renderToStaticMarkup(
+      <AulasCargaDeCampo filas={[aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00" })]} />,
+    );
+    expect(html).toContain(">Patrón semanal<");
+    expect(html).toContain(">Calendario<");
+    expect(html).toContain(">Disponibilidad<");
+    expect(html).toContain(">Asignación<");
+  });
+
+  it("con la oferta cargada, la demanda enseña TAMBIÉN sus columnas: eje compartido", () => {
+    // La lectura conjunta: quien conmuta entre demanda y oferta compara
+    // posiciones. La clase es a las 10:00; la oferta empieza a las 09:00 — esa
+    // columna tiene que existir en el patrón semanal aunque la demanda no la
+    // ocupe, o las dos mallas dejarían de hablarse.
+    const filas = [aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00" })];
+    const disponibilidad = {
+      dias: [{ dia: "lunes", franjas: [{ inicio: "09:00", fin: "09:30", disponibles: 1, nombres: ["Ana Prueba"] }] }],
+    };
+    const sin = renderToStaticMarkup(<AulasCargaDeCampo filas={filas} />);
+    const con = renderToStaticMarkup(<AulasCargaDeCampo filas={filas} disponibilidad={disponibilidad} />);
+    expect(sin).not.toContain(">09:00<");
+    expect(con).toContain(">09:00<");
+  });
+
+  it("plan sin horario + disponibilidad cargada = el marco completo, no el atajo vacío", () => {
+    // El atajo compacto existe para el caso común (ni plan ni oferta). Con la
+    // oferta cargada, esconderla detrás de un párrafo sería un dato inalcanzable
+    // (C4): el control con las cuatro lecturas tiene que estar.
+    const html = renderToStaticMarkup(
+      <AulasCargaDeCampo
+        filas={[aula({ classroom_id: "a", sesiones_dia_hora: "" })]}
+        disponibilidad={{ dias: [] }}
+      />,
+    );
+    expect(html).toContain(">Disponibilidad<");
+    expect(html).toContain("no trae el horario");
+  });
 });

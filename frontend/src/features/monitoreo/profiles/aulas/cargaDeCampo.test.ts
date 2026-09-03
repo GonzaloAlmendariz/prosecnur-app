@@ -9,6 +9,7 @@ import {
   leerFecha,
   leerHora,
   leerSesiones,
+  lugaresDelPlan,
   porPabellon,
   hayHorarioDeCurso,
   sesionesDelPlan,
@@ -203,6 +204,52 @@ describe("sesionesDelPlan", () => {
     expect(
       sesionesDelPlan([aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00 · MAR 10:00-12:00" })]),
     ).toHaveLength(2);
+  });
+});
+
+describe("el lugar de la cita en el detalle de la malla", () => {
+  // Dictado 2026-09-02: el libro gana «LUGAR DE APLICACIÓN» (`scheduled_venue`,
+  // lo confirma el equipo a mano) y nutre a la app. El detalle de la celda
+  // decía el salón del CATÁLOGO —dónde se dicta el curso—, que puede no ser
+  // donde se acordó aplicar.
+  const lugarDe = (plan: MonitoreoAulasPlanRow[]): string => {
+    const malla = calcularCarga(plan, { duracionMin: 30 });
+    for (const fila of malla.quienes) {
+      for (const franja of fila) if (franja.length) return franja[0].lugar;
+    }
+    return "";
+  };
+
+  it("el lugar confirmado manda sobre el salón del catálogo", () => {
+    expect(
+      lugarDe([aula({
+        classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", venue: "A501",
+        scheduled_time: "10:00", scheduled_venue: "A206",
+      })]),
+    ).toBe("A206");
+  });
+
+  it("sin lugar confirmado cae al salón del curso, y sin salón al identificador", () => {
+    expect(
+      lugarDe([aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", venue: "A501" })]),
+    ).toBe("A501");
+    expect(
+      lugarDe([aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", venue: "" })]),
+    ).toBe("a");
+  });
+
+  it("lugaresDelPlan publica la MISMA regla por código, para la tabla de Asignación", () => {
+    // El bloque `reparto` viaja sin lugares; la tabla los busca aquí. Si esta
+    // regla y la del detalle divergieran, el mismo CH diría dos lugares.
+    const lugares = lugaresDelPlan([
+      aula({
+        classroom_id: "a", operational_code: "CH 1", sesiones_dia_hora: "LUN 10:00-12:00",
+        venue: "A501", scheduled_venue: "A206",
+      }),
+      aula({ classroom_id: "b", operational_code: "CH 2", sesiones_dia_hora: "MAR 10:00-12:00", venue: "Z101" }),
+    ]);
+    expect(lugares.get("CH 1")).toBe("A206");
+    expect(lugares.get("CH 2")).toBe("Z101");
   });
 });
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import {
   ayudaCon,
-  bolsonExtra,
+  reservaAdicionalDeLaFacultad,
   cadenaPropia,
   candidatosDeReemplazo,
   parecidoCon,
@@ -116,12 +116,12 @@ describe("disponible son DOS condiciones, sobre dos ejes", () => {
     expect(reservasDisponibles(filas, caido)).toHaveLength(1);
   });
 
-  it("un extra ya agendado sale del bolsón", () => {
+  it("un extra ya agendado sale de la reserva adicional", () => {
     const filas = [
       fila({ operational_code: "E1", sample_role: "extra_reserve_pool", sample_status: "en_reserva" } as never),
       fila({ operational_code: "E2", sample_role: "extra_reserve_pool", sample_status: "agendada" } as never),
     ];
-    expect(bolsonExtra(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1"]);
+    expect(reservaAdicionalDeLaFacultad(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1"]);
   });
 });
 
@@ -145,10 +145,35 @@ describe("el parecido nombra lo que se concede", () => {
     expect(r.concesiones[0]).toMatch(/otra facultad/);
   });
 
-  it("una diferencia grande de tamaño se advierte con las dos cifras", () => {
-    const r = parecidoCon(caido, fila({ operational_code: "X", stratum: "ARQ / M / G1", eligible_n: 60 }));
-    expect(r.concesiones.join(" ")).toContain("60");
+  it("quedarse corto en elegibles se advierte con las dos cifras", () => {
+    const r = parecidoCon(caido, fila({ operational_code: "X", stratum: "ARQ / M / G1", eligible_n: 8 }));
+    expect(r.concesiones.join(" ")).toContain("8");
     expect(r.concesiones.join(" ")).toContain("20");
+  });
+
+  it("traer más elegibles que el caído no se concede: es la ventaja que se busca", () => {
+    const r = parecidoCon(caido, fila({ operational_code: "X", stratum: "ARQ / M / G1", eligible_n: 60 }));
+    expect(r.concesiones).toEqual([]);
+    expect(r.parecido).toBeCloseTo(1, 5);
+  });
+});
+
+describe("la utilidad de elegibles crece con el candidato, no sólo se le parece", () => {
+  const caido = fila({ operational_code: "CH 1", stratum: "ARQ / M / G1", eligible_n: 20, faculty: "ARQ", level: "3" });
+
+  it("un candidato con más elegibles no puntúa peor que uno igual en tamaño", () => {
+    // Igualar ya es la mejor situación posible en este eje -pasarse no puede
+    // restar-; el crecimiento real de la utilidad al pasarse lo mide `ayuda`,
+    // que sí escala con la composición real del aula, topada en la brecha.
+    const igual = parecidoCon(caido, fila({ operational_code: "A", stratum: "ARQ / F / G4", eligible_n: 20 }));
+    const grande = parecidoCon(caido, fila({ operational_code: "B", stratum: "ARQ / F / G4", eligible_n: 40 }));
+    expect(grande.parecido).toBeCloseTo(igual.parecido, 5);
+  });
+
+  it("un candidato con menos elegibles puntúa peor, proporcional a lo que falta", () => {
+    const mitad = parecidoCon(caido, fila({ operational_code: "C", stratum: "ARQ / F / G4", eligible_n: 10 }));
+    const cuarto = parecidoCon(caido, fila({ operational_code: "D", stratum: "ARQ / F / G4", eligible_n: 5 }));
+    expect(cuarto.parecido).toBeLessThan(mitad.parecido);
   });
 });
 
@@ -191,7 +216,7 @@ describe("el orden de la cadena propia es el del sorteo, no el de la puntuación
 });
 
 describe("la facultad es frontera dura, no una preferencia", () => {
-  // «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
+  // «La reserva adicional es siempre siempre siempre dentro de la misma facultad, jamás de
   // otra.» Y medido sobre ULT2: 0 de 1.173 reservas de cadena cruzan facultad.
   // Un candidato de otra facultad no es un reemplazo peor: no es un reemplazo,
   // porque la cuota se reparte por facultad y sexo.
@@ -209,8 +234,8 @@ describe("la facultad es frontera dura, no una preferencia", () => {
   ];
   const caido = escena[0];
 
-  it("el bolsón no ofrece extras de otra facultad", () => {
-    expect(bolsonExtra(escena, "ARQ").map((f) => f.operational_code)).toEqual(["E-ARQ"]);
+  it("la reserva adicional no ofrece extras de otra facultad", () => {
+    expect(reservaAdicionalDeLaFacultad(escena, "ARQ").map((f) => f.operational_code)).toEqual(["E-ARQ"]);
   });
 
   it("las reservas al aire tampoco cruzan de facultad", () => {
@@ -227,7 +252,7 @@ describe("la facultad es frontera dura, no una preferencia", () => {
   });
 });
 
-describe("el bolsón extra", () => {
+describe("la reserva adicional", () => {
   it("incluye las aulas de una ampliación declarada, que también son extra", () => {
     const filas = [
       fila({ operational_code: "E1", sample_role: "extra_reserve_pool" }),
@@ -235,36 +260,36 @@ describe("el bolsón extra", () => {
       fila({ operational_code: "E3", sample_role: "extra_reserve_pool", operational_status: "aplicada" }),
       fila({ operational_code: "CH 1", sample_role: "titular" }),
     ];
-    expect(bolsonExtra(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
+    expect(reservaAdicionalDeLaFacultad(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
   });
 
-  it("con el aula caída sin facultad no ofrece el bolsón de las demás", () => {
-    // «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás
+  it("con el aula caída sin facultad no ofrece la reserva adicional de las demás", () => {
+    // «La reserva adicional es siempre siempre siempre dentro de la misma facultad, jamás
     // de otra.» Un `!fac ||` desactivaba el filtro justo cuando la facultad
-    // venía vacía, y entonces se ofrecía el bolsón ENTERO. El motor tampoco lo
+    // venía vacía, y entonces se ofrecía la reserva adicional ENTERA. El motor tampoco lo
     // ataja: exige que las dos facultades sean no vacías para rechazar.
     const filas = [
       fila({ operational_code: "E-ARQ", sample_role: "extra_reserve_pool", faculty: "ARQ" }),
       fila({ operational_code: "E-DER", sample_role: "extra_reserve_pool", faculty: "DERECHO" }),
     ];
-    expect(bolsonExtra(filas, "").map((f) => f.operational_code)).toEqual([]);
-    expect(bolsonExtra(filas, undefined).map((f) => f.operational_code)).toEqual([]);
+    expect(reservaAdicionalDeLaFacultad(filas, "").map((f) => f.operational_code)).toEqual([]);
+    expect(reservaAdicionalDeLaFacultad(filas, undefined).map((f) => f.operational_code)).toEqual([]);
   });
 
-  it("si el estudio no reparte por facultad, el bolsón entero sigue disponible", () => {
+  it("si el estudio no reparte por facultad, la reserva adicional entera sigue disponible", () => {
     // El otro escenario del mismo cambio: cuando NADIE declara facultad, la
     // comparación es «"" === ""» y no se pierde nada. Sin este caso, endurecer
-    // el filtro dejaría sin bolsón a los estudios que no usan facultades.
+    // el filtro dejaría sin reserva adicional a los estudios que no usan facultades.
     const filas = [
       fila({ operational_code: "E1", sample_role: "extra_reserve_pool", faculty: "" }),
       fila({ operational_code: "E2", sample_role: "extra_reserve_pool", faculty: "" }),
     ];
-    expect(bolsonExtra(filas, "").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
+    expect(reservaAdicionalDeLaFacultad(filas, "").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
   });
 });
 
 describe("nunca devuelve «no hay reemplazo»", () => {
-  it("con la cadena agotada, sigue ofreciendo otra cadena y el bolsón", () => {
+  it("con la cadena agotada, sigue ofreciendo otra cadena y la reserva adicional", () => {
     const filas = [
       fila({ operational_code: "CH 1", titular_operational_code: "CH 1", sample_role: "titular", stratum: "ARQ / M / G1" }),
       fila({ operational_code: "CH 2", titular_operational_code: "CH 2", sample_role: "titular", operational_status: "aplicada" }),

@@ -213,20 +213,93 @@ button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-m
   margin: 0 0 4px; color: var(--pulso-text-faint);
   font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
 }
+/* Cada cita es una TARJETA compacta en una rejilla, no una línea corrida de
+   puntos medios (dictado 2026-09-02: «una lista más jerarquizada y ordenada»).
+   `auto-fill` reparte en columnas lo que quepa y la lista COMPLETA crece hacia
+   abajo — los techos de contenido quedaron revocados el mismo día. */
 .aulas-carga-detalle-grupo ul {
-  display: flex; flex-wrap: wrap; gap: 4px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 6px;
   margin: 0; padding: 0; list-style: none;
 }
-.aulas-carga-detalle-grupo li { color: var(--pulso-text-soft); font-size: 12.5px; }
-.aulas-carga-detalle-grupo li strong { color: var(--pulso-text); }
+.aulas-carga-cita {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.aulas-carga-cita-cab { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.aulas-carga-cita-codigo { color: var(--pulso-text); font-size: 12.5px; }
+.aulas-carga-cita-docente { color: var(--pulso-text-soft); font-size: 12px; overflow-wrap: anywhere; }
+.aulas-carga-cita-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .aulas-carga-detalle-mas { margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 11.5px; }
+
+/* Los nombres del detalle de la oferta: chips en línea, no tarjetas — una
+   persona no tiene señas que jerarquizar, solo su nombre. El selector repite
+   al padre a propósito: sin él, la rejilla de tarjetas de arriba gana por
+   especificidad y cada nombre recibiría 250 px de tarjeta vacía. */
+.aulas-carga-detalle-grupo ul.aulas-carga-nombres {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  grid-template-columns: none;
+}
+
+/* --- Chips: el sistema de recuadros de Carga de campo. ----------------------
+   Dictado 2026-09-02: «los pabellones con números en recuadros elegantes de
+   colores en función de la letra, el horario como otro cuadrito elegante y
+   bonito». El índice del tono lo decide `tonoDePabellon` (determinista por
+   letra); aquí vive el color, siempre sobre tokens. */
+.aulas-chip {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11.5px; font-weight: 500; line-height: 1.4;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+/* La hora: sobria, numérica, distinta del lugar — un cuadrito de reloj, no de
+   edificio. */
+.aulas-chip-hora {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+/* El lugar: fondo suave y texto del tono de SU letra. El texto se mezcla con
+   --pulso-text para asegurar contraste AA sobre el fondo pálido, incluso en
+   los tonos claros de la paleta. */
+.aulas-chip-lugar {
+  --chip-tono: var(--pulso-text-soft);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--chip-tono) 13%, var(--pulso-surface));
+  border-color: color-mix(in srgb, var(--chip-tono) 34%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--chip-tono) 58%, var(--pulso-text));
+}
+.aulas-chip-lugar.es-tono-0 { --chip-tono: var(--pulso-accent-steel); }
+.aulas-chip-lugar.es-tono-1 { --chip-tono: var(--pulso-accent-green); }
+.aulas-chip-lugar.es-tono-2 { --chip-tono: var(--pulso-accent-rose); }
+.aulas-chip-lugar.es-tono-3 { --chip-tono: var(--pulso-accent-amber); }
+.aulas-chip-lugar.es-tono-4 { --chip-tono: var(--pulso-accent-violet); }
+.aulas-chip-lugar.es-tono-5 { --chip-tono: var(--pulso-accent-cyan); }
+.aulas-chip-lugar.es-tono-6 { --chip-tono: var(--pulso-module-monitoring); }
+.aulas-chip-lugar.es-tono-7 { --chip-tono: var(--pulso-module-processing); }
 
 .aulas-carga-pie { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: center; }
 .aulas-carga-leyenda { display: flex; gap: 14px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--pulso-text-faint); }
 .aulas-carga-leyenda li { display: inline-flex; align-items: center; gap: 5px; }
 .aulas-carga-leyenda i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-.aulas-carga-pabellones { margin: 0; font-size: 12.5px; color: var(--pulso-text-soft); }
-.aulas-carga-pabellones strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-carga-pabellones {
+  margin: 0; font-size: 12.5px; color: var(--pulso-text-soft);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+}
+.aulas-carga-pabellon {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--pulso-text); font-variant-numeric: tabular-nums;
+}
 .aulas-carga-aviso, .aulas-carga-vacio {
   margin: 0; padding: 12px 14px; border-radius: 8px;
   background: var(--pulso-warn-bg); border: 1px solid var(--pulso-warn-border);
@@ -237,3 +310,214 @@ button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-m
 @media (max-width: 900px) {
   .aulas-carga-kpis { margin-left: 0; width: 100%; }
   .aulas-carga-controles input[type="range"] { width: 100%; }
+}
+/* ^ La llave de arriba faltaba: el bloque @media quedaba abierto hasta el EOF.
+   El parser lo cierra solo, pero cualquier regla añadida después habría caído
+   DENTRO del media query en silencio. Medido antes de añadir lo que sigue. */
+
+/* El panel de la pestaña Carga es INTRÍNSECO: malla de filas fijas + detalle +
+   pie. El reparto de alto del stack de Agenda lo aplastaba —medido 2026-09-02
+   a 1024x600 con la base real: panel de 221 px con 654 de contenido
+   derramándose con overflow visible, sin dueño—. El mínimo es su contenido y
+   lo que no quepa lo recorre `.mon-workbench-content`, que ya declara
+   overflow-y auto como capacidad suya (patrón B25, `min-height: max-content`
+   de `.aulas-mon-view`). */
+.mon-profile-page.is-aulas-flow .mon-profile-panel.aulas-carga-panel {
+  align-self: start;
+  min-height: max-content;
+}
+
+/* --- Vista «Disponibilidad»: la malla de oferta, espejo de la demanda. ------ */
+
+/* El texto guía de la barra de controles de la oferta: ocupa el lugar del
+   slider de duración, que aquí no aplica —la oferta no tiene duración de
+   aplicación—, y así las dos barras pesan lo mismo al conmutar (C2). */
+.aulas-carga-oferta-lead {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  max-width: 46ch;
+}
+
+/* --- Vista «Asignación»: el reparto vigente por día. ------------------------ */
+
+.aulas-asigna { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.aulas-asigna-vigencia {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  max-width: 46ch;
+}
+.aulas-asigna-vigencia strong { color: var(--pulso-text); font-weight: 600; }
+
+/* El KPI de citas descubiertas se enciende solo cuando hay: un cero en rojo
+   gritaría un problema que no existe. */
+.aulas-carga-kpis dd.es-descubierto { color: var(--pulso-danger-fg); }
+.aulas-asigna-de { font-size: 14px; font-weight: 500; color: var(--pulso-text-faint); }
+
+/* Días a la izquierda, cargas a la derecha: la lista se lee con el rail al
+   lado, que es como se pregunta «¿y a Ana cuánto le tocó?». */
+.aulas-asigna-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.aulas-asigna-dias { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.aulas-asigna-sin-dias {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+}
+
+.aulas-asigna-dia {
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aulas-asigna-dia h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-asigna-dia h4 span { font-weight: 400; font-size: 12px; color: var(--pulso-text-faint); }
+
+/* Lo descubierto, DESTACADO y arriba de su día: es lo que hay que resolver
+   antes de esa fecha, no un pie de página. */
+.aulas-asigna-descubiertos {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  /* `wrap`: los códigos van en chips y la lista es COMPLETA — una fila larga
+     baja de línea, no desborda. */
+  flex-wrap: wrap;
+  gap: 5px 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12.5px;
+}
+.aulas-asigna-descubiertos svg { flex: none; align-self: center; }
+.aulas-asigna-descubiertos strong { font-weight: 600; }
+/* Los chips heredan el contexto: dentro del aviso hablan en rojo… */
+.aulas-asigna-descubiertos .aulas-chip {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 8%, var(--pulso-surface));
+  border-color: var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
+}
+/* …y en la línea de pendientes respiran entre renglones. */
+.aulas-asigna-pendientes .aulas-chip { margin: 1px 3px 1px 0; }
+
+.aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
+.aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
+.aulas-asigna-tabla thead th {
+  font-size: 10.5px; font-weight: 600; color: var(--pulso-text-faint);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-asigna-tabla tbody th {
+  font-size: 12.5px; font-weight: 600; color: var(--pulso-text);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.aulas-asigna-tabla tbody td {
+  font-size: 12.5px; color: var(--pulso-text-soft); font-variant-numeric: tabular-nums;
+}
+.aulas-asigna-tabla tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent); }
+
+/* El resalte desde el rail: las citas del aplicador explorado al frente y el
+   resto atenuado — sin mover nada, que el ojo no pierda la fila (C2). */
+.aulas-asigna-tabla tbody tr.es-resaltada > * {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+}
+.aulas-asigna-tabla tbody tr.es-apagada > * { opacity: 0.42; }
+
+.aulas-asigna-pendientes { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }
+
+.aulas-asigna-equidad {
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.aulas-asigna-equidad h4 {
+  margin: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-asigna-nota { margin: 0; font-size: 11.5px; color: var(--pulso-text-faint); }
+.aulas-asigna-equidad ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+/* Cada carga es un botón de fila entera: hover/foco resaltan sus citas y el
+   click las deja fijadas — el mismo gesto que las franjas de la malla. */
+.aulas-asigna-carga {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aulas-asigna-carga:hover { background: var(--pulso-surface-2); }
+.aulas-asigna-carga:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
+.aulas-asigna-carga.es-activo { background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface)); }
+/* El nombre ENVUELVE, no se recorta: «Castillo S…» con elipsis era el mismo
+   techo de contenido que el dictado 2026-09-02 revocó — un nombre largo toma
+   dos líneas y la fila crece. */
+.aulas-asigna-nombre {
+  font-size: 12.5px; color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-nombre { color: var(--pulso-text-soft); }
+/* La carga es un badge del mismo sistema de chips (veredicto 2026-09-02): el
+   tono del módulo dice «cita tuya» y el estado libre lo atenúa por contexto. */
+.aulas-asigna-cifra { display: inline-flex; }
+.aulas-asigna-cifra .aulas-chip {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, var(--pulso-surface));
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 24%, var(--pulso-surface));
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-cifra .aulas-chip {
+  color: var(--pulso-text-faint);
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+.aulas-asigna-barra {
+  position: absolute;
+  left: 8px; right: 8px; bottom: 4px;
+  height: 3px;
+  max-width: calc(100% - 16px);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-surface));
+}
+.aulas-asigna-carga.es-libre .aulas-asigna-barra { background: var(--pulso-border); }
+
+@media (max-width: 900px) {
+  /* El rail baja debajo de los días: 280 px fijos no caben al lado en un
+     viewport compacto, y un grid que no colapsa fabrica scroll lateral (C4). */
+  .aulas-asigna-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}

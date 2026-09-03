@@ -302,6 +302,13 @@ type AulaDeCarga = {
   codigo: string;
   docente: string;
   salon: string;
+  /**
+   * El LUGAR DE APLICACIÓN confirmado por el equipo («A206», dictado
+   * 2026-09-02). Cuando existe manda sobre `salon`, que es donde se DICTA el
+   * curso según el catálogo — no siempre donde se acordó aplicar. "" si el
+   * libro no lo trae.
+   */
+  lugarConfirmado: string;
   horaTexto: string;
 };
 
@@ -337,6 +344,7 @@ function aulasDelPlan(plan: readonly MonitoreoAulasPlanRow[]): { unidades: AulaD
     const suyo = MOMENTOS[String(fila.scheduled_moment ?? "").trim().toLowerCase()] ?? null;
     const fecha = leerFecha(fila.scheduled_date);
     const bloques = leerSesiones(fila.sesiones_dia_hora);
+    const lugarConfirmado = String(fila.scheduled_venue ?? "").trim();
     for (const s of sesionesDelPlan([fila])) {
       const previa = primeras.get(s.aula);
       if (!previa || s.dia < previa.primera.dia || (s.dia === previa.primera.dia && s.desde < previa.primera.desde)) {
@@ -350,6 +358,7 @@ function aulasDelPlan(plan: readonly MonitoreoAulasPlanRow[]): { unidades: AulaD
           codigo: s.codigo,
           docente: s.docente,
           salon: s.salon,
+          lugarConfirmado,
           horaTexto: s.horaTexto,
         });
       }
@@ -387,6 +396,49 @@ function filasDeCalendario(unidades: readonly AulaDeCarga[]): FilaDeCarga[] {
   return filas;
 }
 
+/**
+ * El eje horario de la malla: franjas de 30 minutos, de 07:00 a 22:00.
+ *
+ * Único dueño del eje. Lo usan la malla de DEMANDA (`calcularCarga`) y la de
+ * OFERTA (`mallaDeOferta`), y por eso vive exportado: si cada una generara el
+ * suyo, la lectura conjunta —comparar demanda y oferta de un vistazo— se
+ * rompería en la primera divergencia.
+ */
+export function franjasDeMalla(pasoMin = 30): number[] {
+  const franjas: number[] = [];
+  for (let m = 7 * 60; m < 22 * 60; m += pasoMin) franjas.push(m);
+  return franjas;
+}
+
+/**
+ * El piso de ancho de la malla, en píxeles, según cuántas columnas vivas tiene.
+ *
+ * El `min-width` FIJO de la hoja (960px) estaba calibrado para las columnas de
+ * la demanda sola; con el eje compartido demanda+oferta las columnas crecieron
+ * y a 1024 de ancho los rótulos de hora se recortaban (medido 2026-09-02: 80
+ * `th` con overflow-x en el gate). 36px es lo que pide el rótulo «07:00» con
+ * aire; 158 = 112 de la columna de día + 46 del total. El scroll horizontal lo
+ * sigue teniendo `.aulas-carga-malla-scroll` (C4), nunca la página.
+ */
+export function anchoMinimoDeMalla(columnas: number): number {
+  return 158 + columnas * 36;
+}
+
+/**
+ * Código operativo → lugar de la cita: el LUGAR DE APLICACIÓN confirmado del
+ * libro cuando existe, el salón del catálogo si no, y el identificador como
+ * último recurso — la MISMA regla que el detalle de la malla (`anotar`), por
+ * el mismo dueño (`aulasDelPlan`). Lo consume la tabla de Asignación, cuyo
+ * bloque `reparto` viaja sin lugares.
+ */
+export function lugaresDelPlan(plan: readonly MonitoreoAulasPlanRow[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const u of aulasDelPlan(plan).unidades) {
+    if (!out.has(u.codigo)) out.set(u.codigo, u.lugarConfirmado || u.salon || u.aula);
+  }
+  return out;
+}
+
 export function calcularCarga(
   plan: readonly MonitoreoAulasPlanRow[],
   { duracionMin, pasoMin = 30, eje = "semana", ventanas }: OpcionesDeCarga,
@@ -405,8 +457,7 @@ export function calcularCarga(
     }
   }
 
-  const franjas: number[] = [];
-  for (let m = 7 * 60; m < 22 * 60; m += pasoMin) franjas.push(m);
+  const franjas = franjasDeMalla(pasoMin);
 
   const filas: FilaDeCarga[] =
     eje === "calendario"
@@ -433,7 +484,10 @@ export function calcularCarga(
         quienes[i][j].push({
           codigo: u.codigo,
           docente: u.docente,
-          lugar: u.salon || u.aula,
+          // El lugar CONFIRMADO por el equipo manda (dictado 2026-09-02:
+          // «LUGAR DE APLICACIÓN» nutre a la app); el salón del catálogo es
+          // el fallback — dice dónde se dicta, no dónde se acordó aplicar.
+          lugar: u.lugarConfirmado || u.salon || u.aula,
           confirmada,
           fecha: u.fecha,
           // La hora pactada sólo existe en la cita confirmada: en la banda
