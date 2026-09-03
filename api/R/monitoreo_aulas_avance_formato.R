@@ -37,22 +37,63 @@
 
 # Una banda de UNA fila a lo ancho del rectángulo publicado: fondo, tinta en
 # negrita. `repeatCell` con fields acotado a userEnteredFormat — no toca
-# values ni dataValidation.
-.maaf_banda <- function(sheet_id, fila, n_cols, fondo, tinta) {
+# values ni dataValidation. Los opcionales dan la jerarquía tipográfica
+# (tamaño, itálica, peso) y `wrap` deja que una cabecera larga baje de línea
+# en su columna en vez de cortarse; los defaults reproducen la banda clásica,
+# así que los llamadores existentes no cambian de salida.
+.maaf_banda <- function(sheet_id, fila, n_cols, fondo, tinta,
+                        size = NULL, italic = FALSE, bold = TRUE, wrap = FALSE) {
+  texto <- list(
+    bold = isTRUE(bold),
+    foregroundColor = .monitoreo_sheets_rgb(tinta)
+  )
+  if (!is.null(size)) texto$fontSize <- as.integer(size)
+  if (isTRUE(italic)) texto$italic <- TRUE
+  formato <- list(
+    backgroundColor = .monitoreo_sheets_rgb(fondo),
+    textFormat = texto
+  )
+  campos <- "userEnteredFormat(backgroundColor,textFormat)"
+  if (isTRUE(wrap)) {
+    formato$wrapStrategy <- "WRAP"
+    formato$verticalAlignment <- "MIDDLE"
+    campos <- "userEnteredFormat(backgroundColor,textFormat,wrapStrategy,verticalAlignment)"
+  }
   list(repeatCell = list(
     range = list(
       sheetId = sheet_id,
       startRowIndex = as.integer(fila - 1L), endRowIndex = as.integer(fila),
       startColumnIndex = 0L, endColumnIndex = as.integer(n_cols)
     ),
-    cell = list(userEnteredFormat = list(
-      backgroundColor = .monitoreo_sheets_rgb(fondo),
-      textFormat = list(
-        bold = TRUE,
-        foregroundColor = .monitoreo_sheets_rgb(tinta)
-      )
-    )),
-    fields = "userEnteredFormat(backgroundColor,textFormat)"
+    cell = list(userEnteredFormat = formato),
+    fields = campos
+  ))
+}
+
+# El alto en píxeles de UNA fila (updateDimensionProperties ROWS): el aire de
+# los títulos, que a alto por defecto se ven apretados contra su banda.
+.maaf_alto_fila <- function(sheet_id, fila, pixeles) {
+  list(updateDimensionProperties = list(
+    range = list(
+      sheetId = sheet_id, dimension = "ROWS",
+      startIndex = as.integer(fila - 1L), endIndex = as.integer(fila)
+    ),
+    properties = list(pixelSize = as.integer(pixeles)),
+    fields = "pixelSize"
+  ))
+}
+
+# Centrado horizontal de un rango de columnas a toda la altura publicada
+# (horas, conteos): fields acotado al alineamiento — no pisa bandas ni values.
+.maaf_centrar <- function(sheet_id, desde_col, hasta_col, n_filas) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = 0L, endRowIndex = as.integer(n_filas),
+      startColumnIndex = as.integer(desde_col), endColumnIndex = as.integer(hasta_col)
+    ),
+    cell = list(userEnteredFormat = list(horizontalAlignment = "CENTER")),
+    fields = "userEnteredFormat(horizontalAlignment)"
   ))
 }
 

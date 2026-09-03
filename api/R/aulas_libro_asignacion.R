@@ -254,45 +254,77 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
 # --- formato en Google Sheets (misma estética que las otras hojas de la app) --
 #
 # Dictado 2026-09-03: «darle buen formato… debe estar igual a nivel estético
-# de las otras hojas». Misma doctrina y misma paleta que «Avance de campo»
-# (B19): bandas derivadas FILA A FILA del contenido publicado —jamás números
-# mágicos—, navy #002457 para título y bloques (el día es un título de
-# bloque), #E7EEF9/#1B4B8F para cabeceras de tabla, y el rojo suave de la casa
-# para las alertas (descubiertos y fuera-de-rango). Los strings que se
+# de las otras hojas», y el mismo día «mejora la estética de las hojas
+# asignación, plan del día». Misma doctrina y misma paleta que «Avance de
+# campo» (B19): todo derivado FILA A FILA del contenido publicado —jamás
+# números mágicos—, navy #002457 para título y bloques (el día es un título
+# de bloque), #E7EEF9/#1B4B8F para cabeceras de tabla, y el rojo suave de la
+# casa para las alertas (descubiertos y fuera-de-rango). Los strings que se
 # detectan son LOS MISMOS que emite `aulas_libro_filas_asignacion` — un solo
-# constructor, cero derivas.
+# constructor, cero derivas. Encima de las bandas, la hoja lleva la jerarquía
+# que el xlsx ya tenía: título grande con aire, días y bloques a 11 pt, notas
+# en gris pequeño e itálica (el aparte del que lee, no un dato), anchos de
+# columna calcados de los del xlsx (`aulas_libro_hoja_asignacion`) y las
+# columnas de hora centradas.
 
 .ala_ES_DIA <- function(celda) {
   grepl("^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) [0-9]{2}/[0-9]{2} — ", celda)
 }
 
+# Los anchos de columna de la hoja, en píxeles y por RANGOS agrupados (la
+# lección de la capa genérica: jamás una request por columna). Son los ~7 px
+# por carácter de los anchos del xlsx: identificador y lugar compactos, horas
+# parejas, APLICADOR y AVISO anchos porque llevan nombres y frases.
+.ala_ANCHOS <- list(
+  list(desde = 0L, hasta = 1L, px = 132L),  # CURSO-HORARIO
+  list(desde = 1L, hasta = 2L, px = 112L),  # LUGAR
+  list(desde = 2L, hasta = 5L, px = 108L),  # RECOJO · SALE AL AULA · APLICACIÓN
+  list(desde = 5L, hasta = 6L, px = 232L),  # APLICADOR
+  list(desde = 6L, hasta = 7L, px = 104L),  # FIJADA
+  list(desde = 7L, hasta = 8L, px = 264L)   # AVISO
+)
+
 #' Requests de formato de la hoja de asignación para el batch-2 del motor.
 #'
 #' @param sheet_id id numérico de la pestaña.
 #' @param rows los values realmente publicados.
-#' @return lista de requests `repeatCell` (vacía sin filas).
+#' @return lista de requests de batchUpdate (vacía sin filas).
 #' @keywords internal
 aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
   rows <- rows %||% list()
   if (!length(rows)) return(list())
   n_cols <- max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
   requests <- list()
+  poner <- function(req) requests[[length(requests) + 1L]] <<- req
   for (i in seq_along(rows)) {
     celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
     primera <- if (length(celdas)) celdas[[1L]] else ""
-    if (identical(primera, "ASIGNACIÓN DE APLICADORES") ||
-        identical(primera, "CARGAS POR APLICADOR") ||
-        .ala_ES_DIA(primera)) {
-      requests[[length(requests) + 1L]] <-
-        .maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF")
+    if (identical(primera, "ASIGNACIÓN DE APLICADORES")) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
+      poner(.maaf_alto_fila(sheet_id, i, 36L))
+    } else if (identical(primera, "CARGAS POR APLICADOR") || .ala_ES_DIA(primera)) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
+      poner(.maaf_alto_fila(sheet_id, i, 28L))
     } else if (primera %in% c("CURSO-HORARIO", "APLICADOR")) {
-      requests[[length(requests) + 1L]] <-
-        .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F")
+      poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
     } else if (startsWith(primera, "Sin nadie asignado:") ||
                startsWith(primera, "FUERA DEL RANGO ELEGIDO")) {
-      requests[[length(requests) + 1L]] <-
-        .maaf_banda(sheet_id, i, n_cols, "#FBE9EA", "#8F3A42")
+      poner(.maaf_banda(sheet_id, i, n_cols, "#FBE9EA", "#8F3A42"))
+    } else if (length(celdas) == 1L && nzchar(primera)) {
+      # Nota (protocolo, sorteo, por-confirmar, fechas fuera de rango): el
+      # gris pequeño e itálico del xlsx — se lee como aparte, no como dato.
+      # Solo filas de UNA celda: las filas-dato traen sus 8 (o 2) columnas.
+      poner(.maaf_banda(sheet_id, i, n_cols, "#FFFFFF", "#6B6560",
+                        size = 9L, italic = TRUE, bold = FALSE))
     }
+  }
+  # Anchos del xlsx y horas centradas — solo cuando la hoja publicó su tabla
+  # completa (con días sin asignaciones el rectángulo es más angosto y la
+  # geometría de 8 columnas no existe).
+  if (n_cols >= 8L) {
+    for (a in .ala_ANCHOS) poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
+    poner(.maaf_centrar(sheet_id, 2L, 5L, length(rows)))  # RECOJO · SALE · APLICACIÓN
+    poner(.maaf_centrar(sheet_id, 6L, 7L, length(rows)))  # FIJADA
   }
   requests
 }

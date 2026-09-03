@@ -278,6 +278,9 @@ test_that("formato Sheets: cada hoja congela sus filas de cabecera", {
   casos <- list(
     list(hoja = "Aulas Agendadas", cabeceras = 1L, n_cols = 64L),
     list(hoja = "Plan del día", cabeceras = 1L, n_cols = 13L),
+    # La asignación corona con UNA fila de título: dos congeladas pintaban de
+    # navy la nota del sorteo (fila 2).
+    list(hoja = "Asignación de aplicadores", cabeceras = 1L, n_cols = 8L),
     list(hoja = "Aulas Aplicadas (Campo)", cabeceras = 2L, n_cols = 105L),
     list(hoja = "Base de control", cabeceras = 2L, n_cols = 43L)
   )
