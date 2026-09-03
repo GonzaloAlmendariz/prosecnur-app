@@ -112,3 +112,32 @@ describe("el calendario se recorre por semana", () => {
     expect(html).not.toContain("Semana anterior");
   });
 });
+
+describe("B46 — el día que toca, hermanado en el calendario", () => {
+  const conFechas = renderToStaticMarkup(
+    <AulasCargaDeCampo
+      filas={[
+        aula({ classroom_id: "a", operational_code: "CH 1", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-07" }),
+        aula({ classroom_id: "b", operational_code: "CH 2", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "11:00", scheduled_date: "2026-09-14" }),
+      ]}
+      hoy="2026-09-10"
+    />,
+  );
+
+  it("la fila pasada se atenúa y la próxima lleva su sello «toca»", () => {
+    expect(conFechas).toMatch(/es-pasado[\s\S]{0,400}Lunes 07\/09/);
+    expect(conFechas).toMatch(/es-el-que-toca[\s\S]{0,400}Lunes 14\/09/);
+    expect(conFechas).toContain(">toca<");
+  });
+
+  it("en el patrón semanal no hay sello: los días agregan semanas, no fechas", () => {
+    const semanal = renderToStaticMarkup(
+      <AulasCargaDeCampo
+        filas={[aula({ classroom_id: "a", operational_code: "CH 1", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00" })]}
+        hoy="2026-09-10"
+      />,
+    );
+    expect(semanal).not.toContain("es-el-que-toca");
+    expect(semanal).not.toContain(">toca<");
+  });
+});

@@ -114,6 +114,7 @@ export function AulasCargaDeCampo({
   reparto,
   onExportar,
   onFijarReparto = null,
+  hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
@@ -138,6 +139,8 @@ export function AulasCargaDeCampo({
   onExportar?: (opciones: OpcionesDeCarga) => void;
   /** Fijar/soltar el aplicador de una cita (B36); lo consume Asignación. */
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
+  hoy?: string;
 }) {
   const [duracionMin, setDuracion] = useState(DURACION_POR_DEFECTO);
   // El slider vive detrás de un lápiz (dictado 2026-09-02: «muy accesible
@@ -539,10 +542,24 @@ export function AulasCargaDeCampo({
             </tr>
           </thead>
           <tbody>
-            {malla.filas.map((fila, d) => (
+            {/* B46, hermano de B43: en el eje calendario, la fila del día que
+                toca lleva su sello y lo pasado se atenúa — la misma lectura de
+                despliegue que la Asignación, en la malla. */}
+            {(() => {
+              const proximaFecha = eje === "calendario"
+                ? malla.filas.find((f) => f.fecha && f.fecha >= hoy)?.fecha ?? null
+                : null;
+              return malla.filas.map((fila, d) => ({ fila, d, proximaFecha }));
+            })().map(({ fila, d, proximaFecha }) => (
               <Fragment key={fila.clave}>
                 {fila.porAgendar || (visibles !== null && !visibles.has(d)) ? null : (
-                <tr className={abreSemana.has(fila.clave) ? "abre-semana" : undefined}>
+                <tr
+                  className={[
+                    abreSemana.has(fila.clave) ? "abre-semana" : "",
+                    proximaFecha !== null && fila.fecha === proximaFecha ? "es-el-que-toca" : "",
+                    proximaFecha !== null && fila.fecha !== undefined && fila.fecha < hoy ? "es-pasado" : "",
+                  ].filter(Boolean).join(" ") || undefined}
+                >
                   <th scope="row">
                     <button
                       type="button"
@@ -558,6 +575,9 @@ export function AulasCargaDeCampo({
                     >
                       {fila.etiqueta}
                     </button>
+                    {proximaFecha !== null && fila.fecha === proximaFecha ? (
+                      <span className="aulas-carga-toca">{fila.fecha === hoy ? "hoy" : "toca"}</span>
+                    ) : null}
                   </th>
                   {vivas.map((j) => {
                     const firme = malla.firmes[d][j];
