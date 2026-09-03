@@ -137,3 +137,28 @@ describe("AulasDisponibilidadDeAplicadores — la demanda confirmada encima (B38
     expect(solo).toContain("conmuta con el patrón semanal");
   });
 });
+
+describe("el día que toca sella su fila de oferta (hermano de B43/B46)", () => {
+  const disponibilidad = bloque([
+    { dia: "lunes", franjas: [{ inicio: "09:00", fin: "09:30", disponibles: 2, nombres: ["Ana Prueba", "Berta Ficticia"] }] },
+    { dia: "martes", franjas: [{ inicio: "09:00", fin: "09:30", disponibles: 1, nombres: ["Ana Prueba"] }] },
+  ]);
+  const oferta = mallaDeOferta(disponibilidad)!;
+  const vivas = columnasVivas(oferta.franjas.length, [oferta.disponibles]);
+
+  it("el 2026-09-07 es lunes: la fila «lunes» lleva el sello y las demás no", () => {
+    const html = renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} fechaQueToca="2026-09-07" />,
+    );
+    expect(html).toMatch(/es-el-que-toca[\s\S]{0,120}>lunes</);
+    expect(html).toContain(">toca<");
+    expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
+  });
+
+  it("sin fecha no hay sello", () => {
+    const html = renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} />,
+    );
+    expect(html).not.toContain("es-el-que-toca");
+  });
+});

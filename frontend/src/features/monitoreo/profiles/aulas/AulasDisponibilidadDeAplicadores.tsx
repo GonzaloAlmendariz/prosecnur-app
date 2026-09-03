@@ -22,10 +22,13 @@ import { fmt } from "./kpisDeAulas";
  * cosa —capacidad declarada, ni hecho ni techo de demanda— y pintarla con un
  * color ya cargado de significado la haría pasar por lo que no es.
  */
+const DIA_DE_SEMANA = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+
 export function AulasDisponibilidadDeAplicadores({
   oferta,
   vivas,
   demandaFirme = null,
+  fechaQueToca = null,
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   oferta: MallaDeOferta | null;
@@ -39,6 +42,12 @@ export function AulasDisponibilidadDeAplicadores({
    * malla activa no es semanal) y la vista queda como antes.
    */
   demandaFirme?: Array<number[] | null> | null;
+  /**
+   * La fecha del despliegue inminente (`YYYY-MM-DD`): su día de semana lleva
+   * el sello «toca» — es la fila de oferta que alimenta el próximo día de
+   * campo. `null` = sin sello.
+   */
+  fechaQueToca?: string | null;
 }) {
   const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
@@ -158,9 +167,18 @@ export function AulasDisponibilidadDeAplicadores({
             </tr>
           </thead>
           <tbody>
-            {oferta.filas.map((fila, i) => (
-              <tr key={fila.clave}>
-                <th scope="row">{fila.etiqueta}</th>
+            {(() => {
+              // El día de semana del despliegue inminente, con la clave del
+              // motor (minúscula, sin tilde) para casar con `filas`.
+              const d = fechaQueToca ? new Date(`${fechaQueToca}T00:00:00`) : null;
+              const claveQueToca = d && !Number.isNaN(d.getTime()) ? DIA_DE_SEMANA[d.getDay()] : null;
+              return oferta.filas.map((fila, i) => ({ fila, i, esQueToca: fila.clave === claveQueToca }));
+            })().map(({ fila, i, esQueToca }) => (
+              <tr key={fila.clave} className={esQueToca ? "es-el-que-toca" : undefined}>
+                <th scope="row">
+                  {fila.etiqueta}
+                  {esQueToca ? <span className="aulas-carga-toca">toca</span> : null}
+                </th>
                 {vivas.map((j) => {
                   const n = oferta.disponibles[i][j];
                   const estaActiva = activa?.i === i && activa?.j === j;
