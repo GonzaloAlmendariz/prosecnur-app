@@ -12,9 +12,9 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  * requisito exclusivo y fundamental.»
  *
  * O sea: **la cadena es el orden recomendado, no un candado.** Se sigue por
- * defecto; cuando no alcanza, se toma el mejor disponible de otra cadena o del
- * bolsón extra, y se declara en qué se aleja. Esta lista **nunca dice “no hay
- * reemplazo”**: dice cuál es el mejor y qué se concede al tomarlo.
+ * defecto; cuando no alcanza, se toma el mejor disponible de otra cadena o de
+ * la reserva adicional, y se declara en qué se aleja. Esta lista **nunca dice
+ * “no hay reemplazo”**: dice cuál es el mejor y qué se concede al tomarlo.
  *
  * Y la equivalencia es preferencia, no requisito: «no es un requisito exclusivo
  * y siempre mandatorio de que sea exactamente igual al aula que estás
@@ -23,8 +23,9 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  *
  * ## La facultad es una frontera dura, no una preferencia
  *
- * Gonzalo: «el bolsón es siempre siempre siempre dentro de la misma facultad,
- * jamás de otra». Y no es sólo el bolsón: **el motor nunca sale de la facultad**.
+ * Gonzalo: «la reserva adicional es siempre siempre siempre dentro de la misma
+ * facultad, jamás de otra». Y no es sólo la reserva adicional: **el motor
+ * nunca sale de la facultad**.
  * Medido sobre ULT2: de 1.173 reservas de cadena, **cero** tienen una facultad
  * distinta a la de su titular, y `equivalence_level` tope es `misma_facultad`.
  *
@@ -46,12 +47,13 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  * ## Por qué dos puntuaciones y no una
  *
  * Porque colapsarlas esconde la única decisión que hay que tomar. El
- * **parecido** protege el diseño —sustituir un aula por otra que se le parece—;
- * la **ayuda** cierra la cuota que de verdad falta, que casi siempre es de un
- * sexo. Medido en el caso más ajustado de HSVG2026 (cae CH 118, ARQUITECTURA /
- * M / G1, con brecha de 30 mujeres y 5 hombres): R 115.1 gana en parecido
- * (0,435) y R 111.1 en ayuda (0,676), y empatan en total. Con un solo número,
- * el coordinador nunca sabría que estaba eligiendo entre esas dos cosas.
+ * **parecido** protege el diseño —sustituir un aula por otra que se le parece,
+ * y de paso valora traer más elegibles que el aula caída, nunca menos—; la
+ * **ayuda** cierra la cuota que de verdad falta, que casi siempre es de un
+ * sexo. En el caso más ajustado de HSVG2026 (cae CH 118, ARQUITECTURA / M /
+ * G1, con brecha de 30 mujeres y 5 hombres) hubo candidatos que ganaban en
+ * parecido y perdían en ayuda, y viceversa. Con un solo número, el
+ * coordinador nunca sabría que estaba eligiendo entre esas dos cosas.
  */
 
 /** De dónde sale el candidato. La cadena primero: es la guía del procedimiento. */
@@ -226,26 +228,28 @@ export function cadenaPropia(
 }
 
 /**
- * El bolsón extra DE SU FACULTAD, incluidas las aulas de una ampliación
+ * La reserva adicional DE SU FACULTAD, incluidas las aulas de una ampliación
  * declarada.
  *
- * «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
- * otra.» La facultad del aula que cae se COMPARA siempre, también cuando llega
- * vacía, y eso cubre los dos escenarios:
+ * «La reserva adicional es siempre siempre siempre dentro de la misma
+ * facultad, jamás de otra.» La facultad del aula que cae se COMPARA siempre,
+ * también cuando llega vacía, y eso cubre los dos escenarios:
  *
- * - **El estudio no reparte por facultad.** Ni el aula que cae ni las extras la
- *   declaran, `"" === ""` y el bolsón entero sigue disponible.
+ * - **El estudio no reparte por facultad.** Ni el aula que cae ni las extras
+ *   la declaran, `"" === ""` y la reserva adicional entera sigue disponible.
  * - **El estudio sí reparte y esta fila viene sin facultad.** Las extras sí la
- *   traen, ninguna iguala a `""` y el bolsón sale vacío. Es lo correcto: no se
- *   ofrece lo que no se puede garantizar que respeta la frontera.
+ *   traen, ninguna iguala a `""` y la reserva adicional sale vacía. Es lo
+ *   correcto: no se ofrece lo que no se puede garantizar que respeta la
+ *   frontera.
  *
  * Antes un `!fac ||` desactivaba el filtro cuando la facultad venía vacía, y
- * entonces el segundo escenario ofrecía el bolsón de TODAS las facultades. El
- * motor tampoco lo ataja: `E_REEMPLAZO_OTRA_FACULTAD` exige que las dos
- * facultades sean no vacías (`monitoreo_aulas_reemplazos.R:75`), así que con la
- * del aula caída en blanco la ofrecía la pantalla y la aceptaba el backend.
+ * entonces el segundo escenario ofrecía la reserva adicional de TODAS las
+ * facultades. El motor tampoco lo ataja: `E_REEMPLAZO_OTRA_FACULTAD` exige que
+ * las dos facultades sean no vacías (`monitoreo_aulas_reemplazos.R:75`), así
+ * que con la del aula caída en blanco la ofrecía la pantalla y la aceptaba el
+ * backend.
  */
-export function bolsonExtra(
+export function reservaAdicionalDeLaFacultad(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
   facultad?: string,
 ): MonitoreoAulasPlanRow[] {
@@ -276,14 +280,18 @@ export function parecidoCon(
 
   const eC = numero(caido.eligible_n);
   const eX = numero(cand.eligible_n);
-  const cercania = eC > 0 ? Math.max(0, 1 - Math.abs(eX - eC) / eC) : 0;
+  // Antes esto era «cercanía»: penalizaba por igual quedarse corto o pasarse
+  // de elegibles frente al aula caída. Pero un candidato con MÁS elegibles
+  // cierra más cuota, no menos -pasarse no le resta utilidad al reemplazo-.
+  // Crece con eX y se topa en 1 al igualar o superar al caído; quedarse
+  // corto sí sigue penalizando, proporcional a cuánto falta.
+  const utilidadElegibles = eC > 0 ? Math.min(1, eX / eC) : eX > 0 ? 1 : 0;
 
   const parecido =
     0.35 * (mismaCelda ? 1 : 0) +
     0.2 * (mismaFacultad ? 1 : 0) +
-    0.15 * (mismoTamano ? 1 : 0) +
     0.15 * (mismoSexo ? 1 : 0) +
-    0.1 * cercania +
+    0.25 * utilidadElegibles +
     0.05 * (mismoNivel ? 1 : 0);
 
   // Sólo se nombra lo que se concede. Un candidato de la misma celda no lleva
@@ -294,7 +302,9 @@ export function parecidoCon(
     if (!mismoSexo && sX) concesiones.push(`mayoría ${sX === "F" ? "femenina" : "masculina"}, no ${sC === "F" ? "femenina" : "masculina"}`);
     if (!mismoTamano && gX) concesiones.push(`tamaño ${gX}, no ${gC}`);
   }
-  if (eC > 0 && Math.abs(eX - eC) / eC > 0.3) {
+  // Traer MÁS elegibles ya no se concede -es la ventaja que se busca-; sólo
+  // se avisa cuando el candidato trae menos, que es lo que de verdad resta.
+  if (eC > 0 && eX < eC && (eC - eX) / eC > 0.3) {
     concesiones.push(`${eX} elegibles frente a ${eC}`);
   }
   return { parecido, concesiones };
@@ -366,6 +376,6 @@ export function candidatosDeReemplazo(
   return {
     cadena: { disponibles: propia.length, mejores: propia.slice(0, tope) },
     otra_cadena: mejores(reservasDisponibles(filas, caido), "otra_cadena"),
-    extra: mejores(bolsonExtra(filas, caido.faculty), "extra"),
+    extra: mejores(reservaAdicionalDeLaFacultad(filas, caido.faculty), "extra"),
   };
 }

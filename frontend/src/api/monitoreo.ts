@@ -681,6 +681,13 @@ export type MonitoreoAulasPlanRow = {
   /** Salón donde se dicta (`"A501"`, `"LFIA"`). Vacío si el catálogo no lo trae. */
   venue?: string;
   /**
+   * El LUGAR DE APLICACIÓN confirmado por el equipo al agendar («A206»),
+   * columna nueva del libro (dictado 2026-09-02). Cuando existe manda sobre
+   * `venue`: el salón del catálogo dice dónde se dicta el curso; éste, dónde
+   * se acordó aplicar. Opcional porque los libros anteriores no lo traen.
+   */
+  scheduled_venue?: string;
+  /**
    * En qué momento de la clase entra la aplicación, cuando el docente ya lo
    * acordó: `"inicio" | "intermedio" | "final"`. Hasta 2025 esto vivía en las
    * observaciones en prosa libre y no se podía agregar. Vacío mientras el aula
@@ -1153,6 +1160,71 @@ export type MonitoreoAulasFranjas = {
   personas_fuente?: string;
 };
 
+/**
+ * Una franja de 30 minutos de la OFERTA: cuántos aplicadores pueden estar en
+ * campo ese tramo y quiénes. `nombres` llega en orden alfabético estable del
+ * motor; horas `HH:MM` de 24 horas.
+ */
+export type MonitoreoAulasDisponibilidadFranja = {
+  inicio: string;
+  fin: string;
+  disponibles: number;
+  nombres: string[];
+};
+
+/** Un día de semana con cobertura: clave minúscula sin tilde («miercoles»). */
+export type MonitoreoAulasDisponibilidadDia = {
+  dia: string;
+  franjas: MonitoreoAulasDisponibilidadFranja[];
+};
+
+/**
+ * La malla de oferta de la vista «Disponibilidad de aplicadores» (contrato
+ * congelado con `monitoreo_aulas_disponibilidad_bloque()`, B29 2026-09-02):
+ * días en orden de semana, solo los cubiertos. La forma defensiva —escalares
+ * envueltos de jsonlite— la trata `mallaDeOferta()` en el feature.
+ */
+export type MonitoreoAulasDisponibilidad = {
+  dias: MonitoreoAulasDisponibilidadDia[];
+};
+
+/** Una cita pactada con su aplicador asignado y la ventana `[inicio, fin]`. */
+export type MonitoreoAulasRepartoAsignacion = {
+  codigo: string;
+  aplicador: string;
+  inicio: string;
+  fin: string;
+};
+
+/**
+ * Un día del reparto: `no_cubiertos` son citas pactadas sin candidato libre
+ * —el problema operativo— y `por_confirmar` las fechas sin hora pactada, que
+ * no piden gente todavía (vocabulario B11).
+ */
+export type MonitoreoAulasRepartoDia = {
+  fecha: string;
+  asignaciones: MonitoreoAulasRepartoAsignacion[];
+  no_cubiertos: string[];
+  por_confirmar: string[];
+};
+
+/** La carga de un aplicador. El motor lista a TODOS, 0 incluido, alfabético. */
+export type MonitoreoAulasRepartoEquidad = {
+  aplicador: string;
+  asignadas: number;
+};
+
+/**
+ * El reparto equitativo vigente (contrato congelado con
+ * `monitoreo_aulas_reparto()`, B29): greedy determinista por fecha+hora, carga
+ * mínima acumulada, sin solapes. La forma defensiva la trata
+ * `repartoDeAplicadores()` en el feature.
+ */
+export type MonitoreoAulasReparto = {
+  dias: MonitoreoAulasRepartoDia[];
+  equidad: MonitoreoAulasRepartoEquidad[];
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1175,6 +1247,20 @@ export type MonitoreoAulasDashboard = {
    * revienta.
    */
   franjas?: MonitoreoAulasFranjas | null;
+  /**
+   * La malla de OFERTA: quiénes pueden estar en campo por día de semana y
+   * franja de 30 minutos. Solo se publica cuando la sesión tiene cargada la
+   * clave de disponibilidad (B29); ausente no es un error sino «el estudio
+   * todavía no cargó el libro de disponibilidad», y la vista lo declara.
+   */
+  disponibilidad?: MonitoreoAulasDisponibilidad | null;
+  /**
+   * El gemelo de `disponibilidad`: el reparto del plan contra ESA oferta,
+   * recomputado por el motor en cada conversar — la repetibilidad del dictado
+   * («que sea repetible por si llegan nuevas confirmaciones»). Llega solo con
+   * la clave en sesión.
+   */
+  reparto?: MonitoreoAulasReparto | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo

@@ -1,16 +1,28 @@
 import { Fragment, useMemo, useState } from "react";
 
-import type { MonitoreoAulasFranjas, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type {
+  MonitoreoAulasDisponibilidad,
+  MonitoreoAulasFranjas,
+  MonitoreoAulasPlanRow,
+  MonitoreoAulasReparto,
+} from "../../../../api/monitoreo";
 import {
+  anchoMinimoDeMalla,
   calcularCarga,
   comoHora,
   ejeSugerido,
   hayHorarioDeCurso,
+  lugaresDelPlan,
   porPabellon,
   ventanasDelMotor,
   type EjeDeCarga,
   type OpcionesDeCarga,
 } from "./cargaDeCampo";
+import { AulasAsignacionDeAplicadores } from "./AulasAsignacionDeAplicadores";
+import { AulasDisponibilidadDeAplicadores } from "./AulasDisponibilidadDeAplicadores";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasChips";
+import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
+import { repartoDeAplicadores } from "./repartoDeAplicadores";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { hoyISO } from "./calendarioDeAgenda";
 import { semanaInicial, semanasDeCarga } from "./semanasDeCarga";
@@ -74,9 +86,28 @@ const nombreDeCelda = (fila: string, hora: string, firme: number, plausible: num
   return `${fila} ${hora}: ${partes.join(", ")}`;
 };
 
+/**
+ * Las cuatro lecturas del panel (dictado 2026-09-02: «deben haber tres
+ * cuadros/visualizaciones: Patrón semanal, Calendario y Disponibilidad de
+ * aplicadores» más «una pestaña de asignación»). Las dos primeras son ejes de
+ * la malla de DEMANDA; las otras dos leen los bloques `disponibilidad` y
+ * `reparto` del dashboard (B29).
+ */
+export type VistaDeCarga = EjeDeCarga | "disponibilidad" | "asignacion";
+
+/** Qué dice el subtítulo del panel en cada lectura. */
+const SUBTITULO: Record<"disponibilidad" | "asignacion", string> = {
+  disponibilidad:
+    "Quiénes pueden estar en campo: la oferta declarada del equipo, por día y franja de 30 minutos.",
+  asignacion:
+    "Quién va a cada cita pactada: reparto parejo, sin solapes y repetible sobre la disponibilidad.",
+};
+
 export function AulasCargaDeCampo({
   filas,
   franjas,
+  disponibilidad,
+  reparto,
   onExportar,
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -88,6 +119,13 @@ export function AulasCargaDeCampo({
    */
   franjas?: MonitoreoAulasFranjas | null;
   /**
+   * La malla de OFERTA del dashboard (B29). Ausente cuando la sesión no cargó
+   * la clave de disponibilidad: las vistas nuevas lo declaran, no lo esconden.
+   */
+  disponibilidad?: MonitoreoAulasDisponibilidad | null;
+  /** El gemelo de `disponibilidad`: el reparto vigente, recomputado al conversar. */
+  reparto?: MonitoreoAulasReparto | null;
+  /**
    * El libro sale con lo que hay EN PANTALLA —eje y duración—, no con los
    * valores por defecto: la duración es un control y exportar 30 minutos
    * mientras el usuario mira 90 entrega un pico que no es el que decidió.
@@ -95,12 +133,16 @@ export function AulasCargaDeCampo({
   onExportar?: (opciones: OpcionesDeCarga) => void;
 }) {
   const [duracionMin, setDuracion] = useState(DURACION_POR_DEFECTO);
-  // `null` = todavía no lo eligió nadie, así que manda la sugerencia. Fijar el
-  // eje en el estado inicial lo congelaría con el plan VACÍO del primer render
-  // —el dashboard llega después— y la vista abriría siempre en semanal por muy
+  // `null` = todavía no lo eligió nadie, así que manda la sugerencia. Fijar la
+  // vista en el estado inicial la congelaría con el plan VACÍO del primer
+  // render —el dashboard llega después— y abriría siempre en semanal por muy
   // agendado que estuviera el estudio.
-  const [ejeElegido, setEje] = useState<EjeDeCarga | null>(null);
-  const eje = ejeElegido ?? ejeSugerido(filas);
+  const [vistaElegida, setVista] = useState<VistaDeCarga | null>(null);
+  const vista = vistaElegida ?? ejeSugerido(filas);
+  const esDemanda = vista === "semana" || vista === "calendario";
+  // El eje de la malla de DEMANDA. En las vistas de oferta y asignación no se
+  // pinta, pero se calcula igual: sus columnas entran al eje compartido.
+  const eje: EjeDeCarga = vista === "calendario" ? "calendario" : "semana";
   // La celda explorada (dictado en vivo 2026-09-02: «cada 30 mins con
   // hover»): hover o foco la asoman, un click la fija. Estado UI efímero de
   // esta superficie — no es un panel enlazable ni un foco de entidad, el
@@ -116,6 +158,14 @@ export function AulasCargaDeCampo({
     () => calcularCarga(filas, { duracionMin, eje, ventanas }),
     [filas, duracionMin, eje, ventanas],
   );
+  // Los bloques de B29, normalizados. `null` = la sesión no cargó la clave de
+  // disponibilidad, y las vistas nuevas declaran qué falta y de dónde sale.
+  const oferta = useMemo(() => mallaDeOferta(disponibilidad), [disponibilidad]);
+  const repartoVista = useMemo(() => repartoDeAplicadores(reparto), [reparto]);
+  // El bloque `reparto` viaja sin lugares: la tabla de Asignación los busca en
+  // el plan, con la MISMA regla que el detalle (lugar confirmado del libro
+  // primero — dictado «LUGAR DE APLICACIÓN», 2026-09-02).
+  const lugares = useMemo(() => lugaresDelPlan(filas), [filas]);
   const pabellones = useMemo(() => porPabellon(filas), [filas]);
   const { semanas, sinSemana } = useMemo(() => semanasDeCarga(malla.filas), [malla]);
   // Qué filas de fecha están en pantalla. `null` = todas; las fechas sin
@@ -126,10 +176,10 @@ export function AulasCargaDeCampo({
     return new Set([...semanas[semanaIdx].indices, ...sinSemana]);
   }, [eje, semanaIdx, semanas, sinSemana]);
 
-  const cambiarEje = (valor: EjeDeCarga) => {
+  const cambiarVista = (valor: VistaDeCarga) => {
     // Los índices de celda y semana son de la malla del eje: al cambiarlo se
     // sueltan, o apuntarían a otra fila con el mismo número.
-    setEje(valor);
+    setVista(valor);
     setCeldaActiva(null);
     setFijada(false);
     setSemanaIdx(null);
@@ -142,13 +192,16 @@ export function AulasCargaDeCampo({
   };
 
   // Sólo se pintan las franjas donde ocurre algo: de 07:00 a 22:00 hay treinta
-  // columnas y más de un tercio están siempre vacías.
+  // columnas y más de un tercio están siempre vacías. Con la oferta cargada,
+  // «algo» incluye SUS columnas: demanda y oferta comparten juego de columnas
+  // para que conmutar entre las vistas compare posiciones y no un espejismo.
   const vivas = useMemo(
     () =>
-      malla.franjas
-        .map((_, j) => j)
-        .filter((j) => malla.filas.some((__, d) => malla.aulas[d][j] > 0)),
-    [malla],
+      columnasVivas(
+        malla.franjas.length,
+        oferta ? [malla.aulas, oferta.disponibles] : [malla.aulas],
+      ),
+    [malla, oferta],
   );
   // Una escala por capa. Con un tope unico, el carril —que suma todas las
   // semanas— marcaba el maximo y las fechas quedaban todas en el tono mas
@@ -170,7 +223,12 @@ export function AulasCargaDeCampo({
   const conHorario = filas.filter((f) => !f.sample_role || f.sample_role === "titular").length
     - malla.sinHorario;
 
-  if (!hayHorarioDeCurso(filas)) {
+  const hayMalla = hayHorarioDeCurso(filas);
+  // El atajo compacto queda para el caso común: ni plan con horario ni bloques
+  // de B29. Con la oferta o el reparto cargados, esconderlos detrás de este
+  // párrafo sería dejar datos inalcanzables (C4): se pinta el marco completo y
+  // cada vista declara su propio vacío.
+  if (!hayMalla && !oferta && !repartoVista) {
     return (
       <section className="aulas-carga" data-qa-geometry-group="aulas-carga" data-qa-geometry-contract="intrinsic">
         <header className="aulas-carga-cab">
@@ -249,34 +307,48 @@ export function AulasCargaDeCampo({
       <header className="aulas-carga-cab">
         <div>
           <h3>Carga de campo</h3>
-          <p>
-            Cuántos aplicadores hacen falta a la vez. Lo confirmado se cuenta en su hora;
-            lo que falta agendar, como rango posible sobre la clase entera.
-          </p>
+          {/* El subtítulo dice lo que la LECTURA activa enseña (C1): con la
+              oferta o el reparto en pantalla, hablar de «lo confirmado» sería
+              rotular una cosa con la promesa de otra. */}
+          {esDemanda ? (
+            <p>
+              Cuántos aplicadores hacen falta a la vez. Lo confirmado se cuenta en su hora;
+              lo que falta agendar, como rango posible sobre la clase entera.
+            </p>
+          ) : (
+            <p>{SUBTITULO[vista as "disponibilidad" | "asignacion"]}</p>
+          )}
         </div>
         <div className="aulas-carga-acciones">
-          {/* El eje es una LECTURA del mismo plan, no un filtro: por eso es un
-              par de pestañas y no un desplegable con opciones sueltas. */}
-          <div className="aulas-carga-eje" role="group" aria-label="Cómo se ordenan las filas">
+          {/* Cuatro LECTURAS del mismo operativo, no un filtro: por eso es un
+              segmentado y no un desplegable. Las dos primeras son la demanda
+              (dos ejes de la misma malla); las otras dos, la oferta y su
+              reparto. Los botones están SIEMPRE: sin datos, cada vista declara
+              qué falta — esconder el botón escondería también la explicación. */}
+          <div className="aulas-carga-eje" role="group" aria-label="Qué lectura de la carga se muestra">
             {([
               ["semana", "Patrón semanal", "Lunes a sábado, sobre el horario del curso"],
               ["calendario", "Calendario", "Una fila por fecha agendada"],
+              ["disponibilidad", "Disponibilidad", "Quiénes pueden estar en campo, por día y franja"],
+              ["asignacion", "Asignación", "El reparto vigente: quién va a cada cita"],
             ] as const).map(([valor, rotulo, ayuda]) => (
               <button
                 key={valor}
                 type="button"
-                className={eje === valor ? "es-activo" : ""}
-                aria-pressed={eje === valor}
+                className={vista === valor ? "es-activo" : ""}
+                aria-pressed={vista === valor}
                 title={ayuda}
-                onClick={() => cambiarEje(valor)}
+                onClick={() => cambiarVista(valor)}
               >
                 {rotulo}
               </button>
             ))}
           </div>
-          {onExportar ? (
+          {onExportar && esDemanda && hayMalla ? (
             /* El Excel sale con las MISMAS ventanas del motor que la vista:
-               exportar con el texto crudo re-parsearía el «8:00pm». */
+               exportar con el texto crudo re-parsearía el «8:00pm». Solo en la
+               demanda: es el libro de ESA malla, y ofrecerlo delante de la
+               oferta prometería un contenido que no trae. */
             <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje, ventanas })}>
               Descargar Excel
             </button>
@@ -284,6 +356,22 @@ export function AulasCargaDeCampo({
         </div>
       </header>
 
+      {vista === "disponibilidad" ? (
+        <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} />
+      ) : null}
+      {vista === "asignacion" ? (
+        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} />
+      ) : null}
+      {esDemanda && !hayMalla ? (
+        // El mismo vacío declarado del atajo compacto, dentro del marco
+        // completo: la demanda no tiene malla, pero la oferta cargada sigue a
+        // un click en su botón.
+        <p className="aulas-carga-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          El plan no trae el horario de los cursos-horario. Se completa al construir el marco
+          desde el catálogo de Cursos-Horarios, que es de donde sale el rango de cada sesión.
+        </p>
+      ) : null}
+      {esDemanda && hayMalla ? (<>
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <label>
           <span>
@@ -373,6 +461,10 @@ export function AulasCargaDeCampo({
       <div className="aulas-carga-malla-scroll" data-qa-geometry-member data-qa-geometry-capacity="owned">
         <table
           className="aulas-carga-malla"
+          /* El piso de ancho crece con las columnas (`anchoMinimoDeMalla`): el
+             fijo de la hoja recortaba los rótulos de hora en cuanto el eje
+             compartido con la oferta sumó columnas. */
+          style={{ minWidth: anchoMinimoDeMalla(vivas.length) }}
           onMouseLeave={() => { if (!fijada) setCeldaActiva(null); }}
         >
           <caption className="pulso-sr-only">
@@ -480,7 +572,12 @@ export function AulasCargaDeCampo({
             );
           }
           const ocupantes = malla.quienes[activa.d][activa.j];
-          const TOPE_LISTA = 8;
+          // COMPLETO, sin techo (dictado 2026-09-02: «no pones las cosas
+          // completas y actúas como si no tuvieras espacio cuando la pestaña
+          // puede darle más espacio sin problema»). El recorte de 8 con «y N
+          // más» quedó revocado: la lista larga se reparte en columnas
+          // (flex-wrap) y crece hacia abajo — el panel es intrínseco y el
+          // scroll lo tiene mon-workbench-content.
           const grupo = (lista: typeof ocupantes, rotulo: string) => (lista.length ? (
             <div className="aulas-carga-detalle-grupo">
               <h4>{rotulo} · {fmt(lista.length)}</h4>
@@ -490,26 +587,35 @@ export function AulasCargaDeCampo({
                     fecha exacta —en el patrón semanal la fila «sábado» agrega
                     varios sábados—, hora pactada textual y momento acordado.
                     Lo no acordado se omite, no se inventa. */}
-                {lista.slice(0, TOPE_LISTA).map((o) => (
-                  <li key={o.codigo}>
-                    <strong>{o.codigo}</strong>
-                    {o.docente ? ` · ${o.docente}` : ""}
-                    {o.lugar ? ` · ${o.lugar}` : ""}
-                    {o.fecha ? ` · ${fechaCorta(o.fecha)}` : ""}
-                    {o.hora ? ` · ${o.hora}` : ""}
-                    {o.momento ? ` · ${MOMENTO_LEGIBLE[o.momento]}` : ""}
+                {/* Jerarquizada, no prosa con puntos medios (dictado
+                    2026-09-02: «el formato y la estructura puede verse mucho
+                    mejor»): código fuerte, docente en su línea y las señas
+                    como fila de chips — el lugar con el color de su letra, la
+                    hora en su cuadrito. */}
+                {lista.map((o) => (
+                  <li key={o.codigo} className="aulas-carga-cita">
+                    <span className="aulas-carga-cita-cab">
+                      <strong className="aulas-carga-cita-codigo">{o.codigo}</strong>
+                      {o.docente ? <span className="aulas-carga-cita-docente">{o.docente}</span> : null}
+                    </span>
+                    {o.lugar || o.fecha || o.hora || o.momento ? (
+                      <span className="aulas-carga-cita-chips">
+                        {o.lugar ? <ChipLugar lugar={o.lugar} /> : null}
+                        {o.fecha ? <ChipDato>{fechaCorta(o.fecha)}</ChipDato> : null}
+                        {o.hora ? <ChipHora>{o.hora}</ChipHora> : null}
+                        {o.momento ? <ChipDato>{MOMENTO_LEGIBLE[o.momento]}</ChipDato> : null}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
-              {lista.length > TOPE_LISTA ? (
-                <p className="aulas-carga-detalle-mas">… y {fmt(lista.length - TOPE_LISTA)} más — el Excel trae la lista completa.</p>
-              ) : null}
             </div>
           ) : null);
           return (
             <>
               <p className="aulas-carga-detalle-titulo">
-                <strong>{malla.filas[activa.d].etiqueta}</strong> · {comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}
+                <strong>{malla.filas[activa.d].etiqueta}</strong>{" "}
+                <ChipHora>{comoHora(malla.franjas[activa.j])}–{comoHora(malla.franjas[activa.j] + 30)}</ChipHora>
                 {fijada ? <em> · fijada; otro click la suelta</em> : null}
               </p>
               {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
@@ -528,11 +634,18 @@ export function AulasCargaDeCampo({
           </li>
         </ul>
         <p className="aulas-carga-pabellones">
-          <span>Por pabellón:</span>{" "}
-          {pabellones.slice(0, 9).map((p, i) => (
-            <span key={p.pabellon}>
-              {i ? " · " : ""}
-              <strong>{p.pabellon}</strong> {fmt(p.aulas)}
+          <span>Por pabellón:</span>
+          {/* Todos, sin recorte: el techo de 9 era el mismo gemelo que el
+              dictado 2026-09-02 revocó. La línea envuelve y crece. Cada letra
+              lleva SU chip —el mismo color que el A703 del detalle— y las dos
+              bolsas sin edificio van en chip neutro: pintarlas como un
+              pabellón inventaría uno. */}
+          {pabellones.map((p) => (
+            <span key={p.pabellon} className="aulas-carga-pabellon">
+              {/^[A-ZÁÉÍÓÚÑ]$/u.test(p.pabellon)
+                ? <ChipLugar lugar={p.pabellon} />
+                : <ChipDato>{p.pabellon}</ChipDato>}
+              {" "}{fmt(p.aulas)}
             </span>
           ))}
         </p>
@@ -553,6 +666,7 @@ export function AulasCargaDeCampo({
           catálogo y no entran en este cálculo.
         </p>
       ) : null}
+      </>) : null}
     </section>
   );
 }

@@ -15,6 +15,10 @@ export const FIELD_LABELS: Record<string, string> = {
   // El momento acordado con el docente. Hasta 2025 vivia en OBSERVACIONES en
   // prosa libre y por eso no se podia agregar ni leer desde la agenda.
   scheduled_moment: "Momento de la clase",
+  // «LUGAR DE APLICACIÓN» del libro (dictado 2026-09-02): dónde se acordó
+  // aplicar, confirmado a mano por el equipo. Distinto de `venue`, que es
+  // donde se DICTA el curso según el catálogo.
+  scheduled_venue: "Lugar de aplicación",
   // El RANGO horario declarado del curso —«MAR 14:00-16:00»—, distinto de
   // `schedule` (cuando empieza) y de `scheduled_time` (cuando se agendo).
   sesiones_dia_hora: "Sesiones",

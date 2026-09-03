@@ -149,15 +149,14 @@ function DiaDelMapa({ dia }: { dia: MapaDia }) {
       ) : null}
       {dia.porConfirmar.length ? (
         // C3: el pendiente del día vive en el marco del día, no en un tooltip.
-        // Y con techo (C2): medido sobre la simulación de 15 días, un día traía
-        // más de cien códigos y el muro de texto tapaba el mapa. El total se
-        // declara siempre; la cola larga vive en la Agenda.
+        // COMPLETO, sin techo (dictado 2026-09-02: «no pones las cosas
+        // completas y actúas como si no tuvieras espacio cuando la pestaña
+        // puede darle más espacio sin problema»). El techo de 12 fue una
+        // decisión revocada: la lista larga crece hacia abajo y la sección
+        // scrollea — se organiza, jamás se esconde.
         <p className="aulas-mapa-pendientes">
           <strong>Por confirmar · {fmt(dia.porConfirmar.length)}:</strong>{" "}
-          {dia.porConfirmar.slice(0, 12).join(", ")}
-          {dia.porConfirmar.length > 12
-            ? ` … y ${fmt(dia.porConfirmar.length - 12)} más (la lista completa está en la tabla de la agenda)`
-            : ""}
+          {dia.porConfirmar.join(", ")}
         </p>
       ) : null}
       {dia.ilegibles ? (
