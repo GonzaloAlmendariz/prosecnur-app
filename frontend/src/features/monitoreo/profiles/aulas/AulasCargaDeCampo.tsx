@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { Check, Pencil } from "../../../../vendor/lucide-react";
 
@@ -115,6 +115,7 @@ export function AulasCargaDeCampo({
   reparto,
   onExportar,
   onFijarReparto = null,
+  onConfirmarDuracion = null,
   hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -140,10 +141,31 @@ export function AulasCargaDeCampo({
   onExportar?: (opciones: OpcionesDeCarga) => void;
   /** Fijar/soltar el aplicador de una cita (B36); lo consume Asignación. */
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /**
+   * B70: persistir la duración confirmada (config `duracion_aplicacion_min`).
+   * Sin él, el slider vuelve a ser estado local que se pierde — el bug del
+   * dictado 2026-09-03: el aviso salía con 20 mientras el slider decía 30.
+   */
+  onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
-  const [duracionMin, setDuracion] = useState(DURACION_POR_DEFECTO);
+  // B70: la verdad inicial viene del MOTOR (eco `duracion_min` de franjas),
+  // no de una constante local — el slider muestra la duración con la que el
+  // backend armó las ventanas que esta vista pinta.
+  const duracionDelMotor = Number.isFinite(franjas?.duracion_min)
+    ? (franjas!.duracion_min as number)
+    : null;
+  const [duracionMin, setDuracion] = useState(duracionDelMotor ?? DURACION_POR_DEFECTO);
+  const editandoDuracionRef = useRef(false);
+  useEffect(() => {
+    // Un Recargar puede traer otra duración (otro dispositivo la confirmó);
+    // se adopta salvo que el usuario esté editando en este momento — pisarle
+    // el slider a media edición sería el mismo roce que B35 vino a matar.
+    if (duracionDelMotor !== null && !editandoDuracionRef.current) {
+      setDuracion((previa) => previa === duracionDelMotor ? previa : duracionDelMotor);
+    }
+  }, [duracionDelMotor]);
   // El slider vive detrás de un lápiz (dictado 2026-09-02: «muy accesible
   // para editar… una vez confirmas que dura por ejemplo 30 se queda allí
   // hasta que lo edites»): confirmado el valor, el control se guarda y un
@@ -419,7 +441,13 @@ export function AulasCargaDeCampo({
               <button
                 type="button"
                 className="aulas-carga-duracion-boton"
-                onClick={() => setEditandoDuracion(false)}
+                onClick={() => {
+                  setEditandoDuracion(false);
+                  editandoDuracionRef.current = false;
+                  // B70: confirmar PERSISTE — la duración deja de ser estado
+                  // local y rige ventanas, reparto y aviso del backend.
+                  void onConfirmarDuracion?.(duracionMin);
+                }}
                 aria-label={`Confirmar la duración de ${fmt(duracionMin)} minutos`}
               >
                 <Check size={13} aria-hidden="true" /> Confirmar
@@ -428,13 +456,18 @@ export function AulasCargaDeCampo({
               <button
                 type="button"
                 className="aulas-carga-duracion-boton"
-                onClick={() => setEditandoDuracion(true)}
+                onClick={() => {
+                  setEditandoDuracion(true);
+                  editandoDuracionRef.current = true;
+                }}
                 aria-label="Editar la duración de la aplicación"
               >
                 <Pencil size={13} aria-hidden="true" /> Editar
               </button>
             )}
-            <em>sólo afecta a los cursos-horario ya agendados</em>
+            <em>{onConfirmarDuracion
+              ? "se guarda en el estudio y rige ventanas, reparto y aviso"
+              : "sólo afecta a los cursos-horario ya agendados"}</em>
           </span>
           {editandoDuracion ? (
             <input

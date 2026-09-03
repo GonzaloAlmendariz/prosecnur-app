@@ -128,6 +128,10 @@ export function AulasAsignacionDeAplicadores({
           Reparto <strong>vigente</strong> sobre lo agendado hasta hoy: se recalcula con cada
           Recargar y una confirmación nueva entra sola.
           {onFijar ? " Lo fijado a mano manda sobre el automático y se conserva." : ""}
+          {/* B71 (dictado 2026-09-03): el protocolo del despliegue vive EN la
+              app, no solo en el aviso copiado. */}
+          {" "}Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita y
+          sale al aula <strong>15 min antes</strong>: su hora completa queda reservada.
         </p>
         <dl className="aulas-carga-kpis">
           {diaQueToca ? (

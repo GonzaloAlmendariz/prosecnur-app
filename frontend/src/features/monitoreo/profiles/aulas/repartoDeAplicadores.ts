@@ -49,6 +49,10 @@ export type AsignacionDeCita = {
   aplicador: string;
   inicio: string;
   fin: string;
+  /** B71: la hora del recojo de materiales (T−30), dicha por el motor. */
+  recojo: string;
+  /** B71: la hora de salir hacia el aula (T−15), dicha por el motor. */
+  salida: string;
   /** B36: la puso el usuario (fijación), no el greedy. */
   fijada: boolean;
   /** Lo que la oferta no respalda, declarado por el motor; "" si nada. */
@@ -92,6 +96,10 @@ export type RepartoVista = {
    * fijación huérfana no se pierde en silencio por editar otra.
    */
   fijadas: ReadonlyMap<string, string>;
+  /** B70: con qué duración (min) armó el motor este reparto; 0 = no llegó. */
+  duracionMin: number;
+  /** B71: minutos de preparación previa (recojo + desplazamiento); 0 = no llegó. */
+  preparacionMin: number;
 };
 
 /**
@@ -133,7 +141,10 @@ export function textoDelDespliegue(
       porEdificio.set(letra, (porEdificio.get(letra) ?? 0) + 1);
     }
     const donde = lugar ? `${lugar} · ${a.codigo}` : a.codigo;
-    return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}`;
+    // B71: la hora del recojo viaja por cita — es la hora a la que ESA
+    // persona debe estar en la base, y la dice el motor (no se re-parsea).
+    const recojo = a.recojo ? ` (recojo ${a.recojo})` : "";
+    return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}${recojo}`;
   });
   const edificios = [...porEdificio.entries()]
     .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "es"))
@@ -142,8 +153,15 @@ export function textoDelDespliegue(
   const cola = dia.noCubiertos.length
     ? [`Sin nadie asignado: ${dia.noCubiertos.join(", ")}`]
     : [];
+  // B71 (dictado 2026-09-03): el protocolo del despliegue va EN el aviso —
+  // recojo de materiales a T−30 y salida al aula a T−15 no son folclore del
+  // equipo, son parte del mensaje.
+  const protocolo = dia.asignaciones.length
+    ? ["Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada."]
+    : [];
   return [
     `Despliegue ${dia.etiqueta}${edificios ? ` — pabellones ${edificios}` : ""}`,
+    ...protocolo,
     ...lineas,
     ...cola,
   ].join("\n");
@@ -235,6 +253,8 @@ export function repartoDeAplicadores(
         aplicador,
         inicio: texto(a.inicio),
         fin: texto(a.fin),
+        recojo: texto(a.recojo),
+        salida: texto(a.salida),
         fijada: uno(a.fijada) === true,
         // Lista cerrada del motor; un valor desconocido no se inventa lectura.
         advertencia:
@@ -276,5 +296,7 @@ export function repartoDeAplicadores(
         })
         .filter(([c, a]) => c !== "" && a !== ""),
     ),
+    duracionMin: num(raiz.duracion_min) ?? 0,
+    preparacionMin: num(raiz.preparacion_min) ?? 0,
   };
 }

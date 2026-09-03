@@ -166,9 +166,10 @@
 
 test_that("B29: candidato es quien CUBRE la ventana entera; la cancelada no pide aplicador", {
   # 2026-09-11 es VIERNES. «Alba Parcial» va PRIMERA en alfabeto a propósito:
-  # su bloque [09:00, 10:10) NO cubre la ventana [10:00, 10:20] — si el motor
-  # aceptara cubrir a medias, el empate alfabético se la daría a ella y este
-  # pin lo cazaría. «Saturnino Sintetico» solo tiene sábado.
+  # su bloque [09:00, 10:10) NO cubre la OCUPACIÓN [09:30, 10:30] de la cita
+  # de las 10:00 (B71: recojo T−30 + aplicación de 30) — si el motor aceptara
+  # cubrir a medias, el empate alfabético se la daría a ella y este pin lo
+  # cazaría. «Saturnino Sintetico» solo tiene sábado.
   disp <- list(
     .marp_apl("Alba Parcial", list(viernes = list(.marp_bloque("09:00", "10:10")))),
     .marp_apl("Nora Completa", list(viernes = list(.marp_bloque("08:00", "12:00")))),
@@ -185,10 +186,14 @@ test_that("B29: candidato es quien CUBRE la ventana entera; la cancelada no pide
   a1 <- .marp_asig(dia, "CH 1")
   expect_true(is.list(a1))
   expect_identical(a1[["aplicador"]], "Nora Completa")
-  # La ventana viene de B11: hora pactada + veinte minutos, en HH:MM.
+  # La ventana viene de B11 con la duración vigente (B70: 30 min).
   expect_identical(a1[["inicio"]], "10:00")
-  expect_identical(a1[["fin"]], "10:20")
-  # A las 21:50 nadie cubre [21:50, 22:10]: descubierto DECLARADO.
+  expect_identical(a1[["fin"]], "10:30")
+  # B71: el protocolo del despliegue lo dice el motor — recojo T−30 y
+  # salida T−15; el frontend no re-parsea horas.
+  expect_identical(a1[["recojo"]], "09:30")
+  expect_identical(a1[["salida"]], "09:45")
+  # A las 21:50 nadie cubre la ocupación [21:20, 22:20]: descubierto DECLARADO.
   expect_true("CH 2" %in% .marp_no_cubiertos(dia))
   # La cancelada hereda el balde de ventanas: no está en ningún lado.
   expect_null(.marp_asig(dia, "CH 9"))
@@ -249,16 +254,17 @@ test_that("B29: con candidatos de sobra el resumen de equidad no deja a nadie ca
 })
 
 test_that("B29: un aplicador no está en dos aulas que se solapan — y la adyacencia no es solape", {
-  # El pin discriminante del contrato: dos CH a las 10:00 y 10:10 con UN solo
-  # candidato común. Sin el chequeo de solape, Zoe estaría en dos salones a la
-  # vez; con él, el segundo queda DECLARADO como no cubierto. Y el tercero a
-  # las 10:20 arranca justo cuando el primero termina: adyacente, no solapado
-  # (la convención de las franjas de B11) — Zoe sí llega.
+  # El pin discriminante del contrato, sobre la OCUPACIÓN (B71): dos CH a las
+  # 10:00 y 10:10 con UN solo candidato común — sus ocupaciones [09:30,10:30]
+  # y [09:40,10:40] se solapan; sin el chequeo, Zoe estaría en dos sitios a
+  # la vez; con él, el segundo queda DECLARADO como no cubierto. Y el tercero
+  # a las 11:00 arranca su recojo (10:30) justo cuando la primera aplicación
+  # termina: adyacente, no solapado (la convención de B11) — Zoe sí llega.
   disp <- list(.marp_apl("Zoe Unica", list(viernes = list(.marp_bloque("08:00", "22:00")))))
   res <- monitoreo_aulas_reparto(list(
     .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
     .marp_fila("CH 2", fecha = "2026-09-11", hora = "10:10"),
-    .marp_fila("CH 3", fecha = "2026-09-11", hora = "10:20")
+    .marp_fila("CH 3", fecha = "2026-09-11", hora = "11:00")
   ), disp)
 
   dia <- .marp_dia(res, "2026-09-11")
@@ -273,7 +279,9 @@ test_that("B29: un aplicador no está en dos aulas que se solapan — y la adyac
 test_that("B29: si el ocupado tiene relevo, el segundo CH sale con OTRO — y el que nunca calza suma 0 en equidad", {
   disp <- list(
     .marp_full("Ana Prueba"),
-    .marp_apl("Berta Ficticia", list(viernes = list(.marp_bloque("10:10", "12:00")))),
+    # B71: para cubrir la cita de las 10:10 hay que estar libre desde su
+    # recojo (09:40) — el bloque de Berta arranca exactamente ahí.
+    .marp_apl("Berta Ficticia", list(viernes = list(.marp_bloque("09:40", "12:00")))),
     .marp_apl("Mario Sintetico", list(sabado = list(.marp_bloque("08:00", "22:00"))))
   )
   res <- monitoreo_aulas_reparto(list(
@@ -282,8 +290,8 @@ test_that("B29: si el ocupado tiene relevo, el segundo CH sale con OTRO — y el
   ), disp)
 
   dia <- .marp_dia(res, "2026-09-11")
-  # CH 1 solo lo cubre Ana (Berta empieza 10:10); CH 2 encuentra a Ana ocupada
-  # y sale con Berta: nada queda descubierto.
+  # CH 1 solo lo cubre Ana (Berta empieza 09:40 y el recojo de CH 1 es
+  # 09:30); CH 2 encuentra a Ana ocupada y sale con Berta: nada descubierto.
   expect_identical(.marp_asig(dia, "CH 1")[["aplicador"]], "Ana Prueba")
   expect_identical(.marp_asig(dia, "CH 2")[["aplicador"]], "Berta Ficticia")
   expect_length(.marp_no_cubiertos(dia), 0L)

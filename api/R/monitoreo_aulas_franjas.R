@@ -63,10 +63,15 @@
 #'
 #' @param plan plan normalizado: lista de filas o data.frame (mismo formato
 #'   que `monitoreo_aulas_dos_tasas` y `monitoreo_aulas_ventanas`).
-#' @return lista con `dias` y `personas_fuente`.
+#' @param duracion_min minutos de la aplicación (B70): pasa intacto a
+#'   `monitoreo_aulas_ventanas()`; default 30.
+#' @return lista con `dias`, `personas_fuente`, y el eco `duracion_min` /
+#'   `preparacion_min` (B71) para que los gráficos deriven la ocupación real
+#'   sin re-parsear horas ni inventarse constantes propias.
 #' @keywords internal
-monitoreo_aulas_franjas <- function(plan = list()) {
-  base <- monitoreo_aulas_ventanas(plan)
+monitoreo_aulas_franjas <- function(plan = list(),
+                                    duracion_min = .mav_DURACION_MIN) {
+  base <- monitoreo_aulas_ventanas(plan, duracion_min = duracion_min)
   aulas <- base[["aulas"]] %||% list()
   mapa <- base[["mapa"]] %||% list()
 
@@ -119,5 +124,10 @@ monitoreo_aulas_franjas <- function(plan = list()) {
     )
   })
 
-  list(dias = dias, personas_fuente = "confirmadas")
+  # B70/B71: el bloque declara con qué duración se armó y cuánto dura la
+  # preparación (recojo+desplazamiento) — el eco existe para que los gráficos
+  # del frontend pinten la ocupación real sin constantes propias.
+  list(dias = dias, personas_fuente = "confirmadas",
+       duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
+       preparacion_min = .mav_PREPARACION_MIN)
 }

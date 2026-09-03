@@ -120,7 +120,8 @@ test_that("cada fecha agendada es un día del bloque, en orden ISO ascendente y 
   v1 <- .maf_ventana(d1, "CH 1")
   expect_true(is.list(v1))
   expect_identical(v1[["inicio"]], "18:45")
-  expect_identical(v1[["fin"]], "19:05")
+  # B70 (dictado 2026-09-03): la aplicacion dura 30 — la ventana crecio de 20.
+  expect_identical(v1[["fin"]], "19:15")
   expect_true(isTRUE(v1[["confirmada"]]))
   # La cancelada no está: ni ventana ni pico inflado.
   expect_false("CH 9" %in% .maf_codigos(d1))
@@ -129,13 +130,13 @@ test_that("cada fecha agendada es un día del bloque, en orden ISO ascendente y 
   d2 <- .maf_dia(res, "2026-09-10")
   v2 <- .maf_ventana(d2, "CH 2")
   expect_identical(v2[["inicio"]], "10:00")
-  expect_identical(v2[["fin"]], "10:20")
+  expect_identical(v2[["fin"]], "10:30")
 })
 
 test_that("el pico cuenta aulas EN CURSO por rango real —no por hora de inicio— y dice su franja", {
-  # Tres citas: 18:45-19:05, 18:50-19:10 y 19:00-19:20. Por HORA DE INICIO el
+  # Tres citas (a 30 min, B70): 18:45-19:15, 18:50-19:20 y 19:00-19:30. Por HORA DE INICIO el
   # pico daría 2 (dos empiezan en la hora 18); por RANGO real, de 19:00 a
-  # 19:05 las tres están EN CURSO a la vez — y ese 3 es el número de
+  # 19:15 las tres están EN CURSO a la vez — y ese 3 es el número de
   # aplicadores que el operativo necesita (el mismo sesgo medido en
   # universitarias:1087-1090: 8 por inicio contra 19 por rango).
   res <- monitoreo_aulas_franjas(list(
@@ -152,7 +153,7 @@ test_that("el pico cuenta aulas EN CURSO por rango real —no por hora de inicio
   expect_equal(as.numeric(pico[["aulas"]]), 3)
   # La franja del pico es exactamente el tramo donde las tres coinciden.
   expect_identical(pico[["inicio"]], "19:00")
-  expect_identical(pico[["fin"]], "19:05")
+  expect_identical(pico[["fin"]], "19:15")
 
   # Sin solape el pico es 1, nunca la suma; en empate manda la franja más
   # TEMPRANA (comparada por solape en minutos, para no congelar la
@@ -226,10 +227,10 @@ test_that("horas AM/PM y fechas dd/mm del libro real producen ventanas correctas
 
   v1 <- .maf_ventana(dia, "CH 1")
   expect_identical(v1[["inicio"]], "18:45")
-  expect_identical(v1[["fin"]], "19:05")
+  expect_identical(v1[["fin"]], "19:15")
   v2 <- .maf_ventana(dia, "CH 2")
   expect_identical(v2[["inicio"]], "18:50")
-  expect_identical(v2[["fin"]], "19:10")
+  expect_identical(v2[["fin"]], "19:20")
 })
 
 test_that("el dashboard de universitarias publica `franjas` cuando hay plan", {
@@ -258,7 +259,7 @@ test_that("el dashboard de universitarias publica `franjas` cuando hay plan", {
   expect_true(is.list(dia))
   v1 <- .maf_ventana(dia, "CH 1")
   expect_identical(v1[["inicio"]], "18:45")
-  expect_identical(v1[["fin"]], "19:05")
+  expect_identical(v1[["fin"]], "19:15")
   expect_true(isTRUE(v1[["confirmada"]]))
 
   # La cita sin pactar cuenta como por confirmar; las reservas sin fecha ni

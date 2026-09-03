@@ -315,6 +315,11 @@ monitoreo_aulas_default_config <- function() {
     representativity = list(),
     # Metas del diseño importadas de calc-muestra (ver monitoreo_aulas_metas_diseno.R).
     design_targets = list(),
+    # B70 (dictado 2026-09-03): la duración de la aplicación en minutos. 30 es
+    # la verdad operativa de hoy («la aplicación dura media hora»); el slider
+    # de Carga de campo la edita y la persiste por aquí. Los motores de
+    # ventanas/franjas/reparto la reciben por parámetro.
+    duracion_aplicacion_min = 30L,
     alerts = list(
       min_valid_per_class = 1L,
       warn_partial_under_valid = 5L
@@ -409,6 +414,20 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
           defaults$duracion_sospecha_min
       ))
       if (isTRUE(crit$declarado)) crit$umbral_min else NULL
+    }),
+    # **Cuánto dura la aplicación (B70, dictado 2026-09-03).** Misma doctrina
+    # de whitelist: sin esta entrada, confirmar el slider y guardar el
+    # proyecto perdería la duración en silencio. Se sanea a entero en
+    # [5, 180]; lo ilegible cae al default (30) en vez de romper el config.
+    duracion_aplicacion_min = local({
+      crudo <- suppressWarnings(as.integer(
+        (config[["duracion_aplicacion_min"]] %||% defaults$duracion_aplicacion_min)[1]
+      ))
+      if (is.na(crudo) || crudo < 5L || crudo > 180L) {
+        defaults$duracion_aplicacion_min
+      } else {
+        crudo
+      }
     }),
     # **Las fijaciones del reparto de aplicadores (B36)** — codigo de cita →
     # aplicador, la voluntad explicita del usuario sobre el greedy. Misma
@@ -1559,7 +1578,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # Y el mapa de horas tambien (C2, decision del lead 2026-09-02): sin
       # plan viaja con dias vacios declarados. La logica vive en
       # monitoreo_aulas_franjas.R.
-      franjas = monitoreo_aulas_franjas(plan_df),
+      franjas = monitoreo_aulas_franjas(plan_df, duracion_min = cfg[["duracion_aplicacion_min"]]),
       brechas = list(),
       reemplazos = list(),
       validation = list()
@@ -2306,7 +2325,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # El mapa de HORAS por dia: ventanas confirmadas y tentativas, pico por
     # rango real y citas por confirmar. Deriva de monitoreo_aulas_ventanas()
     # (B11); la logica vive en monitoreo_aulas_franjas.R.
-    franjas = monitoreo_aulas_franjas(plan_df),
+    franjas = monitoreo_aulas_franjas(plan_df, duracion_min = cfg[["duracion_aplicacion_min"]]),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload. Es el denominador global de

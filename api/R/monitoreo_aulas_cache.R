@@ -98,10 +98,18 @@
 # Publica los dos bloques B29 sobre el dashboard ya construido. Sin
 # disponibilidad no toca nada: ausencia declarada, no un bloque vacío.
 .mac_publicar_disponibilidad <- function(dashboard, plan, disponibilidad,
-                                         fijadas = list()) {
+                                         fijadas = list(),
+                                         duracion_min = NULL) {
   if (is.null(disponibilidad) || !is.list(dashboard)) return(dashboard)
   dashboard[["disponibilidad"]] <- monitoreo_aulas_disponibilidad_bloque(disponibilidad)
-  dashboard[["reparto"]] <- monitoreo_aulas_reparto(plan, disponibilidad, fijadas)
+  # B70: el reparto respeta la duración del config; sin declarar cae al
+  # default del motor (30).
+  dashboard[["reparto"]] <- if (is.null(duracion_min)) {
+    monitoreo_aulas_reparto(plan, disponibilidad, fijadas)
+  } else {
+    monitoreo_aulas_reparto(plan, disponibilidad, fijadas,
+                            duracion_min = duracion_min)
+  }
   dashboard
 }
 
@@ -148,6 +156,11 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full",
     # B36: las fijaciones del reparto viven en el config de aulas y su
     # reparto viaja en el payload — fijar o soltar invalida.
     .mac_fijadas_marca(if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL),
+    # B70: la duración de la aplicación reescribe ventanas, franjas y
+    # reparto — mover el slider invalida el dashboard cacheado (lección A15:
+    # una clave de config que afecta al payload y no marca el token sirve el
+    # tablero anterior).
+    as.character((if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL) %||% ""),
     sep = "|"
   )
 }
@@ -176,7 +189,8 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   construir <- function() {
     .mac_publicar_disponibilidad(
       monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad,
-      fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list()
+      fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list(),
+      duracion_min = if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL
     )
   }
   if (!nzchar(sid) || !nzchar(token)) {

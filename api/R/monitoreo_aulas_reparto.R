@@ -119,19 +119,29 @@
 #' fijación cuyo código no tiene cita pactada se devuelve en
 #' `fijadas_sin_cita`, no se traga.
 #'
+#' B70/B71 (dictado 2026-09-03): la aplicación dura `duracion_min` (config;
+#' default 30) y el aplicador está OCUPADO desde media hora antes — recoge
+#' materiales a T−30 y sale hacia el aula a T−15. Cobertura y solapes se
+#' juzgan sobre la ocupación `[hora − 30, hora + duración]`, no sobre la
+#' aplicación sola («para que los cruces sean más honestos y verídicos»);
+#' cada asignación publica `recojo` y `salida` para el aviso del día.
+#'
 #' @param plan plan normalizado: lista de filas o data.frame (mismo formato
 #'   que `monitoreo_aulas_dos_tasas` y `monitoreo_aulas_ventanas`).
 #' @param disponibilidad salida de `carga_disponibilidad_aplicadores()`.
 #' @param fijadas lista nombrada código → aplicador (B36); vacía por defecto.
+#' @param duracion_min minutos de la aplicación (B70); default 30.
 #' @return lista con `dias` (por fecha ISO ascendente: `{fecha, asignaciones,
-#'   no_cubiertos, por_confirmar}`; cada asignación con `fijada` y, si
-#'   aplica, `advertencia`), `equidad` (`{aplicador, asignadas}` en orden
-#'   alfabético — la oferta entera más los fijados externos, cero incluido) y
-#'   `fijadas_sin_cita` (códigos fijados sin cita pactada).
+#'   no_cubiertos, por_confirmar}`; cada asignación con `recojo`, `salida`,
+#'   `fijada` y, si aplica, `advertencia`), `equidad` (`{aplicador,
+#'   asignadas}` en orden alfabético — la oferta entera más los fijados
+#'   externos, cero incluido), `fijadas_sin_cita` (códigos fijados sin cita
+#'   pactada) y el eco `duracion_min` / `preparacion_min`.
 #' @keywords internal
 monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
-                                    fijadas = list()) {
-  base <- monitoreo_aulas_ventanas(plan)
+                                    fijadas = list(),
+                                    duracion_min = .mav_DURACION_MIN) {
+  base <- monitoreo_aulas_ventanas(plan, duracion_min = duracion_min)
   aulas <- base[["aulas"]] %||% list()
   oferta <- .marep_oferta(disponibilidad)
   nombres <- sort(names(oferta) %||% character(0), method = "radix")
@@ -160,6 +170,10 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       citas[[length(citas) + 1L]] <- list(
         codigo = as.character(aula[["codigo"]] %||% ""),
         fecha = fecha, ini = ini, fin = fin,
+        # B71: la ocupación real arranca en el recojo de materiales (T−30) —
+        # cobertura y solape se juzgan sobre ella. El día no cruza hacia
+        # atrás de medianoche: se recorta a 0.
+        ini_ocupado = max(0, ini - .mav_PREPARACION_MIN),
         inicio = as.character(aula[["inicio"]] %||% ""),
         fin_hhmm = as.character(aula[["fin"]] %||% "")
       )
@@ -193,13 +207,18 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
 
   anotar_asignacion <- function(cita, elegido, fijada, advertencia = "") {
     clave_dia <- paste(elegido, cita$fecha, sep = "\r")
+    # B71: lo que se ocupa es la hora completa (recojo→fin), no la aplicación.
     ocupadas[[clave_dia]] <<- c(ocupadas[[clave_dia]],
-                                list(c(cita$ini, cita$fin)))
+                                list(c(cita$ini_ocupado, cita$fin)))
     item <- list(
       codigo = cita$codigo,
       aplicador = elegido,
       inicio = cita$inicio,
       fin = cita$fin_hhmm,
+      # B71: las horas del protocolo, dichas por el motor — el frontend no
+      # re-parsea horas (contrato horaDelMotor).
+      recojo = .mav_hhmm(cita$ini_ocupado),
+      salida = .mav_hhmm(max(0, cita$ini - .mav_SALIDA_MIN)),
       fijada = fijada
     )
     if (nzchar(advertencia)) item[["advertencia"]] <- advertencia
@@ -216,9 +235,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     dia_token <- .mav_dia_token(cita$fecha)
     dia_clave <- if (nzchar(dia_token)) .marep_DIA_CLAVE[[dia_token]] else ""
     cubre <- nzchar(dia_clave) &&
-      .marep_cubre(oferta[[elegido]][[dia_clave]], cita$ini, cita$fin)
+      .marep_cubre(oferta[[elegido]][[dia_clave]], cita$ini_ocupado, cita$fin)
     solapa <- .marep_solapa(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]],
-                            cita$ini, cita$fin)
+                            cita$ini_ocupado, cita$fin)
     advertencia <- if (solapa) "se_solapa" else if (!cubre) "sin_disponibilidad" else ""
     # Un fijado externo a la oferta entra a la equidad al verse: sin él la
     # suma de asignaciones no cuadraría con el resumen.
@@ -238,9 +257,12 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     candidatos <- character(0)
     if (nzchar(dia_clave)) {
       candidatos <- nombres[vapply(nombres, function(n) {
-        .marep_cubre(oferta[[n]][[dia_clave]], cita$ini, cita$fin) &&
+        # B71: el candidato debe estar libre desde el recojo (T−30) hasta el
+        # fin de la aplicación — cubrir solo la aplicación era el cruce
+        # deshonesto que el dictado 2026-09-03 vino a matar.
+        .marep_cubre(oferta[[n]][[dia_clave]], cita$ini_ocupado, cita$fin) &&
           !.marep_solapa(ocupadas[[paste(n, cita$fecha, sep = "\r")]],
-                         cita$ini, cita$fin)
+                         cita$ini_ocupado, cita$fin)
       }, logical(1))]
     }
     if (!length(candidatos)) {
@@ -287,7 +309,12 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     fijadas_sin_cita = as.list(sort(
       as.character(setdiff(names(fij) %||% character(0), codigos_pactados)),
       method = "radix"
-    ))
+    )),
+    # B70/B71: con qué duración se armó el reparto y cuánto dura la
+    # preparación — el aviso y los gráficos lo leen de aquí, no de constantes
+    # propias.
+    duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
+    preparacion_min = .mav_PREPARACION_MIN
   )
 }
 

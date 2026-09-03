@@ -42,9 +42,10 @@ describe("repartoDeAplicadores", () => {
     expect(r.dias[0].fecha).toBe("2026-09-11");
     expect(r.dias[0].etiqueta).toBe("Viernes 11/09");
     // El orden del motor se conserva; cada entrada suma las marcas B36 con
-    // sus valores por defecto (greedy, sin aviso).
+    // sus valores por defecto (greedy, sin aviso) y las horas del protocolo
+    // B71 vacías cuando el motor no las mandó.
     expect(r.dias[0].asignaciones).toEqual(
-      DIA.asignaciones.map((a) => ({ ...a, fijada: false, advertencia: "" })),
+      DIA.asignaciones.map((a) => ({ ...a, fijada: false, advertencia: "", recojo: "", salida: "" })),
     );
     expect(r.dias[0].noCubiertos).toEqual(["CH 2"]);
     expect(r.dias[0].porConfirmar).toEqual(["CH 7"]);
@@ -108,8 +109,9 @@ describe("repartoDeAplicadores", () => {
     }))!;
     expect(r.dias[0].asignaciones[0]).toEqual({
       codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20",
-      // B36: sin marca del motor, la asignación es del greedy y sin aviso.
-      fijada: false, advertencia: "",
+      // B36: sin marca del motor, la asignación es del greedy y sin aviso;
+      // B71: sin horas del protocolo, vacías declaradas.
+      fijada: false, advertencia: "", recojo: "", salida: "",
     });
     expect(r.dias[0].noCubiertos).toEqual(["CH 2"]);
     expect(r.equidad[0]).toEqual({ aplicador: "Ana Prueba", asignadas: 1 });
@@ -197,15 +199,17 @@ describe("textoDelDespliegue — el despliegue del día listo para el chat", () 
     const dia = {
       fecha: "2026-09-07", etiqueta: "Lunes 07/09",
       asignaciones: [
-        { codigo: "CH 7", aplicador: "Aguilar Cuya, Renzo", inicio: "11:30", fin: "11:50", fijada: false, advertencia: "" as const },
-        { codigo: "CH 9", aplicador: "Nolasco Rivera, Diego", inicio: "19:45", fin: "20:05", fijada: false, advertencia: "" as const },
+        // B70/B71: ventanas de 30 y horas del protocolo dichas por el motor.
+        { codigo: "CH 7", aplicador: "Aguilar Cuya, Renzo", inicio: "11:30", fin: "12:00", recojo: "11:00", salida: "11:15", fijada: false, advertencia: "" as const },
+        { codigo: "CH 9", aplicador: "Nolasco Rivera, Diego", inicio: "19:45", fin: "20:15", recojo: "19:15", salida: "19:30", fijada: false, advertencia: "" as const },
       ],
       noCubiertos: ["CH 55"], porConfirmar: [],
     };
     expect(textoDelDespliegue(dia, new Map([["CH 7", "A703"]]))).toBe([
       "Despliegue Lunes 07/09 — pabellones A×1",
-      "• 11:30–11:50 A703 · CH 7 — Aguilar Cuya, Renzo",
-      "• 19:45–20:05 CH 9 — Nolasco Rivera, Diego",
+      "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.",
+      "• 11:30–12:00 A703 · CH 7 — Aguilar Cuya, Renzo (recojo 11:00)",
+      "• 19:45–20:15 CH 9 — Nolasco Rivera, Diego (recojo 19:15)",
       "Sin nadie asignado: CH 55",
     ].join("\n"));
   });

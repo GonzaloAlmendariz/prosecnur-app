@@ -760,6 +760,7 @@ function renderAulasView({
   irAPestana = null,
   onDeclararUmbralDeDuracion = null,
   onFijarReparto = null,
+  onConfirmarDuracion = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -820,6 +821,8 @@ function renderAulasView({
    * Asignación, fila por fila.
    */
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
+  /** B70: persistir la duración de la aplicación (config del backend). */
+  onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -863,6 +866,7 @@ function renderAulasView({
         agendaRows={agendaRows}
         agendaReservas={agendaReservas}
         onFijarReparto={onFijarReparto}
+        onConfirmarDuracion={onConfirmarDuracion}
       />
     );
   }
@@ -1315,6 +1319,21 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * B70 (dictado 2026-09-03): confirmar el slider PERSISTE la duración en el
+   * config (`duracion_aplicacion_min`) y fuerza el refresco — ventanas,
+   * franjas, reparto y aviso del día se rearman con ella en el backend. Sin
+   * esto el slider era estado local y el aviso salía con los 20 del default.
+   */
+  const confirmarDuracion = useCallback(async (min: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ duracion_aplicacion_min: min } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
     try {
       await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
@@ -1685,6 +1704,7 @@ export default function AulasMonitoreoPage() {
               onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
               // Fijar/reasignar aplicadores del reparto (B36).
               onFijarReparto: fijarReparto,
+              onConfirmarDuracion: confirmarDuracion,
             })}
           </div>
       </MonitoreoWorkbenchChrome>
