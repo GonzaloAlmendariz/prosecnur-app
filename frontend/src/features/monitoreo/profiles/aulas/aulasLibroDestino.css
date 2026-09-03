@@ -52,3 +52,13 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Loop mejora-ui E12: el estado logrado también habla. La tarjeta en espera
+   ya se anuncia en ámbar (is-waiting strong, hoja madre), pero «Conectada /
+   Registrado / Trazable» iba en tinta plana — el logro no hacía eco del
+   verde con que los pills del seguimiento, dos dedos más arriba, dicen lo
+   mismo. Misma fórmula de mezcla que el ámbar del pendiente, con la tinta
+   de éxito de la casa. */
+.mon-profile-page.is-aulas-flow .aulas-ops-grid article.is-ready strong {
+  color: color-mix(in srgb, var(--pulso-success-fg) 78%, var(--pulso-text));
+}
