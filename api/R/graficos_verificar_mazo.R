@@ -401,7 +401,7 @@
 #' @keywords internal
 .verif_laminas_xml <- function(path) {
   if (!file.exists(path)) {
-    stop_api(400L, "E_ARCHIVO_NO_EXISTE", detalle = "No se encuentra el .pptx a verificar.")
+    stop_api(400L, "E_ARCHIVO_NO_EXISTE", "No se encuentra el .pptx a verificar.")
   }
   nombres <- utils::unzip(path, list = TRUE)$Name
   nombres <- grep("^ppt/slides/slide[0-9]+\\.xml$", nombres, value = TRUE)
