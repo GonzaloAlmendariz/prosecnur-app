@@ -41,13 +41,15 @@ describe("calcularCarga anota quiénes ocupan cada celda", () => {
   it("la franja de la cita lista al confirmado y al plausible, cada uno con su estado", () => {
     const j = franjaDe(malla, 10 * 60);
     const ocupantes = malla.quienes[lunes][j];
+    // La facultad viaja con el ocupante (dictado 2026-09-02: «algo que le
+    // falta a los boxes con información es decir la facultad también»).
     expect(ocupantes).toEqual([
       {
-        codigo: "CH 1", docente: "CHINCHAYÁN, RUTH", lugar: "A501", confirmada: true,
+        codigo: "CH 1", docente: "CHINCHAYÁN, RUTH", lugar: "A501", facultad: "F", confirmada: true,
         fecha: "", hora: "10:00", momento: "",
       },
       {
-        codigo: "CH 2", docente: "VILELA, MARTA", lugar: "A502", confirmada: false,
+        codigo: "CH 2", docente: "VILELA, MARTA", lugar: "A502", facultad: "F", confirmada: false,
         fecha: "", hora: "", momento: "",
       },
     ]);

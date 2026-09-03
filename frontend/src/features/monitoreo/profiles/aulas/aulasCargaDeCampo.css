@@ -108,6 +108,21 @@
 .aulas-carga-controles strong { color: var(--pulso-module-monitoring); font-variant-numeric: tabular-nums; }
 .aulas-carga-controles input[type="range"] { width: 210px; accent-color: var(--pulso-module-monitoring); }
 
+/* El slider vive detrás del lápiz: confirmada la duración queda el valor y
+   este botón, y un roce accidental ya no mueve la malla entera. */
+.aulas-carga-duracion-cab { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.aulas-carga-duracion-boton {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font: inherit; font-size: 11px; color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+.aulas-carga-duracion-boton:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-carga-duracion-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
 .aulas-carga-kpis { display: flex; gap: 22px; margin: 0 0 0 auto; }
 .aulas-carga-kpis div { display: flex; flex-direction: column; }
 .aulas-carga-kpis dt { font-size: 11px; color: var(--pulso-text-faint); order: 2; max-width: 15ch; line-height: 1.3; }

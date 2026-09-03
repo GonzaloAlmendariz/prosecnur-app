@@ -1,5 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 
+import { Check, Pencil } from "../../../../vendor/lucide-react";
+
 import type {
   MonitoreoAulasDisponibilidad,
   MonitoreoAulasFranjas,
@@ -133,6 +135,11 @@ export function AulasCargaDeCampo({
   onExportar?: (opciones: OpcionesDeCarga) => void;
 }) {
   const [duracionMin, setDuracion] = useState(DURACION_POR_DEFECTO);
+  // El slider vive detrás de un lápiz (dictado 2026-09-02: «muy accesible
+  // para editar… una vez confirmas que dura por ejemplo 30 se queda allí
+  // hasta que lo edites»): confirmado el valor, el control se guarda y un
+  // roce accidental ya no mueve toda la malla.
+  const [editandoDuracion, setEditandoDuracion] = useState(false);
   // `null` = todavía no lo eligió nadie, así que manda la sugerencia. Fijar la
   // vista en el estado inicial la congelaría con el plan VACÍO del primer
   // render —el dashboard llega después— y abriría siempre en semanal por muy
@@ -374,19 +381,40 @@ export function AulasCargaDeCampo({
       {esDemanda && hayMalla ? (<>
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <label>
-          <span>
+          <span className="aulas-carga-duracion-cab">
             Duración de la aplicación: <strong>{fmt(duracionMin)} min</strong>
+            {editandoDuracion ? (
+              <button
+                type="button"
+                className="aulas-carga-duracion-boton"
+                onClick={() => setEditandoDuracion(false)}
+                aria-label={`Confirmar la duración de ${fmt(duracionMin)} minutos`}
+              >
+                <Check size={13} aria-hidden="true" /> Confirmar
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="aulas-carga-duracion-boton"
+                onClick={() => setEditandoDuracion(true)}
+                aria-label="Editar la duración de la aplicación"
+              >
+                <Pencil size={13} aria-hidden="true" /> Editar
+              </button>
+            )}
             <em>sólo afecta a los cursos-horario ya agendados</em>
           </span>
-          <input
-            type="range"
-            min={10}
-            max={180}
-            step={5}
-            value={duracionMin}
-            onChange={(e) => setDuracion(Number(e.target.value))}
-            aria-label="Duración de la aplicación dentro del aula, en minutos"
-          />
+          {editandoDuracion ? (
+            <input
+              type="range"
+              min={10}
+              max={180}
+              step={5}
+              value={duracionMin}
+              onChange={(e) => setDuracion(Number(e.target.value))}
+              aria-label="Duración de la aplicación dentro del aula, en minutos"
+            />
+          ) : null}
         </label>
         <dl className="aulas-carga-kpis">
           <div>
@@ -598,9 +626,12 @@ export function AulasCargaDeCampo({
                       <strong className="aulas-carga-cita-codigo">{o.codigo}</strong>
                       {o.docente ? <span className="aulas-carga-cita-docente">{o.docente}</span> : null}
                     </span>
-                    {o.lugar || o.fecha || o.hora || o.momento ? (
+                    {o.lugar || o.facultad || o.fecha || o.hora || o.momento ? (
                       <span className="aulas-carga-cita-chips">
                         {o.lugar ? <ChipLugar lugar={o.lugar} /> : null}
+                        {/* La facultad tambien es seña del box (dictado
+                            2026-09-02): quien reparte piensa por facultad. */}
+                        {o.facultad ? <ChipDato>{o.facultad}</ChipDato> : null}
                         {o.fecha ? <ChipDato>{fechaCorta(o.fecha)}</ChipDato> : null}
                         {o.hora ? <ChipHora>{o.hora}</ChipHora> : null}
                         {o.momento ? <ChipDato>{MOMENTO_LEGIBLE[o.momento]}</ChipDato> : null}
