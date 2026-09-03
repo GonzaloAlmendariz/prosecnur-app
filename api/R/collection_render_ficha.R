@@ -558,6 +558,9 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   if (identical(page$layout_preset, "field_form")) {
     return(collection_material_draw_field_form(page, page_no, total_pages, brand_assets))
   }
+  if (identical(page$layout_preset, "croquis_campus")) {
+    return(collection_material_draw_campus_croquis(page, page_no, total_pages, brand_assets))
+  }
   collection_material_draw_sheet(page, page_no, total_pages, brand_assets)
 }
 

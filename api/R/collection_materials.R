@@ -10,7 +10,8 @@ COLLECTION_ARTIFACT_RECEIPT_SCHEMA <- "collection_artifact_receipt/v1"
 
 COLLECTION_MATERIAL_BLOCK_TYPES <- c(
   "brand_header", "brand_strip", "status_tag", "heading", "body", "access_qr",
-  "field_grid", "form_lines", "instructions", "application_log", "divider", "footer"
+  "field_grid", "form_lines", "instructions", "application_log", "divider", "footer",
+  "campus_map"
 )
 
 # Registro cerrado de presets. Antes las compuertas de preset, material_kind y
@@ -39,13 +40,18 @@ COLLECTION_MATERIAL_PRESETS <- list(
   # domina la pagina y debajo va un formulario de lineas que se llena a mano.
   # No comparte layout con `ficha_aplicacion_a4_v1`: alli los datos vienen
   # impresos del plan, aqui casi todo nace en campo.
+  # Dos layouts, no uno: la ficha de campo es la unica plantilla con VERSO. La
+  # cara (`field_form`) lleva el QR y el formulario; el reverso
+  # (`croquis_campus`, B32) es el croquis del campus con el pabellon del aula
+  # resaltado. La validacion acepta cualquiera de los dos por pagina.
   ficha_campo_qr_a4_v1 = list(
-    layout_preset = "field_form",
+    layout_preset = c("field_form", "croquis_campus"),
     material_kind = "application_sheet",
     # Sin `status_tag`: en esta hoja lo que identifica la ficha es su titulo, y
     # el titulo es el id del colector. Una pildora aparte diria dos veces lo
     # mismo, o peor, algo distinto.
-    blocks = c("brand_strip", "heading", "access_qr", "form_lines", "footer")
+    blocks = c("brand_strip", "heading", "access_qr", "form_lines", "footer",
+               "campus_map")
   )
 )
 
@@ -118,6 +124,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
     brand_strip = c("assets", "align", "max_height_mm"),
     status_tag = c("text"),
     form_lines = c("rows"),
+    campus_map = c("binding"),
     heading = c("binding", "text", "max_lines"),
     body = c("binding", "text", "max_lines"),
     access_qr = c("binding", "correction", "quiet_zone", "min_size_mm"),
@@ -173,6 +180,16 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   }
   if (!is.null(block$binding)) {
     problems <- c(problems, .cm_binding_problem(block$binding, paste0(path, ".binding")))
+  }
+  if (identical(type, "campus_map")) {
+    # El croquis resalta el pabellon del AULA de la unidad y nada mas: dejarle
+    # elegir binding permitiria «resaltar» un dato que no es un lugar.
+    if (!identical(block$binding, "unit.venue")) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".binding"), "campus_map_binding_protected",
+        "campus_map solo puede resolver unit.venue."
+      )
+    }
   }
   if (identical(type, "access_qr")) {
     if (!identical(block$binding, "access.qr_payload")) {
@@ -766,10 +783,13 @@ collection_material_template_validate <- function(template) {
         }
         ids <- c(ids, page_spec$page_id)
       }
-      if (!is.null(preset) && !identical(page_spec$layout_preset, preset$layout_preset)) {
+      if (!is.null(preset) &&
+          !(is.character(page_spec$layout_preset) && length(page_spec$layout_preset) == 1L &&
+            page_spec$layout_preset %in% preset$layout_preset)) {
         problems[[length(problems) + 1L]] <- .cm_problem(
           paste0(path, ".layout_preset"), "layout_not_allowed",
-          sprintf("El preset %s se dibuja con %s.", template$preset_id, preset$layout_preset)
+          sprintf("El preset %s se dibuja con %s.", template$preset_id,
+                  paste(preset$layout_preset, collapse = " o "))
         )
       }
       blocks <- page_spec$blocks
