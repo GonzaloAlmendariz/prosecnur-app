@@ -38,12 +38,12 @@ describe("AulasMapaDeHoras", () => {
     // no como tooltip. «Citas a la vez» y no «aulas»: la unidad del perfil es
     // el curso-horario (ADR 0060, ratchet de vocabulario) y lo que coincide
     // son citas confirmadas — cada una pide su aplicador.
-    expect(html).toContain("2 citas a la vez");
+    expect(html).toContain("2 aplicaciones a la vez");
     expect(html).toContain("19:00–19:05");
   });
 
   it("la cabecera dice el pico del operativo entero", () => {
-    expect(html).toContain("hasta 2 citas a la vez");
+    expect(html).toContain("hasta 2 aplicaciones a la vez");
     expect(html).toContain("Martes 08/09");
   });
 
@@ -62,7 +62,8 @@ describe("AulasMapaDeHoras", () => {
   });
 
   it("declara de qué citas sale el pico", () => {
-    expect(html).toContain("citas confirmadas");
+    // Dictado 2026-09-03: la unidad del reparto es la aplicación.
+    expect(html).toContain("aplicaciones confirmadas");
   });
 
   it("sin bloque en el payload la ausencia se declara, no se rompe (C3)", () => {

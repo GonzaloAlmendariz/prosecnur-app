@@ -40,7 +40,7 @@ export function AulasMapaDeHoras({ franjas, hoy = hoyISO() }: {
         // 0060, ratchet de vocabulario) y lo que coincide en el pico son citas
         // confirmadas — cada una pide su aplicador.
         <span>
-          hasta {fmt(mapa.picoMaximo.aulas)} {mapa.picoMaximo.aulas === 1 ? "cita" : "citas"} a
+          hasta {fmt(mapa.picoMaximo.aulas)} {mapa.picoMaximo.aulas === 1 ? "aplicación" : "aplicaciones"} a
           la vez · {mapa.picoMaximo.etiqueta}
         </span>
       ) : null}
@@ -96,8 +96,8 @@ export function AulasMapaDeHoras({ franjas, hoy = hoyISO() }: {
         })()}
         {mapa.personasFuente === "confirmadas" ? (
           <p className="aulas-mapa-nota">
-            El pico cuenta solo citas confirmadas; la franja punteada es el
-            rango del curso de una cita aún por pactar.
+            El pico cuenta solo aplicaciones confirmadas; la franja punteada es
+            el rango del curso de una aún por pactar.
           </p>
         ) : null}
       </div>
@@ -123,12 +123,12 @@ function DiaDelMapa({ dia, esElQueToca = false, esPasado = false }: {
           {dia.picoAulas > 0 ? (
             <>
               <strong>
-                {fmt(dia.picoAulas)} {dia.picoAulas === 1 ? "cita" : "citas"} a la vez
+                {fmt(dia.picoAulas)} {dia.picoAulas === 1 ? "aplicación" : "aplicaciones"} a la vez
               </strong>
               {dia.pico ? <> · {dia.pico.inicio}–{dia.pico.fin}</> : null}
             </>
           ) : (
-            <em>sin citas confirmadas</em>
+            <em>sin aplicaciones confirmadas</em>
           )}
         </p>
       </header>

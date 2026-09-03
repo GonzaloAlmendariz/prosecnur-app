@@ -38,9 +38,10 @@ test_that("B68: con disponibilidad, el libro lleva la hoja con el reparto de la 
   texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
   # El protocolo va EN la hoja, no como folclore del equipo.
   expect_match(texto, "Materiales se recogen 30 min antes")
-  # El día con su croquis en palabras (B79, nunca «A×1»).
+  # El día con su unidad correcta (dictado 2026-09-03: «no son citas, son
+  # aplicaciones») y el croquis en corto para no repetir la palabra.
   expect_match(texto, "Viernes 11/09")
-  expect_match(texto, "1 aplicación en A")
+  expect_match(texto, "aplicaciones — 1 en A")
   # El reparto del MISMO motor: empate 0-0 lo gana el alfabeto.
   expect_match(texto, "Ana Prueba")
   expect_match(texto, "Berta Ficticia")

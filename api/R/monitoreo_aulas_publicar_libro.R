@@ -259,9 +259,13 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
     )
   )
   # B20: el desplegable del selector de día, con la geometría derivada de los
-  # rows realmente publicados (monitoreo_aulas_plan_dia_selector.R).
+  # rows realmente publicados (monitoreo_aulas_plan_dia_selector.R). Y las
+  # bandas de la hoja (dictado 2026-09-03: «Plan del día también está muy
+  # feo») — mismo patrón fila-a-fila que el avance y la asignación
+  # (monitoreo_aulas_plan_dia_formato.R).
   if (identical(tab_name, .malp_hoja_plan_dia())) {
     requests <- c(requests, .mapds_validacion_requests(sheet_id, rows))
+    requests <- c(requests, monitoreo_aulas_plan_dia_formato_requests(sheet_id, rows))
   }
   # B19: bandas de título de bloque y cabeceras de tabla de «Avance de campo»,
   # fila a fila del contenido (monitoreo_aulas_avance_formato.R).

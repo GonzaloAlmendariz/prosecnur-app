@@ -238,7 +238,7 @@ export function AulasAsignacionDeAplicadores({
               const pactadas = reparto.fueraDeRango.reduce((n, f) => n + f.codigos.length, 0);
               const sinHora = reparto.fueraDeRango.reduce((n, f) => n + f.porConfirmar.length, 0);
               const dias = reparto.fueraDeRango.length;
-              return `${fmt(pactadas)} ${pactadas === 1 ? "cita pactada" : "citas pactadas"}` +
+              return `${fmt(pactadas)} ${pactadas === 1 ? "aplicación pactada" : "aplicaciones pactadas"}` +
                 `${sinHora ? ` y ${fmt(sinHora)} por confirmar` : ""}` +
                 ` en ${fmt(dias)} ${dias === 1 ? "día" : "días"}` +
                 ` (${reparto.fueraDeRango[0].etiqueta} → ${reparto.fueraDeRango[dias - 1].etiqueta})`;
@@ -255,7 +255,7 @@ export function AulasAsignacionDeAplicadores({
             </div>
           ) : null}
           <div>
-            <dt>Citas repartidas</dt>
+            <dt>Aplicaciones repartidas</dt>
             <dd>{fmt(reparto.citas)}</dd>
           </div>
           <div>
@@ -300,7 +300,7 @@ export function AulasAsignacionDeAplicadores({
                   {d.etiqueta}
                   <span className="aulas-asigna-conteo">
                     {" "}· {fmt(d.asignaciones.length)}{" "}
-                    {d.asignaciones.length === 1 ? "cita repartida" : "citas repartidas"}
+                    {d.asignaciones.length === 1 ? "aplicación repartida" : "aplicaciones repartidas"}
                   </span>
                   {esElQueToca ? (
                     <span className="aulas-asigna-toca">
@@ -364,7 +364,7 @@ export function AulasAsignacionDeAplicadores({
                       <AlertTriangle size={14} aria-hidden="true" />
                       <strong>
                         {fmt(d.noCubiertos.length)}{" "}
-                        {d.noCubiertos.length === 1 ? "cita pactada" : "citas pactadas"} sin nadie
+                        {d.noCubiertos.length === 1 ? "aplicación pactada" : "aplicaciones pactadas"} sin nadie
                         que llegue:
                       </strong>
                     </p>
@@ -523,7 +523,7 @@ export function AulasAsignacionDeAplicadores({
                           e.asignadas === 0 ? " es-libre" : ""}`}
                         aria-pressed={fijado && activo}
                         aria-label={`${e.aplicador}: ${fmt(e.asignadas)} ${
-                          e.asignadas === 1 ? "cita asignada" : "citas asignadas"}. Resalta sus citas en el reparto`}
+                          e.asignadas === 1 ? "aplicación asignada" : "aplicaciones asignadas"}. Resalta sus aplicaciones en el reparto`}
                         onMouseEnter={() => { if (!fijado) setEnFoco(e.aplicador); }}
                         onFocus={() => { if (!fijado) setEnFoco(e.aplicador); }}
                         onClick={() => {

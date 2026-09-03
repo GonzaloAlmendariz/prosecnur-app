@@ -234,7 +234,7 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
       { aplicador: "Berta Ficticia", asignadas: 2 },
     ]))!;
     expect(v.parejo).toBe(true);
-    expect(v.texto).toContain("Reparto parejo: cargas entre 1 y 2 — diferencia máxima 1 cita");
+    expect(v.texto).toContain("Reparto parejo: cargas entre 1 y 2 — diferencia máxima 1 aplicación");
   });
 
   it("todos con la misma carga lo dice sin rango fantasma", () => {
@@ -243,7 +243,7 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
       { aplicador: "Berta Ficticia", asignadas: 1 },
     ]))!;
     expect(v.parejo).toBe(true);
-    expect(v.texto).toContain("cada quien lleva 1 cita");
+    expect(v.texto).toContain("cada quien lleva 1 aplicación");
   });
 
   it("diferencia > 1 se declara con su causa; el cero no entra al rango pero se cuenta como libre", () => {
@@ -253,9 +253,9 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
       { aplicador: "Mario Sintetico", asignadas: 0 },
     ]))!;
     expect(v.parejo).toBe(false);
-    expect(v.texto).toContain("Cargas entre 1 y 4 — diferencia de 3 citas");
+    expect(v.texto).toContain("Cargas entre 1 y 4 — diferencia de 3 aplicaciones");
     expect(v.texto).toContain("el desbalance viene de la disponibilidad de cada quien");
-    expect(v.texto).toContain("1 queda libre — sin cita en sus horarios");
+    expect(v.texto).toContain("1 queda libre — sin aplicaciones en sus horarios");
   });
 
   it("con fijadas a mano, la causa las nombra", () => {
