@@ -1250,8 +1250,16 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # `sample_role` viaja para distinguirlo—: solo decide QUE se sacrifica cuando
   # hay que sacrificar algo. Lo que se quede fuera sigue declarandose en `total`.
   if (nrow(out)) {
-    del_banco <- as.character(out$sample_role %||% rep("", nrow(out))) == "extra_reserve_pool"
-    out <- out[order(del_banco), , drop = FALSE]
+    rol <- as.character(out$sample_role %||% rep("", nrow(out)))
+    del_banco <- rol == "extra_reserve_pool"
+    # A26 (residuo, 2026-09-02): segundo peldano de la escalera de sacrificio.
+    # El tope corta por posicion y una reserva DE CADENA con mejor estado
+    # podia dejar fuera a un titular — sobre ULT2 (174 titulares + 1.173
+    # reservas) la agenda diria «contado sobre 500» con titulares ausentes.
+    # El titular entra SIEMPRE: la agenda habla del operativo y el operativo
+    # son los titulares. `order` es estable: dentro de cada peldano se
+    # conserva el orden del estado.
+    out <- out[order(del_banco, rol != "titular"), , drop = FALSE]
   }
   recortado <- .monitoreo_aulas_records(out, max_rows = MONITOREO_AULAS_COURSE_STATUS_TOPE)
   attr(recortado, "total") <- nrow(out)
