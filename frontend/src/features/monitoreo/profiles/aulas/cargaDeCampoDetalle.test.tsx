@@ -63,13 +63,16 @@ describe("las celdas ocupadas se pueden explorar; las vacías no estorban el tec
     expect(html).not.toContain('type="range"');
   });
 
-  it("B39: el número grande de la celda verde es el confirmado; el techo va aparte como «+N»", () => {
-    // Dictado (2026-09-02): «ya no habrían tantos cruces… mostrarlo de una
-    // forma más elegante». La suma pintaba «2» donde el cruce real era 1.
-    // El fixture tiene 1 confirmado + 1 plausible a las 10:00: la celda dice
-    // 1 con techo +1, no un 2 indistinguible.
-    expect(html).toContain("aulas-carga-techo");
-    expect(html).toMatch(/aulas-carga-techo[^>]*>\+1</);
+  it("B39: la celda verde dice SOLO el confirmado; el techo vive en el nombre accesible", () => {
+    // Dos rondas del mismo dictado. Primera: la suma pintaba «2» donde el
+    // cruce real era 1. Segunda (veredicto en vivo sobre el «+N»: «no se
+    // ve… francamente mal… estás combinando más cosas a la vez»): el techo
+    // tampoco va DENTRO del número — la celda confirmada es solo verde y
+    // solo su cifra; lo que falta se lee en hover/aria/detalle.
+    expect(html).not.toContain("aulas-carga-techo");
+    // El fixture tiene 1 confirmado + 1 plausible a las 10:00: la capa que
+    // no se pinta en el número sigue declarada donde corresponde.
+    expect(html).toMatch(/aria-label="lunes 10:00: 1 confirmado, hasta 1 por agendar/);
   });
 
   it("el pico del operativo está marcado EN la malla, no solo en el KPI", () => {

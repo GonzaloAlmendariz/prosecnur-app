@@ -592,23 +592,17 @@ export function AulasCargaDeCampo({
                               setFijada(true);
                             }}
                           >
-                            {/* B39 (dictado 2026-09-02: «ya no habrían tantos
-                                cruces… mostrarlo de una forma más elegante»):
-                                con confirmados, el número grande es el HECHO
-                                —cuántos a esa hora— y el techo va aparte como
-                                «+N» atenuado. La suma pintaba «12» donde el
-                                cruce real era 1, y esos doces fabricaban los
-                                cruces que no existen. */}
-                            {firme > 0 ? (
-                              <>
-                                {firme}
-                                {plausible > 0 ? (
-                                  <span className="aulas-carga-techo" aria-hidden="true">+{plausible}</span>
-                                ) : null}
-                              </>
-                            ) : (
-                              n
-                            )}
+                            {/* B39, segunda ronda (veredicto de Gonzalo
+                                2026-09-02 mirando el «+N»: «no se ve…
+                                francamente mal… estás combinando más cosas a
+                                la vez»): la celda con confirmados dice SOLO el
+                                confirmado — al confirmarse, el curso deja la
+                                banda rosa y es únicamente verde. El techo de
+                                los que faltan no se mezcla en el número: vive
+                                en el hover, el nombre accesible y el detalle.
+                                Primera ronda: la suma pintaba «12» donde el
+                                cruce real era 1. */}
+                            {firme > 0 ? firme : n}
                           </button>
                         ) : (
                           <span className="aulas-carga-celda" style={celda(firme, plausible)} title={titulo} />
@@ -729,7 +723,7 @@ export function AulasCargaDeCampo({
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
           <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
-          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; en celda verde va como «+N»</li>
+          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una celda verde se ve al pasar el puntero</li>
           <li className="aulas-carga-estado">
             {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora
           </li>
