@@ -29,6 +29,14 @@ export type PendienteDeContacto = {
   medio: string;
   ultimaLlamada: string;
   intentos: number;
+  /**
+   * El STATUS DE LLAMADA tecleado por el equipo («No contesta», «Apagado»…):
+   * el PORQUÉ detrás del número de gestiones. Textual y en sus palabras — una
+   * lista cerrada se tragaría el vocabulario del operativo. "" si no hay.
+   */
+  estadoLlamada: string;
+  /** RECIBIÓ CORREO, tal como lo escribió el equipo («SÍ»/«NO»/lo que sea). */
+  correo: string;
 };
 
 /** Una cita ya cerrada: el trabajo hecho, con el horario que se fijó. */
@@ -140,6 +148,10 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
       medio: texto(fila.contact_medium),
       ultimaLlamada: texto(fila.contact_date),
       intentos: Number.isFinite(intentos) ? intentos : 0,
+      // Los dos campos B23 que viajaban sin consumidor (7c8e0bd3): el estado
+      // de la llamada y si el correo llegó — las dos mitades del contacto.
+      estadoLlamada: texto(fila.call_status),
+      correo: texto(fila.email_received),
     });
   }
 

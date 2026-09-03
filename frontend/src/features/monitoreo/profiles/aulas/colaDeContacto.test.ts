@@ -18,6 +18,19 @@ describe("colaDeContacto", () => {
     expect(pendientes.map((p) => p.codigo)).toEqual(["CH 2", "CH 1"]);
   });
 
+  it("B23 con consumidor: el estado de llamada y el correo cruzan a la cola en las palabras del equipo", () => {
+    // call_status y email_received viajaban desde 7c8e0bd3 sin que nadie los
+    // mirara — una capacidad existe solo si alguien la consume. Textuales:
+    // el vocabulario es del operativo, no una lista cerrada nuestra.
+    const { pendientes } = colaDeContacto([
+      fila({ operational_code: "CH 1", sample_status: "", contact_attempts: 3,
+             call_status: "No contesta", email_received: "S\u00cd" }),
+      fila({ operational_code: "CH 2", sample_status: "", contact_attempts: 0 }),
+    ]);
+    expect(pendientes[0]).toMatchObject({ codigo: "CH 1", estadoLlamada: "No contesta", correo: "S\u00cd" });
+    expect(pendientes[1]).toMatchObject({ codigo: "CH 2", estadoLlamada: "", correo: "" });
+  });
+
   it("una reserva dormida NO se persigue", () => {
     // No se llama hasta que su titular cae; meterla en la cola mandaría al
     // equipo a perseguir aulas que nadie necesita todavía.
