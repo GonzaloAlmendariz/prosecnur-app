@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { hoyISO } from "./calendarioDeAgenda";
-import { mapaDeFijaciones, textoDelDespliegue, type RepartoVista } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -364,6 +364,18 @@ export function AulasAsignacionDeAplicadores({
             </p>
           ) : (
             <>
+              {(() => {
+                /* B66: el veredicto de equidad DICHO, no inferido de barras
+                   (dictado 2026-09-03: «no tengo ninguna forma de ver porque
+                   esto es equitativo»). */
+                const v = veredictoDeEquidad(reparto);
+                if (!v) return null;
+                return (
+                  <p className={`aulas-asigna-veredicto${v.parejo ? " es-parejo" : " es-desparejo"}`}>
+                    {v.texto}
+                  </p>
+                );
+              })()}
               <p className="aulas-asigna-nota">
                 Con 0 también se listan: estar libre es un dato del reparto.
               </p>

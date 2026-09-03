@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasReparto } from "../../../../api/monitoreo";
-import { mapaDeFijaciones, repartoDeAplicadores, textoDelDespliegue } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, repartoDeAplicadores, textoDelDespliegue, veredictoDeEquidad } from "./repartoDeAplicadores";
 
 /**
  * El bloque `reparto` del dashboard (B29) convertido en modelo de vista para la
@@ -213,5 +213,84 @@ describe("textoDelDespliegue — el despliegue del día listo para el chat", () 
   it("sin descubiertos no hay cola fantasma", () => {
     const dia = { fecha: "2026-09-07", etiqueta: "Lunes 07/09", asignaciones: [], noCubiertos: [], porConfirmar: [] };
     expect(textoDelDespliegue(dia)).toBe("Despliegue Lunes 07/09");
+  });
+});
+
+describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras", () => {
+  // Dictado 2026-09-03: «no tengo ninguna forma de ver porque esto es
+  // equitativo». El juicio corre entre quienes salen; los libres y lo fijado
+  // se declaran como causas, no se esconden.
+  const armar = (equidad: { aplicador: string; asignadas: number }[], dias: unknown[] = [DIA]) =>
+    repartoDeAplicadores(crudo({ dias, equidad }))!;
+
+  it("diferencia ≤ 1 entre quienes salen = parejo, con el rango dicho", () => {
+    const v = veredictoDeEquidad(armar([
+      { aplicador: "Ana Prueba", asignadas: 1 },
+      { aplicador: "Berta Ficticia", asignadas: 2 },
+    ]))!;
+    expect(v.parejo).toBe(true);
+    expect(v.texto).toContain("Reparto parejo: cargas entre 1 y 2 — diferencia máxima 1 cita");
+  });
+
+  it("todos con la misma carga lo dice sin rango fantasma", () => {
+    const v = veredictoDeEquidad(armar([
+      { aplicador: "Ana Prueba", asignadas: 1 },
+      { aplicador: "Berta Ficticia", asignadas: 1 },
+    ]))!;
+    expect(v.parejo).toBe(true);
+    expect(v.texto).toContain("cada quien lleva 1 cita");
+  });
+
+  it("diferencia > 1 se declara con su causa; el cero no entra al rango pero se cuenta como libre", () => {
+    const v = veredictoDeEquidad(armar([
+      { aplicador: "Ana Prueba", asignadas: 1 },
+      { aplicador: "Berta Ficticia", asignadas: 4 },
+      { aplicador: "Mario Sintetico", asignadas: 0 },
+    ]))!;
+    expect(v.parejo).toBe(false);
+    expect(v.texto).toContain("Cargas entre 1 y 4 — diferencia de 3 citas");
+    expect(v.texto).toContain("el desbalance viene de la disponibilidad de cada quien");
+    expect(v.texto).toContain("1 queda libre — sin cita en sus horarios");
+  });
+
+  it("con fijadas a mano, la causa las nombra", () => {
+    const diaFijado = {
+      ...DIA,
+      asignaciones: [
+        { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20", fijada: true },
+        { codigo: "CH 3", aplicador: "Ana Prueba", inicio: "15:00", fin: "15:20", fijada: true },
+        { codigo: "CH 5", aplicador: "Ana Prueba", inicio: "17:00", fin: "17:20" },
+      ],
+    };
+    const v = veredictoDeEquidad(armar([
+      { aplicador: "Ana Prueba", asignadas: 3 },
+      { aplicador: "Berta Ficticia", asignadas: 1 },
+    ], [diaFijado]))!;
+    expect(v.parejo).toBe(false);
+    expect(v.texto).toContain("el desbalance viene de la disponibilidad y de lo fijado a mano");
+  });
+
+  it("parejo con fijadas: se dice cuántas van incluidas", () => {
+    const diaFijado = {
+      ...DIA,
+      asignaciones: [
+        { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20", fijada: true },
+        { codigo: "CH 3", aplicador: "Berta Ficticia", inicio: "15:00", fin: "15:20" },
+      ],
+    };
+    const v = veredictoDeEquidad(armar([
+      { aplicador: "Ana Prueba", asignadas: 1 },
+      { aplicador: "Berta Ficticia", asignadas: 1 },
+    ], [diaFijado]))!;
+    expect(v.parejo).toBe(true);
+    expect(v.texto).toContain("1 fijada a mano incluida");
+  });
+
+  it("sin citas no hay veredicto: el vacío ya tiene su marco (C3)", () => {
+    const sinCitas = repartoDeAplicadores(crudo({
+      dias: [],
+      equidad: [{ aplicador: "Ana Prueba", asignadas: 0 }],
+    }))!;
+    expect(veredictoDeEquidad(sinCitas)).toBeNull();
   });
 });

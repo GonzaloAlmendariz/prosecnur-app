@@ -149,6 +149,62 @@ export function textoDelDespliegue(
   ].join("\n");
 }
 
+export type VeredictoDeEquidad = {
+  /** Diferencia ≤ 1 cita entre quienes salen: lo más parejo que un reparto entero permite. */
+  parejo: boolean;
+  texto: string;
+};
+
+/**
+ * B66 (dictado 2026-09-03: «no tengo ninguna forma de ver porque esto es
+ * equitativo»): el rail listaba cifras y barras pero nunca DECÍA el veredicto.
+ * Esta función lo dice: el rango de cargas entre quienes salen, la diferencia
+ * máxima, y las dos causas legítimas de desbalance —quien queda libre porque
+ * su disponibilidad no coincide, y lo fijado a mano que manda sobre el
+ * automático— declaradas en la misma línea, no escondidas.
+ *
+ * El juicio corre SOLO entre aplicadores con carga: un cero no es inequidad
+ * del motor (el greedy no puede darle a quien no está libre a esa hora); los
+ * libres se cuentan aparte con su porqué.
+ */
+export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
+  if (r.citas === 0 || r.equidad.length === 0) return null;
+  const conCarga = r.equidad.filter((e) => e.asignadas > 0);
+  if (conCarga.length === 0) return null;
+  const min = conCarga.reduce((m, e) => Math.min(m, e.asignadas), Infinity);
+  const max = conCarga.reduce((m, e) => Math.max(m, e.asignadas), 0);
+  const dif = max - min;
+  const libres = r.equidad.length - conCarga.length;
+  const fijadas = r.dias.reduce(
+    (n, d) => n + d.asignaciones.filter((a) => a.fijada).length,
+    0,
+  );
+
+  const cita = (n: number) => (n === 1 ? "cita" : "citas");
+  const base =
+    dif === 0
+      ? `Reparto parejo: cada quien lleva ${min} ${cita(min)}`
+      : dif === 1
+        ? `Reparto parejo: cargas entre ${min} y ${max} — diferencia máxima 1 cita`
+        : `Cargas entre ${min} y ${max} — diferencia de ${dif} citas`;
+  const colas: string[] = [];
+  if (dif > 1) {
+    colas.push(
+      fijadas > 0
+        ? "el desbalance viene de la disponibilidad y de lo fijado a mano"
+        : "el desbalance viene de la disponibilidad de cada quien",
+    );
+  } else if (fijadas > 0) {
+    colas.push(fijadas === 1 ? "1 fijada a mano incluida" : `${fijadas} fijadas a mano incluidas`);
+  }
+  if (libres > 0) {
+    colas.push(
+      `${libres} ${libres === 1 ? "queda libre" : "quedan libres"} — sin cita en sus horarios`,
+    );
+  }
+  return { parejo: dif <= 1, texto: colas.length ? `${base} · ${colas.join(" · ")}` : base };
+}
+
 export function repartoDeAplicadores(
   crudo: MonitoreoAulasReparto | null | undefined,
 ): RepartoVista | null {
