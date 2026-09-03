@@ -44,5 +44,21 @@ export function corteDelEstudio(
     if (fecha && fecha > ultimo) ultimo = fecha;
   }
   if (ultimo) return { dia: ultimo, esDelCampo: true };
-  return { dia: String(generatedAt ?? "").slice(0, 10), esDelCampo: false };
+  // El sello del tablero viene en UTC («…T03:16:00Z»): rebanarle los diez
+  // primeros caracteres devolvía la fecha de LONDRES, y desde las ~7 pm de
+  // Lima el corte decía MAÑANA — cada «qué toca» corría contra un día que el
+  // campo no vivió y las aulas vencían un día antes (visto en vivo 2026-09-02
+  // 22:16: «CORTE 3/9/2026»). El instante se convierte al día LOCAL del
+  // navegador, que es donde vive el operativo; lo no parseable conserva la
+  // rebanada de siempre.
+  const crudo = String(generatedAt ?? "");
+  // Solo el INSTANTE (con hora) se convierte: una fecha sin hora no tiene
+  // zona que arrastrar — y `new Date("2026-09-02")` la parsearía como
+  // medianoche UTC, retrocediéndola un día en Lima: el error espejo.
+  const esInstante = /\d{2}:\d{2}/.test(crudo);
+  const instante = esInstante ? new Date(crudo) : new Date(NaN);
+  if (Number.isNaN(instante.getTime())) return { dia: crudo.slice(0, 10), esDelCampo: false };
+  const dia = `${instante.getFullYear()}-${String(instante.getMonth() + 1).padStart(2, "0")}-${
+    String(instante.getDate()).padStart(2, "0")}`;
+  return { dia, esDelCampo: false };
 }
