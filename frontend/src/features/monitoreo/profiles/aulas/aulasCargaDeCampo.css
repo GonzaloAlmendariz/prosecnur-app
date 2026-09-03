@@ -454,6 +454,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
 
+/* B67+B75 — la fila de mandos del reparto: rango y resorteo, juntos. */
+.aulas-asigna-mandos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 7px; }
+.aulas-asigna-resorteo em { font-style: normal; font-size: 11.5px; color: var(--pulso-text-faint); }
+
 /* B75 — el rango de despliegue: dos fechas sobrias en la cabecera de la
    Asignación; aplicar re-particiona y lo de fuera queda declarado. */
 .aulas-asigna-rango {

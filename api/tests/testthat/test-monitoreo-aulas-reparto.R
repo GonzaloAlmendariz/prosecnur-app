@@ -727,3 +727,40 @@ test_that("B75: la fijacion de una cita aplazada NO es huerfana y no cuenta en l
   eq <- .marp_equidad(res)
   expect_equal(unname(eq[["Ana Prueba"]]), 1)
 })
+
+test_that("B67: la semilla rota el desempate — otro sorteo, misma equidad, fijadas intactas", {
+  # Dictado 2026-09-03: «no tengo una forma de hacer un resorteo». Dos
+  # aplicadores full-time y una cita: con semilla 0 el empate 0-0 lo gana el
+  # alfabeto (Ana); con semilla 1 la prioridad rota y gana Berta.
+  disp <- list(.marp_full("Ana Prueba"), .marp_full("Berta Ficticia"))
+  plan <- list(.marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"))
+
+  base <- monitoreo_aulas_reparto(plan, disp)
+  expect_identical(.marp_asig(.marp_dia(base, "2026-09-11"), "CH 1")[["aplicador"]],
+                   "Ana Prueba")
+  expect_identical(base[["semilla"]], 0L)
+
+  rotado <- monitoreo_aulas_reparto(plan, disp, semilla = 1L)
+  expect_identical(.marp_asig(.marp_dia(rotado, "2026-09-11"), "CH 1")[["aplicador"]],
+                   "Berta Ficticia")
+  expect_identical(rotado[["semilla"]], 1L)
+
+  # Determinismo del sorteo: la misma semilla produce el mismo reparto.
+  expect_identical(monitoreo_aulas_reparto(plan, disp, semilla = 1L), rotado)
+
+  # La equidad no cambia de forma: mismo total y mismo max-min.
+  eqb <- .marp_equidad(base); eqr <- .marp_equidad(rotado)
+  expect_equal(sum(eqb), sum(eqr))
+  expect_equal(max(eqb) - min(eqb), max(eqr) - min(eqr))
+
+  # La fijada manda por encima de cualquier semilla.
+  fij <- monitoreo_aulas_reparto(plan, disp,
+                                 fijadas = list("CH 1" = "Ana Prueba"), semilla = 1L)
+  expect_identical(.marp_asig(.marp_dia(fij, "2026-09-11"), "CH 1")[["aplicador"]],
+                   "Ana Prueba")
+  expect_true(isTRUE(.marp_asig(.marp_dia(fij, "2026-09-11"), "CH 1")[["fijada"]]))
+
+  # Basura o negativo caen al alfabeto de siempre, sin romper.
+  expect_identical(monitoreo_aulas_reparto(plan, disp, semilla = -3)[["semilla"]], 0L)
+  expect_identical(monitoreo_aulas_reparto(plan, disp, semilla = "x")[["semilla"]], 0L)
+})

@@ -429,6 +429,14 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
         crudo
       }
     }),
+    # **La semilla del resorteo (B67, dictado 2026-09-03: «no tengo una forma
+    # de hacer un resorteo»).** Entero >= 0; rota el desempate del greedy sin
+    # tocar equidad ni fijadas. Basura o negativo caen a 0 (el alfabeto de
+    # siempre), no rompen el config.
+    reparto_semilla = local({
+      crudo <- suppressWarnings(as.integer((config[["reparto_semilla"]] %||% 0L)[1]))
+      if (is.na(crudo) || crudo < 0L) 0L else crudo
+    }),
     # **El rango de despliegue del reparto (B75, dictado 2026-09-03).** Misma
     # doctrina de whitelist. Ambas puntas en ISO o no hay rango (NULL =
     # todo el horizonte); un rango con basura no rompe el config, se

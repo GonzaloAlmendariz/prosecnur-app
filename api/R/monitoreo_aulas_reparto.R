@@ -131,6 +131,11 @@
 #' @param disponibilidad salida de `carga_disponibilidad_aplicadores()`.
 #' @param fijadas lista nombrada código → aplicador (B36); vacía por defecto.
 #' @param duracion_min minutos de la aplicación (B70); default 30.
+#' @param semilla B67 (dictado 2026-09-03: «no tengo una forma de hacer un
+#'   resorteo»): entero >= 0 que ROTA el orden de desempate del greedy. El
+#'   reparto sigue determinista —misma semilla, mismo reparto— y la equidad
+#'   no cambia (misma carga mínima acumulada); solo cambia QUIÉN gana los
+#'   empates. Las fijadas mandan igual. 0 = el alfabético de siempre.
 #' @param rango B75 (dictado 2026-09-03: «distribuir equitativamente entre de
 #'   este día a este día»): lista `{desde, hasta}` en ISO. Solo se reparten
 #'   las citas cuyo día cae dentro; lo de fuera NO se descarta en silencio —
@@ -148,7 +153,10 @@
 monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
                                     fijadas = list(),
                                     duracion_min = .mav_DURACION_MIN,
-                                    rango = NULL) {
+                                    rango = NULL,
+                                    semilla = 0L) {
+  semilla <- suppressWarnings(as.integer(semilla %||% 0L)[1])
+  if (is.na(semilla) || semilla < 0L) semilla <- 0L
   # B75: el rango saneado — ambas puntas en ISO o no hay rango. Un desde >
   # hasta se corrige por intercambio (deliberado: la intención del usuario es
   # el intervalo, no el orden en que tecleó las puntas).
@@ -164,6 +172,12 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
   aulas <- base[["aulas"]] %||% list()
   oferta <- .marep_oferta(disponibilidad)
   nombres <- sort(names(oferta) %||% character(0), method = "radix")
+  # B67: el orden de PRIORIDAD del desempate. Con semilla 0 es el alfabeto de
+  # siempre; una semilla s lo rota s posiciones — otro sorteo, mismas reglas.
+  prioridad <- if (length(nombres) && semilla %% length(nombres) > 0L) {
+    s_rot <- semilla %% length(nombres)
+    c(nombres[(s_rot + 1L):length(nombres)], nombres[1L:s_rot])
+  } else nombres
 
   # Las fijaciones saneadas: código y aplicador no vacíos; lo demás se ignora
   # aquí porque el normalizador del config ya avisó (frontera, no motor).
@@ -316,9 +330,11 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       no_cubiertos[[cita$fecha]] <- c(no_cubiertos[[cita$fecha]], cita$codigo)
       next
     }
-    # Menor carga acumulada manda; el empate se rompe por alfabeto, no por
+    # Menor carga acumulada manda; el empate se rompe por el orden de
+    # prioridad (alfabeto con semilla 0; rotado al resortear, B67), nunca por
     # orden de entrada de la disponibilidad.
-    elegido <- candidatos[order(carga[candidatos], candidatos,
+    elegido <- candidatos[order(carga[candidatos],
+                                match(candidatos, prioridad),
                                 method = "radix")][[1L]]
     carga[[elegido]] <- carga[[elegido]] + 1L
     anotar_asignacion(cita, elegido, fijada = FALSE)
@@ -373,7 +389,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     } else NULL,
     rango = if (!is.null(rango_vigente)) {
       list(desde = rango_vigente[[1]], hasta = rango_vigente[[2]])
-    } else NULL
+    } else NULL,
+    # B67: con qué sorteo se armó este reparto.
+    semilla = semilla
   )
 }
 
