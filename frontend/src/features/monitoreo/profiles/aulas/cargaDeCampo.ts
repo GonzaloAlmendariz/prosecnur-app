@@ -89,6 +89,8 @@ export type OcupanteDeCelda = {
   codigo: string;
   docente: string;
   lugar: string;
+  /** La facultad del curso-horario (dictado 2026-09-02: «decir la facultad también»). */
+  facultad: string;
   confirmada: boolean;
   /** `YYYY-MM-DD` agendado, o "". */
   fecha: string;
@@ -302,6 +304,7 @@ type AulaDeCarga = {
   codigo: string;
   docente: string;
   salon: string;
+  facultad: string;
   /**
    * El LUGAR DE APLICACIÓN confirmado por el equipo («A206», dictado
    * 2026-09-02). Cuando existe manda sobre `salon`, que es donde se DICTA el
@@ -358,6 +361,7 @@ function aulasDelPlan(plan: readonly MonitoreoAulasPlanRow[]): { unidades: AulaD
           codigo: s.codigo,
           docente: s.docente,
           salon: s.salon,
+          facultad: s.facultad,
           lugarConfirmado,
           horaTexto: s.horaTexto,
         });
@@ -484,6 +488,7 @@ export function calcularCarga(
         quienes[i][j].push({
           codigo: u.codigo,
           docente: u.docente,
+          facultad: u.facultad,
           // El lugar CONFIRMADO por el equipo manda (dictado 2026-09-02:
           // «LUGAR DE APLICACIÓN» nutre a la app); el salón del catálogo es
           // el fallback — dice dónde se dicta, no dónde se acordó aplicar.

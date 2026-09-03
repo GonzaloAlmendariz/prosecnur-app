@@ -46,6 +46,14 @@ describe("las celdas ocupadas se pueden explorar; las vacías no estorban el tec
     expect(html).toContain("qué cursos-horario caen");
   });
 
+  it("la duración nace confirmada: el slider sólo existe tras el lápiz", () => {
+    // Dictado (2026-09-02): «muy accesible para editar… una vez confirmas
+    // que dura por ejemplo 30 se queda allí hasta que lo edites».
+    expect(html).toContain("aulas-carga-duracion-boton");
+    expect(html).toContain("Editar");
+    expect(html).not.toContain('type="range"');
+  });
+
   it("el pico del operativo está marcado EN la malla, no solo en el KPI", () => {
     expect(html).toContain("es-pico");
   });
