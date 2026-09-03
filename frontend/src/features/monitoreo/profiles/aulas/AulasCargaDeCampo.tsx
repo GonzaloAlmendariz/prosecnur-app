@@ -560,7 +560,23 @@ export function AulasCargaDeCampo({
                               setFijada(true);
                             }}
                           >
-                            {n}
+                            {/* B39 (dictado 2026-09-02: «ya no habrían tantos
+                                cruces… mostrarlo de una forma más elegante»):
+                                con confirmados, el número grande es el HECHO
+                                —cuántos a esa hora— y el techo va aparte como
+                                «+N» atenuado. La suma pintaba «12» donde el
+                                cruce real era 1, y esos doces fabricaban los
+                                cruces que no existen. */}
+                            {firme > 0 ? (
+                              <>
+                                {firme}
+                                {plausible > 0 ? (
+                                  <span className="aulas-carga-techo" aria-hidden="true">+{plausible}</span>
+                                ) : null}
+                              </>
+                            ) : (
+                              n
+                            )}
                           </button>
                         ) : (
                           <span className="aulas-carga-celda" style={celda(firme, plausible)} title={titulo} />
@@ -662,7 +678,7 @@ export function AulasCargaDeCampo({
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
           <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
-          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible</li>
+          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; en celda verde va como «+N»</li>
           <li className="aulas-carga-estado">
             {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora
           </li>
