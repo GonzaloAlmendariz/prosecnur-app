@@ -76,7 +76,7 @@
   gap: 3px;
   padding: 4px;
   border: 1px solid var(--pulso-border);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--pulso-surface-2);
 }
 .aulas-carga-eje button {
@@ -109,7 +109,7 @@
   flex-wrap: wrap;
   padding: 16px 20px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--pulso-surface);
 }
 .aulas-carga-controles > label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--pulso-text-soft); }
@@ -415,7 +415,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 .aulas-asigna-dia {
   border: 1px solid var(--pulso-border);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--pulso-surface);
   padding: 13px 16px;
   display: flex;
@@ -505,7 +505,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   width: fit-content; max-width: 100%;
   padding: 7px 14px;
   border: 1px solid var(--pulso-border);
-  border-radius: 11px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-bg) 55%, var(--pulso-surface));
 }
 .aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
@@ -844,7 +844,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   display: block;
   margin: 2px 0 1px auto;
   width: fit-content;
-  font-size: 9px;
+  font-size: 10px;
   padding: 0 6px;
 }
 .aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }

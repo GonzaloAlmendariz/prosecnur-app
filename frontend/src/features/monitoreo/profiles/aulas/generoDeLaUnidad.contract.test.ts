@@ -33,6 +33,10 @@ const RAICES = [
 const OTRO_SUJETO = new Map<string, string>([
   ["descartadas por el filtro", "las ENCUESTAS que el filtro de validez rechaza, no cursos-horario"],
   ["tienen parte y no tienen fecha agendada", "la FECHA, que es femenina y está bien así"],
+  // El title del KPI «Días de campo»: la que está agendada es la CITA (el
+  // acuerdo con el docente — el sentido en que «cita» sigue siendo la
+  // palabra tras el barrido citas→aplicaciones), no el curso-horario.
+  ["Fechas distintas con al menos una cita agendada", "la CITA pactada con el docente, femenina"],
 ]);
 
 /**
