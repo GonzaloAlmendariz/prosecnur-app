@@ -171,6 +171,15 @@
   text-align: right; padding-right: 10px; text-transform: none; letter-spacing: 0;
   font-size: 13px; color: var(--pulso-text-soft); white-space: nowrap;
 }
+/* B37: la fecha es un control — click y el detalle cuenta el día entero. */
+.aulas-carga-dia {
+  border: 0; background: transparent; padding: 0;
+  font: inherit; color: inherit; cursor: pointer;
+  border-radius: 4px;
+}
+.aulas-carga-dia:hover { color: var(--pulso-module-monitoring); }
+.aulas-carga-dia.es-activo { color: var(--pulso-module-monitoring); font-weight: 600; }
+.aulas-carga-dia:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
 .aulas-carga-malla td { padding: 0; }
 /* El carril de «por agendar» se retiró del calendario (dictado en vivo
    2026-09-02: «el por agendar ya está en patrón semanal, no lo necesitas en

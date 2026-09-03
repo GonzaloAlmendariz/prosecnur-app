@@ -46,6 +46,15 @@ describe("las celdas ocupadas se pueden explorar; las vacías no estorban el tec
     expect(html).toContain("qué cursos-horario caen");
   });
 
+  it("B37: la fecha es un control con nombre accesible — click y el día entero al detalle", () => {
+    // Dictado (2026-09-02): «el calendario se ve mejor». El parte del día sin
+    // recorrer diez celdas con el puntero; la mecánica del resumen la
+    // sostiene citasDeLaFila (quienesEnLaCelda.test.ts).
+    expect(html).toContain("aulas-carga-dia");
+    expect(html).toMatch(/aria-label="lunes: ver todas sus citas en el detalle"/);
+    expect(html).toContain("Click en una fecha deja su");
+  });
+
   it("la duración nace confirmada: el slider sólo existe tras el lápiz", () => {
     // Dictado (2026-09-02): «muy accesible para editar… una vez confirmas
     // que dura por ejemplo 30 se queda allí hasta que lo edites».

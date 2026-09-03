@@ -636,3 +636,23 @@ export function porPabellon(plan: readonly MonitoreoAulasPlanRow[]): Array<{ pab
         a.pabellon.localeCompare(b.pabellon),
     );
 }
+
+/**
+ * Todas las citas de una fila de la malla, deduplicadas por código (B37,
+ * dictado 2026-09-02: «el calendario se ve mejor»). Un curso ocupa varias
+ * franjas de su fila; el parte del día lo quiere UNA vez, y en el orden en
+ * que arranca: se conserva la primera aparición, que en `quienes` es la
+ * franja más temprana. La usa el detalle cuando el usuario clickea la fecha.
+ */
+export function citasDeLaFila(malla: Malla, d: number): OcupanteDeCelda[] {
+  const vistos = new Set<string>();
+  const delDia: OcupanteDeCelda[] = [];
+  for (const celda of malla.quienes[d] ?? []) {
+    for (const o of celda) {
+      if (vistos.has(o.codigo)) continue;
+      vistos.add(o.codigo);
+      delDia.push(o);
+    }
+  }
+  return delDia;
+}
