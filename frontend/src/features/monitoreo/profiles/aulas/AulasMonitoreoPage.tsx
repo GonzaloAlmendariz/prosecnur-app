@@ -901,6 +901,7 @@ function renderAulasView({
         Tabla={DataTable}
         pestana={pestana}
         reemplazosEnOrdenDeCadena={reemplazosEnOrdenDeCadena}
+        facultadEnFoco={facultadEnFoco}
       />
     );
   }

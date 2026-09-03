@@ -12,6 +12,7 @@ import { AulasSelectorDeEslabon } from "./AulasSelectorDeEslabon";
 import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
 import { eslabonVigente, filasDeReemplazo, opcionesDeEslabon } from "./eslabonDeLaAgenda";
 import { fmt } from "./kpisDeAulas";
+import { soloFacultad } from "./aulasPresentation";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -86,14 +87,10 @@ export function AulasSeccionModelo({
   // los bloques de PERSONAS (disponibilidad, asignación) no tienen dimensión
   // de facultad y quedan globales a propósito, y el mapa de horas agrega un
   // bloque del motor que aún no sabe filtrar (declarado en B77).
-  const soloFacultad = (rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> =>
-    facultadEnFoco
-      ? rows.filter((r) => String(r["faculty"] ?? "") === facultadEnFoco)
-      : rows;
-  const filasDelFoco = () => soloFacultad(agendaRows(dashboard));
+  const filasDelFoco = () => soloFacultad(agendaRows(dashboard), facultadEnFoco);
   const filasDeLaAgenda = soloFacultad(eslabon === 0
     ? agendaRows(dashboard)
-    : filasDeReemplazo(dashboard, eslabon));
+    : filasDeReemplazo(dashboard, eslabon), facultadEnFoco);
   return (
       // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
       // plan, y eso importa igual consultándolo que registrando sobre él. Lo que

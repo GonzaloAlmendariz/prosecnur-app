@@ -746,3 +746,19 @@ export function summarizeAulasValidation(rows: Array<Record<string, unknown>>) {
   if (!count) return { label: "Sin alertas", count: 0, sinComprobar, evaluados };
   return { label: `${count} ${count === 1 ? "alerta" : "alertas"}`, count, sinComprobar, evaluados };
 }
+
+/**
+ * B77 (dictado 2026-09-03: «si lo vamos a poner en todo entonces debería ser
+ * capaz de filtrar en todas las secciones»): el corte por la facultad en
+ * foco, con UNA guardia — si ninguna fila declara `faculty`, la lista queda
+ * intacta: no se puede filtrar por una dimensión que el dato no tiene, y
+ * vaciar la vista sería mentirle al lector.
+ */
+export function soloFacultad<T extends Record<string, unknown>>(
+  rows: T[],
+  facultad?: string,
+): T[] {
+  if (!facultad) return rows;
+  if (!rows.some((r) => String(r["faculty"] ?? "").trim() !== "")) return rows;
+  return rows.filter((r) => String(r["faculty"] ?? "").trim() === facultad);
+}
