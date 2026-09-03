@@ -131,3 +131,4 @@
   color: var(--pulso-module-monitoring);
   font-weight: 700;
 }
+.mon-profile-page.is-aulas-flow .aulas-calendario-tabla td.es-pasado { opacity: 0.55; }
