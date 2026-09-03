@@ -5,11 +5,9 @@
    `tonoDePabellon` (determinista por letra); aquí vive el color, siempre sobre
    tokens.
 
-   Las reglas son las MISMAS que el bloque de chips de `aulasCargaDeCampo.css`
-   de la oleada de cuadros (en vuelo al escribir esto): idénticas a propósito,
-   para que las dos hojas convivan sin pelear mientras aterriza. La
-   unificación (P8 del checklist sistema-pabellon) retira aquel bloque y deja
-   esta hoja como única dueña. */
+   Ésta es la única dueña de las reglas de chip: el bloque gemelo que nació en
+   `aulasCargaDeCampo.css` con B31 se retiró en la unificación (P8 del
+   checklist sistema-pabellon). */
 .aulas-chip {
   display: inline-flex; align-items: center;
   padding: 2px 7px;

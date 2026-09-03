@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { anchoMinimoDeMalla, comoHora } from "./cargaDeCampo";
-import { ChipDato, ChipHora } from "./AulasChips";
+import { ChipDato, ChipHora } from "./AulasSistemaPabellon";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
