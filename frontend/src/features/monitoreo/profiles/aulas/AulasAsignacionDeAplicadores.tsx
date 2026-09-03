@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { AlertTriangle } from "../../../../vendor/lucide-react";
-import { ChipDato, ChipHora, ChipLugar } from "./AulasChips";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import type { RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 

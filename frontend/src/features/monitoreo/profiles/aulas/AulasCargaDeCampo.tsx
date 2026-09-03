@@ -22,7 +22,7 @@ import {
 } from "./cargaDeCampo";
 import { AulasAsignacionDeAplicadores } from "./AulasAsignacionDeAplicadores";
 import { AulasDisponibilidadDeAplicadores } from "./AulasDisponibilidadDeAplicadores";
-import { ChipDato, ChipHora, ChipLugar } from "./AulasChips";
+import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
 import { repartoDeAplicadores } from "./repartoDeAplicadores";
 import { etiquetaDeFecha } from "./agendaPorDia";

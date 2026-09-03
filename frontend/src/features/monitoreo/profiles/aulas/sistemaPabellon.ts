@@ -7,9 +7,9 @@
  * Nació en Carga de campo (B31) y éste es su módulo compartido: TODA vista del
  * perfil que pinte un lugar, una hora o una sesión importa de aquí, para que el
  * A206 de la Agenda, el de la ficha y el del popover de reemplazo se pinten
- * idénticos. El contrato de color es el aprobado en B31 —mismos nombres y misma
- * aritmética que el `chipDePabellon.ts` de la oleada de cuadros, que migrará a
- * importar de aquí cuando su commit aterrice—.
+ * idénticos. El contrato de color es el aprobado en B31 —nació como
+ * `chipDePabellon.ts` en la oleada de cuadros y se unificó aquí (P8) cuando
+ * aquel paquete aterrizó—.
  *
  * El contrato es determinismo puro: misma letra, mismo tono, siempre — sin
  * reloj, sin azar y sin depender del orden en que aparezcan los lugares. Los

@@ -15,8 +15,8 @@ import "./sistemaPabellon.css";
  *
  * El color vive en la hoja (`sistemaPabellon.css`, clases `es-tono-*` sobre
  * tokens `--pulso-*`); aquí sólo se elige el índice. Los nombres de componente
- * y de clase son los del paquete de Carga a propósito: cuando su commit
- * aterrice, sus vistas migran a importar de aquí sin renombrar nada.
+ * y de clase son los que acuñó el paquete de Carga (B31): sus vistas importan
+ * de aquí desde la unificación (P8).
  */
 
 export function ChipLugar({ lugar }: { lugar: string }) {
