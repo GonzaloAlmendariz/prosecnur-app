@@ -6,6 +6,8 @@ import { colaDeContacto } from "./colaDeContacto";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
+import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
+import { agendamiento } from "./agendamiento";
 
 /**
  * A quién llamar hoy, y cuánto ha costado agendar.
@@ -51,6 +53,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const { pendientes, citadas, esfuerzo, yaAplicadasSinCita } = useMemo(() => colaDeContacto(filas), [filas]);
+  const distribucionDeGestiones = useMemo(() => agendamiento(filas as never).distribucionDeGestiones, [filas]);
   // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
   // permanente entrena a no mirar la banda.
   const resumen = useMemo(() => {
@@ -285,6 +288,18 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
               </li>
             ))}
           </ul>
+          {/* La OTRA mitad de «lo que cuesta»: la mediana dice el centro y el
+              histograma enseña la cola cara — de la tercera llamada en
+              adelante el aula se cae el doble (medido 2025). El componente
+              existía sin montar; el guardia de componentes lo destapó. */}
+          {distribucionDeGestiones.length ? (
+            <>
+              <p className="aulas-cola-subtitulo">
+                Cuántas llamadas cuesta cerrar · <em>todas las gestiones anotadas</em>
+              </p>
+              <AulasGestionesPorAula distribucion={distribucionDeGestiones} />
+            </>
+          ) : null}
         </>
       ) : null}
     </div>
