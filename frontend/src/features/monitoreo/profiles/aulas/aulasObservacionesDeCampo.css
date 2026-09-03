@@ -1,0 +1,14 @@
+/* Las observaciones del campo — hoja propia porque `aulasMonitoreo.css` está
+ * congelada a crecimiento (misma doctrina que las hermanas del loop). La
+ * importa `AulasObservacionesDeCampo.tsx`.
+ *
+ * Loop mejora-ui E11 (2026-09-03): la fecha tecleada susurra. El «2/09 » con
+ * que el equipo abre casi toda observación pesaba igual que las palabras; en
+ * la pared de 49 tarjetas lo que se escanea es QUÉ pasó. El prefijo baja a
+ * tinta tenue y tabular — quinto uso del lenguaje de la ausencia/lo
+ * secundario (E5 fecha repetida, E6 «—», E8 tarjeta agotada, E9 swatch,
+ * E10 cero de la lectura). */
+.mon-profile-page.is-aulas-flow .aulas-observaciones-fecha {
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
