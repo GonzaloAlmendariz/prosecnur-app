@@ -205,6 +205,24 @@ const CAMPOS_POR_GRUPO: Record<string, string[]> = {
  * derecha, tabulares y sin partirse; los dos veredictos se pintan como marca,
  * porque un `1` y un `0` en una tabla de números no se leen como sí y no.
  */
+/* Loop mejora-ui E13: el rótulo «%» cumple lo que promete. Las columnas de
+   porcentaje que la app calcula viajan como FRACCIÓN (0.5178571) y la celda
+   las pintaba crudas — siete decimales donde el título dice «%». Solo se
+   formatea lo que ES una fracción numérica en [0, 1]; lo tecleado en la hoja
+   («92.3 %», un 85 a secas, NA) pasa intacto — presentación, no parseo. */
+const COLUMNAS_DE_PORCENTAJE = new Set([
+  "attendance_pct", "quota_pct", "women_pct", "men_pct",
+  "efectivas_pct_esperado", "efectivas_pct_obtenido",
+]);
+const comoPorcentaje = (v: unknown): string | null => {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (s === "" || !/^[0-9]*\.?[0-9]+$/.test(s)) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n) || n > 1) return null;
+  return `${Math.round(n * 100)} %`;
+};
+
 const COLUMNAS_DE_CIFRA = new Set([
   "sent_total", "sent_vs_total", "sent_vs_population",
   "validator_1", "validator_2", "validator_3",
@@ -636,7 +654,8 @@ export function AulasControlDelLibro({
                           celdaDeLaHoja={COLUMNAS_DE_VEREDICTO.get(c)!.celda}
                         />
                       )
-                      : texto(fila[c]) || <span className="mon-profile-muted">—</span>}
+                      : (COLUMNAS_DE_PORCENTAJE.has(c) ? comoPorcentaje(fila[c]) : null)
+                        ?? (texto(fila[c]) || <span className="mon-profile-muted">—</span>)}
                   </td>
                 ))}
               </tr>
