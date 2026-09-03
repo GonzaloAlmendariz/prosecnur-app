@@ -5759,9 +5759,9 @@
    Parecido y ayuda nunca se funden en una barra: son la eleccion, y una sola
    barra la escondería.
    --------------------------------------------------------------------------- */
-  color: var(--pulso-text); font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums; text-align: right; width: 34px;
-}
+/* (Aquí vivían dos líneas de declaraciones sin selector y una llave de más —
+   restos de un truncado antiguo, muertas para todo parser; retiradas porque
+   la llave suelta desincronizaba el bundle concatenado.) */
 
 /* ── B25: la agenda es la protagonista de su sección ───────────────────────
  * Dictado (2026-09-01): «esta tabla es muy pequeña». La deuda estructural
