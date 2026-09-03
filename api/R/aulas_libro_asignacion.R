@@ -247,3 +247,49 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
                          widths = c(16, 14, 10, 13, 14, 34, 13, 30))
   invisible(TRUE)
 }
+
+# --- formato en Google Sheets (misma estética que las otras hojas de la app) --
+#
+# Dictado 2026-09-03: «darle buen formato… debe estar igual a nivel estético
+# de las otras hojas». Misma doctrina y misma paleta que «Avance de campo»
+# (B19): bandas derivadas FILA A FILA del contenido publicado —jamás números
+# mágicos—, navy #002457 para título y bloques (el día es un título de
+# bloque), #E7EEF9/#1B4B8F para cabeceras de tabla, y el rojo suave de la casa
+# para las alertas (descubiertos y fuera-de-rango). Los strings que se
+# detectan son LOS MISMOS que emite `aulas_libro_filas_asignacion` — un solo
+# constructor, cero derivas.
+
+.ala_ES_DIA <- function(celda) {
+  grepl("^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) [0-9]{2}/[0-9]{2} — ", celda)
+}
+
+#' Requests de formato de la hoja de asignación para el batch-2 del motor.
+#'
+#' @param sheet_id id numérico de la pestaña.
+#' @param rows los values realmente publicados.
+#' @return lista de requests `repeatCell` (vacía sin filas).
+#' @keywords internal
+aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
+  rows <- rows %||% list()
+  if (!length(rows)) return(list())
+  n_cols <- max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
+  requests <- list()
+  for (i in seq_along(rows)) {
+    celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
+    primera <- if (length(celdas)) celdas[[1L]] else ""
+    if (identical(primera, "ASIGNACIÓN DE APLICADORES") ||
+        identical(primera, "CARGAS POR APLICADOR") ||
+        .ala_ES_DIA(primera)) {
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF")
+    } else if (primera %in% c("CURSO-HORARIO", "APLICADOR")) {
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F")
+    } else if (startsWith(primera, "Sin nadie asignado:") ||
+               startsWith(primera, "FUERA DEL RANGO ELEGIDO")) {
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#FBE9EA", "#8F3A42")
+    }
+  }
+  requests
+}
