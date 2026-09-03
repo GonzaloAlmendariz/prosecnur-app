@@ -35,17 +35,20 @@ const pinta = (reserva = RESERVA) =>
   );
 
 describe("los candidatos llevan los chips del sistema", () => {
-  it("aula como chip de pabellón y sesión como chip de hora", () => {
+  it("aula como chip de pabellón, facultad como badge y sesión como chip de hora", () => {
     const html = pinta();
     expect(html).toContain("aulas-chip-lugar");
     expect(html).toContain("aulas-chip-hora");
     expect(html).toContain("A206");
     expect(html).toContain("MAR 14:00-16:00");
+    // La facultad también es seña del box (canon B34): al comparar candidatos
+    // de tres orígenes hay que ver de dónde es cada uno.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*DERECHO/);
     // El docente sigue en su peso, no dentro de un chip de color.
     expect(html).toContain("R. QUISPE");
   });
 
-  it("sin aula ni sesión no hay chips vacíos", () => {
+  it("sin aula ni sesión no hay chips de lugar ni hora; la facultad se queda", () => {
     const html = pinta(fila("R 1.1", {
       sample_role: "chain_reserve", titular_operational_code: "CH 1",
       replacement_order: 1, sample_status: "en_reserva",
@@ -53,5 +56,8 @@ describe("los candidatos llevan los chips del sistema", () => {
     }));
     expect(html).not.toContain("aulas-chip-lugar");
     expect(html).not.toContain("aulas-chip-hora");
+    // El box sigue diciendo su facultad (canon B34), aunque el catálogo no
+    // traiga salón ni sesión.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*DERECHO/);
   });
 });

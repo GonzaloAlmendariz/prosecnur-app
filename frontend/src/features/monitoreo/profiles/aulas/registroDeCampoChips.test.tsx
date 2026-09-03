@@ -29,13 +29,16 @@ const pintaConFoco = (filas: MonitoreoAulasPlanRow[]) => renderToStaticMarkup(
 );
 
 describe("el registro enseña la cita del aula en foco como chips", () => {
-  it("lugar como chip de pabellón, hora como chip y fecha como badge", () => {
+  it("lugar como chip de pabellón, facultad y fecha como badges, hora como chip", () => {
     const html = pintaConFoco([aula({})]);
     expect(html).toContain("aulas-chips-fila");
     expect(html).toContain("aulas-chip-lugar");
     expect(html).toContain("aulas-chip-hora");
     expect(html).toContain("A206");
     expect(html).toContain("2026-09-03");
+    // La facultad también es seña del box (canon B34): quien registra piensa
+    // por facultad, y el formulario no la decía en ninguna parte.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*Derecho/);
   });
 
   it("el lugar acordado (B30) gana al salón del catálogo", () => {
@@ -46,10 +49,14 @@ describe("el registro enseña la cita del aula en foco como chips", () => {
     expect(html).not.toContain(">A206<");
   });
 
-  it("sin cita declarada no hay fila de chips, no chips vacíos", () => {
+  it("sin cita declarada no hay chips de lugar ni hora; la facultad se queda", () => {
     const html = pintaConFoco([
       aula({ venue: "", scheduled_time: "", scheduled_date: "" }),
     ]);
-    expect(html).not.toContain("aulas-chips-fila");
+    expect(html).not.toContain("aulas-chip-lugar");
+    expect(html).not.toContain("aulas-chip-hora");
+    // El box sigue diciendo su facultad (canon B34): el formulario no la
+    // decía en ninguna parte y quien registra piensa por facultad.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*Derecho/);
   });
 });
