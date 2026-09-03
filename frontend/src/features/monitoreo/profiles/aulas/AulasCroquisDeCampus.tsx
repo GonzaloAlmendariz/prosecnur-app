@@ -15,6 +15,7 @@
 import "./aulasCroquisDeCampus.css";
 
 import {
+  BASE_PULSO,
   BORDE_CAMPUS,
   CROQUIS_ALTO,
   CROQUIS_ANCHO,
@@ -66,9 +67,11 @@ export function AulasCroquisDeCampus({ lugarResaltado }: AulasCroquisDeCampusPro
 
         {PUERTAS_CAMPUS.map((puerta) => {
           const { x, y } = proyectar(puerta.lat, puerta.lng);
-          const dx = puerta.lado === "este" ? 14 : puerta.lado === "oeste" ? -14 : 0;
-          const dy = puerta.lado === "norte" ? -16 : 4;
-          const anchor = puerta.lado === "este" ? "start" : puerta.lado === "oeste" ? "end" : "middle";
+          // Girado 180: la etiqueta del este sale a la izquierda, la del
+          // oeste a la derecha y la del norte hacia abajo.
+          const dx = puerta.lado === "este" ? -14 : puerta.lado === "oeste" ? 14 : 0;
+          const dy = puerta.lado === "norte" ? 22 : 4;
+          const anchor = puerta.lado === "este" ? "end" : puerta.lado === "oeste" ? "start" : "middle";
           return (
             <g key={puerta.nombre} className="aulas-croquis-puerta">
               <rect x={x - 5} y={y - 5} width={10} height={10} transform={`rotate(45 ${x} ${y})`} />
@@ -87,6 +90,22 @@ export function AulasCroquisDeCampus({ lugarResaltado }: AulasCroquisDeCampusPro
             </text>
           );
         })}
+
+        {(() => {
+          // La base PULSO PUCP, SIEMPRE: la casa del equipo se ve aunque la
+          // cita esté en la otra punta (dictado 2026-09-03).
+          const { x, y } = proyectar(BASE_PULSO.lat, BASE_PULSO.lng);
+          return (
+            <g className="aulas-croquis-base">
+              <title>Base PULSO PUCP (casetas de EEGG Letras)</title>
+              <circle className="aulas-croquis-base-halo" cx={x} cy={y} r={17} />
+              <circle className="aulas-croquis-base-pin" cx={x} cy={y} r={12} />
+              <text className="aulas-croquis-base-rotulo" x={x} y={y + 34} textAnchor="middle">
+                PULSO PUCP
+              </text>
+            </g>
+          );
+        })()}
 
         {PABELLONES_CAMPUS.map((p) => {
           const { x, y } = proyectar(p.lat, p.lng);

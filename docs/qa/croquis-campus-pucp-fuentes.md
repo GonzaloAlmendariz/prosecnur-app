@@ -29,9 +29,11 @@ incrusta su bitmap.
 ## Pabellones (letra → lat, lng, fuente)
 
 Clasificación: **oficial** = marcador directo `Pabellón <letra>` del mapa
-oficial · **osm** = edificio nombrado en OSM · **derivada** = centroide de
-marcadores oficiales adyacentes que nombran el pabellón · **aproximada** =
-sin marcador propio en ninguna fuente; posición inferida y declarada.
+oficial · **osm** = edificio nombrado en OSM · **google** = place público de
+Google Maps (barrido 2026-09-03) · **derivada** = centroide de marcadores
+oficiales adyacentes que nombran el pabellón · **confirmada** = corregida en
+vivo por el dueño con captura · **aproximada** = sin marcador propio en
+ninguna fuente; posición inferida y declarada.
 
 | Letra | Lat | Lng | Fuente | Identidad / nota |
 |---|---|---|---|---|
@@ -44,6 +46,7 @@ sin marcador propio en ninguna fuente; posición inferida y declarada.
 | H | -12.069614 | -77.081231 | oficial | Fac. Letras y CC.HH. (Descubre `fac012`; marcador «Edificio H» ✓) |
 | I | -12.070515 | -77.078737 | oficial | Aulas y talleres de Arte (Descubre `lug010`). OSM ubica ahí a Esc. de Gobierno; la cafetería «(Pabellón I)» oficial está ~80 m al oeste. Se usa el marcador oficial; vecindad ambigua declarada. |
 | J | -12.070352 | -77.080311 | oficial | junto a CC.SS. |
+| K | -12.072890 | -77.082775 | **google** | «PABELLÓN K (Sec. Mecatrónica PUCP)» — place público, barrido 2026-09-03; el venue real «K301» dejó de caer en desconocido |
 | L | -12.067530 | -77.080201 | oficial | EEGG Letras (Descubre `fac002`; OSM ✓ exacto) |
 | M | -12.071597 | -77.081676 | oficial | zona Ingeniería (Minas/Civil cerca) |
 | N | -12.068663 | -77.078801 | oficial | Complejo Felipe Mac Gregor (marcador oficial del complejo ✓) |
@@ -77,6 +80,7 @@ como referencia.
 | Fac. Derecho | -12.069924 | -77.080494 | oficial |
 | Fac. Ciencias Sociales | -12.070623 | -77.080124 | osm |
 | Huaca 20 / Museo de Sitio | -12.069530 | -77.082482 | osm |
+| Rotonda Letras | -12.067537 | -77.080204 | google (place público) |
 
 ## Puertas
 
@@ -115,6 +119,18 @@ verificadas además contra Descubre PUCP (A=lug066, E=fac001, G=fac003,
 H=fac012, I=lug010, L=fac002, O=lug025, R=fac010, X=fac013, Y=fac005,
 Z=lug027).
 
+## Barrido de places de Google Maps (2026-09-03, pedido del dueño)
+
+«Ahora que estás en Google Maps haz el croquis mejor con la información
+real»: cada letra floja y los perdidos se buscaron como place público.
+Cosecha: **K existe** («PABELLÓN K, Sec. Mecatrónica», -12.0728901,
+-77.0827753 — entra al croquis como letra 22) · **V confirmada** (place a
+7 m del edificio OSM) · **Rotonda Letras** (-12.067537, -77.0802042) entra
+como hito · **PULSO PUCP** (-12.0675895, -77.081028). Sin place: S, Y,
+TAMB, SIMB, «Pabellón I», «Pabellón P», «Aulas Móviles» — sus declaraciones
+quedan contrastadas contra CUATRO fuentes (mapa oficial, Descubre, OSM,
+Google).
+
 ## Plan de edificaciones incompletas (pedido de Gonzalo, 2026-09-02)
 
 Registro vivo de lo que NO tiene fuente firme, con su vía de mejora. Nada de
@@ -124,12 +140,26 @@ esta lista se dibuja con seguridad falsa: hoy cae al comportamiento declarado.
 |---|---|---|
 | Pabellón **Y** (Arte y Diseño) | posición **derivada** de 3 marcadores vecinos; huella asignada por contención | confirmación de campo en la jornada 1 (el equipo pasa por la zona de Arte) o consulta a Intendencia de Aulas |
 | Puertas **8** y **10** | posición **aproximada** (marcadores de estacionamiento, proyectadas al borde) | confirmar lado y posición en campo; candidato de fuente: plano de Seguridad PUCP |
-| Letras **S, T, K** (venues reales «S204», «TAMB», «K301») | sin edificio en NINGUNA fuente → verso con `croquis_pabellon_desconocido`. Contrastado además en búsqueda pública (2026-09-03): ni el mapa oficial, ni Descubre, ni OSM, ni la web los nombran | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio; son 10 de 1.392 venues. Pista de campo: «X115 · TAMB» sugiere TAMB cerca de Artes Escénicas |
+| Letras **S, T** (venues reales «S204», «TAMB») | sin edificio en NINGUNA de las cuatro fuentes → verso con `croquis_pabellon_desconocido`. (K salió del plan: place de Google la resolvió el 2026-09-03) | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio. Pista de campo: «X115 · TAMB» sugiere TAMB cerca de Artes Escénicas |
 | Venues **numéricos** («101E», «204C», «001E») | sin letra de pabellón → «pabellón por confirmar» declarado | identificar con el equipo a qué aulario pertenecen (posible sufijo de ala); 11 venues |
 | Tokens **SIMB / LEDU / LLET** | LEDU/LLET caen a L por primera letra (paridad B31); SIMB → S desconocida | confirmar con el equipo si son salas de Letras/EEGGLL o locales aparte |
 | Pabellón **P** | marcador oficial vs OSM-CEPREPUC divergen ~100 m (manda el oficial) | confirmar en campo cuál rotula el edificio donde se aplica |
 | Pabellón **I** | oficial ✓, pero OSM ubica ahí a Esc. de Gobierno | confirmar rotulado en campo |
 | Edificios OSM **sin nombre** (~160 huellas) | se dibujan grises, sin rótulo | barrido completo de los 342 POIs de Descubre PUCP para nombrar los que orienten |
+
+## La base PULSO PUCP (dictado 2026-09-03)
+
+«Resalta dónde está PULSO PUCP siempre»: la base del equipo se dibuja en toda
+lámina y verso, con pin navy propio y quinta entrada de leyenda. Identidad:
+**pulso.pucp.edu.pe** declara «Casetas — Pabellón de Estudios Generales
+Letras»; el marcador del mapa oficial («Instituto de Analítica Social e
+Inteligencia Estratégica - Pulso PUCP») existe pero con **lat/lng vacíos**.
+La primera posición se derivó junto al L y el dueño la corrigió EN VIVO
+(«está cerca de ahí pero no está allí») con captura de Google Maps: la
+coordenada final es la del **place público «PULSO PUCP»**
+(**-12.0675895, -77.081028** — extremo norte del edificio largo junto a
+CIGA, al oeste del Auditorio de EEGGLL), `fuente = "confirmada"` en ambos
+gemelos.
 
 ## Marco del croquis
 
@@ -145,8 +175,10 @@ esta lista se dibuja con seguridad falsa: hoy cae al comportamiento declarado.
   su pastilla de aula) y el subtítulo dice «según el horario» cuando hay más
   de uno (dictado 2026-09-02); el token sin edificio se declara
   (`croquis_pabellon_desconocido`), nunca se elige en silencio.
-- Proyección plana norte-arriba; el factor de aspecto usa cos(12.07°) para
-  que 100 m midan lo mismo en ambos ejes.
+- Proyección plana **girada 180°** (dictado 2026-09-03: «inviertas el mapa
+  180 grados»): sur arriba, este a la izquierda; la flecha N del dibujo
+  apunta hacia abajo y sigue diciendo la verdad. El factor de aspecto usa
+  cos(12.07°) para que 100 m midan lo mismo en ambos ejes.
 - Colores por letra: gemelo R del helper B31
   (`frontend/src/features/monitoreo/profiles/aulas/chipDePabellon.ts`):
   tono = (código de la letra − 65) mod 8 sobre la paleta de 8 tonos de

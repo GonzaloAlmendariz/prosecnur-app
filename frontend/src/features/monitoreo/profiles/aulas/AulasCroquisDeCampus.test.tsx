@@ -11,10 +11,10 @@ import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
  * misma honestidad con lo que no tiene edificio.
  */
 describe("el croquis de campus en pantalla", () => {
-  it("sin lugar resaltado igual orienta: 21 pabellones, ninguno resaltado", () => {
+  it("sin lugar resaltado igual orienta: 22 pabellones, ninguno resaltado", () => {
     const html = renderToStaticMarkup(<AulasCroquisDeCampus />);
     // Un chip por letra, cada uno con el tono de su letra.
-    expect(html.match(/aulas-croquis-pabellon\b/g)?.length).toBe(21);
+    expect(html.match(/aulas-croquis-pabellon\b/g)?.length).toBe(22);
     expect(html).not.toContain("es-resaltado");
     // Las puertas están: el aplicador entra por alguna.
     expect(html).toContain("Principal");
@@ -44,5 +44,18 @@ describe("el croquis de campus en pantalla", () => {
     // subtítulo impreso del verso).
     expect(html).toMatch(/es-resaltado/);
     expect(html).toContain("TAMB fuera del croquis");
+  });
+});
+
+describe("la base PULSO PUCP se marca siempre", () => {
+  it("con y sin venue, el croquis lleva el pin y el rótulo de la base", () => {
+    // Dictado (2026-09-03): «resalta dónde está PULSO PUCP siempre» — es la
+    // casa del equipo: el aplicador se orienta desde ella aunque su cita
+    // esté en la otra punta del campus.
+    for (const venue of [null, "A206"]) {
+      const html = renderToStaticMarkup(<AulasCroquisDeCampus lugarResaltado={venue} />);
+      expect(html).toContain("aulas-croquis-base");
+      expect(html).toContain("PULSO PUCP");
+    }
   });
 });

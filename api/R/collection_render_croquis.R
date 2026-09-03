@@ -1,7 +1,8 @@
 # Layout `croquis_campus`: el verso de la ficha de campo (B32).
 #
 # Croquis estilizado PROPIO del campus PUCP —dibujo nuestro en grid, plan view
-# con norte arriba— donde el pabellon del aula de la ficha se resalta con
+# GIRADO 180 grados: sur arriba, con la flecha N apuntando hacia abajo
+# (dictado de Gonzalo, 2026-09-03)— donde el pabellon del aula se resalta con
 # relleno pleno y anillo; los demas pabellones van en trazo suave con su letra,
 # y las puertas, avenidas, caminos y edificios sin letra orientan al aplicador
 # aunque no aplique ahi (dictados de Gonzalo, 2026-09-02: «darle un mapa real
@@ -122,29 +123,31 @@ CCX_TONOS_DE_PABELLON <- 8L
 # Pabellones por letra con su posicion real aproximada (lat/lng WGS84).
 # `fuente`: oficial = marcador directo del mapa oficial; osm = edificio
 # nombrado en OpenStreetMap; derivada = centroide de marcadores oficiales
-# adyacentes que nombran el pabellon. La B lleva un ajuste de croquis declarado
+# adyacentes que nombran el pabellon; google = place publico de Google Maps
+# (K, «Seccion Mecatronica», cazada en el barrido del 2026-09-03 — el venue
+# real «K301» dejo de caer en desconocido). La B lleva un ajuste de croquis declarado
 # (+25 m O, +20 m S) para que su chip no solape con el de la A: estan a 25 m
 # reales y a esta escala dos chips legibles no caben sin tocarse (la huella de
 # la B usa el marcador SIN ajuste).
 .ccx_pabellones <- function() {
   data.frame(
-    letra = c("A", "B", "D", "E", "F", "G", "H", "I", "J", "L", "M",
+    letra = c("A", "B", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
               "N", "O", "P", "Q", "R", "U", "V", "X", "Y", "Z"),
     lat = c(-12.072545, -12.072939, -12.069849, -12.070985, -12.071556,
-            -12.071198, -12.069614, -12.070515, -12.070352, -12.067530,
-            -12.071597, -12.068663, -12.072765, -12.072239, -12.071231,
-            -12.067682, -12.072251, -12.073125, -12.065333, -12.066823,
-            -12.069115),
+            -12.071198, -12.069614, -12.070515, -12.070352, -12.072890,
+            -12.067530, -12.071597, -12.068663, -12.072765, -12.072239,
+            -12.071231, -12.067682, -12.072251, -12.073125, -12.065333,
+            -12.066823, -12.069115),
     lng = c(-77.079539, -77.079875, -77.080512, -77.079311, -77.080365,
-            -77.078940, -77.081231, -77.078737, -77.080311, -77.080201,
-            -77.081676, -77.078801, -77.082621, -77.078092, -77.078530,
-            -77.079144, -77.081060, -77.081880, -77.078511, -77.078832,
-            -77.080909),
+            -77.078940, -77.081231, -77.078737, -77.080311, -77.082775,
+            -77.080201, -77.081676, -77.078801, -77.082621, -77.078092,
+            -77.078530, -77.079144, -77.081060, -77.081880, -77.078511,
+            -77.078832, -77.080909),
     fuente = c("oficial", "oficial", "oficial", "oficial", "oficial",
+               "oficial", "oficial", "oficial", "oficial", "google",
                "oficial", "oficial", "oficial", "oficial", "oficial",
-               "oficial", "oficial", "oficial", "oficial", "oficial",
-               "oficial", "oficial", "osm", "oficial", "derivada",
-               "oficial"),
+               "oficial", "oficial", "oficial", "osm", "oficial",
+               "derivada", "oficial"),
     stringsAsFactors = FALSE
   )
 }
@@ -155,11 +158,13 @@ CCX_TONOS_DE_PABELLON <- 8L
 .ccx_hitos <- function() {
   data.frame(
     nombre = c("Biblioteca", "Dintilhac", "Tinkuy", "Comedor", "Capilla",
-               "Coliseo", "CIA", "Arquitectura", "Huaca 20"),
+               "Coliseo", "CIA", "Arquitectura", "Huaca 20", "Rotonda Letras"),
+    # El rotulo de la rotonda va corrido ~30 m SE de su centro real: encima
+    # le cae el chip del pabellon L (estan a 25 m) y el circulo es chico.
     lat = c(-12.069037, -12.069530, -12.068131, -12.070422, -12.069567,
-            -12.066931, -12.072085, -12.071692, -12.069530),
+            -12.066931, -12.072085, -12.071692, -12.069530, -12.067790),
     lng = c(-77.079997, -77.079396, -77.079469, -77.081178, -77.080103,
-            -77.079950, -77.080308, -77.080885, -77.082482),
+            -77.079950, -77.080308, -77.080885, -77.082482, -77.079930),
     stringsAsFactors = FALSE
   )
 }
@@ -238,12 +243,28 @@ CCX_TONOS_DE_PABELLON <- 8L
   )
 }
 
-# lat/lng -> npc de pagina. Vectorizada: acepta columnas enteras.
+# lat/lng -> npc de pagina, GIRADA 180 grados: sur arriba, este a la
+# izquierda (dictado de Gonzalo, 2026-09-03: «inviertas el mapa 180 grados»).
+# La flecha N del dibujo apunta hacia abajo y sigue diciendo la verdad.
+# Vectorizada: acepta columnas enteras.
 .ccx_proyectar <- function(lat, lng, L) {
   list(
-    x = L$x0 + (lng - L$lng0) / (L$lng1 - L$lng0) * L$w,
-    y = L$y0 + (lat - L$lat0) / (L$lat1 - L$lat0) * L$h
+    x = L$x0 + (1 - (lng - L$lng0) / (L$lng1 - L$lng0)) * L$w,
+    y = L$y0 + (1 - (lat - L$lat0) / (L$lat1 - L$lat0)) * L$h
   )
+}
+
+# La base del equipo: PULSO PUCP. Posicion CONFIRMADA por el dueño
+# (2026-09-03, captura de Google Maps) y calzada con el place publico
+# «PULSO PUCP» de Google (-12.0675895, -77.081028): el extremo norte del
+# edificio largo junto a CIGA, al oeste del Auditorio de EEGG Letras. La
+# identidad ya la daba pulso.pucp.edu.pe («Casetas - Pabellon de EEGG
+# Letras»); el marcador del mapa oficial PUCP existe con lat/lng VACIOS.
+# Se dibuja SIEMPRE: el aplicador se orienta desde su base aunque su cita
+# este en la otra punta del campus (dictado 2026-09-03).
+.ccx_base_pulso <- function() {
+  list(nombre = "PULSO PUCP", lat = -12.0675895, lng = -77.081028,
+       fuente = "confirmada")
 }
 
 # Un poligono/linea del JSON de geometria a coordenadas npc.
@@ -306,29 +327,35 @@ CCX_TONOS_DE_PABELLON <- 8L
   grid::grid.polygon(x = pin$x, y = pin$y, default.units = "npc",
     gp = grid::gpar(fill = "#f4f6f9", col = tokens$tbl_frame, lwd = 1.1))
 
-  # Avenidas: banda tenue fuera del borde, rotulo en su angulo real.
+  # Avenidas: banda tenue fuera del borde, rotulo en su angulo real. Tras el
+  # giro de 180, el este queda a la IZQUIERDA y el sur ARRIBA: los offsets
+  # empujan hacia afuera del terreno en su lado nuevo, y el angulo del texto
+  # se normaliza para no imprimirse boca abajo.
+  ang_legible <- function(p) {
+    ang <- atan2((p$y[2] - p$y[1]) * geo$page_h,
+                 (p$x[2] - p$x[1]) * geo$page_w) * 180 / pi
+    if (ang > 90) ang <- ang - 180
+    if (ang < -90) ang <- ang + 180
+    ang
+  }
   este <- .ccx_proyectar(c(-12.0747, -12.0650), c(-77.0770, -77.0781), L)
   off <- 0.016
-  grid::grid.lines(x = este$x + off, y = este$y, default.units = "npc",
+  grid::grid.lines(x = este$x - off, y = este$y, default.units = "npc",
     gp = grid::gpar(col = tokens$line, lwd = 5))
-  ang_este <- atan2((este$y[2] - este$y[1]) * geo$page_h,
-                    (este$x[2] - este$x[1]) * geo$page_w) * 180 / pi
-  grid::grid.text("Av. Universitaria", x = mean(este$x) + off + 0.018,
-    y = mean(este$y), rot = ang_este,
+  grid::grid.text("Av. Universitaria", x = mean(este$x) - off - 0.018,
+    y = mean(este$y), rot = ang_legible(este),
     gp = grid::gpar(col = tokens$faint, fontsize = 7, fontface = "italic"))
   oeste <- .ccx_proyectar(c(-12.0658, -12.0746), c(-77.0818, -77.0838), L)
-  grid::grid.lines(x = oeste$x - off, y = oeste$y, default.units = "npc",
+  grid::grid.lines(x = oeste$x + off, y = oeste$y, default.units = "npc",
     gp = grid::gpar(col = tokens$line, lwd = 5))
-  ang_oeste <- atan2((oeste$y[2] - oeste$y[1]) * geo$page_h,
-                     (oeste$x[2] - oeste$x[1]) * geo$page_w) * 180 / pi
   grid::grid.text("Av. José de la Riva Agüero",
-    x = mean(oeste$x) - off - 0.018, y = mean(oeste$y), rot = ang_oeste,
+    x = mean(oeste$x) + off + 0.018, y = mean(oeste$y), rot = ang_legible(oeste),
     gp = grid::gpar(col = tokens$faint, fontsize = 7, fontface = "italic"))
   sur <- .ccx_proyectar(c(-12.0746, -12.0747), c(-77.0838, -77.0770), L)
-  grid::grid.lines(x = sur$x, y = sur$y - 0.011, default.units = "npc",
+  grid::grid.lines(x = sur$x, y = sur$y + 0.011, default.units = "npc",
     gp = grid::gpar(col = tokens$line, lwd = 5))
   grid::grid.text("Av. Manuel Cipriano Dulanto",
-    x = mean(sur$x), y = mean(sur$y) - 0.011 - 0.009,
+    x = mean(sur$x), y = mean(sur$y) + 0.011 + 0.009,
     gp = grid::gpar(col = tokens$faint, fontsize = 7, fontface = "italic"))
 
   # Geometria OSM: verdes -> caminos -> huellas. Si el JSON faltara (paquete a
@@ -396,9 +423,11 @@ CCX_TONOS_DE_PABELLON <- 8L
       pch = 23, size = grid::unit(7, "pt"),
       gp = grid::gpar(fill = tokens$navy, col = "#ffffff", lwd = 1))
     lado <- puertas$lado[i]
-    dx <- if (identical(lado, "este")) 0.012 else if (identical(lado, "oeste")) -0.012 else 0
-    dy <- if (identical(lado, "norte")) 0.016 else 0
-    just <- if (identical(lado, "este")) "left" else if (identical(lado, "oeste")) "right" else "centre"
+    # Girado 180: la etiqueta de una puerta del este sale hacia la izquierda,
+    # la del oeste hacia la derecha, y la del norte hacia abajo.
+    dx <- if (identical(lado, "este")) -0.012 else if (identical(lado, "oeste")) 0.012 else 0
+    dy <- if (identical(lado, "norte")) -0.016 else 0
+    just <- if (identical(lado, "este")) "right" else if (identical(lado, "oeste")) "left" else "centre"
     grid::grid.text(puertas$nombre[i], x = x + dx, y = y + dy, just = just,
       gp = grid::gpar(col = tokens$navy, fontsize = 6, fontface = "bold"))
   }
@@ -470,12 +499,27 @@ CCX_TONOS_DE_PABELLON <- 8L
     }
   }
 
-  # Norte.
+  # La base PULSO PUCP, SIEMPRE y encima de todo: pin navy con su rotulo.
+  base <- .ccx_base_pulso()
+  pbase <- .ccx_proyectar(base$lat, base$lng, L)
+  # Pin macizo: navy pleno con doble borde. Sin punto interior — el test de
+  # presencia muestrea el centro y un adorno blanco lo volveria ambiguo.
+  grid::grid.circle(x = pbase$x, y = pbase$y, r = grid::unit(0.012, "npc"),
+    default.units = "npc",
+    gp = grid::gpar(fill = "#ffffff", col = tokens$navy, lwd = 1))
+  grid::grid.circle(x = pbase$x, y = pbase$y, r = grid::unit(0.009, "npc"),
+    default.units = "npc",
+    gp = grid::gpar(fill = tokens$navy, col = tokens$navy))
+  .ccx_rotulo_pastilla(base$nombre, pbase$x, pbase$y - 0.020, 6.6, tokens$navy,
+                       fontface = "bold")
+
+  # Norte: girado el mapa, la flecha apunta hacia ABAJO — sigue apuntando al
+  # norte de verdad.
   nx <- L$x0 + L$w - 0.012; ny <- L$y0 + L$h - 0.008
-  grid::grid.lines(x = c(nx, nx), y = c(ny - 0.026, ny), default.units = "npc",
+  grid::grid.lines(x = c(nx, nx), y = c(ny, ny - 0.026), default.units = "npc",
     arrow = grid::arrow(length = grid::unit(4, "pt"), type = "closed"),
     gp = grid::gpar(col = tokens$soft, fill = tokens$soft, lwd = 1.2))
-  grid::grid.text("N", x = nx, y = ny + 0.010,
+  grid::grid.text("N", x = nx, y = ny - 0.036,
     gp = grid::gpar(col = tokens$soft, fontsize = 7, fontface = "bold"))
 
   # Barra de escala: 100 m medidos con la MISMA proyeccion del croquis, para
@@ -498,13 +542,14 @@ CCX_TONOS_DE_PABELLON <- 8L
     x = L$x0 + L$w - 0.010, y = L$y0 + 0.012, just = "right",
     gp = grid::gpar(col = tokens$faint, fontsize = 4.8))
 
-  # Leyenda.
+  # Leyenda (cinco entradas: la base PULSO tambien se explica).
   ly <- L$y_leyenda
-  lx <- 0.10
-  paso <- c(0.235, 0.20, 0.24, 0.20)
+  lx <- 0.075
+  paso <- c(0.205, 0.165, 0.19, 0.165, 0.17)
   etiquetas <- c("Pabellón donde aplicas", "Otros pabellones",
-                 "Edificio de referencia", "Puerta de ingreso")
-  for (k in 1:4) {
+                 "Edificio de referencia", "Puerta de ingreso",
+                 "Base PULSO PUCP")
+  for (k in 1:5) {
     if (k == 1L) {
       grid::grid.circle(x = lx, y = ly, r = grid::unit(0.0105, "npc"),
         default.units = "npc", gp = grid::gpar(col = tokens$navy, fill = NA, lwd = 1.4))
@@ -519,13 +564,20 @@ CCX_TONOS_DE_PABELLON <- 8L
       grid::grid.roundrect(x = lx, y = ly, width = 0.016, height = 0.011,
         r = grid::unit(1.5, "pt"), default.units = "npc",
         gp = grid::gpar(fill = "#e2e7ee", col = "#c8d0dc", lwd = 0.8))
-    } else {
+    } else if (k == 4L) {
       grid::grid.points(x = grid::unit(lx, "npc"), y = grid::unit(ly, "npc"),
         pch = 23, size = grid::unit(6, "pt"),
         gp = grid::gpar(fill = tokens$navy, col = "#ffffff"))
+    } else {
+      grid::grid.circle(x = lx, y = ly, r = grid::unit(0.008, "npc"),
+        default.units = "npc",
+        gp = grid::gpar(fill = "#ffffff", col = tokens$navy, lwd = 1))
+      grid::grid.circle(x = lx, y = ly, r = grid::unit(0.0058, "npc"),
+        default.units = "npc",
+        gp = grid::gpar(fill = tokens$navy, col = tokens$navy))
     }
     grid::grid.text(etiquetas[k], x = lx + 0.014, y = ly, just = "left",
-      gp = grid::gpar(col = tokens$ink, fontsize = 7))
+      gp = grid::gpar(col = tokens$ink, fontsize = 6.6))
     lx <- lx + paso[k]
   }
 
