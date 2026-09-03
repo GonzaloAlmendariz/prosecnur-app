@@ -56,6 +56,9 @@ export type FichaDeAula = {
   estado: string;
   rol: string;
   fecha: string;
+  /** Dónde se aplica: el lugar acordado (B30) y, sin él, el salón del catálogo. */
+  lugar: string;
+  hora: string;
   /** Lo que el diseño esperaba de esta aula. `null` si el estudio no lo declara. */
   esperado: number | null;
   elegibles: number | null;
@@ -100,6 +103,10 @@ export function fichaDeAula(
     estado: texto(enPlan?.operational_status ?? enPlan?.sample_status ?? ""),
     rol: texto(enPlan?.sample_role ?? ""),
     fecha: texto(enPlan?.scheduled_date ?? "").slice(0, 10),
+    // `scheduled_venue` gana: es donde se ACORDÓ aplicar, confirmado por el
+    // equipo (B30); `venue` es donde se dicta el curso según el catálogo.
+    lugar: texto(enPlan?.scheduled_venue ?? "") || texto(enPlan?.venue ?? ""),
+    hora: texto(enPlan?.scheduled_time ?? ""),
     esperado: num(enPlan?.expected_valid ?? enBrechas?.expected_valid),
     elegibles: num(enPlan?.eligible_n),
     validas: num(enBrechas?.respuestas_validas ?? enPlan?.respuestas_validas),
