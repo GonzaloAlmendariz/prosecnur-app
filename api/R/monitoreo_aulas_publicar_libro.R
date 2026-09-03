@@ -120,6 +120,12 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 .malp_hoja_control <- function() "Base de control"
 .malp_hoja_plan_dia <- function() "Plan del día"
 .malp_hoja_avance <- function() "Avance de campo"
+# B68 tercera pata (dictado 2026-09-03: «¿el Sheets ya está listo para
+# actualizarse con la nueva hoja?»): la asignación es la CUARTA hoja de la
+# app, pero CONDICIONAL — entra al juego solo cuando la sesión tiene
+# disponibilidad (hay reparto que contar). Sin ella ni se produce ni entra a
+# `hojas_libro`: una pestaña remota previa queda intacta, ni un request.
+.malp_hoja_asignacion <- function() "Asignación de aplicadores"
 # Las hojas de la APP: se publican SIEMPRE (sembrada/actualizada/sin_cambios,
 # jamás `respetada`) y comparten el trato de delta+reasserción. «Avance de
 # campo» (B2.2) es la tercera: la hoja de indicadores que el xlsx escribe
@@ -304,7 +310,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            control = list(),
                                            efectivas = NULL,
                                            cuotas = NULL,
-                                           traslape_daa = NULL) {
+                                           traslape_daa = NULL,
+                                           disponibilidad = NULL,
+                                           config_reparto = list()) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(400, "E_SHEETS_SPREADSHEET",
@@ -323,6 +331,15 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
 
   equipo <- .malp_hojas_equipo()
   hojas_app <- .malp_hojas_app()
+  # B68: los values de la asignación se construyen sobre el plan CRUDO (el
+  # mismo insumo que la pestaña de la app) con la config vigente del reparto;
+  # NULL = sin disponibilidad = la hoja no juega esta publicación.
+  valores_asignacion <- aulas_libro_valores_asignacion(
+    plan %||% list(), disponibilidad, cfg = config_reparto
+  )
+  if (!is.null(valores_asignacion)) {
+    hojas_app <- c(hojas_app, .malp_hoja_asignacion())
+  }
   con_extras <- length(extras) > 0L
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
   # lead, B14): este orden manda tanto en el resumen como en el orden de
@@ -374,6 +391,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       unidades, efectivas = efectivas, partes = partes, cuotas = cuotas
     ))
   )
+  if (!is.null(valores_asignacion)) {
+    producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
+  }
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
   # de values para las que existen. Leer no es tocar: la regla de dueño
@@ -608,7 +628,12 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],
-      traslape_daa = traslape_daa
+      traslape_daa = traslape_daa,
+      # B68 tercera pata: el reparto de la hoja es el de la app — misma
+      # disponibilidad de sesión y misma config vigente (fijadas, duración,
+      # rango, semilla).
+      disponibilidad = s[["monitoreo_aulas_disponibilidad"]],
+      config_reparto = aulas_cfg
     ),
     # Un api_error del propio publicador conserva su código; solo los
     # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.
