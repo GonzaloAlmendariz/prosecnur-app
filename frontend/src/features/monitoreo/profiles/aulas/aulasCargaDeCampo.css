@@ -622,3 +622,21 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   padding: 8px 10px;
   resize: vertical;
 }
+
+/* B46, hermano de B43: en el calendario, la fila del día que toca lleva su
+   sello y lo pasado se atenúa — la lectura de despliegue en la malla. */
+.aulas-carga-malla tbody tr.es-el-que-toca > th { box-shadow: inset 3px 0 0 var(--pulso-module-monitoring); }
+.aulas-carga-malla tbody tr.es-el-que-toca > th button { color: var(--pulso-module-monitoring); font-weight: 700; }
+.aulas-carga-toca {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--pulso-module-monitoring);
+  color: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }
