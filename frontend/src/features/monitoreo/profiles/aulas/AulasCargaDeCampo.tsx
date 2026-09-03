@@ -111,6 +111,7 @@ export function AulasCargaDeCampo({
   disponibilidad,
   reparto,
   onExportar,
+  onFijarReparto = null,
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
@@ -133,6 +134,8 @@ export function AulasCargaDeCampo({
    * mientras el usuario mira 90 entrega un pico que no es el que decidió.
    */
   onExportar?: (opciones: OpcionesDeCarga) => void;
+  /** Fijar/soltar el aplicador de una cita (B36); lo consume Asignación. */
+  onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
 }) {
   const [duracionMin, setDuracion] = useState(DURACION_POR_DEFECTO);
   // El slider vive detrás de un lápiz (dictado 2026-09-02: «muy accesible
@@ -367,7 +370,7 @@ export function AulasCargaDeCampo({
         <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} />
       ) : null}
       {vista === "asignacion" ? (
-        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} />
+        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} />
       ) : null}
       {esDemanda && !hayMalla ? (
         // El mismo vacío declarado del atajo compacto, dentro del marco

@@ -528,6 +528,9 @@ test_that("B36: la fijada manda sobre el greedy y llega marcada", {
   expect_true(isTRUE(a1[["fijada"]]))
   expect_null(a1[["advertencia"]])
   expect_identical(res[["fijadas_sin_cita"]], list())
+  # El eco del mapa: la UI reconstruye el mapa COMPLETO al cambiar una cita.
+  expect_identical(res[["fijadas"]],
+                   list(list(codigo = "CH 1", aplicador = "Zoe Tardia")))
   eq <- .marp_equidad(res)
   expect_equal(unname(eq[["Zoe Tardia"]]), 1)
   expect_equal(unname(eq[["Ana Prueba"]]), 0)

@@ -279,6 +279,11 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
 
   list(
     dias = dias, equidad = equidad,
+    # El eco del mapa saneado, entero: la UI reconstruye el mapa completo al
+    # fijar/soltar UNA cita sin perder las demás — una huérfana descartada en
+    # silencio sería el defecto, no el ahorro.
+    fijadas = lapply(sort(names(fij) %||% character(0), method = "radix"),
+                     function(k) list(codigo = k, aplicador = fij[[k]])),
     fijadas_sin_cita = as.list(sort(
       as.character(setdiff(names(fij) %||% character(0), codigos_pactados)),
       method = "radix"

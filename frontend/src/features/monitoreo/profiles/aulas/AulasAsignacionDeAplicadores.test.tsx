@@ -119,3 +119,69 @@ describe("AulasAsignacionDeAplicadores", () => {
     expect(html).not.toContain("libro de disponibilidad");
   });
 });
+
+/**
+ * B36 (dictado 2026-09-02: «que tengo mecanismo propio de asignación y
+ * reasignación, que sea equitativo»): con onFijar la superficie es de
+ * escritura — selector por cita, descubiertos resolubles y huérfanas con
+ * soltar; sin onFijar sigue siendo la hoja de solo lectura de siempre.
+ */
+describe("AulasAsignacionDeAplicadores — el mecanismo de fijar (B36)", () => {
+  const CON_FIJADA = {
+    dias: [
+      {
+        fecha: "2026-09-11",
+        asignaciones: [
+          { codigo: "CH 1", aplicador: "Zoe Tardia", inicio: "10:00", fin: "10:20", fijada: true, advertencia: "sin_disponibilidad" },
+          { codigo: "CH 3", aplicador: "Ana Prueba", inicio: "15:00", fin: "15:20", fijada: false },
+        ],
+        no_cubiertos: ["CH 2"],
+        por_confirmar: [],
+      },
+    ],
+    equidad: [
+      { aplicador: "Ana Prueba", asignadas: 1 },
+      { aplicador: "Zoe Tardia", asignadas: 1 },
+    ],
+    fijadas: [{ codigo: "CH 1", aplicador: "Zoe Tardia" }, { codigo: "CH 99", aplicador: "Ana Prueba" }],
+    fijadas_sin_cita: ["CH 99"],
+  };
+  const conFijar = (crudo: unknown) =>
+    renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores(crudo as MonitoreoAulasReparto | null)}
+        onFijar={() => {}}
+      />,
+    );
+
+  it("cada cita lleva su selector: Automático nombra al del greedy y las opciones dicen su carga", () => {
+    const html = conFijar(CON_FIJADA);
+    expect(html).toContain("aulas-asigna-selector");
+    expect(html).toContain("Automático — Ana Prueba");
+    expect(html).toContain("Ana Prueba · 1");
+  });
+
+  it("la fijada llega marcada y su advertencia habla al lado, no en un tooltip", () => {
+    const html = conFijar(CON_FIJADA);
+    expect(html).toContain("aulas-asigna-fijada");
+    expect(html).toContain("fuera de su disponibilidad declarada");
+  });
+
+  it("la cita descubierta se resuelve ahí mismo: elegir a alguien la fija", () => {
+    const html = conFijar(CON_FIJADA);
+    expect(html).toContain("fijar a…");
+  });
+
+  it("la fijación huérfana se declara con su soltar — se conserva, no se limpia sola", () => {
+    const html = conFijar(CON_FIJADA);
+    expect(html).toContain("Fijaciones sin cita pactada");
+    expect(html).toContain("CH 99");
+    expect(html).toContain("soltar");
+  });
+
+  it("sin onFijar no hay selectores: la hoja de solo lectura de siempre", () => {
+    const html = pinta(CON_FIJADA);
+    expect(html).not.toContain("aulas-asigna-selector");
+    expect(html).not.toContain("soltar");
+  });
+});

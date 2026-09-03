@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasReparto } from "../../../../api/monitoreo";
-import { repartoDeAplicadores } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, repartoDeAplicadores } from "./repartoDeAplicadores";
 
 /**
  * El bloque `reparto` del dashboard (B29) convertido en modelo de vista para la
@@ -131,6 +131,11 @@ describe("repartoDeAplicadores", () => {
         por_confirmar: [],
       }],
       equidad: [],
+      fijadas: [
+        { codigo: "CH 1", aplicador: "Zoe Tardia" },
+        { codigo: ["CH 99"], aplicador: ["Perico Externo"] },
+        { codigo: "", aplicador: "Nadie" },
+      ],
       fijadas_sin_cita: "CH 99",
     }))!;
     const [a1, a2] = r.dias[0].asignaciones;
@@ -139,6 +144,10 @@ describe("repartoDeAplicadores", () => {
     expect(a2.fijada).toBe(false);
     expect(a2.advertencia).toBe("");
     expect(r.fijadasSinCita).toEqual(["CH 99"]);
+    // El eco cruza como mapa completo; la entrada sin código se descarta.
+    expect(r.fijadas.get("CH 1")).toBe("Zoe Tardia");
+    expect(r.fijadas.get("CH 99")).toBe("Perico Externo");
+    expect(r.fijadas.size).toBe(2);
   });
 
   it("lo roto se declara en vez de tragarse: día sin fecha, asignación sin quién", () => {
@@ -160,5 +169,25 @@ describe("repartoDeAplicadores", () => {
     expect(r.dias).toHaveLength(1);
     expect(r.dias[0].asignaciones).toHaveLength(1);
     expect(r.ilegibles).toBe(2);
+  });
+});
+
+describe("mapaDeFijaciones (B36)", () => {
+  const vigentes = new Map([["CH 1", "Ana Prueba"], ["CH 99", "Zoe Tardia"]]);
+
+  it("fijar añade sin perder las demás — la huérfana viaja intacta", () => {
+    expect(mapaDeFijaciones(vigentes, "CH 2", "Berta Ficticia")).toEqual({
+      "CH 1": "Ana Prueba", "CH 99": "Zoe Tardia", "CH 2": "Berta Ficticia",
+    });
+  });
+
+  it("reasignar reemplaza solo esa cita", () => {
+    expect(mapaDeFijaciones(vigentes, "CH 1", "Berta Ficticia")).toEqual({
+      "CH 1": "Berta Ficticia", "CH 99": "Zoe Tardia",
+    });
+  });
+
+  it("soltar (valor vacío) quita la cita y conserva el resto", () => {
+    expect(mapaDeFijaciones(vigentes, "CH 99", "")).toEqual({ "CH 1": "Ana Prueba" });
   });
 });

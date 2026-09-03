@@ -86,7 +86,31 @@ export type RepartoVista = {
   ilegibles: number;
   /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
   fijadasSinCita: string[];
+  /**
+   * B36: el mapa completo de fijaciones vigente (eco saneado del motor).
+   * La UI lo clona al fijar/soltar UNA cita y manda el mapa entero — así una
+   * fijación huérfana no se pierde en silencio por editar otra.
+   */
+  fijadas: ReadonlyMap<string, string>;
 };
+
+/**
+ * El mapa de fijaciones que resulta de fijar (`aplicador` con nombre) o
+ * soltar (`aplicador` vacío) UNA cita, partiendo del mapa vigente completo.
+ * Devuelve el mapa ENTERO porque así viaja al config: mandar solo el cambio
+ * descartaría las demás fijaciones en silencio, huérfanas incluidas.
+ */
+export function mapaDeFijaciones(
+  vigentes: ReadonlyMap<string, string>,
+  codigo: string,
+  aplicador: string,
+): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  for (const [c, a] of vigentes) mapa[c] = a;
+  if (aplicador) mapa[codigo] = aplicador;
+  else delete mapa[codigo];
+  return mapa;
+}
 
 export function repartoDeAplicadores(
   crudo: MonitoreoAulasReparto | null | undefined,
@@ -151,5 +175,13 @@ export function repartoDeAplicadores(
     cargaMax: equidad.reduce((m, e) => Math.max(m, e.asignadas), 0),
     ilegibles,
     fijadasSinCita: leerCodigos(raiz.fijadas_sin_cita),
+    fijadas: new Map(
+      (Array.isArray(raiz.fijadas) ? raiz.fijadas : [])
+        .map((f) => {
+          const e = (f ?? {}) as Record<string, unknown>;
+          return [texto(e.codigo), texto(e.aplicador)] as const;
+        })
+        .filter(([c, a]) => c !== "" && a !== ""),
+    ),
   };
 }

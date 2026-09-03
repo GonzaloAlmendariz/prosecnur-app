@@ -399,6 +399,46 @@ button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-m
 /* …y en la línea de pendientes respiran entre renglones. */
 .aulas-asigna-pendientes .aulas-chip { margin: 1px 3px 1px 0; }
 
+/* B36 — el mecanismo de fijar/reasignar. El selector es sobrio y por fila;
+   la marca «fijada» y la advertencia hablan al lado, no en un tooltip. */
+.aulas-asigna-descubiertos > p { margin: 0; display: inline-flex; align-items: center; gap: 5px; }
+.aulas-asigna-resolver { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.aulas-asigna-resolver-item { display: inline-flex; align-items: center; gap: 4px; }
+.aulas-asigna-quien { display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.aulas-asigna-selector {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  max-width: 240px;
+}
+.aulas-asigna-selector:hover { border-color: var(--pulso-border-strong); }
+.aulas-asigna-selector:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-asigna-fijada {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600;
+  color: var(--pulso-module-monitoring);
+}
+.aulas-asigna-advertencia {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px;
+  color: var(--pulso-danger-fg);
+}
+.aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
+.aulas-asigna-soltar {
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font: inherit; font-size: 11px;
+  cursor: pointer;
+}
+.aulas-asigna-soltar:hover { color: var(--pulso-module-monitoring); border-color: var(--pulso-module-monitoring); }
+.aulas-asigna-soltar:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+
 .aulas-asigna-tabla { border-collapse: collapse; width: 100%; }
 .aulas-asigna-tabla th, .aulas-asigna-tabla td { text-align: left; padding: 4px 10px 4px 0; }
 .aulas-asigna-tabla thead th {

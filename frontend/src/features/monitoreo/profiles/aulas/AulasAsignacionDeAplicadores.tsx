@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import { AlertTriangle } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Pin } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
-import type { RepartoVista } from "./repartoDeAplicadores";
+import { mapaDeFijaciones, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -36,9 +36,16 @@ import { fmt } from "./kpisDeAulas";
 const chipsDeCodigos = (codigos: readonly string[]) =>
   codigos.map((c) => <ChipDato key={c}>{c}</ChipDato>);
 
+/** La advertencia del motor, en palabras del operativo. */
+const AVISO_LEGIBLE: Record<string, string> = {
+  sin_disponibilidad: "fuera de su disponibilidad declarada",
+  se_solapa: "se solapa con otra cita suya",
+};
+
 export function AulasAsignacionDeAplicadores({
   reparto,
   lugares,
+  onFijar = null,
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   reparto: RepartoVista | null;
@@ -48,6 +55,13 @@ export function AulasAsignacionDeAplicadores({
    * la columna calla en vez de inventar.
    */
   lugares?: ReadonlyMap<string, string>;
+  /**
+   * B36 (dictado 2026-09-02: «mecanismo propio de asignación y
+   * reasignación, que sea equitativo»): recibe el mapa COMPLETO de
+   * fijaciones tras fijar/soltar una cita. `null` = la superficie es de
+   * solo lectura y los selectores no se pintan.
+   */
+  onFijar?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
 }) {
   // El aplicador explorado desde el rail. Estado UI efímero de esta
   // superficie: no es un panel enlazable ni un foco de entidad — el mismo
@@ -71,6 +85,17 @@ export function AulasAsignacionDeAplicadores({
     return aplicador === enFoco ? "es-resaltada" : "es-apagada";
   };
 
+  // Los candidatos del selector: la equidad entera, con su carga a la vista —
+  // reasignar mirando quién anda cargado es la mitad del «que sea equitativo».
+  const opcionesDeAplicador = reparto.equidad.map((e) => (
+    <option key={e.aplicador} value={e.aplicador}>
+      {e.aplicador} · {fmt(e.asignadas)}
+    </option>
+  ));
+  const fijar = (codigo: string, aplicador: string) => {
+    void onFijar?.(mapaDeFijaciones(reparto.fijadas, codigo, aplicador));
+  };
+
   return (
     <div className="aulas-asigna">
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -79,6 +104,7 @@ export function AulasAsignacionDeAplicadores({
         <p className="aulas-asigna-vigencia">
           Reparto <strong>vigente</strong> sobre lo agendado hasta hoy: se recalcula con cada
           Recargar y una confirmación nueva entra sola.
+          {onFijar ? " Lo fijado a mano manda sobre el automático y se conserva." : ""}
         </p>
         <dl className="aulas-carga-kpis">
           <div>
@@ -122,16 +148,37 @@ export function AulasAsignacionDeAplicadores({
                 </h4>
                 {d.noCubiertos.length > 0 ? (
                   /* Destacado y ARRIBA de su día: la cita descubierta es lo que
-                     el jefe de campo tiene que resolver antes de esa fecha. */
-                  <p className="aulas-asigna-descubiertos">
-                    <AlertTriangle size={14} aria-hidden="true" />
-                    <strong>
-                      {fmt(d.noCubiertos.length)}{" "}
-                      {d.noCubiertos.length === 1 ? "cita pactada" : "citas pactadas"} sin nadie
-                      que llegue:
-                    </strong>{" "}
-                    {chipsDeCodigos(d.noCubiertos)}
-                  </p>
+                     el jefe de campo tiene que resolver antes de esa fecha — y
+                     con onFijar la resuelve AQUÍ: elegir a alguien la fija,
+                     aunque su disponibilidad no la respalde (queda advertida). */
+                  <div className="aulas-asigna-descubiertos">
+                    <p>
+                      <AlertTriangle size={14} aria-hidden="true" />
+                      <strong>
+                        {fmt(d.noCubiertos.length)}{" "}
+                        {d.noCubiertos.length === 1 ? "cita pactada" : "citas pactadas"} sin nadie
+                        que llegue:
+                      </strong>
+                    </p>
+                    <span className="aulas-asigna-resolver">
+                      {d.noCubiertos.map((c) => (
+                        <span key={c} className="aulas-asigna-resolver-item">
+                          <ChipDato>{c}</ChipDato>
+                          {onFijar ? (
+                            <select
+                              className="aulas-asigna-selector"
+                              value=""
+                              aria-label={`Fijar aplicador para ${c}: nadie libre la cubre; elegir a alguien la fija igual y queda advertida`}
+                              onChange={(e) => { if (e.target.value) fijar(c, e.target.value); }}
+                            >
+                              <option value="">fijar a…</option>
+                              {opcionesDeAplicador}
+                            </select>
+                          ) : null}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
                 ) : null}
                 {d.asignaciones.length > 0 ? (
                   <table className="aulas-asigna-tabla">
@@ -158,7 +205,39 @@ export function AulasAsignacionDeAplicadores({
                                 ? <ChipHora>{a.inicio}–{a.fin}</ChipHora>
                                 : a.inicio ? <ChipHora>{a.inicio}</ChipHora> : "—"}
                             </td>
-                            <td>{a.aplicador}</td>
+                            <td>
+                              {onFijar ? (
+                                /* B36: elegir a alguien lo FIJA (manda sobre el
+                                   automático y sobrevive cada Recargar);
+                                   «Automático» suelta y el greedy decide. */
+                                <span className="aulas-asigna-quien">
+                                  <select
+                                    className="aulas-asigna-selector"
+                                    value={a.fijada ? a.aplicador : ""}
+                                    aria-label={`Aplicador de ${a.codigo}: ${
+                                      a.fijada ? `fijado a ${a.aplicador}` : `automático, ${a.aplicador}`
+                                    }. Elegir a alguien lo fija; Automático lo devuelve al reparto`}
+                                    onChange={(e) => fijar(a.codigo, e.target.value)}
+                                  >
+                                    <option value="">Automático — {a.aplicador}</option>
+                                    {opcionesDeAplicador}
+                                  </select>
+                                  {a.fijada ? (
+                                    <span className="aulas-asigna-fijada" title="Fijado a mano: sobrevive cada Recargar">
+                                      <Pin size={11} aria-hidden="true" /> fijada
+                                    </span>
+                                  ) : null}
+                                  {a.advertencia ? (
+                                    <span className="aulas-asigna-advertencia">
+                                      <AlertTriangle size={11} aria-hidden="true" />
+                                      {AVISO_LEGIBLE[a.advertencia] ?? a.advertencia}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : (
+                                a.aplicador
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -237,6 +316,30 @@ export function AulasAsignacionDeAplicadores({
           )}
         </aside>
       </div>
+
+      {reparto.fijadasSinCita.length > 0 ? (
+        /* La fijación cuya cita perdió fecha u hora: se declara y se conserva
+           por si la cita vuelve — descartarla en silencio sería el defecto.
+           Soltar es una decisión del usuario, no una limpieza automática. */
+        <p className="aulas-carga-aviso aulas-asigna-huerfanas">
+          Fijaciones sin cita pactada (la cita perdió fecha u hora; se conservan por si vuelve):{" "}
+          {reparto.fijadasSinCita.map((c) => (
+            <span key={c} className="aulas-asigna-resolver-item">
+              <ChipDato>{c}</ChipDato>
+              {onFijar ? (
+                <button
+                  type="button"
+                  className="aulas-asigna-soltar"
+                  onClick={() => fijar(c, "")}
+                  aria-label={`Soltar la fijación de ${c}`}
+                >
+                  soltar
+                </button>
+              ) : null}
+            </span>
+          ))}
+        </p>
+      ) : null}
 
       {reparto.ilegibles > 0 ? (
         <p className="aulas-carga-aviso">

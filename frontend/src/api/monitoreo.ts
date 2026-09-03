@@ -754,6 +754,12 @@ export type MonitoreoAulasConfig = {
   duracion_sospecha_min?: number | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
+  /**
+   * B36: las fijaciones del reparto de aplicadores — código de cita →
+   * aplicador. Se manda el mapa COMPLETO (la whitelist del backend lo
+   * reemplaza entero); un valor vacío suelta la fijación.
+   */
+  reparto_fijado?: Record<string, string>;
   schema: "monitoreo_aulas_universitarias_v1" | string;
   enabled: boolean;
   selection_run_id: string;
@@ -1227,6 +1233,8 @@ export type MonitoreoAulasRepartoEquidad = {
 export type MonitoreoAulasReparto = {
   dias: MonitoreoAulasRepartoDia[];
   equidad: MonitoreoAulasRepartoEquidad[];
+  /** B36: el eco del mapa de fijaciones saneado — código → aplicador. */
+  fijadas?: Array<{ codigo: string; aplicador: string }>;
   /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
   fijadas_sin_cita?: string[];
 };
