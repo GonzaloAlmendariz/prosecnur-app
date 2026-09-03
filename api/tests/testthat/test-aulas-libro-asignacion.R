@@ -75,3 +75,33 @@ test_that("B68: sin disponibilidad NO hay hoja — una vacía se leería como «
   destino <- .tla_libro(plan, disponibilidad = NULL)
   expect_false("Asignación de aplicadores" %in% openxlsx::getSheetNames(destino))
 })
+
+test_that("B68: el formato de Sheets calca la estética de las otras hojas — bandas derivadas del contenido", {
+  plan <- list(
+    .tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"),
+    .tla_fila("CH 3", fecha = "2026-09-18")
+  )
+  vals <- aulas_libro_valores_asignacion(
+    plan, list(.tla_disp("Ana Prueba")),
+    cfg = list(reparto_rango = list(desde = "2026-09-07", hasta = "2026-09-13"))
+  )
+  reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
+  expect_gt(length(reqs), 3L)
+
+  # Cada request es un repeatCell acotado a formato (no toca values).
+  for (r in reqs) {
+    expect_identical(r$repeatCell$fields, "userEnteredFormat(backgroundColor,textFormat)")
+  }
+  # El título (fila 1) lleva la banda navy de la casa.
+  filas_banda <- vapply(reqs, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  expect_true(1L %in% filas_banda)
+  # El día (título de bloque), la cabecera de tabla y la alerta de fuera de
+  # rango también ganan banda — derivadas del contenido, no de números mágicos.
+  primeras <- vapply(vals, function(row) trimws(as.character(row[[1]] %||% "")), character(1))
+  expect_true(which(grepl("^Viernes 11/09", primeras))[1] %in% filas_banda)
+  expect_true(which(primeras == "CURSO-HORARIO")[1] %in% filas_banda)
+  expect_true(which(grepl("^FUERA DEL RANGO", primeras))[1] %in% filas_banda)
+  expect_true(which(primeras == "CARGAS POR APLICADOR")[1] %in% filas_banda)
+  # Las notas no se tiñen: el protocolo (fila 3) no lleva banda.
+  expect_false(3L %in% filas_banda)
+})

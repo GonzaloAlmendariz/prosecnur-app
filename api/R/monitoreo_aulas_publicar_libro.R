@@ -268,6 +268,12 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_avance())) {
     requests <- c(requests, .maaf_requests(sheet_id, rows))
   }
+  # B68: la hoja de asignación con la misma estética — bandas navy para
+  # título/días/bloque, cabeceras azul claro, alertas en el rojo suave
+  # (aulas_libro_asignacion.R, mismo patrón fila-a-fila que el avance).
+  if (identical(tab_name, .malp_hoja_asignacion())) {
+    requests <- c(requests, aulas_libro_asignacion_formato_requests(sheet_id, rows))
+  }
   # B14: los desplegables y calendarios de las pestañas Extra — los mismos
   # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
   # Para cualquier otra pestaña devuelve vacío.
