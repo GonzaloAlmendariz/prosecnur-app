@@ -79,6 +79,16 @@ export function AulasMapaDeHoras({ franjas, hoy = hoyISO() }: {
   return (
     <>
       {cabecera}
+      {/* Loop mejora-ui E16, con el criterio de los dictados del día sobre el
+          chart de sexo: un gráfico con tres vocabularios visuales (punteado,
+          sólida, tentativa, banda) no puede exigir adivinarlos — la leyenda
+          los dice en llano, con los MISMOS trazos del lienzo. */}
+      <ul className="aulas-mapa-leyenda" aria-hidden="true">
+        <li><i className="es-prep" />Recojo y camino, antes de entrar</li>
+        <li><i className="es-aplicacion" />La aplicación, con hora pactada</li>
+        <li><i className="es-tentativa" />Franja del curso, por pactar</li>
+        <li><i className="es-pico" />El momento del pico</li>
+      </ul>
       <div className="aulas-mapa-horas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {/* La familia del día que toca (B43/46/49/57): quinta superficie que
             lista días — el despliegue inminente lleva su sello y lo pasado
