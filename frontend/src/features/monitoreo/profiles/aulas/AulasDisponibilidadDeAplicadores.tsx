@@ -25,11 +25,20 @@ import { fmt } from "./kpisDeAulas";
 export function AulasDisponibilidadDeAplicadores({
   oferta,
   vivas,
+  demandaFirme = null,
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   oferta: MallaDeOferta | null;
   /** Columnas visibles COMPARTIDAS con la malla de demanda (lectura conjunta). */
   vivas: number[];
+  /**
+   * B38: citas CONFIRMADAS por franja, alineadas a `oferta.filas` (una fila
+   * por día, `null` si el día no está en la demanda). Con esto la malla
+   * contesta sola «¿la gente alcanza?»: anillo donde hay citas, alarma donde
+   * las citas superan a la gente. `null` = sin capa de demanda (p. ej. la
+   * malla activa no es semanal) y la vista queda como antes.
+   */
+  demandaFirme?: Array<number[] | null> | null;
 }) {
   const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
@@ -68,11 +77,18 @@ export function AulasDisponibilidadDeAplicadores({
     };
   };
 
+  const citasEn = (i: number, j: number): number => demandaFirme?.[i]?.[j] ?? 0;
+
   const nombreDeFranja = (i: number, j: number): string => {
     const n = oferta.disponibles[i][j];
     const quienes = oferta.nombres[i][j];
-    const base = `${oferta.filas[i].etiqueta} ${comoHora(oferta.franjas[j])}: ${fmt(n)} ${
+    const citas = citasEn(i, j);
+    let base = `${oferta.filas[i].etiqueta} ${comoHora(oferta.franjas[j])}: ${fmt(n)} ${
       n === 1 ? "disponible" : "disponibles"}`;
+    if (citas > 0) {
+      base += `, ${fmt(citas)} ${citas === 1 ? "cita confirmada" : "citas confirmadas"}`;
+      if (citas > n) base += " — más citas que gente";
+    }
     return quienes.length ? `${base} — ${quienes.join(", ")}` : base;
   };
 
@@ -86,8 +102,9 @@ export function AulasDisponibilidadDeAplicadores({
     <>
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <p className="aulas-carga-oferta-lead">
-          La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta
-          con el patrón semanal para ver si la gente alcanza.
+          {demandaFirme
+            ? "La oferta declarada del equipo, con las citas confirmadas encima: el anillo dice dónde hay citas y la franja alarma cuando las citas superan a la gente."
+            : "La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta con el patrón semanal para ver si la gente alcanza."}
         </p>
         <dl className="aulas-carga-kpis">
           <div>
@@ -148,12 +165,17 @@ export function AulasDisponibilidadDeAplicadores({
                   const n = oferta.disponibles[i][j];
                   const estaActiva = activa?.i === i && activa?.j === j;
                   const pico = esPico(i, j);
+                  const citas = citasEn(i, j);
+                  // B38: el anillo dice «aquí hay citas confirmadas»; la
+                  // alarma, «más citas que gente». El muro de conteos recede
+                  // y las franjas que importan al operativo saltan solas.
+                  const marca = citas > 0 ? (citas > n ? " es-deficit" : " tiene-citas") : "";
                   return (
                     <td key={j} className={oferta.franjas[j] % 60 === 0 ? "es-hora" : undefined}>
                       {n ? (
                         <button
                           type="button"
-                          className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}`}
+                          className={`aulas-carga-celda${pico ? " es-pico" : ""}${estaActiva ? " es-activa" : ""}${marca}`}
                           style={celda(n)}
                           title={nombreDeFranja(i, j) + (pico ? " · pico de la oferta" : "")}
                           aria-label={nombreDeFranja(i, j) + (pico ? ". Pico de la oferta" : "")}
@@ -169,7 +191,14 @@ export function AulasDisponibilidadDeAplicadores({
                           {n}
                         </button>
                       ) : (
-                        <span className="aulas-carga-celda" style={celda(n)} />
+                        /* Cita confirmada sin NADIE declarado: el hueco más
+                           grave de la lectura conjunta — se pinta y se dice,
+                           no queda como celda vacía cualquiera. */
+                        <span
+                          className={`aulas-carga-celda${marca}`}
+                          style={celda(n)}
+                          title={citas > 0 ? nombreDeFranja(i, j) : undefined}
+                        />
                       )}
                     </td>
                   );
@@ -200,7 +229,19 @@ export function AulasDisponibilidadDeAplicadores({
               {fijada ? <em> · fijada; otro click la suelta</em> : null}
             </p>
             <div className="aulas-carga-detalle-grupo">
-              <h4>Disponibles · {fmt(oferta.disponibles[activa.i][activa.j])}</h4>
+              <h4>
+                Disponibles · {fmt(oferta.disponibles[activa.i][activa.j])}
+                {citasEn(activa.i, activa.j) > 0 ? (
+                  <span className={`aulas-carga-detalle-citas${
+                    citasEn(activa.i, activa.j) > oferta.disponibles[activa.i][activa.j] ? " es-deficit" : ""}`}>
+                    {" "}· {fmt(citasEn(activa.i, activa.j))}{" "}
+                    {citasEn(activa.i, activa.j) === 1 ? "cita confirmada" : "citas confirmadas"}
+                    {citasEn(activa.i, activa.j) > oferta.disponibles[activa.i][activa.j]
+                      ? " — más citas que gente"
+                      : ""}
+                  </span>
+                ) : null}
+              </h4>
               {oferta.nombres[activa.i][activa.j].length ? (
                 /* Cada persona en su chip (dictado 2026-09-02, sistema de
                    chips): la lista se escanea, no se lee de corrido. Completa
@@ -227,6 +268,12 @@ export function AulasDisponibilidadDeAplicadores({
         <ul className="aulas-carga-leyenda">
           <li><i style={celda(Math.max(1, Math.round(tope / 3)))} aria-hidden="true" />Poca gente disponible</li>
           <li><i style={celda(tope)} aria-hidden="true" />Mucha gente disponible</li>
+          {demandaFirme ? (
+            <>
+              <li><i className="aulas-carga-celda tiene-citas" style={celda(tope)} aria-hidden="true" />Con citas confirmadas a esa hora</li>
+              <li><i className="aulas-carga-celda es-deficit" style={celda(1)} aria-hidden="true" />Más citas que gente</li>
+            </>
+          ) : null}
           <li className="aulas-carga-estado">
             {fmt(oferta.aplicadores)} aplicadores declararon disponibilidad
           </li>

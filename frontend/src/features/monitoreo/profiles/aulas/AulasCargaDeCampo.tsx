@@ -213,6 +213,16 @@ export function AulasCargaDeCampo({
       ),
     [malla, oferta],
   );
+  // B38 (dictado 2026-09-02: «disponibilidad se ve mejor»): la demanda
+  // CONFIRMADA entra a la malla de oferta, alineada por día — la vista
+  // contestaba «conmuta con el patrón semanal para ver si la gente alcanza»,
+  // que es confesar que sola no podía. Mismo eje de franjas y columnas
+  // compartidas; el día casa por etiqueta (las filas semanales SON los DIAS).
+  const demandaFirme = useMemo(() => {
+    if (!oferta || eje !== "semana") return null;
+    const porEtiqueta = new Map(malla.filas.map((f, d) => [f.etiqueta, malla.firmes[d]]));
+    return oferta.filas.map((f) => porEtiqueta.get(f.etiqueta) ?? null);
+  }, [oferta, malla, eje]);
   // Una escala por capa. Con un tope unico, el carril —que suma todas las
   // semanas— marcaba el maximo y las fechas quedaban todas en el tono mas
   // palido: 15 dias de operativo se veian como un lavado uniforme.
@@ -367,7 +377,7 @@ export function AulasCargaDeCampo({
       </header>
 
       {vista === "disponibilidad" ? (
-        <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} />
+        <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} demandaFirme={demandaFirme} />
       ) : null}
       {vista === "asignacion" ? (
         <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} />

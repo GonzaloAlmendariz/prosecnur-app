@@ -195,6 +195,14 @@ button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-m
 /* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
    estilo en línea de la capa plausible ya usa box-shadow y lo taparía. */
 .aulas-carga-celda.es-pico { outline: 2px solid var(--pulso-warn-border); outline-offset: -2px; }
+/* B38 — la demanda confirmada sobre la malla de oferta: el anillo verde dice
+   «aquí hay citas», la alarma dice «más citas que gente». Van por box-shadow
+   interior para convivir con los outlines de es-pico/es-activa. */
+.aulas-carga-celda.tiene-citas { box-shadow: inset 0 0 0 2px var(--pulso-success-fg); }
+.aulas-carga-celda.es-deficit { box-shadow: inset 0 0 0 2px var(--pulso-danger-fg); }
+span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-danger-fg) 14%, var(--pulso-surface)); }
+.aulas-carga-detalle-citas { font-weight: 500; color: var(--pulso-success-fg); }
+.aulas-carga-detalle-citas.es-deficit { color: var(--pulso-danger-fg); font-weight: 600; }
 /* La celda explorada; declarada después del pico para ganar cuando coinciden. */
 .aulas-carga-celda.es-activa { outline: 2px solid var(--pulso-module-monitoring); outline-offset: -2px; }
 

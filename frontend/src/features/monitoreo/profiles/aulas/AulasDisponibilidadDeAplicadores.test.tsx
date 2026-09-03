@@ -75,3 +75,65 @@ describe("AulasDisponibilidadDeAplicadores", () => {
     expect(html).toContain("1 franja declarada queda fuera del eje de 07:00 a 22:00");
   });
 });
+
+/**
+ * B38 (dictado 2026-09-02: «disponibilidad se ve mejor»): la vista confesaba
+ * su brecha — «conmuta con el patrón semanal para ver si la gente alcanza».
+ * Ahora la demanda confirmada entra A la malla: anillo donde hay citas,
+ * alarma donde las citas superan a la gente, y el hueco más grave —cita sin
+ * nadie declarado— se pinta en vez de quedar como celda vacía cualquiera.
+ */
+describe("AulasDisponibilidadDeAplicadores — la demanda confirmada encima (B38)", () => {
+  const disponibilidad = bloque([
+    {
+      dia: "lunes",
+      franjas: [
+        { inicio: "09:00", fin: "09:30", disponibles: 2, nombres: ["Ana Prueba", "Berta Ficticia"] },
+        { inicio: "09:30", fin: "10:00", disponibles: 1, nombres: ["Ana Prueba"] },
+      ],
+    },
+  ]);
+  const oferta = mallaDeOferta(disponibilidad)!;
+  const j0900 = oferta.franjas.indexOf(9 * 60);
+  const j0930 = oferta.franjas.indexOf(9 * 60 + 30);
+  const j1000 = oferta.franjas.indexOf(10 * 60);
+  const demandaLunes = oferta.franjas.map(() => 0);
+  demandaLunes[j0900] = 1; // 1 cita, 2 disponibles → anillo
+  demandaLunes[j0930] = 3; // 3 citas, 1 disponible → más citas que gente
+  demandaLunes[j1000] = 2; // 2 citas, NADIE declarado → el hueco grave
+  const demandaFirme = oferta.filas.map((f) => (f.etiqueta === "lunes" ? demandaLunes : null));
+  // Las columnas vivas incluyen la demanda, como en producción: la franja con
+  // citas y cero oferta también se pinta.
+  const vivas = columnasVivas(oferta.franjas.length, [oferta.disponibles, [demandaLunes]]);
+  const html = renderToStaticMarkup(
+    <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} demandaFirme={demandaFirme} />,
+  );
+
+  it("la franja con citas cubiertas lleva su anillo y lo dice en su nombre", () => {
+    expect(html).toContain("tiene-citas");
+    expect(html).toMatch(/aria-label="lunes 09:00: 2 disponibles, 1 cita confirmada/);
+  });
+
+  it("más citas que gente = alarma declarada, no un conteo más", () => {
+    expect(html).toMatch(/aria-label="lunes 09:30: 1 disponible, 3 citas confirmadas — más citas que gente/);
+    expect(html).toContain("es-deficit");
+  });
+
+  it("la cita sin nadie declarado se pinta y se titula — el hueco no pasa por celda vacía", () => {
+    expect(html).toMatch(/<span[^>]*es-deficit[^>]*title="lunes 10:00: 0 disponibles, 2 citas confirmadas — más citas que gente"/);
+  });
+
+  it("el lead y la leyenda hablan de la lectura conjunta", () => {
+    expect(html).toContain("las citas confirmadas encima");
+    expect(html).toContain("Más citas que gente");
+  });
+
+  it("sin capa de demanda la vista queda como antes: ni anillos ni alarma", () => {
+    const solo = renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} />,
+    );
+    expect(solo).not.toContain("tiene-citas");
+    expect(solo).not.toContain("es-deficit");
+    expect(solo).toContain("conmuta con el patrón semanal");
+  });
+});
