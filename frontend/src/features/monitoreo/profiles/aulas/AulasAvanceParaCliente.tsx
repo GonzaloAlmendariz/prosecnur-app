@@ -185,7 +185,7 @@ export function AulasAvanceParaCliente({
         {sobremuestra}
         {/* Los faltantes no se netean, y quien vea el total querrá restarlo. */}
         <span className="aulas-cliente-nota">
-          lo que falta se suma grupo a grupo: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
+          Lo que falta se suma grupo a grupo: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
         </span>
       </p>
 
