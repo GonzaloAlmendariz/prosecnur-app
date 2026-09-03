@@ -503,3 +503,148 @@ test_that("B29: repetible por si llegan nuevas confirmaciones — el reparto del
   expect_true(is.list(.marp_asig(.marp_dia(pasada2, "2026-09-12"), "CH 2")))
   expect_equal(sum(.marp_equidad(pasada2)), 2)
 })
+
+# --- B36: fijadas — el mecanismo propio de asignación y reasignación ---------
+#
+# Dictado de Gonzalo (2026-09-02): «asegúrate que la asignación se ve mejor,
+# que tengo mecanismo propio de asignación y reasignación, que sea equitativo».
+# El reparto automático sigue siendo la base; la fijación es la voluntad
+# explícita del usuario y MANDA — el motor la aplica siempre, declara con
+# `advertencia` lo que la oferta no respalda, y reequilibra el resto
+# contándola en la carga.
+
+test_that("B36: la fijada manda sobre el greedy y llega marcada", {
+  # «Zoe Tardia» va ÚLTIMA en alfabeto a propósito: el greedy jamás se la
+  # daría a CH 1 teniendo a «Ana Prueba» igual de libre — si CH 1 sale con
+  # Zoe, fue la fijación y no el azar del empate.
+  disp <- list(.marp_full("Ana Prueba"), .marp_full("Zoe Tardia"))
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00")
+  ), disp, fijadas = list("CH 1" = "Zoe Tardia"))
+
+  a1 <- .marp_asig(.marp_dia(res, "2026-09-11"), "CH 1")
+  expect_true(is.list(a1))
+  expect_identical(a1[["aplicador"]], "Zoe Tardia")
+  expect_true(isTRUE(a1[["fijada"]]))
+  expect_null(a1[["advertencia"]])
+  expect_identical(res[["fijadas_sin_cita"]], list())
+  eq <- .marp_equidad(res)
+  expect_equal(unname(eq[["Zoe Tardia"]]), 1)
+  expect_equal(unname(eq[["Ana Prueba"]]), 0)
+})
+
+test_that("B36: la fijación cuenta en la carga — el resto se reequilibra sobre ella", {
+  # CH 1 fijado a Ana; CH 2 (a otra hora) queda para el greedy. Si la
+  # fijación NO contara en la carga, el empate 0-0 se rompería por alfabeto y
+  # CH 2 también sería de Ana; contándola (Ana=1, Zoe=0), CH 2 es de Zoe.
+  disp <- list(.marp_full("Ana Prueba"), .marp_full("Zoe Tardia"))
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 2", fecha = "2026-09-11", hora = "12:00")
+  ), disp, fijadas = list("CH 1" = "Ana Prueba"))
+
+  dia <- .marp_dia(res, "2026-09-11")
+  expect_identical(.marp_asig(dia, "CH 1")[["aplicador"]], "Ana Prueba")
+  a2 <- .marp_asig(dia, "CH 2")
+  expect_identical(a2[["aplicador"]], "Zoe Tardia")
+  # La automática viaja con su marca explícita: el front distingue sin adivinar.
+  expect_false(isTRUE(a2[["fijada"]]))
+  expect_equal(sum(.marp_equidad(res)), 2)
+})
+
+test_that("B36: fijada fuera de la oferta se aplica con advertencia — la voluntad manda, el motor declara", {
+  # Alba no cubre [10:00, 10:20] y «Perico Externo» ni siquiera está en la
+  # disponibilidad: ambas fijaciones se aplican (decisión del usuario) y
+  # ambas llegan con su advertencia. Perico entra a la equidad con su carga:
+  # sin él, la suma de asignaciones no cuadraría con el resumen.
+  disp <- list(
+    .marp_apl("Alba Parcial", list(viernes = list(.marp_bloque("09:00", "10:10"))))
+  )
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 2", fecha = "2026-09-11", hora = "12:00")
+  ), disp, fijadas = list("CH 1" = "Alba Parcial", "CH 2" = "Perico Externo"))
+
+  dia <- .marp_dia(res, "2026-09-11")
+  a1 <- .marp_asig(dia, "CH 1")
+  expect_identical(a1[["aplicador"]], "Alba Parcial")
+  expect_true(isTRUE(a1[["fijada"]]))
+  expect_identical(a1[["advertencia"]], "sin_disponibilidad")
+  a2 <- .marp_asig(dia, "CH 2")
+  expect_identical(a2[["aplicador"]], "Perico Externo")
+  expect_identical(a2[["advertencia"]], "sin_disponibilidad")
+  eq <- .marp_equidad(res)
+  expect_equal(unname(eq[["Perico Externo"]]), 1)
+  # Nada quedó descubierto: la fijación cubre, aunque advierta.
+  expect_length(.marp_no_cubiertos(dia), 0)
+})
+
+test_that("B36: la fijada ocupa la ventana — el greedy no le pone al mismo aplicador otra aula encima", {
+  disp <- list(.marp_full("Ana Prueba"))
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 2", fecha = "2026-09-11", hora = "10:10")
+  ), disp, fijadas = list("CH 1" = "Ana Prueba"))
+
+  dia <- .marp_dia(res, "2026-09-11")
+  expect_identical(.marp_asig(dia, "CH 1")[["aplicador"]], "Ana Prueba")
+  # [10:10, 10:30] solapa la fijada [10:00, 10:20] y no hay nadie más.
+  expect_null(.marp_asig(dia, "CH 2"))
+  expect_true("CH 2" %in% .marp_no_cubiertos(dia))
+})
+
+test_that("B36: dos fijadas del mismo aplicador que se solapan se aplican y la segunda avisa", {
+  disp <- list(.marp_full("Ana Prueba"))
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 2", fecha = "2026-09-11", hora = "10:10")
+  ), disp, fijadas = list("CH 1" = "Ana Prueba", "CH 2" = "Ana Prueba"))
+
+  dia <- .marp_dia(res, "2026-09-11")
+  a1 <- .marp_asig(dia, "CH 1")
+  a2 <- .marp_asig(dia, "CH 2")
+  expect_identical(a1[["aplicador"]], "Ana Prueba")
+  expect_null(a1[["advertencia"]])
+  expect_identical(a2[["aplicador"]], "Ana Prueba")
+  expect_identical(a2[["advertencia"]], "se_solapa")
+  expect_equal(unname(.marp_equidad(res)[["Ana Prueba"]]), 2)
+})
+
+test_that("B36: la fijación huérfana se declara, no se traga — y la de una cita sin pactar también", {
+  disp <- list(.marp_full("Ana Prueba"))
+  res <- monitoreo_aulas_reparto(list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 3", fecha = "2026-09-11", hora = "")
+  ), disp, fijadas = list(
+    "CH 99" = "Ana Prueba",  # nadie con ese código
+    "CH 3" = "Ana Prueba"    # existe, pero sin hora pactada: no hay ventana
+  ))
+
+  huerfanas <- sort(as.character(unlist(res[["fijadas_sin_cita"]])))
+  expect_identical(huerfanas, c("CH 3", "CH 99"))
+  # CH 3 sigue en su balde de siempre: por confirmar, no asignada a ciegas.
+  expect_true("CH 3" %in% .marp_por_confirmar(.marp_dia(res, "2026-09-11")))
+})
+
+test_that("B36: el dashboard cacheado aplica las fijadas del config y cambiarlas invalida la cache", {
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_disponibilidad",
+              list(.marp_full("Ana Prueba"), .marp_full("Zoe Tardia")))
+  plan <- .marp_plan_dashboard()
+
+  base <- monitoreo_aulas_cache_token("b", plan, list(), scope = "full")
+  con_fijada <- monitoreo_aulas_cache_token(
+    "b", plan, list(reparto_fijado = list("CH 1" = "Zoe Tardia")), scope = "full"
+  )
+  # Lección A15: la fijación entra al token con marca de contenido — fijar o
+  # soltar invalida aunque los conteos no cambien.
+  expect_false(identical(base, con_fijada))
+
+  rep <- monitoreo_aulas_dashboard_cached(
+    sid, plan, data.frame(),
+    list(reparto_fijado = list("CH 1" = "Zoe Tardia")), token = ""
+  )[["dashboard"]][["reparto"]]
+  a1 <- .marp_asig(.marp_dia(rep, "2026-09-11"), "CH 1")
+  expect_identical(a1[["aplicador"]], "Zoe Tardia")
+  expect_true(isTRUE(a1[["fijada"]]))
+})

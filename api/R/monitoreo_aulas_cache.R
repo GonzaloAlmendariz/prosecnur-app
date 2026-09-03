@@ -82,12 +82,26 @@
   paste0(length(disponibilidad), "~", paste(partes, collapse = "&"))
 }
 
+# La marca de contenido de las fijaciones (B36) para el token: código→
+# aplicador, claves ordenadas. Fijar o soltar UNA cita invalida aunque el
+# conteo no cambie — la misma lección A15 que la disponibilidad.
+.mac_fijadas_marca <- function(fijadas) {
+  if (!is.list(fijadas) || !length(fijadas)) return("0")
+  claves <- sort(names(fijadas) %||% character(0), method = "radix")
+  claves <- claves[nzchar(claves)]
+  if (!length(claves)) return("0")
+  paste0(length(claves), "~", paste(vapply(claves, function(k) {
+    paste0(k, "=", as.character(fijadas[[k]] %||% "")[1])
+  }, character(1)), collapse = "&"))
+}
+
 # Publica los dos bloques B29 sobre el dashboard ya construido. Sin
 # disponibilidad no toca nada: ausencia declarada, no un bloque vacío.
-.mac_publicar_disponibilidad <- function(dashboard, plan, disponibilidad) {
+.mac_publicar_disponibilidad <- function(dashboard, plan, disponibilidad,
+                                         fijadas = list()) {
   if (is.null(disponibilidad) || !is.list(dashboard)) return(dashboard)
   dashboard[["disponibilidad"]] <- monitoreo_aulas_disponibilidad_bloque(disponibilidad)
-  dashboard[["reparto"]] <- monitoreo_aulas_reparto(plan, disponibilidad)
+  dashboard[["reparto"]] <- monitoreo_aulas_reparto(plan, disponibilidad, fijadas)
   dashboard
 }
 
@@ -131,6 +145,9 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full",
     # B29 (decisión del lead): cambiar la disponibilidad de aplicadores
     # invalida el dashboard — su reparto viaja dentro del payload cacheado.
     .mac_disponibilidad_marca(disponibilidad),
+    # B36: las fijaciones del reparto viven en el config de aulas y su
+    # reparto viaja en el payload — fijar o soltar invalida.
+    .mac_fijadas_marca(if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL),
     sep = "|"
   )
 }
@@ -158,7 +175,8 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   }
   construir <- function() {
     .mac_publicar_disponibilidad(
-      monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad
+      monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad,
+      fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list()
     )
   }
   if (!nzchar(sid) || !nzchar(token)) {

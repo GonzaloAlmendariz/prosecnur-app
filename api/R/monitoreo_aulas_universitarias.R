@@ -410,6 +410,22 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       ))
       if (isTRUE(crit$declarado)) crit$umbral_min else NULL
     }),
+    # **Las fijaciones del reparto de aplicadores (B36)** — codigo de cita →
+    # aplicador, la voluntad explicita del usuario sobre el greedy. Misma
+    # doctrina de whitelist: sin esta entrada, fijar una cita y guardar el
+    # proyecto la perderia en silencio. Un valor vacio ("") es la forma de
+    # SOLTAR una fijacion: se descarta aqui y la cita vuelve al automatico.
+    reparto_fijado = local({
+      crudo <- config[["reparto_fijado"]]
+      if (!is.list(crudo)) crudo <- list()
+      limpio <- list()
+      for (nm in (names(crudo) %||% character(0))) {
+        cod <- trimws(nm)
+        v <- trimws(as.character(crudo[[nm]] %||% "")[1])
+        if (nzchar(cod) && !is.na(v) && nzchar(v)) limpio[[cod]] <- v
+      }
+      limpio
+    }),
     plan = monitoreo_aulas_normalize_plan(config[["plan"]] %||% config[["agenda"]] %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
