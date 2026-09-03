@@ -672,7 +672,7 @@ export function AulasCargaDeCampo({
                              span: cien tab-stops muertos no son acceso. */
                           <button
                             type="button"
-                            className={`aulas-carga-celda${esPico ? " es-pico" : ""}${activa ? " es-activa" : ""}`}
+                            className={`aulas-carga-celda${firme === 0 && plausible > 0 ? " es-plausible" : ""}${esPico ? " es-pico" : ""}${activa ? " es-activa" : ""}`}
                             style={celda(firme, plausible)}
                             title={titulo}
                             aria-label={nombreDeCelda(fila.etiqueta, comoHora(malla.franjas[j]), firme, plausible)

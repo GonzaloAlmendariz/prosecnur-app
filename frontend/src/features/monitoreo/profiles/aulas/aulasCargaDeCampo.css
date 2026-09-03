@@ -223,6 +223,12 @@ button.aulas-carga-celda { padding: 0; border: 0; font: inherit; font-size: 14px
    («no se ve… francamente mal») — la celda con confirmados dice SOLO el
    confirmado y el techo vive en hover/detalle. */
 button.aulas-carga-celda:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+/* Loop mejora-ui E4 — dos capas, dos voces: la distinción confirmado/techo ya
+   existía en color (verde vs rosa) pero no en tipografía, y en el patrón real
+   la banda rosa cubre casi toda la malla — el mismo 600/14px en ambas capas
+   hacía competir el «puede ser» con el «ya es». El techo por-agendar habla un
+   punto más bajo; el verde confirmado conserva 14px/600 y lleva la melodía. */
+button.aulas-carga-celda.es-plausible { font-weight: 500; font-size: 13px; }
 
 /* El pico del operativo, marcado EN la malla. `outline` y no `box-shadow`: el
    estilo en línea de la capa plausible ya usa box-shadow y lo taparía.
