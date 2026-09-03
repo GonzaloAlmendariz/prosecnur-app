@@ -27,6 +27,7 @@ import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
+import { identidadEnCelda } from "./AulasSistemaPabellon";
 import { columnasConDato } from "./columnasConDato";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import { AulasPestanaResumen } from "./AulasPestanaResumen";
@@ -305,7 +306,10 @@ function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
   );
 }
 
-function DataTable({
+// Exportada para poder probarla con filas reales: la intercepción de chips de
+// identidad (Sistema Pabellón, B33) vive en su celda y un test de fuente no
+// probaría que se pinta.
+export function DataTable({
   rows,
   empty,
   preferredColumns = [],
@@ -407,12 +411,15 @@ function DataTable({
             <tr key={index}>
               {columns.map((column) => (
                 <td key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
-                  {/* Un estado se pinta como chip de color; el resto, texto.
-                      Los colores son los de la franja por día: la misma aula
-                      tiene que verse igual en su barra y en su fila. */}
+                  {/* Un estado se pinta como chip de color; la identidad
+                      —lugar, hora, «Sesiones y aula»— como chips del Sistema
+                      Pabellón (B33); el resto, texto. Los colores del estado
+                      son los de la franja por día y el tono del lugar deriva
+                      de su letra: la misma aula tiene que verse igual en su
+                      barra, en su fila y en cualquier otra vista del perfil. */}
                   {COLUMNAS_DE_ESTADO.has(column)
                     ? <EstadoEnCelda valor={String(row[column] ?? "")} />
-                    : String(row[column] ?? "")}
+                    : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
                 </td>
               ))}
             </tr>
