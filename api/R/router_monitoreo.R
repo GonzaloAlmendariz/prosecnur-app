@@ -5015,6 +5015,7 @@ mount_monitoreo <- function(pr) {
       # unico que permite comparar dos copias sin adivinar cual esta al dia.
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
                           procedencia = s$monitoreo_aulas_libro %||% NULL,
+                          disponibilidad = s$monitoreo_aulas_disponibilidad %||% NULL,
                           efectivas = efectivas, responses = respuestas,
                           validas = validas,
                           # Las cuotas del diseño, para el avance por facultad y
