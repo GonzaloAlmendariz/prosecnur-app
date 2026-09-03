@@ -702,6 +702,18 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+/* En la columna FECHA del calendario el sello va DEBAJO de la fecha (dictado
+   2026-09-03: «esta parte se corta y no se ve bien, puede ir abajo; además no
+   están alineados los días»): inline empujaba «Lunes 07/09» fuera de los
+   112px de la columna y el recorte se comía la L. Bloque propio, pegado al
+   borde derecho como las fechas — la alineación de los días no se toca. */
+.aulas-carga-malla tbody th .aulas-carga-toca {
+  display: block;
+  margin: 2px 0 1px auto;
+  width: fit-content;
+  font-size: 9px;
+  padding: 0 6px;
+}
 .aulas-carga-malla tbody tr.es-pasado { opacity: 0.55; }
 /* Los edificios del parte del día: letra coloreada + cuenta, en el título. */
 .aulas-carga-detalle-pabellon { display: inline-flex; align-items: center; gap: 2px; margin-left: 7px; }
