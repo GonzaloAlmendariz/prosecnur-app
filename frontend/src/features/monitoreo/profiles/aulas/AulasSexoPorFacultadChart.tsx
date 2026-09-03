@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_MARCA_DE_META, COLOR_RESULTADO } from "../../coloresDeResultado";
-import { celdasPorFacultad } from "./celdasPorFacultad";
+import { celdasPorFacultad, type CeldaDeFacultad } from "./celdasPorFacultad";
 import { fmt } from "./kpisDeAulas";
+import "./aulasSexoPorFacultad.css";
 
 /**
  * Cuántos hombres y cuántas mujeres lleva cada facultad, y cuántos le faltan.
@@ -16,17 +14,60 @@ import { fmt } from "./kpisDeAulas";
  * interesa es cuántos hombres y cuántas mujeres, cómo vamos en cada estrato de
  * cada facultad».
  *
- * El estrato del sorteo lleva el sexo DOMINANTE DEL AULA, que es con lo que se
- * repartió la muestra; la cuota es de personas y un aula de mayoría hombres
- * aporta a las dos celdas. Son dos cortes distintos y el panel enseñaba el que
- * no se monitorea. El del sorteo sigue en la tabla de abajo, que es el registro
- * del diseño.
+ * **Barras en CSS y no Plotly** (dictado 2026-09-03, mirando este panel: «la
+ * diferencia entre hombres y mujeres y la facultad puede ir en boxes, uno de
+ * color diferente por facultad y color diferente por hombre y mujer, siguiendo
+ * el mismo criterio que el resto de elementos en Monitoreo de aulas… además el
+ * hover puede verse mucho mejor y más profesional»). Plotly no sabe pintar
+ * chips en el eje ni dejarse diseñar el tooltip; el precedente es el embudo
+ * («Barras en CSS y no Plotly: son tres pasos»). Cada fila lleva su facultad y
+ * su sexo como CHIPS con los tonos deterministas de la paleta compartida del
+ * Sistema Pabellón (`--pulso-accent-*`), y el hover/foco de la fila revela las
+ * cifras exactas en línea — el idioma accesible de la malla de Carga, no un
+ * tooltip flotante de librería.
  *
- * Dos filas por facultad —una por sexo— y tres tramos en cada una: lo recogido,
- * lo que traerán las aulas ya agendadas, y el déficit que quedaría aun así. La
- * pregunta operativa no es «cómo va Derecho» sino «de qué lado va corta y si lo
- * agendado basta».
+ * Los tramos de la barra conservan su semántica de siempre: lo recogido, lo
+ * que traerán las aulas EN JUEGO que faltan por aplicar (denominador de
+ * `monitoreo_aulas_avance_sexo_facultad()` sobre `tracked_df` — no es «lo
+ * agendado», que mide otra tarjeta) y el déficit que quedaría aun así; la
+ * cuota se marca como tick de tinta sobre la barra.
  */
+
+/* Los 8 tonos de la paleta compartida (sistemaPabellon.css). El tono de la
+   facultad es determinista sobre su NOMBRE COMPLETO: con 15 facultades donde
+   seis empiezan con C o E, el criterio por letra inicial del pabellón pintaría
+   iguales a CIENCIAS E INGENIERIA y CIENCIAS SOCIALES — mismo espíritu
+   (paleta compartida, asignación estable), mejor reparto. */
+const TONOS = 8;
+function tonoDeFacultad(nombre: string): number {
+  let h = 0;
+  for (let i = 0; i < nombre.length; i += 1) h = (h * 31 + nombre.charCodeAt(i)) % 997;
+  return h % TONOS;
+}
+
+/* El sexo con DOS tonos fijos de la misma paleta — el criterio del resto del
+   perfil (chips con tono estable), sin caer en el cliché de colores: violeta
+   para mujeres, acero para hombres, los dos más distinguibles entre sí. */
+const TONO_MUJERES = 4;
+const TONO_HOMBRES = 0;
+
+type FilaDeSexo = {
+  facultad: string;
+  sexo: "Mujeres" | "Hombres";
+  logrado: number;
+  pendiente: number;
+  deficit: number;
+  cuota: number;
+};
+
+const filasPlanas = (filas: ReadonlyArray<CeldaDeFacultad>): FilaDeSexo[] =>
+  filas.flatMap((f) => [
+    { facultad: f.facultad, sexo: "Mujeres" as const, logrado: f.mujeresLogrado,
+      pendiente: f.mujeresPendiente, deficit: f.mujeresDeficit, cuota: f.mujeresCuota },
+    { facultad: f.facultad, sexo: "Hombres" as const, logrado: f.hombresLogrado,
+      pendiente: f.hombresPendiente, deficit: f.hombresDeficit, cuota: f.hombresCuota },
+  ]);
+
 export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<MonitoreoRow> }) {
   const filas = useMemo(() => celdasPorFacultad(celdas), [celdas]);
 
@@ -42,77 +83,14 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
     );
   }
 
-  // Plotly dibuja el primero abajo: se invierte para que la facultad a la que
-  // más le falta quede arriba, que es donde cae la vista.
-  const orden = [...filas].reverse();
-  const eje = orden.flatMap((f) => [`${f.facultad} · Mujeres`, `${f.facultad} · Hombres`]);
-  const par = <T,>(f: (x: (typeof orden)[number]) => [T, T]) => orden.flatMap(f);
-
-  const data = [
-    {
-      type: "bar",
-      orientation: "h",
-      name: "Recogidas",
-      y: eje,
-      x: par((f) => [f.mujeresLogrado, f.hombresLogrado]),
-      marker: { color: COLOR_RESULTADO.efectiva },
-      hovertemplate: "%{y}: %{x} recogidas<extra></extra>",
-    },
-    {
-      type: "bar",
-      orientation: "h",
-      // El tramo que faltaba. Sin él las dos barras no suman la cuota y la
-      // ámbar acaba llamándose «faltan» siendo el déficit proyectado.
-      //
-      // **Y no dice «agendadas», que es lo que decía y era falso.** El
-      // `aporte_pendiente` que dibuja sale de `monitoreo_aulas_avance_sexo_facultad()`
-      // sobre `tracked_df`, o sea las aulas EN JUEGO —titular o reserva
-      // despierta de cada cadena— que aún no están aplicadas, tengan fecha o
-      // no. Tener fecha es otra cosa y la mide otra tarjeta: «Cierran con lo
-      // agendado» proyecta SÓLO sobre la agenda y por eso puede decir 0 de 30
-      // mientras aquí seis celdas salen sin déficit. No se contradicen: son dos
-      // denominadores, y el que estaba mal nombrado era éste.
-      name: "Aportarán los cursos-horario que faltan",
-      y: eje,
-      x: par((f) => [f.mujeresPendiente, f.hombresPendiente]),
-      marker: { color: COLOR_RESULTADO.parcial },
-      hovertemplate: "%{y}: %{x} de los cursos-horario del plan que faltan por aplicar<extra></extra>",
-    },
-    {
-      type: "bar",
-      orientation: "h",
-      name: "Déficit proyectado",
-      y: eje,
-      x: par((f) => [f.mujeresDeficit, f.hombresDeficit]),
-      marker: { color: COLOR_RESULTADO.pendiente },
-      // Sin decimales: son personas. Y el cero no se escribe, que en una celda
-      // cubierta la etiqueta «0» compite con las que sí piden algo.
-      text: par((f) => [
-        f.mujeresDeficit ? String(f.mujeresDeficit) : "",
-        f.hombresDeficit ? String(f.hombresDeficit) : "",
-      ]),
-      textposition: "outside",
-      cliponaxis: false,
-      hovertemplate: "%{y}: déficit proyectado %{x}<extra></extra>",
-    },
-  ];
-
-  // **Dónde está la meta.** Sin marcarla, una celda que se pasa se ve igual que
-  // una justa: medido, 6 de las 30 celdas superan su cuota —ARTES ESCÉNICAS
-  // hombres tiene cuota 30 y va a tener 36— y la barra solo se alargaba. En un
-  // gráfico sobre CUMPLIR cuotas, la cuota tiene que verse.
-  const marcas = {
-    type: "scatter",
-    mode: "markers",
-    name: "Cuota",
-    y: eje,
-    x: par((f) => [f.mujeresCuota, f.hombresCuota]),
-    // Tinta, no un color de dato: llevaba `COLOR_RESULTADO.pendiente`, que es el
-    // MISMO gris del segmento «Déficit proyectado» de esta barra.
-    marker: { symbol: "line-ns-open", size: 14, line: { width: 2 },
-              color: COLOR_MARCA_DE_META },
-    hovertemplate: "%{y}: cuota %{x}<extra></extra>",
-  };
+  // `celdasPorFacultad` ya ordena por déficit proyectado descendente: la
+  // facultad a la que más le falta queda ARRIBA, que es donde cae la vista.
+  const planas = filasPlanas(filas);
+  // Una sola escala para todas las filas: comparar barras entre sí es para lo
+  // que existe el panel. La cuota entra al máximo para que su tick jamás se
+  // salga de la pista.
+  const max = Math.max(1, ...planas.map((p) => Math.max(p.logrado + p.pendiente + p.deficit, p.cuota)));
+  const pct = (n: number) => `${(100 * n) / max}%`;
 
   const deficitTotal = filas.reduce((s, f) => s + f.deficit, 0);
   const cubiertas = filas.filter((f) => f.deficit === 0).length;
@@ -124,23 +102,67 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
     // El contenedor de datos del panel «Avance por facultad y sexo». Sin
     // declararlo, el runner cae a los hijos directos del `section` y mide su
     // encabezado como si fuera datos — el patrón que salió siete veces.
-    <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-      <PlotlyChart
-        data={[...data, marcas]}
-        height={Math.max(240, 22 * eje.length + 56)}
-        ariaLabel="Respuestas recogidas y por recoger, por facultad y sexo"
-        layout={{
-          font: fuenteDeEjeAulas(),
-          barmode: "stack",
-          margin: { l: 8, r: 52, t: 30, b: 28 },
-          xaxis: { title: { text: "respuestas" }, zeroline: false, fixedrange: true },
-          yaxis: { automargin: true, fixedrange: true },
-          showlegend: true,
-          legend: { orientation: "h", y: 1.08, x: 0, traceorder: "normal" },
-          bargap: 0.25,
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-      />
+    <div className="aulas-cobertura-chart aulas-sexfac" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* Dictado 2026-09-03: «¿qué busca hacer o representar?» — la pregunta
+          del panel se declara EN el panel, en una línea. */}
+      <p className="aulas-sexfac-pregunta">
+        ¿Cierra cada facultad su cuota de mujeres y de hombres con lo que queda
+        del plan? Cada barra compara lo recogido y lo por llegar contra la
+        meta, que es la marca de tinta.
+      </p>
+      <ul className="aulas-sexfac-leyenda" aria-hidden="true">
+        <li><i className="es-recogidas" />Recogidas</li>
+        {/* En palabras llanas (dictado: «¿qué significa "aportarán los cursos
+            horarios que faltan"?»). Sigue SIN decir «agendadas» a propósito:
+            el tramo sale de las aulas EN JUEGO sin aplicar (tengan fecha o
+            no); «Cierran con lo agendado» proyecta sólo sobre la agenda y es
+            otra tarjeta. */}
+        <li><i className="es-pendiente" />Por llegar — lo traerán los cursos-horario sin aplicar</li>
+        <li><i className="es-deficit" />Faltaría aun así</li>
+        <li><i className="es-cuota" />Meta</li>
+      </ul>
+      <ul className="aulas-sexfac-filas">
+        {planas.map((p) => {
+          const total = p.logrado + p.pendiente + p.deficit;
+          const detalle = `${p.facultad} · ${p.sexo}: ${fmt(p.logrado)} recogidas · `
+            + `${fmt(p.pendiente)} por llegar de los cursos-horario sin aplicar · `
+            + `faltarían ${fmt(p.deficit)} aun así · meta ${fmt(p.cuota)}`;
+          return (
+            <li key={`${p.facultad}·${p.sexo}`} className="aulas-sexfac-fila">
+              <span className="aulas-sexfac-quien">
+                <span className={`aulas-chip aulas-chip-lugar es-tono-${tonoDeFacultad(p.facultad)}`} title={p.facultad}>
+                  {p.facultad}
+                </span>
+                <span className={`aulas-chip aulas-chip-lugar aulas-sexfac-sexo es-tono-${p.sexo === "Mujeres" ? TONO_MUJERES : TONO_HOMBRES}`}>
+                  {p.sexo}
+                </span>
+              </span>
+              {/* La pista es focuseable: el hover Y el foco revelan las cifras
+                  — el equivalente accesible del tooltip, como en la malla. */}
+              <span className="aulas-sexfac-pista" tabIndex={0} role="img" aria-label={detalle}>
+                <span className="aulas-sexfac-tramos">
+                  {p.logrado > 0 && <i className="es-recogidas" style={{ width: pct(p.logrado) }} />}
+                  {p.pendiente > 0 && <i className="es-pendiente" style={{ width: pct(p.pendiente) }} />}
+                  {p.deficit > 0 && <i className="es-deficit" style={{ width: pct(p.deficit) }} />}
+                </span>
+                {p.cuota > 0 && <i className="aulas-sexfac-cuota" style={{ left: pct(p.cuota) }} title={`Meta ${fmt(p.cuota)}`} />}
+                <em className="aulas-sexfac-cifras" aria-hidden="true">
+                  {fmt(p.logrado)} recogidas
+                  {p.pendiente > 0 ? <> · <strong className="es-pendiente">+{fmt(p.pendiente)}</strong> por llegar</> : null}
+                  {p.deficit > 0 ? <> · <strong className="es-deficit">faltarían {fmt(p.deficit)}</strong></> : null}
+                  {" "}· meta {fmt(p.cuota)}
+                </em>
+              </span>
+              {/* El déficit a la vista SIN hover, como el «textposition:
+                  outside» que tenía el Plotly: el cero no se escribe, que en
+                  una celda cubierta competiría con las que sí piden algo. */}
+              <span className="aulas-sexfac-saldo">
+                {p.deficit > 0 ? fmt(p.deficit) : total >= p.cuota && p.cuota > 0 ? "✓" : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
       <p className="mon-profile-table-recorte">
         {/* **«repartido en» cuenta las que TIENEN déficit, no todas.** Con el
             simulacro de mitad de operativo el déficit total baja a 1 y la frase

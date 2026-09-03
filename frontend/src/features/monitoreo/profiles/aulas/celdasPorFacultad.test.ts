@@ -111,11 +111,15 @@ describe("el gráfico no puede llamar «agendadas» a lo que no lo es", () => {
   );
 
   it("ninguna etiqueta visible del gráfico dice «agendad-»", () => {
-    // Sólo las cadenas que ve el usuario: `name:`, `hovertemplate:` y el pie.
+    // Sólo las cadenas que ve el usuario. El gráfico pasó de Plotly a barras
+    // CSS (dictado 2026-09-03: chips por facultad y sexo, hover propio), así
+    // que las etiquetas visibles ya no viven en `name:`/`hovertemplate:` sino
+    // en la leyenda JSX y en los template literals del detalle accesible.
     // Los comentarios SÍ nombran la agenda, y deben poder hacerlo: explican
     // justo esta distinción.
     const visibles = [
-      ...fuente.matchAll(/^\s*(?:name|hovertemplate):\s*"([^"]*)"/gm),
+      ...fuente.matchAll(/<li><i className="[^"]*" \/>([^<]+)<\/li>/g),
+      ...fuente.matchAll(/`([^`]*)`/g),
     ].map((m) => m[1]);
     expect(visibles.length).toBeGreaterThan(3);
     expect(visibles.filter((t) => /agendad/i.test(t))).toEqual([]);
