@@ -101,8 +101,19 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
                       sesión va como chip de hora + chip de lugar. Lo que el
                       parser no entiende se pinta tal cual llegó. */}
                   <span className="aulas-ruta-donde" title={a.donde}>
+                    {/* B30 también aquí: cuando el libro trae el LUGAR DE
+                        APLICACIÓN confirmado, ESE es el dónde — chip de
+                        pabellón directo (un venue a secas no calza el patrón
+                        día+hora y saldría plano). Sin confirmado, el
+                        compuesto del sorteo como siempre. */}
                     {a.donde
-                      ? bloquesDeSesion(a.donde).map((b, i) =>
+                      ? a.esLugarConfirmado
+                        ? (
+                          <span className="aulas-ruta-bloque">
+                            <ChipLugar lugar={a.donde} />
+                          </span>
+                        )
+                        : bloquesDeSesion(a.donde).map((b, i) =>
                           "crudo" in b ? (
                             <span key={i}>{b.crudo}</span>
                           ) : (

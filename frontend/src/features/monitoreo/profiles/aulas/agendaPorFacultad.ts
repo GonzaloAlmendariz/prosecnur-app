@@ -18,8 +18,18 @@ export type AulaEnAgenda = {
   docente: string;
   fecha: string;
   hora: string;
-  /** «LUN 08:00 A101»: el texto descriptivo del libro, que es dónde está el aula. */
+  /**
+   * A dónde ir. B30 aplicado también aquí (pregunta de Gonzalo 2026-09-03:
+   * «¿estamos tomando la columna de dónde aplicar como fuente de verdad?
+   * porque en las observaciones algunos pabellones están cambiando»): el
+   * LUGAR DE APLICACIÓN confirmado del libro MANDA cuando existe — es donde
+   * se pactó aplicar y puede diferir del aula de la clase —; sin él, el
+   * texto descriptivo del sorteo («LUN 08:00 A101»). Era la ÚNICA superficie
+   * de lugar sin la precedencia, y es justo la de «a dónde ir cada día».
+   */
   donde: string;
+  /** `donde` es el lugar confirmado (venue a secas), no el compuesto del sorteo. */
+  esLugarConfirmado: boolean;
   estado: string;
   /**
    * Lo que anotó quien agendó. Viaja en `replacement_note` —el motor acepta ahí
@@ -60,7 +70,8 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       docente: texto(fila.teacher),
       fecha: texto(fila.scheduled_date),
       hora: texto(fila.scheduled_time),
-      donde: texto(fila.label),
+      donde: texto((fila as { scheduled_venue?: unknown }).scheduled_venue) || texto(fila.label),
+      esLugarConfirmado: Boolean(texto((fila as { scheduled_venue?: unknown }).scheduled_venue)),
       // El estado OPERATIVO y no el de muestra: lo que se pregunta antes de
       // salir es si el aula ya se aplicó, no si es titular o reemplazo.
       estado: texto(fila.operational_status) || "planificada",
