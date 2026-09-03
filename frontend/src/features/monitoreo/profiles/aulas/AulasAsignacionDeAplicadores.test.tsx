@@ -222,3 +222,32 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     expect(html).toMatch(/es-el-que-toca[\s\S]*Lunes 14\/09/);
   });
 });
+
+describe("AulasAsignacionDeAplicadores — el rail como hoja de despliegue", () => {
+  it("cada aplicador con cita en el día que toca lleva su hora y su destino; quien no sale, no", () => {
+    const html = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores({
+          dias: [{
+            fecha: "2026-09-07",
+            asignaciones: [
+              { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20" },
+              { codigo: "CH 3", aplicador: "Ana Prueba", inicio: "15:00", fin: "15:20" },
+            ],
+            no_cubiertos: [], por_confirmar: [],
+          }],
+          equidad: [
+            { aplicador: "Ana Prueba", asignadas: 2 },
+            { aplicador: "Mario Sintetico", asignadas: 0 },
+          ],
+        } as unknown as MonitoreoAulasReparto)}
+        lugares={new Map([["CH 1", "A703"]])}
+        hoy="2026-09-05"
+      />,
+    );
+    // La PRIMERA cita del día que toca, con su pabellón resuelto por el mapa.
+    expect(html).toMatch(/aulas-asigna-despliegue[\s\S]{0,200}10:00[\s\S]{0,200}A703/);
+    // Una sola línea de despliegue: Mario no sale ese día.
+    expect((html.match(/aulas-asigna-despliegue/g) ?? []).length).toBe(1);
+  });
+});

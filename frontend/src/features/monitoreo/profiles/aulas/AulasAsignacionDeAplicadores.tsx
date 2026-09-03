@@ -91,6 +91,20 @@ export function AulasAsignacionDeAplicadores({
 
   // Los candidatos del selector: la equidad entera, con su carga a la vista —
   // reasignar mirando quién anda cargado es la mitad del «que sea equitativo».
+  // El día QUE TOCA, compartido por los días y el rail: el primero no pasado.
+  const proximo = reparto.dias.find((x) => x.fecha >= hoy)?.fecha ?? null;
+  // La primera cita de cada aplicador en el día que toca — el rail deja de
+  // ser solo un conteo y se vuelve la hoja de DESPLIEGUE (régimen 2026-09-02:
+  // «cómo se va a desplegar a los aplicadores»): a qué hora y a qué pabellón
+  // entra cada uno. Las asignaciones ya vienen en orden de hora.
+  const despliegue = new Map<string, { inicio: string; codigo: string }>();
+  if (proximo !== null) {
+    const dia = reparto.dias.find((x) => x.fecha === proximo);
+    for (const a of dia?.asignaciones ?? []) {
+      if (!despliegue.has(a.aplicador)) despliegue.set(a.aplicador, { inicio: a.inicio, codigo: a.codigo });
+    }
+  }
+
   const opcionesDeAplicador = reparto.equidad.map((e) => (
     <option key={e.aplicador} value={e.aplicador}>
       {e.aplicador} · {fmt(e.asignadas)}
@@ -142,11 +156,9 @@ export function AulasAsignacionDeAplicadores({
             </p>
           ) : (
             (() => {
-              // El día QUE TOCA: el primero que no ha pasado. El jefe
-              // despliega gente POR DÍA (dictado 2026-09-02: «cómo se va a
-              // desplegar a los aplicadores») y en una lista donde todas las
-              // fechas pesan igual, la del despliegue inminente no salta.
-              const proximo = reparto.dias.find((x) => x.fecha >= hoy)?.fecha ?? null;
+              // El día QUE TOCA (calculado arriba, compartido con el rail):
+              // en una lista donde todas las fechas pesan igual, la del
+              // despliegue inminente no salta.
               return reparto.dias.map((d) => {
                 const esPasado = d.fecha < hoy;
                 const esElQueToca = d.fecha === proximo;
@@ -322,6 +334,24 @@ export function AulasAsignacionDeAplicadores({
                             (veredicto 2026-09-02): un solo componente, y el
                             estado «libre» lo atenúa por contexto. */}
                         <span className="aulas-asigna-cifra"><ChipDato>{fmt(e.asignadas)}</ChipDato></span>
+                        {/* Su entrada del día que toca: hora y a qué cita —
+                            el «a dónde va cada uno» del despliegue, sin abrir
+                            la tabla. Quien no sale ese día no lleva línea. */}
+                        {(() => {
+                          const cita = despliegue.get(e.aplicador);
+                          if (!cita) return null;
+                          return (
+                            <span className="aulas-asigna-despliegue">
+                              {cita.inicio ? <ChipHora>{cita.inicio}</ChipHora> : null}
+                              {(() => {
+                                const lugar = lugares?.get(cita.codigo) ?? "";
+                                return lugar
+                                  ? <ChipLugar lugar={lugar} />
+                                  : <ChipDato>{cita.codigo}</ChipDato>;
+                              })()}
+                            </span>
+                          );
+                        })()}
                         <i
                           className="aulas-asigna-barra"
                           style={{
