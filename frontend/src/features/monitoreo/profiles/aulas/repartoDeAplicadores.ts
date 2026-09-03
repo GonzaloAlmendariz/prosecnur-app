@@ -49,6 +49,10 @@ export type AsignacionDeCita = {
   aplicador: string;
   inicio: string;
   fin: string;
+  /** B36: la puso el usuario (fijación), no el greedy. */
+  fijada: boolean;
+  /** Lo que la oferta no respalda, declarado por el motor; "" si nada. */
+  advertencia: "" | "sin_disponibilidad" | "se_solapa";
 };
 
 export type DiaDeReparto = {
@@ -80,6 +84,8 @@ export type RepartoVista = {
   cargaMax: number;
   /** Días sin fecha o asignaciones sin sus señas: declarados, no tragados. */
   ilegibles: number;
+  /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
+  fijadasSinCita: string[];
 };
 
 export function repartoDeAplicadores(
@@ -106,7 +112,17 @@ export function repartoDeAplicadores(
         ilegibles += 1;
         continue;
       }
-      asignaciones.push({ codigo, aplicador, inicio: texto(a.inicio), fin: texto(a.fin) });
+      const avisoCrudo = texto(a.advertencia);
+      asignaciones.push({
+        codigo,
+        aplicador,
+        inicio: texto(a.inicio),
+        fin: texto(a.fin),
+        fijada: uno(a.fijada) === true,
+        // Lista cerrada del motor; un valor desconocido no se inventa lectura.
+        advertencia:
+          avisoCrudo === "sin_disponibilidad" || avisoCrudo === "se_solapa" ? avisoCrudo : "",
+      });
     }
     dias.push({
       fecha,
@@ -134,5 +150,6 @@ export function repartoDeAplicadores(
     conCarga: equidad.filter((e) => e.asignadas > 0).length,
     cargaMax: equidad.reduce((m, e) => Math.max(m, e.asignadas), 0),
     ilegibles,
+    fijadasSinCita: leerCodigos(raiz.fijadas_sin_cita),
   };
 }

@@ -41,7 +41,11 @@ describe("repartoDeAplicadores", () => {
     expect(r.dias).toHaveLength(1);
     expect(r.dias[0].fecha).toBe("2026-09-11");
     expect(r.dias[0].etiqueta).toBe("Viernes 11/09");
-    expect(r.dias[0].asignaciones).toEqual(DIA.asignaciones);
+    // El orden del motor se conserva; cada entrada suma las marcas B36 con
+    // sus valores por defecto (greedy, sin aviso).
+    expect(r.dias[0].asignaciones).toEqual(
+      DIA.asignaciones.map((a) => ({ ...a, fijada: false, advertencia: "" })),
+    );
     expect(r.dias[0].noCubiertos).toEqual(["CH 2"]);
     expect(r.dias[0].porConfirmar).toEqual(["CH 7"]);
     // El resumen de equidad viene alfabético DEL MOTOR (pin de B29) y con los
@@ -104,9 +108,37 @@ describe("repartoDeAplicadores", () => {
     }))!;
     expect(r.dias[0].asignaciones[0]).toEqual({
       codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20",
+      // B36: sin marca del motor, la asignación es del greedy y sin aviso.
+      fijada: false, advertencia: "",
     });
     expect(r.dias[0].noCubiertos).toEqual(["CH 2"]);
     expect(r.equidad[0]).toEqual({ aplicador: "Ana Prueba", asignadas: 1 });
+    expect(r.fijadasSinCita).toEqual([]);
+  });
+
+  it("B36: la fijación y su advertencia cruzan la frontera; lo desconocido no inventa lectura", () => {
+    // Dictado (2026-09-02): «mecanismo propio de asignación y reasignación».
+    // La marca `fijada` puede llegar envuelta ([true], jsonlite); una
+    // advertencia fuera de la lista cerrada del motor se lee como "".
+    const r = repartoDeAplicadores(crudo({
+      dias: [{
+        fecha: "2026-09-11",
+        asignaciones: [
+          { codigo: "CH 1", aplicador: "Zoe Tardia", inicio: "10:00", fin: "10:20", fijada: [true], advertencia: "sin_disponibilidad" },
+          { codigo: "CH 2", aplicador: "Ana Prueba", inicio: "12:00", fin: "12:20", fijada: false, advertencia: "algo_nuevo" },
+        ],
+        no_cubiertos: [],
+        por_confirmar: [],
+      }],
+      equidad: [],
+      fijadas_sin_cita: "CH 99",
+    }))!;
+    const [a1, a2] = r.dias[0].asignaciones;
+    expect(a1.fijada).toBe(true);
+    expect(a1.advertencia).toBe("sin_disponibilidad");
+    expect(a2.fijada).toBe(false);
+    expect(a2.advertencia).toBe("");
+    expect(r.fijadasSinCita).toEqual(["CH 99"]);
   });
 
   it("lo roto se declara en vez de tragarse: día sin fecha, asignación sin quién", () => {
