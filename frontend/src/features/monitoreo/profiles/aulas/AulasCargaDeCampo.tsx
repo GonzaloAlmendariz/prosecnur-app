@@ -502,7 +502,12 @@ export function AulasCargaDeCampo({
           <div>
             {/* B71: la banda firme cuenta la hora COMPLETA del aplicador
                 (recojo incluido) — el rótulo dice ocupados, no confirmados. */}
-            <dt>Ocupados en el pico</dt>
+            {/* Dictado 2026-09-03 («este KPI no aporta mucho y no se
+                entiende»): los cuatro rótulos del racimo se reescriben en
+                castellano llano, cada uno con su title que lo explica. */}
+            <dt title="Cuántos aplicadores están tomados a la vez en el peor momento, contando la hora completa de cada cita confirmada (recojo incluido)">
+              Aplicadores ocupados a la vez
+            </dt>
             <dd>{fmt(malla.pico?.firmes ?? 0)}</dd>
           </div>
           {/* El segundo indicador NO puede sumar el carril al pico de una fecha:
@@ -512,7 +517,7 @@ export function AulasCargaDeCampo({
           {eje === "calendario" ? (
             <>
               <div>
-                <dt>Cuándo</dt>
+                <dt>El momento más cargado</dt>
                 <dd className="es-texto">{cuando}</dd>
               </div>
               <div>
@@ -527,15 +532,19 @@ export function AulasCargaDeCampo({
           ) : (
             <>
               <div>
-                <dt>Hasta, si caen los que faltan</dt>
+                <dt title="Si todos los cursos-horario pendientes se agendaran en su franja posible, este sería el máximo de aplicadores a la vez">
+                  Techo si se agenda todo lo pendiente
+                </dt>
                 <dd>{fmt((malla.pico?.firmes ?? 0) + (malla.pico?.plausibles ?? 0))}</dd>
               </div>
               <div>
-                <dt>Cuándo</dt>
+                <dt>El momento más cargado</dt>
                 <dd className="es-texto">{cuando}</dd>
               </div>
               <div>
-                <dt>Cursos-horario en curso entonces</dt>
+                <dt title="Cuántas clases se están dictando en ese momento según el catálogo de sesiones">
+                  Clases en aula a esa hora
+                </dt>
                 <dd>{fmt(malla.pico?.aulas ?? 0)}</dd>
               </div>
             </>

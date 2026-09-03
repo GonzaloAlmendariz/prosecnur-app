@@ -795,10 +795,13 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
                                efectivas = NULL, responses = NULL, validas = NULL,
                                cuotas = NULL, cfg = list(), procedencia = NULL,
-                               traslape_daa = NULL) {
+                               traslape_daa = NULL, disponibilidad = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
+  # B68: la hoja de asignación reparte sobre el plan COMPLETO —el mismo insumo
+  # que la app—, y aquí abajo `unidades` se filtra para las hojas del libro.
+  plan_completo <- unidades
   # B14: el banco de extras sin usar se captura ANTES del filtro —el filtro es
   # justo lo que lo saca de las hojas principales— y gana sus dos hojas
   # propias mas abajo. Un plan que SOLO trae banco sigue sin generar libro
@@ -1349,6 +1352,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       extras_fmt$combinar
     )
   )
+  # B68 (dictado 2026-09-03): la hoja «Asignación de aplicadores» — la doble
+  # escritura del reparto. Sin disponibilidad en sesión no se escribe: una
+  # hoja vacía se leería como «nadie asignado». Vive en su archivo propio.
+  aulas_libro_hoja_asignacion(wb, plan_completo, disponibilidad, cfg = cfg)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde
