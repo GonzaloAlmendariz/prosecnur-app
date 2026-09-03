@@ -185,7 +185,10 @@ export const FIELD_LABELS: Record<string, string> = {
   replacement_order: "Orden en la cadena",
   orden: "Orden",
   classroom_id: "ID de curso-horario",
-  label: "Sesiones y aula",
+  // «Sesiones y aula» pasó a `sesiones_legibles` (A23), que es quien de
+  // verdad la trae; `label` es la etiqueta-identificador del aula y el
+  // guard de rótulos no admite dos claves con el mismo nombre.
+  label: "Etiqueta",
   course_id: "ID de curso",
   course_name: "Nombre del curso",
   section: "Sección",

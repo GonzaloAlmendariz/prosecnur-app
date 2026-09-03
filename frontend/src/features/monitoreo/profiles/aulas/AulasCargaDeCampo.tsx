@@ -761,7 +761,7 @@ export function AulasCargaDeCampo({
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
           <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
-          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una celda verde se ve al pasar el puntero</li>
+          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible; sobre una franja verde se ve al pasar el puntero</li>
           {eje === "calendario" ? (
             <li><span className="aulas-carga-toca">toca</span> el primer día no pasado: el despliegue inminente</li>
           ) : null}

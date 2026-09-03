@@ -27,7 +27,11 @@ describe("aulasPresentation", () => {
     // El código lo llama `CURSO-HORARIO` y al descriptivo `SESIONES Y AULA`:
     // estaban cruzados.
     expect(aulasFieldLabel("operational_code")).toBe("Curso-horario");
-    expect(aulasFieldLabel("label")).toBe("Sesiones y aula");
+    // «Sesiones y aula» pasó a `sesiones_legibles` (A23/a0250367), su dueño
+    // real; el guard de rótulos no admite dos claves con el mismo nombre y
+    // `label` volvió a ser lo que es: la etiqueta-identificador del aula.
+    expect(aulasFieldLabel("label")).toBe("Etiqueta");
+    expect(aulasFieldLabel("sesiones_legibles")).toBe("Sesiones y aula");
   });
 
   it("presenta los seis controles técnicos con etiquetas operativas", () => {
