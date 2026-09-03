@@ -463,10 +463,37 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-huerfanas .aulas-asigna-resolver-item { margin: 0 6px 0 2px; }
 
-/* B67+B75 — la fila de mandos del reparto: rango y resorteo, juntos. */
-.aulas-asigna-mandos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
-.aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 7px; }
-.aulas-asigna-resorteo em { font-style: normal; font-size: 11.5px; color: var(--pulso-text-faint); }
+/* B67+B75 — la fila de mandos del reparto: rango y resorteo, juntos. Loop
+   mejora-ui E1 (2026-09-03, tras el «es poco intuitivo»): los mandos dejaron
+   de flotar sueltos entre la vigencia y los KPIs — ahora son UN panel de
+   instrumentos: contenedor de hairline sobre fondo apenas hundido, divisor
+   entre el rango y el resorteo (solo en ancho, donde no envuelven), y el
+   «sorteo n.º N» como chip en vez de texto suelto. */
+.aulas-asigna-mandos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  width: fit-content; max-width: 100%;
+  padding: 7px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pulso-bg) 55%, var(--pulso-surface));
+}
+.aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
+@media (min-width: 900px) {
+  .aulas-asigna-mandos > .aulas-asigna-resorteo:not(:first-child) {
+    border-left: 1px solid var(--pulso-border);
+    padding-left: 16px;
+  }
+}
+.aulas-asigna-resorteo em {
+  font-style: normal; font-size: 11px; font-weight: 600;
+  color: var(--pulso-text-soft);
+  padding: 1px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* B75 — el rango de despliegue: dos fechas sobrias en la cabecera de la
    Asignación; aplicar re-particiona y lo de fuera queda declarado. */
