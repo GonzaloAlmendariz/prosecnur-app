@@ -121,13 +121,21 @@ export function AulasDisponibilidadDeAplicadores({
   // El suelo es 2, la misma convención que la demanda: con un máximo de 1, la
   // única persona disponible se pintaría como saturación total y la malla
   // diría «oferta plena» donde hay exactamente una.
-  const tope = Math.max(2, ...oferta.disponibles.map((fila) => Math.max(...fila)));
+  const positivos = oferta.disponibles.flat().filter((n) => n > 0);
+  const tope = Math.max(2, ...positivos);
+  // Loop mejora-ui E2: el contraste mapea el RANGO REAL observado (piso..tope),
+  // no 0..tope. Con el equipo real la oferta vive en 11–24 y la rampa desde
+  // cero pintaba toda la malla en el mismo slate medio: la densidad no se
+  // leía. El span con suelo de 4 evita el efecto contrario — una semana
+  // pareja (todo 20±1) no debe amplificar ruido como si fuera contraste.
+  const piso = Math.min(...positivos);
+  const span = Math.max(4, tope - piso);
   const celda = (n: number) => {
     if (n === 0) return { background: "transparent", color: "var(--pulso-text-faint)" };
-    const t = n / tope;
+    const t = Math.max(0, Math.min(1, (n - piso) / span));
     return {
-      background: `color-mix(in srgb, var(--pulso-info-fg) ${Math.round(14 + t * 62)}%, var(--pulso-surface))`,
-      color: t > 0.55 ? "var(--pulso-surface)" : "var(--pulso-text)",
+      background: `color-mix(in srgb, var(--pulso-info-fg) ${Math.round(16 + t * 64)}%, var(--pulso-surface))`,
+      color: t > 0.5 ? "var(--pulso-surface)" : "var(--pulso-text)",
     };
   };
 
