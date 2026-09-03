@@ -108,3 +108,25 @@ test_that("B70: duracion_aplicacion_min persiste, se sanea y cae al default con 
     45L
   )
 })
+
+test_that("B75: reparto_rango persiste con ambas puntas ISO y la basura se des-declara", {
+  cfg <- monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "2026-09-07", hasta = "2026-09-13")
+  ))
+  expect_identical(cfg$reparto_rango, list(desde = "2026-09-07", hasta = "2026-09-13"))
+
+  # Sin declarar o ilegible: NULL = todo el horizonte, sin romper el config.
+  expect_null(monitoreo_aulas_normalize_config(list())$reparto_rango)
+  expect_null(monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "la proxima semana", hasta = "2026-09-13")
+  ))$reparto_rango)
+  expect_null(monitoreo_aulas_normalize_config(list(
+    reparto_rango = list(desde = "2026-09-07")
+  ))$reparto_rango)
+
+  # Ida y vuelta (como vuelve del .pulso): mismo contrato.
+  expect_identical(
+    monitoreo_aulas_normalize_config(list(reparto_rango = cfg$reparto_rango))$reparto_rango,
+    cfg$reparto_rango
+  )
+})

@@ -659,3 +659,71 @@ test_that("B36: el dashboard cacheado aplica las fijadas del config y cambiarlas
   expect_identical(a1[["aplicador"]], "Zoe Tardia")
   expect_true(isTRUE(a1[["fijada"]]))
 })
+
+test_that("B75: el rango de despliegue reparte solo lo de dentro y declara lo aplazado", {
+  # Dictado 2026-09-03: «quiero distribuir equitativamente entre de este dia
+  # a este dia» — desplegar la semana 1 ahora y planear la 2 el jueves.
+  disp <- list(.marp_full("Ana Prueba"), .marp_full("Berta Ficticia"))
+  plan <- list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 2", fecha = "2026-09-11", hora = "15:00"),
+    .marp_fila("CH 3", fecha = "2026-09-18", hora = "10:00"),
+    .marp_fila("CH 4", fecha = "2026-09-19")
+  )
+  res <- monitoreo_aulas_reparto(plan, disp,
+                                 rango = list(desde = "2026-09-07", hasta = "2026-09-13"))
+
+  # Dentro: solo el 11/09, con sus dos citas repartidas.
+  fechas <- vapply(res[["dias"]], function(d) as.character(d[["fecha"]]), character(1))
+  expect_identical(fechas, "2026-09-11")
+  expect_length(.marp_dia(res, "2026-09-11")[["asignaciones"]], 2L)
+
+  # Fuera: declarado por fecha — la cita pactada Y la fecha sin hora.
+  fuera <- res[["fuera_de_rango"]]
+  expect_length(fuera, 2L)
+  expect_identical(fuera[[1]][["fecha"]], "2026-09-18")
+  expect_identical(unlist(fuera[[1]][["codigos"]]), "CH 3")
+  expect_identical(fuera[[2]][["fecha"]], "2026-09-19")
+  expect_identical(unlist(fuera[[2]][["por_confirmar"]]), "CH 4")
+
+  # La equidad cuenta SOLO la tanda: 2 citas entre 2 personas.
+  eq <- .marp_equidad(res)
+  expect_equal(sum(eq), 2)
+
+  # El eco del rango saneado viaja.
+  expect_identical(res[["rango"]], list(desde = "2026-09-07", hasta = "2026-09-13"))
+})
+
+test_that("B75: desde > hasta se corrige por intercambio; basura = todo el horizonte", {
+  disp <- list(.marp_full("Ana Prueba"))
+  plan <- list(.marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"))
+
+  invertido <- monitoreo_aulas_reparto(plan, disp,
+                                       rango = list(desde = "2026-09-13", hasta = "2026-09-07"))
+  expect_length(invertido[["dias"]], 1L)
+  expect_identical(invertido[["rango"]], list(desde = "2026-09-07", hasta = "2026-09-13"))
+
+  basura <- monitoreo_aulas_reparto(plan, disp,
+                                    rango = list(desde = "proxima semana", hasta = ""))
+  expect_length(basura[["dias"]], 1L)
+  expect_null(basura[["rango"]])
+  expect_null(basura[["fuera_de_rango"]])
+})
+
+test_that("B75: la fijacion de una cita aplazada NO es huerfana y no cuenta en la tanda", {
+  disp <- list(.marp_full("Ana Prueba"))
+  plan <- list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .marp_fila("CH 3", fecha = "2026-09-18", hora = "10:00")
+  )
+  res <- monitoreo_aulas_reparto(plan, disp,
+                                 fijadas = list("CH 3" = "Ana Prueba"),
+                                 rango = list(desde = "2026-09-07", hasta = "2026-09-13"))
+  # Su cita existe (solo espera otra tanda): no cae a fijadas_sin_cita...
+  expect_length(res[["fijadas_sin_cita"]], 0L)
+  # ...el eco del mapa la conserva para cuando el rango avance...
+  expect_identical(res[["fijadas"]][[1]][["codigo"]], "CH 3")
+  # ...y la carga de la tanda no la cuenta.
+  eq <- .marp_equidad(res)
+  expect_equal(unname(eq[["Ana Prueba"]]), 1)
+})

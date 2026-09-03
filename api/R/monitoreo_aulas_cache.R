@@ -99,16 +99,17 @@
 # disponibilidad no toca nada: ausencia declarada, no un bloque vacío.
 .mac_publicar_disponibilidad <- function(dashboard, plan, disponibilidad,
                                          fijadas = list(),
-                                         duracion_min = NULL) {
+                                         duracion_min = NULL,
+                                         rango = NULL) {
   if (is.null(disponibilidad) || !is.list(dashboard)) return(dashboard)
   dashboard[["disponibilidad"]] <- monitoreo_aulas_disponibilidad_bloque(disponibilidad)
-  # B70: el reparto respeta la duración del config; sin declarar cae al
-  # default del motor (30).
+  # B70/B75: el reparto respeta la duración y el rango del config; sin
+  # declarar caen al default del motor (30, todo el horizonte).
   dashboard[["reparto"]] <- if (is.null(duracion_min)) {
-    monitoreo_aulas_reparto(plan, disponibilidad, fijadas)
+    monitoreo_aulas_reparto(plan, disponibilidad, fijadas, rango = rango)
   } else {
     monitoreo_aulas_reparto(plan, disponibilidad, fijadas,
-                            duracion_min = duracion_min)
+                            duracion_min = duracion_min, rango = rango)
   }
   dashboard
 }
@@ -161,6 +162,13 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full",
     # una clave de config que afecta al payload y no marca el token sirve el
     # tablero anterior).
     as.character((if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL) %||% ""),
+    # B75: el rango de despliegue re-particiona el reparto — declararlo o
+    # moverlo invalida (misma lección A15 que la duración).
+    paste(
+      as.character((if (is.list(cfg)) cfg[["reparto_rango"]][["desde"]] else NULL) %||% ""),
+      as.character((if (is.list(cfg)) cfg[["reparto_rango"]][["hasta"]] else NULL) %||% ""),
+      sep = ".."
+    ),
     sep = "|"
   )
 }
@@ -190,7 +198,8 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
     .mac_publicar_disponibilidad(
       monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad,
       fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list(),
-      duracion_min = if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL
+      duracion_min = if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL,
+      rango = if (is.list(cfg)) cfg[["reparto_rango"]] else NULL
     )
   }
   if (!nzchar(sid) || !nzchar(token)) {

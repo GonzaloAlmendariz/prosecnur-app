@@ -131,16 +131,35 @@
 #' @param disponibilidad salida de `carga_disponibilidad_aplicadores()`.
 #' @param fijadas lista nombrada código → aplicador (B36); vacía por defecto.
 #' @param duracion_min minutos de la aplicación (B70); default 30.
+#' @param rango B75 (dictado 2026-09-03: «distribuir equitativamente entre de
+#'   este día a este día»): lista `{desde, hasta}` en ISO. Solo se reparten
+#'   las citas cuyo día cae dentro; lo de fuera NO se descarta en silencio —
+#'   viaja declarado en `fuera_de_rango` y espera su tanda. `NULL` o ilegible
+#'   = todo el horizonte.
 #' @return lista con `dias` (por fecha ISO ascendente: `{fecha, asignaciones,
 #'   no_cubiertos, por_confirmar}`; cada asignación con `recojo`, `salida`,
 #'   `fijada` y, si aplica, `advertencia`), `equidad` (`{aplicador,
 #'   asignadas}` en orden alfabético — la oferta entera más los fijados
 #'   externos, cero incluido), `fijadas_sin_cita` (códigos fijados sin cita
-#'   pactada) y el eco `duracion_min` / `preparacion_min`.
+#'   pactada), `fuera_de_rango` (`{fecha, codigos, por_confirmar}` por fecha
+#'   excluida; ausente sin rango), el eco `rango` saneado cuando rige, y los
+#'   ecos `duracion_min` / `preparacion_min` / `salida_min`.
 #' @keywords internal
 monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
                                     fijadas = list(),
-                                    duracion_min = .mav_DURACION_MIN) {
+                                    duracion_min = .mav_DURACION_MIN,
+                                    rango = NULL) {
+  # B75: el rango saneado — ambas puntas en ISO o no hay rango. Un desde >
+  # hasta se corrige por intercambio (deliberado: la intención del usuario es
+  # el intervalo, no el orden en que tecleó las puntas).
+  rango_vigente <- NULL
+  if (is.list(rango)) {
+    d1 <- trimws(as.character(rango[["desde"]] %||% "")[1])
+    d2 <- trimws(as.character(rango[["hasta"]] %||% "")[1])
+    if (grepl("^\\d{4}-\\d{2}-\\d{2}$", d1) && grepl("^\\d{4}-\\d{2}-\\d{2}$", d2)) {
+      rango_vigente <- if (d1 <= d2) c(d1, d2) else c(d2, d1)
+    }
+  }
   base <- monitoreo_aulas_ventanas(plan, duracion_min = duracion_min)
   aulas <- base[["aulas"]] %||% list()
   oferta <- .marep_oferta(disponibilidad)
@@ -180,6 +199,32 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     } else {
       pendientes[[fecha]] <- c(pendientes[[fecha]],
                                as.character(aula[["codigo"]] %||% ""))
+    }
+  }
+
+  # B75: la partición por rango. Los códigos pactados se censan ANTES de
+  # partir —una fijación cuya cita quedó fuera del rango NO es huérfana: su
+  # cita existe, solo espera otra tanda—. Lo excluido viaja declarado.
+  codigos_pactados_total <- vapply(citas, function(x) x$codigo, character(1)) %||% character(0)
+  fuera <- list() # fecha -> list(codigos, por_confirmar)
+  if (!is.null(rango_vigente)) {
+    dentro <- list()
+    for (cita in citas) {
+      if (cita$fecha >= rango_vigente[[1]] && cita$fecha <= rango_vigente[[2]]) {
+        dentro[[length(dentro) + 1L]] <- cita
+      } else {
+        f <- fuera[[cita$fecha]] %||% list(codigos = character(0), por_confirmar = character(0))
+        f$codigos <- c(f$codigos, cita$codigo)
+        fuera[[cita$fecha]] <- f
+      }
+    }
+    citas <- dentro
+    for (fecha in names(pendientes)) {
+      if (fecha >= rango_vigente[[1]] && fecha <= rango_vigente[[2]]) next
+      f <- fuera[[fecha]] %||% list(codigos = character(0), por_confirmar = character(0))
+      f$por_confirmar <- c(f$por_confirmar, pendientes[[fecha]])
+      fuera[[fecha]] <- f
+      pendientes[[fecha]] <- NULL
     }
   }
 
@@ -228,7 +273,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
 
   # PRIMERA pasada — las fijadas (B36): la voluntad del usuario se aplica
   # siempre; lo que la oferta no respalda viaja declarado, no la frena.
-  codigos_pactados <- vapply(citas, function(x) x$codigo, character(1)) %||% character(0)
+  # El censo total (B75): incluye las citas fuera del rango, para que la
+  # fijación de una cita aplazada no caiga a `fijadas_sin_cita`.
+  codigos_pactados <- codigos_pactados_total
   for (cita in citas) {
     elegido <- fij[[cita$codigo]]
     if (is.null(elegido)) next
@@ -315,7 +362,18 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     # propias.
     duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
     preparacion_min = .mav_PREPARACION_MIN,
-    salida_min = .mav_SALIDA_MIN
+    salida_min = .mav_SALIDA_MIN,
+    # B75: lo aplazado, declarado por fecha; y el rango saneado que rigió.
+    fuera_de_rango = if (length(fuera)) {
+      lapply(sort(names(fuera), method = "radix"), function(fecha) {
+        list(fecha = fecha,
+             codigos = as.list(fuera[[fecha]]$codigos),
+             por_confirmar = as.list(fuera[[fecha]]$por_confirmar))
+      })
+    } else NULL,
+    rango = if (!is.null(rango_vigente)) {
+      list(desde = rango_vigente[[1]], hasta = rango_vigente[[2]])
+    } else NULL
   )
 }
 

@@ -100,6 +100,13 @@ export type RepartoVista = {
   duracionMin: number;
   /** B71: minutos de preparación previa (recojo + desplazamiento); 0 = no llegó. */
   preparacionMin: number;
+  /**
+   * B75: lo aplazado por el rango de despliegue, por fecha y con etiqueta de
+   * la casa — se declara, no se esconde: esas citas esperan su tanda.
+   */
+  fueraDeRango: Array<{ fecha: string; etiqueta: string; codigos: string[]; porConfirmar: string[] }>;
+  /** B75: el rango saneado que rigió; `null` = todo el horizonte. */
+  rango: { desde: string; hasta: string } | null;
 };
 
 /**
@@ -298,5 +305,24 @@ export function repartoDeAplicadores(
     ),
     duracionMin: num(raiz.duracion_min) ?? 0,
     preparacionMin: num(raiz.preparacion_min) ?? 0,
+    fueraDeRango: (Array.isArray(raiz.fuera_de_rango) ? raiz.fuera_de_rango : [])
+      .map((f) => {
+        const e = (f ?? {}) as Record<string, unknown>;
+        const fecha = texto(e.fecha);
+        return {
+          fecha,
+          etiqueta: fecha ? etiquetaDeFecha(fecha) : "",
+          codigos: leerCodigos(e.codigos),
+          porConfirmar: leerCodigos(e.por_confirmar),
+        };
+      })
+      .filter((f) => f.fecha !== ""),
+    rango: (() => {
+      const r = (raiz.rango ?? null) as Record<string, unknown> | null;
+      if (!r) return null;
+      const desde = texto(r.desde);
+      const hasta = texto(r.hasta);
+      return desde && hasta ? { desde, hasta } : null;
+    })(),
   };
 }

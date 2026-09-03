@@ -117,6 +117,7 @@ export function AulasCargaDeCampo({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  onDeclararRango = null,
   hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -150,6 +151,8 @@ export function AulasCargaDeCampo({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad; lo pinta la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** B75: declarar/limpiar el rango de despliegue; lo pinta Asignación. */
+  onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -432,7 +435,7 @@ export function AulasCargaDeCampo({
         />
       ) : null}
       {vista === "asignacion" ? (
-        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} />
+        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} onDeclararRango={onDeclararRango} />
       ) : null}
       {esDemanda && !hayMalla ? (
         // El mismo vacío declarado del atajo compacto, dentro del marco

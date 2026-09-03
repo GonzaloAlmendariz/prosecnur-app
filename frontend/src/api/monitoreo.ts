@@ -758,6 +758,12 @@ export type MonitoreoAulasConfig = {
    * respetan. Default del motor: 30.
    */
   duracion_aplicacion_min?: number | null;
+  /**
+   * B75 (dictado 2026-09-03): el rango de despliegue del reparto — «quiero
+   * distribuir equitativamente entre de este día a este día». Ambas puntas
+   * ISO; `{}` lo des-declara (todo el horizonte).
+   */
+  reparto_rango?: { desde?: string; hasta?: string } | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   /**
@@ -1259,6 +1265,10 @@ export type MonitoreoAulasReparto = {
   preparacion_min?: number;
   /** B71: minutos antes de la pactada en que se sale hacia el aula. */
   salida_min?: number;
+  /** B75: lo aplazado por el rango de despliegue, declarado por fecha. */
+  fuera_de_rango?: Array<{ fecha: string; codigos?: string[]; por_confirmar?: string[] }>;
+  /** B75: el rango saneado que rigió este reparto; ausente sin rango. */
+  rango?: { desde?: string; hasta?: string } | null;
 };
 
 export type MonitoreoAulasDashboard = {
