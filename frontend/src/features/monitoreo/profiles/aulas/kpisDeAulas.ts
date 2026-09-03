@@ -388,8 +388,12 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
       // recortado. Se dice que falta el reparto, no que no haya brechas.
       : "sin el desglose por facultad",
     detalle: mayor
-      ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. El corte de `
-        + `\`course_status\` puede venir recortado, así que el reparto por facultad se lee como orden de magnitud.`
+      // Sin jerga: «course_status» es el nombre interno del payload y no le
+      // dice nada a quien lee el tooltip — la idea es que la lista de
+      // cursos-horario puede llegar recortada por tamaño (el tope declarado
+      // del estado) y por eso el reparto es orden de magnitud.
+      ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. La lista de `
+        + `cursos-horario puede llegar recortada por tamaño, así que el reparto por facultad se lee como orden de magnitud.`
       : undefined,
     tone: brechas ? "warn" : "neutral",
   };
