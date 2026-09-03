@@ -234,6 +234,9 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   <td className="aulas-cola-como">
                     {p.telefono || "—"}
                     {p.medio ? <em> · {p.medio}</em> : null}
+                    {/* Si el correo de gestión llegó, en las palabras del
+                        equipo — la otra mitad del canal de contacto. */}
+                    {p.correo ? <em> · correo: {p.correo}</em> : null}
                   </td>
                   <td className="aulas-cola-intentos es-num">
                     {p.intentos > 0 ? <strong>{fmt(p.intentos)}</strong> : <span className="es-vacio">—</span>}
@@ -241,9 +244,12 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   </td>
                   <td>
                     {/* Sin gestiones aún no es lo mismo que insistiendo: la
-                        primera está sin empezar y la segunda se está atascando. */}
+                        primera está sin empezar y la segunda se está atascando.
+                        Y cuando el libro dice POR QUÉ («No contesta»,
+                        «Apagado»…), mandan las palabras del equipo — el
+                        genérico «Insistiendo» es el fallback, no el titular. */}
                     <span className={`aulas-cola-estado ${p.intentos > 0 ? "es-insistiendo" : "es-sin-empezar"}`}>
-                      {p.intentos > 0 ? "Insistiendo" : "Sin contactar"}
+                      {p.estadoLlamada || (p.intentos > 0 ? "Insistiendo" : "Sin contactar")}
                     </span>
                   </td>
                 </tr>
