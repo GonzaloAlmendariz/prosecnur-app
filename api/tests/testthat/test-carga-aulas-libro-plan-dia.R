@@ -995,3 +995,48 @@ test_that("B20: la fórmula normaliza el selector a texto antes de comparar", {
   # Y el pin de locale sigue: ni una coma fuera de comillas.
   expect_false(grepl(",", gsub('"[^"]*"', "", f), fixed = TRUE))
 })
+
+# **La jornada baja de más temprano a más tarde.**
+#
+# Visto sobre el Sheets publicado el 2026-09-04: el lunes abría con la de la una
+# y media de la tarde y seguía con las de la mañana. Ordenaba por el TEXTO de la
+# hora, que es como el equipo la teclea, y en texto «1:45 pm» va antes que
+# «11:30 am».
+test_that("B21: las aulas del día salen en orden de hora, no de texto", {
+  plan <- list(
+    list(operational_code = "CH A", titular_operational_code = "CH A",
+         sample_role = "titular", faculty = "Ciencias", course_name = "C",
+         teacher = "D", eligible_n = 10, scheduled_date = "2026-09-07",
+         scheduled_time = "1:45 pm", operational_status = "agendada"),
+    list(operational_code = "CH B", titular_operational_code = "CH B",
+         sample_role = "titular", faculty = "Ciencias", course_name = "C",
+         teacher = "D", eligible_n = 10, scheduled_date = "2026-09-07",
+         scheduled_time = "11:30 am", operational_status = "agendada"),
+    list(operational_code = "CH C", titular_operational_code = "CH C",
+         sample_role = "titular", faculty = "Ciencias", course_name = "C",
+         teacher = "D", eligible_n = 10, scheduled_date = "2026-09-07",
+         scheduled_time = "7:45 pm", operational_status = "agendada")
+  )
+  hoja <- aulas_libro_hoja_plan_dia(plan)
+  codigos <- .pd_celdas(hoja, "CURSO-HORARIO")
+  codigos <- codigos[codigos %in% c("CH A", "CH B", "CH C")]
+  # 11:30 → 13:45 → 19:45. En texto el orden era A, B, C: la de la tarde primero.
+  expect_identical(codigos, c("CH B", "CH A", "CH C"))
+})
+
+test_that("B21: una hora ilegible va al final, no se cuela entre las buenas", {
+  plan <- list(
+    list(operational_code = "CH MALA", titular_operational_code = "CH MALA",
+         sample_role = "titular", faculty = "Ciencias", course_name = "C",
+         teacher = "D", eligible_n = 10, scheduled_date = "2026-09-07",
+         scheduled_time = "cuando se pueda", operational_status = "agendada"),
+    list(operational_code = "CH BUENA", titular_operational_code = "CH BUENA",
+         sample_role = "titular", faculty = "Ciencias", course_name = "C",
+         teacher = "D", eligible_n = 10, scheduled_date = "2026-09-07",
+         scheduled_time = "9:00 am", operational_status = "agendada")
+  )
+  hoja <- aulas_libro_hoja_plan_dia(plan)
+  codigos <- .pd_celdas(hoja, "CURSO-HORARIO")
+  codigos <- codigos[codigos %in% c("CH MALA", "CH BUENA")]
+  expect_identical(codigos, c("CH BUENA", "CH MALA"))
+})

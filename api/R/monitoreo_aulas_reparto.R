@@ -272,6 +272,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
 
   carga <- stats::setNames(rep(0L, length(nombres)), nombres)
   ocupadas <- list() # "nombre\rfecha" -> lista de c(ini, fin) asignadas
+  # Cuántos DÍAS distintos lleva ya cada quien: la clave que evita darle un
+  # segundo viaje a alguien teniendo al lado a otro que no ha salido nunca.
+  dias_por <- list()
   asignaciones <- list()
   # El minuto de inicio de cada asignación, paralelo por fecha: las fijadas
   # entran ANTES que las automáticas y el día se reordena por hora al final —
@@ -373,10 +376,30 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       rep(0L, length(candidatos))
     }
     prefiere <- mismo_dia > 0L & carga_de <= min(carga_de) + 1
+    # **Y a igual carga, quien menos días lleva.**
+    #
+    # Sin esta clave el desempate caía en el alfabeto, así que una cita del
+    # martes podía ir a alguien que YA vino el lunes teniendo al lado a otro
+    # que no ha salido nunca: mismo reparto de trabajo, un viaje más al campus.
+    # Medido sobre el operativo con la agenda al día (2026-09-04): 23 de 30
+    # personas salían dos o más veces, 55 viajes para 85 aplicaciones.
+    #
+    # Va DESPUÉS de la carga —la equidad no se negocia— y sólo desempata entre
+    # quienes llevan lo mismo. Con `concentrado` apagado no aplica: ahí el
+    # criterio es explícitamente el de antes.
+    dias_ya <- if (concentrado) {
+      vapply(candidatos, function(n) as.integer(dias_por[[n]] %||% 0L), integer(1))
+    } else {
+      rep(0L, length(candidatos))
+    }
     elegido <- candidatos[order(-prefiere,
                                 carga_de,
+                                dias_ya,
                                 match(candidatos, prioridad),
                                 method = "radix")][[1L]]
+    if (is.null(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]])) {
+      dias_por[[elegido]] <- as.integer(dias_por[[elegido]] %||% 0L) + 1L
+    }
     carga[[elegido]] <- carga[[elegido]] + 1L
     anotar_asignacion(cita, elegido, fijada = FALSE)
   }

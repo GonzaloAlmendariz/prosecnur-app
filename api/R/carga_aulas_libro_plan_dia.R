@@ -200,7 +200,18 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
   }, unidades %||% list())
 
   fechas <- vapply(poblacion, function(u) .calg_txt(u$scheduled_date), character(1))
-  horas <- vapply(poblacion, function(u) .calg_txt(u$scheduled_time), character(1))
+  # **La jornada baja de más temprano a más tarde, y eso exige MINUTOS.**
+  #
+  # Ordenaba por el texto de `scheduled_time`, que es como el equipo lo teclea
+  # («1:45 pm», «11:30 am»), y en texto «1:45 pm» va ANTES que «11:30 am». Visto
+  # sobre el Sheets publicado el 2026-09-04: el lunes abría con la de la una y
+  # media de la tarde y seguía con las de la mañana. El mismo parser del motor
+  # que ya calcula INICIO da el número con el que sí se ordena; una hora
+  # ilegible va al final en vez de colarse entre las buenas.
+  horas <- vapply(poblacion, function(u) {
+    m <- monitoreo_aulas_hora_parse(.calg_txt(u$scheduled_time))[[1]]
+    if (is.na(m)) Inf else as.numeric(m)
+  }, numeric(1))
   orden <- order(fechas, horas)
   poblacion <- poblacion[orden]
   fechas <- fechas[orden]
