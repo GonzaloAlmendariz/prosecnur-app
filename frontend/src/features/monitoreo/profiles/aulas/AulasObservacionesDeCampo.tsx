@@ -66,7 +66,7 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           gestionadas, no partes. */}
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)}{" "}
-        {r.partes === 1 ? "aula gestionada trae" : "aulas gestionadas traen"} observación
+        {r.partes === 1 ? "curso-horario gestionado trae" : "cursos-horario gestionados traen"} observación
         {r.observaciones.length < r.conNota ? (
           <>
             {" "}· <strong>{fmt(r.observaciones.length)}</strong>{" "}

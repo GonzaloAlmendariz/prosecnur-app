@@ -136,7 +136,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
     <div className="aulas-anticipacion">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(conBrecha.length)}</strong>{" "}
-        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas
+        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} cursos-horario nuevos
         {dimensionadas.length
           ? <> · hay que pedir <strong>{fmt(aulasTotales)}</strong> en total</>
           : null}
