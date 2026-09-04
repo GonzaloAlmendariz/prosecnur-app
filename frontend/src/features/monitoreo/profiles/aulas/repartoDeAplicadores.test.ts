@@ -207,10 +207,12 @@ describe("textoDelDespliegue — el despliegue del día listo para el chat", () 
     };
     expect(textoDelDespliegue(dia, new Map([["CH 7", "A703"]]))).toBe([
       // Jerga fuera (dictado 2026-09-03): «A×1» pasó a palabras del lector.
-      "Despliegue Lunes 07/09 — 1 aplicación en A",
+      // Dictado 2026-09-04: sin em dashes, y el nombre escrito como se
+      // escribe un nombre: el aviso se pega en el chat del equipo.
+      "Despliegue Lunes 07/09 · 1 aplicación en A",
       "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.",
-      "• 11:30–12:00 A703 · CH 7 — Aguilar Cuya, Renzo (recojo 11:00)",
-      "• 19:45–20:15 CH 9 — Nolasco Rivera, Diego (recojo 19:15)",
+      "• 11:30 a 12:00 A703 · CH 7 · Aguilar Cuya, Renzo (recojo 11:00)",
+      "• 19:45 a 20:15 CH 9 · Nolasco Rivera, Diego (recojo 19:15)",
       "Sin nadie asignado: CH 55",
     ].join("\n"));
   });
@@ -234,7 +236,7 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
       { aplicador: "Berta Ficticia", asignadas: 2 },
     ]))!;
     expect(v.parejo).toBe(true);
-    expect(v.texto).toContain("Reparto parejo: cargas entre 1 y 2 — diferencia máxima 1 aplicación");
+    expect(v.texto).toContain("Reparto parejo: cargas entre 1 y 2, diferencia máxima de 1 aplicación");
   });
 
   it("todos con la misma carga lo dice sin rango fantasma", () => {
@@ -253,9 +255,12 @@ describe("veredictoDeEquidad (B66) — la equidad DICHA, no inferida de barras",
       { aplicador: "Mario Sintetico", asignadas: 0 },
     ]))!;
     expect(v.parejo).toBe(false);
-    expect(v.texto).toContain("Cargas entre 1 y 4 — diferencia de 3 aplicaciones");
+    expect(v.texto).toContain("Cargas entre 1 y 4, diferencia de 3 aplicaciones");
     expect(v.texto).toContain("el desbalance viene de la disponibilidad de cada quien");
-    expect(v.texto).toContain("1 queda libre — sin aplicaciones en sus horarios");
+    // Dictado 2026-09-04: la línea sólo lleva la cifra; el porqué y el qué
+    // cubre cada uno viven en el bloque de libres, que es accionable.
+    expect(v.texto).toContain("1 queda sin ninguna aplicación");
+    expect(v.texto).not.toContain("—");
   });
 
   it("con fijadas a mano, la causa las nombra", () => {

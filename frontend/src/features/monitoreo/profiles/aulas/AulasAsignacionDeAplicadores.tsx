@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check, Copy, Pin, Shuffle } from "../../../../vendor/lucide-react";
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
+import { nombreDeAplicador } from "./nombreDeAplicador";
+import { claveDeCita, salidasDeDescubiertos, salidasDeLibres, type VentanaDeCita } from "./salidasDelReparto";
+import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
+import { Switch } from "../../../../components/Switch";
 import { agendaDelAplicador, mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
@@ -133,6 +137,8 @@ export function AulasAsignacionDeAplicadores({
   onDeclararRango = null,
   onResortear = null,
   onConcentrar = null,
+  oferta = null,
+  ventanas = null,
   hoy = hoyISO(),
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
@@ -167,6 +173,17 @@ export function AulasAsignacionDeAplicadores({
    * lectura, el toggle no se pinta.
    */
   onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
+  /**
+   * La malla de OFERTA ya normalizada. Sin ella los avisos sólo pueden decir
+   * el hecho («nadie llega»); con ella dicen la causa y a quién tocar
+   * (dictado 2026-09-04). `null` = la sesión no cargó la disponibilidad.
+   */
+  oferta?: MallaDeOferta | null;
+  /**
+   * La ventana pactada de cada cita (`fecha` + código), del bloque `franjas`.
+   * Es lo que da la HORA de una cita descubierta, que el reparto no trae.
+   */
+  ventanas?: ReadonlyMap<string, VentanaDeCita> | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -221,6 +238,13 @@ export function AulasAsignacionDeAplicadores({
 
   // Dictado 2026-09-04: la agenda día a día de cada aplicador, del payload.
   const agenda = agendaDelAplicador(reparto);
+  // Y las SALIDAS de los dos avisos que sólo describían: por qué una cita no
+  // tiene quién la aplique, y qué cubre quien quedó sin nada.
+  const mapaVentanas = ventanas ?? new Map<string, VentanaDeCita>();
+  const salidas = new Map(
+    salidasDeDescubiertos(reparto, oferta, mapaVentanas).map((s) => [claveDeCita(s.fecha, s.codigo), s]),
+  );
+  const libres = salidasDeLibres(reparto, oferta);
   // Y el orden del rail: los SIN asignación al principio («deben estar al
   // principio»), después de mayor a menor carga, alfabeto al final.
   const equidadOrdenada = [...reparto.equidad].sort((a, b) =>
@@ -228,9 +252,12 @@ export function AulasAsignacionDeAplicadores({
     || b.asignadas - a.asignadas
     || a.aplicador.localeCompare(b.aplicador, "es"));
 
+  // Dictado 2026-09-04: el nombre se escribe como se escribe un nombre. El
+  // `value` sigue siendo el CRUDO —es la identidad con la que el motor arma
+  // `fijadas`—; normalizarlo aquí rompería la fijación en el primer acento.
   const opcionesDeAplicador = reparto.equidad.map((e) => (
     <option key={e.aplicador} value={e.aplicador}>
-      {e.aplicador} · {fmt(e.asignadas)}
+      {nombreDeAplicador(e.aplicador)} · {fmt(e.asignadas)}
     </option>
   ));
   const fijar = (codigo: string, aplicador: string) => {
@@ -242,17 +269,31 @@ export function AulasAsignacionDeAplicadores({
       <div className="aulas-carga-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {/* La promesa del dictado, en una línea sobria: qué es este reparto y
             hasta cuándo vale. */}
-        <p className="aulas-asigna-vigencia">
-          Reparto <strong>vigente</strong> sobre lo agendado hasta hoy: se recalcula con cada
-          Recargar y una confirmación nueva entra sola.
-          {onFijar ? " Lo fijado a mano manda sobre el automático y se conserva." : ""}
+        {/* Dictado 2026-09-04: «le falta formato al texto de arriba». Eran
+            tres frases distintas en un solo bloque gris corrido: qué es este
+            reparto, quién manda cuando lo tocas, y el protocolo de horas. Ahora
+            son dos renglones con jerarquía, y el protocolo lleva sus cifras en
+            chip para que se lea de un vistazo en vez de leerse entero. */}
+        <div className="aulas-asigna-vigencia">
+          <p className="aulas-asigna-vigencia-que">
+            Reparto <strong>vigente</strong> sobre lo agendado hasta hoy: se recalcula con cada
+            Recargar y una confirmación nueva entra sola.
+            {onFijar ? " Lo que pongas a mano manda sobre el automático y se conserva." : ""}
+          </p>
           {/* B71 (dictado 2026-09-03): el protocolo del despliegue vive EN la
               app, no solo en el aviso copiado. */}
-          {" "}Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita y
-          sale al aula <strong>15 min antes</strong>: su hora completa queda reservada.
-        </p>
+          <p className="aulas-asigna-protocolo">
+            <span>Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita</span>
+            <span>sale al aula <strong>15 min antes</strong></span>
+            <span>su hora completa queda reservada</span>
+          </p>
+        </div>
         {onDeclararRango || onResortear || onConcentrar ? (
           <div className="aulas-asigna-mandos">
+            {/* Dictado 2026-09-04: «le falta formato a este box». Tres
+                instrumentos dentro de una caja sin nombre; ahora la caja dice
+                qué gobierna. */}
+            <p className="aulas-asigna-mandos-rotulo">Cómo se reparte</p>
             {onDeclararRango ? (
               <RangoDeDespliegue
                 rango={reparto.rango}
@@ -289,15 +330,19 @@ export function AulasAsignacionDeAplicadores({
                 active». El eco viene del MOTOR: el checkbox dice el criterio
                 con el que se armó el reparto de abajo, no un deseo local. */}
             {onConcentrar ? (
-              <label
+              /* Dictado 2026-09-04: «no debe ser un check, debe ser un
+                 switch». Y con razón: una casilla dice «marqué esto en un
+                 formulario»; esto es un criterio que QUEDA PUESTO y reescribe
+                 el reparto de abajo en cuanto se toca. */
+              <span
                 className="aulas-asigna-concentrar"
-                title="Llenar la jornada de quien ya vino antes de abrir otra persona; la equidad total y lo fijado a mano siguen mandando"
+                title="Llena la jornada de quien ya viene ese día antes de abrir otra persona. La equidad total y lo que pusiste a mano siguen mandando."
               >
-                <input
-                  type="checkbox"
+                <Switch
                   checked={reparto.concentrado}
                   disabled={concentrando}
-                  onChange={() => {
+                  ariaLabel="Concentrar el día del aplicador: sus aplicaciones en uno o dos días en vez de repartidas por la semana"
+                  onToggle={() => {
                     void (async () => {
                       setConcentrando(true);
                       try {
@@ -308,8 +353,11 @@ export function AulasAsignacionDeAplicadores({
                     })();
                   }}
                 />
-                {concentrando ? "Aplicando…" : "Concentrar el día del aplicador"}
-              </label>
+                <span className="aulas-asigna-concentrar-texto">
+                  <strong>Concentrar el día del aplicador</strong>
+                  <em>{concentrando ? "aplicando…" : "sus citas en uno o dos días, no sueltas por la semana"}</em>
+                </span>
+              </span>
             ) : null}
           </div>
         ) : null}
@@ -325,7 +373,7 @@ export function AulasAsignacionDeAplicadores({
                 `${sinHora ? ` y ${fmt(sinHora)} por confirmar` : ""}` +
                 ` en ${fmt(dias)} ${dias === 1 ? "día" : "días"}` +
                 ` (${reparto.fueraDeRango[0].etiqueta} → ${reparto.fueraDeRango[dias - 1].etiqueta})`;
-            })()} — esperan su tanda; nada se descarta.
+            })()}. Esperan su tanda; nada se descarta.
           </p>
         ) : null}
         <dl className="aulas-carga-kpis">
@@ -333,7 +381,7 @@ export function AulasAsignacionDeAplicadores({
             /* El KPI del despliegue va PRIMERO: cuánta gente mueve el día que
                toca es la cifra con la que se abre la vista. */
             <div>
-              <dt>{diaQueToca.etiqueta} — próxima salida</dt>
+              <dt>{diaQueToca.etiqueta} · próxima salida</dt>
               <dd>{fmt(diaQueToca.asignaciones.length)}</dd>
             </div>
           ) : null}
@@ -387,7 +435,7 @@ export function AulasAsignacionDeAplicadores({
                   </span>
                   {esElQueToca ? (
                     <span className="aulas-asigna-toca">
-                      {d.fecha === hoy ? "hoy — salida de campo" : "próxima salida"}
+                      {d.fecha === hoy ? "hoy, salida de campo" : "próxima salida"}
                     </span>
                   ) : null}
                   {esElQueToca && d.asignaciones.length > 0 ? (
@@ -397,7 +445,7 @@ export function AulasAsignacionDeAplicadores({
                     <button
                       type="button"
                       className="aulas-asigna-copiar"
-                      title="Copia la lista del día — hora, aula y aplicador de cada cita — lista para pegar en el chat del equipo"
+                      title="Copia la lista del día (hora, aula y aplicador de cada cita), lista para pegar en el chat del equipo"
                       aria-label={`Copiar el aviso de ${d.etiqueta}: hora, aula y aplicador de cada cita, para pegarlo en el chat del equipo`}
                       onClick={() => {
                         const texto = textoDelDespliegue(d, lugares);
@@ -427,7 +475,7 @@ export function AulasAsignacionDeAplicadores({
                   /* El peldaño manual: el portapapeles se negó y el texto se
                      entrega seleccionado — un Cmd/Ctrl+C y listo. */
                   <div className="aulas-asigna-revelado">
-                    <p>El portapapeles no dio permiso — el despliegue está listo abajo, selecciónalo y cópialo:</p>
+                    <p>El portapapeles no dio permiso. El despliegue está listo abajo: selecciónalo y cópialo.</p>
                     <textarea
                       readOnly
                       value={textoRevelado}
@@ -452,22 +500,49 @@ export function AulasAsignacionDeAplicadores({
                       </strong>
                     </p>
                     <span className="aulas-asigna-resolver">
-                      {d.noCubiertos.map((c) => (
-                        <span key={c} className="aulas-asigna-resolver-item">
-                          <ChipDato>{c}</ChipDato>
-                          {onFijar ? (
-                            <select
-                              className="aulas-asigna-selector"
-                              value=""
-                              aria-label={`Fijar aplicador para ${c}: nadie libre la cubre; elegir a alguien la fija igual y queda advertida`}
-                              onChange={(e) => { if (e.target.value) fijar(c, e.target.value); }}
-                            >
-                              <option value="">fijar a…</option>
-                              {opcionesDeAplicador}
-                            </select>
-                          ) : null}
-                        </span>
-                      ))}
+                      {d.noCubiertos.map((c) => {
+                        // Dictado 2026-09-04: «¿por qué no hay disponibilidad
+                        // a esa hora? ¿quiénes tienen disponibilidad a esa
+                        // hora?». La causa se dice y, cuando la salida existe,
+                        // se nombra a quién soltar para abrirla.
+                        const s = salidas.get(claveDeCita(d.fecha, c));
+                        return (
+                          <span key={c} className="aulas-asigna-resolver-item">
+                            <ChipDato>{c}</ChipDato>
+                            {s?.inicio ? (
+                              <ChipHora>{s.inicio}{s.fin ? ` a ${s.fin}` : ""}</ChipHora>
+                            ) : null}
+                            {onFijar ? (
+                              <select
+                                className="aulas-asigna-selector"
+                                value=""
+                                aria-label={`Fijar aplicador para ${c}: nadie libre la cubre; elegir a alguien la fija igual y queda advertida`}
+                                onChange={(e) => { if (e.target.value) fijar(c, e.target.value); }}
+                              >
+                                <option value="">fijar a…</option>
+                                {opcionesDeAplicador}
+                              </select>
+                            ) : null}
+                            {s ? (
+                              <span className="aulas-asigna-causa">
+                                {s.causa === "sin-oferta"
+                                  ? "nadie declaró disponibilidad ese día a esa hora: hay que mover la cita o sumar gente"
+                                  : s.causa === "sin-hora"
+                                    ? "sin hora legible en el libro, no se puede decir quién podría"
+                                    : (() => {
+                                      const n = s.ocupados.length;
+                                      const lista = s.ocupados
+                                        .map((o) => `${nombreDeAplicador(o.aplicador)} (${o.porCodigo})`)
+                                        .join(", ");
+                                      return n === 0
+                                        ? `${fmt(s.conHorario.length)} con ese horario: ${s.conHorario.map(nombreDeAplicador).join(", ")}`
+                                        : `${fmt(s.conHorario.length)} con ese horario, ${n === 1 ? "está" : "están"} en otra aplicación a esa hora: ${lista}. Soltando una de ésas se abre.`;
+                                    })()}
+                              </span>
+                            ) : null}
+                          </span>
+                        );
+                      })}
                     </span>
                   </div>
                 ) : null}
@@ -477,7 +552,7 @@ export function AulasAsignacionDeAplicadores({
                       <tr>
                         <th scope="col">Cita</th>
                         <th scope="col">Lugar</th>
-                        <th scope="col">Rango de aplicación</th>
+                        <th scope="col">Horario</th>
                         <th scope="col">Aplicador</th>
                       </tr>
                     </thead>
@@ -497,44 +572,70 @@ export function AulasAsignacionDeAplicadores({
                                   hora en la que se agendó con el docente». La
                                   preparación habla en tenue; la cita pactada
                                   conserva su chip firme. */}
+                              {/* Dictado 2026-09-04: «rango de aplicación
+                                  quizás necesite mejores etiquetas y mejor
+                                  claridad sobre cómo se está aplicando». Las
+                                  tres horas eran dos chips donde sólo una
+                                  decía qué era: ahora cada una lleva su verbo
+                                  y se leen como la secuencia del día
+                                  (recoge, sale, aplica). El ancho sobraba. */}
                               <span
                                 className="aulas-asigna-horas"
                                 title={a.recojo
-                                  ? `Recoge materiales ${a.recojo}${a.salida ? `, sale al aula ${a.salida}` : ""}; la aplicación pactada con el docente es ${a.inicio}${a.fin ? `–${a.fin}` : ""}`
+                                  ? `Recoge materiales ${a.recojo}${a.salida ? `, sale al aula ${a.salida}` : ""}; la aplicación pactada con el docente es de ${a.inicio}${a.fin ? ` a ${a.fin}` : ""}`
                                   : undefined}
                               >
-                                {a.recojo ? (
-                                  <ChipPrep>
-                                    recojo {a.recojo}{a.salida ? ` · sale ${a.salida}` : ""}
-                                  </ChipPrep>
-                                ) : null}
+                                {a.recojo ? <ChipPrep>recoge {a.recojo}</ChipPrep> : null}
+                                {a.salida ? <ChipPrep>sale {a.salida}</ChipPrep> : null}
                                 {a.inicio && a.fin
-                                  ? <ChipHora>{a.inicio}–{a.fin}</ChipHora>
-                                  : a.inicio ? <ChipHora>{a.inicio}</ChipHora> : "—"}
+                                  ? <ChipHora>aplica {a.inicio} a {a.fin}</ChipHora>
+                                  : a.inicio ? <ChipHora>aplica {a.inicio}</ChipHora>
+                                  : <span className="aulas-asigna-sin-hora">sin hora pactada</span>}
                               </span>
                             </td>
                             <td>
                               {onFijar ? (
                                 /* B36: elegir a alguien lo FIJA (manda sobre el
-                                   automático y sobrevive cada Recargar);
-                                   «Automático» suelta y el greedy decide. */
+                                   automático y sobrevive cada Recargar).
+                                   Dictado 2026-09-04: «automático no necesita
+                                   una palabra grandota y un guion, eso es muy
+                                   AI slop; necesita tener el nombre». Así que
+                                   la casilla enseña el NOMBRE y de quién fue
+                                   la decisión lo dice un sello al lado, que
+                                   cambia de automática a manual al tocarla. */
                                 <span className="aulas-asigna-quien">
                                   <select
                                     className="aulas-asigna-selector"
                                     value={a.fijada ? a.aplicador : ""}
-                                    aria-label={`Aplicador de ${a.codigo}: ${
-                                      a.fijada ? `fijado a ${a.aplicador}` : `automático, ${a.aplicador}`
-                                    }. Elegir a alguien lo fija; Automático lo devuelve al reparto`}
+                                    aria-label={`Aplicador de ${a.codigo}: ${nombreDeAplicador(a.aplicador)}, ${
+                                      a.fijada ? "puesto a mano" : "decidido por el reparto"
+                                    }. Elegir a otra persona lo pone a mano`}
                                     onChange={(e) => fijar(a.codigo, e.target.value)}
                                   >
-                                    <option value="">Automático — {a.aplicador}</option>
+                                    <option value="">{nombreDeAplicador(a.aplicador)}</option>
                                     {opcionesDeAplicador}
                                   </select>
                                   {a.fijada ? (
-                                    <span className="aulas-asigna-fijada" title="Fijado a mano: sobrevive cada Recargar">
-                                      <Pin size={11} aria-hidden="true" /> fijada
+                                    /* El sello manual ES el camino de vuelta:
+                                       sin él, deshacer obligaba a buscar una
+                                       opción «Automático» en una lista de 31. */
+                                    <button
+                                      type="button"
+                                      className="aulas-asigna-sello es-manual"
+                                      title="La pusiste tú y sobrevive cada Recargar. Toca para devolverla al reparto automático."
+                                      aria-label={`${a.codigo}: puesto a mano. Devolver al reparto automático`}
+                                      onClick={() => fijar(a.codigo, "")}
+                                    >
+                                      <Pin size={10} aria-hidden="true" /> manual
+                                    </button>
+                                  ) : (
+                                    <span
+                                      className="aulas-asigna-sello es-auto"
+                                      title="La decidió el reparto; elegir a otra persona la pone a mano"
+                                    >
+                                      <Shuffle size={10} aria-hidden="true" /> automática
                                     </span>
-                                  ) : null}
+                                  )}
                                   {a.advertencia ? (
                                     <span className="aulas-asigna-advertencia">
                                       <AlertTriangle size={11} aria-hidden="true" />
@@ -543,7 +644,7 @@ export function AulasAsignacionDeAplicadores({
                                   ) : null}
                                 </span>
                               ) : (
-                                a.aplicador
+                                nombreDeAplicador(a.aplicador)
                               )}
                             </td>
                           </tr>
@@ -558,7 +659,7 @@ export function AulasAsignacionDeAplicadores({
                      resuelto de lo que está; asignarle a alguien sería
                      inventar una cita. */
                   <p className="aulas-asigna-pendientes">
-                    Por confirmar: {chipsDeCodigos(d.porConfirmar)} — fecha sin hora pactada; no
+                    Por confirmar: {chipsDeCodigos(d.porConfirmar)}. Fecha sin hora pactada; no
                     piden gente todavía.
                   </p>
                 ) : null}
@@ -592,6 +693,31 @@ export function AulasAsignacionDeAplicadores({
                   </p>
                 );
               })()}
+              {libres.length > 0 ? (
+                /* Dictado 2026-09-04: «no me estás dando soluciones ni formas
+                   de poder yo resolver las cosas». Quien quedó sin nada dice
+                   QUÉ CUBRE, que es con lo que se decide si conviene mover una
+                   cita hacia sus horas o dejarlo fuera de esta tanda. */
+                <details className="aulas-asigna-libres">
+                  <summary>
+                    {fmt(libres.length)} sin ninguna aplicación: qué horas cubren
+                  </summary>
+                  <ul>
+                    {libres.map((l) => (
+                      <li key={l.aplicador}>
+                        <strong>{nombreDeAplicador(l.aplicador)}</strong>{" "}
+                        {l.cubre.length === 0
+                          ? oferta === null
+                            ? "sin la malla de disponibilidad cargada no se puede decir qué cubre"
+                            : "no declaró ninguna hora en el libro de disponibilidad"
+                          : l.cubre
+                            .map((c) => `${c.dia} ${c.desde} a ${c.hasta}`)
+                            .join(" · ")}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
               <p className="aulas-asigna-nota">
                 Con 0 también se listan: estar libre es un dato del reparto.
               </p>
@@ -606,7 +732,7 @@ export function AulasAsignacionDeAplicadores({
                         className={`aulas-asigna-carga${activo ? " es-activo" : ""}${
                           e.asignadas === 0 ? " es-libre" : ""}`}
                         aria-pressed={fijado && activo}
-                        aria-label={`${e.aplicador}: ${fmt(e.asignadas)} ${
+                        aria-label={`${nombreDeAplicador(e.aplicador)}: ${fmt(e.asignadas)} ${
                           e.asignadas === 1 ? "aplicación asignada" : "aplicaciones asignadas"}${
                           dias.length ? ` en ${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}` : ""
                         }. Resalta sus aplicaciones en el reparto`}
@@ -618,7 +744,7 @@ export function AulasAsignacionDeAplicadores({
                           setFijado(true);
                         }}
                       >
-                        <span className="aulas-asigna-nombre">{e.aplicador}</span>
+                        <span className="aulas-asigna-nombre">{nombreDeAplicador(e.aplicador)}</span>
                         {/* La carga como badge del MISMO sistema de chips
                             (veredicto 2026-09-02): un solo componente, y el
                             estado «libre» lo atenúa por contexto. */}

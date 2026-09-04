@@ -50,7 +50,8 @@ describe("AulasAsignacionDeAplicadores", () => {
     const html = pinta(REPARTO);
     expect(html).toContain("Viernes 11/09");
     expect(html).toContain("CH 1");
-    expect(html).toContain("10:00–10:20");
+    // Dictado 2026-09-04: cada hora lleva su verbo, y el rango se lee «a».
+    expect(html).toContain("aplica 10:00 a 10:20");
     expect(html).toContain("Ana Prueba");
   });
 
@@ -178,16 +179,28 @@ describe("AulasAsignacionDeAplicadores — el mecanismo de fijar (B36)", () => {
       />,
     );
 
-  it("cada cita lleva su selector: Automático nombra al del greedy y las opciones dicen su carga", () => {
+  it("cada cita lleva su selector con el NOMBRE, y el sello dice de quién fue la decisión", () => {
+    // Dictado 2026-09-04: «automático no necesita una palabra grandota y un
+    // guion, eso es muy AI slop; necesita tener el nombre». La palabra pasó
+    // a un sello pequeño al lado, que además cambia a manual al tocarla.
     const html = conFijar(CON_FIJADA);
     expect(html).toContain("aulas-asigna-selector");
-    expect(html).toContain("Automático — Ana Prueba");
+    expect(html).not.toContain("Automático —");
+    // La automática lleva `selected` en esa misma opción, así que el
+    // atributo se deja pasar: lo que se afirma es que el texto de la
+    // opción del automático es el NOMBRE, sin rótulo delante.
+    expect(html).toMatch(/<option value=""[^>]*>Ana Prueba<\/option>/);
+    expect(html).toContain("automática");
     expect(html).toContain("Ana Prueba · 1");
   });
 
-  it("la fijada llega marcada y su advertencia habla al lado, no en un tooltip", () => {
+  it("la puesta a mano se sella como manual, y ese sello es el camino de vuelta", () => {
     const html = conFijar(CON_FIJADA);
-    expect(html).toContain("aulas-asigna-fijada");
+    expect(html).toContain("aulas-asigna-sello es-manual");
+    expect(html).toContain("manual");
+    // Dictado 2026-09-04: sin este botón, deshacer obligaba a buscar una
+    // opción «Automático» dentro de una lista de treinta y un nombres.
+    expect(html).toContain("Devolver al reparto automático");
     expect(html).toContain("fuera de su disponibilidad declarada");
   });
 
@@ -232,7 +245,7 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     // «el que toca» cayó en el mapa de jergas (dictado 2026-09-03): el
     // vocabulario del lector es «próxima salida».
     const html = pintaCon("2026-09-05");
-    expect(html).toMatch(/Lunes 07\/09 — próxima salida/);
+    expect(html).toMatch(/Lunes 07\/09 · próxima salida/);
   });
 
   it("entre dos fechas futuras, la primera es la que toca y la otra queda neutra", () => {
@@ -242,8 +255,15 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
   });
 
-  it("el día de hoy se sella como «hoy — salida de campo»", () => {
-    expect(pintaCon("2026-09-07")).toContain("hoy — salida de campo");
+  it("el día de hoy se sella como «hoy, salida de campo»", () => {
+    expect(pintaCon("2026-09-07")).toContain("hoy, salida de campo");
+  });
+
+  it("ningún em dash sobrevive en la vista (dictado 2026-09-04: «basta»)", () => {
+    // El guion de «sin dato» sigue siendo legítimo en una celda vacía; lo
+    // que se fue es el em dash usado como puntuación de una frase.
+    const html = pintaCon("2026-09-07");
+    expect(html).not.toMatch(/\w\s—\s\w/);
   });
 
   it("lo pasado se atenúa y se rotula; el que toca salta al siguiente", () => {
@@ -328,14 +348,17 @@ describe("AulasAsignacionDeAplicadores — concentrar el día del aplicador", ()
       />,
     );
 
-  it("el criterio es un mando del panel y dice el estado del MOTOR, no un deseo local", () => {
+  it("el criterio es un INTERRUPTOR del panel y dice el estado del MOTOR, no un deseo local", () => {
+    // Dictado 2026-09-04: «no debe ser un check, debe ser un switch». Un
+    // criterio que queda puesto no es una casilla de formulario.
     const encendido = conToggle(TRES_DIAS);
     expect(encendido).toContain("Concentrar el día del aplicador");
-    expect(encendido).toMatch(/aulas-asigna-concentrar[\s\S]{0,220}checked/);
-    // Apagado en el motor = casilla vacía: la UI no puede decir lo contrario
-    // de lo que armó el reparto que está pintando abajo.
+    expect(encendido).toMatch(/aulas-asigna-concentrar[\s\S]{0,320}role="switch"[\s\S]{0,120}aria-checked="true"/);
+    expect(encendido).not.toContain('type="checkbox"');
+    // Apagado en el motor = interruptor apagado: la UI no puede decir lo
+    // contrario de lo que armó el reparto que está pintando abajo.
     expect(conToggle({ ...TRES_DIAS, concentrado: false }))
-      .not.toMatch(/aulas-asigna-concentrar[\s\S]{0,220}checked/);
+      .toMatch(/aulas-asigna-concentrar[\s\S]{0,320}aria-checked="false"/);
   });
 
   it("sin onConcentrar el mando no se pinta: la hoja de solo lectura de siempre", () => {

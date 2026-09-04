@@ -27,6 +27,7 @@ import { AulasAsignacionDeAplicadores } from "./AulasAsignacionDeAplicadores";
 import { AulasDisponibilidadDeAplicadores } from "./AulasDisponibilidadDeAplicadores";
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
+import { ventanasPorCita } from "./salidasDelReparto";
 import { repartoDeAplicadores } from "./repartoDeAplicadores";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { hoyISO } from "./calendarioDeAgenda";
@@ -223,6 +224,14 @@ export function AulasCargaDeCampo({
   // Los bloques de B29, normalizados. `null` = la sesión no cargó la clave de
   // disponibilidad, y las vistas nuevas declaran qué falta y de dónde sale.
   const oferta = useMemo(() => mallaDeOferta(disponibilidad), [disponibilidad]);
+  // Dictado 2026-09-04: la Asignación necesita la HORA de una cita
+  // descubierta para poder decir quién tendría ese horario; el reparto trae
+  // el código pelado y la hora vive en el bloque `franjas`. Es otra lectura
+  // del MISMO bloque que `ventanasDelMotor` —no otra verdad—: aquella indexa
+  // por código para posicionar la malla de demanda y sólo guarda el inicio;
+  // ésta indexa por fecha y código y conserva las dos puntas, que es lo que
+  // pide el solape contra la oferta.
+  const ventanasDeCita = useMemo(() => ventanasPorCita(franjas), [franjas]);
   const repartoVista = useMemo(() => repartoDeAplicadores(reparto), [reparto]);
   // El bloque `reparto` viaja sin lugares: la tabla de Asignación los busca en
   // el plan, con la MISMA regla que el detalle (lugar confirmado del libro
@@ -441,7 +450,16 @@ export function AulasCargaDeCampo({
         />
       ) : null}
       {vista === "asignacion" ? (
-        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} onDeclararRango={onDeclararRango} onResortear={onResortear} onConcentrar={onConcentrar} />
+        <AulasAsignacionDeAplicadores
+          reparto={repartoVista}
+          lugares={lugares}
+          oferta={oferta}
+          ventanas={ventanasDeCita}
+          onFijar={onFijarReparto}
+          onDeclararRango={onDeclararRango}
+          onResortear={onResortear}
+          onConcentrar={onConcentrar}
+        />
       ) : null}
       {esDemanda && !hayMalla ? (
         // El mismo vacío declarado del atajo compacto, dentro del marco

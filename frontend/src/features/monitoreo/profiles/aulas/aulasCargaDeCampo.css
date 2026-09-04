@@ -381,13 +381,42 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 
 .aulas-asigna { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
+/* Dictado 2026-09-04: «le falta formato al texto de arriba». Eran tres frases
+   distintas en un bloque gris corrido; ahora la primera dice QUÉ es este
+   reparto y la segunda es el PROTOCOLO, leído como tres pasos separados por su
+   propio divisor en vez de por comas. */
 .aulas-asigna-vigencia {
+  display: flex; flex-direction: column; gap: 5px;
+  max-width: 74ch;
+}
+.aulas-asigna-vigencia-que {
   margin: 0;
   font-size: 12.5px;
+  line-height: 1.5;
   color: var(--pulso-text-soft);
-  max-width: 46ch;
 }
 .aulas-asigna-vigencia strong { color: var(--pulso-text); font-weight: 600; }
+.aulas-asigna-protocolo {
+  margin: 0;
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 2px 10px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+.aulas-asigna-protocolo > span { display: inline-flex; align-items: baseline; gap: 4px; }
+.aulas-asigna-protocolo > span + span::before {
+  content: "";
+  align-self: center;
+  width: 3px; height: 3px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--pulso-border-strong);
+}
+.aulas-asigna-protocolo strong {
+  color: var(--pulso-text-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 /* El KPI de citas descubiertas se enciende solo cuando hay: un cero en rojo
    gritaría un problema que no existe. */
@@ -482,11 +511,6 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-selector:hover { border-color: var(--pulso-border-strong); }
 .aulas-asigna-selector:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
-.aulas-asigna-fijada {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 600;
-  color: var(--pulso-module-monitoring);
-}
 .aulas-asigna-advertencia {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 11px;
@@ -501,12 +525,28 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    entre el rango y el resorteo (solo en ancho, donde no envuelven), y el
    «sorteo n.º N» como chip en vez de texto suelto. */
 .aulas-asigna-mandos {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
   width: fit-content; max-width: 100%;
-  padding: 7px 14px;
+  /* Dictado 2026-09-04: «le falta formato a este box». Más aire vertical, el
+     rótulo del panel arriba y el mismo alto para los tres instrumentos, que
+     antes quedaban a alturas distintas por llevar controles de otro tamaño. */
+  padding: 9px 14px 11px;
   border: 1px solid var(--pulso-border);
+  /* 10 es peldaño de la escala de radios del perfil; 12 cae entre dos. */
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-bg) 55%, var(--pulso-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 70%, transparent);
+}
+.aulas-asigna-mandos > * { min-height: 24px; }
+/* El rótulo del panel: sin él los tres instrumentos flotaban sueltos dentro de
+   una caja sin nombre. Ocupa el renglón entero y usa la voz de los demás
+   encabezados del perfil. */
+.aulas-asigna-mandos-rotulo {
+  flex-basis: 100%;
+  min-height: 0;
+  margin: 0 0 1px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--pulso-text-faint);
 }
 .aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
 @media (min-width: 900px) {
@@ -521,20 +561,22 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
    puesto, no una acción que se dispara: su estado es el del reparto de abajo,
    leído del motor. */
 .aulas-asigna-concentrar {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--pulso-text-soft);
-  cursor: pointer;
-  user-select: none;
+  display: inline-flex; align-items: center; gap: 9px;
 }
-.aulas-asigna-concentrar:hover { color: var(--pulso-text); }
-.aulas-asigna-concentrar input[type="checkbox"] {
-  accent-color: var(--pulso-module-monitoring);
-  width: 13px; height: 13px;
-  margin: 0;
-  cursor: pointer;
+.aulas-asigna-concentrar:has(.pulso-switch:disabled) { opacity: 0.55; }
+.aulas-asigna-concentrar-texto {
+  display: flex; flex-direction: column; gap: 1px;
+  line-height: 1.3;
 }
-.aulas-asigna-concentrar:has(input:disabled) { opacity: 0.55; cursor: default; }
-.aulas-asigna-concentrar input:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
+.aulas-asigna-concentrar-texto strong {
+  font-size: 12px; font-weight: 600;
+  color: var(--pulso-text);
+}
+.aulas-asigna-concentrar-texto em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
 
 .aulas-asigna-resorteo em {
   font-style: normal; font-size: 11px; font-weight: 600;
@@ -789,6 +831,11 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-nombre {
   font-size: 12.5px; color: var(--pulso-text);
   overflow-wrap: anywhere;
+  /* Un <button> computa `white-space: nowrap` por defecto del navegador, así
+     que `overflow-wrap` no alcanzaba: el nombre largo se salía de su columna y
+     la cifra se pintaba encima (visto el 2026-09-04, al ensanchar la columna
+     con la marca de días). Envolver es lo que esta fila siempre quiso. */
+  white-space: normal;
 }
 .aulas-asigna-carga.es-libre .aulas-asigna-nombre { color: var(--pulso-text-soft); }
 /* La carga es un badge del mismo sistema de chips (veredicto 2026-09-02): el
@@ -834,6 +881,38 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   font-weight: 600;
   margin-right: 6px;
 }
+
+/* Dictado 2026-09-04: «automático debe ser un aviso pequeño, no el brillito
+   cliché de siempre; y si lo cambias, cambia de loguito y se pone manual». Dos
+   sellos del mismo tamaño y sitio: sólo cambian el ícono, la palabra y el tono.
+   El manual es un botón porque además es el camino de vuelta al automático. */
+.aulas-asigna-sello {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  font: inherit; font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.aulas-asigna-sello.es-auto { color: var(--pulso-text-faint); }
+.aulas-asigna-sello.es-manual {
+  color: var(--pulso-module-monitoring);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, var(--pulso-surface));
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-asigna-sello.es-manual:hover {
+  border-color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 15%, var(--pulso-surface));
+}
+.aulas-asigna-sello.es-manual:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px;
+}
+/* La hora que no existe se nombra en vez de dejar un guion mudo. */
+.aulas-asigna-sin-hora { font-size: 11.5px; color: var(--pulso-text-faint); }
 
 .aulas-asigna-barra {
   position: absolute;
@@ -911,3 +990,40 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 /* Los edificios del parte del día: letra coloreada + cuenta, en el título. */
 .aulas-carga-detalle-pabellon { display: inline-flex; align-items: center; gap: 2px; margin-left: 7px; }
 .aulas-carga-detalle-pabellon em { font-style: normal; font-size: 11px; color: var(--pulso-text-soft); }
+
+/* Dictado 2026-09-04: «los avisos [tienen que] permitirnos hacer algo». La
+   causa de una cita descubierta va DEBAJO de su código y su selector, en línea
+   propia y en tono de nota: es la frase que dice a quién soltar para abrirla. */
+.aulas-asigna-causa {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  padding-left: 2px;
+}
+/* Quien quedó sin nada y qué cubre: plegado por defecto porque son diez líneas
+   que sólo se miran cuando se quiere mover una cita, y nativo para que el
+   teclado llegue sin estado suelto. */
+.aulas-asigna-libres { margin: 0 0 2px; }
+.aulas-asigna-libres > summary {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style-position: inside;
+}
+.aulas-asigna-libres > summary:hover { color: var(--pulso-module-monitoring); }
+.aulas-asigna-libres > summary:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; border-radius: 4px;
+}
+.aulas-asigna-libres ul {
+  margin: 4px 0 6px;
+  padding: 6px 9px;
+  display: flex; flex-direction: column; gap: 4px;
+  list-style: none;
+  border-left: 2px solid var(--pulso-border-strong);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+.aulas-asigna-libres ul strong { color: var(--pulso-text); font-weight: 600; }
