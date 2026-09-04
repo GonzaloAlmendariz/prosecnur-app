@@ -1,0 +1,60 @@
+# Checklist · El libro de campo dice de dónde viene cada dato (dictado 2026-09-04)
+
+Superficie: la hoja **«Aulas Aplicadas (Campo)»** del libro operativo y del
+Google Sheets, más el vocabulario de estados de la cadena.
+
+| # | Indicación (sus palabras) | Dónde vive | Estado |
+|---|---|---|---|
+| 1 | «En Aulas Aplicadas Campo tiene que haber paleta de colores para los encabezados en función de la función que tenga: distinguir lo que viene de la agenda de lo que es genuinamente de campo, lo que se llena manual de lo automático» | `carga_aulas_libro_formato.R`, segunda fila de cabecera | **hecho, verificado sobre el .xlsx** |
+| 2 | «Y ese es un criterio que aplica a todas las hojas» | parámetro `funciones` por hoja en `aulas_libro_aplicar_formato`; hoy sólo lo declara Campo | **hecho el mecanismo** |
+| 3 | «Aulas Agendadas ya lo tiene y no hace falta tocarlo» | la banda de eslabón ya colorea su cabecera | **nada que hacer** |
+| 4 | Estado «Reemplazada por» para el caso A (aula rechazada o no aplicada, reemplazo en sentido estricto) | vocabulario de `STATUS DE APLICACIÓN` | pendiente |
+| 5 | Estado «Complementado con» para el caso B (el aula no rinde y se toma su cadena u otro reemplazo) | ídem | pendiente |
+| 6 | Columna nueva «AULA UTILIZADA» al lado de STATUS MUESTRA, que diga cuál reemplazo se usó | spec `AULAS_AGENDADAS_BLOQUE`, que alimenta las DOS hojas | pendiente |
+| 7 | El caso C (se va a un reemplazo por falta de alumnos o de un sexo para la meta) | ¿comparte «Complementado con» o lleva el suyo? | **bloqueado, preguntado al usuario** |
+
+## Lo que ya está resuelto y no hay que reinvestigar
+
+- **Los tres casos ya están modelados.** `frontend/src/features/monitoreo/
+  profiles/aulas/relacionDeReserva.ts` (del dictado 2026-09-03, «yo sé que se
+  llaman reemplazos pero no siempre reemplazan en ese sentido de la palabra»)
+  devuelve `reemplaza` para A, `complementa` para B y `refuerzo` para C, leyendo
+  el `sample_status` del titular de la cadena. **Hoy no lo consume nadie**: está
+  sin `git add` desde esa sesión. El vocabulario nuevo del libro debe salir de
+  ahí, no de una segunda lectura.
+- **Una columna nueva junto a STATUS MUESTRA llega a las dos hojas.** La hoja de
+  campo compone sus bloques con `.calg_titulos_agenda()`, que toma el primer
+  título de cada entrada de `AULAS_AGENDADAS_BLOQUE` (`carga_aulas_agendadas.R`).
+  Añadir la entrada después de `sample_status` la pone en Agendadas y en Campo
+  de una vez, con su arrastre y su formato heredados por la spec.
+- **En el Sheets vivo esa columna NO aparecerá sola.** «Aulas Agendadas» y
+  «Aulas Aplicadas (Campo)» son del equipo: la app las siembra sólo si están
+  vacías y con cualquier contenido las declara `respetada`. La columna llegará
+  en el `.xlsx` regenerado y en una siembra nueva, no sobre la hoja que están
+  llenando. Es la protección que pidió, y también su límite.
+- **Qué grupos de función tiene hoy la hoja de campo**, por bloque de eslabón:
+  el código, el eco de la agenda (`.calg_titulos_agenda`), los dos denominadores
+  que pone la app (`MATRICULADOS TOTAL DTI`, `MATRICULADOS ELEGIBLES`), lo que
+  se teclea en campo (aplicador, fecha, hora, aula, asistentes, rechazos,
+  duplicados, efectivas, estado, enlace, observaciones) y una calculada
+  (`% ASISTENCIA`).
+- **El color del encabezado ya está ocupado por el eslabón.** La banda pinta
+  TODAS las filas de cabecera del bloque con el tono de su eslabón
+  (`AULAS_LIBRO_PALETA_ESLABON`). La paleta por función tiene que vivir en la
+  SEGUNDA fila, o las dos pistas se pisan.
+
+## Verificado el 2026-09-04
+
+La paleta cae exacta sobre el `.xlsx` generado: `ID MATCH` y los dos
+denominadores en el gris de la app, las 23 del eco de la agenda en azul pálido,
+las once que se teclean en campo en ámbar y `% ASISTENCIA` en verde. La fila 1
+conserva el navy del eslabón.
+
+**Un tropiezo de método que conviene no repetir.** La primera lectura del `.xlsx`
+la hice con un parser de XML propio y salió todo desplazado un puesto: parecía un
+defecto del generador cuando el defecto era del lector. `openpyxl` es fiable,
+pero revienta con estos libros porque openxlsx deja una relación a
+`xl/drawings/drawing1.xml` que no existe; se lee bien tras copiar el zip quitando
+esas `<Relationship>`. Y la paleta original tenía los cuatro tonos a 15-21 de
+distancia RGB, o sea cuatro casi-blancos indistinguibles: lo cazó el test de
+distancia, no el ojo.

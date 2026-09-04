@@ -1258,6 +1258,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     ),
     validaciones = validaciones,
     listas = listas,
+    # Dictado 2026-09-04: la fila de titulos de la hoja de campo dice, por
+    # color, de que sirve cada columna. La agenda no lo necesita: alli el color
+    # del eslabon ya es la pista y su cabecera es de una sola fila.
+    funciones = list(`Aulas Aplicadas (Campo)` = aulas_libro_funciones_de_columna(
+      .calg_titulos_agenda(), .calg_titulos_campo(), bloques_campo
+    )),
     columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(
       # B8h fase 2: con el cruce, «TRASLAPE DAA» cierra el bloque y es columna
       # de la APP —el veredicto lo escribe el cruce, no la persona— asi que

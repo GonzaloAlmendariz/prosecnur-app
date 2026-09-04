@@ -66,6 +66,80 @@ AULAS_LIBRO_PALETA_ESLABON <- c(
   "#9C1F45"  # R5 vino
 )
 
+# **Un color por FUNCION de la columna, en la SEGUNDA fila de cabecera.**
+#
+# Dictado del 2026-09-04: «en Aulas Aplicadas Campo tiene que haber paleta de
+# colores para los encabezados en funcion de la funcion que tenga, y ese es un
+# criterio que aplica a todas las hojas: se tiene que distinguir lo que viene de
+# la agenda de lo que es genuinamente de campo, lo que se debe llenar
+# manualmente de lo que se llena en automatico».
+#
+# La fila 1 ya esta ocupada: lleva el tono del ESLABON (titular, reemplazo 1...),
+# que es la otra pista que la hoja necesita. Por eso la funcion vive en la fila
+# de TITULOS, y para que las dos no se peleen invierte el peso visual: arriba
+# fondo oscuro con texto blanco, abajo fondo claro con texto oscuro. Se leen como
+# lo que son, dos ejes distintos, y no como dos bandas compitiendo.
+#
+# Los cuatro tonos dicen su funcion, no son una paleta decorativa:
+#   - `agenda`   azul palido: ya se decidio en la otra hoja, aqui solo se mira.
+#   - `app`      el MISMO gris `#F2F4F7` con el que ya se tiñen abajo las celdas
+#                de «esto no lo toques»: la cabecera y su columna hablan igual.
+#   - `campo`    ambar: el unico calido, y el unico que pide accion. Es donde se
+#                escribe.
+#   - `calculada` verde palido: sale solo de lo que se escriba al lado.
+#
+# El contraste se MIDE (test-carga-aulas-libro-color-funcion.R), no se pinea:
+# los cuatro pares sostienen texto normal (>= 4.5) sobre su fondo.
+# Los tonos son PALIDOS pero no lavados: la primera version los dejo a 15-21 de
+# distancia RGB entre si —cuatro casi-blancos— y el propio test los tumbo. Un
+# color que no se distingue del de al lado no es una pista, es ruido con buena
+# intencion. Ahora estan a 34 o mas por par.
+AULAS_LIBRO_FUNCION_COLUMNA <- list(
+  agenda    = list(fill = "#D6E4F5", texto = "#2C4A6E", etiqueta = "viene de la agenda"),
+  app       = list(fill = "#F2F4F7", texto = "#5B6472", etiqueta = "lo pone la app"),
+  campo     = list(fill = "#FFE7BF", texto = "#845200", etiqueta = "se llena en campo"),
+  calculada = list(fill = "#D3EFE1", texto = "#0F6B4F", etiqueta = "se calcula sola")
+)
+
+#' A que funcion pertenece cada columna de un bloque de la hoja de campo.
+#'
+#' El bloque es `[ID MATCH][titulos de agenda][titulos de campo]`, y se repite
+#' `bloques` veces. Devuelve la lista que `aulas_libro_aplicar_formato` espera:
+#' una entrada por funcion con sus columnas absolutas.
+#'
+#' No recibe los titulos por posicion sino por NOMBRE, para que reordenar
+#' `.calg_titulos_campo()` no mueva silenciosamente un color a otra columna.
+#'
+#' @param titulos_agenda titulos del eco de la agenda, en su orden.
+#' @param titulos_campo titulos del parte, en su orden.
+#' @param bloques cuantos eslabones tiene la hoja.
+#' @param automaticas titulos de `titulos_campo` que pone la APP, no la persona.
+#' @param calculadas titulos de `titulos_campo` que salen de una formula.
+#' @return lista de `list(funcion, cols)`.
+#' @keywords internal
+aulas_libro_funciones_de_columna <- function(titulos_agenda, titulos_campo, bloques,
+                                             automaticas = c("MATRICULADOS TOTAL DTI",
+                                                             "MATRICULADOS ELEGIBLES"),
+                                             calculadas = c("% ASISTENCIA")) {
+  ancho <- 1L + length(titulos_agenda) + length(titulos_campo)
+  base_campo <- 1L + length(titulos_agenda)
+  # Dentro de UN bloque, que columna cae en cada funcion.
+  rel <- list(
+    app = c(1L, base_campo + which(titulos_campo %in% automaticas)),
+    agenda = 1L + seq_along(titulos_agenda),
+    calculada = base_campo + which(titulos_campo %in% calculadas),
+    campo = base_campo + which(!(titulos_campo %in% c(automaticas, calculadas)))
+  )
+  salida <- list()
+  for (funcion in names(rel)) {
+    relativas <- rel[[funcion]]
+    if (!length(relativas)) next
+    cols <- unlist(lapply(seq_len(bloques), function(b) (b - 1L) * ancho + relativas))
+    salida[[length(salida) + 1L]] <- list(funcion = funcion, cols = sort(unique(cols)))
+  }
+  salida
+}
+
 .calf_mezcla <- function(hex, blanco, peso) {
   c1 <- grDevices::col2rgb(hex)[, 1]
   c2 <- grDevices::col2rgb(blanco)[, 1]
@@ -279,7 +353,8 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                                         columnas_repetidas = list(),
                                         combinar = list(),
                                         descuadres = list(),
-                                        tintes = list()) {
+                                        tintes = list(),
+                                        funciones = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -444,6 +519,30 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     cols <- unique(c(1L, cols))
     openxlsx::addStyle(wb, hoja, de_la_app, rows = filas, cols = cols,
                        gridExpand = TRUE, stack = TRUE)
+  }
+
+  # **La funcion de cada columna, en su fila de titulos** (dictado 2026-09-04).
+  #
+  # Va DESPUES de la banda de eslabon y del gris de la app a proposito: pinta
+  # solo la ULTIMA fila de cabecera, que es la de los titulos, y deja intacta la
+  # primera, que es donde vive el eslabon. Aplicado antes, la banda —que pinta
+  # con `stack = FALSE`— lo habria borrado.
+  for (hoja in names(funciones)) {
+    n_cab <- filas_cabecera[[hoja]] %||% 1L
+    # Con una sola fila de cabecera no hay dos ejes que separar: el color de la
+    # funcion pisaria al del bloque. Se declara y no se pinta.
+    if (n_cab < 2L) next
+    for (tramo in funciones[[hoja]]) {
+      spec <- AULAS_LIBRO_FUNCION_COLUMNA[[tramo$funcion]]
+      if (is.null(spec) || !length(tramo$cols)) next
+      estilo <- openxlsx::createStyle(
+        textDecoration = "bold", fgFill = spec$fill, fontColour = spec$texto,
+        halign = "left", valign = "center", wrapText = TRUE,
+        border = "TopBottomLeftRight", borderColour = "#FFFFFF"
+      )
+      openxlsx::addStyle(wb, hoja, estilo, rows = n_cab, cols = tramo$cols,
+                         gridExpand = TRUE, stack = FALSE)
+    }
   }
 
   # **El estado se ve sin leerlo.**
