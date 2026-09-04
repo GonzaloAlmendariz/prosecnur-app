@@ -818,7 +818,7 @@ export function AulasCargaDeCampo({
                   {fijada ? <em> · fijada; otro click la suelta</em> : null}
                 </p>
                 {grupo(ocupantes.filter((o) => o.confirmada), "Confirmados")}
-                {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
+                {grupo(ocupantes.filter((o) => !o.confirmada), "Por agendar (toda su clase es posible)")}
               </>
             );
           }
@@ -852,7 +852,7 @@ export function AulasCargaDeCampo({
                     <em> · otro click en la fecha lo suelta</em>
                   </p>
                   {grupo(delDia.filter((o) => o.confirmada), "Confirmados")}
-                  {grupo(delDia.filter((o) => !o.confirmada), "Por agendar — toda su clase es posible")}
+                  {grupo(delDia.filter((o) => !o.confirmada), "Por agendar (toda su clase es posible)")}
                 </>
               );
             }
