@@ -334,7 +334,13 @@ test_that("los campos del agendamiento vuelven, salvo el alias declarado", {
   # y el lector la guarda como `replacement_note`. El dato NO se pierde —cambia
   # de nombre en el viaje—, y esa asimetria es la que engaño al barrido con el
   # que se encontro esto. Queda fijada aqui para que se vea, no escondida.
-  expect_identical(perdidos, "notes")
+  # `aula_utilizada` tampoco vuelve, y es correcto que no vuelva: la ESCRIBE la
+  # app desde la decisión operativa del plan (`replacement_for`) en cada
+  # generación, así que releerla sería darle al libro autoridad sobre un dato
+  # que no es suyo. Lo tecleado a mano sí se respeta —`aulas_libro_anotar_
+  # aula_utilizada` no pisa una celda con contenido—, pero vive en el libro, no
+  # de vuelta en el plan.
+  expect_identical(perdidos, c("aula_utilizada", "notes"))
   expect_identical(as.character(b$plan$replacement_note), as.character(b$u$notes))
 })
 

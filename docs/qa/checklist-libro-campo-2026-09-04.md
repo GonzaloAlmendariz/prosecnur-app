@@ -8,10 +8,11 @@ Google Sheets, más el vocabulario de estados de la cadena.
 | 1 | «En Aulas Aplicadas Campo tiene que haber paleta de colores para los encabezados en función de la función que tenga: distinguir lo que viene de la agenda de lo que es genuinamente de campo, lo que se llena manual de lo automático» | `carga_aulas_libro_formato.R`, segunda fila de cabecera | **hecho, verificado sobre el .xlsx** |
 | 2 | «Y ese es un criterio que aplica a todas las hojas» | parámetro `funciones` por hoja en `aulas_libro_aplicar_formato`; hoy sólo lo declara Campo | **hecho el mecanismo** |
 | 3 | «Aulas Agendadas ya lo tiene y no hace falta tocarlo» | la banda de eslabón ya colorea su cabecera | **nada que hacer** |
-| 4 | Estado «Reemplazada por» para el caso A (aula rechazada o no aplicada, reemplazo en sentido estricto) | vocabulario de `STATUS DE APLICACIÓN` | pendiente |
-| 5 | Estado «Complementado con» para el caso B (el aula no rinde y se toma su cadena u otro reemplazo) | ídem | pendiente |
-| 6 | Columna nueva «AULA UTILIZADA» al lado de STATUS MUESTRA, que diga cuál reemplazo se usó | spec `AULAS_AGENDADAS_BLOQUE`, que alimenta las DOS hojas | pendiente |
-| 7 | El caso C (se va a un reemplazo por falta de alumnos o de un sexo para la meta) | ¿comparte «Complementado con» o lleva el suyo? | **bloqueado, preguntado al usuario** |
+| 4 | Estado «Reemplazada por» para el caso A (aula rechazada o no aplicada, reemplazo en sentido estricto) | `AULAS_LIBRO_STATUS_APLICACION` | **hecho** |
+| 5 | Estado «Complementado con» para el caso B (el aula no rinde y se toma su cadena u otro reemplazo) | ídem | **hecho** |
+| 6 | Columna nueva «AULA UTILIZADA» al lado de STATUS MUESTRA, que diga cuál reemplazo se usó | spec `AULAS_AGENDADAS_BLOQUE` + `aulas_libro_anotar_aula_utilizada()` | **hecho** |
+| 7 | El caso C (se va a un reemplazo por falta de alumnos o de un sexo para la meta) | estado propio «Reforzada con», elegido por el usuario | **hecho** |
+| 8 | «El Sheets debería tener una forma muy elegante de mostrar la disponibilidad de cada encuestador, para que el equipo de campo sepa cuándo o a quién reclutar y no dependa enteramente de mí» | hoja nueva del libro, junto a «Asignación de aplicadores» | pendiente |
 
 ## Lo que ya está resuelto y no hay que reinvestigar
 

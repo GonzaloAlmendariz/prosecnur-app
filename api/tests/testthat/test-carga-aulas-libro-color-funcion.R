@@ -113,3 +113,68 @@ test_that("«% ASISTENCIA» es calculada y «STATUS DE APLICACIÓN» se llena en
   # Y el eco de la agenda incluye STATUS MUESTRA, que se decide en la otra hoja.
   expect_true((1L + which(agenda == "STATUS MUESTRA")) %in% por$agenda)
 })
+
+# ── Los tres estados de la cadena y la columna que los completa ───────────────
+#
+# Dictado 2026-09-04: «los estatus de aplicación deberían contemplar estatus
+# como Reemplazada por para A y Complementado con para B», con «Reforzado con»
+# para C, «y debemos tener una columna adicional con algo así como AULA
+# UTILIZADA que le diga al usuario cuál fue el reemplazo que usamos, al lado de
+# status muestra».
+
+test_that("el desplegable de aplicación distingue las tres situaciones", {
+  expect_true(all(c("APLICADA", "NO APLICADA") %in% AULAS_LIBRO_STATUS_APLICACION))
+  # A, B y C. Los tres terminan en preposición porque piden AULA UTILIZADA.
+  expect_true("REEMPLAZADA POR" %in% AULAS_LIBRO_STATUS_APLICACION)
+  expect_true("COMPLEMENTADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
+  expect_true("REFORZADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
+})
+
+test_that("AULA UTILIZADA va PEGADA a STATUS MUESTRA, que es donde se lee", {
+  titulos <- .calg_titulos_agenda()
+  i <- which(titulos == "STATUS MUESTRA")
+  expect_length(i, 1L)
+  expect_equal(titulos[[i + 1L]], "AULA UTILIZADA")
+})
+
+test_that("AULA UTILIZADA la escribe la app, no la persona: va en el gris", {
+  # Si entrara en los campos de la persona, su celda saldría blanca —«escribe
+  # aquí»— y diría lo contrario de lo que es.
+  expect_false("aula_utilizada" %in% AULAS_LIBRO_CAMPOS_DE_LA_PERSONA)
+})
+
+test_that("el titular sabe qué reserva ocupó su lugar", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", sample_role = "chain_reserve",
+         replacement_for = "aula_1")
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_equal(out[[1]]$aula_utilizada, "R 1.1")
+  # La reserva no se anota a sí misma: ella ES la usada.
+  expect_null(out[[2]]$aula_utilizada)
+})
+
+test_that("si entraron VARIAS se listan todas: esconder la segunda mentiría", {
+  # Es el caso B/C, donde el titular no sale y pueden sumarse dos reservas.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1"),
+    list(operational_code = "R 1.2", classroom_id = "aula_3", replacement_for = "aula_1")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.1, R 1.2")
+})
+
+test_that("lo ya escrito en el libro manda: la app no lo pisa", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", aula_utilizada = "R 9.9"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 9.9")
+})
+
+test_that("un plan sin ningún reemplazo activado sale intacto", {
+  plan <- list(list(operational_code = "CH 1", classroom_id = "aula_1"))
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan), plan)
+  expect_identical(aulas_libro_anotar_aula_utilizada(list()), list())
+})
