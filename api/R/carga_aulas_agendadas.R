@@ -61,6 +61,21 @@ AULAS_AGENDADAS_BLOQUE <- list(
   # formato y validaciones la heredan por la spec.
   list(campo = "email_received",   titulos = c("RECIBIÓ CORREO", "RECIBIO CORREO")),
   list(campo = "sample_status",    titulos = c("STATUS MUESTRA")),
+  # **Cual reserva se acabo usando** (dictado 2026-09-04: «debemos tener una
+  # columna adicional con algo asi como AULA UTILIZADA que le diga al usuario
+  # cual fue el reemplazo que usamos, al lado de status muestra»).
+  #
+  # Va PEGADA a STATUS MUESTRA porque se leen juntas: aquella dice donde esta
+  # el aula y esta, si salio del apuro, con quien. Es el complemento de los
+  # tres estados de aplicacion que terminan en preposicion (REEMPLAZADA POR,
+  # COMPLEMENTADA CON, REFORZADA CON).
+  #
+  # La escribe la APP, no la persona: sale de la decision operativa ya
+  # registrada en el plan (`replacement_for`, lo que
+  # `monitoreo_aulas_apply_replacement` anota al activar una reserva), y por eso
+  # NO entra en `AULAS_LIBRO_CAMPOS_DE_LA_PERSONA` y se tiñe del gris de «esto
+  # no lo toques». Vacia mientras no haya habido reemplazo, que es lo normal.
+  list(campo = "aula_utilizada",   titulos = c("AULA UTILIZADA")),
   # B30 (dictado 2026-09-02): «se les va a agregar la columna de Lugar de
   # aplicación y tiene que ir a la derecha de status muestra». Es el aula /
   # pabellon CONFIRMADO finalmente —puede diferir del aula de la clase que

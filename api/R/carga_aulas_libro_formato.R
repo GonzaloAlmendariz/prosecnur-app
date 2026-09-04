@@ -202,7 +202,34 @@ AULAS_LIBRO_MEDIO_CONTACTO <- c("Teléfono", "Correo")
 
 AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 
-AULAS_LIBRO_STATUS_APLICACION <- c("APLICADA", "NO APLICADA")
+# **Un aula no solo se aplica o no: puede haber entrado otra en su lugar.**
+#
+# Dictado del 2026-09-04: «los estatus de aplicacion deberian contemplar
+# estatus como Reemplazada por para A y Complementado con para B», y el caso C
+# con el suyo («Reforzado con», elegido por el dueño el mismo dia).
+#
+# Los tres nombran las TRES situaciones que el operativo ya distinguia de boca
+# y el libro escribia igual (dictado 2026-09-03: «yo se que se llaman
+# reemplazos, pero no siempre reemplazan en ese sentido de la palabra»):
+#
+#   A  REEMPLAZADA POR    el aula cayo —rechazo o no se aplico— y otra ocupa su
+#                         lugar. Es reemplazo en sentido estricto: el titular
+#                         sale y la reserva entra.
+#   B  COMPLEMENTADA CON  el aula rindio poco y se suma su cadena u otra
+#                         reserva. El titular NO sale: los dos cuentan.
+#   C  REFORZADA CON      no es del aula: faltaban alumnos o un sexo para la
+#                         meta y se sale a una reserva por decision operativa.
+#
+# Los tres terminan en preposicion a proposito: piden la columna «AULA
+# UTILIZADA», que dice CUAL. El estado dice que paso; la columna, con quien.
+# Separarlos es lo que permite contar reemplazos sin contar refuerzos.
+#
+# La concordancia va en femenino como sus dos hermanas —el sujeto es el aula,
+# igual que en APLICADA— aunque el dictado las nombrara en masculino.
+AULAS_LIBRO_STATUS_APLICACION <- c(
+  "APLICADA", "NO APLICADA",
+  "REEMPLAZADA POR", "COMPLEMENTADA CON", "REFORZADA CON"
+)
 
 # B22: el desplegable de «RECIBIÓ CORREO» — exactamente Sí y No, con el «No»
 # como default sembrado en reemplazos y extras (dictado 2026-09-01). UNA lista

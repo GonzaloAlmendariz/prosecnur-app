@@ -132,6 +132,10 @@
     # teclea el equipo, asi que la siembra es VACIA en todos los roles (sin
     # default: un valor inventado hablaria por una llamada que no ocurrio).
     call_status      = .calg_txt(u$call_status),
+    # Lo anota `aulas_libro_anotar_aula_utilizada()` sobre el plan COMPLETO,
+    # porque saber que reserva ocupo el lugar de un titular exige ver la cadena
+    # entera y aqui solo se ve UNA unidad.
+    aula_utilizada   = .calg_txt(u$aula_utilizada),
     # B22: eco primero — un «Sí» ya registrado no se re-siembra («escribir
     # vacio siempre borraba el operativo en curso», la regla del bloque). Sin
     # registro, la siembra va POR ROL, no por posicion: reservas y extras
@@ -775,6 +779,49 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 }
 
 
+#' Anota en cada TITULAR que reserva ocupo su lugar.
+#'
+#' Dictado 2026-09-04: la columna «AULA UTILIZADA» tiene que decir «cual fue el
+#' reemplazo que usamos». Eso no se puede leer desde una unidad suelta: hay que
+#' mirar la cadena, y por eso se anota aqui sobre el plan completo en vez de
+#' resolverse celda a celda.
+#'
+#' La fuente es `replacement_for`, que es lo que
+#' `monitoreo_aulas_apply_replacement()` escribe al activar una reserva: el
+#' `classroom_id` del aula que cayo. Se usa ESE campo y no la cadena de diseño
+#' a proposito — la cadena dice quien PODRIA entrar, y esta columna dice quien
+#' entro de verdad.
+#'
+#' Si a un titular le entraron varias (pasa en los casos B y C, donde el titular
+#' no sale), se listan todas separadas por coma: esconder la segunda diria que
+#' se uso una sola.
+#'
+#' @param unidades filas del plan.
+#' @return las mismas filas, con `aula_utilizada` puesto en los titulares.
+#' @keywords internal
+aulas_libro_anotar_aula_utilizada <- function(unidades) {
+  if (!length(unidades)) return(unidades)
+  # De quien vino cada reserva activada, en codigo operativo (que es el idioma
+  # del libro; `replacement_for` habla en `classroom_id`).
+  usadas <- list()
+  for (u in unidades) {
+    de <- .calg_txt(u$replacement_for)
+    if (!nzchar(de)) next
+    cod <- .calg_txt(u$operational_code)
+    if (!nzchar(cod)) next
+    usadas[[de]] <- c(usadas[[de]], cod)
+  }
+  if (!length(usadas)) return(unidades)
+  lapply(unidades, function(u) {
+    # Se respeta lo que ya venga escrito: si alguien lo tecleo en el libro, esa
+    # es la verdad de campo y la app no la pisa.
+    if (nzchar(.calg_txt(u$aula_utilizada))) return(u)
+    mias <- usadas[[.calg_txt(u$classroom_id)]]
+    if (length(mias)) u$aula_utilizada <- paste(unique(mias), collapse = ", ")
+    u
+  })
+}
+
 #' Genera el libro operativo completo del estudio.
 #'
 #' @param unidades filas del plan (formato largo).
@@ -801,6 +848,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   }
   # B68: la hoja de asignación reparte sobre el plan COMPLETO —el mismo insumo
   # que la app—, y aquí abajo `unidades` se filtra para las hojas del libro.
+  # Dictado 2026-09-04: «AULA UTILIZADA» sale de la cadena, asi que se anota
+  # sobre el plan COMPLETO y antes de cualquier filtro; si no, un titular cuya
+  # reserva quedo fuera del recorte saldria sin su dato.
+  unidades <- aulas_libro_anotar_aula_utilizada(unidades)
   plan_completo <- unidades
   # B14: el banco de extras sin usar se captura ANTES del filtro —el filtro es
   # justo lo que lo saca de las hojas principales— y gana sus dos hojas
