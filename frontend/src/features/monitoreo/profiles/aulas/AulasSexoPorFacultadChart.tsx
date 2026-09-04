@@ -117,7 +117,7 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
             el tramo sale de las aulas EN JUEGO sin aplicar (tengan fecha o
             no); «Cierran con lo agendado» proyecta sólo sobre la agenda y es
             otra tarjeta. */}
-        <li><i className="es-pendiente" />Efectivas previstas — de los cursos-horario que faltan aplicar</li>
+        <li><i className="es-pendiente" />Efectivas previstas de los cursos-horario que faltan aplicar</li>
         <li><i className="es-deficit" />Faltaría aun así</li>
         <li><i className="es-cuota" />Meta</li>
       </ul>

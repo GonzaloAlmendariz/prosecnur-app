@@ -46,7 +46,7 @@ const GRUPOS: Array<{ id: OrigenDeCandidato; titulo: string; pie: string }> = [
   {
     id: "otra_cadena",
     titulo: "Reservas al aire",
-    pie: "De cadenas ya resueltas —su titular o un reemplazo previo ya se aplicó—, así que nadie las espera.",
+    pie: "De cadenas ya resueltas (su titular o un reemplazo previo ya se aplicó), así que nadie las espera.",
   },
   {
     id: "extra",

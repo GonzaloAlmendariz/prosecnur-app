@@ -139,7 +139,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
         {a.excedente ? (
           <li className="es-excedente">
             {/* La frase entera: sin ella, «excedente» se lee como logro. */}
-            <strong>{fmt(a.excedente)}</strong> de más en cursos-horario que ya cumplieron — no cubren
+            <strong>{fmt(a.excedente)}</strong> de más en cursos-horario que ya cumplieron; no cubren
             la falta de ninguna otra
           </li>
         ) : null}
