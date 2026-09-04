@@ -245,6 +245,32 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
 #' lo repite.
 #'
 #' @param codigo codigo operativo («CH 1», «R 1.2», «EXTRA 7»).
+# El rotulo de sesiones del plan lleva el aula INCRUSTADA («VIE 10:00-13:00
+# N502»). Cuando el equipo confirma otra en el Sheets, ese rotulo queda
+# desmentido y la hoja se contradecia consigo misma: el titulo decia N502 y el
+# campo, dos centimetros mas abajo, A206. Quien la sostiene no sabe a cual
+# creerle, asi que el aula desmentida SALE del titulo — el campo la sigue
+# imprimiendo, que es su sitio.
+#
+# Se retira por coincidencia EXACTA con el aula del catalogo, nunca por un
+# patron de «esto parece un aula»: un codigo academico como «MAT202_0591»
+# calzaria con cualquier regex de aula y perderia media identidad de la ficha.
+.crf_sin_aula_desmentida <- function(label, venue, venue_catalogo) {
+  label <- as.character(label %||% "")[1]
+  actual <- trimws(as.character(venue %||% "")[1])
+  catalogo <- trimws(as.character(venue_catalogo %||% "")[1])
+  if (!nzchar(label) || !nzchar(actual) || !nzchar(catalogo)) return(label)
+  if (identical(toupper(actual), toupper(catalogo))) return(label)
+  # Por TOKENS y no por regex: el aula del catalogo puede traer cualquier
+  # caracter y construir un patron escapado a mano ya fallo aqui («Invalid
+  # contents of {}»). Se parte el rotulo por espacios y se quita el token que
+  # ES el aula, comparando cadenas completas.
+  tokens <- strsplit(label, "[[:space:]]+")[[1]]
+  quedan <- tokens[nzchar(tokens) & toupper(tokens) != toupper(catalogo)]
+  if (!length(quedan)) return(label)
+  paste(quedan, collapse = " ")
+}
+
 #' @param curso codigo academico del curso-horario, como venga del marco.
 #' @return una cadena; vacia solo si ambos lo estan.
 #' @keywords internal
@@ -287,7 +313,10 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     # del QR.
     codigo_ficha = .crf_codigo_ficha(
       .crf_txt(dims$legacy_ref %||% unit$operational_code, ""),
-      .crf_txt(unit$label, "")
+      .crf_sin_aula_desmentida(
+        .crf_txt(unit$label, ""),
+        dims$venue, dims$venue_catalogo
+      )
     ),
     role = .crf_role_label(
       unit$role, replacement_for,

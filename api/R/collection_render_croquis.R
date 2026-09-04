@@ -321,6 +321,22 @@ CCX_TONOS_DE_PABELLON <- 8L
     gp = grid::gpar(col = tokens$soft, fontsize = if (nchar(sub) > 64L) 9 else 10))
   pulso_pdf_hairline(0.08, 0.92, L$y_sub - 0.018, tokens = tokens)
 
+  # **Todo el mapa dentro de su marco (C2).** El croquis se dibuja en
+  # coordenadas de pagina, asi que un vertice de camino que cruce el borde del
+  # bbox aterrizaba donde le tocara: medido, 309 pixeles de geometria OSM se
+  # colaban por encima del mapa e invadian la banda del subtitulo, y un glifo
+  # suelto quedaba sobre el titulo. El recorte es solo VERTICAL —de `y0` al
+  # tope— y deja el ancho completo de pagina: los rotulos de las puertas viven
+  # a los lados del terreno y cortarlos si seria mutilar dato.
+  # `grid.clip` y no un viewport propio: un viewport con otra altura REMAPEA
+  # las coordenadas npc y descolocaria todo el dibujo (medido: los chips
+  # resaltados desaparecian). Esto solo fija la region de recorte del viewport
+  # actual, dejando el sistema de coordenadas de pagina intacto.
+  grid::grid.clip(
+    x = 0.5, y = L$y0 + L$h / 2, width = 1, height = L$h,
+    default.units = "npc"
+  )
+
   # Terreno.
   borde <- .ccx_borde_campus()
   pin <- .ccx_proyectar(borde$lat, borde$lng, L)
@@ -543,6 +559,9 @@ CCX_TONOS_DE_PABELLON <- 8L
     gp = grid::gpar(col = tokens$faint, fontsize = 4.8))
 
   # Leyenda (cinco entradas: la base PULSO tambien se explica).
+  # Se libera el recorte: la leyenda y el pie viven fuera del marco del mapa.
+  grid::grid.clip(x = 0.5, y = 0.5, width = 1, height = 1, default.units = "npc")
+
   ly <- L$y_leyenda
   lx <- 0.075
   paso <- c(0.205, 0.165, 0.19, 0.165, 0.17)

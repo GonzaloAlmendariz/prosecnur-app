@@ -372,7 +372,29 @@
       # («MIE 17:00-20:00 C  A506»), y `calc_muestra_aulas_sesiones.R` la extrae.
       # La premisa de que «el aula no se sabe hasta el dia de la aplicacion» valia
       # para el marco de entonces, no para este.
+      # **`scheduled_venue` PRIMERO**: es la columna LUGAR DE APLICACION que el
+      # equipo teclea en el libro cuando pacta el aula con el docente (B30), y
+      # MANDA sobre el aula del catalogo — puede diferir, y es adonde de verdad
+      # va el aplicador. Misma precedencia que `.capd_sesiones_y_aula` en el
+      # Plan del dia.
+      #
+      # Recopiladores era la unica superficie que no la miraba: el libro, su
+      # fusion, la asignacion, el Plan del dia y la Carga en la app ya la
+      # preferian. Y era el peor sitio para ignorarla, porque la ficha es el
+      # papel que el aplicador lleva en la mano y su verso resalta el pabellon
+      # en el croquis del campus: con el aula vieja, la hoja lo manda al
+      # edificio equivocado (pregunta de Gonzalo, 2026-09-03).
       venue = .collection_first_string(row, c(
+        "scheduled_venue", "lugar_de_aplicacion",
+        "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
+        "building_room"
+      )),
+      # El aula que decia el CATALOGO, conservada aparte. No se imprime: sirve
+      # para saber cual quedo desmentida cuando el equipo confirma otra, y asi
+      # poder retirarla del rotulo de sesiones que la lleva incrustada (el
+      # titulo de la ficha decia «CH 141 VIE 10:00-13:00 N502» mientras el
+      # campo ya decia A206: la misma hoja con dos aulas).
+      venue_catalogo = .collection_first_string(row, c(
         "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
         "building_room"
       )),
