@@ -295,6 +295,12 @@ monitoreo_aulas_default_config <- function() {
       link_var = "",
       date_var = "",
       status_var = "",
+      # **La variable que dice el sexo de quien respondio** (dictado
+      # 2026-09-04: «poder mapear cuantas se esperaban en total y en hombres y
+      # en mujeres y cuanto obtuvimos»). Sin declararla no se cuenta por sexo y
+      # la columna calla: adivinar cual de las variables de la base es el sexo
+      # es exactamente el error que ya costo una lectura en este estudio.
+      sex_var = "",
       # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
       # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
       # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
@@ -362,6 +368,9 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       link_var = .monitoreo_scalar(mapping$link_var %||% mapping$link, defaults$source_mapping$link_var),
       date_var = .monitoreo_scalar(mapping$date_var %||% mapping$fecha_var, defaults$source_mapping$date_var),
       status_var = .monitoreo_scalar(mapping$status_var %||% mapping$estado_var, defaults$source_mapping$status_var),
+      # Misma doctrina de whitelist: sin esta linea, declararla en la UI no
+      # persistiria y el campo se caeria en silencio.
+      sex_var = .monitoreo_scalar(mapping$sex_var %||% mapping$sexo_var, defaults$source_mapping$sex_var),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
       # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
       # al guardar.** Este normalizador es la whitelist de la config: lo que no

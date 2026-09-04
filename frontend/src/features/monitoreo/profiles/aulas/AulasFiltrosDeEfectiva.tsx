@@ -36,6 +36,7 @@ export const MAXIMO_DE_FILTROS = 4;
  */
 export function AulasFiltrosDeEfectiva({
   filtros, variables, criterio, guardando, onChange, onGuardar,
+  variableDeSexo = "", onVariableDeSexo = null,
 }: {
   filtros: ReadonlyArray<FiltroDeEfectiva>;
   variables: ReadonlyArray<MonitoreoVariable>;
@@ -44,6 +45,17 @@ export function AulasFiltrosDeEfectiva({
   guardando?: boolean;
   onChange: (filtros: FiltroDeEfectiva[]) => void;
   onGuardar: () => void;
+  /**
+   * Qué variable de la base dice el SEXO de quien respondió (dictado
+   * 2026-09-04: «poder mapear cuántas se esperaban en hombres y en mujeres y
+   * cuánto obtuvimos»). Se declara aquí, junto al resto del criterio, porque es
+   * la misma pregunta: qué columna de la base significa qué. Sin declararla, el
+   * motor no cuenta por sexo y las celdas callan; adivinar cuál es sería el
+   * error que ya costó una lectura en este estudio.
+   */
+  variableDeSexo?: string;
+  /** `null` = sólo lectura; el selector no se pinta. */
+  onVariableDeSexo?: ((variable: string) => void) | null;
 }) {
   const [abierto, setAbierto] = useState<number | null>(null);
   /**
@@ -170,6 +182,26 @@ export function AulasFiltrosDeEfectiva({
           La base no trae {ausentes.map((v) => `«${v}»`).join(" ni ")}, así que{" "}
           {ausentes.length === 1 ? "esa condición no se aplica" : "esas condiciones no se aplican"}.
         </p>
+      ) : null}
+
+      {onVariableDeSexo ? (
+        <div className="aulas-efectiva-sexo">
+          <label>
+            <span>Variable que dice el sexo</span>
+            <select
+              value={variableDeSexo}
+              onChange={(e) => onVariableDeSexo(e.target.value)}
+            >
+              <option value="">sin declarar</option>
+              {nombres.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <em>
+            {variableDeSexo
+              ? "Con ella, el Plan del día dice cuántas efectivas se obtuvieron de cada sexo."
+              : "Sin ella, las cifras por sexo del Plan del día quedan vacías: no se adivina qué columna es."}
+          </em>
+        </div>
       ) : null}
 
       <div className="aulas-efectiva-mando">

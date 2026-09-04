@@ -879,7 +879,8 @@ aulas_libro_anotar_aula_utilizada <- function(unidades) {
 #' @export
 
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
-                               efectivas = NULL, responses = NULL, validas = NULL,
+                               efectivas = NULL, efectivas_sexo = NULL,
+                               responses = NULL, validas = NULL,
                                cuotas = NULL, cfg = list(), procedencia = NULL,
                                traslape_daa = NULL, disponibilidad = NULL) {
   if (!length(unidades)) {
@@ -956,7 +957,9 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
   # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue
   # penúltima. Es de IDA (sin lector) y vive en carga_aulas_libro_plan_dia.R.
-  hojas[["Plan del día"]] <- aulas_libro_hoja_plan_dia(unidades, partes = partes, efectivas = efectivas)
+  hojas[["Plan del día"]] <- aulas_libro_hoja_plan_dia(unidades, partes = partes,
+                                                      efectivas = efectivas,
+                                                      efectivas_sexo = efectivas_sexo)
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver

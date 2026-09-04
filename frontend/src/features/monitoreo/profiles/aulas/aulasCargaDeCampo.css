@@ -1143,3 +1143,34 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-module-monitoring);
 }
 .aulas-asigna-agenda-horas { color: var(--pulso-text-soft); }
+
+/* La variable de sexo, declarada junto al resto del criterio (dictado
+   2026-09-04). Va en su propio renglón, antes de los mandos: es otra pregunta
+   del mismo tipo —qué columna de la base significa qué— y no una condición más
+   de la lista, así que no puede leerse como un quinto filtro. */
+.aulas-efectiva-sexo {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  margin: 10px 0 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+.aulas-efectiva-sexo label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--pulso-text);
+}
+.aulas-efectiva-sexo select {
+  font: inherit; font-size: 12px;
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  padding: 3px 6px;
+  max-width: 28ch;
+}
+.aulas-efectiva-sexo select:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
+.aulas-efectiva-sexo em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  flex: 1 1 22ch;
+}

@@ -1286,6 +1286,25 @@ export default function AulasMonitoreoPage() {
     }
   }, [state, filtrosEfectiva]);
 
+  /**
+   * Dictado 2026-09-04: qué columna de la base dice el sexo. Se persiste en el
+   * mismo `source_mapping` que el resto del criterio y el refresco trae las
+   * cifras por sexo ya contadas; vacío la des-declara.
+   */
+  const declararVariableDeSexo = useCallback(async (variable: string) => {
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          sex_var: variable,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
   const guardarCriterio = useCallback(async () => {
     if (!filtrosEfectiva) return;
     setGuardandoCriterio(true);
@@ -1776,6 +1795,8 @@ export default function AulasMonitoreoPage() {
                     guardando={guardandoCriterio}
                     onChange={setFiltrosEfectiva}
                     onGuardar={() => { void guardarCriterio(); }}
+                    variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
+                    onVariableDeSexo={declararVariableDeSexo}
                   />
                 ) : null
               ),

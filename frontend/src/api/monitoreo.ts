@@ -788,6 +788,13 @@ export type MonitoreoAulasConfig = {
     link_var: string;
     date_var: string;
     status_var: string;
+    /**
+     * Qué variable de la base dice el SEXO de quien respondió (dictado
+     * 2026-09-04). Vacía = no declarada, y entonces las cifras por sexo del
+     * Plan del día callan: adivinar qué columna es sería el error que ya costó
+     * una lectura aquí (`sub_a` es el sexo más frecuente, no las mujeres).
+     */
+    sex_var?: string;
     valid_statuses: string[];
     /**
      * Los filtros que definen una encuesta EFECTIVA, hasta cuatro.

@@ -41,7 +41,7 @@
   # valen lo mismo: la hoja de control lo trae directo, y si no, se deriva de la
   # composicion del aula suponiendo que la efectividad no depende del sexo — que
   # es justo el supuesto que la calibracion existe para poner a prueba.
-  "ESPERADAS", "ESPERADAS POR SEXO", "OBTENIDAS",
+  "ESPERADAS", "ESPERADAS POR SEXO", "OBTENIDAS", "OBTENIDAS POR SEXO",
   "APLICADOR", "ESTADO",
   "ENLACE DE LA FICHA QR"
 )
@@ -219,7 +219,18 @@
   list(total = total, por_sexo = por_sexo)
 }
 
-aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NULL) {
+# Un vector con nombre por sexo, escrito como la celda de esperadas: «M 8 · F 6».
+# Vacio cuando no hay nada que decir; el «Sin declarar» del contador entra igual,
+# porque una respuesta sin sexo es un dato del campo y no un hueco a esconder.
+.capd_por_sexo <- function(v) {
+  if (!length(v)) return("")
+  paste(vapply(seq_along(v), function(i)
+    sprintf("%s %s", names(v)[[i]], .calg_num_txt(v[[i]])), character(1)),
+    collapse = " · ")
+}
+
+aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NULL,
+                                      efectivas_sexo = NULL) {
   # Partes por código e intento, con el MISMO índice `%s#%d` del generador de
   # «Aulas Aplicadas (Campo)»: dos índices distintos para el mismo parte es la
   # clase de lista paralela que este libro ya pagó.
@@ -289,6 +300,7 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NUL
       .capd_esperadas(u)[["total"]],
       .capd_esperadas(u)[["por_sexo"]],
       .calg_num_txt(efectivas[[.calg_txt(u$operational_code)]] %||% NULL),
+      .capd_por_sexo(efectivas_sexo[[.calg_txt(u$operational_code)]] %||% NULL),
       aplicador,
       .capd_estado_legible(u$operational_status),
       .calg_txt(u$link)
