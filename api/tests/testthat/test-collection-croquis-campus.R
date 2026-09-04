@@ -524,3 +524,32 @@ test_that("el subtitulo imprime lo que el warning declara — el papel no lee wa
   expect_match(sub("A206"), "PABELLÓN A · aula A206", fixed = TRUE)
   expect_identical(sub(""), "Pabellón por confirmar")
 })
+
+test_that("el croquis se queda DENTRO de su marco y no invade la cabecera", {
+  skip_if_not_installed("png")
+  # Medido (2026-09-03): 309 píxeles de geometría OSM se dibujaban por encima
+  # del tope del mapa, invadiendo la banda del subtítulo y dejando un glifo
+  # suelto sobre el título. El croquis se dibuja en coordenadas de página sin
+  # recorte, así que cualquier vértice de un camino que cruce el borde del
+  # bbox aterriza donde le toque —incluida la cabecera—.
+  #
+  # C2 del Contrato de Superficie: una superficie mantiene su marco pase lo
+  # que pase con sus datos.
+  L <- prosecnurapp:::.ccx_layout()
+  dir <- tempfile("ccx-marco-"); dir.create(dir)
+  path <- file.path(dir, "lamina.png")
+  collection_croquis_lamina(path, venue = "A206", device = "png", dpi = 150)
+  img <- png::readPNG(path)
+  g <- if (length(dim(img)) == 3L) img[, , 1] else img
+
+  # Banda entre el tope del mapa y el hairline del subtítulo: aire declarado,
+  # sin nada dibujado.
+  f1 <- as.integer((1 - (L$y_sub - 0.020)) * nrow(g))
+  f2 <- as.integer((1 - (L$y0 + L$h)) * nrow(g))
+  expect_lt(sum(g[f1:f2, , drop = FALSE] < 0.6), 20L)
+
+  # Y por debajo del mapa, la banda hasta la leyenda tampoco recibe geometría.
+  f3 <- as.integer((1 - L$y0) * nrow(g))
+  f4 <- as.integer((1 - (L$y_leyenda + 0.02)) * nrow(g))
+  if (f4 > f3) expect_lt(sum(g[f3:f4, , drop = FALSE] < 0.6), 40L)
+})
