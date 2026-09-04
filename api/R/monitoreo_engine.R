@@ -4557,7 +4557,11 @@ monitoreo_sheets_oauth_save <- function(oauth) {
 .monitoreo_sheets_oauth_scopes <- function() {
   c(
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.metadata.readonly"
+    "https://www.googleapis.com/auth/drive.metadata.readonly",
+    # B6(b): subir las fichas QR al Drive del operativo. `drive.file` es el
+    # scope minimo (solo archivos creados por la app); los tokens anteriores
+    # siguen sirviendo para Sheets y el publicador les pide reconectar.
+    "https://www.googleapis.com/auth/drive.file"
   )
 }
 

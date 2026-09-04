@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { downloadUrl } from "../../api/core";
 import {
+  apiRecopiladoresMaterialDrive,
   COLLECTION_BLOCK_TYPES,
   apiRecopiladoresMaterialInstances,
   apiRecopiladoresMaterialPrueba,
@@ -10,6 +11,7 @@ import {
   apiRecopiladoresMaterialTemplateGet,
   apiRecopiladoresMaterialTemplatePut,
   type CollectionArtifactReceipt,
+  type CollectionDrivePublicacion,
   type CollectionBlockType,
   type CollectionMaterialBlock,
   type CollectionMaterialField,
@@ -29,6 +31,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  UploadCloud,
   FileText,
   Image,
   Layers,
@@ -47,6 +50,7 @@ import {
   templateHistoryShortcut,
 } from "./templateHistory";
 import "./styles/materials.css";
+import "./driveDeFichas.css";
 import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 
 type Props = {
@@ -233,6 +237,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [codigoPrueba, setCodigoPrueba] = useState("");
   const [pruebas, setPruebas] = useState<CollectionFichaPrueba[]>([]);
   const [renderResult, setRenderResult] = useState<CollectionMaterialRenderResult | null>(null);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [drivePub, setDrivePub] = useState<CollectionDrivePublicacion | null>(null);
+  const [driveError, setDriveError] = useState("");
   const [error, setError] = useState("");
   useEffect(() => { onCargando?.(loading); }, [loading, onCargando]);
   const template = history.present;
@@ -437,9 +444,33 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const onRenderDone = useCallback((result: CollectionMaterialRenderResult) => {
     setJobId(null);
     setRenderResult(result);
+    setDrivePub(null);
+    setDriveError("");
     onArtifact(firstReceipt(result));
     void onStateRefresh();
   }, [onArtifact, onStateRefresh]);
+
+  // B6(b): el artefacto YA renderizado se sube al Drive del operativo con la
+  // credencial del libro. La carpeta se recuerda en el estado; lo que falla
+  // llega con su causa (sin Google, sin permiso de Drive) y se muestra tal
+  // cual — el backend ya habla en lenguaje de la persona.
+  const enviarAlDrive = async () => {
+    if (!payload || !renderResult) return;
+    setDriveBusy(true);
+    setDriveError("");
+    try {
+      const pub = await apiRecopiladoresMaterialDrive({
+        file_id: renderResult.file_id,
+        expected_revision: payload.state_revision,
+      });
+      setDrivePub(pub);
+      await onStateRefresh();
+    } catch (cause) {
+      setDriveError(cause instanceof Error ? cause.message : "No se pudo subir al Drive.");
+    } finally {
+      setDriveBusy(false);
+    }
+  };
 
   if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
 
@@ -531,6 +562,18 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               ) : null}
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
+              <div className="rec-drive">
+                <button type="button" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>
+                  <UploadCloud size={14} /> {driveBusy ? "Subiendo al Drive…" : "Enviar al Drive del operativo"}
+                </button>
+                {drivePub ? (
+                  <span className="rec-drive-listo">
+                    En <strong>{drivePub.folderName || "el Drive"}</strong>:{" "}
+                    <a href={drivePub.webViewLink} target="_blank" rel="noreferrer">ver en Drive</a>
+                  </span>
+                ) : null}
+                {driveError ? <span className="rec-inline-error" role="alert">{driveError}</span> : null}
+              </div>
             </div>
           ) : (
             /* **El vacio dice lo que hace falta, no una nota de archivo.**

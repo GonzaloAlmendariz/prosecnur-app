@@ -1,0 +1,38 @@
+/* B6(b) — el envío del artefacto renderizado al Drive del operativo.
+   Hoja propia: recopiladores.css está congelada a crecimiento. */
+
+.rec-drive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.rec-drive button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rec-drive button:hover:not(:disabled) {
+  border-color: var(--pulso-primary-border, var(--pulso-border));
+}
+
+.rec-drive button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.rec-drive-listo {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}

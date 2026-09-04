@@ -117,6 +117,16 @@ mount_recopiladores <- function(pr) {
         audience = body$audience %||% "field_team"
       )
     })) |>
+    # B6(b): subir al Drive del operativo un artefacto YA renderizado (por su
+    # file_id del recibo). Escritura de estado: exige expected_revision.
+    plumber::pr_post("/api/recopiladores/materials/drive", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_drive_publicar(
+        session_header(req),
+        file_id = body$file_id,
+        expected_revision = body$expected_revision
+      )
+    })) |>
     # El historico de fichas de prueba: que enlace tenia `CAPACITACION` y cuando
     # se hizo, para poder volver a abrirlo o reimprimir la hoja del taller.
     plumber::pr_get("/api/recopiladores/materials/pruebas", wrap_endpoint(function(req, res, ...) {
