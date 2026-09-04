@@ -1040,3 +1040,52 @@ test_that("B21: una hora ilegible va al final, no se cuela entre las buenas", {
   codigos <- codigos[codigos %in% c("CH MALA", "CH BUENA")]
   expect_identical(codigos, c("CH BUENA", "CH MALA"))
 })
+
+# **Cuántas se esperaban y cuántas se obtuvieron, por aula.**
+#
+# Dictado 2026-09-04: «poder mapear fácilmente cuántas se esperaban en total y
+# en hombres y en mujeres, y cuánto obtuvimos».
+test_that("B22: la fila dice esperadas, su reparto por sexo y lo obtenido", {
+  plan <- list(list(
+    operational_code = "CH 7", titular_operational_code = "CH 7", sample_role = "titular",
+    faculty = "Ciencias", course_name = "C", teacher = "D", eligible_n = 30,
+    expected_valid = 21, sex_top_1 = "M", sex_top_1_n = 18,
+    sex_top_2 = "F", sex_top_2_n = 12,
+    scheduled_date = "2026-09-07", scheduled_time = "11:30 am",
+    operational_status = "agendada"
+  ))
+  hoja <- aulas_libro_hoja_plan_dia(plan, efectivas = c("CH 7" = 14))
+  expect_identical(.pd_celdas(hoja, "ESPERADAS")[[1]], "21")
+  # Repartidas en la composición del aula: 21 × 18/30 y 21 × 12/30.
+  expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "M 12.6 · F 8.4")
+  expect_identical(.pd_celdas(hoja, "OBTENIDAS")[[1]], "14")
+})
+
+test_that("B22: las etiquetas de sexo son las del DATO, no dos columnas adivinadas", {
+  # `sub_a` es el sexo MÁS FRECUENTE, no las mujeres: poner «MUJERES» y
+  # «HOMBRES» de cabecera obligaría a adivinar cuál de los dos top es cuál, y
+  # esa lectura ya costó una vez. La celda dice la etiqueta que trae el padrón.
+  plan <- list(list(
+    operational_code = "CH 9", titular_operational_code = "CH 9", sample_role = "titular",
+    faculty = "Ciencias", course_name = "C", teacher = "D", eligible_n = 10,
+    expected_valid = 10, sex_top_1 = "FEMENINO", sex_top_1_n = 7,
+    sex_top_2 = "MASCULINO", sex_top_2_n = 3,
+    scheduled_date = "2026-09-07", scheduled_time = "09:00",
+    operational_status = "agendada"
+  ))
+  hoja <- aulas_libro_hoja_plan_dia(plan)
+  expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "FEMENINO 7 · MASCULINO 3")
+})
+
+test_that("B22: sin el dato, las celdas callan en vez de inventar un reparto", {
+  plan <- list(list(
+    operational_code = "CH 1", titular_operational_code = "CH 1", sample_role = "titular",
+    faculty = "Ciencias", course_name = "C", teacher = "D", eligible_n = 30,
+    scheduled_date = "2026-09-07", scheduled_time = "09:00",
+    operational_status = "agendada"
+  ))
+  hoja <- aulas_libro_hoja_plan_dia(plan)
+  expect_identical(.pd_celdas(hoja, "ESPERADAS")[[1]], "")
+  expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "")
+  expect_identical(.pd_celdas(hoja, "OBTENIDAS")[[1]], "")
+})

@@ -25,7 +25,24 @@
   "FECHA AGENDADA", "DÍA", "HORA", "EN OFICINA", "SALE AL AULA", "INICIO", "FIN",
   "CURSO-HORARIO",
   "NOMBRE DEL CURSO", "FACULTAD", "SESIONES Y AULA", "NOMBRE DE DOCENTE",
-  "TELÉFONO DE DOCENTE", "ELEGIBLES", "APLICADOR", "ESTADO",
+  "TELÉFONO DE DOCENTE", "ELEGIBLES",
+  # Dictado 2026-09-04: «poder mapear fácilmente cuántas se esperaban en total y
+  # en hombres y en mujeres, y cuánto obtuvimos».
+  #
+  # El reparto por sexo va en UNA celda de texto («F 12 · M 8») y no en dos
+  # columnas fijas a proposito: las etiquetas de sexo salen del padron del
+  # estudio y no siempre son las dos que uno espera. Poner «MUJERES» y
+  # «HOMBRES» de cabecera obligaria a adivinar cual de `sex_top_1` /
+  # `sex_top_2` es cual, y ese es exactamente el error que ya costo una lectura
+  # (`sub_a` es el sexo MAS FRECUENTE, no las mujeres). La celda dice las
+  # etiquetas que el dato trae.
+  #
+  # De donde sale el reparto tambien se declara, porque las dos fuentes no
+  # valen lo mismo: la hoja de control lo trae directo, y si no, se deriva de la
+  # composicion del aula suponiendo que la efectividad no depende del sexo — que
+  # es justo el supuesto que la calibracion existe para poner a prueba.
+  "ESPERADAS", "ESPERADAS POR SEXO", "OBTENIDAS",
+  "APLICADOR", "ESTADO",
   "ENLACE DE LA FICHA QR"
 )
 
@@ -186,7 +203,23 @@
 #'   1 por `.MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]]` (mismo índice
 #'   `codigo#intento` que el resto del libro).
 #' @return data.frame de celdas SIN nombres, cabecera como primera fila.
-aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
+# Las esperadas de un aula: el total y su reparto por sexo, con la etiqueta que
+# el dato trae. Reusa `.mac_esperadas_por_sexo()` —el mismo reparto que la
+# calibracion— para que no existan dos cuentas de lo mismo.
+.capd_esperadas <- function(u) {
+  esp <- suppressWarnings(as.numeric(
+    .monitoreo_scalar(u$expected_valid %||% u$efectivas_esperadas %||% NA, NA))[1])
+  total <- if (is.finite(esp)) .calg_num_txt(esp) else ""
+  reparto <- .mac_esperadas_por_sexo(u)
+  v <- reparto$valores
+  por_sexo <- if (!length(v)) "" else paste(
+    vapply(seq_along(v), function(i)
+      sprintf("%s %s", names(v)[[i]], .calg_num_txt(v[[i]])), character(1)),
+    collapse = " · ")
+  list(total = total, por_sexo = por_sexo)
+}
+
+aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NULL) {
   # Partes por código e intento, con el MISMO índice `%s#%d` del generador de
   # «Aulas Aplicadas (Campo)»: dos índices distintos para el mismo parte es la
   # clase de lista paralela que este libro ya pagó.
@@ -253,6 +286,9 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
       .calg_txt(u$teacher),
       .calg_txt(u$teacher_phone),
       .calg_num_txt(u$eligible_n),
+      .capd_esperadas(u)[["total"]],
+      .capd_esperadas(u)[["por_sexo"]],
+      .calg_num_txt(efectivas[[.calg_txt(u$operational_code)]] %||% NULL),
       aplicador,
       .capd_estado_legible(u$operational_status),
       .calg_txt(u$link)

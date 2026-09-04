@@ -408,7 +408,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # el listado se conserva completo debajo. El resumen cuenta filas del
   # LISTADO: el bloque es chrome del selector, no datos.
   plan_dia_listado <- .malp_df_a_values(
-    aulas_libro_hoja_plan_dia(unidades, partes = partes)
+    aulas_libro_hoja_plan_dia(unidades, partes = partes, efectivas = efectivas)
   )
   producidas[[.malp_hoja_plan_dia()]] <- .mapds_con_selector(plan_dia_listado)
   # «Avance de campo» (B2.2) se computa con lo que ESTE punto sí tiene: plan +
