@@ -207,3 +207,28 @@ test_that("aulas_nombre_aplicador es el espejo del normalizador del frontend", {
   expect_equal(aulas_nombre_aplicador(NULL), "")
   expect_equal(aulas_nombre_aplicador("   "), "")
 })
+
+# **La facultad, en el cuadro** (dictado 2026-09-04: «el cuadro no muestra la
+# facultad»). Sin ella «CH 7» no dice a qué corte pertenece y había que ir a
+# buscarlo a otra hoja.
+test_that("la hoja de asignación dice la facultad de cada cita", {
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
+  plan[[1]]$faculty <- "Derecho"
+  destino <- .tla_libro(plan, disponibilidad = list(.tla_disp("Ana Prueba")))
+  celdas <- openxlsx::read.xlsx(destino, sheet = "Asignación de aplicadores",
+                                colNames = FALSE, skipEmptyRows = FALSE)
+  texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
+  expect_match(texto, "FACULTAD", fixed = TRUE)
+  expect_match(texto, "Derecho", fixed = TRUE)
+})
+
+test_that("sin facultad en el plan la celda calla, no inventa un guion", {
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00"))
+  # El helper siembra «DERECHO» por defecto; aquí el caso es el plan que NO la
+  # trae, así que se vacía a propósito.
+  plan[[1]]$faculty <- ""
+  filas <- aulas_libro_filas_asignacion(plan, list(.tla_disp("Ana Prueba")))
+  datos <- Filter(function(f) identical(f$tipo, "dato"), filas)
+  # La segunda celda de la fila de datos es FACULTAD.
+  expect_equal(datos[[1]]$celdas[[2]], "")
+})

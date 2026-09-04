@@ -134,6 +134,7 @@ function RangoDeDespliegue({ rango, onDeclarar }: {
 export function AulasAsignacionDeAplicadores({
   reparto,
   lugares,
+  facultades,
   onFijar = null,
   onDeclararRango = null,
   onResortear = null,
@@ -142,6 +143,11 @@ export function AulasAsignacionDeAplicadores({
   ventanas = null,
   hoy = hoyISO(),
 }: {
+  /**
+   * La facultad de cada cita, por código. Dictado 2026-09-04: «el cuadro no
+   * muestra la facultad». Viene del PLAN porque el reparto no la trae.
+   */
+  facultades?: ReadonlyMap<string, string>;
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   reparto: RepartoVista | null;
   /**
@@ -569,6 +575,7 @@ export function AulasAsignacionDeAplicadores({
                           </th>
                         ) : null}
                         <th scope="col">Cita</th>
+                        <th scope="col">Facultad</th>
                         <th scope="col">Lugar</th>
                         <th scope="col">Horario</th>
                         <th scope="col">Aplicador</th>
@@ -610,6 +617,13 @@ export function AulasAsignacionDeAplicadores({
                               </td>
                             ) : null}
                             <th scope="row">{a.codigo}</th>
+                            {/* La facultad del curso-horario: sin ella, «CH 7»
+                                no dice a qué corte pertenece y había que ir a
+                                buscarlo a otra pestaña. Calla si el plan no la
+                                trae, en vez de inventar un guion. */}
+                            <td className="aulas-asigna-facultad">
+                              {facultades?.get(a.codigo) ?? ""}
+                            </td>
                             {/* El chip del lugar con el color de su letra
                                 (dictado 2026-09-02); sin lugar conocido la
                                 columna calla, no inventa. */}

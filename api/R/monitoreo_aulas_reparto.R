@@ -347,10 +347,24 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     }
     # Menor carga acumulada manda; el empate se rompe por el orden de
     # prioridad (alfabeto con semilla 0; rotado al resortear, B67), nunca por
-    # orden de entrada de la disponibilidad. Con `concentrado`, ANTES que la
-    # carga va quién ya está ese día (más aplicaciones ese día primero): las
-    # fijadas siembran la jornada y el greedy la llena hasta que el solape
-    # sobre la ocupación completa (recojo→fin) diga basta.
+    # orden de entrada de la disponibilidad.
+    #
+    # **Con `concentrado`, quien ya está ese día se prefiere, PERO sin abrir
+    # brecha.** La primera versión ponía «ya está ese día» delante de la carga
+    # a secas, y el resultado sobre el operativo fue lo que Gonzalo vio el
+    # 2026-09-04: «le estás dando 4 seguidas a una cuando tranquilamente le
+    # puedes dar 2 seguidas a dos personas; hay que balancear bien equidad, sus
+    # horarios disponibles, la concentración es el mismo día». Con esa regla,
+    # quien entraba primero se quedaba con la jornada entera y el resto del
+    # equipo se iba a cero.
+    #
+    # La preferencia se acota con la MISMA vara que el veredicto llama parejo:
+    # se mantiene sólo mientras su carga no supere en más de UNA a la del menos
+    # cargado que puede esa cita. Así cada persona sigue cayendo en un solo día
+    # —al día siguiente ya no es la preferida— y las cargas quedan a distancia
+    # de una. No es un tope duro: si nadie más puede, sigue siendo candidata y
+    # se la lleva.
+    carga_de <- vapply(candidatos, function(n) carga[[n]], numeric(1))
     mismo_dia <- if (concentrado) {
       vapply(candidatos, function(n) {
         length(ocupadas[[paste(n, cita$fecha, sep = "\r")]] %||% list())
@@ -358,8 +372,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     } else {
       rep(0L, length(candidatos))
     }
-    elegido <- candidatos[order(-mismo_dia,
-                                carga[candidatos],
+    prefiere <- mismo_dia > 0L & carga_de <= min(carga_de) + 1
+    elegido <- candidatos[order(-prefiere,
+                                carga_de,
                                 match(candidatos, prioridad),
                                 method = "radix")][[1L]]
     carga[[elegido]] <- carga[[elegido]] + 1L

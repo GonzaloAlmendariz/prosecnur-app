@@ -465,6 +465,21 @@ export function lugaresDelPlan(plan: readonly MonitoreoAulasPlanRow[]): Map<stri
   return out;
 }
 
+/**
+ * La FACULTAD de cada cita, por código operativo. Espejo de `lugaresDelPlan`.
+ *
+ * El bloque `reparto` viaja sin facultad —es un reparto de personas, no un
+ * corte del plan—, así que la tabla de Asignación la busca aquí, igual que
+ * busca el lugar. Dictado 2026-09-04: «el cuadro no muestra la facultad».
+ */
+export function facultadesDelPlan(plan: readonly MonitoreoAulasPlanRow[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const u of aulasDelPlan(plan).unidades) {
+    if (!out.has(u.codigo) && u.facultad) out.set(u.codigo, u.facultad);
+  }
+  return out;
+}
+
 export function calcularCarga(
   plan: readonly MonitoreoAulasPlanRow[],
   { duracionMin, pasoMin = 30, eje = "semana", ventanas,

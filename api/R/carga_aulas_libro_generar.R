@@ -1413,6 +1413,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # escritura del reparto. Sin disponibilidad en sesión no se escribe: una
   # hoja vacía se leería como «nadie asignado». Vive en su archivo propio.
   aulas_libro_hoja_asignacion(wb, plan_completo, disponibilidad, cfg = cfg)
+  # Dictado 2026-09-04: «que el equipo de campo también pueda saber cuándo o a
+  # quién reclutar y no dependa enteramente de mí». Condicional, como su
+  # hermana: sin oferta cargada la hoja no se produce.
+  aulas_libro_hoja_disponibilidad(wb, disponibilidad)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde

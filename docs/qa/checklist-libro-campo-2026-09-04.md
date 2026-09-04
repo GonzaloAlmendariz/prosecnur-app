@@ -12,7 +12,9 @@ Google Sheets, más el vocabulario de estados de la cadena.
 | 5 | Estado «Complementado con» para el caso B (el aula no rinde y se toma su cadena u otro reemplazo) | ídem | **hecho** |
 | 6 | Columna nueva «AULA UTILIZADA» al lado de STATUS MUESTRA, que diga cuál reemplazo se usó | spec `AULAS_AGENDADAS_BLOQUE` + `aulas_libro_anotar_aula_utilizada()` | **hecho** |
 | 7 | El caso C (se va a un reemplazo por falta de alumnos o de un sexo para la meta) | estado propio «Reforzada con», elegido por el usuario | **hecho** |
-| 8 | «El Sheets debería tener una forma muy elegante de mostrar la disponibilidad de cada encuestador, para que el equipo de campo sepa cuándo o a quién reclutar y no dependa enteramente de mí» | hoja nueva del libro, junto a «Asignación de aplicadores» | pendiente |
+| 8 | «El Sheets debería tener una forma muy elegante de mostrar la disponibilidad de cada encuestador, para que el equipo de campo sepa cuándo o a quién reclutar y no dependa enteramente de mí» | hoja «Disponibilidad de aplicadores» (`aulas_libro_disponibilidad.R`) | **hecha en el .xlsx; falta publicarla al Sheets** |
+| 9 | «Le estás dando 4 seguidas a una cuando tranquilamente le puedes dar 2 seguidas a dos personas; hay que balancear equidad, horarios y concentración» | greedy de `monitoreo_aulas_reparto()` | **hecho** |
+| 10 | «El cuadro no muestra la facultad» | tabla de Asignación y hoja del libro | **hecho, verificado en la app** |
 
 ## Lo que ya está resuelto y no hay que reinvestigar
 

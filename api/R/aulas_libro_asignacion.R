@@ -65,7 +65,10 @@
   se_solapa = "se solapa con otra cita suya"
 )
 
-.ala_CABECERA <- c("CURSO-HORARIO", "LUGAR", "RECOJO", "SALE AL AULA",
+# «FACULTAD» entra por el dictado del 2026-09-04 («el cuadro no muestra la
+# facultad»), pegada al codigo: sin ella «CH 7» no dice a que corte pertenece
+# y habia que ir a buscarlo a otra hoja.
+.ala_CABECERA <- c("CURSO-HORARIO", "FACULTAD", "LUGAR", "RECOJO", "SALE AL AULA",
                    "APLICACIÓN", "APLICADOR", "FIJADA", "AVISO")
 
 #' Las filas de la hoja de asignación, tipadas — el ÚNICO constructor.
@@ -93,14 +96,19 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
 
   # Código → lugar confirmado (el catálogo como fallback), igual que la app.
   lugares <- new.env(parent = emptyenv())
+  # Y codigo → facultad, del mismo barrido (dictado 2026-09-04).
+  facultades <- new.env(parent = emptyenv())
   for (u in (if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else plan)) {
     cod <- .ala_txt(u[["operational_code"]])
     if (!nzchar(cod)) next
     lg <- .ala_txt(u[["scheduled_venue"]])
     if (!nzchar(lg)) lg <- .ala_txt(u[["venue"]])
     if (nzchar(lg) && is.null(lugares[[cod]])) lugares[[cod]] <- lg
+    fac <- .ala_txt(u[["faculty"]])
+    if (nzchar(fac) && is.null(facultades[[cod]])) facultades[[cod]] <- fac
   }
   lugar_de <- function(cod) .ala_txt(lugares[[cod]] %||% "")
+  facultad_de <- function(cod) .ala_txt(facultades[[cod]] %||% "")
 
   filas <- list()
   poner <- function(tipo, celdas) {
@@ -142,6 +150,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
         aviso <- .ala_txt(a[["advertencia"]])
         poner("dato", c(
           cod,
+          facultad_de(cod),
           lugar_de(cod),
           .ala_txt(a[["recojo"]]),
           .ala_txt(a[["salida"]]),
@@ -252,8 +261,8 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
     }
   }
 
-  openxlsx::setColWidths(wb, hoja, cols = 1:8,
-                         widths = c(16, 14, 10, 13, 14, 34, 13, 30))
+  openxlsx::setColWidths(wb, hoja, cols = 1:9,
+                         widths = c(16, 24, 14, 10, 13, 14, 34, 13, 30))
   invisible(TRUE)
 }
 
@@ -286,11 +295,12 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
 # parejas, APLICADOR y AVISO anchos porque llevan nombres y frases.
 .ala_ANCHOS <- list(
   list(desde = 0L, hasta = 1L, px = 132L),  # CURSO-HORARIO
-  list(desde = 1L, hasta = 2L, px = 112L),  # LUGAR
-  list(desde = 2L, hasta = 5L, px = 108L),  # RECOJO · SALE AL AULA · APLICACIÓN
-  list(desde = 5L, hasta = 6L, px = 232L),  # APLICADOR
-  list(desde = 6L, hasta = 7L, px = 104L),  # FIJADA
-  list(desde = 7L, hasta = 8L, px = 264L)   # AVISO
+  list(desde = 1L, hasta = 2L, px = 168L),  # FACULTAD
+  list(desde = 2L, hasta = 3L, px = 112L),  # LUGAR
+  list(desde = 3L, hasta = 6L, px = 108L),  # RECOJO · SALE AL AULA · APLICACIÓN
+  list(desde = 6L, hasta = 7L, px = 232L),  # APLICADOR
+  list(desde = 7L, hasta = 8L, px = 104L),  # FIJADA
+  list(desde = 8L, hasta = 9L, px = 264L)   # AVISO
 )
 
 #' Requests de formato de la hoja de asignación para el batch-2 del motor.
