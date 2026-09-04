@@ -888,7 +888,26 @@ export function AulasAsignacionDeAplicadores({
                           <span className="aulas-asigna-agenda">
                             {dias.map((d) => (
                               <span key={d.fecha} className="aulas-asigna-agenda-dia">
-                                <strong>{d.etiqueta}</strong> {d.horas.join(" · ")}
+                                <strong>{d.etiqueta}</strong>
+                                {/* La jornada de punta a punta: cuándo entra a
+                                    la oficina y cuándo termina. Es el «qué días
+                                    tiene que estar en oficina» del dictado
+                                    2026-09-04, que sin esto había que deducir
+                                    restándole media hora a la primera cita. */}
+                                {d.oficina || d.termina ? (
+                                  <em className="aulas-asigna-agenda-jornada">
+                                    {/* «oficina 11:00 a 13:00» se leía como si
+                                        estuviera DOS HORAS en la oficina; las
+                                        dos puntas son cosas distintas y cada
+                                        una lleva su verbo. */}
+                                    {d.oficina ? `en oficina ${d.oficina}` : ""}
+                                    {d.oficina && d.termina ? " · " : ""}
+                                    {d.termina ? `termina ${d.termina}` : ""}
+                                  </em>
+                                ) : null}
+                                <span className="aulas-asigna-agenda-horas">
+                                  {d.horas.join(" · ")}
+                                </span>
                               </span>
                             ))}
                           </span>

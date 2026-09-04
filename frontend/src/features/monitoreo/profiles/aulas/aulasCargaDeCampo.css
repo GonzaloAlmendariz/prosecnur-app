@@ -1130,3 +1130,16 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-descubiertos .aulas-asigna-resolver-item > .aulas-chip { flex: none; }
 /* Y el selector no se come el renglón: cede antes que los chips. */
 .aulas-asigna-descubiertos .aulas-asigna-selector { flex: 0 1 auto; min-width: 12ch; }
+
+/* La jornada de punta a punta dentro del desglose del rail (dictado 2026-09-04:
+   «qué días tiene que estar en oficina»). Va en su renglón, entre el día y las
+   horas de sus citas: primero cuándo entra, después a qué hora es cada una. */
+.aulas-asigna-agenda-dia { display: flex; flex-direction: column; gap: 1px; }
+.aulas-asigna-agenda-jornada {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--pulso-module-monitoring);
+}
+.aulas-asigna-agenda-horas { color: var(--pulso-text-soft); }

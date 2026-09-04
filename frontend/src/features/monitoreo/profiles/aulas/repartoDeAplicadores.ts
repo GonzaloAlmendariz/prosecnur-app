@@ -123,19 +123,43 @@ export type RepartoVista = {
  * 2026-09-04). Sale del MISMO payload del reparto; las horas son las del
  * motor, en orden del día.
  */
+export type JornadaDeAplicador = {
+  fecha: string;
+  etiqueta: string;
+  /** Las horas pactadas del día, en el orden del motor. */
+  horas: string[];
+  /**
+   * La jornada de punta a punta (dictado 2026-09-04: «qué días tiene que estar
+   * en oficina… a qué hora deben estar en la oficina, a qué hora irse a aplicar
+   * y a qué hora terminan»). `oficina` es su PRIMER recojo y `termina` el
+   * ÚLTIMO fin; vacías si el motor no trae esas horas.
+   */
+  oficina: string;
+  sale: string;
+  termina: string;
+};
+
 export function agendaDelAplicador(
   reparto: RepartoVista,
-): Map<string, Array<{ fecha: string; etiqueta: string; horas: string[] }>> {
-  const out = new Map<string, Array<{ fecha: string; etiqueta: string; horas: string[] }>>();
+): Map<string, JornadaDeAplicador[]> {
+  const out = new Map<string, JornadaDeAplicador[]>();
+  const menor = (a: string, b: string) => (!a ? b : !b ? a : a < b ? a : b);
+  const mayor = (a: string, b: string) => (!a ? b : !b ? a : a > b ? a : b);
   for (const d of reparto.dias) {
     for (const a of d.asignaciones) {
       const dias = out.get(a.aplicador) ?? [];
       let dia = dias[dias.length - 1];
       if (!dia || dia.fecha !== d.fecha) {
-        dia = { fecha: d.fecha, etiqueta: d.etiqueta, horas: [] };
+        dia = { fecha: d.fecha, etiqueta: d.etiqueta, horas: [],
+                oficina: "", sale: "", termina: "" };
         dias.push(dia);
       }
       if (a.inicio) dia.horas.push(a.inicio);
+      // Las horas del protocolo las dice el MOTOR (`recojo`, `salida`), no un
+      // T−30 recalculado aquí: dos dueños del mismo número acaban discrepando.
+      dia.oficina = menor(dia.oficina, a.recojo);
+      dia.sale = menor(dia.sale, a.salida);
+      dia.termina = mayor(dia.termina, a.fin);
       out.set(a.aplicador, dias);
     }
   }
