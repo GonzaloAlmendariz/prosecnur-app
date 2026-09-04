@@ -514,9 +514,10 @@ test_that("con disponibilidad, su hoja se publica y las del equipo siguen intact
   vals <- mock$env$sheets[["Disponibilidad de aplicadores"]]$values
   texto <- paste(unlist(vals), collapse = " | ")
   expect_match(texto, "DISPONIBILIDAD DE APLICADORES")
-  # Las dos preguntas que la hoja existe para contestar.
-  expect_match(texto, "QUIÉNES PUEDEN")
-  expect_match(texto, "QUÉ CUBRE CADA APLICADOR")
+  # Las dos tablas que la hoja existe para cruzar (rehecha el 2026-09-04: tres
+  # ejes no caben en una columna).
+  expect_match(texto, "CUÁNTOS HAY, HORA POR HORA", fixed = TRUE)
+  expect_match(texto, "QUIÉN PUEDE CADA DÍA", fixed = TRUE)
   expect_match(texto, "Ana Prueba")
 })
 
