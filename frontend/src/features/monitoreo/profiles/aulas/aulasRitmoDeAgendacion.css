@@ -55,3 +55,14 @@
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* El relevo del rechazo directo, bajo su código en la cola (caso A del
+   dictado 2026-09-03): la reserva que entra a llamar dice a quién reemplaza.
+   Vive en esta hoja hermana por la congelación de la madre. */
+.mon-profile-page.is-aulas-flow .aulas-cola-releva {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}

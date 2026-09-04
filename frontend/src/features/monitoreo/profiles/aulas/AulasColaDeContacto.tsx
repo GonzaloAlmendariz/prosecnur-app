@@ -40,8 +40,14 @@ function diaLegible(iso: string): string {
   return CALENDARIO.format(d).replace(/\.$/, "");
 }
 
-export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
+export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * El pool con las reservas de cadena — solo para que el rechazo de un
+   * titular despierte a su relevo en la cola (caso A). Opcional: sin él, la
+   * cola busca el relevo entre sus propias filas.
+   */
+  conReservas?: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
    * La facultad enfocada. **Resalta, no filtra**, como en las cinco listas de
    * Avance: ésta es la última lista de facultad del perfil que no participaba
@@ -52,7 +58,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita, rechazadas } = useMemo(() => colaDeContacto(filas), [filas]);
+  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita, rechazadas } = useMemo(() => colaDeContacto(filas, conReservas ?? filas), [filas, conReservas]);
   const distribucionDeGestiones = useMemo(() => agendamiento(filas as never).distribucionDeGestiones, [filas]);
   // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
   // permanente entrena a no mirar la banda.
@@ -111,11 +117,15 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                 así que no están en la cola</em>
             ) : null}
             {/* B13b (dictado 2026-09-03, CH 90): el rechazo tecleado sale de
-                la cola —insistirle a quien ya dijo que no es el daño que
-                esta pantalla existe para evitar— y se DICE, no se calla. */}
-            {rechazadas ? (
-              <em>{" "}· {fmt(rechazadas)} {rechazadas === 1 ? "docente rechazó" : "docentes rechazaron"} y
-                no se les insiste</em>
+                la cola y se DICE, no se calla. Sin coletilla explicativa —
+                veredicto del mismo día: «no me parece un producto profesional
+                y sobrio» — el dato del rol es lo que informa: un titular
+                rechazado abre su reemplazo. */}
+            {rechazadas.total ? (
+              <em>{" "}· {fmt(rechazadas.total)}{" "}
+                {rechazadas.total === 1 ? "docente rechazó" : "docentes rechazaron"}
+                {" "}({fmt(rechazadas.titulares)}{" "}
+                {rechazadas.titulares === 1 ? "titular" : "titulares"})</em>
             ) : null}
           </>
         ) : (
@@ -234,7 +244,13 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             <tbody>
               {pendientes.map((p) => (
                 <tr key={`p-${p.codigo}`}>
-                  <td className="aulas-cola-codigo">{p.codigo}</td>
+                  <td className="aulas-cola-codigo">
+                    {p.codigo}
+                    {/* El relevo del rechazo directo se presenta como tal: a
+                        quién reemplaza es lo que el llamador necesita saber
+                        antes de marcar (caso A, dictado 2026-09-03). */}
+                    {p.relevoDe ? <em className="aulas-cola-releva">releva a {p.relevoDe}</em> : null}
+                  </td>
                   <td className="aulas-cola-quien" title={`${p.docente} · ${p.facultad}`}>
                     {p.docente || "—"}
                     <em>{p.facultad}</em>
