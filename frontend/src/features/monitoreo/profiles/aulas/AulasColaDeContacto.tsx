@@ -52,7 +52,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
-  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita } = useMemo(() => colaDeContacto(filas), [filas]);
+  const { pendientes, citadas, esfuerzo, yaAplicadasSinCita, rechazadas } = useMemo(() => colaDeContacto(filas), [filas]);
   const distribucionDeGestiones = useMemo(() => agendamiento(filas as never).distribucionDeGestiones, [filas]);
   // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
   // permanente entrena a no mirar la banda.
@@ -62,7 +62,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
     return [
       { clase: "es-sin-empezar", etiqueta: "Sin contactar", n: pendientes.length - insistiendo },
       { clase: "es-insistiendo", etiqueta: "Insistiendo", n: insistiendo },
-      { clase: "es-citada", etiqueta: "Con cita", n: citadas.length - aplicadas },
+      { clase: "es-citada", etiqueta: "Agendados", n: citadas.length - aplicadas },
       // «Aplicados»: la unidad es el curso-horario. Los otros tres peldaños no
       // llevan género —«Sin contactar», «Insistiendo», «Con cita»— y éste se
       // quedó en el femenino de «aula».
@@ -109,6 +109,13 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
             {yaAplicadasSinCita ? (
               <em>{" "}· {fmt(yaAplicadasSinCita)} más ya se aplicaron sin cita registrada,
                 así que no están en la cola</em>
+            ) : null}
+            {/* B13b (dictado 2026-09-03, CH 90): el rechazo tecleado sale de
+                la cola —insistirle a quien ya dijo que no es el daño que
+                esta pantalla existe para evitar— y se DICE, no se calla. */}
+            {rechazadas ? (
+              <em>{" "}· {fmt(rechazadas)} {rechazadas === 1 ? "docente rechazó" : "docentes rechazaron"} y
+                no se les insiste</em>
             ) : null}
           </>
         ) : (
@@ -200,7 +207,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
                   </td>
                   <td>
                     <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
-                      {c.aplicada ? "Aplicado" : "Con cita"}
+                      {c.aplicada ? "Aplicado" : "Agendado"}
                     </span>
                   </td>
                 </tr>
