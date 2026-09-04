@@ -414,8 +414,12 @@ collection_material_field_form_rows <- function() {
     #
     # Emparejados por afinidad: donde estoy (facultad y aula), que dicto y
     # cuando (curso y horario), quien y cuantos (docente y matriculados).
-    fila(campo("Facultad", 0.55, binding = "unit.faculty"),
-         campo("Pabellón y aula:", 0.45, binding = "unit.venue")),
+    # Los tres renglones parten la hoja por la MITAD exacta: con anchos
+    # distintos (0.55/0.45, 0.50/0.50, 0.60/0.40) la columna derecha arrancaba
+    # en tres sitios y el bloque se leia desalineado — «hay como un poco de
+    # disparidad» (Gonzalo, 2026-09-03). Una sola linea de fuga vertical.
+    fila(campo("Facultad", 0.5, binding = "unit.faculty"),
+         campo("Pabellón y aula:", 0.5, binding = "unit.venue")),
     # Curso y horario comparten renglon a media hoja. Los dos son los largos
     # del lote —el curso llega a 128 caracteres y el horario a 141 con cuatro
     # sesiones, contra un p99 de 65 y 51— y el renglon los ENVUELVE a dos
@@ -423,8 +427,8 @@ collection_material_field_form_rows <- function() {
     # entero y solo los extremos ven la elipsis.
     fila(campo("Curso:", 0.5, binding = "unit.course_name"),
          campo("Horario:", 0.5, binding = "unit.schedule")),
-    fila(campo("Docente:", 0.60, binding = "unit.teacher"),
-         campo("N° de alumnos matriculados:", 0.40, binding = "unit.eligible_n")),
+    fila(campo("Docente:", 0.5, binding = "unit.teacher"),
+         campo("N° de alumnos matriculados:", 0.5, binding = "unit.eligible_n")),
     # **Solo lo que el aplicador VE con sus ojos** (dictado de Gonzalo,
     # 2026-09-03: «los aplicadores no tienen una forma de saber si el alumno
     # finalizó la encuesta pasando por los filtros o no»).
@@ -449,7 +453,7 @@ collection_material_field_form_rows <- function() {
       campo("Rechazos:", 0.5), campo("Ya respondieron:", 0.5)
     ),
     fila(campo("Aplicador/a", 1)),
-    fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55)),
+    fila(campo("Fecha:", 0.5), campo("Hora de aplicación:", 0.5)),
     # Espacio libre para lo que ninguna casilla previo: la hoja del equipo en
     # papel ya lo tenia y el formulario digital no.
     #

@@ -235,3 +235,18 @@ test_that("el QR crece con el alto que liberan los renglones", {
   }, integer(1)))
   expect_lte(renglones, capacidad)
 })
+
+test_that("los renglones parten la hoja por la mitad, con una sola línea de fuga", {
+  # «Hay como un poco de disparidad» (Gonzalo, 2026-09-03): con anchos
+  # 0.55/0.45, 0.50/0.50 y 0.60/0.40 la columna derecha arrancaba en tres
+  # sitios distintos y el bloque se leía torcido.
+  rows <- collection_material_field_form_rows()
+  pares <- Filter(function(r) length(r$fields %||% list()) == 2L, rows)
+  expect_gte(length(pares), 5L)
+  for (fila in pares) {
+    for (celda in fila$fields) {
+      expect_equal(as.numeric(celda$span), 0.5,
+                   info = as.character(celda$label))
+    }
+  }
+})
