@@ -26,6 +26,8 @@ dónde vive y su estado. Sólo el usuario lo da por terminado.
 | 16 | *(defecto encontrado al mirar su captura)* el nombre largo se montaba sobre la cifra en el rail | un `<button>` computa `white-space: nowrap`; se declara `normal` | **hecho** |
 | 17 | «El nombre normalizado… y SIEMPRE tiene que ser así»: el libro y el Sheets sacaban el crudo | `api/R/aulas_nombre_aplicador.R`, espejo del normalizador del front | **hecho** |
 | 18 | «Basta de los em dashes» en lo que lee el equipo, no sólo en la vista | hoja «Asignación de aplicadores» del libro y de Sheets | **hecho** |
+| 19 | «Una raíz o conexión cuando la misma persona haga más de una aplicación seguida en el día, para mapear esas secuencias» | `cadenasDelDia.ts` + canalón de carriles en la tabla del día | **hecho** |
+| 20 | *(defecto encontrado con datos reales)* la causa de una descubierta se medía contra la hora pactada y no contra el recojo | `salidasDelReparto.ts` | **hecho** |
 
 ## Lo aprendido, para no reinvestigarlo
 

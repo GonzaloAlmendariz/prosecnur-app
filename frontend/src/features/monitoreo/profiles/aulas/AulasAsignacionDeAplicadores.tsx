@@ -5,6 +5,7 @@ import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon"
 import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
 import { nombreDeAplicador } from "./nombreDeAplicador";
+import { cadenasDelDia, tramoDeCadena } from "./cadenasDelDia";
 import { claveDeCita, salidasDeDescubiertos, salidasDeLibres, type VentanaDeCita } from "./salidasDelReparto";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { Switch } from "../../../../components/Switch";
@@ -552,10 +553,21 @@ export function AulasAsignacionDeAplicadores({
                     </span>
                   </div>
                 ) : null}
-                {d.asignaciones.length > 0 ? (
-                  <table className="aulas-asigna-tabla">
+                {d.asignaciones.length > 0 ? (() => {
+                  // Dictado 2026-09-04: «una raíz o conexión cuando la misma
+                  // persona hace más de una aplicación seguida en el día, para
+                  // mapear esas secuencias». La tabla va por HORA, así que sus
+                  // citas casi nunca son filas contiguas; la cadena las une.
+                  const { cadenas, carriles } = cadenasDelDia(d);
+                  return (
+                  <table className={`aulas-asigna-tabla${carriles ? " es-con-cadenas" : ""}`}>
                     <thead>
                       <tr>
+                        {carriles ? (
+                          <th scope="col" style={{ width: `${carriles * 14 + 6}px` }}>
+                            <span className="pulso-sr-only">Secuencias del día</span>
+                          </th>
+                        ) : null}
                         <th scope="col">Cita</th>
                         <th scope="col">Lugar</th>
                         <th scope="col">Horario</th>
@@ -563,10 +575,40 @@ export function AulasAsignacionDeAplicadores({
                       </tr>
                     </thead>
                     <tbody>
-                      {d.asignaciones.map((a) => {
+                      {d.asignaciones.map((a, iFila) => {
                         const lugar = lugares?.get(a.codigo) ?? "";
                         return (
                           <tr key={a.codigo} className={claseDeFila(a.aplicador)}>
+                            {carriles ? (
+                              /* El canalón: un carril por cadena que conviva en
+                                 este tramo. La línea CRUZA las filas de otros
+                                 (parada=false) porque cortarla en los huecos
+                                 diría «aquí termina», que es lo contrario de lo
+                                 que se quiere leer. */
+                              <td className="aulas-asigna-canalon" aria-hidden="true">
+                                {cadenas.map((c) => {
+                                  const t = tramoDeCadena(c, iFila);
+                                  if (!t) return null;
+                                  return (
+                                    <i
+                                      key={c.aplicador}
+                                      /* Absoluto y no inline-block: dentro de
+                                         una celda sin alto propio, un
+                                         `height: 100%` no resuelve y el carril
+                                         medía CERO — se veían los nodos
+                                         sueltos, sin la línea que los une. */
+                                      style={{ left: `${c.carril * 14}px` }}
+                                      className={`aulas-asigna-carril es-tono-${c.tono}${
+                                        t.parada ? " es-parada" : ""}${
+                                        t.cabeza ? " es-cabeza" : ""}${
+                                        t.cola ? " es-cola" : ""}${
+                                        enFoco === c.aplicador ? " es-enfoco" : ""}`}
+                                      title={`${nombreDeAplicador(c.aplicador)}: ${fmt(c.filas.length)} aplicaciones seguidas este día`}
+                                    />
+                                  );
+                                })}
+                              </td>
+                            ) : null}
                             <th scope="row">{a.codigo}</th>
                             {/* El chip del lugar con el color de su letra
                                 (dictado 2026-09-02); sin lugar conocido la
@@ -658,7 +700,8 @@ export function AulasAsignacionDeAplicadores({
                       })}
                     </tbody>
                   </table>
-                ) : null}
+                  );
+                })() : null}
                 {d.porConfirmar.length > 0 ? (
                   /* El vocabulario de B11: la fecha sin hora pactada no pide
                      gente todavía. Se declara para que el día no parezca más
