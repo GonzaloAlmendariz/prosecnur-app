@@ -148,3 +148,65 @@ test_that("un update con solo classroom_id resuelve su codigo operativo en el pl
   expect_identical(as.character(partes[[1]]$operational_code), "CH 2")
   expect_identical(as.numeric(partes[[1]]$observed_students), 12)
 })
+
+# --- La HORA REAL de aplicación entra al parte (A12, 2026-09-03) ---
+#
+# «Sí me sirve, es una referencia histórica también» (Gonzalo). Hasta hoy la
+# columna «HORA DE APLICACIÓN» quedaba vacía para todo registro hecho en la
+# app: el papel la pedía, el lector del excel la leía y el vocabulario ya la
+# conocía (alias, control, reconciliación), pero `.PARTE_APP_CAMPOS` archivaba
+# ocho campos y ese no estaba.
+#
+# NO se pide dos veces: el formulario captura UN momento y ese momento alimenta
+# las dos columnas —fecha a `applied_at`, hora a `applied_time`—, que es la
+# respuesta a la pregunta abierta de A12.
+
+test_that("la hora explícita del update se archiva en el parte", {
+  parte <- monitoreo_aulas_parte_de_update(list(
+    observed_students = 30, hora_aplicacion = "11:30"
+  ))
+  expect_identical(parte$applied_time, "11:30")
+
+  # También por su nombre canónico.
+  expect_identical(
+    monitoreo_aulas_parte_de_update(list(refusals = 2, applied_time = "09:05"))$applied_time,
+    "09:05"
+  )
+})
+
+test_that("un momento con hora alimenta las DOS columnas sin teclearlo dos veces", {
+  parte <- monitoreo_aulas_parte_de_update(list(
+    observed_students = 28, applied_at = "2026-09-10 11:30"
+  ))
+  # La fecha queda limpia de hora y la hora viaja aparte: dos columnas, un
+  # solo dato tecleado.
+  expect_identical(parte$applied_at, "2026-09-10")
+  expect_identical(parte$applied_time, "11:30")
+})
+
+test_that("una fecha sin hora no inventa una hora", {
+  parte <- monitoreo_aulas_parte_de_update(list(
+    observed_students = 28, applied_at = "2026-09-10"
+  ))
+  expect_identical(parte$applied_at, "2026-09-10")
+  expect_null(parte$applied_time)
+})
+
+test_that("la hora tecleada gana sobre la derivada del momento", {
+  # Si el equipo corrige la hora a mano, esa manda: la derivación es un
+  # atajo, no una autoridad.
+  parte <- monitoreo_aulas_parte_de_update(list(
+    observed_students = 28, applied_at = "2026-09-10 11:30", hora_aplicacion = "12:15"
+  ))
+  expect_identical(parte$applied_time, "12:15")
+  expect_identical(parte$applied_at, "2026-09-10")
+})
+
+test_that("un update de pura agenda con hora NO fabrica un parte", {
+  # El invariante de siempre: agendar no es aplicar. Una hora suelta sin
+  # ningún campo de parte no convierte una agenda en un registro de campo.
+  expect_identical(
+    monitoreo_aulas_parte_de_update(list(scheduled_time = "11:00", hora_aplicacion = "11:30")),
+    list()
+  )
+})

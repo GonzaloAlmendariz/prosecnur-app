@@ -67,7 +67,35 @@ monitoreo_aulas_parte_de_update <- function(fila) {
   # clave ajena en este repo (`config$plan` -> `plan_rows`).
   status <- fila[["operational_status"]]
   if (!.alf_vacio(status)) out$application_status <- status
+  # La HORA REAL de aplicacion (A12, dictado 2026-09-03: «sí me sirve, es una
+  # referencia histórica»). Acompaña al parte pero NO lo dispara —igual que
+  # `application_status`—: una hora suelta en un update de agenda no convierte
+  # una cita pactada en un registro de campo.
+  #
+  # Y no se teclea dos veces: el formulario captura UN momento, asi que si
+  # `applied_at` trae hora dentro, la fecha se queda limpia y la hora viaja a
+  # su columna. Una hora explicita del equipo gana sobre la derivada.
+  hora <- fila[["applied_time"]] %||% fila[["hora_aplicacion"]]
+  momento <- .parte_app_partir_momento(out$applied_at)
+  if (!is.null(momento)) {
+    out$applied_at <- momento$fecha
+    if (.alf_vacio(hora)) hora <- momento$hora
+  }
+  if (!.alf_vacio(hora)) out$applied_time <- hora
   out
+}
+
+# Parte «2026-09-10 11:30» en fecha y hora. Devuelve NULL si no hay hora
+# dentro del momento: sin hora no se inventa ninguna, y la fecha se queda
+# exactamente como vino.
+.parte_app_partir_momento <- function(valor) {
+  if (.alf_vacio(valor)) return(NULL)
+  texto <- trimws(as.character(valor)[1])
+  m <- regmatches(texto, regexpr("[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?", texto))
+  if (!length(m) || !nzchar(m)) return(NULL)
+  fecha <- trimws(sub(m, "", texto, fixed = TRUE))
+  if (!nzchar(fecha)) return(NULL)
+  list(fecha = fecha, hora = m)
 }
 
 # Saneo laxo de «lista de filas»: el endpoint pasa
