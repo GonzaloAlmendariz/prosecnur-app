@@ -265,6 +265,44 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   }
   filas
 }
+#' El aplicador que le toca a cada cita, por código operativo.
+#'
+#' La misma corrida del reparto que alimenta la hoja «Asignación de
+#' aplicadores», expuesta como mapa para que «Plan del día» diga QUIÉN va sin
+#' esperar a que alguien rinda su parte de campo. Antes esa columna sólo se
+#' llenaba desde el parte —que se rinde DESPUÉS de aplicar— y por eso salía
+#' vacía en toda la hoja que el equipo abre la noche anterior.
+#'
+#' Sin disponibilidad en sesión no hay reparto y devuelve una lista vacía: la
+#' columna queda en blanco declarando que nadie está asignado todavía, que es
+#' la verdad, en vez de inventar un nombre.
+#'
+#' El nombre sale NORMALIZADO (`aulas_nombre_aplicador`), como en el resto del
+#' libro: el directorio llega tecleado a mano y trae `PANTA GUTIERREZ, PERCY
+#' AARÓN` al lado de `Uribe Olaechea , Jesús Ramiro`.
+#' @export
+aulas_libro_asignados_por_codigo <- function(plan, disponibilidad, cfg = list()) {
+  if (is.null(disponibilidad) || !length(disponibilidad)) return(list())
+  cfg <- if (is.list(cfg)) cfg else list()
+  rep <- monitoreo_aulas_reparto(
+    plan, disponibilidad,
+    fijadas = cfg[["reparto_fijado"]] %||% list(),
+    duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,
+    rango = cfg[["reparto_rango"]],
+    semilla = cfg[["reparto_semilla"]] %||% 0L,
+    concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
+  )
+  out <- list()
+  for (dia in (rep[["dias"]] %||% list())) {
+    for (item in (dia[["asignaciones"]] %||% list())) {
+      cod <- .ala_txt(item[["codigo"]])
+      nom <- .ala_txt(item[["aplicador"]])
+      if (nzchar(cod) && nzchar(nom)) out[[cod]] <- aulas_nombre_aplicador(nom)
+    }
+  }
+  out
+}
+
 
 #' Los values de la hoja para el publicador de Sheets: filas planas.
 #'
