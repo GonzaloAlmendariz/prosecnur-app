@@ -1,0 +1,121 @@
+# **La hoja de disponibilidad no puede ser críptica.**
+#
+# Dictado 2026-09-04: «tenemos que asegurarnos de que el Excel no sea críptico…
+# creo que es mejor separarlo por "el aplicador tal y ésta es su disponibilidad
+# el lunes, el martes, el miércoles", o en todo caso y mejor por día "el lunes
+# estas son las personas disponibles"; hay que ver que visualmente sea
+# entendible, porque son varias aristas: rangos horarios, días disponibles y
+# personas como tal».
+#
+# Tres ejes no caben en una columna. La primera versión bajaba tramo por tramo y
+# día tras día: más de doscientas filas sobre el operativo. Ahora son DOS tablas
+# cruzadas, una por pregunta.
+
+.tld_disp <- function() list(
+  list(nombre = "PANTA GUTIERREZ, PERCY AARÓN",
+       dias = list(lunes = list(list(inicio = "08:00", fin = "11:00")),
+                   jueves = list(list(inicio = "14:00", fin = "16:00")))),
+  list(nombre = "Castillo SOLORSANO , LEIDY VIVIANA",
+       dias = list(lunes = list(list(inicio = "09:00", fin = "11:00")))),
+  list(nombre = "Uribe Olaechea , Jesús Ramiro",
+       dias = list(martes = list(list(inicio = "07:30", fin = "09:00"))))
+)
+
+.tld_celdas <- function(filas, tipo) {
+  Filter(function(f) identical(f$tipo, tipo), filas)
+}
+
+test_that("sin oferta cargada no hay hoja: una vacía diría «nadie tiene horario»", {
+  expect_null(aulas_libro_filas_disponibilidad(list()))
+  expect_null(aulas_libro_valores_disponibilidad(list()))
+})
+
+test_that("son DOS tablas, no una lista larga", {
+  filas <- aulas_libro_filas_disponibilidad(.tld_disp())
+  bloques <- vapply(.tld_celdas(filas, "bloque"), function(f) f$celdas[[1]], character(1))
+  expect_equal(bloques, c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA"))
+  # Once tramos y tres personas caben en menos de treinta filas; la versión de
+  # una sola lista gastaba más de cincuenta para lo mismo.
+  expect_lt(length(filas), 30L)
+})
+
+test_that("la primera tabla cruza HORA por DÍA, con el conteo en la celda", {
+  filas <- aulas_libro_filas_disponibilidad(.tld_disp())
+  cabeceras <- .tld_celdas(filas, "cabecera")
+  # Sólo los días CON cobertura ganan columna: miércoles y viernes no están.
+  expect_equal(cabeceras[[1]]$celdas, c("TRAMO", "Lunes", "Martes", "Jueves"))
+
+  datos <- .tld_celdas(filas, "dato")
+  por_tramo <- stats::setNames(lapply(datos, function(f) f$celdas[-1L]),
+                               vapply(datos, function(f) f$celdas[[1]], character(1)))
+  # A las 09:00 el lunes están las dos; el martes y el jueves, nadie.
+  expect_equal(por_tramo[["09:00 a 09:30"]], c("2", "0", "0"))
+  # A las 07:30 sólo hay martes.
+  expect_equal(por_tramo[["07:30 a 08:00"]], c("0", "1", "0"))
+})
+
+test_that("el eje horario es la unión de lo cubierto, no un 07:00–22:00 con huecos", {
+  filas <- aulas_libro_filas_disponibilidad(.tld_disp())
+  tramos <- vapply(.tld_celdas(filas, "dato"), function(f) f$celdas[[1]], character(1))
+  tramos <- tramos[grepl("^\\d{2}:\\d{2} a ", tramos)]
+  expect_equal(tramos[[1]], "07:30 a 08:00")
+  expect_equal(tramos[[length(tramos)]], "15:30 a 16:00")
+  # Nada entre las 11:00 y las 14:00: esas horas no las cubre nadie y no se
+  # escriben. Quince filas vacías arriba y abajo son lo que vuelve críptica una
+  # hoja.
+  expect_false(any(grepl("^1[123]:", tramos)))
+})
+
+test_that("la segunda tabla es una fila por persona, con su RANGO por día", {
+  filas <- aulas_libro_filas_disponibilidad(.tld_disp())
+  cabeceras <- .tld_celdas(filas, "cabecera")
+  expect_equal(cabeceras[[2]]$celdas, c("APLICADOR", "Lunes", "Martes", "Jueves"))
+
+  datos <- .tld_celdas(filas, "dato")
+  personas <- Filter(function(f) !grepl("^\\d{2}:\\d{2} a ", f$celdas[[1]]), datos)
+  nombres <- vapply(personas, function(f) f$celdas[[1]], character(1))
+  # El nombre se escribe como se escribe un nombre, y en alfabético.
+  expect_equal(nombres, c("Castillo Solorsano, Leidy Viviana",
+                          "Panta Gutierrez, Percy Aarón",
+                          "Uribe Olaechea, Jesús Ramiro"))
+  # La celda dice CUÁNDO, no un aspa: un aspa obliga a bajar a buscar la hora.
+  percy <- personas[[2]]$celdas
+  expect_equal(percy[[2]], "08:00 a 11:00")   # lunes
+  expect_equal(percy[[3]], "")                # martes: no puede
+  expect_equal(percy[[4]], "14:00 a 16:00")   # jueves
+})
+
+test_that("los values del publicador salen rectangulares", {
+  vals <- aulas_libro_valores_disponibilidad(.tld_disp())
+  anchos <- unique(vapply(vals, length, integer(1)))
+  expect_length(anchos, 1L)
+  expect_equal(anchos, 4L)  # TRAMO + tres días
+})
+
+test_that("el formato marca las celdas flacas, y sólo en la tabla de conteos", {
+  vals <- aulas_libro_valores_disponibilidad(.tld_disp())
+  reqs <- aulas_libro_disponibilidad_formato_requests(7L, vals)
+  # Todo request es de formato o de geometría: jamás values ni validaciones.
+  for (r in reqs) {
+    if (!is.null(r$repeatCell)) {
+      expect_true(startsWith(r$repeatCell$fields, "userEnteredFormat("))
+    } else {
+      expect_identical(r$updateDimensionProperties$fields, "pixelSize")
+    }
+  }
+  # Las celdas marcadas son de UNA columna de ancho: el aviso es el número, no
+  # la fila. Teñir la fila diría que el día entero está flaco.
+  de_una_celda <- Filter(function(r) {
+    !is.null(r$repeatCell) && !is.null(r$repeatCell$range$startColumnIndex) &&
+      r$repeatCell$range$startColumnIndex > 0L &&
+      identical(r$repeatCell$range$endColumnIndex - r$repeatCell$range$startColumnIndex, 1L)
+  }, reqs)
+  expect_gt(length(de_una_celda), 0L)
+  # Y ninguna cae en la tabla de personas, donde las celdas son rangos horarios
+  # y un «08:00 a 11:00» no se compara con uno.
+  fila_personas <- which(vapply(vals, function(r)
+    identical(trimws(as.character(r[[1]])), "APLICADOR"), logical(1)))
+  expect_length(fila_personas, 1L)
+  ultimas <- vapply(de_una_celda, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  expect_true(all(ultimas < fila_personas))
+})
