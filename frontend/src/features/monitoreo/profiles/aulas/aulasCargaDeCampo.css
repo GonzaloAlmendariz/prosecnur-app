@@ -1027,3 +1027,73 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-text-soft);
 }
 .aulas-asigna-libres ul strong { color: var(--pulso-text); font-weight: 600; }
+
+/* ── Las secuencias del día (dictado 2026-09-04) ──────────────────────────────
+   «Algún tipo de raíz o conexión cuando la misma persona haga más de una
+   aplicación seguida en el día, para poder mapear esas secuencias, sabiendo que
+   puede haber más de una». La tabla va ordenada por hora, así que las citas de
+   una persona quedan salteadas entre las de otros; la cadena las une con una
+   línea por su carril, un nodo en cada parada suya y las puntas redondeadas.
+
+   Lenguaje prestado del grafo de lógica del editor de instrumento: una relación
+   por color, la línea cruza lo que no le toca, y al enfocarla se enciende. Los
+   tonos son los ocho del Sistema Pabellón, que ya viven en el tema. */
+/* La celda es el marco de posición de sus carriles. Ella SÍ tiene el alto de
+   la fila, y por eso los carriles se anclan a sus bordes con `top/bottom: 0`:
+   un `height: 100%` dentro de una celda sin alto declarado resuelve a cero, y
+   la primera versión pintó los nodos sin la línea que los une. */
+.aulas-asigna-canalon {
+  position: relative;
+  padding: 0 6px 0 0;
+  font-size: 0;
+}
+/* Cada carril es una franja de 14 px con su línea en el medio; ocupa la fila
+   entera, que es lo que hace continua la línea de una fila a la siguiente. */
+.aulas-asigna-carril {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 14px;
+}
+.aulas-asigna-carril::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--carril-tono) 55%, var(--pulso-surface));
+}
+/* Las puntas: la cadena empieza y acaba EN su parada, no en el borde de la
+   fila, así que el tramo se recorta a la mitad de la celda. */
+.aulas-asigna-carril.es-cabeza::before { top: 50%; border-radius: 2px 2px 0 0; }
+.aulas-asigna-carril.es-cola::before { bottom: 50%; border-radius: 0 0 2px 2px; }
+.aulas-asigna-carril.es-cabeza.es-cola::before { top: 50%; bottom: 50%; }
+/* El nodo de una parada suya: relleno del tono, aro del fondo para que la
+   línea no se le vea por debajo. */
+.aulas-asigna-carril.es-parada::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--carril-tono);
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+}
+/* Enfocada desde el rail: la cadena se enciende entera, igual que sus filas. */
+.aulas-asigna-carril.es-enfoco::before { background: var(--carril-tono); width: 3px; margin-left: -1.5px; }
+.aulas-asigna-carril.es-enfoco::after { box-shadow: 0 0 0 2px var(--pulso-surface), 0 0 0 4px color-mix(in srgb, var(--carril-tono) 28%, transparent); }
+
+.aulas-asigna-carril.es-tono-0 { --carril-tono: var(--pulso-accent-steel); }
+.aulas-asigna-carril.es-tono-1 { --carril-tono: var(--pulso-accent-green); }
+.aulas-asigna-carril.es-tono-2 { --carril-tono: var(--pulso-accent-rose); }
+.aulas-asigna-carril.es-tono-3 { --carril-tono: var(--pulso-accent-amber); }
+.aulas-asigna-carril.es-tono-4 { --carril-tono: var(--pulso-accent-violet); }
+.aulas-asigna-carril.es-tono-5 { --carril-tono: var(--pulso-accent-cyan); }
+.aulas-asigna-carril.es-tono-6 { --carril-tono: var(--pulso-module-monitoring); }
+.aulas-asigna-carril.es-tono-7 { --carril-tono: var(--pulso-module-processing); }
+
+/* Con canalón, la primera columna de datos pierde su sangría izquierda: la
+   línea ya hace de margen y si no, la cita quedaba flotando lejos. */
+.aulas-asigna-tabla.es-con-cadenas tbody th[scope="row"] { padding-left: 2px; }
