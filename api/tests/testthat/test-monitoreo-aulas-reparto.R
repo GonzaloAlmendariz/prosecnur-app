@@ -863,3 +863,51 @@ test_that("concentrado: la fijada siembra la jornada y el greedy la llena", {
   quien <- vapply(rep$dias[[1]]$asignaciones, function(a) a$aplicador, character(1))
   expect_identical(quien, c("Beto", "Beto"))
 })
+
+# **Concentrar no puede significar cargarle el día entero a una sola.**
+#
+# Dictado 2026-09-04, mirando el lunes del operativo: «veo que le estás dando 4
+# seguidas a una cuando tranquilamente le puedes dar 2 seguidas a dos personas;
+# hay que balancear bien equidad, sus horarios disponibles, la concentración es
+# el mismo día». La primera versión ponía «ya está ese día» delante de la carga
+# a secas, y quien entraba primero se quedaba con la jornada.
+test_that("la concentración no abre brecha: reparte parejo y cada quien en un día", {
+  plan <- lapply(1:7, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_status = "agendada", operational_status = "agendada",
+    scheduled_date = "2026-09-07",
+    scheduled_time = sprintf("%02d:00", 8 + 2 * (i - 1))
+  ))
+  gente <- c("Ana Uno", "Beto Dos", "Cira Tres", "Dino Cuatro")
+  disp <- lapply(gente, function(n) list(
+    nombre = n, dias = list(lunes = list(list(inicio = "07:00", fin = "22:00")))
+  ))
+  r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
+  cargas <- sort(vapply(r$equidad, function(e) as.integer(e$asignadas), integer(1)),
+                 decreasing = TRUE)
+  # Siete entre cuatro que pueden todo el día: 2+2+2+1, no 4+3+0+0 ni 7+0+0+0.
+  expect_equal(cargas, c(2L, 2L, 2L, 1L))
+  expect_lte(max(cargas) - min(cargas), 1L)
+})
+
+test_that("y aun así cada persona cae en UN solo día, que es de lo que va concentrar", {
+  # Dos días con tres citas cada uno y gente de sobra: nadie debe salir dos veces.
+  fechas <- rep(c("2026-09-07", "2026-09-08"), each = 3L)
+  plan <- lapply(seq_along(fechas), function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_status = "agendada", operational_status = "agendada",
+    scheduled_date = fechas[[i]],
+    scheduled_time = sprintf("%02d:00", 8 + 3 * ((i - 1) %% 3))
+  ))
+  gente <- c("Ana Uno", "Beto Dos", "Cira Tres", "Dino Cuatro", "Eva Cinco", "Fito Seis")
+  disp <- lapply(gente, function(n) list(nombre = n, dias = list(
+    lunes = list(list(inicio = "07:00", fin = "22:00")),
+    martes = list(list(inicio = "07:00", fin = "22:00"))
+  )))
+  r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
+  dias_de <- list()
+  for (d in r$dias) for (a in d$asignaciones) {
+    dias_de[[a$aplicador]] <- unique(c(dias_de[[a$aplicador]], d$fecha))
+  }
+  expect_true(all(vapply(dias_de, length, integer(1)) == 1L))
+})

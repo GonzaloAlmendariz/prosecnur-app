@@ -16,6 +16,7 @@ import {
   pabellonesDeLasCitas,
   ejeSugerido,
   hayHorarioDeCurso,
+  facultadesDelPlan,
   lugaresDelPlan,
   porPabellon,
   ventanasDelMotor,
@@ -237,6 +238,9 @@ export function AulasCargaDeCampo({
   // el plan, con la MISMA regla que el detalle (lugar confirmado del libro
   // primero — dictado «LUGAR DE APLICACIÓN», 2026-09-02).
   const lugares = useMemo(() => lugaresDelPlan(filas), [filas]);
+  // Dictado 2026-09-04: «el cuadro no muestra la facultad». Sale del plan,
+  // como el lugar: el bloque `reparto` no la trae.
+  const facultades = useMemo(() => facultadesDelPlan(filas), [filas]);
   const pabellones = useMemo(() => porPabellon(filas), [filas]);
   const { semanas, sinSemana } = useMemo(() => semanasDeCarga(malla.filas), [malla]);
   // Qué filas de fecha están en pantalla. `null` = todas; las fechas sin
@@ -453,6 +457,7 @@ export function AulasCargaDeCampo({
         <AulasAsignacionDeAplicadores
           reparto={repartoVista}
           lugares={lugares}
+          facultades={facultades}
           oferta={oferta}
           ventanas={ventanasDeCita}
           onFijar={onFijarReparto}

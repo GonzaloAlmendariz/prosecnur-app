@@ -1097,3 +1097,13 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 /* Con canalón, la primera columna de datos pierde su sangría izquierda: la
    línea ya hace de margen y si no, la cita quedaba flotando lejos. */
 .aulas-asigna-tabla.es-con-cadenas tbody th[scope="row"] { padding-left: 2px; }
+
+/* La facultad en la tabla de Asignación (dictado 2026-09-04: «el cuadro no
+   muestra la facultad»). Va en tono secundario y envuelve: es el corte al que
+   pertenece la cita, no su identidad, y algunos nombres son largos. */
+.aulas-asigna-facultad {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+  max-width: 18ch;
+}
