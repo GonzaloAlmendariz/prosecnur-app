@@ -80,7 +80,17 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
             </summary>
             <ul>
               {f.aulas.map((a, i) => (
-                <li key={a.codigo}>
+                <li
+                  key={a.codigo}
+                  // El caso se ve en el FONDO del box (dictado 2026-09-03:
+                  // «un color quizás un poquito amarillento si es caso A…
+                  // ligeramente distinto si es B… y distinto si es C, para
+                  // poder distinguir»): lavados tenues por relación, solo en
+                  // reservas — el titular queda en blanco de siempre.
+                  className={a.esReserva
+                    ? `es-caso-${a.relacion === "reemplaza" ? "a" : a.relacion === "complementa" ? "b" : "c"}`
+                    : undefined}
+                >
                   {/* Loop mejora-ui E5: el día canta solo cuando cambia. Cinco
                       «lun 07/09» seguidos aplanaban la lectura por días — la
                       fecha repetida susurra (la hora conserva su voz) y el ojo
@@ -103,7 +113,7 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
                         COMPLEMENTA — ambos suman —; sin titular es un
                         refuerzo operativo, con nomenclatura propia. */}
                     {a.esReserva ? (
-                      <em className="aulas-ruta-reserva">
+                      <em className={`aulas-ruta-reserva es-${a.relacion}`}>
                         {a.relacion === "refuerzo"
                           ? "refuerzo"
                           : `${a.relacion} a ${a.titular}`}

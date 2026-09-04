@@ -243,7 +243,7 @@ export function AulasColaDeContacto({ filas, conReservas, facultadEnFoco, onFoco
             </thead>
             <tbody>
               {pendientes.map((p) => (
-                <tr key={`p-${p.codigo}`}>
+                <tr key={`p-${p.codigo}`} className={p.relevoDe ? "es-caso-a" : undefined}>
                   <td className="aulas-cola-codigo">
                     {p.codigo}
                     {/* El relevo del rechazo directo se presenta como tal: a

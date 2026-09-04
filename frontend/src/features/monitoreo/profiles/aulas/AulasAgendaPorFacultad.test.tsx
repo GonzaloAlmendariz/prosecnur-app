@@ -33,6 +33,9 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
     // A: titular caído → el R lo REEMPLAZA, en esa palabra.
     expect(html).toContain("R 90.1");
     expect(html).toContain("reemplaza a CH 90");
+    // El caso también se ve en el FONDO del box y en el tono de la pill.
+    expect(html).toContain("es-caso-a");
+    expect(html).toContain("aulas-ruta-reserva es-reemplaza");
   });
 
   it("con el titular VIVO el R lo complementa — ambos suman (caso B)", () => {
@@ -51,6 +54,7 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
     );
     expect(html).toContain("complementa a CH 14");
     expect(html).not.toContain("reemplaza a CH 14");
+    expect(html).toContain("es-caso-b");
   });
 
   it("una reserva sin titular es un «refuerzo» — nomenclatura propia (caso C)", () => {
@@ -67,5 +71,6 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
     expect(html).toContain("refuerzo");
     expect(html).not.toContain("reemplaza a");
     expect(html).not.toContain("complementa a");
+    expect(html).toContain("es-caso-c");
   });
 });
