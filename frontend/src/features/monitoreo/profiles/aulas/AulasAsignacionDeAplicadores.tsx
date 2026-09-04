@@ -526,17 +526,23 @@ export function AulasAsignacionDeAplicadores({
                             {s ? (
                               <span className="aulas-asigna-causa">
                                 {s.causa === "sin-oferta"
-                                  ? "nadie declaró disponibilidad ese día a esa hora: hay que mover la cita o sumar gente"
+                                  ? `nadie está libre desde las ${s.desdeRecojo}, que es cuando empieza su recojo: hay que mover la cita o sumar gente`
                                   : s.causa === "sin-hora"
                                     ? "sin hora legible en el libro, no se puede decir quién podría"
                                     : (() => {
+                                      // Los nombres se separan con · y no con
+                                      // coma: un nombre YA lleva su coma
+                                      // («Castillo Solorsano, Leidy Viviana»)
+                                      // y la lista se leía como el doble de
+                                      // personas de las que hay.
                                       const n = s.ocupados.length;
                                       const lista = s.ocupados
                                         .map((o) => `${nombreDeAplicador(o.aplicador)} (${o.porCodigo})`)
-                                        .join(", ");
+                                        .join(" · ");
+                                      const desde = `libres desde las ${s.desdeRecojo}`;
                                       return n === 0
-                                        ? `${fmt(s.conHorario.length)} con ese horario: ${s.conHorario.map(nombreDeAplicador).join(", ")}`
-                                        : `${fmt(s.conHorario.length)} con ese horario, ${n === 1 ? "está" : "están"} en otra aplicación a esa hora: ${lista}. Soltando una de ésas se abre.`;
+                                        ? `${fmt(s.conHorario.length)} ${desde}: ${s.conHorario.map(nombreDeAplicador).join(" · ")}`
+                                        : `${fmt(s.conHorario.length)} ${desde}, ${n === 1 ? "y está" : "y están"} en otra aplicación a esa hora: ${lista}. Soltando una de ésas se abre.`;
                                     })()}
                               </span>
                             ) : null}

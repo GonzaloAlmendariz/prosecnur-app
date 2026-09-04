@@ -42,6 +42,10 @@ export function diaDeSemanaDe(fecha: string): string | null {
   return partes ? (CLAVE_DE_DIA[partes.fecha.getUTCDay()] ?? null) : null;
 }
 
+/** `465` da `07:45`; el reloj de la casa, sin depender de una locale. */
+const horaDeMinutos = (min: number): string =>
+  `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
 /** La ventana pactada de una cita, por `fecha` y código. */
 export type VentanaDeCita = { inicio: string; fin: string };
 
@@ -59,6 +63,13 @@ function quienesCubren(
   iniMin: number,
   finMin: number,
 ): string[] {
+  // OJO: `iniMin` es el inicio de la OCUPACIÓN (el recojo), no el de la cita.
+  // Medido sobre el operativo el 2026-09-04: para CH 81, pactada 08:15, el
+  // aviso decía «17 con ese horario» y ninguno estaba ocupado, lo que era
+  // imposible —si alguno pudiera, el greedy lo habría puesto—. La oferta de
+  // esas 17 personas empieza a las 08:00 y su recojo caía a las 07:45. Medir
+  // contra la hora pactada fabricaba una salida que no existe, que es peor
+  // que no decir nada.
   const i = malla.filas.findIndex((f) => f.clave === dia);
   if (i < 0) return [];
   const tocadas: number[] = [];
@@ -84,6 +95,12 @@ export type SalidaDeDescubierto = {
   /** La hora pactada, cuando el bloque de ventanas la trae. */
   inicio: string;
   fin: string;
+  /**
+   * La hora en que EMPIEZA a estar ocupado quien tome esta cita: el recojo de
+   * materiales, `preparacionMin` antes de la pactada. Es la punta que manda
+   * para saber quién puede, no la pactada (ver `quienesCubren`).
+   */
+  desdeRecojo: string;
   /** Quiénes declararon ese día y esa hora, según el libro de disponibilidad. */
   conHorario: string[];
   /** De ésos, quiénes ya están en otra aplicación a esa hora, y en cuál. */
@@ -106,14 +123,16 @@ export function salidasDeDescubiertos(
     const dia = diaDeSemanaDe(d.fecha);
     for (const codigo of d.noCubiertos) {
       const v = ventanas.get(claveDeCita(d.fecha, codigo));
-      const iniMin = v ? minutosDeHora(v.inicio) : null;
+      const pactadaMin = v ? minutosDeHora(v.inicio) : null;
       const finMin = v ? minutosDeHora(v.fin) : null;
+      // La ocupación real arranca en el recojo, `preparacionMin` antes.
+      const iniMin = pactadaMin === null ? null : pactadaMin - (reparto.preparacionMin || 0);
       if (!v || iniMin === null || finMin === null || dia === null || malla === null) {
         // Sin hora legible no se puede decir QUIÉN podría: se declara así, en
         // vez de afirmar «nadie tiene disponibilidad», que sería inventar.
         salidas.push({
           codigo, fecha: d.fecha, etiqueta: d.etiqueta,
-          inicio: v?.inicio ?? "", fin: v?.fin ?? "",
+          inicio: v?.inicio ?? "", fin: v?.fin ?? "", desdeRecojo: v?.inicio ?? "",
           conHorario: [], ocupados: [], causa: "sin-hora",
         });
         continue;
@@ -124,7 +143,11 @@ export function salidasDeDescubiertos(
       const ocupados: Array<{ aplicador: string; porCodigo: string }> = [];
       for (const a of d.asignaciones) {
         if (!conHorario.includes(a.aplicador)) continue;
-        const aIni = minutosDeHora(a.inicio);
+        // La ocupación de la cita que YA tiene también empieza en su recojo:
+        // el motor cuenta el solape sobre la ventana completa, no sobre la
+        // pactada, y aquí se mide con la misma vara.
+        const aPactada = minutosDeHora(a.inicio);
+        const aIni = minutosDeHora(a.recojo) ?? (aPactada === null ? null : aPactada - (reparto.preparacionMin || 0));
         const aFin = minutosDeHora(a.fin);
         if (aIni === null || aFin === null) continue;
         if (aIni < finMin && aFin > iniMin) {
@@ -133,7 +156,7 @@ export function salidasDeDescubiertos(
       }
       salidas.push({
         codigo, fecha: d.fecha, etiqueta: d.etiqueta,
-        inicio: v.inicio, fin: v.fin,
+        inicio: v.inicio, fin: v.fin, desdeRecojo: horaDeMinutos(iniMin),
         conHorario, ocupados,
         causa: conHorario.length === 0 ? "sin-oferta" : "ocupados",
       });
@@ -161,8 +184,6 @@ export function salidasDeLibres(
   if (libres.length === 0 || malla === null) {
     return libres.map((e) => ({ aplicador: e.aplicador, cubre: [] }));
   }
-  const horaDe = (min: number) =>
-    `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
   return libres.map((e) => {
     const cubre: Array<{ dia: string; desde: string; hasta: string }> = [];
     malla.filas.forEach((fila, i) => {
@@ -172,8 +193,8 @@ export function salidasDeLibres(
       if (suyas.length === 0) return;
       cubre.push({
         dia: fila.etiqueta,
-        desde: horaDe(Math.min(...suyas)),
-        hasta: horaDe(Math.max(...suyas) + 30),
+        desde: horaDeMinutos(Math.min(...suyas)),
+        hasta: horaDeMinutos(Math.max(...suyas) + 30),
       });
     });
     return { aplicador: e.aplicador, cubre };
