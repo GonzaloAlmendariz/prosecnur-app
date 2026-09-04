@@ -267,7 +267,10 @@ export function AulasPestanaResumen({
                     qué existe: «el promedio esconde la forma —sesenta aulas al
                     50 % y sesenta al 100 % dan el mismo avance global que ciento
                     veinte al 75 %, y piden decisiones opuestas». */}
-                <span>{contadorDelReparto(dashboard.course_status_cobertura)} · cuánto lleva recogido cada una</span>
+                {/* «cada uno»: la unidad recién nombrada es el curso-horario —
+                    mismo pronombre que se le escapó al contrato en el
+                    circuito (E17). */}
+                <span>{contadorDelReparto(dashboard.course_status_cobertura)} · cuánto lleva recogido cada uno</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
