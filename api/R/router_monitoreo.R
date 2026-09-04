@@ -4999,6 +4999,16 @@ mount_monitoreo <- function(pr) {
         ),
         error = function(e) NULL
       )
+      # Y su reparto por sexo (dictado 2026-09-04). Sin `sex_var` declarada
+      # devuelve NULL y la columna del Plan del dia calla.
+      efectivas_sexo <- tryCatch(
+        monitoreo_aulas_efectivas_por_sexo(
+          unidades,
+          (s$monitoreo_snapshot %||% list())$data,
+          ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())
+        ),
+        error = function(e) NULL
+      )
       # Y las respuestas, para la hoja de indicadores: el avance diario sale de
       # cuando ENTRO cada encuesta, no de cuando se aplico el aula.
       respuestas <- (s$monitoreo_snapshot %||% list())$data
@@ -5016,7 +5026,8 @@ mount_monitoreo <- function(pr) {
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
                           procedencia = s$monitoreo_aulas_libro %||% NULL,
                           disponibilidad = s$monitoreo_aulas_disponibilidad %||% NULL,
-                          efectivas = efectivas, responses = respuestas,
+                          efectivas = efectivas, efectivas_sexo = efectivas_sexo,
+                          responses = respuestas,
                           validas = validas,
                           # Las cuotas del diseño, para el avance por facultad y
                           # sexo de la hoja de indicadores. Sin ellas ese bloque

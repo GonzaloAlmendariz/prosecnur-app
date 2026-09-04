@@ -334,6 +334,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            partes = list(),
                                            control = list(),
                                            efectivas = NULL,
+                                           # Su reparto por sexo (dictado
+                                           # 2026-09-04). NULL = sin variable
+                                           # declarada, y la columna calla.
+                                           efectivas_sexo = NULL,
                                            cuotas = NULL,
                                            traslape_daa = NULL,
                                            disponibilidad = NULL,
@@ -408,7 +412,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # el listado se conserva completo debajo. El resumen cuenta filas del
   # LISTADO: el bloque es chrome del selector, no datos.
   plan_dia_listado <- .malp_df_a_values(
-    aulas_libro_hoja_plan_dia(unidades, partes = partes, efectivas = efectivas)
+    aulas_libro_hoja_plan_dia(unidades, partes = partes, efectivas = efectivas,
+                              efectivas_sexo = efectivas_sexo)
   )
   producidas[[.malp_hoja_plan_dia()]] <- .mapds_con_selector(plan_dia_listado)
   # «Avance de campo» (B2.2) se computa con lo que ESTE punto sí tiene: plan +
@@ -642,6 +647,17 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     ),
     error = function(e) NULL
   )
+  # Y su reparto por sexo, con el mismo silencio deliberado: sin variable de
+  # sexo declarada devuelve NULL y la columna calla, que es justo lo que debe
+  # hacer en vez de adivinar cual variable es.
+  efectivas_sexo <- tryCatch(
+    monitoreo_aulas_efectivas_por_sexo(
+      unidades,
+      (s$monitoreo_snapshot %||% list())$data,
+      aulas_cfg
+    ),
+    error = function(e) NULL
+  )
 
   # B8h fase 2 (decisión del lead, cerrada): el cruce DAA vive en la SESIÓN —
   # quien lo computa (hoy el runner de siembra) hace
@@ -659,6 +675,7 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       partes = partes,
       control = control,
       efectivas = efectivas,
+      efectivas_sexo = efectivas_sexo,
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],
