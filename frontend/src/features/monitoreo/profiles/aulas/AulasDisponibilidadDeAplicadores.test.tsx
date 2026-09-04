@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+// Dictado 2026-09-04 («basta de los em dashes» y «el nombre normalizado»):
+// el rótulo de cada celda pasó de «2 disponibles — Ana, Berta» a
+// «2 disponibles. Pueden: Ana · Berta». El punto medio separa los nombres
+// porque un nombre YA lleva su coma y unirlos con otra los duplicaba a la
+// vista.
+
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { AulasDisponibilidadDeAplicadores } from "./AulasDisponibilidadDeAplicadores";
@@ -55,7 +61,7 @@ describe("AulasDisponibilidadDeAplicadores", () => {
     expect(html).toContain(">jueves<");
     // La cifra es el dato de la franja, y su nombre accesible dice quiénes.
     // Sin exigir el cierre de la comilla: la franja pico añade su seña detrás.
-    expect(html).toMatch(/aria-label="lunes 09:00: 2 disponibles — Ana Prueba, Berta Ficticia/);
+    expect(html).toMatch(/aria-label="lunes 09:00: 2 disponibles. Pueden: Ana Prueba · Berta Ficticia/);
     // Los KPIs de la oferta en llano (dictado 2026-09-03: «las barras KPI no
     // se entienden»): cuánta gente y su mejor momento, con sus palabras.
     expect(html).toContain("Aplicadores declarados");
@@ -117,12 +123,12 @@ describe("AulasDisponibilidadDeAplicadores — la demanda confirmada encima (B38
   });
 
   it("más citas que gente = alarma declarada, no un conteo más", () => {
-    expect(html).toMatch(/aria-label="lunes 09:30: 1 disponible, 3 citas confirmadas — más citas que gente/);
+    expect(html).toMatch(/aria-label="lunes 09:30: 1 disponible, 3 citas confirmadas, más citas que gente/);
     expect(html).toContain("es-deficit");
   });
 
   it("la cita sin nadie declarado se pinta y se titula — el hueco no pasa por celda vacía", () => {
-    expect(html).toMatch(/<span[^>]*es-deficit[^>]*title="lunes 10:00: 0 disponibles, 2 citas confirmadas — más citas que gente"/);
+    expect(html).toMatch(/<span[^>]*es-deficit[^>]*title="lunes 10:00: 0 disponibles, 2 citas confirmadas, más citas que gente"/);
   });
 
   it("el lead y la leyenda hablan de la lectura conjunta", () => {
