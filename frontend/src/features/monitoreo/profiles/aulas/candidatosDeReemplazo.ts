@@ -167,8 +167,11 @@ const seResolvio = (fila: MonitoreoAulasPlanRow | undefined): boolean =>
  */
 export const sigueDormida = (fila: MonitoreoAulasPlanRow): boolean => {
   const v = texto((fila as { sample_status?: string }).sample_status).toLowerCase();
-  // «en reserva 3» es el vocabulario del Excel para la que todavía espera.
-  const norm = v.replace(/^en reserva.*$/, "en_reserva");
+  // «en reserva 3» es el vocabulario del Excel para la que todavía espera; y
+  // los espacios se normalizan como en el motor (.maej_dormido): «SIN
+  // CONTACTAR» es la forma que el desplegable ofrece desde B13a y sin esto el
+  // espejo la veía DESPIERTA — divergencia cazada por filaVisibleEnAgenda.
+  const norm = v.replace(/^en reserva.*$/, "en_reserva").replace(/ /g, "_");
   return ESTADOS_DORMIDOS.has(norm);
 };
 
