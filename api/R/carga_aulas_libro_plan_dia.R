@@ -206,12 +206,38 @@
 # Las esperadas de un aula: el total y su reparto por sexo, con la etiqueta que
 # el dato trae. Reusa `.mac_esperadas_por_sexo()` —el mismo reparto que la
 # calibracion— para que no existan dos cuentas de lo mismo.
+# **Las esperadas se escriben en PERSONAS, no en decimales.**
+#
+# El motor las calcula como un producto de tasas, así que salen `21.6` y
+# `F 11.00377 · M 10.59623`. Eso al aplicador no le dice nada: no puede
+# conseguir once coma cero cero encuestas de mujeres. Se redondea el total y el
+# reparto por sexo se ajusta por RESTO MAYOR, para que las partes sumen
+# exactamente el total escrito y la hoja no se contradiga a sí misma.
+.capd_enteros_que_suman <- function(v, total) {
+  if (!length(v)) return(v)
+  if (!is.finite(total) || total <= 0) return(stats::setNames(rep(0L, length(v)), names(v)))
+  suma <- sum(v)
+  escala <- if (suma > 0) total / suma else 0
+  exacto <- v * escala
+  base <- floor(exacto)
+  faltan <- as.integer(round(total - sum(base)))
+  if (faltan > 0L) {
+    # Al que le sobra más resto, primero; el empate lo rompe el orden de entrada,
+    # que ya viene decidido por el contador de sexos.
+    orden <- order(-(exacto - base), seq_along(v))
+    base[orden[seq_len(min(faltan, length(v)))]] <-
+      base[orden[seq_len(min(faltan, length(v)))]] + 1
+  }
+  stats::setNames(as.integer(base), names(v))
+}
+
 .capd_esperadas <- function(u) {
   esp <- suppressWarnings(as.numeric(
     .monitoreo_scalar(u$expected_valid %||% u$efectivas_esperadas %||% NA, NA))[1])
-  total <- if (is.finite(esp)) .calg_num_txt(esp) else ""
+  esp_entero <- if (is.finite(esp)) as.integer(round(esp)) else NA_integer_
+  total <- if (is.finite(esp)) .calg_num_txt(esp_entero) else ""
   reparto <- .mac_esperadas_por_sexo(u)
-  v <- reparto$valores
+  v <- .capd_enteros_que_suman(reparto$valores, esp_entero)
   por_sexo <- if (!length(v)) "" else paste(
     vapply(seq_along(v), function(i)
       sprintf("%s %s", names(v)[[i]], .calg_num_txt(v[[i]])), character(1)),
@@ -230,7 +256,7 @@
 }
 
 aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NULL,
-                                      efectivas_sexo = NULL) {
+                                      efectivas_sexo = NULL, asignados = NULL) {
   # Partes por código e intento, con el MISMO índice `%s#%d` del generador de
   # «Aulas Aplicadas (Campo)»: dos índices distintos para el mismo parte es la
   # clase de lista paralela que este libro ya pagó.
@@ -278,7 +304,22 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NUL
 
   fila_aula <- function(u) {
     parte1 <- por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]]
-    aplicador <- if (is.null(parte1)) "" else .calg_txt(
+    # **El aplicador sale de la ASIGNACIÓN; el parte sólo lo corrige.**
+    #
+    # Antes salía únicamente del parte de campo, y como el parte se rinde
+    # DESPUÉS de aplicar, la columna estaba vacía en toda la hoja: justo la que
+    # el equipo abre la noche anterior para saber quién va a cada aula. Gonzalo
+    # lo vio publicado el 2026-09-04: «no sale el aplicador que salió».
+    #
+    # El orden importa: si hay parte, manda el parte —quien fue de verdad puede
+    # no ser quien estaba asignado, y la hoja debe contar lo ocurrido, no lo
+    # planeado—; si no lo hay, manda el reparto.
+    cod_u <- .calg_txt(u$operational_code)
+    # `list()[["x"]]` no devuelve NULL: revienta con «subscript out of bounds».
+    asignado <- if (nzchar(cod_u) && cod_u %in% names(asignados %||% list())) {
+      .calg_txt(asignados[[cod_u]])
+    } else ""
+    aplicador <- if (is.null(parte1)) asignado else .calg_txt(
       .monitoreo_aulas_parte_primero(parte1, .MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]])
     )
     ventana <- .capd_ventana(u)

@@ -1056,9 +1056,39 @@ test_that("B22: la fila dice esperadas, su reparto por sexo y lo obtenido", {
   ))
   hoja <- aulas_libro_hoja_plan_dia(plan, efectivas = c("CH 7" = 14))
   expect_identical(.pd_celdas(hoja, "ESPERADAS")[[1]], "21")
-  # Repartidas en la composición del aula: 21 × 18/30 y 21 × 12/30.
-  expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "M 12.6 · F 8.4")
+  # **Se escriben en PERSONAS, no en decimales.** El reparto exacto por la
+  # composición del aula es 21 × 18/30 = 12,6 y 21 × 12/30 = 8,4, y así salía
+  # publicado hasta que Gonzalo lo vio en el Sheets el 2026-09-04: «las
+  # esperadas no salen bien». Nadie consigue doce coma seis encuestas.
+  #
+  # El ajuste es por RESTO MAYOR sobre el total ya redondeado, así que las
+  # partes SUMAN el total escrito: 13 + 8 = 21. Redondear cada parte por su
+  # cuenta habría dado 13 + 8 aquí pero 11 + 11 contra un total de 21 en otras
+  # aulas, y una hoja que se contradice a sí misma se deja de leer.
+  expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "M 13 · F 8")
   expect_identical(.pd_celdas(hoja, "OBTENIDAS")[[1]], "14")
+})
+
+# **El aplicador sale de la asignación, no del parte de campo.**
+#
+# El parte se rinde DESPUÉS de aplicar, así que mientras la columna sólo salía
+# de ahí, «Plan del día» —la hoja que el equipo abre la noche anterior para
+# saber quién va a cada aula— tenía la columna APLICADOR vacía de arriba abajo.
+# Gonzalo lo vio publicado el 2026-09-04: «no sale el aplicador que salió».
+test_that("B22: APLICADOR se llena con el asignado cuando todavía no hay parte", {
+  plan <- list(list(
+    operational_code = "CH 7", titular_operational_code = "CH 7", sample_role = "titular",
+    faculty = "Ciencias", course_name = "C", teacher = "D", eligible_n = 30,
+    expected_valid = 21, scheduled_date = "2026-09-07", scheduled_time = "11:30 am",
+    operational_status = "agendada"
+  ))
+  hoja <- aulas_libro_hoja_plan_dia(plan, asignados = list(`CH 7` = "Uribe Olaechea, Jesús Ramiro"))
+  expect_identical(.pd_celdas(hoja, "APLICADOR")[[1]], "Uribe Olaechea, Jesús Ramiro")
+
+  # Sin asignación y sin parte queda en blanco: decir la verdad —nadie está
+  # asignado todavía— en vez de inventar un nombre.
+  vacia <- aulas_libro_hoja_plan_dia(plan)
+  expect_identical(.pd_celdas(vacia, "APLICADOR")[[1]], "")
 })
 
 test_that("B22: las etiquetas de sexo son las del DATO, no dos columnas adivinadas", {

@@ -219,3 +219,63 @@ test_that("B29: archivo inexistente y hoja sin estructura son errores E_* declar
     testthat::test_path("..", "..", "R", "carga_disponibilidad_aplicadores.R")
   ))
 })
+
+# **La lista FINAL manda sobre el borrador.**
+#
+# El directorio del operativo llega con dos matrices: la hoja donde el equipo
+# fue anotando a todo el que respondió —con su columna «CONFIRMÓ»— y la hoja de
+# los que efectivamente van a aplicar. Leer la primera reparte trabajo entre
+# gente que no va a venir: en HSVG 2026, el 2026-09-04, eran 31 nombres contra
+# los 24 de la lista final, y el reparto se los daba a todos por igual. Nadie
+# lo habría visto hasta que faltara media docena de aplicadores en campo.
+test_that("con dos matrices, se lee la hoja declarada FINAL y no el borrador", {
+  ruta <- withr::local_tempfile(fileext = ".xlsx")
+  cabecera <- function(extra = character(0)) {
+    list(
+      c("Nombres", extra, "Lunes", "Lunes"),
+      c("", rep("", length(extra)), "8:00-9:00am", "9:00-10:00am")
+    )
+  }
+  hoja <- function(filas) do.call(rbind, filas)
+
+  wb <- openxlsx::createWorkbook()
+  # El borrador: tres personas, una de ellas sin confirmar.
+  openxlsx::addWorksheet(wb, "Disponibilidad")
+  openxlsx::writeData(wb, "Disponibilidad", as.data.frame(hoja(c(
+    cabecera("CONFIRMÓ"),
+    list(c("Ana Uno", "SÍ", "1", "1"),
+         c("Beto Dos", "SÍ", "1", "0"),
+         c("Cira Tres", "NO", "1", "1"))
+  )), stringsAsFactors = FALSE), colNames = FALSE)
+  # La lista final: sólo dos, y sin la columna de confirmación.
+  openxlsx::addWorksheet(wb, "FINALES APLICADORES")
+  openxlsx::writeData(wb, "FINALES APLICADORES", as.data.frame(hoja(c(
+    cabecera(),
+    list(c("Ana Uno", "1", "1"),
+         c("Beto Dos", "1", "0"))
+  )), stringsAsFactors = FALSE), colNames = FALSE)
+  openxlsx::saveWorkbook(wb, ruta, overwrite = TRUE)
+
+  disp <- carga_disponibilidad_aplicadores(ruta)
+  expect_equal(length(disp), 2L)
+  expect_setequal(vapply(disp, function(p) p$nombre, character(1)),
+                  c("Ana Uno", "Beto Dos"))
+})
+
+test_that("sin hoja final declarada se sigue leyendo «Disponibilidad», como siempre", {
+  ruta <- withr::local_tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "Otra cosa")
+  openxlsx::writeData(wb, "Otra cosa", data.frame(x = "ruido"), colNames = FALSE)
+  openxlsx::addWorksheet(wb, "Disponibilidad")
+  openxlsx::writeData(wb, "Disponibilidad", as.data.frame(do.call(rbind, list(
+    c("Nombres", "Lunes", "Lunes"),
+    c("", "8:00-9:00am", "9:00-10:00am"),
+    c("Ana Uno", "1", "1")
+  )), stringsAsFactors = FALSE), colNames = FALSE)
+  openxlsx::saveWorkbook(wb, ruta, overwrite = TRUE)
+
+  disp <- carga_disponibilidad_aplicadores(ruta)
+  expect_equal(length(disp), 1L)
+  expect_equal(disp[[1]]$nombre, "Ana Uno")
+})

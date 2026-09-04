@@ -143,7 +143,24 @@ carga_disponibilidad_aplicadores <- function(path) {
              "No se encontro el excel de disponibilidad de aplicadores.")
   }
   hojas <- tryCatch(openxlsx::getSheetNames(path), error = function(e) character(0))
-  hoja <- if ("Disponibilidad" %in% hojas) "Disponibilidad" else if (length(hojas)) hojas[[1L]] else ""
+  # **La lista FINAL manda sobre el borrador.** El directorio del operativo
+  # llega con dos matrices: la hoja donde el equipo fue anotando a todo el que
+  # respondió, y la hoja de los que efectivamente van a aplicar. Leer la
+  # primera reparte trabajo entre gente que no va a venir: en HSVG 2026, el
+  # 2026-09-04, eran 31 nombres contra los 24 de la lista final —cuatro con el
+  # «CONFIRMÓ» en NO y tres que ya no figuraban—, y el reparto se los daba a
+  # todos por igual. Por eso una hoja cuyo nombre se declara final gana, y
+  # sólo si no la hay se cae a «Disponibilidad» y luego a la primera.
+  finales <- hojas[grepl("final", hojas, ignore.case = TRUE)]
+  hoja <- if (length(finales)) {
+    finales[[1L]]
+  } else if ("Disponibilidad" %in% hojas) {
+    "Disponibilidad"
+  } else if (length(hojas)) {
+    hojas[[1L]]
+  } else {
+    ""
+  }
   df <- if (nzchar(hoja)) {
     tryCatch(
       openxlsx::read.xlsx(path, sheet = hoja, colNames = FALSE,

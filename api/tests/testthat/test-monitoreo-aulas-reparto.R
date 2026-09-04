@@ -864,14 +864,31 @@ test_that("concentrado: la fijada siembra la jornada y el greedy la llena", {
   expect_identical(quien, c("Beto", "Beto"))
 })
 
-# **Concentrar no puede significar cargarle el día entero a una sola.**
+# **Lo que se reparte parejo son los VIAJES, no las aplicaciones sueltas.**
 #
-# Dictado 2026-09-04, mirando el lunes del operativo: «veo que le estás dando 4
+# Este test cambió de contrato el 2026-09-04, entre dos dictados del mismo día,
+# y conviene dejar los dos escritos porque el segundo sólo se entiende contra
+# el primero.
+#
+# Por la mañana, mirando el lunes del operativo: «veo que le estás dando 4
 # seguidas a una cuando tranquilamente le puedes dar 2 seguidas a dos personas;
 # hay que balancear bien equidad, sus horarios disponibles, la concentración es
-# el mismo día». La primera versión ponía «ya está ese día» delante de la carga
-# a secas, y quien entraba primero se quedaba con la jornada.
-test_that("la concentración no abre brecha: reparte parejo y cada quien en un día", {
+# el mismo día». Contra eso el motor pasó a acotar la preferencia con una banda
+# de equidad, y siete citas entre cuatro personas daban 2+2+2+1.
+#
+# Por la tarde, viendo el reparto completo: «necesito que hagas la distribución
+# para que todos tengan asignaciones el mismo día y no vengan en días
+# diferentes, o aunque sea por lo menos vengan por dos aplicaciones». Ese
+# 2+2+2+1 tiene un viaje de UNA sola aplicación, que es exactamente lo que la
+# segunda frase prohíbe; y sobre el operativo la banda producía cincuenta
+# viajes, dieciocho de ellos solitarios.
+#
+# Los dos dictados son el mismo criterio leído a distinta escala: nadie debe
+# hacerse el viaje al campus por una sola aula, y nadie debe acaparar el día
+# mientras otro se queda en cero. Se cumplen a la vez repartiendo VIAJES y
+# llenándolos hasta `MONITOREO_AULAS_MAX_POR_VIAJE`: siete entre cuatro son
+# 4+3, dos jornadas completas, y no 7+0+0+0 ni 2+2+2+1.
+test_that("los viajes se llenan hasta el tope y ninguno queda con una sola aplicación", {
   plan <- lapply(1:7, function(i) list(
     operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
     sample_status = "agendada", operational_status = "agendada",
@@ -885,9 +902,19 @@ test_that("la concentración no abre brecha: reparte parejo y cada quien en un d
   r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
   cargas <- sort(vapply(r$equidad, function(e) as.integer(e$asignadas), integer(1)),
                  decreasing = TRUE)
-  # Siete entre cuatro que pueden todo el día: 2+2+2+1, no 4+3+0+0 ni 7+0+0+0.
-  expect_equal(cargas, c(2L, 2L, 2L, 1L))
-  expect_lte(max(cargas) - min(cargas), 1L)
+  # Siete entre cuatro que pueden todo el día: dos viajes llenos, no siete
+  # sueltos ni un cuarto viaje por una sola aula.
+  expect_equal(cargas, c(4L, 3L, 0L, 0L))
+  # La regla que de verdad importa, dicha como regla y no como cifra: quien
+  # sale, sale por dos o más. Es la que hay que releer si mañana cambia el tope.
+  viajes <- list()
+  for (d in r$dias) for (a in d$asignaciones) {
+    k <- paste(a$aplicador, d$fecha, sep = "|")
+    viajes[[k]] <- (viajes[[k]] %||% 0L) + 1L
+  }
+  expect_true(all(unlist(viajes) >= 2L))
+  # Y nadie pasa del tope de la jornada.
+  expect_lte(max(unlist(viajes)), MONITOREO_AULAS_MAX_POR_VIAJE)
 })
 
 test_that("y aun así cada persona cae en UN solo día, que es de lo que va concentrar", {
@@ -1017,4 +1044,37 @@ test_that("al comodín SÍ se le avisa el solape: dos a la misma hora no las cub
   )
   avisos <- vapply(r$dias[[1]]$asignaciones, function(a) a$advertencia %||% "", character(1))
   expect_true("se_solapa" %in% avisos)
+})
+
+# **El viaje solitario se repara al final, no se ve durante el greedy.**
+#
+# Dictado 2026-09-04: «que todos tengan asignaciones el mismo día y no vengan
+# en días diferentes, o aunque sea por lo menos vengan por dos aplicaciones».
+# El greedy reparte cita a cita y no puede saber que la última que reparte va a
+# dejar a alguien viniendo al campus por una sola aula; eso sólo se ve con el
+# día entero repartido, y por eso hay una tercera pasada.
+test_that("una persona que quedó con UNA sola aplicación se lleva una segunda del mismo día", {
+  # Cinco citas seguidas y dos personas que pueden todo el día. El greedy llena
+  # a la primera hasta el tope de cuatro y la quinta abre a la segunda persona,
+  # que se quedaría viniendo por una sola. La tercera pasada le TRAE una de las
+  # cuatro, que es lo que evita el viaje inútil sin dejar corta a nadie.
+  plan <- lapply(1:5, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_status = "agendada", operational_status = "agendada",
+    scheduled_date = "2026-09-07",
+    scheduled_time = sprintf("%02d:00", 8 + 2 * (i - 1))
+  ))
+  disp <- lapply(c("Ana Uno", "Beto Dos"), function(n) list(
+    nombre = n, dias = list(lunes = list(list(inicio = "06:00", fin = "23:00")))
+  ))
+  r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
+  viajes <- list()
+  for (d in r$dias) for (a in d$asignaciones) {
+    k <- paste(a$aplicador, d$fecha, sep = "|")
+    viajes[[k]] <- (viajes[[k]] %||% 0L) + 1L
+  }
+  expect_equal(length(viajes), 2L)
+  expect_equal(sort(unlist(viajes, use.names = FALSE)), c(2L, 3L))
+  # Las cinco siguen repartidas: reparar no pierde ni duplica una cita.
+  expect_equal(sum(unlist(viajes, use.names = FALSE)), 5L)
 })

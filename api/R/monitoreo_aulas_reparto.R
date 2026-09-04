@@ -78,6 +78,23 @@
 # le avisa: dos citas a la misma hora no las cubre nadie, ni Pulso.
 MONITOREO_AULAS_INTERNO_PULSO <- "INTERNO PULSO"
 
+#' Cuántas aplicaciones caben en un viaje al campus.
+#'
+#' Dictado de Gonzalo (2026-09-04): «que todos tengan asignaciones el mismo día
+#' y no vengan en días diferentes, o aunque sea por lo menos vengan por dos
+#' aplicaciones». Con la agenda de HSVG 2026 —86 citas pactadas y 24
+#' aplicadores en la lista final— el promedio por persona es 3,6: si cada
+#' quien LLENA un viaje de hasta cuatro, el equipo entero cabe en un día cada
+#' uno; si se reparte de a una, salen cincuenta viajes.
+#'
+#' Cuatro y no más porque una aplicación ocupa media hora de recojo más la
+#' aplicación: cuatro ya son una jornada entera con sus traslados.
+#'
+#' Es un tope BLANDO: quien llegó a cuatro deja de ser el preferido, pero si es
+#' el único que cubre una cita se la lleva —antes que dejarla sin aplicador.
+#' @keywords internal
+MONITOREO_AULAS_MAX_POR_VIAJE <- 4L
+
 .marep_oferta <- function(disponibilidad) {
   oferta <- list()
   for (a in (disponibilidad %||% list())) {
@@ -390,7 +407,26 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     } else {
       rep(0L, length(candidatos))
     }
-    prefiere <- mismo_dia > 0L & carga_de <= min(carga_de) + 1
+    # **La banda de equidad se retiró el 2026-09-04, medida contra el operativo.**
+    #
+    # Acotar la preferencia a «no más de una por encima del menos cargado»
+    # repartía en horizontal: con 24 aplicadores y 86 aplicaciones el greedy
+    # dejaba a casi todo el mundo en cuatro, y como cada cuatro caían en días
+    # distintos salían 50 viajes, 18 de ellos por UNA sola aplicación, y sólo
+    # tres personas venían un único día. Eso es justo lo que su dictado vino a
+    # prohibir: «que todos tengan asignaciones el mismo día y no vengan en días
+    # diferentes, o aunque sea por lo menos vengan por dos aplicaciones».
+    #
+    # Con la cuenta en la mano la equidad y la concentración dejan de pelearse:
+    # 86 entre 24 son 3,6 por persona, así que si cada quien LLENA un viaje de
+    # hasta cuatro, el equipo entero cabe en un día cada uno. Lo que se reparte
+    # parejo son los VIAJES, no las aplicaciones sueltas; quien ya está en el
+    # campus sigue trabajando hasta el tope y el siguiente día lo abre gente
+    # que no ha salido nunca.
+    #
+    # El tope es blando: quien ya llegó a cuatro deja de ser preferido, pero si
+    # es el único que puede cubrir esa cita se la lleva igual.
+    prefiere <- mismo_dia > 0L & mismo_dia < MONITOREO_AULAS_MAX_POR_VIAJE
     # **Y a igual carga, quien menos días lleva.**
     #
     # Sin esta clave el desempate caía en el alfabeto, así que una cita del
@@ -407,9 +443,21 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     } else {
       rep(0L, length(candidatos))
     }
+    # El orden, y por qué cada clave está donde está:
+    #   1. quien ya está ese día y no llegó al tope — ahorra el viaje;
+    #   2. entre ellos, el que MÁS lleva ese día — se llena una jornada antes
+    #      de abrir otra;
+    #   3. si hay que reclutar, primero quien NO ha salido ningún día;
+    #   4. después la carga acumulada, y al final el desempate de siempre.
+    # `mismo_dia` sólo ordena DENTRO del grupo preferido: fuera de él sigue
+    # valiendo cero, o quien ya pasó el tope volvería a encabezar la lista por
+    # llevar más — el bug que puso siete aplicaciones en una persona con el
+    # tope en cuatro.
+    llenado <- ifelse(prefiere, mismo_dia, 0L)
     elegido <- candidatos[order(-prefiere,
-                                carga_de,
+                                -llenado,
                                 dias_ya,
+                                carga_de,
                                 match(candidatos, prioridad),
                                 method = "radix")][[1L]]
     if (is.null(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]])) {
@@ -417,6 +465,190 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     }
     carga[[elegido]] <- carga[[elegido]] + 1L
     anotar_asignacion(cita, elegido, fijada = FALSE)
+  }
+
+  # TERCERA pasada — el reparo de VIAJES. Dictado de Gonzalo (2026-09-04):
+  # «necesito que hagas la distribución para que todos tengan asignaciones el
+  # mismo día y no vengan en días diferentes, o aunque sea por lo menos vengan
+  # por dos aplicaciones».
+  #
+  # El greedy reparte cita a cita y no puede ver lo que va dejando atrás: una
+  # persona con UNA sola aplicación en una fecha hizo el viaje al campus por
+  # cuarenta minutos de trabajo, y una segunda fecha para quien ya vino es casi
+  # siempre un viaje que podía absorber alguien que ya estaba ahí. Las dos
+  # cosas sólo se ven con el día entero repartido, así que se arreglan al final
+  # y moviendo asignaciones ENTRE PERSONAS: la fecha y la hora de una cita no
+  # se negocian, sólo quién la cubre.
+  #
+  # Dos movimientos, y cuál se intenta primero depende de si esa fecha es el
+  # ÚNICO día de esa persona:
+  #
+  # - si es su único día, se intenta TRAER una segunda aplicación de ese mismo
+  #   día, de alguien que quede con dos o más: sube a dos sin dejar a nadie
+  #   corto y sin que el equipo pierda una persona;
+  # - si además viene otro día, se intenta LLEVARSE la aplicación a alguien que
+  #   ya está ese día: eso ahorra el viaje entero, que es lo que él pidió.
+  #
+  # Invariante de equidad, para no reabrir el 4-contra-0 que él vio esa misma
+  # mañana: **ningún movimiento sube el techo.** Sólo se acepta si quien recibe
+  # queda con una carga que no supera la mayor que ya existía. Si el equipo
+  # entero está en el techo, el viaje solitario se queda como está y viaja
+  # declarado, que es preferible a mentir sobre la equidad.
+  #
+  # Las FIJADAS no se tocan, ni como origen ni como destino: son su voluntad,
+  # no una sugerencia del motor.
+  if (concentrado && length(asignaciones)) {
+    # Mover una asignación exige su ventana OCUPADA (recojo→fin), que vive en
+    # la cita y no en el item del payload.
+    cita_de <- list()
+    for (cita in citas) cita_de[[cita$codigo]] <- cita
+
+    # El estado derivado se recalcula entero después de cada movimiento: con
+    # ochenta y cinco asignaciones cuesta nada y evita la clase de bug que
+    # aparece cuando un índice incremental se desincroniza de la lista.
+    recontar <- function() {
+      ocup <- list()
+      crg <- carga
+      if (length(crg)) crg[] <- 0L
+      dias <- list()
+      for (fecha in names(asignaciones)) {
+        for (item in asignaciones[[fecha]]) {
+          nm <- item$aplicador
+          c0 <- cita_de[[item$codigo]]
+          if (is.null(c0)) next
+          clave <- paste(nm, fecha, sep = "\r")
+          if (is.null(ocup[[clave]])) {
+            dias[[nm]] <- as.integer(dias[[nm]] %||% 0L) + 1L
+          }
+          ocup[[clave]] <- c(ocup[[clave]], list(c(c0$ini_ocupado, c0$fin)))
+          if (!nm %in% names(crg)) crg <- c(crg, stats::setNames(0L, nm))
+          crg[[nm]] <- crg[[nm]] + 1L
+        }
+      }
+      list(ocupadas = ocup, carga = crg, dias = dias)
+    }
+
+    # Mismo criterio de candidatura que el greedy: cubrir recojo→fin ese día de
+    # semana y no solapar con lo que ya tiene esa fecha.
+    puede <- function(nm, fecha, c0, ocup) {
+      dia_token <- .mav_dia_token(fecha)
+      dia_clave <- if (nzchar(dia_token)) .marep_DIA_CLAVE[[dia_token]] else ""
+      nzchar(dia_clave) &&
+        .marep_cubre(oferta[[nm]][[dia_clave]], c0$ini_ocupado, c0$fin) &&
+        !.marep_solapa(ocup[[paste(nm, fecha, sep = "\r")]], c0$ini_ocupado, c0$fin)
+    }
+
+    mover <- function(codigo, fecha, de, a) {
+      items <- asignaciones[[fecha]]
+      for (k in seq_along(items)) {
+        if (identical(items[[k]]$codigo, codigo) &&
+            identical(items[[k]]$aplicador, de)) {
+          items[[k]]$aplicador <- a
+          break
+        }
+      }
+      asignaciones[[fecha]] <<- items
+    }
+
+    n_ese_dia <- function(st, nm, fecha) {
+      length(st$ocupadas[[paste(nm, fecha, sep = "\r")]] %||% list())
+    }
+
+    # Un movimiento por vuelta y a recontar: el tope es generoso porque cada
+    # vuelta que mueve algo reduce en uno los solitarios, y la vuelta que no
+    # mueve nada corta el bucle.
+    for (vuelta in seq_len(length(citas) + 5L)) {
+      st <- recontar()
+      # El tope de la tercera pasada es el MISMO del greedy: llenar el viaje
+      # de quien ya está ahí. Antes era `max(carga)` y con el equipo entero
+      # pegado al techo no dejaba mover nada — 18 viajes solitarios seguían
+      # en pie después de la pasada.
+      techo <- MONITOREO_AULAS_MAX_POR_VIAJE
+      solitarios <- list()
+      for (fecha in names(asignaciones)) {
+        por_nombre <- list()
+        for (item in asignaciones[[fecha]]) {
+          por_nombre[[item$aplicador]] <- c(por_nombre[[item$aplicador]], list(item))
+        }
+        for (nm in names(por_nombre)) {
+          if (length(por_nombre[[nm]]) != 1L) next
+          it <- por_nombre[[nm]][[1L]]
+          if (isTRUE(it$fijada)) next
+          solitarios[[length(solitarios) + 1L]] <- list(
+            nombre = nm, fecha = fecha, codigo = it$codigo
+          )
+        }
+      }
+      if (!length(solitarios)) break
+      solitarios <- solitarios[order(
+        vapply(solitarios, function(x) x$fecha, character(1)),
+        vapply(solitarios, function(x) x$nombre, character(1)),
+        method = "radix"
+      )]
+
+      movio <- FALSE
+      for (s in solitarios) {
+        c0 <- cita_de[[s$codigo]]
+        if (is.null(c0)) next
+        unico_dia <- as.integer(st$dias[[s$nombre]] %||% 0L) <= 1L
+
+        # **Los dos movimientos se intentan SIEMPRE; lo que cambia es el orden.**
+        #
+        # Si esa fecha es su único día, primero TRAER: sube a dos sin que el
+        # equipo pierda una persona. Si además viene otro día, primero
+        # LLEVARSE, que ahorra el viaje entero.
+        #
+        # Pero si el primero falla, el segundo se intenta igual. La versión que
+        # sólo traía cuando era su único día dejaba once viajes solitarios en el
+        # operativo: gente con dos fechas cuya aplicación no podía ir a nadie
+        # —a esa hora los demás estaban ocupados o fuera de su horario— y a la
+        # que, ya que el viaje iba a ocurrir de todos modos, nadie le acercaba
+        # una segunda aula que sí encajaba.
+        traer <- function() {
+          if (n_ese_dia(st, s$nombre, s$fecha) + 1L > techo) return(FALSE)
+          for (item in asignaciones[[s$fecha]]) {
+            q <- item$aplicador
+            if (identical(q, s$nombre) || isTRUE(item$fijada)) next
+            # Quien cede debe quedarse con dos: cederlo estando en dos sólo
+            # mueve el viaje solitario de sitio.
+            if (n_ese_dia(st, q, s$fecha) < 3L) next
+            c1 <- cita_de[[item$codigo]]
+            if (is.null(c1) || !puede(s$nombre, s$fecha, c1, st$ocupadas)) next
+            mover(item$codigo, s$fecha, q, s$nombre)
+            return(TRUE)
+          }
+          FALSE
+        }
+
+        # LLEVARSE — a quien ya está ese día, empezando por el menos cargado.
+        llevarse <- function() {
+          destinos <- nombres[vapply(nombres, function(q) {
+            !identical(q, s$nombre) &&
+              n_ese_dia(st, q, s$fecha) >= 1L &&
+              q %in% names(st$carga) &&
+              n_ese_dia(st, q, s$fecha) + 1L <= techo &&
+              puede(q, s$fecha, c0, st$ocupadas)
+          }, logical(1))]
+          if (!length(destinos)) return(FALSE)
+          orden_destino <- order(
+            vapply(destinos, function(q) st$carga[[q]], numeric(1)),
+            match(destinos, prioridad),
+            method = "radix"
+          )
+          mover(s$codigo, s$fecha, s$nombre, destinos[orden_destino][[1L]])
+          TRUE
+        }
+
+        movio <- if (unico_dia) (traer() || llevarse()) else (llevarse() || traer())
+        if (movio) break
+      }
+      if (!movio) break
+    }
+
+    st <- recontar()
+    carga <- st$carga
+    ocupadas <- st$ocupadas
+    dias_por <- st$dias
   }
 
   fechas <- sort(unique(c(
