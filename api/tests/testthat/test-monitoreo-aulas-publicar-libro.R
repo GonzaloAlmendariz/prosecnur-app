@@ -482,3 +482,68 @@ test_that("B68: sin disponibilidad la hoja NO juega — ni se crea ni se toca un
     "contenido previo"
   )
 })
+
+# ── La disponibilidad del equipo, publicada ──────────────────────────────────
+#
+# Dictado 2026-09-04: «el Sheets debería tener una forma muy elegante de poder
+# mostrar la disponibilidad de cada encuestador en una hoja, para que el equipo
+# de campo también pueda saber cuándo o a quién reclutar y no dependa
+# enteramente de mí». Hermana de la de asignación: hoja de la APP y condicional
+# a que la sesión tenga oferta cargada.
+
+test_that("con disponibilidad, su hoja se publica y las del equipo siguen intactas", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Aulas Agendadas", list(list("ID MATCH"), list("algo del equipo")))
+  mock$seed("Aulas Aplicadas (Campo)", list(list("x"), list("y"), list("tecleado")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes(),
+    disponibilidad = .mapl_disponibilidad(),
+    config_reparto = list(duracion_aplicacion_min = 30L)
+  )
+
+  expect_identical(.mapl_accion(res, "Disponibilidad de aplicadores"), "sembrada")
+  # La regla de dueño no se mueve por añadir una hoja de la app.
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
+
+  vals <- mock$env$sheets[["Disponibilidad de aplicadores"]]$values
+  texto <- paste(unlist(vals), collapse = " | ")
+  expect_match(texto, "DISPONIBILIDAD DE APLICADORES")
+  # Las dos preguntas que la hoja existe para contestar.
+  expect_match(texto, "QUIÉNES PUEDEN")
+  expect_match(texto, "QUÉ CUBRE CADA APLICADOR")
+  expect_match(texto, "Ana Prueba")
+})
+
+test_that("sin disponibilidad la hoja NO juega — ni se crea ni se toca una remota previa", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Disponibilidad de aplicadores",
+            list(list("DISPONIBILIDAD DE APLICADORES"), list("contenido previo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  hojas <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  expect_false("Disponibilidad de aplicadores" %in% hojas)
+  expect_identical(
+    mock$env$sheets[["Disponibilidad de aplicadores"]]$values[[2]][[1]],
+    "contenido previo"
+  )
+})
+
+test_that("la pestaña está en la whitelist controlada, o la publicación reventaría", {
+  # `.monitoreo_sheets_validate_controlled_tabs()` frena escrituras ad hoc sobre
+  # pestañas del usuario; una hoja nueva que no se declare aquí no se publica,
+  # revienta con E_GOOGLE_SHEETS.
+  expect_true("Disponibilidad de aplicadores" %in% monitoreo_sheets_pestanas_controladas())
+})

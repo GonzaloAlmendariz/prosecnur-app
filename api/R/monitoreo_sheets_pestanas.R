@@ -166,6 +166,9 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # reparto de aplicadores, condicional a que la sesión tenga
     # disponibilidad. App-owned, regenerada entera; sin lector.
     "Asignación de aplicadores",
+    # Dictado 2026-09-04: la quinta de la app — la disponibilidad del equipo,
+    # para que campo sepa a quién llamar sin preguntarle al lead.
+    "Disponibilidad de aplicadores",
     "Listas"
   )
 
