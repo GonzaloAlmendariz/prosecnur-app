@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { altoDeclarado, fuenteDeCifraEnBarra, fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_ACUMULADO, COLOR_RESULTADO, tintaSobre } from "../../coloresDeResultado";
+import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
 import { fmt } from "./kpisDeAulas";
+import "./aulasCoberturaChart.css";
 
 /**
  * Cuántos cursos-horario hay en cada nivel de cobertura.
@@ -27,12 +26,10 @@ import { fmt } from "./kpisDeAulas";
  * cambiar, pero cambia para todo el grupo. Aqui el grupo se deshace, y con el la
  * razon de ser del alto grande.
  */
-const ALTO_COMPACTO = 820;
 /* El alto amplio lo declara la hoja (`--aulas-cobertura-alto`), porque el tope
    de la lista de facultades se deriva de el y no puede haber dos copias. El 360
    es solo el respaldo. El compacto no participa de la pareja —a esa altura se
    apila— asi que se queda aqui. */
-const ALTO_COMPACTO_DEL_GRAFICO = 220;
 
 export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, reservaMotor = 0, dormidasMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -59,19 +56,6 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, reservaMotor
    */
   dormidasMotor?: number;
 }) {
-  // Se mide una vez y se escucha el cambio: el usuario redimensiona y el grafico
-  // tiene que encogerse con la ventana, no en la siguiente carga.
-  const [compacto, setCompacto] = useState(
-    () => typeof window !== "undefined" && window.innerHeight <= ALTO_COMPACTO,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-height: ${ALTO_COMPACTO}px)`);
-    const alCambiar = () => setCompacto(mq.matches);
-    alCambiar();
-    mq.addEventListener("change", alCambiar);
-    return () => mq.removeEventListener("change", alCambiar);
-  }, []);
-
   const { tramos, sinMeta, total } = useMemo(() => {
     // El reparto del MOTOR primero, por la misma razón que el de estado: la
     // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
@@ -115,66 +99,36 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, reservaMotor
     );
   }
 
-  const rellenos = tramos.map((t) => COLOR_RESULTADO[t.tono]).reverse();
-
-  const data = [{
-    type: "bar",
-    orientation: "h",
-    // De «meta cumplida» arriba a «sin respuestas» abajo: se lee de mejor a
-    // peor, y lo que exige acción queda al pie, que es donde cae la vista.
-    y: tramos.map((t) => t.etiqueta).reverse(),
-    x: tramos.map((t) => t.aulas).reverse(),
-    marker: { color: rellenos },
-    // `String()` dejaba «1355» a dos centimetros del «1,259» del panel de al
-    // lado: el mismo numero en dos formatos. Va por el formateador de la casa.
-    // **El cero SÍ se escribe aquí**, y no es una contradicción con el gráfico
-    // de acumulado, donde se omite a propósito. Allí el cero es un DÉFICIT
-    // cubierto —buena noticia— y su etiqueta compite con las celdas que sí
-    // piden algo. Aquí es cuántos cursos-horario cayeron en esa banda de
-    // cobertura: que sean cero describe la forma del reparto, y sin número la
-    // fila queda con su etiqueta al lado de nada, que se lee como un hueco de
-    // renderizado. Medido en pantalla: «Muy por debajo (menos de la mitad)»
-    // aparecía sin barra y sin cifra entre cuatro filas que sí las tenían.
-    text: tramos.map((t) => fmt(t.aulas)).reverse(),
-    // «auto» deja que Plotly saque la cifra fuera cuando la barra es corta, y
-    // ahi el fondo es el papel, no el relleno. Por eso las dos tintas se
-    // declaran por separado en vez de forzar una sola.
-    // Un `auto` sobre una barra de ancho CERO no pinta nada: Plotly no tiene
-    // dónde meter el texto dentro y no lo saca fuera por su cuenta. Comprobado
-    // en pantalla — con el cero ya escrito, la fila seguía apareciendo vacía—.
-    // Se le dice punto a punto: fuera cuando la barra no existe.
-    textposition: tramos.map((t) => (t.aulas ? "auto" : "outside")).reverse(),
-    cliponaxis: false,
-    insidetextfont: fuenteDeCifraEnBarra(rellenos.map(tintaSobre)),
-    outsidetextfont: fuenteDeCifraEnBarra(COLOR_ACUMULADO),
-    hovertemplate: "%{y}: %{x} cursos-horario<extra></extra>",
-  }];
+  // E22 — **barras CSS y no Plotly**, con el criterio del dictado del chart
+  // de sexo: sin crosshair ni drag muerto, la etiqueta y la cifra como texto
+  // real, el color del tramo como dato en línea. El orden en pantalla es el
+  // MISMO que dibujaba el Plotly (peor arriba: «sin respuestas» encabeza,
+  // que es lo que exige acción). El cero SÍ se escribe —describe la forma
+  // del reparto— pero susurra (E10). Y muere la lógica de altura compacta:
+  // cinco filas CSS se autodimensionan donde el Plotly pedía 360px fijos.
+  const max = Math.max(1, ...tramos.map((t) => t.aulas));
+  const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
 
   return (
-    // El envoltorio reserva el alto: el panel es un grid y el div que Plotly
-    // monta no empuja su fila, así que sin esto el panel medía 26 px —sólo su
-    // cabecera— y el gráfico se dibujaba encima de la tabla de abajo.
-    // C1: quién posee el espacio interior del panel. Sin declararlo, el gate
-    // cae a la cabecera como dueña y reporta sus 4-5 px de holgura como
-    // `capacity-drift`, que es un diagnóstico sobre el sitio equivocado: el
-    // panel sólo tiene 1 px libre abajo y el hueco está dentro del head.
-    <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-      <PlotlyChart
-        data={data}
-        // Plotly no crece con su fila: el alto va en la prop, no en el CSS.
-        height={compacto ? ALTO_COMPACTO_DEL_GRAFICO : altoDeclarado("--aulas-cobertura-alto", 360)}
-        ariaLabel="Cursos-horario por nivel de cobertura de su meta"
-        layout={{
-          // La escala de eje del perfil, no el default compartido de Plotly.
-          font: fuenteDeEjeAulas(),
-          margin: { l: 110, r: 16, t: 8, b: 28 },
-          xaxis: { title: { text: "cursos-horario" }, zeroline: false, fixedrange: true },
-          yaxis: { automargin: true, fixedrange: true },
-          showlegend: false,
-          bargap: 0.28,
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-      />
+    // C1: quién posee el espacio interior del panel (ver AulasEstadoChart).
+    <div className="aulas-cobertura-chart aulas-cobertura-css" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      <ul
+        className="aulas-cobertura-filas"
+        role="img"
+        aria-label={`Cursos-horario por nivel de cobertura de su meta: ${detalle}`}
+      >
+        {tramos.map((t) => (
+          <li key={t.clave}>
+            <span className="aulas-cobertura-etiqueta" title={t.etiqueta}>{t.etiqueta}</span>
+            <span className="aulas-cobertura-pista">
+              {t.aulas > 0 && (
+                <i style={{ width: `${(100 * t.aulas) / max}%`, background: COLOR_RESULTADO[t.tono] }} />
+              )}
+            </span>
+            <span className={`aulas-cobertura-n${t.aulas ? "" : " es-cero"}`}>{fmt(t.aulas)}</span>
+          </li>
+        ))}
+      </ul>
       {sinMeta || reservaMotor || dormidasMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.
