@@ -513,6 +513,54 @@ export async function apiRecopiladoresMaterialInstances(input: {
   } as CollectionMaterialInstancesPayload;
 }
 
+export type CollectionDrivePublicacion = {
+  driveFileId: string;
+  webViewLink: string;
+  folderId: string;
+  folderName: string;
+  filename: string;
+  receiptId: string;
+};
+
+/**
+ * B6(b): la respuesta de `materials/drive`, normalizada en la frontera. El
+ * enlace es lo que el equipo abre: sin él (o con un esquema que no sea el de
+ * Drive) es error de contrato, no un href hueco en la pantalla.
+ */
+export function normalizarDrivePublicacion(raw: unknown): CollectionDrivePublicacion {
+  if (!isRecord(raw)) throw contractError("materials/drive no es un objeto.");
+  const driveFileId = typeof raw.drive_file_id === "string" ? raw.drive_file_id : "";
+  const webViewLink = typeof raw.web_view_link === "string" ? raw.web_view_link : "";
+  if (!driveFileId) throw contractError("materials/drive no trae drive_file_id.");
+  if (!/^https:\/\/drive\.google\.com\//.test(webViewLink)) {
+    throw contractError("materials/drive no trae un enlace de Drive utilizable.");
+  }
+  return {
+    driveFileId,
+    webViewLink,
+    folderId: typeof raw.folder_id === "string" ? raw.folder_id : "",
+    folderName: typeof raw.folder_name === "string" ? raw.folder_name : "",
+    filename: typeof raw.filename === "string" ? raw.filename : "",
+    receiptId: typeof raw.receipt_id === "string" ? raw.receipt_id : "",
+  };
+}
+
+/**
+ * Sube al Drive del operativo un artefacto YA renderizado (por el file_id de
+ * su recibo). Escritura de estado: la carpeta destino queda recordada y la
+ * publicación anotada, así que viaja `expected_revision` como toda escritura.
+ */
+export async function apiRecopiladoresMaterialDrive(input: {
+  file_id: string;
+  expected_revision: number;
+}) {
+  const raw = await handle<unknown>(await apiFetch(
+    "/api/recopiladores/materials/drive",
+    json("POST", input),
+  ));
+  return normalizarDrivePublicacion(raw);
+}
+
 /**
  * Ficha suelta con un identificador inventado —`PRUEBA_2026`, `CAPACITACION`,
  * `prueba_interna`— y el MISMO enlace del operativo.

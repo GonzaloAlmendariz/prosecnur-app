@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las dieciseis rutas V1", {
+test_that("router de Recopiladores declara exactamente las diecisiete rutas V1", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -21,6 +21,10 @@ test_that("router de Recopiladores declara exactamente las dieciseis rutas V1", 
     "/api/recopiladores/material-template",
     "/api/recopiladores/materials/instances",
     "/api/recopiladores/materials/render",
+    # B6(b): subir al Drive del operativo un artefacto YA renderizado, por su
+    # file_id del recibo. Escritura de estado (carpeta recordada + publicacion
+    # anotada): exige expected_revision como el resto.
+    "/api/recopiladores/materials/drive",
     # Ficha suelta con un colector inventado (`PRUEBA_2026`, `CAPACITACION`)
     # para escanear antes de imprimir el lote y para la capacitacion. No
     # persiste nada: entrar al plan moveria el conteo de unidades y el handoff.
