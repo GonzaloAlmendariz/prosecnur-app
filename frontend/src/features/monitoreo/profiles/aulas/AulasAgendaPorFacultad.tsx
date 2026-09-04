@@ -98,9 +98,15 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
                     {/* Una reserva se ve como reserva. Iba suelta entre los
                         titulares de su facultad —un `R 21.1` junto a un `CH 21`—
                         y su relación había que adivinarla por el número. */}
+                    {/* La relación en SU palabra (dictado 2026-09-03): un R
+                        con titular caído reemplaza; con titular vivo
+                        COMPLEMENTA — ambos suman —; sin titular es un
+                        refuerzo operativo, con nomenclatura propia. */}
                     {a.esReserva ? (
                       <em className="aulas-ruta-reserva">
-                        {a.titular ? `reemplaza a ${a.titular}` : "reserva"}
+                        {a.relacion === "refuerzo"
+                          ? "refuerzo"
+                          : `${a.relacion} a ${a.titular}`}
                       </em>
                     ) : null}
                   </span>
