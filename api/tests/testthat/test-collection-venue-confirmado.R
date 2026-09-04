@@ -153,9 +153,12 @@ test_that("el título de la ficha no contradice al aula confirmada", {
 
   expect_identical(contexto$venue, "A206")
   expect_false(grepl("N502", contexto$codigo_ficha, fixed = TRUE))
-  # Lo que identifica la ficha sobrevive: su código y su horario.
+  # El título quedó en código + PABELLÓN por la poda del 2026-09-03 («¿cuál es
+  # la razón por la cual debajo del QR está el horario del curso?»), así que
+  # la contradicción se resuelve sola: el aula del título ES la confirmada.
   expect_match(contexto$codigo_ficha, "CH 141", fixed = TRUE)
-  expect_match(contexto$codigo_ficha, "VIE 10:00-13:00", fixed = TRUE)
+  expect_match(contexto$codigo_ficha, "A206", fixed = TRUE)
+  expect_false(grepl("VIE", contexto$codigo_ficha, fixed = TRUE))
 })
 
 test_that("sin confirmación el título conserva el aula del catálogo", {

@@ -18,7 +18,7 @@ import {
  * otra, el papel y la pantalla señalan edificios distintos y nadie avisa.
  */
 describe("la tabla de pabellones del croquis", () => {
-  it("trae las 21 letras del campus, con Y declarada como derivada", () => {
+  it("trae las 22 letras del campus, con la Y corregida por su place real", () => {
     const letras = PABELLONES_CAMPUS.map((p) => p.letra);
     expect(letras).toHaveLength(22);
     for (const l of ["A", "D", "E", "G", "H", "I", "J", "L", "M", "N", "O", "P", "Q", "R", "V", "X", "Y", "Z"]) {
@@ -26,10 +26,13 @@ describe("la tabla de pabellones del croquis", () => {
     }
     // K entro por el barrido de Google Maps (Sec. Mecatronica) y lo dice.
     expect(PABELLONES_CAMPUS.find((p) => p.letra === "K")?.fuente).toBe("google");
-    const y = PABELLONES_CAMPUS.find((p) => p.letra === "Y");
-    // Y no tiene marcador propio en ninguna fuente: su posición es un
-    // centroide de vecinos y el dato lo DICE, igual que en el motor R.
-    expect(y?.fuente).toBe("derivada");
+    // La Y era la única DERIVADA (centroide de tres marcadores vecinos de
+    // Arte) y el censo por Google Maps del 2026-09-03 la encontró a 63 m de su
+    // place real «Facultad de Arte y Diseño - PUCP», con todas las demás
+    // letras cayendo a ≤26 m entre fuentes. 63 m manda al aplicador a otro
+    // edificio: la Y pasó al place y ya no queda ninguna posición derivada.
+    expect(PABELLONES_CAMPUS.find((p) => p.letra === "Y")?.fuente).toBe("google");
+    expect(PABELLONES_CAMPUS.filter((p) => p.fuente === "derivada")).toHaveLength(0);
   });
 
   it("la proyección está girada 180 grados: sur arriba, este a la izquierda", () => {

@@ -76,13 +76,12 @@ test_that("la ficha pide lo observable y ya no pide lo que el aplicador no puede
   # quiere el denominador por sexo, vuelve CON su campo, no antes.
   expect_false(any(grepl("hombres|mujeres", labels, ignore.case = TRUE)))
 
-  # «Efectivas» sigue impresa —el equipo la buscaría— pero como NOTA, no como
-  # casilla: tiene `note` y no tiene binding ni raya que invite a rellenarla.
-  efectivas <- .cfo_campo(rows, "efectivas")
-  expect_false(is.null(efectivas))
-  expect_true(nzchar(as.character(efectivas$note %||% "")))
-  expect_match(efectivas$note, "sistema", ignore.case = TRUE)
-  expect_null(efectivas$binding)
+  # «Efectivas» ya no aparece NI como nota: la poda de Gonzalo (2026-09-03)
+  # cerró la puerta que había quedado entreabierta —«si las calcula el
+  # sistema, ¿qué necesidad hay de que esté allí?»—. El contrato del campo
+  # conserva `note` porque es útil, pero esta hoja ya no lo usa; su prueba
+  # viva es la del render, más abajo.
+  expect_null(.cfo_campo(rows, "efectivas"))
 })
 
 test_that("el contrato del campo acepta `note` y la plantilla sigue validando", {
@@ -150,4 +149,89 @@ test_that("un campo con nota se imprime como texto y NO dibuja raya para escribi
   ))))
   expect_gt(con_raya, 200L)
   expect_lt(con_nota, con_raya / 3)
+})
+
+# --- Poda de Gonzalo (2026-09-03, segunda vuelta) ---
+#
+# «¿Cuál es la razón por la cual debajo del QR, el título, que es como lo más
+# importante, está el horario del curso? No me parece que tenga demasiado
+# sentido» · «el título debajo del QR debería tener simplemente el código y el
+# pabellón. El pabellón CONFIRMADO, porque hay una columna del sheets que
+# confirma cuál es; sobre todo cuando hay dos pabellones a la vez, lo que hace
+# el agendador es definirte finalmente a cuál se tiene que ir» · «si las
+# calcula el sistema, ¿qué necesidad hay de que esté allí? No tiene sentido»
+# · «si son seis ítems pueden ir tres y tres, de paso ocupan un poquito menos
+# de alto y el QR se puede ver un poquito más grande».
+
+test_that("el título bajo el QR es el código y el pabellón, no el horario", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_plan", list(list(
+    selection_run_id = "sel-t", operational_code = "CH 141", classroom_id = "CH 141",
+    label = "VIE 10:00-13:00 N502", wave = "M1", faculty = "Comunicaciones",
+    pabellon_aula = "N502", scheduled_venue = "A206",
+    link = "https://kf.kobotoolbox.org/x/a?d%5BcollectorID%5D=CH141"
+  )))
+  unit <- collection_state_seed(sid)$plan$units[[1]]
+  titulo <- prosecnurapp:::.crf_unit_context(unit)$codigo_ficha
+
+  # Lo que identifica la hoja en el aula: qué curso-horario es y a qué
+  # pabellón ir. El horario del curso ya vive en su propio campo.
+  expect_match(titulo, "CH 141", fixed = TRUE)
+  expect_match(titulo, "A206", fixed = TRUE)
+  expect_false(grepl("10:00", titulo, fixed = TRUE))
+  expect_false(grepl("VIE", titulo, fixed = TRUE))
+  expect_false(grepl("N502", titulo, fixed = TRUE))
+})
+
+test_that("sin aula el título es solo el código, sin muletillas", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_plan", list(list(
+    selection_run_id = "sel-t2", operational_code = "R 7.2", classroom_id = "R 7.2",
+    label = "LUN 08:00-10:00", wave = "M1", faculty = "Derecho",
+    link = "https://kf.kobotoolbox.org/x/a?d%5BcollectorID%5D=R72"
+  )))
+  unit <- collection_state_seed(sid)$plan$units[[1]]
+  expect_identical(prosecnurapp:::.crf_unit_context(unit)$codigo_ficha, "R 7.2")
+})
+
+test_that("la ficha ya no menciona «Efectivas» en ninguna forma", {
+  # Si la calcula el sistema, no ocupa sitio en el papel — ni como casilla ni
+  # como leyenda.
+  rows <- collection_material_field_form_rows()
+  labels <- .cfo_labels(rows)
+  notas <- unlist(lapply(rows, function(r) {
+    vapply(r$fields %||% list(), function(c) as.character(c$note %||% ""), character(1))
+  }))
+  expect_false(any(grepl("efectiv", labels, ignore.case = TRUE)))
+  expect_false(any(grepl("efectiv|sistema", notas, ignore.case = TRUE)))
+
+  # Los cuatro conteos observables siguen, y son los únicos.
+  for (esperado in c("alumnos en aula", "encuestas aplicadas", "rechazos", "ya respondieron")) {
+    expect_true(any(grepl(esperado, labels, ignore.case = TRUE)), info = esperado)
+  }
+})
+
+test_that("los seis datos impresos van tres y tres, no cuatro y dos", {
+  rows <- collection_material_field_form_rows()
+  impresas <- Filter(function(r) {
+    all(vapply(r$fields %||% list(), function(c) !is.null(c$binding), logical(1)))
+  }, rows)
+  # Tres renglones de dos columnas: la mitad del alto que ocupaban antes.
+  expect_length(impresas, 3L)
+  for (fila in impresas) expect_length(fila$fields, 2L)
+})
+
+test_that("el QR crece con el alto que liberan los renglones", {
+  L <- prosecnurapp:::.cfc_layout()
+  expect_gt(L$qr_side, 0.58)
+  # Y la hoja sigue cabiendo: el formulario entra sin desbordar.
+  capacidad <- as.integer(floor((L$form_top - L$form_floor) / L$form_step)) + 1L
+  renglones <- sum(vapply(collection_material_field_form_rows(), function(r) {
+    max(1L, max(vapply(r$fields %||% list(), function(c) {
+      n <- suppressWarnings(as.integer(c$lines %||% 1L)); if (is.na(n)) 1L else n
+    }, integer(1)), 1L))
+  }, integer(1)))
+  expect_lte(renglones, capacidad)
 })

@@ -131,6 +131,44 @@ TAMB, SIMB, «Pabellón I», «Pabellón P», «Aulas Móviles» — sus declara
 quedan contrastadas contra CUATRO fuentes (mapa oficial, Descubre, OSM,
 Google).
 
+## Censo por Google Maps (2026-09-03, pedido del dueño)
+
+Se pasaron **todas** las letras por Google Maps. Resultado: Google solo
+publica *place* para **4 de 22** (K, O, V, Z) más algunos por su nombre real
+(Aulario=A, EEGGLL=L, Letras=H, Arte y Diseño=Y). El resto no existe como
+punto en Google — el mapa oficial de la PUCP, OSM y Descubre siguen siendo la
+fuente primaria.
+
+| Letra | Place de Google | Distancia a nuestra posición | Veredicto |
+|---|---|---|---|
+| K | PABELLÓN K (Sec. Mecatrónica PUCP) | 0 m | ya venía de ahí |
+| V | Pabellón V | 8 m | coincide |
+| H | Facultad De Letras Y Ciencias Humanas | 9 m | coincide |
+| A | Aulario PUCP | 14 m | coincide |
+| Z | Pabellón Z | 14 m | coincide |
+| O | Pabellon O - PUCP | 16 m | coincide |
+| L | Estudios Generales Letras | 26 m | coincide |
+| **Y** | **Facultad de Arte y Diseño - PUCP** | **63 m** | **CORREGIDA** |
+
+**La Y se movió.** Era la única posición `derivada` del croquis (centroide de
+tres marcadores oficiales que la nombraban: cafetería de arte, talleres y
+bicicletas), y estaba a 63 m de la facultad misma — cuando todas las demás
+letras caen a ≤26 m entre fuentes independientes. Con 58 aulas del operativo
+en la Y, esos 63 m mandan al aplicador a otro edificio. Pasó al place de
+Google y **ya no queda ninguna posición derivada en el croquis**.
+
+## Cobertura del operativo (censo sobre HSVG26ULT2)
+
+De los 1.392 venues del plan: **19 de las 21 letras usadas se muestran** en el
+croquis. Solo **S y T** no tienen edificio en ninguna fuente —contrastado
+también en búsqueda pública— y suman 8 aulas (0,6 %): `SIMB`, `TAMB`, `S204`,
+`X115 · TAMB`, `TAMB · Z111`. Seis venues no pueden resaltarse y dos lo hacen
+a medias, y en los tres casos el verso lo DECLARA. Cero filas sin aula.
+
+Carga por letra: A 276 · Z 216 · H 179 · L 163 · E 131 · D 129 · N 87 ·
+Y 58 · J 40 · M 39 · I 31 · X 21 · P 17 · G 15 · R 15 · V 12 · S 4 · T 4 ·
+K 3 · O 3 · Q 2.
+
 ## Plan de edificaciones incompletas (pedido de Gonzalo, 2026-09-02)
 
 Registro vivo de lo que NO tiene fuente firme, con su vía de mejora. Nada de

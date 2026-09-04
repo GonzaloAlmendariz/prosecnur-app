@@ -137,17 +137,17 @@ CCX_TONOS_DE_PABELLON <- 8L
             -12.071198, -12.069614, -12.070515, -12.070352, -12.072890,
             -12.067530, -12.071597, -12.068663, -12.072765, -12.072239,
             -12.071231, -12.067682, -12.072251, -12.073125, -12.065333,
-            -12.066823, -12.069115),
+            -12.066830, -12.069115),
     lng = c(-77.079539, -77.079875, -77.080512, -77.079311, -77.080365,
             -77.078940, -77.081231, -77.078737, -77.080311, -77.082775,
             -77.080201, -77.081676, -77.078801, -77.082621, -77.078092,
             -77.078530, -77.079144, -77.081060, -77.081880, -77.078511,
-            -77.078832, -77.080909),
+            -77.079414, -77.080909),
     fuente = c("oficial", "oficial", "oficial", "oficial", "oficial",
                "oficial", "oficial", "oficial", "oficial", "google",
                "oficial", "oficial", "oficial", "oficial", "oficial",
                "oficial", "oficial", "oficial", "osm", "oficial",
-               "derivada", "oficial"),
+               "google", "oficial"),
     stringsAsFactors = FALSE
   )
 }
@@ -454,7 +454,18 @@ CCX_TONOS_DE_PABELLON <- 8L
   ppb <- .ccx_proyectar(pb$lat, pb$lng, L)
   lado <- L$lado_pabellon
   alto <- lado * geo$page_w / geo$page_h
-  for (i in seq_len(nrow(pb))) {
+  # **Los resaltados se dibujan AL FINAL.** Recorrer la tabla en su orden
+  # dejaba que el vecino posterior tapara al resaltado: K y O distan 0.0173 npc
+  # —un 56 % del lado del chip— y K se dibuja antes, asi que la O le comia el
+  # anillo justo cuando la ficha era de la K (dictado de Gonzalo, 2026-09-03:
+  # «si el aula a la que va a aplicar el QR es la K, esa deberia estar por
+  # encima»). El orden entre los NO resaltados se conserva: quien manda es la
+  # que la ficha señala, y solo esa.
+  orden <- c(
+    which(!(pb$letra %in% letras_sel)),
+    which(pb$letra %in% letras_sel)
+  )
+  for (i in orden) {
     tono <- .ccx_tono_de_pabellon(pb$letra[i])
     colr <- paleta[[tono + 1L]]
     if (pb$letra[i] %in% letras_sel) {
