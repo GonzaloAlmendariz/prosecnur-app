@@ -87,7 +87,8 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
     fijadas = cfg[["reparto_fijado"]] %||% list(),
     duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,
     rango = cfg[["reparto_rango"]],
-    semilla = cfg[["reparto_semilla"]] %||% 0L
+    semilla = cfg[["reparto_semilla"]] %||% 0L,
+    concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
   )
 
   # Código → lugar confirmado (el catálogo como fallback), igual que la app.

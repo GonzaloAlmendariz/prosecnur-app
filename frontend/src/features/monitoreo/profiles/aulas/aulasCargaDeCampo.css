@@ -510,11 +510,32 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 }
 .aulas-asigna-resorteo { display: inline-flex; align-items: center; gap: 8px; }
 @media (min-width: 900px) {
-  .aulas-asigna-mandos > .aulas-asigna-resorteo:not(:first-child) {
+  .aulas-asigna-mandos > .aulas-asigna-resorteo:not(:first-child),
+  .aulas-asigna-mandos > .aulas-asigna-concentrar:not(:first-child) {
     border-left: 1px solid var(--pulso-border);
     padding-left: 16px;
   }
 }
+/* Dictado 2026-09-04 — «concentrar el día del aplicador»: el tercer
+   instrumento del panel. Casilla y no botón porque es un CRITERIO que queda
+   puesto, no una acción que se dispara: su estado es el del reparto de abajo,
+   leído del motor. */
+.aulas-asigna-concentrar {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--pulso-text-soft);
+  cursor: pointer;
+  user-select: none;
+}
+.aulas-asigna-concentrar:hover { color: var(--pulso-text); }
+.aulas-asigna-concentrar input[type="checkbox"] {
+  accent-color: var(--pulso-module-monitoring);
+  width: 13px; height: 13px;
+  margin: 0;
+  cursor: pointer;
+}
+.aulas-asigna-concentrar:has(input:disabled) { opacity: 0.55; cursor: default; }
+.aulas-asigna-concentrar input:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; }
+
 .aulas-asigna-resorteo em {
   font-style: normal; font-size: 11px; font-weight: 600;
   color: var(--pulso-text-soft);
@@ -555,6 +576,15 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-rango-boton:disabled { opacity: 0.45; cursor: default; }
 .aulas-asigna-rango-boton:focus-visible { outline: 2px solid var(--pulso-module-monitoring); outline-offset: 1px; }
 .aulas-asigna-rango-boton.es-limpiar { font-weight: 400; color: var(--pulso-text-soft); }
+/* Dictado 2026-09-04: sin fechas declaradas el reparto toma todo el horizonte.
+   Se dice en el mismo renglón del control, en tono de nota — no es un error,
+   es el estado en el que está. */
+.aulas-asigna-rango-sin {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
 .aulas-asigna-aplazadas { max-width: 72ch; }
 
 /* El día QUE TOCA protagoniza y lo pasado se atenúa: el jefe despliega por
@@ -763,7 +793,7 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .aulas-asigna-carga.es-libre .aulas-asigna-nombre { color: var(--pulso-text-soft); }
 /* La carga es un badge del mismo sistema de chips (veredicto 2026-09-02): el
    tono del módulo dice «cita tuya» y el estado libre lo atenúa por contexto. */
-.aulas-asigna-cifra { display: inline-flex; }
+.aulas-asigna-cifra { display: inline-flex; align-items: center; gap: 6px; }
 .aulas-asigna-cifra .aulas-chip {
   font-weight: 600; font-variant-numeric: tabular-nums;
   color: var(--pulso-module-monitoring);
@@ -775,6 +805,36 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   background: var(--pulso-surface-2);
   border-color: var(--pulso-border);
 }
+/* En cuántos DÍAS cae su carga (dictado 2026-09-04). Va pegado a la cifra
+   porque se lee con ella: «4» dice cuánto, «2 días» dice si vino dos veces a
+   la universidad o cuatro. Un solo día no se anota — es la meta cumplida. */
+.aulas-asigna-ndias {
+  font-style: normal;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+  align-self: center;
+}
+/* El desglose que se abre al explorar a una persona: sus días y las horas de
+   cada uno. Ocupa el ancho entero del botón —como la línea de despliegue— y
+   se sangra bajo el nombre para que se lea como su detalle, no como otra fila. */
+.aulas-asigna-agenda {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 3px;
+  padding-left: 9px;
+  border-left: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 35%, var(--pulso-surface));
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-asigna-agenda-dia strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
 .aulas-asigna-barra {
   position: absolute;
   left: 8px; right: 8px; bottom: 4px;

@@ -119,6 +119,7 @@ export function AulasCargaDeCampo({
   onImportarDisponibilidad = null,
   onDeclararRango = null,
   onResortear = null,
+  onConcentrar = null,
   hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -156,6 +157,8 @@ export function AulasCargaDeCampo({
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo (persiste la semilla siguiente). */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
+  /** Dictado 2026-09-04: encender/apagar la concentración por día; lo pinta Asignación. */
+  onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -438,7 +441,7 @@ export function AulasCargaDeCampo({
         />
       ) : null}
       {vista === "asignacion" ? (
-        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} onDeclararRango={onDeclararRango} onResortear={onResortear} />
+        <AulasAsignacionDeAplicadores reparto={repartoVista} lugares={lugares} onFijar={onFijarReparto} onDeclararRango={onDeclararRango} onResortear={onResortear} onConcentrar={onConcentrar} />
       ) : null}
       {esDemanda && !hayMalla ? (
         // El mismo vacío declarado del atajo compacto, dentro del marco

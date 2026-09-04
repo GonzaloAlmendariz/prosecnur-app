@@ -437,6 +437,14 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       crudo <- suppressWarnings(as.integer((config[["reparto_semilla"]] %||% 0L)[1]))
       if (is.na(crudo) || crudo < 0L) 0L else crudo
     }),
+    # **La concentración por día del reparto (dictado 2026-09-04: «que sus
+    # cursos-horario asignados no estén dispersos en toda la semana, sino
+    # concentrados en un día o dos como máximo… sí quiero que se active»).**
+    # Lógico; el default es TRUE por su dictado — apagar es la excepción.
+    reparto_concentrado = local({
+      crudo <- config[["reparto_concentrado"]]
+      if (is.null(crudo) || length(crudo) == 0L) TRUE else isTRUE(crudo[[1]])
+    }),
     # **El rango de despliegue del reparto (B75, dictado 2026-09-03).** Misma
     # doctrina de whitelist. Ambas puntas en ISO o no hay rango (NULL =
     # todo el horizonte); un rango con basura no rompe el config, se

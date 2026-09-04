@@ -766,6 +766,8 @@ export type MonitoreoAulasConfig = {
   reparto_rango?: { desde?: string; hasta?: string } | null;
   /** B67: la semilla del resorteo — rota el desempate del reparto; 0 = alfabeto. */
   reparto_semilla?: number;
+  /** Dictado 2026-09-04: concentrar el día del aplicador (default TRUE). */
+  reparto_concentrado?: boolean;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   /**
@@ -1261,6 +1263,8 @@ export type MonitoreoAulasReparto = {
   fijadas?: Array<{ codigo: string; aplicador: string }>;
   /** B36: códigos fijados por el usuario cuya cita ya no está pactada. */
   fijadas_sin_cita?: string[];
+  /** 2026-09-04: eco del criterio de concentración por día del motor. */
+  concentrado?: boolean;
   /** B70: con qué duración de aplicación (min) se armó el reparto. */
   duracion_min?: number;
   /** B71: minutos de preparación previa (recojo + desplazamiento). */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasReparto } from "../../../../api/monitoreo";
-import { mapaDeFijaciones, repartoDeAplicadores, textoDelDespliegue, veredictoDeEquidad } from "./repartoDeAplicadores";
+import { agendaDelAplicador, mapaDeFijaciones, repartoDeAplicadores, textoDelDespliegue, veredictoDeEquidad } from "./repartoDeAplicadores";
 
 /**
  * El bloque `reparto` del dashboard (B29) convertido en modelo de vista para la
@@ -323,5 +323,73 @@ describe("B75 — el rango de despliegue cruza la frontera", () => {
     const r = repartoDeAplicadores(crudo({ dias: [DIA], equidad: [] }))!;
     expect(r.fueraDeRango).toEqual([]);
     expect(r.rango).toBeNull();
+  });
+});
+
+/**
+ * Dictado 2026-09-04 («si un aplicador viene hasta la universidad, que pueda
+ * ser por lo menos más de un curso-horario… concentrados en un día o dos como
+ * máximo»). Dos cosas cruzan la frontera: el ECO del criterio con el que el
+ * motor armó el reparto, y la agenda día a día de cada persona, que es lo que
+ * el rail enseña al hacer clic.
+ */
+describe("la concentración por día cruza la frontera", () => {
+  it("el criterio es eco del MOTOR: llega como llegó, no como la UI lo desea", () => {
+    expect(repartoDeAplicadores(crudo({ dias: [DIA], equidad: [], concentrado: true }))!.concentrado).toBe(true);
+    expect(repartoDeAplicadores(crudo({ dias: [DIA], equidad: [], concentrado: false }))!.concentrado).toBe(false);
+    // Un payload viejo, sin la clave, no inventa un criterio que no rigió.
+    expect(repartoDeAplicadores(crudo({ dias: [DIA], equidad: [] }))!.concentrado).toBe(false);
+  });
+
+  it("la agenda de cada uno: sus días, y las horas de cada día en el orden del motor", () => {
+    const r = repartoDeAplicadores(crudo({
+      dias: [
+        {
+          fecha: "2026-09-11",
+          asignaciones: [
+            { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20" },
+            { codigo: "CH 2", aplicador: "Berta Ficticia", inicio: "11:00", fin: "11:20" },
+            { codigo: "CH 3", aplicador: "Ana Prueba", inicio: "15:00", fin: "15:20" },
+          ],
+          no_cubiertos: [], por_confirmar: [],
+        },
+        {
+          fecha: "2026-09-14",
+          asignaciones: [{ codigo: "CH 4", aplicador: "Ana Prueba", inicio: "09:00", fin: "09:20" }],
+          no_cubiertos: [], por_confirmar: [],
+        },
+      ],
+      equidad: [
+        { aplicador: "Ana Prueba", asignadas: 3 },
+        { aplicador: "Berta Ficticia", asignadas: 1 },
+        { aplicador: "Mario Sintetico", asignadas: 0 },
+      ],
+    }))!;
+    const agenda = agendaDelAplicador(r);
+    // «Él aplica dos veces este día, en estos horarios; y este otro día, uno».
+    // Las dos del 11 caen en UN solo día aunque las separe la cita de Berta.
+    expect(agenda.get("Ana Prueba")).toEqual([
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["10:00", "15:00"] },
+      { fecha: "2026-09-14", etiqueta: "Lunes 14/09", horas: ["09:00"] },
+    ]);
+    expect(agenda.get("Berta Ficticia")).toEqual([
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["11:00"] },
+    ]);
+    // Quien no tiene carga no tiene agenda inventada: el rail lo lee como 0 días.
+    expect(agenda.get("Mario Sintetico")).toBeUndefined();
+  });
+
+  it("una cita sin hora pactada no borra su día: el día cuenta, la hora calla", () => {
+    const r = repartoDeAplicadores(crudo({
+      dias: [{
+        fecha: "2026-09-11",
+        asignaciones: [{ codigo: "CH 1", aplicador: "Ana Prueba", inicio: "", fin: "" }],
+        no_cubiertos: [], por_confirmar: [],
+      }],
+      equidad: [{ aplicador: "Ana Prueba", asignadas: 1 }],
+    }))!;
+    expect(agendaDelAplicador(r).get("Ana Prueba")).toEqual([
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: [] },
+    ]);
   });
 });

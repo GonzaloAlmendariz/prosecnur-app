@@ -154,7 +154,22 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
                                     fijadas = list(),
                                     duracion_min = .mav_DURACION_MIN,
                                     rango = NULL,
-                                    semilla = 0L) {
+                                    semilla = 0L,
+                                    concentrado = FALSE) {
+  # Dictado de Gonzalo (2026-09-04): «si un aplicador viene hasta la
+  # universidad, que haga por lo menos más de un curso-horario: sus asignados
+  # concentrados en un día o dos como máximo, tomando en cuenta que la
+  # asignación debe ser equitativa… maximizar su día, contando la preparación
+  # de media hora previa». `concentrado = TRUE` (su elección: «sí quiero que
+  # se active») antepone al candidato que YA está ese día — el que más
+  # aplicaciones acumula en la fecha primero, para llenar su jornada — y solo
+  # entre iguales decide la menor carga total y el desempate de siempre. Es
+  # PREFERENCIA, no tope duro: cuando la física del día (solapes sobre la
+  # ocupación recojo→fin) ya no deja apilar, el reparto abre a la siguiente
+  # persona con menos carga. El default del MOTOR es FALSE (función pura,
+  # compatible con su historia); el default OPERATIVO — TRUE, por su
+  # dictado — vive en la whitelist del config, que es donde se decide.
+  concentrado <- isTRUE(concentrado)
   semilla <- suppressWarnings(as.integer(semilla %||% 0L)[1])
   if (is.na(semilla) || semilla < 0L) semilla <- 0L
   # B75: el rango saneado — ambas puntas en ISO o no hay rango. Un desde >
@@ -332,8 +347,19 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     }
     # Menor carga acumulada manda; el empate se rompe por el orden de
     # prioridad (alfabeto con semilla 0; rotado al resortear, B67), nunca por
-    # orden de entrada de la disponibilidad.
-    elegido <- candidatos[order(carga[candidatos],
+    # orden de entrada de la disponibilidad. Con `concentrado`, ANTES que la
+    # carga va quién ya está ese día (más aplicaciones ese día primero): las
+    # fijadas siembran la jornada y el greedy la llena hasta que el solape
+    # sobre la ocupación completa (recojo→fin) diga basta.
+    mismo_dia <- if (concentrado) {
+      vapply(candidatos, function(n) {
+        length(ocupadas[[paste(n, cita$fecha, sep = "\r")]] %||% list())
+      }, integer(1))
+    } else {
+      rep(0L, length(candidatos))
+    }
+    elegido <- candidatos[order(-mismo_dia,
+                                carga[candidatos],
                                 match(candidatos, prioridad),
                                 method = "radix")][[1L]]
     carga[[elegido]] <- carga[[elegido]] + 1L
@@ -364,6 +390,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
 
   list(
     dias = dias, equidad = equidad,
+    # El eco del criterio de concentración: la UI enseña el estado real del
+    # motor, no el que cree tener.
+    concentrado = concentrado,
     # El eco del mapa saneado, entero: la UI reconstruye el mapa completo al
     # fijar/soltar UNA cita sin perder las demás — una huérfana descartada en
     # silencio sería el defecto, no el ahorro.

@@ -42,6 +42,7 @@ export function AulasSeccionModelo({
   onImportarDisponibilidad = null,
   onDeclararRango = null,
   onResortear = null,
+  onConcentrar = null,
 }: {
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
@@ -62,6 +63,8 @@ export function AulasSeccionModelo({
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo del reparto. */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
+  /** Dictado 2026-09-04: concentrar el día del aplicador; llega a Asignación. */
+  onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
 }): ReactNode {
   const Tabla = tabla;
   // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
@@ -163,6 +166,7 @@ export function AulasSeccionModelo({
               onImportarDisponibilidad={onImportarDisponibilidad}
               onDeclararRango={onDeclararRango}
               onResortear={onResortear}
+              onConcentrar={onConcentrar}
             />
           </section>
         ) : null}
