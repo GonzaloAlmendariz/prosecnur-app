@@ -71,6 +71,14 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 //     recuperable y C4 la admite en etiqueta.
 //   · dos son la locución «aula por aula», impracticable en curso-horario.
 //   · el resto habla del aula como ESPACIO, que es correcto y no se toca.
+// 2026-09-03 (loop mejora-ui E25): se cerraron SEIS frases más («N aulas no
+// alcanzaron su meta», «N aulas» del eje del gasto, los dos pies de la malla
+// («ya tienen hora», «no declaran horario»), «aulas gestionadas traen» y
+// «necesitan aulas nuevas») y el contador NO se movió: todas caen fuera del
+// detector preciso — las cuatro primeras porque la cifra va en llaves de JSX
+// ({fmt(n)}), no en ${} de template, y las otras dos son del tipo tras-verbo
+// no listado. Confirmación medida de que la cifra es cota inferior; el TOPE
+// se queda donde el detector ve.
 const TOPE = 13;
 
 /**

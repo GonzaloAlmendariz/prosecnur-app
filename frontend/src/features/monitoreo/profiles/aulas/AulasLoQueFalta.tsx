@@ -74,9 +74,9 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       // 2026 el equipo iba a buscarlas y no estaban. Lo que falta hoy es lo que
       // el aula consiguió, porque la meta ya viaja con cada curso-horario.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {fmt(r.noEfectivas)} aulas no alcanzaron su meta, pero el libro no trae
-        con qué calcular cuánto les falta: hace falta cuántas efectivas
-        consiguió cada una (columna «EFECTIVAS OBTENIDAS»).
+        {fmt(r.noEfectivas)} cursos-horario no alcanzaron su meta, pero el libro
+        no trae con qué calcular cuánto les falta: hace falta cuántas efectivas
+        consiguió cada uno (columna «EFECTIVAS OBTENIDAS»).
       </p>
     );
   }
@@ -157,7 +157,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         </svg>
         {/* La escala del eje Y. Sin ella la curva sube pero no dice hacia
             cuántas aulas, que es la mitad de la lectura. */}
-        <span className="aulas-falta-y es-alto">{fmt(total)} aulas</span>
+        <span className="aulas-falta-y es-alto">{fmt(total)} cursos-horario</span>
         <span className="aulas-falta-y es-medio">{fmt(Math.round(total / 2))}</span>
         {conCinco ? (
           <span className="aulas-falta-marca" style={{ left: `${x(gastoCinco)}%` }}>

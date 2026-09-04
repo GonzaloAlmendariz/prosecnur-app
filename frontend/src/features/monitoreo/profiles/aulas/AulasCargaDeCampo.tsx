@@ -851,7 +851,7 @@ export function AulasCargaDeCampo({
             <li><span className="aulas-carga-toca">próxima salida</span> el primer día de campo que viene: ahí se despliega el equipo</li>
           ) : null}
           <li className="aulas-carga-estado">
-            {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora
+            {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} cursos-horario ya tienen hora
           </li>
         </ul>
         <p className="aulas-carga-pabellones">
@@ -883,7 +883,7 @@ export function AulasCargaDeCampo({
 
       {malla.sinHorario > 0 ? (
         <p className="aulas-carga-aviso">
-          {fmt(malla.sinHorario)} de {fmt(malla.sinHorario + conHorario)} aulas no declaran horario en el
+          {fmt(malla.sinHorario)} de {fmt(malla.sinHorario + conHorario)} cursos-horario no declaran horario en el
           catálogo y no entran en este cálculo.
         </p>
       ) : null}
