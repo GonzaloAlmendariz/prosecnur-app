@@ -911,3 +911,63 @@ test_that("y aun así cada persona cae en UN solo día, que es de lo que va conc
   }
   expect_true(all(vapply(dias_de, length, integer(1)) == 1L))
 })
+
+# **A igual carga, quien menos días lleva.**
+#
+# Sin esta clave el desempate caía en el alfabeto, así que una cita del martes
+# podía ir a alguien que YA vino el lunes teniendo al lado a otro que no ha
+# salido nunca: mismo reparto de trabajo, un viaje más al campus. Medido sobre
+# el operativo con la agenda al día (2026-09-04): 23 de 30 personas salían dos o
+# más veces y el reparto gastaba 55 viajes para 85 aplicaciones.
+test_that("a igual carga entra quien no ha salido, no quien ya vino otro día", {
+  # Dos días con una cita cada uno y dos personas que pueden los dos días.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_status = "agendada",
+         operational_status = "agendada", scheduled_date = "2026-09-07",
+         scheduled_time = "09:00"),
+    list(operational_code = "CH 2", classroom_id = "a2", sample_status = "agendada",
+         operational_status = "agendada", scheduled_date = "2026-09-08",
+         scheduled_time = "09:00")
+  )
+  sem <- list(lunes = list(list(inicio = "07:00", fin = "22:00")),
+              martes = list(list(inicio = "07:00", fin = "22:00")))
+  disp <- list(list(nombre = "Ana Uno", dias = sem), list(nombre = "Beto Dos", dias = sem))
+  r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
+
+  quien <- vapply(r$dias, function(d) d$asignaciones[[1]]$aplicador, character(1))
+  # Cada día a una persona distinta: dos viajes, uno por cabeza. Con el
+  # desempate alfabético a secas, Ana se llevaba los dos y salía dos veces.
+  expect_length(unique(quien), 2L)
+})
+
+test_that("con carga para repartir, nadie sale más de dos días", {
+  # 85 aplicaciones en cinco días con treinta personas disponibles toda la
+  # semana: el tamaño del operativo real.
+  fechas <- rep(c("2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"),
+                each = 17L)
+  plan <- lapply(seq_along(fechas), function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_status = "agendada", operational_status = "agendada",
+    scheduled_date = fechas[[i]],
+    scheduled_time = sprintf("%02d:%02d", 8 + ((i - 1) %% 12), if ((i %% 2) == 0) 0 else 30)
+  ))
+  sem <- list(lunes = list(list(inicio = "07:00", fin = "22:00")),
+              martes = list(list(inicio = "07:00", fin = "22:00")),
+              miercoles = list(list(inicio = "07:00", fin = "22:00")),
+              jueves = list(list(inicio = "07:00", fin = "22:00")),
+              viernes = list(list(inicio = "07:00", fin = "22:00")))
+  disp <- lapply(sprintf("Aplicador %02d", 1:30), function(n) list(nombre = n, dias = sem))
+  r <- monitoreo_aulas_reparto(plan, disp, concentrado = TRUE)
+
+  dias_de <- list()
+  for (d in r$dias) for (a in d$asignaciones) {
+    dias_de[[a$aplicador]] <- unique(c(dias_de[[a$aplicador]], d$fecha))
+  }
+  nd <- vapply(dias_de, length, integer(1))
+  # «Concentrados en un día o dos como máximo» (dictado 2026-09-04).
+  expect_lte(max(nd), 2L)
+  # Y la equidad no se pierde por concentrar: la brecha sigue acotada.
+  cargas <- vapply(r$equidad, function(e) as.integer(e$asignadas), integer(1))
+  con_carga <- cargas[cargas > 0L]
+  expect_lte(max(con_carga) - min(con_carga), 2L)
+})
