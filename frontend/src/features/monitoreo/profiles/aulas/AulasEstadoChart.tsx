@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { fuenteDeCifraEnBarra, fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_SEPARADOR_BARRA, tintaSobre } from "../../coloresDeResultado";
+import { tintaSobre } from "../../coloresDeResultado";
 import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
 import { fmt } from "./kpisDeAulas";
+import "./aulasEstadoChart.css";
 
 /**
  * El STATUS DE APLICACIÓN en una barra: cuántas cumplen y cuántas ni se han tocado.
@@ -177,76 +176,59 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
     );
   }
 
-  // Loop mejora-ui E9: el swatch de una categoría en cero se apaga hacia el
-  // fondo. La leyenda ya declara el cero en el texto («En cierre 0»), pero el
-  // cuadrito a color pleno junto a ese cero prometía un segmento que la barra
-  // no tiene — seis swatches al mismo volumen para tres segmentos reales. El
-  // color apagado solo vive en la leyenda: una traza en cero no pinta barra.
+  // Loop mejora-ui E9/E21: el swatch de una categoría en cero se apaga hacia
+  // el fondo — el cero se declara en el texto y el color pleno junto a un
+  // cero prometía un segmento que la barra no tiene.
   const swatchApagado = (hex: string): string => {
     const n = hex.replace("#", "");
     const c = (i: number) => Math.round(parseInt(n.slice(i, i + 2), 16) * 0.3 + 255 * 0.7);
     return `rgb(${c(0)}, ${c(2)}, ${c(4)})`;
   };
 
-  const data = estados.map((estado) => ({
-    type: "bar",
-    orientation: "h",
-    // **El conteo va EN la leyenda.** El gráfico crea una traza por estado,
-    // incluidos los que valen cero, así que la leyenda listaba seis entradas
-    // sobre una barra con tres segmentos y no había forma de saber cuáles
-    // estaban en cero sin pasar el cursor. Un cero declarado sólo cuenta como
-    // declarado si se lee: «Agendada 0» dice lo que «Agendada» junto a una
-    // barra que no aparece deja adivinar.
-    name: `${estado.etiqueta} ${fmt(estado.aulas)}`,
-    y: ["Cursos-horario"],
-    x: [estado.aulas],
-    marker: {
-      color: estado.aulas ? estado.color : swatchApagado(estado.color),
-      // El trazo blanco es lo que deja ver la frontera entre dos segmentos
-      // contiguos cuando uno de ellos es muy corto.
-      line: { color: COLOR_SEPARADOR_BARRA, width: 1 },
-    },
-    // La etiqueta de la barra pasa por el mismo formateador que la frase de
-    // abajo: sin esto, el grafico decia «2109» encima de un pie que decia
-    // «2,109». Dos formatos para el mismo numero, a dos centimetros.
-    text: [estado.aulas ? fmt(estado.aulas) : ""],
-    textposition: "inside",
-    // Sin esto Plotly escribe su gris #444 encima del relleno: sobre
-    // «sin agendar» daba 2,66 de contraste y la cifra no se leia.
-    insidetextfont: fuenteDeCifraEnBarra(tintaSobre(estado.color)),
-    insidetextanchor: "middle",
-    hovertemplate: `${estado.etiqueta}: %{x} de ${total}<extra></extra>`,
-  }));
+  // E21 — **barras CSS y no Plotly**, con el criterio sentado por el dictado
+  // del chart de sexo (2026-09-03): pregunta declarada en la cabecera del
+  // panel, leyenda que informa sin filtrar, cero interactividad fantasma
+  // (el Plotly ofrecía crosshair, drag muerto y leyenda-toggle), y el
+  // precedente del embudo para el motor de dibujo. La semántica no cambia:
+  // mismos tramos, mismos colores, la cifra DENTRO del segmento con la tinta
+  // que contrasta, y el separador blanco entre segmentos contiguos.
+  const detalle = estados
+    .map((e) => `${e.etiqueta} ${fmt(e.aulas)}`)
+    .join(" · ");
 
   return (
     // C1: quién posee el espacio interior del panel. Sin declararlo, el gate
     // cae a la cabecera como dueña y reporta sus 4-5 px de holgura como
-    // `capacity-drift`, que es un diagnóstico sobre el sitio equivocado: el
-    // panel sólo tiene 1 px libre abajo y el hueco está dentro del head.
-    <div className="aulas-estado-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-      <PlotlyChart
-        data={data}
-        height={104}
-        ariaLabel="Cursos-horario por estado de aplicación"
-        layout={{
-          // La escala de eje del perfil, no el default compartido de Plotly.
-          font: fuenteDeEjeAulas(),
-          barmode: "stack",
-          margin: { l: 8, r: 8, t: 30, b: 8 },
-          xaxis: { visible: false, fixedrange: true },
-          yaxis: { visible: false, fixedrange: true },
-          // Igual que en brecha por estrato: `PlotlyChart` esconde la leyenda
-          // por defecto, y aquí sin ella los cuatro colores no dicen nada.
-          showlegend: true,
-          // E17 (criterio de los dictados: sin interactividad fantasma): el
-          // click en la leyenda escondía un tramo y RE-ESCALABA la barra —
-          // ocultar «En reserva» convertía 190/1392 en casi todo el ancho sin
-          // ningún aviso. La leyenda informa, no filtra.
-          legend: { orientation: "h", y: 1.5, x: 0, traceorder: "normal", itemclick: false, itemdoubleclick: false },
-          bargap: 0.35,
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-      />
+    // `capacity-drift`, que es un diagnóstico sobre el sitio equivocado.
+    <div className="aulas-estado-chart aulas-estado-css" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      <ul className="aulas-estado-leyenda" aria-hidden="true">
+        {estados.map((e) => (
+          <li key={e.clave} className={e.aulas ? undefined : "es-cero"}>
+            <i style={{ background: e.aulas ? e.color : swatchApagado(e.color) }} />
+            {e.etiqueta} {fmt(e.aulas)}
+          </li>
+        ))}
+      </ul>
+      <div
+        className="aulas-estado-pista"
+        role="img"
+        aria-label={`Cursos-horario por estado de aplicación: ${detalle}`}
+      >
+        {estados.filter((e) => e.aulas > 0).map((e) => {
+          const ancho = (100 * e.aulas) / total;
+          return (
+            <i
+              key={e.clave}
+              style={{ width: `${ancho}%`, background: e.color, color: tintaSobre(e.color) }}
+              title={`${e.etiqueta}: ${fmt(e.aulas)} de ${fmt(total)}`}
+            >
+              {/* La cifra solo si cabe: en un segmento angosto se volvería
+                  ruido encimado; su valor sigue en la leyenda y el title. */}
+              {ancho >= 5 ? fmt(e.aulas) : ""}
+            </i>
+          );
+        })}
+      </div>
       <p className="mon-profile-table-recorte">
         {sinSalirACampo
           // El pie de ESTE gráfico habla de su propio eje. Decía «no han
