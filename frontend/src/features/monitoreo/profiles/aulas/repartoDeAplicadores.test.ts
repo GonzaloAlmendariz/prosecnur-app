@@ -374,11 +374,14 @@ describe("la concentración por día cruza la frontera", () => {
     // «Él aplica dos veces este día, en estos horarios; y este otro día, uno».
     // Las dos del 11 caen en UN solo día aunque las separe la cita de Berta.
     expect(agenda.get("Ana Prueba")).toEqual([
-      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["10:00", "15:00"] },
-      { fecha: "2026-09-14", etiqueta: "Lunes 14/09", horas: ["09:00"] },
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["10:00", "15:00"],
+        oficina: "", sale: "", termina: "15:20" },
+      { fecha: "2026-09-14", etiqueta: "Lunes 14/09", horas: ["09:00"],
+        oficina: "", sale: "", termina: "09:20" },
     ]);
     expect(agenda.get("Berta Ficticia")).toEqual([
-      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["11:00"] },
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: ["11:00"],
+        oficina: "", sale: "", termina: "11:20" },
     ]);
     // Quien no tiene carga no tiene agenda inventada: el rail lo lee como 0 días.
     expect(agenda.get("Mario Sintetico")).toBeUndefined();
@@ -394,7 +397,50 @@ describe("la concentración por día cruza la frontera", () => {
       equidad: [{ aplicador: "Ana Prueba", asignadas: 1 }],
     }))!;
     expect(agendaDelAplicador(r).get("Ana Prueba")).toEqual([
-      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: [] },
+      { fecha: "2026-09-11", etiqueta: "Viernes 11/09", horas: [],
+        oficina: "", sale: "", termina: "" },
     ]);
+  });
+});
+
+/**
+ * **La jornada de punta a punta** (dictado 2026-09-04: «qué días tiene que
+ * estar en oficina… a qué hora deben estar en la oficina, a qué hora irse a
+ * aplicar y a qué hora terminan»). Las horas del protocolo las dice el MOTOR
+ * (`recojo`, `salida`), no un T−30 recalculado en la vista.
+ */
+describe("la jornada de cada día", () => {
+  it("entra a la oficina con su PRIMER recojo y termina con el ÚLTIMO fin", () => {
+    const r = repartoDeAplicadores(crudo({
+      dias: [{
+        fecha: "2026-09-07",
+        asignaciones: [
+          { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "11:45", fin: "12:15",
+            recojo: "11:15", salida: "11:30" },
+          { codigo: "CH 2", aplicador: "Ana Prueba", inicio: "19:45", fin: "20:15",
+            recojo: "19:15", salida: "19:30" },
+        ],
+        no_cubiertos: [], por_confirmar: [],
+      }],
+      equidad: [{ aplicador: "Ana Prueba", asignadas: 2 }],
+    }))!;
+    const [dia] = agendaDelAplicador(r).get("Ana Prueba")!;
+    expect(dia.oficina).toBe("11:15");
+    expect(dia.sale).toBe("11:30");
+    expect(dia.termina).toBe("20:15");
+  });
+
+  it("sin las horas del protocolo las puntas callan, no se inventan", () => {
+    const r = repartoDeAplicadores(crudo({
+      dias: [{
+        fecha: "2026-09-07",
+        asignaciones: [{ codigo: "CH 1", aplicador: "Ana Prueba", inicio: "11:45", fin: "" }],
+        no_cubiertos: [], por_confirmar: [],
+      }],
+      equidad: [{ aplicador: "Ana Prueba", asignadas: 1 }],
+    }))!;
+    const [dia] = agendaDelAplicador(r).get("Ana Prueba")!;
+    expect(dia.oficina).toBe("");
+    expect(dia.termina).toBe("");
   });
 });
