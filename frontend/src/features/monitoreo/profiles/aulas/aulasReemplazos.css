@@ -303,3 +303,13 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* E24 — dos toques del loop de mejora (2026-09-03): el cero de la solapa
+   susurra (la doctrina de E8/E10: declarado, clickeable, sin gritar), y el
+   rótulo del medidor no se parte — «cierra brecha» caía en dos líneas contra
+   su barra y el par etiqueta-medida perdía la alineación. */
+.aulas-reemplazo-cuenta.es-cero {
+  color: var(--pulso-text-faint);
+  background: transparent;
+}
+.aulas-reemplazo-medida em { white-space: nowrap; }

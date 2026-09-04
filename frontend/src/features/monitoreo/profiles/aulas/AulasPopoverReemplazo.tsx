@@ -302,7 +302,11 @@ export function ContenidoDeReemplazo({
             onClick={() => setGrupo(g.id)}
           >
             {g.titulo}
-            <span className="aulas-reemplazo-cuenta">{candidatos[g.id].disponibles}</span>
+            {/* E24: el cero de la solapa susurra (la doctrina de E8/E10) — la
+                solapa sigue clickeable y su vacío se declara al entrar. */}
+            <span className={`aulas-reemplazo-cuenta${candidatos[g.id].disponibles ? "" : " es-cero"}`}>
+              {candidatos[g.id].disponibles}
+            </span>
           </button>
         ))}
       </nav>
