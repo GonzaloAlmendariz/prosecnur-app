@@ -25,7 +25,12 @@
     # con 33 modulos aquello dejaba 0.515 de simbolo real. El tope no es el ancho
     # de la hoja sino el titulo, que en este layout va DEBAJO del QR (`y_title`
     # 0.392): la matriz ampliada llegaba a 0.368 y se lo comia.
-    qr_side = 0.55,
+    # 0.62 y no 0.55: los renglones que liberaron la poda de 2026-09-03
+    # —seis impresos en tres filas, «Efectivas» fuera— se los queda el
+    # simbolo, que es lo que se escanea muchas veces en un aula. Con este
+    # lado mide 0.438 npc de alto y, centrado en 0.750, va de 0.531 a 0.969:
+    # el mismo margen superior de antes.
+    qr_side = 0.62,
     qr_x = 0.50,
     # La hoja tenia 239 px de blanco por encima del QR contra 43 por debajo del
     # pie —medido sobre el PNG a 150 dpi, 13,6 % del alto arriba y 2,5 % abajo—
@@ -36,15 +41,15 @@
     # Con `qr_side` 0.55 el simbolo mide 0.389 npc de alto (es cuadrado, y el
     # lado se declara sobre el ANCHO): con el centro en 0.775 va de 0.581 a
     # 0.970, o sea 0.030 de margen superior, casi el mismo que el inferior.
-    qr_y = 0.775,
+    qr_y = 0.750,
     x_left = 0.075,
     x_right = 0.925,
     y_brand = 0.955,
     # El titulo va centrado DEBAJO del QR: es el id del colector, o sea el
     # nombre de esta ficha concreta, y se lee junto al simbolo que lo codifica.
-    y_title = 0.540,
+    y_title = 0.495,
     title_size = 16,
-    form_top = 0.480,
+    form_top = 0.440,
     # 0.040, no 0.029: el aire recuperado arriba se reparte entre los renglones
     # en vez de acumularse en un margen. Son ~70 px entre lineas a 150 dpi
     # —12 mm de papel— contra los ~51 px de antes, que es lo que hace falta para
@@ -53,7 +58,7 @@
     # aritmetica: verificar con `.cfx_grey()`/`test-collection-ficha-campo.R` si
     # se vuelve a tocar.
     form_step = 0.040,
-    form_floor = 0.110,
+    form_floor = 0.120,
     label_size = 8.6,
     gap = 0.008,
     # El enlace impreso al pie no es decoracion: es el unico camino a la
@@ -400,17 +405,24 @@ collection_material_field_form_rows <- function() {
     #
     # Un campo sin dato NO desaparece: cae a su raya, que es lo que hace hoy el
     # aula cuando el catalogo no la trae.
+    # **Seis datos impresos, TRES y TRES** (poda de Gonzalo, 2026-09-03: «si
+    # son seis items pueden ir tres y tres, de paso ocupan un poquito menos de
+    # alto y el QR se puede ver un poquito mas grande»). Antes eran cuatro
+    # renglones —dos de ellos a hoja entera por lo largos que llegan curso y
+    # horario— y ahora son tres: el alto liberado se lo queda el QR, que es lo
+    # que de verdad se usa muchas veces en un aula.
+    #
+    # Emparejados por afinidad: donde estoy (facultad y aula), que dicto y
+    # cuando (curso y horario), quien y cuantos (docente y matriculados).
     fila(campo("Facultad", 0.55, binding = "unit.faculty"),
          campo("Pabellón y aula:", 0.45, binding = "unit.venue")),
-    # Curso y horario van cada uno a FILA COMPLETA: el nombre real llega a 128
-    # caracteres y el horario a 141 (cuatro sesiones), y compartiendo fila ni
-    # la envoltura a dos lineas los salvaba — «…EL PATRIMONIO Y LA LIBE…»
-    # seguia adivinandose (Gonzalo, 2026-09-01). A ancho entero, dos lineas
-    # son ~220 caracteres y la elipsis queda para lo imposible. La fila que
-    # esto cuesta la devuelve docente+matriculados: dos datos IMPRESOS cortos
-    # que no necesitan raya de escritura comparten renglon sin perder nada.
-    fila(campo("Curso:", 1, binding = "unit.course_name")),
-    fila(campo("Horario del curso:", 1, binding = "unit.schedule")),
+    # Curso y horario comparten renglon a media hoja. Los dos son los largos
+    # del lote —el curso llega a 128 caracteres y el horario a 141 con cuatro
+    # sesiones, contra un p99 de 65 y 51— y el renglon los ENVUELVE a dos
+    # lineas antes de recortar (`.cfc_partir`), asi que el caso corriente entra
+    # entero y solo los extremos ven la elipsis.
+    fila(campo("Curso:", 0.5, binding = "unit.course_name"),
+         campo("Horario:", 0.5, binding = "unit.schedule")),
     fila(campo("Docente:", 0.60, binding = "unit.teacher"),
          campo("N° de alumnos matriculados:", 0.40, binding = "unit.eligible_n")),
     # **Solo lo que el aplicador VE con sus ojos** (dictado de Gonzalo,
@@ -429,14 +441,12 @@ collection_material_field_form_rows <- function() {
       campo("N° de alumnos en aula", 0.5),
       campo("N° de encuestas aplicadas:", 0.5)
     ),
-    # Por que faltan las que faltan, y la unica cifra que NO se pide.
-    # «Efectivas» se queda impresa con su leyenda —el equipo la buscaria si
-    # desapareciera— pero como NOTA: la calcula el sistema desde la
-    # plataforma, que es quien sabe si la respuesta paso los filtros
-    # declarados (la precedencia ya vive en `.madt_efectivas`).
+    # Por que faltan las que faltan. «Efectivas» NO esta: la calcula el sistema
+    # desde la plataforma —que es quien sabe si la respuesta paso los filtros—
+    # y ocupaba sitio en el papel para no pedir nada («si las calcula el
+    # sistema, que necesidad hay de que este alli», Gonzalo 2026-09-03).
     fila(
-      campo("Rechazos:", 0.3), campo("Ya respondieron:", 0.36),
-      campo("Efectivas:", 0.34, note = "las calcula el sistema")
+      campo("Rechazos:", 0.5), campo("Ya respondieron:", 0.5)
     ),
     fila(campo("Aplicador/a", 1)),
     fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55)),

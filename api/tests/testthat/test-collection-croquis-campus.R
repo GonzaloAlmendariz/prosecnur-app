@@ -143,7 +143,12 @@ test_that("el croquis conoce los 18 pabellones del operativo mas B, F y U, con s
   # Y no tiene marcador propio en ninguna fuente: su posicion es un centroide
   # de vecinos y la tabla lo DICE. Declarar la procedencia es lo que permite
   # auditar el croquis sin volver a las cuatro fuentes.
-  expect_identical(as.character(pab$fuente[pab$letra == "Y"]), "derivada")
+  # La Y era la unica DERIVADA y el censo por Google Maps del 2026-09-03 la
+  # hallo a 63 m de su place real «Facultad de Arte y Diseno - PUCP», con
+  # las demas letras cayendo a <=26 m entre fuentes. 63 m mandan a otro
+  # edificio: paso al place y ya no queda ninguna posicion derivada.
+  expect_identical(as.character(pab$fuente[pab$letra == "Y"]), "google")
+  expect_false(any(pab$fuente == "derivada"))
 })
 
 test_that("la proyeccion esta girada 180 grados: sur arriba, este a la izquierda", {
@@ -552,4 +557,49 @@ test_that("el croquis se queda DENTRO de su marco y no invade la cabecera", {
   f3 <- as.integer((1 - L$y0) * nrow(g))
   f4 <- as.integer((1 - (L$y_leyenda + 0.02)) * nrow(g))
   if (f4 > f3) expect_lt(sum(g[f3:f4, , drop = FALSE] < 0.6), 40L)
+})
+
+test_that("el pabellón resaltado se dibuja ENCIMA de los que se le superponen", {
+  skip_if_not_installed("png")
+  # Dictado de Gonzalo (2026-09-03): «hay veces que una letra se superpone
+  # sobre otras porque están muy cerca. Si una se pone sobre otra, que se
+  # ponga encima la que indique. O y K están una sobre otra; ahorita está bien
+  # que O esté sobre K, pero si el aula a la que va a aplicar el QR es la K,
+  # esa debería estar por encima».
+  #
+  # Medido: K y O distan 0.0173 npc, un 56 % del lado del chip, y K se dibuja
+  # ANTES, así que O la tapaba. Se muestrea justo en la zona pisada —el punto
+  # medio entre ambos centros—, que es donde el defecto vive.
+  pab <- prosecnurapp:::.ccx_pabellones()
+  L <- prosecnurapp:::.ccx_layout()
+  p <- prosecnurapp:::.ccx_proyectar(pab$lat, pab$lng, L)
+  d <- as.matrix(stats::dist(cbind(p$x, p$y)))
+  diag(d) <- Inf
+  cual <- which(d == min(d), arr.ind = TRUE)[1, ]
+  i_pri <- min(cual); i_seg <- max(cual)
+  primera <- pab$letra[[i_pri]]
+  expect_lt(min(d), L$lado_pabellon)
+
+  dir <- tempfile("ccx-z-"); dir.create(dir)
+  path <- file.path(dir, "lamina.png")
+  collection_croquis_lamina(path, venue = paste0(primera, "101"), device = "png", dpi = 150)
+  img <- png::readPNG(path)
+
+  # Punto medio entre los dos centros: territorio disputado.
+  mx <- (p$x[[i_pri]] + p$x[[i_seg]]) / 2
+  my <- (p$y[[i_pri]] + p$y[[i_seg]]) / 2
+  f <- max(1L, min(nrow(img), as.integer(round((1 - my) * nrow(img)))))
+  c0 <- max(1L, min(ncol(img), as.integer(round(mx * ncol(img)))))
+  tono <- prosecnurapp:::.ccx_tono_de_pabellon(primera)
+  color <- grDevices::col2rgb(prosecnurapp:::.ccx_paleta_tonos()[[tono + 1L]])[, 1] / 255
+  muestra <- vapply(1:3, function(k) {
+    stats::median(img[max(1L, f - 1L):min(nrow(img), f + 1L),
+                      max(1L, c0 - 1L):min(ncol(img), c0 + 1L), k])
+  }, numeric(1))
+  # Ahí manda el relleno pleno de la resaltada, no el blanco del chip vecino.
+  expect_true(
+    all(abs(muestra - color) <= 0.15),
+    info = sprintf("zona disputada %s/%s: (%.3f, %.3f, %.3f)",
+                   primera, pab$letra[[i_seg]], muestra[1], muestra[2], muestra[3])
+  )
 })

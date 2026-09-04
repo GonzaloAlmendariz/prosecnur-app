@@ -45,7 +45,7 @@ export const PABELLONES_CAMPUS: readonly PabellonDelCroquis[] = [
   { letra: "U", lat: -12.072251, lng: -77.08106, fuente: "oficial" },
   { letra: "V", lat: -12.073125, lng: -77.08188, fuente: "osm" },
   { letra: "X", lat: -12.065333, lng: -77.078511, fuente: "oficial" },
-  { letra: "Y", lat: -12.066823, lng: -77.078832, fuente: "derivada" },
+  { letra: "Y", lat: -12.06683, lng: -77.079414, fuente: "google" },
   { letra: "Z", lat: -12.069115, lng: -77.080909, fuente: "oficial" },
 ];
 

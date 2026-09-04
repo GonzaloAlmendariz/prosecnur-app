@@ -389,15 +389,6 @@
         "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
         "building_room"
       )),
-      # El aula que decia el CATALOGO, conservada aparte. No se imprime: sirve
-      # para saber cual quedo desmentida cuando el equipo confirma otra, y asi
-      # poder retirarla del rotulo de sesiones que la lleva incrustada (el
-      # titulo de la ficha decia «CH 141 VIE 10:00-13:00 N502» mientras el
-      # campo ya decia A206: la misma hoja con dos aulas).
-      venue_catalogo = .collection_first_string(row, c(
-        "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
-        "building_room"
-      )),
       teacher = .collection_first_string(row, c(
         "teacher", "docente", "nombre_de_docente", "nombre_del_docente", "profesor", "profesora"
       )),

@@ -171,15 +171,18 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   rows <- collection_material_field_form_rows()
   etiquetas <- unlist(lapply(rows, function(r) vapply(r$fields, function(f) f$label, character(1))))
   expect_true(all(c(
-    "Facultad", "Pabellón y aula:", "Curso:", "Horario del curso:", "Docente:",
+    "Facultad", "Pabellón y aula:", "Curso:", "Horario:", "Docente:",
     "N° de alumnos en aula", "N° de encuestas aplicadas:",
     "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:",
-    # «Ya respondieron» es observable (el alumno lo dice); «Efectivas» sigue
-    # IMPRESA pero como nota —la calcula el sistema— y ya no se pide a mano.
+    # «Ya respondieron» es observable (el alumno lo dice). «Efectivas» ya no
+    # aparece de ninguna forma: la calcula el sistema desde la plataforma, así
+    # que no ocupa sitio en el papel (poda de Gonzalo, 2026-09-03). El rótulo
+    # del horario se acortó a «Horario:» al pasar los seis impresos a tres
+    # renglones de dos.
     # «Hombres:»/«Mujeres:» salieron de la hoja el 2026-09-03: no tenian campo
     # destino en el modelo y el aplicador los contaba para nada
     # (test-collection-ficha-observable.R fija la hoja nueva).
-    "Ya respondieron:", "Efectivas:",
+    "Ya respondieron:",
     # Matriculados (impreso, viene del plan) y observaciones (en blanco).
     "N° de alumnos matriculados:", "Observaciones:"
   ) %in% etiquetas))
@@ -207,7 +210,7 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   expect_identical(bindings[["Facultad"]], "unit.faculty")
   expect_identical(bindings[["Pabellón y aula:"]], "unit.venue")
   expect_identical(bindings[["Curso:"]], "unit.course_name")
-  expect_identical(bindings[["Horario del curso:"]], "unit.schedule")
+  expect_identical(bindings[["Horario:"]], "unit.schedule")
   expect_identical(bindings[["Docente:"]], "unit.teacher")
   expect_identical(bindings[["N° de alumnos matriculados:"]], "unit.eligible_n")
 
@@ -340,11 +343,12 @@ test_that("el QR domina la pagina y se relee con la geometria de este layout", {
 test_that("el titulo son los codigos de la unidad, centrado y debajo del QR", {
   skip_if_not_installed("png")
   compiled <- .cfx_compiled(collection_material_field_sheet_template())
-  # Sin codigo operativo en las dimensiones, el fixture solo tiene la etiqueta:
-  # media identidad en caja alta, que es mejor que una cadena con un hueco.
+  # El fixture no trae ni codigo operativo ni aula, asi que el titulo sale
+  # vacio y el dibujante cae al rotulo de la unidad DECLARANDOLO
+  # (`sheet_title_missing`), que es lo que ya hacia para el origen legacy.
   expect_identical(
     Filter(function(b) identical(b$block_id, "titulo"), compiled$pages[[1]]$blocks)[[1]]$value,
-    "ROTULO DE LA UNIDAD"
+    ""
   )
 
   dir <- tempfile("cfx-title-"); dir.create(dir)
@@ -582,30 +586,32 @@ test_that("lines fuera de rango lo rechaza el contrato de plantilla", {
   )))
 })
 
-test_that("el titulo lleva los DOS codigos: operativo y curso-horario", {
-  # Pedido de Gonzalo (2026-08-27): «el titulo debe decir CH X COD-COD».
-  # Por separado ninguno basta. El académico solo —«mat202_0591»— identifica el
-  # curso pero no el operativo, y «CH 1» vivía sólo en el nombre del archivo,
-  # que desaparece en cuanto la hoja se imprime.
-  expect_identical(.crf_codigo_ficha("CH 1", "mat202_0591"), "CH 1 MAT202_0591")
-  expect_identical(.crf_codigo_ficha("R 1.2", "1mat37_0521"), "R 1.2 1MAT37_0521")
-  expect_identical(.crf_codigo_ficha("EXTRA 79", "1cce17_0506"), "EXTRA 79 1CCE17_0506")
+test_that("el titulo lleva el codigo operativo y el PABELLON", {
+  # El titulo cambio de segunda pieza (poda de Gonzalo, 2026-09-03): antes
+  # llevaba el curso-horario academico —«CH 1 MAT202_0591»—, ahora lleva el
+  # PABELLON CONFIRMADO. «¿Cual es la razon por la cual debajo del QR, el
+  # titulo, que es lo mas importante, esta el horario del curso? No me parece
+  # que tenga demasiado sentido... deberia tener simplemente el codigo y el
+  # pabellon». Lo academico sigue impreso en su campo «Curso:».
+  #
+  # El compositor no cambio: sigue uniendo dos piezas y tolerando que falte
+  # cualquiera. Lo que cambio es QUE se le pasa como segunda pieza.
+  expect_identical(.crf_codigo_ficha("CH 1", "A206"), "CH 1 \u00b7 A206")
+  expect_identical(.crf_codigo_ficha("R 1.2", "z412"), "R 1.2 \u00b7 Z412")
 
   # Media identidad es mejor que una cadena con un hueco.
-  expect_identical(.crf_codigo_ficha("", "mat202_0591"), "MAT202_0591")
+  expect_identical(.crf_codigo_ficha("", "A206"), "A206")
   expect_identical(.crf_codigo_ficha("CH 1", ""), "CH 1")
   expect_identical(.crf_codigo_ficha("", ""), "")
-  # Hay marcos donde el código operativo ES el curso-horario: no se repite.
-  expect_identical(.crf_codigo_ficha("MAT202_0591", "mat202_0591"), "MAT202_0591")
-  # El guion bajo se conserva: es la forma del marco, la del nombre del PDF y la
-  # del identificador que viaja en el QR. Traducirlo daria dos escrituras del
-  # mismo codigo en la misma hoja.
-  expect_false(grepl("-", .crf_codigo_ficha("CH 1", "mat202_0591"), fixed = TRUE))
+  # Si ambas piezas son la misma, no se repite.
+  expect_identical(.crf_codigo_ficha("A206", "a206"), "A206")
 
   # Y llega compilado al bloque de título, no sólo calculado.
   template <- collection_material_field_sheet_template()
-  compiled <- .cfx_compiled(template, dimensions = list(legacy_ref = "CH 1"))
-  expect_identical(.crf_block(compiled$pages[[1]], "heading")$value, "CH 1 ROTULO DE LA UNIDAD")
+  compiled <- .cfx_compiled(
+    template, dimensions = list(legacy_ref = "CH 1", venue = "A206")
+  )
+  expect_identical(.crf_block(compiled$pages[[1]], "heading")$value, "CH 1 \u00b7 A206")
 })
 
 test_that("un curso largo envuelve a segunda linea en vez de recortarse", {
