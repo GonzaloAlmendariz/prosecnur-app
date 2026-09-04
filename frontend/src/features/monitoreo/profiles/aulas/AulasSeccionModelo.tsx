@@ -8,6 +8,7 @@ import { AulasCargaDeCampo } from "./AulasCargaDeCampo";
 import { hayHorarioDeCurso } from "./cargaDeCampo";
 import { choquesDeHorario } from "./choquesDeHorario";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
+import { AulasRitmoDeAgendacion } from "./AulasRitmoDeAgendacion";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasSelectorDeEslabon } from "./AulasSelectorDeEslabon";
 import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
@@ -198,6 +199,11 @@ export function AulasSeccionModelo({
             data-qa-geometry-contract="intrinsic"
           >
             <AulasMedioDeContacto filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]} />
+            {/* El ritmo diario (dictado 2026-09-03: «no hay forma de ver el
+                avance diario de agendación, qué tan rápido se agenda»): entre
+                el medio y la cola, porque contesta la tercera pregunta del
+                agendamiento — no con qué ni a quién, sino CÓMO VAMOS. */}
+            <AulasRitmoDeAgendacion filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]} />
             {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
                 por eso comparten pestaña; el medio dice con qué y la cola con
                 quién. */}
