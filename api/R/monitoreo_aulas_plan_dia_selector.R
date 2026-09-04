@@ -157,8 +157,31 @@
 # vacío, así que el área enseña SOLO las aulas del día. Selector vacío = área
 # vacía; un día sin filas (una elección rancia tras replanear) declara su
 # vacío en texto, jamás un #N/A pelado.
+#
+# **El selector se compara como TEXTO, y ahí estaba el defecto.**
+#
+# Medido sobre el Sheets publicado el 2026-09-04: con «2026-09-09» elegido, el
+# área decía «Sin aulas agendadas para ese día» mientras el listado de abajo
+# traía su curso-horario. La causa es de tipos y afectaba a TODOS los días, no
+# a uno:
+#
+#   - la columna de fechas se escribe con `valueInputOption=RAW` —decisión
+#     documentada del publicador, para que Sheets no parsee «0205» ni fechas
+#     por locale—, así que es TEXTO;
+#   - el desplegable ofrece esos mismos textos, pero elegir una opción equivale
+#     a TIPEARLA, y Sheets sí parsea lo tipeado: la celda queda con una FECHA.
+#
+# Texto igual a fecha es siempre falso, así que el filtro no devolvía nunca
+# nada. Se normaliza el lado del SELECTOR, que es una celda escalar: `TEXT` con
+# el patrón ISO si Sheets lo convirtió en fecha, y el texto tal cual si no. Del
+# otro lado no hace falta —la columna es texto por construcción— y además
+# normalizar un rango dentro de `FILTER` dependería de que `TEXT` vectorice,
+# que es justo lo que no conviene apostar en una fórmula que no se puede
+# probar sin publicar.
 .mapds_formula <- function(geo) {
   sel <- sprintf("$%s$%d", .malar_col_a1(geo$sel_col + 1L), geo$sel_fila)
+  # El día elegido, siempre como «YYYY-MM-DD».
+  sel_txt <- sprintf('IF(ISNUMBER(%s);TEXT(%s;"yyyy-mm-dd");TO_TEXT(%s))', sel, sel, sel)
   desde <- geo$fila_cabecera_listado + 1L
   hasta <- geo$n_filas
   rango <- function(col) {
@@ -172,7 +195,7 @@
     ),
     sel,
     .malar_col_a1(1L), desde, .malar_col_a1(geo$n_cols), hasta,
-    rango(geo$col_fecha), sel,
+    rango(geo$col_fecha), sel_txt,
     rango(geo$col_codigo)
   )
 }

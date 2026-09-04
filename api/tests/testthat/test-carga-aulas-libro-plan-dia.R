@@ -890,9 +890,13 @@ test_that("B21: INICIO parsea la hora pactada (am/pm y 24h) y FIN suma la duraci
   # Gonzalo teclea con am/pm; el libro trae 24 horas. Ambas se leen con el
   # MISMO parser del motor B11 y salen canónicas HH:MM.
   expect_identical(unname(inicio[["CH 21"]]), "09:25")
-  expect_identical(unname(fin[["CH 21"]]), "09:45")
+  # FIN suma la duración del MOTOR (`.mav_DURACION_MIN`), que son 30 minutos.
+  # Este test pinchaba 20 y quedó rojo cuando la constante subió: la ventana de
+  # 30 es la que la app enseña en todas partes («aplica 11:30 a 12:00»), así
+  # que lo viejo era el número de aquí y no el del producto.
+  expect_identical(unname(fin[["CH 21"]]), "09:55")
   expect_identical(unname(inicio[["CH 22"]]), "15:25")
-  expect_identical(unname(fin[["CH 22"]]), "15:45")
+  expect_identical(unname(fin[["CH 22"]]), "15:55")
   # Sin hora pactada no hay ventana que declarar — ni inventada ni «00:00».
   expect_identical(unname(inicio[["CH 23"]]), "")
   expect_identical(unname(fin[["CH 23"]]), "")
@@ -961,4 +965,33 @@ test_that("B21: las filas estructurales no llevan ventana — INICIO y FIN vací
   expect_gt(length(estructurales), 0L)
   expect_true(all(m[estructurales, col_inicio] == ""))
   expect_true(all(m[estructurales, col_fin] == ""))
+})
+
+# **El día elegido se compara como TEXTO, o el área sale vacía siempre.**
+#
+# Medido sobre el Sheets publicado el 2026-09-04: con «2026-09-09» elegido, el
+# área del día decía «Sin aulas agendadas para ese día» mientras el listado de
+# abajo traía su curso-horario. La columna se escribe en RAW —es texto— pero
+# elegir en el desplegable equivale a TIPEAR, y Sheets parsea lo tipeado a
+# FECHA. Texto igual a fecha es siempre falso, así que no era ese día: era
+# todos.
+test_that("B20: la fórmula normaliza el selector a texto antes de comparar", {
+  skip_if_not_installed("digest")
+  mock <- .pd_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = .pd_plan())
+  formulas <- .pd_formulas_de(mock, "Plan del día")
+  filtro <- Filter(function(f) grepl("FILTER(", f, fixed = TRUE), formulas)
+  expect_gte(length(filtro), 1L)
+
+  f <- filtro[[1]]
+  # El selector pasa por ISNUMBER/TEXT/TO_TEXT antes de entrar al FILTER: sin
+  # eso la comparación es de tipos distintos.
+  expect_match(f, "ISNUMBER(", fixed = TRUE)
+  expect_match(f, 'TEXT(', fixed = TRUE)
+  expect_match(f, '"yyyy-mm-dd"', fixed = TRUE)
+  expect_match(f, "TO_TEXT(", fixed = TRUE)
+  # Y el pin de locale sigue: ni una coma fuera de comillas.
+  expect_false(grepl(",", gsub('"[^"]*"', "", f), fixed = TRUE))
 })
