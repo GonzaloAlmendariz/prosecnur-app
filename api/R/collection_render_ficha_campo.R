@@ -218,6 +218,18 @@
             gp = valor_gp
           )
         }
+      } else if (nzchar(.crf_txt(cell$note, ""))) {
+        # Un campo con NOTA dice algo en vez de pedirlo: texto tenue en
+        # cursiva y NINGUNA raya. La raya es una invitación a escribir, y este
+        # campo existe justo para que nadie escriba en él —«Efectivas» la
+        # calcula el sistema desde la plataforma, no el ojo del aplicador—.
+        nota_gp <- grid::gpar(col = tokens$soft, fontsize = L$label_size - 0.6, fontface = "italic")
+        nota_x <- cursor + .cfc_text_width(label, gp) + L$gap
+        grid::grid.text(
+          .cfc_recortar(.crf_txt(cell$note, ""), cursor + span - L$gap - nota_x, nota_gp),
+          x = nota_x, y = y, just = c("left", "bottom"),
+          default.units = "npc", gp = nota_gp
+        )
       } else {
         rule_from <- cursor + .cfc_text_width(label, gp) + L$gap
         rule_to <- cursor + span - L$gap
@@ -374,8 +386,8 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
 #' @export
 collection_material_field_form_rows <- function() {
   fila <- function(...) list(fields = list(...))
-  campo <- function(label, span, binding = NULL, lines = NULL) {
-    list(label = label, span = span, binding = binding, lines = lines)
+  campo <- function(label, span, binding = NULL, lines = NULL, note = NULL) {
+    list(label = label, span = span, binding = binding, lines = lines, note = note)
   }
   list(
     # Los cinco primeros campos SE SABEN antes de entrar al aula, asi que se
@@ -401,20 +413,30 @@ collection_material_field_form_rows <- function() {
     fila(campo("Horario del curso:", 1, binding = "unit.schedule")),
     fila(campo("Docente:", 0.60, binding = "unit.teacher"),
          campo("N° de alumnos matriculados:", 0.40, binding = "unit.eligible_n")),
-    # Sin «Menores de edad» (lo quito Gonzalo el 2026-09-01: no participa del
-    # cuadre y el libro no tiene columna para el); su ancho se reparte para que
-    # el conteo de asistencia tenga raya donde escribir de verdad.
+    # **Solo lo que el aplicador VE con sus ojos** (dictado de Gonzalo,
+    # 2026-09-03: «los aplicadores no tienen una forma de saber si el alumno
+    # finalizó la encuesta pasando por los filtros o no»).
+    #
+    # Se fue el H/M —«Hombres:»/«Mujeres:»—: medido, no existe campo destino en
+    # el lector de partes, ni en el parte en-app, ni en el modelo del plan. El
+    # aplicador contaba cabezas y el dato moria en el papel. Si algun dia hace
+    # falta el denominador por sexo (la plataforma solo sabe el sexo de quien
+    # RESPONDIO, no el de los presentes), vuelve CON su campo, no antes.
+    #
+    # Los asistentes y las aplicadas van juntos y a media hoja cada uno: son
+    # los dos numeros grandes del parte y la raya larga es donde se escribe.
     fila(
-      campo("N° de alumnos en aula", 0.44), campo("Hombres:", 0.28),
-      campo("Mujeres:", 0.28)
+      campo("N° de alumnos en aula", 0.5),
+      campo("N° de encuestas aplicadas:", 0.5)
     ),
-    # Los cuatro numeros que el cuadre del parte comprueba —asistentes menos
-    # rechazos menos duplicados igual efectivas— en una sola fila. El papel no
-    # pedia los dos ultimos, asi que quien aplica en el aula no anotaba lo que
-    # despues hay que meter en el Excel y en la app.
+    # Por que faltan las que faltan, y la unica cifra que NO se pide.
+    # «Efectivas» se queda impresa con su leyenda —el equipo la buscaria si
+    # desapareciera— pero como NOTA: la calcula el sistema desde la
+    # plataforma, que es quien sabe si la respuesta paso los filtros
+    # declarados (la precedencia ya vive en `.madt_efectivas`).
     fila(
-      campo("N° de encuestas aplicadas:", 0.34), campo("Rechazos:", 0.18),
-      campo("Ya respondieron:", 0.26), campo("Efectivas:", 0.22)
+      campo("Rechazos:", 0.3), campo("Ya respondieron:", 0.36),
+      campo("Efectivas:", 0.34, note = "las calcula el sistema")
     ),
     fila(campo("Aplicador/a", 1)),
     fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55)),

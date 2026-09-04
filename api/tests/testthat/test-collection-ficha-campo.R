@@ -172,9 +172,13 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   etiquetas <- unlist(lapply(rows, function(r) vapply(r$fields, function(f) f$label, character(1))))
   expect_true(all(c(
     "Facultad", "Pabellón y aula:", "Curso:", "Horario del curso:", "Docente:",
-    "N° de alumnos en aula", "Hombres:", "Mujeres:", "N° de encuestas aplicadas:",
+    "N° de alumnos en aula", "N° de encuestas aplicadas:",
     "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:",
-    # Los dos numeros que el cuadre del parte comprueba y que el papel no pedia.
+    # «Ya respondieron» es observable (el alumno lo dice); «Efectivas» sigue
+    # IMPRESA pero como nota —la calcula el sistema— y ya no se pide a mano.
+    # «Hombres:»/«Mujeres:» salieron de la hoja el 2026-09-03: no tenian campo
+    # destino en el modelo y el aplicador los contaba para nada
+    # (test-collection-ficha-observable.R fija la hoja nueva).
     "Ya respondieron:", "Efectivas:",
     # Matriculados (impreso, viene del plan) y observaciones (en blanco).
     "N° de alumnos matriculados:", "Observaciones:"
@@ -452,8 +456,13 @@ test_that("los numeros de cada fila densa no se pisan entre si", {
   L <- prosecnurapp:::.cfc_layout()
   filas <- collection_material_field_form_rows()
   n_campos <- vapply(filas, function(f) length(f$fields), integer(1))
-  idx <- which(n_campos >= 3L)
-  expect_length(idx, 2L)
+  # >= 2 y no >= 3: al retirarse «Hombres»/«Mujeres» de la hoja (2026-09-03)
+  # la unica fila de tres campos es «Rechazos · Ya respondieron · Efectivas».
+  # El invariante que este test cuida —varias etiquetas en un renglon no se
+  # pisan— vale igual para las de dos, y asi sigue cubriendo mas hoja, no
+  # menos.
+  idx <- which(n_campos >= 2L)
+  expect_gte(length(idx), 4L)
 
   for (fila_idx in idx) {
     y <- L$form_top - (fila_idx - 1L) * L$form_step
