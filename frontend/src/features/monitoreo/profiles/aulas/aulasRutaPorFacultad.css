@@ -41,3 +41,46 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+
+/* Los tres casos de reemplazo, visibles en el FONDO del box (dictado
+   2026-09-03: «un color quizás un poquito amarillento si es caso A…
+   ligeramente distinto si es B… y distinto si es C»). Lavados tenues sobre
+   la fila de la reserva —el titular queda en blanco— y la marca como pill
+   con el mismo tono: el identificador pequeño de a qué caso responde.
+   A = reemplaza (ámbar: acción sobre un hueco) · B = complementa (verde:
+   suma) · C = refuerzo (acero: capacidad operativa). */
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad li.es-caso-a {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+  border-radius: 8px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad li.es-caso-b {
+  background: color-mix(in srgb, var(--pulso-success-bg) 45%, var(--pulso-surface));
+  border-radius: 8px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad li.es-caso-c {
+  background: color-mix(in srgb, var(--pulso-info-bg) 50%, var(--pulso-surface));
+  border-radius: 8px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-reemplaza,
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-complementa,
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-refuerzo {
+  display: inline-block;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-reemplaza {
+  background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
+  border: 1px solid var(--pulso-warn-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-complementa {
+  background: var(--pulso-success-bg); color: var(--pulso-success-fg);
+  border: 1px solid var(--pulso-success-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-refuerzo {
+  background: var(--pulso-info-bg); color: var(--pulso-info-fg);
+  border: 1px solid var(--pulso-info-border);
+}

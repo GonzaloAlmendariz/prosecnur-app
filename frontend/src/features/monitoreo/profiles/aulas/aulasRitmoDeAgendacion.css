@@ -66,3 +66,10 @@
   color: var(--pulso-text-faint);
   white-space: nowrap;
 }
+
+/* La fila del relevo (caso A) en la cola, con el mismo lavado amarillento de
+   la ruta: quien reparte llamadas ve de un vistazo cuáles son reemplazos
+   directos de un rechazo. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla tr.es-caso-a td {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+}
