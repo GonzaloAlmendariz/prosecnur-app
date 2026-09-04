@@ -78,8 +78,8 @@
 # le toca («Ana Prueba (fuera de su disponibilidad)»), que es donde se lee sin
 # tener que cruzar dos columnas. Y la marca de puesta a mano se queda en la
 # app, que es donde se pone y se deshace.
-.ala_CABECERA <- c("CURSO-HORARIO", "FACULTAD", "LUGAR", "RECOJO", "SALE AL AULA",
-                   "APLICACIÓN", "APLICADOR", "ESTADO DE APLICACIÓN")
+.ala_CABECERA <- c("APLICADOR", "DÍA", "AULAS", "EN OFICINA", "SALE A APLICAR",
+                   "TERMINA", "CURSOS-HORARIO DEL DÍA", "ESTADO DE APLICACIÓN")
 
 #' Las filas de la hoja de asignación, tipadas — el ÚNICO constructor.
 #'
@@ -136,56 +136,97 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   poner("nota", "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.")
   poner("nota", "")
 
+  # **La hoja gira alrededor del APLICADOR, no del día** (dictado 2026-09-04:
+  # «asignación debe estar centrada en torno al aplicador: lo que tiene el
+  # aplicador, a cuántas aulas va, en qué días, y qué días tiene que estar en
+  # oficina»). El recorrido por día vive en «Plan del día», que es la hoja
+  # operativa; duplicarlo aquí era tener dos hojas diciendo lo mismo y ninguna
+  # contestando «¿qué le toca a Fulano?».
+  #
+  # Una fila por APLICADOR y DÍA, porque las tres horas que él pide —oficina,
+  # salida y fin— son del día, no de la semana. El detalle cita a cita no entra:
+  # va en el Plan del día, con su aula, su docente y su ficha.
+  jornadas <- list()   # "aplicador\rfecha" -> lista de sus citas
+  etiqueta_de <- list()
   for (d in (rep[["dias"]] %||% list())) {
-    asigs <- d[["asignaciones"]] %||% list()
-    lugares_dia <- vapply(asigs, function(a) lugar_de(.ala_txt(a[["codigo"]])), character(1))
-    # Dictado 2026-09-03: «no son citas, son aplicaciones». El conteo del día
-    # dice la unidad correcta, y el croquis va todo en corto para no repetir
-    # la palabra («7 aplicaciones — 3 en A · 2 en J»).
-    croquis <- .ala_croquis(lugares_dia, primera_completa = FALSE)
-    # Dictado 2026-09-04: «basta de los em dashes». El separador de la casa es
-    # el punto medio, y el detector de estilos de abajo (`.ala_ES_DIA`) cambia
-    # EN EL MISMO commit: la fila de día se reconoce por este formato, así que
-    # tocar uno sin el otro dejaba el día sin su navy.
-    poner("dia", sprintf(
-      "%s · %d %s%s",
-      .ala_etiqueta(.ala_txt(d[["fecha"]])), length(asigs),
-      if (length(asigs) == 1L) "aplicación" else "aplicaciones",
-      if (nzchar(croquis)) paste0(" · ", croquis) else ""
-    ))
-    if (length(asigs)) {
-      poner("cabecera", .ala_CABECERA)
-      for (a in asigs) {
-        cod <- .ala_txt(a[["codigo"]])
-        aviso <- .ala_txt(a[["advertencia"]])
-        poner("dato", c(
-          cod,
-          facultad_de(cod),
-          lugar_de(cod),
-          .ala_txt(a[["recojo"]]),
-          .ala_txt(a[["salida"]]),
-          paste0(.ala_txt(a[["inicio"]]),
-                 if (nzchar(.ala_txt(a[["fin"]]))) paste0(" a ", .ala_txt(a[["fin"]])) else ""),
-          # El nombre, escrito como se escribe un nombre (dictado 2026-09-04).
-          # El nombre, y el aviso pegado a él cuando lo hay.
-          paste0(
-            aulas_nombre_aplicador(a[["aplicador"]]),
-            if (nzchar(aviso)) sprintf(" (%s)", .ala_AVISO[[aviso]] %||% aviso) else ""
-          ),
-          # Dictado 2026-09-04: el estado inicial es POR APLICAR, no un vacío.
-          "POR APLICAR"
-        ))
+    fecha <- .ala_txt(d[["fecha"]])
+    etiqueta_de[[fecha]] <- .ala_etiqueta(fecha)
+    for (a in (d[["asignaciones"]] %||% list())) {
+      quien <- .ala_txt(a[["aplicador"]])
+      if (!nzchar(quien)) next
+      clave <- paste(quien, fecha, sep = "\r")
+      jornadas[[clave]] <- c(jornadas[[clave]], list(a))
+    }
+  }
+
+  if (length(jornadas)) {
+    poner("bloque", "QUÉ LE TOCA A CADA APLICADOR")
+    poner("cabecera", .ala_CABECERA)
+    # Por nombre legible y, dentro, por fecha: se lee «Fulano: el lunes esto, el
+    # jueves esto otro», que es la pregunta que la hoja contesta.
+    claves <- names(jornadas)
+    quien_de <- vapply(strsplit(claves, "\r", fixed = TRUE), `[[`, character(1), 1L)
+    fecha_de <- vapply(strsplit(claves, "\r", fixed = TRUE), `[[`, character(1), 2L)
+    orden <- order(vapply(quien_de, aulas_nombre_aplicador, character(1)), fecha_de,
+                   method = "radix")
+    for (k in claves[orden]) {
+      citas <- jornadas[[k]]
+      quien <- quien_de[[which(claves == k)[1]]]
+      fecha <- fecha_de[[which(claves == k)[1]]]
+      horas <- function(campo) {
+        v <- vapply(citas, function(a) .ala_txt(a[[campo]]), character(1))
+        v[nzchar(v)]
       }
+      # La jornada de punta a punta: entra a la oficina con el PRIMER recojo y
+      # termina con el ÚLTIMO fin. Si alguna cita no trae su hora, la celda
+      # calla en vez de dar una punta a medias.
+      recojos <- horas("recojo"); salidas <- horas("salida"); fines <- horas("fin")
+      aviso <- unique(vapply(citas, function(a) .ala_txt(a[["advertencia"]]), character(1)))
+      aviso <- aviso[nzchar(aviso)]
+      poner("dato", c(
+        paste0(
+          aulas_nombre_aplicador(quien),
+          if (length(aviso)) sprintf(" (%s)", paste(vapply(aviso, function(x)
+            .ala_AVISO[[x]] %||% x, character(1)), collapse = "; ")) else ""
+        ),
+        etiqueta_de[[fecha]] %||% fecha,
+        as.character(length(citas)),
+        if (length(recojos)) min(recojos) else "",
+        if (length(salidas)) min(salidas) else "",
+        if (length(fines)) max(fines) else "",
+        # Sus aulas del día, en orden de hora y con su lugar: el «a cuántas
+        # aulas va» con la seña que hace falta para ubicarlas.
+        paste(vapply(citas, function(a) {
+          cod <- .ala_txt(a[["codigo"]])
+          lg <- lugar_de(cod)
+          if (nzchar(lg)) sprintf("%s (%s)", cod, lg) else cod
+        }, character(1)), collapse = " · "),
+        "POR APLICAR"
+      ))
     }
-    no_cub <- unlist(d[["no_cubiertos"]] %||% list())
-    if (length(no_cub)) {
-      poner("alerta", sprintf("Sin nadie asignado: %s", paste(no_cub, collapse = ", ")))
-    }
-    pend <- unlist(d[["por_confirmar"]] %||% list())
-    if (length(pend)) {
-      poner("nota", sprintf("Por confirmar (fecha sin hora pactada): %s",
-                            paste(pend, collapse = ", ")))
-    }
+    poner("nota", "")
+  }
+
+  # Lo descubierto se declara igual: es el problema operativo del reparto y su
+  # sitio natural sigue siendo esta hoja, que es la que dice si el equipo alcanza.
+  descubiertas <- unlist(lapply(rep[["dias"]] %||% list(), function(d) {
+    cods <- unlist(d[["no_cubiertos"]] %||% list())
+    if (!length(cods)) return(NULL)
+    sprintf("%s: %s", .ala_etiqueta(.ala_txt(d[["fecha"]])), paste(cods, collapse = ", "))
+  }))
+  if (length(descubiertas)) {
+    poner("alerta", "SIN NADIE QUE LLEGUE")
+    for (linea in descubiertas) poner("nota", linea)
+    poner("nota", "")
+  }
+  pendientes <- unlist(lapply(rep[["dias"]] %||% list(), function(d) {
+    cods <- unlist(d[["por_confirmar"]] %||% list())
+    if (!length(cods)) return(NULL)
+    sprintf("%s: %s", .ala_etiqueta(.ala_txt(d[["fecha"]])), paste(cods, collapse = ", "))
+  }))
+  if (length(pendientes)) {
+    poner("nota", "Por confirmar (fecha sin hora pactada, no piden gente todavía):")
+    for (linea in pendientes) poner("nota", linea)
     poner("nota", "")
   }
 
@@ -276,7 +317,7 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
   }
 
   openxlsx::setColWidths(wb, hoja, cols = 1:8,
-                         widths = c(16, 24, 14, 10, 13, 14, 48, 22))
+                         widths = c(42, 18, 9, 15, 16, 13, 56, 22))
   invisible(TRUE)
 }
 
@@ -296,23 +337,21 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
 # columna calcados de los del xlsx (`aulas_libro_hoja_asignacion`) y las
 # columnas de hora centradas.
 
-.ala_ES_DIA <- function(celda) {
-  # El separador pasó de em dash a punto medio el 2026-09-04 («basta de los em
-  # dashes»); se acepta el viejo para que una hoja publicada ANTES del cambio
-  # siga reconociéndose al reasertar su formato.
-  grepl("^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) [0-9]{2}/[0-9]{2} [·—] ", celda)
-}
+# Los títulos de bloque de la hoja. Desde que gira alrededor del aplicador
+# (dictado 2026-09-04) ya no hay filas de día: el recorrido por jornada vive en
+# «Plan del día», que es la hoja operativa.
+.ala_BLOQUES <- c("QUÉ LE TOCA A CADA APLICADOR", "CARGAS POR APLICADOR")
 
 # Los anchos de columna de la hoja, en píxeles y por RANGOS agrupados (la
 # lección de la capa genérica: jamás una request por columna). Son los ~7 px
 # por carácter de los anchos del xlsx: identificador y lugar compactos, horas
 # parejas, APLICADOR y AVISO anchos porque llevan nombres y frases.
 .ala_ANCHOS <- list(
-  list(desde = 0L, hasta = 1L, px = 132L),  # CURSO-HORARIO
-  list(desde = 1L, hasta = 2L, px = 168L),  # FACULTAD
-  list(desde = 2L, hasta = 3L, px = 112L),  # LUGAR
-  list(desde = 3L, hasta = 6L, px = 108L),  # RECOJO · SALE AL AULA · APLICACIÓN
-  list(desde = 6L, hasta = 7L, px = 340L),  # APLICADOR (lleva su aviso al lado)
+  list(desde = 0L, hasta = 1L, px = 300L),  # APLICADOR (lleva su aviso al lado)
+  list(desde = 1L, hasta = 2L, px = 132L),  # DÍA
+  list(desde = 2L, hasta = 3L, px = 76L),   # AULAS
+  list(desde = 3L, hasta = 6L, px = 116L),  # EN OFICINA · SALE A APLICAR · TERMINA
+  list(desde = 6L, hasta = 7L, px = 400L),  # CURSOS-HORARIO DEL DÍA
   list(desde = 7L, hasta = 8L, px = 168L)   # ESTADO DE APLICACIÓN
 )
 
@@ -334,12 +373,12 @@ aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
     if (identical(primera, "ASIGNACIÓN DE APLICADORES")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
       poner(.maaf_alto_fila(sheet_id, i, 36L))
-    } else if (identical(primera, "CARGAS POR APLICADOR") || .ala_ES_DIA(primera)) {
+    } else if (primera %in% .ala_BLOQUES) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
       poner(.maaf_alto_fila(sheet_id, i, 28L))
-    } else if (primera %in% c("CURSO-HORARIO", "APLICADOR")) {
+    } else if (identical(primera, "APLICADOR") && length(celdas) > 1L) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
-    } else if (startsWith(primera, "Sin nadie asignado:") ||
+    } else if (startsWith(primera, "SIN NADIE QUE LLEGUE") ||
                startsWith(primera, "FUERA DEL RANGO ELEGIDO")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#FBE9EA", "#8F3A42"))
     } else if (length(celdas) == 1L && nzchar(primera)) {
@@ -359,7 +398,8 @@ aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
   # Ocho columnas desde que FIJADA y AVISO dejaron sitio al estado.
   if (n_cols >= 8L) {
     for (a in .ala_ANCHOS) poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
-    poner(.maaf_centrar(sheet_id, 3L, 6L, length(rows)))  # RECOJO · SALE · APLICACIÓN
+    # El conteo y las tres horas de la jornada, centrados: son cifras.
+    poner(.maaf_centrar(sheet_id, 2L, 6L, length(rows)))
   }
   requests
 }
