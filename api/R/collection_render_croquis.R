@@ -188,8 +188,8 @@ CCX_TONOS_DE_PABELLON <- 8L
   data.frame(
     nombre = c("ENTRADA PRINCIPAL", "ENTRADA UNIÓN",
                "ENTRADA RIVA-AGÜERO", "PUERTA 8", "PUERTA 10"),
-    lat = c(-12.069050, -12.071500, -12.068800, -12.066520, -12.065670),
-    lng = c(-77.077670, -77.077410, -77.082400, -77.077940, -77.080590),
+    lat = c(-12.069050, -12.071500, -12.068800, -12.066691, -12.065670),
+    lng = c(-77.077670, -77.077410, -77.082400, -77.078060, -77.080590),
     lado = c("este", "este", "oeste", "este", "norte"),
     stringsAsFactors = FALSE
   )

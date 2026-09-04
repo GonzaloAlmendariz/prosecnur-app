@@ -72,7 +72,7 @@ export const PUERTAS_CAMPUS: readonly PuertaDelCroquis[] = [
   { nombre: "Principal", lat: -12.06905, lng: -77.07767, lado: "este" },
   { nombre: "Unión", lat: -12.0715, lng: -77.07741, lado: "este" },
   { nombre: "Riva-Agüero", lat: -12.0688, lng: -77.0824, lado: "oeste" },
-  { nombre: "Puerta 8", lat: -12.06652, lng: -77.07794, lado: "este" },
+  { nombre: "Puerta 8", lat: -12.066691, lng: -77.07806, lado: "este" },
   { nombre: "Puerta 10", lat: -12.06567, lng: -77.08059, lado: "norte" },
 ];
 

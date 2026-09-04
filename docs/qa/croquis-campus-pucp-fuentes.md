@@ -89,7 +89,7 @@ como referencia.
 | Principal (Av. Universitaria 1801) | -12.069050 | -77.078300 | este | derivada (paradero Plaza Bus «Puerta principal» -12.069205,-77.078404; motos -12.068891,-77.078550) |
 | Unión | -12.071500 | -77.078500 | este | derivada (bicicletas/motos/teléfono «Unión» a lat -12.0714…-12.0716) |
 | Riva-Agüero | -12.068896 | -77.082009 | oeste | osm (edificio «Entrada» sobre Av. Riva Agüero) + PDF oficial |
-| Puerta 8 | -12.066520 | -77.078193 | noreste | **aproximada** (marcador oficial de motos «Puerta 8») |
+| Puerta 8 | -12.066691 | -77.078060 | noreste | **google** — place público «Puerta Nº 8 - Rosales - PUCP» (barrido 2026-09-03) |
 | Puerta 10 | -12.067052 | -77.080572 | norte | **aproximada** (marcador oficial de motos «Puerta 10»; el punto cae al interior — se dibuja sobre el borde norte más cercano) |
 
 ## Capa de geometría (huellas, caminos, verdes)
@@ -139,7 +139,8 @@ esta lista se dibuja con seguridad falsa: hoy cae al comportamiento declarado.
 | Qué | Estado hoy | Cómo se mejora |
 |---|---|---|
 | Pabellón **Y** (Arte y Diseño) | posición **derivada** de 3 marcadores vecinos; huella asignada por contención | confirmación de campo en la jornada 1 (el equipo pasa por la zona de Arte) o consulta a Intendencia de Aulas |
-| Puertas **8** y **10** | posición **aproximada** (marcadores de estacionamiento, proyectadas al borde) | confirmar lado y posición en campo; candidato de fuente: plano de Seguridad PUCP |
+| Puerta **10** | posición **aproximada** (marcador de estacionamiento, proyectada al borde; sin place en Google) | confirmar lado y posición en campo. (La 8 salió del plan: place «Puerta Nº 8 - Rosales» 2026-09-03) |
+| **Aulas Móviles** | DOS ubicaciones contradictorias: el POI-layer de la captura del dueño lo pinta en la esquina NO de Letras y el place «Aulas Moviles PUCP» está en zona Ingeniería (-12.071862, -77.082221) — son módulos móviles, literal | confirmar en campo si el operativo lo necesita; hasta entonces NO se dibuja |
 | Letras **S, T** (venues reales «S204», «TAMB») | sin edificio en NINGUNA de las cuatro fuentes → verso con `croquis_pabellon_desconocido`. (K salió del plan: place de Google la resolvió el 2026-09-03) | pedir a la DTI / Intendencia de Aulas el catálogo aula→edificio. Pista de campo: «X115 · TAMB» sugiere TAMB cerca de Artes Escénicas |
 | Venues **numéricos** («101E», «204C», «001E») | sin letra de pabellón → «pabellón por confirmar» declarado | identificar con el equipo a qué aulario pertenecen (posible sufijo de ala); 11 venues |
 | Tokens **SIMB / LEDU / LLET** | LEDU/LLET caen a L por primera letra (paridad B31); SIMB → S desconocida | confirmar con el equipo si son salas de Letras/EEGGLL o locales aparte |
