@@ -282,3 +282,109 @@ describe("AulasAsignacionDeAplicadores — el rail como hoja de despliegue", () 
     expect((html.match(/aulas-asigna-despliegue/g) ?? []).length).toBe(1);
   });
 });
+
+/**
+ * Dictado 2026-09-04, dos indicaciones sobre la MISMA superficie:
+ *
+ * 1. «Igual esto puede ser seleccionable o no; en este caso sí quiero que se
+ *    active. Es mejor que un aplicador haga sus aplicaciones [el mismo día]…
+ *    que sus cursos-horario no estén dispersos en toda la semana, sino
+ *    concentrados en un día o dos como máximo».
+ * 2. «Quiénes no tienen asignación deben estar al principio; quiénes tienen
+ *    mayor asignación, en cuántos días toma en cuenta esa asignación; y si le
+ *    doy clic a un aplicador, que me diga: aplica este día y este otro».
+ */
+describe("AulasAsignacionDeAplicadores — concentrar el día del aplicador", () => {
+  const TRES_DIAS = {
+    dias: [
+      {
+        fecha: "2026-09-07",
+        asignaciones: [
+          { codigo: "CH 1", aplicador: "Ana Prueba", inicio: "10:00", fin: "10:20" },
+          { codigo: "CH 2", aplicador: "Ana Prueba", inicio: "12:00", fin: "12:20" },
+          { codigo: "CH 3", aplicador: "Berta Ficticia", inicio: "09:00", fin: "09:20" },
+        ],
+        no_cubiertos: [], por_confirmar: [],
+      },
+      {
+        fecha: "2026-09-14",
+        asignaciones: [{ codigo: "CH 4", aplicador: "Berta Ficticia", inicio: "16:00", fin: "16:20" }],
+        no_cubiertos: [], por_confirmar: [],
+      },
+    ],
+    equidad: [
+      { aplicador: "Ana Prueba", asignadas: 2 },
+      { aplicador: "Berta Ficticia", asignadas: 2 },
+      { aplicador: "Mario Sintetico", asignadas: 0 },
+    ],
+    concentrado: true,
+  };
+  const conToggle = (crudo: unknown) =>
+    renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores(crudo as MonitoreoAulasReparto | null)}
+        onConcentrar={() => {}}
+        hoy="2026-09-05"
+      />,
+    );
+
+  it("el criterio es un mando del panel y dice el estado del MOTOR, no un deseo local", () => {
+    const encendido = conToggle(TRES_DIAS);
+    expect(encendido).toContain("Concentrar el día del aplicador");
+    expect(encendido).toMatch(/aulas-asigna-concentrar[\s\S]{0,220}checked/);
+    // Apagado en el motor = casilla vacía: la UI no puede decir lo contrario
+    // de lo que armó el reparto que está pintando abajo.
+    expect(conToggle({ ...TRES_DIAS, concentrado: false }))
+      .not.toMatch(/aulas-asigna-concentrar[\s\S]{0,220}checked/);
+  });
+
+  it("sin onConcentrar el mando no se pinta: la hoja de solo lectura de siempre", () => {
+    expect(pinta(TRES_DIAS)).not.toContain("Concentrar el día del aplicador");
+  });
+
+  it("sin fechas de asignación el control lo DICE: dos casillas vacías no lo declaran", () => {
+    // Dictado 2026-09-04: «la asignación nunca va a ser total… siempre voy a
+    // tener que establecer una fecha de asignación… y la app también sepa que
+    // eso debe ser así». Repartir todo el horizonte no es el modo de trabajo:
+    // que sea el estado vigente se dice, no se infiere del hueco.
+    const sinRango = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores(TRES_DIAS as unknown as MonitoreoAulasReparto)}
+        onDeclararRango={() => {}}
+        hoy="2026-09-05"
+      />,
+    );
+    expect(sinRango).toContain("sin fechas: se reparte todo el horizonte");
+    // Con el rango puesto la nota desaparece y manda el botón de limpiar.
+    const conRango = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={repartoDeAplicadores({ ...TRES_DIAS, rango: { desde: "2026-09-07", hasta: "2026-09-12" } } as unknown as MonitoreoAulasReparto)}
+        onDeclararRango={() => {}}
+        hoy="2026-09-05"
+      />,
+    );
+    expect(conRango).not.toContain("sin fechas: se reparte todo el horizonte");
+    expect(conRango).toContain("Volver a todo el horizonte");
+  });
+
+  it("el rail abre con los que no tienen nada y sigue de mayor a menor carga", () => {
+    const html = conToggle(TRES_DIAS);
+    const orden = [...html.matchAll(/aulas-asigna-nombre">([^<]+)</g)].map((m) => m[1]);
+    // «Quiénes no tienen asignación deben estar al principio»: Mario abre,
+    // aunque el motor entregue la equidad en alfabeto.
+    expect(orden).toEqual(["Mario Sintetico", "Ana Prueba", "Berta Ficticia"]);
+  });
+
+  it("cada carga dice en cuántos DÍAS cae: dos el mismo día no es lo mismo que dos sueltos", () => {
+    const html = conToggle(TRES_DIAS);
+    // Ana concentró sus dos en el 07; Berta las tiene partidas en dos días.
+    expect(html).toMatch(/Ana Prueba[\s\S]{0,400}aulas-asigna-ndias[^>]*>\s*1\s*día/);
+    expect(html).toMatch(/Berta Ficticia[\s\S]{0,400}aulas-asigna-ndias[^>]*>\s*2\s*días/);
+    // Y el nombre accesible lo dice también: la marca no es solo pintura.
+    expect(html).toContain("2 aplicaciones asignadas en 1 día");
+    expect(html).toContain("2 aplicaciones asignadas en 2 días");
+    // Quien está libre no lleva marca de días: no tiene ninguno.
+    expect(html).toMatch(/Mario Sintetico[\s\S]{0,200}>0</);
+    expect(html).toContain("0 aplicaciones asignadas. Resalta");
+  });
+});

@@ -4,7 +4,7 @@ import { AlertTriangle, Check, Copy, Pin } from "../../../../vendor/lucide-react
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
-import { mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
+import { agendaDelAplicador, mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -114,7 +114,14 @@ function RangoDeDespliegue({ rango, onDeclarar }: {
         >
           {ocupado === "limpiando" ? "Volviendo…" : "Volver a todo el horizonte"}
         </button>
-      ) : null}
+      ) : (
+        /* Dictado 2026-09-04: «la asignación nunca va a ser total, siempre voy
+           a tener que establecer una fecha de asignación… y la app también
+           sepa que eso debe ser así». Sin fechas el motor reparte TODO el
+           horizonte —que no es la forma de trabajar—, y dos casillas en
+           blanco no lo dicen: el estado se declara, no se infiere. */
+        <em className="aulas-asigna-rango-sin">sin fechas: se reparte todo el horizonte</em>
+      )}
     </div>
   );
 }
@@ -125,6 +132,7 @@ export function AulasAsignacionDeAplicadores({
   onFijar = null,
   onDeclararRango = null,
   onResortear = null,
+  onConcentrar = null,
   hoy = hoyISO(),
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
@@ -153,6 +161,12 @@ export function AulasAsignacionDeAplicadores({
    * fijaciones y la equidad no cambian.
    */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
+  /**
+   * Dictado 2026-09-04: encender/apagar la concentración por día del reparto
+   * («si un aplicador viene, que haga sus 2-4 el mismo día»). `null` = solo
+   * lectura, el toggle no se pinta.
+   */
+  onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
   hoy?: string;
 }) {
@@ -163,6 +177,7 @@ export function AulasAsignacionDeAplicadores({
   // El resorteo en curso: mismo feedback que el rango («poco intuitivo» sin
   // señal de trabajo — el refetch tarda y el click parecía muerto).
   const [sorteando, setSorteando] = useState(false);
+  const [concentrando, setConcentrando] = useState(false);
   const [fijado, setFijado] = useState(false);
   // El «copiado ✓» transitorio del botón de despliegue; efímero de superficie.
   const [copiado, setCopiado] = useState(false);
@@ -204,6 +219,15 @@ export function AulasAsignacionDeAplicadores({
     }
   }
 
+  // Dictado 2026-09-04: la agenda día a día de cada aplicador, del payload.
+  const agenda = agendaDelAplicador(reparto);
+  // Y el orden del rail: los SIN asignación al principio («deben estar al
+  // principio»), después de mayor a menor carga, alfabeto al final.
+  const equidadOrdenada = [...reparto.equidad].sort((a, b) =>
+    (b.asignadas === 0 ? 1 : 0) - (a.asignadas === 0 ? 1 : 0)
+    || b.asignadas - a.asignadas
+    || a.aplicador.localeCompare(b.aplicador, "es"));
+
   const opcionesDeAplicador = reparto.equidad.map((e) => (
     <option key={e.aplicador} value={e.aplicador}>
       {e.aplicador} · {fmt(e.asignadas)}
@@ -227,7 +251,7 @@ export function AulasAsignacionDeAplicadores({
           {" "}Cada aplicador recoge materiales <strong>30 min antes</strong> de su cita y
           sale al aula <strong>15 min antes</strong>: su hora completa queda reservada.
         </p>
-        {onDeclararRango || onResortear ? (
+        {onDeclararRango || onResortear || onConcentrar ? (
           <div className="aulas-asigna-mandos">
             {onDeclararRango ? (
               <RangoDeDespliegue
@@ -259,6 +283,33 @@ export function AulasAsignacionDeAplicadores({
                   <em>sorteo n.º {fmt(reparto.semilla + 1)}</em>
                 ) : null}
               </span>
+            ) : null}
+            {/* Dictado 2026-09-04: «es mejor que un aplicador haga sus
+                aplicaciones [el mismo día]… seleccionable, y sí quiero que se
+                active». El eco viene del MOTOR: el checkbox dice el criterio
+                con el que se armó el reparto de abajo, no un deseo local. */}
+            {onConcentrar ? (
+              <label
+                className="aulas-asigna-concentrar"
+                title="Llenar la jornada de quien ya vino antes de abrir otra persona; la equidad total y lo fijado a mano siguen mandando"
+              >
+                <input
+                  type="checkbox"
+                  checked={reparto.concentrado}
+                  disabled={concentrando}
+                  onChange={() => {
+                    void (async () => {
+                      setConcentrando(true);
+                      try {
+                        await onConcentrar(!reparto.concentrado);
+                      } finally {
+                        setConcentrando(false);
+                      }
+                    })();
+                  }}
+                />
+                {concentrando ? "Aplicando…" : "Concentrar el día del aplicador"}
+              </label>
             ) : null}
           </div>
         ) : null}
@@ -545,8 +596,9 @@ export function AulasAsignacionDeAplicadores({
                 Con 0 también se listan: estar libre es un dato del reparto.
               </p>
               <ul>
-                {reparto.equidad.map((e) => {
+                {equidadOrdenada.map((e) => {
                   const activo = enFoco === e.aplicador;
+                  const dias = agenda.get(e.aplicador) ?? [];
                   return (
                     <li key={e.aplicador}>
                       <button
@@ -555,7 +607,9 @@ export function AulasAsignacionDeAplicadores({
                           e.asignadas === 0 ? " es-libre" : ""}`}
                         aria-pressed={fijado && activo}
                         aria-label={`${e.aplicador}: ${fmt(e.asignadas)} ${
-                          e.asignadas === 1 ? "aplicación asignada" : "aplicaciones asignadas"}. Resalta sus aplicaciones en el reparto`}
+                          e.asignadas === 1 ? "aplicación asignada" : "aplicaciones asignadas"}${
+                          dias.length ? ` en ${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}` : ""
+                        }. Resalta sus aplicaciones en el reparto`}
                         onMouseEnter={() => { if (!fijado) setEnFoco(e.aplicador); }}
                         onFocus={() => { if (!fijado) setEnFoco(e.aplicador); }}
                         onClick={() => {
@@ -568,7 +622,20 @@ export function AulasAsignacionDeAplicadores({
                         {/* La carga como badge del MISMO sistema de chips
                             (veredicto 2026-09-02): un solo componente, y el
                             estado «libre» lo atenúa por contexto. */}
-                        <span className="aulas-asigna-cifra"><ChipDato>{fmt(e.asignadas)}</ChipDato></span>
+                        <span className="aulas-asigna-cifra">
+                          <ChipDato>{fmt(e.asignadas)}</ChipDato>
+                          {/* En cuántos días cae su asignación (dictado
+                              2026-09-04): la señal de dispersión de un
+                              vistazo, y la que enseña si el criterio de
+                              concentración funcionó. «1 día» se dice igual —
+                              es la meta cumplida, y callarla obligaba a
+                              inferir que un hueco significa un solo día. */}
+                          {dias.length ? (
+                            <em className="aulas-asigna-ndias">
+                              {fmt(dias.length)} {dias.length === 1 ? "día" : "días"}
+                            </em>
+                          ) : null}
+                        </span>
                         {/* Su entrada del día que toca: hora y a qué cita —
                             el «a dónde va cada uno» del despliegue, sin abrir
                             la tabla. Quien no sale ese día no lleva línea. */}
@@ -592,6 +659,22 @@ export function AulasAsignacionDeAplicadores({
                             </span>
                           );
                         })()}
+                        {/* El desglose al hacer CLIC (dictado 2026-09-04:
+                            «si yo le doy clic a un aplicador, me diga: él
+                            tiene que aplicar este día y este otro, o él
+                            aplica tres veces este día, en estos horarios»).
+                            Va con `fijado`, no con el hover: abrir al pasar
+                            el mouse crece la fila y empuja las de abajo bajo
+                            el propio cursor — el rail temblaría al recorrerlo. */}
+                        {fijado && activo && dias.length ? (
+                          <span className="aulas-asigna-agenda">
+                            {dias.map((d) => (
+                              <span key={d.fecha} className="aulas-asigna-agenda-dia">
+                                <strong>{d.etiqueta}</strong> {d.horas.join(" · ")}
+                              </span>
+                            ))}
+                          </span>
+                        ) : null}
                         <i
                           className="aulas-asigna-barra"
                           style={{

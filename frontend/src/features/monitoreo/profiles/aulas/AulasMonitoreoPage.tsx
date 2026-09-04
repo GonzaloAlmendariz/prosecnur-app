@@ -763,6 +763,7 @@ function renderAulasView({
   onImportarDisponibilidad = null,
   onDeclararRango = null,
   onResortear = null,
+  onConcentrar = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -831,6 +832,8 @@ function renderAulasView({
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo del reparto. */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
+  /** Dictado 2026-09-04: concentrar el día del aplicador en el reparto. */
+  onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -878,6 +881,7 @@ function renderAulasView({
         onImportarDisponibilidad={onImportarDisponibilidad}
         onDeclararRango={onDeclararRango}
         onResortear={onResortear}
+        onConcentrar={onConcentrar}
       />
     );
   }
@@ -1397,6 +1401,21 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * Dictado 2026-09-04: concentrar el día del aplicador —«que sus cursos
+   * horario no estén dispersos en toda la semana»—. Se persiste en el config
+   * (`reparto_concentrado`) y el refresco forzado trae el reparto rearmado
+   * con el criterio nuevo; la equidad y lo fijado a mano siguen mandando.
+   */
+  const concentrar = useCallback(async (valor: boolean) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_concentrado: valor } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const confirmarDuracion = useCallback(async (min: number) => {
     try {
       await apiMonitoreoAulasConfig({ duracion_aplicacion_min: min } as Partial<MonitoreoAulasConfig>);
@@ -1780,6 +1799,7 @@ export default function AulasMonitoreoPage() {
               onImportarDisponibilidad: importarDisponibilidad,
               onDeclararRango: declararRango,
               onResortear: resortear,
+              onConcentrar: concentrar,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

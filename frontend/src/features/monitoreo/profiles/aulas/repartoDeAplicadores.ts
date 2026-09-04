@@ -109,7 +109,37 @@ export type RepartoVista = {
   rango: { desde: string; hasta: string } | null;
   /** B67: con qué sorteo se armó el reparto; 0 = el alfabético de siempre. */
   semilla: number;
+  /**
+   * Dictado 2026-09-04: el criterio de concentración por día con el que el
+   * MOTOR armó este reparto («maximizar su día») — eco, no deseo de la UI.
+   */
+  concentrado: boolean;
 };
+
+/**
+ * La agenda de UN aplicador, día a día — «que si le doy clic me diga: aplica
+ * este día y este otro, o tres veces este día, en estos horarios» (dictado
+ * 2026-09-04). Sale del MISMO payload del reparto; las horas son las del
+ * motor, en orden del día.
+ */
+export function agendaDelAplicador(
+  reparto: RepartoVista,
+): Map<string, Array<{ fecha: string; etiqueta: string; horas: string[] }>> {
+  const out = new Map<string, Array<{ fecha: string; etiqueta: string; horas: string[] }>>();
+  for (const d of reparto.dias) {
+    for (const a of d.asignaciones) {
+      const dias = out.get(a.aplicador) ?? [];
+      let dia = dias[dias.length - 1];
+      if (!dia || dia.fecha !== d.fecha) {
+        dia = { fecha: d.fecha, etiqueta: d.etiqueta, horas: [] };
+        dias.push(dia);
+      }
+      if (a.inicio) dia.horas.push(a.inicio);
+      out.set(a.aplicador, dias);
+    }
+  }
+  return out;
+}
 
 /**
  * El mapa de fijaciones que resulta de fijar (`aplicador` con nombre) o
@@ -325,6 +355,7 @@ export function repartoDeAplicadores(
       })
       .filter((f) => f.fecha !== ""),
     semilla: num(raiz.semilla) ?? 0,
+    concentrado: raiz.concentrado === true,
     rango: (() => {
       const r = (raiz.rango ?? null) as Record<string, unknown> | null;
       if (!r) return null;

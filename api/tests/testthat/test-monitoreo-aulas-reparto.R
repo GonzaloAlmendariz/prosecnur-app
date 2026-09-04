@@ -764,3 +764,102 @@ test_that("B67: la semilla rota el desempate — otro sorteo, misma equidad, fij
   expect_identical(monitoreo_aulas_reparto(plan, disp, semilla = -3)[["semilla"]], 0L)
   expect_identical(monitoreo_aulas_reparto(plan, disp, semilla = "x")[["semilla"]], 0L)
 })
+
+# --- concentración por día (dictado 2026-09-04) -------------------------------
+
+test_that("concentrado: quien ya está ese día se lleva la siguiente aplicación", {
+  # «Si un aplicador viene hasta la universidad, que haga por lo menos más de
+  # un curso-horario: concentrados en un día o dos como máximo». Dos citas del
+  # mismo día que NO se solapan (ocupación recojo→fin separada): el greedy
+  # clásico las repartía entre Ana y Beto por equidad; concentrado se las da
+  # a la misma persona.
+  plan <- list(
+    list(operational_code = "CH 1", scheduled_date = "2026-09-07",
+         scheduled_time = "09:00", scheduled_day = "lunes"),
+    list(operational_code = "CH 2", scheduled_date = "2026-09-07",
+         scheduled_time = "11:00", scheduled_day = "lunes")
+  )
+  disp <- list(
+    list(nombre = "Ana", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00")))),
+    list(nombre = "Beto", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00"))))
+  )
+  clasico <- monitoreo_aulas_reparto(plan, disp, duracion_min = 30L)
+  quien <- function(rep) vapply(rep$dias[[1]]$asignaciones, function(a) a$aplicador, character(1))
+  expect_identical(sort(quien(clasico)), c("Ana", "Beto"))
+
+  junto <- monitoreo_aulas_reparto(plan, disp, duracion_min = 30L, concentrado = TRUE)
+  expect_identical(quien(junto), c("Ana", "Ana"))
+  # El eco declara el criterio con el que se armó.
+  expect_true(isTRUE(junto$concentrado))
+  expect_false(isTRUE(clasico$concentrado))
+})
+
+test_that("concentrado respeta la ocupación completa: el solape abre a la siguiente persona", {
+  # Dos citas cuyas ocupaciones (recojo T−30 → fin) chocan: ni concentrado
+  # puede apilarlas — la segunda va a Beto, no se pierde ni se solapa.
+  plan <- list(
+    list(operational_code = "CH 1", scheduled_date = "2026-09-07",
+         scheduled_time = "09:00", scheduled_day = "lunes"),
+    list(operational_code = "CH 2", scheduled_date = "2026-09-07",
+         scheduled_time = "09:15", scheduled_day = "lunes")
+  )
+  disp <- list(
+    list(nombre = "Ana", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00")))),
+    list(nombre = "Beto", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00"))))
+  )
+  rep <- monitoreo_aulas_reparto(plan, disp, duracion_min = 30L, concentrado = TRUE)
+  quien <- vapply(rep$dias[[1]]$asignaciones, function(a) a$aplicador, character(1))
+  expect_identical(sort(quien), c("Ana", "Beto"))
+})
+
+test_that("concentrado sigue siendo equitativo entre días: cada persona toma su jornada", {
+  # Dos días con dos citas cada uno: concentrado da un día entero a cada
+  # persona (2 y 2), no los cuatro a la primera del alfabeto.
+  plan <- list(
+    list(operational_code = "CH 1", scheduled_date = "2026-09-07",
+         scheduled_time = "09:00", scheduled_day = "lunes"),
+    list(operational_code = "CH 2", scheduled_date = "2026-09-07",
+         scheduled_time = "11:00", scheduled_day = "lunes"),
+    list(operational_code = "CH 3", scheduled_date = "2026-09-08",
+         scheduled_time = "09:00", scheduled_day = "martes"),
+    list(operational_code = "CH 4", scheduled_date = "2026-09-08",
+         scheduled_time = "11:00", scheduled_day = "martes")
+  )
+  disp <- list(
+    list(nombre = "Ana", dias = list(
+      lunes = list(list(inicio = "08:00", fin = "20:00")),
+      martes = list(list(inicio = "08:00", fin = "20:00"))
+    )),
+    list(nombre = "Beto", dias = list(
+      lunes = list(list(inicio = "08:00", fin = "20:00")),
+      martes = list(list(inicio = "08:00", fin = "20:00"))
+    ))
+  )
+  rep <- monitoreo_aulas_reparto(plan, disp, duracion_min = 30L, concentrado = TRUE)
+  cargas <- vapply(rep$equidad, function(e) as.integer(e$asignadas), integer(1))
+  names(cargas) <- vapply(rep$equidad, function(e) e$aplicador, character(1))
+  expect_identical(as.integer(cargas[["Ana"]]), 2L)
+  expect_identical(as.integer(cargas[["Beto"]]), 2L)
+  # Y cada día es de UNA persona (concentración real, no mezcla).
+  por_dia <- lapply(rep$dias, function(d) unique(vapply(d$asignaciones, function(a) a$aplicador, character(1))))
+  expect_true(all(vapply(por_dia, length, integer(1)) == 1L))
+})
+
+test_that("concentrado: la fijada siembra la jornada y el greedy la llena", {
+  # Fijo a Beto en la cita de las 09:00; la de las 11:00 del mismo día debe
+  # seguirlo — la voluntad manual manda y la automática la acompaña.
+  plan <- list(
+    list(operational_code = "CH 1", scheduled_date = "2026-09-07",
+         scheduled_time = "09:00", scheduled_day = "lunes"),
+    list(operational_code = "CH 2", scheduled_date = "2026-09-07",
+         scheduled_time = "11:00", scheduled_day = "lunes")
+  )
+  disp <- list(
+    list(nombre = "Ana", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00")))),
+    list(nombre = "Beto", dias = list(lunes = list(list(inicio = "08:00", fin = "20:00"))))
+  )
+  rep <- monitoreo_aulas_reparto(plan, disp, fijadas = list(`CH 1` = "Beto"),
+                                 duracion_min = 30L, concentrado = TRUE)
+  quien <- vapply(rep$dias[[1]]$asignaciones, function(a) a$aplicador, character(1))
+  expect_identical(quien, c("Beto", "Beto"))
+})
