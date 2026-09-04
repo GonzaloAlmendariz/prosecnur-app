@@ -209,6 +209,14 @@ export function AulasSeccionModelo({
                 quién. */}
             <AulasColaDeContacto
               filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
+              // El pool CON reservas de cadena (la agenda del agendador las
+              // excluye a propósito): el rechazo de un titular despierta a su
+              // relevo en la cola — caso A del dictado 2026-09-03.
+              conReservas={soloFacultad(
+                ((dashboard.agenda ?? []) as Array<Record<string, unknown>>)
+                  .filter((f) => String(f.sample_role ?? "") !== "extra_reserve_pool"),
+                facultadEnFoco,
+              ) as unknown as MonitoreoAulasPlanRow[]}
               facultadEnFoco={facultadEnFoco}
               onFoco={onFoco}
             />

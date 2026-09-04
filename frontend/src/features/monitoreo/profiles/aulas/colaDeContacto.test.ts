@@ -105,7 +105,41 @@ describe("la cola no insiste a quien rechazó (B13b)", () => {
       fila({ operational_code: "CH 91", contact_attempts: "1" }),
     ]);
     expect(pendientes.map((p) => p.codigo)).toEqual(["CH 91"]);
-    expect(rechazadas).toBe(1);
+    expect(rechazadas).toEqual({ total: 1, titulares: 1 });
+  });
+
+  it("el rechazo del titular DESPIERTA a su primera reserva en la cola (caso A)", () => {
+    // «Se está optando por sus reemplazos directos para llamar»: la regla del
+    // motor (en_juego B13b) en la pantalla que reparte llamadas — la primera
+    // reserva no caída de SU cadena entra a la cola, marcada como relevo.
+    const { pendientes, rechazadas } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_role: "titular", faculty: "Derecho",
+             sample_status: "rechazo", contact_attempts: "1" }),
+      fila({ operational_code: "R 90.1", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 1,
+             sample_status: "en reserva 1", teacher: "Reserva Uno" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "R 90.2", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 2,
+             sample_status: "en reserva 2" } as Partial<MonitoreoAulasPlanRow>),
+    ]);
+    expect(rechazadas).toEqual({ total: 1, titulares: 1 });
+    expect(pendientes.map((p) => p.codigo)).toEqual(["R 90.1"]);
+    expect(pendientes[0]).toMatchObject({ relevoDe: "CH 90", docente: "Reserva Uno" });
+  });
+
+  it("una reserva rechazada no releva: pasa a la siguiente de la cadena", () => {
+    const { pendientes } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_role: "titular", faculty: "Derecho",
+             sample_status: "rechazo" }),
+      fila({ operational_code: "R 90.1", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 1,
+             sample_status: "rechazo" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "R 90.2", sample_role: "chain_reserve", faculty: "Derecho",
+             titular_operational_code: "CH 90", replacement_order: 2,
+             sample_status: "en reserva 2" } as Partial<MonitoreoAulasPlanRow>),
+    ]);
+    expect(pendientes.map((p) => p.codigo)).toEqual(["R 90.2"]);
+    expect(pendientes[0]!.relevoDe).toBe("CH 90");
   });
 });
 

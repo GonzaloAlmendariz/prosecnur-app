@@ -165,7 +165,7 @@ const seResolvio = (fila: MonitoreoAulasPlanRow | undefined): boolean =>
  * nuevo que nadie mapeara ofrecería un aula que ya está agendada para otra
  * cosa, y ése es el error caro.
  */
-const sigueDormida = (fila: MonitoreoAulasPlanRow): boolean => {
+export const sigueDormida = (fila: MonitoreoAulasPlanRow): boolean => {
   const v = texto((fila as { sample_status?: string }).sample_status).toLowerCase();
   // «en reserva 3» es el vocabulario del Excel para la que todavía espera.
   const norm = v.replace(/^en reserva.*$/, "en_reserva");
