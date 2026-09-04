@@ -297,7 +297,15 @@ COLLECTION_MATERIAL_BINDINGS <- c(
               )
             }
           }
-          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding", "lines"))) {
+          # `note` es un campo que DICE algo en vez de pedirlo: se imprime como
+          # texto tenue y no dibuja raya. Existe para «Efectivas», que el
+          # aplicador no puede observar —la plataforma es quien sabe si la
+          # respuesta pasó los filtros— pero que el equipo buscaría en la hoja
+          # si desapareciera sin explicación (dictado de Gonzalo, 2026-09-03).
+          if (!is.null(cell$note)) {
+            problems <- c(problems, .cm_plain_text_problem(cell$note, paste0(cell_path, ".note")))
+          }
+          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding", "lines", "note"))) {
             problems[[length(problems) + 1L]] <- .cm_problem(
               paste0(cell_path, ".", nm), "form_field_not_allowed",
               "Cada campo del formulario solo admite label, span y binding."
