@@ -6,6 +6,15 @@ import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
 import { nombreDeAplicador } from "./nombreDeAplicador";
 import { cadenasDelDia, tramoDeCadena } from "./cadenasDelDia";
+
+/**
+ * El comodín del operativo: lo aplica alguien de Pulso porque no hay
+ * aplicador disponible (dictado 2026-09-04). Es el MISMO literal que el motor
+ * reconoce (`MONITOREO_AULAS_INTERNO_PULSO`) para callarle la advertencia de
+ * «fuera de su disponibilidad»: no es una persona con horario y decírselo
+ * sería avisar de lo que ya se sabe.
+ */
+const INTERNO_PULSO = "INTERNO PULSO";
 import { claveDeCita, salidasDeDescubiertos, salidasDeLibres, type VentanaDeCita } from "./salidasDelReparto";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { Switch } from "../../../../components/Switch";
@@ -262,11 +271,31 @@ export function AulasAsignacionDeAplicadores({
   // Dictado 2026-09-04: el nombre se escribe como se escribe un nombre. El
   // `value` sigue siendo el CRUDO —es la identidad con la que el motor arma
   // `fijadas`—; normalizarlo aquí rompería la fijación en el primer acento.
-  const opcionesDeAplicador = reparto.equidad.map((e) => (
-    <option key={e.aplicador} value={e.aplicador}>
-      {nombreDeAplicador(e.aplicador)} · {fmt(e.asignadas)}
-    </option>
-  ));
+  //
+  // Y al final, separado de las personas por un divisor, el comodín del
+  // operativo: «una nueva opción llamada INTERNO PULSO, que es cuando no hay
+  // aplicadores disponibles y lo termina haciendo alguien de Pulso» (dictado
+  // 2026-09-04). Va en su propio grupo porque NO es una persona del libro de
+  // disponibilidad: mezclarlo en la lista lo haría parecer uno más, y quien
+  // busca a quién mandar tiene que ver que ahí se acaba el equipo.
+  const opcionesDeAplicador = (
+    <>
+      {reparto.equidad.map((e) => (
+        <option key={e.aplicador} value={e.aplicador}>
+          {nombreDeAplicador(e.aplicador)} · {fmt(e.asignadas)}
+        </option>
+      ))}
+      <optgroup label="Si no hay nadie del equipo">
+        <option value={INTERNO_PULSO}>
+          {INTERNO_PULSO}
+          {(() => {
+            const n = reparto.equidad.find((e) => e.aplicador === INTERNO_PULSO)?.asignadas ?? 0;
+            return n > 0 ? ` · ${fmt(n)}` : "";
+          })()}
+        </option>
+      </optgroup>
+    </>
+  );
   const fijar = (codigo: string, aplicador: string) => {
     void onFijar?.(mapaDeFijaciones(reparto.fijadas, codigo, aplicador));
   };

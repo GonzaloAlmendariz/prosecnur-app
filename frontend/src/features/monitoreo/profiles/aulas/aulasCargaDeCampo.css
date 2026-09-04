@@ -1107,3 +1107,26 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   overflow-wrap: anywhere;
   max-width: 18ch;
 }
+
+/* El bloque de descubiertos, una cita por renglón (2026-09-04: «este aviso está
+   roto»). El item era `inline-flex` SIN wrap, así que la causa —que pide línea
+   propia con `flex-basis: 100%`— no podía bajar y apretaba a sus vecinos: los
+   chips salían recortados («08:15 a 08») y la frase se iba al margen derecho.
+   Acotado a `.aulas-asigna-descubiertos` para no tocar las fijaciones
+   huérfanas, que sí son chips en línea. */
+.aulas-asigna-descubiertos .aulas-asigna-resolver {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: stretch;
+}
+.aulas-asigna-descubiertos .aulas-asigna-resolver-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 9px;
+}
+/* Los chips dicen QUÉ cita y a qué hora: no se encogen ni se parten. */
+.aulas-asigna-descubiertos .aulas-asigna-resolver-item > .aulas-chip { flex: none; }
+/* Y el selector no se come el renglón: cede antes que los chips. */
+.aulas-asigna-descubiertos .aulas-asigna-selector { flex: 0 1 auto; min-width: 12ch; }

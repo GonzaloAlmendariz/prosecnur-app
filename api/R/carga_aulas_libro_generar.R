@@ -287,7 +287,10 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
       "CANTIDAD DE RECHAZOS"         = n("rechazos"),
       "DUPLICADOS (YA RESPONDIERON)" = n("duplicados"),
       "CANTIDAD DE EFECTIVAS"        = n("efectivas"),
-      "STATUS DE APLICACIÓN"         = v("estado"),
+      # Dictado 2026-09-04: sin parte todavía, el estado es POR APLICAR, no
+      # una celda vacía. El vacío se lee como «nadie la miró» y estas aulas
+      # sí están miradas: están esperando su turno.
+      "STATUS DE APLICACIÓN"         = { e <- v("estado"); if (nzchar(e)) e else "POR APLICAR" },
       # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
       # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app
       # genera, otra columna y otra cosa—; en un libro nuevo sale vacio.

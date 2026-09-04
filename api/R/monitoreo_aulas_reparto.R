@@ -64,6 +64,20 @@
 # La disponibilidad normalizada: lista nombrada nombre → (dia → bloques en
 # minutos). Nombres vacíos se saltan; un nombre repetido conserva la primera
 # declaración (determinista).
+# **El comodín del operativo: cuando no hay aplicador y lo hace alguien de Pulso.**
+#
+# Dictado 2026-09-04: «el selector de aplicadores manual debería permitirte
+# escoger una nueva opción llamada "INTERNO PULSO", que es cuando no hay
+# aplicadores disponibles y lo termina haciendo alguien de Pulso».
+#
+# Es una fijación como cualquier otra —viaja en `reparto_fijado`— pero NO es una
+# persona con horario: no está en el libro de disponibilidad y nunca lo estará.
+# Por eso se le calla la advertencia «fuera de su disponibilidad declarada», que
+# en su caso no avisa de nada: decir que el comodín no tiene horario es decir lo
+# que ya se sabe, y un aviso que siempre salta deja de leerse. El solape SÍ se
+# le avisa: dos citas a la misma hora no las cubre nadie, ni Pulso.
+MONITOREO_AULAS_INTERNO_PULSO <- "INTERNO PULSO"
+
 .marep_oferta <- function(disponibilidad) {
   oferta <- list()
   for (a in (disponibilidad %||% list())) {
@@ -317,7 +331,8 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       .marep_cubre(oferta[[elegido]][[dia_clave]], cita$ini_ocupado, cita$fin)
     solapa <- .marep_solapa(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]],
                             cita$ini_ocupado, cita$fin)
-    advertencia <- if (solapa) "se_solapa" else if (!cubre) "sin_disponibilidad" else ""
+    es_interno <- identical(elegido, MONITOREO_AULAS_INTERNO_PULSO)
+    advertencia <- if (solapa) "se_solapa" else if (!cubre && !es_interno) "sin_disponibilidad" else ""
     # Un fijado externo a la oferta entra a la equidad al verse: sin él la
     # suma de asignaciones no cuadraría con el resumen.
     if (!elegido %in% names(carga)) {

@@ -971,3 +971,50 @@ test_that("con carga para repartir, nadie sale más de dos días", {
   con_carga <- cargas[cargas > 0L]
   expect_lte(max(con_carga) - min(con_carga), 2L)
 })
+
+# **El comodín «INTERNO PULSO»: cuando no hay aplicador y lo hace la casa.**
+#
+# Dictado 2026-09-04: «el selector de aplicadores manual debería permitirte
+# escoger una nueva opción llamada INTERNO PULSO, que es cuando no hay
+# aplicadores disponibles y lo termina haciendo alguien de Pulso».
+test_that("una cita fijada a INTERNO PULSO se asigna y NO se le advierte falta de horario", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_status = "agendada",
+         operational_status = "agendada", scheduled_date = "2026-09-07",
+         scheduled_time = "06:00")
+  )
+  # Nadie del equipo puede a las 06:00 (su recojo caería a las 05:30).
+  disp <- list(list(nombre = "Ana Uno",
+                    dias = list(lunes = list(list(inicio = "10:00", fin = "18:00")))))
+  r <- monitoreo_aulas_reparto(plan, disp,
+                               fijadas = list("CH 1" = MONITOREO_AULAS_INTERNO_PULSO))
+  a <- r$dias[[1]]$asignaciones[[1]]
+  expect_identical(a$aplicador, MONITOREO_AULAS_INTERNO_PULSO)
+  expect_true(isTRUE(a$fijada))
+  # El comodín no tiene horario y decírselo sería avisar de lo que ya se sabe:
+  # un aviso que siempre salta deja de leerse.
+  expect_identical(a$advertencia %||% "", "")
+  # Y entra a la equidad, para que la suma cuadre y se vea cuánto cargó la casa.
+  cargas <- stats::setNames(
+    vapply(r$equidad, function(e) as.integer(e$asignadas), integer(1)),
+    vapply(r$equidad, function(e) e$aplicador, character(1))
+  )
+  expect_equal(unname(cargas[[MONITOREO_AULAS_INTERNO_PULSO]]), 1L)
+})
+
+test_that("al comodín SÍ se le avisa el solape: dos a la misma hora no las cubre nadie", {
+  plan <- lapply(1:2, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_status = "agendada", operational_status = "agendada",
+    scheduled_date = "2026-09-07", scheduled_time = "06:00"
+  ))
+  disp <- list(list(nombre = "Ana Uno",
+                    dias = list(lunes = list(list(inicio = "10:00", fin = "18:00")))))
+  r <- monitoreo_aulas_reparto(
+    plan, disp,
+    fijadas = list("CH 1" = MONITOREO_AULAS_INTERNO_PULSO,
+                   "CH 2" = MONITOREO_AULAS_INTERNO_PULSO)
+  )
+  avisos <- vapply(r$dias[[1]]$asignaciones, function(a) a$advertencia %||% "", character(1))
+  expect_true("se_solapa" %in% avisos)
+})

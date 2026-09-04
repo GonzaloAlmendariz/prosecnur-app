@@ -537,3 +537,28 @@ test_that("un libro de antes de A13a —hoja «Cómo va el campo»— sigue impo
   expect_identical(length(viejo$partes), length(nuevo$partes))
   expect_identical(length(viejo$control), length(nuevo$control))
 })
+
+# **«POR APLICAR» no es un parte de campo.**
+#
+# Dictado 2026-09-04: «todas actualmente ahora deberían tener por default en
+# status de aplicación: POR APLICAR». Sembrarlo en todas las filas hacía que el
+# lector viera estado en todas y devolviera un parte por cada aula: un libro
+# recién generado, sin una sola visita, se releía con el avance completo.
+test_that("un libro recién generado no devuelve partes aunque el estado esté sembrado", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         titular_operational_code = "CH 1", faculty = "Derecho", course_name = "C",
+         teacher = "D", eligible_n = 30, scheduled_date = "2026-09-07",
+         scheduled_time = "10:00", operational_status = "agendada")
+  )
+  destino <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, destino)
+
+  # La celda SÍ trae el estado inicial…
+  celdas <- openxlsx::read.xlsx(destino, sheet = "Aulas Aplicadas (Campo)",
+                                colNames = FALSE, skipEmptyRows = FALSE)
+  expect_match(paste(unlist(lapply(celdas, as.character)), collapse = " | "),
+               "POR APLICAR", fixed = TRUE)
+  # …y aun así no hay ni un parte que leer: nadie ha visitado nada.
+  expect_length(aulas_aplicadas_leer(destino), 0L)
+})
