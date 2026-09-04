@@ -7,6 +7,7 @@ import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { dondeSeSaca } from "./dondeSeSaca";
 import { fichaDeAula } from "./fichaDeAula";
 import "./aulasFichaDeAula.css";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Un aula y todo lo suyo, en una sola lectura.
@@ -146,7 +147,11 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
       {(ficha.estado || ficha.parte.aplicador) && (
         <p className="aulas-ficha-pie">
           {ficha.estado ? <span>{aulasStatusLabel(ficha.estado)}</span> : null}
-          {ficha.parte.aplicador ? <span>{ficha.parte.aplicador}</span> : null}
+          {/* El nombre, escrito como se escribe un nombre (dictado
+              2026-09-04). Lo teclea el aplicador en la hoja de campo, así que
+              llega con las mayúsculas y los espacios que puso. */}
+          {ficha.parte.aplicador
+            ? <span>{nombreDeAplicador(ficha.parte.aplicador)}</span> : null}
         </p>
       )}
 

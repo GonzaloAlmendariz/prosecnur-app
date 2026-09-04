@@ -5,6 +5,7 @@ import { ChipDato } from "./AulasSistemaPabellon";
 import { observacionesDeCampo } from "./observacionesDeCampo";
 import { fmt } from "./kpisDeAulas";
 import "./aulasObservacionesDeCampo.css";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Lo que el campo reportó.
@@ -122,7 +123,10 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               {/* Las aulas primero: una observación repetida en ocho aulas es
                   otra cosa que la misma frase en una. */}
               <strong>{o.aulas === 1 ? "1 curso-horario" : `${fmt(o.aulas)} cursos-horario`}</strong>
-              {o.aplicadores.length ? <> · {o.aplicadores.join(", ")}</> : null}
+              {/* Nombres normalizados y unidos con punto medio: un nombre YA
+                  lleva su coma y juntarlos con otra los duplicaba a la vista. */}
+              {o.aplicadores.length
+                ? <> · {o.aplicadores.map(nombreDeAplicador).join(" · ")}</> : null}
               {o.facultades.length === 1 ? <> · {o.facultades[0]}</> : null}
               {o.facultades.length > 1 ? <> · {fmt(o.facultades.length)} facultades</> : null}
               {/* TODOS los códigos, como badges que envuelven (B33: jamás

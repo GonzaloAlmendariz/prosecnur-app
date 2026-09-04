@@ -7,6 +7,7 @@ import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Qué está rindiendo más y qué menos, facultad por facultad.
@@ -166,7 +167,11 @@ export function AulasRendimientoPorFacultad({
             <NombreDeFacultad facultad={f.facultad} className="aulas-rendimiento-nombre"
               rol="rowheader"
               enFoco={clave === "faculty" && f.facultad === facultadEnFoco}>
-              {f.facultad}
+              {/* Agrupando por APLICADOR la fila es una persona, y un nombre
+                  se escribe como se escribe un nombre (dictado 2026-09-04).
+                  Con las otras lentes la fila es una facultad, una franja o un
+                  día, y normalizarlas mangaría rótulos que no son nombres. */}
+              {clave === "applied_by" ? nombreDeAplicador(f.facultad) : f.facultad}
               {/* «encuestas» a secas obligaba a adivinar de que cuenta hablaba. */}
               <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} efectivas</em>
             </NombreDeFacultad>
