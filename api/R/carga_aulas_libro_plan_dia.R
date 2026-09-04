@@ -12,11 +12,21 @@
 # Los 13 títulos de 2025 en el orden del recorte que el equipo copiaba a mano,
 # más la ventana de B21: INICIO y FIN entran ADYACENTES tras HORA (la ventana
 # se lee de un vistazo, no partida) sin alterar el orden relativo de los 13.
+# Dictado 2026-09-04: «super importante: a qué hora deben estar en la oficina, a
+# qué hora irse a aplicar y a qué hora terminan». Las dos horas nuevas abren la
+# secuencia del día —oficina, salida, inicio, fin— porque asi es como se vive:
+# primero se recogen materiales, despues se camina al aula y al final se aplica.
+# El protocolo (T-30 y T-15) es el MISMO del motor, no una constante local.
+#
+# Y «ENLACE DE LA FICHA QR» dice de que ficha habla: la columna ya traia el
+# enlace que la app genera (`link`), pero su nombre a secas se confundia con el
+# de la ficha ESCANEADA que el equipo sube en la hoja de campo.
 .capd_CABECERA <- c(
-  "FECHA AGENDADA", "DÍA", "HORA", "INICIO", "FIN", "CURSO-HORARIO",
+  "FECHA AGENDADA", "DÍA", "HORA", "EN OFICINA", "SALE AL AULA", "INICIO", "FIN",
+  "CURSO-HORARIO",
   "NOMBRE DEL CURSO", "FACULTAD", "SESIONES Y AULA", "NOMBRE DE DOCENTE",
   "TELÉFONO DE DOCENTE", "ELEGIBLES", "APLICADOR", "ESTADO",
-  "ENLACE DE LA FICHA"
+  "ENLACE DE LA FICHA QR"
 )
 
 # B21: la ventana de aplicación de una fila-aula. INICIO = la hora pactada
@@ -28,8 +38,13 @@
 # inventadas ni «00:00».
 .capd_ventana <- function(unidad) {
   hora <- monitoreo_aulas_hora_parse(.calg_txt(unidad$scheduled_time))[[1]]
-  if (is.na(hora)) return(c("", ""))
-  c(.mav_hhmm(hora), .mav_hhmm(hora + .mav_DURACION_MIN))
+  if (is.na(hora)) return(c("", "", "", ""))
+  # Dictado 2026-09-04: la jornada completa, en el orden en que se vive.
+  # Oficina y salida salen del MISMO protocolo del motor que usa el reparto
+  # (T-30 y T-15); repetir aquí los números sería la segunda copia que un día
+  # se queda vieja.
+  c(.mav_hhmm(hora - .mav_PREPARACION_MIN), .mav_hhmm(hora - .mav_SALIDA_MIN),
+    .mav_hhmm(hora), .mav_hhmm(hora + .mav_DURACION_MIN))
 }
 
 # El día de semana en castellano, SIN locale: `format(fecha, "%A")` depende del
@@ -227,8 +242,10 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list()) {
       .calg_txt(u$scheduled_date),
       .capd_dia(u),
       .calg_txt(u$scheduled_time),
-      ventana[[1L]],
-      ventana[[2L]],
+      ventana[[1L]],   # EN OFICINA
+      ventana[[2L]],   # SALE AL AULA
+      ventana[[3L]],   # INICIO
+      ventana[[4L]],   # FIN
       .calg_txt(u$operational_code),
       .calg_txt(u$course_name),
       .calg_txt(u$faculty),

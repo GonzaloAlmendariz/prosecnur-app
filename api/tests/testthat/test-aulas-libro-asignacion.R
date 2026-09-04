@@ -38,20 +38,21 @@ test_that("B68: con disponibilidad, el libro lleva la hoja con el reparto de la 
   texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
   # El protocolo va EN la hoja, no como folclore del equipo.
   expect_match(texto, "Materiales se recogen 30 min antes")
-  # El día con su unidad correcta (dictado 2026-09-03: «no son citas, son
-  # aplicaciones») y el croquis en corto para no repetir la palabra.
+  # La hoja gira alrededor del APLICADOR desde el 2026-09-04 («asignación debe
+  # estar centrada en torno al aplicador: lo que tiene, a cuántas aulas va, en
+  # qué días y qué días tiene que estar en oficina»). El recorrido por jornada
+  # vive en «Plan del día», que es la operativa.
+  expect_match(texto, "QUÉ LE TOCA A CADA APLICADOR", fixed = TRUE)
+  expect_match(texto, "EN OFICINA", fixed = TRUE)
+  expect_match(texto, "SALE A APLICAR", fixed = TRUE)
+  expect_match(texto, "TERMINA", fixed = TRUE)
+  # Su día, con la etiqueta de la casa.
   expect_match(texto, "Viernes 11/09")
-  # Dictado 2026-09-04 («basta de los em dashes»): el separador del día y de
-  # su croquis es el punto medio de la casa.
-  expect_match(texto, "aplicaciones · 1 en A")
-  expect_no_match(texto, "Viernes 11/09 —")
   # El reparto del MISMO motor: empate 0-0 lo gana el alfabeto.
   expect_match(texto, "Ana Prueba")
   expect_match(texto, "Berta Ficticia")
-  # La secuencia completa de la cita: recojo, salida y aplicación con FIN.
-  expect_match(texto, "09:30")             # recojo de la cita de las 10:00
-  # Y el rango de la aplicación se lee «de X a Y», como en la vista.
-  expect_match(texto, "10:00 a 10:30")
+  # La jornada de punta a punta: entra a la oficina con el primer recojo.
+  expect_match(texto, "09:30")
   # La fecha sin hora se declara, no se traga.
   expect_match(texto, "Por confirmar")
   # La equidad, dicha, con el mismo criterio del rail.
@@ -75,9 +76,11 @@ test_that("B68: la configuración vigente manda — fijadas, duración y semilla
   # era contabilidad de la app y salía vacía en toda la hoja. La marca de puesta
   # a mano se queda en la app, que es donde se pone y se deshace; lo que la
   # config fijada sigue probando aquí es que la cita la aplica QUIEN se fijó.
-  expect_match(texto, "APLICADOR | Berta Ficticia", fixed = TRUE)
-  expect_match(texto, "ESTADO DE APLICACIÓN | POR APLICAR", fixed = TRUE)
-  expect_match(texto, "10:00 a 10:45")
+  # La cita la aplica QUIEN se fijó, y su jornada sale con el estado inicial.
+  expect_match(texto, "Berta Ficticia", fixed = TRUE)
+  expect_match(texto, "POR APLICAR", fixed = TRUE)
+  # La duración del config se ve en el fin de la jornada.
+  expect_match(texto, "10:45", fixed = TRUE)
   expect_match(texto, "Sorteo: n")
 })
 
@@ -126,8 +129,10 @@ test_that("B68: el formato de Sheets calca la estética de las otras hojas — b
   # El día (título de bloque), la cabecera de tabla y la alerta de fuera de
   # rango también ganan banda — derivadas del contenido, no de números mágicos.
   primeras <- vapply(vals, function(row) trimws(as.character(row[[1]] %||% "")), character(1))
-  expect_true(which(grepl("^Viernes 11/09", primeras))[1] %in% filas_banda)
-  expect_true(which(primeras == "CURSO-HORARIO")[1] %in% filas_banda)
+  # Desde el 2026-09-04 los bloques son los del aplicador; el recorrido por
+  # jornada vive en «Plan del día».
+  expect_true(which(primeras == "QUÉ LE TOCA A CADA APLICADOR")[1] %in% filas_banda)
+  expect_true(which(primeras == "APLICADOR")[1] %in% filas_banda)
   expect_true(which(grepl("^FUERA DEL RANGO", primeras))[1] %in% filas_banda)
   expect_true(which(primeras == "CARGAS POR APLICADOR")[1] %in% filas_banda)
   # Las notas van en el gris pequeño e itálico del xlsx (el protocolo es la
@@ -215,29 +220,43 @@ test_that("aulas_nombre_aplicador es el espejo del normalizador del frontend", {
   expect_equal(aulas_nombre_aplicador("   "), "")
 })
 
-# **La facultad, en el cuadro** (dictado 2026-09-04: «el cuadro no muestra la
-# facultad»). Sin ella «CH 7» no dice a qué corte pertenece y había que ir a
-# buscarlo a otra hoja.
-test_that("la hoja de asignación dice la facultad de cada cita", {
-  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
-  plan[[1]]$faculty <- "Derecho"
-  destino <- .tla_libro(plan, disponibilidad = list(.tla_disp("Ana Prueba")))
-  celdas <- openxlsx::read.xlsx(destino, sheet = "Asignación de aplicadores",
-                                colNames = FALSE, skipEmptyRows = FALSE)
-  texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
-  expect_match(texto, "FACULTAD", fixed = TRUE)
-  expect_match(texto, "Derecho", fixed = TRUE)
-})
-
-test_that("sin facultad en el plan la celda calla, no inventa un guion", {
-  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00"))
-  # El helper siembra «DERECHO» por defecto; aquí el caso es el plan que NO la
-  # trae, así que se vacía a propósito.
-  plan[[1]]$faculty <- ""
+# **La hoja gira alrededor del aplicador** (dictado 2026-09-04: «asignación
+# debe estar centrada en torno al aplicador: lo que tiene el aplicador, a
+# cuántas aulas va, en qué días y qué días tiene que estar en oficina»).
+#
+# La facultad y el detalle cita a cita salieron de aquí a propósito: viven en
+# «Plan del día», que es la hoja operativa. Dos hojas diciendo lo mismo era el
+# defecto que esta división corrige.
+test_that("una fila por aplicador y día, con su jornada de punta a punta", {
+  plan <- list(
+    .tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"),
+    .tla_fila("CH 2", fecha = "2026-09-11", hora = "16:00", venue = "J308")
+  )
   filas <- aulas_libro_filas_asignacion(plan, list(.tla_disp("Ana Prueba")))
   datos <- Filter(function(f) identical(f$tipo, "dato"), filas)
-  # La segunda celda de la fila de datos es FACULTAD.
-  expect_equal(datos[[1]]$celdas[[2]], "")
+  jornada <- datos[[1]]$celdas
+  expect_equal(jornada[[1]], "Ana Prueba")
+  expect_equal(jornada[[2]], "Viernes 11/09")
+  expect_equal(jornada[[3]], "2")            # a cuántas aulas va ese día
+  expect_equal(jornada[[4]], "09:30")        # en oficina: su primer recojo
+  expect_equal(jornada[[5]], "09:45")        # sale a aplicar
+  expect_equal(jornada[[6]], "16:30")        # termina con la última
+  expect_match(jornada[[7]], "CH 1 (A703)", fixed = TRUE)
+  expect_match(jornada[[7]], "CH 2 (J308)", fixed = TRUE)
+  expect_equal(jornada[[8]], "POR APLICAR")
+})
+
+test_that("dos días de la misma persona son dos filas, no una", {
+  plan <- list(
+    .tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00"),
+    .tla_fila("CH 2", fecha = "2026-09-18", hora = "10:00")
+  )
+  filas <- aulas_libro_filas_asignacion(plan, list(.tla_disp("Ana Prueba")))
+  datos <- Filter(function(f) identical(f$tipo, "dato"), filas)
+  jornadas <- Filter(function(f) length(f$celdas) >= 8L, datos)
+  expect_length(jornadas, 2L)
+  expect_equal(vapply(jornadas, function(f) f$celdas[[2]], character(1)),
+               c("Viernes 11/09", "Viernes 18/09"))
 })
 
 # **Los anchos y el centrado siguen a la columna, no a un número congelado.**
@@ -246,10 +265,10 @@ test_that("sin facultad en el plan la celda calla, no inventa un guion", {
 # nueve, y el centrado que apuntaba a 2..5 y 6..7 empezaba a centrar LUGAR y
 # APLICADOR, que son justo las que no se centran. Se fija aquí porque es el
 # tipo de descuadre que sólo se ve abriendo el Sheets.
-test_that("con FACULTAD, el centrado apunta a las horas y a FIJADA, no a los textos", {
+test_that("el centrado apunta a las cifras de la jornada, no a los textos", {
   plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
   vals <- aulas_libro_valores_asignacion(plan, list(.tla_disp("Ana Prueba")))
-  # Ocho columnas: código, facultad, lugar, tres horas, aplicador y estado.
+  # Ocho columnas: aplicador, día, aulas, tres horas, sus cursos y el estado.
   expect_equal(max(vapply(vals, length, integer(1))), 8L)
 
   reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
@@ -258,12 +277,11 @@ test_that("con FACULTAD, el centrado apunta a las horas y a FIJADA, no a los tex
   }, reqs)
   tramos <- lapply(centrados, function(r) c(r$repeatCell$range$startColumnIndex,
                                             r$repeatCell$range$endColumnIndex))
-  # RECOJO · SALE AL AULA · APLICACIÓN son las columnas 4, 5 y 6 (índices 3..6).
+  # AULAS y las tres horas de la jornada son las columnas 3 a 6 (índices 2..6).
   tiene <- function(desde, hasta) any(vapply(tramos, function(t)
     identical(as.integer(t), c(desde, hasta)), logical(1)))
-  expect_true(tiene(3L, 6L))
-  # Y NO el bloque de antes de FACULTAD, que caía sobre LUGAR.
-  expect_false(tiene(2L, 5L))
-  # El estado no se centra: es texto, y centrado se lee peor que alineado.
-  expect_false(tiene(7L, 8L))
+  expect_true(tiene(2L, 6L))
+  # Ni el nombre ni la lista de aulas ni el estado se centran: son textos.
+  expect_false(tiene(0L, 2L))
+  expect_false(tiene(6L, 8L))
 })

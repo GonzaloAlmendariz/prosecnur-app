@@ -71,7 +71,7 @@
 .pd_cabecera <- c(
   "FECHA AGENDADA", "DÍA", "HORA", "CURSO-HORARIO", "NOMBRE DEL CURSO",
   "FACULTAD", "SESIONES Y AULA", "NOMBRE DE DOCENTE", "TELÉFONO DE DOCENTE",
-  "ELEGIBLES", "APLICADOR", "ESTADO", "ENLACE DE LA FICHA"
+  "ELEGIBLES", "APLICADOR", "ESTADO", "ENLACE DE LA FICHA QR"
 )
 
 # La fila de cabecera del LISTADO, localizada POR ETIQUETA y no por posición:
@@ -198,7 +198,7 @@ test_that("el ESTADO se escribe legible, no el interno crudo «en_campo»", {
 
 test_that("el ENLACE de la ficha es el link de la fila", {
   hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
-  enlaces <- stats::setNames(.pd_celdas(hoja, "ENLACE DE LA FICHA"),
+  enlaces <- stats::setNames(.pd_celdas(hoja, "ENLACE DE LA FICHA QR"),
                              .pd_celdas(hoja, "CURSO-HORARIO"))
   expect_identical(
     unname(enlaces[["CH 1"]]),
