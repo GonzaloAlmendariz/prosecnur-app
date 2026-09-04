@@ -22,6 +22,7 @@
  */
 import type { MonitoreoAulasReparto } from "../../../../api/monitoreo";
 import { etiquetaDeFecha } from "./agendaPorDia";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 const uno = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
 
@@ -183,7 +184,9 @@ export function textoDelDespliegue(
     // B71: la hora del recojo viaja por cita — es la hora a la que ESA
     // persona debe estar en la base, y la dice el motor (no se re-parsea).
     const recojo = a.recojo ? ` (recojo ${a.recojo})` : "";
-    return `• ${a.inicio}${a.fin ? `–${a.fin}` : ""} ${donde} — ${a.aplicador}${recojo}`;
+    // Dictado 2026-09-04: el aviso se pega en el chat del equipo, así que
+    // el nombre va escrito como se escribe un nombre, y sin em dashes.
+    return `• ${a.inicio}${a.fin ? ` a ${a.fin}` : ""} ${donde} · ${nombreDeAplicador(a.aplicador)}${recojo}`;
   });
   // En palabras del lector (dictado 2026-09-03: «no me gusta el A×3, debe
   // ser 3 aplicaciones en A»): la primera entrada completa, el resto corto.
@@ -203,7 +206,7 @@ export function textoDelDespliegue(
     ? ["Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada."]
     : [];
   return [
-    `Despliegue ${dia.etiqueta}${edificios ? ` — ${edificios}` : ""}`,
+    `Despliegue ${dia.etiqueta}${edificios ? ` · ${edificios}` : ""}`,
     ...protocolo,
     ...lineas,
     ...cola,
@@ -247,8 +250,8 @@ export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
     dif === 0
       ? `Reparto parejo: cada quien lleva ${min} ${unidad(min)}`
       : dif === 1
-        ? `Reparto parejo: cargas entre ${min} y ${max} — diferencia máxima 1 aplicación`
-        : `Cargas entre ${min} y ${max} — diferencia de ${dif} aplicaciones`;
+        ? `Reparto parejo: cargas entre ${min} y ${max}, diferencia máxima de 1 aplicación`
+        : `Cargas entre ${min} y ${max}, diferencia de ${dif} aplicaciones`;
   const colas: string[] = [];
   if (dif > 1) {
     colas.push(
@@ -260,8 +263,12 @@ export function veredictoDeEquidad(r: RepartoVista): VeredictoDeEquidad | null {
     colas.push(fijadas === 1 ? "1 fijada a mano incluida" : `${fijadas} fijadas a mano incluidas`);
   }
   if (libres > 0) {
+    // Dictado 2026-09-04: el aviso decía «sin aplicaciones en sus horarios» y
+    // ahí se acababa. El POR QUÉ y el QUÉ CUBRE cada uno los dice ahora el
+    // bloque de libres (`salidasDeLibres`), que es donde se puede actuar; aquí
+    // queda sólo la cifra, que es lo que cabe en una línea de veredicto.
     colas.push(
-      `${libres} ${libres === 1 ? "queda libre" : "quedan libres"} — sin aplicaciones en sus horarios`,
+      `${libres} ${libres === 1 ? "queda" : "quedan"} sin ninguna aplicación`,
     );
   }
   return { parejo: dif <= 1, texto: colas.length ? `${base} · ${colas.join(" · ")}` : base };
