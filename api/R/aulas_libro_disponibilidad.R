@@ -267,8 +267,10 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
     if (!en_conteos || !identical(f$tipo, "dato")) next
     for (j in seq_along(f$celdas)[-1L]) {
       n <- suppressWarnings(as.integer(f$celdas[[j]]))
-      if (is.na(n)) next
-      openxlsx::addStyle(wb, hoja, if (n == 0L) vacio else if (n == 1L) flaco else NULL,
+      # Sólo el 0 y el 1 llevan aviso; con dos o más no hay estilo que aplicar
+      # (y `addStyle` con NULL revienta, no lo ignora).
+      if (is.na(n) || n > 1L) next
+      openxlsx::addStyle(wb, hoja, if (n == 0L) vacio else flaco,
                          rows = i, cols = j, stack = TRUE)
     }
   }

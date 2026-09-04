@@ -226,8 +226,13 @@ AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 #
 # La concordancia va en femenino como sus dos hermanas —el sujeto es el aula,
 # igual que en APLICADA— aunque el dictado las nombrara en masculino.
+# «POR APLICAR» abre la lista porque es el estado INICIAL y va SEMBRADO en
+# todas las filas (dictado 2026-09-04: «todas actualmente ahora deberían tener
+# por default en status de aplicación: POR APLICAR»). Mismo trato que
+# «SIN CONTACTAR» en STATUS MUESTRA: una celda vacía no dice «todavía no» —
+# dice que nadie la miró.
 AULAS_LIBRO_STATUS_APLICACION <- c(
-  "APLICADA", "NO APLICADA",
+  "POR APLICAR", "APLICADA", "NO APLICADA",
   "REEMPLAZADA POR", "COMPLEMENTADA CON", "REFORZADA CON"
 )
 

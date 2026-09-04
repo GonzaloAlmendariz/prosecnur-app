@@ -70,7 +70,13 @@ test_that("B68: la configuración vigente manda — fijadas, duración y semilla
   celdas <- openxlsx::read.xlsx(destino, sheet = "Asignación de aplicadores",
                                 colNames = FALSE, skipEmptyRows = FALSE)
   texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
-  expect_match(texto, "fijada a mano")
+  # «FIJADA» dejó de ser columna el 2026-09-04 («no entiendo a qué se refiere
+  # con fijada y aviso; siento que debería mostrar el estatus de aplicación»):
+  # era contabilidad de la app y salía vacía en toda la hoja. La marca de puesta
+  # a mano se queda en la app, que es donde se pone y se deshace; lo que la
+  # config fijada sigue probando aquí es que la cita la aplica QUIEN se fijó.
+  expect_match(texto, "APLICADOR | Berta Ficticia", fixed = TRUE)
+  expect_match(texto, "ESTADO DE APLICACIÓN | POR APLICAR", fixed = TRUE)
   expect_match(texto, "10:00 a 10:45")
   expect_match(texto, "Sorteo: n")
 })
@@ -160,7 +166,8 @@ test_that("B68: la hoja publica sus anchos del xlsx y centra las horas", {
     !is.null(r$repeatCell) &&
       identical(r$repeatCell$fields, "userEnteredFormat(horizontalAlignment)")
   }, reqs)
-  expect_identical(length(centrados), 2L)
+  # Un solo tramo centrado desde que FIJADA salió: las tres horas.
+  expect_identical(length(centrados), 1L)
   for (ctr in centrados) {
     expect_identical(ctr$repeatCell$cell$userEnteredFormat$horizontalAlignment, "CENTER")
     expect_identical(ctr$repeatCell$range$endRowIndex, length(vals))
@@ -242,8 +249,8 @@ test_that("sin facultad en el plan la celda calla, no inventa un guion", {
 test_that("con FACULTAD, el centrado apunta a las horas y a FIJADA, no a los textos", {
   plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
   vals <- aulas_libro_valores_asignacion(plan, list(.tla_disp("Ana Prueba")))
-  # Nueve columnas: código, facultad, lugar, tres horas, aplicador, fijada, aviso.
-  expect_equal(max(vapply(vals, length, integer(1))), 9L)
+  # Ocho columnas: código, facultad, lugar, tres horas, aplicador y estado.
+  expect_equal(max(vapply(vals, length, integer(1))), 8L)
 
   reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
   centrados <- Filter(function(r) {
@@ -251,12 +258,12 @@ test_that("con FACULTAD, el centrado apunta a las horas y a FIJADA, no a los tex
   }, reqs)
   tramos <- lapply(centrados, function(r) c(r$repeatCell$range$startColumnIndex,
                                             r$repeatCell$range$endColumnIndex))
-  # RECOJO · SALE AL AULA · APLICACIÓN son las columnas 4, 5 y 6 (índices 3..6),
-  # y FIJADA la 8 (índice 7..8).
+  # RECOJO · SALE AL AULA · APLICACIÓN son las columnas 4, 5 y 6 (índices 3..6).
   tiene <- function(desde, hasta) any(vapply(tramos, function(t)
     identical(as.integer(t), c(desde, hasta)), logical(1)))
   expect_true(tiene(3L, 6L))
-  expect_true(tiene(7L, 8L))
-  # Y NO se centra el bloque de ocho columnas de antes, que caía sobre LUGAR.
+  # Y NO el bloque de antes de FACULTAD, que caía sobre LUGAR.
   expect_false(tiene(2L, 5L))
+  # El estado no se centra: es texto, y centrado se lee peor que alineado.
+  expect_false(tiene(7L, 8L))
 })

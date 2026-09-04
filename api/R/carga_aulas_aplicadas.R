@@ -127,6 +127,14 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
       asistentes <- num("observed_students")
       # Un bloque sin estado y sin asistentes es cadena que nunca se aplico:
       # no produce parte. Contarlo como aula visitada inflaria el avance.
+      #
+      # Y desde el 2026-09-04, «POR APLICAR» cuenta como SIN estado. La hoja lo
+      # siembra en todas las filas por dictado —«todas actualmente ahora
+      # deberian tener por default en status de aplicacion: POR APLICAR»,
+      # mismo trato que «SIN CONTACTAR» en STATUS MUESTRA— y sin esta linea el
+      # lector devolvia un parte por cada aula del plan: un libro recien
+      # generado, sin una sola visita, se releia con el avance completo.
+      if (identical(toupper(estado), "POR APLICAR")) estado <- ""
       if (!nzchar(estado) && !is.finite(asistentes)) next
       partes[[length(partes) + 1L]] <- list(
         operational_code = code,

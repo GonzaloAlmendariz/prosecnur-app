@@ -68,8 +68,18 @@
 # «FACULTAD» entra por el dictado del 2026-09-04 («el cuadro no muestra la
 # facultad»), pegada al codigo: sin ella «CH 7» no dice a que corte pertenece
 # y habia que ir a buscarlo a otra hoja.
+# Dictado 2026-09-04: «no entiendo a qué se refiere con FIJADA y AVISO; siento
+# que debería mostrar el estatus de aplicación». Tenía razón: las dos eran
+# contabilidad de la app —quién puso la asignación y si la oferta la respalda—
+# y salían vacías en toda la hoja, mientras lo que el equipo necesita saber de
+# cada cita es en qué va.
+#
+# El aviso NO se pierde al quitar su columna: viaja pegado al nombre de quien
+# le toca («Ana Prueba (fuera de su disponibilidad)»), que es donde se lee sin
+# tener que cruzar dos columnas. Y la marca de puesta a mano se queda en la
+# app, que es donde se pone y se deshace.
 .ala_CABECERA <- c("CURSO-HORARIO", "FACULTAD", "LUGAR", "RECOJO", "SALE AL AULA",
-                   "APLICACIÓN", "APLICADOR", "FIJADA", "AVISO")
+                   "APLICACIÓN", "APLICADOR", "ESTADO DE APLICACIÓN")
 
 #' Las filas de la hoja de asignación, tipadas — el ÚNICO constructor.
 #'
@@ -157,9 +167,13 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
           paste0(.ala_txt(a[["inicio"]]),
                  if (nzchar(.ala_txt(a[["fin"]]))) paste0(" a ", .ala_txt(a[["fin"]])) else ""),
           # El nombre, escrito como se escribe un nombre (dictado 2026-09-04).
-          aulas_nombre_aplicador(a[["aplicador"]]),
-          if (isTRUE(a[["fijada"]])) "fijada a mano" else "",
-          if (nzchar(aviso)) (.ala_AVISO[[aviso]] %||% aviso) else ""
+          # El nombre, y el aviso pegado a él cuando lo hay.
+          paste0(
+            aulas_nombre_aplicador(a[["aplicador"]]),
+            if (nzchar(aviso)) sprintf(" (%s)", .ala_AVISO[[aviso]] %||% aviso) else ""
+          ),
+          # Dictado 2026-09-04: el estado inicial es POR APLICAR, no un vacío.
+          "POR APLICAR"
         ))
       }
     }
@@ -261,8 +275,8 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
     }
   }
 
-  openxlsx::setColWidths(wb, hoja, cols = 1:9,
-                         widths = c(16, 24, 14, 10, 13, 14, 34, 13, 30))
+  openxlsx::setColWidths(wb, hoja, cols = 1:8,
+                         widths = c(16, 24, 14, 10, 13, 14, 48, 22))
   invisible(TRUE)
 }
 
@@ -298,9 +312,8 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
   list(desde = 1L, hasta = 2L, px = 168L),  # FACULTAD
   list(desde = 2L, hasta = 3L, px = 112L),  # LUGAR
   list(desde = 3L, hasta = 6L, px = 108L),  # RECOJO · SALE AL AULA · APLICACIÓN
-  list(desde = 6L, hasta = 7L, px = 232L),  # APLICADOR
-  list(desde = 7L, hasta = 8L, px = 104L),  # FIJADA
-  list(desde = 8L, hasta = 9L, px = 264L)   # AVISO
+  list(desde = 6L, hasta = 7L, px = 340L),  # APLICADOR (lleva su aviso al lado)
+  list(desde = 7L, hasta = 8L, px = 168L)   # ESTADO DE APLICACIÓN
 )
 
 #' Requests de formato de la hoja de asignación para el batch-2 del motor.
@@ -343,10 +356,10 @@ aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
   # Nueve columnas desde que FACULTAD entró (dictado 2026-09-04). Los índices
   # de centrado se movieron CON ella: dejarlos en los de ocho centraba LUGAR y
   # APLICADOR, que es justo lo que no se centra.
-  if (n_cols >= 9L) {
+  # Ocho columnas desde que FIJADA y AVISO dejaron sitio al estado.
+  if (n_cols >= 8L) {
     for (a in .ala_ANCHOS) poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
     poner(.maaf_centrar(sheet_id, 3L, 6L, length(rows)))  # RECOJO · SALE · APLICACIÓN
-    poner(.maaf_centrar(sheet_id, 7L, 8L, length(rows)))  # FIJADA
   }
   requests
 }
