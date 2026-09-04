@@ -207,3 +207,56 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
   openxlsx::freezePane(wb, hoja, firstActiveRow = 5L)
   invisible(TRUE)
 }
+
+# --- formato en Google Sheets (misma familia que asignación y avance) ---------
+#
+# Mismo patrón fila a fila que `aulas_libro_asignacion_formato_requests`: todo
+# derivado del CONTENIDO publicado y jamás de números mágicos, para que la hoja
+# no se descuadre cuando cambie de alto. Y los rótulos que se detectan son LOS
+# MISMOS que emite `aulas_libro_filas_disponibilidad`: un solo dueño.
+
+# ¿La fila es el título de un día? Es una fila de UNA celda cuyo texto es
+# exactamente una de las siete etiquetas. Comparar contra la lista y no contra
+# un patrón evita que una nota que empiece por «Lunes» se pinte de banda.
+.ald_ES_DIA <- function(celda) celda %in% unname(.ald_ETIQUETA_DIA)
+
+#' Requests de formato de la hoja de disponibilidad para el batch-2 del motor.
+#'
+#' @param sheet_id id numérico de la pestaña.
+#' @param rows los values realmente publicados.
+#' @return lista de requests de la API de Sheets.
+#' @keywords internal
+aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
+  rows <- rows %||% list()
+  if (!length(rows)) return(list())
+  n_cols <- max(1L, max(vapply(rows, function(row) length(row %||% list()), integer(1))))
+  requests <- list()
+  poner <- function(req) requests[[length(requests) + 1L]] <<- req
+  for (i in seq_along(rows)) {
+    celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
+    primera <- if (length(celdas)) celdas[[1L]] else ""
+    llenas <- celdas[nzchar(celdas)]
+    if (identical(primera, "DISPONIBILIDAD DE APLICADORES")) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
+      poner(.maaf_alto_fila(sheet_id, i, 36L))
+    } else if (identical(primera, "QUÉ CUBRE CADA APLICADOR") ||
+               (length(llenas) == 1L && .ald_ES_DIA(primera))) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
+      poner(.maaf_alto_fila(sheet_id, i, 28L))
+    } else if (primera %in% c("TRAMO", "APLICADOR")) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
+    } else if (length(llenas) == 1L && nzchar(primera)) {
+      # Las notas de arriba: gris pequeño e itálico, como en sus hermanas.
+      poner(.maaf_banda(sheet_id, i, n_cols, "#FFFFFF", "#6B6560",
+                        size = 9L, italic = TRUE, bold = FALSE))
+    }
+  }
+  if (n_cols >= 3L) {
+    poner(.mafs_dim_request(sheet_id, 0L, 1L, 132L))  # TRAMO / APLICADOR
+    poner(.mafs_dim_request(sheet_id, 1L, 2L, 120L))  # DISPONIBLES / DÍAS
+    poner(.mafs_dim_request(sheet_id, 2L, 3L, 520L))  # QUIÉNES / HORAS
+    # El conteo centrado: es una cifra y se lee de un golpe en columna.
+    poner(.maaf_centrar(sheet_id, 1L, 2L, length(rows)))
+  }
+  requests
+}

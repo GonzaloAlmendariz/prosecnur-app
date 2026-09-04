@@ -126,6 +126,13 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # disponibilidad (hay reparto que contar). Sin ella ni se produce ni entra a
 # `hojas_libro`: una pestaña remota previa queda intacta, ni un request.
 .malp_hoja_asignacion <- function() "Asignación de aplicadores"
+# Dictado 2026-09-04: «el Sheets debería tener una forma muy elegante de
+# mostrar la disponibilidad de cada encuestador… para que el equipo de campo
+# también pueda saber cuándo o a quién reclutar y no dependa enteramente de
+# mí». QUINTA hoja de la app y condicional por lo mismo que la asignación: sin
+# disponibilidad en sesión no se produce, y una pestaña remota previa queda
+# intacta sin un solo request.
+.malp_hoja_disponibilidad <- function() "Disponibilidad de aplicadores"
 # Las hojas de la APP: se publican SIEMPRE (sembrada/actualizada/sin_cambios,
 # jamás `respetada`) y comparten el trato de delta+reasserción. «Avance de
 # campo» (B2.2) es la tercera: la hoja de indicadores que el xlsx escribe
@@ -144,7 +151,8 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   # hacía que la capa genérica pintara de navy la nota del sorteo (fila 2) y
   # congelara una fila de más.
   if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
-                  .malp_hoja_plan_dia(), .malp_hoja_asignacion())) 1L else 2L
+                  .malp_hoja_plan_dia(), .malp_hoja_asignacion(),
+                  .malp_hoja_disponibilidad())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -281,6 +289,10 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_asignacion())) {
     requests <- c(requests, aulas_libro_asignacion_formato_requests(sheet_id, rows))
   }
+  # Y la de disponibilidad, con la misma estética (aulas_libro_disponibilidad.R).
+  if (identical(tab_name, .malp_hoja_disponibilidad())) {
+    requests <- c(requests, aulas_libro_disponibilidad_formato_requests(sheet_id, rows))
+  }
   # B14: los desplegables y calendarios de las pestañas Extra — los mismos
   # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
   # Para cualquier otra pestaña devuelve vacío.
@@ -353,6 +365,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   if (!is.null(valores_asignacion)) {
     hojas_app <- c(hojas_app, .malp_hoja_asignacion())
   }
+  # La disponibilidad no depende del plan: sale sólo de la oferta cargada, así
+  # que se produce aunque el reparto no tenga nada que repartir todavía.
+  valores_disponibilidad <- aulas_libro_valores_disponibilidad(disponibilidad)
+  if (!is.null(valores_disponibilidad)) {
+    hojas_app <- c(hojas_app, .malp_hoja_disponibilidad())
+  }
   con_extras <- length(extras) > 0L
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
   # lead, B14): este orden manda tanto en el resumen como en el orden de
@@ -406,6 +424,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   )
   if (!is.null(valores_asignacion)) {
     producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
+  }
+  if (!is.null(valores_disponibilidad)) {
+    producidas[[.malp_hoja_disponibilidad()]] <- valores_disponibilidad
   }
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda

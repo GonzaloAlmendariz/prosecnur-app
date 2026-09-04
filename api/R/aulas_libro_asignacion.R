@@ -340,10 +340,13 @@ aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
   # Anchos del xlsx y horas centradas — solo cuando la hoja publicó su tabla
   # completa (con días sin asignaciones el rectángulo es más angosto y la
   # geometría de 8 columnas no existe).
-  if (n_cols >= 8L) {
+  # Nueve columnas desde que FACULTAD entró (dictado 2026-09-04). Los índices
+  # de centrado se movieron CON ella: dejarlos en los de ocho centraba LUGAR y
+  # APLICADOR, que es justo lo que no se centra.
+  if (n_cols >= 9L) {
     for (a in .ala_ANCHOS) poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
-    poner(.maaf_centrar(sheet_id, 2L, 5L, length(rows)))  # RECOJO · SALE · APLICACIÓN
-    poner(.maaf_centrar(sheet_id, 6L, 7L, length(rows)))  # FIJADA
+    poner(.maaf_centrar(sheet_id, 3L, 6L, length(rows)))  # RECOJO · SALE · APLICACIÓN
+    poner(.maaf_centrar(sheet_id, 7L, 8L, length(rows)))  # FIJADA
   }
   requests
 }

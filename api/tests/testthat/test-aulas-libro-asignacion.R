@@ -232,3 +232,31 @@ test_that("sin facultad en el plan la celda calla, no inventa un guion", {
   # La segunda celda de la fila de datos es FACULTAD.
   expect_equal(datos[[1]]$celdas[[2]], "")
 })
+
+# **Los anchos y el centrado siguen a la columna, no a un número congelado.**
+#
+# Al entrar FACULTAD (dictado 2026-09-04) la hoja pasó de ocho columnas a
+# nueve, y el centrado que apuntaba a 2..5 y 6..7 empezaba a centrar LUGAR y
+# APLICADOR, que son justo las que no se centran. Se fija aquí porque es el
+# tipo de descuadre que sólo se ve abriendo el Sheets.
+test_that("con FACULTAD, el centrado apunta a las horas y a FIJADA, no a los textos", {
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
+  vals <- aulas_libro_valores_asignacion(plan, list(.tla_disp("Ana Prueba")))
+  # Nueve columnas: código, facultad, lugar, tres horas, aplicador, fijada, aviso.
+  expect_equal(max(vapply(vals, length, integer(1))), 9L)
+
+  reqs <- aulas_libro_asignacion_formato_requests(7L, vals)
+  centrados <- Filter(function(r) {
+    !is.null(r$repeatCell) && grepl("horizontalAlignment", r$repeatCell$fields %||% "")
+  }, reqs)
+  tramos <- lapply(centrados, function(r) c(r$repeatCell$range$startColumnIndex,
+                                            r$repeatCell$range$endColumnIndex))
+  # RECOJO · SALE AL AULA · APLICACIÓN son las columnas 4, 5 y 6 (índices 3..6),
+  # y FIJADA la 8 (índice 7..8).
+  tiene <- function(desde, hasta) any(vapply(tramos, function(t)
+    identical(as.integer(t), c(desde, hasta)), logical(1)))
+  expect_true(tiene(3L, 6L))
+  expect_true(tiene(7L, 8L))
+  # Y NO se centra el bloque de ocho columnas de antes, que caía sobre LUGAR.
+  expect_false(tiene(2L, 5L))
+})

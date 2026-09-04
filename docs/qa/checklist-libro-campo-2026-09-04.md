@@ -12,7 +12,7 @@ Google Sheets, más el vocabulario de estados de la cadena.
 | 5 | Estado «Complementado con» para el caso B (el aula no rinde y se toma su cadena u otro reemplazo) | ídem | **hecho** |
 | 6 | Columna nueva «AULA UTILIZADA» al lado de STATUS MUESTRA, que diga cuál reemplazo se usó | spec `AULAS_AGENDADAS_BLOQUE` + `aulas_libro_anotar_aula_utilizada()` | **hecho** |
 | 7 | El caso C (se va a un reemplazo por falta de alumnos o de un sexo para la meta) | estado propio «Reforzada con», elegido por el usuario | **hecho** |
-| 8 | «El Sheets debería tener una forma muy elegante de mostrar la disponibilidad de cada encuestador, para que el equipo de campo sepa cuándo o a quién reclutar y no dependa enteramente de mí» | hoja «Disponibilidad de aplicadores» (`aulas_libro_disponibilidad.R`) | **hecha en el .xlsx; falta publicarla al Sheets** |
+| 8 | «El Sheets debería tener una forma muy elegante de mostrar la disponibilidad de cada encuestador, para que el equipo de campo sepa cuándo o a quién reclutar y no dependa enteramente de mí» | hoja «Disponibilidad de aplicadores» (`aulas_libro_disponibilidad.R`) | **hecho, en el .xlsx y en el publicador** |
 | 9 | «Le estás dando 4 seguidas a una cuando tranquilamente le puedes dar 2 seguidas a dos personas; hay que balancear equidad, horarios y concentración» | greedy de `monitoreo_aulas_reparto()` | **hecho** |
 | 10 | «El cuadro no muestra la facultad» | tabla de Asignación y hoja del libro | **hecho, verificado en la app** |
 
@@ -61,3 +61,24 @@ pero revienta con estos libros porque openxlsx deja una relación a
 esas `<Relationship>`. Y la paleta original tenía los cuatro tonos a 15-21 de
 distancia RGB, o sea cuatro casi-blancos indistinguibles: lo cazó el test de
 distancia, no el ojo.
+
+## Cableado al publicador (2026-09-04)
+
+La hoja entra por los cinco puntos que su hermana de asignación ya usaba:
+nombre de pestaña, cuenta de filas de cabecera (una, por su título), juego de
+`hojas_app` cuando hay oferta, `producidas`, y sus requests de formato. Más el
+sexto que no es opcional: la **whitelist** de `monitoreo_sheets_pestanas_
+controladas()`, sin la cual `.monitoreo_sheets_validate_controlled_tabs()` frena
+la escritura con `E_GOOGLE_SHEETS`. Hay un test que la sujeta.
+
+Se produce **sólo con oferta cargada**, y a diferencia de la asignación no
+depende del plan: la disponibilidad existe aunque el reparto todavía no tenga
+nada que repartir. La reaserción por hash la cubre sola, porque ese bucle
+recorre `hojas_app`.
+
+**Un descuadre que dejé yo y quedó fijado.** Al entrar `FACULTAD`, la hoja de
+asignación pasó de ocho columnas a nueve y el centrado del formato de Sheets
+seguía apuntando a los índices de ocho: centraba LUGAR y APLICADOR, que son
+justo los textos que no se centran. Es el tipo de descuadre que sólo se ve
+abriendo el Sheets, así que ahora hay un test que comprueba a qué columnas
+apunta.
