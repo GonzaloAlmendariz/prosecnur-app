@@ -3,6 +3,7 @@ import { useState } from "react";
 import { anchoMinimoDeMalla, comoHora } from "./cargaDeCampo";
 import { ChipDato, ChipHora } from "./AulasSistemaPabellon";
 import { aplicadoresDeLaOferta, semanaDelAplicador } from "./disponibilidadDeAplicadores";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { fmt } from "./kpisDeAulas";
 
@@ -149,9 +150,14 @@ export function AulasDisponibilidadDeAplicadores({
       n === 1 ? "disponible" : "disponibles"}`;
     if (citas > 0) {
       base += `, ${fmt(citas)} ${citas === 1 ? "cita confirmada" : "citas confirmadas"}`;
-      if (citas > n) base += " — más citas que gente";
+      if (citas > n) base += ", más citas que gente";
     }
-    return quienes.length ? `${base} — ${quienes.join(", ")}` : base;
+    // Los nombres, escritos como se escribe un nombre (dictado 2026-09-04), y
+    // separados con punto medio: un nombre YA lleva su coma («Castillo
+    // Solorsano, Leidy Viviana») y unirlos con otra los duplicaba a la vista.
+    return quienes.length
+      ? `${base}. Pueden: ${quienes.map(nombreDeAplicador).join(" · ")}`
+      : base;
   };
 
   const activa = celdaActiva && oferta.disponibles[celdaActiva.i]?.[celdaActiva.j] > 0
@@ -181,7 +187,12 @@ export function AulasDisponibilidadDeAplicadores({
                 aria-label="Ver la disponibilidad de un aplicador concreto"
               >
                 <option value="">Todo el equipo</option>
-                {nombres.map((n) => <option key={n} value={n}>{n}</option>)}
+                {/* El `value` es el nombre CRUDO —la clave de la oferta—; lo
+                    que se lee es el normalizado. Mismo trato que el selector
+                    de la tabla de Asignación. */}
+                {nombres.map((n) => (
+                  <option key={n} value={n}>{nombreDeAplicador(n)}</option>
+                ))}
               </select>
             </label>
           );
@@ -190,7 +201,7 @@ export function AulasDisponibilidadDeAplicadores({
           const semana = semanaDelAplicador(oferta, aplicadorElegido);
           return (
             <p className="aulas-dispo-semana">
-              <strong>{aplicadorElegido}</strong>
+              <strong>{nombreDeAplicador(aplicadorElegido)}</strong>
               {semana.length === 0
                 ? " no declaró horas."
                 : semana.map((d) => (
