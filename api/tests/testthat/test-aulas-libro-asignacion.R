@@ -41,13 +41,17 @@ test_that("B68: con disponibilidad, el libro lleva la hoja con el reparto de la 
   # El día con su unidad correcta (dictado 2026-09-03: «no son citas, son
   # aplicaciones») y el croquis en corto para no repetir la palabra.
   expect_match(texto, "Viernes 11/09")
-  expect_match(texto, "aplicaciones — 1 en A")
+  # Dictado 2026-09-04 («basta de los em dashes»): el separador del día y de
+  # su croquis es el punto medio de la casa.
+  expect_match(texto, "aplicaciones · 1 en A")
+  expect_no_match(texto, "Viernes 11/09 —")
   # El reparto del MISMO motor: empate 0-0 lo gana el alfabeto.
   expect_match(texto, "Ana Prueba")
   expect_match(texto, "Berta Ficticia")
   # La secuencia completa de la cita: recojo, salida y aplicación con FIN.
   expect_match(texto, "09:30")             # recojo de la cita de las 10:00
-  expect_match(texto, "10:00–10:30")
+  # Y el rango de la aplicación se lee «de X a Y», como en la vista.
+  expect_match(texto, "10:00 a 10:30")
   # La fecha sin hora se declara, no se traga.
   expect_match(texto, "Por confirmar")
   # La equidad, dicha, con el mismo criterio del rail.
@@ -67,7 +71,7 @@ test_that("B68: la configuración vigente manda — fijadas, duración y semilla
                                 colNames = FALSE, skipEmptyRows = FALSE)
   texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
   expect_match(texto, "fijada a mano")
-  expect_match(texto, "10:00–10:45")
+  expect_match(texto, "10:00 a 10:45")
   expect_match(texto, "Sorteo: n")
 })
 
@@ -161,4 +165,45 @@ test_that("B68: la hoja publica sus anchos del xlsx y centra las horas", {
     expect_identical(ctr$repeatCell$cell$userEnteredFormat$horizontalAlignment, "CENTER")
     expect_identical(ctr$repeatCell$range$endRowIndex, length(vals))
   }
+})
+
+# **El nombre del aplicador se escribe como se escribe un nombre.**
+#
+# Dictado 2026-09-04: «el nombre normalizado: apellido, coma, nombre y nombre.
+# Y SIEMPRE tiene que ser así». Ese «siempre» incluye el libro y el Sheets, que
+# es lo que el equipo de campo lee: la vista ya normalizaba y aquí salía crudo.
+test_that("la hoja escribe el nombre normalizado, no el crudo del libro", {
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
+  destino <- .tla_libro(
+    plan,
+    disponibilidad = list(.tla_disp("Castillo SOLORSANO , LEIDY VIVIANA"))
+  )
+  celdas <- openxlsx::read.xlsx(destino, sheet = "Asignación de aplicadores",
+                                colNames = FALSE, skipEmptyRows = FALSE)
+  texto <- paste(unlist(lapply(celdas, as.character)), collapse = " | ")
+  expect_match(texto, "Castillo Solorsano, Leidy Viviana", fixed = TRUE)
+  # Ni en la tabla del día ni en el bloque de cargas queda el crudo.
+  expect_no_match(texto, "SOLORSANO", fixed = TRUE)
+})
+
+test_that("aulas_nombre_aplicador es el espejo del normalizador del frontend", {
+  # Los mismos casos que `nombreDeAplicador.test.ts`: si alguien cambia un
+  # lado, este test o el suyo lo delata.
+  expect_equal(aulas_nombre_aplicador("PANTA GUTIERREZ, PERCY AARÓN"),
+               "Panta Gutierrez, Percy Aarón")
+  expect_equal(aulas_nombre_aplicador("Castillo SOLORSANO , LEIDY VIVIANA"),
+               "Castillo Solorsano, Leidy Viviana")
+  expect_equal(aulas_nombre_aplicador("Uribe Olaechea , Jesús Ramiro"),
+               "Uribe Olaechea, Jesús Ramiro")
+  expect_equal(aulas_nombre_aplicador("Álvarez Espinosa Saldaña, José Alejandro"),
+               "Álvarez Espinosa Saldaña, José Alejandro")
+  # La partícula se agacha, salvo cuando abre su bloque.
+  expect_equal(aulas_nombre_aplicador("RAMOS DE LA CRUZ, JUAN"), "Ramos de la Cruz, Juan")
+  expect_equal(aulas_nombre_aplicador("DE LA CRUZ RAMOS, JUAN"), "De la Cruz Ramos, Juan")
+  expect_equal(aulas_nombre_aplicador("D'ANGELO ROJAS, ANA-MARÍA"), "D'Angelo Rojas, Ana-María")
+  # Sin coma no reordena; el vacío no inventa un guion.
+  expect_equal(aulas_nombre_aplicador("JUAN PEREZ"), "Juan Perez")
+  expect_equal(aulas_nombre_aplicador(""), "")
+  expect_equal(aulas_nombre_aplicador(NULL), "")
+  expect_equal(aulas_nombre_aplicador("   "), "")
 })

@@ -24,8 +24,24 @@ dónde vive y su estado. Sólo el usuario lo da por terminado.
 | 14 | «Le falta formato a este box» | panel de mandos: rótulo «Cómo se reparte», aire y alturas parejas | **hecho** |
 | 15 | «Y al texto de arriba» | vigencia partida en dos renglones; el protocolo, tres pasos con divisor | **hecho** |
 | 16 | *(defecto encontrado al mirar su captura)* el nombre largo se montaba sobre la cifra en el rail | un `<button>` computa `white-space: nowrap`; se declara `normal` | **hecho** |
+| 17 | «El nombre normalizado… y SIEMPRE tiene que ser así»: el libro y el Sheets sacaban el crudo | `api/R/aulas_nombre_aplicador.R`, espejo del normalizador del front | **hecho** |
+| 18 | «Basta de los em dashes» en lo que lee el equipo, no sólo en la vista | hoja «Asignación de aplicadores» del libro y de Sheets | **hecho** |
 
 ## Lo aprendido, para no reinvestigarlo
+
+- **Simulacro de la próxima semana (07/09 al 13/09) sobre `HSVG26ULT2`.** 25
+  aplicaciones repartidas en seis días, 4 aplazadas y declaradas. Con la
+  concentración encendida: **17 personas, 17 días-persona, todas con su carga en
+  un solo día**. Apagada: **24 personas, 25 días-persona**. Ocho viajes menos al
+  campus por la misma semana de trabajo.
+- **Las sondas HTTP contra la API necesitan `X-Pulso-Session`.** Sin el header,
+  el backend contesta desde una sesión vacía: `plan_rows: 0`, `libro_sheets: {}`
+  y un `409 E_AULAS_LIBRO_SIN_PLAN` que parecen un defecto del proyecto y no lo
+  son. Con el header, el mismo proyecto responde `plan_rows: 1392`.
+- **Para MIRAR la salida de Sheets no hace falta publicar.** `POST
+  /api/monitoreo/aulas/generar-libro` produce el `.xlsx` local con los mismos
+  generadores; la hoja «Asignación de aplicadores» del archivo es lo que se
+  publicaría.
 
 - **La concentración funciona y se puede medir.** Sobre `HSVG26ULT2.pulso`, con
   las mismas 29 aplicaciones repartidas: encendida moviliza **21 personas en 21

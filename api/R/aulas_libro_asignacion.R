@@ -125,11 +125,15 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
     # dice la unidad correcta, y el croquis va todo en corto para no repetir
     # la palabra («7 aplicaciones — 3 en A · 2 en J»).
     croquis <- .ala_croquis(lugares_dia, primera_completa = FALSE)
+    # Dictado 2026-09-04: «basta de los em dashes». El separador de la casa es
+    # el punto medio, y el detector de estilos de abajo (`.ala_ES_DIA`) cambia
+    # EN EL MISMO commit: la fila de día se reconoce por este formato, así que
+    # tocar uno sin el otro dejaba el día sin su navy.
     poner("dia", sprintf(
-      "%s — %d %s%s",
+      "%s · %d %s%s",
       .ala_etiqueta(.ala_txt(d[["fecha"]])), length(asigs),
       if (length(asigs) == 1L) "aplicación" else "aplicaciones",
-      if (nzchar(croquis)) paste0(" — ", croquis) else ""
+      if (nzchar(croquis)) paste0(" · ", croquis) else ""
     ))
     if (length(asigs)) {
       poner("cabecera", .ala_CABECERA)
@@ -142,8 +146,9 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
           .ala_txt(a[["recojo"]]),
           .ala_txt(a[["salida"]]),
           paste0(.ala_txt(a[["inicio"]]),
-                 if (nzchar(.ala_txt(a[["fin"]]))) paste0("–", .ala_txt(a[["fin"]])) else ""),
-          .ala_txt(a[["aplicador"]]),
+                 if (nzchar(.ala_txt(a[["fin"]]))) paste0(" a ", .ala_txt(a[["fin"]])) else ""),
+          # El nombre, escrito como se escribe un nombre (dictado 2026-09-04).
+          aulas_nombre_aplicador(a[["aplicador"]]),
           if (isTRUE(a[["fijada"]])) "fijada a mano" else "",
           if (nzchar(aviso)) (.ala_AVISO[[aviso]] %||% aviso) else ""
         ))
@@ -163,7 +168,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
 
   fuera <- rep[["fuera_de_rango"]] %||% list()
   if (length(fuera)) {
-    poner("alerta", "FUERA DEL RANGO ELEGIDO — esperan su tanda; nada se descarta")
+    poner("alerta", "FUERA DEL RANGO ELEGIDO: esperan su tanda; nada se descarta")
     for (f in fuera) {
       cods <- c(unlist(f[["codigos"]] %||% list()), unlist(f[["por_confirmar"]] %||% list()))
       poner("nota", sprintf("%s: %s", .ala_etiqueta(.ala_txt(f[["fecha"]])),
@@ -180,7 +185,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   cargas <- vapply(eq, function(e) as.integer(e[["asignadas"]] %||% 0L), integer(1))
   poner("cabecera", c("APLICADOR", "APLICACIONES ASIGNADAS"))
   for (e in eq) {
-    poner("dato", c(.ala_txt(e[["aplicador"]]),
+    poner("dato", c(aulas_nombre_aplicador(e[["aplicador"]]),
                     as.character(as.integer(e[["asignadas"]] %||% 0L))))
   }
   con_carga <- cargas[cargas > 0L]
@@ -188,7 +193,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
     dif <- max(con_carga) - min(con_carga)
     libres <- sum(cargas == 0L)
     poner("nota", sprintf(
-      "%s: cargas entre %d y %d entre quienes salen — diferencia máxima %d%s",
+      "%s: cargas entre %d y %d entre quienes salen, diferencia máxima de %d%s",
       if (dif <= 1L) "Reparto parejo" else "Cargas desparejas (la disponibilidad manda)",
       min(con_carga), max(con_carga), dif,
       if (libres > 0L) sprintf(" · %d quedan libres (sin cita en sus horarios)", libres) else ""
@@ -269,7 +274,10 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
 # columnas de hora centradas.
 
 .ala_ES_DIA <- function(celda) {
-  grepl("^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) [0-9]{2}/[0-9]{2} — ", celda)
+  # El separador pasó de em dash a punto medio el 2026-09-04 («basta de los em
+  # dashes»); se acepta el viejo para que una hoja publicada ANTES del cambio
+  # siga reconociéndose al reasertar su formato.
+  grepl("^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo) [0-9]{2}/[0-9]{2} [·—] ", celda)
 }
 
 # Los anchos de columna de la hoja, en píxeles y por RANGOS agrupados (la
