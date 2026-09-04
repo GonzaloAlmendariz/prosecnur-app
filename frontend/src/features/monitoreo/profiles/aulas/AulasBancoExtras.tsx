@@ -90,8 +90,13 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
     <div className="aulas-banco">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(banco.total)}</strong> cursos-horario extra en{" "}
-        <strong>{fmt(banco.por_facultad.length)}</strong>{" "}
-        {banco.por_facultad.length === 1 ? "facultad" : "facultades"} ·{" "}
+        {/* Las facultades CON extras, no las listadas: «45 en 15 facultades»
+            prometía un reparto que no existe cuando 42 son de Derecho y 3 de
+            una segunda — el mismo defecto del «repartido en» que ya corrigió
+            el chart de sexo (E23). Las agotadas siguen a la vista abajo, con
+            su cero declarado. */}
+        <strong>{fmt(banco.por_facultad.filter((f) => f.extras > 0).length)}</strong>{" "}
+        {banco.por_facultad.filter((f) => f.extras > 0).length === 1 ? "facultad" : "facultades"} ·{" "}
         <strong>{fmt(banco.elegibles)}</strong> alumnos ·{" "}
         <strong>{fmt(banco.mujeres)}</strong> mujeres y{" "}
         <strong>{fmt(banco.hombres)}</strong> hombres
