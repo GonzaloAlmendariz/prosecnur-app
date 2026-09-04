@@ -30,12 +30,32 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
     );
     // A: el titular no miente — dice Rechazo, no Planificado.
     expect(html).toContain("Rechazo");
-    // B: ambos están y la relación se declara en la fila del R.
+    // A: titular caído → el R lo REEMPLAZA, en esa palabra.
     expect(html).toContain("R 90.1");
     expect(html).toContain("reemplaza a CH 90");
   });
 
-  it("una reserva sin titular declarado se marca «reserva» a secas (caso C)", () => {
+  it("con el titular VIVO el R lo complementa — ambos suman (caso B)", () => {
+    // Dictado 2026-09-03: «no es que un R reemplaza un CH, sino que un R
+    // COMPLEMENTA un CH… no siempre reemplazan en ese sentido de la palabra».
+    const html = renderToStaticMarkup(
+      <AulasAgendaPorFacultad
+        filas={[
+          fila({ operational_code: "CH 14", faculty: "Derecho", sample_role: "titular",
+                 sample_status: "agendada", scheduled_date: "2026-09-09" }),
+          fila({ operational_code: "R 14.1", faculty: "Derecho", sample_role: "chain_reserve",
+                 titular_operational_code: "CH 14", sample_status: "agendada",
+                 scheduled_date: "2026-09-10" } as Partial<MonitoreoAulasPlanRow>),
+        ]}
+      />,
+    );
+    expect(html).toContain("complementa a CH 14");
+    expect(html).not.toContain("reemplaza a CH 14");
+  });
+
+  it("una reserva sin titular es un «refuerzo» — nomenclatura propia (caso C)", () => {
+    // Dictado 2026-09-03: «el caso C no tiene ninguna relación con el CH…
+    // debería tener su propia nomenclatura, que es diferente».
     const html = renderToStaticMarkup(
       <AulasAgendaPorFacultad
         filas={[
@@ -44,7 +64,8 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
         ]}
       />,
     );
-    expect(html).toContain("reserva");
+    expect(html).toContain("refuerzo");
     expect(html).not.toContain("reemplaza a");
+    expect(html).not.toContain("complementa a");
   });
 });
