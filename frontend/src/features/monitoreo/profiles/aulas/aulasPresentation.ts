@@ -353,6 +353,9 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelada: "Cancelado",
   reemplazo_pendiente: "Reemplazo pendiente",
   reemplazada: "Reemplazado",
+  // B13b: el rechazo vive en el eje de MUESTRA y llega a las fichas cuando
+  // manda sobre el operativo (dictado 2026-09-03, CH 90).
+  rechazo: "Rechazo",
   cerrada: "Cerrado",
   cerrando: "Cierre en curso",
   en_aplicacion: "En aplicación",
