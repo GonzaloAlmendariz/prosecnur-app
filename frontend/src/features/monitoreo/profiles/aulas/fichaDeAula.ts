@@ -100,7 +100,12 @@ export function fichaDeAula(
     existe: Boolean(base),
     facultad: texto(base?.faculty ?? base?.facultad ?? ""),
     etiqueta: texto(base?.label ?? base?.course_name ?? ""),
-    estado: texto(enPlan?.operational_status ?? enPlan?.sample_status ?? ""),
+    // B13b: el RECHAZO de STATUS MUESTRA manda sobre el operativo — la ficha
+    // decía «Planificado» junto a la nota del rechazo (mismo defecto que la
+    // ruta, dictado 2026-09-03 CH 90).
+    estado: /^rechaz/i.test(texto(enPlan?.sample_status ?? ""))
+      ? "rechazo"
+      : texto(enPlan?.operational_status ?? enPlan?.sample_status ?? ""),
     rol: texto(enPlan?.sample_role ?? ""),
     fecha: texto(enPlan?.scheduled_date ?? "").slice(0, 10),
     // `scheduled_venue` gana: es donde se ACORDÓ aplicar, confirmado por el

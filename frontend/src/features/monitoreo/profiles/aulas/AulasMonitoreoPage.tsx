@@ -32,6 +32,7 @@ import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { COLUMNAS_DE_NOTA, NotaEnCelda } from "./NotaEnCelda";
 import { identidadEnCelda } from "./AulasSistemaPabellon";
 import { columnasConDato } from "./columnasConDato";
+import { sigueDormida } from "./candidatosDeReemplazo";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import { AulasPestanaResumen } from "./AulasPestanaResumen";
 import { AulasPestanaCuotas } from "./AulasPestanaCuotas";
@@ -495,9 +496,16 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   const filas = ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
     .filter((fila) => {
       const rol = String(fila.sample_role ?? "");
-      // Ni el banco —capacidad, no visitas— ni las reservas de cadena. Ver
-      // `agendaReservas` y `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
-      return rol !== "extra_reserve_pool" && rol !== "chain_reserve";
+      // Los titulares siempre. Una reserva —de cadena o del banco— solo
+      // cuando DESPERTÓ: el filtro por rol a secas era más burdo que la
+      // doctrina de arriba («sólo entra en juego el día que su titular se
+      // declara caída») y escondía justo a la que YA entró — en el caso A
+      // del dictado 2026-09-03 el titular salía con su Rechazo pero la cita
+      // del relevo no aparecía en ruta, tabla ni citas fijadas. El criterio
+      // de dormida es el del espejo sancionado (`sigueDormida`), y la
+      // dormida sigue oculta: enseñarlas todas multiplica la lista por 3,6.
+      if (rol !== "extra_reserve_pool" && rol !== "chain_reserve") return true;
+      return !sigueDormida(fila as unknown as MonitoreoAulasPlanRow);
     });
   // En el orden en que se recorre el operativo: cada titular con sus reservas
   // detrás. La tabla las enseñaba en el orden crudo del plan, que agrupa por rol
