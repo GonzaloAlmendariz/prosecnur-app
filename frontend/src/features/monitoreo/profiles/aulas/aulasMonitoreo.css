@@ -5523,9 +5523,9 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cola-estado.es-citada {
-  border-color: var(--pulso-info-border);
-  background: var(--pulso-info-bg);
-  color: var(--pulso-info-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cola-estado.es-aplicada {

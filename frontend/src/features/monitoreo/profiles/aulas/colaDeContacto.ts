@@ -81,6 +81,12 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   esfuerzo: EsfuerzoDeFacultad[];
   /** Cuántas se sacaron de la cola por estar ya aplicadas. Se declara, no se calla. */
   yaAplicadasSinCita: number;
+  /**
+   * Cuántas salieron de la cola porque el docente RECHAZÓ (B13b, tecleado en
+   * STATUS MUESTRA). Se declara: el contador de la cola baja y quien reparte
+   * llamadas tiene que saber por qué.
+   */
+  rechazadas: number;
 } {
   const pendientes: PendienteDeContacto[] = [];
   // **Las citadas también salen, con su horario.**
@@ -92,6 +98,7 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   const citadas: CitaFijada[] = [];
   /** Aplicadas cuyo `sample_status` ya no dice «agendada»: ni cola ni cita. */
   let yaAplicadasSinCita = 0;
+  let rechazadas = 0;
   const porFacultad = new Map<string, number[]>();
 
   for (const fila of filas) {
@@ -124,6 +131,14 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     if (dormida) continue;
     // Lo que ya cayó tampoco se persigue: su reemplazo es otro asunto.
     if (texto(fila.sample_status).toLowerCase().startsWith("reemplazada")) continue;
+    // El RECHAZO tecleado (B13b) cierra la gestión: la cola mandaba a
+    // INSISTIRLE a un docente que ya dijo que no — CH 90 estaba en «a quién
+    // llamar» con su nota de rechazo al lado (dictado 2026-09-03). Mismo
+    // criterio contains del motor; su reemplazo es otro asunto.
+    if (/^rechaz/.test(texto(fila.sample_status).toLowerCase())) {
+      rechazadas += 1;
+      continue;
+    }
     // **Ni lo que ya se aplicó.**
     //
     // `tieneCita()` mira `sample_status`, y en cuanto un aula se aplica ese
@@ -170,5 +185,5 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     .map(([facultad, xs]) => ({ facultad, aulas: xs.length, intentos: mediana(xs) }))
     .sort((x, y) => (y.intentos ?? 0) - (x.intentos ?? 0) || y.aulas - x.aulas);
 
-  return { pendientes, citadas, esfuerzo, yaAplicadasSinCita };
+  return { pendientes, citadas, esfuerzo, yaAplicadasSinCita, rechazadas };
 }

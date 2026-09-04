@@ -95,6 +95,20 @@ describe("un componente no usa dos unidades para la misma poblacion", () => {
   });
 });
 
+describe("la cola no insiste a quien rechazó (B13b)", () => {
+  it("el RECHAZO tecleado sale de la cola y se declara", () => {
+    // Dictado 2026-09-03 (CH 90): la cola mandaba a insistirle a un docente
+    // cuya nota decía «no puede permitirse perder más tiempo de clase» y cuyo
+    // STATUS MUESTRA ya decía rechazo.
+    const { pendientes, rechazadas } = colaDeContacto([
+      fila({ operational_code: "CH 90", sample_status: "rechazo", contact_attempts: "1" }),
+      fila({ operational_code: "CH 91", contact_attempts: "1" }),
+    ]);
+    expect(pendientes.map((p) => p.codigo)).toEqual(["CH 91"]);
+    expect(rechazadas).toBe(1);
+  });
+});
+
 describe("la cola no manda a llamar lo que ya se aplicó", () => {
   /**
    * `tieneCita()` mira `sample_status`, y en cuanto un aula se aplica ese estado
