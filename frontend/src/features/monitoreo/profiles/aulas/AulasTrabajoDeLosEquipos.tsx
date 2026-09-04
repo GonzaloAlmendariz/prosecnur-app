@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { produccionPorAplicador } from "./produccionPorAplicador";
 import { fmt } from "./kpisDeAulas";
+import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
  * Cómo trabaja cada equipo.
@@ -71,7 +72,9 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
       <ul className="aulas-equipos-lista">
         {r.equipos.map((e) => (
           <li key={e.aplicador} className={e.seDistingue ? "es-distinto" : undefined}>
-            <span className="aulas-equipos-nombre">{e.aplicador}</span>
+            {/* El nombre, como se escribe un nombre (dictado 2026-09-04).
+                La `key` se queda con el crudo: es su identidad. */}
+            <span className="aulas-equipos-nombre">{nombreDeAplicador(e.aplicador)}</span>
             <span className="aulas-equipos-barra">
               <span style={{
                 width: `${(e.porAula / tope) * 100}%`,
