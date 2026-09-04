@@ -290,7 +290,16 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
       # Dictado 2026-09-04: sin parte todavía, el estado es POR APLICAR, no
       # una celda vacía. El vacío se lee como «nadie la miró» y estas aulas
       # sí están miradas: están esperando su turno.
-      "STATUS DE APLICACIÓN"         = { e <- v("estado"); if (nzchar(e)) e else "POR APLICAR" },
+      #
+      # Y si la app ya SABE que a esta aula le entró una reserva, lo dice: el
+      # caso lo derivó `aulas_libro_anotar_aula_utilizada()` del estado del
+      # titular. Lo del parte manda sobre lo derivado, siempre.
+      "STATUS DE APLICACIÓN"         = {
+        e <- v("estado")
+        if (nzchar(e)) e
+        else if (nzchar(.calg_txt(unidad$estado_aplicacion))) .calg_txt(unidad$estado_aplicacion)
+        else "POR APLICAR"
+      },
       # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
       # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app
       # genera, otra columna y otra cosa—; en un libro nuevo sale vacio.
@@ -820,7 +829,34 @@ aulas_libro_anotar_aula_utilizada <- function(unidades) {
     # es la verdad de campo y la app no la pisa.
     if (nzchar(.calg_txt(u$aula_utilizada))) return(u)
     mias <- usadas[[.calg_txt(u$classroom_id)]]
-    if (length(mias)) u$aula_utilizada <- paste(unique(mias), collapse = ", ")
+    if (!length(mias)) return(u)
+    u$aula_utilizada <- paste(unique(mias), collapse = ", ")
+    # **Y de paso, CUAL de los tres casos es.**
+    #
+    # Los tres los distinguia el operativo de boca desde el dictado del
+    # 2026-09-03 («yo se que se llaman reemplazos, pero no siempre reemplazan en
+    # ese sentido de la palabra») y el libro los escribia todos igual. La
+    # diferencia la decide el estado del TITULAR, que es el dato que ya existe:
+    #
+    #   . el titular cayo (rechazo o reemplazada) → REEMPLAZADA POR. Es el caso
+    #     A, reemplazo en sentido estricto: sale uno y entra otro.
+    #   . el titular sigue vivo → COMPLEMENTADA CON. Es el caso B: los dos
+    #     cuentan, el aula rindio poco y se sumo su cadena.
+    #
+    # El caso C —refuerzo por cuota, sin titular caido— NO se deriva aqui: su
+    # reserva no cuelga de un titular visible, asi que no hay fila del titular
+    # donde escribirlo. Se teclea, y por eso «REFORZADA CON» esta en el
+    # desplegable. Derivarlo con lo que hay hoy seria inventarlo.
+    #
+    # Se siembra SOLO si nadie lo tecleo: lo escrito en campo manda.
+    if (!nzchar(.calg_txt(u$estado_aplicacion))) {
+      estado <- tolower(.calg_txt(u$operational_status))
+      u$estado_aplicacion <- if (grepl("^(reemplazada|rechaz)", estado)) {
+        "REEMPLAZADA POR"
+      } else {
+        "COMPLEMENTADA CON"
+      }
+    }
     u
   })
 }

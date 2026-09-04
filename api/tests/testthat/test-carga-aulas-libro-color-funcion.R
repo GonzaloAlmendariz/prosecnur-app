@@ -178,3 +178,44 @@ test_that("un plan sin ningún reemplazo activado sale intacto", {
   expect_identical(aulas_libro_anotar_aula_utilizada(plan), plan)
   expect_identical(aulas_libro_anotar_aula_utilizada(list()), list())
 })
+
+# **Cuál de los tres casos es, derivado del estado del titular.**
+#
+# Los tres los distinguía el operativo de boca (dictado 2026-09-03: «yo sé que
+# se llaman reemplazos, pero no siempre reemplazan en ese sentido de la
+# palabra») y el libro los escribía todos igual.
+test_that("el titular que CAYÓ sale como REEMPLAZADA POR", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "reemplazada"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_equal(out[[1]]$estado_aplicacion, "REEMPLAZADA POR")
+  expect_equal(out[[1]]$aula_utilizada, "R 1.1")
+})
+
+test_that("el titular que sigue VIVO sale como COMPLEMENTADA CON", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "agendada"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion,
+               "COMPLEMENTADA CON")
+})
+
+test_that("lo tecleado en campo manda sobre lo derivado", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         operational_status = "reemplazada", estado_aplicacion = "APLICADA"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+  )
+  expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion, "APLICADA")
+})
+
+test_that("sin reserva usada no se deriva estado: el aula sigue POR APLICAR", {
+  plan <- list(list(operational_code = "CH 1", classroom_id = "aula_1",
+                    operational_status = "agendada"))
+  expect_null(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion)
+})
