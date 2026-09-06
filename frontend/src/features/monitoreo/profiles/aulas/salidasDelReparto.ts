@@ -227,3 +227,116 @@ export function ventanasPorCita(crudo: unknown): Map<string, VentanaDeCita> {
   }
   return out;
 }
+
+export type SalidaDeViajeSolitario = {
+  aplicador: string;
+  fecha: string;
+  etiqueta: string;
+  codigo: string;
+  /** La ventana que ocupa: del recojo al fin, que es la que manda. */
+  desdeRecojo: string;
+  hasta: string;
+  /**
+   * Por qué nadie más se la lleva. Sólo las dos últimas son accionables:
+   *
+   * - `dia-de-una-cita`: ese día no hay otra aplicación con la que juntarla.
+   *   No hay nada que hacer en el reparto; la salida es agendar otra cita ese
+   *   día o mover ésta.
+   * - `sin-oferta`: de quienes ya están ese día, ninguno declaró ese horario.
+   * - `ocupados`: los tienen sus propias citas a esa hora; se nombran, con la
+   *   cita que los tiene, por si conviene soltarla.
+   * - `tope`: alguien PODRÍA llevársela y sólo lo frena el tope del día. Es la
+   *   única que se resuelve sin tocar la agenda: se fija a mano desde la tabla.
+   */
+  causa: "dia-de-una-cita" | "tope" | "ocupados" | "sin-oferta";
+  /** Con `tope`: quiénes podrían, y cuántas llevan ya ese día. */
+  frenadosPorTope: Array<{ aplicador: string; lleva: number }>;
+  /** Con `ocupados`: quiénes tienen el horario pero ya están, y en qué cita. */
+  ocupados: Array<{ aplicador: string; porCodigo: string }>;
+};
+
+/**
+ * **Los viajes al campus por UNA sola aula, con el motivo de cada uno.**
+ *
+ * El dictado del 2026-09-04 —«que todos tengan asignaciones el mismo día y no
+ * vengan en días diferentes, o aunque sea por lo menos vengan por dos
+ * aplicaciones»— el motor lo cumple hasta donde la física deja: sobre el
+ * operativo bajó de 18 viajes solitarios a 9. Los que quedan NO son un fallo
+ * del reparto, y decirlo como un número suelto invita a pensar que sí.
+ *
+ * Medidos esos 9 uno por uno: tres caen en días con una sola cita agendada,
+ * dos son un choque de hora (dos aulas a las 19:30 del mismo martes: hacen
+ * falta dos personas sí o sí) y el resto lo bloquean horarios y solapes. En
+ * dos de ellos el ÚNICO obstáculo era el tope del día —«podría, pero ya lleva
+ * cuatro»—, y ésa es la que el usuario puede resolver fijando a mano.
+ *
+ * De ahí que la causa se separe: sirve para decidir qué hacer, no para
+ * adornar. Se calcula sobre el reparto y la malla de oferta ya en el cliente,
+ * con las MISMAS varas del motor —la ventana ocupada empieza en el recojo, la
+ * adyacencia no es solape, el tope viaja en el payload— porque una segunda
+ * lectura de la regla es como empiezan a divergir las dos capas.
+ */
+export function salidasDeViajesSolitarios(
+  reparto: RepartoVista,
+  malla: MallaDeOferta | null,
+): SalidaDeViajeSolitario[] {
+  const salidas: SalidaDeViajeSolitario[] = [];
+  const tope = reparto.topePorViaje;
+  for (const d of reparto.dias) {
+    const porNombre = new Map<string, typeof d.asignaciones>();
+    for (const a of d.asignaciones) {
+      porNombre.set(a.aplicador, [...(porNombre.get(a.aplicador) ?? []), a]);
+    }
+    const dia = diaDeSemanaDe(d.fecha);
+    for (const [aplicador, suyas] of porNombre) {
+      if (suyas.length !== 1) continue;
+      const a = suyas[0];
+      const pactada = minutosDeHora(a.inicio);
+      const ini = minutosDeHora(a.recojo)
+        ?? (pactada === null ? null : pactada - (reparto.preparacionMin || 0));
+      const fin = minutosDeHora(a.fin);
+      const base = {
+        aplicador, fecha: d.fecha, etiqueta: d.etiqueta, codigo: a.codigo,
+        desdeRecojo: a.recojo || a.inicio, hasta: a.fin,
+      };
+      // Un día con una sola cita no tiene arreglo posible en el reparto, y es
+      // la causa más común: se dice primero para no hacer buscar culpables.
+      if (d.asignaciones.length <= 1) {
+        salidas.push({ ...base, causa: "dia-de-una-cita", frenadosPorTope: [], ocupados: [] });
+        continue;
+      }
+      if (ini === null || fin === null || dia === null || malla === null) {
+        salidas.push({ ...base, causa: "sin-oferta", frenadosPorTope: [], ocupados: [] });
+        continue;
+      }
+      const conHorario = quienesCubren(malla, dia, ini, fin);
+      const frenadosPorTope: Array<{ aplicador: string; lleva: number }> = [];
+      const ocupados: Array<{ aplicador: string; porCodigo: string }> = [];
+      for (const [otro, delOtro] of porNombre) {
+        if (otro === aplicador) continue;
+        if (!conHorario.includes(otro)) continue;
+        // ¿Le solapa alguna de las suyas? Se mide sobre la ventana ocupada,
+        // igual que el motor; tocarse por el extremo no es solape.
+        const choca = delOtro.find((o) => {
+          const oPactada = minutosDeHora(o.inicio);
+          const oIni = minutosDeHora(o.recojo)
+            ?? (oPactada === null ? null : oPactada - (reparto.preparacionMin || 0));
+          const oFin = minutosDeHora(o.fin);
+          return oIni !== null && oFin !== null && oIni < fin && oFin > ini;
+        });
+        if (choca) {
+          ocupados.push({ aplicador: otro, porCodigo: choca.codigo });
+        } else if (tope !== null && delOtro.length >= tope) {
+          frenadosPorTope.push({ aplicador: otro, lleva: delOtro.length });
+        }
+      }
+      const causa = frenadosPorTope.length > 0
+        ? "tope"
+        : ocupados.length > 0
+          ? "ocupados"
+          : "sin-oferta";
+      salidas.push({ ...base, causa, frenadosPorTope, ocupados });
+    }
+  }
+  return salidas;
+}

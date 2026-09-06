@@ -4,7 +4,8 @@ import type { MonitoreoAulasDisponibilidad, MonitoreoAulasReparto } from "../../
 import { mallaDeOferta } from "./disponibilidadDeAplicadores";
 import { repartoDeAplicadores } from "./repartoDeAplicadores";
 import {
-  claveDeCita, diaDeSemanaDe, salidasDeDescubiertos, salidasDeLibres, ventanasPorCita,
+  claveDeCita, diaDeSemanaDe, salidasDeDescubiertos, salidasDeLibres,
+  salidasDeViajesSolitarios, ventanasPorCita,
 } from "./salidasDelReparto";
 
 /**
@@ -245,5 +246,122 @@ describe("la ocupación empieza en el recojo, no en la hora pactada", () => {
     }]);
     const [s] = salidasDeDescubiertos(reparto(CON_HUECO_TEMPRANO), malla, VENT);
     expect(s.conHorario).toEqual(["Ana Prueba"]);
+  });
+});
+
+
+/**
+ * **Los viajes por una sola aula, con su motivo.**
+ *
+ * Sobre el operativo del 2026-09-04 el motor bajó de 18 viajes solitarios a 9,
+ * y los 9 se midieron uno por uno: ninguno era un fallo del reparto. Decirlos
+ * como un número suelto invita a pensar que sí, así que cada uno viaja con la
+ * causa que decide qué hacer con él.
+ *
+ * Los casos de aquí son los mismos que se midieron en el operativo, reducidos
+ * a lo mínimo que los distingue.
+ */
+describe("salidasDeViajesSolitarios", () => {
+  // La malla es una REJILLA DE 30 MINUTOS: `quienesCubren` marca los tramos
+  // como `[min, min+30)`. Una franja de catorce horas declarada de una pieza
+  // sólo ocupa el primer tramo, así que hay que expandirla — el mismo detalle
+  // que hace que los tests de arriba escriban sus franjas media hora a media
+  // hora.
+  const continua = (desde: string, hasta: string, nombres: string[]) => {
+    const min = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3));
+    const hh = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const out = [];
+    for (let m = min(desde); m < min(hasta); m += 30) {
+      out.push({ inicio: hh(m), fin: hh(m + 30), nombres });
+    }
+    return out;
+  };
+  const dia = (asignaciones: Array<Record<string, unknown>>) => ({
+    fecha: "2026-09-07", asignaciones, no_cubiertos: [], por_confirmar: [],
+  });
+  const cita = (aplicador: string, codigo: string, recojo: string, inicio: string, fin: string) =>
+    ({ codigo, aplicador, recojo, inicio, fin, salida: inicio, fijada: false });
+
+  it("un día con UNA sola cita no tiene arreglo, y lo dice así", () => {
+    const r = reparto({
+      concentrado: true, tope_por_viaje: 4, preparacion_min: 30,
+      dias: [dia([cita("Ana Uno", "CH 1", "09:30", "10:00", "10:30")])],
+      equidad: [],
+    });
+    const s = salidasDeViajesSolitarios(r, null);
+    expect(s).toHaveLength(1);
+    expect(s[0].causa).toBe("dia-de-una-cita");
+    expect(s[0].aplicador).toBe("Ana Uno");
+  });
+
+  it("cuando el ÚNICO obstáculo es el tope del día, nombra a quien podría", () => {
+    // Beto tiene el horario entero y está libre a esa hora: lo frena que ya
+    // lleve el tope. Es el único caso que el usuario resuelve solo, fijando
+    // la cita a mano.
+    const malla = oferta([{ dia: "lunes", franjas: continua("08:00", "22:00", ["Ana Uno", "Beto Dos"]) }]);
+    const r = reparto({
+      concentrado: true, tope_por_viaje: 2, preparacion_min: 30,
+      dias: [dia([
+        cita("Beto Dos", "CH 1", "08:30", "09:00", "09:30"),
+        cita("Beto Dos", "CH 2", "09:30", "10:00", "10:30"),
+        cita("Ana Uno", "CH 3", "17:30", "18:00", "18:30"),
+      ])],
+      equidad: [],
+    });
+    const s = salidasDeViajesSolitarios(r, malla);
+    expect(s).toHaveLength(1);
+    expect(s[0]).toMatchObject({
+      aplicador: "Ana Uno", codigo: "CH 3", causa: "tope",
+      frenadosPorTope: [{ aplicador: "Beto Dos", lleva: 2 }],
+    });
+  });
+
+  it("si a los demás les choca la hora, los nombra con la cita que los tiene", () => {
+    // El choque real del operativo: dos aulas a las 19:30 del mismo día.
+    // Hacen falta dos personas sí o sí, y eso no es negociable.
+    const malla = oferta([{ dia: "lunes", franjas: continua("08:00", "22:00", ["Ana Uno", "Beto Dos"]) }]);
+    const r = reparto({
+      concentrado: true, tope_por_viaje: 4, preparacion_min: 30,
+      dias: [dia([
+        cita("Ana Uno", "CH 1", "19:00", "19:30", "20:00"),
+        cita("Beto Dos", "CH 2", "19:00", "19:30", "20:00"),
+      ])],
+      equidad: [],
+    });
+    const s = salidasDeViajesSolitarios(r, malla);
+    expect(s).toHaveLength(2);
+    expect(s.map((x) => x.causa)).toEqual(["ocupados", "ocupados"]);
+    expect(s[0].ocupados).toEqual([{ aplicador: "Beto Dos", porCodigo: "CH 2" }]);
+  });
+
+  it("si nadie del día declara ese horario, no culpa al tope", () => {
+    const malla = oferta([{ dia: "lunes", franjas: [
+      ...continua("08:00", "12:00", ["Beto Dos"]),
+      ...continua("17:00", "20:00", ["Ana Uno"]),
+    ] }]);
+    const r = reparto({
+      concentrado: true, tope_por_viaje: 4, preparacion_min: 30,
+      dias: [dia([
+        cita("Beto Dos", "CH 1", "08:30", "09:00", "09:30"),
+        cita("Beto Dos", "CH 2", "09:30", "10:00", "10:30"),
+        cita("Ana Uno", "CH 3", "17:30", "18:00", "18:30"),
+      ])],
+      equidad: [],
+    });
+    const s = salidasDeViajesSolitarios(r, malla);
+    expect(s).toHaveLength(1);
+    expect(s[0]).toMatchObject({ causa: "sin-oferta", frenadosPorTope: [], ocupados: [] });
+  });
+
+  it("quien hace dos o más en el día no aparece: no es un viaje solitario", () => {
+    const r = reparto({
+      concentrado: true, tope_por_viaje: 4, preparacion_min: 30,
+      dias: [dia([
+        cita("Ana Uno", "CH 1", "08:30", "09:00", "09:30"),
+        cita("Ana Uno", "CH 2", "09:30", "10:00", "10:30"),
+      ])],
+      equidad: [],
+    });
+    expect(salidasDeViajesSolitarios(r, null)).toEqual([]);
   });
 });
