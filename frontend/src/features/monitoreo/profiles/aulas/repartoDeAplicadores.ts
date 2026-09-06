@@ -115,6 +115,14 @@ export type RepartoVista = {
    * MOTOR armó este reparto («maximizar su día») — eco, no deseo de la UI.
    */
   concentrado: boolean;
+  /**
+   * Cuántas aplicaciones cabían en un viaje al campus cuando el motor
+   * concentró. Llega del motor y NO se guarda una copia aquí: la vista dice
+   * «podría, pero ya lleva el tope del día» y esa frase es falsa en cuanto las
+   * dos capas leen la regla por separado. `null` = el motor no concentró, así
+   * que no hay tope que citar.
+   */
+  topePorViaje: number | null;
 };
 
 /**
@@ -387,6 +395,7 @@ export function repartoDeAplicadores(
       .filter((f) => f.fecha !== ""),
     semilla: num(raiz.semilla) ?? 0,
     concentrado: raiz.concentrado === true,
+    topePorViaje: num(raiz.tope_por_viaje) ?? null,
     rango: (() => {
       const r = (raiz.rango ?? null) as Record<string, unknown> | null;
       if (!r) return null;

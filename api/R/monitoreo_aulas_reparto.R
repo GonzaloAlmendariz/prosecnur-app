@@ -693,6 +693,11 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     duracion_min = as.integer(base[["duracion_min"]] %||% duracion_min),
     preparacion_min = .mav_PREPARACION_MIN,
     salida_min = .mav_SALIDA_MIN,
+    # Y cuántas aplicaciones cabían en un viaje. Viaja porque la vista tiene
+    # que poder decir «X podría tomarla, pero ya lleva el tope del día», y esa
+    # frase es falsa si el frontend guarda su propio 4: sería la misma regla
+    # leída dos veces, que es como empiezan a divergir las dos capas.
+    tope_por_viaje = if (concentrado) MONITOREO_AULAS_MAX_POR_VIAJE else NA_integer_,
     # B75: lo aplazado, declarado por fecha; y el rango saneado que rigió.
     fuera_de_rango = if (length(fuera)) {
       lapply(sort(names(fuera), method = "radix"), function(fecha) {
