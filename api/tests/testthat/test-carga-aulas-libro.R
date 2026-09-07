@@ -297,35 +297,54 @@ test_that("las fechas del libro se escriben como fechas y no como texto", {
 
 # **El tramo que decide si una fila de control «es del equipo» no lo escribe la app.**
 #
-# La «Base de control» conserva las aulas con control ya registrado aunque no
-# estén aplicadas: sin eso, regenerar el libro a mitad de operativo borra el
-# trabajo del equipo. Para decidirlo mira el bloque de CONTEO —de TOTAL ENVIADAS
-# a LARGAS VS TOTAL—, y eso sólo funciona mientras la app no escriba ahí.
+# **La hoja es de la app, y por eso el criterio de fila es uno solo.**
 #
-# El 2026-09-07 el corte se puso primero en «de TOTAL ENVIADAS en adelante» y no
-# sirvió: ahí caen EFECTIVAS ESPERADAS y MUJERES/HOMBRES ESPERADOS, que las pone
-# la app, así que TODA fila publicada volvía a contar como control del equipo y
-# la hoja seguía saliendo con las 174. El bucle se cierra solo —se publica, se
-# relee, se conserva— y por eso hace falta este guard.
-test_that("el generador no escribe dentro del bloque de conteo del equipo", {
+# Hubo un segundo criterio —conservar el aula cuyo bloque de conteo el equipo
+# hubiera llenado a mano, «el único tramo que la app no escribe nunca»— con su
+# propio guard aquí. Duró un día: el 2026-09-07 la app pasó a escribir ese
+# bloque entero desde la plataforma y el tramo dejó de existir como tal.
+#
+# Lo que este test sujeta ahora es la consecuencia, que es la que costó un
+# defecto real: si una fila publicada por la app pudiera contar como anotación
+# del equipo, el bucle se cierra solo —se publica, se relee, se conserva— y la
+# hoja vuelve a salir con las 174 aulas. Medido ese día.
+test_that("una fila publicada por la app no se conserva sola al releerla", {
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        course_name = "MATEMATICAS", enrolled_total = 40,
+                        eligible_n = 30, scheduled_date = "2026-09-08"))
+  # El registro es EXACTAMENTE lo que la app escribiría de esta aula si
+  # estuviera aplicada, releído del libro.
+  registro <- list(list(operational_code = "CH 1", course_name = "MATEMATICAS",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08", sent_total = 12,
+                        efectivas_obtenidas = 10, no_efectivas = 2))
+  plano <- as.character(unlist(aulas_libro_hoja_control(unidades, control = registro)))
+  # Sin aplicar y sin respuestas en ESTA generación, no vuelve.
+  expect_false("CH 1" %in% plano)
+})
+
+
+# ---------------------------------------------------------------------------
+# **Ningún ancla de la Base de control se pone por rótulo.**
+#
+# El 2026-09-07 un barrido de vocabulario renombró veintitrés columnas y rompió
+# SEIS anclas distintas en el mismo día: las bandas de la hoja, los formatos de
+# porcentaje, el corte del bloque del equipo, las llamadas de `pon()`, la lista
+# de columnas numéricas y el tipado de fechas. Ninguna falló: todas dejaron de
+# hacer su trabajo en silencio, y se encontraron de una en una, mirando.
+#
+# La spec tiene dos identificadores —el `campo`, que es estable, y el título,
+# que es justo lo que el usuario pide cambiar—. Este guard prohíbe el segundo.
+# ---------------------------------------------------------------------------
+
+test_that("el generador no ancla la Base de control por rótulo", {
   fuente <- readLines("../../R/carga_aulas_libro_generar.R", warn = FALSE)
-  escribe <- unique(sub('.*pon\\("([^"]*)".*', "\\1", grep('pon\\("', fuente, value = TRUE)))
-  escritos <- prosecnurapp:::.calg_control_escritos()
-  titulos <- vapply(escritos, function(s) s$titulos[[1]], character(1))
-  campos <- vapply(escritos, function(s) s$campo, character(1))
-  # Por CAMPO: el rótulo es justo lo que un barrido de vocabulario cambia, y
-  # anclar aquí por título dejó el bloque vacío el 2026-09-07 sin que nada
-  # fallara. Los títulos se resuelven después, sólo para comparar con lo que
-  # escribe el generador.
-  a <- which(campos == "sent_total")[[1]]
-  b <- which(campos == "long_vs_total")[[1]]
-  bloque <- titulos[seq.int(a, b)]
-  invadidos <- intersect(bloque, escribe)
+  # `.calg_col_control()` resuelve por TÍTULO; `.calg_col_control_campo()` por
+  # campo. La primera sólo puede usarse con un valor calculado, nunca con un
+  # literal, que es lo que se queda atrás en un renombrado.
+  por_rotulo <- grep('\\.calg_col_control\\("', fuente, value = TRUE)
   expect_identical(
-    invadidos, character(0),
-    info = paste("la app escribe en el bloque del equipo:", paste(invadidos, collapse = ", "))
+    por_rotulo, character(0),
+    info = paste("ancla por rótulo:", paste(trimws(por_rotulo), collapse = " | "))
   )
-  # Y el bloque existe de verdad: si la spec lo renombra, el corte se queda sin
-  # anclas y conservaría cero filas en silencio.
-  expect_gt(length(bloque), 1L)
 })

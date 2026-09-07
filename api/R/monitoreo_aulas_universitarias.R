@@ -295,6 +295,14 @@ monitoreo_aulas_default_config <- function() {
       link_var = "",
       date_var = "",
       status_var = "",
+      # **Qué valor de `sex_var` es cada sexo.** La plataforma devuelve el
+      # CÓDIGO, no la etiqueta: `datos_demo/P2` llega como «1» y «2», y
+      # `.pulso_sexo_fm()` —que reconoce «Mujer», «F», «femenino»— no puede
+      # saber cuál es cuál. Sin esta declaración las columnas de sexo obtenido
+      # se quedan vacías, que es lo correcto: `sub_a` ya costó una lectura al
+      # revés por adivinar cuál columna era mujeres.
+      sex_female_values = list(),
+      sex_male_values = list(),
       # **La variable que dice el sexo de quien respondio** (dictado
       # 2026-09-04: «poder mapear cuantas se esperaban en total y en hombres y
       # en mujeres y cuanto obtuvimos»). Sin declararla no se cuenta por sexo y
@@ -371,6 +379,12 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       # Misma doctrina de whitelist: sin esta linea, declararla en la UI no
       # persistiria y el campo se caeria en silencio.
       sex_var = .monitoreo_scalar(mapping$sex_var %||% mapping$sexo_var, defaults$source_mapping$sex_var),
+      # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
+      # declararlos no persistiria.
+      sex_female_values = as.list(.monitoreo_chr_vec(
+        mapping$sex_female_values %||% mapping$valores_mujer %||% list())),
+      sex_male_values = as.list(.monitoreo_chr_vec(
+        mapping$sex_male_values %||% mapping$valores_hombre %||% list())),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
       # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
       # al guardar.** Este normalizador es la whitelist de la config: lo que no

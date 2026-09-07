@@ -305,6 +305,13 @@ test_that("la identidad del aula la manda el PLAN, no el registro", {
   u <- .rt_unico(ag, 100)
   u$operational_code <- "CH 1"; u$sample_role <- "titular"; u$classroom_id <- "A-01"
   pt <- .rt_unico(ap, 300); pt$operational_code <- "CH 1"; pt$intento <- 1L
+  # **El aula tiene que estar APLICADA para que su fila de control exista.**
+  # Desde el 2026-09-07 la «Base de control» sólo escribe el aula aplicada o con
+  # respuestas: el criterio de «tiene control tecleado por el equipo» se retiró
+  # cuando la app pasó a escribir ese bloque entero desde la plataforma. Sin
+  # esto el barrido se quedaba sin fila de control que comparar.
+  pt$estado <- "APLICADA"
+  pt$application_status <- "APLICADA"
   ct1 <- .rt_unico(ct, 500); ct1$operational_code <- "CH 1"
   libro <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
   aulas_libro_generar(list(u), libro, partes = list(pt), control = list(ct1))
@@ -350,17 +357,20 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # Estos cinco no vuelven con el valor del REGISTRO porque el plan es su
   # fuente y no se deja pisar. No es perdida: es la regla, y si algun dia deja
   # de cumplirse este test lo dice.
-  # `elegibles_esperados` se suma a la lista por el mismo motivo: es
-  # `eligible_n` del plan publicado en la Base de control, asi que tampoco lo
-  # pisa el registro. Que aparezca aqui es la señal de que la columna nueva se
-  # escribe de verdad.
-  # Los CINCO `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
+  # Los DIEZ `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
   # eso es deliberado —salian como columnas vacias—. Siguen en la spec para que
   # un libro viejo que las traiga se lea entero, que es lo que comprueba
-  # `test-carga-aulas-libro-control-esperado.R`. El quinto es
-  # `efectivas_pct_esperado`, que dejo de escribirse el 2026-09-07: era
-  # `esperadas / elegibles`, la misma cifra que «TASA DEL AULA» dos columnas
-  # antes, y una columna que repite a su vecina no informa, confunde.
+  # `test-carga-aulas-libro-control-esperado.R`.
+  #
+  # Los cuatro últimos entraron el 2026-09-07: `short_*`/`long_*` eran la
+  # partición por DURACIÓN de 2025 —«cortas y largas ya no existe, es efectivas
+  # y no efectivas»—, `efectivas_pct_esperado` era `esperadas / elegibles`, la
+  # misma cifra que «TASA DEL AULA», y `elegibles_esperados` era `eligible_n`
+  # repetido. Una columna que repite a su vecina no informa, confunde.
+  #
+  # `attendance_pct` se suma porque la calcula la APP desde el parte
+  # (`asistentes / elegibles`) y por tanto no la pisa el registro, igual que las
+  # siete de agenda y campo de abajo.
   # Los SIETE de agenda y campo se suman por el mismo motivo, y su presencia
   # aqui es la señal de que la Base de control ya los escribe: hasta el
   # 2026-08-31 salian VACIOS —«base de control necesita saber lo que las otras
@@ -371,7 +381,8 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
                     "elegibles_esperados",
                     "threshold_total", "threshold_population",
                     "valid_total", "valid_population",
-                    "efectivas_pct_esperado",
+                    "efectivas_pct_esperado", "attendance_pct",
+                    "short_total", "short_vs_total", "long_total", "long_vs_total",
                     "scheduled_date", "scheduled_time",
                     "applied_by", "applied_date", "applied_time",
                     "application_status", "observed_students"))
@@ -446,16 +457,29 @@ test_that("vuelve el control de CUALQUIER unidad que lo tenga, sea del rol que s
   # titulares costo 22 filas en el estudio de trabajo.
   v <- .rt_vuelta(
     plan = .rt_plan_tres_roles(),
-    partes = list(),
+    # **Con parte APLICADA**: desde el 2026-09-07 la hoja sólo escribe el aula
+    # aplicada o con respuestas, así que un control suelto sobre un aula que
+    # nadie aplicó ya no basta para que la fila exista. Lo que este test sujeta
+    # sigue siendo lo suyo —que el rol de muestreo no decida si el control
+    # vuelve—, y para eso las tres se aplican.
+    partes = list(
+      list(operational_code = "CH 1", estado = "APLICADA", intento = 1L),
+      list(operational_code = "R 2.1", estado = "APLICADA", intento = 1L),
+      list(operational_code = "X 1", estado = "APLICADA", intento = 1L)
+    ),
     control = list(
-      list(operational_code = "CH 1", sent_total = 11),
-      list(operational_code = "R 2.1", sent_total = 22),
-      list(operational_code = "X 1", sent_total = 33)
+      list(operational_code = "CH 1", validator_1 = 11),
+      list(operational_code = "R 2.1", validator_1 = 22),
+      list(operational_code = "X 1", validator_1 = 33)
     )
   )
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  # Por `validator_1` y no por `sent_total`: las enviadas las escribe ahora la
+  # app desde la plataforma y pisarían el valor del registro. El filtro de
+  # validación sólo se llena cuando el estudio declara su criterio, así que en
+  # este barrido sin respuestas conserva lo tecleado, que es lo que aquí se mide.
   valores <- setNames(
-    vapply(v$control, function(r) as.numeric(r$sent_total %||% NA), numeric(1)),
+    vapply(v$control, function(r) as.numeric(r$validator_1 %||% NA), numeric(1)),
     codigos
   )
   # Los tres, con SU valor: si el generador los repartiera mal, los numeros

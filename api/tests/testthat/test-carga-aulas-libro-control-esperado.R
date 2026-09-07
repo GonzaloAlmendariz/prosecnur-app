@@ -61,8 +61,8 @@ test_that("lo obtenido sale de la PLATAFORMA y la diferencia lleva signo", {
   # el aplicador anota en su parte.
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 18))
-  expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "18")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "0.6")
+  expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "18")
+  expect_identical(fila[[.ce_titulo("% EFECTIVAS SOBRE ELEGIBLES")]], "0.6")
   # En encuestas y con signo: «te faltan 3» es accionable, «-13 %» no.
   expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "-3")
 })
@@ -80,8 +80,8 @@ test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
   # aula sin aplicar la segunda es la cierta. Es el mismo criterio que «un 0 de
   # 0 no es 0 %».
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)), efectivas = NULL)
-  expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "")
+  expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "")
+  expect_identical(fila[[.ce_titulo("% EFECTIVAS SOBRE ELEGIBLES")]], "")
   expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "")
   # Pero lo ESPERADO si se publica: se sabe desde que se hizo el plan.
   expect_identical(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "21")
@@ -145,18 +145,18 @@ test_that("un libro con las columnas viejas se sigue leyendo entero", {
   expect_equal(as.numeric(filas[[1]]$threshold_total), 1)
 })
 
-# «ELEGIBLES ESPERADOS» prometia un pronostico y llevaba el padron.
+# El padrón es el denominador, y la meta es otra columna.
 #
 # Gonzalo, 2026-08-24: «deberiamos tenerlo todo muy validado a lo ultimo que
-# tenemos y realmente usamos». La columna escribe `eligible_n` —el mismo numero
-# que «MATRICULADOS POBLACION» de la misma fila— y esta ahi para que el
-# `% EFECTIVAS ESPERADO` se lea sin cruzar la hoja. Su nombre viejo costo un
-# defecto real: el veredicto de aula valida la tomo por meta, y usar el padron
-# como vara exige el 100 % de asistencia efectiva.
+# tenemos y realmente usamos». Hubo una columna «ELEGIBLES: BASE DEL %» que
+# repetía `eligible_n` para que el porcentaje se leyera sin cruzar la hoja; con
+# el reordenamiento del 2026-09-07 el porcentaje ya está junto a su denominador
+# y esa columna dejó de escribirse. Su nombre original, «ELEGIBLES ESPERADOS»,
+# costó un defecto real: el veredicto de aula válida la tomó por meta, y usar el
+# padrón como vara exige el 100 % de asistencia efectiva.
 test_that("la base del % es el padron, y la meta es otra columna", {
   u <- list(.ce_aula("CH 1", eleg = 36, esperadas = 17.3))
   fila <- .ce_fila(u)
-  expect_equal(fila[[.ce_titulo("ELEGIBLES: BASE DEL %")]], "36")
   expect_equal(fila[[.ce_titulo("MATRICULADOS ELEGIBLES")]], "36")
   # La meta NO es ninguna de las dos, y se escribe EN PERSONAS: el motor la
   # calcula como producto de tasas (17,3) y desde el 2026-09-07 la hoja la
@@ -166,10 +166,19 @@ test_that("la base del % es el padron, y la meta es otra columna", {
   expect_equal(fila[[.ce_titulo("TASA DEL AULA")]], "0.481")
 })
 
-test_that("el titulo viejo sigue leyendose: los libros ya emitidos no se rompen", {
-  spec <- Filter(function(s) identical(s$campo, "elegibles_esperados"),
-                 BASE_CONTROL_CAMPOS)[[1]]
-  # El primero es el que se ESCRIBE; los siguientes son alias de lectura.
-  expect_equal(spec$titulos[[1]], "ELEGIBLES: BASE DEL %")
-  expect_true("ELEGIBLES ESPERADOS" %in% spec$titulos)
+test_that("los titulos viejos siguen leyendose: los libros ya emitidos no se rompen", {
+  por_campo <- function(k) Filter(function(s) identical(s$campo, k), BASE_CONTROL_CAMPOS)[[1]]
+  # Ya no se escribe, pero un libro que la traiga se sigue leyendo entera.
+  eleg <- por_campo("elegibles_esperados")
+  expect_true(isTRUE(eleg$solo_lectura))
+  expect_true(all(c("ELEGIBLES: BASE DEL %", "ELEGIBLES ESPERADOS") %in% eleg$titulos))
+  # Y las efectivas conservan su rótulo anterior de alias: el primero es el que
+  # se ESCRIBE, los siguientes son de lectura.
+  ef <- por_campo("efectivas_obtenidas")
+  expect_equal(ef$titulos[[1]], "EFECTIVAS")
+  expect_true("EFECTIVAS OBTENIDAS" %in% ef$titulos)
+  # Cortas y largas, la partición por duración de 2025, sólo se leen.
+  for (k in c("short_total", "short_vs_total", "long_total", "long_vs_total")) {
+    expect_true(isTRUE(por_campo(k)$solo_lectura), info = k)
+  }
 })

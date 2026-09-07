@@ -451,9 +451,12 @@ test_that("las cuentas de campo entran como numero, no como texto", {
 
 # --- Los tramos de la «Base de control» -------------------------------------
 
-test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
+test_that("los cinco tramos se anclan por NOMBRE y cubren la hoja entera", {
   g <- aulas_libro_grupos_control()
-  expect_length(g, 4L)
+  # Cinco desde el reordenamiento del 2026-09-07: «lo esperado» se separó de
+  # «lo que llegó de la plataforma», que convivían bajo «CONTROL - CUENTA», y
+  # las razones bajaron a su propio tramo porque comparan a los dos.
+  expect_length(g, 5L)
   # Los tramos se calculan sobre las columnas que la hoja ESCRIBE, no sobre la
   # spec entera: las cuatro `solo_lectura` existen para releer libros viejos y
   # no salen en la hoja, asi que compararlas con `BASE_CONTROL_CAMPOS` dejaba
@@ -470,9 +473,10 @@ test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
   # El control de que el anclaje es por nombre y no por numero: el primer campo
   # de cada tramo es el que dice la etiqueta.
   expect_identical(campos[[g[[2]]$desde]], "FECHA AGENDADA")
-  expect_identical(campos[[g[[3]]$desde]], "TOTAL ENVIADAS")
+  expect_identical(campos[[g[[3]]$desde]], "TASA DE LA FACULTAD")
   # El ancla es el CAMPO desde el 2026-09-07; el título es lo que cambia.
-  expect_identical(campos[[g[[4]]$desde]], "ALUMNOS EN AULA")
+  expect_identical(campos[[g[[4]]$desde]], "TOTAL ENVIADAS")
+  expect_identical(campos[[g[[5]]$desde]], "ENVIADAS VS MATRICULADOS")
 })
 
 test_that("la base de control combina sus tramos y repite hasta el curso-horario", {

@@ -197,7 +197,7 @@ test_that("el mismo eslabon tiene el mismo color en las DOS hojas", {
   }
 })
 
-test_that("los cuatro tramos de la Base de control se distinguen", {
+test_that("los cinco tramos de la Base de control se distinguen", {
   # 43 columnas: el color es lo unico que dice en que parte de la hoja se esta
   # cuando la banda ya quedo arriba. Salian los cuatro con el mismo navy.
   libro <- withr::local_tempfile(fileext = ".xlsx")
@@ -205,7 +205,7 @@ test_that("los cuatro tramos de la Base de control se distinguen", {
   g <- aulas_libro_grupos_control()
   bandas <- vapply(g, function(x) relleno_de_celda(libro, "Base de control", x$desde, 1),
                    character(1))
-  expect_length(bandas, 4L)
+  expect_length(bandas, 5L)
   expect_identical(anyDuplicated(bandas), 0L)
 })
 

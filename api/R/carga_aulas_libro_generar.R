@@ -564,11 +564,22 @@ aulas_libro_grupos_control <- function() {
   # bandas en vez de cuatro, sin que nada fallara al generar. El campo es el
   # identificador estable de la spec; el título es justo lo que cambia.
   campos <- vapply(.calg_control_escritos(), function(spec) spec$campo, character(1))
+  # Las cinco bandas del orden nuevo (2026-09-07). Nombran lo que hay debajo en
+  # los términos del operativo: «CONTROL - CUENTA» y «CONTROL - CUOTAS» no
+  # decían de qué hablaban, y bajo la primera convivían el conteo de la
+  # plataforma y las dos expectativas del plan.
+  #
+  # **En registro formal**, no coloquial. La primera versión las tituló «EL
+  # AULA», «LO QUE ESPERÁBAMOS», «CÓMO VAMOS» y Gonzalo lo paró en el acto: «ten
+  # cuidado con poner nombres de jergas, es un excel formal». La hoja la abren la
+  # coordinación y la universidad; un encabezado en tono de conversación le resta
+  # autoridad al documento entero.
   anclas <- list(
-    list(etiqueta = "INFORMACIÓN DEL CURSO", desde = "wave"),
-    list(etiqueta = "INFORMACIÓN DEL CAMPO", desde = "scheduled_date"),
-    list(etiqueta = "CONTROL - CUENTA", desde = "sent_total"),
-    list(etiqueta = "CONTROL - CUOTAS", desde = "observed_students")
+    list(etiqueta = "IDENTIFICACIÓN DEL CURSO-HORARIO", desde = "wave"),
+    list(etiqueta = "APLICACIÓN EN CAMPO", desde = "scheduled_date"),
+    list(etiqueta = "RENDIMIENTO ESPERADO", desde = "tasa_facultad_ref"),
+    list(etiqueta = "RESPUESTAS EN PLATAFORMA", desde = "sent_total"),
+    list(etiqueta = "INDICADORES DE AVANCE", desde = "sent_vs_total")
   )
   inicios <- vapply(anclas, function(a) {
     i <- which(campos == a$desde)
@@ -582,11 +593,57 @@ aulas_libro_grupos_control <- function() {
   })
 }
 
+# **De qué sexo es cada etiqueta del conteo, con el estudio mandando.**
+#
+# La plataforma devuelve CÓDIGOS: `datos_demo/P2` llega como «1» y «2», y
+# `.pulso_sexo_fm()` —que reconoce «Mujer», «F», «femenino»— no puede resolver
+# eso. Cuando el estudio declara `sex_female_values` / `sex_male_values` en su
+# mapping, mandan; si no los declara se intenta leer la etiqueta, y si tampoco
+# se deja en NA y la columna calla. Adivinar es lo único que no se hace: `sub_a`
+# ya costó una lectura al revés.
+# La hora de la cita en HH:MM de 24 horas, que es como se ordena y se agrupa.
+# El equipo la teclea «11:30 am», «1:45 pm»; el mismo parser del motor que ya
+# calcula las ventanas del Plan del día da los minutos.
+.calg_hora_normalizada <- function(hora) {
+  m <- monitoreo_aulas_hora_parse(.calg_txt(hora))[[1]]
+  if (is.na(m)) return("")
+  sprintf("%02d:%02d", as.integer(m) %/% 60L, as.integer(m) %% 60L)
+}
+
+# La franja del día. Tres cortes y no cuatro porque es lo que el operativo
+# distingue: quien arma turnos decide entre mañana, tarde y noche.
+.calg_franja_horaria <- function(hora) {
+  m <- monitoreo_aulas_hora_parse(.calg_txt(hora))[[1]]
+  if (is.na(m)) return("")
+  if (m < 12L * 60L) "Mañana" else if (m < 18L * 60L) "Tarde" else "Noche"
+}
+
+.calg_sexo_fm_declarado <- function(etiquetas, cfg = list()) {
+  mapping <- (cfg %||% list())[["source_mapping"]] %||% list()
+  clave <- function(x) tolower(trimws(as.character(x)))
+  fem <- clave(unlist(mapping[["sex_female_values"]] %||% list(), use.names = FALSE))
+  masc <- clave(unlist(mapping[["sex_male_values"]] %||% list(), use.names = FALSE))
+  out <- .pulso_sexo_fm(etiquetas)
+  k <- clave(etiquetas)
+  if (length(fem)) out[k %in% fem] <- "F"
+  if (length(masc)) out[k %in% masc] <- "M"
+  out
+}
+
 aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL,
-                                     partes = list()) {
+                                     partes = list(), conteos = NULL,
+                                     efectivas_sexo = NULL, cfg = list()) {
   escritos <- .calg_control_escritos()
   campos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
   claves <- vapply(escritos, function(spec) spec$campo, character(1))
+  # **La cabecera de cada filtro dice QUÉ filtro es.** Pendiente declarado desde
+  # que los «VALIDADOR n» se renombraron: con el criterio del estudio a la vista,
+  # «FILTRO: inicio/consent_1» le dice al equipo dónde se pierden las respuestas;
+  # un número no. Sin criterio declarado se queda el número.
+  for (i in seq_along(conteos$filtros %||% list())) {
+    k <- which(claves == sprintf("validator_%d", i))
+    if (length(k)) campos[[k[[1]]]] <- conteos$filtros[[i]]$titulo
+  }
   grupo <- rep("", length(campos))
   for (g in aulas_libro_grupos_control()) grupo[[g$desde]] <- g$etiqueta
 
@@ -650,32 +707,20 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   # cambiar el criterio a «solo lo aplicado», la hoja seguía saliendo con las
   # 174 filas.
   #
-  # Cuenta como control el bloque de CONTEO —de TOTAL ENVIADAS a LARGAS VS
-  # TOTAL—, que es el único tramo contiguo que la app no escribe nunca: los
-  # envíos, los tres validadores y el reparto entre cortas y largas salen de las
-  # fórmulas del equipo sobre la data de la plataforma.
+  # **Ya no hay «control del equipo» que preservar: la hoja es de la app.**
   #
-  # No sirve «de TOTAL ENVIADAS en adelante»: ahí caen EFECTIVAS ESPERADAS,
-  # ELEGIBLES: BASE DEL % y MUJERES/HOMBRES ESPERADOS, que las pone la app, y el
-  # bucle se cerraba igual. Se ancla por NOMBRE a los dos extremos para que la
-  # spec pueda crecer sin descolocar el corte, y `test-carga-aulas-libro.R`
-  # comprueba que el generador sigue sin escribir dentro de ese tramo.
-  # Anclado por CAMPO y no por título: el barrido de vocabulario del
-  # 2026-09-07 renombró «LARGAS VS TOTAL» y el corte se quedó sin extremo, así
-  # que `campos_equipo` salió vacío y NINGUNA fila contaba como control del
-  # equipo. Tercera vez que un ancla por rótulo se cae en el mismo día; el campo
-  # es el identificador estable de la spec.
-  campos_equipo <- local({
-    todos <- vapply(escritos, function(spec) spec$campo, character(1))
-    a <- which(todos == "sent_total")
-    b <- which(todos == "long_vs_total")
-    if (!length(a) || !length(b) || b[[1]] < a[[1]]) character(0) else todos[seq.int(a[[1]], b[[1]])]
-  })
-  con_control <- vapply(unidades, function(u) {
-    r <- por_aula[[.calg_txt(u$operational_code)]]
-    if (is.null(r)) return(FALSE)
-    any(vapply(campos_equipo, function(k) nzchar(.calg_txt(r[[k]])), logical(1)))
-  }, logical(1))
+  # Había un segundo criterio para escribir una fila —que el equipo hubiera
+  # anotado algo en el bloque de conteo, «el único tramo que la app no escribe
+  # nunca»— y desde el 2026-09-07 ese tramo lo escribe la app entera desde la
+  # plataforma. Mantenerlo habría reabierto el bucle que ya costó un defecto: se
+  # publica, se relee, cuenta como anotación del equipo, la fila vuelve para
+  # siempre; medido ese mismo día, la hoja seguía saliendo con las 174 filas
+  # después de acotarla a lo aplicado.
+  #
+  # El criterio queda en uno solo y comprobable: **se escribe la fila del aula
+  # que se aplicó o que ya tiene respuestas**. Lo que el equipo teclee a mano se
+  # sigue leyendo y guardando en sesión al importar el libro —no se pierde—,
+  # pero no decide qué filas se emiten.
   aplicada <- vapply(unidades, function(u) {
     cod <- .calg_txt(u$operational_code)
     pt <- parte_de[[cod]]
@@ -709,7 +754,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     isTRUE(is.finite(n) && n > 0)
   }, logical(1))
 
-  titulares <- unidades[aplicada | con_control | con_efectivas]
+  titulares <- unidades[aplicada | con_efectivas]
   filas <- lapply(titulares, function(u) {
     fila <- rep("", length(campos))
     # **Se pone por CAMPO, y si el campo no existe se cae.**
@@ -738,8 +783,18 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     pon("wave", .calg_txt(u$wave))
     pon("operational_code", .calg_txt(u$operational_code))
     pon("course_name", .calg_txt(u$course_name))
-    pon("room", .calg_txt(u$label))
+    # **AULA es el LUGAR; HORARIO son las sesiones.** Las dos escribían la misma
+    # cadena —`label` es en este estudio la lista de sesiones— y salían
+    # duplicadas: «LUN 10:00-12:00 L321 · JUE 11:00-12:00 L306» dos veces
+    # seguidas. Manda el lugar CONFIRMADO por el equipo cuando existe, que es la
+    # misma precedencia B30 del Plan del día.
+    pon("room", .calg_txt(u$scheduled_venue, .calg_txt(u$venue, .calg_txt(u$label))))
     pon("schedule", .calg_txt(u$schedule))
+    # El horario normalizado y su franja los tecleaba el equipo en 2025 («NORM -
+    # HORARIO», «RANGO - HORARIO») para poder agrupar; salen del MISMO parser de
+    # horas que ordena el Plan del día, así que no hay dos lecturas de la hora.
+    pon("schedule_norm", .calg_hora_normalizada(u$scheduled_time))
+    pon("schedule_range", .calg_franja_horaria(u$scheduled_time))
     pon("enrolled_total", .calg_num_txt(u$enrolled_total))
     pon("eligible_n", .calg_num_txt(u$eligible_n))
 
@@ -766,6 +821,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     # primero.
     esperadas <- suppressWarnings(as.numeric(u$expected_valid %||% NA))[1]
     eleg <- suppressWarnings(as.numeric(u$eligible_n %||% NA))[1]
+    mat <- suppressWarnings(as.numeric(u$enrolled_total %||% NA))[1]
     cod_u <- .calg_txt(u$operational_code)
     obtenidas <- if (is.null(efectivas)) NA_real_ else {
       i <- match(cod_u, names(efectivas))
@@ -798,10 +854,6 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     if (is.finite(esp_fac)) pon("esperadas_facultad", .calg_num_txt(as.integer(round(esp_fac))))
     if (is.finite(tasa_aula)) pon("tasa_aula_ref", .calg_num_txt(round(tasa_aula, 3L)))
     pon("efectivas_esperadas", .calg_num_txt(esperadas_txt))
-    # El denominador del % de al lado. Es el mismo `eligible_n` de
-    # «MATRICULADOS ELEGIBLES»: se repite para que el porcentaje se lea sin
-    # cruzar la hoja. NO es una meta — la meta es «EFECTIVAS ESPERADAS».
-    pon("elegibles_esperados", .calg_num_txt(eleg))
     # «% EFECTIVAS ESPERADO» YA NO SE ESCRIBE: es `esperadas / elegibles`, que
     # es exactamente «TASA DEL AULA» dos columnas antes. Pasó a `solo_lectura`
     # en la spec para que los libros ya emitidos se sigan leyendo.
@@ -819,6 +871,84 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
       }
       if (is.finite(esperadas)) {
         pon("efectivas_brecha", .calg_num_txt(as.integer(round(obtenidas - esperadas))))
+      }
+      # La cuota es contra la META del aula, no contra el padrón: «cubrí el
+      # 75 % de lo que este salón tenía que dar».
+      if (is.finite(esperadas) && esperadas > 0) {
+        pon("quota_pct", .calg_num_txt(round(obtenidas / esperadas, 3L)))
+        pon("quota_missing", .calg_num_txt(max(0L, as.integer(round(esperadas - obtenidas)))))
+      }
+    }
+
+    # **Lo que la PLATAFORMA sabe del aula.** El bloque entero salía vacío hasta
+    # el 2026-09-07 —«y por qué todo esto está vacía»— porque eran fórmulas del
+    # Excel de 2025 sobre un export bajado a mano. Ver
+    # `monitoreo_aulas_conteos_control.R`.
+    de <- function(v) {
+      if (is.null(v) || !nzchar(cod_u) || !(cod_u %in% names(v))) return(NA_real_)
+      suppressWarnings(as.numeric(v[[cod_u]]))[1]
+    }
+    enviadas <- de(conteos$enviadas)
+    if (is.finite(enviadas)) {
+      pon("sent_total", .calg_num_txt(as.integer(round(enviadas))))
+      if (is.finite(mat) && mat > 0) {
+        pon("sent_vs_total", .calg_num_txt(round(enviadas / mat, 3L)))
+      }
+      if (is.finite(eleg) && eleg > 0) {
+        pon("sent_vs_population", .calg_num_txt(round(enviadas / eleg, 3L)))
+      }
+      # **La partición que importa: efectivas y NO efectivas.** Sustituye a
+      # cortas/largas, que era la misma pregunta hecha por duración porque en
+      # 2025 no había criterio de validez con el que partir.
+      no_ef <- de(conteos$no_efectivas)
+      if (is.finite(no_ef)) pon("no_efectivas", .calg_num_txt(as.integer(round(no_ef))))
+      if (is.finite(obtenidas) && enviadas > 0) {
+        pon("efectivas_vs_enviadas", .calg_num_txt(round(obtenidas / enviadas, 3L)))
+      }
+    }
+    for (i in seq_along(conteos$filtros %||% list())) {
+      n <- de(conteos$filtros[[i]]$conteo)
+      if (is.finite(n)) {
+        pon(sprintf("validator_%d", i), .calg_num_txt(as.integer(round(n))))
+      }
+    }
+    ultimo <- conteos$ultimo_dia %||% character(0)
+    if (nzchar(cod_u) && cod_u %in% names(ultimo)) {
+      pon("last_response_day", .calg_txt(ultimo[[cod_u]]))
+    }
+
+    # **Las cuotas por sexo obtenidas**, del mismo conteo que el total, así que
+    # suman exactamente las efectivas. Callan enteras si el estudio no declara
+    # su `sex_var`: una cifra por sexo inventada es peor que ninguna, y `sub_a`
+    # ya costó una lectura al revés.
+    sexos <- if (is.null(efectivas_sexo) || !nzchar(cod_u) ||
+                 !(cod_u %in% names(efectivas_sexo))) NULL else efectivas_sexo[[cod_u]]
+    if (length(sexos)) {
+      etiquetas <- .calg_sexo_fm_declarado(names(sexos), cfg)
+      cuenta <- function(letra) {
+        k <- which(etiquetas == letra)
+        if (!length(k)) NA_real_ else sum(as.numeric(sexos[k]))
+      }
+      m <- cuenta("F"); h <- cuenta("M")
+      if (is.finite(m)) pon("women_n", .calg_num_txt(as.integer(round(m))))
+      if (is.finite(h)) pon("men_n", .calg_num_txt(as.integer(round(h))))
+      if (is.finite(obtenidas) && obtenidas > 0) {
+        if (is.finite(m)) pon("women_pct", .calg_num_txt(round(m / obtenidas, 3L)))
+        if (is.finite(h)) pon("men_pct", .calg_num_txt(round(h / obtenidas, 3L)))
+      }
+    }
+
+    # **Y la asistencia**, que necesita el parte: cuánta gente había en el salón
+    # sólo lo sabe quien estuvo. Sin parte quedan vacías, no en cero.
+    asist <- suppressWarnings(as.numeric(
+      if (is.null(pt)) NA else
+        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)))[1]
+    if (is.finite(asist)) {
+      if (is.finite(eleg) && eleg > 0) {
+        pon("attendance_pct", .calg_num_txt(round(asist / eleg, 3L)))
+      }
+      if (is.finite(obtenidas)) {
+        pon("non_respondents", .calg_num_txt(max(0L, as.integer(round(asist - obtenidas)))))
       }
     }
 
@@ -1090,7 +1220,17 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   if (length(extras)) {
     hojas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]] <- aulas_libro_hoja_aplicadas_extra(extras, partes = partes)
   }
-  hojas[["Base de control"]] <- aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
+  # Lo que la plataforma sabe por aula. Se calcula AQUÍ y no lo pide el
+  # llamador: `responses` y `cfg` ya viajan hasta esta función, y un parámetro
+  # más sería una tercera oportunidad de que alguien lo olvide y el bloque
+  # vuelva a salir vacío.
+  conteos <- tryCatch(
+    monitoreo_aulas_conteos_control(unidades, responses, cfg),
+    error = function(e) NULL
+  )
+  hojas[["Base de control"]] <- aulas_libro_hoja_control(
+    unidades, control, efectivas, partes = partes,
+    conteos = conteos, efectivas_sexo = efectivas_sexo, cfg = cfg)
   # 4.ª hoja de datos (B2.1): el recorte agenda+campo por fecha que en 2025 se
   # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
   # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue
@@ -1335,19 +1475,33 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   cols_de <- function(campos) unlist(lapply(campos, function(campo)
     vapply(bloques, function(b) col_en_bloque(campo, b), integer(1))))
   filas_control <- nrow(hojas[["Base de control"]]) - 2L
+  # QUINTA ancla por rótulo que se cae: esta lista nombraba «EFECTIVAS
+  # ESPERADAS», «EFECTIVAS OBTENIDAS», «EFECTIVAS: DIFERENCIA» y «ELEGIBLES:
+  # BASE DEL %», que el 2026-09-07 pasaron a ser alias de lectura. El resultado
+  # no es un error: son columnas de números guardadas como TEXTO, que no se
+  # ordenan ni se suman en la hoja. Por campo, como todo lo demás.
   cols_control <- vapply(
-    c("MATRICULADOS TOTALES", "MATRICULADOS ELEGIBLES",
-      # Las cuentas del bloque nuevo: esperadas, obtenidas y la diferencia.
-      "EFECTIVAS ESPERADAS", "EFECTIVAS OBTENIDAS", "EFECTIVAS: DIFERENCIA",
-      "ELEGIBLES: BASE DEL %", "MUJERES ESPERADAS", "HOMBRES ESPERADOS"),
-    .calg_col_control, integer(1), USE.NAMES = FALSE)
+    c("enrolled_total", "eligible_n",
+      # Lo esperado por los dos modelos y por sexo.
+      "esperadas_facultad", "efectivas_esperadas",
+      "mujeres_esperadas", "hombres_esperados",
+      # Lo que llegó de la plataforma.
+      "sent_total", "validator_1", "validator_2", "validator_3",
+      "efectivas_obtenidas", "no_efectivas", "women_n", "men_n",
+      # Y las cuentas en personas del bloque de avance.
+      "brecha_facultad", "efectivas_brecha", "quota_missing",
+      "observed_students", "non_respondents"),
+    .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
   cols_control <- cols_control[cols_control > 0L]
   # Y los dos porcentajes, que se escriben en 0-1 y hay que ENSEÑAR como
   # porcentaje: un «0.7» en una columna que se llama «% EFECTIVAS ESPERADO» es
   # justo el defecto que se corrigio en la hoja de campo.
-  cols_control_pct <- vapply(c("tasa_facultad_ref", "tasa_aula_ref", "efectivas_pct_obtenido"),
-                             .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
-  cols_control_pct <- cols_control_pct[cols_control_pct > 0L]
+  # **Ninguna columna de razón se declara porcentaje a ciegas**: todas pasan por
+  # la escala medida de abajo. La app las escribe en 0-1, pero cuando no hay
+  # respuestas sincronizadas las deja vacías y el equipo puede teclear un 76,5
+  # en escala 0-100; forzar el formato ahí saca **7 650 %**, que es la trampa que
+  # ya costó una reparación en la hoja de campo.
+  cols_control_pct <- integer(0)
   # **Las cuatro razones que ya venian en la hoja.** El arreglo de `7d0c22a7`
   # alcanzo a «% EFECTIVAS ESPERADO/OBTENIDO» y a «% ASISTENCIA», y dejo fuera a
   # sus hermanas de siempre: en el PDF, «CORTAS VS TOTAL» y «LARGAS VS TOTAL»
@@ -1358,8 +1512,16 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Cada una decide su escala POR SU PROPIA COLUMNA: las llena el equipo en su
   # Excel y nada obliga a que las cuatro vengan en la misma —un libro con «VS
   # TOTAL» en 0-1 y «ASISTENCIA» en 0-100 es un caso real—.
+  # **Todas las razones y tasas de la hoja, cada una decidiendo por su propia
+  # columna.** Eran cuatro —las que el equipo llenaba a mano— y desde el
+  # 2026-09-07 son diez, porque el bloque de plataforma lo escribe la app. Que
+  # pasen por aquí en vez de declararse porcentaje conserva la protección para
+  # el caso en que la app no tenga datos y el equipo teclee en escala 0-100.
   razones_control <- Filter(Negate(is.null), lapply(
-    c("sent_vs_total", "sent_vs_population", "short_vs_total", "long_vs_total"),
+    c("tasa_facultad_ref", "tasa_aula_ref",
+      "sent_vs_total", "sent_vs_population",
+      "efectivas_vs_enviadas", "efectivas_pct_obtenido",
+      "quota_pct", "attendance_pct", "women_pct", "men_pct"),
     function(campo) {
       col <- .calg_col_control_campo(campo)
       if (!length(col) || is.na(col) || col <= 0L) return(NULL)
@@ -1464,17 +1626,17 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   #
   # «HORARIO» NO se tipa a proposito: sus valores son «0703», un horario, y como
   # numero se leeria 703.
+  # Por CAMPO. Estaba por rótulo, con los títulos de antes del barrido de
+  # vocabulario —«FECHA DE APLICACION» sin tilde, «N ASISTENTES EN AULA»—, así
+  # que desde el 2026-09-07 no casaba ninguno: la fecha de aplicación salía como
+  # texto y el aforo también. SEXTA ancla por rótulo del mismo día, y como las
+  # otras no fallaba: simplemente dejaba de hacer su trabajo.
   local({
-    fechas <- vapply(c("FECHA AGENDADA", "FECHA DE APLICACION"),
-                     .calg_col_control, integer(1), USE.NAMES = FALSE)
+    fechas <- vapply(c("scheduled_date", "applied_date", "last_response_day"),
+                     .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
     fechas <- fechas[fechas > 0L]
     if (length(fechas)) {
       .calg_tipar_fechas(wb, "Base de control", hojas[["Base de control"]], fechas, desde = 2L)
-    }
-    asistentes <- .calg_col_control("N ASISTENTES EN AULA")
-    if (length(asistentes) && !is.na(asistentes) && asistentes > 0L) {
-      .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
-                          asistentes, desde = 2L)
     }
   })
 
@@ -1562,7 +1724,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       # Y en la «Base de control» la primera columna es `MUESTRA` —la ola—, que
       # se repite en cientos de filas: sus paginas salian rotuladas «M1» y sin
       # decir de que aula hablan. Se repite hasta `CURSO-HORARIO`.
-      `Base de control` = .calg_col_control("CURSO-HORARIO")
+      `Base de control` = .calg_col_control_campo("operational_code")
     ), extras_fmt$columnas_repetidas),
     # Las bandas de grupo de la hoja de campo: una por intento.
     # La regla de cuadre del parte, una por intento: las efectivas no pueden
