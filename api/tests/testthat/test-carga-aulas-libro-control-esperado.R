@@ -152,8 +152,12 @@ test_that("la base del % es el padron, y la meta es otra columna", {
   fila <- .ce_fila(u)
   expect_equal(fila[[.ce_titulo("ELEGIBLES: BASE DEL %")]], "36")
   expect_equal(fila[[.ce_titulo("MATRICULADOS ELEGIBLES")]], "36")
-  # La meta NO es ninguna de las dos.
-  expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17.3")
+  # La meta NO es ninguna de las dos, y se escribe EN PERSONAS: el motor la
+  # calcula como producto de tasas (17,3) y desde el 2026-09-07 la hoja la
+  # redondea, porque nadie consigue diecisiete coma tres encuestas.
+  expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17")
+  # Y el porcentaje se calcula sobre la meta SIN redondear: 17,3/36 y no 17/36.
+  expect_equal(fila[[.ce_titulo("% EFECTIVAS ESPERADO")]], "0.481")
 })
 
 test_that("el titulo viejo sigue leyendose: los libros ya emitidos no se rompen", {
