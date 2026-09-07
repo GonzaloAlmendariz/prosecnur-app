@@ -195,3 +195,53 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
   fila_letras <- .calax_fila_de(h$celdas, "Letras")
   expect_false(.calax_fusionada_a_lo_ancho(h, fila_letras))
 })
+
+# --- S4: el vacío de una celda de tabla se declara con «—» --------------------
+
+# Modelo con alguien que tiene aula asignada y ningún parte (Equipo C) y sin
+# variable de sexo: «Efectivas declaradas» y «Conseguidas mujeres/hombres»
+# quedan NA en el modelo.
+.calax_modelo_con_huecos <- function() aulas_libro_indicadores(
+  .calax_plan(),
+  efectivas = c(`CH 1` = 18, `CH 2` = 12),
+  responses = .calax_respuestas(),
+  validas = c(TRUE, TRUE, TRUE),
+  partes = .calax_partes(),
+  cuotas = .calax_cuotas(),
+  asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
+)
+
+# El tipo de la celda (fila, col) según openxlsx: "n" número, "s" texto, NA
+# si no existe. `sheet_data$t` codifica 0 = número, 1 = texto compartido.
+.calax_tipo_celda <- function(path, fila, col) {
+  sd <- openxlsx::loadWorkbook(path)$worksheets[[1]]$sheet_data
+  i <- which(sd$rows == fila & sd$cols == col)
+  if (!length(i)) return(NA_character_)
+  tt <- sd$t[i[[1]]]
+  if (is.na(tt)) NA_character_ else if (tt == 0) "n" else "s"
+}
+
+test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cifras siguen siendo números", {
+  ind <- .calax_modelo_con_huecos()
+  expect_true(any(is.na(ind$aplicadores$`Efectivas declaradas`)))
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_indicadores(wb, ind, hoja = "Avance de campo")
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  celdas <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE,
+                                skipEmptyRows = FALSE, skipEmptyCols = FALSE)
+  # Aplicadores: la columna se localiza por su nombre en la cabecera.
+  cab <- .calax_fila_de(celdas, "Aplicador")
+  col_decl <- which(as.character(celdas[cab, ]) == "Efectivas declaradas")
+  fila_c <- .calax_fila_de(celdas, "Equipo C")
+  fila_a <- .calax_fila_de(celdas, "Equipo A")
+  expect_identical(as.character(celdas[fila_c, col_decl]), "\u2014")
+  expect_identical(.calax_tipo_celda(path, fila_c, col_decl), "s")
+  expect_identical(as.character(celdas[fila_a, col_decl]), "20")
+  expect_identical(.calax_tipo_celda(path, fila_a, col_decl), "n")
+  # Facultades: sin variable de sexo, «Conseguidas mujeres» se declara.
+  cab_f <- .calax_fila_de(celdas, "Facultad")
+  col_muj <- which(as.character(celdas[cab_f, ]) == "Conseguidas mujeres")
+  fila_l <- .calax_fila_de(celdas, "Letras")
+  expect_identical(as.character(celdas[fila_l, col_muj]), "\u2014")
+})

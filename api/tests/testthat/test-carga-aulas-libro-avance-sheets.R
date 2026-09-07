@@ -469,3 +469,32 @@ test_that("B19: cada título de bloque llega tras al menos una fila en blanco de
     }
   }
 })
+
+# --- S4 (loop estética, 2026-09-07): el vacío de una celda de tabla se declara ---
+
+test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía", {
+  # Medido en el libro real del 07/09: 19 de 24 aplicadores sin parte tenían
+  # «Efectivas declaradas» en blanco y la fila quedaba con un hueco en medio;
+  # el «—» ya es el vocabulario del bloque de meta y de la procedencia.
+  ind <- aulas_libro_indicadores(
+    .cas_plan(), efectivas = .cas_efectivas(), partes = .cas_partes(),
+    # Equipo C tiene un curso-horario asignado y ningún parte: su columna
+    # «Efectivas declaradas» es NA en el modelo.
+    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
+  )
+  expect_true(any(is.na(ind$aplicadores$`Efectivas declaradas`)))
+  filas <- .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  cabecera <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Aplicador"), logical(1)))
+  expect_length(cabecera, 1L)
+  nombres <- as.character(unlist(filas[[cabecera]]))
+  col <- which(nombres == "Efectivas declaradas")
+  fila_c <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Equipo C"), logical(1)))
+  expect_length(fila_c, 1L)
+  expect_identical(as.character(unlist(filas[[fila_c]]))[[col]], "\u2014")
+  # Y ninguna celda de la tabla queda en blanco: de la cabecera a la última fila.
+  n <- nrow(ind$aplicadores)
+  for (i in (cabecera + 1L):(cabecera + n)) {
+    celdas <- as.character(unlist(filas[[i]]))[seq_along(nombres)]
+    expect_false(any(!nzchar(celdas)), info = sprintf("fila %d con celda en blanco: %s", i, paste(celdas, collapse = "|")))
+  }
+})
