@@ -593,14 +593,6 @@ aulas_libro_grupos_control <- function() {
   })
 }
 
-# **De qué sexo es cada etiqueta del conteo, con el estudio mandando.**
-#
-# La plataforma devuelve CÓDIGOS: `datos_demo/P2` llega como «1» y «2», y
-# `.pulso_sexo_fm()` —que reconoce «Mujer», «F», «femenino»— no puede resolver
-# eso. Cuando el estudio declara `sex_female_values` / `sex_male_values` en su
-# mapping, mandan; si no los declara se intenta leer la etiqueta, y si tampoco
-# se deja en NA y la columna calla. Adivinar es lo único que no se hace: `sub_a`
-# ya costó una lectura al revés.
 # La hora de la cita en HH:MM de 24 horas, que es como se ordena y se agrupa.
 # El equipo la teclea «11:30 am», «1:45 pm»; el mismo parser del motor que ya
 # calcula las ventanas del Plan del día da los minutos.
@@ -616,18 +608,6 @@ aulas_libro_grupos_control <- function() {
   m <- monitoreo_aulas_hora_parse(.calg_txt(hora))[[1]]
   if (is.na(m)) return("")
   if (m < 12L * 60L) "Mañana" else if (m < 18L * 60L) "Tarde" else "Noche"
-}
-
-.calg_sexo_fm_declarado <- function(etiquetas, cfg = list()) {
-  mapping <- (cfg %||% list())[["source_mapping"]] %||% list()
-  clave <- function(x) tolower(trimws(as.character(x)))
-  fem <- clave(unlist(mapping[["sex_female_values"]] %||% list(), use.names = FALSE))
-  masc <- clave(unlist(mapping[["sex_male_values"]] %||% list(), use.names = FALSE))
-  out <- .pulso_sexo_fm(etiquetas)
-  k <- clave(etiquetas)
-  if (length(fem)) out[k %in% fem] <- "F"
-  if (length(masc)) out[k %in% masc] <- "M"
-  out
 }
 
 aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL,
@@ -924,7 +904,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     sexos <- if (is.null(efectivas_sexo) || !nzchar(cod_u) ||
                  !(cod_u %in% names(efectivas_sexo))) NULL else efectivas_sexo[[cod_u]]
     if (length(sexos)) {
-      etiquetas <- .calg_sexo_fm_declarado(names(sexos), cfg)
+      etiquetas <- monitoreo_aulas_sexo_key(names(sexos), cfg)
       cuenta <- function(letra) {
         k <- which(etiquetas == letra)
         if (!length(k)) NA_real_ else sum(as.numeric(sexos[k]))
@@ -1632,7 +1612,11 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # texto y el aforo también. SEXTA ancla por rótulo del mismo día, y como las
   # otras no fallaba: simplemente dejaba de hacer su trabajo.
   local({
-    fechas <- vapply(c("scheduled_date", "applied_date", "last_response_day"),
+    # `last_response_day` NO se tipa como fecha: se escribe en ISO
+    # («2026-09-07»), que ya ordena bien, y tipada como fecha vuelve del libro
+    # como el SERIAL de Excel —46253— porque el lector la lee como texto. Una
+    # columna nueva no se estrena rompiendo su propia ida y vuelta.
+    fechas <- vapply(c("scheduled_date", "applied_date"),
                      .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
     fechas <- fechas[fechas > 0L]
     if (length(fechas)) {

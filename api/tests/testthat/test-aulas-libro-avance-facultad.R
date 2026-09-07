@@ -64,7 +64,14 @@ test_that("las aulas aplicadas se cuentan por operational_status, no por el part
 test_that("el reparto por sexo de lo conseguido se atribuye por classroom_id", {
   # La primera versión mapeó por `operational_code` y las respuestas cayeron
   # todas en NA: son dos identificadores distintos del mismo aula, y el que
-  # viaja en la respuesta es el del QR.
+  # viaja en la respuesta es el del QR. En HSVG2026 pasó lo contrario —el QR
+  # lleva el código operativo y el cruce sólo miraba `classroom_id`—, así que
+  # desde el 2026-09-07 el reparto se apoya en
+  # `monitoreo_aulas_efectivas_por_sexo()`, que resuelve las TRES claves.
+  #
+  # Y la variable de sexo se DECLARA: buscarla por nombre («sex», «sexo») era la
+  # otra mitad del defecto, porque en ese estudio la columna es
+  # `datos_demo/P2`.
   plan <- list(.lafac_aula("AULA-1", "FAC1", "CH 1"))
   resp <- data.frame(
     collectorID = rep("AULA-1", 6),
@@ -73,7 +80,8 @@ test_that("el reparto por sexo de lo conseguido se atribuye por classroom_id", {
   )
   out <- prosecnurapp:::.calaf_avance_por_facultad(
     plan, efectivas = c(`CH 1` = 6), cuotas = .lafac_cuotas(.lafac_fac("FAC1", 10, F = 6, M = 4)),
-    responses = resp, cfg = list(source_mapping = list(collector_var = "collectorID")))
+    responses = resp,
+    cfg = list(source_mapping = list(collector_var = "collectorID", sex_var = "sexo")))
   expect_equal(out$`Conseguidas mujeres`, 4)
   expect_equal(out$`Conseguidas hombres`, 2)
 })

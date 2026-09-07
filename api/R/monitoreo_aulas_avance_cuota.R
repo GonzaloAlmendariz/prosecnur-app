@@ -236,8 +236,8 @@
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
   total_validas <- as.integer(sum(atr$valid))
 
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
-  sexo_key <- if (nzchar(sex_col)) .maac_sexo_key(.monitoreo_aulas_values(responses, sex_col, "")) else character(0)
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  sexo_key <- if (nzchar(sex_col)) monitoreo_aulas_sexo_key(.monitoreo_aulas_values(responses, sex_col, ""), cfg) else character(0)
   if (length(sexo_key) != nrow(atr)) sexo_key <- rep("", nrow(atr))
 
   fk_resp <- .maac_fac_key(atr$facultad)
@@ -567,10 +567,10 @@
   # fuera de universo.
   facultad <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
   if (length(facultad) != nrow(atr)) facultad <- rep("", nrow(atr))
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
   sexo_raw <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
   if (length(sexo_raw) != nrow(atr)) sexo_raw <- rep("", nrow(atr))
-  sexo_key <- .maac_sexo_key(sexo_raw)
+  sexo_key <- monitoreo_aulas_sexo_key(sexo_raw, cfg)
 
   keep <- atr$valid & nzchar(facultad) & sexo_key %in% c("F", "M") & !(atr$matched & atr$fuera)
 
@@ -587,6 +587,13 @@
   # seria inventar el dato—: se dice la CAUSA, con los valores que llegaron, para
   # que quien lo lea sepa que hay que declarar la equivalencia y no salga a
   # revisar el enlace del recopilador.
+  #
+  # Desde el 2026-09-07 esa equivalencia SE PUEDE declarar
+  # (`sex_female_values` / `sex_male_values` del mapping) y el aviso lo dice: el
+  # aviso que nombra la causa pero no dónde arreglarla deja al lector igual de
+  # atascado. En HSVG2026 costó que las treinta celdas de cuota salieran en cero
+  # y que la brecha de cada facultad fuera su cuota entera —528 con 27 ya
+  # conseguidas— porque la brecha se suma de las celdas.
   aviso_sexo <- ""
   if (nzchar(sex_col) && any(atr$valid) && !any(keep & sexo_key %in% c("F", "M"))) {
     crudos <- unique(trimws(sexo_raw[atr$valid]))
@@ -595,9 +602,10 @@
       muestra <- paste(utils::head(sort(crudos), 4L), collapse = ", ")
       aviso_sexo <- sprintf(
         paste0("La columna «%s» trae valores que no se reconocen como sexo (%s%s). ",
-               "Se esperan etiquetas como «Mujer»/«Hombre» o «F»/«M»; una base sin ",
-               "decodificar trae el código de la opción. Mientras no se declare la ",
-               "equivalencia, ninguna respuesta cae en su grupo de facultad y sexo."),
+               "Una base sin decodificar trae el código de la opción, no la etiqueta. ",
+               "Declara en Fuentes qué valores son mujer y cuáles hombre; mientras ",
+               "tanto ninguna respuesta cae en su grupo de facultad y sexo, y la ",
+               "brecha de cada facultad sale como su cuota entera."),
         sex_col, muestra, if (length(crudos) > 4L) ", …" else ""
       )
     }

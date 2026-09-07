@@ -40,23 +40,41 @@ Es decir: **la columna EFECTIVAS OBTENIDAS que se publicó dice enviadas.**
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| C1 | `TOTAL ENVIADAS`, `ENVIADAS VS MATRICULADOS`, `ENVIADAS VS ELEGIBLES` las escribe el motor desde la plataforma | motor: `monitoreo_aulas_efectivas.R` (contador nuevo) + `carga_aulas_libro_generar.R` | ☐ |
-| C2 | «cortas / largas» → **efectivas / no efectivas (en plataforma)**; una sola pareja, sin duplicar `EFECTIVAS OBTENIDAS` | spec: `carga_base_control.R` | ☐ |
-| C3 | Los `FILTRO DE VALIDACIÓN n` llevan el **nombre de la variable** que el estudio declara, y cuentan cuántas respuestas del aula pasan cada uno | spec + motor | ☐ |
-| C4 | El estudio declara su criterio: `consent_1`, `consent_2`, `filtro`. **Decisión de Gonzalo** | config `source_mapping.valid_filters` | ☐ BLOQUEADO |
-| C5 | `ALUMNOS QUE NO RESPONDIERON`, `% ASISTENCIA`, `% DE CUOTA CUBIERTA`, `FALTAN PARA LA CUOTA` los calcula el motor | `carga_aulas_libro_generar.R` | ☐ |
-| C6 | `MUJERES/HOMBRES OBTENIDOS` y sus `%` — exigen `sex_var` declarada. **Decisión de Gonzalo**: `datos_demo/P2` (1/2) o `datos_demo/P3` (1/2/3/88) | config `source_mapping.sex_var` | ☐ BLOQUEADO |
-| C7 | `ÚLTIMO DÍA DE RESPUESTA` desde la plataforma | motor | ☐ |
-| C8 | `HORARIO NORMALIZADO` y `FRANJA HORARIA` los escribe el motor | motor | ☐ |
-| C9 | **Orden de los encabezados con criterio declarado**: el aula → la aplicación → lo que esperábamos → lo que llegó → cómo vamos | `carga_base_control.R` + `aulas_libro_grupos_control()` | ☐ |
-| C10 | Columnas que repiten a su vecina fuera: `ELEGIBLES: BASE DEL %` es `MATRICULADOS ELEGIBLES` | spec | ☐ |
-| C11 | `AULA` y `HORARIO` traían el MISMO texto; `AULA` pasa a ser el lugar (`scheduled_venue`) | motor | ☐ |
-| C12 | `campos_equipo` deja de anclarse a dos extremos y se declara como «lo que la app NO escribe» | `carga_aulas_libro_generar.R` | ☐ |
-| C13 | Regenerar y republicar | Sheets `11HV4-…` | ☐ |
+| C1 | `TOTAL ENVIADAS`, `ENVIADAS VS MATRICULADOS`, `ENVIADAS VS ELEGIBLES` las escribe el motor desde la plataforma | `monitoreo_aulas_conteos_control.R` | ☑ |
+| C2 | «cortas / largas» → **efectivas / no efectivas (en plataforma)**; una sola pareja | `carga_base_control.R` | ☑ |
+| C3 | Los `FILTRO DE VALIDACIÓN n` llevan el nombre de su variable entre paréntesis y cuentan cuántas pasan ESE filtro | spec + motor | ☑ |
+| C4 | El estudio declara su criterio: `inicio/consent_1 = 1`, `inicio/consent_2 = 1`, `inicio/filtro = 1` | config `valid_filters` | ☑ decidido por Gonzalo |
+| C5 | `ALUMNOS QUE NO RESPONDIERON`, `% ASISTENCIA`, `% DE CUOTA CUBIERTA`, `FALTAN PARA LA CUOTA` los calcula el motor | `carga_aulas_libro_generar.R` | ☑ |
+| C6 | `MUJERES/HOMBRES OBTENIDOS` y sus `%`: `sex_var = datos_demo/P2`, `1 = Mujer`, `2 = Hombre` | config `sex_var` + `sex_female_values` | ☑ decidido por Gonzalo · contrastado contra el padrón |
+| C7 | `ÚLTIMO DÍA DE RESPUESTA` desde la plataforma | motor | ☑ |
+| C8 | `HORARIO NORMALIZADO` y `FRANJA HORARIA` los escribe el motor | motor | ☑ |
+| C9 | Orden de encabezados con criterio declarado, en cinco tramos y registro formal | spec + `aulas_libro_grupos_control()` | ☑ |
+| C10 | Columnas que repiten a su vecina fuera (`ELEGIBLES: BASE DEL %`) | spec | ☑ |
+| C11 | `AULA` deja de repetir a `HORARIO`: lleva el lugar confirmado | motor | ☑ |
+| C12 | El criterio de fila queda en uno solo: aplicada o con respuestas | motor | ☑ |
+| C13 | Regenerar y republicar | Sheets `11HV4-…` | ☑ |
+| C14 | Las respuestas que no son del operativo (`CAPACITACION`, `PRUEBA_2026`…) no cuentan | config `descartes` + `criterio_validez` | ☑ decidido por Gonzalo |
+| C15 | La app dice «8 aulas aplicadas», no 1: una sola definición de aula aplicada | `monitoreo_aulas_aula_aplicada.R` | ☑ |
+| C16 | El avance por facultad cuenta aulas aplicadas y reparte por sexo | `carga_aulas_libro_avance_facultad.R` | ☑ |
+| C17 | La brecha por facultad deja de ser la cuota entera (528 con 27 conseguidas) | `monitoreo_aulas_avance_cuota.R` | ☑ |
+| C18 | Un solo resolvedor de la variable de sexo para los cuatro sitios que la adivinaban | `monitoreo_aulas_sexo.R` | ☑ |
+| C19 | Guard: ningún ancla de la Base de control se pone por rótulo | `test-carga-aulas-libro.R` | ☑ |
 
-## Preguntas abiertas
+## Lo que quedó medido
 
-- **C4** — ¿los tres filtros son `consent_1 = 1`, `consent_2 = 1`, `filtro = 1`?
-  ¿O «efectiva» además exige que la encuesta esté completa (llegue al final)?
-- **C6** — ¿cuál de `datos_demo/P2` (1/2) y `datos_demo/P3` (1/2/3/88) es sexo?
-  No se adivina: `sub_a` ya costó una lectura al revés.
+Sobre las 253 respuestas sincronizadas al cierre de la jornada:
+
+- **193 efectivas** de 253 recibidas. Caen 36 por no ser del operativo
+  (capacitación, prueba) y el resto por consentimiento o filtro.
+- **8 aulas aplicadas** de 174 del operativo; la tarjeta de la app decía 1.
+- **Brecha 2 355** de una cuota de 2 500; decía 2 500.
+- El reparto por sexo, contrastado contra el padrón de la DTI: en las aulas de
+  mayoría masculina —CH 43 (44 h / 6 m), CH 7 (25 h / 5 m)— el código `2`
+  domina, que es lo que fija `1 = Mujer`.
+
+## Preguntas resueltas
+
+- **C4** — Gonzalo: los tres filtros, `consent_1 = 1 · consent_2 = 1 · filtro = 1`.
+- **C6** — Gonzalo: `datos_demo/P2`. La equivalencia `1 = Mujer` no se adivinó:
+  se contrastó el reparto obtenido contra el padrón de la DTI aula por aula.
+- **C14** — Gonzalo: las 36 de capacitación y prueba, fuera del avance.

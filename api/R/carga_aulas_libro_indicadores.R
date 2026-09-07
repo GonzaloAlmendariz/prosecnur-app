@@ -166,7 +166,7 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   # Vive en `carga_aulas_libro_avance_facultad.R`.
   facultades <- .calaf_avance_por_facultad(
     unidades, efectivas = efectivas, cuotas = cuotas,
-    responses = responses, validas = validas, cfg = cfg
+    responses = responses, validas = validas, cfg = cfg, partes = partes
   )
 
   list(meta = meta, diario = diario, aplicadores = aplicadores,

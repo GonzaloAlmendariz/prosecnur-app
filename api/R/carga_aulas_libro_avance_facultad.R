@@ -39,19 +39,29 @@
 #' @return `data.frame` con una fila por facultad, o `NULL` sin cuotas.
 #' @keywords internal
 .calaf_avance_por_facultad <- function(unidades, efectivas = NULL, cuotas = NULL,
-                                       responses = NULL, validas = NULL, cfg = list()) {
+                                       responses = NULL, validas = NULL, cfg = list(),
+                                       partes = list()) {
   facs <- if (is.list(cuotas)) (cuotas$facultades %||% list()) else list()
   if (!length(facs)) return(NULL)
 
   # Índice del plan: código operativo -> facultad, y si el aula se aplicó.
   cod <- vapply(unidades, function(u) .cai_txt(u$operational_code), character(1))
   fac <- vapply(unidades, function(u) .cai_txt(u$faculty), character(1))
-  # El eje de aplicación es `operational_status`, el mismo que cuenta el KPI del
-  # tablero; `application_status` viene del parte y llega vacío en los estudios
-  # reales.
-  apl <- vapply(unidades, function(u) .cai_txt(u$operational_status), character(1)) %in%
-    c("aplicada", "cerrada")
+  # **El eje de aplicación NO es `operational_status`.** Lo era, y el 2026-09-07
+  # esta tabla salía publicada con «Aulas aplicadas: 0» en las quince
+  # facultades mientras ocho aulas producían encuestas: `operational_status` es
+  # el eje del CIRCUITO —planificada, agendada, reemplazada— y el libro no lo
+  # mueve a «aplicada» nunca. La definición vive en un solo sitio,
+  # `monitoreo_aulas_aula_aplicada()`, y la comparten esta tabla, la Base de
+  # control y el Plan del día.
+  apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
   clave <- .cm_criterios_fac_key(fac)
+  # El operativo son los titulares más las reservas que se activaron: es el mismo
+  # conjunto que cuenta «Aulas del operativo» en el encabezado de la hoja.
+  del_operativo <- vapply(unidades, function(u) {
+    rol <- tolower(.cai_txt(u$sample_role))
+    identical(rol, "titular") || nzchar(.cai_txt(u$scheduled_date))
+  }, logical(1))
 
   # El ratio del diseño: techo operativo entre meta. Sale del bloque, no se
   # supone: si el estudio no publica las dos cifras, la columna queda en NA y la
@@ -67,30 +77,34 @@
   }
   ef_fila <- vapply(cod, ef_de, numeric(1))
 
-  # Reparto por sexo de lo conseguido: sale de las RESPUESTAS, que es donde el
-  # sexo se declara. Sin columna de sexo no se reparte y se dice.
+  # **El reparto por sexo de lo conseguido sale del MISMO cruce que el total.**
+  #
+  # Había un segundo cruce aquí, propio, que mapeaba la respuesta a su facultad
+  # por `classroom_id` con `collection_unit_id` de respaldo. En HSVG2026 el QR
+  # viaja con el CÓDIGO OPERATIVO —`CH 7`, mientras `classroom_id` es el código
+  # de la DTI `1iee12_0521`— así que ninguna respuesta encontraba su aula y las
+  # quince facultades salían con el reparto por sexo vacío. El comentario que
+  # había aquí advertía justo del error inverso, cometido en otro estudio.
+  #
+  # Dos cruces del mismo dato se separan en cuanto uno cambia. Éste se apoya en
+  # `monitoreo_aulas_efectivas_por_sexo()`, que ya resuelve las tres claves y ya
+  # aplica el criterio de validez, y sólo agrega por facultad.
   sexo_por_fac <- list()
-  if (is.data.frame(responses) && nrow(responses)) {
-    col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
-    aula <- .monitoreo_aulas_response_classroom(responses, cfg)
-    if (nzchar(col) && length(aula) == nrow(responses)) {
-      sk <- .maac_sexo_key(.monitoreo_aulas_values(responses, col, ""))
-      ok <- if (!is.null(validas) && length(validas) == nrow(responses)) validas %in% TRUE else rep(TRUE, nrow(responses))
-      # LA RESPUESTA SE ATRIBUYE POR `classroom_id`, NO POR `operational_code`.
-      # Son dos identificadores distintos del mismo aula: el código operativo es
-      # el del libro («CH 31») y el `classroom_id` es el que viaja en el QR. La
-      # primera versión mapeó por código y las 3 700 respuestas cayeron en NA,
-      # dejando el reparto por sexo vacío en las veinte facultades.
-      ids <- vapply(unidades, function(u) .cai_txt(u$classroom_id), character(1))
-      alt <- vapply(unidades, function(u) .cai_txt(u$collection_unit_id), character(1))
-      mapa <- stats::setNames(clave[nzchar(ids)], ids[nzchar(ids)])
-      extra <- nzchar(alt) & !(alt %in% names(mapa))
-      if (any(extra)) mapa <- c(mapa, stats::setNames(clave[extra], alt[extra]))
-      fk <- unname(mapa[aula]); fk[is.na(fk)] <- ""
-      for (k in unique(fk[nzchar(fk)])) {
-        sel <- ok & fk == k
-        sexo_por_fac[[k]] <- c(F = sum(sel & sk == "F"), M = sum(sel & sk == "M"))
-      }
+  sexo_aula <- tryCatch(
+    monitoreo_aulas_efectivas_por_sexo(unidades, responses, cfg),
+    error = function(e) NULL
+  )
+  if (length(sexo_aula)) {
+    for (n in seq_along(cod)) {
+      v <- sexo_aula[[cod[[n]]]] %||% NULL
+      if (!length(v)) next
+      k <- clave[[n]]
+      if (!nzchar(k)) next
+      et <- monitoreo_aulas_sexo_key(names(v), cfg)
+      acc <- sexo_por_fac[[k]] %||% c(F = 0, M = 0)
+      if (any(et == "F")) acc[["F"]] <- acc[["F"]] + sum(as.numeric(v[et == "F"]))
+      if (any(et == "M")) acc[["M"]] <- acc[["M"]] + sum(as.numeric(v[et == "M"]))
+      sexo_por_fac[[k]] <- acc
     }
   }
 
@@ -99,7 +113,11 @@
     idx <- clave == k
     cuota <- .cai_num(f$cuota)
     cs <- f$cuota_sexo %||% list()
-    sx <- sexo_por_fac[[k]] %||% c(F = NA_real_, M = NA_real_)
+    # Cero y «no lo sabemos» son dos noticias distintas: con la variable de sexo
+    # declarada y el cruce hecho, una facultad sin respuestas tiene CERO
+    # conseguidas de cada sexo; sin variable declarada, la columna calla.
+    sin_reparto <- if (length(sexo_aula)) c(F = 0, M = 0) else c(F = NA_real_, M = NA_real_)
+    sx <- sexo_por_fac[[k]] %||% sin_reparto
     conseguidas <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[idx], na.rm = TRUE)
     data.frame(
       Facultad = .cai_txt(f$facultad),
@@ -109,7 +127,11 @@
       `Muestra mujeres` = .cai_num(cs$F),
       `Muestra hombres` = .cai_num(cs$M),
       `Aulas aplicadas` = sum(idx & apl),
-      `Aulas del plan` = sum(idx),
+      # **Las aulas DEL OPERATIVO, no las del banco.** Contaba `sum(idx)` sobre
+      # el plan entero —1 347 unidades— y la columna sumaba 1 347 mientras el
+      # encabezado de la hoja decía «Aulas del operativo: 174». Dos universos con
+      # el mismo nombre en la misma hoja.
+      `Aulas del plan` = sum(idx & del_operativo),
       Conseguidas = conseguidas,
       `Conseguidas mujeres` = unname(sx[["F"]]),
       `Conseguidas hombres` = unname(sx[["M"]]),
