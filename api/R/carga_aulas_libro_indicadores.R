@@ -246,6 +246,35 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   "Las respuestas no traen fecha legible, asi que no se puede repartir el avance por dia."
 }
 
+# S10 (loop estética, 2026-09-07): la marca de lectura del libro se escribe
+# en hora local legible («07/09/2026 15:41»), no en el ISO UTC del estado
+# («2026-09-07T20:41:36Z»): quien lee el libro lee horas de Lima. Lo que no es
+# una marca ISO —«Ninguna: sale sólo del plan», vacío— se deja como llegó. El
+# huso es el del equipo que genera; `tz` existe para que el test no dependa de
+# la máquina.
+.cai_marca_local <- function(x, tz = Sys.timezone()) {
+  x <- as.character(x %||% "")[1]
+  if (is.na(x)) x <- ""
+  if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?Z$", x)) return(x)
+  if (is.null(tz) || is.na(tz) || !nzchar(tz)) tz <- "UTC"
+  marca <- suppressWarnings(as.POSIXct(x, tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ"))
+  if (is.na(marca)) marca <- suppressWarnings(as.POSIXct(x, tz = "UTC", format = "%Y-%m-%dT%H:%MZ"))
+  if (is.na(marca)) return(x)
+  format(marca, "%d/%m/%Y %H:%M", tz = tz)
+}
+
+# S3: el ancho de la hoja lo fija su tabla más ancha (hoy la de facultades,
+# doce columnas), y TODAS las bandas de sección lo cubren. Medido antes: la
+# banda de «Avance contra la meta» iba con `cols = 1:2` y la de procedencia
+# igual, sobre una hoja de doce; el subrayado se cortaba a la mitad y no se
+# veía dónde terminaba cada bloque. Las cabeceras de tabla siguen al ancho de
+# SU tabla: rotulan columnas, no separan bloques.
+.cai_ancho_hoja <- function(ind) {
+  ind <- if (is.list(ind)) ind else list()
+  ancho_de <- function(df) if (is.data.frame(df) && nrow(df)) ncol(df) else 0L
+  max(2L, 4L, ancho_de(ind$facultades), ancho_de(ind$aplicadores))
+}
+
 aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                              procedencia = NULL) {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
@@ -257,6 +286,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                    fontColour = "#002457", border = "bottom",
                                    borderColour = "#C7D0DD")
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
+  n_hoja <- .cai_ancho_hoja(ind)
   # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
   #
   # El decimal opcional existia para las cifras que llegaban fraccionarias
@@ -317,7 +347,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   m <- ind$meta %||% list()
   fila <- 4L
   openxlsx::writeData(wb, hoja, "Avance contra la meta", startCol = 1, startRow = fila)
-  openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
+  openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
   fila <- fila + 1L
   # El porcentaje va con su estilo propio: escrito como cifra saldria «0.6».
   filas_meta <- list(
@@ -382,7 +412,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     ncol_fac <- ncol(ind$facultades)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, "Avance por facultad", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
     # La cuota NO se compensa entre facultades: se dice, porque quien mire el
     # total de arriba y esta tabla junto va a querer restar.
@@ -480,7 +510,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     cols_num <- setdiff(seq_len(n_col_apl)[-1L], col_media)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, "Producción por aplicador", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_col_apl), gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$aplicadores, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = seq_len(n_col_apl), gridExpand = TRUE)
@@ -519,14 +549,14 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # hay que decir, no callarlo.
   if (is.null(ind$diario) || !nrow(ind$diario)) {
     openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     openxlsx::writeData(wb, hoja, .cali_motivo_sin_diario(ind), startCol = 1,
                         startRow = fila + 1L)
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila + 1L, cols = 1)
     fila <- fila + 3L
   } else {
     openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$diario, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:4, gridExpand = TRUE)
@@ -559,10 +589,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   if (is.list(procedencia) && length(procedencia)) {
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, "De dónde salió este libro", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
     r <- procedencia$resumen %||% list()
-    leido <- as.character(procedencia$importado_en %||% "")[1]
+    leido <- .cai_marca_local(as.character(procedencia$importado_en %||% "")[1])
     filas_proc <- list(
       list("Última vez que la app leyó un libro lleno",
            if (nzchar(leido)) leido else "Ninguna: sale sólo del plan"),
