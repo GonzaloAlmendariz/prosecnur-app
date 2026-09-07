@@ -79,7 +79,11 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 // ({fmt(n)}), no en ${} de template, y las otras dos son del tipo tras-verbo
 // no listado. Confirmación medida de que la cifra es cota inferior; el TOPE
 // se queda donde el detector ve.
-const TOPE = 13;
+// 2026-09-07 (loop estética-aulas-sheets, A3): 13 → 12. Entró UNA frase legítima
+// —el título de columna del libro «ALUMNOS EN AULA», que es el salón— y se
+// cerraron dos de la unidad: «la agenda son aulas con fecha» (kpisDeAulas) y
+// «la tasa del aula» (AulasSerieDeRendimiento) pasan a curso-horario.
+const TOPE = 12;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.

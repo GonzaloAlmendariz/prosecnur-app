@@ -296,6 +296,7 @@ export function AulasSeccionCalidad({
             filas={control}
             resumen={controlResumen}
             criterio={(dashboard.criterio_validez ?? null) as never}
+            partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
           />
         ) : (
           <p
