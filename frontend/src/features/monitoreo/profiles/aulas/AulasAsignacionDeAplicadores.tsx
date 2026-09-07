@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Check, Copy, Pin, Shuffle } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle } from "../../../../vendor/lucide-react";
+import {
+  avisoDistribucion, enlaceDeDistribucion,
+  type DistribucionSheetsRecordada, type DistribucionVigente,
+} from "./distribucionDeAplicadores";
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
@@ -155,7 +159,16 @@ export function AulasAsignacionDeAplicadores({
   oferta = null,
   ventanas = null,
   hoy = hoyISO(),
+  distribucion = null,
+  onPublicarDistribucion = null,
 }: {
+  /**
+   * S7 (2026-09-07): el Sheets que leen los aplicadores —recordado en la
+   * config— y la huella del reparto vigente, para decir si quedó viejo.
+   */
+  distribucion?: { recordado?: DistribucionSheetsRecordada; vigente?: DistribucionVigente } | null;
+  /** Publica la distribución; con enlace lo recuerda. `null` = solo lectura. */
+  onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
   /**
    * La facultad de cada cita, por código. Dictado 2026-09-04: «el cuadro no
    * muestra la facultad». Viene del PLAN porque el reparto no la trae.
@@ -210,6 +223,7 @@ export function AulasAsignacionDeAplicadores({
   // El aplicador explorado desde el rail. Estado UI efímero de esta
   // superficie: no es un panel enlazable ni un foco de entidad — el mismo
   // criterio que la franja activa de la malla.
+  const [enlaceDistribucion, setEnlaceDistribucion] = useState<string | null>(null);
   const [enFoco, setEnFoco] = useState<string | null>(null);
   // El resorteo en curso: mismo feedback que el rango («poco intuitivo» sin
   // señal de trabajo — el refetch tarda y el click parecía muerto).
@@ -307,6 +321,13 @@ export function AulasAsignacionDeAplicadores({
   const fijar = (codigo: string, aplicador: string) => {
     void onFijar?.(mapaDeFijaciones(reparto.fijadas, codigo, aplicador));
   };
+  // S7: el Sheets de los aplicadores. El estado DURO (enlace recordado y
+  // huella de lo publicado) vive en la config; aquí sólo el borrador del
+  // enlace que se está pegando, como en el campo del libro.
+  const recordadoUrl = enlaceDeDistribucion(distribucion?.recordado);
+  const escritoDistribucion = (enlaceDistribucion ?? "").trim();
+  const hayDestinoDistribucion = Boolean(escritoDistribucion || recordadoUrl);
+  const avisoSheets = avisoDistribucion(distribucion?.recordado, distribucion?.vigente);
 
   return (
     <div className="aulas-asigna">
@@ -332,6 +353,43 @@ export function AulasAsignacionDeAplicadores({
             <span>su hora completa queda reservada</span>
           </p>
         </div>
+        {/* S7 (2026-09-07): el Sheets que leen los aplicadores. El día 1 quedó
+            viejo (85 citas vigentes contra 83 publicadas) y nada lo decía: el
+            aviso compara la huella de lo publicado con la del reparto vigente
+            y dice causa y salida; el enlace se pega una vez y queda guardado. */}
+        {onPublicarDistribucion ? (
+          <div className="aulas-asigna-sheets">
+            <p className="aulas-asigna-mandos-rotulo">Sheets de los aplicadores</p>
+            <div className="aulas-aviso" data-tono={avisoSheets.tono}>
+              {avisoSheets.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {avisoSheets.texto}
+            </div>
+            <div className="aulas-asigna-rango aulas-asigna-sheets-campo">
+              <input
+                type="url"
+                value={enlaceDistribucion ?? recordadoUrl}
+                onChange={(e) => setEnlaceDistribucion(e.target.value)}
+                placeholder="Pega el enlace del Google Sheets de los aplicadores"
+                aria-label="Enlace del Sheets de los aplicadores"
+              />
+              <button
+                type="button"
+                className="aulas-asigna-rango-boton"
+                disabled={!hayDestinoDistribucion}
+                title={hayDestinoDistribucion
+                  ? "Escribe el reparto vigente en el Sheets de los aplicadores"
+                  : "Pega el enlace del Sheets de los aplicadores: sin él no hay dónde publicar"}
+                onClick={() => { void onPublicarDistribucion(escritoDistribucion || undefined); }}
+              >
+                Publicar distribución
+              </button>
+              {recordadoUrl ? (
+                <a className="aulas-asigna-sheets-enlace" href={recordadoUrl} target="_blank" rel="noreferrer">
+                  Abrir el Sheets
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         {onDeclararRango || onResortear || onConcentrar ? (
           <div className="aulas-asigna-mandos">
             {/* Dictado 2026-09-04: «le falta formato a este box». Tres

@@ -17,7 +17,7 @@ import { fmt } from "./kpisDeAulas";
 import { soloFacultad } from "./aulasPresentation";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
-import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
 
 /**
  * La sección «Modelo» del perfil de aulas: preparación, contacto, por facultad
@@ -43,6 +43,8 @@ export function AulasSeccionModelo({
   onDeclararRango = null,
   onResortear = null,
   onConcentrar = null,
+  distribucionRecordada = null,
+  onPublicarDistribucion = null,
 }: {
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
@@ -65,6 +67,9 @@ export function AulasSeccionModelo({
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** Dictado 2026-09-04: concentrar el día del aplicador; llega a Asignación. */
   onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
+  /** S7: el Sheets de los aplicadores recordado en la config. */
+  distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
+  onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
 }): ReactNode {
   const Tabla = tabla;
   // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
@@ -167,6 +172,8 @@ export function AulasSeccionModelo({
               onDeclararRango={onDeclararRango}
               onResortear={onResortear}
               onConcentrar={onConcentrar}
+              distribucion={{ recordado: distribucionRecordada, vigente: dashboard.reparto?.distribucion ?? null }}
+              onPublicarDistribucion={onPublicarDistribucion}
             />
           </section>
         ) : null}

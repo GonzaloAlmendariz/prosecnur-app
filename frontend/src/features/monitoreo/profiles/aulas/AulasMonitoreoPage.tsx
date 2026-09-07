@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
 import { contar } from "../../fuentes/vocabulario";
 import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
@@ -10,6 +11,7 @@ import {
   apiMonitoreoAulasDisponibilidad,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
+  apiMonitoreoAulasPublicarDistribucion,
   apiMonitoreoAulasPublicarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
@@ -46,6 +48,7 @@ import { avisoConversacion } from "./avisoConversacion";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoLibroPublicado } from "./avisoLibroPublicado";
+import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
@@ -764,6 +767,8 @@ function renderAulasView({
   onDeclararRango = null,
   onResortear = null,
   onConcentrar = null,
+  distribucionRecordada = null,
+  onPublicarDistribucion = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -834,6 +839,9 @@ function renderAulasView({
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** Dictado 2026-09-04: concentrar el día del aplicador en el reparto. */
   onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
+  /** S7: el Sheets de los aplicadores recordado y su publicación. */
+  distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
+  onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -882,6 +890,8 @@ function renderAulasView({
         onDeclararRango={onDeclararRango}
         onResortear={onResortear}
         onConcentrar={onConcentrar}
+        distribucionRecordada={distribucionRecordada}
+        onPublicarDistribucion={onPublicarDistribucion}
       />
     );
   }
@@ -1246,6 +1256,27 @@ export default function AulasMonitoreoPage() {
    * motivo, que es la regla de dueño hecha visible, no un fallo—. La recarga
    * silenciosa trae la config con el destino recién recordado al campo.
    */
+  /**
+   * S7: publicar la distribución de la semana al Sheets de los aplicadores.
+   * Con enlace lo recuerda; sin él usa el recordado. La recarga trae el
+   * bloque recordado y la huella nueva, y el aviso de Asignación pasa a
+   * «al día».
+   */
+  const publicarDistribucion = useCallback(async (enlace?: string) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasPublicarDistribucion(enlace);
+      setAviso(avisoDistribucionPublicada(res));
+      await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo publicar la distribución a los aplicadores.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
   const publicarASheets = useCallback(async (enlace?: string) => {
     setMutating(true);
     setError("");
@@ -1821,6 +1852,9 @@ export default function AulasMonitoreoPage() {
               onDeclararRango: declararRango,
               onResortear: resortear,
               onConcentrar: concentrar,
+              // S7: el Sheets de los aplicadores, recordado en la config.
+              distribucionRecordada: aulasConfig?.distribucion_sheets ?? null,
+              onPublicarDistribucion: publicarDistribucion,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

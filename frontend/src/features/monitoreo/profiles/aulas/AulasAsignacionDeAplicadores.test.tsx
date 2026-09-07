@@ -411,3 +411,42 @@ describe("AulasAsignacionDeAplicadores — concentrar el día del aplicador", ()
     expect(html).toContain("0 aplicaciones asignadas. Resalta");
   });
 });
+
+/**
+ * S7 (loop estética-aulas-sheets, 2026-09-07): el Sheets de los aplicadores
+ * vive en Asignación, con su aviso (causa y salida) y su acción.
+ */
+describe("AulasAsignacionDeAplicadores · el Sheets de los aplicadores", () => {
+  const vacio = repartoDeAplicadores({ dias: [], equidad: [] } as unknown as MonitoreoAulasReparto);
+  const recordado = { spreadsheet_id: "ABC", url: "https://docs.google.com/spreadsheets/d/ABC/edit", updated_at: "2026-09-07T14:10:00Z", huella: "h-1", citas: 83 };
+
+  it("con el reparto cambiado avisa y ofrece publicar de nuevo", () => {
+    const html = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={vacio}
+        distribucion={{ recordado, vigente: { huella: "h-2", citas: 85 } }}
+        onPublicarDistribucion={() => {}}
+      />,
+    );
+    expect(html).toContain("El reparto cambió desde la última publicación");
+    expect(html).toContain("Publicar distribución");
+    expect(html).toContain("https://docs.google.com/spreadsheets/d/ABC/edit");
+    expect(html).toContain('data-tono="atencion"');
+  });
+
+  it("al día lo dice en calma, y sin handler la superficie es de solo lectura", () => {
+    const alDia = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={vacio}
+        distribucion={{ recordado, vigente: { huella: "h-1", citas: 83 } }}
+        onPublicarDistribucion={() => {}}
+      />,
+    );
+    expect(alDia).toContain("está al día");
+    expect(alDia).toContain('data-tono="ok"');
+    const soloLectura = renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores reparto={vacio} distribucion={{ recordado, vigente: { huella: "h-2" } }} />,
+    );
+    expect(soloLectura).not.toContain("Publicar distribución");
+  });
+});

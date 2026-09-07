@@ -547,6 +547,9 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # NO es secreto (el token sí, ADR 0005): viaja en la config y el `.pulso`.
     # Acceso `[[` exacto: `libro_sheets_borrador` u otra hermana no es esto.
     libro_sheets = monitoreo_aulas_libro_sheets_normalizar(config[["libro_sheets"]]),
+    # S7: el Sheets de los aplicadores y la huella de lo último publicado, para
+    # que el tablero pueda decir «el reparto cambió desde la última publicación».
+    distribucion_sheets = monitoreo_aulas_distribucion_sheets_normalizar(config[["distribucion_sheets"]]),
     quotas = config[["quotas"]] %||% config[["cuotas"]] %||% defaults$quotas,
     variables_control = config[["variables_control"]] %||% config[["variablesControl"]] %||% defaults$variables_control,
     methodology = config[["methodology"]] %||% config[["metodologia"]] %||% defaults$methodology,

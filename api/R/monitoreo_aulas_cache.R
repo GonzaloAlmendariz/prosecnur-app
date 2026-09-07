@@ -116,6 +116,22 @@
                             duracion_min = duracion_min, rango = rango,
                             semilla = semilla, concentrado = concentrado)
   }
+  # S7: la huella de lo que HOY se publicaría a los aplicadores, con las
+  # mismas filas que escribe `monitoreo_aulas_publicar_distribucion()` y el
+  # reparto recién calculado (no se calcula dos veces). La UI la compara con
+  # `distribucion_sheets$huella` de la config para decir si el Sheets de los
+  # aplicadores quedó viejo.
+  filas <- aulas_libro_filas_plan_aplicadores(
+    plan, disponibilidad,
+    cfg = list(reparto_fijado = fijadas, duracion_aplicacion_min = duracion_min,
+               reparto_rango = rango, reparto_semilla = semilla,
+               reparto_concentrado = concentrado),
+    rep = dashboard[["reparto"]]
+  )
+  dashboard[["reparto"]][["distribucion"]] <- list(
+    huella = monitoreo_aulas_distribucion_huella(filas),
+    citas = max(0L, length(filas %||% list()) - 1L)
+  )
   dashboard
 }
 
