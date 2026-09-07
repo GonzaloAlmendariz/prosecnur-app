@@ -180,3 +180,124 @@ test_that("B19: las filas de banda se derivan del contenido — otra geometría,
   expect_true(.mfa_alguna_pinta_fila(requests, fila_dia),
               info = sprintf("cabecera «Dia» sin formato (fila %d del contenido mínimo)", fila_dia))
 })
+
+# --- S1 (loop estética-aulas-sheets, 2026-09-07): la hoja se lee como tabla ---
+#
+# Medido antes del cambio con el modelo completo (27 filas × 12 columnas): la
+# capa genérica congela 2 filas + columna A y emite UN solo ancho (150 px) para
+# las doce columnas; ninguna request alinea cifras. Con 150 px «Aulas que
+# llegaron a SU meta» se corta y las cifras —publicadas como texto— quedan
+# pegadas a la izquierda como rótulos. Vara (dictado 2026-09-01): «se ve como
+# toda esa información, no como una tabla».
+
+# El ancho EFECTIVO por columna (1-based) tras aplicar las requests en orden:
+# la última que cubre la columna manda, igual que hace la API.
+.mfa_anchos_efectivos <- function(requests, n_cols) {
+  anchos <- rep(NA_integer_, n_cols)
+  for (request in requests) {
+    d <- request$updateDimensionProperties
+    if (is.null(d) || !identical(d$range$dimension, "COLUMNS")) next
+    desde <- as.integer(d$range$startIndex)
+    hasta <- min(as.integer(d$range$endIndex), n_cols)
+    if (hasta <= desde) next
+    anchos[seq.int(desde + 1L, hasta)] <- as.integer(d$properties$pixelSize)
+  }
+  anchos
+}
+
+# Las alineaciones horizontales que las requests aplican a la celda (fila,
+# col), 1-based; vacío si ninguna la toca.
+.mfa_alineacion_de <- function(requests, fila, col) {
+  out <- character(0)
+  for (request in requests) {
+    rc <- request$repeatCell
+    if (is.null(rc)) next
+    al <- rc$cell$userEnteredFormat$horizontalAlignment
+    if (is.null(al)) next
+    rg <- rc$range
+    if (rg$startRowIndex <= fila - 1L && (fila - 1L) < rg$endRowIndex &&
+        rg$startColumnIndex <= col - 1L && (col - 1L) < rg$endColumnIndex) {
+      out <- c(out, al)
+    }
+  }
+  out
+}
+
+test_that("S1: cada columna de «Avance de campo» tiene su ancho, derivado del contenido", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  n_cols <- max(lengths(rows))
+  anchos <- .mfa_anchos_efectivos(.mfa_requests(rows), n_cols)
+  expect_false(anyNA(anchos), info = "hay columnas publicadas sin ancho")
+  expect_true(all(anchos >= 90L & anchos <= 320L),
+              info = paste("anchos fuera de [90, 320]:", paste(anchos, collapse = ", ")))
+  # La columna de rótulos («Aulas que llegaron a SU meta», «Efectivas
+  # conseguidas») pide más que una columna de cifras.
+  expect_gt(anchos[1], anchos[2])
+  # Y no es un ancho único para todas.
+  expect_gt(length(unique(anchos)), 1L)
+})
+
+test_that("S1: las cifras van a la derecha y los rótulos se quedan a la izquierda", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  fila <- .mfa_fila_de(rows, "Letras")
+  expect_false(is.na(fila), info = "el renderer perdió la fila de datos de Letras")
+  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 2L),
+              info = "la cifra «Muestra» de Letras no va a la derecha")
+  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 11L),
+              info = "el «Avance» (75 %) de Letras no va a la derecha")
+  expect_false("RIGHT" %in% .mfa_alineacion_de(requests, fila, 1L),
+               info = "el rótulo «Letras» no debe ir a la derecha")
+  fila_meta <- .mfa_fila_de(rows, "Encuestas de la meta")
+  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila_meta, 2L),
+              info = "la cifra del bloque de meta no va a la derecha")
+  # Las dos filas de título no se alinean: son texto de portada.
+  expect_length(.mfa_alineacion_de(requests, 1L, 2L), 0L)
+})
+
+test_that("S1: la cabecera de cada tabla baja de línea en su columna en vez de cortarse", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  fila <- .mfa_fila_de(rows, "Aplicador")   # «Cursos-horario asignados» no cabe en su columna
+  con_wrap <- FALSE
+  for (request in requests) {
+    rc <- request$repeatCell
+    if (is.null(rc)) next
+    rg <- rc$range
+    if (rg$startRowIndex <= fila - 1L && (fila - 1L) < rg$endRowIndex &&
+        identical(rc$cell$userEnteredFormat$wrapStrategy, "WRAP")) con_wrap <- TRUE
+  }
+  expect_true(con_wrap, info = sprintf("la cabecera de la fila %d no baja de línea", fila))
+})
+
+test_that("S1: el título y la columna de rótulos quedan congelados, nunca la hoja entera", {
+  for (modelo in list(.mfa_modelo_completo(), .mfa_modelo_minimo())) {
+    rows <- .mfa_rows(modelo)
+    requests <- .mfa_requests(rows)
+    freezes <- Filter(Negate(is.null), lapply(requests, function(r) {
+      r$updateSheetProperties$properties$gridProperties
+    }))
+    expect_gte(length(freezes), 1L)
+    ultimo <- freezes[[length(freezes)]]
+    expect_identical(as.integer(ultimo$frozenRowCount), 2L)
+    expect_identical(as.integer(ultimo$frozenColumnCount), 1L)
+    expect_lt(as.integer(ultimo$frozenRowCount), length(rows))
+  }
+})
+
+test_that("S1: una fecha u hora ISO entre las cifras no deja el bloque sin alinear (caso real del 07/09)", {
+  # El libro real trae «2026-09-07T20:41:36Z» en la columna B del bloque de
+  # meta; una celda así no es texto de rótulo y no debe apagar la alineación.
+  m <- .maaf_celdas(list(
+    list("Avance de campo"), list("Al 07/09/2026"), list(""),
+    list("Avance contra la meta"),
+    list("Encuestas de la meta", "3158"), list("Avance", "6,7 %"),
+    list("Última respuesta", "2026-09-07T20:41:36Z"), list("Corte", "2026-09-07"),
+    list("Hora", "18:30"), list("Sin dato", "\u2014")
+  ), 2L)
+  expect_identical(.maaf_columnas_cifra(m), c(FALSE, TRUE))
+  # Y un texto de verdad sí la apaga: la columna deja de ser de cifras.
+  m2 <- .maaf_celdas(list(list("Avance contra la meta"), list("Encuestas de la meta", "3158"),
+                          list("Responsable", "Equipo A")), 2L)
+  expect_identical(.maaf_columnas_cifra(m2), c(FALSE, FALSE))
+})
