@@ -322,6 +322,34 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NUL
     aplicador <- if (is.null(parte1)) asignado else .calg_txt(
       .monitoreo_aulas_parte_primero(parte1, .MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]])
     )
+    # **El ESTADO cuenta lo que pasó con la APLICACIÓN, no la etapa del
+    # circuito.** El 2026-09-07, primer día de campo, la hoja publicada decía
+    # PLANIFICADA en la misma fila donde OBTENIDAS decía 36: `operational_status`
+    # es el eje del circuito y nunca llega a «aplicada» desde el libro. Dos ejes
+    # que se llaman igual en la misma hoja se leen como una contradicción, y
+    # quien abre el Plan del día a media jornada pregunta una sola cosa: si ese
+    # curso-horario ya se aplicó.
+    #
+    # Precedencia, la misma del APLICADOR de arriba: manda el parte —es el
+    # veredicto de quien estuvo ahí—; si no hay parte pero ya entran respuestas,
+    # el aula está EN APLICACIÓN; y si no hay ni lo uno ni lo otro, el estado del
+    # circuito, que es lo único que se sabe.
+    estado_parte <- if (is.null(parte1)) "" else .calg_txt(
+      .monitoreo_aulas_parte_primero(parte1, .MONITOREO_AULAS_PARTE_ALIAS[["estado"]])
+    )
+    # `efectivas[[cod]]` con un código que no está entre los nombres NO devuelve
+    # NULL: revienta con «subscript out of bounds», la misma trampa que ya se
+    # guardó dos veces en esta hoja.
+    obtenidas_u <- if (nzchar(cod_u) && cod_u %in% names(efectivas %||% list())) {
+      suppressWarnings(as.numeric(efectivas[[cod_u]]))[1]
+    } else NA_real_
+    estado <- if (nzchar(estado_parte)) {
+      .capd_estado_legible(estado_parte)
+    } else if (isTRUE(is.finite(obtenidas_u) && obtenidas_u > 0)) {
+      "EN APLICACIÓN"
+    } else {
+      .capd_estado_legible(u$operational_status)
+    }
     ventana <- .capd_ventana(u)
     c(
       .calg_txt(u$scheduled_date),
@@ -340,10 +368,18 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NUL
       .calg_num_txt(u$eligible_n),
       .capd_esperadas(u)[["total"]],
       .capd_esperadas(u)[["por_sexo"]],
-      .calg_num_txt(efectivas[[.calg_txt(u$operational_code)]] %||% NULL),
-      .capd_por_sexo(efectivas_sexo[[.calg_txt(u$operational_code)]] %||% NULL),
+      # Por la MISMA razón que arriba: `%||%` no salva a `[[` de un nombre que
+      # no está —el error salta ANTES de que `%||%` llegue a mirar—. Aquí no
+      # había reventado nunca porque el generador pasa un vector que cubre las
+      # 1 392 unidades del plan; con una cobertura parcial se cae.
+      .calg_num_txt(if (nzchar(cod_u) && cod_u %in% names(efectivas %||% list())) {
+        efectivas[[cod_u]]
+      } else NULL),
+      .capd_por_sexo(if (nzchar(cod_u) && cod_u %in% names(efectivas_sexo %||% list())) {
+        efectivas_sexo[[cod_u]]
+      } else NULL),
       aplicador,
-      .capd_estado_legible(u$operational_status),
+      estado,
       .calg_txt(u$link)
     )
   }

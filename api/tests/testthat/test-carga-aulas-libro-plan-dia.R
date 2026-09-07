@@ -196,6 +196,30 @@ test_that("el ESTADO se escribe legible, no el interno crudo «en_campo»", {
   expect_false(grepl("_", celda, fixed = TRUE))
 })
 
+test_that("el ESTADO cuenta la aplicación: parte, luego respuestas, luego circuito", {
+  # **Primer día de campo, 2026-09-07.** La hoja publicada decía PLANIFICADA en
+  # la misma fila donde OBTENIDAS decía 36. `operational_status` es el eje del
+  # CIRCUITO y nunca llega a «aplicada» desde el libro; quien abre el Plan del
+  # día a media jornada pregunta una sola cosa, y dos ejes llamados «ESTADO» en
+  # la misma hoja se leen como una contradicción.
+  hoja <- aulas_libro_hoja_plan_dia(
+    .pd_plan(),
+    partes = list(list(operational_code = "CH 2", estado = "APLICADA")),
+    efectivas = c("CH 3" = 12, "R 5.1" = 0)
+  )
+  estados <- stats::setNames(.pd_celdas(hoja, "ESTADO"),
+                             .pd_celdas(hoja, "CURSO-HORARIO"))
+  # 1) El parte manda: es el veredicto de quien estuvo ahí.
+  expect_identical(unname(estados[["CH 2"]]), "APLICADA")
+  # 2) Sin parte pero con respuestas entrando, el aula está viva.
+  expect_identical(unname(estados[["CH 3"]]), "EN APLICACIÓN")
+  # 3) Cero respuestas NO es estar aplicando: manda el circuito, que en esta
+  #    reserva activada es «agendada».
+  expect_identical(unname(estados[["R 5.1"]]), "AGENDADA")
+  # 4) Y sin ninguna de las dos, el circuito sigue mandando como siempre.
+  expect_identical(unname(estados[["CH 1"]]), "EN CAMPO")
+})
+
 test_that("el ENLACE de la ficha es el link de la fila", {
   hoja <- aulas_libro_hoja_plan_dia(.pd_plan())
   enlaces <- stats::setNames(.pd_celdas(hoja, "ENLACE DE LA FICHA QR"),
