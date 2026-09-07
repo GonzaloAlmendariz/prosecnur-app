@@ -471,7 +471,8 @@ test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
   # de cada tramo es el que dice la etiqueta.
   expect_identical(campos[[g[[2]]$desde]], "FECHA AGENDADA")
   expect_identical(campos[[g[[3]]$desde]], "TOTAL ENVIADAS")
-  expect_identical(campos[[g[[4]]$desde]], "N ASISTENTES EN AULA")
+  # El ancla es el CAMPO desde el 2026-09-07; el título es lo que cambia.
+  expect_identical(campos[[g[[4]]$desde]], "ALUMNOS EN AULA")
 })
 
 test_that("la base de control combina sus tramos y repite hasta el curso-horario", {

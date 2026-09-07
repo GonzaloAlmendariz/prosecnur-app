@@ -188,6 +188,30 @@ test_that("sin aplicar todavía, la base de control sale con su cabecera y sin f
   expect_false("CH 1" %in% plano)
 })
 
+test_that("un aula con respuestas entra aunque nadie haya escrito su parte", {
+  # **Primer día de campo, 2026-09-07.** Seis aulas tenían encuestas llegando
+  # por la plataforma y la Base de control enseñaba una sola: la única con parte
+  # escrito. «Hay aulas que se están aplicando ahora, pero no tengo nada en la
+  # base de control».
+  #
+  # El parte lo escribe el encargado de campo cuando puede; las respuestas
+  # llegan solas. Una efectiva obtenida es prueba de que ese curso-horario se
+  # está aplicando, así que basta para que la fila exista.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08"))
+  efectivas <- c("CH 1" = 12)
+  plano <- as.character(unlist(
+    aulas_libro_hoja_control(unidades, control = list(), efectivas = efectivas)))
+  expect_true("CH 1" %in% plano)
+  expect_true("12" %in% plano)
+  # Y CERO efectivas no es lo mismo que unas cuantas: un aula que todavía no
+  # recibe nada sigue fuera, que es el criterio que Gonzalo pidió.
+  vacio <- as.character(unlist(
+    aulas_libro_hoja_control(unidades, control = list(), efectivas = c("CH 1" = 0))))
+  expect_false("CH 1" %in% vacio)
+})
+
 test_that("y en cuanto el aula se aplica, su fila aparece con la agenda puesta", {
   # La contracara del caso de arriba: el mismo aula, ya aplicada, sí se escribe
   # y trae lo que las otras hojas saben.
@@ -288,8 +312,13 @@ test_that("el generador no escribe dentro del bloque de conteo del equipo", {
   escribe <- unique(sub('.*pon\\("([^"]*)".*', "\\1", grep('pon\\("', fuente, value = TRUE)))
   escritos <- prosecnurapp:::.calg_control_escritos()
   titulos <- vapply(escritos, function(s) s$titulos[[1]], character(1))
-  a <- which(titulos == "TOTAL ENVIADAS")[[1]]
-  b <- which(titulos == "LARGAS VS TOTAL")[[1]]
+  campos <- vapply(escritos, function(s) s$campo, character(1))
+  # Por CAMPO: el rótulo es justo lo que un barrido de vocabulario cambia, y
+  # anclar aquí por título dejó el bloque vacío el 2026-09-07 sin que nada
+  # fallara. Los títulos se resuelven después, sólo para comparar con lo que
+  # escribe el generador.
+  a <- which(campos == "sent_total")[[1]]
+  b <- which(campos == "long_vs_total")[[1]]
   bloque <- titulos[seq.int(a, b)]
   invadidos <- intersect(bloque, escribe)
   expect_identical(

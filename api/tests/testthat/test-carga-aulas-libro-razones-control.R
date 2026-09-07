@@ -1,9 +1,9 @@
-# «CORTAS VS TOTAL» enseñaba **0.182 · 0.818 · 0.077 · 0.923**.
+# «CORTAS VS ENVIADAS» enseñaba **0.182 · 0.818 · 0.077 · 0.923**.
 #
 # El arreglo de `7d0c22a7` —«un rotulo que dice % enseña un porcentaje»— alcanzo
 # a «% EFECTIVAS ESPERADO/OBTENIDO» y a «% ASISTENCIA», y dejo fuera a las
 # cuatro razones que ya venian en la hoja: «VS TOTAL», «VS POBLACION», «CORTAS
-# VS TOTAL» y «LARGAS VS TOTAL». El precedente aplicado al vecino y no a estas,
+# VS TOTAL» y «LARGAS VS ENVIADAS». El precedente aplicado al vecino y no a estas,
 # que es el patron que mas veces ha aparecido en este loop.
 #
 # La escala la decide CADA COLUMNA por separado: las llena el equipo en su Excel
@@ -38,7 +38,7 @@ test_that("una razon en 0-1 se enseña como porcentaje", {
   )
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
-  for (t in c("CORTAS VS TOTAL", "LARGAS VS TOTAL")) {
+  for (t in c("CORTAS VS ENVIADAS", "LARGAS VS ENVIADAS")) {
     f <- .crc_formato(ruta, t, 3L)
     expect_true(grepl("%", f %||% ""),
                 info = paste0(t, " se escribe con el formato '", f, "'"))
@@ -55,7 +55,7 @@ test_that("una razon YA escrita en 0-100 no se multiplica otra vez", {
   )
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
-  for (t in c("CORTAS VS TOTAL", "LARGAS VS TOTAL")) {
+  for (t in c("CORTAS VS ENVIADAS", "LARGAS VS ENVIADAS")) {
     f <- .crc_formato(ruta, t, 3L)
     expect_false(grepl("%", f %||% ""),
                  info = paste0(t, " en 0-100 se escribe con '", f, "' y saldria x100"))
@@ -71,6 +71,6 @@ test_that("cada columna decide su propia escala", {
   )
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
-  expect_true(grepl("%", .crc_formato(ruta, "CORTAS VS TOTAL", 3L) %||% ""))
-  expect_false(grepl("%", .crc_formato(ruta, "LARGAS VS TOTAL", 3L) %||% ""))
+  expect_true(grepl("%", .crc_formato(ruta, "CORTAS VS ENVIADAS", 3L) %||% ""))
+  expect_false(grepl("%", .crc_formato(ruta, "LARGAS VS ENVIADAS", 3L) %||% ""))
 })
