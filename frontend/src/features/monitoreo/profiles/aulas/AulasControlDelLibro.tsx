@@ -4,6 +4,8 @@ import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEs
 import { fmt } from "./kpisDeAulas";
 import { columnasConDato } from "./columnasConDato";
 import { perdidaDelControl } from "./perdidaDelControl";
+import { avisoAsistenciaSinParte } from "./avisoAsistenciaSinParte";
+import { Info } from "../../../../vendor/lucide-react";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -369,13 +371,19 @@ export function AulasControlDelLibro({
   filas,
   resumen,
   criterio,
+  partes,
 }: {
   filas: ReadonlyArray<Record<string, unknown>>;
   resumen: ResumenDeControl | null;
   /** El criterio de validez que declara el ESTUDIO, para contrastarlo. */
   criterio?: CriterioDelEstudio | null;
+  /** Los partes de campo en sesión: con ellos el aviso de A3 distingue el aula
+   *  sin parte de la que lo tiene y el libro leído aún no trae. */
+  partes?: ReadonlyArray<Record<string, unknown>> | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
+  // A3: lo que sólo sabe quien estuvo en el salón, dicho con causa y salida.
+  const asistencia = avisoAsistenciaSinParte(filas, partes ?? []);
   // **La banda compara dos cifras de la misma hoja, no el veredicto.**
   // `sent_total` es lo que el equipo da por enviado y `efectivas_obtenidas` la
   // efectiva de plataforma que la app escribe en la fila; `valid_total` es el
@@ -461,6 +469,14 @@ export function AulasControlDelLibro({
           <AulasMatrizUmbrales v={resumen.veredicto} aulas={aulas} />
           <Veredicto v={resumen.veredicto} aulas={aulas} />
         </>
+      ) : null}
+      {/* A3: ALUMNOS EN AULA sólo la sabe el parte. Sin él, tres columnas de
+          esta hoja se apagan en silencio; el aviso nombra las aulas y dice
+          dónde se llena. Mismo marco que los avisos de la página. */}
+      {asistencia.texto ? (
+        <div className="aulas-aviso" data-tono={asistencia.tono} data-qa-geometry-member>
+          <Info size={16} /> {asistencia.texto}
+        </div>
       ) : null}
       {/* **De quién son los validadores.**
           La hoja trae columnas VALIDADOR y el estudio declara sus propios

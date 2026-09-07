@@ -235,3 +235,35 @@ describe("AulasControlDelLibro · la banda de pérdida no lee el veredicto", () 
     expect(html).toContain("Válido, según la hoja");
   });
 });
+
+/**
+ * A3: el aviso de ALUMNOS EN AULA vive dentro de la Base de control, con la
+ * causa y la salida, y sólo cuando hay algo que decir.
+ */
+describe("AulasControlDelLibro · el aviso de asistencia sin parte", () => {
+  const resumen = { aulas: 2, grupos: [{ clave: "cuenta", etiqueta: "Control - cuenta", campos: 14, aulas_con_dato: 2 }] } as never;
+  const filas = [
+    { ...base, operational_code: "CH 7", observed_students: "NA" },
+    { ...base, operational_code: "CH 72", observed_students: 53 },
+  ];
+
+  it("nombra el curso-horario sin parte y dice dónde se llena", () => {
+    const html = renderToStaticMarkup(
+      <AulasControlDelLibro filas={filas} resumen={resumen} partes={[{ operational_code: "CH 72", observed_students: 53 }]} />,
+    );
+    expect(html).toContain("1 curso-horario aplicado sin parte de campo (CH 7)");
+    expect(html).toContain("Registro de campo");
+    expect(html).toContain('data-tono="atencion"');
+  });
+
+  it("con todo cubierto no pinta el aviso", () => {
+    const html = renderToStaticMarkup(
+      <AulasControlDelLibro
+        filas={[{ ...base, operational_code: "CH 72", observed_students: 53 }]}
+        resumen={{ aulas: 1, grupos: [] } as never}
+        partes={[{ operational_code: "CH 72", observed_students: 53 }]}
+      />,
+    );
+    expect(html).not.toContain("sin parte de campo");
+  });
+});

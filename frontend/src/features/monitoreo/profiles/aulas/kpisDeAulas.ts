@@ -384,7 +384,7 @@ function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
       : "el estudio no declara cuotas por sexo y facultad",
     tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
     detalle: evaluables.length
-      ? "Cuenta los grupos que llegarían a su cuota con los cursos-horario YA agendados, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
+      ? "Cuenta los grupos que llegarían a su cuota con los cursos-horario YA agendados, no al ritmo observado: la agenda son cursos-horario con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
       : undefined,
   };
 }
