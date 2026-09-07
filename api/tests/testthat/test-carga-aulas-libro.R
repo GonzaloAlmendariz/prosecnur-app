@@ -270,3 +270,33 @@ test_that("las fechas del libro se escriben como fechas y no como texto", {
   expect_true(length(vs) > 0, info = "la hoja de campo no trae FECHA DE APLICACIÓN con dato")
   for (v in vs) expect_false(is.character(v), info = "va como texto en la hoja de campo")
 })
+
+# **El tramo que decide si una fila de control «es del equipo» no lo escribe la app.**
+#
+# La «Base de control» conserva las aulas con control ya registrado aunque no
+# estén aplicadas: sin eso, regenerar el libro a mitad de operativo borra el
+# trabajo del equipo. Para decidirlo mira el bloque de CONTEO —de TOTAL ENVIADAS
+# a LARGAS VS TOTAL—, y eso sólo funciona mientras la app no escriba ahí.
+#
+# El 2026-09-07 el corte se puso primero en «de TOTAL ENVIADAS en adelante» y no
+# sirvió: ahí caen EFECTIVAS ESPERADAS y MUJERES/HOMBRES ESPERADOS, que las pone
+# la app, así que TODA fila publicada volvía a contar como control del equipo y
+# la hoja seguía saliendo con las 174. El bucle se cierra solo —se publica, se
+# relee, se conserva— y por eso hace falta este guard.
+test_that("el generador no escribe dentro del bloque de conteo del equipo", {
+  fuente <- readLines("../../R/carga_aulas_libro_generar.R", warn = FALSE)
+  escribe <- unique(sub('.*pon\\("([^"]*)".*', "\\1", grep('pon\\("', fuente, value = TRUE)))
+  escritos <- prosecnurapp:::.calg_control_escritos()
+  titulos <- vapply(escritos, function(s) s$titulos[[1]], character(1))
+  a <- which(titulos == "TOTAL ENVIADAS")[[1]]
+  b <- which(titulos == "LARGAS VS TOTAL")[[1]]
+  bloque <- titulos[seq.int(a, b)]
+  invadidos <- intersect(bloque, escribe)
+  expect_identical(
+    invadidos, character(0),
+    info = paste("la app escribe en el bloque del equipo:", paste(invadidos, collapse = ", "))
+  )
+  # Y el bloque existe de verdad: si la spec lo renombra, el corte se queda sin
+  # anclas y conservaría cero filas en silencio.
+  expect_gt(length(bloque), 1L)
+})

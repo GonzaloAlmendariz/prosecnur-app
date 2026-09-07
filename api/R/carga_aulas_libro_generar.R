@@ -624,8 +624,37 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   # reserva de cadena activada. Sin eso, regenerar el libro a mitad de operativo
   # borraba el control de las aulas que ya lo tenian —medido: 22 de 152 filas
   # eran reservas y no volvian—.
+  # **«Con control registrado» es que el EQUIPO haya escrito algo, no que la
+  # fila exista.**
+  #
+  # La identidad y los denominadores los escribe la app; si cualquier fila
+  # importada contara como control, las 174 que la app publicó volverían para
+  # siempre por el simple hecho de haberse publicado una vez. Es un bucle que se
+  # cierra solo: se publica, se relee, se conserva. Medido el 2026-09-07: tras
+  # cambiar el criterio a «solo lo aplicado», la hoja seguía saliendo con las
+  # 174 filas.
+  #
+  # Cuenta como control el bloque de CONTEO —de TOTAL ENVIADAS a LARGAS VS
+  # TOTAL—, que es el único tramo contiguo que la app no escribe nunca: los
+  # envíos, los tres validadores y el reparto entre cortas y largas salen de las
+  # fórmulas del equipo sobre la data de la plataforma.
+  #
+  # No sirve «de TOTAL ENVIADAS en adelante»: ahí caen EFECTIVAS ESPERADAS,
+  # ELEGIBLES: BASE DEL % y MUJERES/HOMBRES ESPERADOS, que las pone la app, y el
+  # bucle se cerraba igual. Se ancla por NOMBRE a los dos extremos para que la
+  # spec pueda crecer sin descolocar el corte, y `test-carga-aulas-libro.R`
+  # comprueba que el generador sigue sin escribir dentro de ese tramo.
+  campos_equipo <- local({
+    todos <- vapply(escritos, function(spec) spec$campo, character(1))
+    titulos_todos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
+    a <- which(titulos_todos == "TOTAL ENVIADAS")
+    b <- which(titulos_todos == "LARGAS VS TOTAL")
+    if (!length(a) || !length(b) || b[[1]] < a[[1]]) character(0) else todos[seq.int(a[[1]], b[[1]])]
+  })
   con_control <- vapply(unidades, function(u) {
-    !is.null(por_aula[[.calg_txt(u$operational_code)]])
+    r <- por_aula[[.calg_txt(u$operational_code)]]
+    if (is.null(r)) return(FALSE)
+    any(vapply(campos_equipo, function(k) nzchar(.calg_txt(r[[k]])), logical(1)))
   }, logical(1))
   aplicada <- vapply(unidades, function(u) {
     cod <- .calg_txt(u$operational_code)
