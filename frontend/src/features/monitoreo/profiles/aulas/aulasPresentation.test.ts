@@ -446,3 +446,17 @@ describe("soloFacultad (B77) — el corte del foco con su guardia", () => {
     expect(soloFacultad(sinDimension, "DERECHO")).toBe(sinDimension);
   });
 });
+
+/**
+ * S14b (loop estética-aulas-sheets, 2026-09-07). Dictado de Gonzalo, textual:
+ * «se cambió el encabezado de efectivas a "CANTIDAD DE ENCUESTAS APLICADAS"
+ * porque las efectivas las da la app no el aplicador, el aplicador ve temas de
+ * lo que ve en aulas nomás». El conteo del parte (`effective_surveys`, clave
+ * que NO cambia) deja de llamarse «efectivas» en la app: «efectivas» son las
+ * de la plataforma, que pasan el criterio.
+ */
+describe("el conteo del parte se llama «encuestas aplicadas», no «efectivas»", () => {
+  it("la ficha lo rotula así", () => {
+    expect(aulasFieldLabel("effective_surveys")).toBe("Encuestas aplicadas (parte)");
+  });
+});

@@ -202,7 +202,12 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
       `Con respuestas` = as.numeric(plat["aulas", ]),
       `Efectivas en plataforma` = as.numeric(plat["ef", ]),
       `Partes rendidos` = vapply(claves, function(k) sum(quien_parte == k), integer(1)),
-      `Efectivas declaradas` = vapply(claves, function(k) {
+      # S14b (dictado de Gonzalo 2026-09-07, textual: «las efectivas las da la
+      # app no el aplicador, el aplicador ve temas de lo que ve en aulas
+      # nomás»): el conteo del parte se llama «Encuestas aplicadas (parte)».
+      # Hasta ese día la columna era «Efectivas declaradas». La clave del parte
+      # (`effective_surveys`) no cambia.
+      `Encuestas aplicadas (parte)` = vapply(claves, function(k) {
         if (!any(quien_parte == k)) NA_real_ else sum(ef_parte[quien_parte == k])
       }, numeric(1)),
       check.names = FALSE, stringsAsFactors = FALSE
@@ -290,7 +295,7 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 
 # S4 (loop estética, 2026-09-07): la celda sin dato de una tabla se declara.
 # `writeData` deja en blanco los NA de un data.frame, y en el libro real 19 de
-# 24 aplicadores sin parte tenían «Efectivas declaradas» vacía: la fila quedaba
+# 24 aplicadores sin parte tenían «Encuestas aplicadas (parte)» vacía: la fila quedaba
 # con un hueco en medio que se lee como olvido. Se escribe «—» (el vocabulario
 # del bloque de meta y de la procedencia: sin dato ≠ cero) celda a celda,
 # después de la tabla, para que las cifras sigan siendo números.

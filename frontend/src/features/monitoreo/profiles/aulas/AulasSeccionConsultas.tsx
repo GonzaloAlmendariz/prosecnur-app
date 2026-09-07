@@ -205,7 +205,7 @@ export function AulasSeccionConsultas({
             <p className="aulas-parte-aviso">
               <strong>{fmt(cuadre.descuadrados)}</strong>{" "}
               {cuadre.descuadrados === 1 ? "parte no cuadra" : "partes no cuadran"}: asistentes
-              menos rechazos y duplicados no dan las efectivas declaradas. Se ven primero.
+              menos rechazos y duplicados no dan las encuestas aplicadas que declara el parte. Se ven primero.
             </p>
           ) : null}
           {/* El cambio de aula va DESPUÉS del descuadre, no en medio.

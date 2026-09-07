@@ -223,7 +223,7 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
 
 test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cifras siguen siendo números", {
   ind <- .calax_modelo_con_huecos()
-  expect_true(any(is.na(ind$aplicadores$`Efectivas declaradas`)))
+  expect_true(any(is.na(ind$aplicadores$`Encuestas aplicadas (parte)`)))
   wb <- openxlsx::createWorkbook()
   aulas_libro_escribir_indicadores(wb, ind, hoja = "Avance de campo")
   path <- withr::local_tempfile(fileext = ".xlsx")
@@ -232,7 +232,7 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
                                 skipEmptyRows = FALSE, skipEmptyCols = FALSE)
   # Aplicadores: la columna se localiza por su nombre en la cabecera.
   cab <- .calax_fila_de(celdas, "Aplicador")
-  col_decl <- which(as.character(celdas[cab, ]) == "Efectivas declaradas")
+  col_decl <- which(as.character(celdas[cab, ]) == "Encuestas aplicadas (parte)")
   fila_c <- .calax_fila_de(celdas, "Equipo C")
   fila_a <- .calax_fila_de(celdas, "Equipo A")
   expect_identical(as.character(celdas[fila_c, col_decl]), "\u2014")

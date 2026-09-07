@@ -115,7 +115,7 @@ test_that("B7.3: con plataforma Y partes, la hoja xlsx escribe el puente que nom
   # familias estan DE VERDAD en la hoja y no hay huecos que disparen el
   # `if (sin_dato)` actual. Si esto cae, el rojo de abajo no mide el choque.
   expect_true("Efectivas conseguidas" %in% celdas)
-  expect_true("Efectivas declaradas" %in% celdas)
+  expect_true("Encuestas aplicadas (parte)" %in% celdas)
   expect_false(any(celdas == "—"))
 
   puentes <- .pnt_puentes(celdas)
@@ -139,7 +139,7 @@ test_that("B7.3: con plataforma Y partes, la pestaña de Sheets escribe el mismo
   celdas <- .pnt_celdas_sheets(.pnt_modelo_completo())
 
   expect_true("Efectivas conseguidas" %in% celdas)
-  expect_true("Efectivas declaradas" %in% celdas)
+  expect_true("Encuestas aplicadas (parte)" %in% celdas)
   expect_false(any(celdas == "—"))
 
   puentes <- .pnt_puentes(celdas)
@@ -186,7 +186,7 @@ test_that("B7.3 pin de conservacion: sin datos de plataforma, el motivo actual s
   # texto o lo duplique cambia un verde que hoy significa algo.
   ind <- .pnt_modelo_sin_plataforma()
   for (celdas in list(.pnt_celdas_xlsx(ind), .pnt_celdas_sheets(ind))) {
-    expect_true("Efectivas declaradas" %in% celdas)
+    expect_true("Encuestas aplicadas (parte)" %in% celdas)
     expect_true(any(celdas == "—"))
     puentes <- .pnt_puentes(celdas)
     expect_length(puentes, 1L)

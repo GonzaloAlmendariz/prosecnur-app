@@ -34,7 +34,10 @@ export const FIELD_LABELS: Record<string, string> = {
   observed_students: "Cantidad de asistentes",
   applied_surveys: "Encuestas aplicadas",
   // `CANTIDAD DE EFECTIVAS`: el número que manda en el parte de campo.
-  effective_surveys: "Cantidad de efectivas",
+  // S14b (dictado 2026-09-07): «las efectivas las da la app no el aplicador».
+  // El conteo del parte son encuestas aplicadas; «efectivas» queda para la
+  // plataforma. La clave no cambia.
+  effective_surveys: "Encuestas aplicadas (parte)",
   // `CANTIDAD DE RECHAZOS`.
   refusals: "Cantidad de rechazos",
   // Las dos columnas de la resta, que el libro NO trae: las calcula el motor

@@ -146,7 +146,7 @@ test_that("B2.2: una fila del diario y una de aplicadores llevan los números de
 
   # Equipo B en el modelo: 2 aulas, 14 efectivas declaradas, media 7.
   fila_apl <- ind$aplicadores[ind$aplicadores$Aplicador == "Equipo B", ]
-  esperados_apl <- c(fila_apl$Aulas, fila_apl$`Efectivas declaradas`,
+  esperados_apl <- c(fila_apl$Aulas, fila_apl$`Encuestas aplicadas (parte)`,
                      fila_apl$`Media por aula`)
   en_hoja_apl <- .cas_numeros_de_fila_con(m, "Equipo B")
   expect_true(all(esperados_apl %in% en_hoja_apl),
@@ -482,12 +482,12 @@ test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía
     # «Efectivas declaradas» es NA en el modelo.
     asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
   )
-  expect_true(any(is.na(ind$aplicadores$`Efectivas declaradas`)))
+  expect_true(any(is.na(ind$aplicadores$`Encuestas aplicadas (parte)`)))
   filas <- .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
   cabecera <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Aplicador"), logical(1)))
   expect_length(cabecera, 1L)
   nombres <- as.character(unlist(filas[[cabecera]]))
-  col <- which(nombres == "Efectivas declaradas")
+  col <- which(nombres == "Encuestas aplicadas (parte)")
   fila_c <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Equipo C"), logical(1)))
   expect_length(fila_c, 1L)
   expect_identical(as.character(unlist(filas[[fila_c]]))[[col]], "\u2014")

@@ -89,7 +89,7 @@ export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRo
         // cuadre es suyo y esto sólo lo dice, con el signo, que es lo que
         // distingue «se les pasó contar» de «contaron de más».
         <p className="mon-profile-table-recorte">
-          El equipo declaró <strong>{fmt(e.declaradas)}</strong> efectivas,{" "}
+          El equipo declaró <strong>{fmt(e.declaradas)}</strong> encuestas aplicadas,{" "}
           {e.descuadre > 0 ? `${fmt(e.descuadre)} más` : `${fmt(Math.abs(e.descuadre))} menos`} de
           lo que implica esta cadena.
         </p>

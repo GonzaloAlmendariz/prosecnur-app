@@ -112,7 +112,9 @@ test_that("la cuenta del parte y la de plataforma se publican juntas, no mezclad
     asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo A"))
   a <- ind$aplicadores
   expect_equal(a$`Efectivas en plataforma`[[1]], 72)
-  expect_equal(a$`Efectivas declaradas`[[1]], 34)
+  # S14b (dictado 2026-09-07): la columna se llamaba «Efectivas declaradas»;
+  # el conteo del parte son encuestas aplicadas, las efectivas las da la app.
+  expect_equal(a$`Encuestas aplicadas (parte)`[[1]], 34)
   expect_equal(a$`Partes rendidos`[[1]], 1L)
 })
 
