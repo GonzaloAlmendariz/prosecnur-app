@@ -1093,11 +1093,15 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   if (!is.data.frame(responses) || !nrow(responses)) return(character(0))
   aulas <- trimws(as.character(response_classroom %||% character(0)))
   if (length(aulas) != nrow(responses)) return(character(0))
-  col <- .monitoreo_aulas_col(responses, c("_submission_time", "submission_time", "end", "start"))
+  # **La columna con HUSO manda sobre la del servidor.** Prefería
+  # `_submission_time`, que Kobo publica en UTC: un aula de las 19:30 de Lima
+  # —este operativo agenda hasta esa hora— se fecha en la jornada siguiente.
+  # Ver `monitoreo_aulas_hora_local.R`.
+  col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_TIEMPO)
   if (!nzchar(col)) return(character(0))
   crudo <- as.character(responses[[col]])
-  fecha <- substr(trimws(crudo), 1, 10)
-  ok <- nzchar(aulas) & grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", fecha)
+  fecha <- monitoreo_aulas_fecha_local(crudo)
+  ok <- nzchar(aulas) & nzchar(fecha)
   if (!any(ok)) return(character(0))
   # La primera respuesta de cada aula.
   tapply(fecha[ok], aulas[ok], min, simplify = TRUE)

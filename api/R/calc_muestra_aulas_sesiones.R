@@ -78,6 +78,28 @@
   partes[!es_eval]
 }
 
+#' Qué tan buena es una fila del catálogo para representar a su curso-horario.
+#'
+#' 2 = trae alguna sesión de CLASE («C»), que es donde el curso se reúne entero.
+#' 1 = trae alguna sesión que no es evaluación (prácticas, talleres, laboratorio).
+#' 0 = sólo evaluación, o sin gramática reconocible.
+#' @keywords internal
+.cm_aulas_sesiones_prioridad <- function(valores) {
+  vapply(valores, function(v) {
+    x <- trimws(as.character(v %||% "")[1])
+    if (is.na(x) || !nzchar(x)) return(0L)
+    tipos <- toupper(vapply(
+      .cm_aulas_sesiones_trozos(x),
+      function(t) .cm_aulas_sesion_partes(t)$tipo, character(1), USE.NAMES = FALSE
+    ))
+    tipos <- tipos[nzchar(tipos)]
+    if (!length(tipos)) return(0L)
+    if (any(tipos == "C")) return(2L)
+    if (any(!grepl(.CM_AULAS_SESION_EVALUACION_RX, tipos))) return(1L)
+    0L
+  }, integer(1), USE.NAMES = FALSE)
+}
+
 # Se tokeniza por espacios en vez de resolverlo con una sola expresión regular.
 # La versión regular dejaba el aula como «C  L401» —la letra de tipo pegada al
 # aula— porque los cuantificadores opcionales alrededor del tipo son ambiguos y
@@ -253,11 +275,25 @@ calc_muestra_aulas_anotar_sesiones <- function(raw, catalogo, raw_key, catalog_k
   ))
   if (!nzchar(col)) return(raw)
   valores <- .cm_aulas_values(catalogo, col, "")
+  # Cuando varias filas del catálogo comparten curso-horario, la moda elegía al
+  # más repetido. En HSVG daba igual: ninguna de sus 5.269 claves traía más de un
+  # patrón de sesiones. El catálogo de CCSS sale de la oferta y sí los mezcla —de
+  # 6.346 claves, 2.586 traen varios—, y ahí la moda se equivoca por mayoría: en
+  # 1MAT09/0404 hay ocho filas de grupos de práctica del sábado en E104 contra una
+  # sola de teoría los miércoles y viernes en E308/E214, y el aplicador recibía el
+  # aula del sábado. La clase manda sobre la práctica, y cualquiera de las dos
+  # sobre un examen. Sin desempate posible, decide la moda como siempre.
+  prioridad <- .cm_aulas_sesiones_prioridad(valores)
   lookup_de <- function(partes) {
-    keys <- catalog_key[nzchar(catalog_key) & nzchar(partes)]
-    vals <- partes[nzchar(catalog_key) & nzchar(partes)]
-    if (!length(keys)) return(character(0))
-    vapply(split(vals, keys), .cm_aulas_mode, character(1), default = "")
+    ok <- nzchar(catalog_key) & nzchar(partes)
+    if (!any(ok)) return(character(0))
+    keys <- catalog_key[ok]
+    vals <- partes[ok]
+    prio <- prioridad[ok]
+    vapply(split(seq_along(keys), keys), function(i) {
+      mejores <- i[prio[i] == max(prio[i])]
+      .cm_aulas_mode(vals[mejores], default = "")
+    }, character(1))
   }
   lookup <- function(parte) lookup_de(calc_muestra_aulas_sesiones_columna(valores, parte))
   raw <- .cm_aulas_fill_from_lookup(raw, raw_key, "venue", lookup("aula"))

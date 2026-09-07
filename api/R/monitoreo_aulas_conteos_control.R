@@ -77,16 +77,38 @@ monitoreo_aulas_conteos_control <- function(plan, responses, cfg = list()) {
     list(titulo = .macc_titulo_filtro(f, i), conteo = conteo)
   })
 
-  # El ÚLTIMO día con respuesta, no el primero: la columna pregunta hasta cuándo
-  # siguió entrando gente. El primero ya lo dice la fecha de aplicación.
-  ultimo <- local({
-    col <- .monitoreo_aulas_col(responses, c("_submission_time", "submission_time", "end", "start"))
-    if (!nzchar(col)) return(stats::setNames(character(0), character(0)))
-    fecha <- substr(trimws(as.character(responses[[col]])), 1, 10)
-    ok <- nzchar(trimws(as.character(aula))) &
-      grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", fecha)
-    if (!any(ok)) return(stats::setNames(character(0), character(0)))
-    tapply(fecha[ok], trimws(as.character(aula))[ok], max, simplify = TRUE)
+  # **Cuándo empezó y hasta cuándo siguió entrando gente.**
+  #
+  # El ÚLTIMO día contesta lo segundo. El PRIMERO es la fecha —y la hora— en que
+  # ese curso-horario se aplicó según la plataforma: «tienes la información de
+  # cuándo inicia la encuesta, cuándo finaliza… lo que a nosotros nos importa es
+  # lo que sale en la plataforma». Se toma la primera respuesta y no la última:
+  # la última puede ser un rezagado que contestó por la noche.
+  sello <- local({
+    # La columna que trae su HUSO, no la del servidor: ver
+    # `monitoreo_aulas_hora_local.R`. Con UTC, un aula de las 19:30 de Lima cae
+    # en la jornada del día siguiente.
+    col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_TIEMPO)
+    vacio <- stats::setNames(character(0), character(0))
+    if (!nzchar(col)) return(list(primero = vacio, ultimo = vacio, hora = vacio))
+    crudo <- trimws(as.character(responses[[col]]))
+    fecha <- monitoreo_aulas_fecha_local(crudo)
+    llave <- trimws(as.character(aula))
+    ok <- nzchar(llave) & nzchar(fecha)
+    if (!any(ok)) return(list(primero = vacio, ultimo = vacio, hora = vacio))
+    # La hora de la PRIMERA respuesta del aula: se ordena por el sello completo,
+    # que es ISO y por tanto ordena bien como texto.
+    orden <- order(llave[ok], crudo[ok], method = "radix")
+    k <- llave[ok][orden]; c_ord <- crudo[ok][orden]
+    primeros <- !duplicated(k)
+    hora <- monitoreo_aulas_hora_local(c_ord[primeros])
+    names(hora) <- k[primeros]
+    hora <- hora[nzchar(hora)]
+    list(
+      primero = tapply(fecha[ok], llave[ok], min, simplify = TRUE),
+      ultimo = tapply(fecha[ok], llave[ok], max, simplify = TRUE),
+      hora = hora
+    )
   })
 
   list(
@@ -95,6 +117,8 @@ monitoreo_aulas_conteos_control <- function(plan, responses, cfg = list()) {
     no_efectivas = stats::setNames(
       pmax(0, as.numeric(enviadas) - as.numeric(efectivas)), codigos),
     filtros = por_filtro,
-    ultimo_dia = ultimo
+    primer_dia = sello$primero,
+    primera_hora = sello$hora,
+    ultimo_dia = sello$ultimo
   )
 }

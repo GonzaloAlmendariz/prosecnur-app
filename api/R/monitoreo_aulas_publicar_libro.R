@@ -418,7 +418,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   producidas[[.malp_hoja_control()]] <- .malp_df_a_values(
     aulas_libro_hoja_control(unidades, control, efectivas, partes = partes,
                              conteos = conteos, efectivas_sexo = efectivas_sexo,
-                             cfg = config_reparto)
+                             cfg = config_reparto,
+                             asignados = aulas_libro_asignados_por_codigo(
+                               plan %||% list(), disponibilidad, cfg = config_reparto))
   )
   # B20: en Sheets el plan del día viaja coronado por el bloque selector
   # («VER EL DÍA:» + área por fórmula, monitoreo_aulas_plan_dia_selector.R);

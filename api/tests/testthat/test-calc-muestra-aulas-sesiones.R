@@ -188,3 +188,77 @@ test_that("un horario en texto libre no se agrupa, se deja como vino", {
     "A CONVENIR CON EL DOCENTE"
   )
 })
+
+# ---------------------------------------------------------------------------
+# El otro separador y las sesiones que no son clase (bases CCSS, sol. 212139).
+#
+# La segunda base universitaria llegó el 2026-09-07 con la misma columna pero con
+# `REPLACE(hdc.sesiones,'<br />',' - ')` aplicado dentro del SQL de la DTI, y con
+# el catálogo saliendo de la OFERTA en vez de la matrícula: bajo un mismo
+# curso-horario conviven la teoría, los grupos de práctica y los exámenes.
+# ---------------------------------------------------------------------------
+
+test_that("dos sesiones separadas por « - » no se leen como una sola", {
+  # Regresión medida: con el corte sólo por `<br />` esta cadena devolvía aula
+  # «H101 - MIE 10:00-12:00 C H101» y perdía el miércoles. 1.220 curso-horario
+  # del marco de CCSS quedaban así.
+  p <- calc_muestra_aulas_sesiones_partes("LUN 10:00-12:00 C  H101 - MIE 10:00-12:00 C  H101")
+  expect_equal(p$horario, "LUN y MIE 10:00-12:00")
+  expect_equal(p$aula, "H101")
+})
+
+test_that("el separador « - » no parte un aula que lleve guion", {
+  # El corte exige que lo que sigue vuelva a ser DIA HH:MM; si no, no es una
+  # sesión nueva y la cadena se queda entera.
+  p <- calc_muestra_aulas_sesiones_partes("LUN 10:00-12:00 C  PAB - A101")
+  expect_equal(p$horario, "LUN 10:00-12:00")
+  expect_equal(p$aula, "PAB - A101")
+})
+
+test_that("`<br />` sigue funcionando: las dos bases conviven", {
+  p <- calc_muestra_aulas_sesiones_partes("LUN 16:00-18:00 C  L101<br />MIE 16:00-18:00 C  L220")
+  expect_equal(p$horario, "LUN y MIE 16:00-18:00")
+  expect_equal(p$aula, "L101 · L220")
+})
+
+test_that("una sesión de examen no aporta su aula si la fila tiene clase", {
+  p <- calc_muestra_aulas_sesiones_partes("LUN 10:00-12:00 C  H101 - SAB 09:00-12:00 EF  E204")
+  expect_equal(p$aula, "H101")
+  expect_equal(p$horario, "LUN 10:00-12:00")
+})
+
+test_that("una fila que es toda evaluación conserva su dato", {
+  # La poda es preferencia, no filtro: perder el dato sería peor que tenerlo.
+  # Quien decide si esa fila entra al marco es el criterio de aulas.
+  p <- calc_muestra_aulas_sesiones_partes("LUN 15:00-18:00 EE  E202 - JUE 08:00-11:00 E7  E202")
+  expect_equal(p$aula, "E202")
+})
+
+test_that("el tipo de sesión se devuelve, ya no sólo se descarta", {
+  expect_equal(.cm_aulas_sesion_partes("MIE 17:00-20:00 C  A506")$tipo, "C")
+  expect_equal(.cm_aulas_sesion_partes("SAB 09:00-12:00 EP  E204")$tipo, "EP")
+  expect_equal(.cm_aulas_sesion_partes("texto sin gramática")$tipo, "")
+})
+
+test_that("entre varias filas del mismo curso-horario mandan las de clase", {
+  # 1MAT09/0404 de CCSS: ocho filas de grupos de práctica del sábado en E104
+  # contra una sola de teoría los miércoles y viernes. La moda daba el sábado.
+  catalogo <- data.frame(
+    SESIONES = c(
+      "SAB 16:00-18:00 A  E104", "SAB 16:00-18:00 B  E104",
+      "SAB 16:00-18:00 A  E104", "SAB 16:00-18:00 B  E104",
+      "LUN 11:30-14:30 EE  E104",
+      "MIE 15:00-17:00 C  E308 - VIE 15:00-17:00 C  E214"
+    ),
+    stringsAsFactors = FALSE
+  )
+  raw <- data.frame(alumno = c("a", "b"), stringsAsFactors = FALSE)
+  out <- calc_muestra_aulas_anotar_sesiones(
+    raw, catalogo,
+    raw_key = c("1MAT09|0404", "1MAT09|0404"),
+    catalog_key = rep("1MAT09|0404", 6L),
+    mapping = list(classroom_label = "SESIONES")
+  )
+  expect_equal(unique(out$venue), "E308 · E214")
+  expect_equal(unique(out$sesiones_dia_hora), "MIE y VIE 15:00-17:00")
+})
