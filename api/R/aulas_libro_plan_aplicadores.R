@@ -120,12 +120,16 @@
 #' @param plan filas del plan.
 #' @param disponibilidad oferta cargada; sin ella no hay reparto y devuelve NULL.
 #' @param cfg config vigente del reparto (fijadas, rango, duración, semilla).
+#' @param rep un reparto ya calculado con esa misma config (el del tablero);
+#'   `NULL` lo calcula aquí.
 #' @return lista de filas (la primera es la cabecera) o `NULL`.
 #' @export
-aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list()) {
+aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(NULL)
   cfg <- if (is.list(cfg)) cfg else list()
-  rep <- monitoreo_aulas_reparto(
+  # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
+  # aquí con la MISMA config, como siempre.
+  if (!is.list(rep)) rep <- monitoreo_aulas_reparto(
     plan, disponibilidad,
     fijadas = cfg[["reparto_fijado"]] %||% list(),
     duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,

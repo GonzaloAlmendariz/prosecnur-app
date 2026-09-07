@@ -99,6 +99,89 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
     spreadsheet_id = id,
     url = paste0("https://docs.google.com/spreadsheets/d/", id, "/edit"),
     updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-    hojas = hojas
+    hojas = hojas,
+    # S7: QUÉ se publicó, para que el tablero pueda decir después si el
+    # reparto vigente ya es otro.
+    huella = monitoreo_aulas_distribucion_huella(filas),
+    citas = max(0L, length(filas) - 1L)
   )
+}
+
+# --- S7 (loop estética-aulas-sheets, 2026-09-07): la app recuerda el destino --
+#
+# El día 1 de campo la distribución publicada quedó vieja —85 citas vigentes
+# contra 83 publicadas, 20 cambios de persona— y nada lo decía: este publicador
+# escribía el documento y no guardaba ni el id, ni cuándo, ni qué. Hubo que
+# medirlo fuera de la app. Ahora la publicación deja una huella de las filas
+# escritas, el destino se recuerda en la config (whitelist, como `libro_sheets`)
+# y el tablero expone la huella del reparto vigente: si difieren, el reparto
+# cambió desde la última publicación y la UI lo dice con su salida.
+
+#' Huella de las filas publicadas a los aplicadores.
+#'
+#' Misma familia que el hash de pestaña del motor de Sheets: `digest` sha256
+#' sobre las filas tal como viajan; sin `digest` devuelve "" y la comparación
+#' se declara indeterminada en vez de mentir.
+#' @keywords internal
+monitoreo_aulas_distribucion_huella <- function(filas) {
+  if (is.null(filas) || !length(filas)) return("")
+  if (!requireNamespace("digest", quietly = TRUE)) return("")
+  digest::digest(lapply(filas, function(f) as.character(unlist(f, use.names = FALSE))), algo = "sha256")
+}
+
+#' Normaliza el bloque `distribucion_sheets` para la whitelist de la config.
+#'
+#' `monitoreo_aulas_normalize_config()` es una lista CERRADA: lo que no nombra
+#' no persiste. Devuelve `NULL` sin destino, que es como están los estudios
+#' que nunca publicaron a los aplicadores.
+#' @keywords internal
+monitoreo_aulas_distribucion_sheets_normalizar <- function(x) {
+  if (!is.list(x)) return(NULL)
+  id <- .monitoreo_extract_spreadsheet_id(
+    x[["spreadsheet_id"]] %||% x[["url"]] %||% x[["enlace"]] %||% ""
+  )
+  if (!nzchar(id)) return(NULL)
+  citas <- suppressWarnings(as.integer(x[["citas"]] %||% NA_integer_))[1]
+  list(
+    spreadsheet_id = id,
+    url = paste0("https://docs.google.com/spreadsheets/d/", id, "/edit"),
+    updated_at = .monitoreo_scalar(x[["updated_at"]], ""),
+    huella = .monitoreo_scalar(x[["huella"]], ""),
+    citas = if (is.na(citas)) 0L else citas
+  )
+}
+
+#' Recuerda (o olvida) el Sheets de los aplicadores en la config de monitoreo.
+#'
+#' @param cfg config de monitoreo completa.
+#' @param enlace_o_id enlace o id; `""` olvida el destino.
+#' @param huella,citas lo que acaba de publicarse, para comparar después.
+#' @return la config con `aulas_universitarias$distribucion_sheets` puesto o retirado.
+#' @keywords internal
+monitoreo_aulas_distribucion_destino_set <- function(cfg, enlace_o_id, huella = "", citas = 0L) {
+  if (!is.list(cfg)) cfg <- list()
+  aulas <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
+  crudo <- trimws(.monitoreo_scalar(enlace_o_id, ""))
+  if (!nzchar(crudo)) {
+    aulas[["distribucion_sheets"]] <- NULL
+    cfg[["aulas_universitarias"]] <- aulas
+    return(cfg)
+  }
+  id <- .monitoreo_extract_spreadsheet_id(crudo)
+  if (!nzchar(id)) {
+    stop_api(
+      400, "E_SHEETS_SPREADSHEET",
+      "El enlace no parece de Google Sheets: no trae el identificador del documento.",
+      details = list(entrada = crudo)
+    )
+  }
+  aulas[["distribucion_sheets"]] <- list(
+    spreadsheet_id = id,
+    url = paste0("https://docs.google.com/spreadsheets/d/", id, "/edit"),
+    updated_at = .monitoreo_now_iso(),
+    huella = .monitoreo_scalar(huella, ""),
+    citas = as.integer(citas %||% 0L)[1]
+  )
+  cfg[["aulas_universitarias"]] <- aulas
+  cfg
 }

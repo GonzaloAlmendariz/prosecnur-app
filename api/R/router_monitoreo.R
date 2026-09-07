@@ -4938,6 +4938,12 @@ mount_monitoreo <- function(pr) {
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data.frame())
       aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
       destino <- .monitoreo_scalar(parsed$url %||% parsed$spreadsheet_id %||% parsed$enlace, "")
+      # S7: sin enlace en el body se publica al destino RECORDADO, como hace
+      # el libro; y lo publicado deja su huella en la config para que el
+      # tablero pueda decir después si el reparto cambió.
+      if (!nzchar(destino)) {
+        destino <- .monitoreo_scalar((aulas_cfg[["distribucion_sheets"]] %||% list())[["spreadsheet_id"]], "")
+      }
       out <- monitoreo_aulas_publicar_distribucion(
         destino,
         plan = s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list(),
@@ -4945,7 +4951,14 @@ mount_monitoreo <- function(pr) {
         config_reparto = aulas_cfg,
         partes = aulas_cfg[["partes_campo"]] %||% list()
       )
-      c(out, list(state = .monitoreo_state_payload(sid)))
+      cfg <- monitoreo_aulas_distribucion_destino_set(cfg, out$spreadsheet_id,
+                                                      huella = out$huella, citas = out$citas)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      .monitoreo_mark_project_dirty_if_open(sid)
+      c(out, list(
+        distribucion_sheets = cfg$aulas_universitarias$distribucion_sheets,
+        state = .monitoreo_state_payload(sid)
+      ))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/activar-reemplazo", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

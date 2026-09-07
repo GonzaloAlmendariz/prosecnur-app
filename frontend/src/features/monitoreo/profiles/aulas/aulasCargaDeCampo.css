@@ -1251,3 +1251,31 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   line-height: 1.4;
   color: var(--pulso-text-faint);
 }
+
+/* S7: el Sheets de los aplicadores dentro de los controles de Asignación —
+   rótulo, aviso con causa y salida, y el campo del enlace con su acción. */
+.aulas-asigna-sheets {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.aulas-asigna-sheets-campo { flex-wrap: wrap; }
+.aulas-asigna-sheets-campo input[type="url"] {
+  flex: 1 1 280px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+}
+.aulas-asigna-sheets-campo input[type="url"]:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring);
+  outline-offset: 1px;
+}
+.aulas-asigna-sheets-enlace {
+  color: var(--pulso-module-monitoring);
+  font-size: 13px;
+  text-decoration: underline;
+}

@@ -143,3 +143,76 @@ test_that("la hoja dice el día de la semana, no la fecha ISO cruda", {
   expect_identical(roto$dia, "")
   expect_identical(roto$fecha, "sin fecha")
 })
+
+# --- S7 (loop estética-aulas-sheets, 2026-09-07): la app recuerda el destino ---
+#
+# El día 1 de campo la distribución publicada quedó vieja —85 citas vigentes
+# contra 83 publicadas, 20 cambios de persona— y nada lo decía: el publicador
+# escribía el documento y no guardaba ni el id ni cuándo ni QUÉ publicó. Hubo
+# que medirlo fuera de la app. Aquí se sujeta: la publicación deja una huella
+# de lo publicado, el destino se recuerda en la config (whitelist, como
+# `libro_sheets`) y el tablero expone la huella del reparto vigente para que
+# la UI pueda decir «el reparto cambió desde la última publicación».
+
+.mapd_publicar <- function(plan = .mapd_plan(), disp = .mapd_disp()) {
+  local_mocked_bindings(
+    .monitoreo_sync_sheets_publish_tabs = function(id, tabs, format_requests = NULL, ...) list(skipped_tabs = list()),
+    .package = "prosecnurapp"
+  )
+  monitoreo_aulas_publicar_distribucion("https://docs.google.com/spreadsheets/d/ABC123xyz/edit",
+                                        plan = plan, disponibilidad = disp)
+}
+
+test_that("S7: la publicación deja huella y conteo de citas de lo que escribió", {
+  out <- .mapd_publicar()
+  expect_true(nzchar(out$huella))
+  expect_gte(out$citas, 1L)
+  # Determinista: el mismo reparto da la misma huella.
+  expect_identical(.mapd_publicar()$huella, out$huella)
+  # Y una cita nueva la cambia.
+  plan2 <- c(.mapd_plan(), list(list(
+    operational_code = "CH 3", classroom_id = "a3", sample_role = "titular",
+    sample_status = "agendada", operational_status = "agendada",
+    faculty = "Letras", course_name = "Ética", teacher = "Docente Tres",
+    scheduled_date = "2026-09-07", scheduled_time = "03:00 pm",
+    scheduled_venue = "L301", eligible_n = 30, expected_valid = 15
+  )))
+  out2 <- .mapd_publicar(plan = plan2)
+  expect_false(identical(out2$huella, out$huella))
+  expect_gt(out2$citas, out$citas)
+})
+
+test_that("S7: el destino de la distribución se recuerda en la config y sobrevive a la whitelist", {
+  cfg <- monitoreo_aulas_distribucion_destino_set(
+    list(aulas_universitarias = list()),
+    "https://docs.google.com/spreadsheets/d/ABC123xyz/edit#gid=0",
+    huella = "h-1", citas = 85L
+  )
+  d <- cfg$aulas_universitarias$distribucion_sheets
+  expect_identical(d$spreadsheet_id, "ABC123xyz")
+  expect_match(d$url, "^https://docs.google.com/spreadsheets/d/ABC123xyz/edit$")
+  expect_identical(d$huella, "h-1")
+  expect_identical(d$citas, 85L)
+  expect_true(nzchar(d$updated_at))
+
+  # La whitelist de la config de aulas lo conserva —la trampa que ya se comió
+  # a `valid_filters`— y una hermana casi homónima no lo suplanta.
+  n <- monitoreo_aulas_normalize_config(list(
+    distribucion_sheets = d,
+    distribucion_sheets_borrador = list(spreadsheet_id = "NO-ES-EL-DESTINO")
+  ))
+  expect_identical(n$distribucion_sheets$spreadsheet_id, "ABC123xyz")
+  expect_identical(n$distribucion_sheets$huella, "h-1")
+  expect_identical(n$distribucion_sheets$citas, 85L)
+  # Sin destino, nada: como todos los estudios de hoy.
+  expect_null(monitoreo_aulas_normalize_config(list())$distribucion_sheets)
+  # Y vaciarlo lo olvida.
+  expect_null(monitoreo_aulas_distribucion_destino_set(cfg, "")$aulas_universitarias$distribucion_sheets)
+})
+
+test_that("S7: el tablero expone la huella del reparto vigente, la misma que deja la publicación", {
+  out <- .mapd_publicar()
+  d <- .mac_publicar_disponibilidad(list(), .mapd_plan(), .mapd_disp())
+  expect_identical(d$reparto$distribucion$huella, out$huella)
+  expect_identical(d$reparto$distribucion$citas, out$citas)
+})

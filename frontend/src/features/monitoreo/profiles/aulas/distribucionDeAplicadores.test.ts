@@ -1,0 +1,55 @@
+import { describe, expect, it } from "vitest";
+import { avisoDistribucion, enlaceDeDistribucion } from "./distribucionDeAplicadores";
+
+/**
+ * S7 (loop estética-aulas-sheets, 2026-09-07). El Sheets que leen los
+ * aplicadores quedó viejo el día 1 —85 citas vigentes contra 83 publicadas,
+ * 20 cambios de persona— y nada en pantalla lo decía. Ahora la config recuerda
+ * el destino y la huella de lo publicado, y el tablero trae la huella del
+ * reparto vigente: el aviso dice si coinciden, y si no, la salida.
+ */
+describe("avisoDistribucion", () => {
+  const recordado = { spreadsheet_id: "ABC", url: "https://docs.google.com/spreadsheets/d/ABC/edit", updated_at: "2026-09-07T14:10:00Z", huella: "h-1", citas: 83 };
+
+  it("nunca publicada: lo dice y da la salida", () => {
+    const a = avisoDistribucion(null, { huella: "h-2", citas: 85 });
+    expect(a.estado).toBe("nunca");
+    expect(a.texto).toMatch(/todav[ií]a no se ha publicado/i);
+    expect(a.texto).toMatch(/pega el enlace/i);
+    expect(a.tono).toBe("atencion");
+  });
+
+  it("vigente: la misma huella, y lo dice en calma", () => {
+    const a = avisoDistribucion(recordado, { huella: "h-1", citas: 83 });
+    expect(a.estado).toBe("vigente");
+    expect(a.texto).toContain("83 citas");
+    expect(a.tono).toBe("ok");
+  });
+
+  it("cambiado: huella distinta, cuenta la diferencia y da la salida", () => {
+    const a = avisoDistribucion(recordado, { huella: "h-2", citas: 85 });
+    expect(a.estado).toBe("cambiado");
+    expect(a.texto).toMatch(/El reparto cambió desde la última publicación/);
+    expect(a.texto).toContain("85 citas ahora");
+    expect(a.texto).toContain("83 publicadas");
+    expect(a.texto).toMatch(/Publica de nuevo/);
+    expect(a.tono).toBe("atencion");
+  });
+
+  it("sin huella actual (sin digest en el servidor) no afirma que coincide", () => {
+    const a = avisoDistribucion(recordado, { huella: "", citas: 85 });
+    expect(a.estado).toBe("indeterminado");
+    expect(a.tono).toBe("atencion");
+  });
+
+  it("el enlace recordado se deriva del id cuando falta la url", () => {
+    expect(enlaceDeDistribucion({ spreadsheet_id: "XYZ" })).toBe("https://docs.google.com/spreadsheets/d/XYZ/edit");
+    expect(enlaceDeDistribucion(null)).toBe("");
+  });
+
+  it("sin em dashes", () => {
+    for (const a of [avisoDistribucion(null, { huella: "x", citas: 1 }), avisoDistribucion(recordado, { huella: "h-2", citas: 85 })]) {
+      expect(a.texto).not.toContain("—");
+    }
+  });
+});

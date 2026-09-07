@@ -822,10 +822,25 @@ export type MonitoreoAulasConfig = {
    * 0005), por eso viaja en la config y en el `.pulso`.
    */
   libro_sheets?: MonitoreoAulasLibroSheets | null;
+  /** S7: el Sheets de los aplicadores y la huella de lo último publicado. */
+  distribucion_sheets?: MonitoreoAulasDistribucionSheets | null;
   [key: string]: unknown;
 };
 
 /** El destino recordado del libro de aulas (`cfg.aulas_universitarias.libro_sheets`). */
+/**
+ * S7 (2026-09-07): el Sheets que leen los aplicadores, recordado al publicar
+ * la distribución, con la huella (sha256 de las filas) y el número de citas
+ * publicadas; `reparto.distribucion` trae la huella del reparto vigente.
+ */
+export type MonitoreoAulasDistribucionSheets = {
+  spreadsheet_id: string;
+  url: string;
+  updated_at: string;
+  huella: string;
+  citas: number;
+};
+
 export type MonitoreoAulasLibroSheets = {
   spreadsheet_id?: string;
   /** URL canónica derivada del id; la UI la enseña sin reconstruirla. */
@@ -1265,6 +1280,8 @@ export type MonitoreoAulasRepartoEquidad = {
  */
 export type MonitoreoAulasReparto = {
   dias: MonitoreoAulasRepartoDia[];
+  /** S7: huella y citas de lo que HOY se publicaría a los aplicadores. */
+  distribucion?: { huella?: string; citas?: number } | null;
   equidad: MonitoreoAulasRepartoEquidad[];
   /** B36: el eco del mapa de fijaciones saneado — código → aplicador. */
   fijadas?: Array<{ codigo: string; aplicador: string }>;
@@ -5242,6 +5259,32 @@ export type MonitoreoAulasLecturaPrevia = {
  * Errores del contrato: 400 `E_SHEETS_SPREADSHEET` (sin destino o enlace no
  * parseable) y 409 `E_AULAS_LIBRO_SIN_PLAN`.
  */
+/**
+ * Publica la distribución de la semana al Sheets de los aplicadores (documento
+ * aparte del libro: sólo el reparto, dictado 2026-09-07). Con `enlace` lo
+ * recuerda; sin él usa el recordado (`distribucion_sheets`). El recibo trae la
+ * huella de lo publicado y el bloque recordado para refrescar el campo.
+ */
+export async function apiMonitoreoAulasPublicarDistribucion(enlace?: string) {
+  const limpio = enlace?.trim() ?? "";
+  return handle<{
+    ok: true;
+    spreadsheet_id: string;
+    url: string;
+    updated_at: string;
+    hojas: MonitoreoAulasHojaPublicada[];
+    huella?: string;
+    citas?: number;
+    distribucion_sheets?: MonitoreoAulasDistribucionSheets | null;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-distribucion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(limpio ? { url: limpio } : {}),
+    }),
+  );
+}
+
 export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
   const limpio = enlace?.trim() ?? "";
   return handle<{
