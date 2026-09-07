@@ -199,7 +199,25 @@ monitoreo_aulas_partes_upsert <- function(partes = list(), updates = list(), pla
   observed_students = "asistentes", refusals = "rechazos",
   duplicates = "duplicados", effective_surveys = "efectivas",
   applied_by = "aplicador", actual_room = "aula",
-  applied_at = "fecha", applied_time = "hora", field_note = "nota"
+  applied_at = "fecha", applied_time = "hora", field_note = "nota",
+  # **Y el veredicto del parte, que es lo que cuenta el tablero.**
+  #
+  # El KPI `aulas_aplicadas` suma `application_status == "aplicada"` de la FILA
+  # DEL PLAN, y ese campo no puede llegar por ninguna otra vía: la hoja
+  # «Listas» del libro solo ofrece AGENDADA / REAGENDADA / REEMPLAZADA / EN
+  # RESERVA para el estado del circuito, y ninguno mapea a «aplicada».
+  #
+  # Sin esta línea el parte llegaba entero —asistentes, efectivas, aplicador—
+  # y el veredicto se quedaba fuera. Medido en vivo el 2026-09-07, primer día
+  # de campo de HSVG 2026: el primer parte marcaba CH 72 APLICADA con 34
+  # encuestas efectivas y la tarjeta del tablero seguía diciendo «0 aulas
+  # aplicadas». Es la misma familia de fallo que el resto de este mapa vino a
+  # cerrar, con otro consumidor.
+  #
+  # `operational_status` sigue sin tocarse: el estado del circuito y el del
+  # parte son taxonomías distintas, y el normalizador del plan se encarga de
+  # bajar «APLICADA» a la forma canónica.
+  application_status = "estado"
 )
 
 #' Copia al plan lo que los partes de primer intento saben.

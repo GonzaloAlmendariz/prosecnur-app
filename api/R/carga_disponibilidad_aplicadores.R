@@ -189,6 +189,17 @@ carga_disponibilidad_aplicadores <- function(path) {
   # la columna de nombres se ubica por su rótulo «Nombres» en la fila 2, con
   # la primera columna como respaldo si nadie lo trae.
   col_nombres <- 0L
+  # **La columna «Confirmó», si el libro la trae.**
+  #
+  # El directorio del operativo la usa para cerrar la convocatoria: quien no
+  # confirma queda fuera de la tanda. Sin leerla, el reparto le da aulas a gente
+  # que ya avisó que no viene, y eso no se descubre hasta que el aula se queda
+  # sin aplicar. En HSVG 2026, el 2026-09-07, eran dos de veinticuatro.
+  #
+  # Sólo excluye el NO explícito. Una celda vacía no es una negativa: es un
+  # libro que todavía no usa esa columna, y ahí el criterio de siempre —estar en
+  # la hoja— sigue mandando.
+  col_confirmo <- 0L
   columnas <- list()
   dia_actual <- ""
   for (j in seq_len(ncol(df))) {
@@ -200,6 +211,14 @@ carga_disponibilidad_aplicadores <- function(path) {
       col_nombres <- j
       next
     }
+    if (col_confirmo == 0L) {
+      rotulo <- paste(tolower(trimws(c(fila_dias[[j]], etiqueta))), collapse = " ")
+      rotulo <- chartr("áéíóú", "aeiou", rotulo)
+      if (grepl("confirm", rotulo, fixed = TRUE)) {
+        col_confirmo <- j
+        next
+      }
+    }
     franja <- .cdisp_franja(etiqueta)
     if (is.null(franja) || !nzchar(dia_actual)) next
     columnas[[length(columnas) + 1L]] <- list(
@@ -210,6 +229,7 @@ carga_disponibilidad_aplicadores <- function(path) {
   if (col_nombres == 0L) col_nombres <- 1L
 
   avisos <- character(0)
+  no_confirmados <- character(0)
   aplicadores <- list()
   if (nrow(df) >= 3L) {
     for (i in seq.int(3L, nrow(df))) {
@@ -217,6 +237,33 @@ carga_disponibilidad_aplicadores <- function(path) {
       if (length(nombre) != 1L || is.na(nombre)) next
       nombre <- gsub("[[:space:]]+", " ", trimws(nombre))
       if (!nzchar(nombre)) next
+      if (col_confirmo > 0L) {
+        conf <- as.character(df[i, col_confirmo])[1]
+        conf <- if (length(conf) != 1L || is.na(conf)) "" else tolower(trimws(conf))
+        if (conf %in% c("no", "n", "false", "0")) {
+          no_confirmados <- c(no_confirmados, nombre)
+          next
+        }
+      }
+
+      # **Una fila sin NINGUNA celda legible no es un aplicador: es el pie.**
+      #
+      # El libro del operativo cierra con «Síes totales: 22» en la columna de
+      # nombres, y sin este corte esa fila entraba como una persona más —23 en
+      # vez de 22— y arrastraba un aviso por cada una de las 84 franjas vacías,
+      # que es como se entierra un aviso que sí importaba. Se declara en un
+      # aviso, no se descarta en silencio: si la fila era de alguien que no
+      # llenó nada, hay que verlo.
+      legibles <- sum(vapply(columnas, function(colinfo) {
+        !is.na(.cdisp_celda(df[i, colinfo$col]))
+      }, logical(1)))
+      if (legibles == 0L) {
+        avisos <- c(avisos, sprintf(
+          "La fila de %s no trae ninguna celda con 1 ni 0: se omite por no ser un aplicador.",
+          nombre
+        ))
+        next
+      }
 
       por_dia <- list()
       for (colinfo in columnas) {
@@ -253,5 +300,9 @@ carga_disponibilidad_aplicadores <- function(path) {
   }
 
   attr(aplicadores, "avisos") <- avisos
+  # Quiénes quedaron fuera por no confirmar viaja aparte de los avisos: no es
+  # una celda ilegible que haya que perseguir, es una decisión del equipo que la
+  # vista tiene que poder enseñar sin confundirla con un defecto del libro.
+  attr(aplicadores, "no_confirmados") <- sort(unique(no_confirmados), method = "radix")
   aplicadores
 }
