@@ -605,23 +605,41 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     if (nzchar(cod)) parte_de[[cod]] <- pt
   }
 
-  # **Titulares Y cualquier aula que ya tenga control registrado.**
+  # **Solo lo que YA SE APLICO, mas lo que ya tiene control registrado.**
   #
-  # Escribiendo solo titulares, una reserva de cadena ACTIVADA —que se aplico,
-  # tiene parte y tiene su fila de control— perdia esa fila al regenerar el
-  # libro. Medido en el estudio: de 152 filas de control, **22 eran de reservas
-  # y no volvian**. Es la misma regla que la hoja «Aulas Aplicadas (Campo)» ya
-  # aplica desde antes —titular o con parte registrado—; aqui faltaba.
+  # Hasta el 2026-09-07 la hoja escribia los 174 titulares del plan, con el
+  # criterio de «ofrecer la fila para que el equipo la llene». El primer dia de
+  # campo Gonzalo la vio publicada con una sola aula aplicada y 174 filas:
+  # «muestra todos los CH cuando solo deberian ser los que ya se aplicaron».
+  # Tenia razon y el criterio viejo escondia justo lo que la hoja existe para
+  # vigilar: con 173 filas vacias de 174, quien la abre no distingue el aula que
+  # falta llenar de la que todavia no se ha aplicado.
   #
-  # Las 40 filas de titulares sin control que aparecen al regenerar NO son un
-  # problema: es la hoja ofreciendo la fila para que el equipo la llene.
+  # Se aplica el mismo vocabulario que el resto del motor: el veredicto vive en
+  # `application_status` del parte, no en `operational_status`, que es el estado
+  # del CIRCUITO y nunca llega a «aplicada» desde el libro.
+  #
+  # Y se conserva la segunda mitad de la regla anterior, que costo su propio
+  # defecto: cualquier aula con control YA REGISTRADO vuelve, sea titular o
+  # reserva de cadena activada. Sin eso, regenerar el libro a mitad de operativo
+  # borraba el control de las aulas que ya lo tenian —medido: 22 de 152 filas
+  # eran reservas y no volvian—.
   con_control <- vapply(unidades, function(u) {
     !is.null(por_aula[[.calg_txt(u$operational_code)]])
   }, logical(1))
-  titulares <- unidades[
-    vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1)) |
-      con_control
-  ]
+  aplicada <- vapply(unidades, function(u) {
+    cod <- .calg_txt(u$operational_code)
+    pt <- parte_de[[cod]]
+    estado <- if (is.null(pt)) {
+      .calg_txt(u$application_status)
+    } else {
+      .calg_txt(.monitoreo_aulas_parte_primero(
+        pt, .MONITOREO_AULAS_PARTE_ALIAS[["estado"]]
+      ) %||% u$application_status)
+    }
+    identical(monitoreo_aulas_estado_aplicacion(estado), "aplicada")
+  }, logical(1))
+  titulares <- unidades[aplicada | con_control]
   filas <- lapply(titulares, function(u) {
     fila <- rep("", length(campos))
     pon <- function(nombre, valor) {

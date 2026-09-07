@@ -12,7 +12,11 @@
   list(operational_code = "CH 1", sample_role = "titular",
        titular_operational_code = "CH 1", teacher = "Docente Uno",
        course_name = "Curso Uno", faculty = "SOCIALES", eligible_n = 40,
-       enrolled_total = 45, scheduled_date = "2026-08-11"),
+       enrolled_total = 45, scheduled_date = "2026-08-11",
+       # La «Base de control» escribe solo lo ya aplicado desde el 2026-09-07;
+       # sin esto el aula no tendría fila y la vuelta por Sheets no tendría qué
+       # comprobar.
+       application_status = "APLICADA"),
   list(operational_code = "R 1.1", sample_role = "chain_reserve",
        titular_operational_code = "CH 1", replacement_order = 1,
        teacher = "Docente Dos", course_name = "Curso Dos",

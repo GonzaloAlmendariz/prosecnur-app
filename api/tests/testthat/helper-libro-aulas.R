@@ -8,7 +8,13 @@
     operational_code = "CH 1", titular_operational_code = "CH 1",
     sample_role = "titular", faculty = "Letras y Ciencias Humanas",
     course_name = "HISTORIA Y TEORIA DE LA ARQUITECTURA CONTEMPORANEA",
-    teacher = "Docente CH 1", eligible_n = 40, scheduled_date = "2026-08-11"
+    teacher = "Docente CH 1", eligible_n = 40, scheduled_date = "2026-08-11",
+    # **Aplicada.** Desde el 2026-09-07 la «Base de control» escribe solo las
+    # aulas ya aplicadas —el primer dia de campo publicaba 174 filas para una
+    # sola aplicacion— y varios tests de este libro miden esa hoja: su color por
+    # tramos, su freeze de dos cabeceras, su vuelta por Sheets. Sin el veredicto
+    # la hoja sale sin filas y esos casos dejarian de mirar nada.
+    application_status = "APLICADA"
   )
   reservas <- lapply(seq_len(n_reservas), function(i) list(
     operational_code = sprintf("R 1.%d", i), titular_operational_code = "CH 1",

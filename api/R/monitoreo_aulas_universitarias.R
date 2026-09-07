@@ -759,6 +759,14 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     effective_surveys = getn(c("effective_surveys", "cantidad_de_efectivas", "efectivas"), NA_real_),
     # Donde se aplico de verdad; puede no ser la planificada.
     actual_room = get(c("actual_room", "aula_real"), ""),
+    # **El aula que de verdad se usó cuando hubo reemplazo** (dictado
+    # 2026-09-04: «una columna adicional con algo así como AULA UTILIZADA que le
+    # diga al usuario cuál fue el reemplazo que usamos»). El lector del libro ya
+    # la producía y el normalizador la descartaba, así que moría camino al plan
+    # y ninguna vista podía enseñarla: la columna existía en el papel y en
+    # ningún sitio más. Lo cazó `test-monitoreo-aulas-campos-declarados.R`, que
+    # existe justo para eso.
+    aula_utilizada = get(c("aula_utilizada", "aula_usada"), ""),
     responsible = get(c("responsible", "responsable"), ""),
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),

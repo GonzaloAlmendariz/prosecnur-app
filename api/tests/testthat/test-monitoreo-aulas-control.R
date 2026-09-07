@@ -88,7 +88,11 @@ test_that("la importacion deja el control donde el tablero lo busca", {
     course_name = "Curso 1", label = "Lun 08:00", schedule = "Lun 08:00",
     faculty = "Ciencias", level = "Pregrado", enrolled_total = 40, eligible_n = 30,
     sample_status = "AGENDADA", sample_role = "titular", replacement_order = 0,
-    replacement_for = ""
+    replacement_for = "",
+    # La hoja de control escribe lo ya aplicado (2026-09-07); este caso
+    # comprueba que la fila VUELVE a la sesión al importar, así que el aula
+    # tiene que estar en la hoja.
+    application_status = "APLICADA"
   ))
   aulas_libro_generar(unidades, path)
   session_set(sid, "monitoreo_config", list(aulas_universitarias = list(enabled = TRUE)))

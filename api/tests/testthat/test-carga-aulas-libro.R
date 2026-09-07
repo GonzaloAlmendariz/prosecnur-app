@@ -169,16 +169,35 @@ test_that("la base de control recoge lo que saben agenda y campo", {
   }
 })
 
-test_that("sin partes la base de control se escribe igual, solo sin la parte de campo", {
-  # El caso del dia 1: hay agenda y todavia no hay campo. La hoja tiene que
-  # salir con sus filas y su agenda, no caerse ni quedarse en blanco.
+test_that("sin aplicar todavía, la base de control sale con su cabecera y sin filas", {
+  # **Cambió el criterio el 2026-09-07, primer día de campo.** Hasta entonces la
+  # hoja escribía la fila de toda aula agendada, «para que el equipo la llene».
+  # Gonzalo la vio publicada con una sola aula aplicada y 174 filas: «muestra
+  # todos los CH cuando solo deberían ser los que ya se aplicaron». Y tenía
+  # razón: 173 filas vacías esconden justo la que hay que mirar.
+  #
+  # Lo que se sujeta ahora es que la hoja no se caiga ni pierda su cabecera
+  # cuando todavía no hay nada aplicado; simplemente no lista aulas.
   unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
                         enrolled_total = 40, eligible_n = 30,
                         scheduled_date = "2026-09-08"))
   hoja <- aulas_libro_hoja_control(unidades, control = list())
   plano <- as.character(unlist(hoja))
-  expect_true("2026-09-08" %in% plano)
+  expect_gt(nrow(hoja), 0L)
+  expect_true("CURSO-HORARIO" %in% plano)
+  expect_false("CH 1" %in% plano)
+})
+
+test_that("y en cuanto el aula se aplica, su fila aparece con la agenda puesta", {
+  # La contracara del caso de arriba: el mismo aula, ya aplicada, sí se escribe
+  # y trae lo que las otras hojas saben.
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        enrolled_total = 40, eligible_n = 30,
+                        scheduled_date = "2026-09-08",
+                        application_status = "APLICADA"))
+  plano <- as.character(unlist(aulas_libro_hoja_control(unidades, control = list())))
   expect_true("CH 1" %in% plano)
+  expect_true("2026-09-08" %in% plano)
 })
 
 # ---------------------------------------------------------------------------
