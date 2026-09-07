@@ -338,6 +338,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            # 2026-09-04). NULL = sin variable
                                            # declarada, y la columna calla.
                                            efectivas_sexo = NULL,
+                                           # Lo que la plataforma sabe por aula
+                                           # (enviadas, filtros, no efectivas,
+                                           # último día). NULL = sin respuestas
+                                           # sincronizadas y el bloque calla.
+                                           conteos = NULL,
                                            cuotas = NULL,
                                            traslape_daa = NULL,
                                            disponibilidad = NULL,
@@ -405,7 +410,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       .malp_df_a_values(aulas_libro_hoja_aplicadas_extra(extras, partes = partes))
   }
   producidas[[.malp_hoja_control()]] <- .malp_df_a_values(
-    aulas_libro_hoja_control(unidades, control, efectivas, partes = partes)
+    aulas_libro_hoja_control(unidades, control, efectivas, partes = partes,
+                             conteos = conteos, efectivas_sexo = efectivas_sexo,
+                             cfg = config_reparto)
   )
   # B20: en Sheets el plan del día viaja coronado por el bloque selector
   # («VER EL DÍA:» + área por fórmula, monitoreo_aulas_plan_dia_selector.R);
@@ -662,6 +669,19 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     error = function(e) NULL
   )
 
+  # Y lo que la plataforma sabe por aula: enviadas, cuántas pasa cada filtro de
+  # validez, no efectivas y último día con respuesta. Mismo silencio deliberado:
+  # sin snapshot sincronizado devuelve NULL y el bloque sale vacío, que es la
+  # verdad —todavía no ha llegado nada— y no un cero inventado.
+  conteos <- tryCatch(
+    monitoreo_aulas_conteos_control(
+      unidades,
+      (s$monitoreo_snapshot %||% list())$data,
+      aulas_cfg
+    ),
+    error = function(e) NULL
+  )
+
   # B8h fase 2 (decisión del lead, cerrada): el cruce DAA vive en la SESIÓN —
   # quien lo computa (hoy el runner de siembra) hace
   # `session_set(sid, "monitoreo_aulas_daa_traslape", tras)` con el output de
@@ -679,6 +699,7 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       control = control,
       efectivas = efectivas,
       efectivas_sexo = efectivas_sexo,
+      conteos = conteos,
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],

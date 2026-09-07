@@ -148,7 +148,12 @@ test_that("contexto B14: la Base de control ya toma un EXTRA por código (estado
   # EXTRA vuelve al libro. Este verde deja pineado que B14 NO puede regresarlo.
   plan <- .ext_plan()
   ctl <- list(list(operational_code = "EXTRA 1", applicator = "Ana", sent_total = 10))
-  h <- aulas_libro_hoja_control(plan, control = ctl)
+  # Con parte APLICADA: desde el 2026-09-07 la hoja sólo escribe el aula
+  # aplicada o con respuestas. Lo que este test sujeta es que el CÓDIGO extra no
+  # la excluya, y para eso el aula tiene que calificar por lo demás.
+  h <- aulas_libro_hoja_control(
+    plan, control = ctl,
+    partes = list(list(operational_code = "EXTRA 1", estado = "APLICADA", intento = 1L)))
   titulos <- as.character(unlist(h[2, ], use.names = FALSE))
   col_cod <- which(titulos == "CURSO-HORARIO")[[1]]
   cods <- vapply(seq.int(3L, nrow(h)), function(r) .ext_celda_txt(h, r, col_cod), character(1))
