@@ -343,6 +343,11 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                     valign = "top")
   # S4: el «—» de una celda sin dato, alineado como la cifra que no está.
   sin_dato_celda <- openxlsx::createStyle(halign = "right", fontColour = "#5B6472")
+  # S5: la fila «Total» del avance diario: negrita, cifras a la derecha y una
+  # línea encima que la separa de los días.
+  total_diario <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
+                                        border = "top", borderColour = "#C7D0DD",
+                                        numFmt = "#,##0")
   # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
   #
   # El decimal opcional existia para las cifras que llegaban fraccionarias
@@ -620,6 +625,14 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
       # Mismo motivo que arriba: el numero por encima de la barra.
       type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
     )
+    # S5: la fila de cierre, fuera de la barra (es un total, no un día).
+    cierre <- .cali_cierre_diario(ind$diario)
+    if (!is.null(cierre)) {
+      fila_total <- fila + n + 1L
+      openxlsx::writeData(wb, hoja, cierre, startCol = 1, startRow = fila_total, colNames = FALSE)
+      openxlsx::addStyle(wb, hoja, total_diario, rows = fila_total, cols = 1:4, gridExpand = TRUE)
+      n <- n + 1L
+    }
     fila <- fila + n + 1L
   }
 

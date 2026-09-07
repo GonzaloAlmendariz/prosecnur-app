@@ -182,6 +182,10 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
   poner("Avance diario")
   if (is.data.frame(ind$diario) && nrow(ind$diario)) {
     for (f in .cala_tabla_filas(ind$diario, texto = "Dia")) poner(f)
+    # S5: la MISMA fila de cierre que el xlsx (`.cali_cierre_diario`), sin
+    # cabecera: sólo con dos o más días.
+    cierre <- .cali_cierre_diario(ind$diario)
+    if (!is.null(cierre)) poner(.cala_tabla_filas(cierre, texto = "Dia")[[2]])
   } else {
     poner(.cali_motivo_sin_diario(ind))
   }

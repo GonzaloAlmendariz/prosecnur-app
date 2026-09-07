@@ -245,3 +245,45 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
   fila_l <- .calax_fila_de(celdas, "Letras")
   expect_identical(as.character(celdas[fila_l, col_muj]), "\u2014")
 })
+
+# --- S5: «Avance diario» cierra con una fila de total ---------------------------
+
+# ¿Algún estilo de la fila lleva negrita?
+.calax_en_negrita <- function(h, fila) {
+  for (so in h$estilos) {
+    if (!identical(so$sheet, "Avance de campo") || !(fila %in% so$rows)) next
+    if (any(grepl("BOLD", toupper(as.character(so$style$fontDecoration %||% "")), fixed = TRUE))) return(TRUE)
+  }
+  FALSE
+}
+
+test_that("S5: con dos o más días, el avance diario cierra con una fila «Total» en negrita que cuadra con la meta", {
+  # El modelo completo trae dos días: 2 y 1 efectivas, acumuladas 2 y 3, y una
+  # meta de 40. Con dos semanas de campo la tabla crece hacia abajo y sin
+  # cierre nadie sabe cuánto va sin sumar a mano.
+  h <- .calax_hoja(.calax_modelo_completo())
+  cab <- .calax_fila_de(h$celdas, "Dia")
+  expect_false(is.na(cab))
+  fila_total <- .calax_fila_de(h$celdas, "Total")
+  expect_false(is.na(fila_total), info = "no hay fila «Total» bajo el avance diario")
+  expect_identical(fila_total, cab + 3L)   # cabecera + 2 días + total
+  expect_identical(as.character(h$celdas[fila_total, 2]), "3")     # suma de los días
+  expect_identical(as.character(h$celdas[fila_total, 3]), "3")     # el último acumulado, no una suma
+  expect_identical(as.character(h$celdas[fila_total, 4]), "37")    # lo que falta al cierre
+  expect_true(.calax_en_negrita(h, fila_total))
+})
+
+test_that("S5: con un solo día no hay fila de cierre: no aporta nada", {
+  un_dia <- aulas_libro_indicadores(
+    .calax_plan(),
+    efectivas = c(`CH 1` = 18, `CH 2` = 12),
+    responses = data.frame(`_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00"),
+                           sexo = c("Mujer", "Hombre"), check.names = FALSE, stringsAsFactors = FALSE),
+    validas = c(TRUE, TRUE),
+    partes = .calax_partes(),
+    cuotas = .calax_cuotas()
+  )
+  expect_identical(nrow(un_dia$diario), 1L)
+  h <- .calax_hoja(un_dia)
+  expect_true(is.na(.calax_fila_de(h$celdas, "Total")))
+})

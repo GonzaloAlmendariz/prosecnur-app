@@ -358,3 +358,15 @@ test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con aju
                      info = sprintf("«%s» (fila %d) no debe fusionarse", etiqueta, fila))
   }
 })
+
+# --- S5: la fila «Total» del diario se viste como cierre -------------------------
+
+test_that("S5: la fila «Total» del avance diario lleva banda propia (negrita), y las de los días no", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  fila_total <- .mfa_fila_de(rows, "Total")
+  expect_false(is.na(fila_total), info = "el renderer no trae la fila «Total»")
+  expect_true(.mfa_alguna_pinta_fila(requests, fila_total), info = "la fila «Total» va sin banda")
+  fila_dia <- .mfa_fila_de(rows, "2026-08-10")
+  expect_false(.mfa_alguna_pinta_fila(requests, fila_dia), info = "una fila de día no debe llevar banda")
+})
