@@ -35,6 +35,10 @@
 # los escribe tal cual como fila de nombres.
 .maaf_CABECERAS_TABLA <- c("Facultad", "Aplicador", "Dia")
 
+# S5: la fila de cierre del avance diario, tal como la escribe
+# `.cali_cierre_diario()` (carga_aulas_libro_cierre_diario.R).
+.maaf_CIERRE_DIARIO <- "Total"
+
 # Una banda de UNA fila a lo ancho del rectángulo publicado: fondo, tinta en
 # negrita. `repeatCell` con fields acotado a userEnteredFormat — no toca
 # values ni dataValidation. Los opcionales dan la jerarquía tipográfica
@@ -117,6 +121,12 @@
       # asignados» no cabe en la suya) en vez de cortarse.
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE)
+    } else if (identical(primera, .maaf_CIERRE_DIARIO)) {
+      # S5: la fila «Total» del avance diario, vestida como cierre: fondo
+      # apenas tintado y la cifra en negrita navy, sin confundirse con una
+      # cabecera.
+      requests[[length(requests) + 1L]] <-
+        .maaf_banda(sheet_id, i, n_cols, "#F3F5F9", "#002457")
     }
   }
   # S1: anchos por columna y cifras a la derecha, derivados del contenido.

@@ -498,3 +498,21 @@ test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía
     expect_false(any(!nzchar(celdas)), info = sprintf("fila %d con celda en blanco: %s", i, paste(celdas, collapse = "|")))
   }
 })
+
+# --- S5 (loop estética, 2026-09-07): el diario cierra con «Total» en Sheets también ---
+
+test_that("S5: en Sheets el avance diario lleva la misma fila «Total» que el xlsx", {
+  filas <- .malp_df_a_values(aulas_libro_hoja_avance(.cas_modelo(), fecha = .cas_fecha()))
+  primera <- vapply(filas, function(f) as.character(unlist(f)[[1]]), character(1))
+  cab <- which(primera == "Dia")
+  expect_length(cab, 1L)
+  total <- which(primera == "Total")
+  expect_length(total, 1L)
+  n_dias <- nrow(.cas_modelo()$diario)
+  expect_gte(n_dias, 2L)
+  # cabecera «Dia», n días y la fila de cierre justo debajo del último.
+  expect_identical(total, cab + n_dias + 1L)
+  fila <- as.character(unlist(filas[[total]]))
+  expect_identical(fila[[2]], as.character(sum(.cas_modelo()$diario$`Efectivas del dia`)))
+  expect_identical(fila[[3]], as.character(utils::tail(.cas_modelo()$diario$`Efectivas acumuladas`, 1)))
+})
