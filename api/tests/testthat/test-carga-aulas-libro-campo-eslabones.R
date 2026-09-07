@@ -195,7 +195,7 @@ test_that("B24: el parte registrado de una reserva se siembra en su eslabón y n
   expect_identical(cods_b1, c("CH 1", "CH 2"))
 
   # Y sus cifras viven en el bloque de SU eslabón (R 1.2 = bloque 3 de CH 1).
-  expect_identical(.ce24_celda(ap, 3L, .ce24_col_parte("CANTIDAD DE EFECTIVAS", 3L)), "9")
+  expect_identical(.ce24_celda(ap, 3L, .ce24_col_parte("CANTIDAD DE ENCUESTAS APLICADAS", 3L)), "9")
   expect_identical(.ce24_celda(ap, 3L, .ce24_col_parte("APLICADOR", 3L)), "Equipo B")
 })
 
@@ -205,7 +205,7 @@ test_that("B24: un parte tecleado en el bloque REEMPLAZO 3 vuelve bajo el códig
   vals <- .ce24_values(aulas_libro_hoja_aplicadas(.ce24_plan()))
   # El equipo teclea el parte del eslabón R 1.3 en SU bloque (fila de CH 1).
   vals <- .ce24_teclear(vals, 3L, .ce24_col_parte("CANTIDAD DE ASISTENTES", 4L), "18")
-  vals <- .ce24_teclear(vals, 3L, .ce24_col_parte("CANTIDAD DE EFECTIVAS", 4L), "15")
+  vals <- .ce24_teclear(vals, 3L, .ce24_col_parte("CANTIDAD DE ENCUESTAS APLICADAS", 4L), "15")
   vals <- .ce24_teclear(vals, 3L, .ce24_col_parte("STATUS DE APLICACIÓN", 4L), "APLICADA")
 
   partes <- aulas_libro_desde_valores(vals, "aplicadas")

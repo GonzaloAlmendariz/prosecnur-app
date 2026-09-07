@@ -27,8 +27,20 @@ AULAS_APLICADAS_CAMPO <- list(
   list(campo = "refusals",           titulos = c("CANTIDAD DE RECHAZOS")),
   # Ya habian respondido en otra aula: no son rechazo ni son efectiva.
   list(campo = "duplicates",         titulos = c("DUPLICADOS YA RESPONDIERON", "DUPLICADOS")),
-  # El numero que manda. NO es "encuestas aplicadas".
-  list(campo = "effective_surveys",  titulos = c("CANTIDAD DE EFECTIVAS")),
+  # El conteo que rinde el aplicador. **Se llama «CANTIDAD DE ENCUESTAS
+  # APLICADAS» desde el 2026-09-07** (dictado de Gonzalo, textual: «se cambió
+  # el encabezado de efectivas a "CANTIDAD DE ENCUESTAS APLICADAS" porque las
+  # efectivas las da la app no el aplicador, el aplicador ve temas de lo que ve
+  # en aulas nomás»). El contrato viejo decía aquí «El numero que manda. NO es
+  # "encuestas aplicadas"» y el título era «CANTIDAD DE EFECTIVAS»: ese título
+  # se sigue leyendo —libros de 2025 y, en el Sheets vivo del operativo, los
+  # once bloques REEMPLAZO que el equipo no renombró— porque el emparejado es
+  # por título y bloque a bloque. El nombre interno `effective_surveys` no
+  # cambia: es el contrato de los partes en sesión y del cuadre.
+  list(campo = "effective_surveys",  titulos = c("CANTIDAD DE ENCUESTAS APLICADAS",
+                                                 "CANTIDAD DE EFECTIVAS",
+                                                 "N DE ENCUESTAS APLICADAS",
+                                                 "ENCUESTAS APLICADAS")),
   list(campo = "applied_by",         titulos = c("APLICADOR")),
   # Donde se aplico de verdad. Solo el bloque principal lo trae.
   list(campo = "actual_room",        titulos = c("AULA")),

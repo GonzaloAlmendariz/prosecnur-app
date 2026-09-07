@@ -63,7 +63,7 @@ test_that("un parte registrado EN LA APP llega a la hoja de campo del libro", {
   cursos <- as.character(hoja[[.pea_col(hoja, "CURSO-HORARIO")]])
   fila <- which(cursos == "CH 1")[[1]]
   expect_identical(.pea_celda(hoja, fila, "CANTIDAD DE ASISTENTES"), "25")
-  expect_identical(.pea_celda(hoja, fila, "CANTIDAD DE EFECTIVAS"), "22")
+  expect_identical(.pea_celda(hoja, fila, "CANTIDAD DE ENCUESTAS APLICADAS"), "22")
   expect_identical(.pea_celda(hoja, fila, "APLICADOR"), "Aplicador X")
 
   # Y los alias que `monitoreo_aulas_update_agenda` traduce, el extractor los
