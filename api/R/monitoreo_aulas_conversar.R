@@ -127,7 +127,12 @@ monitoreo_aulas_conversar_libro <- function(sid, cfg = list()) {
   # arriba ya fusionó plan, partes y control). El destino va pineado: es el
   # mismo con el que se acaba de leer.
   publicacion <- tryCatch(
-    list(ok = TRUE, out = monitoreo_aulas_publicar_libro_en_sesion(sid, destino = destino)),
+    # `leer_primero = FALSE`: esta conversación YA importó arriba, en su primer
+    # paso. Publicar lee por su cuenta para quien llama al publicador a secas
+    # —el equipo escribe en las hojas y publicar sin leer las contradice— pero
+    # aquí sería pedir las cinco pestañas dos veces en el mismo ciclo.
+    list(ok = TRUE, out = monitoreo_aulas_publicar_libro_en_sesion(
+      sid, destino = destino, leer_primero = FALSE)),
     error = function(e) list(ok = FALSE, mensaje = conditionMessage(e))
   )
   if (!isTRUE(publicacion[["ok"]])) {

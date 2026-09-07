@@ -647,7 +647,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
 #'   parámetro para que la conversación publique EXACTAMENTE donde leyó.
 #' @return el resumen de `monitoreo_aulas_publicar_libro()`.
 #' @keywords internal
-monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = "") {
+monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = "",
+                                                     leer_primero = TRUE) {
   s <- session_get(sid)
   if (!is.list(cfg)) cfg <- s$monitoreo_config %||% list()
   destino <- .monitoreo_scalar(destino, "")
@@ -656,6 +657,33 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     stop_api(400, "E_SHEETS_SPREADSHEET",
              "Falta el enlace del Google Sheets del operativo: pégalo una vez y queda recordado.")
   }
+
+  # **Antes de publicar, se LEE lo que el equipo escribió.**
+  #
+  # Publicar sólo escribía. Las cuatro hojas del equipo se respetan —nunca se
+  # pisan— pero lo que el encargado de campo teclea en ellas no entraba a la
+  # sesión, así que las hojas que produce la app —Base de control, Plan del día,
+  # Avance— se generaban desde un estado viejo y lo contradecían.
+  #
+  # Medido el 2026-09-07: el encargado llevaba SIETE cursos-horario con
+  # aplicador, hora, salón y APLICADA escritos en «Aulas Aplicadas (Campo)», y
+  # la Base de control publicada enseñaba UNO —el único parte registrado dentro
+  # de la app—. «Pero el encargado de campo ha estado registrando la info en el
+  # excel». Publicar sin leer convertía su trabajo en invisible.
+  #
+  # El error de lectura NO detiene la publicación: un Sheets que hoy no se deja
+  # leer —permisos, red— no puede impedir que el operativo publique. Se declara
+  # en el recibo y se sigue con lo que la sesión tenga.
+  # `leer_primero = FALSE` para quien YA leyó: `monitoreo_aulas_conversar_libro()`
+  # importa y publica en el mismo ciclo, y volver a pedir las cinco pestañas le
+  # duplicaba el costo —su presupuesto de requests está pineado—.
+  lectura_previa <- if (!isTRUE(leer_primero)) list(omitida = TRUE) else tryCatch(
+    aulas_libro_importar_sheets_en_sesion(sid, .monitoreo_extract_spreadsheet_id(destino), list()),
+    error = function(e) list(error = conditionMessage(e))
+  )
+  s <- session_get(sid)
+  if (!is.list(cfg)) cfg <- s$monitoreo_config %||% list()
+  cfg <- s$monitoreo_config %||% cfg
 
   aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
   unidades <- s$monitoreo_aulas_plan %||% aulas_cfg[["plan"]] %||% list()
@@ -711,7 +739,10 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
   # esta misma función.
   traslape_daa <- s[["monitoreo_aulas_daa_traslape"]]
 
-  tryCatch(
+  # El recibo dice qué trajo la lectura previa: si el equipo escribió siete
+  # partes y la publicación los recogió, eso se ve; y si la lectura falló, se
+  # ve también, en vez de publicar en silencio con lo de ayer.
+  publicado <- tryCatch(
     monitoreo_aulas_publicar_libro(
       destino,
       plan = unidades,
@@ -740,6 +771,12 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     api_error = function(e) stop(e),
     error = .monitoreo_sheets_stop
   )
+  c(publicado, list(lectura_previa = list(
+    ok = is.null(lectura_previa$error) && !isTRUE(lectura_previa$omitida),
+    omitida = isTRUE(lectura_previa$omitida),
+    error = lectura_previa$error %||% "",
+    resumen = lectura_previa$resumen %||% list()
+  )))
 }
 
 # --- montaje HTTP -------------------------------------------------------------

@@ -816,7 +816,16 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 
     fecha_fila <- if (nzchar(pv("fecha"))) pv("fecha") else de_conteo(conteos$primer_dia)
     if (nzchar(fecha_fila)) pon("applied_date", fecha_fila)
-    hora_fila <- if (nzchar(pv("hora"))) pv("hora") else de_conteo(conteos$primera_hora)
+    # La hora, SIEMPRE en HH:MM de 24 horas. El equipo la teclea como le sale
+    # —«10:07am», «12:39pm»— y la derivada de la plataforma viene en 24 h: la
+    # columna mezclaba los dos formatos y dejaba de poder ordenarse. Es el mismo
+    # parser que normaliza el horario del aula; lo que no se entiende se escribe
+    # tal cual en vez de perderse.
+    hora_cruda <- if (nzchar(pv("hora"))) pv("hora") else de_conteo(conteos$primera_hora)
+    hora_fila <- local({
+      n <- .calg_hora_normalizada(hora_cruda)
+      if (nzchar(n)) n else hora_cruda
+    })
     if (nzchar(hora_fila)) pon("applied_time", hora_fila)
 
     # El estado, con la MISMA precedencia y el mismo vocabulario que el «Plan del

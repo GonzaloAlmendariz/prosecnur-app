@@ -262,3 +262,18 @@ test_that("entre varias filas del mismo curso-horario mandan las de clase", {
   expect_equal(unique(out$venue), "E308 · E214")
   expect_equal(unique(out$sesiones_dia_hora), "MIE y VIE 15:00-17:00")
 })
+
+test_that("las variantes de clase (C1, CP) cuentan como clase, no como resto", {
+  # Reconstruyendo el marco de HSVG2026 con la base 212139: dos curso-horario de
+  # `int124` traen la sesión como `C1` y quedaban por debajo de un taller.
+  catalogo <- data.frame(
+    SESIONES = c("SAB 09:00-11:00 A  Y211", "VIE 08:00-10:00 C1  L412"),
+    stringsAsFactors = FALSE
+  )
+  out <- calc_muestra_aulas_anotar_sesiones(
+    data.frame(x = 1L), catalogo,
+    raw_key = "int124|0303", catalog_key = rep("int124|0303", 2L),
+    mapping = list(classroom_label = "SESIONES")
+  )
+  expect_equal(out$venue, "L412")
+})

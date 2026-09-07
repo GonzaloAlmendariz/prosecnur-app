@@ -554,3 +554,62 @@ test_that("la pestaña está en la whitelist controlada, o la publicación reven
   # revienta con E_GOOGLE_SHEETS.
   expect_true("Disponibilidad de aplicadores" %in% monitoreo_sheets_pestanas_controladas())
 })
+
+# ---------------------------------------------------------------------------
+# **Publicar LEE antes de escribir.**
+#
+# Las cuatro hojas del equipo se respetan —nunca se pisan— pero lo que el
+# encargado de campo teclea en ellas no entraba a la sesión, así que las hojas
+# que produce la app se generaban desde un estado viejo y lo contradecían.
+#
+# Medido el 2026-09-07: siete cursos-horario con aplicador, hora, salón y
+# APLICADA escritos en «Aulas Aplicadas (Campo)», y la Base de control publicada
+# enseñaba UNO. «Pero el encargado de campo ha estado registrando la info en el
+# excel».
+# ---------------------------------------------------------------------------
+
+test_that("la publicación lee las hojas del equipo antes de producir las suyas", {
+  llamadas <- character(0)
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) {
+      llamadas <<- c(llamadas, "importar")
+      list(resumen = list(partes_de_campo = 7L))
+    },
+    monitoreo_aulas_publicar_libro = function(...) {
+      llamadas <<- c(llamadas, "publicar")
+      list(ok = TRUE, hojas = list())
+    },
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  # El ORDEN es lo que importa: leer y luego escribir.
+  expect_identical(llamadas, c("importar", "publicar"))
+  # Y el recibo lo dice, para que no sea un efecto invisible.
+  expect_true(isTRUE(out$lectura_previa$ok))
+  expect_equal(out$lectura_previa$resumen$partes_de_campo, 7L)
+})
+
+test_that("si el Sheets no se deja leer, la publicación sigue y lo declara", {
+  # Un Sheets que hoy no se puede leer —permisos, red— no puede impedir que el
+  # operativo publique: se declara en el recibo y se sigue con lo que la sesión
+  # tenga. Callarlo sería peor que las dos cosas.
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) {
+      stop("403 sin permiso de lectura")
+    },
+    monitoreo_aulas_publicar_libro = function(...) list(ok = TRUE, hojas = list()),
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  expect_true(isTRUE(out$ok))
+  expect_false(isTRUE(out$lectura_previa$ok))
+  expect_match(out$lectura_previa$error, "permiso")
+})
