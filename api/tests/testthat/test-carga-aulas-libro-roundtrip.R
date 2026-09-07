@@ -392,12 +392,19 @@ test_that("el control de una RESERVA activada no se pierde al regenerar", {
   expect_true("CH 1" %in% codigos)
 })
 
-test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
-  # Las filas de titulares que aparecen al regenerar no son un defecto: son la
-  # hoja ofreciendo el sitio donde se escribe.
+test_that("un titular sin control ni aplicar YA NO ocupa fila en el control", {
+  # **Al revés que hasta el 2026-09-07.** La hoja ofrecía la fila de todo
+  # titular «para que la llenen», y el primer día de campo eso se vio por lo que
+  # es: 174 filas para una sola aula aplicada. Gonzalo: «muestra todos los CH
+  # cuando solo deberían ser los que ya se aplicaron».
+  #
+  # Lo que NO cambió, y por eso sigue comprobándose aquí: el aula que ya tiene
+  # control registrado vuelve siempre, aunque no esté aplicada. Sin esa mitad,
+  # regenerar el libro a mitad de operativo borraba el control ya escrito.
   v <- .rt_vuelta(control = list(list(operational_code = "CH 1", sent_total = 17)))
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
-  expect_true("CH 4" %in% codigos)
+  expect_false("CH 4" %in% codigos)
+  expect_true("CH 1" %in% codigos)
 })
 
 # --- El barrido de FILAS: ninguna unidad con registro se queda fuera ---------

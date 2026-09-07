@@ -199,9 +199,13 @@
 
 # Un parte de campo del equipo, con el vocabulario que produce el LECTOR
 # (`carga_aulas_aplicadas.R`), que es de donde viene en un estudio real.
+# El parte trae su `application_status`: desde el 2026-09-07 la «Base de control»
+# escribe SOLO lo aplicado, así que sin el veredicto esta aula no tendría fila y
+# el libro de prueba dejaría de ejercitar esa hoja.
 .mapl_partes <- function() list(
   list(operational_code = "CH 1", intento = 1L, observed_students = 30,
        refusals = 2, duplicates = 0, effective_surveys = 28,
+       application_status = "APLICADA",
        applied_by = "Ana", actual_room = "L321", applied_date = "2026-08-12")
 )
 
@@ -218,7 +222,9 @@ test_that("contexto: los generadores del libro entregan la cabecera como primera
   hoja_campo <- aulas_libro_hoja_aplicadas(.libro_de_prueba(), partes = .mapl_partes())
   expect_true(is.data.frame(hoja_campo))
   expect_gte(nrow(hoja_campo), 3L) # dos cabeceras + al menos el titular
-  hoja_control <- aulas_libro_hoja_control(.libro_de_prueba())
+  # Con los partes, igual que la llama el publicador: la hoja escribe lo
+  # aplicado y el veredicto viaja en el parte.
+  hoja_control <- aulas_libro_hoja_control(.libro_de_prueba(), partes = .mapl_partes())
   expect_true(is.data.frame(hoja_control))
   expect_gte(nrow(hoja_control), 3L)
 })

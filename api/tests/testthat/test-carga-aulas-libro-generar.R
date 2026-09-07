@@ -11,14 +11,23 @@
 # operativo. El fixture ponia solo el primero con un `CH n` dentro, y esa
 # mentira tapaba que agrupar la cadena por `replacement_for` no funciona: sobre
 # HSVG2026, 0 de 202 valores coincidian con un titular.
-.calg_unidad <- function(code, role = "titular", rf = "", orden = NULL) list(
+# **`aplicada` por defecto desde el 2026-09-07.** La «Base de control» dejo de
+# escribir los titulares que todavia no se aplicaron: publicaba las 174 filas
+# del plan con una sola aula aplicada, y 173 filas vacias esconden justo lo que
+# la hoja existe para vigilar (dictado de Gonzalo el primer dia de campo,
+# «muestra todos los CH cuando solo deberian ser los que ya se aplicaron»).
+# Estos casos comprueban CONTENIDO y ORDEN de las filas, asi que sus aulas
+# tienen que existir en la hoja; el caso que mira la hoja SIN aplicar pasa
+# `aplicada = FALSE` a proposito.
+.calg_unidad <- function(code, role = "titular", rf = "", orden = NULL,
+                         aplicada = TRUE) c(list(
   operational_code = code, sample_role = role, replacement_for = rf,
   titular_operational_code = rf,
   replacement_order = orden, wave = "Muestra 01", teacher = "Docente Demo",
   teacher_phone = "999", teacher_email = "d@x.test", course_name = "Curso Demo",
   faculty = "SOCIALES", level = "3", label = "LUN A101", schedule = "LUN 08:00",
   enrolled_total = 40, eligible_n = 35, link = paste0("https://x.test/", code)
-)
+), if (aplicada) list(application_status = "APLICADA") else list())
 
 test_that("lo que se genera se vuelve a leer sin perder la cadena", {
   unidades <- list(
@@ -574,7 +583,10 @@ test_that("las siete columnas de identidad del control se llenan de verdad", {
   d <- aulas_libro_hoja_control(list(
     list(operational_code = "CH 1", sample_role = "titular", wave = "M1",
          course_name = "Curso 1", label = "Aula 101", schedule = "Lun 10:00",
-         enrolled_total = 34, eligible_n = 30)
+         enrolled_total = 34, eligible_n = 30,
+         # La hoja solo escribe lo ya aplicado; sin esto el aula no tiene fila
+         # y el test miraria una hoja vacia.
+         application_status = "APLICADA")
   ))
   # Por CAMPO canonico y no por titulo literal: el titulo es justo lo que un
   # renombrado (B17: POBLACION → ELEGIBLES) cambia, y este test vigila el
@@ -804,5 +816,12 @@ test_that("las tres hojas listan las aulas en el MISMO orden", {
   esperado <- c("CH 1", "CH 2", "CH 10", "CH 11", "CH 100")
   expect_identical(codigos("Aulas Agendadas", 1L), esperado)
   expect_identical(codigos("Aulas Aplicadas (Campo)", 2L), esperado)
-  expect_identical(codigos("Base de control", 2L), esperado)
+  # **La base de control lista un SUBCONJUNTO, y en el mismo orden.** Desde el
+  # 2026-09-07 escribe solo lo ya aplicado más lo que ya tiene control
+  # registrado, así que aquí entran las cinco aplicadas de la fijación más
+  # CH 2, que trae control. Lo que sigue siendo contrato es el ORDEN: si las
+  # tres hojas ordenaran distinto, cruzarlas a mano sería imposible.
+  ctrl <- codigos("Base de control", 2L)
+  expect_true(all(ctrl %in% esperado))
+  expect_identical(ctrl, esperado[esperado %in% ctrl])
 })

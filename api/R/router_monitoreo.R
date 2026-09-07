@@ -4926,6 +4926,27 @@ mount_monitoreo <- function(pr) {
     # recoge el control. Es el mismo papel del Excel de barrido en telefonico.
     # Activa la siguiente reserva de un curso-horario caido. Mientras el aula
     # caida siga contando contra su meta, la brecha del estudio miente.
+    # **El Sheets que se comparte con los aplicadores** (dictado 2026-09-07).
+    # Documento aparte del libro operativo: sólo la distribución, para que el
+    # equipo lea su semana sin ver la base de control ni las hojas que otros
+    # están editando. Acepta el enlace entero, que es lo que se copia del
+    # navegador.
+    plumber::pr_post("/api/monitoreo/aulas/publicar-distribucion", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data.frame())
+      aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      destino <- .monitoreo_scalar(parsed$url %||% parsed$spreadsheet_id %||% parsed$enlace, "")
+      out <- monitoreo_aulas_publicar_distribucion(
+        destino,
+        plan = s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list(),
+        disponibilidad = s[["monitoreo_aulas_disponibilidad"]],
+        config_reparto = aulas_cfg,
+        partes = aulas_cfg[["partes_campo"]] %||% list()
+      )
+      c(out, list(state = .monitoreo_state_payload(sid)))
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/activar-reemplazo", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       body <- .monitoreo_parse_body(req)

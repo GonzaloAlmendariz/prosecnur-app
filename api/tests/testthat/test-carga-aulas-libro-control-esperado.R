@@ -13,11 +13,16 @@
   which(campos == t)[[1]]
 }
 
+# `application_status = "APLICADA"` porque desde el 2026-09-07 la hoja escribe
+# SOLO las aulas ya aplicadas (mas las que ya tienen control registrado): antes
+# publicaba los 174 titulares y con una sola aplicada quedaban 173 filas vacias,
+# que es como se esconde justo lo que la hoja existe para vigilar. Estos casos
+# comprueban el CONTENIDO de la fila, asi que sus aulas tienen que existir.
 .ce_aula <- function(cod, eleg, esperadas, f = 17, m = 13) list(
   operational_code = cod, sample_role = "titular", faculty = "Letras",
   wave = "M1", course_name = paste("Curso", cod), label = "A101",
   schedule = "Lun 10:00", enrolled_total = eleg + 4, eligible_n = eleg,
-  expected_valid = esperadas,
+  expected_valid = esperadas, application_status = "APLICADA",
   sex_top_1 = "F", sex_top_1_n = f, sex_top_2 = "M", sex_top_2_n = m
 )
 

@@ -51,11 +51,14 @@
 test_that("el bloque de agenda tiene 23 titulos y ninguno es MUESTRA", {
   campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   # 20 del contrato B8 («sin MUESTRA») + «RECIBIÓ CORREO» (B22) + «STATUS DE
-  # LLAMADA» (B23) + «LUGAR DE APLICACIÓN» (B30, 2026-09-02). El numero se
-  # pinea LITERAL a proposito: un campo nuevo en la spec debe pasar por
-  # aqui y declararse, no colarse.
-  expect_length(AULAS_AGENDADAS_BLOQUE, 23L)
-  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 23L)
+  # LLAMADA» (B23) + «LUGAR DE APLICACIÓN» (B30, 2026-09-02) + «AULA UTILIZADA»
+  # (2026-09-04: «una columna adicional que le diga al usuario cuál fue el
+  # reemplazo que usamos, al lado de status muestra»). El numero se pinea
+  # LITERAL a proposito: un campo nuevo en la spec debe pasar por aqui y
+  # declararse, no colarse. Esta se colo el 2026-09-04 y el rojo se quedo
+  # esperando hasta el 2026-09-07.
+  expect_length(AULAS_AGENDADAS_BLOQUE, 24L)
+  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 24L)
   expect_false("wave" %in% campos)
   # «STATUS MUESTRA» no es «MUESTRA»: se compara el titulo entero.
   titulos <- unlist(lapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos))
