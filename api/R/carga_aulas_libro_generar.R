@@ -612,7 +612,11 @@ aulas_libro_grupos_control <- function() {
 
 aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL,
                                      partes = list(), conteos = NULL,
-                                     efectivas_sexo = NULL, cfg = list()) {
+                                     efectivas_sexo = NULL, cfg = list(),
+                                     # `codigo -> aplicador` del reparto: sin él
+                                     # la columna APLICADOR sólo puede hablar de
+                                     # quien ya rindió parte.
+                                     asignados = NULL) {
   escritos <- .calg_control_escritos()
   campos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
   claves <- vapply(escritos, function(spec) spec$campo, character(1))
@@ -782,15 +786,51 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     pon("scheduled_date", .calg_txt(u$scheduled_date))
     pon("scheduled_time", .calg_txt(u$scheduled_time))
 
-    # Y lo que sabe CAMPO, del parte de esta aula si lo hay.
-    pt <- parte_de[[.calg_txt(u$operational_code)]]
+    # **Lo que sabe CAMPO: manda el parte, y si no lo hay lo dice la plataforma.**
+    #
+    # Estas cinco columnas salían SOLO del parte, y el 2026-09-07 había un parte
+    # de nueve filas: ocho cursos-horario aplicados con el bloque entero en
+    # blanco. «¿Y por qué así sigue vacío?».
+    #
+    # Tres de ellas la app ya las sabe por otro lado: quién iba lo dice el
+    # REPARTO, y cuándo empezó a aplicarse lo dicen las respuestas —su primera
+    # marca de tiempo—. La precedencia es la misma del «Plan del día»: si hay
+    # parte, manda el parte, porque quien fue de verdad puede no ser quien
+    # estaba asignado y la hoja cuenta lo ocurrido, no lo planeado.
+    #
+    # ALUMNOS EN AULA se queda vacía sin parte, y es correcto: cuánta gente
+    # había en el salón sólo lo sabe quien estuvo. Derivarlo sería inventarlo.
+    cod_aula <- .calg_txt(u$operational_code)
+    pt <- parte_de[[cod_aula]]
+    pv <- function(clave) if (is.null(pt)) "" else .calg_txt(
+      .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[[clave]]))
+    de_conteo <- function(v) {
+      if (is.null(v) || !nzchar(cod_aula) || !(cod_aula %in% names(v))) return("")
+      .calg_txt(v[[cod_aula]])
+    }
+    asignado <- if (nzchar(cod_aula) && cod_aula %in% names(asignados %||% list())) {
+      .calg_txt(asignados[[cod_aula]])
+    } else ""
+    aplicador_fila <- if (nzchar(pv("aplicador"))) pv("aplicador") else asignado
+    if (nzchar(aplicador_fila)) pon("applied_by", aplicador_fila)
+
+    fecha_fila <- if (nzchar(pv("fecha"))) pv("fecha") else de_conteo(conteos$primer_dia)
+    if (nzchar(fecha_fila)) pon("applied_date", fecha_fila)
+    hora_fila <- if (nzchar(pv("hora"))) pv("hora") else de_conteo(conteos$primera_hora)
+    if (nzchar(hora_fila)) pon("applied_time", hora_fila)
+
+    # El estado, con la MISMA precedencia y el mismo vocabulario que el «Plan del
+    # día»: sin parte pero con respuestas entrando, el aula está EN APLICACIÓN.
+    obtenidas_aula <- de_conteo(conteos$efectivas)
+    estado_fila <- if (nzchar(pv("estado"))) {
+      pv("estado")
+    } else if (suppressWarnings(as.numeric(obtenidas_aula))[1] %in% NA ||
+               !isTRUE(suppressWarnings(as.numeric(obtenidas_aula))[1] > 0)) {
+      ""
+    } else "EN APLICACIÓN"
+    if (nzchar(estado_fila)) pon("application_status", estado_fila)
+
     if (!is.null(pt)) {
-      pv <- function(clave) .calg_txt(
-        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[[clave]]))
-      pon("applied_by", pv("aplicador"))
-      pon("applied_date", pv("fecha"))
-      pon("applied_time", pv("hora"))
-      pon("application_status", pv("estado"))
       pon("observed_students", .calg_num_txt(
         .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)))
     }
@@ -802,7 +842,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     esperadas <- suppressWarnings(as.numeric(u$expected_valid %||% NA))[1]
     eleg <- suppressWarnings(as.numeric(u$eligible_n %||% NA))[1]
     mat <- suppressWarnings(as.numeric(u$enrolled_total %||% NA))[1]
-    cod_u <- .calg_txt(u$operational_code)
+    cod_u <- cod_aula
     obtenidas <- if (is.null(efectivas)) NA_real_ else {
       i <- match(cod_u, names(efectivas))
       if (is.na(i)) NA_real_ else suppressWarnings(as.numeric(efectivas[[i]]))
@@ -1216,7 +1256,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   )
   hojas[["Base de control"]] <- aulas_libro_hoja_control(
     unidades, control, efectivas, partes = partes,
-    conteos = conteos, efectivas_sexo = efectivas_sexo, cfg = cfg)
+    conteos = conteos, efectivas_sexo = efectivas_sexo, cfg = cfg,
+    asignados = asignados_por_codigo)
   # 4.ª hoja de datos (B2.1): el recorte agenda+campo por fecha que en 2025 se
   # tecleaba a mano. DESPUÉS de «Base de control» y ANTES de «Cómo va el
   # campo»: quien agenda sigue aterrizando en su hoja e indicadores sigue

@@ -107,7 +107,9 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   # produjo; el acumulado dice si se llega.
   diario <- NULL
   if (is.data.frame(responses) && nrow(responses)) {
-    col <- intersect(c("_submission_time", "submission_time", "fecha", "end"),
+    # Con huso primero: en UTC el avance de un aula de la tarde se anota en la
+    # jornada del día siguiente (`monitoreo_aulas_hora_local.R`).
+    col <- intersect(MONITOREO_AULAS_COLUMNAS_TIEMPO,
                      names(responses))
     if (length(col)) {
       dias <- substr(as.character(responses[[col[[1]]]]), 1, 10)

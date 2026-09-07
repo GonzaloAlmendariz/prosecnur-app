@@ -20,12 +20,14 @@
 #   justo lo que paso, mientras que saltarlo comprime el calendario y hace
 #   parecer continuo lo que fue intermitente.
 
-# Los nombres con los que puede llegar la marca de envio. Es la misma lista que
-# `monitoreo_engine.R` ya usa para el resto de familias; se repite aqui la parte
-# que aplica en vez de exportar la deteccion entera, que arrastra la config.
+# Los nombres con los que puede llegar la marca de envio.
+#
+# **La que trae su HUSO va primero.** Estaba encabezada por `_submission_time`,
+# que Kobo publica en UTC, y este operativo agenda hasta las 19:30 de Lima: esas
+# respuestas se anotaban en el ritmo del día SIGUIENTE. `start`/`end` los escribe
+# el dispositivo con su desfase. Ver `monitoreo_aulas_hora_local.R`.
 MONITOREO_AULAS_COLUMNAS_FECHA <- c(
-  "kobo_timestamp_iso", "_submission_time", "submission_time",
-  "fecha", "fecha_envio", "end"
+  MONITOREO_AULAS_COLUMNAS_TIEMPO, "fecha_envio"
 )
 
 # Un dia en formato ISO, o "" si el valor no es una fecha legible. Se corta por

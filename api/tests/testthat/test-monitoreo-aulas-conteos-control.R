@@ -130,3 +130,99 @@ test_that("el avance por facultad cuenta aulas aplicadas y reparte por sexo", {
   letras <- f[f$Facultad == "Letras", , drop = FALSE]
   expect_equal(letras[["Conseguidas mujeres"]], 1)
 })
+
+# ---------------------------------------------------------------------------
+# **La hora del aula es la LOCAL, y con UTC un aula de la tarde cambia de día.**
+#
+# La «Base de control» decía «HORA DE APLICACIÓN 16:33» para un curso-horario
+# agendado a las 11:30 am: Kobo publica `_submission_time` en UTC y toda la
+# lectura temporal del perfil lo prefería. Este operativo agenda hasta las 19:30
+# de Lima —00:30 UTC del día siguiente—, así que la fecha también se corría.
+# ---------------------------------------------------------------------------
+
+test_that("manda la marca que trae su huso, no la del servidor", {
+  d <- data.frame(
+    collectorID = c("CH 1", "CH 1"),
+    # 19:30 de Lima el día 7 son las 00:30 UTC del 8.
+    start = c("2026-09-07T19:32:10.001-05:00", "2026-09-07T19:41:02.500-05:00"),
+    `_submission_time` = c("2026-09-08T00:32:11", "2026-09-08T00:41:03"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ct <- monitoreo_aulas_conteos_control(
+    list(list(operational_code = "CH 1", classroom_id = "CH 1",
+              sample_role = "titular", eligible_n = 30)),
+    d, monitoreo_aulas_normalize_config(list()))
+  # El DÍA es el 7, la jornada en que se aplicó, no el 8 del servidor.
+  expect_identical(unname(ct$primer_dia[["CH 1"]]), "2026-09-07")
+  expect_identical(unname(ct$ultimo_dia[["CH 1"]]), "2026-09-07")
+  # Y la hora es la del salón.
+  expect_identical(unname(ct$primera_hora[["CH 1"]]), "19:32")
+})
+
+test_that("sin columna con huso se lee la del servidor, y no se rompe", {
+  # Un export que sólo trae `_submission_time` se sigue leyendo: la preferencia
+  # es un orden, no una exigencia.
+  d <- data.frame(
+    collectorID = "CH 1",
+    `_submission_time` = "2026-09-07T14:05:00",
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ct <- monitoreo_aulas_conteos_control(
+    list(list(operational_code = "CH 1", classroom_id = "CH 1",
+              sample_role = "titular", eligible_n = 30)),
+    d, monitoreo_aulas_normalize_config(list()))
+  expect_identical(unname(ct$primer_dia[["CH 1"]]), "2026-09-07")
+  expect_identical(unname(ct$primera_hora[["CH 1"]]), "14:05")
+})
+
+test_that("sin parte, el bloque de campo lo llenan el reparto y la plataforma", {
+  # «¿Y por qué así sigue vacío?» — ocho cursos-horario aplicados y un parte de
+  # nueve filas. Quién iba lo dice el REPARTO y cuándo empezó lo dicen las
+  # respuestas; ALUMNOS EN AULA se queda vacía porque sólo lo sabe quien estuvo.
+  plan <- list(list(operational_code = "CH 1", classroom_id = "CH 1",
+                    sample_role = "titular", eligible_n = 30, enrolled_total = 32,
+                    scheduled_date = "2026-09-07", expected_valid = 16))
+  d <- data.frame(
+    collectorID = c("CH 1", "CH 1"),
+    start = c("2026-09-07T11:33:00-05:00", "2026-09-07T11:44:00-05:00"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_normalize_config(list())
+  h <- aulas_libro_hoja_control(
+    plan, control = list(), efectivas = c(`CH 1` = 2), partes = list(),
+    conteos = monitoreo_aulas_conteos_control(plan, d, cfg), cfg = cfg,
+    asignados = list(`CH 1` = "Aguilar Cuya, Renzo"))
+  hdr <- as.character(unlist(h[2, ], use.names = FALSE))
+  fila <- as.character(unlist(h[3, ], use.names = FALSE))
+  de <- function(t) fila[[which(hdr == t)[[1]]]]
+  expect_identical(de("APLICADOR"), "Aguilar Cuya, Renzo")
+  expect_identical(de("FECHA DE APLICACIÓN"), "2026-09-07")
+  expect_identical(de("HORA DE APLICACIÓN"), "11:33")
+  expect_identical(de("ESTADO DE APLICACIÓN"), "EN APLICACIÓN")
+  # Nadie puede saber cuánta gente había: se queda vacía en vez de inventarse.
+  expect_identical(de("ALUMNOS EN AULA"), "")
+})
+
+test_that("y cuando hay parte, manda el parte", {
+  # Quien fue de verdad puede no ser quien estaba asignado, y la hoja cuenta lo
+  # ocurrido, no lo planeado. Misma precedencia que el «Plan del día».
+  plan <- list(list(operational_code = "CH 1", classroom_id = "CH 1",
+                    sample_role = "titular", eligible_n = 30, enrolled_total = 32))
+  d <- data.frame(collectorID = "CH 1", start = "2026-09-07T11:33:00-05:00",
+                  check.names = FALSE, stringsAsFactors = FALSE)
+  cfg <- monitoreo_aulas_normalize_config(list())
+  h <- aulas_libro_hoja_control(
+    plan, control = list(), efectivas = c(`CH 1` = 1),
+    partes = list(list(operational_code = "CH 1", aplicador = "Quien fue de verdad",
+                       fecha = "2026-09-07", hora = "11:25", estado = "APLICADA",
+                       asistentes = 41)),
+    conteos = monitoreo_aulas_conteos_control(plan, d, cfg), cfg = cfg,
+    asignados = list(`CH 1` = "Quien estaba asignado"))
+  hdr <- as.character(unlist(h[2, ], use.names = FALSE))
+  fila <- as.character(unlist(h[3, ], use.names = FALSE))
+  de <- function(t) fila[[which(hdr == t)[[1]]]]
+  expect_identical(de("APLICADOR"), "Quien fue de verdad")
+  expect_identical(de("HORA DE APLICACIÓN"), "11:25")
+  expect_identical(de("ESTADO DE APLICACIÓN"), "APLICADA")
+  expect_identical(de("ALUMNOS EN AULA"), "41")
+})
