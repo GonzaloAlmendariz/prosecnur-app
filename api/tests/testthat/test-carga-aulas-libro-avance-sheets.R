@@ -298,11 +298,15 @@ test_that("B2.2: la publicación completa siembra «Avance de campo» en un docu
   efectivas = .cas_efectivas_fraccionarias(),
   responses = .cas_respuestas(),
   validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
-  # 13 efectivas en 2 aulas: media 6.5, el decimal LEGITIMO que debe sobrevivir.
   partes = list(
     list(operational_code = "CH 1", applied_by = "Equipo Unico", effective_surveys = 8),
     list(operational_code = "CH 2", applied_by = "Equipo Unico", effective_surveys = 5)
-  )
+  ),
+  # La media sale de la PLATAFORMA desde el 2026-09-07 —la del parte llegaba al
+  # cerrar y en la primera semana casi no existe—, así que se atribuye por el
+  # reparto: 1200.4 + 105.9 = 1306.3 en 2 cursos-horario, media 653.15 -> 653.2.
+  # El decimal LEGITIMO que este test defiende sigue estando: es un promedio.
+  asignados = list(`CH 1` = "Equipo Unico", `CH 2` = "Equipo Unico")
 )
 
 test_that("A9-B6: el bloque de meta publica enteros — meta al mas proximo, logrado abajo, falta arriba", {
@@ -327,10 +331,10 @@ test_that("A9-B6: «Falta para la meta» del diario sube al entero; la media con
               info = sprintf("fila del 2026-08-11: {%s}", paste(en_dia, collapse = ", ")))
   expect_false(any(abs(en_dia - 3153.8) < 1e-9),
                info = "la columna publica 3153.8: decimales sobre encuestas")
-  # Pin de conservacion (hoy verde): «Media por aula» es un promedio y su
-  # decimal significa algo — la regla de enteros es de los conteos.
+  # Pin de conservacion (hoy verde): «Media por curso-horario» es un promedio y
+  # su decimal significa algo — la regla de enteros es de los conteos.
   en_apl <- .cas_numeros_de_fila_con(m, "Equipo Unico")
-  expect_true(6.5 %in% en_apl,
+  expect_true(653.2 %in% en_apl,
               info = sprintf("fila de Equipo Unico: {%s}", paste(en_apl, collapse = ", ")))
 })
 

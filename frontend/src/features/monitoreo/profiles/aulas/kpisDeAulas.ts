@@ -303,8 +303,12 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     label: "Cursos-horario aplicados",
     icono: ClipboardCheck,
     value: fmt(dashboard?.kpis?.aulas_aplicadas),
-    pista: "declarados en el registro de campo",
-    detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
+    // **Y la pista dice las TRES vías, porque desde el 2026-09-07 son tres.**
+    // Decía «declarados en el registro de campo» y prometía que la cifra no se
+    // derivaba de las respuestas; ese día se derivó, porque con ocho aulas
+    // produciendo encuestas la tarjeta enseñaba UNA.
+    pista: "registrados, con parte o ya recibiendo respuestas",
+    detalle: "Cuenta el curso-horario que alguien registró en esta app, el que su parte declara aplicado y el que ya recibe respuestas por la plataforma. Basta con uno: el parte llega al cerrar la aplicación y a veces tarda, pero las respuestas llegan solas.",
   };
 }
 

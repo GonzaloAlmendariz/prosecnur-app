@@ -31,7 +31,11 @@ const RAICES = [
 
 /** Femeninos legítimos: su sujeto no es la unidad. */
 const OTRO_SUJETO = new Map<string, string>([
-  ["descartadas por el filtro", "las ENCUESTAS que el filtro de validez rechaza, no cursos-horario"],
+  // «descartadas por el filtro» salió del perfil el 2026-09-07: metía en la
+  // misma bolsa las respuestas que no son del estudio y las que no pasan el
+  // criterio. Los rótulos que la sustituyen no llevan femenino colgado, así que
+  // esta lista no necesita entrada — y una excepción que ya no aplica no
+  // protege nada, que es justo lo que este test vigila.
   ["tienen parte y no tienen fecha agendada", "la FECHA, que es femenina y está bien así"],
   // El title del KPI «Días de campo»: la que está agendada es la CITA (el
   // acuerdo con el docente — el sentido en que «cita» sigue siendo la

@@ -307,9 +307,12 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   #
   # Se usa el MISMO predicado que el KPI, no uno propio: dos superficies
   # vecinas que cuentan lo mismo de dos maneras acaban discrepando.
-  aplicada <- if (n_plan) {
-    .maac_chr_col(plan_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS
-  } else logical(0)
+  #
+  # **Y esa frase estaba escrita aquí sin ser código compartido**, así que el
+  # 2026-09-07, cuando el KPI pasó a contar también el aula con respuestas, éste
+  # se quedó atrás: la tabla de la app decía «0 de 37 cursos-horario aplicados»
+  # en Ciencias e Ingeniería con uno produciendo encuestas. Ahora el predicado se
+  # calcula abajo, después de `efectivas_fila`, porque necesita esa tercera vía.
   elegibles <- if (n_plan) .maac_num_col(plan_df, "eligible_n") else numeric(0)
   elegibles[!is.finite(elegibles) | elegibles < 0] <- 0
   fk_plan <- if (n_plan) .maac_fac_key(.maac_chr_col(plan_df, "faculty")) else character(0)
@@ -326,6 +329,15 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
     ok <- is.finite(idx) & idx >= 1L & idx <= n_plan
     efectivas_fila[idx[ok]] <- as.numeric(tb)[ok]
   }
+
+  # Las tres vías del predicado compartido, resueltas sobre las columnas del
+  # frame: el estado del circuito, el veredicto del parte y —la que faltaba— que
+  # ya estén llegando respuestas de esa aula.
+  aplicada <- if (n_plan) {
+    .maac_chr_col(plan_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS |
+      .maac_chr_col(plan_df, "application_status") %in% "aplicada" |
+      efectivas_fila > 0
+  } else logical(0)
 
   # El DENOMINADOR son las aulas APLICADAS. Un aula sin aplicar no rinde cero:
   # todavía no rinde, y meterla hundiría la tasa los primeros días — una alarma

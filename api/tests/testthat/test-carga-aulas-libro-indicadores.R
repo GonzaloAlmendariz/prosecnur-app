@@ -73,15 +73,47 @@ test_that("la serie diaria cuenta EFECTIVAS y cuadra con el logrado", {
 
 test_that("la produccion por aplicador abre por el que va mas flojo", {
   # El campo pregunta a quien empujar, no quien es el mejor.
-  partes <- list(
-    list(operational_code = "CH 1", applied_by = "Equipo A", effective_surveys = 20),
-    list(operational_code = "CH 2", applied_by = "Equipo B", effective_surveys = 8),
-    list(operational_code = "R 2.1", applied_by = "Equipo B", effective_surveys = 6)
-  )
-  ind <- aulas_libro_indicadores(.ci_plan(), efectivas = NULL, partes = partes)
+  #
+  # La tabla mide con la PLATAFORMA desde el 2026-09-07: la cuenta del parte
+  # llega al cerrar y en la primera semana casi no existe —ese día la hoja
+  # enseñaba UNA fila con ocho cursos-horario aplicados y seis aplicadores en
+  # la calle—. La atribución sale del reparto, así que un aplicador aparece en
+  # cuanto sale a su primer curso-horario.
+  asignados <- list(`CH 1` = "Equipo A", `CH 2` = "Equipo B", `R 2.1` = "Equipo B")
+  ind <- aulas_libro_indicadores(
+    .ci_plan(), efectivas = c(`CH 1` = 20, `CH 2` = 8, `R 2.1` = 6),
+    partes = list(), asignados = asignados)
   expect_identical(ind$aplicadores$Aplicador[[1]], "Equipo B")
-  expect_equal(ind$aplicadores$`Media por aula`[[1]], 7)
-  expect_equal(ind$aplicadores$Aulas[[1]], 2L)
+  expect_equal(ind$aplicadores$`Media por curso-horario`[[1]], 7)
+  expect_equal(ind$aplicadores$`Con respuestas`[[1]], 2)
+  expect_equal(ind$aplicadores$`Cursos-horario asignados`[[1]], 2L)
+})
+
+test_that("un aplicador que todavia no recibe nada abre la tabla, no desaparece", {
+  # **Sale del reparto, no del parte.** Antes la fila existía sólo si alguien
+  # había rendido parte, así que quien salió esta mañana y todavía no tiene
+  # respuestas no aparecía — justo a quien hay que mirar.
+  asignados <- list(`CH 1` = "Equipo A", `CH 2` = "Equipo B")
+  ind <- aulas_libro_indicadores(.ci_plan(), efectivas = c(`CH 1` = 20),
+                                 partes = list(), asignados = asignados)
+  expect_identical(ind$aplicadores$Aplicador[[1]], "Equipo B")
+  expect_equal(ind$aplicadores$`Con respuestas`[[1]], 0)
+  expect_true(is.na(ind$aplicadores$`Media por curso-horario`[[1]]))
+})
+
+test_that("la cuenta del parte y la de plataforma se publican juntas, no mezcladas", {
+  # Son dos medidas del mismo trabajo —lo que el aplicador contó al cerrar y lo
+  # que llegó a la plataforma— y verlas juntas es el control que la hoja da.
+  # Mezclarlas perdería de cuál viene cada número.
+  ind <- aulas_libro_indicadores(
+    .ci_plan(), efectivas = c(`CH 1` = 34, `CH 2` = 38),
+    partes = list(list(operational_code = "CH 1", applied_by = "Equipo A",
+                       effective_surveys = 34)),
+    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo A"))
+  a <- ind$aplicadores
+  expect_equal(a$`Efectivas en plataforma`[[1]], 72)
+  expect_equal(a$`Efectivas declaradas`[[1]], 34)
+  expect_equal(a$`Partes rendidos`[[1]], 1L)
 })
 
 test_that("la hoja va la ULTIMA: el libro lo abre quien agenda", {
@@ -182,16 +214,14 @@ test_that("A9-B6: «Media por aula» conserva su decimal — es un promedio, no 
   # Pin de conservacion (hoy verde): la regla de enteros es de los CONTEOS de
   # personas. Un arreglo que aplane tambien los promedios repetiria el defecto
   # ya documentado en el estilo `promedio` («23» entre 20.5 y 23.8).
-  partes <- list(
-    list(operational_code = "CH 1", applied_by = "Equipo Unico", effective_surveys = 8),
-    list(operational_code = "CH 2", applied_by = "Equipo Unico", effective_surveys = 5)
-  )
-  ind <- aulas_libro_indicadores(.ci_plan_fraccionario(), efectivas = NULL,
-                                 partes = partes)
+  ind <- aulas_libro_indicadores(
+    .ci_plan_fraccionario(), efectivas = c(`CH 1` = 8, `CH 2` = 5),
+    partes = list(),
+    asignados = list(`CH 1` = "Equipo Unico", `CH 2` = "Equipo Unico"))
   d <- .ci_hoja_escrita(ind)
   fila_cab <- which(as.character(d[[1]]) == "Aplicador")
   expect_length(fila_cab, 1L)
-  col_media <- which(as.character(unlist(d[fila_cab, ])) == "Media por aula")
+  col_media <- which(as.character(unlist(d[fila_cab, ])) == "Media por curso-horario")
   expect_length(col_media, 1L)
   fila_apl <- which(as.character(d[[1]]) == "Equipo Unico")
   expect_length(fila_apl, 1L)

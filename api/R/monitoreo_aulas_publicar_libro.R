@@ -343,6 +343,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            # último día). NULL = sin respuestas
                                            # sincronizadas y el bloque calla.
                                            conteos = NULL,
+                                           # Las respuestas sincronizadas: la
+                                           # hoja de avance las necesita para
+                                           # su fecha de corte, su serie diaria
+                                           # y el reparto por sexo.
+                                           responses = NULL,
+                                           validas = NULL,
                                            cuotas = NULL,
                                            traslape_daa = NULL,
                                            disponibilidad = NULL,
@@ -434,7 +440,19 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # publicaciones del MISMO estado como distintas.
   producidas[[.malp_hoja_avance()]] <- .malp_df_a_values(
     aulas_libro_hoja_avance(aulas_libro_indicadores(
-      unidades, efectivas = efectivas, partes = partes, cuotas = cuotas
+      unidades, efectivas = efectivas, partes = partes, cuotas = cuotas,
+      cfg = config_reparto,
+      # **Las RESPUESTAS, que esta llamada no pasaba.** El xlsx las pasa y el
+      # Sheets no, así que la misma hoja salía distinta en los dos sitios y en
+      # el Sheets —el que mira el equipo— faltaban tres cosas a la vez: la
+      # fecha de corte («sin fecha de corte: el avance diario aún no trae
+      # respuestas fechadas»), la tabla de avance diario entera, y las columnas
+      # de conseguidas por sexo, que se calculan cruzando las respuestas.
+      # Visto publicado el 2026-09-07.
+      responses = responses, validas = validas,
+      # El mismo reparto que ya alimenta el «Plan del día» de esta publicación.
+      asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
+                                                   cfg = config_reparto)
     ))
   )
   if (!is.null(valores_asignacion)) {
@@ -700,6 +718,11 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       efectivas = efectivas,
       efectivas_sexo = efectivas_sexo,
       conteos = conteos,
+      responses = (s$monitoreo_snapshot %||% list())$data,
+      validas = tryCatch(
+        .monitoreo_aulas_valid_response((s$monitoreo_snapshot %||% list())$data, aulas_cfg),
+        error = function(e) NULL
+      ),
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],

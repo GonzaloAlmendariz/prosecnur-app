@@ -1200,6 +1200,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   if (length(extras)) {
     hojas[[AULAS_LIBRO_HOJA_APLICADAS_EXTRA]] <- aulas_libro_hoja_aplicadas_extra(extras, partes = partes)
   }
+  # El reparto por código, UNA vez: lo usan el «Plan del día» —para decir quién
+  # va a cada aula— y la producción por aplicador de «Avance de campo», que sin
+  # él sólo puede hablar de quien ya rindió parte.
+  asignados_por_codigo <- aulas_libro_asignados_por_codigo(
+    plan_completo, disponibilidad, cfg = cfg)
+
   # Lo que la plataforma sabe por aula. Se calcula AQUÍ y no lo pide el
   # llamador: `responses` y `cfg` ya viajan hasta esta función, y un parámetro
   # más sería una tercera oportunidad de que alguien lo olvide y el bloque
@@ -1218,7 +1224,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   hojas[["Plan del día"]] <- aulas_libro_hoja_plan_dia(
     unidades, partes = partes, efectivas = efectivas,
     efectivas_sexo = efectivas_sexo,
-    asignados = aulas_libro_asignados_por_codigo(plan_completo, disponibilidad, cfg = cfg))
+    asignados = asignados_por_codigo)
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
@@ -1250,7 +1256,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # va el campo la busca, y encontrarla al final no le cuesta nada.
   aulas_libro_escribir_indicadores(
     wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas,
-                                cuotas = cuotas, cfg = cfg),
+                                cuotas = cuotas, cfg = cfg,
+                                asignados = asignados_por_codigo),
     procedencia = procedencia
   )
 

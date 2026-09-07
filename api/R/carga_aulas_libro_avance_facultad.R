@@ -58,9 +58,13 @@
   clave <- .cm_criterios_fac_key(fac)
   # El operativo son los titulares más las reservas que se activaron: es el mismo
   # conjunto que cuenta «Aulas del operativo» en el encabezado de la hoja.
+  # TITULARES, el mismo conjunto que cuenta «Aulas del operativo» en el
+  # encabezado de la hoja. Contó además las reservas con fecha y la columna sumó
+  # 175 al lado de un encabezado que decía 174: una reserva activada SUSTITUYE a
+  # su titular, no se suma a él —es la misma regla que la app enuncia en su
+  # recorrido— así que contarla dos veces infla el denominador.
   del_operativo <- vapply(unidades, function(u) {
-    rol <- tolower(.cai_txt(u$sample_role))
-    identical(rol, "titular") || nzchar(.cai_txt(u$scheduled_date))
+    identical(tolower(.cai_txt(u$sample_role)), "titular")
   }, logical(1))
 
   # El ratio del diseño: techo operativo entre meta. Sale del bloque, no se
