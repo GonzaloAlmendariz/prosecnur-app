@@ -1174,3 +1174,80 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   color: var(--pulso-text-faint);
   flex: 1 1 22ch;
 }
+
+/* ── Los viajes por una sola aula, con su motivo ──────────────────────────────
+   Dictado 2026-09-04: «que todos tengan asignaciones el mismo día… o aunque sea
+   por lo menos vengan por dos aplicaciones». El motor baja los viajes
+   solitarios hasta donde la física deja; los que quedan se explican aquí, uno
+   por uno y con la gente nombrada.
+
+   Hereda el plegado y la tipografía de `.aulas-asigna-libres` porque son
+   vecinos en el mismo rail y son la misma clase de aviso: diagnóstico que se
+   mira cuando se va a mover algo, no permanentemente. Lo que añade es la marca
+   de lo ACCIONABLE, que es la única distinción que cambia qué hace el usuario:
+   la causa `tope` se resuelve fijando la cita desde la tabla; las otras tres
+   piden mover la agenda o conseguir gente. */
+.aulas-asigna-solitarios { margin: 0 0 2px; }
+.aulas-asigna-solitarios > summary {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style-position: inside;
+}
+.aulas-asigna-solitarios > summary:hover { color: var(--pulso-module-monitoring); }
+.aulas-asigna-solitarios > summary:focus-visible {
+  outline: 2px solid var(--pulso-module-monitoring); outline-offset: 2px; border-radius: 4px;
+}
+/* **Una línea por viaje, y las tres columnas alineadas entre filas.**
+   Cada ítem nombra a quién está ocupado y en qué cita, y eso no cabe apilado:
+   en el rail de 250px cada uno se partía en cinco renglones y doce viajes
+   medían 1.194px de alto. Con el ancho de la columna de días entra en una
+   línea.
+
+   La rejilla vive en el `ul` y los `li` van en `display: contents`, no una
+   rejilla por ítem: con una rejilla por ítem cada fila calculaba su propio
+   ancho de columna y «Martes 08/09» empezaba en una x distinta en cada línea,
+   que es justo lo que hace ilegible una lista de doce. El `li` pierde su caja,
+   así que la marca de accionable cuelga del nombre y no del ítem. */
+.aulas-asigna-solitarios ul {
+  margin: 4px 0 6px;
+  padding: 6px 0 6px 9px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 5px;
+  list-style: none;
+  border-left: 2px solid var(--pulso-border-strong);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+.aulas-asigna-solitarios li { display: contents; }
+.aulas-asigna-solitarios li strong { color: var(--pulso-text); font-weight: 600; white-space: nowrap; }
+/* La cita va en el tono de los metadatos: se lee primero el nombre, después el
+   motivo, y la cita queda como referencia entre los dos. */
+.aulas-asigna-solitarios-cita { color: var(--pulso-text-faint); white-space: nowrap; }
+.aulas-asigna-solitarios-motivo { min-width: 0; }
+/* Estrecho: una sola columna y cada pieza en su renglón, que ahí es lo legible.
+   Como los `li` son `contents`, basta con colapsar la rejilla del `ul`. */
+@media (max-width: 720px) {
+  .aulas-asigna-solitarios ul { grid-template-columns: minmax(0, 1fr); row-gap: 1px; }
+  .aulas-asigna-solitarios li strong { margin-top: 5px; white-space: normal; }
+  .aulas-asigna-solitarios-cita { white-space: normal; }
+}
+/* Lo accionable se marca con la barra del módulo, no con un color de alarma:
+   no es un error, es lo único de esta lista que el usuario puede cerrar. */
+.aulas-asigna-solitarios li.es-accionable > strong {
+  border-left: 2px solid var(--pulso-module-monitoring);
+  margin-left: -10px;
+  padding-left: 8px;
+  color: var(--pulso-module-monitoring);
+}
+.aulas-asigna-solitarios-nota {
+  margin: 0 0 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+}
