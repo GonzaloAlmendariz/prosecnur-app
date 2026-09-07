@@ -286,7 +286,10 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
       "% ASISTENCIA"                 = n("asistencia_pct"),
       "CANTIDAD DE RECHAZOS"         = n("rechazos"),
       "DUPLICADOS (YA RESPONDIERON)" = n("duplicados"),
-      "CANTIDAD DE EFECTIVAS"        = n("efectivas"),
+      # S14 (dictado 2026-09-07): el conteo del aplicador se escribe como
+      # «CANTIDAD DE ENCUESTAS APLICADAS»; las efectivas las da la app. El
+      # lector acepta también el título viejo (carga_aulas_aplicadas.R).
+      "CANTIDAD DE ENCUESTAS APLICADAS" = n("efectivas"),
       # Dictado 2026-09-04: sin parte todavía, el estado es POR APLICAR, no
       # una celda vacía. El vacío se lee como «nadie la miró» y estas aulas
       # sí están miradas: están esperando su turno.
@@ -404,7 +407,7 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
 # razon y su formato depende de la escala que traiga.
 .calg_campo_numeros <- function() c(
   "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES", "CANTIDAD DE ASISTENTES",
-  "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS"
+  "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE ENCUESTAS APLICADAS"
 )
 
 # El orden v4 del parte (B16, dictado: «la asistencia, la cantidad de rechazos,
@@ -420,7 +423,7 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES",
   "APLICADOR", "FECHA DE APLICACIÓN", "HORA DE APLICACIÓN", "AULA",
   "CANTIDAD DE ASISTENTES", "% ASISTENCIA", "CANTIDAD DE RECHAZOS",
-  "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS",
+  "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE ENCUESTAS APLICADAS",
   "STATUS DE APLICACIÓN",
   # La columna MANUAL del enlace del PDF escaneado (B6c): la siembra
   # `.cap_celdas_parte`, que solo devuelve lo que el parte ya traiga. En v4 va
@@ -1768,15 +1771,15 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       `Base de control` = .calg_col_control_campo("operational_code")
     ), extras_fmt$columnas_repetidas),
     # Las bandas de grupo de la hoja de campo: una por intento.
-    # La regla de cuadre del parte, una por intento: las efectivas no pueden
-    # superar a los asistentes menos rechazos y duplicados.
+    # La regla de cuadre del parte, una por intento: las encuestas aplicadas
+    # no pueden superar a los asistentes menos rechazos y duplicados.
     descuadres = lapply(seq_len(bloques_campo), function(b) list(
       hoja = "Aulas Aplicadas (Campo)", desde = 2L,
       filas = max(0L, filas_aplicadas),
       asistentes = col_campo("CANTIDAD DE ASISTENTES", b),
       rechazos = col_campo("CANTIDAD DE RECHAZOS", b),
       duplicados = col_campo("DUPLICADOS (YA RESPONDIERON)", b),
-      efectivas = col_campo("CANTIDAD DE EFECTIVAS", b)
+      efectivas = col_campo("CANTIDAD DE ENCUESTAS APLICADAS", b)
     )),
     combinar = c(
       lapply(seq_len(bloques_campo), function(b) list(

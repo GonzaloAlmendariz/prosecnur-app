@@ -68,11 +68,14 @@
 # MATRICULADOS TOTAL DTI, carga_aulas_aplicadas.R) y el denominador que
 # «% ASISTENCIA» necesita al lado. Después, el flujo del parte tal como se
 # rinde: quién aplicó, cuándo, dónde, cuánto, con qué estado y su evidencia.
+# S14 (dictado de Gonzalo 2026-09-07): el conteo del aplicador se escribe como
+# «CANTIDAD DE ENCUESTAS APLICADAS», no «CANTIDAD DE EFECTIVAS» (las efectivas
+# las da la app). El título viejo se sigue LEYENDO (carga_aulas_aplicadas.R).
 .v4_TITULOS_CAMPO <- c(
   "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES",
   "APLICADOR", "FECHA DE APLICACIÓN", "HORA DE APLICACIÓN", "AULA",
   "CANTIDAD DE ASISTENTES", "% ASISTENCIA", "CANTIDAD DE RECHAZOS",
-  "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS",
+  "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE ENCUESTAS APLICADAS",
   "STATUS DE APLICACIÓN", "ENLACE DE FICHA ESCANEADA",
   "OBSERVACIONES SOBRE APLICACIONES"
 )
