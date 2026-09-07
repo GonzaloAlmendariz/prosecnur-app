@@ -80,7 +80,11 @@
 
 #' Qué tan buena es una fila del catálogo para representar a su curso-horario.
 #'
-#' 2 = trae alguna sesión de CLASE («C»), que es donde el curso se reúne entero.
+#' 2 = trae alguna sesión de CLASE, que es donde el curso se reúne entero. La
+#'     letra no siempre es «C» a secas: el catálogo usa además C1, CP, CO y CA.
+#'     Se reconocen por el prefijo, que ninguna evaluación comparte —las suyas
+#'     empiezan por E—. Salió de reconstruir el marco de HSVG2026 con la base
+#'     212139: exigir «C» exacto perdía 2 curso-horario con C1 del marco.
 #' 1 = trae alguna sesión que no es evaluación (prácticas, talleres, laboratorio).
 #' 0 = sólo evaluación, o sin gramática reconocible.
 #' @keywords internal
@@ -94,7 +98,7 @@
     ))
     tipos <- tipos[nzchar(tipos)]
     if (!length(tipos)) return(0L)
-    if (any(tipos == "C")) return(2L)
+    if (any(grepl("^C", tipos))) return(2L)
     if (any(!grepl(.CM_AULAS_SESION_EVALUACION_RX, tipos))) return(1L)
     0L
   }, integer(1), USE.NAMES = FALSE)
