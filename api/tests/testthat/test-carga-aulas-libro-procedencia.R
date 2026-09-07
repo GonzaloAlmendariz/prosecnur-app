@@ -39,7 +39,16 @@ test_that("la marca del último import llega hasta la celda del Excel", {
   aulas_libro_generar(.pr_plan(), libro, procedencia = .pr_recibo())
   celdas <- .pr_hoja(libro)
   expect_true(any(grepl("De dónde salió este libro", celdas, fixed = TRUE)))
-  expect_true(any(grepl("2026-08-29T11:22:33Z", celdas, fixed = TRUE)))
+  # Contrato viejo (hasta el 2026-09-07): la celda llevaba el ISO UTC tal cual,
+  # «2026-08-29T11:22:33Z». Contrato nuevo (S10 del loop de mejora estética):
+  # la MISMA marca, en hora local legible «dd/mm/aaaa hh:mm» (el huso es el del
+  # equipo que genera, por eso aquí se comprueba la forma y no la hora). La
+  # reproducibilidad la sigue vigilando el test de abajo: la marca sale del
+  # estado, no del reloj.
+  marca <- grep("^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$", celdas, value = TRUE)
+  expect_length(marca, 1L)
+  expect_identical(.cai_marca_local("2026-08-29T11:22:33Z", tz = "America/Lima"), "29/08/2026 06:22")
+  expect_false(any(grepl("2026-08-29T11:22:33Z", celdas, fixed = TRUE)))
 })
 
 test_that("viajan los conteos de esa lectura, no sólo la fecha", {
