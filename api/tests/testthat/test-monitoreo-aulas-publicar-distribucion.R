@@ -63,11 +63,23 @@ test_that("publica las dos hojas de la distribución y NINGUNA del equipo", {
   )
   expect_identical(destino, "ABC123xyz")
   expect_identical(out$spreadsheet_id, "ABC123xyz")
-  # Sólo la distribución: ni «Aulas Agendadas» ni «Aulas Aplicadas (Campo)»,
-  # que son las que el equipo edita y no tienen nada que hacer en el documento
-  # de los aplicadores.
-  expect_setequal(names(escritas), c("Asignación de aplicadores", "Plan del día"))
+  # **UNA sola hoja.** La primera versión publicaba dos —la asignación por
+  # persona y el plan del día del libro— y Gonzalo la corrigió el mismo día:
+  # «le estás dando a los aplicadores más información de la que necesitan, y
+  # documentación interna».
+  expect_setequal(names(escritas), "Plan del día")
   expect_false(any(grepl("Aulas ", names(escritas), fixed = TRUE)))
+
+  # Y sin ninguna columna de gestión: esperadas, obtenidas, elegibles, estado y
+  # el enlace de la ficha se quedan en el libro operativo.
+  cabecera <- unlist(escritas[["Plan del día"]][[1]], use.names = FALSE)
+  for (fuera in c("ESPERADAS", "OBTENIDAS", "ELEGIBLES", "ENLACE", "ESTADO", "MATRICULADOS")) {
+    expect_false(any(grepl(fuera, cabecera, fixed = TRUE)), info = fuera)
+  }
+  # Lo que sí tiene que estar es lo que contesta «cuándo salgo y a dónde voy».
+  for (dentro in c("APLICADOR", "EN OFICINA", "SALE AL AULA", "AULA", "DOCENTE")) {
+    expect_true(dentro %in% cabecera, info = dentro)
+  }
   # Y el recibo declara qué hizo con cada una.
   expect_setequal(vapply(out$hojas, function(h) h$hoja, character(1)), names(escritas))
   expect_true(all(vapply(out$hojas, function(h) h$accion == "actualizada", logical(1))))
@@ -79,4 +91,34 @@ test_that("las pestañas que escribe están en la whitelist del motor de Sheets"
   controladas <- monitoreo_sheets_pestanas_controladas()
   expect_true("Asignación de aplicadores" %in% controladas)
   expect_true("Plan del día" %in% controladas)
+})
+
+test_that("cada aplicador lleva su color, y el comodín uno propio", {
+  # «Lo que sí les puede ayudar es que cada uno tenga un color distintivo en su
+  # celda para que se ubique bien, incluyendo Interno Pulso» (2026-09-07). Se
+  # pinta SOLO la celda del nombre: pintar la fila entera convierte la hoja en
+  # un arcoíris y deja de leerse.
+  filas <- list(
+    as.list(prosecnurapp:::.alpa_CABECERA),
+    list("Ana Uno", "lunes 07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", "A101", "F", "C", "D"),
+    list("Beto Dos", "lunes 07/09", "10:00", "10:15", "10:30 a 11:00", "CH 2", "A102", "F", "C", "D"),
+    list("Ana Uno", "martes 08/09", "09:30", "09:45", "10:00 a 10:30", "CH 3", "A103", "F", "C", "D"),
+    list("INTERNO PULSO", "martes 08/09", "11:00", "11:15", "11:30 a 12:00", "CH 4", "A104", "F", "C", "D")
+  )
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(7L, filas)
+  celdas <- Filter(function(r) {
+    rg <- r$repeatCell$range
+    !is.null(rg) && identical(rg$startColumnIndex, 0L) && identical(rg$endColumnIndex, 1L) &&
+      rg$startRowIndex > 0L
+  }, reqs)
+  # Una celda pintada por fila de datos.
+  expect_length(celdas, 4L)
+  color <- function(k) celdas[[k]]$repeatCell$cell$userEnteredFormat$backgroundColor
+  # La misma persona, el mismo color en los dos días: el equipo aprende el suyo.
+  expect_identical(color(1L), color(3L))
+  # Dos personas contiguas, colores distintos.
+  expect_false(identical(color(1L), color(2L)))
+  # Y el comodín no comparte con nadie.
+  expect_false(identical(color(4L), color(1L)))
+  expect_false(identical(color(4L), color(2L)))
 })
