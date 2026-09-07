@@ -263,6 +263,31 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   format(marca, "%d/%m/%Y %H:%M", tz = tz)
 }
 
+# S2 (loop estética, 2026-09-07): una NOTA es texto corrido en la columna A.
+# Sin fusionar, Excel la deja derramarse sobre las celdas vacías de al lado y
+# Sheets la corta en la primera ocupada: en los dos casos sobresale de su
+# tabla y no se lee como parte del bloque. Aquí se fusiona a lo ancho de la
+# hoja, baja de línea y su fila crece lo que el texto necesita.
+#
+# Los caracteres que caben por línea salen de los anchos que fija esta misma
+# hoja al final (`setColWidths`: A = 34, B–D = 20, el resto 15); si esos anchos
+# cambian, cambia aquí el reparto, no el mecanismo.
+.cai_chars_por_linea <- function(n_hoja) {
+  n_hoja <- max(1L, as.integer(n_hoja))
+  34L + 20L * min(3L, n_hoja - 1L) + 15L * max(0L, n_hoja - 4L)
+}
+
+.cai_nota <- function(wb, hoja, fila, texto, estilo, n_hoja) {
+  texto <- as.character(texto %||% "")[1]
+  if (is.na(texto)) texto <- ""
+  openxlsx::writeData(wb, hoja, texto, startCol = 1, startRow = fila)
+  openxlsx::mergeCells(wb, hoja, cols = seq_len(n_hoja), rows = fila)
+  openxlsx::addStyle(wb, hoja, estilo, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+  lineas <- max(1L, ceiling(nchar(texto, type = "chars") / .cai_chars_por_linea(n_hoja)))
+  openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 15 * lineas + 2)
+  invisible(fila)
+}
+
 # S3: el ancho de la hoja lo fija su tabla más ancha (hoy la de facultades,
 # doce columnas), y TODAS las bandas de sección lo cubren. Medido antes: la
 # banda de «Avance contra la meta» iba con `cols = 1:2` y la de procedencia
@@ -287,6 +312,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                    borderColour = "#C7D0DD")
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
   n_hoja <- .cai_ancho_hoja(ind)
+  # S2: las notas bajan de línea dentro de su fusión y se leen desde arriba.
+  nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
+  nota_pie <- openxlsx::createStyle(fontSize = 9, fontColour = "#5B6472", wrapText = TRUE,
+                                    valign = "top")
   # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
   #
   # El decimal opcional existia para las cifras que llegaban fraccionarias
@@ -388,20 +417,18 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # decide solo: con plataforma completa pero sin partes no hay choque y no
   # escribe nada.
   if (sin_dato) {
-    openxlsx::writeData(
-      wb, hoja,
+    .cai_nota(
+      wb, hoja, fila,
       "Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.",
-      startCol = 1, startRow = fila
+      nota, n_hoja
     )
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 1L
   }
   # Fila propia de ancho completo tras el bloque de meta, NUNCA una celda extra
   # dentro de una fila etiqueta|valor: las adyacencias col+1 estan pineadas.
   puente <- .calap_puente_con_datos(sin_dato, ind$aplicadores)
   if (!is.null(puente)) {
-    openxlsx::writeData(wb, hoja, puente, startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+    .cai_nota(wb, hoja, fila, puente, nota, n_hoja)
     fila <- fila + 1L
   }
 
@@ -416,12 +443,11 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     fila <- fila + 1L
     # La cuota NO se compensa entre facultades: se dice, porque quien mire el
     # total de arriba y esta tabla junto va a querer restar.
-    openxlsx::writeData(
-      wb, hoja,
+    .cai_nota(
+      wb, hoja, fila,
       "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo que falta en otra.",
-      startCol = 1, startRow = fila
+      nota, n_hoja
     )
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$facultades, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
@@ -485,17 +511,16 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     # es OTRA cosa: que el techo por facultad es una DERIVACION del ratio
     # global, no una cifra que el diseño haya calculado facultad a facultad.
     # Y sobre todo, cual de las dos decide el cierre.
-    openxlsx::writeData(
-      wb, hoja,
+    .cai_nota(
+      wb, hoja, fila,
       paste0(
         "La muestra es la cuota del diseño y es la que decide el cierre. ",
         "El techo con sobremuestra reparte el aforo comprado con el ratio del estudio",
         if (is.finite(ratio_hoja)) sprintf(" (x%s)", format(round(ratio_hoja, 2), trim = TRUE)) else "",
         ": es margen operativo, no una segunda meta."
       ),
-      startCol = 1, startRow = fila
+      nota, n_hoja
     )
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 2L
   }
 
@@ -550,9 +575,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   if (is.null(ind$diario) || !nrow(ind$diario)) {
     openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
-    openxlsx::writeData(wb, hoja, .cali_motivo_sin_diario(ind), startCol = 1,
-                        startRow = fila + 1L)
-    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila + 1L, cols = 1)
+    .cai_nota(wb, hoja, fila + 1L, .cali_motivo_sin_diario(ind), nota, n_hoja)
     fila <- fila + 3L
   } else {
     openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
@@ -610,11 +633,11 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     }
     # La frase que convierte el dato en una accion: sin esto son cuatro cifras
     # que nadie sabe para que mirar.
-    openxlsx::writeData(
-      wb, hoja,
+    .cai_nota(
+      wb, hoja, fila,
       "Si editaste el libro después de esa fecha y no lo subiste, la app todavía no lo sabe.",
-      startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, pie, rows = fila, cols = 1)
+      nota_pie, n_hoja
+    )
     fila <- fila + 2L
   }
 

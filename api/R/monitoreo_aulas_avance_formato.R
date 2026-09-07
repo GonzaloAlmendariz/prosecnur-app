@@ -122,7 +122,8 @@
   # S1: anchos por columna y cifras a la derecha, derivados del contenido.
   # Van DESPUÉS del ancho único de la capa genérica, que así queda pisado.
   m <- .maaf_celdas(rows, n_cols)
-  c(requests, .maaf_ancho_requests(sheet_id, m), .maaf_alinear_requests(sheet_id, m))
+  c(requests, .maaf_ancho_requests(sheet_id, m), .maaf_alinear_requests(sheet_id, m),
+    .maaf_nota_requests(sheet_id, m))
 }
 
 # --- S1 (loop estética-aulas-sheets, 2026-09-07): la hoja se lee como tabla ---
@@ -136,9 +137,13 @@
 # columnas cuyas celdas de datos son cifras se alinean a la derecha. Todo se
 # deriva de los rows publicados; ninguna posición viene de un número mágico.
 
-# Una celda más larga que esto es una nota, no un rótulo: no manda ancho (las
-# notas se fusionan a lo ancho del bloque, unidad S2).
+# Una celda más larga que esto es una nota, no un rótulo: no manda ancho.
 .maaf_NOTA_MIN_CHARS <- 60L
+
+# S2: una fila es NOTA cuando trae UNA sola celda con contenido, en la columna
+# A, que no es título de bloque ni cabecera y pasa de este largo (los rótulos
+# de la hoja no llegan a 30; «Al 07/09/2026» tampoco).
+.maaf_NOTA_DETECTAR_CHARS <- 40L
 
 # Cabecera de tabla: baja de línea, así que aporta a lo más esto al ancho.
 .maaf_CABECERA_MAX_CHARS <- 14L
@@ -243,6 +248,56 @@
     while (k < length(cifra) && cifra[k + 1L]) k <- k + 1L
     requests[[length(requests) + 1L]] <- .maaf_derecha(sheet_id, j - 1L, k, desde_fila, n_filas)
     j <- k + 1L
+  }
+  requests
+}
+
+# --- S2: las notas no se derraman -------------------------------------------
+#
+# Medido en el libro real del 07/09: las notas («La cuota es de cada facultad y
+# de cada sexo…», «La muestra es la cuota del diseño…») viajan en UNA celda de
+# la columna A; en Sheets se derraman hasta la primera celda ocupada y
+# sobresalen de su tabla. Aquí cada nota se fusiona a lo ancho publicado, baja
+# de línea, se lee desde arriba y su fila crece lo que el texto necesita. El
+# reset de pestaña del motor (`.monitoreo_sheets_reset_tab_requests`) deshace
+# los merges viejos antes de reformatear, así que una republicación con otra
+# geometría no hereda fusiones corridas.
+
+.maaf_es_nota <- function(celdas_fila) {
+  con_texto <- which(nzchar(celdas_fila))
+  if (length(con_texto) != 1L || con_texto != 1L) return(FALSE)
+  primera <- celdas_fila[[1L]]
+  !(primera %in% .maaf_TITULOS_BLOQUE) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+    nchar(primera, type = "chars") > .maaf_NOTA_DETECTAR_CHARS
+}
+
+.maaf_nota_requests <- function(sheet_id, m) {
+  n_filas <- nrow(m)
+  n_cols <- ncol(m)
+  if (!n_filas) return(list())
+  # Los caracteres por línea salen de los anchos que esta misma hoja pide
+  # (~7,2 px por carácter); así el alto sigue al ancho real, no a una constante.
+  chars_por_linea <- max(20L, as.integer(floor(sum(.maaf_anchos_px(m)) / 7.2)))
+  requests <- list()
+  for (i in seq_len(n_filas)) {
+    if (!.maaf_es_nota(m[i, ])) next
+    rango <- list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(i - 1L), endRowIndex = as.integer(i),
+      startColumnIndex = 0L, endColumnIndex = as.integer(n_cols)
+    )
+    requests[[length(requests) + 1L]] <- list(mergeCells = list(range = rango, mergeType = "MERGE_ALL"))
+    requests[[length(requests) + 1L]] <- list(repeatCell = list(
+      range = rango,
+      cell = list(userEnteredFormat = list(
+        wrapStrategy = "WRAP",
+        verticalAlignment = "TOP",
+        textFormat = list(foregroundColor = .monitoreo_sheets_rgb("#5B6472"))
+      )),
+      fields = "userEnteredFormat(wrapStrategy,verticalAlignment,textFormat)"
+    ))
+    lineas <- max(1L, ceiling(nchar(m[i, 1L], type = "chars") / chars_por_linea))
+    requests[[length(requests) + 1L]] <- .maaf_alto_fila(sheet_id, i, 21L * lineas + 4L)
   }
   requests
 }
