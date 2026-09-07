@@ -711,9 +711,22 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
       i <- match(cod_u, names(efectivas))
       if (is.na(i)) NA_real_ else suppressWarnings(as.numeric(efectivas[[i]]))
     }
-    pct <- function(x) if (is.finite(x) && is.finite(eleg) && eleg > 0) x / eleg else NA_real_
+    # **En personas y con dos decimales el porcentaje.**
+    #
+    # Las esperadas son un producto de tasas, así que salían `21.6`, y el
+    # porcentaje sin redondear salía `0.4075472`. Gonzalo lo vio publicado el
+    # 2026-09-07. Nadie consigue veintiún coma seis encuestas ni lee siete
+    # decimales; es el mismo arreglo que ya se hizo en «Plan del día», aquí
+    # faltaba.
+    #
+    # El porcentaje se calcula sobre las esperadas SIN redondear: redondear
+    # primero y dividir después mueve el porcentaje sin necesidad.
+    pct <- function(x) {
+      if (is.finite(x) && is.finite(eleg) && eleg > 0) round(x / eleg, 3L) else NA_real_
+    }
+    esperadas_txt <- if (is.finite(esperadas)) as.integer(round(esperadas)) else esperadas
 
-    pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas))
+    pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas_txt))
     # El denominador del % de al lado. Es el mismo `eligible_n` de
     # «MATRICULADOS ELEGIBLES»: se repite para que el porcentaje se lea sin
     # cruzar la hoja. NO es una meta — la meta es «EFECTIVAS ESPERADAS».
@@ -723,11 +736,11 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     # efectivas y «todavia no sabemos» son dos noticias distintas, y en un aula
     # sin aplicar la segunda es la cierta.
     if (is.finite(obtenidas)) {
-      pon("EFECTIVAS OBTENIDAS", .calg_num_txt(obtenidas))
+      pon("EFECTIVAS OBTENIDAS", .calg_num_txt(as.integer(round(obtenidas))))
       pon("% EFECTIVAS OBTENIDO", .calg_num_txt(pct(obtenidas)))
       if (is.finite(esperadas)) {
         # En encuestas y con signo: «te faltan 4» es accionable, «-13 %» no.
-        pon("EFECTIVAS: DIFERENCIA", .calg_num_txt(obtenidas - esperadas))
+        pon("EFECTIVAS: DIFERENCIA", .calg_num_txt(as.integer(round(obtenidas - esperadas))))
       }
     }
 
