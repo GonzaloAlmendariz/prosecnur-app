@@ -32,7 +32,9 @@ describe("embudoDelOperativo", () => {
       respuestas_total: 900, respuestas_validas: 860, filter_rejected: 40,
     });
     expect(con.map((x) => x.id)).toEqual(["plan", "aplicadas", "recibidas", "validas"]);
-    expect(con[2].merma).toEqual({ n: 40, label: "descartadas por el filtro" });
+    // Sin nada declarado como fuera del operativo, la merma dice su única
+    // causa: el criterio de efectividad.
+    expect(con[2].merma).toEqual({ n: 40, label: "no pasan el criterio de efectividad" });
   });
 
   it("la merma es la diferencia con la etapa de abajo, no `filter_rejected`", () => {
@@ -52,7 +54,23 @@ describe("embudoDelOperativo", () => {
       aulas_titulares: 174, aulas_aplicadas: 78,
       respuestas_total: 1811, respuestas_validas: 1637, filter_rejected: 67,
     });
-    expect(e[2].merma).toEqual({ n: 174, label: "descartadas por el filtro" });
+    expect(e[2].merma?.n).toBe(174);
+  });
+
+  it("la merma separa lo que no era del estudio de lo que no pasó el criterio", () => {
+    // **Dos noticias distintas en la misma cifra.** El primer día de HSVG2026
+    // el embudo decía «−60 descartadas por el filtro»: 36 habían llegado por el
+    // QR de capacitación o de prueba —no son del operativo y no hay nada que
+    // arreglar— y 24 sí salieron de un aula y no pasaron el criterio, que es lo
+    // único sobre lo que el campo puede actuar.
+    const e = embudoDelOperativo({
+      aulas_titulares: 174, aulas_aplicadas: 8,
+      respuestas_total: 253, respuestas_validas: 193,
+      respuestas_fuera_del_operativo: 36,
+    });
+    expect(e[2].merma?.n).toBe(60);
+    expect(e[2].merma?.label).toContain("36 fuera del operativo");
+    expect(e[2].merma?.label).toContain("24 no pasan el criterio");
   });
 
   it("nunca da una merma negativa", () => {
@@ -121,14 +139,22 @@ describe("explicacionDelEmbudo", () => {
     // Quien lee la explicación, importa el libro y ve «Aplicadas 0» concluye
     // que la app está rota. Este test defiende que la frase distinga los tres
     // caminos y no vuelva a prometer el que no manda.
+    //
+    // **Y desde el 2026-09-07 los tres SÍ cuentan.** La definición cambió el
+    // primer día de campo: con ocho aulas produciendo encuestas la cifra decía
+    // UNA, porque sólo miraba el registro de la app. Lo que este test defiende
+    // ahora es que la frase nombre los tres caminos y no vuelva a prometer que
+    // uno de ellos no mueve la cifra — una explicación que sobrevive al cambio
+    // que describe deja de explicar y pasa a desmentir el número que tiene
+    // encima.
     const [primera] = explicacionDelEmbudo({ aulas_titulares: 193 });
     expect(primera).toContain("alguien lo registra en esta app");
-    expect(primera).toContain("aunque todavía no haya llegado ninguna respuesta");
-    // El libro se nombra, y se dice explícitamente que no mueve la cifra.
-    expect(primera).toContain("libro");
-    expect(primera).toContain("no la mueve");
-    // Y no vuelve a atribuirle la cifra al parte.
-    expect(primera).not.toContain("cuando su parte de campo lo declara");
+    expect(primera).toContain("parte");
+    expect(primera).toContain("respuestas");
+    expect(primera).toContain("basta con uno");
+    // Y ninguna versión de «este camino no cuenta».
+    expect(primera).not.toContain("no la mueve");
+    expect(primera).not.toContain("sólo el primero");
   });
 
   it("dice que una reserva sustituye, no suma", () => {
@@ -176,20 +202,35 @@ describe("explicacionDelEmbudo", () => {
  * Un test por superficie no basta cuando la misma frase vive en dos sitios del
  * mismo módulo; este cubre las dos a la vez.
  */
-describe("embudoDelOperativo · ninguna superficie atribuye la cifra al parte", () => {
-  it("la etapa de aplicadas dice que las registra la app", () => {
+describe("embudoDelOperativo · las dos superficies dicen lo mismo del parte", () => {
+  it("la etapa de aplicadas nombra los tres caminos", () => {
+    // **Antes prohibía nombrar el parte aquí**, y con razón: la cifra sólo
+    // contaba el registro de la app. Desde el 2026-09-07 el parte SÍ la mueve
+    // —igual que las respuestas—, así que lo que este test defiende es lo que
+    // no cambió: que el detalle de la etapa y la prosa de más abajo digan lo
+    // MISMO. Ya pasó una vez que se arregló una y la otra se quedó atrás, en
+    // este mismo archivo.
     const etapas = embudoDelOperativo({ aulas_titulares: 193, aulas_aplicadas: 0 });
     const aplicadas = etapas.find((e) => e.id === "aplicadas");
-    expect(aplicadas?.detalle).toContain("esta app");
-    expect(aplicadas?.detalle).not.toContain("parte de campo");
+    expect(aplicadas?.detalle).toContain("parte");
+    expect(aplicadas?.detalle).toContain("respuestas");
   });
 
-  it("y ninguna etapa del recorrido nombra el parte como su fuente", () => {
+  it("y el detalle de la etapa concuerda con la prosa del recorrido", () => {
     const etapas = embudoDelOperativo({
       aulas_titulares: 193, aulas_aplicadas: 12, respuestas_total: 300, respuestas_validas: 280,
     });
-    for (const etapa of etapas) {
-      expect(String(etapa.detalle ?? "")).not.toContain("parte de campo");
+    const detalle = String(etapas.find((e) => e.id === "aplicadas")?.detalle ?? "");
+    const [prosa] = explicacionDelEmbudo({ aulas_titulares: 193 });
+    // Los dos caminos que la versión anterior negaba, nombrados en las dos.
+    for (const camino of ["parte", "respuestas"]) {
+      expect(detalle).toContain(camino);
+      expect(prosa).toContain(camino);
+    }
+    // Y ninguna vuelve a decir que uno de ellos no cuenta.
+    for (const texto of [detalle, prosa]) {
+      expect(texto).not.toContain("no la mueve");
+      expect(texto).not.toContain("sólo el primero");
     }
   });
 });

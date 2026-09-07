@@ -30,7 +30,7 @@
   hit[[1]]
 }
 
-.cif_libro <- function(con_diario = FALSE) {
+.cif_libro <- function(con_diario = FALSE, con_plataforma = TRUE) {
   ruta <- tempfile(fileext = ".xlsx")
   plan <- lapply(1:6, function(i) list(
     classroom_id = paste0("A", i), operational_code = paste("CH", i), label = "x",
@@ -38,14 +38,23 @@
     expected_valid = 21, faculty = "F1"
   ))
   # Dos aplicadores con media entera y media con decimal: el caso que destapo el
-  # formato. 25 aulas a 23 encuestas da 23.0 exacto.
+  # formato. Dos cursos-horario a 23 encuestas dan 23.0 exacto; 20 y 21 dan 20.5.
+  #
+  # Desde el 2026-09-07 la media sale de la PLATAFORMA. La atribución la manda
+  # el reparto y, sin reparto —este libro no lo tiene—, el parte: también dice
+  # quién aplicó cada curso-horario.
   partes <- list(
     list(operational_code = "CH 1", applicator = "Equipo 1", effective_surveys = 23),
     list(operational_code = "CH 2", applicator = "Equipo 1", effective_surveys = 23),
     list(operational_code = "CH 3", applicator = "Equipo 2", effective_surveys = 20),
     list(operational_code = "CH 4", applicator = "Equipo 2", effective_surveys = 21)
   )
-  aulas_libro_generar(plan, ruta, partes = partes)
+  # Sin efectivas de plataforma el bloque de meta sale en «—» y la hoja escribe
+  # sus dos notas de procedencia: ése es el caso que los tests del vacío miran.
+  aulas_libro_generar(plan, ruta, partes = partes,
+                      efectivas = if (con_plataforma) {
+                        c(`CH 1` = 23, `CH 2` = 23, `CH 3` = 20, `CH 4` = 21)
+                      } else NULL)
   ruta
 }
 
@@ -55,10 +64,17 @@ test_that("«Media por aula» declara su decimal aunque sea cero", {
   # La columna 4 de «Produccion por aplicador». El formato se resuelve celda a
   # celda —`s=` → `cellXfs` → `numFmtId` → `formatCode`— y no por el catalogo:
   # un `0.0` presente por OTRA hoja no prueba nada sobre esta.
-  cab <- .cif_fila_de(ruta, "Media por aula")
+  cab <- .cif_fila_de(ruta, "Media por curso-horario")
   expect_true(is.finite(cab), info = "no se encontro la cabecera de la media")
+  # La columna se BUSCA por su cabecera: estaba fijada al índice 4 y la tabla
+  # ganó columnas el 2026-09-07 —el reparto y la cuenta de plataforma—, así que
+  # el índice apuntaba a otra cosa. Un número de columna a mano es la misma
+  # ancla frágil que un rótulo.
+  d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
+                           skipEmptyRows = FALSE)
+  col_media <- which(as.character(unlist(d[cab, ])) == "Media por curso-horario")[[1]]
   formatos <- vapply((cab + 1L):(cab + 2L),
-                     function(f) formato_de_celda(ruta, "Avance de campo", 4, f),
+                     function(f) formato_de_celda(ruta, "Avance de campo", col_media, f),
                      character(1))
   # Ninguna celda de la media puede llevar un formato que omita el decimal.
   expect_false(any(grepl("0\\.#", formatos)),
@@ -68,7 +84,7 @@ test_that("«Media por aula» declara su decimal aunque sea cero", {
 })
 
 test_that("«Avance diario» no desaparece cuando no hay serie", {
-  ruta <- .cif_libro()
+  ruta <- .cif_libro(con_plataforma = FALSE)
   on.exit(unlink(ruta), add = TRUE)
   textos <- .cif_textos(ruta)
   expect_true(any(grepl("^Avance diario$", textos)),
@@ -79,7 +95,7 @@ test_that("«Avance diario» no desaparece cuando no hay serie", {
 })
 
 test_that("el bloque de meta dice de donde saldrian sus cifras", {
-  ruta <- .cif_libro()
+  ruta <- .cif_libro(con_plataforma = FALSE)
   on.exit(unlink(ruta), add = TRUE)
   textos <- .cif_textos(ruta)
   expect_true(any(grepl("salen de la plataforma, no del parte", textos)),

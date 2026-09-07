@@ -45,12 +45,16 @@
 #' @param partes partes de campo, para la produccion por aplicador.
 #' @return lista con `meta`, `diario` y `aplicadores`. Los conteos de personas
 #'   (`meta_total`, `logrado`, `falta`, «Falta para la meta» del diario) salen
-#'   ENTEROS del modelo; las tasas y promedios (`avance`, «Media por aula»)
+#'   ENTEROS del modelo; las tasas y promedios (`avance`, «Media por curso-horario»)
 #'   conservan su decimal.
 #' @export
 aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL,
                                     partes = list(), validas = NULL,
-                                    cuotas = NULL, cfg = list()) {
+                                    cuotas = NULL, cfg = list(),
+                                    # `codigo -> aplicador` del reparto: sin él,
+                                    # la producción por aplicador sólo puede
+                                    # hablar de quien ya rindió parte.
+                                    asignados = NULL) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
 
@@ -138,27 +142,81 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   }
 
   # **Produccion por aplicador**: el campo pregunta a quien empujar.
+  #
+  # **Y la respuesta salía del parte, que en la primera semana casi no existe.**
+  # El 2026-09-07 esta tabla enseñaba UNA fila —«González Rubio · 1 aula · 34
+  # efectivas declaradas»— con ocho cursos-horario aplicados y seis aplicadores
+  # en la calle. La cuenta del parte es la del aplicador al cerrar; la de la
+  # plataforma llega sola y es la que sirve a media jornada.
+  #
+  # Se publican las dos, una al lado de la otra: la declarada dice lo que el
+  # aplicador contó, la de plataforma lo que llegó, y verlas juntas es el
+  # control de campo que la hoja existe para dar. La atribución de la de
+  # plataforma sale del REPARTO, no del parte, así que un aplicador aparece en
+  # cuanto sale a su primera aula.
   aplicadores <- NULL
-  if (length(partes)) {
-    quien <- vapply(partes, function(p) .cai_txt(p$applied_by %||% p$applicator), character(1))
-    ef <- vapply(partes, function(p) {
+  quien_parte <- if (length(partes)) {
+    vapply(partes, function(p) .cai_txt(p$applied_by %||% p$applicator), character(1))
+  } else character(0)
+  ef_parte <- if (length(partes)) {
+    vapply(partes, function(p) {
       v <- .cai_num(p$effective_surveys); if (is.finite(v)) v else 0
     }, numeric(1))
-    ok <- nzchar(quien)
-    if (any(ok)) {
-      claves <- sort(unique(quien[ok]))
-      aplicadores <- data.frame(
-        Aplicador = claves,
-        Aulas = vapply(claves, function(k) sum(quien == k), integer(1)),
-        `Efectivas declaradas` = vapply(claves, function(k) sum(ef[quien == k]), numeric(1)),
-        check.names = FALSE, stringsAsFactors = FALSE
-      )
-      aplicadores$`Media por aula` <- round(
-        aplicadores$`Efectivas declaradas` / pmax(1, aplicadores$Aulas), 1
-      )
-      # Por produccion, no alfabetico: se mira primero quien va mas flojo.
-      aplicadores <- aplicadores[order(aplicadores$`Media por aula`), , drop = FALSE]
+  } else numeric(0)
+
+  # **Quién es responsable de cada curso-horario**: manda el REPARTO, y si el
+  # estudio no lo tiene —no toda operación reparte— manda el parte, que también
+  # dice quién aplicó cada uno. Sin ninguno de los dos la tabla sólo puede
+  # hablar de la cuenta declarada, que es de donde venía.
+  por_aplicador <- list()
+  atribuir <- function(cod, k) {
+    cod <- .cai_txt(cod); k <- .cai_txt(k)
+    if (!nzchar(cod) || !nzchar(k)) return(invisible(NULL))
+    if (cod %in% (por_aplicador[[k]] %||% character(0))) return(invisible(NULL))
+    por_aplicador[[k]] <<- c(por_aplicador[[k]] %||% character(0), cod)
+  }
+  for (cod in names(asignados %||% list())) atribuir(cod, asignados[[cod]])
+  if (!length(por_aplicador)) {
+    for (pt in (partes %||% list())) {
+      if (!is.list(pt)) next
+      atribuir(pt$operational_code %||% pt$classroom_id, pt$applied_by %||% pt$applicator)
     }
+  }
+
+  claves <- sort(unique(c(quien_parte[nzchar(quien_parte)], names(por_aplicador))))
+  if (length(claves)) {
+    de_plataforma <- function(k) {
+      cods <- por_aplicador[[k]] %||% character(0)
+      if (!length(cods) || is.null(efectivas)) return(c(aulas = NA_real_, ef = NA_real_))
+      v <- suppressWarnings(as.numeric(efectivas[match(cods, names(efectivas))]))
+      v[!is.finite(v)] <- 0
+      c(aulas = sum(v > 0), ef = sum(v))
+    }
+    plat <- vapply(claves, de_plataforma, numeric(2))
+    aplicadores <- data.frame(
+      Aplicador = claves,
+      `Cursos-horario asignados` = vapply(claves, function(k)
+        length(por_aplicador[[k]] %||% character(0)), integer(1)),
+      `Con respuestas` = as.numeric(plat["aulas", ]),
+      `Efectivas en plataforma` = as.numeric(plat["ef", ]),
+      `Partes rendidos` = vapply(claves, function(k) sum(quien_parte == k), integer(1)),
+      `Efectivas declaradas` = vapply(claves, function(k) {
+        if (!any(quien_parte == k)) NA_real_ else sum(ef_parte[quien_parte == k])
+      }, numeric(1)),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+    aplicadores$`Media por curso-horario` <- ifelse(
+      aplicadores$`Con respuestas` > 0,
+      round(aplicadores$`Efectivas en plataforma` / pmax(1, aplicadores$`Con respuestas`), 1),
+      NA_real_
+    )
+    # Por produccion, no alfabetico: se mira primero quien va mas flojo, y quien
+    # todavia no tiene ninguna respuesta abre la tabla.
+    aplicadores <- aplicadores[order(
+      ifelse(is.finite(aplicadores$`Media por curso-horario`),
+             aplicadores$`Media por curso-horario`, -1),
+      aplicadores$Aplicador
+    ), , drop = FALSE]
   }
 
   # **El corte por facultad y por sexo**: la cuota no se compensa entre celdas
@@ -237,7 +295,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # —muestra, conseguidas, aulas, faltan— asi que van sin parte decimal: aqui el
   # `.#` solo podia aportar la coma colgando.
   numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0")
-  # `#,##0.#` OMITE el cero decimal, asi que en «Media por aula» un 23.0 salia
+  # `#,##0.#` OMITE el cero decimal, asi que en «Media por curso-horario» un 23.0 salia
   # «23» entre 20.5, 21.9 y 23.8: la misma columna con dos formatos, y el ojo lo
   # lee como si ese equipo tuviera una cifra mas redonda que los demas. Visto en
   # el PDF. Las columnas de conteo se quedan con `numero` —«26.0 aulas» seria
@@ -410,24 +468,45 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   }
 
   if (!is.null(ind$aplicadores) && nrow(ind$aplicadores)) {
+    # **Las columnas se buscan por su nombre, no se cuentan.** Estaban fijadas a
+    # los índices 2:3 y 4, y la tabla ganó columnas el 2026-09-07 —el reparto y
+    # la cuenta de plataforma—: el `promedio` cayó sobre «Efectivas en
+    # plataforma» y la media quedó sin su decimal. Contar posiciones es la misma
+    # ancla frágil que anclar por rótulo.
+    n_col_apl <- ncol(ind$aplicadores)
+    col_media <- which(names(ind$aplicadores) == "Media por curso-horario")
+    cols_num <- setdiff(seq_len(n_col_apl)[-1L], col_media)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, "Producción por aplicador", startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_col_apl), gridExpand = TRUE)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$aplicadores, startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:4, gridExpand = TRUE)
-    n <- nrow(ind$aplicadores)
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:3,
-                       gridExpand = TRUE, stack = TRUE)
-    openxlsx::addStyle(wb, hoja, promedio, rows = (fila + 1L):(fila + n), cols = 4,
-                       gridExpand = TRUE, stack = TRUE)
-    # **La barra en un tono CLARO, o tapa el numero.** Con el navy del libro, la
-    # cifra quedaba en negro sobre azul oscuro y no se leia: la barra ayuda a
-    # comparar de un vistazo, pero el numero es el dato. Visto en el PDF.
-    openxlsx::conditionalFormatting(
-      wb, hoja, cols = 4, rows = (fila + 1L):(fila + n),
-      type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
+    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = seq_len(n_col_apl), gridExpand = TRUE)
+    # Las cabeceras de esta tabla ya no caben en su columna —«Efectivas en
+    # plataforma», «Cursos-horario asignados»— así que bajan de línea en vez de
+    # cortarse, igual que las de la tabla por facultad.
+    openxlsx::addStyle(
+      wb, hoja,
+      openxlsx::createStyle(wrapText = TRUE, valign = "bottom"),
+      rows = fila, cols = 2:n_col_apl, gridExpand = TRUE, stack = TRUE
     )
+    openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 30)
+    n <- nrow(ind$aplicadores)
+    if (length(cols_num)) {
+      openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = cols_num,
+                         gridExpand = TRUE, stack = TRUE)
+    }
+    if (length(col_media)) {
+      openxlsx::addStyle(wb, hoja, promedio, rows = (fila + 1L):(fila + n), cols = col_media,
+                         gridExpand = TRUE, stack = TRUE)
+      # **La barra en un tono CLARO, o tapa el numero.** Con el navy del libro,
+      # la cifra quedaba en negro sobre azul oscuro y no se leia: la barra ayuda
+      # a comparar de un vistazo, pero el numero es el dato. Visto en el PDF.
+      openxlsx::conditionalFormatting(
+        wb, hoja, cols = col_media[[1]], rows = (fila + 1L):(fila + n),
+        type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
+      )
+    }
     fila <- fila + n + 2L
   }
 
@@ -507,7 +586,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     fila <- fila + 2L
   }
 
-  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 30)
+  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
   openxlsx::setColWidths(wb, hoja, cols = 2:4, widths = 20)
   openxlsx::pageSetup(wb, hoja, orientation = "portrait", fitToWidth = TRUE,
                       fitToHeight = FALSE)

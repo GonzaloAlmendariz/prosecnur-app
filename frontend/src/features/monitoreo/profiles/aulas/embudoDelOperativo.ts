@@ -20,6 +20,7 @@ export type CifrasDelOperativo = {
   aulas_aplicadas?: number;
   respuestas_total?: number;
   respuestas_validas?: number;
+  respuestas_fuera_del_operativo?: number;
   filter_rejected?: number;
   reemplazos_usados?: number;
 };
@@ -86,6 +87,14 @@ export function embudoDelOperativo(
   // La heurística del motor sigue sirviendo donde nació —estudios que no
   // declaran criterio— y ahí las dos cuentas coinciden.
   const rechazadas = Math.max(0, recibidas - validas);
+  // **Y de esa merma, cuánta no era del estudio.** «60 descartadas por el
+  // filtro» mete en la misma bolsa dos noticias que piden cosas distintas: las
+  // que llegaron por el QR de capacitación o de prueba —no son del operativo y
+  // no hay nada que arreglar— y las que sí salieron de un curso-horario pero no
+  // pasan el criterio, que es lo único sobre lo que el campo puede actuar. El
+  // primer día de HSVG2026 eran 36 y 24, y el aviso decía 60 a secas.
+  const fueraDelOperativo = Math.min(rechazadas, entero(c.respuestas_fuera_del_operativo));
+  const noPasanElCriterio = Math.max(0, rechazadas - fueraDelOperativo);
   const reemplazos = entero(titularesReemplazados);
 
   const etapas: FlujoEtapa[] = [
@@ -109,17 +118,17 @@ export function embudoDelOperativo(
       id: "aplicadas",
       label: "Aplicados en campo",
       valor: fmt(aplicadas),
-      // **«registradas en esta app», no «con parte de campo».**
+      // **El detalle dice las TRES vías desde el 2026-09-07.**
       //
-      // `aulas_aplicadas` cuenta `operational_status`, que escribe el registro
-      // de la app. El «parte de campo» es el artefacto del LIBRO —la hoja que
-      // el jefe de campo transcribe desde las fichas de papel— y NO mueve esta
-      // cifra. Medido: tres partes importados con estado «Aplicada» y la etapa
-      // seguia en 0 debajo de un rotulo que los nombraba.
+      // Decía «registradas en esta app» porque `aulas_aplicadas` sólo contaba
+      // `operational_status`, que escribe el registro de la app. Ese día el
+      // predicado pasó a incluir el parte y las respuestas —ocho aulas
+      // produciendo encuestas y la etapa decía UNA—, así que este renglón se
+      // corrige con él.
       //
-      // La prosa de mas abajo se corrigio por esto mismo y este renglon se
-      // quedo atras, en el MISMO archivo: es como vuelve un defecto reparado.
-      detalle: "registradas en esta app",
+      // Ya pasó una vez que la prosa de más abajo se arregló y este renglón se
+      // quedó atrás, en el MISMO archivo: es como vuelve un defecto reparado.
+      detalle: "registrados, con parte o ya recibiendo respuestas",
       estado: aplicadas ? "ready" : "pending",
     },
   ];
@@ -144,7 +153,15 @@ export function embudoDelOperativo(
       // que restar. Quien lee de arriba abajo veía crecer un embudo.
       detalle: "respuestas, ya no cursos-horario: por eso sube",
       estado: "ready",
-      merma: rechazadas ? { n: rechazadas, label: "descartadas por el filtro" } : undefined,
+      merma: rechazadas
+        ? {
+            n: rechazadas,
+            label: fueraDelOperativo
+              ? `no cuentan: ${fmt(fueraDelOperativo)} fuera del operativo · `
+                + `${fmt(noPasanElCriterio)} no pasan el criterio`
+              : "no pasan el criterio de efectividad",
+          }
+        : undefined,
     });
     etapas.push({
       id: "validas",
@@ -189,28 +206,25 @@ export function explicacionDelEmbudo(
   if (!titulares) return [];
 
   const frases = [
-    // **«Parte de campo» nombraba aquí lo que NO mueve esta cifra.**
+    // **Los tres caminos, y desde el 2026-09-07 los tres cuentan.**
     //
-    // La frase decía «cuenta como aplicado cuando su parte de campo lo declara»,
-    // y en esta app «parte de campo» es el nombre del artefacto del LIBRO: la
-    // hoja «Aulas Aplicadas (Campo)» que el jefe de campo transcribe desde las
-    // fichas de papel, que viaja como `partes_campo` y que esta misma pantalla
-    // rotula «3 con parte en el libro».
+    // Esta frase decía que sólo el registro de la app movía la cifra, y era
+    // cierto: `aulas_aplicadas` miraba `operational_status`, que el libro no
+    // mueve a «aplicada» nunca. El primer día de campo eso dio **una** aula
+    // aplicada con ocho produciendo encuestas —«hay aulas que se están
+    // aplicando ahora, pero no tengo nada en la base de control»—, así que la
+    // definición pasó a incluir el parte y las respuestas
+    // (`monitoreo_aulas_aula_aplicada.R`).
     //
-    // Ese parte NO mueve esta cifra. `aulas_aplicadas` cuenta
-    // `operational_status ∈ {aplicada, cerrada}`, y ese campo lo escribe el
-    // registro de campo de la APP. Medido el 2026-08-23: tres partes importados
-    // con estado «Aplicada» y `aulas_aplicadas = 0`.
-    //
-    // Es deliberado —son dos medidas del mismo aula y mezclarlas perdería de
-    // cuál viene cada número— pero la explicación decía lo contrario, así que un
-    // analista que importa el libro y ve «Aplicadas 0» concluye que la app está
-    // rota. Ahora nombra las tres fuentes y dice cuál manda.
-    "Un curso-horario cuenta como aplicado cuando alguien lo registra en esta app, "
-    + "aunque todavía no haya llegado ninguna respuesta. Son tres caminos distintos y "
-    + "sólo el primero mueve esta cifra: el registro de la app, el parte de papel que "
-    + "se transcribe al libro —que se guarda y se contrasta, pero no la mueve— y las "
-    + "respuestas, que llegan por la plataforma.",
+    // La frase se corrige con el motor: una explicación que sobrevive al cambio
+    // que describe deja de explicar y pasa a desmentir la cifra que tiene
+    // encima.
+    "Un curso-horario cuenta como aplicado por tres caminos, y basta con uno: "
+    + "alguien lo registra en esta app, su parte de campo lo declara aplicado, o ya "
+    + "están llegando sus respuestas por la plataforma. El parte se rinde al cerrar "
+    + "la aplicación y a veces tarda; las respuestas llegan solas, así que un "
+    + "curso-horario que ya está recogiendo se ve aquí aunque nadie haya escrito "
+    + "nada todavía.",
   ];
 
   // Las reservas sólo se explican si las hay: sin cadena, la frase sobra.

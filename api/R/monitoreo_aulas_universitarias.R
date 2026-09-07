@@ -2345,6 +2345,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       reemplazos_usados = as.integer(sum(nzchar(seguidas$replacement_for) & seguidas$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
       respuestas_validas = as.integer(sum(valid_response)),
       respuestas_total = as.integer(length(response_classroom)),
+      # **Las que no son del estudio, contadas aparte.** «60 descartadas por el
+      # filtro» mete en la misma bolsa dos noticias distintas: las que llegaron
+      # por el QR de capacitación o de prueba —no son del operativo y no hay
+      # nada que arreglar— y las que sí son de un aula pero no pasan el criterio
+      # de validez, que es lo que el campo puede mover. El primer día de
+      # HSVG2026 eran 36 y 24.
+      respuestas_fuera_del_operativo = as.integer(sum(
+        .monitoreo_aulas_descartada(responses, cfg))),
       filter_passed = as.integer(sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE)),
       filter_rejected = as.integer(max(0L, length(response_classroom) - sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE))),
       # Sobre `tracked_df` y no sobre `plan_df`, que es el plan ENTERO. Eran dos

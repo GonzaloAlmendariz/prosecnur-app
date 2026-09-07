@@ -46,13 +46,20 @@ describe("la banda de KPIs", () => {
     expect(sinPista.map((k) => k.label)).toEqual([]);
   });
 
-  it("«Cursos-horario aplicados» dice que los declara el registro, no las respuestas", () => {
+  it("«Cursos-horario aplicados» dice las tres vías por las que se cuenta", () => {
     // El rótulo lleva la unidad porque la tarjeta vecina —«Válidas»— cuenta
     // personas, y 152 contra 2.668 no se comparan sin saberlo.
+    //
+    // La pista decía «declarados en el registro de campo» y prometía que la
+    // cifra NO se derivaba de las respuestas. El 2026-09-07 pasó a derivarse
+    // también de ellas: con ocho aulas produciendo encuestas la tarjeta
+    // enseñaba UNA. Lo que se sujeta ahora es que nombre las tres.
     const aplicadas = aulasKpis(tablero(), "modelo")
       .find((k) => k.label === "Cursos-horario aplicados");
     expect(aplicadas?.value).toBe("0");
-    expect(aplicadas?.pista).toContain("registro de campo");
+    expect(aplicadas?.pista).toContain("parte");
+    expect(aplicadas?.pista).toContain("respuestas");
+    expect(aplicadas?.detalle).toContain("Basta con uno");
   });
 
   it("contesta la pregunta de SU sección y no la de otra", () => {

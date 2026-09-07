@@ -123,8 +123,23 @@ export const FIELD_LABELS: Record<string, string> = {
   // que «Peso del curso-horario» frente a «Peso del estudiante».
   tasa_efectividad_aula: "Tasa del curso-horario, por su tamaño",
   tasa_facultad: "Tasa de la facultad",
+  // **Las mismas dos varas, leídas de la «Base de control».** El plan las
+  // publica como `tasa_facultad` / `tasa_efectividad_aula` y la hoja las escribe
+  // en su propia columna desde el 2026-09-07; son la misma cifra por dos
+  // caminos, así que el rótulo tiene que decir POR CUÁL viene — dos claves con
+  // la misma etiqueta se leen como un duplicado de la tabla.
+  tasa_facultad_ref: "Tasa de la facultad, según el libro",
+  tasa_aula_ref: "Tasa del curso-horario, según el libro",
   esperadas_facultad: "Esperadas según la facultad",
+  brecha_facultad: "Diferencia contra la tasa de la facultad",
   efectivas_obtenidas: "Efectivas que llegaron",
+  // «Cortas y largas» era la partición por DURACIÓN de 2025; desde el
+  // 2026-09-07 la partición es la del criterio de validez. La etiqueta dice
+  // contra qué se compara, que es lo que la hace legible al lado de su pareja.
+  // Sin verbo colgando: «que no cuentan» deja al lector esperando el objeto.
+  // Se dice contra qué se comparan, que es lo que hace legible la pareja.
+  no_efectivas: "Recibidas que no son efectivas",
+  efectivas_vs_enviadas: "% de efectivas sobre lo recibido",
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",
   efectivas_brecha: "Efectivas: cuánto falta",

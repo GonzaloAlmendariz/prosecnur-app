@@ -28,6 +28,56 @@
 # hueco con forma de dato, y llega a la ficha impresa como si lo fuera.
 .CM_AULAS_SESION_SIN_AULA <- c("0000", "000", "-", "S/A", "N/A")
 
+# El separador de sesiones no es uno solo: depende de quién armó la consulta.
+# HSVG2026 (solicitud 207915) llegó con el `<br />` crudo de la base. CCSS Perfil
+# (solicitud 212139, 07/09/2026) llega con `REPLACE(hdc.sesiones,'<br />',' - ')`
+# ya aplicado DENTRO del SQL de la DTI, así que la misma columna trae « - ».
+# Cortar sólo por `<br />` dejaba la cadena entera como una sesión:
+# «LUN 10:00-12:00 C  H101 - MIE 10:00-12:00 C  H101» salía con aula
+# «H101 - MIE 10:00-12:00 C H101» —treinta caracteres de basura bajo el rótulo
+# «Pabellón y aula»— y perdía el miércoles. Medido sobre CCSS: 7.387 de 20.448
+# filas traen más de una sesión, y 1.220 curso-horario del marco quedaban así.
+#
+# El corte por « - » va con lookahead de DIA HH:MM para no partir un aula que
+# lleve un guion en el nombre: sólo separa cuando lo que sigue vuelve a ser una
+# sesión. El `<br />` se sigue aceptando; las dos bases conviven.
+.CM_AULAS_SESION_SEP <- paste0(
+  "<br\\s*/?>",
+  "|\\s+-\\s+(?=(LUN|MAR|MIE|JUE|VIE|SAB|DOM)\\s+[0-9]{1,2}:[0-9]{2})"
+)
+
+# Las sesiones de EVALUACIÓN no son aulas donde se pueda aplicar nada.
+# El catálogo de HSVG salía de la matrícula con `indicaprinci = '1'`, así que
+# sólo traía el horario principal: ni una de sus 29.328 sesiones empieza por E.
+# El de CCSS sale de la OFERTA (`horarios.horardcurcic`) sin ese filtro, y trae
+# los horarios de examen como filas propias: E, E1..E9, EE, EF, EG, EP, ER.
+# Son 3.918 filas de sólo evaluación y 417 mixtas sobre 18.876 con dato.
+# Mandar al aplicador al aula de un examen parcial es enviarlo a un aula donde
+# nadie va a responder nada.
+.CM_AULAS_SESION_EVALUACION_RX <- "^E([A-Z]|[0-9]+)?$"
+
+#' Trocea la cadena `SESIONES` en sesiones sueltas.
+#' @keywords internal
+.cm_aulas_sesiones_trozos <- function(x) {
+  trozos <- trimws(unlist(strsplit(x, .CM_AULAS_SESION_SEP, perl = TRUE)))
+  trozos[nzchar(trozos)]
+}
+
+#' Quita las sesiones de evaluación, pero sólo si queda alguna otra.
+#'
+#' La poda es una PREFERENCIA, no un filtro: una fila que es toda evaluación
+#' conserva sus sesiones. Perder el dato sería peor que tenerlo desordenado, y
+#' quien decide si esa fila entra al marco es el criterio de aulas, no el parser.
+#' @keywords internal
+.cm_aulas_sesiones_podar_evaluacion <- function(partes) {
+  if (!length(partes)) return(partes)
+  es_eval <- vapply(partes, function(p) {
+    grepl(.CM_AULAS_SESION_EVALUACION_RX, toupper(p$tipo %||% ""))
+  }, logical(1))
+  if (!any(es_eval) || all(es_eval)) return(partes)
+  partes[!es_eval]
+}
+
 # Se tokeniza por espacios en vez de resolverlo con una sola expresión regular.
 # La versión regular dejaba el aula como «C  L401» —la letra de tipo pegada al
 # aula— porque los cuantificadores opcionales alrededor del tipo son ambiguos y
@@ -35,7 +85,7 @@
 # dice lo que es y el fallo se ve en el acto.
 .cm_aulas_sesion_partes <- function(sesion) {
   x <- trimws(as.character(sesion %||% "")[1])
-  if (is.na(x) || !nzchar(x)) return(list(horario = "", aula = ""))
+  if (is.na(x) || !nzchar(x)) return(list(horario = "", aula = "", tipo = ""))
   tk <- strsplit(x, "\\s+")[[1]]
   tk <- tk[nzchar(tk)]
   dia_ok <- length(tk) >= 2L && grepl("^[A-Za-z]{3}$", tk[[1]])
@@ -43,11 +93,14 @@
   # Sin la gramática esperada no se inventa una lectura: el string entero pasa
   # como horario, que es literalmente lo que el catálogo dijo, y el aula queda
   # vacía en vez de recibir un trozo elegido a ojo.
-  if (!dia_ok || !rango_ok) return(list(horario = x, aula = ""))
+  if (!dia_ok || !rango_ok) return(list(horario = x, aula = "", tipo = ""))
   # tk[3] es la letra de tipo de sesión (C, H, I…); el aula es lo que sigue.
+  # El tipo se devuelve —ya no sólo se descarta— porque es lo único que separa
+  # una clase de un examen cuando el catálogo no trae la columna TIPOHORARIO.
+  tipo <- if (length(tk) >= 3L) toupper(tk[[3]]) else ""
   aula <- if (length(tk) >= 4L) paste(tk[-seq_len(3L)], collapse = " ") else ""
   if (toupper(trimws(aula)) %in% .CM_AULAS_SESION_SIN_AULA) aula <- ""
-  list(horario = paste(toupper(tk[[1]]), tk[[2]]), aula = trimws(aula))
+  list(horario = paste(toupper(tk[[1]]), tk[[2]]), aula = trimws(aula), tipo = tipo)
 }
 
 .cm_aulas_sesiones_unir <- function(valores) {
@@ -117,10 +170,9 @@
 calc_muestra_aulas_sesiones_partes <- function(sesiones) {
   x <- trimws(as.character(sesiones %||% "")[1])
   if (is.na(x) || !nzchar(x)) return(list(horario = "", aula = ""))
-  trozos <- trimws(unlist(strsplit(x, "<br\\s*/?>", perl = TRUE)))
-  trozos <- trozos[nzchar(trozos)]
+  trozos <- .cm_aulas_sesiones_trozos(x)
   if (!length(trozos)) return(list(horario = "", aula = ""))
-  partes <- lapply(trozos, .cm_aulas_sesion_partes)
+  partes <- .cm_aulas_sesiones_podar_evaluacion(lapply(trozos, .cm_aulas_sesion_partes))
   list(
     horario = .cm_aulas_agrupar_horario(vapply(partes, function(p) p$horario, character(1))),
     aula = .cm_aulas_sesiones_unir(vapply(partes, function(p) p$aula, character(1)))
@@ -143,11 +195,10 @@ calc_muestra_aulas_sesiones_partes <- function(sesiones) {
 calc_muestra_aulas_sesiones_legible <- function(sesiones) {
   x <- trimws(as.character(sesiones %||% "")[1])
   if (is.na(x) || !nzchar(x)) return("")
-  trozos <- trimws(unlist(strsplit(x, "<br\\s*/?>", perl = TRUE)))
-  trozos <- trozos[nzchar(trozos)]
+  trozos <- .cm_aulas_sesiones_trozos(x)
   if (!length(trozos)) return("")
-  legibles <- vapply(trozos, function(t) {
-    p <- .cm_aulas_sesion_partes(t)
+  partes <- .cm_aulas_sesiones_podar_evaluacion(lapply(trozos, .cm_aulas_sesion_partes))
+  legibles <- vapply(partes, function(p) {
     # `paste` y `trimws`: una sesión sin aula asignada queda como su horario a
     # secas, no con un espacio colgando.
     trimws(paste(p$horario, p$aula))
