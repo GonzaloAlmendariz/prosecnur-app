@@ -2083,7 +2083,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Una sola vez: lo consumen el payload y el contraste de veredictos, y
   # calcularlo dos veces sobre 152 filas es trabajo repetido con riesgo de que
   # las dos copias se separen.
-  control_publicado <- monitoreo_aulas_control_publicado(cfg$control %||% list())
+  # A11 (2026-09-07): la fila leída del libro se completa con el parte de
+  # campo ANTES de publicarse al tablero, con la regla del publicador de la
+  # hoja; sin esto seis de nueve filas del día 1 iban sin ALUMNOS EN AULA
+  # teniendo parte (monitoreo_aulas_control_desde_parte.R). El cruce de hojas
+  # de arriba sigue mirando las filas CRUDAS: mide lo que el equipo tecleó.
+  control_publicado <- monitoreo_aulas_control_publicado(
+    monitoreo_aulas_control_completar_con_partes(cfg$control %||% list(), partes_campo)
+  )
   # De declaracion de diseño a control de verdad: ver
   # `monitoreo_aulas_identificadores.R`.
   identificadores <- monitoreo_aulas_identificadores(responses, isTRUE(cfg$anonymous_responses))
