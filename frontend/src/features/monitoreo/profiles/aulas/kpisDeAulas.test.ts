@@ -435,3 +435,47 @@ describe("cuando los dos estados se contradicen, manda el operativo", () => {
     expect(kpi?.pista).not.toContain("sin actualizar");
   });
 });
+
+/**
+ * A2 (loop estética-aulas-sheets, 2026-09-07). La tarjeta «Respuestas leídas»
+ * decía 273 a secas y el embudo, en la misma pantalla, «273 · 37 fuera del
+ * operativo · 24 no pasan el criterio · 212 que cuentan»: dos lecturas de la
+ * misma cifra. `respuestas_total` cuenta TODAS las filas que llegaron,
+ * incluidas las del QR de capacitación y prueba; la tarjeta lo dice con las
+ * mismas claves y la misma regla que el embudo, no con una segunda cuenta.
+ */
+describe("A2: la tarjeta de respuestas dice lo mismo que el embudo", () => {
+  const dashboard = {
+    kpis: {
+      aulas_titulares: 174,
+      respuestas_total: 273,
+      respuestas_validas: 212,
+      respuestas_fuera_del_operativo: 37,
+    },
+  } as unknown as MonitoreoAulasDashboard;
+
+  it("desglosa las recibidas en fuera del operativo, no pasan el criterio y efectivas", () => {
+    const tarjeta = aulasKpis(dashboard, "fuentes").find((k) => k.label === "Respuestas leídas");
+    expect(tarjeta).toBeDefined();
+    expect(tarjeta?.value).toBe("273");
+    expect(tarjeta?.pista).toBe("37 fuera del operativo · 24 no pasan el criterio · 212 efectivas");
+  });
+
+  it("los tres números salen de la misma regla que el embudo", async () => {
+    const { embudoDelOperativo } = await import("./embudoDelOperativo");
+    const recibidas = embudoDelOperativo(dashboard.kpis as never).find((e) => e.id === "recibidas");
+    const tarjeta = aulasKpis(dashboard, "fuentes").find((k) => k.label === "Respuestas leídas");
+    expect(recibidas?.merma?.label).toContain("37 fuera del operativo");
+    expect(recibidas?.merma?.label).toContain("24 no pasan el criterio");
+    expect(tarjeta?.pista).toContain("37 fuera del operativo");
+    expect(tarjeta?.pista).toContain("24 no pasan el criterio");
+  });
+
+  it("sin filas de la plataforma declara el vacío en vez de un 0", () => {
+    const vacio = { kpis: { aulas_titulares: 174, respuestas_total: 0 } } as unknown as MonitoreoAulasDashboard;
+    const tarjeta = aulasKpis(vacio, "fuentes").find((k) => k.label === "Respuestas leídas");
+    expect(tarjeta?.value).not.toBe("0");
+    expect(tarjeta?.pista).toMatch(/todav[ií]a no/);
+    expect(tarjeta?.tone).toBe("warn");
+  });
+});
