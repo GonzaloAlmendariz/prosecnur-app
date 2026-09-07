@@ -53,13 +53,20 @@
 # Una tabla del modelo (diario, aplicadores, facultades) como filas de celdas:
 # cabecera con sus nombres y cada columna según su naturaleza — texto tal
 # cual, «Avance» como porcentaje, el resto como número limpio.
+#
+# S4 (loop estética, 2026-09-07): una cifra que el modelo no tiene (NA) sale
+# «—», nunca en blanco. Medido en el libro real: 19 de 24 aplicadores sin parte
+# dejaban «Efectivas declaradas» vacía y la fila quedaba con un hueco en medio;
+# en Sheets un hueco se lee como «se olvidaron», y el «—» ya es el vocabulario
+# del bloque de meta y de la procedencia (sin dato ≠ cero).
 .cala_tabla_filas <- function(tabla, texto = character(0)) {
   nombres <- names(tabla)
   filas <- lapply(seq_len(nrow(tabla)), function(i) {
     vapply(nombres, function(col) {
       v <- tabla[[col]][[i]]
       if (col %in% texto) return(trimws(as.character(v %||% "")))
-      if (identical(col, "Avance")) .cala_pct_txt(v) else .cala_num_txt(v)
+      txt <- if (identical(col, "Avance")) .cala_pct_txt(v) else .cala_num_txt(v)
+      if (nzchar(txt)) txt else "\u2014"
     }, character(1))
   })
   c(list(nombres), filas)

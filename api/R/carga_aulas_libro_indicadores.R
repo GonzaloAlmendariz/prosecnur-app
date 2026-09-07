@@ -288,6 +288,26 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   invisible(fila)
 }
 
+# S4 (loop estética, 2026-09-07): la celda sin dato de una tabla se declara.
+# `writeData` deja en blanco los NA de un data.frame, y en el libro real 19 de
+# 24 aplicadores sin parte tenían «Efectivas declaradas» vacía: la fila quedaba
+# con un hueco en medio que se lee como olvido. Se escribe «—» (el vocabulario
+# del bloque de meta y de la procedencia: sin dato ≠ cero) celda a celda,
+# después de la tabla, para que las cifras sigan siendo números.
+.cai_rayas <- function(wb, hoja, tabla, fila_cabecera, estilo) {
+  if (!is.data.frame(tabla) || !nrow(tabla)) return(invisible(NULL))
+  for (j in seq_along(tabla)) {
+    columna <- tabla[[j]]
+    if (!is.numeric(columna)) next
+    huecos <- which(!is.finite(columna))
+    for (i in huecos) {
+      openxlsx::writeData(wb, hoja, "\u2014", startCol = j, startRow = fila_cabecera + i)
+      openxlsx::addStyle(wb, hoja, estilo, rows = fila_cabecera + i, cols = j, stack = TRUE)
+    }
+  }
+  invisible(NULL)
+}
+
 # S3: el ancho de la hoja lo fija su tabla más ancha (hoy la de facultades,
 # doce columnas), y TODAS las bandas de sección lo cubren. Medido antes: la
 # banda de «Avance contra la meta» iba con `cols = 1:2` y la de procedencia
@@ -316,6 +336,8 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
   nota_pie <- openxlsx::createStyle(fontSize = 9, fontColour = "#5B6472", wrapText = TRUE,
                                     valign = "top")
+  # S4: el «—» de una celda sin dato, alineado como la cifra que no está.
+  sin_dato_celda <- openxlsx::createStyle(halign = "right", fontColour = "#5B6472")
   # **`#,##0.#` deja la coma colgando en un entero, y casi todo aqui es entero.**
   #
   # El decimal opcional existia para las cifras que llegaban fraccionarias
@@ -450,6 +472,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     )
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$facultades, startCol = 1, startRow = fila)
+    .cai_rayas(wb, hoja, ind$facultades, fila, sin_dato_celda)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
     nf <- nrow(ind$facultades)
     # **Por NOMBRE de columna, nunca por indice.**
@@ -538,6 +561,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <- fila + 1L
     openxlsx::writeData(wb, hoja, ind$aplicadores, startCol = 1, startRow = fila)
+    .cai_rayas(wb, hoja, ind$aplicadores, fila, sin_dato_celda)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = seq_len(n_col_apl), gridExpand = TRUE)
     # Las cabeceras de esta tabla ya no caben en su columna —«Efectivas en
     # plataforma», «Cursos-horario asignados»— así que bajan de línea en vez de
