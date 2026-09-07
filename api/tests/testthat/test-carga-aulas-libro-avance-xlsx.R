@@ -73,8 +73,33 @@
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   celdas <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE,
                                 skipEmptyRows = FALSE, skipEmptyCols = FALSE)
-  estilos <- openxlsx::loadWorkbook(path)$styleObjects
-  list(celdas = celdas, estilos = estilos, n_cols = ncol(celdas))
+  wb2 <- openxlsx::loadWorkbook(path)
+  list(celdas = celdas, estilos = wb2$styleObjects, n_cols = ncol(celdas),
+       # `<mergeCell ref="A11:L11"/>` por fusión; alturas con nombre = fila.
+       fusiones = as.character(wb2$worksheets[[1]]$mergeCells %||% character(0)),
+       alturas = wb2$rowHeights[[1]] %||% character(0))
+}
+
+# La fila (1-based) cuya primera columna EMPIEZA por `texto`, o NA.
+.calax_fila_que_empieza <- function(celdas, texto) {
+  col1 <- as.character(celdas[[1]])
+  idx <- which(!is.na(col1) & startsWith(col1, texto))
+  if (length(idx)) idx[[1]] else NA_integer_
+}
+
+# ¿La fila está fusionada de la columna A a la última de la hoja?
+.calax_fusionada_a_lo_ancho <- function(h, fila) {
+  ref <- sprintf('ref="A%d:%s%d"', fila, openxlsx::int2col(h$n_cols), fila)
+  any(grepl(ref, h$fusiones, fixed = TRUE))
+}
+
+# ¿Algún estilo de la fila lleva ajuste de texto?
+.calax_con_wrap <- function(h, fila) {
+  for (so in h$estilos) {
+    if (!identical(so$sheet, "Avance de campo") || !(fila %in% so$rows)) next
+    if (isTRUE(so$style$wrapText)) return(TRUE)
+  }
+  FALSE
 }
 
 # La fila (1-based) cuya primera columna es exactamente `texto`, o NA.
@@ -146,4 +171,27 @@ test_that("S10: la marca de lectura del libro sale en hora local legible, no en 
   valor <- as.character(h$celdas[fila, 2])
   expect_match(valor, "^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$",
                info = sprintf("la marca salió «%s»", valor))
+})
+
+test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su fila tiene alto propio", {
+  # Medido en el libro real del 07/09: las notas iban en UNA celda de la
+  # columna A sin fusionar ni ajustar; en Sheets se derramaban hasta la primera
+  # celda ocupada y sobresalían de su tabla.
+  h <- .calax_hoja(.calax_modelo_completo(), procedencia = .calax_procedencia())
+  notas <- c("La meta y el avance diario", "La cuota es de cada facultad",
+             "La muestra es la cuota del diseño", "Si editaste el libro")
+  for (nota in notas) {
+    fila <- .calax_fila_que_empieza(h$celdas, nota)
+    expect_false(is.na(fila), info = sprintf("la hoja perdió la nota «%s…»", nota))
+    expect_true(.calax_fusionada_a_lo_ancho(h, fila),
+                info = sprintf("la nota «%s…» (fila %d) no está fusionada de A a %s",
+                               nota, fila, openxlsx::int2col(h$n_cols)))
+    expect_true(.calax_con_wrap(h, fila),
+                info = sprintf("la nota «%s…» (fila %d) no baja de línea", nota, fila))
+    expect_true(as.character(fila) %in% names(h$alturas),
+                info = sprintf("la nota «%s…» (fila %d) no tiene alto propio", nota, fila))
+  }
+  # Las filas de tabla NO se fusionan: una fusión ahí rompería la lectura.
+  fila_letras <- .calax_fila_de(h$celdas, "Letras")
+  expect_false(.calax_fusionada_a_lo_ancho(h, fila_letras))
 })

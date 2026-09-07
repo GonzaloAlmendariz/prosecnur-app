@@ -301,3 +301,60 @@ test_that("S1: una fecha u hora ISO entre las cifras no deja el bloque sin aline
                           list("Responsable", "Equipo A")), 2L)
   expect_identical(.maaf_columnas_cifra(m2), c(FALSE, FALSE))
 })
+
+# --- S2: las notas no se derraman en Sheets ----------------------------------
+
+# Las requests `mergeCells` que cubren la fila (1-based) de A a la última
+# columna publicada.
+.mfa_fusiones_de <- function(requests, fila, n_cols) {
+  out <- 0L
+  for (request in requests) {
+    mc <- request$mergeCells
+    if (is.null(mc)) next
+    rg <- mc$range
+    if (rg$startRowIndex == fila - 1L && rg$endRowIndex == fila &&
+        rg$startColumnIndex == 0L && rg$endColumnIndex == n_cols) out <- out + 1L
+  }
+  out
+}
+
+.mfa_alto_de <- function(requests, fila) {
+  for (request in requests) {
+    d <- request$updateDimensionProperties
+    if (is.null(d) || !identical(d$range$dimension, "ROWS")) next
+    if (d$range$startIndex == fila - 1L && d$range$endIndex == fila) return(as.integer(d$properties$pixelSize))
+  }
+  NA_integer_
+}
+
+test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con ajuste de texto y alto de fila", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  n_cols <- max(lengths(rows))
+  requests <- .mfa_requests(rows)
+  primeras <- vapply(rows, function(r) trimws(as.character(unlist(r)[1] %||% "")), character(1))
+  notas <- which(startsWith(primeras, "La meta y el avance diario") |
+                 startsWith(primeras, "La cuota es de cada facultad") |
+                 startsWith(primeras, "La muestra es la cuota"))
+  expect_gte(length(notas), 2L)
+  for (fila in notas) {
+    expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 1L,
+                     info = sprintf("la nota de la fila %d no va fusionada de A a la última columna", fila))
+    con_wrap <- FALSE
+    for (request in requests) {
+      rc <- request$repeatCell
+      if (is.null(rc)) next
+      rg <- rc$range
+      if (rg$startRowIndex <= fila - 1L && (fila - 1L) < rg$endRowIndex &&
+          identical(rc$cell$userEnteredFormat$wrapStrategy, "WRAP")) con_wrap <- TRUE
+    }
+    expect_true(con_wrap, info = sprintf("la nota de la fila %d no baja de línea", fila))
+    expect_false(is.na(.mfa_alto_de(requests, fila)),
+                 info = sprintf("la nota de la fila %d no tiene alto de fila", fila))
+  }
+  # Ni las filas de tabla ni las de título se fusionan.
+  for (etiqueta in c("Letras", "Avance contra la meta", "Facultad", "Encuestas de la meta")) {
+    fila <- .mfa_fila_de(rows, etiqueta)
+    expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 0L,
+                     info = sprintf("«%s» (fila %d) no debe fusionarse", etiqueta, fila))
+  }
+})
