@@ -104,8 +104,10 @@ export function cambiosDelRegistro(
     ["observed_students", form.aforo],
     ["applied_surveys", form.aplicadas],
     ["refusals", form.rechazos],
-    // Duplicados y efectivas no son adorno: sin ellos el cuadre del parte
-    // —asistentes − rechazos − duplicados = efectivas— no se puede comprobar
+    // Duplicados y encuestas aplicadas no son adorno: sin ellos el cuadre del
+    // parte —asistentes − rechazos − duplicados = encuestas aplicadas— no se
+    // puede comprobar (S14b: el aplicador cuenta lo que aplicó; las efectivas
+    // las da la app)
     // sobre lo que la app captura, y ese control ya existe en Validación.
     ["duplicates", form.duplicados],
     ["effective_surveys", form.efectivas],
@@ -497,7 +499,7 @@ export function RegistroDeCampo({
     >
       <div className="mon-profile-panel-head">
         {/* Es la hoja «Aulas Aplicadas (Campo)» del libro, llenada aquí en vez
-            de en Excel: asistentes, rechazos, duplicados, efectivas, aplicador,
+            de en Excel: asistentes, rechazos, duplicados, encuestas aplicadas, aplicador,
             aula y momento son sus columnas. La pestaña sigue diciendo «Registro
             de campo» —lo que se hace—; el panel dice qué se está llenando. */}
         {/* **Que se lea como la hoja que es, no como un recuento.**
@@ -622,7 +624,7 @@ export function RegistroDeCampo({
                 <strong>Elige un curso-horario de la lista</strong>
                 <p>
                   Aquí se registra cómo fue su aplicación: asistentes, rechazos,
-                  duplicados y efectivas.
+                  duplicados y encuestas aplicadas.
                 </p>
                 {porRegistrar ? (
                   <p className="registro-campo-vacio-cifra">
@@ -810,7 +812,7 @@ export function RegistroDeCampo({
                   </label>
                   <label className="registro-campo-campo">
                     {/* Se queda: el libro no tiene columna de repartidas. Sólo
-                        cuenta asistentes, rechazos, duplicados y efectivas. */}
+                        cuenta asistentes, rechazos, duplicados y encuestas aplicadas. */}
                     <span>Encuestas aplicadas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
@@ -835,7 +837,7 @@ export function RegistroDeCampo({
                     />
                   </label>
                   <label className="registro-campo-campo">
-                    <span>Cantidad de efectivas</span>
+                    <span>Cantidad de encuestas aplicadas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.efectivas} onChange={(e) => set("efectivas", e.target.value)}

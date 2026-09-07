@@ -56,7 +56,7 @@
 #
 # S4 (loop estética, 2026-09-07): una cifra que el modelo no tiene (NA) sale
 # «—», nunca en blanco. Medido en el libro real: 19 de 24 aplicadores sin parte
-# dejaban «Efectivas declaradas» vacía y la fila quedaba con un hueco en medio;
+# dejaban «Encuestas aplicadas (parte)» vacía y la fila quedaba con un hueco en medio;
 # en Sheets un hueco se lee como «se olvidaron», y el «—» ya es el vocabulario
 # del bloque de meta y de la procedencia (sin dato ≠ cero).
 .cala_tabla_filas <- function(tabla, texto = character(0)) {
