@@ -34,7 +34,12 @@ test_that("ninguna variable de scope aula apunta a la facultad del curso", {
   de_aula <- names(Filter(function(m) identical(m$scope, "aula"), reg))
   expect_setequal(de_aula, c(
     "modality", "session_type", "teacher_type", "course_level",
-    "condicion_curso", "enrolled_total", "campus"
+    "condicion_curso", "enrolled_total", "campus",
+    # `venue` es el aula física ya parseada de SESIONES (ver
+    # `calc_muestra_aulas_criterios.R`), no la facultad del curso: entra a esta
+    # lista porque es de scope aula, y el aserto de abajo sigue prohibiendo lo
+    # que este test existe para prohibir.
+    "venue"
   ))
   expect_false(any(grepl("facult", de_aula, ignore.case = TRUE)))
 })
