@@ -22,25 +22,75 @@
 #' hoja se comparte entera y cada uno filtra o busca su nombre.
 #' @keywords internal
 .alpa_CABECERA <- c(
-  "APLICADOR", "DÍA", "EN OFICINA", "SALE AL AULA", "APLICA",
+  "APLICADOR", "DÍA", "FECHA", "EN OFICINA", "SALE AL AULA", "APLICA",
   "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE"
 )
 
-#' Paleta de fondos para las celdas de aplicador.
+#' El día de la semana, escrito.
 #'
-#' Doce tonos claros con texto oscuro: bastan para que dos personas contiguas en
-#' la tabla nunca compartan color, que es para lo que sirve. No se persigue que
-#' los veintidós sean únicos —con esa cantidad los tonos se vuelven
-#' indistinguibles— sino que cada uno encuentre su fila de un vistazo.
+#' La primera versión salía con la fecha ISO cruda —«2026-09-10»— porque el
+#' reparto no publica etiqueta y el fallback era la fecha. Nadie organiza su
+#' semana leyendo ISO: Gonzalo pidió el día de la semana en su propia columna.
+#' Se deriva del token sin locale del motor (`.mav_dia_token`), que es el mismo
+#' que usa el reparto para cruzar la disponibilidad, y no de `format()`, que
+#' depende del locale de la máquina. El token viene en TRES LETRAS mayúsculas
+#' («LUN», «JUE»): asumirlo en minúscula y completo dejaba la columna vacía sin
+#' que nada fallara, que es como se cuela un dato muerto hasta la hoja.
 #' @keywords internal
-.alpa_PALETA <- c(
-  "#DCE7F7", "#DDF0E4", "#FBE4E8", "#FCEBD5", "#E6E0F6", "#D8EFF2",
-  "#F3E8D0", "#E4EFD8", "#F7E0EF", "#DDE8E3", "#EFE6DA", "#E0E9F2"
+.alpa_DIA_ESCRITO <- c(
+  LUN = "Lunes", MAR = "Martes", MIE = "Miércoles", JUE = "Jueves",
+  VIE = "Viernes", SAB = "Sábado", DOM = "Domingo"
 )
 
-#' El comodín no es una persona y no entra en la rotación.
 #' @keywords internal
-.alpa_COLOR_INTERNO <- "#002457"
+.alpa_dia_y_fecha <- function(fecha) {
+  token <- .mav_dia_token(fecha)
+  # `[[` con un nombre ausente revienta con «subscript out of bounds», no
+  # devuelve NULL: una fecha ilegible tumbaba la hoja entera.
+  dia <- if (nzchar(token %||% "") && token %in% names(.alpa_DIA_ESCRITO)) {
+    unname(.alpa_DIA_ESCRITO[[token]])
+  } else {
+    ""
+  }
+  corta <- if (grepl("^\\d{4}-\\d{2}-\\d{2}$", fecha)) {
+    paste0(substr(fecha, 9L, 10L), "/", substr(fecha, 6L, 7L))
+  } else {
+    fecha
+  }
+  list(dia = dia %||% "", fecha = corta)
+}
+
+#' Veintidós tonos, uno por aplicador, sin repetir.
+#'
+#' La primera versión traía doce y rotaba: con veintidós personas cuatro filas
+#' seguidas del jueves salieron del mismo beige y Gonzalo lo vio en pantalla,
+#' «aquí no se nota la diferencia». Uno por persona, sin ciclo.
+#'
+#' **Veintidós tonos claros no pueden ser además muy suaves.** Medido en CIELAB
+#' sobre el espacio de pasteles: con saturación baja (0,28–0,52) la mejor
+#' separación mínima alcanzable entre 22 es 6,3, o sea indistinguibles —bajo 10
+#' dos tonos claros se confunden—. Subiendo a saturación media (0,68–0,70) y
+#' matiz repartido en dos bandas de luminosidad, la mínima sube a **9,0** con
+#' luminancia mínima 71, que deja el texto oscuro legible. Ese es el punto donde
+#' se queda: más separación exige colores más fuertes de lo que una hoja
+#' operativa aguanta.
+#' @keywords internal
+.alpa_PALETA <- c(
+  "#DFEFA4", "#DAF3C1", "#B6EFA4", "#C1F3C3", "#A4EFBB", "#C1F3DE",
+  "#A4EFE4", "#C1EDF3", "#A4D1EF", "#C1D1F3", "#A4A8EF", "#CCC1F3",
+  "#C9A4EF", "#E7C1F3", "#EFA4EC", "#F3C1E4", "#EFA4C3", "#F3C1C8",
+  "#EFAEA4", "#F3D5C1", "#EFD7A4", "#F3F0C1"
+)
+
+#' El comodín: un gris cálido, no el navy del módulo.
+#'
+#' Iba en `#002457` con tinta blanca y Gonzalo lo corrigió: «es demasiado
+#' llamativo y confuso, parece que fuera un encabezado». Y lo parecía: en una
+#' hoja cuya cabecera es justo ese navy, una fila con el mismo fondo se lee como
+#' un corte de sección. Un neutro fuera de la rueda de matices dice lo mismo —no
+#' es una persona del equipo— sin gritarlo.
+#' @keywords internal
+.alpa_COLOR_INTERNO <- "#E3E0DA"
 
 #' @keywords internal
 .alpa_txt <- function(x, default = "") {
@@ -100,7 +150,7 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   filas <- list(as.list(.alpa_CABECERA))
   for (dia in (rep[["dias"]] %||% list())) {
     fecha <- .alpa_txt(dia[["fecha"]])
-    etiqueta <- .alpa_txt(dia[["etiqueta"]], fecha)
+    cuando <- .alpa_dia_y_fecha(fecha)
     items <- dia[["asignaciones"]] %||% list()
     if (!length(items)) next
     orden <- order(vapply(items, function(it) .alpa_txt(it[["recojo"]]), character(1)),
@@ -111,7 +161,7 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
       m <- meta[[cod]] %||% list(aula = "", facultad = "", curso = "", docente = "")
       filas[[length(filas) + 1L]] <- list(
         aulas_nombre_aplicador(.alpa_txt(it[["aplicador"]])),
-        etiqueta,
+        cuando$dia, cuando$fecha,
         .alpa_txt(it[["recojo"]]),
         .alpa_txt(it[["salida"]]),
         paste0(.alpa_txt(it[["inicio"]]), " a ", .alpa_txt(it[["fin"]])),
@@ -152,23 +202,24 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows) {
     quien <- .alpa_txt(unlist(rows[[i]] %||% list(), use.names = FALSE)[[1L]])
     if (!nzchar(quien)) next
     if (identical(quien, interno)) {
-      # El comodín en el navy del módulo con tinta clara: no es una persona del
-      # equipo y tiene que verse que ahí se acaba la lista.
-      poner(.alpa_celda(sheet_id, i, 1L, .alpa_COLOR_INTERNO, "#FFFFFF"))
+      # El comodín en gris cálido: se distingue de las veintidós personas sin
+      # parecer una cabecera de sección.
+      poner(.alpa_celda(sheet_id, i, 1L, .alpa_COLOR_INTERNO, "#4A453E"))
     } else {
       poner(.alpa_celda(sheet_id, i, 1L, color_de[[quien]] %||% "#EEEEEE"))
     }
   }
   # Las tres horas y el código, centrados: son cifras y se leen en columna.
-  poner(.maaf_centrar(sheet_id, 3L, 6L, length(rows)))
-  for (a in list(list(desde = 0L, hasta = 1L, px = 230L),
-                 list(desde = 1L, hasta = 2L, px = 120L),
-                 list(desde = 2L, hasta = 5L, px = 90L),
-                 list(desde = 5L, hasta = 6L, px = 100L),
-                 list(desde = 6L, hasta = 7L, px = 90L),
-                 list(desde = 7L, hasta = 8L, px = 190L),
-                 list(desde = 8L, hasta = 9L, px = 280L),
-                 list(desde = 9L, hasta = 10L, px = 230L))) {
+  poner(.maaf_centrar(sheet_id, 2L, 7L, length(rows)))
+  for (a in list(list(desde = 0L, hasta = 1L, px = 240L),
+                 list(desde = 1L, hasta = 2L, px = 90L),
+                 list(desde = 2L, hasta = 3L, px = 70L),
+                 list(desde = 3L, hasta = 6L, px = 92L),
+                 list(desde = 6L, hasta = 7L, px = 100L),
+                 list(desde = 7L, hasta = 8L, px = 90L),
+                 list(desde = 8L, hasta = 9L, px = 190L),
+                 list(desde = 9L, hasta = 10L, px = 280L),
+                 list(desde = 10L, hasta = 11L, px = 230L))) {
     poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
   }
   requests

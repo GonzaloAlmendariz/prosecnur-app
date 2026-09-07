@@ -122,3 +122,24 @@ test_that("cada aplicador lleva su color, y el comodín uno propio", {
   expect_false(identical(color(4L), color(1L)))
   expect_false(identical(color(4L), color(2L)))
 })
+
+test_that("los veintidós colores no se repiten y ninguno es el del comodín", {
+  # «Los aplicadores no tienen colores únicos por aplicador, debe ser una paleta
+  # de 22» (2026-09-07, tras ver cuatro filas seguidas del mismo beige). Con
+  # doce tonos y rotación, la quinta persona repetía el color de la primera.
+  expect_length(prosecnurapp:::.alpa_PALETA, 22L)
+  expect_length(unique(prosecnurapp:::.alpa_PALETA), 22L)
+  expect_false(prosecnurapp:::.alpa_COLOR_INTERNO %in% prosecnurapp:::.alpa_PALETA)
+})
+
+test_that("la hoja dice el día de la semana, no la fecha ISO cruda", {
+  # Salía «2026-09-10» porque el reparto no publica etiqueta y el fallback era
+  # la fecha. Nadie organiza su semana leyendo ISO.
+  d <- prosecnurapp:::.alpa_dia_y_fecha("2026-09-10")
+  expect_identical(d$dia, "Jueves")
+  expect_identical(d$fecha, "10/09")
+  # Y una fecha ilegible no tumba la hoja: día vacío, la fecha tal cual.
+  roto <- prosecnurapp:::.alpa_dia_y_fecha("sin fecha")
+  expect_identical(roto$dia, "")
+  expect_identical(roto$fecha, "sin fecha")
+})
