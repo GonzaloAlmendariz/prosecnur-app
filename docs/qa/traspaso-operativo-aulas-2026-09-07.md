@@ -262,3 +262,87 @@ PULSO_PORT=8836 PULSO_OPEN_BROWSER=false \
 - **`modifyList` no borra con una lista vacía**: `modifyList(x, list(a =
   list()))` deja `a` intacto. Un fixture que creía estar desactivando algo lo
   seguía teniendo activo.
+
+---
+
+## 7. Addendum — misma tarde, 16:00 (sesión que retomó el traspaso)
+
+Lo que se midió al retomar, y corrige o completa lo de arriba.
+
+### 7.1 El `.pulso` de trabajo: dónde vive y quién lo tiene abierto
+
+- **Dos backends tenían abierto el MISMO archivo**: el de Gonzalo (`:8787`,
+  arrancado 11:53) y el de la sesión anterior (`:8836`). El de 8787 estaba en el
+  estado de las **12:50**: 193 respuestas, 0 efectivas, `sex_var` vacío, 0
+  `valid_filters`, 1 parte. El real (disco 15:40 y 8836) tiene 273 · 212 ·
+  criterio declarado · 7 partes. **Un «Guardar» desde 8787 habría pisado la
+  declaración del criterio.** Hasta que la app de Gonzalo *reabra* el archivo,
+  lo que enseña es la foto vieja.
+- La sesión 8836 se guardó a las **15:59** (`dirty=false`); el archivo del
+  scratchpad es ahora el más nuevo.
+- Como el scratchpad es `/private/tmp` y macOS lo limpia, quedó una copia
+  fechada junto al original del cliente:
+  `~/Documents/Pulso/HSTVG2026/Segundo sorteo 27 agosto/HSVG26ULT2_kobo (respaldo 2026-09-07 15-40).pulso`
+  (zip íntegro, `state.rds` con criterio, 7 partes, reparto y disponibilidad).
+- Regla que falta escribir: **un solo escritor por `.pulso`**, y la copia de un
+  operativo real se guarda en la carpeta del cliente, no en un scratchpad.
+
+### 7.2 La distribución de los aplicadores SÍ está desactualizada (5.4, medido)
+
+Diff entre el reparto vigente (`aulas_libro_filas_plan_aplicadores` sobre el
+`state.rds` guardado) y la hoja «Plan del día» del Sheets de distribución,
+leída en solo lectura: **85 citas ahora contra 83 publicadas; 63 iguales; 2
+nuevas; 20 cambian de persona.** Por día: Lun 07 y Sáb 12 iguales; Mar 08 →
+1 nueva + 4 cambios; Mié 09 → 1 nueva + 4; Jue 10 → 6; Vie 11 → 6.
+
+Martes 08/09, lo que leerían mañana si no se republica:
+
+| CH | Aplica | Aula | En el Sheets | En el reparto vigente |
+|---|---|---|---|---|
+| CH 51 | 08:45–09:15 | E201 | *(no existe)* | Manayay Vásquez |
+| CH 116 | 09:00–09:30 | H111 | Manayay Vásquez | Puchuri Chamorro |
+| CH 71 | 17:00–17:30 | L323 | Manayay Vásquez | Ramirez Aramburú |
+| CH 173 | 18:30–19:00 | H101 | Puchuri Chamorro | Aquino Dulanto |
+| CH 113 | 18:45–19:15 | A502 | Aquino Dulanto | Ramirez Aramburú |
+
+Causa: el reparto se recalcula cuando entra una confirmación (CH 51 y CH 35
+entraron después de publicar) y las citas no fijadas se reacomodan. **La app no
+recuerda el destino ni la fecha de la última publicación de la distribución**
+(a diferencia de `libro_sheets`), así que no puede avisar que envejeció.
+Decisión pendiente de Gonzalo: republicar tal cual, o **fijar** primero las
+cuatro del martes como ya se publicaron y republicar sólo con CH 51 añadida.
+Script del diff: `distribucion_diff.R` en el scratchpad de la sesión `83ff848b`
+(deja `distribucion_calculada.csv` y `distribucion_en_sheets.csv`).
+
+La pestaña vieja «Asignación de aplicadores» del documento de distribución **ya
+no existe**: sólo queda «Plan del día». El pendiente manual de 1.2 está cerrado.
+
+### 7.3 Las aulas nocturnas son HOY, no el martes (corrige 5.1.1)
+
+El plan no tiene citas a las 19:30 el martes. Las que cruzan la medianoche UTC
+(inicio ≥ 18:30 en Lima; 19:00 Lima = 00:00 UTC):
+
+- **Lunes 07/09 (hoy)**: CH 13 18:30 A403 · CH 148 19:00 L323 · CH 74 19:30
+  L312 · CH 9 19:45 A609. Las primeras respuestas con `_submission_time` del
+  día siguiente entran **esta noche**.
+- Martes 08/09: CH 173 18:30 H101 · CH 2 18:45 P104 · CH 113 18:45 A502.
+
+La comprobación de `monitoreo_aulas_hora_local.R` se hace mañana temprano: tras
+sincronizar, esas cuatro deben tener fecha de aplicación 07/09 y sumar al
+renglón del lunes en el avance diario, no al del martes.
+
+### 7.4 Repositorio y servidores
+
+- **1 030 commits sin subir** desde `c9a3a78c` (24/08). `origin/main` sigue en
+  `728f3513` (notas de 0.8.0). El «todo publicado» del cierre era el Sheets, no
+  git. Subir pasa por `/publicar`.
+- Siete worktrees en `.claude/worktrees/`; dos ramas con commits que no están
+  en main (`claude/gallant-pike-78dba6`, 5 commits de efectividad/certeza del
+  28/08; `claude/intelligent-rosalind-f04ad5`, un fix de `stop_api` en gráficos
+  del 02/09) y tres worktrees con cambios sin commitear. Tres stashes viejos.
+- Backend huérfano en `:8891` (PID 34974, del 27/08, sesión vacía). No es de
+  nadie vivo; `make dev-prune` no lo listó.
+- Sin commitear en main: `.claude/launch.json` (configs de dev de varias
+  sesiones) y `docs/qa/checklist-marco-ccss-2026-09-07.md` (8/8 hechos, de la
+  sesión del marco CCSS; el fix del prefijo `C` en
+  `.cm_aulas_sesiones_prioridad` sí está commiteado).
