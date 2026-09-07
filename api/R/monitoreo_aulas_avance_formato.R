@@ -113,9 +113,136 @@
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF")
     } else if (primera %in% .maaf_CABECERAS_TABLA) {
+      # S1: la cabecera baja de línea en su columna («Cursos-horario
+      # asignados» no cabe en la suya) en vez de cortarse.
       requests[[length(requests) + 1L]] <-
-        .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F")
+        .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE)
     }
+  }
+  # S1: anchos por columna y cifras a la derecha, derivados del contenido.
+  # Van DESPUÉS del ancho único de la capa genérica, que así queda pisado.
+  m <- .maaf_celdas(rows, n_cols)
+  c(requests, .maaf_ancho_requests(sheet_id, m), .maaf_alinear_requests(sheet_id, m))
+}
+
+# --- S1 (loop estética-aulas-sheets, 2026-09-07): la hoja se lee como tabla ---
+#
+# Medido antes: la capa genérica (`monitoreo_aulas_sheets_formato_requests`)
+# congela título y columna A —eso se conserva— y fija UN ancho de 150 px para
+# las doce columnas; con eso «Aulas que llegaron a SU meta» se corta y las
+# cifras, que viajan como texto, quedan pegadas a la izquierda igual que un
+# rótulo. Aquí cada columna pide el ancho que su contenido necesita, la
+# cabecera de tabla baja de línea en vez de ensanchar la columna, y las
+# columnas cuyas celdas de datos son cifras se alinean a la derecha. Todo se
+# deriva de los rows publicados; ninguna posición viene de un número mágico.
+
+# Una celda más larga que esto es una nota, no un rótulo: no manda ancho (las
+# notas se fusionan a lo ancho del bloque, unidad S2).
+.maaf_NOTA_MIN_CHARS <- 60L
+
+# Cabecera de tabla: baja de línea, así que aporta a lo más esto al ancho.
+.maaf_CABECERA_MAX_CHARS <- 14L
+
+# ¿La celda es un VALOR que se lee alineado a la derecha: cifra (entera,
+# decimal, porcentaje), fecha u hora ISO, o un vacío declarado? Medido con el
+# libro real del 07/09: el bloque de meta trae una marca `2026-09-07T20:41:36Z`
+# en la columna de cifras, y sin esta cláusula esa sola celda dejaba el bloque
+# entero pegado a la izquierda.
+.maaf_es_cifra <- function(x) {
+  x <- trimws(as.character(x))
+  !nzchar(x) | x %in% c("\u2014", "-", "n/d", "s/d") |
+    grepl("^[-+]?[0-9]+([.,][0-9]+)?\\s*%?$", x) |
+    grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?Z?)?$", x) |
+    grepl("^[0-9]{1,2}:[0-9]{2}$", x)
+}
+
+# Los rows como matriz de caracteres n_filas x n_cols, rellenando a la
+# derecha: la API devuelve filas dentadas y el renderer también las produce.
+.maaf_celdas <- function(rows, n_cols) {
+  padded <- lapply(rows, function(row) {
+    celdas <- trimws(as.character(unlist(row %||% list(), use.names = FALSE)))
+    celdas[is.na(celdas)] <- ""
+    c(celdas, rep("", max(0L, n_cols - length(celdas))))[seq_len(n_cols)]
+  })
+  matrix(unlist(padded, use.names = FALSE), ncol = n_cols, byrow = TRUE)
+}
+
+# Una fila de DATOS: ni título de bloque, ni cabecera de tabla, ni portada,
+# ni nota (esas traen una sola celda con contenido).
+.maaf_es_fila_de_datos <- function(celdas_fila) {
+  primera <- celdas_fila[[1L]]
+  !(primera %in% .maaf_TITULOS_BLOQUE) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+    sum(nzchar(celdas_fila)) >= 2L
+}
+
+# El ancho en píxeles de cada columna: ~7,2 px por carácter más el aire de la
+# celda, entre 90 y 320. Las notas no cuentan; las cabeceras cuentan hasta
+# `.maaf_CABECERA_MAX_CHARS` porque bajan de línea.
+.maaf_anchos_px <- function(m) {
+  es_cabecera <- m[, 1L] %in% .maaf_CABECERAS_TABLA
+  vapply(seq_len(ncol(m)), function(j) {
+    n <- nchar(m[, j], type = "chars")
+    n[n > .maaf_NOTA_MIN_CHARS] <- 0L
+    n[es_cabecera] <- pmin(n[es_cabecera], .maaf_CABECERA_MAX_CHARS)
+    as.integer(min(320L, max(90L, round(max(0L, n) * 7.2) + 20L)))
+  }, integer(1))
+}
+
+# Una request de ancho por tramo de columnas contiguas con el mismo ancho.
+.maaf_ancho_requests <- function(sheet_id, m) {
+  px <- .maaf_anchos_px(m)
+  requests <- list()
+  ini <- 1L
+  for (j in seq_along(px)) {
+    if (j == length(px) || px[j + 1L] != px[j]) {
+      requests[[length(requests) + 1L]] <- .mafs_dim_request(sheet_id, ini - 1L, j, px[j])
+      ini <- j + 1L
+    }
+  }
+  requests
+}
+
+# Qué columnas son de cifras: todas sus celdas de datos con contenido son
+# cifras. La columna A nunca: son los rótulos.
+.maaf_columnas_cifra <- function(m) {
+  de_datos <- vapply(seq_len(nrow(m)), function(i) .maaf_es_fila_de_datos(m[i, ]), logical(1))
+  datos <- m[de_datos, , drop = FALSE]
+  vapply(seq_len(ncol(m)), function(j) {
+    if (j == 1L || !nrow(datos)) return(FALSE)
+    v <- datos[, j]
+    v <- v[nzchar(v)]
+    length(v) > 0L && all(.maaf_es_cifra(v))
+  }, logical(1))
+}
+
+# Alineación a la derecha de un rectángulo, con fields acotado: no pisa
+# bandas ni values.
+.maaf_derecha <- function(sheet_id, desde_col, hasta_col, desde_fila, n_filas) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(desde_fila), endRowIndex = as.integer(n_filas),
+      startColumnIndex = as.integer(desde_col), endColumnIndex = as.integer(hasta_col)
+    ),
+    cell = list(userEnteredFormat = list(horizontalAlignment = "RIGHT")),
+    fields = "userEnteredFormat(horizontalAlignment)"
+  ))
+}
+
+# Una request por tramo de columnas de cifras contiguas, desde la fila 3 (las
+# dos de portada son texto) hasta el final publicado.
+.maaf_alinear_requests <- function(sheet_id, m) {
+  cifra <- .maaf_columnas_cifra(m)
+  n_filas <- nrow(m)
+  desde_fila <- min(2L, n_filas)
+  requests <- list()
+  j <- 1L
+  while (j <= length(cifra)) {
+    if (!cifra[j]) { j <- j + 1L; next }
+    k <- j
+    while (k < length(cifra) && cifra[k + 1L]) k <- k + 1L
+    requests[[length(requests) + 1L]] <- .maaf_derecha(sheet_id, j - 1L, k, desde_fila, n_filas)
+    j <- k + 1L
   }
   requests
 }
