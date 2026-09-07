@@ -45,7 +45,10 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   # libro. No se recalcula aquí.
   facultades <- .calaf_avance_por_facultad(
     plan, efectivas = efectivas, cuotas = aulas_cfg$design_targets,
-    responses = data, validas = validas, cfg = aulas_cfg
+    responses = data, validas = validas, cfg = aulas_cfg,
+    # Los partes también, para que «Aulas aplicadas» sea la misma cifra que en
+    # el libro: la definición de aula aplicada es una sola.
+    partes = aulas_cfg$partes_campo %||% list()
   )
 
   # Sin cuotas del diseño no hay avance que informar a un cliente: se dice, no

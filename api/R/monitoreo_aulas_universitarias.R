@@ -303,6 +303,15 @@ monitoreo_aulas_default_config <- function() {
       # revés por adivinar cuál columna era mujeres.
       sex_female_values = list(),
       sex_male_values = list(),
+      # **Lo que llega por la plataforma pero NO es del estudio.** El QR de
+      # capacitación y el de prueba producen envíos reales —26 de CAPACITACION y
+      # 9 de PRUEBA_2026 el primer día de HSVG2026— que pasan todos los filtros
+      # de validez porque son encuestas bien llenadas. No son del operativo, y
+      # Gonzalo pidió que no sumen: «fuera del avance».
+      #
+      # Es la contracara de `valid_filters`: aquéllos dicen qué CUENTA, éstos
+      # qué se descarta. Mismo formato `{var, values}`, y basta con que uno case.
+      descartes = list(),
       # **La variable que dice el sexo de quien respondio** (dictado
       # 2026-09-04: «poder mapear cuantas se esperaban en total y en hombres y
       # en mujeres y cuanto obtuvimos»). Sin declararla no se cuenta por sexo y
@@ -385,6 +394,8 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
         mapping$sex_female_values %||% mapping$valores_mujer %||% list())),
       sex_male_values = as.list(.monitoreo_chr_vec(
         mapping$sex_male_values %||% mapping$valores_hombre %||% list())),
+      descartes = .monitoreo_aulas_filas_de_filtro(
+        mapping$descartes %||% mapping$descartadas %||% list()),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
       # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
       # al guardar.** Este normalizador es la whitelist de la config: lo que no
@@ -1554,7 +1565,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
 .monitoreo_aulas_quota_sex_faculty <- function(plan_df, responses, cfg, valid_response, response_classroom) {
   targets <- .monitoreo_aulas_quota_targets(plan_df, cfg)
   if (!is.data.frame(targets) || !nrow(targets)) return(list())
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
+  sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
   faculty <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
   sex <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
   if (!length(sex)) {
@@ -2313,9 +2324,20 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # Se unen en vez de sustituir: `operational_status` la enciende por otras
       # vias —handoff, sincronizacion— y quedarse solo con el parte bajaria la
       # cifra de los estudios que no llenan el libro.
+      #
+      # Y la tercera vía, desde el 2026-09-07: **un aula con RESPUESTAS se está
+      # aplicando, haya parte o no.** Primer día de campo, ocho aulas
+      # produciendo encuestas y la tarjeta decía UNA, la única con parte
+      # escrito. El parte lo rinde el encargado de campo cuando puede y en la
+      # primera semana llega tarde; las respuestas llegan solas. Es la misma
+      # definición que usan la Base de control, el Plan del día y el avance por
+      # facultad —`monitoreo_aulas_aula_aplicada()`—, aplicada aquí sobre las
+      # columnas del frame para no rearmar la lista de unidades.
       aulas_aplicadas = as.integer(sum(
         seguidas$operational_status %in% c("aplicada", "cerrada") |
-          seguidas$application_status %in% "aplicada"
+          seguidas$application_status %in% "aplicada" |
+          .monitoreo_aulas_contar_por_fila(
+            seguidas, .monitoreo_aulas_named_counts(response_classroom, valid_response)) > 0
       )),
       aulas_parciales = as.integer(sum(seguidas$operational_status == "parcial")),
       # Reemplazos GASTADOS: cuenta reservas que entraron, asi que necesita ver

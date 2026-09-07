@@ -86,9 +86,32 @@ monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
   filtros
 }
 
+#' Las respuestas que el estudio DESCARTA aunque estén bien llenadas.
+#'
+#' El QR de capacitación y el de prueba producen envíos reales que pasan todos
+#' los filtros de validez —son encuestas correctas— y no son del operativo. El
+#' primer día de HSVG2026 eran 36 de 204. `valid_filters` dice qué cuenta;
+#' `descartes` dice qué se saca, y basta con que uno case.
+#' @keywords internal
+.monitoreo_aulas_descartada <- function(data, cfg) {
+  if (!is.data.frame(data) || !nrow(data)) return(logical(0))
+  reglas <- .monitoreo_aulas_filas_de_filtro((cfg$source_mapping %||% list())$descartes)
+  fuera <- rep(FALSE, nrow(data))
+  for (f in reglas) {
+    var <- .monitoreo_scalar(f$var %||% f$variable, "")
+    vals <- .monitoreo_chr_vec(f$values %||% f$valores %||% character(0))
+    if (!nzchar(var) || !length(vals) || !var %in% names(data)) next
+    fuera <- fuera | (.monitoreo_text_key(data[[var]]) %in% .monitoreo_text_key(vals))
+  }
+  fuera
+}
+
 .monitoreo_aulas_valid_response <- function(data, cfg) {
   if (!is.data.frame(data) || !nrow(data)) return(rep(FALSE, 0L))
   mapping <- cfg$source_mapping %||% list()
+  # Lo descartado no es efectivo NUNCA, decida lo que decida el resto del
+  # criterio: se resuelve al final para que ninguna rama se lo salte.
+  fuera <- .monitoreo_aulas_descartada(data, cfg)
   # **Varios filtros, si el estudio los declara.** Se exige que se cumplan TODOS:
   # cada uno acota, ninguno amplia. Un filtro cuya columna no esta en la base NO
   # se aplica —y el criterio lo declara aparte—, porque descartarlo todo por una
@@ -106,7 +129,7 @@ monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
       if (!f$var %in% names(data)) next
       ok <- ok & (.monitoreo_text_key(data[[f$var]]) %in% .monitoreo_text_key(f$values))
     }
-    return(ok)
+    return(ok & !fuera)
   }
   status_col <- .monitoreo_scalar(mapping$status_var, "")
   if (!nzchar(status_col) || !status_col %in% names(data)) {
@@ -123,11 +146,11 @@ monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
       "response_status", "_validation_status", "validation_status", "estado"
     ))
   }
-  if (!nzchar(status_col) || !status_col %in% names(data)) return(rep(TRUE, nrow(data)))
+  if (!nzchar(status_col) || !status_col %in% names(data)) return(!fuera)
   valid <- .monitoreo_text_key(.monitoreo_chr_vec(
     mapping$valid_statuses %||% MONITOREO_AULAS_ESTADOS_VALIDOS
   ))
-  .monitoreo_text_key(data[[status_col]]) %in% valid
+  (.monitoreo_text_key(data[[status_col]]) %in% valid) & !fuera
 }
 
 #' Estados que cuentan como respuesta valida cuando el estudio no declara los suyos.
