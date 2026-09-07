@@ -33,6 +33,7 @@ import { pct } from "../../core/formatoComun";
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { cuotasResumen } from "./cuotasResumen";
+import { mermaDeRespuestas, type CifrasDeRespuestas } from "./mermaDeRespuestas";
 import { parteDeCampo } from "./parteDeCampo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
@@ -292,6 +293,34 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
  * telefónico resolvió nombrando la fuente en el rótulo: «Declaradas efectivas»
  * (la hoja) frente a «Efectivas Kobo» (la plataforma).
  */
+/**
+ * «Respuestas leídas» con su desglose (A2, 2026-09-07). `respuestas_total`
+ * cuenta TODAS las filas que llegaron, incluidas las del QR de capacitación y
+ * de prueba; la tarjeta decía «273» a secas mientras el embudo de al lado
+ * restaba «37 fuera del operativo · 24 no pasan el criterio». Los tres números
+ * salen de `mermaDeRespuestas`, la MISMA regla del embudo, y se dicen con las
+ * mismas palabras. Sin filas no se enseña un 0: se declara que todavía no
+ * llegó nada (C3).
+ */
+function respuestasKpi(kpis: CifrasDeRespuestas | null | undefined): AulasKpi {
+  const m = mermaDeRespuestas(kpis);
+  if (!m.recibidas) {
+    return {
+      label: "Respuestas leídas",
+      icono: Table2,
+      value: "Ninguna",
+      pista: "todavía no llegó ninguna fila de la plataforma",
+      tone: "warn",
+    };
+  }
+  return {
+    label: "Respuestas leídas",
+    icono: Table2,
+    value: fmt(m.recibidas),
+    pista: `${fmt(m.fueraDelOperativo)} fuera del operativo · ${fmt(m.noPasanElCriterio)} no pasan el criterio · ${fmt(m.efectivas)} efectivas`,
+  };
+}
+
 function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   return {
     // **El rótulo dice su unidad.** Decía «Aplicadas» a secas, en una banda
@@ -498,12 +527,7 @@ export function aulasKpis(
     const sello = fecha(corte.dia);
     return [
       planKpi(dashboard),
-      {
-        label: "Respuestas leídas",
-        icono: Table2,
-        value: fmt(kpis?.respuestas_total),
-        pista: "filas que llegaron de la plataforma",
-      },
+      respuestasKpi(kpis),
       {
         // La tarjeta se llama «Corte» y decía «Listo»: prometia una fecha y
         // entregaba un estado, con la fecha escondida en la pista. El corte ES

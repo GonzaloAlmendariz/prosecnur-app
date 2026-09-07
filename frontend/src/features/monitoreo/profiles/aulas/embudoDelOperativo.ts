@@ -13,6 +13,7 @@
 // encuestas que cuentan.
 import type { FlujoEtapa } from "../../../calcMuestra/universidad/ui/FlujoVertical";
 import { fmt } from "./kpisDeAulas";
+import { entero, mermaDeRespuestas } from "./mermaDeRespuestas";
 
 /** Las cifras del tablero que este embudo necesita. */
 export type CifrasDelOperativo = {
@@ -25,10 +26,8 @@ export type CifrasDelOperativo = {
   reemplazos_usados?: number;
 };
 
-const entero = (v: unknown): number => {
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
-};
+// `entero` vive en mermaDeRespuestas.ts: la misma cuenta para el embudo y la
+// tarjeta de Fuentes (A2).
 
 /**
  * El recorrido del operativo, con su merma en cada paso.
@@ -66,8 +65,12 @@ export function embudoDelOperativo(
   if (!titulares) return [];
 
   const aplicadas = entero(c.aulas_aplicadas);
-  const recibidas = entero(c.respuestas_total);
-  const validas = entero(c.respuestas_validas);
+  // A2: recibidas, efectivas y la merma repartida salen de UNA regla,
+  // compartida con la tarjeta «Respuestas leídas» de Fuentes; la explicación
+  // de por qué se resta (y no se lee `filter_rejected`) vive allá.
+  const merma = mermaDeRespuestas(c);
+  const recibidas = merma.recibidas;
+  const validas = merma.efectivas;
   // **La merma de una etapa es la diferencia con la siguiente, no otra cuenta.**
   //
   // Se leía de `filter_rejected`, que el motor calcula con
@@ -86,15 +89,15 @@ export function embudoDelOperativo(
   // se pierde entre este escalón y el de abajo, que es lo que un embudo dice.
   // La heurística del motor sigue sirviendo donde nació —estudios que no
   // declaran criterio— y ahí las dos cuentas coinciden.
-  const rechazadas = Math.max(0, recibidas - validas);
+  const rechazadas = merma.rechazadas;
   // **Y de esa merma, cuánta no era del estudio.** «60 descartadas por el
   // filtro» mete en la misma bolsa dos noticias que piden cosas distintas: las
   // que llegaron por el QR de capacitación o de prueba —no son del operativo y
   // no hay nada que arreglar— y las que sí salieron de un curso-horario pero no
   // pasan el criterio, que es lo único sobre lo que el campo puede actuar. El
   // primer día de HSVG2026 eran 36 y 24, y el aviso decía 60 a secas.
-  const fueraDelOperativo = Math.min(rechazadas, entero(c.respuestas_fuera_del_operativo));
-  const noPasanElCriterio = Math.max(0, rechazadas - fueraDelOperativo);
+  const fueraDelOperativo = merma.fueraDelOperativo;
+  const noPasanElCriterio = merma.noPasanElCriterio;
   const reemplazos = entero(titularesReemplazados);
 
   const etapas: FlujoEtapa[] = [
