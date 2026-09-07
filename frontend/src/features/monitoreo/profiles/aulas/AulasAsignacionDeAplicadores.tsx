@@ -15,7 +15,11 @@ import { cadenasDelDia, tramoDeCadena } from "./cadenasDelDia";
  * sería avisar de lo que ya se sabe.
  */
 const INTERNO_PULSO = "INTERNO PULSO";
-import { claveDeCita, salidasDeDescubiertos, salidasDeLibres, type VentanaDeCita } from "./salidasDelReparto";
+import AulasViajesSolitarios from "./AulasViajesSolitarios";
+import {
+  claveDeCita, salidasDeDescubiertos, salidasDeLibres, salidasDeViajesSolitarios,
+  type VentanaDeCita,
+} from "./salidasDelReparto";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { Switch } from "../../../../components/Switch";
 import { agendaDelAplicador, mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
@@ -261,6 +265,10 @@ export function AulasAsignacionDeAplicadores({
     salidasDeDescubiertos(reparto, oferta, mapaVentanas).map((s) => [claveDeCita(s.fecha, s.codigo), s]),
   );
   const libres = salidasDeLibres(reparto, oferta);
+  // Y los viajes al campus por UNA sola aula, con la causa de cada uno: el
+  // motor los baja hasta donde la física deja y los que quedan no son un
+  // fallo suyo, así que se explican en vez de contarse.
+  const solitarios = salidasDeViajesSolitarios(reparto, oferta);
   // Y el orden del rail: los SIN asignación al principio («deben estar al
   // principio»), después de mayor a menor carga, alfabeto al final.
   const equidadOrdenada = [...reparto.equidad].sort((a, b) =>
@@ -760,6 +768,12 @@ export function AulasAsignacionDeAplicadores({
               });
             })()
           )}
+          {/* El diagnóstico de los viajes por una sola aula va AQUÍ y no en el
+              rail: cada línea nombra a quién está ocupado y en qué cita, y en
+              los 250px del rail eso se partía en cinco renglones por ítem
+              —1.194px de alto para doce viajes—. Con el ancho de la columna
+              cabe en una línea cada uno. */}
+          <AulasViajesSolitarios viajes={solitarios} />
         </div>
 
         <aside
