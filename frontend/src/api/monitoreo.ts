@@ -5205,6 +5205,27 @@ export type MonitoreoAulasHojaPublicada = {
 };
 
 /**
+ * Lo que publicar LEYÓ del equipo antes de escribir (desde `732c4221`): las
+ * hojas del equipo se importan en el mismo acto y el recibo lo declara. `ok`
+ * trae el `resumen` del importador; `error` dice por qué no se pudo (se
+ * publica igual, con lo que la sesión tenía); `omitida` cuando quien llamó ya
+ * había leído (`monitoreo_aulas_conversar_libro`).
+ */
+export type MonitoreoAulasLecturaPrevia = {
+  ok: boolean;
+  omitida: boolean;
+  error: string;
+  resumen: {
+    unidades?: number;
+    titulares?: number;
+    reservas?: number;
+    contactadas?: number;
+    partes_de_campo?: number;
+    filas_de_control?: number;
+  };
+};
+
+/**
  * Publica el libro de aulas en el Google Sheets del operativo.
  *
  * La contraparte de `apiMonitoreoAulasImportarSheets`: aquélla lee lo que el
@@ -5233,6 +5254,8 @@ export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
     destino_guardado: boolean;
     /** El destino recordado tras publicar, para refrescar el campo sin releer todo. */
     libro_sheets?: MonitoreoAulasLibroSheets | null;
+    /** Qué se leyó del equipo antes de escribir; ausente en recibos anteriores a `732c4221`. */
+    lectura_previa?: MonitoreoAulasLecturaPrevia | null;
   }>(
     await apiFetch("/api/monitoreo/aulas/publicar-libro", {
       method: "POST",

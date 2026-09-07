@@ -54,9 +54,65 @@ export function fraseDeHoja(h: HojaDelLibroPublicada): string {
   }
 }
 
+/**
+ * Lo que publicar LEYÓ del equipo antes de escribir (A1, loop 2026-09-07).
+ *
+ * Desde `732c4221` el motor importa las hojas del equipo en el mismo acto de
+ * publicar, y el recibo lo cuenta: `ok` con su `resumen`, `error` cuando el
+ * Sheets no se dejó leer (se publica igual, con lo que la sesión tenía), u
+ * `omitida` cuando quien llamó ya había leído. El día 1 de campo el encargado
+ * llevaba siete partes tecleados y la Base de control publicada enseñaba uno;
+ * nada en pantalla decía si se había leído. Esta frase es esa señal.
+ */
+export type LecturaPreviaDelLibro = {
+  ok?: boolean;
+  omitida?: boolean;
+  error?: string;
+  resumen?: {
+    unidades?: number | null;
+    partes_de_campo?: number | null;
+    filas_de_control?: number | null;
+  } | null;
+};
+
+function cuenta(n: number | null | undefined, uno: string, varios: string): string {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return `0 ${varios}`;
+  return v === 1 ? `1 ${uno}` : `${fmt(v)} ${varios}`;
+}
+
+/**
+ * La frase de la lectura previa, o vacía cuando no hay nada que contar
+ * (omitida, o un recibo anterior a esta señal). Cada aviso dice causa y
+ * salida: si falló, la salida es «Sincronizar campo» cuando el enlace responda.
+ */
+export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefined): {
+  texto: string;
+  tono: TonoAviso;
+} {
+  if (!lp || lp.omitida) return { texto: "", tono: "ok" };
+  if (lp.ok) {
+    const r = lp.resumen ?? {};
+    return {
+      texto:
+        `Antes de escribir se leyó lo del equipo: ${cuenta(r.partes_de_campo, "parte de campo", "partes de campo")}` +
+        ` y ${cuenta(r.filas_de_control, "fila de control", "filas de control")}.`,
+      tono: "ok",
+    };
+  }
+  const causa = String(lp.error ?? "").trim();
+  return {
+    texto:
+      `No se pudo leer el Sheets antes de publicar${causa ? ` (${causa})` : ""}: ` +
+      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa Sincronizar campo cuando el enlace responda.",
+    tono: "atencion",
+  };
+}
+
 export function avisoLibroPublicado(res: {
   hojas?: HojaDelLibroPublicada[] | null;
   destino_guardado?: boolean;
+  lectura_previa?: LecturaPreviaDelLibro | null;
 }): { texto: string; tono: TonoAviso } {
   const hojas = res.hojas ?? [];
   if (!hojas.length) {
@@ -66,9 +122,13 @@ export function avisoLibroPublicado(res: {
       tono: "atencion",
     };
   }
-  const partes = [`Libro publicado: ${hojas.map(fraseDeHoja).join(" · ")}.`];
+  const lectura = fraseDeLecturaPrevia(res.lectura_previa);
+  const partes = [
+    ...(lectura.texto ? [lectura.texto] : []),
+    `Libro publicado: ${hojas.map(fraseDeHoja).join(" · ")}.`,
+  ];
   if (res.destino_guardado) {
     partes.push("El enlace quedó guardado: leer y publicar lo usarán sin volver a pedirlo.");
   }
-  return { texto: partes.join(" "), tono: "ok" };
+  return { texto: partes.join(" "), tono: lectura.tono };
 }
