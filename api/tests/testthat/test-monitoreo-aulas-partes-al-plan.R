@@ -75,3 +75,39 @@ test_that("un aula sin parte queda intacta y una desconocida no rompe", {
   expect_identical(out[[1]]$label, "x")
   expect_null(out[[1]]$observed_students)
 })
+
+# **El veredicto del parte llega a la fila, o el tablero cuenta cero.**
+#
+# `aulas_aplicadas` suma `application_status == "aplicada"` de la fila del PLAN,
+# y ese campo no puede llegar por otra vía: los estados que ofrece la hoja
+# «Listas» del libro son del circuito (AGENDADA, REAGENDADA, REEMPLAZADA, EN
+# RESERVA) y ninguno mapea a «aplicada». Medido en vivo el 2026-09-07, primer
+# día de campo de HSVG 2026: el parte de CH 72 marcaba APLICADA con 34 encuestas
+# efectivas, los números llegaban a la fila y la tarjeta seguía en «0 aulas
+# aplicadas» porque el puente copiaba nueve campos y no éste.
+test_that("el estado del parte llega a la fila del plan, en su forma canónica", {
+  plan <- list(list(operational_code = "CH 72", classroom_id = "CH 72",
+                    sample_role = "titular"))
+  partes <- list(list(operational_code = "CH 72", intento = 1L,
+                      observed_students = 53, effective_surveys = 34,
+                      application_status = "APLICADA",
+                      applied_by = "González Rubio, Alonso"))
+  fila <- monitoreo_aulas_plan_desde_partes(plan, partes)[[1]]
+  # El puente copia el valor tal cual lo trae el libro; el normalizador del
+  # plan lo baja a la forma que el KPI compara.
+  expect_identical(fila$application_status, "APLICADA")
+  expect_identical(monitoreo_aulas_estado_aplicacion(fila$application_status), "aplicada")
+  expect_identical(fila$effective_surveys, 34)
+})
+
+test_that("un parte sin estado NO blanquea el que la fila ya tenía", {
+  # El puente es un PATCH: el vacío no pisa. Si no, un parte parcial del libro
+  # devolvería a «pendiente» un aula ya cerrada.
+  plan <- list(list(operational_code = "CH 9", classroom_id = "CH 9",
+                    sample_role = "titular", application_status = "aplicada"))
+  partes <- list(list(operational_code = "CH 9", intento = 1L,
+                      observed_students = 30, application_status = ""))
+  fila <- monitoreo_aulas_plan_desde_partes(plan, partes)[[1]]
+  expect_identical(fila$application_status, "aplicada")
+  expect_identical(fila$observed_students, 30)
+})
