@@ -309,8 +309,12 @@ test_that("B17: la Base de control habla de elegibles (spec y hoja generada)", {
   titulos <- lapply(BASE_CONTROL_CAMPOS, function(s) s$titulos)
   expect_identical(titulos[[which(campos == "eligible_n")]][[1]],
                    "MATRICULADOS ELEGIBLES")
-  expect_identical(titulos[[which(campos == "sent_vs_population")]][[1]],
-                   "VS ELEGIBLES")
+  # Lo que B17 pinea es la PALABRA, no la frase entera: el rótulo dice
+  # «elegibles» y nunca «población». El 2026-09-07 pasó de «VS ELEGIBLES» a
+  # «ENVIADAS VS ELEGIBLES» en el barrido de vocabulario, porque «VS» a secas no
+  # dice contra qué se compara; el contrato sigue intacto.
+  expect_match(titulos[[which(campos == "sent_vs_population")]][[1]], "ELEGIBLES")
+  expect_false(grepl("POBLACI", titulos[[which(campos == "sent_vs_population")]][[1]]))
   # Los títulos viejos quedan de alias de lectura (libros vivos v3).
   expect_true("MATRICULADOS POBLACION" %in% titulos[[which(campos == "eligible_n")]])
   expect_true("VS POBLACION" %in% titulos[[which(campos == "sent_vs_population")]])
@@ -318,7 +322,7 @@ test_that("B17: la Base de control habla de elegibles (spec y hoja generada)", {
   d <- aulas_libro_hoja_control(list(.v4_unidad("CH 1")))
   fila_titulos <- as.character(unlist(d[2, ], use.names = FALSE))
   expect_true("MATRICULADOS ELEGIBLES" %in% fila_titulos)
-  expect_true("VS ELEGIBLES" %in% fila_titulos)
+  expect_true(any(grepl("ELEGIBLES", fila_titulos, fixed = TRUE)))
   expect_false(any(c("MATRICULADOS POBLACION", "MATRICULADOS POBLACIÓN",
                      "VS POBLACION") %in% fila_titulos))
 })

@@ -23,6 +23,11 @@
   wave = "M1", course_name = paste("Curso", cod), label = "A101",
   schedule = "Lun 10:00", enrolled_total = eleg + 4, eligible_n = eleg,
   expected_valid = esperadas, application_status = "APLICADA",
+  # La tasa del aula es, por definición, `esperadas / elegibles`: el plan la
+  # trae calculada y la hoja la escribe en su propia columna desde el
+  # 2026-09-07, en lugar del antiguo «% EFECTIVAS ESPERADO», que era la misma
+  # cifra con otro nombre.
+  tasa_efectividad_aula = esperadas / eleg,
   sex_top_1 = "F", sex_top_1_n = f, sex_top_2 = "M", sex_top_2_n = m
 )
 
@@ -39,12 +44,13 @@ test_that("el esperado se publica por curso-horario, en numero Y en porcentaje",
          .ce_aula("CH 2", eleg = 40, esperadas = 24)),
     list(), NULL
   )
-  esperadas <- .ce_titulo("EFECTIVAS ESPERADAS")
-  pct <- .ce_titulo("% EFECTIVAS ESPERADO")
+  esperadas <- .ce_titulo("ESPERADAS POR TASA DEL AULA")
+  pct <- .ce_titulo("TASA DEL AULA")
   expect_identical(unlist(d[3, ], use.names = FALSE)[[esperadas]], "21")
   expect_identical(unlist(d[4, ], use.names = FALSE)[[esperadas]], "24")
   # 21/30 = 0.7 y 24/40 = 0.6: el numero solo no distingue que la segunda pide
-  # menos esfuerzo por alumno, y el porcentaje si.
+  # menos esfuerzo por alumno, y la tasa si. Es la misma cifra que publicaba
+  # «% EFECTIVAS ESPERADO», ahora con el nombre de lo que es.
   expect_identical(unlist(d[3, ], use.names = FALSE)[[pct]], "0.7")
   expect_identical(unlist(d[4, ], use.names = FALSE)[[pct]], "0.6")
 })
@@ -58,7 +64,7 @@ test_that("lo obtenido sale de la PLATAFORMA y la diferencia lleva signo", {
   expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "18")
   expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "0.6")
   # En encuestas y con signo: «te faltan 3» es accionable, «-13 %» no.
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "-3")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "-3")
 })
 
 test_that("por encima de lo esperado la diferencia es POSITIVA", {
@@ -66,7 +72,7 @@ test_that("por encima de lo esperado la diferencia es POSITIVA", {
   # corta se leerian igual.
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 25))
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "4")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "4")
 })
 
 test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
@@ -76,9 +82,9 @@ test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)), efectivas = NULL)
   expect_identical(fila[[.ce_titulo("EFECTIVAS OBTENIDAS")]], "")
   expect_identical(fila[[.ce_titulo("% EFECTIVAS OBTENIDO")]], "")
-  expect_identical(fila[[.ce_titulo("EFECTIVAS: DIFERENCIA")]], "")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "")
   # Pero lo ESPERADO si se publica: se sabe desde que se hizo el plan.
-  expect_identical(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "21")
+  expect_identical(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "21")
 })
 
 test_that("el sexo esperado sale del plan por aula, y cual es cual lo dice sex_top_1", {
@@ -155,9 +161,9 @@ test_that("la base del % es el padron, y la meta es otra columna", {
   # La meta NO es ninguna de las dos, y se escribe EN PERSONAS: el motor la
   # calcula como producto de tasas (17,3) y desde el 2026-09-07 la hoja la
   # redondea, porque nadie consigue diecisiete coma tres encuestas.
-  expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17")
-  # Y el porcentaje se calcula sobre la meta SIN redondear: 17,3/36 y no 17/36.
-  expect_equal(fila[[.ce_titulo("% EFECTIVAS ESPERADO")]], "0.481")
+  expect_equal(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "17")
+  # Y la tasa se calcula sobre la meta SIN redondear: 17,3/36 y no 17/36.
+  expect_equal(fila[[.ce_titulo("TASA DEL AULA")]], "0.481")
 })
 
 test_that("el titulo viejo sigue leyendose: los libros ya emitidos no se rompen", {

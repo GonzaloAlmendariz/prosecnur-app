@@ -318,6 +318,17 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   if (length(i)) as.integer(i[[1]]) else 0L
 }
 
+# **Por CAMPO, que es lo que no cambia.** El barrido de vocabulario del
+# 2026-09-07 renombró media hoja y con ello se cayeron dos formatos que estaban
+# anclados al título: los porcentajes del bloque de cuenta salieron como razones
+# crudas otra vez, que es exactamente el defecto que esos formatos vinieron a
+# cerrar. Un rótulo es lo que el dueño cambia; el campo es el identificador.
+.calg_col_control_campo <- function(campo) {
+  claves <- vapply(.calg_control_escritos(), function(spec) spec$campo, character(1))
+  i <- which(claves == campo)
+  if (length(i)) as.integer(i[[1]]) else 0L
+}
+
 # La escala de una columna de razones se decide por la COLUMNA ENTERA y con
 # corte en 1.5, la misma regla que usa la capa de presentacion del frontend. El
 # motor NO normaliza (decision declarada en `monitoreo_aulas_cruce_hojas.R`): el
@@ -547,12 +558,17 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = NULL, partes = list(
 #' @return lista `list(etiqueta, desde, hasta)` con las posiciones resueltas.
 #' @export
 aulas_libro_grupos_control <- function() {
-  campos <- vapply(.calg_control_escritos(), function(spec) spec$titulos[[1]], character(1))
+  # **Anclado al CAMPO y no al título.** Estaba por título y el barrido de
+  # vocabulario del 2026-09-07 lo rompió en silencio: al pasar «N ASISTENTES EN
+  # AULA» a «ALUMNOS EN AULA», el ancla dejó de casar y la hoja salió con TRES
+  # bandas en vez de cuatro, sin que nada fallara al generar. El campo es el
+  # identificador estable de la spec; el título es justo lo que cambia.
+  campos <- vapply(.calg_control_escritos(), function(spec) spec$campo, character(1))
   anclas <- list(
-    list(etiqueta = "INFORMACIÓN DEL CURSO", desde = "MUESTRA"),
-    list(etiqueta = "INFORMACIÓN DEL CAMPO", desde = "FECHA AGENDADA"),
-    list(etiqueta = "CONTROL - CUENTA", desde = "TOTAL ENVIADAS"),
-    list(etiqueta = "CONTROL - CUOTAS", desde = "N ASISTENTES EN AULA")
+    list(etiqueta = "INFORMACIÓN DEL CURSO", desde = "wave"),
+    list(etiqueta = "INFORMACIÓN DEL CAMPO", desde = "scheduled_date"),
+    list(etiqueta = "CONTROL - CUENTA", desde = "sent_total"),
+    list(etiqueta = "CONTROL - CUOTAS", desde = "observed_students")
   )
   inicios <- vapply(anclas, function(a) {
     i <- which(campos == a$desde)
@@ -644,11 +660,15 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   # bucle se cerraba igual. Se ancla por NOMBRE a los dos extremos para que la
   # spec pueda crecer sin descolocar el corte, y `test-carga-aulas-libro.R`
   # comprueba que el generador sigue sin escribir dentro de ese tramo.
+  # Anclado por CAMPO y no por título: el barrido de vocabulario del
+  # 2026-09-07 renombró «LARGAS VS TOTAL» y el corte se quedó sin extremo, así
+  # que `campos_equipo` salió vacío y NINGUNA fila contaba como control del
+  # equipo. Tercera vez que un ancla por rótulo se cae en el mismo día; el campo
+  # es el identificador estable de la spec.
   campos_equipo <- local({
     todos <- vapply(escritos, function(spec) spec$campo, character(1))
-    titulos_todos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
-    a <- which(titulos_todos == "TOTAL ENVIADAS")
-    b <- which(titulos_todos == "LARGAS VS TOTAL")
+    a <- which(todos == "sent_total")
+    b <- which(todos == "long_vs_total")
     if (!length(a) || !length(b) || b[[1]] < a[[1]]) character(0) else todos[seq.int(a[[1]], b[[1]])]
   })
   con_control <- vapply(unidades, function(u) {
@@ -668,35 +688,75 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     }
     identical(monitoreo_aulas_estado_aplicacion(estado), "aplicada")
   }, logical(1))
-  titulares <- unidades[aplicada | con_control]
+
+  # **Y un aula con RESPUESTAS es un aula que se está aplicando, haya parte o
+  # no.** El 2026-09-07, primer día de campo, seis aulas tenían encuestas
+  # llegando por la plataforma —CH 72 con 36, CH 76 con 48, CH 7 con 29, CH 79
+  # con 18, CH 43 con 17, CH 108 con 7— y la Base de control enseñaba UNA sola:
+  # la única con parte escrito. «Hay aulas que se están aplicando ahora, pero no
+  # tengo nada en la base de control».
+  #
+  # El parte lo escribe el encargado de campo cuando puede, y en la primera
+  # semana llega tarde o no llega; las respuestas llegan solas. Condicionar la
+  # hoja al parte es apagar la vigilancia justo mientras el aula está viva, que
+  # es cuando sirve. La efectiva obtenida es prueba directa de que ese
+  # curso-horario se está aplicando.
+  con_efectivas <- vapply(unidades, function(u) {
+    if (is.null(efectivas)) return(FALSE)
+    i <- match(.calg_txt(u$operational_code), names(efectivas))
+    if (is.na(i)) return(FALSE)
+    n <- suppressWarnings(as.numeric(efectivas[[i]]))
+    isTRUE(is.finite(n) && n > 0)
+  }, logical(1))
+
+  titulares <- unidades[aplicada | con_control | con_efectivas]
   filas <- lapply(titulares, function(u) {
     fila <- rep("", length(campos))
-    pon <- function(nombre, valor) {
-      i <- which(campos == nombre)
-      if (length(i)) fila[[i[[1]]]] <<- valor
+    # **Se pone por CAMPO, y si el campo no existe se cae.**
+    #
+    # Estaba por rótulo y con salida muda: `if (length(i))`. El barrido de
+    # vocabulario del 2026-09-07 renombró cuatro columnas y estas cuatro
+    # llamadas dejaron de escribir sin que nada avisara —la fila salía con la
+    # identidad puesta y el parte de campo en blanco—. Es la MISMA avería que
+    # ese día se llevó por delante las bandas, los formatos de porcentaje y
+    # `campos_equipo`; las tres se arreglaron ancla por ancla y ésta volvió a
+    # aparecer porque lo que fallaba no era el ancla, era el silencio.
+    #
+    # Un campo que no está en la spec es un error del código, no del usuario:
+    # `BASE_CONTROL_CAMPOS` es una constante del fuente y ninguna entrada de la
+    # API puede alcanzarlo. Por eso se corta con `stop()` y no con `stop_api()`.
+    pon <- function(campo, valor) {
+      i <- which(claves == campo)
+      if (!length(i)) {
+        stop(sprintf(
+          "aulas_libro_hoja_control(): '%s' no es un campo de BASE_CONTROL_CAMPOS.",
+          campo
+        ), call. = FALSE)
+      }
+      fila[[i[[1]]]] <<- valor
     }
-    pon("MUESTRA", .calg_txt(u$wave))
-    pon("CURSO-HORARIO", .calg_txt(u$operational_code))
-    pon("NOMBRE DEL CURSO", .calg_txt(u$course_name))
-    pon("AULA", .calg_txt(u$label))
-    pon("HORARIO", .calg_txt(u$schedule))
-    pon("MATRICULADOS TOTALES", .calg_num_txt(u$enrolled_total))
-    pon("MATRICULADOS ELEGIBLES", .calg_num_txt(u$eligible_n))
+    pon("wave", .calg_txt(u$wave))
+    pon("operational_code", .calg_txt(u$operational_code))
+    pon("course_name", .calg_txt(u$course_name))
+    pon("room", .calg_txt(u$label))
+    pon("schedule", .calg_txt(u$schedule))
+    pon("enrolled_total", .calg_num_txt(u$enrolled_total))
+    pon("eligible_n", .calg_num_txt(u$eligible_n))
 
     # Lo que sabe AGENDA, que viaja en la propia unidad.
-    pon("FECHA AGENDADA", .calg_txt(u$scheduled_date))
-    pon("HORA", .calg_txt(u$scheduled_time))
+    pon("scheduled_date", .calg_txt(u$scheduled_date))
+    pon("scheduled_time", .calg_txt(u$scheduled_time))
 
     # Y lo que sabe CAMPO, del parte de esta aula si lo hay.
     pt <- parte_de[[.calg_txt(u$operational_code)]]
     if (!is.null(pt)) {
       pv <- function(clave) .calg_txt(
         .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[[clave]]))
-      pon("APLICADOR", pv("aplicador"))
-      pon("FECHA DE APLICACION", pv("fecha"))
-      pon("HORA DE APLICACION", pv("hora"))
-      pon("STATUS DE APLICACION", pv("estado"))
-      pon("N ASISTENTES EN AULA", .calg_num_txt(
+      pon("applied_by", pv("aplicador"))
+      pon("applied_date", pv("fecha"))
+      pon("applied_time", pv("hora"))
+      pon("application_status", pv("estado"))
+      pon("observed_students", .calg_num_txt(
         .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)))
     }
 
@@ -726,21 +786,39 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     }
     esperadas_txt <- if (is.finite(esperadas)) as.integer(round(esperadas)) else esperadas
 
-    pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas_txt))
+    # **Las dos expectativas, con su tasa.** La del aula es la de su facultad
+    # ajustada por el factor del aula (`tasa = rendimiento_ref × factor`), así
+    # que enseñarlas juntas dice si el aula rinde por encima o por debajo de lo
+    # que su facultad hace de costumbre. Sin las dos, «esperadas» era una cifra
+    # sin vara con la que compararla.
+    tasa_fac <- suppressWarnings(as.numeric(u$rendimiento_ref %||% NA))[1]
+    tasa_aula <- suppressWarnings(as.numeric(u$tasa_efectividad_aula %||% NA))[1]
+    esp_fac <- if (is.finite(tasa_fac) && is.finite(eleg)) eleg * tasa_fac else NA_real_
+    if (is.finite(tasa_fac)) pon("tasa_facultad_ref", .calg_num_txt(round(tasa_fac, 3L)))
+    if (is.finite(esp_fac)) pon("esperadas_facultad", .calg_num_txt(as.integer(round(esp_fac))))
+    if (is.finite(tasa_aula)) pon("tasa_aula_ref", .calg_num_txt(round(tasa_aula, 3L)))
+    pon("efectivas_esperadas", .calg_num_txt(esperadas_txt))
     # El denominador del % de al lado. Es el mismo `eligible_n` de
     # «MATRICULADOS ELEGIBLES»: se repite para que el porcentaje se lea sin
     # cruzar la hoja. NO es una meta — la meta es «EFECTIVAS ESPERADAS».
-    pon("ELEGIBLES: BASE DEL %", .calg_num_txt(eleg))
-    pon("% EFECTIVAS ESPERADO", .calg_num_txt(pct(esperadas)))
+    pon("elegibles_esperados", .calg_num_txt(eleg))
+    # «% EFECTIVAS ESPERADO» YA NO SE ESCRIBE: es `esperadas / elegibles`, que
+    # es exactamente «TASA DEL AULA» dos columnas antes. Pasó a `solo_lectura`
+    # en la spec para que los libros ya emitidos se sigan leyendo.
     # Sin respuestas leidas la columna se queda VACIA, no en cero: cero
     # efectivas y «todavia no sabemos» son dos noticias distintas, y en un aula
     # sin aplicar la segunda es la cierta.
     if (is.finite(obtenidas)) {
-      pon("EFECTIVAS OBTENIDAS", .calg_num_txt(as.integer(round(obtenidas))))
-      pon("% EFECTIVAS OBTENIDO", .calg_num_txt(pct(obtenidas)))
+      pon("efectivas_obtenidas", .calg_num_txt(as.integer(round(obtenidas))))
+      pon("efectivas_pct_obtenido", .calg_num_txt(pct(obtenidas)))
+      # En encuestas y con signo: «te faltan 4» es accionable, «-13 %» no. Una
+      # diferencia por cada modelo, porque un aula puede ir bien contra su
+      # propia tasa y mal contra la de su facultad.
+      if (is.finite(esp_fac)) {
+        pon("brecha_facultad", .calg_num_txt(as.integer(round(obtenidas - esp_fac))))
+      }
       if (is.finite(esperadas)) {
-        # En encuestas y con signo: «te faltan 4» es accionable, «-13 %» no.
-        pon("EFECTIVAS: DIFERENCIA", .calg_num_txt(as.integer(round(obtenidas - esperadas))))
+        pon("efectivas_brecha", .calg_num_txt(as.integer(round(obtenidas - esperadas))))
       }
     }
 
@@ -755,8 +833,8 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     n2 <- .calg_num_txt(u$sex_top_2_n)
     if (identical(top1, "F") || identical(top1, "M")) {
       es_mujer_primero <- identical(top1, "F")
-      pon("MUJERES ESPERADAS", if (es_mujer_primero) n1 else n2)
-      pon("HOMBRES ESPERADOS", if (es_mujer_primero) n2 else n1)
+      pon("mujeres_esperadas", if (es_mujer_primero) n1 else n2)
+      pon("hombres_esperados", if (es_mujer_primero) n2 else n1)
     }
 
     # Lo registrado se escribe DESPUES y solo donde trae algo: la identidad la
@@ -1267,8 +1345,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Y los dos porcentajes, que se escriben en 0-1 y hay que ENSEÑAR como
   # porcentaje: un «0.7» en una columna que se llama «% EFECTIVAS ESPERADO» es
   # justo el defecto que se corrigio en la hoja de campo.
-  cols_control_pct <- vapply(c("% EFECTIVAS ESPERADO", "% EFECTIVAS OBTENIDO"),
-                             .calg_col_control, integer(1), USE.NAMES = FALSE)
+  cols_control_pct <- vapply(c("tasa_facultad_ref", "tasa_aula_ref", "efectivas_pct_obtenido"),
+                             .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
   cols_control_pct <- cols_control_pct[cols_control_pct > 0L]
   # **Las cuatro razones que ya venian en la hoja.** El arreglo de `7d0c22a7`
   # alcanzo a «% EFECTIVAS ESPERADO/OBTENIDO» y a «% ASISTENCIA», y dejo fuera a
@@ -1281,9 +1359,9 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Excel y nada obliga a que las cuatro vengan en la misma —un libro con «VS
   # TOTAL» en 0-1 y «ASISTENCIA» en 0-100 es un caso real—.
   razones_control <- Filter(Negate(is.null), lapply(
-    c("VS TOTAL", "VS ELEGIBLES", "CORTAS VS TOTAL", "LARGAS VS TOTAL"),
-    function(titulo) {
-      col <- .calg_col_control(titulo)
+    c("sent_vs_total", "sent_vs_population", "short_vs_total", "long_vs_total"),
+    function(campo) {
+      col <- .calg_col_control_campo(campo)
       if (!length(col) || is.na(col) || col <= 0L) return(NULL)
       valores <- as.character(hojas[["Base de control"]][[col]])[-(1:2)]
       list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),

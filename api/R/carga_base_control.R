@@ -32,22 +32,32 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "scheduled_date",      titulos = c("FECHA AGENDADA")),
   list(campo = "scheduled_time",      titulos = c("HORA")),
   list(campo = "applied_by",          titulos = c("APLICADOR")),
-  list(campo = "applied_date",        titulos = c("FECHA DE APLICACION")),
-  list(campo = "applied_time",        titulos = c("HORA DE APLICACION")),
-  list(campo = "application_status",  titulos = c("STATUS DE APLICACION")),
+  list(campo = "applied_date",        titulos = c("FECHA DE APLICACIÓN", "FECHA DE APLICACION")),
+  list(campo = "applied_time",        titulos = c("HORA DE APLICACIÓN", "HORA DE APLICACION")),
+  list(campo = "application_status",  titulos = c("ESTADO DE APLICACIÓN", "STATUS DE APLICACION")),
   # Control - cuenta
   list(campo = "sent_total",          titulos = c("TOTAL ENVIADAS")),
-  list(campo = "sent_vs_total",       titulos = c("VS TOTAL")),
+  list(campo = "sent_vs_total",       titulos = c("ENVIADAS VS MATRICULADOS", "VS TOTAL")),
   # Mismo barrido B17 que «MATRICULADOS ELEGIBLES»: el denominador de esta
   # razon son los elegibles, y el rotulo lo dice. «VS POBLACION» de alias.
-  list(campo = "sent_vs_population",  titulos = c("VS ELEGIBLES", "VS POBLACION")),
-  list(campo = "validator_1",         titulos = c("VALIDADOR 1")),
-  list(campo = "validator_2",         titulos = c("VALIDADOR 2")),
-  list(campo = "validator_3",         titulos = c("VALIDADOR 3")),
-  list(campo = "short_total",         titulos = c("TOTAL CORTAS")),
-  list(campo = "short_vs_total",      titulos = c("CORTAS VS TOTAL")),
-  list(campo = "long_total",          titulos = c("TOTAL LARGAS")),
-  list(campo = "long_vs_total",       titulos = c("LARGAS VS TOTAL")),
+  list(campo = "sent_vs_population",  titulos = c("ENVIADAS VS ELEGIBLES", "VS ELEGIBLES", "VS POBLACION")),
+  # **Son los FILTROS DE VALIDACIÓN que el estudio declara en Monitoreo**, no
+  # tres validadores humanos. Gonzalo lo corrigió el 2026-09-07: «responden a la
+  # cantidad de filtros de validación que declaramos en monitoreo, que en este
+  # caso en particular son 3». El rótulo viejo no lo decía y llevó a leerlas como
+  # casillas del equipo.
+  #
+  # Pendiente cuando el estudio declare su criterio: que la cabecera lleve el
+  # NOMBRE de cada filtro en vez del número. Hoy `criterio_validez` viene en
+  # `sin_datos` porque todavía no hay base de respuestas cargada, así que
+  # ponerle nombre sería inventarlo.
+  list(campo = "validator_1",         titulos = c("FILTRO DE VALIDACIÓN 1", "VALIDADOR 1")),
+  list(campo = "validator_2",         titulos = c("FILTRO DE VALIDACIÓN 2", "VALIDADOR 2")),
+  list(campo = "validator_3",         titulos = c("FILTRO DE VALIDACIÓN 3", "VALIDADOR 3")),
+  list(campo = "short_total",         titulos = c("RESPUESTAS CORTAS", "TOTAL CORTAS")),
+  list(campo = "short_vs_total",      titulos = c("CORTAS VS ENVIADAS", "CORTAS VS TOTAL")),
+  list(campo = "long_total",          titulos = c("RESPUESTAS LARGAS", "TOTAL LARGAS")),
+  list(campo = "long_vs_total",       titulos = c("LARGAS VS ENVIADAS", "LARGAS VS TOTAL")),
   # **Lo esperado contra lo obtenido, en vez de las dos banderas del Excel viejo.**
   #
   # La hoja traia `70T` y `70P`: dos casillas de si/no que decian si el aula
@@ -78,11 +88,32 @@ BASE_CONTROL_CAMPOS <- list(
   # aplicador anota en su parte —eso es su cuenta de campo— sino la respuesta
   # que llego y paso los filtros del estudio. Por eso estas columnas las
   # escribe Prosecnur y no el equipo.
-  list(campo = "efectivas_esperadas", titulos = c("EFECTIVAS ESPERADAS")),
+  # **Las dos expectativas, cada una con su tasa al lado.**
+  #
+  # Dictado de Gonzalo (2026-09-07): «poder comparar el rendimiento esperado por
+  # tasa de facultad y esperado por tasa de aula, y compararlo con lo obtenido».
+  # Los dos modelos ya viajaban en el plan y ninguno estaba en la hoja con su
+  # nombre: la columna decía «EFECTIVAS ESPERADAS» a secas y era la del AULA.
+  #
+  # Medido sobre el operativo, la relación entre ambos es exacta:
+  # `tasa_efectividad_aula = rendimiento_ref × factor_facultad`. Es decir, la
+  # tasa del aula es la de su facultad ajustada por un factor propio del aula.
+  # Para CH 72, con 53 elegibles: la facultad rinde 0,44 y el factor es 0,926,
+  # de donde 0,407 y 22 encuestas; por la tasa de facultad sin ajustar serían
+  # 23. Enseñar las dos permite ver si el aula rinde por encima o por debajo de
+  # lo que su facultad hace de costumbre, que es lo que la pregunta pedía.
+  list(campo = "tasa_facultad_ref",   titulos = c("TASA DE LA FACULTAD")),
+  list(campo = "esperadas_facultad",  titulos = c("ESPERADAS POR TASA DE FACULTAD")),
+  list(campo = "tasa_aula_ref",       titulos = c("TASA DEL AULA")),
+  list(campo = "efectivas_esperadas", titulos = c("ESPERADAS POR TASA DEL AULA", "EFECTIVAS ESPERADAS")),
   list(campo = "efectivas_obtenidas", titulos = c("EFECTIVAS OBTENIDAS")),
-  list(campo = "efectivas_pct_esperado", titulos = c("% EFECTIVAS ESPERADO")),
+  # `esperadas / elegibles` es, por definición, la tasa del aula: la misma cifra
+  # dos columnas antes. Se conserva para leer libros ya emitidos y deja de
+  # escribirse, que es el mismo criterio con el que se retiraron `70T` y `70P`.
+  list(campo = "efectivas_pct_esperado", titulos = c("% EFECTIVAS ESPERADO"), solo_lectura = TRUE),
   list(campo = "efectivas_pct_obtenido", titulos = c("% EFECTIVAS OBTENIDO")),
-  list(campo = "efectivas_brecha",    titulos = c("EFECTIVAS: DIFERENCIA")),
+  list(campo = "brecha_facultad",     titulos = c("DIFERENCIA VS TASA DE FACULTAD")),
+  list(campo = "efectivas_brecha",    titulos = c("DIFERENCIA VS TASA DEL AULA", "EFECTIVAS: DIFERENCIA")),
   # **El denominador del porcentaje, a la vista y con su nombre.**
   #
   # Es `eligible_n` —el mismo numero que «MATRICULADOS POBLACION» de esta misma
@@ -101,32 +132,33 @@ BASE_CONTROL_CAMPOS <- list(
        titulos = c("ELEGIBLES: BASE DEL %", "ELEGIBLES ESPERADOS")),
 
   # Control - duracion
-  list(campo = "last_response_day",   titulos = c("ULTIMO DIA DE RESPUESTA")),
+  list(campo = "last_response_day",   titulos = c("ÚLTIMO DÍA DE RESPUESTA", "ULTIMO DIA DE RESPUESTA")),
   # Control - cuotas
-  list(campo = "observed_students",   titulos = c("N ASISTENTES EN AULA")),
-  list(campo = "non_respondents",     titulos = c("N ASISTENTES QUE NO RESPONDIERON")),
-  list(campo = "attendance_pct",      titulos = c("ASISTENCIA")),
-  list(campo = "quota_pct",           titulos = c("CUOTA")),
-  list(campo = "quota_missing",       titulos = c("FALTANTES CUOTA")),
+  list(campo = "observed_students",   titulos = c("ALUMNOS EN AULA", "N ASISTENTES EN AULA")),
+  list(campo = "non_respondents",     titulos = c("ALUMNOS QUE NO RESPONDIERON", "N ASISTENTES QUE NO RESPONDIERON")),
+  list(campo = "attendance_pct",      titulos = c("% ASISTENCIA", "ASISTENCIA")),
+  list(campo = "quota_pct",           titulos = c("% DE CUOTA CUBIERTA", "CUOTA")),
+  list(campo = "quota_missing",       titulos = c("FALTAN PARA LA CUOTA", "FALTANTES CUOTA")),
   # **El esperado pegado a lo obtenido**, que es como se lee: «esperaba 17
   # mujeres y consegui 14». Estaban en el bloque de CUENTA, a diez columnas de
   # su pareja, y comparar obligaba a recorrer la hoja. El esperado sale del plan
   # por AULA (`sex_top_1_n` / `sex_top_2_n`), no de la cuota por facultad.
   list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS")),
-  list(campo = "women_n",             titulos = c("N MUJERES")),
+  list(campo = "women_n",             titulos = c("MUJERES OBTENIDAS", "N MUJERES")),
   list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS")),
-  list(campo = "men_n",               titulos = c("N HOMBRES")),
-  list(campo = "women_pct",           titulos = c("MUJERES")),
-  list(campo = "men_pct",             titulos = c("HOMBRES")),
+  list(campo = "men_n",               titulos = c("HOMBRES OBTENIDOS", "N HOMBRES")),
+  list(campo = "women_pct",           titulos = c("% MUJERES", "MUJERES")),
+  list(campo = "men_pct",             titulos = c("% HOMBRES", "HOMBRES")),
   # Control - rango horario
-  list(campo = "schedule_norm",       titulos = c("NORM - HORARIO")),
-  list(campo = "schedule_range",      titulos = c("RANGO - HORARIO"))
+  list(campo = "schedule_norm",       titulos = c("HORARIO NORMALIZADO", "NORM - HORARIO")),
+  list(campo = "schedule_range",      titulos = c("FRANJA HORARIA", "RANGO - HORARIO"))
 )
 
 # Los campos que son numero. El resto se conserva como texto.
 .cbc_numericos <- c(
   "enrolled_total", "eligible_n", "sent_total", "sent_vs_total", "sent_vs_population",
   "validator_1", "validator_2", "validator_3", "short_total", "short_vs_total",
+  "tasa_facultad_ref", "esperadas_facultad", "tasa_aula_ref", "brecha_facultad",
   "long_total", "long_vs_total", "threshold_total", "threshold_population",
   "observed_students", "non_respondents", "attendance_pct", "quota_pct",
   "quota_missing", "women_n", "men_n", "women_pct", "men_pct"

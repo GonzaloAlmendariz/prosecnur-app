@@ -354,10 +354,13 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # `eligible_n` del plan publicado en la Base de control, asi que tampoco lo
   # pisa el registro. Que aparezca aqui es la señal de que la columna nueva se
   # escribe de verdad.
-  # Los cuatro `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
+  # Los CINCO `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
   # eso es deliberado —salian como columnas vacias—. Siguen en la spec para que
   # un libro viejo que las traiga se lea entero, que es lo que comprueba
-  # `test-carga-aulas-libro-control-esperado.R`.
+  # `test-carga-aulas-libro-control-esperado.R`. El quinto es
+  # `efectivas_pct_esperado`, que dejo de escribirse el 2026-09-07: era
+  # `esperadas / elegibles`, la misma cifra que «TASA DEL AULA» dos columnas
+  # antes, y una columna que repite a su vecina no informa, confunde.
   # Los SIETE de agenda y campo se suman por el mismo motivo, y su presencia
   # aqui es la señal de que la Base de control ya los escribe: hasta el
   # 2026-08-31 salian VACIOS —«base de control necesita saber lo que las otras
@@ -368,6 +371,7 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
                     "elegibles_esperados",
                     "threshold_total", "threshold_population",
                     "valid_total", "valid_population",
+                    "efectivas_pct_esperado",
                     "scheduled_date", "scheduled_time",
                     "applied_by", "applied_date", "applied_time",
                     "application_status", "observed_students"))
