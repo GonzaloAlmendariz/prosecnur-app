@@ -149,7 +149,9 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     // un literal fijo: lo que se exige es que **las dos ramas nombren Kobo**, que
     // es lo que este guard protege —sin eso, «3 700» y las «4 863» del parte
     // vuelven a ser indistinguibles—.
-    const bloque = kpis.slice(kpis.indexOf("function validasKpi"));
+    // `validasKpi` se retiró el 2026-09-08 con la banda que dictó Gonzalo; la
+    // tarjeta de Efectivas es ahora la primera de Avance y se escribe inline.
+    const bloque = kpis.slice(kpis.indexOf('label: "Efectivas"'));
     const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
     // Lo protegido es que la tarjeta **nombre su fuente**, no la marca concreta.
     // Decía «de Kobo»; ahora dice «de la plataforma», que además de leerse sin

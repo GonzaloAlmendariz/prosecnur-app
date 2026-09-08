@@ -4,9 +4,11 @@ import {
   AlertCircle,
   CalendarCheck,
   CalendarClock,
+  BarChart3,
   CalendarRange,
   CheckCircle2,
   ClipboardCheck,
+  Layers,
   Link2,
   Link2Off,
   PhoneCall,
@@ -14,10 +16,8 @@ import {
   ShieldAlert,
   Table2,
   Target,
-  Users,
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
-import { sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { pct } from "../../core/formatoComun";
 
 /**
@@ -180,52 +180,18 @@ function fecha(iso: unknown) {
 }
 
 /**
- * La tarjeta de cuota, en personas y compartida por dos secciones.
+ * `cuotaKpi`, `cierreKpi` y `validasKpi` se retiraron el 2026-09-08 con la
+ * banda de Avance que dictó Gonzalo: «no me interesa saber cuántos llegaron a
+ * su meta (...) no me interesa saber cuántas cierran con lo agendado». Eran sus
+ * únicas llamadas, y una función que nadie llama es deuda, no una capacidad —la
+ * misma doctrina con la que se fue `puntajeSobreCien`.
  *
- * En personas porque es la unidad del operativo: doce celdas pueden estar a una
- * respuesta o a doscientas y el contador de celdas se ve igual.
+ * Lo que enseñaban vive ahora en otra parte: las efectivas y la cuota, en las
+ * cinco primeras tarjetas de Avance, que salen de `avance_cuota` para no
+ * discrepar con la tabla; la proyección de cierre, en la pestaña de predicción,
+ * que es donde Gonzalo la quiere.
  */
-function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  // `quotas_sex_faculty` viaja en TODOS los scopes —comprobado pidiendo
-  // `report_scope=source`, que devuelve las 12 celdas—, así que la tarjeta no se
-  // vacía en las secciones que piden ese scope.
-  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
-  // Lo que falta, por sexo. Se agrega desde las celdas —facultad x sexo— porque
-  // pasarse en una facultad no cubre lo que falta en otra, igual que en el total.
-  const faltanPorSexo = new Map<string, number>();
-  for (const fila of (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>) {
-    const sexo = String(fila.sex ?? "").trim() || "Sin dato";
-    const falta = Math.max(0, Number(fila.target ?? 0) - Number(fila.observed ?? 0));
-    if (!falta) continue;
-    faltanPorSexo.set(sexo, (faltanPorSexo.get(sexo) ?? 0) + falta);
-  }
-  const porSexo = [...faltanPorSexo.entries()]
-    .map(([sexo, faltan]) => ({ etiqueta: sexSeriesLabel(sexo), faltan }))
-    .sort((a, b) => b.faltan - a.faltan);
-  return {
-    label: "Cuota por recoger",
-    icono: Users,
-    value: cuota.celdas ? fmt(cuota.faltan) : "S/D",
-    // El desglose por sexo en la pista: «3 743» no dice a quién hay que buscar.
-    pista: cuota.celdas
-      ? (porSexo.length
-          ? porSexo.map((x) => `${fmt(x.faltan)} ${x.etiqueta.toLowerCase()}`).join(" · ")
-          : "personas de sexo por facultad")
-      : "el plan no declara cuotas",
-    tone: cuota.faltan ? "warn" : "neutral",
-    // La última frase contesta la resta que no cuadra: 4 376 − 3 700 son 676 y
-    // la tarjeta dice 701. No es un error —lo que falta se suma celda a celda,
-    // porque pasarse en una facultad no cubre lo que falta en otra— pero sin
-    // decirlo el lector encuentra la diferencia y desconfía de las dos cifras.
-    // Y nombra su unidad: «Cumplimiento en respuestas», tres centímetros más
-    // abajo, cuenta lo MISMO por otro camino —metas por curso-horario— y a 0,4
-    // de distancia el redondeo separa las dos cifras en uno. Decir de dónde
-    // sale cada una es lo que impide leer esa diferencia como un error.
-    detalle: cuota.celdas
-      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} grupos de facultad y sexo · lo que falta se suma grupo a grupo`
-      : "el plan no declara cuotas de sexo por facultad",
-  };
-}
+
 
 /**
  * La fecha dentro de un `sel_aulas_AAAAMMDDHHMMSS_hash`.
@@ -341,53 +307,6 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   };
 }
 
-/**
- * **¿Vamos a llegar?** — la única pregunta del tablero que no tenía cifra.
- *
- * La banda de Avance dice «llegaron a su meta: 0», «cuota por recoger: 1 558» y
- * «brechas: 168»: tres formas de decir que se va atrás, y ninguna dice si con lo
- * que hay agendado se llega. Ese número existe desde que la pirámide predice
- * —`proyeccionPorAgenda` decide celda a celda si la agenda comprometida cubre su
- * cuota— pero vivía sólo en el detalle, a dos pestañas de distancia.
- *
- * El denominador son las celdas sexo × facultad, que es por lo que se aprueba o
- * no el estudio. Un `0 de 40` es una alarma; un `0` a secas no dice nada.
- *
- * `tone` en `warn` cuando no cierran todas: es la cifra que decide si hay que
- * salir a pedir aulas, y neutra se lee como un dato más de contexto.
- */
-function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  const proyeccion = proyeccionPorAgenda(
-    (dashboard?.agenda ?? []) as MonitoreoRow[],
-    parteDeCampo(
-      (dashboard?.partes_campo ?? []) as MonitoreoRow[],
-      (dashboard?.agenda ?? []) as MonitoreoRow[],
-    ).filas as MonitoreoRow[],
-    (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[],
-  );
-  const celdas = proyeccion.flatMap((f) => f.cuotas);
-  // Sólo las celdas que declaran objetivo entran en la cuenta. Sin este filtro,
-  // una celda con meta 0 da `faltan === 0` y por tanto `alcanza === true`: el
-  // KPI contaba la ausencia de objetivo como un cierre logrado. En el estudio
-  // real, sus «10 cierran» eran exactamente las 10 celdas sin cuota, con cero
-  // aulas agendadas y cero aplicadas.
-  const evaluables = celdas.filter((c) => c.meta > 0);
-  const sinObjetivo = celdas.length - evaluables.length;
-  const cierran = evaluables.filter((c) => c.alcanza).length;
-  const pistaSinObjetivo = sinObjetivo ? ` · ${fmt(sinObjetivo)} sin objetivo declarado` : "";
-  return {
-    label: "Cierran con lo agendado",
-    icono: CalendarRange,
-    value: evaluables.length ? fmt(cierran) : "S/D",
-    pista: evaluables.length
-      ? `de ${fmt(evaluables.length)} grupos de facultad y sexo con meta${pistaSinObjetivo}`
-      : "el estudio no declara cuotas por sexo y facultad",
-    tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
-    detalle: evaluables.length
-      ? "Cuenta los grupos que llegarían a su cuota con los cursos-horario YA agendados, no al ritmo observado: la agenda son cursos-horario con fecha, no una proyección. Los grupos que no declaran cuota quedan fuera de la cuenta, porque no hay meta que cerrar. Los que no cierran se ven uno a uno en Cuotas."
-      : undefined,
-  };
-}
 
 function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const brechas = Number(dashboard?.kpis?.brechas ?? 0);
@@ -432,53 +351,6 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   };
 }
 
-function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  // El desglose honesto de esta tarjeta es decir que NO se puede desglosar: si
-  // ninguna respuesta se ata a un curso-horario, no hay facultad ni sexo que
-  // repartir. Callarlo la deja igual que si el reparto existiera, y repartirla
-  // por la meta sería inventarlo.
-  const validas = Number(dashboard?.kpis?.respuestas_validas ?? 0);
-  const atribuidas = ((dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>)
-    .reduce((n, f) => n + Number(f.observed ?? 0), 0);
-  // **El caso intermedio, que era el real y no se decía.**
-  //
-  // La rama de arriba sólo miraba el todo-o-nada. En este corte hay 2 220
-  // válidas y 2 185 atribuidas a una celda sexo × facultad: **35 encuestas
-  // hechas que no cuentan para ninguna cuota**, en un operativo donde faltan
-  // 1 558 y el banco entero no alcanza. La cifra estaba calculada dos líneas
-  // más arriba y sólo se usaba para el caso extremo.
-  //
-  // No es un tope: se comprobó que ninguna de las 40 celdas supera su meta, así
-  // que `observed` no está recortado y la diferencia es real.
-  const fuera = Math.max(0, validas - atribuidas);
-  return {
-    label: "Efectivas",
-    icono: CheckCircle2,
-    value: fmt(dashboard?.kpis?.respuestas_validas),
-    // **Dice CELDA y no curso-horario, porque es lo que mide.**
-    //
-    // `atribuidas` sale de `quotas_sex_faculty`: es la atribucion a una celda
-    // SEXO × FACULTAD, que necesita el sexo de cada respuesta. La atribucion al
-    // curso-horario es otra —va por el enlace del recopilador— y puede estar
-    // funcionando cuando esta falla.
-    //
-    // Visto en un simulacro: la tarjeta decia «ninguna atribuida a un
-    // curso-horario» mientras dos paneles mas abajo se contaban 1 471
-    // respuestas cubriendo la meta de sus aulas y 20 aulas en meta. Las dos
-    // cifras eran correctas y el rotulo era el que mentia: faltaba el sexo, no
-    // el aula, y mandaba a revisar el enlace en vez del mapeo de la variable.
-    pista: validas > 0 && atribuidas === 0
-      ? "de la plataforma · ninguna cae en un grupo de facultad y sexo"
-      : fuera > 0
-        ? `${fmt(fuera)} no entran en ningún grupo con cuota`
-        : "respuestas de la plataforma que pasan los filtros",
-    detalle: validas > 0 && atribuidas === 0
-      ? "Sin el sexo de cada respuesta no se pueden repartir por grupo, así que no cuentan para ninguna cuota. La atribución al curso-horario es otra cosa y puede estar bien: mírala en «Llegaron a su meta»."
-      : fuera > 0
-        ? `${fmt(atribuidas)} de ${fmt(validas)} caen en un grupo de facultad y sexo. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
-        : undefined,
-  };
-}
 
 /**
  * Las tarjetas de cada sección.
@@ -899,46 +771,121 @@ export function aulasKpis(
   const conMeta = Number.isFinite(conMetaDelMotor)
     ? conMetaDelMotor
     : Math.max(0, totalDelMotor - sinMeta - banco);
+  void cumplen; void conMeta;
+  // **Los siete KPIs de Avance, en el orden que dictó Gonzalo (2026-09-08).**
+  //
+  // Textual: «No me interesa saber cuántos llegaron a su meta sino el
+  // porcentaje de avance hacia la muestra (en este caso 2500), no me interesa
+  // saber cuántas cierran con lo agendado. Me interesa que los KPIs sean los
+  // siguientes y en este orden: Efectivas · Muestra (meta) · Avance (%) en base
+  // a la muestra · Sobremuestra · Avance (%) en base a la sobremuestra · Cursos
+  // horario aplicados · Cursos horarios planificados.»
+  //
+  // Se fueron «Llegaron a su meta» (por curso-horario, no por muestra),
+  // «Cierran con lo agendado» (proyección: vive en otra pestaña) y «Cursos-
+  // horario bajo su meta». Siguen calculándose para las bandas de otras
+  // secciones; lo que cambia es qué preside Avance.
+  //
+  // Las cinco primeras salen de UNA fuente, `avance_cuota`, que es la misma de
+  // la tabla de abajo y la misma que el libro escribe en «Avance de campo»: si
+  // el KPI y la tabla discrepan, el lector no tiene forma de saber cuál creer.
+  const metas = metasDeAvance(dashboard);
   return [
-    // **Las aulas aplicadas van PRIMERO, y antes no estaban.**
-    //
-    // La banda de Avance abria con «Válidas», que cuenta respuestas de la
-    // plataforma. Medido el 2026-08-24 simulando cinco dias de campo —10 aulas
-    // aplicadas, 213 efectivas registradas a mano, ninguna respuesta de Kobo
-    // todavia—: los cinco KPIs salian en 0 o S/D y la pantalla que se llama
-    // «Avance», subtitulada «Cursos-horario **aplicados**, cuotas y brechas»,
-    // no enseñaba los aplicados en ninguna parte.
-    //
-    // El KPI ya existia —`registroKpi`, con su pista «declaradas en el registro
-    // de campo»— y se usaba en otra banda. Aqui faltaba, que es donde primero se
-    // mira si el operativo arranco.
-    //
-    // Va primero porque es lo que ocurre ANTES: se aplica el aula, luego llegan
-    // las respuestas. La banda cuenta el recorrido en su orden.
-    registroKpi(dashboard),
-    validasKpi(dashboard),
     {
-      label: "Llegaron a su meta",
-      icono: Target,
-      value: fmt(cumplen),
-      // Un conteo sin su denominador no se puede leer: «0» y «0 de 196» dicen lo
-      // mismo del numerador y cosas distintas del estudio.
-      //
-      // Y el denominador son **los que tienen meta declarada**: medido sobre el
-      // corte, 234 de las 236 filas de `course_status` la traen —las dos que no,
-      // que el propio perfil ya declara en Cuotas—. Con `estado.total` esas dos
-      // entraban en el denominador, y «llegar a su meta» no significa nada para
-      // una fila que no tiene ninguna.
-      //
-      // La diferencia es de dos filas, no de cuarenta: la primera version de este
-      // comentario decia que los 40 extras no tenian meta y ESO ERA FALSO. La
-      // cifra se midio despues de escribirlo.
-      pista: conMeta
-        ? `de ${fmt(conMeta)} cursos-horario con meta`
-        : "cursos-horario que llegaron a su meta",
+      label: "Efectivas",
+      icono: CheckCircle2,
+      value: fmt(metas.efectivas),
+      // **Las dos ramas nombran la fuente.** Sin eso, estas respuestas y las
+      // 4 863 que declara el parte de campo vuelven a ser indistinguibles en
+      // la misma pantalla: una llega de la plataforma y la otra la escribe el
+      // aplicador al cerrar el aula.
+      pista: metas.muestra
+        ? `de ${fmt(metas.muestra)} de la muestra, de la plataforma`
+        : "de la plataforma, las que pasan los filtros",
+      detalle: "Respuestas que llegaron de la plataforma y pasan los filtros de validez del estudio. Es la misma cifra que preside la tabla de abajo y la hoja «Avance de campo» del libro.",
     },
-    cierreKpi(dashboard),
-    cuotaKpi(dashboard),
-    brechasKpi(dashboard),
+    {
+      label: "Muestra",
+      icono: Target,
+      value: metas.muestra ? fmt(metas.muestra) : "S/D",
+      pista: metas.muestra ? "la meta del estudio" : "el estudio no declara cuota del diseño",
+      detalle: "La cuota que el diseño fijó para el estudio, repartida por facultad y por sexo.",
+    },
+    {
+      label: "Avance a la muestra",
+      icono: BarChart3,
+      value: metas.avanceMuestra === null ? "S/D" : pctPerfil(metas.avanceMuestra * 100),
+      pista: metas.muestra ? `faltan ${fmt(metas.faltanMuestra)}` : "sin meta contra la que medir",
+      tone: metas.avanceMuestra !== null && metas.avanceMuestra < 1 ? "warn" : "neutral",
+      detalle: "Efectivas sobre la muestra. Lo que falta se suma grupo a grupo —celdas sexo × facultad—: pasarse en uno no cubre lo que falta en otro.",
+    },
+    {
+      label: "Sobremuestra",
+      icono: Layers,
+      value: metas.sobremuestra ? fmt(metas.sobremuestra) : "S/D",
+      pista: metas.sobremuestra ? "la segunda meta del estudio" : "el estudio no declara sobremuestra",
+      detalle: "La sobremuestra del diseño. Recibe el mismo trato que la muestra: meta, avance y faltantes, en total, por sexo y por facultad.",
+    },
+    {
+      label: "Avance a la sobremuestra",
+      icono: BarChart3,
+      value: metas.avanceSobremuestra === null ? "S/D" : pctPerfil(metas.avanceSobremuestra * 100),
+      pista: metas.sobremuestra ? `faltan ${fmt(metas.faltanSobremuestra)}` : "sin sobremuestra contra la que medir",
+      detalle: "Efectivas sobre la sobremuestra, con la misma regla de suma por grupo que el avance a la muestra.",
+    },
+    registroKpi(dashboard),
+    {
+      label: "Cursos-horario planificados",
+      icono: CalendarRange,
+      value: metas.planificados ? fmt(metas.planificados) : "S/D",
+      pista: metas.planificados ? "titulares del plan" : "el plan no declara cursos-horario",
+      detalle: "Los cursos-horario titulares del sorteo, que son el denominador de lo aplicado. El banco de reemplazos no entra.",
+    },
   ];
+}
+
+/**
+ * Las cinco cifras de meta de la banda de Avance, de UNA fuente.
+ *
+ * `avance_cuota` es la misma que alimenta la tabla de abajo y la hoja del
+ * libro. Los faltantes NO se restan del total: se suman grupo a grupo desde
+ * `quotas_sex_faculty`, porque pasarse en una facultad o en un sexo no cubre lo
+ * que falta en otro (ADR 0079) — la misma regla que ya aplicaba `cuotaKpi`.
+ */
+function metasDeAvance(dashboard: MonitoreoAulasDashboard | null): {
+  efectivas: number;
+  muestra: number;
+  sobremuestra: number;
+  avanceMuestra: number | null;
+  avanceSobremuestra: number | null;
+  faltanMuestra: number;
+  faltanSobremuestra: number;
+  planificados: number;
+} {
+  const avance = (dashboard?.avance_cuota ?? null) as Record<string, unknown> | null;
+  const total = (avance?.total ?? {}) as Record<string, unknown>;
+  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
+  const numero = (valor: unknown): number => {
+    const n = Number(valor ?? 0);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  // Efectivas: la del avance contra la cuota; si el motor no la publica, la
+  // suma de lo observado en los grupos, que es su mismo origen.
+  const efectivas = numero(total.respuestas_validas) || cuota.logrado || 0;
+  const muestra = numero(total.cuota) || numero(avance?.meta_diseno) || cuota.meta || 0;
+  const sobremuestra = numero(avance?.meta_operativa) || numero(avance?.sobremuestra_total) || 0;
+  const faltanMuestra = cuota.celdas ? cuota.faltan : Math.max(0, muestra - efectivas);
+  return {
+    efectivas,
+    muestra,
+    sobremuestra,
+    avanceMuestra: muestra > 0 ? efectivas / muestra : null,
+    avanceSobremuestra: sobremuestra > 0 ? efectivas / sobremuestra : null,
+    faltanMuestra,
+    // Contra la sobremuestra la brecha por grupo no viaja al front todavía, así
+    // que se declara el neto y no se finge un desglose que no se tiene.
+    faltanSobremuestra: Math.max(0, sobremuestra - efectivas),
+    planificados: Number(dashboard?.course_status_con_meta ?? 0)
+      || Number(dashboard?.course_status_total ?? 0) || 0,
+  };
 }

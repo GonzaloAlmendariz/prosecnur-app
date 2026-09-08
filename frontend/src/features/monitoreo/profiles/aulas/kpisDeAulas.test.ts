@@ -72,8 +72,10 @@ describe("la banda de KPIs", () => {
     expect(etiquetas("consultas")).toContain("Cerraron con reemplazo");
     expect(etiquetas("consultas")).toContain("Cadenas sin cerrar");
     expect(etiquetas("calidad")).toContain("Alertas");
-    expect(etiquetas("avance")).toContain("Cuota por recoger");
-    expect(etiquetas("avance")).toContain("Llegaron a su meta");
+    // Desde 2026-09-08 Avance abre por las metas, no por la cuota pendiente:
+    // el detalle de qué falta lo lleva la tabla de la pestaña.
+    expect(etiquetas("avance")).toContain("Efectivas");
+    expect(etiquetas("avance")).toContain("Avance a la muestra");
     // Y NO «Cumplen»: esa palabra la usaban a la vez este KPI, el tramo
     // `cerrando` del gráfico de estado y «Meta cumplida» del de cobertura, para
     // tres cosas distintas. El KPI decía 216 y el gráfico 0 en la misma
@@ -124,44 +126,92 @@ describe("la banda de KPIs", () => {
   });
 });
 
-describe("el KPI de cuota", () => {
-  it("cuenta personas, no celdas", () => {
-    const kpi = cuotaKpi(tablero());
-    // 288 + 96 = 384 personas por recoger. Si volviera a contar celdas diría
-    // «2/4», que es el defecto que este guard existe para atrapar.
-    expect(kpi?.value).toBe("384");
-    expect(kpi?.value).not.toContain("/");
+/**
+ * Los SIETE KPIs de Avance, en el orden que dictó Gonzalo (2026-09-08).
+ *
+ * Textual: «No me interesa saber cuántos llegaron a su meta sino el porcentaje
+ * de avance hacia la muestra (en este caso 2500), no me interesa saber cuántas
+ * cierran con lo agendado. Me interesa que los KPIs sean los siguientes y en
+ * este orden: Efectivas · Muestra (meta) · Avance (%) en base a la muestra ·
+ * Sobremuestra · Avance (%) en base a la sobremuestra · Cursos horario
+ * aplicados · Cursos horarios planificados.»
+ *
+ * Contrato anterior, citado para quien lea un diff: la banda era «Cursos-horario
+ * aplicados · Efectivas · Llegaron a su meta · Cierran con lo agendado · Cuota
+ * por recoger · Cursos-horario bajo su meta». Las tres que se fueron eran, en
+ * ese orden, una cifra por curso-horario (no por muestra), una proyección —que
+ * vive en la pestaña de predicción— y una brecha que la tabla ya detalla.
+ */
+describe("los siete KPIs de Avance", () => {
+  const conMetas = {
+    kpis: { aulas_aplicadas: 16, respuestas_validas: 212 },
+    course_status_con_meta: 174,
+    avance_cuota: {
+      total: { cuota: 2500, respuestas_validas: 212 },
+      meta_diseno: 2500,
+      meta_operativa: 3750,
+    },
+    quotas_sex_faculty: [
+      { faculty: "F1", sex: "F", target: 1239, observed: 77 },
+      { faculty: "F1", sex: "M", target: 1261, observed: 135 },
+    ],
+  } as unknown as MonitoreoAulasDashboard;
+
+  it("son estos siete y en este orden", () => {
+    expect(aulasKpis(conMetas, "avance").map((k) => k.label)).toEqual([
+      "Efectivas",
+      "Muestra",
+      "Avance a la muestra",
+      "Sobremuestra",
+      "Avance a la sobremuestra",
+      "Cursos-horario aplicados",
+      "Cursos-horario planificados",
+    ]);
   });
 
-  it("dice lo mismo que el panel de Avance", () => {
-    // La propiedad, no el número: las dos superficies leen la misma función.
-    const general = cuotasResumen(celdas as never).general;
-    expect(cuotaKpi(tablero())?.value).toBe(
-      new Intl.NumberFormat("es-PE").format(general.faltan),
-    );
+  it("las cinco cifras de meta salen de la misma fuente que la tabla", () => {
+    const por = Object.fromEntries(aulasKpis(conMetas, "avance").map((k) => [k.label, k.value]));
+    // Las mismas cifras medidas sobre el estado real de HSVG2026 y escritas en
+    // la hoja «Avance de campo» del libro: 212 de 2 500 es 8,5 %, y de 3 750 es
+    // 5,7 %. Si el KPI y la tabla discrepan, quien mira no puede saber cuál creer.
+    expect(por.Efectivas).toBe("212");
+    expect(por.Muestra).toBe("2,500");
+    // El separador decimal se escribe como lo produzca el runner: `pctPerfil`
+    // usa es-PE y el runner sin ICU degrada a punto. Lo que se pinea es la
+    // CIFRA —un decimal, con su símbolo— no el locale de la máquina que corre
+    // el test.
+    expect(por["Avance a la muestra"]).toMatch(/^8[.,]5 %$/);
+    expect(por.Sobremuestra).toBe("3,750");
+    expect(por["Avance a la sobremuestra"]).toMatch(/^5[.,]7 %$/);
+    expect(por["Cursos-horario aplicados"]).toBe("16");
+    expect(por["Cursos-horario planificados"]).toBe("174");
   });
 
-  it("guarda el detalle sin gastar alto", () => {
-    // Va al `title`: la banda es un grupo de marco igual (C2) y una tarjeta con
-    // una línea más rompería el marco de las otras cinco.
-    expect(cuotaKpi(tablero())?.detalle).toContain("416 de 800 personas");
-    expect(cuotaKpi(tablero())?.detalle).toContain("2 de 4 grupos de facultad y sexo");
-    // 800 − 416 son 384 aquí por casualidad; con celdas pasadas de meta no
-    // cuadraría, y por eso el detalle dice cómo se suma.
-    expect(cuotaKpi(tablero())?.detalle).toContain("grupo a grupo");
+  it("lo que falta para la muestra se suma grupo a grupo, no se resta del total", () => {
+    // 1 239 − 77 = 1 162 y 1 261 − 135 = 1 126: faltan 2 288. El neto
+    // —2 500 − 212— da la misma cifra aquí porque ningún grupo se pasó; el
+    // guard existe para el caso en que uno se pase (ADR 0079).
+    const avance = aulasKpis(conMetas, "avance").find((k) => k.label === "Avance a la muestra");
+    expect(avance?.pista).toBe("faltan 2,288");
   });
 
-  it("distingue «sin cuotas declaradas» de «cuota cumplida»", () => {
-    // Un plan sin cuotas y un plan con todo recogido darían ambos 0 por recoger.
-    // «S/D» dice que no hay vara; «0» diría que ya no falta nadie.
-    const sinCuotas = cuotaKpi(tablero({ quotas_sex_faculty: [] }));
-    expect(sinCuotas?.value).toBe("S/D");
-    expect(sinCuotas?.tone).toBe("neutral");
+  it("sin cuotas del diseño ninguna tarjeta finge un cero", () => {
+    const sinMetas = { kpis: { aulas_aplicadas: 3 } } as unknown as MonitoreoAulasDashboard;
+    const por = Object.fromEntries(aulasKpis(sinMetas, "avance").map((k) => [k.label, k.value]));
+    // «S/D» y «0» dicen cosas distintas: uno es que no hay meta declarada y el
+    // otro que no se lleva nada de ella.
+    expect(por.Muestra).toBe("S/D");
+    expect(por["Avance a la muestra"]).toBe("S/D");
+    expect(por.Sobremuestra).toBe("S/D");
+    expect(por["Avance a la sobremuestra"]).toBe("S/D");
+    expect(por.Efectivas).toBe("0");
+  });
 
-    const cumplida = cuotaKpi(tablero({
-      quotas_sex_faculty: [{ faculty: "Derecho", sex: "F", target: 300, observed: 300 }],
-    }));
-    expect(cumplida?.value).toBe("0");
+  it("las tres tarjetas que Gonzalo cortó no vuelven por la puerta de atrás", () => {
+    const etiquetas = aulasKpis(conMetas, "avance").map((k) => k.label);
+    for (const fuera of ["Llegaron a su meta", "Cierran con lo agendado", "Cuota por recoger"]) {
+      expect(etiquetas).not.toContain(fuera);
+    }
   });
 });
 
@@ -186,169 +236,8 @@ describe("el puntaje de representatividad no se repite en la banda", () => {
   });
 });
 
-describe("«llegaron a su meta» sale del motor y no del estado operativo", () => {
-  // El KPI contaba el estado `cerrando`, que el motor define como
-  // `operational_status in (aplicada, cerrada)` **O** `validas >= meta`. Con el
-  // OR basta con haber salido a campo, asi que decia 216 mientras el grafico de
-  // cobertura —dos paneles mas abajo, misma pantalla— decia 0.
-  const conCobertura = (cumplida: number, total: number, sinMeta: number) => ({
-    course_status_cobertura: [
-      { clave: "nulo", aulas: total - sinMeta - cumplida },
-      { clave: "pleno", aulas: cumplida },
-    ],
-    course_status_total: total,
-    course_status_sin_meta: sinMeta,
-    // Estado operativo que diria OTRA cosa: todas aplicadas.
-    course_status: Array.from({ length: total }, (_, i) => ({
-      operational_code: `CH ${i}`, operational_status: "aplicada", expected_valid: 20, respuestas_validas: 0,
-    })),
-  });
 
-  it("toma la cifra del motor, no la de las aplicadas", () => {
-    const kpi = aulasKpis(conCobertura(7, 269, 2) as never, "avance")
-      .find((k) => k.label === "Llegaron a su meta");
-    expect(kpi?.value).toBe("7");
-    // 269 aplicadas habrian dado «269» con la cuenta vieja.
-    expect(kpi?.value).not.toBe("269");
-  });
 
-  it("el denominador es el total del motor menos las que no declaran meta", () => {
-    const kpi = aulasKpis(conCobertura(7, 269, 2) as never, "avance")
-      .find((k) => k.label === "Llegaron a su meta");
-    // 269 - 2. Contarlo sobre `course_status` lo dejaba a merced del recorte a
-    // 500 filas del payload.
-    expect(kpi?.pista).toContain("267");
-  });
-
-  it("cero es una cifra, no un vacio", () => {
-    const kpi = aulasKpis(conCobertura(0, 269, 2) as never, "avance")
-      .find((k) => k.label === "Llegaron a su meta");
-    expect(kpi?.value).toBe("0");
-  });
-});
-
-describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
-  // La banda decía «llegaron a su meta: 0», «cuota por recoger: 1 558» y
-  // «brechas: 168»: tres formas de decir que se va atrás, y ninguna decía si con
-  // lo que hay agendado se llega. El número existía desde que la pirámide
-  // predice, pero vivía sólo en el detalle, a dos pestañas de distancia.
-  const historia = Array.from({ length: 8 }, (_, i) => ({
-    operational_code: `CH ${i}`, faculty: "Derecho", applied_at: "2026-08-10",
-    applied_date: "2026-08-10", effective_surveys: 20,
-  }));
-
-  const tableroCon = (target: number, observed: number, aulasAgendadas: number) => ({
-    partes_campo: historia,
-    agenda: [
-      ...historia.map((h) => ({ ...h, scheduled_date: "2026-08-10" })),
-      ...Array.from({ length: aulasAgendadas }, (_, i) => ({
-        operational_code: `CH 9${i}`, faculty: "Derecho", scheduled_date: "2026-08-20",
-        sample_status: "agendada",
-      })),
-    ],
-    quotas_sex_faculty: [
-      { faculty: "Derecho", sex: "Mujer", target, observed },
-      { faculty: "Derecho", sex: "Hombre", target, observed },
-    ],
-  });
-
-  const cierre = (t: unknown) =>
-    aulasKpis(t as never, "avance").find((k) => k.label === "Cierran con lo agendado");
-
-  it("cuenta las celdas que la agenda cubre, con su denominador", () => {
-    // Dos celdas de 30 con 10 recogidas: faltan 20 en cada una, y cinco aulas
-    // agendadas a ~20 por aula las cubren de sobra.
-    const k = cierre(tableroCon(30, 10, 5));
-    expect(k?.value).toBe("2");
-    expect(k?.pista).toContain("2 grupos");
-  });
-
-  it("sin nada agendado no cierra ninguna, y avisa", () => {
-    const k = cierre(tableroCon(300, 10, 0));
-    expect(k?.value).toBe("0");
-    expect(k?.tone).toBe("warn");
-  });
-
-  it("cuando cierran todas deja de ser una alarma", () => {
-    const k = cierre(tableroCon(10, 10, 0));
-    expect(k?.value).toBe("2");
-    expect(k?.tone).toBe("neutral");
-  });
-
-  it("sin cuotas declaradas dice S/D, no cero", () => {
-    // Cero celdas cerrando y «no hay celdas» son cosas distintas: un 0 ahí
-    // mandaria a buscar un problema que no existe.
-    const k = cierre({ ...tableroCon(30, 10, 5), quotas_sex_faculty: [] });
-    expect(k?.value).toBe("S/D");
-    expect(k?.tone).toBe("neutral");
-  });
-
-  it("una celda sin objetivo no cuenta como cerrada ni infla el denominador", () => {
-    // El defecto real, visible en la portada del perfil con el estudio de HSVG:
-    // «CIERRAN CON LO AGENDADO 10 de 30» con CERO aulas agendadas y cero
-    // aplicadas. Las diez eran justo las diez celdas sin cuota: con meta 0,
-    // `faltan` da 0 y `alcanza` sale true. La ausencia de objetivo se contaba
-    // como objetivo cumplido.
-    const base = tableroCon(300, 0, 0);
-    const k = cierre({
-      ...base,
-      quotas_sex_faculty: [
-        ...base.quotas_sex_faculty,
-        { faculty: "Artes Escenicas", sex: "Mujer", target: 0, observed: 0 },
-        { faculty: "Artes Escenicas", sex: "Hombre", target: 0, observed: 0 },
-      ],
-    });
-    expect(k?.value).toBe("0");
-    expect(k?.pista).toBe("de 2 grupos de facultad y sexo con meta · 2 sin objetivo declarado");
-    expect(k?.tone).toBe("warn");
-  });
-
-  it("sin celdas mudas la pista no menciona objetivos ausentes", () => {
-    // El control del mutante: si el sufijo se imprimiera siempre, esta pista
-    // diria «· 0 sin objetivo declarado» y estaria inventando un vacio.
-    expect(cierre(tableroCon(30, 10, 5))?.pista).toBe("de 2 grupos de facultad y sexo con meta");
-  });
-});
-
-describe("la tarjeta de Efectivas y las que no entran en ninguna celda", () => {
-  const dashboard = (validas: number, celdas: Array<[number, number]>) => ({
-    kpis: { respuestas_validas: validas },
-    quotas_sex_faculty: celdas.map(([target, observed], i) => ({
-      faculty: `F${i}`, sex: "F", target, observed,
-    })),
-  }) as never;
-
-  it("dice cuántas encuestas hechas no cuentan para ninguna cuota", () => {
-    // El caso real del corte: 2 220 válidas y 2 185 atribuidas. Antes esta
-    // diferencia sólo se decía si era TOTAL —«ninguna atribuida»—, así que 35
-    // encuestas hechas quedaban invisibles en un operativo al que le faltan
-    // 1 558 y cuyo banco entero no alcanza.
-    const kpi = aulasKpis(dashboard(2220, [[3743, 2185]]), "avance")
-      .find((k) => k.label === "Efectivas")!;
-    expect(kpi.pista).toBe("35 no entran en ningún grupo con cuota");
-    expect(kpi.detalle).toContain("2,185 de 2,220");
-    expect(kpi.detalle).toContain("lo que les falta es el sexo");
-  });
-
-  it("sin diferencia, la pista no inventa un problema", () => {
-    // El control: si la resta se hiciera mal —o si `observed` viniera recortado
-    // al target— esta tarjeta acusaría en un corte sano.
-    const kpi = aulasKpis(dashboard(2185, [[3743, 2185]]), "avance")
-      .find((k) => k.label === "Efectivas")!;
-    expect(kpi.pista).toBe("respuestas de la plataforma que pasan los filtros");
-    expect(kpi.detalle).toBeUndefined();
-  });
-
-  it("ninguna atribuida sigue siendo su propio caso", () => {
-    const kpi = aulasKpis(dashboard(2220, [[3743, 0]]), "avance")
-      .find((k) => k.label === "Efectivas")!;
-    // Dice CELDA, no curso-horario: es lo que `quotas_sex_faculty` mide. Un
-    // simulacro enseño la tarjeta diciendo «ninguna atribuida a un
-    // curso-horario» con 20 aulas ya en su meta dos paneles mas abajo.
-    expect(kpi.pista).toContain("grupo de facultad y sexo");
-    expect(kpi.pista).not.toContain("curso-horario");
-  });
-});
 
 describe("la tarjeta de brechas dice brecha de qué", () => {
   /**
@@ -363,7 +252,10 @@ describe("la tarjeta de brechas dice brecha de qué", () => {
    * despeinar a nadie.
    */
   const brechas = (extra: Record<string, unknown> = {}) =>
-    aulasKpis(tablero(extra), "avance").find((k) => k.label === "Cursos-horario bajo su meta");
+    // En CONSULTAS desde 2026-09-08: Gonzalo sacó de Avance la brecha por
+    // curso-horario («no me interesa saber cuántos llegaron a su meta»), y la
+    // tarjeta siguió viva donde se trabaja la cola de reemplazos.
+    aulasKpis(tablero(extra), "consultas").find((k) => k.label === "Cursos-horario bajo su meta");
 
   it("el rótulo nombra la unidad que cuenta", () => {
     const k = brechas({
@@ -372,7 +264,7 @@ describe("la tarjeta de brechas dice brecha de qué", () => {
         { faculty: "Ciencias", brecha: 12 },
       ],
     });
-    expect(k, "la tarjeta desapareció de la banda de Avance").toBeDefined();
+    expect(k, "la tarjeta desapareció de la banda de Consultas").toBeDefined();
     expect(k?.value).toBe("92");
     expect(k?.pista).toBe("en 2 facultades");
   });

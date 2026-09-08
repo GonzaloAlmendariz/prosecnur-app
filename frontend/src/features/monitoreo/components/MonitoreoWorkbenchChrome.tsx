@@ -11,7 +11,12 @@ import { useCalidadDeCampo } from "./useCalidadDeCampo";
  * módulo. Fuera de esas dos —Fuentes, Modelo, Consultas— serían ruido: nadie
  * llega ahí a decidir a quién llamar hoy.
  */
-const SECCIONES_CON_CALIDAD_DE_CAMPO = new Set(["avance", "calidad"]);
+// Sólo en Validación (2026-09-08). Estaba también en Avance y Gonzalo lo cortó:
+// «esta sección no es necesaria, quita alto a los demás y debe desaparecer». En
+// una pestaña que abre con los KPIs del avance, un panel de calidad —casi
+// siempre vacío mientras el campo arranca— empujaba hacia abajo justo lo que se
+// va a mirar.
+const SECCIONES_CON_CALIDAD_DE_CAMPO = new Set(["calidad"]);
 
 function joinClasses(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
