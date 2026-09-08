@@ -3849,11 +3849,17 @@
   display: flex; align-items: center; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie-celda > .aulas-ritmofac-serie { flex: 1; }
+/* Barras ESTRECHAS y pegadas a la izquierda, con suelo. Con `flex: 1 1 0` y dos
+   días de campo cada barra se llevaba media celda —285 px— y la fila se leía
+   como dos bloques de color puestos a distinta altura según qué día tuvo dato;
+   Gonzalo, viéndolo el 2026-09-08: «se ve horrible». Un sparkline de dos barras
+   sólo es un sparkline si las barras son barras. */
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie {
-  display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 0;
+  display: flex; align-items: flex-end; gap: 3px; height: 30px; min-width: 0;
+  justify-content: flex-start; border-bottom: 1px solid var(--pulso-border);
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie i {
-  flex: 1 1 0; min-width: 3px; border-radius: 2px 2px 0 0;
+  flex: 1 1 0; min-width: 3px; max-width: 20px; border-radius: 2px 2px 0 0;
 }
 /* La tendencia que no se distingue del vaivén va apagada: se sigue viendo —el
    dato es el dato— pero sin el peso de una que sí decide algo. */
