@@ -557,16 +557,32 @@
   as.integer(removed)
 }
 
+# `empty_source_ids` (2026-09-08): **un reemplazo full sólo reemplaza si trae
+# con qué.**
+#
+# Una fuente en modo full borra de `prev_data` todas sus filas antes de poner
+# las nuevas. Cuando la plataforma responde 200 con cero registros no hay filas
+# nuevas, así que el borrado se quedaba solo: medido en el `.pulso` de HSVG2026
+# el 2026-09-08, 273 respuestas se convirtieron en un `data.frame` de 0 x 0 en
+# una pulsación de «actualizar», con el campo abierto y 212 efectivas dentro.
+#
+# Vaciar es destructivo y no se hace por defecto. Si de verdad se borró todo en
+# la plataforma, el vacío llega con la siguiente sincronización que sí traiga
+# datos, o se limpia a mano; conservar de más es reversible y borrar de más, no.
 .monitoreo_merge_sync_result_data <- function(prev_data,
                                               result_data,
                                               synced_source_ids = character(0),
-                                              incremental_source_ids = character(0)) {
+                                              incremental_source_ids = character(0),
+                                              empty_source_ids = character(0)) {
   if (is.null(prev_data) || !is.data.frame(prev_data)) prev_data <- data.frame()
   if (is.null(result_data) || !is.data.frame(result_data)) result_data <- data.frame()
   synced_source_ids <- unique(.monitoreo_chr_vec(synced_source_ids))
   synced_source_ids <- synced_source_ids[nzchar(synced_source_ids)]
+  empty_source_ids <- unique(.monitoreo_chr_vec(empty_source_ids))
+  empty_source_ids <- empty_source_ids[nzchar(empty_source_ids)]
   incremental_source_ids <- intersect(unique(.monitoreo_chr_vec(incremental_source_ids)), synced_source_ids)
   full_source_ids <- setdiff(synced_source_ids, incremental_source_ids)
+  full_source_ids <- setdiff(full_source_ids, empty_source_ids)
 
   base <- prev_data
   if (nrow(base) && length(full_source_ids) && ".source_id" %in% names(base)) {
