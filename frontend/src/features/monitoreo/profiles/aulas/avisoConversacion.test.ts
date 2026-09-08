@@ -34,7 +34,17 @@ describe("avisoConversacion", () => {
     expect(avisoConversacion(null)).toBeNull();
   });
 
-  it("cuenta las dos mitades en una línea: lo que entró del equipo y qué pasó con cada hoja", () => {
+  /**
+   * **Cuando todo va bien, el aviso calla** (Gonzalo, 2026-09-08: «este mensaje
+   * no debería estar aquí»). El inventario de qué hoja se leyó y cuál se
+   * respetó narraba una operación que salió bien: ocupaba el sitio de la
+   * pantalla que se mira y no pedía ninguna decisión.
+   *
+   * La redacción no se perdió y sigue pineada donde importa: los casos de
+   * ATENCIÓN la usan entera —`publicacion_fallo` cuenta «3 partes del equipo
+   * entraron» más abajo—, que es cuando alguien tiene que hacer algo.
+   */
+  it("con todo en orden no dice nada: no hay nada que corregir", () => {
     const res = avisoConversacion({
       conversado: true,
       leido: {
@@ -49,38 +59,28 @@ describe("avisoConversacion", () => {
         ],
       },
     });
-    expect(res).not.toBeNull();
-    expect(res?.tono).toBe("ok");
-    expect(res?.texto).toContain(
-      "Libro conversado con el Sheets: 3 partes del equipo entraron",
-    );
-    expect(res?.texto).toContain("«Base de control» actualizada (174 filas)");
-    expect(res?.texto).toContain("«Plan del día» sin cambios");
-    // `sin_cambios` es el nombre del motor, no copy: el guion bajo no sale.
-    expect(res?.texto).not.toContain("sin_cambios");
+    expect(res).toBeNull();
   });
 
-  it("una parte va en singular", () => {
+  it("una sola parte, y todo en orden, tampoco se anuncia", () => {
     const res = avisoConversacion({
       conversado: true,
       leido: { resumen: { partes_de_campo: 1 } },
       publicado: { hojas: [{ hoja: "Base de control", accion: "sin_cambios", filas: 174 }] },
     });
-    expect(res?.texto).toContain("1 parte del equipo entró");
-    expect(res?.texto).not.toContain("1 partes");
+    expect(res).toBeNull();
   });
 
-  it("sin partes nuevas lo dice, no lo calla", () => {
+  it("sin partes nuevas y sin nada roto, tampoco hay aviso", () => {
     const res = avisoConversacion({
       conversado: true,
       leido: { resumen: { partes_de_campo: 0 } },
       publicado: { hojas: [{ hoja: "Base de control", accion: "sin_cambios", filas: 174 }] },
     });
-    expect(res?.tono).toBe("ok");
-    expect(res?.texto).toContain("sin partes nuevas del equipo");
+    expect(res).toBeNull();
   });
 
-  it("una hoja respetada lleva SIEMPRE su motivo: es la regla de dueño, no un fallo", () => {
+  it("una hoja respetada no es un fallo, así que tampoco se anuncia", () => {
     const res = avisoConversacion({
       conversado: true,
       leido: { resumen: { partes_de_campo: 2 } },
@@ -91,18 +91,16 @@ describe("avisoConversacion", () => {
         ],
       },
     });
-    expect(res?.texto).toContain(
-      "«Aulas Agendadas» respetada (45 filas): la llena el equipo",
-    );
+    expect(res).toBeNull();
   });
 
-  it("una acción desconocida viaja con su nombre: la lista es abierta", () => {
+  it("una acción desconocida sin nada roto tampoco interrumpe", () => {
     const res = avisoConversacion({
       conversado: true,
       leido: { resumen: { partes_de_campo: 2 } },
       publicado: { hojas: [{ hoja: "Base de control", accion: "reescrita", filas: 174 }] },
     });
-    expect(res?.texto).toContain("«Base de control» reescrita (174 filas)");
+    expect(res).toBeNull();
   });
 
   it("documento virgen: el libro completo se sembró por primera vez", () => {

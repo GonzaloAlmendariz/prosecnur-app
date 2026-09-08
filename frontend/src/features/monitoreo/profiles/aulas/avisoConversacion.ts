@@ -111,5 +111,12 @@ export function avisoConversacion(
     frases.push(`La lectura declaró «${motivoLectura}».`);
     tono = "atencion";
   }
+  // Cuando NO hay nada que corregir, no se dice nada (Gonzalo, 2026-09-08:
+  // «este mensaje no debería estar aquí»). El inventario de qué hoja se leyó y
+  // cuál se respetó es la narración de una operación que salió bien: ocupa el
+  // sitio de la pantalla que se mira y no pide ninguna decisión. Los avisos de
+  // ATENCIÓN se quedan enteros —hoja ausente, publicación sin resumen, motivo
+  // desconocido—, que son los que sí cambian lo que alguien hace.
+  if (tono === "ok") return null;
   return { texto: frases.join(" "), tono };
 }

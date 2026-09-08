@@ -37,6 +37,13 @@ export type LadoDeCuota = {
   avance: number;
   cumple: boolean;
   /**
+   * Lo que se recogió DE MÁS sobre su propia meta; 0 mientras no se llega.
+   * Gonzalo (2026-09-08): «o si se llega a la meta se vuelve "sobran x"». No
+   * cubre lo que falta en otra celda —la cuota no se compensa, ADR 0079—: es
+   * exceso de trabajo en ese grupo, y por eso se nombra en vez de callarse.
+   */
+  sobran: number;
+  /**
    * Lo que le añadirían las aulas YA AGENDADAS, en puntos de su propia meta.
    * `null` cuando el estudio no publica agenda: no saber qué va a llegar no es
    * lo mismo que saber que no llega nada, y pintar cero acusaría de una
@@ -109,6 +116,7 @@ function lado(
     meta,
     observadas,
     faltan,
+    sobran: Math.max(0, observadas - meta),
     avance: Math.round((1000 * observadas) / meta) / 10,
     cumple,
     previsto,
@@ -204,12 +212,19 @@ export function piramideDeCuota(
     // así que contar celdas en peligro daba siempre el mismo orden que sumar lo
     // que les falta. Lo destapó un mutante que sobrevivió: anular la primera
     // clave no movió ni un test.
+    // **De la facultad más pequeña a la más grande** (Gonzalo, 2026-09-08):
+    // «debería estar ordenado de facultad más pequeña a facultad más grande,
+    // además no se distingue bien».
+    //
+    // Contrato anterior, citado para quien lea un diff: ordenaba por lo que iba
+    // a faltar al acabar la agenda —la facultad en peligro arriba—. Esa es una
+    // pregunta de PREDICCIÓN, y la predicción salió de esta pestaña con el
+    // mismo dictado. Lo que queda es una comparación de magnitudes, y para
+    // comparar magnitudes el orden que se lee es el del tamaño: la escalera
+    // que forman las barras es en sí misma la información.
     .sort((a, b) => {
-      const faltaAlCerrar = (f: FilaDePiramide) =>
-        (f.izquierda?.faltanAlCerrar ?? 0) + (f.derecha?.faltanAlCerrar ?? 0);
-      return faltaAlCerrar(b) - faltaAlCerrar(a)
-        || b.faltan - a.faltan
-        || a.facultad.localeCompare(b.facultad, "es");
+      const meta = (f: FilaDePiramide) => (f.izquierda?.meta ?? 0) + (f.derecha?.meta ?? 0);
+      return meta(a) - meta(b) || a.facultad.localeCompare(b.facultad, "es");
     });
 
   return {

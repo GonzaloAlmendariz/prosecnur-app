@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { celdasPrevistas, piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
-import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
 
@@ -34,19 +32,22 @@ const dm = (iso: string) => {
  * a nadie, y una a la que le faltan 12 y no cierra, sí.** Sin agenda publicada
  * se sigue diciendo lo de antes, porque predecir sin datos sería inventar.
  */
-function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "cierra" | "no-cierra" | "sin-dato" } {
+function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "sobra" | "falta" } {
+  // **Dos estados y sólo dos** (Gonzalo, 2026-09-08): «simplemente hay dos
+  // estados: la meta por facultad por sexo con el largo de la barra
+  // proporcional a la cantidad de estudiantes y en verde lo que ya se ha
+  // conseguido; y en vez del "faltarán x" que siga "faltan x", o si se llega a
+  // la meta se vuelve "sobran x"».
+  //
+  // Contrato anterior, citado para quien lea un diff: decía «cierra 15/09» y
+  // «faltarán 160», que proyectaban con lo agendado. Era predicción, y la
+  // predicción vive en otra pestaña — decía además cuánto iba a faltar sobre un
+  // avance que la pantalla todavía no había calculado.
+  if (lado.sobran > 0) return { texto: `sobran ${fmt(lado.sobran)}`, estado: "sobra" };
   if (lado.cumple) return { texto: "cumplida", estado: "cumplida" };
-  if (lado.cierra === null) return { texto: `${fmt(lado.faltan)} faltan`, estado: "sin-dato" };
-  if (lado.cierra) {
-    return {
-      texto: lado.cierraEl ? `cierra ${dm(lado.cierraEl)}` : "cierra",
-      estado: "cierra",
-    };
-  }
-  // Lo que va a faltar CUANDO SE ACABE la agenda, no lo que falta ahora: es la
-  // cifra con la que se decide cuántas aulas más pedir.
-  return { texto: `faltarán ${fmt(lado.faltanAlCerrar)}`, estado: "no-cierra" };
+  return { texto: `faltan ${fmt(lado.faltan)}`, estado: "falta" };
 }
+
 
 /**
  * El color dice el ESTADO de la celda, no lo lejos que está: eso ya lo dice el
@@ -64,15 +65,22 @@ function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "ci
  * inventar un umbral propio.
  */
 function tono(lado: LadoDeCuota) {
-  if (lado.cumple) return COLOR_RESULTADO.efectiva;
-  return lado.observadas > 0 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
+  // **Verde lo conseguido, y sólo eso** (Gonzalo, 2026-09-08: «en verde lo que
+  // ya se ha conseguido»). Tenía tres tonos —cumplida, parcial, pendiente— que
+  // codificaban un estado que la cifra de al lado ya dice con palabras; el
+  // color se gastaba en repetirlo en vez de en enseñar el avance.
+  void lado;
+  return "var(--pulso-success-fg)";
 }
 
+
 /** Un lado de la fila; `hacia` decide de qué borde crece la barra. */
-function Lado({ lado, tope, hacia }: {
+function Lado({ lado, tope, hacia, facultad }: {
   lado: LadoDeCuota | null;
   tope: number;
   hacia: "izquierda" | "derecha";
+  /** El nombre de la fila: el hover sustituye a una tabla y tiene que decir de quién habla. */
+  facultad: string;
 }) {
   if (!lado) {
     // Una facultad sin esa celda no se dibuja vacía como si fuera un cero: el
@@ -84,19 +92,23 @@ function Lado({ lado, tope, hacia }: {
   const carril = tope ? Math.max(6, (100 * lado.meta) / tope) : 0;
   const relleno = Math.min(100, lado.avance);
   const v = veredicto(lado);
-  const detalle = lado.cierra === null
-    ? ""
-    : lado.cumple
-      ? ""
-      : lado.cierra
-        ? ` · con lo agendado llega${lado.cierraEl ? ` el ${dm(lado.cierraEl)}` : ""}`
-        : ` · con lo agendado se queda a ${fmt(lado.faltanAlCerrar)}`;
-  // La lectura completa de la celda, UNA vez, para el tooltip y para el lector
-  // de pantalla. Estaba sólo en `title`: las cifras de esta celda —observadas,
-  // meta y avance— no aparecen como texto en ninguna otra parte de la fila, así
-  // que quien no pueda pasar el ratón por encima no las tenía. Un `title` no es
-  // alcanzable por teclado y los lectores lo tratan de forma desigual.
-  const lectura = `${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} · ${lado.avance}%${detalle}`;
+  // **El hover dice TODO lo que decía la tabla que se retiró.**
+  //
+  // Gonzalo condicionó una cosa a la otra (2026-09-08): «esta tabla ya no sería
+  // necesaria si el gráfico de la pirámide tiene hovers profesionales y se
+  // maneja bien mostrando todo como debería ser». La tabla FACULTAD / SEXO /
+  // META / ESTADO daba cuatro columnas; aquí van las cuatro más las dos cifras
+  // que la tabla no traía —lo conseguido y el porcentaje—, en una sola lectura
+  // que sirve de tooltip y de etiqueta accesible. Un `title` solo no bastaba:
+  // no es alcanzable por teclado y los lectores de pantalla lo tratan de forma
+  // desigual, así que la misma cadena va en `aria-label`.
+  //
+  // Sin proyección ni fechas: la predicción salió de esta pestaña con el mismo
+  // dictado.
+  const estado = lado.sobran > 0
+    ? `sobran ${fmt(lado.sobran)}`
+    : lado.cumple ? "meta cumplida" : `faltan ${fmt(lado.faltan)}`;
+  const lectura = `${facultad} · ${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} conseguidas · ${lado.avance} % · ${estado}`;
   return (
     <span
       className={`aulas-piramide-lado es-${hacia}`}
@@ -114,36 +126,28 @@ function Lado({ lado, tope, hacia }: {
       <span className="aulas-piramide-carril" style={{ width: `${carril}%` }}
         role="img" aria-label={lectura}>
         <i style={{ width: `${relleno}%`, background: tono(lado) }} />
-        {/* **La sombra de lo que la agenda va a traer.** Sale del relleno hacia
-            la meta, en el mismo carril y con la misma escala, así que si no
-            llega al final del carril ese grupo no cierra —y eso se ve sin leer
-            ninguna cifra—. Va rayada y translúcida porque es previsión y no
-            dato: confundirla con lo recogido sería peor que no dibujarla. */}
-        {lado.previsto ? (
-          <i
-            className="es-previsto"
-            style={{ width: `${lado.previsto}%`, "--aulas-previsto-tono": tono(lado) } as React.CSSProperties}
-          />
-        ) : null}
+        {/* Aquí iba «la sombra de lo que la agenda va a traer», rayada sobre
+            el carril. Salió el 2026-09-08 con el resto de la predicción:
+            «lo nada que tenga que ver con predicción porque eso le pertenece a
+            otra pestaña». La barra enseña dos cosas y nada más: lo conseguido
+            y lo que falta. */}
       </span>
       </span>
     </span>
   );
 }
 
-export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = [] }: {
+export function AulasPiramideCuota({ filas, foco, onFoco }: {
   filas: ReadonlyArray<MonitoreoRow>;
   /** El corte enfocado; la fila enfocada se marca y filtra el detalle. */
   foco: FocoDeCuota;
   onFoco: (foco: FocoDeCuota) => void;
-  /** El plan con sus fechas, para saber qué va a traer lo ya agendado. */
-  agenda?: ReadonlyArray<MonitoreoRow>;
-  /** Los partes de campo, que dan el rendimiento con el que se proyecta. */
-  partes?: ReadonlyArray<MonitoreoRow>;
 }) {
   const { facultades, izquierda, derecha, otros, tope, sinMeta } = useMemo(
-    () => piramideDeCuota(filas, celdasPrevistas(proyeccionPorAgenda(agenda, partes, filas))),
-    [filas, agenda, partes],
+    // Sin previsiones: la pirámide dejó de proyectar el 2026-09-08 y pasarle
+    // la agenda sólo costaba el cálculo.
+    () => piramideDeCuota(filas),
+    [filas],
   );
   // El marginal de cada sexo: lo que falta sumando todas las facultades de ese
   // lado. Vivía en una lista de barras aparte —«Por sexo»— que repetía el mismo
@@ -195,13 +199,6 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
           Y sólo aparece si hay algo rayado que explicar: sin agenda por delante
           no hay sombra en ninguna barra, y una leyenda de algo que no se ve
           manda a buscar lo que no está. */}
-      {facultades.some((f) => f.izquierda?.previsto || f.derecha?.previsto) ? (
-        <p className="aulas-piramide-leyenda">
-          <i aria-hidden="true" />
-          Lo rayado es lo que traerán los cursos-horario ya agendados. Si no llega al final
-          de su carril, ese grupo no cierra con lo que hay.
-        </p>
-      ) : null}
       <ol className="aulas-piramide-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((fila) => {
           const activo = foco?.tipo === "facultad" && foco.valor === fila.facultad;
@@ -216,13 +213,13 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
                 aria-pressed={activo}
                 onClick={() => onFoco(activo ? null : { tipo: "facultad", valor: fila.facultad })}
               >
-                <Lado lado={fila.izquierda} tope={tope} hacia="izquierda" />
+                <Lado lado={fila.izquierda} tope={tope} hacia="izquierda" facultad={fila.facultad} />
                 {/* `title` como en el resto del perfil. De las 20 facultades del
                     estudio sólo se recorta una —«Ciencias y Artes de la
                     Comunicacion», 38 px de más—, pero era la única etiqueta
                     recortada de toda la sección sin forma de leerse entera. */}
                 <span className="aulas-piramide-facultad" title={fila.facultad}>{fila.facultad}</span>
-                <Lado lado={fila.derecha} tope={tope} hacia="derecha" />
+                <Lado lado={fila.derecha} tope={tope} hacia="derecha" facultad={fila.facultad} />
               </button>
             </li>
           );

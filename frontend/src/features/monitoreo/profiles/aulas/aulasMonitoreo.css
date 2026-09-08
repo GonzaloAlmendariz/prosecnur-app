@@ -2623,21 +2623,8 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* La leyenda del rayado, con su propia muestra a la izquierda: decir «lo rayado»
-   sin enseñar el rayado obliga a buscarlo en las barras. */
-.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda {
-  display: flex; align-items: center; gap: 7px;
-  margin: 0 0 6px; font-size: var(--aulas-sec); color: var(--pulso-text-faint);
-}
-.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda i {
-  flex: none; width: 26px; height: 10px; border-radius: 3px;
-  background: repeating-linear-gradient(
-    -45deg,
-    color-mix(in srgb, var(--pulso-text-faint) 42%, transparent) 0 3px,
-    transparent 3px 6px
-  );
-  outline: 1px solid var(--pulso-border);
-}
+/* Aquí vivía la leyenda del rayado de la proyección. Salió el 2026-09-08 con
+   el resto de la predicción, que se mudó a su propia pestaña. */
 
 /* El veredicto en color: sólo el que pide acción se tiñe. Teñir los tres deja
    la columna hecha un semáforo donde nada destaca. */

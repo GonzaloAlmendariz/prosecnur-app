@@ -245,7 +245,12 @@ export const MONITOREO_PESTANAS = {
       // esto». Quien abre Avance se encontraba antes con dos pantallas del
       // operativo —cuántas aulas se aplicaron, cómo va cada estrato del
       // sorteo— y la pregunta que decide quedaba detrás.
-      pestana("aulas", "avance", "cuotas", "Cuotas", "Cierre de cuota por facultad y sexo", Target),
+      // Se llama «Metas» y no «Cuotas» (Gonzalo, 2026-09-08). La pestaña habla de
+      // dos metas —muestra y sobremuestra— y de lo que falta para cada una; «cuota»
+      // era el vocabulario del diseño muestral, no el de quien mira el avance.
+      // La CLAVE sigue siendo `cuotas`: cambiarla rompería las direcciones ya
+      // enlazadas, los docs de direcciones y el recorrido de QA.
+      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por facultad y sexo", Target),
       pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
       pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
       // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
