@@ -94,13 +94,15 @@ test_that("declara contra qué se midió y qué no cubre", {
   expect_match(m$criterio$no_cubre, "sobremuestra")
 })
 
-test_that("las aulas aplicadas y las del plan viajan por separado", {
-  # La pregunta de cuál es el denominador sigue abierta con Gonzalo, así que el
-  # modelo publica las dos y no elige por él.
+test_that("las aulas aplicadas viajan; las del plan ya no: Gonzalo cerró la pregunta", {
+  # Contrato anterior: `aulas_del_plan` viajaba al lado porque «la pregunta de
+  # cuál es el denominador sigue abierta con Gonzalo». El 2026-09-08 dictó las
+  # columnas de la tabla y «Aulas del plan» no está entre ellas: la tabla y el
+  # modelo dejan de publicarla.
   plan <- list(.marm_aula("A1", "FAC1", "CH 1", aplicada = TRUE),
                .marm_aula("A2", "FAC1", "CH 3", aplicada = FALSE),
                .marm_aula("B1", "FAC2", "CH 2", aplicada = TRUE))
   m <- build_monitoreo_aulas_report_model(.marm_snap(c(rep("A1", 5), rep("B1", 5))), .marm_cfg(plan))
   expect_equal(m$total$aulas_aplicadas, 2)
-  expect_equal(m$total$aulas_del_plan, 3)
+  expect_null(m$total$aulas_del_plan)
 })

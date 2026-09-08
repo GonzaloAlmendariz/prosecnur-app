@@ -119,16 +119,18 @@ test_that("el avance por facultad cuenta aulas aplicadas y reparte por sexo", {
   # que el libro nunca mueve a «aplicada»— y la columna salía en cero en las
   # quince facultades con ocho aulas produciendo.
   expect_equal(ciencias[["Aulas aplicadas"]], 1L)
-  expect_equal(ciencias[["Conseguidas"]], 4)
+  # Las columnas se llaman «Efectivas» desde el dictado de Gonzalo del
+  # 2026-09-08 (antes «Conseguidas»); el dato es el mismo.
+  expect_equal(ciencias[["Efectivas"]], 4)
   # **Y el reparto por sexo existe.** Se cruzaba por `classroom_id` mientras el
   # QR de este estudio viaja con el código operativo, así que ninguna respuesta
   # encontraba su facultad. De las cuatro efectivas de CH 1, dos y dos.
-  expect_equal(ciencias[["Conseguidas mujeres"]], 2)
-  expect_equal(ciencias[["Conseguidas hombres"]], 2)
+  expect_equal(ciencias[["Efectivas mujeres"]], 2)
+  expect_equal(ciencias[["Efectivas hombres"]], 2)
   # La facultad sin respuestas dice CERO, no «no sabemos»: la variable de sexo
   # está declarada y el cruce corrió.
   letras <- f[f$Facultad == "Letras", , drop = FALSE]
-  expect_equal(letras[["Conseguidas mujeres"]], 1)
+  expect_equal(letras[["Efectivas mujeres"]], 1)
 })
 
 # ---------------------------------------------------------------------------

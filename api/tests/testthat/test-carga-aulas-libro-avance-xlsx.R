@@ -178,8 +178,11 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
   # columna A sin fusionar ni ajustar; en Sheets se derramaban hasta la primera
   # celda ocupada y sobresalían de su tabla.
   h <- .calax_hoja(.calax_modelo_completo(), procedencia = .calax_procedencia())
+  # La nota al pie de la tabla por facultad empieza «Muestra (40) y
+  # sobremuestra (60)…» desde V6 (2026-09-08); hasta entonces «La muestra es
+  # la cuota del diseño…», que llamaba «margen» a la sobremuestra.
   notas <- c("La meta y el avance diario", "La cuota es de cada facultad",
-             "La muestra es la cuota del diseño", "Si editaste el libro")
+             "Muestra (", "Si editaste el libro")
   for (nota in notas) {
     fila <- .calax_fila_que_empieza(h$celdas, nota)
     expect_false(is.na(fila), info = sprintf("la hoja perdió la nota «%s…»", nota))
@@ -239,9 +242,10 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
   expect_identical(.calax_tipo_celda(path, fila_c, col_decl), "s")
   expect_identical(as.character(celdas[fila_a, col_decl]), "20")
   expect_identical(.calax_tipo_celda(path, fila_a, col_decl), "n")
-  # Facultades: sin variable de sexo, «Conseguidas mujeres» se declara.
+  # Facultades: sin variable de sexo, «Efectivas mujeres» se declara (la
+  # columna se llamaba «Conseguidas mujeres» hasta el dictado del 2026-09-08).
   cab_f <- .calax_fila_de(celdas, "Facultad")
-  col_muj <- which(as.character(celdas[cab_f, ]) == "Conseguidas mujeres")
+  col_muj <- which(as.character(celdas[cab_f, ]) == "Efectivas mujeres")
   fila_l <- .calax_fila_de(celdas, "Letras")
   expect_identical(as.character(celdas[fila_l, col_muj]), "\u2014")
 })
@@ -257,6 +261,15 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
   FALSE
 }
 
+# La fila (1-based) cuya primera columna es exactamente `texto` a partir de
+# `desde`, o NA. Existe porque desde V2 (2026-09-08) la tabla por facultad
+# también cierra con «Total», y la del diario es la que sigue a «Dia».
+.calax_fila_de_desde <- function(celdas, texto, desde) {
+  col1 <- as.character(celdas[[1]])
+  idx <- which(!is.na(col1) & col1 == texto & seq_along(col1) > desde)
+  if (length(idx)) idx[[1]] else NA_integer_
+}
+
 test_that("S5: con dos o más días, el avance diario cierra con una fila «Total» en negrita que cuadra con la meta", {
   # El modelo completo trae dos días: 2 y 1 efectivas, acumuladas 2 y 3, y una
   # meta de 40. Con dos semanas de campo la tabla crece hacia abajo y sin
@@ -264,7 +277,7 @@ test_that("S5: con dos o más días, el avance diario cierra con una fila «Tota
   h <- .calax_hoja(.calax_modelo_completo())
   cab <- .calax_fila_de(h$celdas, "Dia")
   expect_false(is.na(cab))
-  fila_total <- .calax_fila_de(h$celdas, "Total")
+  fila_total <- .calax_fila_de_desde(h$celdas, "Total", cab)
   expect_false(is.na(fila_total), info = "no hay fila «Total» bajo el avance diario")
   expect_identical(fila_total, cab + 3L)   # cabecera + 2 días + total
   expect_identical(as.character(h$celdas[fila_total, 2]), "3")     # suma de los días
@@ -285,7 +298,8 @@ test_that("S5: con un solo día no hay fila de cierre: no aporta nada", {
   )
   expect_identical(nrow(un_dia$diario), 1L)
   h <- .calax_hoja(un_dia)
-  expect_true(is.na(.calax_fila_de(h$celdas, "Total")))
+  # El «Total» de la tabla por facultad (V2) sí está; el del diario, no.
+  expect_true(is.na(.calax_fila_de_desde(h$celdas, "Total", .calax_fila_de(h$celdas, "Dia"))))
 })
 
 # --- S12: el mismo trato en toda la hoja ---------------------------------------

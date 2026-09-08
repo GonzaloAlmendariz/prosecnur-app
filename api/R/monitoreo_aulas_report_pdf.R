@@ -60,7 +60,11 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 
   suma <- function(col) sum(suppressWarnings(as.numeric(facultades[[col]])), na.rm = TRUE)
   muestra <- suma("Muestra")
-  conseguidas <- suma("Conseguidas")
+  # Las columnas se llaman como las dictó Gonzalo el 2026-09-08 («efectivas»,
+  # «faltantes»); «Conseguidas», «Faltan» y «Aulas del plan» ya no existen en
+  # la tabla, y este modelo lee la MISMA tabla que el libro.
+  conseguidas <- suma("Efectivas")
+  sobremuestra <- suma("Sobremuestra")
 
   list(
     report_kind = "aulas_advance_pdf",
@@ -76,17 +80,24 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
       # Los faltantes se SUMAN por facultad y no se netean: pasarse en una no
       # cubre lo que falta en otra (ADR 0079). Un neto siempre sale más
       # favorable y es el número que un cliente citaría.
-      faltan = suma("Faltan"),
-      facultades_abiertas = sum(suppressWarnings(as.numeric(facultades$Faltan)) > 0, na.rm = TRUE),
+      faltan = suma("Faltantes"),
+      facultades_abiertas = sum(suppressWarnings(as.numeric(facultades$Faltantes)) > 0, na.rm = TRUE),
       aulas_aplicadas = suma("Aulas aplicadas"),
-      aulas_del_plan = suma("Aulas del plan")
+      # La segunda meta, con el mismo trato que la primera (decisión de Gonzalo,
+      # 2026-09-08: «dos metas, la de 2 500 y la de 3 750»).
+      sobremuestra = if (sobremuestra > 0) sobremuestra else NA_real_,
+      faltan_sobremuestra = if (sobremuestra > 0) suma("Faltantes para la sobremuestra") else NA_real_
     ),
     # La procedencia viaja con el documento: quien lo reciba tiene que poder
     # saber contra qué se midió sin preguntar.
     criterio = list(
       denominador = "la cuota de alumnos que el diseño fijó por facultad",
       numerador = "las respuestas que llegaron a la plataforma y pasaron los filtros del estudio",
-      no_cubre = "La sobremuestra operativa no viaja a Monitoreo, así que este reporte no la compara."
+      no_cubre = if (sobremuestra > 0) {
+        "La sobremuestra se reparte por facultad y por sexo con el ratio del diseño, y su columna de faltantes se mide contra ella."
+      } else {
+        "El estudio no publica la sobremuestra, así que sus columnas van en blanco."
+      }
     )
   )
 }
@@ -96,11 +107,11 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 # Vía `grDevices::pdf()` + `grid`, como el resto de motores nuevos. La capa
 # estética la pone el kit compartido (`pulso_pdf_theme.R`); el layout es propio.
 #
-# **Apaisado, y no vertical**: la tabla lleva diez columnas —facultad, muestra y
-# su reparto por sexo, conseguidas y el suyo, aulas, avance y faltan— y en A4
-# vertical no caben sin encoger la tipografía hasta hacerla ilegible. El libro
-# de códigos usa dos columnas verticales porque su unidad es una variable
-# estrecha; aquí la unidad es una fila ancha.
+# **Apaisado, y no vertical**: la tabla lleva quince columnas —facultad, y
+# muestra, efectivas, faltantes y sobremuestra con su reparto por sexo, más las
+# aulas aplicadas— y en A4 vertical no caben sin encoger la tipografía hasta
+# hacerla ilegible. El libro de códigos usa dos columnas verticales porque su
+# unidad es una variable estrecha; aquí la unidad es una fila ancha.
 
 .marp_pct <- function(x) {
   v <- suppressWarnings(as.numeric(x))
@@ -156,20 +167,26 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   por_pagina <- max(1L, floor((y_tabla - 0.10) / alto_fila))
   paginas <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_pagina))
 
+  # Las mismas quince columnas que la hoja del libro, en el orden que dictó
+  # Gonzalo el 2026-09-08 (ver `carga_aulas_libro_avance_facultad.R`). Los
+  # rótulos van cortos porque cada columna mide 0,053 npc; el grupo de arriba
+  # dice de qué son.
   columnas <- list(
-    list(campo = "Facultad", rotulo = "Facultad", w = 0.20, num = FALSE),
-    list(campo = "Muestra", rotulo = "Total", w = 0.075, num = TRUE),
-    list(campo = "Muestra mujeres", rotulo = "Mujeres", w = 0.075, num = TRUE),
-    list(campo = "Muestra hombres", rotulo = "Hombres", w = 0.075, num = TRUE),
-    list(campo = "Conseguidas", rotulo = "Total", w = 0.075, num = TRUE),
-    list(campo = "Conseguidas mujeres", rotulo = "Mujeres", w = 0.075, num = TRUE),
-    list(campo = "Conseguidas hombres", rotulo = "Hombres", w = 0.075, num = TRUE),
-    # Rótulos cortos porque la columna mide 0,075 npc: «Aplicadas» a 8 pt se
-    # comía el borde y quedaba pegado a «Hombres» de la izquierda.
-    list(campo = "Aulas aplicadas", rotulo = "Aulas", w = 0.078, num = TRUE),
-    list(campo = "Aulas del plan", rotulo = "Plan", w = 0.067, num = TRUE),
-    list(campo = "Avance", rotulo = "Avance", w = 0.080, num = TRUE),
-    list(campo = "Faltan", rotulo = "Faltan", w = 0.075, num = TRUE)
+    list(campo = "Facultad", rotulo = "Facultad", w = 0.160, num = FALSE),
+    list(campo = "Muestra", rotulo = "Total", w = 0.053, num = TRUE),
+    list(campo = "Muestra mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
+    list(campo = "Muestra hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
+    list(campo = "Efectivas", rotulo = "Total", w = 0.053, num = TRUE),
+    list(campo = "Efectivas mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
+    list(campo = "Efectivas hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
+    list(campo = "Faltantes", rotulo = "Total", w = 0.053, num = TRUE),
+    list(campo = "Faltantes mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
+    list(campo = "Faltantes hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
+    list(campo = "Aulas aplicadas", rotulo = "Aulas", w = 0.053, num = TRUE),
+    list(campo = "Sobremuestra", rotulo = "Total", w = 0.053, num = TRUE),
+    list(campo = "Sobremuestra mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
+    list(campo = "Sobremuestra hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
+    list(campo = "Faltantes para la sobremuestra", rotulo = "Faltan", w = 0.053, num = TRUE)
   )
   x0 <- 0.04
   xs <- cumsum(c(x0, vapply(columnas, function(c) c$w, numeric(1))))
@@ -206,8 +223,11 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                       gp = grid::gpar(col = tok$soft, fontsize = ty$foot, fontface = "bold"))
       pulso_pdf_hairline(xs[desde], xs[hasta + 1L], y_tabla + 0.042, tokens = tok)
     }
-    grupo(2L, 4L, "La muestra que le toca")
-    grupo(5L, 7L, "Lo que se lleva")
+    grupo(2L, 4L, "Muestra")
+    grupo(5L, 7L, "Efectivas")
+    grupo(8L, 10L, "Faltantes")
+    grupo(12L, 14L, "Sobremuestra")
+    grupo(15L, 15L, "Sobrem.")
 
     grid::grid.rect(x = x0, y = y_tabla, width = sum(vapply(columnas, function(c) c$w, numeric(1))),
                     height = 0.034, just = c("left", "bottom"),
@@ -222,7 +242,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     y <- y_tabla - alto_fila
     for (k in paginas[[p]]) {
       fila <- df[k, , drop = FALSE]
-      falta <- suppressWarnings(as.numeric(fila$Faltan))
+      falta <- suppressWarnings(as.numeric(fila$Faltantes))
       abierta <- is.finite(falta) && falta > 0
       if (which(paginas[[p]] == k) %% 2L == 0L) {
         grid::grid.rect(x = x0, y = y, width = sum(vapply(columnas, function(c) c$w, numeric(1))),
@@ -249,10 +269,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
           # U+2026 en su fuente y R lo sustituye con un aviso, así que en el
           # documento salía otro carácter.
           if (nchar(nombre) > tope) paste0(substr(nombre, 1L, tope - 3L), "...") else nombre
-        } else if (identical(c$campo, "Avance")) {
-          .marp_pct(v)
         } else {
-          .marp_personas(v, faltante = identical(c$campo, "Faltan"))
+          .marp_personas(v, faltante = startsWith(c$campo, "Faltantes"))
         }
         grid::grid.text(txt, x = if (c$num) xs[i + 1L] - 0.006 else xs[i] + 0.010,
                         y = y + alto_fila / 2, just = c(if (c$num) "right" else "left", "centre"),

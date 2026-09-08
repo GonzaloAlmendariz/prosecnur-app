@@ -36,8 +36,10 @@
 .maaf_CABECERAS_TABLA <- c("Facultad", "Aplicador", "Dia")
 
 # S5: la fila de cierre del avance diario, tal como la escribe
-# `.cali_cierre_diario()` (carga_aulas_libro_cierre_diario.R).
-.maaf_CIERRE_DIARIO <- "Total"
+# `.cali_cierre_diario()` (carga_aulas_libro_cierre_diario.R). V2 (2026-09-08):
+# también la fila «Total» de la tabla por facultad (`.calaf_fila_total()`):
+# toda fila cuya primera celda diga «Total» es un cierre y se viste igual.
+.maaf_FILA_TOTAL <- "Total"
 
 # Una banda de UNA fila a lo ancho del rectángulo publicado: fondo, tinta en
 # negrita. `repeatCell` con fields acotado a userEnteredFormat — no toca
@@ -121,10 +123,10 @@
       # asignados» no cabe en la suya) en vez de cortarse.
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE)
-    } else if (identical(primera, .maaf_CIERRE_DIARIO)) {
-      # S5: la fila «Total» del avance diario, vestida como cierre: fondo
-      # apenas tintado y la cifra en negrita navy, sin confundirse con una
-      # cabecera.
+    } else if (identical(primera, .maaf_FILA_TOTAL)) {
+      # S5/V2: la fila «Total» (del avance diario y de la tabla por facultad),
+      # vestida como cierre: fondo apenas tintado y la cifra en negrita navy,
+      # sin confundirse con una cabecera.
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#F3F5F9", "#002457")
     }

@@ -1,0 +1,63 @@
+# Checklist — Avance con las dos metas, por sexo, en el Sheets y en la app
+
+**Fecha:** 2026-09-08 · **Origen:** conversación guiada tras detener el loop
+(`docs/qa/checklist-loop-estetica-sheets-app-2026-09-07.md`). Gonzalo: «vamos
+cerrando lo pendiente y nos centramos en cosas puntuales que quiero ver contigo y
+me preguntes cómo se vería o entendería mejor. Me interesa que veamos avance,
+tanto en el sheets como en la app».
+
+## Las cuatro decisiones (respuestas textuales de Gonzalo, 2026-09-08)
+
+1. **La meta.** «Dos metas una real y otra referencial (aunque no debe decir que
+   lo es), la de 2500 y la de 3750. Además debe estar clarísimo la meta de
+   hombres y mujeres en total y por facultad en muestra y sobremuestra. Debe
+   haber una fila de total al final y todo debe estar muy estético e intuitivo.»
+   → Las dos metas se llaman **Muestra** (2 500) y **Sobremuestra** (3 750) y
+   reciben el mismo trato: meta, conseguidas, avance y faltan, en total, por sexo
+   y por facultad. Ninguna nota dice «referencial» ni «no es una meta».
+2. **Facultades:** «Barras por facultad» — una fila por facultad con la barra de
+   avance partida en mujeres y hombres, las cifras al lado, y chips de estado
+   sólo cuando algo cambia (cumplida o le falta poco).
+3. **El día:** «Por día y por facultad» — cada día se abre por facultad.
+4. **Qué preside Avance:** «Efectivas sobre la cuota (212 de 2,500 · 8,5 %)».
+
+## Lo que ya se sabía del dato (para no reinvestigarlo)
+
+- `design_targets` trae `meta_diseno` 2 500, `sobremuestra` 1 250,
+  `meta_operativa` 3 750, y por facultad `cuota` con `cuota_sexo {F, M}`. La suma
+  de cuotas por facultad es 2 500 en HSVG2026 (`total_cuota`). **No trae la
+  sobremuestra por facultad ni por sexo**: se reparte con el ratio del diseño
+  (3 750 / 2 500 = ×1,5) por resto mayor, para que las partes sumen el total.
+- El bloque «Avance contra la meta» de hoy abre con «Encuestas de la meta 3 158»,
+  que es la suma de `expected_valid` por curso-horario del plan: una tercera
+  cifra que Gonzalo no pidió. Deja de presidir; se conserva sólo como
+  denominador de «llegaron a SU meta» (que es por curso-horario) y como
+  respaldo cuando el estudio no trae cuotas del diseño.
+- La brecha nunca se compensa entre celdas (ADR 0079): «Faltan» suma lo que
+  falta en cada facultad × sexo, en la muestra y en la sobremuestra por igual.
+- La atribución respuesta → curso-horario → facultad es una sola
+  (`.maac_atribucion`, tres claves); el avance diario por facultad la reutiliza
+  en vez de cruzar por su cuenta.
+
+## Tablero
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| V1 | Tabla por facultad con las columnas que dictó Gonzalo (2026-09-08, con pantallazo del Sheets vivo, textual: «Facultad, muestra, muestra mujeres, muestra hombres, efectivas, efectivas hombres, efectivas mujeres, faltantes (sobre muestra), faltantes hombre, faltantes mujeres, aulas aplicadas, sobremuestra, sobremuestra mujeres, sobremuestra hombres, faltantes (sobre la sobremuestra)»). Se van «Aulas del plan», «Avance» y «Techo con sobremuestra». La sobremuestra por facultad y por sexo se reparte por resto mayor desde el ratio del diseño, para que las partes sumen el total. **Decisión propia a confirmar**: el dictado alterna el orden de los sexos (mujeres→hombres en muestra y sobremuestra, hombres→mujeres en efectivas y faltantes); se deja mujeres→hombres en los cuatro grupos, como en el resto del libro y de la app | `carga_aulas_libro_avance_facultad.R` (`.calaf_sobremuestra_reparto`) · PDF `monitoreo_aulas_report_pdf.R` (columnas por nombre) · tests `test-aulas-libro-avance-facultad.R`, `test-monitoreo-aulas-conteos-control.R`, `test-monitoreo-aulas-avance-facultad-paridad.R` | ☐ |
+| V2 | Fila «Total» al final de la tabla por facultad, en xlsx y Sheets: sumas de personas y de cursos-horario, avance del total, faltan sumados | `.calaf_fila_total()` en `carga_aulas_libro_avance_total.R` (nuevo) · xlsx `aulas_libro_escribir_indicadores` · Sheets `aulas_libro_hoja_avance` · banda «Total» de `.maaf_requests` (ya existe para el diario) | ☐ |
+| V3 | Bloque «Avance contra la meta» con las dos metas por sexo: tabla «Por sexo · Total · Mujeres · Hombres» con filas Efectivas conseguidas · Muestra · Avance a la muestra · Faltan para la muestra · Sobremuestra · Avance a la sobremuestra · Faltan para la sobremuestra; debajo, cursos-horario del operativo y los que llegaron a su meta. Sin cuotas del diseño, el bloque de hoy (meta del plan) | modelo `ind$metas` en `carga_aulas_libro_avance_metas.R` (nuevo) · xlsx · Sheets · `.maaf_CABECERAS_TABLA` gana «Por sexo» | ☐ |
+| V4 | «Avance diario» por día y por facultad: una fila por día, una columna por facultad (mismo orden que la tabla de arriba), «Sin curso-horario» sólo si hay, «Total del día», «Efectivas acumuladas», «Faltan para la muestra» y «Faltan para la sobremuestra» (por celdas, ADR 0079); fila «Total» al cierre. Sin diseño: «Falta para la meta» del plan como hoy | `carga_aulas_libro_avance_diario.R` (nuevo, usa `.maac_atribucion`) · `.cali_cierre_diario` generalizada · xlsx · Sheets | ☐ |
+| V5 | Cabeceras agrupadas (Muestra / Sobremuestra / Conseguidas / Cursos-horario) fusionadas sobre sus columnas, en xlsx y Sheets | xlsx `mergeCells` · `.maaf_requests` (fila de grupo detectada por contenido) | ☐ después del núcleo |
+| V6 | Notas de la hoja sin «referencial» ni «no es una segunda meta»; el ratio del reparto se declara en una frase | notas en xlsx y Sheets | ☐ |
+| V7 | Render real (xlsx → PDF → PNG con LibreOffice) y publicación al Sheets de prueba `.pulso` del loop, nunca al del operativo | scratchpad de esta sesión · backend 8837 | ☐ |
+| A1 | La banda de Avance abre con «Efectivas sobre la cuota»: valor «212 de 2 500», pista con el 8,5 % de la muestra y el 5,7 % de la sobremuestra (3 750); sustituye a «Efectivas» a secas | `kpisDeAulas.ts` (`efectivasSobreLaCuotaKpi`) · test `kpisDeAulas.test.ts` | ☐ |
+| A2 | Panel «Cuota asignada y encuestas logradas» pasa de tabla a **barras por facultad**: una fila por facultad, un carril por sexo contra SU cuota con la sobremuestra como tramo extra, cifras al lado, chip sólo «Cuota cumplida» o «Le falta poco», fila Total al final; encabezado con las dos metas por sexo | `AulasBarrasPorFacultad.tsx` (nuevo) + `barrasPorFacultad.ts` (view-model) + css; `AulasAvanceParaCliente.tsx` lo monta | ☐ |
+| A3 | Avance diario por facultad en la app: bloque `avance_diario_facultad` en el tablero (la MISMA función del libro) y panel en Avance › Cuotas | backend `monitoreo_aulas_universitarias.R` (reports) · `api/monitoreo.ts` tipo · `AulasAvanceDiarioPorFacultad.tsx` (nuevo) | ☐ |
+| A4 | Con A2 en pantalla, la pirámide de cuotas dice lo mismo en otra forma: preguntar a Gonzalo si se retira o se funde | `AulasPiramideCuota.tsx` | ☐ pregunta |
+
+## Preguntas que quedan para Gonzalo (se hacen viendo la pantalla, no antes)
+
+- Q5: ¿la pirámide se retira una vez que las barras por facultad llevan la
+  proyección y el foco? (A4)
+- Q6: en el «Avance diario» del Sheets, ¿los días como filas y las facultades
+  como columnas (lo implementado), o al revés?
