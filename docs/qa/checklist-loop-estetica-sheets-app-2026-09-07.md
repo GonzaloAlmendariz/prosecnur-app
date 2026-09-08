@@ -10,7 +10,7 @@ que se compile y relance.
 `83ff848b`) sobre un backend propio en `:8837`. **Nada hacia afuera**: el loop no
 publica al Sheets del operativo ni al de distribución; lee en solo lectura.
 Fuente de los ítems: `docs/qa/traspaso-operativo-aulas-2026-09-07.md` §5 y §7.
-Sólo Gonzalo cierra el loop.
+Sólo Gonzalo cierra el loop. **Detenido por él el 2026-09-08 ~09:40** («vamos cerrando lo pendiente y nos centramos en cosas puntuales que quiero ver contigo… avance, tanto en el sheets como en la app»): lo abierto queda como está y el trabajo sigue en conversación guiada.
 
 ## Vara (lo que decide si una etapa pasa)
 
