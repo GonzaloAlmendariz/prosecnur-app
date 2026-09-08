@@ -1247,6 +1247,11 @@
     reports = if (isTRUE(include_snapshot_artifacts)) snapshot$reports %||% NULL else NULL,
     chart_models = if (isTRUE(include_snapshot_artifacts)) snapshot$chart_models %||% NULL else NULL,
     sync_errors = snapshot$sync_errors %||% snapshot$errors %||% list(),
+    # B3: qué fuente volvió sin nada en la última sincronización y qué se está
+    # viendo en su lugar. Va junto a `sync_errors` porque se lee igual —algo que
+    # revisar antes de creerle a las cifras— pero NO es un error: el sync
+    # terminó bien, sólo que de vacío.
+    aviso_fuentes_vacias = snapshot$aviso_fuentes_vacias %||% NULL,
     pending_regeneration = isTRUE(snapshot$pending_regeneration),
     n_rows = as.integer(nrow(display_data)),
     variables = monitoreo_variables_cached(sid, display_data, snapshot$synced_at %||% "", cfg),

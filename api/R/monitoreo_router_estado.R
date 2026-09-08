@@ -145,6 +145,50 @@
   unique(ids[nzchar(ids)])
 }
 
+# B3 (2026-09-08): **conservar en silencio también engaña.**
+#
+# Con el guard de arriba, una fuente que vuelve vacía ya no borra lo anterior.
+# Pero la pantalla sigue enseñando las cifras de antes con la fecha de ahora, y
+# nadie sabe que la última sincronización no trajo nada: es exactamente la
+# situación en la que Gonzalo leyó «Efectivas 0» y la creyó. El aviso dice la
+# CAUSA y su consecuencia —qué fuente no trajo nada y qué se está viendo en su
+# lugar—, no sólo el hecho.
+#
+# @param sync_summary el resumen del sync.
+# @param conservadas filas que quedan en el snapshot tras el merge.
+# @return `NULL` cuando todas las fuentes trajeron algo; si no, una lista con
+#   `fuentes` (sus etiquetas o, a falta de ellas, sus ids), `conservadas` y el
+#   `mensaje` ya redactado.
+.monitoreo_sync_aviso_vacias <- function(sync_summary = list(), conservadas = 0L) {
+  vacias <- .monitoreo_sync_empty_source_ids(sync_summary)
+  if (!length(vacias)) return(NULL)
+  # La ETIQUETA, no el id: «HSVG 2026 PUCP (Kobo EU)» le dice algo a quien mira;
+  # «kobo_annup72aedz886eoauev5o» no.
+  nombres <- vapply(vacias, function(id) {
+    item <- (sync_summary %||% list())[[id]] %||% list()
+    etiqueta <- .monitoreo_scalar(item$source_label, "")
+    if (nzchar(etiqueta)) etiqueta else id
+  }, character(1), USE.NAMES = FALSE)
+  filas <- suppressWarnings(as.integer(conservadas))
+  if (is.na(filas)) filas <- 0L
+  lista <- paste(nombres, collapse = ", ")
+  verbo <- if (length(nombres) == 1L) "no devolvió ningún registro" else "no devolvieron ningún registro"
+  mensaje <- if (filas > 0L) {
+    paste0(
+      lista, " ", verbo, " en esta sincronización, así que se conservan las ",
+      format(filas, big.mark = " ", trim = TRUE, scientific = FALSE),
+      " respuestas anteriores: lo que ves es lo de la sincronización previa, no lo de ahora. ",
+      "Si el campo sigue produciendo, revisa la conexión antes de leer el avance."
+    )
+  } else {
+    paste0(
+      lista, " ", verbo, " y el estudio sigue sin respuestas cargadas. ",
+      "Revisa la conexión y el formulario antes de leer el avance."
+    )
+  }
+  list(fuentes = as.list(nombres), conservadas = filas, mensaje = mensaje)
+}
+
 .monitoreo_sync_stable_row_key <- function(data) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(character(0))
   source <- if (".source_id" %in% names(data)) as.character(data$.source_id %||% "") else rep("", nrow(data))

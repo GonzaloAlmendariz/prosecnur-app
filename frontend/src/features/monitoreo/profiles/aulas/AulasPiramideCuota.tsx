@@ -32,7 +32,7 @@ const dm = (iso: string) => {
  * a nadie, y una a la que le faltan 12 y no cierra, sí.** Sin agenda publicada
  * se sigue diciendo lo de antes, porque predecir sin datos sería inventar.
  */
-function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "sobra" | "falta" } {
+function veredicto(lado: LadoDeCuota): { texto: string; pct: string; estado: "cumplida" | "sobra" | "falta" } {
   // **Dos estados y sólo dos** (Gonzalo, 2026-09-08): «simplemente hay dos
   // estados: la meta por facultad por sexo con el largo de la barra
   // proporcional a la cantidad de estudiantes y en verde lo que ya se ha
@@ -43,9 +43,14 @@ function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "so
   // «faltarán 160», que proyectaban con lo agendado. Era predicción, y la
   // predicción vive en otra pestaña — decía además cuánto iba a faltar sobre un
   // avance que la pantalla todavía no había calculado.
-  if (lado.sobran > 0) return { texto: `sobran ${fmt(lado.sobran)}`, estado: "sobra" };
-  if (lado.cumple) return { texto: "cumplida", estado: "cumplida" };
-  return { texto: `faltan ${fmt(lado.faltan)}`, estado: "falta" };
+  // **Con su porcentaje** (Gonzalo, 2026-09-08: «medir el avance, están pintados
+  // pero no se sabe el porcentaje de avance»). La barra enseña la proporción y
+  // la cifra decía sólo el resto: quien mira una fila con 107 por recoger no
+  // podía saber si eso era el 20 % o el 80 % sin medir el relleno con el ojo.
+  const pct = `${Math.round(lado.avance)} %`;
+  if (lado.sobran > 0) return { texto: `sobran ${fmt(lado.sobran)}`, pct, estado: "sobra" };
+  if (lado.cumple) return { texto: "cumplida", pct, estado: "cumplida" };
+  return { texto: `faltan ${fmt(lado.faltan)}`, pct, estado: "falta" };
 }
 
 
@@ -110,11 +115,19 @@ function Lado({ lado, tope, hacia, facultad }: {
     : lado.cumple ? "meta cumplida" : `faltan ${fmt(lado.faltan)}`;
   const lectura = `${facultad} · ${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} conseguidas · ${lado.avance} % · ${estado}`;
   return (
-    <span
-      className={`aulas-piramide-lado es-${hacia}`}
-      title={lectura}
-    >
-      <span className={`aulas-piramide-cifra es-${v.estado}`}>{v.texto}</span>
+    <span className={`aulas-piramide-lado es-${hacia}`}>
+      {/* **Un hover de verdad, no el `title` del navegador** (Gonzalo,
+          2026-09-08: «faltan hovers profesionales»). El `title` nativo tarda un
+          segundo largo en salir, no se puede estilar, se corta a capricho del
+          sistema y no aparece nunca al navegar con teclado. Este sale al
+          instante, con la tipografía de la casa, y responde también a `:focus`
+          del botón de la fila. La lectura es la misma cadena que va al
+          `aria-label`: una sola redacción para el ojo y para el oído. */}
+      <span className="aulas-piramide-tip" role="tooltip">{lectura}</span>
+      <span className={`aulas-piramide-cifra es-${v.estado}`}>
+        {v.texto}
+        <em className="aulas-piramide-pct">{v.pct}</em>
+      </span>
       {/* La PISTA es la escala; el carril es el dato. Estaban fundidos en un
           solo elemento: el carril llevaba `width: ${carril}%` siendo hijo
           directo del lado, y un porcentaje en un hijo flex se resuelve contra
