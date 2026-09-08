@@ -45,7 +45,7 @@ tanto en el sheets como en la app».
 |---|---|---|---|
 | V1 | Tabla por facultad con las columnas que dictó Gonzalo (2026-09-08, con pantallazo del Sheets vivo, textual: «Facultad, muestra, muestra mujeres, muestra hombres, efectivas, efectivas hombres, efectivas mujeres, faltantes (sobre muestra), faltantes hombre, faltantes mujeres, aulas aplicadas, sobremuestra, sobremuestra mujeres, sobremuestra hombres, faltantes (sobre la sobremuestra)»). Se van «Aulas del plan», «Avance» y «Techo con sobremuestra». La sobremuestra por facultad y por sexo se reparte por resto mayor desde el ratio del diseño, para que las partes sumen el total. **Decisión propia a confirmar**: el dictado alterna el orden de los sexos (mujeres→hombres en muestra y sobremuestra, hombres→mujeres en efectivas y faltantes); se deja mujeres→hombres en los cuatro grupos, como en el resto del libro y de la app | `carga_aulas_libro_avance_facultad.R` (`.calaf_sobremuestra_reparto`) · PDF `monitoreo_aulas_report_pdf.R` (columnas por nombre) · tests `test-aulas-libro-avance-facultad.R`, `test-monitoreo-aulas-conteos-control.R`, `test-monitoreo-aulas-avance-facultad-paridad.R` | ☑ `ed17d4ee` — medido sobre el estado real: Total 2 500 (1 239 M / 1 261 H) · Efectivas 212 (77 / 135) · Faltantes 2 288 (1 162 / 1 126) · Aulas aplicadas 9 · Sobremuestra 3 750 (1 859 / 1 891) · Faltantes para la sobremuestra 3 538; facultad 79, xlsx 67, Sheets 90, paridad, conteos y report-model en verde; render real revisado |
 | V2 | Fila «Total» al final de la tabla por facultad, en xlsx y Sheets: sumas de personas y de aulas, faltantes sumados (ADR 0079) | `.calaf_fila_total()` en `carga_aulas_libro_avance_total.R` (nuevo) · xlsx `aulas_libro_escribir_indicadores` · Sheets `aulas_libro_hoja_avance` · banda «Total» de `.maaf_requests` (`.maaf_FILA_TOTAL`, la misma del diario) | ☑ `ed17d4ee` — negrita con filete arriba en el xlsx; banda de cierre en Sheets; el test S5 del diario aprendió a buscar SU «Total» después de «Dia» |
-| V3 | Bloque «Avance contra la meta» con las dos metas por sexo: tabla «Por sexo · Total · Mujeres · Hombres» con filas Efectivas conseguidas · Muestra · Avance a la muestra · Faltan para la muestra · Sobremuestra · Avance a la sobremuestra · Faltan para la sobremuestra; debajo, cursos-horario del operativo y los que llegaron a su meta. Sin cuotas del diseño, el bloque de hoy (meta del plan) | modelo `ind$metas` en `carga_aulas_libro_avance_metas.R` (nuevo) · xlsx · Sheets · `.maaf_CABECERAS_TABLA` gana «Por sexo» | ☐ |
+| V3 | Bloque «Avance contra la meta» con las dos metas por sexo: tabla «Por sexo · Total · Mujeres · Hombres» con filas Efectivas conseguidas · Muestra · Avance a la muestra · Faltan para la muestra · Sobremuestra · Avance a la sobremuestra · Faltan para la sobremuestra; debajo, cursos-horario del operativo y los que llegaron a su meta. Sin cuotas del diseño, el bloque de hoy (meta del plan) | modelo `ind$metas` en `carga_aulas_libro_avance_metas.R` (nuevo) · xlsx · Sheets · `.maaf_CABECERAS_TABLA` gana «Por sexo» | ☑ — medido sobre el estado real: titular «Efectivas sobre la cuota: 212 de 2 500 (8.5 % de la muestra; 5.7 % de la sobremuestra)»; tabla Efectivas 212 (77/135) · Muestra 2 500 (1 239/1 261) · Avance 8.5 % (6.2 %/10.7 %) · Faltan 2 288 (1 162/1 126) · Sobremuestra 3 750 (1 859/1 891) · Avance 5.7 % (4.1 %/7.1 %) · Faltan 3 538 (1 782/1 756); mujeres + hombres = total en las cinco filas de conteo. «Encuestas de la meta» (3 158) sale del bloque y sólo vuelve sin cuotas del diseño. Render xlsx→PDF→PNG revisado. Tests: 35 nuevos en `test-aulas-libro-avance-metas.R`; los dos pins de `test-monitoreo-aulas-formato-avance.R` que citaban «Encuestas de la meta» ahora citan «Efectivas conseguidas» |
 | V4 | «Avance diario» por día y por facultad: una fila por día, una columna por facultad (mismo orden que la tabla de arriba), «Sin curso-horario» sólo si hay, «Total del día», «Efectivas acumuladas», «Faltan para la muestra» y «Faltan para la sobremuestra» (por celdas, ADR 0079); fila «Total» al cierre. Sin diseño: «Falta para la meta» del plan como hoy | `carga_aulas_libro_avance_diario.R` (nuevo, usa `.maac_atribucion`) · `.cali_cierre_diario` generalizada · xlsx · Sheets | ☐ |
 | V5 | Cabeceras agrupadas (Muestra / Sobremuestra / Conseguidas / Cursos-horario) fusionadas sobre sus columnas, en xlsx y Sheets | xlsx `mergeCells` · `.maaf_requests` (fila de grupo detectada por contenido) | ☐ después del núcleo |
 | V6 | Notas de la hoja sin «referencial» ni «no es una segunda meta»; el ratio del reparto se declara en una frase | `.calaf_nota_metas()` en `carga_aulas_libro_avance_total.R`, UNA para xlsx y Sheets | ☑ `ed17d4ee` — «Muestra (2 500) y sobremuestra (3 750) son las dos metas del estudio, cada una por facultad y por sexo. Faltantes se mide contra la muestra; la última columna, contra la sobremuestra. La sobremuestra de cada facultad y de cada sexo reparte la del diseño con su ratio (x1.5).»; test prohíbe «referencial», «margen», «segunda meta» y «techo» |
@@ -58,6 +58,23 @@ tanto en el sheets como en la app».
 **Cierre de la sesión `87ed0566` (2026-09-08 ~10:15, por pedido de Gonzalo):** V1, V2 y V6
 en `main`; el resto pasa a otra sesión con el traspaso
 `docs/qa/traspaso-avance-dos-metas-2026-09-08.md`.
+
+**Cierre de la sesión `5b6d6a68` (2026-09-08 ~10:45, por pedido de Gonzalo: «cierra
+v3 y republica, no podemos hacer todo ahora»):** V3 en `main`. V4, V5 y A1–A4
+siguen abiertos con el mismo traspaso. Dos cosas que la sesión aprendió y no
+están en el traspaso:
+
+- **La suite del área NO se puede correr en un solo proceso de R.** Los 104
+  archivos `test-(carga-aulas-libro|aulas-libro|monitoreo-aulas)*` en un
+  `Rscript` daban 115 rojos; los mismos archivos, uno por proceso, daban 15.
+  Los 100 restantes eran contaminación de estado entre archivos (color-eslabon
+  8→0, generar 34→1, roundtrip 15→2, conversar 15→0, publicar-libro 10→0,
+  sheets-formato 6→0). Localizar antes de creerle al contador.
+- **Este árbol lo comparte otra sesión.** Los 15 rojos restantes viven en
+  `api/NAMESPACE`, `carga_aulas_libro_generar.R`, `carga_base_control.R` y
+  `monitoreo_aulas_conteos_control.R`, modificados en el working tree por
+  trabajo ajeno; en `HEAD` esos cinco archivos de test están en verde. Commitear
+  por nombre, nunca `git add -A`, y no tocar esos cuatro archivos.
 
 ## Preguntas que quedan para Gonzalo (se hacen viendo la pantalla, no antes)
 

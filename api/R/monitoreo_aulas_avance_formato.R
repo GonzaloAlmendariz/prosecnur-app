@@ -33,7 +33,10 @@
 # La primera columna de la cabecera de cada tabla del modelo: los nombres los
 # fija `aulas_libro_indicadores()` (Facultad / Aplicador / Dia) y el renderer
 # los escribe tal cual como fila de nombres.
-.maaf_CABECERAS_TABLA <- c("Facultad", "Aplicador", "Dia")
+# V3 (2026-09-08): «Por sexo» es la primera celda de la tabla de metas
+# (`.calam_CABECERA`), que está traspuesta —una fila por concepto— y aun así es
+# una tabla y se viste como tal.
+.maaf_CABECERAS_TABLA <- c("Facultad", "Aplicador", "Dia", "Por sexo")
 
 # S5: la fila de cierre del avance diario, tal como la escribe
 # `.cali_cierre_diario()` (carga_aulas_libro_cierre_diario.R). V2 (2026-09-08):
