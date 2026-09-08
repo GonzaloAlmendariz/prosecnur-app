@@ -160,6 +160,10 @@
 
 .aulas-bpf-barra-logrado[data-lleno="si"] { border-radius: 2px; }
 
+/* Celeste al pasarse de la meta: la barra ya está llena y lo que dice es que
+   sobra trabajo en ese grupo, no que algo vaya mal. */
+.aulas-bpf-barra-logrado[data-pasada="si"] { background: var(--pulso-info-fg); }
+
 .aulas-bpf-cifras {
   display: flex;
   align-items: baseline;

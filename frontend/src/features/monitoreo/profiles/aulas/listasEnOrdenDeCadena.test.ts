@@ -101,6 +101,9 @@ describe("las dos cifras del objetivo declaran su procedencia", () => {
   });
 
   it("y la tarjeta de cuota dice que sus celdas son sexo × facultad", () => {
-    expect(fuente("kpisDeAulas.ts")).toContain("celdas sexo × facultad");
+    // El texto dejó de llevar el signo × y los guiones largos el 2026-09-08
+    // (Gonzalo: nada de em dashes en lo que él lee). Lo protegido es que la
+    // tarjeta declare la UNIDAD de su cuota, no la tipografía con que lo diga.
+    expect(fuente("kpisDeAulas.ts")).toContain("grupo a grupo de sexo por facultad");
   });
 });

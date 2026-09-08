@@ -74,7 +74,11 @@ function tono(lado: LadoDeCuota) {
   // ya se ha conseguido»). Tenía tres tonos —cumplida, parcial, pendiente— que
   // codificaban un estado que la cifra de al lado ya dice con palabras; el
   // color se gastaba en repetirlo en vez de en enseñar el avance.
-  void lado;
+  // **Un depósito que se llena, sin rojo** (Gonzalo, 2026-09-08): verde lo
+  // conseguido, y celeste cuando se pasa de la meta. El rojo se reserva para
+  // las diferencias contra lo esperado, que es donde hay veredicto; aquí ir por
+  // la mitad puede ser sólo que se empezó ayer.
+  if (lado.sobran > 0) return "var(--pulso-info-fg)";
   return "var(--pulso-success-fg)";
 }
 

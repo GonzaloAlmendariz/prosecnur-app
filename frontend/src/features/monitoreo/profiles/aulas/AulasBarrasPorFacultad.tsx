@@ -101,10 +101,18 @@ export function AulasBarrasPorFacultad({
                       carril.avance === null ? "" : `, ${pct(carril.avance)}`
                     }`}
                   >
+                    {/* **El avance es un depósito que se llena, y no lleva rojo**
+                        (dictado de Gonzalo del 2026-09-08, corrigiéndose a sí
+                        mismo: «rojo da a entender que es algo malo cuando puede
+                        ser sólo que recién esté empezando»). Gris muy claro
+                        mientras se llena, verde al cubrir la meta y celeste al
+                        pasarse. El rojo se reserva para las diferencias contra
+                        lo esperado, que es donde sí hay veredicto. */}
                     <span
                       className="aulas-bpf-barra-logrado"
                       style={{ width: `${carril.anchoPct}%` }}
                       data-lleno={carril.falta === 0 ? "si" : undefined}
+                      data-pasada={carril.sobra > 0 ? "si" : undefined}
                     />
                   </div>
                   <span className="aulas-bpf-cifras">
