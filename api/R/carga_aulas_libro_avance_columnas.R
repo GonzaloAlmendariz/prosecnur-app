@@ -41,7 +41,13 @@ AULAS_AVANCE_CABECERAS <- list(
   general = c("Indicadores", "Total", "Hombres", "Mujeres"),
   facultad = c(
     "Facultad",
-    "Efectivas", "Efectivas hombres", "Efectivas mujeres",
+    # Cada «Efectivas» lleva a su derecha cuánto es eso sobre la meta de la
+    # muestra (Gonzalo, 2026-09-08: «al lado de cada "Efectivas..." tiene que
+    # haber un porcentaje de avance»). Un conteo suelto no dice si 109 es mucho
+    # o poco sin buscar la muestra siete columnas más allá.
+    "Efectivas", "Avance muestra",
+    "Efectivas hombres", "Avance muestra hombres",
+    "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
     "Muestra hombres", "Faltantes hombres muestra",
     "Muestra mujeres", "Faltantes mujeres muestra",
@@ -131,7 +137,7 @@ AULAS_AVANCE_FILAS_GENERAL <- c(
 #' @keywords internal
 AULAS_AVANCE_PROPORCIONES <- list(
   general = c("Avance muestra", "Avance sobremuestra"),
-  facultad = character(0),
+  facultad = c("Avance muestra", "Avance muestra hombres", "Avance muestra mujeres"),
   rendimiento = c(
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",

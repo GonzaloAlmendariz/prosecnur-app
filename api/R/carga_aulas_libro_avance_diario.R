@@ -162,5 +162,13 @@
     }
   }
   if (!length(filas)) return(NULL)
-  do.call(rbind, filas)
+  out <- do.call(rbind, filas)
+  # **Por DÍA y dentro por facultad** (Gonzalo, 2026-09-08, viendo la tabla
+  # publicada: «esto debe estar ordenado por día y luego por facultad»). La
+  # primera versión agrupaba por facultad, que es como se calcula —el acumulado
+  # corre dentro de cada una— pero no como se lee: quien abre esta tabla mira
+  # la jornada de ayer entera, no el historial de una facultad. El acumulado y
+  # los faltantes ya están calculados por facultad, así que reordenar no los
+  # toca.
+  out[order(out[["Día"]], out$Facultad), , drop = FALSE]
 }

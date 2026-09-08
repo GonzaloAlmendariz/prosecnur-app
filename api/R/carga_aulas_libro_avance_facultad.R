@@ -211,11 +211,18 @@
     # meta, que las sumaba para el total del estudio (`.calam_falta_celda`) sin
     # publicarlas por facultad: se podía saber que faltaban 380 mujeres para la
     # sobremuestra y no en cuál de las quince facultades.
+    # Un 0 de 0 no es 0 %: la tasa sólo existe con denominador positivo.
+    avance <- function(obs, meta) {
+      if (!is.finite(obs) || !is.finite(meta) || meta <= 0) NA_real_ else obs / meta
+    }
     fila <- data.frame(
       Facultad = .cai_txt(f$facultad),
       Efectivas = conseguidas,
+      `Avance muestra` = avance(conseguidas, cuota),
       `Efectivas hombres` = unname(sx[["M"]]),
+      `Avance muestra hombres` = avance(unname(sx[["M"]]), cuota_m),
       `Efectivas mujeres` = unname(sx[["F"]]),
+      `Avance muestra mujeres` = avance(unname(sx[["F"]]), cuota_f),
       # LA MUESTRA es la cuota del diseño, no la suma de metas por aula: son dos
       # denominadores y el segundo está estructuralmente por encima (ADR 0079).
       Muestra = cuota,

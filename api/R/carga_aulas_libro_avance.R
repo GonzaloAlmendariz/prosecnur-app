@@ -34,6 +34,11 @@
 # Lo que NO cambia: el «—» de una celda sin dato. Sin dato y cero son dos
 # noticias distintas, y en Sheets un hueco se lee como «se olvidaron».
 
+.cala_txt <- function(x) {
+  v <- as.character(x %||% "")
+  if (!length(v) || is.na(v[[1]])) "" else trimws(v[[1]])
+}
+
 # El vacío declarado de una celda numérica. Es texto a propósito: una celda que
 # dice «—» no puede confundirse con un cero ni entrar en una regla de color.
 .CALA_SIN_DATO <- "—"
@@ -79,12 +84,18 @@
 #' @param fecha `Date` del corte, inyectada por quien publica. `NULL` deriva el
 #'   corte del propio modelo (el último día del avance diario); sin diario la
 #'   celda del corte declara la causa. Nunca se consulta el reloj aquí.
+#' @param actualizado marca ISO de la última sincronización de la plataforma
+#'   (`monitoreo_snapshot$synced_at`), para que la portada diga la HORA y no
+#'   sólo el día — Gonzalo, 2026-09-08: «aquí está el día pero falta la hora
+#'   última de actualización». Sale del ESTADO y no del reloj: publicar dos
+#'   veces sin sincronizar escribe lo mismo y el motor batch+hash no reescribe
+#'   la pestaña.
 #' @return lista de filas; cada fila es una lista de celdas que pueden ser texto
 #'   o NÚMERO. No es un data.frame a propósito: un data.frame de caracteres no
 #'   puede llevar los dos tipos, y el tipo es justo lo que hace posible el
 #'   formato de porcentaje y el color por valor.
 #' @export
-aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
+aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
   ind <- if (is.list(ind)) ind else list()
 
   # El corte: inyectado, o derivado del último día del diario (ISO ordena
@@ -103,6 +114,20 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
     paste("Al", format(fecha, "%d/%m/%Y"))
   } else {
     "Sin fecha de corte: el avance diario aun no trae respuestas de plataforma fechadas."
+  }
+  # La hora de la última sincronización, en hora local legible: quien lee el
+  # libro lee horas de Lima, no el ISO UTC del estado. Cuando cae en el mismo
+  # día del corte basta la hora; cuando no, se dice el día entero — que es
+  # justo la noticia importante (los datos son de ayer).
+  marca <- .cai_marca_local(.cala_txt(actualizado))
+  if (nzchar(marca)) {
+    mismo_dia <- length(fecha) == 1L && !is.na(fecha) &&
+      identical(substr(marca, 1, 10), format(fecha, "%d/%m/%Y"))
+    corte <- if (mismo_dia) {
+      paste0(corte, " · datos de plataforma actualizados a las ", substr(marca, 12, 16))
+    } else {
+      paste0(corte, " · datos de plataforma actualizados el ", marca)
+    }
   }
 
   filas <- list()

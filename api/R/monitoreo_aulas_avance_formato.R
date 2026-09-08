@@ -137,6 +137,14 @@
       # sobremuestra» no cabe en la suya) en vez de cortarse.
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE)
+      # **Y la fila crece lo que la cabecera necesita.** `WRAP` reparte el texto
+      # en líneas pero NO estira la fila: con el alto por defecto la tercera
+      # línea se corta y «Tasa de rendimiento de la facultad esperada» salía
+      # publicada como «Tasa de / rendimiento de la». Se vio en el Sheets del
+      # 2026-09-08. El alto se deriva del ancho que esta misma hoja pide para
+      # cada columna, así que sigue al contenido y no a una constante.
+      requests[[length(requests) + 1L]] <-
+        .maaf_alto_fila(sheet_id, i, .maaf_alto_de_cabecera(celdas, .maaf_anchos_px(m)))
     } else if (identical(primera, .maaf_FILA_TOTAL)) {
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#F3F5F9", "#002457")
@@ -150,6 +158,21 @@
     .maaf_numero_requests(sheet_id, rows, m),
     .maaf_alinear_tablas(sheet_id, rows, m),
     .maaf_color_requests(sheet_id, rows, m))
+}
+
+# El alto en píxeles que necesita una fila de cabecera: la columna que más
+# líneas pida manda. ~7,2 px por carácter (el mismo factor que `.maaf_anchos_px`)
+# y 17 px por línea, con un mínimo que deja respirar a una cabecera de una línea.
+.maaf_alto_de_cabecera <- function(celdas, anchos_px) {
+  n <- min(length(celdas), length(anchos_px))
+  if (!n) return(30L)
+  # `ceiling()` devuelve double, así que el vapply se declara numeric: pedirle
+  # integer revienta con «values must be type 'integer'».
+  lineas <- vapply(seq_len(n), function(j) {
+    caben <- max(4, floor((anchos_px[[j]] - 14) / 7.2))
+    max(1, ceiling(nchar(celdas[[j]], type = "chars") / caben))
+  }, numeric(1))
+  as.integer(min(120L, max(30L, max(lineas) * 17L + 10L)))
 }
 
 # --- Las tablas publicadas, localizadas por su cabecera ----------------------

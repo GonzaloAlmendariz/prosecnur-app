@@ -351,6 +351,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            validas = NULL,
                                            cuotas = NULL,
                                            traslape_daa = NULL,
+                                           # Marca ISO de la última
+                                           # sincronización (`synced_at` del
+                                           # estado): la portada de «Avance de
+                                           # campo» dice la HORA, no sólo el
+                                           # día. Sale del estado y no del
+                                           # reloj, así que dos publicaciones
+                                           # sin sincronizar escriben lo mismo.
+                                           actualizado = "",
                                            disponibilidad = NULL,
                                            config_reparto = list()) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
@@ -460,7 +468,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       # El mismo reparto que ya alimenta el «Plan del día» de esta publicación.
       asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
                                                    cfg = config_reparto)
-    ))
+    ), actualizado = actualizado)
   )
   if (!is.null(valores_asignacion)) {
     producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
@@ -771,6 +779,7 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],
       traslape_daa = traslape_daa,
+      actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       # B68 tercera pata: el reparto de la hoja es el de la app — misma
       # disponibilidad de sesión y misma config vigente (fijadas, duración,
       # rango, semilla).
