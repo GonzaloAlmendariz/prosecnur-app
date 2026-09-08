@@ -92,6 +92,8 @@ errores_registrados <- function() {
     "E_AULAS_LIBRO_SIN_HOJAS",                               "carga_aulas_libro.R",               "422",
     "E_AULAS_LIBRO_SIN_PLAN",                                "carga_aulas_libro_generar.R",       "409",
     "E_AULAS_LIBRO_SIN_CADENAS",                             "carga_aulas_libro_generar.R",       "409",
+    "E_AULAS_DISTRIBUCION_SIN_DISPONIBILIDAD",               "monitoreo_aulas_publicar_distribucion.R", "409",
+    "E_AULAS_DISTRIBUCION_SIN_DESTINO",                      "monitoreo_aulas_publicar_libro.R",  "409",
     "E_AULAS_SHEETS_SIN_ID",                                 "carga_aulas_desde_sheets.R",        "400",
     "E_AULAS_SHEETS_SIN_PESTANAS",                           "carga_aulas_libro.R",               "422",
     "E_AULAS_SIN_CUOTAS",                                    "monitoreo_aulas_report_pdf.R",      "409",

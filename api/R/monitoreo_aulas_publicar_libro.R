@@ -794,6 +794,65 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
 # destino de escritura.
 mount_monitoreo_aulas_libro <- function(pr) {
   pr |>
+    # **Crear el Sheets de los aplicadores desde la app.**
+    #
+    # Hasta aquí el lead lo creaba a mano en Drive y pegaba el enlace. Crearlo es
+    # un paso fuera de la app en un flujo que la app gobierna entero, y cada paso
+    # fuera es una oportunidad de pegar el documento equivocado — ya pasó con la
+    # pestaña vieja que quedó de la primera versión.
+    #
+    # Es un endpoint APARTE y no una bandera de publicar: crear un archivo en el
+    # Drive de alguien no puede ser el efecto secundario de otra acción. Nace
+    # vacío y NO se comparte con nadie: repartir accesos es decisión del lead.
+    plumber::pr_post("/api/monitoreo/aulas/crear-distribucion", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      cfg <- monitoreo_normalize_config(session_get(sid)$monitoreo_config %||% list(), data.frame())
+      creado <- monitoreo_aulas_crear_distribucion(
+        .monitoreo_scalar(parsed[["titulo"]] %||% parsed[["title"]], "")
+      )
+      # Se recuerda en el acto, con la misma llave que usa publicar: el enlace se
+      # pega una vez, y si lo crea la app no se pega ninguna.
+      cfg <- monitoreo_aulas_distribucion_destino_set(cfg, creado$spreadsheet_id)
+      cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+      .monitoreo_mark_project_dirty_if_open(sid)
+      c(creado, list(
+        distribucion_sheets = cfg$aulas_universitarias$distribucion_sheets,
+        state = .monitoreo_state_payload(sid)
+      ))
+    })) |>
+    # **Leer el Sheets de los aplicadores y decir si sigue al día.**
+    #
+    # El documento es de solo lectura para los veintidós, pero el reparto de la
+    # app cambia —una baja, un reemplazo, una cita que se mueve— y nada avisaba
+    # de que lo compartido se había quedado atrás. Esto lo lee y lo compara con
+    # lo que el motor publicaría ahora.
+    plumber::pr_post("/api/monitoreo/aulas/leer-distribucion", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data.frame())
+      aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      destino <- .monitoreo_scalar(parsed[["url"]] %||% parsed[["spreadsheet_id"]] %||% parsed[["enlace"]], "")
+      if (!nzchar(destino)) {
+        destino <- .monitoreo_scalar((aulas_cfg[["distribucion_sheets"]] %||% list())[["spreadsheet_id"]], "")
+      }
+      if (!nzchar(destino)) {
+        stop_api(409, "E_AULAS_DISTRIBUCION_SIN_DESTINO",
+                 paste("No hay Sheets de la distribución que leer: créalo desde la app",
+                       "o pega su enlace una vez."))
+      }
+      # Lo que se publicaría AHORA. Sin disponibilidad no hay reparto y la
+      # lectura sigue valiendo —dice qué hay publicado— pero no compara.
+      filas <- tryCatch(
+        aulas_libro_filas_plan_aplicadores(
+          s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list(),
+          s[["monitoreo_aulas_disponibilidad"]], cfg = aulas_cfg
+        ),
+        error = function(e) NULL
+      )
+      monitoreo_aulas_leer_distribucion(destino, filas)
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/publicar-libro", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
