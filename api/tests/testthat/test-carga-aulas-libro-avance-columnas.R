@@ -369,3 +369,62 @@ test_that("ninguna nota de la hoja lleva em dash", {
   con_guion <- grep(" — ", textos, value = TRUE)
   expect_length(con_guion, 0L)
 })
+
+test_that("«Efectivas esperadas» significa lo mismo en las dos tablas que la publican", {
+  # Rendimiento por facultad y Avance diario tienen las dos una columna
+  # «Efectivas esperadas». Si una sumara las metas de las aulas y la otra
+  # aplicara la tasa de la facultad a sus elegibles, serían dos definiciones
+  # bajo la misma cabecera: la avería que este libro ya pagó con «Diferencia».
+  #
+  # Las dos suman `expected_valid`, que además es la misma cifra que la Base de
+  # control publica aula por aula.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Letras", eligible_n = 100, expected_valid = 60,
+         scheduled_date = "2026-09-07"),
+    # Un aula con un factor propio muy distinto del de su facultad: es donde las
+    # dos definiciones se separan.
+    list(operational_code = "CH 2", classroom_id = "A2", sample_role = "titular",
+         faculty = "Letras", eligible_n = 100, expected_valid = 20,
+         scheduled_date = "2026-09-08")
+  )
+  resp <- data.frame(
+    collectorID = rep("CH 1", 40),
+    `_submission_time` = rep("2026-09-07T10:00:00", 40),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ind <- aulas_libro_indicadores(
+    plan, efectivas = c(`CH 1` = 40), responses = resp, validas = rep(TRUE, 40),
+    cuotas = list(meta_diseno = 200, facultades = list(list(facultad = "Letras", cuota = 200))),
+    cfg = list(source_mapping = list(collector_var = "collectorID")))
+
+  # Sólo CH 1 está aplicada: 60, su propia meta. La tasa de la facultad es
+  # 80/200 = 40 %, que sobre sus 100 elegibles daría 40: la otra definición.
+  expect_equal(ind$rendimiento[["Efectivas esperadas"]], 60)
+  expect_equal(ind$rendimiento[["Efectivas obtenidas"]], 40)
+  expect_equal(ind$rendimiento[["Diferencia de efectivas"]], -20)
+  # Y el avance diario dice lo mismo para el mismo día.
+  lunes <- ind$diario[ind$diario[["Día"]] == "2026-09-07", ]
+  expect_equal(lunes[["Efectivas esperadas"]], 60)
+  expect_equal(lunes[["Diferencia de efectivas"]], -20)
+  # La tasa de la facultad no se pierde: sigue en su columna.
+  expect_equal(ind$rendimiento[["Tasa de rendimiento de la facultad esperada"]], 0.4)
+})
+
+test_that("una facultad donde aún no se ha ido calla, en vez de decir «0 de —»", {
+  # «0 obtenidas de —» se lee como si la facultad hubiera ido y no hubiera
+  # sacado nada. Lo que pasa es que todavía no ha ido, y eso ya lo dice la
+  # columna «Aulas aplicadas» con su cero.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Sin visitar", eligible_n = 40, expected_valid = 24)
+  )
+  r <- aulas_libro_indicadores(plan, efectivas = c(`CH 9` = 0))$rendimiento
+  expect_equal(r[["Aulas aplicadas"]], 0L)
+  for (col in c("Efectivas esperadas", "Efectivas obtenidas", "Diferencia de efectivas",
+                "Tasa de rendimiento de la facultad obtenida", "Diferencia de tasa")) {
+    expect_true(is.na(r[[col]]), info = col)
+  }
+  # La tasa ESPERADA sí se sabe: sale del diseño, no del campo.
+  expect_equal(r[["Tasa de rendimiento de la facultad esperada"]], 0.6)
+})
