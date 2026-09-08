@@ -343,6 +343,11 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                     valign = "top")
   # S4: el «—» de una celda sin dato, alineado como la cifra que no está.
   sin_dato_celda <- openxlsx::createStyle(halign = "right", fontColour = "#5B6472")
+  # S12: el mismo trato en toda la hoja. La rejilla de la tabla de facultades
+  # (`rejilla`) va también en la de aplicadores, y en la procedencia las
+  # cifras llevan separador de miles y la marca se alinea con ellas.
+  rejilla <- openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149")
+  derecha <- openxlsx::createStyle(halign = "right")
   # S5: la fila «Total» del avance diario: negrita, cifras a la derecha y una
   # línea encima que la separa de los días.
   total_diario <- openxlsx::createStyle(textDecoration = "bold", halign = "right",
@@ -598,6 +603,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
         type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
       )
     }
+    # S12: la MISMA rejilla que la tabla de facultades (visto en el render
+    # real: una con bordes y la otra sin ellos, en la misma hoja).
+    openxlsx::addStyle(wb, hoja, rejilla, rows = fila:(fila + n), cols = seq_len(n_col_apl),
+                       gridExpand = TRUE, stack = TRUE)
     fila <- fila + n + 2L
   }
 
@@ -671,6 +680,9 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
       v <- f[[2]]
       if (is.null(v) || !length(v)) v <- "—"
       openxlsx::writeData(wb, hoja, v[1], startCol = 2, startRow = fila)
+      # S12: las cifras con separador de miles como el resto de la hoja; la
+      # marca y la raya, alineadas con ellas.
+      openxlsx::addStyle(wb, hoja, if (is.numeric(v[1])) numero else derecha, rows = fila, cols = 2)
       fila <- fila + 1L
     }
     # La frase que convierte el dato en una accion: sin esto son cuatro cifras
