@@ -5435,6 +5435,65 @@ export type MonitoreoAulasLibroConversacion = {
  * conversación importó ya está en `state`, pero el tablero se construyó antes
  * y se refresca en el siguiente rebuild.
  */
+/**
+ * Una de las cinco tablas de «Avance de campo», tal como la publica el motor.
+ *
+ * **El contrato de formato viaja CON los datos, a propósito.** El front no
+ * decide qué columna es porcentaje ni de qué color va: si lo decidiera, habría
+ * dos respuestas a la misma pregunta y una acabaría mintiendo. Ya pasó con
+ * «Diferencia», que era encuestas en una tabla y puntos porcentuales en otra y
+ * salió publicado como «−3 500,0 %».
+ */
+export type MonitoreoAulasAvanceTabla = {
+  /** `general` · `facultad` · `rendimiento` · `aplicador` · `diario`. */
+  clave: string;
+  titulo: string;
+  /** La nota de encabezado; es la MISMA que escribe la hoja. No se reescribe. */
+  nota?: string;
+  /** La nota al pie, también de la hoja. */
+  nota_pie?: string;
+  /** `general` es la única traspuesta: una fila por concepto. */
+  traspuesta?: boolean;
+  cabecera: string[];
+  /** Por COLUMNA: qué es cada una. */
+  tipos?: Array<"texto" | "numero" | "porcentaje">;
+  /** Por COLUMNA: qué escala de color le toca. */
+  semaforos?: Array<"deposito" | "diferencia" | "meta_muestra" | "meta_sobremuestra" | "">;
+  /** Por FILA, sólo en la traspuesta: ahí la naturaleza la decide el renglón. */
+  tipos_fila?: Array<"numero" | "porcentaje">;
+  semaforos_fila?: Array<"deposito" | "diferencia" | "meta_muestra" | "meta_sobremuestra" | "">;
+  /**
+   * Las celdas. Una celda sin dato viaja como `null`, NO como «—»: el vacío se
+   * declara en cada pantalla y no se hereda el del Sheets. Los porcentajes
+   * viajan como proporción (0 a 1), no como 19.8; el `tipo` dice cuáles.
+   */
+  filas: Array<Array<string | number | null>>;
+  /** La fila de cierre; sólo en `facultad`. */
+  total?: Array<string | number | null>;
+  /** Cuando no hay filas: el motivo, ya redactado. */
+  vacio?: string;
+};
+
+/**
+ * Las cinco tablas de «Avance de campo» para la pantalla.
+ *
+ * Endpoint propio y no el estado (decisión del motor, 2026-09-08): estas cinco
+ * cruzan las respuestas con el plan aula por aula, y `/monitoreo/state` lo pide
+ * cada pantalla del perfil en cada refresco. Cobrarle ese cruce a vistas que no
+ * las miran sería caro; se piden al abrir la vista que las usa.
+ */
+export async function apiMonitoreoAulasAvanceTablas() {
+  return handle<{
+    ok: true;
+    corte?: string;
+    actualizado?: string;
+    titular?: string;
+    tablas: MonitoreoAulasAvanceTabla[];
+  }>(
+    await apiFetch("/api/monitoreo/aulas/avance-tablas", { headers: headers() }),
+  );
+}
+
 export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
   return handle<{
     ok: true;

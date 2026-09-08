@@ -75,6 +75,19 @@ function veredicto(f: FilaAvanceCliente): { texto: string; tono: string } {
   return { texto: "Cuota pendiente", tono: "es-riesgo" };
 }
 
+/**
+ * ⚠ SIN MONTAR desde el 2026-09-08.
+ *
+ * Lo sustituyeron las cinco tablas que sirve el motor (`AulasTablasDeAvance`).
+ * Gonzalo, sobre la tabla que este panel enseñaba: «esta tabla está súper pobre
+ * y no refleja el avance real (...) se supone que la app debe ser una versión
+ * mejorada del Excel y francamente veo todo lo contrario».
+ *
+ * Se queda en el árbol, no se borra: su view-model (`avanceParaCliente.ts`)
+ * documenta decisiones que las tablas nuevas heredan, entre ellas que los
+ * faltantes se suman grupo a grupo y no se netean (ADR 0079). Si dentro de unas
+ * semanas nadie lo ha reclamado, se retira junto con su test.
+ */
 export function AulasAvanceParaCliente({
   avanceCuota, celdasSexo = [], efectividad = null, avancePorFacultad = [],
   diseno = null, facultadEnFoco, onFoco,

@@ -29,6 +29,13 @@ const SIN_MONTAR_CONOCIDOS = [
   // componente y su view-model (`avanceProyectado.ts`) siguen en el árbol. Si la
   // pestaña de predicción no llega a existir, esta entrada es la que recuerda
   // que hay que decidir entre montarlo allí o retirarlo.
+  // Sustituido el 2026-09-08 por las cinco tablas que sirve el motor
+  // (`AulasTablasDeAvance`). Gonzalo, sobre la tabla que enseñaba: «está súper
+  // pobre y no refleja el avance real». Se queda en el árbol porque su
+  // view-model —`avanceParaCliente.ts`, con la regla de no netear los
+  // faltantes— sigue documentando decisiones que las tablas nuevas heredan; si
+  // dentro de unas semanas nadie lo ha reclamado, se retira con su test.
+  "AulasAvanceParaCliente.tsx::AulasAvanceParaCliente",
   "AulasAvanceProyectado.tsx::AulasAvanceProyectado",
   "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",

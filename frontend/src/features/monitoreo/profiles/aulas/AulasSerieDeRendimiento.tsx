@@ -272,6 +272,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     return aplicadas.map((fecha, i) => {
       let aulas = 0;
       let elegibles = 0;
+      let efectivas = 0;
       let disenoPonderado = 0;
       let aulasConDiseno = 0;
       for (const f of facultades) {
@@ -279,6 +280,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         if (!d) continue;
         aulas += d.aulas ?? 0;
         elegibles += d.elegibles ?? 0;
+        efectivas += d.efectivas ?? 0;
         const vara = d.esperadoPorAulaDelDiseno;
         if (vara != null && vara > 0 && d.aulas) {
           disenoPonderado += vara * d.aulas;
@@ -290,6 +292,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         fecha,
         aulas,
         elegibles,
+        efectivas,
+        // El punto del día se dibuja a esta altura, y es la cifra que el eje
+        // mide: encuestas POR curso-horario.
+        porAula: aulas > 0 ? efectivas / aulas : null,
         esperadoPorAulaDelDiseno: aulasConDiseno > 0 ? disenoPonderado / aulasConDiseno : null,
       } as typeof elegida extends null ? never : (typeof facultades)[number]["dias"][number];
     });
@@ -350,10 +356,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // banda es del mismo orden que la serie, así que incluirla no aplasta nada.
     ...f.dias.map((d) => d.esperadoBanda?.alto ?? 0),
   ]);
+  // **Y las barras que se dibujan SIN foco.** Desde que el «Día a día» las
+  // enseña también con «Todas las facultades» —Gonzalo: «no entiendo por qué se
+  // quitó»— el techo tenía que contarlas, y no lo hacía: el eje se quedaba en 30
+  // y las barras salían cortadas contra el borde. Gonzalo lo cazó a la primera:
+  // «parece que el límite de 30 no es suficiente». Es exactamente el defecto que
+  // el comentario de arriba cuenta de las barras con foco, repetido por no haber
+  // seguido su propia lección al añadir el caso nuevo.
+  const techosDeBarra = [
+    ...diasConBarra.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)),
+    ...diasProyectadosConBarra.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)),
+  ];
   const techosDeAgenda = proyectada
     ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
     : [];
-  const { tope, escalones } = escalaDeEje(Math.max(...valores, ...techosDeAgenda, mediaDelEstudio));
+  const { tope, escalones } = escalaDeEje(
+    Math.max(...valores, ...techosDeAgenda, ...techosDeBarra, mediaDelEstudio),
+  );
   // **EL EJE ES UN CALENDARIO, no una lista de días con datos.** Gonzalo: «cada
   // tick del eje x debe ser un día de calendario sí o sí, ahora veo saltos de
   // varios días entre tick y tick». Y era literal: las fechas se repartían por
@@ -1270,7 +1289,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   parte va sobre fondo teñido, y ahi dentro nada es un hecho. */}
               {porVenir.length ? (
                 <rect x={x(corteX)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corteX))}
-                  height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
+                  height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07"
+                  className="aulas-serie-franja" />
               ) : null}
               <defs>
                 <linearGradient id="aulas-serie-area" x1="0" y1="0" x2="0" y2="1">
@@ -1549,7 +1569,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 la rejilla. */}
             {porVenir.length ? (
               <rect x={x(corteX)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corteX))}
-                height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
+                height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07"
+                  className="aulas-serie-franja" />
             ) : null}
             {escalones.map((m) => (
               <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
@@ -1758,7 +1779,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               su fecha, sus aulas, sus encuestas y si eso es observado o inferido.
               Sólo con una facultad elegida: veinte series de puntos son una nube,
               no un dato. */}
-          {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
+          {/* **También sin facultad en foco** (Gonzalo, 2026-09-08: «no tiene
+              hover, entonces no tengo idea de cuánto era lo que se tenía
+              previsto y cuántas fueron las efectivas al final»). El comentario
+              de arriba habla de las SERIES —veinte líneas de puntos sí son una
+              nube—, pero un punto por día sobre el agregado es justo el dato que
+              faltaba: cuántas efectivas dejó la jornada y contra qué se
+              comparaba. Con foco es la facultad; sin foco, el estudio. */}
+          {diasConBarra.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${xa(i)}%`, top: `${y(d.porAula)}%` }}
               // Lo que se OYE tiene que decir lo mismo que lo que se lee: la
@@ -1770,7 +1798,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               onFocus={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onMouseLeave={() => setPista(null)}
               onBlur={() => setPista(null)} />
-          ))) : null}
+          )))}
           {proyectada ? proyectada.dias.map((d, i) => {
             const lineas = [
               `${dm(d.fecha)} · inferido de la agenda`,
