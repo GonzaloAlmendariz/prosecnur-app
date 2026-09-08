@@ -126,6 +126,25 @@
   }
   ids
 }
+# Las fuentes que sincronizaron SIN TRAER NADA (2026-09-08).
+#
+# Kobo respondiendo 200 con cero registros devuelve un `data.frame` de 0 filas,
+# que no es `NULL`: entraba en `sync_summary` como fuente sincionada con éxito y
+# el merge borraba sus filas previas sin poner ninguna en su lugar. El camino de
+# ERROR ya estaba protegido —una fuente que revienta no entra en el resumen—;
+# el del éxito vacío, no. Esta función las nombra para que el merge las respete
+# y para que quien avisa pueda decir CUÁLES no trajeron nada.
+.monitoreo_sync_empty_source_ids <- function(sync_summary = list()) {
+  if (!is.list(sync_summary) || !length(sync_summary)) return(character(0))
+  ids <- vapply(sync_summary, function(item) {
+    if (!is.list(item)) return("")
+    filas <- suppressWarnings(as.integer(item$rows %||% NA))
+    if (!is.na(filas) && filas > 0L) return("")
+    .monitoreo_scalar(item$source_id, "")
+  }, character(1))
+  unique(ids[nzchar(ids)])
+}
+
 .monitoreo_sync_stable_row_key <- function(data) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(character(0))
   source <- if (".source_id" %in% names(data)) as.character(data$.source_id %||% "") else rep("", nrow(data))

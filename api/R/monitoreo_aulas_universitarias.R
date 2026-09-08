@@ -365,9 +365,30 @@ monitoreo_aulas_default_config <- function() {
 # `control` vs `control_sin_nombre` es la misma trampa esperando, asi que TODO el
 # body se lee con `[[`, que es exacto. `defaults$` se deja como esta: es interno
 # y no lo escribe nadie de fuera.
-monitoreo_aulas_normalize_config <- function(config = list()) {
+# `previous` (2026-09-08): el fallback de `source_mapping` es LO QUE YA ESTABA
+# GUARDADO, no el default vacío.
+#
+# Esta whitelist corre en cada sincronización (`monitoreo_normalize_config`), y
+# el body que le llega no siempre trae `source_mapping`: cuando no lo trae, cada
+# campo caía a su default —cadena vacía— y el estudio se quedaba sin saber qué
+# columna es el colector ni cuál el sexo. Medido en el `.pulso` de HSVG2026 el
+# 2026-09-08: `collector_var` pasó de "collectorID" a "" y `sex_var` de
+# "datos_demo/P2" a "" en una sola pulsación de «actualizar», y toda la pestaña
+# de Avance quedó en cero sobre un campo con 212 efectivas.
+#
+# El hermano territorial ya recibía `previous` (`monitoreo_engine.R`, la línea
+# de arriba de la de aulas); aulas no. Lo que llega manda, campo por campo; lo
+# que no llega se conserva; sin previo, el default de siempre.
+monitoreo_aulas_normalize_config <- function(config = list(), previous = list()) {
   if (is.null(config) || !is.list(config)) config <- list()
   defaults <- monitoreo_aulas_default_config()
+  prev_mapping <- if (is.list(previous)) (previous[["source_mapping"]] %||% list()) else list()
+  if (is.list(prev_mapping) && length(prev_mapping)) {
+    for (nm in names(defaults$source_mapping)) {
+      v <- prev_mapping[[nm]]
+      if (!is.null(v) && length(v)) defaults$source_mapping[[nm]] <- v
+    }
+  }
   mapping <- config[["source_mapping"]] %||% config[["mapeo_fuentes"]] %||% list()
   if (!is.list(mapping)) mapping <- list()
   alerts <- config[["alerts"]] %||% config[["alertas"]] %||% list()
@@ -390,10 +411,14 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       sex_var = .monitoreo_scalar(mapping$sex_var %||% mapping$sexo_var, defaults$source_mapping$sex_var),
       # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
       # declararlos no persistiria.
+      # Caían a `list()` pelada en vez de a `defaults`, así que un body sin
+      # mapeo también se llevaba por delante qué valor es mujer y cuál hombre.
       sex_female_values = as.list(.monitoreo_chr_vec(
-        mapping$sex_female_values %||% mapping$valores_mujer %||% list())),
+        mapping$sex_female_values %||% mapping$valores_mujer %||%
+          defaults$source_mapping$sex_female_values %||% list())),
       sex_male_values = as.list(.monitoreo_chr_vec(
-        mapping$sex_male_values %||% mapping$valores_hombre %||% list())),
+        mapping$sex_male_values %||% mapping$valores_hombre %||%
+          defaults$source_mapping$sex_male_values %||% list())),
       descartes = .monitoreo_aulas_filas_de_filtro(
         mapping$descartes %||% mapping$descartadas %||% list()),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),

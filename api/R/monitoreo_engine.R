@@ -3881,7 +3881,14 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     previous = previous_config$territorial %||% previous_config$monitoreo_territorial %||% list()
   )
   aulas_input <- config$aulas_universitarias %||% config$monitoreo_aulas_universitarias %||% list()
-  aulas <- monitoreo_aulas_normalize_config(aulas_input)
+  # `previous` como el territorial de arriba (2026-09-08): sin él, una
+  # normalización con el body incompleto —la de cada sincronización— dejaba el
+  # `source_mapping` en cadenas vacías y el estudio ciego.
+  aulas <- monitoreo_aulas_normalize_config(
+    aulas_input,
+    previous = previous_config$aulas_universitarias %||%
+      previous_config$monitoreo_aulas_universitarias %||% list()
+  )
 
   list(
     enumerator_var = keep_col(config$enumerator_var %||% config$col_enumerador, defaults$enumerator_var),
@@ -4867,14 +4874,27 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   paste0(substr(value, 1L, keep), marker)
 }
 
+# Una celda NUMÉRICA conserva su tipo; el resto se sanea como siempre. Sin tipo
+# no hay numFmt de porcentaje ni regla de color en Sheets, que es lo que pidió
+# Gonzalo para «Avance de campo» el 2026-09-08; ver la nota larga en
+# `.monitoreo_sync_sheets_padded_rows()`. Los productores de texto —todos menos
+# uno— salen byte a byte igual que antes.
 .monitoreo_sheets_values_rows <- function(rows) {
   rows <- rows %||% list()
   if (!length(rows)) return(list())
   lapply(rows, function(row) {
-    cells <- as.character(unlist(row %||% character(0), use.names = FALSE))
-    cells[is.na(cells)] <- ""
-    cells <- vapply(cells, .monitoreo_sheets_sanitize_cell, character(1), USE.NAMES = FALSE)
-    as.list(cells)
+    celdas <- list()
+    for (v in unname(as.list(row %||% list()))) {
+      trozos <- if (is.null(v) || !length(v)) list("") else as.list(v)
+      for (x in trozos) {
+        celdas[[length(celdas) + 1L]] <- if (is.numeric(x) && length(x) == 1L) {
+          if (is.finite(x)) x else ""
+        } else {
+          .monitoreo_sheets_sanitize_cell(x)
+        }
+      }
+    }
+    celdas
   })
 }
 
