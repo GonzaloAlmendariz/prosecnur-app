@@ -178,7 +178,7 @@ export function escalaDeEje(maximo: number): { tope: number; escalones: number[]
   return { tope, escalones };
 }
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null, facultadEnFoco, onFoco }: {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null, jornadas = [], facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   /** La facultad elegida, si viene de la URL. Manda sobre el estado local. */
   facultadEnFoco?: string;
@@ -204,6 +204,25 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
    * la sobremuestra podría servir como un valor referencial».
    */
   sobremuestra?: number | null;
+  /**
+   * **El día como unidad**, calculado por el motor (tabla «Avance diario»).
+   *
+   * Gonzalo, 2026-09-08: «estas dimensiones por curso-horario, a mí no me
+   * importa eso; me importa cuántas efectivas se hicieron en el día y cuántas se
+   * tenían mapeadas». Y sobre este mismo gráfico: «el día a día ya tiene la
+   * forma, le falta el fondo: la barra gris es lo que se espera del día y la
+   * línea verde es lo que se tuvo».
+   *
+   * O sea, la forma estaba bien y lo que medía no. La barra medía los elegibles
+   * POR curso-horario —el aforo de un aula media— y la línea, la mediana de las
+   * facultades en esa misma unidad. Con estas jornadas la barra pasa a ser las
+   * efectivas ESPERADAS del día y la línea, las conseguidas, que es la lectura
+   * que se hace por la tarde.
+   *
+   * Vienen del motor y no se recalculan: son las mismas cifras que el libro y el
+   * Sheets, así que el gráfico y la tabla no pueden discrepar.
+   */
+  jornadas?: ReadonlyArray<{ fecha: string; conseguidas: number; esperadas: number; diferencia: number }>;
 }) {
   const modelo = useMemo(() => serieDeRendimiento(partes, plan, control), [partes, plan, control]);
   const proyeccion = useMemo(
@@ -267,6 +286,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
    * quince facultades daría un número que no es de ninguna, que es la misma
    * trampa de `rendimiento_ref` que la sesión del Sheets midió el mismo día.
    */
+  // La jornada de cada fecha, para leerla por índice del eje.
+  const jornadaDe = useMemo(() => {
+    const m = new Map<string, { conseguidas: number; esperadas: number; diferencia: number }>();
+    for (const j of jornadas) m.set(j.fecha, j);
+    return m;
+  }, [jornadas]);
+
   const diasConBarra = useMemo(() => {
     if (elegida) return elegida.dias;
     return aplicadas.map((fecha, i) => {
@@ -327,13 +353,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     return porVenir.map((fecha) => {
       let aulas = 0;
       let elegibles = 0;
+      let esperadas = 0;
       for (const f of proyeccion) {
         const d = f.dias.find((x) => x.fecha === fecha);
         if (!d) continue;
         aulas += d.aulas ?? 0;
         elegibles += d.elegibles ?? 0;
+        esperadas += d.esperadas ?? 0;
       }
-      return { fecha, aulas, elegibles };
+      return { fecha, aulas, elegibles, esperadas };
     });
   }, [proyectada, proyeccion, porVenir]);
 
@@ -363,7 +391,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   // «parece que el límite de 30 no es suficiente». Es exactamente el defecto que
   // el comentario de arriba cuenta de las barras con foco, repetido por no haber
   // seguido su propia lección al añadir el caso nuevo.
-  const techosDeBarra = [
+  // **Con jornadas, el eje mide TOTALES del día**: si siguiera saliendo de las
+  // medias por curso-horario, la barra de 297 esperadas se dibujaría veinte
+  // veces por encima del área útil. La unidad del eje sigue a la del dato.
+  const techosDeJornada = jornadas.flatMap((j) => [j.conseguidas, j.esperadas]);
+  const techosDeBarra = techosDeJornada.length ? [] : [
     ...diasConBarra.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)),
     ...diasProyectadosConBarra.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)),
   ];
@@ -371,7 +403,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
     : [];
   const { tope, escalones } = escalaDeEje(
-    Math.max(...valores, ...techosDeAgenda, ...techosDeBarra, mediaDelEstudio),
+    techosDeJornada.length
+      // Con la unidad en totales, las medias por curso-horario no entran en la
+      // escala: un eje que tuviera que albergar 297 y 17 a la vez aplastaría el
+      // segundo contra el suelo.
+      ? Math.max(...techosDeJornada, ...diasProyectadosConBarra.map((d) => d.esperadas ?? 0), 1)
+      : Math.max(...valores, ...techosDeAgenda, ...techosDeBarra, mediaDelEstudio),
   );
   // **EL EJE ES UN CALENDARIO, no una lista de días con datos.** Gonzalo: «cada
   // tick del eje x debe ser un día de calendario sí o sí, ahora veo saltos de
@@ -437,6 +474,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   /** El sitio en el eje del día `i` de las series aplicadas / agendadas. */
   const xa = (i: number) => x(enElEje(aplicadas[i]));
   const xp = (i: number) => x(enElEje(porVenir[i]));
+
+  /** Las jornadas colocadas en el eje, en el orden de los días con parte. */
+  const jornadasEnElEje = useMemo(
+    () => aplicadas
+      .map((fecha, i) => {
+        const j = jornadaDe.get(fecha);
+        return j ? { x: xa(i), conseguidas: j.conseguidas, esperadas: j.esperadas } : null;
+      })
+      .filter((v): v is { x: number; conseguidas: number; esperadas: number } => v != null),
+    // `xa` se recrea en cada render y no cambia de significado; el eje depende
+    // de las fechas, que sí están en la lista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [aplicadas, jornadaDe],
+  );
+
 
   /** Sólo los días en que esa facultad fue a algún aula: un hueco no es un cero. */
   const trazo = (dias: ReadonlyArray<{ porAula: number | null }>) => dias
@@ -1502,7 +1554,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       <div className="aulas-serie-bloque"
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-serie-rotulo">
-          <b>Día a día <i>· encuestas por curso-horario, con los elegibles de fondo</i></b>
+          <b>Día a día <i>{jornadasEnElEje.length
+            ? "· efectivas del día, con lo esperado de fondo"
+            : "· encuestas por curso-horario, con los elegibles de fondo"}</i></b>
           {/* **Las tres alturas, nombradas.** El gráfico dibujaba techo, vara y
               línea sin decir cuál era cuál: había que deducirlo del pie, tres
               bandas más abajo, y el pie es prosa. Con la leyenda las tres se
@@ -1592,29 +1646,45 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 ].join(" ")}
                 fill={COLOR_RESULTADO.efectiva} opacity="0.1" />
             ) : null}
-            {dibujadas.map((f) => (
-              <polyline key={f.facultad} points={trazo(f.dias)} fill="none"
-                stroke={COLOR_RESULTADO.efectiva}
-                strokeWidth={elegida ? 2.5 : 1}
-                opacity={elegida ? 1 : 0.16}
-                strokeLinejoin="round" strokeLinecap="round"
-                vectorEffect="non-scaling-stroke" />
-            ))}
-            {extremos.map((f, k) => (
-              <polyline key={`extremo-${f.facultad}`} points={trazo(f.dias)} fill="none"
-                stroke={k === 0 ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.rechazo}
-                strokeWidth="2" opacity="0.9"
-                strokeLinejoin="round" strokeLinecap="round"
-                vectorEffect="non-scaling-stroke" />
-            ))}
-            {/* La mediana del día, que es la línea que de verdad se lee. */}
-            {conBanda ? (
+            {/* **La línea verde es LO QUE SE TUVO ese día** (Gonzalo,
+                2026-09-08). Con las jornadas del motor es una sola línea de
+                totales, y las veinte series por facultad y su mediana se
+                retiran: median encuestas POR curso-horario, que es otra unidad,
+                y superpuestas a una barra de totales se leerían como si fueran
+                la misma cifra. Sin jornadas se conserva lo de antes, que es lo
+                único que hay. */}
+            {jornadasEnElEje.length ? (
               <polyline
-                points={cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p50)}` : null)).filter(Boolean).join(" ")}
+                points={jornadasEnElEje.map((j) => `${j.x},${y(j.conseguidas)}`).join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.efectiva} strokeWidth="3"
                 strokeLinejoin="round" strokeLinecap="round"
                 vectorEffect="non-scaling-stroke" />
-            ) : null}
+            ) : (
+              <>
+                {dibujadas.map((f) => (
+                  <polyline key={f.facultad} points={trazo(f.dias)} fill="none"
+                    stroke={COLOR_RESULTADO.efectiva}
+                    strokeWidth={elegida ? 2.5 : 1}
+                    opacity={elegida ? 1 : 0.16}
+                    strokeLinejoin="round" strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke" />
+                ))}
+                {extremos.map((f, k) => (
+                  <polyline key={`extremo-${f.facultad}`} points={trazo(f.dias)} fill="none"
+                    stroke={k === 0 ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.rechazo}
+                    strokeWidth="2" opacity="0.9"
+                    strokeLinejoin="round" strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke" />
+                ))}
+                {conBanda ? (
+                  <polyline
+                    points={cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p50)}` : null)).filter(Boolean).join(" ")}
+                    fill="none" stroke={COLOR_RESULTADO.efectiva} strokeWidth="3"
+                    strokeLinejoin="round" strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke" />
+                ) : null}
+              </>
+            )}
             {/* El esperado del ESTUDIO sobre lo agendado. Arranca en la mediana
                 del último día con parte para que se vea de dónde sale. */}
             {conBanda && esperadoDelEstudio.some((v) => v != null) ? (
@@ -1694,8 +1764,17 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 En elegibles POR AULA, que es la unidad del eje; los totales del
                 día van en el hover, que es donde caben sin mentir la escala. */}
             {diasConBarra.map((d, i) => {
-              if (!d.elegibles || !d.aulas) return null;
-              const techo = d.elegibles / d.aulas;
+              // **La barra es lo que se ESPERABA del día** (Gonzalo, 2026-09-08:
+              // «la barra gris es lo que se espera del día y la línea verde es
+              // lo que se tuvo»). Medía los elegibles POR curso-horario, o sea
+              // el aforo de un aula media, que es una pregunta de diseño y no la
+              // de la jornada. Sin jornada del motor se conserva la medida
+              // vieja, que es lo único que hay.
+              const jornada = jornadaDe.get(d.fecha);
+              const techo = jornada
+                ? jornada.esperadas
+                : (d.elegibles && d.aulas ? d.elegibles / d.aulas : 0);
+              if (!techo) return null;
               const ancho = anchoDeBarraDelDia(fechas.length);
               // **La tercera altura: lo que el DISEÑO supuso de cada una de esas
               //   aulas.** La barra era el techo y la línea lo conseguido, así que
@@ -1740,8 +1819,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               );
             })}
             {diasProyectadosConBarra.map((d, i) => {
-              if (!d.elegibles || !d.aulas) return null;
-              const techo = d.elegibles / d.aulas;
+              // Los días por venir van en la MISMA unidad que los pasados: lo
+              // que se espera de sus cursos-horario agendados. Con el gráfico en
+              // totales, una barra de «elegibles por aula» al lado de una de 329
+              // se dibujaría pegada al suelo y se leería como una jornada mala.
+              const techo = jornadasEnElEje.length
+                ? d.esperadas
+                : (d.elegibles && d.aulas ? d.elegibles / d.aulas : 0);
+              if (!techo) return null;
               const ancho = anchoDeBarraDelDia(fechas.length);
               return (
                 <g key={`techo-${d.fecha}`}>
@@ -1856,7 +1941,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           : <span>sin días agendados por delante</span>}
       </p>
       <p className="mon-profile-muted aulas-serie-pie">
-        {elegida
+        {/* **El pie dice lo que el gráfico DIBUJA.** Con el día como unidad son
+            otras dos cosas que en la vista por curso-horario, y un pie que
+            nombra la mediana y las veinte facultades manda a buscar líneas que
+            ya no están. */}
+        {jornadasEnElEje.length
+          ? "La barra es lo que se esperaba de los cursos-horario aplicados ese día, calculado con la tasa de rendimiento de cada uno, y la línea verde lo que de verdad se consiguió. A la derecha del corte, lo que se espera de los que ya están agendados."
+          : elegida
           ? "Las barras son el techo de cada día (los elegibles de sus cursos-horario, por curso-horario) y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada curso-horario (con la tasa del curso-horario, que ajusta por su tamaño, no con la tasa de la facultad del panel de arriba) y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de los cursos-horario YA AGENDADOS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva (encogido hacia la media del estudio cuando tiene pocas), y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
           : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
