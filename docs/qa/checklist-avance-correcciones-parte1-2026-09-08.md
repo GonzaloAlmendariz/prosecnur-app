@@ -148,6 +148,50 @@ que la regla de no netear está igual en los dos lados:
 | Aulas aplicadas | 26 | 26 |
 | Aulas planificadas | 174 | 174 |
 
+## La regla que decide dónde vive cada dato (Gonzalo, 2026-09-08)
+
+Textual, contestando a quién debe calcular las cinco tablas: «Todo el contenido
+que se llena en la app lo lee del Sheets, y todo el contenido que coge
+información de plataforma y ordena toda esa información es la app, para nutrir
+la app y luego para nutrir el Sheets interno.»
+
+Los dos sentidos, que conviene no volver a discutir:
+
+- **Sheets → app** para lo que el EQUIPO llena a mano: partes de campo, agenda,
+  «Aulas Agendadas / Aplicadas (Extra)», la distribución de aplicadores con su
+  hoja por semana. La app lo consume; no lo escribe. Es la doctrina de las hojas
+  respetadas, ahora dicha como regla general.
+- **app → Sheets** para lo que sale de PLATAFORMA y hay que ordenar: las cinco
+  tablas de «Avance de campo», las metas, los faltantes por celda, el
+  rendimiento. La app las calcula, las enseña y después nutren el Sheets.
+
+De ahí sale la decisión sobre S1–S5 en la app: **el motor las expone en el
+payload del tablero y la app las consume**. La alternativa —que la app las
+derivara por su cuenta— invertía el sentido del dato y abría el escenario de las
+dos verdades, justo después de comprobar que hoy las ocho cifras coinciden.
+
+## Lo que Gonzalo vio en pantalla y no cuadraba (2026-09-08, tarde)
+
+- **«¿Cómo que la meta es 301?»** En «Acumulado por día» había cuatro líneas
+  —301, 3 750, 1 239 y 1 261— y **ninguna era la muestra**. La única rotulada
+  «Meta» era la de lo visitado, que además se mueve. Misma patología que las
+  3 158 de la mañana. Cerrado en `fa3b005f`.
+- **«Todas las líneas punteadas es confuso.»** El punteado decía dos cosas a la
+  vez: metas e inferencias. Ahora dice una: lo que todavía no ha pasado.
+- **«¿Por qué se quitó la barra del día a día?»** No se quitó: estaba
+  condicionada a tener una facultad en foco, así que en la vista por defecto no
+  se dibujaba ninguna. Una capacidad que existe y no se consume donde más se
+  mira. Cerrado.
+- **«¿Por qué llegaría el 9 de septiembre?»** Defecto introducido al cambiar la
+  meta: el cruce seguía midiéndose contra las 301. Cerrado en `87d6406f`.
+- **«Pensé que no había ido tan mal el lunes.»** **Tenía razón y la vista decía
+  lo contrario.** Medido sobre el estado real: 15 de 26 cursos-horario superaron
+  su `expected_valid`, y cinco facultades van por encima (Estudios Generales
+  Letras +26,5; Ciencias e Ingeniería +19,7). El gráfico no lo enseña porque sin
+  foco dibuja la MEDIANA, que aplana justo los casos buenos. La comparación que
+  pedía existe ya, pero en el libro: es «Diferencia de efectivas» de RENDIMIENTO
+  POR FACULTAD. Es el caso que motivó la regla de arriba.
+
 ## Reglas de esta tanda
 
 - Nunca publicar al Sheets del operativo ni al de distribución sin el go
