@@ -303,21 +303,53 @@
   ))
 }
 
-.maaf_regla_escala <- function(rango, tope) {
-  punto <- function(color, valor) list(
-    color = .monitoreo_sheets_rgb(color), type = "NUMBER",
-    value = format(valor, scientific = FALSE, trim = TRUE)
-  )
+# La escala de una DIFERENCIA, **sin un solo número con separador decimal**.
+#
+# La primera versión fijaba los extremos con `type = "NUMBER"` y el valor en
+# texto («-0.3348»), y salió publicada con topes de ±3 348: Sheets parsea el
+# valor de un punto de interpolación CON EL IDIOMA DEL DOCUMENTO, y en un
+# documento en español el punto es separador de miles, así que «0.3348» se leyó
+# como 3 348. La regla quedaba viva pero inútil — con un rango de ±3 348, cero
+# coma algo se pinta blanco siempre—. Es la misma trampa que ya está anotada
+# para USER_ENTERED en `monitoreo_aulas_libro_arrastre.R`, y sólo se ve leyendo
+# el documento después de publicar.
+#
+# Aquí los extremos son MIN y MAX —que no llevan valor— y el único número que
+# viaja es el «0» del punto medio, que se lee igual en cualquier idioma. De
+# paso la escala se ajusta al rango real de la columna en vez de a un tope
+# calculado.
+#
+# Cuando la columna no cruza el cero no hay punto medio que poner: media escala
+# —blanco a verde si todo va a favor, rojo a blanco si todo va en contra—, que
+# es lo que la API acepta y lo que el dato dice.
+.maaf_regla_escala <- function(rango, valores) {
+  v <- valores[is.finite(valores)]
+  if (!length(v)) return(NULL)
+  punto <- function(color, tipo, valor = NULL) {
+    out <- list(color = .monitoreo_sheets_rgb(color), type = tipo)
+    if (!is.null(valor)) out$value <- valor
+    out
+  }
+  gradiente <- if (min(v) < 0 && max(v) > 0) {
+    list(
+      minpoint = punto(.MAAF_ROJO_ESCALA, "MIN"),
+      midpoint = punto(.MAAF_BLANCO_ESCALA, "NUMBER", "0"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "MAX")
+    )
+  } else if (max(v) <= 0) {
+    list(
+      minpoint = punto(.MAAF_ROJO_ESCALA, "MIN"),
+      maxpoint = punto(.MAAF_BLANCO_ESCALA, "MAX")
+    )
+  } else {
+    list(
+      minpoint = punto(.MAAF_BLANCO_ESCALA, "MIN"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "MAX")
+    )
+  }
   list(addConditionalFormatRule = list(
     index = 0L,
-    rule = list(
-      ranges = list(rango),
-      gradientRule = list(
-        minpoint = punto(.MAAF_ROJO_ESCALA, -tope),
-        midpoint = punto(.MAAF_BLANCO_ESCALA, 0),
-        maxpoint = punto(.MAAF_VERDE_ESCALA, tope)
-      )
-    )
+    rule = list(ranges = list(rango), gradientRule = gradiente)
   ))
 }
 
@@ -350,8 +382,8 @@
       }
       valores <- valores[is.finite(valores)]
       if (r %in% AULAS_AVANCE_DIFERENCIAS) {
-        tope <- if (length(valores)) max(abs(valores)) else 0
-        if (tope > 0) requests[[length(requests) + 1L]] <- .maaf_regla_escala(rango, tope)
+        regla <- .maaf_regla_escala(rango, valores)
+        if (!is.null(regla)) requests[[length(requests) + 1L]] <- regla
       } else if (r %in% AULAS_AVANCE_FALTAN_MUESTRA) {
         requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
           rango, "NUMBER_EQ", 0, .MAAF_VERDE_FONDO, .MAAF_VERDE_TINTA)

@@ -476,11 +476,47 @@ test_that("una DIFERENCIA se pinta en escala con el cero clavado en el medio", {
   escalas <- Filter(function(r) !is.null(r$gradientRule), reglas)
   expect_length(escalas, 1L)
   g <- escalas[[1]]$gradientRule
-  expect_identical(g$midpoint$value, "0")
-  expect_identical(g$midpoint$type, "NUMBER")
-  # El extremo bajo es rojo y el alto verde, no al revés.
-  expect_gt(g$minpoint$color$red, g$minpoint$color$green)
-  expect_gt(g$maxpoint$color$green, g$maxpoint$color$red)
+  # Los extremos son MIN y MAX; el único punto con valor es el cero.
+  expect_identical(g$minpoint$type, "MIN")
+  expect_identical(g$maxpoint$type, "MAX")
+  if (!is.null(g$midpoint)) {
+    expect_identical(g$midpoint$type, "NUMBER")
+    expect_identical(g$midpoint$value, "0")
+  }
+})
+
+test_that("ninguna regla de color viaja con un número que el idioma pueda releer", {
+  # **Salió publicado.** La escala de la diferencia fijaba sus extremos con
+  # `type = "NUMBER"` y el valor en texto («-0.3348»), y en el documento quedó
+  # con topes de ±3 348: Sheets parsea ese valor CON EL IDIOMA DEL DOCUMENTO, y
+  # en español el punto es separador de miles. La regla seguía viva y no pintaba
+  # nada, que es el peor de los dos fallos posibles.
+  #
+  # El guard es sobre la FORMA de la request, que es lo único que se puede
+  # comprobar sin publicar: ningún valor de regla puede llevar «.» ni «,».
+  for (modelo in list(.mfa_modelo_completo(), .mfa_modelo_minimo())) {
+    requests <- .mfa_requests(.mfa_rows(modelo))
+    valores <- character(0)
+    for (request in requests) {
+      r <- request$addConditionalFormatRule
+      if (is.null(r)) next
+      g <- r$rule$gradientRule
+      if (!is.null(g)) {
+        for (p in list(g$minpoint, g$midpoint, g$maxpoint)) {
+          if (!is.null(p$value)) valores <- c(valores, as.character(p$value))
+        }
+      }
+      b <- r$rule$booleanRule
+      if (!is.null(b)) {
+        for (v in b$condition$values %||% list()) {
+          valores <- c(valores, as.character(v$userEnteredValue %||% ""))
+        }
+      }
+    }
+    expect_gt(length(valores), 0L)
+    expect_false(any(grepl("[.,]", valores)),
+                 info = paste("valores con separador:", paste(valores, collapse = " · ")))
+  }
 })
 
 test_that("una celda que llegó a su meta se pinta verde; a la sobremuestra, celeste", {

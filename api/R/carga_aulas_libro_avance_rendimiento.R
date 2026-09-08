@@ -23,6 +23,33 @@
 # diría que todavía no se ha ido, que es lo que ya dicen las dos primeras
 # columnas.
 
+#' La tasa de rendimiento ESPERADA de una facultad, ponderada por elegibles.
+#'
+#' **No es el promedio de las tasas de sus aulas.** `rendimiento_ref` viaja por
+#' AULA —sale de los tramos de elegibles del cálculo— y dentro de una misma
+#' facultad va de 44 % a 80 %. Promediar esas tasas da un número que no es la
+#' tasa de nadie y que además depende de cuántas aulas chicas tenga el plan.
+#'
+#' Se vio publicado el 2026-09-08: en «Producción por aplicador» la columna
+#' «Tasa de rendimiento esperada EN FACULTAD» enseñaba 69,0 % para una persona y
+#' 55,0 % para la de al lado, en la misma facultad — la columna prometía una
+#' vara de facultad y entregaba la media de las aulas de cada quien.
+#'
+#' Lo correcto es la razón de los agregados: cuántas efectivas espera el diseño
+#' de esa facultad entre cuántos elegibles pone. Sale UNA por facultad, y es la
+#' misma en las tres tablas que la citan.
+#'
+#' @param esperadas,elegibles vectores por aula de la facultad.
+#' @return la tasa, o `NA_real_` sin elegibles con que dividir.
+#' @keywords internal
+.calar_tasa_esperada <- function(esperadas, elegibles) {
+  ok <- is.finite(esperadas) & is.finite(elegibles) & elegibles > 0
+  if (!any(ok)) return(NA_real_)
+  den <- sum(elegibles[ok])
+  if (!is.finite(den) || den <= 0) return(NA_real_)
+  sum(esperadas[ok]) / den
+}
+
 #' Rendimiento por facultad: lo aplicado, lo esperado y la brecha de tasa.
 #'
 #' @param unidades filas del plan que entran al libro (titulares + reservas
@@ -41,10 +68,7 @@
   cod <- vapply(unidades, function(u) .cai_txt(u$operational_code), character(1))
   rol <- vapply(unidades, function(u) tolower(.cai_txt(u$sample_role)), character(1))
   eleg <- vapply(unidades, function(u) .cai_num(u$eligible_n), numeric(1))
-  # La tasa que el diseño le puso a la facultad. Viaja repetida en cada aula de
-  # la facultad (`rendimiento_ref`, que el anotador de Cálculo de muestra
-  # escribe por facultad); se lee de sus aulas, no se recalcula.
-  tasa_ref <- vapply(unidades, function(u) .cai_num(u$rendimiento_ref), numeric(1))
+  esperadas <- vapply(unidades, function(u) .cai_num(u$expected_valid), numeric(1))
 
   # UNA sola definición de «aplicada» para todo el operativo.
   apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
@@ -62,13 +86,10 @@
     # El denominador de la tasa obtenida: los elegibles de las aulas aplicadas.
     eleg_apl <- sum(eleg[aplicadas & is.finite(eleg)], na.rm = TRUE)
     ef_apl <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[aplicadas], na.rm = TRUE)
-    esperada <- {
-      v <- tasa_ref[idx]
-      v <- v[is.finite(v)]
-      # Todas las aulas de la facultad traen la misma; la media protege de un
-      # plan mixto sin inventar una tasa que nadie declaró.
-      if (length(v)) mean(v) else NA_real_
-    }
+    # La vara de la facultad: lo que el diseño espera de TODAS sus aulas entre
+    # los elegibles que pone. Constante a lo largo del operativo, y la misma
+    # cifra que citan las otras dos tablas.
+    esperada <- .calar_tasa_esperada(esperadas[idx], eleg[idx])
     obtenida <- if (is.finite(ef_apl) && eleg_apl > 0) ef_apl / eleg_apl else NA_real_
     out <- data.frame(
       f,

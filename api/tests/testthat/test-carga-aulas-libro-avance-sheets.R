@@ -548,15 +548,16 @@ test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía
   # en blanco y la fila quedaba con un hueco en medio, que en Sheets se lee como
   # «se olvidaron». El «—» ya es el vocabulario del bloque de meta.
   #
-  # Aquí el hueco lo produce la tasa esperada: el plan de este fixture no trae
-  # `rendimiento_ref`, así que la facultad no tiene vara declarada y la columna
-  # calla en vez de inventar una.
+  # Aquí el hueco lo produce la tasa OBTENIDA: a Equipo C sólo le tocó un
+  # curso-horario sin respuestas, así que no hay elegibles aplicados con que
+  # dividir. Cero y «todavía no sabemos» son dos noticias distintas, y en un
+  # aplicador que aún no ha salido la segunda es la cierta.
   ind <- aulas_libro_indicadores(
     .cas_plan(), efectivas = .cas_efectivas(), partes = .cas_partes(),
     cfg = .cas_cfg(),
-    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
+    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo A", `R 2.1` = "Equipo C")
   )
-  col_tasa <- "Tasa de rendimiento esperada en facultad"
+  col_tasa <- "Tasa de rendimiento obtenida"
   expect_true(any(is.na(ind$aplicadores[[col_tasa]])))
   filas <- .cas_filas(ind)
   clave <- vapply(filas, function(f) {
