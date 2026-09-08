@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AulasSexoYDescartes, type ValoresDeSexo } from "./AulasSexoYDescartes";
 
 import type { MonitoreoVariable } from "../../../../api/monitoreo";
 import { Plus, Trash2 } from "../../../../vendor/lucide-react";
@@ -37,6 +38,8 @@ export const MAXIMO_DE_FILTROS = 4;
 export function AulasFiltrosDeEfectiva({
   filtros, variables, criterio, guardando, onChange, onGuardar,
   variableDeSexo = "", onVariableDeSexo = null,
+  valoresDeSexo = null, onValoresDeSexo = null,
+  descartes = [], onDescartes = null, sugerenciasDeDescarte = [],
 }: {
   filtros: ReadonlyArray<FiltroDeEfectiva>;
   variables: ReadonlyArray<MonitoreoVariable>;
@@ -56,6 +59,16 @@ export function AulasFiltrosDeEfectiva({
   variableDeSexo?: string;
   /** `null` = sólo lectura; el selector no se pinta. */
   onVariableDeSexo?: ((variable: string) => void) | null;
+  /**
+   * A5 (2026-09-08): qué valor de la variable de sexo cuenta como mujeres y
+   * cuál como hombres, y qué códigos de colector quedan fuera del operativo.
+   * Se pintan bajo el selector de sexo cuando hay callbacks o valores.
+   */
+  valoresDeSexo?: ValoresDeSexo | null;
+  onValoresDeSexo?: ((v: ValoresDeSexo) => void) | null;
+  descartes?: ReadonlyArray<string>;
+  onDescartes?: ((valores: string[]) => void) | null;
+  sugerenciasDeDescarte?: ReadonlyArray<string>;
 }) {
   const [abierto, setAbierto] = useState<number | null>(null);
   /**
@@ -201,6 +214,21 @@ export function AulasFiltrosDeEfectiva({
               ? "Con ella, el Plan del día dice cuántas efectivas se obtuvieron de cada sexo."
               : "Sin ella, las cifras por sexo del Plan del día quedan vacías: no se adivina qué columna es."}
           </em>
+          {/* A5: los valores de esa variable, repartidos en mujeres y hombres, y
+              los descartes del colector. Sólo con alguien que los guarde o con
+              algo ya declarado que enseñar. */}
+          {onValoresDeSexo || onDescartes || valoresDeSexo || descartes.length ? (
+            <AulasSexoYDescartes
+              variableDeSexo={variableDeSexo}
+              valoresDeLaVariable={valoresDe(variableDeSexo)}
+              mujeres={valoresDeSexo?.mujeres ?? []}
+              hombres={valoresDeSexo?.hombres ?? []}
+              descartes={descartes}
+              sugerencias={sugerenciasDeDescarte}
+              onValoresDeSexo={onValoresDeSexo}
+              onDescartes={onDescartes}
+            />
+          ) : null}
         </div>
       ) : null}
 

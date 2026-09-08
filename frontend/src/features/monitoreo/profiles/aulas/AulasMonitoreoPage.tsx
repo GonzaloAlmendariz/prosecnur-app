@@ -49,6 +49,7 @@ import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoLibroPublicado } from "./avisoLibroPublicado";
 import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
+import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
@@ -1084,6 +1085,11 @@ export default function AulasMonitoreoPage() {
   );
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
+  // A5: lo declarado fuera del operativo y el nombre del colector, para la UI
+  // del criterio y sus sugerencias.
+  const colectorDeclarado = String(state?.aulas_universitarias?.source_mapping?.collector_var ?? "collectorID");
+  const descartesDeclarados: string[] = (state?.aulas_universitarias?.source_mapping?.descartes ?? [])
+    .flatMap((d) => (d.values ?? []).map(String));
   // Cuántas aulas traen META DEL DISEÑO, que es lo que hace juzgable el
   // criterio.
   //
@@ -1330,6 +1336,43 @@ export default function AulasMonitoreoPage() {
           sex_var: variable,
         },
       } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  /**
+   * A5 (2026-09-08): los valores de la variable de sexo (mujeres / hombres) y
+   * los códigos de colector fuera del operativo, guardados en el MISMO
+   * `source_mapping` que la variable y los filtros. El 07/09 se escribieron
+   * por API; sin pantalla el próximo estudio repite el día 1 de éste.
+   */
+  const declararValoresDeSexo = useCallback(async (v: { mujeres: string[]; hombres: string[] }) => {
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          sex_female_values: v.mujeres,
+          sex_male_values: v.hombres,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva, state]);
+
+  const declararDescartes = useCallback(async (valores: string[]) => {
+    const mapping = state?.aulas_universitarias?.source_mapping;
+    const colector = String(mapping?.collector_var ?? "collectorID");
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(mapping ?? {}),
+          descartes: valores.length ? [{ var: colector, values: valores }] : [],
+        },
+      } as unknown as Partial<MonitoreoAulasConfig>);
       await loadView(seccionActiva, true, true);
     } catch (e) {
       setError((e as Error).message);
@@ -1828,6 +1871,18 @@ export default function AulasMonitoreoPage() {
                     onGuardar={() => { void guardarCriterio(); }}
                     variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
                     onVariableDeSexo={declararVariableDeSexo}
+                    valoresDeSexo={{
+                      mujeres: (state?.aulas_universitarias?.source_mapping?.sex_female_values ?? []).map(String),
+                      hombres: (state?.aulas_universitarias?.source_mapping?.sex_male_values ?? []).map(String),
+                    }}
+                    onValoresDeSexo={(v) => { void declararValoresDeSexo(v); }}
+                    descartes={descartesDeclarados}
+                    onDescartes={(v) => { void declararDescartes(v); }}
+                    sugerenciasDeDescarte={sugerenciasDeDescarte(
+                      (state?.variables ?? []).find((v) => v.name === colectorDeclarado)?.values?.map(String) ?? [],
+                      (dashboard?.agenda ?? []).map((r) => String((r as { operational_code?: unknown }).operational_code ?? "")),
+                      descartesDeclarados,
+                    )}
                   />
                 ) : null
               ),
