@@ -94,9 +94,8 @@ test_that("los números de la pantalla son los MISMOS que los de la hoja", {
         expect_equal(obtenido, as.numeric(esperado),
                      info = sprintf("fila %d, «%s»", i, cabecera[[j]]))
       } else {
-        # Una celda sin dato viaja como `null`, para que la pantalla ponga SU
-        # vacío declarado en vez de heredar el «—» del Sheets.
-        expect_null(obtenido, info = sprintf("fila %d, «%s»", i, cabecera[[j]]))
+        # Una celda sin dato viaja como `NA`, que en JSON es `null`.
+        expect_true(is.na(obtenido), info = sprintf("fila %d, «%s»", i, cabecera[[j]]))
       }
     }
   }
@@ -145,8 +144,8 @@ test_that("«Avance general» viaja declarada como traspuesta, con su tipo por f
   # viajan como `null`, no como cero.
   aulas <- g$filas[[which(etiquetas == "Aulas planificadas")]]
   expect_identical(aulas[[2]], 2)
-  expect_null(aulas[[3]])
-  expect_null(aulas[[4]])
+  expect_true(is.na(aulas[[3]]))
+  expect_true(is.na(aulas[[4]]))
 })
 
 test_that("la portada trae el corte con su hora, y la tabla por facultad su fila Total", {
@@ -181,5 +180,29 @@ test_that("sin respuestas sincronizadas las tablas callan en vez de inventar cer
   fac <- .maat_de(res, "facultad")
   expect_gt(length(fac$filas), 0L)
   cab <- as.character(unlist(fac$cabecera))
-  expect_null(fac$filas[[1]][[which(cab == "Efectivas")]])
+  expect_true(is.na(fac$filas[[1]][[which(cab == "Efectivas")]]))
+})
+
+test_that("una celda sin dato cruza como `null`, no como objeto vacío", {
+  # **El pin va sobre el JSON, no sobre el valor de R.** La primera versión
+  # devolvía `NULL` para la celda sin dato, que en R es el vacío natural y en el
+  # test pasaba; `jsonlite` serializa un `NULL` dentro de una lista como OBJETO
+  # VACÍO, así que la celda cruzaba como `{}` y la pantalla escribía
+  # «[object Object]» en las tres filas de aulas de «Avance general». El valor
+  # de R estaba bien: lo que estaba roto era la frontera, y sólo se veía
+  # mirándola.
+  res <- monitoreo_aulas_avance_tablas(.maat_sesion())
+  crudo <- as.character(jsonlite::toJSON(res, auto_unbox = TRUE))
+  expect_false(grepl("{}", crudo, fixed = TRUE),
+               info = "hay una celda serializada como objeto vacío")
+  expect_true(grepl("null", crudo, fixed = TRUE),
+              info = "ninguna celda sin dato viaja como null")
+
+  # Y en la fila donde se vio: las tres de aulas no tienen sexo.
+  parsed <- jsonlite::fromJSON(crudo, simplifyVector = FALSE)
+  general <- Filter(function(t) identical(t$clave, "general"), parsed$tablas)[[1]]
+  fila <- Filter(function(f) identical(f[[1]], "Aulas planificadas"), general$filas)[[1]]
+  expect_true(is.numeric(fila[[2]]))
+  expect_null(fila[[3]])
+  expect_null(fila[[4]])
 })
