@@ -485,7 +485,7 @@ export function aulasKpis(
           // media proyección. Medido el 2026-08-30: esas 9 aportan 168 de las
           // 373,5 efectivas del aporte pendiente.
           detalle: ag.esperadasEnDesacuerdo > 0
-            ? `De ellas se esperan ${fmt(ag.esperadasEnDesacuerdo)} encuestas, así que la proyección de cierre se apoya en filas cuyos dos estados no coinciden. Cuál manda —lo agendado o lo contactado— decide si esas encuestas cuentan.`
+            ? `De ellas se esperan ${fmt(ag.esperadasEnDesacuerdo)} encuestas, así que la proyección de cierre se apoya en filas cuyos dos estados no coinciden. Cuál manda, lo agendado o lo contactado, decide si esas encuestas cuentan.`
             : undefined,
           tone: "warn",
         });
@@ -817,7 +817,7 @@ export function aulasKpis(
       value: metas.avanceMuestra === null ? "S/D" : pctPerfil(metas.avanceMuestra * 100),
       pista: metas.muestra ? `faltan ${fmt(metas.faltanMuestra)}` : "sin meta contra la que medir",
       tone: metas.avanceMuestra !== null && metas.avanceMuestra < 1 ? "warn" : "neutral",
-      detalle: "Efectivas sobre la muestra. Lo que falta se suma grupo a grupo —celdas sexo × facultad—: pasarse en uno no cubre lo que falta en otro.",
+      detalle: "Efectivas sobre la muestra. Lo que falta se suma grupo a grupo de sexo por facultad: pasarse en uno no cubre lo que falta en otro.",
     },
     {
       label: "Sobremuestra",

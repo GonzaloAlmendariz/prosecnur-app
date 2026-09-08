@@ -520,6 +520,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     tope: number; escalones: number[]; meta: number;
     /** La meta del estudio (o de la facultad en foco): la suma de sus cuotas. */
     muestra: number;
+    /** `false` cuando el estudio no declara cuotas y la vara es la meta del plan. */
+    muestraEsDelDiseno: boolean;
     y: (v: number) => number; observado: string;
     puntos: Array<{ x: number; y: number; inferido: boolean; lineas: TrozoDePista[] }>;
     cubiertasPorSexo: number | null;
@@ -609,7 +611,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // bloque de Avance: una cifra intermedia ocupando el sitio de la meta.
     //
     // Las tres que manda enseñar son la muestra y su reparto por sexo.
-    const muestraDelCorte = cuotasVisibles.reduce((n, c) => n + (Number.isFinite(c.meta) ? c.meta : 0), 0);
+    const cuotaDeclarada = cuotasVisibles.reduce((n, c) => n + (Number.isFinite(c.meta) ? c.meta : 0), 0);
+    // **Sin cuotas del diseño no hay muestra, y entonces la vara es la del
+    // plan.** Es la misma degradación que el bloque de metas del libro: se usa
+    // lo único que hay y se NOMBRA, en vez de quedarse sin ninguna referencia.
+    // La mayoría de los estudios no declara cuotas por sexo; dejarlos sin línea
+    // habría cambiado un rótulo equivocado por un gráfico mudo.
+    const muestraDelCorte = cuotaDeclarada > 0
+      ? cuotaDeclarada
+      : (Number.isFinite(meta) && meta > 0 ? meta : 0);
+    const muestraEsDelDiseno = cuotaDeclarada > 0;
     // **El techo incluye las tres metas y la sobremuestra**: si una no cabe, no
     // se ve, y «estar clarísimo dónde están» exige que quepan. Antes el techo
     // salía sólo de lo conseguido y lo proyectado, y por eso las cuotas por sexo
@@ -837,22 +848,34 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     const { caben: metasSeñaladas, fuera: metasFueraDeEscala } = repartirMetasPorEscala(metasDeSexo, tope);
     return {
-      tope, escalones, meta, muestra: muestraDelCorte,
+      tope, escalones, meta, muestra: muestraDelCorte, muestraEsDelDiseno,
       y: yy, observado, inferido, lectura, series, repartoObservado,
       metasFueraDeEscala, cuotasSonDelEstudio,
       // Cuántas de las conseguidas llevan sexo declarado en el libro. Si es menos
       // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
       cubiertasPorSexo: hayLibroPorSexo ? cubiertas : null,
       conseguidasEnTotal: Math.round(ultimo),
+      // **El cruce es con LA MUESTRA, que es la línea que se dibuja.**
+      //
+      // Gonzalo, 2026-09-08, señalando la marca: «¿por qué llegaría el 9 de
+      // septiembre?». Con razón: la marca cruzaba las 301 de lo visitado, que
+      // desde este mismo cambio ya no se pinta, así que anunciaba una llegada a
+      // una línea invisible mientras la curva iba por 494 de 2 500. Una marca
+      // sobre una referencia que el gráfico no enseña es peor que ninguna: se
+      // lee contra la única línea que sí está.
+      //
+      // Si con lo agendado no se llega a la muestra, no hay marca. El pie ya
+      // dice a cuánto se llegaría, que es la información sin la promesa.
       cruce: (() => {
-        if (meta <= 0) return null;
-        // Primero en lo YA conseguido: si la meta se paso, no hay nada que
-        // pronosticar y la marca dice cuando se paso.
-        const iObs = observadas.findIndex((v) => v >= meta);
+        const listón = muestraDelCorte;
+        if (!(listón > 0)) return null;
+        // Primero en lo YA conseguido: si la meta se pasó, no hay nada que
+        // pronosticar y la marca dice cuándo se pasó.
+        const iObs = observadas.findIndex((v) => v >= listón);
         if (iObs >= 0) {
           return { x: xa(iObs), y: yy(observadas[iObs]), fecha: aplicadas[iObs], inferido: false };
         }
-        const iInf = proyectadas.findIndex((v) => v >= meta);
+        const iInf = proyectadas.findIndex((v) => v >= listón);
         if (iInf < 0) return null;
         return { x: xp(iInf), y: yy(proyectadas[iInf]), fecha: porVenir[iInf], inferido: true };
       })(),
@@ -1120,8 +1143,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   frase que ya la explicaba. */}
               {acumulado.muestra > 0 ? (
                 <em className="es-horizontal es-gris">
-                  Muestra {fmt(acumulado.muestra)}
-                  {acumulado.cuotasSonDelEstudio ? "" : " de esta facultad"}
+                  {acumulado.muestraEsDelDiseno ? "Muestra" : "Meta del plan"}{" "}
+                  {fmt(acumulado.muestra)}
+                  {acumulado.cuotasSonDelEstudio || !acumulado.muestraEsDelDiseno
+                    ? "" : " de esta facultad"}
                 </em>
               ) : null}
               {/* **Lo que falta es el SEXO, no el enlace al curso-horario.**
@@ -1343,7 +1368,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 sexo y la sobremuestra, que es la otra meta y hasta hoy sólo
                 tenía línea, sin cifra en el borde. */}
             {separaLasMetas([
-              { clave: "muestra", valor: acumulado.muestra, color: "var(--pulso-text-soft)", que: "Muestra" },
+              { clave: "muestra", valor: acumulado.muestra, color: "var(--pulso-text-soft)",
+                que: acumulado.muestraEsDelDiseno ? "Muestra" : "Meta del plan" },
               ...acumulado.metasSeñaladas.map((se) => ({
                 clave: se.sexo, valor: se.meta, color: se.color, que: sexSeriesLabel(se.sexo),
               })),
