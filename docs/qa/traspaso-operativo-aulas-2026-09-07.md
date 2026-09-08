@@ -110,6 +110,31 @@ Reglas que no se negocian:
 
 ---
 
+## 2 bis. Publicación conjunta del 2026-09-08
+
+Dos sesiones tocaron el libro el mismo día y Gonzalo pidió publicar junto. Lo
+publicado sale de `6e9427be` (esta sesión) sobre `cc89aa5a` (la sesión de
+Avance), con el árbol limpio y el gate del área en CERO.
+
+- **«Avance contra la meta»** abre ahora con las DOS metas por sexo —muestra y
+  sobremuestra, con su avance y lo que falta de cada una— y «Encuestas de la
+  meta» sale del bloque salvo que el estudio no publique cuotas del diseño.
+- **La Base de control** pasó de 43 a **55 columnas** en cinco tramos con paleta
+  propia. Ver el commit `8f385035` para la lista y el porqué de cada cambio.
+
+**Un aviso de la otra sesión que ya NO aplica**: reportó «15 rojos de los cuatro
+archivos del working tree». Eran los míos a medio hacer; con todo commiteado el
+gate da cero. Su otro aviso sí vale y está medido: la suite del área **no se
+corre archivo por archivo en procesos separados sin más** — el `test_dir` con
+filtro de esta casa da cero, y trocearla a mano introdujo contaminación de
+estado en su corrida.
+
+**Y publicar NO exige build del front ni reinstalar el paquete R.** El camino de
+esta sesión es relanzar `launcher/launch.R`, que carga las FUENTES con
+`load_all`; un `R CMD INSTALL` a medias deja la app entera caída y con varias
+sesiones en el mismo árbol es fácil pisarse. Antes de relanzar, `pgrep -f
+"R CMD INSTALL"`.
+
 ## 3. Estado medido al cierre del día 1
 
 Sobre 273 respuestas sincronizadas:
