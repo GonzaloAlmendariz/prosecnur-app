@@ -49,5 +49,35 @@ monitoreo_aulas_estado_payload <- function(au, plan_sesion = NULL) {
   au[["plan_rows"]] <- plan_rows
   au[["enabled"]] <- isTRUE(au[["enabled"]]) || plan_rows > 0L
   au[["plan"]] <- NULL
+  .monitoreo_aulas_payload_sin_marco(au)
+}
+
+# A6 (loop estética-aulas-sheets, 2026-09-08): el estado no carga el marco
+# entero. Medido con HSVG2026 (1.392 unidades): `/api/monitoreo/state` pesaba
+# 61 MB y tardaba de 8 a 17 s aun en caliente —el «Preparando vista» de
+# Avance—. ~54 MB eran las distribuciones del marco que Cálculo de muestra pega
+# en la config (`quotas$profile_distributions` 22.312 filas,
+# `quotas$sex_by_faculty` 22.062, `quotas$category_profiles` 22.317, y
+# `profile_distributions` repetida en `methodology$representativity` y en
+# `representativity`), y todo viajaba dos veces (en `config` y en el bloque
+# `aulas_universitarias`). Ningún consumidor de Monitoreo las lee; Cálculo de
+# muestra las lee de sus endpoints. Aquí se resumen en conteos (`*_n`); la
+# sesión, el `.pulso` y los motores conservan las listas enteras.
+.MONITOREO_AULAS_LISTAS_DEL_MARCO <- c("profile_distributions", "sex_by_faculty", "category_profiles")
+
+.monitoreo_aulas_payload_sin_marco <- function(au) {
+  recortar <- function(bloque) {
+    if (!is.list(bloque)) return(bloque)
+    for (k in intersect(.MONITOREO_AULAS_LISTAS_DEL_MARCO, names(bloque))) {
+      bloque[[paste0(k, "_n")]] <- as.integer(length(bloque[[k]] %||% list()))
+      bloque[[k]] <- NULL
+    }
+    bloque
+  }
+  au[["quotas"]] <- recortar(au[["quotas"]])
+  au[["representativity"]] <- recortar(au[["representativity"]])
+  if (is.list(au[["methodology"]])) {
+    au[["methodology"]][["representativity"]] <- recortar(au[["methodology"]][["representativity"]])
+  }
   au
 }

@@ -187,3 +187,84 @@ test_that("A14 (gate cerrado que debe seguir): sesion sin plan no enciende nada"
   expect_identical(au[["plan_rows"]], 0L)
   expect_false(isTRUE(au[["enabled"]]))
 })
+
+
+# --- A6 (loop estética-aulas-sheets, 2026-09-08): el estado no carga el marco entero ---
+#
+# Medido con el estudio real (HSVG2026, 1.392 unidades): el payload de
+# `/api/monitoreo/state` pesaba 61 MB y tardaba de 8 a 17 s aun en caliente;
+# ahí vivía el «Preparando vista» de Avance. De esos 61 MB, ~54 eran las
+# distribuciones del marco que Cálculo de muestra pega en la config —
+# `quotas$profile_distributions` (22.312 filas), `quotas$sex_by_faculty`
+# (22.062) y `quotas$category_profiles` (22.317), más `profile_distributions`
+# repetida en `methodology$representativity` y en `representativity`— y todo
+# eso viajaba DOS veces (en `config$aulas_universitarias` y en el bloque
+# `aulas_universitarias` del payload). Ningún consumidor de Monitoreo las lee
+# (grep en frontend/src/features/monitoreo: cero); Cálculo de muestra las lee
+# de sus propios endpoints. El payload las resume en conteos y la sesión las
+# conserva intactas: el `.pulso` y los motores no cambian.
+
+.a6_marco <- function(n = 50L) lapply(seq_len(n), function(i) list(
+  dimension = "facultad", variable = "faculty", label = "FAC", category = paste0("c", i),
+  source = "frame", frame_n = i, selected_n = i, frame_prop = 0.1, selected_prop = 0.1,
+  error_balance = 0, abs_error = 0, tolerance = 0.05
+))
+
+.a6_au <- function() monitoreo_aulas_normalize_config(list(
+  enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+  plan = .a14_plan(2L),
+  quotas = list(
+    profile_distributions = .a6_marco(50L),
+    sex_by_faculty = .a6_marco(40L),
+    category_profiles = .a6_marco(30L),
+    strata = list(list(stratum = "Ingenieria", n_aulas = 2L))
+  ),
+  methodology = list(frame_hash = "hash_1", representativity = list(profile_distributions = .a6_marco(50L), metrics = list())),
+  representativity = list(profile_distributions = .a6_marco(50L), metrics = list(list(metric_id = "m1", score = 0.9)))
+))
+
+test_that("A6: el helper del payload deja fuera las distribuciones del marco y las cuenta", {
+  au <- .a6_au()
+  # Lo que entra sí trae las listas (la config de la sesión no se toca).
+  expect_length(au$quotas$profile_distributions, 50L)
+  out <- monitoreo_aulas_estado_payload(au, .a14_plan(2L))
+  for (k in c("profile_distributions", "sex_by_faculty", "category_profiles")) {
+    expect_false(k %in% names(out$quotas), info = sprintf("quotas$%s sigue viajando", k))
+  }
+  expect_identical(out$quotas$profile_distributions_n, 50L)
+  expect_identical(out$quotas$sex_by_faculty_n, 40L)
+  expect_identical(out$quotas$category_profiles_n, 30L)
+  # Lo liviano se conserva: estratos, sellos, métricas.
+  expect_length(out$quotas$strata, 1L)
+  expect_identical(out$methodology$frame_hash, "hash_1")
+  expect_false("profile_distributions" %in% names(out$methodology$representativity))
+  expect_identical(out$methodology$representativity$profile_distributions_n, 50L)
+  expect_false("profile_distributions" %in% names(out$representativity))
+  expect_length(out$representativity$metrics, 1L)
+  expect_identical(out$representativity$profile_distributions_n, 50L)
+  # Y la entrada no se mutó: la sesión sigue teniendo el marco entero.
+  expect_length(au$quotas$profile_distributions, 50L)
+})
+
+test_that("A6: el payload de estado no lleva el marco ni en config ni en el bloque de aulas", {
+  sid <- session_create()
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "aulas_universitarias"),
+    aulas_universitarias = .a6_au()
+  ), data.frame())
+  session_set(sid, "monitoreo_config", cfg)
+  session_set(sid, "monitoreo_aulas_plan", .a14_plan(2L))
+  p <- .monitoreo_state_payload(sid, include_reports = FALSE)
+  for (bloque in list(p$config$aulas_universitarias, p$aulas_universitarias)) {
+    expect_true(is.list(bloque))
+    expect_false("profile_distributions" %in% names(bloque$quotas))
+    expect_false("sex_by_faculty" %in% names(bloque$quotas))
+    expect_false("category_profiles" %in% names(bloque$quotas))
+    expect_false("profile_distributions" %in% names(bloque$representativity))
+    expect_false("profile_distributions" %in% names(bloque$methodology$representativity))
+    expect_identical(bloque$quotas$profile_distributions_n, 50L)
+  }
+  # El bloque de aulas y el de config son la MISMA función: mismo recorte.
+  expect_false("plan" %in% names(p$aulas_universitarias))
+  expect_identical(p$aulas_universitarias$plan_rows, 2L)
+})

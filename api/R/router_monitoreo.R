@@ -1263,11 +1263,12 @@
     # copia pesaba 356 KB de los 1377 del payload y era identica byte a byte a
     # la otra. Se conserva el resto de la config —enabled, mapeos, cuotas— por
     # si algo la lee: lo unico que se quita es el duplicado grande.
-    aulas_universitarias = {
-      au <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
-      if (is.list(au)) au$plan <- NULL
-      au
-    },
+    # A6: la MISMA función que recorta la copia de `config` (sin plan, sin las
+    # listas del marco): dos recortes distintos del mismo bloque es como volvió
+    # a pesar 61 MB.
+    aulas_universitarias = monitoreo_aulas_estado_payload(
+      cfg$aulas_universitarias %||% monitoreo_aulas_default_config(), s$monitoreo_aulas_plan
+    ),
     errors = snapshot$errors %||% list()
   )
 }
