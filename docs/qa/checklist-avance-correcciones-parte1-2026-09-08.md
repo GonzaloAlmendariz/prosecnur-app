@@ -48,13 +48,13 @@ Un ítem por indicación. **B** = bloqueante, **C** = corrección del documento,
 | # | Qué pidió | Dónde vive | Estado |
 |---|---|---|---|
 | B1 | Una sincronización que falla o vuelve vacía **no puede borrar** el snapshot bueno ni el `source_mapping`. Hoy los borró y dejó el estudio ciego | `.monitoreo_sync_empty_source_ids()` (`monitoreo_router_estado.R`) · `empty_source_ids` en `.monitoreo_merge_sync_result_data()` (`router_monitoreo.R`) · las dos llamadas de `monitoreo_sync_incremental.R` · `previous` en `monitoreo_aulas_normalize_config()` y `monitoreo_engine.R` | ☑ — el punto exacto era que Kobo respondiendo 200 con **cero registros** no es `NULL`: entraba como fuente sincronizada con éxito, el merge borraba sus filas previas y no ponía ninguna. El camino de ERROR ya estaba protegido; el del éxito vacío, no. 17 aserciones nuevas en `test-monitoreo-sync-vacio-no-borra.R`; 35 de 36 archivos del área en verde (el rojo restante es de la otra sesión, aislado contra `HEAD` limpio) |
-| B2 | Recuperar el estado de Gonzalo: reponer `source_mapping` (`collector_var`, `sex_var`) y volver a traer las respuestas, sin perder los 17 partes ni el plan que sí están bien | su `.pulso`, con respaldo previo | ◐ — **probado sobre copia**: repuestos sólo esos dos campos desde el respaldo del 07/09, el motor vuelve a dar **212 efectivas** sobre 273 respuestas, con los 17 partes y el plan de hoy intactos. Falta hacerlo sobre su archivo, que es suyo y necesita su go |
+| B2 | Recuperar el estado de Gonzalo y dejarlo **al día de hoy**, no en el respaldo | su `.pulso`, con respaldo fechado al lado | ☑ — la sincronización había borrado TRES cosas, no dos: el snapshot, el `source_mapping` y **la fuente de Kobo** (`monitoreo_sources` de 1 a 0), que es por lo que «actualizar» ya no tenía de dónde traer. Repuestas las tres desde el respaldo del 07/09 y sincronizado contra Kobo EU: **579 respuestas · 494 efectivas · 26 aulas aplicadas · 19,8 % de la muestra** (213 mujeres / 281 hombres), con el plan, las cuotas y los 17 partes intactos. Respaldo previo en «HSVG26ULT2 (respaldo antes de reponer 2026-09-08 13-56).pulso» |
 | B3 | Que «actualizar» avise fuerte cuando no trae nada, en vez de dejar ceros que parecen un dato | UI de Monitoreo + el aviso del backend | ☐ |
 | C0 | La pestaña «Cuotas» se llama **«Metas»** | `lib/navegacion/catalogos/monitoreo.ts` (sólo el rótulo; la clave `cuotas` no cambia para no romper las direcciones ya enlazadas) | ☑ |
 | C1 | Quitar el panel «Desempeño del trabajo de campo» (roba alto y no aporta) | `MonitoreoWorkbenchChrome.tsx`: la calidad de campo se queda sólo en Validación | ☑ |
 | C2 | Los KPIs **al inicio**, no intercalados, y exactamente estos siete en este orden: Efectivas · Muestra (meta) · Avance (%) sobre la muestra · Sobremuestra · Avance (%) sobre la sobremuestra · Cursos-horario aplicados · Cursos-horario planificados. Se van «Llegaron a su meta», «Cierran con lo agendado» y «Cursos-horario bajo su meta» | `kpisDeAulas.ts`, rama de Avance. Las cinco cifras de meta salen de `avance_cuota`, la MISMA fuente de la tabla y del libro. `cuotaKpi`, `cierreKpi` y `validasKpi` se retiraron: eran sus únicas llamadas | ☑ — los KPIs ya iban arriba; lo que los tapaba era el panel de C1 |
 | C3 | Quitar la línea «Libro conversado con el Sheets: 17 partes del equipo entraron…» | `avisoConversacion.ts`: con todo en orden devuelve `null`. Los avisos de ATENCIÓN se quedan enteros — hoja ausente, publicación sin resumen, motivo desconocido | ☑ |
-| C4 | El panel «Cuota asignada y encuestas logradas» se rehace entero: fuera el párrafo de arriba, y las tablas pasan a ser las del prompt del Sheets (S1–S5). «La app debe ser una versión mejorada del Excel y veo todo lo contrario» | panel de cuotas de la pestaña | ☐ |
+| C4 | El panel «Cuota asignada y encuestas logradas» se rehace entero: fuera el párrafo de arriba, y las tablas pasan a ser las del prompt del Sheets (S1–S5) | `AulasAvanceParaCliente.tsx` | ◐ — **hecho**: fuera el párrafo de cuatro frases de encima (era la tercera copia de las cifras que ya presiden la banda), fila «Total» y fila «Sobremuestra» al cierre de la tabla, y el pie corregido: decía «la sobremuestra **no es una segunda meta**», que contradice la decisión de las dos metas y lo que el test del libro prohíbe. **Pendiente**: montar S1–S5 cuando la otra sesión publique su contrato en el payload |
 | C5 | «Hombres y mujeres por facultad»: dos filas bien alineadas (mujeres y hombres), barra rectangular **más ancha**, apilada, del **mismo largo** en ambas filas, verde el porcentaje avanzado y **gris suave** lo que queda, bordes definidos y elegante. Usar **todo el ancho** disponible. Fuera «Va a llegar, con margen» y «sin medir» | `AulasBarrasPorFacultad.tsx` + `barrasPorFacultad.ts` + `aulasBarrasPorFacultad.css` (hoja propia: `aulasMonitoreo.css` está congelada) | ☑ pendiente de que lo veas |
 | C6 | La pirámide es **sección propia**, separada de lo de arriba. Ordenada de **facultad más pequeña a más grande**, largo de barra **proporcional a la cantidad de estudiantes**, verde lo conseguido. **Nada de predicción** (eso pertenece a otra pestaña): sólo dos estados, «faltan x» y, al pasarse, «sobran x» — nunca «faltarán x» | `piramideDeCuota.ts` (orden por tamaño; `sobran` nuevo en el modelo) · `AulasPiramideCuota.tsx` (veredicto de dos estados) · sección propia «Tamaño de cada meta» | ☑ pendiente de que lo veas |
 | C7 | La tabla FACULTAD / SEXO / META / ESTADO desaparece, **a cambio de** que la pirámide tenga hovers profesionales que muestren todo | `AulasPestanaCuotas.tsx` (tabla fuera) · `AulasPiramideCuota.tsx` (hover con facultad · sexo · conseguidas de meta · % · estado, en `title` y en `aria-label`) | ☑ |
@@ -91,6 +91,23 @@ Se hacen viendo la pantalla, no antes, y no bloquean el resto del trabajo.
   una expectativa diaria declarada en algún sitio?
 - **Q6 (la pestaña «Metas»).** Con las cinco tablas dentro, ¿siguen todas en la
   misma pestaña o algunas se van a pestañas hermanas de Avance?
+
+## Reparto acordado con Gonzalo (2026-09-08 ~14:10)
+
+**Ella el backend, yo la app.** La sesión «Asignación de fechas y horarios
+aplicadores» estaba construyendo S1–S5 en `carga_aulas_libro_avance_*` a la vez
+que yo; Gonzalo repartió así. Yo no toco ninguno de esos archivos. Comprobado a
+las 14:35: la tabla por facultad **ya sale con las 17 columnas de S2**, con los
+nombres exactos del dictado.
+
+Sus respuestas a las cuatro preguntas de datos, ya enviadas a esa sesión:
+
+| # | Pregunta | Respuesta |
+|---|---|---|
+| Q2 | Qué son las «aulas asignadas» de S1 | Las que tienen **aplicador asignado**. Y la distribución vive en el Sheets `1-NmlPFRhq2G…`, con **una hoja por semana**: la asignación no es un estado único |
+| Q3 | De dónde salen las «aulas adicionales solicitadas» de S3 | **Las dos cosas sumadas**: las «Extra» del Sheets del operativo y los reemplazos activados del banco |
+| Q4 | Qué hace «especial» una aplicación en S4 | **La hora del curso-horario**. ⚠️ Faltan los dos cortes horarios: sin ellos no se puede implementar |
+| Q5 | Cómo se calculan las «efectivas esperadas» por día en S5 | **Suma de las metas (`expected_valid`) de las aulas agendadas ese día** en esa facultad. No hace falta dato nuevo |
 
 ## Reglas de esta tanda
 

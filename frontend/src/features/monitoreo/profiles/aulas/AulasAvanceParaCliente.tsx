@@ -150,44 +150,42 @@ export function AulasAvanceParaCliente({
     return Number.isFinite(n) && n > 0 ? n : null;
   };
   const techo = num(diseno?.meta_operativa);
-  const extra = num(diseno?.sobremuestra);
-  const sobremuestra = techo ? (
-    <span>
-      Con la sobremuestra el techo es <strong>{personas(techo)}</strong>
-      {extra ? <> ({personas(extra)} sobre la meta)</> : null}, y se lleva el{" "}
-      <strong>{Math.round((totalConseguidas / techo) * 100)} %</strong> de ese techo.
-    </span>
-  ) : null;
-  const abiertas = filas.filter((f) => (f.faltan ?? 0) > 0).length;
+  // Los totales por sexo y de aulas, para la fila de cierre. Se suman de las
+  // filas porque el motor no publica ese corte agregado; el total de la MUESTRA
+  // sí sale del motor (`totalMuestra`, arriba), que es la lectura única.
+  // **Un cero no es un vacío.** Si NINGUNA fila trae la columna —el estudio no
+  // declara sexo, o no hay partes— la fila de cierre escribe «—» como el
+  // cuerpo, en vez de un 0 que se leería como «se recogieron cero».
+  const suma = (leer: (f: typeof filas[number]) => number | null | undefined): number | null => {
+    let hay = false;
+    let total = 0;
+    for (const f of filas) {
+      const v = Number(leer(f));
+      if (!Number.isFinite(v)) continue;
+      hay = true;
+      total += v;
+    }
+    return hay ? total : null;
+  };
+  const cuenta = (v: number | null) => (v === null ? "—" : fmt(v));
 
   return (
     <div className="aulas-cliente" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-      <p className="aulas-cliente-cabeza">
-        <span>
-          Las cuotas por facultad suman{" "}
-          <strong>{personas(totalMuestra)}</strong> alumnos; se llevan{" "}
-          <strong>{personas(totalConseguidas)}</strong>.
-        </span>
-        {totalFaltan > 0 ? (
-          <span>
-            Faltan <strong>{personas(totalFaltan, true)}</strong> repartidos en{" "}
-            {fmt(abiertas)} {abiertas === 1 ? "facultad" : "facultades"}.
-          </span>
-        ) : (
-          <span>Todas las facultades tienen su cuota cubierta.</span>
-        )}
-        {/* **La segunda vara, cuando el estudio la declara.**
-            El operativo compara contra dos cifras: la meta, que es lo que hay
-            que conseguir, y la sobremuestra, que es hasta dónde se compró aforo.
-            Gonzalo: «sobrellegar a la muestra no es una necesidad [...] la
-            sobremuestra podría servir como un valor referencial», así que se
-            dice como referencia y nunca como algo que falte. */}
-        {sobremuestra}
-        {/* Los faltantes no se netean, y quien vea el total querrá restarlo. */}
-        <span className="aulas-cliente-nota">
-          Lo que falta se suma grupo a grupo: cubrir de más en una facultad —o en un sexo— no cubre lo que falta en otra
-        </span>
-      </p>
+      {/* **Aquí iba un párrafo de cuatro frases** que repetía en prosa lo que la
+          tabla de abajo dice en columnas y lo que los KPIs de la banda dicen en
+          cifras grandes: la suma de las cuotas, lo que se lleva, lo que falta y
+          en cuántas facultades, más la nota de la sobremuestra.
+
+          Gonzalo lo cortó el 2026-09-08: «en primer lugar tiene[s] arriba [algo]
+          que no ayuda y no tiene buen formato, es mejor quitarlo». Tenía razón
+          por dos motivos: desde que los siete KPIs presiden la pestaña con
+          Efectivas, Muestra, Avance y Sobremuestra, este párrafo era la tercera
+          copia de las mismas cifras en la misma pantalla; y las empujaba a todas
+          hacia abajo con texto corrido, que es el formato en el que peor se leen.
+
+          Lo único que el párrafo decía y la tabla no —que los faltantes se suman
+          grupo a grupo y no se netean— sobrevive como nota al pie, que es donde
+          se busca cuando la resta no cuadra. */}
 
       <div className="aulas-cliente-marco">
         <table className="aulas-cliente-tabla">
@@ -254,19 +252,67 @@ export function AulasAvanceParaCliente({
               );
             })}
           </tbody>
+          {/* **La fila «Total»**, que Gonzalo pidió para el libro («debe haber
+              una fila de total al final») y que aquí resuelve además lo que el
+              párrafo retirado enseñaba: el total de la muestra sale del motor
+              (`avance_cuota.total.cuota`), no de sumar la columna, y los
+              faltantes se SUMAN sin netear —por eso la última celda no es la
+              resta de las dos primeras—. En `tfoot` y no en el cuerpo: no es una
+              facultad más y un lector de pantalla no debe leerla como tal. */}
+          <tfoot>
+            <tr className="aulas-cliente-total">
+              <th scope="row">Total</th>
+              <td className="aulas-cliente-cifra">{personas(totalMuestra)}</td>
+              <td className="aulas-cliente-cifra es-debil">{personas(suma((f) => f.muestraMujeres))}</td>
+              <td className="aulas-cliente-cifra es-debil">{personas(suma((f) => f.muestraHombres))}</td>
+              <td className="aulas-cliente-cifra">{personas(totalConseguidas)}</td>
+              <td className="aulas-cliente-cifra es-debil">{personas(suma((f) => f.conseguidasMujeres))}</td>
+              <td className="aulas-cliente-cifra es-debil">{personas(suma((f) => f.conseguidasHombres))}</td>
+              <td className="aulas-cliente-cifra es-debil">
+                {cuenta(suma((f) => f.aulasAplicadas))} de {cuenta(suma((f) => f.aulasDelPlan))}
+              </td>
+              <td className="aulas-cliente-cifra">
+                {totalMuestra > 0 ? pct(totalConseguidas / totalMuestra) : "—"}
+              </td>
+              <td className="aulas-cliente-cifra">{personas(totalFaltan, true)}</td>
+            </tr>
+            {techo ? (
+              <tr className="aulas-cliente-total es-sobremuestra">
+                <th scope="row">Sobremuestra</th>
+                <td className="aulas-cliente-cifra">{personas(techo)}</td>
+                <td className="aulas-cliente-cifra es-debil">—</td>
+                <td className="aulas-cliente-cifra es-debil">—</td>
+                <td className="aulas-cliente-cifra">{personas(totalConseguidas)}</td>
+                <td className="aulas-cliente-cifra es-debil">—</td>
+                <td className="aulas-cliente-cifra es-debil">—</td>
+                <td className="aulas-cliente-cifra es-debil">—</td>
+                <td className="aulas-cliente-cifra">{pct(totalConseguidas / techo)}</td>
+                <td className="aulas-cliente-cifra">
+                  {personas(Math.max(0, techo - totalConseguidas), true)}
+                </td>
+              </tr>
+            ) : null}
+          </tfoot>
         </table>
       </div>
 
+      {/* El pie decía «la sobremuestra es hasta dónde se compró aforo, NO una
+          segunda meta» y «aparece arriba cuando el estudio la declara». Las dos
+          frases dejaron de ser ciertas el 2026-09-08: Gonzalo fijó que muestra
+          (2 500) y sobremuestra (3 750) son **las dos metas del estudio**, con
+          el mismo trato y sin llamar referencial a ninguna —hay un test del
+          libro que prohíbe «referencial», «margen», «segunda meta» y «techo»—, y
+          «arriba» era el párrafo que él mismo cortó. */}
       <p className="aulas-cliente-pie">
-        <strong>Muestra</strong> es la cuota que el diseño fijó para esa facultad, y{" "}
-        <strong>se lleva</strong> lo recogido que pasó los filtros del estudio.{" "}
+        <strong>Muestra</strong> es la cuota que el diseño fijó para esa facultad y{" "}
+        <strong>Sobremuestra</strong> la segunda cifra del estudio: las dos se miden igual,
+        en total, por sexo y por facultad.{" "}
         <strong>Cursos-horario aplicados</strong> se cuenta sobre los del plan de esa facultad.{" "}
         <strong>Avance del total</strong> compensa un sexo con el otro;{" "}
         <strong>Faltan</strong> suma el déficit de cada sexo por separado y es el que
-        decide el estado. Por eso una facultad pasa del 100 % y sigue pendiente.{" "}
-        La <strong>sobremuestra</strong> es hasta dónde se compró aforo, no una segunda meta:
-        lo que decide el cierre sigue siendo la cuota de cada facultad y sexo. Aparece arriba
-        cuando el estudio la declara.
+        decide el estado. Por eso una facultad pasa del 100 % y sigue pendiente, y por eso
+        lo que falta en el total no es la resta de las dos columnas: cubrir de más en una
+        facultad —o en un sexo— no cubre lo que falta en otra.
       </p>
     </div>
   );

@@ -12,24 +12,33 @@
   margin: 6px 0 2px;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-cliente-cabeza {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 14px;
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-txt);
-}
+/* Aquí vivían las dos reglas del párrafo que encabezaba el panel —su caja y su
+   nota al pie—. Gonzalo lo cortó el 2026-09-08 («es mejor quitarlo») y lo que
+   decía pasó a la fila de cierre de la tabla y a su pie. Los nombres de aquellas
+   clases no se citan aquí a propósito: el guard de CSS sin dueño lee este
+   archivo entero y un nombre en un comentario le parece una regla viva. */
 
-.mon-profile-page.is-aulas-flow .aulas-cliente-cabeza strong {
+/* La fila de cierre: filete arriba y negrita, como el «Total» del libro. No se
+   tiñe de fondo —la tabla ya alterna filas— para que el filete haga solo el
+   trabajo de separar el cuerpo del cierre. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-total > * {
+  border-top: 1.5px solid var(--pulso-border-strong);
+  font-weight: 650;
   color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
+  padding-top: 6px;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-cliente-nota {
-  color: var(--pulso-text-faint);
-  font-size: var(--aulas-min);
+.mon-profile-page.is-aulas-flow .aulas-cliente-total > th {
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+/* La segunda meta se lee como cierre, no como una facultad más: misma negrita,
+   sin filete propio, para que las dos filas se lean como un bloque. */
+.mon-profile-page.is-aulas-flow .aulas-cliente-total.es-sobremuestra > * {
+  border-top: 0;
+  padding-top: 2px;
+  color: var(--pulso-text-soft);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cliente-marco {
