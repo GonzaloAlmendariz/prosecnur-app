@@ -357,29 +357,22 @@
   # `NULL` o sin celdas para esa facultad cae a la resta simple, igual que hace
   # el vecino: una facultad sin desglose de sexo no tiene celdas que sumar, y
   # fabricarle una brecha de cero seria peor que la resta.
-  falta_por_celdas <- local({
-    if (!length(celdas_sexo)) return(function(k) NA_real_)
+  # A4: las celdas de sexo de cada facultad; la regla de la brecha (ADR 0079)
+  # vive en `monitoreo_aulas_brecha_facultad()`, compartida con el libro.
+  celdas_de <- local({
+    if (!length(celdas_sexo)) return(function(k) list())
     keys <- vapply(celdas_sexo, function(c) {
       .cm_criterios_fac_key(.monitoreo_scalar(c$faculty, ""))
     }, character(1))
-    faltas <- vapply(celdas_sexo, function(c) {
-      tg <- .monitoreo_num(c$target, NA_real_)
-      ob <- .monitoreo_num(c$observed, 0)
-      if (!is.finite(tg)) return(NA_real_)
-      max(0, tg - (if (is.finite(ob)) ob else 0))
-    }, numeric(1))
-    function(k) {
-      cuales <- keys == k & is.finite(faltas)
-      if (!any(cuales)) return(NA_real_)
-      sum(faltas[cuales])
-    }
+    function(k) celdas_sexo[keys == k]
   })
 
   filas <- lapply(filas, function(x) {
     cuota <- x$cuota
     if (is.finite(cuota)) {
-      por_celdas <- falta_por_celdas(.monitoreo_scalar(x$faculty_key, ""))
-      x$brecha <- if (is.finite(por_celdas)) por_celdas else max(0, cuota - x$respuestas_validas)
+      x$brecha <- monitoreo_aulas_brecha_facultad(
+        cuota, x$respuestas_validas, celdas_de(.monitoreo_scalar(x$faculty_key, ""))
+      )
       # `> 0` y no `>= 0`: una cuota en cero no es una meta cumplida, es una
       # meta sin denominador — NA y no Inf. El avance por encima de 100 se
       # publica SIN cap: pasarse de la cuota es un hecho, no un error.
