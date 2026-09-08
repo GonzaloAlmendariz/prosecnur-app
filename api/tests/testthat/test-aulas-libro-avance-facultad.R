@@ -72,16 +72,48 @@ test_that("sin cuotas del diseño el bloque no se inventa: devuelve NULL", {
 
 test_that("las columnas son las que dictó Gonzalo, en su orden", {
   out <- .lafac_tabla_dos()
+  # El orden del segundo dictado del 2026-09-08: CADA META SEGUIDA DE LO QUE LE
+  # FALTA, primero en total y después por sexo, hombres antes que mujeres.
   expect_identical(names(out), c(
-    "Facultad", "Muestra", "Muestra mujeres", "Muestra hombres",
-    "Efectivas", "Efectivas mujeres", "Efectivas hombres",
-    "Faltantes", "Faltantes mujeres", "Faltantes hombres",
-    "Aulas aplicadas",
-    "Sobremuestra", "Sobremuestra mujeres", "Sobremuestra hombres",
-    "Faltantes para la sobremuestra"
+    "Facultad",
+    "Efectivas", "Efectivas hombres", "Efectivas mujeres",
+    "Muestra", "Faltantes muestra",
+    "Muestra hombres", "Faltantes hombres muestra",
+    "Muestra mujeres", "Faltantes mujeres muestra",
+    "Sobremuestra", "Faltantes sobremuestra",
+    "Sobremuestra hombres", "Faltantes hombres sobremuestra",
+    "Sobremuestra mujeres", "Faltantes mujeres sobremuestra",
+    "Aulas aplicadas"
   ))
-  # Y las tres que el dictado no nombra ya no están.
+  # Y son EXACTAMENTE las del vocabulario compartido, que es de donde las leen
+  # el renderer del Sheets, el writer del xlsx y el PDF. Si esta igualdad se
+  # rompe, tres salidas se quedan pintando columnas que ya no existen.
+  expect_identical(names(out), AULAS_AVANCE_CABECERAS$facultad)
+  # Las tres que el dictado no nombra ya no están.
   expect_false(any(c("Aulas del plan", "Avance", "Techo con sobremuestra") %in% names(out)))
+})
+
+test_that("las faltantes por sexo contra la SOBREMUESTRA existen y no se compensan", {
+  # Ganadas el 2026-09-08. Antes sólo vivían sumadas dentro del bloque de meta:
+  # se sabía que faltaban N mujeres para la sobremuestra del estudio y no en
+  # cuál de las facultades.
+  #
+  # FAC2 pide 5 (2 F / 3 M) y recibe 4 (3 F / 1 M); con ratio 2 su sobremuestra
+  # es 10 (4 F / 6 M): sobran mujeres contra su celda y faltan hombres.
+  t <- .lafac_tabla_dos()
+  fac2 <- t[t$Facultad == "FAC2", , drop = FALSE]
+  expect_equal(fac2$`Sobremuestra mujeres`, 4)
+  expect_equal(fac2$`Sobremuestra hombres`, 6)
+  expect_equal(fac2$`Faltantes mujeres sobremuestra`, 1)   # 4 pedidas, 3 recibidas
+  expect_equal(fac2$`Faltantes hombres sobremuestra`, 5)   # 6 pedidos, 1 recibido
+})
+
+test_that("la tabla se niega a salir con columnas que no sean las del vocabulario", {
+  # El guard existe porque el modo de fallo del anclaje por rótulo es MUDO: una
+  # columna renombrada aquí dejaría al formateador del Sheets sin reconocerla y
+  # saldría publicada sin numFmt y sin color, sin que nada avise.
+  fila <- data.frame(Facultad = "X", Efectivas = 1, check.names = FALSE)
+  expect_error(prosecnurapp:::.calaf_exigir_cabecera(fila), "AULAS_AVANCE_CABECERAS")
 })
 
 test_that("la muestra es la CUOTA del diseño y trae su reparto por sexo", {
@@ -94,7 +126,7 @@ test_that("la muestra es la CUOTA del diseño y trae su reparto por sexo", {
   expect_equal(out$`Muestra mujeres`, 22)
   expect_equal(out$`Muestra hombres`, 18)
   expect_equal(out$Efectivas, 20)
-  expect_equal(out$Faltantes, 20)
+  expect_equal(out$`Faltantes muestra`, 20)
 })
 
 test_that("las aulas aplicadas se cuentan por operational_status, no por el parte", {
@@ -134,9 +166,9 @@ test_that("el reparto por sexo de lo conseguido se atribuye por classroom_id", {
   expect_equal(out$`Efectivas mujeres`, 4)
   expect_equal(out$`Efectivas hombres`, 2)
   # Y lo que falta en cada celda: 6 - 4 y 4 - 2.
-  expect_equal(out$`Faltantes mujeres`, 2)
-  expect_equal(out$`Faltantes hombres`, 2)
-  expect_equal(out$Faltantes, 4)
+  expect_equal(out$`Faltantes mujeres muestra`, 2)
+  expect_equal(out$`Faltantes hombres muestra`, 2)
+  expect_equal(out$`Faltantes muestra`, 4)
 })
 
 test_that("la tabla NO compensa entre facultades y abre por la que más falta", {
@@ -149,17 +181,17 @@ test_that("la tabla NO compensa entre facultades y abre por la que más falta", 
     cuotas = .lafac_cuotas(.lafac_fac("CORTA", 50), .lafac_fac("SOBRADA", 10)))
   # La que peor va abre la tabla: es lo que se mira primero.
   expect_equal(out$Facultad[[1]], "CORTA")
-  expect_equal(out$Faltantes[[1]], 45)
+  expect_equal(out$`Faltantes muestra`[[1]], 45)
   # Y el superávit de la otra no descuenta: `Faltantes` se acota en 0, no negativo.
-  expect_equal(out$Faltantes[[2]], 0)
+  expect_equal(out$`Faltantes muestra`[[2]], 0)
 })
 
 test_that("ni entre sexos: en una facultad con mujeres de sobra, los hombres que faltan se declaran", {
   out <- .lafac_tabla_dos()
   fac2 <- out[out$Facultad == "FAC2", , drop = FALSE]
-  expect_equal(fac2$`Faltantes mujeres`, 0)   # 2 pedidas, 3 recibidas: sobra, no resta
-  expect_equal(fac2$`Faltantes hombres`, 2)   # 3 pedidos, 1 recibido
-  expect_equal(fac2$Faltantes, 2)             # la suma de las celdas, no el neto (1)
+  expect_equal(fac2$`Faltantes mujeres muestra`, 0)   # 2 pedidas, 3 recibidas: sobra, no resta
+  expect_equal(fac2$`Faltantes hombres muestra`, 2)   # 3 pedidos, 1 recibido
+  expect_equal(fac2$`Faltantes muestra`, 2)             # la suma de las celdas, no el neto (1)
 })
 
 test_that("sin efectivas no se publica un cero: se declara NA", {
@@ -169,8 +201,8 @@ test_that("sin efectivas no se publica un cero: se declara NA", {
   out <- prosecnurapp:::.calaf_avance_por_facultad(
     plan, efectivas = NULL, cuotas = .lafac_cuotas(.lafac_fac("FAC1", 20)))
   expect_true(is.na(out$Efectivas))
-  expect_true(is.na(out$Faltantes))
-  expect_true(is.na(out$`Faltantes para la sobremuestra`))
+  expect_true(is.na(out$`Faltantes muestra`))
+  expect_true(is.na(out$`Faltantes sobremuestra`))
 })
 
 # ---------------------------------------------------------------------------
@@ -199,7 +231,7 @@ test_that("la sobremuestra por facultad sale del ratio del diseño, no de un 1,5
   # Sin reparto por sexo en el diseño, la sobremuestra por sexo calla.
   expect_true(is.na(t$`Sobremuestra mujeres`[[1]]))
   # Y los faltantes contra ella: 100 - 10, neto porque no hay celdas.
-  expect_equal(t$`Faltantes para la sobremuestra`[[1]], 90)
+  expect_equal(t$`Faltantes sobremuestra`[[1]], 90)
 })
 
 test_that("sin las dos cifras del diseño la columna queda en NA y no se inventa", {
@@ -209,7 +241,7 @@ test_that("sin las dos cifras del diseño la columna queda en NA y no se inventa
   cuotas <- list(facultades = list(list(facultad = "DERECHO", faculty_key = "derecho", cuota = 40)))
   t <- prosecnurapp:::.calaf_avance_por_facultad(unidades, c(`CH 1` = 10), cuotas)
   expect_true(is.na(t$Sobremuestra[[1]]))
-  expect_true(is.na(t$`Faltantes para la sobremuestra`[[1]]))
+  expect_true(is.na(t$`Faltantes sobremuestra`[[1]]))
 })
 
 test_that("el reparto por resto mayor da enteros que suman exactamente el total", {
@@ -252,16 +284,16 @@ test_that("la fila Total suma personas y aulas, y los faltantes sin netear (ADR 
   expect_equal(total$`Efectivas mujeres`, 7)
   expect_equal(total$`Efectivas hombres`, 3)
   # 4 (FAC1) + 2 (FAC2): la suma de las celdas, no 15 - 10 = 5.
-  expect_equal(total$Faltantes, 6)
-  expect_equal(total$`Faltantes mujeres`, 2)
-  expect_equal(total$`Faltantes hombres`, 4)
+  expect_equal(total$`Faltantes muestra`, 6)
+  expect_equal(total$`Faltantes mujeres muestra`, 2)
+  expect_equal(total$`Faltantes hombres muestra`, 4)
   expect_equal(total$`Aulas aplicadas`, 2)
   # Ratio 2: 30 repartidos 20 / 10; por sexo 12+8 y 4+6.
   expect_equal(total$Sobremuestra, 30)
   expect_equal(total$`Sobremuestra mujeres`, 16)
   expect_equal(total$`Sobremuestra hombres`, 14)
   # FAC1: (12-4) + (8-2) = 14; FAC2: (4-3) + (6-1) = 6.
-  expect_equal(total$`Faltantes para la sobremuestra`, 20)
+  expect_equal(total$`Faltantes sobremuestra`, 20)
   # Una tabla sin nada que sumar en una columna deja NA, no 0.
   sin_sexo <- prosecnurapp:::.calaf_avance_por_facultad(
     list(.lafac_aula("A1", "FAC1", "CH 1")), efectivas = c(`CH 1` = 3),
@@ -284,6 +316,17 @@ test_that("la nota nombra las dos metas con el mismo rango y no llama referencia
   expect_match(prosecnurapp:::.calaf_nota_metas(sin), "no publica la sobremuestra")
 })
 
+# Localiza la cabecera de UNA tabla entre las filas publicadas. Se busca por la
+# cabecera COMPLETA y no por su primera celda: cuatro de las cinco tablas de la
+# hoja empiezan por «Facultad» desde el 2026-09-08, y `which(primera ==
+# "Facultad")` devolvía cuatro posiciones.
+.lafac_cabecera_de <- function(filas, clave) {
+  which(vapply(filas, function(f) {
+    identical(prosecnurapp:::.calac_tabla_de_cabecera(
+      vapply(f, function(x) as.character(x), character(1))), clave)
+  }, logical(1)))
+}
+
 test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila Total", {
   d <- .lafac_dos()
   ind <- aulas_libro_indicadores(
@@ -291,19 +334,21 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
     validas = rep(TRUE, nrow(d$responses)), cuotas = d$cuotas, cfg = .lafac_cfg())
   expect_identical(nrow(ind$facultades), 2L)
 
-  # Sheets: cabecera «Facultad», dos facultades y «Total» justo debajo, con la
-  # muestra sumada y el faltante por celdas.
-  filas <- prosecnurapp:::.malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = as.Date("2026-08-15")))
-  primera <- vapply(filas, function(f) as.character(unlist(f)[[1]]), character(1))
-  cab <- which(primera == "Facultad")
+  # Sheets: cabecera de la tabla por facultad, dos facultades y «Total» justo
+  # debajo, con la muestra sumada y el faltante por celdas. Las celdas viajan
+  # como NÚMEROS desde el 2026-09-08, así que se comparan como números.
+  filas <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-08-15"))
+  primera <- vapply(filas, function(f) as.character(f[[1]]), character(1))
+  cab <- .lafac_cabecera_de(filas, "facultad")
   expect_length(cab, 1L)
   total <- cab + 3L
   expect_identical(primera[[total]], "Total")
   nombres <- as.character(unlist(filas[[cab]]))
-  fila_total <- as.character(unlist(filas[[total]]))
-  expect_identical(fila_total[[which(nombres == "Muestra")]], "15")
-  expect_identical(fila_total[[which(nombres == "Faltantes")]], "6")
-  expect_identical(fila_total[[which(nombres == "Faltantes para la sobremuestra")]], "20")
+  fila_total <- filas[[total]]
+  celda <- function(rotulo) fila_total[[which(nombres == rotulo)]]
+  expect_identical(celda("Muestra"), 15)
+  expect_identical(celda("Faltantes muestra"), 6)
+  expect_identical(celda("Faltantes sobremuestra"), 20)
   # Y la nota, la misma que el xlsx, justo debajo.
   expect_identical(primera[[total + 1L]], prosecnurapp:::.calaf_nota_metas(ind$facultades))
 
@@ -315,12 +360,14 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
   celdas <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE,
                                 skipEmptyRows = FALSE, skipEmptyCols = FALSE)
   col1 <- as.character(celdas[[1]])
-  cab_x <- which(!is.na(col1) & col1 == "Facultad")
+  cab_x <- which(!is.na(col1) & col1 == "Facultad" &
+                   !is.na(as.character(celdas[[2]])) &
+                   as.character(celdas[[2]]) == "Efectivas")
   expect_length(cab_x, 1L)
   expect_identical(col1[[cab_x + 3L]], "Total")
   nombres_x <- as.character(celdas[cab_x, ])
   expect_identical(as.character(celdas[cab_x + 3L, which(nombres_x == "Muestra")]), "15")
-  expect_identical(as.character(celdas[cab_x + 3L, which(nombres_x == "Faltantes")]), "6")
+  expect_identical(as.character(celdas[cab_x + 3L, which(nombres_x == "Faltantes muestra")]), "6")
   negrita <- FALSE
   for (so in openxlsx::loadWorkbook(path)$styleObjects) {
     if (!identical(so$sheet, "Avance de campo") || !((cab_x + 3L) %in% so$rows)) next

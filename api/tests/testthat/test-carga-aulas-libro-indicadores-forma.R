@@ -7,10 +7,10 @@
 #    ese equipo como si tuviera una cifra mas redonda que los demas.
 # 2. Sin serie diaria, el bloque «Avance diario» **desaparecia entero** de la
 #    hoja. Quien la vio con datos no puede saber si se retiro o si falta el dato.
-# 3. El bloque de meta ponia cuatro «—» y dos bloques mas abajo sumaba 3 508
-#    «efectivas declaradas» por aplicador: la misma pagina parecia decir que no
-#    hay efectivas y listarlas. No se contradicen —una sale de plataforma y la
-#    otra del parte— pero sin decirlo, quien lee elige cual creer.
+# 3. El bloque de meta ponia cuatro «—» y dos bloques mas abajo listaba
+#    producción por aplicador: la misma pagina parecia decir que no hay
+#    efectivas y listarlas. La nota de procedencia lo explica, y sólo aparece
+#    cuando de verdad hay huecos.
 
 # Los textos de la hoja, aplanados: `skipEmptyRows = FALSE` para que los indices
 # no se corran (trampa conocida de `read.xlsx`).
@@ -35,7 +35,7 @@
   plan <- lapply(1:6, function(i) list(
     classroom_id = paste0("A", i), operational_code = paste("CH", i), label = "x",
     wave = "M1", sample_role = "titular", orden = i, eligible_n = 30,
-    expected_valid = 21, faculty = "F1"
+    expected_valid = 21, faculty = "F1", rendimiento_ref = 0.7
   ))
   # Dos aplicadores con media entera y media con decimal: el caso que destapo el
   # formato. Dos cursos-horario a 23 encuestas dan 23.0 exacto; 20 y 21 dan 20.5.
@@ -58,29 +58,30 @@
   ruta
 }
 
-test_that("«Media por aula» declara su decimal aunque sea cero", {
+test_that("una TASA declara su decimal aunque su columna sea de razones", {
+  # `#,##0.#` OMITE el cero decimal, así que una columna de razones enseñaba un
+  # 23 entre 20,5 y 23,8 y el ojo lo lee como si ese equipo tuviera una cifra
+  # más redonda que los demás. Desde el 2026-09-08 las razones de esta hoja son
+  # tasas de rendimiento y van con formato de PORCENTAJE, que siempre declara su
+  # decimal — y de paso cumple el dictado: el «(%)» va en la celda, no en el
+  # rótulo.
   ruta <- .cif_libro()
   on.exit(unlink(ruta), add = TRUE)
-  # La columna 4 de «Produccion por aplicador». El formato se resuelve celda a
-  # celda —`s=` → `cellXfs` → `numFmtId` → `formatCode`— y no por el catalogo:
-  # un `0.0` presente por OTRA hoja no prueba nada sobre esta.
-  cab <- .cif_fila_de(ruta, "Media por curso-horario")
-  expect_true(is.finite(cab), info = "no se encontro la cabecera de la media")
-  # La columna se BUSCA por su cabecera: estaba fijada al índice 4 y la tabla
-  # ganó columnas el 2026-09-07 —el reparto y la cuenta de plataforma—, así que
-  # el índice apuntaba a otra cosa. Un número de columna a mano es la misma
-  # ancla frágil que un rótulo.
+  cab <- .cif_fila_de(ruta, "Tasa de rendimiento obtenida")
+  expect_true(is.finite(cab), info = "no se encontró la cabecera de la tasa")
+  # La columna se BUSCA por su cabecera: estuvo fijada al índice 4 y la tabla
+  # ganó columnas, así que el índice apuntaba a otra cosa. Un número de columna
+  # a mano es la misma ancla frágil que un rótulo.
   d <- openxlsx::read.xlsx(ruta, sheet = "Avance de campo", colNames = FALSE,
                            skipEmptyRows = FALSE)
-  col_media <- which(as.character(unlist(d[cab, ])) == "Media por curso-horario")[[1]]
+  col_tasa <- which(as.character(unlist(d[cab, ])) == "Tasa de rendimiento obtenida")[[1]]
   formatos <- vapply((cab + 1L):(cab + 2L),
-                     function(f) formato_de_celda(ruta, "Avance de campo", col_media, f),
+                     function(f) formato_de_celda(ruta, "Avance de campo", col_tasa, f),
                      character(1))
-  # Ninguna celda de la media puede llevar un formato que omita el decimal.
   expect_false(any(grepl("0\\.#", formatos)),
-               info = paste("formatos de la media:", paste(formatos, collapse = " · ")))
-  expect_true(any(grepl("0\\.0", formatos)),
-              info = paste("formatos de la media:", paste(formatos, collapse = " · ")))
+               info = paste("formatos de la tasa:", paste(formatos, collapse = " · ")))
+  expect_true(all(formatos == "0.0%"),
+              info = paste("formatos de la tasa:", paste(formatos, collapse = " · ")))
 })
 
 test_that("«Avance diario» no desaparece cuando no hay serie", {

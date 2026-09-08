@@ -1,0 +1,129 @@
+# carga_aulas_libro_avance_aplicadores.R — la tabla «PRODUCCIÓN POR APLICADOR».
+#
+# Dictado de Gonzalo (2026-09-08): «Facultad, Aplicador, Aulas aplicadas, Fichas
+# en la base, Fichas faltantes, Tasa de rendimiento esperada en facultad, Tasa
+# de rendimiento obtenido, Aplicaciones regulares, Aplicaciones especial mañana,
+# Aplicaciones especial noche».
+#
+# **La tabla cambia de sujeto: pasa de ser una fila por persona a una fila por
+# PERSONA EN UNA FACULTAD.** No es un detalle de presentación. La columna que él
+# pone primera es «Facultad», y las dos de tasa son «esperada en facultad» y
+# «obtenida»: comparar la producción de alguien con la tasa esperada exige saber
+# de qué facultad se está hablando, porque cada una tiene la suya. Un aplicador
+# que cubre dos facultades sale en dos filas, cada una contra su propia vara.
+#
+# QUÉ ES «FICHAS FALTANTES», Y SOBRE QUÉ AULAS SE MIDE
+#
+# Es lo que sus aulas YA APLICADAS rindieron por debajo de lo que se esperaba de
+# ellas: `Σ max(0, esperadas del aula − obtenidas)`. Sobre las que todavía no ha
+# aplicado no falta ninguna ficha, falta ir — y eso ya lo dice la diferencia
+# entre sus aulas aplicadas y las que tiene asignadas. Nunca negativo: pasarse
+# en un aula no compensa quedarse corto en otra, que es la misma regla del
+# ADR 0079 aplicada al aula.
+#
+# Los tres rangos de aplicación —regular, especial mañana, especial noche— salen
+# de `.calg_rango_de_aplicacion()`, la misma función que escribe la columna
+# «RANGO DE APLICACIÓN» de la Base de control. Sin ella habría dos definiciones
+# de «especial noche» y sólo una saldría publicada.
+
+#' Producción por aplicador y facultad.
+#'
+#' @param unidades filas del plan que entran al libro.
+#' @param efectivas vector con nombre por código operativo (PLATAFORMA).
+#' @param partes partes de campo; sustituyen al reparto cuando no lo hay.
+#' @param asignados `codigo -> aplicador` del reparto vigente.
+#' @return `data.frame` con las columnas de `AULAS_AVANCE_CABECERAS$aplicador`,
+#'   o `NULL` cuando no hay a quién atribuir ni un aula.
+#' @keywords internal
+.calaa_produccion_por_aplicador <- function(unidades, efectivas = NULL,
+                                            partes = list(), asignados = NULL) {
+  unidades <- unidades %||% list()
+  if (!length(unidades)) return(NULL)
+
+  cod <- vapply(unidades, function(u) .cai_txt(u$operational_code), character(1))
+  fac <- vapply(unidades, function(u) .cai_txt(u$faculty), character(1))
+  eleg <- vapply(unidades, function(u) .cai_num(u$eligible_n), numeric(1))
+  esperadas <- vapply(unidades, function(u) .cai_num(u$expected_valid), numeric(1))
+  tasa_ref <- vapply(unidades, function(u) .cai_num(u$rendimiento_ref), numeric(1))
+  rango <- vapply(unidades, function(u) .calg_rango_de_aplicacion(u$scheduled_time), character(1))
+  apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
+  ef_fila <- vapply(cod, function(k) {
+    if (is.null(efectivas)) return(NA_real_)
+    i <- match(k, names(efectivas))
+    if (is.na(i)) 0 else suppressWarnings(as.numeric(efectivas[[i]]))
+  }, numeric(1))
+
+  # **Quién responde por cada curso-horario**: manda el REPARTO, y si el estudio
+  # no lo tiene manda el parte, que también dice quién aplicó. La atribución por
+  # reparto es la que permite que alguien aparezca en la tabla en cuanto sale a
+  # su primera aula, sin esperar a que rinda el parte —que en la primera semana
+  # llega tarde o no llega—.
+  quien <- rep("", length(unidades))
+  asignados <- asignados %||% list()
+  for (i in seq_along(unidades)) {
+    k <- cod[[i]]
+    if (nzchar(k) && !is.null(asignados[[k]])) quien[[i]] <- .cai_txt(asignados[[k]])
+  }
+  if (!any(nzchar(quien))) {
+    del_parte <- list()
+    for (pt in (partes %||% list())) {
+      if (!is.list(pt)) next
+      k <- .cai_txt(pt$operational_code %||% pt$classroom_id)
+      persona <- .cai_txt(pt$applied_by %||% pt$applicator)
+      if (nzchar(k) && nzchar(persona) && is.null(del_parte[[k]])) del_parte[[k]] <- persona
+    }
+    for (i in seq_along(unidades)) {
+      k <- cod[[i]]
+      if (nzchar(k) && !is.null(del_parte[[k]])) quien[[i]] <- del_parte[[k]]
+    }
+  }
+  # El nombre se escribe como se escribe un nombre, nunca crudo de la hoja de
+  # disponibilidad (`aulas_nombre_aplicador`, con su detector de regresión).
+  quien <- vapply(quien, aulas_nombre_aplicador, character(1), USE.NAMES = FALSE)
+
+  vivas <- nzchar(quien) & nzchar(fac)
+  if (!any(vivas)) return(NULL)
+
+  pares <- unique(data.frame(Facultad = fac[vivas], Aplicador = quien[vivas],
+                             stringsAsFactors = FALSE))
+  filas <- lapply(seq_len(nrow(pares)), function(p) {
+    f <- pares$Facultad[[p]]
+    a <- pares$Aplicador[[p]]
+    idx <- fac == f & quien == a
+    aplicadas <- idx & apl
+    eleg_apl <- sum(eleg[aplicadas & is.finite(eleg)], na.rm = TRUE)
+    en_base <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[aplicadas], na.rm = TRUE)
+    # Lo que le falta a cada aula suya para su propia meta, sumado y sin
+    # compensar entre aulas.
+    faltantes <- if (is.null(efectivas)) NA_real_ else {
+      brecha <- pmax(0, esperadas[aplicadas] - ef_fila[aplicadas])
+      brecha <- brecha[is.finite(brecha)]
+      if (length(brecha)) ceiling(sum(brecha)) else 0
+    }
+    esperada <- {
+      v <- tasa_ref[idx]; v <- v[is.finite(v)]
+      if (length(v)) mean(v) else NA_real_
+    }
+    cuenta_rango <- function(etiqueta) sum(aplicadas & rango == etiqueta)
+    out <- data.frame(
+      f, a,
+      sum(aplicadas),
+      en_base,
+      faltantes,
+      esperada,
+      if (is.finite(en_base) && eleg_apl > 0) en_base / eleg_apl else NA_real_,
+      cuenta_rango("Regular"),
+      cuenta_rango("Especial mañana"),
+      cuenta_rango("Especial noche"),
+      stringsAsFactors = FALSE
+    )
+    names(out) <- AULAS_AVANCE_CABECERAS$aplicador
+    out
+  })
+  out <- do.call(rbind, filas)
+  # Por facultad y, dentro, por lo que falta: en cada facultad abre quien más
+  # fichas dejó sin recoger. Es a quién empujar, que es para lo que existe.
+  out[order(out$Facultad,
+            -ifelse(is.finite(out$`Fichas faltantes`), out$`Fichas faltantes`, -1),
+            out$Aplicador), , drop = FALSE]
+}

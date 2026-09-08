@@ -21,12 +21,25 @@
        eligible_n = 28, expected_valid = 20)
 )
 
+# Desde el 2026-09-08 el avance diario es POR FACULTAD, así que cada respuesta
+# tiene que poder encontrar su aula: sin la clave del colector no hay cruce y la
+# tabla entera desaparece.
 .ci_respuestas <- function() data.frame(
+  collectorID = c("CH 1", "CH 1", "CH 2", "CH 1", "CH 2"),
   `_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00",
                          "2026-08-11T09:00:00", "2026-08-11T11:00:00",
                          "2026-08-11T12:00:00"),
   sexo = c("Mujer", "Hombre", "Mujer", "Hombre", "Prefiero no decir"),
   check.names = FALSE, stringsAsFactors = FALSE
+)
+
+.ci_cfg <- function() list(source_mapping = list(collector_var = "collectorID"))
+
+# La cuota de Letras, para que «Faltantes para la meta» del diario exista: se
+# mide contra la MUESTRA de la facultad y sin diseño no hay contra qué medirla.
+.ci_cuotas <- function(cuota = 40) list(
+  meta_diseno = cuota,
+  facultades = list(list(facultad = "Letras", cuota = cuota))
 )
 
 test_that("la meta se cuenta sobre TITULARES, no sobre la cadena entera", {
@@ -59,63 +72,150 @@ test_that("la serie diaria cuenta EFECTIVAS y cuadra con el logrado", {
   # Contando todas las respuestas, la serie acumulaba 3 700 mientras el logrado
   # eran 2 220, y «falta para la meta» acababa diciendo 47 cuando faltaban
   # 1 527: dos cifras distintas bajo la misma tabla.
-  r <- .ci_respuestas()
-  validas <- c(TRUE, TRUE, TRUE, TRUE, FALSE)
   ind <- aulas_libro_indicadores(.ci_plan(), efectivas = c(`CH 1` = 4),
-                                 responses = r, validas = validas)
+                                 responses = .ci_respuestas(),
+                                 validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
+                                 cuotas = .ci_cuotas(), cfg = .ci_cfg())
+  # Una fila por FACULTAD y día; aquí hay una sola facultad y dos jornadas.
   expect_equal(nrow(ind$diario), 2L)
-  expect_equal(ind$diario$`Efectivas del dia`, c(2L, 2L))
-  expect_equal(utils::tail(ind$diario$`Efectivas acumuladas`, 1), 4L)
+  expect_identical(unique(ind$diario$Facultad), "Letras")
+  expect_equal(ind$diario[["Efectivas del día"]], c(2, 2))
+  expect_equal(utils::tail(ind$diario[["Efectivas acumuladas"]], 1), 4)
   # El acumulado final es el logrado: si no cuadran, una de las dos miente.
-  expect_equal(as.numeric(utils::tail(ind$diario$`Efectivas acumuladas`, 1)),
+  expect_equal(as.numeric(utils::tail(ind$diario[["Efectivas acumuladas"]], 1)),
                as.numeric(ind$meta$logrado))
 })
 
-test_that("la produccion por aplicador abre por el que va mas flojo", {
-  # El campo pregunta a quien empujar, no quien es el mejor.
-  #
-  # La tabla mide con la PLATAFORMA desde el 2026-09-07: la cuenta del parte
-  # llega al cerrar y en la primera semana casi no existe —ese día la hoja
-  # enseñaba UNA fila con ocho cursos-horario aplicados y seis aplicadores en
-  # la calle—. La atribución sale del reparto, así que un aplicador aparece en
-  # cuanto sale a su primer curso-horario.
+test_that("el avance diario separa las facultades: un buen martes no tapa un martes perdido", {
+  # La serie era una fila por jornada del estudio entero, y con quince cuotas
+  # que no se compensan entre sí (ADR 0079) esa fila no permitía decidir nada:
+  # un martes de 300 efectivas puede ser excelente en una facultad y perdido en
+  # otra, y la suma dice «300».
+  plan <- c(.ci_plan(), list(
+    list(operational_code = "CH 9", sample_role = "titular", faculty = "Derecho",
+         eligible_n = 30, expected_valid = 20)))
+  resp <- data.frame(
+    collectorID = c("CH 1", "CH 1", "CH 9"),
+    `_submission_time` = c("2026-08-10T09:00:00", "2026-08-11T09:00:00",
+                           "2026-08-11T10:00:00"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cuotas <- list(meta_diseno = 60, facultades = list(
+    list(facultad = "Letras", cuota = 40), list(facultad = "Derecho", cuota = 20)))
+  ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 2, `CH 9` = 1),
+                                 responses = resp, validas = rep(TRUE, 3),
+                                 cuotas = cuotas, cfg = .ci_cfg())
+  d <- ind$diario
+  expect_setequal(unique(d$Facultad), c("Letras", "Derecho"))
+  # El martes de Derecho existe como fila propia, con SU acumulado y SU meta.
+  fila <- d[d$Facultad == "Derecho" & d[["Día"]] == "2026-08-11", ]
+  expect_equal(nrow(fila), 1L)
+  expect_equal(fila[["Efectivas del día"]], 1)
+  expect_equal(fila[["Faltantes para la meta"]], 19)
+  # Y el día de la semana sale en castellano SIN pasar por el locale: `%A` da
+  # «Tuesday» en un contenedor sin locale español y ya costó una tanda de rojos.
+  expect_identical(fila[["Día de la semana"]], "martes")
+})
+
+test_that("la producción por aplicador es una fila por PERSONA EN CADA FACULTAD", {
+  # La columna que Gonzalo puso primera es «Facultad», y las dos de tasa son
+  # «esperada en facultad» y «obtenida»: comparar la producción de alguien con
+  # su vara exige saber de qué facultad se habla, porque cada una tiene la suya.
+  plan <- c(.ci_plan(), list(
+    list(operational_code = "CH 9", sample_role = "titular", faculty = "Derecho",
+         eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.4)))
+  asignados <- list(`CH 1` = "Equipo A", `CH 2` = "Equipo B", `R 2.1` = "Equipo B",
+                    `CH 9` = "Equipo B")
+  ind <- aulas_libro_indicadores(
+    plan, efectivas = c(`CH 1` = 20, `CH 2` = 8, `R 2.1` = 6, `CH 9` = 9),
+    partes = list(), asignados = asignados)
+  a <- ind$aplicadores
+  expect_identical(names(a), AULAS_AVANCE_CABECERAS$aplicador)
+  # Equipo B cubre dos facultades: dos filas, no una media de las dos varas.
+  b <- a[a$Aplicador == "Equipo B", ]
+  expect_equal(nrow(b), 2L)
+  expect_setequal(b$Facultad, c("Letras", "Derecho"))
+  # Y el nombre se escribe como se escribe un nombre, nunca crudo.
+  expect_true(all(a$Aplicador == vapply(a$Aplicador, aulas_nombre_aplicador, character(1))))
+})
+
+test_that("dentro de cada facultad abre quien dejó más fichas sin recoger", {
+  # El campo pregunta a quién empujar, no quién es el mejor.
   asignados <- list(`CH 1` = "Equipo A", `CH 2` = "Equipo B", `R 2.1` = "Equipo B")
   ind <- aulas_libro_indicadores(
     .ci_plan(), efectivas = c(`CH 1` = 20, `CH 2` = 8, `R 2.1` = 6),
     partes = list(), asignados = asignados)
-  expect_identical(ind$aplicadores$Aplicador[[1]], "Equipo B")
-  expect_equal(ind$aplicadores$`Media por curso-horario`[[1]], 7)
-  expect_equal(ind$aplicadores$`Con respuestas`[[1]], 2)
-  expect_equal(ind$aplicadores$`Cursos-horario asignados`[[1]], 2L)
+  a <- ind$aplicadores
+  expect_identical(a$Aplicador[[1]], "Equipo B")
+  # Equipo B: dos aulas aplicadas, 14 fichas en la base, y de 40 esperadas le
+  # faltan 26 — sin compensar entre aulas (12 + 14).
+  expect_equal(a[["Aulas aplicadas"]][[1]], 2L)
+  expect_equal(a[["Fichas en la base"]][[1]], 14)
+  expect_equal(a[["Fichas faltantes"]][[1]], 26)
+  # Equipo A se pasó de la meta de su aula: cero faltantes, nunca negativo.
+  expect_equal(a[["Fichas faltantes"]][[2]], 0)
 })
 
-test_that("un aplicador que todavia no recibe nada abre la tabla, no desaparece", {
+test_that("un aplicador que todavía no recibe nada aparece, no desaparece", {
   # **Sale del reparto, no del parte.** Antes la fila existía sólo si alguien
   # había rendido parte, así que quien salió esta mañana y todavía no tiene
   # respuestas no aparecía — justo a quien hay que mirar.
   asignados <- list(`CH 1` = "Equipo A", `CH 2` = "Equipo B")
   ind <- aulas_libro_indicadores(.ci_plan(), efectivas = c(`CH 1` = 20),
                                  partes = list(), asignados = asignados)
-  expect_identical(ind$aplicadores$Aplicador[[1]], "Equipo B")
-  expect_equal(ind$aplicadores$`Con respuestas`[[1]], 0)
-  expect_true(is.na(ind$aplicadores$`Media por curso-horario`[[1]]))
+  b <- ind$aplicadores[ind$aplicadores$Aplicador == "Equipo B", ]
+  expect_equal(nrow(b), 1L)
+  expect_equal(b[["Aulas aplicadas"]], 0L)
+  expect_equal(b[["Fichas en la base"]], 0)
+  # Sin aula aplicada no hay denominador: la tasa calla en vez de decir cero.
+  expect_true(is.na(b[["Tasa de rendimiento obtenida"]]))
 })
 
-test_that("la cuenta del parte y la de plataforma se publican juntas, no mezcladas", {
-  # Son dos medidas del mismo trabajo —lo que el aplicador contó al cerrar y lo
-  # que llegó a la plataforma— y verlas juntas es el control que la hoja da.
-  # Mezclarlas perdería de cuál viene cada número.
+test_that("los tres rangos de aplicación salen de la misma función que la Base de control", {
+  # Sin una sola definición habría dos «especial noche» y sólo una publicada.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         eligible_n = 30, expected_valid = 20, scheduled_time = "07:30"),
+    list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+         eligible_n = 30, expected_valid = 20, scheduled_time = "10:00"),
+    list(operational_code = "CH 3", sample_role = "titular", faculty = "Letras",
+         eligible_n = 30, expected_valid = 20, scheduled_time = "19:30")
+  )
   ind <- aulas_libro_indicadores(
-    .ci_plan(), efectivas = c(`CH 1` = 34, `CH 2` = 38),
-    partes = list(list(operational_code = "CH 1", applied_by = "Equipo A",
-                       effective_surveys = 34)),
-    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo A"))
+    plan, efectivas = c(`CH 1` = 5, `CH 2` = 5, `CH 3` = 5),
+    asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo A", `CH 3` = "Equipo A"))
   a <- ind$aplicadores
-  expect_equal(a$`Efectivas en plataforma`[[1]], 72)
-  # S14b (dictado 2026-09-07): la columna se llamaba «Efectivas declaradas»;
-  # el conteo del parte son encuestas aplicadas, las efectivas las da la app.
-  expect_equal(a$`Encuestas aplicadas (parte)`[[1]], 34)
-  expect_equal(a$`Partes rendidos`[[1]], 1L)
+  expect_equal(a[["Aplicaciones especial mañana"]][[1]], 1L)
+  expect_equal(a[["Aplicaciones regulares"]][[1]], 1L)
+  expect_equal(a[["Aplicaciones especial noche"]][[1]], 1L)
+})
+
+test_that("el rendimiento por facultad separa «no se ha ido» de «rinde por debajo»", {
+  # «Avance por facultad» dice cuánto falta para la cuota; esta tabla dice por
+  # qué, y las dos causas piden cosas distintas: ir, o pedir aulas adicionales.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24, rendimiento_ref = 0.6),
+    list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24, rendimiento_ref = 0.6),
+    # Un extra ACTIVADO: es un aula que se le pidió a la facultad. Una reserva
+    # de CADENA, en cambio, reemplaza a un titular que cayó y no es un aula más.
+    list(operational_code = "EX 1", sample_role = "extra_reserve_pool",
+         faculty = "Letras", eligible_n = 40, expected_valid = 24,
+         rendimiento_ref = 0.6)
+  )
+  ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12, `EX 1` = 8))
+  r <- ind$rendimiento
+  expect_identical(names(r), AULAS_AVANCE_CABECERAS$rendimiento)
+  expect_equal(r[["Aulas planificadas"]], 2L)   # los titulares
+  expect_equal(r[["Aulas aplicadas"]], 2L)      # CH 1 y EX 1 tienen efectivas
+  expect_equal(r[["Aulas adicionales solicitadas hasta el momento"]], 1L)
+  expect_equal(r[["Tasa de rendimiento de la facultad esperada"]], 0.6)
+  # El denominador son los elegibles de las aulas YA APLICADAS (80), no los del
+  # plan entero: con el plan entero la tasa del día 1 saldría cerca de cero en
+  # las quince facultades y no diría nada sobre cómo rinden las aulas visitadas.
+  expect_equal(r[["Tasa de rendimiento de la facultad obtenida"]], 20 / 80)
+  expect_equal(r[["Diferencia"]], 20 / 80 - 0.6)
 })
 
 test_that("la hoja va la ULTIMA: el libro lo abre quien agenda", {
@@ -192,61 +292,88 @@ test_that("A9-B6: el bloque de meta escribe enteros — meta al mas proximo, log
   expect_equal(celda("Faltan"), 1852)
 })
 
-test_that("A9-B6: «Falta para la meta» del diario tambien sube al entero", {
-  # Con la meta fraccionaria, la resta contra el acumulado entero arrastra el
-  # decimal a la columna: 3157.8 - 4 = 3153.8 respuestas por recoger. El numFmt
-  # `#,##0` lo tapa en pantalla, pero el VALOR queda sucio — mismo motivo por el
-  # que `cifra_limpia` redondea el valor y no solo su formato.
+test_that("A9-B6: el avance diario no publica decimales sobre encuestas", {
+  # Con la meta fraccionaria, la resta contra el acumulado arrastraba el decimal
+  # a la columna: 3157.8 - 4 = 3153.8 respuestas por recoger. El numFmt lo tapa
+  # en pantalla, pero el VALOR queda sucio y sale en cuanto alguien copia,
+  # ordena o suma la celda.
   ind <- aulas_libro_indicadores(.ci_plan_fraccionario(),
                                  efectivas = .ci_efectivas_fraccionarias(),
                                  responses = .ci_respuestas(),
-                                 validas = c(TRUE, TRUE, TRUE, TRUE, FALSE))
+                                 validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
+                                 cuotas = .ci_cuotas(3158), cfg = .ci_cfg())
   d <- .ci_hoja_escrita(ind)
-  # La columna por NOMBRE, no por indice: la cabecera de la tabla la declara.
-  fila_cab <- which(as.character(d[[1]]) == "Dia")
+  # La columna por NOMBRE, no por índice: la cabecera de la tabla la declara.
+  fila_cab <- which(as.character(d[[1]]) == "Facultad" &
+                      as.character(d[[2]]) == "Día")
   expect_length(fila_cab, 1L)
-  col_falta <- which(as.character(unlist(d[fila_cab, ])) == "Falta para la meta")
+  col_falta <- which(as.character(unlist(d[fila_cab, ])) == "Faltantes para la meta")
   expect_length(col_falta, 1L)
-  fila_dia <- which(as.character(d[[1]]) == "2026-08-11")
+  fila_dia <- which(as.character(d[[2]]) == "2026-08-11")
   expect_length(fila_dia, 1L)
   expect_equal(suppressWarnings(as.numeric(d[[col_falta]][[fila_dia]])), 3154)
 })
 
-test_that("A9-B6: «Media por aula» conserva su decimal — es un promedio, no un conteo", {
-  # Pin de conservacion (hoy verde): la regla de enteros es de los CONTEOS de
-  # personas. Un arreglo que aplane tambien los promedios repetiria el defecto
-  # ya documentado en el estilo `promedio` («23» entre 20.5 y 23.8).
+test_that("A9-B6: una TASA conserva su decimal — es una razón, no un conteo", {
+  # Pin de conservación: la regla de enteros es de los CONTEOS de personas. Un
+  # arreglo que aplane también las razones repetiría el defecto ya documentado
+  # («23 %» entre 20,5 % y 23,8 %).
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24, rendimiento_ref = 0.6),
+    list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24, rendimiento_ref = 0.6)
+  )
   ind <- aulas_libro_indicadores(
-    .ci_plan_fraccionario(), efectivas = c(`CH 1` = 8, `CH 2` = 5),
-    partes = list(),
+    plan, efectivas = c(`CH 1` = 8, `CH 2` = 5),
     asignados = list(`CH 1` = "Equipo Unico", `CH 2` = "Equipo Unico"))
   d <- .ci_hoja_escrita(ind)
-  fila_cab <- which(as.character(d[[1]]) == "Aplicador")
+  fila_cab <- which(as.character(d[[1]]) == "Facultad" &
+                      as.character(d[[2]]) == "Aplicador")
   expect_length(fila_cab, 1L)
-  col_media <- which(as.character(unlist(d[fila_cab, ])) == "Media por curso-horario")
-  expect_length(col_media, 1L)
-  fila_apl <- which(as.character(d[[1]]) == "Equipo Unico")
+  col_tasa <- which(as.character(unlist(d[fila_cab, ])) == "Tasa de rendimiento obtenida")
+  expect_length(col_tasa, 1L)
+  fila_apl <- which(as.character(d[[2]]) == "Equipo Unico")
   expect_length(fila_apl, 1L)
-  # 13 efectivas en 2 aulas: la media ES 6.5 y lo dice.
-  expect_equal(suppressWarnings(as.numeric(d[[col_media]][[fila_apl]])), 6.5)
+  # 13 efectivas sobre 80 elegibles: la tasa ES 0,1625 y lo dice.
+  expect_equal(suppressWarnings(as.numeric(d[[col_tasa]][[fila_apl]])), 0.1625)
 })
 
-test_that("las barras no tapan el numero", {
+test_that("el semáforo no tapa el número", {
   # Con el navy del libro, la cifra quedaba en negro sobre azul oscuro y no se
-  # leia: la barra ayuda a comparar de un vistazo, pero el numero es el dato.
-  # Visto en el PDF de la hoja.
-  libro <- withr::local_tempfile(fileext = ".xlsx")
-  partes <- list(
-    list(operational_code = "CH 1", applied_by = "Equipo A", effective_surveys = 20),
-    list(operational_code = "CH 2", applied_by = "Equipo B", effective_surveys = 8)
-  )
-  aulas_libro_generar(.ci_plan(), libro, partes = partes,
-                      efectivas = c(`CH 1` = 18, `CH 2` = 12))
-  colores <- colores_databar_de(libro, "Avance de campo")
-  expect_gt(length(colores), 0L)
-  for (hex in colores) {
-    lum <- mean(grDevices::col2rgb(paste0("#", substr(hex, 3, 8)))[, 1])
+  # leía: el color ayuda a barrer la tabla de un vistazo, pero el dato es el
+  # número. Se vio en el PDF de la hoja, con las databar; desde el 2026-09-08 el
+  # color lo ponen las reglas del semáforo y la regla de luminancia es la misma.
+  for (hex in c(prosecnurapp:::.CAI_VERDE_META, prosecnurapp:::.CAI_CELESTE_SOBRE,
+                prosecnurapp:::.CAI_ESCALA_DIF)) {
+    lum <- mean(grDevices::col2rgb(hex)[, 1])
     # Por debajo de 190 el texto negro deja de leerse encima.
-    expect_gt(lum, 190)
+    expect_gt(lum, 165)
   }
+})
+
+test_that("el porcentaje es formato de CELDA y ninguna cabecera lleva «(%)»", {
+  # Gonzalo, 2026-09-08: «los que tienen un (%) no se pone en el titulo, es el
+  # formato de la celda».
+  rotulos <- c(unlist(AULAS_AVANCE_CABECERAS, use.names = FALSE),
+               AULAS_AVANCE_FILAS_GENERAL)
+  expect_false(any(grepl("%", rotulos, fixed = TRUE)))
+
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24, rendimiento_ref = 0.6))
+  ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12))
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_indicadores(wb, ind)
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Avance de campo",
+                                            colNames = FALSE, skipEmptyRows = FALSE))
+  fila_cab <- which(as.character(d[[1]]) == "Facultad" &
+                      as.character(d[[2]]) == "Aulas aplicadas")
+  expect_length(fila_cab, 1L)
+  col <- which(as.character(unlist(d[fila_cab, ])) ==
+                 "Tasa de rendimiento de la facultad obtenida")
+  expect_length(col, 1L)
+  expect_identical(formato_de_celda(libro, "Avance de campo", col, fila_cab + 1L), "0.0%")
 })
