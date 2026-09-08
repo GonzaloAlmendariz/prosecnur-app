@@ -144,7 +144,16 @@
       # margen que el operativo tiene antes de quedarse sin campo pagado.
       `Techo con sobremuestra` = if (is.finite(cuota) && is.finite(ratio_sm)) round(cuota * ratio_sm) else NA_real_,
       Avance = if (is.finite(cuota) && cuota > 0 && is.finite(conseguidas)) conseguidas / cuota else NA_real_,
-      Faltan = if (is.finite(cuota) && is.finite(conseguidas)) max(0, cuota - conseguidas) else NA_real_,
+      # A4 (2026-09-08): la MISMA brecha que el tablero (ADR 0079, una función
+      # para los dos): por celda de sexo cuando el diseño la reparte y el
+      # estudio declara la variable de sexo; el neto cuando no.
+      Faltan = if (is.finite(conseguidas)) monitoreo_aulas_brecha_facultad(
+        cuota, conseguidas,
+        if (length(sexo_aula)) list(
+          list(target = .cai_num(cs$F), observed = unname(sx[["F"]])),
+          list(target = .cai_num(cs$M), observed = unname(sx[["M"]]))
+        ) else list()
+      ) else NA_real_,
       check.names = FALSE, stringsAsFactors = FALSE
     )
   })
