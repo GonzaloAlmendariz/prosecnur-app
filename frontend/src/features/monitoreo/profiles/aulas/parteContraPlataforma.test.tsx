@@ -240,3 +240,34 @@ describe("AulasParteContraPlataforma declara los partes agrupados", () => {
     expect(html).not.toContain("aulas comparables");
   });
 });
+
+/**
+ * S8: el panel avisa arriba de la lista cuando el parte está lejos de la
+ * plataforma, con las dos cuentas y la salida.
+ */
+describe("AulasParteContraPlataforma · el aviso de los que están lejos", () => {
+  const agenda = [
+    { operational_code: "CH 76", respuestas_validas: 38, responses_total: 38, faculty: "Letras" },
+    { operational_code: "CH 43", respuestas_validas: 16, responses_total: 16, faculty: "Letras" },
+  ];
+  it("nombra al lejos y no al que difiere en 1", () => {
+    const html = renderToStaticMarkup(
+      <AulasParteContraPlataforma
+        partes={[{ operational_code: "CH 76", effective_surveys: 23 }, { operational_code: "CH 43", effective_surveys: 17 }]}
+        agenda={agenda}
+      />,
+    );
+    expect(html).toContain("1 curso-horario con el parte lejos de la plataforma: CH 76 (parte 23, plataforma 38)");
+    expect(html).toContain("collectorID");
+    expect(html).toContain('data-tono="atencion"');
+  });
+  it("con diferencias chicas no pinta el aviso", () => {
+    const html = renderToStaticMarkup(
+      <AulasParteContraPlataforma
+        partes={[{ operational_code: "CH 43", effective_surveys: 17 }]}
+        agenda={agenda}
+      />,
+    );
+    expect(html).not.toContain("lejos de la plataforma");
+  });
+});

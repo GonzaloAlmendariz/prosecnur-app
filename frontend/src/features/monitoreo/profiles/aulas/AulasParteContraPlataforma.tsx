@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 
-import { TriangleAlert } from "../../../../vendor/lucide-react";
+import { Info, TriangleAlert } from "../../../../vendor/lucide-react";
 import { parteContraPlataforma } from "./parteContraPlataforma";
+import { avisoParteContraPlataforma } from "./avisoParteContraPlataforma";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -23,6 +24,8 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
   agenda: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }) {
   const r = useMemo(() => parteContraPlataforma(partes, agenda), [partes, agenda]);
+  // S8: los que están LEJOS, con causa y salida, encima de la lista entera.
+  const lejos = useMemo(() => avisoParteContraPlataforma(r), [r]);
 
   if (!r.comparables) {
     // El vacío declara lo mismo que la rama con datos: es un miembro del grupo
@@ -99,6 +102,14 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
 
   return (
     <div className="aulas-cruce" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* S8 (2026-09-07): el control de campo que este bloque existe para dar.
+          La lista de abajo enseña TODO descuadre; esto nombra los que están
+          lejos y dice qué hacer. Mismo marco que los avisos de la página. */}
+      {lejos.texto ? (
+        <div className="aulas-aviso" data-tono={lejos.tono}>
+          <Info size={16} /> {lejos.texto}
+        </div>
+      ) : null}
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(r.descuadran)}</strong> de {fmt(r.comparables)} cursos-horario
         comparables no cuadran con plataforma
