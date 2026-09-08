@@ -102,8 +102,12 @@
       if (desde <= hasta) colores[desde:hasta] <- tonos[[min(b, length(tonos))]]
     }
   } else if (identical(hoja, "Base de control")) {
+    # La escala PROPIA de los tramos, la misma que el xlsx: salía de la paleta
+    # de los eslabones de la cadena, que es de otra cosa. Ver
+    # `AULAS_LIBRO_TRAMOS_BASE_CONTROL`.
     grupos <- aulas_libro_grupos_control()
-    escala <- aulas_libro_colores_eslabon(max(1L, length(grupos)))
+    escala <- AULAS_LIBRO_TRAMOS_BASE_CONTROL[
+      ((seq_along(grupos) - 1L) %% length(AULAS_LIBRO_TRAMOS_BASE_CONTROL)) + 1L]
     for (k in seq_along(grupos)) {
       desde <- max(1L, .monitoreo_int(grupos[[k]]$desde, 1L))
       hasta <- min(n_cols, .monitoreo_int(grupos[[k]]$hasta, 0L))
@@ -193,12 +197,22 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
   # columnas, perder de vista el ID es perder la fila — mismo panel que el
   # xlsx). Congelarlo TODO lo rechaza Google («no se pueden inmovilizar todas
   # las filas visibles»), de ahí las guardas.
+  #
+  # **«Avance de campo» NO congela columna.** No es una tabla: es una pila de
+  # tablas distintas con sus notas, y su columna A rotula unas veces la meta,
+  # otras la facultad y otras el aplicador — congelarla enseña el rótulo
+  # equivocado al desplazarse. Y además lo impide: sus notas se combinan de la
+  # columna A hasta el final, y Google rechaza el batch entero con «no se pueden
+  # combinar columnas inmovilizadas con columnas no inmovilizadas» (visto al
+  # publicar el 2026-09-08, cuando la Base de control pasó de 43 a 55 columnas y
+  # el formato volvió a enviarse).
+  congela_columna <- !identical(hoja, .malp_hoja_avance())
   requests[[length(requests) + 1L]] <- list(updateSheetProperties = list(
     properties = list(
       sheetId = sheet_id,
       gridProperties = list(
         frozenRowCount = if (n_filas > cabeceras) as.integer(cabeceras) else 0L,
-        frozenColumnCount = if (n_cols > 1L) 1L else 0L
+        frozenColumnCount = if (congela_columna && n_cols > 1L) 1L else 0L
       )
     ),
     fields = "gridProperties(frozenRowCount,frozenColumnCount)"

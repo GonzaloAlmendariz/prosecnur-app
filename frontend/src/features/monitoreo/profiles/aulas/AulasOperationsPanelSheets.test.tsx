@@ -123,11 +123,17 @@ describe("AulasOperationsPanel — publicar al Sheets", () => {
     expect(html).toContain("sin él no hay dónde publicar");
   });
 
-  it("el título del botón cuenta la regla de dueño: las hojas del equipo no se tocan", () => {
+  it("el título del botón cuenta las dos mitades: lee lo del equipo y no lo toca", () => {
+    // La regla de dueño seguía contada —«las hojas del equipo no se tocan»—
+    // pero desde el 2026-09-08 publicar hace algo MÁS que no decía: lee primero
+    // lo que el equipo escribió. Se cambió porque publicar sin leer dejaba
+    // invisible su trabajo, y el botón que no lo dice hace que alguien busque
+    // un «Leer del Sheets» que ya no hace falta pulsar antes.
     const html = pintar({
       config: conPlan({ libro_sheets: RECORDADO }),
       onPublicarASheets: () => {},
     });
-    expect(html).toContain("sin tocar las hojas que llena el equipo");
+    expect(html).toContain("Lee primero lo que el equipo escribió");
+    expect(html).toContain("no se tocan");
   });
 });
