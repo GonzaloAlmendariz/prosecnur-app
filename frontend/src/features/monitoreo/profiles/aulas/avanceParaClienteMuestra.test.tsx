@@ -236,15 +236,25 @@ describe("la sobremuestra, cuando el diseño la declara", () => {
     ],
   } as unknown as MonitoreoAulasAvanceCuota;
 
-  it("dice el techo y qué parte de él se lleva", () => {
+  /**
+   * La sobremuestra dejó de ser un párrafo y es una FILA de cierre (2026-09-08):
+   * Gonzalo cortó el texto de encima de la tabla y fijó que muestra y
+   * sobremuestra son las dos metas del estudio, medidas igual. Ya no se dice
+   * «1.250 sobre la meta» —esa resta era la que la degradaba a margen—; se dice
+   * la meta entera, lo conseguido contra ella y lo que falta.
+   */
+  it("la sobremuestra cierra la tabla como la otra meta, no como un margen", () => {
     const html = renderToStaticMarkup(
       <AulasAvanceParaCliente avanceCuota={conDiseno} diseno={conDiseno} />,
     );
+    expect(html).toContain("Sobremuestra");
     expect(html).toContain("3,750");
-    // Y la sobremuestra por separado: 1.250 sobre la meta.
-    expect(html).toContain("1,250");
-    // 2.616 de 3.750 es el 70 %.
-    expect(html).toContain("70 %");
+    // 2.616 de 3.750 es el 69,8 %. Con un decimal, como el resto de la tabla:
+    // el párrafo retirado redondeaba a entero y era la única cifra del panel
+    // que lo hacía.
+    expect(html).toMatch(/69[.,]8 %/);
+    // Y NO la resta que la presentaba como un extra sobre la muestra.
+    expect(html).not.toContain("sobre la meta");
   });
 
   it("se calla entera si el estudio no la declara", () => {
@@ -256,12 +266,23 @@ describe("la sobremuestra, cuando el diseño la declara", () => {
     expect(html).not.toContain("el techo es");
   });
 
-  it("el pie ya no dice que no la compara", () => {
+  /**
+   * El pie decía «la sobremuestra es hasta dónde se compró aforo, NO una segunda
+   * meta». Dejó de ser cierto el 2026-09-08: Gonzalo fijó que son las dos metas
+   * del estudio, con el mismo trato y sin llamar referencial a ninguna. Hay un
+   * test hermano en el libro (`.calaf_nota_metas`) que prohíbe «referencial»,
+   * «margen», «segunda meta» y «techo»; este guard es su gemelo en la app, para
+   * que la pantalla y la hoja no digan cosas distintas del mismo número.
+   */
+  it("el pie no degrada ninguna de las dos metas", () => {
     const html = renderToStaticMarkup(
       <AulasAvanceParaCliente avanceCuota={conDiseno} diseno={conDiseno} />,
     );
     expect(html).not.toContain("no la compara");
-    // Y sigue diciendo lo que sí decide, que no es la sobremuestra.
-    expect(html).toContain("no una segunda meta");
+    for (const prohibida of ["no una segunda meta", "referencial", "no una meta"]) {
+      expect(html, `el pie llama «${prohibida}» a una de las dos metas`).not.toContain(prohibida);
+    }
+    // Y sí dice lo que hay que saber para leer la tabla: que las dos se miden igual.
+    expect(html).toContain("las dos se miden igual");
   });
 });
