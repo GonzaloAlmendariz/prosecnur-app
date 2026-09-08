@@ -428,3 +428,41 @@ test_that("una facultad donde aún no se ha ido calla, en vez de decir «0 de �
   # La tasa ESPERADA sí se sabe: sale del diseño, no del campo.
   expect_equal(r[["Tasa de rendimiento de la facultad esperada"]], 0.6)
 })
+
+test_that("el libro se ordena por CURSO-HORARIO y de forma NUMÉRICA", {
+  # Gonzalo, 2026-09-08: «tanto aulas agendadas como aulas aplicadas siguen el
+  # orden por CH; la app lo construye así para luego que los responsables lo
+  # editan a mano y la app debe poder leerlo así».
+  #
+  # Iba en el orden del PLAN —agrupado por facultad y dentro por el sorteo— y
+  # sobre el libro real daba «CH 1..9, CH 15, CH 23, CH 14, CH 11...». La razón
+  # que había para no ordenar era buena: `split()` ordena alfabéticamente y
+  # daría «CH 1, CH 10, CH 100». La respuesta es ordenar por la clave NATURAL,
+  # no renunciar al orden.
+  u <- function(cod, rol = "titular", tit = cod, orden = NA) list(
+    operational_code = cod, classroom_id = cod, sample_role = rol,
+    titular_operational_code = tit, replacement_order = orden, faculty = "F")
+  plan <- list(
+    u("CH 10"), u("R 10.2", "chain_reserve", "CH 10", 2), u("R 10.1", "chain_reserve", "CH 10", 1),
+    u("CH 2"), u("CH 100"), u("CH 1"), u("CH 20")
+  )
+  g <- prosecnurapp:::.calg_grupos_cadena(plan)
+  expect_identical(names(g), c("CH 1", "CH 2", "CH 10", "CH 20", "CH 100"))
+  # Y dentro de la cadena, el titular primero y las reservas por su orden.
+  codigos <- vapply(g[["CH 10"]], function(x) x$operational_code, character(1))
+  expect_identical(codigos, c("CH 10", "R 10.1", "R 10.2"))
+})
+
+test_that("la fecha vuelve a la hoja como la escribe el equipo, no en ISO", {
+  # El plan guarda ISO —el avance diario ordena por esa fecha— y el agendador
+  # teclea dd/mm/aaaa. Regenerar la hoja con el ISO le cambiaría la forma a sus
+  # 125 filas sin que nadie lo pidiera.
+  f <- prosecnurapp:::.calg_fecha_txt
+  expect_identical(f("2026-09-10"), "10/09/2026")
+  # Idempotente: lo que ya está en el formato del equipo no se toca.
+  expect_identical(f("10/09/2026"), "10/09/2026")
+  # Y lo que no es una fecha se deja intacto: puede ser una nota o una celda a
+  # medio llenar, y reescribirla sería inventar.
+  expect_identical(f("por confirmar"), "por confirmar")
+  expect_identical(f(""), "")
+})
