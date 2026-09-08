@@ -59,13 +59,26 @@
 # dejaban «Encuestas aplicadas (parte)» vacía y la fila quedaba con un hueco en medio;
 # en Sheets un hueco se lee como «se olvidaron», y el «—» ya es el vocabulario
 # del bloque de meta y de la procedencia (sin dato ≠ cero).
-.cala_tabla_filas <- function(tabla, texto = character(0)) {
+#
+# V3 (2026-09-08): hasta aquí el porcentaje se decidía por COLUMNA («Avance»),
+# porque todas las tablas del modelo tenían una fila por sujeto. La tabla de
+# metas está traspuesta —una fila por concepto, una columna por sexo— y sus
+# proporciones viven en dos FILAS. `pct_filas` nombra esas filas por su primera
+# celda; la lista canónica es `.calam_FILAS_PCT`, de quien las produce.
+.cala_tabla_filas <- function(tabla, texto = character(0),
+                              pct_filas = character(0)) {
   nombres <- names(tabla)
   filas <- lapply(seq_len(nrow(tabla)), function(i) {
+    es_pct_fila <- length(pct_filas) &&
+      trimws(as.character(tabla[[1L]][[i]] %||% "")) %in% pct_filas
     vapply(nombres, function(col) {
       v <- tabla[[col]][[i]]
       if (col %in% texto) return(trimws(as.character(v %||% "")))
-      txt <- if (identical(col, "Avance")) .cala_pct_txt(v) else .cala_num_txt(v)
+      txt <- if (identical(col, "Avance") || es_pct_fila) {
+        .cala_pct_txt(v)
+      } else {
+        .cala_num_txt(v)
+      }
       if (nzchar(txt)) txt else "\u2014"
     }, character(1))
   })
@@ -123,10 +136,22 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
     }
     poner(etiqueta, txt)
   }
-  fila_meta("Encuestas de la meta", m$meta_total)
-  fila_meta("Efectivas conseguidas", m$logrado)
-  fila_meta("Avance", m$avance, pct = TRUE)
-  fila_meta("Faltan", m$falta)
+  # V3: con cuotas del diseño el bloque son LAS DOS METAS por sexo, presididas
+  # por la cifra que Gonzalo pidió al frente; sin ellas, el bloque de siempre
+  # (la meta del plan, que es lo único reconstruible).
+  if (is.data.frame(ind$metas) && nrow(ind$metas)) {
+    titular <- .calam_titular(ind$facultades)
+    if (!is.null(titular)) poner(titular)
+    for (f in .cala_tabla_filas(ind$metas, texto = "Por sexo",
+                                pct_filas = .calam_FILAS_PCT)) poner(f)
+  } else {
+    fila_meta("Encuestas de la meta", m$meta_total)
+    fila_meta("Efectivas conseguidas", m$logrado)
+    fila_meta("Avance", m$avance, pct = TRUE)
+    fila_meta("Faltan", m$falta)
+  }
+  # Las dos cifras de AULAS no son de personas y no entran en la tabla por
+  # sexo: se miden contra la meta de cada curso-horario, no contra la cuota.
   fila_meta("Aulas que llegaron a SU meta", m$aulas_cerradas)
   fila_meta("Aulas del operativo", m$aulas)
   if (sin_dato) {

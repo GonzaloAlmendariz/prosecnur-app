@@ -234,8 +234,12 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
     responses = responses, validas = validas, cfg = cfg, partes = partes
   )
 
+  # V3 (2026-09-08): el bloque de meta con las DOS metas y por sexo, DERIVADO
+  # de la tabla por facultad para que no haya una segunda definición de la
+  # muestra ni de la sobremuestra. Vive en `carga_aulas_libro_avance_metas.R`.
+  # `NULL` sin cuotas del diseño: ahí el bloque sigue siendo el de `meta`.
   list(meta = meta, diario = diario, aplicadores = aplicadores,
-       facultades = facultades)
+       facultades = facultades, metas = .calam_tabla_metas(facultades))
 }
 
 #' Por que no hay avance diario, en una frase.
@@ -424,16 +428,48 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
   fila <- fila + 1L
   # El porcentaje va con su estilo propio: escrito como cifra saldria «0.6».
-  filas_meta <- list(
+  # V3 (2026-09-08): con cuotas del diseño, el bloque son LAS DOS METAS por
+  # sexo —tabla propia, `.calam_tabla_metas()`, escrita justo debajo— y estas
+  # filas se reducen a las dos de AULAS, que no son de personas y se miden
+  # contra la meta de cada curso-horario. Sin cuotas, el bloque de siempre.
+  con_metas <- is.data.frame(ind$metas) && nrow(ind$metas)
+  filas_meta <- if (con_metas) list() else list(
     list("Encuestas de la meta", cifra_limpia(m$meta_total), estilo_de_cifra(m$meta_total)),
     list("Efectivas conseguidas", cifra_limpia(m$logrado), estilo_de_cifra(m$logrado)),
     list("Avance", m$avance, pct),
-    list("Faltan", cifra_limpia(m$falta), estilo_de_cifra(m$falta)),
+    list("Faltan", cifra_limpia(m$falta), estilo_de_cifra(m$falta))
+  )
+  filas_meta <- c(filas_meta, list(
     # Que la suma vaya al 59 % no dice cuantas aulas quedan por cerrar: se puede
     # ir alto con la mitad de las aulas a medias.
     list("Aulas que llegaron a SU meta", cifra_limpia(m$aulas_cerradas), estilo_de_cifra(m$aulas_cerradas)),
     list("Aulas del operativo", cifra_limpia(m$aulas), estilo_de_cifra(m$aulas))
-  )
+  ))
+
+  # La cifra que Gonzalo pidió al frente de Avance, y debajo la tabla de las dos
+  # metas por sexo. Las filas de proporción se pintan POR FILA
+  # (`.calam_FILAS_PCT`): esta tabla está traspuesta y sus porcentajes no viven
+  # en una columna, como en las demás del libro.
+  if (con_metas) {
+    titular <- .calam_titular(ind$facultades)
+    if (!is.null(titular)) {
+      .cai_nota(wb, hoja, fila, titular, nota, n_hoja)
+      fila <- fila + 1L
+    }
+    ncol_met <- ncol(ind$metas)
+    openxlsx::writeData(wb, hoja, ind$metas, startCol = 1, startRow = fila)
+    .cai_rayas(wb, hoja, ind$metas, fila, sin_dato_celda)
+    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = seq_len(ncol_met),
+                       gridExpand = TRUE)
+    etiquetas_met <- as.character(ind$metas[[1L]])
+    for (j in seq_along(etiquetas_met)) {
+      estilo_fila <- if (etiquetas_met[[j]] %in% .calam_FILAS_PCT) porcentaje else numero
+      openxlsx::addStyle(wb, hoja, estilo_fila, rows = fila + j,
+                         cols = 2:ncol_met, gridExpand = TRUE)
+      openxlsx::addStyle(wb, hoja, etiqueta, rows = fila + j, cols = 1)
+    }
+    fila <- fila + nrow(ind$metas) + 2L
+  }
   sin_dato <- 0L
   for (f in filas_meta) {
     openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)

@@ -248,7 +248,12 @@ test_that("S1: las cifras van a la derecha y los rótulos se quedan a la izquier
               info = "el «Avance» (75 %) de Letras no va a la derecha")
   expect_false("RIGHT" %in% .mfa_alineacion_de(requests, fila, 1L),
                info = "el rótulo «Letras» no debe ir a la derecha")
-  fila_meta <- .mfa_fila_de(rows, "Encuestas de la meta")
+  # V3 (2026-09-08): con cuotas del diseño el bloque de meta es la tabla de las
+  # dos metas por sexo, y «Encuestas de la meta» —la suma de `expected_valid`
+  # del plan— ya no lo preside. La fila equivalente, presente con cuotas y sin
+  # ellas, es «Efectivas conseguidas».
+  fila_meta <- .mfa_fila_de(rows, "Efectivas conseguidas")
+  expect_false(is.na(fila_meta), info = "el renderer perdió la fila «Efectivas conseguidas»")
   expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila_meta, 2L),
               info = "la cifra del bloque de meta no va a la derecha")
   # Las dos filas de título no se alinean: son texto de portada.
@@ -352,7 +357,7 @@ test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con aju
                  info = sprintf("la nota de la fila %d no tiene alto de fila", fila))
   }
   # Ni las filas de tabla ni las de título se fusionan.
-  for (etiqueta in c("Letras", "Avance contra la meta", "Facultad", "Encuestas de la meta")) {
+  for (etiqueta in c("Letras", "Avance contra la meta", "Facultad", "Efectivas conseguidas")) {
     fila <- .mfa_fila_de(rows, etiqueta)
     expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 0L,
                      info = sprintf("«%s» (fila %d) no debe fusionarse", etiqueta, fila))
