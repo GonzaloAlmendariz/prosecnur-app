@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
-import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
+import { AulasTablasDeAvance } from "./AulasTablasDeAvance";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
@@ -105,18 +105,20 @@ export function AulasPestanaCuotas({
               el del gráfico de Estratos, y el guard de títulos lo rechaza con
               razón: dos paneles homónimos en un mismo perfil obligan a abrir
               los dos para saber cuál se está citando. */}
-          <h3>Cuota asignada y encuestas logradas</h3>
-          <span>contra la cuota del diseño, por sexo</span>
+          <h3>Avance de campo en tablas</h3>
+          <span>las mismas cinco que van al libro y al Sheets</span>
         </div>
-        <AulasAvanceParaCliente
-          avanceCuota={dashboard.avance_cuota}
-          celdasSexo={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
-          efectividad={dashboard.efectividad_seguimiento}
-          avancePorFacultad={(dashboard.avance_por_facultad ?? []) as MonitoreoRow[]}
-          diseno={dashboard.avance_cuota}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
-        />
+        {/* **Las cinco tablas que dictó Gonzalo**, servidas por el motor con su
+            contrato de formato. Sustituyen a `AulasAvanceParaCliente`, que
+            enseñaba una sola tabla derivada en el front: «esta tabla está súper
+            pobre y no refleja el avance real (...) se supone que la app debe ser
+            una versión mejorada del Excel y francamente veo todo lo contrario».
+
+            Aquí no se recalcula nada. La app es la que ORDENA la información de
+            plataforma —regla suya del mismo día— y el motor es su backend: la
+            pantalla enseña lo que ese motor ya calcula para el libro, el PDF y
+            el Sheets, así que las cuatro superficies no pueden discrepar. */}
+        <AulasTablasDeAvance />
       </section>
       <section
         className="mon-profile-panel"

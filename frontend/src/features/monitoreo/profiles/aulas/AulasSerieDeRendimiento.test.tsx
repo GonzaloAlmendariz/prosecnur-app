@@ -75,8 +75,15 @@ describe("la serie separa lo aplicado de lo agendado", () => {
     // Se comprueba que la zona SE PINTE, no que exista: un `<rect>` con
     // `fill="none" opacity="0"` tiene la misma geometría y no se ve. La primera
     // versión de este aserto miraba sólo x/ancho/alto y ese mutante pasaba.
+    // **La franja se identifica por su NOMBRE, no por su aspecto.** Desde que el
+    // «Día a día» dibuja barras también sin facultad en foco (2026-09-08), una
+    // barra de elegibles que llega justo al tope del eje tiene la misma caja Y
+    // la misma tinta que la franja: el fixture, con `eligible_n: 40`, producía
+    // exactamente ese empate y el regex contaba cuatro donde hay dos. Un guard
+    // que reconoce las cosas por cómo se ven caduca en cuanto otra cosa se ve
+    // igual.
     const zonas = [...html.matchAll(
-      /<rect x="([\d.]+)" y="4" width="([\d.]+)" height="92" fill="([^"]+)" opacity="([\d.]+)"/g)];
+      /<rect x="([\d.]+)" y="4" width="([\d.]+)" height="92" fill="([^"]+)" opacity="([\d.]+)" class="aulas-serie-franja"/g)];
     expect(zonas).toHaveLength(2);
     for (const [, x, ancho, fill, opacidad] of zonas) {
       expect(Number(x)).toBeGreaterThan(4);
