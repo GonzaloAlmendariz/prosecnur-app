@@ -29,10 +29,15 @@
 # --- fixtures (autocontenidos: los helpers de otro test file no se ven) -------
 
 .mfa_plan <- function() list(
+  # Con fecha agendada: desde el 2026-09-08 las «Efectivas esperadas» del avance
+  # diario son la suma de las metas de las aulas AGENDADAS ese día, así que sin
+  # agenda esa columna queda vacía y con ella la diferencia.
   list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6),
+       eligible_n = 30, expected_valid = 20, scheduled_date = "2026-08-10",
+       scheduled_time = "10:00"),
   list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6)
+       eligible_n = 30, expected_valid = 20, scheduled_date = "2026-08-11",
+       scheduled_time = "10:00")
 )
 
 .mfa_respuestas <- function() data.frame(
@@ -460,8 +465,8 @@ test_that("«Diferencia» no es lo mismo en dos tablas: sólo una va en porcenta
     nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
     list(fila = cab + 1L, col = which(nombres == rotulo))
   }
-  r <- col_de("rendimiento", "Diferencia")
-  d <- col_de("diario", "Diferencia")
+  r <- col_de("rendimiento", "Diferencia de tasa")
+  d <- col_de("diario", "Diferencia de efectivas")
   expect_true("0.0%" %in% .mfa_numfmt_de(requests, r$fila, r$col))
   expect_true("#,##0" %in% .mfa_numfmt_de(requests, d$fila, d$col))
   expect_false("0.0%" %in% .mfa_numfmt_de(requests, d$fila, d$col))
@@ -475,7 +480,7 @@ test_that("una DIFERENCIA se pinta en escala con el cero clavado en el medio", {
   requests <- .mfa_requests(rows)
   cab <- .mfa_cabecera_de(rows, "rendimiento")
   nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
-  reglas <- .mfa_reglas_de(requests, cab + 1L, which(nombres == "Diferencia"))
+  reglas <- .mfa_reglas_de(requests, cab + 1L, which(nombres == "Diferencia de tasa"))
   escalas <- Filter(function(r) !is.null(r$gradientRule), reglas)
   expect_length(escalas, 1L)
   g <- escalas[[1]]$gradientRule

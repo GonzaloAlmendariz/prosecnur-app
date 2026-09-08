@@ -58,9 +58,14 @@ AULAS_AVANCE_CABECERAS <- list(
   ),
   rendimiento = c(
     "Facultad", "Aulas aplicadas", "Aulas planificadas",
+    # Las dos tasas en ENCUESTAS antes que en porcentaje (Gonzalo, 2026-09-08:
+    # «las esperadas hasta ahora en base a las aulas aplicadas hasta hoy y la
+    # tasa de rendimiento de facultad, y cuántas vamos»). Una tasa dice si el
+    # aula rinde; el conteo dice cuántas encuestas son, que es lo que se recoge.
+    "Efectivas esperadas", "Efectivas obtenidas", "Diferencia de efectivas",
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",
-    "Diferencia",
+    "Diferencia de tasa",
     "Aulas adicionales solicitadas hasta el momento"
   ),
   aplicador = c(
@@ -73,10 +78,11 @@ AULAS_AVANCE_CABECERAS <- list(
   ),
   diario = c(
     "Facultad", "Día", "Día de la semana",
-    "Efectivas del día", "Efectivas esperadas", "Diferencia",
+    "Efectivas del día", "Efectivas esperadas", "Diferencia de efectivas",
     "Efectivas acumuladas", "Faltantes para la meta",
     "Tasa de rendimiento de la facultad esperada",
-    "Tasa de rendimiento de la facultad obtenida"
+    "Tasa de rendimiento de la facultad obtenida",
+    "Diferencia de tasa"
   )
 )
 
@@ -141,7 +147,7 @@ AULAS_AVANCE_PROPORCIONES <- list(
   rendimiento = c(
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",
-    "Diferencia"
+    "Diferencia de tasa"
   ),
   aplicador = c(
     "Tasa de rendimiento esperada en facultad",
@@ -149,7 +155,8 @@ AULAS_AVANCE_PROPORCIONES <- list(
   ),
   diario = c(
     "Tasa de rendimiento de la facultad esperada",
-    "Tasa de rendimiento de la facultad obtenida"
+    "Tasa de rendimiento de la facultad obtenida",
+    "Diferencia de tasa"
   )
 )
 
@@ -158,8 +165,31 @@ AULAS_AVANCE_PROPORCIONES <- list(
 #' «las diferencia positivas (nos fue mejor de lo esperado) deben estar pintadas
 #' en escalas de verde y en los que la diferencia sea negativa que vayan en
 #' escalas de rojo».
+#'
+#' **El nombre dice la unidad, y eso no es cosmética.** Se llamaban las dos
+#' «Diferencia» y significaban cosas distintas —encuestas en el avance diario,
+#' puntos porcentuales en el rendimiento—; con la lista de proporciones plana,
+#' el −35 encuestas de un martes salió como «−3 500,0 %». Ahora el rótulo lleva
+#' su unidad y la ambigüedad no puede volver por otro camino.
 #' @keywords internal
-AULAS_AVANCE_DIFERENCIAS <- c("Diferencia")
+AULAS_AVANCE_DIFERENCIAS <- c("Diferencia de efectivas", "Diferencia de tasa")
+
+#' Rótulos de AVANCE contra una meta: se pintan como un depósito que se llena.
+#'
+#' Gonzalo pidió primero «de rojo hasta verde y luego celeste» y se corrigió él
+#' mismo en el mensaje siguiente: «quizás otra forma de mostrarlo, porque rojo
+#' da a entender que es algo malo cuando puede ser sólo que recién esté
+#' empezando». Tiene razón y por eso estos rótulos NO llevan rojo.
+#'
+#' Un avance del 19,8 % en el día 2 de un operativo de tres semanas no es malo:
+#' es el día 2. La diferencia contra lo esperado sí admite un veredicto —ahí el
+#' rojo es honesto y se conserva—; el avance contra el total sólo admite «cuánto
+#' llevas». Va de un gris muy claro al verde en el 100 %, y al pasarse, celeste.
+#' @keywords internal
+AULAS_AVANCE_AVANCES <- c(
+  "Avance muestra", "Avance sobremuestra",
+  "Avance muestra hombres", "Avance muestra mujeres"
+)
 
 #' Rótulos donde un CERO significa «esta celda ya cubrió la MUESTRA» → verde.
 #' @keywords internal

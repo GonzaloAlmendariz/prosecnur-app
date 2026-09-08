@@ -14,20 +14,31 @@
 # puede ser un martes excelente en Ciencias y un martes perdido en Derecho, y la
 # suma dice «300».
 #
-# CÓMO SE FECHA UN AULA, Y POR QUÉ NO SE USA LA FECHA DEL PARTE
+# QUÉ SON LAS «EFECTIVAS ESPERADAS» DE UN DÍA
 #
-# «Efectivas esperadas» del día son las de las aulas que se aplicaron ESE día, y
-# el día de aplicación sale de la PLATAFORMA —la primera jornada en que el aula
-# produjo una efectiva—, no de `applied_at`. Es la misma decisión que
-# `.monitoreo_aulas_fecha_de_plataforma()`: medido sobre el campo real,
-# `applied_at` llegaba vacío en los 152 partes mientras las respuestas traían
-# hora completa. La diferencia con aquella función es que aquí se cuentan sólo
-# las EFECTIVAS, porque es contra ellas que se mide la meta.
+# **Las de los curso-horario que YA SE APLICARON ese día, no las de todos los
+# agendados.** Gonzalo, 2026-09-08, viendo la tabla publicada: «las efectivas
+# esperadas son las de los cursos-horario que ya se han aplicado en el día, no
+# todas las planificadas del día, ¿verdad? porque lo segundo no sería justo».
 #
-# Un día puede traer efectivas y ninguna aula aplicada: son las respuestas
-# rezagadas de un aula de ayer. Ahí la tasa obtenida del día queda en blanco
-# —dividir entre los elegibles de cero aulas no es cero, es indefinido— y las
-# efectivas siguen contando en el acumulado, que es donde importan.
+# Esta columna llegó a medirse sobre las AGENDADAS durante un rato, por una
+# respuesta suya que llegó por otra vía. No lo dejes así otra vez: comparar las
+# efectivas de un día contra la meta de todo lo agendado castiga a la facultad
+# por las aulas a las que todavía no ha ido, y en una jornada a medias castiga
+# por las horas que faltan. La comparación justa es contra lo que se aplicó, que
+# es lo mismo que produjo las efectivas del día.
+#
+# El día de aplicación sale de la PLATAFORMA: la primera jornada en que el aula
+# produjo una efectiva. Es la misma decisión de
+# `.monitoreo_aulas_fecha_de_plataforma()`, y por el mismo motivo medido en
+# campo: `applied_at` llegaba vacío en los 152 partes mientras las respuestas
+# traían hora completa. La diferencia con aquella función es que aquí se cuentan
+# sólo las EFECTIVAS, porque es contra ellas que se mide la meta.
+#
+# Un día puede traer efectivas y ninguna aula estrenada: son las respuestas
+# rezagadas de un aula de ayer. Ahí las esperadas y la tasa del día quedan en
+# blanco, porque dividir entre los elegibles de cero aulas no es cero sino
+# indefinido, y las efectivas siguen contando en el acumulado.
 
 # Los días de la semana en castellano, SIN pasar por el locale del sistema.
 # `format(x, "%A")` devuelve «Tuesday» en un contenedor sin locale español y ya
@@ -140,12 +151,13 @@
     for (d in dias) {
       del_dia <- sum(por_dia[[d]][idx], na.rm = TRUE)
       aplicadas_hoy <- idx & !is.na(primera) & primera == d
-      # Ni efectivas ni aulas estrenadas: ese día esa facultad no existió en el
+      # Ni efectivas ni aulas estrenadas: ese día esa facultad no estuvo en el
       # campo y una fila en cero sólo alarga la tabla.
       if (del_dia <= 0 && !any(aplicadas_hoy)) next
       esperadas <- sum(esp_plan[aplicadas_hoy & is.finite(esp_plan)], na.rm = TRUE)
       eleg_hoy <- sum(eleg_plan[aplicadas_hoy & is.finite(eleg_plan)], na.rm = TRUE)
       acumulado <- acumulado + del_dia
+      obtenida_tasa <- if (eleg_hoy > 0) del_dia / eleg_hoy else NA_real_
       out <- data.frame(
         f, d, .calad_dia_de_la_semana(d),
         del_dia,
@@ -154,7 +166,14 @@
         acumulado,
         if (is.finite(cuota)) max(0, cuota - acumulado) else NA_real_,
         esperada_tasa,
-        if (eleg_hoy > 0) del_dia / eleg_hoy else NA_real_,
+        obtenida_tasa,
+        # La brecha de tasa del día, que es lo que dice si ese día se rindió por
+        # encima o por debajo de lo que la facultad rinde de costumbre. La
+        # diferencia en encuestas ya está arriba; ésta es la misma noticia en
+        # la unidad que compara aulas de tamaños distintos.
+        if (is.finite(esperada_tasa) && is.finite(obtenida_tasa)) {
+          obtenida_tasa - esperada_tasa
+        } else NA_real_,
         stringsAsFactors = FALSE
       )
       names(out) <- AULAS_AVANCE_CABECERAS$diario

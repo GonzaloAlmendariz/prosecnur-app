@@ -90,11 +90,14 @@ test_that("«tasa de facultad» se escribe con su nombre completo", {
 })
 
 test_that("la naturaleza de un rótulo se decide POR TABLA, no en una lista plana", {
-  # «Diferencia» se llama igual en dos tablas y no es lo mismo: puntos
-  # porcentuales en «Rendimiento por facultad» y encuestas en «Avance diario».
-  # Con una lista plana el −35 encuestas de un martes salía como «−3 500,0 %».
-  expect_true(prosecnurapp:::.calac_es_proporcion("Diferencia", "rendimiento"))
-  expect_false(prosecnurapp:::.calac_es_proporcion("Diferencia", "diario"))
+  # Las dos tablas tienen su «Efectivas esperadas» y su diferencia, y no son la
+  # misma unidad: puntos porcentuales en «Diferencia de tasa», encuestas en
+  # «Diferencia de efectivas». Cuando las dos se llamaban «Diferencia» y la
+  # lista era plana, el −35 encuestas de un martes salía como «−3 500,0 %».
+  expect_true(prosecnurapp:::.calac_es_proporcion("Diferencia de tasa", "rendimiento"))
+  expect_true(prosecnurapp:::.calac_es_proporcion("Diferencia de tasa", "diario"))
+  expect_false(prosecnurapp:::.calac_es_proporcion("Diferencia de efectivas", "diario"))
+  expect_false(prosecnurapp:::.calac_es_proporcion("Efectivas esperadas", "rendimiento"))
   # Y toda proporción declarada pertenece a la cabecera (o a las filas) de SU
   # tabla: una entrada huérfana no pintaría nada y nadie lo notaría.
   for (clave in names(AULAS_AVANCE_PROPORCIONES)) {
@@ -239,4 +242,130 @@ test_that("la portada dice la HORA de la última actualización, y sale del esta
   # Y el renderer sigue sin consultar el reloj en su cuerpo.
   cuerpo <- paste(deparse(body(aulas_libro_hoja_avance)), collapse = " ")
   expect_false(grepl("Sys.Date|Sys.time", cuerpo))
+})
+
+test_that("los tres rangos de aplicación usan los cortes que dictó Gonzalo: 9:00 y 18:00", {
+  # Textual, 2026-09-08 por la tarde: «Es el horario de inicio de aplicación, no
+  # el que viene a oficina o en el que sale de oficina, sino el de aplicación.
+  # El regular es de 9am a 6pm; antes es especial mañana y después es especial
+  # noche.» Los cortes que había (8:00 y 19:00) los había deducido yo del plan.
+  rango <- function(h) prosecnurapp:::.calg_rango_de_aplicacion(h)
+  expect_identical(rango("08:59"), "Especial mañana")
+  expect_identical(rango("09:00"), "Regular")
+  expect_identical(rango("17:59"), "Regular")
+  expect_identical(rango("18:00"), "Especial noche")
+  expect_identical(rango("19:30"), "Especial noche")
+  # Sin hora no se clasifica: inventar un rango pondría una aula en un tramo
+  # que no le toca y la Base de control lo publica como dato.
+  expect_identical(rango(""), "")
+})
+
+test_that("«Aulas adicionales solicitadas» suma las activadas y las que el equipo ya agendó", {
+  # Gonzalo, 2026-09-08: «cualquier aula pedida de más sobre el plan original,
+  # venga del banco o la haya conseguido el equipo por su cuenta». Las dos
+  # listas son disjuntas —el libro se queda con las activadas y el banco con el
+  # resto— así que sumarlas no duplica.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Letras", eligible_n = 40, expected_valid = 24),
+    # Una extra ACTIVADA: tiene efectivas, así que entró al libro.
+    list(operational_code = "EX 1", classroom_id = "E1",
+         sample_role = "extra_reserve_pool", faculty = "Letras",
+         eligible_n = 40, expected_valid = 24)
+  )
+  # Y dos del banco sin activar: una que el equipo YA AGENDÓ en la hoja
+  # «(Extra)» y otra que nadie tocó. La segunda está disponible, no solicitada.
+  banco <- list(
+    list(operational_code = "EX 2", sample_role = "extra_reserve_pool",
+         faculty = "Letras", scheduled_date = "2026-09-10"),
+    list(operational_code = "EX 3", sample_role = "extra_reserve_pool",
+         faculty = "Letras")
+  )
+  ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12, `EX 1` = 8),
+                                 extras = banco)
+  expect_equal(ind$rendimiento[["Aulas adicionales solicitadas hasta el momento"]], 2L)
+  # Sin banco, sólo las activadas: el argumento es opcional y no cambia nada más.
+  sin <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12, `EX 1` = 8))
+  expect_equal(sin$rendimiento[["Aulas adicionales solicitadas hasta el momento"]], 1L)
+})
+
+test_that("las «Efectivas esperadas» del día salen de las aulas YA APLICADAS ese día", {
+  # Gonzalo, 2026-09-08, viendo la tabla publicada: «las efectivas esperadas son
+  # las de los cursos-horario que ya se han aplicado en el día, no todas las
+  # planificadas del día, ¿verdad? porque lo segundo no sería justo».
+  #
+  # Esta columna se midió sobre las AGENDADAS durante un rato, por una respuesta
+  # suya que llegó por otra vía. El test existe para que no vuelva: comparar las
+  # efectivas de un día contra la meta de todo lo agendado castiga a la facultad
+  # por las aulas a las que todavía no ha ido.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Letras", eligible_n = 40, expected_valid = 24,
+         scheduled_date = "2026-09-07"),
+    # Agendada el mismo lunes y NO aplicada: su meta no entra en las esperadas
+    # del lunes.
+    list(operational_code = "CH 2", classroom_id = "A2", sample_role = "titular",
+         faculty = "Letras", eligible_n = 40, expected_valid = 30,
+         scheduled_date = "2026-09-07")
+  )
+  resp <- data.frame(
+    collectorID = rep("CH 1", 10),
+    `_submission_time` = rep("2026-09-07T10:00:00", 10),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ind <- aulas_libro_indicadores(
+    plan, efectivas = c(`CH 1` = 10), responses = resp, validas = rep(TRUE, 10),
+    cuotas = list(meta_diseno = 100, facultades = list(list(facultad = "Letras", cuota = 100))),
+    cfg = list(source_mapping = list(collector_var = "collectorID")))
+  d <- ind$diario
+  expect_equal(nrow(d), 1L)
+  lunes <- d[d[["Día"]] == "2026-09-07", ]
+  # 24, la meta de la única aula aplicada. Con las agendadas serían 54.
+  expect_equal(lunes[["Efectivas esperadas"]], 24)
+  expect_equal(lunes[["Efectivas del día"]], 10)
+  expect_equal(lunes[["Diferencia de efectivas"]], -14)
+  # Y la tasa del día se mide sobre los elegibles de esa misma aula, no de las
+  # dos: 10 de 40, no 10 de 80.
+  expect_equal(lunes[["Tasa de rendimiento de la facultad obtenida"]], 0.25)
+  expect_equal(lunes[["Diferencia de tasa"]],
+               0.25 - lunes[["Tasa de rendimiento de la facultad esperada"]])
+})
+
+test_that("un AVANCE se pinta como un depósito que se llena, nunca en rojo", {
+  # Gonzalo pidió primero «de rojo hasta verde y luego celeste» y se corrigió él
+  # mismo en el mensaje siguiente: «quizás otra forma de mostrarlo, porque rojo
+  # da a entender que es algo malo cuando puede ser sólo que recién esté
+  # empezando». Un 19,8 % en el día 2 de tres semanas no es malo, es el día 2.
+  # El rojo se queda donde sí hay veredicto: la diferencia contra lo esperado.
+  expect_length(intersect(AULAS_AVANCE_AVANCES, AULAS_AVANCE_DIFERENCIAS), 0L)
+  rango <- list(sheetId = 1L, startRowIndex = 0L, endRowIndex = 1L,
+                startColumnIndex = 1L, endColumnIndex = 2L)
+  g <- prosecnurapp:::.maaf_regla_deposito(rango)$addConditionalFormatRule$rule$gradientRule
+  # Los dos extremos son la VARA (0 y 100 %), no el rango de los datos: con
+  # MIN/MAX un avance del 3 % saldría verde por ser el mayor de una columna que
+  # va toda por debajo.
+  expect_identical(g$minpoint$value, "0")
+  expect_identical(g$maxpoint$value, "1")
+  expect_null(g$midpoint)
+  # Y el extremo vacío no es rojo: es más claro que oscuro en los tres canales.
+  expect_gt(g$minpoint$color$red, 0.9)
+  expect_gt(g$minpoint$color$green, 0.9)
+  expect_gt(g$minpoint$color$blue, 0.9)
+  # El lleno es verde: más verde que rojo.
+  expect_gt(g$maxpoint$color$green, g$maxpoint$color$red)
+})
+
+test_that("ninguna nota de la hoja lleva em dash", {
+  # Gonzalo, 2026-09-08, por segunda vez: «ya te he dicho mil veces que no uses
+  # em dashes». El «—» de una celda sin dato es otra cosa y se conserva: ahí es
+  # el vacío declarado, no puntuación.
+  ind <- .calac_ind()
+  filas <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-08"))
+  textos <- unlist(lapply(filas, function(f) {
+    v <- vapply(f, function(x) if (is.character(x)) x else "", character(1))
+    v[nchar(v) > 12L]
+  }), use.names = FALSE)
+  expect_gt(length(textos), 0L)
+  con_guion <- grep(" — ", textos, value = TRUE)
+  expect_length(con_guion, 0L)
 })
