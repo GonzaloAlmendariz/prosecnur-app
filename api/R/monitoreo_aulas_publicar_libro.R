@@ -924,8 +924,25 @@ mount_monitoreo_aulas_libro <- function(pr) {
                  paste("No hay Sheets de la distribución que adoptar: créalo desde la app",
                        "o pega su enlace una vez."))
       }
+      # La pestaña se localiza por su CABECERA, igual que al leer: el documento
+      # del operativo la tiene llamada «Semana 1» y adoptar por nombre reventaba
+      # con «Unable to parse range: \'Plan del día\'» sobre un documento con
+      # ochenta y seis citas dentro.
+      id_dist <- .monitoreo_extract_spreadsheet_id(destino)
+      hoja_dist <- tryCatch({
+        meta <- .monitoreo_sheets_metadata(id_dist)
+        titulos <- vapply(meta$sheets %||% list(), function(h) {
+          .monitoreo_scalar((h$properties %||% list())$title, "")
+        }, character(1))
+        .madc_pestana_de_la_distribucion(id_dist, titulos)
+      }, error = function(e) "")
+      if (!nzchar(hoja_dist)) {
+        stop_api(409, "E_AULAS_DISTRIBUCION_SIN_HOJA",
+                 paste("El Sheets de la distribución no trae ninguna pestaña con forma de",
+                       "distribución: hace falta una con las columnas CURSO-HORARIO y FECHA."))
+      }
       remoto <- tryCatch(
-        .cads_valores_de_pestana(.monitoreo_extract_spreadsheet_id(destino), .mapd_hoja()),
+        .cads_valores_de_pestana(id_dist, hoja_dist),
         error = function(e) {
           stop_api(502, "E_GOOGLE_SHEETS",
                    paste("No se pudo leer el Sheets de la distribución:", conditionMessage(e)))
@@ -949,7 +966,8 @@ mount_monitoreo_aulas_libro <- function(pr) {
       c(out, list(
         ok = TRUE,
         aplicado = aplicar,
-        spreadsheet_id = .monitoreo_extract_spreadsheet_id(destino),
+        hoja = hoja_dist,
+        spreadsheet_id = id_dist,
         fijaciones_previas = length(aulas_cfg[["reparto_fijado"]] %||% list()),
         state = if (aplicar) .monitoreo_state_payload(sid) else NULL
       ))

@@ -42,16 +42,24 @@
   ""
 }
 
-# Un valor de celda listo para JSON: el número como número, el `NA` como `null`
-# —para que la pantalla ponga SU vacío declarado y no herede el «—» del Sheets—
-# y el texto como texto.
+# Un valor de celda listo para JSON: el número como número, el texto como texto,
+# y la celda sin dato como `NA`, que cruza como `null` para que la pantalla ponga
+# SU vacío declarado en vez de heredar el «—» del Sheets.
+#
+# **`NA` y no `NULL`, y la diferencia se ve sólo en el JSON.** La primera versión
+# devolvía `NULL` porque en R es el vacío natural; `jsonlite` serializa un `NULL`
+# dentro de una lista como OBJETO VACÍO, así que la celda cruzaba como `{}` y la
+# pantalla la escribía «[object Object]». Salió en las tres filas de aulas de
+# «Avance general» y lo vio la sesión que monta la vista. El test lo pinea sobre
+# el JSON serializado y no sobre el valor de R: el valor de R estaba bien, y por
+# eso el pin que miraba el valor pasaba con el contrato roto.
 .maat_celda <- function(v) {
   if (is.character(v)) {
     x <- trimws(as.character(v))
     return(if (length(x) && !is.na(x[[1]])) x[[1]] else "")
   }
   x <- suppressWarnings(as.numeric(v))
-  if (!length(x) || !is.finite(x[[1]])) return(NULL)
+  if (!length(x) || !is.finite(x[[1]])) return(NA)
   x[[1]]
 }
 
