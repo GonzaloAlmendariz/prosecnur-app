@@ -243,6 +243,14 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 #' Un «—» dice que falta el dato; no dice que hacer. Las dos causas piden cosas
 #' distintas: sin base de respuestas hay que cargarla, y con base pero sin
 #' fechas legibles el problema esta en la columna de fecha del formulario.
+# S11 (loop estética, 2026-09-07): la frase del vacío del bloque de
+# aplicadores, UNA para el xlsx y el Sheets. El Sheets ya la escribía (C3: la
+# sección no desaparece, dice por qué está vacía) y el xlsx omitía el bloque
+# entero: dos hojas del mismo modelo con dos respuestas a la misma pregunta.
+.cali_motivo_sin_aplicadores <- function() {
+  "Sin partes de campo registrados: todavía no hay producción por aplicador que mostrar."
+}
+
 .cali_motivo_sin_diario <- function(ind) {
   m <- ind$meta %||% list()
   if (is.null(m$logrado) || !length(m$logrado) || !is.finite(suppressWarnings(as.numeric(m$logrado)))) {
@@ -608,6 +616,14 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     openxlsx::addStyle(wb, hoja, rejilla, rows = fila:(fila + n), cols = seq_len(n_col_apl),
                        gridExpand = TRUE, stack = TRUE)
     fila <- fila + n + 2L
+  } else {
+    # S11: sin partes, el bloque no desaparece: título con su banda y el vacío
+    # declarado con la MISMA frase que el Sheets.
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, "Producción por aplicador", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+    .cai_nota(wb, hoja, fila + 1L, .cali_motivo_sin_aplicadores(), nota, n_hoja)
+    fila <- fila + 3L
   }
 
   # **La seccion no desaparece: dice por que esta vacia.** Sin avance diario, el
