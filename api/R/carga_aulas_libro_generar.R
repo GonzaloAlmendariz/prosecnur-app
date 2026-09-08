@@ -636,10 +636,21 @@ aulas_libro_grupos_control <- function() {
 # Era «Mañana / Tarde / Noche», que sólo repite lo que la hora ya dice. Lo que
 # el operativo distingue —dictado de Gonzalo, 2026-09-08— es si la aplicación
 # cae FUERA del horario normal, porque eso cuesta permisos, transporte y gente
-# dispuesta: antes de las 8:00 y desde las 19:00. Medido sobre el plan de la
-# semana: 0 especiales de mañana, 95 regulares y 11 especiales de noche.
-.calg_RANGO_ESPECIAL_MANANA <- 8L * 60L
-.calg_RANGO_ESPECIAL_NOCHE <- 19L * 60L
+# dispuesta.
+#
+# **Los cortes los dio él, y no eran los que yo había puesto** (8:00 y 19:00,
+# deducidos del plan). Textual, el 2026-09-08 por la tarde: «Es el horario de
+# inicio de aplicación, no el que viene a oficina o en el que sale de oficina,
+# sino el de aplicación. El regular es de 9am a 6pm; antes es especial mañana y
+# después es especial noche.»
+#
+# El matiz de la primera frase es la mitad del contrato: la hora que manda es la
+# de INICIO DE LA APLICACIÓN del curso-horario (`scheduled_time`), no la de
+# entrada ni la de salida de oficina del aplicador, ni la del parte. Si alguna
+# vez se cambia la fuente de esta hora por un horario de oficina, la columna
+# entera pasa a decir otra cosa con el mismo rótulo.
+.calg_RANGO_ESPECIAL_MANANA <- 9L * 60L
+.calg_RANGO_ESPECIAL_NOCHE <- 18L * 60L
 .calg_rango_de_aplicacion <- function(hora) {
   m <- monitoreo_aulas_hora_parse(.calg_txt(hora))[[1]]
   if (is.na(m)) return("")
@@ -1444,7 +1455,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   aulas_libro_escribir_indicadores(
     wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas,
                                 cuotas = cuotas, cfg = cfg,
-                                asignados = asignados_por_codigo),
+                                asignados = asignados_por_codigo, extras = extras),
     procedencia = procedencia
   )
 

@@ -17,9 +17,9 @@
 
 .calax_plan <- function() list(
   list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6),
+       eligible_n = 30, expected_valid = 20, scheduled_date = "2026-08-10"),
   list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6)
+       eligible_n = 30, expected_valid = 20, scheduled_date = "2026-08-11")
 )
 
 # Desde el 2026-09-08 el avance diario es POR FACULTAD: cada respuesta tiene que
@@ -199,7 +199,7 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
   # la producción por aplicador midiéndose también en la plataforma, así que no
   # hay dos familias que distinguir y el puente se retiró.
   notas <- c("La cuota es de cada facultad", "Muestra (",
-             "Una fila por persona EN CADA FACULTAD", "Una fila por facultad y día",
+             "Una fila por persona en cada facultad", "Una fila por facultad y día",
              "Si editaste el libro")
   for (nota in notas) {
     fila <- .calax_fila_que_empieza(h$celdas, nota)

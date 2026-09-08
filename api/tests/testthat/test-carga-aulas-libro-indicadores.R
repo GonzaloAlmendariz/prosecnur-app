@@ -215,7 +215,7 @@ test_that("el rendimiento por facultad separa «no se ha ido» de «rinde por de
   # plan entero: con el plan entero la tasa del día 1 saldría cerca de cero en
   # las quince facultades y no diría nada sobre cómo rinden las aulas visitadas.
   expect_equal(r[["Tasa de rendimiento de la facultad obtenida"]], 20 / 80)
-  expect_equal(r[["Diferencia"]], 20 / 80 - 0.6)
+  expect_equal(r[["Diferencia de tasa"]], 20 / 80 - 0.6)
 })
 
 test_that("la hoja va la ULTIMA: el libro lo abre quien agenda", {

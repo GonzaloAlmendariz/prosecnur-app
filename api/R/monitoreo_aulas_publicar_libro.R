@@ -467,7 +467,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       responses = responses, validas = validas,
       # El mismo reparto que ya alimenta el «Plan del día» de esta publicación.
       asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
-                                                   cfg = config_reparto)
+                                                   cfg = config_reparto),
+      extras = extras
     ), actualizado = actualizado)
   )
   if (!is.null(valores_asignacion)) {

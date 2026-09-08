@@ -44,6 +44,7 @@
 #'   Sin el, la serie contaria TODAS las respuestas y no cuadraria con la meta.
 #' @param partes partes de campo, para la produccion por aplicador.
 #' @param asignados `codigo -> aplicador` del reparto vigente.
+#' @param extras banco de extras sin activar, para las aulas adicionales.
 #' @return lista con las CINCO tablas dictadas —`general`, `facultades`,
 #'   `rendimiento`, `aplicadores`, `diario`— más `meta`, el bloque de escalares
 #'   que sobrevive para el tablero y para el respaldo sin cuotas del diseño.
@@ -57,7 +58,13 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
                                     # `codigo -> aplicador` del reparto: sin él,
                                     # la producción por aplicador sólo puede
                                     # hablar de quien ya rindió parte.
-                                    asignados = NULL) {
+                                    asignados = NULL,
+                                    # El banco de extras SIN activar
+                                    # (`aulas_libro_extras_banco()`), para poder
+                                    # contar las aulas adicionales que el equipo
+                                    # ya pidió y agendó aunque todavía no las
+                                    # haya aplicado.
+                                    extras = list()) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
 
@@ -120,7 +127,7 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   # y la pestaña de Sheets— leen de ahí sus rótulos y su naturaleza, así que no
   # hay una segunda lista de nombres que pueda separarse de la primera.
   rendimiento <- .calar_rendimiento_por_facultad(
-    unidades, efectivas = efectivas, partes = partes)
+    unidades, efectivas = efectivas, partes = partes, extras = extras)
   aplicadores <- .calaa_produccion_por_aplicador(
     unidades, efectivas = efectivas, partes = partes, asignados = asignados)
   diario <- .calad_avance_diario(
@@ -263,6 +270,7 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 .CAI_VERDE_META <- "#D6EBD6"
 .CAI_CELESTE_SOBRE <- "#D8E7F8"
 .CAI_ESCALA_DIF <- c("#E9A8A8", "#FFFFFF", "#A9D5A9")
+.CAI_NEUTRO_AVANCE <- "#EFF2F6"
 
 .cai_semaforo <- function(wb, hoja, tabla, cabecera_en, traspuesta = FALSE) {
   if (!is.data.frame(tabla) || !nrow(tabla)) return(invisible(NULL))
@@ -314,11 +322,12 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
       pintar(k, "expression", rule = "==0", style = celeste)
       next
     }
-    if (identical(r, "Avance muestra")) {
-      pintar(k, "expression", rule = ">=1", style = verde)
-      next
-    }
-    if (identical(r, "Avance sobremuestra")) {
+    if (r %in% AULAS_AVANCE_AVANCES) {
+      # Un depósito que se llena, no un veredicto: la escala va de vacío a
+      # verde entre 0 y 1, y al pasarse del 100 % la celda va celeste. Sin
+      # rojo — un avance bajo el día 2 es el día 2, no un fracaso.
+      pintar(k, "colourScale",
+             style = c(.CAI_NEUTRO_AVANCE, .CAI_VERDE_META), rule = c(0, 1))
       pintar(k, "expression", rule = ">=1", style = celeste)
     }
   }
@@ -552,9 +561,9 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   escribir_tabla(
     "rendimiento", ind$rendimiento,
     nota_arriba = paste(
-      "La tasa obtenida se mide sobre los elegibles de las aulas YA APLICADAS, no",
-      "sobre el plan entero: así dice cómo rinden las aulas a las que se fue, y no",
-      "que todavía queda por ir — eso ya lo dicen las dos primeras columnas."
+      "Las tasas se miden sobre los elegibles de las aulas ya aplicadas. Las",
+      "efectivas esperadas son esos elegibles por la tasa que el diseño le puso a",
+      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue."
     ),
     vacio = "El plan todavía no trae facultades con aulas que medir."
   )
@@ -563,10 +572,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   escribir_tabla(
     "aplicador", ind$aplicadores,
     nota_arriba = paste(
-      "Una fila por persona EN CADA FACULTAD: la tasa esperada es la de la facultad,",
-      "y quien cubre dos se mide contra la vara de cada una.",
-      "«Fichas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de lo",
-      "esperado; sobre las que aún no aplica no falta ninguna ficha, falta ir."
+      "Una fila por persona en cada facultad. La tasa esperada es la de la",
+      "facultad, así que quien cubre dos se mide contra la vara de cada una.",
+      "«Fichas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de",
+      "lo esperado. Sobre las que aún no aplica no falta ninguna ficha."
     ),
     vacio = .cali_motivo_sin_aplicadores()
   )
@@ -575,9 +584,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   escribir_tabla(
     "diario", ind$diario,
     nota_arriba = paste(
-      "Una fila por facultad y día. Las efectivas esperadas son las de las aulas",
-      "aplicadas ESE día, y el día de aplicación sale de la plataforma (la primera",
-      "jornada en que el aula produjo una efectiva), no del parte."
+      "Una fila por facultad y día. Las efectivas esperadas son la suma de las",
+      "metas de los cursos-horario que ya se aplicaron ese día, no de todos los",
+      "que estaban agendados: se compara contra lo que se hizo, no contra lo que",
+      "falta por hacer."
     ),
     vacio = .cali_motivo_sin_diario(ind)
   )

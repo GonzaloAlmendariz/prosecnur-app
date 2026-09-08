@@ -50,6 +50,9 @@
 .MAAF_CELESTE_FONDO <- "#D8E7F8"
 .MAAF_CELESTE_TINTA <- "#1B4B8F"
 .MAAF_ROJO_ESCALA <- "#E9A8A8"
+# El extremo vacío de un AVANCE: gris muy claro, no rojo. Ver
+# `AULAS_AVANCE_AVANCES` — un avance bajo el día 2 no es malo, es el día 2.
+.MAAF_NEUTRO_ESCALA <- "#EFF2F6"
 .MAAF_BLANCO_ESCALA <- "#FFFFFF"
 .MAAF_VERDE_ESCALA <- "#A9D5A9"
 
@@ -376,7 +379,25 @@
   ))
 }
 
-# El color que sigue al valor. Cuatro reglas, todas nombradas por rótulo:
+# La escala de un AVANCE: de vacío a lleno, sin rojo. Los dos extremos son
+# NUMBER con «0» y «1» —enteros sin separador decimal, que se leen igual en
+# cualquier idioma del documento— porque aquí la escala NO se ajusta al rango de
+# los datos: 0 y 100 % son la vara, y con MIN/MAX un avance del 3 % saldría
+# verde por ser el mayor de una columna que va toda por debajo.
+.maaf_regla_deposito <- function(rango) {
+  punto <- function(color, valor) list(
+    color = .monitoreo_sheets_rgb(color), type = "NUMBER", value = valor
+  )
+  list(addConditionalFormatRule = list(
+    index = 0L,
+    rule = list(ranges = list(rango), gradientRule = list(
+      minpoint = punto(.MAAF_NEUTRO_ESCALA, "0"),
+      maxpoint = punto(.MAAF_VERDE_ESCALA, "1")
+    ))
+  ))
+}
+
+# El color que sigue al valor. Cinco reglas, todas nombradas por rótulo:
 #
 #   · una DIFERENCIA se pinta en escala con el blanco clavado en el cero, así
 #     que el verde es siempre «mejor de lo esperado» y el rojo siempre peor;
@@ -413,10 +434,18 @@
       } else if (r %in% AULAS_AVANCE_FALTAN_SOBREMUESTRA) {
         requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
           rango, "NUMBER_EQ", 0, .MAAF_CELESTE_FONDO, .MAAF_CELESTE_TINTA)
-      } else if (identical(r, "Avance muestra")) {
-        requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
-          rango, "NUMBER_GREATER_THAN_EQ", 1, .MAAF_VERDE_FONDO, .MAAF_VERDE_TINTA)
-      } else if (identical(r, "Avance sobremuestra")) {
+      } else if (r %in% AULAS_AVANCE_AVANCES) {
+        # **Un depósito que se llena, no un veredicto.** Gris claro en el 0,
+        # verde en el 100 %, y celeste al pasarse. Gonzalo pidió primero
+        # «rojo hasta verde y luego celeste» y se corrigió él mismo: «rojo da a
+        # entender que es algo malo cuando puede ser sólo que recién esté
+        # empezando». El rojo se queda donde sí hay veredicto, que son las
+        # diferencias contra lo esperado.
+        #
+        # El orden importa: cada request entra en el índice 0, así que la que se
+        # emite ÚLTIMA queda primera y Sheets aplica la primera que casa. La
+        # escala va antes y el celeste después, para que el celeste gane.
+        requests[[length(requests) + 1L]] <- .maaf_regla_deposito(rango)
         requests[[length(requests) + 1L]] <- .maaf_regla_booleana(
           rango, "NUMBER_GREATER_THAN_EQ", 1, .MAAF_CELESTE_FONDO, .MAAF_CELESTE_TINTA)
       }

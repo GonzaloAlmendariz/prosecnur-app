@@ -56,10 +56,12 @@
 #'   activadas). Es el mismo insumo que la tabla por facultad.
 #' @param efectivas vector con nombre por código operativo (PLATAFORMA).
 #' @param partes partes de campo, para el eje de aplicación.
+#' @param extras banco de extras SIN activar (`aulas_libro_extras_banco()`).
 #' @return `data.frame` con las columnas de `AULAS_AVANCE_CABECERAS$rendimiento`,
 #'   o `NULL` si el plan no trae facultades.
 #' @keywords internal
-.calar_rendimiento_por_facultad <- function(unidades, efectivas = NULL, partes = list()) {
+.calar_rendimiento_por_facultad <- function(unidades, efectivas = NULL, partes = list(),
+                                            extras = list()) {
   unidades <- unidades %||% list()
   if (!length(unidades)) return(NULL)
 
@@ -79,7 +81,29 @@
     if (is.na(i)) 0 else suppressWarnings(as.numeric(efectivas[[i]]))
   }, numeric(1))
 
-  facultades <- unique(fac[nzchar(fac)])
+  # **«Aulas adicionales solicitadas» son LAS DOS FAMILIAS SUMADAS** (Gonzalo,
+  # 2026-09-08): «cualquier aula pedida de más sobre el plan original, venga del
+  # banco o la haya conseguido el equipo por su cuenta».
+  #
+  #   · las reservas del banco YA ACTIVADAS, que viven en `unidades` porque
+  #     tienen parte o control;
+  #   · las del banco que el equipo ya AGENDÓ en las hojas «(Extra)» del Sheets
+  #     y todavía no aplicó — llegan por `extras`, que es el banco sin activar.
+  #
+  # Las dos listas son disjuntas por construcción (`.calg_unidades_del_libro()`
+  # y `aulas_libro_extras_banco()` se reparten el plan), así que sumarlas no
+  # duplica. Una fila del banco que nadie tocó NO cuenta: está disponible, no
+  # solicitada, y contarla diría que se pidieron cuarenta y cinco aulas el día
+  # que no se pidió ninguna.
+  agendadas_extra <- list()
+  for (u in (extras %||% list())) {
+    if (!nzchar(.cai_txt(u$scheduled_date))) next
+    k <- .cai_txt(u$faculty)
+    if (!nzchar(k)) next
+    agendadas_extra[[k]] <- (agendadas_extra[[k]] %||% 0L) + 1L
+  }
+
+  facultades <- unique(c(fac[nzchar(fac)], names(agendadas_extra)))
   filas <- lapply(facultades, function(f) {
     idx <- fac == f
     aplicadas <- idx & apl
@@ -91,17 +115,26 @@
     # cifra que citan las otras dos tablas.
     esperada <- .calar_tasa_esperada(esperadas[idx], eleg[idx])
     obtenida <- if (is.finite(ef_apl) && eleg_apl > 0) ef_apl / eleg_apl else NA_real_
+    # **Lo mismo en ENCUESTAS.** «Esperadas hasta ahora» son los elegibles de las
+    # aulas YA APLICADAS por la tasa que el diseño le puso a la facultad: cuántas
+    # fichas deberían haber salido de las aulas a las que se fue. Una tasa dice
+    # si el aula rinde; esto dice cuántas encuestas son, que es lo que se recoge
+    # y lo que falta para la cuota.
+    esp_ahora <- if (is.finite(esperada) && eleg_apl > 0) esperada * eleg_apl else NA_real_
     out <- data.frame(
       f,
       sum(aplicadas),
       sum(idx & rol == "titular"),
+      if (is.finite(esp_ahora)) round(esp_ahora) else NA_real_,
+      if (is.finite(ef_apl)) ef_apl else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl - round(esp_ahora) else NA_real_,
       esperada,
       obtenida,
       if (is.finite(esperada) && is.finite(obtenida)) obtenida - esperada else NA_real_,
       # Una reserva de CADENA reemplaza a un titular que cayó: no es un aula de
-      # más. La adicional es la del banco de extras que se activó, que es
-      # exactamente lo que se le pide a la facultad cuando no alcanza.
-      sum(idx & rol == "extra_reserve_pool"),
+      # más y no cuenta aquí. Sí cuentan la extra activada y la extra que el
+      # equipo ya agendó en las hojas «(Extra)».
+      sum(idx & rol == "extra_reserve_pool") + (agendadas_extra[[f]] %||% 0L),
       stringsAsFactors = FALSE
     )
     names(out) <- AULAS_AVANCE_CABECERAS$rendimiento
@@ -110,6 +143,6 @@
   out <- do.call(rbind, filas)
   # Por la brecha de tasa y de peor a mejor: la facultad que más rinde por
   # debajo de lo previsto abre la tabla. Sin brecha computable, al final.
-  dif <- out[["Diferencia"]]
+  dif <- out[["Diferencia de tasa"]]
   out[order(ifelse(is.finite(dif), dif, Inf), out$Facultad), , drop = FALSE]
 }
