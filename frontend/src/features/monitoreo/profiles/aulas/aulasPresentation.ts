@@ -142,6 +142,24 @@ export const FIELD_LABELS: Record<string, string> = {
   // Sin verbo colgando: «que no cuentan» deja al lector esperando el objeto.
   // Se dice contra qué se comparan, que es lo que hace legible la pareja.
   no_efectivas: "Recibidas que no son efectivas",
+  // Las del barrido del 2026-09-08. El contrato exige que el rótulo DIGA algo:
+  // rechaza los que son el nombre del campo con espacios, porque eso no es
+  // traducir, es disimular.
+  declared_surveys: "Encuestas que declaró el aplicador",
+  mujeres_esperadas_facultad: "Mujeres que espera la tasa de la facultad",
+  hombres_esperados_facultad: "Hombres que espera la tasa de la facultad",
+  duracion_media: "Cuánto duró la encuesta en promedio",
+  duracion_min: "La encuesta más rápida del salón",
+  duracion_max: "La encuesta más lenta del salón",
+  // Quien estaba en el aula y nunca abrió el enlace, separado de quien lo abrió
+  // y no pasó los filtros: son dos fallas distintas.
+  no_escanearon: "Estaban en el aula y no abrieron el enlace",
+  brecha_tasa_facultad: "Cuánto se aparta de la tasa de la facultad",
+  brecha_tasa_aula: "Cuánto se aparta de la tasa del curso-horario",
+  mujeres_brecha_facultad: "Mujeres de más o de menos según la facultad",
+  mujeres_brecha_aula: "Mujeres de más o de menos según el curso-horario",
+  hombres_brecha_facultad: "Hombres de más o de menos según la facultad",
+  hombres_brecha_aula: "Hombres de más o de menos según el curso-horario",
   efectivas_vs_enviadas: "% de efectivas sobre lo recibido",
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",

@@ -275,7 +275,15 @@ test_that("S1: la cabecera de cada tabla baja de línea en su columna en vez de 
   expect_true(con_wrap, info = sprintf("la cabecera de la fila %d no baja de línea", fila))
 })
 
-test_that("S1: el título y la columna de rótulos quedan congelados, nunca la hoja entera", {
+test_that("S1: el título queda congelado y la columna de rótulos NO, nunca la hoja entera", {
+  # **La columna dejó de congelarse el 2026-09-08.** «Avance de campo» no es una
+  # tabla: es una pila de tablas distintas con sus notas, y su columna A rotula
+  # unas veces la meta, otras la facultad y otras el aplicador — congelarla
+  # enseña el rótulo equivocado al desplazarse. Y además lo impedía: sus notas se
+  # combinan de la columna A hasta el final, y Google rechaza el batch entero
+  # con «no se pueden combinar columnas inmovilizadas con columnas no
+  # inmovilizadas». Se vio publicando, cuando la Base de control pasó de 43 a 55
+  # columnas y el formato volvió a enviarse.
   for (modelo in list(.mfa_modelo_completo(), .mfa_modelo_minimo())) {
     rows <- .mfa_rows(modelo)
     requests <- .mfa_requests(rows)
@@ -285,7 +293,7 @@ test_that("S1: el título y la columna de rótulos quedan congelados, nunca la h
     expect_gte(length(freezes), 1L)
     ultimo <- freezes[[length(freezes)]]
     expect_identical(as.integer(ultimo$frozenRowCount), 2L)
-    expect_identical(as.integer(ultimo$frozenColumnCount), 1L)
+    expect_identical(as.integer(ultimo$frozenColumnCount), 0L)
     expect_lt(as.integer(ultimo$frozenRowCount), length(rows))
   }
 })

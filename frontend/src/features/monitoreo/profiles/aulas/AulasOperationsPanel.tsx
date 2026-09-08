@@ -218,7 +218,11 @@ export function AulasOperationsPanel({
           <span>Sincronizar campo</span>
         </button>
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
-            app lo relee. Sin estos dos botones sólo se podía cerrar por API. */}
+            app lo relee. Sin estos dos botones sólo se podía cerrar por API.
+            Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
+            que el ciclo completo son dos clics —«Sincronizar campo» para traer
+            las respuestas y «Publicar al Sheets» para el resto— y no hace falta
+            acordarse de «Leer del Sheets» en medio. */}
         <button
           type="button"
           onClick={onGenerarLibro}
@@ -289,7 +293,7 @@ export function AulasOperationsPanel({
               ? "Primero importa el plan de cursos-horario"
               : !hayDestino
                 ? "Pega el enlace del Google Sheets del operativo: sin él no hay dónde publicar"
-                : "Escribe la base de control en el Sheets, sin tocar las hojas que llena el equipo"}
+                : "Lee primero lo que el equipo escribió en sus hojas y luego reescribe las de la app; las cuatro del equipo no se tocan"}
           >
             {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
             <span>Publicar al Sheets</span>
