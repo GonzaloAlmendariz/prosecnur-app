@@ -30,17 +30,20 @@
 
 .mfa_plan <- function() list(
   list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20),
+       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6),
   list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20)
+       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6)
 )
 
 .mfa_respuestas <- function() data.frame(
+  collectorID = c("CH 1", "CH 1", "CH 2"),
   `_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00",
                          "2026-08-11T09:00:00"),
   sexo = c("Mujer", "Hombre", "Mujer"),
   check.names = FALSE, stringsAsFactors = FALSE
 )
+
+.mfa_cfg <- function() list(source_mapping = list(collector_var = "collectorID"))
 
 .mfa_partes <- function() list(
   list(operational_code = "CH 1", applied_by = "Equipo A", effective_surveys = 20),
@@ -61,7 +64,9 @@
   responses = .mfa_respuestas(),
   validas = c(TRUE, TRUE, TRUE),
   partes = .mfa_partes(),
-  cuotas = .mfa_cuotas()
+  cuotas = .mfa_cuotas(),
+  cfg = .mfa_cfg(),
+  asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo B")
 )
 
 # Modelo con OTRA geometría: sin efectivas (el bloque de meta gana la nota de
@@ -71,13 +76,25 @@
 .mfa_modelo_minimo <- function() aulas_libro_indicadores(
   .mfa_plan(),
   responses = .mfa_respuestas(),
-  validas = c(TRUE, TRUE, TRUE)
+  validas = c(TRUE, TRUE, TRUE),
+  cfg = .mfa_cfg()
 )
 
-# Los rows que el motor pasa al adaptador: el data.frame del renderer como
-# filas de values (mismo camino que la publicación real).
+# Los rows que el motor pasa al adaptador: las filas del renderer tal cual
+# (mismo camino que la publicación real). Desde el 2026-09-08 llevan celdas
+# NUMÉRICAS y no pasan por `.malp_df_a_values`, que las convertiría a texto.
 .mfa_rows <- function(ind) {
-  .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = as.Date("2026-08-15")))
+  aulas_libro_hoja_avance(ind, fecha = as.Date("2026-08-15"))
+}
+
+# La fila (1-based) de la cabecera de una tabla, por su CLAVE. Cuatro de las
+# cinco empiezan por «Facultad», así que la primera celda ya no las distingue.
+.mfa_cabecera_de <- function(rows, clave) {
+  for (i in seq_along(rows)) {
+    celdas <- vapply(rows[[i]], function(x) as.character(x), character(1))
+    if (identical(prosecnurapp:::.calac_tabla_de_cabecera(celdas), clave)) return(i)
+  }
+  NA_integer_
 }
 
 # --- lectura de rows y de requests --------------------------------------------
@@ -108,20 +125,21 @@
   out
 }
 
-# ¿Alguna request de FORMATO cubre la fila (1-based) con un rango acotado?
-# «Acotado» = a lo más 3 filas: una banda o una cabecera visten SU fila (o su
-# par título+cabecera), no el rectángulo entero — el updateCells genérico que
-# hoy pinta las «cabeceras» de arriba no puede colarse como banda de un bloque.
+# ¿Hay una BANDA sobre esa fila? Una banda es un `repeatCell` con color de
+# fondo que cubre EXACTAMENTE esa fila: así es como se visten los títulos de
+# bloque, las cabeceras de tabla y la fila «Total».
+#
+# El detector pedía «cualquier formato en un rango de ≤ 3 filas» y eso dejó de
+# discriminar el 2026-09-08: las requests de numberFormat cubren el rango de su
+# tabla, que con dos filas de datos también mide ≤ 3, así que una fila de datos
+# cualquiera pasaba por banda. Un pin que se vuelve inespecífico no avisa: pasa.
 .mfa_alguna_pinta_fila <- function(requests, fila) {
   for (request in requests) {
-    txt <- paste(deparse(request), collapse = " ")
-    if (!grepl("userEnteredFormat|backgroundColor|textFormat|bandedRange", txt)) next
-    for (rg in .mfa_grid_ranges(request)) {
-      ini <- suppressWarnings(as.integer(rg$startRowIndex))
-      fin <- suppressWarnings(as.integer(rg$endRowIndex))
-      if (!length(ini) || !length(fin) || is.na(ini) || is.na(fin)) next
-      if (ini <= fila - 1L && (fila - 1L) < fin && (fin - ini) <= 3L) return(TRUE)
-    }
+    rc <- request$repeatCell
+    if (is.null(rc) || is.null(rc$cell$userEnteredFormat$backgroundColor)) next
+    rg <- rc$range
+    if (identical(as.integer(rg$startRowIndex), as.integer(fila - 1L)) &&
+        identical(as.integer(rg$endRowIndex), as.integer(fila))) return(TRUE)
   }
   FALSE
 }
@@ -135,8 +153,7 @@
 test_that("B19: el formato emite una banda para CADA título de bloque de «Avance de campo»", {
   rows <- .mfa_rows(.mfa_modelo_completo())
   requests <- .mfa_requests(rows)
-  for (titulo in c("Avance contra la meta", "Avance por facultad",
-                   "Producción por aplicador", "Avance diario")) {
+  for (titulo in unname(AULAS_AVANCE_TITULOS)) {
     fila <- .mfa_fila_de(rows, titulo)
     expect_false(is.na(fila), info = sprintf("el renderer perdió el título «%s»", titulo))
     expect_true(.mfa_alguna_pinta_fila(requests, fila),
@@ -147,38 +164,35 @@ test_that("B19: el formato emite una banda para CADA título de bloque de «Avan
 test_that("B19: el formato viste la cabecera de columnas de cada tabla del modelo", {
   rows <- .mfa_rows(.mfa_modelo_completo())
   requests <- .mfa_requests(rows)
-  # La fila de nombres de cada tabla, localizada por su primera columna:
-  # Facultad (avance por facultad), Aplicador (producción), Dia (diario).
-  for (cabecera in c("Facultad", "Aplicador", "Dia")) {
-    fila <- .mfa_fila_de(rows, cabecera)
+  for (clave in names(AULAS_AVANCE_CABECERAS)) {
+    fila <- .mfa_cabecera_de(rows, clave)
     expect_false(is.na(fila),
-                 info = sprintf("el renderer perdió la cabecera «%s»", cabecera))
+                 info = sprintf("el renderer perdió la cabecera de «%s»", clave))
     expect_true(.mfa_alguna_pinta_fila(requests, fila),
-                info = sprintf("cabecera «%s» sin formato (fila %d del contenido)", cabecera, fila))
+                info = sprintf("cabecera de «%s» sin formato (fila %d del contenido)", clave, fila))
   }
 })
 
 test_that("B19: las filas de banda se derivan del contenido — otra geometría, mismas bandas", {
-  # El modelo mínimo corre los bloques de sitio (nota de «sin dato» en la
-  # meta, sin facultades, aplicadores con vacío declarado): si el formato
+  # El modelo mínimo corre los bloques de sitio (nota de «sin dato» en el bloque
+  # general, sin facultades, aplicadores con vacío declarado): si el formato
   # llevara números mágicos, las bandas caerían donde el modelo completo las
   # tenía. Aquí se exige que sigan a SU contenido.
   rows <- .mfa_rows(.mfa_modelo_minimo())
   requests <- .mfa_requests(rows)
-  expect_true(is.na(.mfa_fila_de(rows, "Avance por facultad")),
-              info = "el fixture mínimo no debería traer bloque de facultades")
-  for (titulo in c("Avance contra la meta", "Producción por aplicador",
-                   "Avance diario")) {
+  expect_true(is.na(.mfa_cabecera_de(rows, "facultad")),
+              info = "el fixture mínimo no debería traer tabla por facultad")
+  for (titulo in unname(AULAS_AVANCE_TITULOS)) {
     fila <- .mfa_fila_de(rows, titulo)
     expect_false(is.na(fila), info = sprintf("el renderer perdió el título «%s»", titulo))
     expect_true(.mfa_alguna_pinta_fila(requests, fila),
                 info = sprintf("sin banda para «%s» (fila %d del contenido mínimo)", titulo, fila))
   }
-  # Y la única tabla que queda (el diario) conserva su cabecera vestida.
-  fila_dia <- .mfa_fila_de(rows, "Dia")
+  # Y la tabla que queda con datos (el avance diario) conserva su cabecera.
+  fila_dia <- .mfa_cabecera_de(rows, "diario")
   expect_false(is.na(fila_dia))
   expect_true(.mfa_alguna_pinta_fila(requests, fila_dia),
-              info = sprintf("cabecera «Dia» sin formato (fila %d del contenido mínimo)", fila_dia))
+              info = sprintf("cabecera del diario sin formato (fila %d del mínimo)", fila_dia))
 })
 
 # --- S1 (loop estética-aulas-sheets, 2026-09-07): la hoja se lee como tabla ---
@@ -243,19 +257,16 @@ test_that("S1: las cifras van a la derecha y los rótulos se quedan a la izquier
   fila <- .mfa_fila_de(rows, "Letras")
   expect_false(is.na(fila), info = "el renderer perdió la fila de datos de Letras")
   expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 2L),
-              info = "la cifra «Muestra» de Letras no va a la derecha")
-  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 11L),
-              info = "el «Avance» (75 %) de Letras no va a la derecha")
+              info = "la cifra «Efectivas» de Letras no va a la derecha")
+  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 6L),
+              info = "la cifra «Faltantes muestra» de Letras no va a la derecha")
   expect_false("RIGHT" %in% .mfa_alineacion_de(requests, fila, 1L),
                info = "el rótulo «Letras» no debe ir a la derecha")
-  # V3 (2026-09-08): con cuotas del diseño el bloque de meta es la tabla de las
-  # dos metas por sexo, y «Encuestas de la meta» —la suma de `expected_valid`
-  # del plan— ya no lo preside. La fila equivalente, presente con cuotas y sin
-  # ellas, es «Efectivas conseguidas».
-  fila_meta <- .mfa_fila_de(rows, "Efectivas conseguidas")
-  expect_false(is.na(fila_meta), info = "el renderer perdió la fila «Efectivas conseguidas»")
+  # La fila equivalente del bloque general, presente con cuotas y sin ellas.
+  fila_meta <- .mfa_fila_de(rows, "Efectivas")
+  expect_false(is.na(fila_meta), info = "el renderer perdió la fila «Efectivas»")
   expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila_meta, 2L),
-              info = "la cifra del bloque de meta no va a la derecha")
+              info = "la cifra del bloque general no va a la derecha")
   # Las dos filas de título no se alinean: son texto de portada.
   expect_length(.mfa_alineacion_de(requests, 1L, 2L), 0L)
 })
@@ -263,7 +274,7 @@ test_that("S1: las cifras van a la derecha y los rótulos se quedan a la izquier
 test_that("S1: la cabecera de cada tabla baja de línea en su columna en vez de cortarse", {
   rows <- .mfa_rows(.mfa_modelo_completo())
   requests <- .mfa_requests(rows)
-  fila <- .mfa_fila_de(rows, "Aplicador")   # «Cursos-horario asignados» no cabe en su columna
+  fila <- .mfa_cabecera_de(rows, "aplicador")   # «Tasa de rendimiento esperada en facultad» no cabe
   con_wrap <- FALSE
   for (request in requests) {
     rc <- request$repeatCell
@@ -344,10 +355,11 @@ test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con aju
   rows <- .mfa_rows(.mfa_modelo_completo())
   n_cols <- max(lengths(rows))
   requests <- .mfa_requests(rows)
-  primeras <- vapply(rows, function(r) trimws(as.character(unlist(r)[1] %||% "")), character(1))
-  notas <- which(startsWith(primeras, "La meta y el avance diario") |
-                 startsWith(primeras, "La cuota es de cada facultad") |
-                 startsWith(primeras, "La muestra es la cuota"))
+  primeras <- vapply(rows, function(r) trimws(as.character(r[[1]] %||% "")), character(1))
+  notas <- which(startsWith(primeras, "La cuota es de cada facultad") |
+                 startsWith(primeras, "Muestra (") |
+                 startsWith(primeras, "Una fila por persona") |
+                 startsWith(primeras, "Una fila por facultad y día"))
   expect_gte(length(notas), 2L)
   for (fila in notas) {
     expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 1L,
@@ -365,16 +377,16 @@ test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con aju
                  info = sprintf("la nota de la fila %d no tiene alto de fila", fila))
   }
   # Ni las filas de tabla ni las de título se fusionan.
-  for (etiqueta in c("Letras", "Avance contra la meta", "Facultad", "Efectivas conseguidas")) {
+  for (etiqueta in c("Letras", "Avance general", "Indicadores", "Efectivas")) {
     fila <- .mfa_fila_de(rows, etiqueta)
     expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 0L,
                      info = sprintf("«%s» (fila %d) no debe fusionarse", etiqueta, fila))
   }
 })
 
-# --- S5: la fila «Total» del diario se viste como cierre -------------------------
+# --- S5: la fila «Total» de la tabla por facultad se viste como cierre ---------
 
-test_that("S5: la fila «Total» del avance diario lleva banda propia (negrita), y las de los días no", {
+test_that("S5: la fila «Total» lleva banda propia, y las filas de datos no", {
   rows <- .mfa_rows(.mfa_modelo_completo())
   requests <- .mfa_requests(rows)
   fila_total <- .mfa_fila_de(rows, "Total")
@@ -382,4 +394,136 @@ test_that("S5: la fila «Total» del avance diario lleva banda propia (negrita),
   expect_true(.mfa_alguna_pinta_fila(requests, fila_total), info = "la fila «Total» va sin banda")
   fila_dia <- .mfa_fila_de(rows, "2026-08-10")
   expect_false(.mfa_alguna_pinta_fila(requests, fila_dia), info = "una fila de día no debe llevar banda")
+})
+
+# --- El SEMÁFORO y el formato de número (dictado del 2026-09-08) --------------
+
+# Las requests de numberFormat que cubren la celda (fila, col), 1-based.
+.mfa_numfmt_de <- function(requests, fila, col) {
+  out <- character(0)
+  for (request in requests) {
+    rc <- request$repeatCell
+    nf <- rc$cell$userEnteredFormat$numberFormat
+    if (is.null(nf)) next
+    rg <- rc$range
+    if (rg$startRowIndex <= fila - 1L && (fila - 1L) < rg$endRowIndex &&
+        rg$startColumnIndex <= col - 1L && (col - 1L) < rg$endColumnIndex) {
+      out <- c(out, as.character(nf$pattern))
+    }
+  }
+  out
+}
+
+# Las reglas condicionales que cubren la celda (fila, col), 1-based.
+.mfa_reglas_de <- function(requests, fila, col) {
+  out <- list()
+  for (request in requests) {
+    r <- request$addConditionalFormatRule
+    if (is.null(r)) next
+    for (rg in r$rule$ranges) {
+      if (rg$startRowIndex <= fila - 1L && (fila - 1L) < rg$endRowIndex &&
+          rg$startColumnIndex <= col - 1L && (col - 1L) < rg$endColumnIndex) {
+        out[[length(out) + 1L]] <- r$rule
+      }
+    }
+  }
+  out
+}
+
+test_that("el porcentaje es formato de CELDA, y sólo donde el vocabulario lo declara", {
+  # Gonzalo, 2026-09-08: «los que tienen un (%) no se pone en el titulo, es el
+  # formato de la celda».
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  cab <- .mfa_cabecera_de(rows, "rendimiento")
+  expect_false(is.na(cab))
+  nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
+  col_tasa <- which(nombres == "Tasa de rendimiento de la facultad obtenida")
+  col_aulas <- which(nombres == "Aulas aplicadas")
+  expect_true("0.0%" %in% .mfa_numfmt_de(requests, cab + 1L, col_tasa))
+  expect_true("#,##0" %in% .mfa_numfmt_de(requests, cab + 1L, col_aulas))
+  expect_false("0.0%" %in% .mfa_numfmt_de(requests, cab + 1L, col_aulas))
+})
+
+test_that("«Diferencia» no es lo mismo en dos tablas: sólo una va en porcentaje", {
+  # En «Rendimiento por facultad» es la resta de dos tasas (puntos porcentuales)
+  # y en «Avance diario» la resta de dos conteos de encuestas. Con una lista
+  # plana de rótulos, el −35 encuestas del martes salía publicado como
+  # «−3 500,0 %»; se vio en la primera corrida de humo, antes de publicar.
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  col_de <- function(clave, rotulo) {
+    cab <- .mfa_cabecera_de(rows, clave)
+    nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
+    list(fila = cab + 1L, col = which(nombres == rotulo))
+  }
+  r <- col_de("rendimiento", "Diferencia")
+  d <- col_de("diario", "Diferencia")
+  expect_true("0.0%" %in% .mfa_numfmt_de(requests, r$fila, r$col))
+  expect_true("#,##0" %in% .mfa_numfmt_de(requests, d$fila, d$col))
+  expect_false("0.0%" %in% .mfa_numfmt_de(requests, d$fila, d$col))
+})
+
+test_that("una DIFERENCIA se pinta en escala con el cero clavado en el medio", {
+  # «las diferencias positivas deben estar pintadas en escalas de verde y las
+  # negativas en escalas de rojo». La escala automática de Sheets pone el punto
+  # medio en la mediana, y entonces «peor de lo esperado» puede salir verde.
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  cab <- .mfa_cabecera_de(rows, "rendimiento")
+  nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
+  reglas <- .mfa_reglas_de(requests, cab + 1L, which(nombres == "Diferencia"))
+  escalas <- Filter(function(r) !is.null(r$gradientRule), reglas)
+  expect_length(escalas, 1L)
+  g <- escalas[[1]]$gradientRule
+  expect_identical(g$midpoint$value, "0")
+  expect_identical(g$midpoint$type, "NUMBER")
+  # El extremo bajo es rojo y el alto verde, no al revés.
+  expect_gt(g$minpoint$color$red, g$minpoint$color$green)
+  expect_gt(g$maxpoint$color$green, g$maxpoint$color$red)
+})
+
+test_that("una celda que llegó a su meta se pinta verde; a la sobremuestra, celeste", {
+  # «cuando la celda llegue a la meta debe pintarse de verde, y cuando llegue a
+  # la sobremuestra que se pinte de azul o celeste». Un cero en una columna de
+  # faltantes ES una celda que llegó.
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  cab <- .mfa_cabecera_de(rows, "facultad")
+  nombres <- vapply(rows[[cab]], function(x) as.character(x), character(1))
+  regla_de <- function(rotulo) {
+    reglas <- .mfa_reglas_de(requests, cab + 1L, which(nombres == rotulo))
+    booleanas <- Filter(function(r) !is.null(r$booleanRule), reglas)
+    expect_length(booleanas, 1L)
+    booleanas[[1]]$booleanRule
+  }
+  muestra <- regla_de("Faltantes muestra")
+  sobre <- regla_de("Faltantes sobremuestra")
+  for (r in list(muestra, sobre)) {
+    expect_identical(r$condition$type, "NUMBER_EQ")
+    expect_identical(r$condition$values[[1]]$userEnteredValue, "0")
+  }
+  # Verde contra la muestra, celeste contra la sobremuestra: dos colores, dos
+  # noticias. Si fueran el mismo, la hoja no distinguiría las dos metas.
+  expect_gt(muestra$format$backgroundColor$green, muestra$format$backgroundColor$blue)
+  expect_gt(sobre$format$backgroundColor$blue, sobre$format$backgroundColor$green)
+})
+
+test_that("«Avance muestra» al 100 % se pinta verde y «Avance sobremuestra», celeste", {
+  rows <- .mfa_rows(.mfa_modelo_completo())
+  requests <- .mfa_requests(rows)
+  cab <- .mfa_cabecera_de(rows, "general")
+  etiquetas <- vapply(rows[seq(cab + 1L, cab + length(AULAS_AVANCE_FILAS_GENERAL))],
+                      function(r) as.character(r[[1]]), character(1))
+  fila_de <- function(et) cab + which(etiquetas == et)
+  for (par in list(list("Avance muestra", "green"), list("Avance sobremuestra", "blue"))) {
+    reglas <- .mfa_reglas_de(requests, fila_de(par[[1]]), 2L)
+    booleanas <- Filter(function(r) !is.null(r$booleanRule), reglas)
+    expect_length(booleanas, 1L)
+    b <- booleanas[[1]]$booleanRule
+    expect_identical(b$condition$type, "NUMBER_GREATER_THAN_EQ")
+    expect_identical(b$condition$values[[1]]$userEnteredValue, "1")
+    fondo <- b$format$backgroundColor
+    expect_gt(fondo[[par[[2]]]], fondo$red)
+  }
 })

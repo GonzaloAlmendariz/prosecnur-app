@@ -55,14 +55,16 @@
     paste0(
       "Muestra (", cifra(mu), ") y sobremuestra (", cifra(sm),
       ") son las dos metas del estudio, cada una por facultad y por sexo. ",
-      "Faltantes se mide contra la muestra; la última columna, contra la sobremuestra. ",
+      "Cada meta lleva al lado lo que le falta, y una celda de faltantes en cero ",
+      "va pintada: verde si cubrió la muestra, celeste si cubrió la sobremuestra. ",
       "La sobremuestra de cada facultad y de cada sexo reparte la del diseño con su ratio (x",
       format(round(sm / mu, 2), trim = TRUE), ")."
     )
   } else {
     paste0(
-      "Faltantes se mide contra la muestra, que es la cuota del diseño por facultad y por sexo. ",
-      "El estudio no publica la sobremuestra, así que sus columnas van en blanco."
+      "Cada meta lleva al lado lo que le falta. La muestra es la cuota del diseño por ",
+      "facultad y por sexo; el estudio no publica la sobremuestra, así que sus columnas ",
+      "van en blanco."
     )
   }
 }

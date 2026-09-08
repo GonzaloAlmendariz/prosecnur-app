@@ -17,17 +17,22 @@
 
 .calax_plan <- function() list(
   list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20),
+       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6),
   list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
-       eligible_n = 30, expected_valid = 20)
+       eligible_n = 30, expected_valid = 20, rendimiento_ref = 0.6)
 )
 
+# Desde el 2026-09-08 el avance diario es POR FACULTAD: cada respuesta tiene que
+# poder encontrar su aula o la tabla entera desaparece.
 .calax_respuestas <- function() data.frame(
+  collectorID = c("CH 1", "CH 1", "CH 2"),
   `_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00",
                          "2026-08-11T09:00:00"),
   sexo = c("Mujer", "Hombre", "Mujer"),
   check.names = FALSE, stringsAsFactors = FALSE
 )
+
+.calax_cfg <- function() list(source_mapping = list(collector_var = "collectorID"))
 
 .calax_partes <- function() list(
   list(operational_code = "CH 1", applied_by = "Equipo A", effective_surveys = 20),
@@ -47,7 +52,8 @@
   responses = .calax_respuestas(),
   validas = c(TRUE, TRUE, TRUE),
   partes = .calax_partes(),
-  cuotas = .calax_cuotas()
+  cuotas = .calax_cuotas(),
+  cfg = .calax_cfg()
 )
 
 # Sin efectivas, sin cuotas ni partes: el bloque de meta gana la nota de «sin
@@ -55,7 +61,8 @@
 .calax_modelo_minimo <- function() aulas_libro_indicadores(
   .calax_plan(),
   responses = .calax_respuestas(),
-  validas = c(TRUE, TRUE, TRUE)
+  validas = c(TRUE, TRUE, TRUE),
+  cfg = .calax_cfg()
 )
 
 .calax_procedencia <- function() list(
@@ -127,10 +134,9 @@
 
 test_that("S3: cada banda de sección cubre el ancho de la hoja, no el de su tabla", {
   h <- .calax_hoja(.calax_modelo_completo(), procedencia = .calax_procedencia())
-  expect_gte(h$n_cols, 12L)   # la tabla por facultad fija el ancho
-  for (titulo in c("Avance contra la meta", "Avance por facultad",
-                   "Producción por aplicador", "Avance diario",
-                   "De dónde salió este libro")) {
+  # La tabla por facultad fija el ancho: diecisiete columnas desde el 2026-09-08.
+  expect_gte(h$n_cols, 17L)
+  for (titulo in c(unname(AULAS_AVANCE_TITULOS), "De dónde salió este libro")) {
     fila <- .calax_fila_de(h$celdas, titulo)
     expect_false(is.na(fila), info = sprintf("la hoja perdió el título «%s»", titulo))
     cols <- .calax_cols_de_banda(h$estilos, fila)
@@ -146,9 +152,15 @@ test_that("S3: con otra geometría (sin facultades ni partes) las bandas siguen 
   # cambio, declara su vacío — asimetría anotada en el loop, no es de S3). La
   # hoja queda a cuatro columnas (el diario) y las bandas que quedan la cubren.
   h <- .calax_hoja(.calax_modelo_minimo())
+  # Sin cuotas la tabla por facultad no existe, así que el ancho lo fija la más
+  # ancha de las que quedan (el avance diario, diez columnas). Se DERIVA del
+  # vocabulario, no se cuenta a mano: una columna nueva no puede romper el pin.
+  # «Rendimiento por facultad» sí existe y también empieza por «Facultad», así
+  # que la ausencia se comprueba con una columna que sólo la otra tiene.
   expect_true(is.na(.calax_fila_de(h$celdas, "Avance por facultad")))
-  expect_identical(h$n_cols, 4L)
-  for (titulo in c("Avance contra la meta", "Avance diario")) {
+  expect_false(any(as.character(unlist(h$celdas)) == "Efectivas mujeres", na.rm = TRUE))
+  expect_identical(h$n_cols, length(AULAS_AVANCE_CABECERAS$diario))
+  for (titulo in c("Avance general", "Avance diario")) {
     fila <- .calax_fila_de(h$celdas, titulo)
     expect_false(is.na(fila), info = sprintf("la hoja perdió el título «%s»", titulo))
     cols <- .calax_cols_de_banda(h$estilos, fila)
@@ -181,8 +193,14 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
   # La nota al pie de la tabla por facultad empieza «Muestra (40) y
   # sobremuestra (60)…» desde V6 (2026-09-08); hasta entonces «La muestra es
   # la cuota del diseño…», que llamaba «margen» a la sobremuestra.
-  notas <- c("La meta y el avance diario", "La cuota es de cada facultad",
-             "Muestra (", "Si editaste el libro")
+  #
+  # «La meta y el avance diario se miden en la plataforma; la producción por
+  # aplicador, en el parte» ya no está: el segundo dictado del 2026-09-08 deja
+  # la producción por aplicador midiéndose también en la plataforma, así que no
+  # hay dos familias que distinguir y el puente se retiró.
+  notas <- c("La cuota es de cada facultad", "Muestra (",
+             "Una fila por persona EN CADA FACULTAD", "Una fila por facultad y día",
+             "Si editaste el libro")
   for (nota in notas) {
     fila <- .calax_fila_que_empieza(h$celdas, nota)
     expect_false(is.na(fila), info = sprintf("la hoja perdió la nota «%s…»", nota))
@@ -201,9 +219,8 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
 
 # --- S4: el vacío de una celda de tabla se declara con «—» --------------------
 
-# Modelo con alguien que tiene aula asignada y ningún parte (Equipo C) y sin
-# variable de sexo: «Efectivas declaradas» y «Conseguidas mujeres/hombres»
-# quedan NA en el modelo.
+# Modelo con alguien que aplica en una facultad sin tasa declarada (Equipo C) y
+# sin variable de sexo: la tasa esperada y las efectivas por sexo quedan NA.
 .calax_modelo_con_huecos <- function() aulas_libro_indicadores(
   .calax_plan(),
   efectivas = c(`CH 1` = 18, `CH 2` = 12),
@@ -211,6 +228,7 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
   validas = c(TRUE, TRUE, TRUE),
   partes = .calax_partes(),
   cuotas = .calax_cuotas(),
+  cfg = .calax_cfg(),
   asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
 )
 
@@ -226,31 +244,32 @@ test_that("S2: cada nota va fusionada a lo ancho de la hoja, baja de línea y su
 
 test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cifras siguen siendo números", {
   ind <- .calax_modelo_con_huecos()
-  expect_true(any(is.na(ind$aplicadores$`Encuestas aplicadas (parte)`)))
   wb <- openxlsx::createWorkbook()
   aulas_libro_escribir_indicadores(wb, ind, hoja = "Avance de campo")
   path <- withr::local_tempfile(fileext = ".xlsx")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   celdas <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE,
                                 skipEmptyRows = FALSE, skipEmptyCols = FALSE)
-  # Aplicadores: la columna se localiza por su nombre en la cabecera.
-  cab <- .calax_fila_de(celdas, "Aplicador")
-  col_decl <- which(as.character(celdas[cab, ]) == "Encuestas aplicadas (parte)")
-  fila_c <- .calax_fila_de(celdas, "Equipo C")
-  fila_a <- .calax_fila_de(celdas, "Equipo A")
-  expect_identical(as.character(celdas[fila_c, col_decl]), "\u2014")
-  expect_identical(.calax_tipo_celda(path, fila_c, col_decl), "s")
-  expect_identical(as.character(celdas[fila_a, col_decl]), "20")
-  expect_identical(.calax_tipo_celda(path, fila_a, col_decl), "n")
   # Facultades: sin variable de sexo, «Efectivas mujeres» se declara (la
   # columna se llamaba «Conseguidas mujeres» hasta el dictado del 2026-09-08).
   cab_f <- .calax_fila_de(celdas, "Facultad")
   col_muj <- which(as.character(celdas[cab_f, ]) == "Efectivas mujeres")
   fila_l <- .calax_fila_de(celdas, "Letras")
   expect_identical(as.character(celdas[fila_l, col_muj]), "\u2014")
+  expect_identical(.calax_tipo_celda(path, fila_l, col_muj), "s")
+  # Y una cifra de la misma fila sigue siendo NÚMERO, no texto: el «—» no
+  # convierte la tabla entera en cadenas.
+  col_ef <- which(as.character(celdas[cab_f, ]) == "Efectivas")
+  expect_identical(.calax_tipo_celda(path, fila_l, col_ef), "n")
+
+  # «Avance general» declara igual sus tres filas de aulas, que no tienen sexo.
+  cab_g <- .calax_fila_de(celdas, "Indicadores")
+  fila_pl <- .calax_fila_de(celdas, "Aulas planificadas")
+  expect_false(is.na(cab_g))
+  expect_identical(as.character(celdas[fila_pl, 3]), "\u2014")
 })
 
-# --- S5: «Avance diario» cierra con una fila de total ---------------------------
+# --- S5: el «Total» vive donde suma, y el avance diario ya no es ese sitio ----
 
 # ¿Algún estilo de la fila lleva negrita?
 .calax_en_negrita <- function(h, fila) {
@@ -262,44 +281,38 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
 }
 
 # La fila (1-based) cuya primera columna es exactamente `texto` a partir de
-# `desde`, o NA. Existe porque desde V2 (2026-09-08) la tabla por facultad
-# también cierra con «Total», y la del diario es la que sigue a «Dia».
+# `desde`, o NA.
 .calax_fila_de_desde <- function(celdas, texto, desde) {
   col1 <- as.character(celdas[[1]])
   idx <- which(!is.na(col1) & col1 == texto & seq_along(col1) > desde)
   if (length(idx)) idx[[1]] else NA_integer_
 }
 
-test_that("S5: con dos o más días, el avance diario cierra con una fila «Total» en negrita que cuadra con la meta", {
-  # El modelo completo trae dos días: 2 y 1 efectivas, acumuladas 2 y 3, y una
-  # meta de 40. Con dos semanas de campo la tabla crece hacia abajo y sin
-  # cierre nadie sabe cuánto va sin sumar a mano.
+test_that("S5: la tabla por facultad cierra con una fila «Total» en negrita que suma sus celdas", {
   h <- .calax_hoja(.calax_modelo_completo())
-  cab <- .calax_fila_de(h$celdas, "Dia")
+  cab <- .calax_fila_de(h$celdas, "Facultad")
   expect_false(is.na(cab))
   fila_total <- .calax_fila_de_desde(h$celdas, "Total", cab)
-  expect_false(is.na(fila_total), info = "no hay fila «Total» bajo el avance diario")
-  expect_identical(fila_total, cab + 3L)   # cabecera + 2 días + total
-  expect_identical(as.character(h$celdas[fila_total, 2]), "3")     # suma de los días
-  expect_identical(as.character(h$celdas[fila_total, 3]), "3")     # el último acumulado, no una suma
-  expect_identical(as.character(h$celdas[fila_total, 4]), "37")    # lo que falta al cierre
+  expect_false(is.na(fila_total), info = "no hay fila «Total» bajo la tabla por facultad")
+  expect_identical(fila_total, cab + 2L)   # cabecera + 1 facultad + total
+  nombres <- as.character(h$celdas[cab, ])
+  celda <- function(rotulo) as.character(h$celdas[fila_total, which(nombres == rotulo)])
+  expect_identical(celda("Muestra"), "40")
+  expect_identical(celda("Efectivas"), "30")
   expect_true(.calax_en_negrita(h, fila_total))
 })
 
-test_that("S5: con un solo día no hay fila de cierre: no aporta nada", {
-  un_dia <- aulas_libro_indicadores(
-    .calax_plan(),
-    efectivas = c(`CH 1` = 18, `CH 2` = 12),
-    responses = data.frame(`_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00"),
-                           sexo = c("Mujer", "Hombre"), check.names = FALSE, stringsAsFactors = FALSE),
-    validas = c(TRUE, TRUE),
-    partes = .calax_partes(),
-    cuotas = .calax_cuotas()
-  )
-  expect_identical(nrow(un_dia$diario), 1L)
-  h <- .calax_hoja(un_dia)
-  # El «Total» de la tabla por facultad (V2) sí está; el del diario, no.
-  expect_true(is.na(.calax_fila_de_desde(h$celdas, "Total", .calax_fila_de(h$celdas, "Dia"))))
+test_that("S5: el avance diario NO cierra con «Total»: sumaría acumulados de facultades distintas", {
+  # Lo hacía cuando la serie era una fila por jornada del estudio entero. Desde
+  # el 2026-09-08 es una fila por FACULTAD y día, y un total al pie diría una
+  # cifra que no significa nada.
+  h <- .calax_hoja(.calax_modelo_completo())
+  cab_diario <- .calax_fila_de(h$celdas, "Día de la semana")
+  # La cabecera del diario empieza por «Facultad», así que se localiza por una
+  # columna que sólo esa tabla tiene.
+  fila_cab <- which(apply(h$celdas, 1, function(r) any(as.character(r) == "Día de la semana", na.rm = TRUE)))
+  expect_length(fila_cab, 1L)
+  expect_true(is.na(.calax_fila_de_desde(h$celdas, "Total", fila_cab[[1]])))
 })
 
 # --- S12: el mismo trato en toda la hoja ---------------------------------------
@@ -335,11 +348,13 @@ test_that("S12: la tabla de aplicadores lleva bordes como la de facultades", {
   # otra parece una lista.
   h <- .calax_hoja(.calax_modelo_completo())
   fila_fac <- .calax_fila_de(h$celdas, "Letras")
-  fila_apl <- .calax_fila_de(h$celdas, "Equipo A")
+  # La tabla de aplicadores empieza por «Facultad» desde el 2026-09-08, así que
+  # su fila se localiza por el nombre de la persona, que va en la segunda.
+  fila_apl <- which(as.character(h$celdas[[2]]) == "Equipo A")[[1]]
+  cab_apl <- which(as.character(h$celdas[[2]]) == "Aplicador")[[1]]
   expect_true(.calax_con_bordes(h, fila_fac, 2L), info = "la fila de facultades perdió sus bordes")
   expect_true(.calax_con_bordes(h, fila_apl, 1L), info = "la fila de aplicadores no lleva bordes (columna 1)")
   expect_true(.calax_con_bordes(h, fila_apl, 2L), info = "la fila de aplicadores no lleva bordes (columna 2)")
-  cab_apl <- .calax_fila_de(h$celdas, "Aplicador")
   expect_true(.calax_con_bordes(h, cab_apl, 3L), info = "la cabecera de aplicadores no lleva bordes")
 })
 

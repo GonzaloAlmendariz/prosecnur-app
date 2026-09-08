@@ -1,34 +1,25 @@
 # «Avance de campo» llega al Google Sheets como pestaña de la APP — unidad B2.2.
 #
-# Hoy la hoja solo existe en el `.xlsx`: `aulas_libro_indicadores()` devuelve un
-# MODELO (`meta`/`diario`/`aplicadores`/`facultades`) y
-# `aulas_libro_escribir_indicadores()` lo vuelca IMPERATIVO con openxlsx, celda
-# a celda. El publicador (`monitoreo_aulas_publicar_libro`) solo sabe hablar con
-# generadores modelo→data.frame de celdas (`aulas_libro_hoja_agendadas`,
-# `aulas_libro_hoja_plan_dia`…), así que la hoja de indicadores se queda en
-# tierra: `.malp_hojas_app()` publica «Base de control» y «Plan del día» y nada
-# más.
+# El xlsx la escribe IMPERATIVO (`aulas_libro_escribir_indicadores`, celda a
+# celda con openxlsx) y el publicador sólo habla con generadores modelo→filas;
+# `aulas_libro_hoja_avance()` es ese camino. Lo que esta suite fija:
 #
-# Lo que esta suite fija (rojo primero):
-#   1. existe `aulas_libro_hoja_avance(ind, fecha)`: el MISMO modelo que ya
-#      alimenta el xlsx, como data.frame de celdas; equivalencia pineada en
-#      celdas clave, no en la matriz entera.
-#   2. el título de sección es el académico de A13b («Avance contra la meta»),
-#      nada coloquial.
-#   3. `.malp_hojas_app()` la declara TERCERA hoja de la app y la publicación
-#      completa la emite; contenido remoto no la protege (jamás `respetada`).
-#   4. determinismo: la fecha del corte («Al DD/MM/YYYY») se inyecta o se
-#      deriva del modelo — el renderer NO consulta `Sys.Date()` por su cuenta
-#      (el camino imperativo sí lo hace, indicadores.R:219, y por eso el libro
-#      cambia de un día para otro; la pestaña publicada no puede heredar eso:
-#      el motor batch+hash compararía dos cortes idénticos como distintos).
-#
-# El camino imperativo del xlsx NO cambia en esta unidad: los 22 PASS de
-# test-carga-aulas-libro-indicadores.R son vecina intacta, no contrato migrado.
+#   1. el renderer produce las MISMAS cifras que el modelo que alimenta el xlsx
+#      —equivalencia pineada en celdas clave, no en la matriz entera—;
+#   2. el registro es académico (A13b, «es AVANCE»), nada coloquial;
+#   3. `.malp_hojas_app()` la declara hoja de la app y la publicación la emite;
+#      contenido remoto no la protege (jamás `respetada`);
+#   4. determinismo: la fecha del corte se inyecta o se deriva del modelo — el
+#      renderer NO consulta `Sys.Date()` (el imperativo sí, y por eso el xlsx
+#      cambia de un día para otro; la pestaña no puede heredar eso: el motor
+#      batch+hash compararía dos cortes idénticos como distintos);
+#   5. **las cifras viajan como NÚMEROS y no como texto** (2026-09-08). Gonzalo
+#      pidió el porcentaje como formato de celda y color que siga al valor, y
+#      ninguna de las dos cosas existe sobre una celda de texto.
 #
 # «Avance de campo» ya está en la lista controlada de pestañas
-# (monitoreo_sheets_pestanas.R, alta de A13a) y pineada en
-# test-monitoreo-sheets-pestanas.R — ese pin no se duplica aquí.
+# (monitoreo_sheets_pestanas.R) y pineada en test-monitoreo-sheets-pestanas.R —
+# ese pin no se duplica aquí.
 
 # --- fixtures ----------------------------------------------------------------
 
@@ -44,16 +35,23 @@
        eligible_n = 28, expected_valid = 20)
 )
 
-# Cinco respuestas en dos días; la quinta NO es efectiva. Con la meta 40:
-# 2026-08-10 → 2 efectivas, acumulado 2; 2026-08-11 → 2 efectivas, acumulado 4,
-# faltan 36.
+# Cinco respuestas en dos días; la quinta NO es efectiva. Desde el 2026-09-08 el
+# avance diario es POR FACULTAD y por día, así que cada respuesta tiene que
+# poder encontrar su aula: sin `collectorID` el cruce no existe y la tabla
+# entera desaparece — que es exactamente lo que pasó en el campo real de
+# HSVG2026 cuando el cruce miraba la clave equivocada.
+#
+# 2026-08-10 → 2 efectivas de Letras; 2026-08-11 → 2 efectivas, acumulado 4.
 .cas_respuestas <- function() data.frame(
+  collectorID = c("CH 1", "CH 1", "CH 2", "CH 1", "CH 2"),
   `_submission_time` = c("2026-08-10T09:00:00", "2026-08-10T10:00:00",
                          "2026-08-11T09:00:00", "2026-08-11T11:00:00",
                          "2026-08-11T12:00:00"),
   sexo = c("Mujer", "Hombre", "Mujer", "Hombre", "Prefiero no decir"),
   check.names = FALSE, stringsAsFactors = FALSE
 )
+
+.cas_cfg <- function() list(source_mapping = list(collector_var = "collectorID"))
 
 # Equipo B: 2 aulas, 14 efectivas declaradas (8 + 6), media 7 — abre la tabla
 # porque va más flojo que Equipo A (media 20).
@@ -71,21 +69,38 @@
   efectivas = .cas_efectivas(),
   responses = .cas_respuestas(),
   validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
-  partes = .cas_partes()
+  partes = .cas_partes(),
+  cfg = .cas_cfg()
 )
 
 .cas_fecha <- function() as.Date("2026-08-15")
 
 # --- lectura de celdas -------------------------------------------------------
 
-# El data.frame de celdas como matriz de texto: la hoja es de bloques, así que
-# los pines buscan por ETIQUETA, no por posición de fila — la geometría interna
-# es del renderer.
-.cas_celdas <- function(hoja) {
-  expect_true(is.data.frame(hoja))
-  m <- as.matrix(hoja)
-  m[] <- trimws(ifelse(is.na(m), "", as.character(m)))
-  m
+# Las filas publicadas como matriz de TEXTO: la hoja es de bloques, así que los
+# pines buscan por ETIQUETA y no por posición de fila — la geometría interna es
+# del renderer. Las celdas numéricas se leen aquí como su texto; para pinear
+# que son NÚMEROS está `.cas_filas()`, más abajo.
+.cas_celdas <- function(filas) {
+  expect_true(is.list(filas) && length(filas) > 0L)
+  ancho <- max(vapply(filas, length, integer(1)))
+  txt <- lapply(filas, function(f) {
+    v <- vapply(f, function(x) {
+      if (is.numeric(x)) format(x, trim = TRUE, scientific = FALSE) else as.character(x %||% "")
+    }, character(1))
+    c(trimws(v), rep("", ancho - length(v)))
+  })
+  matrix(unlist(txt, use.names = FALSE), ncol = ancho, byrow = TRUE)
+}
+
+# Las filas tal cual, con sus tipos.
+.cas_filas <- function(ind, fecha = .cas_fecha()) aulas_libro_hoja_avance(ind, fecha = fecha)
+
+# La fila cuya primera celda es `etiqueta`, con sus tipos intactos.
+.cas_fila_con <- function(filas, etiqueta) {
+  i <- which(vapply(filas, function(f) identical(as.character(f[[1]]), etiqueta), logical(1)))
+  expect_length(i, 1L)
+  filas[[i[[1]]]]
 }
 
 # La celda a la derecha de una etiqueta (el patrón etiqueta|valor del bloque de
@@ -116,38 +131,75 @@ test_that("B2.2: existe el renderer modelo→celdas de «Avance de campo»", {
   # `.malp_df_a_values` adapta fila a fila. Sin él, la hoja no tiene camino a
   # Sheets: el imperativo de openxlsx no produce values.
   expect_true(exists("aulas_libro_hoja_avance", mode = "function"))
-  hoja <- aulas_libro_hoja_avance(.cas_modelo(), fecha = .cas_fecha())
-  expect_true(is.data.frame(hoja))
-  expect_gt(nrow(hoja), 0L)
+  filas <- aulas_libro_hoja_avance(.cas_modelo(), fecha = .cas_fecha())
+  # Lista de filas, no data.frame: un data.frame de caracteres no puede llevar
+  # texto y número a la vez, y el tipo es justo lo que hace posible el formato
+  # de porcentaje y el color por valor (2026-09-08).
+  expect_true(is.list(filas))
+  expect_false(is.data.frame(filas))
+  expect_gt(length(filas), 0L)
+  # Rectángulo uniforme: todas las filas del mismo ancho.
+  expect_length(unique(vapply(filas, length, integer(1))), 1L)
+})
+
+test_that("las cifras llegan a Sheets como NÚMEROS, no como texto", {
+  # Hasta el 2026-09-08 esta hoja publicaba «480» y «19.2 %» como cadenas.
+  # Con `valueInputOption=RAW` una cadena se guarda como cadena: la celda queda
+  # de tipo texto y sobre texto no hay numFmt de porcentaje que aplicar, ni
+  # regla de color que compare, ni orden ni suma dentro del documento.
+  ind <- .cas_modelo()
+  filas <- .cas_filas(ind)
+  meta <- .cas_fila_con(filas, "Encuestas de la meta")
+  expect_true(is.numeric(meta[[2]]))
+  expect_identical(meta[[2]], ind$meta$meta_total)
+  # Ninguna celda numérica sale con el signo «%» pegado: el porcentaje es
+  # formato de celda, nunca parte del valor ni del rótulo.
+  todas <- unlist(lapply(filas, function(f) f[vapply(f, is.character, logical(1))]),
+                  use.names = FALSE)
+  cabeceras <- unlist(AULAS_AVANCE_CABECERAS, use.names = FALSE)
+  expect_false(any(grepl("%", cabeceras, fixed = TRUE)))
+  # Y el motor de publicación conserva ese tipo hasta el cuerpo de la petición.
+  # `unlist()` NO sirve para comprobarlo: coacciona la lista entera a texto y el
+  # pin pasaría con el motor roto. Se recorre celda a celda.
+  padded <- prosecnurapp:::.monitoreo_sync_sheets_padded_rows(
+    prosecnurapp:::.monitoreo_sheets_values_rows(filas))
+  numericas <- sum(vapply(padded, function(fila) {
+    sum(vapply(fila, is.numeric, logical(1)))
+  }, integer(1)))
+  expect_gt(numericas, 0L)
+  # La celda de la meta, en el mismo sitio y todavía numérica.
+  i <- which(vapply(padded, function(f) identical(as.character(f[[1]]), "Encuestas de la meta"),
+                    logical(1)))
+  expect_length(i, 1L)
+  expect_identical(padded[[i[[1]]]][[2]], ind$meta$meta_total)
 })
 
 test_that("B2.2: la meta y el logrado del renderer son los del modelo", {
   # Equivalencia en celdas clave contra el MODELO (los mismos números que hoy
   # escribe el camino imperativo), no la matriz entera.
   ind <- .cas_modelo()
-  m <- .cas_celdas(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  m <- .cas_celdas(.cas_filas(ind))
   expect_equal(.cas_valor_junto_a(m, "Encuestas de la meta"), ind$meta$meta_total) # 40
   expect_equal(.cas_valor_junto_a(m, "Efectivas conseguidas"), ind$meta$logrado)   # 30
 })
 
 test_that("B2.2: una fila del diario y una de aplicadores llevan los números del modelo", {
   ind <- .cas_modelo()
-  m <- .cas_celdas(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  m <- .cas_celdas(.cas_filas(ind))
 
-  # 2026-08-11 en el modelo: 2 efectivas del día, 4 acumuladas, faltan 36.
-  fila_dia <- ind$diario[ind$diario$Dia == "2026-08-11", ]
-  esperados_dia <- c(fila_dia$`Efectivas del dia`, fila_dia$`Efectivas acumuladas`,
-                     fila_dia$`Falta para la meta`)
+  # 2026-08-11 en Letras: 2 efectivas del día y 4 acumuladas.
+  fila_dia <- ind$diario[ind$diario[["Día"]] == "2026-08-11", ]
+  esperados_dia <- c(fila_dia[["Efectivas del día"]], fila_dia[["Efectivas acumuladas"]])
   en_hoja <- .cas_numeros_de_fila_con(m, "2026-08-11")
   expect_true(all(esperados_dia %in% en_hoja),
               info = sprintf("fila del 2026-08-11: esperaba {%s} dentro de {%s}",
                              paste(esperados_dia, collapse = ", "),
                              paste(en_hoja, collapse = ", ")))
 
-  # Equipo B en el modelo: 2 aulas, 14 efectivas declaradas, media 7.
+  # Equipo B en el modelo: sus aulas aplicadas y sus fichas en la base.
   fila_apl <- ind$aplicadores[ind$aplicadores$Aplicador == "Equipo B", ]
-  esperados_apl <- c(fila_apl$Aulas, fila_apl$`Encuestas aplicadas (parte)`,
-                     fila_apl$`Media por aula`)
+  expect_equal(nrow(fila_apl), 1L)
+  esperados_apl <- c(fila_apl[["Aulas aplicadas"]], fila_apl[["Fichas en la base"]])
   en_hoja_apl <- .cas_numeros_de_fila_con(m, "Equipo B")
   expect_true(all(esperados_apl %in% en_hoja_apl),
               info = sprintf("fila de Equipo B: esperaba {%s} dentro de {%s}",
@@ -167,17 +219,17 @@ test_that("B2.2: el renderer dice lo mismo que la hoja imperativa del xlsx", {
   del_xlsx <- suppressWarnings(as.numeric(d[[2]][[fila_meta]]))
 
   ind <- aulas_libro_indicadores(.cas_plan(), efectivas = .cas_efectivas())
-  m <- .cas_celdas(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  m <- .cas_celdas(.cas_filas(ind))
   expect_equal(.cas_valor_junto_a(m, "Encuestas de la meta"), del_xlsx)
 })
 
 # --- 2. registro académico (A13b) --------------------------------------------
 
-test_that("B2.2: el título de sección es «Avance contra la meta», nada coloquial", {
+test_that("B2.2: el título de sección es académico, nada coloquial", {
   # A13b (`3a12a52b`) fijó el registro académico; la pestaña publicada nace con
   # él, no con los rótulos viejos.
-  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo(), fecha = .cas_fecha()))
-  expect_true(any(m == "Avance contra la meta"))
+  m <- .cas_celdas(.cas_filas(.cas_modelo()))
+  expect_true(any(m == "Avance general"))
   coloquiales <- c("Cómo va el campo", "Como va el campo", "Cómo nos va hoy",
                    "Cómo se está trabajando")
   for (rotulo in coloquiales) {
@@ -194,8 +246,8 @@ test_that("B2.2: la fecha del corte se inyecta; el renderer no consulta Sys.Date
   # por el motor batch+hash: si el renderer leyera el reloj, dos publicaciones
   # del MISMO estado en días distintos darían hashes distintos y la hoja se
   # reescribiría sin que nada haya cambiado.
-  con_15 <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo(), fecha = as.Date("2026-08-15")))
-  con_16 <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo(), fecha = as.Date("2026-08-16")))
+  con_15 <- .cas_celdas(.cas_filas(.cas_modelo(), fecha = as.Date("2026-08-15")))
+  con_16 <- .cas_celdas(.cas_filas(.cas_modelo(), fecha = as.Date("2026-08-16")))
   expect_true(any(grepl("15/08/2026", con_15, fixed = TRUE)))
   expect_false(any(grepl("15/08/2026", con_16, fixed = TRUE)))
   expect_true(any(grepl("16/08/2026", con_16, fixed = TRUE)))
@@ -262,7 +314,7 @@ test_that("B2.2: la publicación completa siembra «Avance de campo» en un docu
   celdas <- unlist(mock$env$sheets[["Avance de campo"]]$values %||% list(),
                    use.names = FALSE)
   celdas <- trimws(as.character(celdas))
-  expect_true("Avance contra la meta" %in% celdas)
+  expect_true("Avance general" %in% celdas)
   i_meta <- match("Encuestas de la meta", celdas)
   expect_false(is.na(i_meta))
   # El valor viaja en la celda siguiente de su fila (patrón etiqueta|valor);
@@ -302,48 +354,62 @@ test_that("B2.2: la publicación completa siembra «Avance de campo» en un docu
     list(operational_code = "CH 1", applied_by = "Equipo Unico", effective_surveys = 8),
     list(operational_code = "CH 2", applied_by = "Equipo Unico", effective_surveys = 5)
   ),
-  # La media sale de la PLATAFORMA desde el 2026-09-07 —la del parte llegaba al
-  # cerrar y en la primera semana casi no existe—, así que se atribuye por el
-  # reparto: 1200.4 + 105.9 = 1306.3 en 2 cursos-horario, media 653.15 -> 653.2.
-  # El decimal LEGITIMO que este test defiende sigue estando: es un promedio.
+  # Con cuota del diseño, para que «Faltantes para la meta» del avance diario
+  # exista: desde el 2026-09-08 esa columna se mide contra la MUESTRA de la
+  # facultad y sin diseño no hay contra qué medirla.
+  cuotas = list(meta_diseno = 3158,
+                facultades = list(list(facultad = "Letras", cuota = 3158))),
+  cfg = .cas_cfg(),
   asignados = list(`CH 1` = "Equipo Unico", `CH 2` = "Equipo Unico")
 )
 
-test_that("A9-B6: el bloque de meta publica enteros — meta al mas proximo, logrado abajo, falta arriba", {
-  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_fraccionario(), fecha = .cas_fecha()))
-  # 3157.8 -> 3158; 1306.3 -> 1306; 1851.5 -> 1852.
-  expect_equal(.cas_valor_junto_a(m, "Encuestas de la meta"), 3158)
-  expect_equal(.cas_valor_junto_a(m, "Efectivas conseguidas"), 1306)
-  expect_equal(.cas_valor_junto_a(m, "Faltan"), 1852)
-  # Y en el TEXTO publicado no queda parte decimal: la pestaña va en RAW, lo
-  # que hay en la celda es exactamente lo que el operativo lee.
-  idx <- which(m == "Encuestas de la meta", arr.ind = TRUE)
+test_that("A9-B6: «Avance general» publica enteros de personas, no medias encuestas", {
+  ind <- .cas_modelo_fraccionario()
+  g <- ind$general
+  fila <- function(et) g[g[[1L]] == et, , drop = FALSE]
+  # 3158 es la cuota del diseño; lo conseguido, 1200.4 + 105.9 = 1306.3 -> 1306.
+  expect_equal(fila("Muestra")$Total, 3158)
+  expect_equal(fila("Efectivas")$Total, 1306)
+  # Y lo que falta se mide contra la cuota, por celda y en entero.
+  expect_equal(fila("Faltantes para la muestra")$Total, 1852)
+  # En la celda publicada no queda parte decimal: media encuesta no existe.
+  m <- .cas_celdas(.cas_filas(ind))
+  idx <- which(m == "Efectivas", arr.ind = TRUE)
   txt <- m[idx[1, "row"], idx[1, "col"] + 1L]
   expect_false(grepl("[.,][0-9]", txt),
-               info = sprintf("la celda de la meta dice «%s»", txt))
+               info = sprintf("la celda de efectivas dice «%s»", txt))
 })
 
-test_that("A9-B6: «Falta para la meta» del diario sube al entero; la media conserva su decimal", {
-  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_fraccionario(), fecha = .cas_fecha()))
-  # 3157.8 - 4 acumuladas = 3153.8 respuestas por recoger -> 3154 (hacia arriba).
+test_that("A9-B6: ninguna columna de personas publica decimales; las TASAS sí", {
+  ind <- .cas_modelo_fraccionario()
+  m <- .cas_celdas(.cas_filas(ind))
+  # La cuota de Letras es 3158 y el día 11 el acumulado es 4: faltan 3154.
   en_dia <- .cas_numeros_de_fila_con(m, "2026-08-11")
   expect_true(3154 %in% en_dia,
               info = sprintf("fila del 2026-08-11: {%s}", paste(en_dia, collapse = ", ")))
-  expect_false(any(abs(en_dia - 3153.8) < 1e-9),
-               info = "la columna publica 3153.8: decimales sobre encuestas")
-  # Pin de conservacion (hoy verde): «Media por curso-horario» es un promedio y
-  # su decimal significa algo — la regla de enteros es de los conteos.
-  en_apl <- .cas_numeros_de_fila_con(m, "Equipo Unico")
-  expect_true(653.2 %in% en_apl,
-              info = sprintf("fila de Equipo Unico: {%s}", paste(en_apl, collapse = ", ")))
+  # Ninguna columna de CONTEO del avance diario sale con parte decimal: media
+  # encuesta no existe.
+  conteos <- c("Efectivas del día", "Efectivas esperadas", "Diferencia",
+               "Efectivas acumuladas", "Faltantes para la meta")
+  for (col in conteos) {
+    v <- suppressWarnings(as.numeric(ind$diario[[col]]))
+    v <- v[is.finite(v)]
+    expect_true(all(abs(v - round(v)) < 1e-9),
+                info = sprintf("«%s» publica decimales: %s", col, paste(v, collapse = ", ")))
+  }
+  # Pin de conservación: una TASA es una razón y su decimal significa algo — la
+  # regla de enteros es de los conteos. Aquí las efectivas superan a los
+  # elegibles del fixture, así que lo que se sujeta es que NO se redondeó a un
+  # entero: sigue siendo fraccionaria.
+  tasa <- suppressWarnings(as.numeric(
+    ind$aplicadores[["Tasa de rendimiento obtenida"]][[1]]))
+  expect_true(is.finite(tasa) && abs(tasa - round(tasa)) > 1e-9)
 })
 
 test_that("A9-B6: con cifras fraccionarias, xlsx y Sheets siguen diciendo lo mismo", {
-  # Pin de conservacion (hoy verde: ambos publican el mismo round(x, 1)). El
-  # pin de equivalencia de arriba usa enteros 40/30 y no discrimina; este obliga
-  # a que la regla de redondeo aterrice en los DOS caminos a la vez — arreglar
-  # solo `cifra_limpia` o solo `.cala_num_txt` deja al equipo con dos cifras
-  # distintas para la misma etiqueta.
+  # El lazo entre los DOS caminos con cifras que obligan a redondear: arreglar
+  # sólo el writer del xlsx o sólo el renderer del Sheets deja al equipo con dos
+  # cifras distintas para la misma etiqueta.
   ind <- aulas_libro_indicadores(.cas_plan_fraccionario(),
                                  efectivas = .cas_efectivas_fraccionarias())
   libro <- withr::local_tempfile(fileext = ".xlsx")
@@ -352,7 +418,7 @@ test_that("A9-B6: con cifras fraccionarias, xlsx y Sheets siguen diciendo lo mis
   openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
   d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Avance de campo",
                                             colNames = FALSE, skipEmptyRows = FALSE))
-  m <- .cas_celdas(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  m <- .cas_celdas(.cas_filas(ind))
   for (etq in c("Encuestas de la meta", "Efectivas conseguidas", "Faltan")) {
     fila <- which(as.character(d[[1]]) == etq)
     expect_length(fila, 1L)
@@ -392,7 +458,7 @@ test_that("B2.2: contenido remoto NO protege «Avance de campo» — jamás resp
   # El remoto quedó con lo de la app, no con lo tecleado.
   celdas <- trimws(as.character(unlist(mock$env$sheets[["Avance de campo"]]$values %||% list(),
                                        use.names = FALSE)))
-  expect_true("Avance contra la meta" %in% celdas)
+  expect_true("Avance general" %in% celdas)
   expect_false("indicadores tecleados a mano" %in% celdas)
 })
 
@@ -425,7 +491,8 @@ test_that("B2.2: contenido remoto NO protege «Avance de campo» — jamás resp
   responses = .cas_respuestas(),
   validas = c(TRUE, TRUE, TRUE, TRUE, FALSE),
   partes = .cas_partes(),
-  cuotas = .cas_cuotas()
+  cuotas = .cas_cuotas(),
+  cfg = .cas_cfg()
 )
 
 # La fila (1-based) donde una etiqueta aparece como celda, o NA.
@@ -435,32 +502,36 @@ test_that("B2.2: contenido remoto NO protege «Avance de campo» — jamás resp
   as.integer(idx[1, "row"])
 }
 
-test_that("B19: los cuatro títulos de bloque y las cabeceras de sus tablas se localizan por etiqueta", {
-  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_completo(), fecha = .cas_fecha()))
-  titulos <- c("Avance contra la meta", "Avance por facultad",
-               "Producción por aplicador", "Avance diario")
+test_that("B19: los CINCO títulos de bloque y las cabeceras de sus tablas se localizan por etiqueta", {
+  filas <- .cas_filas(.cas_modelo_completo())
+  m <- .cas_celdas(filas)
+  titulos <- unname(AULAS_AVANCE_TITULOS)
+  expect_length(titulos, 5L)
   for (t in titulos) {
     expect_false(is.na(.cas_fila_de(m, t)),
                  info = sprintf("título de bloque «%s» ausente", t))
   }
-  # Cada tabla del modelo lleva su fila de nombres de columna: es la fila que
-  # el formato de B19 viste como cabecera, localizada por su primera etiqueta.
-  for (cab in c("Facultad", "Aplicador", "Dia")) {
-    fila <- .cas_fila_de(m, cab)
-    expect_false(is.na(fila), info = sprintf("cabecera de tabla «%s» ausente", cab))
+  # Cada tabla lleva su fila de nombres de columna: es la fila que el formato de
+  # B19 viste como cabecera. Se localiza por la cabecera COMPLETA y no por su
+  # primera celda — cuatro de las cinco empiezan por «Facultad» desde el
+  # 2026-09-08, así que la primera celda ya no distingue.
+  encontradas <- vapply(filas, function(f) {
+    prosecnurapp:::.calac_tabla_de_cabecera(
+      vapply(f, function(x) as.character(x), character(1)))
+  }, character(1))
+  for (clave in names(AULAS_AVANCE_CABECERAS)) {
+    expect_equal(sum(encontradas == clave), 1L,
+                 info = sprintf("cabecera de la tabla «%s»", clave))
   }
-  # Y el orden de los bloques es el del modelo (meta, facultades,
-  # aplicadores, diario): la geometría interna es del renderer, el ORDEN es
-  # del contrato.
-  filas <- vapply(titulos, function(t) .cas_fila_de(m, t), integer(1))
-  expect_true(all(diff(filas) > 0L))
+  # Y el orden de los bloques es el del contrato.
+  orden <- vapply(titulos, function(t) .cas_fila_de(m, t), integer(1))
+  expect_true(all(diff(orden) > 0L))
 })
 
 test_that("B19: cada título de bloque llega tras al menos una fila en blanco de separación", {
-  m <- .cas_celdas(aulas_libro_hoja_avance(.cas_modelo_completo(), fecha = .cas_fecha()))
+  m <- .cas_celdas(.cas_filas(.cas_modelo_completo()))
   fila_en_blanco <- function(i) all(!nzchar(m[i, ]))
-  for (t in c("Avance contra la meta", "Avance por facultad",
-              "Producción por aplicador", "Avance diario")) {
+  for (t in unname(AULAS_AVANCE_TITULOS)) {
     fila <- .cas_fila_de(m, t)
     expect_false(is.na(fila), info = sprintf("título «%s» ausente", t))
     if (!is.na(fila)) {
@@ -473,48 +544,61 @@ test_that("B19: cada título de bloque llega tras al menos una fila en blanco de
 # --- S4 (loop estética, 2026-09-07): el vacío de una celda de tabla se declara ---
 
 test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía", {
-  # Medido en el libro real del 07/09: 19 de 24 aplicadores sin parte tenían
-  # «Efectivas declaradas» en blanco y la fila quedaba con un hueco en medio;
-  # el «—» ya es el vocabulario del bloque de meta y de la procedencia.
+  # Medido en el libro real del 07/09: 19 de 24 aplicadores tenían una columna
+  # en blanco y la fila quedaba con un hueco en medio, que en Sheets se lee como
+  # «se olvidaron». El «—» ya es el vocabulario del bloque de meta.
+  #
+  # Aquí el hueco lo produce la tasa esperada: el plan de este fixture no trae
+  # `rendimiento_ref`, así que la facultad no tiene vara declarada y la columna
+  # calla en vez de inventar una.
   ind <- aulas_libro_indicadores(
     .cas_plan(), efectivas = .cas_efectivas(), partes = .cas_partes(),
-    # Equipo C tiene un curso-horario asignado y ningún parte: su columna
-    # «Efectivas declaradas» es NA en el modelo.
+    cfg = .cas_cfg(),
     asignados = list(`CH 1` = "Equipo A", `CH 2` = "Equipo C")
   )
-  expect_true(any(is.na(ind$aplicadores$`Encuestas aplicadas (parte)`)))
-  filas <- .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
-  cabecera <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Aplicador"), logical(1)))
+  col_tasa <- "Tasa de rendimiento esperada en facultad"
+  expect_true(any(is.na(ind$aplicadores[[col_tasa]])))
+  filas <- .cas_filas(ind)
+  clave <- vapply(filas, function(f) {
+    prosecnurapp:::.calac_tabla_de_cabecera(
+      vapply(f, function(x) as.character(x), character(1)))
+  }, character(1))
+  cabecera <- which(clave == "aplicador")
   expect_length(cabecera, 1L)
   nombres <- as.character(unlist(filas[[cabecera]]))
-  col <- which(nombres == "Encuestas aplicadas (parte)")
-  fila_c <- which(vapply(filas, function(f) identical(unlist(f)[[1]], "Equipo C"), logical(1)))
+  col <- which(nombres == col_tasa)
+  fila_c <- which(vapply(filas, function(f) identical(as.character(f[[2]]), "Equipo C"), logical(1)))
   expect_length(fila_c, 1L)
-  expect_identical(as.character(unlist(filas[[fila_c]]))[[col]], "\u2014")
+  expect_identical(as.character(filas[[fila_c]][[col]]), "\u2014")
   # Y ninguna celda de la tabla queda en blanco: de la cabecera a la última fila.
   n <- nrow(ind$aplicadores)
   for (i in (cabecera + 1L):(cabecera + n)) {
-    celdas <- as.character(unlist(filas[[i]]))[seq_along(nombres)]
-    expect_false(any(!nzchar(celdas)), info = sprintf("fila %d con celda en blanco: %s", i, paste(celdas, collapse = "|")))
+    celdas <- vapply(filas[[i]], function(x) as.character(x), character(1))[seq_along(nombres)]
+    expect_false(any(!nzchar(celdas)),
+                 info = sprintf("fila %d con celda en blanco: %s", i, paste(celdas, collapse = "|")))
   }
 })
 
-# --- S5 (loop estética, 2026-09-07): el diario cierra con «Total» en Sheets también ---
+# --- S5: el avance diario ya NO cierra con «Total» --------------------------
+#
+# Lo hacía cuando la serie era una fila por jornada del estudio entero. Desde el
+# 2026-09-08 es una fila por FACULTAD y día: un «Total» al pie sumaría acumulados
+# de facultades distintas y diría una cifra que no significa nada. La fila
+# «Total» sigue viva donde sí suma, que es la tabla por facultad.
 
-test_that("S5: en Sheets el avance diario lleva la misma fila «Total» que el xlsx", {
-  filas <- .malp_df_a_values(aulas_libro_hoja_avance(.cas_modelo(), fecha = .cas_fecha()))
-  primera <- vapply(filas, function(f) as.character(unlist(f)[[1]]), character(1))
-  cab <- which(primera == "Dia")
-  expect_length(cab, 1L)
-  total <- which(primera == "Total")
-  expect_length(total, 1L)
-  n_dias <- nrow(.cas_modelo()$diario)
-  expect_gte(n_dias, 2L)
-  # cabecera «Dia», n días y la fila de cierre justo debajo del último.
-  expect_identical(total, cab + n_dias + 1L)
-  fila <- as.character(unlist(filas[[total]]))
-  expect_identical(fila[[2]], as.character(sum(.cas_modelo()$diario$`Efectivas del dia`)))
-  expect_identical(fila[[3]], as.character(utils::tail(.cas_modelo()$diario$`Efectivas acumuladas`, 1)))
+test_that("S5: el avance diario no lleva fila «Total»; la tabla por facultad sí", {
+  filas <- .cas_filas(.cas_modelo_completo())
+  clave <- vapply(filas, function(f) {
+    prosecnurapp:::.calac_tabla_de_cabecera(
+      vapply(f, function(x) as.character(x), character(1)))
+  }, character(1))
+  primera <- vapply(filas, function(f) as.character(f[[1]]), character(1))
+  cab_diario <- which(clave == "diario")
+  expect_length(cab_diario, 1L)
+  expect_false(any(primera[seq(cab_diario, length(primera))] == "Total"))
+  cab_fac <- which(clave == "facultad")
+  expect_length(cab_fac, 1L)
+  expect_identical(primera[[cab_fac + nrow(.cas_modelo_completo()$facultades) + 1L]], "Total")
 })
 
 # --- S11: la frase del vacío de aplicadores es UNA, con tildes, en los dos renderers ---
@@ -522,8 +606,8 @@ test_that("S5: en Sheets el avance diario lleva la misma fila «Total» que el x
 test_that("S11: en Sheets el vacío de aplicadores sale de la misma función que el xlsx", {
   ind <- aulas_libro_indicadores(.cas_plan(), efectivas = .cas_efectivas())
   expect_true(is.null(ind$aplicadores) || !nrow(ind$aplicadores))
-  filas <- .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
-  primera <- vapply(filas, function(f) as.character(unlist(f)[[1]]), character(1))
+  filas <- .cas_filas(ind)
+  primera <- vapply(filas, function(f) as.character(f[[1]]), character(1))
   titulo <- which(primera == "Producción por aplicador")
   expect_length(titulo, 1L)
   expect_identical(primera[[titulo + 1L]], .cali_motivo_sin_aplicadores())

@@ -440,7 +440,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # declara en una celda (C3) — y sin fecha inyectada: el corte se deriva del
   # modelo, nunca del reloj, o el motor batch+hash compararía dos
   # publicaciones del MISMO estado como distintas.
-  producidas[[.malp_hoja_avance()]] <- .malp_df_a_values(
+  # **Sin `.malp_df_a_values`**: desde el 2026-09-08 esta hoja emite filas con
+  # celdas NUMÉRICAS, y ese adaptador las pasaría por `as.character()`. El
+  # formato de porcentaje y el color por valor que pidió Gonzalo sólo existen
+  # sobre números; el motor de publicación aprendió a conservarlos
+  # (`.monitoreo_sync_sheets_padded_rows`).
+  producidas[[.malp_hoja_avance()]] <- (
     aulas_libro_hoja_avance(aulas_libro_indicadores(
       unidades, efectivas = efectivas, partes = partes, cuotas = cuotas,
       cfg = config_reparto,
@@ -525,7 +530,13 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     0L
   }
   geo_selector <- .mapds_geometria(producidas[[.malp_hoja_plan_dia()]])
-  libro_cambio <- any(vapply(hojas_libro, function(hoja) {
+  # «Avance de campo» queda FUERA de esta comparación desde que sus cifras
+  # viajan como números: el remoto se lee formateado («19,2 %», «1.234») y lo
+  # local es el valor crudo (0.1923, 1234), así que la igualdad byte a byte
+  # diría «cambió» en cada publicación y forzaría a reasertar las demás hojas de
+  # la app sin motivo. Su propio hash de pestaña, que el motor sí computa sobre
+  # lo que escribe, sigue decidiendo si se reescribe.
+  libro_cambio <- any(vapply(setdiff(hojas_libro, .malp_hoja_avance()), function(hoja) {
     if (!(hoja %in% existentes)) return(TRUE)
     local_v <- producidas[[hoja]]
     remoto_v <- remotas[[hoja]]

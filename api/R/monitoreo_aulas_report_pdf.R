@@ -80,13 +80,13 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
       # Los faltantes se SUMAN por facultad y no se netean: pasarse en una no
       # cubre lo que falta en otra (ADR 0079). Un neto siempre sale más
       # favorable y es el número que un cliente citaría.
-      faltan = suma("Faltantes"),
-      facultades_abiertas = sum(suppressWarnings(as.numeric(facultades$Faltantes)) > 0, na.rm = TRUE),
+      faltan = suma("Faltantes muestra"),
+      facultades_abiertas = sum(suppressWarnings(as.numeric(facultades[["Faltantes muestra"]])) > 0, na.rm = TRUE),
       aulas_aplicadas = suma("Aulas aplicadas"),
       # La segunda meta, con el mismo trato que la primera (decisión de Gonzalo,
       # 2026-09-08: «dos metas, la de 2 500 y la de 3 750»).
       sobremuestra = if (sobremuestra > 0) sobremuestra else NA_real_,
-      faltan_sobremuestra = if (sobremuestra > 0) suma("Faltantes para la sobremuestra") else NA_real_
+      faltan_sobremuestra = if (sobremuestra > 0) suma("Faltantes sobremuestra") else NA_real_
     ),
     # La procedencia viaja con el documento: quien lo reciba tiene que poder
     # saber contra qué se midió sin preguntar.
@@ -107,9 +107,10 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 # Vía `grDevices::pdf()` + `grid`, como el resto de motores nuevos. La capa
 # estética la pone el kit compartido (`pulso_pdf_theme.R`); el layout es propio.
 #
-# **Apaisado, y no vertical**: la tabla lleva quince columnas —facultad, y
-# muestra, efectivas, faltantes y sobremuestra con su reparto por sexo, más las
-# aulas aplicadas— y en A4 vertical no caben sin encoger la tipografía hasta
+# **Apaisado, y no vertical**: la tabla lleva diecisiete columnas —facultad,
+# efectivas, y las dos metas con lo que le falta a cada una, todo con su reparto
+# por sexo, más las aulas aplicadas— y en A4 vertical no caben sin encoger la
+# tipografía hasta
 # hacerla ilegible. El libro de códigos usa dos columnas verticales porque su
 # unidad es una variable estrecha; aquí la unidad es una fila ancha.
 
@@ -167,26 +168,37 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   por_pagina <- max(1L, floor((y_tabla - 0.10) / alto_fila))
   paginas <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_pagina))
 
-  # Las mismas quince columnas que la hoja del libro, en el orden que dictó
-  # Gonzalo el 2026-09-08 (ver `carga_aulas_libro_avance_facultad.R`). Los
-  # rótulos van cortos porque cada columna mide 0,053 npc; el grupo de arriba
-  # dice de qué son.
+  # Las mismas DIECISIETE columnas que la hoja del libro, en el orden que dictó
+  # Gonzalo el 2026-09-08 (ver `AULAS_AVANCE_CABECERAS$facultad`): **cada meta
+  # seguida de lo que le falta**, primero en total y después por sexo, hombres
+  # antes que mujeres. Los rótulos van cortos porque cada columna mide 0,051
+  # npc; la banda de grupo de arriba dice de qué son.
+  #
+  # El `grupo` es un CAMPO de cada columna y no un tramo contado: la versión
+  # anterior escribía `grupo(8L, 10L, "Faltantes")` y el día que la tabla ganó
+  # dos columnas esos índices habrían pintado la banda sobre otras.
+  ancho <- 0.051
+  col <- function(campo, rotulo, grupo = "", w = ancho, num = TRUE) {
+    list(campo = campo, rotulo = rotulo, grupo = grupo, w = w, num = num)
+  }
   columnas <- list(
-    list(campo = "Facultad", rotulo = "Facultad", w = 0.160, num = FALSE),
-    list(campo = "Muestra", rotulo = "Total", w = 0.053, num = TRUE),
-    list(campo = "Muestra mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
-    list(campo = "Muestra hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
-    list(campo = "Efectivas", rotulo = "Total", w = 0.053, num = TRUE),
-    list(campo = "Efectivas mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
-    list(campo = "Efectivas hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
-    list(campo = "Faltantes", rotulo = "Total", w = 0.053, num = TRUE),
-    list(campo = "Faltantes mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
-    list(campo = "Faltantes hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
-    list(campo = "Aulas aplicadas", rotulo = "Aulas", w = 0.053, num = TRUE),
-    list(campo = "Sobremuestra", rotulo = "Total", w = 0.053, num = TRUE),
-    list(campo = "Sobremuestra mujeres", rotulo = "Muj.", w = 0.053, num = TRUE),
-    list(campo = "Sobremuestra hombres", rotulo = "Hom.", w = 0.053, num = TRUE),
-    list(campo = "Faltantes para la sobremuestra", rotulo = "Faltan", w = 0.053, num = TRUE)
+    col("Facultad", "Facultad", w = 0.130, num = FALSE),
+    col("Efectivas", "Total", "Efectivas"),
+    col("Efectivas hombres", "Hom.", "Efectivas"),
+    col("Efectivas mujeres", "Muj.", "Efectivas"),
+    col("Muestra", "Meta", "Muestra y lo que le falta"),
+    col("Faltantes muestra", "Faltan", "Muestra y lo que le falta"),
+    col("Muestra hombres", "Hom.", "Muestra y lo que le falta"),
+    col("Faltantes hombres muestra", "Faltan", "Muestra y lo que le falta"),
+    col("Muestra mujeres", "Muj.", "Muestra y lo que le falta"),
+    col("Faltantes mujeres muestra", "Faltan", "Muestra y lo que le falta"),
+    col("Sobremuestra", "Meta", "Sobremuestra y lo que le falta"),
+    col("Faltantes sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
+    col("Sobremuestra hombres", "Hom.", "Sobremuestra y lo que le falta"),
+    col("Faltantes hombres sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
+    col("Sobremuestra mujeres", "Muj.", "Sobremuestra y lo que le falta"),
+    col("Faltantes mujeres sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
+    col("Aulas aplicadas", "Aulas")
   )
   x0 <- 0.04
   xs <- cumsum(c(x0, vapply(columnas, function(c) c$w, numeric(1))))
@@ -223,11 +235,17 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                       gp = grid::gpar(col = tok$soft, fontsize = ty$foot, fontface = "bold"))
       pulso_pdf_hairline(xs[desde], xs[hasta + 1L], y_tabla + 0.042, tokens = tok)
     }
-    grupo(2L, 4L, "Muestra")
-    grupo(5L, 7L, "Efectivas")
-    grupo(8L, 10L, "Faltantes")
-    grupo(12L, 14L, "Sobremuestra")
-    grupo(15L, 15L, "Sobrem.")
+    # Los tramos se DERIVAN del campo `grupo` de cada columna: columnas
+    # contiguas con el mismo grupo forman una banda.
+    etiquetas <- vapply(columnas, function(c) c$grupo, character(1))
+    i <- 1L
+    while (i <= length(etiquetas)) {
+      if (!nzchar(etiquetas[[i]])) { i <- i + 1L; next }
+      j <- i
+      while (j < length(etiquetas) && identical(etiquetas[[j + 1L]], etiquetas[[i]])) j <- j + 1L
+      grupo(i, j, etiquetas[[i]])
+      i <- j + 1L
+    }
 
     grid::grid.rect(x = x0, y = y_tabla, width = sum(vapply(columnas, function(c) c$w, numeric(1))),
                     height = 0.034, just = c("left", "bottom"),
@@ -242,7 +260,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     y <- y_tabla - alto_fila
     for (k in paginas[[p]]) {
       fila <- df[k, , drop = FALSE]
-      falta <- suppressWarnings(as.numeric(fila$Faltantes))
+      falta <- suppressWarnings(as.numeric(fila[["Faltantes muestra"]]))
       abierta <- is.finite(falta) && falta > 0
       if (which(paginas[[p]] == k) %% 2L == 0L) {
         grid::grid.rect(x = x0, y = y, width = sum(vapply(columnas, function(c) c$w, numeric(1))),

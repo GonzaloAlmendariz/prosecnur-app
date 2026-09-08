@@ -12,19 +12,25 @@
 #
 # Vive en archivo propio: `carga_aulas_libro_indicadores.R` sólo lo llama.
 #
-# LAS COLUMNAS SON LAS QUE DICTÓ GONZALO (2026-09-08, con el Sheets vivo delante)
+# LAS COLUMNAS SON LAS QUE DICTÓ GONZALO, Y VIVEN EN EL VOCABULARIO
 #
-# Textual: «Facultad, muestra, muestra mujeres, muestra hombres, efectivas,
-# efectivas hombres, efectivas mujeres, faltantes (sobre muestra), faltantes
-# hombre, faltantes mujeres, aulas aplicadas, sobremuestra, sobremuestra
-# mujeres, sobremuestra hombres, faltantes (sobre la sobremuestra)». Antes la
-# tabla traía «Aulas del plan», «Techo con sobremuestra» y «Avance» (un
-# porcentaje) y ninguna de las tres está en el dictado: se van. El único cambio
-# sobre el dictado es el orden de los sexos, que él alterna (mujeres→hombres en
-# muestra y sobremuestra, hombres→mujeres en efectivas y faltantes) y aquí va
-# siempre mujeres→hombres, como en el resto del libro y de la app: una tabla
-# que cambia el orden de un grupo a otro obliga a releer la cabecera en cada
-# columna. Si lo quiere al revés, es un cambio de rótulos.
+# `AULAS_AVANCE_CABECERAS$facultad` (carga_aulas_libro_avance_columnas.R) es la
+# lista y el orden; aquí sólo se llenan. La primera versión de esta tabla
+# (2026-09-08, mañana) los tenía escritos a mano y en otro orden, y el segundo
+# dictado del mismo día los reordenó entero: **cada meta seguida de lo que le
+# falta**, primero en total y después por sexo. Leer «Muestra 188 · Faltan 31»
+# de corrido es lo que la versión anterior obligaba a hacer saltando siete
+# columnas.
+#
+# Dos cambios sobre lo que había, y los dos son suyos:
+#
+#   · **Hombres antes que mujeres.** La tabla iba mujeres→hombres por una
+#     decisión mía de coherencia interna; el dictado alterna a hombres→mujeres
+#     de forma consistente en las cinco tablas. Manda el dictado.
+#   · **Las faltantes por sexo contra la SOBREMUESTRA**, que no existían
+#     publicadas en ningún sitio: sólo vivían sumadas dentro del bloque de meta
+#     (`.calam_falta_celda`), así que se sabía que faltaban N mujeres para la
+#     sobremuestra del estudio y no en cuál de las quince facultades.
 #
 # Las DOS metas reciben el mismo trato: la muestra (la cuota del diseño, 2 500
 # en HSVG2026) y la sobremuestra (3 750). Gonzalo: «dos metas, una real y otra
@@ -196,29 +202,58 @@
       if (!con_reparto || !is.finite(meta_sexo) || !is.finite(obs)) NA_real_ else max(0, meta_sexo - obs)
     }
 
-    data.frame(
+    # **Las columnas y su orden son el dictado del 2026-09-08**, y viven en
+    # `AULAS_AVANCE_CABECERAS$facultad`: cada meta seguida de lo que le falta,
+    # primero en total y después por sexo, hombres antes que mujeres.
+    #
+    # Lo que ganó la tabla ese día son las DOS faltantes por sexo contra la
+    # SOBREMUESTRA. No existían en ninguna parte salvo dentro del bloque de
+    # meta, que las sumaba para el total del estudio (`.calam_falta_celda`) sin
+    # publicarlas por facultad: se podía saber que faltaban 380 mujeres para la
+    # sobremuestra y no en cuál de las quince facultades.
+    fila <- data.frame(
       Facultad = .cai_txt(f$facultad),
+      Efectivas = conseguidas,
+      `Efectivas hombres` = unname(sx[["M"]]),
+      `Efectivas mujeres` = unname(sx[["F"]]),
       # LA MUESTRA es la cuota del diseño, no la suma de metas por aula: son dos
       # denominadores y el segundo está estructuralmente por encima (ADR 0079).
       Muestra = cuota,
-      `Muestra mujeres` = cuota_f,
+      `Faltantes muestra` = brecha(cuota, celdas(cuota_f, cuota_m)),
       `Muestra hombres` = cuota_m,
-      Efectivas = conseguidas,
-      `Efectivas mujeres` = unname(sx[["F"]]),
-      `Efectivas hombres` = unname(sx[["M"]]),
-      Faltantes = brecha(cuota, celdas(cuota_f, cuota_m)),
-      `Faltantes mujeres` = falta_sexo(cuota_f, unname(sx[["F"]])),
-      `Faltantes hombres` = falta_sexo(cuota_m, unname(sx[["M"]])),
-      `Aulas aplicadas` = sum(idx & apl),
+      `Faltantes hombres muestra` = falta_sexo(cuota_m, unname(sx[["M"]])),
+      `Muestra mujeres` = cuota_f,
+      `Faltantes mujeres muestra` = falta_sexo(cuota_f, unname(sx[["F"]])),
       Sobremuestra = sm$total,
-      `Sobremuestra mujeres` = sm$F,
+      `Faltantes sobremuestra` = brecha(sm$total, celdas(sm$F, sm$M)),
       `Sobremuestra hombres` = sm$M,
-      `Faltantes para la sobremuestra` = brecha(sm$total, celdas(sm$F, sm$M)),
+      `Faltantes hombres sobremuestra` = falta_sexo(sm$M, unname(sx[["M"]])),
+      `Sobremuestra mujeres` = sm$F,
+      `Faltantes mujeres sobremuestra` = falta_sexo(sm$F, unname(sx[["F"]])),
+      `Aulas aplicadas` = sum(idx & apl),
       check.names = FALSE, stringsAsFactors = FALSE
     )
+    # El contrato es el vocabulario, no esta lista literal: si las dos se
+    # separan, falla aquí y no tres renderers más abajo pintando en silencio.
+    .calaf_exigir_cabecera(fila)
   })
   out <- do.call(rbind, filas)
   # Por lo que FALTA y no alfabético: la facultad que peor va abre la tabla, que
   # es lo que se mira primero.
-  out[order(-ifelse(is.finite(out$Faltantes), out$Faltantes, -1)), , drop = FALSE]
+  out[order(-ifelse(is.finite(out$`Faltantes muestra`), out$`Faltantes muestra`, -1)), , drop = FALSE]
+}
+
+# El guard del párrafo de arriba. Una tabla que se sale del vocabulario declarado
+# rompe AQUÍ, con el nombre de la columna que sobra o falta, en vez de llegar
+# entera al Sheets con una columna sin formato y sin color.
+.calaf_exigir_cabecera <- function(fila) {
+  esperado <- AULAS_AVANCE_CABECERAS$facultad
+  if (!identical(names(fila), esperado)) {
+    stop(sprintf(
+      ".calaf_avance_por_facultad(): las columnas no son las de AULAS_AVANCE_CABECERAS$facultad. Sobran: %s. Faltan: %s.",
+      paste(setdiff(names(fila), esperado), collapse = ", ") %||% "",
+      paste(setdiff(esperado, names(fila)), collapse = ", ") %||% ""
+    ), call. = FALSE)
+  }
+  fila
 }
