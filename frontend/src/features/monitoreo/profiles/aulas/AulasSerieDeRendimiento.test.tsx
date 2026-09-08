@@ -268,8 +268,18 @@ describe("el eje X es un calendario, no una lista de días con datos", () => {
     const partes = [aplicada("2026-08-14", 20, "A1"), aplicada("2026-08-17", 22, "A2")];
     const html = renderToStaticMarkup(
       <AulasSerieDeRendimiento partes={partes} agenda={[]} />);
+    const ejes = [...html.matchAll(/<ol class="aulas-serie-dias"/g)];
     const ticks = [...html.matchAll(/<li class="[^"]*" style="left:/g)];
-    expect(ticks).toHaveLength(4);
+    // **Dos ejes, uno por gráfico** (2026-09-08). El acumulado no tenía ninguno:
+    // compartía la escala horizontal con el «Día a día» —mismo lienzo, misma
+    // `x()`— pero sin fechas, así que no se podía saber a qué día correspondía
+    // cada punto sin bajar al gráfico de abajo y contar. Gonzalo: «no veo el eje
+    // x que está alineado al gráfico de abajo».
+    expect(ejes).toHaveLength(2);
+    // Cuatro días × dos ejes. Es el MISMO cálculo montado dos veces, no una
+    // copia: si alguien duplicara el eje con otro origen, este número dejaría de
+    // ser un múltiplo exacto y el test lo diría.
+    expect(ticks).toHaveLength(8);
     expect(html).toContain("es-domingo");
     expect(html).toContain("es-vacio");
   });

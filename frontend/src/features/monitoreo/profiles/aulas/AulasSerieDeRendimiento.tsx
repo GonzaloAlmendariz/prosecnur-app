@@ -235,7 +235,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   >(null);
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
-    return (
+  return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay partes de campo con fecha: sin ellos no se puede medir
         cuánto deja cada visita.
@@ -247,6 +247,55 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const elegida = facultades.find((f) => f.facultad === foco) ?? null;
   const dibujadas = elegida ? [elegida] : facultades;
   const proyectada = elegida ? proyeccion.find((p) => p.facultad === elegida.facultad) ?? null : null;
+
+  /**
+   * **Las barras del «Día a día», también sin facultad en foco.**
+   *
+   * Gonzalo, 2026-09-08: «no entiendo por qué se quitó; en el día a día tenía
+   * una barra por día que representaba lo que se esperaba tener según las aulas
+   * agendadas y lo que se va teniendo día a día».
+   *
+   * No se quitó: estaba condicionada a `elegida`, así que con «Todas las
+   * facultades» —que es la vista por defecto— el `map` no se ejecutaba y el
+   * gráfico se quedaba en líneas sobre un fondo vacío. La capacidad existía y
+   * no se consumía en el caso más frecuente, que es el mismo modo de fallo que
+   * ya se reparó en el acumulado con la franja de lo agendado.
+   *
+   * Se agrega por ÍNDICE de día, igual que el acumulado del estudio: `dias[i]`
+   * de cada facultad corresponde a `aplicadas[i]`. Los elegibles y las aulas se
+   * suman, y la vara del diseño se pondera por aulas — promediar las varas de
+   * quince facultades daría un número que no es de ninguna, que es la misma
+   * trampa de `rendimiento_ref` que la sesión del Sheets midió el mismo día.
+   */
+  const diasConBarra = useMemo(() => {
+    if (elegida) return elegida.dias;
+    return aplicadas.map((fecha, i) => {
+      let aulas = 0;
+      let elegibles = 0;
+      let disenoPonderado = 0;
+      let aulasConDiseno = 0;
+      for (const f of facultades) {
+        const d = f.dias[i];
+        if (!d) continue;
+        aulas += d.aulas ?? 0;
+        elegibles += d.elegibles ?? 0;
+        const vara = d.esperadoPorAulaDelDiseno;
+        if (vara != null && vara > 0 && d.aulas) {
+          disenoPonderado += vara * d.aulas;
+          aulasConDiseno += d.aulas;
+        }
+      }
+      return {
+        ...(facultades[0]?.dias[i] ?? {}),
+        fecha,
+        aulas,
+        elegibles,
+        esperadoPorAulaDelDiseno: aulasConDiseno > 0 ? disenoPonderado / aulasConDiseno : null,
+      } as typeof elegida extends null ? never : (typeof facultades)[number]["dias"][number];
+    });
+  }, [elegida, facultades, aplicadas]);
+
+
 
   // Los días de la AGENDA que vienen después del último con parte. Sólo esos: la
   // inferencia no pasa de donde llega lo agendado, y donde no hay agenda no hay
@@ -265,6 +314,22 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     ? proyectada.dias.map((d) => d.fecha)
     : [...new Set(proyeccion.flatMap((p) => p.dias.map((d) => d.fecha)))].sort();
   const fechas = [...aplicadas, ...porVenir];
+
+  /** Lo mismo para los días por venir: el techo de lo ya agendado. */
+  const diasProyectadosConBarra = useMemo(() => {
+    if (proyectada) return proyectada.dias;
+    return porVenir.map((fecha) => {
+      let aulas = 0;
+      let elegibles = 0;
+      for (const f of proyeccion) {
+        const d = f.dias.find((x) => x.fecha === fecha);
+        if (!d) continue;
+        aulas += d.aulas ?? 0;
+        elegibles += d.elegibles ?? 0;
+      }
+      return { fecha, aulas, elegibles };
+    });
+  }, [proyectada, proyeccion, porVenir]);
 
   // El techo del eje: lo más alto que se llega a dibujar, con un respiro. Se
   // calcula sobre lo que SE VE, no sobre todo el modelo, para que al elegir una
@@ -309,6 +374,47 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const corte = aplicadas.length - 1;
   /** Y su sitio en el eje de calendario, que es donde se dibuja la frontera. */
   const corteX = aplicadas.length ? enElEje(aplicadas[corte]) : 0;
+
+    /**
+   * **El eje de días, uno solo para los dos gráficos** (Gonzalo, 2026-09-08:
+   * «no veo el eje x que está alineado al gráfico de abajo»).
+   *
+   * Lo tenía sólo el «Día a día». El acumulado compartía la escala horizontal
+   * —los dos lienzos empiezan y acaban en la misma abscisa, medido en pantalla—
+   * pero no enseñaba las fechas, así que no se podía saber a qué día
+   * correspondía cada punto sin bajar al gráfico de abajo y contar.
+   *
+   * Es el MISMO cálculo y no una copia: comparten `calendario`, `x()` y el corte
+   * entre lo aplicado y lo agendado, así que las dos rejillas no pueden
+   * separarse. Este panel ya aprendió que tres etiquetas en los extremos no
+   * contestan «qué días aplicó» —Gonzalo, sobre la primera versión: «el eje que
+   * es importantísimo, porque yo tengo que saber qué días aplicó»—: las marcas
+   * están todas y las etiquetas se reservan para los días que dicen algo.
+   */
+  const ejeDeDias = (
+      <ol className="aulas-serie-dias" aria-hidden="true">
+        {calendario.map((f, i) => {
+          const conDato = fechas.includes(f);
+          const clases = [
+            i > corteX ? "es-agenda" : "",
+            esDomingo(f) ? "es-domingo" : "",
+            conDato ? "" : "es-vacio",
+          ].filter(Boolean).join(" ");
+          // Con el eje en calendario hay más ticks que antes, así que la etiqueta
+          // se reserva para los días que dicen algo: los que tienen dato, y los
+          // extremos. El domingo se marca aunque esté vacío —es la razón del
+          // hueco, y callarla deja el hueco sin explicar.
+          const rotula = conDato || esDomingo(f) || i === 0 || i === calendario.length - 1;
+          return (
+            <li key={f} className={clases} style={{ left: `${x(i)}%` }}>
+              <i />
+              {rotula && (calendario.length <= 16 || conDato || esDomingo(f)) ? <span>{dm(f)}</span> : null}
+            </li>
+          );
+        })}
+      </ol>
+  );
+
   /** El sitio en el eje del día `i` de las series aplicadas / agendadas. */
   const xa = (i: number) => x(enElEje(aplicadas[i]));
   const xp = (i: number) => x(enElEje(porVenir[i]));
@@ -411,7 +517,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       })();
 
   const acumulado = ((): null | {
-    tope: number; escalones: number[]; meta: number; y: (v: number) => number; observado: string;
+    tope: number; escalones: number[]; meta: number;
+    /** La meta del estudio (o de la facultad en foco): la suma de sus cuotas. */
+    muestra: number;
+    y: (v: number) => number; observado: string;
     puntos: Array<{ x: number; y: number; inferido: boolean; lineas: TrozoDePista[] }>;
     cubiertasPorSexo: number | null;
     conseguidasEnTotal: number;
@@ -489,8 +598,29 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // STRING "NA", atravesó el `?? null` de la pestaña y vació el acumulado del
     // estudio. La frontera ya normaliza; este filtro es la garantía de que
     // ningún campo sucio futuro pueda repetirlo.
+    // **La MUESTRA: la meta del estudio, que hasta ahora no se dibujaba.**
+    //
+    // Gonzalo, 2026-09-08, mirando este gráfico: «¿cómo que la meta es 301? Si
+    // la meta es 2500. Debería estar clarísimo dónde están las tres metas.»
+    // Tenía razón y el defecto era literal: en el lienzo había cuatro líneas
+    // —301, 3 750, 1 239 y 1 261— y ninguna era la muestra. La única rotulada
+    // «Meta» era la de lo visitado, que además se MUEVE: crece según se pisan
+    // aulas. Es la misma patología que las 3 158 que salieron esa mañana del
+    // bloque de Avance: una cifra intermedia ocupando el sitio de la meta.
+    //
+    // Las tres que manda enseñar son la muestra y su reparto por sexo.
+    const muestraDelCorte = cuotasVisibles.reduce((n, c) => n + (Number.isFinite(c.meta) ? c.meta : 0), 0);
+    // **El techo incluye las tres metas y la sobremuestra**: si una no cabe, no
+    // se ve, y «estar clarísimo dónde están» exige que quepan. Antes el techo
+    // salía sólo de lo conseguido y lo proyectado, y por eso las cuotas por sexo
+    // caían fuera de escala en cuanto el campo iba por debajo de ellas — que es
+    // todo el principio del operativo.
+    const metasDeSexoParaElTecho = cuotasVisibles.map((c) => c.meta);
     const techo = Math.max(
-      ...[ultimo, meta, sobremuestraDelEstudio ?? 0, ...proyectadas, 1].filter((v) => Number.isFinite(v)),
+      ...[
+        ultimo, muestraDelCorte, sobremuestraDelEstudio ?? 0, ...metasDeSexoParaElTecho,
+        ...proyectadas, 1,
+      ].filter((v) => Number.isFinite(v)),
     );
     const { tope, escalones } = escalaDeEje(techo);
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
@@ -707,7 +837,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     const { caben: metasSeñaladas, fuera: metasFueraDeEscala } = repartirMetasPorEscala(metasDeSexo, tope);
     return {
-      tope, escalones, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
+      tope, escalones, meta, muestra: muestraDelCorte,
+      y: yy, observado, inferido, lectura, series, repartoObservado,
       metasFueraDeEscala, cuotasSonDelEstudio,
       // Cuántas de las conseguidas llevan sexo declarado en el libro. Si es menos
       // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
@@ -981,9 +1112,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   estudio necesita en total. El pie lo decía bien —«de las aulas
                   visitadas»— pero el pie está tres bandas más abajo y lo que la
                   gente lee es el chip. */}
-              {acumulado.meta > 0 ? (
+              {/* **La muestra abre la leyenda**, porque es la meta del estudio.
+                  Aquí decía «Meta de lo visitado», que es lo que el plan
+                  esperaba de las aulas ya pisadas: una cifra móvil que se leía
+                  como la meta y que Gonzalo cazó el 2026-09-08 («¿cómo que la
+                  meta es 301? Si la meta es 2500»). Bajó al pie, junto a la
+                  frase que ya la explicaba. */}
+              {acumulado.muestra > 0 ? (
                 <em className="es-horizontal es-gris">
-                  Meta de lo visitado {fmt(acumulado.meta)}
+                  Muestra {fmt(acumulado.muestra)}
+                  {acumulado.cuotasSonDelEstudio ? "" : " de esta facultad"}
                 </em>
               ) : null}
               {/* **Lo que falta es el SEXO, no el enlace al curso-horario.**
@@ -1011,10 +1149,17 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {/* Con una facultad en foco no se dice ni que la hay ni que falta: la
                   cifra existe pero es del estudio entero, y enseñarla al lado de la
                   meta de una facultad invita a compararlas. */}
-              {foco ? null : sobremuestra && sobremuestra > acumulado.meta ? (
+              {foco ? null : sobremuestra && sobremuestra > acumulado.muestra ? (
                 <em style={{ "--aulas-serie-color": COLOR_RESULTADO.revision } as React.CSSProperties}>
                   Sobremuestra {fmt(sobremuestra)}
-                  {acumulado.series.length && acumulado.series.every((se) => se.alcanza) ? " · referencia" : " · referencia, no obligatoria"}
+                  {/* **Ni «referencia» ni «no obligatoria»** (Gonzalo, 2026-09-08):
+                      muestra y sobremuestra son las dos metas del estudio y se
+                      miden igual. Hay un test hermano en el libro que prohíbe
+                      «referencial», «margen», «segunda meta» y «techo»; decirlo
+                      aquí de otra forma era enseñar dos doctrinas del mismo
+                      número en dos pantallas. Lo que sí se dice es contra qué se
+                      mide, que es información y no juicio. */}
+                  {" · la otra meta del estudio"}
                 </em>
               ) : (
                 <em className="es-ausente">Sobremuestra no declarada por el estudio</em>
@@ -1116,21 +1261,28 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {/* La SOBREMUESTRA, si el estudio la declara: por encima de la meta
                   y con trazo propio. No es una obligación —la meta manda— y por
                   eso va más tenue y punteada más fina. */}
-              {sobremuestra && sobremuestra > acumulado.meta ? (
+              {sobremuestra && sobremuestra > acumulado.muestra ? (
                 <line x1={MARGEN} y1={acumulado.y(sobremuestra)} x2={100 - MARGEN}
                   y2={acumulado.y(sobremuestra)}
-                  stroke={COLOR_RESULTADO.revision} strokeWidth="1" strokeDasharray="2 4"
-                  vectorEffect="non-scaling-stroke" opacity="0.7" />
+                  stroke={COLOR_RESULTADO.revision} strokeWidth="1.25"
+                  vectorEffect="non-scaling-stroke" opacity="0.75" />
               ) : null}
-              {/* La META, que es contra lo que se lee todo lo demás. En NEUTRO:
-                  iba en el mismo rosa que la cuota de mujeres y las dos lineas
-                  quedaban indistinguibles diciendo cosas distintas. La meta no es
-                  de ningun sexo. */}
-              {acumulado.meta > 0 ? (
-                <line x1={MARGEN} y1={acumulado.y(acumulado.meta)} x2={100 - MARGEN}
-                  y2={acumulado.y(acumulado.meta)}
-                  stroke="var(--pulso-text-faint)" strokeWidth="1.5" strokeDasharray="6 3"
-                  vectorEffect="non-scaling-stroke" opacity="0.9" />
+              {/* **LA MUESTRA: la línea que manda.** En neutro y con el trazo más
+                  grueso del lienzo, porque es contra lo que se lee todo lo demás
+                  y porque no es de ningún sexo — iba en el mismo rosa que la
+                  cuota de mujeres y las dos quedaban indistinguibles diciendo
+                  cosas distintas.
+
+                  Sustituye a la línea de «lo visitado», que ocupaba este sitio
+                  siendo una cifra móvil: crecía a medida que se pisaban aulas y
+                  se leía como la meta del estudio sin serlo. Esa cifra sigue
+                  viva en el pie, que es donde significa algo (¿estamos sacando
+                  de cada aula lo que prometía?). */}
+              {acumulado.muestra > 0 ? (
+                <line x1={MARGEN} y1={acumulado.y(acumulado.muestra)} x2={100 - MARGEN}
+                  y2={acumulado.y(acumulado.muestra)}
+                  stroke="var(--pulso-text-soft)" strokeWidth="2"
+                  vectorEffect="non-scaling-stroke" opacity="0.95" />
               ) : null}
               {porVenir.length ? (
                 <line x1={x(corteX)} y1={MARGEN} x2={x(corteX)} y2={MARGEN + UTIL}
@@ -1142,8 +1294,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               {acumulado.metasSeñaladas.map((se) => (
                 <line key={`meta-${se.sexo}`} x1={MARGEN} y1={acumulado.y(se.meta)}
                   x2={100 - MARGEN} y2={acumulado.y(se.meta)}
-                  stroke={se.color} strokeWidth="1.2" strokeDasharray="4 4"
-                  vectorEffect="non-scaling-stroke" opacity="0.75" />
+                  stroke={se.color} strokeWidth="1.2"
+                  vectorEffect="non-scaling-stroke" opacity="0.7" />
               ))}
               {/* El area bajo el acumulado. Una linea sola sobre un fondo vacio se
                   lee como un trazo; con el area debajo se lee como un volumen que
@@ -1184,11 +1336,20 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {pista ? (
               <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
             ) : null}
+            {/* **Las cotas del borde son LAS METAS**, y la primera decía «Meta 301»
+                —lo que el plan esperaba de las aulas ya pisadas—, que es lo que
+                Gonzalo cazó el 2026-09-08: la única cota rotulada «Meta» no era
+                ninguna de las del estudio. Ahora son la muestra, su reparto por
+                sexo y la sobremuestra, que es la otra meta y hasta hoy sólo
+                tenía línea, sin cifra en el borde. */}
             {separaLasMetas([
-              { clave: "total", valor: acumulado.meta, color: "var(--pulso-text-faint)", que: "Meta" },
+              { clave: "muestra", valor: acumulado.muestra, color: "var(--pulso-text-soft)", que: "Muestra" },
               ...acumulado.metasSeñaladas.map((se) => ({
                 clave: se.sexo, valor: se.meta, color: se.color, que: sexSeriesLabel(se.sexo),
               })),
+              ...(!foco && sobremuestra && sobremuestra > 0
+                ? [{ clave: "sobremuestra", valor: sobremuestra, color: COLOR_RESULTADO.revision, que: "Sobremuestra" }]
+                : []),
             ].filter((m) => m.valor > 0).map((m) => ({ ...m, y: acumulado.y(m.valor) }))).map((m) => (
               <span key={`meta-${m.clave}`} className="aulas-serie-meta"
                 style={{
@@ -1252,15 +1413,36 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               </div>
             ) : null}
           </div>
+          {/* El MISMO eje de días que el «Día a día», DENTRO del plot y no del
+              bloque: `.aulas-serie-dias` lleva `grid-column: 2`, que es la
+              columna del lienzo en el grid del plot. Colgado del bloque creaba
+              allí una segunda columna y partía el gráfico en dos —visto en
+              pantalla el 2026-09-08—. Aquí queda bajo el lienzo y con su mismo
+              ancho, que es lo que hace que las dos rejillas coincidan. */}
+          {ejeDeDias}
         </div>
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
         </p>
           <p className="mon-profile-muted aulas-serie-pie">
-            El <strong>sólido</strong> es lo conseguido y el <strong>punteado</strong>,
-            lo que se infiere de los cursos-horario ya agendados; {acumulado.metasSeñaladas.length
-              ? "las horizontales son la meta y las cuotas de cada sexo."
-              : "la horizontal es la meta."}
+            {/* **Una gramática de trazo, y una sola** (Gonzalo, 2026-09-08: «el
+                hecho de que todas las líneas sean punteadas es confuso, no queda
+                claro cuáles son las metas y cuáles son las inferencias»).
+
+                Tenía razón: el punteado significaba dos cosas a la vez. Las
+                metas iban punteadas —muestra, sobremuestra y las dos cuotas por
+                sexo— y las proyecciones también, así que el mismo trazo decía
+                «este es el listón» y «esto todavía no ha pasado».
+
+                Desde aquí el punteado significa UNA cosa: lo que aún no ocurrió.
+                Las metas son líneas continuas y finas, que es como se lee un
+                listón; lo conseguido, continuo y grueso; lo inferido, punteado.
+                El color sigue diciendo de quién habla cada línea. */}
+            Continuo es lo que hay: <strong>grueso</strong> lo conseguido y{" "}
+            <strong>fino</strong>{acumulado.metasSeñaladas.length
+              ? " las dos metas del estudio y las cuotas de cada sexo"
+              : " la muestra"}. El <strong>punteado</strong> es lo que se infiere de
+            los cursos-horario ya agendados: todavía no ha pasado.
             {/* El pie prometía «y las cuotas de cada sexo» SIEMPRE, y desde que
                 esas cuotas dejan de dibujarse cuando son las del estudio entero,
                 la frase mandaba a buscar dos líneas que no están. Se dice lo que
@@ -1351,7 +1533,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {/* La media del estudio, siempre visible: es contra lo que se compara
                 cualquier facultad, y es el prior del esperado. */}
             <line x1={MARGEN} y1={y(mediaDelEstudio)} x2={100 - MARGEN} y2={y(mediaDelEstudio)}
-              stroke={COLOR_RESULTADO.revision} strokeWidth="1.2" strokeDasharray="2 4"
+              stroke={COLOR_RESULTADO.revision} strokeWidth="1.2"
               vectorEffect="non-scaling-stroke" opacity="0.7" />
             {/* La banda de dispersión, debajo de todo: entre el cuartil 1 y el 3
                 de cada día está la mitad central de las facultades. */}
@@ -1464,7 +1646,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 intuitivo.
                 En elegibles POR AULA, que es la unidad del eje; los totales del
                 día van en el hover, que es donde caben sin mentir la escala. */}
-            {elegida ? elegida.dias.map((d, i) => {
+            {diasConBarra.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
               const ancho = anchoDeBarraDelDia(fechas.length);
@@ -1509,8 +1691,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                     vectorEffect="non-scaling-stroke" />
                 </g>
               );
-            }) : null}
-            {proyectada ? proyectada.dias.map((d, i) => {
+            })}
+            {diasProyectadosConBarra.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
               const ancho = anchoDeBarraDelDia(fechas.length);
@@ -1525,7 +1707,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                     vectorEffect="non-scaling-stroke" />
                 </g>
               );
-            }) : null}
+            })}
             {/* Lo INFERIDO. Arranca en el último día con parte para que se vea de
                 dónde sale, y sólo llega hasta donde llega la agenda. */}
             {proyectada && porVenir.length ? (
@@ -1591,31 +1773,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             </div>
           ) : null}
         </div>
-      {/* El eje por día, con UNA marca por fecha. Gonzalo: «el eje que es
-          importantísimo, porque yo tengo que saber qué días aplicó». Tres
-          etiquetas en los extremos no contestaban eso. Las etiquetas se alternan
-          cuando hay muchas, pero las marcas están todas. */}
-      <ol className="aulas-serie-dias" aria-hidden="true">
-        {calendario.map((f, i) => {
-          const conDato = fechas.includes(f);
-          const clases = [
-            i > corteX ? "es-agenda" : "",
-            esDomingo(f) ? "es-domingo" : "",
-            conDato ? "" : "es-vacio",
-          ].filter(Boolean).join(" ");
-          // Con el eje en calendario hay más ticks que antes, así que la etiqueta
-          // se reserva para los días que dicen algo: los que tienen dato, y los
-          // extremos. El domingo se marca aunque esté vacío —es la razón del
-          // hueco, y callarla deja el hueco sin explicar.
-          const rotula = conDato || esDomingo(f) || i === 0 || i === calendario.length - 1;
-          return (
-            <li key={f} className={clases} style={{ left: `${x(i)}%` }}>
-              <i />
-              {rotula && (calendario.length <= 16 || conDato || esDomingo(f)) ? <span>{dm(f)}</span> : null}
-            </li>
-          );
-        })}
-      </ol>
+      {ejeDeDias}
       </div>
 
       {/* Sin repetir la última fecha: ya está en el eje por día, dos líneas más
