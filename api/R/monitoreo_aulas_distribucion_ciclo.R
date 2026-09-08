@@ -94,6 +94,40 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
 #' @return lista `{ok, spreadsheet_id, url, titulo, hoja, citas_remotas, citas_ahora,
 #'   coincide, faltan, sobran, cambiadas, pestanas_ajenas}`.
 #' @export
+#' Cuál pestaña del documento es la distribución.
+#'
+#' **Se localiza por su CABECERA, no por su nombre.** La app la publica como
+#' «Plan del día» y el 2026-09-08 el documento del operativo tenía una sola
+#' pestaña, llamada «Semana 1»: Gonzalo, «cada hoja va a ser por semana». Con la
+#' búsqueda por nombre, la app leía cero citas de un documento con ochenta y
+#' seis y lo declaraba vacío sin equivocarse en nada de lo que miraba. El
+#' coordinador llevaba dos días escribiendo ahí.
+#'
+#' El nombre es una etiqueta que el equipo cambia; la cabecera es la forma del
+#' documento y la escribió la app. Se prefiere la pestaña que la app publica
+#' cuando existe, y si no, la primera cuya primera fila traiga las dos columnas
+#' que hacen legible una distribución.
+#'
+#' @param id documento.
+#' @param titulos títulos de sus pestañas.
+#' @return el título de la pestaña, o `""` si ninguna tiene forma de distribución.
+#' @keywords internal
+.madc_pestana_de_la_distribucion <- function(id, titulos) {
+  titulos <- titulos[nzchar(titulos)]
+  if (!length(titulos)) return("")
+  if (.mapd_hoja() %in% titulos) return(.mapd_hoja())
+  for (t in titulos) {
+    cab <- tryCatch({
+      v <- .cads_valores_de_pestana(id, t)
+      if (!length(v)) character(0) else .madc_valores(v[[1]], length(.alpa_CABECERA))
+    }, error = function(e) character(0))
+    if (length(which(cab == "CURSO-HORARIO")) == 1L && length(which(cab == "FECHA")) == 1L) {
+      return(t)
+    }
+  }
+  ""
+}
+
 monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
@@ -107,10 +141,11 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
   titulos <- vapply(meta$sheets %||% list(), function(h) {
     .monitoreo_scalar((h$properties %||% list())$title, "")
   }, character(1))
-  hay_hoja <- .mapd_hoja() %in% titulos
+  hoja <- .madc_pestana_de_la_distribucion(id, titulos)
+  hay_hoja <- nzchar(hoja)
 
   remoto <- if (!hay_hoja) list() else tryCatch(
-    .cads_valores_de_pestana(id, .mapd_hoja()),
+    .cads_valores_de_pestana(id, hoja),
     error = function(e) list()
   )
 
@@ -178,7 +213,7 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
     spreadsheet_id = id,
     url = paste0("https://docs.google.com/spreadsheets/d/", id, "/edit"),
     titulo = .monitoreo_scalar((meta$properties %||% list())$title, ""),
-    hoja = .mapd_hoja(),
+    hoja = if (hay_hoja) hoja else .mapd_hoja(),
     hoja_presente = hay_hoja,
     cabecera_legible = legible,
     citas_remotas = length(mapa_remoto),
@@ -189,7 +224,7 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
     sobran = vapply(sobran, legible_texto, character(1), USE.NAMES = FALSE),
     cambiadas = cambiadas,
     # Lo que hay en el documento y el motor no produce. Se nombra, no se toca.
-    pestanas_ajenas = setdiff(titulos[nzchar(titulos)], .mapd_hoja())
+    pestanas_ajenas = setdiff(titulos[nzchar(titulos)], hoja)
   )
 }
 

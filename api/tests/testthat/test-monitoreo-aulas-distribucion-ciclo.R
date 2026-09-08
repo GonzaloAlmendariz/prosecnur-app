@@ -436,3 +436,62 @@ test_that("la hoja publica el ESTADO de cada cita y su desplegable", {
                      function(v) v$userEnteredValue, character(1))
   expect_identical(opciones, MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
 })
+
+# --- La pestaña se localiza por su CABECERA, no por su nombre -----------------
+#
+# El 2026-09-08 el documento del operativo tenía UNA pestaña, llamada «Semana 1»
+# —Gonzalo: «cada hoja va a ser por semana»— con las ochenta y seis citas que el
+# coordinador llevaba dos días editando. La app buscaba «Plan del día», no la
+# encontraba, y declaraba el documento vacío sin equivocarse en nada de lo que
+# miraba: `citas_remotas: 0`, `hoja_presente: false`. Publicar encima habría
+# creado una segunda pestaña y dejado su trabajo fuera del mapa.
+
+test_that("la distribución se encuentra aunque la pestaña se llame por semana", {
+  mock <- .sheets_api_mock()
+  # Una sola pestaña, con el nombre que le puso el equipo y la cabecera que
+  # escribió la app.
+  mock$seed("Semana 1", values = c(list(as.list(.mdc_cab())),
+                                   list(.mdc_fila_manual("CH 7", fecha = "07/09"))))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_leer_distribucion("sheet_dist")
+  expect_true(isTRUE(out$hoja_presente))
+  expect_identical(out$hoja, "Semana 1")
+  expect_true(isTRUE(out$cabecera_legible))
+  expect_equal(out$citas_remotas, 1L)
+  # Y no se declara ajena a sí misma.
+  expect_false("Semana 1" %in% as.character(unlist(out$pestanas_ajenas %||% list())))
+})
+
+test_that("una pestaña sin forma de distribución no se confunde con ella", {
+  # El documento puede tener notas, un cuadro del coordinador o una pestaña de
+  # otra cosa. Sólo cuenta la que trae las dos columnas que hacen legible una
+  # distribución; sin ninguna, se dice que no hay hoja en vez de leer basura.
+  mock <- .sheets_api_mock()
+  mock$seed("Apuntes", values = list(list("cosas", "que", "anoté")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_leer_distribucion("sheet_dist")
+  expect_false(isTRUE(out$hoja_presente))
+  expect_equal(out$citas_remotas, 0L)
+  expect_true("Apuntes" %in% as.character(unlist(out$pestanas_ajenas %||% list())))
+})
+
+test_that("los cuatro estados tienen color, y «POR APLICAR» es amarillo", {
+  # Dictado del 2026-09-08 con el documento del coordinador delante: «APLICADA
+  # (VERDE), POR APLICAR (AMARILLO) Y REAGENDADA (NARANJA U OTRO COLOR)». «POR
+  # APLICAR» iba sin color; en un documento que se abre para saber qué queda por
+  # hacer, una celda sin pintar no se distingue de una sin llenar.
+  colores <- prosecnurapp:::.alpa_COLOR_ESTADO
+  expect_setequal(names(colores), MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
+  canal <- function(estado, i) grDevices::col2rgb(colores[[estado]])[i, 1]
+  # Verde: más verde que rojo y que azul.
+  expect_gt(canal("APLICADA", 2), canal("APLICADA", 1))
+  expect_gt(canal("APLICADA", 2), canal("APLICADA", 3))
+  # Amarillo: rojo y verde altos, azul bajo.
+  expect_gt(canal("POR APLICAR", 1), 230)
+  expect_gt(canal("POR APLICAR", 2), 230)
+  expect_lt(canal("POR APLICAR", 3), 220)
+  # Naranja: rojo alto, verde medio, azul bajo, y distinguible del amarillo.
+  expect_gt(canal("REAGENDADA", 1), 230)
+  expect_lt(canal("REAGENDADA", 2), canal("POR APLICAR", 2))
+  expect_lt(canal("REAGENDADA", 3), 160)
+})

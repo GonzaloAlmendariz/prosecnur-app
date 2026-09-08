@@ -235,12 +235,19 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   )
 }
 
-#' El color de cada estado. Verde lo cerrado, ámbar lo que se movió, rojo lo
-#' que se perdió, y lo pendiente sin color: es la mayoría y pintarla toda sería
-#' ruido.
+#' El color de cada estado, dictado por Gonzalo el 2026-09-08 con el documento
+#' del coordinador delante: «APLICADA (VERDE), POR APLICAR (AMARILLO) Y
+#' REAGENDADA (NARANJA U OTRO COLOR)».
+#'
+#' «POR APLICAR» iba sin color, con el argumento de que es la mayoría y pintarla
+#' toda sería ruido. Él lo pidió amarillo y tiene razón sobre este documento: lo
+#' abre el coordinador para saber qué queda por hacer, y una celda sin pintar no
+#' se distingue de una celda sin llenar. Amarillo claro para que el naranja de
+#' la reagendación siga leyéndose distinto al lado.
 #' @keywords internal
 .alpa_COLOR_ESTADO <- c(
-  APLICADA = "#C8E6C9", REAGENDADA = "#FFE0B2", RECHAZADA = "#FFCDD2"
+  APLICADA = "#C8E6C9", `POR APLICAR` = "#FFF4C2",
+  REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2"
 )
 
 #' Una regla de color POR VALOR de la celda de aplicador.
