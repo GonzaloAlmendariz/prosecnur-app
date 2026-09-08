@@ -37,124 +37,118 @@
 # lee cruzando la hoja.
 BASE_CONTROL_CAMPOS <- list(
 
-  # ---- 1. EL AULA ---------------------------------------------------------
+  # ---- 1. IDENTIFICACIÓN DEL CURSO-HORARIO --------------------------------
   list(campo = "wave",                titulos = c("MUESTRA")),
   list(campo = "operational_code",    titulos = c("CURSO-HORARIO", "CURSO HORARIO")),
   list(campo = "course_name",         titulos = c("NOMBRE DEL CURSO")),
-  # AULA es el LUGAR y HORARIO son las sesiones. Salían con el mismo texto —las
-  # dos con «LUN 10:00-12:00 L321 · JUE 11:00-12:00 L306»— porque AULA escribía
-  # `label`, que en este estudio es la cadena de sesiones. Dos columnas con el
-  # mismo contenido son una que sobra.
+  # **FACULTAD.** No estaba, y todo el avance del estudio se mide por facultad:
+  # sin ella esta hoja no se puede filtrar ni cuadrar con «Avance de campo».
+  # Gonzalo, 2026-09-08, revisando la lista: «falta facultad».
+  list(campo = "faculty",             titulos = c("FACULTAD")),
+  # AULA es el LUGAR y HORARIO son las sesiones. Salían con el mismo texto
+  # porque AULA escribía `label`, que en este estudio es la cadena de sesiones.
   list(campo = "room",                titulos = c("AULA")),
   list(campo = "schedule",            titulos = c("HORARIO")),
-  # El horario normalizado y su franja cierran el bloque del aula, que es de lo
-  # que hablan. Cerraban la hoja entera, dentro del bloque de cuotas.
-  list(campo = "schedule_norm",       titulos = c("HORARIO NORMALIZADO", "NORM - HORARIO")),
-  list(campo = "schedule_range",      titulos = c("FRANJA HORARIA", "RANGO - HORARIO")),
+  # **El rango es OPERATIVO, no la franja del día.** Era «Mañana / Tarde /
+  # Noche», que sólo repite la hora. Lo que el operativo distingue es si la
+  # aplicación cae fuera del horario normal, porque eso cuesta permisos y gente:
+  # ESPECIAL MAÑANA antes de las 8:00, REGULAR, ESPECIAL NOCHE desde las 19:00.
+  # Medido sobre el plan: 0 · 95 · 11.
+  list(campo = "schedule_range",      titulos = c("RANGO DE APLICACIÓN", "FRANJA HORARIA", "RANGO - HORARIO")),
   list(campo = "enrolled_total",      titulos = c("MATRICULADOS TOTALES")),
-  # «ELEGIBLES», no «POBLACION» (B17, dictado textual del dueño): «aqui no
-  # hablamos de poblacion; matriculados totales de la DTI y matriculados
-  # elegibles, que son los que cumplen los criterios». El titulo viejo queda de
-  # alias de lectura para los libros vivos v3; el generador escribe el nuevo.
   list(campo = "eligible_n",          titulos = c("MATRICULADOS ELEGIBLES", "MATRICULADOS POBLACION")),
 
-  # ---- 2. LA APLICACIÓN ---------------------------------------------------
+  # ---- 2. APLICACIÓN EN CAMPO ---------------------------------------------
   list(campo = "scheduled_date",      titulos = c("FECHA AGENDADA")),
   list(campo = "scheduled_time",      titulos = c("HORA")),
   list(campo = "applied_by",          titulos = c("APLICADOR")),
   list(campo = "applied_date",        titulos = c("FECHA DE APLICACIÓN", "FECHA DE APLICACION")),
   list(campo = "applied_time",        titulos = c("HORA DE APLICACIÓN", "HORA DE APLICACION")),
   list(campo = "application_status",  titulos = c("ESTADO DE APLICACIÓN", "STATUS DE APLICACION")),
-  # Cuánta gente había en el salón lo dice el PARTE; es dato de la aplicación y
-  # no de las cuotas, y aquí queda al lado de quién y cuándo aplicó.
   list(campo = "observed_students",   titulos = c("ALUMNOS EN AULA", "N ASISTENTES EN AULA")),
+  # **Lo que el aplicador DECLARA al cerrar**, que es otra cuenta que la de la
+  # plataforma y por eso se publica aparte: verlas juntas es el control de campo.
+  list(campo = "declared_surveys",    titulos = c("ENCUESTAS APLICADAS DECLARADAS")),
+  list(campo = "refusals",            titulos = c("RECHAZOS DECLARADOS")),
   list(campo = "last_response_day",   titulos = c("ÚLTIMO DÍA DE RESPUESTA", "ULTIMO DIA DE RESPUESTA")),
 
-  # ---- 3. LO QUE ESPERÁBAMOS ----------------------------------------------
+  # ---- 3. RENDIMIENTO ESPERADO --------------------------------------------
   #
-  # **Las dos expectativas, cada una con su tasa al lado.**
-  #
-  # Dictado de Gonzalo (2026-09-07): «poder comparar el rendimiento esperado por
-  # tasa de facultad y esperado por tasa de aula, y compararlo con lo obtenido».
-  # Los dos modelos ya viajaban en el plan y ninguno estaba en la hoja con su
-  # nombre: la columna decía «EFECTIVAS ESPERADAS» a secas y era la del AULA.
-  #
-  # Medido sobre el operativo, la relación entre ambos es exacta:
-  # `tasa_efectividad_aula = rendimiento_ref × factor_facultad`. Es decir, la
-  # tasa del aula es la de su facultad ajustada por un factor propio del aula.
-  # Para CH 72, con 53 elegibles: la facultad rinde 0,44 y el factor es 0,926,
-  # de donde 0,407 y 22 encuestas; por la tasa de facultad sin ajustar serían
-  # 23. Enseñar las dos permite ver si el aula rinde por encima o por debajo de
-  # lo que su facultad hace de costumbre, que es lo que la pregunta pedía.
+  # Las dos varas del diseño, cada una con su tasa, su total y su reparto por
+  # sexo. `tasa_efectividad_aula = rendimiento_ref × factor_facultad`: la del
+  # aula es la de su facultad ajustada por el tamaño del salón, así que
+  # enseñarlas juntas dice si el aula rinde por encima o por debajo de lo que su
+  # facultad hace de costumbre.
   list(campo = "tasa_facultad_ref",   titulos = c("TASA DE LA FACULTAD")),
   list(campo = "esperadas_facultad",  titulos = c("ESPERADAS POR TASA DE FACULTAD")),
+  list(campo = "mujeres_esperadas_facultad", titulos = c("MUJERES ESPERADAS POR TASA DE FACULTAD")),
+  list(campo = "hombres_esperados_facultad", titulos = c("HOMBRES ESPERADOS POR TASA DE FACULTAD")),
   list(campo = "tasa_aula_ref",       titulos = c("TASA DEL AULA")),
   list(campo = "efectivas_esperadas", titulos = c("ESPERADAS POR TASA DEL AULA", "EFECTIVAS ESPERADAS")),
-  # El esperado por sexo sale del plan POR AULA (`sex_top_1_n` / `sex_top_2_n`),
-  # no de la cuota por facultad; su pareja obtenida vive en el bloque siguiente,
-  # que es de donde sale.
-  list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS")),
-  list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS")),
+  list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS POR TASA DEL AULA", "MUJERES ESPERADAS")),
+  list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS POR TASA DEL AULA", "HOMBRES ESPERADOS")),
 
-  # ---- 4. LO QUE LLEGÓ DE LA PLATAFORMA -----------------------------------
+  # ---- 4. RESPUESTAS EN PLATAFORMA ----------------------------------------
   #
-  # **Efectivas: la definicion es la de la PLATAFORMA.** Gonzalo: «un elegible
-  # efectivo o solo efectivo es una respuesta efectiva de la plataforma, es
-  # decir es una encuesta que se completa y pasa los filtros». No es lo que el
-  # aplicador anota en su parte —eso es su cuenta de campo— sino la respuesta
-  # que llego y paso los filtros del estudio.
-  #
-  # El bloque entero lo escribe Prosecnur desde las respuestas sincronizadas.
-  # Hasta el 2026-09-07 salía VACÍO: eran las fórmulas que el equipo tecleaba en
-  # su Excel de 2025 y nadie las volvió a escribir. «Y por qué todo esto está
-  # vacía».
-  list(campo = "sent_total",          titulos = c("TOTAL ENVIADAS")),
-  # **Son los FILTROS DE VALIDACIÓN que el estudio declara en Monitoreo**, no
-  # tres validadores humanos. Gonzalo lo corrigió el 2026-09-07: «responden a la
-  # cantidad de filtros de validación que declaramos en monitoreo, que en este
-  # caso en particular son 3». Cada columna cuenta cuántas de las enviadas de
-  # esa aula pasan ESE filtro, y su cabecera lleva el nombre de la variable
-  # cuando el estudio la declara: `FILTRO: inicio/consent_1`.
-  list(campo = "validator_1",         titulos = c("FILTRO DE VALIDACIÓN 1", "VALIDADOR 1")),
-  list(campo = "validator_2",         titulos = c("FILTRO DE VALIDACIÓN 2", "VALIDADOR 2")),
-  list(campo = "validator_3",         titulos = c("FILTRO DE VALIDACIÓN 3", "VALIDADOR 3")),
-  # **«Cortas y largas» ya no existe: es efectivas y no efectivas.** Dictado de
-  # Gonzalo el 2026-09-07. En 2025 el equipo clasificaba las respuestas por
-  # DURACIÓN —sospechosamente cortas contra largas— porque no tenía el criterio
-  # de validez de la plataforma; hoy lo tiene, y la partición que importa es la
-  # que decide si la encuesta cuenta. Los cuatro campos viejos siguen abajo como
-  # solo-lectura para que un libro de 2025 se lea entero.
-  list(campo = "efectivas_obtenidas", titulos = c("EFECTIVAS", "EFECTIVAS OBTENIDAS")),
+  # «Un elegible efectivo o sólo efectivo es una respuesta efectiva de la
+  # plataforma, es decir una encuesta que se completa y pasa los filtros». No es
+  # lo que el aplicador anota en su parte —eso es su cuenta de campo— sino la
+  # respuesta que llegó y pasó los filtros del estudio.
+  list(campo = "sent_total",          titulos = c("TOTAL ENVIADAS A PLATAFORMA", "TOTAL ENVIADAS")),
+  # **Cuentan las que CAEN, no las que pasan.** Gonzalo, 2026-09-08: «son los
+  # que se quedan en el filtro, no los que los pasan». Es la lectura accionable:
+  # «se cayeron 4 en el consentimiento» dice dónde se pierde; «pasaron 27» no,
+  # porque hay que restar mentalmente contra las enviadas. La cabecera lleva el
+  # nombre de la variable cuando el estudio declara su criterio.
+  list(campo = "validator_1",         titulos = c("CAEN EN EL FILTRO 1", "FILTRO DE VALIDACIÓN 1", "VALIDADOR 1")),
+  list(campo = "validator_2",         titulos = c("CAEN EN EL FILTRO 2", "FILTRO DE VALIDACIÓN 2", "VALIDADOR 2")),
+  list(campo = "validator_3",         titulos = c("CAEN EN EL FILTRO 3", "FILTRO DE VALIDACIÓN 3", "VALIDADOR 3")),
   list(campo = "no_efectivas",        titulos = c("NO EFECTIVAS")),
+  list(campo = "efectivas_obtenidas", titulos = c("EFECTIVAS", "EFECTIVAS OBTENIDAS")),
   list(campo = "women_n",             titulos = c("MUJERES OBTENIDAS", "N MUJERES")),
   list(campo = "men_n",               titulos = c("HOMBRES OBTENIDOS", "N HOMBRES")),
+  # **Cuánto tardó la encuesta, sólo sobre las EFECTIVAS.** Salen de `start` y
+  # `end` de la plataforma, que traen su huso. Medido el primer día: mediana 5,6
+  # min con un instrumento de ~60 preguntas, y un mínimo de 2,0 — la mínima es
+  # la que enciende la alarma, y por eso va aunque las otras dos no estuvieran.
+  # NO se cuenta cuántas son «cortas»: exigiría un umbral que este estudio no ha
+  # declarado, y Gonzalo lo descartó explícitamente.
+  list(campo = "duracion_media",      titulos = c("DURACIÓN PROMEDIO (MIN)")),
+  list(campo = "duracion_min",        titulos = c("DURACIÓN MÍNIMA (MIN)")),
+  list(campo = "duracion_max",        titulos = c("DURACIÓN MÁXIMA (MIN)")),
 
-  # ---- 5. CÓMO VAMOS ------------------------------------------------------
+  # ---- 5. INDICADORES DE AVANCE -------------------------------------------
   #
-  # Todo lo que compara los dos bloques anteriores, y por eso va después de los
-  # dos. Una razón cuyo numerador o denominador no se ha escrito todavía no se
-  # puede leer.
+  # Todo lo que compara los dos bloques anteriores, y por eso va después.
   list(campo = "sent_vs_total",       titulos = c("ENVIADAS VS MATRICULADOS", "VS TOTAL")),
-  # Mismo barrido B17 que «MATRICULADOS ELEGIBLES»: el denominador de esta
-  # razon son los elegibles, y el rotulo lo dice. «VS POBLACION» de alias.
   list(campo = "sent_vs_population",  titulos = c("ENVIADAS VS ELEGIBLES", "VS ELEGIBLES", "VS POBLACION")),
-  # Cuánto de lo que llegó cuenta. Es la salud del instrumento en ese salón: un
-  # aula con 48 enviadas y 38 efectivas perdió diez por consentimiento o filtro.
-  list(campo = "efectivas_vs_enviadas", titulos = c("% EFECTIVAS SOBRE ENVIADAS")),
-  # El rótulo dice AHORA cuál es el denominador. Decía «% EFECTIVAS OBTENIDO» y
-  # no se sabía si era sobre enviadas o sobre elegibles; son dos preguntas
-  # distintas y la hoja ahora trae las dos, así que confundirlas ya no es una
-  # ambigüedad sino un error de lectura.
-  list(campo = "efectivas_pct_obtenido", titulos = c("% EFECTIVAS SOBRE ELEGIBLES", "% EFECTIVAS OBTENIDO")),
-  # En encuestas y con signo: «te faltan 4» es accionable, «-13 %» no. Una
-  # diferencia por cada modelo, porque un aula puede ir bien contra su propia
-  # tasa y mal contra la de su facultad.
-  list(campo = "brecha_facultad",     titulos = c("DIFERENCIA VS TASA DE FACULTAD")),
-  list(campo = "efectivas_brecha",    titulos = c("DIFERENCIA VS TASA DEL AULA", "EFECTIVAS: DIFERENCIA")),
-  list(campo = "quota_pct",           titulos = c("% DE CUOTA CUBIERTA", "CUOTA")),
-  list(campo = "quota_missing",       titulos = c("FALTAN PARA LA CUOTA", "FALTANTES CUOTA")),
-  list(campo = "attendance_pct",      titulos = c("% ASISTENCIA", "ASISTENCIA")),
+  list(campo = "efectivas_vs_enviadas", titulos = c("% DE EFECTIVAS SOBRE LO RECIBIDO", "% EFECTIVAS SOBRE ENVIADAS")),
+  # **Quien estaba en el aula y no dejó encuesta, partido en DOS.** Gonzalo,
+  # 2026-09-08: «alumnos que no respondieron sí, pero hay que diferenciar
+  # quiénes ni siquiera escanearon el QR y los que no pasaron los filtros de
+  # validación». Son dos fallas distintas y piden cosas distintas: la primera es
+  # de captación en el salón —el aplicador no logró que abrieran el enlace— y la
+  # segunda es del instrumento o del público. La suma de las dos con las
+  # efectivas da los asistentes, así que la partición cierra.
   list(campo = "non_respondents",     titulos = c("ALUMNOS QUE NO RESPONDIERON", "N ASISTENTES QUE NO RESPONDIERON")),
+  list(campo = "no_escanearon",       titulos = c("NO ESCANEARON EL QR")),
+  list(campo = "attendance_pct",      titulos = c("% DE ASISTENCIA", "% ASISTENCIA", "ASISTENCIA")),
+  # **La tasa obtenida y su distancia a las dos esperadas.** «Lo que me interesa
+  # es qué tan lejos de la tasa estamos en base a lo que esperábamos» —y por eso
+  # se fue «% de cuota cubierta»: cada aula consigue lo que consigue, no se
+  # vuelve, así que «cuánto falta» ahí no es una acción, es un lamento.
+  list(campo = "efectivas_pct_obtenido", titulos = c("TASA OBTENIDA", "% EFECTIVAS SOBRE ELEGIBLES", "% EFECTIVAS OBTENIDO")),
+  list(campo = "brecha_tasa_facultad", titulos = c("DIFERENCIA DE TASA VS FACULTAD")),
+  list(campo = "brecha_tasa_aula",    titulos = c("DIFERENCIA DE TASA VS AULA")),
+  # Y las mismas dos distancias en ENCUESTAS, que es como se dimensiona lo
+  # perdido: «rindió 12 puntos menos» dice el rendimiento, «fueron 9 encuestas»
+  # dice el tamaño del agujero.
+  list(campo = "brecha_facultad",     titulos = c("DIFERENCIA EN ENCUESTAS VS FACULTAD", "DIFERENCIA VS TASA DE FACULTAD")),
+  list(campo = "efectivas_brecha",    titulos = c("DIFERENCIA EN ENCUESTAS VS AULA", "DIFERENCIA VS TASA DEL AULA", "EFECTIVAS: DIFERENCIA")),
+  list(campo = "mujeres_brecha_facultad", titulos = c("MUJERES: DIFERENCIA VS FACULTAD")),
+  list(campo = "mujeres_brecha_aula", titulos = c("MUJERES: DIFERENCIA VS AULA")),
+  list(campo = "hombres_brecha_facultad", titulos = c("HOMBRES: DIFERENCIA VS FACULTAD")),
+  list(campo = "hombres_brecha_aula", titulos = c("HOMBRES: DIFERENCIA VS AULA")),
   list(campo = "women_pct",           titulos = c("% MUJERES", "MUJERES")),
   list(campo = "men_pct",             titulos = c("% HOMBRES", "HOMBRES")),
 
@@ -180,6 +174,16 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "long_vs_total",       titulos = c("LARGAS VS ENVIADAS", "LARGAS VS TOTAL"), solo_lectura = TRUE),
   # `esperadas / elegibles`, que es exactamente «TASA DEL AULA».
   list(campo = "efectivas_pct_esperado", titulos = c("% EFECTIVAS ESPERADO"), solo_lectura = TRUE),
+  # **La cuota por aula sale de la hoja el 2026-09-08.** «No falta % de cuota
+  # cubierta porque cada aula consigue lo que se consigue, no hay que volver a
+  # ir ni se puede; lo que me interesa es qué tan lejos de la tasa estamos.» Una
+  # columna que mide lo que ya no se puede corregir invita a una acción que no
+  # existe. Se leen si un libro viejo las trae.
+  list(campo = "quota_pct",           titulos = c("% DE CUOTA CUBIERTA", "CUOTA"), solo_lectura = TRUE),
+  list(campo = "quota_missing",       titulos = c("FALTAN PARA LA CUOTA", "FALTANTES CUOTA"), solo_lectura = TRUE),
+  # El horario normalizado repetía a HORA con otro formato; el rango de
+  # aplicación, que sí dice algo, se queda en el bloque del aula.
+  list(campo = "schedule_norm",       titulos = c("HORARIO NORMALIZADO", "NORM - HORARIO"), solo_lectura = TRUE),
   # Y `eligible_n` repetido: el mismo número que «MATRICULADOS ELEGIBLES» de
   # esta misma fila. Existía para que el porcentaje de al lado se leyera sin
   # cruzar la hoja; con el orden nuevo el porcentaje ya está junto a su
@@ -204,7 +208,15 @@ BASE_CONTROL_CAMPOS <- list(
   "efectivas_esperadas", "efectivas_obtenidas", "no_efectivas",
   "efectivas_vs_enviadas", "efectivas_pct_obtenido", "efectivas_pct_esperado",
   "efectivas_brecha", "elegibles_esperados",
-  "mujeres_esperadas", "hombres_esperados"
+  "mujeres_esperadas", "hombres_esperados",
+  # Las del barrido del 2026-09-08: sin esto vuelven del libro como TEXTO y una
+  # diferencia guardada como «-0.12» no se compara con nada.
+  "mujeres_esperadas_facultad", "hombres_esperados_facultad",
+  "declared_surveys", "refusals", "no_escanearon",
+  "duracion_media", "duracion_min", "duracion_max",
+  "brecha_tasa_facultad", "brecha_tasa_aula",
+  "mujeres_brecha_facultad", "mujeres_brecha_aula",
+  "hombres_brecha_facultad", "hombres_brecha_aula"
 )
 
 #' Mapea los campos nombrados de «Base de control».

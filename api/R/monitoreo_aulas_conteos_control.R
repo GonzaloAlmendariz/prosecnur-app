@@ -68,13 +68,44 @@ monitoreo_aulas_conteos_control <- function(plan, responses, cfg = list()) {
   filtros <- monitoreo_aulas_filtros_de_validez(cfg)
   por_filtro <- lapply(seq_along(filtros), function(i) {
     f <- filtros[[i]]
+    # **Se cuentan las que CAEN, no las que pasan.** Gonzalo, 2026-09-08: «son
+    # los que se quedan en el filtro, no los que los pasan». Es la lectura
+    # accionable: «se cayeron 4 en el consentimiento» dice dónde se pierde;
+    # «pasaron 27» obliga a restar contra las enviadas para saber lo mismo.
+    #
     # Un filtro cuya columna no está en la base no se aplica —misma regla que
     # `.monitoreo_aulas_valid_response()`— y su columna sale vacía en vez de
-    # contar cero, que se leería como «ninguna pasó».
+    # contar cero, que se leería como «no cayó ninguna».
     conteo <- if (!f$var %in% names(responses)) NULL else por_fila(
-      .monitoreo_text_key(responses[[f$var]]) %in% .monitoreo_text_key(f$values)
+      !(.monitoreo_text_key(responses[[f$var]]) %in% .monitoreo_text_key(f$values))
     )
     list(titulo = .macc_titulo_filtro(f, i), conteo = conteo)
+  })
+
+  # **Cuánto tardó cada encuesta EFECTIVA.** `start` y `end` traen su huso, así
+  # que la resta es directa; las que no traigan las dos marcas no cuentan, y un
+  # aula sin ninguna legible deja las tres columnas vacías en vez de en cero.
+  duracion <- local({
+    vacio <- stats::setNames(numeric(0), character(0))
+    nada <- list(media = vacio, minimo = vacio, maximo = vacio)
+    c_ini <- .monitoreo_aulas_col(responses, c("start", "_start", "inicio"))
+    c_fin <- .monitoreo_aulas_col(responses, c("end", "_end", "fin"))
+    if (!nzchar(c_ini) || !nzchar(c_fin)) return(nada)
+    momento <- function(x) {
+      # El desfase llega como «-05:00» y `%z` lo quiere sin los dos puntos.
+      crudo <- sub("([+-][0-9]{2}):([0-9]{2})$", "\\1\\2", trimws(as.character(x)))
+      suppressWarnings(as.POSIXct(crudo, format = "%Y-%m-%dT%H:%M:%OS%z", tz = "UTC"))
+    }
+    mins <- as.numeric(difftime(momento(responses[[c_fin]]), momento(responses[[c_ini]]),
+                                units = "mins"))
+    llave <- trimws(as.character(aula))
+    ok <- valida %in% TRUE & nzchar(llave) & is.finite(mins) & mins >= 0
+    if (!any(ok)) return(nada)
+    agrega <- function(f) {
+      v <- tapply(mins[ok], llave[ok], f, simplify = TRUE)
+      stats::setNames(as.numeric(v), names(v))
+    }
+    list(media = agrega(mean), minimo = agrega(min), maximo = agrega(max))
   })
 
   # **Cuándo empezó y hasta cuándo siguió entrando gente.**
@@ -117,6 +148,9 @@ monitoreo_aulas_conteos_control <- function(plan, responses, cfg = list()) {
     no_efectivas = stats::setNames(
       pmax(0, as.numeric(enviadas) - as.numeric(efectivas)), codigos),
     filtros = por_filtro,
+    duracion_media = duracion$media,
+    duracion_min = duracion$minimo,
+    duracion_max = duracion$maximo,
     primer_dia = sello$primero,
     primera_hora = sello$hora,
     ultimo_dia = sello$ultimo

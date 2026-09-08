@@ -264,7 +264,10 @@ test_that("el control ya registrado NO se borra al regenerar", {
   # `threshold_total` ya no se escribe —es `solo_lectura`, existe para releer
   # libros viejos— asi que no vuelve. Lo que sustituye a esa columna si:
   expect_equal(as.numeric(fila$sent_total), 17)
-  expect_equal(as.numeric(fila$quota_missing), 4)
+  # `quota_missing` dejó de escribirse el 2026-09-08 —«cada aula consigue lo que
+  # se consigue, no hay que volver a ir»— así que ya no vuelve del libro. Lo que
+  # sustituye a esa columna sí:
+  expect_equal(as.numeric(fila$validator_1), 3)
   expect_identical(as.character(fila$last_response_day), "2026-08-19")
 })
 
@@ -383,6 +386,13 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
                     "valid_total", "valid_population",
                     "efectivas_pct_esperado", "attendance_pct",
                     "short_total", "short_vs_total", "long_total", "long_vs_total",
+                    # Del barrido del 2026-09-08: los tres que la app escribe
+                    # (la facultad del plan y las dos cuentas del parte) y los
+                    # tres que dejaron de escribirse (la cuota por aula, que
+                    # mide lo que ya no se puede corregir, y el horario
+                    # normalizado, que repetía a HORA).
+                    "faculty", "declared_surveys", "refusals",
+                    "quota_pct", "quota_missing", "schedule_norm",
                     "scheduled_date", "scheduled_time",
                     "applied_by", "applied_date", "applied_time",
                     "application_status", "observed_students"))
