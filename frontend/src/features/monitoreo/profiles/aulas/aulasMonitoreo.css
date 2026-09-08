@@ -5777,3 +5777,22 @@
 .mon-profile-page.is-aulas-flow .aulas-mon-view {
   min-height: max-content;
 }
+
+/* A5: valores de sexo y descartes, dentro del panel del criterio de efectiva. */
+.aulas-sexo-descartes { display: grid; gap: 12px; margin-top: 10px; }
+.aulas-sexo-valores, .aulas-descartes { display: grid; gap: 6px; }
+.aulas-sexo-grupo { display: grid; gap: 4px; }
+.aulas-sexo-grupo > span, .aulas-descartes-rotulo { font-size: 12px; font-weight: 600; color: var(--pulso-text); display: inline-flex; align-items: center; gap: 6px; }
+.aulas-sexo-chips, .aulas-descartes-sugerencias { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.aulas-descartes-sugerencias > span { font-size: 12px; color: var(--pulso-text-muted); }
+.aulas-sexo-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px; font-size: 12px; font: inherit;
+  border: 1px solid var(--pulso-border); background: var(--pulso-surface); color: var(--pulso-text);
+  cursor: pointer;
+}
+span.aulas-sexo-chip { cursor: default; }
+.aulas-sexo-chip[aria-pressed="true"] { background: var(--pulso-module-monitoring); color: var(--pulso-on-accent, #fff); border-color: var(--pulso-module-monitoring); }
+.aulas-sexo-chip.aulas-descarte[aria-pressed="true"] { background: var(--pulso-warn-bg, var(--pulso-surface-2)); color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
+.aulas-sexo-chip button { border: 0; background: transparent; color: inherit; padding: 0; display: inline-flex; cursor: pointer; }
+.aulas-sexo-descartes em { font-style: normal; font-size: 12px; color: var(--pulso-text-muted); line-height: 1.4; }

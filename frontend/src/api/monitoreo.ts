@@ -806,6 +806,11 @@ export type MonitoreoAulasConfig = {
      * suele ser completa **y** con consentimiento **y** del público elegible—.
      */
     valid_filters?: Array<{ var: string; values: string[] }>;
+    /** A5: qué valores de `sex_var` cuentan como mujeres y cuáles como hombres. */
+    sex_female_values?: string[];
+    sex_male_values?: string[];
+    /** A5: lo que llega por la plataforma pero no es del operativo (mismo formato que los filtros). */
+    descartes?: Array<{ var: string; values: string[] }>;
   };
   plan: MonitoreoAulasPlanRow[];
   quotas: unknown;
