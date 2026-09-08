@@ -5,9 +5,47 @@
 # mismo namespace: el traslado no cambia comportamiento, solo reparte el
 # archivo. La lógica de dominio nueva va al engine, no aquí.
 
+# A6b (loop estética-aulas-sheets, 2026-09-08): la clave de cache no serializa
+# el estudio entero. Medido con HSVG2026 (1.392 unidades): esta función tardaba
+# 2,18 s y devolvía 29 MB, y corre al menos dos veces por petición (la clave del
+# derivado y el token del tablero); el token era una cadena de 29,9 millones de
+# caracteres que se comparaba y se guardaba en la sesión. Eran los ~8 s de
+# `/api/monitoreo/state` que no salían ni en `derived` ni en `dashboard`, y por
+# eso un «hit» costaba 2 s. El plan y las listas del marco se resumen en su
+# conteo más un digest del objeto R (xxhash64: 0,014 s para el plan), que
+# invalida igual —cualquier cambio en una fila cambia el digest— y pesa nada.
+.MONITOREO_CACHE_LISTAS_DEL_MARCO <- c("profile_distributions", "sex_by_faculty", "category_profiles")
+
+.monitoreo_cache_resumen_lista <- function(x) {
+  n <- if (is.data.frame(x)) nrow(x) else length(x %||% list())
+  hash <- if (requireNamespace("digest", quietly = TRUE)) digest::digest(x, algo = "xxhash64") else ""
+  list(n = as.integer(n), hash = hash)
+}
+
+.monitoreo_cache_config_compacta <- function(cfg) {
+  if (!is.list(cfg)) return(cfg)
+  au <- cfg[["aulas_universitarias"]]
+  if (!is.list(au)) return(cfg)
+  if (!is.null(au[["plan"]])) au[["plan"]] <- .monitoreo_cache_resumen_lista(au[["plan"]])
+  compactar <- function(bloque) {
+    if (!is.list(bloque)) return(bloque)
+    for (k in intersect(.MONITOREO_CACHE_LISTAS_DEL_MARCO, names(bloque))) {
+      bloque[[k]] <- .monitoreo_cache_resumen_lista(bloque[[k]])
+    }
+    bloque
+  }
+  au[["quotas"]] <- compactar(au[["quotas"]])
+  au[["representativity"]] <- compactar(au[["representativity"]])
+  if (is.list(au[["methodology"]])) {
+    au[["methodology"]][["representativity"]] <- compactar(au[["methodology"]][["representativity"]])
+  }
+  cfg[["aulas_universitarias"]] <- au
+  cfg
+}
+
 .monitoreo_dashboard_config_json <- function(cfg) {
   tryCatch(
-    jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null", dataframe = "rows"),
+    jsonlite::toJSON(.monitoreo_cache_config_compacta(cfg), auto_unbox = TRUE, null = "null", dataframe = "rows"),
     error = function(e) ""
   )
 }
