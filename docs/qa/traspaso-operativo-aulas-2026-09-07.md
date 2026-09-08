@@ -41,8 +41,31 @@ enlaces, sin obtenidas: sólo a qué van. Un color por aplicador (paleta de 22 +
 gris para Interno Pulso). Motor:
 `monitoreo_aulas_publicar_distribucion.R` + `aulas_libro_plan_aplicadores.R`.
 
-**Pendiente manual**: borrar a mano la pestaña vieja «Asignación de
-aplicadores» que quedó ahí de la primera versión.
+Título en Drive: «Distribución de aplicaicones - Semana 1». La pestaña vieja
+«Asignación de aplicadores» ya está borrada (verificado leyéndolo el 2026-09-08).
+
+**Se crea y se lee desde la app** desde el commit `0fd5b984`:
+
+```
+POST /api/monitoreo/aulas/crear-distribucion   {"titulo": "..."}
+POST /api/monitoreo/aulas/leer-distribucion    {}      # al destino recordado
+POST /api/monitoreo/aulas/publicar-distribucion {}     # idem
+```
+
+Crear es endpoint aparte a propósito —crear un archivo en el Drive de alguien no
+puede ser efecto secundario de otra acción— y **no comparte con nadie**: el
+enlace se reparte desde Drive con permiso de lectura, que es decisión del lead.
+Leer no escribe: compara lo publicado con el reparto vigente y nombra lo que
+falta, lo que sobra y lo que cambió.
+
+**Y lo primero que encontró, el 2026-09-08**: el documento publica 83 citas
+contra 85 del reparto vigente, con **20 que cambiaron de aplicador** —4 de ese
+mismo día—. Causa: el reparto se recalcula entero y el equipo agendó dos aulas
+después de publicar; el motor es codicioso y reordena al crecer la demanda.
+**Decisión pendiente del lead**: fijar lo ya publicado (`reparto_fijado`) y
+republicar sólo para sumar las dos nuevas —así nadie cambia de aula, que es la
+regla suya de que un día confirmado no se mueve— o republicar tal cual avisando
+por el grupo. **El motor no lo hizo solo, y no debe.**
 
 ### 1.3 Plataforma
 
@@ -217,8 +240,13 @@ Lo que falta:
 
 ### 5.4 A medias
 
-- **La distribución de los aplicadores no se ha republicado** desde que cambió
-  el reparto de la semana. Verificar antes del martes.
+- **La distribución de los aplicadores está desactualizada y es la decisión más
+  urgente**: 83 citas publicadas contra 85, y 20 cambios de aplicador. Ver 1.2.
+- **El reparto no está congelado.** Se recalcula en cada publicación desde el
+  plan + la disponibilidad + la config, así que cualquier cita que el equipo
+  agende reordena asignaciones ya comunicadas. `reparto_fijado` existe para
+  eso y hoy está vacío. Vale la pena que la app avise —«esto va a mover N
+  asignaciones ya publicadas»— antes de republicar.
 - **El deployment de los QR** quedó con la pregunta abierta de si el QR debe
   llevar el XPath completo. Gonzalo dijo «así está bien» para el lote entregado;
   la decisión de fondo sigue abierta.
