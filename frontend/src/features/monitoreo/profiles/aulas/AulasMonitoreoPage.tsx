@@ -1578,6 +1578,13 @@ export default function AulasMonitoreoPage() {
       // sí se recalculó—, así que va como aviso de atención, no a `error`.
       const conversacion = avisoConversacion(result.libro_conversacion);
       if (conversacion) setAviso(conversacion);
+      // B3 (2026-09-08): si la última sincronización volvió sin ningún registro,
+      // se dice. El 08/09 Gonzalo leyó «Efectivas 0» en una pantalla que no
+      // tenía nada que le avisara de que no había traído nada, y la creyó. El
+      // motor redacta la causa y su consecuencia; aquí sólo se enseña, y manda
+      // sobre el aviso del libro porque decide si las cifras son de hoy.
+      const vacias = result.state?.aviso_fuentes_vacias;
+      if (vacias?.mensaje) setAviso({ texto: vacias.mensaje, tono: "atencion" });
     } catch (e) {
       setError((e as Error).message);
     } finally {

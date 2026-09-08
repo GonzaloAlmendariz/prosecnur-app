@@ -51,6 +51,20 @@ export function pctDeCierre(p: number): string {
   return `${Math.round(p * 100)} %`;
 }
 
+/**
+ * ⚠ SIN MONTAR desde el 2026-09-08.
+ *
+ * Salió de la pestaña «Metas» con el resto de la predicción. Gonzalo, sobre la
+ * pirámide: «lo nada que tenga que ver con predicción porque eso le pertenece a
+ * otra pestaña»; y sobre estas filas: «pone que va a llegar con margen cuando
+ * ni siquiera has calculado el avance real».
+ *
+ * Es una MUDANZA pendiente, no un borrado: el componente y su view-model
+ * (`avanceProyectado.ts`) se quedan en el árbol esperando la pestaña de
+ * predicción. Si esa pestaña no llega a existir, hay que decidir entre montarlo
+ * allí o retirarlo — la entrada de `componentesSinMontar.test.ts` es la que
+ * recuerda que la decisión está abierta.
+ */
 export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<CeldaAvance> | null }) {
   const filas = useMemo(() => avanceProyectado(celdas), [celdas]);
   const piden = celdasQuePidenAccion(filas);

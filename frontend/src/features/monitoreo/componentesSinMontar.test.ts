@@ -19,9 +19,17 @@ const RAIZ = path.resolve(__dirname);
 
 /**
  * Los seis medidos el 2026-08-19, más el de aulas que quedó suelto el
- * 2026-08-29. Cada uno marcado en su archivo.
+ * 2026-08-29 y la proyección que se desmontó el 2026-09-08. Cada uno marcado en
+ * su archivo.
  */
 const SIN_MONTAR_CONOCIDOS = [
+  // Salió de la pestaña «Metas» el 2026-09-08 con el resto de la predicción.
+  // Gonzalo: «lo nada que tenga que ver con predicción porque eso le pertenece a
+  // otra pestaña» — es una MUDANZA pendiente, no un borrado, y por eso el
+  // componente y su view-model (`avanceProyectado.ts`) siguen en el árbol. Si la
+  // pestaña de predicción no llega a existir, esta entrada es la que recuerda
+  // que hay que decidir entre montarlo allí o retirarlo.
+  "AulasAvanceProyectado.tsx::AulasAvanceProyectado",
   "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",

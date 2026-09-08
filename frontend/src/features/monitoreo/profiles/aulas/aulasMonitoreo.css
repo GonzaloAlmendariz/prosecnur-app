@@ -2562,6 +2562,82 @@
 /* La pista se queda con TODO lo que sobra tras la cifra, y es contra ella
    contra la que el carril mide su porcentaje. `min-width: 0` para que pueda
    encoger por debajo de su contenido en vez de empujar la fila. */
+/* **El hover de la pirámide** (2026-09-08). Sustituye al `title` del navegador,
+   que tarda en salir, no se puede estilar y nunca aparece con el teclado. Sale
+   al instante en hover y también con `:focus-visible` del botón de la fila, que
+   es la ruta de quien no usa ratón.
+
+   `pointer-events: none` para que el propio globo no robe el hover y lo haga
+   parpadear al pasar por encima. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado {
+  position: relative;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: none;
+  width: max-content;
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--pulso-material-bg-strong);
+  border: 1px solid var(--pulso-border-strong);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
+  color: var(--pulso-text);
+  font-size: var(--aulas-min);
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado:hover > .aulas-piramide-tip,
+.mon-profile-page.is-aulas-flow .aulas-piramide-fila:focus-visible .aulas-piramide-tip {
+  display: block;
+}
+
+/* **Cada lado ancla el globo hacia dentro.** Centrado sobre el lado, el de la
+   columna izquierda se salía por el borde del panel y quedaba cortado —visto en
+   pantalla el 2026-09-08—. Anclarlo al borde interior de su propio lado lo
+   mantiene dentro sin necesidad de medir nada en tiempo de ejecución. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-derecha .aulas-piramide-tip {
+  left: 0;
+  right: auto;
+  transform: none;
+}
+
+/* El porcentaje junto al resto: la barra enseña la proporción y la cifra decía
+   sólo cuánto queda, así que no se podía saber si 107 por recoger era el 20 %
+   o el 80 % sin medir el relleno con el ojo. Va en un tono más débil que la
+   cifra para que el orden de lectura siga siendo «cuánto falta» y luego «de
+   cuánto». */
+/* El separador va en el CSS y no en el JSX: sin él, «faltan 10» y «0 %» se
+   pegan al leerse y salen como «faltan 100 %» —visto en pantalla el 2026-09-08,
+   el margen los separaba a la vista pero no al ojo que los lee seguidos—. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-pct::before {
+  content: "·";
+  margin: 0 5px 0 0;
+  color: var(--pulso-border-strong);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-pct {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-piramide-pista {
   display: flex;
   flex: 1;
@@ -2574,13 +2650,25 @@
   justify-content: flex-end;
 }
 
+/* **El carril tiene que verse ENTERO, no sólo su relleno** (Gonzalo,
+   2026-09-08: «apenas se ve el contraste de las barras que están vacías»).
+   Medido en su captura: con `--pulso-surface-2` a secas, la parte pendiente
+   sobre el fondo blanco del panel era casi invisible, y en esta pirámide el
+   LARGO TOTAL es el dato —es la sección que enseña el tamaño de cada meta—.
+   Una fila con 10 por recoger y otra con 312 se veían casi iguales.
+
+   Se arregla con las dos cosas a la vez: un fondo un punto más oscuro y un
+   borde definido, que es lo que hace legible el final de la barra aunque el
+   avance sea del 2 %. Mismo tratamiento que las barras de «Hombres y mujeres
+   por facultad», para que las dos secciones se lean como una familia. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-carril {
   display: flex;
   flex: none;
   height: 16px;
   overflow: hidden;
   border-radius: 5px;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-text-faint) 12%, var(--pulso-surface-2));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
 }
 
 /* El relleno crece desde el centro hacia afuera, que es lo que hace que las dos

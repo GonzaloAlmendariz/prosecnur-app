@@ -158,3 +158,55 @@ test_that("sin previo, el default sigue siendo el default", {
   expect_identical(vuelto$source_mapping$collector_var, "")
   expect_identical(vuelto$source_mapping$sex_var, "")
 })
+
+# --- B3: el aviso, porque conservar en silencio también engaña -----------------
+#
+# Gonzalo miró una pantalla que decía «Efectivas 0» y la creyó: no había nada que
+# le dijera que la última sincronización había vuelto de vacío. Conservar el
+# snapshot arregla la pérdida, pero deja el otro medio del problema en pie — la
+# pantalla sigue enseñando cifras de ayer con fecha de hoy y nadie lo sabe.
+#
+# El resultado del job nombra las fuentes que volvieron sin nada y dice si eso
+# dejó datos anteriores en pie. Un aviso que dice la CAUSA, no sólo el hecho
+# (memoria de la casa: «los avisos dicen la causa, no sólo el hecho»).
+
+test_that("el resultado del sync nombra las fuentes que volvieron vacías", {
+  resumen <- .svnb_summary(.svnb_item("s1", 0L), .svnb_item("s2", 60L))
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(resumen, conservadas = 273L)
+  expect_false(is.null(aviso))
+  expect_setequal(aviso$fuentes, "s1")
+  expect_identical(aviso$conservadas, 273L)
+  expect_match(aviso$mensaje, "no devolvió ningún registro", fixed = TRUE)
+  # La consecuencia, que es lo que decide si hay que hacer algo: lo que se ve en
+  # pantalla es lo de antes, no lo de ahora.
+  expect_match(aviso$mensaje, "273", fixed = TRUE)
+})
+
+test_that("con todas las fuentes trayendo datos no hay aviso que dar", {
+  resumen <- .svnb_summary(.svnb_item("s1", 12L), .svnb_item("s2", 60L))
+  expect_null(prosecnurapp:::.monitoreo_sync_aviso_vacias(resumen, conservadas = 273L))
+})
+
+test_that("una fuente vacía sin nada previo se dice distinto: no hay qué conservar", {
+  resumen <- .svnb_summary(.svnb_item("s1", 0L))
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(resumen, conservadas = 0L)
+  expect_false(is.null(aviso))
+  # Sin datos anteriores el mensaje no puede prometer que se conservó algo.
+  expect_false(grepl("se conservan", aviso$mensaje, fixed = TRUE))
+  expect_match(aviso$mensaje, "sigue sin respuestas", fixed = TRUE)
+})
+
+test_that("el aviso usa la etiqueta de la fuente cuando la trae, no su id", {
+  resumen <- list(s1 = list(source_id = "s1", source_label = "HSVG 2026 PUCP (Kobo EU)",
+                            kind = "kobo", mode = "full", rows = 0L))
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(resumen, conservadas = 273L)
+  expect_match(aviso$mensaje, "HSVG 2026 PUCP (Kobo EU)", fixed = TRUE)
+})
+
+test_that("el aviso viaja en el resultado del job, no se queda en el motor", {
+  # El guard barato: si alguien quita el campo del `list()` final, el front deja
+  # de poder avisar y nadie se entera hasta el siguiente estudio en blanco.
+  fuente <- readLines("../../R/monitoreo_sync_incremental.R", warn = FALSE)
+  expect_true(any(grepl("aviso_fuentes_vacias", fuente, fixed = TRUE)),
+              info = "el resultado del sync dejó de publicar el aviso de fuentes vacías")
+})

@@ -925,7 +925,16 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     synced_at = result$synced_at,
     data = combined_data,
     config = result$config,
-    errors = result$errors
+    errors = result$errors,
+    # B3: el aviso vive en el SNAPSHOT, no sólo en el resultado del job. Quien
+    # abre la app al día siguiente ve las cifras de la última sincronización que
+    # sí trajo algo, con la fecha de la que no trajo nada, y tiene el mismo
+    # derecho a saberlo que quien pulsó el botón. `NULL` lo limpia en cuanto una
+    # sincronización vuelve con datos.
+    aviso_fuentes_vacias = .monitoreo_sync_aviso_vacias(
+      result$sync_summary %||% list(),
+      conservadas = nrow(combined_data)
+    )
   ), artifacts)
   # Los facts del home se conservan del corte previo (stale pero informativo)
   # hasta que el primer GET de la familia los re-espeje con el tablero fresco
@@ -992,7 +1001,13 @@ monitoreo_sync_apply_deferred <- function(sid, result, sync_mode = "full", repor
     sync_mode = sync_mode,
     report_scope = report_scope,
     errors = result$errors,
-    sync_summary = result$sync_summary %||% list()
+    sync_summary = result$sync_summary %||% list(),
+    # B3: qué fuente volvió sin nada y qué se está viendo en su lugar. `NULL`
+    # cuando todas trajeron algo, para que el front no tenga que decidirlo.
+    aviso_fuentes_vacias = .monitoreo_sync_aviso_vacias(
+      result$sync_summary %||% list(),
+      conservadas = nrow(dashboard_data)
+    )
   )
 }
 

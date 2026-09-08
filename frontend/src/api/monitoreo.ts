@@ -3687,6 +3687,14 @@ export type MonitoreoState = {
   reports?: Record<string, unknown> | null;
   chart_models?: MonitoreoChartModels | null;
   sync_errors?: { source_id?: string; source_label?: string; message: string }[];
+  /**
+   * B3: el aviso de la última sincronización que volvió de vacío, junto a
+   * `sync_errors` porque se lee igual. Viaja en el ESTADO y no sólo en el
+   * resultado del job: quien abre la app al día siguiente ve las cifras de la
+   * última sincronización que sí trajo algo, con la fecha de la que no trajo
+   * nada, y tiene el mismo derecho a saberlo que quien pulsó el botón.
+   */
+  aviso_fuentes_vacias?: MonitoreoAvisoFuentesVacias | null;
   pending_regeneration?: boolean;
   n_rows: number;
   variables: MonitoreoVariable[];
@@ -3717,6 +3725,26 @@ export type MonitoreoSyncResult = {
   dashboard: MonitoreoDashboard;
   sync_summary?: Record<string, unknown>;
   errors: { source_id?: string; source_label?: string; message: string }[];
+  /**
+   * B3 (2026-09-08): qué fuente volvió SIN NINGÚN registro y qué se está viendo
+   * en su lugar. Ausente cuando todas trajeron algo.
+   *
+   * No es un error —el sync terminó bien— pero se lee igual: algo que revisar
+   * antes de creerle a las cifras. Existe porque conservar el snapshot anterior
+   * arregla la pérdida de datos y deja el otro medio del problema en pie: la
+   * pantalla enseña las cifras de antes con la fecha de ahora.
+   */
+  aviso_fuentes_vacias?: MonitoreoAvisoFuentesVacias | null;
+};
+
+/** Ver `aviso_fuentes_vacias` en `MonitoreoSyncResult`. */
+export type MonitoreoAvisoFuentesVacias = {
+  /** Etiquetas de las fuentes que no trajeron nada; su id si no tienen etiqueta. */
+  fuentes: string[];
+  /** Filas que quedaron en pie. 0 significa que no había nada que conservar. */
+  conservadas: number;
+  /** El aviso ya redactado por el motor: la causa y su consecuencia. */
+  mensaje: string;
 };
 
 export type MonitoreoSourcePayload = {
