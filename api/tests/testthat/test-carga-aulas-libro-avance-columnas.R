@@ -135,3 +135,42 @@ test_that("una cabecera se reconoce por la fila ENTERA, no por su primera celda"
     prosecnurapp:::.calac_tabla_de_cabecera(c(AULAS_AVANCE_CABECERAS$general, "", "")),
     "general")
 })
+
+test_that("la tasa esperada de una facultad es UNA, y es la misma en las tres tablas", {
+  # **No es el promedio de las tasas de sus aulas.** `rendimiento_ref` viaja por
+  # AULA —sale de los tramos de elegibles— y dentro de una facultad va de 44 % a
+  # 80 %. Se vio publicado el 2026-09-08: la columna «Tasa de rendimiento
+  # esperada EN FACULTAD» daba 69,0 % a una persona y 55,0 % a la de al lado en
+  # la misma facultad. Es la razón de los agregados: lo que el diseño espera de
+  # esa facultad entre los elegibles que pone.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Letras", eligible_n = 100, expected_valid = 60,
+         rendimiento_ref = 0.6, scheduled_time = "10:00"),
+    # Un aula chica con una tasa muy distinta: promediar 0.6 y 0.9 daría 0.75,
+    # y la vara real de la facultad es 70/110 = 63,6 %.
+    list(operational_code = "CH 2", classroom_id = "A2", sample_role = "titular",
+         faculty = "Letras", eligible_n = 10, expected_valid = 9,
+         rendimiento_ref = 0.9, scheduled_time = "10:00")
+  )
+  resp <- data.frame(
+    collectorID = rep("CH 1", 30),
+    `_submission_time` = rep("2026-09-07T10:00:00", 30),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ind <- aulas_libro_indicadores(
+    plan, efectivas = c(`CH 1` = 30), responses = resp, validas = rep(TRUE, 30),
+    cuotas = list(meta_diseno = 100,
+                  facultades = list(list(facultad = "Letras", cuota = 100))),
+    cfg = list(source_mapping = list(collector_var = "collectorID")),
+    asignados = list(`CH 1` = "PEREZ GOMEZ, ANA", `CH 2` = "LOPEZ RUIZ, JOSE"))
+
+  esperada <- 69 / 110
+  expect_equal(ind$rendimiento[["Tasa de rendimiento de la facultad esperada"]], esperada)
+  # La misma cifra para TODA la facultad en la tabla de aplicadores: la columna
+  # promete una vara de facultad, no la media de las aulas de cada quien.
+  expect_equal(unique(ind$aplicadores[["Tasa de rendimiento esperada en facultad"]]), esperada)
+  expect_equal(unique(ind$diario[["Tasa de rendimiento de la facultad esperada"]]), esperada)
+  # Y no es el promedio de las tasas por aula, que daría 0.75.
+  expect_false(isTRUE(all.equal(esperada, 0.75)))
+})

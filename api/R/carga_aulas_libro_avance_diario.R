@@ -101,7 +101,6 @@
   fac_plan <- campo("faculty")
   eleg_plan <- num("eligible_n")
   esp_plan <- num("expected_valid")
-  tasa_plan <- num("rendimiento_ref")
 
   # Las efectivas de cada fila del plan en cada día, con la MISMA maquinaria de
   # emparejamiento que el total del aula: tres claves (classroom_id,
@@ -132,10 +131,11 @@
     idx <- fac_plan == f
     clave_fac <- .cm_criterios_fac_key(f)[[1]]
     cuota <- if (!is.null(cuota_de[[clave_fac]])) cuota_de[[clave_fac]] else NA_real_
-    esperada_tasa <- {
-      v <- tasa_plan[idx]; v <- v[is.finite(v)]
-      if (length(v)) mean(v) else NA_real_
-    }
+    # La vara de la facultad, la misma que citan las otras dos tablas: lo que el
+    # diseño espera de todas sus aulas entre los elegibles que pone. Constante a
+    # lo largo del operativo, para que la comparación con la tasa del día diga
+    # si ese día rindió por encima o por debajo de lo que la facultad rinde.
+    esperada_tasa <- .calar_tasa_esperada(esp_plan[idx], eleg_plan[idx])
     acumulado <- 0
     for (d in dias) {
       del_dia <- sum(por_dia[[d]][idx], na.rm = TRUE)

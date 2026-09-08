@@ -44,7 +44,6 @@
   fac <- vapply(unidades, function(u) .cai_txt(u$faculty), character(1))
   eleg <- vapply(unidades, function(u) .cai_num(u$eligible_n), numeric(1))
   esperadas <- vapply(unidades, function(u) .cai_num(u$expected_valid), numeric(1))
-  tasa_ref <- vapply(unidades, function(u) .cai_num(u$rendimiento_ref), numeric(1))
   rango <- vapply(unidades, function(u) .calg_rango_de_aplicacion(u$scheduled_time), character(1))
   apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
   ef_fila <- vapply(cod, function(k) {
@@ -100,10 +99,12 @@
       brecha <- brecha[is.finite(brecha)]
       if (length(brecha)) ceiling(sum(brecha)) else 0
     }
-    esperada <- {
-      v <- tasa_ref[idx]; v <- v[is.finite(v)]
-      if (length(v)) mean(v) else NA_real_
-    }
+    # **La vara es LA DE LA FACULTAD, no la media de las aulas de esta persona.**
+    # La columna promete «esperada en facultad» y la primera versión daba 69 %
+    # a una persona y 55 % a la de al lado dentro de la misma facultad: se vio
+    # publicado. Se calcula sobre TODAS las aulas de la facultad, con la misma
+    # función que la tabla de rendimiento.
+    esperada <- .calar_tasa_esperada(esperadas[fac == f], eleg[fac == f])
     cuenta_rango <- function(etiqueta) sum(aplicadas & rango == etiqueta)
     out <- data.frame(
       f, a,
