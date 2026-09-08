@@ -45,7 +45,7 @@ test_that("una razon en 0-1 se enseña como porcentaje", {
   )
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
-  for (t in c("ENVIADAS VS MATRICULADOS", "% ASISTENCIA")) {
+  for (t in c("ENVIADAS VS MATRICULADOS", "% DE ASISTENCIA")) {
     f <- .crc_formato(ruta, t, 3L)
     expect_true(grepl("%", f %||% ""),
                 info = paste0(t, " se escribe con el formato '", f, "'"))
@@ -62,7 +62,7 @@ test_that("una razon YA escrita en 0-100 no se multiplica otra vez", {
   )
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
-  for (t in c("ENVIADAS VS MATRICULADOS", "% ASISTENCIA")) {
+  for (t in c("ENVIADAS VS MATRICULADOS", "% DE ASISTENCIA")) {
     f <- .crc_formato(ruta, t, 3L)
     expect_false(grepl("%", f %||% ""),
                  info = paste0(t, " en 0-100 se escribe con '", f, "' y saldria x100"))
@@ -79,5 +79,5 @@ test_that("cada columna decide su propia escala", {
   ruta <- .crc_libro(control)
   on.exit(unlink(ruta), add = TRUE)
   expect_true(grepl("%", .crc_formato(ruta, "ENVIADAS VS MATRICULADOS", 3L) %||% ""))
-  expect_false(grepl("%", .crc_formato(ruta, "% ASISTENCIA", 3L) %||% ""))
+  expect_false(grepl("%", .crc_formato(ruta, "% DE ASISTENCIA", 3L) %||% ""))
 })

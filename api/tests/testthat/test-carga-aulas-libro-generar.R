@@ -475,7 +475,7 @@ test_that("los cinco tramos se anclan por NOMBRE y cubren la hoja entera", {
   expect_identical(campos[[g[[2]]$desde]], "FECHA AGENDADA")
   expect_identical(campos[[g[[3]]$desde]], "TASA DE LA FACULTAD")
   # El ancla es el CAMPO desde el 2026-09-07; el título es lo que cambia.
-  expect_identical(campos[[g[[4]]$desde]], "TOTAL ENVIADAS")
+  expect_identical(campos[[g[[4]]$desde]], "TOTAL ENVIADAS A PLATAFORMA")
   expect_identical(campos[[g[[5]]$desde]], "ENVIADAS VS MATRICULADOS")
 })
 

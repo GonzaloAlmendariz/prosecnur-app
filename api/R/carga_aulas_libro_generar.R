@@ -558,6 +558,30 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = NULL, partes = list(
 #' bandas se descolocan en silencio y nadie se entera hasta imprimir. Anclados
 #' al nombre del campo donde empieza cada tramo, el spec puede crecer.
 #'
+#' El color de cada tramo, elegido por lo que el tramo DICE.
+#'
+#' Los cinco salían de `aulas_libro_colores_eslabon()`, que es la paleta de los
+#' ESLABONES de la cadena —titular, reemplazo 1, reemplazo 2—. El comentario que
+#' la invocaba ya decía que «no son eslabones: son áreas temáticas y su escala es
+#' propia», y aun así usaba la ajena: cinco tonos correctos que no significan
+#' nada, y que además se mueven si algún día la cadena cambia de paleta.
+#'
+#' Aquí la escala es la del recorrido de la hoja, en su orden:
+#'
+#'   navy    — quién es este curso-horario (la identidad, el color de la casa);
+#'   teal    — qué pasó en el salón;
+#'   morado  — lo que el diseño esperaba;
+#'   verde   — lo que llegó de la plataforma;
+#'   ámbar   — cómo vamos, que es comparar los dos anteriores.
+#'
+#' Los cinco son oscuros a propósito: la banda lleva texto blanco en negrita y
+#' un tono claro obliga a tinta oscura, que a esa escala se lee como una fila de
+#' datos y no como un encabezado de área.
+#' @export
+AULAS_LIBRO_TRAMOS_BASE_CONTROL <- c(
+  "#002457", "#0E6E71", "#5B3E96", "#1E6F3C", "#9A5B12"
+)
+
 #' @return lista `list(etiqueta, desde, hasta)` con las posiciones resueltas.
 #' @export
 aulas_libro_grupos_control <- function() {
@@ -584,6 +608,8 @@ aulas_libro_grupos_control <- function() {
     list(etiqueta = "RESPUESTAS EN PLATAFORMA", desde = "sent_total"),
     list(etiqueta = "INDICADORES DE AVANCE", desde = "sent_vs_total")
   )
+  # Los cinco tramos siguen siendo cinco tras el barrido del 2026-09-08 (43 → 55
+  # columnas): lo que creció fue el contenido de cada uno, no su número.
   inicios <- vapply(anclas, function(a) {
     i <- which(campos == a$desde)
     if (length(i)) i[[1]] else NA_integer_
@@ -605,12 +631,21 @@ aulas_libro_grupos_control <- function() {
   sprintf("%02d:%02d", as.integer(m) %/% 60L, as.integer(m) %% 60L)
 }
 
-# La franja del día. Tres cortes y no cuatro porque es lo que el operativo
-# distingue: quien arma turnos decide entre mañana, tarde y noche.
-.calg_franja_horaria <- function(hora) {
+# **El rango de aplicación es OPERATIVO, no la franja del día.**
+#
+# Era «Mañana / Tarde / Noche», que sólo repite lo que la hora ya dice. Lo que
+# el operativo distingue —dictado de Gonzalo, 2026-09-08— es si la aplicación
+# cae FUERA del horario normal, porque eso cuesta permisos, transporte y gente
+# dispuesta: antes de las 8:00 y desde las 19:00. Medido sobre el plan de la
+# semana: 0 especiales de mañana, 95 regulares y 11 especiales de noche.
+.calg_RANGO_ESPECIAL_MANANA <- 8L * 60L
+.calg_RANGO_ESPECIAL_NOCHE <- 19L * 60L
+.calg_rango_de_aplicacion <- function(hora) {
   m <- monitoreo_aulas_hora_parse(.calg_txt(hora))[[1]]
   if (is.na(m)) return("")
-  if (m < 12L * 60L) "Mañana" else if (m < 18L * 60L) "Tarde" else "Noche"
+  if (m < .calg_RANGO_ESPECIAL_MANANA) "Especial mañana"
+  else if (m >= .calg_RANGO_ESPECIAL_NOCHE) "Especial noche"
+  else "Regular"
 }
 
 aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL,
@@ -780,8 +815,8 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     # El horario normalizado y su franja los tecleaba el equipo en 2025 («NORM -
     # HORARIO», «RANGO - HORARIO») para poder agrupar; salen del MISMO parser de
     # horas que ordena el Plan del día, así que no hay dos lecturas de la hora.
-    pon("schedule_norm", .calg_hora_normalizada(u$scheduled_time))
-    pon("schedule_range", .calg_franja_horaria(u$scheduled_time))
+    pon("faculty", .calg_txt(u$faculty))
+    pon("schedule_range", .calg_rango_de_aplicacion(u$scheduled_time))
     pon("enrolled_total", .calg_num_txt(u$enrolled_total))
     pon("eligible_n", .calg_num_txt(u$eligible_n))
 
@@ -845,6 +880,12 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     if (!is.null(pt)) {
       pon("observed_students", .calg_num_txt(
         .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$asistentes)))
+      # **Lo que el aplicador DECLARA al cerrar**, que es otra cuenta que la de
+      # la plataforma: verlas juntas es el control de campo que esta hoja da.
+      pon("declared_surveys", .calg_num_txt(
+        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$efectivas)))
+      pon("refusals", .calg_num_txt(
+        .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS$rechazos)))
     }
 
     # **Lo esperado, que sale del plan, y lo obtenido, que sale de la
@@ -904,12 +945,11 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
       if (is.finite(esperadas)) {
         pon("efectivas_brecha", .calg_num_txt(as.integer(round(obtenidas - esperadas))))
       }
-      # La cuota es contra la META del aula, no contra el padrón: «cubrí el
-      # 75 % de lo que este salón tenía que dar».
-      if (is.finite(esperadas) && esperadas > 0) {
-        pon("quota_pct", .calg_num_txt(round(obtenidas / esperadas, 3L)))
-        pon("quota_missing", .calg_num_txt(max(0L, as.integer(round(esperadas - obtenidas)))))
-      }
+      # **La cuota por aula ya no se escribe** (2026-09-08): «cada aula consigue
+      # lo que se consigue, no hay que volver a ir ni se puede; lo que me
+      # interesa es qué tan lejos de la tasa estamos». Una columna que mide lo
+      # que ya no se puede corregir invita a una acción que no existe. Lo que
+      # queda son las dos diferencias de TASA, más abajo.
     }
 
     # **Lo que la PLATAFORMA sabe del aula.** El bloque entero salía vacío hasta
@@ -982,6 +1022,27 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
       if (is.finite(obtenidas)) {
         pon("non_respondents", .calg_num_txt(max(0L, as.integer(round(asist - obtenidas)))))
       }
+      # **Quien estaba en el salón y NO ESCANEÓ**, separado de quien sí entró y
+      # no pasó los filtros. Gonzalo, 2026-09-08: «hay que diferenciar quiénes
+      # ni siquiera escanearon el QR y los que no pasaron los filtros de
+      # validación». Son dos fallas distintas: la primera es de captación en el
+      # aula, la segunda del instrumento o del público. Con las efectivas, las
+      # tres cierran contra los asistentes.
+      if (is.finite(enviadas)) {
+        pon("no_escanearon", .calg_num_txt(max(0L, as.integer(round(asist - enviadas)))))
+      }
+    }
+
+    # **Cuánto tardó la encuesta en este salón**, sólo sobre las efectivas. La
+    # mínima es la que enciende la alarma —una encuesta de dos minutos en un
+    # instrumento de sesenta preguntas no se contestó— y las otras dos dan la
+    # forma. No se cuenta cuántas son «cortas»: eso pediría un umbral que este
+    # estudio no ha declarado.
+    for (par in list(c("duracion_media", "duracion_media"),
+                     c("duracion_min", "duracion_min"),
+                     c("duracion_max", "duracion_max"))) {
+      v <- de(conteos[[par[[2]]]])
+      if (is.finite(v)) pon(par[[1]], .calg_num_txt(round(v, 1L)))
     }
 
     # El reparto por sexo esperado sale del plan POR AULA. Cual de los dos es
@@ -990,13 +1051,86 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     # NO la inicial: "Mujer" daba "M" y la ficha de campo salia con las
     # mujeres esperadas en el renglon de hombres y al reves. Ver
     # `.pulso_sexo_fm()`.
+    # **`sex_top_*_n` es la composición del PADRÓN, no la meta repartida.**
+    #
+    # La columna decía «MUJERES ESPERADAS 27» al lado de «ESPERADAS POR TASA DEL
+    # AULA 22», y 27 + 26 = 53, que son los ELEGIBLES del salón. El plan reparte
+    # por sexo el padrón; lo que la hoja promete es el reparto de la META. El
+    # «Plan del día» ya lo hacía bien —`.capd_esperadas()` reparte por resto
+    # mayor— y esta hoja se había quedado con el crudo. Se vio en cuanto la
+    # columna dejó de llamarse «MUJERES ESPERADAS» a secas y dijo por qué tasa.
+    #
+    # La proporción del padrón es la misma para las dos varas —es la composición
+    # del salón, y no cambia porque cambie la tasa—, así que las dos metas se
+    # reparten con ella y por resto mayor, para que las partes sumen exactamente
+    # el total escrito al lado.
     top1 <- .pulso_sexo_fm(u$sex_top_1)
-    n1 <- .calg_num_txt(u$sex_top_1_n)
-    n2 <- .calg_num_txt(u$sex_top_2_n)
+    n1 <- suppressWarnings(as.numeric(u$sex_top_1_n %||% NA))[1]
+    n2 <- suppressWarnings(as.numeric(u$sex_top_2_n %||% NA))[1]
+    padron_muj <- NA_real_; padron_hom <- NA_real_
     if (identical(top1, "F") || identical(top1, "M")) {
       es_mujer_primero <- identical(top1, "F")
-      pon("mujeres_esperadas", if (es_mujer_primero) n1 else n2)
-      pon("hombres_esperados", if (es_mujer_primero) n2 else n1)
+      padron_muj <- if (es_mujer_primero) n1 else n2
+      padron_hom <- if (es_mujer_primero) n2 else n1
+    }
+    hay_padron <- is.finite(padron_muj) && is.finite(padron_hom) &&
+      (padron_muj + padron_hom) > 0
+    reparte <- function(meta) {
+      if (!hay_padron || !is.finite(meta)) return(NULL)
+      .capd_enteros_que_suman(c(F = padron_muj, M = padron_hom), as.integer(round(meta)))
+    }
+    # `reparto_*` y no `por_aula`: ese nombre YA es el índice del control
+    # registrado en el ámbito de fuera, y sombrearlo hacía que la fila buscara
+    # su registro dentro del reparto por sexo —«subscript out of bounds»—.
+    reparto_aula <- reparte(esperadas)
+    reparto_facultad <- reparte(esp_fac)
+    esp_muj <- if (is.null(reparto_aula)) NA_real_ else as.numeric(reparto_aula[["F"]])
+    esp_hom <- if (is.null(reparto_aula)) NA_real_ else as.numeric(reparto_aula[["M"]])
+    if (!is.null(reparto_aula)) {
+      pon("mujeres_esperadas", .calg_num_txt(reparto_aula[["F"]]))
+      pon("hombres_esperados", .calg_num_txt(reparto_aula[["M"]]))
+    }
+    if (!is.null(reparto_facultad)) {
+      pon("mujeres_esperadas_facultad", .calg_num_txt(reparto_facultad[["F"]]))
+      pon("hombres_esperados_facultad", .calg_num_txt(reparto_facultad[["M"]]))
+    }
+
+    # **Las diferencias de TASA, que es lo que se puede leer entre aulas.**
+    #
+    # Gonzalo, 2026-09-08: «cada aula consigue lo que se consigue, no hay que
+    # volver a ir ni se puede; lo que me interesa es qué tan lejos de la tasa
+    # estamos en base a lo que esperábamos». En puntos y con signo, sobre la
+    # misma base que las tres tasas de al lado: los elegibles del salón.
+    tasa_obt <- pct(obtenidas)
+    if (is.finite(tasa_obt)) {
+      if (is.finite(tasa_fac)) {
+        pon("brecha_tasa_facultad", .calg_num_txt(round(tasa_obt - tasa_fac, 3L)))
+      }
+      if (is.finite(tasa_aula)) {
+        pon("brecha_tasa_aula", .calg_num_txt(round(tasa_obt - tasa_aula, 3L)))
+      }
+    }
+
+    # Y las cuatro de sexo, en personas y con signo: «faltaron 6 mujeres» es lo
+    # que se mira para saber si la cuota del estrato se está torciendo.
+    dif <- function(campo, obtenido, esperado) {
+      if (!is.finite(obtenido) || !is.finite(esperado)) return(invisible(NULL))
+      pon(campo, .calg_num_txt(as.integer(round(obtenido - esperado))))
+    }
+    obt_muj <- NA_real_; obt_hom <- NA_real_
+    if (length(sexos)) {
+      etiquetas_s <- monitoreo_aulas_sexo_key(names(sexos), cfg)
+      suma <- function(letra) {
+        k <- which(etiquetas_s == letra)
+        if (!length(k)) NA_real_ else sum(as.numeric(sexos[k]))
+      }
+      obt_muj <- suma("F"); obt_hom <- suma("M")
+    }
+    dif("mujeres_brecha_aula", obt_muj, esp_muj)
+    dif("hombres_brecha_aula", obt_hom, esp_hom)
+    if (!is.null(reparto_facultad)) {
+      dif("mujeres_brecha_facultad", obt_muj, as.numeric(reparto_facultad[["F"]]))
+      dif("hombres_brecha_facultad", obt_hom, as.numeric(reparto_facultad[["M"]]))
     }
 
     # Lo registrado se escribe DESPUES y solo donde trae algo: la identidad la
@@ -1529,8 +1663,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       "sent_total", "validator_1", "validator_2", "validator_3",
       "efectivas_obtenidas", "no_efectivas", "women_n", "men_n",
       # Y las cuentas en personas del bloque de avance.
-      "brecha_facultad", "efectivas_brecha", "quota_missing",
-      "observed_students", "non_respondents"),
+      "brecha_facultad", "efectivas_brecha",
+      "observed_students", "non_respondents", "no_escanearon",
+      "declared_surveys", "refusals",
+      "mujeres_esperadas_facultad", "hombres_esperados_facultad",
+      "mujeres_brecha_facultad", "mujeres_brecha_aula",
+      "hombres_brecha_facultad", "hombres_brecha_aula"),
     .calg_col_control_campo, integer(1), USE.NAMES = FALSE)
   cols_control <- cols_control[cols_control > 0L]
   # Y los dos porcentajes, que se escriben en 0-1 y hay que ENSEÑAR como
@@ -1561,7 +1699,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     c("tasa_facultad_ref", "tasa_aula_ref",
       "sent_vs_total", "sent_vs_population",
       "efectivas_vs_enviadas", "efectivas_pct_obtenido",
-      "quota_pct", "attendance_pct", "women_pct", "men_pct"),
+      "attendance_pct", "women_pct", "men_pct",
+      "brecha_tasa_facultad", "brecha_tasa_aula"),
     function(campo) {
       col <- .calg_col_control_campo(campo)
       if (!length(col) || is.na(col) || col <= 0L) return(NULL)
@@ -1739,13 +1878,15 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
         filas = max(0L, filas_aplicadas), eslabon = b, pinta_banda = TRUE,
         cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
       )),
-      # Los cuatro tramos de la «Base de control». Llevan `tono` explicito
-      # porque NO son eslabones: son areas tematicas y su escala es propia. Con
-      # 43 columnas, el color es lo unico que dice en que parte de la hoja se
-      # esta cuando la banda ya quedo arriba.
+      # Los cinco tramos de la «Base de control». Llevan `tono` explicito porque
+      # NO son eslabones: son areas tematicas y su escala es PROPIA
+      # (`AULAS_LIBRO_TRAMOS_BASE_CONTROL`), elegida por lo que cada tramo dice.
+      # Con 55 columnas, el color es lo unico que dice en que parte de la hoja
+      # se esta cuando la banda ya quedo arriba.
       local({
         g <- aulas_libro_grupos_control()
-        escala <- aulas_libro_colores_eslabon(length(g))
+        escala <- AULAS_LIBRO_TRAMOS_BASE_CONTROL[
+          ((seq_along(g) - 1L) %% length(AULAS_LIBRO_TRAMOS_BASE_CONTROL)) + 1L]
         lapply(seq_along(g), function(i) list(
           hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
           tono = escala[[i]], pinta_banda = TRUE,

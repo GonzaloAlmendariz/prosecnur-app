@@ -62,9 +62,9 @@ test_that("lo obtenido sale de la PLATAFORMA y la diferencia lleva signo", {
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 18))
   expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "18")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS SOBRE ELEGIBLES")]], "0.6")
+  expect_identical(fila[[.ce_titulo("TASA OBTENIDA")]], "0.6")
   # En encuestas y con signo: «te faltan 3» es accionable, «-13 %» no.
-  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "-3")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "-3")
 })
 
 test_that("por encima de lo esperado la diferencia es POSITIVA", {
@@ -72,7 +72,7 @@ test_that("por encima de lo esperado la diferencia es POSITIVA", {
   # corta se leerian igual.
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)),
                    efectivas = c(`CH 1` = 25))
-  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "4")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "4")
 })
 
 test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
@@ -81,16 +81,26 @@ test_that("sin respuestas leidas las columnas de obtenido quedan VACIAS", {
   # 0 no es 0 %».
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)), efectivas = NULL)
   expect_identical(fila[[.ce_titulo("EFECTIVAS")]], "")
-  expect_identical(fila[[.ce_titulo("% EFECTIVAS SOBRE ELEGIBLES")]], "")
-  expect_identical(fila[[.ce_titulo("DIFERENCIA VS TASA DEL AULA")]], "")
+  expect_identical(fila[[.ce_titulo("TASA OBTENIDA")]], "")
+  expect_identical(fila[[.ce_titulo("DIFERENCIA EN ENCUESTAS VS AULA")]], "")
   # Pero lo ESPERADO si se publica: se sabe desde que se hizo el plan.
   expect_identical(fila[[.ce_titulo("ESPERADAS POR TASA DEL AULA")]], "21")
 })
 
-test_that("el sexo esperado sale del plan por aula, y cual es cual lo dice sex_top_1", {
+test_that("el sexo esperado REPARTE LA META, no el padrón, y suma exactamente", {
+  # **`sex_top_*_n` es la composición del PADRÓN.** La columna decía «MUJERES
+  # ESPERADAS 17 · HOMBRES 13» al lado de «ESPERADAS 21», y 17 + 13 = 30, que
+  # son los ELEGIBLES. El «Plan del día» ya repartía la meta por resto mayor y
+  # esta hoja se había quedado con el crudo; se vio en cuanto la columna dejó de
+  # llamarse «MUJERES ESPERADAS» a secas y dijo por qué tasa (2026-09-08).
   fila <- .ce_fila(list(.ce_aula("CH 1", eleg = 30, esperadas = 21, f = 17, m = 13)))
-  expect_identical(fila[[.ce_titulo("MUJERES ESPERADAS")]], "17")
-  expect_identical(fila[[.ce_titulo("HOMBRES ESPERADOS")]], "13")
+  muj <- as.numeric(fila[[.ce_titulo("MUJERES ESPERADAS POR TASA DEL AULA")]])
+  hom <- as.numeric(fila[[.ce_titulo("HOMBRES ESPERADOS POR TASA DEL AULA")]])
+  # Las dos partes suman la meta escrita al lado, no el padrón.
+  expect_equal(muj + hom, 21)
+  # Y conservan la proporción del padrón: 17 de 30 son mujeres.
+  expect_equal(muj, 12)
+  expect_equal(hom, 9)
 
   # Y si el mayoritario es el otro sexo, los numeros NO se cruzan: la posicion
   # no decide, lo dice `sex_top_1`.
@@ -98,8 +108,10 @@ test_that("el sexo esperado sale del plan por aula, y cual es cual lo dice sex_t
   otra$sex_top_1 <- "M"; otra$sex_top_1_n <- 19
   otra$sex_top_2 <- "F"; otra$sex_top_2_n <- 11
   f2 <- .ce_fila(list(otra))
-  expect_identical(f2[[.ce_titulo("HOMBRES ESPERADOS")]], "19")
-  expect_identical(f2[[.ce_titulo("MUJERES ESPERADAS")]], "11")
+  h2 <- as.numeric(f2[[.ce_titulo("HOMBRES ESPERADOS POR TASA DEL AULA")]])
+  m2 <- as.numeric(f2[[.ce_titulo("MUJERES ESPERADAS POR TASA DEL AULA")]])
+  expect_equal(h2 + m2, 21)
+  expect_gt(h2, m2)
 })
 
 test_that("los titulos viejos siguen leyendose: un libro a medio llenar no se rompe", {

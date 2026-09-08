@@ -54,10 +54,15 @@ test_that("los conteos por aula separan lo enviado de lo efectivo", {
 test_that("cada filtro se cuenta por separado y su cabecera dice cuál es", {
   ct <- monitoreo_aulas_conteos_control(.mcc_plan(), .mcc_respuestas(), .mcc_cfg())
   expect_length(ct$filtros, 2L)
-  # Por separado y no acumulado: acumulándolos, el último repetiría a las
-  # efectivas y los otros no dirían dónde se pierde cada respuesta.
-  expect_equal(unname(ct$filtros[[1]]$conteo[["CH 1"]]), 5)  # una no consiente
-  expect_equal(unname(ct$filtros[[2]]$conteo[["CH 1"]]), 5)  # otra no pasa filtro
+  # **Cuenta las que CAEN, no las que pasan.** Gonzalo, 2026-09-08: «son los que
+  # se quedan en el filtro, no los que los pasan». «Se cayó 1 en el
+  # consentimiento» dice dónde se pierde; «pasaron 5» obliga a restar contra las
+  # enviadas para saber lo mismo.
+  #
+  # Y por separado, no acumulado: acumulándolos, el último repetiría a las no
+  # efectivas y los otros no dirían dónde cae cada respuesta.
+  expect_equal(unname(ct$filtros[[1]]$conteo[["CH 1"]]), 1)  # una no consiente
+  expect_equal(unname(ct$filtros[[2]]$conteo[["CH 1"]]), 1)  # otra no pasa filtro
   # El nombre de la variable va entre paréntesis y NO sustituye al rótulo: es
   # un documento formal, no una hoja de depuración.
   expect_identical(ct$filtros[[1]]$titulo, "FILTRO DE VALIDACIÓN 1 (consent)")
