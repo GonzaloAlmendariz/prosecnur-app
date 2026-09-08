@@ -12,22 +12,82 @@
 #
 # Vive en archivo propio: `carga_aulas_libro_indicadores.R` sólo lo llama.
 #
-# LA SOBREMUESTRA, Y POR QUÉ AHORA SÍ SE PUBLICA
+# LAS COLUMNAS SON LAS QUE DICTÓ GONZALO (2026-09-08, con el Sheets vivo delante)
 #
-# Hasta el 2026-08-30 esta cabecera decía que la sobremuestra «no viaja al
-# libro»: `design_targets` traía sólo `facultad`, `cuota`, `cuota_sexo` y `tau`.
-# Era cierto, y **dejó de serlo el 2026-08-31**, cuando el bloque pasó a
-# publicar `meta_diseno`, `sobremuestra` y `meta_operativa` (2 500 · 1 250 ·
-# 3 750 en HSVG2026). Una salvedad correcta que caduca por un arreglo propio no
-# avisa sola: seguía aquí escrita como un hecho.
+# Textual: «Facultad, muestra, muestra mujeres, muestra hombres, efectivas,
+# efectivas hombres, efectivas mujeres, faltantes (sobre muestra), faltantes
+# hombre, faltantes mujeres, aulas aplicadas, sobremuestra, sobremuestra
+# mujeres, sobremuestra hombres, faltantes (sobre la sobremuestra)». Antes la
+# tabla traía «Aulas del plan», «Techo con sobremuestra» y «Avance» (un
+# porcentaje) y ninguna de las tres está en el dictado: se van. El único cambio
+# sobre el dictado es el orden de los sexos, que él alterna (mujeres→hombres en
+# muestra y sobremuestra, hombres→mujeres en efectivas y faltantes) y aquí va
+# siempre mujeres→hombres, como en el resto del libro y de la app: una tabla
+# que cambia el orden de un grupo a otro obliga a releer la cabecera en cada
+# columna. Si lo quiere al revés, es un cambio de rótulos.
 #
-# Lo que el diseño fija es el TOTAL, no un reparto por facultad. Así que el
-# techo de cada una se deriva del ratio global —3 750 / 2 500 = ×1,5 exacto— y
-# la hoja lo dice en su nota: es una derivación declarada, no una cifra que el
-# estudio haya calculado facultad a facultad. Sin esa nota sería inventarla, que
-# es justo lo que la versión anterior evitaba.
+# Las DOS metas reciben el mismo trato: la muestra (la cuota del diseño, 2 500
+# en HSVG2026) y la sobremuestra (3 750). Gonzalo: «dos metas, una real y otra
+# referencial, aunque no debe decir que lo es». Por eso ninguna nota de la hoja
+# llama «referencial» ni «margen» a la sobremuestra.
+#
+# LA SOBREMUESTRA SE REPARTE, NO SE MULTIPLICA
+#
+# Lo que el diseño fija es el TOTAL (`meta_diseno` y `meta_operativa`), no un
+# reparto por facultad ni por sexo. Hasta el 2026-09-08 el techo de cada
+# facultad era `round(cuota * ratio)`, y quince redondeos no tienen por qué
+# sumar 3 750: la fila «Total» de la tabla habría dicho una cifra y el bloque de
+# meta otra. Se reparte por RESTO MAYOR —proporcional a la cuota, con los enteros
+# ajustados para que las partes sumen exactamente el total— y dentro de cada
+# facultad se reparte igual entre sus dos sexos. El ratio sale del bloque, no se
+# supone: sin las dos cifras del diseño la columna queda en NA y la nota lo
+# dice. Un 1,5 por defecto sería inventar el aforo.
 
-#' Avance por facultad y sexo contra la cuota del diseño.
+# Reparto por resto mayor: enteros no negativos, proporcionales a `pesos`, que
+# suman exactamente `total`. Los empates de resto los decide el orden de
+# llegada, que en esta hoja es el del diseño.
+.calaf_repartir <- function(total, pesos) {
+  pesos <- suppressWarnings(as.numeric(pesos))
+  pesos[!is.finite(pesos) | pesos < 0] <- 0
+  n <- length(pesos)
+  total <- suppressWarnings(as.numeric(total))
+  if (!n || length(total) != 1L || !is.finite(total) || total < 0 || sum(pesos) <= 0) {
+    return(rep(NA_real_, n))
+  }
+  total <- round(total)
+  crudo <- total * pesos / sum(pesos)
+  base <- floor(crudo)
+  resto <- as.integer(round(total - sum(base)))
+  if (resto > 0) {
+    orden <- order(-(crudo - base), seq_len(n))
+    base[orden[seq_len(resto)]] <- base[orden[seq_len(resto)]] + 1
+  }
+  base
+}
+
+# La sobremuestra de cada facultad y de cada sexo, en el orden de `facs`.
+# `NULL` sin ratio: la columna calla en vez de inventar.
+.calaf_sobremuestra_reparto <- function(facs, ratio) {
+  if (!length(facs) || !is.finite(ratio) || ratio <= 0) return(NULL)
+  cuotas <- vapply(facs, function(f) .cai_num(f$cuota), numeric(1))
+  if (!any(is.finite(cuotas))) return(NULL)
+  objetivo <- round(sum(cuotas[is.finite(cuotas)]) * ratio)
+  por_fac <- .calaf_repartir(objetivo, ifelse(is.finite(cuotas), cuotas, 0))
+  lapply(seq_along(facs), function(i) {
+    if (!is.finite(cuotas[[i]])) return(list(total = NA_real_, F = NA_real_, M = NA_real_))
+    cs <- facs[[i]]$cuota_sexo %||% list()
+    f <- .cai_num(cs$F)
+    m <- .cai_num(cs$M)
+    sx <- if (is.finite(f) && is.finite(m) && (f + m) > 0) {
+      .calaf_repartir(por_fac[[i]], c(f, m))
+    } else {
+      c(NA_real_, NA_real_)
+    }
+    list(total = por_fac[[i]], F = sx[[1]], M = sx[[2]])
+  })
+}
+
+#' Avance por facultad y sexo contra la muestra y la sobremuestra del diseño.
 #'
 #' @param unidades filas del plan.
 #' @param efectivas vector con nombre por código operativo (efectivas de
@@ -56,23 +116,14 @@
   # control y el Plan del día.
   apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
   clave <- .cm_criterios_fac_key(fac)
-  # El operativo son los titulares más las reservas que se activaron: es el mismo
-  # conjunto que cuenta «Aulas del operativo» en el encabezado de la hoja.
-  # TITULARES, el mismo conjunto que cuenta «Aulas del operativo» en el
-  # encabezado de la hoja. Contó además las reservas con fecha y la columna sumó
-  # 175 al lado de un encabezado que decía 174: una reserva activada SUSTITUYE a
-  # su titular, no se suma a él —es la misma regla que la app enuncia en su
-  # recorrido— así que contarla dos veces infla el denominador.
-  del_operativo <- vapply(unidades, function(u) {
-    identical(tolower(.cai_txt(u$sample_role)), "titular")
-  }, logical(1))
 
-  # El ratio del diseño: techo operativo entre meta. Sale del bloque, no se
-  # supone: si el estudio no publica las dos cifras, la columna queda en NA y la
-  # nota de la hoja lo dice. Un 1,5 por defecto sería inventar el aforo.
+  # El ratio del diseño: sobremuestra entre muestra. Sale del bloque, no se
+  # supone: si el estudio no publica las dos cifras, las columnas de
+  # sobremuestra quedan en NA y la nota de la hoja lo dice.
   meta_dis <- suppressWarnings(as.numeric(cuotas$meta_diseno %||% NA))
   oper_dis <- suppressWarnings(as.numeric(cuotas$meta_operativa %||% NA))
   ratio_sm <- if (is.finite(meta_dis) && meta_dis > 0 && is.finite(oper_dis)) oper_dis / meta_dis else NA_real_
+  sobremuestra <- .calaf_sobremuestra_reparto(facs, ratio_sm)
 
   ef_de <- function(codigo) {
     if (is.null(efectivas)) return(NA_real_)
@@ -111,54 +162,63 @@
       sexo_por_fac[[k]] <- acc
     }
   }
+  con_reparto <- length(sexo_aula) > 0L
 
-  filas <- lapply(facs, function(f) {
+  filas <- lapply(seq_along(facs), function(i) {
+    f <- facs[[i]]
     k <- .cai_txt(f$faculty_key %||% .cm_criterios_fac_key(.cai_txt(f$facultad)))
     idx <- clave == k
     cuota <- .cai_num(f$cuota)
     cs <- f$cuota_sexo %||% list()
+    cuota_f <- .cai_num(cs$F)
+    cuota_m <- .cai_num(cs$M)
     # Cero y «no lo sabemos» son dos noticias distintas: con la variable de sexo
     # declarada y el cruce hecho, una facultad sin respuestas tiene CERO
-    # conseguidas de cada sexo; sin variable declarada, la columna calla.
-    sin_reparto <- if (length(sexo_aula)) c(F = 0, M = 0) else c(F = NA_real_, M = NA_real_)
+    # efectivas de cada sexo; sin variable declarada, la columna calla.
+    sin_reparto <- if (con_reparto) c(F = 0, M = 0) else c(F = NA_real_, M = NA_real_)
     sx <- sexo_por_fac[[k]] %||% sin_reparto
     conseguidas <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[idx], na.rm = TRUE)
+    sm <- if (is.null(sobremuestra)) list(total = NA_real_, F = NA_real_, M = NA_real_) else sobremuestra[[i]]
+
+    # A4 (2026-09-08): la MISMA brecha que el tablero (ADR 0079, una función
+    # para los dos): por celda de sexo cuando el diseño la reparte y el estudio
+    # declara la variable de sexo; el neto cuando no. Contra la muestra y
+    # contra la sobremuestra por igual: dos metas, una regla.
+    celdas <- function(t_f, t_m) if (con_reparto) list(
+      list(target = t_f, observed = unname(sx[["F"]])),
+      list(target = t_m, observed = unname(sx[["M"]]))
+    ) else list()
+    brecha <- function(meta, cel) {
+      if (!is.finite(conseguidas)) NA_real_ else monitoreo_aulas_brecha_facultad(meta, conseguidas, cel)
+    }
+    # Lo que falta en UNA celda: sólo con reparto y con su meta; nunca negativo.
+    falta_sexo <- function(meta_sexo, obs) {
+      if (!con_reparto || !is.finite(meta_sexo) || !is.finite(obs)) NA_real_ else max(0, meta_sexo - obs)
+    }
+
     data.frame(
       Facultad = .cai_txt(f$facultad),
       # LA MUESTRA es la cuota del diseño, no la suma de metas por aula: son dos
       # denominadores y el segundo está estructuralmente por encima (ADR 0079).
       Muestra = cuota,
-      `Muestra mujeres` = .cai_num(cs$F),
-      `Muestra hombres` = .cai_num(cs$M),
+      `Muestra mujeres` = cuota_f,
+      `Muestra hombres` = cuota_m,
+      Efectivas = conseguidas,
+      `Efectivas mujeres` = unname(sx[["F"]]),
+      `Efectivas hombres` = unname(sx[["M"]]),
+      Faltantes = brecha(cuota, celdas(cuota_f, cuota_m)),
+      `Faltantes mujeres` = falta_sexo(cuota_f, unname(sx[["F"]])),
+      `Faltantes hombres` = falta_sexo(cuota_m, unname(sx[["M"]])),
       `Aulas aplicadas` = sum(idx & apl),
-      # **Las aulas DEL OPERATIVO, no las del banco.** Contaba `sum(idx)` sobre
-      # el plan entero —1 347 unidades— y la columna sumaba 1 347 mientras el
-      # encabezado de la hoja decía «Aulas del operativo: 174». Dos universos con
-      # el mismo nombre en la misma hoja.
-      `Aulas del plan` = sum(idx & del_operativo),
-      Conseguidas = conseguidas,
-      `Conseguidas mujeres` = unname(sx[["F"]]),
-      `Conseguidas hombres` = unname(sx[["M"]]),
-      # El techo con sobremuestra: hasta dónde se compró aforo. NO es una
-      # segunda meta —lo que decide el cierre sigue siendo `Muestra`— sino el
-      # margen que el operativo tiene antes de quedarse sin campo pagado.
-      `Techo con sobremuestra` = if (is.finite(cuota) && is.finite(ratio_sm)) round(cuota * ratio_sm) else NA_real_,
-      Avance = if (is.finite(cuota) && cuota > 0 && is.finite(conseguidas)) conseguidas / cuota else NA_real_,
-      # A4 (2026-09-08): la MISMA brecha que el tablero (ADR 0079, una función
-      # para los dos): por celda de sexo cuando el diseño la reparte y el
-      # estudio declara la variable de sexo; el neto cuando no.
-      Faltan = if (is.finite(conseguidas)) monitoreo_aulas_brecha_facultad(
-        cuota, conseguidas,
-        if (length(sexo_aula)) list(
-          list(target = .cai_num(cs$F), observed = unname(sx[["F"]])),
-          list(target = .cai_num(cs$M), observed = unname(sx[["M"]]))
-        ) else list()
-      ) else NA_real_,
+      Sobremuestra = sm$total,
+      `Sobremuestra mujeres` = sm$F,
+      `Sobremuestra hombres` = sm$M,
+      `Faltantes para la sobremuestra` = brecha(sm$total, celdas(sm$F, sm$M)),
       check.names = FALSE, stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, filas)
   # Por lo que FALTA y no alfabético: la facultad que peor va abre la tabla, que
   # es lo que se mira primero.
-  out[order(-ifelse(is.finite(out$Faltan), out$Faltan, -1)), , drop = FALSE]
+  out[order(-ifelse(is.finite(out$Faltantes), out$Faltantes, -1)), , drop = FALSE]
 }

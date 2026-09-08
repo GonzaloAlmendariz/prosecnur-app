@@ -498,6 +498,13 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     .cai_rayas(wb, hoja, ind$facultades, fila, sin_dato_celda)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
     nf <- nrow(ind$facultades)
+    # V2 (2026-09-08, Gonzalo: «debe haber una fila de total al final»): la
+    # MISMA fila que el Sheets (`.calaf_fila_total`), vestida como el cierre
+    # del diario. Sus «—» también se declaran.
+    total_fac <- .calaf_fila_total(ind$facultades)
+    openxlsx::writeData(wb, hoja, total_fac, startCol = 1, startRow = fila + nf + 1L, colNames = FALSE)
+    .cai_rayas(wb, hoja, total_fac, fila + nf, sin_dato_celda)
+    openxlsx::addStyle(wb, hoja, total_diario, rows = fila + nf + 1L, cols = 1:ncol_fac, gridExpand = TRUE)
     # **Por NOMBRE de columna, nunca por indice.**
     #
     # Esto decia `cols = 2:9` enteras, `cols = 10` porcentaje y `cols = 11`
@@ -524,49 +531,30 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     openxlsx::addStyle(
       wb, hoja,
       openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149"),
-      rows = fila:(fila + nf), cols = seq_along(nombres_fac),
+      rows = fila:(fila + nf + 1L), cols = seq_along(nombres_fac),
       gridExpand = TRUE, stack = TRUE
     )
     # Y anchos: las cabeceras salian cortadas —«Aulas aplicad», «Conseguidas r»,
     # «Techo con sob»— porque la columna era mas estrecha que su titulo.
     openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
     openxlsx::setColWidths(wb, hoja, cols = 2:length(nombres_fac), widths = 15)
-    # La cabecera se PARTE en vez de cortarse: «Techo con sobremuestra» son 22
-    # caracteres en una columna de 15, y sin esto salia «Techo con sob». Un
-    # titulo a medias en una tabla de doce columnas obliga a contar posiciones
-    # para saber que se esta leyendo.
+    # La cabecera se PARTE en vez de cortarse: «Faltantes para la sobremuestra»
+    # son 30 caracteres en una columna de 15, y sin esto saldria a medias. Un
+    # titulo a medias en una tabla de quince columnas obliga a contar posiciones
+    # para saber que se esta leyendo. Tres lineas de alto: es la cabecera mas
+    # larga de la hoja.
     openxlsx::addStyle(
       wb, hoja,
       openxlsx::createStyle(wrapText = TRUE, valign = "bottom", halign = "center"),
       rows = fila, cols = 2:length(nombres_fac), gridExpand = TRUE, stack = TRUE
     )
-    openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 30)
-    fila <- fila + nf + 1L
-    # El ratio se lee de la TABLA, que es lo que esta en este scope, y no de la
-    # config: aqui llega `ind$facultades` ya calculada. Ademas es mas fiel —la
-    # nota describe lo que la columna hizo de verdad, no lo que la config decia.
-    ratio_hoja <- local({
-      f <- ind$facultades
-      if (!"Techo con sobremuestra" %in% names(f)) return(NA_real_)
-      m <- suppressWarnings(sum(as.numeric(f$Muestra), na.rm = TRUE))
-      t <- suppressWarnings(sum(as.numeric(f$`Techo con sobremuestra`), na.rm = TRUE))
-      if (is.finite(m) && m > 0 && is.finite(t) && t > 0) t / m else NA_real_
-    })
-    # La nota decia que la sobremuestra «no llega al libro». Dejo de ser cierto
-    # el 2026-08-31 y ahora la columna existe, asi que lo que hay que declarar
-    # es OTRA cosa: que el techo por facultad es una DERIVACION del ratio
-    # global, no una cifra que el diseño haya calculado facultad a facultad.
-    # Y sobre todo, cual de las dos decide el cierre.
-    .cai_nota(
-      wb, hoja, fila,
-      paste0(
-        "La muestra es la cuota del diseño y es la que decide el cierre. ",
-        "El techo con sobremuestra reparte el aforo comprado con el ratio del estudio",
-        if (is.finite(ratio_hoja)) sprintf(" (x%s)", format(round(ratio_hoja, 2), trim = TRUE)) else "",
-        ": es margen operativo, no una segunda meta."
-      ),
-      nota, n_hoja
-    )
+    openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 45)
+    fila <- fila + nf + 2L
+    # V6: la nota es UNA para el xlsx y el Sheets (`.calaf_nota_metas`), y
+    # nombra las dos metas sin llamar «referencial» ni «margen» a la
+    # sobremuestra: Gonzalo, 2026-09-08, «dos metas, una real y otra
+    # referencial (aunque no debe decir que lo es)».
+    .cai_nota(wb, hoja, fila, .calaf_nota_metas(ind$facultades), nota, n_hoja)
     fila <- fila + 2L
   }
 

@@ -72,16 +72,23 @@ test_that("A4: con un sexo pasado de su cuota, el libro dice la MISMA brecha que
   r <- .par_ambas(.par_dt(F = 6, M = 4))
   expect_identical(as.numeric(r$efectivas[["CH 1"]]), 9)
   expect_identical(as.numeric(r$tablero$respuestas_validas), 9)
-  expect_identical(as.numeric(r$libro$Conseguidas), 9)
+  # «Efectivas» y «Faltantes» desde el dictado de Gonzalo del 2026-09-08
+  # (antes «Conseguidas» y «Faltan»); el dato es el mismo.
+  expect_identical(as.numeric(r$libro$Efectivas), 9)
   # ADR 0079 en los dos: la celda de hombres pide 3; la de mujeres ya sobra.
   expect_identical(as.numeric(r$tablero$brecha), 3)
-  expect_identical(as.numeric(r$libro$Faltan), as.numeric(r$tablero$brecha))
-  expect_identical(as.numeric(r$libro$`Conseguidas mujeres`), 8)
-  expect_identical(as.numeric(r$libro$`Conseguidas hombres`), 1)
+  expect_identical(as.numeric(r$libro$Faltantes), as.numeric(r$tablero$brecha))
+  expect_identical(as.numeric(r$libro$`Efectivas mujeres`), 8)
+  expect_identical(as.numeric(r$libro$`Efectivas hombres`), 1)
+  # Y por sexo, sin netear: mujeres 0 (sobran dos), hombres 3.
+  expect_identical(as.numeric(r$libro$`Faltantes mujeres`), 0)
+  expect_identical(as.numeric(r$libro$`Faltantes hombres`), 3)
 })
 
 test_that("A4: sin reparto por sexo en el diseño, los dos restan el neto", {
   r <- .par_ambas(.par_dt(F = NULL))
   expect_identical(as.numeric(r$tablero$brecha), 1)
-  expect_identical(as.numeric(r$libro$Faltan), 1)
+  expect_identical(as.numeric(r$libro$Faltantes), 1)
+  # Sin celdas no hay faltante por sexo que declarar.
+  expect_true(is.na(r$libro$`Faltantes mujeres`))
 })

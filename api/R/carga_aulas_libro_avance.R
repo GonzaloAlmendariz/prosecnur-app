@@ -146,21 +146,11 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
     poner("Avance por facultad")
     poner("La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo que falta en otra.")
     for (f in .cala_tabla_filas(ind$facultades, texto = "Facultad")) poner(f)
-    # La misma nota del xlsx: el techo por facultad es una DERIVACIÓN del
-    # ratio global del diseño, no una segunda meta.
-    ratio <- local({
-      fac <- ind$facultades
-      if (!"Techo con sobremuestra" %in% names(fac)) return(NA_real_)
-      mu <- suppressWarnings(sum(as.numeric(fac$Muestra), na.rm = TRUE))
-      te <- suppressWarnings(sum(as.numeric(fac$`Techo con sobremuestra`), na.rm = TRUE))
-      if (is.finite(mu) && mu > 0 && is.finite(te) && te > 0) te / mu else NA_real_
-    })
-    poner(paste0(
-      "La muestra es la cuota del diseño y es la que decide el cierre. ",
-      "El techo con sobremuestra reparte el aforo comprado con el ratio del estudio",
-      if (is.finite(ratio)) sprintf(" (x%s)", format(round(ratio, 2), trim = TRUE)) else "",
-      ": es margen operativo, no una segunda meta."
-    ))
+    # V2 (2026-09-08): la MISMA fila «Total» que el xlsx (`.calaf_fila_total`),
+    # sin cabecera; el formato de la pestaña la viste como cierre.
+    poner(.cala_tabla_filas(.calaf_fila_total(ind$facultades), texto = "Facultad")[[2]])
+    # V6: la misma nota que el xlsx, de la misma función.
+    poner(.calaf_nota_metas(ind$facultades))
     poner("")
   }
 
