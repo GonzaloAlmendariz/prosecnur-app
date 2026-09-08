@@ -851,7 +851,83 @@ mount_monitoreo_aulas_libro <- function(pr) {
         ),
         error = function(e) NULL
       )
-      monitoreo_aulas_leer_distribucion(destino, filas)
+      out <- monitoreo_aulas_leer_distribucion(destino, filas)
+      # Y qué hay de las filas que el equipo añadió a mano: cuáles se pueden
+      # completar con los datos del curso-horario y cuáles son reagendaciones.
+      remoto <- tryCatch(
+        .cads_valores_de_pestana(.monitoreo_extract_spreadsheet_id(destino), .mapd_hoja()),
+        error = function(e) list()
+      )
+      completado <- tryCatch(
+        monitoreo_aulas_completar_distribucion(
+          remoto, s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list(), filas
+        ),
+        error = function(e) NULL
+      )
+      c(out, list(
+        filas_del_equipo = completado$resumen %||% list(),
+        reagendadas = Filter(function(f) identical(f$clase, "reagendada"),
+                             completado$filas %||% list()),
+        anadidas = Filter(function(f) identical(f$clase, "anadida"),
+                          completado$filas %||% list()),
+        desconocidas = Filter(function(f) identical(f$clase, "desconocida"),
+                              completado$filas %||% list())
+      ))
+    })) |>
+    # **Adoptar el Sheets como fuente de verdad del reparto.**
+    #
+    # «Ese excel es la fuente de verdad, la app debe ser capaz de producirlo,
+    # leerlo y actualizar la distribución elaborada en la app en base al
+    # sheets». Cada fila se convierte en una fijación y el motor deja de
+    # reordenarla — lo que además congela el reparto, que se recalculaba entero
+    # en cada publicación y movía asignaciones ya comunicadas.
+    #
+    # Es un acto APARTE de leer: leer no cambia nada y se puede hacer cuando se
+    # quiera; adoptar reescribe el reparto de la app y eso se decide.
+    plumber::pr_post("/api/monitoreo/aulas/adoptar-distribucion", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data.frame())
+      aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      destino <- .monitoreo_scalar(parsed[["url"]] %||% parsed[["spreadsheet_id"]] %||% parsed[["enlace"]], "")
+      if (!nzchar(destino)) {
+        destino <- .monitoreo_scalar((aulas_cfg[["distribucion_sheets"]] %||% list())[["spreadsheet_id"]], "")
+      }
+      if (!nzchar(destino)) {
+        stop_api(409, "E_AULAS_DISTRIBUCION_SIN_DESTINO",
+                 paste("No hay Sheets de la distribución que adoptar: créalo desde la app",
+                       "o pega su enlace una vez."))
+      }
+      remoto <- tryCatch(
+        .cads_valores_de_pestana(.monitoreo_extract_spreadsheet_id(destino), .mapd_hoja()),
+        error = function(e) {
+          stop_api(502, "E_GOOGLE_SHEETS",
+                   paste("No se pudo leer el Sheets de la distribución:", conditionMessage(e)))
+        }
+      )
+      plan <- s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list()
+      roster <- vapply(s[["monitoreo_aulas_disponibilidad"]] %||% list(), function(x) {
+        aulas_nombre_aplicador(x[["nombre"]] %||% x[["aplicador"]] %||% x)
+      }, character(1))
+      out <- monitoreo_aulas_fijaciones_desde_distribucion(remoto, plan, roster)
+      # **Un ensayo por defecto.** Adoptar reescribe el reparto de veintidós
+      # personas; que la primera llamada sólo diga qué haría deja mirar antes de
+      # decidir. `aplicar = true` es el acto.
+      aplicar <- isTRUE(.monitoreo_bool(parsed[["aplicar"]] %||% parsed[["apply"]], FALSE))
+      if (aplicar) {
+        aulas_cfg[["reparto_fijado"]] <- out$fijadas
+        cfg[["aulas_universitarias"]] <- monitoreo_aulas_normalize_config(aulas_cfg)
+        cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+        .monitoreo_mark_project_dirty_if_open(sid)
+      }
+      c(out, list(
+        ok = TRUE,
+        aplicado = aplicar,
+        spreadsheet_id = .monitoreo_extract_spreadsheet_id(destino),
+        fijaciones_previas = length(aulas_cfg[["reparto_fijado"]] %||% list()),
+        state = if (aplicar) .monitoreo_state_payload(sid) else NULL
+      ))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/publicar-libro", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

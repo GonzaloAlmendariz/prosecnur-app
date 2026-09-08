@@ -70,12 +70,21 @@ test_that("publica las dos hojas de la distribución y NINGUNA del equipo", {
   expect_setequal(names(escritas), "Plan del día")
   expect_false(any(grepl("Aulas ", names(escritas), fixed = TRUE)))
 
-  # Y sin ninguna columna de gestión: esperadas, obtenidas, elegibles, estado y
-  # el enlace de la ficha se quedan en el libro operativo.
+  # Y sin ninguna columna de gestión: esperadas, obtenidas, elegibles y el
+  # enlace de la ficha se quedan en el libro operativo.
+  #
+  # **ESTADO salió de esta lista el 2026-09-08.** Estaba prohibido —«le estás
+  # dando a los aplicadores más información de la que necesitan»— y Gonzalo lo
+  # pidió explícitamente cuando la hoja pasó a ser fuente de verdad:
+  # «necesitamos una columna más que diga el estatus… por aplicar, aplicada,
+  # reagendada, rechazada». No es información de gestión que se les enseña: es
+  # donde ELLOS y el equipo escriben, y sin ella una reagendación no se puede
+  # anotar antes de aplicarse.
   cabecera <- unlist(escritas[["Plan del día"]][[1]], use.names = FALSE)
-  for (fuera in c("ESPERADAS", "OBTENIDAS", "ELEGIBLES", "ENLACE", "ESTADO", "MATRICULADOS")) {
+  for (fuera in c("ESPERADAS", "OBTENIDAS", "ELEGIBLES", "ENLACE", "MATRICULADOS")) {
     expect_false(any(grepl(fuera, cabecera, fixed = TRUE)), info = fuera)
   }
+  expect_true("ESTADO" %in% cabecera)
   # Lo que sí tiene que estar es lo que contesta «cuándo salgo y a dónde voy».
   for (dentro in c("APLICADOR", "EN OFICINA", "SALE AL AULA", "AULA", "DOCENTE")) {
     expect_true(dentro %in% cabecera, info = dentro)
@@ -105,22 +114,35 @@ test_that("cada aplicador lleva su color, y el comodín uno propio", {
     list("Ana Uno", "martes 08/09", "09:30", "09:45", "10:00 a 10:30", "CH 3", "A103", "F", "C", "D"),
     list("INTERNO PULSO", "martes 08/09", "11:00", "11:15", "11:30 a 12:00", "CH 4", "A104", "F", "C", "D")
   )
+  # **El color va por VALOR de la celda desde el 2026-09-08**, no como relleno
+  # de cada fila: la columna lleva desplegable y quien cambia el aplicador tiene
+  # que ver el color de la persona nueva al instante. Con relleno fijo el color
+  # se quedaba con el anterior — dice quién va, y miente.
   reqs <- aulas_libro_plan_aplicadores_formato_requests(7L, filas)
-  celdas <- Filter(function(r) {
-    rg <- r$repeatCell$range
-    !is.null(rg) && identical(rg$startColumnIndex, 0L) && identical(rg$endColumnIndex, 1L) &&
-      rg$startRowIndex > 0L
+  reglas <- Filter(function(r) {
+    rr <- r$addConditionalFormatRule
+    !is.null(rr) && identical(rr$rule$ranges[[1]]$startColumnIndex, 0L)
   }, reqs)
-  # Una celda pintada por fila de datos.
-  expect_length(celdas, 4L)
-  color <- function(k) celdas[[k]]$repeatCell$cell$userEnteredFormat$backgroundColor
-  # La misma persona, el mismo color en los dos días: el equipo aprende el suyo.
-  expect_identical(color(1L), color(3L))
-  # Dos personas contiguas, colores distintos.
-  expect_false(identical(color(1L), color(2L)))
-  # Y el comodín no comparte con nadie.
-  expect_false(identical(color(4L), color(1L)))
-  expect_false(identical(color(4L), color(2L)))
+  color_de <- stats::setNames(
+    lapply(reglas, function(r) r$addConditionalFormatRule$rule$booleanRule$format$backgroundColor),
+    vapply(reglas, function(r) {
+      r$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue
+    }, character(1))
+  )
+  quienes <- unique(vapply(filas[-1L], function(f) {
+    as.character(unlist(f, use.names = FALSE))[[1L]]
+  }, character(1)))
+  # Una regla por persona de la hoja, y ninguna repetida: dos personas
+  # contiguas con el mismo color es justo lo que se vino a evitar.
+  expect_true(all(quienes %in% names(color_de)))
+  expect_identical(anyDuplicated(color_de[quienes]), 0L)
+  # Y el comodín no comparte con nadie: su gris cálido está fuera de la rueda.
+  interno <- aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO)
+  if (interno %in% names(color_de)) {
+    for (quien in setdiff(quienes, interno)) {
+      expect_false(identical(color_de[[interno]], color_de[[quien]]), info = quien)
+    }
+  }
 })
 
 test_that("los veintidós colores no se repiten y ninguno es el del comodín", {

@@ -192,3 +192,205 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
     pestanas_ajenas = setdiff(titulos[nzchar(titulos)], .mapd_hoja())
   )
 }
+
+#' Toma el Sheets como fuente de verdad del reparto.
+#'
+#' Dictado de Gonzalo (2026-09-08): «ese excel es la fuente de verdad, la app
+#' debe ser capaz de producirlo, leerlo y actualizar la distribución elaborada
+#' en la app en base al sheets».
+#'
+#' Es el tercer movimiento del ciclo. El primero produce, el segundo compara y
+#' éste **adopta**: cada fila del documento se convierte en una fijación
+#' (`reparto_fijado`, código → aplicador) y el motor deja de reordenarla. Eso
+#' además congela el reparto, que era el defecto de fondo: se recalculaba entero
+#' en cada publicación y agendar un aula nueva movía asignaciones que las
+#' veintidós personas ya habían leído.
+#'
+#' **Lo que no reconoce, lo declara y NO lo fija.** Un aplicador que no está en
+#' el equipo o un curso-horario que no está en el plan es un tecleo, no una
+#' decisión; fijarlo metería en el reparto un nombre que no existe. Se devuelven
+#' aparte para que alguien los mire.
+#'
+#' @param filas_remotas los valores de la hoja (cabecera incluida).
+#' @param plan filas del plan, para saber qué códigos existen.
+#' @param roster nombres del equipo, para saber qué aplicadores existen.
+#' @return lista `{fijadas, adoptadas, aplicadores_desconocidos,
+#'   codigos_desconocidos, sin_aplicador}`.
+#' @export
+monitoreo_aulas_fijaciones_desde_distribucion <- function(filas_remotas,
+                                                          plan = list(),
+                                                          roster = character(0)) {
+  filas <- filas_remotas %||% list()
+  if (length(filas) < 2L) {
+    return(list(fijadas = list(), adoptadas = 0L, aplicadores_desconocidos = character(0),
+                codigos_desconocidos = character(0), sin_aplicador = character(0)))
+  }
+  n <- length(.alpa_CABECERA)
+  cab <- .madc_valores(filas[[1L]], n)
+  col_quien <- which(cab == "APLICADOR")
+  col_codigo <- which(cab == "CURSO-HORARIO")
+  if (length(col_quien) != 1L || length(col_codigo) != 1L) {
+    stop_api(422, "E_AULAS_DISTRIBUCION_ILEGIBLE",
+             paste("La hoja no trae las columnas APLICADOR y CURSO-HORARIO donde se",
+                   "esperan: no se puede saber a quién asignar cada curso-horario."))
+  }
+
+  del_plan <- unique(vapply(plan %||% list(), function(u) {
+    .monitoreo_scalar(u$operational_code %||% u$classroom_id, "")
+  }, character(1)))
+  del_plan <- del_plan[nzchar(del_plan)]
+  equipo <- unique(c(
+    vapply(roster %||% character(0), function(x) aulas_nombre_aplicador(x), character(1)),
+    aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO)
+  ))
+  equipo <- equipo[nzchar(equipo)]
+
+  fijadas <- list()
+  desconocidos <- character(0); sin_codigo <- character(0); sin_quien <- character(0)
+  for (f in filas[-1L]) {
+    v <- .madc_valores(f, n)
+    cod <- v[[col_codigo]]
+    quien <- aulas_nombre_aplicador(v[[col_quien]])
+    if (!nzchar(cod)) next
+    if (!nzchar(quien)) { sin_quien <- c(sin_quien, cod); next }
+    if (length(del_plan) && !(cod %in% del_plan)) { sin_codigo <- c(sin_codigo, cod); next }
+    if (length(equipo) && !(quien %in% equipo)) { desconocidos <- c(desconocidos, quien); next }
+    fijadas[[cod]] <- quien
+  }
+  list(
+    fijadas = fijadas,
+    adoptadas = length(fijadas),
+    aplicadores_desconocidos = sort(unique(desconocidos)),
+    codigos_desconocidos = sort(unique(sin_codigo)),
+    sin_aplicador = sort(unique(sin_quien))
+  )
+}
+
+#' Completa y clasifica las filas que el equipo añadió a mano.
+#'
+#' Dictado de Gonzalo (2026-09-08): «debe ser capaz de leer cuando se agrega una
+#' fila más y corregirla con los datos reales del CH… se hizo una reagendación y
+#' tenemos que ponerla en la tabla, la vamos a agregar y vamos a poner la hora y
+#' estatus REAGENDADA en un principio porque aún no se ha aplicado, y la app
+#' debe ser capaz de identificarla, ponerle los datos y saber que es una
+#' reagendación».
+#'
+#' El equipo escribe lo mínimo —el curso-horario, una hora, el estado— y esta
+#' función pone el resto: el aula, la facultad, el curso, el docente y el día de
+#' la semana, todo del PLAN, que es donde vive la verdad de cada curso-horario.
+#' Lo que el equipo escribió NO se pisa: si tecleó una hora nueva, esa hora es la
+#' reagendación y manda sobre la del plan.
+#'
+#' Cada fila sale clasificada:
+#'
+#' - `publicada` — la app ya la tenía en su reparto y coincide;
+#' - `reagendada` — el equipo la marcó así, o su fecha/hora difiere del plan;
+#' - `anadida` — un curso-horario que el reparto de la app no traía;
+#' - `desconocida` — un código que no está en el plan: no se completa, se declara.
+#'
+#' @param filas_remotas los valores de la hoja (cabecera incluida).
+#' @param plan filas del plan.
+#' @param filas_ahora lo que el motor publicaría (para saber qué es añadido).
+#' @return lista `{filas, resumen}` — `filas` con la fila completada y su
+#'   clasificación, `resumen` con los conteos por clase.
+#' @export
+monitoreo_aulas_completar_distribucion <- function(filas_remotas, plan = list(),
+                                                   filas_ahora = NULL) {
+  filas <- filas_remotas %||% list()
+  vacio <- list(filas = list(), resumen = list(
+    publicada = 0L, reagendada = 0L, anadida = 0L, desconocida = 0L, completadas = 0L))
+  if (length(filas) < 2L) return(vacio)
+
+  n <- length(.alpa_CABECERA)
+  cab <- .madc_valores(filas[[1L]], n)
+  col <- function(t) { i <- which(cab == t); if (length(i) == 1L) i else NA_integer_ }
+  c_cod <- col("CURSO-HORARIO")
+  if (is.na(c_cod)) {
+    stop_api(422, "E_AULAS_DISTRIBUCION_ILEGIBLE",
+             "La hoja no trae la columna CURSO-HORARIO: no se puede saber de qué aula habla cada fila.")
+  }
+
+  # Lo que el plan sabe de cada curso-horario.
+  del_plan <- list()
+  unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+  for (u in unidades) {
+    cod <- .monitoreo_scalar(u[["operational_code"]] %||% u[["classroom_id"]], "")
+    if (!nzchar(cod) || !is.null(del_plan[[cod]])) next
+    del_plan[[cod]] <- list(
+      AULA = .monitoreo_scalar(u[["scheduled_venue"]] %||% u[["venue"]], ""),
+      FACULTAD = .monitoreo_scalar(u[["faculty"]], ""),
+      CURSO = .monitoreo_scalar(u[["course_name"]], ""),
+      DOCENTE = .monitoreo_scalar(u[["teacher"]], ""),
+      fecha = .monitoreo_scalar(u[["scheduled_date"]], ""),
+      hora = .monitoreo_scalar(u[["scheduled_time"]], "")
+    )
+  }
+
+  # Los códigos que el reparto de la app trae hoy: lo que no esté es AÑADIDO.
+  publicados <- character(0)
+  if (!is.null(filas_ahora) && length(filas_ahora) > 1L) {
+    ia <- which(.alpa_CABECERA == "CURSO-HORARIO")[[1]]
+    publicados <- unique(vapply(filas_ahora[-1L], function(f) {
+      .madc_valores(f, n)[[ia]]
+    }, character(1)))
+  }
+
+  salida <- list()
+  conteo <- c(publicada = 0L, reagendada = 0L, anadida = 0L, desconocida = 0L)
+  completadas <- 0L
+  for (f in filas[-1L]) {
+    v <- .madc_valores(f, n)
+    cod <- v[[c_cod]]
+    if (!nzchar(cod)) next
+    info <- del_plan[[cod]]
+    if (is.null(info)) {
+      conteo[["desconocida"]] <- conteo[["desconocida"]] + 1L
+      salida[[length(salida) + 1L]] <- list(
+        curso_horario = cod, clase = "desconocida", completada = FALSE, fila = as.list(v)
+      )
+      next
+    }
+    antes <- v
+    # **Lo que el equipo escribió NO se pisa.** Sólo se rellena lo vacío: si
+    # tecleó una hora nueva, ésa es la reagendación y manda sobre el plan.
+    for (t in c("AULA", "FACULTAD", "CURSO", "DOCENTE")) {
+      i <- col(t)
+      if (!is.na(i) && !nzchar(v[[i]]) && nzchar(info[[t]])) v[[i]] <- info[[t]]
+    }
+    # La fecha, y con ella el día de la semana escrito: si el equipo puso la
+    # fecha nueva se respeta y el día se deriva de ELLA, no de la del plan.
+    i_fecha <- col("FECHA"); i_dia <- col("DÍA")
+    if (!is.na(i_fecha) && !nzchar(v[[i_fecha]]) && nzchar(info$fecha)) {
+      v[[i_fecha]] <- .alpa_dia_y_fecha(info$fecha)$fecha
+    }
+    if (!is.na(i_dia) && !nzchar(v[[i_dia]])) {
+      iso <- if (nzchar(info$fecha)) info$fecha else ""
+      escrito <- .alpa_dia_y_fecha(iso)$dia
+      if (nzchar(escrito)) v[[i_dia]] <- escrito
+    }
+    i_estado <- col("ESTADO")
+    estado <- if (!is.na(i_estado)) toupper(trimws(v[[i_estado]])) else ""
+
+    # **Reagendada**: lo dice el equipo, o lo dice la comparación con el plan.
+    # Las dos vías cuentan: el estado es la intención declarada y la diferencia
+    # de fecha es el hecho; exigir las dos perdería la mitad de los casos.
+    corta_plan <- if (nzchar(info$fecha)) .alpa_dia_y_fecha(info$fecha)$fecha else ""
+    fecha_dicha <- if (!is.na(i_fecha)) v[[i_fecha]] else ""
+    movida <- nzchar(fecha_dicha) && nzchar(corta_plan) && !identical(fecha_dicha, corta_plan)
+    clase <- if (identical(estado, "REAGENDADA") || movida) {
+      "reagendada"
+    } else if (length(publicados) && !(cod %in% publicados)) {
+      "anadida"
+    } else {
+      "publicada"
+    }
+    conteo[[clase]] <- conteo[[clase]] + 1L
+    cambio <- !identical(antes, v)
+    if (cambio) completadas <- completadas + 1L
+    salida[[length(salida) + 1L]] <- list(
+      curso_horario = cod, clase = clase, completada = cambio,
+      estado = estado, fila = as.list(v)
+    )
+  }
+  list(filas = salida, resumen = c(as.list(conteo), list(completadas = completadas)))
+}

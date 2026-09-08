@@ -63,7 +63,8 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
     )
   }
   filas <- aulas_libro_filas_plan_aplicadores(
-    plan %||% list(), disponibilidad, cfg = config_reparto
+    plan %||% list(), disponibilidad, cfg = config_reparto,
+    partes = partes %||% list(), efectivas = efectivas
   )
   if (is.null(filas)) {
     stop_api(
@@ -77,9 +78,16 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   tabs <- list()
   tabs[[.mapd_hoja()]] <- filas
 
+  # El roster que llena el desplegable y decide los colores: TODO el equipo con
+  # disponibilidad declarada, no sólo quien hoy tiene cita. Reasignar es mover a
+  # alguien que no estaba, y una lista sacada de las filas no lo ofrecería.
+  roster <- vapply(disponibilidad %||% list(), function(x) {
+    aulas_nombre_aplicador(x[["nombre"]] %||% x[["aplicador"]] %||% x)
+  }, character(1))
   formato <- function(sheet_id, tab_name, rows) {
     if (identical(tab_name, .mapd_hoja())) {
-      return(aulas_libro_plan_aplicadores_formato_requests(sheet_id, rows))
+      return(aulas_libro_plan_aplicadores_formato_requests(
+        sheet_id, rows, roster = as.list(roster[nzchar(roster)])))
     }
     list()
   }
