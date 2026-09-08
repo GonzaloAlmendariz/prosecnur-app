@@ -154,3 +154,285 @@ test_that("una cabecera que alguien reordenó no inventa diferencias", {
   expect_false(out$comparado)
   expect_length(out$cambiadas, 0L)
 })
+
+# ---------------------------------------------------------------------------
+# **El Sheets como FUENTE DE VERDAD del reparto.**
+#
+# Dictado de Gonzalo (2026-09-08): «ese excel es la fuente de verdad, la app
+# debe ser capaz de producirlo, leerlo y actualizar la distribución elaborada en
+# la app en base al sheets». Cada fila se vuelve una fijación y el motor deja de
+# reordenarla — lo que además congela el reparto, que se recalculaba entero en
+# cada publicación y movía asignaciones ya comunicadas.
+# ---------------------------------------------------------------------------
+
+.mdc_plan <- function(...) lapply(c(...), function(cod) {
+  list(operational_code = cod, classroom_id = cod, sample_role = "titular")
+})
+
+test_that("cada fila del Sheets se vuelve una fijación del reparto", {
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "Aguilar Cuya, Renzo"),
+    .mdc_fila("CH 2", "2026-09-08", "Puchuri Chamorro, Sara")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1", "CH 2"),
+    roster = c("Aguilar Cuya, Renzo", "Puchuri Chamorro, Sara"))
+  expect_equal(out$adoptadas, 2L)
+  expect_identical(out$fijadas[["CH 1"]], "Aguilar Cuya, Renzo")
+  expect_identical(out$fijadas[["CH 2"]], "Puchuri Chamorro, Sara")
+})
+
+test_that("un aplicador que no es del equipo se declara y NO se fija", {
+  # Un nombre tecleado a mano no es una decisión: fijarlo metería en el reparto
+  # a alguien que no existe, y el motor repartiría contra un fantasma.
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "Aguilar Cuya, Renzo"),
+    .mdc_fila("CH 2", "2026-09-08", "Pedro el del pasillo")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1", "CH 2"), roster = c("Aguilar Cuya, Renzo"))
+  expect_equal(out$adoptadas, 1L)
+  expect_null(out$fijadas[["CH 2"]])
+  # Normalizado por `aulas_nombre_aplicador()`, que conserva las partículas en
+  # minúscula: lo que se declara es lo que se leyó, escrito como la app escribe
+  # los nombres.
+  expect_identical(out$aplicadores_desconocidos, "Pedro el del Pasillo")
+})
+
+test_that("un curso-horario que no está en el plan se declara y NO se fija", {
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "Aguilar Cuya, Renzo"),
+    .mdc_fila("CH 999", "2026-09-08", "Aguilar Cuya, Renzo")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1"), roster = c("Aguilar Cuya, Renzo"))
+  expect_equal(out$adoptadas, 1L)
+  expect_identical(out$codigos_desconocidos, "CH 999")
+})
+
+test_that("una fila sin aplicador se declara y deja la cita en automático", {
+  # Vaciar la celda es la forma de SOLTAR una fijación: la cita vuelve al
+  # reparto automático en vez de quedarse fijada a nadie.
+  filas <- .mdc_hoja(
+    .mdc_fila("CH 1", "2026-09-08", "Aguilar Cuya, Renzo"),
+    .mdc_fila("CH 2", "2026-09-08", "")
+  )
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    filas, .mdc_plan("CH 1", "CH 2"), roster = c("Aguilar Cuya, Renzo"))
+  expect_equal(out$adoptadas, 1L)
+  expect_identical(out$sin_aplicador, "CH 2")
+  expect_null(out$fijadas[["CH 2"]])
+})
+
+test_that("una hoja sin las dos columnas clave no adopta nada: se declara", {
+  rota <- list(as.list(rep("", length(.mdc_cab()))),
+               .mdc_fila("CH 1", "2026-09-08", "Aguilar Cuya, Renzo"))
+  expect_error(
+    monitoreo_aulas_fijaciones_desde_distribucion(rota, .mdc_plan("CH 1"), "Aguilar Cuya, Renzo"),
+    "APLICADOR"
+  )
+})
+
+# --- El desplegable y el color que lo sigue ---------------------------------
+
+test_that("la columna de aplicador lleva desplegable con TODO el equipo", {
+  # Reasignar es mover a alguien que hoy no tiene cita: una lista sacada de las
+  # filas publicadas no dejaría elegirlo.
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(
+    7L,
+    list(as.list(.mdc_cab()), .mdc_fila("CH 1", "08/09", "Aguilar Cuya, Renzo")),
+    roster = list("Aguilar Cuya, Renzo", "Zuniga Perez, Ana")
+  )
+  # Hay dos desplegables —el del aplicador y el del estado—; éste mira el de la
+  # columna 1.
+  dv <- Filter(function(r) {
+    identical(names(r)[[1]], "setDataValidation") &&
+      identical(r$setDataValidation$range$startColumnIndex, 0L)
+  }, reqs)
+  expect_length(dv, 1L)
+  opciones <- vapply(dv[[1]]$setDataValidation$rule$condition$values,
+                     function(v) v$userEnteredValue, character(1))
+  expect_true("Zuniga Perez, Ana" %in% opciones)
+  expect_true(aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO) %in% opciones)
+  # Sobre la columna del aplicador y desde la fila 2.
+  rango <- dv[[1]]$setDataValidation$range
+  expect_identical(rango$startColumnIndex, 0L)
+  expect_identical(rango$endColumnIndex, 1L)
+  expect_identical(rango$startRowIndex, 1L)
+})
+
+test_that("el color va por VALOR de la celda, no por fila", {
+  # Con relleno fijo por fila, cambiar el aplicador en el desplegable dejaba el
+  # color del anterior: dice quién va, y miente. Una regla por persona hace que
+  # el color siga al nombre.
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(
+    7L,
+    list(as.list(.mdc_cab()),
+         .mdc_fila("CH 1", "08/09", "Aguilar Cuya, Renzo"),
+         .mdc_fila("CH 2", "08/09", "Interno Pulso")),
+    roster = list("Aguilar Cuya, Renzo", "Zuniga Perez, Ana")
+  )
+  # Las de la columna del APLICADOR: la de ESTADO tiene las suyas.
+  reglas <- Filter(function(r) {
+    identical(names(r)[[1]], "addConditionalFormatRule") &&
+      identical(r$addConditionalFormatRule$rule$ranges[[1]]$startColumnIndex, 0L)
+  }, reqs)
+  # Una por persona del equipo MÁS el comodín, aunque no tengan cita hoy.
+  quienes <- vapply(reglas, function(r) {
+    r$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue
+  }, character(1))
+  expect_setequal(quienes, c("Aguilar Cuya, Renzo", "Zuniga Perez, Ana",
+                             aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO)))
+  # Y ninguna pinta la columna del aplicador de forma fija: el relleno por fila
+  # desapareció. Los `repeatCell` que quedan son la banda de cabecera y el
+  # centrado de las columnas de cifras, ninguno sobre la columna 1 de datos.
+  celdas <- Filter(function(r) identical(names(r)[[1]], "repeatCell"), reqs)
+  pinta_aplicador <- vapply(celdas, function(r) {
+    rg <- r$repeatCell$range
+    isTRUE(rg$startColumnIndex == 0L) && isTRUE(rg$startRowIndex >= 1L)
+  }, logical(1))
+  expect_false(any(pinta_aplicador))
+})
+
+test_that("el color de cada persona no cambia entre publicaciones", {
+  # El equipo aprende el suyo: si el mapa dependiera del orden de aparición, al
+  # día siguiente sería otro.
+  a <- prosecnurapp:::.alpa_colores_de(c("Zeta, Ana", "Alfa, Beto", "Mid, Ceci"))
+  b <- prosecnurapp:::.alpa_colores_de(c("Mid, Ceci", "Zeta, Ana", "Alfa, Beto"))
+  expect_identical(a, b)
+  # Y una persona nueva no le mueve el color a quien va antes en el alfabeto.
+  c3 <- prosecnurapp:::.alpa_colores_de(c("Zeta, Ana", "Alfa, Beto", "Mid, Ceci", "Nuevo, Zzz"))
+  expect_identical(a[["Alfa, Beto"]], c3[["Alfa, Beto"]])
+})
+
+# ---------------------------------------------------------------------------
+# **Una fila que el equipo añade a medias, completada y reconocida.**
+#
+# «Se hizo una reagendación y tenemos que ponerla en la tabla, la vamos a
+# agregar y vamos a poner la hora y estatus REAGENDADA en un principio porque
+# aún no se ha aplicado, y la app debe ser capaz de identificarla, ponerle los
+# datos y saber que es una reagendación».
+# ---------------------------------------------------------------------------
+
+.mdc_unidad <- function(cod, fecha = "2026-09-10", hora = "10:00 am") list(
+  operational_code = cod, classroom_id = cod, sample_role = "titular",
+  scheduled_venue = "L318", faculty = "Letras", course_name = "LÓGICA",
+  teacher = "Castillo Gamboa, Edgar", scheduled_date = fecha, scheduled_time = hora
+)
+
+# Una fila tecleada a mano: sólo el código, la hora y el estado.
+.mdc_fila_manual <- function(cod, estado = "REAGENDADA", fecha = "", aplica = "15:00") {
+  v <- rep("", length(.mdc_cab()))
+  p <- function(t) which(.mdc_cab() == t)[[1]]
+  v[[p("CURSO-HORARIO")]] <- cod
+  v[[p("APLICA")]] <- aplica
+  v[[p("ESTADO")]] <- estado
+  if (nzchar(fecha)) v[[p("FECHA")]] <- fecha
+  as.list(v)
+}
+
+.mdc_de <- function(fila, titulo) {
+  as.character(unlist(fila, use.names = FALSE))[[which(.mdc_cab() == titulo)[[1]]]]
+}
+
+test_that("una fila añadida a mano se completa con los datos reales del CH", {
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), .mdc_fila_manual("CH 7")),
+    plan = list(.mdc_unidad("CH 7")),
+    filas_ahora = .mdc_hoja(.mdc_fila("CH 1", "10/09", "Alguien"))
+  )
+  expect_length(out$filas, 1L)
+  f <- out$filas[[1]]
+  expect_true(f$completada)
+  # El plan pone lo que el equipo no escribió.
+  expect_identical(.mdc_de(f$fila, "AULA"), "L318")
+  expect_identical(.mdc_de(f$fila, "FACULTAD"), "Letras")
+  expect_identical(.mdc_de(f$fila, "CURSO"), "LÓGICA")
+  expect_identical(.mdc_de(f$fila, "DOCENTE"), "Castillo Gamboa, Edgar")
+  # Y el día de la semana escrito, derivado de la fecha del plan.
+  expect_identical(.mdc_de(f$fila, "FECHA"), "10/09")
+  expect_identical(.mdc_de(f$fila, "DÍA"), "Jueves")
+  # Lo que el equipo SÍ escribió se respeta.
+  expect_identical(.mdc_de(f$fila, "APLICA"), "15:00")
+})
+
+test_that("y se reconoce como reagendación por el estado que el equipo puso", {
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), .mdc_fila_manual("CH 7", estado = "REAGENDADA")),
+    plan = list(.mdc_unidad("CH 7")),
+    filas_ahora = .mdc_hoja(.mdc_fila("CH 7", "10/09", "Alguien"))
+  )
+  expect_identical(out$filas[[1]]$clase, "reagendada")
+  expect_equal(out$resumen$reagendada, 1L)
+})
+
+test_that("también por el hecho: la fecha que el equipo puso no es la del plan", {
+  # El estado es la intención declarada y la fecha distinta es el hecho. Exigir
+  # las dos perdería la mitad de los casos: quien mueve una cita a veces sólo
+  # cambia la fecha.
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), .mdc_fila_manual("CH 7", estado = "POR APLICAR", fecha = "12/09")),
+    plan = list(.mdc_unidad("CH 7", fecha = "2026-09-10")),
+    filas_ahora = .mdc_hoja(.mdc_fila("CH 7", "10/09", "Alguien"))
+  )
+  expect_identical(out$filas[[1]]$clase, "reagendada")
+  # Y la fecha que el equipo escribió NO se pisa con la del plan.
+  expect_identical(.mdc_de(out$filas[[1]]$fila, "FECHA"), "12/09")
+})
+
+test_that("un curso-horario que el reparto no traía sale como añadido", {
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), .mdc_fila_manual("CH 7", estado = "POR APLICAR")),
+    plan = list(.mdc_unidad("CH 7")),
+    filas_ahora = .mdc_hoja(.mdc_fila("CH 1", "10/09", "Alguien"))
+  )
+  expect_identical(out$filas[[1]]$clase, "anadida")
+})
+
+test_that("un código que no está en el plan se declara y NO se completa", {
+  # Completarlo sería inventarle facultad y docente a un aula que no existe.
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), .mdc_fila_manual("CH 999")),
+    plan = list(.mdc_unidad("CH 7")),
+    filas_ahora = NULL
+  )
+  expect_identical(out$filas[[1]]$clase, "desconocida")
+  expect_false(out$filas[[1]]$completada)
+  expect_identical(.mdc_de(out$filas[[1]]$fila, "FACULTAD"), "")
+})
+
+test_that("la fila que ya venía completa del reparto no se toca ni se reclasifica", {
+  completa <- .mdc_fila("CH 7", "10/09", "Alguien")
+  v <- as.character(unlist(completa, use.names = FALSE))
+  v[[which(.mdc_cab() == "ESTADO")[[1]]]] <- "POR APLICAR"
+  v[[which(.mdc_cab() == "AULA")[[1]]]] <- "L318"
+  v[[which(.mdc_cab() == "FACULTAD")[[1]]]] <- "Letras"
+  v[[which(.mdc_cab() == "CURSO")[[1]]]] <- "LÓGICA"
+  v[[which(.mdc_cab() == "DOCENTE")[[1]]]] <- "Castillo Gamboa, Edgar"
+  v[[which(.mdc_cab() == "DÍA")[[1]]]] <- "Jueves"
+  out <- monitoreo_aulas_completar_distribucion(
+    list(as.list(.mdc_cab()), as.list(v)),
+    plan = list(.mdc_unidad("CH 7")),
+    filas_ahora = .mdc_hoja(as.list(v))
+  )
+  expect_identical(out$filas[[1]]$clase, "publicada")
+  expect_false(out$filas[[1]]$completada)
+  expect_equal(out$resumen$completadas, 0L)
+})
+
+test_that("la hoja publica el ESTADO de cada cita y su desplegable", {
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(
+    7L, list(as.list(.mdc_cab()), .mdc_fila("CH 1", "08/09", "Alguien")),
+    roster = list("Alguien"))
+  dv <- Filter(function(r) identical(names(r)[[1]], "setDataValidation"), reqs)
+  # Dos desplegables: el del aplicador y el del estado.
+  expect_length(dv, 2L)
+  estado <- Filter(function(r) {
+    identical(r$setDataValidation$range$startColumnIndex,
+              as.integer(which(.mdc_cab() == "ESTADO") - 1L))
+  }, dv)
+  expect_length(estado, 1L)
+  opciones <- vapply(estado[[1]]$setDataValidation$rule$condition$values,
+                     function(v) v$userEnteredValue, character(1))
+  expect_identical(opciones, MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
+})

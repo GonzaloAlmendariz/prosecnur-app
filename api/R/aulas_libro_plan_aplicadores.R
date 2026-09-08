@@ -23,7 +23,24 @@
 #' @keywords internal
 .alpa_CABECERA <- c(
   "APLICADOR", "DÍA", "FECHA", "EN OFICINA", "SALE AL AULA", "APLICA",
-  "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE"
+  "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE", "ESTADO"
+)
+
+#' Los cuatro estados de una cita en la hoja de los aplicadores.
+#'
+#' Dictado de Gonzalo (2026-09-08): «necesitamos una columna más que diga el
+#' estatus que sea por aplicar, aplicada, reagendada, rechazada».
+#'
+#' Las dos primeras las sabe la app —el parte o las respuestas dicen si el aula
+#' se aplicó—; las dos últimas las teclea el equipo y son la razón de que la
+#' columna exista: una reagendación se anota aquí ANTES de aplicarse, y así la
+#' app puede reconocerla.
+#'
+#' En MAYÚSCULAS y en el vocabulario del libro, que es donde el equipo ya los
+#' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
+#' @export
+MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
+  "POR APLICAR", "APLICADA", "REAGENDADA", "RECHAZADA"
 )
 
 #' El día de la semana, escrito.
@@ -124,7 +141,8 @@
 #'   `NULL` lo calcula aquí.
 #' @return lista de filas (la primera es la cabecera) o `NULL`.
 #' @export
-aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL) {
+aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL,
+                                              partes = list(), efectivas = NULL) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(NULL)
   cfg <- if (is.list(cfg)) cfg else list()
   # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
@@ -147,9 +165,29 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
       aula = .alpa_txt(u[["scheduled_venue"]], .alpa_txt(u[["venue"]])),
       facultad = .alpa_txt(u[["faculty"]]),
       curso = .alpa_txt(u[["course_name"]]),
-      docente = .alpa_txt(u[["teacher"]])
+      docente = .alpa_txt(u[["teacher"]]),
+      # Lo que la app sabe de su agenda, para poder completar una fila que el
+      # equipo añada con sólo el código y la hora.
+      fecha = .alpa_txt(u[["scheduled_date"]]),
+      hora = .alpa_txt(u[["scheduled_time"]])
     )
   }
+
+  # Qué cursos-horario constan aplicados, con la MISMA definición que el resto
+  # del operativo (`monitoreo_aulas_aula_aplicada()`): el parte, o que ya estén
+  # llegando respuestas.
+  aplicadas <- new.env(parent = emptyenv())
+  local({
+    unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+    marca <- tryCatch(
+      monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas),
+      error = function(e) rep(FALSE, length(unidades))
+    )
+    for (i in seq_along(unidades)) {
+      cod <- .alpa_txt(unidades[[i]][["operational_code"]])
+      if (nzchar(cod) && isTRUE(marca[[i]])) aplicadas[[cod]] <- TRUE
+    }
+  })
 
   filas <- list(as.list(.alpa_CABECERA))
   for (dia in (rep[["dias"]] %||% list())) {
@@ -169,16 +207,85 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
         .alpa_txt(it[["recojo"]]),
         .alpa_txt(it[["salida"]]),
         paste0(.alpa_txt(it[["inicio"]]), " a ", .alpa_txt(it[["fin"]])),
-        cod, m$aula, m$facultad, m$curso, m$docente
+        cod, m$aula, m$facultad, m$curso, m$docente,
+        # POR APLICAR mientras no conste lo contrario. Los otros tres los
+        # decide el campo: dos los sabe la app (aplicada) y dos los teclea el
+        # equipo (reagendada, rechazada).
+        if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR"
       )
     }
   }
   filas
 }
 
-#' Formato de la hoja: cabecera y un color por aplicador.
+#' El color de cada aplicador, estable entre publicaciones.
+#'
+#' Por posición en el orden ALFABÉTICO y no por hash ni por orden de aparición:
+#' dos publicaciones del mismo reparto tienen que salir con los mismos colores,
+#' o el equipo aprende el suyo y al día siguiente es otro.
+#'
+#' El comodín va aparte, en gris cálido: no es una persona del equipo.
+#' @keywords internal
+.alpa_colores_de <- function(nombres) {
+  nombres <- sort(unique(nombres[nzchar(nombres)]), method = "radix")
+  personas <- setdiff(nombres, aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO))
+  stats::setNames(
+    .alpa_PALETA[((seq_along(personas) - 1L) %% length(.alpa_PALETA)) + 1L],
+    personas
+  )
+}
+
+#' El color de cada estado. Verde lo cerrado, ámbar lo que se movió, rojo lo
+#' que se perdió, y lo pendiente sin color: es la mayoría y pintarla toda sería
+#' ruido.
+#' @keywords internal
+.alpa_COLOR_ESTADO <- c(
+  APLICADA = "#C8E6C9", REAGENDADA = "#FFE0B2", RECHAZADA = "#FFCDD2"
+)
+
+#' Una regla de color POR VALOR de la celda de aplicador.
+#'
+#' No un relleno fijo por fila: la columna lleva desplegable y quien la cambia
+#' tiene que ver el color de la persona nueva al instante. Con relleno estático
+#' el color se quedaba con el aplicador anterior, que es peor que no tener
+#' color: dice quién va, y miente.
+#' @keywords internal
+.alpa_regla_color <- function(sheet_id, filas, nombre, fondo, tinta = "#1F2937") {
+  .alpa_regla_color_col(sheet_id, filas, 1L, nombre, fondo, tinta)
+}
+
+#' La misma regla, sobre la columna que se le diga.
+#' @keywords internal
+.alpa_regla_color_col <- function(sheet_id, filas, col, valor, fondo, tinta = "#1F2937") {
+  list(addConditionalFormatRule = list(
+    rule = list(
+      ranges = list(list(
+        sheetId = sheet_id,
+        startRowIndex = 1L, endRowIndex = as.integer(filas),
+        startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)
+      )),
+      booleanRule = list(
+        condition = list(type = "TEXT_EQ",
+                         values = list(list(userEnteredValue = valor))),
+        format = list(
+          backgroundColor = .monitoreo_sheets_rgb(fondo),
+          textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb(tinta))
+        )
+      )
+    ),
+    index = 0L
+  ))
+}
+
+#' Formato de la hoja: cabecera, desplegable de aplicador y su color por valor.
+#'
+#' @param sheet_id id de la pestaña.
+#' @param rows las filas publicadas (la primera es la cabecera).
+#' @param roster todos los aplicadores que pueden asignarse —los de la
+#'   disponibilidad, no sólo los que hoy tienen cita—: es lo que llena el
+#'   desplegable y lo que decide los colores. Sin él se deducen de las filas.
 #' @export
-aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows) {
+aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster = NULL) {
   rows <- rows %||% list()
   if (!length(rows)) return(list())
   n_cols <- length(.alpa_CABECERA)
@@ -187,31 +294,46 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows) {
   poner(.maaf_banda(sheet_id, 1L, n_cols, "#002457", "#FFFFFF", size = 11L))
   poner(.maaf_alto_fila(sheet_id, 1L, 30L))
 
-  nombres <- unique(vapply(rows[-1L], function(r) {
+  en_filas <- unique(vapply(rows[-1L], function(r) {
     .alpa_txt(unlist(r %||% list(), use.names = FALSE)[[1L]])
   }, character(1)))
-  # Por posición en el orden ALFABÉTICO y no por hash ni por orden de
-  # aparición: dos publicaciones del mismo reparto tienen que salir con los
-  # mismos colores, o el equipo aprende el suyo y al día siguiente es otro.
-  nombres <- sort(nombres[nzchar(nombres)], method = "radix")
   interno <- aulas_nombre_aplicador(MONITOREO_AULAS_INTERNO_PULSO)
-  personas <- setdiff(nombres, interno)
-  color_de <- stats::setNames(
-    .alpa_PALETA[((seq_along(personas) - 1L) %% length(.alpa_PALETA)) + 1L],
-    personas
-  )
+  # **El desplegable ofrece a TODO el equipo, no sólo a quien hoy tiene cita.**
+  # Reasignar es justamente mover a alguien que no estaba; una lista sacada de
+  # las filas no dejaría elegirlo.
+  nombres <- unique(c(
+    vapply(roster %||% list(), function(x) aulas_nombre_aplicador(x), character(1)),
+    en_filas
+  ))
+  nombres <- sort(nombres[nzchar(nombres)], method = "radix")
+  color_de <- .alpa_colores_de(nombres)
 
-  for (i in seq_along(rows)) {
-    if (i == 1L) next
-    quien <- .alpa_txt(unlist(rows[[i]] %||% list(), use.names = FALSE)[[1L]])
-    if (!nzchar(quien)) next
-    if (identical(quien, interno)) {
-      # El comodín en gris cálido: se distingue de las veintidós personas sin
-      # parecer una cabecera de sección.
-      poner(.alpa_celda(sheet_id, i, 1L, .alpa_COLOR_INTERNO, "#4A453E"))
-    } else {
-      poner(.alpa_celda(sheet_id, i, 1L, color_de[[quien]] %||% "#EEEEEE"))
-    }
+  # El desplegable, sobre la columna del aplicador y desde la fila 2.
+  poner(.mafs_validacion_request(
+    sheet_id, 1L, 1L, length(rows),
+    as.list(unique(c(names(color_de), interno)))
+  ))
+  # Y una regla por persona: el color sigue al VALOR de la celda, así que
+  # cambiar el aplicador en el desplegable recolorea solo. Se emiten en orden
+  # inverso porque cada `index = 0` empuja a las anteriores.
+  for (quien in rev(names(color_de))) {
+    poner(.alpa_regla_color(sheet_id, length(rows), quien, color_de[[quien]]))
+  }
+  # El comodín en gris cálido: se distingue de las veintidós personas sin
+  # parecer una cabecera de sección.
+  poner(.alpa_regla_color(sheet_id, length(rows), interno, .alpa_COLOR_INTERNO, "#4A453E"))
+
+  # **El ESTADO también con desplegable**, y con su propio color por valor: es
+  # una columna que el equipo teclea y una lista cerrada evita que «reagendado»,
+  # «Reagendada» y «REAGENDADA» sean tres estados distintos para la app.
+  col_estado <- which(.alpa_CABECERA == "ESTADO")[[1]]
+  poner(.mafs_validacion_request(
+    sheet_id, col_estado, 1L, length(rows),
+    as.list(MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
+  ))
+  for (e in rev(names(.alpa_COLOR_ESTADO))) {
+    poner(.alpa_regla_color_col(sheet_id, length(rows), col_estado, e,
+                                .alpa_COLOR_ESTADO[[e]]))
   }
   # Las tres horas y el código, centrados: son cifras y se leen en columna.
   poner(.maaf_centrar(sheet_id, 2L, 7L, length(rows)))
@@ -223,7 +345,8 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows) {
                  list(desde = 7L, hasta = 8L, px = 90L),
                  list(desde = 8L, hasta = 9L, px = 190L),
                  list(desde = 9L, hasta = 10L, px = 280L),
-                 list(desde = 10L, hasta = 11L, px = 230L))) {
+                 list(desde = 10L, hasta = 11L, px = 230L),
+                 list(desde = 11L, hasta = 12L, px = 120L))) {
     poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
   }
   requests
