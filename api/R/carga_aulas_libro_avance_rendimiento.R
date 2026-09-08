@@ -115,18 +115,38 @@
     # cifra que citan las otras dos tablas.
     esperada <- .calar_tasa_esperada(esperadas[idx], eleg[idx])
     obtenida <- if (is.finite(ef_apl) && eleg_apl > 0) ef_apl / eleg_apl else NA_real_
-    # **Lo mismo en ENCUESTAS.** «Esperadas hasta ahora» son los elegibles de las
-    # aulas YA APLICADAS por la tasa que el diseño le puso a la facultad: cuántas
-    # fichas deberían haber salido de las aulas a las que se fue. Una tasa dice
-    # si el aula rinde; esto dice cuántas encuestas son, que es lo que se recoge
-    # y lo que falta para la cuota.
-    esp_ahora <- if (is.finite(esperada) && eleg_apl > 0) esperada * eleg_apl else NA_real_
+    # **Lo mismo en ENCUESTAS: la suma de las metas de las aulas ya aplicadas.**
+    #
+    # La primera versión lo calculaba como `tasa de la facultad × elegibles de
+    # las aulas aplicadas`, que es la otra lectura de lo que pidió Gonzalo («las
+    # esperadas hasta ahora en base a las aulas aplicadas hasta hoy y la tasa de
+    # rendimiento de facultad»). Medido sobre el operativo, las dos dan casi lo
+    # mismo en ocho de nueve facultades y se separan en Artes Escénicas (−4,5
+    # contra −12,3). Manda ésta por dos razones:
+    #
+    #   · es la MISMA cifra que ya publica la Base de control aula por aula
+    #     («EFECTIVAS ESPERADAS»), así que sumar esa columna sobre las aulas
+    #     aplicadas de una facultad da exactamente esta celda. Con la otra, dos
+    #     hojas del mismo libro darían dos números para lo mismo;
+    #   · es la que usa el AVANCE DIARIO para su propia columna «Efectivas
+    #     esperadas». Dos tablas con la misma cabecera y dos definiciones es la
+    #     avería que este libro ya pagó con «Diferencia».
+    #
+    # La tasa de la facultad no se pierde: vive en su propia columna, al lado.
+    esp_ahora <- {
+      v <- esperadas[aplicadas]
+      v <- v[is.finite(v)]
+      if (length(v)) sum(v) else NA_real_
+    }
     out <- data.frame(
       f,
       sum(aplicadas),
       sum(idx & rol == "titular"),
+      # Sin una sola aula aplicada las tres callan. Un «0 obtenidas de —» se lee
+      # como si la facultad hubiera ido y no hubiera sacado nada, y lo que pasa
+      # es que todavía no ha ido: eso ya lo dice «Aulas aplicadas 0».
       if (is.finite(esp_ahora)) round(esp_ahora) else NA_real_,
-      if (is.finite(ef_apl)) ef_apl else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl else NA_real_,
       if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl - round(esp_ahora) else NA_real_,
       esperada,
       obtenida,
