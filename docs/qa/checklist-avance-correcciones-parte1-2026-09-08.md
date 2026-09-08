@@ -109,6 +109,45 @@ Sus respuestas a las cuatro preguntas de datos, ya enviadas a esa sesión:
 | Q4 | Qué hace «especial» una aplicación en S4 | **La hora de INICIO DE APLICACIÓN**, no la de entrada ni salida de oficina. Regular de **09:00 a 18:00**; antes, especial mañana; después, especial noche |
 | Q5 | Cómo se calculan las «efectivas esperadas» por día en S5 | **Suma de las metas (`expected_valid`) de las aulas agendadas ese día** en esa facultad. No hace falta dato nuevo |
 
+## Lo que la otra sesión dejó cerrado en el backend (2026-09-08 ~15:00)
+
+Commits `165e56fd` y `8fae19e3`. Las cinco tablas del prompt están en el motor y
+en el Sheets; lo que sigue abierto es montarlas en la app.
+
+**Cambió el modelo del libro y conviene saberlo aunque la app no lo lea:**
+`ind$metas` pasó a `ind$general`; `ind$facultades` conserva el nombre pero son
+17 columnas con otros rótulos (`Faltantes` → `Faltantes muestra`, etc.) y
+**hombres antes que mujeres** en las cinco tablas; `ind$aplicadores` e
+`ind$diario` se rehicieron y apareció `ind$rendimiento`. Los rótulos viven en
+`carga_aulas_libro_avance_columnas.R` y se leen de ahí, **nunca se copian**.
+Comprobado por grep: la pestaña sólo lee `avance_cuota`, `quotas_sex_faculty`,
+`avance_por_facultad`, `efectividad_seguimiento` y `reserva_dirigida`, así que
+ningún rótulo del libro la ancla.
+
+**Trampa anotada para cuando se monte RENDIMIENTO POR FACULTAD (S3):**
+`rendimiento_ref` es **por aula, no por facultad**. Promediarlo da un número que
+no es de nadie —dentro de Arquitectura va de 44 % a 80 %, y promediando salía
+69,0 % para una persona y 55,0 % para la de al lado—. La tasa esperada de una
+facultad es la razón de los agregados, `Σ expected_valid / Σ eligible_n`:
+`prosecnurapp:::.calar_tasa_esperada()`, que en Arquitectura da 56,3 %. Si la app
+usa otra definición, las dos superficies enseñarán dos cifras para lo mismo.
+
+**Cruce de cifras app ↔ Sheets, 2026-09-08 15:00.** Coinciden las ocho, y
+«Faltantes muestra 2 006» por caminos distintos —ella desde el motor del libro,
+la app sumando grupo a grupo desde `quotas_sex_faculty`—, que es lo que prueba
+que la regla de no netear está igual en los dos lados:
+
+| | Sheets | App |
+|---|---|---|
+| Efectivas | 494 | 494 |
+| Muestra | 2 500 (1 261 H / 1 239 M) | 2 500 (1 261 H / 1 239 M) |
+| Avance muestra | 19,8 % | 19,8 % |
+| Faltantes muestra | 2 006 | 2 006 |
+| Sobremuestra | 3 750 | 3 750 |
+| Avance sobremuestra | 13,2 % | 13,2 % |
+| Aulas aplicadas | 26 | 26 |
+| Aulas planificadas | 174 | 174 |
+
 ## Reglas de esta tanda
 
 - Nunca publicar al Sheets del operativo ni al de distribución sin el go
