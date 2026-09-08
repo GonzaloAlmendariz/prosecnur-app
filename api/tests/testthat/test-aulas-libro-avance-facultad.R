@@ -76,7 +76,9 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
   # FALTA, primero en total y después por sexo, hombres antes que mujeres.
   expect_identical(names(out), c(
     "Facultad",
-    "Efectivas", "Efectivas hombres", "Efectivas mujeres",
+    "Efectivas", "Avance muestra",
+    "Efectivas hombres", "Avance muestra hombres",
+    "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
     "Muestra hombres", "Faltantes hombres muestra",
     "Muestra mujeres", "Faltantes mujeres muestra",
@@ -91,6 +93,36 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
   expect_identical(names(out), AULAS_AVANCE_CABECERAS$facultad)
   # Las tres que el dictado no nombra ya no están.
   expect_false(any(c("Aulas del plan", "Avance", "Techo con sobremuestra") %in% names(out)))
+})
+
+test_that("cada «Efectivas» lleva a su derecha su avance sobre la muestra", {
+  # Gonzalo, 2026-09-08, viendo la tabla publicada: «al lado de cada
+  # "Efectivas..." tiene que haber un porcentaje de avance». Un conteo suelto no
+  # dice si 109 es mucho o poco sin ir a buscar la muestra siete columnas más
+  # allá.
+  t <- .lafac_tabla_dos()
+  cols <- names(t)
+  for (par in list(c("Efectivas", "Avance muestra"),
+                   c("Efectivas hombres", "Avance muestra hombres"),
+                   c("Efectivas mujeres", "Avance muestra mujeres"))) {
+    expect_identical(which(cols == par[[2]]), which(cols == par[[1]]) + 1L,
+                     info = sprintf("«%s» no va justo a la derecha de «%s»", par[[2]], par[[1]]))
+  }
+  fac1 <- t[t$Facultad == "FAC1", , drop = FALSE]
+  expect_equal(fac1$`Avance muestra`, 6 / 10)
+  expect_equal(fac1$`Avance muestra hombres`, 2 / 4)
+  expect_equal(fac1$`Avance muestra mujeres`, 4 / 6)
+})
+
+test_that("la fila Total no SUMA porcentajes: los recalcula desde los agregados", {
+  # Sumar quince avances del 40 % daría 600 %. El único porcentaje que significa
+  # algo en esa fila es el de los totales ya sumados.
+  t <- .lafac_tabla_dos()
+  total <- prosecnurapp:::.calaf_fila_total(t)
+  expect_equal(total$`Avance muestra`, 10 / 15)
+  expect_equal(total$`Avance muestra hombres`, 3 / 7)
+  expect_equal(total$`Avance muestra mujeres`, 7 / 8)
+  expect_false(isTRUE(all.equal(total$`Avance muestra`, sum(t$`Avance muestra`))))
 })
 
 test_that("las faltantes por sexo contra la SOBREMUESTRA existen y no se compensan", {

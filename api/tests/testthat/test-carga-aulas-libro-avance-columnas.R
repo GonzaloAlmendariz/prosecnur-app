@@ -174,3 +174,69 @@ test_that("la tasa esperada de una facultad es UNA, y es la misma en las tres ta
   # Y no es el promedio de las tasas por aula, que daría 0.75.
   expect_false(isTRUE(all.equal(esperada, 0.75)))
 })
+
+test_that("el avance diario se ordena por DÍA y dentro por facultad", {
+  # Gonzalo, 2026-09-08, viendo la tabla publicada: «esto debe estar ordenado
+  # por día y luego por facultad». Se calcula por facultad —el acumulado corre
+  # dentro de cada una— pero no se lee así: quien abre la tabla mira la jornada
+  # de ayer entera, no el historial de una facultad.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "A1", sample_role = "titular",
+         faculty = "Zeta", eligible_n = 40, expected_valid = 24),
+    list(operational_code = "CH 2", classroom_id = "A2", sample_role = "titular",
+         faculty = "Alfa", eligible_n = 40, expected_valid = 24)
+  )
+  resp <- data.frame(
+    collectorID = c("CH 1", "CH 2", "CH 1", "CH 2"),
+    `_submission_time` = c("2026-09-07T10:00:00", "2026-09-07T11:00:00",
+                           "2026-09-08T10:00:00", "2026-09-08T11:00:00"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  ind <- aulas_libro_indicadores(
+    plan, efectivas = c(`CH 1` = 2, `CH 2` = 2), responses = resp,
+    validas = rep(TRUE, 4),
+    cuotas = list(meta_diseno = 100, facultades = list(
+      list(facultad = "Zeta", cuota = 50), list(facultad = "Alfa", cuota = 50))),
+    cfg = list(source_mapping = list(collector_var = "collectorID")))
+  d <- ind$diario
+  expect_identical(d[["Día"]], c("2026-09-07", "2026-09-07", "2026-09-08", "2026-09-08"))
+  expect_identical(d$Facultad, c("Alfa", "Zeta", "Alfa", "Zeta"))
+  # Y el acumulado sigue siendo el de CADA facultad, no el del orden de lectura:
+  # reordenar es presentación y no puede tocar el cálculo.
+  expect_identical(d[["Efectivas acumuladas"]], c(1, 1, 2, 2))
+})
+
+test_that("una cabecera larga hace crecer su fila: WRAP reparte, no estira", {
+  # Se vio publicado el 2026-09-08: «Tasa de rendimiento de la facultad
+  # esperada» salía como «Tasa de / rendimiento de la» y el resto cortado,
+  # porque `wrapStrategy = WRAP` reparte el texto en líneas pero deja la fila
+  # con su alto por defecto.
+  anchos <- rep(120L, 3L)
+  corta <- prosecnurapp:::.maaf_alto_de_cabecera(c("Día", "Total", "Aulas"), anchos)
+  larga <- prosecnirapp <- prosecnurapp:::.maaf_alto_de_cabecera(
+    c("Facultad", "Tasa de rendimiento de la facultad esperada", "Aulas"), anchos)
+  expect_gt(larga, corta)
+  expect_lte(larga, 120L)
+  expect_gte(corta, 30L)
+})
+
+test_that("la portada dice la HORA de la última actualización, y sale del estado", {
+  # Gonzalo, 2026-09-08: «aquí está el día pero falta la hora última de
+  # actualización». La marca es `synced_at` del estado y NUNCA el reloj: dos
+  # publicaciones sin sincronizar escriben la misma celda, y el motor
+  # batch+hash no reescribe la pestaña por eso.
+  ind <- .calac_ind()
+  linea <- function(actualizado) {
+    as.character(aulas_libro_hoja_avance(
+      ind, fecha = as.Date("2026-09-08"), actualizado = actualizado)[[2]][[1]])
+  }
+  # Mismo día que el corte: basta la hora, en hora local de Lima.
+  expect_match(linea("2026-09-08T19:16:22Z"), "^Al 08/09/2026 · datos de plataforma actualizados a las [0-9]{2}:[0-9]{2}$")
+  # Otro día: se dice entero, que es justo la noticia (los datos son de ayer).
+  expect_match(linea("2026-09-07T22:05:00Z"), "actualizados el 07/09/2026 [0-9]{2}:[0-9]{2}$")
+  # Sin marca, la portada es la de siempre: no se inventa una hora.
+  expect_identical(linea(""), "Al 08/09/2026")
+  # Y el renderer sigue sin consultar el reloj en su cuerpo.
+  cuerpo <- paste(deparse(body(aulas_libro_hoja_avance)), collapse = " ")
+  expect_false(grepl("Sys.Date|Sys.time", cuerpo))
+})

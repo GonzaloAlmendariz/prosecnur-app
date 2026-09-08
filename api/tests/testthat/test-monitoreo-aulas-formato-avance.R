@@ -258,7 +258,10 @@ test_that("S1: las cifras van a la derecha y los rótulos se quedan a la izquier
   expect_false(is.na(fila), info = "el renderer perdió la fila de datos de Letras")
   expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 2L),
               info = "la cifra «Efectivas» de Letras no va a la derecha")
-  expect_true("RIGHT" %in% .mfa_alineacion_de(requests, fila, 6L),
+  cab_fac <- .mfa_cabecera_de(rows, "facultad")
+  nombres_fac <- vapply(rows[[cab_fac]], function(x) as.character(x), character(1))
+  expect_true("RIGHT" %in% .mfa_alineacion_de(
+    requests, fila, which(nombres_fac == "Faltantes muestra")),
               info = "la cifra «Faltantes muestra» de Letras no va a la derecha")
   expect_false("RIGHT" %in% .mfa_alineacion_de(requests, fila, 1L),
                info = "el rótulo «Letras» no debe ir a la derecha")

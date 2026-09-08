@@ -30,6 +30,20 @@
     v <- v[is.finite(v)]
     fila[[col]] <- if (length(v)) sum(v) else NA_real_
   }
+  # **Una PROPORCIÓN no se suma.** Sumar quince avances del 40 % daría 600 %.
+  # Las columnas de avance del total se recalculan desde los agregados ya
+  # sumados —efectivas del total entre muestra del total—, que es la única
+  # cifra que significa algo en esa fila.
+  razon <- function(obs, meta) {
+    o <- suppressWarnings(as.numeric(fila[[obs]] %||% NA))
+    m <- suppressWarnings(as.numeric(fila[[meta]] %||% NA))
+    if (!length(o) || !length(m) || !is.finite(o) || !is.finite(m) || m <= 0) NA_real_ else o / m
+  }
+  for (par in list(c("Avance muestra", "Efectivas", "Muestra"),
+                   c("Avance muestra hombres", "Efectivas hombres", "Muestra hombres"),
+                   c("Avance muestra mujeres", "Efectivas mujeres", "Muestra mujeres"))) {
+    if (par[[1]] %in% names(fila)) fila[[par[[1]]]] <- razon(par[[2]], par[[3]])
+  }
   fila
 }
 

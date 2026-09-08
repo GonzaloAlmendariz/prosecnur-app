@@ -92,3 +92,28 @@ Verificado LEYENDO el documento publicado, no sólo la request:
   Esta vez se forzó borrando la marca de estado de la pestaña. Si vuelve a
   hacer falta, el arreglo de fondo es meter la huella del formato en el estado
   que el motor compara.
+
+
+## Segunda tanda, con la hoja publicada delante (mismo día)
+
+| # | Indicación (textual) | Dónde vive | Estado |
+|---|---|---|---|
+| 15 | «Esto debe estar ordenado por día y luego por facultad» (avance diario) | `carga_aulas_libro_avance_diario.R` | ☑ |
+| 16 | «Aquí está el día pero falta la hora última de actualización» | `carga_aulas_libro_avance.R` · `monitoreo_aulas_publicar_libro.R` | ☑ |
+| 17 | «Al lado de cada "Efectivas…" tiene que haber un porcentaje de avance … sobre el total de la meta de la muestra» | `carga_aulas_libro_avance_facultad.R` (3 columnas nuevas) | ☑ |
+| 18 | Las cabeceras salían cortadas a dos líneas («Tasa de / rendimiento de la») | `monitoreo_aulas_avance_formato.R` | ☑ |
+
+- **«¿por qué si son dos días hay cuatro filas?»** — No hay filas repetidas: son
+  13, una por facultad Y día. Cuatro facultades trabajaron los dos días y salen
+  dos veces (Ciencias e Ingeniería 55 el lunes y 54 el martes, con el acumulado
+  pasando de 55 a 109); las demás produjeron efectivas en un solo día. Ordenada
+  por día, la repetición deja de leerse como duplicado: primero el bloque del
+  lunes entero y después el del martes.
+- **La hora sale del ESTADO (`monitoreo_snapshot$synced_at`), no del reloj.** Si
+  saliera del reloj, dos publicaciones del mismo estado darían hashes distintos
+  y la pestaña se reescribiría sola cada vez.
+- **La fila «Total» no suma porcentajes**: los recalcula desde los agregados ya
+  sumados. Sumar quince avances del 40 % daría 600 %.
+- El PDF de avance conserva sus 17 columnas: las tres de porcentaje son para
+  leer la hoja de un vistazo y en un A4 apaisado de veinte columnas quitarían
+  espacio a las cifras. Ancla por nombre, así que no se entera del cambio.
