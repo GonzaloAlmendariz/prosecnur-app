@@ -152,8 +152,13 @@ test_that("B15: tras el reorden, cada valor sigue a SU título (no hay desalinea
     operational_code = "CH 1", teacher = "Docente Demo",
     teacher_phone = "987654321", teacher_email = "docente@pucp.edu.pe",
     course_name = "CURSO V4", faculty = "SOCIALES",
-    contact_medium = "Teléfono", contact_date = "2026-09-02",
-    contact_attempts = "2", scheduled_date = "2026-09-10",
+    contact_medium = "Teléfono",
+    # Las dos fechas vuelven a la hoja en dd/mm/aaaa, que es como las teclea el
+    # agendador; el plan las guarda en ISO porque es lo que se ordena y se
+    # compara. Regenerar con el ISO le habría cambiado la forma a las 125 filas
+    # que él ya tenía escritas.
+    contact_date = "02/09/2026",
+    contact_attempts = "2", scheduled_date = "10/09/2026",
     scheduled_day = "MIE", scheduled_time = "08:00",
     enrolled_total = "44", eligible_n = "35",
     link = "https://x.test/ficha", notes = "sin novedad"

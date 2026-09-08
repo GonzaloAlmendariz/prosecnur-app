@@ -74,17 +74,39 @@
 # de campo iteraba titulares a secas; el ID MATCH arrastrado delataba el
 # desfase).
 #
-# El orden es el del PLAN, no el alfabetico (`split()` ordenaria «CH 1, CH 10,
-# CH 100»), y los niveles salen de la aparicion de los TITULARES: el plan
-# intercala reservas de otras cadenas (R 24.6 antes que CH 15) y con
-# `unique(claves)` a secas la cadena 24 se colaba adelante. Las cadenas sin
-# titular en el plan van al final, en su aparicion. Dentro de cada grupo, el
-# titular primero y las reservas por `replacement_order`.
+# **EL ORDEN ES POR CURSO-HORARIO, Y NUMERICO.**
+#
+# Gonzalo, 2026-09-08: «tanto aulas agendadas como aulas aplicadas siguen el
+# orden por CH; la app lo construye asi para luego que los responsables lo
+# editan a mano y la app debe poder leerlo asi».
+#
+# Iba en el orden del PLAN —que sale agrupado por facultad y dentro por el
+# sorteo— y sobre el libro real daba «CH 1..9, CH 15, CH 23, CH 14, CH 11, CH
+# 22...». Quien busca un curso-horario para anotar su llamada lo busca por su
+# numero, y en 174 filas sin orden numerico eso es recorrer la hoja entera.
+#
+# La razon que habia para NO ordenar era buena y sigue viva: `split()` ordena
+# alfabeticamente y daria «CH 1, CH 10, CH 100». La respuesta no es renunciar al
+# orden, es ordenar por la clave NATURAL —`.calx_clave_natural()` rellena los
+# numeros a doce cifras, asi que «CH 1» < «CH 2» < «CH 10»—, que es la misma que
+# ya usan las dos hojas «(Extra)».
+#
+# Los niveles siguen saliendo de los TITULARES: el plan intercala reservas de
+# otras cadenas (R 24.6 antes que CH 15) y con `unique(claves)` a secas la cadena
+# 24 se colaba adelante. Las cadenas sin titular van al final. Dentro de cada
+# grupo, el titular primero y las reservas por `replacement_order`.
+#
+# Este orden es la GEOMETRIA de las dos hojas y del arrastre: se calcula aqui una
+# sola vez y los tres consumidores la heredan. Dos copias fue exactamente como se
+# rompio el espejo en vivo (2026-09-01).
 .calg_grupos_cadena <- function(unidades) {
   if (!length(unidades)) return(list())
   claves <- vapply(unidades, .calg_titular, character(1))
   es_titular <- vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1))
-  grupos <- split(unidades, factor(claves, levels = unique(c(claves[es_titular], claves))))
+  con_titular <- unique(claves[es_titular])
+  con_titular <- con_titular[order(.calx_clave_natural(con_titular))]
+  huerfanas <- setdiff(unique(claves), con_titular)
+  grupos <- split(unidades, factor(claves, levels = c(con_titular, huerfanas)))
   lapply(grupos, function(g) {
     g[order(vapply(g, function(u) {
       if (identical(.calg_txt(u$sample_role), "titular")) 0
@@ -117,6 +139,22 @@
 # que ya este registrado: escribir vacio siempre borraba el operativo en curso.
 # `notes` o `replacement_note`: el lector guarda OBSERVACIONES en
 # `replacement_note`, y leer solo `notes` perdia las 190 observaciones de 2025.
+# Una fecha, escrita COMO LA ESCRIBE EL EQUIPO.
+#
+# El plan guarda la fecha en ISO —es lo correcto para calcular: el avance diario
+# ordena por ella y una comparación de texto ISO es cronológica— pero la hoja de
+# agendaciones la teclea el agendador en dd/mm/aaaa, y así están sus 125 filas.
+# Regenerar la hoja con el ISO le cambiaría a mano la forma de todas ellas sin
+# que nadie lo hubiera pedido. Se devuelve al formato del equipo justo al
+# escribir; lo que no sea una fecha ISO se deja intacto, porque puede ser una
+# nota o una celda a medio llenar y reescribirla sería inventar.
+.calg_fecha_txt <- function(x) {
+  v <- .calg_txt(x)
+  if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", v)) return(v)
+  d <- suppressWarnings(as.Date(v))
+  if (is.na(d)) v else format(d, "%d/%m/%Y")
+}
+
 .calg_celda_agenda <- function(u, campo) {
   switch(
     campo,
@@ -126,7 +164,7 @@
     teacher_phone    = .calg_txt(u$teacher_phone),
     label            = .calg_sesiones_y_aula(u),
     contact_medium   = .calg_txt(u$contact_medium),
-    contact_date     = .calg_txt(u$contact_date),
+    contact_date     = .calg_fecha_txt(u$contact_date),
     contact_attempts = .calg_num_txt(u$contact_attempts),
     # B23: eco de lo registrado y nada mas — el resultado de la llamada lo
     # teclea el equipo, asi que la siembra es VACIA en todos los roles (sin
@@ -158,7 +196,7 @@
     # siembra es VACIA en todos los roles. `trimws` porque el formato lo pone
     # la disciplina de entrada, no un validador: nada se rechaza aqui.
     scheduled_venue  = trimws(.calg_txt(u$scheduled_venue)),
-    scheduled_date   = .calg_txt(u$scheduled_date),
+    scheduled_date   = .calg_fecha_txt(u$scheduled_date),
     scheduled_day    = .calg_dia_excel(u$scheduled_day),
     scheduled_time   = .calg_txt(u$scheduled_time),
     scheduled_moment = .calg_txt(u$scheduled_moment),
@@ -1488,7 +1526,17 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
         openxlsx::deleteData(wb, hoja, cols = col, rows = desde + vacias,
                              gridExpand = TRUE)
       }
+      # **Las DOS formas, porque la celda llega en las dos.** El plan guarda ISO
+      # y la hoja de agendaciones se escribe en dd/mm/aaaa, que es como la
+      # teclea el equipo; tipar sólo el ISO dejaba esa columna como texto y
+      # Excel volvía a no poder ordenarla por rango, que es justo lo que este
+      # paso existe para evitar. Se prueba ISO primero: es la forma canónica y
+      # no hay ambigüedad posible entre día y mes.
       fecha <- suppressWarnings(as.Date(crudo, format = "%Y-%m-%d"))
+      falta <- is.na(fecha) & !is.na(crudo) & nzchar(trimws(crudo))
+      if (any(falta)) {
+        fecha[falta] <- suppressWarnings(as.Date(crudo[falta], format = "%d/%m/%Y"))
+      }
       validas <- which(!is.na(fecha))
       if (!length(validas)) next
       for (tramo in split(validas, cumsum(c(1L, diff(validas) != 1L)))) {
