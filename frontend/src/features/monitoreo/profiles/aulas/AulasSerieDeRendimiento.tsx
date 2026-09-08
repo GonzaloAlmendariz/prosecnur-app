@@ -886,6 +886,32 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     const segundaLlegada = alCerrarPorDiseno != null && Math.abs(alCerrarPorDiseno - alCerrar) >= 1
       ? ` · con lo que el diseño pedía de esos cursos-horario, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
       : "";
+    // **Por qué la proyección no llega**, que es la pregunta que deja abierta.
+    //
+    // Gonzalo, 2026-09-08: «si estamos en principio yendo mejor de lo esperado,
+    // ¿por qué sale que no vamos a llegar a la meta?». No es una contradicción y
+    // el gráfico no lo decía: la proyección sólo cuenta los cursos-horario que
+    // YA tienen fecha, así que se queda corta cuando quedan aulas del plan sin
+    // citar, por bien que esté rindiendo el campo. La brecha es de AGENDA, no de
+    // rendimiento, y son dos remedios distintos: uno se arregla agendando y el
+    // otro mandando más gente a la misma aula.
+    //
+    // Medido sobre HSVG2026 el 2026-09-08: 174 titulares, 115 agendados, 59 sin
+    // fecha. Lo agendado promete 2 066 y el plan entero 3 158, contra una
+    // muestra de 2 500.
+    const sinAgendar = elegida
+      ? 0
+      : plan.filter((u) => {
+        const rol = String((u as Record<string, unknown>).sample_role ?? "").trim();
+        if (rol && rol !== "titular") return false;
+        const f = String((u as Record<string, unknown>).scheduled_date
+          ?? (u as Record<string, unknown>).fecha ?? "").trim();
+        return !f;
+      }).length;
+    const porAgendar = sinAgendar > 0 && alCerrar < muestraDelCorte
+      ? ` · la proyección sólo cuenta lo agendado, y quedan ${fmt(sinAgendar)} cursos-horario del plan sin fecha`
+      : "";
+
     const lectura = meta > 0
       ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados · ${
           alCerrar >= meta
@@ -896,7 +922,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             // nada solo. Las dos llegadas se leen en pareja o no se leen.
             ? `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, por encima de esa meta`
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
-        }${segundaLlegada}`
+        }${segundaLlegada}${porAgendar}`
       : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esos cursos-horario`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
@@ -1633,12 +1659,19 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             ))}
             {/* La media del estudio, siempre visible: es contra lo que se compara
                 cualquier facultad, y es el prior del esperado. */}
-            <line x1={MARGEN} y1={y(mediaDelEstudio)} x2={100 - MARGEN} y2={y(mediaDelEstudio)}
-              stroke={COLOR_RESULTADO.revision} strokeWidth="1.2"
-              vectorEffect="non-scaling-stroke" opacity="0.7" />
+            {/* La media del estudio es una cifra POR curso-horario (17,5). Con
+                el gráfico en efectivas del día se dibujaba a y=92,8 sobre un eje
+                de 500, o sea pegada al suelo, y ahí no dice nada: es la misma
+                trampa de mezclar unidades que Gonzalo cazó con el «límite de 30».
+                Vuelve en cuanto el gráfico mide por curso-horario. */}
+            {jornadasEnElEje.length ? null : (
+              <line x1={MARGEN} y1={y(mediaDelEstudio)} x2={100 - MARGEN} y2={y(mediaDelEstudio)}
+                stroke={COLOR_RESULTADO.revision} strokeWidth="1.2"
+                vectorEffect="non-scaling-stroke" opacity="0.7" />
+            )}
             {/* La banda de dispersión, debajo de todo: entre el cuartil 1 y el 3
                 de cada día está la mitad central de las facultades. */}
-            {conBanda ? (
+            {conBanda && !jornadasEnElEje.length ? (
               <polygon
                 points={[
                   ...cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p75)}` : null)).filter(Boolean),
@@ -1687,7 +1720,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             )}
             {/* El esperado del ESTUDIO sobre lo agendado. Arranca en la mediana
                 del último día con parte para que se vea de dónde sale. */}
-            {conBanda && esperadoDelEstudio.some((v) => v != null) ? (
+            {/* La punteada del esperado del estudio también va por curso-horario
+                y quedaba plana en el suelo. Gonzalo: «no entiendo la funcionalidad
+                de la línea punteada aquí». No hacía falta traducirla de unidad:
+                lo que se espera de los días agendados ya son las barras grises de
+                la derecha, y una segunda lectura de lo mismo sólo compite. */}
+            {conBanda && !jornadasEnElEje.length && esperadoDelEstudio.some((v) => v != null) ? (
               <polyline
                 points={[
                   `${x(corteX)},${y(cuartiles[corte]?.p50 ?? mediaDelEstudio)}`,
@@ -1739,7 +1777,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 </polygon>
               );
             })() : null}
-            {elegida ? (
+            {elegida && !jornadasEnElEje.length ? (
               <polyline points={elegida.dias.map((d, i) => `${xa(i)},${y(d.esperado)}`).join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.pendiente} strokeWidth="2"
                 strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />
@@ -1871,7 +1909,34 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               nube—, pero un punto por día sobre el agregado es justo el dato que
               faltaba: cuántas efectivas dejó la jornada y contra qué se
               comparaba. Con foco es la facultad; sin foco, el estudio. */}
-          {diasConBarra.map((d, i) => (d.porAula == null ? null : (
+          {/* **Un punto por día sobre la línea verde** (Gonzalo, 2026-09-08:
+              «cada punto verde por día debería tener un pequeño círculo cerca
+              para ver bien la diferencia entre lo aplicado y lo que se preveía
+              aplicar»). Los puntos existían pero se colocaban con la cifra POR
+              curso-horario, así que sobre un eje de efectivas del día caían al
+              suelo, lejos de su propia línea. Con la jornada del motor van donde
+              está el dato, que es justo a la altura desde la que se mide contra
+              la barra gris de lo esperado. */}
+          {jornadasEnElEje.length ? diasConBarra.map((d, i) => {
+            const j = jornadaDe.get(d.fecha);
+            if (!j) return null;
+            const alto = y(j.conseguidas);
+            const lineas = [
+              { tenue: `${dm(d.fecha)} · observado` },
+              { titular: fmt(j.conseguidas), unidad: "efectivas del día" },
+              { tenue: `${fmt(j.esperadas)} esperadas de los cursos-horario aplicados` },
+              { tenue: `${j.diferencia > 0 ? "+" : ""}${fmt(j.diferencia)} contra lo esperado` },
+            ];
+            return (
+              <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
+                style={{ left: `${xa(i)}%`, top: `${alto}%` }}
+                aria-label={`${dm(d.fecha)}: ${fmt(j.conseguidas)} efectivas del día de ${fmt(j.esperadas)} esperadas`}
+                onMouseEnter={() => setPista({ x: xa(i), y: alto, lineas, bloque: "diario" })}
+                onFocus={() => setPista({ x: xa(i), y: alto, lineas, bloque: "diario" })}
+                onMouseLeave={() => setPista(null)}
+                onBlur={() => setPista(null)} />
+            );
+          }) : diasConBarra.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${xa(i)}%`, top: `${y(d.porAula)}%` }}
               // Lo que se OYE tiene que decir lo mismo que lo que se lee: la
