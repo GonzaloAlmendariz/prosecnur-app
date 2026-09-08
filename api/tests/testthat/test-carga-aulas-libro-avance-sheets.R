@@ -516,3 +516,16 @@ test_that("S5: en Sheets el avance diario lleva la misma fila «Total» que el x
   expect_identical(fila[[2]], as.character(sum(.cas_modelo()$diario$`Efectivas del dia`)))
   expect_identical(fila[[3]], as.character(utils::tail(.cas_modelo()$diario$`Efectivas acumuladas`, 1)))
 })
+
+# --- S11: la frase del vacío de aplicadores es UNA, con tildes, en los dos renderers ---
+
+test_that("S11: en Sheets el vacío de aplicadores sale de la misma función que el xlsx", {
+  ind <- aulas_libro_indicadores(.cas_plan(), efectivas = .cas_efectivas())
+  expect_true(is.null(ind$aplicadores) || !nrow(ind$aplicadores))
+  filas <- .malp_df_a_values(aulas_libro_hoja_avance(ind, fecha = .cas_fecha()))
+  primera <- vapply(filas, function(f) as.character(unlist(f)[[1]]), character(1))
+  titulo <- which(primera == "Producción por aplicador")
+  expect_length(titulo, 1L)
+  expect_identical(primera[[titulo + 1L]], .cali_motivo_sin_aplicadores())
+  expect_match(primera[[titulo + 1L]], "todavía no hay producción por aplicador")
+})

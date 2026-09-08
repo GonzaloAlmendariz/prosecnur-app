@@ -172,7 +172,7 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL) {
   if (is.data.frame(ind$aplicadores) && nrow(ind$aplicadores)) {
     for (f in .cala_tabla_filas(ind$aplicadores, texto = "Aplicador")) poner(f)
   } else {
-    poner("Sin partes de campo registrados: todavia no hay produccion por aplicador que mostrar.")
+    poner(.cali_motivo_sin_aplicadores())
   }
   poner("")
 

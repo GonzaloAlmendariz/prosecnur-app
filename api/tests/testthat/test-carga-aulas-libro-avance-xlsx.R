@@ -339,3 +339,19 @@ test_that("S12: la procedencia escribe sus conteos con separador de miles y la m
   fila_marca <- .calax_fila_de(h$celdas, "Última vez que la app leyó un libro lleno")
   expect_identical(.calax_formato_de(h, fila_marca, 2L)$halign, "right")
 })
+
+# --- S11: sin partes, el xlsx y el Sheets dicen lo mismo del bloque de aplicadores ---
+
+test_that("S11: sin partes el xlsx escribe «Producción por aplicador» con su vacío declarado, igual que el Sheets", {
+  # El Sheets ya lo hacía (C3: la sección no desaparece, dice por qué está
+  # vacía) y el xlsx omitía el bloque entero: dos hojas del mismo modelo con
+  # dos respuestas a «¿hay producción por aplicador?».
+  h <- .calax_hoja(.calax_modelo_minimo())
+  fila <- .calax_fila_de(h$celdas, "Producción por aplicador")
+  expect_false(is.na(fila), info = "el xlsx omite el bloque de aplicadores sin partes")
+  expect_identical(.calax_cols_de_banda(h$estilos, fila), seq_len(h$n_cols))
+  nota <- as.character(h$celdas[fila + 1L, 1])
+  expect_identical(nota, .cali_motivo_sin_aplicadores())
+  expect_match(nota, "todavía no hay producción por aplicador")
+  expect_true(.calax_fusionada_a_lo_ancho(h, fila + 1L))
+})
