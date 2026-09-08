@@ -287,3 +287,55 @@ test_that("S5: con un solo día no hay fila de cierre: no aporta nada", {
   h <- .calax_hoja(un_dia)
   expect_true(is.na(.calax_fila_de(h$celdas, "Total")))
 })
+
+# --- S12: el mismo trato en toda la hoja ---------------------------------------
+
+# ¿Algún estilo que cubra (fila, col) lleva los cuatro bordes?
+.calax_con_bordes <- function(h, fila, col) {
+  for (so in h$estilos) {
+    if (!identical(so$sheet, "Avance de campo")) next
+    if (!any(so$rows == fila & so$cols == col)) next
+    st <- so$style
+    lados <- c(st$borderTop, st$borderBottom, st$borderLeft, st$borderRight)
+    if (length(lados) == 4L && all(nzchar(lados))) return(TRUE)
+  }
+  FALSE
+}
+
+# El formato numérico y la alineación de la celda (fila, col), si algún estilo los fija.
+.calax_formato_de <- function(h, fila, col) {
+  out <- list(numFmt = "", halign = "")
+  for (so in h$estilos) {
+    if (!identical(so$sheet, "Avance de campo")) next
+    if (!any(so$rows == fila & so$cols == col)) next
+    fmt <- so$style$numFmt
+    if (is.list(fmt) && length(fmt$formatCode %||% "")) out$numFmt <- as.character(fmt$formatCode)
+    if (length(so$style$halign %||% "")) out$halign <- as.character(so$style$halign)
+  }
+  out
+}
+
+test_that("S12: la tabla de aplicadores lleva bordes como la de facultades", {
+  # Visto en el render real: la de facultades con rejilla y la de aplicadores
+  # sin ella, en la misma hoja. Un lector no sabe por qué una es tabla y la
+  # otra parece una lista.
+  h <- .calax_hoja(.calax_modelo_completo())
+  fila_fac <- .calax_fila_de(h$celdas, "Letras")
+  fila_apl <- .calax_fila_de(h$celdas, "Equipo A")
+  expect_true(.calax_con_bordes(h, fila_fac, 2L), info = "la fila de facultades perdió sus bordes")
+  expect_true(.calax_con_bordes(h, fila_apl, 1L), info = "la fila de aplicadores no lleva bordes (columna 1)")
+  expect_true(.calax_con_bordes(h, fila_apl, 2L), info = "la fila de aplicadores no lleva bordes (columna 2)")
+  cab_apl <- .calax_fila_de(h$celdas, "Aplicador")
+  expect_true(.calax_con_bordes(h, cab_apl, 3L), info = "la cabecera de aplicadores no lleva bordes")
+})
+
+test_that("S12: la procedencia escribe sus conteos con separador de miles y la marca a la derecha", {
+  # «1392» sin separador bajo un bloque que escribe «3,158»; y la marca a la
+  # izquierda con las cifras a la derecha.
+  h <- .calax_hoja(.calax_modelo_completo(), procedencia = .calax_procedencia())
+  fila_aulas <- .calax_fila_de(h$celdas, "Aulas que traía esa lectura")
+  expect_false(is.na(fila_aulas))
+  expect_identical(.calax_formato_de(h, fila_aulas, 2L)$numFmt, "#,##0")
+  fila_marca <- .calax_fila_de(h$celdas, "Última vez que la app leyó un libro lleno")
+  expect_identical(.calax_formato_de(h, fila_marca, 2L)$halign, "right")
+})
