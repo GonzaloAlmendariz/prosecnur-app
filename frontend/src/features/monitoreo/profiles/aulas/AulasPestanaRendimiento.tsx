@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
@@ -6,6 +6,8 @@ import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
+import { graficoDelDia } from "./graficoDelDia";
+import { useTablasDeAvance } from "./useTablasDeAvance";
 import { numeroONulo } from "./avanceCuota";
 import { parteDeCampo } from "./parteDeCampo";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -41,6 +43,15 @@ export function AulasPestanaRendimiento({
   /** Se recibe en vez de importarse: vive en el page-file y se moverá con él. */
   diasDeCampoDelCorte: (partes: ReadonlyArray<MonitoreoRow>) => number;
 }): ReactNode {
+  // **Las jornadas salen del motor, no se recalculan aquí.** Son las mismas
+  // «Efectivas del día» y «Efectivas esperadas» de la tabla «Avance diario» que
+  // van al libro y al Sheets, así que el gráfico y la tabla no pueden decir
+  // cifras distintas del mismo día.
+  const { tablas } = useTablasDeAvance();
+  const jornadas = useMemo(
+    () => graficoDelDia(tablas?.find((t) => t.clave === "diario"), facultadEnFoco),
+    [tablas, facultadEnFoco],
+  );
   if (pestana !== "rendimiento") return null;
   return (
     <>
@@ -82,6 +93,7 @@ export function AulasPestanaRendimiento({
                 <span>encuestas por curso-horario visitado · y lo que cabe esperar</span>
               </div>
               <AulasSerieDeRendimiento
+                jornadas={jornadas}
                 // La facultad elegida viaja en la URL, igual que en la
                 // pirámide: sin esto la serie de una facultad no se puede
                 // enlazar ni capturar.
