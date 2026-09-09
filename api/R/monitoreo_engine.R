@@ -4463,7 +4463,17 @@ monitoreo_sheets_oauth_status <- function() {
 .monitoreo_sheets_oauth_payload <- function(required = TRUE) {
   raw <- tryCatch(prosecnur_secret_load(.monitoreo_sheets_secret_name()), error = function(e) NA_character_)
   if (is.na(raw) || !nzchar(raw)) {
-    if (isTRUE(required)) stop("Falta autorizacion local de Google Sheets.", call. = FALSE)
+    # **«No hay» y «hay y no abre» son dos noticias distintas.** Las dos daban
+    # el mismo mensaje, y el 2026-09-08 la segunda mandó a buscar una sesión
+    # caducada de Google durante un cuarto de hora en pleno campo: el token
+    # estaba guardado y lo que fallaba era la clave que lo cifra.
+    if (isTRUE(required)) {
+      if (prosecnur_secret_locked(.monitoreo_sheets_secret_name())) {
+        stop(paste("La autorizacion de Google Sheets esta guardada pero no se puede descifrar",
+                   "en esta maquina. Vuelve a autorizar Google Sheets en la app."), call. = FALSE)
+      }
+      stop("Falta autorizacion local de Google Sheets.", call. = FALSE)
+    }
     return(NULL)
   }
   parsed <- tryCatch(jsonlite::fromJSON(raw, simplifyVector = FALSE), error = function(e) NULL)
@@ -4474,7 +4484,13 @@ monitoreo_sheets_oauth_status <- function() {
 .monitoreo_sheets_oauth_client <- function(required = TRUE) {
   raw <- tryCatch(prosecnur_secret_load(.monitoreo_sheets_client_secret_name()), error = function(e) NA_character_)
   if (is.na(raw) || !nzchar(raw)) {
-    if (isTRUE(required)) stop("Falta cliente OAuth local de Google Sheets.", call. = FALSE)
+    if (isTRUE(required)) {
+      if (prosecnur_secret_locked(.monitoreo_sheets_client_secret_name())) {
+        stop(paste("El cliente OAuth de Google Sheets esta guardado pero no se puede descifrar",
+                   "en esta maquina. Vuelve a registrarlo en Configuracion global."), call. = FALSE)
+      }
+      stop("Falta cliente OAuth local de Google Sheets.", call. = FALSE)
+    }
     return(NULL)
   }
   client <- tryCatch(jsonlite::fromJSON(raw, simplifyVector = FALSE), error = function(e) NULL)

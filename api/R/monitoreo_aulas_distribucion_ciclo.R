@@ -76,24 +76,6 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
   v
 }
 
-#' Lee el Sheets de la distribución y lo compara con el reparto vigente.
-#'
-#' Contesta la pregunta del operativo —**¿lo que están viendo los aplicadores es
-#' el reparto de ahora?**— y, cuando no lo es, dice en qué se diferencian: qué
-#' citas faltan por publicar, cuáles siguen publicadas y ya no existen, y cuáles
-#' cambiaron de aplicador o de hora.
-#'
-#' No escribe nada. Un documento que no se deja leer se declara con su error, y
-#' una pestaña ajena —la vieja «Asignación de aplicadores» que quedó de la
-#' primera versión— se nombra en vez de tocarse: el motor publica UNA hoja y lo
-#' que alguien haya añadido no es suyo.
-#'
-#' @param spreadsheet_id id o enlace del documento.
-#' @param filas lo que el motor publicaría AHORA (`aulas_libro_filas_plan_aplicadores()`);
-#'   `NULL` cuando no hay disponibilidad y entonces sólo se lee.
-#' @return lista `{ok, spreadsheet_id, url, titulo, hoja, citas_remotas, citas_ahora,
-#'   coincide, faltan, sobran, cambiadas, pestanas_ajenas}`.
-#' @export
 #' Cuál pestaña del documento es la distribución.
 #'
 #' **Se localiza por su CABECERA, no por su nombre.** La app la publica como
@@ -128,6 +110,24 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
   ""
 }
 
+#' Lee el Sheets de la distribución y lo compara con el reparto vigente.
+#'
+#' Contesta la pregunta del operativo —**¿lo que están viendo los aplicadores es
+#' el reparto de ahora?**— y, cuando no lo es, dice en qué se diferencian: qué
+#' citas faltan por publicar, cuáles siguen publicadas y ya no existen, y cuáles
+#' cambiaron de aplicador o de hora.
+#'
+#' No escribe nada. Un documento que no se deja leer se declara con su error, y
+#' una pestaña ajena —la vieja «Asignación de aplicadores» que quedó de la
+#' primera versión— se nombra en vez de tocarse: el motor publica UNA hoja y lo
+#' que alguien haya añadido no es suyo.
+#'
+#' @param spreadsheet_id id o enlace del documento.
+#' @param filas lo que el motor publicaría AHORA (`aulas_libro_filas_plan_aplicadores()`);
+#'   `NULL` cuando no hay disponibilidad y entonces sólo se lee.
+#' @return lista `{ok, spreadsheet_id, url, titulo, hoja, citas_remotas, citas_ahora,
+#'   coincide, faltan, sobran, cambiadas, pestanas_ajenas}`.
+#' @export
 monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
