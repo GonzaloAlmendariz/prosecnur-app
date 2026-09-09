@@ -1146,14 +1146,23 @@ export default function AulasMonitoreoPage() {
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
   const busy = loading || mutating;
+  // **Un mismo acto, un mismo nombre.** Este botón y el «Traer respuestas» del
+  // panel de Fuentes llaman los DOS a `syncField()`: son la misma acción
+  // ofrecida en dos sitios. Se llamaba «Recargar», y con dos nombres para lo
+  // mismo nadie sabe cuál aprieta ni qué esperar — Gonzalo, el 2026-09-09: «no
+  // entiendo el propósito de estos dos botones entonces». El título dice lo que
+  // hace en el orden en que lo hace, que es lo que faltaba: primero pide a la
+  // plataforma, después recalcula.
   const refreshTitle = busy
-    ? "Actualizando vista de cursos-horario..."
+    ? "Trayendo respuestas de la plataforma..."
     : imported
-      ? "Carga el excel del equipo (libro de Sheets) y recalcula todo lo demás: agenda, corte de campo y avance"
+      ? "Pide las respuestas nuevas a la plataforma y recalcula el corte de campo, la agenda y el avance"
       : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
+  // «Avance» NO trae datos: abre la sección y la recalcula con lo que el
+  // proyecto ya tiene. Decirlo evita que se lea como una segunda sincronización.
   const advanceTitle = busy
     ? "Actualizando vista de cursos-horario..."
-    : "Ver el avance en plataforma (abre la sección Avance con datos frescos)";
+    : "Abre la sección Avance y la recalcula con los datos que ya están en el proyecto (no pide nada a la plataforma)";
 
   /**
    * Relee el estado del proyecto.
@@ -1737,7 +1746,7 @@ export default function AulasMonitoreoPage() {
           void loadView("avance", true);
         }}
         syncDisabled={busy || !imported}
-        syncLabel="Recargar"
+        syncLabel="Traer respuestas"
         syncTitle={refreshTitle}
         onSyncAll={() => { void syncField(); }}
         onCambioSeccion={(view) => {
