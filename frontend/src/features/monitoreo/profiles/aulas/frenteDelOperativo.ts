@@ -1,4 +1,5 @@
-import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasPlanRow, MonitoreoRow } from "../../../../api/monitoreo";
+import { cursosHorarioSinFecha } from "./cursosHorarioSinFecha";
 
 /**
  * Qué aulas ya pasaron su fecha y siguen sin parte.
@@ -122,7 +123,24 @@ export function frenteDelOperativo(
   let vencidas = 0;
   let vencidasConParte = 0;
   let porVenir = 0;
-  let sinFecha = 0;
+  // **Sin fecha son los TITULARES sin fecha, no toda fila sin fecha.**
+  //
+  // Este contador sumaba cualquier fila sin `scheduled_date` que no fuera del
+  // banco, así que se llevaba dentro las reservas encadenadas dormidas: el panel
+  // publicaba «1 230 sin fecha en la agenda» mientras «Qué metas van a cerrar» y
+  // el acumulado de Rendimiento decían «59 cursos-horario del plan sin fecha».
+  // Las mismas palabras y dos universos, en la misma sección.
+  //
+  // Y 1 230 no es una brecha de agenda: una reserva dormida sin fecha no es una
+  // cita pendiente de poner, es una reserva que no ha entrado. Sugería que había
+  // 1 230 cosas que citar cuando son 59.
+  //
+  // El bucle sigue mirando TODAS las filas para vencidas y por venir —una
+  // reserva activada con fecha sí puede vencer—; lo que se acota es esta cuenta.
+  // Sale del helper compartido para que las tres superficies digan el mismo
+  // número por construcción. Es la misma corrección que el comentario de abajo
+  // ya hizo con el banco, que no llegó a las reservas de cadena.
+  const sinFecha = cursosHorarioSinFecha(filas as ReadonlyArray<MonitoreoRow>);
 
   for (const fila of filas) {
     // El BANCO fuera. Los extras no están agendados —no cuelgan de ningún
@@ -131,7 +149,7 @@ export function frenteDelOperativo(
     // corrección que ya hubo que hacer en la agenda y en la meta.
     if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const fecha = texto(fila.scheduled_date);
-    if (!fecha) { sinFecha += 1; continue; }
+    if (!fecha) continue;
     conFecha += 1;
     // El día del corte NO cuenta como vencido: el aula todavía puede aplicarse
     // esa misma tarde, y marcarla en rojo por la mañana es una alarma falsa.
