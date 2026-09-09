@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { personasPorAula } from "./redondeoConservador";
-import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
@@ -55,6 +55,9 @@ export function AulasRendimientoPorFacultad({
   explicaLasColumnas?: boolean;
 }) {
   const filas = useMemo(() => rendimientoPorFacultad(partes, plan, clave), [partes, plan, clave]);
+  // Los que el ranking dejó fuera por venir sin cifra: se cuentan con la MISMA
+  // regla que los descarta, y se dicen en la cabecera.
+  const sinCifra = useMemo(() => partesSinCifraDeEfectivas(partes), [partes]);
 
   if (!filas.length) {
     return (
@@ -94,6 +97,19 @@ export function AulasRendimientoPorFacultad({
         )}
         {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
         {fmt(aulas)} {aulas === 1 ? "curso-horario visitado" : "cursos-horario visitados"}
+        {/* **El descarte se DICE.** El ranking deja fuera los partes que vinieron
+            sin su cifra de efectivas —una celda vacía no es un cero, y publicarla
+            como tal ponía «0 efectivas · 0.0 %» junto al nombre de una persona—,
+            pero callarlo cambia el denominador sin avisar: la cabecera diría «15
+            cursos-horario» donde el resto del perfil cuenta 17 partes. */}
+        {sinCifra > 0 ? (
+          <em className="es-ausente">
+            {" "}· {fmt(sinCifra)}{" "}
+            {sinCifra === 1
+              ? "parte más se aplicó y no trae su cifra de efectivas, así que no entra"
+              : "partes más se aplicaron y no traen su cifra de efectivas, así que no entran"}
+          </em>
+        ) : null}
       </p>
       {/* SEMÁNTICA DE TABLA SOBRE LA REJILLA, no `<table>`.
           La cabecera iba con `aria-hidden="true"`, así que un lector de pantalla
