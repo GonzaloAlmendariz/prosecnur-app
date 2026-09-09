@@ -122,6 +122,31 @@ BRECHAS_COLUMNAS_PUBLICADAS <- c(
   "expected_valid", "brecha"
 )
 
+# Lo mismo para `reemplazos`, por la MISMA razon y con mas peso.
+#
+# Salia con las 104 columnas del plan seguido: 1 173 filas x ~3 590 bytes =
+# **4 109 KB de un payload de 10 331**, medido sobre HSVG26ULT2 el 2026-09-08.
+# Y no es una lista aparte: sus 1 173 codigos estan TODOS en `agenda`, y las
+# filas son identicas campo por campo salvo `motivo`. Cuatro megabytes
+# duplicados para llevar una columna de texto.
+#
+# El comentario de `brechas`, tres lineas mas abajo, ya lo habia visto —«tanto
+# como el plan entero, que ademas ya viaja dos veces»— y se quedo en el
+# diagnostico.
+#
+# Las columnas son la UNION de lo que piden sus tres consumidores, y estan
+# cubiertas por test: la tabla de Consultas (`preferredColumns`), el ordenador de
+# cadena `reemplazosEnOrdenDeCadena` (`sample_role`, `operational_sequence`,
+# `replacement_order`, `operational_code`, `replacement_for`,
+# `titular_operational_code`, `label`) y el badge del rail (`sample_status`).
+# `faculty` la pide el filtro por facultad de la seccion.
+REEMPLAZOS_COLUMNAS_PUBLICADAS <- c(
+  "operational_code", "classroom_id", "label", "faculty",
+  "titular_operational_code", "replacement_for", "replacement_order",
+  "operational_sequence", "sample_role", "sample_status", "operational_status",
+  "motivo"
+)
+
 .monitoreo_aulas_records <- function(df, max_rows = Inf) {
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
   if (is.finite(max_rows)) df <- utils::head(df, max_rows)
@@ -2078,6 +2103,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     )
     replacements$motivo[is.na(replacements$motivo)] <- ""
   }
+  # Y AQUI se recorta, despues de calcular `motivo` y no antes: es la unica
+  # columna que esta lista aporta sobre `agenda`.
+  replacements <- replacements[
+    , intersect(REEMPLAZOS_COLUMNAS_PUBLICADAS, names(replacements)), drop = FALSE]
   # Sobre `seguidas`: la representatividad compara la muestra efectiva con la
   # planificada, y la planificada incluye las reservas que el diseño compro.
   representativity <- .monitoreo_aulas_effective_representativity(seguidas, cfg)
