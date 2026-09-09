@@ -553,13 +553,16 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
     tabla <- ag[[clave]]
     # C3: la sección no desaparece cuando no hay datos, dice por qué está vacía.
     if (!is.data.frame(tabla) || !nrow(tabla)) {
-      openxlsx::writeData(wb, hoja, unname(.calan_VACIOS[[clave]]), startCol = 1, startRow = fila)
-      openxlsx::addStyle(wb, hoja, nota, rows = fila, cols = 1)
+      .cai_nota(wb, hoja, fila, unname(.calan_VACIOS[[clave]]), nota, n_hoja)
       fila <- fila + 2L
       next
     }
-    openxlsx::writeData(wb, hoja, unname(.calan_NOTAS[[clave]]), startCol = 1, startRow = fila)
-    openxlsx::addStyle(wb, hoja, nota, rows = fila, cols = 1)
+    # **La nota se FUSIONA a lo ancho de la hoja**, con el mismo helper que su
+    # hermana. Escrita sólo en la columna A se partía en seis renglones dentro
+    # de una columna de 34 caracteres y empujaba la tabla media pantalla hacia
+    # abajo: se vio al abrir el libro, no en los tests, que sólo miraban que el
+    # texto estuviera.
+    .cai_nota(wb, hoja, fila, unname(.calan_NOTAS[[clave]]), nota, n_hoja)
     fila <- fila + 1L
 
     n_col <- ncol(tabla)

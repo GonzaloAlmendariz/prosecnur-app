@@ -216,6 +216,29 @@ test_that("el xlsx gana su hoja, con los cuatro bloques y sus notas", {
   expect_match(texto, "Agendación por eslabón", fixed = TRUE)
 })
 
+test_that("las notas se FUSIONAN a lo ancho de la hoja, no se apilan en la columna A", {
+  # Se vio al abrir el libro, no aquí: escritas sólo en la columna A, las notas
+  # se partían en seis renglones dentro de una columna de 34 caracteres y
+  # empujaban la tabla media pantalla hacia abajo. El test miraba que el texto
+  # estuviera, que es lo que un texto apilado también cumple.
+  skip_if_not_installed("openxlsx")
+  wb <- openxlsx::createWorkbook()
+  plan <- list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"))
+  aulas_libro_escribir_agendacion(aulas_libro_agendacion(plan), wb)
+  celdas <- wb$worksheets[[1]]$mergeCells
+  expect_gt(length(celdas), 0L)
+  # Cada fusión abarca de la columna A hasta el ancho de la hoja, que es el de
+  # su tabla más ancha.
+  ancho <- max(vapply(AULAS_AGENDACION_CABECERAS, length, integer(1)))
+  ultima <- openxlsx::int2col(ancho)
+  #  viaja como XML crudo («<mergeCell ref="A5:M5"/>»): se saca el
+  # rango antes de mirarlo, o el patrón nunca casa y el test pasa por el motivo
+  # equivocado el día que alguien lo relaje.
+  rangos <- gsub(".*ref=\"([^\"]+)\".*", "\\1", celdas)
+  expect_true(all(grepl(sprintf("^A[0-9]+:%s[0-9]+$", ultima), rangos)),
+              info = paste(utils::head(rangos, 3), collapse = " | "))
+})
+
 test_that("una tabla sin datos conserva su título y DICE por qué está vacía", {
   skip_if_not_installed("openxlsx")
   wb <- openxlsx::createWorkbook()
