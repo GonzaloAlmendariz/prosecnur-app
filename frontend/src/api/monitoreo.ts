@@ -5345,6 +5345,20 @@ export type MonitoreoAulasSincronizacion = {
     conflictos: Array<{ curso_horario?: string; fila?: number; tecleado?: string; plataforma?: string }>;
   };
   sin_aplicador: Array<{ curso_horario?: string; fecha?: string }>;
+  /** Lo escrito que no cuadra por sí solo: fecha ilegible, fuera de la semana, sin código. */
+  dudosas?: Array<{ fila?: number; curso_horario?: string; motivo?: string; valor?: string }>;
+  /**
+   * La cara cara de `anadidas`: citas escritas cuya aula ya no está agendada
+   * ese día. `aula_movida` trae en `detalle` la fecha nueva; `ya_no_agendada`,
+   * el status de hoy; `sin_plan` no trae detalle. Ausente en recibos anteriores.
+   */
+  sin_agenda?: Array<{
+    fila?: number;
+    curso_horario?: string;
+    fecha?: string;
+    motivo?: "aula_movida" | "ya_no_agendada" | "sin_plan";
+    detalle?: string;
+  }>;
   ventana: { desde?: string; hasta?: string };
   /** La frase con la que termina la jornada, ya redactada por el motor. */
   resumen: string;
