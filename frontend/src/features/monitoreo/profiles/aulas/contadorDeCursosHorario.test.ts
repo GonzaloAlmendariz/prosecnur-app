@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
+import { TOPE_DE_FILAS, contadorDeCursosHorario } from "./AulasMonitoreoPage";
 
 /**
  * Medido en Avance el 2026-08-23, sobre el plan de 2.616 del sorteo del 22: dos
@@ -32,5 +32,27 @@ describe("contadorDeCursosHorario", () => {
 
   it("separa los miles en las dos cifras", () => {
     expect(contadorDeCursosHorario(1200, 2616, 0)).toContain("1,200 de 2,616");
+  });
+});
+
+describe("«se ven N» es lo que se VE, no lo que trae el payload", () => {
+  it("el tope de la tabla acota el numerador", () => {
+    // **El defecto, medido en pantalla el 2026-09-08.** El pie de «Avance por
+    // curso-horario» decía «se ven 500 de 1,392 cursos-horario» y el DOM tenía
+    // 400 filas: le pasaban el largo de `course_status` —que el motor topea en
+    // 500— en vez de lo que la tabla pinta, que topea en `TOPE_DE_FILAS`.
+    //
+    // El DENOMINADOR ya se había arreglado una vez —«el plan entero, no lo que
+    // cupo en el payload»— y el numerador se quedó con el mismo defecto una capa
+    // más arriba: la fracción volvía a contar dos conjuntos distintos, que es
+    // justo lo que este contador existe para impedir.
+    expect(TOPE_DE_FILAS).toBe(400);
+    expect(contadorDeCursosHorario(Math.min(500, TOPE_DE_FILAS), 1392, 0))
+      .toContain("se ven 400 de 1,392");
+  });
+
+  it("por debajo del tope no acota nada", () => {
+    expect(contadorDeCursosHorario(Math.min(174, TOPE_DE_FILAS), 1392, 0))
+      .toContain("se ven 174 de 1,392");
   });
 });

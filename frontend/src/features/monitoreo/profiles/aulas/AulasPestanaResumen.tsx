@@ -10,7 +10,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
-import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
+import { TOPE_DE_FILAS, contadorDeCursosHorario } from "./AulasMonitoreoPage";
 import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
 import { parteDeCampo } from "./parteDeCampo";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -66,8 +66,11 @@ export function AulasPestanaResumen({
     (n, row) => (String(row.sample_role ?? "") === "extra_reserve_pool" ? n + 1 : n),
     0,
   );
+  // Lo que de verdad SE VE, no lo que trae el payload: `course_status` llega
+  // topeado en 500 y la tabla pinta 400, así que el pie decía «se ven 500 de
+  // 1 392» con 400 filas delante.
   const contadorDeAulas = (visibles: number) =>
-    contadorDeCursosHorario(visibles, totalAulas, aulasExtra);
+    contadorDeCursosHorario(Math.min(visibles, TOPE_DE_FILAS), totalAulas, aulasExtra);
   /**
    * **Lo que reparte un gráfico no siempre es lo que viaja.**
    *

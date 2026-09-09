@@ -407,7 +407,7 @@ export function DataTable({
   const enProporcion = escalaDeProporciones(rows);
   const recorteFilas = recorteTabla(
     rows.map((row) => presentAulasRow(row, enProporcion)),
-    400,
+    TOPE_DE_FILAS,
     "fila",
     totalReal,
   );
@@ -586,6 +586,20 @@ export function reemplazosEnOrdenDeCadena(
  * Sin recorte NO se dice «se ven»: ahí no hay nada escondido, y anunciar un
  * recorte que no existe hace dudar de una cifra completa.
  */
+/**
+ * Cuántas filas pinta la tabla como mucho.
+ *
+ * Se exporta porque el CONTADOR del panel vive fuera de la tabla y decía otra
+ * cosa: el pie de «Avance por curso-horario» publicaba «se ven 500 de 1 392»
+ * mientras el DOM tenía 400 filas, medido el 2026-09-08. Le pasaban el largo de
+ * `course_status` —que el motor topea en 500— en vez de lo que de verdad se ve.
+ *
+ * El denominador ya se había arreglado una vez («el plan entero, no lo que cupo
+ * en el payload») y el numerador se quedó con el mismo defecto una capa más
+ * arriba: la fracción volvía a contar dos conjuntos distintos.
+ */
+export const TOPE_DE_FILAS = 400;
+
 export function contadorDeCursosHorario(
   visibles: number,
   total: number,
