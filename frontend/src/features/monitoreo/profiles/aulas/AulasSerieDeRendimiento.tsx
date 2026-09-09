@@ -1313,11 +1313,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                     : `las cuotas por sexo (${acumulado.metasFueraDeEscala.map((m) => fmt(m.meta)).join(" y ")}) no caben en la escala de este gráfico`}
                 </em>
               ) : null}
+              {/* **La nota tenía que saltar en LAS DOS direcciones.**
+                  Comparaba con `<`, dando por hecho que el reparto por sexo no
+                  puede pasar del total. Puede: medido en pantalla el 2026-09-08,
+                  la línea verde decía 298 y las dos de sexo sumaban 364 —147
+                  mujeres y 217 hombres—. Las partes superaban al todo y la única
+                  frase que lo explicaba se callaba justo en ese caso, porque su
+                  condición era la contraria.
+                  Son dos recuentos del libro sobre conjuntos que no coinciden:
+                  el reparto por sexo llega de días y cursos-horario que la serie
+                  de conseguidas no cuenta. Mientras eso sea así, lo que la
+                  pantalla debe hacer es DECIRLO, en la dirección que toque. */}
               {acumulado.cubiertasPorSexo != null
-                && acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal ? (
+                && acumulado.cubiertasPorSexo !== acumulado.conseguidasEnTotal ? (
                 <em className="es-ausente">
-                  sexo declarado en {fmt(acumulado.cubiertasPorSexo)} de{" "}
-                  {fmt(acumulado.conseguidasEnTotal)} encuestas
+                  {acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal
+                    ? `sexo declarado en ${fmt(acumulado.cubiertasPorSexo)} de ${fmt(acumulado.conseguidasEnTotal)} encuestas`
+                    : `el libro reparte por sexo ${fmt(acumulado.cubiertasPorSexo)} encuestas y la serie cuenta ${fmt(acumulado.conseguidasEnTotal)}: no son el mismo conjunto de días y cursos-horario`}
                 </em>
               ) : null}
               {/* **La OTRA razón por la que no suman, que no tenía nota.**
