@@ -2264,7 +2264,13 @@
     asset_uid = parsed$asset_uid %||% parsed$assetUid %||% "",
     survey_id = parsed$survey_id %||% parsed$surveyId %||% "",
     survey_title = parsed$survey_title %||% parsed$surveyTitle %||% "",
-    base_url = parsed$base_url %||% parsed$baseUrl %||% if (identical(kind, "kobo")) kobo_api_default_base_url() else if (identical(kind, "surveymonkey")) "https://api.surveymonkey.com/v3" else "",
+    # El servidor lo hereda del PERFIL cuando el cuerpo no lo dice: rellenarlo
+    # con el default tapaba al perfil y una fuente EU se preguntaba al Kobo
+    # global. Ver monitoreo_fuente_servidor.R.
+    base_url = .monitoreo_fuente_base_url(
+      parsed$base_url %||% parsed$baseUrl, kind,
+      parsed$connection_profile_id %||% parsed$connectionProfileId %||%
+        parsed$profile_id %||% parsed$profileId %||% ""),
     connection_profile_id = parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% "",
     role = parsed$role %||% parsed$rol %||% NULL,
     integration_mode = parsed$integration_mode %||% parsed$integrationMode %||% NULL,

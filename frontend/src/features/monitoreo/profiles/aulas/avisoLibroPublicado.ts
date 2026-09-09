@@ -84,7 +84,7 @@ function cuenta(n: number | null | undefined, uno: string, varios: string): stri
 /**
  * La frase de la lectura previa, o vacía cuando no hay nada que contar
  * (omitida, o un recibo anterior a esta señal). Cada aviso dice causa y
- * salida: si falló, la salida es «Sincronizar campo» cuando el enlace responda.
+ * salida: si falló, la salida es «Traer respuestas» cuando el enlace responda.
  */
 export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefined): {
   texto: string;
@@ -104,7 +104,7 @@ export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefine
   return {
     texto:
       `No se pudo leer el Sheets antes de publicar${causa ? ` (${causa})` : ""}: ` +
-      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa Sincronizar campo cuando el enlace responda.",
+      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa Traer respuestas cuando el enlace responda.",
     tono: "atencion",
   };
 }
