@@ -405,6 +405,25 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
   as.integer(.monitoreo_scalar(r$totalUpdatedCells, length(datos)))
 }
 
+#' La ventana que un reparto declara, para acotar lo que se propone añadir.
+#'
+#' **Sin ventana, «agendadas sin cita» miente por exceso.** Medido sobre el
+#' operativo el 2026-09-08: el reparto rige del 07 al 12 de septiembre y aplaza
+#' a propósito lo agendado más allá (`fuera_de_rango`, 28 aulas de las semanas
+#' 2 a 4). Preguntar sin acotar devuelve esas 28 como si fueran huecos, cuando
+#' son una decisión; con el rango del propio reparto la respuesta es 0, que es
+#' la verdad. Un aviso que grita 28 el día que no falta ninguna deja de leerse
+#' a la semana.
+#'
+#' @param rep un reparto (`monitoreo_aulas_reparto()`).
+#' @return lista `{desde, hasta}`; cadenas vacías si el reparto no declara rango.
+#' @keywords internal
+.madm_ventana_del_reparto <- function(rep) {
+  r <- if (is.list(rep)) (rep[["rango"]] %||% list()) else list()
+  list(desde = .monitoreo_scalar(r[["desde"]], ""),
+       hasta = .monitoreo_scalar(r[["hasta"]], ""))
+}
+
 #' La fecha de la agenda de cada curso-horario, para saber qué fila se movió.
 #' @keywords internal
 .madm_fechas_de_la_agenda <- function(plan) {
@@ -432,7 +451,9 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
 #' @param plan filas del plan.
 #' @param aplicadas códigos que constan aplicados.
 #' @param roster nombres del equipo, para poder adoptar y para el desplegable.
-#' @param desde,hasta ventana de fechas ISO de las aulas que se añaden.
+#' @param desde,hasta ventana de fechas ISO de las aulas que se añaden. **Sin
+#'   ventana entra TODO lo agendado**, que casi nunca es lo que se quiere: ver
+#'   la nota de `.madm_ventana_del_reparto()`.
 #' @param aplicar `TRUE` escribe; por defecto es un ensayo.
 #' @return lista `{ok, aplicado, hoja, anadidas, estado, fijaciones, sin_aplicador, …}`.
 #' @export
@@ -697,12 +718,35 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
       }, character(1))
 
       aplicar <- isTRUE(.monitoreo_bool(parsed[["aplicar"]] %||% parsed[["apply"]], FALSE))
+
+      # **La ventana por defecto es la del REPARTO, no «todo».** Sin esto, una
+      # llamada sin fechas proponía añadir a la hoja del coordinador las 28
+      # aulas de las semanas 2 a 4 que el reparto aplaza a propósito. Medido
+      # sobre el operativo el 2026-09-08: sin acotar salían 28 y con el rango
+      # del reparto salen 0, que es la verdad de ese día.
+      desde <- .monitoreo_scalar(parsed[["desde"]] %||% parsed[["from"]], "")
+      hasta <- .monitoreo_scalar(parsed[["hasta"]] %||% parsed[["to"]], "")
+      if (!nzchar(desde) && !nzchar(hasta)) {
+        rep <- tryCatch(
+          monitoreo_aulas_reparto(
+            plan, s[["monitoreo_aulas_disponibilidad"]],
+            fijadas = aulas_cfg[["reparto_fijado"]] %||% list(),
+            duracion_min = aulas_cfg[["duracion_aplicacion_min"]] %||% 30L,
+            rango = aulas_cfg[["reparto_rango"]],
+            semilla = aulas_cfg[["reparto_semilla"]] %||% 0L
+          ),
+          error = function(e) NULL
+        )
+        ventana <- .madm_ventana_del_reparto(rep)
+        desde <- ventana$desde
+        hasta <- ventana$hasta
+      }
+
       out <- monitoreo_aulas_sincronizar_distribucion(
         destino, plan = plan,
         aplicadas = monitoreo_aulas_codigos_aplicados(plan, partes, efectivas),
         roster = roster,
-        desde = .monitoreo_scalar(parsed[["desde"]] %||% parsed[["from"]], ""),
-        hasta = .monitoreo_scalar(parsed[["hasta"]] %||% parsed[["to"]], ""),
+        desde = desde, hasta = hasta,
         aplicar = aplicar
       )
 
