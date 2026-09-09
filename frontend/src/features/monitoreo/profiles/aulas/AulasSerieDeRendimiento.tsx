@@ -1320,16 +1320,22 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   mujeres y 217 hombres—. Las partes superaban al todo y la única
                   frase que lo explicaba se callaba justo en ese caso, porque su
                   condición era la contraria.
-                  Son dos recuentos del libro sobre conjuntos que no coinciden:
-                  el reparto por sexo llega de días y cursos-horario que la serie
-                  de conseguidas no cuenta. Mientras eso sea así, lo que la
-                  pantalla debe hacer es DECIRLO, en la dirección que toque. */}
+                  Y no son dos lecturas del mismo dato: son DOS HOJAS. La verde
+                  suma `effective_surveys` del PARTE DE CAMPO; el reparto por
+                  sexo suma `women_n` + `men_n` de la BASE DE CONTROL, y las dos
+                  las llena el equipo por separado. Medido el 2026-09-08: el
+                  control cubre 25 cursos-horario y suma 480, el parte cubre 17 y
+                  suma 298; ocho están en el control y no en el parte, y en
+                  catorce de los compartidos las dos hojas discrepan —CH 7 dice
+                  27 en el control y 0 en el parte—.
+                  Reconciliarlas es trabajo de campo, no de esta pantalla. Lo que
+                  la pantalla debe hacer es DECIR de dónde sale cada cifra. */}
               {acumulado.cubiertasPorSexo != null
                 && acumulado.cubiertasPorSexo !== acumulado.conseguidasEnTotal ? (
                 <em className="es-ausente">
                   {acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal
                     ? `sexo declarado en ${fmt(acumulado.cubiertasPorSexo)} de ${fmt(acumulado.conseguidasEnTotal)} encuestas`
-                    : `el libro reparte por sexo ${fmt(acumulado.cubiertasPorSexo)} encuestas y la serie cuenta ${fmt(acumulado.conseguidasEnTotal)}: no son el mismo conjunto de días y cursos-horario`}
+                    : `la Base de control reparte por sexo ${fmt(acumulado.cubiertasPorSexo)} encuestas donde el parte de campo cuenta ${fmt(acumulado.conseguidasEnTotal)}: son dos hojas y no cuadran`}
                 </em>
               ) : null}
               {/* **La OTRA razón por la que no suman, que no tenía nota.**
