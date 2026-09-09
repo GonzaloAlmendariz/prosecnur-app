@@ -128,9 +128,29 @@
                reparto_concentrado = concentrado),
     rep = dashboard[["reparto"]]
   )
+  # **Y si hay aulas agendadas a las que no va nadie.** Es la pregunta que el
+  # 08/09 hubo que contestar cruzando a mano la agenda con la distribución, y
+  # que ninguna pantalla hacía: `no_cubiertos` sólo lista las citas que
+  # ENTRARON al reparto y no encontraron a nadie libre, así que un aula
+  # agendada que ni siquiera llegó a ser cita no aparecía en ninguna parte.
+  #
+  # Acotado al RANGO DEL REPARTO, siempre. Sin acotar, lo que el reparto aplaza
+  # a propósito por caer fuera de la semana se cuenta como hueco: el 08/09
+  # salían 28 donde la respuesta verdadera era 0, y un aviso que grita 28 el día
+  # que no falta ninguna deja de leerse a la semana.
+  sin_cita <- tryCatch({
+    v <- .madm_ventana_del_reparto(dashboard[["reparto"]])
+    monitoreo_aulas_agendadas_sin_cita(plan, filas, desde = v$desde, hasta = v$hasta)
+  }, error = function(e) NULL)
   dashboard[["reparto"]][["distribucion"]] <- list(
     huella = monitoreo_aulas_distribucion_huella(filas),
-    citas = max(0L, length(filas %||% list()) - 1L)
+    citas = max(0L, length(filas %||% list()) - 1L),
+    agendadas_sin_cita = length((sin_cita %||% list())$faltantes %||% list()),
+    # La lista, para que el aviso pueda nombrarlas y no sólo contarlas: un
+    # «faltan 6» sin los códigos obliga a volver a cruzarlo a mano.
+    sin_cita = lapply((sin_cita %||% list())$faltantes %||% list(), function(f) {
+      list(curso_horario = f$curso_horario, fecha = f$fecha, facultad = f$facultad)
+    })
   )
   dashboard
 }

@@ -232,3 +232,69 @@ test_that("el recibo termina diciendo cuántas citas quedan sin aplicador", {
   ))
   expect_match(vacio, "Todas las citas tienen aplicador", fixed = TRUE)
 })
+
+# --- la ventana por defecto, que no puede ser «todo» -------------------------
+#
+# Medido sobre el operativo el 2026-09-08: el reparto rige del 07 al 12 de
+# septiembre y aplaza a propósito lo agendado más allá. Preguntar sin acotar
+# devolvía 28 aulas de las semanas 2 a 4 como si fueran huecos; con el rango del
+# propio reparto la respuesta es 0, que es la verdad de ese día. Sin esta
+# defensa, una llamada sin fechas proponía añadirle esas 28 filas a la hoja del
+# coordinador.
+
+test_that("la ventana de un reparto sale de su propio rango, y sin rango no inventa una", {
+  ventana <- prosecnurapp:::.madm_ventana_del_reparto
+  expect_identical(ventana(list(rango = list(desde = "2026-09-07", hasta = "2026-09-12"))),
+                   list(desde = "2026-09-07", hasta = "2026-09-12"))
+  expect_identical(ventana(list()), list(desde = "", hasta = ""))
+  expect_identical(ventana(NULL), list(desde = "", hasta = ""))
+})
+
+test_that("acotar por la ventana deja fuera lo que el reparto aplaza a propósito", {
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-09", "10:00 am"),   # dentro de la semana
+    .madm_aula("CH 2", "2026-09-21", "10:00 am")    # semana 3: aplazada, no es hueco
+  )
+  sin <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  con <- monitoreo_aulas_agendadas_sin_cita(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(sin$faltantes, 2L)
+  expect_length(con$faltantes, 1L)
+  expect_identical(con$faltantes[[1]]$curso_horario, "CH 1")
+  # Y la ventana que rigió viaja en el recibo: quien lea el resultado tiene que
+  # poder saber sobre qué se contestó.
+  expect_identical(con$ventana$desde, "2026-09-07")
+  expect_identical(con$ventana$hasta, "2026-09-12")
+})
+
+test_that("el tablero publica cuántas agendadas no tienen cita, acotado al rango", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         sample_status = "agendada", faculty = "Ciencias", course_name = "Cálculo",
+         teacher = "Docente Uno", scheduled_venue = "A101",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00 am",
+         eligible_n = 40, expected_valid = 20),
+    # Agendada dentro de la semana a una hora que nadie cubre: es un hueco de
+    # verdad y tiene que salir contado.
+    list(operational_code = "CH 9", classroom_id = "a9", sample_role = "titular",
+         sample_status = "agendada", faculty = "Ciencias", course_name = "Física",
+         teacher = "Docente Dos", scheduled_venue = "A109",
+         scheduled_date = "2026-09-07", scheduled_time = "11:00 pm",
+         eligible_n = 40, expected_valid = 20)
+  )
+  disp <- list(list(nombre = "Ana Prueba",
+                    dias = list(lunes = list(list(inicio = "08:00", fin = "13:00")))))
+  d <- prosecnurapp:::.mac_publicar_disponibilidad(
+    list(), plan, disp, rango = list(desde = "2026-09-07", hasta = "2026-09-12"))
+  dist <- d$reparto$distribucion
+  expect_true(is.numeric(dist$agendadas_sin_cita))
+  expect_identical(dist$agendadas_sin_cita, 1L)
+  # Y las nombra: un «falta 1» sin el código obliga a volver a cruzarlo a mano.
+  expect_length(dist$sin_cita, 1L)
+  expect_identical(dist$sin_cita[[1]]$curso_horario, "CH 9")
+  expect_identical(dist$sin_cita[[1]]$fecha, "07/09")
+  # La huella y las citas de siempre siguen ahí: el bloque gana un campo, no
+  # cambia de forma.
+  expect_true(nzchar(dist$huella))
+  expect_gte(dist$citas, 1L)
+})
