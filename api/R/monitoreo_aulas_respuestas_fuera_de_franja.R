@@ -65,6 +65,11 @@ monitoreo_aulas_respuestas_fuera_de_franja <- function(unidades, responses, cfg 
   if (!length(unidades) || !is.data.frame(responses) || !nrow(responses)) return(list())
   col_t <- .marff_col_tiempo(responses)
   if (!nzchar(col_t)) return(list())
+  # **Mira los códigos YA CORREGIDOS, no los crudos.** Su pregunta es «¿queda
+  # algo por atender?», y una anomalía reatribuida ya no lo es: seguir gritando
+  # después de arreglarla es la forma más rápida de que el aviso deje de
+  # mirarse. Y tiene un efecto que se quiere: si alguien reatribuye MAL, las
+  # respuestas caen en una franja que no es la suya y el detector lo dice.
   cod <- tryCatch(trimws(as.character(.monitoreo_aulas_response_classroom(responses, cfg))),
                   error = function(e) NULL)
   if (is.null(cod) || !length(cod)) return(list())

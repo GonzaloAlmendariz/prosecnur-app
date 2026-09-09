@@ -600,6 +600,12 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # S7: el Sheets de los aplicadores y la huella de lo último publicado, para
     # que el tablero pueda decir «el reparto cambió desde la última publicación».
     distribucion_sheets = monitoreo_aulas_distribucion_sheets_normalizar(config[["distribucion_sheets"]]),
+    # «Estas respuestas cuentan para otro aula». Viaja en el `.pulso` porque es
+    # una decisión operativa con su motivo, no una caché: sin passthrough, esta
+    # lista CERRADA se la tragaría en el segundo pase de normalización y la
+    # corrección duraría hasta el siguiente refresco. Ver
+    # monitoreo_aulas_reatribucion.R.
+    reatribuciones = monitoreo_aulas_reatribuciones_normalizar(config[["reatribuciones"]]),
     quotas = config[["quotas"]] %||% config[["cuotas"]] %||% defaults$quotas,
     variables_control = config[["variables_control"]] %||% config[["variablesControl"]] %||% defaults$variables_control,
     methodology = config[["methodology"]] %||% config[["metodologia"]] %||% defaults$methodology,
