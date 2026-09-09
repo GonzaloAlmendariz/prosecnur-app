@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { cursosHorarioSinFecha } from "./cursosHorarioSinFecha";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";

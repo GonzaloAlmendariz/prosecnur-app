@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
 
 import { Check, Pencil } from "../../../../vendor/lucide-react";
 
@@ -125,6 +126,8 @@ export function AulasCargaDeCampo({
   onConcentrar = null,
   distribucion = null,
   onPublicarDistribucion = null,
+  onSincronizarDistribucion = null,
+  sincronizacion = null,
   hoy = hoyISO(),
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -165,6 +168,8 @@ export function AulasCargaDeCampo({
   /** S7: el Sheets de los aplicadores (recordado + huella vigente) y su publicación. */
   distribucion?: { recordado?: DistribucionSheetsRecordada; vigente?: DistribucionVigente } | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
+  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  sincronizacion?: MonitoreoAulasSincronizacion | null;
   /** Dictado 2026-09-04: encender/apagar la concentración por día; lo pinta Asignación. */
   onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;
   /** El día del operativo (`YYYY-MM-DD`); inyectable para el test. */
@@ -472,6 +477,8 @@ export function AulasCargaDeCampo({
           onConcentrar={onConcentrar}
           distribucion={distribucion}
           onPublicarDistribucion={onPublicarDistribucion}
+          onSincronizarDistribucion={onSincronizarDistribucion}
+          sincronizacion={sincronizacion}
         />
       ) : null}
       {esDemanda && !hayMalla ? (

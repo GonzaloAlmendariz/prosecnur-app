@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
 
 import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle } from "../../../../vendor/lucide-react";
 import {
@@ -161,6 +162,8 @@ export function AulasAsignacionDeAplicadores({
   hoy = hoyISO(),
   distribucion = null,
   onPublicarDistribucion = null,
+  onSincronizarDistribucion = null,
+  sincronizacion = null,
 }: {
   /**
    * S7 (2026-09-07): el Sheets que leen los aplicadores —recordado en la
@@ -169,6 +172,9 @@ export function AulasAsignacionDeAplicadores({
   distribucion?: { recordado?: DistribucionSheetsRecordada; vigente?: DistribucionVigente } | null;
   /** Publica la distribución; con enlace lo recuerda. `null` = solo lectura. */
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
+  /** El ciclo entero en una acción; `false` es el ensayo, que no escribe. */
+  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  sincronizacion?: MonitoreoAulasSincronizacion | null;
   /**
    * La facultad de cada cita, por código. Dictado 2026-09-04: «el cuadro no
    * muestra la facultad». Viene del PLAN porque el reparto no la trae.
@@ -328,6 +334,20 @@ export function AulasAsignacionDeAplicadores({
   const escritoDistribucion = (enlaceDistribucion ?? "").trim();
   const hayDestinoDistribucion = Boolean(escritoDistribucion || recordadoUrl);
   const avisoSheets = avisoDistribucion(distribucion?.recordado, distribucion?.vigente);
+  // Qué tiene el ensayo para hacer, y en una frase corta para el botón: sin
+  // esto el botón diría «Aplicar» sin decir qué, que es como se aprieta sin
+  // mirar. Un ensayo que no propone nada no ofrece botón.
+  const cambiosSincronizacion = (sincronizacion?.anadidas.length ?? 0)
+    + (sincronizacion?.estado.cambios.length ?? 0);
+  const hayQueSincronizar = cambiosSincronizacion > 0;
+  const resumenSincronizacion = [
+    sincronizacion?.anadidas.length
+      ? `${sincronizacion.anadidas.length} ${sincronizacion.anadidas.length === 1 ? "fila" : "filas"}`
+      : "",
+    sincronizacion?.estado.cambios.length
+      ? `${sincronizacion.estado.cambios.length} ${sincronizacion.estado.cambios.length === 1 ? "estado" : "estados"}`
+      : "",
+  ].filter(Boolean).join(" y ");
 
   return (
     <div className="aulas-asigna">
@@ -388,6 +408,47 @@ export function AulasAsignacionDeAplicadores({
                 </a>
               ) : null}
             </div>
+            {/* **El ciclo, sin salir de la app.** Hasta hoy los cuatro
+                movimientos —leer, adoptar, añadir, refrescar el estado— se
+                hacían con scripts fuera de la app. Publicar SOBRESCRIBE y por
+                eso se niega cuando la hoja ya tiene dueño; esto respeta lo que
+                el coordinador escribió y sólo añade lo que falta. */}
+            {onSincronizarDistribucion ? (
+              <div className="aulas-asigna-sheets-ciclo">
+                <p className="aulas-asigna-vigencia-que">
+                  Cuando el coordinador ya editó la hoja, no se publica encima:
+                  se <strong>sincroniza</strong>. La app adopta lo que él decidió, añade las
+                  agendadas que no tienen cita con el aplicador en blanco y refresca el estado.
+                </p>
+                <div className="aulas-asigna-rango">
+                  <button
+                    type="button"
+                    className="aulas-asigna-rango-boton"
+                    disabled={!hayDestinoDistribucion}
+                    title="Dice qué haría, sin escribir nada en la hoja"
+                    onClick={() => { void onSincronizarDistribucion(false); }}
+                  >
+                    Revisar cambios
+                  </button>
+                  {/* El botón que ESCRIBE aparece sólo después del ensayo y
+                      sólo si hay algo que hacer: son veintidós personas leyendo
+                      esa hoja y un clic de más no puede escribirla. */}
+                  {sincronizacion && !sincronizacion.aplicado && hayQueSincronizar ? (
+                    <button
+                      type="button"
+                      className="aulas-asigna-rango-boton"
+                      title="Escribe en la hoja lo que el ensayo acaba de describir"
+                      onClick={() => { void onSincronizarDistribucion(true); }}
+                    >
+                      Aplicar {resumenSincronizacion}
+                    </button>
+                  ) : null}
+                </div>
+                {sincronizacion ? (
+                  <p className="aulas-asigna-vigencia-que">{sincronizacion.resumen}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
         {onDeclararRango || onResortear || onConcentrar ? (
