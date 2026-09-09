@@ -60,7 +60,12 @@ test_that("el libro trae SEIS hojas, no tres", {
   aulas_libro_generar(.pe_plan(), libro)
   expect_setequal(readxl::excel_sheets(libro),
                   c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control",
-                    "Plan del día", "Avance de campo", "Listas"))
+                    "Plan del día", "Avance de campo",
+                    # 2026-09-09: qué se consiguió agendar, con los reemplazos
+                    # dentro. Reemplaza a la «Tabla dinámica 2» que el
+                    # coordinador rehacía a mano y que sólo veía el titular.
+                    "Avance de agendación",
+                    "Listas"))
 })
 
 test_that("las fechas se escriben como FECHAS de Excel, no como texto", {

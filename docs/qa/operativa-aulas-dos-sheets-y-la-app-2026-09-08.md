@@ -40,7 +40,16 @@ Diez pestañas con tres dueños distintos.
 | Avance de campo | app | se reescribe entera |
 | Asignación de aplicadores | app | se reescribe entera |
 | Disponibilidad de aplicadores | app | se reescribe entera |
+| Avance de agendación | app | se reescribe entera |
 | Tabla dinámica 2 | equipo | ni se mira |
+
+**«Avance de agendación» (2026-09-09) es la hoja que reemplaza a «Tabla dinámica
+2».** Aquélla la rehace el coordinador a mano sobre la agenda y sólo puede ver el
+bloque titular: los once eslabones de reemplazo viven a su derecha, en la misma
+fila, así que una dinámica sobre esa hoja no los alcanza. Con eso, un titular
+rechazado cuyo R1 ya está agendado se lee igual que uno al que nadie ha llamado.
+La hoja nueva trae cuatro tablas —por facultad, por semana, por día y por
+eslabón— y está también en el `.xlsx`.
 
 Dos cosas que hay que saber de las hojas del equipo:
 
@@ -93,22 +102,26 @@ Y a partir de ahí todo es **secuencial**, porque cada paso usa lo anterior:
 
 ```
    1. Sincronizar Kobo                       respuestas del día
-   2. Adoptar la distribución  (si cambió)   el reparto pasa a ser el suyo
-   3. Publicar el libro                      lee agenda+partes y escribe las 5 hojas
-   4. Actualizar la distribución             ESTADO al día y filas nuevas
+   2. Sincronizar la distribución            adopta, añade y refresca el ESTADO
+   3. Publicar el libro                      lee agenda+partes y escribe sus hojas
 ```
+
+**Desde el 2026-09-09 el paso 2 es UNO y se hace desde la app.** Antes eran tres
+—leer, adoptar y, con un script, añadir las filas que faltaban y refrescar el
+ESTADO—, así que la jornada dependía de que hubiera alguien con una consola
+abierta. En Asignación: «Revisar cambios» es el ENSAYO y no escribe nada; el
+botón que escribe aparece después y dice qué va a escribir.
 
 Por qué ese orden y no otro:
 
 - **1 antes que 3**: publicar sin sincronizar escribe el avance de ayer.
-- **2 antes que 3**: adoptar convierte las filas del coordinador en fijaciones.
-  Sin eso, el motor recalcula el reparto entero en cada publicación y mueve
-  asignaciones ya comunicadas.
+- **2 antes que 3**: sincronizar convierte las filas del coordinador en
+  fijaciones. Sin eso, el motor recalcula el reparto entero en cada publicación y
+  mueve asignaciones ya comunicadas.
+- **2 después de 1**: el ESTADO se deriva de lo que la plataforma ya demostró.
 - **3 lee antes de escribir.** La publicación importa las cuatro hojas del
   equipo ANTES de tocar nada (`lectura_previa` en el recibo). El día que no lo
   hacía, los partes que el encargado tecleaba eran invisibles para la app.
-- **4 al final**: el ESTADO se deriva de lo que la plataforma ya demostró, así
-  que necesita el paso 1 hecho.
 
 ## Qué hace cada paso, en concreto
 
@@ -117,19 +130,49 @@ Por qué ese orden y no otro:
 | Sincronizar | `POST /api/monitoreo/sync` | sólo el estado de la app |
 | Leer distribución | `POST /api/monitoreo/aulas/leer-distribucion` | nada: sólo lee |
 | Adoptar | `POST /api/monitoreo/aulas/adoptar-distribucion` | el reparto de la app |
-| Publicar libro | `POST /api/monitoreo/aulas/publicar-libro` | las 5 hojas de la app |
+| **Sincronizar** | `POST /api/monitoreo/aulas/sincronizar-distribucion` | el reparto **y** la hoja |
+| Publicar libro | `POST /api/monitoreo/aulas/publicar-libro` | las 6 hojas de la app |
 | Tablas para la app | `GET /api/monitoreo/aulas/avance-tablas` | nada: sólo lee |
 
 `leer-distribucion` y `avance-tablas` no escriben en ningún sitio: se pueden
-llamar cuando se quiera.
+llamar cuando se quiera. `sincronizar-distribucion` sin `aplicar` tampoco.
+
+**Publicar la distribución se NIEGA cuando la hoja ya tiene citas escritas**
+(`E_AULAS_DISTRIBUCION_CON_DUENO`). Nació para sembrar el documento, cuando la
+app era su única autora; desde que el coordinador edita ahí, publicar encima
+borraría su trabajo de un request. Para eso está sincronizar.
+
+**La ventana por defecto de sincronizar es la del REPARTO, nunca «todo».** Fuera
+de su rango lo agendado está aplazado a propósito: sin acotar, el 08/09 proponía
+añadir 28 filas de las semanas 2 a 4 que nadie había pedido.
 
 ## Lo que la app NO hace todavía
 
-- **El cruce agenda ↔ distribución no es automático.** Hoy se corre a mano y
-  contesta la pregunta que importa: ¿hay aulas agendadas a las que no va nadie?
-  El 08/09 había seis.
-- **Añadir las filas que faltan tampoco.** Se hizo con un script.
 - **Nada corre solo.** No hay tarea programada: cada paso lo dispara una persona.
+- **La columna `AULA UTILIZADA` no está en el libro VIVO.** Existe en el motor
+  desde hace semanas, pegada a `STATUS MUESTRA`, y es la que dice CON CUÁL
+  —«reemplazada por», «complementada con», «reforzada con» terminan en
+  preposición por eso—. El documento en uso se generó antes de que existiera:
+  sus bloques miden una columna menos.
+
+## Lo que la app ya SÍ hace, y antes no (2026-09-09)
+
+- **El cruce agenda ↔ distribución.** ¿Hay aulas agendadas a las que no va nadie?
+  El 08/09 había seis y hubo que cruzarlo a mano. Ahora sale en el tablero con
+  sus códigos, y un hueco manda sobre «el Sheets está al día»: son dos preguntas
+  distintas y ésta es la que deja a alguien sin ir. `no_cubiertos` NO la
+  contestaba: sólo lista las citas que ENTRARON al reparto y no hallaron a quién.
+- **Añadir las filas que faltan y refrescar el ESTADO**, con el aplicador en
+  blanco para que lo decida una persona, y sin pisar lo que el equipo tecleó.
+  Una `RECHAZADA` no asciende nunca aunque lleguen respuestas: se declara como
+  conflicto para que alguien lo mire.
+- **Mirar las filas que YA están.** Una fecha que no parsea, una fila fuera del
+  rango de su hoja o una sin curso-horario se dicen en el recibo. No se
+  corrigen: son datos del coordinador.
+
+**Por qué el aviso de filas dudosas vive en el recibo y no en el tablero**: el
+tablero es una computación CACHEADA y sin red, y esas filas están en el
+documento remoto. No es una preferencia de diseño, es de dónde sale el dato.
 
 ## Trampas que ya costaron tiempo
 
