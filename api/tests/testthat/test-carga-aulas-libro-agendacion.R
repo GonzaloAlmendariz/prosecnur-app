@@ -116,3 +116,80 @@ test_that("las cuatro tablas llevan exactamente las columnas del vocabulario", {
   vacio <- aulas_libro_agendacion(list())
   expect_true(all(vapply(vacio, is.null, logical(1))))
 })
+
+# --- la pestaña ---------------------------------------------------------------
+
+test_that("la hoja sale con sus cuatro bloques, cada uno con su título y su vacío declarado", {
+  plan <- list(
+    .calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"),
+    .calan_u("CH 2", estado = "rechazo")
+  )
+  rows <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(plan))
+  texto <- vapply(rows, function(r) {
+    v <- r[[1]] %||% ""
+    if (is.numeric(v)) format(v) else as.character(v)
+  }, character(1))
+  expect_identical(texto[[1]], "Avance de agendación")
+  # Los cuatro títulos, en el orden de lectura: el resumen de la semana antes
+  # que el detalle del día.
+  posiciones <- vapply(unname(AULAS_AGENDACION_TITULOS), function(t) {
+    which(texto == t)[[1]]
+  }, integer(1))
+  expect_true(all(diff(posiciones) > 0))
+  expect_identical(names(AULAS_AGENDACION_TITULOS)[order(posiciones)],
+                   c("facultad", "semana", "dia", "eslabon"))
+})
+
+test_that("las cifras viajan como NÚMEROS, no como texto", {
+  # Sobre texto no hay numFmt que aplicar ni columna que se pueda ordenar o
+  # sumar en el propio Sheets. Es la misma decisión que «Avance de campo» tomó
+  # el 2026-09-08.
+  plan <- list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"))
+  rows <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(plan))
+  cab <- which(vapply(rows, function(r) {
+    identical(as.character(r[[1]] %||% ""), "Facultad")
+  }, logical(1)))
+  expect_length(cab, 1L)
+  fila <- rows[[cab + 1L]]
+  expect_true(is.character(fila[[1]]))
+  expect_true(is.numeric(fila[[2]]))
+  expect_identical(fila[[2]], 1)
+})
+
+test_that("el corte NO sale del reloj: sin fecha agendada lo declara", {
+  # Si leyera `Sys.Date()`, dos publicaciones del MISMO estado en días distintos
+  # darían hashes distintos y la pestaña se reescribiría sin que nada cambie.
+  rows <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(list(.calan_u("CH 1"))))
+  expect_match(as.character(rows[[2]][[1]]), "Todavía no hay ninguna aula con fecha agendada")
+  rows2 <- aulas_libro_hoja_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-11"))))
+  expect_match(as.character(rows2[[2]][[1]]), "11/09", fixed = TRUE)
+})
+
+test_that("el formato pone banda a los títulos y a las cabeceras, y nada de color por valor", {
+  plan <- list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"))
+  rows <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(plan))
+  reqs <- aulas_libro_agendacion_formato_requests(111L, rows)
+  expect_gt(length(reqs), 0L)
+  tipos <- vapply(reqs, function(r) names(r)[[1]], character(1))
+  # Ni una regla condicional: todas sus columnas son conteos, y una escala sobre
+  # un conteo diría que veinte aulas agendadas es «mejor» que dos.
+  expect_false("addConditionalFormatRule" %in% tipos)
+  expect_true(all(tipos %in% c("repeatCell", "updateDimensionProperties")))
+  # Una banda por cada uno de los cinco títulos (la portada y los cuatro
+  # bloques), aunque una tabla salga vacía.
+  bandas <- Filter(function(r) {
+    !is.null(r$repeatCell$cell$userEnteredFormat$backgroundColor) &&
+      identical(r$repeatCell$range$startColumnIndex, 0L) &&
+      isTRUE(r$repeatCell$range$endRowIndex - r$repeatCell$range$startRowIndex == 1L)
+  }, reqs)
+  expect_gte(length(bandas), 5L)
+})
+
+test_that("la cabecera se reconoce por la fila ENTERA, no por su primera celda", {
+  # «Agendación por semana» y «Agendación por día» comparten cinco columnas; con
+  # la primera celda, la del día se leería como la de la semana.
+  expect_identical(prosecnurapp:::.calan_tabla_de_cabecera(AULAS_AGENDACION_CABECERAS$semana), "semana")
+  expect_identical(prosecnurapp:::.calan_tabla_de_cabecera(AULAS_AGENDACION_CABECERAS$dia), "dia")
+  expect_identical(prosecnurapp:::.calan_tabla_de_cabecera(c("Semana", "Otra cosa")), "")
+})

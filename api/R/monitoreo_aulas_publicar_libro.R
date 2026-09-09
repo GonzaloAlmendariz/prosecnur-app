@@ -137,7 +137,14 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # jamás `respetada`) y comparten el trato de delta+reasserción. «Avance de
 # campo» (B2.2) es la tercera: la hoja de indicadores que el xlsx escribe
 # imperativa llega a Sheets por `aulas_libro_hoja_avance()`.
-.malp_hojas_app <- function() c(.malp_hoja_control(), .malp_hoja_plan_dia(), .malp_hoja_avance())
+# Dictado 2026-09-08: «me gustaría que Tabla dinámica 2 se vuelva una hoja que la
+# app pueda producir en base a lo agendado». SEXTA hoja de la app, y de las que
+# se publican SIEMPRE: no depende de la disponibilidad como la asignación,
+# porque lo que mide —qué está agendado y qué falta por agendar— existe desde el
+# primer día del operativo, antes de que haya nadie repartido.
+.malp_hoja_agendacion <- function() "Avance de agendación"
+.malp_hojas_app <- function() c(.malp_hoja_control(), .malp_hoja_plan_dia(),
+                                .malp_hoja_avance(), .malp_hoja_agendacion())
 
 # Cuántas filas de cabecera lleva cada hoja. Es el MISMO reparto que usa el
 # lector (`aulas_libro_desde_valores`) para las tres con lector —la agenda una,
@@ -282,6 +289,13 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   # fila a fila del contenido (monitoreo_aulas_avance_formato.R).
   if (identical(tab_name, .malp_hoja_avance())) {
     requests <- c(requests, .maaf_requests(sheet_id, rows))
+  }
+  # Y la de agendación con su propio formateador: sus cuatro tablas son conteos,
+  # así que no necesita el numFmt de porcentaje ni las escalas de color del
+  # avance — y reusar aquél obligaría a mezclar los dos vocabularios, que
+  # comparten nombres de clave.
+  if (identical(tab_name, .malp_hoja_agendacion())) {
+    requests <- c(requests, aulas_libro_agendacion_formato_requests(sheet_id, rows))
   }
   # B68: la hoja de asignación con la misma estética — bandas navy para
   # título/días/bloque, cabeceras azul claro, alertas en el rojo suave
@@ -470,6 +484,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                                    cfg = config_reparto),
       extras = extras
     ), actualizado = actualizado)
+  )
+  # «Avance de agendación»: qué se consiguió agendar, con los reemplazos dentro.
+  # Se computa sobre el PLAN COMPLETO y no sobre `unidades` —las que entran al
+  # libro—: para saber si un rechazo ya tiene relevo agendado hace falta la
+  # cadena entera, y las reservas dormidas no entran al libro.
+  producidas[[.malp_hoja_agendacion()]] <- aulas_libro_hoja_agendacion(
+    aulas_libro_agendacion(plan %||% unidades, partes = partes, efectivas = efectivas),
+    actualizado = actualizado
   )
   if (!is.null(valores_asignacion)) {
     producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
