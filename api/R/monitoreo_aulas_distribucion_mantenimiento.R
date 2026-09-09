@@ -221,6 +221,111 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
   )
 }
 
+# --- A2b · qué citas escritas ya no tienen agenda ----------------------------
+
+#' Las citas de la hoja cuya aula ya no está agendada para ese día.
+#'
+#' Es la pregunta INVERSA de `monitoreo_aulas_agendadas_sin_cita()`, y es la
+#' cara cara de las dos: aquélla deja un aula sin nadie, ésta manda a alguien al
+#' campus por un aula que se movió. El 2026-09-09, con las dos hojas leídas en
+#' vivo, había dos: CH 12 seguía citado el 07/09 con la agenda ya en el 14/09, y
+#' CH 74 igual con la suya en el 09/09. Ninguna de las dos la veía nadie:
+#' `monitoreo_aulas_filas_dudosas()` mira la hoja SOLA y esas fechas caen dentro
+#' de su semana, así que para ella no tienen nada de raro; sólo se ven cruzando
+#' con la agenda.
+#'
+#' Tres motivos, y el detalle dice siempre a qué atenerse:
+#'
+#' - `aula_movida` — la agenda la tiene agendada, pero en OTRA fecha. El detalle
+#'   trae la fecha nueva. Es la reagendación que dejó su fila vieja detrás.
+#' - `ya_no_agendada` — el aula sigue en el plan y su status ya no es
+#'   `agendada` ni `reagendada` (una rechazada, por ejemplo). El detalle trae el
+#'   status de hoy.
+#' - `sin_plan` — el curso-horario no aparece en el plan. Puede ser una fila
+#'   tecleada a mano con el código mal escrito.
+#'
+#' **Lo aplicado NO entra**, y se reconoce por DOS sitios porque el estado de
+#' aplicación no vive en el plan: la columna ESTADO de la propia fila (que es lo
+#' que `monitoreo_aulas_estados_distribucion()` mantiene) y los códigos que
+#' llegan en `aplicadas`. El `sample_status` del plan NUNCA dice «aplicada»
+#' —su vocabulario es `sin_contactar`, `en_contacto`, `agendada`, `reagendada`,
+#' `rechazo`, `en_reserva`, `reemplazada`—, así que buscarlo ahí es mirar donde
+#' no está. Una cita cuya aula ya se aplicó cumplió su función y su fila es el
+#' registro de que alguien fue; llamarla huérfana diría que sobra justo la fila
+#' que prueba el trabajo hecho.
+#'
+#' **Y esto no borra ni propone borrar nada.** Son filas del coordinador: la
+#' hoja las dice y él decide. Quitar una fila por nuestra cuenta es decidir por
+#' él sobre su fila, que es la misma razón por la que `dudosas` tampoco toca.
+#'
+#' @param plan filas del plan.
+#' @param filas_remotas los valores de la hoja (cabecera incluida).
+#' @param aplicadas códigos operativos que constan aplicados.
+#' @param desde,hasta ventana de fechas ISO; `""` no acota.
+#' @return lista de `{fila, curso_horario, fecha, motivo, detalle}`.
+#' @export
+monitoreo_aulas_citas_sin_agenda <- function(plan, filas_remotas,
+                                             aplicadas = character(0),
+                                             desde = "", hasta = "") {
+  cab <- .madm_cabecera(filas_remotas)
+  .madm_exigir_legible(cab)
+  c_cod <- .madm_col(cab, "CURSO-HORARIO")
+  c_fecha <- .madm_col(cab, "FECHA")
+  c_estado <- .madm_col(cab, "ESTADO")
+  # `.alpa_txt()` es ESCALAR (toma `[1]`): usarlo aquí colapsaba la lista a su
+  # primer código y las demás aulas aplicadas salían declaradas huérfanas.
+  aplicadas <- unique(trimws(as.character(aplicadas %||% character(0))))
+  d0 <- .mav_fecha(desde); d1 <- .mav_fecha(hasta)
+
+  # La agenda de hoy, por curso-horario. Un código repetido en el plan (titular
+  # y su reserva comparten nada, pero el plan puede traer la misma fila dos
+  # veces) se queda con la PRIMERA: leer dos veces el mismo código y quedarse
+  # con la última haría depender la respuesta del orden del plan.
+  agenda <- list()
+  for (u in .madm_unidades(plan)) {
+    cod <- .alpa_txt(u[["operational_code"]])
+    if (!nzchar(cod) || !is.null(agenda[[cod]])) next
+    agenda[[cod]] <- list(
+      fecha = .mav_fecha(u[["scheduled_date"]]),
+      estado = monitoreo_aulas_estado_muestra(u[["sample_status"]])
+    )
+  }
+
+  filas <- if (length(filas_remotas) > 1L) filas_remotas[-1L] else list()
+  salida <- list()
+  for (i in seq_along(filas)) {
+    v <- .madc_valores(filas[[i]], length(.alpa_CABECERA))
+    cod <- .madm_celda(v, c_cod)
+    if (!nzchar(cod)) next                      # eso lo dice `filas_dudosas`
+    fecha <- .madm_fecha_de_la_hoja(.madm_celda(v, c_fecha), desde)
+    if (!nzchar(fecha)) next                    # ídem: fecha ilegible es suya
+    if (nzchar(d0) && fecha < d0) next
+    if (nzchar(d1) && fecha > d1) next
+    if (cod %in% aplicadas) next
+    if (toupper(.madm_celda(v, c_estado)) %in% toupper(.madm_APLICADOS)) next
+
+    a <- agenda[[cod]]
+    if (is.null(a)) {
+      salida[[length(salida) + 1L]] <- list(
+        fila = i + 1L, curso_horario = cod, fecha = fecha,
+        motivo = "sin_plan", detalle = "")
+      next
+    }
+    if (!(a$estado %in% .madm_AGENDADOS)) {
+      salida[[length(salida) + 1L]] <- list(
+        fila = i + 1L, curso_horario = cod, fecha = fecha,
+        motivo = "ya_no_agendada", detalle = a$estado)
+      next
+    }
+    if (nzchar(a$fecha) && !identical(a$fecha, fecha)) {
+      salida[[length(salida) + 1L]] <- list(
+        fila = i + 1L, curso_horario = cod, fecha = fecha,
+        motivo = "aula_movida", detalle = a$fecha)
+    }
+  }
+  salida
+}
+
 # --- A3 · dónde va cada fila nueva -------------------------------------------
 
 #' En qué fila de la hoja entra cada aula que falta.
@@ -654,6 +759,16 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
                                     hasta = faltan$ventana$hasta),
       error = function(e) list()
     ),
+    # La inversa de `anadidas`, y la cara cara: una cita escrita cuya aula ya no
+    # está agendada ese día manda a alguien al campus por un aula que se movió.
+    # Va con la MISMA ventana que todo lo demás del recibo; sin acotar contesta
+    # por semanas que esta hoja no rige.
+    sin_agenda = tryCatch(
+      monitoreo_aulas_citas_sin_agenda(plan, remoto, aplicadas = aplicadas,
+                                       desde = faltan$ventana$desde,
+                                       hasta = faltan$ventana$hasta),
+      error = function(e) list()
+    ),
     ventana = faltan$ventana,
     # La columna que el equipo teclea: si la hoja aún no la tiene, esta acción
     # la crea en su sitio con su desplegable y sus colores.
@@ -871,6 +986,7 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   n_sin <- length(out$sin_aplicador %||% list())
   n_con <- length((out$estado %||% list())$conflictos %||% list())
   n_dud <- length(out$dudosas %||% list())
+  n_orf <- length(out$sin_agenda %||% list())
   hecho <- isTRUE(out$aplicado)
   partes <- c(
     if (n_add) sprintf("%s %d aula%s agendada%s que no tenía cita",
@@ -888,7 +1004,24 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
                        if (n_dud == 1L) "" else "n",
                        paste(unique(vapply(out$dudosas, function(d) {
                          sprintf("%s: %s", d$curso_horario %||% "?", d$motivo %||% "?")
-                       }, character(1))), collapse = "; "))
+                       }, character(1))), collapse = "; ")),
+    # La cara cara de «se añadirían»: una cita cuya aula se movió manda a
+    # alguien al campus por un aula que ya no está ahí ese día. Se dice CON la
+    # fecha nueva, que es lo que hace falta para decidir; sin ella hay que ir a
+    # buscarla al libro. Tampoco se toca: son filas del coordinador.
+    if (n_orf) sprintf("%d cita%s escrita%s ya no tiene%s su aula agendada ese día (%s)",
+                       n_orf, if (n_orf == 1L) "" else "s", if (n_orf == 1L) "" else "s",
+                       if (n_orf == 1L) "" else "n",
+                       paste(vapply(out$sin_agenda, function(o) {
+                         d <- .alpa_txt(o$detalle)
+                         sprintf("%s el %s%s", .alpa_txt(o$curso_horario, "?"),
+                                 .alpa_txt(o$fecha, "?"),
+                                 switch(.alpa_txt(o$motivo),
+                                        aula_movida = paste0(", ahora el ", d),
+                                        ya_no_agendada = paste0(", ahora ", d),
+                                        sin_plan = ", que el plan no conoce",
+                                        ""))
+                       }, character(1)), collapse = "; "))
   )
   cabeza <- if (!length(partes)) {
     if (hecho) "No hizo falta cambiar nada." else "No haría falta cambiar nada."
