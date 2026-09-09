@@ -1706,6 +1706,51 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # copias. Antes esta linea solo miraba `classroom_id`, asi que brechas,
   # estratos y reemplazos se calculaban sobre ceros.
   plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
+
+  # **La tasa prevista de la FACULTAD, que el plan declara y nunca traia.**
+  #
+  # `tasa_facultad` existe en el esquema del plan y su contrato dice que la vara
+  # agregada «viaja al lado en `tasa_facultad`, tal como la trae la fila del
+  # plan». Medido sobre HSVG26ULT2 el 2026-09-08: viene VACIA en las 174 filas
+  # M1, igual que `efectividad_tau`. Solo `tasa_efectividad_aula` —la del propio
+  # curso-horario— llega llena.
+  #
+  # La consecuencia se veia en pantalla: la tabla de «Cada curso-horario contra
+  # su propio margen» promete una columna «Prevista de su facultad» y la pintaba
+  # en blanco en todas sus filas. Y esa columna no es decoracion; su panel
+  # explica por que estan las dos varas juntas: «un curso-horario bajo su propia
+  # meta tuvo un problema; uno bajo la de su facultad pero sobre la suya solo es
+  # mas grande que el promedio».
+  #
+  # No se puede derivar del plan: dentro de una misma facultad las tasas por
+  # curso-horario difieren (0,519 y 0,64 en Ciencias e Ingenieria), asi que la de
+  # la facultad es un agregado del DISEÑO, no un promedio de filas. Sale de la
+  # misma vigencia que usa `efectividad_seguimiento` para su `tau_previsto`, que
+  # es funcion pura de `cfg`. Se rellena AQUI —donde el plan se enriquece— y no
+  # en cada consumidor: la columna ya existe para esto y asi la reciben todos.
+  local({
+    vig <- .monitoreo_aulas_avance_vigencia(cfg)
+    taus <- list()
+    for (f in vig$facultades) {
+      if (!is.list(f)) next
+      k <- .monitoreo_scalar(f$faculty_key, "")
+      if (!nzchar(k)) k <- .cm_criterios_fac_key(.monitoreo_scalar(f$facultad, ""))
+      tau <- .monitoreo_num(f$tau, NA_real_)
+      if (nzchar(k) && is.finite(tau)) taus[[k]] <- tau
+    }
+    if (!length(taus) || !nrow(plan_df)) return(invisible(NULL))
+    # Lo YA declarado manda: si una fila trae su propia `tasa_facultad`, se
+    # respeta. Esto rellena el hueco, no pisa un dato del plan.
+    actual <- suppressWarnings(as.numeric(plan_df$tasa_facultad %||% rep(NA_real_, nrow(plan_df))))
+    claves <- vapply(as.character(plan_df$faculty %||% rep("", nrow(plan_df))),
+                     function(x) .cm_criterios_fac_key(x), character(1), USE.NAMES = FALSE)
+    desde_diseno <- vapply(claves, function(k) {
+      v <- if (nzchar(k)) taus[[k]] else NULL
+      if (is.null(v)) NA_real_ else as.numeric(v)
+    }, numeric(1), USE.NAMES = FALSE)
+    plan_df$tasa_facultad <<- ifelse(is.finite(actual), actual, desde_diseno)
+    invisible(NULL)
+  })
   # **La fecha de aplicacion sale de la PLATAFORMA, no del parte de campo.**
   #
   # Aqui es donde tiene que ir: `plan_df` es lo que alimenta la agenda y con
