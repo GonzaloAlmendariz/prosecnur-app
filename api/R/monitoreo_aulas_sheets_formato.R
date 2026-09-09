@@ -68,6 +68,53 @@
   1L + (b - 1L) * .mafs_ancho_agenda(con_daa) + idx[[1]]
 }
 
+# Columna (1-based) de un campo ESPEJADO de la agenda dentro del bloque `b` de
+# «Aulas Aplicadas (Campo)». No es `.mafs_col_agenda()`: allá el paso entre
+# bloques es el ancho de la agenda y aquí es el del campo, que además incluye
+# los títulos del parte. Con el paso equivocado, el bloque R1 caería catorce
+# columnas a la izquierda y la regla teñiría la columna de al lado.
+.mafs_col_campo_agenda <- function(campo, b) {
+  idx <- which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) identical(s$campo, campo), logical(1)))
+  (b - 1L) * .mafs_ancho_campo() + 1L + idx[[1]]
+}
+
+# El formato de número de una columna entera de datos.
+#
+# **Una fecha sin `numberFormat` es una bomba de relojería.** Sheets la enseña
+# bien mientras nadie la reescriba: la primera vez que el valor vuelve a entrar
+# como número —una reordenación, una migración— la celda pasa a enseñar el
+# número de serie («46273») y no hay forma de saber, mirando la hoja, si se
+# perdió el dato o sólo su cara. Pasó el 2026-09-08 en 243 celdas del libro del
+# operativo. Declararlo cuesta una request por columna.
+.mafs_formato_numero_request <- function(sheet_id, col, desde, hasta, nf) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(desde), endRowIndex = as.integer(hasta),
+      startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)
+    ),
+    cell = list(userEnteredFormat = list(numberFormat = nf)),
+    fields = "userEnteredFormat.numberFormat"
+  ))
+}
+
+.mafs_NF_FECHA <- list(type = "DATE", pattern = "dd/mm/yyyy")
+.mafs_NF_PORCENTAJE <- list(type = "PERCENT", pattern = "0%")
+
+# Los tonos de STATUS MUESTRA, en UN solo sitio.
+#
+# Se pintan en las dos hojas —donde se teclea y donde se espeja— y con dos
+# listas separadas bastaba con tocar una para que el mismo estado saliera de dos
+# colores en el mismo libro. El orden importa: `contains` sobre la celda, y el
+# índice menor gana.
+.mafs_REGLAS_STATUS_MUESTRA <- list(
+  list(texto = "AGENDADA", fondo = "#E3F3E8", tinta = "#155E2E"),
+  list(texto = "EN CONTACTO", fondo = "#FDF3D8", tinta = "#7A5B12"),
+  list(texto = "RECHAZO", fondo = "#FDE7E7", tinta = "#8A1C1C"),
+  list(texto = "EN RESERVA", fondo = "#E7EEF9", tinta = "#1B4B8F"),
+  list(texto = "REEMPLAZADA", fondo = "#EEF0F3", tinta = "#5B6472")
+)
+
 # Columna (1-based) de un título del parte de campo en el intento `b`.
 .mafs_col_campo <- function(titulo, b) {
   (b - 1L) * .mafs_ancho_campo() + 1L + AULAS_AGENDADAS_ANCHO_BLOQUE +
@@ -255,18 +302,21 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
         # RESERVA» y «REEMPLAZADA» se quedan aunque el desplegable ya no las
         # ofrezca: los libros vivos v3 las traen escritas y la regla es
         # `contains` sobre la celda, no sobre la lista de hoy.
-        reglas <- list(
-          list(texto = "AGENDADA", fondo = "#E3F3E8", tinta = "#155E2E"),
-          list(texto = "EN CONTACTO", fondo = "#FDF3D8", tinta = "#7A5B12"),
-          list(texto = "RECHAZO", fondo = "#FDE7E7", tinta = "#8A1C1C"),
-          list(texto = "EN RESERVA", fondo = "#E7EEF9", tinta = "#1B4B8F"),
-          list(texto = "REEMPLAZADA", fondo = "#EEF0F3", tinta = "#5B6472")
-        )
+        reglas <- .mafs_REGLAS_STATUS_MUESTRA
         for (i in seq_along(reglas)) {
           requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
             sheet_id, cols_status, cabeceras, n_filas,
             reglas[[i]]$texto, reglas[[i]]$fondo, reglas[[i]]$tinta, i - 1L
           )
+        }
+      }
+      # Las dos fechas de cada bloque, con su formato declarado.
+      for (campo in c("contact_date", "scheduled_date")) {
+        for (b in seq_len(bloques)) {
+          col <- .mafs_col_agenda(campo, b, con_daa)
+          if (col > n_cols) next
+          requests[[length(requests) + 1L]] <- .mafs_formato_numero_request(
+            sheet_id, col, cabeceras, n_filas, .mafs_NF_FECHA)
         }
       }
     } else if (identical(hoja, "Aulas Aplicadas (Campo)")) {
@@ -283,6 +333,36 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
           requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
             sheet_id, cols_status, cabeceras, n_filas,
             reglas[[i]]$texto, reglas[[i]]$fondo, reglas[[i]]$tinta, i - 1L
+          )
+        }
+      }
+      # **Lo que esta hoja ESPEJA de la agenda venía sin color** (Gonzalo,
+      # 2026-09-08): «toda la información que Aulas Aplicadas jala de Aulas
+      # Agendadas la jala sin formato de color, aunque sea para poder
+      # distinguir bien». Y es cierto que se distinguía mal: en Agendadas el
+      # estado se lee de un vistazo por el color, y al lado, en la hoja donde
+      # de verdad se trabaja, la misma palabra salía en negro sobre blanco.
+      #
+      # `TO_TEXT` copia el valor, no el formato: el color no viaja con la
+      # fórmula y hay que ponerlo aquí. Se pone con LAS MISMAS reglas, que por
+      # eso viven en una constante y no en dos listas.
+      # El porcentaje de asistencia es una PROPORCIÓN, y sin su formato sale
+      # «0,7333333333» en una hoja que la gente lee de un vistazo.
+      for (b in seq_len(bloques)) {
+        col <- .mafs_col_campo("% ASISTENCIA", b)
+        if (col > n_cols) next
+        requests[[length(requests) + 1L]] <- .mafs_formato_numero_request(
+          sheet_id, col, cabeceras, n_filas, .mafs_NF_PORCENTAJE)
+      }
+      cols_espejo <- vapply(seq_len(bloques),
+                            function(b) .mafs_col_campo_agenda("sample_status", b),
+                            integer(1))
+      cols_espejo <- cols_espejo[cols_espejo <= n_cols]
+      if (length(cols_espejo)) {
+        for (i in seq_along(.mafs_REGLAS_STATUS_MUESTRA)) {
+          r <- .mafs_REGLAS_STATUS_MUESTRA[[i]]
+          requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
+            sheet_id, cols_espejo, cabeceras, n_filas, r$texto, r$fondo, r$tinta, i - 1L
           )
         }
       }

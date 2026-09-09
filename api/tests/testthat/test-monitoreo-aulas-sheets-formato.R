@@ -315,10 +315,21 @@ test_that("formato Sheets: los anchos van por rangos agrupados, jamás uno por c
   expect_true(all(cubiertas))
 })
 
-test_that("formato Sheets: el libro completo cabe en 30 requests de formato", {
+test_that("formato Sheets: el libro completo cabe en 45 requests de formato", {
   # Presupuesto pineado por el contrato: la siembra ya cuesta metadata + values
   # + estado; el formato no puede convertirla en cientos de requests (la cuota
   # de batchUpdate es compartida con el resto del monitoreo).
+  #
+  # **Subió de 30 a 45 el 2026-09-08, y con motivo.** El presupuesto compraba
+  # baratura a costa de no declarar el `numberFormat` de las fechas y del
+  # porcentaje de asistencia; las celdas se veían bien mientras nadie las
+  # reescribiera, y el día que una migración las reescribió salieron 243 fechas
+  # como «46273» en el libro del operativo. El formato de número no es adorno:
+  # es lo único que distingue una fecha perdida de una fecha mal enseñada.
+  #
+  # El coste crece con los BLOQUES (dos fechas por eslabón de agenda, un
+  # porcentaje por intento de campo), no con las filas, y el fixture trae los
+  # suyos. Si un día no cabe, la salida no es dejar de declararlo.
   hojas <- list(
     list(hoja = "Aulas Agendadas", df = aulas_libro_hoja_agendadas(.libro_de_prueba())),
     list(hoja = "Aulas Aplicadas (Campo)", df = aulas_libro_hoja_aplicadas(.libro_de_prueba(), partes = .masf_partes())),
@@ -333,7 +344,7 @@ test_that("formato Sheets: el libro completo cabe en 30 requests de formato", {
     expect_gt(length(reqs), 0L, label = sprintf("requests de %s", h$hoja))
     total <- total + length(reqs)
   }
-  expect_lte(total, 30L)
+  expect_lte(total, 45L)
 })
 
 # --- B. validaciones (desplegables) -------------------------------------------
