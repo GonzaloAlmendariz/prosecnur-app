@@ -238,3 +238,44 @@ test_that("S7: el tablero expone la huella del reparto vigente, la misma que dej
   expect_identical(d$reparto$distribucion$huella, out$huella)
   expect_identical(d$reparto$distribucion$citas, out$citas)
 })
+
+# --- Una distribución con dueño no se sobrescribe ----------------------------
+#
+# `monitoreo_aulas_publicar_distribucion()` nació para SEMBRAR el documento,
+# cuando la pestaña estaba vacía y la app era su única autora. El 2026-09-08
+# dejó de serlo: el coordinador editaba ahí en vivo y llevaba 33 cambios de
+# aplicador y tres reagendaciones. Publicar encima los habría borrado de un
+# request, y es la llamada que se hace sin pensar («republico y ya»).
+
+test_that("publicar la distribución se niega cuando la pestaña ya tiene citas", {
+  mock <- .sheets_api_mock()
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod) as.list(c("Aplicador Uno", "Lunes", "07/09", "09:30", "09:45",
+                                  "10:00 a 10:30", cod, "A101", "Ciencias", "Cálculo",
+                                  "Docente Uno", "POR APLICAR"))
+  mock$seed("Semana 1", values = list(cab, fila("CH 1"), fila("CH 2")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  err <- tryCatch(
+    monitoreo_aulas_publicar_distribucion("sheet_dist", plan = .mapd_plan(),
+                                          disponibilidad = .mapd_disp()),
+    api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_AULAS_DISTRIBUCION_CON_DUENO")
+  # El mensaje dice qué hacer en su lugar, no sólo que no.
+  expect_match(conditionMessage(err), "Adopta la distribución")
+  expect_match(conditionMessage(err), "Semana 1", fixed = TRUE)
+  # Y no se escribió ni un values sobre el documento.
+  escrituras <- Filter(function(c) grepl("values", c$url) && !identical(c$method, "GET"),
+                       mock$env$calls)
+  expect_length(escrituras, 0L)
+})
+
+test_that("un documento vacío sí se siembra: la guarda protege el trabajo, no el flujo", {
+  mock <- .sheets_api_mock()
+  mock$seed("Plan del día", values = list())
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_publicar_distribucion("sheet_dist", plan = .mapd_plan(),
+                                               disponibilidad = .mapd_disp())
+  expect_true(isTRUE(out$ok))
+  expect_gt(out$citas, 0L)
+})
