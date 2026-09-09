@@ -498,3 +498,22 @@ describe("la escala de una columna no la deciden sus ceros", () => {
     expect(escalaDeProporciones(filas).has("quota_pct")).toBe(false);
   });
 });
+
+describe("el porcentaje de las tablas lleva su decimal, como el resto del perfil", () => {
+  it("un cero se escribe «0.0 %», no «0 %»", () => {
+    // Medido en `avance/estratos` el 2026-09-08: la misma columna decía «9.3 %»
+    // en una fila y «0 %» en la siguiente, porque `Intl` con sólo
+    // `maximumFractionDigits` quita el decimal cuando es cero. Es el último
+    // superviviente del defecto que se corrigió en los paneles unificando todo a
+    // `pctPerfil`.
+    const [fila] = [{ avance_respuestas_pct: 0 }, { avance_respuestas_pct: 9.3 }]
+      .map((f) => presentAulasRow(f, new Set()));
+    expect(String(fila.avance_respuestas_pct)).toBe("0.0 %");
+  });
+
+  it("y un valor con decimal no cambia", () => {
+    const filas = [{ avance_respuestas_pct: 0 }, { avance_respuestas_pct: 9.3 }]
+      .map((f) => presentAulasRow(f, new Set()));
+    expect(String(filas[1].avance_respuestas_pct)).toBe("9.3 %");
+  });
+});
