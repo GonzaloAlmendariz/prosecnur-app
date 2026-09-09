@@ -41,7 +41,13 @@ export function AulasTablasDeAvance(): ReactNode {
         const res = await apiMonitoreoAulasAvanceTablas();
         if (!vivo) return;
         setTablas(res.tablas ?? []);
-        setCorte(res.titular || res.corte || "");
+        // **El CORTE primero, no el titular.** Se prefería el titular y salía la
+        // misma frase dos veces con tres líneas de por medio: como línea de la
+        // sección y como nota de «Avance general», que es de donde sale. Encima
+        // tapaba lo único que no dice ninguna tabla, que es a qué día y a qué
+        // hora corresponde lo que se está mirando. Visto en pantalla el
+        // 2026-09-09; es la misma avería que Gonzalo señaló en Metas.
+        setCorte(res.corte || res.titular || "");
       } catch (e) {
         if (vivo) setError((e as Error).message);
       }
