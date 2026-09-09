@@ -445,7 +445,7 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
   filas <- if (length(filas_remotas) > 1L) filas_remotas[-1L] else list()
   n <- length(filas)
   estados <- character(n); previos <- character(n)
-  cambios <- list(); conflictos <- list()
+  cambios <- list(); observaciones <- list()
   aplicadas <- as.character(aplicadas %||% character(0))
 
   for (i in seq_len(n)) {
@@ -454,6 +454,34 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
     previo <- toupper(trimws(.madm_celda(v, c_estado)))
     previos[[i]] <- previo
 
+    # **La celda escrita se conserva SIEMPRE. La app sólo siembra la vacía.**
+    #
+    # Es la regla de Gonzalo, textual (2026-09-09): «el status de aplicada es
+    # manual y lo hace el aplicador, no la app; la app solo pone por defecto POR
+    # APLICAR al construir, punto».
+    #
+    # Antes la app PROPONÍA el estado y lo escribía cuando le parecía un
+    # ascenso: si un código constaba aplicado —por plataforma o por parte de
+    # campo— ponía APLICADA, y si la fecha se había movido ponía REAGENDADA. Eso
+    # convirtió una columna de la persona en una columna de la app, y el daño se
+    # vio el mismo día: CH 111 y CH 82, agendadas para el VIERNES 11 y con cero
+    # respuestas, quedaron marcadas APLICADA porque un parte de campo estaba
+    # tecleado en la fila de al lado. La hoja que el equipo lee para saber a
+    # dónde ir decía que dos aulas del futuro ya estaban hechas, y alguien podía
+    # dejar de ir.
+    #
+    # Lo que la app sabe NO se pierde: sigue saliendo en el recibo como
+    # observación, que es donde una discrepancia se lee sin que nadie la
+    # escriba encima.
+    final <- if (nzchar(previo)) previo else "POR APLICAR"
+    estados[[i]] <- final
+    if (!identical(final, previo)) {
+      cambios[[length(cambios) + 1L]] <- list(
+        curso_horario = cod, fila = i + 1L, antes = previo, ahora = final
+      )
+    }
+
+    # Lo que la app ve y la fila no dice. Se OBSERVA, no se escribe.
     dicha <- .madm_celda(v, c_fecha)
     iso_agenda <- if (nzchar(cod) && cod %in% names(fecha_agenda)) {
       .mav_fecha(fecha_agenda[[cod]])
@@ -461,39 +489,24 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
       ""
     }
     corta_agenda <- if (nzchar(iso_agenda)) .alpa_dia_y_fecha(iso_agenda)$fecha else ""
-    movida <- nzchar(dicha) && nzchar(corta_agenda) && !identical(dicha, corta_agenda)
-    aplicada <- nzchar(cod) && cod %in% aplicadas
-
-    propuesto <- if (aplicada) {
-      if (movida || identical(previo, "REAGENDADA")) .madm_APLICADOS[[2L]] else .madm_APLICADOS[[1L]]
-    } else if (movida) {
-      "REAGENDADA"
-    } else {
-      "POR APLICAR"
+    if (nzchar(dicha) && nzchar(corta_agenda) && !identical(dicha, corta_agenda)) {
+      observaciones[[length(observaciones) + 1L]] <- list(
+        curso_horario = cod, fila = i + 1L, motivo = "fecha_movida",
+        detalle = sprintf("la agenda la tiene el %s", corta_agenda)
+      )
     }
-
-    final <- propuesto
-    if (nzchar(previo) && !identical(previo, propuesto)) {
-      asciende <- propuesto %in% .madm_APLICADOS && !(previo %in% .madm_APLICADOS)
-      if (identical(previo, "RECHAZADA")) {
-        final <- previo
-        if (propuesto %in% .madm_APLICADOS) {
-          conflictos[[length(conflictos) + 1L]] <- list(
-            curso_horario = cod, fila = i + 1L, tecleado = previo, plataforma = propuesto
-          )
-        }
-      } else if (!asciende) {
-        final <- previo
-      }
-    }
-    estados[[i]] <- final
-    if (!identical(final, previo)) {
-      cambios[[length(cambios) + 1L]] <- list(
-        curso_horario = cod, fila = i + 1L, antes = previo, ahora = final
+    if (nzchar(cod) && cod %in% aplicadas && !(previo %in% .madm_APLICADOS)) {
+      observaciones[[length(observaciones) + 1L]] <- list(
+        curso_horario = cod, fila = i + 1L, motivo = "consta_aplicada",
+        detalle = if (nzchar(previo)) sprintf("la fila dice %s", previo) else "la fila está vacía"
       )
     }
   }
-  list(estados = estados, previos = previos, cambios = cambios, conflictos = conflictos)
+  # `conflictos` se conserva en el retorno por compatibilidad de los llamadores;
+  # con la regla nueva no puede haber conflicto de ESCRITURA, porque la app ya
+  # no escribe sobre lo tecleado. Lo que había ahí ahora vive en `observaciones`.
+  list(estados = estados, previos = previos, cambios = cambios,
+       conflictos = list(), observaciones = observaciones)
 }
 
 # --- A4b · las filas que YA están y no cuadran -------------------------------
@@ -761,7 +774,12 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     citas_despues = max(0L, length(final_filas) - 1L),
     anadidas = faltan$faltantes,
     descartadas = faltan$descartadas,
-    estado = list(cambios = est$cambios, conflictos = est$conflictos),
+    # `observaciones` es lo que la app VE y ya no escribe: un código que consta
+    # aplicado con la fila diciendo otra cosa, o una cita en un día que no es el
+    # de su agenda. Desde que el ESTADO es de la persona, decirlo es todo lo que
+    # la app puede hacer, y callarlo dejaría el desajuste sin dueño.
+    estado = list(cambios = est$cambios, conflictos = est$conflictos,
+                  observaciones = est$observaciones %||% list()),
     fijaciones = fij$fijadas,
     fijaciones_no_reconocidas = list(
       aplicadores = fij$aplicadores_desconocidos,
