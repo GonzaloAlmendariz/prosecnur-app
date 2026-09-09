@@ -412,12 +412,18 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
   # lead, B14): este orden manda tanto en el resumen como en el orden de
   # creacion de pestañas nuevas. Sin extras, el juego es identico al de hoy.
+  # **«Avance de agendación» va PEGADA a «Aulas Agendadas»** (dictado
+  # 2026-09-09: «es una hoja que va después de aulas agendadas»). Es la lectura
+  # de esa hoja, no un informe suelto: se abren juntas, y al final del documento
+  # quedaba a nueve pestañas de lo que mide. Sigue siendo de la APP —está en
+  # `hojas_app`, que es lo que decide el dueño—; aquí sólo cambia dónde nace.
   hojas_libro <- c(
     equipo[[1]],
     if (con_extras) AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
+    .malp_hoja_agendacion(),
     equipo[[2]],
     if (con_extras) AULAS_LIBRO_HOJA_APLICADAS_EXTRA,
-    hojas_app
+    setdiff(hojas_app, .malp_hoja_agendacion())
   )
   # Dueño por hoja: las Extra son del EQUIPO igual que sus contrapartes —
   # siembra unica y `respetada` al republicar (contrato 4 de B14).
