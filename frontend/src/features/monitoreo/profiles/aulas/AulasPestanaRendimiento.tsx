@@ -4,6 +4,7 @@ import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
+import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { graficoDelDia } from "./graficoDelDia";
 import { useTablasDeAvance } from "./useTablasDeAvance";
@@ -64,6 +65,105 @@ export function AulasPestanaRendimiento({
     [tablas, facultadEnFoco],
   );
   if (pestana !== "rendimiento") return null;
+  /* **El ancho lo deciden los DATOS, no un trio fijo.** El comentario original
+     midio «7, 3 y 7 filas» y sobre eso repartio tres columnas iguales. El
+     2026-09-09, con el operativo recien arrancado, eran 5, 1 y 1: el ranking de
+     aplicadores partia cada nombre en CUATRO lineas («Chamorro Rodriguez, Rosa
+     Alejandrin/a») a un tercio de ancho, mientras franja y dia gastaban una
+     columna entera para UNA fila. Gonzalo lo vio y lo dijo en dos palabras: «se
+     ve fatal».
+
+     La regla que sustituye al trio fijo: **una lente con una sola fila no es una
+     comparacion, es un dato.** Si las dos lentes de tiempo comparan (>= 2 filas
+     cada una) vuelve el trio tal como se midio; si no, el ranking se lleva el
+     ancho completo —que es donde los nombres caben— y las dos lentes cortas se
+     reparten una pareja. Ninguna clase nueva: `aulasMonitoreo.css` esta
+     congelado y las dos rejillas ya existen. */
+  const filasDeLaLente = (clave: "franja" | "dia_semana") =>
+    rendimientoPorFacultad(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[], clave).length;
+  const lentesQueComparan = useMemo(
+    () => (filasDeLaLente("franja") >= 2 ? 1 : 0) + (filasDeLaLente("dia_semana") >= 2 ? 1 : 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [partesConFacultad, dashboard.agenda],
+  );
+
+  const panelAplicador = (
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Quién consigue más</h3>
+                <span>encuestas del parte por curso-horario, según quién aplicó</span>
+              </div>
+              <AulasRendimientoPorFacultad
+                partes={partesConFacultad}
+                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                clave="applied_by"
+                unidad="Aplicador"
+                /* Las columnas ya las explica «Qué está rindiendo más», dos paneles
+                   más arriba y en esta misma pantalla. */
+                explicaLasColumnas={false}
+              />
+            </section>
+  );
+
+  const panelFranja = (
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
+                {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
+                    más» y el guard lo tumbó. El título nombra la unidad, que además es
+                    la del libro. */}
+                <h3>Franja horaria del operativo</h3>
+                <span>encuestas del parte por curso-horario, según cuándo se aplicó</span>
+              </div>
+              <AulasRendimientoPorFacultad
+                partes={partesConFacultad}
+                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                clave="franja"
+                unidad="Franja"
+                explicaLasColumnas={false}
+              />
+            </section>
+  );
+
+  const panelDia = (
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
+                    decide al agendar: la hora la pone el curso, el aplicador lo pone
+                    la asignación, la facultad la pone la muestra — el día se elige.
+
+                    Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
+                    observado de N aulas por día de campo», o sea tratando todos los
+                    días como iguales. Si un martes rinde el doble que un viernes, dos
+                    agendas con el mismo número de aulas dan resultados distintos.
+
+                    El título nombra la unidad y no termina como ningún otro, que es
+                    la regla que el guard de títulos sujeta. */}
+                <h3>Día de la semana</h3>
+                <span>encuestas del parte por curso-horario, según qué día se aplicó</span>
+              </div>
+              <AulasRendimientoPorFacultad
+                partes={partesConFacultad}
+                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                clave="dia_semana"
+                unidad="Día"
+                explicaLasColumnas={false}
+              />
+            </section>
+  );
+
   return (
     <>
             {/* **«A quién hay que agendar» se fue a Resumen** el 2026-09-08. Era el
@@ -160,83 +260,31 @@ export function AulasPestanaRendimiento({
                 comparar la franja con el día había que recordar el primero. La cuarta
                 —por facultad— se queda encima a todo lo ancho: son 21 filas contra 7 y
                 a un tercio de ancho sus nombres no caben. */}
-            <div
-              className="aulas-lentes-trio"
-              data-qa-geometry-group="monitoring-aulas-lentes"
-              /* `intrinsic` por el mismo motivo que la pareja: apiladas bajo 1180 px
-                 cada una vuelve a su alto propio —7, 3 y 7 filas— así que `equal`
-                 sería una promesa que no pueden cumplir. */
-              data-qa-geometry-contract="intrinsic"
-            >
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                <h3>Quién consigue más</h3>
-                <span>encuestas del parte por curso-horario, según quién aplicó</span>
+            {lentesQueComparan === 2 ? (
+              <div
+                className="aulas-lentes-trio"
+                data-qa-geometry-group="monitoring-aulas-lentes"
+                /* `intrinsic`: apiladas bajo 1180 px cada una vuelve a su alto
+                   propio, asi que `equal` seria una promesa que no cumplen. */
+                data-qa-geometry-contract="intrinsic"
+              >
+                {panelAplicador}
+                {panelFranja}
+                {panelDia}
               </div>
-              <AulasRendimientoPorFacultad
-                partes={partesConFacultad}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-                clave="applied_by"
-                unidad="Aplicador"
-                /* Las columnas ya las explica «Qué está rindiendo más», dos paneles
-                   más arriba y en esta misma pantalla. */
-                explicaLasColumnas={false}
-              />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
-                {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
-                    más» y el guard lo tumbó. El título nombra la unidad, que además es
-                    la del libro. */}
-                <h3>Franja horaria del operativo</h3>
-                <span>encuestas del parte por curso-horario, según cuándo se aplicó</span>
-              </div>
-              <AulasRendimientoPorFacultad
-                partes={partesConFacultad}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-                clave="franja"
-                unidad="Franja"
-                explicaLasColumnas={false}
-              />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
-                    decide al agendar: la hora la pone el curso, el aplicador lo pone
-                    la asignación, la facultad la pone la muestra — el día se elige.
-
-                    Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
-                    observado de N aulas por día de campo», o sea tratando todos los
-                    días como iguales. Si un martes rinde el doble que un viernes, dos
-                    agendas con el mismo número de aulas dan resultados distintos.
-
-                    El título nombra la unidad y no termina como ningún otro, que es
-                    la regla que el guard de títulos sujeta. */}
-                <h3>Día de la semana</h3>
-                <span>encuestas del parte por curso-horario, según qué día se aplicó</span>
-              </div>
-              <AulasRendimientoPorFacultad
-                partes={partesConFacultad}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-                clave="dia_semana"
-                unidad="Día"
-                explicaLasColumnas={false}
-              />
-            </section>
-            </div>
+            ) : (
+              <>
+                {panelAplicador}
+                <div
+                  className="aulas-avance-pareja"
+                  data-qa-geometry-group="monitoring-aulas-pareja"
+                  data-qa-geometry-contract="intrinsic"
+                >
+                  {panelFranja}
+                  {panelDia}
+                </div>
+              </>
+            )}
             {/* **«Encuestas por día de cada facultad» se retiró el 2026-09-08.**
                 Su propio comentario ya lo pedía: «son la misma pregunta a dos
                 escalas y conviene decidir si sobra uno».
