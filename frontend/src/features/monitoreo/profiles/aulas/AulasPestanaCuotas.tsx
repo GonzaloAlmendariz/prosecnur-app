@@ -6,6 +6,7 @@ import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { avanceCuota } from "./avanceCuota";
+import { cursosHorarioSinFecha } from "./cursosHorarioSinFecha";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import type {
@@ -192,6 +193,10 @@ export function AulasPestanaCuotas({
         </div>
         <AulasSexoPorFacultadChart
           celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
+          // El supuesto de la proyección, en cifra: este panel cuenta TODOS los
+          // cursos-horario en juego y el acumulado de Rendimiento sólo los
+          // agendados. La regla es compartida a propósito.
+          sinFecha={cursosHorarioSinFecha((dashboard.agenda ?? []) as MonitoreoRow[])}
         />
       </section>
       <section

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
 import type { ReactNode } from "react";
 
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
@@ -45,6 +46,8 @@ export function AulasSeccionModelo({
   onConcentrar = null,
   distribucionRecordada = null,
   onPublicarDistribucion = null,
+  onSincronizarDistribucion = null,
+  sincronizacion = null,
 }: {
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
@@ -70,6 +73,8 @@ export function AulasSeccionModelo({
   /** S7: el Sheets de los aplicadores recordado en la config. */
   distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
+  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  sincronizacion?: MonitoreoAulasSincronizacion | null;
 }): ReactNode {
   const Tabla = tabla;
   // B27, dictado (2026-09-01): «podría seleccionarse reemplazo 1 o reemplazo 2
@@ -174,6 +179,8 @@ export function AulasSeccionModelo({
               onConcentrar={onConcentrar}
               distribucion={{ recordado: distribucionRecordada, vigente: dashboard.reparto?.distribucion ?? null }}
               onPublicarDistribucion={onPublicarDistribucion}
+              onSincronizarDistribucion={onSincronizarDistribucion}
+              sincronizacion={sincronizacion}
             />
           </section>
         ) : null}

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
+import type {
+  MonitoreoAulasDistribucionSheets,
+  MonitoreoAulasSincronizacion,
+} from "../../../../api/monitoreo";
 import { contar } from "../../fuentes/vocabulario";
 import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
@@ -12,6 +15,7 @@ import {
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
   apiMonitoreoAulasPublicarDistribucion,
+  apiMonitoreoAulasSincronizarDistribucion,
   apiMonitoreoAulasPublicarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
@@ -771,6 +775,8 @@ function renderAulasView({
   onConcentrar = null,
   distribucionRecordada = null,
   onPublicarDistribucion = null,
+  onSincronizarDistribucion = null,
+  sincronizacion = null,
 }: {
   view: MonitoreoSeccion;
   dashboard: MonitoreoAulasDashboard | null;
@@ -844,6 +850,8 @@ function renderAulasView({
   /** S7: el Sheets de los aplicadores recordado y su publicación. */
   distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
+  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  sincronizacion?: MonitoreoAulasSincronizacion | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -894,6 +902,8 @@ function renderAulasView({
         onConcentrar={onConcentrar}
         distribucionRecordada={distribucionRecordada}
         onPublicarDistribucion={onPublicarDistribucion}
+        onSincronizarDistribucion={onSincronizarDistribucion}
+        sincronizacion={sincronizacion}
       />
     );
   }
@@ -1038,6 +1048,9 @@ export default function AulasMonitoreoPage() {
   const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
     texto: "", tono: "ok",
   });
+  // El recibo del último ensayo o de la última sincronización: es lo que decide
+  // si se ofrece el botón que escribe.
+  const [sincronizacion, setSincronizacion] = useState<MonitoreoAulasSincronizacion | null>(null);
   const [error, setError] = useState("");
   /**
    * Los filtros que definen una encuesta efectiva, en edición.
@@ -1282,6 +1295,35 @@ export default function AulasMonitoreoPage() {
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo publicar la distribución a los aplicadores.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+  /**
+   * El ciclo del Sheets de los aplicadores en una sola acción: lee la hoja,
+   * adopta lo que el coordinador decidió, añade las agendadas que no tienen
+   * cita y refresca el ESTADO. `aplicar = false` es un ENSAYO y no escribe.
+   *
+   * Hasta hoy los cuatro movimientos se hacían con scripts fuera de la app, así
+   * que el operativo dependía de que hubiera alguien con una consola abierta.
+   */
+  const sincronizarDistribucion = useCallback(async (aplicar: boolean) => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasSincronizarDistribucion({ aplicar });
+      setSincronizacion(res);
+      // El motor ya redacta la frase que cierra la jornada; la pantalla no la
+      // vuelve a componer para que no existan dos versiones del mismo recibo.
+      setAviso({
+        texto: res.aplicado ? res.resumen : `Ensayo: ${res.resumen}`,
+        tono: res.sin_aplicador.length || res.estado.conflictos.length ? "atencion" : "ok",
+      });
+      if (aplicar) await loadView(seccionActiva, true, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo sincronizar la distribución.");
     } finally {
       setMutating(false);
     }
@@ -1929,6 +1971,8 @@ export default function AulasMonitoreoPage() {
               // S7: el Sheets de los aplicadores, recordado en la config.
               distribucionRecordada: aulasConfig?.distribucion_sheets ?? null,
               onPublicarDistribucion: publicarDistribucion,
+              onSincronizarDistribucion: sincronizarDistribucion,
+              sincronizacion,
             })}
           </div>
       </MonitoreoWorkbenchChrome>

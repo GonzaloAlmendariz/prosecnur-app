@@ -68,7 +68,16 @@ const filasPlanas = (filas: ReadonlyArray<CeldaDeFacultad>): FilaDeSexo[] =>
       pendiente: f.hombresPendiente, deficit: f.hombresDeficit, cuota: f.hombresCuota },
   ]);
 
-export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<MonitoreoRow> }) {
+export function AulasSexoPorFacultadChart({ celdas, sinFecha = 0 }: {
+  celdas: ReadonlyArray<MonitoreoRow>;
+  /**
+   * Cursos-horario del plan que aún no tienen fecha. Se declara porque la
+   * proyección de este panel LOS CUENTA, y el acumulado de «Rendimiento diario»
+   * no: sin decirlo, los dos paneles daban conclusiones opuestas de la misma
+   * pantalla —aquí las 30 celdas con ✓, allá «no se llega»—.
+   */
+  sinFecha?: number;
+}) {
   const filas = useMemo(() => celdasPorFacultad(celdas), [celdas]);
 
   if (!filas.length) {
@@ -109,6 +118,19 @@ export function AulasSexoPorFacultadChart({ celdas }: { celdas: ReadonlyArray<Mo
         ¿Cierra cada facultad su cuota de mujeres y de hombres con lo que queda
         del plan? Cada barra compara lo recogido y lo previsto contra la
         meta, que es la marca de tinta.
+        {/* **El supuesto, dicho.** Sin esto el panel marcaba las 30 celdas con
+            un ✓ —DERECHO mujeres incluida, con 8 de 237— porque proyecta sobre
+            TODOS los cursos-horario en juego. El acumulado de «Rendimiento
+            diario» proyecta sólo sobre lo agendado y por eso dice que no se
+            llega. Las dos son correctas sobre universos distintos y la
+            diferencia entre ellas es exactamente esta cifra. */}
+        {sinFecha > 0 ? (
+          <>
+            {" "}Cuenta <strong>todos</strong> los cursos-horario del plan que siguen en
+            juego, tengan fecha o no: hoy <strong>{sinFecha.toLocaleString("es-PE")}</strong>{" "}
+            {sinFecha === 1 ? "no la tiene" : "no la tienen"} todavía.
+          </>
+        ) : null}
       </p>
       <ul className="aulas-sexfac-leyenda" aria-hidden="true">
         <li><i className="es-recogidas" />Recogidas</li>

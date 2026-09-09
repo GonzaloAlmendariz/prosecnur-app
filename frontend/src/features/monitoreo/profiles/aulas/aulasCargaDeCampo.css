@@ -1260,6 +1260,16 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   min-width: 0;
 }
 .aulas-asigna-sheets-campo { flex-wrap: wrap; }
+/* El ciclo (leer, adoptar, añadir, refrescar) debajo del campo del enlace, con
+   una separación que lo distinga de la acción de publicar: son dos cosas
+   distintas y una de ellas sobrescribe. */
+.aulas-asigna-sheets-ciclo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+}
 .aulas-asigna-sheets-campo input[type="url"] {
   flex: 1 1 280px;
   min-width: 0;

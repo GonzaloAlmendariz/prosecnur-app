@@ -5328,6 +5328,61 @@ export async function apiMonitoreoAulasPublicarDistribucion(enlace?: string) {
   );
 }
 
+/** Lo que la sincronización propone o hace sobre el Sheets de los aplicadores. */
+export type MonitoreoAulasSincronizacion = {
+  ok: true;
+  /** `false` es el ENSAYO: describe lo que haría y no escribe nada. */
+  aplicado: boolean;
+  spreadsheet_id: string;
+  url: string;
+  hoja: string;
+  citas_antes: number;
+  citas_despues: number;
+  anadidas: Array<{ curso_horario?: string; fecha?: string; facultad?: string }>;
+  descartadas: Array<{ curso_horario?: string; motivo?: string; detalle?: string }>;
+  estado: {
+    cambios: Array<{ curso_horario?: string; fila?: number; antes?: string; ahora?: string }>;
+    conflictos: Array<{ curso_horario?: string; fila?: number; tecleado?: string; plataforma?: string }>;
+  };
+  sin_aplicador: Array<{ curso_horario?: string; fecha?: string }>;
+  ventana: { desde?: string; hasta?: string };
+  /** La frase con la que termina la jornada, ya redactada por el motor. */
+  resumen: string;
+};
+
+/**
+ * Sincroniza el Sheets de los aplicadores con la agenda y con la plataforma.
+ *
+ * Encadena los cuatro movimientos del ciclo en una sola llamada: lee la hoja,
+ * adopta lo que el coordinador decidió, añade las aulas agendadas que no tienen
+ * cita —con el aplicador en blanco, que es quien lo decide— y refresca el
+ * ESTADO con lo que la plataforma demuestra.
+ *
+ * **`aplicar = false` es un ENSAYO y no escribe nada.** Son veintidós personas
+ * leyendo esa hoja: la primera llamada dice qué haría y la segunda lo hace.
+ *
+ * Sin `desde`/`hasta` la ventana es la del reparto vigente, nunca «todo»: fuera
+ * de su rango, lo agendado está aplazado a propósito y contarlo como hueco
+ * propondría añadir semanas enteras que nadie pidió.
+ */
+export async function apiMonitoreoAulasSincronizarDistribucion(
+  opciones: { url?: string; desde?: string; hasta?: string; aplicar?: boolean } = {},
+) {
+  const cuerpo: Record<string, unknown> = {};
+  const limpio = opciones.url?.trim() ?? "";
+  if (limpio) cuerpo.url = limpio;
+  if (opciones.desde) cuerpo.desde = opciones.desde;
+  if (opciones.hasta) cuerpo.hasta = opciones.hasta;
+  if (opciones.aplicar) cuerpo.aplicar = true;
+  return handle<MonitoreoAulasSincronizacion>(
+    await apiFetch("/api/monitoreo/aulas/sincronizar-distribucion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(cuerpo),
+    }),
+  );
+}
+
 export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
   const limpio = enlace?.trim() ?? "";
   return handle<{

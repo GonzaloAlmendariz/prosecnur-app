@@ -449,4 +449,75 @@ describe("AulasAsignacionDeAplicadores · el Sheets de los aplicadores", () => {
     );
     expect(soloLectura).not.toContain("Publicar distribución");
   });
+
+  // **El ciclo del Sheets, sin salir de la app.** Hasta el 2026-09-09 los cuatro
+  // movimientos —leer, adoptar, añadir, refrescar el estado— se hacían con
+  // scripts fuera de la app: el operativo dependía de que hubiera alguien con
+  // una consola abierta. Publicar SOBRESCRIBE y por eso se niega cuando la hoja
+  // ya tiene dueño; sincronizar respeta lo que el coordinador escribió.
+  describe("sincronizar la distribución", () => {
+    const ensayo = {
+      ok: true as const, aplicado: false, spreadsheet_id: "ABC", url: "u", hoja: "Semana 1",
+      citas_antes: 83, citas_despues: 85,
+      anadidas: [{ curso_horario: "CH 35", fecha: "09/09" }, { curso_horario: "CH 40", fecha: "11/09" }],
+      descartadas: [],
+      estado: { cambios: [{ curso_horario: "CH 1", antes: "", ahora: "APLICADA" }], conflictos: [] },
+      sin_aplicador: [{ curso_horario: "CH 35", fecha: "09/09" }],
+      ventana: { desde: "2026-09-07", hasta: "2026-09-12" },
+      resumen: "Se añadirían 2 aulas agendadas que no tenían cita. Quedan 1 cita sin aplicador: CH 35 (09/09).",
+    };
+    const pintar = (extra: Record<string, unknown>) => renderToStaticMarkup(
+      <AulasAsignacionDeAplicadores
+        reparto={vacio}
+        distribucion={{ recordado, vigente: { huella: "h-1", citas: 83 } }}
+        onPublicarDistribucion={() => {}}
+        onSincronizarDistribucion={() => {}}
+        {...extra}
+      />,
+    );
+
+    it("ofrece revisar, y el botón que ESCRIBE no existe antes del ensayo", () => {
+      const html = pintar({});
+      expect(html).toContain("Revisar cambios");
+      expect(html).not.toContain("Aplicar 2 filas");
+    });
+
+    it("tras el ensayo, el botón dice QUÉ va a escribir", () => {
+      // «Aplicar» a secas es como se aprieta sin mirar.
+      const html = pintar({ sincronizacion: ensayo });
+      expect(html).toContain("Aplicar 2 filas y 1 estado");
+      expect(html).toContain("Quedan 1 cita sin aplicador");
+    });
+
+    it("un ensayo que no propone nada no ofrece el botón que escribe", () => {
+      const html = pintar({
+        sincronizacion: { ...ensayo, anadidas: [], estado: { cambios: [], conflictos: [] } },
+      });
+      expect(html).not.toContain("Aplicar ");
+    });
+
+    it("después de aplicar tampoco vuelve a ofrecerlo: el recibo ya no es un plan", () => {
+      const html = pintar({ sincronizacion: { ...ensayo, aplicado: true } });
+      expect(html).not.toContain("Aplicar 2 filas");
+      // Pero el recibo se sigue leyendo: es lo que dice cómo quedó la jornada.
+      expect(html).toContain("Quedan 1 cita sin aplicador");
+    });
+
+    it("sin destino no se puede ni revisar: no hay hoja que leer", () => {
+      const html = renderToStaticMarkup(
+        <AulasAsignacionDeAplicadores
+          reparto={vacio}
+          distribucion={{ recordado: null, vigente: null }}
+          onPublicarDistribucion={() => {}}
+          onSincronizarDistribucion={() => {}}
+        />,
+      );
+      const boton = html.slice(html.indexOf("Revisar cambios") - 260, html.indexOf("Revisar cambios"));
+      expect(boton).toContain("disabled");
+    });
+
+    it("sin em dashes, como el resto de la pantalla", () => {
+      expect(pintar({ sincronizacion: ensayo })).not.toContain(" — ");
+    });
+  });
 });
