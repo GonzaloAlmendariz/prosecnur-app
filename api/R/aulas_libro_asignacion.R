@@ -366,13 +366,19 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
   # Las otras siete se quedan como estaban, y las dos que también exceden su
   # ancho —la nota del sorteo y el rótulo del bloque— no son un problema: van
   # solas en su fila y se derraman sobre celdas vacías.
-  ancho7 <- 56L
-  for (f in filas) {
-    if (!identical(f$tipo, "dato") || length(f$celdas) < 7L) next
-    ancho7 <- max(ancho7, nchar(trimws(f$celdas[[7]]), type = "chars") + 2L)
-  }
+  ancho7 <- .ala_ancho_de_columna(filas, 7L, suelo = 56L, techo = 90L)
+  # **La columna 1 también se mide, y por la misma razón que la 7.**
+  #
+  # Medía 42 fijos y su celda no lleva sólo el nombre: cuando alguien queda
+  # asignado fuera de lo que declaró, el aviso va PEGADO ahí —«Aguilar Cuya,
+  # Renzo Mariano (fuera de su disponibilidad declarada)», 66 caracteres— y a
+  # 42 se cortaba justo por el aviso, que es la parte que hay que leer. Visto
+  # en el PDF del libro el 2026-09-09. Es el sexto ancho fijo que corta un dato
+  # en este operativo; la regla y los casos están en
+  # docs/qa/anchos-que-cortan-datos-2026-09-09.md.
+  ancho1 <- .ala_ancho_de_columna(filas, 1L, suelo = 42L, techo = 72L)
   openxlsx::setColWidths(wb, hoja, cols = 1:8,
-                         widths = c(42, 18, 9, 15, 16, 13, min(90L, ancho7), 22))
+                         widths = c(ancho1, 18, 9, 15, 16, 13, ancho7, 22))
   invisible(TRUE)
 }
 
@@ -396,6 +402,26 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
 # (dictado 2026-09-04) ya no hay filas de día: el recorrido por jornada vive en
 # «Plan del día», que es la hoja operativa.
 .ala_BLOQUES <- c("QUÉ LE TOCA A CADA APLICADOR", "CARGAS POR APLICADOR")
+
+#' El ancho que pide una columna, medido sobre las filas de DATO.
+#'
+#' Sólo las de dato: las notas y los rótulos de bloque son más largos que
+#' cualquier nombre, van solos en su fila y se derraman sobre celdas vacías, así
+#' que dejarlos mandar ensancharía la columna por algo que no se corta.
+#'
+#' @param filas las filas del modelo de la hoja.
+#' @param col índice de la columna, 1-based.
+#' @param suelo,techo límites en caracteres.
+#' @return el ancho en caracteres.
+#' @keywords internal
+.ala_ancho_de_columna <- function(filas, col, suelo, techo) {
+  ancho <- suelo
+  for (f in filas %||% list()) {
+    if (!identical(f$tipo, "dato") || length(f$celdas) < col) next
+    ancho <- max(ancho, nchar(trimws(as.character(f$celdas[[col]])), type = "chars") + 2L)
+  }
+  min(techo, ancho)
+}
 
 # Los anchos de columna de la hoja, en píxeles y por RANGOS agrupados (la
 # lección de la capa genérica: jamás una request por columna). Son los ~7 px
@@ -452,7 +478,23 @@ aulas_libro_asignacion_formato_requests <- function(sheet_id, rows) {
   # APLICADOR, que es justo lo que no se centra.
   # Ocho columnas desde que FIJADA y AVISO dejaron sitio al estado.
   if (n_cols >= 8L) {
-    for (a in .ala_ANCHOS) poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
+    for (a in .ala_ANCHOS) {
+      px <- a$px
+      # La columna del APLICADOR se MIDE, igual que en el xlsx: su celda lleva
+      # el aviso «(fuera de su disponibilidad declarada)» pegado al nombre y los
+      # 300 px fijos lo cortaban. ~7 px por carácter, que es la equivalencia con
+      # la que se eligieron los demás anchos de esta lista.
+      if (identical(a$desde, 0L)) {
+        chars <- 0L
+        for (r in rows) {
+          v <- as.character(unlist(r, use.names = FALSE))
+          if (length(v) < 8L || !nzchar(trimws(v[[2L]]))) next   # sólo filas de dato
+          chars <- max(chars, nchar(trimws(v[[1L]]), type = "chars"))
+        }
+        if (chars > 0L) px <- max(px, min(520L, as.integer(chars * 7L) + 14L))
+      }
+      poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, px))
+    }
     # El conteo y las tres horas de la jornada, centrados: son cifras.
     poner(.maaf_centrar(sheet_id, 2L, 6L, length(rows)))
   }

@@ -830,3 +830,37 @@ test_that("las tres hojas listan las aulas en el MISMO orden", {
   expect_true(all(ctrl %in% esperado))
   expect_identical(ctrl, esperado[esperado %in% ctrl])
 })
+
+test_that("«Plan del día» tipa su FECHA AGENDADA: 07/09 no puede leerse como 09/07", {
+  # Era la única hoja con una columna de fecha sin declarar, así que su celda
+  # salía con el formato por defecto del escritor —mes/día— y el lunes 7 de
+  # setiembre se veía «09/07/2026». En un operativo de septiembre con jornadas
+  # del 7 al 12, todos los días caben también como mes: no se ve rara, se ve
+  # como otra fecha. Visto en el PDF del libro el 2026-09-09.
+  destino <- tempfile(fileext = ".xlsx")
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         sample_status = "agendada", faculty = "DERECHO", course_name = "Cálculo",
+         teacher = "Docente Uno", scheduled_venue = "A101",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00",
+         eligible_n = 40, expected_valid = 20)
+  )
+  aulas_libro_generar(plan, destino)
+  wb <- openxlsx::loadWorkbook(destino)
+  col <- which(prosecnurapp:::.capd_CABECERA == "FECHA AGENDADA")
+  expect_length(col, 1L)
+  estilos <- wb$styleObjects
+  # El estilo de fecha tiene que alcanzar a esa columna en «Plan del día», y
+  # con el formato del día PRIMERO. Un `numFmt` cualquiera no sirve: la avería
+  # era justamente tener formato, pero el otro.
+  toca <- Filter(function(e) {
+    identical(e$sheet, "Plan del día") && col %in% e$cols &&
+      identical(e$style$numFmt$numFmtId, "165") ||
+      (identical(e$sheet, "Plan del día") && col %in% e$cols &&
+         grepl("dd/mm", e$style$numFmt$formatCode %||% "", fixed = TRUE))
+  }, estilos)
+  expect_gt(length(toca), 0L)
+  formatos <- unique(unlist(lapply(toca, function(e) e$style$numFmt$formatCode)))
+  expect_true(any(grepl("^dd/mm", formatos)))
+  expect_false(any(grepl("^mm/dd", formatos)))
+})

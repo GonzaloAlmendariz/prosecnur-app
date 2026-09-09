@@ -1798,6 +1798,21 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
            c("FECHA DE LLAMADA", "FECHA AGENDADA"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          tipo = "numero", cols = cols_de("level")),
+    # **«Plan del día» también tipa su fecha, y no es cosmética.**
+    #
+    # Era la única hoja con una columna de fecha SIN declarar, así que su celda
+    # salía con el formato por defecto del escritor —mes/día— y el lunes 7 de
+    # setiembre se leía «09/07/2026». En un operativo de septiembre con jornadas
+    # del 7 al 12, TODOS los días caben también como mes: la fecha no se ve rara,
+    # se ve como otra fecha. Visto en el PDF del libro el 2026-09-09.
+    #
+    # Es la primera columna de `.capd_CABECERA` y la hoja no tiene bandas encima,
+    # así que su primera fila de dato es la 2 (`desde = 1`). Se ancla por RÓTULO
+    # como todo lo demás: si mañana la columna cambia de sitio, esto la sigue.
+    list(hoja = "Plan del día", desde = 1L,
+         filas = max(0L, length(hojas[["Plan del día"]][[1L]]) - 1L),
+         tipo = "fecha",
+         cols = which(.capd_CABECERA == "FECHA AGENDADA")),
     # El tipo de esta columna lo decide la escala de lo que llego, no una
     # preferencia: en 0-1 se enseña como porcentaje, en 0-100 como decimal.
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),

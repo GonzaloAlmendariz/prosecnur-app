@@ -319,3 +319,59 @@ test_that("«Cursos-horario del día» se ensancha con lo que lleva, y no corta 
   expect_equal(ancho(wb2, 7L), 56)
 })
 
+
+# --- la columna del APLICADOR se MIDE, no se fija -----------------------------
+#
+# Sexto ancho fijo que corta un dato en este operativo. La celda no lleva sólo
+# el nombre: cuando alguien queda asignado fuera de lo que declaró, el aviso va
+# PEGADO ahí —«Aguilar Cuya, Renzo Mariano (fuera de su disponibilidad
+# declarada)», 66 caracteres— y los 42 fijos lo cortaban justo por el aviso, que
+# es la parte que hay que leer. Visto en el PDF del libro el 2026-09-09.
+
+test_that("un nombre con su aviso pide más ancho que el suelo de 42", {
+  filas <- list(
+    list(tipo = "nota", celdas = list(strrep("x", 300))),
+    list(tipo = "dato", celdas = as.list(c(
+      "Aguilar Cuya, Renzo Mariano (fuera de su disponibilidad declarada)",
+      "Lunes 07/09", "2", "11:00", "11:15", "11:30", "CH 1", "POR APLICAR")))
+  )
+  ancho <- prosecnurapp:::.ala_ancho_de_columna(filas, 1L, suelo = 42L, techo = 72L)
+  # **`>` y no `>=`**: un `expect_gte(ancho, 42)` lo cumple también el 42 fijo,
+  # o sea el defecto. Se comprobó rompiendo el motor a propósito.
+  expect_gt(ancho, 42L)
+  expect_equal(ancho, 68L)
+  # Y la NOTA de 300 no manda: va sola en su fila y se derrama sobre celdas
+  # vacías, así que ensanchar por ella sería ensanchar por algo que no se corta.
+  expect_lte(ancho, 72L)
+})
+
+test_that("con nombres cortos se queda en el suelo, y el techo acota", {
+  corto <- list(list(tipo = "dato", celdas = as.list(c("Ana", "Lunes", "1"))))
+  expect_equal(prosecnurapp:::.ala_ancho_de_columna(corto, 1L, 42L, 72L), 42L)
+  largo <- list(list(tipo = "dato", celdas = as.list(c(strrep("N", 200), "Lunes", "1"))))
+  expect_equal(prosecnurapp:::.ala_ancho_de_columna(largo, 1L, 42L, 72L), 72L)
+  # Una fila sin esa columna no rompe ni ensancha.
+  expect_equal(prosecnurapp:::.ala_ancho_de_columna(
+    list(list(tipo = "dato", celdas = list())), 1L, 42L, 72L), 42L)
+})
+
+test_that("en el Sheets la columna del aplicador también crece con el nombre", {
+  cabecera <- list(as.list(c("APLICADOR", "DÍA", "AULAS", "EN OFICINA",
+                             "SALE A APLICAR", "TERMINA", "CURSOS-HORARIO DEL DÍA",
+                             "ESTADO DE APLICACIÓN")))
+  fila <- function(quien) list(as.list(c(quien, "Lunes 07/09", "2", "11:00",
+                                         "11:15", "11:30", "CH 1", "POR APLICAR")))
+  ancho_de <- function(rows) {
+    reqs <- aulas_libro_asignacion_formato_requests(7L, rows)
+    dims <- Filter(function(r) !is.null(r$updateDimensionProperties), reqs)
+    prim <- Filter(function(r) identical(r$updateDimensionProperties$range$startIndex, 0L), dims)
+    if (!length(prim)) return(NA_integer_)
+    prim[[1]]$updateDimensionProperties$properties$pixelSize
+  }
+  chico <- ancho_de(c(cabecera, fila("Ana Prueba")))
+  grande <- ancho_de(c(cabecera, fila(
+    "Aguilar Cuya, Renzo Mariano (fuera de su disponibilidad declarada)")))
+  expect_equal(chico, 300L)
+  expect_gt(grande, 300L)
+  expect_lte(grande, 520L)
+})
