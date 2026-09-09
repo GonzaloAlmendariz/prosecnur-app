@@ -18,6 +18,48 @@
 
 # El título de pestaña que un rango A1 nombra («'Plan del día'!A1:C9» →
 # «Plan del día»), sin las comillas escapadas del quoting de Sheets.
+# La parte A1 de un rango («'Semana 1'!L1:L9» → «L1:L9»), o NULL si el rango
+# nombra la pestaña entera.
+.sheets_api_a1 <- function(rango) {
+  x <- as.character(rango %||% "")[1]
+  if (!grepl("!", x, fixed = TRUE)) return(NULL)
+  sub("^.*!", "", x)
+}
+
+# Aplica un bloque de valores sobre la matriz de la pestaña en el rango A1 dado.
+# Sólo lo que el motor usa: un ancla («A5») o un rango de una columna
+# («L1:L93»), en ROWS o en COLUMNS.
+.sheets_api_aplicar <- function(valores, a1, bloque, major) {
+  col_num <- function(letras) {
+    n <- 0L
+    for (ch in strsplit(toupper(letras), "")[[1]]) n <- n * 26L + (utils::tail(which(LETTERS == ch), 1L))
+    n
+  }
+  piezas <- strsplit(a1, ":", fixed = TRUE)[[1]]
+  m <- regmatches(piezas[[1]], regexec("^([A-Za-z]+)([0-9]+)$", piezas[[1]]))[[1]]
+  if (length(m) != 3L) return(valores)
+  c0 <- col_num(m[[2]]); r0 <- as.integer(m[[3]])
+  filas <- if (identical(major, "COLUMNS")) {
+    # Una columna: cada valor del primer vector es una fila.
+    lapply(unlist(bloque[[1]] %||% list(), use.names = FALSE), function(v) list(v))
+  } else {
+    bloque
+  }
+  for (k in seq_along(filas)) {
+    fila <- r0 + k - 1L
+    while (length(valores) < fila) valores[[length(valores) + 1L]] <- list()
+    actual <- as.list(unlist(valores[[fila]] %||% list(), use.names = FALSE))
+    nuevos <- as.list(unlist(filas[[k]] %||% list(), use.names = FALSE))
+    for (j in seq_along(nuevos)) {
+      pos <- c0 + j - 1L
+      while (length(actual) < pos) actual[[length(actual) + 1L]] <- ""
+      actual[[pos]] <- nuevos[[j]]
+    }
+    valores[[fila]] <- actual
+  }
+  valores
+}
+
 .sheets_api_sin_comillas <- function(rango) {
   rango <- sub("!.*$", "", as.character(rango %||% "")[1])
   gsub("''", "'", sub("^'(.*)'$", "\\1", rango))
@@ -38,13 +80,26 @@
   handler <- function(url, method = "GET", body = NULL) {
     env$calls[[length(env$calls) + 1L]] <- list(url = url, method = method, body = body)
     if (grepl("/values:batchUpdate$", url)) {
+      celdas <- 0L
       for (entry in body$data %||% list()) {
         titulo <- .sheets_api_sin_comillas(entry$range)
-        if (nzchar(titulo) && !is.null(env$sheets[[titulo]])) {
+        if (!nzchar(titulo) || is.null(env$sheets[[titulo]])) next
+        a1 <- .sheets_api_a1(entry$range)
+        if (is.null(a1)) {
+          # Rango sin `!A1`: la pestaña ENTERA, que es como publica el motor.
           env$sheets[[titulo]]$values <- entry$values
+          celdas <- celdas + length(entry$values %||% list())
+          next
         }
+        env$sheets[[titulo]]$values <- .sheets_api_aplicar(
+          env$sheets[[titulo]]$values %||% list(), a1,
+          entry$values %||% list(), entry$majorDimension %||% "ROWS"
+        )
+        celdas <- celdas + sum(vapply(entry$values %||% list(),
+                                      function(v) length(unlist(v, use.names = FALSE)), 0L))
       }
-      return(list(totalUpdatedSheets = length(body$data %||% list())))
+      return(list(totalUpdatedSheets = length(body$data %||% list()),
+                  totalUpdatedCells = celdas))
     }
     if (grepl("/values:batchGet", url)) {
       crudos <- regmatches(url, gregexpr("ranges=[^&]+", url))[[1]]
@@ -90,6 +145,19 @@
       for (request in body$requests %||% list()) {
         title <- request$addSheet$properties$title %||% ""
         if (nzchar(title)) sembrar(title)
+        # `insertDimension` de FILAS: mete una fila vacía en su sitio, que es lo
+        # que el mantenimiento de la distribución hace antes de escribirla.
+        ins <- request$insertDimension
+        if (!is.null(ins) && identical(ins$range$dimension, "ROWS")) {
+          for (nm in names(env$sheets)) {
+            if (!identical(env$sheets[[nm]]$sheetId, ins$range$sheetId)) next
+            v <- env$sheets[[nm]]$values %||% list()
+            i <- as.integer(ins$range$startIndex) + 1L
+            antes <- if (i > 1L) v[seq_len(min(i - 1L, length(v)))] else list()
+            despues <- if (i <= length(v)) v[seq.int(i, length(v))] else list()
+            env$sheets[[nm]]$values <- c(antes, list(list()), despues)
+          }
+        }
         cdm <- request$createDeveloperMetadata$developerMetadata
         if (!is.null(cdm)) apply_metadata(cdm$location$sheetId, cdm$metadataKey, cdm$metadataValue)
         udm <- request$updateDeveloperMetadata
