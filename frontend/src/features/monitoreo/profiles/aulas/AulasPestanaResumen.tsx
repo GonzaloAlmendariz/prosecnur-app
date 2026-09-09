@@ -5,7 +5,6 @@ import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
-import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
@@ -337,36 +336,24 @@ export function AulasPestanaResumen({
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* La tercera pregunta de la sección, después del total y del estado:
-                    a dónde va el equipo mañana. El título es esa pregunta; «Por
-                    facultad» a secas no decía QUÉ por facultad y además terminaba
-                    igual que «Cuota sexo por facultad», que mide otra cosa en otra
-                    pestaña. El denominador es la meta del PLAN, no la cuota de sexo, y
-                    por eso el contador lo dice. */}
-                <h3>Dónde falta más</h3>
-                {/* **Contra la CUOTA, no contra el pronóstico.** Gonzalo:
-                    «el avance se mide sobre las cuotas del plan, no sobre lo
-                    que nosotros hemos pronosticado que va a suceder… nos
-                    interesa llegar a dos mil quinientos con las cuotas que
-                    hemos establecido por sexo en cada facultad. Esa es nuestra
-                    meta». El pronóstico —elegibles por su tasa— sigue
-                    publicándose como `meta_prevista` porque dimensiona el
-                    operativo, pero no es la vara del avance. */}
-                <span>contra la cuota del estudio, por sexo</span>
-              </div>
-              <AulasPerfilPorFacultad
-                filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-                resumen={(dashboard.avance_por_facultad ?? []) as never}
-                facultadEnFoco={facultadEnFoco}
-                onFoco={onFoco}
-              />
-            </section>
+            {/* **«Dónde falta más» se retiró el 2026-09-08.** Medía cada facultad
+                contra LA CUOTA DEL ESTUDIO —«contra la cuota del estudio, por sexo»,
+                decía su propio subtítulo—, que es el denominador y la pregunta de
+                «Metas», no de «Resumen»: esta pestaña mide el avance general DEL
+                OPERATIVO.
+
+                Y allá ya está contestada dos veces con más detalle: «Cumplimiento de
+                la cuota del estudio» ordena las facultades por lo que falta con el
+                carril proporcional a su cuota, y «Hombres y mujeres por facultad»
+                abre cada una por sexo. Este panel lo hacía por un tercer camino
+                —`avance_por_facultad` en vez de `avance_cuota`—, que es la forma más
+                barata de que un día las tres digan cifras distintas.
+
+                Con esto `AulasPerfilPorFacultad` queda SIN MONTAR —era su único
+                sitio— y así está registrado, con su marca y su entrada en
+                `componentesSinMontar.test.ts`. No se borra: tres archivos de test lo
+                usan para fijar el molde de la lista por facultad, el vacío sin
+                denominador y el foco que cruza la sección. */}
             </div>
             <section
               className="mon-profile-panel"
