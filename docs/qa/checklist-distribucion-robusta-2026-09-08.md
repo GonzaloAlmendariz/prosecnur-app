@@ -19,19 +19,19 @@ que puede demostrar*.
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | A1 | Publicar no puede borrar la hoja con dueño | `monitoreo_aulas_publicar_distribucion.R` · `E_AULAS_DISTRIBUCION_CON_DUENO` | ☑ commit `fae68099` |
-| A2 | Detectar las aulas agendadas que no tienen fila en la distribución | motor nuevo | ☐ |
-| A3 | Añadirlas en su sitio del día, con el aplicador en blanco | motor nuevo | ☐ |
-| A4 | Refrescar ESTADO desde plataforma sin pisar lo que el equipo tecleó | motor nuevo | ☐ |
-| A5 | Una sola acción que encadene leer → adoptar → añadir → estado, con ensayo por defecto | motor nuevo | ☐ |
-| A6 | Endpoint HTTP, registro en `plumber_app.R` y sus `E_*` | mount nuevo + `errors_registry.R` | ☐ |
-| A7 | Tests del área y gate verde | `api/tests/testthat/` | ☐ |
+| A2 | Detectar las aulas agendadas que no tienen fila en la distribución | `monitoreo_aulas_agendadas_sin_cita()` | ☑ `eb8b42d6` |
+| A3 | Añadirlas en su sitio del día, con el aplicador en blanco | `monitoreo_aulas_posiciones_de_las_nuevas()` | ☑ `eb8b42d6` |
+| A4 | Refrescar ESTADO desde plataforma sin pisar lo que el equipo tecleó | `monitoreo_aulas_estados_distribucion()` | ☑ `eb8b42d6` |
+| A5 | Una sola acción que encadene leer → adoptar → añadir → estado, con ensayo por defecto | `monitoreo_aulas_sincronizar_distribucion()` | ☑ `eb8b42d6` |
+| A6 | Endpoint HTTP, registro en `plumber_app.R` y sus `E_*` | `POST /api/monitoreo/aulas/sincronizar-distribucion` | ☑ `eb8b42d6` |
+| A7 | Tests del área y gate verde | 7 666 asserts, 0 fallos | ☑ |
 | A8 | El doc operativo dice el ciclo con la acción única dentro | `docs/qa/operativa-aulas-dos-sheets-y-la-app-2026-09-08.md` | ☐ |
 | B1 | La fila nueva entró fuera de orden: «hay que estar en oficina a las 9:20, ¿no debería ir después de CH 161?» | `.madm_minutos()` en el motor + fila movida en vivo | ☑ |
-| B2 | «Rompiste formatos que antes estaban bien»: fechas como seriales y % de asistencia como decimal | reparado en vivo · falta que el motor declare el formato al publicar | ◐ |
-| B3 | «Todo lo que Aulas Aplicadas jala de Aulas Agendadas lo jala sin formato de color» | `monitoreo_aulas_sheets_formato.R` | ☐ |
-| B4 | Rendimiento por facultad: lo mismo desglosado por sexo, más la meta y la meta por sexo, con las columnas **intercaladas** y no las metas al final | `carga_aulas_libro_avance_rendimiento.R` + vocabulario | ☑ |
-| B5 | «Tabla dinámica 2» pasa a ser una hoja que produce la app desde lo agendado: titulares **y reemplazos**, cuántas agendadas, de ésas cuántas aplicadas, la agendación por día, las titulares pendientes de agendar, los rechazos y los rechazos que ya agendaron reemplazo | hoja nueva del libro | ☐ |
-| B7 | En esa misma tabla, la relación de aulas agendadas **por semana**: la semana 1 es del 7 al 11 de septiembre y **los domingos no cuentan** (semana de lunes a sábado) | hoja nueva del libro | ☐ |
+| B2 | «Rompiste formatos que antes estaban bien»: fechas como seriales y % de asistencia como decimal | reparado en vivo (0 diferencias contra el respaldo) + el motor ya declara el formato | ☑ `a879a12f` |
+| B3 | «Todo lo que Aulas Aplicadas jala de Aulas Agendadas lo jala sin formato de color» | `monitoreo_aulas_sheets_formato.R` · se aplica en la próxima publicación del libro | ☑ `a879a12f` |
+| B4 | Rendimiento por facultad: lo mismo desglosado por sexo, más la meta y la meta por sexo, con las columnas **intercaladas** y no las metas al final | `carga_aulas_libro_avance_rendimiento.R` + vocabulario | ☑ `de9fca42` |
+| B5 | «Tabla dinámica 2» pasa a ser una hoja que produce la app desde lo agendado: titulares **y reemplazos**, cuántas agendadas, de ésas cuántas aplicadas, la agendación por día, las titulares pendientes de agendar, los rechazos y los rechazos que ya agendaron reemplazo | motor `aulas_libro_agendacion()` ☑ `941226da` · **falta la pestaña** (xlsx, Sheets y formato) | ◐ |
+| B7 | En esa misma tabla, la relación de aulas agendadas **por semana**: la semana 1 es del 7 al 11 de septiembre y **los domingos no cuentan** | motor ☑ `941226da`, con la semana de LUNES A SÁBADO · **pendiente de confirmar** si el sábado 12 entra en la semana 1 | ◐ |
 | B6 | «En Aulas Agendadas no está la columna para decir si un docente ya recibió correo» | **ya existe**: `RECIBIÓ CORREO`, columna K del bloque titular y una por eslabón (AI, BG, CE…) | ☑ nada que construir |
 
 ## Lo aprendido que no se debe reinvestigar
