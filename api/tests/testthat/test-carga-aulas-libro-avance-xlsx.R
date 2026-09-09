@@ -153,13 +153,16 @@ test_that("S3: con otra geometría (sin facultades ni partes) las bandas siguen 
   # hoja queda a cuatro columnas (el diario) y las bandas que quedan la cubren.
   h <- .calax_hoja(.calax_modelo_minimo())
   # Sin cuotas la tabla por facultad no existe, así que el ancho lo fija la más
-  # ancha de las que quedan (el avance diario, diez columnas). Se DERIVA del
-  # vocabulario, no se cuenta a mano: una columna nueva no puede romper el pin.
+  # ancha de las que quedan. Se DERIVA del vocabulario, no se cuenta a mano: una
+  # columna nueva no puede romper el pin — y eso es justo lo que pasó el
+  # 2026-09-08, cuando «Rendimiento por facultad» ganó el desglose por sexo y
+  # pasó a ser la más ancha en lugar del avance diario.
   # «Rendimiento por facultad» sí existe y también empieza por «Facultad», así
-  # que la ausencia se comprueba con una columna que sólo la otra tiene.
+  # que la ausencia de la otra se comprueba con una columna que sólo ella tiene.
   expect_true(is.na(.calax_fila_de(h$celdas, "Avance por facultad")))
   expect_false(any(as.character(unlist(h$celdas)) == "Efectivas mujeres", na.rm = TRUE))
-  expect_identical(h$n_cols, length(AULAS_AVANCE_CABECERAS$diario))
+  sin_cuotas <- setdiff(names(AULAS_AVANCE_CABECERAS), "facultad")
+  expect_identical(h$n_cols, max(lengths(AULAS_AVANCE_CABECERAS[sin_cuotas])))
   for (titulo in c("Avance general", "Avance diario")) {
     fila <- .calax_fila_de(h$celdas, titulo)
     expect_false(is.na(fila), info = sprintf("la hoja perdió el título «%s»", titulo))

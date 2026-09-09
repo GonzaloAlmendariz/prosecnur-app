@@ -62,7 +62,20 @@ AULAS_AVANCE_CABECERAS <- list(
     # «las esperadas hasta ahora en base a las aulas aplicadas hasta hoy y la
     # tasa de rendimiento de facultad, y cuántas vamos»). Una tasa dice si el
     # aula rinde; el conteo dice cuántas encuestas son, que es lo que se recoge.
+    #
+    # **La meta abre su bloque, no cierra la tabla** (Gonzalo, 2026-09-08: «hay
+    # que intercalar bien el orden de las columnas para que sea fácilmente
+    # comparable, no pongas las metas todas al final»). Cada meta va pegada a lo
+    # que se lleva contra ella y a la diferencia, y el juego se repite tal cual
+    # en hombres y en mujeres: el ojo compara en horizontal sin contar columnas.
+    "Muestra",
     "Efectivas esperadas", "Efectivas obtenidas", "Diferencia de efectivas",
+    "Muestra hombres",
+    "Efectivas esperadas hombres", "Efectivas obtenidas hombres",
+    "Diferencia de efectivas hombres",
+    "Muestra mujeres",
+    "Efectivas esperadas mujeres", "Efectivas obtenidas mujeres",
+    "Diferencia de efectivas mujeres",
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",
     "Diferencia de tasa",
@@ -172,7 +185,10 @@ AULAS_AVANCE_PROPORCIONES <- list(
 #' el −35 encuestas de un martes salió como «−3 500,0 %». Ahora el rótulo lleva
 #' su unidad y la ambigüedad no puede volver por otro camino.
 #' @keywords internal
-AULAS_AVANCE_DIFERENCIAS <- c("Diferencia de efectivas", "Diferencia de tasa")
+AULAS_AVANCE_DIFERENCIAS <- c(
+  "Diferencia de efectivas", "Diferencia de tasa",
+  "Diferencia de efectivas hombres", "Diferencia de efectivas mujeres"
+)
 
 #' Rótulos de AVANCE contra una meta: se pintan como un depósito que se llena.
 #'

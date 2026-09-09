@@ -127,7 +127,10 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   # y la pestaña de Sheets— leen de ahí sus rótulos y su naturaleza, así que no
   # hay una segunda lista de nombres que pueda separarse de la primera.
   rendimiento <- .calar_rendimiento_por_facultad(
-    unidades, efectivas = efectivas, partes = partes, extras = extras)
+    unidades, efectivas = efectivas, partes = partes, extras = extras,
+    # Las metas y el reparto por sexo llegan de los MISMOS insumos que la tabla
+    # por facultad, para que las dos tablas no puedan decir dos metas distintas.
+    cuotas = cuotas, responses = responses, cfg = cfg)
   aplicadores <- .calaa_produccion_por_aplicador(
     unidades, efectivas = efectivas, partes = partes, asignados = asignados)
   diario <- .calad_avance_diario(
@@ -563,7 +566,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     nota_arriba = paste(
       "Las tasas se miden sobre los elegibles de las aulas ya aplicadas. Las",
       "efectivas esperadas son esos elegibles por la tasa que el diseño le puso a",
-      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue."
+      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue.",
+      "El plan no trae elegibles por sexo, así que la esperada de hombres y la de",
+      "mujeres se reparten con la misma proporción con la que el diseño repartió",
+      "la cuota de esa facultad."
     ),
     vacio = "El plan todavía no trae facultades con aulas que medir."
   )

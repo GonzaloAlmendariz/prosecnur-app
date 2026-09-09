@@ -50,6 +50,35 @@
   sum(esperadas[ok]) / den
 }
 
+#' El reparto por sexo de lo ESPERADO, con la proporción del propio diseño.
+#'
+#' **Es una derivación declarada, no un dato.** El plan trae `expected_valid` y
+#' `eligible_n` por aula, y ninguno de los dos viene partido por sexo: nadie
+#' sabe cuántos hombres y cuántas mujeres se sientan en un aula concreta antes
+#' de ir. Lo que sí existe es el reparto que el DISEÑO hizo de la cuota de esa
+#' facultad (`cuota_sexo`), y es el único reparto defendible: es el mismo con el
+#' que se juzgará si la facultad cumplió.
+#'
+#' Se reparte el total y la mujer se lleva el residuo, para que las dos celdas
+#' sumen exactamente la esperada y no se abra una tercera cifra por redondeo.
+#'
+#' Sin cuota por sexo devuelve `NA` en las dos: la columna calla en vez de
+#' inventar un cincuenta por ciento.
+#'
+#' @param total esperada de la facultad (ya redondeada).
+#' @param cuota_m,cuota_f cuota por sexo del diseño.
+#' @return lista `{M, F}`.
+#' @keywords internal
+.calar_reparto_esperado <- function(total, cuota_m, cuota_f) {
+  vacio <- list(M = NA_real_, F = NA_real_)
+  if (!is.finite(total)) return(vacio)
+  if (!is.finite(cuota_m) || !is.finite(cuota_f)) return(vacio)
+  den <- cuota_m + cuota_f
+  if (!is.finite(den) || den <= 0) return(vacio)
+  m <- round(total * cuota_m / den)
+  list(M = m, F = total - m)
+}
+
 #' Rendimiento por facultad: lo aplicado, lo esperado y la brecha de tasa.
 #'
 #' @param unidades filas del plan que entran al libro (titulares + reservas
@@ -57,11 +86,16 @@
 #' @param efectivas vector con nombre por código operativo (PLATAFORMA).
 #' @param partes partes de campo, para el eje de aplicación.
 #' @param extras banco de extras SIN activar (`aulas_libro_extras_banco()`).
+#' @param cuotas bloque `design_targets` de la config, para las metas y su
+#'   reparto por sexo.
+#' @param responses respuestas, para el reparto por sexo de lo obtenido.
+#' @param cfg config de aulas, para localizar la columna de sexo.
 #' @return `data.frame` con las columnas de `AULAS_AVANCE_CABECERAS$rendimiento`,
 #'   o `NULL` si el plan no trae facultades.
 #' @keywords internal
 .calar_rendimiento_por_facultad <- function(unidades, efectivas = NULL, partes = list(),
-                                            extras = list()) {
+                                            extras = list(), cuotas = NULL,
+                                            responses = NULL, cfg = list()) {
   unidades <- unidades %||% list()
   if (!length(unidades)) return(NULL)
 
@@ -80,6 +114,36 @@
     i <- match(k, names(efectivas))
     if (is.na(i)) 0 else suppressWarnings(as.numeric(efectivas[[i]]))
   }, numeric(1))
+
+  # **Las metas y el reparto por sexo, del MISMO sitio que la tabla por
+  # facultad.** Gonzalo, 2026-09-08: «le falta lo mismo pero desglosado por sexo
+  # y la meta y meta por sexo». La meta es la cuota del diseño —no la suma de
+  # metas por aula, que es otro denominador (ADR 0079)— y se localiza por la
+  # clave de facultad, no por el nombre escrito.
+  clave <- .cm_criterios_fac_key(fac)
+  metas <- list()
+  for (f in (if (is.list(cuotas)) (cuotas$facultades %||% list()) else list())) {
+    k <- .cai_txt(f$faculty_key %||% .cm_criterios_fac_key(.cai_txt(f$facultad)))
+    if (!nzchar(k)) next
+    cs <- f$cuota_sexo %||% list()
+    metas[[k]] <- list(total = .cai_num(f$cuota), M = .cai_num(cs$M), F = .cai_num(cs$F))
+  }
+
+  # Lo OBTENIDO por sexo, del mismo cruce que usa la tabla por facultad: dos
+  # cruces del mismo dato se separan en cuanto uno cambia.
+  sexo_aula <- tryCatch(
+    monitoreo_aulas_efectivas_por_sexo(unidades, responses, cfg),
+    error = function(e) NULL
+  )
+  con_reparto <- length(sexo_aula) > 0L
+  sexo_fila <- lapply(cod, function(k) {
+    v <- if (con_reparto) (sexo_aula[[k]] %||% NULL) else NULL
+    if (!length(v)) return(c(M = if (con_reparto) 0 else NA_real_,
+                             F = if (con_reparto) 0 else NA_real_))
+    et <- monitoreo_aulas_sexo_key(names(v), cfg)
+    c(M = sum(as.numeric(v[et == "M"])), F = sum(as.numeric(v[et == "F"])))
+  })
+
 
   # **«Aulas adicionales solicitadas» son LAS DOS FAMILIAS SUMADAS** (Gonzalo,
   # 2026-09-08): «cualquier aula pedida de más sobre el plan original, venga del
@@ -138,16 +202,41 @@
       v <- v[is.finite(v)]
       if (length(v)) sum(v) else NA_real_
     }
+    meta <- metas[[clave[idx][[1]] %||% ""]] %||%
+      metas[[.cm_criterios_fac_key(f)]] %||%
+      list(total = NA_real_, M = NA_real_, F = NA_real_)
+    esp_ent <- if (is.finite(esp_ahora)) round(esp_ahora) else NA_real_
+    esp_sx <- .calar_reparto_esperado(esp_ent, meta$M, meta$F)
+    # Lo obtenido por sexo SOBRE LAS AULAS APLICADAS, que es el universo de esta
+    # tabla entera: la tabla por facultad cuenta sobre todo el plan y contesta
+    # otra pregunta.
+    obt_sx <- if (!con_reparto) c(M = NA_real_, F = NA_real_) else {
+      v <- sexo_fila[aplicadas]
+      c(M = sum(vapply(v, function(x) x[["M"]], numeric(1)), na.rm = TRUE),
+        F = sum(vapply(v, function(x) x[["F"]], numeric(1)), na.rm = TRUE))
+    }
+    dif_sexo <- function(obt, esp) {
+      if (is.finite(obt) && is.finite(esp)) obt - esp else NA_real_
+    }
     out <- data.frame(
       f,
       sum(aplicadas),
       sum(idx & rol == "titular"),
+      meta$total,
       # Sin una sola aula aplicada las tres callan. Un «0 obtenidas de —» se lee
       # como si la facultad hubiera ido y no hubiera sacado nada, y lo que pasa
       # es que todavía no ha ido: eso ya lo dice «Aulas aplicadas 0».
-      if (is.finite(esp_ahora)) round(esp_ahora) else NA_real_,
+      esp_ent,
       if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl else NA_real_,
       if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl - round(esp_ahora) else NA_real_,
+      meta$M,
+      esp_sx$M,
+      if (is.finite(esp_ahora)) obt_sx[["M"]] else NA_real_,
+      if (is.finite(esp_ahora)) dif_sexo(obt_sx[["M"]], esp_sx$M) else NA_real_,
+      meta$F,
+      esp_sx$F,
+      if (is.finite(esp_ahora)) obt_sx[["F"]] else NA_real_,
+      if (is.finite(esp_ahora)) dif_sexo(obt_sx[["F"]], esp_sx$F) else NA_real_,
       esperada,
       obtenida,
       if (is.finite(esperada) && is.finite(obtenida)) obtenida - esperada else NA_real_,
@@ -157,6 +246,14 @@
       sum(idx & rol == "extra_reserve_pool") + (agendadas_extra[[f]] %||% 0L),
       stringsAsFactors = FALSE
     )
+    if (length(out) != length(AULAS_AVANCE_CABECERAS$rendimiento)) {
+      # El contrato es el vocabulario, no esta lista literal. Sin esta guarda,
+      # añadir una columna aquí y olvidarla allá renombra en silencio y la hoja
+      # sale con una cabecera pintando otra cifra.
+      stop(sprintf(
+        ".calar_rendimiento_por_facultad(): %d columnas contra %d en AULAS_AVANCE_CABECERAS$rendimiento.",
+        length(out), length(AULAS_AVANCE_CABECERAS$rendimiento)))
+    }
     names(out) <- AULAS_AVANCE_CABECERAS$rendimiento
     out
   })
