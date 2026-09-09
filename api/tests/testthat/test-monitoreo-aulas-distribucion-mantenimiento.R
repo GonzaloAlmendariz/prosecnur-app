@@ -509,3 +509,19 @@ test_that("sin huérfanas la frase no las menciona", {
                                                      sin_aplicador = list()))
   expect_false(grepl("agendada ese día", texto, fixed = TRUE))
 })
+
+test_that("sincronizar con un enlace lo RECUERDA, o la red de publicar queda muerta", {
+  # Visto en vivo el 2026-09-09: se sincronizó pasando el enlace, se publicó a
+  # continuación y el recibo dijo «adoptadas 0, motivo sin_destino». La lectura
+  # previa que publicar hace de esta hoja depende de que el destino esté
+  # guardado; usar el enlace y tirarlo dejaba la red desconectada por una línea.
+  cfg <- monitoreo_aulas_distribucion_destino_set(
+    list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  guardado <- cfg$aulas_universitarias$distribucion_sheets
+  expect_equal(guardado$spreadsheet_id, "ABC123")
+  # Y desde ahí, la adopción de publicar YA encuentra a dónde mirar: su motivo
+  # deja de ser `sin_destino`, que es el síntoma exacto que se vio.
+  expect_false(identical(
+    prosecnurapp:::.malp_adoptar_distribucion(
+      cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
+})
