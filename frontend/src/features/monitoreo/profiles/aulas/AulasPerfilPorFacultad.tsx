@@ -18,6 +18,10 @@ import { fmt, fmtCuenta, pctPerfil } from "./kpisDeAulas";
  * Barras en CSS, sin Plotly, como el resto de la sección.
  */
 
+/** ⚠ SIN MONTAR desde el 2026-09-08. Era «Dónde falta más» en Resumen, y ese
+    panel medía contra la cuota del estudio —la pregunta de Metas, donde ya se
+    contesta dos veces con más detalle—. Registrado en
+    `componentesSinMontar.test.ts`. */
 export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** `avance_por_facultad` del motor. Cuando llega, MANDA. */

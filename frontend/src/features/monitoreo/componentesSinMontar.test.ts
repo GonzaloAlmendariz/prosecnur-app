@@ -41,6 +41,12 @@ const SIN_MONTAR_CONOCIDOS = [
   // de «Cumplimiento de la cuota» —proporcional a la cuota de cada facultad— y
   // en «Qué metas van a cerrar y cuáles no», que publica las cifras absolutas
   // por facultad y sexo. Con cinco paneles en la pestaña, era tinta repetida.
+  // Era «Dónde falta más» en Resumen, retirado el 2026-09-08: medía cada
+  // facultad contra LA CUOTA DEL ESTUDIO, que es el denominador y la pregunta de
+  // Metas, no el avance del operativo. Allá ya se contesta dos veces con más
+  // detalle, y por un camino distinto del suyo (`avance_cuota` en vez de
+  // `avance_por_facultad`), que es la forma más barata de que un día discrepen.
+  "AulasPerfilPorFacultad.tsx::AulasPerfilPorFacultad",
   "AulasPiramideCuota.tsx::AulasPiramideCuota",
   // Retirado de «Rendimiento» el mismo día, y su propio comentario ya lo pedía:
   // «son la misma pregunta a dos escalas y conviene decidir si sobra uno».
