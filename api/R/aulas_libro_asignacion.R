@@ -354,8 +354,25 @@ aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) 
     }
   }
 
+  # **«Cursos-horario del día» se ensancha con lo que lleva.** Medido sobre el
+  # operativo: seis filas pasaban de los 56 caracteres fijos y la peor llegaba a
+  # 82 —«CH 135 (H404) · CH 149 (X114) · CH 14 (A503 y A609 (en simultáneo)) ·
+  # CH 37 (P202)»—. No se derraman sobre la de al lado porque «ESTADO DE
+  # APLICACIÓN» está ocupada en 38 de las 61 filas de dato, así que el último
+  # curso-horario del día se perdía: justo el dato por el que alguien abre esta
+  # hoja. Suelo en los 56 de siempre, techo en 90 para que un día cargado no
+  # empuje la hoja entera.
+  #
+  # Las otras siete se quedan como estaban, y las dos que también exceden su
+  # ancho —la nota del sorteo y el rótulo del bloque— no son un problema: van
+  # solas en su fila y se derraman sobre celdas vacías.
+  ancho7 <- 56L
+  for (f in filas) {
+    if (!identical(f$tipo, "dato") || length(f$celdas) < 7L) next
+    ancho7 <- max(ancho7, nchar(trimws(f$celdas[[7]]), type = "chars") + 2L)
+  }
   openxlsx::setColWidths(wb, hoja, cols = 1:8,
-                         widths = c(42, 18, 9, 15, 16, 13, 56, 22))
+                         widths = c(42, 18, 9, 15, 16, 13, min(90L, ancho7), 22))
   invisible(TRUE)
 }
 
