@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { ClipboardCheck, Gauge, Target, Users } from "../../../../vendor/lucide-react";
 import {
-  buscarCursosHorario, claveDeBusqueda, fichaDeCursoHorario,
+  buscarCursosHorario, claveDeBusqueda, cuandoEnPalabras, fichaDeCursoHorario,
   type EstadoDeCursoHorario, type FichaDeCursoHorario,
 } from "./fichaDeCursoHorario";
+import { ChipDato, ChipLugar } from "./AulasSistemaPabellon";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import "./fichaDeCursoHorario.css";
 
@@ -46,11 +48,48 @@ function Valor({ children }: { children: React.ReactNode }) {
     : <span className="aulas-ficha-valor">{children}</span>;
 }
 
-function Par({ clave, children }: { clave: string; children: React.ReactNode }) {
+function Par({ clave, children, cifra }: {
+  clave: string; children: React.ReactNode; cifra?: boolean;
+}) {
   return (
-    <div className="aulas-ficha-par">
+    <div className={`aulas-ficha-par${cifra ? " es-cifra" : ""}`}>
       <span className="aulas-ficha-clave">{clave}</span>
       <Valor>{children}</Valor>
+    </div>
+  );
+}
+
+/**
+ * La comparación que este panel existe para hacer: lo obtenido contra lo que el
+ * diseño pedía. Dos porcentajes uno al lado del otro obligan a restar de cabeza;
+ * una barra con la marca de lo previsto se lee de un vistazo, y es la misma
+ * gramática que «Cumplimiento» usa en Metas.
+ */
+function Contraste({ obtenida, prevista }: { obtenida: number | null; prevista: number | null }) {
+  if (obtenida == null) return null;
+  const tope = Math.max(obtenida, prevista ?? 0, 0.01);
+  const alcanza = prevista == null || obtenida >= prevista;
+  return (
+    <div className="aulas-ficha-contraste">
+      <span className="aulas-ficha-pista-barra">
+        <i
+          style={{
+            width: `${Math.min(100, (100 * obtenida) / tope)}%`,
+            background: alcanza ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
+          }}
+        />
+        {prevista != null ? (
+          // La marca de tinta: dónde estaba la meta de este curso-horario.
+          <em style={{ left: `${Math.min(100, (100 * prevista) / tope)}%` }} />
+        ) : null}
+      </span>
+      <span className="aulas-ficha-contraste-lectura">
+        {prevista == null
+          ? <>el diseño no le puso tasa</>
+          : alcanza
+            ? <>llega a lo que el diseño le pedía</>
+            : <>le faltan {pctPerfil((prevista - obtenida) * 100)} para lo que el diseño le pedía</>}
+      </span>
     </div>
   );
 }
@@ -69,6 +108,47 @@ function pct(v: number | null): string | null {
   return v == null ? null : pctPerfil(v * 100);
 }
 
+/**
+ * La banda de cifras, con las MISMAS clases que la banda de Avance
+ * (`aulas-kpi-band` / `aulas-kpi` / `aulas-kpi-rotulo` + `<strong>` + `<small>`).
+ *
+ * Gonzalo: «el formato sigue demasiado tosco, nada parecido a las demás
+ * pestañas». Lo estaba porque me inventé una lista de pares en vez de usar el
+ * vocabulario que el perfil ya tiene. Las cuatro cifras que se vienen a ver son
+ * éstas; el resto es detalle y va debajo.
+ */
+function Banda({ f }: { f: FichaDeCursoHorario }) {
+  const tarjetas = [
+    { label: "Elegibles del plan", icono: Users, value: f.elegibles == null ? "—" : fmt(f.elegibles),
+      pista: "el aforo con el que se dimensionó" },
+    { label: "Esperadas por el diseño", icono: Target,
+      value: f.efectivasEsperadas == null ? "—" : fmt(Math.round(f.efectivasEsperadas)),
+      pista: "lo que este curso-horario debe traer" },
+    { label: "Efectivas de plataforma", icono: ClipboardCheck,
+      value: f.efectivasObtenidas == null ? "—" : fmt(f.efectivasObtenidas),
+      pista: "llegaron y pasaron los filtros" },
+    { label: "Efectividad obtenida", icono: Gauge,
+      value: pct(f.efectividadObtenida) ?? "—",
+      // La ausencia dice POR QUÉ: un «—» mudo se lee como un fallo.
+      pista: f.efectividadObtenida == null ? "todavía no se aplica" : "efectivas sobre elegibles" },
+  ];
+  return (
+    <div className="aulas-kpi-band" role="group" aria-label="Cifras del curso-horario"
+      data-qa-geometry-group="monitoring-aulas-kpis" data-qa-geometry-contract="equal">
+      {tarjetas.map((t) => {
+        const Icono = t.icono;
+        return (
+          <div key={t.label} className="aulas-kpi aulas-kpi--neutral" title={t.pista}>
+            <span className="aulas-kpi-rotulo"><Icono size={13} aria-hidden="true" />{t.label}</span>
+            <strong>{t.value}</strong>
+            <small>{t.pista}</small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function Ficha({ f }: { f: FichaDeCursoHorario }) {
   const esReserva = f.rol !== "Titular";
   return (
@@ -84,11 +164,29 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         <span className="aulas-ficha-sub">{f.rol} · el plan lo declara «{f.estadoOperativo}»</span>
       </div>
 
+      {/* **El estado y su fecha, en UNA frase.** Antes el chip decía AGENDADO y
+          tres centímetros más allá, sin rótulo, había un «2026-09-08» crudo:
+          Gonzalo, «si está agendada ¿para cuándo? no se explica eso». Un ISO sin
+          su día de la semana tampoco dice si eso ya pasó. */}
+      <p className="aulas-ficha-cuando">{cuandoEnPalabras(f.estado, f.fecha, f.hora)}</p>
+
+      {/* La fila de chips del Sistema Pabellón: el salón con su color
+          determinista por la letra (`tonoDePabellon`), que es lo que deja
+          reconocer un pabellón de un vistazo, y la facultad como badge neutro.
+          La fecha y la hora salieron de aquí: ya las dice la frase de arriba, y
+          repetirlas era el ruido que las dejaba sin explicar. */}
+      <div className="aulas-chips-fila aulas-ficha-chips">
+        {f.local ? <ChipLugar lugar={f.local} /> : null}
+        {f.facultad ? <ChipDato>{f.facultad}</ChipDato> : null}
+      </div>
+
+      <Banda f={f} />
+
       <Grupo titulo="Qué curso-horario es">
-        <Par clave="Facultad">{f.facultad}</Par>
         <Par clave="Curso">{f.curso}</Par>
         <Par clave="Sección">{f.seccion}</Par>
         <Par clave="Docente">{f.docente}</Par>
+        <Par clave="Aplicador">{f.responsable}</Par>
       </Grupo>
 
       {esReserva ? (
@@ -98,43 +196,24 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         </Grupo>
       ) : null}
 
-      <Grupo titulo="Cuándo y dónde">
-        <Par clave="Fecha">{f.fecha}</Par>
-        <Par clave="Hora">{f.hora}</Par>
-        {/* «Salón» y no «aula», que es la palabra que este perfil ya usa para
-            el espacio físico (`AulasCambioDeAula`: «se aplicaron en otro
-            salón»). «Aula» está sobrecargada aquí —era la unidad de muestreo
-            antes de llamarse curso-horario— y usarla para el sitio confunde
-            justo lo que se separó. */}
-        <Par clave="Salón">{f.local}</Par>
-        <Par clave="Aplicador">{f.responsable}</Par>
-      </Grupo>
-
-      <Grupo titulo="Alumnos">
-        <Par clave="Elegibles del plan">{f.elegibles == null ? null : fmt(f.elegibles)}</Par>
+      <Grupo titulo="El detalle del campo">
         {/* Los que de verdad estaban: sólo lo sabe el parte de campo. */}
-        <Par clave="Asistentes (parte)">{f.asistentes == null ? null : fmt(f.asistentes)}</Par>
+        <Par cifra clave="Asistentes (parte)">{f.asistentes == null ? null : fmt(f.asistentes)}</Par>
+        {/* **Las dos fuentes, por separado.** No se reconcilian: la plataforma
+            cuenta lo que llegó y pasó los filtros, el parte lo que anotó quien
+            aplicó, y sobre HSVG2026 discrepan en catorce cursos-horario. */}
+        <Par cifra clave="Efectivas del parte">{f.efectivasDelParte == null ? null : fmt(f.efectivasDelParte)}</Par>
+        <Par cifra clave="Le faltan">{f.brecha == null ? null : fmt(f.brecha)}</Par>
       </Grupo>
 
-      <Grupo titulo="Encuestas">
-        <Par clave="Esperadas por el diseño">{f.efectivasEsperadas == null ? null : fmt(Math.round(f.efectivasEsperadas))}</Par>
-        {/* **Las dos fuentes, por separado y dichas.** No se reconcilian: la
-            plataforma cuenta lo que llegó y pasó los filtros, el parte cuenta lo
-            que anotó quien aplicó, y sobre HSVG2026 discrepan en catorce
-            cursos-horario. Publicar una sola escondería la diferencia. */}
-        <Par clave="Efectivas de plataforma">{f.efectivasObtenidas == null ? null : fmt(f.efectivasObtenidas)}</Par>
-        <Par clave="Efectivas del parte">{f.efectivasDelParte == null ? null : fmt(f.efectivasDelParte)}</Par>
-        <Par clave="Le faltan">{f.brecha == null ? null : fmt(f.brecha)}</Par>
-      </Grupo>
-
-      <Grupo titulo="Efectividad">
+      <Grupo titulo="Contra lo que el diseño pedía">
         {/* La prevista se LEE del plan; la obtenida se CALCULA sobre los
             elegibles. `tasa_efectividad_aula` es la prevista pese al nombre. */}
-        <Par clave="Prevista del curso-horario">{pct(f.efectividadPrevista)}</Par>
-        <Par clave="Obtenida">{pct(f.efectividadObtenida)}</Par>
-        <Par clave="Prevista de su facultad">{pct(f.efectividadDeSuFacultad)}</Par>
+        <Par cifra clave="Prevista del curso-horario">{pct(f.efectividadPrevista)}</Par>
+        <Par cifra clave="Prevista de su facultad">{pct(f.efectividadDeSuFacultad)}</Par>
         <Par clave="Contra su margen">{f.senal}</Par>
       </Grupo>
+      <Contraste obtenida={f.efectividadObtenida} prevista={f.efectividadPrevista} />
     </>
   );
 }

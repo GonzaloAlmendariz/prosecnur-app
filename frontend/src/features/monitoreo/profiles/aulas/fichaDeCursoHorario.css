@@ -72,3 +72,33 @@
 }
 /* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
 .aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
+
+/* La fila de chips del Sistema Pabellón, respirando bajo el título. */
+.aulas-ficha-chips { margin: 6px 0 10px; }
+/* La frase que contesta «¿y para cuándo?». Va pegada al título, que es donde se
+ * mira después del estado. */
+.aulas-ficha-cuando { margin: 2px 0 0; color: var(--pulso-text); font-weight: 550; }
+
+/* **Jerarquía en las cifras.** Con rótulo y valor del mismo peso la ficha era
+ * una lista gris donde nada destacaba: Gonzalo, «le falta pop visual». Lo que se
+ * viene a ver son los NÚMEROS —cuántas trajo, cuánto le falta, qué efectividad
+ * consiguió—, así que el número manda y el rótulo lo acompaña. */
+.aulas-ficha-par.es-cifra .aulas-ficha-valor {
+  font-size: 1.25rem; font-weight: 650; line-height: 1.15; color: var(--pulso-text);
+}
+
+/* El contraste de lo obtenido contra lo que el diseño pedía. Dos porcentajes
+ * uno al lado del otro obligan a restar de cabeza; la barra con la marca de lo
+ * previsto se lee de un vistazo, y es la misma gramática que «Cumplimiento». */
+.aulas-ficha-contraste { margin: 10px 0 2px; display: flex; flex-direction: column; gap: 4px; }
+.aulas-ficha-pista-barra {
+  position: relative; display: block; height: 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 7%, transparent); overflow: visible;
+}
+.aulas-ficha-pista-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+/* La marca de tinta: dónde estaba la meta de ESTE curso-horario. */
+.aulas-ficha-pista-barra em {
+  position: absolute; top: -3px; bottom: -3px; width: 2px;
+  background: var(--pulso-text); opacity: 0.75; transform: translateX(-1px);
+}
+.aulas-ficha-contraste-lectura { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
