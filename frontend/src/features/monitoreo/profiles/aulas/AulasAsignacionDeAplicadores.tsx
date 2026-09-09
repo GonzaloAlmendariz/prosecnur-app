@@ -6,6 +6,7 @@ import {
   avisoDistribucion, enlaceDeDistribucion,
   type DistribucionSheetsRecordada, type DistribucionVigente,
 } from "./distribucionDeAplicadores";
+import { destinoDeDistribucion } from "./destinoDeDistribucion";
 import { ChipDato, ChipHora, ChipLugar, ChipPrep } from "./AulasSistemaPabellon";
 import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
@@ -173,7 +174,16 @@ export function AulasAsignacionDeAplicadores({
   /** Publica la distribución; con enlace lo recuerda. `null` = solo lectura. */
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
   /** El ciclo entero en una acción; `false` es el ensayo, que no escribe. */
-  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  /**
+   * Sincroniza con la hoja. El `enlace` va SIEMPRE que haya uno escrito: el
+   * botón se habilita con el pegado o con el recordado (`hayDestinoDistribucion`)
+   * y mandarlo sin él dejaba al backend buscando sólo el recordado — un campo
+   * con el enlace a la vista y un «No hay Sheets de la distribución que
+   * sincronizar: pega su enlace una vez» debajo, con el enlace ya pegado.
+   */
+  onSincronizarDistribucion?:
+    | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
+    | null;
   sincronizacion?: MonitoreoAulasSincronizacion | null;
   /**
    * La facultad de cada cita, por código. Dictado 2026-09-04: «el cuadro no
@@ -332,7 +342,10 @@ export function AulasAsignacionDeAplicadores({
   // enlace que se está pegando, como en el campo del libro.
   const recordadoUrl = enlaceDeDistribucion(distribucion?.recordado);
   const escritoDistribucion = (enlaceDistribucion ?? "").trim();
-  const hayDestinoDistribucion = Boolean(escritoDistribucion || recordadoUrl);
+  // Guarda y argumento salen de la MISMA expresión: mientras fueron dos, el
+  // botón se habilitaba con el enlace pegado y la llamada no lo mandaba.
+  const destinoSincronizar = destinoDeDistribucion(escritoDistribucion, recordadoUrl);
+  const hayDestinoDistribucion = destinoSincronizar.hay;
   const avisoSheets = avisoDistribucion(distribucion?.recordado, distribucion?.vigente);
   // Qué tiene el ensayo para hacer, y en una frase corta para el botón: sin
   // esto el botón diría «Aplicar» sin decir qué, que es como se aprieta sin
@@ -432,7 +445,7 @@ export function AulasAsignacionDeAplicadores({
                     className="aulas-asigna-rango-boton"
                     disabled={!hayDestinoDistribucion}
                     title="Dice qué haría, sin escribir nada en la hoja"
-                    onClick={() => { void onSincronizarDistribucion(false); }}
+                    onClick={() => { void onSincronizarDistribucion(false, destinoSincronizar.enviar); }}
                   >
                     Revisar cambios
                   </button>
@@ -444,7 +457,7 @@ export function AulasAsignacionDeAplicadores({
                       type="button"
                       className="aulas-asigna-rango-boton"
                       title="Escribe en la hoja lo que el ensayo acaba de describir"
-                      onClick={() => { void onSincronizarDistribucion(true); }}
+                      onClick={() => { void onSincronizarDistribucion(true, destinoSincronizar.enviar); }}
                     >
                       Aplicar {resumenSincronizacion}
                     </button>
