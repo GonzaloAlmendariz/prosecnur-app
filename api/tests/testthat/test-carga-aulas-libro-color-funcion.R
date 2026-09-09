@@ -137,10 +137,27 @@ test_that("AULA UTILIZADA va PEGADA a STATUS MUESTRA, que es donde se lee", {
   expect_equal(titulos[[i + 1L]], "AULA UTILIZADA")
 })
 
-test_that("AULA UTILIZADA la escribe la app, no la persona: va en el gris", {
-  # Si entrara en los campos de la persona, su celda saldría blanca —«escribe
-  # aquí»— y diría lo contrario de lo que es.
-  expect_false("aula_utilizada" %in% AULAS_LIBRO_CAMPOS_DE_LA_PERSONA)
+test_that("AULA UTILIZADA la llena el coordinador: su celda va BLANCA", {
+  # Nació como columna de la app y el dictado del 2026-09-08 la devolvió a la
+  # persona: «lo apruebo, pero es algo que lo hace el coordinador de campo». Si
+  # se quedara fuera de los campos de la persona saldría gris —«esto no lo
+  # toques»— sobre la única columna que él tiene que llenar.
+  expect_true("aula_utilizada" %in% AULAS_LIBRO_CAMPOS_DE_LA_PERSONA)
+  # Y sigue sin ser suya en exclusiva: la app la siembra con lo que ya sabe.
+  sembrado <- aulas_libro_anotar_aula_utilizada(list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2",
+         sample_role = "chain_reserve", replacement_for = "aula_1")
+  ))
+  expect_equal(sembrado[[1]]$aula_utilizada, "R 1.1")
+  # Pero lo tecleado manda: la siembra no pisa la verdad de campo.
+  tecleado <- aulas_libro_anotar_aula_utilizada(list(
+    list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
+         aula_utilizada = "R 9.9 (a mano)"),
+    list(operational_code = "R 1.1", classroom_id = "aula_2",
+         sample_role = "chain_reserve", replacement_for = "aula_1")
+  ))
+  expect_equal(tecleado[[1]]$aula_utilizada, "R 9.9 (a mano)")
 })
 
 test_that("el titular sabe qué reserva ocupó su lugar", {
