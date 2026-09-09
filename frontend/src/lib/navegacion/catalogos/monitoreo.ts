@@ -4,6 +4,7 @@ import {
   BarChart3,
   BarChartBig,
   Boxes,
+  Search,
   CalendarClock,
   CalendarRange,
   ClipboardCheck,
@@ -305,6 +306,11 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
     ],
     consultas: [
+      // **La primera de Consultas, y a propósito.** Las otras cuatro contestan
+      // preguntas de conjunto —la cadena, las brechas, el parte, los extras— y
+      // ésta contesta por UNA fila concreta, que es lo que se pregunta cuando
+      // alguien llama con un código en la mano. Gonzalo la pidió el 2026-09-09.
+      pestana("aulas", "consultas", "ficha", "Buscar por código", "Un curso-horario, de CH o R a su ficha", Search),
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
       pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
       pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),

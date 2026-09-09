@@ -1,0 +1,50 @@
+/* Hoja propia del buscador por código. No crece `aulasMonitoreo.css`, que está
+ * congelado a crecimiento, y sigue el patrón que ya usa `senalesPorAula.css`:
+ * componente nuevo, hoja nueva, y el guard `cssSinDuenoTests` exige que cada
+ * clase de aquí la nombre un `.tsx`. */
+
+.aulas-ficha-buscador { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.aulas-ficha-buscador input {
+  flex: 1 1 220px; min-width: 0; padding: 6px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text); font: inherit;
+}
+.aulas-ficha-pista { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* Las coincidencias, cuando hay más de una: se elige, no se adivina. */
+.aulas-ficha-opciones { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.aulas-ficha-opcion {
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  padding: 2px 10px; font: inherit; font-size: var(--aulas-min); cursor: pointer;
+}
+.aulas-ficha-opcion[aria-pressed="true"] {
+  background: var(--pulso-module-monitoring); color: var(--pulso-on-accent, #fff);
+  border-color: var(--pulso-module-monitoring);
+}
+
+.aulas-ficha-titulo { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 12px 0 2px; }
+.aulas-ficha-codigo { font-size: 1.05rem; font-weight: 700; }
+.aulas-ficha-estado {
+  border-radius: 999px; padding: 1px 8px; font-size: var(--aulas-min);
+  font-weight: 650; text-transform: uppercase; letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--aulas-ficha-tono) 14%, transparent);
+  color: var(--aulas-ficha-tono);
+}
+.aulas-ficha-sub { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* Los datos, en pares. Una tabla de dos columnas sería lo mismo con más ruido. */
+.aulas-ficha-grupo { margin: 10px 0 0; }
+.aulas-ficha-grupo-titulo {
+  font-size: var(--aulas-min); font-weight: 650; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--pulso-text-soft); margin: 0 0 4px;
+}
+.aulas-ficha-pares {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 6px 16px; margin: 0;
+}
+.aulas-ficha-par { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--pulso-border); padding: 3px 0; }
+.aulas-ficha-clave { color: var(--pulso-text-soft); }
+.aulas-ficha-valor { font-variant-numeric: tabular-nums; text-align: right; }
+/* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
+.aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
