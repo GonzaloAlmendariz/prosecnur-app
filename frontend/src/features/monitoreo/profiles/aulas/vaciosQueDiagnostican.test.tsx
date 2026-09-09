@@ -56,10 +56,18 @@ describe("un vacío nombra su causa, no la más grave", () => {
     // Dos reservas dormidas: hay plan, y aun así no hay a quién llamar. El
     // mensaje que había —«ninguno declara su ciclo de contacto»— mandaba a
     // rellenar un campo del libro que está perfectamente bien.
+    //
+    // **El ROL se declara** (2026-09-08). La fixture decía «en reserva» y nada
+    // más, y el criterio de dormida se endureció después a `sample_role ===
+    // "chain_reserve" && sigueDormida(fila)` —«un titular jamás duerme por este
+    // eje»— justo para que una reserva sembrada como SIN CONTACTAR no se
+    // colara. Sin el rol, estas dos filas se leían como titulares sin cita y
+    // caían a la cola: el test pedía el vacío y el panel pintaba «2
+    // cursos-horario siguen sin cita». El contrato no siguió al cambio.
     const todasDormidas = renderToStaticMarkup(
       <AulasColaDeContacto filas={[
-        { operational_code: "CH 1", sample_status: "en reserva" },
-        { operational_code: "CH 2", sample_status: "en reserva" },
+        { operational_code: "CH 1", sample_role: "chain_reserve", sample_status: "en reserva" },
+        { operational_code: "CH 2", sample_role: "chain_reserve", sample_status: "en reserva" },
       ] as unknown as MonitoreoAulasPlanRow[]} />);
     expect(todasDormidas).toContain("No queda ningún curso-horario a quien llamar");
     expect(todasDormidas).toContain("los 2 del plan están citados, en reserva o ya reemplazados");

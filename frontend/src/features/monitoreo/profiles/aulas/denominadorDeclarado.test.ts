@@ -64,12 +64,18 @@ describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
   const resumen = fs.readFileSync(path.join(aqui, "AulasPestanaResumen.tsx"), "utf8")
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
+  // El artículo va en MASCULINO desde que la unidad dejó de ser el «aula» y
+  // pasó a ser el «curso-horario» (ADR 0060, y el trinquete
+  // `vocabularioDeLaUnidad`). El contrato decía «cada una» y se quedó con la
+  // concordancia vieja; la pantalla dice «cada uno» desde entonces. Lo que este
+  // guard protege —que los dos subtítulos digan QUÉ mira cada gráfico— no
+  // cambia.
   it("el de status dice que mira el punto del circuito", () => {
-    expect(resumen).toContain("en qué punto del circuito está cada una");
+    expect(resumen).toContain("en qué punto del circuito está cada uno");
   });
 
   it("y el de cobertura, cuánto lleva recogido", () => {
-    expect(resumen).toContain("cuánto lleva recogido cada una");
+    expect(resumen).toContain("cuánto lleva recogido cada uno");
   });
 
   it("y sus subtítulos ya no son idénticos", () => {
