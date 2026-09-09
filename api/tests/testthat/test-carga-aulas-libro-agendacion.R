@@ -262,3 +262,28 @@ test_that("el corte del xlsx tampoco sale del reloj", {
   # el mismo libro.
   expect_false(grepl(format(Sys.Date(), "%d/%m/%Y"), texto, fixed = TRUE))
 })
+
+test_that("los anchos salen del modelo: una facultad larga ensancha su columna", {
+  # La hoja nació con «34 la primera y 16 las demás», que cabía porque la
+  # facultad más larga del operativo mide 32. Cabía POR SUERTE, que es como el
+  # libro se ganó cinco cortes (docs/qa/anchos-que-cortan-datos-2026-09-09.md).
+  skip_if_not_installed("openxlsx")
+  ancho1 <- function(wb) {
+    a <- wb$colWidths[[1L]]
+    suppressWarnings(as.numeric(a[names(a) == "1"]))
+  }
+  largo <- paste(rep("FACULTAD", 6L), collapse = " ")   # 53 caracteres
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", fac = largo, estado = "agendada",
+                                         fecha = "2026-09-07"))), wb)
+  expect_gt(ancho1(wb), 34)
+
+  # Y con nombres cortos se queda en el suelo: una tabla floja no la estrecha.
+  wb2 <- openxlsx::createWorkbook()
+  aulas_libro_escribir_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", fac = "Letras", estado = "agendada",
+                                         fecha = "2026-09-07"))), wb2)
+  expect_equal(ancho1(wb2), 34)
+})
+

@@ -531,9 +531,27 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
   rejilla <- openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149")
 
   n_hoja <- max(vapply(AULAS_AGENDACION_CABECERAS, length, integer(1)))
-  # Los mismos anchos que se fijan al cierre, para que la nota sepa cuántas
-  # líneas ocupa: 34 la primera columna y 16 las demás.
-  anchos_col <- c(34L, rep(16L, max(0L, n_hoja - 1L)))
+  # **Los anchos salen del MODELO, no de un literal.** Esta hoja nació con «34 la
+  # primera y 16 las demás», que hoy cabe: la facultad más larga mide 32. Cabe
+  # por suerte, y ésa es exactamente la forma en que el libro se ganó cinco
+  # cortes (ver `docs/qa/anchos-que-cortan-datos-2026-09-09.md`). Se mide lo que
+  # las cuatro tablas llevan, con suelo en los mismos 34 y 16 para que una tabla
+  # floja no estreche la columna, y techo en 42.
+  #
+  # Del MODELO y no de la hoja escrita: las notas van fusionadas a lo ancho y
+  # leerlas de vuelta pediría 42 para la columna A. Es la misma razón por la que
+  # «Avance de campo» tiene su propia función de anchos.
+  anchos_col <- vapply(seq_len(n_hoja), function(j) {
+    largos <- unlist(lapply(names(AULAS_AGENDACION_CABECERAS), function(clave) {
+      t <- ag[[clave]]
+      if (!is.data.frame(t) || !nrow(t) || j > ncol(t)) return(0L)
+      c(nchar(names(t)[[j]], type = "chars") %/% 2L,
+        if (is.character(t[[j]])) nchar(t[[j]], type = "chars") else 0L)
+    }), use.names = FALSE)
+    largos <- largos[is.finite(largos)]
+    as.integer(min(42L, max(if (j == 1L) 34L else 16L,
+                            if (length(largos)) max(largos) + 2L else 0L)))
+  }, integer(1))
   openxlsx::writeData(wb, hoja, "Avance de agendación", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
   # El corte sale del MODELO y no del reloj, igual que en la pestaña de Sheets:
@@ -585,7 +603,6 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
                        cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
     fila <- cabecera_en + nrow(tabla) + 2L
   }
-  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
-  if (n_hoja > 1L) openxlsx::setColWidths(wb, hoja, cols = 2:n_hoja, widths = 16)
+  openxlsx::setColWidths(wb, hoja, cols = seq_along(anchos_col), widths = anchos_col)
   invisible(wb)
 }
