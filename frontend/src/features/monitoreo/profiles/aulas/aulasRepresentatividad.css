@@ -1,0 +1,166 @@
+/*
+ * «Cuánto se ha movido la muestra» — barras divergentes por estrato.
+ *
+ * Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento en
+ * `agentic/manifest.json`, y lo nuevo va en archivo nuevo.
+ *
+ * El carril tiene una línea central y cada barra sale de ahí: a la izquierda el
+ * estrato que perdió peso, a la derecha el que lo ganó. Sin esa línea la
+ * dirección habría que leerla del signo, que es justo lo que el gráfico existe
+ * para ahorrar.
+ */
+
+.aulas-repr {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.aulas-repr-vacio { margin: 6px 0 0; }
+
+.aulas-repr-cabeza {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aulas-repr-puntaje {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.aulas-repr-puntaje strong {
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-repr-puntaje span {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-repr-lectura {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-repr-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-repr-escala { opacity: 0.75; }
+
+.aulas-repr-aviso {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-warning-text, var(--pulso-text));
+}
+
+.aulas-repr-lista {
+  display: grid;
+  /* Todas las filas al mismo alto: los rótulos de estrato traducidos son largos
+     y de largo desigual, y sin esto el marco cambiaba de alto según cuál
+     envolviera (C2). */
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-repr-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr) 78px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.aulas-repr-rotulo {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* El carril: la línea central es un borde izquierdo sobre el pseudo-elemento,
+   no un `background` con gradiente, para que se vea igual en claro y oscuro. */
+.aulas-repr-carril {
+  position: relative;
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--pulso-surface-2);
+  min-width: 0;
+}
+
+.aulas-repr-carril::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--pulso-border);
+}
+
+.aulas-repr-carril i {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 3px;
+  display: block;
+}
+
+/* Falta peso: la barra crece hacia la IZQUIERDA desde el centro.
+ *
+ * Los tonos son los de la paleta compartida del Sistema Pabellon, POR SU NOMBRE
+ * (`sistemaPabellon.css` los usa igual). El primer intento escribio
+ * `--pulso-accent-4` y `--pulso-accent-0` —numerados, como los indices que usa
+ * el TSX para elegir tono— y esos tokens NO EXISTEN: las barras salieron con
+ * `background-color: rgba(0,0,0,0)` y geometria correcta. Invisibles, con los
+ * tests en verde y el ancho medido en 315 px de 629. Verde por ausencia.
+ *
+ * No es rojo/verde de bueno y malo: es direccion. Rosa el que perdio peso,
+ * acero el que lo gano; los dos legibles y ninguno con carga de alarma. */
+.aulas-repr-carril i[data-lado="falta"] {
+  right: 50%;
+  background: var(--pulso-accent-rose);
+}
+
+/* Sobra: hacia la derecha. */
+.aulas-repr-carril i[data-lado="sobra"] {
+  left: 50%;
+  background: var(--pulso-accent-steel);
+}
+
+.aulas-repr-cifra {
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-repr-pie {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 1100px) {
+  /* A 1024 el rótulo traducido no cabe en 250 px sin comerse el carril, y un
+     carril de 60 px no compara nada. El rótulo cede primero. */
+  .aulas-repr-lista li { grid-template-columns: minmax(0, 160px) minmax(0, 1fr) 70px; }
+}

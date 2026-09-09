@@ -19,9 +19,12 @@ import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
  * `api/R/monitoreo_aulas_representatividad.R:87`):
  *
  * - **Planificado** es la ola M1 del plan: los titulares del sorteo.
- * - **Efectivo** son los que siguen vivos —planificada, contactada, agendada, en
- *   campo, aplicada, parcial, cerrada— más las reservas que entraron a sustituir
- *   a alguien. Quedan fuera las reemplazadas, las canceladas y las sin acceso.
+ * - **Efectivo** es UN eslabón por cadena —el que `monitoreo_aulas_en_juego()`
+ *   marca como el que hay que ir a aplicar—, menos las cadenas muertas
+ *   (cancelada, sin acceso, reemplazada). Hasta el arreglo de `6d885d99` metía
+ *   toda reserva con `replacement_for` puesto aunque siguiera dormida, y sobre
+ *   HSVG2026 eso eran 1 173 filas del banco: la muestra «efectiva» salía de
+ *   1 347 contra 174 planificados.
  * - Las proporciones se pesan por `eligible_n`, no por número de cursos-horario:
  *   perder un curso-horario de 15 alumnos no desplaza lo mismo que perder uno
  *   de 60.
@@ -33,6 +36,22 @@ import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
  * El motor avisa por su cuenta cuando algún grupo se pasa de 10 pp; ese aviso se
  * respeta y NO se recalcula aquí — quien decide qué es una desviación grave es
  * el motor, no la pantalla.
+ *
+ * **`planned_score` y `score_loss` NO se publican, a propósito.** El bloque los
+ * trae, pero son dos escalas distintas restadas entre sí:
+ *
+ * - `planned_score` es el puntaje del DISEÑO contra el marco de la universidad,
+ *   el que calculó el módulo de muestra. En HSVG2026 vale 72,4.
+ * - `effective_score` es cuánto se ha movido la muestra efectiva respecto del
+ *   DISEÑO, en la escala de 5 pp de esta misma función. Vale 99,9.
+ *
+ * `score_loss` es la resta de los dos: −27,5. Publicado diría «ganamos 27,5
+ * puntos de representatividad», que no significa nada — miden comparaciones
+ * distintas. La pérdida de verdad exigiría medir la muestra efectiva contra el
+ * MARCO, y esta función no lo tiene: sólo recibe el plan y la config.
+ *
+ * Se deja fuera en vez de pintarlo con una nota al pie. Un número que hay que
+ * explicar para que no engañe es un número que no debería estar en pantalla.
  */
 
 export type DesvioDeEstrato = {
@@ -53,12 +72,11 @@ export type DesvioDeEstrato = {
 export type VistaDeRepresentatividad = {
   /** `null` cuando hay algo que enseñar; si no, la causa, ya redactada. */
   vacio: string | null;
-  /** El score del diseño, 0-100, o `null` si el estudio no lo publicó. */
-  disenado: number | null;
-  /** El score de lo que se está aplicando, 0-100. */
+  /**
+   * Cuánto se parece la muestra que se está aplicando a la que se sorteó, 0-100.
+   * 100 es composición idéntica; 0 es una desviación media de 5 pp o peor.
+   */
   efectivo: number | null;
-  /** Cuántos puntos de score se han perdido. Positivo = se perdió. */
-  perdida: number | null;
   /** Desviación media, en puntos porcentuales. */
   desvioMedio: number | null;
   cursosHorarioDelSorteo: number | null;
@@ -94,7 +112,7 @@ export function representatividadEfectiva(
 ): VistaDeRepresentatividad {
   const vacia: VistaDeRepresentatividad = {
     vacio: "",
-    disenado: null, efectivo: null, perdida: null, desvioMedio: null,
+    efectivo: null, desvioMedio: null,
     cursosHorarioDelSorteo: null, cursosHorarioEnPie: null,
     aviso: "", desvios: [], sinMoverse: 0,
   };
@@ -165,9 +183,7 @@ export function representatividadEfectiva(
   const desvioMedioBruto = numeroONulo(bloque.effective_distance);
   return {
     vacio: null,
-    disenado: numeroONulo(bloque.planned_score),
     efectivo,
-    perdida: numeroONulo(bloque.score_loss),
     desvioMedio: desvioMedioBruto === null ? null : pp(desvioMedioBruto),
     cursosHorarioDelSorteo: numeroONulo(bloque.planned_aulas),
     cursosHorarioEnPie: numeroONulo(bloque.effective_aulas),
