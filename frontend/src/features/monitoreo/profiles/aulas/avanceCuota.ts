@@ -210,12 +210,30 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
     };
   }
 
+  // **El porcentaje viaja con la frecuencia que lo produce.**
+  //
+  // Gonzalo, 2026-09-08, señalando el «faltan · 31.5 %» de Estudios Generales
+  // Ciencias: «debería decir "Faltan X · 57 % (15 de 25)"». La fracción ya
+  // existía, pero vivía en la otra punta de la fila —bajo el nombre de la
+  // facultad, a 190 px y una columna de distancia—, así que la cifra fuerte
+  // (276, que es la BRECHA) quedaba pegada a un porcentaje (31.5 %, que es el
+  // AVANCE) sin nada que dijera de qué eran. Dos marcos contrarios juntos y
+  // ningún denominador a la vista.
+  //
+  // Por eso se mueve, no se duplica: `subtexto` deja de repetir la fracción y
+  // se queda con las mermas. Un mismo par de números en dos sitios de la misma
+  // fila es la forma más barata de que un día digan cosas distintas.
+  const fraccion = `${fmt(validas)} de ${fmt(cuota ?? 0)}`;
   return {
-    ...base, cumplida,
+    ...base,
+    subtexto: notas.join(" · "),
+    cumplida,
     cifra: cumplida ? null : fmt(brecha),
-    lectura: cumplida ? `cuota cumplida · ${pctPerfil(avance ?? 0)}` : `faltan · ${pctPerfil(avance ?? 0)}`,
+    lectura: cumplida
+      ? `cuota cumplida · ${pctPerfil(avance ?? 0)} (${fraccion})`
+      : `faltan · ${pctPerfil(avance ?? 0)} (${fraccion})`,
     titulo: notas.join(" · "),
-    aria: `${facultad}: ${pctPerfil(avance ?? 0)} de su cuota del diseño`,
+    aria: `${facultad}: ${pctPerfil(avance ?? 0)} de su cuota del diseño, ${fraccion}`,
   };
 }
 

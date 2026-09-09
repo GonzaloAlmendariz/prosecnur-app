@@ -104,8 +104,14 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
                 {f.facultad}
                 {/* Con espacio: sin él, el nombre y su cuenta se leen pegados
                     —«Derecho412 de 380»— en lectores de pantalla, el mismo
-                    defecto que ya arregló el perfil por facultad. */}
-                <em>{" "}{f.subtexto}</em>
+                    defecto que ya arregló el perfil por facultad.
+
+                    Y sólo cuando hay algo que decir: desde que la fracción se
+                    fue a la derecha, junto al porcentaje que explica, la mayoría
+                    de las filas no tiene subtexto, y un `em` vacío dejaba una
+                    línea en blanco bajo cada nombre —la rejilla del nombre es
+                    `grid` con `gap`, así que el hueco lo pagaba igual. */}
+                {f.subtexto ? <em>{" "}{f.subtexto}</em> : null}
               </span>
               <span
                 className="aulas-facultad-carril"

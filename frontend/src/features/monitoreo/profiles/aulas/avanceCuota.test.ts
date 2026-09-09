@@ -168,7 +168,11 @@ describe("avanceCuota", () => {
     // notaciones para la misma cifra.
     expect(vista.total?.avanceTexto).toBe("137.5 %");
     expect(vista.filas[0].avance).toBe(137.5);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137.5 %");
+    // El contrato anterior era `"cuota cumplida · 137.5 %"`, sin la fracción.
+    // Se cambió a pedido de Gonzalo (2026-09-08): un porcentaje se publica con
+    // la frecuencia que lo produce, y esta fila es justo la que lo necesita
+    // —522 de 380 explica por qué el avance pasa de 100—.
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 137.5 % (522 de 380)");
     // El ancho sí se capa: una barra al 137 % rompería el carril (C2).
     expect(vista.total?.relleno).toBe(100);
     expect(vista.filas[0].relleno).toBe(100);
@@ -239,7 +243,10 @@ describe("avanceCuota", () => {
     // «0 faltan» es una resta que nadie preguntó; lo que se lee es que cerró.
     expect(vista.filas[0].cifra).toBeNull();
     expect(vista.filas[0].cumplida).toBe(true);
-    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 %");
+    // Antes: `"cuota cumplida · 102.6 %"`. La fracción se le añadió con el
+    // resto de las filas; la parte que este test fija —que una fila cerrada no
+    // publica resta— sigue igual.
+    expect(vista.filas[0].lectura).toBe("cuota cumplida · 102.6 % (390 de 380)");
     expect(vista.cumplidas).toBe(1);
   });
 });
