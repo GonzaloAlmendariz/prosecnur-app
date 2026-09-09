@@ -4,7 +4,6 @@ import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
-import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { avanceCuota } from "./avanceCuota";
 import { fmt } from "./kpisDeAulas";
@@ -219,29 +218,20 @@ export function AulasPestanaCuotas({
           onFoco={onFoco}
         />
       </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* Sección propia (Gonzalo, 2026-09-08): «la pirámide debe ser su
-              propia sección y no estar pegada a lo que tenga arriba, y aquí se
-              cumple una funcionalidad distinta». Arriba se compara el avance
-              con carriles iguales; aquí el largo es proporcional a lo que pide
-              cada facultad, así que se ve de un vistazo dónde está el volumen.
+      {/* **La pirámide «Tamaño de cada meta» se retiró el 2026-09-08**, con
+          decisión de Gonzalo («toma decisiones por mí viendo lo mejor y más
+          intuitivo y profesional»).
 
-              El título no repite «por facultad»: el guard de títulos caza a
-              quien termina igual que un vecino, y arriba ya hay dos. */}
-          <h3>Tamaño de cada meta</h3>
-          <span>de la facultad más pequeña a la más grande</span>
-        </div>
-        <AulasPiramideCuota
-          filas={quotaRows as MonitoreoRow[]}
-          foco={foco}
-          onFoco={onFoco}
-        />
-      </section>
+          Su función declarada era dimensionar la magnitud de lo que pide cada
+          facultad, «que las barras de arriba (todas del mismo largo)
+          deliberadamente no muestran». Esa magnitud hoy se lee en DOS sitios de
+          esta misma pestaña: el carril de «Cumplimiento de la cuota» es
+          proporcional a la cuota de cada facultad contra la más alta, y «Qué
+          metas van a cerrar y cuáles no» —que entró hoy— publica las cifras
+          absolutas por facultad y sexo con la cuota marcada.
+
+          Con cinco paneles en la pestaña, uno de ellos era tinta repetida.
+          El componente queda declarado y sin montar. */}
     </>
   );
 }
