@@ -233,8 +233,48 @@ AULAS_LIBRO_DIA <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB")
 # dice que nadie la miró.
 AULAS_LIBRO_STATUS_APLICACION <- c(
   "POR APLICAR", "APLICADA", "NO APLICADA",
-  "REEMPLAZADA POR", "COMPLEMENTADA CON", "REFORZADA CON"
+  "REEMPLAZADA POR", "COMPLEMENTADA CON", "APLICADA DE REFUERZO"
 )
+
+# **El vocabulario NO es el mismo en el titular que en un reemplazo.**
+#
+# Dictado de Gonzalo (2026-09-09): «reforzada con ya no existiría, sino es una
+# aplicada de refuerzo, por ejemplo un aula adicional que necesitemos aplicar;
+# no entraría como categoría sino sería una categoría disponible para los
+# reemplazos y los extras, y no necesita mencionar aulas. Pero reemplazada por y
+# complementada con sí necesitan la relación con quién».
+#
+# Es decir, dos vocabularios y no uno:
+#
+# - El TITULAR puede haber sido reemplazado o complementado por otra aula, y
+#   entonces hace falta decir por CUÁL: esos dos terminan en preposición porque
+#   piden la columna «AULA UTILIZADA».
+# - Un REEMPLAZO o un EXTRA no reemplaza a nadie desde su propia fila: lo que
+#   puede ser es la aplicación de refuerzo, y ésa se explica sola. Ofrecerle
+#   «REEMPLAZADA POR» en su desplegable invita a marcar algo que no significa
+#   nada, y a que dos filas de la misma cadena se declaren reemplazo la una de
+#   la otra.
+#
+# Se reparte por ESLABÓN, que es como la hoja está construida: el bloque 1 es el
+# titular y del 2 al 12 son R1…R11. La hoja Extra entera es del segundo juego.
+AULAS_LIBRO_STATUS_APLICACION_TITULAR <- c(
+  "POR APLICAR", "APLICADA", "NO APLICADA",
+  "REEMPLAZADA POR", "COMPLEMENTADA CON"
+)
+AULAS_LIBRO_STATUS_APLICACION_RESERVA <- c(
+  "POR APLICAR", "APLICADA", "NO APLICADA", "APLICADA DE REFUERZO"
+)
+
+#' El desplegable de STATUS DE APLICACIÓN que le toca a un eslabón.
+#'
+#' @param bloque índice del bloque, 1-based. El 1 es el titular.
+#' @return vector de valores para el desplegable.
+#' @export
+aulas_libro_status_aplicacion_de <- function(bloque = 1L) {
+  b <- suppressWarnings(as.integer(bloque)[1])
+  if (!is.finite(b) || b <= 1L) AULAS_LIBRO_STATUS_APLICACION_TITULAR
+  else AULAS_LIBRO_STATUS_APLICACION_RESERVA
+}
 
 # B22: el desplegable de «RECIBIÓ CORREO» — exactamente Sí y No, con el «No»
 # como default sembrado en reemplazos y extras (dictado 2026-09-01). UNA lista

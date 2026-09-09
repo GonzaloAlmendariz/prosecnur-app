@@ -308,9 +308,13 @@ aulas_libro_extras_sheets_requests <- function(sheet_id, tab_name, rows) {
     cabeceras <- 2L
     if (n_filas <= cabeceras) return(list())
     return(list(
+      # La hoja Extra es TODA de reservas: su vocabulario es el del eslabón 2 en
+      # adelante, aunque su único bloque se numere 1. Un extra no reemplaza a
+      # nadie —cierra cuota de hombres o mujeres—, así que lo que puede ser es
+      # la aplicación de refuerzo.
       .mafs_validacion_request(
         sheet_id, .mafs_col_campo("STATUS DE APLICACIÓN", 1L), cabeceras, n_filas,
-        AULAS_LIBRO_STATUS_APLICACION
+        aulas_libro_status_aplicacion_de(2L)
       ),
       .mafs_fecha_request(
         sheet_id, .mafs_col_campo("FECHA DE APLICACIÓN", 1L), cabeceras, n_filas

@@ -125,9 +125,21 @@ test_that("«% ASISTENCIA» es calculada y «STATUS DE APLICACIÓN» se llena en
 test_that("el desplegable de aplicación distingue las tres situaciones", {
   expect_true(all(c("APLICADA", "NO APLICADA") %in% AULAS_LIBRO_STATUS_APLICACION))
   # A, B y C. Los tres terminan en preposición porque piden AULA UTILIZADA.
-  expect_true("REEMPLAZADA POR" %in% AULAS_LIBRO_STATUS_APLICACION)
-  expect_true("COMPLEMENTADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
-  expect_true("REFORZADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
+  # **Dos vocabularios, no uno** (dictado 2026-09-09). El titular puede haber
+  # sido reemplazado o complementado y necesita decir por CUÁL; un reemplazo o
+  # un extra no reemplaza a nadie desde su propia fila: lo que puede ser es la
+  # aplicación de refuerzo, y ésa se explica sola.
+  expect_true("REEMPLAZADA POR" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_true("COMPLEMENTADA CON" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_false("APLICADA DE REFUERZO" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_true("APLICADA DE REFUERZO" %in% aulas_libro_status_aplicacion_de(3L))
+  # Y al reemplazo NO se le ofrece marcar que reemplazó a alguien: sería marcar
+  # algo que no significa nada, y deja a dos filas de la misma cadena
+  # declarándose reemplazo la una de la otra.
+  expect_false("REEMPLAZADA POR" %in% aulas_libro_status_aplicacion_de(3L))
+  expect_false("COMPLEMENTADA CON" %in% aulas_libro_status_aplicacion_de(3L))
+  # «REFORZADA CON» ya no existe: no era un estado del titular.
+  expect_false("REFORZADA CON" %in% AULAS_LIBRO_STATUS_APLICACION)
 })
 
 test_that("AULA UTILIZADA va PEGADA a STATUS MUESTRA, que es donde se lee", {

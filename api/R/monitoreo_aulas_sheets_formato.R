@@ -514,9 +514,13 @@ monitoreo_aulas_sheets_validaciones_requests <- function(hoja, sheet_id, n_filas
     }
   } else if (identical(hoja, "Aulas Aplicadas (Campo)")) {
     for (b in seq_len(profundidad)) {
+      # El vocabulario depende del ESLABÓN: el bloque 1 es el titular y puede
+      # haber sido reemplazado o complementado; del 2 al 12 son reservas, y a
+      # una reserva no se le ofrece marcar que reemplazó a alguien desde su
+      # propia fila. Ver `aulas_libro_status_aplicacion_de()`.
       requests[[length(requests) + 1L]] <- .mafs_validacion_request(
         sheet_id, .mafs_col_campo("STATUS DE APLICACIÓN", b), cabeceras, n_filas,
-        AULAS_LIBRO_STATUS_APLICACION
+        aulas_libro_status_aplicacion_de(b)
       )
       # B12: SOLO la fecha que el parte TECLEA. Las columnas de agenda que
       # esta hoja repite (ID MATCH + bloque) son fórmulas de arrastre (B9):
