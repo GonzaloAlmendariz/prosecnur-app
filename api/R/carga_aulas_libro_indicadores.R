@@ -269,7 +269,15 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 #' —incluida su cabecera, que baja de línea y por eso cuenta a la mitad— con
 #' suelo en 16 para que las columnas de cifras no se estrechen y techo en 42
 #' para que una observación larga no empuje la hoja a lo ancho. Misma idea que
-#' `.maaf_anchos_px()` en Sheets: el ancho lo decide el contenido.
+#' `.maaf_anchos_px()` en Sheets y que `.calf_anchos()` en las hojas de datos del
+#' propio xlsx: el ancho lo decide el contenido.
+#'
+#' **Por qué es una TERCERA función y no se reusa `.calf_anchos()`.** Aquélla lee
+#' la hoja YA ESCRITA (`readWorkbook`) y aquí eso mediría también las notas, que
+#' van fusionadas a lo ancho de la hoja y pedirían cuarenta y dos para la columna
+#' A. Ésta mide el MODELO, antes de escribir. Y su suelo es 16 y no 9 porque aquí
+#' las cabeceras bajan de línea y una columna de nueve las parte en cinco
+#' renglones. Mismo criterio, dos entradas distintas.
 #' @keywords internal
 .cai_anchos_columna <- function(ind) {
   n <- .cai_ancho_hoja(ind)
