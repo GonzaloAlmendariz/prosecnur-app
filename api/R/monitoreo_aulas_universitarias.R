@@ -2573,6 +2573,22 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       }
     ),
     quotas_sex_faculty = quotas_sex_faculty,
+    # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
+    # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula
+    # aquí y no en la pantalla por la misma razón que las jornadas del día a
+    # día: dos sitios que calculan la misma cifra empiezan a discrepar. Ver
+    # `monitoreo_aulas_payload_proyeccion.R`.
+    proyeccion_metas = monitoreo_aulas_proyeccion_payload(
+      .monitoreo_aulas_records(plan_df), responses = responses,
+      partes = partes_campo, cuotas = cfg[["design_targets"]], cfg = cfg
+    ),
+    # Y las aulas de cada facultad: cuántas planificó el sorteo y cuántas se han
+    # aplicado. Van por facultad y no por sexo — un aula no se reparte entre
+    # hombres y mujeres, la misma visita da de los dos.
+    aulas_por_facultad = monitoreo_aulas_aulas_por_facultad(
+      .monitoreo_aulas_records(plan_df), responses = responses,
+      partes = partes_campo, cfg = cfg
+    ),
     # El avance por celda con sus cuatro series. Va AL LADO del estado
     # retrospectivo y no en su lugar: `quotas_sex_faculty` dice donde estas y
     # esto dice si vas a llegar y si el campo se comporta como el modelo. Son
