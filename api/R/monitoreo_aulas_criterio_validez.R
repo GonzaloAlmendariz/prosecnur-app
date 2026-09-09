@@ -329,7 +329,11 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   )
 }
 
-.monitoreo_aulas_response_classroom <- function(data, cfg) {
+# El aula de cada respuesta TAL COMO LLEGÓ, sin correcciones. Existe separado
+# porque la propuesta de reatribución necesita ver el dato crudo: si mirara el
+# corregido, en cuanto se aplica una corrección dejaría de poder proponerla y
+# no habría forma de revisarla.
+.mar_codigos_crudos <- function(data, cfg) {
   if (!is.data.frame(data) || !nrow(data)) return(character(0))
   mapping <- cfg$source_mapping %||% list()
   candidates <- c(
@@ -343,6 +347,17 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   )
   col <- .monitoreo_aulas_col(data, candidates)
   .monitoreo_aulas_values(data, col, "")
+}
+
+# **El punto único por el que todo lo que cuenta aulas resuelve su atribución.**
+#
+# Aquí se aplican las reatribuciones que el coordinador confirmó, y por eso se
+# aplican en UN sitio: efectivas, base de control, avance diario y el tablero
+# llaman todos aquí, y corregir en cada uno habría dejado alguno fuera. Ver
+# `monitoreo_aulas_reatribucion.R` para por qué la corrección vive en el
+# proyecto y no en la plataforma.
+.monitoreo_aulas_response_classroom <- function(data, cfg) {
+  monitoreo_aulas_reatribuir(.mar_codigos_crudos(data, cfg), data, cfg)
 }
 
 .monitoreo_aulas_filter_passed <- function(data, valid_response) {
