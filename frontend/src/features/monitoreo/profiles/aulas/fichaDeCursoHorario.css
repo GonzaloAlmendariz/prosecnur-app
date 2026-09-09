@@ -72,6 +72,13 @@
 }
 /* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
 .aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
+/* **Pero se dice en voz baja.** Heredando el tamaño de cifra, un «sin dato» en
+ * cursiva de 1,25 rem pesaba MÁS que los números de al lado: la ficha de un
+ * curso-horario sin aplicar gritaba sus tres ausencias y susurraba sus dos
+ * datos. Presente, no protagonista. */
+.aulas-ficha-par.es-cifra .aulas-ficha-valor.aulas-ficha-vacio {
+  font-size: 0.95rem; font-weight: 400;
+}
 
 /* La fila de chips del Sistema Pabellón, respirando bajo el título. */
 .aulas-ficha-chips { margin: 6px 0 10px; }
