@@ -61,15 +61,27 @@
 # `traspuesta` es «Avance general», la única tabla con una fila por concepto: ahí
 # la naturaleza se decide por FILA y no por columna, porque sus proporciones
 # viven en dos renglones y no en una columna.
-.cala_tabla_filas <- function(tabla, clave, traspuesta = FALSE) {
+#
+# `proporciones` deja usar esta misma rutina con OTRO vocabulario. «Avance de
+# agendación» la reusa y no tiene ni una proporción: sus cuatro tablas son
+# conteos. Sin este parámetro habría que enseñarle sus rótulos a
+# `AULAS_AVANCE_PROPORCIONES`, y las dos hojas comparten nombres de clave
+# —«facultad» en las dos— así que mezclarlas haría que una columna de aquélla
+# decidiera el formato de una de ésta. `NULL` conserva el comportamiento de
+# siempre: preguntar al vocabulario de «Avance de campo».
+.cala_tabla_filas <- function(tabla, clave, traspuesta = FALSE, proporciones = NULL) {
   if (!is.data.frame(tabla) || !nrow(tabla)) return(list())
   nombres <- names(tabla)
+  es_pct <- function(rotulo) {
+    if (is.null(proporciones)) .calac_es_proporcion(rotulo, clave)
+    else trimws(as.character(rotulo %||% "")) %in% proporciones
+  }
   filas <- lapply(seq_len(nrow(tabla)), function(i) {
-    pct_fila <- traspuesta && .calac_es_proporcion(tabla[[1L]][[i]], clave)
+    pct_fila <- traspuesta && es_pct(tabla[[1L]][[i]])
     celdas <- lapply(seq_along(nombres), function(j) {
       v <- tabla[[j]][[i]]
       if (is.character(tabla[[j]])) return(trimws(as.character(v %||% "")))
-      .cala_celda_num(v, proporcion = pct_fila || .calac_es_proporcion(nombres[[j]], clave))
+      .cala_celda_num(v, proporcion = pct_fila || es_pct(nombres[[j]]))
     })
     celdas
   })

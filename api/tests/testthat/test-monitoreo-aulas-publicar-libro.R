@@ -517,6 +517,16 @@ test_that("con disponibilidad, su hoja se publica y las del equipo siguen intact
   expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
   expect_identical(.mapl_accion(res, "Aulas Aplicadas (Campo)"), "respetada")
 
+  # **«Avance de agendación» se publica SIEMPRE**, a diferencia de la
+  # asignación y la disponibilidad: lo que mide —qué está agendado y qué falta
+  # por agendar— existe desde el primer día, antes de que haya nadie repartido.
+  expect_identical(.mapl_accion(res, "Avance de agendación"), "sembrada")
+  agenda <- mock$env$sheets[["Avance de agendación"]]$values
+  texto_agenda <- paste(unlist(agenda), collapse = " | ")
+  expect_match(texto_agenda, "Avance de agendación", fixed = TRUE)
+  expect_match(texto_agenda, "Agendación por eslabón", fixed = TRUE)
+  expect_match(texto_agenda, "Rechazos con reemplazo agendado", fixed = TRUE)
+
   vals <- mock$env$sheets[["Disponibilidad de aplicadores"]]$values
   texto <- paste(unlist(vals), collapse = " | ")
   expect_match(texto, "DISPONIBILIDAD DE APLICADORES")

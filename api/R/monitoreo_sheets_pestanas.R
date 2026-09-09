@@ -25,9 +25,9 @@
 #' Pestañas controladas de la publicación de monitoreo a Google Sheets.
 #'
 #' Sin duplicados. Contiene: la lista heredada del engine (deduplicada), las
-#' pestañas del ejecutivo de aulas en sus dos audiencias, las seis hojas del
-#' libro operativo de aulas y —como red— todo lo que los generadores de nombres
-#' de publicación declaren por familia × audiencia.
+#' pestañas del ejecutivo de aulas en sus dos audiencias, las hojas del libro
+#' operativo de aulas y —como red— todo lo que los generadores de nombres de
+#' publicación declaren por familia × audiencia.
 #'
 #' @return vector de nombres de pestaña únicos.
 #' @keywords internal
@@ -147,7 +147,7 @@ monitoreo_sheets_pestanas_controladas <- function() {
     "Consultas"
   )
 
-  # Las seis hojas del libro operativo de aulas. Las tres de datos salen de la
+  # Las hojas del libro operativo de aulas. Las tres de datos salen de la
   # spec del lector (`AULAS_LIBRO_HOJAS`) para que el nombre no pueda derivar
   # por su cuenta; «Plan del día» es la 4.ª hoja de datos (B2.1, de ida: sin
   # lector, por eso no está en la spec), y las otras dos son la hoja de
@@ -169,6 +169,10 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # Dictado 2026-09-04: la quinta de la app — la disponibilidad del equipo,
     # para que campo sepa a quién llamar sin preguntarle al lead.
     "Disponibilidad de aplicadores",
+    # Dictado 2026-09-08: «me gustaría que Tabla dinámica 2 se vuelva una hoja
+    # que la app pueda producir en base a lo agendado». Sexta de la app, y sin
+    # condición: lo que mide existe desde el primer día del operativo.
+    "Avance de agendación",
     "Listas"
   )
 

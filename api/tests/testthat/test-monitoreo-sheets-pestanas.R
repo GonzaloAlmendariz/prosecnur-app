@@ -29,6 +29,10 @@
   "Base de control",
   # A13a (2026-08-31): era «Cómo va el campo»; Gonzalo: «es AVANCE».
   "Avance de campo",
+  # Dictado 2026-09-08: la hoja que reemplaza a «Tabla dinámica 2». Va en esta
+  # lista porque una pestaña que el publicador produce y la lista controlada no
+  # nombra revienta la publicación ENTERA, no sólo su hoja.
+  "Avance de agendación",
   "Listas"
 )
 
@@ -61,7 +65,7 @@ test_that("toda pestaña de publicación declarada por familia y audiencia está
   }
 })
 
-test_that("las cinco hojas del libro de aulas están contenidas", {
+test_that("las hojas del libro de aulas están contenidas", {
   lista <- monitoreo_sheets_pestanas_controladas()
   faltan <- setdiff(.msp_hojas_libro, lista)
   expect_identical(faltan, character(0), info = "hojas del libro fuera de la lista controlada")

@@ -40,12 +40,16 @@ AULAS_AGENDACION_CABECERAS <- list(
     "Pendientes de agendar", "En contacto", "Sin contactar",
     "Rechazos", "Rechazos con reemplazo agendado", "Rechazos sin reemplazo"
   ),
-  dia = c(
-    "Día", "Día de la semana", "Semana",
-    "Agendadas", "De titulares", "De reemplazos", "Aplicadas", "Por aplicar"
-  ),
+  # **El orden de esta lista ES el orden de los bloques de la hoja**, y por eso
+  # la semana va antes que el día: primero el resumen con el que se decide si la
+  # semana entrante está cubierta, y después el detalle con el que se organiza
+  # cada jornada. `AULAS_AGENDACION_TITULOS` lleva el mismo orden a propósito.
   semana = c(
     "Semana", "Desde", "Hasta",
+    "Agendadas", "De titulares", "De reemplazos", "Aplicadas", "Por aplicar"
+  ),
+  dia = c(
+    "Día", "Día de la semana", "Semana",
     "Agendadas", "De titulares", "De reemplazos", "Aplicadas", "Por aplicar"
   ),
   eslabon = c(
@@ -315,4 +319,175 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
     dia = .calan_por_dia(e, ancla),
     eslabon = .calan_por_eslabon(e)
   )
+}
+
+# --- la pestaña ---------------------------------------------------------------
+#
+# **Por qué esta hoja lleva su propio formateador y no el de «Avance de campo».**
+# Aquél se ancla en `AULAS_AVANCE_CABECERAS`, `AULAS_AVANCE_PROPORCIONES` y
+# `AULAS_AVANCE_DIFERENCIAS` para decidir qué celda es porcentaje y cuál lleva
+# escala de color. Reusarlo obligaría a meter los rótulos de esta hoja en aquel
+# vocabulario, y las dos comparten nombres de clave —«facultad» está en las dos—
+# así que una columna de aquélla acabaría decidiendo el formato de una de ésta:
+# la avería del anclaje ambiguo que este libro ya pagó.
+#
+# Y no hace falta: aquí no hay ni una proporción ni una diferencia con signo.
+# Las cuatro tablas son conteos. Lo que necesitan es banda de bloque, cabecera
+# legible, anchos y las cifras a la derecha, que es justo lo que ya hacen
+# `aulas_libro_asignacion_formato_requests()` y su hermana de disponibilidad con
+# las mismas primitivas.
+
+#' @keywords internal
+.calan_NOTAS <- c(
+  facultad = paste(
+    "La unidad es la CADENA, no la fila: un titular y sus reemplazos son un solo",
+    "slot. Una cadena cuenta como agendada si cualquiera de sus eslabones lo",
+    "está, y las reservas extra no son slots porque no reemplazan a nadie."
+  ),
+  semana = paste(
+    "Semanas de lunes a sábado, contadas desde el lunes de la primera aula",
+    "agendada. El domingo no se trabaja; si alguna cae en domingo, cuenta en la",
+    "semana que empezó ese lunes."
+  ),
+  dia = paste(
+    "Aquí la unidad es la FILA y no la cadena: si un titular cayó y su reemplazo",
+    "se agendó para otro día, los dos días tienen trabajo."
+  ),
+  eslabon = paste(
+    "Lo que la tabla dinámica hecha a mano no podía ver: los once eslabones de",
+    "reemplazo viven a la derecha del titular, en la misma fila de la agenda."
+  )
+)
+
+#' @keywords internal
+.calan_VACIOS <- c(
+  facultad = "El plan todavía no trae facultades con aulas que agendar.",
+  semana = "Todavía no hay ninguna aula con fecha agendada.",
+  dia = "Todavía no hay ninguna aula con fecha agendada.",
+  eslabon = "El plan todavía no trae cursos-horario."
+)
+
+#' Arma la hoja «Avance de agendación» como filas de celdas para Sheets.
+#'
+#' Mismo contrato que `aulas_libro_hoja_avance()`: filas de celdas donde las
+#' cifras viajan como NÚMEROS, no como texto, para que el Sheets pueda
+#' ordenarlas y sumarlas. El corte NUNCA sale del reloj —lo derivaría de
+#' `Sys.Date()` y dos publicaciones del mismo estado darían hashes distintos—:
+#' se deriva del último día agendado del propio modelo.
+#'
+#' @param ag el modelo de `aulas_libro_agendacion()`.
+#' @param actualizado marca ISO de la última sincronización, para la portada.
+#' @return lista de filas de celdas.
+#' @export
+aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
+  ag <- if (is.list(ag)) ag else list()
+  filas <- list()
+  poner <- function(...) {
+    celdas <- list(...)
+    if (length(celdas) == 1L && is.list(celdas[[1]])) celdas <- celdas[[1]]
+    filas[[length(filas) + 1L]] <<- celdas
+  }
+
+  # El corte, derivado del modelo: el último día con alguna aula agendada.
+  dias <- if (is.data.frame(ag$dia) && nrow(ag$dia)) as.character(ag$dia[["Día"]]) else character(0)
+  dias <- dias[!is.na(dias) & nzchar(dias)]
+  corte <- if (length(dias)) {
+    sprintf("Agendado hasta el %s", utils::tail(dias, 1L))
+  } else {
+    "Todavía no hay ninguna aula con fecha agendada."
+  }
+  marca <- .cai_marca_local(.cala_txt(actualizado))
+  if (nzchar(marca)) corte <- paste0(corte, " · datos de plataforma actualizados el ", marca)
+
+  poner("Avance de agendación")
+  poner(corte)
+  poner("")
+
+  for (clave in names(AULAS_AGENDACION_CABECERAS)) {
+    tabla <- ag[[clave]]
+    poner(unname(AULAS_AGENDACION_TITULOS[[clave]]))
+    if (!is.data.frame(tabla) || !nrow(tabla)) {
+      poner(unname(.calan_VACIOS[[clave]]))
+      poner("")
+      next
+    }
+    poner(unname(.calan_NOTAS[[clave]]))
+    # `proporciones = character(0)`: aquí no hay ni una. Ver la nota de arriba
+    # sobre por qué no se pregunta al vocabulario de «Avance de campo».
+    for (f in .cala_tabla_filas(tabla, clave, proporciones = character(0))) poner(f)
+    poner("")
+  }
+  filas
+}
+
+#' @keywords internal
+.calan_es_titulo <- function(x) {
+  trimws(as.character(x %||% "")) %in% c("Avance de agendación", unname(AULAS_AGENDACION_TITULOS))
+}
+
+#' A qué tabla de esta hoja pertenece una fila de cabecera.
+#'
+#' Por la cabecera COMPLETA y no por su primera celda: «Agendación por semana» y
+#' «Agendación por día» comparten columnas y la primera no basta.
+#' @keywords internal
+.calan_tabla_de_cabecera <- function(celdas) {
+  celdas <- trimws(as.character(celdas %||% character(0)))
+  for (nombre in names(AULAS_AGENDACION_CABECERAS)) {
+    esperada <- AULAS_AGENDACION_CABECERAS[[nombre]]
+    if (length(celdas) >= length(esperada) &&
+        identical(celdas[seq_along(esperada)], esperada)) {
+      return(nombre)
+    }
+  }
+  ""
+}
+
+#' Formato de la pestaña «Avance de agendación».
+#'
+#' Bandas de bloque, cabeceras legibles, anchos y las cifras a la derecha. Sin
+#' reglas de color por valor a propósito: todas sus columnas son conteos y una
+#' escala sobre un conteo diría que veinte aulas agendadas es «mejor» que dos,
+#' cuando lo que dice es que esa facultad tiene veinte.
+#'
+#' @param sheet_id id de la pestaña.
+#' @param rows las filas publicadas.
+#' @return lista de requests.
+#' @export
+aulas_libro_agendacion_formato_requests <- function(sheet_id, rows) {
+  rows <- rows %||% list()
+  if (!length(rows)) return(list())
+  n_cols <- max(1L, max(vapply(rows, function(r) length(r %||% list()), integer(1))))
+  celda <- function(i, j) {
+    v <- rows[[i]]
+    if (j > length(v)) return("")
+    trimws(as.character(v[[j]] %||% ""))
+  }
+  requests <- list()
+  poner <- function(req) requests[[length(requests) + 1L]] <<- req
+
+  anchos <- c(260L, rep(120L, max(0L, n_cols - 1L)))
+  cabeceras <- integer(0)
+  for (i in seq_along(rows)) {
+    fila <- vapply(seq_len(n_cols), function(j) celda(i, j), character(1))
+    if (.calan_es_titulo(fila[[1L]])) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF"))
+    } else if (nzchar(.calan_tabla_de_cabecera(fila))) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
+      poner(.maaf_alto_fila(sheet_id, i, .maaf_alto_de_cabecera(fila, anchos)))
+      cabeceras <- c(cabeceras, i)
+    }
+  }
+  # Anchos: la primera columna lleva nombres de facultad y de eslabón; el resto
+  # son cifras y caben en su rótulo.
+  poner(.mafs_dim_request(sheet_id, 0L, 1L, anchos[[1L]]))
+  if (n_cols > 1L) poner(.mafs_dim_request(sheet_id, 1L, n_cols, 120L))
+  # Las cifras a la derecha, de la primera cabecera a la última fila: leerlas en
+  # columna es lo único que deja comparar de un vistazo.
+  if (length(cabeceras) && n_cols > 1L) {
+    # `.maaf_derecha()` toma la columna en base CERO: para empezar en la
+    # segunda columna va 1, no 2. Con 2 la primera columna de cifras se quedaba
+    # a la izquierda y desalineada del resto.
+    poner(.maaf_derecha(sheet_id, 1L, n_cols, min(cabeceras), length(rows)))
+  }
+  requests
 }
