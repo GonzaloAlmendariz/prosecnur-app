@@ -218,7 +218,10 @@ export function AulasOperationsPanel({
           onClick={onSyncField}
           disabled={busy || !imported}
           title={imported
-            ? `Pide las respuestas nuevas a ${contar(activeSources.length, "la fuente activa", "las fuentes activas")} (${sourceKinds}) y recalcula el corte de campo`
+            // `contar()` ya antepone el número, así que el rótulo NO lleva
+            // artículo: con él salía «a 1 la fuente activa». Visto en el
+            // tooltip el 2026-09-09.
+            ? `Pide las respuestas nuevas a la plataforma (${contar(activeSources.length, "fuente activa", "fuentes activas")}: ${sourceKinds}) y recalcula el corte de campo`
             : "Primero importa el plan de cursos-horario"}
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
