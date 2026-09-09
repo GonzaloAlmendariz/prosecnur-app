@@ -67,3 +67,28 @@ test_that("`motivo` se calcula ANTES del recorte y sigue llegando", {
   motivos <- vapply(d$reemplazos, function(f) as.character(f$motivo %||% ""), character(1))
   expect_true(any(nzchar(motivos)))
 })
+
+test_that("la agenda no repite el parrafo metodologico en cada fila", {
+  # 893 KB de los 4 865 de `agenda` eran la MISMA cadena en las 1 392 filas
+  # —`calc_muestra_aulas_demo.R:497` la escribe una vez para la seleccion
+  # entera—, medido sobre HSVG26ULT2 el 2026-09-08.
+  #
+  # Y no se ve: la tabla descarta las columnas constantes
+  # (`columnasSinConstantesInertes`) y esta no sobrevive a esa regla. Ningun
+  # consumidor de Monitoreo la lee.
+  plan <- lapply(1:3, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("A-%d", i),
+    label = sprintf("Curso %d", i), faculty = "Derecho", wave = "M1",
+    sample_role = "titular", operational_status = "agendada",
+    eligible_n = 30, expected_valid = 30,
+    methodological_warning = paste(rep("un parrafo largo que se repite", 20), collapse = " | ")
+  ))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list(enabled = TRUE))
+
+  expect_gt(length(d$agenda), 0)
+  for (fila in d$agenda) {
+    expect_false("methodological_warning" %in% names(fila))
+  }
+  # Y lo que la agenda SI tiene que llevar sigue estando.
+  expect_true(all(c("operational_code", "faculty", "wave") %in% names(d$agenda[[1]])))
+})
