@@ -1,42 +1,42 @@
 /**
- * Dónde se concentra la brecha del sorteo, para que Estratos deje de ser una
- * tabla de 73 filas y conteste de un vistazo la pregunta que le toca.
+ * Dónde se concentra lo que falta, sobre **el estrato de verdad**.
  *
- * **El denominador es el problema de este panel y por eso el view-model lo
- * publica.** La brecha por estrato se mide contra la META POR CURSO-HORARIO —la
- * suma de lo que cada curso-horario debe traer— y no contra la cuota del
- * estudio. Medido sobre HSVG26ULT2 el 2026-09-09: los 73 estratos suman 3 076 de
- * brecha mientras la banda de KPIs, dos paneles más arriba, dice «faltan 2 288».
- * Las válidas coinciden (212 en los dos) y los cursos-horario también (174), así
- * que no es un error de cuenta: un estrato es `facultad × sexo × tamaño` y sus
- * brechas NO se compensan entre tramos de tamaño, mientras la cuota se mide
- * sobre `facultad × sexo`. Publicar «faltan 3 076» sin decirlo es la misma
- * contradicción que ya obligó a renombrar los dos «Cumplimiento» de Avance.
+ * Gonzalo, el 2026-09-09 y por segunda vez: «deja de asumir que mayoría hombres
+ * o mayoría mujeres son estratos reales, no lo son. Los estratos son hombre y
+ * mujer de cada facultad, punto». La primera fue el 2026-08-29 —«cómo vas a
+ * poner mayoría hombres o mayoría mujeres cuando eso no me interesa; lo que me
+ * interesa es cuántos hombres y cuántas mujeres»— y quedó escrita en el docblock
+ * de `AulasBrechaEstratoChart`. La primera versión de este view-model se
+ * construyó igual sobre `avance_por_estrato`, que es la clave del SORTEO
+ * (`facultad / sexo dominante del aula / tramo de tamaño`): el sexo de ahí es el
+ * del aula, no el del alumno.
  *
- * `AulasBrechaEstratoChart` —que sigue sin montar— ya avisaba de esto en su
- * docblock y por eso no se monta: además dibuja «mayoría hombres / mayoría
- * mujeres», que es justo el corte que Gonzalo descartó el 2026-08-29.
+ * **Y el eje equivocado traía su propio descuadre.** Sobre la clave del sorteo
+ * lo que falta suma 3 076 mientras la banda de KPIs dice «faltan 2 288», porque
+ * sus brechas no se compensan entre tramos de tamaño. Sobre las 30 celdas
+ * reales, medido sobre HSVG26ULT2 el 2026-09-09: cuota 2 500, logrado 212,
+ * falta 2 288. **Cuadra exacto con la banda**, así que el aviso de denominador
+ * que llevaba la versión anterior sobraba: era un artefacto del eje, no un
+ * hecho del dato.
  */
 
-export type EstratoConBrecha = {
-  /** Ya traducido por `etiquetaDeEstrato()`: la clave del motor no es etiqueta. */
+export type CeldaDeCuota = {
+  /** «DERECHO · Mujeres», ya legible. */
   etiqueta: string;
-  brecha: number;
-  validas: number;
-  cursosHorario: number;
+  falta: number;
+  logrado: number;
+  cuota: number;
 };
 
 export type BrechaConcentrada = {
-  /** Los que se dibujan, de más brecha a menos. */
-  cabeza: ReadonlyArray<EstratoConBrecha>;
-  /** Cuántos quedan fuera del dibujo y cuánta brecha se llevan. */
+  cabeza: ReadonlyArray<CeldaDeCuota>;
   restantes: number;
-  brechaRestante: number;
-  brechaTotal: number;
-  /** Qué porcentaje de la brecha total está en `cabeza`. Entero. */
+  faltaRestante: number;
+  faltaTotal: number;
+  /** Qué porcentaje de lo que falta está en `cabeza`. Entero. */
   concentracionPct: number;
-  estratos: number;
-  /** Estratos que todavía no tienen ninguna respuesta. */
+  celdas: number;
+  /** Celdas que todavía no tienen ninguna respuesta. */
   sinEmpezar: number;
 };
 
@@ -45,31 +45,47 @@ function numero(x: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** `M`/`F` del motor a la palabra que usa el resto del perfil. */
+export function sexoDeLaCelda(sex: unknown): string {
+  const s = String(sex ?? "").trim().toUpperCase();
+  if (s === "F" || s === "MUJER" || s === "MUJERES") return "Mujeres";
+  if (s === "M" || s === "HOMBRE" || s === "HOMBRES") return "Hombres";
+  return "Sin sexo declarado";
+}
+
 export function brechaConcentrada(
   filas: ReadonlyArray<Record<string, unknown>>,
   cuantos = 12,
 ): BrechaConcentrada {
-  const todos: EstratoConBrecha[] = filas.map((f) => ({
-    etiqueta: String(f.stratum ?? f.estrato ?? "").trim() || "Sin estrato declarado",
-    brecha: numero(f.brecha),
-    validas: numero(f.respuestas_validas),
-    cursosHorario: numero(f.aulas),
-  }));
+  const todas: CeldaDeCuota[] = filas.map((f) => {
+    const cuota = numero(f.cuota);
+    const logrado = numero(f.logrado);
+    const facultad = String(f.faculty ?? f.facultad ?? "").trim() || "Sin facultad declarada";
+    return {
+      etiqueta: `${facultad} · ${sexoDeLaCelda(f.sex ?? f.sexo)}`,
+      // Lo que falta HOY, no la brecha después de proyectar: el panel dice
+      // dónde hay que ir, y una celda que «va a llegar» con reservas que aún no
+      // han salido a campo sigue necesitando esas encuestas.
+      falta: Math.max(0, cuota - logrado),
+      logrado,
+      cuota,
+    };
+  });
 
-  const brechaTotal = todos.reduce((n, e) => n + e.brecha, 0);
-  // Sólo entran los que TIENEN brecha: un estrato ya cerrado en una lista
-  // titulada «dónde falta más» es ruido con barra de cero.
-  const conBrecha = todos.filter((e) => e.brecha > 0).sort((a, b) => b.brecha - a.brecha);
-  const cabeza = conBrecha.slice(0, Math.max(1, cuantos));
-  const brechaEnCabeza = cabeza.reduce((n, e) => n + e.brecha, 0);
+  const faltaTotal = todas.reduce((n, c) => n + c.falta, 0);
+  // Sólo entran las que TIENEN algo que falta: una celda ya cumplida en una
+  // lista titulada «dónde falta más» es ruido con barra de cero.
+  const abiertas = todas.filter((c) => c.falta > 0).sort((a, b) => b.falta - a.falta);
+  const cabeza = abiertas.slice(0, Math.max(1, cuantos));
+  const faltaEnCabeza = cabeza.reduce((n, c) => n + c.falta, 0);
 
   return {
     cabeza,
-    restantes: conBrecha.length - cabeza.length,
-    brechaRestante: brechaTotal - brechaEnCabeza,
-    brechaTotal,
-    concentracionPct: brechaTotal > 0 ? Math.round((100 * brechaEnCabeza) / brechaTotal) : 0,
-    estratos: todos.length,
-    sinEmpezar: todos.filter((e) => e.validas <= 0).length,
+    restantes: abiertas.length - cabeza.length,
+    faltaRestante: faltaTotal - faltaEnCabeza,
+    faltaTotal,
+    concentracionPct: faltaTotal > 0 ? Math.round((100 * faltaEnCabeza) / faltaTotal) : 0,
+    celdas: todas.length,
+    sinEmpezar: todas.filter((c) => c.logrado <= 0).length,
   };
 }

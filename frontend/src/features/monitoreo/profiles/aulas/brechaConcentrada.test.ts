@@ -1,54 +1,74 @@
 import { describe, expect, test } from "vitest";
 
-import { brechaConcentrada } from "./brechaConcentrada";
+import { brechaConcentrada, sexoDeLaCelda } from "./brechaConcentrada";
 
-const fila = (etiqueta: string, brecha: number, validas = 0, aulas = 1) => ({
-  stratum: etiqueta, brecha, respuestas_validas: validas, aulas,
+const celda = (faculty: string, sex: string, cuota: number, logrado = 0) => ({
+  faculty, sex, cuota, logrado,
 });
 
-describe("dónde se concentra la brecha del sorteo", () => {
-  test("ordena de más brecha a menos y recorta la cola", () => {
+describe("dónde se concentra lo que falta, por facultad y sexo", () => {
+  test("el estrato es facultad × SEXO DEL ALUMNO, no el sexo dominante del aula", () => {
+    // Gonzalo, dos veces: «los estratos son hombre y mujer de cada facultad,
+    // punto». La versión anterior leía `avance_por_estrato`, que es la clave del
+    // sorteo —`facultad / sexo dominante / tramo de tamaño`— y publicaba
+    // «mayoría mujeres · 41 alumnos o más» como si fuera un estrato.
+    const r = brechaConcentrada([celda("DERECHO", "F", 237)], 12);
+    expect(r.cabeza[0].etiqueta).toBe("DERECHO · Mujeres");
+  });
+
+  test("ordena por lo que falta y recorta la cola", () => {
     const r = brechaConcentrada(
-      [fila("A", 10), fila("B", 50), fila("C", 30), fila("D", 5)],
+      [celda("A", "M", 10), celda("B", "F", 50), celda("C", "M", 30), celda("D", "F", 5)],
       2,
     );
-    expect(r.cabeza.map((e) => e.etiqueta)).toEqual(["B", "C"]);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres", "C · Hombres"]);
     expect(r.restantes).toBe(2);
-    expect(r.brechaRestante).toBe(15);
-    expect(r.brechaTotal).toBe(95);
-    // 80 de 95 = 84,2 → 84
+    expect(r.faltaRestante).toBe(15);
+    expect(r.faltaTotal).toBe(95);
     expect(r.concentracionPct).toBe(84);
   });
 
-  test("un estrato ya cerrado NO entra en una lista de «dónde falta más»", () => {
-    // Dibujarlo con barra de cero le da el mismo peso visual que a los que
-    // exigen acción, que es lo contrario de lo que el panel existe para decir.
-    const r = brechaConcentrada([fila("cerrado", 0, 30), fila("abierto", 20)], 12);
-    expect(r.cabeza.map((e) => e.etiqueta)).toEqual(["abierto"]);
-    expect(r.estratos).toBe(2);
+  test("`falta` es lo que falta HOY: cuota menos logrado, nunca negativo", () => {
+    // Una celda que ya se pasó de su cuota no resta de lo que falta en otra: son
+    // cuotas independientes y compensarlas escondería la que sigue abierta.
+    const r = brechaConcentrada([celda("A", "M", 10, 25), celda("B", "F", 40, 10)], 12);
+    expect(r.faltaTotal).toBe(30);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres"]);
   });
 
-  test("`sinEmpezar` cuenta los que no tienen NINGUNA respuesta, cerrados incluidos", () => {
-    const r = brechaConcentrada([fila("a", 5, 0), fila("b", 5, 3), fila("c", 0, 0)], 12);
+  test("una celda ya cumplida NO entra en una lista de «dónde falta más»", () => {
+    const r = brechaConcentrada([celda("A", "M", 10, 10), celda("B", "F", 20)], 12);
+    expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B · Mujeres"]);
+    expect(r.celdas).toBe(2);
+  });
+
+  test("`sinEmpezar` cuenta las que no tienen NINGUNA respuesta", () => {
+    const r = brechaConcentrada([celda("A", "M", 5), celda("B", "F", 5, 3), celda("C", "M", 4)], 12);
     expect(r.sinEmpezar).toBe(2);
   });
 
-  test("sin brecha no divide por cero y no inventa concentración", () => {
-    const r = brechaConcentrada([fila("a", 0, 10), fila("b", 0, 4)], 12);
-    expect(r.brechaTotal).toBe(0);
+  test("sin nada que falte no divide por cero ni inventa concentración", () => {
+    const r = brechaConcentrada([celda("A", "M", 10, 10)], 12);
+    expect(r.faltaTotal).toBe(0);
     expect(r.concentracionPct).toBe(0);
     expect(r.cabeza).toEqual([]);
   });
 
   test("una lista vacía da ceros y no revienta", () => {
     const r = brechaConcentrada([], 12);
-    expect(r.estratos).toBe(0);
-    expect(r.brechaTotal).toBe(0);
-    expect(r.restantes).toBe(0);
+    expect(r.celdas).toBe(0);
+    expect(r.faltaTotal).toBe(0);
   });
 
-  test("el estrato sin etiqueta se nombra, no se publica en blanco", () => {
-    const r = brechaConcentrada([{ brecha: 7 }], 12);
-    expect(r.cabeza[0].etiqueta).toBe("Sin estrato declarado");
+  test("la celda sin facultad o sin sexo se nombra, no se publica en blanco", () => {
+    const r = brechaConcentrada([{ cuota: 7 }], 12);
+    expect(r.cabeza[0].etiqueta).toBe("Sin facultad declarada · Sin sexo declarado");
+  });
+
+  test("el sexo se traduce desde las formas que usa el motor", () => {
+    expect(sexoDeLaCelda("F")).toBe("Mujeres");
+    expect(sexoDeLaCelda("m")).toBe("Hombres");
+    expect(sexoDeLaCelda("Mujer")).toBe("Mujeres");
+    expect(sexoDeLaCelda("")).toBe("Sin sexo declarado");
   });
 });
