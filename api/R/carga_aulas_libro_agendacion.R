@@ -33,6 +33,12 @@
 #' vocabulario.
 #' @keywords internal
 AULAS_AGENDACION_CABECERAS <- list(
+  # **El total, arriba del todo** (dictado 2026-09-09: «quizás una tabla al
+  # inicio que diga cuántas agendadas en total ya hay, cuántas titulares y
+  # cuántos reemplazos»). La hoja abría con la tabla por facultad, que son doce
+  # filas y trece columnas: para saber cuántas van había que sumarlas de cabeza.
+  # Dos columnas y siete filas, que es lo que se mira antes que nada.
+  total = c("Indicador", "Total"),
   facultad = c(
     "Facultad", "Slots",
     "Agendadas", "Aplicadas", "Por aplicar",
@@ -60,6 +66,7 @@ AULAS_AGENDACION_CABECERAS <- list(
 
 #' @keywords internal
 AULAS_AGENDACION_TITULOS <- c(
+  total = "Cuánto se lleva agendado",
   facultad = "Agendación por facultad",
   semana = "Agendación por semana",
   dia = "Agendación por día",
@@ -154,6 +161,54 @@ AULAS_AGENDACION_TITULOS <- c(
     en_contacto = estado == "en_contacto",
     reemplazada = estado == "reemplazada",
     dormido = .maej_dormido(txt("sample_status"))
+  )
+}
+
+#' El total de la hoja: cuánto se lleva agendado y de qué tipo.
+#'
+#' **La unidad aquí es la FILA, no la cadena.** «Agendación por facultad» cuenta
+#' cadenas —un titular y sus reemplazos son un solo slot— y ésta cuenta citas:
+#' si el titular cayó y su reemplazo se agendó, son dos visitas al campus y las
+#' dos tienen que verse. Las dos lecturas conviven y la nota del bloque lo dice,
+#' porque dos cifras que no cuadran sin explicación se leen como un error.
+#'
+#' Las EXTRA se cuentan aparte y sólo si hay alguna: no reemplazan a nadie
+#' —cierran cuota de hombres o mujeres— y meterlas entre los reemplazos diría
+#' que hubo cuarenta y dos caídas que nunca ocurrieron.
+#'
+#' @param e ejes de `.calan_ejes()`.
+#' @return `data.frame` de dos columnas, o `NULL` si no hay ninguna agendada.
+#' @keywords internal
+.calan_total <- function(e) {
+  if (!e$n || !any(e$agendada)) return(NULL)
+  ag <- e$agendada
+  extra <- ag & e$es_extra
+  reserva <- ag & e$es_reserva
+  titular <- ag & !e$es_reserva & !e$es_extra
+  filas <- list(
+    c("Cursos-horario agendados", sum(ag)),
+    c("De titulares", sum(titular)),
+    c("De reemplazos", sum(reserva))
+  )
+  if (any(extra)) filas[[length(filas) + 1L]] <- c("De reservas extra", sum(extra))
+  filas <- c(filas, list(
+    c("Ya aplicados", sum(ag & e$aplicada)),
+    c("Pendientes de aplicar", sum(ag & !e$aplicada)),
+    # Lo que queda por delante, que es la otra mitad de la pregunta: sin esto la
+    # tabla dice cuánto se hizo y no cuánto falta. **Un rechazo NO está «sin
+    # agendar»**: ya se resolvió por el otro camino, tiene su propia fila abajo,
+    # y contarlo aquí lo diría dos veces y pondría en la cola de llamadas a
+    # alguien que ya dijo que no. Lo mismo una reemplazada: su relevo es quien
+    # queda por agendar, y ése ya se cuenta solo.
+    c("Sin agendar todavía",
+      sum(!ag & !e$es_extra & !e$dormido & !e$rechazo & !e$reemplazada)),
+    c("Rechazos", sum(e$rechazo))
+  ))
+  data.frame(
+    Indicador = vapply(filas, function(x) x[[1]], character(1)),
+    Total = as.numeric(vapply(filas, function(x) x[[2]], character(1))),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
 }
 
@@ -308,12 +363,13 @@ AULAS_AGENDACION_TITULOS <- c(
 aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
                                    ancla = NULL) {
   e <- .calan_ejes(unidades, partes = partes, efectivas = efectivas)
-  if (!e$n) return(list(facultad = NULL, semana = NULL, dia = NULL, eslabon = NULL))
+  if (!e$n) return(list(total = NULL, facultad = NULL, semana = NULL, dia = NULL, eslabon = NULL))
   if (is.null(ancla)) {
     con_fecha <- e$fecha[e$agendada]
     ancla <- if (length(con_fecha)) min(con_fecha) else NULL
   }
   list(
+    total = .calan_total(e),
     facultad = .calan_por_facultad(e),
     semana = .calan_por_semana(e, ancla),
     dia = .calan_por_dia(e, ancla),
@@ -339,6 +395,11 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
 
 #' @keywords internal
 .calan_NOTAS <- c(
+  total = paste(
+    "Aquí la unidad es la FILA, no la cadena: un titular y su reemplazo agendados",
+    "son dos citas y dos visitas. La tabla de abajo cuenta cadenas, así que sus",
+    "cifras no tienen por qué coincidir con éstas, y ninguna de las dos sobra."
+  ),
   facultad = paste(
     "La unidad es la CADENA, no la fila: un titular y sus reemplazos son un solo",
     "slot. Una cadena cuenta como agendada si cualquiera de sus eslabones lo",
@@ -361,6 +422,7 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
 
 #' @keywords internal
 .calan_VACIOS <- c(
+  total = "Todavía no hay ningún curso-horario agendado.",
   facultad = "El plan todavía no trae facultades con aulas que agendar.",
   semana = "Todavía no hay ninguna aula con fecha agendada.",
   dia = "Todavía no hay ninguna aula con fecha agendada.",
@@ -549,8 +611,9 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
   # primera y 16 las demás», que hoy cabe: la facultad más larga mide 32. Cabe
   # por suerte, y ésa es exactamente la forma en que el libro se ganó cinco
   # cortes (ver `docs/qa/anchos-que-cortan-datos-2026-09-09.md`). Se mide lo que
-  # las cuatro tablas llevan, con suelo en los mismos 34 y 16 para que una tabla
-  # floja no estreche la columna, y techo en 42.
+  # las tablas llevan, con suelo en los mismos 34 y 16 para que una tabla
+  # floja no estreche la columna, y techo en 42. Se recorren TODAS las tablas
+  # que la spec declare, así que el bloque del total entró sin tocar esto.
   #
   # Del MODELO y no de la hoja escrita: las notas van fusionadas a lo ancho y
   # leerlas de vuelta pediría 42 para la columna A. Es la misma razón por la que

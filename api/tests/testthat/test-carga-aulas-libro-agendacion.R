@@ -130,14 +130,50 @@ test_that("la hoja sale con sus cuatro bloques, cada uno con su título y su vac
     if (is.numeric(v)) format(v) else as.character(v)
   }, character(1))
   expect_identical(texto[[1]], "Avance de agendación")
-  # Los cuatro títulos, en el orden de lectura: el resumen de la semana antes
-  # que el detalle del día.
+  # Los CINCO títulos, en el orden de lectura: el total antes que nada —«una
+  # tabla al inicio que diga cuántas agendadas en total ya hay», dictado del
+  # 2026-09-09—, y el resumen de la semana antes que el detalle del día.
   posiciones <- vapply(unname(AULAS_AGENDACION_TITULOS), function(t) {
     which(texto == t)[[1]]
   }, integer(1))
   expect_true(all(diff(posiciones) > 0))
   expect_identical(names(AULAS_AGENDACION_TITULOS)[order(posiciones)],
-                   c("facultad", "semana", "dia", "eslabon"))
+                   c("total", "facultad", "semana", "dia", "eslabon"))
+})
+
+test_that("el total dice cuántas van, y de titulares y de reemplazos por separado", {
+  # La unidad aquí es la FILA y no la cadena: un titular caído y su reemplazo
+  # agendado son DOS visitas al campus, y las dos tienen que verse. La tabla de
+  # facultad cuenta cadenas y diría «1».
+  plan <- list(
+    .calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"),
+    .calan_u("CH 2", estado = "rechazo"),
+    .calan_u("R 2.1", estado = "agendada", fecha = "2026-09-08",
+             rol = "chain_reserve", titular = "CH 2", orden = 1),
+    .calan_u("CH 3", estado = "en_contacto")
+  )
+  tot <- aulas_libro_agendacion(plan)$total
+  valor <- function(k) tot$Total[[which(tot$Indicador == k)]]
+  expect_equal(valor("Cursos-horario agendados"), 2)
+  expect_equal(valor("De titulares"), 1)
+  expect_equal(valor("De reemplazos"), 1)
+  expect_equal(valor("Rechazos"), 1)
+  # CH 3 está en contacto: cuenta como pendiente de agendar.
+  expect_equal(valor("Sin agendar todavía"), 1)
+  # Y la fila de extras NO aparece si no hay ninguna: una fila en cero sobre
+  # algo que este estudio no usa es ruido.
+  expect_false("De reservas extra" %in% tot$Indicador)
+})
+
+test_that("sin ninguna agendada el bloque calla y la hoja lo dice", {
+  plan <- list(.calan_u("CH 1", estado = "en_contacto"))
+  expect_null(aulas_libro_agendacion(plan)$total)
+  rows <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(plan))
+  texto <- vapply(rows, function(r) {
+    v <- r[[1]] %||% ""
+    if (is.numeric(v)) format(v) else as.character(v)
+  }, character(1))
+  expect_true(any(texto == prosecnurapp:::.calan_VACIOS[["total"]]))
 })
 
 test_that("las cifras viajan como NÚMEROS, no como texto", {
