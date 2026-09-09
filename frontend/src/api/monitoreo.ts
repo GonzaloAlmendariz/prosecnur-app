@@ -5345,6 +5345,28 @@ export type MonitoreoAulasSincronizacion = {
     conflictos: Array<{ curso_horario?: string; fila?: number; tecleado?: string; plataforma?: string }>;
   };
   sin_aplicador: Array<{ curso_horario?: string; fecha?: string }>;
+  /**
+   * La columna AULA puesta al día con el libro. **Es la única celda ajena que
+   * la sincronización pisa**, y a propósito: el ESTADO lo teclea el
+   * coordinador y es suyo, pero el aula la pacta quien agenda —en LUGAR DE
+   * APLICACIÓN— y aquí sólo vive una copia, que envejece. `corregidas` son las
+   * que importan: la hoja daba un aula por buena y el libro dice otra, así que
+   * alguien iba a caminar hasta la equivocada. `sin_dato` es el hueco del
+   * operativo: ni la hoja ni el libro saben dónde. Ausente en recibos
+   * anteriores al 2026-09-09.
+   */
+  aulas?: {
+    rellenadas: number;
+    corregidas: number;
+    sin_dato: number;
+    cambios: Array<{
+      curso_horario?: string;
+      fecha?: string;
+      antes?: string;
+      despues?: string;
+      motivo?: "rellenada" | "corregida";
+    }>;
+  };
   /** Lo escrito que no cuadra por sí solo: fecha ilegible, fuera de la semana, sin código. */
   dudosas?: Array<{ fila?: number; curso_horario?: string; motivo?: string; valor?: string }>;
   /**
