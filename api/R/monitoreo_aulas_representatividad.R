@@ -86,11 +86,44 @@
 
 .monitoreo_aulas_effective_representativity <- function(plan_df, cfg) {
   planned <- plan_df[plan_df$wave == "M1", , drop = FALSE]
-  active_status <- c("planificada", "contactada", "agendada", "en_campo", "aplicada", "parcial", "cerrada")
-  effective <- rbind(
-    planned[planned$operational_status %in% active_status & !planned$operational_status %in% c("reemplazada", "cancelada", "sin_acceso"), , drop = FALSE],
-    plan_df[nzchar(plan_df$replacement_for) & plan_df$operational_status %in% active_status, , drop = FALSE]
-  )
+  # **La muestra efectiva es UN eslabon por cadena, y quien lo decide es
+  # `monitoreo_aulas_en_juego()`.**
+  #
+  # Hasta el 2026-09-08 se armaba como los M1 vivos MAS toda fila con
+  # `replacement_for` no vacio y estado activo, con `"planificada"` dentro de esa
+  # lista de activos. Dos errores en una linea:
+  #
+  #  1. `replacement_for` marca a que titular PODRIA reemplazar una reserva, no
+  #     que haya reemplazado a nadie. `monitoreo_aulas_en_juego.R` ya lo tenia
+  #     anotado —«no sirve: lleva el `classroom_id` y sobre HSVG2026 ninguno de
+  #     sus 202 valores coincidia con un titular»— y esta funcion se quedo
+  #     usandolo igual.
+  #  2. `"planificada"` es un estado DORMIDO (`MONITOREO_AULAS_ESTADOS_DORMIDOS`):
+  #     el eslabon todavia no entro al operativo.
+  #
+  # Juntos metian el banco entero en la muestra efectiva. Medido sobre
+  # HSVG26ULT2 el 2026-09-08: 1 173 reservas con `replacement_for` puesto, las
+  # 1 173 en `planificada` —ninguna habia entrado—, y el conjunto efectivo salia
+  # de **1 347 cursos-horario contra 174 planificados**. El `score_loss` daba
+  # **-17,4**: la muestra efectiva aparecia MAS representativa que el diseno,
+  # que es imposible. Promediar el banco entero suaviza la distribucion.
+  #
+  # El defecto vivio invisible porque NINGUNA pantalla leia este bloque; se
+  # descubrio al ir a montarlo. La regla no se reescribe aqui: se pide a la
+  # funcion canonica, que es la misma que usa `tracked_df` unas lineas mas
+  # arriba en `monitoreo_aulas_universitarias.R`.
+  # **`en_juego` no alcanza solo, y la diferencia importa.** Esa funcion contesta
+  # «¿a cual hay que ir a aplicar?» y por diseno NUNCA devuelve cero filas para
+  # una cadena: si no queda ningun eslabon vivo deja al titular marcado, para que
+  # el hueco se vea en alguna fila «nunca en cero». Para la representatividad eso
+  # seria contar como muestra efectiva un aula que ya no va a aplicarse. Se resta
+  # la cadena muerta con la misma lista de estados que usaba esta funcion antes
+  # del arreglo, que es la que fija el test de «sin muestra efectiva».
+  en_juego <- monitoreo_aulas_en_juego(plan_df)
+  if (length(en_juego) != nrow(plan_df)) en_juego <- rep(FALSE, nrow(plan_df))
+  muerta <- as.character(plan_df$operational_status %||% rep("", nrow(plan_df))) %in%
+    c("cancelada", "sin_acceso", "reemplazada")
+  effective <- plan_df[en_juego & !muerta, , drop = FALSE]
   distance <- .monitoreo_aulas_distribution_distance(planned, effective, "stratum", "eligible_n")
   planned_score <- suppressWarnings(as.numeric(planned$representativity_score[is.finite(planned$representativity_score)][1]))
   if (!is.finite(planned_score)) {
