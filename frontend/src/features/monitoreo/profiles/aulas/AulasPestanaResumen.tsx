@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AulasAvancePorCurso } from "./AulasAvancePorCurso";
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
@@ -385,15 +386,16 @@ export function AulasPestanaResumen({
               <p className="mon-profile-muted">
                 Primero las que están en campo y con más brecha; la reserva adicional y las reservas dormidas, al final.
               </p>
-              <Tabla
-                rows={aulaRows}
-                empty="Todavía no hay respuestas que atribuir a un curso-horario."
+              {/* El selector de rol y el recorte del plan viven en el componente:
+                  `course_status` llega topeado a 500 filas de 1 392 y la tabla
+                  además pinta 400 de esas 500, así que las 326 reservas que SÍ
+                  llegaron no se alcanzaban nunca. Filtrando a un rol caben
+                  enteras. */}
+              <AulasAvancePorCurso
+                filas={aulaRows}
+                total={totalAulas}
+                tabla={Tabla}
                 preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
-                // El plan entero, no lo que cupo en el payload. `course_status` llega
-                // topeado a 500 filas y el pie decía «Mostrando 400 de 500» sobre un
-                // plan de 3.409: quien lo leía creía que faltaban 100. `totalAulas`
-                // ya traía el dato bueno acá al lado, sin que nadie lo usara.
-                totalReal={totalAulas}
               />
             </section>
     </>
