@@ -38,6 +38,7 @@ import { filaVisibleEnAgenda } from "./filaVisibleEnAgenda";
 import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import { AulasPestanaResumen } from "./AulasPestanaResumen";
 import { AulasPestanaCuotas } from "./AulasPestanaCuotas";
+import { AulasVistaPreviaDelLibro } from "./AulasVistaPreviaDelLibro";
 import { AulasPestanaEfectividad } from "./AulasPestanaEfectividad";
 import { AulasPestanaEstratos } from "./AulasPestanaEstratos";
 import { AulasSeccionModelo } from "./AulasSeccionModelo";
@@ -1788,6 +1789,7 @@ export default function AulasMonitoreoPage() {
               // Salidas se muestra aunque no haya dashboard: el workbench declara
               // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
               // pestaña muda.
+              <>
               <MonitoreoOutputsWorkbench
                 family="aulas"
                 routeLabel="Cursos-horario"
@@ -1803,6 +1805,13 @@ export default function AulasMonitoreoPage() {
                 // lo único que dice DÓNDE quedó publicado.
                 onPublished={() => { void loadView(seccionActiva, true, true); }}
               />
+                {/* Y debajo del workbench, lo que se va a publicar. Las cinco
+                    tablas del libro estuvieron en Metas y volvieron aquí: allá
+                    duplicaban paneles que ya existían, aquí contestan la
+                    pregunta de la pestaña —qué sale— antes de que alguien le
+                    dé al botón. */}
+                <AulasVistaPreviaDelLibro />
+              </>
             ) : renderAulasView({
               view: seccionActiva,
               dashboard,
