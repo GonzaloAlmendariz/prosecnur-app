@@ -5411,6 +5411,24 @@ export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
     libro_sheets?: MonitoreoAulasLibroSheets | null;
     /** Qué se leyó del equipo antes de escribir; ausente en recibos anteriores a `732c4221`. */
     lectura_previa?: MonitoreoAulasLecturaPrevia | null;
+    /**
+     * Qué adoptó de la hoja de los aplicadores antes de rehacer «Asignación de
+     * aplicadores». El coordinador cambia a mano quién va a qué aula y esos
+     * cambios son la verdad del operativo: publicar sin leerlos reescribía el
+     * reparto con un sorteo nuevo. `motivo` dice por qué no adoptó cuando
+     * `omitida`: `sin_destino`, `sin_hoja`, `hoja_vacia` o `error`.
+     * Ausente en recibos anteriores.
+     */
+    adopcion_distribucion?: {
+      ok: boolean;
+      omitida: boolean;
+      motivo?: "sin_destino" | "sin_hoja" | "hoja_vacia" | "error" | "";
+      error?: string;
+      hoja?: string;
+      adoptadas: number;
+      fijaciones_previas?: number;
+      aplicadores_desconocidos?: string[];
+    } | null;
   }>(
     await apiFetch("/api/monitoreo/aulas/publicar-libro", {
       method: "POST",

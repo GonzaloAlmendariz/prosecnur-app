@@ -729,6 +729,30 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
 
   aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
   unidades <- s$monitoreo_aulas_plan %||% aulas_cfg[["plan"]] %||% list()
+
+  # **Y se lee también la hoja de los aplicadores, por la misma razón.**
+  #
+  # La lectura de arriba trae lo que el equipo teclea en el libro; ésta trae lo
+  # que el coordinador cambia a mano en el Sheets de la distribución, que es un
+  # documento distinto. Sin ella, publicar rehacía «Asignación de aplicadores»
+  # desde un reparto SIN FIJAR: el sorteo se recalcula entero y no tiene por qué
+  # caer donde cayó el que ya se comunicó.
+  #
+  # Medido el 2026-09-09 sobre el operativo: la hoja publicada la noche anterior
+  # contradecía a la de los 22 aplicadores en **38 de 85 aulas**, 32 de ellas de
+  # ese día en adelante. Dos verdades a la vista del equipo. Con las fijaciones
+  # de la hoja, el reparto coincide 86 de 86. Dictado de Gonzalo ese mismo día:
+  # «el sheets de distribución lo arma la app pero en el camino puede haber
+  # cambios manuales con respecto a quién recibe qué, y la app debe ser robusta
+  # en entender esos cambios».
+  #
+  # Se ADOPTA, no se propone: quien está escrito manda, y el sorteo sólo reparte
+  # lo que sobra. No escribe una sola celda en esa hoja —eso es
+  # `sincronizar-distribucion`— y su error no detiene la publicación, igual que
+  # el de la lectura del libro: se declara en el recibo y se sigue.
+  fijaciones_previas <- length(aulas_cfg[["reparto_fijado"]] %||% list())
+  adopcion <- .malp_adoptar_distribucion(aulas_cfg, unidades, s)
+  if (length(adopcion$fijadas)) aulas_cfg[["reparto_fijado"]] <- adopcion$fijadas
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "No hay plan de aulas del que publicar el libro. Importa la seleccion de calculo de muestra primero.")
@@ -814,12 +838,27 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     api_error = function(e) stop(e),
     error = .monitoreo_sheets_stop
   )
-  c(publicado, list(lectura_previa = list(
-    ok = is.null(lectura_previa$error) && !isTRUE(lectura_previa$omitida),
-    omitida = isTRUE(lectura_previa$omitida),
-    error = lectura_previa$error %||% "",
-    resumen = lectura_previa$resumen %||% list()
-  )))
+  c(publicado, list(
+    lectura_previa = list(
+      ok = is.null(lectura_previa$error) && !isTRUE(lectura_previa$omitida),
+      omitida = isTRUE(lectura_previa$omitida),
+      error = lectura_previa$error %||% "",
+      resumen = lectura_previa$resumen %||% list()
+    ),
+    # Qué se adoptó de la hoja de los aplicadores. Un cero se dice: omitirlo
+    # deja al que lee sin saber si es que no había cambios manuales o si es que
+    # no se miró, y ésa es justo la diferencia que costó las dos verdades.
+    adopcion_distribucion = list(
+      ok = isTRUE(adopcion$ok),
+      omitida = isTRUE(adopcion$omitida),
+      motivo = adopcion$motivo %||% "",
+      error = adopcion$error %||% "",
+      hoja = adopcion$hoja %||% "",
+      adoptadas = length(adopcion$fijadas),
+      fijaciones_previas = fijaciones_previas,
+      aplicadores_desconocidos = adopcion$aplicadores_desconocidos %||% character(0)
+    )
+  ))
 }
 
 # --- montaje HTTP -------------------------------------------------------------
