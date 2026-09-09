@@ -36,7 +36,11 @@ describe("el aviso del sexo sin decodificar llega a la pantalla", () => {
     const html = renderToStaticMarkup(<AulasCuotasResumen filas={conAviso(AVISO)} />);
     expect(html).toContain("no se reconocen como sexo");
     // Encima, no debajo: quien ve un cero deja de leer.
-    expect(html.indexOf("aulas-cuota-aviso")).toBeLessThan(html.indexOf("Cuota del estudio"));
+    // Ancla en la LECTURA y no en «Cuota del estudio», que era la etiqueta de la
+    // barra del total. Esa barra se retiró el 2026-09-08 por publicar por tercera
+    // vez «494 de 2 500 · 19,8 %» en la misma pantalla. Lo que este test fija
+    // —que el aviso va ANTES de las cifras— no cambia.
+    expect(html.indexOf("aulas-cuota-aviso")).toBeLessThan(html.indexOf("grupos con su cuota cumplida"));
   });
 
   it("sin aviso no se inventa un hueco", () => {
@@ -44,7 +48,7 @@ describe("el aviso del sexo sin decodificar llega a la pantalla", () => {
     // marco vacío encima de la barra en todos los estudios sanos.
     const html = renderToStaticMarkup(<AulasCuotasResumen filas={conAviso("")} />);
     expect(html).not.toContain("aulas-cuota-aviso");
-    expect(html).toContain("Cuota del estudio");
+    expect(html).toContain("grupos con su cuota cumplida");
   });
 
   it("y también cuando no hay ni una celda con objetivo", () => {
