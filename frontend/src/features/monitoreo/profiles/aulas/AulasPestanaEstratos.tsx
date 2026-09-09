@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AulasBrechaConcentrada } from "./AulasBrechaConcentrada";
 import { AulasRepresentatividad } from "./AulasRepresentatividad";
 import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
@@ -37,6 +38,29 @@ export function AulasPestanaEstratos({
   });
   return (
     <>
+            {/* **Estratos era una tabla de 73 filas y NADA MAS.** Gonzalo lo dijo
+                mirandola el 2026-09-09: «ahora esta pestaña es una tabla gigante,
+                nada que ver con los elementos visuales que prometiste». Tenia razon
+                contra la vara de esta misma seccion —si la pregunta es «quien va
+                peor», eso es un ranking—, y contra lo que abrio este revamp.
+
+                El ranking va PRIMERO y la tabla se queda debajo, que es donde sirve:
+                se lee buscando UNA fila concreta entre 73. Lo que no puede es ser la
+                pestaña entera. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Dónde se concentra lo que falta</h3>
+                <span>estratos del sorteo con más brecha · qué parte de lo que falta está en ellos</span>
+              </div>
+              <AulasBrechaConcentrada
+                filas={estratoRowsLegibles}
+                metaPorCursoHorario={Number(dashboard?.cumplimiento_respuestas?.meta) || null}
+              />
+            </section>
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
@@ -58,7 +82,14 @@ export function AulasPestanaEstratos({
                     palabra no. Se dice qué es, sin nombrar las columnas del
                     corte: son configurables por estudio (`estratos_selector`) y
                     escribirlas aquí sería falso en cuanto alguien las cambie. */}
-                <span>{fmt(estratoRows.length)} estratos de diseño · cada uno con sus cursos-horario, sus válidas y su brecha</span>
+                {/* **El subtítulo declara el denominador, y no es cosmético.** La
+                    columna «Respuestas que faltan» suma 3 076 sobre HSVG26ULT2
+                    mientras la banda de KPIs, a dos paneles de aquí, dice «faltan
+                    2 288». Las válidas coinciden (212) y los cursos-horario también
+                    (174): no es un error de cuenta, es que el estrato mide contra la
+                    meta POR CURSO-HORARIO y la cuota mide contra la del estudio. Sin
+                    decirlo, quien encuentra la diferencia desconfía de las dos. */}
+                <span>{fmt(estratoRows.length)} estratos de diseño · lo que falta se mide contra la meta por curso-horario, no contra la cuota</span>
               </div>
               {/* **Una tabla, y con razón.** Es la única forma de la sección que
                   se lee buscando UNA fila concreta entre decenas de estratos; un
