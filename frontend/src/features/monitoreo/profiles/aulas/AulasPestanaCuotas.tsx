@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
-import { AulasTablasDeAvance } from "./AulasTablasDeAvance";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
@@ -29,16 +28,19 @@ import { AulasReservaDirigida } from "./AulasReservaDirigida";
  *   1. **Cumplimiento de la cuota del estudio** — «este debería estar al inicio
  *      antes del desglose por sexo». Es la lectura de conjunto: cuánto se lleva
  *      del total y cómo va cada facultad contra su cuota.
- *   2. **Avance en tablas** — el detalle que se entrega, y el mismo que va al
- *      PDF y a la hoja «Avance de campo» del libro.
- *   3. **Hombres y mujeres por facultad** — el desglose por sexo, con una barra
+ *   2. **Hombres y mujeres por facultad** — el desglose por sexo, con una barra
  *      apilada por carril.
- *   4. **Pirámide de metas** — sección PROPIA, «no estar pegada a lo que tenga
+ *   3. **Pirámide de metas** — sección PROPIA, «no estar pegada a lo que tenga
  *      arriba», porque cumple una función distinta: dimensiona la magnitud de
  *      lo que pide cada facultad, que las barras de arriba (todas del mismo
  *      largo) deliberadamente no muestran.
  *
- * Lo que salió: el panel «Desempeño del trabajo de campo» (lo quita el chrome),
+ * Las cinco tablas de «Avance de campo» estuvieron aquí como punto 2 del orden
+ * de arriba y se fueron a Salidas el mismo día, en `AulasVistaPreviaDelLibro`:
+ * ninguna aportaba una cifra que esta sección no pintara ya, y su forma es la
+ * del libro, no la de una pantalla.
+ *
+ * Lo que salió antes: el panel «Desempeño del trabajo de campo» (lo quita el chrome),
  * el aviso de conversación con el Sheets, la proyección «va a llegar, con
  * margen» —la predicción pertenece a otra pestaña— y la tabla FACULTAD / SEXO /
  * META / ESTADO, que decía lo mismo que la pirámide una vez que ésta lo enseña
@@ -92,34 +94,25 @@ export function AulasPestanaCuotas({
         </div>
         <AulasAvanceCuota vista={cuotaDiseno} />
       </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* La tabla que se entrega, y la misma que va al PDF y a la hoja
-              «Avance de campo» del libro: un contenido en tres soportes.
+      {/* **Aquí vivían las cinco tablas de «Avance de campo», y se fueron a
+          Salidas** (Gonzalo, 2026-09-08): «se supone que aquí todo debe ser
+          visual y con gráficos, y las has metido como tablas como sea cuando
+          deberían muchas de ellas ser gráficos mejor diseñados y visuales».
 
-              No se llama «Avance por facultad y sexo» porque ese nombre ya es
-              el del gráfico de Estratos, y el guard de títulos lo rechaza con
-              razón: dos paneles homónimos en un mismo perfil obligan a abrir
-              los dos para saber cuál se está citando. */}
-          <h3>Avance de campo en tablas</h3>
-          <span>las mismas cinco que van al libro y al Sheets</span>
-        </div>
-        {/* **Las cinco tablas que dictó Gonzalo**, servidas por el motor con su
-            contrato de formato. Sustituyen a `AulasAvanceParaCliente`, que
-            enseñaba una sola tabla derivada en el front: «esta tabla está súper
-            pobre y no refleja el avance real (...) se supone que la app debe ser
-            una versión mejorada del Excel y francamente veo todo lo contrario».
+          El censo le dio la razón con números: NINGUNA de las cinco aportaba
+          una cifra que esta sección no pintara ya. «Avance general» es la banda
+          de KPIs; «Avance por facultad» —veinte columnas— es esta misma pestaña
+          en barras por sexo; «Rendimiento por facultad» y «Producción por
+          aplicador» son dos rankings de Rendimiento; «Avance diario» es el
+          gráfico del día. Cinco tablas, cero números nuevos.
 
-            Aquí no se recalcula nada. La app es la que ORDENA la información de
-            plataforma —regla suya del mismo día— y el motor es su backend: la
-            pantalla enseña lo que ese motor ya calcula para el libro, el PDF y
-            el Sheets, así que las cuatro superficies no pueden discrepar. */}
-        <AulasTablasDeAvance />
-      </section>
+          Nacieron para el libro y el Sheets, donde la tabla es la forma
+          correcta porque alguien las lee celda por celda, las filtra y las
+          copia. Su sitio es la pestaña donde se decide publicar, y ahí están:
+          `AulasVistaPreviaDelLibro`, montada en Salidas.
+
+          El endpoint NO se toca: el gráfico del día de Rendimiento agrega la
+          tabla `diario` con su propio `useTablasDeAvance()`. */}
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
