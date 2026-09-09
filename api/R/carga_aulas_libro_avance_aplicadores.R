@@ -91,10 +91,16 @@
     idx <- fac == f & quien == a
     aplicadas <- idx & apl
     eleg_apl <- sum(eleg[aplicadas & is.finite(eleg)], na.rm = TRUE)
-    en_base <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[aplicadas], na.rm = TRUE)
+    # **Sin una sola aula aplicada, las tres cifras de fichas CALLAN.** Un «0
+    # fichas en la base, 0 faltantes» se lee como que fue y no sacó nada, y lo
+    # que pasa es que todavía no le ha tocado ir: eso ya lo dicen las dos
+    # columnas de aulas que tiene al lado. Es la misma regla que «Rendimiento
+    # por facultad» aplica a sus esperadas.
+    fue <- any(aplicadas)
+    en_base <- if (is.null(efectivas) || !fue) NA_real_ else sum(ef_fila[aplicadas], na.rm = TRUE)
     # Lo que le falta a cada aula suya para su propia meta, sumado y sin
     # compensar entre aulas.
-    faltantes <- if (is.null(efectivas)) NA_real_ else {
+    faltantes <- if (is.null(efectivas) || !fue) NA_real_ else {
       brecha <- pmax(0, esperadas[aplicadas] - ef_fila[aplicadas])
       brecha <- brecha[is.finite(brecha)]
       if (length(brecha)) ceiling(sum(brecha)) else 0
@@ -106,9 +112,19 @@
     # función que la tabla de rendimiento.
     esperada <- .calar_tasa_esperada(esperadas[fac == f], eleg[fac == f])
     cuenta_rango <- function(etiqueta) sum(aplicadas & rango == etiqueta)
+    # Lo que el diseño esperaba de las aulas que YA aplicó: el mismo universo
+    # que «Fichas en la base» y que «Fichas faltantes», para que las tres se
+    # lean en la misma línea sin cambiar de denominador a mitad de fila.
+    esperadas_apl <- {
+      v <- esperadas[aplicadas]
+      v <- v[is.finite(v)]
+      if (length(v)) round(sum(v)) else NA_real_
+    }
     out <- data.frame(
       f, a,
+      sum(idx),
       sum(aplicadas),
+      esperadas_apl,
       en_base,
       faltantes,
       esperada,
