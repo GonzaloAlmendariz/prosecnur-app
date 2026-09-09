@@ -221,6 +221,22 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
   )
 }
 
+#' ¿Hay que guardar el enlace de la distribución, o ya está guardado?
+#'
+#' Se guarda la PRIMERA vez que la hoja se deja leer —ensayo incluido— y no se
+#' vuelve a pisar: un destino ya recordado es una decisión del usuario, y
+#' reescribirlo en cada sincronización lo cambiaría en silencio si alguien pasa
+#' otro enlace de paso para mirar una semana distinta.
+#'
+#' @param aulas_cfg la config de aulas.
+#' @return `TRUE` cuando todavía no hay destino recordado.
+#' @keywords internal
+.madm_falta_recordar_destino <- function(aulas_cfg) {
+  id <- .monitoreo_scalar(
+    ((aulas_cfg %||% list())[["distribucion_sheets"]] %||% list())[["spreadsheet_id"]], "")
+  !nzchar(trimws(id))
+}
+
 # --- A2b · qué citas escritas ya no tienen agenda ----------------------------
 
 #' Las citas de la hoja cuya aula ya no está agendada para ese día.
@@ -951,22 +967,36 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
         aplicar = aplicar
       )
 
+      # **El destino se RECUERDA en cuanto la hoja se deja leer**, ensayo
+      # incluido, y no sólo al aplicar.
+      #
+      # Sin esto, pegar el enlace aquí lo usaba y lo tiraba: la config seguía sin
+      # `distribucion_sheets`, y entonces la lectura previa que publicar hace de
+      # esa hoja salía `sin_destino` y no adoptaba nada. Visto en vivo el
+      # 2026-09-09: se sincronizó con el enlace, se publicó a continuación y el
+      # recibo dijo «adoptadas 0, motivo sin_destino».
+      #
+      # Y va en el ENSAYO porque de otro modo armar la red obligaba a escribir
+      # en la hoja de 22 personas, que es exactamente lo que el ensayo existe
+      # para no tener que hacer. Recordar aquí es seguro: sólo se llega si la
+      # hoja se leyó de verdad, así que el enlace está probado — es la misma
+      # doctrina con la que `publicar-libro` recuerda el suyo ANTES de escribir,
+      # para que un fallo de red no pierda lo pegado.
+      if (.madm_falta_recordar_destino(aulas_cfg)) {
+        cfg <- monitoreo_aulas_distribucion_destino_set(cfg, destino)
+        cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+        aulas_cfg <- cfg[["aulas_universitarias"]] %||% aulas_cfg
+        .monitoreo_mark_project_dirty_if_open(sid)
+      }
+
       # **Adoptar es parte del acto, no un paso aparte.** El ciclo entero pierde
       # sentido si la app añade filas y sigue reordenando las de él en la
       # publicación siguiente: lo que el coordinador decidió queda fijado en la
-      # misma llamada que respeta su hoja.
+      # misma llamada que respeta su hoja. Esto SÍ es del acto: fijar el reparto
+      # cambia lo que la app repartirá, y eso no se decide en un ensayo.
       if (aplicar && length(out$fijaciones)) {
         aulas_cfg[["reparto_fijado"]] <- out$fijaciones
         cfg[["aulas_universitarias"]] <- monitoreo_aulas_normalize_config(aulas_cfg)
-        # **Y el destino se RECUERDA**, como ya hace publicar-distribucion.
-        #
-        # Sin esto, pegar el enlace aquí lo usaba y lo tiraba: la config seguía
-        # sin `distribucion_sheets`, y entonces la lectura previa que publicar
-        # hace de esta hoja salía `sin_destino` y no adoptaba nada. Visto en
-        # vivo el 2026-09-09: se sincronizó con el enlace, se publicó a
-        # continuación y el recibo dijo «adoptadas 0, motivo sin_destino». La
-        # red de seguridad existía y estaba desconectada por falta de una línea.
-        cfg <- monitoreo_aulas_distribucion_destino_set(cfg, destino)
         cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
         .monitoreo_mark_project_dirty_if_open(sid)
       }
