@@ -572,9 +572,16 @@ test_that("S4: en Sheets, la celda sin dato de una tabla sale «—», no vacía
   expect_length(fila_c, 1L)
   expect_identical(as.character(filas[[fila_c]][[col]]), "\u2014")
   # Y ninguna celda de la tabla queda en blanco: de la cabecera a la última fila.
+  #
+  # **Sus propias columnas, no el ancho de la hoja.** La hoja es tan ancha como
+  # su tabla más ancha y las demás viajan rellenadas con vacíos hasta ese ancho;
+  # mirar `seq_along(nombres)` medía el relleno y no la tabla, y el día que
+  # «Rendimiento por facultad» ganó las columnas por sexo este test empezó a
+  # fallar por celdas que nunca fueron suyas.
   n <- nrow(ind$aplicadores)
+  propias <- seq_len(ncol(ind$aplicadores))
   for (i in (cabecera + 1L):(cabecera + n)) {
-    celdas <- vapply(filas[[i]], function(x) as.character(x), character(1))[seq_along(nombres)]
+    celdas <- vapply(filas[[i]], function(x) as.character(x), character(1))[propias]
     expect_false(any(!nzchar(celdas)),
                  info = sprintf("fila %d con celda en blanco: %s", i, paste(celdas, collapse = "|")))
   }

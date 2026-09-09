@@ -205,7 +205,10 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
     nota_arriba = paste(
       "Las tasas se miden sobre los elegibles de las aulas ya aplicadas. Las",
       "efectivas esperadas son esos elegibles por la tasa que el diseño le puso a",
-      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue."
+      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue.",
+      "El plan no trae elegibles por sexo, así que la esperada de hombres y la de",
+      "mujeres se reparten con la misma proporción con la que el diseño repartió",
+      "la cuota de esa facultad."
     ),
     vacio = "El plan todavía no trae facultades con aulas que medir."
   )
