@@ -4,6 +4,7 @@ import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
+import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { avanceCuota } from "./avanceCuota";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
@@ -30,7 +31,11 @@ import { AulasReservaDirigida } from "./AulasReservaDirigida";
  *      del total y cómo va cada facultad contra su cuota.
  *   2. **Hombres y mujeres por facultad** — el desglose por sexo, con una barra
  *      apilada por carril.
- *   3. **Pirámide de metas** — sección PROPIA, «no estar pegada a lo que tenga
+ *   3. **Qué metas van a cerrar y cuáles no** — la proyección por celda. Vino de
+ *      Estratos el 2026-09-08: allá se llamaba «Avance por facultad y sexo» y el
+ *      nombre escondía que proyecta. Va DESPUÉS del punto 2 a propósito: primero
+ *      dónde estamos, después dónde vamos a terminar.
+ *   4. **Pirámide de metas** — sección PROPIA, «no estar pegada a lo que tenga
  *      arriba», porque cumple una función distinta: dimensiona la magnitud de
  *      lo que pide cada facultad, que las barras de arriba (todas del mismo
  *      largo) deliberadamente no muestran.
@@ -133,9 +138,12 @@ export function AulasPestanaCuotas({
         {/* Una fila por facultad, un carril por sexo, todos del MISMO largo:
             aquí se compara el PORCENTAJE de avance, no la magnitud. La magnitud
             la enseña la pirámide, abajo, y por eso son dos gráficos y no uno.
-            Sustituye a la proyección «va a llegar, con margen», que además de
-            no medir nada mientras no hay aulas aplicadas era predicción, y la
-            predicción vive en otra pestaña. */}
+
+            Este panel mira HACIA ATRÁS: lo conseguido contra la meta. La
+            proyección —lo que traerán los cursos-horario en juego— es el panel
+            de abajo, que vino de Estratos. Hasta el 2026-09-08 este comentario
+            decía «la predicción vive en otra pestaña»; vivía, y por eso no la
+            miraba nadie. */}
         <AulasBarrasPorFacultad
           filas={quotaRows as MonitoreoRow[]}
           foco={foco}
@@ -147,6 +155,36 @@ export function AulasPestanaCuotas({
         <AulasReservaDirigida
           celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
+        />
+      </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* **Vino de Estratos el 2026-09-08, y el rótulo es la mitad de la
+              mudanza.** Allá se llamaba «Avance por facultad y sexo» —un nombre
+              que sólo prometía otra vista de lo mismo— y por eso nadie miraba lo
+              que de verdad trae: su bloque `avance_sexo_facultad`
+              (`api/R/monitoreo_aulas_calibracion.R:350`) publica lo logrado, lo
+              PREVISTO, lo PROYECTADO y si el campo se está comportando como el
+              modelo dice.
+
+              Es decir: contesta «¿va a llegar esta celda?», que es la pregunta
+              de Gonzalo —«lo que me interesa es que TODAS LAS FACULTADES CUMPLAN
+              CON SU CUOTA DE SEXO»— y no la contestaba nada más en la sección.
+              El título ahora la hace.
+
+              No duplica al panel de arriba: aquél mide lo CONSEGUIDO contra la
+              meta, mirando hacia atrás; éste suma lo que traerán los
+              cursos-horario que siguen en juego y enseña el déficit que
+              quedaría aun así. Retrospectivo y prospectivo, en ese orden. */}
+          <h3>Qué metas van a cerrar y cuáles no</h3>
+          <span>lo recogido, lo que traerán los cursos-horario en juego y el déficit que quedaría</span>
+        </div>
+        <AulasSexoPorFacultadChart
+          celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
         />
       </section>
       <section
