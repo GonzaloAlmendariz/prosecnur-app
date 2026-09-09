@@ -75,6 +75,45 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       )
     )
   }
+  # **UNA DISTRIBUCIÓN CON CONTENIDO NO SE SOBRESCRIBE.**
+  #
+  # Esta función nació para SEMBRAR el documento, cuando la pestaña estaba
+  # vacía y la app era su única autora. Desde el 2026-09-08 dejó de serlo: el
+  # coordinador de campo edita ahí en vivo —ese día llevaba 33 cambios de
+  # aplicador y tres reagendaciones— y el ciclo real es otro, el que dictó
+  # Gonzalo: la app PROPONE, él DISPONE, la app ADOPTA lo que él cambió y sólo
+  # AÑADE lo que falta.
+  #
+  # Publicar encima borraría su trabajo entero de un request, y es la clase de
+  # llamada que se hace sin pensar («republico y ya»). Las cuatro hojas del
+  # equipo en el libro operativo llevan esta misma guarda desde hace semanas;
+  # esta pestaña se había quedado sin ella justo cuando pasó a tener dueño.
+  hoja_existente <- tryCatch({
+    meta <- .monitoreo_sheets_metadata(id)
+    titulos <- vapply(meta$sheets %||% list(), function(h) {
+      .monitoreo_scalar((h$properties %||% list())$title, "")
+    }, character(1))
+    .madc_pestana_de_la_distribucion(id, titulos)
+  }, error = function(e) "")
+  if (nzchar(hoja_existente)) {
+    remoto <- tryCatch(.cads_valores_de_pestana(id, hoja_existente), error = function(e) list())
+    con_datos <- sum(vapply(remoto, function(r) {
+      any(nzchar(trimws(as.character(unlist(r %||% list(), use.names = FALSE)))))
+    }, logical(1)))
+    if (con_datos > 1L) {
+      stop_api(
+        409, "E_AULAS_DISTRIBUCION_CON_DUENO",
+        paste0(
+          "La pestaña «", hoja_existente, "» ya tiene ", con_datos - 1L,
+          " citas escritas y el equipo edita ahí: publicar encima borraría sus ",
+          "cambios. Adopta la distribución para que la app tome sus filas, y ",
+          "añade sólo las aulas agendadas que falten."
+        ),
+        details = list(hoja = hoja_existente, citas = con_datos - 1L)
+      )
+    }
+  }
+
   tabs <- list()
   tabs[[.mapd_hoja()]] <- filas
 

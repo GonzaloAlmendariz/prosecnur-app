@@ -94,6 +94,7 @@ errores_registrados <- function() {
     "E_AULAS_LIBRO_SIN_CADENAS",                             "carga_aulas_libro_generar.R",       "409",
     "E_AULAS_DISTRIBUCION_ILEGIBLE",                         "monitoreo_aulas_distribucion_ciclo.R", "422",
     "E_AULAS_DISTRIBUCION_SIN_DISPONIBILIDAD",               "monitoreo_aulas_publicar_distribucion.R", "409",
+    "E_AULAS_DISTRIBUCION_CON_DUENO",                         "monitoreo_aulas_publicar_distribucion.R", "409",
     "E_AULAS_DISTRIBUCION_SIN_HOJA",                          "monitoreo_aulas_publicar_libro.R",  "409",
     "E_AULAS_DISTRIBUCION_SIN_DESTINO",                      "monitoreo_aulas_publicar_libro.R",  "409",
     "E_AULAS_SHEETS_SIN_ID",                                 "carga_aulas_desde_sheets.R",        "400",
