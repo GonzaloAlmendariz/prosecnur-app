@@ -47,6 +47,18 @@ export function AulasPestanaRendimiento({
   // van al libro y al Sheets, así que el gráfico y la tabla no pueden decir
   // cifras distintas del mismo día.
   const { tablas } = useTablasDeAvance();
+  // **El parte, cruzado con el plan UNA vez.** `parteDeCampo()` une cada fila
+  // del parte con la facultad de su curso-horario recorriendo las 1 392 del
+  // plan, y esta pestaña lo pedía CINCO veces por render con los mismos dos
+  // argumentos: una por cada lente del ranking y otra por cada panel que se
+  // mudó. Nada de eso cambiaba entre llamadas.
+  const partesConFacultad = useMemo(
+    () => parteDeCampo(
+      (dashboard.partes_campo ?? []) as MonitoreoRow[],
+      (dashboard.agenda ?? []) as MonitoreoRow[],
+    ).filas as MonitoreoRow[],
+    [dashboard.partes_campo, dashboard.agenda],
+  );
   const jornadas = useMemo(
     () => graficoDelDia(tablas?.find((t) => t.clave === "diario"), facultadEnFoco),
     [tablas, facultadEnFoco],
@@ -78,10 +90,7 @@ export function AulasPestanaRendimiento({
                 // enlazar ni capturar.
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
@@ -124,10 +133,7 @@ export function AulasPestanaRendimiento({
                   suyo evita que las dos superficies discrepen en de qué facultad es un
                   aula. */}
               <AulasRendimientoPorFacultad
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
@@ -160,10 +166,7 @@ export function AulasPestanaRendimiento({
                 <span>encuestas por curso-horario, según quién aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 clave="applied_by"
                 unidad="Aplicador"
@@ -186,10 +189,7 @@ export function AulasPestanaRendimiento({
                 <span>encuestas por curso-horario, según cuándo se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 clave="franja"
                 unidad="Franja"
@@ -217,10 +217,7 @@ export function AulasPestanaRendimiento({
                 <span>encuestas por curso-horario, según qué día se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 clave="dia_semana"
                 unidad="Día"
