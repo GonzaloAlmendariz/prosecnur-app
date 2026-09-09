@@ -3,11 +3,15 @@
 # La spec es el normalizador TS (frontend/src/api/calcMuestraComparacionI20.ts):
 # claves EXACTAS, snapshot byte-igual en ambos carriers, deltas P2−P1
 # verificables y razones estructuradas cuando no se puede comparar. La
-# serialización de referencia replica el serializer del router
-# (plumber::serializer_unboxed_json == jsonlite::toJSON(auto_unbox = TRUE)).
+# serialización de referencia replica los flags de `.api_serializer()`
+# (plumber_app.R). Los dos flags importan y ninguno es cosmético: sin
+# `auto_unbox` cada escalar viajaría como `[x]`, y sin `na = "null"` los
+# `NA_real_` viajarían como la cadena "NA". El contrato del serializador de
+# verdad lo fija `test-serializer-valores-especiales.R`; esto es su espejo, así
+# que si aquel cambia, este comentario y estos flags cambian con él.
 
 .i20_serializar <- function(x) {
-  as.character(jsonlite::toJSON(x, auto_unbox = TRUE))
+  as.character(jsonlite::toJSON(x, auto_unbox = TRUE, na = "null"))
 }
 
 .i20_parsear <- function(json) {
