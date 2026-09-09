@@ -1181,22 +1181,27 @@
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
     }
     dashboard$aulas_universitarias_reports <- aulas_dashboard
-    # **Este espejo no tiene consumidor hoy, y el dia que lo tenga hay que mirar
-    # que universo trae.** Barrido del 2026-08-30: ni el frontend ni R leen
-    # `kpis$aulas_total`, `kpis$aulas_aplicadas` ni `kpis$respuestas_validas_aulas`
-    # de este dashboard —los `aulas_total` del frontend son de Calculo de
-    # muestra, otro campo con el mismo nombre—.
+    # **AQUI NO VAN `kpis$aulas_total`, `kpis$aulas_aplicadas` NI
+    # `kpis$respuestas_validas_aulas`. Estuvieron y se quitaron; no los repongas.**
     #
-    # `total_aulas` cuenta el plan SIN BANCO: titulares mas sus reservas
-    # encadenadas (1.347 sobre HSVG2026 «como 2025», de los que 174 son
-    # titulares). Junto a `aulas_aplicadas` invita a leer 152 de 1.347, que es un
-    # 11 % donde va un 87 %: el mismo defecto que ya hubo que reparar en el
-    # pronostico de cierre, en la hoja del cliente y en el badge de Registro.
-    # Quien conecte esto al home debe usar `aulas_titulares` para «lo que hay que
-    # aplicar», y dejar `total_aulas` para «el plan con sus reservas».
-    dashboard$kpis$aulas_total <- aulas_dashboard$kpis$total_aulas %||% 0L
-    dashboard$kpis$aulas_aplicadas <- aulas_dashboard$kpis$aulas_aplicadas %||% 0L
-    dashboard$kpis$respuestas_validas_aulas <- aulas_dashboard$kpis$respuestas_validas %||% 0L
+    # Eran espejos de `aulas_universitarias_reports$kpis`, que es donde el
+    # frontend los lee de verdad —`railDeAulas.ts` y `kpisDeAulas.ts` tipan su
+    # objeto como `MonitoreoAulasDashboard`, o sea el BLOQUE—. Aqui arriba nadie
+    # entraba: cero consumidores en tres barridos (2026-08-30, y dos veces el
+    # 2026-09-09), y ni siquiera estaban declarados en
+    # `frontend/src/api/monitoreo.ts`.
+    #
+    # Y no eran neutros. `total_aulas` cuenta el plan SIN BANCO —titulares mas
+    # sus reservas encadenadas: 1.347 sobre HSVG2026 «como 2025», de los que 174
+    # son titulares—, asi que junto a `aulas_aplicadas` invitaba a leer 152 de
+    # 1.347: un 11 % donde va un 87 %. Ese mismo error de universo ya hubo que
+    # repararlo en el pronostico de cierre, en la hoja del cliente y en el badge
+    # de Registro; publicarlo aqui era dejar la cuarta trampa puesta esperando a
+    # quien conectara el home.
+    #
+    # Quien necesite estas cifras las toma del bloque, y usa `aulas_titulares`
+    # para «lo que hay que aplicar» —nunca `total_aulas`, que es «el plan con sus
+    # reservas»—. Lo fija `test-monitoreo-kpis-sin-espejos-de-aulas.R`.
   }
   # Espeja al home los KPIs de la familia recien servidos (single source fresca),
   # despues de las transformaciones por familia y sin tocar
