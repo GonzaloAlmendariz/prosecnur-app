@@ -384,3 +384,38 @@ test_that("una prevista fuera de [0,1] degrada a «sin_banda» en silencio", {
   expect_identical(.mdt_aula(res, "CH 1")[["senal"]], "sin_banda")
   expect_identical(.mdt_aula(res, "CH 2")[["senal"]], "sin_banda")
 })
+
+test_that("un curso-horario con efectivas se contrasta aunque el plan lo llame «planificada»", {
+  # **El defecto que este test fija**, visto en pantalla el 2026-09-08 sobre
+  # HSVG26ULT2 y señalado por Gonzalo.
+  #
+  # `operational_status` lo trae el plan y NADIE LO ACTUALIZA conforme avanza el
+  # campo: las 174 filas M1 lo tenian en «planificada», el default del
+  # row-builder. Con el balde colgando solo de ese campo, las 174 caian en
+  # `pendiente` y el panel publicaba «Ningun curso-horario tiene todavia margen
+  # que contrastar» en la MISMA pantalla en que la banda decia «26
+  # cursos-horario aplicados». No era que faltara dato: era que se preguntaba al
+  # campo equivocado.
+  #
+  # El resto del perfil deriva la aplicacion de la EVIDENCIA —`course_status`
+  # marca «en_aplicacion» con respuestas > 0— y de ahi salen esos 26.
+  plan <- list(
+    list(operational_code = "CH 1", faculty = "Derecho", operational_status = "planificada",
+         eligible_n = 30, tasa_efectividad_aula = 0.5, respuestas_validas = 15),
+    list(operational_code = "CH 2", faculty = "Derecho", operational_status = "planificada",
+         eligible_n = 30, tasa_efectividad_aula = 0.5, respuestas_validas = 0)
+  )
+  out <- monitoreo_aulas_dos_tasas(plan)
+  por_codigo <- setNames(out$aulas, vapply(out$aulas, function(a) a$codigo, character(1)))
+
+  # La que rindio se contrasta: su señal es un juicio, no un balde.
+  expect_false(identical(por_codigo[["CH 1"]]$senal, "pendiente"))
+  expect_equal(por_codigo[["CH 1"]]$efectivas, 15)
+  expect_equal(por_codigo[["CH 1"]]$numerador, "plataforma")
+
+  # La que no trae evidencia sigue pendiente: sin estado escrito no hay forma de
+  # distinguir «aplicada y rindio cero» de «todavia no se visito», y eso se
+  # declara en vez de inventarse.
+  expect_identical(por_codigo[["CH 2"]]$senal, "pendiente")
+  expect_null(por_codigo[["CH 2"]]$efectivas)
+})

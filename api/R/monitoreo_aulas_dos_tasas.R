@@ -74,6 +74,35 @@
   "pendiente"
 }
 
+# **Aplicada DE HECHO, aunque el plan no lo diga.**
+#
+# `operational_status` es un campo que el plan trae y que NADIE ACTUALIZA
+# conforme avanza el campo: medido sobre HSVG26ULT2 el 2026-09-08, las 174 filas
+# M1 lo tenian en «planificada», el default del row-builder. Con la
+# clasificacion colgando solo de ese campo, `dos_tasas` mandaba las 174 al balde
+# `pendiente` y el panel «Cada curso-horario contra su propio margen» publicaba
+# «Ningun curso-horario tiene todavia margen que contrastar» en la MISMA
+# pantalla en que la banda de KPIs decia «26 cursos-horario aplicados». Nunca
+# habria contrastado nada.
+#
+# El resto del perfil no pregunta por ese campo: DERIVA la aplicacion de la
+# evidencia. `course_status` marca «en_aplicacion» con `responses_total > 0` y
+# «cerrando» cuando las validas alcanzan la meta, sin mirar el estado escrito
+# —de ahi salen los 26—. Aqui se hace lo mismo con lo que esta funcion ya tiene
+# en la fila: efectivas de plataforma primero, parte de campo como respaldo, que
+# son las dos mismas fuentes de `.madt_efectivas()`.
+#
+# LIMITE CONOCIDO: un aula aplicada con CERO efectivas se queda en `pendiente`,
+# porque sin estado escrito no hay forma de distinguirla de una que aun no se
+# visito. El comentario del cero de arriba sigue valiendo para la que SI declara
+# su estado; para el resto, la evidencia es lo unico que hay.
+.madt_aplicada_de_hecho <- function(fila) {
+  val <- .monitoreo_num(fila[["respuestas_validas"]], NA_real_)
+  if (is.finite(val) && val > 0) return(TRUE)
+  parte <- .monitoreo_num(fila[["effective_surveys"]], NA_real_)
+  is.finite(parte) && parte > 0
+}
+
 # B13b: el RECHAZO tecleado vive en el OTRO eje —`sample_status`, el del
 # agendamiento— y tambien retira: un docente que dijo que no ya no va a
 # aplicarse por esta via, y dejarlo `pendiente` era pedirle gestion a
@@ -202,7 +231,10 @@
     ),
     denominador = "los elegibles (`eligible_n`) de la propia aula",
     estados = paste0(
-      "solo se contrasta el aula APLICADA (aplicada/cerrada/parcial): la ",
+      "se contrasta el aula APLICADA: la que declara su estado ",
+      "(aplicada/cerrada/parcial) y tambien la que trae evidencia de campo ",
+      "—efectivas de plataforma o del parte— aunque el plan siga diciendo ",
+      "«planificada», que es lo que dice mientras nadie lo actualice. La ",
       "prevista del diseño es condicional a aplicarse. ",
       "planificada/contactada/agendada/en_campo —o sin estado— viajan como ",
       "`pendiente`, con su prevista y sus elegibles a la vista; ",
@@ -258,6 +290,10 @@ monitoreo_aulas_dos_tasas <- function(plan = list()) {
     # `pendiente` — sin gestion operativa escrita, o con el default
     # «planificada» del row-builder, que son las dos formas reales del tablero.
     if (identical(balde, "pendiente") && .madt_rechazada(fila)) balde <- "retirada"
+    # El rechazo se pregunta ANTES a proposito (B13b, decision explicita): un
+    # docente que dijo que no ya no se aplica por esta via. Lo que quede
+    # `pendiente` con evidencia de campo si se contrasta.
+    if (identical(balde, "pendiente") && .madt_aplicada_de_hecho(fila)) balde <- "contrastada"
     # El literal viaja tal como se escribio; el vacio y el «-» de relleno no
     # son un estado que enseñar.
     estado_lit <- trimws(estado)
