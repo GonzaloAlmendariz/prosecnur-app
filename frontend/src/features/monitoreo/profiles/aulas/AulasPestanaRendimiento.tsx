@@ -79,13 +79,21 @@ export function AulasPestanaRendimiento({
      ancho completo —que es donde los nombres caben— y las dos lentes cortas se
      reparten una pareja. Ninguna clase nueva: `aulasMonitoreo.css` esta
      congelado y las dos rejillas ya existen. */
+  // **Sin `useMemo`, y no por ahorro: por corrección.** Esta línea vive DESPUÉS
+  // del `if (pestana !== "rendimiento") return null` de arriba, así que un hook
+  // aquí se llama en unos renders y en otros no. Eso es React #310 —«rendered
+  // more hooks than during the previous render»— y tumba la app entera al
+  // cambiar de pestaña, con el error boundary tapando también las pestañas
+  // siguientes. Pasó el 2026-09-09: los 3 535 tests siguieron en verde porque
+  // el test de este panel siempre pinta con `pestana="rendimiento"` y el conteo
+  // de hooks nunca cambiaba. Lo caza `hooksDespuesDeLaGuarda.contract.test.ts`.
+  //
+  // El coste es dos pasadas sobre los partes del corte —decenas de filas, no
+  // miles— y sólo cuando esta pestaña se pinta.
   const filasDeLaLente = (clave: "franja" | "dia_semana") =>
     rendimientoPorFacultad(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[], clave).length;
-  const lentesQueComparan = useMemo(
-    () => (filasDeLaLente("franja") >= 2 ? 1 : 0) + (filasDeLaLente("dia_semana") >= 2 ? 1 : 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [partesConFacultad, dashboard.agenda],
-  );
+  const lentesQueComparan =
+    (filasDeLaLente("franja") >= 2 ? 1 : 0) + (filasDeLaLente("dia_semana") >= 2 ? 1 : 0);
 
   const panelAplicador = (
             <section
