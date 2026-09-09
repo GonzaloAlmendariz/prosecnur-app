@@ -158,6 +158,28 @@ export function diaDeSemanaDeAplicacion(valor: unknown): string {
  *   de esfuerzo —facultad, aplicador y franja— porque lo único que cambia es la
  *   clave: duplicarla habría dado tres sitios donde arreglar el mismo redondeo.
  */
+/**
+ * Cuántos partes se quedan fuera del ranking por no traer su cifra de efectivas.
+ *
+ * El ranking los descarta —un `effective_surveys` ausente no es un cero, y
+ * publicarlo como tal ponía «0 efectivas · 0.0 %» con el nombre de una persona
+ * al lado— pero descartarlos EN SILENCIO cambia el denominador sin avisar: sobre
+ * HSVG26ULT2 el 2026-09-08 son 2 de 17, así que la cabecera diría «15
+ * cursos-horario visitados» donde el resto del perfil cuenta 17 partes.
+ *
+ * Mismo criterio que el descarte, en la misma unidad de compilación, para que no
+ * puedan divergir.
+ */
+export function partesSinCifraDeEfectivas(partes: ReadonlyArray<MonitoreoRow>): number {
+  return partes.filter((fila) => {
+    const f = fila as Record<string, unknown>;
+    if (numeroONulo(f.effective_surveys) !== null) return false;
+    // El parte ENTERO vacío no cuenta: ése nunca estuvo en el ranking, y decir
+    // que «falta su cifra» sugeriría que alguien fue y no la apuntó.
+    return numero(f.observed_students) > 0;
+  }).length;
+}
+
 export function rendimientoPorFacultad(
   partes: ReadonlyArray<MonitoreoRow>,
   plan: ReadonlyArray<MonitoreoRow> = [],

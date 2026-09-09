@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { diaDeSemanaDeAplicacion, franjaDeAplicacion, rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { diaDeSemanaDeAplicacion, franjaDeAplicacion, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { fuenteDelPerfilDeAulas } from "./fuenteDelPerfil";
 
 const parte = (f: Partial<MonitoreoRow>) => f as MonitoreoRow;
@@ -282,5 +282,25 @@ describe("una celda de efectivas vacía no es un cero", () => {
     const filas = rendimientoPorFacultad(partes, [], "applied_by");
     expect(filas.find((f) => f.facultad === "Quien sea")?.efectivas).toBe(0);
     expect(filas.find((f) => f.facultad === "Quien sea")?.aulas).toBe(1);
+  });
+});
+
+describe("el descarte se puede contar con la misma regla que lo produce", () => {
+  it("cuenta los partes aplicados que vinieron sin su cifra", () => {
+    const partes = [
+      { operational_code: "CH 7", effective_surveys: "NA", observed_students: 29 },
+      { operational_code: "CH 47", effective_surveys: "", observed_students: 33 },
+      { operational_code: "CH 5", effective_surveys: 17, observed_students: 20 },
+    ] as unknown as Parameters<typeof partesSinCifraDeEfectivas>[0];
+    expect(partesSinCifraDeEfectivas(partes)).toBe(2);
+  });
+
+  it("un parte ENTERO vacío no cuenta como descarte", () => {
+    // Ése nunca estuvo en el ranking; decir que «falta su cifra» sugeriría que
+    // alguien fue al aula y no la apuntó.
+    const partes = [
+      { operational_code: "CH 9", effective_surveys: "", observed_students: 0 },
+    ] as unknown as Parameters<typeof partesSinCifraDeEfectivas>[0];
+    expect(partesSinCifraDeEfectivas(partes)).toBe(0);
   });
 });
