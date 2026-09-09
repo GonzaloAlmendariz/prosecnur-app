@@ -40,7 +40,7 @@
 #' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
 #' @export
 MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
-  "POR APLICAR", "APLICADA", "REAGENDADA", "RECHAZADA"
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "REAGENDADA", "RECHAZADA"
 )
 
 #' El día de la semana, escrito.
@@ -245,9 +245,16 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
 #' se distingue de una celda sin llenar. Amarillo claro para que el naranja de
 #' la reagendación siga leyéndose distinto al lado.
 #' @keywords internal
+#' **«APLICADA POR REAGENDACIÓN» es un quinto estado y no un matiz** (Gonzalo,
+#' 2026-09-08). Un aula que se aplicó después de moverla de día no es lo mismo
+#' que una que salió a la primera: cuenta igual para la cuota, pero costó una
+#' llamada más y un hueco en la agenda de alguien, y el operativo necesita poder
+#' contarlas aparte para saber cuánto está costando reagendar. Va en verde
+#' azulado: se lee como aplicada de un vistazo y se distingue al mirarla.
+#' @keywords internal
 .alpa_COLOR_ESTADO <- c(
-  APLICADA = "#C8E6C9", `POR APLICAR` = "#FFF4C2",
-  REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2"
+  APLICADA = "#C8E6C9", `APLICADA POR REAGENDACIÓN` = "#B2DFDB",
+  `POR APLICAR` = "#FFF4C2", REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2"
 )
 
 #' Una regla de color POR VALOR de la celda de aplicador.
