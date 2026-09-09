@@ -491,3 +491,95 @@ aulas_libro_agendacion_formato_requests <- function(sheet_id, rows) {
   }
   requests
 }
+
+
+# --- la hoja del xlsx ---------------------------------------------------------
+
+#' Escribe «Avance de agendación» en el libro `.xlsx`.
+#'
+#' **Escritor propio y no el de «Avance de campo»**, por lo mismo que el
+#' formateador de Sheets: aquél es un closure atado a `AULAS_AVANCE_*` —el
+#' título por `AULAS_AVANCE_TITULOS`, el porcentaje por `.calac_es_proporcion`,
+#' la traspuesta por `AULAS_AVANCE_CABECERAS$general` y el color por
+#' `.cai_semaforo`— y ni siquiera es alcanzable desde fuera. Éste es corto
+#' porque aquí no hay ninguna de esas cuatro cosas: las cuatro tablas son
+#' conteos.
+#'
+#' Comparte los ESTILOS con su hermana a propósito (mismo navy, misma cabecera,
+#' misma rejilla): dos hojas del mismo libro que se ven distintas se leen como
+#' dos documentos.
+#'
+#' @param wb workbook de openxlsx.
+#' @param ag el modelo de `aulas_libro_agendacion()`.
+#' @param hoja nombre de la pestaña.
+#' @return el workbook, invisible.
+#' @export
+aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendación") {
+  ag <- if (is.list(ag)) ag else list()
+  openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
+
+  titulo <- openxlsx::createStyle(fontSize = 16, textDecoration = "bold", fontColour = "#002457")
+  pie <- openxlsx::createStyle(fontSize = 9, fontColour = "#5B6472")
+  seccion <- openxlsx::createStyle(fontSize = 11, textDecoration = "bold",
+                                   fontColour = "#002457", border = "bottom",
+                                   borderColour = "#C7D0DD")
+  nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
+  numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0")
+  cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#002457",
+                                    fontColour = "#FFFFFF", halign = "left",
+                                    wrapText = TRUE, valign = "bottom")
+  rejilla <- openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149")
+
+  n_hoja <- max(vapply(AULAS_AGENDACION_CABECERAS, length, integer(1)))
+  openxlsx::writeData(wb, hoja, "Avance de agendación", startCol = 1, startRow = 1)
+  openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
+  # El corte sale del MODELO y no del reloj, igual que en la pestaña de Sheets:
+  # dos generaciones del mismo estado tienen que dar el mismo libro.
+  dias <- if (is.data.frame(ag$dia) && nrow(ag$dia)) as.character(ag$dia[["Día"]]) else character(0)
+  dias <- dias[!is.na(dias) & nzchar(dias)]
+  openxlsx::writeData(wb, hoja, if (length(dias)) {
+    sprintf("Agendado hasta el %s", utils::tail(dias, 1L))
+  } else {
+    "Todavía no hay ninguna aula con fecha agendada."
+  }, startCol = 1, startRow = 2)
+  openxlsx::addStyle(wb, hoja, pie, rows = 2, cols = 1)
+
+  fila <- 4L
+  for (clave in names(AULAS_AGENDACION_CABECERAS)) {
+    openxlsx::writeData(wb, hoja, unname(AULAS_AGENDACION_TITULOS[[clave]]),
+                        startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
+    fila <- fila + 1L
+    tabla <- ag[[clave]]
+    # C3: la sección no desaparece cuando no hay datos, dice por qué está vacía.
+    if (!is.data.frame(tabla) || !nrow(tabla)) {
+      openxlsx::writeData(wb, hoja, unname(.calan_VACIOS[[clave]]), startCol = 1, startRow = fila)
+      openxlsx::addStyle(wb, hoja, nota, rows = fila, cols = 1)
+      fila <- fila + 2L
+      next
+    }
+    openxlsx::writeData(wb, hoja, unname(.calan_NOTAS[[clave]]), startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, nota, rows = fila, cols = 1)
+    fila <- fila + 1L
+
+    n_col <- ncol(tabla)
+    cabecera_en <- fila
+    openxlsx::writeData(wb, hoja, tabla, startCol = 1, startRow = cabecera_en)
+    openxlsx::addStyle(wb, hoja, cabecera, rows = cabecera_en, cols = seq_len(n_col),
+                       gridExpand = TRUE)
+    openxlsx::setRowHeights(wb, hoja, rows = cabecera_en, heights = 32)
+    # Las cifras a la derecha, POR NOMBRE de columna y nunca por índice: el día
+    # que una tabla gane una columna, un índice fijo pinta la de al lado.
+    cols_num <- which(vapply(names(tabla), function(k) is.numeric(tabla[[k]]), logical(1)))
+    if (length(cols_num)) {
+      openxlsx::addStyle(wb, hoja, numero, rows = (cabecera_en + 1L):(cabecera_en + nrow(tabla)),
+                         cols = cols_num, gridExpand = TRUE, stack = TRUE)
+    }
+    openxlsx::addStyle(wb, hoja, rejilla, rows = cabecera_en:(cabecera_en + nrow(tabla)),
+                       cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
+    fila <- cabecera_en + nrow(tabla) + 2L
+  }
+  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
+  if (n_hoja > 1L) openxlsx::setColWidths(wb, hoja, cols = 2:n_hoja, widths = 16)
+  invisible(wb)
+}

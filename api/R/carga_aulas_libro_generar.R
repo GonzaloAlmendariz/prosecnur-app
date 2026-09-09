@@ -1496,6 +1496,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
                                 asignados = asignados_por_codigo, extras = extras),
     procedencia = procedencia
   )
+  # Y detrás, «Avance de agendación»: qué se consiguió agendar, con los
+  # reemplazos dentro. Se computa sobre el PLAN COMPLETO y no sobre `unidades`
+  # —las que entran al libro—: para saber si un rechazo ya tiene relevo agendado
+  # hace falta la cadena entera, y las reservas dormidas no entran al libro.
+  aulas_libro_escribir_agendacion(
+    aulas_libro_agendacion(plan_completo, partes = partes, efectivas = efectivas), wb
+  )
 
   # **El formato solo no basta: hay que escribir el dato con su tipo.**
   #

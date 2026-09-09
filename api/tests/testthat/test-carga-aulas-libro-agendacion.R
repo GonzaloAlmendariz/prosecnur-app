@@ -193,3 +193,49 @@ test_that("la cabecera se reconoce por la fila ENTERA, no por su primera celda",
   expect_identical(prosecnurapp:::.calan_tabla_de_cabecera(AULAS_AGENDACION_CABECERAS$dia), "dia")
   expect_identical(prosecnurapp:::.calan_tabla_de_cabecera(c("Semana", "Otra cosa")), "")
 })
+
+# --- la hoja del xlsx ---------------------------------------------------------
+
+test_that("el xlsx gana su hoja, con los cuatro bloques y sus notas", {
+  skip_if_not_installed("openxlsx")
+  wb <- openxlsx::createWorkbook()
+  plan <- list(
+    .calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"),
+    .calan_u("CH 2", estado = "rechazo")
+  )
+  aulas_libro_escribir_agendacion(aulas_libro_agendacion(plan), wb)
+  expect_true("Avance de agendación" %in% names(wb))
+  d <- openxlsx::readWorkbook(wb, sheet = "Avance de agendación", colNames = FALSE)
+  texto <- paste(as.character(unlist(d)), collapse = " | ")
+  for (t in unname(AULAS_AGENDACION_TITULOS)) {
+    expect_match(texto, t, fixed = TRUE)
+  }
+  # Y las cabeceras de las cuatro, para que la hoja no salga con los bloques
+  # vacíos y el título puesto.
+  expect_match(texto, "Rechazos con reemplazo agendado", fixed = TRUE)
+  expect_match(texto, "Agendación por eslabón", fixed = TRUE)
+})
+
+test_that("una tabla sin datos conserva su título y DICE por qué está vacía", {
+  skip_if_not_installed("openxlsx")
+  wb <- openxlsx::createWorkbook()
+  # Sin ninguna agendada: las tablas de semana y de día quedan vacías.
+  aulas_libro_escribir_agendacion(aulas_libro_agendacion(list(.calan_u("CH 1"))), wb)
+  d <- openxlsx::readWorkbook(wb, sheet = "Avance de agendación", colNames = FALSE)
+  texto <- paste(as.character(unlist(d)), collapse = " | ")
+  expect_match(texto, "Agendación por semana", fixed = TRUE)
+  expect_match(texto, "Todavía no hay ninguna aula con fecha agendada", fixed = TRUE)
+})
+
+test_that("el corte del xlsx tampoco sale del reloj", {
+  skip_if_not_installed("openxlsx")
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_escribir_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-11"))), wb)
+  d <- openxlsx::readWorkbook(wb, sheet = "Avance de agendación", colNames = FALSE)
+  texto <- paste(as.character(unlist(d)), collapse = " | ")
+  expect_match(texto, "11/09", fixed = TRUE)
+  # La fecha de HOY no aparece: dos generaciones del mismo estado tienen que dar
+  # el mismo libro.
+  expect_false(grepl(format(Sys.Date(), "%d/%m/%Y"), texto, fixed = TRUE))
+})
