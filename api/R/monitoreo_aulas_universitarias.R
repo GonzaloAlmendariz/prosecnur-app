@@ -1871,7 +1871,24 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # salia como el 17,7 % del tablero: R evalua los argumentos de forma perezosa,
   # asi que la conversion se cobraba dentro de la llamada. Medida aparte, esa
   # funcion tarda 0,05 s sobre un banco de 77 aulas; el resto era la conversion.
-  .agenda_registros <- .monitoreo_aulas_records(plan_df)
+  # **`methodological_warning` no viaja con la agenda.**
+  #
+  # Es la MISMA cadena en todas las filas —`calc_muestra_aulas_demo.R:497` la
+  # escribe con `paste(collapse = " | ")` una sola vez para la seleccion entera—
+  # y por eso pesa lo que pesa: 893 KB de los 4 865 de `agenda`, medido sobre
+  # HSVG26ULT2 el 2026-09-08. Un quinto del bloque para repetir un parrafo mil
+  # trescientas noventa y dos veces.
+  #
+  # Y NO SE VE: la tabla descarta las columnas con el mismo valor en todas las
+  # filas (`columnasSinConstantesInertes`) y esta no esta en las que sobreviven a
+  # esa regla —solo lo hacen las de estado y `que_toca`—. Ningun otro consumidor
+  # de Monitoreo lo lee; sus unicas lecturas viven en `calcMuestra`, y ahi salen
+  # del objeto de seleccion, no de una fila del plan.
+  #
+  # Se quita SOLO del payload publicado. `plan_df` lo conserva, porque es el que
+  # alimenta al resto del motor y a la publicacion.
+  .agenda_registros <- .monitoreo_aulas_records(
+    plan_df[, setdiff(names(plan_df), "methodological_warning"), drop = FALSE])
 
   avance_por_facultad <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)),
