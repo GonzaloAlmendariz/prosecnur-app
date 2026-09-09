@@ -174,3 +174,43 @@ test_that("la tabla de personas se pinta donde SÍ puede, no donde no", {
     }
   }
 })
+
+# --- la hoja del xlsx ---------------------------------------------------------
+
+test_that("en el xlsx la tabla de personas también se pinta donde SÍ puede", {
+  # Dos renderers, la misma decisión: el Sheets ya lo hacía y el xlsx salía sin
+  # un solo color en esa tabla.
+  skip_if_not_installed("openxlsx")
+  wb <- openxlsx::createWorkbook()
+  expect_true(aulas_libro_hoja_disponibilidad(wb, .tld_disp()))
+  # El relleno vive en `style$fill` como «FFE3F3E8» (openxlsx antepone el alfa).
+  verdes <- Filter(function(e) {
+    any(grepl("E3F3E8", unlist(e$style$fill), fixed = TRUE))
+  }, wb$styleObjects)
+  expect_gt(length(verdes), 0L)
+  # Nunca sobre la columna del nombre: no es un día.
+  for (v in verdes) expect_false(1L %in% v$cols)
+})
+
+test_that("las columnas de día se ensanchan con su contenido: el horario no se corta", {
+  # «08:00 a 11:00 · 14:00 a 20:00» son veintinueve caracteres y con un ancho
+  # fijo de diecisiete el segundo tramo se perdía. Se vio abriendo el libro.
+  skip_if_not_installed("openxlsx")
+  disp <- list(list(nombre = "Con dos bloques",
+                    dias = list(lunes = list(list(inicio = "08:00", fin = "11:00"),
+                                             list(inicio = "14:00", fin = "20:00")))))
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_hoja_disponibilidad(wb, disp)
+  ancho_de <- function(w, col) {
+    a <- w$colWidths[[1L]]
+    suppressWarnings(as.numeric(a[names(a) == as.character(col)]))
+  }
+  # La columna 2 es el único día con cobertura y lleva el rango largo.
+  expect_gt(ancho_de(wb, 2L), 17)
+  # Y con un rango corto se queda en el suelo, sin estrecharse.
+  corta <- list(list(nombre = "Uno", dias = list(lunes = list(list(inicio = "08:00", fin = "11:00")))))
+  wb2 <- openxlsx::createWorkbook()
+  aulas_libro_hoja_disponibilidad(wb2, corta)
+  expect_equal(ancho_de(wb2, 2L), 17)
+})
+

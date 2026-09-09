@@ -275,10 +275,45 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
     }
   }
 
+  # **Y la semana de cada persona, leída como forma.** Mismo criterio que en
+  # Sheets (`aulas_libro_disponibilidad_formato_requests`): esta tabla es
+  # dicotómica por naturaleza —o puede ese día o no puede— y salía sin un solo
+  # color en las dos salidas. Se pinta lo que SÍ, no lo que no: una celda vacía
+  # ya dice que no puede, y teñir el hueco haría de la ausencia el elemento
+  # fuerte. Dos renderers, la misma decisión.
+  puede <- openxlsx::createStyle(fgFill = "#E3F3E8", fontColour = "#155E2E")
+  en_personas <- FALSE
+  for (i in seq_along(filas)) {
+    f <- filas[[i]]
+    if (identical(f$tipo, "bloque")) {
+      en_personas <- identical(f$celdas[[1]], "QUIÉN PUEDE CADA DÍA")
+      next
+    }
+    if (!en_personas || !identical(f$tipo, "dato")) next
+    # La columna 1 es el nombre y nunca se tiñe: no es un día.
+    llenas <- setdiff(which(nzchar(trimws(f$celdas))), 1L)
+    if (length(llenas)) {
+      openxlsx::addStyle(wb, hoja, puede, rows = i, cols = llenas, stack = TRUE)
+    }
+  }
+
   n_cols <- max(vapply(filas, function(f) length(f$celdas), integer(1)))
-  # La primera columna lleva el tramo o el nombre; las de día, un rango.
+  # **El ancho de las columnas de día lo decide su contenido, no un 17 fijo.**
+  # Quien tiene dos bloques en un día lleva «08:00 a 11:00 · 14:00 a 20:00», que
+  # son veintinueve caracteres: con diecisiete salía «11:00 a 14:00 · 15:00» y el
+  # segundo tramo se perdía. Un horario a medias en la hoja que existe para saber
+  # a quién llamar es peor que una columna ancha. Se mide lo que hay, con suelo
+  # en 17 para que un día flojo no estreche la columna y techo en 34.
   openxlsx::setColWidths(wb, hoja, cols = 1L, widths = 34)
-  if (n_cols > 1L) openxlsx::setColWidths(wb, hoja, cols = 2:n_cols, widths = 17)
+  if (n_cols > 1L) {
+    anchos <- vapply(2:n_cols, function(j) {
+      largos <- vapply(filas, function(f) {
+        if (j > length(f$celdas)) 0L else nchar(trimws(f$celdas[[j]]), type = "chars")
+      }, integer(1))
+      as.integer(min(34L, max(17L, max(largos) + 2L)))
+    }, integer(1))
+    openxlsx::setColWidths(wb, hoja, cols = 2:n_cols, widths = anchos)
+  }
   openxlsx::freezePane(wb, hoja, firstActiveRow = 4L, firstActiveCol = 2L)
   invisible(TRUE)
 }
