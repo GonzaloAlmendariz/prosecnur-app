@@ -1,19 +1,22 @@
 import type { ReactNode } from "react";
 
+import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
+import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 import { contadorDeCursosHorario } from "./AulasMonitoreoPage";
 import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
+import { parteDeCampo } from "./parteDeCampo";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
-import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoRow } from "../../../../api/monitoreo";
 
 /**
  * La pestaña «Resumen» del perfil de aulas.
@@ -153,6 +156,58 @@ export function AulasPestanaResumen({
                 })()}</span>
               </div>
               <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
+            </section>
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
+                    pestaña contesta «qué rinde más» y esto es un pronóstico del
+                    operativo, que es lo que Resumen mide. Y aquí gana un vecino:
+                    va pegado al ritmo diario, porque es su continuación —cómo
+                    viene el ritmo, y a dónde lleva—. */}
+                <h3>Cuándo se termina de aplicar el plan</h3>
+                {/* La unidad en el subtítulo. Este panel cuenta CURSOS-HORARIO y el
+                    ritmo de arriba cuenta ENCUESTAS: son dos preguntas distintas
+                    —terminar de visitar no es llegar a la cuota— y sin decir la
+                    unidad parecían el mismo gráfico dos veces. */}
+                <span>cursos-horario del plan aplicados, al ritmo observado</span>
+              </div>
+              <AulasPronosticoDeCierre
+                partes={parteDeCampo(
+                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
+                  (dashboard.agenda ?? []) as MonitoreoRow[],
+                ).filas as MonitoreoRow[]}
+                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+              />
+            </section>
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* **También vino de Rendimiento.** Es el único panel de toda la
+                    sección que pide una acción HOY, y estaba en la pestaña de los
+                    rankings. Aquí va pegado a «vencidos sin aplicar», que es su
+                    pareja natural: a quién hay que citar y a quién hay que ir a
+                    reclamar se leen juntos o no se leen. */}
+                <h3>A quién hay que agendar</h3>
+                <span>cursos-horario por pedir, con la anticipación del operativo de 2025</span>
+              </div>
+              <AulasAlertaDeAnticipacion
+                partes={parteDeCampo(
+                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
+                  (dashboard.agenda ?? []) as MonitoreoRow[],
+                ).filas as MonitoreoRow[]}
+                agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+                banco={dashboard.banco_extras?.por_facultad ?? []}
+                facultadEnFoco={facultadEnFoco}
+                onFoco={onFoco}
+              />
             </section>
             <section
               className="mon-profile-panel"

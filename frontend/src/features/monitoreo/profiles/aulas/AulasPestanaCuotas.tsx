@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
+import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
@@ -10,6 +11,7 @@ import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import type {
   MonitoreoAulasDashboard,
+  MonitoreoAulasPlanRow,
   MonitoreoAulasReservaDirigida,
   MonitoreoRow,
 } from "../../../../api/monitoreo";
@@ -52,7 +54,7 @@ import { AulasReservaDirigida } from "./AulasReservaDirigida";
  * al pasar el cursor.
  */
 export function AulasPestanaCuotas({
-  dashboard, pestana, foco, facultadEnFoco, onFoco, tabla,
+  dashboard, pestana, foco, facultadEnFoco, onFoco, tabla, diasDeCampoDelCorte,
 }: {
   /** No nulable: `renderAulasView` ya devolvió el vacío mucho antes. */
   dashboard: MonitoreoAulasDashboard;
@@ -61,6 +63,9 @@ export function AulasPestanaCuotas({
   facultadEnFoco: string | undefined;
   onFoco: (foco: FocoDeCuota) => void;
   tabla: TablaDelPerfil;
+  /** Se recibe en vez de importarse: vive en el page-file y se moverá con él.
+      Llegó con «Consumo de la reserva» desde Rendimiento. */
+  diasDeCampoDelCorte: (partes: ReadonlyArray<MonitoreoRow>) => number;
 }): ReactNode {
   if (pestana !== "cuotas") return null;
   void tabla;
@@ -185,6 +190,33 @@ export function AulasPestanaCuotas({
         </div>
         <AulasSexoPorFacultadChart
           celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
+        />
+      </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* **Vino de Rendimiento el 2026-09-08.** Habla del banco, igual que «A
+              qué aula del banco ir» de arriba: separados, había que cambiar de
+              pestaña para leer el diagnóstico —qué celdas no van a llegar— y su
+              remedio —cuánto aguanta la reserva que las cubriría—.
+
+              Sin «por facultad» en el título: el guard de títulos lo cazó por
+              terminar igual que «Cuota sexo por facultad». La unidad va en el
+              subtítulo. */}
+          <h3>Consumo de la reserva</h3>
+          <span>por facultad, al ritmo de reemplazos observado</span>
+        </div>
+        {/* Los días de campo salen de los PARTES —los días en que el operativo
+            salió de verdad— y no de `ritmo_diario`, que cuenta días con
+            respuestas: una caída sólo puede ocurrir un día en que se sale. */}
+        <AulasConsumoDelBanco
+          filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
+          diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
         />
       </section>
       <section
