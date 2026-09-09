@@ -730,7 +730,15 @@ function comoPorcentaje(value: unknown, hayQueEscalar: boolean) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "";
   const escalado = hayQueEscalar ? n * 100 : n;
-  return `${new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 }).format(escalado)} %`;
+  // **Un decimal SIEMPRE, como el resto del perfil.** Con sólo
+  // `maximumFractionDigits` la misma columna escribía «9.3 %» en una fila y
+  // «0 %» en la siguiente, porque `Intl` quita el decimal cuando es cero. Es el
+  // mismo defecto que se corrigió en los paneles el 2026-09-08 unificando todo
+  // a `pctPerfil`; aquí vivía la última copia, en la capa de presentación de las
+  // tablas.
+  return `${new Intl.NumberFormat("es-PE", {
+    minimumFractionDigits: 1, maximumFractionDigits: 1,
+  }).format(escalado)} %`;
 }
 
 function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<string>) {
