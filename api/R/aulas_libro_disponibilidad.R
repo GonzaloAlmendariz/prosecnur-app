@@ -319,6 +319,46 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
 #' @param rows los values realmente publicados.
 #' @return lista de requests de la API de Sheets.
 #' @keywords internal
+#' Los tramos de columnas contiguas con contenido de una fila.
+#'
+#' Una request por TRAMO y no por celda: alguien que puede de lunes a viernes es
+#' un rectángulo, no cinco. Sobre el operativo son catorce personas por seis
+#' días; celda a celda serían ochenta y cuatro requests para decir lo que dicen
+#' veinte. La columna 1 nunca entra: es el nombre.
+#' @keywords internal
+.ald_tramos_llenos <- function(celdas) {
+  lleno <- nzchar(celdas)
+  lleno[[1L]] <- FALSE
+  tramos <- list()
+  ini <- NA_integer_
+  for (j in seq_along(lleno)) {
+    if (lleno[[j]] && is.na(ini)) ini <- j
+    if ((!lleno[[j]] || j == length(lleno)) && !is.na(ini)) {
+      fin <- if (lleno[[j]]) j else j - 1L
+      tramos[[length(tramos) + 1L]] <- c(ini, fin)
+      ini <- NA_integer_
+    }
+  }
+  tramos
+}
+
+#' Un rectángulo de celdas pintado, de la columna `desde` a la `hasta`.
+#' @keywords internal
+.ald_celdas <- function(sheet_id, fila, desde, hasta, fondo, tinta) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(fila - 1L), endRowIndex = as.integer(fila),
+      startColumnIndex = as.integer(desde - 1L), endColumnIndex = as.integer(hasta)
+    ),
+    cell = list(userEnteredFormat = list(
+      backgroundColor = .monitoreo_sheets_rgb(fondo),
+      textFormat = list(foregroundColor = .monitoreo_sheets_rgb(tinta))
+    )),
+    fields = "userEnteredFormat(backgroundColor,textFormat)"
+  ))
+}
+
 aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
   rows <- rows %||% list()
   if (!length(rows)) return(list())
@@ -326,6 +366,7 @@ aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
   requests <- list()
   poner <- function(req) requests[[length(requests) + 1L]] <<- req
   en_conteos <- FALSE
+  en_personas <- FALSE
   for (i in seq_along(rows)) {
     celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
     primera <- if (length(celdas)) celdas[[1L]] else ""
@@ -335,6 +376,7 @@ aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
       poner(.maaf_alto_fila(sheet_id, i, 36L))
     } else if (primera %in% c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA")) {
       en_conteos <- identical(primera, "CUÁNTOS HAY, HORA POR HORA")
+      en_personas <- identical(primera, "QUIÉN PUEDE CADA DÍA")
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
       poner(.maaf_alto_fila(sheet_id, i, 28L))
     } else if (primera %in% c("TRAMO", "APLICADOR")) {
@@ -353,6 +395,19 @@ aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
         poner(.ald_celda(sheet_id, i, j,
                           if (n == 0L) "#F5F5F4" else "#FBE9EA",
                           if (n == 0L) "#B8ADA8" else "#8F3A42"))
+      }
+    } else if (en_personas && length(llenas) > 1L) {
+      # **La semana de cada persona, leída como forma.** Dictado de Gonzalo
+      # (2026-09-08): «disponibilidad de aplicadores debe tener el estilo
+      # dicotómico que manejamos». Esta tabla es dicotómica por naturaleza —o
+      # puede ese día o no puede— y salía sin un solo color: catorce filas de
+      # texto donde hay que leer celda por celda para ver quién cubre el sábado.
+      #
+      # Se pinta lo que SÍ, no lo que no: una celda vacía ya dice que no puede,
+      # y teñir el hueco haría de la ausencia el elemento fuerte de la tabla.
+      # El rango se queda escrito dentro; el color no lo sustituye, lo agrupa.
+      for (tramo in .ald_tramos_llenos(celdas)) {
+        poner(.ald_celdas(sheet_id, i, tramo[[1L]], tramo[[2L]], "#E3F3E8", "#155E2E"))
       }
     }
   }

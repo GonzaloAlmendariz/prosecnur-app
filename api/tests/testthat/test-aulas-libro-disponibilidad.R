@@ -111,11 +111,66 @@ test_that("el formato marca las celdas flacas, y sólo en la tabla de conteos", 
       identical(r$repeatCell$range$endColumnIndex - r$repeatCell$range$startColumnIndex, 1L)
   }, reqs)
   expect_gt(length(de_una_celda), 0L)
-  # Y ninguna cae en la tabla de personas, donde las celdas son rangos horarios
-  # y un «08:00 a 11:00» no se compara con uno.
+  # Y ningún AVISO DE HUECO cae en la tabla de personas, donde las celdas son
+  # rangos horarios y un «08:00 a 11:00» no se compara con uno. Se distinguen
+  # por su color: el aviso va en el gris del vacío o en el rojo suave del uno;
+  # la tabla de personas se pinta en verde, que dice lo contrario (sí puede).
   fila_personas <- which(vapply(vals, function(r)
     identical(trimws(as.character(r[[1]])), "APLICADOR"), logical(1)))
   expect_length(fila_personas, 1L)
-  ultimas <- vapply(de_una_celda, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  # Se comparan contra el color REAL, no contra un número tecleado: un tono
+  # copiado a mano en el test deja de vigilar el día que el motor cambia el suyo.
+  verde_puede <- prosecnurapp:::.monitoreo_sheets_rgb("#E3F3E8")
+  es_verde <- function(r) {
+    isTRUE(all.equal(r$repeatCell$cell$userEnteredFormat$backgroundColor, verde_puede))
+  }
+  avisos <- Filter(function(r) !es_verde(r), de_una_celda)
+  ultimas <- vapply(avisos, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
   expect_true(all(ultimas < fila_personas))
+})
+
+# --- la semana de cada persona, leída como forma ------------------------------
+#
+# Dictado de Gonzalo (2026-09-08): «disponibilidad de aplicadores debe tener el
+# estilo dicotómico que manejamos». La tabla de personas es dicotómica por
+# naturaleza —o puede ese día o no puede— y salía sin un solo color.
+
+test_that("los tramos llenos de una fila se agrupan: un rectángulo, no una celda por día", {
+  tramos <- prosecnurapp:::.ald_tramos_llenos
+  # Tres días seguidos son UN tramo: alguien que puede de lunes a miércoles es
+  # un rectángulo, y celda a celda serían ochenta y cuatro requests donde caben
+  # veinte.
+  expect_identical(tramos(c("Ana", "a", "b", "c", "", "")), list(c(2L, 4L)))
+  # Partido, dos.
+  expect_identical(tramos(c("Ana", "a", "", "c", "")), list(c(2L, 2L), c(4L, 4L)))
+  # El último día también cierra tramo: sin ese caso se quedaba sin pintar.
+  expect_identical(tramos(c("Ana", "", "", "c")), list(c(4L, 4L)))
+  # La columna del nombre NUNCA entra, y una fila sin días no pinta nada.
+  expect_identical(tramos(c("Ana", "", "")), list())
+  expect_identical(tramos("Ana"), list())
+})
+
+test_that("la tabla de personas se pinta donde SÍ puede, no donde no", {
+  vals <- aulas_libro_valores_disponibilidad(.tld_disp())
+  reqs <- aulas_libro_disponibilidad_formato_requests(7L, vals)
+  fila_personas <- which(vapply(vals, function(r)
+    identical(trimws(as.character(r[[1]])), "APLICADOR"), logical(1)))
+  verde_puede <- prosecnurapp:::.monitoreo_sheets_rgb("#E3F3E8")
+  verde <- Filter(function(r) {
+    !is.null(r$repeatCell) &&
+      isTRUE(all.equal(r$repeatCell$cell$userEnteredFormat$backgroundColor, verde_puede)) &&
+      !is.null(r$repeatCell$range$startColumnIndex) && r$repeatCell$range$startColumnIndex > 0L
+  }, reqs)
+  expect_gt(length(verde), 0L)
+  # Todas después de la cabecera de la tabla de personas.
+  filas <- vapply(verde, function(r) r$repeatCell$range$startRowIndex + 1L, integer(1))
+  expect_true(all(filas > fila_personas))
+  # Y ninguna cae sobre una celda vacía: se pinta lo que SÍ, porque teñir el
+  # hueco haría de la ausencia el elemento fuerte de la tabla.
+  for (r in verde) {
+    fila <- vals[[r$repeatCell$range$startRowIndex + 1L]]
+    for (j in seq(r$repeatCell$range$startColumnIndex + 1L, r$repeatCell$range$endColumnIndex)) {
+      expect_true(nzchar(trimws(as.character(fila[[j]]))))
+    }
+  }
 })
