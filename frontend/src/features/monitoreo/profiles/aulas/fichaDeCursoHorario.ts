@@ -27,6 +27,8 @@
  * cuenta las que tienen parte de campo.
  */
 
+import { fmt } from "./kpisDeAulas";
+
 export type EstadoDeCursoHorario =
   | "aplicado" | "agendado" | "sin_agendar" | "retirado";
 
@@ -179,4 +181,55 @@ export function buscarCursosHorario(
     else if (codigo.includes(clave)) parciales.push(fila);
   }
   return [...exactas, ...parciales].slice(0, Math.max(1, tope));
+}
+
+const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre",
+];
+
+/**
+ * «martes 8 de setiembre» desde un `YYYY-MM-DD`.
+ *
+ * **Sin pasar por `new Date(texto)`**: la especificación parsea un `YYYY-MM-DD`
+ * pelado como medianoche UTC y `toLocaleDateString` lo devuelve al huso del
+ * lector, así que en Lima —UTC−5— el 2026-09-05 sale como 4/9. El perfil ya
+ * tropezó con eso y lo dejó escrito en `kpisDeAulas.ts:167`. Aquí se arma con
+ * `Date.UTC` sólo para saber el día de la semana, que es lo único que no se
+ * puede leer de los tres números.
+ */
+export function fechaEnPalabras(iso: unknown): string {
+  const t = typeof iso === "string" ? iso.trim() : "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if (!m) return t;
+  const [a, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(Date.UTC(a, mes - 1, dia));
+  const nombreMes = MESES[mes - 1];
+  if (!nombreMes || Number.isNaN(d.getTime())) return t;
+  // `fmt` también para el día del mes: el guard `cifrasConFormato` pide que
+  // TODA cifra visible pase por el formateador del perfil, y tiene razón como
+  // regla —no hay excepciones «pequeñas», sólo cifras que un día crecen—.
+  return `${DIAS[d.getUTCDay()]} ${fmt(dia)} de ${nombreMes}`;
+}
+
+/**
+ * La frase que contesta «¿y para cuándo?».
+ *
+ * Gonzalo, viendo la ficha: «si está agendada para cuándo? no se explica eso».
+ * La ficha enseñaba el chip AGENDADO y, tres centímetros más allá y sin rótulo,
+ * un `2026-09-08` crudo y un `6:45 pm`: los datos estaban y la frase no. Un
+ * estado sin su fecha obliga a buscar, y una fecha ISO sin su día de la semana
+ * no dice si eso ya pasó.
+ */
+export function cuandoEnPalabras(
+  estado: EstadoDeCursoHorario, fecha: unknown, hora: unknown,
+): string {
+  const dia = fechaEnPalabras(fecha);
+  const h = typeof hora === "string" ? hora.trim() : "";
+  const cuando = dia ? `${dia}${h ? `, ${h}` : ""}` : "";
+  if (estado === "aplicado") return cuando ? `Se aplicó el ${cuando}` : "Aplicado, sin fecha registrada";
+  if (estado === "agendado") return cuando ? `Agendado para el ${cuando}` : "Agendado, sin fecha registrada";
+  if (estado === "retirado") return cuando ? `Retirado del plan · tenía fecha el ${cuando}` : "Retirado del plan";
+  return "Todavía sin fecha en la agenda";
 }

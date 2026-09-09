@@ -123,3 +123,40 @@ describe("la búsqueda por código", () => {
     expect(buscarCursosHorario(plan, "CH", 0).length).toBe(1);
   });
 });
+
+import { cuandoEnPalabras, fechaEnPalabras } from "./fichaDeCursoHorario";
+
+describe("la frase que contesta «¿y para cuándo?»", () => {
+  test("un YYYY-MM-DD NO se corre un día", () => {
+    // `new Date("2026-09-05")` es medianoche UTC y en Lima —UTC−5— sale como
+    // 4/9. El perfil ya tropezó con eso (`kpisDeAulas.ts:167`).
+    expect(fechaEnPalabras("2026-09-05")).toBe("sábado 5 de setiembre");
+    expect(fechaEnPalabras("2026-09-08")).toBe("martes 8 de setiembre");
+  });
+
+  test("«setiembre», que es como se escribe aquí", () => {
+    expect(fechaEnPalabras("2026-09-01")).toContain("setiembre");
+  });
+
+  test("el estado y la fecha van en UNA frase, no en dos datos sueltos", () => {
+    expect(cuandoEnPalabras("agendado", "2026-09-08", "6:45 pm"))
+      .toBe("Agendado para el martes 8 de setiembre, 6:45 pm");
+    expect(cuandoEnPalabras("aplicado", "2026-09-07", "11:10 am"))
+      .toBe("Se aplicó el lunes 7 de setiembre, 11:10 am");
+  });
+
+  test("sin fecha lo dice, no deja el hueco", () => {
+    expect(cuandoEnPalabras("sin_agendar", "", "")).toBe("Todavía sin fecha en la agenda");
+    expect(cuandoEnPalabras("agendado", "", "")).toBe("Agendado, sin fecha registrada");
+  });
+
+  test("un retirado conserva la fecha que tuvo", () => {
+    expect(cuandoEnPalabras("retirado", "2026-09-08", ""))
+      .toBe("Retirado del plan · tenía fecha el martes 8 de setiembre");
+  });
+
+  test("una fecha que no es fecha se devuelve tal cual, sin inventar", () => {
+    expect(fechaEnPalabras("por confirmar")).toBe("por confirmar");
+    expect(fechaEnPalabras("")).toBe("");
+  });
+});
