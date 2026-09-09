@@ -525,3 +525,25 @@ test_that("sincronizar con un enlace lo RECUERDA, o la red de publicar queda mue
     prosecnurapp:::.malp_adoptar_distribucion(
       cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
 })
+
+test_that("el enlace se recuerda la PRIMERA vez y no se vuelve a pisar", {
+  # Se guarda en cuanto la hoja se deja leer, ENSAYO incluido: si sólo pasara al
+  # aplicar, dejar armada la lectura previa de publicar exigiría escribir en la
+  # hoja de 22 personas, que es justo lo que el ensayo existe para no hacer. Y
+  # no se repisa: un destino ya recordado es una decisión del usuario, y alguien
+  # puede pasar otro enlace de paso para mirar otra semana.
+  expect_true(prosecnurapp:::.madm_falta_recordar_destino(list()))
+  expect_true(prosecnurapp:::.madm_falta_recordar_destino(
+    list(distribucion_sheets = list(spreadsheet_id = "   "))))
+  expect_false(prosecnurapp:::.madm_falta_recordar_destino(
+    list(distribucion_sheets = list(spreadsheet_id = "DIST123"))))
+
+  # Y lo que se guarda es lo que la lectura previa de publicar necesita: con el
+  # destino puesto, su motivo deja de ser `sin_destino`.
+  cfg <- monitoreo_aulas_distribucion_destino_set(
+    list(), "https://docs.google.com/spreadsheets/d/DIST123/edit")
+  expect_false(prosecnurapp:::.madm_falta_recordar_destino(cfg$aulas_universitarias))
+  expect_false(identical(
+    prosecnurapp:::.malp_adoptar_distribucion(
+      cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
+})
