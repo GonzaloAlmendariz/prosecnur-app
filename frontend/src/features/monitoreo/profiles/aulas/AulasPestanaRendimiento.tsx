@@ -55,30 +55,10 @@ export function AulasPestanaRendimiento({
   if (pestana !== "rendimiento") return null;
   return (
     <>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* Lo primero de la pestaña, antes que ningún gráfico: es lo único que
-                    pide una acción hoy. Los demás paneles explican el campo; éste dice
-                    a quién llamar. */}
-                <h3>A quién hay que agendar</h3>
-                <span>aulas por pedir, con la anticipación del operativo de 2025</span>
-              </div>
-              <AulasAlertaDeAnticipacion
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
-                agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-                cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
-                banco={dashboard.banco_extras?.por_facultad ?? []}
-                facultadEnFoco={facultadEnFoco}
-                onFoco={onFoco}
-              />
-            </section>
+            {/* **«A quién hay que agendar» se fue a Resumen** el 2026-09-08. Era el
+                único panel de esta pestaña que pedía una acción hoy, y esta pestaña
+                contesta «qué rinde más». Allá quedó pegado a «Cursos-horario vencidos
+                sin aplicar», que es su pareja: a quién citar y a quién reclamar. */}
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
@@ -275,56 +255,13 @@ export function AulasPestanaRendimiento({
                 ).filas as MonitoreoRow[]}
               />
             </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* Se proyectan AULAS y no respuestas: la meta esta en respuestas
-                    atribuidas a un curso-horario y sobre este corte hay cero —llegan
-                    anonimas—, asi que proyectar la serie del parte contra esa meta
-                    daria una fecha inventada. Las aulas viven en un solo universo. */}
-                {/* La unidad en el subtítulo. Este panel cuenta AULAS y el acumulado
-                    del panel de arriba cuenta ENCUESTAS: son dos preguntas distintas
-                    —terminar de visitar no es llegar a la cuota— y sin decir la unidad
-                    parecían el mismo gráfico dos veces. */}
-                <h3>Cuándo se termina de aplicar el plan</h3>
-                <span>aulas del plan aplicadas, al ritmo observado</span>
-              </div>
-              <AulasPronosticoDeCierre
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-              />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* El registro es el del informe, no el de la sala. Se llamaba
-                    «Cuánto aguanta el colchón · al ritmo al que están cayendo». */}
-                {/* Sin «por facultad» en el título: el guard de títulos lo cazó por
-                    terminar igual que «Cuota sexo por facultad», que es el defecto que
-                    ese guard existe para impedir. La unidad va en el subtítulo. */}
-                <h3>Consumo de la reserva</h3>
-                <span>por facultad, al ritmo de reemplazos observado</span>
-              </div>
-              {/* Los días de campo salen de los PARTES —los días en que el operativo
-                  salió de verdad— y no de `ritmo_diario`, que cuenta días con
-                  respuestas y en este corte abarca 24 por las aulas ya agendadas: una
-                  caída sólo puede ocurrir un día en que se sale. */}
-              <AulasConsumoDelBanco
-                filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
-                diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
-                facultadEnFoco={facultadEnFoco}
-                onFoco={onFoco}
-              />
-            </section>
+            {/* **«Cuándo se termina de aplicar el plan» se fue a Resumen.** Es un
+                pronóstico del operativo, no una medida de rendimiento, y allá va
+                pegado al ritmo diario: cómo viene el ritmo y a dónde lleva. */}
+            {/* **«Consumo de la reserva» se fue a Metas**, junto a «A qué aula del
+                banco ir»: las dos hablan del banco y del remedio de la brecha, y
+                separadas obligaban a cambiar de pestaña para leer el diagnóstico y su
+                remedio. */}
     </>
   );
 }

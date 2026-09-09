@@ -962,6 +962,9 @@ function renderAulasView({
         facultadEnFoco={facultadEnFoco}
         onFoco={onFoco}
         tabla={DataTable}
+        // Llegó con «Consumo de la reserva», que vino de Rendimiento el
+        // 2026-09-08 para quedar junto a «A qué aula del banco ir».
+        diasDeCampoDelCorte={diasDeCampoDelCorte}
       />
     </div>
   );
