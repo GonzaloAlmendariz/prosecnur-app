@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 
-import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
-import type { MonitoreoAulasDashboard, MonitoreoRow } from "../../../../api/monitoreo";
+import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 
 /**
@@ -43,7 +42,13 @@ export function AulasPestanaEstratos({
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                <h3>Avance por facultad y sexo</h3>
+                {/* **El título dice el grano, porque ES el grano de la pestaña.**
+                    Hasta el 2026-09-08 este panel se llamaba «Avance por facultad
+                    y sexo» y encabezaba un gráfico de facultad×sexo: el tema de
+                    Metas, puesto aquí. Estratos se quedaba con media pestaña de
+                    lo suyo. El gráfico se mudó a Metas —donde además su lectura
+                    se entiende, porque proyecta— y aquí queda el estrato. */}
+                <h3>Avance y brecha por estrato del sorteo</h3>
                 {/* El subtítulo decía «N filas», que es lo único que la tabla de
                     abajo ya enseña por sí sola. «Estrato» es la única palabra
                     técnica de esta pestaña que no se explica en ninguna parte:
@@ -52,18 +57,18 @@ export function AulasPestanaEstratos({
                     palabra no. Se dice qué es, sin nombrar las columnas del
                     corte: son configurables por estudio (`estratos_selector`) y
                     escribirlas aquí sería falso en cuanto alguien las cambie. */}
-                <span>cuántas y cuántos faltan por facultad · {fmt(estratoRows.length)} estratos de diseño abajo</span>
+                <span>{fmt(estratoRows.length)} estratos de diseño · cada uno con sus cursos-horario, sus válidas y su brecha</span>
               </div>
-              {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
-                  contesta la pregunta del día siguiente —a dónde mando el equipo— que
-                  la tabla obliga a resolver restando de cabeza. */}
-              <AulasSexoPorFacultadChart
-                celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
-              />
-              {/* La tabla dice el estrato con las mismas palabras que el eje del
-                  gráfico que tiene encima. Enseñaba la clave cruda —«GESTIÓN Y ALTA
-                  DIRECCIÓN / F / G3»— mientras el eje, ya traducido, decía otra cosa
-                  para la misma fila. */}
+              {/* **Una tabla, y con razón.** Es la única forma de la sección que
+                  se lee buscando UNA fila concreta entre decenas de estratos; un
+                  ranking diría quién va peor y callaría el resto, que es
+                  justamente lo que aquí importa.
+
+                  Enseñaba la clave cruda —«GESTIÓN Y ALTA DIRECCIÓN / F / G3»—
+                  mientras el eje del gráfico que tenía encima, ya traducido,
+                  decía otra cosa para la misma fila. Ese gráfico ya no está,
+                  pero la traducción se queda: la clave del motor no es una
+                  etiqueta. */}
               <Tabla rows={estratoRowsLegibles} empty="No hay avance por estrato preparado." />
             </section>
     </>
