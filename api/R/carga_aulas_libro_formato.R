@@ -288,6 +288,16 @@ aulas_libro_status_muestra <- function(profundidad = 1L) {
 # `link` es la excepcion dentro del tramo de la persona: lo produce la app.
 AULAS_LIBRO_CAMPOS_DE_LA_PERSONA <- c(
   "contact_medium", "contact_date", "contact_attempts", "sample_status",
+  # AULA UTILIZADA: **la llena el coordinador de campo**. Nacio como columna de
+  # la app —la app sabe que reserva activo— y el dictado del 2026-09-08 la
+  # devolvio a la persona: «lo apruebo, pero es algo que lo hace el coordinador
+  # de campo». Las dos cosas conviven sin contradiccion:
+  # `aulas_libro_anotar_aula_utilizada()` la SIEMBRA con lo que la app ya sabe y
+  # respeta lo que venga tecleado, que es la verdad de campo. Lo que no puede
+  # quedarse es el gris: seria la unica señal de la celda y diria «esto no lo
+  # toques» sobre la columna que el coordinador tiene que llenar — el mismo
+  # argumento que ya obligo a blanquear `scheduled_venue`.
+  "aula_utilizada",
   # B30: el lugar CONFIRMADO «se llena manual» (dictado 2026-09-02) y no tiene
   # desplegable, asi que el tinte gris de columna-de-la-app seria su UNICA
   # señal — y diria justo lo contrario. La celda queda blanca: «escribe aqui».
