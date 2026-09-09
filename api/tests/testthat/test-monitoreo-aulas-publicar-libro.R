@@ -623,3 +623,38 @@ test_that("si el Sheets no se deja leer, la publicación sigue y lo declara", {
   expect_false(isTRUE(out$lectura_previa$ok))
   expect_match(out$lectura_previa$error, "permiso")
 })
+
+test_that("la publicación adopta los cambios manuales de la hoja de aplicadores", {
+  # Dictado 2026-09-09: «el sheets de distribución lo arma la app pero en el
+  # camino puede haber cambios manuales con respecto a quién recibe qué, y la
+  # app debe ser robusta en entender esos cambios».
+  #
+  # Sin esto, publicar rehacía «Asignación de aplicadores» desde un reparto SIN
+  # FIJAR y el sorteo nuevo no caía donde el ya comunicado: sobre el operativo
+  # real fueron 38 de 85 aulas con dos aplicadores distintos.
+  visto <- NULL
+  testthat::local_mocked_bindings(
+    aulas_libro_importar_sheets_en_sesion = function(sid, id, pestanas = list()) list(),
+    .malp_adoptar_distribucion = function(aulas_cfg, plan, s) list(
+      ok = TRUE, omitida = FALSE, motivo = "", error = "", hoja = "Semana 1",
+      fijadas = list("CH 1" = "Otro Aplicador"),
+      aplicadores_desconocidos = character(0)
+    ),
+    monitoreo_aulas_publicar_libro = function(..., config_reparto = list()) {
+      visto <<- config_reparto
+      list(ok = TRUE, hojas = list())
+    },
+    .package = "prosecnurapp"
+  )
+  sid <- session_create()
+  session_set(sid, "monitoreo_aulas_plan",
+              list(list(operational_code = "CH 1", sample_role = "titular")))
+  out <- monitoreo_aulas_publicar_libro_en_sesion(
+    sid, list(), "https://docs.google.com/spreadsheets/d/ABC123/edit")
+  # Lo escrito a mano llega al motor del reparto como fijación.
+  expect_equal(visto[["reparto_fijado"]][["CH 1"]], "Otro Aplicador")
+  # Y el recibo lo cuenta: un efecto invisible no se puede auditar.
+  expect_true(isTRUE(out$adopcion_distribucion$ok))
+  expect_equal(out$adopcion_distribucion$adoptadas, 1L)
+  expect_equal(out$adopcion_distribucion$hoja, "Semana 1")
+})
