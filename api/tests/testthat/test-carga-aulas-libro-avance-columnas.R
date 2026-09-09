@@ -466,3 +466,22 @@ test_that("la fecha vuelve a la hoja como la escribe el equipo, no en ISO", {
   expect_identical(f("por confirmar"), "por confirmar")
   expect_identical(f(""), "")
 })
+
+test_that("«ficha» significa UNA cosa en el libro: el papel por curso-horario", {
+  # Dictado de Gonzalo (2026-09-09): «la ficha es solo una por CH… es si el
+  # coordinador de campo registró manualmente lo que el aplicador llenó en su
+  # ficha en papel y el coordinador lo ingresa al sheets de registro de campo
+  # aulas aplicadas».
+  #
+  # «Producción por aplicador» llamaba «Fichas …» a lo que cuenta encuestas
+  # efectivas —decenas por aula—, mientras el resto del libro usaba «ficha» en
+  # el sentido de él («ENLACE DE LA FICHA», «FICHA QR»). Publicado, «Fichas en
+  # la base: 27» junto a «Aulas aplicadas: 3» decía veintisiete fichas de tres
+  # aulas. Este guard existe para que el nombre no vuelva.
+  todas <- unlist(AULAS_AVANCE_CABECERAS, use.names = FALSE)
+  con_ficha <- grep("[Ff]icha", todas, value = TRUE)
+  expect_length(con_ficha, 0L)
+  # Y lo que cuentan esas tres columnas se llama como en sus tablas hermanas.
+  expect_true(all(c("Efectivas esperadas", "Efectivas en la base",
+                    "Efectivas faltantes") %in% AULAS_AVANCE_CABECERAS$aplicador))
+})

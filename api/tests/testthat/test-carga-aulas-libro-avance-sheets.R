@@ -199,7 +199,7 @@ test_that("B2.2: una fila del diario y una de aplicadores llevan los números de
   # Equipo B en el modelo: sus aulas aplicadas y sus fichas en la base.
   fila_apl <- ind$aplicadores[ind$aplicadores$Aplicador == "Equipo B", ]
   expect_equal(nrow(fila_apl), 1L)
-  esperados_apl <- c(fila_apl[["Aulas aplicadas"]], fila_apl[["Fichas en la base"]])
+  esperados_apl <- c(fila_apl[["Aulas aplicadas"]], fila_apl[["Efectivas en la base"]])
   en_hoja_apl <- .cas_numeros_de_fila_con(m, "Equipo B")
   expect_true(all(esperados_apl %in% en_hoja_apl),
               info = sprintf("fila de Equipo B: esperaba {%s} dentro de {%s}",

@@ -623,7 +623,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     nota_arriba = paste(
       "Una fila por persona en cada facultad. La tasa esperada es la de la",
       "facultad, así que quien cubre dos se mide contra la vara de cada una.",
-      "«Fichas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de",
+      "«Efectivas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de",
       "lo esperado. Sobre las que aún no aplica no falta ninguna ficha."
     ),
     vacio = .cali_motivo_sin_aplicadores()
