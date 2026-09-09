@@ -20,13 +20,25 @@ export type DistribucionSheetsRecordada = {
   citas?: number;
 } | null | undefined;
 
+/** Una agendada a la que no va nadie, del bloque `reparto.distribucion`. */
+export type AulaSinCita = { curso_horario?: string; fecha?: string; facultad?: string };
+
 /** La huella del reparto vigente, del bloque `reparto.distribucion` del tablero. */
 export type DistribucionVigente = {
   huella?: string;
   citas?: number;
+  /** Cuántas aulas agendadas del rango no tienen a nadie asignado. */
+  agendadas_sin_cita?: number;
+  /** Y cuáles: un «faltan 6» sin los códigos obliga a cruzarlo otra vez a mano. */
+  sin_cita?: ReadonlyArray<AulaSinCita>;
 } | null | undefined;
 
-export type EstadoDeDistribucion = "nunca" | "vigente" | "cambiado" | "indeterminado";
+export type EstadoDeDistribucion =
+  | "nunca"
+  | "vigente"
+  | "cambiado"
+  | "indeterminado"
+  | "sin-cita";
 
 export function enlaceDeDistribucion(d: DistribucionSheetsRecordada): string {
   const url = String(d?.url ?? "").trim();
@@ -58,6 +70,25 @@ export function avisoDistribucion(
   recordado: DistribucionSheetsRecordada,
   vigente: DistribucionVigente,
 ): { estado: EstadoDeDistribucion; texto: string; tono: TonoAviso } {
+  // **Un hueco manda sobre todo lo demás.** El Sheets puede estar al día y aun
+  // así haber aulas agendadas a las que no va nadie: son dos preguntas y ésta
+  // es la que deja a alguien sin ir. El 08/09 había seis y hubo que cruzarlas a
+  // mano porque ninguna pantalla las decía; `no_cubiertos` no las veía, porque
+  // sólo lista citas que ENTRARON al reparto y no hallaron a quién.
+  const sinCita = Number(vigente?.agendadas_sin_cita ?? 0);
+  if (Number.isFinite(sinCita) && sinCita > 0) {
+    const cuales = (vigente?.sin_cita ?? [])
+      .map((a) => `${String(a?.curso_horario ?? "").trim()}${a?.fecha ? ` (${a.fecha})` : ""}`)
+      .filter((t) => t.trim().length > 0);
+    return {
+      estado: "sin-cita",
+      texto:
+        `${fmt(sinCita)} ${sinCita === 1 ? "aula agendada no tiene" : "aulas agendadas no tienen"} a nadie asignado` +
+        `${cuales.length ? `: ${cuales.join(", ")}` : ""}. ` +
+        "Asigna a alguien o añádelas a la hoja de los aplicadores con el aplicador en blanco.",
+      tono: "atencion",
+    };
+  }
   if (!enlaceDeDistribucion(recordado)) {
     return {
       estado: "nunca",

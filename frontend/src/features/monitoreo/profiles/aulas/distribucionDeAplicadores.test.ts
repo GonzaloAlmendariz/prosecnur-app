@@ -52,4 +52,56 @@ describe("avisoDistribucion", () => {
       expect(a.texto).not.toContain("—");
     }
   });
+
+  // **Aulas agendadas a las que no va nadie.** El 08/09 había seis y hubo que
+  // cruzarlas a mano con la agenda porque ninguna pantalla las decía: son dos
+  // preguntas distintas y ésta es la que deja a alguien sin ir.
+  describe("agendadas sin cita", () => {
+    it("manda sobre «vigente»: el Sheets puede estar al día y aun así faltar aulas", () => {
+      const a = avisoDistribucion(recordado, {
+        huella: "h-1",
+        citas: 83,
+        agendadas_sin_cita: 2,
+        sin_cita: [
+          { curso_horario: "CH 35", fecha: "09/09" },
+          { curso_horario: "CH 40", fecha: "11/09" },
+        ],
+      });
+      expect(a.estado).toBe("sin-cita");
+      expect(a.tono).toBe("atencion");
+      // Las NOMBRA: un «faltan 2» sin los códigos obliga a cruzarlo otra vez.
+      expect(a.texto).toContain("CH 35 (09/09)");
+      expect(a.texto).toContain("CH 40 (11/09)");
+      expect(a.texto).toMatch(/Asigna a alguien/);
+      expect(a.texto).not.toContain("—");
+    });
+
+    it("una sola aula se dice en singular", () => {
+      const a = avisoDistribucion(recordado, {
+        huella: "h-1", citas: 83, agendadas_sin_cita: 1,
+        sin_cita: [{ curso_horario: "CH 83", fecha: "12/09" }],
+      });
+      expect(a.texto).toContain("1 aula agendada no tiene");
+      expect(a.texto).not.toContain("aulas agendadas no tienen");
+    });
+
+    it("en cero no dice nada y el aviso de siempre sigue mandando", () => {
+      // Un cero SE CALLA aquí, al revés que en el recibo de la sincronización:
+      // este aviso convive con otros y repetir «no falta ninguna» en cada
+      // recarga es ruido que apaga al que sí importa.
+      const a = avisoDistribucion(recordado, { huella: "h-1", citas: 83, agendadas_sin_cita: 0 });
+      expect(a.estado).toBe("vigente");
+    });
+
+    it("sin el campo se comporta como antes: el tablero viejo no rompe la pantalla", () => {
+      const a = avisoDistribucion(recordado, { huella: "h-2", citas: 85 });
+      expect(a.estado).toBe("cambiado");
+    });
+
+    it("un conteo sin lista sigue avisando, con la cuenta sola", () => {
+      const a = avisoDistribucion(recordado, { huella: "h-1", citas: 83, agendadas_sin_cita: 3 });
+      expect(a.estado).toBe("sin-cita");
+      expect(a.texto).toContain("3 aulas agendadas no tienen");
+    });
+  });
 });

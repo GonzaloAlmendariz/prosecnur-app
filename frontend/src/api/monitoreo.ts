@@ -1285,8 +1285,18 @@ export type MonitoreoAulasRepartoEquidad = {
  */
 export type MonitoreoAulasReparto = {
   dias: MonitoreoAulasRepartoDia[];
-  /** S7: huella y citas de lo que HOY se publicaría a los aplicadores. */
-  distribucion?: { huella?: string; citas?: number } | null;
+  /**
+   * S7: huella y citas de lo que HOY se publicaría a los aplicadores, y las
+   * aulas agendadas del rango a las que no va nadie. `no_cubiertos` no contesta
+   * eso: sólo lista las citas que ENTRARON al reparto y no hallaron a quién, así
+   * que un aula agendada que ni llegó a ser cita no aparecía en ninguna parte.
+   */
+  distribucion?: {
+    huella?: string;
+    citas?: number;
+    agendadas_sin_cita?: number;
+    sin_cita?: Array<{ curso_horario?: string; fecha?: string; facultad?: string }>;
+  } | null;
   equidad: MonitoreoAulasRepartoEquidad[];
   /** B36: el eco del mapa de fijaciones saneado — código → aplicador. */
   fijadas?: Array<{ codigo: string; aplicador: string }>;
