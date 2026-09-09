@@ -19,6 +19,7 @@ import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
+import { AulasFichaDeCursoHorario } from "./AulasFichaDeCursoHorario";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { historiaDeCadena } from "./historiaDeCadena";
@@ -76,12 +77,33 @@ export function AulasSeccionConsultas({
     // negación volvía a fallar y la cadena se pintaba encima. Preguntar «¿es
     // esta pestaña?» en vez de «¿no es ninguna de las otras?» hace que la
     // siguiente pestaña que se añada no herede el panel de nadie.
+    const enFicha = pestana === "ficha";
     const enParte = pestana === "parte";
     const enBrechas = pestana === "brechas";
     const enExtras = pestana === "extras";
-    const enCadena = !enParte && !enBrechas && !enExtras;
+    const enCadena = !enFicha && !enParte && !enBrechas && !enExtras;
   return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
+        {enFicha ? (
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-consultas"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Buscar por código</h3>
+              <span>un curso-horario del plan · su estado, sus encuestas y su efectividad</span>
+            </div>
+            {/* El PLAN entero y SIN el filtro de facultad en foco: quien busca un
+                código quiere encontrarlo, y no hallarlo por un filtro puesto en
+                otra pestaña se lee como «no existe». */}
+            <AulasFichaDeCursoHorario
+              agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
+              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+              bandas={(dashboard.dos_tasas?.aulas ?? []) as Array<Record<string, unknown>>}
+            />
+          </section>
+        ) : null}
         {enCadena ? (
         <section
           className="mon-profile-panel"
