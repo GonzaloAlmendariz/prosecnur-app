@@ -65,8 +65,8 @@ casi todas son correctas:
 
 Un guard que grita tres mil veces no guarda nada, porque se aprende a ignorarlo.
 Lo que sí funcionó las cinco veces fue lo concreto: **una columna, un contenido
-que alguien necesita entero, medir y ensanchar** — con suelo en el ancho de
-antes, para que un día flojo no la estreche, y techo para que un caso raro no
+que alguien necesita entero, medir y ensanchar**, con suelo en el ancho de
+antes para que un día flojo no la estreche, y techo para que un caso raro no
 empuje la hoja.
 
 ## Dónde quedó cada arreglo
