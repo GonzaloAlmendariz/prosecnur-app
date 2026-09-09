@@ -235,8 +235,37 @@ siguen viajando en cada `/monitoreo/state`.
 | A11 | Decidir entre «Ritmo de la recolección» y «Encuestas por día» | dos numeradores distintos | ✅ **decidido: manda plataforma.** «Encuestas por día» (parte de campo) se retiró; «Ritmo de la recolección» se queda por ser el numerador de la banda de KPIs y de la meta |
 | A12 | Decidir si la pirámide se queda | `AulasPiramideCuota.tsx` | ✅ **decidido: se retira** (`bcfc8ad0`). Su magnitud ya la dan «Cumplimiento» y «Qué metas van a cerrar» |
 | A13 | Decidir el destino de los 3 componentes sin montar | `AulasAvanceProyectado`, `AulasAvanceParaCliente`, `AulasBrechaEstratoChart` | ✅ `a4fb9579` **con la decisión CAMBIADA: NO se borran.** Nueve archivos de test los usan para fijar decisiones metodológicas; borrarlos baja un conteo que nadie ve destruyendo criterio documentado. Quedan etiquetados con su razón en `componentesSinMontar.test.ts` |
-| A14 | Dejar de publicar los bloques sin consumidor, o montarlos | `router_monitoreo.R`, `plumber_app.R` | ◐ revisado y ACOTADO. **No se borran** `criterio_aula`, `schema`, `frame_hash` ni los cuatro sub-campos de `kpis`: son capacidad documentada, cuestan 0 y son escalares. `dashboard.selection_run_id` **sí tiene consumidor** (el censo se equivocaba). Peso muerto real: sólo los tres espejos de `router_monitoreo.R:1196-1198`, pendientes de borrar |
+| A14 | Dejar de publicar los bloques sin consumidor, o montarlos |  `router_monitoreo.R`, `plumber_app.R` | ✅ revisado y ACOTADO. **No se borran** `criterio_aula`, `schema`, `frame_hash` ni los cuatro sub-campos de `kpis`: son capacidad documentada, cuestan 0 y son escalares. `dashboard.selection_run_id` **sí tiene consumidor** (el censo se equivocaba). Peso muerto real: sólo los tres espejos de `router_monitoreo.R:1196-1198`, **borrados en `80605bf3`** con el comentario invertido y `test-monitoreo-kpis-sin-espejos-de-aulas.R` (mutante verificado) |
 | A15 | Los `NA` numéricos viajaban como la cadena «NA» y apagaban los guards de vacío de la UI | `plumber_app.R` (serializador global) | ✅ `9dc0929e` — no estaba en el motor sino en la serialización: `.api_serializer()` + contrato con mutante verificado |
+
+## 6. Segunda ronda — lo que Gonzalo vio en pantalla el 2026-09-09
+
+Los señaló uno a uno con el elemento seleccionado, tras el primer barrido, y
+fijó el orden: «Sí, dale en ese orden».
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| B1 | Estratos es una tabla gigante, «nada que ver con los elementos visuales que prometiste» | `AulasPestanaEstratos.tsx` + `AulasBrechaConcentrada.tsx` (nuevo) | ✅ `355734f3` — el ranking va primero, la tabla queda para buscar UNA fila |
+| B2 | **«Los estratos son hombre y mujer de cada facultad, punto»** — segunda vez que lo corrige | `brechaConcentrada.ts` | ✅ `a31da660`. El panel leía `avance_por_estrato`, la clave del SORTEO, cuyo sexo es el DOMINANTE DEL AULA. La advertencia estaba escrita en el docblock de `AulasBrechaEstratoChart` desde el 2026-08-29 y construí encima igual. Ahora lee `avance_sexo_facultad`: las 30 cuotas reales |
+| B3 | «Esto se ve fatal» — el trío de Rendimiento | `AulasPestanaRendimiento.tsx` | ✅ `72992d50` — el ancho lo deciden los datos: una lente con UNA fila no es una comparación. Con 5, 1 y 1 el ranking va a todo lo ancho |
+| B4 | «No se pueden ver todos, por qué no hay un selector entre titulares y reemplazo 1, 2» | `AulasAvancePorCurso.tsx` (nuevo) | ✅ `f8f36bb5` — dos recortes encima: el motor manda 500 de 1 392 y la tabla pinta 400 de esas 500, así que las 326 reservas que SÍ llegaban no se alcanzaban nunca. C4 incumplido |
+| B5 | «Toda la parte de abajo de aquí también» — el muro de 161 pendientes | `pendientesPorFacultad.ts` (nuevo) | ✅ `e02b37aa` — 15 líneas por facultad que suman 161, cada una con su estado y su prevista PONDERADA por elegibles |
+| B6 | «La leyenda de aplicado agendado no está saliendo muy bien» | `rotuloDeZonaCabe.ts` (nuevo) | ✅ `5c9caa1b` — con el corte al 4 % el rótulo se salía del lienzo y se montaba sobre el eje. Estaba en LOS DOS gráficos |
+| B7 | Media fila en blanco bajo «Cursos-horario por cobertura» | `AulasPestanaResumen.tsx` | ✅ `0a63854e` — la pareja de dos columnas se quedó con un hijo al retirar «Dónde falta más» (A8). Fix de lo que un feat rompió dos commits antes |
+| B8 | *(mío, no suyo)* La app se caía al cambiar de pestaña | `AulasPestanaRendimiento.tsx` | ✅ `8d8f79b7` — React #310: un `useMemo` bajo el `return null` de la guarda, introducido por B3. **Los 3 535 tests siguieron en verde**; lo encontró el barrido en pantalla. Guard nuevo: `hooksDespuesDeLaGuarda.contract.test.ts` |
+| B9 | *(retirado)* «Efectividad no cuadra su universo: 9 + 161 = 170 de 174» | — | ✗ **NO EXISTÍA.** Hay un cuarto grupo, «4 ya no se aplicarán por esta vía», que no vi porque la captura estaba cortada. 9 + 161 + 4 = 174. Lo concluí sin bajar al final del panel |
+
+**Las seis pestañas quedaron verificadas en pantalla** sobre el build de
+producción, recorriéndolas ida y vuelta con `crash: false` en todas: Metas 4
+paneles y 0 tablas · Resumen 8 con los chips «Todos 500 · Titulares 174 ·
+Reservas 326» · Estratos 3 · Rendimiento 5 sin trío · Efectividad 2 · Salidas 1.
+
+Dos lecciones de esta ronda, las dos sobre el mismo punto ciego: **la suite en
+verde no vio ninguno de los dos defectos que yo mismo introduje** (B7 y B8). Un
+test de render pinta siempre con su pestaña activa y nunca navega, y un panel
+retirado no avisa de la composición que rompe. Los encontró mirar la pantalla.
+
+---
 
 **Estado al 2026-09-09: 12 cerrados de 15, 2 a medias, 0 bloqueados.** Los tres
 que estaban bloqueados (A11, A12, A13) los resolví yo cuando dijiste «toma
@@ -247,11 +276,8 @@ mejor.
 
 Lo que queda:
 
-- **A10** — verificar en pantalla los subtítulos con denominador.
-- **A14** — borrar los tres espejos de `router_monitoreo.R:1196-1198`
-  (`kpis$aulas_total`, `aulas_aplicadas`, `respuestas_validas_aulas`). Cero
-  consumidores, verificado tres veces; `aulas_total` además induce a leer
-  «152 de 1 347», un 11 % donde va un 87 %.
+- **A10** — verificado en pantalla dentro del barrido de la segunda ronda.
+- **A14** — cerrado en `80605bf3`.
 - Fuera de la lista, y es un cambio de diseño, no un arreglo: **`agenda`
   necesita su propio endpoint**. Son 3 937 KB de los 5 464 que quedan y el
   recorte por campos está agotado (sólo 184 KB son constantes). 17 consumidores.
