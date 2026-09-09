@@ -120,6 +120,11 @@
       v <- v[is.finite(v)]
       if (length(v)) round(sum(v)) else NA_real_
     }
+    obtenida <- if (is.finite(en_base) && eleg_apl > 0) en_base / eleg_apl else NA_real_
+    # La brecha en puntos, del mismo signo que en sus tablas hermanas: positiva
+    # cuando rinde por encima de lo que su facultad espera. Calla —no da cero—
+    # mientras no haya una tasa obtenida que comparar: un cero diría «va justo».
+    diferencia <- if (is.finite(obtenida) && is.finite(esperada)) obtenida - esperada else NA_real_
     out <- data.frame(
       f, a,
       sum(idx),
@@ -128,12 +133,21 @@
       en_base,
       faltantes,
       esperada,
-      if (is.finite(en_base) && eleg_apl > 0) en_base / eleg_apl else NA_real_,
+      obtenida,
+      diferencia,
       cuenta_rango("Regular"),
       cuenta_rango("Especial mañana"),
       cuenta_rango("Especial noche"),
       stringsAsFactors = FALSE
     )
+    if (length(out) != length(AULAS_AVANCE_CABECERAS$aplicador)) {
+      # La misma guarda que su hermana: el contrato es el vocabulario, no esta
+      # lista literal. Sin ella, añadir una columna aquí y olvidarla allá
+      # renombra en silencio y la hoja sale con una cabecera sobre otra cifra.
+      stop(sprintf(
+        ".calaa_produccion_por_aplicador(): %d columnas contra %d en AULAS_AVANCE_CABECERAS$aplicador.",
+        length(out), length(AULAS_AVANCE_CABECERAS$aplicador)))
+    }
     names(out) <- AULAS_AVANCE_CABECERAS$aplicador
     out
   })

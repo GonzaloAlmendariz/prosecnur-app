@@ -100,6 +100,15 @@ AULAS_AVANCE_CABECERAS <- list(
     "Fichas esperadas", "Fichas en la base", "Fichas faltantes",
     "Tasa de rendimiento esperada en facultad",
     "Tasa de rendimiento obtenida",
+    # **La diferencia va AQUÍ, entre sus dos términos y la siguiente sección.**
+    # Sus dos tablas hermanas —«Rendimiento por facultad» y «Avance diario»— ya
+    # la traen pegada a las dos tasas; ésta obligaba a restar de cabeza para
+    # contestar lo único que la fila se pregunta: si esta persona va por encima
+    # o por debajo de lo que su facultad espera. Es el mismo dictado que ordenó
+    # las columnas de la hermana («hay que intercalar bien el orden de las
+    # columnas para que sea fácilmente comparable, no pongas las metas todas al
+    # final»), aplicado a la que se quedó sin él.
+    "Diferencia de tasa",
     "Aplicaciones regulares", "Aplicaciones especial mañana",
     "Aplicaciones especial noche"
   ),
@@ -178,7 +187,8 @@ AULAS_AVANCE_PROPORCIONES <- list(
   ),
   aplicador = c(
     "Tasa de rendimiento esperada en facultad",
-    "Tasa de rendimiento obtenida"
+    "Tasa de rendimiento obtenida",
+    "Diferencia de tasa"
   ),
   diario = c(
     "Tasa de rendimiento de la facultad esperada",
