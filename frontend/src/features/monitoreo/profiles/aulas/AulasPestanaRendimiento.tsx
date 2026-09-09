@@ -81,7 +81,14 @@ export function AulasPestanaRendimiento({
                     y por eso son dos paneles: el ranking se mira para repartir hoy, la
                     serie para ver si una facultad se está apagando. */}
                 <h3>Rendimiento diario de las facultades</h3>
-                <span>encuestas por curso-horario visitado · y lo que cabe esperar</span>
+                {/* **El subtítulo estaba caducado.** Decía «encuestas por curso-horario
+                    visitado», y este panel dejó de medir por curso-horario el
+                    2026-09-08: Gonzalo pidió que el día a día contara la JORNADA
+                    —«me importa cuántas efectivas se hicieron en el día y cuántas se
+                    tenían mapeadas»— y desde entonces la barra es lo esperado del día
+                    y la línea lo conseguido. El rótulo se quedó describiendo el
+                    gráfico anterior. */}
+                <span>efectivas del día y acumuladas, contra lo esperado de los cursos-horario aplicados</span>
               </div>
               <AulasSerieDeRendimiento
                 jornadas={jornadas}
@@ -163,7 +170,7 @@ export function AulasPestanaRendimiento({
             >
               <div className="mon-profile-panel-head">
                 <h3>Quién consigue más</h3>
-                <span>encuestas por curso-horario, según quién aplicó</span>
+                <span>encuestas del parte por curso-horario, según quién aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
@@ -186,7 +193,7 @@ export function AulasPestanaRendimiento({
                     más» y el guard lo tumbó. El título nombra la unidad, que además es
                     la del libro. */}
                 <h3>Franja horaria del operativo</h3>
-                <span>encuestas por curso-horario, según cuándo se aplicó</span>
+                <span>encuestas del parte por curso-horario, según cuándo se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
@@ -214,7 +221,7 @@ export function AulasPestanaRendimiento({
                     El título nombra la unidad y no termina como ningún otro, que es
                     la regla que el guard de títulos sujeta. */}
                 <h3>Día de la semana</h3>
-                <span>encuestas por curso-horario, según qué día se aplicó</span>
+                <span>encuestas del parte por curso-horario, según qué día se aplicó</span>
               </div>
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}

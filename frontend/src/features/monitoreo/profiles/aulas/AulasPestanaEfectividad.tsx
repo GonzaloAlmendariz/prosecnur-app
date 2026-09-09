@@ -48,7 +48,13 @@ export function AulasPestanaEfectividad({
                     EE.GG. Ciencias cierra 4,1 alumnos corta sin que ningún aula
                     suelta lo anuncie. Por eso el déficit se acumula por facultad y
                     no se compensa entre ellas (ADR 0079). */}
-                <span>por facultad. Primera lectura: decide si hay que activar reservas</span>
+                {/* **El numerador, porque es lo único que separa esta pestaña de
+                    Rendimiento.** El catálogo de navegación lo dice con todas sus
+                    letras: «las dos miden efectivas sobre elegibles y ahí se acaba el
+                    parecido… ésta con el numerador de PLATAFORMA», aquél con el del
+                    parte. Esa distinción vivía en el catálogo y en los comentarios,
+                    no en la pantalla. */}
+                <span>efectivas de plataforma sobre elegibles, por facultad · decide si hay que activar reservas</span>
               </div>
               <AulasEfectividadSeguimiento
                 bloque={dashboard.efectividad_seguimiento}
