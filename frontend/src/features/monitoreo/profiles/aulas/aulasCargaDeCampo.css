@@ -1289,3 +1289,64 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   font-size: 13px;
   text-decoration: underline;
 }
+
+/* Los dos Sheets del operativo, dichos juntos (dictado 2026-09-09). Va antes de
+   los botones del panel: sus acciones viven en dos pantallas y no había dónde
+   ver de un vistazo si los dos estaban al día. Tokens `--pulso-*`, nunca hex. */
+.aulas-dos-sheets {
+  /* El panel que lo contiene es un GRID de dos columnas: sin esto el bloque
+     caía en la estrecha y se medía 61 px de ancho por 2 984 de alto. Medido en
+     pantalla el 2026-09-09; ningún test lo habría visto. */
+  grid-column: 1 / -1;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+.aulas-dos-sheets-rotulo {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+.aulas-dos-sheets ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aulas-dos-sheets li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "titulo cuando"
+    "que    cuando"
+    "siguiente siguiente";
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.aulas-dos-sheets li.is-conectado { border-left-color: var(--pulso-button-accent); }
+.aulas-dos-sheets li.is-pendiente { border-left-color: var(--pulso-warn-accent); }
+.aulas-dos-sheets-titulo { grid-area: titulo; font-size: 12.5px; font-weight: 620; }
+.aulas-dos-sheets-titulo a { color: inherit; }
+.aulas-dos-sheets-que { grid-area: que; font-size: 11.5px; color: var(--pulso-text-soft); }
+.aulas-dos-sheets-cuando {
+  grid-area: cuando;
+  align-self: center;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+.aulas-dos-sheets-siguiente {
+  grid-area: siguiente;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}

@@ -20,6 +20,7 @@ import {
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
+  apiMonitoreoSync,
   apiMonitoreoState,
   type MonitoreoAulasConfig,
   type MonitoreoAulasDashboard,
@@ -112,6 +113,11 @@ import "./aulasProbabilidadDeCierre.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
 import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
+// El poll del job de sincronización de fuentes. Se IMPORTA en vez de copiarse:
+// la nota de ese archivo defiende la copia por perfil para lo que diverge entre
+// telefónico y acreditación (su vocabulario, sus fases), y esto no es eso — es
+// esperar a un job y leer su progreso, idéntico para cualquier familia.
+import { useWaitForSourceSyncJob } from "../telefonico/sync/pollSourceSync";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -1059,6 +1065,9 @@ export default function AulasMonitoreoPage() {
   // para lo que hay que mirar — y como viajan juntos, no hay forma de anunciar
   // algo nuevo heredando el tono de la acción anterior: un `setAviso` suelto que
   // olvidara el tono pintaría el resultado siguiente con el color del anterior.
+  // Espera del job de descarga de la plataforma, amarrada al ciclo de vida de
+  // esta página: al salir del módulo el poll se corta en vez de seguir vivo.
+  const esperarSyncDeFuentes = useWaitForSourceSyncJob();
   const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
     texto: "", tono: "ok",
   });
@@ -1630,8 +1639,36 @@ export default function AulasMonitoreoPage() {
     setMutating(true);
     setError("");
     try {
+      // **Primero TRAER de la plataforma, y sólo después recalcular.**
+      //
+      // `/aulas/sync` no baja nada: recalcula con el snapshot que ya está en la
+      // sesión. El botón se llama «Sincronizar campo» y durante dos jornadas
+      // (2026-09-08 y 09) devolvió las mismas cifras viejas sin decir por qué:
+      // Gonzalo lo pulsaba, veía 579 respuestas del día anterior y no había
+      // nada en pantalla que dijera que no se había pedido nada a Kobo. La
+      // descarga vive en `/monitoreo/sync`, que es un job.
+      //
+      // Un fallo de la descarga NO cancela el recálculo: el corte de campo se
+      // rehace igual con lo que haya y el motivo se dice como aviso. Sin
+      // fuentes activas no se pide nada y no es un error: hay estudios de aulas
+      // que cargan la base a mano.
+      let avisoDescarga = "";
+      if (activeSources > 0) {
+        try {
+          const inicio = await apiMonitoreoSync(state?.config, [], { syncMode: "advance" });
+          if (inicio?.job_id) await esperarSyncDeFuentes(inicio.job_id);
+        } catch (cause) {
+          avisoDescarga = cause instanceof Error ? cause.message : String(cause);
+        }
+      }
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
+      if (avisoDescarga) {
+        setAviso({
+          texto: `No se pudieron traer respuestas nuevas de la plataforma (${avisoDescarga}). Las cifras son las de la última sincronización que sí entró.`,
+          tono: "atencion",
+        });
+      }
       // La conversación con el Sheets (B7) viaja SOLO con destino recordado.
       // Sin bloque el aviso ni se toca: el sync se comunica como siempre. Y un
       // fallo de la conversación NO es un fallo del sync —el corte de campo
@@ -1650,7 +1687,7 @@ export default function AulasMonitoreoPage() {
     } finally {
       setMutating(false);
     }
-  }, []);
+  }, [activeSources, state?.config, esperarSyncDeFuentes]);
 
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>

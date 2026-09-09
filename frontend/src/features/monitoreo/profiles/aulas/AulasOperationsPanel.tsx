@@ -12,6 +12,7 @@ import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/clie
 import { fmt } from "./kpisDeAulas";
 import { enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, textoDelRecordado } from "./destinoDelLibro";
 import "./aulasLibroDestino.css";
+import { AulasDosSheets } from "./AulasDosSheets";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
 function aulasOpsShortId(value: unknown, limit = 18) {
@@ -195,6 +196,12 @@ export function AulasOperationsPanel({
           );
         })}
       </div>
+      {/* Los dos Sheets, dichos juntos y antes de los botones: sus acciones
+          viven en dos pantallas y no había dónde ver si los dos estaban al
+          día. Sólo cuando el proyecto ya conoce alguno de los dos. */}
+      {(config?.libro_sheets || config?.distribucion_sheets) ? (
+        <AulasDosSheets config={config} />
+      ) : null}
       <div className="aulas-ops-actions">
         <button
           type="button"
@@ -211,16 +218,22 @@ export function AulasOperationsPanel({
           onClick={onSyncField}
           disabled={busy || !imported}
           title={imported
-            ? `Recalcular el corte de campo (${contar(activeSources.length, "fuente activa", "fuentes activas")}: ${sourceKinds})`
+            ? `Pide las respuestas nuevas a ${contar(activeSources.length, "la fuente activa", "las fuentes activas")} (${sourceKinds}) y recalcula el corte de campo`
             : "Primero importa el plan de cursos-horario"}
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
-          <span>Sincronizar campo</span>
+          {/* **El rótulo promete lo que el botón hace, desde el 2026-09-09.**
+              Antes sólo recalculaba con el snapshot que ya había en la sesión, y
+              el nombre decía «sincronizar»: dos jornadas devolviendo las mismas
+              cifras de la víspera sin nada en pantalla que lo explicara. Ahora
+              baja primero de la plataforma; el rótulo se queda porque ya es
+              cierto. */}
+          <span>Traer respuestas</span>
         </button>
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
             app lo relee. Sin estos dos botones sólo se podía cerrar por API.
             Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
-            que el ciclo completo son dos clics —«Sincronizar campo» para traer
+            que el ciclo completo son dos clics —«Traer respuestas» para traer
             las respuestas y «Publicar al Sheets» para el resto— y no hace falta
             acordarse de «Leer del Sheets» en medio. */}
         <button

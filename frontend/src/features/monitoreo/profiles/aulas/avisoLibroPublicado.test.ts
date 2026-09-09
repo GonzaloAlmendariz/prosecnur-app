@@ -118,7 +118,7 @@ describe("avisoLibroPublicado: la lectura previa", () => {
     });
     expect(texto).toContain("No se pudo leer el Sheets antes de publicar (HTTP 403)");
     expect(texto).toContain("se publicó con lo que la app ya tenía");
-    expect(texto).toContain("Sincronizar campo");
+    expect(texto).toContain("Traer respuestas");
     expect(texto).toContain("Libro publicado:");
     expect(tono).toBe("atencion");
   });
