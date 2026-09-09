@@ -1,4 +1,5 @@
 import type { MonitoreoAulasDosTasas } from "../../../../api/monitoreo";
+import { pendientesPorFacultad } from "./pendientesPorFacultad";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { ptsDeBanda, senalesPorAula, tasaEnPct, type AulaMedida } from "./senalesPorAula";
 import "./senalesPorAula.css";
@@ -34,26 +35,10 @@ function detalleDeLista(a: AulaMedida): string {
   return partes.join(" · ");
 }
 
-/**
- * La línea de un pendiente: su estado literal primero —es lo que lo distingue
- * de otro pendiente— y lo que el diseño espera de él, nunca una observada que
- * no existe.
- */
-function detalleDePendiente(a: AulaMedida): string {
-  const partes: string[] = [a.estadoOperativo ?? "aún sin gestión"];
-  if (a.facultad) partes.push(a.facultad);
-  // `pctPerfil` directo y no `tasaEnPct`: la prevista ya está comprobada no
-  // nula, y el guard de cifras crudas (`cifrasConFormato.test.ts`) reconoce a
-  // los formateadores del perfil por su nombre.
-  if (a.tasaPrevista != null && a.elegibles != null) {
-    partes.push(`prevista ${pctPerfil(a.tasaPrevista * 100)} de ${fmt(a.elegibles)} elegibles`);
-  } else if (a.tasaPrevista != null) {
-    partes.push(`prevista ${pctPerfil(a.tasaPrevista * 100)}`);
-  } else if (a.elegibles != null) {
-    partes.push(`${fmt(a.elegibles)} elegibles`);
-  }
-  return partes.join(" · ");
-}
+/* `detalleDePendiente()` se retiro el 2026-09-09 con la lista uno-a-uno que
+   alimentaba: los pendientes se agrupan por facultad y su detalle lo arma
+   `pendientesPorFacultad.ts`. El curso-horario suelto sigue alcanzable en
+   «Avance por curso-horario», en Resumen. */
 
 /** La línea de un retirado: el estado literal ES el motivo, y viaja tal cual. */
 function detalleDeRetirada(a: AulaMedida): string {
@@ -281,13 +266,36 @@ export function AulasSenalesPorAula({
             {pendientes.length === 1
               ? "curso-horario aún sin aplicar"
               : "cursos-horario aún sin aplicar"}{" "}
-            — se enseña lo que se espera de cada uno; el rendimiento se juzga
-            recién cuando se apliquen
+            — por facultad, con lo que se espera de cada una; el rendimiento se
+            juzga recién cuando se apliquen
           </summary>
+          {/* **Agrupados por facultad, no uno a uno.** Eran 161 renglones de
+              «CH 1 · planificada · CIENCIAS E INGENIERIA · prevista 51.9 % de 28
+              elegibles» en cuatro columnas de texto micro; Gonzalo, el
+              2026-09-09: «toda la parte de abajo de aquí también». Una lista de
+              161 códigos no se lee, y lo que se busca en un pendiente es DÓNDE
+              está y CUÁNTO promete: eso son doce líneas.
+
+              No esconde nada: cada curso-horario suelto sigue alcanzable en
+              «Avance por curso-horario», en Resumen, que desde el mismo día trae
+              su selector de rol. */}
           <ul className="aulas-dt-lista">
-            {pendientes.map((a) => (
-              <li key={a.clave}>
-                {a.codigo} <em>{detalleDePendiente(a)}</em>
+            {pendientesPorFacultad(pendientes).map((f) => (
+              <li key={f.facultad}>
+                {f.facultad}{" "}
+                <em>
+                  {fmt(f.cursosHorario)}{" "}
+                  {f.cursosHorario === 1 ? "curso-horario" : "cursos-horario"}
+                  {" ("}
+                  {f.estados.map((e, i) => (
+                    <span key={e.estado}>{i > 0 ? ", " : ""}{fmt(e.n)} {e.estado}</span>
+                  ))}
+                  {")"}
+                  {f.elegibles > 0 ? <> · {fmt(f.elegibles)} elegibles</> : null}
+                  {f.tasaPrevista != null ? (
+                    <> · prevista {pctPerfil(f.tasaPrevista * 100)}</>
+                  ) : null}
+                </em>
               </li>
             ))}
           </ul>

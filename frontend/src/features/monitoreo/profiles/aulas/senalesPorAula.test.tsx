@@ -277,7 +277,22 @@ describe("AulasSenalesPorAula proyecta sin veredictos", () => {
     // La clasificación por estado la dice el motor (M4), no una copia local.
     expect(plano).toContain("ESTADOS-DEL-MOTOR");
     // Lo que se espera del pendiente, sin una observada fantasma.
-    expect(plano).toMatch(/prevista 60[.,]0 % de 40 elegibles/);
+    //
+    // **Se pide por FACULTAD y no por curso-horario desde el 2026-09-09**: los
+    // pendientes se listaban uno a uno y en el operativo real eran 161
+    // renglones en cuatro columnas de texto micro. Gonzalo: «toda la parte de
+    // abajo de aquí también». Lo que el contrato exige sigue igual —la prevista
+    // y los elegibles del pendiente, y NUNCA una observada— sólo que del grupo;
+    // los elegibles ahora son la suma, y la prevista va ponderada por ellos
+    // (`pendientesPorFacultad.ts`), no promediada.
+    // La fixture trae uno agendado y otro planificado, y el grupo los declara
+    // POR SEPARADO: son dos remedios distintos —uno se espera, el otro se
+    // agenda— y un total indistinto los borraría.
+    expect(plano).toMatch(/2 cursos-horario \(\s*1 agendada\s*,\s*1 planificada\s*\)/);
+    expect(plano).toMatch(/80 elegibles/);
+    expect(plano).toMatch(/prevista 60[.,]0 %/);
+    // Y sigue sin publicar una observada para algo que no se ha aplicado.
+    expect(plano).not.toMatch(/va en .*%.*planificada/);
   });
 
   it("el umbral de la banda sale del payload, no de un «±25 puntos» tecleado (M4)", () => {
