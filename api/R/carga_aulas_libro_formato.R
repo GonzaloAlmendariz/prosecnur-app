@@ -351,6 +351,20 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #' el texto mas largo de cada columna —cabecera incluida— y se acota, porque una
 #' columna de observaciones libre puede traer 300 caracteres y dejaria la hoja
 #' inservible.
+# Si la primera columna de la hoja es el identificador de fila (`ID MATCH`).
+# Se mira su contenido, no el nombre de la hoja: es el mismo criterio de anclaje
+# por rótulo que usa el resto del libro.
+.calf_col1_es_identificador <- function(wb, hoja) {
+  datos <- tryCatch(
+    openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE, skipEmptyRows = FALSE,
+                           skipEmptyCols = FALSE, rows = 1:3),
+    error = function(e) NULL
+  )
+  if (is.null(datos) || !ncol(datos)) return(FALSE)
+  v <- toupper(trimws(as.character(datos[[1]])))
+  any(!is.na(v) & v == "ID MATCH")
+}
+
 .calf_anchos <- function(wb, hoja, n_col) {
   datos <- openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE,
                                   skipEmptyRows = FALSE, skipEmptyCols = FALSE)
@@ -433,9 +447,28 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # primero desperdiciaba media columna y el segundo cortaba el titulo. Se
     # mide el contenido real —cabecera incluida— y se acota entre 9 y 42 para
     # que ninguna columna se coma la pantalla ni quede ilegible.
-    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col),
-                           widths = .calf_anchos(wb, hoja, n_col))
-    openxlsx::setColWidths(wb, hoja, cols = 1, widths = 11)
+    anchos_hoja <- .calf_anchos(wb, hoja, n_col)
+    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col), widths = anchos_hoja)
+    # **La columna 1 se estrecha a 11 SÓLO si es el identificador.**
+    #
+    # El 11 existe para `ID MATCH`, que son ocho caracteres y va congelado a la
+    # izquierda: estrecharlo deja sitio a lo que importa. Pero se aplicaba a
+    # TODAS las hojas de este bucle, y la primera columna del «Plan del día» es
+    # «FECHA AGENDADA» —catorce— con la columna «DÍA» ocupada al lado, así que
+    # su cabecera salía cortada en «FECHA AGEND». Se pregunta por el RÓTULO y no
+    # por el nombre de la hoja: una hoja nueva con identificador lo hereda sola,
+    # y una sin él conserva el ancho que su contenido pidió.
+    #
+    # Y donde NO es el identificador tampoco vale el ancho derivado a secas: la
+    # columna 1 lleva también las bandas de bloque —«IDENTIFICACIÓN DEL
+    # CURSO-HORARIO», treinta y dos caracteres— que se derraman sobre celdas
+    # vacías y no necesitan columna. Contándolas, «Plan del día» pedía 39 y se
+    # comía media pantalla. Se acota en 16, que es lo que pide la cabecera de
+    # primera columna más larga del libro («FECHA AGENDADA») con su margen.
+    openxlsx::setColWidths(
+      wb, hoja, cols = 1,
+      widths = if (.calf_col1_es_identificador(wb, hoja)) 11 else min(anchos_hoja[[1]], 16)
+    )
     # El autofiltro sobre la ULTIMA fila de cabecera: con dos filas —la banda de
     # bloques y los titulos— Excel filtra por la de abajo, que es la que tiene
     # los nombres. Sin esto, buscar una facultad en 951 filas era desplazarse a

@@ -1145,3 +1145,25 @@ test_that("B22: sin el dato, las celdas callan en vez de inventar un reparto", {
   expect_identical(.pd_celdas(hoja, "ESPERADAS POR SEXO")[[1]], "")
   expect_identical(.pd_celdas(hoja, "OBTENIDAS")[[1]], "")
 })
+
+test_that("la primera columna sólo se estrecha a 11 cuando es el identificador", {
+  # El 11 existe para «ID MATCH», que son ocho caracteres y va congelado. Se
+  # aplicaba a TODAS las hojas de datos, y la primera del «Plan del día» es
+  # «FECHA AGENDADA» —catorce— con «DÍA» ocupada al lado: su cabecera salía
+  # cortada en «FECHA AGEND». Se vio abriendo el libro.
+  skip_if_not_installed("openxlsx")
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.pd_plan(), libro)
+  wb <- openxlsx::loadWorkbook(libro)
+  ancho1 <- function(hoja) {
+    a <- wb$colWidths[[which(names(wb) == hoja)]]
+    suppressWarnings(as.numeric(a[names(a) == "1"]))
+  }
+  # Donde SÍ hay identificador se conserva el 11.
+  expect_equal(ancho1("Aulas Agendadas"), 11)
+  # Donde no, cabe la cabecera entera y no se dispara con la banda de bloque,
+  # que se derrama sobre celdas vacías y no necesita columna.
+  expect_gte(ancho1("Plan del día"), nchar("FECHA AGENDADA"))
+  expect_lte(ancho1("Plan del día"), 16)
+})
+
