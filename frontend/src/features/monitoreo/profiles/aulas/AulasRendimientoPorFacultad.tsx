@@ -6,7 +6,7 @@ import { personasPorAula } from "./redondeoConservador";
 import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import { nombreDeAplicador } from "./nombreDeAplicador";
 
 /**
@@ -17,7 +17,10 @@ import { nombreDeAplicador } from "./nombreDeAplicador";
  * asistencia deja más que una pequeña que «cumple».
  */
 
-const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-PE")} %`);
+/* El porcentaje del perfil. `toLocaleString` a secas no acota decimales: una
+   tasa que llegue con tres los publicaba con tres, al lado de paneles que
+   escriben uno. La ausencia sigue siendo «—», que es de este panel. */
+const pct = (n: number | null) => (n == null ? "—" : pctPerfil(n));
 
 export function AulasRendimientoPorFacultad({
   partes, plan, clave = "faculty", unidad = "Facultad", explicaLasColumnas = true,

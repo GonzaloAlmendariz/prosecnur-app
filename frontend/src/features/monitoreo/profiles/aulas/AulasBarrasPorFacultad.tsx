@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { barrasPorFacultad, type FilaDeFacultad } from "./barrasPorFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import "./aulasBarrasPorFacultad.css";
 
@@ -141,8 +141,19 @@ export function AulasBarrasPorFacultad({
   );
 }
 
+/**
+ * El porcentaje del perfil, no uno propio.
+ *
+ * Tenía `toFixed(1).replace(".0", "")`, que se comía el decimal cuando era cero:
+ * este panel publicaba «28 %» y «0 %» mientras «Cumplimiento de la cuota»,
+ * tres centímetros más arriba en la MISMA pestaña, publicaba «28.0 %» y
+ * «0.0 %». La misma magnitud escrita de dos formas en una pantalla.
+ *
+ * `pctPerfil` recibe de 0 a 100 y no multiplica; aquí el avance viene como
+ * proporción, así que se escala en la llamada.
+ */
 function pct(avance: number): string {
-  return `${(avance * 100).toFixed(1).replace(".0", "")} %`;
+  return pctPerfil(avance * 100);
 }
 
 /** La fila «Total» de la cabecera: suma de metas y de logrados, por sexo. */
