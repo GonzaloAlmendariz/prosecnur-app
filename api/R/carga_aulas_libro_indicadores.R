@@ -202,22 +202,25 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 # tabla y no se lee como parte del bloque. Aquí se fusiona a lo ancho de la
 # hoja, baja de línea y su fila crece lo que el texto necesita.
 #
-# Los caracteres que caben por línea salen de los anchos que fija esta misma
-# hoja al final: A = 34 caracteres y el resto 16, que es lo que `setColWidths`
-# pide al cierre de `aulas_libro_escribir_indicadores`. Si esos anchos cambian,
-# cambia aquí el reparto, no el mecanismo.
-.cai_chars_por_linea <- function(n_hoja) {
+# Los caracteres que caben por línea son la SUMA de los anchos reales de la
+# hoja. Antes esta función los suponía —«A = 34 y el resto 16»— y el día que los
+# anchos pasaron a derivarse del contenido (`.cai_anchos_columna`) la suposición
+# habría quedado corta sin que nada fallara: la nota se envuelve igual y sólo el
+# ALTO de su fila sale mal, que es un defecto que no rompe ningún test y se ve
+# como un hueco raro encima de la tabla. Se le pasan los anchos cuando se tienen.
+.cai_chars_por_linea <- function(n_hoja, anchos = NULL) {
+  if (length(anchos)) return(max(20L, as.integer(sum(anchos))))
   n_hoja <- max(1L, as.integer(n_hoja))
   34L + 16L * (n_hoja - 1L)
 }
 
-.cai_nota <- function(wb, hoja, fila, texto, estilo, n_hoja) {
+.cai_nota <- function(wb, hoja, fila, texto, estilo, n_hoja, anchos = NULL) {
   texto <- as.character(texto %||% "")[1]
   if (is.na(texto)) texto <- ""
   openxlsx::writeData(wb, hoja, texto, startCol = 1, startRow = fila)
   openxlsx::mergeCells(wb, hoja, cols = seq_len(n_hoja), rows = fila)
   openxlsx::addStyle(wb, hoja, estilo, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
-  lineas <- max(1L, ceiling(nchar(texto, type = "chars") / .cai_chars_por_linea(n_hoja)))
+  lineas <- max(1L, ceiling(nchar(texto, type = "chars") / .cai_chars_por_linea(n_hoja, anchos)))
   openxlsx::setRowHeights(wb, hoja, rows = fila, heights = 15 * lineas + 2)
   invisible(fila)
 }
@@ -252,6 +255,35 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   ind <- if (is.list(ind)) ind else list()
   ancho_de <- function(df) if (is.data.frame(df) && nrow(df)) ncol(df) else 0L
   max(2L, 4L, vapply(AULAS_AVANCE_CAMPOS, function(k) ancho_de(ind[[k]]), integer(1)))
+}
+
+#' El ancho de cada columna, DERIVADO del contenido de las cinco tablas.
+#'
+#' **Un 16 plano cortaba los nombres.** Se vio abriendo el libro: la columna 2
+#' es «Total» en el avance general y «Aplicador» en la producción, y con dieciséis
+#' caracteres «Panta Gutierrez, Percy Aarón» salía como «Panta Gutierrez, Perc».
+#' Un nombre a medias en una tabla que existe para saber a quién empujar es el
+#' peor sitio donde ahorrar espacio.
+#'
+#' Se toma el máximo de lo que ocupa esa columna en CUALQUIERA de las tablas
+#' —incluida su cabecera, que baja de línea y por eso cuenta a la mitad— con
+#' suelo en 16 para que las columnas de cifras no se estrechen y techo en 42
+#' para que una observación larga no empuje la hoja a lo ancho. Misma idea que
+#' `.maaf_anchos_px()` en Sheets: el ancho lo decide el contenido.
+#' @keywords internal
+.cai_anchos_columna <- function(ind) {
+  n <- .cai_ancho_hoja(ind)
+  tablas <- Filter(function(df) is.data.frame(df) && nrow(df),
+                   lapply(unname(AULAS_AVANCE_CAMPOS), function(k) ind[[k]]))
+  vapply(seq_len(n), function(j) {
+    largos <- unlist(lapply(tablas, function(df) {
+      if (j > ncol(df)) return(0L)
+      c(nchar(names(df)[[j]], type = "chars") %/% 2L,
+        if (is.character(df[[j]])) nchar(df[[j]], type = "chars") else 0L)
+    }), use.names = FALSE)
+    largos <- largos[is.finite(largos)]
+    as.integer(min(42L, max(if (j == 1L) 34L else 16L, if (length(largos)) max(largos) + 2L else 0L)))
+  }, integer(1))
 }
 
 # --- El SEMÁFORO de la hoja, el mismo criterio en los dos renderers -----------
@@ -349,6 +381,9 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
                                    borderColour = "#C7D0DD")
   etiqueta <- openxlsx::createStyle(fontColour = "#5B6472")
   n_hoja <- .cai_ancho_hoja(ind)
+  # Los mismos anchos que se fijan al cierre: las notas los necesitan para saber
+  # cuántas líneas ocupan y darle a su fila el alto justo.
+  anchos_col <- .cai_anchos_columna(ind)
   # S2: las notas bajan de línea dentro de su fusión y se leen desde arriba.
   nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
   nota_pie <- openxlsx::createStyle(fontSize = 9, fontColour = "#5B6472", wrapText = TRUE,
@@ -397,7 +432,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     # C3: la sección no desaparece cuando no hay datos, dice por qué está vacía.
     if (!is.data.frame(tabla) || !nrow(tabla)) {
       if (!is.null(vacio)) {
-        .cai_nota(wb, hoja, fila, vacio, nota, n_hoja)
+        .cai_nota(wb, hoja, fila, vacio, nota, n_hoja, anchos_col)
         fila <<- fila + 2L
       } else {
         fila <<- fila + 1L
@@ -405,7 +440,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
       return(invisible(NULL))
     }
     if (!is.null(nota_arriba)) {
-      .cai_nota(wb, hoja, fila, nota_arriba, nota, n_hoja)
+      .cai_nota(wb, hoja, fila, nota_arriba, nota, n_hoja, anchos_col)
       fila <<- fila + 1L
     }
     # **El VALOR se redondea, no sólo su formato.** Una tasa llega como
@@ -498,7 +533,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     .cai_semaforo(wb, hoja, tabla, cabecera_en, traspuesta)
     fila <<- ultima + 2L
     if (!is.null(nota_abajo)) {
-      .cai_nota(wb, hoja, fila - 1L, nota_abajo, nota, n_hoja)
+      .cai_nota(wb, hoja, fila - 1L, nota_abajo, nota, n_hoja, anchos_col)
       fila <<- fila + 1L
     }
     invisible(NULL)
@@ -649,8 +684,8 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   }
 
   # La primera columna lleva rótulos y nombres de facultad; las demás, cifras.
-  openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
-  openxlsx::setColWidths(wb, hoja, cols = 2:max(4L, .cai_ancho_hoja(ind)), widths = 16)
+  # Anchos derivados del contenido, no un 16 plano: ver `.cai_anchos_columna()`.
+  openxlsx::setColWidths(wb, hoja, cols = seq_along(anchos_col), widths = anchos_col)
   openxlsx::pageSetup(wb, hoja, orientation = "portrait", fitToWidth = TRUE,
                       fitToHeight = FALSE)
   invisible(fila)

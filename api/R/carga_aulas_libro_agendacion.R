@@ -531,6 +531,9 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
   rejilla <- openxlsx::createStyle(border = "TopBottomLeftRight", borderColour = "#3C4149")
 
   n_hoja <- max(vapply(AULAS_AGENDACION_CABECERAS, length, integer(1)))
+  # Los mismos anchos que se fijan al cierre, para que la nota sepa cuántas
+  # líneas ocupa: 34 la primera columna y 16 las demás.
+  anchos_col <- c(34L, rep(16L, max(0L, n_hoja - 1L)))
   openxlsx::writeData(wb, hoja, "Avance de agendación", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
   # El corte sale del MODELO y no del reloj, igual que en la pestaña de Sheets:
@@ -553,7 +556,7 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
     tabla <- ag[[clave]]
     # C3: la sección no desaparece cuando no hay datos, dice por qué está vacía.
     if (!is.data.frame(tabla) || !nrow(tabla)) {
-      .cai_nota(wb, hoja, fila, unname(.calan_VACIOS[[clave]]), nota, n_hoja)
+      .cai_nota(wb, hoja, fila, unname(.calan_VACIOS[[clave]]), nota, n_hoja, anchos_col)
       fila <- fila + 2L
       next
     }
@@ -562,7 +565,7 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
     # de una columna de 34 caracteres y empujaba la tabla media pantalla hacia
     # abajo: se vio al abrir el libro, no en los tests, que sólo miraban que el
     # texto estuviera.
-    .cai_nota(wb, hoja, fila, unname(.calan_NOTAS[[clave]]), nota, n_hoja)
+    .cai_nota(wb, hoja, fila, unname(.calan_NOTAS[[clave]]), nota, n_hoja, anchos_col)
     fila <- fila + 1L
 
     n_col <- ncol(tabla)
