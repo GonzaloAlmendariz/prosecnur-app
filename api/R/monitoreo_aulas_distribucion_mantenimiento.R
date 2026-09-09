@@ -958,6 +958,15 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
       if (aplicar && length(out$fijaciones)) {
         aulas_cfg[["reparto_fijado"]] <- out$fijaciones
         cfg[["aulas_universitarias"]] <- monitoreo_aulas_normalize_config(aulas_cfg)
+        # **Y el destino se RECUERDA**, como ya hace publicar-distribucion.
+        #
+        # Sin esto, pegar el enlace aquí lo usaba y lo tiraba: la config seguía
+        # sin `distribucion_sheets`, y entonces la lectura previa que publicar
+        # hace de esta hoja salía `sin_destino` y no adoptaba nada. Visto en
+        # vivo el 2026-09-09: se sincronizó con el enlace, se publicó a
+        # continuación y el recibo dijo «adoptadas 0, motivo sin_destino». La
+        # red de seguridad existía y estaba desconectada por falta de una línea.
+        cfg <- monitoreo_aulas_distribucion_destino_set(cfg, destino)
         cfg <- .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
         .monitoreo_mark_project_dirty_if_open(sid)
       }
