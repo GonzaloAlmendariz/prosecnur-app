@@ -134,10 +134,28 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
             // que estaba en los dos lados. Acotado a [0, en juego] porque un
             // desglose incoherente no puede producir un numerador negativo ni
             // mayor que su total.
+            // **También hay dormidas fuera del balde `en_reserva`.**
+            //
+            // Sumaba `pendiente` + `lista` y le quitaba la reserva adicional,
+            // pero `pendiente` recoge además las reservas encadenadas con
+            // RECHAZO tecleado —4 sobre HSVG26ULT2 el 2026-09-08— que no están
+            // en juego y nadie descontaba: la frase decía «152 de 174» donde
+            // «Cursos-horario por cobertura», el panel de al lado, dice 148 sin
+            // respuestas.
+            //
+            // Cuántas son se deduce sin adivinar: el motor publica las dormidas
+            // (`reservas_dormidas`, 1 173) y el balde que pinta la barra
+            // (`en_reserva`, 1 169). La diferencia son las que duermen en otro
+            // balde. Un primer intento restó desde arriba —«en juego menos lo
+            // que está en campo»— y el test lo cazó: eso metía las REEMPLAZADAS
+            // entre las que «no salen a campo», y una reemplazada no espera
+            // salir.
             sinSalirACampo: acotar(
               estados
                 .filter((e) => e.clave === "pendiente" || e.clave === "lista")
-                .reduce((n, e) => n + e.aulas, 0) - (reservaMotor ?? 0),
+                .reduce((n, e) => n + e.aulas, 0)
+                - (reservaMotor ?? 0)
+                - Math.max(0, (dormidasMotor ?? 0) - (porClave.get("en_reserva") ?? 0)),
               enJuegoDe(estados, reservaMotor, total, dormidasMotor),
             ),
             // **El denominador de esa frase no es el total.**
@@ -247,6 +265,15 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
             banco» y «1.916 son reservas del banco»—, con la misma palabra
             para 507 y para 1.916. Las 507 están ENCADENADAS a un titular
             concreto; la reserva adicional es capacidad sin asignar. */}
+        {/* **Se intentó tomar las dormidas del balde `en_reserva` que pinta la
+            barra** —porque ésta dice «En reserva 1 169» y la frase «las otras
+            1 173»— y el test lo tumbó con razón: cuando la reserva adicional va
+            DENTRO de ese balde (el caso real de 1 424 filas con 77 adicionales),
+            el balde vale 1 250 y la frase habría dicho 1 250 en vez de 1 173,
+            contando la adicional dos veces.
+            Las 4 de diferencia de hoy son reservas dormidas con RECHAZO
+            tecleado: están dormidas —cuentan— aunque su titular ya no vaya a
+            liberarlas. */}
         {total > enJuego ? ` ${dondeEstanLasOtras(total - enJuego, reservaMotor ?? 0)}` : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}

@@ -275,3 +275,31 @@ describe("la reserva adicional no se descuenta dos veces", () => {
     expect(out).toContain("115");
   });
 });
+
+describe("las dormidas que caen FUERA del balde `en_reserva` tampoco salen a campo", () => {
+  it("descuenta las reservas con rechazo tecleado, que aterrizan en «pendiente»", () => {
+    // **El defecto, visto en pantalla el 2026-09-08.** El pie decía «152 de 174
+    // no salen a campo» mientras «Cursos-horario por cobertura», el panel de al
+    // lado, decía 148 sin respuestas. El numerador restaba la reserva adicional
+    // pero no las reservas encadenadas con RECHAZO tecleado, que el motor manda
+    // a `pendiente` y no a `en_reserva`: cuatro sobre HSVG26ULT2.
+    //
+    // Cuántas son se deduce sin adivinar: `reservas_dormidas` (1 173) menos el
+    // balde `en_reserva` (1 169).
+    const real = [
+      { clave: "pendiente", aulas: 106 },
+      { clave: "lista", aulas: 91 },
+      { clave: "en_aplicacion", aulas: 11 },
+      { clave: "cerrando", aulas: 15 },
+      { clave: "reemplazada", aulas: 0 },
+      { clave: "en_reserva", aulas: 1169 },
+    ];
+    const out = renderToStaticMarkup(
+      <AulasEstadoChart filas={[]} resumen={real as never} desconocidasMotor={0}
+        reservaMotor={45} dormidasMotor={1173} />,
+    );
+    // 106 + 91 − 45 de reserva adicional − 4 dormidas fuera del balde = 148.
+    expect(out).toContain("148 de 174");
+    expect(out).not.toContain("152 de 174");
+  });
+});
