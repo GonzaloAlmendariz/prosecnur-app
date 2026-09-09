@@ -9,6 +9,7 @@ import {
   type CandidatoDeReemplazo,
   type OrigenDeCandidato,
 } from "./candidatosDeReemplazo";
+import { pctPerfil } from "./kpisDeAulas";
 
 /**
  * A quién ir cuando un aula no sale.
@@ -60,7 +61,9 @@ const GRUPOS: Array<{ id: OrigenDeCandidato; titulo: string; pie: string }> = [
 // campo, que es la pantalla desde la que se abre este diálogo. Era el único que
 // pegaba el signo al número —«se parece 100%» junto a «68.9 %» dos pantallas
 // atrás—, y ese chip queda a un click del formulario que sí lo separa.
-const pct = (v: number) => `${Math.round(v * 100)} %`;
+/* El porcentaje del perfil. Redondeaba al entero, así que una tasa de 53,4 %
+   salía «53 %» aquí y «53.4 %» en el panel que abre este popover. */
+const pct = (v: number) => pctPerfil(v * 100);
 
 /**
  * El reparto por sexo del aula, en elegibles y en respuestas esperadas.
