@@ -1,0 +1,108 @@
+import type { ReactNode } from "react";
+
+import { fmt } from "./kpisDeAulas";
+import { aulasPorFacultad, filasAlfabeticas } from "./metasDeLaPestana";
+import type {
+  MonitoreoAulasPorFacultad,
+  MonitoreoAulasProyeccionFila,
+} from "../../../../api/monitoreo";
+import "./aulasMetas.css";
+
+const pct = (parte: number, total: number): string =>
+  total > 0 ? `${((100 * parte) / total).toFixed(1).replace(".", ",")} %` : "—";
+
+/**
+ * «Avance por facultad y sexo»: efectivas conseguidas contra la cuota de cada
+ * sexo, con las aulas de la facultad al lado.
+ *
+ * Mira HACIA ATRÁS —lo conseguido, sin proyectar nada—; la pregunta de si se va
+ * a llegar es del bloque «Metas y aulas». Son dos lecturas y las dos sirven,
+ * pero no se mezclan en la misma tabla: una barra que sumara lo proyectado
+ * dejaría de decir dónde estamos.
+ *
+ * **Las dos columnas de aulas van en la fila de la FACULTAD, no en las de
+ * sexo** (dictado suyo, 2026-09-09: «en Avance por facultad y sexo pon una
+ * columna de cuántas aulas se han aplicado y cuántas se tienen planificadas»).
+ * Un aula no se reparte entre hombres y mujeres —la misma visita da de los
+ * dos—, así que repetirla en los dos carriles diría que hay aulas de hombres y
+ * aulas de mujeres.
+ *
+ * «Planificadas» son los TITULARES del sorteo. Las reservas no se planifican:
+ * se activan cuando una titular se cae, y contarlas daría las 1 392 filas del
+ * banco, que no es el objetivo de nadie.
+ */
+export function AulasMetasAvance({ filas, aulas }: {
+  filas: ReadonlyArray<MonitoreoAulasProyeccionFila> | null;
+  aulas: ReadonlyArray<MonitoreoAulasPorFacultad> | null | undefined;
+}): ReactNode {
+  const orden = filasAlfabeticas(filas);
+  if (!orden.length) return null;
+  const porFacultad = aulasPorFacultad(aulas);
+  return (
+    <div className="aulas-metas-scroll">
+      <table className="aulas-metas-tabla">
+        <thead>
+          <tr>
+            <th className="es-izq">Facultad</th>
+            <th className="es-izq" />
+            <th className="es-izq">Avance</th>
+            <th>%</th>
+            <th>Efectivas</th>
+            <th>Meta</th>
+            <th>Faltan</th>
+            <th>Aulas aplicadas</th>
+            <th>Aulas planificadas</th>
+          </tr>
+        </thead>
+        {orden.map((f) => {
+          const a = porFacultad.get(f.facultad);
+          const carriles = [
+            ["Hombres", f.obtenidas_M, f.meta_M],
+            ["Mujeres", f.obtenidas_F, f.meta_F],
+          ] as const;
+          return (
+            <tbody key={f.facultad}>
+              <tr className="es-facultad">
+                <td colSpan={7}>
+                  <span className="aulas-sexo-chip">{f.facultad}</span>
+                </td>
+                {/* Sin dato de aulas se escribe «—» y no un cero: una facultad
+                    sin aulas planificadas no existe, y el cero lo afirmaría. */}
+                <td className="es-num">{a ? fmt(a.aplicadas) : "—"}</td>
+                <td className="es-num">{a ? fmt(a.planificadas) : "—"}</td>
+              </tr>
+              {carriles.map(([sexo, obtenidas, meta]) => {
+                const faltan = Math.max(0, meta - obtenidas);
+                const avance = meta > 0 ? Math.min(100, (100 * obtenidas) / meta) : 0;
+                return (
+                  <tr key={sexo}>
+                    <td />
+                    <td className="es-sexo">
+                      <span className="aulas-sexo-chip">{sexo}</span>
+                    </td>
+                    <td>
+                      {/* La barra llega hasta donde llega el avance: el carril
+                          entero es la meta, así que un carril a medias se lee
+                          sin mirar el número. */}
+                      <div className="aulas-metas-gauge">
+                        <i className="es-aplicado" style={{ width: `${avance}%` }} />
+                      </div>
+                    </td>
+                    <td className="es-num">{pct(obtenidas, meta)}</td>
+                    <td className="es-num">{fmt(Math.round(obtenidas))}</td>
+                    <td className="es-num">{fmt(Math.round(meta))}</td>
+                    <td className={`es-num${faltan > 0 ? " es-falta" : ""}`}>
+                      {fmt(Math.round(faltan))}
+                    </td>
+                    <td />
+                    <td />
+                  </tr>
+                );
+              })}
+            </tbody>
+          );
+        })}
+      </table>
+    </div>
+  );
+}
