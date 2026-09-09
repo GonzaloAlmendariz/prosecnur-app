@@ -54,11 +54,10 @@ export function AulasPestanaEstratos({
             >
               <div className="mon-profile-panel-head">
                 <h3>Dónde se concentra lo que falta</h3>
-                <span>estratos del sorteo con más brecha · qué parte de lo que falta está en ellos</span>
+                <span>grupos de facultad y sexo con más por recoger · qué parte de lo que falta está en ellos</span>
               </div>
               <AulasBrechaConcentrada
-                filas={estratoRowsLegibles}
-                metaPorCursoHorario={Number(dashboard?.cumplimiento_respuestas?.meta) || null}
+                filas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
               />
             </section>
             <section
@@ -73,7 +72,16 @@ export function AulasPestanaEstratos({
                     Metas, puesto aquí. Estratos se quedaba con media pestaña de
                     lo suyo. El gráfico se mudó a Metas —donde además su lectura
                     se entiende, porque proyecta— y aquí queda el estrato. */}
-                <h3>Avance y brecha por estrato del sorteo</h3>
+                {/* **Ya no se llama «estrato», porque no lo es.** Gonzalo, dos
+                    veces —2026-08-29 y 2026-09-09—: «los estratos son hombre y mujer
+                    de cada facultad, punto». La clave de esta tabla es la del SORTEO
+                    (`facultad / sexo dominante del aula / tramo de tamaño`) y ese
+                    sexo es el del AULA, no el del alumno: «mayoría mujeres» no dice
+                    nada de cuántas mujeres se recogieron. El estrato de verdad lo
+                    dibuja el panel de arriba. Esto es el reparto con el que se
+                    sorteó, que sigue siendo útil para ver si el sorteo cubrió sus
+                    cortes, y se nombra por lo que es. */}
+                <h3>Cómo se repartió el sorteo</h3>
                 {/* El subtítulo decía «N filas», que es lo único que la tabla de
                     abajo ya enseña por sí sola. «Estrato» es la única palabra
                     técnica de esta pestaña que no se explica en ninguna parte:
@@ -89,7 +97,7 @@ export function AulasPestanaEstratos({
                     (174): no es un error de cuenta, es que el estrato mide contra la
                     meta POR CURSO-HORARIO y la cuota mide contra la del estudio. Sin
                     decirlo, quien encuentra la diferencia desconfía de las dos. */}
-                <span>{fmt(estratoRows.length)} estratos de diseño · lo que falta se mide contra la meta por curso-horario, no contra la cuota</span>
+                <span>{fmt(estratoRows.length)} cortes del sorteo · lo que falta se mide contra la meta por curso-horario, no contra la cuota</span>
               </div>
               {/* **Una tabla, y con razón.** Es la única forma de la sección que
                   se lee buscando UNA fila concreta entre decenas de estratos; un
