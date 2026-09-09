@@ -82,8 +82,22 @@ AULAS_AVANCE_CABECERAS <- list(
     "Aulas adicionales solicitadas hasta el momento"
   ),
   aplicador = c(
-    "Facultad", "Aplicador", "Aulas aplicadas",
-    "Fichas en la base", "Fichas faltantes",
+    "Facultad", "Aplicador",
+    # **«Asignadas» antes que «aplicadas», y «esperadas» antes que «en la
+    # base».** Las dos son añadidos al dictado, no reemplazos, y existen porque
+    # sin ellas la tabla no se deja leer: el 2026-09-08 tenía 72 filas y sólo 14
+    # con un aula aplicada. Las otras 58 salían con ceros y tasas vacías, y no
+    # había forma de distinguir a quien va retrasado de quien todavía no tiene
+    # nada que hacer — la fila es idéntica. Con «Aulas asignadas» al lado, un
+    # «0 de 3» dice «le tocan tres» y un «0 de 0» dice «no le toca nada».
+    #
+    # «Fichas esperadas» hace lo mismo por «Fichas faltantes»: una brecha sin su
+    # denominador es un número suelto. Es la misma cifra que «Efectivas
+    # esperadas» de «Rendimiento por facultad», restringida a las aulas de esa
+    # persona; se llama «fichas» porque es la palabra con la que esta tabla fue
+    # dictada y cambiarla aquí abriría dos nombres para lo mismo en una hoja.
+    "Aulas asignadas", "Aulas aplicadas",
+    "Fichas esperadas", "Fichas en la base", "Fichas faltantes",
     "Tasa de rendimiento esperada en facultad",
     "Tasa de rendimiento obtenida",
     "Aplicaciones regulares", "Aplicaciones especial mañana",

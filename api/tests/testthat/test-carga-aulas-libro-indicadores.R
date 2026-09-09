@@ -166,7 +166,17 @@ test_that("un aplicador que todavía no recibe nada aparece, no desaparece", {
   b <- ind$aplicadores[ind$aplicadores$Aplicador == "Equipo B", ]
   expect_equal(nrow(b), 1L)
   expect_equal(b[["Aulas aplicadas"]], 0L)
-  expect_equal(b[["Fichas en la base"]], 0)
+  # Pero SÍ dice cuántas le tocan, que es lo que distingue a quien va retrasado
+  # de quien no tiene nada que hacer todavía. Sin esta columna las dos filas
+  # eran idénticas, y la hoja tenía 58 así de 72.
+  expect_equal(b[["Aulas asignadas"]], 1L)
+  # **Y las tres cifras de fichas callan, no dicen cero.** Un «0 en la base, 0
+  # faltantes» se lee como que fue y no sacó nada. Antes esta línea pinaba el
+  # cero; el 2026-09-08 pasa a callar, por la misma razón por la que la tasa de
+  # la línea siguiente ya callaba.
+  expect_true(is.na(b[["Fichas esperadas"]]))
+  expect_true(is.na(b[["Fichas en la base"]]))
+  expect_true(is.na(b[["Fichas faltantes"]]))
   # Sin aula aplicada no hay denominador: la tasa calla en vez de decir cero.
   expect_true(is.na(b[["Tasa de rendimiento obtenida"]]))
 })
