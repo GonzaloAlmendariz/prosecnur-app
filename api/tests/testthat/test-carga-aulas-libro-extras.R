@@ -46,6 +46,9 @@
 
 .ext_hojas_hoy <- c("Aulas Agendadas", "Aulas Aplicadas (Campo)",
                     "Base de control", "Plan del día", "Avance de campo",
+                    # Entró el 2026-09-09, detrás del avance: qué se consiguió
+                    # agendar, con los reemplazos dentro.
+                    "Avance de agendación",
                     "Listas")
 
 # --- fixture: 1 titular de contraste + extras de dos facultades ---------------

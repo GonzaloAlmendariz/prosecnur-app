@@ -232,18 +232,20 @@ test_that("el ENLACE de la ficha es el link de la fila", {
 
 # --- B. su sitio en el libro -------------------------------------------------
 
-test_that("el libro trae SEIS hojas con «Plan del día» en la posición 4", {
+test_that("el libro trae SIETE hojas con «Plan del día» en la posición 4", {
   libro <- withr::local_tempfile(fileext = ".xlsx")
   aulas_libro_generar(.pd_plan(), libro)
   hojas <- readxl::excel_sheets(libro)
-  expect_length(hojas, 6L)
+  # Siete desde el 2026-09-09: «Avance de agendación» entró detrás del avance.
+  expect_length(hojas, 7L)
   # Después de «Base de control», ANTES de «Avance de campo»: quien abre el
   # libro para agendar sigue aterrizando en su hoja, y los indicadores siguen
   # penúltimos (lo pinea test-carga-aulas-libro-indicadores.R).
   expect_identical(hojas[[4]], "Plan del día")
   # A13a (2026-08-31): era «Cómo va el campo»; Gonzalo: «es AVANCE».
   expect_identical(hojas[[5]], "Avance de campo")
-  expect_identical(hojas[[6]], "Listas")
+  expect_identical(hojas[[6]], "Avance de agendación")
+  expect_identical(hojas[[7]], "Listas")
 })
 
 test_that("es hoja DE IDA: reimportar el libro no falla ni pierde nada", {
