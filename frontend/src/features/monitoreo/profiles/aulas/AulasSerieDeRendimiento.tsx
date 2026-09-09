@@ -1599,8 +1599,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       <div className="aulas-serie-bloque"
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-serie-rotulo">
+          {/* **La FUENTE, porque este bloque y el de arriba no cuentan lo
+              mismo.** El acumulado suma encuestas del PARTE DE CAMPO —y lo dice
+              en su rótulo—; estas barras salen de la tabla «Avance diario» del
+              motor, que cuenta efectivas de PLATAFORMA. Medido el 2026-09-08:
+              aquí 329 + 165 = 494 y el acumulado, tres centímetros más arriba,
+              termina en 298. Sin nombrar las dos fuentes, el acumulado parecía
+              menor que la suma de sus propios días. */}
           <b>Día a día <i>{jornadasEnElEje.length
-            ? "· efectivas del día, con lo esperado de fondo"
+            ? "· efectivas de plataforma del día, con lo esperado de fondo"
             : "· encuestas por curso-horario, con los elegibles de fondo"}</i></b>
           {/* **Las tres alturas, nombradas.** El gráfico dibujaba techo, vara y
               línea sin decir cuál era cuál: había que deducirlo del pie, tres
