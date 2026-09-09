@@ -179,6 +179,40 @@ test_that("un aplicador que todavía no recibe nada aparece, no desaparece", {
   expect_true(is.na(b[["Fichas faltantes"]]))
   # Sin aula aplicada no hay denominador: la tasa calla en vez de decir cero.
   expect_true(is.na(b[["Tasa de rendimiento obtenida"]]))
+  # Y la brecha calla con ella: un cero diría «va justo», que es lo contrario
+  # de «todavía no le ha tocado ir».
+  expect_true(is.na(b[["Diferencia de tasa"]]))
+})
+
+test_that("la brecha de tasa se dice, no se deja para restar de cabeza", {
+  # Dictado sobre esta tabla: «mejorar la tabla de Producción por aplicador para
+  # que sea más entendible». Sus dos hermanas ya traen la diferencia pegada a
+  # las dos tasas; aquí había que restar. Va ENTRE sus dos términos y las
+  # columnas de rango, no al final: «no pongas las metas todas al final».
+  cabecera <- AULAS_AVANCE_CABECERAS$aplicador
+  i <- which(cabecera == "Tasa de rendimiento obtenida")
+  expect_length(i, 1L)
+  expect_equal(cabecera[[i + 1L]], "Diferencia de tasa")
+  # Y se pinta como proporción, no como un número suelto: sin esto un −0,08
+  # saldría «-0,08» donde la hermana dice «-8,0 %».
+  expect_true("Diferencia de tasa" %in% AULAS_AVANCE_PROPORCIONES$aplicador)
+
+  # Y vale lo que promete el rótulo: obtenida menos esperada, con su signo.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         eligible_n = 100, expected_valid = 50, scheduled_time = "10:00"),
+    list(operational_code = "CH 2", sample_role = "titular", faculty = "Letras",
+         eligible_n = 100, expected_valid = 50, scheduled_time = "10:00")
+  )
+  # CH 1 la aplicó Equipo A y sacó 30 de 100 elegibles: 30 % obtenido contra el
+  # 50 % que la facultad espera de sus aulas.
+  ind <- prosecnurapp:::.calaa_produccion_por_aplicador(
+    plan, efectivas = c("CH 1" = 30), partes = list(),
+    asignados = list("CH 1" = "Equipo A", "CH 2" = "Equipo B"))
+  a <- ind[ind$Aplicador == "Equipo A", ]
+  expect_equal(a[["Tasa de rendimiento obtenida"]], 0.30)
+  expect_equal(a[["Tasa de rendimiento esperada en facultad"]], 0.50)
+  expect_equal(a[["Diferencia de tasa"]], -0.20)
 })
 
 test_that("los tres rangos de aplicación salen de la misma función que la Base de control", {
