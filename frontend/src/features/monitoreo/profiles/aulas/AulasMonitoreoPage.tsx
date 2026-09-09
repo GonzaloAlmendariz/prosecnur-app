@@ -1351,7 +1351,15 @@ export default function AulasMonitoreoPage() {
       // vuelve a componer para que no existan dos versiones del mismo recibo.
       setAviso({
         texto: res.aplicado ? res.resumen : `Ensayo: ${res.resumen}`,
-        tono: res.sin_aplicador.length || res.estado.conflictos.length ? "atencion" : "ok",
+        // Un aula CORREGIDA es motivo de atención aunque todo lo demás cuadre:
+        // significa que la hoja que los veintidós tienen abierta les estaba
+        // dando un aula que el libro ya había cambiado.
+        tono:
+          res.sin_aplicador.length ||
+          res.estado.conflictos.length ||
+          (res.aulas?.corregidas ?? 0) > 0
+            ? "atencion"
+            : "ok",
       });
       if (aplicar) await loadView(seccionActiva, true, true);
     } catch (cause) {

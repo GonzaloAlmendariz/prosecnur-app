@@ -658,7 +658,10 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "")
 #' la misma razón: son veintidós personas leyendo la hoja.
 #'
 #' Lo que NO hace, a propósito: no reasigna a nadie, no mueve una fila existente
-#' y no borra ninguna. Añade y actualiza el ESTADO; el resto es del coordinador.
+#' y no borra ninguna. Añade filas, actualiza el ESTADO y pone el AULA al día
+#' con el libro; el resto es del coordinador. El aula entra en la lista porque
+#' no es dato suyo —la pacta quien agenda, en LUGAR DE APLICACIÓN— y una copia
+#' vieja manda a alguien al aula equivocada.
 #'
 #' @param spreadsheet_id id o enlace del documento de la distribución.
 #' @param plan filas del plan.
@@ -668,7 +671,8 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "")
 #'   ventana entra TODO lo agendado**, que casi nunca es lo que se quiere: ver
 #'   la nota de `.madm_ventana_del_reparto()`.
 #' @param aplicar `TRUE` escribe; por defecto es un ensayo.
-#' @return lista `{ok, aplicado, hoja, anadidas, estado, fijaciones, sin_aplicador, …}`.
+#' @return lista `{ok, aplicado, hoja, anadidas, estado, aulas, fijaciones,
+#'   sin_aplicador, …}`.
 #' @export
 monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
                                                      plan = list(),
@@ -764,6 +768,12 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     )
   }
 
+  # 4 · el aula que el libro pacta, sobre las filas como van a quedar. Va
+  # DESPUÉS de intercalar las nuevas porque se escribe como una columna entera
+  # y su rango tiene que ser el mismo que el del ESTADO.
+  aulas <- tryCatch(monitoreo_aulas_aulas_distribucion(final_filas, plan),
+                    error = function(e) NULL)
+
   recibo <- list(
     ok = TRUE,
     aplicado = FALSE,
@@ -806,15 +816,24 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     ventana = faltan$ventana,
     # La columna que el equipo teclea: si la hoja aún no la tiene, esta acción
     # la crea en su sitio con su desplegable y sus colores.
-    columna_estado_nueva = is.na(c_estado)
+    columna_estado_nueva = is.na(c_estado),
+    # **El aula la manda el libro, no esta hoja.** El ESTADO es del coordinador
+    # y no se pisa; el aula la pacta quien agenda y aquí sólo vive una copia,
+    # que envejece. Cada corrección viaja con su antes y su después.
+    aulas = list(
+      rellenadas = as.integer((aulas %||% list())[["rellenadas"]] %||% 0L),
+      corregidas = as.integer((aulas %||% list())[["corregidas"]] %||% 0L),
+      sin_dato = as.integer((aulas %||% list())[["sin_dato"]] %||% 0L),
+      cambios = (aulas %||% list())[["cambios"]] %||% list()
+    )
   )
   if (!isTRUE(aplicar)) return(recibo)
 
   # --- el acto ---------------------------------------------------------------
   #
   # Nada de esto borra una celda escrita: se insertan filas nuevas y se
-  # reescribe UNA columna, la del ESTADO, con lo que el equipo tecleó ya
-  # respetado dentro.
+  # reescriben DOS columnas —la del ESTADO, con lo que el equipo tecleó ya
+  # respetado dentro, y la del AULA, que sigue al libro y nunca se blanquea.
   if (is.finite(ancho) && ancho < length(.alpa_CABECERA)) {
     # La rejilla tiene exactamente las columnas que se sembraron; escribir en la
     # de más allá rebota con «exceeds grid limits» sin tocar nada.
@@ -857,6 +876,22 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
       range = rango, majorDimension = "COLUMNS", values = list(as.list(final_estados)))))
   }
 
+  celdas_aula <- 0L
+  columna_aula <- (aulas %||% list())[["columna"]]
+  if (length(columna_aula) &&
+      ((aulas[["rellenadas"]] + aulas[["corregidas"]]) > 0L)) {
+    # Sólo si hay algo que cambiar: una escritura que reescribe la columna
+    # idéntica gasta un request y ensucia el historial de revisiones de un
+    # documento que veintidós personas tienen abierto.
+    c_aula <- .madm_col(cab, "AULA")
+    col_aula <- if (is.na(c_aula)) which(.alpa_CABECERA == "AULA")[[1L]] else c_aula
+    letra <- .madm_letra(col_aula)
+    celdas_aula <- .madm_escribir(id, list(list(
+      range = sprintf("%s!%s1:%s%d", .monitoreo_sheets_quote_sheet(hoja),
+                      letra, letra, length(columna_aula)),
+      majorDimension = "COLUMNS", values = list(as.list(columna_aula)))))
+  }
+
   # El formato de la app, reaplicado sobre el rango nuevo.
   #
   # **Las reglas condicionales se borran antes de reemitirse.** `addConditionalFormatRule`
@@ -876,6 +911,7 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
 
   recibo$aplicado <- TRUE
   recibo$celdas_estado <- celdas_estado
+  recibo$celdas_aula <- celdas_aula
   recibo$reglas_reemitidas <- TRUE
   recibo
 }
@@ -1043,6 +1079,9 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   n_sin <- length(out$sin_aplicador %||% list())
   n_con <- length((out$estado %||% list())$conflictos %||% list())
   n_dud <- length(out$dudosas %||% list())
+  aulas <- out$aulas %||% list()
+  n_rel <- as.integer(aulas$rellenadas %||% 0L)
+  n_cor <- as.integer(aulas$corregidas %||% 0L)
   n_orf <- length(out$sin_agenda %||% list())
   hecho <- isTRUE(out$aplicado)
   partes <- c(
@@ -1051,6 +1090,22 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
                        if (n_add == 1L) "" else "s", if (n_add == 1L) "" else "s"),
     if (n_est) sprintf("%s el estado de %d fila%s", if (hecho) "se actualizó" else "se actualizaría",
                        n_est, if (n_est == 1L) "" else "s"),
+    if (n_rel) sprintf("%s el aula de %d fila%s que la tenía en blanco",
+                       if (hecho) "se puso" else "se pondría", n_rel,
+                       if (n_rel == 1L) "" else "s"),
+    # **Las corregidas se listan una por una.** Un aula que la hoja daba por
+    # buena y el libro desmiente es la que manda a alguien al aula equivocada:
+    # un conteo la esconde entre las rellenadas, que son inofensivas.
+    if (n_cor) sprintf("%s %d aula%s que no coincidía%s con el libro (%s)",
+                       if (hecho) "se corrigieron" else "se corregirían", n_cor,
+                       if (n_cor == 1L) "" else "s", if (n_cor == 1L) "" else "n",
+                       paste(vapply(Filter(function(c) identical(c$motivo, "corregida"),
+                                           aulas$cambios %||% list()),
+                                    function(c) sprintf("%s %s → %s",
+                                                        .alpa_txt(c$curso_horario, "?"),
+                                                        .alpa_txt(c$antes, "?"),
+                                                        .alpa_txt(c$despues, "?")),
+                                    character(1)), collapse = "; ")),
     if (n_con) sprintf("%d fila%s marcada%s RECHAZADA tiene%s respuestas en plataforma y no se tocó",
                        n_con, if (n_con == 1L) "" else "s", if (n_con == 1L) "" else "s",
                        if (n_con == 1L) "" else "n"),
