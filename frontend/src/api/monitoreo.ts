@@ -1038,6 +1038,67 @@ export type MonitoreoAulasCandidatoDirigido = {
  * Lista vacía significa que no hay decisión que tomar —ninguna celda en
  * déficit, o el estudio no tiene banco—, no que el dato falte.
  */
+/**
+ * Una facultad en la proyección de metas, tal como la emite
+ * `monitoreo_aulas_proyeccion_metas()`. **El supuesto viaja con el dato**: quien
+ * dibuje la barra tiene que poder escribirlo al pie sin ir a buscarlo.
+ */
+export type MonitoreoAulasProyeccionFila = {
+  facultad: string;
+  /** La meta de la combinación elegida, ya escalada por `factor_meta`. */
+  meta: number;
+  meta_M: number;
+  meta_F: number;
+  /** Lo que ya está conseguido y cuenta. */
+  obtenidas: number;
+  obtenidas_M: number;
+  obtenidas_F: number;
+  aulas_aplicadas: number;
+  aulas_agendadas: number;
+  /** Elegibles de lo agendado y todavía sin aplicar: la base de la proyección. */
+  elegibles_agendados: number;
+  /** La tasa con la que se proyecta, y de cuál de las dos salió. */
+  tasa_usada: number | null;
+  tasa_es_del_diseno: boolean;
+  tasa_diseno: number | null;
+  /**
+   * La tasa obtenida en campo, con el material para juzgarla —aulas aplicadas,
+   * elegibles y distancia a la del diseño—. No hay umbral que la vuelva fiable,
+   * así que el motor no emite un booleano que mienta: emite de qué depende.
+   */
+  tasa_obtenida: number | null;
+  elegibles_aplicados: number;
+  desvio_de_la_del_diseno: number | null;
+  /** Lo que sumaría lo agendado si se aplica entero a esa tasa. */
+  proyectadas: number | null;
+  proyectadas_M: number | null;
+  proyectadas_F: number | null;
+  /** `obtenidas + proyectadas`, y lo que le falta a la meta. */
+  total: number;
+  brecha: number;
+  llega: boolean;
+  meta_elegida: "muestra" | "sobremuestra";
+  factor_meta: number;
+  /** Vacío cuando no aplica; nunca ausente. */
+  supuesto_meta: string;
+  supuesto_sexo: string;
+};
+
+/** Las cuatro combinaciones, ya calculadas por el motor. */
+export type MonitoreoAulasProyeccionMetas = {
+  muestra_diseno?: MonitoreoAulasProyeccionFila[];
+  muestra_obtenida?: MonitoreoAulasProyeccionFila[];
+  sobremuestra_diseno?: MonitoreoAulasProyeccionFila[];
+  sobremuestra_obtenida?: MonitoreoAulasProyeccionFila[];
+};
+
+/** Aulas planificadas (titulares) y aplicadas de una facultad. */
+export type MonitoreoAulasPorFacultad = {
+  facultad: string;
+  planificadas: number;
+  aplicadas: number;
+};
+
 export type MonitoreoAulasReservaDirigida = {
   faculty: string;
   sex: string;
@@ -1447,6 +1508,26 @@ export type MonitoreoAulasDashboard = {
 	   *  `quotas_sex_faculty`, no en su lugar: una dice dónde estás y la otra si
 	   *  vas a llegar. Las frases vienen del motor. */
 	  avance_sexo_facultad?: Array<Record<string, unknown>>;
+	  /**
+	   * «Con lo que ya tengo agendado, ¿llego?», por facultad, en las CUATRO
+	   * combinaciones de los dos mandos de la pestaña Metas: la meta contra la
+	   * muestra o contra la sobremuestra, y lo agendado proyectado con la tasa
+	   * del diseño o con la obtenida en campo.
+	   *
+	   * **Las cuatro las calcula el motor, no la pantalla.** Cambiar de mando
+	   * cambia de escenario, no de fórmula: si la UI derivara una de otra
+	   * habría dos sitios calculando la misma cifra, que es exactamente cómo
+	   * empiezan a discrepar. Ausente (`null`) cuando el estudio no declara
+	   * cuotas — «no se sabe» no es lo mismo que «no llega».
+	   */
+	  proyeccion_metas?: MonitoreoAulasProyeccionMetas | null;
+	  /**
+	   * Aulas de cada facultad: cuántas planificó el sorteo y cuántas se han
+	   * aplicado. Va por facultad y NO por sexo a propósito — un aula no se
+	   * reparte entre hombres y mujeres, la misma visita da de los dos.
+	   * «Planificadas» son los TITULARES, no titulares más reservas.
+	   */
+	  aulas_por_facultad?: MonitoreoAulasPorFacultad[];
 	  /**
 	   * Para cada celda de cuota en déficit, a qué aula del banco ir. Grano
 	   * facultad×sexo: un nivel POR DEBAJO de `reservas_alcanzan`, que es por
