@@ -536,6 +536,10 @@
 # cabecera a la última fila de la tabla. No pinta ni una celda: sólo dibuja la
 # junta, así que no puede pelearse con las escalas de color ni con el numFmt.
 
+# El gris de las notas del libro. Peor contraste contra los rellenos de las
+# escalas: 3,03 : 1, frente al 1,26 : 1 del azulado que llevaba antes.
+.MAAF_SEPARADOR_BLOQUE <- "#5B6472"
+
 # A qué bloque pertenece una columna, por su RÓTULO. `total` es el defecto: lo
 # que no dice sexo habla del conjunto.
 .maaf_bloque_de_columna <- function(rotulo) {
@@ -546,8 +550,16 @@
   "total"
 }
 
-# Un borde izquierdo gris azulado en cada columna donde el bloque cambia
-# respecto de la anterior. La primera columna nunca: ahí no hay junta.
+# Un borde izquierdo en cada columna donde el bloque cambia respecto de la
+# anterior. La primera columna nunca: ahí no hay junta.
+#
+# **El tono se eligió midiendo, no a ojo.** El primero fue un gris azulado
+# (#8FA6C4) que se lee bien sobre blanco (2,49 : 1) y DESAPARECE sobre los
+# rellenos de las escalas: 1,26 : 1 contra el rojo (#E9A8A8) y 1,52 : 1 contra
+# el verde (#A9D5A9). O sea, se perdía justo en las columnas de diferencia, que
+# son las que llevan color y las que marcan el final de un bloque. El gris de
+# las notas del libro da 3,03 : 1 en su peor caso y ya está en la paleta, así
+# que no se inventa un color nuevo para esto.
 .maaf_separador_bloques <- function(sheet_id, m) {
   requests <- list()
   for (t in .maaf_tablas(m)) {
@@ -567,7 +579,7 @@
           startColumnIndex = as.integer(j - 1L), endColumnIndex = as.integer(j)
         ),
         left = list(style = "SOLID", width = 1L,
-                    color = .monitoreo_sheets_rgb("#8FA6C4"))
+                    color = .monitoreo_sheets_rgb(.MAAF_SEPARADOR_BLOQUE))
       ))
     }
   }
