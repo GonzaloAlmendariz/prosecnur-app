@@ -571,3 +571,67 @@ test_that("«Avance muestra» al 100 % se pinta verde y «Avance sobremuestra»,
     expect_gt(fondo[[par[[2]]]], fondo$red)
   }
 })
+
+# --- los bloques por sexo se separan a la vista -------------------------------
+#
+# Con las columnas ya intercaladas como Gonzalo las dictó, «Avance por facultad»
+# tiene veinte columnas seguidas del mismo ancho y «Rendimiento por facultad»
+# diecinueve, todas cifras. La cabecera dice dónde acaba el total y empieza el
+# bloque de hombres, pero hay que leerla entera cada vez.
+
+test_that("el bloque de una columna se decide por su RÓTULO, no por su posición", {
+  bloque <- prosecnurapp:::.maaf_bloque_de_columna
+  expect_identical(bloque("Efectivas"), "total")
+  expect_identical(bloque("Efectivas hombres"), "hombres")
+  expect_identical(bloque("Faltantes mujeres sobremuestra"), "mujeres")
+  expect_identical(bloque("Muestra hombres"), "hombres")
+  # Lo que no dice sexo habla del conjunto, y una celda vacía también.
+  expect_identical(bloque("Aulas aplicadas"), "total")
+  expect_identical(bloque(""), "total")
+  expect_identical(bloque(NULL), "total")
+})
+
+test_that("hay un separador en cada junta de bloque, y ninguno en la primera columna", {
+  filas <- .mfa_rows(.mfa_modelo_completo())
+  n_cols <- max(vapply(filas, function(r) length(r %||% list()), integer(1)))
+  m <- prosecnurapp:::.maaf_celdas(filas, n_cols)
+  sep <- prosecnurapp:::.maaf_separador_bloques(111L, m)
+  # **Que HAYA separadores, primero.** Sin esta línea el test pasa en vacío: una
+  # lista vacía cumple todas las comprobaciones de abajo, y la regresión que
+  # importa —que el bloque se decida por rótulo— dejaría de vigilarse sin que
+  # nada se pusiera rojo. «Avance por facultad» sola tiene nueve juntas.
+  expect_gte(length(sep), 9L)
+  expect_true(all(vapply(sep, function(r) !is.null(r$updateBorders), logical(1))))
+  # Nunca en la columna 1: ahí no hay junta, hay margen.
+  cols <- vapply(sep, function(r) r$updateBorders$range$startColumnIndex, integer(1))
+  expect_false(any(cols == 0L))
+  # Cada separador cae donde la cabecera CAMBIA de bloque respecto de la de su
+  # izquierda: es la comprobación que muere si alguien lo ancla por posición.
+  for (r in sep) {
+    rg <- r$updateBorders$range
+    j <- rg$startColumnIndex + 1L
+    fila_cab <- rg$startRowIndex + 1L
+    aqui <- prosecnurapp:::.maaf_bloque_de_columna(m[fila_cab, j])
+    antes <- prosecnurapp:::.maaf_bloque_de_columna(m[fila_cab, j - 1L])
+    expect_false(identical(aqui, antes),
+                 info = sprintf("columna %d de la cabecera de la fila %d", j, fila_cab))
+  }
+})
+
+test_that("el separador dibuja la junta y no pinta ninguna celda", {
+  # Si pintara fondo se pelearía con las escalas de color que ya lleva la hoja:
+  # un rojo de diferencia debajo de un tono de bloque deja de leerse como rojo.
+  filas <- .mfa_rows(.mfa_modelo_completo())
+  n_cols <- max(vapply(filas, function(r) length(r %||% list()), integer(1)))
+  m <- prosecnurapp:::.maaf_celdas(filas, n_cols)
+  sep <- prosecnurapp:::.maaf_separador_bloques(111L, m)
+  for (r in sep) {
+    expect_null(r$updateBorders$range$backgroundColor)
+    expect_null(r$repeatCell)
+    expect_false(is.null(r$updateBorders$left))
+    # Sólo el borde izquierdo: los otros tres se quedan como estén.
+    expect_null(r$updateBorders$right)
+    expect_null(r$updateBorders$top)
+    expect_null(r$updateBorders$bottom)
+  }
+})

@@ -160,6 +160,7 @@
     .maaf_nota_requests(sheet_id, m),
     .maaf_numero_requests(sheet_id, rows, m),
     .maaf_alinear_tablas(sheet_id, rows, m),
+    .maaf_separador_bloques(sheet_id, m),
     .maaf_color_requests(sheet_id, rows, m))
 }
 
@@ -519,6 +520,58 @@
     n[es_cabecera] <- pmin(n[es_cabecera], .maaf_CABECERA_MAX_CHARS)
     as.integer(min(320L, max(90L, round(max(0L, n) * 7.2) + 20L)))
   }, integer(1))
+}
+
+# --- los bloques por sexo, para que quince columnas no se lean como un muro ---
+#
+# Dictado de Gonzalo (2026-09-08, sobre el rendimiento por facultad): «hay que
+# intercalar bien el orden de las columnas para que sea fácilmente comparable».
+# Las columnas quedaron intercaladas —cada meta pegada a lo suyo— y entonces
+# apareció el otro problema: en «Avance por facultad» son veinte columnas
+# seguidas del mismo ancho y en «Rendimiento por facultad» diecinueve, todas
+# cifras, y el ojo no encuentra dónde acaba el total y empieza el bloque de
+# hombres. La cabecera lo dice, pero hay que leerla entera cada vez.
+#
+# Un separador vertical en el borde donde CAMBIA el bloque, corrido de la
+# cabecera a la última fila de la tabla. No pinta ni una celda: sólo dibuja la
+# junta, así que no puede pelearse con las escalas de color ni con el numFmt.
+
+# A qué bloque pertenece una columna, por su RÓTULO. `total` es el defecto: lo
+# que no dice sexo habla del conjunto.
+.maaf_bloque_de_columna <- function(rotulo) {
+  r <- tolower(trimws(as.character(rotulo %||% "")))
+  if (!nzchar(r)) return("total")
+  if (grepl("hombre", r, fixed = TRUE)) return("hombres")
+  if (grepl("mujer", r, fixed = TRUE)) return("mujeres")
+  "total"
+}
+
+# Un borde izquierdo gris azulado en cada columna donde el bloque cambia
+# respecto de la anterior. La primera columna nunca: ahí no hay junta.
+.maaf_separador_bloques <- function(sheet_id, m) {
+  requests <- list()
+  for (t in .maaf_tablas(m)) {
+    cab <- m[t$cabecera, ]
+    n <- length(AULAS_AVANCE_CABECERAS[[t$clave]] %||% character(0))
+    if (n < 2L) next
+    bloques <- vapply(seq_len(min(n, length(cab))), function(j) {
+      .maaf_bloque_de_columna(cab[[j]])
+    }, character(1))
+    if (length(bloques) < 2L) next
+    cortes <- which(bloques[-1L] != bloques[-length(bloques)]) + 1L
+    for (j in cortes) {
+      requests[[length(requests) + 1L]] <- list(updateBorders = list(
+        range = list(
+          sheetId = sheet_id,
+          startRowIndex = as.integer(t$cabecera - 1L), endRowIndex = as.integer(t$hasta),
+          startColumnIndex = as.integer(j - 1L), endColumnIndex = as.integer(j)
+        ),
+        left = list(style = "SOLID", width = 1L,
+                    color = .monitoreo_sheets_rgb("#8FA6C4"))
+      ))
+    }
+  }
+  requests
 }
 
 # Una request de ancho por tramo de columnas contiguas con el mismo ancho.
