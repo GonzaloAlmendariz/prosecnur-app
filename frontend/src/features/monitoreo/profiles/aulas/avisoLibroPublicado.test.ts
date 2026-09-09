@@ -139,3 +139,44 @@ describe("avisoLibroPublicado: la lectura previa", () => {
     expect(texto).not.toContain("\u2014");
   });
 });
+
+describe("la adopción de la hoja de los aplicadores se dice", () => {
+  it("cuenta lo adoptado, con el nombre de la hoja", () => {
+    const { texto, tono } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+      adopcion_distribucion: { ok: true, hoja: "Semana 1", adoptadas: 90 },
+    });
+    expect(texto).toContain("90 asignaciones");
+    expect(texto).toContain("Semana 1");
+    expect(tono).toBe("ok");
+  });
+
+  it("sin destino recordado AVISA, porque Asignación se rehízo a ciegas", () => {
+    // Publicar rehace «Asignación de aplicadores». Si no leyó la hoja de los 22,
+    // lo hace con un sorteo nuevo que no tiene por qué caer donde cayó el
+    // comunicado: el 2026-09-09 eso dejó 38 de 85 aulas con dos aplicadores
+    // distintos entre las dos hojas.
+    const { texto, tono } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+      adopcion_distribucion: { ok: false, omitida: true, motivo: "sin_destino" },
+    });
+    expect(texto).toContain("no recuerda su enlace");
+    expect(tono).toBe("atencion");
+  });
+
+  it("el tono se lo lleva el peor: una adopción fallida no se pinta de verde", () => {
+    const { tono } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+      lectura_previa: { ok: true, omitida: false, resumen: { partes_de_campo: 3 } },
+      adopcion_distribucion: { ok: false, motivo: "error", error: "403" },
+    });
+    expect(tono).toBe("atencion");
+  });
+
+  it("un recibo sin ese campo no menciona la adopción", () => {
+    const { texto } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+    });
+    expect(texto).not.toContain("adoptó");
+  });
+});
