@@ -1,0 +1,129 @@
+/* Pestaña «Metas» — los bloques del boceto del 2026-09-09.
+ *
+ * Hoja PROPIA y no un añadido a `aulasMonitoreo.css`, que está congelada a
+ * crecimiento (política en `agentic/manifest.json`).
+ *
+ * **Sin paleta de sexo, a propósito.** El boceto distinguía hombres y mujeres
+ * por color, pero la app no tiene tokens de sexo y los dos sitios donde podría
+ * inventarse —`theme.css` y `tokens.css`— están congelados; añadir dos hex aquí
+ * rompería la regla de «colores sólo con tokens `--pulso-*`». Y no hacen falta:
+ * cada carril lleva su chip escrito al lado, que es más legible que un color
+ * que hay que ir a buscar a una leyenda. El color se reserva para lo que SÍ
+ * distingue —lo aplicado de lo proyectado— con los tokens semánticos que el
+ * perfil ya usa en «Hombres y mujeres por facultad». */
+
+.aulas-metas-cinta {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-top: 1px solid var(--pulso-border);
+  border-bottom: 1px solid var(--pulso-border);
+  margin: 0 0 4px;
+}
+.aulas-metas-cinta > div {
+  padding: 10px 14px 11px;
+  border-right: 1px solid var(--pulso-border-soft, var(--pulso-border));
+}
+.aulas-metas-cinta > div:last-child { border-right: 0; }
+.aulas-metas-cinta dt {
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  margin: 0 0 2px;
+}
+.aulas-metas-cinta dd {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+@media (max-width: 900px) {
+  .aulas-metas-cinta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .aulas-metas-cinta > div { border-bottom: 1px solid var(--pulso-border); }
+}
+
+/* El mando y su rótulo. El de META va arriba de la pestaña; el de TASA vive
+   DENTRO de «Metas y aulas» porque es el único bloque que lo consume — dictado
+   suyo, y es lo que evita que parezca que reordena toda la pantalla. */
+.aulas-metas-mando { display: flex; flex-direction: column; gap: 5px; }
+.aulas-metas-mando-rotulo {
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+/* La tabla de gauges: aplicado + proyectado contra la marca de la meta. */
+.aulas-metas-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.aulas-metas-tabla th {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+  text-align: right;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-metas-tabla th.es-izq { text-align: left; }
+.aulas-metas-tabla td {
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--pulso-border-soft, var(--pulso-border));
+  vertical-align: middle;
+}
+.aulas-metas-tabla td.es-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+.aulas-metas-tabla td.es-falta { color: var(--pulso-danger-fg); }
+.aulas-metas-tabla tr.es-facultad td { padding-top: 12px; border-bottom: 0; }
+.aulas-metas-tabla td.es-sexo { padding-left: 18px; width: 8rem; }
+.aulas-metas-aulas { font-variant-numeric: tabular-nums; color: var(--pulso-text-faint); font-size: 11.5px; }
+
+.aulas-metas-gauge {
+  position: relative;
+  height: 18px;
+  min-width: 140px;
+  background: var(--pulso-surface-2);
+  border-radius: 2px;
+}
+.aulas-metas-gauge > i { position: absolute; top: 0; bottom: 0; display: block; }
+.aulas-metas-gauge .es-aplicado { left: 0; background: var(--pulso-success-fg); }
+.aulas-metas-gauge .es-proyectado {
+  background: var(--pulso-success-bg);
+  border-right: 1px solid var(--pulso-success-border);
+}
+.aulas-metas-gauge .es-meta {
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--pulso-text);
+}
+.aulas-metas-leyenda {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  margin: 0 0 10px;
+  align-items: center;
+}
+.aulas-metas-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border-radius: 2px;
+}
+.aulas-metas-swatch[data-tramo="aplicado"] { background: var(--pulso-success-fg); }
+.aulas-metas-swatch[data-tramo="proyectado"] {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+}
+.aulas-metas-swatch[data-tramo="meta"] { width: 2px; background: var(--pulso-text); }
+.aulas-metas-scroll { overflow-x: auto; }
+.aulas-metas-pie { color: var(--pulso-text-soft); font-size: 12.5px; margin: 12px 0 0; max-width: 72ch; }
+.aulas-metas-pie p { margin: 0 0 6px; }
