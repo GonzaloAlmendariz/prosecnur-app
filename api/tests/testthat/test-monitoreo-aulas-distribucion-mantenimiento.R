@@ -118,38 +118,51 @@ test_that("varias filas nuevas salen de abajo arriba, y un día que no existe va
 
 # --- A4 · el ESTADO ----------------------------------------------------------
 
-test_that("lo que la plataforma demuestra asciende una fila vacía, y una movida es APLICADA POR REAGENDACIÓN", {
+test_that("la app SIEMBRA la celda vacía con POR APLICAR, y nada más", {
+  # Regla de Gonzalo, textual (2026-09-09): «el status de aplicada es manual y lo
+  # hace el aplicador, no la app; la app solo pone por defecto POR APLICAR al
+  # construir, punto».
+  #
+  # Antes la app ASCENDÍA la fila cuando un código constaba aplicado, y eso
+  # convirtió una columna de la persona en una columna de la app. El daño se vio
+  # el mismo día: CH 111 y CH 82, agendadas para el VIERNES y con cero
+  # respuestas, quedaron marcadas APLICADA porque un parte de campo estaba
+  # tecleado en la fila de al lado. La hoja con la que el equipo sabe a dónde ir
+  # decía que dos aulas del futuro ya estaban hechas.
   hoja <- .madm_hoja(
     .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = ""),
     .madm_fila("Dos", "Miércoles", "09/09", "09:30", "09:45", "10:00 a 10:30", "CH 2", estado = "")
   )
-  # CH 2 está en la hoja el 09/09 y la agenda dice 07/09: se movió.
   est <- monitoreo_aulas_estados_distribucion(
     hoja, aplicadas = c("CH 1", "CH 2"),
     fecha_agenda = c(`CH 1` = "2026-09-07", `CH 2` = "2026-09-07")
   )
-  expect_identical(est$estados, c("APLICADA", "APLICADA POR REAGENDACIÓN"))
+  expect_identical(est$estados, c("POR APLICAR", "POR APLICAR"))
   expect_length(est$cambios, 2L)
+  # **Lo que la app sabe no se pierde: se OBSERVA.** Las dos constan aplicadas
+  # en la plataforma y CH 2 además está en un día que no es el de su agenda.
+  motivos <- vapply(est$observaciones, function(x) x$motivo, character(1))
+  expect_true("consta_aplicada" %in% motivos)
+  expect_true("fecha_movida" %in% motivos)
 })
 
-test_that("lo que el equipo tecleó no se pisa, y una RECHAZADA con respuestas se declara sin tocarla", {
+test_that("una celda YA escrita no se toca nunca, diga lo que diga la plataforma", {
   hoja <- .madm_hoja(
     .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = "RECHAZADA"),
-    .madm_fila("Dos", "Lunes", "07/09", "11:30", "11:45", "12:00 a 12:30", "CH 2", estado = "REAGENDADA")
+    .madm_fila("Dos", "Lunes", "07/09", "11:30", "11:45", "12:00 a 12:30", "CH 2", estado = "REAGENDADA"),
+    .madm_fila("Tres", "Lunes", "07/09", "13:30", "13:45", "14:00 a 14:30", "CH 3", estado = "POR APLICAR")
   )
   est <- monitoreo_aulas_estados_distribucion(
-    hoja, aplicadas = "CH 1",
-    fecha_agenda = c(`CH 1` = "2026-09-07", `CH 2` = "2026-09-07")
+    hoja, aplicadas = c("CH 1", "CH 3"),
+    fecha_agenda = c(`CH 1` = "2026-09-07", `CH 2` = "2026-09-07", `CH 3` = "2026-09-07")
   )
-  # La rechazada se queda RECHAZADA: un rechazo lo teclea quien habló con el
-  # docente, y unas respuestas bajo ese código son más probablemente un parte
-  # mal puesto —pasó con CH 111 y CH 113— que un rechazo que se aplicó solo.
-  expect_identical(est$estados[[1]], "RECHAZADA")
-  expect_length(est$conflictos, 1L)
-  expect_identical(est$conflictos[[1]]$curso_horario, "CH 1")
-  # Y la reagendada tecleada tampoco se degrada a POR APLICAR.
-  expect_identical(est$estados[[2]], "REAGENDADA")
+  expect_identical(est$estados, c("RECHAZADA", "REAGENDADA", "POR APLICAR"))
   expect_length(est$cambios, 0L)
+  # Ni siquiera CH 3, que está en POR APLICAR y consta aplicada: ascenderla era
+  # exactamente lo que ponía APLICADA sobre aulas del futuro. Se dice y ya.
+  obs <- Filter(function(x) identical(x$curso_horario, "CH 3"), est$observaciones)
+  expect_length(obs, 1L)
+  expect_identical(obs[[1]]$motivo, "consta_aplicada")
 })
 
 # --- A5 · la acción única ----------------------------------------------------
@@ -195,8 +208,11 @@ test_that("aplicar añade la fila en su sitio, deja el aplicador en blanco y esc
   expect_identical(fila(3)[[7]], "CH 2")
   # El aplicador de la nueva, en blanco.
   expect_identical(fila(3)[[1]], "")
-  # Y el estado: la que consta aplicada asciende; la nueva nace POR APLICAR.
-  expect_identical(fila(2)[[12]], "APLICADA")
+  # **Y el estado no lo pone la app.** CH 1 consta aplicada en la plataforma y su
+  # celda venía VACÍA: se siembra con POR APLICAR, que es lo único que la app
+  # escribe. Antes ascendía a APLICADA, y eso es lo que marcaba como hechas
+  # aulas del futuro. La nueva nace igual.
+  expect_identical(fila(2)[[12]], "POR APLICAR")
   expect_identical(fila(3)[[12]], "POR APLICAR")
 })
 
