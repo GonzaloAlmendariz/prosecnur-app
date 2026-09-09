@@ -48,6 +48,14 @@ export function AulasPestanaResumen({
 }): ReactNode {
   if (pestana !== "resumen") return null;
   const Tabla = tabla;
+  // El parte cruzado con el plan, una sola vez: lo piden «Cuándo se termina de
+  // aplicar el plan» y «A quién hay que agendar», que llegaron juntos desde
+  // Rendimiento el 2026-09-08. Sin `useMemo` porque esta pestaña no lo usa en
+  // ningún otro hook y la guarda de arriba ya cortó el render.
+  const partesConFacultad = parteDeCampo(
+    (dashboard.partes_campo ?? []) as MonitoreoRow[],
+    (dashboard.agenda ?? []) as MonitoreoRow[],
+  ).filas as MonitoreoRow[];
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   // Cuántas de esas filas son EXTRAS de la reserva adicional. Avance cuenta 236 donde Fuentes
@@ -176,10 +184,7 @@ export function AulasPestanaResumen({
                 <span>cursos-horario del plan aplicados, al ritmo observado</span>
               </div>
               <AulasPronosticoDeCierre
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
               />
             </section>
@@ -198,10 +203,7 @@ export function AulasPestanaResumen({
                 <span>cursos-horario por pedir, con la anticipación del operativo de 2025</span>
               </div>
               <AulasAlertaDeAnticipacion
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
+                partes={partesConFacultad}
                 agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
                 cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
                 banco={dashboard.banco_extras?.por_facultad ?? []}
