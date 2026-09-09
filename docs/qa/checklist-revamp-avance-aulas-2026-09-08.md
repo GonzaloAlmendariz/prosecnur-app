@@ -222,21 +222,36 @@ siguen viajando en cada `/monitoreo/state`.
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| A1 | Sacar las cinco tablas de Metas | `AulasPestanaCuotas.tsx` | pendiente |
-| A2 | Montarlas en Salidas como vista previa del libro | `MonitoreoOutputsWorkbench.tsx` | pendiente |
-| A3 | Mover «Avance por facultad y sexo» de Estratos a Metas, con rótulo que anuncie la proyección | `AulasPestanaEstratos.tsx` → `AulasPestanaCuotas.tsx` | pendiente |
-| A4 | Montar `representativity` en Estratos | panel nuevo | pendiente |
-| A5 | Mover «A quién hay que agendar» y «Cuándo se termina el plan» a Resumen | `AulasPestanaRendimiento.tsx` → `AulasPestanaResumen.tsx` | pendiente |
-| A6 | Mover «Consumo de la reserva» a Metas | `AulasPestanaRendimiento.tsx` → `AulasPestanaCuotas.tsx` | pendiente |
-| A7 | Fusionar los 4 rankings en uno con selector | `AulasRendimientoPorFacultad.tsx` | pendiente |
-| A8 | Retirar «Dónde falta más» de Resumen | `AulasPestanaResumen.tsx` | pendiente |
-| A9 | Quitar la triple publicación del total de la cuota en Metas | `AulasPestanaCuotas.tsx` | pendiente |
-| A10 | Declarar denominador en el subtítulo de cada panel | todos | pendiente |
-| A11 | Decidir entre «Ritmo de la recolección» y «Encuestas por día» | dos numeradores distintos | **bloqueado — decisión metodológica** |
-| A12 | Decidir si la pirámide se queda | `AulasPiramideCuota.tsx` | **bloqueado — decisión de Gonzalo** |
-| A13 | Decidir el destino de los 3 componentes sin montar | `AulasAvanceProyectado`, `AulasAvanceParaCliente`, `AulasBrechaEstratoChart` | **bloqueado — decisión de Gonzalo** |
-| A14 | Dejar de publicar los bloques sin consumidor, o montarlos | `monitoreo_aulas_universitarias.R` | pendiente |
+| A1 | Sacar las cinco tablas de Metas | `AulasPestanaCuotas.tsx` | ✅ `ed5ec9e1` — duplicaban paneles que ya existían |
+| A2 | Montarlas en Salidas como vista previa del libro | `AulasVistaPreviaDelLibro.tsx` (archivo nuevo) | ✅ `ed5ec9e1` — «Así se verá el libro» |
+| A3 | Mover «Avance por facultad y sexo» de Estratos a Metas, con rótulo que anuncie la proyección | `AulasPestanaEstratos.tsx` → `AulasPestanaCuotas.tsx` | ✅ `9dbe0b46` — ahora «Qué metas van a cerrar y cuáles no» |
+| A4 | Montar `representativity` en Estratos | `representatividadEfectiva.ts` + panel | ✅ `44ca89c3` · `6d885d99` · `45209d6d`. La muestra efectiva contaba el banco entero (1 347 en vez de 174); `score_loss` NO se publica porque sus dos términos miden contra marcos distintos |
+| A5 | Mover «A quién hay que agendar» y «Cuándo se termina el plan» a Resumen | `AulasPestanaRendimiento.tsx` → `AulasPestanaResumen.tsx` | ✅ `2f7e5bbb` |
+| A6 | Mover «Consumo de la reserva» a Metas | `AulasPestanaRendimiento.tsx` → `AulasPestanaCuotas.tsx` | ✅ `2f7e5bbb` |
+| A7 | Fusionar los 4 rankings en uno con selector | `AulasRendimientoPorFacultad.tsx` | ✅ `2fa5af27` **con la decisión CAMBIADA: no se fusionan.** El código ya tenía razón escrita —se leen juntas, un selector las escondería de a dos— y no están apiladas sino en fila. Lo que sí se arregló: `parteDeCampo()` se recalculaba 5 veces por pestaña |
+| A8 | Retirar «Dónde falta más» de Resumen | `AulasPestanaResumen.tsx` | ✅ `4ccd48fc` |
+| A9 | Quitar la triple publicación del total de la cuota en Metas | `AulasPestanaCuotas.tsx` | ✅ `05de3af8` — de 3 apariciones a 2, contadas en el DOM |
+| A10 | Declarar denominador en el subtítulo de cada panel | todos | ◐ `bacdd65c` — construida; **falta verificarla en pantalla**. Uno estaba CADUCADO: «Rendimiento diario» decía «encuestas por curso-horario visitado» y ese gráfico mide la jornada |
+| A11 | Decidir entre «Ritmo de la recolección» y «Encuestas por día» | dos numeradores distintos | ✅ **decidido: manda plataforma.** «Encuestas por día» (parte de campo) se retiró; «Ritmo de la recolección» se queda por ser el numerador de la banda de KPIs y de la meta |
+| A12 | Decidir si la pirámide se queda | `AulasPiramideCuota.tsx` | ✅ **decidido: se retira** (`bcfc8ad0`). Su magnitud ya la dan «Cumplimiento» y «Qué metas van a cerrar» |
+| A13 | Decidir el destino de los 3 componentes sin montar | `AulasAvanceProyectado`, `AulasAvanceParaCliente`, `AulasBrechaEstratoChart` | ✅ `a4fb9579` **con la decisión CAMBIADA: NO se borran.** Nueve archivos de test los usan para fijar decisiones metodológicas; borrarlos baja un conteo que nadie ve destruyendo criterio documentado. Quedan etiquetados con su razón en `componentesSinMontar.test.ts` |
+| A14 | Dejar de publicar los bloques sin consumidor, o montarlos | `router_monitoreo.R`, `plumber_app.R` | ◐ revisado y ACOTADO. **No se borran** `criterio_aula`, `schema`, `frame_hash` ni los cuatro sub-campos de `kpis`: son capacidad documentada, cuestan 0 y son escalares. `dashboard.selection_run_id` **sí tiene consumidor** (el censo se equivocaba). Peso muerto real: sólo los tres espejos de `router_monitoreo.R:1196-1198`, pendientes de borrar |
+| A15 | Los `NA` numéricos viajaban como la cadena «NA» y apagaban los guards de vacío de la UI | `plumber_app.R` (serializador global) | ✅ `9dc0929e` — no estaba en el motor sino en la serialización: `.api_serializer()` + contrato con mutante verificado |
 
-Tres ítems están **bloqueados**, no pendientes: A11 es una contradicción entre dos
-fuentes que hoy cuentan cosas distintas bajo el mismo nombre, y A12 y A13 son
-decisiones tuyas.
+**Estado al 2026-09-09: 12 cerrados de 15, 2 a medias, 0 bloqueados.** Los tres
+que estaban bloqueados (A11, A12, A13) los resolví yo cuando dijiste «toma
+decisiones por mí viendo lo mejor y más intuitivo y profesional»; los tres
+quedan arriba con su razón, y dos de ellos terminaron en la decisión CONTRARIA a
+la que proponía el censo —A7 y A13—, porque el código ya tenía escrita una razón
+mejor.
+
+Lo que queda:
+
+- **A10** — verificar en pantalla los subtítulos con denominador.
+- **A14** — borrar los tres espejos de `router_monitoreo.R:1196-1198`
+  (`kpis$aulas_total`, `aulas_aplicadas`, `respuestas_validas_aulas`). Cero
+  consumidores, verificado tres veces; `aulas_total` además induce a leer
+  «152 de 1 347», un 11 % donde va un 87 %.
+- Fuera de la lista, y es un cambio de diseño, no un arreglo: **`agenda`
+  necesita su propio endpoint**. Son 3 937 KB de los 5 464 que quedan y el
+  recorte por campos está agotado (sólo 184 KB son constantes). 17 consumidores.
