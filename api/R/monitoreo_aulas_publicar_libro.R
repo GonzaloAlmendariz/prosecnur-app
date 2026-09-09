@@ -126,6 +126,40 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # disponibilidad (hay reparto que contar). Sin ella ni se produce ni entra a
 # `hojas_libro`: una pestaña remota previa queda intacta, ni un request.
 .malp_hoja_asignacion <- function() "Asignación de aplicadores"
+
+#' ¿Se puede reescribir «Asignación de aplicadores» sin riesgo de contradecir?
+#'
+#' Sí cuando el reparto tiene fijaciones guardadas —el sorteo ya no puede
+#' moverlas—, o cuando esta publicación acaba de adoptar la hoja de los
+#' aplicadores. Y sí también la PRIMERA vez, porque una hoja que no existe no
+#' contradice a nadie.
+#'
+#' @param config_reparto la config de aulas, por su `reparto_fijado`.
+#' @param adopcion_ok si esta publicación adoptó la hoja de los aplicadores.
+#' @param ya_existe si la pestaña ya está en el documento.
+#' @return `TRUE` cuando se puede publicar.
+#' @keywords internal
+.malp_publica_asignacion <- function(config_reparto, adopcion_ok, ya_existe) {
+  con_respaldo <- length((config_reparto %||% list())[["reparto_fijado"]] %||% list()) > 0L
+  con_respaldo || isTRUE(adopcion_ok) || !isTRUE(ya_existe)
+}
+
+#' Los títulos de las pestañas que el documento remoto ya tiene.
+#'
+#' Nunca falla hacia arriba: si no se puede leer la metadata, se responde «no sé»
+#' con un vector vacío, y quien pregunta trata la hoja como nueva. Es el lado
+#' seguro para la única pregunta que hace hoy —«¿ya existe?»—: sembrar de más una
+#' hoja que la app posee es reparable; no publicarla nunca, no.
+#' @keywords internal
+.malp_titulos_remotos <- function(spreadsheet_id) {
+  id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
+  if (!nzchar(id)) return(character(0))
+  tryCatch({
+    meta <- .monitoreo_sheets_metadata(id)
+    vapply(meta$sheets %||% list(),
+           function(h) .monitoreo_scalar((h$properties %||% list())$title, ""), character(1))
+  }, error = function(e) character(0))
+}
 # Dictado 2026-09-04: «el Sheets debería tener una forma muy elegante de
 # mostrar la disponibilidad de cada encuestador… para que el equipo de campo
 # también pueda saber cuándo o a quién reclutar y no dependa enteramente de
@@ -374,7 +408,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            # sin sincronizar escriben lo mismo.
                                            actualizado = "",
                                            disponibilidad = NULL,
-                                           config_reparto = list()) {
+                                           config_reparto = list(),
+                                           adopcion_ok = FALSE,
+                                           ya_existe_asignacion = FALSE) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(400, "E_SHEETS_SPREADSHEET",
@@ -399,7 +435,23 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto
   )
-  if (!is.null(valores_asignacion)) {
+  # **No se reescribe una asignación que puede contradecir a la del equipo.**
+  #
+  # «Asignación de aplicadores» es de la app y se rehace entera en cada
+  # publicación. Pero la verdad de quién va a qué aula vive en el Sheets de los
+  # veintidós, y el reparto se recalcula desde cero: si la app no pudo adoptar
+  # esa hoja Y no tiene fijaciones guardadas, lo que publicaría es un sorteo
+  # NUEVO que no tiene por qué caer donde cayó el comunicado. El 2026-09-09 eso
+  # dejó 38 de 85 aulas con dos aplicadores distintos entre las dos hojas.
+  #
+  # Cuando la hoja ya existe en el documento, dejarla como está es estrictamente
+  # mejor que sustituirla por otra que sabemos que puede mentir: lo de ayer es
+  # viejo, lo nuevo sería falso. La primera vez sí se siembra —no hay nada que
+  # contradecir— y por eso la condición mira si ya existe.
+  #
+  # `NULL` = sin disponibilidad = la hoja no juega esta publicación, como antes.
+  if (!is.null(valores_asignacion) &&
+      .malp_publica_asignacion(config_reparto, adopcion_ok, ya_existe_asignacion)) {
     hojas_app <- c(hojas_app, .malp_hoja_asignacion())
   }
   # La disponibilidad no depende del plan: sale sólo de la oferta cargada, así
@@ -837,7 +889,12 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # disponibilidad de sesión y misma config vigente (fijadas, duración,
       # rango, semilla).
       disponibilidad = s[["monitoreo_aulas_disponibilidad"]],
-      config_reparto = aulas_cfg
+      config_reparto = aulas_cfg,
+      # Si no se pudo adoptar la hoja de los veintidós y tampoco hay fijaciones,
+      # «Asignación de aplicadores» no se reescribe cuando ya existe: publicaría
+      # un sorteo nuevo que puede contradecirla. Ver la nota de esa condición.
+      adopcion_ok = isTRUE(adopcion$ok),
+      ya_existe_asignacion = .malp_hoja_asignacion() %in% .malp_titulos_remotos(destino)
     ),
     # Un api_error del propio publicador conserva su código; solo los
     # errores crudos del motor/HTTP se visten de E_GOOGLE_SHEETS.

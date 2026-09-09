@@ -126,3 +126,31 @@ test_that("adoptar cambia el reparto: lo escrito manda sobre el sorteo", {
   }
   expect_equal(quien(con, "CH 1"), aulas_nombre_aplicador("Otro Aplicador"))
 })
+
+# --- la asignación no se reescribe a ciegas ----------------------------------
+#
+# «Asignación de aplicadores» es de la app y se rehace entera en cada
+# publicación, pero la verdad de quién va a qué aula vive en el Sheets de los
+# veintidós. Si la app no pudo adoptar esa hoja y tampoco tiene fijaciones, lo
+# que publicaría es un sorteo NUEVO: el 2026-09-09 eso dejó 38 de 85 aulas con
+# dos aplicadores distintos entre las dos hojas. Dejar la de ayer es
+# estrictamente mejor que publicar una que sabemos que puede mentir.
+
+test_that("sin adoptar y sin fijaciones, una asignación QUE YA EXISTE no se toca", {
+  expect_false(prosecnurapp:::.malp_publica_asignacion(list(), FALSE, TRUE))
+})
+
+test_that("la PRIMERA vez sí se siembra: una hoja que no existe no contradice a nadie", {
+  expect_true(prosecnurapp:::.malp_publica_asignacion(list(), FALSE, FALSE))
+})
+
+test_that("con la hoja adoptada se reescribe, que es lo normal", {
+  expect_true(prosecnurapp:::.malp_publica_asignacion(list(), TRUE, TRUE))
+})
+
+test_that("con fijaciones guardadas también, aunque hoy no se adoptara", {
+  # Las fijaciones SON el respaldo: el sorteo ya no puede moverlas, así que lo
+  # que se publica no puede contradecir lo comunicado.
+  expect_true(prosecnurapp:::.malp_publica_asignacion(
+    list(reparto_fijado = list(`CH 1` = "Ana Prueba")), FALSE, TRUE))
+})
