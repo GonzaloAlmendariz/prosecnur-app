@@ -68,6 +68,19 @@ function numero(valor: unknown): number {
 }
 
 /**
+ * Un número, o `null` cuando NO HAY dato. La diferencia importa aquí.
+ *
+ * `numero()` devuelve 0 tanto para un cero medido como para una celda vacía, y
+ * en un ranking de rendimiento esas dos cosas son opuestas: una dice que el aula
+ * rindió cero, la otra que nadie apuntó cuánto rindió.
+ */
+function numeroONulo(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Las tres FRANJAS de aplicación, tal como las escribe el libro del operativo en
  * su hoja «planilla». No se inventan tramos: son las del equipo, y usar otras
  * haría que la app y su Excel hablaran de horarios distintos.
@@ -167,12 +180,27 @@ export function rendimientoPorFacultad(
       : clave === "dia_semana"
         ? diaDeSemanaDeAplicacion(fila.applied_at ?? fila.applied_date)
         : texto(fila[clave]) || (clave === "applied_by" ? "Sin aplicador" : "Sin facultad");
-    const efectivas = numero(fila.effective_surveys);
+    const efectivasMedidas = numeroONulo(fila.effective_surveys);
+    const efectivas = efectivasMedidas ?? 0;
     const asistentes = numero(fila.observed_students);
     // Un parte sin efectivas NI asistentes no es un aula que rindió cero: es un
     // parte vacío. Contarlo hundiría la tasa de su facultad con un aula que
     // nadie visitó todavía.
     if (!efectivas && !asistentes) continue;
+    // **Y un parte CON asistentes pero SIN efectivas tampoco rindió cero.**
+    //
+    // El guard de arriba sólo caza el parte entero vacío. Medido el 2026-09-08:
+    // CH 7 viene con `application_status: "APLICADA"`, 29 asistentes y la celda
+    // de efectivas VACÍA —«NA»—, mientras la Base de control le cuenta 27
+    // encuestas por sexo. El aula se aplicó; lo que falta es que alguien
+    // escribiera la cifra.
+    //
+    // Pasaba el filtro por sus asistentes, `numero()` convertía el hueco en 0 y
+    // el ranking publicaba «Aguilar Cuya, Renzo Mariano · 1 curso-horario · 0
+    // efectivas · 0.0 %» — un cero inventado, con el nombre de una persona al
+    // lado. La ausencia se declara, no se disfraza de dato, y menos de un dato
+    // que juzga a alguien.
+    if (efectivasMedidas === null) continue;
     let f = acumulado.get(facultad);
     if (!f) {
       f = {

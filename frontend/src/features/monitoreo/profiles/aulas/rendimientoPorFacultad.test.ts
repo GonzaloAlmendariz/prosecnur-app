@@ -253,3 +253,34 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
     expect(fuente).toContain("corrige el tamaño de la muestra");
   });
 });
+
+describe("una celda de efectivas vacía no es un cero", () => {
+  it("no publica «0 efectivas» por un parte al que le falta la cifra", () => {
+    // **El defecto, medido el 2026-09-08.** CH 7 viene del parte con
+    // `application_status: "APLICADA"`, 29 asistentes y `effective_surveys`
+    // VACÍA, mientras la Base de control le cuenta 27 encuestas por sexo: el
+    // aula se aplicó y lo que falta es que alguien escribiera la cifra.
+    //
+    // Pasaba el guard del «parte vacío» por sus asistentes, la coerción a número
+    // convertía el hueco en 0, y el ranking publicaba «Aguilar Cuya, Renzo
+    // Mariano · 1 curso-horario · 0 efectivas · 0.0 %». Un cero inventado con el
+    // nombre de una persona al lado.
+    const partes = [
+      { operational_code: "CH 7", applied_by: "Aguilar Cuya", effective_surveys: "NA", observed_students: 29 },
+      { operational_code: "CH 5", applied_by: "Puchuri Chamorro", effective_surveys: 17, observed_students: 20 },
+    ] as unknown as Parameters<typeof rendimientoPorFacultad>[0];
+
+    const filas = rendimientoPorFacultad(partes, [], "applied_by");
+    expect(filas.map((f) => f.facultad)).not.toContain("Aguilar Cuya");
+    expect(filas.find((f) => f.facultad === "Puchuri Chamorro")?.efectivas).toBe(17);
+  });
+
+  it("un CERO de verdad sí se cuenta: es una medición", () => {
+    const partes = [
+      { operational_code: "CH 9", applied_by: "Quien sea", effective_surveys: 0, observed_students: 12 },
+    ] as unknown as Parameters<typeof rendimientoPorFacultad>[0];
+    const filas = rendimientoPorFacultad(partes, [], "applied_by");
+    expect(filas.find((f) => f.facultad === "Quien sea")?.efectivas).toBe(0);
+    expect(filas.find((f) => f.facultad === "Quien sea")?.aulas).toBe(1);
+  });
+});
