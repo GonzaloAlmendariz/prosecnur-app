@@ -635,3 +635,27 @@ test_that("el separador dibuja la junta y no pinta ninguna celda", {
     expect_null(r$updateBorders$bottom)
   }
 })
+
+test_that("el tono del separador se distingue sobre los rellenos de las escalas", {
+  # Medido, no elegido a ojo: el primer tono (#8FA6C4) daba 1,26 : 1 contra el
+  # rojo de la escala y 1,52 : 1 contra el verde, o sea que desaparecía justo en
+  # las columnas de diferencia, que son las que llevan color y las que marcan el
+  # final de un bloque.
+  lum <- function(hex) {
+    v <- strtoi(substring(gsub("#", "", hex), c(1, 3, 5), c(2, 4, 6)), 16L) / 255
+    v <- ifelse(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055)^2.4)
+    sum(v * c(0.2126, 0.7152, 0.0722))
+  }
+  contraste <- function(a, b) {
+    l <- c(lum(a), lum(b))
+    (max(l) + 0.05) / (min(l) + 0.05)
+  }
+  sep <- prosecnurapp:::.MAAF_SEPARADOR_BLOQUE
+  fondos <- c(prosecnurapp:::.MAAF_ROJO_ESCALA, prosecnurapp:::.MAAF_VERDE_ESCALA,
+              prosecnurapp:::.MAAF_BLANCO_ESCALA, prosecnurapp:::.MAAF_CELESTE_FONDO)
+  for (f in fondos) {
+    expect_gt(contraste(sep, f), 2.5,
+              label = sprintf("contraste del separador sobre %s", f))
+  }
+})
+
