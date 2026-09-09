@@ -33,18 +33,42 @@
 }
 .aulas-ficha-sub { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
 
-/* Los datos, en pares. Una tabla de dos columnas sería lo mismo con más ruido. */
-.aulas-ficha-grupo { margin: 10px 0 0; }
+/* Los datos, APILADOS: el rótulo encima y el valor debajo.
+ *
+ * El primer intento los puso uno al lado del otro con el valor pegado a la
+ * derecha de su celda, y no funcionaba por dos razones que sólo se ven en
+ * pantalla: con dos o tres pares por línea el ojo no sabe qué valor pertenece a
+ * qué rótulo —«Elegibles del plan … 50   Asistentes (parte) … 17» se lee como
+ * una fila de cuatro cosas—, y un valor largo («GOMEZ RAZZA, VICTOR HUMBERTO»)
+ * aplastaba su rótulo hasta partirlo. Apilado, el par es una unidad: el valor
+ * puede ser un 8 o un nombre de treinta caracteres y el bloque no cambia de
+ * forma. Gonzalo, viéndolo: «el formato está roto». */
+.aulas-ficha-grupo { margin: 12px 0 0; }
 .aulas-ficha-grupo-titulo {
   font-size: var(--aulas-min); font-weight: 650; text-transform: uppercase;
-  letter-spacing: 0.04em; color: var(--pulso-text-soft); margin: 0 0 4px;
+  letter-spacing: 0.04em; color: var(--pulso-text-soft);
+  margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--pulso-border);
 }
 .aulas-ficha-pares {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 6px 16px; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 18px; margin: 0;
 }
-.aulas-ficha-par { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--pulso-border); padding: 3px 0; }
-.aulas-ficha-clave { color: var(--pulso-text-soft); }
-.aulas-ficha-valor { font-variant-numeric: tabular-nums; text-align: right; }
+.aulas-ficha-par { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+/* `overflow-wrap: normal` en los dos, y no es cosmético: el perfil hereda
+ * `overflow-wrap: anywhere` —está para que un identificador largo no desborde su
+ * celda— y aquí partía las palabras por la mitad, «Facult/ad», «Docen/te».
+ * Es la misma excepción que la hoja del perfil ya hace en otras dos zonas
+ * (`aulasMonitoreo.css:680`). Son palabras, no identificadores. */
+.aulas-ficha-clave {
+  color: var(--pulso-text-soft); font-size: var(--aulas-min);
+  overflow-wrap: normal; word-break: keep-all;
+}
+.aulas-ficha-valor {
+  font-variant-numeric: tabular-nums; overflow-wrap: normal;
+  /* Sin `nowrap`: aquí conviven un «8» y «GOMEZ RAZZA, VICTOR HUMBERTO», y
+     obligar a una línea al segundo lo saca de la celda. Que envuelva por el
+     espacio. */
+  line-height: 1.25;
+}
 /* La ausencia se dice, no se deja en blanco: un hueco se lee como un cero. */
 .aulas-ficha-vacio { color: var(--pulso-text-faint); font-style: italic; }
