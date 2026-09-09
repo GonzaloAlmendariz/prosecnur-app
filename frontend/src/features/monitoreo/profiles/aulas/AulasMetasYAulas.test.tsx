@@ -1,0 +1,97 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import { AulasMetasCinta } from "./AulasMetasCinta";
+import { AulasMetasMandos } from "./AulasMetasMandos";
+import { AulasMetasYAulas } from "./AulasMetasYAulas";
+import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
+
+const fila = (extra: Partial<MonitoreoAulasProyeccionFila> = {}): MonitoreoAulasProyeccionFila => ({
+  facultad: "DERECHO",
+  meta: 363, meta_M: 126, meta_F: 237,
+  obtenidas: 51, obtenidas_M: 17, obtenidas_F: 34,
+  aulas_aplicadas: 3, aulas_agendadas: 9, elegibles_agendados: 320,
+  tasa_usada: 0.568, tasa_es_del_diseno: true, tasa_diseno: 0.568, tasa_obtenida: 0.408,
+  elegibles_aplicados: 125, desvio_de_la_del_diseno: -0.282,
+  proyectadas: 181.9, proyectadas_M: 63, proyectadas_F: 118.9,
+  total: 232.9, brecha: -130.1, llega: false,
+  meta_elegida: "muestra", factor_meta: 1,
+  supuesto_meta: "", supuesto_sexo: "…",
+  ...extra,
+});
+
+describe("«Metas y aulas»", () => {
+  it("cada facultad trae sus dos carriles y sus aulas", () => {
+    const html = renderToStaticMarkup(<AulasMetasYAulas filas={[fila()]} />);
+    expect(html).toContain("DERECHO");
+    expect(html).toContain("Hombres");
+    expect(html).toContain("Mujeres");
+    expect(html).toContain("3 aplicadas · 9 agendadas");
+  });
+
+  it("la brecha negativa se dice «faltan», no con un signo que hay que interpretar", () => {
+    const html = renderToStaticMarkup(<AulasMetasYAulas filas={[fila()]} />);
+    // Hombres: 17 + 63 = 80 contra 126 → faltan 46.
+    expect(html).toContain("faltan 46");
+  });
+
+  it("una celda que se pasa lo dice en positivo", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasYAulas filas={[fila({ meta_M: 50, obtenidas_M: 40, proyectadas_M: 30 })]} />,
+    );
+    expect(html).toContain("+20");
+  });
+
+  it("la escala es POR FACULTAD: la meta de una no encoge la barra de otra", () => {
+    // Con escala común, DERECHO (meta 126) contra CIENCIAS (meta 792) quedaría
+    // en un hilo y no se vería si llega, que es lo único que este bloque dice.
+    const html = renderToStaticMarkup(
+      <AulasMetasYAulas filas={[
+        fila({ facultad: "AAA", meta_M: 10, meta_F: 10, obtenidas_M: 10, obtenidas_F: 10, proyectadas_M: 0, proyectadas_F: 0 }),
+        fila({ facultad: "ZZZ", meta_M: 900, meta_F: 900, obtenidas_M: 0, obtenidas_F: 0, proyectadas_M: 0, proyectadas_F: 0 }),
+      ]} />,
+    );
+    // La barra de AAA llega casi al tope de SU carril pese a que ZZZ pide 90x.
+    expect(html).toMatch(/width:96\.\d+%/);
+  });
+
+  it("una proyección que el motor no pudo calcular sale «—», no cero", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasYAulas filas={[fila({ proyectadas_M: null, proyectadas_F: null })]} />,
+    );
+    expect(html).toContain("—");
+  });
+
+  it("sin filas no pinta un esqueleto vacío", () => {
+    expect(renderToStaticMarkup(<AulasMetasYAulas filas={null} />)).toBe("");
+    expect(renderToStaticMarkup(<AulasMetasYAulas filas={[]} />)).toBe("");
+  });
+});
+
+describe("la cinta", () => {
+  it("el primer rótulo sigue al mando, porque la cifra también cambia", () => {
+    const cinta = { meta: 100, meta_M: 40, meta_F: 60, obtenidas: 30, obtenidas_M: 10, obtenidas_F: 20 };
+    expect(renderToStaticMarkup(<AulasMetasCinta cinta={cinta} meta="muestra" />)).toContain("Muestra");
+    expect(renderToStaticMarkup(<AulasMetasCinta cinta={cinta} meta="sobremuestra" />)).toContain("Sobremuestra");
+  });
+
+  it("sin cinta no se pinta una fila de ceros", () => {
+    expect(renderToStaticMarkup(<AulasMetasCinta cinta={null} meta="muestra" />)).toBe("");
+  });
+});
+
+describe("los mandos", () => {
+  it("reusan el segmentado del perfil y marcan el activo", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasMandos
+        rotulo="Meta"
+        opciones={[["muestra", "Muestra", "a"], ["sobremuestra", "Sobremuestra", "b"]] as const}
+        valor="muestra"
+        onCambio={() => {}}
+      />,
+    );
+    expect(html).toContain("aulas-carga-eje");
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Muestra/);
+    expect(html).toMatch(/aria-pressed="false"[^>]*>Sobremuestra/);
+  });
+});
