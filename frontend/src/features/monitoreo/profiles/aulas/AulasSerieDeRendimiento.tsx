@@ -7,6 +7,7 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";
 import { serieDeRendimiento, veredictoDeCeldaDeCuota } from "./serieDeRendimiento";
+import { cabeElRotuloAplicado } from "./rotuloDeZonaCabe";
 import { fmt } from "./kpisDeAulas";
 import { anchoDeBarraDelDia } from "./anchoDeBarra";
 
@@ -1469,8 +1470,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             </svg>
             {porVenir.length ? (
               <>
-                <span className="aulas-serie-zona es-aplicado"
-                  style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
+                {/* **«aplicado» sólo si cabe.** Se ancla con `right` y crece hacia
+                    la izquierda, así que con el corte pegado al margen —un día
+                    con parte y quince agendados por delante— se salía del lienzo
+                    y se montaba sobre el rótulo del eje. Gonzalo lo vio el
+                    2026-09-09. Retirarlo no pierde información: la punteada
+                    marca el corte, el tinte dice cuál es el lado inferido y el
+                    pie explica los dos; dejar los dos y que uno se monte sobre
+                    el eje sí los pierde, porque no se lee ninguno. */}
+                {cabeElRotuloAplicado(x(corteX), MARGEN) ? (
+                  <span className="aulas-serie-zona es-aplicado"
+                    style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
+                ) : null}
                 <span className="aulas-serie-zona es-agendado"
                   style={{ left: `${x(corteX)}%` }}>agendado</span>
               </>
@@ -1917,8 +1928,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           </svg>
             {porVenir.length ? (
               <>
-                <span className="aulas-serie-zona es-aplicado"
-                  style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
+                {/* **«aplicado» sólo si cabe.** Se ancla con `right` y crece hacia
+                    la izquierda, así que con el corte pegado al margen —un día
+                    con parte y quince agendados por delante— se salía del lienzo
+                    y se montaba sobre el rótulo del eje. Gonzalo lo vio el
+                    2026-09-09. Retirarlo no pierde información: la punteada
+                    marca el corte, el tinte dice cuál es el lado inferido y el
+                    pie explica los dos; dejar los dos y que uno se monte sobre
+                    el eje sí los pierde, porque no se lee ninguno. */}
+                {cabeElRotuloAplicado(x(corteX), MARGEN) ? (
+                  <span className="aulas-serie-zona es-aplicado"
+                    style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
+                ) : null}
                 <span className="aulas-serie-zona es-agendado"
                   style={{ left: `${x(corteX)}%` }}>agendado</span>
               </>
