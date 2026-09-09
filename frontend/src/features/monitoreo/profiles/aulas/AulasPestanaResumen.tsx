@@ -158,8 +158,16 @@ export function AulasPestanaResumen({
                 <span>{(() => {
                   const dias = (dashboard?.ritmo_diario?.dias ?? []) as Array<{ validas?: unknown }>;
                   const conCampo = dias.filter((d) => Number(d?.validas ?? 0) > 0).length;
+                  // **Y el NUMERADOR.** Este panel cuenta válidas de PLATAFORMA;
+                  // los rankings de Rendimiento cuentan encuestas DEL PARTE, y sobre
+                  // este corte las dos cifras se llevan más de mil. Mientras existió
+                  // «Encuestas por día de cada facultad» eran dos «cuántas por día»
+                  // con dos numeradores y ningún rótulo que los separara; ese panel
+                  // se retiró, pero el rótulo hace falta igual: quien compara este
+                  // ritmo con un ranking tiene que saber que no son la misma unidad.
                   const base = `${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}`;
-                  return conCampo && conCampo !== dias.length ? `${base} · ${fmt(conCampo)} con campo` : base;
+                  const cuenta = conCampo && conCampo !== dias.length ? `${base} · ${fmt(conCampo)} con campo` : base;
+                  return `${cuenta} · válidas de plataforma`;
                 })()}</span>
               </div>
               <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />

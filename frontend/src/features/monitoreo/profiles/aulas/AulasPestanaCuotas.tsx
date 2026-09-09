@@ -134,7 +134,10 @@ export function AulasPestanaCuotas({
               nombraba la tabla; «celdas» nombraba bien el cruce pero es
               vocabulario de tabla estadística, y esta pantalla la abre quien no
               diseñó la muestra. */}
-          <span>{fmt(quotaRows.length)} grupos</span>
+          {/* El denominador, no sólo el conteo: cada grupo se mide contra SU
+              cuota del diseño —la del cálculo de muestra—, y pasarse en uno no
+              cubre lo que falta en otro (ADR 0079). */}
+          <span>{fmt(quotaRows.length)} grupos · cada uno contra su cuota del diseño</span>
         </div>
         {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
             una respuesta de faltar doscientas. */}
