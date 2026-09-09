@@ -415,6 +415,12 @@ export function AulasAsignacionDeAplicadores({
                 el coordinador escribió y sólo añade lo que falta. */}
             {onSincronizarDistribucion ? (
               <div className="aulas-asigna-sheets-ciclo">
+                {/* Su propio rótulo, como lo tienen «SHEETS DE LOS APLICADORES»
+                    y «CÓMO SE REPARTE». Sin él, mirando la pantalla el bloque
+                    se lee como una nota al pie del de publicar, cuando es la
+                    otra mitad de la misma decisión: publicar sobrescribe y esto
+                    respeta. Se vio al abrirla, no en los tests. */}
+                <p className="aulas-asigna-mandos-rotulo">Sincronizar con la hoja</p>
                 <p className="aulas-asigna-vigencia-que">
                   Cuando el coordinador ya editó la hoja, no se publica encima:
                   se <strong>sincroniza</strong>. La app adopta lo que él decidió, añade las
