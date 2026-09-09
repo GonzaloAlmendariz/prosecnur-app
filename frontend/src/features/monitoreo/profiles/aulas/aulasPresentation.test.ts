@@ -460,3 +460,41 @@ describe("el conteo del parte se llama «encuestas aplicadas», no «efectivas»
     expect(aulasFieldLabel("effective_surveys")).toBe("Encuestas aplicadas (parte)");
   });
 });
+
+describe("la escala de una columna no la deciden sus ceros", () => {
+  it("una columna en 0-100 con mayoría de ceros NO se multiplica", () => {
+    // **El defecto, medido en `avance/estratos` el 2026-09-08.** 73 estratos y
+    // casi ninguno con cursos-horario aplicados todavía, así que la mayoría de
+    // `avance_respuestas_pct` era 0. La mediana daba 0, la columna se
+    // clasificaba como proporción y un 6,5 —que YA venía en 0-100— se publicaba
+    // como «650 %». La misma columna enseñaba «2 430 %» y «3 510 %».
+    //
+    // Un cero vale igual en las dos escalas, así que no dice nada de cuál es;
+    // lo único que hacía era arrastrar la mediana al suelo. Y el fallo aparece
+    // justo al empezar el operativo, que es cuando más se mira el tablero.
+    const filas = [
+      ...Array.from({ length: 10 }, () => ({ avance_respuestas_pct: 0 })),
+      { avance_respuestas_pct: 6.5 },
+      { avance_respuestas_pct: 24.3 },
+      { avance_respuestas_pct: 9.3 },
+    ];
+    expect(escalaDeProporciones(filas).has("avance_respuestas_pct")).toBe(false);
+  });
+
+  it("una columna que de verdad viene en 0-1 se sigue reconociendo", () => {
+    // La detección no se rompe: lo que se quitó del cálculo son los ceros, no
+    // la regla. Con ceros al lado, los valores reales siguen mandando.
+    const filas = [
+      ...Array.from({ length: 10 }, () => ({ quota_pct: 0 })),
+      { quota_pct: 0.62 },
+      { quota_pct: 0.81 },
+      { quota_pct: 1.09 },
+    ];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
+  });
+
+  it("una columna toda a cero no se multiplica: 0 es 0 en las dos escalas", () => {
+    const filas = [{ quota_pct: 0 }, { quota_pct: 0 }];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(false);
+  });
+});

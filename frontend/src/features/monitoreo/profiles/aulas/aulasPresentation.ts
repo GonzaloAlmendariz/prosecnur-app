@@ -684,8 +684,23 @@ export function escalaDeProporciones(
     const valores: number[] = [];
     for (const row of rows) {
       const n = Number(row[columna]);
-      if (Number.isFinite(n)) valores.push(Math.abs(n));
+      // **Los CEROS no votan.** Un cero vale igual en las dos escalas —0 % es 0
+      // tanto en 0-1 como en 0-100— así que no dice nada de cuál es, pero
+      // arrastra la mediana al suelo y con ella la decisión.
+      //
+      // Medido en `avance/estratos` el 2026-09-08: 73 estratos, casi ninguno con
+      // cursos-horario aplicados todavía, así que la mayoría de la columna era
+      // 0. La mediana daba 0, la columna se clasificaba como proporción y un
+      // 6,5 —que ya venía en 0-100— se publicaba como **650 %**. La misma
+      // columna enseñaba «2 430 %» y «3 510 %».
+      //
+      // Y falla justo al empezar el operativo, que es cuando más se mira el
+      // tablero: cuantas menos aulas aplicadas, más ceros y más seguro el error.
+      if (Number.isFinite(n) && n !== 0) valores.push(Math.abs(n));
     }
+    // Sin un solo valor distinto de cero la escala es indecidible, y da igual:
+    // 0 se pinta «0 %» en las dos. Se deja fuera de `enProporcion`, que es no
+    // multiplicar.
     if (!valores.length) continue;
     // La MEDIANA, no el máximo. Con el máximo, una sola fila que se pasa de su
     // meta —23 conseguidas de 21 pedidas, 1.095— no cambiaba nada, pero una que
