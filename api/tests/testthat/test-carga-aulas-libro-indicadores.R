@@ -232,8 +232,12 @@ test_that("la hoja va la ULTIMA: el libro lo abre quien agenda", {
   libro <- withr::local_tempfile(fileext = ".xlsx")
   aulas_libro_generar(.ci_plan(), libro, efectivas = c(`CH 1` = 18))
   hojas <- openxlsx::getSheetNames(libro)
-  # Antes de «Listas», que es la oculta.
-  expect_identical(hojas[[length(hojas) - 1L]], "Avance de campo")
+  # Antes de «Listas», que es la oculta, y de «Avance de agendación», que entró
+  # detrás el 2026-09-09. Se ancla por POSICIÓN RELATIVA a las dos y no por un
+  # índice contado desde el final: la próxima hoja que entre no puede volver a
+  # romper este pin.
+  expect_identical(hojas[[which(hojas == "Avance de campo") + 1L]], "Avance de agendación")
+  expect_identical(hojas[[length(hojas)]], "Listas")
   expect_identical(hoja_activa_de(libro), "Aulas Agendadas")
 })
 

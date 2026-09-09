@@ -298,3 +298,76 @@ test_that("el tablero publica cuántas agendadas no tienen cita, acotado al rang
   expect_true(nzchar(dist$huella))
   expect_gte(dist$citas, 1L)
 })
+
+# --- las filas que YA están y no cuadran --------------------------------------
+#
+# El motor revisaba lo que falta y lo que se puede demostrar, y no miraba lo que
+# ya está escrito. Dos defectos vivían en la hoja del operativo desde el 08/09
+# sin que nadie los viera: CH 74 con la fecha tecleada «9:09» en vez de «09/09»,
+# y CH 12 conservando su fila del lunes después de reagendarse al 14/09.
+
+test_that("una fecha que no parsea se DICE, y no se toca", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Miércoles", "9:09", "08:30", "08:45", "09:00 a 09:30", "CH 74"),
+    .madm_fila("Dos", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$curso_horario, "CH 74")
+  expect_identical(d[[1]]$motivo, "fecha_ilegible")
+  # Dice el valor tal como está escrito: sin él hay que ir a buscarlo a la hoja.
+  expect_identical(d[[1]]$valor, "9:09")
+  # Y la fila, para poder ir a ella.
+  expect_identical(d[[1]]$fila, 2L)
+})
+
+test_that("una fila que se fue de semana y dejó la vieja también se dice", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1"),
+    .madm_fila("Dos", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 12")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$curso_horario, "CH 12")
+  expect_identical(d[[1]]$motivo, "fuera_de_la_semana")
+})
+
+test_that("sin ventana no se inventa un rango: sólo se revisa lo que no depende de él", {
+  hoja <- .madm_hoja(
+    .madm_fila("Uno", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 12"),
+    .madm_fila("Dos", "Miércoles", "9:09", "08:30", "08:45", "09:00 a 09:30", "CH 74")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja)
+  motivos <- vapply(d, function(x) x$motivo, character(1))
+  # La del 14/09 no se puede juzgar sin saber qué semana rige: callar es lo
+  # correcto, porque acusarla sería inventarse el rango.
+  expect_false("fuera_de_la_semana" %in% motivos)
+  expect_true("fecha_ilegible" %in% motivos)
+})
+
+test_that("una fila con contenido y sin curso-horario es invisible para todo lo demás", {
+  hoja <- .madm_hoja(
+    .madm_fila("Alguien", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "")
+  )
+  d <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(d, 1L)
+  expect_identical(d[[1]]$motivo, "sin_curso_horario")
+  # Y una fila del todo vacía NO es dudosa: es una fila vacía.
+  limpia <- monitoreo_aulas_filas_dudosas(
+    c(.madm_hoja(), list(as.list(rep("", length(prosecnurapp:::.alpa_CABECERA))))),
+    desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(limpia, 0L)
+})
+
+test_that("el recibo las nombra aunque no se toquen", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()),
+    dudosas = list(list(curso_horario = "CH 74", motivo = "fecha_ilegible"),
+                   list(curso_horario = "CH 12", motivo = "fuera_de_la_semana")),
+    sin_aplicador = list()
+  ))
+  expect_match(texto, "CH 74: fecha_ilegible", fixed = TRUE)
+  expect_match(texto, "CH 12: fuera_de_la_semana", fixed = TRUE)
+  expect_match(texto, "se dejaron como están", fixed = TRUE)
+})

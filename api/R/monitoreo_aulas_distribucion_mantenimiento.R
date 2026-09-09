@@ -375,6 +375,85 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
   list(estados = estados, previos = previos, cambios = cambios, conflictos = conflictos)
 }
 
+# --- A4b · las filas que YA están y no cuadran -------------------------------
+#
+# El motor revisa lo que falta y lo que se puede demostrar, y no miraba lo que ya
+# está escrito. Dos defectos vivían en la hoja del operativo desde el 08/09 sin
+# que nadie los viera hasta que alguien se puso a mirar:
+#
+#   · CH 74 con la fecha tecleada «9:09» en vez de «09/09». No parsea, así que
+#     esa cita no cae en ningún día: ni se ordena, ni entra en la cuenta del día,
+#     ni la ve el que reparte.
+#   · CH 12 conservando su fila del lunes en la pestaña «Semana 1» después de
+#     reagendarse al 14/09, que es de la semana siguiente.
+#
+# NO SE CORRIGEN AQUÍ. Son datos del coordinador y arreglarlos por nuestra cuenta
+# es decidir por él sobre una fila que él escribió; lo que faltaba es que la app
+# los DIGA.
+
+#' La fecha corta de la hoja («09/09») como ISO, con el año de la ventana.
+#'
+#' La columna FECHA no lleva año —así la escribe el motor y así la teclea el
+#' equipo— y sin un año no hay nada que comparar. Se toma el de `desde`, que es
+#' el rango que rige esa hoja; sin ventana no se puede situar y se declara.
+#' @keywords internal
+.madm_fecha_de_la_hoja <- function(corta, desde) {
+  v <- .alpa_txt(corta)
+  if (!nzchar(v)) return("")
+  if (grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", v)) return(.mav_fecha(v))
+  m <- regmatches(v, regexec("^([0-9]{1,2})/([0-9]{1,2})$", v))[[1]]
+  if (length(m) != 3L) return("")
+  anio <- substr(.mav_fecha(desde), 1L, 4L)
+  if (!nzchar(anio)) return("")
+  iso <- sprintf("%s-%02d-%02d", anio, as.integer(m[[3L]]), as.integer(m[[2L]]))
+  .mav_fecha(iso)
+}
+
+#' Las filas escritas que no cuadran, dichas una por una.
+#'
+#' Tres cosas, y ninguna se toca:
+#'
+#' - `fecha_ilegible` — la celda tiene algo y no es una fecha. Una cita así no
+#'   cae en ningún día: no se ordena, no cuenta y no la ve quien reparte.
+#' - `fuera_de_la_semana` — la fecha es legible y cae fuera del rango que rige
+#'   la hoja. Es la reagendación que se movió de semana y dejó su fila vieja.
+#' - `sin_curso_horario` — la fila tiene contenido y no dice de qué aula habla,
+#'   así que es invisible para todo lo demás.
+#'
+#' @param filas_remotas los valores de la hoja (cabecera incluida).
+#' @param desde,hasta la ventana que rige la hoja; sin ella sólo se revisa lo
+#'   que no depende del rango.
+#' @return lista de `{fila, curso_horario, motivo, valor}`.
+#' @export
+monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "") {
+  cab <- .madm_cabecera(filas_remotas)
+  .madm_exigir_legible(cab)
+  c_cod <- .madm_col(cab, "CURSO-HORARIO")
+  c_fecha <- .madm_col(cab, "FECHA")
+  d0 <- .mav_fecha(desde); d1 <- .mav_fecha(hasta)
+  filas <- if (length(filas_remotas) > 1L) filas_remotas[-1L] else list()
+
+  salida <- list()
+  anotar <- function(i, cod, motivo, valor) {
+    salida[[length(salida) + 1L]] <<- list(
+      fila = i + 1L, curso_horario = cod, motivo = motivo, valor = valor)
+  }
+  for (i in seq_along(filas)) {
+    v <- .madc_valores(filas[[i]], length(.alpa_CABECERA))
+    if (!any(nzchar(v))) next
+    cod <- .madm_celda(v, c_cod)
+    dicha <- .madm_celda(v, c_fecha)
+    if (!nzchar(cod)) { anotar(i, "", "sin_curso_horario", dicha); next }
+    if (!nzchar(dicha)) next
+    iso <- .madm_fecha_de_la_hoja(dicha, if (nzchar(d0)) d0 else dicha)
+    if (!nzchar(iso)) { anotar(i, cod, "fecha_ilegible", dicha); next }
+    if (nzchar(d0) && nzchar(d1) && (iso < d0 || iso > d1)) {
+      anotar(i, cod, "fuera_de_la_semana", dicha)
+    }
+  }
+  salida
+}
+
 # --- A5 · los cuatro pasos en una sola acción --------------------------------
 
 #' Columna en letras A1 («12» → «L»).
@@ -568,6 +647,13 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
       codigos = fij$codigos_desconocidos
     ),
     sin_aplicador = sin_aplicador,
+    # Lo que YA está escrito y no cuadra. No se toca: son datos del coordinador
+    # y arreglarlos por nuestra cuenta es decidir por él sobre su fila.
+    dudosas = tryCatch(
+      monitoreo_aulas_filas_dudosas(remoto, desde = faltan$ventana$desde,
+                                    hasta = faltan$ventana$hasta),
+      error = function(e) list()
+    ),
     ventana = faltan$ventana,
     # La columna que el equipo teclea: si la hoja aún no la tiene, esta acción
     # la crea en su sitio con su desplegable y sus colores.
@@ -784,6 +870,7 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   n_est <- length((out$estado %||% list())$cambios %||% list())
   n_sin <- length(out$sin_aplicador %||% list())
   n_con <- length((out$estado %||% list())$conflictos %||% list())
+  n_dud <- length(out$dudosas %||% list())
   hecho <- isTRUE(out$aplicado)
   partes <- c(
     if (n_add) sprintf("%s %d aula%s agendada%s que no tenía cita",
@@ -793,7 +880,15 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
                        n_est, if (n_est == 1L) "" else "s"),
     if (n_con) sprintf("%d fila%s marcada%s RECHAZADA tiene%s respuestas en plataforma y no se tocó",
                        n_con, if (n_con == 1L) "" else "s", if (n_con == 1L) "" else "s",
-                       if (n_con == 1L) "" else "n")
+                       if (n_con == 1L) "" else "n"),
+    # Se DICEN aunque no se toquen: una fila con la fecha ilegible no cae en
+    # ningún día y nadie la echa en falta hasta que alguien se pone a mirar.
+    if (n_dud) sprintf("%d fila%s escrita%s no cuadra%s y se dejaron como están (%s)",
+                       n_dud, if (n_dud == 1L) "" else "s", if (n_dud == 1L) "" else "s",
+                       if (n_dud == 1L) "" else "n",
+                       paste(unique(vapply(out$dudosas, function(d) {
+                         sprintf("%s: %s", d$curso_horario %||% "?", d$motivo %||% "?")
+                       }, character(1))), collapse = "; "))
   )
   cabeza <- if (!length(partes)) {
     if (hecho) "No hizo falta cambiar nada." else "No haría falta cambiar nada."
