@@ -91,13 +91,31 @@ AULAS_AVANCE_CABECERAS <- list(
     # nada que hacer — la fila es idéntica. Con «Aulas asignadas» al lado, un
     # «0 de 3» dice «le tocan tres» y un «0 de 0» dice «no le toca nada».
     #
-    # «Fichas esperadas» hace lo mismo por «Fichas faltantes»: una brecha sin su
-    # denominador es un número suelto. Es la misma cifra que «Efectivas
+    # «Efectivas esperadas» hace lo mismo por «Efectivas faltantes»: una brecha
+    # sin su denominador es un número suelto. Es la misma cifra que «Efectivas
     # esperadas» de «Rendimiento por facultad», restringida a las aulas de esa
-    # persona; se llama «fichas» porque es la palabra con la que esta tabla fue
-    # dictada y cambiarla aquí abriría dos nombres para lo mismo en una hoja.
+    # persona.
+    #
+    # **Estas tres se llamaban «Fichas …», y el nombre estaba mal.** Venía del
+    # dictado con el que se pidió la tabla, pero el 2026-09-09 Gonzalo fijó qué
+    # es una ficha en este operativo: «la ficha es solo una por CH… es si el
+    # coordinador de campo registró manualmente lo que el aplicador llenó en su
+    # ficha en papel y el coordinador lo ingresa al sheets de registro de campo
+    # aulas aplicadas». Es decir, UNA por curso-horario, y de papel.
+    #
+    # Lo que estas columnas cuentan son ENCUESTAS EFECTIVAS de la plataforma:
+    # decenas por aula. Publicado, «Efectivas en la base: 27» junto a «Aulas
+    # aplicadas: 3» se leía como veintisiete fichas de tres aulas. Y el resto
+    # del libro ya usaba «ficha» en el sentido de él —«ENLACE DE LA FICHA»,
+    # «FICHA QR», «Fichas PDF/Word»—, así que la palabra significaba dos cosas
+    # a la vez dentro del mismo documento.
+    #
+    # Se renombran al vocabulario que «Rendimiento por facultad» y «Avance
+    # diario» ya usaban para esta misma cifra. La DEFINICIÓN no cambia: sigue
+    # siendo lo que sus aulas ya aplicadas rindieron por debajo de lo esperado,
+    # sin compensar entre aulas.
     "Aulas asignadas", "Aulas aplicadas",
-    "Fichas esperadas", "Fichas en la base", "Fichas faltantes",
+    "Efectivas esperadas", "Efectivas en la base", "Efectivas faltantes",
     "Tasa de rendimiento esperada en facultad",
     "Tasa de rendimiento obtenida",
     # **La diferencia va AQUÍ, entre sus dos términos y la siguiente sección.**
@@ -239,7 +257,7 @@ AULAS_AVANCE_FALTAN_MUESTRA <- c(
   "Faltantes para la meta",
   # Cero fichas faltantes = todas sus aulas aplicadas llegaron a SU meta. Es la
   # misma noticia dicha sobre el aula en vez de sobre la cuota.
-  "Fichas faltantes"
+  "Efectivas faltantes"
 )
 
 #' Rótulos donde un CERO significa «esta celda ya cubrió la SOBREMUESTRA» → celeste.

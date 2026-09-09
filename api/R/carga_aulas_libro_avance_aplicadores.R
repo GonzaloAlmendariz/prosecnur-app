@@ -1,7 +1,7 @@
 # carga_aulas_libro_avance_aplicadores.R — la tabla «PRODUCCIÓN POR APLICADOR».
 #
 # Dictado de Gonzalo (2026-09-08): «Facultad, Aplicador, Aulas aplicadas, Fichas
-# en la base, Fichas faltantes, Tasa de rendimiento esperada en facultad, Tasa
+# en la base, Efectivas faltantes, Tasa de rendimiento esperada en facultad, Tasa
 # de rendimiento obtenido, Aplicaciones regulares, Aplicaciones especial mañana,
 # Aplicaciones especial noche».
 #
@@ -113,7 +113,7 @@
     esperada <- .calar_tasa_esperada(esperadas[fac == f], eleg[fac == f])
     cuenta_rango <- function(etiqueta) sum(aplicadas & rango == etiqueta)
     # Lo que el diseño esperaba de las aulas que YA aplicó: el mismo universo
-    # que «Fichas en la base» y que «Fichas faltantes», para que las tres se
+    # que «Efectivas en la base» y que «Efectivas faltantes», para que las tres se
     # lean en la misma línea sin cambiar de denominador a mitad de fila.
     esperadas_apl <- {
       v <- esperadas[aplicadas]
@@ -155,6 +155,6 @@
   # Por facultad y, dentro, por lo que falta: en cada facultad abre quien más
   # fichas dejó sin recoger. Es a quién empujar, que es para lo que existe.
   out[order(out$Facultad,
-            -ifelse(is.finite(out$`Fichas faltantes`), out$`Fichas faltantes`, -1),
+            -ifelse(is.finite(out$`Efectivas faltantes`), out$`Efectivas faltantes`, -1),
             out$Aplicador), , drop = FALSE]
 }

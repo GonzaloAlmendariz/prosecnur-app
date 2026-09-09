@@ -150,10 +150,10 @@ test_that("dentro de cada facultad abre quien dejó más fichas sin recoger", {
   # Equipo B: dos aulas aplicadas, 14 fichas en la base, y de 40 esperadas le
   # faltan 26 — sin compensar entre aulas (12 + 14).
   expect_equal(a[["Aulas aplicadas"]][[1]], 2L)
-  expect_equal(a[["Fichas en la base"]][[1]], 14)
-  expect_equal(a[["Fichas faltantes"]][[1]], 26)
+  expect_equal(a[["Efectivas en la base"]][[1]], 14)
+  expect_equal(a[["Efectivas faltantes"]][[1]], 26)
   # Equipo A se pasó de la meta de su aula: cero faltantes, nunca negativo.
-  expect_equal(a[["Fichas faltantes"]][[2]], 0)
+  expect_equal(a[["Efectivas faltantes"]][[2]], 0)
 })
 
 test_that("un aplicador que todavía no recibe nada aparece, no desaparece", {
@@ -174,9 +174,9 @@ test_that("un aplicador que todavía no recibe nada aparece, no desaparece", {
   # faltantes» se lee como que fue y no sacó nada. Antes esta línea pinaba el
   # cero; el 2026-09-08 pasa a callar, por la misma razón por la que la tasa de
   # la línea siguiente ya callaba.
-  expect_true(is.na(b[["Fichas esperadas"]]))
-  expect_true(is.na(b[["Fichas en la base"]]))
-  expect_true(is.na(b[["Fichas faltantes"]]))
+  expect_true(is.na(b[["Efectivas esperadas"]]))
+  expect_true(is.na(b[["Efectivas en la base"]]))
+  expect_true(is.na(b[["Efectivas faltantes"]]))
   # Sin aula aplicada no hay denominador: la tasa calla en vez de decir cero.
   expect_true(is.na(b[["Tasa de rendimiento obtenida"]]))
   # Y la brecha calla con ella: un cero diría «va justo», que es lo contrario
