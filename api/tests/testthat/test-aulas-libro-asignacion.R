@@ -285,3 +285,37 @@ test_that("el centrado apunta a las cifras de la jornada, no a los textos", {
   expect_false(tiene(0L, 2L))
   expect_false(tiene(6L, 8L))
 })
+
+test_that("«Cursos-horario del día» se ensancha con lo que lleva, y no corta el último", {
+  # Medido sobre el operativo: seis filas pasaban de los 56 caracteres fijos y la
+  # peor llegaba a 82. No se derraman sobre la de al lado porque «ESTADO DE
+  # APLICACIÓN» está ocupada, así que el último curso-horario del día se perdía
+  # de vista: justo el dato por el que alguien abre esta hoja.
+  skip_if_not_installed("openxlsx")
+  # Seis aulas el mismo día para una sola persona: su lista pasa de 56.
+  plan <- lapply(1:6, function(i) {
+    .tla_fila(sprintf("CH %d", i), "2026-09-07",
+              sprintf("%02d:00", 8L + i), sprintf("A%d", 100L + i))
+  })
+  wb <- openxlsx::createWorkbook()
+  aulas_libro_hoja_asignacion(wb, plan, list(.tla_disp("Aplicador Uno")), cfg = list())
+  ancho <- function(w, col) {
+    a <- w$colWidths[[1L]]
+    suppressWarnings(as.numeric(a[names(a) == as.character(col)]))
+  }
+  # Su lista mide 81 caracteres: la columna TIENE que pasar de los 56 de antes,
+  # o el último curso-horario del día se pierde de vista. Pedir sólo «>= 56»
+  # dejaría pasar el ancho fijo, que es justo el defecto.
+  expect_gt(ancho(wb, 7L), 56)
+  # Y las otras siete no se mueven.
+  expect_equal(ancho(wb, 1L), 42)
+  expect_equal(ancho(wb, 8L), 22)
+
+  # Con un día de una sola aula se queda en el suelo: no se estrecha.
+  wb2 <- openxlsx::createWorkbook()
+  aulas_libro_hoja_asignacion(
+    wb2, list(.tla_fila("CH 1", "2026-09-07", "09:00", "A101")),
+    list(.tla_disp("Aplicador Uno")), cfg = list())
+  expect_equal(ancho(wb2, 7L), 56)
+})
+
