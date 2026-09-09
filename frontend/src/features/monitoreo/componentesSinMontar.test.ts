@@ -36,6 +36,18 @@ const SIN_MONTAR_CONOCIDOS = [
   // faltantes— sigue documentando decisiones que las tablas nuevas heredan; si
   // dentro de unas semanas nadie lo ha reclamado, se retira con su test.
   "AulasAvanceParaCliente.tsx::AulasAvanceParaCliente",
+  // Retirada de «Metas» el 2026-09-08, con decisión de Gonzalo. Su función era
+  // dimensionar la magnitud de cada meta; hoy esa magnitud se lee en el carril
+  // de «Cumplimiento de la cuota» —proporcional a la cuota de cada facultad— y
+  // en «Qué metas van a cerrar y cuáles no», que publica las cifras absolutas
+  // por facultad y sexo. Con cinco paneles en la pestaña, era tinta repetida.
+  "AulasPiramideCuota.tsx::AulasPiramideCuota",
+  // Retirado de «Rendimiento» el mismo día, y su propio comentario ya lo pedía:
+  // «son la misma pregunta a dos escalas y conviene decidir si sobra uno».
+  // Contaba efectivas del PARTE con el mismo nombre que «Ritmo de la
+  // recolección» cuenta válidas de PLATAFORMA. Manda la plataforma: es el
+  // numerador de la banda de KPIs y el de la meta.
+  "AulasRitmoPorFacultad.tsx::AulasRitmoPorFacultad",
   "AulasAvanceProyectado.tsx::AulasAvanceProyectado",
   "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",

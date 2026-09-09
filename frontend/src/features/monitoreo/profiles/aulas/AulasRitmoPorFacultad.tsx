@@ -21,6 +21,10 @@ function dm(iso: string): string {
   return d && m ? `${d}/${m}` : iso;
 }
 
+/** ⚠ SIN MONTAR desde el 2026-09-08. Se retiró de «Rendimiento»: contaba
+    efectivas del PARTE con el mismo nombre que «Ritmo de la recolección»
+    cuenta válidas de PLATAFORMA, y manda la plataforma. Registrado en
+    `componentesSinMontar.test.ts`. */
 export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   /**

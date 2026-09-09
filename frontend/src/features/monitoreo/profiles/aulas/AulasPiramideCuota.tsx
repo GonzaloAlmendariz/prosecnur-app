@@ -154,6 +154,10 @@ function Lado({ lado, tope, hacia, facultad }: {
   );
 }
 
+/** ⚠ SIN MONTAR desde el 2026-09-08. Se retiró de «Metas»: la magnitud de
+    cada meta ya se lee en el carril de «Cumplimiento de la cuota» y en las
+    cifras absolutas de «Qué metas van a cerrar y cuáles no». Registrado en
+    `componentesSinMontar.test.ts`. */
 export function AulasPiramideCuota({ filas, foco, onFoco }: {
   filas: ReadonlyArray<MonitoreoRow>;
   /** El corte enfocado; la fila enfocada se marca y filtra el detalle. */

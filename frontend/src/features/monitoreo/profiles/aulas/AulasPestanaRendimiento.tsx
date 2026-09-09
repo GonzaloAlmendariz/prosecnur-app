@@ -4,7 +4,6 @@ import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
-import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { graficoDelDia } from "./graficoDelDia";
 import { useTablasDeAvance } from "./useTablasDeAvance";
@@ -229,32 +228,21 @@ export function AulasPestanaRendimiento({
               />
             </section>
             </div>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* El ritmo del estudio entero ya existe en Resumen; éste dice QUIÉN
-                    lo sostiene y quién se paró. «Siempre todo es por facultad». */}
-                {/* «Encuestas por día» y no «ritmo» a secas: el panel de arriba también
-                    es día a día y por facultad, y se llamaban casi igual. Éste cuenta
-                    PRODUCCIÓN —cuántas encuestas trajo cada día— y el otro RENDIMIENTO
-                    —cuántas dejó cada aula—. Son la misma pregunta a dos escalas y
-                    conviene decidir si sobra uno; mientras tanto, que al menos se
-                    distingan. */}
-                <h3>Encuestas por día de cada facultad</h3>
-                <span>producción diaria, sin dividir por curso-horario</span>
-              </div>
-              <AulasRitmoPorFacultad
-                facultadEnFoco={facultadEnFoco}
-                onFoco={onFoco}
-                partes={parteDeCampo(
-                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
-                  (dashboard.agenda ?? []) as MonitoreoRow[],
-                ).filas as MonitoreoRow[]}
-              />
-            </section>
+            {/* **«Encuestas por día de cada facultad» se retiró el 2026-09-08.**
+                Su propio comentario ya lo pedía: «son la misma pregunta a dos
+                escalas y conviene decidir si sobra uno».
+
+                Sobraba, y además contaba OTRA COSA con el mismo nombre: este panel
+                sumaba efectivas del PARTE mientras «Ritmo de la recolección», en
+                Resumen, suma válidas de PLATAFORMA. Dos «cuántas por día» con dos
+                numeradores en la misma sección.
+
+                Manda la plataforma: es el numerador de la banda de KPIs y el de la
+                meta —494 efectivas—, y no depende de que alguien llene un parte.
+                Y el eje de días por facultad ya lo cubre «Rendimiento diario de las
+                facultades», arriba, con lo esperado de fondo.
+
+                El componente queda declarado y sin montar. */}
             {/* **«Cuándo se termina de aplicar el plan» se fue a Resumen.** Es un
                 pronóstico del operativo, no una medida de rendimiento, y allá va
                 pegado al ritmo diario: cómo viene el ritmo y a dónde lleva. */}
