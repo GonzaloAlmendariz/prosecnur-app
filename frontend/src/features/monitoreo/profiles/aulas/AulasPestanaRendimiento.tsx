@@ -88,7 +88,12 @@ export function AulasPestanaRendimiento({
                     tenían mapeadas»— y desde entonces la barra es lo esperado del día
                     y la línea lo conseguido. El rótulo se quedó describiendo el
                     gráfico anterior. */}
-                <span>efectivas del día y acumuladas, contra lo esperado de los cursos-horario aplicados</span>
+                {/* **El panel tiene DOS bloques con DOS fuentes** y el subtítulo lo dice,
+                    porque sus cifras no cuadran entre sí y eso desconcierta antes de
+                    informar: el día a día suma efectivas de plataforma —494 el
+                    2026-09-08— y el acumulado suma encuestas del parte de campo
+                    —298—. Cada bloque lo repite en su propio rótulo. */}
+                <span>el día a día en efectivas de plataforma y el acumulado en encuestas del parte, contra lo esperado</span>
               </div>
               <AulasSerieDeRendimiento
                 jornadas={jornadas}
