@@ -6,39 +6,28 @@ import { cuotasResumen, type CorteDeCuota } from "./cuotasResumen";
 import { fmt } from "./kpisDeAulas";
 
 /**
- * La cuota del estudio en personas, y sus dos desagregados.
+ * Cuántos GRUPOS de cuota han cerrado, y el aviso de las filas que los arman.
  *
- * El tablero decía «2/12 celdas» y eso no contesta la pregunta del operativo:
- * doce celdas pueden estar a una respuesta o a doscientas y el contador se ve
- * igual. Aquí se lee **cuánta gente falta**, en total, por facultad y por sexo.
+ * Nació publicando la cuota del estudio en personas —«el tablero decía "2/12
+ * celdas" y eso no contesta la pregunta del operativo: doce celdas pueden estar
+ * a una respuesta o a doscientas»— y esa lectura se ganó su sitio. Pero para el
+ * 2026-09-08 la misma pareja «494 de 2 500 · 19,8 %» salía TRES veces en la
+ * pantalla de Metas: la banda de KPIs, «Cumplimiento de la cuota del estudio» y
+ * esto. Se quedó con lo único que aporta y nadie más dice: cuántos de los grupos
+ * de cuota —el cruce facultad × sexo— han cerrado.
+ *
+ * El aviso de las filas sigue aquí y sigue yendo PRIMERO: quien ve un cero deja
+ * de leer.
  */
 
-/**
- * La barra del total, con su cifra al lado.
- *
- * Era genérica —servía para las tres listas— y llevaba `onElegir`, `activo` y
- * `conDesglose`. Al retirarse las listas por facultad y por sexo se queda sólo
- * el total, así que esos tres parámetros no tenían ya ningún uso: un componente
- * que conserva la forma de lo que ya no hace es deuda, no flexibilidad.
- */
-function Barra({ corte }: { corte: CorteDeCuota }) {
-  // Se recorta al 100 % sólo para pintar: la cifra sigue diciendo la verdad.
-  const ancho = Math.min(100, corte.avance);
-  const tono = corte.faltan === 0
-    ? COLOR_RESULTADO.efectiva
-    : corte.avance >= 50 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
-  return (
-    <div className="aulas-cuota-fila es-total">
-      <span className="aulas-cuota-etiqueta"><span>{corte.etiqueta}</span></span>
-      <span className="aulas-cuota-pista" role="img" aria-label={`${corte.avance}% de la cuota`}>
-        <span style={{ width: `${ancho}%`, background: tono }} />
-      </span>
-      <span className="aulas-cuota-cifra">
-        <strong>{corte.faltan.toLocaleString("es-PE")}</strong> por recoger
-      </span>
-    </div>
-  );
-}
+/* **La barra del total se retiró el 2026-09-08.** Publicaba «494 de 2 500
+   personas · 19,8 %», que en la misma pantalla ya decían la banda de siete KPIs
+   —arriba, en las seis pestañas— y la barra de «Cumplimiento de la cuota del
+   estudio», dos paneles más arriba. Tres veces la misma pareja de cifras.
+
+   Lo que este bloque aporta y no dice nadie más es el estado de los GRUPOS
+   —el cruce facultad × sexo—: cuántos han cerrado su cuota. Eso se queda, y con
+   ello el aviso de las filas, que también es suyo. */
 
 /**
  * La entidad enfocada dentro de la sección.
@@ -106,11 +95,9 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
     <div className="aulas-cuotas-resumen">
       {/* Antes de las cifras, no después: quien ve un cero deja de leer. */}
       {aviso ? <p className="aulas-cuota-aviso">{aviso}</p> : null}
-      <Barra corte={{ ...general, etiqueta: "Cuota del estudio" }} />
       <p className="aulas-cuota-lectura">
-        <strong>{general.logrado.toLocaleString("es-PE")}</strong> de{" "}
-        <strong>{general.meta.toLocaleString("es-PE")}</strong> personas ·{" "}
-        {general.celdasCumplidas} de {general.celdas} grupos cumplidos
+        <strong>{general.celdasCumplidas}</strong> de{" "}
+        <strong>{general.celdas}</strong> grupos con su cuota cumplida
         {sinMeta ? ` · ${sinMeta} sin objetivo declarado` : ""}
       </p>
 
