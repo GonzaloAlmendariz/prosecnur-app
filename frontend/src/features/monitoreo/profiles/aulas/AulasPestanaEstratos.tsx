@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AulasRepresentatividad } from "./AulasRepresentatividad";
 import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
@@ -70,6 +71,28 @@ export function AulasPestanaEstratos({
                   pero la traducción se queda: la clave del motor no es una
                   etiqueta. */}
               <Tabla rows={estratoRowsLegibles} empty="No hay avance por estrato preparado." />
+            </section>
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* **La otra mitad de la pestaña, y no existía.** La tabla de
+                    arriba dice cuánto se ha recogido en cada estrato; esto dice
+                    si lo que se está aplicando SE PARECE a lo que se sorteó, que
+                    es otra pregunta y ninguna superficie de Avance la contestaba.
+
+                    El bloque `representativity` lo calculaba el motor en cada
+                    refresco y no lo leía nadie (censo del 2026-09-08). Al ir a
+                    montarlo se descubrió que contaba el banco entero como muestra
+                    efectiva; eso se arregló en `6d885d99` antes de pintarlo. */}
+                <h3>Cuánto se ha movido la composición</h3>
+                <span>lo que se está aplicando contra lo que sorteó el diseño, estrato por estrato</span>
+              </div>
+              <AulasRepresentatividad
+                bloque={dashboard.representativity as Record<string, unknown> | undefined}
+              />
             </section>
     </>
   );

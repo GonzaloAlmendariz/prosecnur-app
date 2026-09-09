@@ -112,13 +112,29 @@ describe("representatividad efectiva", () => {
     // `jsonlite` serializa un NULL dentro de una lista como `{}`. Ya publicó un
     // «[object Object]» en pantalla el 2026-09-08; aquí produciría un NaN.
     const vista = representatividadEfectiva(bloque({
-      planned_score: {},
-      score_loss: {},
+      effective_score: {},
+      effective_distance: {},
       distribution: [fila({ abs_error: {} })],
     }));
-    expect(vista.disenado).toBeNull();
-    expect(vista.perdida).toBeNull();
+    expect(vista.efectivo).toBeNull();
+    expect(vista.desvioMedio).toBeNull();
     expect(vista.desvios[0].desvio).toBe(-3);
+  });
+
+  test("`score_loss` NO se publica: resta dos escalas distintas", () => {
+    // `planned_score` mide el DISEÑO contra el marco de la universidad (72,4 en
+    // HSVG2026) y `effective_score` mide la muestra efectiva contra el DISEÑO
+    // (99,9). Su resta —«score_loss»— da −27,5 y en pantalla diría «ganamos 27,5
+    // puntos de representatividad», que no significa nada.
+    //
+    // Este test no comprueba un cálculo: comprueba una AUSENCIA deliberada, para
+    // que nadie lo reintroduzca leyendo el payload y viendo el campo ahí.
+    const vista = representatividadEfectiva(bloque({
+      planned_score: 72.4, effective_score: 99.9, score_loss: -27.5,
+    }));
+    expect(vista.efectivo).toBe(99.9);
+    expect(Object.keys(vista)).not.toContain("perdida");
+    expect(Object.keys(vista)).not.toContain("disenado");
   });
 
   test("una fila sin proporciones se descarta en vez de contarse como cero", () => {
