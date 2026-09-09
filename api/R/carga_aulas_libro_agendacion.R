@@ -465,7 +465,21 @@ aulas_libro_agendacion_formato_requests <- function(sheet_id, rows) {
   requests <- list()
   poner <- function(req) requests[[length(requests) + 1L]] <<- req
 
-  anchos <- c(260L, rep(120L, max(0L, n_cols - 1L)))
+  # **El ancho de la primera columna sale del contenido, no de un 260.** Lleva
+  # nombres de facultad y el más largo del operativo pide 250 px: diez de
+  # margen, o sea otra vez «cabe por suerte». Mismo factor que
+  # `.maaf_anchos_px()` (7,2 px por carácter más el relleno), suelo en los 260
+  # de antes y techo en 360. Las demás son conteos y su rótulo baja de línea.
+  ancho1 <- 260L
+  for (r in rows) {
+    if (length(r) < 2L) next
+    # Sólo filas de DATO: los títulos y las notas se derraman sobre las celdas
+    # vacías de su derecha y no necesitan columna.
+    if (!nzchar(trimws(as.character(r[[2]] %||% "")))) next
+    ancho1 <- max(ancho1, as.integer(round(nchar(trimws(as.character(r[[1]] %||% "")),
+                                                 type = "chars") * 7.2) + 20L))
+  }
+  anchos <- c(min(360L, ancho1), rep(120L, max(0L, n_cols - 1L)))
   cabeceras <- integer(0)
   for (i in seq_along(rows)) {
     fila <- vapply(seq_len(n_cols), function(j) celda(i, j), character(1))

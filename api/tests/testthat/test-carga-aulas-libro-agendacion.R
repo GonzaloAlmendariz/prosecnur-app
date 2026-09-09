@@ -287,3 +287,30 @@ test_that("los anchos salen del modelo: una facultad larga ensancha su columna",
   expect_equal(ancho1(wb2), 34)
 })
 
+test_that("en Sheets la primera columna también mide, y sólo cuenta las filas de dato", {
+  # Otro «cabe por suerte» de este mismo loop: 260 px fijos para nombres de
+  # facultad, y el más largo del operativo pide 250. Diez de margen.
+  ancho1 <- function(rows) {
+    r <- aulas_libro_agendacion_formato_requests(111L, rows)
+    d <- Filter(function(x) {
+      !is.null(x$updateDimensionProperties) &&
+        identical(x$updateDimensionProperties$range$dimension, "COLUMNS") &&
+        identical(x$updateDimensionProperties$range$startIndex, 0L)
+    }, r)
+    d[[1]]$updateDimensionProperties$properties$pixelSize
+  }
+  largo <- paste(rep("FACULTAD", 6L), collapse = " ")
+  filas_largas <- aulas_libro_hoja_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", fac = largo, estado = "agendada",
+                                         fecha = "2026-09-07"))))
+  expect_gt(ancho1(filas_largas), 260L)
+
+  # Con nombres cortos se queda en el suelo. Y las NOTAS, que son mucho más
+  # largas que cualquier facultad, no lo mueven: van solas en su fila y se
+  # derraman sobre las celdas vacías de su derecha.
+  filas_cortas <- aulas_libro_hoja_agendacion(
+    aulas_libro_agendacion(list(.calan_u("CH 1", fac = "Letras", estado = "agendada",
+                                         fecha = "2026-09-07"))))
+  expect_equal(ancho1(filas_cortas), 260L)
+})
+
