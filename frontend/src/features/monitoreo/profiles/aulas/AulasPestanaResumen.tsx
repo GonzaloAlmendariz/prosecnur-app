@@ -296,27 +296,18 @@ export function AulasPestanaResumen({
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
-            {/* Los dos que se parecen, en pareja. Medido a 1440: cobertura ocupa 239 px
-                de alto y «Dónde falta más» 206, cada uno solo en una caja de 1 316 de
-                ancho, y la sección entera sumaba 1 636 px de columna para cuatro
-                lecturas pequeñas. Eso es lo que se lee como «vacío y crudo»: no es
-                relleno de más —el padding es el del sistema— sino cuatro gráficos
-                cortos apilados sin usar el ancho. Son además la pareja natural: uno
-                reparte los cursos-horario por cuánto cubren y el otro dice dónde
-                falta. Bajo 1180 px vuelven a apilarse. */}
-            <div
-              className="aulas-avance-pareja"
-              data-qa-geometry-group="monitoring-aulas-pareja"
-              /* `intrinsic` y no `equal`, y la diferencia importa: son dos secciones
-                 INDEPENDIENTES —una reparte cursos-horario por cobertura y la otra
-                 dice dónde falta— que comparten fila por composición, no un par de
-                 variantes del mismo componente. Cuando comparten fila el grid las
-                 estira y salen idénticas (652×311 a 1440); cuando se apilan bajo
-                 1180 px cada una vuelve a su alto propio, y medí 307 contra 274. Con
-                 `equal` declarado esos 33 px serían un incumplimiento del contrato
-                 que yo mismo escribí de más, no un defecto. */
-              data-qa-geometry-contract="intrinsic"
-            >
+            {/* **AQUI HUBO UNA PAREJA DE DOS COLUMNAS Y AHORA NO.** El grid
+                `aulas-avance-pareja` juntaba «Cursos-horario por cobertura» con
+                «Donde falta mas»; al retirar el segundo (2026-09-08) el contenedor
+                se quedo con UN hijo y sus dos columnas seguian reservadas, asi que
+                la mitad derecha de la fila quedaba en blanco. Lo vio Gonzalo en
+                pantalla el 2026-09-09.
+
+                Se desenvuelve el panel en vez de tocar la hoja: `aulasMonitoreo.css`
+                esta congelado a crecimiento y, sobre todo, un grid de dos columnas
+                con UN solo miembro no es un layout que arreglar, es un contenedor
+                que ya no tiene razon de existir. Si algun dia vuelven a ser dos,
+                vuelve el envoltorio con ellas. */}
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
@@ -365,7 +356,6 @@ export function AulasPestanaResumen({
                 `componentesSinMontar.test.ts`. No se borra: tres archivos de test lo
                 usan para fijar el molde de la lista por facultad, el vacío sin
                 denominador y el foco que cruza la sección. */}
-            </div>
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
