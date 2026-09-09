@@ -73,7 +73,9 @@ export function AulasSeccionModelo({
   /** S7: el Sheets de los aplicadores recordado en la config. */
   distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
-  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  onSincronizarDistribucion?:
+    | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
+    | null;
   sincronizacion?: MonitoreoAulasSincronizacion | null;
 }): ReactNode {
   const Tabla = tabla;

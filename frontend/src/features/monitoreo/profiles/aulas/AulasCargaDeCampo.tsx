@@ -168,7 +168,9 @@ export function AulasCargaDeCampo({
   /** S7: el Sheets de los aplicadores (recordado + huella vigente) y su publicación. */
   distribucion?: { recordado?: DistribucionSheetsRecordada; vigente?: DistribucionVigente } | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
-  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  onSincronizarDistribucion?:
+    | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
+    | null;
   sincronizacion?: MonitoreoAulasSincronizacion | null;
   /** Dictado 2026-09-04: encender/apagar la concentración por día; lo pinta Asignación. */
   onConcentrar?: ((valor: boolean) => void | Promise<void>) | null;

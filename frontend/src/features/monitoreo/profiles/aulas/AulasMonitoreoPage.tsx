@@ -870,7 +870,9 @@ function renderAulasView({
   /** S7: el Sheets de los aplicadores recordado y su publicación. */
   distribucionRecordada?: MonitoreoAulasDistribucionSheets | null;
   onPublicarDistribucion?: ((enlace?: string) => void | Promise<void>) | null;
-  onSincronizarDistribucion?: ((aplicar: boolean) => void | Promise<void>) | null;
+  onSincronizarDistribucion?:
+    | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
+    | null;
   sincronizacion?: MonitoreoAulasSincronizacion | null;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
@@ -1340,12 +1342,17 @@ export default function AulasMonitoreoPage() {
    * Hasta hoy los cuatro movimientos se hacían con scripts fuera de la app, así
    * que el operativo dependía de que hubiera alguien con una consola abierta.
    */
-  const sincronizarDistribucion = useCallback(async (aplicar: boolean) => {
+  const sincronizarDistribucion = useCallback(async (aplicar: boolean, enlace?: string) => {
     setMutating(true);
     setError("");
     setAviso({ texto: "", tono: "ok" });
     try {
-      const res = await apiMonitoreoAulasSincronizarDistribucion({ aplicar });
+      // **El enlace pegado viaja con la llamada.** Sin él sólo servía el destino
+      // recordado, y un proyecto reabierto que aún no lo tiene guardado enseñaba
+      // el enlace en su campo y devolvía «No hay Sheets de la distribución que
+      // sincronizar: pega su enlace una vez». El ensayo lo recuerda al llegar,
+      // así que pegarlo una vez basta — que es lo que el mensaje prometía.
+      const res = await apiMonitoreoAulasSincronizarDistribucion({ aplicar, url: enlace });
       setSincronizacion(res);
       // El motor ya redacta la frase que cierra la jornada; la pantalla no la
       // vuelve a componer para que no existan dos versiones del mismo recibo.
