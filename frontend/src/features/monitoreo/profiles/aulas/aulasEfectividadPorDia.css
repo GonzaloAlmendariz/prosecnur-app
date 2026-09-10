@@ -1,7 +1,18 @@
 /* «Hacia dónde va la efectividad», jornada a jornada.
    Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento. */
-.aulas-efdia { display: grid; gap: 10px; min-width: 0; }
-.aulas-efdia-lectura { margin: 0; font-size: 13px; color: var(--pulso-text-soft); line-height: 1.5; }
+/* Escala propia, como las dos tablas de esta misma pestaña: 13 px la lectura y
+   11,5 la metadata. Los literales de 13/10 px venían de la escala de los ejes
+   de gráfico y en un panel de texto se leían pequeños —«todo se ve muy pequeño
+   y sin vida» (Gonzalo, 2026-09-10)—. */
+.aulas-efdia {
+  --efd-dato: 15px;
+  --efd-txt: 13px;
+  --efd-meta: 11.5px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.aulas-efdia-lectura { margin: 0; font-size: var(--efd-txt); color: var(--pulso-text-soft); line-height: 1.5; }
 .aulas-efdia-lectura strong { color: var(--pulso-text); font-weight: 600; }
 .aulas-efdia-lectura em {
   font-style: normal;
@@ -15,7 +26,7 @@
   gap: 12px;
 }
 .aulas-efdia-cab {
-  font-size: 10px;
+  font-size: var(--efd-meta);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -24,10 +35,10 @@
 }
 .aulas-efdia-cab > span:not(:first-child) { text-align: right; }
 .aulas-efdia-cab > span:nth-child(3) { text-align: left; }
-.aulas-efdia-dia { font-size: 13px; font-weight: 500; color: var(--pulso-text); }
+.aulas-efdia-dia { font-size: var(--efd-txt); font-weight: 500; color: var(--pulso-text); }
 .aulas-efdia-num {
   text-align: right;
-  font-size: 13px;
+  font-size: var(--efd-txt);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
 }
