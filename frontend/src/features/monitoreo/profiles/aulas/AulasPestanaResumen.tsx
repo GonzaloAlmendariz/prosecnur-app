@@ -9,8 +9,8 @@ import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
 import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
-import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasAgendacion } from "./AulasAgendacion";
+import "./aulasPanelPartido.css";
 import { AulasCierrePorAgenda } from "./AulasCierrePorAgenda";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
@@ -400,111 +400,29 @@ export function AulasPestanaResumen({
                     habló con el docente, y no `scheduled_date`, cuándo se va al
                     aula. Mezclarlas daría el calendario de visitas disfrazado de
                     ritmo de trabajo. */}
-                <span>cursos-horario titulares a los que se les puso fecha, por día</span>
+                <span>a qué ritmo se pone fecha, y en qué punto del circuito está cada uno</span>
               </div>
-              <AulasAgendacion agenda={agendaEnFoco} />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
-                    pestaña contesta «qué rinde más» y esto es un pronóstico del
-                    operativo, que es lo que Resumen mide. Y aquí gana un vecino:
-                    va pegado a la agendación de arriba, porque proyecta sobre
-                    ella —cómo se llena la agenda, y hasta dónde llega—. */}
-                {/* **El título contestaba una pregunta que él no hacía.**
-                    Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
-                    va a terminar de aplicar lo agendado, o cuándo vamos a llegar
-                    a la meta?» (ítem 19). Eran dos, el gráfico contestaba la
-                    primera y el título prometía las dos. Ahora contesta la que
-                    decide —¿alcanza lo agendado?— y lo dice desde el rótulo. */}
-                <h3>Hasta dónde llega lo agendado</h3>
-                {/* La unidad, y el modelo. El ritmo de arriba extrapola el
-                    pasado; esto NO extrapola: suma lo que se espera de cada
-                    curso-horario ya agendado, el día que le toca. */}
-                <span>respuestas acumuladas, curso-horario a curso-horario según su fecha</span>
-              </div>
-              {/* **El pronóstico deja de ser lineal.** Gonzalo, tres veces: «no
-                  es que tengamos un pronóstico lineal de que si hoy aplicamos
-                  treinta, mañana treinta; depende del RITMO DE LA AGENDA… y de
-                  los esperables de esas aulas, contrastando el rendimiento
-                  planificado con el que vamos encontrando». `cierrePorAgenda`
-                  estaba escrito con ese modelo desde el 2026-09-10 y sólo se
-                  usaba para sacar una fecha; ahora es el gráfico. */}
-              <AulasCierrePorAgenda
-                plan={agendaEnFoco}
-                meta={(facultadEnFoco
-                  ? filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)?.cuota
-                  : Number(dashboard.avance_cuota?.total?.cuota)) ?? null}
-                corte={dashboard.generated_at ?? ""}
-                // El eje empieza en la primera jornada de aplicación, no en la
-                // primera cita pendiente: así este gráfico y el ritmo de arriba
-                // comparten calendario, que es lo que él pidió al ver que «los
-                // días del eje x tienen que alinearse con el ritmo».
-                desde={ritmoEnFoco?.dias?.[0]?.fecha ?? ""}
-              />
-            </section>
-
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* El perfil sabía por separado las dos mitades —la agenda tiene la
-                    fecha de cada aula, la hoja de partes dice cuáles se llenaron— y
-                    nadie las cruzaba. Los demás paneles de Avance contestan cuánto se
-                    lleva; éste, qué se quedó atrás. */}
-                {/* El registro del informe. «Lo que se quedó atrás» es la frase de una
-                    reunión, no de un reporte, y este panel cuenta algo muy concreto:
-                    cursos-horario cuya fecha ya pasó y que siguen sin parte. */}
-                <h3>Cursos-horario vencidos sin aplicar</h3>
-                <span>fecha ya pasada al corte, sin parte de campo</span>
-              </div>
-              <AulasFrenteDelOperativo
-                filas={agendaEnFoco as unknown as MonitoreoAulasPlanRow[]}
-                partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
-                // El día del corte y NO `new Date()`: un panel que lee el reloj da un
-                // resultado distinto cada vez que se abre y no hay forma de fijarlo en
-                // un test ni de reproducir lo que vio el usuario.
-                //
-                // **Pero `generated_at` tampoco era el corte**: es cuándo se calculó
-                // el tablero, o sea el mismo reloj por otra puerta. Medido: este panel
-                // decía «al 27 de agosto» con el estudio sincronizado al 12/09/2026 y
-                // concluía «174 aún por venir» con 78 ya aplicadas. El corte del
-                // estudio es su último parte — `corteDelEstudio.ts`.
+              <AulasAgendacion
+                agenda={agendaEnFoco}
+                // El día del corte, para que el eje llegue hasta hoy aunque hoy
+                // nadie haya agendado: un final en blanco es justo lo que hay
+                // que ver.
                 corte={corteDelEstudio(
                   (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
                   dashboard?.generated_at,
                 ).dia}
               />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                <h3>Estado de aplicación</h3>
-                {/* El recorte del PAYLOAD se declara aquí. La tabla ya declara el
-                    suyo, pero éste ocurre antes de que la tabla vea nada: el motor
-                    manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
-                    afirmaba que el estudio tiene 500 aulas. */}
-                {/* **Qué lo distingue del gráfico de al lado**, que hasta ahora
-                    llevaba EL MISMO subtítulo: los dos reparten los mismos N
-                    cursos-horario en barras y nada decía que contestan preguntas
-                    distintas. La razón vive en la cabecera de `AulasEstadoChart`
-                    y no llegaba a la pantalla: «va antes que la cobertura porque
-                    contesta la pregunta anterior… y sobre todo separa "sin
-                    agendar" de "agendada y aún sin empezar", que la cobertura
-                    mete en el mismo saco». */}
-                {/* «cada uno»: la unidad recién nombrada es el curso-horario,
-                    masculino (E17 — el contrato de género caza participios,
-                    no pronombres, y éste se le escapó). */}
-                <span>por rol, con el idioma del libro · en qué punto del circuito está cada uno</span>
+
+              {/* **La segunda mitad del mismo tema.** Gonzalo, 2026-09-10:
+                  «Cómo va la agendación tiene que [ir] con Estado de
+                  aplicación porque son temáticamente lo mismo». Tenía razón y
+                  la separación era mía: el ritmo de arriba dice a qué
+                  velocidad se llena la agenda y el reparto de abajo en qué
+                  punto está cada curso-horario — dos vistas del mismo trabajo,
+                  que se leían en paneles distintos con un tercero en medio. */}
+              <div className="aulas-parte">
+                <h4>En qué punto está cada uno</h4>
+                <span>por rol, con el idioma del libro</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -536,35 +454,59 @@ export function AulasPestanaResumen({
               />
               )}
             </section>
-            {/* **AQUI HUBO UNA PAREJA DE DOS COLUMNAS Y AHORA NO.** El grid
-                `aulas-avance-pareja` juntaba «Cursos-horario por cobertura» con
-                «Donde falta mas»; al retirar el segundo (2026-09-08) el contenedor
-                se quedo con UN hijo y sus dos columnas seguian reservadas, asi que
-                la mitad derecha de la fila quedaba en blanco. Lo vio Gonzalo en
-                pantalla el 2026-09-09.
-
-                Se desenvuelve el panel en vez de tocar la hoja: `aulasMonitoreo.css`
-                esta congelado a crecimiento y, sobre todo, un grid de dos columnas
-                con UN solo miembro no es un layout que arreglar, es un contenedor
-                que ya no tiene razon de existir. Si algun dia vuelven a ser dos,
-                vuelve el envoltorio con ellas. */}
-            {/* **Resumen resume también Rendimiento y Efectividad.** Gonzalo, dos
-                veces: «no estás resumiendo la información ni de rendimiento ni de
-                efectividad… si Resumen tiene que ser un resumen».
-
-                Va aquí y no al final por la secuencia: el estado dice dónde está
-                cada aula, esto dice cuánto rinde lo que ya se aplicó, y la
-                cobertura de abajo, qué aulas se quedaron cortas — leído en ese
-                orden, la cobertura deja de ser una lista y pasa a tener causa. Y
-                no se mete entre la cobertura y «A quién hay que agendar», que él
-                pidió expresamente que fueran juntos. */}
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
             >
               <div className="mon-profile-panel-head">
-                <h3>Rendimiento y efectividad</h3>
+                {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
+                    pestaña contesta «qué rinde más» y esto es un pronóstico del
+                    operativo, que es lo que Resumen mide. Y aquí gana un vecino:
+                    va pegado a la agendación de arriba, porque proyecta sobre
+                    ella —cómo se llena la agenda, y hasta dónde llega—. */}
+                {/* **El título contestaba una pregunta que él no hacía.**
+                    Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
+                    va a terminar de aplicar lo agendado, o cuándo vamos a llegar
+                    a la meta?» (ítem 19). Eran dos, el gráfico contestaba la
+                    primera y el título prometía las dos. Ahora contesta la que
+                    decide —¿alcanza lo agendado?— y lo dice desde el rótulo. */}
+                <h3>Hasta dónde llega lo agendado</h3>
+                {/* La unidad, y el modelo. El ritmo de arriba extrapola el
+                    pasado; esto NO extrapola: suma lo que se espera de cada
+                    curso-horario ya agendado, el día que le toca. */}
+                <span>lo que suman los cursos-horario ya agendados, con qué rendimiento y qué tan cubiertos van</span>
+              </div>
+              {/* **El pronóstico deja de ser lineal.** Gonzalo, tres veces: «no
+                  es que tengamos un pronóstico lineal de que si hoy aplicamos
+                  treinta, mañana treinta; depende del RITMO DE LA AGENDA… y de
+                  los esperables de esas aulas, contrastando el rendimiento
+                  planificado con el que vamos encontrando». `cierrePorAgenda`
+                  estaba escrito con ese modelo desde el 2026-09-10 y sólo se
+                  usaba para sacar una fecha; ahora es el gráfico. */}
+              <AulasCierrePorAgenda
+                plan={agendaEnFoco}
+                meta={(facultadEnFoco
+                  ? filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)?.cuota
+                  : Number(dashboard.avance_cuota?.total?.cuota)) ?? null}
+                corte={dashboard.generated_at ?? ""}
+                // El eje empieza en la primera jornada de aplicación, no en la
+                // primera cita pendiente: así este gráfico y el ritmo de arriba
+                // comparten calendario, que es lo que él pidió al ver que «los
+                // días del eje x tienen que alinearse con el ritmo».
+                desde={ritmoEnFoco?.dias?.[0]?.fecha ?? ""}
+              />
+
+              {/* **Las tres piezas del mismo pronóstico.** Gonzalo, 2026-09-10:
+                  «Hasta dónde llega lo agendado con Rendimiento y efectividad
+                  [y] Cursos-horario por cobertura también van juntos». Y es la
+                  misma cuenta contada tres veces: la curva suma lo que se
+                  espera de cada curso-horario agendado, el rendimiento dice si
+                  ese esperado se está cumpliendo, y la cobertura, qué
+                  cursos-horario se quedaron cortos. Separadas, la curva parecía
+                  un dato y no una previsión con supuestos a la vista. */}
+              <div className="aulas-parte">
+                <h4>Rendimiento y efectividad</h4>
                 <span>lo que supuso el diseño contra lo que está dando el campo</span>
               </div>
               <AulasRendimientoYEfectividad
@@ -572,30 +514,12 @@ export function AulasPestanaResumen({
                 fila={filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)}
                 facultad={facultadEnFoco ?? ""}
               />
-            </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* El nombre dice la unidad —lo que reparte son AULAS según cuánto
-                    cubren de su propia meta— y el de arriba mide la misma meta en
-                    respuestas. Primer intento fue «Cobertura por curso-horario» y el
-                    guard lo tumbó en el acto: terminaba igual que «Avance por
-                    curso-horario», la tabla del mismo stack. Cambiar un choque por
-                    otro no es renombrar. */}
-                <h3>Cursos-horario por cobertura</h3>
-                {/* Y ésta, cuánto lleva recogido cada una. Su cabecera dice por
-                    qué existe: «el promedio esconde la forma —sesenta aulas al
-                    50 % y sesenta al 100 % dan el mismo avance global que ciento
-                    veinte al 75 %, y piden decisiones opuestas». */}
-                {/* «cada uno»: la unidad recién nombrada es el curso-horario —
-                    mismo pronombre que se le escapó al contrato en el
-                    circuito (E17). */}
-                {/* Y el reparto que se cuenta es el de la facultad en foco, no
-                    el del estudio: el rótulo decía «55 cursos-horario» encima de
-                    un gráfico que sólo repartía los de Derecho. */}
+              <div className="aulas-parte">
+                <h4>Cursos-horario por cobertura</h4>
+                {/* El contador va en el subtítulo, y el guard `denominadorDeclarado`
+                    lo exige: sin él, el gráfico reparte «cursos-horario» sin decir
+                    cuántos ni sobre qué universo — y con una facultad puesta el
+                    universo es el de ELLA, no el del estudio. */}
                 <span>{contadorDelReparto(facultadEnFoco
                   ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.cobertura
                   : dashboard.course_status_cobertura)} ya aplicados · cuánto lleva
@@ -630,6 +554,34 @@ export function AulasPestanaResumen({
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
             </section>
+            {/* **«Cursos-horario vencidos sin aplicar» se retiró el
+                2026-09-10.** Gonzalo: «Cursos-horario vencidos sin aplicar se
+                va porque no es necesario». Lo que contaba —fecha pasada y sin
+                parte— lo dice ya el reparto por rol de arriba, que separa
+                agendadas de aplicadas. `AulasFrenteDelOperativo` sigue en el
+                repositorio; si vuelve a hacer falta, vuelve montado. */}
+            {/* **AQUI HUBO UNA PAREJA DE DOS COLUMNAS Y AHORA NO.** El grid
+                `aulas-avance-pareja` juntaba «Cursos-horario por cobertura» con
+                «Donde falta mas»; al retirar el segundo (2026-09-08) el contenedor
+                se quedo con UN hijo y sus dos columnas seguian reservadas, asi que
+                la mitad derecha de la fila quedaba en blanco. Lo vio Gonzalo en
+                pantalla el 2026-09-09.
+
+                Se desenvuelve el panel en vez de tocar la hoja: `aulasMonitoreo.css`
+                esta congelado a crecimiento y, sobre todo, un grid de dos columnas
+                con UN solo miembro no es un layout que arreglar, es un contenedor
+                que ya no tiene razon de existir. Si algun dia vuelven a ser dos,
+                vuelve el envoltorio con ellas. */}
+            {/* **Resumen resume también Rendimiento y Efectividad.** Gonzalo, dos
+                veces: «no estás resumiendo la información ni de rendimiento ni de
+                efectividad… si Resumen tiene que ser un resumen».
+
+                Va aquí y no al final por la secuencia: el estado dice dónde está
+                cada aula, esto dice cuánto rinde lo que ya se aplicó, y la
+                cobertura de abajo, qué aulas se quedaron cortas — leído en ese
+                orden, la cobertura deja de ser una lista y pasa a tener causa. Y
+                no se mete entre la cobertura y «A quién hay que agendar», que él
+                pidió expresamente que fueran juntos. */}
             {/* **«A quién hay que agendar» va pegado a la cobertura.** Gonzalo,
                 2026-09-10: «a quién hay que agendar debería estar abajo en
                 cursos-horario por cobertura, porque son temáticamente más
