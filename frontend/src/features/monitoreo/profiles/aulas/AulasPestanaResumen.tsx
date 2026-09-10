@@ -14,6 +14,7 @@ import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
+import { deLaFacultad } from "./deLaFacultad";
 import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
 import { cierrePorAgenda } from "./cierrePorAgenda";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
@@ -58,11 +59,41 @@ export function AulasPestanaResumen({
   // aplicar el plan» y «A quién hay que agendar», que llegaron juntos desde
   // Rendimiento el 2026-09-08. Sin `useMemo` porque esta pestaña no lo usa en
   // ningún otro hook y la guarda de arriba ya cortó el render.
-  const partesConFacultad = parteDeCampo(
+  /**
+   * **Con una facultad en foco, esta pestaña habla SÓLO de ella.**
+   *
+   * Gonzalo, dos veces: «el selector de facultad que está en el encabezado no
+   * hace que los gráficos actualicen» y «todos los gráficos de resumen aún no
+   * muestran sólo lo de una facultad cuando la ponemos por facultad».
+   *
+   * Se filtra la ENTRADA y no cada panel: las tres fuentes de esta pestaña
+   * —partes, agenda y estados— traen `faculty`, así que pasarlas ya filtradas
+   * deja los nueve componentes intactos y evita nueve formas distintas de
+   * comparar dos nombres de facultad.
+   *
+   * Aquí el foco FILTRA y en las otras pestañas RESALTA, y no es una
+   * incoherencia: allí los paneles son rankings —lo que aportan es dónde cae una
+   * facultad entre las otras— y aquí son resúmenes. El mando, además, sólo
+   * existe en esta pestaña desde `a8d903a8`.
+   */
+  const partesTodos = parteDeCampo(
     (dashboard.partes_campo ?? []) as MonitoreoRow[],
     (dashboard.agenda ?? []) as MonitoreoRow[],
   ).filas as MonitoreoRow[];
-  const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
+  const partesConFacultad = deLaFacultad(partesTodos, facultadEnFoco) as MonitoreoRow[];
+  const agendaEnFoco = deLaFacultad(
+    (dashboard.agenda ?? []) as MonitoreoRow[], facultadEnFoco) as MonitoreoRow[];
+  /**
+   * **`course_status` viaja RECORTADO a 500 filas de las 1 392 del plan**, así
+   * que filtrarlo aquí da el recorte de una facultad y no su universo. Se hace
+   * igual porque los titulares —174— entran enteros en el recorte y son de lo
+   * que hablan estos paneles; lo que puede faltar son reservas dormidas, que no
+   * son trabajo. Los repartos que el motor ya calcula sobre el plan entero se
+   * piden por facultad al motor, no se filtran aquí.
+   */
+  const aulaRows = deLaFacultad(
+    (dashboard.course_status ?? []) as Array<Record<string, unknown>>,
+    facultadEnFoco) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   // Cuántas de esas filas son EXTRAS de la reserva adicional. Avance cuenta 236 donde Fuentes
   // cuenta 196 «titulares y sus reservas encadenadas», y la diferencia son los
@@ -120,13 +151,13 @@ export function AulasPestanaResumen({
    * tumbó esta pestaña una vez.
    */
   const agendaDelCierre = cierrePorAgenda(
-    (dashboard.agenda ?? []) as MonitoreoRow[],
+    agendaEnFoco,
     corteDelEstudio(
       (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
       dashboard?.generated_at,
     ).dia,
   );
-  const pron = pronosticoDeCierre(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[]);
+  const pron = pronosticoDeCierre(partesConFacultad, agendaEnFoco);
   /**
    * **El horizonte lo pone la AGENDA, no el ritmo.**
    *
@@ -318,7 +349,7 @@ export function AulasPestanaResumen({
               </div>
               <AulasPronosticoDeCierre
                 partes={partesConFacultad}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                plan={agendaEnFoco}
               />
             </section>
             <section
@@ -337,8 +368,9 @@ export function AulasPestanaResumen({
               </div>
               <AulasAlertaDeAnticipacion
                 partes={partesConFacultad}
-                agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-                cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+                agenda={agendaEnFoco}
+                cuotas={deLaFacultad(
+                  (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[], facultadEnFoco) as MonitoreoRow[]}
                 banco={dashboard.banco_extras?.por_facultad ?? []}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
@@ -361,7 +393,7 @@ export function AulasPestanaResumen({
                 <span>fecha ya pasada al corte, sin parte de campo</span>
               </div>
               <AulasFrenteDelOperativo
-                filas={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+                filas={agendaEnFoco as unknown as MonitoreoAulasPlanRow[]}
                 partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
                 // El día del corte y NO `new Date()`: un panel que lee el reloj da un
                 // resultado distinto cada vez que se abre y no hay forma de fijarlo en
@@ -468,7 +500,13 @@ export function AulasPestanaResumen({
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-                resumen={dashboard.course_status_cobertura ?? null}
+                // **El reparto de la facultad se le pide al MOTOR.** Filtrar
+                // `course_status` aquí daría el reparto de las 500 filas que
+                // viajan presentado como el de la facultad; el motor lo calcula
+                // sobre el plan entero desde `60845ddb`.
+                resumen={(facultadEnFoco
+                  ? dashboard.course_status_cobertura_por_facultad?.[facultadEnFoco]?.cobertura
+                  : dashboard.course_status_cobertura) ?? null}
                 // Para que el respaldo sepa si lo que le llegó es el plan
                 // entero o el recorte de 500 filas.
                 totalDelPlan={totalAulas}
