@@ -232,9 +232,13 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
   // si asistentes efectivos o matriculados... son muchas jergas»—. Ahora cada
   // uno nombra el dato y su denominador. El guard es el mismo: que cada cabecera
   // siga declarando QUE mide en su `title`, se llame como se llame.
+  // «De los elegibles» salió el 2026-09-09: era exactamente lo que dibuja la
+  // barra —la lista pasó a ordenar por el potencial— y tenerla dos veces en la
+  // misma fila obligaba a comprobar que coincidían. Entra «Por visita», que
+  // bajó de barra a columna.
   it.each([
-    "Efectivas por visita", "Ajustado por tamaño",
-    "De los que asistieron", "De los elegibles",
+    "Del potencial", "Por visita", "Ajustado por tamaño",
+    "De los que asistieron",
   ])(
     "«%s» lleva su definición en la cabecera",
     (columna) => {

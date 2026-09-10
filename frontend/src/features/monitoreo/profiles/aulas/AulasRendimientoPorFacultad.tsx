@@ -71,6 +71,13 @@ export function AulasRendimientoPorFacultad({
   const efectivas = filas.reduce((n, f) => n + f.efectivas, 0);
   const aulas = filas.reduce((n, f) => n + f.aulas, 0);
   const tope = Math.max(...filas.map((f) => f.porAula ?? 0), 1);
+  // El umbral de color de la barra, en la MISMA magnitud que la barra: media
+  // ponderada del potencial —efectivas de todos sobre elegibles de todos—, no
+  // el promedio de los porcentajes, que le daría el mismo peso a una facultad
+  // de un parte que a una de doce.
+  const totalEfectivas = filas.reduce((n, f) => n + f.efectivas, 0);
+  const totalElegibles = filas.reduce((n, f) => n + f.elegibles, 0);
+  const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
   const media = aulas ? Math.round((10 * efectivas) / aulas) / 10 : 0;
 
   return (
@@ -163,8 +170,14 @@ export function AulasRendimientoPorFacultad({
               El comentario va FUERA del span: dentro rompe el patron con el que
               `rendimientoPorFacultad.test.ts` comprueba que cada cabecera trae
               su `title`. */}
-          <span role="columnheader" title="Efectivas del parte de campo conseguidas por cada curso-horario visitado. Es un resultado del campo, no el pronóstico del diseño.">
-            Efectivas por visita
+          {/* La cabecera nombra lo que la BARRA dibuja, que desde el
+              2026-09-09 es el potencial: si dijera «Efectivas por visita»,
+              seguiríamos con un rótulo que promete otro número. */}
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya: efectivas del parte de campo sobre elegibles. Es la única medida que no depende de cuántos alumnos tenga el curso-horario, y por eso ordena la lista.">
+            Del potencial
+          </span>
+          <span role="columnheader" title="Efectivas del parte de campo conseguidas por cada curso-horario visitado: cuántas encuestas trae un viaje. Es logística, no rendimiento, y por eso no ordena.">
+            Por visita
           </span>
           <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
             Ajustado por tamaño
@@ -176,9 +189,9 @@ export function AulasRendimientoPorFacultad({
           <span role="columnheader" title="Qué proporción de quienes estaban en el aula acabó respondiendo: efectivas del parte de campo sobre asistentes. Mide el trabajo dentro del aula.">
             De los que asistieron
           </span>
-          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya: efectivas del parte de campo sobre elegibles. Lo que falta es lo que queda por recoger.">
-            De los elegibles
-          </span>
+          {/* La columna «De los elegibles» se retiró: es exactamente lo que
+              dibuja la barra, y tenerla dos veces en la misma fila era pedirle
+              al lector que comprobara que coinciden. */}
         </li>
         {filas.map((f) => (
           <li key={f.facultad} role="row"
@@ -198,19 +211,29 @@ export function AulasRendimientoPorFacultad({
               {/* «encuestas» a secas obligaba a adivinar de que cuenta hablaba. */}
               <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} efectivas</em>
             </NombreDeFacultad>
-            {/* La barra mide POR AULA, que es la pregunta del panel. Escala
-                compartida entre facultades: normalizar cada una a sí misma haría
-                que todas se vieran iguales. */}
+            {/* **La barra mide LO QUE ORDENA la lista: el % del potencial.**
+                Medía «por visita» mientras el orden pasaba al potencial
+                (`5a56f2c8`), y el resultado era una lista descendente con
+                barras que subían y bajaban —17, 12, 9, 14, 29…—. Una lista
+                ordenada por A con barras que dibujan B se lee como rota, y el
+                ojo culpa al gráfico antes que al orden. Se vio en la captura el
+                2026-09-09, justo después de arreglar el orden.
+
+                La escala es 0–100 % y no el máximo observado: el potencial ya
+                es una fracción de sí mismo, así que estirarlo al mayor de la
+                tanda haría que el primero pareciera lleno aunque recogiera el
+                40 %. «Por visita» sigue en la fila, como número. */}
             {/* La celda lleva el rol y la barra de dentro sigue siendo la
                 imagen con su alternativa: si el `role="img"` se pusiera en la
                 celda, el lector perdería la posición en la fila. */}
             <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
-              aria-label={`${personasPorAula(f.porAula)} encuestas por curso-horario`}>
+              aria-label={`Recogido de los alumnos elegibles: ${pct(f.delPotencial)}`}>
               <i style={{
-                width: `${Math.max(4, (100 * (f.porAula ?? 0)) / tope)}%`,
-                background: (f.porAula ?? 0) >= media ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
-              }}>{personasPorAula(f.porAula)}</i>
+                width: `${Math.max(4, Math.min(100, f.delPotencial ?? 0))}%`,
+                background: (f.delPotencial ?? 0) >= mediaPotencial
+                  ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
+              }}>{pct(f.delPotencial)}</i>
             </span>
             </span>
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden
@@ -219,11 +242,16 @@ export function AulasRendimientoPorFacultad({
             {/* El AJUSTADO al lado del crudo, nunca en su lugar. En el estudio
                 real las facultades van de 2 a 39 aulas, y una de dos aulas
                 afortunadas encabeza la lista cruda sin merecerlo. */}
+            {/* «Por visita» baja a columna: sigue haciendo falta —dice cuántas
+                encuestas trae un viaje— pero ya no dibuja ni ordena. */}
+            <span role="cell" className="aulas-rendimiento-tasa">
+              {personasPorAula(f.porAula)}
+            </span>
             <span role="cell" className="aulas-rendimiento-tasa">
               {personasPorAula(f.porAulaAjustado)}
             </span>
             <span role="cell" className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
-            <span role="cell" className="aulas-rendimiento-tasa">{pct(f.delPotencial)}</span>
+
           </li>
         ))}
       </ul>
