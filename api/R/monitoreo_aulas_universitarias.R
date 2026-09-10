@@ -27,6 +27,51 @@ monitoreo_aulas_estados_aplicacion <- function() {
   c("aplicada", "no_aplicada", "pendiente")
 }
 
+# Los SEIS verbos del libro, sin agrupar. `monitoreo_aulas_estados_aplicacion()`
+# devuelve las tres claves GRUESAS con las que cuenta el resto del motor; esto
+# es el vocabulario fino que teclea el coordinador.
+monitoreo_aulas_desenlaces_aplicacion <- function() {
+  c("pendiente", "aplicada", "no_aplicada",
+    "reemplazada_por", "complementada_con", "aplicada_de_refuerzo")
+}
+
+#' El desenlace FINO de la aplicacion, con los tres verbos del libro.
+#'
+#' `monitoreo_aulas_estado_aplicacion()` agrupa —y tiene que seguir haciendolo,
+#' porque medio motor cuenta `== "aplicada"`—. Esto conserva cual de los tres
+#' casos fue, que es la pregunta de Gonzalo del 2026-09-10: «quiero empezar a
+#' ver la parte de reemplazos para aulas complementarias (B) o aulas de refuerzo
+#' (C)».
+#'
+#' Los tres, con la definicion del libro (`carga_aulas_libro_formato.R`):
+#'
+#' - **A · REEMPLAZADA POR**: el aula cayo y otra ocupa su lugar. El titular
+#'   SALE, asi que su fila no es una aplicacion.
+#' - **B · COMPLEMENTADA CON**: el aula rindio poco y se suma su cadena. El
+#'   titular NO sale: los dos cuentan, y por eso agrupa como `aplicada`.
+#' - **C · APLICADA DE REFUERZO**: no es del aula; faltaban alumnos o un sexo
+#'   para la meta y se salio a una reserva por decision operativa. Se aplico.
+#'
+#' @param x valor crudo del libro.
+#' @return una de `monitoreo_aulas_desenlaces_aplicacion()`.
+#' @export
+monitoreo_aulas_desenlace_aplicacion <- function(x) {
+  key <- gsub(" ", "_", .monitoreo_text_key(.monitoreo_scalar(x, "")), fixed = TRUE)
+  if (!nzchar(key)) return("pendiente")
+  switch(key,
+    aplicada = "aplicada",
+    no_aplicada = "no_aplicada",
+    noaplicada = "no_aplicada",
+    reemplazada_por = "reemplazada_por",
+    reemplazada = "reemplazada_por",
+    complementada_con = "complementada_con",
+    complementada = "complementada_con",
+    aplicada_de_refuerzo = "aplicada_de_refuerzo",
+    reforzada_con = "aplicada_de_refuerzo",
+    "pendiente"
+  )
+}
+
 #' Normaliza un estado de agendamiento a su clave canonica.
 #'
 #' `EN RESERVA 1` y `EN RESERVA 2` colapsan a `en_reserva`: el numero es la
@@ -67,12 +112,27 @@ monitoreo_aulas_estado_muestra <- function(x) {
 #' @return clave canonica.
 #' @export
 monitoreo_aulas_estado_aplicacion <- function(x) {
-  key <- gsub(" ", "_", .monitoreo_text_key(.monitoreo_scalar(x, "")), fixed = TRUE)
-  if (!nzchar(key)) return("pendiente")
-  switch(key,
+  # **Los tres verbos del libro caian en `pendiente`, y eso PERDIA campo.**
+  #
+  # El libro ofrece seis estados desde el 2026-09-04 —POR APLICAR, APLICADA, NO
+  # APLICADA, REEMPLAZADA POR, COMPLEMENTADA CON, APLICADA DE REFUERZO— y esta
+  # funcion solo conocia dos. Los otros tres caian al `pendiente` del default:
+  # un aula aplicada de refuerzo se contaba como si nadie la hubiera tocado, y
+  # un titular reemplazado seguia figurando en la cola de trabajo.
+  #
+  # Es la trampa de la lista cerrada que se traga lo que no entiende, y aqui no
+  # avisaba de nada porque el default es un estado legitimo.
+  #
+  # Se agrupan, no se propagan: medio motor cuenta `== "aplicada"` y el reparto
+  # fino vive en `monitoreo_aulas_desenlace_aplicacion()`. Complementada y
+  # aplicada de refuerzo SON aplicaciones —el aula se visito y dejo encuestas—;
+  # reemplazada por NO lo es: es el titular que cayo.
+  switch(monitoreo_aulas_desenlace_aplicacion(x),
     aplicada = "aplicada",
+    complementada_con = "aplicada",
+    aplicada_de_refuerzo = "aplicada",
     no_aplicada = "no_aplicada",
-    noaplicada = "no_aplicada",
+    reemplazada_por = "no_aplicada",
     "pendiente"
   )
 }
@@ -2757,6 +2817,19 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # la brecha se suma celda a celda—. Ver
     # `monitoreo_aulas_efectividad_por_sexo.R`.
     efectividad_por_sexo = attr(course_status, "efectividad_por_sexo") %||% list(),
+    # **Los tres desenlaces del libro, contados por separado** (2026-09-10):
+    # «quiero empezar a ver la parte de reemplazos para aulas complementarias
+    # (B) o aulas de refuerzo (C)». A —reemplazada por— es el titular que cae y
+    # otra ocupa su lugar; B —complementada con— es el titular que rindio poco y
+    # se le suma una reserva, y los dos cuentan; C —aplicada de refuerzo— es
+    # salir a una reserva por cuota, sin titular caido.
+    #
+    # Los tres se escriben en la misma columna del libro y hasta hoy el
+    # normalizador solo conocia dos estados: un aula aplicada de refuerzo caia
+    # en `pendiente` y se contaba como si nadie la hubiera tocado. Ver
+    # `monitoreo_aulas_desenlaces.R`. NO es `monitoreo_aulas_reemplazos.R`, que
+    # es el gesto de ACTIVAR un reemplazo desde la app.
+    reemplazos_por_tipo = monitoreo_aulas_desenlaces_por_tipo(plan_df),
     quotas_sex_faculty = quotas_sex_faculty,
     # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
     # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula
