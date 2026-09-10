@@ -30,9 +30,10 @@ Lo que él repitió más veces y cambia lo que el motor CALCULA, no cómo se dib
 
 | # | Lo que pidió | Dónde vive | Estado |
 |---|---|---|---|
-| 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
+| 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `AulasCierrePorAgenda` | ☑ el panel dibuja `cierrePorAgenda`: cada curso-horario agendado aporta lo suyo el día que le toca — falta MIRARLO |
 | 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
-| 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
+| 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☑ las DOS curvas, la del diseño y la del campo, sobre la misma agenda — falta MIRARLO |
+| 45 | **Deuda que deja el 27**: `AulasPronosticoDeCierre` ya no se monta en ninguna pantalla —sólo lo usan sus tests—, aunque su helper `pronosticoDeCierre` sigue vivo como respaldo del eje | `AulasPronosticoDeCierre.tsx` | ☐ **decisión suya**: retirarlo o darle sitio en otra pestaña. No se borra sin que él lo diga |
 | 41 | «Creo que mejor todo Avance debería tener el selector de facultad, y absolutamente todos los gráficos deben ajustarse y ser robustos a mostrar o todas las facultades o una específica» | `mandoDeFacultad` + todas las pestañas de Avance | ☐ **el grande que queda**; él dijo «lo podemos hacer al final». Hoy el mando sólo sale en Resumen |
 
 ### P3 — preguntas que la pantalla todavía no contesta
@@ -46,7 +47,7 @@ Cada una es una decisión del operativo que hoy hay que tomar mirando otra cosa.
 | 7 | «En cada curso-horario contra su propio margen… mostrarlos por facultad, y poder escoger entre los aplicados, los titulares, o el reemplazo uno con el reemplazo dos» | `AulasSenalesPorAula` + `senalesPorAula.ts` | ☐ |
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |
 | 9 | «Con una o dos aulas eso no es suficiente base… pero cuando ya empezamos a tener una porción importante de las aulas aplicadas y vemos que no vamos a llegar, poder avisarte a tiempo» | ídem, es la condición de disparo de (8) | ☐ |
-| 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
+| 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☑ el título dice cuál contesta: «Hasta dónde llega lo agendado», y la frase de arriba dice si cubre la meta |
 | 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
 | 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
 | 33 | «En el gráfico de cobertura sería bueno integrarlo con algo de efectividad y rendimiento, que son conceptos relacionados: el rendimiento esperado y el rendimiento observado hasta ahora» | `AulasCoberturaChart` | ☐ |
