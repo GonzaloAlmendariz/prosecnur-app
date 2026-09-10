@@ -7,6 +7,7 @@ import type {
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { cuandoPedirAulaAdicional } from "./cuandoPedirAulaAdicional";
 import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import "./efectividadSeguimiento.css";
 
@@ -464,6 +465,9 @@ export function AulasEfectividadSeguimiento({
    * general pero también lo específico por facultad».
    */
   const enFocoFila = filaDeLaFacultad(bloque, facultadEnFoco);
+  // Sin `useMemo`: esta línea vive después de las salidas tempranas del vacío,
+  // y un hook aquí se llamaría en unos renders y no en otros (React #300).
+  const aviso = cuandoPedirAulaAdicional(bloque);
   const elAgregado = enFocoFila ?? t;
   // LA ESCALA ES 0–100 %, FIJA.
   //
@@ -521,6 +525,17 @@ export function AulasEfectividadSeguimiento({
         ) : (
           <span>Ninguna facultad se queda corta de su cuota con lo que va rindiendo.</span>
         )}
+        {/* **Y qué hacer con eso** (ítems 8 y 9). Gonzalo: «la pregunta
+            principal es identificar qué tan bien o mal nos está yendo respecto a
+            lo planeado… y cuándo sería necesario solicitar un aula adicional»,
+            con su cautela: «con una o dos aulas eso no es suficiente base».
+
+            La escalera ya estaba calculada por el motor —`riesgo_firme` es «no
+            cierra ni en el mejor escenario de su intervalo»— y no la traducía
+            nadie a la decisión. La lista de a quién pedir, con cuántas aulas y
+            antes de qué día, sigue viviendo en «A quién hay que agendar»: aquí
+            va el diagnóstico y allí el remedio, y no se duplican. */}
+        {aviso ? <span className="aulas-tau-aviso">{aviso.frase}</span> : null}
         {/* Los dos conteos son distintos a propósito: se puede rendir bajo lo
             previsto y cerrar igual, porque el diseño compró colchón. */}
         {t.facultades_bajo_su_tau > 0 ? (
