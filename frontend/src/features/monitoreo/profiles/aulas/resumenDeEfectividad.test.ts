@@ -193,3 +193,35 @@ describe("el margen del intervalo", () => {
     expect(lecturaDeEfectividad(bloque, sinBanda)!.margen).toBeNull();
   });
 });
+
+/**
+ * **Lo general Y lo específico, no lo uno en lugar de lo otro.**
+ *
+ * Gonzalo, 2026-09-10: «debe ser capaz de mostrar lo general pero también lo
+ * específico por facultad cuando el selector esté sobre una facultad en
+ * específico». La primera versión sustituía una lectura por otra, y el 57,3 % de
+ * Derecho quedaba sin referencia: no se podía saber si va como el operativo o se
+ * despega.
+ */
+describe("las dos lecturas conviven", () => {
+  const conFilas = {
+    total: bloque.total,
+    facultades: [derecho],
+  } as unknown as MonitoreoAulasEfectividadSeguimiento;
+
+  it("la del conjunto se puede leer aunque haya una facultad en foco", () => {
+    const suya = lecturaDeEfectividad(conFilas, derecho)!;
+    const general = lecturaDeEfectividad(conFilas, null)!;
+    expect(suya.observado).toBe(0.5726);
+    expect(general.observado).toBe(0.5812);
+    // Y son de universos distintos: la facultad mide sobre sus 3
+    // cursos-horario, el conjunto sobre 56.
+    expect([suya.aulas, general.aulas]).toEqual([3, 56]);
+  });
+
+  it("el riesgo del operativo no depende de la facultad mirada", () => {
+    // Es la conclusión general y no deja de ser cierta porque se esté mirando
+    // una facultad: el panel la enseña siempre.
+    expect(riesgoDeCierre(conFilas)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
+  });
+});
