@@ -57,3 +57,39 @@ describe("«Respuestas»", () => {
     )).toBe("");
   });
 });
+
+describe("las pastillas de facultad", () => {
+  it("reusan el chip pulsable del perfil y marcan la que está en foco", () => {
+    const html = renderToStaticMarkup(
+      <AulasResumenRespuestas
+        cuenta={cuenta()} rotulo="DERECHO"
+        facultades={["DERECHO", "LETRAS"]} onFoco={() => {}}
+      />,
+    );
+    expect(html).toContain("aulas-sexo-chip");
+    expect(html).toMatch(/aria-pressed="true"[^>]*>DERECHO/);
+    expect(html).toMatch(/aria-pressed="false"[^>]*>Todas las facultades/);
+  });
+
+  it("sin manejador de foco no se pintan: un mando muerto es peor que ninguno", () => {
+    const html = renderToStaticMarkup(
+      <AulasResumenRespuestas cuenta={cuenta()} facultades={["DERECHO"]} onFoco={null} />,
+    );
+    expect(html).not.toContain("Todas las facultades");
+  });
+
+  it("una facultad en foco SIN respuestas pinta su cero, no el bloque anterior", () => {
+    // Callarlo dejaría en pantalla la cuenta de la facultad anterior como si
+    // fuera de ésta.
+    const vacia = { observadas: 0, efectivas: 0, fuera_del_operativo: 0, no_pasan_criterio: 0 };
+    const html = renderToStaticMarkup(
+      <AulasResumenRespuestas cuenta={vacia} rotulo="EDUCACION" />,
+    );
+    expect(html).toContain("EDUCACION");
+    expect(html).toContain("0");
+    // Y sin porcentaje: 0 de 0 no es 0 %, es una división que no existe. Se
+    // busca el porcentaje ESCRITO —«90,0 %»— y no el carácter suelto: los
+    // anchos de las barras van en % y estarían siempre.
+    expect(html).not.toMatch(/\d[.,]\d\s%/);
+  });
+});
