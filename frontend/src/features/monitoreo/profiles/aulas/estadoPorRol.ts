@@ -1,3 +1,4 @@
+import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 
 /**
@@ -63,7 +64,7 @@ export function estadoPorRol(
   facultad?: string,
 ): GrupoDeRol[] | null {
   const bloque = facultad
-    ? dashboard?.course_status_rol_y_estado_por_facultad?.[facultad]
+    ? delMapaPorFacultad(dashboard?.course_status_rol_y_estado_por_facultad, facultad)
     : dashboard?.course_status_rol_y_estado;
   if (!bloque || (!bloque.titulares && !bloque.reemplazos && !bloque.banco)) return null;
   const t = bloque.titulares ?? {};
