@@ -286,15 +286,17 @@ export function AulasRendimientoPorFacultad({
       <p className="mon-profile-muted aulas-rendimiento-pie">
         {explicaLasColumnas ? (
           <>
-            <strong>Del potencial</strong> es qué parte de los alumnos elegibles se ha recogido, y
-            por eso ordena la lista: es la única medida que no depende de cuántos alumnos
-            tenga el curso-horario.{" "}
+            <strong>Del potencial</strong> es qué parte de los alumnos elegibles se ha
+            recogido. <strong>Ajustado</strong> —lo que dibuja la barra y ordena la
+            lista— es ese mismo porcentaje acercado a la media del estudio según
+            cuánta evidencia hay detrás: equivale a sumarle a cada{" "}
+            {unidad.toLowerCase()} cinco cursos-horario imaginarios al rendimiento medio,
+            así uno solo afortunado no encabeza. El porcentaje sin ajustar va bajo cada
+            nombre, con los cursos-horario que lo sostienen.{" "}
             <strong>Por visita</strong> es lo que deja cada curso-horario visitado —cuántas
-            encuestas trae un viaje, que es logística y no rendimiento—.{" "}
-            <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
-            {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
-            cursos-horario afortunados no encabeza. <strong>De los asistentes</strong> mide el trabajo
-            dentro del curso-horario.
+            encuestas trae un viaje, que es logística y no rendimiento—, y lleva su
+            propio ajustado por la misma regla. <strong>De los asistentes</strong> mide el
+            trabajo dentro del curso-horario.
           </>
         ) : null}
         {/* **De dónde salen los tramos.** Sin decirlo, ver «7:00 – 9:00» con 26
