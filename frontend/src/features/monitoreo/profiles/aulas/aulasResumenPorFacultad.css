@@ -38,11 +38,9 @@
   border-radius: 3px;
   background: var(--pulso-success-fg);
 }
-.aulas-rpf-sindato {
-  display: block;
-  padding-left: 6px;
-  font-style: normal;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--pulso-text-faint);
-}
+
+/* El rótulo de «sin plan declarado» se fue con la barra de avance de aulas el
+   2026-09-10: la barra dibuja efectivas, y las efectivas siempre tienen
+   denominador. El guard de CSS sin dueño lo pilló en la misma corrida — y
+   volvió a pillarlo cuando el nombre de la clase se quedó escrito en este
+   comentario, porque el barrido lee la hoja entera. */
