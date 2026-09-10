@@ -88,8 +88,12 @@ export function AulasRendimientoPorFacultad({
             los tres y además es más corto. */}
         {filas.length > 1 ? (
           <>
-            De <strong>{personasPorAula(filas[0].porAula)}</strong> por curso-horario ({filas[0].facultad}) a{" "}
-            <strong>{personasPorAula(filas[filas.length - 1].porAula)}</strong>{" "}
+            {/* La frase nombra lo que ORDENA la lista, que desde el
+                2026-09-09 es el % del potencial y no lo que deja cada visita:
+                si la cabecera dice una cosa y el orden obedece a otra, quien
+                lee saca la conclusión contraria. */}
+            Del <strong>{pct(filas[0].delPotencial)}</strong> de su potencial ({filas[0].facultad}) al{" "}
+            <strong>{pct(filas[filas.length - 1].delPotencial)}</strong>{" "}
             ({filas[filas.length - 1].facultad})
           </>
         ) : (
@@ -237,12 +241,15 @@ export function AulasRendimientoPorFacultad({
       <p className="mon-profile-muted aulas-rendimiento-pie">
         {explicaLasColumnas ? (
           <>
-            <strong>Por visita</strong> es lo que deja cada curso-horario visitado, y por eso ordena la lista.{" "}
+            <strong>Del potencial</strong> es qué parte de los alumnos elegibles se ha recogido, y
+            por eso ordena la lista: es la única medida que no depende de cuántos alumnos
+            tenga el curso-horario.{" "}
+            <strong>Por visita</strong> es lo que deja cada curso-horario visitado —cuántas
+            encuestas trae un viaje, que es logística y no rendimiento—.{" "}
             <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
             {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
             cursos-horario afortunados no encabeza. <strong>De los asistentes</strong> mide el trabajo
-            dentro del curso-horario;{" "}
-            <strong>del potencial</strong>, cuánto queda por recoger.
+            dentro del curso-horario.
           </>
         ) : null}
         {/* **De dónde salen los tramos.** Sin decirlo, ver «7:00 – 9:00» con 26

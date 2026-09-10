@@ -254,10 +254,26 @@ export function rendimientoPorFacultad(
     delPotencial: f.elegibles ? Math.round((1000 * f.efectivas) / f.elegibles) / 10 : null,
   }));
 
-  // Por lo que MÁS deja cada visita, que es la pregunta «qué nos está rindiendo
-  // más». NO por porcentaje: ordenar por «% de los asistentes» pondría primero
-  // a un aula diminuta donde respondieron los cuatro que había.
-  return salida.sort((x, y) => (y.porAula ?? -1) - (x.porAula ?? -1)
+  // **Por el % DEL POTENCIAL, que es la única medida sin tamaño.**
+  //
+  // Ordenaba por lo que deja cada visita, y eso ordenaba por TAMAÑO DE AULA
+  // disfrazado de rendimiento. Medido sobre el operativo el 2026-09-09, con 11
+  // facultades: los dos órdenes no comparten NI UNA posición. Derecho encabeza
+  // por visita —29,3 encuestas por curso-horario— y es la 4.ª por potencial;
+  // Psicología recoge el 100 % de sus elegibles y aparecía 7.ª; Letras y
+  // Ciencias Humanas recoge el 90 % y salía LA ÚLTIMA, porque sus aulas son
+  // pequeñas. Quien leía la lista concluía lo contrario de lo que pasa.
+  //
+  // Gonzalo lo dijo antes de que se midiera: «¿cuál está rindiendo más? Es
+  // relativo, porque hay facultades más grandes y otras más pequeñas, y ahorita
+  // simplemente estás poniendo todas en un mismo saco».
+  //
+  // «Por visita» se queda como COLUMNA porque contesta otra pregunta —cuántas
+  // encuestas trae un viaje, que es logística— pero ya no manda en el orden.
+  // Sin elegibles no hay potencial que calcular: esas filas caen al final, con
+  // el desempate por visita, en vez de encabezar por un `null`.
+  return salida.sort((x, y) => (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
+    || (y.porAula ?? -1) - (x.porAula ?? -1)
     || y.efectivas - x.efectivas
     || x.facultad.localeCompare(y.facultad, "es"));
 }
