@@ -4,6 +4,7 @@ import type {
   MonitoreoAulasEfectividadFacultad,
   MonitoreoAulasEfectividadSeguimiento,
 } from "../../../../api/monitoreo";
+import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { fmt } from "./kpisDeAulas";
 import {
   lecturaDeEfectividad, proyeccionDeLaFacultad, repartoDeSenales, riesgoDeCierre,
@@ -15,19 +16,38 @@ import "./aulasRendimientoYEfectividad.css";
  *
  * Gonzalo, dos veces: «no estás resumiendo la información ni de rendimiento ni
  * de efectividad… si Resumen tiene que ser un resumen». Las dos pestañas
- * contestan la misma pregunta en dos granos —cuánto deja cada curso-horario— y hasta
- * ahora había que abrirlas para saber si el operativo va a alcanzar con los
- * cursos-horario que tiene.
+ * contestan la misma pregunta en dos granos —cuánto deja cada curso-horario— y
+ * hasta ahora había que abrirlas para saber si el operativo va a alcanzar con
+ * los cursos-horario que tiene.
  *
- * **Dos líneas y una barra, no un tercer gráfico.** Un resumen que reproduce el
- * gráfico de la pestaña no resume: la traslada. Lo que se trae aquí es la
- * comparación —lo que supuso el diseño contra lo que está dando el campo— y su
- * consecuencia —si con lo agendado se cierra—, que son las dos frases con las
- * que se decide por la mañana si hay que pedir aulas.
+ * **Resumir no es escribirlo en prosa.** La primera versión fue una frase
+ * corrida, un carril de catorce píxeles y dos líneas de pie en gris: «le falta
+ * muchísimo formato», y era cierto — el panel de al lado, «Estado de
+ * aplicación», pone la cifra grande delante, reparte una barra por grupo y da a
+ * cada tramo su color y su nota. Éste dice lo mismo con la misma gramática:
+ * las dos tasas como cifras enfrentadas, el contraste como chip, el reparto de
+ * facultades como barra con su leyenda, y la base y el cierre abajo.
  *
  * Todas las cifras salen de `efectividad_seguimiento` (ADR 0082), calculado por
  * el motor: aquí no se divide nada.
  */
+
+/** El tono del contraste. Ir por encima de la vara NO es una alerta. */
+const TONO_DEL_CONTRASTE: Record<string, string> = {
+  sobre: COLOR_RESULTADO.efectiva,
+  conforme: COLOR_RESULTADO.parcial,
+  bajo: COLOR_RESULTADO.rechazo,
+};
+
+const TONO_DE_SENAL = {
+  conforme: COLOR_RESULTADO.parcial,
+  sobre: COLOR_RESULTADO.efectiva,
+  bajo: COLOR_RESULTADO.rechazo,
+  // Sin vara todavía no es un estado del rendimiento: es ausencia de medida, y
+  // gastarle color sería contarla entre las que ya dicen algo.
+  sinVara: "var(--pulso-border)",
+} as const;
+
 export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   /** La facultad en foco, si la hay. Sin ella se lee el conjunto. */
@@ -47,19 +67,33 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
     );
   }
 
-  const riesgo = facultad ? null : riesgoDeCierre(bloque);
-  // **La otra mitad de lo que hay que resumir.** El carril contesta si el
-  // operativo rinde lo que se supuso; esto, si eso es parejo. Una media de 58 %
-  // puede ser quince facultades en 58 o siete en 40 y ocho en 75, y las dos
-  // piden cosas distintas. Sin foco: con una facultad puesta, el reparto de las
-  // quince no es lo que se está mirando.
-  const reparto = facultad ? null : repartoDeSenales(bloque);
+  /**
+   * **Con una facultad puesta se enseña lo suyo Y lo del conjunto.**
+   *
+   * Gonzalo, 2026-09-10: «debe ser capaz de mostrar lo general pero también lo
+   * específico por facultad cuando el selector esté sobre una facultad en
+   * específico». La primera versión sustituía una lectura por otra, y entonces
+   * el 57,3 % de Derecho quedaba sin referencia: no se podía saber si esa
+   * facultad va como el operativo o se despega de él.
+   *
+   * El conjunto no se recalcula: es la misma lectura de siempre, leída del
+   * total del bloque.
+   */
+  const delEstudio = facultad ? lecturaDeEfectividad(bloque, null) : null;
+  // El riesgo del operativo se enseña SIEMPRE: es la conclusión general y no
+  // deja de ser cierta porque se esté mirando una facultad.
+  const riesgo = riesgoDeCierre(bloque);
   const proyeccion = facultad ? proyeccionDeLaFacultad(fila) : null;
+  // Con una facultad puesta, la columna de la derecha es SU proyección; sin
+  // ella, el reparto de las quince.
+  const reparto = facultad ? null : repartoDeSenales(bloque);
   const intervalo = lectura.bandaBajo != null && lectura.bandaAlto != null
     ? `${(lectura.bandaBajo * 100).toFixed(1)} – ${(lectura.bandaAlto * 100).toFixed(1)} %`
     : "";
+  const pct = (v: number | null) => (v == null ? "—" : `${(v * 100).toFixed(1)} %`);
+
   /**
-   * **Cómo se calculó el intervalo, en el `title` de quien lo enseña.**
+   * **Cómo se calculó el intervalo, al alcance del cursor.**
    *
    * No es decoración metodológica: es lo que impide leer un IC ancho como un
    * problema de la facultad en vez de como lo que es —pocos cursos-horario
@@ -70,99 +104,207 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
     + "profesor, hora y sala, así que no son ensayos independientes. Con menos de dos cursos-horario "
     + "aplicados no hay dispersión que medir y el intervalo no se publica.";
 
+  const tramosDelReparto = reparto ? ([
+    { clave: "conforme", n: reparto.conforme, etiqueta: "como lo previsto", nota: "su intervalo contiene la tasa del diseño", color: TONO_DE_SENAL.conforme },
+    { clave: "sobre", n: reparto.sobre, etiqueta: "por encima de su vara", nota: "rinden más de lo que se supuso al dimensionar", color: TONO_DE_SENAL.sobre },
+    { clave: "bajo", n: reparto.bajo, etiqueta: "por debajo de su vara", nota: "con evidencia que lo sostiene, no por el punto", color: TONO_DE_SENAL.bajo },
+    { clave: "sin", n: reparto.sinVara, etiqueta: "sin vara todavía", nota: "sin campo o sin tasa prevista: no se sabe", color: TONO_DE_SENAL.sinVara },
+  ].filter((t) => t.n > 0)) : [];
+
   return (
     <div className="aulas-rye" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-      <p className={`aulas-rye-lectura is-${lectura.tono || "sin"}`}>{lectura.frase}</p>
-      {/* **Las dos tasas en un carril común**, que es lo que hace visible el
-          contraste sin pedir un gráfico: la marca del diseño y la del campo
-          sobre la misma regla.
- 
-          Primera versión: dos rayitas sobre un fondo que no se veía. En pantalla
-          eran dos marcas flotando en el aire —sin regla, sin escala y sin la
-          banda a la que pertenecen—, así que no se podía saber si 51,4 y 58,1
-          estaban cerca o lejos, ni de qué. La regla se dibuja, se rotulan sus
-          extremos y la banda se pinta: sólo entonces las marcas están EN algún
-          sitio. Una tasa va de 0 a 100 y el carril también, porque comprimirlo
-          al tramo con datos exagera la distancia entre las dos. */}
       <div className="aulas-rye-cuerpo">
-      {lectura.previsto != null && lectura.observado != null ? (
-        <div className="aulas-rye-regla">
-          <div className="aulas-rye-carril" role="img" aria-label={lectura.frase}>
-            {/* Los tercios de la escala. Sin ellos el lector no sabe si el
-                carril va de 0 a 100 o del mínimo al máximo observado. */}
-            <span className="aulas-rye-tick" style={{ left: "25%" }} />
-            <span className="aulas-rye-tick" style={{ left: "50%" }} />
-            <span className="aulas-rye-tick" style={{ left: "75%" }} />
-            {/* El IC 95 % de la observada, que es lo que impide leer el punto
-                como exacto: con tres cursos-horario aplicados ocupa media
-                regla, y eso no es un problema de la facultad — es que todavía
-                no hay con qué estrecharlo. */}
-            {lectura.bandaBajo != null && lectura.bandaAlto != null ? (
+        <div className="aulas-rye-contraste">
+          {/* **Las dos tasas como cifras, no dentro de una frase.** Es la
+              gramática del panel de al lado: el número grande delante y su
+              rótulo debajo. Una frase corrida obliga a leerla entera para sacar
+              dos cifras que se comparan de un vistazo. */}
+          <p className="aulas-rye-par">
+            <span className="aulas-rye-tasa is-previsto">
+              <strong>{pct(lectura.previsto)}</strong>
+              <em>lo que supuso el diseño</em>
+            </span>
+            <span className="aulas-rye-flecha" aria-hidden="true">→</span>
+            <span className="aulas-rye-tasa is-observado">
+              <strong>{pct(lectura.observado)}</strong>
+              <em>lo que está dando el campo</em>
+            </span>
+            {lectura.puntos != null && lectura.tono ? (
               <span
-                className="aulas-rye-banda"
-                title={`IC 95 %: ${intervalo}. ${comoSeCalcula}`}
-                style={{
-                  left: `${Math.min(100, Math.max(0, lectura.bandaBajo * 100))}%`,
-                  width: `${Math.min(100, Math.max(0, (lectura.bandaAlto - lectura.bandaBajo) * 100))}%`,
-                }}
-              />
+                className="aulas-rye-delta"
+                style={{ "--aulas-rye-tono": TONO_DEL_CONTRASTE[lectura.tono] ?? "var(--pulso-border)" } as Record<string, string>}
+              >
+                {lectura.tono === "conforme"
+                  ? "dentro del intervalo"
+                  : `${lectura.puntos > 0 ? "+" : "−"}${Math.abs(lectura.puntos).toFixed(1)} pts`}
+              </span>
             ) : null}
-            <span
-              className="aulas-rye-marca is-previsto"
-              title={`El diseño supuso ${((lectura.previsto ?? 0) * 100).toFixed(1)} %`}
-              style={{ left: `${Math.min(100, Math.max(0, lectura.previsto * 100))}%` }}
-            />
-            <span
-              className="aulas-rye-marca is-observado"
-              title={`El campo está dando ${((lectura.observado ?? 0) * 100).toFixed(1)} %`}
-              style={{ left: `${Math.min(100, Math.max(0, lectura.observado * 100))}%` }}
-            />
-          </div>
-          <p className="aulas-rye-escala">
-            <span>0 %</span>
-            {/* La leyenda va aquí abajo y no flotando sobre las marcas: dos
-                rótulos a 6,7 puntos de distancia se pisan, y el perfil ya tiene
-                un guard que caza justo eso. */}
-            <em>
-              <i className="aulas-rye-clave is-previsto" /> diseño
-              {" · "}
-              <i className="aulas-rye-clave is-observado" /> campo
-              {lectura.bandaBajo != null ? (
-                <>{" · "}<i className="aulas-rye-clave is-banda" />{" "}
-                <abbr title={comoSeCalcula}>IC 95 %</abbr></>
-              ) : null}
-            </em>
-            <span>100 %</span>
           </p>
+
+          {/* La regla, con la tasa del diseño y la del campo sobre la misma
+              escala. Va de 0 a 100 % porque eso es lo que puede valer una tasa;
+              comprimirla al tramo con datos exageraría la distancia que este
+              panel viene a medir. */}
+          {lectura.previsto != null && lectura.observado != null ? (
+            <div className="aulas-rye-regla">
+              <div className="aulas-rye-carril" role="img" aria-label={lectura.frase}>
+                <span className="aulas-rye-tick" style={{ left: "25%" }} />
+                <span className="aulas-rye-tick" style={{ left: "50%" }} />
+                <span className="aulas-rye-tick" style={{ left: "75%" }} />
+                {lectura.bandaBajo != null && lectura.bandaAlto != null ? (
+                  <span
+                    className="aulas-rye-banda"
+                    title={`IC 95 %: ${intervalo}. ${comoSeCalcula}`}
+                    style={{
+                      left: `${Math.min(100, Math.max(0, lectura.bandaBajo * 100))}%`,
+                      width: `${Math.min(100, Math.max(0, (lectura.bandaAlto - lectura.bandaBajo) * 100))}%`,
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="aulas-rye-marca is-previsto"
+                  title={`El diseño supuso ${pct(lectura.previsto)}`}
+                  style={{ left: `${Math.min(100, Math.max(0, lectura.previsto * 100))}%` }}
+                />
+                {/* La tasa del OPERATIVO como tercera marca, sólo con una
+                    facultad puesta: es lo que permite decir si ésta va con el
+                    conjunto o se despega. Sin foco sobraría — sería la misma
+                    marca dos veces. */}
+                {delEstudio?.observado != null ? (
+                  <span
+                    className="aulas-rye-marca is-estudio"
+                    title={`El operativo entero está dando ${pct(delEstudio.observado)}`}
+                    style={{ left: `${Math.min(100, Math.max(0, delEstudio.observado * 100))}%` }}
+                  />
+                ) : null}
+                <span
+                  className="aulas-rye-marca is-observado"
+                  title={`El campo está dando ${pct(lectura.observado)}`}
+                  style={{ left: `${Math.min(100, Math.max(0, lectura.observado * 100))}%` }}
+                />
+              </div>
+              <p className="aulas-rye-escala">
+                <span>0 %</span>
+                {delEstudio?.observado != null ? (
+                  <span className="aulas-rye-referencia">
+                    <i /> el operativo, en {pct(delEstudio.observado)}
+                  </span>
+                ) : null}
+                {intervalo ? (
+                  <span className="aulas-rye-ic" title={comoSeCalcula}>
+                    IC 95 %{lectura.margen != null ? ` ± ${lectura.margen.toFixed(1)} pts` : ""}
+                    {" · "}{intervalo}
+                  </span>
+                ) : null}
+                <span>100 %</span>
+              </p>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {reparto ? (
-        /* Al lado del carril y no debajo: son la misma pregunta en dos granos
-           —el conjunto y sus partes— y el carril, que sólo ocupa el tramo entre
-           el 51 % y el 64 %, dejaba media superficie del panel en blanco. */
-        <ul className="aulas-rye-reparto">
-          <li><strong>{fmt(reparto.conforme)}</strong> como lo previsto</li>
-          {reparto.sobre ? <li><strong>{fmt(reparto.sobre)}</strong> por encima de su vara</li> : null}
-          {reparto.bajo ? <li className="es-bajo"><strong>{fmt(reparto.bajo)}</strong> por debajo de su vara</li> : null}
-          {reparto.sinVara ? <li className="es-sin"><strong>{fmt(reparto.sinVara)}</strong> sin vara todavía</li> : null}
-          <li className="es-pie">de {fmt(reparto.total)} facultades</li>
-        </ul>
-      ) : null}
+
+        {proyeccion ? (
+          /* **Lo específico de la facultad**: a dónde llega con lo que tiene.
+             Es la mitad accionable de «predecir para cada facultad cómo nos
+             irá», y va donde sin foco está el reparto de las quince — la
+             columna contesta siempre «¿y las partes?», sólo cambia cuál. */
+          <div className="aulas-rye-reparto">
+            <p className="aulas-rye-cabeza">
+              <strong>{fmt(proyeccion.central)}</strong> proyectadas
+              <em>sobre una cuota de {fmt(proyeccion.cuota)}</em>
+            </p>
+            {/* La barra mide contra el TECHO de las dos cifras, no contra la
+                cuota: una facultad que proyecta 499 sobre 363 rebasaría el
+                carril y su barra se leería igual que otra que apenas cierra. */}
+            {(() => {
+              const techo = Math.max(proyeccion.cuota, proyeccion.alto ?? proyeccion.central, proyeccion.central) || 1;
+              const en = (v: number | null) => (v == null ? null : `${Math.min(100, Math.max(0, (100 * v) / techo))}%`);
+              return (
+                <span className="aulas-rye-proy" role="img" aria-label={proyeccion.frase}>
+                  {/* El intervalo de la proyección, para que el central no se
+                      lea como una promesa. */}
+                  {proyeccion.bajo != null && proyeccion.alto != null ? (
+                    <i
+                      className="es-rango"
+                      title={`Entre ${fmt(proyeccion.bajo)} y ${fmt(proyeccion.alto)}`}
+                      style={{ left: en(proyeccion.bajo) ?? "0%", width: `${Math.min(100, (100 * (proyeccion.alto - proyeccion.bajo)) / techo)}%` }}
+                    />
+                  ) : null}
+                  <i className="es-central" style={{ left: en(proyeccion.central) ?? "0%" }} />
+                  <i className="es-cuota" style={{ left: en(proyeccion.cuota) ?? "0%" }} />
+                </span>
+              );
+            })()}
+            <ul className="aulas-rye-leyenda">
+              <li>
+                <i className="es-marca-central" />
+                <span><strong>{fmt(proyeccion.central)}</strong> proyectadas</span>
+                <em>
+                  {proyeccion.bajo != null && proyeccion.alto != null
+                    ? `entre ${fmt(proyeccion.bajo)} y ${fmt(proyeccion.alto)} según se mantenga el rendimiento`
+                    : "al rendimiento observado hasta ahora"}
+                </em>
+              </li>
+              <li>
+                <i className="es-marca-cuota" />
+                <span><strong>{fmt(proyeccion.cuota)}</strong> de cuota</span>
+                <em>lo que el diseño le pide a esta facultad</em>
+              </li>
+            </ul>
+          </div>
+        ) : null}
+        {tramosDelReparto.length ? (
+          /* **El reparto por facultad, con la misma gramática que el panel de
+             al lado**: una barra que reparte el grupo al 100 % y su leyenda con
+             cifra, etiqueta y nota. El carril contesta si el operativo rinde lo
+             que se supuso; esto, si eso es parejo — una media de 58 % puede ser
+             quince facultades en 58 o siete en 40 y ocho en 75. */
+          <div className="aulas-rye-reparto">
+            <p className="aulas-rye-cabeza">
+              <strong>{fmt(reparto?.total ?? 0)}</strong> facultades
+              <em>cada una contra su propia tasa prevista</em>
+            </p>
+            <span
+              className="aulas-rye-barra"
+              role="img"
+              aria-label={reparto?.frase ?? ""}
+            >
+              {tramosDelReparto.map((t) => (
+                <i
+                  key={t.clave}
+                  style={{ width: `${(100 * t.n) / (reparto?.total || 1)}%`, background: t.color }}
+                />
+              ))}
+            </span>
+            <ul className="aulas-rye-leyenda">
+              {tramosDelReparto.map((t) => (
+                <li key={t.clave}>
+                  <i style={{ background: t.color }} />
+                  <span><strong>{fmt(t.n)}</strong> {t.etiqueta}</span>
+                  <em>{t.nota}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
+
       <p className="aulas-rye-base">
         {/* De dónde sale la observada. Una tasa sin su base se lee como exacta,
             y con tres cursos-horario aplicados no lo es — por eso viaja su
             intervalo de confianza. */}
         Sobre {fmt(lectura.aulas)} {lectura.aulas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"}
         {" · "}{fmt(lectura.efectivas)} efectivas de {fmt(lectura.elegibles)} elegibles
-        {intervalo ? (
-          <> · <abbr title={comoSeCalcula}>IC 95 %</abbr>{" "}
-          {lectura.margen != null ? <>± {lectura.margen.toFixed(1)} pts, </> : null}
-          {intervalo}</>
-        ) : null}
       </p>
-      {riesgo ? <p className="aulas-rye-cierre">{riesgo.frase}</p> : null}
-      {proyeccion ? <p className="aulas-rye-cierre">{proyeccion.frase}</p> : null}
+      {riesgo ? (
+        <p className={`aulas-rye-cierre ${riesgo.facultadesEnRiesgo ? "es-alerta" : "es-ok"}`}>
+          {riesgo.frase}
+        </p>
+      ) : null}
+      {proyeccion ? (
+        <p className={`aulas-rye-cierre ${proyeccion.cierra ? "es-ok" : "es-alerta"}`}>
+          {proyeccion.frase}
+        </p>
+      ) : null}
     </div>
   );
 }
