@@ -174,7 +174,10 @@ export function AulasRitmoDiario({ ritmo, hasta }: {
             </>
           )}
           {diasAlRitmo
-            ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
+            // «al ritmo de estos 1» salía con una facultad de un solo día de
+            // campo, que es el caso normal en cuanto el panel se filtra. Con un
+            // solo día la referencia es ese día, no «estos uno».
+            ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo ${conCampo === 1 ? "de ese día" : `de estos ${fmt(conCampo)}`}`
             : ""}
         </p>
       ) : null}
