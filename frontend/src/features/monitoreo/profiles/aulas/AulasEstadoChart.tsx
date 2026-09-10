@@ -80,10 +80,19 @@ function dondeEstanLasOtras(fuera: number, reserva: number): string {
   return `Las otras ${fmt(dormidas)} esperan en reserva: sólo entran si cae su titular.`;
 }
 
-export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMotor, dormidasMotor }: {
+export function AulasEstadoChart({
+  filas, resumen, desconocidasMotor, reservaMotor, dormidasMotor, totalDelPlan,
+}: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
+  /**
+   * Cuántos cursos-horario tiene el plan entero (`course_status_total`), para
+   * que el RESPALDO sepa si lo que le llegó es el plan o el recorte. Igual que
+   * en `AulasCoberturaChart`: sin el bloque del motor, repartir 500 filas
+   * ordenadas por tramo dibuja una forma que no es la del operativo.
+   */
+  totalDelPlan?: number;
   /** Estados que el motor no supo clasificar: se declaran, no se tragan. */
   desconocidasMotor?: number;
   /**
@@ -110,6 +119,9 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
    */
   dormidasMotor?: number;
 }) {
+  // Si lo que llegó es el plan entero o el recorte. Sin el dato se asume
+  // completo: un payload viejo se comporta como antes.
+  const recortado = typeof totalDelPlan === "number" && totalDelPlan > filas.length;
   const { estados, desconocidas, total, sinSalirACampo, enJuego } = useMemo(
     () => {
       // El reparto del MOTOR primero: la vista lo sumaba sobre `course_status`,
@@ -173,6 +185,14 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
           };
         }
       }
+      // **Sin el bloque del motor, sólo se reparte si llegó el plan ENTERO.**
+      // Medido el 2026-09-09: `course_status` viaja con 500 filas de 1 392 y
+      // ordenadas por tramo del circuito, así que el respaldo dibujaría un
+      // operativo mucho más avanzado del que hay. Un vacío que dice la causa
+      // vale más que un gráfico plausible y falso.
+      if (recortado) {
+        return { estados: [], desconocidas: 0, total: 0, sinSalirACampo: 0, enJuego: 0 };
+      }
       const propio = estadoDeAplicacion(filas);
       return {
         ...propio,
@@ -181,7 +201,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
           .reduce((n, e) => n + e.aulas, 0),
       };
     },
-    [filas, resumen, desconocidasMotor, reservaMotor],
+    [filas, resumen, desconocidasMotor, reservaMotor, dormidasMotor, recortado],
   );
 
   if (!total) {
@@ -189,7 +209,11 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor, reservaMot
       // La anatomía del vacío del perfil (precedente en `AulasAvanceCuota`):
       // el wrap exento declara su capacidad y sus reglas ciñen el `p`.
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <p className="mon-profile-muted">Todavía no hay cursos-horario en el plan.</p>
+        <p className="mon-profile-muted">
+          {recortado
+            ? `El reparto por estado no llegó con los datos y aquí sólo hay ${fmt(filas.length)} de los ${fmt(totalDelPlan ?? 0)} cursos-horario del plan: repartir ese recorte dibujaría un operativo más avanzado del que hay. Recarga para volver a pedirlo.`
+            : "Todavía no hay cursos-horario en el plan."}
+        </p>
       </div>
     );
   }
