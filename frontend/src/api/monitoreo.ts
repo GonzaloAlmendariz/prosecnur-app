@@ -5452,6 +5452,21 @@ export type MonitoreoAulasSincronizacion = {
   };
   sin_aplicador: Array<{ curso_horario?: string; fecha?: string }>;
   /**
+   * En qué se quedó atrás la adopción del reparto: la app tiene fijado a
+   * alguien y la hoja dice OTRO. **Sólo `cambiadas` contradice a la app** —una
+   * cita nueva en la hoja o una que ya no está no la contradicen— y por eso
+   * `hay` se enciende sólo con ellas: alumbrar por las tres haría saltar el
+   * aviso cada día del operativo y dejaría de leerse.
+   *
+   * Ausente en recibos anteriores al 2026-09-09.
+   */
+  fijaciones_desfasadas?: {
+    hay: boolean;
+    cambiadas: Array<{ curso_horario?: string; guardado?: string; en_la_hoja?: string }>;
+    nuevas: string[];
+    retiradas: string[];
+  };
+  /**
    * La columna AULA puesta al día con el libro. **Es la única celda ajena que
    * la sincronización pisa**, y a propósito: el ESTADO lo teclea el
    * coordinador y es suyo, pero el aula la pacta quien agenda —en LUGAR DE
