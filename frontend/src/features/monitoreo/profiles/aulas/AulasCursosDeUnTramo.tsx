@@ -25,19 +25,35 @@ import "./aulasCursosDeUnTramo.css";
  * asistentes son los que aparecieron ese día. Confundirlos es el error que él
  * tuvo que corregirme, y por eso cada columna lleva su palabra.
  */
-export function AulasCursosDeUnTramo({ filas, tramo, etiqueta, onCerrar }: {
+export function AulasCursosDeUnTramo({ filas, tramo, etiqueta, onCerrar, enElTramo = null }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow> | null | undefined;
   tramo: string;
   etiqueta: string;
   onCerrar: () => void;
+  /**
+   * Cuántos cuenta el MOTOR en este tramo, que es lo que dice la barra sobre la
+   * que se hizo clic. `null` cuando no hay bloque del motor con qué comparar.
+   */
+  enElTramo?: number | null;
 }): ReactNode {
   const cursos = cursosDeUnTramo(filas, tramo);
+  // **La barra decía 19 y la lista abría con 1.** Medido el 2026-09-10 en
+  // Derecho: la barra sale del bloque del motor, que cuenta el plan entero de la
+  // facultad, y la lista se arma con `course_status`, que viaja recortado a 500
+  // filas de 1 392. El pie ya advertía del recorte en abstracto —«hoy no muerde,
+  // pero decirlo evita que un día el operativo crezca y la lista se quede corta
+  // en silencio»— y ese día llegó. Ahora la cabecera lo dice con las dos cifras,
+  // en vez de afirmar un total que la barra de arriba contradice.
+  const faltan = typeof enElTramo === "number" && enElTramo > cursos.length
+    ? enElTramo - cursos.length
+    : 0;
   return (
     <div className="aulas-cdt" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cdt-cabeza">
         <span>
           <strong>{fmt(cursos.length)}</strong>{" "}
-          {cursos.length === 1 ? "curso-horario" : "cursos-horario"} en «{etiqueta}»
+          {faltan ? <>de los {fmt(enElTramo)} </> : null}
+          {(faltan ? enElTramo : cursos.length) === 1 ? "curso-horario" : "cursos-horario"} en «{etiqueta}»
         </span>
         <button type="button" onClick={onCerrar}>Cerrar</button>
       </p>
@@ -107,6 +123,10 @@ export function AulasCursosDeUnTramo({ filas, tramo, etiqueta, onCerrar }: {
       <p className="mon-profile-table-recorte">
         Sale de los cursos-horario aplicados que viajan al tablero; los
         pendientes no entran porque su previsión es condicional a aplicarse.
+        {faltan ? (
+          <> Los otros {fmt(faltan)} que la barra cuenta en este tramo no viajan
+          en el recorte del tablero, así que no se pueden listar aquí.</>
+        ) : null}
       </p>
     </div>
   );
