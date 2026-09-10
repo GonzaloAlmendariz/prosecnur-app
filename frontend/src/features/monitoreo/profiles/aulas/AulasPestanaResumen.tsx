@@ -321,6 +321,9 @@ export function AulasPestanaResumen({
               <AulasEstadoChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 resumen={dashboard.course_status_estados ?? null}
+                // Para que el respaldo sepa si le llegó el plan entero o el
+                // recorte de 500 filas, igual que en cobertura.
+                totalDelPlan={totalAulas}
                 desconocidasMotor={dashboard.course_status_estados_desconocidos}
                 // La reserva adicional, contada por el motor sobre TODAS las
                 // filas: sin ella, el pie decía «2.109 de 2.109 cursos-horario

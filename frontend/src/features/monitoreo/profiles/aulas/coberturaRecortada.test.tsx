@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
+import { AulasEstadoChart } from "./AulasEstadoChart";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
 /**
@@ -52,5 +53,41 @@ describe("el respaldo de «Cursos-horario por cobertura»", () => {
   it("un payload sin `totalDelPlan` se comporta como antes: no se asume recorte", () => {
     const html = renderToStaticMarkup(<AulasCoberturaChart filas={filas(12)} resumen={null} />);
     expect(html).not.toContain("no es la del operativo");
+  });
+});
+
+/**
+ * El gemelo: «Estado de aplicación» tenía el mismo respaldo sin declarar.
+ * Cerrarlo en uno y dejarlo abierto en el otro sería exactamente la asimetría
+ * que hoy dejó al panel de los aplicadores fallando mientras el del libro se
+ * salvaba por suerte.
+ */
+describe("el respaldo de «Estado de aplicación»", () => {
+  it("con el plan recortado y sin bloque del motor, DECLARA en vez de dibujar", () => {
+    const html = renderToStaticMarkup(
+      <AulasEstadoChart filas={filas(500)} resumen={null} totalDelPlan={1392} />,
+    );
+    expect(html).toContain("500");
+    expect(html).toContain("1,392");
+    expect(html).toContain("más avanzado del que hay");
+  });
+
+  it("con el bloque del motor manda el motor, recortado o no", () => {
+    const html = renderToStaticMarkup(
+      <AulasEstadoChart
+        filas={filas(500)} totalDelPlan={1392}
+        resumen={[{ clave: "pendiente", aulas: 83 }, { clave: "lista", aulas: 91 }]}
+      />,
+    );
+    expect(html).not.toContain("más avanzado del que hay");
+  });
+
+  it("sin recorte reparte como siempre, y sin el dato no se asume recorte", () => {
+    expect(renderToStaticMarkup(
+      <AulasEstadoChart filas={filas(12)} resumen={null} totalDelPlan={12} />,
+    )).not.toContain("más avanzado del que hay");
+    expect(renderToStaticMarkup(
+      <AulasEstadoChart filas={filas(12)} resumen={null} />,
+    )).not.toContain("más avanzado del que hay");
   });
 });
