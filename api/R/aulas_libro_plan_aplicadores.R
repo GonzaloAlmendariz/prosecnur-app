@@ -26,7 +26,7 @@
   "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE", "ESTADO"
 )
 
-#' Los cuatro estados de una cita en la hoja de los aplicadores.
+#' Los SIETE estados de una cita en la hoja de los aplicadores.
 #'
 #' Dictado de Gonzalo (2026-09-08): «necesitamos una columna más que diga el
 #' estatus que sea por aplicar, aplicada, reagendada, rechazada».
@@ -38,6 +38,15 @@
 #'
 #' En MAYÚSCULAS y en el vocabulario del libro, que es donde el equipo ya los
 #' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
+#'
+#' **El orden es el de SU desplegable** (2026-09-10, con la validación de la
+#' hoja delante: «deberían ser estas»), no el alfabético ni el de aparición: es
+#' una lista que el equipo abre y recorre con la vista, y reordenarla les mueve
+#' de sitio el que buscan.
+#'
+#' «NO APLICADA» NO está aquí aunque el libro del operativo la use en «STATUS DE
+#' APLICACIÓN»: son dos vocabularios de dos hojas distintas, y meterla en este
+#' desplegable le añadiría al equipo una opción que él no puso.
 #'
 #' **«APLICADA SIN AGENDACIÓN» es el sexto, y no es un matiz de los otros dos**
 #' (Gonzalo, 2026-09-10, sobre una que aplicaron esa manana: «al final pudimos
@@ -59,8 +68,9 @@
 #' al regenerar el 2026-09-10.
 #' @export
 MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
-  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN",
-  "REAGENDADA", "RECHAZADA", "NO APLICADA"
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN",
+  "REAGENDADA", "RECHAZADA",
+  "APLICADA SIN AGENDACIÓN", "POR APLICAR SIN AGENDACIÓN"
 )
 
 #' El día de la semana, escrito.
@@ -279,13 +289,17 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   # se leen como «esto ya rindio» y siguen distinguiendose de un vistazo.
   `APLICADA SIN AGENDACIÓN` = "#D7E8F5",
   `POR APLICAR` = "#FFF4C2", REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2",
-  # **«NO APLICADA» es el séptimo, y no es «RECHAZADA»** (2026-09-10: el
-  # aplicador fue y el aula no era la agendada). Rechazada es una decisión del
-  # docente; ésta es una salida que no rindió, y el remedio es distinto: una se
-  # reemplaza, la otra se vuelve a intentar. En gris cálido, fuera de la familia
-  # roja del rechazo y de la amarilla de lo que aún está por hacer: se lee como
-  # «cerrada sin resultado».
-  `NO APLICADA` = "#DDD3CE"
+  # **«POR APLICAR SIN AGENDACIÓN» es el séptimo** (Gonzalo, 2026-09-10, con su
+  # desplegable delante: «deberían ser estas»). Es la hermana pendiente de
+  # «APLICADA SIN AGENDACIÓN»: se va a ir al aula sin cita, a ver si dejan
+  # entrar, y todavía no ha pasado. Sin ella, esa salida se anotaba como un
+  # «POR APLICAR» normal y nadie distinguía una cita pactada de una apuesta.
+  #
+  # El color sigue la MISMA gramática que su hermana: el tono base dice en qué
+  # fase está —amarillo lo pendiente, verde lo rendido— y el tinte azulado dice
+  # «sin agendación». Así las dos parejas se leen por fase en vertical y por
+  # procedencia en horizontal.
+  `POR APLICAR SIN AGENDACIÓN` = "#E8EEF2"
 )
 
 #' Una regla de color POR VALOR de la celda de aplicador.
