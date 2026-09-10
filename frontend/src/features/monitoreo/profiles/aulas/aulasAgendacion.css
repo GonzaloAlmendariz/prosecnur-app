@@ -72,3 +72,43 @@
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* El día sin agendación se dibuja igual, apagado: un eje que salta el domingo
+   dibuja un ritmo que no existió. */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias li.es-sin-agendar .aulas-agd-dia {
+  color: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+/* La barra es apilada: el titular abajo, la reserva activada encima. */
+.mon-profile-page.is-aulas-flow .aulas-agd-barra i {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-barra b {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--pulso-warn-accent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-mes {
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* La clave de color del pie, del tamaño de la letra que acompaña. */
+.mon-profile-page.is-aulas-flow .aulas-agd-clave {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-clave.es-reemplazo { background: var(--pulso-warn-accent); }
