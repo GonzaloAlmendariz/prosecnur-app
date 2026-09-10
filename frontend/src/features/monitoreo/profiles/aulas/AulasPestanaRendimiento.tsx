@@ -65,35 +65,16 @@ export function AulasPestanaRendimiento({
     [tablas, facultadEnFoco],
   );
   if (pestana !== "rendimiento") return null;
-  /* **El ancho lo deciden los DATOS, no un trio fijo.** El comentario original
-     midio «7, 3 y 7 filas» y sobre eso repartio tres columnas iguales. El
-     2026-09-09, con el operativo recien arrancado, eran 5, 1 y 1: el ranking de
-     aplicadores partia cada nombre en CUATRO lineas («Chamorro Rodriguez, Rosa
-     Alejandrin/a») a un tercio de ancho, mientras franja y dia gastaban una
-     columna entera para UNA fila. Gonzalo lo vio y lo dijo en dos palabras: «se
-     ve fatal».
+  /* **El ancho ya no lo decide una condición: el ranking de aplicadores se lo
+     lleva siempre.** Hubo un trío fijo, y después una regla que devolvía el trío
+     cuando las dos lentes de tiempo comparaban. El 2026-09-10 se midió en el DOM
+     lo que hacía el trío con el operativo real: el panel daba 386 px de caja y
+     la lista pedía 615 —la tabla se salía 229 px por la derecha, y la del día
+     más allá del viewport—. Son 21 filas con nombres de treinta caracteres.
 
-     La regla que sustituye al trio fijo: **una lente con una sola fila no es una
-     comparacion, es un dato.** Si las dos lentes de tiempo comparan (>= 2 filas
-     cada una) vuelve el trio tal como se midio; si no, el ranking se lleva el
-     ancho completo —que es donde los nombres caben— y las dos lentes cortas se
-     reparten una pareja. Ninguna clase nueva: `aulasMonitoreo.css` esta
-     congelado y las dos rejillas ya existen. */
-  // **Sin `useMemo`, y no por ahorro: por corrección.** Esta línea vive DESPUÉS
-  // del `if (pestana !== "rendimiento") return null` de arriba, así que un hook
-  // aquí se llama en unos renders y en otros no. Eso es React #310 —«rendered
-  // more hooks than during the previous render»— y tumba la app entera al
-  // cambiar de pestaña, con el error boundary tapando también las pestañas
-  // siguientes. Pasó el 2026-09-09: los 3 535 tests siguieron en verde porque
-  // el test de este panel siempre pinta con `pestana="rendimiento"` y el conteo
-  // de hooks nunca cambiaba. Lo caza `hooksDespuesDeLaGuarda.contract.test.ts`.
-  //
-  // El coste es dos pasadas sobre los partes del corte —decenas de filas, no
-  // miles— y sólo cuando esta pestaña se pinta.
-  const filasDeLaLente = (clave: "franja" | "dia_semana") =>
-    rendimientoPorFacultad(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[], clave).length;
-  const lentesQueComparan =
-    (filasDeLaLente("franja") >= 2 ? 1 : 0) + (filasDeLaLente("dia_semana") >= 2 ? 1 : 0);
+     Con ello se fueron `filasDeLaLente` y `lentesQueComparan`, que existían sólo
+     para elegir entre los dos repartos, y las dos pasadas extra que costaban
+     sobre los partes del corte. */
 
   const panelAplicador = (
             <section
@@ -268,31 +249,25 @@ export function AulasPestanaRendimiento({
                 comparar la franja con el día había que recordar el primero. La cuarta
                 —por facultad— se queda encima a todo lo ancho: son 21 filas contra 7 y
                 a un tercio de ancho sus nombres no caben. */}
-            {lentesQueComparan === 2 ? (
-              <div
-                className="aulas-lentes-trio"
-                data-qa-geometry-group="monitoring-aulas-lentes"
-                /* `intrinsic`: apiladas bajo 1180 px cada una vuelve a su alto
-                   propio, asi que `equal` seria una promesa que no cumplen. */
-                data-qa-geometry-contract="intrinsic"
-              >
-                {panelAplicador}
-                {panelFranja}
-                {panelDia}
-              </div>
-            ) : (
-              <>
-                {panelAplicador}
-                <div
-                  className="aulas-avance-pareja"
-                  data-qa-geometry-group="monitoring-aulas-pareja"
-                  data-qa-geometry-contract="intrinsic"
-                >
-                  {panelFranja}
-                  {panelDia}
-                </div>
-              </>
-            )}
+            {/* **El ranking de aplicadores SIEMPRE a todo lo ancho.** Hubo un
+                reparto en trío cuando las dos lentes de tiempo comparaban, y el
+                2026-09-10 se midió en el DOM lo que hacía: el panel daba 386 px
+                de caja y la lista pedía 615, así que la tabla se salía 229 px
+                por la derecha y la del día se iba más allá del viewport. Son 21
+                filas con nombres de treinta caracteres; a un tercio no caben, y
+                el CSS que lo repartía ya lo decía en su propio comentario.
+
+                Las dos lentes de tiempo se quedan en la pareja, que les da unos
+                580 px cada una: ahí sí caben sus cinco columnas. */}
+            {panelAplicador}
+            <div
+              className="aulas-avance-pareja"
+              data-qa-geometry-group="monitoring-aulas-pareja"
+              data-qa-geometry-contract="intrinsic"
+            >
+              {panelFranja}
+              {panelDia}
+            </div>
             {/* **«Encuestas por día de cada facultad» se retiró el 2026-09-08.**
                 Su propio comentario ya lo pedía: «son la misma pregunta a dos
                 escalas y conviene decidir si sobra uno».

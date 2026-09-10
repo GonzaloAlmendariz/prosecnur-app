@@ -5,20 +5,27 @@ import { AulasPestanaRendimiento } from "./AulasPestanaRendimiento";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 
 /**
- * **Una lente con una sola fila no es una comparación, es un dato.**
+ * **El ranking de aplicadores se lleva SIEMPRE el ancho completo.**
  *
- * El trío de Rendimiento repartía tres columnas iguales entre «Quién consigue
- * más», «Franja horaria del operativo» y «Día de la semana». El comentario que
- * lo justificaba había medido «7, 3 y 7 filas»; el 2026-09-09, con el operativo
- * recién arrancado, eran 5, 1 y 1. A un tercio de ancho el ranking partía cada
- * nombre en cuatro líneas —«Chamorro Rodriguez, Rosa Alejandrin/a»— mientras las
- * otras dos gastaban una columna entera para una fila. Gonzalo, mirándolo: «se
- * ve fatal».
+ * Historia de dos correcciones, porque la segunda existe porque la primera se
+ * quedó corta:
  *
- * Este test fija que el ancho lo deciden los DATOS. Sin él, la regla es una
- * decisión de layout que nadie sujeta: el trío volvería en cuanto alguien
- * simplificara el condicional, y sólo se vería con el operativo empezando —que
- * es justo cuando más se mira el tablero—.
+ * 1. Había un trío fijo —«Quién consigue más», «Franja horaria del operativo» y
+ *    «Día de la semana» a un tercio cada uno—. El 2026-09-09, con el operativo
+ *    recién arrancado, el ranking partía cada nombre en cuatro líneas
+ *    —«Chamorro Rodriguez, Rosa Alejandrin/a»— mientras las otras dos gastaban
+ *    una columna entera para UNA fila. Gonzalo: «se ve fatal». Se puso una
+ *    regla: el trío sólo cuando las dos lentes de tiempo comparan.
+ * 2. El 2026-09-10, con las dos lentes ya comparando, el trío volvió — y se
+ *    midió en el DOM lo que hacía: **el panel daba 386 px de caja y la lista
+ *    pedía 615**. La tabla del ranking se salía 229 px por la derecha y la del
+ *    día se iba más allá del viewport, porque `minmax(60px, 1fr)` deja que el
+ *    contenido empuje el track. Son 21 filas con nombres de treinta caracteres:
+ *    no caben a un tercio ni cuando la comparación es legítima.
+ *
+ * Este test fija que el trío NO vuelve. Sin él, la vuelta a tres columnas es una
+ * línea de CSS y un condicional, y el defecto sólo se ve con el operativo en
+ * marcha —que es cuando más se mira el tablero—.
  */
 
 /**
@@ -55,9 +62,8 @@ function pintar(partes: ReturnType<typeof parte>[]): string {
   );
 }
 
-describe("el ancho de las lentes lo deciden los datos", () => {
-  test("con UNA franja y UN día no se reparten tres columnas iguales", () => {
-    // Es el caso del arranque del operativo, y el que Gonzalo vio roto.
+describe("el ancho de las lentes", () => {
+  test("con UNA franja y UN día, el ranking va entero y las dos cortas en pareja", () => {
     const html = pintar([
       parte("Ana", "2026-09-07 10:00"),
       parte("Beto", "2026-09-07 11:00"),
@@ -66,16 +72,17 @@ describe("el ancho de las lentes lo deciden los datos", () => {
     expect(html).toContain("aulas-avance-pareja");
   });
 
-  test("cuando las dos lentes SÍ comparan, vuelve el trío como se midió", () => {
-    // Dos franjas y dos días distintos: ahí las tres columnas comparan de
-    // verdad y el molde original es el bueno. La regla no es «nunca el trío».
+  test("y con las dos lentes comparando TAMPOCO vuelve el trío", () => {
+    // Éste es el caso que el reparto anterior mandaba a tres columnas y el que
+    // se midió roto: dos franjas y dos días distintos.
     const html = pintar([
       parte("Ana", "2026-09-07 08:00"),
       parte("Beto", "2026-09-08 11:00"),
       parte("Ana", "2026-09-08 08:00"),
       parte("Beto", "2026-09-07 11:00"),
     ]);
-    expect(html).toContain("aulas-lentes-trio");
+    expect(html).not.toContain("aulas-lentes-trio");
+    expect(html).toContain("aulas-avance-pareja");
   });
 
   test("el ranking de aplicadores está en los dos casos, no se pierde por el camino", () => {
