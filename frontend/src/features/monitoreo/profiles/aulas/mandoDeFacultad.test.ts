@@ -18,8 +18,17 @@ describe("mandoDeFacultadVisible", () => {
     expect(mandoDeFacultadVisible("avance", "salidas")).toBe(false);
   });
 
+  it("se dibuja en Consultas, que es donde se deciden el complemento y el refuerzo", () => {
+    // «Muéstrame la app donde tomo las decisiones por facultad para B y C»
+    // (2026-09-10). Sus tres superficies ya filtraban por el foco; lo que
+    // faltaba era con qué elegir la facultad.
+    for (const pestana of ["ficha", "reemplazos", "brechas", "parte", "extras"]) {
+      expect(mandoDeFacultadVisible("consultas", pestana), pestana).toBe(true);
+    }
+  });
+
   it("NO se dibuja en las otras secciones, ni siquiera sin pestaña", () => {
-    for (const seccion of ["fuentes", "modelo", "calidad", "consultas"]) {
+    for (const seccion of ["fuentes", "modelo", "calidad"]) {
       expect(mandoDeFacultadVisible(seccion, ""), seccion).toBe(false);
       // Una sección con una pestaña que también se llama «resumen» no lo cuela.
       expect(mandoDeFacultadVisible(seccion, "resumen"), seccion).toBe(false);

@@ -32,6 +32,18 @@
 /** La única pestaña de Avance sin gráficos que ajustar. */
 const SIN_MANDO = new Set(["salidas"]);
 
+/**
+ * **Y Consultas también, desde el 2026-09-10.** Gonzalo: «muéstrame la app
+ * donde tomo las decisiones por facultad para B y C».
+ *
+ * Sus tres superficies —la cadena de reemplazos, los cursos-horario con brecha
+ * y el banco de extras— YA se recortaban por la facultad en foco desde que
+ * existe `soloFacultad`. Lo que no había era **con qué elegirla**: el foco sólo
+ * se ponía en Avance y había que arrastrarlo por la URL. Una sección que sabe
+ * filtrar y no ofrece el mando es la mitad de una función.
+ */
+const CON_MANDO = new Set(["avance", "consultas"]);
+
 export function mandoDeFacultadVisible(seccion: string, pestana: string): boolean {
-  return seccion === "avance" && !SIN_MANDO.has(pestana);
+  return CON_MANDO.has(seccion) && !SIN_MANDO.has(pestana);
 }

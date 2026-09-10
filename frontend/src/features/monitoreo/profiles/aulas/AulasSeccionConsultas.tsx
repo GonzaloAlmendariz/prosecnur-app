@@ -317,7 +317,7 @@ export function AulasSeccionConsultas({
             agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
             partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
           />
-          <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
+          <AulasBancoExtras banco={dashboard.banco_extras ?? null} facultadEnFoco={facultadEnFoco} />
         </section>
         ) : null}
       </div>
