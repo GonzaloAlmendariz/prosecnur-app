@@ -69,6 +69,11 @@ const SIN_MONTAR_CONOCIDOS = [
   "AulasRitmoPorFacultad.tsx::AulasRitmoPorFacultad",
   "AulasAvanceProyectado.tsx::AulasAvanceProyectado",
   "AulasBrechaEstratoChart.tsx::AulasBrechaEstratoChart",
+  // Retirado de Resumen el 2026-09-10 a pedido de Gonzalo: «Cursos-horario
+  // vencidos sin aplicar se va porque no es necesario». Lo que contaba —fecha
+  // pasada y sin parte— lo dice el reparto por rol del panel de agendación, que
+  // separa agendadas de aplicadas. Se desmonta, no se borra.
+  "AulasFrenteDelOperativo.tsx::AulasFrenteDelOperativo",
   "TelefonicoMonitoreoPage.tsx::TelefonicoPendingOperationalTable",
   "TerritorialFieldOccurrencesWorkbench.tsx::OccurrenceAlertLine",
   "TerritorialModelWorkbench.tsx::RouteSheetStrip",

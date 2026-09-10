@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AulasBrechaConcentrada } from "./AulasBrechaConcentrada";
 import { AulasRepresentatividad } from "./AulasRepresentatividad";
+import { deLaFacultadPorEstrato } from "./deLaFacultad";
 import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
@@ -16,16 +17,25 @@ import type { TablaDelPerfil } from "./tablaDelPerfil";
  * esta pestaña vienen con ella.
  */
 export function AulasPestanaEstratos({
-  dashboard, pestana, tabla,
+  dashboard, pestana, tabla, facultadEnFoco,
 }: {
   /** No nulable: `renderAulasView` ya devolvió el vacío mucho antes. */
   dashboard: MonitoreoAulasDashboard;
   pestana: string;
   tabla: TablaDelPerfil;
+  /** La facultad del selector de la cabecera, que desde el 2026-09-10 está en
+      TODO Avance: «absolutamente todos los gráficos deben ajustarse y ser
+      robustos a mostrar o todas las facultades o una específica». */
+  facultadEnFoco: string | undefined;
 }): ReactNode {
   if (pestana !== "estratos") return null;
   const Tabla = tabla;
-  const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  // La facultad vive DENTRO de la clave del estrato —`faculty / sex_top_1 /
+  // size_group`—, así que el recorte va por su primer segmento.
+  const estratoRows = deLaFacultadPorEstrato(
+    (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>,
+    facultadEnFoco,
+  ) as Array<Record<string, unknown>>;
   // `stratum` es una CLAVE del motor —facultad / sexo predominante / tramo de
   // tamaño, pegados—, no una etiqueta. Se traduce para la vista y sólo para la
   // vista: el original sigue siendo el que empareja.
@@ -129,7 +139,13 @@ export function AulasPestanaEstratos({
                     montarlo se descubrió que contaba el banco entero como muestra
                     efectiva; eso se arregló en `6d885d99` antes de pintarlo. */}
                 <h3>Cuánto se ha movido la composición</h3>
-                <span>lo que se está aplicando contra lo que sorteó el diseño, estrato por estrato</span>
+                {/* **Este bloque NO se recorta por facultad, y lo dice.** El
+                    motor publica `representativity` del estudio entero y no por
+                    facultad; filtrarlo aquí sería inventar un reparto. Con una
+                    facultad puesta arriba, callarlo haría leer como suya una
+                    composición que es de todos (C1). */}
+                <span>lo que se está aplicando contra lo que sorteó el diseño, estrato por estrato
+                  {facultadEnFoco ? " · del estudio completo: el motor no lo reparte por facultad" : ""}</span>
               </div>
               <AulasRepresentatividad
                 bloque={dashboard.representativity as Record<string, unknown> | undefined}

@@ -981,7 +981,7 @@ function renderAulasView({
         facultadEnFoco={facultadEnFoco}
         onFoco={onFoco}
       />
-      <AulasPestanaEstratos dashboard={dashboard} pestana={pestana} tabla={DataTable} />
+      <AulasPestanaEstratos dashboard={dashboard} pestana={pestana} tabla={DataTable} facultadEnFoco={facultadEnFoco} />
       <AulasPestanaEfectividad
         dashboard={dashboard}
         pestana={pestana}

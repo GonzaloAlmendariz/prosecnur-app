@@ -39,3 +39,27 @@ export function deLaFacultad<T extends Record<string, unknown>>(
   // lo usan las dos familias de filas.
   return filas.filter((f) => clave(f.faculty ?? f.facultad) === buscada);
 }
+
+/**
+ * Lo mismo, para filas cuya facultad viene DENTRO de la clave del estrato.
+ *
+ * El motor compone `stratum` pegando `faculty / sex_top_1 / size_group`, así
+ * que la facultad es el primer segmento y no existe como columna propia. Sin
+ * esto, la pestaña Estratos era la única de Avance que no reaccionaba al
+ * selector: enseñaba los 73 cortes del estudio con una facultad puesta arriba.
+ *
+ * Usa el MISMO criterio de comparación que `deLaFacultad` —el de todo el
+ * perfil— para que no haya un panel que encuentre Psicología y otro no.
+ */
+export function deLaFacultadPorEstrato<T extends Record<string, unknown>>(
+  filas: ReadonlyArray<T> | null | undefined,
+  facultad: string | undefined,
+): ReadonlyArray<T> {
+  if (!facultad || !filas?.length) return filas ?? [];
+  const buscada = clave(facultad);
+  return filas.filter((f) => {
+    const bruto = f.stratum ?? f.estrato;
+    const primero = String(bruto ?? "").split("/")[0];
+    return clave(primero) === buscada;
+  });
+}

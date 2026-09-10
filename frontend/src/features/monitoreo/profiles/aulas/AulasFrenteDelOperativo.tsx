@@ -21,6 +21,17 @@ function fechaCorta(iso: string): string {
   return `${dia} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/**
+ * ⚠ SIN MONTAR desde el 2026-09-10.
+ *
+ * Gonzalo, reorganizando Resumen: «Cursos-horario vencidos sin aplicar se va
+ * porque no es necesario». Lo que este panel contaba —cursos-horario cuya fecha
+ * ya pasó y siguen sin parte de campo— lo dice el reparto por rol del panel de
+ * agendación, que separa «agendadas» de «aplicadas» sobre el plan entero.
+ *
+ * Se desmonta, no se borra: el cruce agenda × partes no lo hace nadie más y si
+ * la pregunta vuelve, vuelve montado.
+ */
 export function AulasFrenteDelOperativo({ filas, partes, corte }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   partes: ReadonlyArray<Record<string, unknown>>;
