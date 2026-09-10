@@ -86,3 +86,26 @@ describe("hasta dónde llega lo agendado", () => {
     expect(html).not.toContain("aulas-cpa-observado");
   });
 });
+
+/**
+ * **Los dos defectos que sólo se vieron mirando la pantalla.**
+ *
+ * Con los datos reales el panel decía «2.850,1» en el techo del eje y
+ * «2026-09-10T17:19:56Z» como primer rótulo del eje de fechas. Ninguno de los
+ * cinco tests de arriba lo vio: sus fixtures pasan la fecha ya corta y su techo
+ * cae en entero.
+ */
+describe("los rótulos del eje", () => {
+  it("el techo va en entero: media respuesta no existe", () => {
+    const html = render(2500);
+    expect(html).not.toMatch(/>[\d,]+\.\d</);
+  });
+
+  it("un corte con hora no se cuela como fecha del eje", () => {
+    // Quien lo llama le pasa `generated_at`, que es un instante completo.
+    const html = renderToStaticMarkup(
+      <AulasCierrePorAgenda plan={plan} meta={100} corte="2026-09-10T17:19:56Z" />,
+    );
+    expect(html).not.toContain("T17:19:56Z");
+  });
+});
