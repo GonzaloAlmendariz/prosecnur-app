@@ -157,3 +157,24 @@ test_that("el reparto es solo de los APLICADOS y los pendientes se cuentan apart
   # El denominador de «llegaron a su meta» baja con ellas: es el mismo universo.
   expect_identical(d$course_status_con_meta, 2L)
 })
+
+test_that("los ASISTENTES del parte viajan en course_status", {
+  # Visto en pantalla el 2026-09-10: el desglose de un tramo de cobertura
+  # enseñaba «—» en la columna de asistentes en sus tres filas, porque el campo
+  # no salía del motor. Los asistentes son el eslabón del medio de la cadena
+  # —elegibles, los que esperábamos ver, los que esperábamos que respondieran,
+  # efectivas— y sin ellos la tabla no puede decir si faltó gente o faltó
+  # respuesta.
+  d <- monitoreo_aulas_dashboard(list(list(
+    operational_code = "CH 1", classroom_id = "CH 1", sample_role = "titular",
+    faculty = "DERECHO", expected_valid = 10, eligible_n = 30,
+    sample_status = "agendada", operational_status = "aplicada",
+    observed_students = 22, responses_total = 8
+  )), data.frame(), list())
+
+  fila <- if (is.data.frame(d$course_status)) as.list(d$course_status[1, ]) else d$course_status[[1]]
+  expect_true("observed_students" %in% names(fila))
+  expect_identical(as.numeric(fila$observed_students), 22)
+  # Y no se confunden con los elegibles, que son otra cosa y también viajan.
+  expect_identical(as.numeric(fila$eligible_n), 30)
+})

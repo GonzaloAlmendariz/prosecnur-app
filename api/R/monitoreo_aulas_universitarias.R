@@ -1298,6 +1298,15 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # de el: sin publicarlo, la vista no puede explicar por que un aula esta en
     # «Agendada» o en «Reemplazada».
     "responsible", "collector_id", "sample_status", "operational_status", "application_state",
+    # `observed_students` son los ASISTENTES que declaro el parte: cuantos
+    # estaban en el aula ese dia. NO son los elegibles —esos son los
+    # matriculados que cumplen los criterios y no cambian con el dia— y la
+    # distincion es del operativo, no de vocabulario: la cadena va elegibles ->
+    # los que esperabamos ver -> los que esperabamos que respondieran ->
+    # efectivas. Sin esta columna, el desglose de un tramo de cobertura enseñaba
+    # «—» en el sitio donde va el eslabon del medio (medido en pantalla el
+    # 2026-09-10, las tres filas de «Se quedo a medias»).
+    "observed_students",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
     # Las dos varas del esperado, para que la vista pueda separar «este salon
     # rindio mal» de «este salon es mas grande que el promedio de su facultad».
