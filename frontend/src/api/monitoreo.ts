@@ -1613,6 +1613,24 @@ export type MonitoreoAulasDashboard = {
 	    meta: number;
 	  };
 	  /**
+	   * La MISMA serie, repartida por facultad y sobre el mismo eje de días.
+	   *
+	   * La calcula el motor y no la vista porque se construye sobre las
+	   * respuestas, que no viajan: lo que llega es `course_status` recortado a
+	   * 500 filas y los bloques ya agregados, y ninguno trae el día de cada
+	   * respuesta. `meta` y `brecha` son las de `avance_cuota` (ADR 0079).
+	   */
+	  ritmo_por_facultad?: Array<{
+	    facultad: string;
+	    faculty_key: string;
+	    dias: Array<{ fecha: string; validas: number; acumulado: number }>;
+	    dias_con_campo: number;
+	    mejor_dia?: { fecha: string; validas: number } | null;
+	    media_diaria: number;
+	    meta: number;
+	    brecha?: number | null;
+	  }>;
+	  /**
 	   * El cumplimiento en respuestas, calculado por el MOTOR sobre el conjunto
 	   * en juego y entero. La vista lo sumaba sobre `course_status`, que viaja
 	   * recortado a 500 filas.

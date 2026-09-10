@@ -2508,6 +2508,30 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     check.names = FALSE
   )
 
+  # El ritmo global se calcula ANTES de la lista para que el reparto por facultad
+  # pueda compartir su eje de dias: dos series temporales del mismo operativo, una
+  # encima de la otra, con calendarios distintos, no se pueden comparar.
+  ritmo_global <- monitoreo_aulas_ritmo_diario(
+    responses, valid_response,
+    meta = {
+      m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
+      if (length(m) == 1L && is.finite(m)) m else 0
+    },
+    # Y la BRECHA del mismo bloque, que no es `meta - acumulado`: suma lo que
+    # le falta a cada grupo de facultad y sexo. Sin ella el pie del ritmo
+    # calculaba la resta y se apagaba entero en cuanto el total superaba la
+    # cuota, callando las 170 personas que sí faltaban.
+    brecha = {
+      b <- suppressWarnings(as.numeric(avance_cuota$total$brecha))
+      if (length(b) == 1L && is.finite(b)) b else NULL
+    }
+  )
+  .ritmo_borde <- function(cual) {
+    d <- ritmo_global$dias
+    if (!length(d)) return(NULL)
+    (if (identical(cual, "desde")) d[[1L]] else d[[length(d)]])$fecha
+  }
+
   list(
     schema = "monitoreo_aulas_dashboard_v1",
     generated_at = .monitoreo_now_iso(),
@@ -2645,20 +2669,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # recomponerla desde otro bloque del payload. Es el denominador global de
     # `avance_cuota`: la cuota del diseño vigente, o la meta del plan en
     # degradacion —que es exactamente la conducta que esta linea ya tenia.
-    ritmo_diario = monitoreo_aulas_ritmo_diario(
+    ritmo_diario = ritmo_global,
+    # **La misma serie, repartida por facultad.** Con una facultad en el selector
+    # del encabezado, «Ritmo de la recoleccion» seguia dibujando el operativo
+    # entero: la serie se construye sobre `responses`, que no viaja a la vista,
+    # asi que el reparto no se podia hacer alli. La calcula la MISMA funcion que
+    # la global, sobre el mismo eje de dias. Ver
+    # `monitoreo_aulas_ritmo_por_facultad.R`.
+    ritmo_por_facultad = monitoreo_aulas_ritmo_por_facultad(
       responses, valid_response,
-      meta = {
-        m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
-        if (length(m) == 1L && is.finite(m)) m else 0
-      },
-      # Y la BRECHA del mismo bloque, que no es `meta - acumulado`: suma lo que
-      # le falta a cada grupo de facultad y sexo. Sin ella el pie del ritmo
-      # calculaba la resta y se apagaba entero en cuanto el total superaba la
-      # cuota, callando las 170 personas que sí faltaban.
-      brecha = {
-        b <- suppressWarnings(as.numeric(avance_cuota$total$brecha))
-        if (length(b) == 1L && is.finite(b)) b else NULL
-      }
+      faculty_values = .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom),
+      avance_cuota = avance_cuota,
+      desde = .ritmo_borde("desde"), hasta = .ritmo_borde("hasta")
     ),
     quotas_sex_faculty = quotas_sex_faculty,
     # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
