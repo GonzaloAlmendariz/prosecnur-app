@@ -77,7 +77,36 @@ function fechaDe(valor: unknown): string {
   return m ? m[0] : "";
 }
 
-const APLICADO = new Set(["en_aplicacion", "cerrando"]);
+/**
+ * **Los estados se leen de TRES campos, y no por gusto.**
+ *
+ * Este módulo se escribió mirando `application_state`, que es lo que trae
+ * `course_status`… y la AGENDA no lo lleva: el motor la publica desde `plan_df`,
+ * donde ese campo todavía no existe. Resultado medido en pantalla el 2026-09-10:
+ * el filtro descartaba las 143 filas con fecha, `dias` salía vacío, la vista
+ * caía al pronóstico de respaldo y el eje del gráfico se iba a **enero de 2027**.
+ *
+ * El fixture de los tests tenía la forma del `course_status` y no la de la
+ * agenda, así que ningún test lo vio. Ahora los hay de las dos formas.
+ */
+const APLICADO_ESTADO = new Set(["en_aplicacion", "cerrando"]);
+const APLICADO_OPERATIVO = new Set(["aplicada", "cerrada", "parcial"]);
+/** Su desenlace ya no es aplicarse por esta vía. */
+const FUERA = new Set(["reemplazada", "rechazo", "rechazada", "retirada", "cancelada"]);
+
+const clave = (v: unknown) => texto(v).toLowerCase().replace(/\s+/g, "_");
+
+function estaAplicado(f: MonitoreoRow): boolean {
+  return APLICADO_ESTADO.has(clave(f.application_state))
+    || APLICADO_OPERATIVO.has(clave(f.operational_status))
+    || numero(f.respuestas_validas) > 0;
+}
+
+function estaFuera(f: MonitoreoRow): boolean {
+  return FUERA.has(clave(f.application_state))
+    || FUERA.has(clave(f.sample_status))
+    || FUERA.has(clave(f.operational_status));
+}
 
 /**
  * @param plan Las filas del plan (`agenda`), con `scheduled_date`,
@@ -102,7 +131,7 @@ export function cierrePorAgenda(
   const porFacultad = new Map<string, { aulas: number; esperadas: number; efectivas: number }>();
   let conseguidas = 0;
   for (const f of filas) {
-    if (!APLICADO.has(texto(f.application_state))) continue;
+    if (!estaAplicado(f)) continue;
     const fac = texto(f.faculty);
     const acc = porFacultad.get(fac) ?? { aulas: 0, esperadas: 0, efectivas: 0 };
     acc.aulas += 1;
@@ -123,16 +152,19 @@ export function cierrePorAgenda(
   let esperadasSinAgendar = 0;
 
   for (const f of filas) {
-    if (APLICADO.has(texto(f.application_state))) continue;
-    // Las reservas dormidas y el banco no se agendan: no son trabajo pendiente,
-    // son respaldo. Contarlas aquí volvería a inflar el plan como ya pasó.
-    const estado = texto(f.application_state);
-    if (estado !== "lista" && estado !== "pendiente") continue;
+    if (estaAplicado(f) || estaFuera(f)) continue;
     const esperadas = numero(f.expected_valid);
     const fecha = fechaDe(f.scheduled_date ?? f.fecha_agendada ?? f.applied_at);
     if (!fecha) {
-      sinAgendar += 1;
-      esperadasSinAgendar += esperadas;
+      // **Sin fecha, sólo el TITULAR es trabajo pendiente.** Las reservas
+      // dormidas y el banco no se agendan: son respaldo, y contarlas aquí
+      // volvería a inflar el plan de 174 a 1 392, que es el defecto que este
+      // perfil ya corrigió dos veces. Una reserva ACTIVADA sí cuenta, y se
+      // reconoce porque tiene fecha.
+      if (clave(f.sample_role) === "titular") {
+        sinAgendar += 1;
+        esperadasSinAgendar += esperadas;
+      }
       continue;
     }
     // Lo agendado y no aplicado que ya quedó atrás se mueve al corte: su fecha

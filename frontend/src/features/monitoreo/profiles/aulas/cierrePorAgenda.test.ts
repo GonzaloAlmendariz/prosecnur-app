@@ -69,7 +69,10 @@ describe("cierrePorAgenda", () => {
     // puerta, que es justo lo que él vino a corregir.
     const r = cierrePorAgenda([
       agendada("DERECHO", "2026-09-11", 10),
-      fila({ faculty: "DERECHO", application_state: "pendiente", expected_valid: 25 }),
+      // Con su ROL: sin él no se puede saber si es trabajo pendiente o una
+      // reserva dormida, y contar de más fue el defecto que infló el plan de
+      // 174 a 1 392 dos veces en este perfil.
+      fila({ faculty: "DERECHO", sample_role: "titular", application_state: "pendiente", expected_valid: 25 }),
     ]);
     expect(r.sinAgendar).toBe(1);
     expect(r.esperadasSinAgendar).toBe(25);
@@ -99,5 +102,56 @@ describe("cierrePorAgenda", () => {
   it("sin plan y sin nada agendado dice su motivo, no devuelve un cero mudo", () => {
     expect(cierrePorAgenda([]).motivo).toBe("sin-plan");
     expect(cierrePorAgenda([aplicada("A", 10, 10)]).motivo).toBe("sin-agenda");
+  });
+});
+
+/**
+ * **Con la forma que trae la AGENDA de verdad**, que no es la de `course_status`.
+ *
+ * El módulo se escribió mirando `application_state`, y el motor publica la agenda
+ * desde `plan_df`, donde ese campo todavía no existe. Medido en pantalla el
+ * 2026-09-10: el filtro descartaba las 143 filas con fecha, `dias` salía vacío,
+ * la vista caía al pronóstico de respaldo y el eje se iba a ENERO DE 2027.
+ *
+ * Ningún test lo vio porque el fixture tenía la forma equivocada. Éste tiene la
+ * real: `sample_status` y `operational_status`, sin `application_state`.
+ */
+describe("cierrePorAgenda con las filas tal como llegan en `agenda`", () => {
+  const agendaReal = [
+    fila({ faculty: "DERECHO", sample_role: "titular", sample_status: "AGENDADA",
+           operational_status: "aplicada", expected_valid: 10, respuestas_validas: 9,
+           scheduled_date: "2026-09-08" }),
+    fila({ faculty: "DERECHO", sample_role: "titular", sample_status: "AGENDADA",
+           operational_status: "agendada", expected_valid: 10, scheduled_date: "2026-09-12" }),
+    fila({ faculty: "DERECHO", sample_role: "titular", sample_status: "EN CONTACTO",
+           operational_status: "contactada", expected_valid: 10 }),
+    fila({ faculty: "DERECHO", sample_role: "chain_reserve", sample_status: "EN RESERVA 1",
+           operational_status: "planificada", expected_valid: 10 }),
+    fila({ faculty: "DERECHO", sample_role: "titular", sample_status: "RECHAZO",
+           operational_status: "cancelada", expected_valid: 10 }),
+  ];
+
+  it("reconoce lo aplicado por `operational_status`, no sólo por `application_state`", () => {
+    const r = cierrePorAgenda(agendaReal);
+    expect(r.conseguidas).toBe(9);
+  });
+
+  it("cuenta como agendado lo que tiene fecha y no se aplicó", () => {
+    const r = cierrePorAgenda(agendaReal);
+    expect(r.dias.map((d) => [d.fecha, d.cursos])).toEqual([["2026-09-12", 1]]);
+    expect(r.ultimaFecha).toBe("2026-09-12");
+    expect(r.motivo).toBe("");
+  });
+
+  it("sin fecha, sólo el TITULAR es trabajo pendiente: la reserva dormida no", () => {
+    // Contarla volvería a inflar el plan de 174 a 1 392, que es el defecto que
+    // este perfil ya corrigió dos veces.
+    expect(cierrePorAgenda(agendaReal).sinAgendar).toBe(1);
+  });
+
+  it("un RECHAZO no es trabajo pendiente: entró y se cayó", () => {
+    const r = cierrePorAgenda(agendaReal);
+    expect(r.sinAgendar).toBe(1);
+    expect(r.dias.reduce((n, d) => n + d.cursos, 0)).toBe(1);
   });
 });
