@@ -1357,7 +1357,29 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   } else {
     !del_banco_cs
   }
-  con_meta <- meta_cs > 0 & en_juego_cs
+  # **Y el reparto corre SOLO sobre los APLICADOS.**
+  #
+  # Gonzalo, 2026-09-10: «en el rendimiento por curso-horario tiene que
+  # considerar tambien que debe medirlo solo aquellos que han sido aplicados».
+  # Estaba escrito desde el 2026-09-09 en el titulo de su propio boceto de
+  # Resumen —«Rendimiento de los cursos-horario APLICADOS»— y el motor repartia
+  # todo lo que estuviera en juego.
+  #
+  # Medido sobre HSVG26ULT2 el 2026-09-10: el reparto corria sobre **219**
+  # cursos-horario de los que solo **45** tenian parte de campo. Los otros
+  # **174** caian en «Sin respuestas» —el 79 % del grafico, y la barra que el
+  # ojo mira primero— diciendo que rindieron cero cuando lo que pasa es que
+  # todavia no les toca. Es el mismo defecto que ya se corrigio en la tabla del
+  # margen: la prevision del diseño es CONDICIONAL a aplicarse, asi que del
+  # pendiente no hay rendimiento que juzgar.
+  #
+  # «Aplicado» con el vocabulario que el motor ya usa dos pantallas mas arriba:
+  # `en_aplicacion` (tiene respuestas o esta en campo) o `cerrando` (aplicada,
+  # cerrada, o ya llego a su meta). Un aula aplicada con CERO efectivas sigue
+  # entrando, y entra en «Sin respuestas», que ahi si es un resultado.
+  aplicado_cs <- as.character(out$application_state %||% rep("", nrow(out))) %in%
+    c("en_aplicacion", "cerrando")
+  con_meta <- meta_cs > 0 & en_juego_cs & aplicado_cs
   razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
   # **Los tramos separan «le falto una» de «no fue nadie».**
   #
@@ -1439,6 +1461,11 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # a acertar con las tres: el KPI hacia `total - sin_meta - banco` y le salia
   # 360 porque las dormidas no estaban en ninguno de los dos sustraendos.
   attr(recortado, "con_meta") <- as.integer(sum(con_meta))
+  # Las que estan en juego y con meta pero TODAVIA NO SE HAN APLICADO. Salen del
+  # reparto y se cuentan aparte para que la vista las nombre: sacarlas y no decir
+  # donde fueron deja al lector con dos totales que no cuadran, que es el mismo
+  # agujero que ya se tapo con el banco y con las dormidas.
+  attr(recortado, "sin_aplicar") <- as.integer(sum(meta_cs > 0 & en_juego_cs & !aplicado_cs))
   recortado
 }
 
@@ -2521,6 +2548,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     course_status_banco = as.integer(attr(course_status, "banco") %||% 0L),
     course_status_reservas_dormidas = as.integer(attr(course_status, "reservas_dormidas") %||% 0L),
     course_status_con_meta = as.integer(attr(course_status, "con_meta") %||% 0L),
+    course_status_sin_aplicar = as.integer(attr(course_status, "sin_aplicar") %||% 0L),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una

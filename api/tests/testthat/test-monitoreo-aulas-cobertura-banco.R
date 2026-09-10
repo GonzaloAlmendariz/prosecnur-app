@@ -113,3 +113,47 @@ test_that("una reserva ACTIVADA si entra: es el eslabon que esta en campo", {
   expect_identical(d$course_status_con_meta, 1L)
   expect_identical(d$course_status_reservas_dormidas, 1L)
 })
+
+test_that("el reparto es solo de los APLICADOS y los pendientes se cuentan aparte", {
+  # Gonzalo, 2026-09-10: «en el rendimiento por curso-horario tiene que
+  # considerar tambien que debe medirlo solo aquellos que han sido aplicados».
+  # Estaba en el titulo de su propio boceto desde el dia anterior.
+  #
+  # Medido sobre HSVG26ULT2 antes de este cambio: el reparto corria sobre 219
+  # cursos-horario y solo 45 tenian parte de campo; los otros 174 caian en «Sin
+  # respuestas» —el 79 % del grafico— diciendo que rindieron cero cuando lo que
+  # pasaba es que todavia no les tocaba.
+  fila <- function(code, estado, validas) list(
+    operational_code = code, classroom_id = code, sample_role = "titular",
+    faculty = "DERECHO", expected_valid = 10, eligible_n = 30,
+    sample_status = "agendada", operational_status = estado,
+    responses_total = validas)
+
+  d <- monitoreo_aulas_dashboard(list(
+    # Dos aplicadas: una que llego y otra que se quedo a cero. Las DOS entran,
+    # y el cero de la aplicada SI es un resultado.
+    fila("CH 1", "aplicada", 10),
+    fila("CH 2", "aplicada", 0),
+    # Tres agendadas que todavia no salieron a campo: fuera del reparto.
+    fila("CH 3", "agendada", 0),
+    fila("CH 4", "agendada", 0),
+    fila("CH 5", "agendada", 0)
+  ), data.frame(), list())
+
+  reparto <- vapply(d$course_status_cobertura, function(x) x$aulas, integer(1))
+  names(reparto) <- vapply(d$course_status_cobertura, function(x) x$clave, character(1))
+  expect_identical(names(reparto),
+                   c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno"))
+
+  # Solo las dos aplicadas se reparten. Las dos caen en «nulo» porque en este
+  # fixture no hay tabla de respuestas —`respuestas_validas` sale de ahi y no de
+  # `responses_total`—, y lo que este test sujeta es QUIEN entra al reparto, no
+  # en que tramo cae. El tramo ya lo cubren los tests de arriba.
+  expect_identical(sum(reparto), 2L)
+  expect_identical(unname(reparto[["nulo"]]), 2L)
+  # Y las tres pendientes se NOMBRAN en vez de desaparecer: sacarlas del reparto
+  # sin decir donde fueron deja dos totales que no cuadran.
+  expect_identical(d$course_status_sin_aplicar, 3L)
+  # El denominador de «llegaron a su meta» baja con ellas: es el mismo universo.
+  expect_identical(d$course_status_con_meta, 2L)
+})
