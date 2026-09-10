@@ -8489,6 +8489,13 @@ function AcreditacionSheetSourceEditor({
             placeholder="https://docs.google.com/spreadsheets/d/..."
             disabled={Boolean(busy)}
           />
+          {/* **El módulo que decide ya escribió el motivo; se enseña.** Se
+            * calculaba para construir el enlace y su rechazo se tiraba, así que
+            * pegar cualquier cosa dejaba el botón activo y el error llegaba del
+            * backend sin decir qué arreglar. */}
+          {spreadsheetId.trim() && !lecturaDelSpreadsheet.ok ? (
+            <small className="mon-acr-sheet-aviso">{lecturaDelSpreadsheet.mensaje}</small>
+          ) : null}
         </label>
         <label>
           <span>{preset.sheetLabel ?? "Pestaña"}</span>
@@ -8518,11 +8525,15 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <div className="mon-acr-sheet-actions">
-          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim()}>
+          {/* La guarda sale de la lectura que DECIDE si eso es un Sheet, no de
+            * «hay texto»: con `!trim()` el botón se encendía con cualquier cosa
+            * pegada. Es el patrón que dejó «pega su enlace una vez» con el
+            * enlace ya pegado, en el perfil de aulas. */}
+          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok}>
             {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
             Leer pestañas
           </button>
-          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !sheetName.trim()}>
+          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok || !sheetName.trim()}>
             {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
             {editingSourceId ? "Guardar ajuste" : "Registrar base"}
           </button>
