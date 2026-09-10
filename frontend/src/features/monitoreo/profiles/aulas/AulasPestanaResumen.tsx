@@ -134,11 +134,20 @@ export function AulasPestanaResumen({
    * tienen meta —174— y estado reparte el plan entero —1.424—. La regla y su
    * porqué viven en `contadorDeLoQueReparte.ts`, con sus tres casos probados.
    */
+  // Los titulares de la facultad en foco, para que el rótulo cuente SU universo.
+  // `null` sin foco o sin reparto del motor, y entonces manda el del estudio.
+  const titularesEnFoco = facultadEnFoco
+    ? (delMapaPorFacultad(dashboard.course_status_rol_y_estado_por_facultad, facultadEnFoco)
+        ?.titulares?.total ?? null)
+    : null;
   const contadorDelReparto = (resumenDelMotor: unknown) =>
     contadorDeLoQueReparte(resumenDelMotor, {
-      total: totalAulas,
+      total: titularesEnFoco ?? totalAulas,
       filasQueViajan: aulaRows.length,
-      deReservaAdicional: aulasExtra,
+      // La reserva adicional del estudio no es la de una facultad, y no viaja
+      // repartida: con foco no se nombra en vez de atribuirle a Derecho las
+      // 1.173 del operativo.
+      deReservaAdicional: facultadEnFoco ? 0 : aulasExtra,
     });
   /**
    * El último día del horizonte: el cierre PESIMISTA del pronóstico.
@@ -499,7 +508,12 @@ export function AulasPestanaResumen({
                 {/* «cada uno»: la unidad recién nombrada es el curso-horario —
                     mismo pronombre que se le escapó al contrato en el
                     circuito (E17). */}
-                <span>{contadorDelReparto(dashboard.course_status_cobertura)} · cuánto lleva recogido cada uno</span>
+                {/* Y el reparto que se cuenta es el de la facultad en foco, no
+                    el del estudio: el rótulo decía «55 cursos-horario» encima de
+                    un gráfico que sólo repartía los de Derecho. */}
+                <span>{contadorDelReparto(facultadEnFoco
+                  ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.cobertura
+                  : dashboard.course_status_cobertura)} · cuánto lleva recogido cada uno</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
