@@ -1092,6 +1092,14 @@ export type MonitoreoAulasProyeccionMetas = {
   sobremuestra_obtenida?: MonitoreoAulasProyeccionFila[];
 };
 
+/** Las tres razones de una cuenta de respuestas; suman `observadas`. */
+export type MonitoreoAulasRespuestasCuenta = {
+  observadas: number;
+  efectivas: number;
+  fuera_del_operativo: number;
+  no_pasan_criterio: number;
+};
+
 /** Aulas planificadas (titulares) y aplicadas de una facultad. */
 export type MonitoreoAulasPorFacultad = {
   facultad: string;
@@ -1528,6 +1536,23 @@ export type MonitoreoAulasDashboard = {
 	   * «Planificadas» son los TITULARES, no titulares más reservas.
 	   */
 	  aulas_por_facultad?: MonitoreoAulasPorFacultad[];
+	  /**
+	   * De cuántas respuestas cuentan, y por qué no cuentan las demás.
+	   *
+	   * Las tres cifras SUMAN `observadas` sin residuo, y las dos razones van
+	   * separadas a propósito: `fuera_del_operativo` no pide nada —otra ola, una
+	   * prueba, un aula que no está en el plan— y `no_pasan_criterio` es trabajo
+	   * que se hizo y no suma. Juntarlas en «descartadas» es el rótulo que ya
+	   * salió del perfil el 2026-09-07 por meter en la misma bolsa cosas que
+	   * piden acciones opuestas.
+	   *
+	   * `sin_aula` son las respuestas cuya aula no se pudo identificar: entran en
+	   * `total` y en NINGUNA facultad, así que las facultades no suman el total.
+	   */
+	  respuestas_desglose?: {
+	    total: MonitoreoAulasRespuestasCuenta & { sin_aula: number };
+	    facultades: Array<MonitoreoAulasRespuestasCuenta & { facultad: string }>;
+	  };
 	  /**
 	   * Para cada celda de cuota en déficit, a qué aula del banco ir. Grano
 	   * facultad×sexo: un nivel POR DEBAJO de `reservas_alcanzan`, que es por

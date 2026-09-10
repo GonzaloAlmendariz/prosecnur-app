@@ -4,6 +4,7 @@ import { AulasAvancePorCurso } from "./AulasAvancePorCurso";
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
+import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
@@ -101,8 +102,31 @@ export function AulasPestanaResumen({
       filasQueViajan: aulaRows.length,
       deReservaAdicional: aulasExtra,
     });
+  const desglose = dashboard.respuestas_desglose;
   return (
     <>
+            {/* **Abre la pestaña porque es la pregunta anterior a todas.** Antes
+                de cuánto se ha cumplido: de lo que ha entrado, qué cuenta. Y las
+                que no cuentan, separadas por su razón — 37 que no son del
+                operativo no piden nada y 68 que sí lo son y no pasan el criterio
+                son trabajo hecho que no suma. El bloque viene del boceto del
+                2026-09-09; el motor, de `monitoreo_aulas_respuestas_desglose.R`. */}
+            {desglose?.total ? (
+              <section
+                className="mon-profile-panel"
+                data-qa-geometry-group="monitoring-aulas-avance"
+                data-qa-geometry-contract="intrinsic"
+              >
+                <div className="mon-profile-panel-head">
+                  <h3>Respuestas</h3>
+                  <span>cuáles cuentan, y por qué no cuentan las demás</span>
+                </div>
+                <AulasResumenRespuestas
+                  cuenta={desglose.total}
+                  sinAula={desglose.total.sin_aula}
+                />
+              </section>
+            ) : null}
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
