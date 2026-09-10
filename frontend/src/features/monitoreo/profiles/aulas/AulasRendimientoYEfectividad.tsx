@@ -126,6 +126,16 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
     <div className="aulas-rye" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <div className="aulas-rye-cuerpo">
         <div className="aulas-rye-contraste">
+          {/* **Un porcentaje sin su denominador no se entiende.** Gonzalo,
+              mirando el panel: «francamente no se entiende qué es cada cosa,
+              está muy poco claro». Y era verdad: «56,8 % → 57,3 %» no dice
+              porcentaje DE QUÉ, y sin eso las dos cifras son dos números. El
+              rótulo del bloque lo nombra en los términos del operativo, que es
+              como se habla del dato en la reunión de la mañana. */}
+          <p className="aulas-rye-titulo">
+            Respuestas por cada 100 estudiantes elegibles
+            {facultad ? <em>en {facultad}</em> : <em>en el operativo</em>}
+          </p>
           {/* **Las dos tasas como cifras, no dentro de una frase.** Es la
               gramática del panel de al lado: el número grande delante y su
               rótulo debajo. Una frase corrida obliga a leerla entera para sacar
@@ -133,12 +143,12 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
           <p className="aulas-rye-par">
             <span className="aulas-rye-tasa is-previsto">
               <strong>{pct(lectura.previsto)}</strong>
-              <em>lo que supuso el diseño</em>
+              <em>contaba el diseño</em>
             </span>
             <span className="aulas-rye-flecha" aria-hidden="true">→</span>
             <span className="aulas-rye-tasa is-observado">
               <strong>{pct(lectura.observado)}</strong>
-              <em>lo que está dando el campo</em>
+              <em>está llegando</em>
             </span>
             {lectura.puntos != null && lectura.tono ? (
               <span
@@ -195,20 +205,42 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
                 />
               </div>
               <p className="aulas-rye-escala">
-                <span>0 %</span>
+                <span>0</span>
+                <span>100 respuestas por cada 100 elegibles</span>
+              </p>
+              {/* **Cada marca, con su nombre y su cifra.** Sin esto el carril
+                  eran tres rayas y una mancha rosa: quien lo mira no puede saber
+                  cuál es el diseño, cuál esta facultad y cuál el operativo, y la
+                  banda no se sabe qué mide. La leyenda es lo que convierte el
+                  dibujo en una lectura. */}
+              <ul className="aulas-rye-claves">
+                <li>
+                  <i className="es-previsto" />
+                  <span>{pct(lectura.previsto)} <em>contaba el diseño</em></span>
+                </li>
+                <li>
+                  <i className="es-observado" />
+                  <span>{pct(lectura.observado)} <em>está llegando {facultad ? "en esta facultad" : "en el operativo"}</em></span>
+                </li>
                 {delEstudio?.observado != null ? (
-                  <span className="aulas-rye-referencia">
-                    <i /> el operativo, en {pct(delEstudio.observado)}
-                  </span>
+                  <li>
+                    <i className="es-estudio" />
+                    <span>{pct(delEstudio.observado)} <em>el operativo entero</em></span>
+                  </li>
                 ) : null}
                 {intervalo ? (
-                  <span className="aulas-rye-ic" title={comoSeCalcula}>
-                    IC 95 %{lectura.margen != null ? ` ± ${lectura.margen.toFixed(1)} pts` : ""}
-                    {" · "}{intervalo}
-                  </span>
+                  <li className="es-ancha" title={comoSeCalcula}>
+                    <i className="es-banda" />
+                    <span>
+                      {intervalo} <em>
+                        margen de la medición
+                        {lectura.margen != null ? ` (±${lectura.margen.toFixed(1)} pts, IC 95 %)` : " (IC 95 %)"}
+                        {lectura.aulas < 8 ? `: es ancho porque sólo hay ${fmt(lectura.aulas)} cursos-horario aplicados` : ""}
+                      </em>
+                    </span>
+                  </li>
                 ) : null}
-                <span>100 %</span>
-              </p>
+              </ul>
             </div>
           ) : null}
         </div>
@@ -219,9 +251,12 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
              irá», y va donde sin foco está el reparto de las quince — la
              columna contesta siempre «¿y las partes?», sólo cambia cuál. */
           <div className="aulas-rye-reparto">
+            <p className="aulas-rye-titulo">
+              Si el rendimiento se mantiene<em>a dónde llega esta facultad</em>
+            </p>
             <p className="aulas-rye-cabeza">
-              <strong>{fmt(proyeccion.central)}</strong> proyectadas
-              <em>sobre una cuota de {fmt(proyeccion.cuota)}</em>
+              <strong>{fmt(proyeccion.central)}</strong> respuestas
+              <em>frente a las {fmt(proyeccion.cuota)} que le pide el diseño</em>
             </p>
             {/* La barra mide contra el TECHO de las dos cifras, no contra la
                 cuota: una facultad que proyecta 499 sobre 363 rebasaría el
@@ -248,7 +283,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
             <ul className="aulas-rye-leyenda">
               <li>
                 <i className="es-marca-central" />
-                <span><strong>{fmt(proyeccion.central)}</strong> proyectadas</span>
+                <span><strong>{fmt(proyeccion.central)}</strong> respuestas al terminar</span>
                 <em>
                   {proyeccion.bajo != null && proyeccion.alto != null
                     ? `entre ${fmt(proyeccion.bajo)} y ${fmt(proyeccion.alto)} según se mantenga el rendimiento`
@@ -257,8 +292,8 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
               </li>
               <li>
                 <i className="es-marca-cuota" />
-                <span><strong>{fmt(proyeccion.cuota)}</strong> de cuota</span>
-                <em>lo que el diseño le pide a esta facultad</em>
+                <span><strong>{fmt(proyeccion.cuota)}</strong> le pide el diseño</span>
+                <em>su cuota: si queda a la izquierda de la marca negra, la alcanza</em>
               </li>
             </ul>
           </div>
@@ -270,9 +305,12 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
              que se supuso; esto, si eso es parejo — una media de 58 % puede ser
              quince facultades en 58 o siete en 40 y ocho en 75. */
           <div className="aulas-rye-reparto">
+            <p className="aulas-rye-titulo">
+              Cómo va cada facultad<em>contra la tasa que el diseño le supuso a ella</em>
+            </p>
             <p className="aulas-rye-cabeza">
               <strong>{fmt(reparto?.total ?? 0)}</strong> facultades
-              <em>cada una contra su propia tasa prevista</em>
+              <em>ninguna se compara con la media: cada una con su vara</em>
             </p>
             <span
               className="aulas-rye-barra"
