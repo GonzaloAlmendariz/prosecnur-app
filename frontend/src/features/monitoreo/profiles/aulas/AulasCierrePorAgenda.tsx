@@ -99,6 +99,7 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
           ) : null}
           <polyline className="aulas-cpa-plan" points={linea("acumuladoPlan")} />
           <polyline className="aulas-cpa-observado" points={linea("acumuladoObservado")} />
+
         </svg>
         {/* Los rótulos van FUERA del SVG: dentro, con `preserveAspectRatio` en
             «none», el texto se estira con el ancho del panel. */}
@@ -106,7 +107,22 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
             corrección por rendimiento no da enteros— y el rótulo decía
             «2.850,1». Media respuesta no existe, y es la misma regla que ya
             gobierna el resto del perfil. */}
-        <span className="aulas-cpa-techo">{fmt(Math.round(techo))}</span>
+        {/* **El techo se calla cuando la meta le pisa el sitio.** Con 2 850 de
+            techo y una meta de 2 500 los dos rótulos caen a dieciséis píxeles y
+            se leían encima. Manda la meta: es la referencia contra la que se
+            juzga la curva; el techo sólo dice hasta dónde llega la escala. */}
+        {/* **El punto del final va en HTML, no en el SVG.** Con
+            `preserveAspectRatio="none"` el `viewBox` de 100 unidades se estira a
+            mil y pico píxeles, así que un `<circle>` se pinta como elipse
+            —`vector-effect` sólo corrige el TRAZO, no la forma—. Fuera del SVG
+            es redondo a cualquier ancho. */}
+        <span
+          className="aulas-cpa-fin"
+          style={{ left: "100%", top: `${(100 * y(ultimo.acumuladoObservado)) / ALTO}%` }}
+        />
+        {metaN == null || (techo - metaN) / techo > 0.18 ? (
+          <span className="aulas-cpa-techo">{fmt(Math.round(techo))}</span>
+        ) : null}
         {metaN != null && metaN <= techo ? (
           <span className="aulas-cpa-rotulo-meta" style={{ top: `${(100 * y(metaN)) / ALTO}%` }}>
             meta {fmt(metaN)}
