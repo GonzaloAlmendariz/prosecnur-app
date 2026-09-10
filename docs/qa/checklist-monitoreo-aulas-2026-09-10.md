@@ -20,9 +20,9 @@ Sólo Gonzalo lo da por terminado.
 | 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `AulasAvanceDiario` | ☑ `b3380cdd` + `b0839a50` (ancho y ejes) |
 | 14 | «El avance diario tiene que verse mejor de manera horizontal» | `AulasAvanceDiario` | ☑ `b0839a50` |
 | 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
-| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | los dos gráficos temporales | ☐ **el grande** |
-| 17 | «Los días en el eje x no se ven bien» | ambos | ☐ |
-| 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☐ |
+| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ◐ el ritmo ya va del arranque al cierre previsto (`d326513a` + `7039aac6`); falta que el PRONÓSTICO use el mismo eje de fechas |
+| 17 | «Los días en el eje x no se ven bien» | ambos | ◐ el ritmo ralea rótulos (`7039aac6`); falta el pronóstico |
+| 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☑ `7039aac6` — falta MIRARLO |
 | 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
 | 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | mi pila local | ☐ **cambia la instrucción anterior de no tocar el original** |
 | 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | los 9 paneles de Resumen | ☐ **contradice el contrato actual: hoy RESALTA y él quiere FILTRAR** |
