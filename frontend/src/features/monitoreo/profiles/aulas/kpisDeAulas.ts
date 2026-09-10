@@ -148,13 +148,22 @@ export function fmtAporte(value: unknown, fallback = "0") {
 }
 
 /**
- * Un decimal, con **coma**, que es como escribe los números el resto del perfil.
+ * Un decimal, escrito **como lo escribe el resto del perfil**.
  *
  * Existe porque `pctPerfil()` no cubría todo lo que se publica con un decimal:
  * los extremos de un intervalo de confianza, los puntos de una diferencia y un
- * margen «±3,4 pts» se escribían con `toFixed(1)` —que da punto decimal— al
- * lado de tasas con coma, en el mismo párrafo. Formatear en un solo sitio es la
- * regla de la casa; el símbolo se pega aparte.
+ * margen «±5.3 pts» se armaban con `toFixed(1)` a mano, cada uno en su archivo.
+ * Formatear en un solo sitio es la regla de la casa; el símbolo se pega aparte.
+ *
+ * **Y una premisa que resultó falsa, medida en pantalla el 2026-09-10**: creí
+ * —y lo escribí en el guard `formateadorUnico` y en un mensaje de commit— que
+ * `toFixed(1)` era peor porque «da punto decimal» frente a la coma de
+ * `toLocaleString("es-PE")`. No: en CLDR, **es-PE usa punto decimal y coma de
+ * millares** («1,234.5»), igual que `toFixed`. Comprobado en el navegador:
+ * `(51.4).toLocaleString("es-PE", …)` devuelve `"51.4"`, y es `es-ES` el que
+ * devuelve `"51,4"`. El motivo para tener un solo formateador sigue en pie —dos
+ * sitios acaban separándose, y `toFixed` redondea distinto en los medios
+ * puntos—, pero no es el que yo contaba.
  */
 export function unDecimalPerfil(n: number) {
   return n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
