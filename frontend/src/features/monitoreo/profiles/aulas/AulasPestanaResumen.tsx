@@ -13,6 +13,7 @@ import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
+import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { deLaFacultad } from "./deLaFacultad";
@@ -507,7 +508,7 @@ export function AulasPestanaResumen({
                 // viajan presentado como el de la facultad; el motor lo calcula
                 // sobre el plan entero desde `60845ddb`.
                 resumen={(facultadEnFoco
-                  ? dashboard.course_status_cobertura_por_facultad?.[facultadEnFoco]?.cobertura
+                  ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.cobertura
                   : dashboard.course_status_cobertura) ?? null}
                 // Para que el respaldo sepa si lo que le llegó es el plan
                 // entero o el recorte de 500 filas.
