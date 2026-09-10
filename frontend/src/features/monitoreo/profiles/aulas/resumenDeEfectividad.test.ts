@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  filaDeLaFacultad, lecturaDeEfectividad, proyeccionDeLaFacultad, riesgoDeCierre,
+  filaDeLaFacultad, lecturaDeEfectividad, proyeccionDeLaFacultad,
+  repartoDeSenales, riesgoDeCierre,
 } from "./resumenDeEfectividad";
 import type {
   MonitoreoAulasEfectividadFacultad, MonitoreoAulasEfectividadSeguimiento,
@@ -129,5 +130,66 @@ describe("filaDeLaFacultad", () => {
   it("sin foco o sin coincidencia devuelve null, nunca otra facultad", () => {
     expect(filaDeLaFacultad(conFilas, undefined)).toBeNull();
     expect(filaDeLaFacultad(conFilas, "ARQUITECTURA")).toBeNull();
+  });
+});
+
+describe("repartoDeSenales", () => {
+  const con = (senales: string[]) => ({
+    total: bloque.total,
+    facultades: senales.map((senal, i) => ({ ...derecho, facultad: `F${i}`, senal })),
+  } as unknown as MonitoreoAulasEfectividadSeguimiento);
+
+  it("cuenta por la SEÑAL del motor, no por el signo de la diferencia", () => {
+    // Las quince de HSVG2026 tienen el punto por encima o por debajo, y el
+    // motor declara «conforme» a casi todas porque la banda las contiene.
+    const r = repartoDeSenales(con(["conforme", "conforme", "sobre", "bajo"]))!;
+    expect(r.frase).toBe("De 4 facultades: 2 como lo previsto · 1 por encima · 1 por debajo.");
+  });
+
+  it("las que no tienen vara se cuentan aparte, no como conformes", () => {
+    const r = repartoDeSenales(con(["conforme", "sin_banda", "sin_previsto"]))!;
+    expect(r.sinVara).toBe(2);
+    expect(r.conforme).toBe(1);
+    expect(r.frase).toContain("2 sin vara todavía");
+  });
+
+  it("no enumera lo que vale cero", () => {
+    expect(repartoDeSenales(con(["conforme", "conforme"]))!.frase)
+      .toBe("De 2 facultades: 2 como lo previsto.");
+  });
+
+  it("sin facultades no devuelve un reparto vacío", () => {
+    expect(repartoDeSenales(bloque)).toBeNull();
+  });
+});
+
+/**
+ * **«Su banda» era quedarse corto: es un intervalo de confianza al 95 %.**
+ *
+ * Gonzalo, 2026-09-10: «¿más que su banda es el margen de error? siento que
+ * podemos ser más académicos, hasta con un margen de confianza». Lo es —el motor
+ * usa Z = 1,959964 sobre el error estándar del estimador de razón, con los
+ * cursos-horario como conglomerados—, así que la pantalla lo nombra.
+ */
+describe("el margen del intervalo", () => {
+  it("publica el ± cuando el intervalo es simétrico respecto del punto", () => {
+    // 58,12 % con 52,15 – 64,09: 5,97 a cada lado.
+    expect(lecturaDeEfectividad(bloque)!.margen).toBe(6);
+  });
+
+  it("NO publica el ± cuando el intervalo se recortó contra 0 o 100", () => {
+    // El motor acota a [0, 1] porque τ es una fracción: aquí el extremo bajo
+    // topó en cero y el «±» describiría un intervalo que no es el calculado.
+    const recortado = {
+      ...derecho, tau_observado: 0.05, banda_bajo: 0, banda_alto: 0.3,
+    } as unknown as MonitoreoAulasEfectividadFacultad;
+    expect(lecturaDeEfectividad(bloque, recortado)!.margen).toBeNull();
+  });
+
+  it("sin intervalo no hay margen que publicar", () => {
+    const sinBanda = {
+      ...derecho, banda_bajo: null, banda_alto: null, senal: "sin_banda",
+    } as unknown as MonitoreoAulasEfectividadFacultad;
+    expect(lecturaDeEfectividad(bloque, sinBanda)!.margen).toBeNull();
   });
 });

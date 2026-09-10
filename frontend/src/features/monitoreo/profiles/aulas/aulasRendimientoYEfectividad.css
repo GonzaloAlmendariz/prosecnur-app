@@ -14,10 +14,50 @@
 .mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo strong,
 .mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo { color: var(--pulso-text); }
 
+/* El carril y el reparto, lado a lado. El carril solo ocupaba el tramo entre el
+   51 % y el 64 % de 971 px: media superficie del panel en blanco al lado de un
+   «Estado de aplicación» con tres barras llenas. Son la misma pregunta en dos
+   granos —el conjunto y sus partes—, así que van juntos. */
+.mon-profile-page.is-aulas-flow .aulas-rye-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px 26px;
+  margin: 12px 0 2px;
+}
+
+/* Apilado cuando no hay sitio: el carril necesita ancho para que la banda no se
+   vuelva una raya. */
+@media (max-width: 900px) {
+  .mon-profile-page.is-aulas-flow .aulas-rye-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* La regla: el carril más su escala. Va de 0 a 100 % porque eso es lo que puede
    valer una tasa; comprimirla al tramo con datos exageraría la distancia entre
    las dos marcas, que es justo lo que este panel viene a medir. */
-.mon-profile-page.is-aulas-flow .aulas-rye-regla { margin: 12px 0 2px; }
+.mon-profile-page.is-aulas-flow .aulas-rye-regla { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sólo lo que pide acción se tiñe. Ir por encima de la vara no es una alerta. */
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto .es-bajo strong { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto .es-sin,
+.mon-profile-page.is-aulas-flow .aulas-rye-reparto .es-pie { color: var(--pulso-text-faint); }
 
 .mon-profile-page.is-aulas-flow .aulas-rye-carril {
   position: relative;
