@@ -137,18 +137,28 @@ export const PESO_DEL_PRIOR = 5;
 export const MINIMO_PARA_COMPARAR = 3;
 
 /**
- * Los cajones de «no se sabe»: no son un nivel de rendimiento, son partes a los
- * que les falta un dato. Van al final de la lista pase lo que pase con su cifra
- * y NO entran en la comparación, aunque acumulen visitas de sobra — un «Sin
- * aplicador» con cinco partes es un agujero de registro, no una facultad que
- * rinde.
+ * Los cajones que NO son un tramo de la lente: ni un nivel de rendimiento ni una
+ * opción que el equipo pueda elegir al agendar.
+ *
+ * Dos clases, y las dos van fuera de la comparación:
+ *
+ * - **Falta el dato con el que agrupa la lente**: «Sin fecha», «Sin hora», «Sin
+ *   aplicador», «Sin facultad». Son partes incompletos. Un «Sin aplicador» con
+ *   cinco partes es un agujero de registro, no alguien que rinde.
+ * - **El dato existe y no cae en ningún tramo**: «Fuera de franja». Encabezaba
+ *   la lente de horas el 2026-09-10 con el 70,6 % de 8 cursos-horario, en un
+ *   panel que se subtitula «a qué hora conviene agendar» — y fuera de franja no
+ *   es una hora a la que se pueda agendar. Encima, ocho de esos nueve partes son
+ *   horas de tarde escritas en formato de 12 horas (`horaDeDoceHoras.ts`), o sea
+ *   que el tramo ni siquiera es real.
  *
  * Vive exportado porque la pantalla también lo necesita: la frase de cabecera
- * dice «del X % (A) al Y % (B)» y sin este filtro podía nombrar a «Sin hora».
+ * dice «del X % (A) al Y % (B)» y sin este filtro nombraba a «Sin hora».
  */
-export const esCajonSinDato = (nombre: string) =>
+export const esCajonSinTramo = (nombre: string) =>
   nombre === "Sin fecha" || nombre === "Sin hora"
-  || nombre === "Sin aplicador" || nombre === "Sin facultad";
+  || nombre === "Sin aplicador" || nombre === "Sin facultad"
+  || nombre === "Fuera de franja";
 
 export const FRANJAS_DE_APLICACION = [
   { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
@@ -348,7 +358,7 @@ export function rendimientoPorFacultad(
   // Tres cajones en este orden: las comparables, las que aún tienen poca
   // evidencia y los «no se sabe». Dentro de cada uno manda el potencial CRUDO,
   // que es lo observado y lo que la barra dibuja.
-  const orden = (f: RendimientoDeFacultad) => (esCajonSinDato(f.facultad)
+  const orden = (f: RendimientoDeFacultad) => (esCajonSinTramo(f.facultad)
     ? 2
     : f.aulas >= MINIMO_PARA_COMPARAR ? 0 : 1);
   return salida.sort((x, y) => orden(x) - orden(y)
