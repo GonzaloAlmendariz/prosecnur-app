@@ -36,6 +36,7 @@ import "./aulasCoberturaChart.css";
 
 export function AulasCoberturaChart({
   filas, resumen, sinMetaMotor, reservaMotor = 0, dormidasMotor = 0, totalDelPlan,
+  sinAplicarMotor = 0,
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
@@ -66,12 +67,18 @@ export function AulasCoberturaChart({
    * no aparecen en ninguna frase.
    */
   dormidasMotor?: number;
+  /**
+   * Cuántos cursos-horario de este conjunto tienen meta y todavía no se han
+   * aplicado. Es lo que hay que decir cuando el reparto llega entero y a cero:
+   * no es que falte el dato, es que aún no se ha ido a ninguna.
+   */
+  sinAplicarMotor?: number;
 }) {
   // Cuántas filas hay DE VERDAD frente a las que llegaron. Sin el dato se
   // asume completo: un payload viejo sin `course_status_total` se comporta
   // como antes.
   const recortado = typeof totalDelPlan === "number" && totalDelPlan > filas.length;
-  const { tramos, sinMeta, total } = useMemo(() => {
+  const { tramos, sinMeta, total, repartoLlego } = useMemo(() => {
     // El reparto del MOTOR primero, por la misma razón que el de estado: la
     // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
     // ordenadas por tramo del circuito.
@@ -93,7 +100,18 @@ export function AulasCoberturaChart({
         return { ...t, aulas: Number(e?.aulas) || 0, etiqueta: delMotor || t.etiqueta };
       });
       const totalMotor = tramosMotor.reduce((n, t) => n + t.aulas, 0);
-      if (totalMotor) return { tramos: tramosMotor, sinMeta: sinMetaMotor ?? 0, total: totalMotor };
+      // **Un reparto que llegó y suma cero NO es un reparto que no llegó.**
+      // Caían los dos por el mismo sitio y el panel acusaba al payload —«el
+      // reparto por tramos no llegó y aquí sólo hay 6 de los 1 392»— cuando lo
+      // que pasaba era que Psicología no tiene todavía ningún curso-horario
+      // aplicado con meta. El motor lo publicaba correctamente: seis tramos en
+      // cero y cuatro aulas por aplicar.
+      return {
+        tramos: tramosMotor,
+        sinMeta: sinMetaMotor ?? 0,
+        total: totalMotor,
+        repartoLlego: true,
+      };
     }
     // **Sin el bloque del motor, sólo se calcula si llegó el plan ENTERO.**
     // `course_status` viaja recortado a 500 filas de 1 392 y el recorte no es
@@ -101,8 +119,8 @@ export function AulasCoberturaChart({
     // 500 dibuja una forma falsa con aire de cierta, que es peor que no
     // dibujar. Medido el 2026-09-09: el motor reparte 174 titulares y las
     // filas que viajan son 500 de otro universo.
-    if (recortado) return { tramos: [], sinMeta: sinMetaMotor ?? 0, total: 0 };
-    return coberturaPorAula(filas);
+    if (recortado) return { tramos: [], sinMeta: sinMetaMotor ?? 0, total: 0, repartoLlego: false };
+    return { ...coberturaPorAula(filas), repartoLlego: false };
   }, [filas, resumen, sinMetaMotor, recortado]);
 
   /**
@@ -135,7 +153,9 @@ export function AulasCoberturaChart({
       // el wrap exento declara su capacidad y sus reglas ciñen el `p`.
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="mon-profile-muted">
-          {recortado
+          {repartoLlego
+            ? `Todavía no se ha aplicado ningún curso-horario con meta aquí, así que no hay cobertura que repartir${sinAplicarMotor ? `: ${fmt(sinAplicarMotor)} esperan aplicación` : ""}.`
+            : recortado
             ? `El reparto por tramos no llegó con los datos y aquí sólo hay ${fmt(filas.length)} de los ${fmt(totalDelPlan ?? 0)} cursos-horario del plan: repartir ese recorte dibujaría una forma que no es la del operativo. Recarga para volver a pedirlo.`
             : sinMeta
               ? `Ninguno de los ${fmt(sinMeta)} cursos-horario del plan declara cuántas respuestas espera, así que no hay cobertura que repartir en tramos.`
