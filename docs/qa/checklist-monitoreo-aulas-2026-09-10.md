@@ -5,50 +5,91 @@ Sólo Gonzalo lo da por terminado.
 
 | # | Indicación (suya) | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | «No sé para qué sirven finalmente los botones rojos… ¿cuál es la diferencia entre ambos?» | `AulasMonitoreoPage.tsx` (`advanceTitle`, `refreshTitle`, `syncField`) | ◐ contestado abajo; falta decidir si la pantalla lo dice sin hover |
-| 2 | «El selector de facultades del encabezado… debería ser un botón que sólo esté en Resumen, no en las demás pestañas» | `mandoDeFacultad.ts` | ☑ `a8d903a8` |
+
+## Lo que queda, por orden de prioridad
+
+Ordenado el 2026-09-10 a petición suya: «sería bueno ordenarlas e ir aplicándolas
+por orden de prioridad». El criterio queda declarado para que se pueda discutir:
+**primero lo que hace que una cifra se lea mal, luego lo que cambia el modelo,
+después las preguntas sin contestar, y al final el pulido.**
+
+### P1 — miente o rompe hoy
+
+Lo que hace que el tablero dé una cifra falsa o que no se entienda qué muestra. Va primero porque un tablero que se lee mal es peor que uno incompleto.
+
+| # | Lo que pidió | Dónde vive | Estado |
+|---|---|---|---|
 | 3 | «Sigue saliendo fail page, lo cual me da a entender de que algo está fallando» | por diagnosticar | ☐ falta reproducirlo: no se sabe en qué pantalla ni con qué acción |
+| 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
+| 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
+| 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
+
+### P2 — el modelo, no la pintura
+
+Lo que él repitió más veces y cambia lo que el motor CALCULA, no cómo se dibuja. Pintar encima de un modelo que va a cambiar es trabajo que se tira.
+
+| # | Lo que pidió | Dónde vive | Estado |
+|---|---|---|---|
+| 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
+| 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
+| 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
+| 41 | «Creo que mejor todo Avance debería tener el selector de facultad, y absolutamente todos los gráficos deben ajustarse y ser robustos a mostrar o todas las facultades o una específica» | `mandoDeFacultad` + todas las pestañas de Avance | ☐ **el grande que queda**; él dijo «lo podemos hacer al final». Hoy el mando sólo sale en Resumen |
+
+### P3 — preguntas que la pantalla todavía no contesta
+
+Cada una es una decisión del operativo que hoy hay que tomar mirando otra cosa.
+
+| # | Lo que pidió | Dónde vive | Estado |
+|---|---|---|---|
 | 4 | «A quién hay que agendar… no entiendo en base a qué te basas» + «hay facultades que todavía no terminan de agendar los titulares» | `AulasAlertaDeAnticipacion` | ☐ |
 | 5 | «Tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué tipo de reemplazos» | motor: `sample_role` + `replacement_reason` | ☐ |
-| 6 | «El estado de aplicación, no entiendo por qué en reserva hay 1 169» | `AulasEstadoPorRol` | ☑ `aef557e2` — el cajón se parte en «en cadena» y «al aire» |
 | 7 | «En cada curso-horario contra su propio margen… mostrarlos por facultad, y poder escoger entre los aplicados, los titulares, o el reemplazo uno con el reemplazo dos» | `AulasSenalesPorAula` + `senalesPorAula.ts` | ☐ |
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |
 | 9 | «Con una o dos aulas eso no es suficiente base… pero cuando ya empezamos a tener una porción importante de las aulas aplicadas y vemos que no vamos a llegar, poder avisarte a tiempo» | ídem, es la condición de disparo de (8) | ☐ |
+| 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
+| 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
+| 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
+| 33 | «En el gráfico de cobertura sería bueno integrarlo con algo de efectividad y rendimiento, que son conceptos relacionados: el rendimiento esperado y el rendimiento observado hasta ahora» | `AulasCoberturaChart` | ☐ |
+
+### P4 — pulido y deuda
+
+No bloquea ninguna decisión; se cierra cuando lo de arriba esté.
+
+| # | Lo que pidió | Dónde vive | Estado |
+|---|---|---|---|
+| 1 | «No sé para qué sirven finalmente los botones rojos… ¿cuál es la diferencia entre ambos?» | `AulasMonitoreoPage.tsx` (`advanceTitle`, `refreshTitle`, `syncField`) | ◐ contestado abajo; falta decidir si la pantalla lo dice sin hover |
+| 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
+| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ◐ el ritmo ya va del arranque al cierre previsto (`d326513a` + `7039aac6`); falta que el PRONÓSTICO use el mismo eje de fechas |
+| 17 | «Los días en el eje x no se ven bien» | ambos | ◐ el ritmo ralea rótulos (`7039aac6`); falta el pronóstico |
+| 40 | **Deuda descubierta por el guard nuevo**: 18 `--pulso-*` huérfanos en nueve hojas del perfil (`--pulso-border-soft`, `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`…). Cada uno es un elemento que hoy se pinta sin el color que pide, en silencio | hojas del perfil | ☐ **congelado con TOPE=18**; cerrarlos exige mirar cada uno en pantalla |
+
+### Cerrados
+
+| # | Lo que pidió | Dónde vive | Estado |
+|---|---|---|---|
+| 2 | «El selector de facultades del encabezado… debería ser un botón que sólo esté en Resumen, no en las demás pestañas» | `mandoDeFacultad.ts` | ☑ `a8d903a8` |
+| 6 | «El estado de aplicación, no entiendo por qué en reserva hay 1 169» | `AulasEstadoPorRol` | ☑ `aef557e2` — el cajón se parte en «en cadena» y «al aire» |
 | 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `monitoreo_aulas_rol_y_estado.R` + `AulasEstadoPorRol` | ☑ `a69a0c42` motor + `aef557e2` pantalla · falta MIRARLO y falta A/B/C, que no está en el libro |
 | 11 | «No entiendo lo de en cierre» → «disuélvelo dentro de titulares aplicados» | `estadoDeAplicacion.ts` | ☑ `46bf5693` |
 | 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | motor: `monitoreo_aulas_universitarias.R` | ☑ `158c56bc` — repartía 219 y sólo 45 se habían aplicado |
 | 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `AulasAvanceDiario` | ☑ `b3380cdd` + `b0839a50` (ancho y ejes) |
 | 14 | «El avance diario tiene que verse mejor de manera horizontal» | `AulasAvanceDiario` | ☑ `b0839a50` |
-| 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
-| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ◐ el ritmo ya va del arranque al cierre previsto (`d326513a` + `7039aac6`); falta que el PRONÓSTICO use el mismo eje de fechas |
-| 17 | «Los días en el eje x no se ven bien» | ambos | ◐ el ritmo ralea rótulos (`7039aac6`); falta el pronóstico |
 | 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☑ `7039aac6` — falta MIRARLO |
-| 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
 | 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | backend 8798 | ☑ hecho el 10/09 08:44 · 1 176 → **1 245** registros |
 | 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | `deLaFacultad` + Resumen | ☑ `57b7980e` · «Cumplimiento aula por aula» `4af5b87b` · «Ritmo» `1371a94c` (motor `monitoreo_aulas_ritmo_por_facultad`) — falta MIRAR los dos últimos |
-| 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
-| 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
-| 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
 | 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☑ panel «Rendimiento y efectividad» entre el estado y la cobertura: la tasa del diseño contra la del campo en un carril común, su base, y si con lo agendado se cierra. Con facultad en foco, su proyección — falta MIRARLO |
-| 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
-| 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
-| 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
+| 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
 | 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☑ **tenía razón** — con hoy: 07/09 329 · 08/09 313 · **09/09 466** · 10/09 23 |
-| 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
-| 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
 | 34 | «A quién hay que agendar debería ir junto a Cursos-horario por cobertura, porque van de la mano» | orden de Resumen | ☑ `4af5b87b` — el panel baja detrás de la cobertura |
+| 35 | «Si marco "llegó a lo esperado" me muestra de todas las facultades, a pesar de que estoy filtrando por Psicología» | `AulasCursosDeUnTramo` | ☑ **verificado en pantalla**: con Derecho puesto y clic en «Llegó a lo esperado», el desglose lista sólo CH 84 de DERECHO. Era cierto cuando lo dijo; lo cerró `deLaFacultad` |
 | 36 | **Hallazgo mío, no dictado**: con Psicología en foco la banda de KPIs del encabezado seguía global —1 063 efectivas, meta 2 500, 56 aplicados— encima de un Resumen que ya decía 12 de 99 | banda de KPIs del perfil | ☑ la banda obedece al foco; la sobremuestra queda en S/D y dice que el diseño la fija para el estudio, no por facultad |
 | 37 | **Hallazgo mío**: en «Cumplimiento aula por aula» con facultad en foco, la leyenda decía «1 051 se recogieron en eslabones que ya no son el que cuenta en su cadena» — esa cifra era del operativo entero | `AulasAvanceEnRespuestas` | ☑ `91268810` |
-| 44 | «Ese valor no debería estar en términos generales sino en términos de sexo; a ese gráfico le falta granularidad: tiene la tasa general pero también necesitamos la tasa por sexo y por facultad, y el superávit o déficit de alumnos por sexo y por facultad» | `monitoreo_aulas_efectividad_por_sexo.R` + la tabla | ☑ motor nuevo (16 tests) y las dos celdas bajo el nombre de cada facultad — falta MIRARLO |
-| 41 | «Creo que mejor todo Avance debería tener el selector de facultad, y absolutamente todos los gráficos deben ajustarse y ser robustos a mostrar o todas las facultades o una específica» | `mandoDeFacultad` + todas las pestañas de Avance | ☐ **el grande que queda**; él dijo «lo podemos hacer al final». Hoy el mando sólo sale en Resumen |
+| 38 | **Hallazgo mío**: la barra decía «Llegó a lo esperado 19» y el desglose se titulaba «1 curso-horario» — la barra cuenta el plan entero de la facultad y la lista sale de las 500 filas que viajan | `AulasCursosDeUnTramo` | ☑ la cabecera dice «1 de los 19» y el pie, cuántos no viajan |
+| 39 | **Hallazgo mío**: el carril de «Rendimiento y efectividad» pedía `--pulso-surface-sunken`, un token que NO existe, así que el fondo no resolvía y en pantalla eran dos rayitas flotando sin regla ni escala | `aulasRendimientoYEfectividad.css` | ☑ regla visible, ticks, banda dibujada y leyenda |
 | 42 | «Esto está súper bien pero no nos dice si estamos en déficit o superávit de lo esperado a fecha de hoy con las aplicadas hasta ahora, y si con las esperadas agendadas llegamos» | `balanceDeLaCobertura` | ☑ el pie de la cobertura lo dice en PERSONAS, y proyecta lo agendado con las dos tasas |
 | 43 | «Francamente no se entiende qué es cada cosa, está muy poco claro» (sobre «Rendimiento y efectividad») | `AulasRendimientoYEfectividad` | ☑ rótulo que nombra el denominador, y cada marca del carril con su nombre y su cifra |
-| 39 | **Hallazgo mío**: el carril de «Rendimiento y efectividad» pedía `--pulso-surface-sunken`, un token que NO existe, así que el fondo no resolvía y en pantalla eran dos rayitas flotando sin regla ni escala | `aulasRendimientoYEfectividad.css` | ☑ regla visible, ticks, banda dibujada y leyenda |
-| 40 | **Deuda descubierta por el guard nuevo**: 18 `--pulso-*` huérfanos en nueve hojas del perfil (`--pulso-border-soft`, `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`…). Cada uno es un elemento que hoy se pinta sin el color que pide, en silencio | hojas del perfil | ☐ **congelado con TOPE=18**; cerrarlos exige mirar cada uno en pantalla |
-| 35 | «Si marco "llegó a lo esperado" me muestra de todas las facultades, a pesar de que estoy filtrando por Psicología» | `AulasCursosDeUnTramo` | ☑ **verificado en pantalla**: con Derecho puesto y clic en «Llegó a lo esperado», el desglose lista sólo CH 84 de DERECHO. Era cierto cuando lo dijo; lo cerró `deLaFacultad` |
-| 38 | **Hallazgo mío**: la barra decía «Llegó a lo esperado 19» y el desglose se titulaba «1 curso-horario» — la barra cuenta el plan entero de la facultad y la lista sale de las 500 filas que viajan | `AulasCursosDeUnTramo` | ☑ la cabecera dice «1 de los 19» y el pie, cuántos no viajan |
-| 33 | «En el gráfico de cobertura sería bueno integrarlo con algo de efectividad y rendimiento, que son conceptos relacionados: el rendimiento esperado y el rendimiento observado hasta ahora» | `AulasCoberturaChart` | ☐ |
-| 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
+| 44 | «Ese valor no debería estar en términos generales sino en términos de sexo; a ese gráfico le falta granularidad: tiene la tasa general pero también necesitamos la tasa por sexo y por facultad, y el superávit o déficit de alumnos por sexo y por facultad» | `monitoreo_aulas_efectividad_por_sexo.R` + la tabla | ☑ motor nuevo (16 tests) y las dos celdas bajo el nombre de cada facultad — falta MIRARLO |
+
 
 ## Lo ya contestado, con su medición
 
