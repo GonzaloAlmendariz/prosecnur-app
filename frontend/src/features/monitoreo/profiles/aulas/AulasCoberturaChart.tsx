@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
+import { AulasCursosDeUnTramo } from "./AulasCursosDeUnTramo";
 import { fmt } from "./kpisDeAulas";
 import "./aulasCoberturaChart.css";
 
@@ -128,6 +129,20 @@ export function AulasCoberturaChart({
   // del reparto— pero susurra (E10). Y muere la lógica de altura compacta:
   // cinco filas CSS se autodimensionan donde el Plotly pedía 360px fijos.
   const max = Math.max(1, ...tramos.map((t) => t.aulas));
+  /**
+   * Qué tramo está desplegado.
+   *
+   * **Con `useState` y no con la dirección, a sabiendas.** La gramática tiene
+   * cinco dimensiones y ninguna encaja: `panel` es booleano —un panel abierto o
+   * cerrado, no cuál de seis— y `foco` ya lo ocupa la facultad, que desde
+   * `c5d92a02` filtra toda la pestaña. Meter el tramo en `foco` obligaría a
+   * elegir entre mirar una facultad y abrir un tramo, y él quiere las dos.
+   *
+   * El coste es que este despliegue no sobrevive a una recarga ni se puede
+   * enviar por enlace. Es un detalle DENTRO de un panel, no una vista, así que
+   * el coste es pequeño — pero está declarado, no olvidado.
+   */
+  const [abierto, setAbierto] = useState("");
   const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
 
   return (
@@ -139,17 +154,39 @@ export function AulasCoberturaChart({
         aria-label={`Cursos-horario por nivel de cobertura de su meta: ${detalle}`}
       >
         {tramos.map((t) => (
-          <li key={t.clave}>
-            <span className="aulas-cobertura-etiqueta" title={t.etiqueta}>{t.etiqueta}</span>
-            <span className="aulas-cobertura-pista">
-              {t.aulas > 0 && (
-                <i style={{ width: `${(100 * t.aulas) / max}%`, background: COLOR_RESULTADO[t.tono] }} />
-              )}
-            </span>
-            <span className={`aulas-cobertura-n${t.aulas ? "" : " es-cero"}`}>{fmt(t.aulas)}</span>
+          <li key={t.clave} className={t.clave === abierto ? "es-abierto" : undefined}>
+            {/* **La fila entera es el botón.** Gonzalo, 2026-09-10: «sería
+                interesante que yo pudiera hacer clic en uno de ellos —"se quedó
+                a medias"— y que abajo se mostrara cuáles son esos CH». Un tramo
+                sin aulas no se puede abrir: enseñaría una tabla vacía y el
+                gesto se aprendería como que a veces no responde. */}
+            <button
+              type="button"
+              className="aulas-cobertura-fila"
+              disabled={t.aulas === 0}
+              aria-expanded={t.clave === abierto}
+              onClick={() => setAbierto(t.clave === abierto ? "" : t.clave)}
+              title={t.aulas === 0 ? t.etiqueta : `${t.etiqueta} — ver los cursos-horario`}
+            >
+              <span className="aulas-cobertura-etiqueta">{t.etiqueta}</span>
+              <span className="aulas-cobertura-pista">
+                {t.aulas > 0 && (
+                  <i style={{ width: `${(100 * t.aulas) / max}%`, background: COLOR_RESULTADO[t.tono] }} />
+                )}
+              </span>
+              <span className={`aulas-cobertura-n${t.aulas ? "" : " es-cero"}`}>{fmt(t.aulas)}</span>
+            </button>
           </li>
         ))}
       </ul>
+      {abierto ? (
+        <AulasCursosDeUnTramo
+          filas={filas}
+          tramo={abierto}
+          etiqueta={tramos.find((t) => t.clave === abierto)?.etiqueta ?? abierto}
+          onCerrar={() => setAbierto("")}
+        />
+      ) : null}
       {sinMeta || reservaMotor || dormidasMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.

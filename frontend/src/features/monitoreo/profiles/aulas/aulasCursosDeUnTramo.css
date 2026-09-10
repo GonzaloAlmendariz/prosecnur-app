@@ -1,0 +1,87 @@
+/* El desglose de un tramo de cobertura. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-cdt {
+  min-width: 0;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--pulso-border) 86%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-cabeza button {
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  padding: 3px 9px;
+  font: inherit;
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-cabeza button:hover {
+  color: var(--pulso-text);
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, var(--pulso-border));
+}
+
+/* El dueño del desbordamiento horizontal es el marco, nunca la página (C4). */
+.mon-profile-page.is-aulas-flow .aulas-cdt-marco { min-width: 0; overflow-x: auto; }
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--aulas-sec);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla th,
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla td {
+  padding: 4px 8px;
+  text-align: right;
+  vertical-align: baseline;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 55%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla thead th {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla .es-izq { text-align: left; }
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla tbody th {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-heavy);
+}
+
+/* La facultad bajo el código, no al lado: es contexto de la fila y compite con
+   el dato si ocupa su propia columna. */
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla tbody th em {
+  display: block;
+  font-style: normal;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla .es-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cdt-tabla .es-fuerte { color: var(--pulso-text); }
