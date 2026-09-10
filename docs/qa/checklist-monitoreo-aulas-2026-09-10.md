@@ -15,7 +15,7 @@ Sólo Gonzalo lo da por terminado.
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |
 | 9 | «Con una o dos aulas eso no es suficiente base… pero cuando ya empezamos a tener una porción importante de las aulas aplicadas y vemos que no vamos a llegar, poder avisarte a tiempo» | ídem, es la condición de disparo de (8) | ☐ |
 | 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `estadoDeAplicacion.ts` + motor | ☐ **primero LEER la columna de estados del Sheets** |
-| 11 | «No entiendo lo de en cierre» | `estadoDeAplicacion.ts:85` | ☐ es un rótulo que inventamos aquí, no del operativo |
+| 11 | «No entiendo lo de en cierre» → «disuélvelo dentro de titulares aplicados» | `estadoDeAplicacion.ts` | ☑ `46bf5693` |
 | 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | motor: `monitoreo_aulas_universitarias.R` | ☑ `158c56bc` — repartía 219 y sólo 45 se habían aplicado |
 | 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `<scratchpad>/resumen.html` | ☐ ver el cotejo abajo |
 
@@ -122,12 +122,31 @@ nada del ítem 10 hay que LEER los valores reales de esa columna** —los distin
 con su frecuencia— y construir el vocabulario sobre ellos. Inventar aquí una
 taxonomía paralela es exactamente lo que él está pidiendo que no pase.
 
-**Queda un hueco, y es pregunta para él:**
+### La regla de fondo: AL CURSO-HORARIO SE VA UNA SOLA VEZ
 
-- **«En cierre»** es un rótulo que se inventó aquí —sustituyó a «Cumple»— y él no
-  lo reconoce. El motor define ese tramo como `aplicada|cerrada` **o**
-  `validas >= meta`. O se renombra con una palabra del Sheets, o el tramo se
-  disuelve dentro de «titulares aplicados».
+Contestó lo de «en cierre» —«disuélvelo dentro de titulares aplicados»— y luego
+dio el porqué, que vale más que la decisión:
+
+> «Al aula no se puede ir dos veces. Por más que un aula esté incompleta, hay que
+> avisar que no se llegó —para eso tenemos el rendimiento de los cursos
+> aplicados—, pero no vamos a volver a ir. Aula que se aplica es un aula que se
+> aplica, no es que está en proceso, no es que está poco a poco, que vamos a ir
+> una vez y luego otra vez, y por eso está como en constante aplicación. No. Al
+> curso-horario se va una sola vez.»
+
+**Esto tiene consecuencias más allá del rótulo, y hay que revisarlas una por
+una:**
+
+- Cualquier estado que sugiera «en curso», «parcial» o «poco a poco» sobre un
+  curso-horario está describiendo algo que no pasa. Ya cayó «En cierre» /
+  «En aplicación» (`46bf5693`); **queda por revisar `STATUS_LABELS`**, que
+  todavía tiene `cerrando: "Cierre en curso"`, `en_aplicacion: "En aplicación"`
+  y `parcial: "Parcial"`. OJO: esos rótulos también traducen valores de
+  `operational_status` que vienen del SHEETS, así que no se tocan hasta leer la
+  columna real (ítem 10).
+- Un aula aplicada que se quedó corta **no se reintenta**: se avisa. Eso es
+  exactamente lo que el ítem 12 acaba de arreglar y lo que el ítem 8 tiene que
+  convertir en «pide un aula adicional».
 
 ## 13 · Qué del artefacto de Resumen está y qué no
 
