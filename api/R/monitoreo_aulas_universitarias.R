@@ -1502,6 +1502,16 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
       monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE])),
     sort(unique(fac_cs[nzchar(fac_cs)]))
   )
+  # **La efectividad al grano de FACULTAD x SEXO**, aqui y no fuera por la misma
+  # razon: `out` tiene el `application_state` ya derivado y las columnas del
+  # plan —incluida la composicion por sexo del padron—, mientras que `plan_df`
+  # NO tiene esa columna. Calcularlo con `plan_df` devolvia una lista vacia sin
+  # que nada fallara. Ver `monitoreo_aulas_efectividad_por_sexo.R`.
+  attr(recortado, "efectividad_por_sexo") <- monitoreo_aulas_efectividad_por_sexo(
+    out, responses, cfg = cfg,
+    valid_response = valid_response, response_classroom = response_classroom,
+    aplicada = out$application_state %in% c("en_aplicacion", "cerrando")
+  )
   # La cobertura de cada facultad, con el MISMO criterio que la global: sólo los
   # aplicados, y las que no declaran meta fuera del reparto.
   attr(recortado, "cobertura_por_facultad") <- stats::setNames(
@@ -2690,10 +2700,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # que el operativo no trata igual —la cuota se fija por facultad Y sexo, y
     # la brecha se suma celda a celda—. Ver
     # `monitoreo_aulas_efectividad_por_sexo.R`.
-    efectividad_por_sexo = monitoreo_aulas_efectividad_por_sexo(
-      plan_df, responses, cfg = cfg,
-      valid_response = valid_response, response_classroom = response_classroom
-    ),
+    efectividad_por_sexo = attr(course_status, "efectividad_por_sexo") %||% list(),
     quotas_sex_faculty = quotas_sex_faculty,
     # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
     # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula
