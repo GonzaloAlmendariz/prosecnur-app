@@ -492,3 +492,44 @@ describe("las dos celdas de sexo de cada facultad", () => {
     expect(html).toContain("Hombres");
   });
 });
+
+/**
+ * **Una tasa por encima del 100 % es un hecho, no un error de cuenta.**
+ *
+ * Visto el 2026-09-10 en ARTE Y DISEÑO: 19 respuestas de hombres sobre 16
+ * hombres elegibles. Las cifras cuadran con la fila general —76 + 16 = 92
+ * elegibles y 65 + 19 = 84 efectivas—, así que la partición es correcta y lo
+ * que no encaja es el padrón del aula con quien acabó respondiendo.
+ */
+describe("cuando llegan más respuestas de un sexo que elegibles", () => {
+  const conImposible = [
+    { faculty_key: "derecho", sexo: "M" as const, elegibles: 16, esperadas: 10,
+      efectivas: 19, tasa_prevista: 0.6257, tasa_observada: 1.1875, diferencia: 9 },
+  ];
+
+  it("la cifra se publica tal cual, sin capar al 100 %", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento bloque={bloque()} porSexo={conImposible} />,
+    );
+    // Capar borraría justo la señal: un marco desfasado o un sexo declarado
+    // distinto al del registro.
+    expect(html).toContain("118.8 %");
+    expect(html).not.toContain("100.0 %");
+  });
+
+  it("y se marca con la explicación de qué no encaja", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento bloque={bloque()} porSexo={conImposible} />,
+    );
+    expect(html).toContain("es-imposible");
+    expect(html).toContain("el padrón del aula declara");
+  });
+
+  it("una tasa normal no lleva marca", () => {
+    const normal = [{ ...conImposible[0], efectivas: 8, tasa_observada: 0.5 }];
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento bloque={bloque()} porSexo={normal} />,
+    );
+    expect(html).not.toContain("es-imposible");
+  });
+});

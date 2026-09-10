@@ -369,3 +369,13 @@
 /* Sólo lo que va corto se tiñe: es lo que hay que ver de un barrido. */
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-corto { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-sobra { color: var(--pulso-success-fg); }
+
+/* Una tasa por encima del 100 % —más respuestas de un sexo que elegibles declara
+   el padrón— se marca para que se pueda preguntar por ella, y NO se capa: capar
+   borraría la señal. El subrayado punteado dice «hay algo que explicar aquí» sin
+   gritar como una alerta, porque no es un fallo del operativo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda.es-imposible {
+  cursor: help;
+  text-decoration: underline dotted var(--pulso-border-strong);
+  text-underline-offset: 3px;
+}

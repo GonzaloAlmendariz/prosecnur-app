@@ -290,8 +290,29 @@ function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo 
   if (!(celdas.F?.elegibles || celdas.M?.elegibles)) return null;
   const una = (c: CeldaDeSexo | undefined, etiqueta: string) => {
     if (!c || !c.elegibles) return null;
+    /**
+     * **Una tasa por encima del 100 % es un hecho, no un error de cuenta.**
+     *
+     * Visto el 2026-09-10 en ARTE Y DISEÑO: 19 respuestas de hombres sobre 16
+     * hombres elegibles, o sea 118,8 %. Las cifras cuadran con la fila general
+     * —76 + 16 = 92 elegibles y 65 + 19 = 84 efectivas—, así que la partición
+     * es correcta: lo que no cuadra es el PADRÓN del aula con quien acabó
+     * respondiendo.
+     *
+     * Ni se capa ni se esconde. Capar al 100 % borraría justo la señal —un
+     * marco de matriculados desfasado, o un sexo declarado en la encuesta
+     * distinto al del registro— y dejaría la cifra callada. Se marca y se
+     * explica, que es lo que un aviso tiene que hacer.
+     */
+    const imposible = c.tasa_observada != null && c.tasa_observada > 1;
     return (
-      <span className="aulas-tau-sexo-celda" key={etiqueta}>
+      <span
+        className={`aulas-tau-sexo-celda${imposible ? " es-imposible" : ""}`}
+        key={etiqueta}
+        title={imposible
+          ? `Llegaron ${fmt(c.efectivas)} respuestas de ${etiqueta.toLowerCase()} y el padrón del aula declara ${fmt(c.elegibles)} elegibles. La cuenta cuadra con el total de la facultad, así que lo que no encaja es el padrón con quien respondió: el marco puede estar desfasado, o el sexo declarado en la encuesta no ser el del registro académico.`
+          : undefined}
+      >
         {etiqueta}{" "}
         <strong>{c.tasa_observada == null ? "—" : `${(Math.round(c.tasa_observada * 1000) / 10).toFixed(1)} %`}</strong>
         <i>
