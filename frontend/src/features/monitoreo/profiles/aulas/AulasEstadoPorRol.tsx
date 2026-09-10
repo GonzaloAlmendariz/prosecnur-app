@@ -25,6 +25,7 @@ const TONOS: Record<TramoDeRol["tono"], string> = {
   efectiva: COLOR_RESULTADO.efectiva,
   parcial: COLOR_RESULTADO.parcial,
   pendiente: COLOR_RESULTADO.pendiente,
+  rechazo: COLOR_RESULTADO.rechazo,
   revision: COLOR_RESULTADO.revision,
   // Los que ya no piden nada —reemplazados y reservas al aire— van en gris de
   // marca: el color es atención, y gastarlo en lo que no hay que hacer es lo

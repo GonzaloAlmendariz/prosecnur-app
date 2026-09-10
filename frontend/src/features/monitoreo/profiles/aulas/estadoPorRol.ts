@@ -21,7 +21,7 @@ export type TramoDeRol = {
   /** Qué decisión habilita, o por qué NO pide ninguna. */
   detalle: string;
   aulas: number;
-  tono: "pendiente" | "parcial" | "efectiva" | "revision" | "apagado";
+  tono: "pendiente" | "parcial" | "efectiva" | "rechazo" | "revision" | "apagado";
 };
 
 export type GrupoDeRol = {
@@ -66,7 +66,13 @@ export function estadoPorRol(dashboard: MonitoreoAulasDashboard | null | undefin
           detalle: "tienen fecha y todavía no se han visitado" },
         { clave: "sin_agendar", etiqueta: "Sin agendar", tono: "pendiente",
           detalle: "hay que llamar al docente" },
-        { clave: "rechazado", etiqueta: "Rechazados", tono: "revision",
+        // **`rechazo` y no `revision`.** El vocabulario de resultado los separa:
+        // `revision` es «necesita una decisión antes de contar» y `rechazo` es
+        // «la persona declinó», que es exactamente lo que pasó aquí. Con
+        // `revision` el tramo salía en gris azulado oscuro —medido en pantalla:
+        // rgb(71,79,91)— y la barra tenía TRES neutros seguidos; un rechazo es
+        // un problema y tiene que verse como tal.
+        { clave: "rechazado", etiqueta: "Rechazados", tono: "rechazo",
           detalle: "el docente dijo que no; los cubre su cadena" },
         { clave: "reemplazado", etiqueta: "Reemplazados", tono: "apagado",
           detalle: "cayeron y su reserva tomó el relevo" },
