@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+
+import { pctDecimal } from "../../core/formatoComun";
 import type {
   TelefonicoPlatformGap,
   TelefonicoStatusCell,
@@ -12,9 +14,11 @@ function metric(value: number | null | undefined) {
   return new Intl.NumberFormat("es-PE").format(Math.round(Number(value ?? 0)));
 }
 
+/** El porcentaje de la familia, con su decimal. Esto usaba `toFixed(1)`, que
+ *  escribe PUNTO decimal pase lo que pase con el locale: este panel decía
+ *  «49.7%» mientras la tabla de al lado decía «49,7%». */
 function pctLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `${value.toFixed(1).replace(/\.0$/, "")}%`;
+  return pctDecimal(value, "—");
 }
 
 function deviationLabel(value: number | null | undefined) {

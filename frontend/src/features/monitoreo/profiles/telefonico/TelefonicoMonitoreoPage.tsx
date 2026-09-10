@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
+import { pctDecimal } from "../../core/formatoComun";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
   apiConnectionCheck,
@@ -15260,8 +15261,7 @@ function safePercentValue(value: number | null | undefined, total: number | null
 }
 
 function formatPercentLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal(value);
 }
 
 function formatSignedPp(value: number | null | undefined) {
@@ -18429,7 +18429,7 @@ function formatReportCell(value: unknown, column: string) {
     const normalized = normalizeReportMatch(column);
     if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
       const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return `${pctValue.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+      return pctDecimal(pctValue);
     }
     return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   }

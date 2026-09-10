@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { MonitoreoCorte } from "../../corte/corteContract";
+import { pctDecimal } from "../../core/formatoComun";
 import type { TelefonicoCumplimiento } from "./telefonicoGoalModel";
 
 // Espina dorsal de la portada telefónica: una sola forma para los tres estados
@@ -11,9 +12,11 @@ function metric(value: number | null | undefined) {
   return new Intl.NumberFormat("es-PE").format(Math.round(value));
 }
 
+/** El porcentaje de la familia, con su decimal. Esto usaba `toFixed(1)`, que
+ *  escribe PUNTO decimal pase lo que pase con el locale: este panel decía
+ *  «49.7%» mientras la tabla de al lado decía «49,7%». */
 function pctLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `${value.toFixed(1).replace(/\.0$/, "")}%`;
+  return pctDecimal(value, "—");
 }
 
 function decimalLabel(value: number | null | undefined) {

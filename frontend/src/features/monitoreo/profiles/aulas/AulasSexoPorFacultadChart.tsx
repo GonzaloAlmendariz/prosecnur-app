@@ -68,6 +68,21 @@ const filasPlanas = (filas: ReadonlyArray<CeldaDeFacultad>): FilaDeSexo[] =>
       pendiente: f.hombresPendiente, deficit: f.hombresDeficit, cuota: f.hombresCuota },
   ]);
 
+/**
+ * ⚠ SIN MONTAR desde el 2026-09-09 — desconectado, no borrado.
+ *
+ * Este panel («Qué metas van a cerrar y cuáles no») y el bloque «Metas y aulas»
+ * del revamp discrepan en 28 de las 30 celdas facultad × sexo —DERECHO/F 152,9
+ * contra 300,9—, porque cuentan universos distintos: aquél proyecta sólo lo
+ * AGENDADO y éste cuenta TODOS los cursos-horario en juego, y hay 33 titulares
+ * planificados sin fecha. Dos «proyectado» por celda con el doble de diferencia
+ * en la misma pantalla no se puede quedar.
+ *
+ * Lo que este panel dice y el otro no es la CALIBRACIÓN —«el campo está
+ * rindiendo un X % menos de lo previsto»—, que merece volver como lectura y no
+ * como un segundo panel de proyección. Lo decide Gonzalo; hasta entonces vive
+ * aquí, entero y con su test.
+ */
 export function AulasSexoPorFacultadChart({ celdas, sinFecha = 0 }: {
   celdas: ReadonlyArray<MonitoreoRow>;
   /**
