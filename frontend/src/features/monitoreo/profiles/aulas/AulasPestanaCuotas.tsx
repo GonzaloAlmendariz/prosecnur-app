@@ -25,6 +25,7 @@ import type {
 } from "../../../../api/monitoreo";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 import { AulasReservaDirigida } from "./AulasReservaDirigida";
+import { AulasTresLecturas } from "./AulasTresLecturas";
 
 /**
  * La pestaña «Metas» del perfil de aulas (hasta 2026-09-08, «Cuotas»).
@@ -278,6 +279,25 @@ export function AulasPestanaCuotas({
         {/* Los días de campo salen de los PARTES —los días en que el operativo
             salió de verdad— y no de `ritmo_diario`, que cuenta días con
             respuestas: una caída sólo puede ocurrir un día en que se sale. */}
+        {/* **El diagnóstico, JUSTO ENCIMA de su remedio.** Gonzalo, 2026-09-10:
+            «dale con la superficie, que las tres se vean juntas».
+
+            Las tres lecturas —lo recogido, lo que traerá lo agendado, y el
+            techo de todo el plan— salen del MISMO motor y una contiene a la
+            otra por construcción, así que no pueden contradecirse. Ya hubo un
+            panel que enseñaba sólo la de lo agendado —«Metas y aulas»— y se
+            desconectó el 2026-09-09 porque discrepaba con ésta en 28 de las 30
+            celdas: ninguno mentía, contaban universos distintos y nadie lo
+            decía. Eso es lo que este bloque resuelve.
+
+            Va aquí y no en Consultas —que fue donde Gonzalo lo propuso— porque
+            la pregunta es «¿cierra la cuota?», que es el propósito declarado de
+            esta pestaña, y porque su remedio ya vive dos líneas más abajo.
+            Separarlos obligaría a cambiar de pestaña entre el diagnóstico y la
+            acción. */}
+        <AulasTresLecturas
+          celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
+        />
         {/* El remedio, que venía de «Hombres y mujeres por facultad»: a qué aula
             del banco ir para cerrar justo las celdas que no llegan. */}
         <AulasReservaDirigida
