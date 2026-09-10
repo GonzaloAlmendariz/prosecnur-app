@@ -24,7 +24,7 @@ Sólo Gonzalo lo da por terminado.
 | 17 | «Los días en el eje x no se ven bien» | ambos | ◐ el ritmo ralea rótulos (`7039aac6`); falta el pronóstico |
 | 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☑ `7039aac6` — falta MIRARLO |
 | 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
-| 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | mi pila local | ☐ **cambia la instrucción anterior de no tocar el original** |
+| 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | backend 8798 | ☑ hecho el 10/09 08:44 · 1 176 → **1 245** registros |
 | 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | los 9 paneles de Resumen | ☐ **contradice el contrato actual: hoy RESALTA y él quiere FILTRAR** |
 | 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
@@ -33,7 +33,7 @@ Sólo Gonzalo lo da por terminado.
 | 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
 | 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
 | 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
-| 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☐ **verificar**; puede ser el desfase del `.pulso` del 09 |
+| 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☑ **tenía razón** — con hoy: 07/09 329 · 08/09 313 · **09/09 466** · 10/09 23 |
 | 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
 | 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
 | 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
@@ -555,3 +555,30 @@ Así que su intuición era correcta y la explicación es la que él mismo apunt�
 **la información no está actualizada**. Es el ítem 20 —trabajar sobre el original
 y traer las respuestas de hoy— y deja de ser una comodidad: sin eso, cualquier
 lectura del último día del operativo está truncada.
+
+## 30 · CONFIRMADO: el 9 era el mejor día, y la copia lo escondía
+
+Traídas las respuestas de hoy sobre el ORIGINAL (10/09 08:44, de 1 176 a 1 245
+registros), el ritmo dice:
+
+| Día | Efectivas |
+|---|---|
+| 07/09 | 329 |
+| 08/09 | 313 |
+| **09/09** | **466** |
+| 10/09 | 23 (en curso, son las 8:44) |
+
+**El 9 es el mejor día con diferencia**, exactamente como él recordaba. Con la
+copia cortada a las 13:29 del 9 salían 302 — la mitad de su jornada— y ésa era
+toda la discrepancia. No había defecto en la tabla: había datos truncados.
+
+**Regla que sale de aquí**: antes de dar por buena la lectura de la última
+jornada, comprobar hasta qué hora llega el snapshot. `<scratchpad>/marcas.R`.
+
+## Un defecto que introduje y que sólo se vio con datos frescos
+
+Con el operativo de hoy el eje del ritmo llegaba a **noviembre**: dibujaba setenta
+días con las cuatro jornadas reales aplastadas contra el borde izquierdo. La
+causa era mía —puse el cierre PESIMISTA del pronóstico como final del eje y con
+el ritmo lento de un arranque esa fecha se dispara—. Corregido en `8db45f22`: el
+horizonte lo pone **la última fecha agendada**, que es finita y es la que manda.
