@@ -78,3 +78,22 @@ export function enlaceParaLeer(escrito: string, libro: LibroSheetsRecordado): st
   const limpio = escrito.trim();
   return limpio || enlaceRecordado(libro);
 }
+
+/**
+ * Si HAY destino: la misma pregunta que decide si el botón se enciende.
+ *
+ * Vive aquí, junto a las dos funciones que deciden qué enlace viaja, y no en el
+ * panel, porque una guarda que se calcula aparte de su llamada acaba
+ * contradiciéndola. No es una hipótesis: el 2026-09-09 pasó en el panel gemelo
+ * —el del Sheets de los aplicadores—, donde la guarda contaba el enlace pegado
+ * y la llamada no lo mandaba, y el usuario vio «pega su enlace una vez» con el
+ * enlace ya pegado. Aquel se cerró con `destinoDeDistribucion.ts`; éste estaba
+ * bien por suerte, no por construcción.
+ *
+ * La invariante que cierra el hueco: si esto dice que sí, `enlaceParaLeer`
+ * devuelve algo — y `enlaceParaPublicar` devuelve algo o `undefined`, que el
+ * backend resuelve con el recordado.
+ */
+export function hayDestinoDelLibro(escrito: string, libro: LibroSheetsRecordado): boolean {
+  return Boolean(enlaceParaLeer(escrito, libro));
+}

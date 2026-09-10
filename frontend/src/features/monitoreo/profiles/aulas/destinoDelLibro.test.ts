@@ -3,6 +3,7 @@ import {
   enlaceParaLeer,
   enlaceParaPublicar,
   enlaceRecordado,
+  hayDestinoDelLibro,
   textoDelRecordado,
 } from "./destinoDelLibro";
 
@@ -84,5 +85,37 @@ describe("enlaceParaLeer", () => {
 
   it("sin ninguno devuelve vacío: no hay de dónde leer", () => {
     expect(enlaceParaLeer("", null)).toBe("");
+  });
+});
+
+/**
+ * **La misma invariante, en el panel gemelo del libro.**
+ *
+ * Los dos paneles hacen lo mismo con dos Sheets distintos, y el 2026-09-09 uno
+ * falló y el otro no. El que no falló estaba bien por suerte —su guarda se
+ * calculaba aparte y coincidía—, así que ahora sale del mismo módulo que decide
+ * el enlace y esto lo sujeta.
+ */
+describe("el destino del Sheets del libro", () => {
+  it("si hay destino, leer tiene de dónde", () => {
+    const casos: Array<[string, { url?: string } | null]> = [
+      ["https://pegado", null],
+      ["", { url: "https://recordado" }],
+      ["https://pegado", { url: "https://recordado" }],
+      ["", null],
+      ["   ", null],
+    ];
+    for (const [escrito, libro] of casos) {
+      expect(hayDestinoDelLibro(escrito, libro)).toBe(Boolean(enlaceParaLeer(escrito, libro)));
+    }
+  });
+
+  it("lo pegado manda sobre lo recordado, igual que en la distribución", () => {
+    expect(enlaceParaLeer("https://nuevo", { url: "https://viejo" })).toBe("https://nuevo");
+  });
+
+  it("publicar manda `undefined` y nunca cadena vacía: un body vacío OLVIDA el destino", () => {
+    expect(enlaceParaPublicar("  ")).toBeUndefined();
+    expect(enlaceParaPublicar("https://x")).toBe("https://x");
   });
 });
