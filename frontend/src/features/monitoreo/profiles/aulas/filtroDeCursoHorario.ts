@@ -58,6 +58,42 @@ const CUENTA = (res: Medido) =>
  * ruido—, pero el grupo VACÍO DE ORIGEN ya no estaba, así que no se pierde
  * ninguna causa que el panel supiera nombrar.
  */
+/**
+ * Se queda con los cursos-horario de una facultad, en los siete grupos.
+ *
+ * **Aquí el foco SÍ filtra, al revés que en la tabla de facultades de arriba.**
+ * Aquélla existe para comparar facultades entre sí y recortarla a una fila la
+ * dejaría sin sentido; ésta es una lista de 175 cursos-horario, y con una
+ * facultad puesta en la cabecera enseñar los de las otras catorce es no
+ * responder al mando. Gonzalo, 2026-09-10: «absolutamente todos los gráficos
+ * deben ajustarse y ser robustos a mostrar o todas las facultades o una en
+ * específica».
+ *
+ * Compara con la misma normalización que `deLaFacultad` —mayúsculas y sin
+ * tildes—: un solo criterio en todo el perfil para decidir si dos nombres de
+ * facultad son el mismo.
+ */
+export function soloDeLaFacultad(res: Medido, facultad: string | undefined): Medido {
+  if (!facultad) return res;
+  const clave = (v: unknown) =>
+    (v == null ? "" : String(v)).trim().toUpperCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const buscada = clave(facultad);
+  const f = (aulas: AulaMedida[]) => aulas.filter((a) => clave(a.facultad) === buscada);
+  return {
+    ...res,
+    senalados: f(res.senalados),
+    descuadres: f(res.descuadres),
+    conformes: f(res.conformes),
+    pendientes: f(res.pendientes),
+    retiradas: f(res.retiradas),
+    desconocidos: f(res.desconocidos),
+    sinMedir: res.sinMedir
+      .map((g) => ({ ...g, aulas: f(g.aulas) }))
+      .filter((g) => g.aulas.length > 0),
+  };
+}
+
 export function filtraSenales(res: Medido, consulta: string): SenalesFiltradas {
   const total = CUENTA(res);
   if (!normalizaBusqueda(consulta)) {

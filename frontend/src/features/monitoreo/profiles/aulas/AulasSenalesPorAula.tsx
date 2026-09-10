@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Search, XCircle } from "../../../../vendor/lucide-react";
 
 import type { MonitoreoAulasDosTasas } from "../../../../api/monitoreo";
-import { filtraSenales } from "./filtroDeCursoHorario";
+import { filtraSenales, soloDeLaFacultad } from "./filtroDeCursoHorario";
 import { pendientesPorFacultad } from "./pendientesPorFacultad";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { ptsDeBanda, senalesPorAula, tasaEnPct, type AulaMedida } from "./senalesPorAula";
@@ -73,7 +73,11 @@ export function AulasSenalesPorAula({
   bloque, facultadEnFoco, relevos,
 }: {
   bloque: MonitoreoAulasDosTasas | null | undefined;
-  /** Resalta, no filtra: igual que el resto de listas del perfil. */
+  /**
+   * **Filtra**, y no sólo resalta. Es una lista de 175 cursos-horario, no una
+   * comparación entre facultades: con una puesta en la cabecera, enseñar los de
+   * las otras catorce es no responder al mando (2026-09-10).
+   */
   facultadEnFoco?: string;
   /**
    * Qué relevo le queda a cada titular (`reserva_de_la_cadena` del tablero).
@@ -119,9 +123,13 @@ export function AulasSenalesPorAula({
   // salen»— sale del censo COMPLETO y no se mueve al teclear. Un censo que
   // cambia con lo que uno busca no es un censo, y el contador del buscador ya
   // dice cuántas filas quedaron.
-  const { senalados: todosSenalados, conformes: todosConformes, criterio } = res;
+  // **Con una facultad puesta, la lista es la SUYA** —y también el censo de la
+  // frase de arriba, que si no diría «de los 54 aplicados» sobre una tabla que
+  // enseña seis—. El total del estudio sigue a la vista en el contador.
+  const enFoco = soloDeLaFacultad(res, facultadEnFoco);
+  const { senalados: todosSenalados, conformes: todosConformes, criterio } = enFoco;
   const { senalados, descuadres, conformes, sinMedir, pendientes, retiradas, desconocidos, encontrados, total, filtrado } =
-    filtraSenales(res, busca);
+    filtraSenales(enFoco, busca);
   const bajo = todosSenalados.filter((a) => a.senal === "bajo").length;
   const sobre = todosSenalados.length - bajo;
   // SOLO los contrastados (aplicados con banda): ni pendientes ni retirados ni

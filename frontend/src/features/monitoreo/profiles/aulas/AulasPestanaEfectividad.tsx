@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { deLaFacultad } from "./deLaFacultad";
+import { parteDeCampo } from "./parteDeCampo";
 import { AulasEfectividadPorDia } from "./AulasEfectividadPorDia";
 import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
 import { AulasSenalesPorAula } from "./AulasSenalesPorAula";
@@ -87,12 +88,19 @@ export function AulasPestanaEfectividad({
                 <h3>Hacia dónde va la efectividad</h3>
                 <span>jornada a jornada · dice si el campo está mejorando o si hay que intervenir</span>
               </div>
-              {/* El recorte va en la ENTRADA, como en Resumen: las dos listas
-                  traen `faculty`, así que el panel no necesita saber nada del
-                  selector para responderle. */}
+              {/* **El parte NO trae facultad: hay que unirlo al plan primero.**
+                  La hoja «Aulas Aplicadas (Campo)» no tiene columna de facultad
+                  —se la pone `parteDeCampo` cruzando por el código—, así que
+                  filtrar el parte crudo por facultad dejaba CERO filas y el
+                  panel publicaba «todavía no hay partes de campo con fecha» con
+                  el campo andando. Lo introduje al poner el selector en toda la
+                  sección y se vio en pantalla el mismo día. */}
               <AulasEfectividadPorDia
                 partes={deLaFacultad(
-                  (dashboard.partes_campo ?? []) as unknown as Array<Record<string, unknown>>,
+                  parteDeCampo(
+                    (dashboard.partes_campo ?? []) as MonitoreoRow[],
+                    (dashboard.agenda ?? []) as MonitoreoRow[],
+                  ).filas as unknown as Array<Record<string, unknown>>,
                   facultadEnFoco,
                 ) as unknown as MonitoreoRow[]}
                 plan={deLaFacultad(
