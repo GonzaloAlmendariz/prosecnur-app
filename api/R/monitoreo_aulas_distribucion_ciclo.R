@@ -76,6 +76,25 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
   v
 }
 
+#' El código de un curso-horario, en la forma con la que el plan lo guarda.
+#'
+#' **El Sheets es la fuente de verdad y la app tiene que poder LEERLO.** El
+#' 2026-09-10 una fila decía «CH164» y los 1 392 códigos del plan van con
+#' espacio —«CH 164»—, así que la app la declaraba `desconocida`: era una aula
+#' APLICADA SIN AGENDACIÓN que no contaba para ninguna cuota y nadie veía por
+#' qué. Un espacio de menos no puede perder una encuesta.
+#'
+#' No se inventa nada aquí: `.cm_aulas_codigo_operativo()` ya sabe hacerlo —su
+#' regex admite `CH164`, `CH 164` y el histórico `AULA 164`, y normalizar dos
+#' veces da lo mismo—. Sólo faltaba que este ciclo lo llamara.
+#' @keywords internal
+.madc_codigo <- function(x) {
+  crudo <- trimws(as.character(x %||% "")[1])
+  if (!nzchar(crudo)) return("")
+  canon <- .cm_aulas_codigo_operativo(crudo)[1]
+  if (is.na(canon) || !nzchar(canon)) crudo else canon
+}
+
 #' Cuál pestaña del documento es la distribución.
 #'
 #' **Se localiza por su CABECERA, no por su nombre.** La app la publica como
@@ -271,7 +290,7 @@ monitoreo_aulas_fijaciones_desde_distribucion <- function(filas_remotas,
   }
 
   del_plan <- unique(vapply(plan %||% list(), function(u) {
-    .monitoreo_scalar(u$operational_code %||% u$classroom_id, "")
+    .madc_codigo(.monitoreo_scalar(u$operational_code %||% u$classroom_id, ""))
   }, character(1)))
   del_plan <- del_plan[nzchar(del_plan)]
   equipo <- unique(c(
@@ -284,7 +303,7 @@ monitoreo_aulas_fijaciones_desde_distribucion <- function(filas_remotas,
   desconocidos <- character(0); sin_codigo <- character(0); sin_quien <- character(0)
   for (f in filas[-1L]) {
     v <- .madc_valores(f, n)
-    cod <- v[[col_codigo]]
+    cod <- .madc_codigo(v[[col_codigo]])
     quien <- aulas_nombre_aplicador(v[[col_quien]])
     if (!nzchar(cod)) next
     if (!nzchar(quien)) { sin_quien <- c(sin_quien, cod); next }
@@ -349,7 +368,7 @@ monitoreo_aulas_completar_distribucion <- function(filas_remotas, plan = list(),
   del_plan <- list()
   unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
   for (u in unidades) {
-    cod <- .monitoreo_scalar(u[["operational_code"]] %||% u[["classroom_id"]], "")
+    cod <- .madc_codigo(.monitoreo_scalar(u[["operational_code"]] %||% u[["classroom_id"]], ""))
     if (!nzchar(cod) || !is.null(del_plan[[cod]])) next
     del_plan[[cod]] <- list(
       AULA = .monitoreo_scalar(u[["scheduled_venue"]] %||% u[["venue"]], ""),
@@ -366,7 +385,7 @@ monitoreo_aulas_completar_distribucion <- function(filas_remotas, plan = list(),
   if (!is.null(filas_ahora) && length(filas_ahora) > 1L) {
     ia <- which(.alpa_CABECERA == "CURSO-HORARIO")[[1]]
     publicados <- unique(vapply(filas_ahora[-1L], function(f) {
-      .madc_valores(f, n)[[ia]]
+      .madc_codigo(.madc_valores(f, n)[[ia]])
     }, character(1)))
   }
 
@@ -375,7 +394,7 @@ monitoreo_aulas_completar_distribucion <- function(filas_remotas, plan = list(),
   completadas <- 0L
   for (f in filas[-1L]) {
     v <- .madc_valores(f, n)
-    cod <- v[[c_cod]]
+    cod <- .madc_codigo(v[[c_cod]])
     if (!nzchar(cod)) next
     info <- del_plan[[cod]]
     if (is.null(info)) {
