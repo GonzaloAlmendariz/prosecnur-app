@@ -10,7 +10,9 @@ import { contar } from "../../fuentes/vocabulario";
 import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload, UploadCloud } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 import { fmt } from "./kpisDeAulas";
-import { enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, textoDelRecordado } from "./destinoDelLibro";
+import {
+  enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, hayDestinoDelLibro, textoDelRecordado,
+} from "./destinoDelLibro";
 import "./aulasLibroDestino.css";
 import { AulasDosSheets } from "./AulasDosSheets";
 
@@ -85,7 +87,9 @@ export function AulasOperationsPanel({
     setEnlaceEditado(null);
   }, [recordado?.spreadsheet_id]);
   const escrito = (enlaceEditado ?? "").trim();
-  const hayDestino = Boolean(escrito || recordadoUrl);
+  // La guarda sale del MISMO módulo que decide qué enlace viaja: calcularla
+  // aparte es como se abrió el agujero del panel de los aplicadores.
+  const hayDestino = hayDestinoDelLibro(escrito, recordado);
   const sheetsConectado = Boolean(onLeerDeSheets || onPublicarASheets);
   const hayPlan = aulasHayPlan(config);
   // Cuántas trae ese plan, para poder decir de dónde salió cuando no hay corrida.
