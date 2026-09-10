@@ -25,6 +25,11 @@ Sólo Gonzalo lo da por terminado.
 | 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☐ |
 | 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
 | 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | mi pila local | ☐ **cambia la instrucción anterior de no tocar el original** |
+| 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | los 9 paneles de Resumen | ☐ **contradice el contrato actual: hoy RESALTA y él quiere FILTRAR** |
+| 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
+| 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
+| 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
+| 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☐ **el grande de Resumen** |
 
 ## Lo ya contestado, con su medición
 
@@ -293,3 +298,48 @@ y la alineación a la vez.
 pie lo que NO cambió: **abrir y traer respuestas no escribe el archivo** —el
 `.pulso` sólo cambia al guardar explícitamente— y **publicar a Sheets sigue
 necesitando su palabra**.
+
+## 21-25 · Resumen tiene que ser un resumen, dictado del 2026-09-10 ~08:00
+
+> «El selector de facultad que está en el encabezado no hace que los gráficos
+> actualicen. Por ejemplo, en respuestas por facultad, cuando yo selecciono una
+> facultad, debería mostrarme sólo la de esa facultad. Luego, eso pasa lo mismo
+> para todos los demás gráficos: todos los demás gráficos se deben acomodar a
+> ello… todos los gráficos de respuestas o de resumen deberían ajustarse al
+> selector.»
+
+> «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue,
+> si se supone que estamos hablando de cursos-horario con respuestas… pero bueno,
+> si es necesario tenerla ahí, la dejamos, no pasa nada.»
+
+> «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de
+> tres mil doscientos treinta y tres. Francamente, no entiendo eso de cumplimiento
+> de cuántas cumplen meta, cuántas faltan. Y también no está claro las que hay que
+> agendar, por qué me estás diciendo que hay que agendarlas.»
+
+> «No estás resumiendo la información ni de rendimiento ni de efectividad. Hay
+> mucho trabajo aquí: si Resumen tiene que ser un resumen. Nuevamente, la vara de
+> comprobación visual y la vara conceptual, de que se esté entendiendo y se esté
+> mostrando de forma fiel la información que se quiere mostrar, y resumir la
+> información que se busca tanto en metas como en rendimiento como en efectividad.»
+
+### El ítem 21 CONTRADICE un contrato vivo, y hay que decirlo
+
+`focoQueCruzaLaSeccion.test.tsx` fija desde hace semanas que el foco **resalta y
+NO filtra**, con este motivo escrito: «estas listas son rankings y dejarlas en una
+sola fila destruiría lo único que aportan, que es dónde cae esa facultad entre
+las otras».
+
+**Los dos son ciertos, y no chocan si se separan por pestaña**: en las otras
+pestañas los paneles SON rankings —quién rinde más, qué curso-horario se sale de
+su margen— y ahí resaltar es lo correcto. En **Resumen** los paneles son
+resúmenes, y ahí filtrar es lo correcto. Y desde `a8d903a8` el MANDO sólo existe
+en Resumen, así que el cambio cabe sin tocar el contrato de las demás.
+
+### El ítem 25 es el de fondo
+
+Resumen tiene nueve paneles y **ninguno resume Rendimiento ni Efectividad**. Lo
+que él pide de esta pestaña, de su propio dictado anterior: «un resumen de todas
+las demás pestañas, pero sobre todo de las respuestas efectivas». Hoy hay
+respuestas, avance, ritmo, pronóstico, dos alertas de agenda, estado y cobertura
+— nada de rendimiento y nada de efectividad.
