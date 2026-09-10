@@ -61,3 +61,70 @@ aulas_distribucion_formas_de_estado <- function(estado) {
   if (!nzchar(canonico)) return(character(0))
   unique(c(canonico, .ade_sin_tildes(canonico)))
 }
+
+#' Los estados que ya están escritos en el documento, por cita.
+#'
+#' La clave es el par curso-horario + fecha, la misma con la que el ciclo
+#' identifica una fila: un mismo curso-horario aparece dos veces cuando se
+#' reagenda, y sólo el par distingue la que salió de la que aterrizó.
+#'
+#' @param remoto los valores de la pestaña, cabecera incluida.
+#' @return vector con nombre `codigo\\rfecha` -> estado tal como está escrito.
+#' @export
+aulas_distribucion_estados_publicados <- function(remoto) {
+  filas <- remoto %||% list()
+  if (length(filas) < 2L) return(stats::setNames(character(0), character(0)))
+  n <- length(.alpa_CABECERA)
+  cab <- .madc_valores(filas[[1L]], n)
+  i_cod <- which(cab == "CURSO-HORARIO"); i_fec <- which(cab == "FECHA")
+  i_est <- which(cab == "ESTADO")
+  if (length(i_cod) != 1L || length(i_fec) != 1L || length(i_est) != 1L) {
+    return(stats::setNames(character(0), character(0)))
+  }
+  claves <- character(0); valores <- character(0)
+  for (f in filas[-1L]) {
+    v <- .madc_valores(f, n)
+    if (!nzchar(v[[i_cod]])) next
+    claves <- c(claves, paste(v[[i_cod]], v[[i_fec]], sep = "\r"))
+    valores <- c(valores, v[[i_est]])
+  }
+  stats::setNames(valores, claves)
+}
+
+#' Qué estado escribir en una cita: el deducido, o el que ya estaba.
+#'
+#' **El motor NUNCA degrada un estado que no escribió.** De los siete, el motor
+#' deduce dos —«POR APLICAR» y «APLICADA»— y los demás los elige el equipo en el desplegable. Y
+#' «APLICADA» también la puede poner el coordinador, eligiéndola en el CHIP
+#' DESPLEGABLE de la columna (Gonzalo, 2026-09-10: «el estado aplicada también lo
+#' pone el coordinador… o sea puede, no es que siempre lo ponga», «ojo, no es a
+#' mano, es un chip desplegable»), normalmente ANTES de que llegue el parte o las
+#' respuestas. Publicar entonces «POR APLICAR» encima borraría lo que él sabe y
+#' la app todavía no.
+#'
+#' Que venga de un desplegable no hace innecesario el reconocimiento por
+#' canónico: la lista del desplegable la edita él, y el 2026-09-10 tenía
+#' «APLICADA SIN AGENDACION» sin tilde. El valor es cerrado, pero la lista no es
+#' la de la app.
+#'
+#' La única escritura que el motor se permite es hacia ADELANTE:
+#'
+#' - sobre una casilla vacía o en «POR APLICAR», escribe lo que deduce;
+#' - sobre «POR APLICAR SIN AGENDACIÓN», si las respuestas ya llegan, asciende a
+#'   «APLICADA SIN AGENDACIÓN» — fueron sin cita y rindió, que es su desenlace,
+#'   no un «APLICADA» a secas que perdería de dónde salió;
+#' - sobre cualquier otro, no toca nada.
+#'
+#' @param deducido lo que el motor sabe: «APLICADA» o «POR APLICAR».
+#' @param previo lo que hay escrito en el documento, tal cual.
+#' @return el estado a publicar.
+#' @export
+aulas_distribucion_estado_a_publicar <- function(deducido, previo = "") {
+  puesto <- aulas_distribucion_estado_canonico(previo)
+  nuevo <- as.character(deducido %||% "")[1]
+  if (!nzchar(puesto) || identical(puesto, "POR APLICAR")) return(nuevo)
+  if (identical(puesto, "POR APLICAR SIN AGENDACIÓN") && identical(nuevo, "APLICADA")) {
+    return("APLICADA SIN AGENDACIÓN")
+  }
+  puesto
+}

@@ -85,3 +85,74 @@ test_that("una fila con el estado sin tilde se clasifica como el equipo la marc�
   out <- monitoreo_aulas_completar_distribucion(list(cab, fila), plan = plan)
   expect_identical(out$filas[[1]]$clase, "reagendada")
 })
+
+# --- El motor NUNCA degrada un estado que no escribió -------------------------
+#
+# Gonzalo, 2026-09-10: «el estado aplicada también lo pone el coordinador… o sea
+# puede, no es que siempre lo ponga», y «ojo, no es a mano, es un chip
+# desplegable». Lo elige ANTES de que llegue el parte, así que la app puede ir
+# por detrás — y publicarle «POR APLICAR» encima borraría lo que él sabe.
+
+test_that("«APLICADA» puesta por el coordinador sobrevive a un motor que no se enteró", {
+  expect_identical(aulas_distribucion_estado_a_publicar("POR APLICAR", "APLICADA"),
+                   "APLICADA")
+  # Y las que el motor no deduce nunca, con más razón.
+  for (e in c("REAGENDADA", "RECHAZADA", "APLICADA POR REAGENDACIÓN")) {
+    expect_identical(aulas_distribucion_estado_a_publicar("POR APLICAR", e), e)
+  }
+})
+
+test_that("sobre lo vacío y sobre «POR APLICAR» sí escribe lo que dedujo", {
+  expect_identical(aulas_distribucion_estado_a_publicar("APLICADA", ""), "APLICADA")
+  expect_identical(aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR"), "APLICADA")
+  expect_identical(aulas_distribucion_estado_a_publicar("POR APLICAR", ""), "POR APLICAR")
+})
+
+test_that("«POR APLICAR SIN AGENDACIÓN» asciende a su desenlace, no a «APLICADA» a secas", {
+  # Fueron sin cita y rindió: perder el «sin agendación» borraría de dónde salió
+  # esa encuesta, que es justo lo que la pareja de estados existe para contar.
+  expect_identical(
+    aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR SIN AGENDACIÓN"),
+    "APLICADA SIN AGENDACIÓN")
+  # Sin tilde también, que es como está en el desplegable de la hoja.
+  expect_identical(
+    aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR SIN AGENDACION"),
+    "APLICADA SIN AGENDACIÓN")
+  # Mientras no rinda, se queda donde está.
+  expect_identical(
+    aulas_distribucion_estado_a_publicar("POR APLICAR", "POR APLICAR SIN AGENDACIÓN"),
+    "POR APLICAR SIN AGENDACIÓN")
+})
+
+test_that("los estados publicados se indexan por curso-horario Y fecha", {
+  # Un mismo curso-horario aparece dos veces cuando se reagenda —CH 74 salió el
+  # 07/09 y aterrizó el 09/09— y sólo el par distingue una fila de la otra.
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod, fecha, estado) as.list(c(
+    "Castillo Solorsano, Leidy Viviana", "Lunes", fecha, "", "", "",
+    cod, "", "", "", "", estado))
+  mapa <- aulas_distribucion_estados_publicados(list(
+    cab, fila("CH 74", "07/09", "REAGENDADA"),
+    fila("CH 74", "09/09", "APLICADA POR REAGENDACIÓN")))
+  expect_identical(mapa[["CH 74\r07/09"]], "REAGENDADA")
+  expect_identical(mapa[["CH 74\r09/09"]], "APLICADA POR REAGENDACIÓN")
+})
+
+test_that("el generador respeta el estado ya publicado de esa cita", {
+  plan <- list(list(operational_code = "CH 51", scheduled_venue = "E201",
+                    faculty = "CIENCIAS E INGENIERÍA", course_name = "CÁLCULO",
+                    teacher = "—", scheduled_date = "2026-09-10", scheduled_time = "08:45"))
+  rep <- list(dias = list(list(fecha = "2026-09-10", asignaciones = list(list(
+    codigo = "CH 51", aplicador = "Interno Pulso",
+    recojo = "8:15", salida = "8:30", inicio = "8:45", fin = "9:15")))))
+  disp <- list(list(nombre = "Interno Pulso"))
+  corta <- function(...) aulas_libro_filas_plan_aplicadores(plan, disp, rep = rep, ...)
+  i_est <- which(prosecnurapp:::.alpa_CABECERA == "ESTADO")
+  # Sin nada publicado, el motor pone lo que deduce.
+  expect_identical(corta()[[2]][[i_est]], "POR APLICAR")
+  # Con «APLICADA» ya puesta en esa misma cita, NO la degrada.
+  clave <- paste("CH 51", "10/09", sep = "\r")
+  expect_identical(
+    corta(estados_previos = stats::setNames("APLICADA", clave))[[2]][[i_est]],
+    "APLICADA")
+})
