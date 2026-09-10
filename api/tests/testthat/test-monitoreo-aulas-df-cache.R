@@ -68,3 +68,53 @@ test_that("una lista vacia o un NULL no pasan por el cache", {
   expect_equal(nrow(.monitoreo_aulas_df(list())), 0L)
   expect_equal(length(.mad_cache$entradas), 0L)
 })
+
+# --- la memoria del plan normalizado -----------------------------------------
+
+test_that("normalizar dos veces el mismo plan no cuesta dos veces", {
+  .mad_olvida()
+  n <- 0L
+  plan <- lapply(1:4, function(i) list(classroom_id = paste0("CH ", i), operational_code = paste0("CH ", i), faculty = "DERECHO"))
+  espia <- function(p) { n <<- n + 1L; .monitoreo_aulas_normalize_plan_calcula(p) }
+  a <- .mad_plan_normalizado(plan, espia)
+  b <- .mad_plan_normalizado(plan, espia)
+  expect_equal(n, 1L)
+  expect_identical(a, b)
+})
+
+test_that("y el resultado es el mismo que sin memoria", {
+  .mad_olvida()
+  plan <- lapply(1:4, function(i) list(classroom_id = paste0("CH ", i), operational_code = paste0("CH ", i), faculty = "DERECHO"))
+  esperado <- .monitoreo_aulas_normalize_plan_calcula(plan)
+  expect_equal(monitoreo_aulas_normalize_plan(plan), esperado)
+})
+
+test_that("dos planes distintos no se confunden", {
+  # Mismo tamaño y mismas columnas, distinta facultad: es el caso que descarta
+  # cualquier huella barata.
+  #
+  # `classroom_id` no es decoración del fixture: `normalize_plan` descarta las
+  # filas que no lo traen (`out[nzchar(out$classroom_id), ]`), y sin él las tres
+  # comparaciones se hacían entre dos listas vacías —verdes y sin ejercitar
+  # nada—. Lo leí en la función en vez de suponerlo.
+  .mad_olvida()
+  a <- lapply(1:3, function(i) list(classroom_id = paste0("CH ", i), operational_code = paste0("CH ", i), faculty = "DERECHO"))
+  b <- lapply(1:3, function(i) list(classroom_id = paste0("CH ", i), operational_code = paste0("CH ", i), faculty = "PSICOLOGÍA"))
+  fa <- monitoreo_aulas_normalize_plan(a)
+  fb <- monitoreo_aulas_normalize_plan(b)
+  expect_equal(unique(vapply(fa, function(x) x$faculty, character(1))), "DERECHO")
+  expect_equal(unique(vapply(fb, function(x) x$faculty, character(1))), "PSICOLOGÍA")
+})
+
+test_that("el plan y las tablas usan almacenes distintos", {
+  # Si compartieran hueco, convertir cuatro tablas desalojaría el plan justo
+  # cuando el build vuelve a pedirlo.
+  .mad_olvida()
+  plan <- lapply(1:3, function(i) list(classroom_id = paste0("CH ", i)))
+  monitoreo_aulas_normalize_plan(plan)
+  for (k in 1:5) .monitoreo_aulas_df(lapply(1:3, function(i) list(a = paste0(k, i))))
+  n <- 0L
+  espia <- function(p) { n <<- n + 1L; .monitoreo_aulas_normalize_plan_calcula(p) }
+  .mad_plan_normalizado(plan, espia)
+  expect_equal(n, 0L)
+})

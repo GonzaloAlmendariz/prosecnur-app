@@ -27,6 +27,9 @@
 
 .mad_cache <- new.env(parent = emptyenv())
 .mad_cache$entradas <- list()
+# Almacen propio para el plan normalizado: son objetos distintos y mezclarlos
+# haria que uno desalojara al otro justo cuando los dos se estan usando.
+.mad_cache$planes <- list()
 
 # Cuatro huecos: en un build conviven el plan, los partes, el control y el libro,
 # y son justo los cuatro que se convierten mas de una vez. Mas huecos no ayudan y
@@ -39,19 +42,36 @@
 #' @param convertir la funcion que lo convierte, si no esta recordado.
 #' @return el data.frame, del cache o recien convertido.
 #' @keywords internal
-.mad_recuerda <- function(x, convertir) {
+.mad_recuerda <- function(x, convertir, almacen = "entradas") {
   # Sin lista no hay nada caro que recordar: un data.frame ya convertido cuesta
   # microsegundos y meterlo al cache solo gastaria memoria.
   if (!is.list(x) || is.data.frame(x) || !length(x)) return(convertir(x))
-  for (e in .mad_cache$entradas) {
+  for (e in .mad_cache[[almacen]]) {
     if (identical(e$clave, x)) return(e$valor)
   }
   valor <- convertir(x)
-  .mad_cache$entradas <- c(
+  .mad_cache[[almacen]] <- c(
     list(list(clave = x, valor = valor)),
-    utils::head(.mad_cache$entradas, .MAD_HUECOS - 1L)
+    utils::head(.mad_cache[[almacen]], .MAD_HUECOS - 1L)
   )
   valor
+}
+
+#' Memoria del PLAN NORMALIZADO.
+#'
+#' `monitoreo_aulas_normalize_plan()` ya traia un atajo: marcaba su salida con
+#' `plan_normalizado` y devolvia tal cual lo que ya viniera marcado. Medido sobre
+#' HSVG2026 el 2026-09-10: **siete llamadas por build y CERO por el atajo**. El
+#' propio comentario de esa funcion lo habia previsto —«si alguien reconstruye
+#' esa lista, un lapply o un viaje por JSON, el atributo se pierde»— y eso es lo
+#' que pasa en todos los caminos.
+#'
+#' La marca sigue donde estaba, porque cuando sobrevive es gratis. Esto la
+#' completa por el otro lado: compara la ENTRADA, que no depende de que nadie
+#' conserve un atributo.
+#' @keywords internal
+.mad_plan_normalizado <- function(plan, normalizar) {
+  .mad_recuerda(plan, normalizar, almacen = "planes")
 }
 
 #' Vacia la memoria.
@@ -62,5 +82,6 @@
 #' @keywords internal
 .mad_olvida <- function() {
   .mad_cache$entradas <- list()
+  .mad_cache$planes <- list()
   invisible(NULL)
 }

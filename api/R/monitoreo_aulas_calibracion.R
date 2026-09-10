@@ -337,16 +337,6 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   round(stats::pnorm((proyeccion - cuota) / sqrt(varianza * phi)), 3)
 }
 
-#' Avance por celda facultad x sexo, con las cuatro series.
-#'
-#' @param plan lista de filas del plan; cada una con `faculty`,
-#'   `operational_status` y los esperados por sexo (`mujeres_esperadas`,
-#'   `hombres_esperados`).
-#' @param cuotas lista de celdas con `faculty`, `sex`, `target`, `observed`.
-#' @param pool_restante lista opcional `facultad|sexo -> aulas disponibles`.
-#' @return lista de celdas con logrado, previsto, proyeccion, calibracion,
-#'   brecha, estado y sus etiquetas.
-#' @export
 #' Un aula aplicada DE HECHO, se llame como se llame en el plan.
 #'
 #' Misma regla que `.madt_aplicada_de_hecho()` en `monitoreo_aulas_dos_tasas.R`:
@@ -369,6 +359,23 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   )
 }
 
+#' El avance por facultad y sexo, con su proyección y su calibración.
+#'
+#' **Recupera el `@export` que la función había perdido.** Estaba en `NAMESPACE`
+#' de una regeneración anterior y el bloque roxygen ya no estaba en el código, así
+#' que la primera regeneración posterior la borró de la lista de exportadas — y
+#' la usa `monitoreo_aulas_universitarias.R` para las celdas de avance. Es el
+#' modo de fallo que el ADR 0070 describe: `NAMESPACE` se genera, y lo que no
+#' tiene `@export` en su sitio desaparece en silencio.
+#'
+#' @param plan lista de filas del plan; cada una con `faculty`,
+#'   `operational_status` y los esperados por sexo (`mujeres_esperadas`,
+#'   `hombres_esperados`).
+#' @param cuotas lista de celdas con `faculty`, `sex`, `target`, `observed`.
+#' @param pool_restante lista opcional `facultad|sexo -> aulas disponibles`.
+#' @return lista de celdas con logrado, previsto, proyeccion, calibracion,
+#'   brecha, estado y sus etiquetas.
+#' @export
 monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
                                                  pool_restante = list()) {
   if (!length(cuotas)) return(list())
