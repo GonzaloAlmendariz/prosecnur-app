@@ -30,6 +30,7 @@ Sólo Gonzalo lo da por terminado.
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
 | 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
 | 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☐ **el grande de Resumen** |
+| 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCoberturaChart` | ☐ |
 
 ## Lo ya contestado, con su medición
 
@@ -343,3 +344,30 @@ que él pide de esta pestaña, de su propio dictado anterior: «un resumen de to
 las demás pestañas, pero sobre todo de las respuestas efectivas». Hoy hay
 respuestas, avance, ritmo, pronóstico, dos alertas de agenda, estado y cobertura
 — nada de rendimiento y nada de efectividad.
+
+## 26 · Bajar de un tramo de cobertura a sus cursos-horario
+
+> «En cursos-horario por cobertura ya me está diciendo quiénes están muy por
+> debajo, quiénes se quedaron a medias, quién llegó a la mayor parte. Pero sería
+> interesante y curioso que yo pudiera hacer clic en uno de ellos —"se quedó a
+> medias"— y que abajo se mostrara de forma profesional y minimalista cuáles son
+> esos CH que quedaron muy por debajo de la mitad, y que me muestren el
+> rendimiento del aula, el rendimiento esperado, la cantidad de elegibles
+> esperados, la cantidad de elegibles obtenidos, por cada CH o R que haga
+> referencia. Ese nivel de profesionalidad, de creatividad, me parece que no lo
+> estás teniendo.»
+
+**Las cuatro columnas que pide, y de dónde sale cada una** —hay que confirmarlas
+contra el payload antes de dibujar, porque tres de las cuatro tienen homónimos en
+este perfil—:
+
+| Lo que pide | Campo probable | A confirmar |
+|---|---|---|
+| rendimiento del aula | `respuestas_validas / expected_valid` | es la razón que ya reparte los tramos |
+| rendimiento esperado | `expected_valid` o `tasa_efectividad_aula` | ¿la meta del aula o su τ prevista? |
+| elegibles esperados | `eligible_n` | del plan |
+| elegibles obtenidos | `observed_students` del parte | es ASISTENTES, no elegibles: hay que preguntarle o rotularlo con precisión |
+
+**El tramo tiene que ser clicable y la lista es un PANEL DEBAJO**, no un popover:
+él dice «abajo se mostrara». Y la dirección debería viajar en la URL como el
+resto del perfil (`panel=` o `foco=`), no en un `useState` suelto.
