@@ -275,15 +275,22 @@ export function AulasPestanaResumen({
                     uno. Sin nombrar la procedencia, quien lee encuentra la diferencia
                     y desconfía de las dos, que es exactamente lo que la tarjeta de
                     cuota ya resuelve explicando su resta celda a celda. */}
+                {/* El subtítulo obedece al foco igual que el panel: con una
+                    facultad puesta seguía anunciando la meta de las quince. */}
                 <span>meta {fmtCuenta(
-                  Number(dashboard?.cumplimiento_respuestas?.meta)
+                  (facultadEnFoco ? 0 : Number(dashboard?.cumplimiento_respuestas?.meta))
                   || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
                 )} · suma de metas por curso-horario, TOPADA en cada uno: por eso
                   es más exigente que el «Avance a la muestra» de arriba</span>
               </div>
               <AulasAvanceEnRespuestas
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
-                resumen={dashboard?.cumplimiento_respuestas ?? null}
+                // **Con una facultad en foco el bloque del motor NO sirve**: lo
+                // calcula sobre el plan entero y taparía las filas ya filtradas,
+                // que es lo que hacía que este panel siguiera diciendo 3.233 con
+                // Psicología puesta. Sin foco se prefiere el del motor, que corre
+                // sobre las 1.392 filas y no sobre las 500 que viajan.
+                resumen={facultadEnFoco ? null : (dashboard?.cumplimiento_respuestas ?? null)}
                 validasTotales={Number(dashboard.kpis?.respuestas_validas ?? 0) || 0}
               />
             </section>
@@ -352,30 +359,7 @@ export function AulasPestanaResumen({
                 plan={agendaEnFoco}
               />
             </section>
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                {/* **También vino de Rendimiento.** Es el único panel de toda la
-                    sección que pide una acción HOY, y estaba en la pestaña de los
-                    rankings. Aquí va pegado a «vencidos sin aplicar», que es su
-                    pareja natural: a quién hay que citar y a quién hay que ir a
-                    reclamar se leen juntos o no se leen. */}
-                <h3>A quién hay que agendar</h3>
-                <span>cursos-horario por pedir, con la anticipación del operativo de 2025</span>
-              </div>
-              <AulasAlertaDeAnticipacion
-                partes={partesConFacultad}
-                agenda={agendaEnFoco}
-                cuotas={deLaFacultad(
-                  (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[], facultadEnFoco) as MonitoreoRow[]}
-                banco={dashboard.banco_extras?.por_facultad ?? []}
-                facultadEnFoco={facultadEnFoco}
-                onFoco={onFoco}
-              />
-            </section>
+
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
@@ -513,6 +497,36 @@ export function AulasPestanaResumen({
                 sinMetaMotor={dashboard.course_status_sin_meta}
                 reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
+              />
+            </section>
+            {/* **«A quién hay que agendar» va pegado a la cobertura.** Gonzalo,
+                2026-09-10: «a quién hay que agendar debería estar abajo en
+                cursos-horario por cobertura, porque son temáticamente más
+                relacionados… finalmente van de la mano». Y es cierto: cobertura
+                dice qué aulas se quedaron cortas y ésta dice a quién hay que
+                pedirle más, que es la acción que sale de leer la primera. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                {/* **También vino de Rendimiento.** Es el único panel de toda la
+                    sección que pide una acción HOY, y estaba en la pestaña de los
+                    rankings. Aquí va pegado a «vencidos sin aplicar», que es su
+                    pareja natural: a quién hay que citar y a quién hay que ir a
+                    reclamar se leen juntos o no se leen. */}
+                <h3>A quién hay que agendar</h3>
+                <span>cursos-horario por pedir, con la anticipación del operativo de 2025</span>
+              </div>
+              <AulasAlertaDeAnticipacion
+                partes={partesConFacultad}
+                agenda={agendaEnFoco}
+                cuotas={deLaFacultad(
+                  (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[], facultadEnFoco) as MonitoreoRow[]}
+                banco={dashboard.banco_extras?.por_facultad ?? []}
+                facultadEnFoco={facultadEnFoco}
+                onFoco={onFoco}
               />
             </section>
             {/* **«Dónde falta más» se retiró el 2026-09-08.** Medía cada facultad
