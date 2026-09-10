@@ -36,6 +36,19 @@ const SIN_MONTAR_CONOCIDOS = [
   // faltantes— sigue documentando decisiones que las tablas nuevas heredan; si
   // dentro de unas semanas nadie lo ha reclamado, se retira con su test.
   "AulasAvanceParaCliente.tsx::AulasAvanceParaCliente",
+  // Desconectado de «Metas» el 2026-09-09 al montar el revamp, y NO borrado:
+  // este panel («Qué metas van a cerrar y cuáles no») y el bloque nuevo «Metas
+  // y aulas» discrepan en 28 de las 30 celdas facultad × sexo —DERECHO/F 152,9
+  // contra 300,9— porque cuentan universos distintos: el nuevo proyecta sólo lo
+  // AGENDADO y éste cuenta todos los cursos-horario en juego, y hay 33
+  // titulares planificados sin fecha. Dos «proyectado» por celda con el doble
+  // de diferencia en la misma pantalla no se puede quedar.
+  //
+  // Lo que este panel dice y el nuevo no es la CALIBRACIÓN —«el campo está
+  // rindiendo un X % menos de lo previsto»—, y esa pieza merece volver como
+  // lectura, no como un segundo panel de proyección. Esta entrada es la que
+  // recuerda que hay que decidirlo con Gonzalo, no dejarlo pudrirse.
+  "AulasSexoPorFacultadChart.tsx::AulasSexoPorFacultadChart",
   // Retirada de «Metas» el 2026-09-08, con decisión de Gonzalo. Su función era
   // dimensionar la magnitud de cada meta; hoy esa magnitud se lee en el carril
   // de «Cumplimiento de la cuota» —proporcional a la cuota de cada facultad— y
@@ -104,7 +117,7 @@ describe("ningún componente nuevo queda sin montar", () => {
     expect(fuentes.size).toBeGreaterThan(60);
   });
 
-  it("sólo están los seis conocidos", () => {
+  it("sólo están los conocidos", () => {
     expect(sinMontar()).toEqual([...SIN_MONTAR_CONOCIDOS].sort());
   });
 

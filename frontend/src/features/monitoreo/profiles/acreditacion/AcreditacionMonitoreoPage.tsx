@@ -124,6 +124,7 @@ import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetc
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { pct } from "../../core/formatoComun";
+import { pctDecimal } from "../../core/formatoComun";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
   acreditacionQualityActionLabel,
@@ -325,7 +326,7 @@ function formatCaseLabel(value: number) {
 
 function pctFrom(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
-  return `${((value / total) * 100).toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal((value / total) * 100);
 }
 
 function num(value: unknown, fallback = 0) {
@@ -13383,8 +13384,7 @@ function safePercentValue(value: number | null | undefined, total: number | null
 }
 
 function formatPercentLabel(value: number | null | undefined) {
-  if (value == null || !Number.isFinite(value)) return "S/D";
-  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return pctDecimal(value);
 }
 
 function formatSignedPp(value: number | null | undefined) {
@@ -16503,7 +16503,7 @@ function formatReportCell(value: unknown, column: string) {
     const normalized = normalizeReportMatch(column);
     if (normalized.includes("avance") || String(column).includes("%") || normalized.includes("ratio")) {
       const pctValue = Math.abs(value) <= 10 ? value * 100 : value;
-      return `${pctValue.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+      return pctDecimal(pctValue);
     }
     return Number.isInteger(value) ? fmt(value) : value.toLocaleString("es-PE", { maximumFractionDigits: 1 });
   }
