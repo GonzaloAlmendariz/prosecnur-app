@@ -1547,10 +1547,26 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # plan —incluida la composicion por sexo del padron—, mientras que `plan_df`
   # NO tiene esa columna. Calcularlo con `plan_df` devolvia una lista vacia sin
   # que nada fallara. Ver `monitoreo_aulas_efectividad_por_sexo.R`.
+  #
+  # **El padron por sexo vive en `plan_df`, no en `out`.** `out` se construye
+  # eligiendo las columnas que el tablero necesita y `sex_top_1`/`sex_top_1_n`
+  # no estan entre ellas: pasandole `out` al motor, las efectivas por sexo
+  # salian bien —57 mujeres y 31 hombres en Arquitectura— y los elegibles y las
+  # esperadas salian CERO, con lo que la diferencia publicada era la efectiva
+  # entera. Visto en pantalla el 2026-09-10; los 19 tests no lo vieron porque su
+  # fixture llevaba el padron y el estado en la misma tabla.
+  #
+  # Se cruza por `classroom_id` y no por posicion: `out` puede reordenar o
+  # filtrar, y un vector desalineado mandaria las respuestas de un aula a la
+  # celda de otra, que es peor que no publicar nada.
+  # **Se le pasa `plan_df`, que es quien tiene el padron por sexo**, y NO se le
+  # pasa el estado: `out` no conserva `sex_top_*` y ademas se reordena por
+  # prioridad, asi que su vector de estado no esta alineado con el plan. El
+  # motor deduce que se visito de las respuestas atribuidas, que es la misma
+  # regla de respaldo que usa el resto del perfil y no puede desalinearse.
   attr(recortado, "efectividad_por_sexo") <- monitoreo_aulas_efectividad_por_sexo(
-    out, responses, cfg = cfg,
-    valid_response = valid_response, response_classroom = response_classroom,
-    aplicada = out$application_state %in% c("en_aplicacion", "cerrando")
+    plan_df, responses, cfg = cfg,
+    valid_response = valid_response, response_classroom = response_classroom
   )
   # La cobertura de cada facultad, con el MISMO criterio que la global: sólo los
   # aplicados, y las que no declaran meta fuera del reparto.

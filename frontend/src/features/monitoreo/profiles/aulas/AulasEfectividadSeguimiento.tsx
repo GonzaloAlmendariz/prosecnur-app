@@ -282,6 +282,12 @@ type CeldaDeSexo = {
  */
 function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo } }) {
   if (!celdas || (!celdas.F && !celdas.M)) return null;
+  // **Y tampoco si las dos celdas están sin elegibles.** Visto en pantalla el
+  // 2026-09-10: el bloque llegaba con las facultades y sus efectivas pero con
+  // los elegibles en cero, así que `una()` devolvía `null` para las dos y
+  // quedaba un contenedor vacío bajo cada nombre. Un hueco mudo se lee como un
+  // fallo de pintado; no publicar nada se lee como lo que es.
+  if (!(celdas.F?.elegibles || celdas.M?.elegibles)) return null;
   const una = (c: CeldaDeSexo | undefined, etiqueta: string) => {
     if (!c || !c.elegibles) return null;
     return (

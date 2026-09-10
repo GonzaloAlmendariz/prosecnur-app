@@ -61,9 +61,27 @@ monitoreo_aulas_efectividad_por_sexo <- function(plan_df, responses = data.frame
                                                  aplicada = NULL) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
 
+  # **Sin `aplicada`, se deduce de las RESPUESTAS y no de una columna de estado.**
+  #
+  # El plan crudo no sabe que esta aplicado: su `operational_status` dice
+  # «planificada» en las 1 392 filas y `application_state` ni existe —eso lo
+  # produce `.monitoreo_aulas_course_status()` cruzando con respuestas y
+  # partes—. Y ese `out` derivado ni conserva el padron por sexo ni mantiene el
+  # orden del plan (se reordena por prioridad), asi que pasarle su vector de
+  # estado a este motor exige una alineacion que puede romperse en silencio y
+  # mandar las respuestas de un aula a la celda de otra.
+  #
+  # La regla de aqui es la misma que el resto del perfil usa como respaldo: un
+  # curso-horario del que llego al menos una respuesta valida SE VISITO. No
+  # necesita mas tablas y no puede desalinearse.
   if (is.null(aplicada)) {
     estado <- as.character(plan_df$application_state %||% rep("", nrow(plan_df)))
     aplicada <- estado %in% c("en_aplicacion", "cerrando")
+    if (!any(aplicada) && is.data.frame(responses) && nrow(responses) && length(response_classroom)) {
+      atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
+      con_respuesta <- unique(atr$fila[atr$valid & !is.na(atr$fila)])
+      aplicada <- seq_len(nrow(plan_df)) %in% con_respuesta
+    }
   }
   aplicada <- if (length(aplicada) == nrow(plan_df)) aplicada %in% TRUE else rep(FALSE, nrow(plan_df))
   if (!any(aplicada)) return(list())
