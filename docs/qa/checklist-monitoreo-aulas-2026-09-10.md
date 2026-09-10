@@ -25,7 +25,7 @@ Sólo Gonzalo lo da por terminado.
 | 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☑ `7039aac6` — falta MIRARLO |
 | 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
 | 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | backend 8798 | ☑ hecho el 10/09 08:44 · 1 176 → **1 245** registros |
-| 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | los 9 paneles de Resumen | ☐ **contradice el contrato actual: hoy RESALTA y él quiere FILTRAR** |
+| 21 | «El selector de facultad del encabezado no hace que los gráficos actualicen… cuando yo selecciono una facultad, debería mostrarme sólo la de esa facultad… todos los demás gráficos se deben acomodar a ello» | `deLaFacultad` + Resumen | ☑ `57b7980e` — falta MIRARLO; quedan «Ritmo» y «Cumplimiento», que necesitan motor por facultad |
 | 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
 | 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
@@ -36,6 +36,7 @@ Sólo Gonzalo lo da por terminado.
 | 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☑ **tenía razón** — con hoy: 07/09 329 · 08/09 313 · **09/09 466** · 10/09 23 |
 | 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
 | 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
+| 33 | «En el gráfico de cobertura sería bueno integrarlo con algo de efectividad y rendimiento, que son conceptos relacionados: el rendimiento esperado y el rendimiento observado hasta ahora» | `AulasCoberturaChart` | ☐ |
 | 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
 
 ## Lo ya contestado, con su medición
@@ -582,3 +583,19 @@ días con las cuatro jornadas reales aplastadas contra el borde izquierdo. La
 causa era mía —puse el cierre PESIMISTA del pronóstico como final del eje y con
 el ritmo lento de un arranque esa fecha se dispara—. Corregido en `8db45f22`: el
 horizonte lo pone **la última fecha agendada**, que es finita y es la que manda.
+
+## 33 · Cobertura con el rendimiento esperado y el observado
+
+> «Aquí sería bueno en este gráfico también integrarlo con algo de efectividad y
+> rendimiento, que son conceptos relacionados y que nos servirían: el rendimiento
+> esperado y el rendimiento observado hasta ahora.»
+
+El panel reparte hoy los cursos-horario aplicados en seis tramos de cumplimiento,
+y no dice con qué tasa se les pedía rendir ni con cuál están rindiendo. Las dos
+cifras existen: la prevista es `tasa_efectividad_aula` —`rendimiento_ref` ×
+`factor_facultad`— y la observada sale de las aplicadas de esa facultad.
+
+**Y el desglose de un tramo ya trae las cuatro cifras de la cadena** (`c17e8780`),
+así que lo que falta es la lectura AGREGADA: una línea que diga «se les pedía el
+X % y están rindiendo el Y %», con el corte de evidencia de siempre —una facultad
+con menos de tres aplicadas no tiene tasa observada—.
