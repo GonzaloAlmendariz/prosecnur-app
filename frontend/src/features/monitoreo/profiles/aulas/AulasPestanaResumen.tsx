@@ -151,7 +151,11 @@ export function AulasPestanaResumen({
               >
                 <div className="mon-profile-panel-head">
                   <h3>Por facultad</h3>
-                  <span>efectivas y avance de los cursos-horario · ordenadas por lo conseguido</span>
+                  {/* «Avance de los cursos-horario» describía la barra cuando la
+                      barra dibujaba aplicadas sobre planificadas; desde
+                      `94e378c0` la barra reparte las efectivas y ese avance vive
+                      en las dos columnas de cifras. El rótulo dice lo que hay. */}
+                  <span>efectivas y cursos-horario aplicados de cada facultad · ordenadas por efectivas</span>
                 </div>
                 <AulasResumenPorFacultad
                   respuestas={desglose.facultades}
