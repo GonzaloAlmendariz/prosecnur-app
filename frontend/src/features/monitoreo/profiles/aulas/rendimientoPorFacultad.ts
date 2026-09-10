@@ -116,6 +116,26 @@ function numeroONulo(valor: unknown): number | null {
  */
 export const PESO_DEL_PRIOR = 5;
 
+/**
+ * Cuántos cursos-horario visitados hacen falta para que una facultad ENTRE en
+ * la comparación de rendimiento.
+ *
+ * Tres, y es una elección DECLARADA como el prior de arriba. Sale de medir el
+ * operativo el 2026-09-10, con 44 cursos-horario repartidos en once facultades:
+ * con uno o dos visitados, un aula afortunada mueve el porcentaje treinta o
+ * cuarenta puntos, y la lista la encabezaban PSICOLOGÍA con el 100 % de UNO y
+ * LETRAS Y CIENCIAS HUMANAS con el 90 % de otro.
+ *
+ * **Por qué un corte y no sólo el encogimiento.** Se probó encoger hacia la
+ * media —`delPotencialAjustado`, que se queda— y en pantalla las seis primeras
+ * barras salieron a 69,0 · 66,5 · 65,1 · 64,8 · 63,8 · 62,7 %: seis puntos de
+ * diferencia en toda la cabeza de la lista y seis barras del mismo largo. Con
+ * casi todas las facultades por debajo del prior, el encogimiento las aplasta
+ * contra la media y el ranking deja de rankear. El corte dice la verdad que el
+ * encogimiento disimulaba: **con dos visitas todavía no se puede comparar**.
+ */
+export const MINIMO_PARA_COMPARAR = 3;
+
 export const FRANJAS_DE_APLICACION = [
   { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
   { clave: "dia", etiqueta: "9:01 – 19:00", hasta: 19 * 60 },
@@ -312,11 +332,15 @@ export function rendimientoPorFacultad(
   // Medido el 2026-09-09: en «Día de la semana» había exactamente eso, un
   // cajón con un parte de 45.
   const SIN_DATO = new Set(["Sin fecha", "Sin hora", "Sin aplicador", "Sin facultad"]);
-  const orden = (f: RendimientoDeFacultad) => (SIN_DATO.has(f.facultad) ? 1 : 0);
+  // Tres cajones en este orden: las comparables, las que aún tienen poca
+  // evidencia y los «no se sabe». Dentro de cada uno manda el potencial CRUDO,
+  // que es lo observado y lo que la barra dibuja.
+  const orden = (f: RendimientoDeFacultad) => (SIN_DATO.has(f.facultad)
+    ? 2
+    : f.aulas >= MINIMO_PARA_COMPARAR ? 0 : 1);
   return salida.sort((x, y) => orden(x) - orden(y)
-    // Manda el AJUSTADO, que es lo que la barra dibuja; el crudo desempata.
-    || (y.delPotencialAjustado ?? -1) - (x.delPotencialAjustado ?? -1)
     || (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
+    || (y.delPotencialAjustado ?? -1) - (x.delPotencialAjustado ?? -1)
     || (y.porAula ?? -1) - (x.porAula ?? -1)
     || y.efectivas - x.efectivas
     || x.facultad.localeCompare(y.facultad, "es"));

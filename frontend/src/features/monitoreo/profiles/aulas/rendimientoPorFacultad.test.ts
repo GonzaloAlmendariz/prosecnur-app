@@ -26,19 +26,19 @@ describe("rendimientoPorFacultad", () => {
     expect(salida[1].deLosAsistentes).toBe(70);
   });
 
-  it("un curso-horario perfecto deja de encabezar el ranking cuando hay evidencia detrás de otro", () => {
+  it("una facultad con menos de tres visitas se aparta y NO encabeza el ranking", () => {
     // Lo que se vio en pantalla el 2026-09-10: PSICOLOGÍA con el 100,0 % de UN
     // curso-horario y LETRAS Y CIENCIAS HUMANAS con el 90,0 % de otro, por
     // delante de facultades con doce visitas. El potencial crudo normaliza el
-    // tamaño del AULA, no cuántas aulas hay detrás del número.
+    // tamaño del aula, no cuántas hay detrás del número.
     //
-    // Lo que el encogimiento SÍ garantiza y lo que NO: acerca cada facultad a
-    // la media del estudio en proporción a su evidencia, así que **no puede
-    // hundir a nadie por debajo de esa media**. Si el estudio entero anda por
-    // el 76 %, un aula al 100 % sigue por encima de una facultad al 75 % —y es
-    // correcto, su mejor estimación es más alta, sólo que menos firme—. Lo que
-    // corrige es lo que se ve aquí: con la media abajo, la facultad con doce
-    // visitas al 95 % adelanta a la del aula única.
+    // **Y por qué un corte y no sólo el encogimiento.** Se probó encoger hacia
+    // la media —`delPotencialAjustado`, que se queda publicado en la línea de
+    // cada fila— y en pantalla las seis primeras barras salieron a 69,0 · 66,5
+    // · 65,1 · 64,8 · 63,8 · 62,7 %: seis puntos en toda la cabeza de la lista
+    // y seis barras del mismo largo. Con casi todas las facultades por debajo
+    // del prior, el encogimiento las aplasta contra la media y el ranking deja
+    // de rankear.
     const plan = [
       parte({ operational_code: "U", eligible_n: 20 }),
       ...Array.from({ length: 12 }, (_, i) => parte({ operational_code: `D${i}`, eligible_n: 40 })),
@@ -53,20 +53,19 @@ describe("rendimientoPorFacultad", () => {
     ];
     const salida = rendimientoPorFacultad(partes, plan);
     const uno = salida.find((f) => f.facultad === "DeUnAula")!;
-    const doce = salida.find((f) => f.facultad === "DeDoce")!;
 
-    // Crudo: el aula única encabeza, 100 % contra 95 %.
+    // El crudo del apartado sigue siendo el más alto de los tres, y se publica:
+    // apartarlo no es esconderlo.
     expect(uno.delPotencial).toBe(100);
-    expect(doce.delPotencial).toBe(95);
-    // Ajustado: se invierte.
-    expect(uno.delPotencialAjustado).toBeLessThan(doce.delPotencialAjustado!);
-    // Y es el ORDEN de la lista el que cambia, no sólo el campo: si la lista
-    // siguiera ordenando por el crudo, las dos líneas de arriba pasarían igual
-    // y no probarían nada de lo que se ve en pantalla.
-    expect(salida.map((f) => f.facultad)).toEqual(["DeDoce", "DeUnAula", "DeVeinte"]);
-    // El crudo NO se pierde: sigue publicado al lado, que es lo que explica por
-    // qué la barra ajustada queda más corta que el porcentaje de la fila.
-    expect(uno.delPotencial).toBe(100);
+    expect(Math.max(...salida.map((f) => f.delPotencial ?? 0))).toBe(100);
+    // Pero va DETRÁS de las dos que sí se comparan, incluso de la que rinde al
+    // 25 %: el corte separa por evidencia, no por resultado.
+    expect(salida.map((f) => f.facultad)).toEqual(["DeDoce", "DeVeinte", "DeUnAula"]);
+    // Y dentro del grupo comparable manda el crudo.
+    expect(salida[0].delPotencial).toBe(95);
+    expect(salida[1].delPotencial).toBe(25);
+    // El encogimiento sigue calculado y publicado al lado.
+    expect(uno.delPotencialAjustado).toBeLessThan(100);
   });
 
   it("sin elegibles no hay nada que encoger y el ajustado es null, no un cero", () => {
@@ -287,12 +286,11 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
   // barra —la lista pasó a ordenar por el potencial— y tenerla dos veces en la
   // misma fila obligaba a comprobar que coincidían. Entra «Por visita», que
   // bajó de barra a columna.
-  // El 2026-09-10 los dos rótulos que decían «ajustado» se separaron: la barra
-  // pasó a dibujar el potencial ENCOGIDO —una facultad con un aula al 100 % no
-  // rinde más que una con treinta y nueve al 60 %— y con dos «ajustado» en la
-  // misma fila hacía falta que cada uno nombrara su base.
+  // El 2026-09-10 «Ajustado por tamaño» pasó a «Por visita, ajustado»: nombra su
+  // base ahora que el encogimiento del potencial también se publica, en la línea
+  // de evidencia de cada fila.
   it.each([
-    "Del potencial, ajustado", "Por visita", "Por visita, ajustado",
+    "Del potencial", "Por visita", "Por visita, ajustado",
     "De los que asistieron",
   ])(
     "«%s» lleva su definición en la cabecera",
