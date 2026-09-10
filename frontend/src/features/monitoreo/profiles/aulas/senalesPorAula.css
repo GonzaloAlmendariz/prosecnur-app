@@ -79,7 +79,15 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla thead th {
-  padding: 4px 10px 6px;
+  /* Las tres mejoras que recibió la tabla vecina el 2026-09-10 —encabezado
+     pegajoso, más aire y zebra— vienen aquí también: las dos se leen una debajo
+     de la otra y su parecido es deliberado, así que separarlas ahora sería
+     empezar a tener dos tablas distintas para la misma pregunta. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  padding: 7px 10px 8px;
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: var(--aulas-min);
@@ -94,13 +102,17 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr > * {
-  padding: 5px 10px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--pulso-border);
   vertical-align: middle;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr:last-child > * {
   border-bottom: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr:nth-child(even):not(.es-bajo) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
 }
 
 /* La primera celda es `th scope="row"`: identifica la fila. */

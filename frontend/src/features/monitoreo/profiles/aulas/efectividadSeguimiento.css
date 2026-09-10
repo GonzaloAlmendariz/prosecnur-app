@@ -9,7 +9,22 @@
  * vistazo. El marco lleva `overflow-x` propio para que la tabla nunca empuje el
  * scroll horizontal de la página. */
 
+/* **Escala propia, más grande que la del perfil.**
+ *
+ * Gonzalo, 2026-09-10: «todo se ve muy pequeño y sin vida». Tenía razón y la
+ * causa es medible: esta tabla usaba `--aulas-txt` (12 px) y `--aulas-min`
+ * (10 px), la escala que el perfil fija para EJES Y MARCAS de gráficos, donde
+ * 10 px es correcto porque el dato lo lleva la forma. Aquí el dato son las
+ * cifras, y son la superficie principal de la pestaña.
+ *
+ * Las variables son locales al bloque y no tocan las del perfil: subir
+ * `--aulas-txt` habría movido cuarenta archivos, incluidos los SVG donde el
+ * tamaño está calculado contra el viewBox.
+ */
 .mon-profile-page.is-aulas-flow .aulas-tau {
+  --tau-dato: 15.5px;   /* la cifra que se compara: la tasa observada */
+  --tau-txt: 13px;      /* nombre de facultad y cifras de apoyo */
+  --tau-meta: 11.5px;   /* metadata, celdas de sexo, encabezado */
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -94,8 +109,9 @@
   color: var(--pulso-text-soft);
   /* 11px y sin uppercase: a 10 px en mayúsculas el encabezado competía con los
      datos y rompía las letras griegas. */
-  font-size: var(--aulas-min);
+  font-size: var(--tau-meta);
   font-weight: 600;
+  letter-spacing: 0.02em;
   text-align: left;
   white-space: nowrap;
 }
@@ -157,12 +173,16 @@
 /* EL VEREDICTO EN PALABRA, no sólo en color: quien no distingue los tonos —o
    mira la pantalla proyectada, o la imprime— recibía el dato principal de la
    fila únicamente por el borde. */
+/* Con FONDO y no sólo contorno: quince píldoras de borde fino sobre blanco es
+   lo que hacía que la columna se leyera apagada. El fondo es el propio tono al
+   10 %, así que sigue siendo el mismo código de color. */
 .mon-profile-page.is-aulas-flow .aulas-tau-chip {
   flex: none;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid currentColor;
-  font-size: var(--aulas-min);
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: var(--tau-meta);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -238,10 +258,29 @@
 
 .mon-profile-page.is-aulas-flow .aulas-tau-cifra {
   color: var(--pulso-text);
-  font-size: var(--aulas-txt);
+  font-size: var(--tau-txt);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* **La tasa observada es EL dato de la fila**, y se lee como tal: es la única
+   cifra que la tabla existe para comparar. Iba a 12 px y del mismo gris que su
+   propia metadata. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla td.aulas-tau-observada {
+  font-size: var(--tau-dato);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Y con color, que es lo que la hacía «sin vida»: verde cuando llega a la vara
+   del diseño y granate cuando no. El color repite el de la barra de al lado, no
+   inventa una segunda codificación. */
+.mon-profile-page.is-aulas-flow .aulas-tau-observada.es-mejor { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-observada.es-peor { color: var(--pulso-danger-fg); }
+
+/* Las dos columnas de alumnos: cifra de apoyo, pero con signo y color. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-corto { color: var(--pulso-danger-fg); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-sobra { color: var(--pulso-success-fg); font-weight: 600; }
 
 /* Columna de texto: se alinea con su encabezado, a la izquierda. */
 .mon-profile-page.is-aulas-flow .aulas-tau-respaldo {
@@ -273,9 +312,9 @@
   position: relative;
   /* Ancho mínimo real: la barra es el gráfico de la fila y a menos de esto deja
      de poder leerse dónde cae la marca. La tabla scrollea antes que aplastarla. */
-  min-width: 140px;
-  height: 14px;
-  border-radius: 7px;
+  min-width: 150px;
+  height: 18px;
+  border-radius: 9px;
   background: var(--pulso-surface-3);
   overflow: hidden;
 }
@@ -284,10 +323,10 @@
   position: absolute;
   left: 0;
   top: 0;
-  height: 14px;
-  border-radius: 7px 0 0 7px;
+  height: 18px;
+  border-radius: 9px 0 0 9px;
   background: var(--pulso-text-faint);
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 /* Verde si llega o pasa la marca, granate si se queda corto. El color habla de
@@ -295,12 +334,12 @@
    es otra pregunta y por eso no comparten señal. */
 .mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-mejor {
   background: var(--pulso-success-fg);
-  opacity: 0.55;
+  opacity: 0.8;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-relleno.es-peor {
   background: var(--pulso-danger-fg);
-  opacity: 0.55;
+  opacity: 0.8;
 }
 
 /* El margen de error va como NÚMERO junto a la tasa, no como bigote sobre la
@@ -370,15 +409,23 @@
 
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda {
   display: grid;
-  grid-template-columns: 4.8em 4.2em 4.8em 2.8em;
+  /* **Tres columnas, no cuatro: la prevista NO se repite aquí.**
+     La τ prevista es la de la fila —la misma para mujeres y para hombres— y ya
+     tiene su columna en la tabla. Repetida en las dos líneas del bloque no
+     añadía nada, no cabía en su ancho y partía el «%» a la línea de abajo:
+     «de 54,6» arriba y «%» solo debajo, dos veces por facultad. Visto en la
+     captura que mandó Gonzalo. */
+  grid-template-columns: 4.6em 4.6em 3em;
   align-items: baseline;
   gap: 0 6px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* La observada y la diferencia, a la derecha de su columna: es donde se leen
    los dígitos cuando se comparan hacia abajo. */
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong,
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda i,
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em { text-align: right; }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong {
