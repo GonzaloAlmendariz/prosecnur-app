@@ -315,3 +315,52 @@ test_that("una agendada SÍ sigue siendo aporte pendiente: es la que aún puede 
   celda <- Filter(function(c1) identical(c1$sex, "F"), celdas)[[1]]
   expect_gt(celda$aporte_pendiente, 0)
 })
+
+# --- El aula aplicada que el PLAN sigue llamando «planificada» -----------------
+
+test_that("una aula con respuestas cuenta como APLICADA aunque el plan diga «planificada»", {
+  # **`operational_status` no lo actualiza nadie.** Medido sobre HSVG26ULT2 el
+  # 2026-09-10: vale «planificada» en los 174 titulares mientras 60 ya tenían
+  # respuestas. Como esta función decidía con ese campo, esas 60 caían del lado
+  # de las PENDIENTES y su aporte esperado se sumaba a la proyección ADEMÁS de
+  # su logrado real: 1 059 esperadas encima de 1 184 logradas.
+  #
+  # El efecto en pantalla: las 30 celdas del estudio salían «asegurada» —la
+  # proyección daba 4 350 sobre una cuota de 2 500— y por eso
+  # `reserva_dirigida` publicaba CERO candidatos y el panel «A qué aula del
+  # banco ir» no se encendía nunca.
+  #
+  # Es el mismo defecto que ya obligó a reparar `dos_tasas` (`531369a2`) en otro
+  # consumidor, y el arreglo es el mismo: derivar de la EVIDENCIA.
+  plan <- list(
+    list(faculty = "DERECHO", operational_code = "CH 1",
+         operational_status = "planificada", respuestas_validas = 40,
+         mujeres_esperadas = 80, hombres_esperados = 0),
+    list(faculty = "DERECHO", operational_code = "CH 2",
+         operational_status = "planificada", respuestas_validas = 0,
+         mujeres_esperadas = 60, hombres_esperados = 0)
+  )
+  cuotas <- list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 40))
+  a <- monitoreo_aulas_avance_sexo_facultad(plan, cuotas)[[1]]
+
+  # CH 1 ya aportó: sus 80 esperadas van al previsto, NO al pendiente.
+  expect_equal(a$previsto, 80)
+  expect_equal(a$aporte_pendiente, 60)
+  # Y la proyección deja de contar dos veces: 40 logradas + 60 por venir.
+  expect_equal(a$proyeccion, 100)
+})
+
+test_that("el parte de campo también vale como evidencia, sin respuestas de plataforma", {
+  # La misma regla que `monitoreo_aulas_aula_aplicada()`: plataforma primero,
+  # parte como respaldo. Un aula aplicada cuyo dato aún no llegó a Kobo no
+  # puede volver a contarse como pendiente.
+  plan <- list(
+    list(faculty = "DERECHO", operational_code = "CH 1",
+         operational_status = "planificada", application_status = "APLICADA",
+         mujeres_esperadas = 80, hombres_esperados = 0)
+  )
+  cuotas <- list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 35))
+  a <- monitoreo_aulas_avance_sexo_facultad(plan, cuotas)[[1]]
+  expect_equal(a$previsto, 80)
+  expect_equal(a$aporte_pendiente, 0)
+})

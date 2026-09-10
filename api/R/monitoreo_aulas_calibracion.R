@@ -347,6 +347,28 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
 #' @return lista de celdas con logrado, previsto, proyeccion, calibracion,
 #'   brecha, estado y sus etiquetas.
 #' @export
+#' Un aula aplicada DE HECHO, se llame como se llame en el plan.
+#'
+#' Misma regla que `.madt_aplicada_de_hecho()` en `monitoreo_aulas_dos_tasas.R`:
+#' la plataforma manda y el parte respalda. Vive aqui y no se importa de alli
+#' porque aquel es privado de su motor; si un dia se comparte, se comparte una
+#' vez y las dos la llaman.
+#'
+#' Limite declarado: un aula aplicada con CERO efectivas y sin parte sigue
+#' contando como pendiente. Es el mismo limite que su gemela y por la misma
+#' razon: sin ninguna senal, no hay como distinguirla de una que no se visito.
+#' @noRd
+.mac_aplicada_de_hecho <- function(fila) {
+  val <- suppressWarnings(as.numeric(.monitoreo_scalar(fila$respuestas_validas %||% NA, NA))[1])
+  if (is.finite(val) && val > 0) return(TRUE)
+  parte <- suppressWarnings(as.numeric(.monitoreo_scalar(fila$effective_surveys %||% NA, NA))[1])
+  if (is.finite(parte) && parte > 0) return(TRUE)
+  identical(
+    monitoreo_aulas_estado_aplicacion(.monitoreo_scalar(fila$application_status %||% "", "")),
+    "aplicada"
+  )
+}
+
 monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
                                                  pool_restante = list()) {
   if (!length(cuotas)) return(list())
@@ -392,7 +414,23 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     # `operational_status %in% c("aplicada", "cerrada")`—. En este estudio no hay
     # ninguna todavia; el dia que la haya, su aporte ya recibido se habria
     # contado como aporte por recibir.
-    aplicada <- estado_op %in% c("aplicada", "cerrada")
+    # **NO se le pregunta a `operational_status`, se mira la EVIDENCIA.**
+    #
+    # Ese campo no lo actualiza nadie: medido sobre HSVG26ULT2 el 2026-09-10,
+    # valia «planificada» en los 174 titulares mientras 60 ya tenian respuestas.
+    # Con el solo, esas 60 caian del lado de las PENDIENTES y su aporte esperado
+    # se sumaba a la proyeccion ADEMAS de su logrado real —1 059 esperadas
+    # encima de 1 184 logradas—, asi que las 30 celdas del estudio salian
+    # «asegurada» con una proyeccion de 4 350 sobre una cuota de 2 500. Aguas
+    # abajo eso apagaba dos superficies: `reserva_dirigida` publicaba CERO
+    # candidatos —el panel «A que aula del banco ir» no se encendia nunca— y
+    # `previsto` salia nulo en las 30, con lo que la calibracion tampoco se
+    # podia calcular.
+    #
+    # Es el MISMO defecto que ya obligo a reparar `dos_tasas` (`531369a2`) en
+    # otro consumidor, y el arreglo es el mismo: plataforma primero, parte como
+    # respaldo, y el estado del plan sigue valiendo cuando SI dice algo.
+    aplicada <- estado_op %in% c("aplicada", "cerrada") || .mac_aplicada_de_hecho(fila)
     esp <- .mac_esperadas_por_sexo(fila)
     if (!length(esp$valores)) next
     origenes <- c(origenes, esp$origen)
