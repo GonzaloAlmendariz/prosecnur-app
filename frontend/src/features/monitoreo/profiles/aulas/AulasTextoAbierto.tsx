@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { MessageSquare } from "../../../../vendor/lucide-react";
 import { textoAbierto } from "./textoAbierto";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Las respuestas abiertas, para leerlas rápido.
@@ -16,7 +16,10 @@ import { fmt } from "./kpisDeAulas";
  * nombre del encuestador se repiten, y ahí repetir es lo correcto.
  */
 
-const pct = (n: number | null) => (n === null ? "—" : `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`);
+/** El porcentaje de la casa. Éste formateaba con `maximumFractionDigits: 1` y
+ *  sin mínimo, así que escribía «50 %» donde el resto del perfil escribe
+ *  «50,0 %»: la misma cifra con dos caras en la misma pantalla. */
+const pct = (n: number | null) => (n === null ? "—" : pctPerfil(n));
 
 export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
   const t = useMemo(() => textoAbierto(bloque), [bloque]);

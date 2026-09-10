@@ -5,7 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ritmoPorFacultad } from "./ritmoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Cómo va cada facultad día a día, y hacia dónde.
@@ -129,7 +129,7 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
                   ? "El cambio es mayor que el vaivén normal de esta facultad."
                   : "El cambio cabe dentro del vaivén normal de esta facultad, así que no se puede distinguir de la casualidad."}
             >
-              {f.tendencia == null ? "—" : `${f.tendencia > 0 ? "+" : ""}${f.tendencia.toLocaleString("es-PE")} %`}
+              {f.tendencia == null ? "—" : `${f.tendencia > 0 ? "+" : ""}${pctPerfil(f.tendencia)}`}
             </span>
           </li>
         ))}
