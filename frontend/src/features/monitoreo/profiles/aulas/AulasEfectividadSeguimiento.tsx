@@ -138,7 +138,16 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
     : f.senal === "sobre" ? " Rinde por encima de la tasa prevista para su facultad."
     : "";
 
-  if (f.riesgo === "holgado") return `Su proyección cierra la cuota con margen.${porque}`;
+  // **Y cuando la cuota cierra pero el rendimiento va corto, se dice junto.**
+  // Son las dos cifras de la fila y parecen contradecirse: «Cuota cubierta» y
+  // «Hasta ahora −10». No se contradicen —el diseño compró cursos-horario de
+  // más—, pero eso hay que decirlo donde se lee, no sólo en el pie.
+  if (f.riesgo === "holgado") {
+    const corta = f.alumnos_corte != null && f.alumnos_corte < -0.5
+      ? ` Va ${fmt(Math.round(Math.abs(f.alumnos_corte)))} respuestas por debajo de lo que su tasa pedía en lo ya aplicado, y aun así cierra: el diseño compró cursos-horario de más.`
+      : "";
+    return `Su proyección cierra la cuota con margen.${porque}${corta}`;
+  }
   if (f.riesgo === "ajustado") return `Cierra la cuota, pero sin margen para que el rendimiento baje.${porque}`;
 
   const firme = f.riesgo === "riesgo_firme"
@@ -232,7 +241,14 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
   // el peldaño de al lado ya concuerda en femenino —«Cubierta»—. Un adjetivo en
   // masculino entre dos femeninos hace dudar de a qué se refiere.
   ajustado: { texto: "Justa", tono: "aviso" },
-  holgado: { texto: "Cubierta", tono: "ok" },
+  // **«Cubierta» habla de la CUOTA, no del rendimiento**, y la fila enseña las
+  // dos cosas a la vez. Gonzalo: «está cubierta pero aun así le faltan
+  // estudiantes… ¿o los esperados son menos pero aun así está cubierta?».
+  // Artes Escénicas es el caso: rinde diez respuestas por debajo de lo que su
+  // tasa pedía —eso es «Hasta ahora −10»— y aun así cerrará su cuota, porque el
+  // diseño compró cursos-horario de más y le quedan por aplicar. Las dos son
+  // ciertas y hablan de cosas distintas; el rótulo de la insignia lo dice.
+  holgado: { texto: "Cuota cubierta", tono: "ok" },
   sin_campo: { texto: "Sin campo", tono: "neutro" },
   sin_cuota: { texto: "Sin cuota", tono: "neutro" },
   sin_cumplimiento: { texto: "Sin dato", tono: "neutro" },
@@ -280,7 +296,26 @@ type CeldaDeSexo = {
  * «49 %» no dice si faltan tres alumnas o cuarenta, y «−40» no dice si es un
  * desastre o el tamaño normal de esa celda.
  */
-function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo } }) {
+function CeldasDeSexo({ celdas, tauPrevista }: {
+  celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo };
+  /**
+   * **La tasa prevista de la FILA, no la que trae cada celda.**
+   *
+   * Gonzalo, sobre Artes Escénicas: «¿por qué las mujeres salen como menos 1 y
+   * hombres menos 2, pero en "hasta ahora" sale que faltan 10?». Tenía razón y
+   * era una incoherencia de verdad: el total usaba la τ que el DISEÑO le puso a
+   * la facultad (74,0 %) y cada celda usaba lo que el libro reparte por
+   * composición del aula (68,6 % y 58,1 %). Dos previstos distintos para el
+   * mismo hecho, así que las partes no sumaban el total —y encima las dos por
+   * sexo eran MENORES que la general, que es imposible si una es el reparto de
+   * la otra—.
+   *
+   * Con la τ de la fila aplicada a los elegibles de cada sexo, las dos celdas
+   * suman el total por construcción: los elegibles de mujeres y hombres son los
+   * elegibles aplicados de la facultad.
+   */
+  tauPrevista?: number | null;
+}) {
   if (!celdas || (!celdas.F && !celdas.M)) return null;
   // **Y tampoco si las dos celdas están sin elegibles.** Visto en pantalla el
   // 2026-09-10: el bloque llegaba con las facultades y sus efectivas pero con
@@ -290,6 +325,10 @@ function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo 
   if (!(celdas.F?.elegibles || celdas.M?.elegibles)) return null;
   const una = (c: CeldaDeSexo | undefined, etiqueta: string) => {
     if (!c || !c.elegibles) return null;
+    // Lo previsto sale de la fila; lo observado, del recuento de esa celda.
+    const prevista = tauPrevista ?? null;
+    const esperadas = prevista == null ? null : prevista * c.elegibles;
+    const diferencia = esperadas == null ? null : c.efectivas - esperadas;
     /**
      * **Una tasa por encima del 100 % es un hecho, no un error de cuenta.**
      *
@@ -316,14 +355,16 @@ function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo 
         {etiqueta}{" "}
         <strong>{c.tasa_observada == null ? "—" : `${(Math.round(c.tasa_observada * 1000) / 10).toFixed(1)} %`}</strong>
         <i>
-          de {c.tasa_prevista == null ? "—" : `${(Math.round(c.tasa_prevista * 1000) / 10).toFixed(1)} %`}
+          de {prevista == null ? "—" : `${(Math.round(prevista * 1000) / 10).toFixed(1)} %`}
         </i>
         {/* En personas y con signo: el cero se escribe, porque «justo lo
             previsto» es un resultado y no la ausencia de uno. */}
-        <em className={c.diferencia < 0 ? "es-corto" : c.diferencia > 0 ? "es-sobra" : ""}>
-          {c.diferencia > 0 ? "+" : c.diferencia < 0 ? "−" : ""}
-          {fmt(Math.abs(Math.round(c.diferencia)))}
-        </em>
+        {diferencia == null ? null : (
+          <em className={diferencia < 0 ? "es-corto" : diferencia > 0 ? "es-sobra" : ""}>
+            {diferencia > 0 ? "+" : diferencia < 0 ? "−" : ""}
+            {fmt(Math.abs(Math.round(diferencia)))}
+          </em>
+        )}
       </span>
     );
   };
@@ -556,7 +597,7 @@ export function AulasEfectividadSeguimiento({
                         hombre de más no cubre a una mujer que falta—, así que
                         una facultad puede ir conforme en su tasa y estar corta
                         en una de las dos. */}
-                    <CeldasDeSexo celdas={sexosDe.get(f.faculty_key)} />
+                    <CeldasDeSexo celdas={sexosDe.get(f.faculty_key)} tauPrevista={f.tau_previsto} />
                   </th>
                   <td className="aulas-tau-cifra es-debil">{pct(f.tau_previsto)}</td>
                   <td className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>
