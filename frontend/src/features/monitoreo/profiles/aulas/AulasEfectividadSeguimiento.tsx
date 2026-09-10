@@ -377,7 +377,7 @@ export function AulasEfectividadSeguimiento({
         {/* La vara sólo se lista si alguna fila la dibuja: una leyenda que
             describe una marca ausente manda a buscarla por quince barras. */}
         {hayPrevisto ? (
-          <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> dónde se esperaba llegar</span>
+          <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> Dónde se esperaba llegar</span>
         ) : null}
         <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> Hasta dónde va, de 0 a 100 %</span>
       </p>
