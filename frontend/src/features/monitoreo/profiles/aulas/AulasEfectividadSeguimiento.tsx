@@ -401,7 +401,21 @@ export function AulasEfectividadSeguimiento({
               <th scope="col" className="es-num">Tasa prevista</th>
               <th scope="col" className="es-num">Tasa observada</th>
               <th scope="col">Comparación</th>
-              <th scope="col" className="es-num">Alumnos</th>
+              {/* **Dos columnas de alumnos, porque son dos preguntas.**
+                  Gonzalo, 2026-09-10: «me sorprende que en Alumnos todos sean
+                  positivos cuando tenemos facultades con tasas menores en
+                  observadas; ¿no deberíamos tener déficit de efectivas allí?».
+                  Tenía razón en la sorpresa: la columna decía «Alumnos» y
+                  publicaba el margen PROYECTADO sobre la cuota —Artes Escénicas,
+                  +58— mientras esa misma facultad lleva diez respuestas MENOS de
+                  las que su tasa prevista pedía. Las dos cifras son ciertas y el
+                  rótulo sólo nombraba una. */}
+              <th scope="col" className="es-num" title="Respuestas de más o de menos frente a lo que la tasa prevista pedía en los cursos-horario ya aplicados.">
+                Hasta ahora
+              </th>
+              <th scope="col" className="es-num" title="Alumnos que van a sobrar o a faltar para la cuota, contando con que lo que queda por aplicar responda igual que lo aplicado.">
+                Al cerrar
+              </th>
               <th scope="col">Si hace falta más</th>
             </tr>
           </thead>
@@ -467,6 +481,15 @@ export function AulasEfectividadSeguimiento({
                   </td>
                   {/* La unidad va en la celda, no sólo en el encabezado: «−22,4»
                       solo no dice de qué. */}
+                  {/* **Lo de HOY**: el déficit o el superávit de respuestas
+                      contra lo que la tasa prevista pedía en lo ya aplicado. Es
+                      `alumnos_corte`, que el motor calcula desde siempre y esta
+                      tabla no enseñaba. */}
+                  <td className={`aulas-tau-cifra${
+                    f.alumnos_corte != null && f.alumnos_corte < 0 ? " es-corto" : " es-debil"
+                  }`}>
+                    {alumnos(f.alumnos_corte)}
+                  </td>
                   <td className={`aulas-tau-cifra${enRiesgo ? "" : " es-debil"}`}>
                     {alumnos(f.margen_restante)}
                   </td>
@@ -488,10 +511,13 @@ export function AulasEfectividadSeguimiento({
       </div>
 
       <p className="aulas-tau-pie">
-        <strong>Alumnos</strong> son los que van a sobrar o a faltar para la cuota de la facultad,
-        contando que los cursos-horario que quedan por aplicar respondan igual que las de hasta ahora. No es
-        lo mismo que responder por debajo de lo esperado: el diseño compró cursos-horario de más, así que una
-        facultad puede responder poco y llegar a su cuota igual.{" "}
+        <strong>Hasta ahora</strong> son las respuestas de más o de menos frente a lo que la tasa
+        prevista pedía en los cursos-horario ya aplicados: ahí es donde se ve que una facultad está
+        rindiendo por debajo.{" "}
+        <strong>Al cerrar</strong> son las que van a sobrar o a faltar para su cuota, contando que los
+        cursos-horario que quedan por aplicar respondan igual que los de hasta ahora. Las dos pueden tener
+        signos distintos y no es una contradicción: el diseño compró cursos-horario de más, así que una
+        facultad puede ir corta de rendimiento y llegar a su cuota igual.{" "}
         <strong>± pts</strong> es cuánto puede moverse todavía el porcentaje con los cursos-horario que lleva:
         cuantos menos cursos-horario, más grande.
       </p>

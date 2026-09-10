@@ -241,6 +241,14 @@
   color: var(--pulso-text-faint);
 }
 
+/* **El déficit de hoy se tiñe; el superávit no.** Una facultad que va corta de
+   rendimiento es lo que hay que ver de un barrido por la columna, y teñir
+   también lo que sobra dejaría la tabla entera en color. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-corto {
+  color: var(--pulso-danger-fg);
+  font-weight: 560;
+}
+
 /* LA BARRA VA DE 0 A 100 %, con la marca en lo previsto y el relleno desde la
  * izquierda. Antes era un segmento flotante sobre una escala recortada al
  * máximo observado, y no se podía leer: un segmento sin extremos conocidos no

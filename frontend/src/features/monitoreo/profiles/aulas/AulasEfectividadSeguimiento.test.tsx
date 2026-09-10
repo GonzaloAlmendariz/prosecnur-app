@@ -278,7 +278,13 @@ describe("la τ del diseño contra la del campo", () => {
 
   it("el pie dice que los alumnos se proyectan a lo que se viene respondiendo", () => {
     const html = render(bloque());
-    expect(html).toContain("respondan igual que las de hasta ahora");
+    expect(html).toContain("respondan igual que los de hasta ahora");
+    // Y separa las dos columnas de alumnos, que son dos preguntas: lo que falta
+    // HOY contra la tasa prevista, y lo que faltará AL CERRAR contra la cuota.
+    // Que tengan signos distintos no es una contradicción.
+    expect(html).toContain("Hasta ahora");
+    expect(html).toContain("Al cerrar");
+    expect(html).toContain("no es una contradicción");
     expect(html).toContain("compró cursos-horario de más");
   });
 
