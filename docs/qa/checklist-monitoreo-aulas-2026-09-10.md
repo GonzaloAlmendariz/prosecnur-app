@@ -17,7 +17,14 @@ Sólo Gonzalo lo da por terminado.
 | 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `monitoreo_aulas_rol_y_estado.R` + `AulasEstadoPorRol` | ☑ `a69a0c42` motor + `aef557e2` pantalla · falta MIRARLO y falta A/B/C, que no está en el libro |
 | 11 | «No entiendo lo de en cierre» → «disuélvelo dentro de titulares aplicados» | `estadoDeAplicacion.ts` | ☑ `46bf5693` |
 | 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | motor: `monitoreo_aulas_universitarias.R` | ☑ `158c56bc` — repartía 219 y sólo 45 se habían aplicado |
-| 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `AulasAvanceDiario` | ☑ `b3380cdd` — falta MIRARLO |
+| 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `AulasAvanceDiario` | ☑ `b3380cdd` + `b0839a50` (ancho y ejes) |
+| 14 | «El avance diario tiene que verse mejor de manera horizontal» | `AulasAvanceDiario` | ☑ `b0839a50` |
+| 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
+| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | los dos gráficos temporales | ☐ **el grande** |
+| 17 | «Los días en el eje x no se ven bien» | ambos | ☐ |
+| 18 | «Ahorita se ve vacío el ritmo de la recolección… hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas para que se complete el gráfico» | `AulasAvanceDiario` | ☐ |
+| 19 | «Verificar cuándo se termina de aplicar el plan: ¿estamos viendo cuándo se va a terminar de aplicar lo agendado, o cuándo vamos a llegar a la meta?» | `AulasPronosticoDeCierre` | ☐ son dos preguntas y hay que saber cuál contesta |
+| 20 | «Utilicemos el archivo original… cargar las respuestas o actualizar la información a día de hoy y ver cómo se está viendo todo en el campo actual» | mi pila local | ☐ **cambia la instrucción anterior de no tocar el original** |
 
 ## Lo ya contestado, con su medición
 
@@ -247,3 +254,42 @@ cuál de las tres está enseñando.
    exactamente los que tienen la hora de madrugada que no cuadra ni leída como
    tarde. Que los mismos dos aparezcan en los dos hallazgos no parece
    casualidad: hay algo raro en cómo se registraron esos partes.
+
+## 14-19 · Los dos gráficos temporales, dictado del 2026-09-10 ~07:40
+
+> «El avance diario tiene que verse mejor de manera horizontal, y algo también
+> muy importante es que tiene que haber un hover por cada barra que yo ponga mi
+> mouse encima, y tiene que estar alineado con el gráfico de abajo, de cuándo se
+> termina de aplicar el plan. Esa de cuándo se termina de aplicar el plan también
+> creo que es importante verificar eso: ¿estamos viendo cuándo se va a terminar
+> de aplicar lo que tenemos agendado, se está viendo cuándo vamos a llegar a la
+> meta? Y además, los días en el eje x no se ven bien, y los días del eje x de
+> cuándo se termina de aplicar el plan tienen que alinearse con el ritmo de
+> recolección. Y ahorita se ve vacío el ritmo de la recolección: igual entiendo
+> que hay días que todavía no hemos aplicado, pero pueden ponerse de todas formas
+> para que se complete el gráfico. Pero ahí hay que ver cómo hacer ambos gráficos
+> que se entiendan mejor y que se vean más sofisticados.»
+
+**Lo que esto pide, en una frase**: los dos gráficos temporales de Resumen —«Ritmo
+de la recolección» y «Cuándo se termina de aplicar el plan»— tienen que compartir
+el MISMO eje de días, del arranque del operativo al cierre previsto, y leerse
+como dos vistas de la misma línea de tiempo y no como dos dibujos sueltos.
+
+De ahí sale que el ritmo se vea vacío: dibuja sólo los tres días CON respuestas,
+mientras el de abajo va del 07/09 al 01/10. Un eje compartido resuelve el hueco
+y la alineación a la vez.
+
+## 20 · Trabajar sobre el proyecto original
+
+> «Ahorita estás utilizando copias, que entiendo son copias de seguridad y está
+> bien, pero creo que sería bueno que utilicemos el archivo original, porque si
+> se supone que ya los botones de traer respuestas son robustos, podríamos
+> utilizar el proyecto pulso original, y en ese proyecto pulso original cargar
+> las respuestas o actualizar la información a día de hoy, con hora de hoy, y ver
+> cómo efectivamente se está viendo todo en el campo actual.»
+
+**Cambia una prohibición anterior.** Hasta ahora la regla era no tocar
+`HSVG26ULT2.pulso`; él la levanta para poder ver el operativo de hoy. Sigue en
+pie lo que NO cambió: **abrir y traer respuestas no escribe el archivo** —el
+`.pulso` sólo cambia al guardar explícitamente— y **publicar a Sheets sigue
+necesitando su palabra**.
