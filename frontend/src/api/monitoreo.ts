@@ -1395,6 +1395,47 @@ export type MonitoreoAulasRolYEstado = {
   banco?: { total?: number; utilizado?: number; disponible?: number };
 };
 
+/**
+ * Un desenlace del libro —reemplazo, complemento o refuerzo— con su reparto.
+ *
+ * `declarados` son los que el coordinador escribió en el libro; `en_curso`, los
+ * que el campo ya vive y el libro todavía no dice. La diferencia entre los dos
+ * no es ruido: dice cuánto le falta al registro para estar al día.
+ */
+export type MonitoreoAulasDesenlace = {
+  total?: number;
+  declarados?: number;
+  en_curso?: number;
+  por_facultad?: Array<{ facultad?: string; aulas?: number }>;
+  aulas?: Array<{
+    codigo?: string;
+    facultad?: string;
+    titular?: string;
+    /** Con CUÁL se resolvió. Vacía cuando el libro no lo dice: es media frase. */
+    aula_utilizada?: string;
+    motivo?: string;
+    efectivas?: number | null;
+  }>;
+};
+
+/**
+ * Los tres desenlaces del libro, contados por separado (2026-09-10).
+ *
+ * A · reemplazo — el titular cayó y otra ocupa su lugar.
+ * B · complemento — el titular rindió poco y se le sumó una reserva; los dos cuentan.
+ * C · refuerzo — se salió a una reserva por cuota, sin titular caído.
+ */
+export type MonitoreoAulasReemplazosPorTipo = {
+  reemplazadas?: MonitoreoAulasDesenlace;
+  complementadas?: MonitoreoAulasDesenlace;
+  refuerzos?: MonitoreoAulasDesenlace;
+  /** Titulares caídos sin ningún relevo activado: el hueco sigue abierto. */
+  caidos_sin_relevo?: number;
+  /** Casos A o B que no dicen CON CUÁL se resolvieron. */
+  sin_aula_utilizada?: number;
+  total?: number;
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1693,6 +1734,12 @@ export type MonitoreoAulasDashboard = {
 	   * en cuanto algún eslabón de su cadena se aplica.
 	   */
 	  course_status_rol_y_estado?: MonitoreoAulasRolYEstado;
+	  /**
+	   * Los tres desenlaces del libro —reemplazo (A), complemento (B) y refuerzo
+	   * (C)— contados por separado, cada uno con lo que declara el libro y lo que
+	   * el campo ya vive. Ver `monitoreo_aulas_desenlaces.R`.
+	   */
+	  reemplazos_por_tipo?: MonitoreoAulasReemplazosPorTipo;
 	  /**
 	   * El mismo reparto por FACULTAD, para que el selector de la cabecera filtre
 	   * de verdad. Se calcula en el motor y no aquí porque `course_status` viaja

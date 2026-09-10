@@ -11,6 +11,8 @@ import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasAgendacion } from "./AulasAgendacion";
 import { AulasSeguimientoDeFacultad } from "./AulasSeguimientoDeFacultad";
+import { AulasDesenlacesDelLibro } from "./AulasDesenlacesDelLibro";
+import { desenlacesDelLibro } from "./desenlacesDelLibro";
 import { seguimientoDeFacultad } from "./seguimientoDeFacultad";
 import { proyeccionElegida } from "./proyeccionDeMetas";
 import "./aulasPanelPartido.css";
@@ -473,6 +475,20 @@ export function AulasPestanaResumen({
                   (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
                   dashboard?.generated_at,
                 ).dia}
+              />
+
+              {/* **La tercera parte del mismo tema** (2026-09-10): «quiero
+                  empezar a ver la parte de reemplazos para aulas
+                  complementarias (B) o aulas de refuerzo (C)». Va aquí y no en
+                  un panel propio porque es el mismo circuito que las dos partes
+                  vecinas —a quién se le puso fecha y en qué punto está cada
+                  uno— y él acaba de pedir menos paneles, no más. */}
+              <div className="aulas-parte">
+                <h4>Reemplazos, complementos y refuerzos</h4>
+                <span>qué se hizo cuando un curso-horario no dio lo suyo</span>
+              </div>
+              <AulasDesenlacesDelLibro
+                desenlaces={desenlacesDelLibro(dashboard.reemplazos_por_tipo, facultadEnFoco)}
               />
 
               {/* **La segunda mitad del mismo tema.** Gonzalo, 2026-09-10:
