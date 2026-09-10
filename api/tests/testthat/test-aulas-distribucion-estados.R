@@ -156,3 +156,55 @@ test_that("el generador respeta el estado ya publicado de esa cita", {
     corta(estados_previos = stats::setNames("APLICADA", clave))[[2]][[i_est]],
     "APLICADA")
 })
+
+# --- El Sheets es la fuente de verdad, y la app tiene que poder LEERLO --------
+#
+# Gonzalo, 2026-09-10: «se supone que el Sheets es la fuente de verdad que cambia
+# lo que la app tiene, a menos que la app identifique aulas agendadas que el
+# Sheets todavía no tiene mapeadas». Ese día una fila decía «CH164» y los 1.392
+# códigos del plan van con espacio: la app la declaraba `desconocida`, así que
+# una aula APLICADA SIN AGENDACIÓN no contaba para ninguna cuota y nadie veía
+# por qué. Un espacio de menos no puede perder una encuesta.
+
+test_that("un código sin el espacio casa igual con el del plan", {
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- as.list(c("Interno Pulso", "Jueves", "10/09", "11:30", "11:45",
+                    "11:45 a 12:15", "CH164", "R101", "", "", "",
+                    "APLICADA SIN AGENDACION"))
+  plan <- list(list(operational_code = "CH 164", scheduled_venue = "R101",
+                    faculty = "EDUCACIÓN", course_name = "INVESTIGACIÓN",
+                    teacher = "—", scheduled_date = "2026-09-10", scheduled_time = "11:45"))
+  out <- monitoreo_aulas_completar_distribucion(list(cab, fila), plan = plan)
+  expect_length(out$filas, 1L)
+  # Antes salía «desconocida» y la fila no se completaba con nada.
+  expect_false(identical(out$filas[[1]]$clase, "desconocida"))
+  expect_identical(out$resumen$desconocida, 0L)
+  # Y al reconocerla, el plan le pone la facultad que le faltaba.
+  i_fac <- which(prosecnurapp:::.alpa_CABECERA == "FACULTAD")
+  expect_identical(out$filas[[1]]$fila[[i_fac]], "EDUCACIÓN")
+})
+
+test_that("la fijación también casa sin el espacio, y fija el código del PLAN", {
+  cab <- as.list(prosecnirapp <- prosecnurapp:::.alpa_CABECERA)
+  fila <- as.list(c("Interno Pulso", "Jueves", "10/09", "", "", "",
+                    "CH164", "", "", "", "", "APLICADA"))
+  plan <- list(list(operational_code = "CH 164"))
+  out <- monitoreo_aulas_fijaciones_desde_distribucion(
+    list(cab, fila), plan = plan, roster = c("Interno Pulso"))
+  expect_identical(out$adoptadas, 1L)
+  # La clave que se fija es la del plan: con «CH164» el reparto no la
+  # encontraría al aplicarla.
+  expect_true("CH 164" %in% names(out$fijadas))
+  expect_length(out$codigos_desconocidos, 0L)
+})
+
+test_that("un código que de verdad no está en el plan SIGUE declarándose", {
+  # El normalizador no puede tragarse lo ajeno: si el código no existe, es un
+  # tecleo y hay que verlo.
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- as.list(c("Interno Pulso", "Jueves", "10/09", "", "", "",
+                    "CH 999", "", "", "", "", "APLICADA"))
+  out <- monitoreo_aulas_completar_distribucion(
+    list(cab, fila), plan = list(list(operational_code = "CH 164")))
+  expect_identical(out$resumen$desconocida, 1L)
+})
