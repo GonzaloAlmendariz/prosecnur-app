@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { AulasMetasBarras } from "./AulasMetasBarras";
+import { anchoDeTexto, AulasMetasBarras } from "./AulasMetasBarras";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 
 const fila = (extra: Partial<MonitoreoAulasProyeccionFila> = {}): MonitoreoAulasProyeccionFila => ({
@@ -17,6 +17,23 @@ const fila = (extra: Partial<MonitoreoAulasProyeccionFila> = {}): MonitoreoAulas
   supuesto_meta: "", supuesto_sexo: "…",
   ...extra,
 });
+
+/**
+ * **Las quince del estudio, con sus nombres reales.**
+ *
+ * El eje se rompió con éstos y no con nombres de laboratorio: «ARQUITECTURA» y
+ * «GASTRONOMÍA,» son las dos palabras sueltas más anchas del marco y son las que
+ * se salían de su columna. Un `F0…F14` no habría fallado nunca.
+ */
+const FACULTADES = [
+  "ARQUITECTURA Y URBANISMO", "ARTE Y DISEÑO", "ARTES ESCÉNICAS",
+  "CIENCIAS CONTABLES", "CIENCIAS E INGENIERÍA", "CIENCIAS SOCIALES",
+  "CIENCIAS Y ARTES DE LA COMUNICACIÓN", "DERECHO", "EDUCACIÓN",
+  "ESTUDIOS GENERALES CIENCIAS", "ESTUDIOS GENERALES LETRAS",
+  "GASTRONOMÍA, HOTELERÍA Y TURISMO", "GESTIÓN Y ALTA DIRECCIÓN",
+  "LETRAS Y CIENCIAS HUMANAS", "PSICOLOGÍA",
+];
+const QUINCE = FACULTADES.map((facultad) => fila({ facultad }));
 
 /** Los altos de los `rect` de una clase. El orden de atributos que emite React
  *  es el del JSX, así que se busca el `rect` entero y se leen los dos dentro:
@@ -50,86 +67,131 @@ describe("«Metas por facultad»", () => {
 
   it("el techo lo fija la META, no lo conseguido: la barra más alta cabe entera", () => {
     const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
-    // La geometría cambió el 2026-09-10: el pie bajó de 96 a 54 —los nombres
-    // dejaron de ir en diagonal— y ese alto se fue a la barra, que es lo que se
-    // compara. Él: «las barras pueden tener más alto».
-    const util = 340 - 22 - 54;
-    // Con el 8 % de aire, ninguna barra llega al alto útil completo.
-    expect(Math.max(...alturas(html, "aulas-metas-barra-meta"))).toBeLessThan(util);
+    // El alto de una fila de barras, `UTIL_FILA`. Con el 8 % de aire ninguna
+    // barra llega al alto útil completo.
+    expect(Math.max(...alturas(html, "aulas-metas-barra-meta"))).toBeLessThan(158);
   });
 
   it("una facultad de nombre largo cabe ENTERA repartida en líneas", () => {
-    // **El tope pasó de dos líneas a cinco el 2026-09-10** (Gonzalo: «el eje
-    // puede tener más de dos filas hasta 5 con tal de que entre bien»). Con dos,
-    // «CIENCIAS Y ARTES DE LA COMUNICACIÓN» salía cortada con puntos
-    // suspensivos y se pisaba con su vecina: el rótulo dejaba de distinguir una
-    // facultad de otra, que es para lo único que está.
+    // **El eje se arregló partiendo el gráfico, no partiendo las palabras**
+    // (2026-09-10). Con las quince facultades en una sola fila la columna medía
+    // 62 unidades y «ARQUITECTURA» medía 78,6: las etiquetas se pisaban unas con
+    // otras y el eje dejaba de decir qué facultad era cuál. Él: «la otra
+    // solución es darle más alto, deshacernos de todo este espacio muerto y
+    // darle dos filas al gráfico, la mitad de las facultades arriba y la otra
+    // abajo». Ocho columnas en vez de quince: 116 unidades cada una.
     //
-    // El recorte NO desapareció —sigue abajo, para lo que ni en cinco cabe—,
-    // pero deja de ser lo normal.
-    const html = renderToStaticMarkup(
-      <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS Y ARTES DE LA COMUNICACIÓN" })]} />,
-    );
+    // Se mide sobre el caso real —quince— porque una facultad sola tiene el
+    // lienzo entero para ella y no probaría nada.
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
     expect(html).not.toContain("…");
-    expect(html).toContain(">COMUNICACIÓN</tspan>");
     // El nombre entero sigue en el `title`, que es donde no estorba.
     expect(html).toContain("<title>CIENCIAS Y ARTES DE LA COMUNICACIÓN</title>");
-    // Y no se pinta de corrido como una sola línea, que es lo que no cabía.
-    expect(html).not.toContain(">CIENCIAS Y ARTES DE LA COMUNICACIÓN</tspan>");
   });
 
-  it("lo que no cabe ni en cinco líneas SIGUE recortándose", () => {
+  it("NINGÚN rótulo se sale de su columna: es el defecto que se vio en pantalla", () => {
+    // La regresión concreta, medida con `getComputedTextLength()` sobre el
+    // gráfico vivo: 78,6 unidades de rótulo en una columna de 62. Aquí se mide
+    // con la misma estimación que usa el componente para repartir.
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
+    // El número de columnas se DERIVA de lo pintado, no se cocina: con «8» a
+    // mano el test seguiría en verde si alguien volviese a la fila única, que
+    // es exactamente el defecto que vigila. Cada fila de barras trae su rejilla
+    // de cinco guías.
+    const guias = [...html.matchAll(/class="aulas-metas-rejilla"/g)].length;
+    const columnas = Math.ceil(15 / (guias / 5));
+    const lienzo = Number(/viewBox="0 0 ([\d.]+)/.exec(html)?.[1] ?? 0);
+    const grupo = (lienzo - 42 - 8) / columnas;
+    const lineas = [...html.matchAll(/<tspan[^>]*>([^<]+)<\/tspan>/g)].map((m) => m[1]);
+    expect(lineas.length).toBeGreaterThan(15);
+    const desbordadas = lineas.filter((l) => anchoDeTexto(l) > grupo - 4);
+    expect(desbordadas, `rótulos más anchos que su columna: ${desbordadas.join(" | ")}`).toEqual([]);
+  });
+
+  it("desde nueve facultades se parte en dos filas, y por debajo no", () => {
+    // Él: «que sea robusto: eso no pasa siempre, pasa que haya más de 8
+    // facultades en adelante y se parte a la mitad a partir de allí».
+    const filasDe = (n: number) => Array.from({ length: n }, (_, i) => fila({ facultad: `F${i}` }));
+    // Con dos filas hay dos rejillas: cinco líneas de guía por fila.
+    const guias = (h: string) => [...h.matchAll(/class="aulas-metas-rejilla"/g)].length;
+    expect(guias(renderToStaticMarkup(<AulasMetasBarras filas={filasDe(8)} />))).toBe(5);
+    expect(guias(renderToStaticMarkup(<AulasMetasBarras filas={filasDe(9)} />))).toBe(10);
+    expect(guias(renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />))).toBe(10);
+  });
+
+  it("la segunda fila lleva la otra mitad, y las dos comparten escala", () => {
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
+    // Quince en dos filas: ocho arriba, siete abajo. Ninguna se pierde.
+    expect([...html.matchAll(/class="aulas-metas-etiqueta"/g)]).toHaveLength(15);
+    // Escala común: la facultad más grande de la fila de abajo mide contra el
+    // mismo techo que la de arriba, o los altos dejarían de compararse.
+    const grandeArriba = fila({ facultad: "AAA", meta_M: 800, meta_F: 800 });
+    const grandeAbajo = fila({ facultad: "ZZZ", meta_M: 800, meta_F: 800 });
+    const conAmbas = renderToStaticMarkup(
+      <AulasMetasBarras filas={[
+        grandeArriba,
+        ...Array.from({ length: 13 }, (_, i) => fila({ facultad: `M${i}`, meta_M: 10, meta_F: 10 })),
+        grandeAbajo,
+      ]} />,
+    );
+    const metas = alturas(conAmbas, "aulas-metas-barra-meta").filter((h) => h > 100);
+    // Las cuatro barras de 800 (dos por facultad) miden lo mismo, arriba y abajo.
+    expect(metas).toHaveLength(4);
+    expect(new Set(metas.map((h) => Math.round(h)))).toHaveProperty("size", 1);
+  });
+
+  it("lo que no cabe en dos líneas SIGUE recortándose", () => {
     // El techo no es decorativo: sin él, un nombre absurdo empujaría el pie del
     // gráfico sin límite.
-    const largo = "UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE";
-    const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila({ facultad: largo })]} />);
+    const largo = "UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE TRECE CATORCE";
+    const html = renderToStaticMarkup(
+      <AulasMetasBarras filas={[...QUINCE.slice(1), fila({ facultad: largo })]} />,
+    );
     expect(html).toContain("…");
     expect(html).toContain(`<title>${largo}</title>`);
   });
 
   it("el pie crece con las líneas, y no a costa de las barras", () => {
-    // Subir el tope sin esto le habría robado a la barra el alto que se le había
-    // devuelto al quitar los rótulos en diagonal.
     const corto = renderToStaticMarkup(<AulasMetasBarras filas={[fila({ facultad: "DERECHO" })]} />);
     const largo = renderToStaticMarkup(
-      <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS Y ARTES DE LA COMUNICACIÓN" })]} />,
+      <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS ARTES COMUNICACIÓN AUDIOVISUAL DIGITAL" })]} />,
     );
     const alto = (html: string) => Number(/viewBox="0 0 [0-9.]+ ([0-9.]+)"/.exec(html)?.[1] ?? 0);
     expect(alto(largo)).toBeGreaterThan(alto(corto));
-    // Y con un nombre corto el gráfico queda EXACTAMENTE como estaba.
-    expect(alto(corto)).toBe(340);
   });
 
   it("el lienzo no se encoge con pocas facultades: engordan las barras", () => {
     // **Por qué NO crece de una a quince.** El SVG ocupa el 100 % del panel, así
     // que un `viewBox` estrecho lo escala el navegador: con una sola facultad
     // medía 112 y la escala se iba a ×10 —el «33 %» de una barra ocupaba media
-    // pantalla—. Visto en pantalla el 2026-09-10 con DERECHO en el selector, que
-    // es lo que destapó poner el mando de facultad en toda la sección.
-    //
-    // El lienzo se queda en el ancho del caso lleno y lo que cambia es el grosor
-    // de la barra, así que el texto mide siempre lo mismo.
+    // pantalla—. Visto en pantalla el 2026-09-10 con DERECHO en el selector.
+    const ancho = (h: string) => Number(/viewBox="0 0 ([\d.]+)/.exec(h)?.[1] ?? 0);
     const una = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
-    const quince = renderToStaticMarkup(
-      <AulasMetasBarras filas={Array.from({ length: 15 }, (_, i) => fila({ facultad: `F${i}` }))} />,
-    );
+    const quince = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
     const veinte = renderToStaticMarkup(
       <AulasMetasBarras filas={Array.from({ length: 20 }, (_, i) => fila({ facultad: `F${i}` }))} />,
     );
-    const ancho = (h: string) => Number(/viewBox="0 0 (\d+)/.exec(h)?.[1] ?? 0);
     expect(ancho(una)).toBe(ancho(quince));
-    // Por encima del caso de referencia sí crece, y entonces aparece el scroll.
-    expect(ancho(veinte)).toBeGreaterThan(ancho(quince));
+    // **Y veinte tampoco lo ensanchan, desde que se parte en dos filas**: diez
+    // columnas por fila caben en el mismo lienzo. Antes crecía y aparecía el
+    // scroll con veinte; ahora hace falta llegar a que la columna no baje del
+    // ancho nominal, que es lo que protege al rótulo.
+    expect(ancho(veinte)).toBe(ancho(quince));
+    const cuarenta = renderToStaticMarkup(
+      <AulasMetasBarras filas={Array.from({ length: 40 }, (_, i) => fila({ facultad: `F${i}` }))} />,
+    );
+    expect(ancho(cuarenta)).toBeGreaterThan(ancho(quince));
     expect(quince).toContain("min-width:");
   });
 
-  it("con una sola facultad la barra es cuatro veces más gruesa", () => {
+  it("con una sola facultad la barra engorda, pero con tope", () => {
     const grosor = (h: string) => Number(/width="([\d.]+)"/.exec(h)?.[1] ?? 0);
     const una = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
-    const quince = renderToStaticMarkup(
-      <AulasMetasBarras filas={Array.from({ length: 15 }, (_, i) => fila({ facultad: `F${i}` }))} />,
-    );
-    expect(grosor(una)).toBe(grosor(quince) * 4);
+    const quince = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
+    // El tope es `GRUPO * ENGORDE_MAXIMO`: sin él, dos facultades darían
+    // columnas de media pantalla.
+    expect(grosor(una)).toBeCloseTo(62 * 4 * 0.3, 5);
+    expect(grosor(una)).toBeGreaterThan(grosor(quince));
   });
 
   it("sin filas no pinta un lienzo vacío", () => {
@@ -153,9 +215,9 @@ describe("el pie del gráfico y los porcentajes", () => {
   });
 
   it("el nombre se parte en dos líneas, sin las palabras que no distinguen", () => {
-    const html = renderToStaticMarkup(
-      <AulasMetasBarras filas={[fila({ facultad: "GESTIÓN Y ALTA DIRECCIÓN" })]} />,
-    );
+    // Sobre las quince: una facultad sola tiene el lienzo entero y cabría de
+    // corrido, así que no probaría el reparto.
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={QUINCE} />);
     // «Y» no separa una facultad de otra y se lleva sitio de las que sí. Se cae
     // del RÓTULO, no del `title`, que conserva el nombre entero — por eso la
     // comprobación mira los `tspan` y no el html suelto.
