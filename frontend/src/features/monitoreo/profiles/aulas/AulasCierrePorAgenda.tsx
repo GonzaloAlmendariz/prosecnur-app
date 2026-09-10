@@ -4,6 +4,7 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { cierrePorAgenda } from "./cierrePorAgenda";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { ejeDeDias } from "./ejeDeDias";
+import { mesCortoDe } from "../../mesesEnPalabras";
 import { fmt } from "./kpisDeAulas";
 import "./aulasCierrePorAgenda.css";
 
@@ -35,8 +36,6 @@ import "./aulasCierrePorAgenda.css";
 
 /** Alto del área de dibujo, en px. Cabe al lado de sus vecinos de Resumen. */
 const ALTO = 132;
-/** El mes en tres letras, bajo el día, sólo cuando cambia. */
-const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 
 export function AulasCierrePorAgenda({ plan, meta, corte = "", desde = "" }: {
   plan: ReadonlyArray<MonitoreoRow> | null | undefined;
@@ -186,7 +185,7 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "", desde = "" }: {
             <i />
             {d.fecha.slice(8, 10)}
             {i === 0 || d.fecha.slice(5, 7) !== dias[i - 1].fecha.slice(5, 7) ? (
-              <b>{MESES[Number(d.fecha.slice(5, 7)) - 1]}</b>
+              <b>{mesCortoDe(d.fecha)}</b>
             ) : null}
           </span>
         ))}

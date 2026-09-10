@@ -58,9 +58,12 @@ describe("las semanas van de lunes a domingo y cubren el rango agendado", () => 
   });
 
   it("el título nombra el periodo", () => {
-    expect(cal.titulo).toBe("septiembre 2026");
+    // «setiembre», no «septiembre»: los meses viven en un solo sitio desde el
+    // 2026-09-10 (`mesesEnPalabras.ts`) y la app decía las dos cosas —la ficha
+    // del curso-horario una y el calendario la otra— en la misma pantalla.
+    expect(cal.titulo).toBe("setiembre 2026");
     expect(calendarioDeAgenda([d("2026-08-28", 1), d("2026-09-02", 1)], "2026-09-01").titulo)
-      .toBe("agosto – septiembre 2026");
+      .toBe("agosto – setiembre 2026");
     expect(calendarioDeAgenda([d("2026-12-30", 1), d("2027-01-02", 1)], "2027-01-01").titulo)
       .toBe("diciembre 2026 – enero 2027");
   });

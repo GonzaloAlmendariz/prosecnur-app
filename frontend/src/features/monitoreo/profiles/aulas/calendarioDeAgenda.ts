@@ -1,4 +1,5 @@
 import { fechaIsoReal } from "./agendaPorDia";
+import { MES_LARGO } from "../../mesesEnPalabras";
 import type { DiaDeAgenda } from "./agendaPorDia";
 
 /**
@@ -27,11 +28,6 @@ const MS_DIA = 86_400_000;
 
 /** Techo del lienzo: medio año de semanas ya es un operativo, no un typo. */
 export const MAX_SEMANAS = 26;
-
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
 
 /** La fecha LOCAL del usuario como ISO: hoy según su reloj, no según UTC. */
 export function hoyISO(ahora: Date = new Date()): string {
@@ -129,8 +125,8 @@ export function calendarioDeAgenda(
 
   const desde = new Date(minMs);
   const hasta = new Date(maxMs);
-  const mesDesde = `${MESES[desde.getUTCMonth()]}${desde.getUTCFullYear() !== hasta.getUTCFullYear() ? ` ${desde.getUTCFullYear()}` : ""}`;
-  const mesHasta = `${MESES[hasta.getUTCMonth()]} ${hasta.getUTCFullYear()}`;
+  const mesDesde = `${MES_LARGO[desde.getUTCMonth()]}${desde.getUTCFullYear() !== hasta.getUTCFullYear() ? ` ${desde.getUTCFullYear()}` : ""}`;
+  const mesHasta = `${MES_LARGO[hasta.getUTCMonth()]} ${hasta.getUTCFullYear()}`;
   const titulo = desde.getUTCMonth() === hasta.getUTCMonth() && desde.getUTCFullYear() === hasta.getUTCFullYear()
     ? mesHasta
     : `${mesDesde} – ${mesHasta}`;
