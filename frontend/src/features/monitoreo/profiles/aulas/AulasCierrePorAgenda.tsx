@@ -34,8 +34,26 @@ import "./aulasCierrePorAgenda.css";
 
 /** Alto del área de dibujo, en px. Cabe al lado de sus vecinos de Resumen. */
 const ALTO = 132;
-/** Sitio para los rótulos del eje de la izquierda. */
-const MARGEN = 46;
+/**
+ * Qué días del eje llevan rótulo.
+ *
+ * Hasta seis, repartidos por índice y con los dos extremos SIEMPRE: el primero y
+ * el último son los que anclan la lectura —de cuándo a cuándo—, y son justo los
+ * que un reparto regular se salta cuando el número de días no es múltiplo.
+ */
+export function marcasDelEje(n: number, tope = 6): number[] {
+  if (n <= 0) return [];
+  if (n <= tope) return Array.from({ length: n }, (_, i) => i);
+  const paso = (n - 1) / (tope - 1);
+  const idx = Array.from({ length: tope }, (_, k) => Math.round(k * paso));
+  return [...new Set(idx)];
+}
+
+/** «12/09»: en un eje apretado, el día y el mes bastan. */
+function diaCorto(iso: string): string {
+  const m = iso.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}` : iso;
+}
 
 export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
   plan: ReadonlyArray<MonitoreoRow> | null | undefined;
@@ -130,10 +148,24 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
         ) : null}
       </div>
 
-      <p className="aulas-cpa-eje">
-        <span>{etiquetaDeFecha(c.dias[0].fecha)}</span>
-        <span>{etiquetaDeFecha(c.ultimaFecha)}</span>
-      </p>
+      {/* **El eje de días, con días.** Gonzalo: «a ninguno de los dos se le ven
+          bien los días, están salteados, y en el segundo gráfico directamente ni
+          se ven los días». Tenía dos fechas en los extremos y nada en medio: una
+          curva que cubre tres semanas sin marcas intermedias no se puede leer —no
+          se sabe si la subida es de esta semana o de la que viene—.
+
+          Los rótulos se reparten sobre los días QUE EXISTEN en la agenda, no
+          sobre una malla de calendario: el eje del gráfico es de posición, y un
+          rótulo en una posición sin dato apuntaría a un sitio donde la curva no
+          tiene punto. */}
+      <div className="aulas-cpa-eje">
+        {marcasDelEje(c.dias.length).map((i) => (
+          <span key={c.dias[i].fecha} style={{ left: `${x(i)}%` }}>
+            <i />
+            {diaCorto(c.dias[i].fecha)}
+          </span>
+        ))}
+      </div>
 
       <ul className="aulas-cpa-claves">
         <li>

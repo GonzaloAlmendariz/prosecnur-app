@@ -89,12 +89,37 @@
    de leerse justo donde importa. */
 .mon-profile-page.is-aulas-flow .aulas-cpa-rotulo-meta { transform: translateY(-100%); }
 
+/* El eje de días: rótulos posicionados sobre el día al que apuntan, no
+   repartidos por `space-between` —que los pone donde no hay dato—. */
 .mon-profile-page.is-aulas-flow .aulas-cpa-eje {
-  display: flex;
-  justify-content: space-between;
-  margin: 4px 0 0;
+  position: relative;
+  height: 26px;
+  margin: 2px 0 0;
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+/* El primero y el último se arriman al borde en vez de salirse del panel. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje span:first-child { transform: translateX(0); align-items: flex-start; }
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje span:last-child { transform: translateX(-100%); align-items: flex-end; }
+
+/* La marca que ata el rótulo a su punto en la curva. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje i {
+  width: 1px;
+  height: 4px;
+  background: var(--pulso-border-strong);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cpa-claves {
