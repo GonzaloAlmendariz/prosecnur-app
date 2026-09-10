@@ -142,7 +142,7 @@ describe("la τ del diseño contra la del campo", () => {
     // Quien no distingue los tonos —o proyecta, o imprime— recibía el estado
     // sólo por el borde de color de la fila.
     expect(render(bloque({ facultades: [fac({ riesgo: "riesgo_firme" })] }))).toContain("No cierra");
-    expect(render(bloque({ facultades: [fac({ riesgo: "holgado" })] }))).toContain("Cubierta");
+    expect(render(bloque({ facultades: [fac({ riesgo: "holgado" })] }))).toContain("Cuota cubierta");
     expect(render(bloque({ facultades: [fac({ riesgo: "ajustado" })] }))).toContain("Justa");
   });
 
@@ -341,7 +341,7 @@ describe("los dos riesgos no se dicen igual", () => {
   it("la escalera tiene los cuatro peldaños", () => {
     const palabras = (["holgado", "ajustado", "riesgo", "riesgo_firme"] as const)
       .map((r) => render(bloque({ facultades: [fac({ riesgo: r })] })));
-    expect(palabras[0]).toContain("Cubierta");
+    expect(palabras[0]).toContain("Cuota cubierta");
     expect(palabras[1]).toContain("Justa");
     expect(palabras[2]).toContain("Puede no cerrar");
     expect(palabras[3]).toContain("No cierra");
@@ -467,12 +467,37 @@ describe("las dos celdas de sexo de cada facultad", () => {
     );
     expect(html).toContain("Mujeres");
     expect(html).toContain("Hombres");
+    // La observada es de cada celda; la prevista, la de la FILA.
     expect(html).toContain("32.9 %");
-    expect(html).toContain("50.0 %");
-    // En personas y con signo: −12 en una celda y +3 en la otra, que es
-    // exactamente lo que la τ general de la facultad promedia y esconde.
-    expect(html).toContain("−12");
-    expect(html).toContain("+3");
+    expect(html).toContain("60.0 %");
+  });
+
+  /**
+   * **Las dos celdas tienen que sumar lo que dice «Hasta ahora».**
+   *
+   * Gonzalo, sobre Artes Escénicas: «¿por qué las mujeres salen como menos 1 y
+   * hombres menos 2, pero en "hasta ahora" sale que faltan 10?». No sumaban
+   * porque el total usaba la τ que el DISEÑO le puso a la facultad y cada celda
+   * la que el libro reparte por composición del aula: dos previstos para el
+   * mismo hecho. Con la τ de la fila aplicada a los elegibles de cada sexo,
+   * suman por construcción.
+   */
+  it("las dos celdas suman la diferencia de la fila", () => {
+    const tau = 0.5;
+    const filaConTau = { ...bloque().facultades[0], tau_previsto: tau };
+    const b = { ...bloque(), facultades: [filaConTau] } as MonitoreoAulasEfectividadSeguimiento;
+    // 70 elegibles de mujeres y 30 de hombres = los 100 de la fila.
+    const dos = [
+      { ...celdas[0], elegibles: 70, efectivas: 28 },
+      { ...celdas[1], elegibles: 30, efectivas: 20 },
+    ];
+    const html = renderToStaticMarkup(<AulasEfectividadSeguimiento bloque={b} porSexo={dos} />);
+    // Mujeres: 28 − 0,5×70 = −7. Hombres: 20 − 0,5×30 = +5. Suma: −2.
+    expect(html).toContain("−7");
+    expect(html).toContain("+5");
+    // Y ese −2 es exactamente lo que sale de aplicar la misma τ al total:
+    // 48 − 0,5×100 = −2.
+    expect((28 - tau * 70) + (20 - tau * 30)).toBe(48 - tau * 100);
   });
 
   it("sin el bloque por sexo la tabla se pinta igual que antes", () => {
