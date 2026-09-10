@@ -5,66 +5,108 @@ import { filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
 
+/** El ancho nominal de una columna, con las facultades de referencia en una fila. */
 const GRUPO = 62;
 /** Las quince facultades del estudio: el lienzo se dimensiona contra este caso. */
 const FACULTADES_DE_REFERENCIA = 15;
-const BARRA = 19;
-const HUECO = 5;
 /**
- * **Más alto para las barras y menos pie.** Él: «las barras pueden tener más
- * alto». Los 96 px de pie eran para los nombres a 45°, que se comían un tercio
- * del gráfico; con los nombres en dos líneas horizontales bastan 54, y esos 42
- * px van a la barra, que es lo que se compara.
+ * **Desde nueve facultades el gráfico se parte en dos filas.**
+ *
+ * Él, el 2026-09-10: «que sea robusto: eso no pasa siempre, pasa que haya más
+ * de 8 facultades en adelante y se parte a la mitad a partir de allí». El
+ * umbral es el conteo, no este estudio: un marco de seis facultades sigue
+ * entrando en una sola fila y no paga el corte.
  */
-const ALTO_BARRAS = 340;
-const MARGEN = { arriba: 22, abajo: 54, izq: 42, der: 8 };
+const UMBRAL_DOS_FILAS = 8;
+/** Alto de las barras de UNA fila, en unidades del viewBox. */
+const UTIL_FILA = 158;
+/** Cuánto puede engordar una columna cuando hay pocas facultades. */
+const ENGORDE_MAXIMO = 4;
+const MARGEN = { arriba: 22, abajo: 6, izq: 42, der: 8 };
 
-/** Cuántos caracteres caben por línea del rótulo, al ancho de un grupo. */
-const POR_LINEA = 13;
 /**
- * **Hasta CINCO líneas, no dos** (Gonzalo, 2026-09-10: «el eje puede tener más
+ * **El rótulo se reparte por ANCHO MEDIDO, no por número de caracteres.**
+ *
+ * Con el tope en trece caracteres las etiquetas se pisaban unas con otras en
+ * pantalla: la columna mide 62 unidades del viewBox y «ARQUITECTURA» medía
+ * 78,6 — un 27 % de más. Medido el 2026-09-10 con `getComputedTextLength()`
+ * sobre el gráfico vivo de las quince facultades. Contar caracteres no podía
+ * verlo porque una «I» y una «M» no ocupan lo mismo.
+ *
+ * La tabla son fracciones del tamaño de letra, de esa misma medición; lo que
+ * no está listado usa el típico de una mayúscula. La estimación queda un pelo
+ * por encima de la real (81,6 frente a 78,6 en el peor caso), que es el lado
+ * correcto por el que equivocarse: sobra aire, no falta.
+ */
+const ANCHO_DE_GLIFO: Readonly<Record<string, number>> = {
+  " ": 0.28, ",": 0.28, ".": 0.28, "·": 0.35, "-": 0.35,
+  I: 0.3, J: 0.55, L: 0.62, M: 0.86, W: 0.9, Y: 0.68,
+};
+const ANCHO_TIPICO = 0.68;
+/** El tamaño del rótulo, `--aulas-min`, en unidades del viewBox. */
+const FUENTE_ROTULO = 10;
+/** Aire entre el rótulo y el de al lado, para que no se toquen. */
+const AIRE = 4;
+/**
+ * **Hasta CINCO filas, no dos** (Gonzalo, 2026-09-10: «el eje puede tener más
  * de dos filas hasta 5 con tal de que entre bien»).
  *
- * Con el tope en dos, «ARQUITECTURA Y URBANISMO» y «GASTRONOMÍA, HOTELERÍA Y
- * TURISMO» salían cortadas con puntos suspensivos y se pisaban con su vecina:
- * el rótulo dejaba de distinguir una facultad de otra, que es para lo único que
- * está. Visto en pantalla ese día.
+ * Se gastan en dos líneas por rótulo y dos alturas escalonadas: cuatro. La
+ * quinta queda de margen. Escalonar es lo que compra el ancho — un rótulo
+ * suelto no cabe en su columna ni partiendo palabras, porque «URBANISMO» y
+ * «CONTABLES» ya se salen ellas solas.
  */
-const MAX_LINEAS = 5;
+const MAX_LINEAS = 2;
 /** Alto de cada línea del rótulo, en unidades del viewBox. */
 const ALTO_LINEA = 11;
 
+/** Lo que mide un texto, en unidades del viewBox, sin pintarlo. */
+export function anchoDeTexto(texto: string, fuente = FUENTE_ROTULO): number {
+  let unidades = 0;
+  for (const c of String(texto ?? "")) unidades += ANCHO_DE_GLIFO[c] ?? ANCHO_TIPICO;
+  return unidades * fuente;
+}
+
 /**
- * El nombre de una facultad en dos líneas, cortando por palabras.
+ * El nombre de una facultad repartido en líneas que caben en `disponible`.
  *
- * **Contraer antes de partir.** «CIENCIAS Y ARTES DE LA COMUN.» son veintiséis
- * caracteres y en dos líneas de trece cabe justo; las palabras vacías —«Y»,
- * «DE», «LA»— se van porque no distinguen una facultad de otra, que es para lo
- * que sirve el rótulo. Lo que no cabe se corta con puntos suspensivos y el
- * nombre entero queda en el `title`.
+ * **Contraer antes de partir.** «CIENCIAS Y ARTES DE LA COMUN.» son veintiocho
+ * caracteres; las palabras vacías —«Y», «E», «DE», «LA»— se van porque no distinguen
+ * una facultad de otra, que es para lo que sirve el rótulo. Lo que aun así no
+ * entra se corta con puntos suspensivos y el nombre entero queda en el `title`.
  */
-export function enDosLineas(
-  nombre: string, porLinea = POR_LINEA, maxLineas = MAX_LINEAS,
+export function enLineas(
+  nombre: string, disponible: number, maxLineas = MAX_LINEAS, fuente = FUENTE_ROTULO,
 ): string[] {
   const palabras = String(nombre ?? "").trim().split(/\s+/)
-    .filter((p) => p && !["Y", "DE", "LA", "EL", "LAS", "LOS", "DEL"].includes(p.toUpperCase()));
+    .filter((p) => p && !["Y", "E", "DE", "LA", "EL", "LAS", "LOS", "DEL"].includes(p.toUpperCase()));
   const lineas: string[] = [];
   let actual = "";
   for (const p of palabras) {
     if (!actual) actual = p;
-    else if (`${actual} ${p}`.length <= porLinea) actual = `${actual} ${p}`;
-    else { lineas.push(actual); actual = p; }
-    if (lineas.length === maxLineas) break;
+    else if (anchoDeTexto(`${actual} ${p}`, fuente) <= disponible) actual = `${actual} ${p}`;
+    else if (lineas.length + 1 < maxLineas) { lineas.push(actual); actual = p; }
+    else { actual = `${actual} ${p}`; }
   }
-  if (actual && lineas.length < maxLineas) lineas.push(actual);
-  // El techo ya no empuja el pie a ciegas: el gráfico crece lo que ocupen las
-  // líneas que de verdad se usan (`altoDelPie` abajo), así que subirlo no le
-  // roba alto a las barras — que era el motivo por el que estaba en dos.
-  return lineas.slice(0, maxLineas).map((l, i, todas) => (
-    l.length > porLinea + 2
-      ? `${l.slice(0, porLinea + 1)}…`
-      : (i === todas.length - 1 && palabras.join(" ").length > todas.join(" ").length ? `${l}…` : l)
-  ));
+  if (actual) lineas.push(actual);
+  return lineas.slice(0, maxLineas).map((linea) => recortaAlAncho(linea, disponible, fuente));
+}
+
+/** Recorta con puntos suspensivos sólo lo que de verdad se sale. */
+function recortaAlAncho(linea: string, disponible: number, fuente: number): string {
+  if (anchoDeTexto(linea, fuente) <= disponible) return linea;
+  let corte = linea;
+  while (corte.length > 1 && anchoDeTexto(`${corte}…`, fuente) > disponible) {
+    corte = corte.slice(0, -1);
+  }
+  return `${corte.trimEnd()}…`;
+}
+
+/** Si algún nombre no entra en el ancho de una sola columna, se escalona. */
+function hayQueEscalonar(
+  nombres: ReadonlyArray<string>, anchoDeColumna: number,
+): boolean {
+  return nombres.some((n) => enLineas(n, anchoDeColumna).some((l) => l.endsWith("…")));
 }
 
 /**
@@ -77,6 +119,15 @@ export function enDosLineas(
  * la misma regla. El gauge contesta la otra pregunta —¿esta facultad llega?— y
  * para eso la escala tiene que ser suya. Dos gráficos porque son dos preguntas,
  * no por adorno.
+ *
+ * **En DOS filas desde nueve facultades** (Gonzalo, 2026-09-10: «que sea
+ * robusto: siempre que haya más de 8 facultades en adelante se parte a la mitad
+ * a partir de allí»). Con las quince en una sola fila cada columna medía 62
+ * unidades y el rótulo más ancho, 78,6: las etiquetas se pisaban unas con otras
+ * y el eje dejaba de decir qué facultad era cuál. Partir por la mitad duplica el
+ * ancho de columna —116 unidades— y de paso gasta el hueco muerto que quedaba
+ * bajo el gráfico. Las dos filas comparten techo y escala, que es lo que hace
+ * que los altos se sigan pudiendo comparar entre filas.
  *
  * SVG y no una librería: son treinta rectángulos y una rejilla. Plotly entraría
  * al bundle por esto.
@@ -94,44 +145,46 @@ export function AulasMetasBarras({ filas }: {
     ...orden.map((f) => Math.max(f.meta_M, f.meta_F, f.obtenidas_M, f.obtenidas_F)),
     1,
   ) * 1.08;
-  /**
-   * **Con pocas facultades, las barras engordan; el lienzo no se estira.**
-   *
-   * El SVG lleva `width: 100%` y un `viewBox` que crecía con el número de
-   * facultades, así que el navegador lo escalaba hasta llenar el panel. Con las
-   * quince del estudio la escala es ~1,2 y no se nota. Con el selector de
-   * facultad puesto —una sola fila— el `viewBox` medía 112 y la escala se iba a
-   * ×10: el «33 %» de una barra ocupaba media pantalla y el gráfico dejaba de
-   * ser un gráfico. Visto en pantalla el 2026-09-10 con DERECHO puesto.
-   *
-   * Dos piezas: el grupo se ensancha hasta cuatro veces cuando hay pocas
-   * facultades —las barras se ven gruesas en vez de diminutas— y el lienzo nunca
-   * baja del ancho que tendría lleno, así que la escala se queda donde estaba y
-   * el texto mide siempre lo mismo. Lo que sobra se reparte a los lados.
-   */
-  const engorde = Math.min(4, Math.max(1, FACULTADES_DE_REFERENCIA / orden.length));
-  const grupo = GRUPO * engorde;
-  const barra = BARRA * engorde;
-  const hueco = HUECO * engorde;
-  const anchoDeLosGrupos = orden.length * grupo;
-  const ancho = Math.max(
-    MARGEN.izq + MARGEN.der + anchoDeLosGrupos,
-    MARGEN.izq + MARGEN.der + FACULTADES_DE_REFERENCIA * GRUPO,
+
+  // El lienzo mide siempre lo mismo —el ancho que tendría lleno— para que el
+  // texto no cambie de tamaño con el número de facultades: con el selector
+  // puesto en una sola facultad, un viewBox de 112 se escalaba ×10 y el «33 %»
+  // ocupaba media pantalla. Visto en pantalla el 2026-09-10 con DERECHO puesto.
+  const anchoDeReferencia = MARGEN.izq + MARGEN.der + FACULTADES_DE_REFERENCIA * GRUPO;
+  const cuantasFilas = orden.length > UMBRAL_DOS_FILAS ? 2 : 1;
+  const porFila = Math.ceil(orden.length / cuantasFilas);
+  // Con pocas facultades el grupo engorda —barras gruesas en vez de diminutas—
+  // pero con tope, o dos facultades darían columnas de media pantalla. Y con
+  // muchísimas no baja del ancho nominal: por debajo de ahí los rótulos se
+  // vuelven a pisar, así que en ese extremo lo que cede es el lienzo —aparece
+  // el scroll— y no la legibilidad del eje.
+  const grupo = Math.min(
+    GRUPO * ENGORDE_MAXIMO,
+    Math.max(GRUPO, (anchoDeReferencia - MARGEN.izq - MARGEN.der) / porFila),
   );
-  /** Lo que sobra a la izquierda cuando los grupos no llenan el lienzo. */
-  const sangria = (ancho - MARGEN.izq - MARGEN.der - anchoDeLosGrupos) / 2;
-  // **El pie crece con los rótulos, y el alto del gráfico con él.** Antes el pie
-  // eran 54 px fijos para dos líneas; subir el tope a cinco sin esto le habría
-  // robado a las barras justo el alto que se les había devuelto. Se paga sólo lo
-  // que ocupan las líneas que de verdad se usan: con facultades de nombre corto
-  // el gráfico queda igual que antes.
-  const lineasPorFacultad = orden.map((f) => enDosLineas(f.facultad).length);
-  const maxLineas = Math.max(2, ...(lineasPorFacultad.length ? lineasPorFacultad : [2]));
-  const abajo = MARGEN.abajo + (maxLineas - 2) * ALTO_LINEA;
-  const ALTO = ALTO_BARRAS + (maxLineas - 2) * ALTO_LINEA;
-  const util = ALTO - MARGEN.arriba - abajo;
-  const y = (v: number) => MARGEN.arriba + util * (1 - v / techo);
-  const alto = (v: number) => Math.max(0, (util * v) / techo);
+  const ancho = Math.max(anchoDeReferencia, MARGEN.izq + MARGEN.der + porFila * grupo);
+  const anchoUtil = ancho - MARGEN.izq - MARGEN.der;
+  const barra = grupo * 0.3;
+  const hueco = grupo * 0.07;
+  /** Lo que sobra a los lados cuando los grupos no llenan el lienzo. */
+  const sangria = (anchoUtil - porFila * grupo) / 2;
+  /** Lo que le queda al rótulo antes de tocar al de al lado. */
+  const disponible = grupo - AIRE;
+
+  const lineasPorFacultad = orden.map((f) => enLineas(f.facultad, disponible).length);
+  const maxLineas = Math.max(1, ...lineasPorFacultad);
+  /** Lo que ocupa el rotulado bajo cada fila de barras. */
+  const pie = maxLineas * ALTO_LINEA + 8;
+  const ALTO = MARGEN.arriba + cuantasFilas * (UTIL_FILA + pie) + MARGEN.abajo;
+
+  /** El borde superior de la fila `r`. */
+  const techoDeFila = (r: number) => MARGEN.arriba + r * (UTIL_FILA + pie);
+  const y = (v: number, r: number) => techoDeFila(r) + UTIL_FILA * (1 - v / techo);
+  const alto = (v: number) => Math.max(0, (UTIL_FILA * v) / techo);
+
+  const bandas = Array.from({ length: cuantasFilas }, (_, r) => (
+    orden.slice(r * porFila, (r + 1) * porFila)
+  ));
 
   return (
     <div className="aulas-metas-scroll">
@@ -143,7 +196,7 @@ export function AulasMetasBarras({ filas }: {
       {/* **Ocupa el ancho del panel.** Iba con `width` en píxeles y en pantallas
           anchas dejaba un vacío a la derecha; con el viewBox puesto, el 100 %
           escala sin deformar y el scroll horizontal sólo aparece cuando de
-          verdad no caben las quince facultades. */}
+          verdad no caben las facultades de una fila. */}
       <svg
         viewBox={`0 0 ${ancho} ${ALTO}`}
         className="aulas-metas-lienzo"
@@ -152,82 +205,86 @@ export function AulasMetasBarras({ filas }: {
         role="img"
         aria-label="Meta y conseguido de cada facultad, por sexo, en la misma escala"
       >
-        {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-          const v = techo * t;
-          return (
-            <g key={t}>
-              <line
-                x1={MARGEN.izq} x2={ancho - MARGEN.der} y1={y(v)} y2={y(v)}
-                className="aulas-metas-rejilla"
-              />
-              <text
-                x={MARGEN.izq - 6} y={y(v) + 3.5} textAnchor="end"
-                className="aulas-metas-eje"
-              >
-                {Math.round(v)}
-              </text>
-            </g>
-          );
-        })}
-        {orden.map((f, i) => {
-          const x0 = MARGEN.izq + sangria + i * grupo + 8 * engorde;
-          const carriles = [
-            [f.meta_M, f.obtenidas_M, 0, "hombres"],
-            [f.meta_F, f.obtenidas_F, barra + hueco, "mujeres"],
-          ] as const;
-          // **En dos líneas y horizontal, no en diagonal.** Él: «las etiquetas
-          // del eje x pueden tener wrap y tener mayor contracción para que no
-          // estén dispuestas de forma diagonal». Un nombre a 45° obliga a girar
-          // la cabeza y además se comía 96 px de pie; partido cabe recto y deja
-          // ese alto para las barras.
-          const lineas = enDosLineas(f.facultad);
-          return (
-            <g key={f.facultad}>
-              {carriles.map(([meta, obtenidas, dx, tono]) => (
-                <g key={dx}>
-                  <rect
-                    x={x0 + dx} y={y(meta)} width={barra} height={alto(meta)}
-                    className="aulas-metas-barra-meta"
+        {bandas.map((banda, r) => (
+          <g key={`banda-${r}`}>
+            {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+              const v = techo * t;
+              return (
+                <g key={t}>
+                  <line
+                    x1={MARGEN.izq} x2={ancho - MARGEN.der} y1={y(v, r)} y2={y(v, r)}
+                    className="aulas-metas-rejilla"
                   />
-                  {/* Cada sexo con su tono, el mismo de su chip en las tablas:
-                      en verde las dos, el carril de hombres y el de mujeres
-                      sólo se distinguían por la posición. */}
-                  <rect
-                    x={x0 + dx} y={y(obtenidas)} width={barra} height={alto(obtenidas)}
-                    className="aulas-metas-barra-logro" data-sexo={tono}
+                  <text
+                    x={MARGEN.izq - 6} y={y(v, r) + 3.5} textAnchor="end"
+                    className="aulas-metas-eje"
                   >
-                    <title>
-                      {`${f.facultad} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
-                      {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
-                    </title>
-                  </rect>
-                  {/* **El porcentaje encima, del color de su barra.** Él: «mostrar
-                      mejor los porcentajes de cada barra en su parte superior con
-                      el color de su coloreado». Sin él hay que estimar a ojo
-                      dónde cae el relleno dentro del hueco de la meta, que es
-                      justo la comparación que el gráfico existe para dar. */}
-                  {meta > 0 ? (
-                    <text
-                      x={x0 + dx + barra / 2} y={y(meta) - 5} textAnchor="middle"
-                      className="aulas-metas-pct" data-sexo={tono}
-                    >
-                      {Math.round((100 * obtenidas) / meta)}%
-                    </text>
-                  ) : null}
+                    {Math.round(v)}
+                  </text>
                 </g>
-              ))}
-              <text
-                x={x0 + barra + hueco / 2} y={ALTO - abajo + 14}
-                textAnchor="middle" className="aulas-metas-etiqueta"
-              >
-                {lineas.map((linea, k) => (
-                  <tspan key={linea} x={x0 + barra + hueco / 2} dy={k === 0 ? 0 : 11}>{linea}</tspan>
-                ))}
-                <title>{f.facultad}</title>
-              </text>
-            </g>
-          );
-        })}
+              );
+            })}
+            {banda.map((f, i) => {
+              const centro = MARGEN.izq + sangria + (i + 0.5) * grupo;
+              const x0 = centro - (2 * barra + hueco) / 2;
+              const carriles = [
+                [f.meta_M, f.obtenidas_M, 0, "hombres"],
+                [f.meta_F, f.obtenidas_F, barra + hueco, "mujeres"],
+              ] as const;
+              // **Horizontal y repartido en líneas, no en diagonal.** Él: «las
+              // etiquetas del eje x pueden tener wrap y tener mayor contracción
+              // para que no estén dispuestas de forma diagonal». Un nombre a 45°
+              // obliga a girar la cabeza y se comía 96 px de pie.
+              const lineas = enLineas(f.facultad, disponible);
+              return (
+                <g key={f.facultad}>
+                  {carriles.map(([meta, obtenidas, dx, tono]) => (
+                    <g key={dx}>
+                      <rect
+                        x={x0 + dx} y={y(meta, r)} width={barra} height={alto(meta)}
+                        className="aulas-metas-barra-meta"
+                      />
+                      {/* Cada sexo con su tono, el mismo de su chip en las tablas:
+                          en verde las dos, el carril de hombres y el de mujeres
+                          sólo se distinguían por la posición. */}
+                      <rect
+                        x={x0 + dx} y={y(obtenidas, r)} width={barra} height={alto(obtenidas)}
+                        className="aulas-metas-barra-logro" data-sexo={tono}
+                      >
+                        <title>
+                          {`${f.facultad} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
+                          {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
+                        </title>
+                      </rect>
+                      {/* **El porcentaje encima, del color de su barra.** Él: «mostrar
+                          mejor los porcentajes de cada barra en su parte superior con
+                          el color de su coloreado». Sin él hay que estimar a ojo
+                          dónde cae el relleno dentro del hueco de la meta, que es
+                          justo la comparación que el gráfico existe para dar. */}
+                      {meta > 0 ? (
+                        <text
+                          x={x0 + dx + barra / 2} y={y(meta, r) - 5} textAnchor="middle"
+                          className="aulas-metas-pct" data-sexo={tono}
+                        >
+                          {Math.round((100 * obtenidas) / meta)}%
+                        </text>
+                      ) : null}
+                    </g>
+                  ))}
+                  <text
+                    x={centro} y={y(0, r) + 14}
+                    textAnchor="middle" className="aulas-metas-etiqueta"
+                  >
+                    {lineas.map((linea, k) => (
+                      <tspan key={linea} x={centro} dy={k === 0 ? 0 : ALTO_LINEA}>{linea}</tspan>
+                    ))}
+                    <title>{f.facultad}</title>
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        ))}
       </svg>
     </div>
   );
