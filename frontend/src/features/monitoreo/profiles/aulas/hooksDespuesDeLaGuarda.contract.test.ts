@@ -53,6 +53,83 @@ function hooksTrasLaGuarda(fuenteCruda: string): string[] {
   return [...despues.matchAll(LLAMADA_A_HOOK)].map((m) => m[0].replace(/\s*\($/, ""));
 }
 
+/**
+ * **La misma avería, en la otra forma que tiene.**
+ *
+ * La guarda de arriba mira un molde concreto —el `if (pestana !== …) return
+ * null;` de las seis pestañas— y por eso no vio el 2026-09-10 el mismo defecto
+ * en `AulasCoberturaChart.tsx`: allí la salida temprana es el VACÍO del panel
+ * («el plan todavía no trae cursos-horario») y el `useState` del tramo
+ * desplegado vivía doscientas líneas más abajo, pegado a la tabla que lo usa.
+ * Mientras la cobertura siempre tuviera filas nadie lo notó; al filtrar por
+ * facultad, una sin reparto entró por el vacío y la aplicación entera cayó con
+ * React #300.
+ *
+ * Ésa es la forma COMÚN en este perfil: cada panel tiene su vacío declarado y su
+ * `return` temprano. Así que la regla se aplica a todos los componentes del
+ * perfil, no sólo a las pestañas, y con la salida temprana genérica: dentro de
+ * cada función de nivel superior, después del primer `return` con sangría de dos
+ * espacios no puede haber ninguna llamada a hook.
+ */
+/**
+ * Como `sinComentarios`, pero **conservando los saltos de línea**.
+ *
+ * La primera versión de este segundo guard reusó `sinComentarios`, que colapsa
+ * cada bloque `/* … *\/` en UN espacio. En un perfil donde cada decisión lleva su
+ * párrafo encima, eso funde decenas de líneas en una y desplaza todo lo de
+ * abajo: los anclajes `^` dejan de caer donde deben y el guard acusó a dos
+ * archivos que no tienen el defecto —`AulasMonitoreoPage` y
+ * `AulasSerieDeRendimiento`—. Un detector que cría lobos acaba silenciado, que
+ * es justo lo que este archivo ya se había dicho a sí mismo una vez.
+ */
+function sinComentariosPorLinea(fuente: string): string {
+  return fuente
+    .replace(/\/\*[\s\S]*?\*\//g, (bloque) => bloque.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+}
+
+function hooksTrasUnaSalidaTemprana(fuenteCruda: string): string[] {
+  const lineas = sinComentariosPorLinea(fuenteCruda).split("\n");
+  // Los límites de cada función de nivel superior: `function X(`, `const X = (`,
+  // `export function X(`… en la columna cero.
+  // `export default function X(` incluido: sin el `default` el guard creía que
+  // el componente de abajo seguía dentro de la función de arriba y acusaba a
+  // `AulasMonitoreoPage` de treinta y siete hooks bajo una guarda ajena.
+  const esFrontera = (l: string) =>
+    /^(export\s+)?(default\s+)?(async\s+)?function\s+\w+|^(export\s+)?(default\s+)?const\s+\w+\s*[:=]/.test(l);
+  const culpables: string[] = [];
+  let salida = -1;
+  lineas.forEach((linea, i) => {
+    if (esFrontera(linea)) salida = -1;
+    // `  return` a dos espacios: el cuerpo de la función, no un `return` anidado
+    // dentro de un callback ni el de un `map`.
+    if (salida < 0 && /^ {2}return[\s(;]/.test(linea)) { salida = i; return; }
+    if (salida < 0) return;
+    for (const m of linea.matchAll(LLAMADA_A_HOOK)) {
+      culpables.push(`${m[0].replace(/\s*\($/, "")} (línea ${i + 1}, bajo el return de la ${salida + 1})`);
+    }
+  });
+  return culpables;
+}
+
+describe("ningún componente del perfil llama hooks bajo una salida temprana", () => {
+  const componentes = readdirSync(aulasDir).filter(
+    (f) => f.startsWith("Aulas") && f.endsWith(".tsx") && !f.includes(".test."),
+  );
+
+  test("hay componentes que revisar", () => {
+    expect(componentes.length).toBeGreaterThanOrEqual(20);
+  });
+
+  test("ninguno declara un hook por debajo de su primer `return`", () => {
+    const culpables = componentes.flatMap((archivo) => {
+      const hooks = hooksTrasUnaSalidaTemprana(readFileSync(path.join(aulasDir, archivo), "utf8"));
+      return hooks.length ? [`${archivo}: ${hooks.join(" · ")}`] : [];
+    });
+    expect(culpables).toEqual([]);
+  });
+});
+
 describe("las pestañas del perfil no llaman hooks después de su guarda", () => {
   const archivos = readdirSync(aulasDir).filter(
     (f) => f.startsWith("AulasPestana") && f.endsWith(".tsx") && !f.includes(".test."),

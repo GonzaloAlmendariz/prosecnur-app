@@ -180,7 +180,7 @@ export function escalaDeEje(maximo: number): { tope: number; escalones: number[]
   return { tope, escalones };
 }
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null, jornadas = [], facultadEnFoco, onFoco }: {
+type PropsDeLaSerie = {
   partes: ReadonlyArray<MonitoreoRow>;
   /** La facultad elegida, si viene de la URL. Manda sobre el estado local. */
   facultadEnFoco?: string;
@@ -225,8 +225,41 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
    * Sheets, así que el gráfico y la tabla no pueden discrepar.
    */
   jornadas?: ReadonlyArray<{ fecha: string; conseguidas: number; esperadas: number; diferencia: number }>;
-}) {
-  const modelo = useMemo(() => serieDeRendimiento(partes, plan, control), [partes, plan, control]);
+};
+
+/**
+ * **El vacío se decide ARRIBA, y con él sólo un hook.**
+ *
+ * Esta función existe para que la salida temprana no deje ningún hook debajo.
+ * La tenía: el `if (!modelo.fechas.length …) return <p>…` estaba a mitad del
+ * cuerpo y por debajo quedaban cinco `useMemo`. Mientras el gráfico se montara
+ * siempre con partes no pasaba nada; el día que el mismo componente se vuelva a
+ * pintar sin ellas —una facultad sin partes, una recarga de datos— React cuenta
+ * menos hooks que en el render anterior y la aplicación entera cae con el #300.
+ * Es exactamente la avería del 2026-09-10 en `AulasCoberturaChart`, y la
+ * encontró el guard que se amplió a raíz de aquélla.
+ *
+ * El modelo se calcula aquí y se pasa hecho: recalcularlo dentro sería el mismo
+ * trabajo dos veces y dos sitios donde se puede desincronizar.
+ */
+export function AulasSerieDeRendimiento(props: PropsDeLaSerie) {
+  const modelo = useMemo(
+    () => serieDeRendimiento(props.partes, props.plan ?? [], props.control ?? []),
+    [props.partes, props.plan, props.control],
+  );
+  if (!modelo.fechas.length || !modelo.facultades.length) {
+    return (
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        Todavía no hay partes de campo con fecha: sin ellos no se puede medir
+        cuánto deja cada visita.
+      </p>
+    );
+  }
+  return <SerieConDatos {...props} modelo={modelo} />;
+}
+
+function SerieConDatos({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null, jornadas = [], facultadEnFoco, onFoco, modelo }:
+  PropsDeLaSerie & { modelo: ReturnType<typeof serieDeRendimiento> }) {
   const proyeccion = useMemo(
     () => proyeccionPorAgenda(agenda, partes, cuotas),
     [agenda, partes, cuotas],
@@ -254,15 +287,6 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const [pista, setPista] = useState<
     { x: number; y: number; lineas: TrozoDePista[]; bloque: "acumulado" | "diario" } | null
   >(null);
-
-  if (!modelo.fechas.length || !modelo.facultades.length) {
-  return (
-      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Todavía no hay partes de campo con fecha: sin ellos no se puede medir
-        cuánto deja cada visita.
-      </p>
-    );
-  }
 
   const { fechas: aplicadas, facultades, mediaDelEstudio } = modelo;
   const elegida = facultades.find((f) => f.facultad === foco) ?? null;
