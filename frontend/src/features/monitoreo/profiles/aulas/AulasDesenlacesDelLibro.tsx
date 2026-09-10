@@ -43,6 +43,22 @@ export function AulasDesenlacesDelLibro({ desenlaces }: {
                     parecidas y lo que las separa es una frase. */}
                 <em title={t.detalle}>{t.detalle}</em>
               </span>
+              {/* **En qué punto está cada uno de los N.** Gonzalo, viendo el
+                  primer reparto: «de los 4 reemplazos cuántos ya han sido
+                  aplicados, cuántos agendados y cuántos sin agendar». Uno cuya
+                  reserva nadie ha llamado y otro ya aplicado son el mismo 1 en
+                  la cifra y dos situaciones opuestas: el primero pide trabajo
+                  hoy y el segundo ya no pide nada.
+
+                  El punto es el del RELEVO —la reserva que entró—, no el del
+                  titular: los titulares caídos ya no se mueven. */}
+              {t.total && (t.aplicados || t.agendados || t.sinAgendar) ? (
+                <span className="aulas-abc-puntos">
+                  {t.aplicados ? <b className="es-aplicado">{fmt(t.aplicados)} aplicados</b> : null}
+                  {t.agendados ? <b className="es-agendado">{fmt(t.agendados)} agendados</b> : null}
+                  {t.sinAgendar ? <b className="es-pendiente">{fmt(t.sinAgendar)} sin agendar</b> : null}
+                </span>
+              ) : null}
               {t.total && t.porFacultad.length ? (
                 <span className="aulas-abc-facultades">
                   {t.porFacultad.slice(0, 4).map((f, i) => (

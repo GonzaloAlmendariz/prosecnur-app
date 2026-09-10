@@ -1406,6 +1406,15 @@ export type MonitoreoAulasDesenlace = {
   total?: number;
   declarados?: number;
   en_curso?: number;
+  /**
+   * En qué punto está el aula que RESUELVE cada caso —la reserva que entró, no
+   * el titular—: «de los 4 reemplazos cuántos ya han sido aplicados, cuántos
+   * agendados y cuántos sin agendar» (Gonzalo, 2026-09-10). Los tres suman
+   * `total`.
+   */
+  aplicados?: number;
+  agendados?: number;
+  sin_agendar?: number;
   por_facultad?: Array<{ facultad?: string; aulas?: number }>;
   aulas?: Array<{
     codigo?: string;
@@ -1413,6 +1422,8 @@ export type MonitoreoAulasDesenlace = {
     titular?: string;
     /** Con CUÁL se resolvió. Vacía cuando el libro no lo dice: es media frase. */
     aula_utilizada?: string;
+    /** `aplicado` | `agendado` | `sin_agendar`, del aula que resuelve el caso. */
+    punto?: string;
     motivo?: string;
     efectivas?: number | null;
   }>;

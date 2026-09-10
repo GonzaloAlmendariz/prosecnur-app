@@ -186,3 +186,61 @@ test_that("un extra del banco aplicado es refuerzo aunque el libro no lo diga", 
   expect_equal(r$refuerzos$total, 1L)
   expect_equal(r$refuerzos$en_curso, 1L)
 })
+
+# ── De los N, cuantos aplicados, agendados y sin agendar ─────────────────────
+#
+# Gonzalo, viendo el reparto en pantalla: «en el caso de la A o de todos en
+# realidad se tiene que diferenciar, de los 4 reemplazos cuantos ya han sido
+# aplicados, cuantos agendados y cuantos sin agendar».
+
+test_that("cada tipo dice en que punto esta el aula que lo resuelve", {
+  # El corte del 2026-09-10: R 29.1 y R 131.1 agendadas, R 85.1 y R 90.1 en
+  # contacto —o sea, sin fecha—. Ninguna aplicada todavia.
+  r <- monitoreo_aulas_desenlaces_por_tipo(plan_derecho())
+  expect_equal(r$reemplazadas$total, 2L)
+  expect_equal(r$reemplazadas$aplicados, 0L)
+  expect_equal(r$reemplazadas$agendados, 1L)   # R 90.1 tiene fecha
+  expect_equal(r$reemplazadas$sin_agendar, 1L) # R 85.1 solo tiene contacto
+})
+
+test_that("el punto es el del RELEVO, no el del titular", {
+  # Los titulares estan los dos en rechazo; lo que se mueve es la reserva.
+  df <- plan_derecho()
+  df$application_status[df$operational_code == "R 85.1"] <- "APLICADA"
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$reemplazadas$aplicados, 1L)
+  expect_equal(r$reemplazadas$sin_agendar, 0L)
+})
+
+test_that("con varias reservas en juego manda la MAS avanzada", {
+  # Si una ya se aplico, el caso esta resuelto aunque otra siga en contacto.
+  # CH 85 tiene R 85.1 en contacto —sin fecha— y se le suma R 85.2 ya aplicada.
+  df <- rbind(plan_derecho(), data.frame(
+    operational_code = "R 85.2", titular_operational_code = "CH 85",
+    sample_role = "chain_reserve", faculty = "DERECHO",
+    sample_status = "agendada", application_status = "APLICADA",
+    contact_date = "2026-09-09", scheduled_date = "2026-09-16", aula_utilizada = "",
+    stringsAsFactors = FALSE
+  ))
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$reemplazadas$aplicados, 1L)
+})
+
+test_that("los tres puntos suman el total del tipo", {
+  r <- monitoreo_aulas_desenlaces_por_tipo(plan_derecho())
+  expect_equal(r$reemplazadas$aplicados + r$reemplazadas$agendados + r$reemplazadas$sin_agendar,
+               r$reemplazadas$total)
+})
+
+test_that("en el refuerzo el punto es el del extra, que no cuelga de nadie", {
+  df <- rbind(plan_derecho(), data.frame(
+    operational_code = "E 1", titular_operational_code = "",
+    sample_role = "extra_reserve_pool", faculty = "DERECHO",
+    sample_status = "agendada", application_status = "APLICADA",
+    contact_date = "", scheduled_date = "2026-09-12", aula_utilizada = "",
+    stringsAsFactors = FALSE
+  ))
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$refuerzos$aplicados, 1L)
+  expect_equal(r$refuerzos$sin_agendar, 0L)
+})
