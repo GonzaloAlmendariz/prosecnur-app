@@ -531,7 +531,27 @@ llegar a la cuota de mujeres de esta facultad?».
 respuestas. Pero en el Sheets, las marcas `APLICADA` por fecha son 07/09 → 16,
 08/09 → 17, **09/09 → 24**: el 9 SÍ es el día con más aplicaciones.
 
-**No se contradicen: cuentan cosas distintas.** El ritmo cuenta RESPUESTAS que
-llegaron a la plataforma ese día y el Sheets cuenta CURSOS-HORARIO aplicados. Una
-aplicación del 9 por la tarde deja respuestas que entran el 10. Su intuición era
-sobre aplicaciones y la tabla habla de respuestas — y ninguna de las dos lo dice.
+### Mi primera explicación estaba MAL, y él la desmontó en una línea
+
+Dije que «una aplicación del 9 por la tarde deja respuestas que entran el 10». Él:
+«si un aula se aplica el nueve y las respuestas de Kobo son del nueve, es un
+resultado del nueve de septiembre, no del diez». Tiene razón, y además ese
+desfase por huso ya está corregido en el motor desde antes: `monitoreo_aulas_ritmo.R`
+prefiere `start`/`end` —que traen el huso del dispositivo— justo porque
+`_submission_time` viene en UTC y «este operativo agenda hasta las 19:30 de Lima».
+O sea que ofrecí como explicación un defecto que ya estaba arreglado.
+
+### La causa real, medida
+
+El snapshot del `.pulso` se sincronizó el **2026-09-09 a las 18:29 UTC = 13:29 de
+Lima**, y la última respuesta que contiene es de las **13:16 de ese mismo día**.
+
+**El día 9 está cortado por la mitad.** Sus 319 respuestas son sólo las de la
+mañana; toda la tarde —que es cuando se concentran las aplicaciones, según los
+horarios del plan— nunca entró en esta copia. Y el Sheets marca 24 aplicaciones
+ese día, varias de ellas de tarde.
+
+Así que su intuición era correcta y la explicación es la que él mismo apuntó:
+**la información no está actualizada**. Es el ítem 20 —trabajar sobre el original
+y traer las respuestas de hoy— y deja de ser una comodidad: sin eso, cualquier
+lectura del último día del operativo está truncada.
