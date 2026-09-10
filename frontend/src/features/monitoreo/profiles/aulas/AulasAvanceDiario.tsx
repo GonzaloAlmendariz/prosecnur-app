@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { marcasDelEjeDeDias } from "./marcasDelEjeDeDias";
 import { fmt } from "./kpisDeAulas";
 import { ejeDeDias, serieSobreElEje } from "./ejeDeDias";
 import type { DiaDeRitmo } from "./AulasRitmoDiario";
@@ -128,6 +129,10 @@ export function AulasAvanceDiario({ dias, hasta }: {
   const yBarra = (v: number) => PAD.arriba + util.y * (1 - v / techoBarra);
   const yLinea = (v: number) => PAD.arriba + util.y * (1 - v / techoLinea);
   const suelo = yBarra(0);
+
+  // Qué días llevan rótulo: los que tienen barra SIEMPRE, los extremos, y el
+  // resto del horizonte repartido sin pisarse. Siete casos en su test.
+  const marcas = new Set(marcasDelEjeDeDias(puntos));
 
   return (
     <div className="aulas-avdia" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
