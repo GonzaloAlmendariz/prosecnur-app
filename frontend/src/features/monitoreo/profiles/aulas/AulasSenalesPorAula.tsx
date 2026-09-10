@@ -66,11 +66,24 @@ function detalleDeDescuadre(a: AulaMedida): string {
 const sinGraves = (s: string) => s.replace(/`/g, "");
 
 export function AulasSenalesPorAula({
-  bloque, facultadEnFoco,
+  bloque, facultadEnFoco, relevos,
 }: {
   bloque: MonitoreoAulasDosTasas | null | undefined;
   /** Resalta, no filtra: igual que el resto de listas del perfil. */
   facultadEnFoco?: string;
+  /**
+   * Qué relevo le queda a cada titular (`reserva_de_la_cadena` del tablero).
+   *
+   * **Es la salida de esta tabla.** Decía quién rindió por debajo de lo suyo y
+   * ahí se paraba; con el relevo al lado, cada fila por debajo se convierte en
+   * una decisión —activar la reserva que el sorteo ya le asignó—. Medido el
+   * 2026-09-10: 13 de los 14 por debajo tenían una viva.
+   *
+   * La AUSENCIA de una clave significa «no tiene relevo», nunca «no se
+   * calculó»: por eso la fila que no aparece no dibuja nada en vez de dibujar
+   * un cero.
+   */
+  relevos?: Record<string, { disponibles: number; siguiente: string }>;
 }) {
   const res = senalesPorAula(bloque);
 
@@ -204,6 +217,21 @@ export function AulasSenalesPorAula({
                     <span className={`aulas-dt-chip ${a.senal === "bajo" ? "es-aviso" : "es-sobre"}`}>
                       {a.senal === "bajo" ? "Bajo su margen" : "Sobre su margen"}
                     </span>
+                    {/* **El relevo sólo se dice donde hay decisión que tomar.**
+                        En una fila por encima de su margen, «tiene 9 reservas»
+                        es ruido: nadie va a activar el relevo de un
+                        curso-horario que rindió de más. */}
+                    {a.senal === "bajo" ? (
+                      relevos?.[a.codigo] ? (
+                        <em className="aulas-dt-relevo" title={`El sorteo le asignó ${fmt(relevos[a.codigo].disponibles)} ${relevos[a.codigo].disponibles === 1 ? "reserva" : "reservas"} de cadena todavía sin usar; la siguiente por orden es ${relevos[a.codigo].siguiente}.`}>
+                          relevo listo: {relevos[a.codigo].siguiente}
+                        </em>
+                      ) : (
+                        <em className="aulas-dt-relevo es-sin" title="El sorteo no le dejó reservas de cadena sin usar, así que lo que se recogió es lo que hay. Para cubrir el déficit hay que ir al banco de extras, en «A qué aula del banco ir».">
+                          sin relevo
+                        </em>
+                      )
+                    ) : null}
                   </td>
                   <td className="aulas-dt-cifra es-debil">
                     {tasaEnPct(a.tasaPrevista)}
