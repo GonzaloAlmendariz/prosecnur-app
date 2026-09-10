@@ -56,8 +56,3 @@
 .aulas-resp-swatch[data-tramo="fuera"] { background: var(--pulso-warn-fg); }
 .aulas-resp-swatch[data-tramo="criterio"] { background: var(--pulso-danger-fg); }
 .aulas-resp-nota { margin: 0; font-size: 12px; color: var(--pulso-text-faint); }
-
-/* Las pastillas de facultad. Reusan `.aulas-sexo-chip`, el chip pulsable que el
-   perfil ya tiene: un chip nuevo con la misma función y otro aspecto es la
-   trampa de las dos expresiones, en CSS. */
-.aulas-resp-facultades { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
