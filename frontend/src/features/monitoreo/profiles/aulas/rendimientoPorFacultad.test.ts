@@ -313,7 +313,12 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
     // 2026-09-10 por reescribir el párrafo sin quitarlo: un guard que muere al
     // reescribir la prosa que vigila no vigila la prosa, vigila una cadena.
     const pie = fuente.slice(fuente.indexOf("explicaLasColumnas ? ("));
-    for (const etiqueta of ["Del potencial", "Ajustado", "Por visita", "De los asistentes"]) {
+    // «Ajustado» a secas salió de la lista el 2026-09-10: el encogimiento del
+    // potencial se llama en pantalla «pesando la evidencia» —vive bajo el
+    // nombre de cada fila, no en una columna— y «ajustado» quedó sólo para el
+    // de «Por visita». Lo que el pie tiene que explicar son las cuatro cosas
+    // que se leen, se llamen como se llamen.
+    for (const etiqueta of ["Del potencial", "pesando la evidencia", "Por visita", "De los asistentes"]) {
       expect(pie, `el pie ya no explica «${etiqueta}»`)
         .toContain(`<strong>${etiqueta}</strong>`);
     }
