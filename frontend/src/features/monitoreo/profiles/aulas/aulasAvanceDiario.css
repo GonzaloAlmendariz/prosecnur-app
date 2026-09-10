@@ -6,11 +6,16 @@
    `--pulso-primary`. Escribirlos en el atributo habría metido dos hex en un
    feature, que es lo que la casa prohíbe, y además habría perdido el tono del
    módulo, que es de donde `--pulso-primary` toma su valor aquí. */
-.mon-profile-page.is-aulas-flow .aulas-avdia {
-  min-width: 0;
-  /* El SVG tiene ancho propio —crece con los días—, así que el dueño del
-     desbordamiento es este marco y nunca la página (C4). */
-  overflow-x: auto;
+.mon-profile-page.is-aulas-flow .aulas-avdia { min-width: 0; }
+
+/* **El dibujo llena el panel.** Con el ancho calculado a partir de los días
+   —tres jornadas daban 420 px— quedaban 735 px de panel en blanco a la derecha,
+   medido el 2026-09-10. El `viewBox` fija las proporciones y este 100 % las
+   estira hasta donde haya sitio. */
+.mon-profile-page.is-aulas-flow .aulas-avdia > svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avdia-regla {

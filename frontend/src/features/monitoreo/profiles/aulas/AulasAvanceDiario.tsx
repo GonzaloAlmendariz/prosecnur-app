@@ -26,6 +26,40 @@ import "./aulasAvanceDiario.css";
 const ALTO = 250;
 const PAD = { arriba: 22, abajo: 44, izq: 52, der: 56 };
 
+/**
+ * **El ancho del dibujo es fijo y el SVG se estira al panel.**
+ *
+ * El boceto calculaba `max(420, 90·días + 140)` y con tres jornadas daba 420 px
+ * dentro de un panel de 1 155: medido en pantalla el 2026-09-10, **735 px de
+ * panel en blanco a la derecha**. Es el mismo reclamo que ya me había hecho —
+ * «¿por qué no ocupas todo el ancho?»— y con datos de arranque de operativo
+ * sale siempre, que es justo cuando más se mira el tablero.
+ *
+ * Con un `viewBox` de ancho fijo y `width: 100%` en la hoja, el navegador escala
+ * el dibujo al panel: las proporciones se conservan y el texto crece con él.
+ * 1 100 está elegido para que sobre un panel de ~1 155 la escala sea ~1,05 y los
+ * 10 px de los rótulos sigan siendo 10 px en pantalla.
+ */
+const ANCHO = 1100;
+
+/**
+ * El techo del eje, redondeado hacia arriba a una cifra que se pueda leer.
+ *
+ * El boceto usaba `max · 1,15` y en pantalla los ejes decían **189, 378** y
+ * **519, 1038**: números que no significan nada y que obligan a interpolar para
+ * situar una barra. Se sube al siguiente múltiplo «bonito» —1, 2, 2,5 o 5 por
+ * potencia de diez— que deje aire sobre el máximo.
+ */
+export function techoLegible(maximo: number, aire: number): number {
+  const objetivo = Math.max(maximo * aire, 1);
+  const magnitud = 10 ** Math.floor(Math.log10(objetivo));
+  for (const paso of [1, 2, 2.5, 5, 10]) {
+    const techo = paso * magnitud;
+    if (techo >= objetivo) return techo;
+  }
+  return 10 * magnitud;
+}
+
 /** «2026-09-08» → «08/09», que es como el boceto rotula el eje. */
 const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
@@ -38,14 +72,17 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
     );
   }
 
-  // Ancho por día, con mínimo: con tres días un SVG estirado deja tres barras
-  // gigantes; con quince, las etiquetas se pisan.
-  const ancho = Math.max(420, 90 * dias.length + 140);
+  const ancho = ANCHO;
   const util = { x: ancho - PAD.izq - PAD.der, y: ALTO - PAD.arriba - PAD.abajo };
-  // **Los dos techos llevan aire.** Sin el margen, la barra más alta toca el
-  // borde y se lee como si el eje se hubiera quedado corto.
-  const techoBarra = Math.max(...dias.map((d) => d.validas), 1) * 1.15;
-  const techoLinea = Math.max(...dias.map((d) => d.acumulado), 1) * 1.1;
+  // **Los dos techos llevan aire Y son legibles.** Sin margen, la barra más alta
+  // toca el borde y se lee como si el eje se hubiera quedado corto; sin
+  // redondear, el eje dice 189 y 378, que no son cifras que nadie use para
+  // situar una barra.
+  const techoBarra = techoLegible(Math.max(...dias.map((d) => d.validas), 1), 1.15);
+  const techoLinea = techoLegible(Math.max(...dias.map((d) => d.acumulado), 1), 1.1);
+  // La barra no se estira sin límite: con tres jornadas sobre 1 100 px, un 50 %
+  // del carril serían 170 px de barra, que se lee como un bloque y no como una
+  // serie. El tope de 46 px es el del boceto.
   const ancho1 = Math.min(46, (util.x / dias.length) * 0.5);
   const cx = (i: number) => PAD.izq + (util.x * (i + 0.5)) / dias.length;
   const yBarra = (v: number) => PAD.arriba + util.y * (1 - v / techoBarra);
@@ -56,8 +93,9 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
     <div className="aulas-avdia" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <svg
         viewBox={`0 0 ${ancho} ${ALTO}`}
-        width={ancho}
-        height={ALTO}
+        // Sin `width`/`height` en el atributo: los pone la hoja al 100 % del
+        // panel, que es lo que hace que el dibujo llene el ancho disponible.
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`Efectivas por día y acumulado. ${dias
           .map((d) => `${diaMes(d.fecha)}: ${d.validas} en el día, ${d.acumulado} acumuladas`)
