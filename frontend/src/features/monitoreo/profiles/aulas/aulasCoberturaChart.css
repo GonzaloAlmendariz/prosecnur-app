@@ -136,3 +136,9 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-corto { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-sobra { color: var(--pulso-success-fg); }
+
+/* La aclaración de los dos universos no compite con las cifras del balance. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.aulas-cob-bal-nota {
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}
