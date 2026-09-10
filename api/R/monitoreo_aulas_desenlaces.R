@@ -98,10 +98,25 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
     any(!es_titular & del_titular == cod & en_juego)
   }, logical(1), USE.NAMES = FALSE)
 
+  # El punto de cada fila, y el de la reserva mas avanzada de cada titular: es
+  # lo que contesta «de los cuatro, cuantos aplicados, agendados y sin agendar».
+  punto_fila <- vapply(seq_len(nrow(df)), function(i) {
+    .mar_punto(estado[i], nzchar(trimws(.mar_col(df, "scheduled_date")[i])))
+  }, character(1), USE.NAMES = FALSE)
+  punto_del_relevo <- vapply(seq_along(codigo), function(i) {
+    if (!nzchar(codigo[i])) return("sin_agendar")
+    suyas <- !es_titular & del_titular == codigo[i] & en_juego
+    if (!any(suyas)) return("sin_agendar")
+    puntos <- punto_fila[suyas]
+    names(which.max(.MAR_ORDEN_PUNTO[puntos]))
+  }, character(1), USE.NAMES = FALSE)
+
   declarada_a <- estado == "reemplazada_por" & es_titular
+  toca_a <- declarada_a | (cayo & con_relevo)
   reemplazadas <- .mar_grupo(
-    df[declarada_a | (cayo & con_relevo), , drop = FALSE],
-    declarados = df[declarada_a, , drop = FALSE]
+    df[toca_a, , drop = FALSE],
+    declarados = df[declarada_a, , drop = FALSE],
+    puntos = punto_del_relevo[toca_a]
   )
   # **Un titular caido SIN relevo no es un reemplazo: es trabajo pendiente.**
   # Contarlo aqui diria que su hueco ya esta cubierto.
@@ -116,18 +131,24 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
     any(!es_titular & del_titular == cod & aplicado)
   }, logical(1), USE.NAMES = FALSE)
   declarada_b <- estado == "complementada_con" & es_titular
+  toca_b <- declarada_b | (es_titular & aplicado & con_relevo_aplicado & !cayo)
   complementadas <- .mar_grupo(
-    df[declarada_b | (es_titular & aplicado & con_relevo_aplicado & !cayo), , drop = FALSE],
-    declarados = df[declarada_b, , drop = FALSE]
+    df[toca_b, , drop = FALSE],
+    declarados = df[declarada_b, , drop = FALSE],
+    puntos = punto_del_relevo[toca_b]
   )
 
   # C: salir a una reserva por cuota, sin titular caido. El banco de extras no
   # cuelga de ningun titular, asi que aplicarlo ES refuerzo por definicion.
   del_banco <- rol == "extra_reserve_pool"
   declarada_c <- estado == "aplicada_de_refuerzo" & !es_titular
+  toca_c <- declarada_c | (del_banco & aplicado)
+  # En C el aula que resuelve es la fila MISMA —el extra al que se salio—, no
+  # una reserva colgada de un titular: no cuelga de ninguno.
   refuerzos <- .mar_grupo(
-    df[declarada_c | (del_banco & aplicado), , drop = FALSE],
-    declarados = df[declarada_c, , drop = FALSE]
+    df[toca_c, , drop = FALSE],
+    declarados = df[declarada_c, , drop = FALSE],
+    puntos = punto_fila[toca_c]
   )
 
   # **Un A o un B sin «AULA UTILIZADA» es media frase.** Los dos verbos terminan
@@ -148,6 +169,29 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
   )
 }
 
+#' En que punto del circuito esta el aula que RESUELVE cada caso.
+#'
+#' Gonzalo, 2026-09-10, viendo el reparto: «en el caso de la A o de todos en
+#' realidad se tiene que diferenciar, de los 4 reemplazos cuantos ya han sido
+#' aplicados, cuantos agendados y cuantos sin agendar».
+#'
+#' **El estado que importa es el del RELEVO, no el del titular.** Los cuatro
+#' titulares del corte estan en rechazo —ese es su desenlace y ya no se mueve—;
+#' lo que decide si hay que hacer algo es donde esta la reserva que entro a
+#' cubrirlos: aplicada ya no pide nada, agendada tiene fecha y sin agendar hay
+#' que llamarla.
+#'
+#' Cuando un titular tiene varias reservas en juego se toma **la mas avanzada**:
+#' si una ya se aplico, el caso esta resuelto aunque otra siga en contacto.
+#' @noRd
+.mar_punto <- function(estado, tiene_fecha) {
+  if (estado %in% c("aplicada", "complementada_con", "aplicada_de_refuerzo")) return("aplicado")
+  if (isTRUE(tiene_fecha)) return("agendado")
+  "sin_agendar"
+}
+
+.MAR_ORDEN_PUNTO <- c(sin_agendar = 1L, agendado = 2L, aplicado = 3L)
+
 #' Una columna del plan como texto, o vacio si no viene.
 #' @noRd
 .mar_col <- function(df, campo) {
@@ -163,12 +207,14 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
 #' en un caso y una lista en otro acaba con dos ramas, y una de las dos se
 #' prueba sola.
 #' @noRd
-.mar_grupo <- function(filas = NULL, declarados = NULL) {
+.mar_grupo <- function(filas = NULL, declarados = NULL, puntos = character(0)) {
   n_dec <- if (is.null(declarados)) 0L else as.integer(nrow(declarados))
   if (is.null(filas) || !nrow(filas)) {
     return(list(total = 0L, declarados = 0L, en_curso = 0L,
+                aplicados = 0L, agendados = 0L, sin_agendar = 0L,
                 por_facultad = list(), aulas = list()))
   }
+  if (length(puntos) != nrow(filas)) puntos <- rep("sin_agendar", nrow(filas))
   fac <- .mar_col(filas, "faculty")
   fac[!nzchar(trimws(fac))] <- "Sin facultad"
   tabla <- sort(table(fac), decreasing = TRUE)
@@ -178,6 +224,8 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
   aulas <- lapply(seq_len(nrow(filas)), function(i) {
     list(
       codigo = .mar_col(filas, "operational_code")[i],
+      # En que punto esta el aula que resuelve ESTE caso.
+      punto = puntos[i],
       facultad = fac[i],
       titular = .mar_col(filas, "titular_operational_code")[i],
       # CON CUAL se resolvio. Vacia cuando el coordinador no la lleno, y eso se
@@ -193,6 +241,11 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
     # dice cuanto le falta al libro para estar al dia.
     declarados = n_dec,
     en_curso = as.integer(nrow(filas) - n_dec),
+    # **De los N, en que punto esta cada uno.** No es lo mismo un reemplazo
+    # resuelto que uno cuya reserva nadie ha llamado todavia.
+    aplicados = sum(puntos == "aplicado"),
+    agendados = sum(puntos == "agendado"),
+    sin_agendar = sum(puntos == "sin_agendar"),
     por_facultad = por_facultad,
     aulas = aulas
   )

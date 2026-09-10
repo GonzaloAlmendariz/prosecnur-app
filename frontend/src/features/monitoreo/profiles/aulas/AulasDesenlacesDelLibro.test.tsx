@@ -12,6 +12,7 @@ import { desenlacesDelLibro } from "./desenlacesDelLibro";
 const payload = {
   reemplazadas: {
     total: 4, declarados: 0, en_curso: 4,
+    aplicados: 0, agendados: 2, sin_agendar: 2,
     por_facultad: [
       { facultad: "DERECHO", aulas: 2 },
       { facultad: "ARTE Y DISEÑO", aulas: 1 },
@@ -40,6 +41,22 @@ describe("los tres desenlaces del libro", () => {
     expect(html).toContain(">B<");
     expect(html).toContain(">C<");
     expect((html.match(/es-cero/g) ?? []).length).toBe(2);
+  });
+
+  it("dice en qué punto está el aula que resuelve cada caso", () => {
+    // «De los 4 reemplazos cuántos ya han sido aplicados, cuántos agendados y
+    // cuántos sin agendar» (Gonzalo, 2026-09-10). Uno cuya reserva nadie ha
+    // llamado y otro ya aplicado son el mismo 1 en la cifra.
+    const html = pinta();
+    expect(html).toContain("2 agendados");
+    expect(html).toContain("2 sin agendar");
+    // Cero aplicados no se escribe: una pastilla en cero es ruido.
+    expect(html).not.toContain("0 aplicados");
+  });
+
+  it("con una facultad puesta NO reparte el punto: el motor no lo publica así", () => {
+    // Repartirlo a ojo sería inventarlo. Se apaga y la lectura no lo promete.
+    expect(pinta("DERECHO")).not.toContain("agendados");
   });
 
   it("separa lo que el libro declara de lo que el campo ya vive", () => {

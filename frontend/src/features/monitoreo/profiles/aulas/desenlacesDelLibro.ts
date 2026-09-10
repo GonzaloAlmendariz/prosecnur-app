@@ -33,6 +33,16 @@ export type LecturaDeDesenlace = {
   total: number;
   declarados: number;
   enCurso: number;
+  /**
+   * **En qué punto está el aula que resuelve cada caso.** Gonzalo, viendo el
+   * primer reparto: «de los 4 reemplazos cuántos ya han sido aplicados, cuántos
+   * agendados y cuántos sin agendar». Un reemplazo cuya reserva nadie ha
+   * llamado todavía y otro ya aplicado son el mismo 1 en la cifra y dos
+   * situaciones opuestas.
+   */
+  aplicados: number;
+  agendados: number;
+  sinAgendar: number;
   porFacultad: Array<{ facultad: string; aulas: number }>;
 };
 
@@ -59,6 +69,9 @@ function unTipo(
     total: numero(bloque?.total),
     declarados: numero(bloque?.declarados),
     enCurso: numero(bloque?.en_curso),
+    aplicados: numero(bloque?.aplicados),
+    agendados: numero(bloque?.agendados),
+    sinAgendar: numero(bloque?.sin_agendar),
     porFacultad: (bloque?.por_facultad ?? [])
       .map((f) => ({ facultad: String(f?.facultad ?? "").trim(), aulas: numero(f?.aulas) }))
       .filter((f) => f.facultad && f.aulas > 0),
@@ -99,7 +112,13 @@ export function desenlacesDelLibro(
     tipos = tipos.map((t) => {
       const suya = t.porFacultad.find((f) => clave(f.facultad) === buscada);
       const n = suya?.aulas ?? 0;
-      return { ...t, total: n, declarados: 0, enCurso: n, porFacultad: suya ? [suya] : [] };
+      // El reparto por punto lo publica el motor en TOTAL, no por facultad: con
+      // foco se apaga en vez de repartirlo a ojo, que sería inventarlo.
+      return {
+        ...t, total: n, declarados: 0, enCurso: n,
+        aplicados: 0, agendados: 0, sinAgendar: 0,
+        porFacultad: suya ? [suya] : [],
+      };
     });
   }
 

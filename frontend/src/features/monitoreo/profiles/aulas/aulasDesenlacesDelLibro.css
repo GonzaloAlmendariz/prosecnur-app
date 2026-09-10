@@ -107,3 +107,29 @@
   line-height: 1.5;
 }
 .mon-profile-page.is-aulas-flow .aulas-abc-pie strong { font-variant-numeric: tabular-nums; }
+
+/* **En qué punto está el aula que resuelve cada caso.** Tres pastillas en vez
+   de una frase: se comparan hacia abajo entre los tres tipos, y el color dice
+   cuál pide trabajo hoy —sin agendar— y cuál ya no pide nada. */
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: var(--aulas-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-aplicado { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-agendado { color: var(--module-accent, var(--pulso-primary)); }
+/* El que pide trabajo hoy: su reserva está viva y nadie la ha citado. */
+.mon-profile-page.is-aulas-flow .aulas-abc-puntos b.es-pendiente { color: var(--pulso-warn-fg); }
