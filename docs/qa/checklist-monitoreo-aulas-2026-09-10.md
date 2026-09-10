@@ -30,6 +30,9 @@ Sólo Gonzalo lo da por terminado.
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
 | 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
 | 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☐ **el grande de Resumen** |
+| 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
+| 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
+| 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
 | 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
 
 ## Lo ya contestado, con su medición
@@ -439,3 +442,44 @@ que falta es el puente.**
 
 **Lección**: verificar dónde vive antes de declarar una ausencia. Miré el plan y
 concluí sobre el estudio entero.
+
+## 27-29 · El pronóstico depende de la AGENDA, no del ritmo diario
+
+> «Cuando hablas de cuándo se termina de aplicar el plan, recuerda que no es que
+> nosotros tengamos un pronóstico lineal de que si hoy aplicamos treinta, mañana
+> treinta, entonces pasado mañana treinta. De eso no depende: depende del ritmo
+> de la agenda. Por eso es muy importante también, en resumen, tener un poco cómo
+> va la agendación de aulas, porque la agendación es lo que nos permite decir
+> "ok, a estas aulas vamos a ir a aplicar", y eso está en el Sheets. Entonces, no
+> entender la agendación ni entender las metas como cosas lineales, sino cosas
+> que dependen de las aulas que se hayan agendado y de los esperables que
+> esperamos allí, contrastando siempre que tenemos un rendimiento diferenciado
+> entre el rendimiento planificado y el que vamos encontrando una vez que ya
+> tenemos ciertas aulas aplicadas; y ya podemos ir prediciendo para cada facultad
+> cómo nos irá.»
+
+**Lo que esto invalida.** `pronosticoDeCierre` proyecta hoy «al ritmo observado
+de N cursos-horario por día de campo» — una extrapolación lineal de la velocidad
+pasada. Él dice que la velocidad futura **no es una propiedad del equipo, es una
+propiedad de la agenda**: se aplicará lo que esté agendado, el día que esté
+agendado. Un lunes con ocho aulas agendadas y un martes con dos no son el mismo
+día, y el ritmo medio los promedia.
+
+**El modelo que pide, en tres piezas:**
+
+1. **Cuándo** — de la agenda: cada curso-horario agendado tiene su fecha. El
+   cierre es cuando se acaben las fechas, no cuando la división lo diga.
+2. **Cuánto** — de los esperables de esas aulas: elegibles × tasa, no un promedio
+   de encuestas por día.
+3. **Corregido por lo observado** — el rendimiento que estamos encontrando frente
+   al planificado, **por facultad**, que es lo que permite «ir prediciendo para
+   cada facultad cómo nos irá».
+
+**Y de aquí sale el ítem 28**: Resumen necesita un panel de **cómo va la
+agendación**, porque es la variable de la que depende todo lo demás y hoy no está
+en ninguna parte de esa pestaña. El dato vive en el Sheets y ya llega al plan
+(`scheduled_date`, `FECHA AGENDADA`).
+
+**Consecuencia de orden**: alinear el eje del pronóstico es trabajo válido —el
+eje de fechas sirve para cualquier curva— pero la CURVA que dibuja va a cambiar.
+Conviene no pulir el abanico de tres rectas hasta decidir el modelo.
