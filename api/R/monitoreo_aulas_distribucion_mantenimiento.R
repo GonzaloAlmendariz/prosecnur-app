@@ -480,7 +480,18 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
     # Lo que la app sabe NO se pierde: sigue saliendo en el recibo como
     # observación, que es donde una discrepancia se lee sin que nadie la
     # escriba encima.
-    final <- if (nzchar(previo)) previo else "POR APLICAR"
+    # **Se repara la GRAFÍA, nunca el significado** (Gonzalo, 2026-09-10: «dale
+    # con la 2»). El desplegable declara «APLICADA SIN AGENDACIÓN» con tilde y
+    # la celda de CH164 la tenía sin ella: Sheets la marcaba «Entrada no válida»
+    # aunque el estado fuera el correcto y el color le saliera bien. Escribir la
+    # forma canónica del MISMO estado que el equipo eligió no es decidir por
+    # nadie: es dejar de marcar en rojo algo que está bien.
+    #
+    # Un valor que no case con ninguno de los siete se queda EXACTAMENTE como
+    # está: ahí la app no sabe qué quiso decir, y adivinar sería lo contrario de
+    # reparar.
+    canonico <- aulas_distribucion_estado_canonico(previo)
+    final <- if (!nzchar(previo)) "POR APLICAR" else if (nzchar(canonico)) canonico else previo
     estados[[i]] <- final
     if (!identical(final, previo)) {
       cambios[[length(cambios) + 1L]] <- list(

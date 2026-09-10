@@ -132,5 +132,8 @@ aulas_distribucion_estado_a_publicar <- function(deducido, previo = "") {
   # Un valor escrito que NO es de la lista tampoco se pisa: es del equipo y
   # borrarlo por no reconocerlo sería el peor desenlace de una lista cerrada.
   if (!nzchar(puesto)) return(as.character(previo)[1])
+  # Y si SÍ es de la lista, se devuelve en su forma canónica: es el mismo estado
+  # que el equipo eligió, escrito como lo declara el desplegable, así que Sheets
+  # deja de marcarlo «Entrada no válida». Se repara la grafía, no el significado.
   puesto
 }
