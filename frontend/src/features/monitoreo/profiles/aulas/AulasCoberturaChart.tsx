@@ -259,7 +259,18 @@ export function AulasCoberturaChart({
            saber si son diez personas o doscientas. */
         <p className="aulas-cobertura-balance">
           <span className="aulas-cob-bal-hoy">
-            De {fmt(balance.aplicados)} {balance.aplicados === 1 ? "aplicado" : "aplicados"} se
+            De {fmt(balance.aplicados)} {balance.aplicados === 1 ? "aplicado" : "aplicados"}
+            {/* **Dos universos en la misma zona del panel.** El gráfico reparte
+                sólo los que declaran meta y el balance cuenta todos los
+                aplicados: en Ciencias Sociales el reparto decía «3» y esta línea
+                «De 5», a cuatro centímetros y sin nada que lo explicara. Se dice
+                cuando difieren, y no siempre, porque en el caso normal coinciden
+                y la aclaración sería ruido. */}
+            {balance.aplicados !== total ? (
+              <em className="aulas-cob-bal-nota">
+                {" "}—el gráfico de arriba reparte {fmt(total)}, los que declaran su meta—
+              </em>
+            ) : null}{" "}se
             esperaban <strong>{fmt(balance.esperadasHoy)}</strong> respuestas y han
             llegado <strong>{fmt(balance.efectivas)}</strong>
             {balance.balance === 0 ? (
