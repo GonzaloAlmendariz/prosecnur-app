@@ -16,10 +16,19 @@ import "./aulasResumenPorFacultad.css";
  * efectivas de las facultades, las aulas, cuántas se han aplicado»— y ninguna
  * estaba: el bloque de respuestas daba el total y filtraba de una en una.
  *
- * **La barra mide AULAS, no respuestas.** Las efectivas van como cifra porque
- * su escala la fija la cuota de cada facultad y no se comparan entre sí; las
- * aulas sí tienen un denominador propio y comparable —lo planificado— y su
- * avance es lo que dice si el trabajo de campo de esa facultad está hecho.
+ * **La barra dibuja lo mismo que ordena la lista: las efectivas.** Primero
+ * midió el avance de las aulas (aplicadas sobre planificadas) mientras la lista
+ * bajaba por efectivas, y el resultado en pantalla el 2026-09-10 era el defecto
+ * que Gonzalo ya había señalado en Rendimiento: ARQUITECTURA, cuarta por
+ * efectivas con 99, tenía la barra MÁS LARGA de la tabla —6 de 8 aulas, 75 %—
+ * y CIENCIAS E INGENIERÍA, primera con 202, la tenía a media asta. Una lista
+ * descendente con barras que suben y bajan se lee como un error de datos, y el
+ * rótulo de la columna —«Cursos-horario aplicados»— prometía además un CONTEO
+ * y dibujaba una fracción.
+ *
+ * Las dos lecturas siguen estando, cada una donde no se contradice: el avance
+ * de las aulas en sus dos columnas de cifras —12 de 37— y, entero, en
+ * «Cursos-horario por cobertura», más abajo en esta misma pestaña.
  */
 export function AulasResumenPorFacultad({ respuestas, aulas }: {
   respuestas: ReadonlyArray<MonitoreoAulasRespuestasCuenta & { facultad: string }> | null | undefined;
@@ -34,14 +43,19 @@ export function AulasResumenPorFacultad({ respuestas, aulas }: {
         <li role="row" className="aulas-rpf-cab">
           <span role="columnheader">Facultad</span>
           <span role="columnheader">Efectivas</span>
-          <span role="columnheader">Cursos-horario aplicados</span>
+          {/* La barra es el reparto de la MISMA cifra de la columna anterior:
+              el rótulo lo dice para que nadie la lea como otra medida. */}
+          <span role="columnheader">Reparto de las efectivas</span>
           <span role="columnheader">Aplicados</span>
           <span role="columnheader">Planificados</span>
         </li>
-        {filas.map((f) => {
-          const avance = f.planificadas && f.planificadas > 0
-            ? Math.min(100, (100 * (f.aplicadas ?? 0)) / f.planificadas)
-            : null;
+        {/* El techo es la facultad con más efectivas, no la suma: con la suma
+            como denominador la primera barra ocuparía un 21 % del carril y las
+            once últimas serían hilos indistinguibles. */}
+        {(() => {
+          const techo = Math.max(...filas.map((f) => f.efectivas), 1);
+          return filas.map((f) => {
+          const parte = (100 * f.efectivas) / techo;
           return (
             <li key={f.facultad} role="row">
               <span role="cell">
@@ -51,14 +65,10 @@ export function AulasResumenPorFacultad({ respuestas, aulas }: {
                 {fmt(f.efectivas)}
               </span>
               <span role="cell" className="aulas-rpf-barra">
-                {/* Sin plan no hay denominador y la barra no se dibuja: una
-                    barra vacía se leería como «no ha empezado», que es otra
-                    cosa que «no sé cuántas tenía que hacer». */}
-                {avance === null ? (
-                  <em className="aulas-rpf-sindato">sin plan declarado</em>
-                ) : (
-                  <i style={{ width: `${Math.max(2, avance)}%` }} />
-                )}
+                {/* Cero efectivas NO dibuja un mínimo de cortesía: un hilo
+                    donde no hay nada se lee como «algo hay». El carril vacío
+                    con su cifra en 0 al lado ya lo dice. */}
+                {f.efectivas > 0 ? <i style={{ width: `${Math.max(1.5, parte)}%` }} /> : null}
               </span>
               <span role="cell" className="aulas-rpf-num">
                 {f.aplicadas === null ? "—" : fmt(f.aplicadas)}
@@ -68,7 +78,8 @@ export function AulasResumenPorFacultad({ respuestas, aulas }: {
               </span>
             </li>
           );
-        })}
+          });
+        })()}
       </ul>
     </div>
   );
