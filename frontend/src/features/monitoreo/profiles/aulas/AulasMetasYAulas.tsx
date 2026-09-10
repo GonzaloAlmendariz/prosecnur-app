@@ -72,8 +72,14 @@ export function AulasMetasYAulas({ filas }: {
                 <tr className="es-facultad">
                   <td colSpan={7}>
                     <span className="aulas-sexo-chip">{f.facultad}</span>{" "}
+                    {/* En la unidad del perfil —el curso-horario, masculino
+                        (ADR 0060)— y no «aulas aplicadas»: los rótulos de
+                        COLUMNA de «Avance por facultad y sexo» sí dicen «aulas»
+                        porque son las palabras con las que él pidió esa
+                        columna, pero la prosa del perfil habla su vocabulario. */}
                     <span className="aulas-metas-aulas">
-                      {fmt(f.aulas_aplicadas)} aplicadas · {fmt(f.aulas_agendadas)} agendadas
+                      {fmt(f.aulas_aplicadas)} cursos-horario aplicados ·{" "}
+                      {fmt(f.aulas_agendadas)} agendados
                     </span>
                   </td>
                 </tr>

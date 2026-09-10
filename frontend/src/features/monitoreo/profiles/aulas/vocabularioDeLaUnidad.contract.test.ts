@@ -83,7 +83,19 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
 // —el título de columna del libro «ALUMNOS EN AULA», que es el salón— y se
 // cerraron dos de la unidad: «la agenda son aulas con fecha» (kpisDeAulas) y
 // «la tasa del aula» (AulasSerieDeRendimiento) pasan a curso-horario.
-const TOPE = 12;
+// 2026-09-09 (revamp de Metas): 12 → 14, y es una subida DELIBERADA, la primera
+// del ratchet. Entran las dos cabeceras de columna que Gonzalo dictó con esas
+// palabras —«pon una columna de cuántas aulas se han aplicado y cuántas se
+// tienen planificadas»— en `AulasMetasAvance`. Son SUYAS y son las que él busca
+// con los ojos en esa tabla; traducirlas a curso-horario sería corregirle el
+// vocabulario al que pide el dato.
+//
+// El resto de la prosa que entró con el revamp SÍ habla la unidad del perfil:
+// «los cursos-horario que ya tienen día», «N cursos-horario aplicados» en la
+// línea de cada facultad de «Metas y aulas», y el pie de la tasa obtenida. Se
+// escribieron con «aulas» y se cerraron aquí mismo, antes de subir el tope: un
+// tope que sube para tapar prosa propia deja de ser un ratchet.
+const TOPE = 14;
 
 /**
  * Con determinante o cifra delante: en prosa siempre lo lleva; en código, no.

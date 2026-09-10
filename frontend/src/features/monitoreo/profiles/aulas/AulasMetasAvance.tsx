@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import { aulasPorFacultad, filasAlfabeticas } from "./metasDeLaPestana";
 import type {
   MonitoreoAulasPorFacultad,
@@ -8,8 +8,11 @@ import type {
 } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
 
-const pct = (parte: number, total: number): string =>
-  total > 0 ? `${((100 * parte) / total).toFixed(1).replace(".", ",")} %` : "—";
+/** El porcentaje de la casa (`pctPerfil`): un decimal y espacio antes del «%».
+ *  Formatearlo aquí a mano era el tercer sitio del perfil escribiendo el mismo
+ *  número de otra manera, que es la deuda que el guard de cifras cierra. */
+const avancePct = (parte: number, total: number): string =>
+  total > 0 ? pctPerfil((100 * parte) / total) : "—";
 
 /**
  * «Avance por facultad y sexo»: efectivas conseguidas contra la cuota de cada
@@ -88,7 +91,7 @@ export function AulasMetasAvance({ filas, aulas }: {
                         <i className="es-aplicado" style={{ width: `${avance}%` }} />
                       </div>
                     </td>
-                    <td className="es-num">{pct(obtenidas, meta)}</td>
+                    <td className="es-num">{avancePct(obtenidas, meta)}</td>
                     <td className="es-num">{fmt(Math.round(obtenidas))}</td>
                     <td className="es-num">{fmt(Math.round(meta))}</td>
                     <td className={`es-num${faltan > 0 ? " es-falta" : ""}`}>
