@@ -36,7 +36,7 @@ describe("el panel de agendación", () => {
 
   it("cuenta aparte la reserva que ya está en juego", () => {
     const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
-    expect(html).toContain("Reemplazos en juego");
+    expect(html).toContain("Reservas activadas");
     expect(html).toContain("aulas-agd-clave es-reemplazo");
   });
 

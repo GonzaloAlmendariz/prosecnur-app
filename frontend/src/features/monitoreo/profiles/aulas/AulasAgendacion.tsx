@@ -145,7 +145,12 @@ export function AulasAgendacion({ agenda, corte = "" }: {
               tipo es el nivel de equivalencia que escribe el sorteo, y dice
               cuánto se parece la reserva al titular que releva: de eso depende
               que la celda se conserve o se degrade. */}
-          Reemplazos en juego: <strong>{fmt(a.reemplazos.total)}</strong>
+          {/* «Reservas activadas» y no «reemplazos en juego»: el reparto por rol
+              que va justo debajo llama «Utilizados» a los que ya tienen fecha, y
+              dos nombres para lo mismo en el mismo panel es la avería más cara
+              de este perfil. Aquí se cuentan también los que están en contacto,
+              y la frase lo dice en vez de dejar dos cifras enfrentadas. */}
+          Reservas activadas: <strong>{fmt(a.reemplazos.total)}</strong>
           {" — "}
           {a.activados.aplicados
             ? <><strong>{fmt(a.activados.aplicados)}</strong> ya aplicados</>
