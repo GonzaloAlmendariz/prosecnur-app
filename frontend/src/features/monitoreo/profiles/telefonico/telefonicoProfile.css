@@ -5923,15 +5923,3 @@
   top: 0;
   z-index: 1;
 }
-
-/* El motivo por el que una dirección pegada no se reconoce como Google Sheet.
-   Lo escribe `leerDireccionDeSheets()` y hasta el 2026-09-09 se tiraba: el
-   campo aceptaba cualquier cosa, el botón seguía activo y el error llegaba del
-   backend sin decir qué arreglar. */
-.is-telefonico-profile .mon-acr-sheet-aviso {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--pulso-warn-fg);
-}
