@@ -23,14 +23,32 @@ test_that("lo que no es un estado declarado NO se aproxima al más parecido", {
   expect_identical(aulas_distribucion_estado_canonico(NULL), "")
 })
 
-test_that("«NO APLICADA» es un estado, y no es «RECHAZADA»", {
-  # 2026-09-10: el aplicador fue y el aula no era la agendada. El operativo ya
-  # lo usa —una fila en «STATUS DE APLICACIÓN» del libro— y la hoja de los
-  # aplicadores no lo ofrecía.
-  expect_true("NO APLICADA" %in% MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
-  expect_identical(aulas_distribucion_estado_canonico("no aplicada"), "NO APLICADA")
+test_that("«POR APLICAR SIN AGENDACIÓN» es un estado, y es la hermana pendiente", {
+  # Gonzalo, 2026-09-10, con su desplegable delante: «deberían ser estas». Sin
+  # ella, ir a un aula sin cita se anotaba como un «POR APLICAR» normal y nadie
+  # distinguía una cita pactada de una apuesta.
+  expect_true("POR APLICAR SIN AGENDACIÓN" %in% MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
+  expect_identical(aulas_distribucion_estado_canonico("por aplicar sin agendacion"),
+                   "POR APLICAR SIN AGENDACIÓN")
+  # Y NO se confunde con su hermana rendida ni con el «POR APLICAR» normal.
+  expect_false(identical(aulas_distribucion_estado_canonico("POR APLICAR SIN AGENDACION"),
+                         "POR APLICAR"))
   colores <- prosecnurapp:::.alpa_COLOR_ESTADO
-  expect_false(identical(colores[["NO APLICADA"]], colores[["RECHAZADA"]]))
+  expect_false(identical(colores[["POR APLICAR SIN AGENDACIÓN"]], colores[["POR APLICAR"]]))
+  expect_false(identical(colores[["POR APLICAR SIN AGENDACIÓN"]],
+                         colores[["APLICADA SIN AGENDACIÓN"]]))
+})
+
+test_that("el desplegable sale en SU orden, y sin «NO APLICADA»", {
+  # El orden es el de su validación: una lista que se recorre con la vista.
+  expect_identical(MONITOREO_AULAS_ESTADOS_DISTRIBUCION, c(
+    "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN",
+    "REAGENDADA", "RECHAZADA",
+    "APLICADA SIN AGENDACIÓN", "POR APLICAR SIN AGENDACIÓN"
+  ))
+  # «NO APLICADA» vive en «STATUS DE APLICACIÓN» del libro, otra hoja y otro
+  # vocabulario: aquí sería una opción que él no puso.
+  expect_false("NO APLICADA" %in% MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
 })
 
 test_that("cada estado con tilde emite DOS reglas de color, una por forma", {
@@ -54,7 +72,7 @@ test_that("el formato de la hoja pinta la forma SIN TILDE que hay en el document
   }), use.names = FALSE)
   expect_true("APLICADA SIN AGENDACION" %in% valores)
   expect_true("APLICADA SIN AGENDACIÓN" %in% valores)
-  expect_true("NO APLICADA" %in% valores)
+  expect_true("POR APLICAR SIN AGENDACIÓN" %in% valores)
 })
 
 test_that("una fila con el estado sin tilde se clasifica como el equipo la marcó", {
