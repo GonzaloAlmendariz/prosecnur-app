@@ -8,10 +8,19 @@
  * La geometría repite la de la tabla vecina a propósito —las dos contestan la
  * misma pregunta en granos distintos y se leen una debajo de la otra—: cifras
  * en columna con tabular-nums, el marco con `overflow-x` propio para no empujar
- * el scroll de la página, y la escala tipográfica del perfil (--aulas-txt /
- * --aulas-min), sin literales por debajo del suelo de 10 px. */
+ * el scroll de la página, y una escala propia del bloque (--dt-txt / --dt-meta),
+ * que el 2026-09-10 dejó de ser la del perfil: `--aulas-txt` mide 12 px y
+ * `--aulas-min` 10, que es lo correcto para el eje de un gráfico y demasiado
+ * pequeño para una tabla cuyo contenido son las cifras. */
 
+/* **La misma escala que la tabla vecina**, por la misma razón que allí: las dos
+   se leen una debajo de la otra y `--aulas-txt` / `--aulas-min` son la escala de
+   los EJES de los gráficos —10 px—, no la de una tabla cuyo contenido son las
+   cifras. Gonzalo, 2026-09-10: «todo se ve muy pequeño y sin vida». */
 .mon-profile-page.is-aulas-flow .aulas-dt {
+  --dt-dato: 15.5px;
+  --dt-txt: 13px;
+  --dt-meta: 11.5px;
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -26,7 +35,7 @@
   gap: 4px 14px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: var(--aulas-txt);
+  font-size: var(--dt-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-cabeza strong {
@@ -42,7 +51,7 @@
    gastar una línea más de alto. */
 .mon-profile-page.is-aulas-flow .aulas-dt-sello {
   color: var(--pulso-text-faint);
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   border-left: 2px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
   padding-left: 7px;
 }
@@ -61,7 +70,7 @@
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--aulas-txt);
+  font-size: var(--dt-txt);
 }
 
 /* El `caption` nombra la tabla para quien no ve el encabezado de la sección.
@@ -90,8 +99,9 @@
   padding: 7px 10px 8px;
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   font-weight: 600;
+  letter-spacing: 0.02em;
   text-align: left;
   white-space: nowrap;
 }
@@ -128,7 +138,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-dt-detalle {
   color: var(--pulso-text-faint);
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   /* La línea de detalle envuelve: es dato operativo y no se recorta. */
@@ -142,7 +152,7 @@
   padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid currentColor;
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -155,7 +165,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-dt-cifra {
   color: var(--pulso-text);
-  font-size: var(--aulas-txt);
+  font-size: var(--dt-txt);
   font-variant-numeric: tabular-nums;
 }
 
@@ -167,7 +177,7 @@
 .mon-profile-page.is-aulas-flow .aulas-dt-margen {
   margin-left: 5px;
   color: var(--pulso-text-faint);
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   font-style: normal;
   white-space: nowrap;
 }
@@ -185,7 +195,7 @@
 .mon-profile-page.is-aulas-flow .aulas-dt-grupo {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: var(--aulas-txt);
+  font-size: var(--dt-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-conformes summary,
@@ -207,7 +217,7 @@
   margin: 6px 0 0;
   padding: 0 0 0 14px;
   list-style: none;
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
@@ -228,7 +238,7 @@
 .mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo {
   margin: 0;
   color: var(--pulso-warn-fg);
-  font-size: var(--aulas-txt);
+  font-size: var(--dt-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-descuadre-titulo strong {
@@ -240,7 +250,7 @@
 .mon-profile-page.is-aulas-flow .aulas-dt-criterio {
   min-width: 0;
   color: var(--pulso-text-faint);
-  font-size: var(--aulas-min);
+  font-size: var(--dt-meta);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-criterio summary {

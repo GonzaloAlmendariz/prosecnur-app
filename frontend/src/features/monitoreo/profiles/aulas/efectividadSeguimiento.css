@@ -140,14 +140,30 @@
 }
 
 /* La primera celda es `th scope="row"`: identifica la fila. */
+/* **Rejilla de dos filas, no una fila flex.**
+ *
+ * El bloque por sexo tenía que ir DEBAJO del nombre —lo decía su propio
+ * comentario en el componente— pero la celda era un `flex` en fila, así que se
+ * colocaba AL LADO y desbordaba sobre la columna de la tasa prevista: «+1» y
+ * «54,6 %» impresos uno encima del otro, quince veces. Visto en la captura que
+ * mandó Gonzalo el 2026-09-10.
+ *
+ * Con `grid`, el chip ocupa su columna en las dos filas y el bloque de sexo cae
+ * bajo el nombre, dentro de la celda. */
 .mon-profile-page.is-aulas-flow .aulas-tau-nombre-celda {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
-  gap: 8px;
+  gap: 2px 8px;
   min-width: 0;
   border-left: 3px solid transparent;
   font-weight: 400;
   text-align: left;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre-celda > .aulas-tau-sexo {
+  grid-column: 2;
+  justify-self: start;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr.es-bajo .aulas-tau-nombre-celda {
