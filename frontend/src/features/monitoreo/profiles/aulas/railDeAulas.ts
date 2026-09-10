@@ -73,12 +73,9 @@ function medidaDePestana(
     const brechas = Number(kpis?.brechas ?? 0);
     return { badge: cuenta(brechas), estado: brechas ? "parcial" : "listo" };
   }
-  if (seccion === "avance" && key === "estratos") {
-    const conBrecha = (dashboard?.avance_por_estrato ?? []).filter(
-      (fila) => Number((fila as Record<string, unknown>).brecha ?? 0) > 0,
-    ).length;
-    return { badge: cuenta(conBrecha), estado: conBrecha ? "parcial" : "listo" };
-  }
+  // La rama de «estratos» se fue con su pestaña el 2026-09-09: Gonzalo no
+  // conceptualiza el avance por mayoría de sexo del aula, así que el rail no
+  // tiene por qué contar brechas de un eje que nadie mira.
   if (seccion === "avance" && key === "cuotas") {
     const total = Number(kpis?.quota_cells ?? 0);
     const ok = Number(kpis?.quota_cells_ok ?? 0);

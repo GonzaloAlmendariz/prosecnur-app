@@ -33,9 +33,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Los sellos que cierran la frase de cabecera. Iban sueltos: al envolver, el
+   último caía en una línea propia pegada al margen izquierdo, en 10 px tenues,
+   con aire de párrafo huérfano —«a veces pones texto abajo de un gráfico y no
+   le pones formato, se ve como pegada a la izquierda» (Gonzalo, 2026-09-09)—.
+   Ahora cada uno se anuncia con un punto medio y respira, así que aunque
+   envuelva se lee como continuación de la frase y no como una nota perdida. */
 .mon-profile-page.is-aulas-flow .aulas-tau-sello {
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-tau-sello::before {
+  content: "·";
+  margin: 0 7px 0 3px;
+  color: var(--pulso-border-strong);
 }
 
 /* TABLA de verdad, no una lista con grid.
@@ -149,11 +161,13 @@
 /* La leyenda es VISUAL y vive junto a la tabla. Antes el significado de la
    marca y de la barra sólo estaba en prosa al pie, que es pedirle al lector que
    memorice una explicación para decodificar un gráfico que tiene delante. */
+/* La leyenda: separada de la frase de arriba y de la tabla de abajo. Con
+   `margin: 0` quedaba encajada entre las dos, sin decir a cuál pertenece. */
 .mon-profile-page.is-aulas-flow .aulas-tau-leyenda {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 0;
+  gap: 4px 18px;
+  margin: 10px 0 12px;
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
 }

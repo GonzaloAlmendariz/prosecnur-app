@@ -251,14 +251,35 @@ export const MONITOREO_PESTANAS = {
       // era el vocabulario del diseño muestral, no el de quien mira el avance.
       // La CLAVE sigue siendo `cuotas`: cambiarla rompería las direcciones ya
       // enlazadas, los docs de direcciones y el recorrido de QA.
-      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por facultad y sexo", Target),
+      // **Reordenado el 2026-09-09 por Gonzalo, y con Estratos FUERA.** Su
+      // recorrido, textual: «resumen debería estar al inicio, seguido de metas,
+      // luego rendimiento, luego efectividad y luego salidas». Es el orden de
+      // las preguntas de quien entra: primero qué llevamos en total, después si
+      // cada facultad llega a su cuota de sexo, después qué rinde, después si
+      // el campo se comporta como el diseño supuso, y al final publicar.
+      //
+      // El orden anterior abría por Metas —decisión suya del 2026-08-29, cuando
+      // Resumen todavía no resumía— y esa razón se cayó sola: Resumen ahora abre
+      // con las respuestas efectivas, que es «el primer alcance que yo tengo
+      // cuando entro a avance».
       pestana("aulas", "avance", "resumen", "Resumen", "Avance general del operativo", BarChart3),
-      pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
+      pestana("aulas", "avance", "cuotas", "Metas", "Avance hacia la muestra y la sobremuestra, por facultad y sexo", Target),
       // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
       // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
       // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
       // lleva siete paneles.
       pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
+      // **«Estratos» se retiró el 2026-09-09.** Gonzalo, tres veces y la última
+      // sin rodeos: «ya no entra porque, como ya te dije mil veces, yo no
+      // conceptualizo los avances ni las metas ni el desarrollo del campo en
+      // función de si hay una facultad donde la mayoría sea hombres o la
+      // mayoría sea mujeres. Yo no lo conceptualizo de esa forma».
+      //
+      // No es un problema de formato: la pestaña partía el operativo por un eje
+      // que él nunca usa para decidir. Sus dos paneles legítimos —cómo se
+      // repartió el sorteo y cuánto se ha movido la composición— son del DISEÑO
+      // muestral, no del avance, y si vuelven será a donde se decide la muestra.
+      // `AulasPestanaEstratos` sigue en el árbol, sin montar.
       // **Pestaña propia, y no un panel dentro de Rendimiento** (ADR 0082,
       // decisión de Gonzalo del 2026-08-26). Las dos miden efectivas sobre
       // elegibles y ahí se acaba el parecido: Rendimiento ordena facultades por

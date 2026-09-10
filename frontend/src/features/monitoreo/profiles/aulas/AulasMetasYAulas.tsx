@@ -36,7 +36,18 @@ export function AulasMetasYAulas({ filas }: {
         <span><i className="aulas-metas-swatch" data-tramo="meta" />Meta</span>
       </p>
       <div className="aulas-metas-scroll">
-        <table className="aulas-metas-tabla">
+        <table className="aulas-metas-tabla es-fija">
+          {/* Mismos anchos declarados que en «Avance por facultad y sexo»: una
+              tabla cuyas columnas se mueven con el dato no es una tabla. */}
+          <colgroup>
+            <col style={{ width: "13rem" }} />
+            <col style={{ width: "7.5rem" }} />
+            <col />
+            <col style={{ width: "5.5rem" }} />
+            <col style={{ width: "5.5rem" }} />
+            <col style={{ width: "5rem" }} />
+            <col style={{ width: "7rem" }} />
+          </colgroup>
           <thead>
             <tr>
               <th className="es-izq">Facultad</th>

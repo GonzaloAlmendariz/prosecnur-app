@@ -44,7 +44,26 @@ export function AulasMetasAvance({ filas, aulas }: {
   const porFacultad = aulasPorFacultad(aulas);
   return (
     <div className="aulas-metas-scroll">
-      <table className="aulas-metas-tabla">
+      <table className="aulas-metas-tabla es-fija">
+        {/* **Anchos declarados, no repartidos por el contenido.** Sin esto la
+            tabla es `auto` y la columna de la barra se lleva lo que sobra: con
+            una facultad de nombre largo o una barra al 100 %, las cifras de la
+            derecha se estrujan y el carril se mete debajo de «Aulas aplicadas».
+            Lo vio Gonzalo en pantalla el 2026-09-09 —«la barra puede incluso
+            ponerse encima de la columna de aplicados»— y es lo mínimo que se le
+            pide a una tabla: que sus columnas estén donde dicen que están, con
+            cualquier dato. */}
+        <colgroup>
+          <col style={{ width: "13rem" }} />
+          <col style={{ width: "7.5rem" }} />
+          <col />
+          <col style={{ width: "4.5rem" }} />
+          <col style={{ width: "5rem" }} />
+          <col style={{ width: "4rem" }} />
+          <col style={{ width: "4rem" }} />
+          <col style={{ width: "7.5rem" }} />
+          <col style={{ width: "8.5rem" }} />
+        </colgroup>
         <thead>
           <tr>
             <th className="es-izq">Facultad</th>
@@ -67,7 +86,7 @@ export function AulasMetasAvance({ filas, aulas }: {
           return (
             <tbody key={f.facultad}>
               <tr className="es-facultad">
-                <td colSpan={7}>
+                <td colSpan={7} className="es-titulo-facultad">
                   <span className={claseDeFacultad(f.facultad)}>{f.facultad}</span>
                 </td>
                 {/* Sin dato de aulas se escribe «—» y no un cero: una facultad
