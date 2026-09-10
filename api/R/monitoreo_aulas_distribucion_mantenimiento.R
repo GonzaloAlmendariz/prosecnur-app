@@ -1139,9 +1139,24 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   # añadir 49 aulas de las semanas 2 a 4. No se inventa un rango —qué semana se
   # reparte lo decide el lead— pero se dice, porque proponerlas en silencio es
   # lo que hace que alguien las aplique sin querer.
-  ventana <- out$ventana %||% list()
-  sin_rango <- !nzchar(.alpa_txt(ventana$desde)) && !nzchar(.alpa_txt(ventana$hasta))
+  # **La ausencia del bloque `ventana` no es «sin rango».** Los recibos
+  # anteriores al 2026-09-09 no lo traían y no por eso hay que disculparse por
+  # ellos; el sincronizador SIEMPRE lo pone. Así que se avisa cuando el bloque
+  # está y viene vacío, que es lo que de verdad significa «no hay rango».
+  ventana <- out$ventana
+  sin_rango <- !is.null(ventana) &&
+    !nzchar(.alpa_txt(ventana$desde)) && !nzchar(.alpa_txt(ventana$hasta))
   partes <- c(
+    # **Y sin rango, «citas sin agenda» no dice cero: no puede contestar.** La
+    # columna FECHA de la hoja lleva «11/09» y el año se toma del rango, así que
+    # sin él ninguna fila se sitúa y el detector salta todas — devolviendo una
+    # lista vacía que se lee como «ninguna cita perdió su aula». Medido el
+    # 2026-09-09 sobre la hoja del operativo: sin ventana 0, con la ventana
+    # 07→12 encuentra 2. Una búsqueda que no encuentra no puede callar.
+    if (sin_rango) paste(
+      "sin rango declarado no se puede comprobar si alguna cita escrita ya no",
+      "tiene su aula agendada ese día: la fecha de la hoja no lleva año y es el",
+      "rango el que se lo pone"),
     if (n_add && sin_rango) sprintf(
       "no hay rango de reparto declarado, así que entra TODO lo agendado: %d aula%s de aquí en adelante",
       n_add, if (n_add == 1L) "" else "s"),

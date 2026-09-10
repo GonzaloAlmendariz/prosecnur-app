@@ -94,3 +94,22 @@ test_that("sin rango pero sin nada que añadir tampoco avisa: no habría de qué
     ventana = list(desde = "", hasta = "")))
   expect_false(grepl("no hay rango", texto, fixed = TRUE))
 })
+
+test_that("sin rango, el recibo dice que «citas sin agenda» NO PUDO comprobarse", {
+  # Sin ventana ninguna fila se sitúa —la fecha de la hoja no lleva año— y el
+  # detector las salta todas, devolviendo una lista vacía que se lee como
+  # «ninguna cita perdió su aula». Medido sobre la hoja del operativo: sin
+  # ventana 0, con la ventana 07→12 encuentra 2. Una búsqueda que no encuentra
+  # no puede callar.
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = FALSE, anadidas = list(), sin_agenda = list(), sin_aplicador = list(),
+    ventana = list(desde = "", hasta = "")))
+  expect_true(grepl("sin rango declarado no se puede comprobar", texto, fixed = TRUE))
+})
+
+test_that("con rango, el recibo no se disculpa: ahí sí puede contestar", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = FALSE, anadidas = list(), sin_agenda = list(), sin_aplicador = list(),
+    ventana = list(desde = "2026-09-07", hasta = "2026-09-12")))
+  expect_false(grepl("sin rango declarado", texto, fixed = TRUE))
+})
