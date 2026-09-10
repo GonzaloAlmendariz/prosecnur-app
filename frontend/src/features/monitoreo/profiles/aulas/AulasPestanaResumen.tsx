@@ -126,12 +126,12 @@ export function AulasPestanaResumen({
                   <h3>Respuestas</h3>
                   <span>cuáles cuentan, y por qué no cuentan las demás</span>
                 </div>
+                {/* El filtro por facultad viene del selector de la CABECERA
+                    —`foco=facultad:…`—, no de un mando propio del bloque. */}
                 <AulasResumenRespuestas
                   cuenta={respuestas?.cuenta}
                   sinAula={respuestas?.sinAula}
                   rotulo={respuestas?.rotulo ?? ""}
-                  facultades={(desglose.facultades ?? []).map((f) => f.facultad)}
-                  onFoco={onFoco}
                 />
               </section>
             ) : null}

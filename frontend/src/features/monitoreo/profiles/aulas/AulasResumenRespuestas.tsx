@@ -19,21 +19,13 @@ import "./aulasResumenRespuestas.css";
  * 6 % del total, que es donde el problema desaparecía de la vista.
  */
 export function AulasResumenRespuestas({
-  cuenta, sinAula, rotulo = "", facultades = [], onFoco = null,
+  cuenta, sinAula, rotulo = "",
 }: {
   cuenta: MonitoreoAulasRespuestasCuenta | null | undefined;
   /** Respuestas sin aula identificable. Se declara; no se esconde. */
   sinAula?: number;
   /** La facultad en foco, si la hay. Vacío = el conjunto. */
   rotulo?: string;
-  /** Los nombres para las pastillas. El foco lo decide `onFoco`. */
-  facultades?: ReadonlyArray<string>;
-  /**
-   * **El foco es el del perfil** (`foco=facultad:…`, param canónico), no un
-   * selector propio: el boceto dibujaba su ◀ Facultad ▶ y habría sido un
-   * segundo mando para lo mismo — y encima no enlazable. `null` = sólo lectura.
-   */
-  onFoco?: ((foco: { tipo: "facultad"; valor: string } | null) => void) | null;
 }): ReactNode {
   if (!cuenta) return null;
   // Con una facultad en foco SÍ se pinta el cero: es su respuesta —«esta
@@ -45,25 +37,13 @@ export function AulasResumenRespuestas({
   const ancho = (v: number, total: number) => `${total > 0 ? (100 * v) / total : 0}%`;
   return (
     <div className="aulas-resp">
-      {facultades.length && onFoco ? (
-        <div className="aulas-resp-facultades" role="group" aria-label="Ver las respuestas de una facultad">
-          <button
-            type="button" className="aulas-sexo-chip" aria-pressed={!rotulo}
-            onClick={() => onFoco(null)}
-          >
-            Todas las facultades
-          </button>
-          {facultades.map((f) => (
-            <button
-              key={f} type="button" className="aulas-sexo-chip"
-              aria-pressed={rotulo.trim().toUpperCase() === f.trim().toUpperCase()}
-              onClick={() => onFoco({ tipo: "facultad", valor: f })}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      {/* **Aquí hubo una tira de pastillas de facultad y se retiró el
+          2026-09-09**: «se ve horrible y debería ser un selector como el que ya
+          está en el header» (Gonzalo). Y lo estaba — `AulasSelectorDeFacultad`
+          vive en la cabecera de la sección, pone `foco=facultad:…` en la
+          dirección y este bloque ya lo lee. Las pastillas eran un segundo mando
+          para lo mismo, quince nombres en dos filas, compitiendo con el que ya
+          había. El bloque sigue filtrando por facultad; lo hace desde arriba. */}
       <p className="aulas-resp-titular">
         <strong>{fmt(cuenta.efectivas)}</strong> efectivas de {fmt(cuenta.observadas)} respuestas
         {cuenta.observadas > 0 ? (

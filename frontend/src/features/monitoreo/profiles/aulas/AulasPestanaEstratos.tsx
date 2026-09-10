@@ -47,19 +47,21 @@ export function AulasPestanaEstratos({
                 El ranking va PRIMERO y la tabla se queda debajo, que es donde sirve:
                 se lee buscando UNA fila concreta entre 73. Lo que no puede es ser la
                 pestaña entera. */}
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                <h3>Dónde se concentra lo que falta</h3>
-                <span>grupos de facultad y sexo con más por recoger · qué parte de lo que falta está en ellos</span>
-              </div>
-              <AulasBrechaConcentrada
-                filas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
-              />
-            </section>
+            {/* **«Dónde se concentra lo que falta» se retiró el 2026-09-09.**
+                Gonzalo, sobre esta pestaña: «jamás hemos conceptualizado metas
+                por estratos». Tenía razón y el culpable era éste: hablaba de
+                METAS por facultad × sexo, que es la pregunta de la pestaña
+                Metas, no de estratos —los otros dos paneles sí lo son y se
+                quedan—.
+
+                Y arrastraba algo peor: corría sobre `avance_sexo_facultad`, el
+                MISMO motor que se desconectó de Metas el mismo día por
+                contradecir a «Metas y aulas» en 28 de las 30 celdas. La
+                contradicción no se había ido de la pantalla: se había mudado de
+                pestaña.
+
+                `AulasBrechaConcentrada` sigue en el árbol; esto es una
+                desconexión, no un borrado. */}
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"

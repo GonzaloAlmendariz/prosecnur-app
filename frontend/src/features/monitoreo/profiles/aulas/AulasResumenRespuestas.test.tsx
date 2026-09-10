@@ -58,26 +58,13 @@ describe("«Respuestas»", () => {
   });
 });
 
-describe("las pastillas de facultad", () => {
-  it("reusan el chip pulsable del perfil y marcan la que está en foco", () => {
-    const html = renderToStaticMarkup(
-      <AulasResumenRespuestas
-        cuenta={cuenta()} rotulo="DERECHO"
-        facultades={["DERECHO", "LETRAS"]} onFoco={() => {}}
-      />,
-    );
-    expect(html).toContain("aulas-sexo-chip");
-    expect(html).toMatch(/aria-pressed="true"[^>]*>DERECHO/);
-    expect(html).toMatch(/aria-pressed="false"[^>]*>Todas las facultades/);
-  });
-
-  it("sin manejador de foco no se pintan: un mando muerto es peor que ninguno", () => {
-    const html = renderToStaticMarkup(
-      <AulasResumenRespuestas cuenta={cuenta()} facultades={["DERECHO"]} onFoco={null} />,
-    );
-    expect(html).not.toContain("Todas las facultades");
-  });
-
+/**
+ * Las pastillas de facultad se retiraron el 2026-09-09: el selector de la
+ * CABECERA ya pone `foco=facultad:…` y este bloque lo lee. Dos mandos para lo
+ * mismo, y el de aquí «se veía horrible» (Gonzalo). Lo que se sigue sujetando
+ * es lo que el bloque hace CON el foco, que es lo que no cambia.
+ */
+describe("el bloque sigue al foco de la cabecera", () => {
   it("una facultad en foco SIN respuestas pinta su cero, no el bloque anterior", () => {
     // Callarlo dejaría en pantalla la cuenta de la facultad anterior como si
     // fuera de ésta.
