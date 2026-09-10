@@ -1,6 +1,6 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
+import { TRAMOS_DE_APLICACION, clavesDelTramo } from "./estadoDeAplicacion";
 
 /**
  * La agenda leída como agenda: qué día se aplica cada curso-horario.
@@ -113,7 +113,11 @@ export function agendaPorDia(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     let desconocidas = 0;
     for (const fila of propias) {
       const clave = texto(fila.application_state);
-      const indice = TRAMOS_DE_APLICACION.findIndex((t) => t.clave === clave);
+      // Por LISTA de claves y no por la clave del tramo: un tramo puede recoger
+      // varias del motor —los aplicados recogen `en_aplicacion` y `cerrando`— y
+      // con la comparación 1 a 1 esas filas caían en «Sin clasificar», que es
+      // peor que perderlas: las cuenta y las muestra con el nombre equivocado.
+      const indice = TRAMOS_DE_APLICACION.findIndex((t) => clavesDelTramo(t).includes(clave));
       // Misma salida declarada que en Avance: un estado nuevo del motor se
       // cuenta aparte en vez de desaparecer del reparto.
       if (indice < 0) desconocidas += 1;
@@ -126,7 +130,11 @@ export function agendaPorDia(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
       tramos: desconocidas
         ? [...tramos, { clave: "desconocido", etiqueta: "Sin clasificar", aulas: desconocidas, color: COLOR_RESULTADO.revision }]
         : tramos,
-      cumplen: tramos.find((t) => t.clave === "cerrando")?.aulas ?? 0,
+      // El tramo se llama `aplicado` desde que «En cierre» se disolvió dentro
+      // de los aplicados (2026-09-10): al curso-horario se va una sola vez, así
+      // que no hay «en curso» que separar de «cerrando». Leer la clave vieja
+      // dejaba esta cuenta en CERO sin que nada fallara salvo su propio test.
+      cumplen: tramos.find((t) => t.clave === "aplicado")?.aulas ?? 0,
       sinEmpezar: (tramos.find((t) => t.clave === "pendiente")?.aulas ?? 0)
         + (tramos.find((t) => t.clave === "lista")?.aulas ?? 0),
     };

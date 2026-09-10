@@ -59,13 +59,19 @@ describe("la agenda por día", () => {
     expect(res.tope).toBe(3);
   });
 
-  it("separa lo que ya cumple de lo que no ha empezado", () => {
+  it("separa lo que ya se aplicó de lo que no ha empezado", () => {
+    // `cerrando` y `en_aplicacion` son la MISMA cosa desde el 2026-09-10: al
+    // curso-horario se va una sola vez. Las dos claves del motor caen en el
+    // tramo `aplicado`, y esta cuenta las recoge por igual.
     const res = agendaPorDia([
       aula("2026-08-10", "cerrando"),
       aula("2026-08-10", "lista"),
       aula("2026-08-10", "pendiente"),
     ]);
     expect(res.dias[0].cumplen).toBe(1);
+    // Y con la otra clave del motor cuenta lo mismo: si mirara una sola, esta
+    // cuenta caería a cero en cuanto el motor prefiriera la otra.
+    expect(agendaPorDia([aula("2026-08-10", "en_aplicacion")]).dias[0].cumplen).toBe(1);
     // Sin agendar más agendadas: las dos que todavía no recibieron respuestas.
     expect(res.dias[0].sinEmpezar).toBe(2);
   });

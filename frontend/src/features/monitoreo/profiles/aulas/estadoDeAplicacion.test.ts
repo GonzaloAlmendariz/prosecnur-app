@@ -10,7 +10,7 @@ function aula(estado: string): MonitoreoAulasPlanRow {
 }
 
 describe("estadoDeAplicacion", () => {
-  test("reparte los seis estados en orden de circuito", () => {
+  test("reparte los cinco tramos en orden de circuito, y los aplicados son uno", () => {
     const res = estadoDeAplicacion([
       aula("cerrando"), aula("pendiente"), aula("pendiente"),
       aula("en_aplicacion"), aula("lista"), aula("reemplazada"),
@@ -18,8 +18,11 @@ describe("estadoDeAplicacion", () => {
       // agendar, es que no hay que agendarla salvo que caiga su titular.
       aula("en_reserva"),
     ]);
+    // `en_aplicacion` y `cerrando` caen en el MISMO tramo desde el 2026-09-10:
+    // al curso-horario se va una sola vez, así que no hay un «en curso» que
+    // separar de un «terminando». Las dos claves del motor suman ahí.
     expect(res.estados.map((e) => [e.clave, e.aulas])).toEqual([
-      ["pendiente", 2], ["lista", 1], ["en_aplicacion", 1], ["cerrando", 1],
+      ["pendiente", 2], ["lista", 1], ["aplicado", 2],
       ["reemplazada", 1], ["en_reserva", 1],
     ]);
     expect(res.total).toBe(7);
@@ -62,11 +65,13 @@ describe("estadoDeAplicacion", () => {
   test("el azul de «lista» no invade la paleta de desenlaces", () => {
     // Pintar «agendada» de granate diria que alguien declino, que es falso.
     expect(COLORES_DE_RESULTADO_EXCLUSIVOS).not.toContain(COLOR_AULA_LISTA);
-    // Seis tramos, seis colores distintos: si «En reserva» compartiera el gris
-    // de «Sin agendar», el gráfico volvería a mezclar los dos estados que este
-    // tramo existe para separar.
+    // Un color por tramo: si «En reserva» compartiera el gris de «Sin agendar»,
+    // el gráfico volvería a mezclar los dos estados que este tramo existe para
+    // separar. Eran seis hasta que «En cierre» se disolvió dentro de los
+    // aplicados el 2026-09-10.
     const colores = estadoDeAplicacion([aula("lista")]).estados.map((e) => e.color);
-    expect(new Set(colores).size).toBe(6);
+    expect(new Set(colores).size).toBe(colores.length);
+    expect(colores.length).toBe(5);
   });
 });
 
