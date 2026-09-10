@@ -61,8 +61,8 @@ No bloquea ninguna decisión; se cierra cuando lo de arriba esté.
 |---|---|---|---|
 | 1 | «No sé para qué sirven finalmente los botones rojos… ¿cuál es la diferencia entre ambos?» | `AulasMonitoreoPage.tsx` (`advanceTitle`, `refreshTitle`, `syncField`) | ◐ contestado abajo; falta decidir si la pantalla lo dice sin hover |
 | 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
-| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ◐ el ritmo ya va del arranque al cierre previsto (`d326513a` + `7039aac6`); falta que el PRONÓSTICO use el mismo eje de fechas |
-| 17 | «Los días en el eje x no se ven bien» | ambos | ◐ el ritmo ralea rótulos (`7039aac6`); falta el pronóstico |
+| 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ☑ **visto en pantalla**: los dos gráficos comparten calendario, 07 SET → 01 OCT, mismos 25 días |
+| 17 | «Los días en el eje x no se ven bien» | ambos | ☑ **visto**: los 25 días con su número, horizontales, y el mes sólo al cambiar (SET, OCT) |
 | 40 | **Deuda descubierta por el guard nuevo**: 18 `--pulso-*` huérfanos en nueve hojas del perfil (`--pulso-border-soft`, `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`…). Cada uno es un elemento que hoy se pinta sin el color que pide, en silencio | hojas del perfil | ☐ **congelado con TOPE=18**; cerrarlos exige mirar cada uno en pantalla |
 
 ### Cerrados
