@@ -379,7 +379,7 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
 #' equipo no tiene por qué recolocarla cada vez. Es estructura de la hoja, no
 #' dato suyo: la pone quien mueve las filas.
 #'
-#' Se limpia el interior del rango ANTES de dibujar, o la raya vieja quedaría
+#' Se limpia el interior del rango ANTES de dibujar, o la raya vieja quedaria
 #' además de la nueva. Sólo las horizontales interiores: los bordes exteriores
 #' del bloque no son nuestros.
 #'
@@ -390,14 +390,25 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
 .alpa_separadores_de_dia <- function(sheet_id, rows) {
   datos <- rows[-1L]
   if (length(datos) < 2L) return(list())
-  i_fecha <- which(.alpa_CABECERA == "FECHA")[[1L]]
+  # **Separa por DÍA, no por fecha.** La primera versión miraba la fecha y el
+  # 2026-09-10 partió el jueves en tres: CH164 tiene la fecha tecleada «10/10»
+  # en vez de «10/09» y quedó encajonada entre dos rayas, una al entrar y otra
+  # al salir. Gonzalo lo fotografió.
+  #
+  # El día es lo que el lector agrupa —«lo mío del jueves»— y una errata de dedo
+  # en una celda no puede partirle el bloque en dos. La pestaña es de UNA semana
+  # («cada hoja va a ser por semana»), así que dentro de ella el nombre del día
+  # identifica el bloque sin ambigüedad. La fecha mal escrita sigue viéndose en
+  # su columna, que es donde se corrige.
+  i_dia <- which(.alpa_CABECERA == "DÍA")[[1L]]
   n_col <- length(.alpa_CABECERA)
-  fechas <- vapply(datos, function(r) {
+  dias <- vapply(datos, function(r) {
     v <- as.list(r)
-    if (i_fecha <= length(v)) .alpa_txt(v[[i_fecha]]) else ""
+    if (i_dia <= length(v)) .alpa_txt(v[[i_dia]]) else ""
   }, character(1))
-  cortes <- which(fechas[-1L] != fechas[-length(fechas)]) + 1L
-  if (!length(cortes)) return(list())
+  cortes <- which(dias[-1L] != dias[-length(dias)]) + 1L
+  # Sin cortes se limpia IGUAL: si el reparto anterior dejó rayas y ahora todo
+  # cae en un solo día, devolver `list()` las dejaría puestas para siempre.
   rango <- function(desde, hasta) list(
     sheetId = sheet_id, startRowIndex = as.integer(desde), endRowIndex = as.integer(hasta),
     startColumnIndex = 0L, endColumnIndex = as.integer(n_col))

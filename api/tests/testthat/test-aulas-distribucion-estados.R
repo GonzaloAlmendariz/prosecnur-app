@@ -262,10 +262,10 @@ test_that("la raya cae donde cambia la fecha, no donde cayó la vez pasada", {
 test_that("se limpia la raya anterior antes de dibujar la nueva", {
   # Sin limpiar, la del reparto pasado quedaría ADEMÁS de la nueva y el bloque
   # saldría partido en dos sitios.
-  fila <- function(fecha) as.list(c("Interno Pulso", "Lunes", fecha, "", "", "",
-                                    "CH 1", "", "", "", "", "POR APLICAR"))
+  fila <- function(dia, fecha) as.list(c("Interno Pulso", dia, fecha, "", "", "",
+                                         "CH 1", "", "", "", "", "POR APLICAR"))
   reqs <- prosecnurapp:::.alpa_separadores_de_dia(0L, list(
-    as.list(prosecnurapp:::.alpa_CABECERA), fila("07/09"), fila("08/09")))
+    as.list(prosecnurapp:::.alpa_CABECERA), fila("Lunes", "07/09"), fila("Martes", "08/09")))
   expect_identical(reqs[[1]]$updateBorders$innerHorizontal$style, "NONE")
   # Y la limpieza cubre TODAS las filas, no sólo hasta el primer corte.
   expect_identical(reqs[[1]]$updateBorders$range$endRowIndex, 3L)
@@ -274,8 +274,10 @@ test_that("se limpia la raya anterior antes de dibujar la nueva", {
 test_that("con un solo día no se dibuja ninguna raya", {
   fila <- as.list(c("Interno Pulso", "Lunes", "07/09", "", "", "",
                     "CH 1", "", "", "", "", "POR APLICAR"))
-  expect_length(prosecnurapp:::.alpa_separadores_de_dia(
-    0L, list(as.list(prosecnurapp:::.alpa_CABECERA), fila, fila)), 0L)
+  reqs <- prosecnurapp:::.alpa_separadores_de_dia(
+    0L, list(as.list(prosecnurapp:::.alpa_CABECERA), fila, fila))
+  # Ninguna RAYA — pero sí la limpieza, que borra la del reparto anterior.
+  expect_length(Filter(function(r) !is.null(r$updateBorders$top), reqs), 0L)
 })
 
 test_that("el formato de la hoja incluye las rayas", {
@@ -308,4 +310,37 @@ test_that("la grafía se repara; el significado nunca", {
   expect_true("CH 164" %in% cods)
   expect_false("CH 20" %in% cods)
   expect_false("CH 21" %in% cods)
+})
+
+test_that("una fecha mal tecleada NO parte el bloque de su día", {
+  # 2026-09-10: CH164 tiene «10/10» donde debía decir «10/09» y la primera
+  # versión —que separaba por FECHA— le puso una raya al entrar y otra al salir,
+  # encajonando la fila y partiendo el jueves en tres. Gonzalo lo fotografió.
+  # El día es lo que el lector agrupa; la errata se ve en su columna.
+  fila <- function(dia, fecha, cod) as.list(c(
+    "Interno Pulso", dia, fecha, "", "", "", cod, "", "", "", "", "POR APLICAR"))
+  rows <- list(
+    as.list(prosecnurapp:::.alpa_CABECERA),
+    fila("Miércoles", "09/09", "CH 11"),
+    fila("Jueves", "10/09", "CH 62"),
+    fila("Jueves", "10/10", "CH164"),   # la errata
+    fila("Jueves", "10/09", "CH 129"),
+    fila("Viernes", "11/09", "CH 107"))
+  bordes <- Filter(function(r) !is.null(r$updateBorders$top),
+                   prosecnurapp:::.alpa_separadores_de_dia(0L, rows))
+  # DOS rayas: al entrar el jueves y al entrar el viernes. Ni una dentro.
+  expect_length(bordes, 2L)
+  inicios <- sort(vapply(bordes, function(b) b$updateBorders$range$startRowIndex, integer(1)))
+  expect_identical(inicios, c(2L, 5L))
+})
+
+test_that("aunque no haya cortes, la raya vieja se borra", {
+  # Devolver `list()` cuando todo cae en un día dejaba puesta para siempre la
+  # raya del reparto anterior.
+  fila <- as.list(c("Interno Pulso", "Lunes", "07/09", "", "", "",
+                    "CH 1", "", "", "", "", "POR APLICAR"))
+  reqs <- prosecnurapp:::.alpa_separadores_de_dia(
+    0L, list(as.list(prosecnurapp:::.alpa_CABECERA), fila, fila))
+  expect_length(reqs, 1L)
+  expect_identical(reqs[[1]]$updateBorders$innerHorizontal$style, "NONE")
 })
