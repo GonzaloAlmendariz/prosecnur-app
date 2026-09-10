@@ -312,3 +312,13 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+
+/* **La cruz nativa de `type="search"` se apaga.** Chromium dibuja su propio
+   `::-webkit-search-cancel-button` dentro del input, así que con el botón de
+   limpiar de la casa al lado salían DOS cruces pegadas —visto en pantalla el
+   2026-09-10, el input acaba en 412 px y la cruz propia empieza en 418—. Se
+   queda la de la casa: es la que hereda el color y el foco del campo. */
+.mon-profile-page.is-aulas-flow .aulas-dt-buscador-campo input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
