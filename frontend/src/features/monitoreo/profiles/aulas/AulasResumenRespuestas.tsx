@@ -18,21 +18,60 @@ import "./aulasResumenRespuestas.css";
  * que no cuenta, así que 68 sobre 105 se lee como dos tercios en vez de como el
  * 6 % del total, que es donde el problema desaparecía de la vista.
  */
-export function AulasResumenRespuestas({ cuenta, sinAula }: {
+export function AulasResumenRespuestas({
+  cuenta, sinAula, rotulo = "", facultades = [], onFoco = null,
+}: {
   cuenta: MonitoreoAulasRespuestasCuenta | null | undefined;
   /** Respuestas sin aula identificable. Se declara; no se esconde. */
   sinAula?: number;
+  /** La facultad en foco, si la hay. Vacío = el conjunto. */
+  rotulo?: string;
+  /** Los nombres para las pastillas. El foco lo decide `onFoco`. */
+  facultades?: ReadonlyArray<string>;
+  /**
+   * **El foco es el del perfil** (`foco=facultad:…`, param canónico), no un
+   * selector propio: el boceto dibujaba su ◀ Facultad ▶ y habría sido un
+   * segundo mando para lo mismo — y encima no enlazable. `null` = sólo lectura.
+   */
+  onFoco?: ((foco: { tipo: "facultad"; valor: string } | null) => void) | null;
 }): ReactNode {
-  if (!cuenta || !cuenta.observadas) return null;
+  if (!cuenta) return null;
+  // Con una facultad en foco SÍ se pinta el cero: es su respuesta —«esta
+  // facultad no tiene ninguna»— y callarla dejaría el bloque anterior en
+  // pantalla como si fuera suyo. Sin foco, un cero es que no hay nada que
+  // contar todavía.
+  if (!cuenta.observadas && !rotulo) return null;
   const noCuentan = cuenta.fuera_del_operativo + cuenta.no_pasan_criterio;
   const ancho = (v: number, total: number) => `${total > 0 ? (100 * v) / total : 0}%`;
   return (
     <div className="aulas-resp">
+      {facultades.length && onFoco ? (
+        <div className="aulas-resp-facultades" role="group" aria-label="Ver las respuestas de una facultad">
+          <button
+            type="button" className="aulas-sexo-chip" aria-pressed={!rotulo}
+            onClick={() => onFoco(null)}
+          >
+            Todas las facultades
+          </button>
+          {facultades.map((f) => (
+            <button
+              key={f} type="button" className="aulas-sexo-chip"
+              aria-pressed={rotulo.trim().toUpperCase() === f.trim().toUpperCase()}
+              onClick={() => onFoco({ tipo: "facultad", valor: f })}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <p className="aulas-resp-titular">
         <strong>{fmt(cuenta.efectivas)}</strong> efectivas de {fmt(cuenta.observadas)} respuestas
-        <span className="aulas-resp-pct">
-          {pctPerfil((100 * cuenta.efectivas) / cuenta.observadas)}
-        </span>
+        {cuenta.observadas > 0 ? (
+          <span className="aulas-resp-pct">
+            {pctPerfil((100 * cuenta.efectivas) / cuenta.observadas)}
+          </span>
+        ) : null}
+        {rotulo ? <span className="aulas-resp-pct">en {rotulo}</span> : null}
       </p>
       <div className="aulas-resp-pila">
         <i

@@ -5,6 +5,7 @@ import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
+import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
@@ -103,6 +104,10 @@ export function AulasPestanaResumen({
       deReservaAdicional: aulasExtra,
     });
   const desglose = dashboard.respuestas_desglose;
+  // Qué cuenta enseña el bloque: la del conjunto o la de la facultad en foco.
+  // El foco es el del perfil —el mismo que ya gobierna «A quién hay que
+  // agendar»—, no un selector propio del bloque.
+  const respuestas = respuestasDeLaFacultad(desglose, facultadEnFoco);
   return (
     <>
             {/* **Abre la pestaña porque es la pregunta anterior a todas.** Antes
@@ -122,8 +127,11 @@ export function AulasPestanaResumen({
                   <span>cuáles cuentan, y por qué no cuentan las demás</span>
                 </div>
                 <AulasResumenRespuestas
-                  cuenta={desglose.total}
-                  sinAula={desglose.total.sin_aula}
+                  cuenta={respuestas?.cuenta}
+                  sinAula={respuestas?.sinAula}
+                  rotulo={respuestas?.rotulo ?? ""}
+                  facultades={(desglose.facultades ?? []).map((f) => f.facultad)}
+                  onFoco={onFoco}
                 />
               </section>
             ) : null}
