@@ -107,13 +107,19 @@ aulas_distribucion_estados_publicados <- function(remoto) {
 #' «APLICADA SIN AGENDACION» sin tilde. El valor es cerrado, pero la lista no es
 #' la de la app.
 #'
-#' La única escritura que el motor se permite es hacia ADELANTE:
+#' **La celda escrita se conserva SIEMPRE. El motor sólo siembra la vacía.**
+#' Es la regla que él dictó el 2026-09-09 para el ciclo diario —«el status de
+#' aplicada es manual y lo hace el aplicador, no la app; la app solo pone por
+#' defecto POR APLICAR al construir, punto»— y vale igual aquí: es la misma
+#' columna y la leen las mismas veintidós personas.
 #'
-#' - sobre una casilla vacía o en «POR APLICAR», escribe lo que deduce;
-#' - sobre «POR APLICAR SIN AGENDACIÓN», si las respuestas ya llegan, asciende a
-#'   «APLICADA SIN AGENDACIÓN» — fueron sin cita y rindió, que es su desenlace,
-#'   no un «APLICADA» a secas que perdería de dónde salió;
-#' - sobre cualquier otro, no toca nada.
+#' Esa regla nació de un daño medido: cuando la app PROPONÍA el estado y lo
+#' escribía si le parecía un ascenso, CH 111 y CH 82 —agendadas para el viernes
+#' 11 y con cero respuestas— quedaron marcadas APLICADA porque un parte de campo
+#' estaba tecleado en la fila de al lado. La hoja que el equipo lee para saber a
+#' dónde ir decía que dos aulas del futuro ya estaban hechas, y alguien podía
+#' dejar de ir. Por eso ni siquiera se asciende «POR APLICAR SIN AGENDACIÓN» a
+#' su desenlace: un ascenso también es escribir encima.
 #'
 #' @param deducido lo que el motor sabe: «APLICADA» o «POR APLICAR».
 #' @param previo lo que hay escrito en el documento, tal cual.
@@ -122,9 +128,9 @@ aulas_distribucion_estados_publicados <- function(remoto) {
 aulas_distribucion_estado_a_publicar <- function(deducido, previo = "") {
   puesto <- aulas_distribucion_estado_canonico(previo)
   nuevo <- as.character(deducido %||% "")[1]
-  if (!nzchar(puesto) || identical(puesto, "POR APLICAR")) return(nuevo)
-  if (identical(puesto, "POR APLICAR SIN AGENDACIÓN") && identical(nuevo, "APLICADA")) {
-    return("APLICADA SIN AGENDACIÓN")
-  }
+  if (!nzchar(trimws(as.character(previo %||% "")[1]))) return(nuevo)
+  # Un valor escrito que NO es de la lista tampoco se pisa: es del equipo y
+  # borrarlo por no reconocerlo sería el peor desenlace de una lista cerrada.
+  if (!nzchar(puesto)) return(as.character(previo)[1])
   puesto
 }

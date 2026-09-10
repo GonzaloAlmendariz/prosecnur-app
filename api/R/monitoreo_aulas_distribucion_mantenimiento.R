@@ -28,7 +28,12 @@
 #' hueco en la agenda de alguien, y el operativo necesita poder contarlas
 #' aparte para saber cuánto está costando reagendar.
 #' @keywords internal
-.madm_APLICADOS <- c("APLICADA", "APLICADA POR REAGENDACIÓN")
+# «APLICADA SIN AGENDACIÓN» entra aquí desde el 2026-09-10: es un aula RENDIDA
+# y saltarla es justo el punto de esta lista. Sin ella, la fila que aplicaron sin
+# cita se reportaba como desalineada —«sin_plan» o «ya_no_agendada»— y el recibo
+# pedía atención sobre algo que ya estaba hecho. «POR APLICAR SIN AGENDACIÓN» NO
+# entra: ésa todavía no ha rendido.
+.madm_APLICADOS <- c("APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN")
 
 #' Los estados de la agenda que justifican mandar a alguien.
 #'
@@ -318,7 +323,9 @@ monitoreo_aulas_citas_sin_agenda <- function(plan, filas_remotas,
     if (nzchar(d0) && fecha < d0) next
     if (nzchar(d1) && fecha > d1) next
     if (cod %in% aplicadas) next
-    if (toupper(.madm_celda(v, c_estado)) %in% toupper(.madm_APLICADOS)) next
+    # Por el canónico: el desplegable de la hoja tenía «APLICADA SIN AGENDACION»
+    # sin tilde, y comparar en crudo la habría dejado fuera de la lista.
+    if (aulas_distribucion_estado_canonico(.madm_celda(v, c_estado)) %in% .madm_APLICADOS) next
 
     a <- agenda[[cod]]
     if (is.null(a)) {
