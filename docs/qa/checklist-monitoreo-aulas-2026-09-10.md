@@ -10,11 +10,11 @@ Sólo Gonzalo lo da por terminado.
 | 3 | «Sigue saliendo fail page, lo cual me da a entender de que algo está fallando» | por diagnosticar | ☐ falta reproducirlo: no se sabe en qué pantalla ni con qué acción |
 | 4 | «A quién hay que agendar… no entiendo en base a qué te basas» + «hay facultades que todavía no terminan de agendar los titulares» | `AulasAlertaDeAnticipacion` | ☐ |
 | 5 | «Tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué tipo de reemplazos» | motor: `sample_role` + `replacement_reason` | ☐ |
-| 6 | «El estado de aplicación, no entiendo por qué en reserva hay 1 169» | `AulasEstadoChart` | ◐ medido abajo; falta que la pantalla lo explique |
+| 6 | «El estado de aplicación, no entiendo por qué en reserva hay 1 169» | `AulasEstadoPorRol` | ☑ `aef557e2` — el cajón se parte en «en cadena» y «al aire» |
 | 7 | «En cada curso-horario contra su propio margen… mostrarlos por facultad, y poder escoger entre los aplicados, los titulares, o el reemplazo uno con el reemplazo dos» | `AulasSenalesPorAula` + `senalesPorAula.ts` | ☐ |
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |
 | 9 | «Con una o dos aulas eso no es suficiente base… pero cuando ya empezamos a tener una porción importante de las aulas aplicadas y vemos que no vamos a llegar, poder avisarte a tiempo» | ídem, es la condición de disparo de (8) | ☐ |
-| 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `monitoreo_aulas_rol_y_estado.R` + `AulasEstadoChart` | ◐ motor hecho (`a69a0c42`, 23 tests); falta la pantalla |
+| 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `monitoreo_aulas_rol_y_estado.R` + `AulasEstadoPorRol` | ☑ `a69a0c42` motor + `aef557e2` pantalla · falta MIRARLO y falta A/B/C, que no está en el libro |
 | 11 | «No entiendo lo de en cierre» → «disuélvelo dentro de titulares aplicados» | `estadoDeAplicacion.ts` | ☑ `46bf5693` |
 | 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | motor: `monitoreo_aulas_universitarias.R` | ☑ `158c56bc` — repartía 219 y sólo 45 se habían aplicado |
 | 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `<scratchpad>/resumen.html` | ☐ ver el cotejo abajo |
