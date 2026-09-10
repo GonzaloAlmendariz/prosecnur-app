@@ -3,7 +3,7 @@ import { Fragment, useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { personasPorAula } from "./redondeoConservador";
-import { MINIMO_PARA_COMPARAR, esCajonSinDato, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { MINIMO_PARA_COMPARAR, esCajonSinTramo, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
@@ -92,7 +92,7 @@ export function AulasRendimientoPorFacultad({
 
   // Facultad y aplicador juzgan a alguien; franja y día son cortes del tiempo.
   const juzgaAUnEjecutante = clave === "faculty" || clave === "applied_by";
-  const conNombre = filas.filter((f) => !esCajonSinDato(f.facultad));
+  const conNombre = filas.filter((f) => !esCajonSinTramo(f.facultad));
   const comparables = conNombre.filter((f) => f.aulas >= MINIMO_PARA_COMPARAR);
   const apartadas = conNombre.filter((f) => f.aulas < MINIMO_PARA_COMPARAR);
   const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
@@ -251,7 +251,7 @@ export function AulasRendimientoPorFacultad({
           // entera de facultades con una visita no se encabeza con un aviso de
           // que no hay nada arriba.
           const anterior = filas[i - 1];
-          const cajon = esCajonSinDato(f.facultad);
+          const cajon = esCajonSinTramo(f.facultad);
           const apartada = !cajon && f.aulas < MINIMO_PARA_COMPARAR;
           // **El corte de evidencia NO puede tragarse los cajones.** Visto en
           // pantalla el 2026-09-10: en «Día de la semana» lo único que quedaba
@@ -260,9 +260,9 @@ export function AulasRendimientoPorFacultad({
           // es un día con pocas visitas: son partes a los que les falta la
           // fecha. Cada frontera nombra lo suyo o miente sobre lo que separa.
           const abreElCorte = apartada && i > 0
-            && !esCajonSinDato(anterior?.facultad ?? "")
+            && !esCajonSinTramo(anterior?.facultad ?? "")
             && (anterior?.aulas ?? 0) >= MINIMO_PARA_COMPARAR;
-          const abreElCajon = cajon && i > 0 && !esCajonSinDato(anterior?.facultad ?? "");
+          const abreElCajon = cajon && i > 0 && !esCajonSinTramo(anterior?.facultad ?? "");
           return (
           <Fragment key={f.facultad}>
           {abreElCorte ? (
@@ -277,9 +277,9 @@ export function AulasRendimientoPorFacultad({
           {abreElCajon ? (
             <li key="cajon" role="row" className="aulas-rendimiento-corte">
               <span role="cell">
-                Partes a los que les falta el dato con el que agrupa esta lente —
-                no son un nivel de rendimiento y por eso van fuera de la
-                comparación
+                Fuera de la comparación: no caen en ningún tramo de esta lente
+                —o les falta el dato con el que agrupa, o el que traen queda
+                fuera— y ninguna de las dos cosas es un nivel de rendimiento
               </span>
             </li>
           ) : null}

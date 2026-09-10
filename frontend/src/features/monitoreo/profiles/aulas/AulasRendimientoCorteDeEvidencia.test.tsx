@@ -77,8 +77,8 @@ describe("el corte de evidencia del ranking", () => {
     // cursos-horario visitados — todavía no se comparan». «Sin fecha» no es un
     // día con pocas visitas: son partes a los que les falta la fecha.
     const marcado = html();
-    expect(marcado).toContain("Partes a los que les falta el dato");
-    const iCajon = marcado.indexOf("Partes a los que les falta el dato");
+    expect(marcado).toContain("Fuera de la comparación");
+    const iCajon = marcado.indexOf("Fuera de la comparación");
     // El cajón se pinta DESPUÉS de su frontera, y su frontera después del corte
     // de evidencia: tres grupos, dos líneas, cada una nombrando lo suyo.
     expect(posicion("Sin facultad")).toBeGreaterThan(iCajon);
@@ -94,7 +94,7 @@ describe("el corte de evidencia del ranking", () => {
       <AulasRendimientoPorFacultad partes={soloComparables} plan={plan} />,
     );
     expect(marcado).not.toContain(`Con menos de ${MINIMO_PARA_COMPARAR} cursos-horario visitados`);
-    expect(marcado).toContain("Partes a los que les falta el dato");
+    expect(marcado).toContain("Fuera de la comparación");
   });
 
   it("la frase de cabecera no nombra un cajón de «no se sabe» como la que más rinde", () => {

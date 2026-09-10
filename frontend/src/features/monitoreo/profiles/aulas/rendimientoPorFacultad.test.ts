@@ -68,6 +68,32 @@ describe("rendimientoPorFacultad", () => {
     expect(uno.delPotencialAjustado).toBeLessThan(100);
   });
 
+  it("«Fuera de franja» va al final aunque sea la que más rinde", () => {
+    // Medido el 2026-09-10: encabezaba la lente de horas con el 70,6 % de 8
+    // cursos-horario, en un panel subtitulado «a qué hora conviene agendar».
+    // Fuera de franja no es una hora a la que se pueda agendar; y ocho de esos
+    // nueve partes son horas de tarde escritas en formato de 12 horas, o sea
+    // que el tramo ni siquiera es real.
+    const plan = [
+      ...Array.from({ length: 8 }, (_, i) => parte({ operational_code: `F${i}`, eligible_n: 40 })),
+      ...Array.from({ length: 8 }, (_, i) => parte({ operational_code: `D${i}`, eligible_n: 40 })),
+    ];
+    const partes = [
+      // A las 5:04 de la madrugada: cae en «Fuera de franja», y rinde al 90 %.
+      ...Array.from({ length: 8 }, (_, i) =>
+        parte({ operational_code: `F${i}`, applied_at: "2026-09-08 5:04", effective_surveys: 36, observed_students: 38 })),
+      // A las 11:00: cae en «9:01 – 19:00», y rinde al 50 %.
+      ...Array.from({ length: 8 }, (_, i) =>
+        parte({ operational_code: `D${i}`, applied_at: "2026-09-08 11:00", effective_surveys: 20, observed_students: 30 })),
+    ];
+    const salida = rendimientoPorFacultad(partes, plan, "franja");
+    const nombres = salida.map((f) => f.facultad);
+    expect(nombres[nombres.length - 1]).toBe("Fuera de franja");
+    // Y NO por rendir menos: rinde casi el doble que el tramo que va delante.
+    const fuera = salida.find((f) => f.facultad === "Fuera de franja")!;
+    expect(fuera.delPotencial).toBeGreaterThan(salida[0].delPotencial!);
+  });
+
   it("sin elegibles no hay nada que encoger y el ajustado es null, no un cero", () => {
     const salida = rendimientoPorFacultad(
       [parte({ operational_code: "X", faculty: "SinPlan", effective_surveys: 10, observed_students: 12 })],
