@@ -58,3 +58,10 @@
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Un día sin campo —el domingo— se dibuja igual pero apagado: saber que ese día
+   no se trabajó es parte de leer el ritmo, y saltarlo dejaría huecos de ancho
+   distinto que romperían la alineación con el gráfico de abajo. */
+.mon-profile-page.is-aulas-flow .aulas-avdia-fecha.es-sin-campo {
+  fill: var(--pulso-text-faint);
+}

@@ -40,7 +40,14 @@ function etiquetaDeDia(iso: string) {
   return `${dia.charAt(0).toUpperCase()}${dia.slice(1, 3)} ${d.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}`;
 }
 
-export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
+export function AulasRitmoDiario({ ritmo, hasta }: {
+  ritmo: RitmoDiario | null;
+  /**
+   * El final del horizonte, para que el eje llegue donde llega el pronóstico
+   * del panel de abajo. Lo calcula la pestaña, que es quien ve los dos.
+   */
+  hasta?: string;
+}) {
   if (!ritmo || !ritmo.dias.length) {
     return (
       // El vacío dice de dónde saldría el dato: sin marca de envío no hay
@@ -139,7 +146,7 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
           el derecho, y cada rótulo de eje del color de su serie. El valor de
           cada día se conserva encima de su barra, que es lo único que la tabla
           daba y el boceto no. */}
-      <AulasAvanceDiario dias={dias} />
+      <AulasAvanceDiario dias={dias} hasta={hasta} />
       {falta > 0 ? (
         <p className="mon-profile-table-recorte">
           {/* «para la meta TOTAL». Sin esa palabra, este pie dice «faltan 43» a

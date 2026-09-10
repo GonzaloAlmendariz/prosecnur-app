@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
+import { ejeDeDias, serieSobreElEje } from "./ejeDeDias";
 import type { DiaDeRitmo } from "./AulasRitmoDiario";
 import "./aulasAvanceDiario.css";
 
@@ -63,7 +64,20 @@ export function techoLegible(maximo: number, aire: number): number {
 /** «2026-09-08» → «08/09», que es como el boceto rotula el eje. */
 const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
-export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> }): ReactNode {
+export function AulasAvanceDiario({ dias, hasta }: {
+  dias: ReadonlyArray<DiaDeRitmo>;
+  /**
+   * El último día del horizonte, para que el eje llegue hasta donde llega el
+   * pronóstico de abajo.
+   *
+   * Gonzalo, 2026-09-10: «ahorita se ve vacío el ritmo de la recolección: igual
+   * entiendo que hay días que todavía no hemos aplicado, pero pueden ponerse de
+   * todas formas para que se complete el gráfico». Sin esto el eje termina en la
+   * última jornada con respuestas —tres, en el operativo— y los dos gráficos
+   * miden distancias distintas con la misma anchura.
+   */
+  hasta?: string;
+}): ReactNode {
   if (!dias.length) {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -72,19 +86,28 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
     );
   }
 
+  // El eje va de la primera jornada al final del horizonte. Sin `hasta` se
+  // queda en la última con respuestas, que es como estaba.
+  const corte = dias[dias.length - 1]?.fecha ?? "";
+  const eje = ejeDeDias(dias[0]?.fecha ?? "", hasta && hasta > corte ? hasta : corte, corte);
+  const puntos = eje.length ? serieSobreElEje(eje, dias) : dias.map((d) => ({
+    ...d, etiqueta: `${d.fecha.slice(8, 10)}/${d.fecha.slice(5, 7)}`,
+    esDeCampo: true, pasado: true, tieneDato: true,
+  }));
+
   const ancho = ANCHO;
   const util = { x: ancho - PAD.izq - PAD.der, y: ALTO - PAD.arriba - PAD.abajo };
   // **Los dos techos llevan aire Y son legibles.** Sin margen, la barra más alta
   // toca el borde y se lee como si el eje se hubiera quedado corto; sin
   // redondear, el eje dice 189 y 378, que no son cifras que nadie use para
   // situar una barra.
-  const techoBarra = techoLegible(Math.max(...dias.map((d) => d.validas), 1), 1.15);
-  const techoLinea = techoLegible(Math.max(...dias.map((d) => d.acumulado), 1), 1.1);
+  const techoBarra = techoLegible(Math.max(...puntos.map((d) => d.validas), 1), 1.15);
+  const techoLinea = techoLegible(Math.max(...puntos.map((d) => d.acumulado), 1), 1.1);
   // La barra no se estira sin límite: con tres jornadas sobre 1 100 px, un 50 %
   // del carril serían 170 px de barra, que se lee como un bloque y no como una
   // serie. El tope de 46 px es el del boceto.
-  const ancho1 = Math.min(46, (util.x / dias.length) * 0.5);
-  const cx = (i: number) => PAD.izq + (util.x * (i + 0.5)) / dias.length;
+  const ancho1 = Math.min(46, (util.x / puntos.length) * 0.5);
+  const cx = (i: number) => PAD.izq + (util.x * (i + 0.5)) / puntos.length;
   const yBarra = (v: number) => PAD.arriba + util.y * (1 - v / techoBarra);
   const yLinea = (v: number) => PAD.arriba + util.y * (1 - v / techoLinea);
   const suelo = yBarra(0);
@@ -97,7 +120,8 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
         // panel, que es lo que hace que el dibujo llene el ancho disponible.
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={`Efectivas por día y acumulado. ${dias
+        aria-label={`Efectivas por día y acumulado. ${puntos
+          .filter((d) => d.tieneDato)
           .map((d) => `${diaMes(d.fecha)}: ${d.validas} en el día, ${d.acumulado} acumuladas`)
           .join("; ")}`}
       >
@@ -114,7 +138,7 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
               className="aulas-avdia-eje es-acumulado">{Math.round(techoLinea * t)}</text>
           </g>
         ))}
-        {dias.map((d, i) => (
+        {puntos.map((d, i) => (
           <g key={d.fecha}>
             <rect x={cx(i) - ancho1 / 2} y={yBarra(d.validas)} width={ancho1}
               height={Math.max(0, suelo - yBarra(d.validas))} className="aulas-avdia-barra" />
@@ -125,13 +149,22 @@ export function AulasAvanceDiario({ dias }: { dias: ReadonlyArray<DiaDeRitmo> })
               <text x={cx(i)} y={yBarra(d.validas) - 5} textAnchor="middle"
                 className="aulas-avdia-valor">{fmt(d.validas)}</text>
             ) : null}
-            <text x={cx(i)} y={ALTO - PAD.abajo + 16} textAnchor="middle"
-              className="aulas-avdia-fecha">{diaMes(d.fecha)}</text>
+            {/* **Un rótulo de cada tres cuando el eje es largo.** Con veinticinco
+                días las fechas se pisan unas con otras —él: «los días en el eje x
+                no se ven bien»— y con tres caben todas. El primero y el último
+                se rotulan siempre: son los extremos del horizonte. */}
+            {puntos.length <= 10 || i % Math.ceil(puntos.length / 10) === 0 || i === puntos.length - 1 ? (
+              <text x={cx(i)} y={ALTO - PAD.abajo + 16} textAnchor="middle"
+                className={`aulas-avdia-fecha${d.esDeCampo ? "" : " es-sin-campo"}`}>{diaMes(d.fecha)}</text>
+            ) : null}
           </g>
         ))}
+        {/* La línea sólo recorre lo que YA PASÓ: prolongarla sobre el horizonte
+            la convertiría en un pronóstico, y el pronóstico es el gráfico de
+            abajo, que dibuja su abanico. */}
         <polyline className="aulas-avdia-linea" fill="none"
-          points={dias.map((d, i) => `${cx(i)},${yLinea(d.acumulado)}`).join(" ")} />
-        {dias.map((d, i) => (
+          points={puntos.filter((d) => d.pasado).map((d, i) => `${cx(i)},${yLinea(d.acumulado)}`).join(" ")} />
+        {puntos.filter((d) => d.pasado).map((d, i) => (
           <circle key={d.fecha} cx={cx(i)} cy={yLinea(d.acumulado)} r={3.2} className="aulas-avdia-punto" />
         ))}
         <text x={PAD.izq} y={11} className="aulas-avdia-eje es-dia">efectivas del día</text>
