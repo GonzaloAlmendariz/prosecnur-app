@@ -83,6 +83,8 @@ export function AulasRendimientoPorFacultad({
   // Los cajones de «no se sabe» quedan fuera de los dos: un «Sin aplicador» con
   // cinco partes tiene visitas de sobra y no es una facultad que rinda, así que
   // sin este filtro podía salir nombrado como la que más rinde de la tanda.
+  // Facultad y aplicador juzgan a alguien; franja y día son cortes del tiempo.
+  const juzgaAUnEjecutante = clave === "faculty" || clave === "applied_by";
   const conNombre = filas.filter((f) => !esCajonSinDato(f.facultad));
   const comparables = conNombre.filter((f) => f.aulas >= MINIMO_PARA_COMPARAR);
   const apartadas = conNombre.filter((f) => f.aulas < MINIMO_PARA_COMPARAR);
@@ -278,7 +280,14 @@ export function AulasRendimientoPorFacultad({
               <em>
                 {fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} ·{" "}
                 {fmt(f.efectivas)} efectivas
-                {f.delPotencialAjustado != null
+                {/* **Sólo donde se juzga a alguien.** La línea vale para la
+                    facultad y para el aplicador, que son las dos lentes en las
+                    que una tanda corta puede hacer parecer bueno a quien no lo
+                    es. Una franja horaria o un día de la semana no son un
+                    ejecutante, y en la rejilla estrecha del trío —columnas de
+                    105 y 112 px— esta línea se partía en TRES y CUATRO
+                    renglones y subía cada fila a 61 px. Medido el 2026-09-10. */}
+                {juzgaAUnEjecutante && f.delPotencialAjustado != null
                   ? <> · {pct(f.delPotencialAjustado)} pesando la evidencia</>
                   : null}
               </em>
