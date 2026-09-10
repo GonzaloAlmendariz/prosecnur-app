@@ -323,10 +323,28 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
       cols_status <- vapply(seq_len(bloques), function(b) .mafs_col_campo("STATUS DE APLICACIÓN", b), integer(1))
       cols_status <- cols_status[cols_status <= n_cols]
       if (length(cols_status)) {
-        # «NO APLICADA» PRIMERO (índice menor = mayor precedencia): contiene
-        # «APLICADA», y al revés toda la columna saldría verde.
+        # **El orden ES la regla**: gana el índice menor y la comparación es
+        # «contiene», así que lo específico va PRIMERO. «NO APLICADA» contiene
+        # «APLICADA» y al revés toda la columna saldría verde; lo mismo pasa
+        # ahora con «APLICADA DE REFUERZO».
+        #
+        # Las cuatro de abajo faltaban: el vocabulario creció a seis valores el
+        # 2026-09-04 (REEMPLAZADA POR, COMPLEMENTADA CON, APLICADA DE REFUERZO)
+        # y este pintor se quedó con dos reglas, así que en el Sheets vivo del
+        # operativo «REEMPLAZADA POR» salía SIN COLOR. Lo vio Gonzalo el
+        # 2026-09-10. El xlsx sí la tenía —su semáforo lleva «REEMPLAZADA»—:
+        # dos motores para la misma columna y sólo uno se actualizó.
+        #
+        # Los tonos son los del xlsx donde existen, para que la misma celda no
+        # cambie de color según por dónde salga.
         reglas <- list(
           list(texto = "NO APLICADA", fondo = "#FBEDE3", tinta = "#8A4B1B"),
+          list(texto = "APLICADA DE REFUERZO", fondo = "#E7EEF9", tinta = "#1B4B8F"),
+          list(texto = "REEMPLAZADA POR", fondo = "#EEF0F3", tinta = "#5B6472"),
+          # Complementada NO es reemplazo: el titular no sale y los dos cuentan.
+          # Por eso no comparte el gris de lo sustituido: lleva el violeta suave
+          # que en esta hoja no usa ningún otro estado.
+          list(texto = "COMPLEMENTADA CON", fondo = "#EFE7F7", tinta = "#5B3A8A"),
           list(texto = "APLICADA", fondo = "#E3F3E8", tinta = "#155E2E")
         )
         for (i in seq_along(reglas)) {

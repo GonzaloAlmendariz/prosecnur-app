@@ -76,7 +76,13 @@
   "APLICADOR", "FECHA DE APLICACIÓN", "HORA DE APLICACIÓN", "AULA",
   "CANTIDAD DE ASISTENTES", "% ASISTENCIA", "CANTIDAD DE RECHAZOS",
   "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE ENCUESTAS APLICADAS",
-  "STATUS DE APLICACIÓN", "ENLACE DE FICHA ESCANEADA",
+  # «AULA UTILIZADA» entra el 2026-09-10 PEGADA a su estado, y el sitio es
+  # parte del contrato: tres de los seis estados de aplicación terminan en
+  # preposición —REEMPLAZADA POR, COMPLEMENTADA CON— porque piden un CUÁL, y
+  # hasta esa fecha ese cuál sólo existía en «Aulas Agendadas». Las dos mitades
+  # de la misma frase vivían en pestañas distintas y quien marcaba el estado no
+  # tenía dónde escribir con quién (dictado de Gonzalo ese día).
+  "STATUS DE APLICACIÓN", "AULA UTILIZADA (CAMPO)", "ENLACE DE FICHA ESCANEADA",
   "OBSERVACIONES SOBRE APLICACIONES"
 )
 

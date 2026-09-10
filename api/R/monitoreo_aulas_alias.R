@@ -44,7 +44,16 @@
   # hoja de campo, dato del equipo. La forma castellana es la declarada para un
   # parte guardado en español; NO confundir con `link`, la ficha QR generada
   # por la app en la parte de agenda.
-  enlace_escaneado = c("scanned_sheet_link", "enlace_ficha_escaneada")
+  enlace_escaneado = c("scanned_sheet_link", "enlace_ficha_escaneada"),
+  # CON QUE aula se acabo aplicando (2026-09-10): la columna que acompaña a los
+  # estados que terminan en preposicion —REEMPLAZADA POR, COMPLEMENTADA CON—.
+  # Su gemela vive en «Aulas Agendadas» y la anota la app; ESTA la teclea el
+  # coordinador y dice lo que constato el campo.
+  #
+  # Va con alias como todas y no por nombre exacto: es la leccion que costo las
+  # 192 filas vacias de HSVG2026, cuando el generador leia solo los nombres
+  # ingleses y el libro de un operativo en castellano salia en blanco.
+  aula_utilizada = c("aula_utilizada", "aula_usada", "aula_utilizada_campo")
 )
 
 #' El primer alias que traiga valor, o NULL.

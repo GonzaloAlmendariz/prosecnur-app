@@ -39,8 +39,22 @@
 #' En MAYÚSCULAS y en el vocabulario del libro, que es donde el equipo ya los
 #' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
 #' @export
+#'
+#' **«APLICADA SIN AGENDACIÓN» es el sexto, y no es un matiz de los otros dos**
+#' (Gonzalo, 2026-09-10, sobre una que aplicaron esa manana: «al final pudimos
+#' ir al aula de la manana (...) le he puesto aplicada sin agendacion, la app
+#' deberia ser capaz de reconocerlo como un estado posible»).
+#'
+#' Nombra el caso que el operativo empezo a usar cuando el campo va MAS RAPIDO
+#' que la agenda: el aplicador se presenta a una clase que nadie habia agendado
+#' y le dejan entrar. No es «APLICADA» a secas —esa supone que hubo cita y se
+#' cumplio— ni «APLICADA POR REAGENDACIÓN» —esa tuvo cita y se movio—: aqui
+#' nunca hubo cita. Separarlas es lo que permite medir cuanto del avance sale
+#' de la agenda y cuanto de tocar puertas, que son dos operativos distintos con
+#' costes distintos.
 MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
-  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "REAGENDADA", "RECHAZADA"
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN",
+  "REAGENDADA", "RECHAZADA"
 )
 
 #' El día de la semana, escrito.
@@ -254,6 +268,10 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
 #' @keywords internal
 .alpa_COLOR_ESTADO <- c(
   APLICADA = "#C8E6C9", `APLICADA POR REAGENDACIÓN` = "#B2DFDB",
+  # Sin agendacion: verde de la familia de lo aplicado —porque lo esta— pero
+  # con el tinte azulado que ya separa a su hermana por reagendacion. Las tres
+  # se leen como «esto ya rindio» y siguen distinguiendose de un vistazo.
+  `APLICADA SIN AGENDACIÓN` = "#D7E8F5",
   `POR APLICAR` = "#FFF4C2", REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2"
 )
 

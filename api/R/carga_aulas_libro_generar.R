@@ -341,6 +341,14 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
         else if (nzchar(.calg_txt(unidad$estado_aplicacion))) .calg_txt(unidad$estado_aplicacion)
         else "POR APLICAR"
       },
+      # **Lo que el parte diga, y NADA derivado.** La gemela de «Aulas
+      # Agendadas» sí se siembra con lo que la app sabe
+      # (`aulas_libro_anotar_aula_utilizada()`); ésta no, a propósito: aquélla
+      # anota qué reserva se ACTIVÓ y ésta con cuál se acabó APLICANDO. Si la
+      # app la rellenara con lo activado, las dos dirían siempre lo mismo y la
+      # única diferencia que importa —cuando el campo usó otra— sería
+      # justamente la que no se podría ver.
+      "AULA UTILIZADA (CAMPO)"       = v("aula_utilizada"),
       # El enlace de la ficha ESCANEADA: dato del equipo. Se devuelve lo que el
       # parte traiga y NUNCA `unidad$link` —esa es la ficha QR que la app
       # genera, otra columna y otra cosa—; en un libro nuevo sale vacio.
@@ -463,6 +471,11 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   "CANTIDAD DE ASISTENTES", "% ASISTENCIA", "CANTIDAD DE RECHAZOS",
   "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE ENCUESTAS APLICADAS",
   "STATUS DE APLICACIÓN",
+  # **CON QUIÉN**, pegada al estado que la pide (dictado 2026-09-10). Tres de
+  # los seis estados terminan en preposición —REEMPLAZADA POR, COMPLEMENTADA
+  # CON— y hasta hoy el «cuál» sólo existía en «Aulas Agendadas»: las dos
+  # mitades de la misma frase vivían en pestañas distintas. La llena la persona.
+  "AULA UTILIZADA (CAMPO)",
   # La columna MANUAL del enlace del PDF escaneado (B6c): la siembra
   # `.cap_celdas_parte`, que solo devuelve lo que el parte ya traiga. En v4 va
   # como evidencia del estado, antes de las observaciones libres.
