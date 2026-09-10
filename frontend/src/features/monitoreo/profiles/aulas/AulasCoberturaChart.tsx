@@ -4,7 +4,9 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
 import { AulasCursosDeUnTramo } from "./AulasCursosDeUnTramo";
-import { fmt } from "./kpisDeAulas";
+import { tasasDeLaCobertura } from "./tasasDeLaCobertura";
+import { fmt, pctPerfil } from "./kpisDeAulas";
+import { MINIMO_PARA_COMPARAR } from "./rendimientoPorFacultad";
 import "./aulasCoberturaChart.css";
 
 /**
@@ -143,6 +145,7 @@ export function AulasCoberturaChart({
    * el coste es pequeño — pero está declarado, no olvidado.
    */
   const [abierto, setAbierto] = useState("");
+  const tasas = tasasDeLaCobertura(filas);
   const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
 
   return (
@@ -179,6 +182,37 @@ export function AulasCoberturaChart({
           </li>
         ))}
       </ul>
+      {/* **Las dos tasas, que son la lectura que faltaba.** Gonzalo, 2026-09-10:
+          «sería bueno en este gráfico también integrarlo con algo de efectividad
+          y rendimiento, que son conceptos relacionados: el rendimiento esperado
+          y el rendimiento observado hasta ahora». El gráfico repartía en tramos
+          de cumplimiento sin decir contra qué tasa se les pedía rendir.
+
+          Las dos comparten denominador —los elegibles— que es lo que las hace
+          comparables, y van ponderadas por tamaño: promediar tasas le daría el
+          mismo peso a un aula de doce que a una de ochenta. */}
+      {tasas.esperada != null ? (
+        <p className="aulas-cobertura-tasas">
+          Se les pedía <strong>{pctPerfil(tasas.esperada)}</strong> de sus{" "}
+          {fmt(tasas.elegibles)} elegibles
+          {tasas.observada != null ? (
+            <>
+              {" "}y están rindiendo <strong>{pctPerfil(tasas.observada)}</strong>
+              {tasas.desvio != null && Math.abs(tasas.desvio) >= 0.1 ? (
+                <em className={tasas.desvio < 0 ? "es-corto" : "es-sobra"}>
+                  {tasas.desvio > 0 ? "+" : "−"}{pctPerfil(Math.abs(tasas.desvio))} pts
+                </em>
+              ) : null}
+            </>
+          ) : (
+            /* No se calla la ausencia ni se rellena con la prevista: con dos
+               aulas aplicadas no hay tasa observada, y decir cuál es el umbral
+               es lo que evita que el hueco se lea como un fallo. */
+            <>{" "}· todavía sin tasa propia: hacen falta al menos{" "}
+            {fmt(MINIMO_PARA_COMPARAR)} cursos-horario aplicados y hay {fmt(tasas.aulas)}</>
+          )}
+        </p>
+      ) : null}
       {abierto ? (
         <AulasCursosDeUnTramo
           filas={filas}
