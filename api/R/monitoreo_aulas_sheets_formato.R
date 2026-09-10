@@ -337,14 +337,24 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
         #
         # Los tonos son los del xlsx donde existen, para que la misma celda no
         # cambie de color según por dónde salga.
+        # **UN COLOR POR CADA ESTADO, sin huecos** (Gonzalo, 2026-09-10: «esta
+        # columna debería tener un color por cada estado»). «POR APLICAR» no
+        # tenía regla y salía en blanco al lado de las verdes: en una columna que
+        # se abre para saber qué queda por hacer, una celda sin pintar no se
+        # distingue de una celda sin llenar. Es el mismo argumento con el que él
+        # pidió el amarillo en la hoja de los aplicadores, y aquí lleva el mismo
+        # amarillo: la misma palabra, el mismo color, mire donde mire.
         reglas <- list(
           list(texto = "NO APLICADA", fondo = "#FBEDE3", tinta = "#8A4B1B"),
           list(texto = "APLICADA DE REFUERZO", fondo = "#E7EEF9", tinta = "#1B4B8F"),
+          # Antes de «APLICADA» a secas, que la contiene.
+          list(texto = "APLICADA POR REAGENDACIÓN", fondo = "#B2DFDB", tinta = "#0F5F57"),
           list(texto = "REEMPLAZADA POR", fondo = "#EEF0F3", tinta = "#5B6472"),
           # Complementada NO es reemplazo: el titular no sale y los dos cuentan.
           # Por eso no comparte el gris de lo sustituido: lleva el violeta suave
           # que en esta hoja no usa ningún otro estado.
           list(texto = "COMPLEMENTADA CON", fondo = "#EFE7F7", tinta = "#5B3A8A"),
+          list(texto = "POR APLICAR", fondo = "#FFF4C2", tinta = "#7A5B00"),
           list(texto = "APLICADA", fondo = "#E3F3E8", tinta = "#155E2E")
         )
         for (i in seq_along(reglas)) {

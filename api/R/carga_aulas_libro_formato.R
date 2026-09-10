@@ -257,12 +257,22 @@ AULAS_LIBRO_STATUS_APLICACION <- c(
 #
 # Se reparte por ESLABÓN, que es como la hoja está construida: el bloque 1 es el
 # titular y del 2 al 12 son R1…R11. La hoja Extra entera es del segundo juego.
+# **«APLICADA POR REAGENDACIÓN» entra el 2026-09-10** (Gonzalo, mirando esta
+# columna: «además a las que se aplicaron por reagendación las has quitado,
+# cuando ésas también deberían estar»). No la quitó nadie: nunca estuvo. El
+# vocabulario de la distribución sí la tenía y el del libro no, así que la misma
+# aula salía «APLICADA POR REAGENDACIÓN» en la hoja de los aplicadores y sólo
+# «APLICADA» aquí — y con eso se pierde lo único que esa palabra cuenta: que
+# costó una llamada más y un hueco en la agenda de alguien.
+#
+# Va en las DOS listas: una reserva también se puede aplicar después de moverla.
 AULAS_LIBRO_STATUS_APLICACION_TITULAR <- c(
-  "POR APLICAR", "APLICADA", "NO APLICADA",
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "NO APLICADA",
   "REEMPLAZADA POR", "COMPLEMENTADA CON"
 )
 AULAS_LIBRO_STATUS_APLICACION_RESERVA <- c(
-  "POR APLICAR", "APLICADA", "NO APLICADA", "APLICADA DE REFUERZO"
+  "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "NO APLICADA",
+  "APLICADA DE REFUERZO"
 )
 
 #' El desplegable de STATUS DE APLICACIÓN que le toca a un eslabón.
