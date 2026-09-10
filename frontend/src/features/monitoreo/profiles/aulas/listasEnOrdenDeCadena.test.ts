@@ -97,7 +97,14 @@ describe("las dos cifras del objetivo declaran su procedencia", () => {
     // `AulasPestanaResumen.tsx` porque el page-file se está partiendo en una
     // pestaña por fichero. Lo que este test protege es que la unidad esté
     // declarada, no dónde.
-    expect(fuenteDelPerfilDeAulas()).toContain("suma de metas por curso-horario");
+    // La frase pasó a castellano el 2026-09-10: «suma de metas por curso-horario,
+    // TOPADA en cada uno» dice la operación y no lo que significa, y él lo dijo
+    // dos veces —«no entiendo lo del cumplimiento por aula»—. Lo protegido es
+    // que la unidad y la regla de no compensación estén declaradas, no la
+    // fórmula con que se digan.
+    const fuente = fuenteDelPerfilDeAulas();
+    expect(fuente).toContain("lo que se le pide a cada uno de los");
+    expect(fuente).toContain("Lo que sobra en uno no cubre lo que falta en otro");
   });
 
   it("y la tarjeta de cuota dice que sus celdas son sexo × facultad", () => {

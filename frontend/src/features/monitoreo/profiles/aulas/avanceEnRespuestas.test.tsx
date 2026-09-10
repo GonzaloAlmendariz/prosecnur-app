@@ -232,8 +232,12 @@ describe("el puente entre esta cuenta y el KPI de válidas", () => {
 
     it("lo cubierto se pinta hacia abajo: 1 306,3 son 1 306", () => {
       const h = html();
-      expect(h).toContain(`<strong>${nf.format(1306)}</strong> cubren meta`);
-      expect(h).not.toContain(`<strong>${nf.format(1306.3)}</strong> cubren meta`);
+      // La frase cambió el 2026-09-10 para decir su unidad —«respuestas cuentan
+      // para la meta de su curso-horario»—, porque «cubren meta» se leía como
+      // cursos-horario en un panel que se llamaba «Cumplimiento aula por aula».
+      // Lo protegido sigue siendo el redondeo, no la redacción.
+      expect(h).toContain(`<strong>${nf.format(1306)}</strong> respuestas cuentan`);
+      expect(h).not.toContain(`<strong>${nf.format(1306.3)}</strong> respuestas cuentan`);
     });
 
     it("el titular dice el mismo cubierto entero, no un techo", () => {
@@ -248,8 +252,8 @@ describe("el puente entre esta cuenta y el KPI de válidas", () => {
 
     it("el excedente también va hacia abajo: 504,7 de más son 504", () => {
       const h = html();
-      expect(h).toContain(`<strong>${nf.format(504)}</strong> de más`);
-      expect(h).not.toContain(`<strong>${nf.format(504.7)}</strong> de más`);
+      expect(h).toContain(`<strong>${nf.format(504)}</strong> se recogieron de más`);
+      expect(h).not.toContain(`<strong>${nf.format(504.7)}</strong> se recogieron de más`);
     });
 
     it("lo que falta conserva su techo: 1 851,5 faltan son 1 852", () => {

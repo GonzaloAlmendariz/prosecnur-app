@@ -283,7 +283,13 @@ export function AulasPestanaResumen({
                     cumplidos no le suman. Dos porcentajes de avance sin nada que
                     los separe es de lo que más desconfianza genera en un
                     tablero, así que el subtítulo lo dice antes que la cifra. */}
-                <h3>Cumplimiento aula por aula</h3>
+                {/* **El título decía la unidad equivocada.** Gonzalo, dos
+                    veces: «no entiendo lo del cumplimiento por aula, no entiendo
+                    por qué hay una meta de 3 233… no entiendo eso de cuántas
+                    cumplen meta, cuántas faltan». «Cumplimiento aula por aula»
+                    promete un recuento de AULAS y la cifra grande cuenta
+                    RESPUESTAS; el rótulo y el número no hablaban de lo mismo. */}
+                <h3>Respuestas que pide el plan, curso-horario a curso-horario</h3>
                 {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
                     recortado a 500 filas. */}
                 {/* Una meta de respuestas no puede ser fraccionaria: sale de
@@ -298,11 +304,21 @@ export function AulasPestanaResumen({
                     cuota ya resuelve explicando su resta celda a celda. */}
                 {/* El subtítulo obedece al foco igual que el panel: con una
                     facultad puesta seguía anunciando la meta de las quince. */}
-                <span>meta {fmtCuenta(
-                  (facultadEnFoco ? 0 : Number(dashboard?.cumplimiento_respuestas?.meta))
-                  || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
-                )} · suma de metas por curso-horario, TOPADA en cada uno: por eso
-                  es más exigente que el «Avance a la muestra» de arriba</span>
+                {/* **De dónde salen esos 3 233, en castellano.** «Suma de
+                    metas por curso-horario, TOPADA en cada uno» es la definición
+                    correcta y no la entiende nadie que no la haya escrito: dice
+                    la operación y no lo que significa. Lo que significa es que a
+                    cada curso-horario se le pide una cantidad y lo que sobra en
+                    uno no tapa lo que falta en otro — la misma regla de la
+                    brecha por celda del ADR 0079, aplicada al aula. */}
+                <span>
+                  {fmtCuenta(
+                    (facultadEnFoco ? 0 : Number(dashboard?.cumplimiento_respuestas?.meta))
+                    || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
+                  )} respuestas: lo que se le pide a cada uno de los {fmt(aulaRows.length)}{" "}
+                  cursos-horario, sumado. Lo que sobra en uno no cubre lo que falta en otro,
+                  así que exige más que el «Avance a la muestra» de arriba
+                </span>
               </div>
               <AulasAvanceEnRespuestas
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}

@@ -125,22 +125,26 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
         ) : null}
       </div>
       <ul className="aulas-avance-mermas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* **Las tres etiquetas dicen su unidad.** «57 cubren meta» y «142
+            faltan» se leían como cursos-horario en un panel que se llamaba
+            «Cumplimiento aula por aula»: son RESPUESTAS, y el número de
+            cursos-horario aparece sólo como reparto de las que faltan. */}
         <li className="es-cubierto">
-          <strong>{fmt(a.cubierto)}</strong> cubren meta
+          <strong>{fmt(a.cubierto)}</strong> respuestas cuentan para la meta de su curso-horario
         </li>
         <li className="es-falta">
           {/* Concuerda con el número QUE SE MUESTRA, no con `a.falta`:
               `fmtCuenta` redondea hacia arriba, así que 0,4 se pinta «1» y el
               verbo tiene que seguir a lo pintado. */}
           <strong>{fmtCuenta(a.falta)}</strong>{" "}
-          {fmtCuenta(a.falta) === "1" ? "falta" : "faltan"}, en{" "}
-          {fmt(a.aulasConBrecha)} cursos-horario
+          {fmtCuenta(a.falta) === "1" ? "falta" : "faltan"} por recoger, repartidas en{" "}
+          {fmt(a.aulasConBrecha)} {a.aulasConBrecha === 1 ? "curso-horario" : "cursos-horario"}
         </li>
         {a.excedente ? (
           <li className="es-excedente">
             {/* La frase entera: sin ella, «excedente» se lee como logro. */}
-            <strong>{fmt(a.excedente)}</strong> de más en cursos-horario que ya cumplieron; no cubren
-            la falta de ninguna otra
+            <strong>{fmt(a.excedente)}</strong> se recogieron de más en cursos-horario que ya
+            habían llegado a su meta; no cubren lo que falta en los otros
           </li>
         ) : null}
         {/* **El puente entre esta cuenta y el KPI de arriba.**
