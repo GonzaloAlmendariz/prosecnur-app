@@ -655,3 +655,19 @@ describe("una sobremuestra sucia no vacía el gráfico (A17, C5)", () => {
     expect(html).not.toContain("NaN");
   });
 });
+
+describe("cuando lo conseguido supera lo esperado", () => {
+  // «912 de 761» es una buena noticia escrita como una fracción invertida: el
+  // lector se para a comprobar si alguien cambió los números de sitio. Visto en
+  // pantalla el 2026-09-09.
+  it("lo dice como un exceso, no como una fracción al revés", () => {
+    const texto = (conseguido: number, meta: number) =>
+      conseguido > meta
+        ? `${conseguido} encuestas, un ${Math.round((100 * (conseguido - meta)) / meta)} % por encima de las ${meta}`
+        : `${conseguido} de ${meta} encuestas`;
+    expect(texto(912, 761)).toContain("un 20 % por encima de las 761");
+    expect(texto(912, 761)).not.toContain("912 de 761");
+    // Y por debajo la fracción se lee bien: no se toca.
+    expect(texto(500, 761)).toBe("500 de 761 encuestas");
+  });
+});

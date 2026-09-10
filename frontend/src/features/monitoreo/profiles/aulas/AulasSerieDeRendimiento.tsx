@@ -914,8 +914,20 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? ` · la proyección sólo cuenta lo agendado, y quedan ${fmt(sinAgendar)} cursos-horario del plan sin fecha`
       : "";
 
+    // **Cuando lo conseguido supera lo esperado, «912 de 761» parece una
+    // errata.** Es una buena noticia —un 20 % por encima— y escrita como una
+    // fracción invertida hace que el lector se pare a comprobar si alguien
+    // cambió los números de sitio en vez de leer el mensaje. Visto en pantalla
+    // el 2026-09-09. Por debajo, la fracción se lee bien y se deja como estaba.
+    const conseguido = Math.round(ultimo);
+    const porEncima = meta > 0 && conseguido > meta
+      ? Math.round((100 * (conseguido - meta)) / meta)
+      : 0;
+    const contraLoEsperado = porEncima > 0
+      ? `${fmt(conseguido)} encuestas, un ${fmt(porEncima)} % por encima de las ${fmt(meta)} que el plan espera de los cursos-horario visitados`
+      : `${fmt(conseguido)} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados`;
     const lectura = meta > 0
-      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de los cursos-horario visitados · ${
+      ? `${contraLoEsperado} · ${
           alCerrar >= meta
             // **La cifra se dice también cuando se pasa.** Decir sólo «se pasa
             // de esa meta» dejaba la segunda llegada —la del diseño— sin nada
