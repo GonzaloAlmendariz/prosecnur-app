@@ -55,6 +55,8 @@
 
 .mon-profile-page.is-aulas-flow .aulas-avdia-fecha {
   fill: var(--pulso-text-soft);
+  /* 9,5 px chocaría con el suelo de la escala tipográfica del perfil; 10 es el
+     mínimo, y con las fechas giradas ya no hace falta bajar de ahí. */
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -64,4 +66,13 @@
    distinto que romperían la alineación con el gráfico de abajo. */
 .mon-profile-page.is-aulas-flow .aulas-avdia-fecha.es-sin-campo {
   fill: var(--pulso-text-faint);
+}
+
+/* El mes, bajo el día y sólo donde cambia: repetido en los veinticinco rótulos
+   era ruido, y quitarlo del todo dejaba un eje de números sin unidad. */
+.mon-profile-page.is-aulas-flow .aulas-avdia-mes {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

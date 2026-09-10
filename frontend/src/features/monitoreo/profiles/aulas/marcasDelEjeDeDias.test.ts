@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { marcasDelEjeDeDias } from "./marcasDelEjeDeDias";
 
-/** Veinticinco días de horizonte con campo en los cuatro primeros. */
-const horizonte = Array.from({ length: 25 }, (_, i) => ({ esDeCampo: i < 4 }));
+/**
+ * Veinticinco días de horizonte con DATO en los cuatro primeros.
+ *
+ * El campo es `tieneDato` —el que pone `serieSobreElEje()` cuando ese día tiene
+ * barra— y no `esDeCampo`, que en este perfil significa «no es domingo» y es
+ * cierto en veintiuno de los veinticinco. La primera versión de este test usaba
+ * ese otro nombre con el significado que yo quería, así que pasaba en verde
+ * mientras la pantalla seguía rotulando la malla vieja.
+ */
+const horizonte = Array.from({ length: 25 }, (_, i) => ({ tieneDato: i < 4 }));
 
 describe("marcasDelEjeDeDias", () => {
-  it("los días CON BARRA llevan fecha siempre", () => {
+  it("los días CON DATO llevan fecha siempre", () => {
     // El defecto medido: con «uno de cada tres» el 08 y el 09 —el mejor día del
     // operativo, con 466— se quedaban sin rótulo bajo su propia barra.
     const marcas = marcasDelEjeDeDias(horizonte);
@@ -20,7 +28,7 @@ describe("marcasDelEjeDeDias", () => {
 
   it("ningún par de rótulos queda a menos de la separación pedida", () => {
     const marcas = marcasDelEjeDeDias(
-      Array.from({ length: 30 }, (_, i) => ({ esDeCampo: i === 10 })),
+      Array.from({ length: 30 }, (_, i) => ({ tieneDato: i === 10 })),
       { separacion: 3 },
     );
     // Salvo entre los que son obligatorios entre sí, que es el precio declarado
@@ -31,12 +39,12 @@ describe("marcasDelEjeDeDias", () => {
   });
 
   it("con pocos días se rotulan todos", () => {
-    expect(marcasDelEjeDeDias(Array.from({ length: 6 }, () => ({ esDeCampo: true }))))
+    expect(marcasDelEjeDeDias(Array.from({ length: 6 }, () => ({ tieneDato: true }))))
       .toEqual([0, 1, 2, 3, 4, 5]);
   });
 
   it("no pasa del tope, para que no se amontonen", () => {
-    const marcas = marcasDelEjeDeDias(Array.from({ length: 60 }, () => ({ esDeCampo: false })), { tope: 8 });
+    const marcas = marcasDelEjeDeDias(Array.from({ length: 60 }, () => ({ tieneDato: false })), { tope: 8 });
     expect(marcas.length).toBeLessThanOrEqual(8);
   });
 
@@ -47,7 +55,7 @@ describe("marcasDelEjeDeDias", () => {
   it("cuando TODOS tienen campo, todos llevan fecha aunque pasen del tope", () => {
     // Es deliberado: una barra sin fecha es peor que un eje apretado, y este
     // caso sólo ocurre en un operativo largo y continuo.
-    const marcas = marcasDelEjeDeDias(Array.from({ length: 20 }, () => ({ esDeCampo: true })), { tope: 8 });
+    const marcas = marcasDelEjeDeDias(Array.from({ length: 20 }, () => ({ tieneDato: true })), { tope: 8 });
     expect(marcas.length).toBe(20);
   });
 });

@@ -12,7 +12,7 @@
  *
  * La regla nueva tiene un orden de prioridades, y ése es todo el cambio:
  *
- * 1. **Los días con campo van SIEMPRE.** Son los que tienen barra y son pocos;
+ * 1. **Los días CON DATO van SIEMPRE.** Son los que tienen barra y son pocos;
  *    si alguno se queda sin fecha, el gráfico enseña una barra que no se puede
  *    nombrar.
  * 2. Los extremos, que anclan la lectura de cuándo a cuándo.
@@ -22,7 +22,15 @@
  *    con dato.
  */
 export function marcasDelEjeDeDias(
-  dias: ReadonlyArray<{ esDeCampo?: boolean }>,
+  /**
+   * **`tieneDato`, no `esDeCampo`.** Se escribió primero contra `esDeCampo`, que
+   * en este perfil significa «no es domingo» y es cierto en veintiuno de los
+   * veinticinco días: habría rotulado veintiuno y se pisarían todos. El campo
+   * que dice «este día tiene barra» es `tieneDato`, y lo pone
+   * `serieSobreElEje()`. El test no lo vio porque su fixture usaba el nombre con
+   * el significado que yo quería, no con el que tiene.
+   */
+  dias: ReadonlyArray<{ tieneDato?: boolean }>,
   { separacion = 2, tope = 12 }: { separacion?: number; tope?: number } = {},
 ): number[] {
   const n = dias.length;
@@ -31,7 +39,7 @@ export function marcasDelEjeDeDias(
 
   const puestos = new Set<number>();
   // 1. Los que tienen barra.
-  dias.forEach((d, i) => { if (d.esDeCampo) puestos.add(i); });
+  dias.forEach((d, i) => { if (d.tieneDato) puestos.add(i); });
   // 2. Los extremos.
   puestos.add(0);
   puestos.add(n - 1);

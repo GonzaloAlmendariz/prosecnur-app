@@ -8,8 +8,47 @@ import "./aulasMetas.css";
 const GRUPO = 62;
 const BARRA = 19;
 const HUECO = 5;
-const ALTO = 300;
-const MARGEN = { arriba: 14, abajo: 96, izq: 42, der: 8 };
+/**
+ * **Más alto para las barras y menos pie.** Él: «las barras pueden tener más
+ * alto». Los 96 px de pie eran para los nombres a 45°, que se comían un tercio
+ * del gráfico; con los nombres en dos líneas horizontales bastan 54, y esos 42
+ * px van a la barra, que es lo que se compara.
+ */
+const ALTO = 340;
+const MARGEN = { arriba: 22, abajo: 54, izq: 42, der: 8 };
+
+/** Cuántos caracteres caben por línea del rótulo, al ancho de un grupo. */
+const POR_LINEA = 13;
+
+/**
+ * El nombre de una facultad en dos líneas, cortando por palabras.
+ *
+ * **Contraer antes de partir.** «CIENCIAS Y ARTES DE LA COMUN.» son veintiséis
+ * caracteres y en dos líneas de trece cabe justo; las palabras vacías —«Y»,
+ * «DE», «LA»— se van porque no distinguen una facultad de otra, que es para lo
+ * que sirve el rótulo. Lo que no cabe se corta con puntos suspensivos y el
+ * nombre entero queda en el `title`.
+ */
+export function enDosLineas(nombre: string, porLinea = POR_LINEA): string[] {
+  const palabras = String(nombre ?? "").trim().split(/\s+/)
+    .filter((p) => p && !["Y", "DE", "LA", "EL", "LAS", "LOS", "DEL"].includes(p.toUpperCase()));
+  const lineas: string[] = [];
+  let actual = "";
+  for (const p of palabras) {
+    if (!actual) actual = p;
+    else if (`${actual} ${p}`.length <= porLinea) actual = `${actual} ${p}`;
+    else { lineas.push(actual); actual = p; }
+    if (lineas.length === 2) break;
+  }
+  if (actual && lineas.length < 2) lineas.push(actual);
+  // Dos líneas es el techo: una tercera empujaría el pie del gráfico y nos
+  // devolvería al problema que esto viene a resolver.
+  return lineas.slice(0, 2).map((l, i, todas) => (
+    l.length > porLinea + 2
+      ? `${l.slice(0, porLinea + 1)}…`
+      : (i === todas.length - 1 && palabras.join(" ").length > todas.join(" ").length ? `${l}…` : l)
+  ));
+}
 
 /**
  * «Metas por facultad»: cada facultad, sus dos cuotas y lo que lleva de cada
@@ -85,9 +124,12 @@ export function AulasMetasBarras({ filas }: {
             [f.meta_M, f.obtenidas_M, 0, "hombres"],
             [f.meta_F, f.obtenidas_F, BARRA + HUECO, "mujeres"],
           ] as const;
-          // La etiqueta se recorta con puntos suspensivos: «CIENCIAS Y ARTES DE
-          // LA COMUN.» a 45° se come el alto entero del pie del gráfico.
-          const etiqueta = f.facultad.length > 26 ? `${f.facultad.slice(0, 25)}…` : f.facultad;
+          // **En dos líneas y horizontal, no en diagonal.** Él: «las etiquetas
+          // del eje x pueden tener wrap y tener mayor contracción para que no
+          // estén dispuestas de forma diagonal». Un nombre a 45° obliga a girar
+          // la cabeza y además se comía 96 px de pie; partido cabe recto y deja
+          // ese alto para las barras.
+          const lineas = enDosLineas(f.facultad);
           return (
             <g key={f.facultad}>
               {carriles.map(([meta, obtenidas, dx, tono]) => (
@@ -108,13 +150,29 @@ export function AulasMetasBarras({ filas }: {
                       {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
                     </title>
                   </rect>
+                  {/* **El porcentaje encima, del color de su barra.** Él: «mostrar
+                      mejor los porcentajes de cada barra en su parte superior con
+                      el color de su coloreado». Sin él hay que estimar a ojo
+                      dónde cae el relleno dentro del hueco de la meta, que es
+                      justo la comparación que el gráfico existe para dar. */}
+                  {meta > 0 ? (
+                    <text
+                      x={x0 + dx + BARRA / 2} y={y(meta) - 5} textAnchor="middle"
+                      className="aulas-metas-pct" data-sexo={tono}
+                    >
+                      {Math.round((100 * obtenidas) / meta)}%
+                    </text>
+                  ) : null}
                 </g>
               ))}
               <text
-                transform={`translate(${x0 + BARRA},${ALTO - MARGEN.abajo + 12}) rotate(45)`}
-                className="aulas-metas-etiqueta"
+                x={x0 + BARRA + HUECO / 2} y={ALTO - MARGEN.abajo + 14}
+                textAnchor="middle" className="aulas-metas-etiqueta"
               >
-                {etiqueta}
+                {lineas.map((linea, k) => (
+                  <tspan key={linea} x={x0 + BARRA + HUECO / 2} dy={k === 0 ? 0 : 11}>{linea}</tspan>
+                ))}
+                <title>{f.facultad}</title>
               </text>
             </g>
           );

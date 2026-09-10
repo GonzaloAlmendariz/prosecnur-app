@@ -50,7 +50,10 @@ describe("«Metas por facultad»", () => {
 
   it("el techo lo fija la META, no lo conseguido: la barra más alta cabe entera", () => {
     const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
-    const util = 300 - 14 - 96;
+    // La geometría cambió el 2026-09-10: el pie bajó de 96 a 54 —los nombres
+    // dejaron de ir en diagonal— y ese alto se fue a la barra, que es lo que se
+    // compara. Él: «las barras pueden tener más alto».
+    const util = 340 - 22 - 54;
     // Con el 8 % de aire, ninguna barra llega al alto útil completo.
     expect(Math.max(...alturas(html, "aulas-metas-barra-meta"))).toBeLessThan(util);
   });
@@ -59,8 +62,14 @@ describe("«Metas por facultad»", () => {
     const html = renderToStaticMarkup(
       <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS Y ARTES DE LA COMUNICACIÓN" })]} />,
     );
+    // El rótulo se contrae —fuera las palabras vacías, dos líneas, puntos
+    // suspensivos si aún no cabe— y el nombre ENTERO queda en el `title`, que es
+    // donde no estorba. Antes se recortaba sin más y el nombre completo no
+    // estaba en ninguna parte del gráfico.
     expect(html).toContain("…");
-    expect(html).not.toContain("CIENCIAS Y ARTES DE LA COMUNICACIÓN<");
+    expect(html).toContain("<title>CIENCIAS Y ARTES DE LA COMUNICACIÓN</title>");
+    // Y no se pinta entero como texto del eje, que es lo que no cabía.
+    expect(html).not.toContain(">CIENCIAS Y ARTES DE LA COMUNICACIÓN</tspan>");
   });
 
   it("el lienzo crece con las facultades: quince no caben en el de una", () => {
@@ -80,5 +89,50 @@ describe("«Metas por facultad»", () => {
   it("sin filas no pinta un lienzo vacío", () => {
     expect(renderToStaticMarkup(<AulasMetasBarras filas={null} />)).toBe("");
     expect(renderToStaticMarkup(<AulasMetasBarras filas={[]} />)).toBe("");
+  });
+});
+
+/**
+ * **Los rótulos del eje, horizontales y contraídos.**
+ *
+ * Gonzalo: «las etiquetas del eje x pueden tener wrap y tener mayor contracción
+ * para que no estén dispuestas de forma diagonal, y las barras pueden tener más
+ * alto y mostrar mejor los porcentajes de cada barra en su parte superior con el
+ * color de su coloreado».
+ */
+describe("el pie del gráfico y los porcentajes", () => {
+  it("ningún rótulo va en diagonal", () => {
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
+    expect(html).not.toContain("rotate(45)");
+  });
+
+  it("el nombre se parte en dos líneas, sin las palabras que no distinguen", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasBarras filas={[fila({ facultad: "GESTIÓN Y ALTA DIRECCIÓN" })]} />,
+    );
+    // «Y» no separa una facultad de otra y se lleva sitio de las que sí. Se cae
+    // del RÓTULO, no del `title`, que conserva el nombre entero — por eso la
+    // comprobación mira los `tspan` y no el html suelto.
+    expect(html).toContain(">GESTIÓN ALTA</tspan>");
+    expect(html).toContain(">DIRECCIÓN</tspan>");
+    expect(html).toContain("<title>GESTIÓN Y ALTA DIRECCIÓN</title>");
+  });
+
+  it("cada barra lleva su porcentaje encima, con el tono de su sexo", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasBarras filas={[fila({ meta_M: 100, obtenidas_M: 25, meta_F: 100, obtenidas_F: 60 })]} />,
+    );
+    expect(html).toContain('class="aulas-metas-pct" data-sexo="hombres"');
+    expect(html).toContain('class="aulas-metas-pct" data-sexo="mujeres"');
+    expect(html).toContain(">25%<");
+    expect(html).toContain(">60%<");
+  });
+
+  it("una meta en cero no publica un porcentaje sin denominador", () => {
+    const html = renderToStaticMarkup(
+      <AulasMetasBarras filas={[fila({ meta_M: 0, obtenidas_M: 0, meta_F: 100, obtenidas_F: 60 })]} />,
+    );
+    expect(html).not.toContain("NaN");
+    expect(html).not.toContain("Infinity");
   });
 });

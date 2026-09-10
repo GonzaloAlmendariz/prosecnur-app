@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { marcasDelEjeDeDias } from "./marcasDelEjeDeDias";
 import { fmt } from "./kpisDeAulas";
 import { ejeDeDias, serieSobreElEje } from "./ejeDeDias";
 import type { DiaDeRitmo } from "./AulasRitmoDiario";
@@ -43,6 +42,9 @@ const PAD = { arriba: 22, abajo: 44, izq: 52, der: 56 };
  * 10 px de los rótulos sigan siendo 10 px en pantalla.
  */
 const ANCHO = 1100;
+
+/** El mes en tres letras, para escribirlo bajo el día sólo cuando cambia. */
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 
 /**
  * Dónde cae el día `i` de `n` dentro del ancho útil, en FRACCIÓN de 0 a 1.
@@ -130,9 +132,6 @@ export function AulasAvanceDiario({ dias, hasta }: {
   const yLinea = (v: number) => PAD.arriba + util.y * (1 - v / techoLinea);
   const suelo = yBarra(0);
 
-  // Qué días llevan rótulo: los que tienen barra SIEMPRE, los extremos, y el
-  // resto del horizonte repartido sin pisarse. Siete casos en su test.
-  const marcas = new Set(marcasDelEjeDeDias(puntos));
 
   return (
     <div className="aulas-avdia" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -171,13 +170,25 @@ export function AulasAvanceDiario({ dias, hasta }: {
               <text x={cx(i)} y={yBarra(d.validas) - 5} textAnchor="middle"
                 className="aulas-avdia-valor">{fmt(d.validas)}</text>
             ) : null}
-            {/* **Un rótulo de cada tres cuando el eje es largo.** Con veinticinco
-                días las fechas se pisan unas con otras —él: «los días en el eje x
-                no se ven bien»— y con tres caben todas. El primero y el último
-                se rotulan siempre: son los extremos del horizonte. */}
-            {puntos.length <= 10 || i % Math.ceil(puntos.length / 10) === 0 || i === puntos.length - 1 ? (
-              <text x={cx(i)} y={ALTO - PAD.abajo + 16} textAnchor="middle"
-                className={`aulas-avdia-fecha${d.esDeCampo ? "" : " es-sin-campo"}`}>{diaMes(d.fecha)}</text>
+            {/* **TODOS los días, contraídos y sin diagonal.** Dos instrucciones
+                suyas seguidas: «se siguen salteando días, cuando todos deberían
+                estar allí desde el primer día de aplicación hasta el último día
+                agendado» y «las etiquetas del eje x pueden tener wrap y tener
+                mayor contracción para que no estén dispuestas de forma
+                diagonal».
+
+                «07/09» ocupa unas 32 unidades del `viewBox` y con veinticinco
+                días hay 34 por día: se pisan, y por eso se raleaba —perdiendo la
+                fecha de barras que sí existen—. El día solo ocupa 14 y cabe de
+                sobra; el mes, repetido veinticinco veces, era ruido, así que se
+                escribe donde informa: al empezar y en cada cambio. */}
+            <text x={cx(i)} y={ALTO - PAD.abajo + 15} textAnchor="middle"
+              className={`aulas-avdia-fecha${d.esDeCampo ? "" : " es-sin-campo"}`}>
+              {d.fecha.slice(8, 10)}
+            </text>
+            {i === 0 || d.fecha.slice(5, 7) !== puntos[i - 1].fecha.slice(5, 7) ? (
+              <text x={cx(i)} y={ALTO - PAD.abajo + 28} textAnchor="middle"
+                className="aulas-avdia-mes">{MESES[Number(d.fecha.slice(5, 7)) - 1]}</text>
             ) : null}
           </g>
         ))}
