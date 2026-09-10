@@ -177,6 +177,14 @@ export function AulasPestanaResumen({
                     AULA POR AULA, sin compensar entre aulas: por eso las 332 que
                     sobran en aulas ya cumplidas quedan fuera de su numerador y aquí
                     sale 72.4 % donde Cuotas saca 106.7 %. */}
+                {/* **Convive con «Avance a la muestra 37,8 %» de la banda de
+                    KPIs, dos centímetros más arriba, y dice 23,8 %.** Los dos
+                    son correctos y salen de las mismas respuestas: aquél las
+                    cuenta todas contra la cuota de alumnos; éste TOPA cada
+                    curso-horario en su meta, así que las que sobran en los ya
+                    cumplidos no le suman. Dos porcentajes de avance sin nada que
+                    los separe es de lo que más desconfianza genera en un
+                    tablero, así que el subtítulo lo dice antes que la cifra. */}
                 <h3>Cumplimiento aula por aula</h3>
                 {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
                     recortado a 500 filas. */}
@@ -193,7 +201,8 @@ export function AulasPestanaResumen({
                 <span>meta {fmtCuenta(
                   Number(dashboard?.cumplimiento_respuestas?.meta)
                   || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
-                )} · suma de metas por curso-horario</span>
+                )} · suma de metas por curso-horario, TOPADA en cada uno: por eso
+                  es más exigente que el «Avance a la muestra» de arriba</span>
               </div>
               <AulasAvanceEnRespuestas
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
@@ -419,47 +428,19 @@ export function AulasPestanaResumen({
                 `componentesSinMontar.test.ts`. No se borra: tres archivos de test lo
                 usan para fijar el molde de la lista por facultad, el vacío sin
                 denominador y el foco que cruza la sección. */}
-            <section
-              className="mon-profile-panel"
-              data-qa-geometry-group="monitoring-aulas-avance"
-              data-qa-geometry-contract="intrinsic"
-            >
-              <div className="mon-profile-panel-head">
-                <h3>Avance por curso-horario</h3>
-                {/* **La reparación no había llegado a esta tabla.** Los dos paneles
-                    de arriba declaran el recorte del payload con
-                    `contadorDeAulas` —«se ven 500 de 1,424 cursos-horario»— y éste
-                    seguía diciendo «500 filas». Es el mismo defecto que la nota de
-                    «Estado de aplicación» da por resuelto: «el motor manda 500 filas
-                    de las 2 615 del plan, y sin decirlo la pantalla afirmaba que el
-                    estudio tiene 500 aulas».
+            {/* **«Avance por curso-horario» se retiró el 2026-09-10.** Es
+                DETALLE fila a fila, y esta pestaña es un resumen: medido ese
+                día, Resumen ocupaba 3,6 pantallas —2 809 px sobre 773
+                visibles— y un resumen que exige tres scrolls deja de serlo.
 
-                    Aquí pesa más que en los gráficos, porque una tabla se lee como
-                    un censo: quien la recorre hasta el final cree haber visto el
-                    plan entero, y ha visto un tercio. «Filas» tampoco nombraba lo
-                    que hay en cada una. */}
-                <span>{contadorDeAulas(aulaRows.length)}</span>
-              </div>
-              {/* El orden, DICHO. La tabla no abre por código ni alfabéticamente: la
-                  ordena el motor por dónde está el aula en el circuito —en campo,
-                  lista, planificada— y dentro de cada tramo por brecha. Sin decirlo,
-                  «CH 74, CH 99, CH 49» se lee como desorden y el lector busca un
-                  control de orden que no existe. */}
-              <p className="mon-profile-muted">
-                Primero las que están en campo y con más brecha; la reserva adicional y las reservas dormidas, al final.
-              </p>
-              {/* El selector de rol y el recorte del plan viven en el componente:
-                  `course_status` llega topeado a 500 filas de 1 392 y la tabla
-                  además pinta 400 de esas 500, así que las 326 reservas que SÍ
-                  llegaron no se alcanzaban nunca. Filtrando a un rol caben
-                  enteras. */}
-              <AulasAvancePorCurso
-                filas={aulaRows}
-                total={totalAulas}
-                tabla={Tabla}
-                preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
-              />
-            </section>
+                Su contenido no se pierde: la misma tabla, con más columnas y su
+                buscador, vive en Consultas; y las dos preguntas que aquí
+                contestaba de conjunto —en qué punto del circuito está cada uno y
+                cuánto lleva recogido— las dicen los dos gráficos de arriba con
+                la forma del conjunto, que es lo que un resumen necesita.
+
+                La tabla es la compartida del perfil (`tabla`), así que esto no
+                deja ningún componente huérfano. */}
     </>
   );
 }
