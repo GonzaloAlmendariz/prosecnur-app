@@ -8,6 +8,7 @@ import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { nombreDeAplicador } from "./nombreDeAplicador";
+import { horasDeDoceHoras } from "./horaDeDoceHoras";
 import "./aulasRendimientoCorte.css";
 
 /**
@@ -83,6 +84,12 @@ export function AulasRendimientoPorFacultad({
   // Los cajones de «no se sabe» quedan fuera de los dos: un «Sin aplicador» con
   // cinco partes tiene visitas de sobra y no es una facultad que rinda, así que
   // sin este filtro podía salir nombrado como la que más rinde de la tanda.
+  // **El aviso de las horas de madrugada, sólo en la lente de horas.** Es la
+  // única que las reparte, y en las demás sería ruido: el mismo parte cuenta
+  // igual en su facultad tenga la hora bien o mal escrita.
+  const doceHoras = clave === "franja" ? horasDeDoceHoras(partes, plan) : [];
+  const cuadranDeTarde = doceHoras.filter((h) => h.cuadraDeTarde).length;
+
   // Facultad y aplicador juzgan a alguien; franja y día son cortes del tiempo.
   const juzgaAUnEjecutante = clave === "faculty" || clave === "applied_by";
   const conNombre = filas.filter((f) => !esCajonSinDato(f.facultad));
@@ -380,6 +387,30 @@ export function AulasRendimientoPorFacultad({
           tamaño del salón, que es un PRONÓSTICO del diseño. Esta columna es un
           RESULTADO del campo, encuestas conseguidas por aula visitada. Eran dos
           números distintos con el mismo nombre dentro del mismo módulo. */}
+      {doceHoras.length > 0 ? (
+        /* **Se cuenta y se explica; no se corrige.** Sumarle doce horas a un
+           dato del campo es inventarlo, y dos de los nueve casos reales no
+           cuadran ni de tarde. El aviso da la evidencia —cuántos son y en
+           cuántos la ventana del curso es de tarde— para que quien lleva la
+           hoja decida; la lista de arriba los sigue contando tal como vinieron,
+           en «Fuera de franja». */
+        <p className="mon-profile-muted aulas-rendimiento-pie">
+          <strong>{fmt(doceHoras.length)}</strong>{" "}
+          {doceHoras.length === 1 ? "parte trae" : "partes traen"} una hora
+          anterior a las 7:00 —{doceHoras.slice(0, 6).map((h) => h.escrita).join(", ")}
+          {doceHoras.length > 6 ? "…" : ""}— y por eso{" "}
+          {doceHoras.length === 1 ? "cuenta" : "cuentan"} en «Fuera de franja».
+          {cuadranDeTarde > 0 ? (
+            <>
+              {" "}En <strong>{fmt(cuadranDeTarde)}</strong> de{" "}
+              {doceHoras.length === 1 ? "ese" : "esos"} el horario del curso es de
+              tarde y la hora escrita cuadra sumándole doce, así que probablemente
+              se anotó en formato de 12 horas sin AM/PM. La app no las corrige: el
+              arreglo está en la hoja de campo.
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <p className="mon-profile-muted aulas-rendimiento-pie">
         {explicaLasColumnas ? (
           <>
