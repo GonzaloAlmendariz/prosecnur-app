@@ -403,16 +403,39 @@ efectivas reales.
 | `expected_valid` | **14,5** | = 28 × 0,519 |
 | `p_aplicada_ref` | 0,87 | probabilidad de que el aula llegue a aplicarse — otra cosa |
 
-**El hallazgo, y hay que decírselo**: el escalón intermedio de su cadena —«de 28
-elegibles esperábamos VER 17»— **no está guardado en ninguna parte**. La tasa del
-aula (0,519) ya lleva dentro la asistencia y la disposición a responder juntas,
-así que el plan salta de elegibles a efectivas esperadas en un solo paso. Los
-asistentes sí se observan, pero sólo DESPUÉS, en el parte de campo
-(`observed_students`, `attendance_pct`).
+### CORRECCIÓN — el escalón SÍ existe, y yo lo di por ausente mirando donde no era
 
-**Consecuencia para el ítem 26**: la lista de un tramo puede enseñar elegibles,
-efectivas esperadas, asistentes observados y efectivas reales, con la tasa
-prevista al lado de la observada. Lo que NO puede enseñar, con el dato de hoy, es
-«elegibles esperados» como cifra propia: habría que declarar la tasa de asistencia
-por separado en el cálculo de muestra para poder partir el 0,519 en sus dos
-mitades.
+Escribí que «el escalón intermedio no está guardado en ninguna parte» después de
+mirar sólo las filas del PLAN de monitoreo. Él respondió que el cálculo de muestra
+lo tiene, «se han hecho hasta Excels hablando de cuáles son los esperables por
+facultad y por aula específica». **Tenía razón.**
+
+Medido en `calc_muestra_referencia_asistencia$embudos`, que trae el embudo
+completo por SEIS dimensiones —facultad, rango horario, tipo de sesión, condición
+del curso, nivel del curso y tipo de docente—. Cada fila:
+
+```
+elegibles · asistentes · asistentes_elegibles · ya_medidas · no_elegibles
+elegibles_presentes · efectivas · no_efectivas
+pct_ausencia · pct_ya_medidas · pct_rechazo · efectividad · rendimiento
+asistencia_elegibles_min · asistencia_elegibles_max
+```
+
+ARQUITECTURA Y URBANISMO, por ejemplo: **237 elegibles → 215 asistentes → 203
+elegibles presentes → 171 efectivas**, con 9,3 % de ausencia, 5,6 % ya medidas,
+5,9 % de rechazo, efectividad 0,842 y rendimiento 0,722.
+
+Y `calc_muestra_aulas_config$efectividad$por_facultad` trae la **τ por facultad**
+con su `k` y su suficiencia —ARTE Y DISEÑO 0,863 sobre k=12 «delgada»; CIENCIAS E
+INGENIERIA 0,927 sobre k=40 «sólida»—, que es el `factor_facultad` que aparece en
+cada fila del plan.
+
+**Lo que de verdad pasa** es otra cosa, y es un problema real: el plan de
+monitoreo se queda con el PRODUCTO —`tasa_efectividad_aula` = `rendimiento_ref` ×
+`factor_facultad`— y no arrastra los dos factores por separado, así que Monitoreo
+no puede decir «de 28 elegibles esperábamos ver 25 y que respondieran 14,5»
+aunque el estudio lo tenga calculado dos módulos más atrás. **El dato existe; lo
+que falta es el puente.**
+
+**Lección**: verificar dónde vive antes de declarar una ausencia. Miré el plan y
+concluí sobre el estudio entero.
