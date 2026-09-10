@@ -8,7 +8,7 @@ import type {
 import { avanceParaCliente, type FilaAvanceCliente } from "./avanceParaCliente";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import "./avanceParaCliente.css";
 
 /**
@@ -22,8 +22,9 @@ import "./avanceParaCliente.css";
  * fracciones, personas enteras, y el estado en palabra además de en color.
  */
 
-const pct = (n: number | null) =>
-  n == null ? "—" : `${(n * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+/** El porcentaje de la casa. Esto era una copia del cuerpo de `pctPerfil()`, y
+ *  una copia sólo espera a que alguien afine el original. */
+const pct = (n: number | null) => (n == null ? "—" : pctPerfil(n * 100));
 
 /** Personas enteras. Lo que falta no se subestima; lo demás no se promete de más. */
 const personas = (n: number | null, esFaltante = false) => {

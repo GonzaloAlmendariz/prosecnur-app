@@ -6,7 +6,7 @@ import type {
 } from "../../../../api/monitoreo";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 import "./efectividadSeguimiento.css";
 
 /**
@@ -171,8 +171,11 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
  * la pantalla es para el jefe de campo tanto como para el analista. Un
  * porcentaje sí: «69,3 %» de los que estaban en el aula respondieron.
  */
+/** El porcentaje de la casa. Era otra copia del cuerpo de `pctPerfil()`: la
+ *  tercera del perfil, y su propio docstring ya avisaba de que dos sitios
+ *  formateando lo mismo acaban separándose. */
 const pct = (n: number | null | undefined) =>
-  n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+  n == null || !Number.isFinite(n) ? "—" : pctPerfil(n * 100);
 
 /**
  * Los alumnos que faltan EN TOTAL, con la misma regla cauta que cada fila.

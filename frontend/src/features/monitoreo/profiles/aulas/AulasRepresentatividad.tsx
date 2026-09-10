@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { pctPerfil } from "./kpisDeAulas";
 
 import { representatividadEfectiva } from "./representatividadEfectiva";
 import "./aulasRepresentatividad.css";
@@ -66,7 +67,7 @@ export function AulasRepresentatividad({ bloque }: {
 
       <ol className="aulas-repr-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {vista.desvios.map((d) => (
-          <li key={d.clave} title={`Diseñado ${(d.disenada * 100).toFixed(1)} % · aplicándose ${(d.efectiva * 100).toFixed(1)} %`}>
+          <li key={d.clave} title={`Diseñado ${pctPerfil(d.disenada * 100)} · aplicándose ${pctPerfil(d.efectiva * 100)}`}>
             <span className="aulas-repr-rotulo">{d.etiqueta}</span>
             <span className="aulas-repr-carril" role="img"
               aria-label={`${d.etiqueta}: ${d.desvio > 0 ? "sobra" : "falta"} ${Math.abs(d.desvio).toFixed(1)} puntos porcentuales`}>

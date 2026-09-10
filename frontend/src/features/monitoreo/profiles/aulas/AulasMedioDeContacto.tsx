@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * Qué medio agenda mejor y a qué coste en intentos.
@@ -61,8 +61,8 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
           difereDeVerdad(mejor, peor) ? (
             <>
               <strong>{mejor.medio}</strong> agenda el{" "}
-              <strong>{mejor.tasa.toLocaleString("es-PE")} %</strong> y{" "}
-              <strong>{peor.medio}</strong> el {peor.tasa.toLocaleString("es-PE")} %
+              <strong>{pctPerfil(mejor.tasa)}</strong> y{" "}
+              <strong>{peor.medio}</strong> el {pctPerfil(peor.tasa)}
             </>
           ) : (
             // **No se ordena lo que el dato no distingue.** Medido: Llamada
@@ -72,8 +72,8 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
             // por casualidad la mitad de las veces.
             <>
               Ningún medio agenda claramente mejor: <strong>{mejor.medio}</strong>{" "}
-              {mejor.tasa.toLocaleString("es-PE")} % y <strong>{peor.medio}</strong>{" "}
-              {peor.tasa.toLocaleString("es-PE")} %, una diferencia que cabe en el margen de
+              {pctPerfil(mejor.tasa)} y <strong>{peor.medio}</strong>{" "}
+              {pctPerfil(peor.tasa)}, una diferencia que cabe en el margen de
               estos tamaños
             </>
           )
@@ -113,13 +113,13 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
               <span className="aulas-medio-barra" role="img"
                 aria-label={`${m.tasa} % agendadas por ${m.medio}`}>
                 <i style={{ width: `${Math.max(4, m.tasa)}%`, background: COLOR_RESULTADO.efectiva }}>
-                  {m.tasa.toLocaleString("es-PE")} %
+                  {pctPerfil(m.tasa)}
                 </i>
               </span>
               </span>
             ) : (
               <span role="cell" className="aulas-medio-solo">
-                <strong>{m.tasa.toLocaleString("es-PE")} %</strong> agendadas
+                <strong>{pctPerfil(m.tasa)}</strong> agendadas
               </span>
             )}
             {/* MEDIANA, y dicho: la media del correo en el libro real sale 19,65

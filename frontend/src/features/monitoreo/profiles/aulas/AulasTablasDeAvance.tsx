@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { pctPerfil } from "./kpisDeAulas";
 
 import {
   apiMonitoreoAulasAvanceTablas,
@@ -201,7 +202,7 @@ function formatear(valor: string | number | null, tipo: "texto" | "numero" | "po
   const n = Number(valor);
   if (!Number.isFinite(n)) return String(valor);
   if (tipo === "porcentaje") {
-    return `${(n * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+    return pctPerfil(n * 100);
   }
   // Los conteos van sin decimal; lo fraccionario legítimo (tasas por aula) lo
   // trae ya redondeado el motor.

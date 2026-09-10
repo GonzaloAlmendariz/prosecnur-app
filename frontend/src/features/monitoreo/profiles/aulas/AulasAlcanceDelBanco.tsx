@@ -119,7 +119,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
         prometería una precisión que no hay.
         {r.caida > 0 ? (
           <>
-            {" "}Y descontando el <strong>{(r.caida * 100).toFixed(0)} %</strong>{" "}
+            {" "}Y descontando el <strong>{pct(r.caida)}</strong>{" "}
             que se cae: un curso-horario de la reserva adicional tampoco llega siempre a aplicarse.
           </>
         ) : null}
