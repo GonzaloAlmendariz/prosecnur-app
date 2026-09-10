@@ -121,3 +121,69 @@ test_that("sin desfase el recibo se lee exactamente como antes", {
     aplicado = TRUE, anadidas = list(), sin_aplicador = list()))
   expect_identical(con, sin)
 })
+
+# --- el cableado: que el recibo lo TRAIGA, no sólo que el motor sepa ---------
+#
+# El motor y la frase ya tienen prueba, pero nada fallaba si alguien quitaba el
+# cálculo del recibo o dejaba de pasarle las fijaciones vigentes. Un aviso sin
+# prueba de cableado es un aviso que desaparece en el próximo refactor sin que
+# ningún rojo lo diga — que es exactamente cómo la adopción se quedó envejeciendo
+# en silencio.
+
+# Constructores propios: los de `test-monitoreo-aulas-distribucion-mantenimiento.R`
+# viven en su archivo y testthat no los comparte. Sólo `helper-sheets-mock.R` es
+# común.
+.mafd_fila_hoja <- function(quien, cod) {
+  as.list(c(quien, "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+            cod, "A101", "Ciencias", "Cálculo", "Docente Uno", ""))
+}
+
+.mafd_aula <- function(cod, fecha, hora) {
+  list(operational_code = cod, classroom_id = tolower(gsub(" ", "", cod)),
+       sample_role = "titular", sample_status = "agendada", faculty = "Ciencias",
+       course_name = "Cálculo", teacher = "Docente Uno", scheduled_venue = "A101",
+       scheduled_date = fecha, scheduled_time = hora,
+       eligible_n = 40, expected_valid = 20)
+}
+
+.mafd_mock_hoja <- function() {
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = c(
+    list(as.list(prosecnurapp:::.alpa_CABECERA)),
+    list(.mafd_fila_hoja("Berta Ficticia", "CH 1"))
+  ))
+  mock
+}
+
+test_that("el recibo del ensayo TRAE el desfase de las fijaciones vigentes", {
+  mock <- .mafd_mock_hoja()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(.mafd_aula("CH 1", "2026-09-07", "10:00 am")),
+    roster = c("Ana Prueba", "Berta Ficticia"),
+    # La app tiene fijada a Ana; la hoja dice Berta.
+    fijadas_guardadas = list("CH 1" = "Ana Prueba")
+  )
+  expect_true(isTRUE(out$fijaciones_desfasadas$hay))
+  expect_length(out$fijaciones_desfasadas$cambiadas, 1L)
+  expect_identical(out$fijaciones_desfasadas$cambiadas[[1]]$guardado, "Ana Prueba")
+  expect_identical(out$fijaciones_desfasadas$cambiadas[[1]]$en_la_hoja, "Berta Ficticia")
+  # Y la frase del recibo lo dice, que es donde el usuario lo ve.
+  expect_true(grepl("no es el de la hoja", monitoreo_aulas_sincronizacion_texto(out), fixed = TRUE))
+})
+
+test_that("sin fijaciones guardadas el recibo no inventa un desfase", {
+  # Es el caso del primer día: nadie ha adoptado nada todavía y la hoja ya tiene
+  # nombres. Eso no es que la app esté desfasada.
+  mock <- .mafd_mock_hoja()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(.mafd_aula("CH 1", "2026-09-07", "10:00 am")),
+    roster = c("Ana Prueba", "Berta Ficticia")
+  )
+  expect_false(isTRUE(out$fijaciones_desfasadas$hay))
+  expect_false(grepl("no es el de la hoja",
+                     monitoreo_aulas_sincronizacion_texto(out), fixed = TRUE))
+})
