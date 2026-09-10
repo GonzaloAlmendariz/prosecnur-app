@@ -5253,7 +5253,8 @@ mount_monitoreo <- function(pr) {
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
       aulas <- tryCatch(
-        monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list()),
+        monitoreo_aulas_from_calc(estudio, selection, frame, parsed$config %||% cfg$aulas_universitarias %||% list(),
+                                  s$calc_muestra_referencia_asistencia %||% NULL),
         error = function(e) stop_api(400, "E_AULAS_IMPORT", conditionMessage(e))
       )
       cfg$monitoreo_profile <- monitoreo_normalize_profile(list(

@@ -1061,7 +1061,8 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   idx
 }
 
-monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list()) {
+monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = NULL, config = list(),
+                                      referencia_asistencia = NULL) {
   sel <- selection$selection %||% selection
   plan <- monitoreo_aulas_normalize_plan(sel)
   cfg <- monitoreo_aulas_normalize_config(config)
@@ -1096,6 +1097,12 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     source = "calc-muestra"
   )
   cfg$representativity <- selection$representativity %||% cfg$representativity
+  # **El embudo de asistencia del estudio de referencia**, que hasta ahora se
+  # quedaba en Calculo de muestra. Sin el, Monitoreo tiene el PRODUCTO de la
+  # tasa y no sus dos factores, asi que no puede partir la cadena «elegibles ->
+  # los que esperamos ver -> los que esperamos que respondan».
+  asistencia <- monitoreo_aulas_asistencia_referencia(referencia_asistencia)
+  if (!is.null(asistencia)) cfg$asistencia_referencia <- asistencia
   # Metas del DISEÑO, no del sorteo: `quotas$strata` son aulas por estrato y no
   # dicen cuántos alumnos se trazó cada facultad ni con qué τ de rendimiento.
   # Ver `monitoreo_aulas_metas_diseno.R`. Se pasa `selection` completo —no
@@ -2588,6 +2595,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     course_status_rol_y_estado = attr(course_status, "rol_y_estado") %||% list(),
     course_status_rol_y_estado_por_facultad = attr(course_status, "rol_y_estado_por_facultad") %||% list(),
     course_status_cobertura_por_facultad = attr(course_status, "cobertura_por_facultad") %||% list(),
+    # El embudo del estudio de referencia, por facultad: elegibles -> asistentes
+    # -> elegibles presentes -> efectivas, con sus porcentajes de ausencia, ya
+    # medidas y rechazo. Viaja tal cual lo dejo el import; el tablero no lo
+    # recalcula.
+    asistencia_referencia = cfg$asistencia_referencia %||% list(),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
