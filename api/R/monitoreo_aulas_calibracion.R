@@ -118,15 +118,28 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   b <- suppressWarnings(as.integer(brecha)[1])
   switch(as.character(estado)[1],
     sin_cuota = "Sin cuota trazada",
-    asegurada = "Va a llegar, con margen",
-    ajustada = "Va a llegar, sin margen: hay que vigilarla",
+    # **La etiqueta dice DE QUE UNIVERSO habla.** `estado` se calcula sobre el
+    # plan ENTERO —lo logrado mas todo lo pendiente, tenga fecha o no—, asi que
+    # «va a llegar» solo es cierto si todo lo que aun no esta agendado acaba
+    # agendandose y aplicandose. El 2026-09-10, con 30 celdas: CERO cortas por
+    # esta lectura y SEIS cortas contando solo lo que YA tiene fecha. Las seis
+    # decian «Va a llegar, con margen» mientras el panel de abajo decia que no
+    # llegan: dos superficies con cifras opuestas, que es el defecto que esta
+    # seccion lleva toda la sesion corrigiendo.
+    #
+    # No se arregla cambiando el calculo —la lectura del plan entero es
+    # legitima y es el techo— sino nombrando su universo, que es la politica que
+    # Gonzalo fijo: «no se resuelve eligiendo una, se resuelve ensenandolas
+    # juntas y diciendo cada una de que universo habla».
+    asegurada = "Llega con todo el plan, con margen",
+    ajustada = "Llega con todo el plan, sin margen: hay que vigilarla",
     deficit_proyectado = if (is.finite(b) && b > 0)
-      sprintf("No va a llegar: %s", if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
-      else "No va a llegar",
+      sprintf("No llega ni con todo el plan: %s", if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
+      else "No llega ni con todo el plan",
     deficit_no_subsanable = if (is.finite(b) && b > 0)
-      sprintf("No va a llegar y ya no quedan cursos-horario: %s y habrá que ponderar",
+      sprintf("No llega y ya no quedan cursos-horario: %s y habrá que ponderar",
               if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
-      else "No va a llegar y ya no quedan cursos-horario: habrá que ponderar",
+      else "No llega y ya no quedan cursos-horario: habrá que ponderar",
     "Sin estado"
   )
 }
