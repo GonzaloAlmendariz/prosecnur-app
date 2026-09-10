@@ -10,7 +10,7 @@ import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
-import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
+import { AulasCierrePorAgenda } from "./AulasCierrePorAgenda";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
 import { delMapaPorFacultad } from "./delMapaPorFacultad";
@@ -393,16 +393,31 @@ export function AulasPestanaResumen({
                     operativo, que es lo que Resumen mide. Y aquí gana un vecino:
                     va pegado al ritmo diario, porque es su continuación —cómo
                     viene el ritmo, y a dónde lleva—. */}
-                <h3>Cuándo se termina de aplicar el plan</h3>
-                {/* La unidad en el subtítulo. Este panel cuenta CURSOS-HORARIO y el
-                    ritmo de arriba cuenta ENCUESTAS: son dos preguntas distintas
-                    —terminar de visitar no es llegar a la cuota— y sin decir la
-                    unidad parecían el mismo gráfico dos veces. */}
-                <span>cursos-horario del plan aplicados, al ritmo observado</span>
+                {/* **El título contestaba una pregunta que él no hacía.**
+                    Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
+                    va a terminar de aplicar lo agendado, o cuándo vamos a llegar
+                    a la meta?» (ítem 19). Eran dos, el gráfico contestaba la
+                    primera y el título prometía las dos. Ahora contesta la que
+                    decide —¿alcanza lo agendado?— y lo dice desde el rótulo. */}
+                <h3>Hasta dónde llega lo agendado</h3>
+                {/* La unidad, y el modelo. El ritmo de arriba extrapola el
+                    pasado; esto NO extrapola: suma lo que se espera de cada
+                    curso-horario ya agendado, el día que le toca. */}
+                <span>respuestas acumuladas, curso-horario a curso-horario según su fecha</span>
               </div>
-              <AulasPronosticoDeCierre
-                partes={partesConFacultad}
+              {/* **El pronóstico deja de ser lineal.** Gonzalo, tres veces: «no
+                  es que tengamos un pronóstico lineal de que si hoy aplicamos
+                  treinta, mañana treinta; depende del RITMO DE LA AGENDA… y de
+                  los esperables de esas aulas, contrastando el rendimiento
+                  planificado con el que vamos encontrando». `cierrePorAgenda`
+                  estaba escrito con ese modelo desde el 2026-09-10 y sólo se
+                  usaba para sacar una fecha; ahora es el gráfico. */}
+              <AulasCierrePorAgenda
                 plan={agendaEnFoco}
+                meta={(facultadEnFoco
+                  ? filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)?.cuota
+                  : Number(dashboard.avance_cuota?.total?.cuota)) ?? null}
+                corte={dashboard.generated_at ?? ""}
               />
             </section>
 

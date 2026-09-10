@@ -1,0 +1,138 @@
+/* «Cuándo se termina de aplicar el plan», por la AGENDA y no por extrapolación.
+   Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-cpa { min-width: 0; }
+
+/* La respuesta antes que el dibujo: el gráfico la sostiene, no la sustituye. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-lectura {
+  margin: 0 0 10px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-lectura strong { font-variant-numeric: tabular-nums; }
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-lectura em {
+  font-style: normal;
+  font-weight: 580;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-lectura em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cpa-lectura em.es-sobra { color: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-marco {
+  position: relative;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-marco svg {
+  display: block;
+  width: 100%;
+  height: 132px;
+  overflow: visible;
+}
+
+/* `vector-effect` para que el trazo no se estire con el `preserveAspectRatio`
+   en «none»: sin él la línea engorda al ensanchar el panel. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-plan,
+.mon-profile-page.is-aulas-flow .aulas-cpa-observado {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* El diseño es la vara: discontinuo y tenue, como en el resto del perfil. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-plan {
+  stroke: var(--pulso-text-faint);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+/* Lo que de verdad va a pasar si el rendimiento se mantiene: sólido. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-observado {
+  stroke: var(--module-accent, var(--pulso-primary));
+  stroke-width: 2.5;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-meta {
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-techo,
+.mon-profile-page.is-aulas-flow .aulas-cpa-rotulo-meta {
+  position: absolute;
+  right: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  background: var(--pulso-surface);
+  padding-left: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-techo { top: -2px; }
+
+/* Sobre la línea de la meta, no encima de ella: si la tapara, la vara dejaría
+   de leerse justo donde importa. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-rotulo-meta { transform: translateY(-100%); }
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves li {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Las muestras repiten el trazo de su curva —sólida o a rayas—, no un cuadrado
+   de color: un cuadrado obliga a memorizar cuál era cuál. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves i {
+  align-self: center;
+  width: 16px;
+  height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves i.es-observado {
+  border-top: 2.5px solid var(--module-accent, var(--pulso-primary));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves i.es-plan {
+  border-top: 1.5px dashed var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-claves em {
+  font-style: normal;
+  font-variant-numeric: normal;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-pie {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.4;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cpa-pie strong { color: var(--pulso-text); }
