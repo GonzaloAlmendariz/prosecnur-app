@@ -120,10 +120,21 @@ export function AulasSeccionConsultas({
                 cerrar», que suman 24: el mismo panel daba dos números para lo
                 que se lee como la misma cosa. La cuenta sale de la MISMA función
                 que escribe la lectura. */}
-            <span>{(() => {
-              const n = cadenas.historias.length;
-              return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
-            })()}</span>
+            {/* **De qué tipo es lo que se decide aquí.** Gonzalo, 2026-09-10:
+                «en Consultas mapeamos las nuevas aulas a aplicar el ABC, aunque
+                el A se hace más en el Sheets de agendación pero el B y el C
+                desde la app».
+                Esta pantalla es el camino del REEMPLAZO (A) —el titular cayó y
+                entra su relevo— y del COMPLEMENTO (B) —el titular se queda y se
+                le suma uno—. Sin nombrarlo, las tres superficies de Consultas
+                se parecen y no se sabe cuál lleva a qué decisión. */}
+            <span>
+              {(() => {
+                const n = cadenas.historias.length;
+                return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
+              })()}
+              {" · "}de aquí salen el reemplazo (A) y el complemento (B)
+            </span>
           </div>
           {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
               lo que se pregunta al cerrar el operativo; después cuánta reserva
@@ -175,7 +186,10 @@ export function AulasSeccionConsultas({
                 —98 y 98—, así que la cuenta es completa y no esconde un recorte.
                 En Resumen sí lo escondía: la tabla decía «500 filas» de un
                 payload de 1.424. */}
-            <span>{fmt(brechas.length)} cursos-horario</span>
+            <span>
+              {fmt(brechas.length)} cursos-horario
+              {" · "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)
+            </span>
           </div>
           {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
               concentran lo que falta, y puede ser al revés. Esto lo dice. */}
@@ -278,11 +292,17 @@ export function AulasSeccionConsultas({
                 guard de títulos lo caza. Dos paneles que terminan igual se
                 confunden en el rail y en el historial de navegación. */}
             <h3>Cursos-horario extra disponibles</h3>
-            <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
+            <span>
+              {fmt(dashboard.banco_extras?.total ?? 0)} extras
+              {" · "}de aquí sale el refuerzo (C)
+            </span>
           </div>
           <p className="mon-profile-muted">
             No reemplazan a ningún curso-horario: son cursos-horario adicionales
-            para cerrar la cuota de hombres y mujeres de cada facultad.
+            para cerrar la cuota de hombres y mujeres de cada facultad. Salir a
+            uno es el <strong>refuerzo (C)</strong>, y esa decisión se toma
+            aquí, en la app; el reemplazo (A) se resuelve en el Sheets de
+            agendación.
           </p>
           {/* **Antes del inventario, no después.** La frase de arriba dice que
               estas aulas existen para cerrar la cuota; lo primero que hay que
