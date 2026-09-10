@@ -21,7 +21,7 @@ Lo que hace que el tablero dé una cifra falsa o que no se entienda qué muestra
 |---|---|---|---|
 | 3 | «Sigue saliendo fail page, lo cual me da a entender de que algo está fallando» | por diagnosticar | ☐ falta reproducirlo: no se sabe en qué pantalla ni con qué acción |
 | 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
-| 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
+| 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☑ el título decía AULAS y la cifra contaba RESPUESTAS; la meta se explica en castellano y las tres etiquetas dicen su unidad — falta MIRARLO |
 | 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
 
 ### P2 — el modelo, no la pintura
