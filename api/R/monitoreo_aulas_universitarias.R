@@ -154,10 +154,36 @@ REEMPLAZOS_COLUMNAS_PUBLICADAS <- c(
   "motivo"
 )
 
+#' El data.frame como lista de filas.
+#'
+#' **Por columnas y no por filas.** La version anterior hacia
+#' `as.list(df[i, , drop = FALSE])` una vez por fila, y `[.data.frame` sobre 109
+#' columnas construye un data.frame entero —atributos, nombres de fila, clases—
+#' para tirarlo acto seguido. Medido con Rprof sobre HSVG2026 el 2026-09-10:
+#' **298 de las 307 muestras de `[.data.frame` de un build salian de aqui**, y
+#' convertir el plan costaba 0,42 s; extrayendo las columnas UNA vez y componiendo
+#' cada fila cuesta 0,04 s. Diez veces menos, con el mismo resultado: sobre el
+#' plan real las dos salidas son `identical()`.
+#'
+#' **La columna-lista es el caso que obliga a distinguir.** `df[i, ]` conserva la
+#' envoltura de la celda y `col[[i]]` la quita, asi que una columna de listas
+#' salia distinta; `col[i]` la conserva. Comprobado ademas con factores, fechas,
+#' logicos y `NA`: las seis formas dan salidas identicas a la anterior.
+#' @keywords internal
 .monitoreo_aulas_records <- function(df, max_rows = Inf) {
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
   if (is.finite(max_rows)) df <- utils::head(df, max_rows)
-  lapply(seq_len(nrow(df)), function(i) as.list(df[i, , drop = FALSE]))
+  cols <- as.list(df)
+  nombres <- names(cols)
+  es_lista <- vapply(cols, function(col) is.list(col) && !is.data.frame(col), logical(1))
+  lapply(seq_len(nrow(df)), function(i) {
+    fila <- vector("list", length(cols))
+    names(fila) <- nombres
+    for (k in seq_along(cols)) {
+      fila[[k]] <- if (es_lista[[k]]) cols[[k]][i] else cols[[k]][[i]]
+    }
+    fila
+  })
 }
 
 .monitoreo_aulas_col <- function(df, candidates) {
