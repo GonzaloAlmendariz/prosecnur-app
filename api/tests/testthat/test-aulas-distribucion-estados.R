@@ -285,3 +285,27 @@ test_that("el formato de la hoja incluye las rayas", {
     as.list(prosecnurapp:::.alpa_CABECERA), fila("Lunes", "07/09"), fila("Martes", "08/09")))
   expect_true(any(vapply(reqs, function(r) !is.null(r$updateBorders), logical(1))))
 })
+
+test_that("la grafía se repara; el significado nunca", {
+  # Gonzalo, 2026-09-10: el desplegable declara «APLICADA SIN AGENDACIÓN» con
+  # tilde y la celda de CH164 la tenía sin ella, así que Sheets la marcaba
+  # «Entrada no válida» aunque el estado fuera el correcto.
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod, estado) as.list(c("Interno Pulso", "Jueves", "10/09", "", "", "",
+                                          cod, "", "", "", "", estado))
+  out <- monitoreo_aulas_estados_distribucion(list(
+    cab,
+    fila("CH 164", "APLICADA SIN AGENDACION"),   # sin tilde: se repara
+    fila("CH 20", "REAGENDADA"),                  # ya canónica: no se toca
+    fila("CH 21", "PENDIENTE DE CONFIRMAR"),      # ajena: se respeta tal cual
+    fila("CH 22", "")))                           # vacía: se siembra
+  expect_identical(out$estados[[1]], "APLICADA SIN AGENDACIÓN")
+  expect_identical(out$estados[[2]], "REAGENDADA")
+  expect_identical(out$estados[[3]], "PENDIENTE DE CONFIRMAR")
+  expect_identical(out$estados[[4]], "POR APLICAR")
+  # La reparación se DECLARA como cambio, no se hace en silencio.
+  cods <- vapply(out$cambios, function(c1) c1$curso_horario, character(1))
+  expect_true("CH 164" %in% cods)
+  expect_false("CH 20" %in% cods)
+  expect_false("CH 21" %in% cods)
+})
