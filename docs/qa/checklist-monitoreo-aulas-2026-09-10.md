@@ -36,6 +36,8 @@ Sólo Gonzalo lo da por terminado.
 | 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☑ **tenía razón** — con hoy: 07/09 329 · 08/09 313 · **09/09 466** · 10/09 23 |
 | 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
 | 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
+| 34 | «A quién hay que agendar debería ir junto a Cursos-horario por cobertura, porque van de la mano» | orden de Resumen | ☐ |
+| 35 | «Si marco "llegó a lo esperado" me muestra de todas las facultades, a pesar de que estoy filtrando por Psicología» | `AulasCursosDeUnTramo` | ☐ **verificar**: el desglose recibe las filas ya filtradas, así que o no llegó el build o hay un fallo |
 | 33 | «En el gráfico de cobertura sería bueno integrarlo con algo de efectividad y rendimiento, que son conceptos relacionados: el rendimiento esperado y el rendimiento observado hasta ahora» | `AulasCoberturaChart` | ☐ |
 | 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
 
