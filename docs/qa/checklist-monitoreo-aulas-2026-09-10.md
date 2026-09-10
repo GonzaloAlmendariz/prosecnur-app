@@ -212,6 +212,38 @@ Y en «Aulas Agendadas», los otros dos ejes de estado:
 - La banda de KPIs de la app dice **52**.
 - Los partes de campo del `.pulso` son **46**.
 
-Tres números con el mismo nombre. Es exactamente la familia de defectos que este
-loop lleva persiguiendo, y hay que medir de dónde sale cada uno antes de tocar
-el panel del ítem 10.
+Tres números con el mismo nombre. Medido el 2026-09-10 con
+`<scratchpad>/tres_cifras.R`, que cruza la hoja con el `.pulso` código a código:
+
+**De dónde sale cada uno**
+
+- **46** son los partes de campo del `.pulso` armado el 09/09. Es una FOTO: el
+  equipo siguió escribiendo en la hoja después.
+- **52** es el KPI del motor, y no cuenta partes: cuenta la UNIÓN de
+  `operational_status ∈ {aplicada, cerrada}`, `application_status = aplicada` y
+  «tiene respuestas válidas». Está declarado así a propósito —«el parte lo rinde
+  el encargado de campo cuando puede y en la primera semana llega tarde; las
+  respuestas llegan solas»— y por eso es mayor que 46 sobre la misma foto.
+- **59** son las marcas `APLICADA` de la hoja HOY, sobre **58 códigos
+  distintos**.
+
+O sea que las tres no son tres definiciones en conflicto: son **una foto, una
+unión y un dato vivo**. Lo que sí hay que arreglar es que la pantalla no dice
+cuál de las tres está enseñando.
+
+**Y el cruce destapó cuatro cosas de la hoja, que son operativas y suyas:**
+
+1. **CH 14 está DUPLICADO** en el bloque TITULAR: dos filas, las dos marcadas
+   `APLICADA` con fecha 09/09/2026. Como al curso-horario se va una sola vez, es
+   un duplicado, no dos visitas — y cuenta dos veces.
+2. **Una marca `APLICADA` sin FECHA DE APLICACIÓN.**
+3. **Una con fecha `09/08/2026`** — agosto. Casi seguro un 09/09 mal tecleado;
+   el operativo empezó el 07/09.
+4. **Quince cursos-horario están `APLICADA` en la hoja y no tienen parte en el
+   `.pulso`**: CH 4, 8, 11, 14, 30, 37, 52, 80, 95, 121, 125, 135, 149, 170,
+   171. Es el desfase esperable entre la hoja viva y la copia del 09/09.
+5. **Y tres al revés: tienen parte en el `.pulso` y NO están marcados `APLICADA`
+   en la hoja: CH 82, CH 111 y CH 131.** Dos de esos tres —CH 82 y CH 111— son
+   exactamente los que tienen la hora de madrugada que no cuadra ni leída como
+   tarde. Que los mismos dos aparezcan en los dos hallazgos no parece
+   casualidad: hay algo raro en cómo se registraron esos partes.
