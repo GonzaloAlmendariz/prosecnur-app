@@ -81,3 +81,30 @@
   color: var(--pulso-text-faint);
   font-weight: 400;
 }
+
+/* Las dos tasas del panel: la que se les pedía y la que están sacando. Va bajo
+   las barras y antes del desglose, que es el orden en que se lee: primero el
+   reparto, luego contra qué, y sólo al pulsar, quiénes. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas {
+  margin: 10px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El desvío en color de resultado y no en gris: quedarse corto es la noticia
+   que este panel existe para dar. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em {
+  margin-left: 5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin respaldo en hex: `--pulso-danger-fg` existe en `tokens.css` desde hace
+   tiempo, y un fallback inline es un color de feature escondido en una coma. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-sobra { color: var(--pulso-success-fg); }
