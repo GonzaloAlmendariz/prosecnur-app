@@ -86,6 +86,13 @@ monitoreo_aulas_motivos_reemplazo <- function() {
 }
 
 .monitoreo_aulas_df <- function(x, label = "tabla") {
+  # **Se llama trece veces por build sobre los mismos insumos.** La memoria de
+  # un paso vive en `monitoreo_aulas_df_cache.R`, con las cifras que la
+  # justifican: convertir cuesta 0,32 s y comparar 0,0001 s.
+  .mad_recuerda(x, function(x) .monitoreo_aulas_df_calcula(x, label))
+}
+
+.monitoreo_aulas_df_calcula <- function(x, label = "tabla") {
   if (is.null(x)) return(data.frame(stringsAsFactors = FALSE))
   if (is.data.frame(x)) return(as.data.frame(x, stringsAsFactors = FALSE, check.names = FALSE))
   if (!is.list(x)) {
