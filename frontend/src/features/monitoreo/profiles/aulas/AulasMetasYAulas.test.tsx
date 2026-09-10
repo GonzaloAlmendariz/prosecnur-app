@@ -26,7 +26,7 @@ describe("«Metas y aulas»", () => {
     expect(html).toContain("DERECHO");
     expect(html).toContain("Hombres");
     expect(html).toContain("Mujeres");
-    expect(html).toContain("3 aplicadas · 9 agendadas");
+    expect(html).toContain("3 cursos-horario aplicados");
   });
 
   it("la brecha negativa se dice «faltan», no con un signo que hay que interpretar", () => {

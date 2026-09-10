@@ -1,12 +1,20 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
+import { AulasMetasAvance } from "./AulasMetasAvance";
+import { AulasMetasBarras } from "./AulasMetasBarras";
+import { AulasMetasCinta } from "./AulasMetasCinta";
+import { AulasMetasMandos } from "./AulasMetasMandos";
+import { AulasMetasYAulas } from "./AulasMetasYAulas";
+import { cintaDeMetas, facultadesQueNoLlegan, tasasQueSeApartan } from "./metasDeLaPestana";
+import {
+  proyeccionElegida, respaldoDeLaTasa, supuestosAlPie,
+  type MandoMeta, type MandoTasa,
+} from "./proyeccionDeMetas";
 import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
-import { AulasSexoPorFacultadChart } from "./AulasSexoPorFacultadChart";
 import { avanceCuota } from "./avanceCuota";
-import { cursosHorarioSinFecha } from "./cursosHorarioSinFecha";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import type {
@@ -67,8 +75,21 @@ export function AulasPestanaCuotas({
       Llegó con «Consumo de la reserva» desde Rendimiento. */
   diasDeCampoDelCorte: (partes: ReadonlyArray<MonitoreoRow>) => number;
 }): ReactNode {
+  // **Los dos mandos son estado local, no dirección.** La regla del contrato v3
+  // —«un overlay nuevo se conecta con `usePanelDireccionable`, no con un
+  // `useState` suelto»— habla de PANELES y overlays, que son navegación; esto
+  // es qué escenario se lee de un payload que ya trae los cuatro calculados.
+  // Mismo trato que el toggle de rol de `AulasAvancePorCurso`.
+  const [meta, setMeta] = useState<MandoMeta>("muestra");
+  const [tasa, setTasa] = useState<MandoTasa>("diseno");
   if (pestana !== "cuotas") return null;
   void tabla;
+  // La combinación elegida sale del motor; la pantalla no deriva ninguna.
+  const proyeccion = proyeccionElegida(dashboard.proyeccion_metas, meta, tasa);
+  const cinta = cintaDeMetas(proyeccion);
+  const alcance = facultadesQueNoLlegan(proyeccion);
+  const respaldo = respaldoDeLaTasa(proyeccion);
+  const supuestos = supuestosAlPie(proyeccion);
   // Las derivaciones vienen CON la pestaña: sólo las usa ella, comprobado por
   // grep antes de mover.
   const quotaRows = ordenarPorFacultadYSexo(
@@ -81,6 +102,87 @@ export function AulasPestanaCuotas({
   const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
   return (
     <>
+      {/* **Los cinco bloques del boceto del 2026-09-09**, en su orden dictado:
+          el mando de la meta primero —porque cambia todo lo que hay debajo—,
+          la cinta, el avance por facultad y sexo con sus columnas de aulas, las
+          barras de escala común y, al final, «Metas y aulas» con su propio
+          mando de tasa dentro, que es el único bloque que la consume.
+
+          Sin cuotas declaradas el motor no emite proyección y `proyeccionElegida`
+          devuelve `null`: la sección entera no se monta y la pestaña sigue
+          diciendo lo que sí sabe. Es la distinción que importa — «no se sabe» no
+          es «no llega» (C3). */}
+      {proyeccion ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-avance"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Metas por facultad y sexo</h3>
+            <span>
+              {alcance
+                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} facultades llegan con lo que ya tienen agendado`
+                : null}
+            </span>
+          </div>
+          <AulasMetasMandos
+            rotulo="Meta"
+            opciones={[
+              ["muestra", "Muestra", "La cuota del diseño, tal como se calculó"],
+              ["sobremuestra", "Sobremuestra", "La cuota escalada al objetivo con sobremuestra"],
+            ] as const}
+            valor={meta}
+            onCambio={setMeta}
+          />
+          <AulasMetasCinta cinta={cinta} meta={meta} />
+
+          <div className="mon-profile-panel-head">
+            <h4>Avance por facultad y sexo</h4>
+            <span>efectivas conseguidas contra la cuota de cada sexo</span>
+          </div>
+          <AulasMetasAvance filas={proyeccion} aulas={dashboard.aulas_por_facultad} />
+
+          <div className="mon-profile-panel-head">
+            <h4>Metas por facultad</h4>
+            <span>todas en la misma escala: el alto compara el tamaño del trabajo</span>
+          </div>
+          <AulasMetasBarras filas={proyeccion} />
+
+          <div className="mon-profile-panel-head">
+            <h4>Metas y aulas</h4>
+            <span>lo aplicado más lo que cabe esperar de los cursos-horario que ya tienen día</span>
+          </div>
+          <AulasMetasMandos
+            rotulo="Proyectar lo agendado con"
+            opciones={[
+              ["diseno", "Tasa del diseño", "La tasa con la que se dimensionó la muestra"],
+              ["obtenida", "Tasa obtenida", "Lo que el campo lleva rindiendo hasta hoy"],
+            ] as const}
+            valor={tasa}
+            onCambio={setTasa}
+          />
+          <AulasMetasYAulas filas={proyeccion} />
+
+          {/* El pie: los supuestos salen del DATO —el motor los emite con cada
+              fila— y el respaldo de la tasa obtenida se enseña como material,
+              no como semáforo: ninguna medición encontró un umbral que la
+              vuelva fiable, así que se dice sobre cuánto descansa. */}
+          <div className="aulas-metas-pie">
+            {tasa === "obtenida" && respaldo ? (
+              <p>
+                La tasa obtenida descansa en{" "}
+                <strong>{fmt(respaldo.aulas)} cursos-horario aplicados</strong> y{" "}
+                <strong>{fmt(respaldo.elegibles)} elegibles</strong>, y en{" "}
+                {fmt(tasasQueSeApartan(proyeccion))} facultades se aparta más de veinte puntos
+                porcentuales de la del diseño. No hay número de cursos-horario que la vuelva estable:
+                se enseña como escenario, no como pronóstico.
+              </p>
+            ) : null}
+            {supuestos.map((frase) => <p key={frase}>{frase}</p>)}
+          </div>
+        </section>
+      ) : null}
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -165,40 +267,28 @@ export function AulasPestanaCuotas({
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
         />
       </section>
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* **Vino de Estratos el 2026-09-08, y el rótulo es la mitad de la
-              mudanza.** Allá se llamaba «Avance por facultad y sexo» —un nombre
-              que sólo prometía otra vista de lo mismo— y por eso nadie miraba lo
-              que de verdad trae: su bloque `avance_sexo_facultad`
-              (`api/R/monitoreo_aulas_calibracion.R:350`) publica lo logrado, lo
-              PREVISTO, lo PROYECTADO y si el campo se está comportando como el
-              modelo dice.
+      {/* **«Qué metas van a cerrar y cuáles no» queda SIN MONTAR desde el
+          2026-09-09**, y el componente y su bloque del payload siguen ahí: esto
+          no es un borrado, es una desconexión mientras Gonzalo decide.
 
-              Es decir: contesta «¿va a llegar esta celda?», que es la pregunta
-              de Gonzalo —«lo que me interesa es que TODAS LAS FACULTADES CUMPLAN
-              CON SU CUOTA DE SEXO»— y no la contestaba nada más en la sección.
-              El título ahora la hace.
+          Medido ese día (`dos_motores.R`): este panel y «Metas y aulas» —el que
+          entró con el boceto— discrepan en 28 de las 30 celdas facultad × sexo,
+          y no por decimales: DERECHO/F 152,9 contra 300,9; EE.GG. LETRAS/F 235,5
+          contra 370,4; ARQUITECTURA/F 73,8 contra 166,8.
 
-              No duplica al panel de arriba: aquél mide lo CONSEGUIDO contra la
-              meta, mirando hacia atrás; éste suma lo que traerán los
-              cursos-horario que siguen en juego y enseña el déficit que
-              quedaría aun así. Retrospectivo y prospectivo, en ese orden. */}
-          <h3>Qué metas van a cerrar y cuáles no</h3>
-          <span>lo recogido, lo que traerán los cursos-horario en juego y el déficit que quedaría</span>
-        </div>
-        <AulasSexoPorFacultadChart
-          celdas={(dashboard.avance_sexo_facultad ?? []) as MonitoreoRow[]}
-          // El supuesto de la proyección, en cifra: este panel cuenta TODOS los
-          // cursos-horario en juego y el acumulado de Rendimiento sólo los
-          // agendados. La regla es compartida a propósito.
-          sinFecha={cursosHorarioSinFecha((dashboard.agenda ?? []) as MonitoreoRow[])}
-        />
-      </section>
+          Ninguno miente. Cuentan universos distintos: `proyeccion_metas` proyecta
+          sólo lo AGENDADO —«con lo que ya tengo agendado, ¿llego?», que es la
+          pregunta que él hizo— y `avance_sexo_facultad` cuenta TODOS los
+          cursos-horario en juego, y hay 33 aulas titulares planificadas sin
+          fecha (52 aplicadas · 89 agendadas · 33 sin fecha). Encima la tasa no
+          sale del mismo sitio: aquélla de las cuotas del diseño, ésta de los
+          esperados por aula del plan.
+
+          Pero dos «proyectado» por celda con el doble de diferencia, en la
+          misma pantalla, es exactamente lo que no puede quedarse. Lo que este
+          panel dice y el otro no es la CALIBRACIÓN —«el campo está rindiendo un
+          X % menos de lo previsto»—, y ésa es la pieza que merece sobrevivir,
+          como lectura y no como un segundo panel de proyección. */}
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"

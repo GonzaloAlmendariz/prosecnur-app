@@ -36,9 +36,12 @@ describe("«Avance por facultad y sexo»", () => {
   });
 
   it("el porcentaje es el del sexo contra SU meta", () => {
-    // Hombres 17 de 126 = 13,5 %.
+    // Hombres 17 de 126 = 13,5 %. El separador se deja abierto a propósito: lo
+    // pone `Intl` y el runner de vitest puede correr sin ICU completo, donde
+    // «es-PE» cae al punto. Lo que este test sujeta es el NÚMERO, no el locale
+    // de la máquina que lo corre.
     const html = renderToStaticMarkup(<AulasMetasAvance filas={[fila()]} aulas={[]} />);
-    expect(html).toContain("13,5 %");
+    expect(html).toMatch(/13[.,]5\s%/);
   });
 
   it("una meta en cero no divide: escribe «—»", () => {
