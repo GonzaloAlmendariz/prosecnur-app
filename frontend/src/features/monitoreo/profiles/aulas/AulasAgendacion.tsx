@@ -100,30 +100,55 @@ export function AulasAgendacion({ agenda, corte = "" }: {
               forma habla sola: 29, 34 y 50 la semana antes del campo, y 4, 13 y
               19 desde que empezó — agendar y aplicar compiten por la misma
               gente. */}
-          <ul className="aulas-agd-dias" role="img"
+          {/* **Una rejilla de tres filas, no una columna flex por día.**
+              Gonzalo, con la captura delante: «este debe estar alineado y más
+              estético y robusto». La causa del desalineamiento era el MES: iba
+              como un hijo más de la columna, así que la que lo llevaba —sólo la
+              primera y los cambios de mes— empujaba su día una línea arriba y
+              el resto de la fila quedaba a otra altura. Con filas de alto fijo
+              la fila del mes existe siempre, vacía o no, y todo cae en su
+              renglón. */}
+          <ul className={`aulas-agd-dias${dias.length > 22 ? " es-apretado" : ""}`} role="img"
             aria-label={`Cursos-horario agendados por día: ${dias.map((d) => `${d.etiqueta}: ${d.aulas}`).join(", ")}`}>
-            {dias.map((d, i) => (
-              <li key={d.fecha} className={d.aulas ? "" : "es-sin-agendar"}>
-                <span className="aulas-agd-n">{d.aulas ? fmt(d.aulas) : ""}</span>
-                <span className="aulas-agd-barra">
-                  {/* Apiladas: la reserva activada va encima del titular, con su
-                      propio tono, porque es otro trabajo y otro presupuesto. */}
-                  <i style={{ height: alto(d.aulas) }}>
-                    {d.reemplazos ? (
-                      <b style={{ height: `${(100 * d.reemplazos) / (d.aulas || 1)}%` }} />
+            {dias.map((d, i) => {
+              const porcentaje = tope ? (100 * d.aulas) / tope : 0;
+              // Con la barra casi llena la cifra no cabe encima y se saldría del
+              // carril: entra dentro, en blanco sobre el relleno.
+              const dentro = porcentaje > 78;
+              const cambiaDeMes = i === 0 || d.fecha.slice(5, 7) !== dias[i - 1].fecha.slice(5, 7);
+              return (
+                <li key={d.fecha} className={d.aulas ? "" : "es-sin-agendar"}>
+                  <span className="aulas-agd-barra">
+                    {/* Apiladas: la reserva activada va encima del titular, con
+                        su propio tono, porque es otro trabajo. */}
+                    <i style={{ height: `${porcentaje}%` }}>
+                      {d.reemplazos ? (
+                        <b style={{ height: `${(100 * d.reemplazos) / (d.aulas || 1)}%` }} />
+                      ) : null}
+                    </i>
+                    {/* **La cifra ENCIMA de su barra, no en una fila aparte.**
+                        Suelta arriba, «29» quedaba a media pantalla de la barra
+                        que cuenta y había que emparejarlas a ojo. Es lo mismo
+                        que él pidió para las barras de metas: «mostrar los
+                        porcentajes de cada barra en su parte superior». */}
+                    {d.aulas ? (
+                      <span
+                        className={`aulas-agd-n${dentro ? " es-dentro" : ""}`}
+                        style={{ bottom: `${porcentaje}%` }}
+                      >
+                        {fmt(d.aulas)}
+                      </span>
                     ) : null}
-                  </i>
-                </span>
-                {/* La fecha, clara: «si es una barra de agendación diaria el día
-                    o fecha deben estar claros». El mes se escribe al empezar y
-                    cada vez que cambia —repetirlo en las veinte columnas es la
-                    misma ceguera que no ponerlo—. */}
-                <span className="aulas-agd-dia">{d.fecha.slice(8, 10)}</span>
-                {i === 0 || d.fecha.slice(5, 7) !== dias[i - 1].fecha.slice(5, 7) ? (
-                  <span className="aulas-agd-mes">{mesCortoDe(d.fecha)}</span>
-                ) : null}
-              </li>
-            ))}
+                  </span>
+                  {/* La fecha, clara: «si es una barra de agendación diaria el
+                      día o fecha deben estar claros». El mes se escribe al
+                      empezar y cada vez que cambia —repetirlo en las veinte
+                      columnas es la misma ceguera que no ponerlo—. */}
+                  <span className="aulas-agd-dia">{d.fecha.slice(8, 10)}</span>
+                  <span className="aulas-agd-mes">{cambiaDeMes ? mesCortoDe(d.fecha) : ""}</span>
+                </li>
+              );
+            })}
           </ul>
           <p className="aulas-agd-pie">
             cursos-horario a los que se les puso fecha cada día

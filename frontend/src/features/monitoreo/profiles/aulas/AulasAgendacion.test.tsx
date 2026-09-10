@@ -63,10 +63,32 @@ describe("el panel de agendación", () => {
     expect((html.match(/aulas-agd-dia"/g) ?? []).length).toBe(12);
   });
 
-  it("escribe el mes al empezar y sólo cuando cambia", () => {
+  it("escribe el mes al empezar y sólo cuando cambia, pero reserva su renglón", () => {
+    // **La celda del mes existe en las nueve columnas, vacía en ocho.** Iba
+    // sólo donde había texto y entonces esa columna medía un renglón más que
+    // sus vecinas: el día se le subía y la fila quedaba en diente de sierra.
+    // «Este debe estar alineado» (Gonzalo, 2026-09-10).
     const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
-    expect((html.match(/aulas-agd-mes/g) ?? []).length).toBe(1);
-    expect(html).toContain("set");
+    expect((html.match(/aulas-agd-mes/g) ?? []).length).toBe(9);
+    expect((html.match(/aulas-agd-mes">set/g) ?? []).length).toBe(1);
+  });
+
+  it("la cifra se ancla al alto de SU barra, no a una fila fija", () => {
+    // Suelta arriba del todo, «29» quedaba a media pantalla de la barra que
+    // cuenta y había que emparejarlas a ojo.
+    const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
+    expect(html).toMatch(/aulas-agd-n[^>]*style="bottom:\s*100%/);
+    // Y sólo la escriben los días con agendación: tres de nueve.
+    expect((html.match(/aulas-agd-n/g) ?? []).length).toBe(3);
+  });
+
+  it("con un rango largo deja de escribir lo que ya no cabe", () => {
+    const largo = [
+      fila({ faculty: "DERECHO", contact_date: "2026-08-01", scheduled_date: "2026-09-08" }),
+      fila({ faculty: "DERECHO", contact_date: "2026-09-09", scheduled_date: "2026-09-15" }),
+    ];
+    expect(renderToStaticMarkup(<AulasAgendacion agenda={largo} />)).toContain("es-apretado");
+    expect(renderToStaticMarkup(<AulasAgendacion agenda={agenda} />)).not.toContain("es-apretado");
   });
 
   it("dice hasta cuándo llega lo ya agendado", () => {
