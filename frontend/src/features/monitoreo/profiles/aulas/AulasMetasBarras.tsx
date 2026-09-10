@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { fmt } from "./kpisDeAulas";
 import { filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
@@ -45,14 +46,19 @@ export function AulasMetasBarras({ filas }: {
   return (
     <div className="aulas-metas-scroll">
       <p className="aulas-metas-leyenda">
-        <span><i className="aulas-metas-swatch" data-tramo="aplicado" />Conseguido</span>
+        <span><i className="aulas-metas-swatch" data-sexo="hombres" />Hombres</span>
+        <span><i className="aulas-metas-swatch" data-sexo="mujeres" />Mujeres</span>
         <span><i className="aulas-metas-swatch" data-tramo="meta-contorno" />Meta</span>
-        <span>Cada facultad, con su carril de hombres a la izquierda</span>
       </p>
+      {/* **Ocupa el ancho del panel.** Iba con `width` en píxeles y en pantallas
+          anchas dejaba un vacío a la derecha; con el viewBox puesto, el 100 %
+          escala sin deformar y el scroll horizontal sólo aparece cuando de
+          verdad no caben las quince facultades. */}
       <svg
         viewBox={`0 0 ${ancho} ${ALTO}`}
-        width={ancho}
-        height={ALTO}
+        className="aulas-metas-lienzo"
+        preserveAspectRatio="xMinYMid meet"
+        style={{ minWidth: `${ancho}px` }}
         role="img"
         aria-label="Meta y conseguido de cada facultad, por sexo, en la misma escala"
       >
@@ -76,24 +82,32 @@ export function AulasMetasBarras({ filas }: {
         {orden.map((f, i) => {
           const x0 = MARGEN.izq + i * GRUPO + 8;
           const carriles = [
-            [f.meta_M, f.obtenidas_M, 0],
-            [f.meta_F, f.obtenidas_F, BARRA + HUECO],
+            [f.meta_M, f.obtenidas_M, 0, "hombres"],
+            [f.meta_F, f.obtenidas_F, BARRA + HUECO, "mujeres"],
           ] as const;
           // La etiqueta se recorta con puntos suspensivos: «CIENCIAS Y ARTES DE
           // LA COMUN.» a 45° se come el alto entero del pie del gráfico.
           const etiqueta = f.facultad.length > 26 ? `${f.facultad.slice(0, 25)}…` : f.facultad;
           return (
             <g key={f.facultad}>
-              {carriles.map(([meta, obtenidas, dx]) => (
+              {carriles.map(([meta, obtenidas, dx, tono]) => (
                 <g key={dx}>
                   <rect
                     x={x0 + dx} y={y(meta)} width={BARRA} height={alto(meta)}
                     className="aulas-metas-barra-meta"
                   />
+                  {/* Cada sexo con su tono, el mismo de su chip en las tablas:
+                      en verde las dos, el carril de hombres y el de mujeres
+                      sólo se distinguían por la posición. */}
                   <rect
                     x={x0 + dx} y={y(obtenidas)} width={BARRA} height={alto(obtenidas)}
-                    className="aulas-metas-barra-logro"
-                  />
+                    className="aulas-metas-barra-logro" data-sexo={tono}
+                  >
+                    <title>
+                      {`${f.facultad} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
+                      {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
+                    </title>
+                  </rect>
                 </g>
               ))}
               <text

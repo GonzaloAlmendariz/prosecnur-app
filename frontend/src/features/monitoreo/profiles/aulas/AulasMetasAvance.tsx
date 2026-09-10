@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { claseDeFacultad } from "./tonoDeFacultad";
 import { aulasPorFacultad, filasAlfabeticas } from "./metasDeLaPestana";
 import type {
   MonitoreoAulasPorFacultad,
@@ -60,35 +61,35 @@ export function AulasMetasAvance({ filas, aulas }: {
         {orden.map((f) => {
           const a = porFacultad.get(f.facultad);
           const carriles = [
-            ["Hombres", f.obtenidas_M, f.meta_M],
-            ["Mujeres", f.obtenidas_F, f.meta_F],
+            ["Hombres", "hombres", f.obtenidas_M, f.meta_M],
+            ["Mujeres", "mujeres", f.obtenidas_F, f.meta_F],
           ] as const;
           return (
             <tbody key={f.facultad}>
               <tr className="es-facultad">
                 <td colSpan={7}>
-                  <span className="aulas-sexo-chip">{f.facultad}</span>
+                  <span className={claseDeFacultad(f.facultad)}>{f.facultad}</span>
                 </td>
                 {/* Sin dato de aulas se escribe «—» y no un cero: una facultad
                     sin aulas planificadas no existe, y el cero lo afirmaría. */}
                 <td className="es-num">{a ? fmt(a.aplicadas) : "—"}</td>
                 <td className="es-num">{a ? fmt(a.planificadas) : "—"}</td>
               </tr>
-              {carriles.map(([sexo, obtenidas, meta]) => {
+              {carriles.map(([sexo, tono, obtenidas, meta]) => {
                 const faltan = Math.max(0, meta - obtenidas);
                 const avance = meta > 0 ? Math.min(100, (100 * obtenidas) / meta) : 0;
                 return (
                   <tr key={sexo}>
                     <td />
                     <td className="es-sexo">
-                      <span className="aulas-sexo-chip">{sexo}</span>
+                      <span className="aulas-metas-sexo" data-sexo={tono}>{sexo}</span>
                     </td>
                     <td>
                       {/* La barra llega hasta donde llega el avance: el carril
                           entero es la meta, así que un carril a medias se lee
                           sin mirar el número. */}
                       <div className="aulas-metas-gauge">
-                        <i className="es-aplicado" style={{ width: `${avance}%` }} />
+                        <i className="es-aplicado" data-sexo={tono} style={{ width: `${avance}%` }} />
                       </div>
                     </td>
                     <td className="es-num">{avancePct(obtenidas, meta)}</td>
