@@ -358,7 +358,6 @@ function CeldasDeSexo({ celdas, tauPrevista }: {
             que falta corre a las de abajo y descuadra la comparación. */}
         <b>{etiqueta}</b>
         <strong>{pct(c.tasa_observada)}</strong>
-        <i>de {pct(prevista)}</i>
         {/* En personas y con signo: el cero se escribe, porque «justo lo
             previsto» es un resultado y no la ausencia de uno. */}
         <em className={diferencia == null ? "" : diferencia < 0 ? "es-corto" : diferencia > 0 ? "es-sobra" : ""}>
@@ -622,7 +621,16 @@ export function AulasEfectividadSeguimiento({
                     <CeldasDeSexo celdas={sexosDe.get(f.faculty_key)} tauPrevista={f.tau_previsto} />
                   </th>
                   <td className="aulas-tau-cifra es-debil">{pct(f.tau_previsto)}</td>
-                  <td className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>
+                  {/* **El dato de la fila, y con color.** Es la única cifra que
+                      esta tabla existe para comparar y se leía a 12 px del
+                      mismo gris que su propia metadata: «todo se ve muy pequeño
+                      y sin vida» (Gonzalo, 2026-09-10). El tono repite el de la
+                      barra de al lado —llega o no llega a la vara del diseño—,
+                      no inventa una segunda codificación. */}
+                  <td className={`aulas-tau-cifra aulas-tau-observada${
+                    f.senal === "sin_banda" ? " es-debil"
+                      : f.tau_previsto == null || f.tau_observado == null ? ""
+                        : f.tau_observado >= f.tau_previsto ? " es-mejor" : " es-peor"}`}>
                     {pct(f.tau_observado)}
                     {/* El margen de error, en número y no como un bigote sobre
                         la barra: ahí estaba feo y no se sabía qué medía. */}
@@ -657,11 +665,14 @@ export function AulasEfectividadSeguimiento({
                       `alumnos_corte`, que el motor calcula desde siempre y esta
                       tabla no enseñaba. */}
                   <td className={`aulas-tau-cifra${
-                    f.alumnos_corte != null && f.alumnos_corte < 0 ? " es-corto" : " es-debil"
+                    f.alumnos_corte == null ? " es-debil"
+                      : f.alumnos_corte < 0 ? " es-corto"
+                        : f.alumnos_corte > 0 ? " es-sobra" : " es-debil"
                   }`}>
                     {alumnos(f.alumnos_corte)}
                   </td>
-                  <td className={`aulas-tau-cifra${enRiesgo ? "" : " es-debil"}`}>
+                  <td className={`aulas-tau-cifra${
+                    enRiesgo ? " es-corto" : f.margen_restante != null && f.margen_restante > 0 ? " es-sobra" : " es-debil"}`}>
                     {alumnos(f.margen_restante)}
                   </td>
                   {/* Texto, no cifra: alineado a la izquierda como su
