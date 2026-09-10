@@ -14,6 +14,7 @@ import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
+import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 import { TOPE_DE_FILAS, contadorDeCursosHorario } from "./AulasMonitoreoPage";
 import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
@@ -105,6 +106,23 @@ export function AulasPestanaResumen({
       filasQueViajan: aulaRows.length,
       deReservaAdicional: aulasExtra,
     });
+  /**
+   * El último día del horizonte: el cierre PESIMISTA del pronóstico.
+   *
+   * Se usa el lento y no el central a propósito: el eje tiene que caber lo peor
+   * que puede pasar, o el abanico del pronóstico se saldría de su propio
+   * gráfico. Cadena vacía cuando no hay ritmo que proyectar, y entonces cada
+   * gráfico se queda con su propio final, como estaba.
+   *
+   * Sin `useMemo`: esta línea vive DESPUÉS de la guarda de pestaña de arriba, y
+   * un hook aquí se llamaría en unos renders y no en otros — React #310, que ya
+   * tumbó esta pestaña una vez.
+   */
+  const pron = pronosticoDeCierre(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[]);
+  const horizonteDelCierre = pron.motivo || !pron.ultimaFecha
+    ? undefined
+    : sumarDiasDeCampo(pron.ultimaFecha, pron.diasLento ?? pron.diasQueFaltan ?? 0);
+
   const desglose = dashboard.respuestas_desglose;
   // Qué cuenta enseña el bloque: la del conjunto o la de la facultad en foco.
   // El foco es el del perfil —el mismo que ya gobierna «A quién hay que
@@ -245,7 +263,18 @@ export function AulasPestanaResumen({
                   return `${cuenta} · válidas de plataforma`;
                 })()}</span>
               </div>
-              <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
+              {/* **El horizonte lo calcula la pestaña, que es quien ve los dos
+                  gráficos.** Sin él, «Ritmo de la recolección» termina en la
+                  última jornada con respuestas —tres, en el operativo— y
+                  «Cuándo se termina de aplicar el plan», justo debajo, llega
+                  hasta el cierre previsto: dos anchuras iguales midiendo
+                  distancias distintas. Gonzalo, 2026-09-10: «los días del eje x
+                  de cuándo se termina de aplicar el plan tienen que alinearse
+                  con el ritmo de recolección». */}
+              <AulasRitmoDiario
+                ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null}
+                hasta={horizonteDelCierre}
+              />
             </section>
             <section
               className="mon-profile-panel"
