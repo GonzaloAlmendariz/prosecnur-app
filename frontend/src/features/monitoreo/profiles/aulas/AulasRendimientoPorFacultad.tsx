@@ -244,8 +244,18 @@ export function AulasRendimientoPorFacultad({
           // entera de facultades con una visita no se encabeza con un aviso de
           // que no hay nada arriba.
           const anterior = filas[i - 1];
-          const apartada = f.aulas < MINIMO_PARA_COMPARAR;
-          const abreElCorte = apartada && i > 0 && (anterior?.aulas ?? 0) >= MINIMO_PARA_COMPARAR;
+          const cajon = esCajonSinDato(f.facultad);
+          const apartada = !cajon && f.aulas < MINIMO_PARA_COMPARAR;
+          // **El corte de evidencia NO puede tragarse los cajones.** Visto en
+          // pantalla el 2026-09-10: en «Día de la semana» lo único que quedaba
+          // bajo la línea era «Sin fecha», y la línea dice «con menos de 3
+          // cursos-horario visitados — todavía no se comparan». «Sin fecha» no
+          // es un día con pocas visitas: son partes a los que les falta la
+          // fecha. Cada frontera nombra lo suyo o miente sobre lo que separa.
+          const abreElCorte = apartada && i > 0
+            && !esCajonSinDato(anterior?.facultad ?? "")
+            && (anterior?.aulas ?? 0) >= MINIMO_PARA_COMPARAR;
+          const abreElCajon = cajon && i > 0 && !esCajonSinDato(anterior?.facultad ?? "");
           return (
           <Fragment key={f.facultad}>
           {abreElCorte ? (
@@ -254,6 +264,15 @@ export function AulasRendimientoPorFacultad({
                 Con menos de {MINIMO_PARA_COMPARAR} cursos-horario visitados —
                 todavía no se comparan: con una o dos visitas, un curso-horario
                 afortunado mueve el porcentaje treinta puntos
+              </span>
+            </li>
+          ) : null}
+          {abreElCajon ? (
+            <li key="cajon" role="row" className="aulas-rendimiento-corte">
+              <span role="cell">
+                Partes a los que les falta el dato con el que agrupa esta lente —
+                no son un nivel de rendimiento y por eso van fuera de la
+                comparación
               </span>
             </li>
           ) : null}
