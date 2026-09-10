@@ -15,6 +15,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
+import { cierrePorAgenda } from "./cierrePorAgenda";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 import { TOPE_DE_FILAS, contadorDeCursosHorario } from "./AulasMonitoreoPage";
 import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
@@ -118,10 +119,31 @@ export function AulasPestanaResumen({
    * un hook aquí se llamaría en unos renders y no en otros — React #310, que ya
    * tumbó esta pestaña una vez.
    */
+  const agendaDelCierre = cierrePorAgenda(
+    (dashboard.agenda ?? []) as MonitoreoRow[],
+    corteDelEstudio(
+      (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
+      dashboard?.generated_at,
+    ).dia,
+  );
   const pron = pronosticoDeCierre(partesConFacultad, (dashboard.agenda ?? []) as MonitoreoRow[]);
-  const horizonteDelCierre = pron.motivo || !pron.ultimaFecha
-    ? undefined
-    : sumarDiasDeCampo(pron.ultimaFecha, pron.diasLento ?? pron.diasQueFaltan ?? 0);
+  /**
+   * **El horizonte lo pone la AGENDA, no el ritmo.**
+   *
+   * Primero se usó el cierre PESIMISTA del pronóstico y se midió lo que hacía:
+   * con el ritmo lento del arranque la fecha se iba a **noviembre**, el eje
+   * dibujaba setenta días y las cuatro jornadas reales quedaban aplastadas
+   * contra el borde izquierdo. Justo lo contrario de lo que él pedía al decir
+   * que el ritmo «se ve vacío».
+   *
+   * La agenda es finita y es la que manda —«depende del ritmo de la agenda»—:
+   * el eje llega hasta la última fecha agendada. El pronóstico queda de
+   * respaldo, y su rama lenta ya no decide cuánto mide el gráfico.
+   */
+  const horizonteDelCierre = agendaDelCierre.ultimaFecha
+    || (pron.motivo || !pron.ultimaFecha
+      ? undefined
+      : sumarDiasDeCampo(pron.ultimaFecha, pron.diasQueFaltan ?? 0));
 
   const desglose = dashboard.respuestas_desglose;
   // Qué cuenta enseña el bloque: la del conjunto o la de la facultad en foco.
