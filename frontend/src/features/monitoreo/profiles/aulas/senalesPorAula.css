@@ -34,9 +34,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Los dos sellos van en la MISMA línea, uno de 561 px y otro de 475 sobre un
+   ancho de 1 155, separados sólo por 14 px de hueco: visto en pantalla el
+   2026-09-10 se leían como una sola frase corrida que cambia de tema a mitad
+   —«…y la fila lo dice   salirse del margen señala qué mirar…»—. Una regla
+   fina delante de cada uno los convierte en dos notas, que es lo que son, sin
+   gastar una línea más de alto. */
 .mon-profile-page.is-aulas-flow .aulas-dt-sello {
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
+  border-left: 2px solid color-mix(in srgb, var(--pulso-border) 82%, #fff);
+  padding-left: 7px;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-dt-sello strong {
