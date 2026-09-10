@@ -5,6 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
 import { AulasCursosDeUnTramo } from "./AulasCursosDeUnTramo";
 import { tasasDeLaCobertura } from "./tasasDeLaCobertura";
+import { balanceDeLaCobertura } from "./balanceDeLaCobertura";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { MINIMO_PARA_COMPARAR } from "./rendimientoPorFacultad";
 import "./aulasCoberturaChart.css";
@@ -36,7 +37,7 @@ import "./aulasCoberturaChart.css";
 
 export function AulasCoberturaChart({
   filas, resumen, sinMetaMotor, reservaMotor = 0, dormidasMotor = 0, totalDelPlan,
-  sinAplicarMotor = 0,
+  sinAplicarMotor = 0, cuota = null,
 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
@@ -73,6 +74,11 @@ export function AulasCoberturaChart({
    * no es que falte el dato, es que aún no se ha ido a ninguna.
    */
   sinAplicarMotor?: number;
+  /**
+   * La cuota de respuestas contra la que se mide si con lo agendado se llega.
+   * La del estudio, o la de la facultad en foco. `null` si no viaja.
+   */
+  cuota?: number | null;
 }) {
   // Cuántas filas hay DE VERDAD frente a las que llegaron. Sin el dato se
   // asume completo: un payload viejo sin `course_status_total` se comporta
@@ -174,6 +180,9 @@ export function AulasCoberturaChart({
   // cinco filas CSS se autodimensionan donde el Plotly pedía 360px fijos.
   const max = Math.max(1, ...tramos.map((t) => t.aulas));
   const tasas = tasasDeLaCobertura(filas);
+  // El balance en personas: lo de hoy y lo que da la agenda. Sobre las MISMAS
+  // filas que el resto del panel, así que con una facultad en foco es la suya.
+  const balance = balanceDeLaCobertura(filas, cuota ?? null);
   const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
 
   return (
@@ -238,6 +247,61 @@ export function AulasCoberturaChart({
                es lo que evita que el hueco se lea como un fallo. */
             <>{" "}· todavía sin tasa propia: hacen falta al menos{" "}
             {fmt(MINIMO_PARA_COMPARAR)} cursos-horario aplicados y hay {fmt(tasas.aulas)}</>
+          )}
+        </p>
+      ) : null}
+      {balance ? (
+        /* **El balance en PERSONAS, y si con lo agendado se llega.** Gonzalo:
+           «esto está súper bien, pero no nos dice si estamos en déficit o
+           superávit de lo esperado a fecha de hoy con las aplicadas hasta ahora,
+           y si con las esperadas agendadas llegamos». La línea de arriba da las
+           dos TASAS; «+6,1 puntos» obliga a multiplicar por los elegibles para
+           saber si son diez personas o doscientas. */
+        <p className="aulas-cobertura-balance">
+          <span className="aulas-cob-bal-hoy">
+            De {fmt(balance.aplicados)} {balance.aplicados === 1 ? "aplicado" : "aplicados"} se
+            esperaban <strong>{fmt(balance.esperadasHoy)}</strong> respuestas y han
+            llegado <strong>{fmt(balance.efectivas)}</strong>
+            {balance.balance === 0 ? (
+              <em>: justo lo previsto</em>
+            ) : (
+              <em className={balance.balance < 0 ? "es-corto" : "es-sobra"}>
+                : {balance.balance > 0 ? "+" : "−"}{fmt(Math.abs(balance.balance))}{" "}
+                {balance.balance > 0 ? "de superávit" : "de déficit"}
+              </em>
+            )}
+          </span>
+          {balance.agendados ? (
+            <span className="aulas-cob-bal-agenda">
+              {/* **Las dos tasas, porque la respuesta puede cambiar de una a
+                  otra.** Es su instrucción de fondo: «contrastando siempre que
+                  tenemos un rendimiento diferenciado entre el planificado y el
+                  que vamos encontrando». */}
+              Con {fmt(balance.agendados)} ya {balance.agendados === 1 ? "agendado" : "agendados"} se
+              llegaría a <strong>{fmt(balance.conAgendaPrevisto)}</strong> a la tasa del diseño
+              {balance.conAgendaObservado != null ? (
+                <> y a <strong>{fmt(balance.conAgendaObservado)}</strong> al ritmo que se está dando</>
+              ) : null}
+              {balance.cuota != null ? (
+                <em className={
+                  (balance.conAgendaObservado ?? balance.conAgendaPrevisto) >= balance.cuota
+                    ? "es-sobra" : "es-corto"
+                }>
+                  {" "}· la cuota es {fmt(balance.cuota)}
+                  {(balance.conAgendaObservado ?? balance.conAgendaPrevisto) >= balance.cuota
+                    ? ": se cierra"
+                    : `: faltarían ${fmt(balance.cuota - (balance.conAgendaObservado ?? balance.conAgendaPrevisto))}`}
+                </em>
+              ) : null}
+            </span>
+          ) : (
+            /* Sin nada agendado no se calla: es justo la situación que pide
+               acción, y decirla aquí evita leer el superávit de hoy como que ya
+               está resuelto. */
+            <span className="aulas-cob-bal-agenda">
+              No hay ningún curso-horario agendado sin aplicar, así que lo de hoy
+              es todo lo que hay hasta que se agenden más.
+            </span>
           )}
         </p>
       ) : null}
