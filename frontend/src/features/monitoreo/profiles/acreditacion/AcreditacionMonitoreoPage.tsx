@@ -515,7 +515,7 @@ function EstadoProgresoCompact({ summary, label = "Estado + progreso" }: { summa
     <div className="mon-acr-state-compact" aria-label={label}>
       <div className="mon-acr-state-compact-copy">
         <span>{label}</span>
-        <strong>{progress.toLocaleString("es-PE", { maximumFractionDigits: 0 })}%</strong>
+        <strong>{pct(progress)}</strong>
         <em>{fmt(summary.effective)} efectivas · {fmt(summary.unanswered)} sin respuesta · base {fmt(summary.universe)}</em>
       </div>
       <div className="mon-acr-state-compact-meter" aria-label={`Base reportada ${fmt(summary.universe)}`}>
