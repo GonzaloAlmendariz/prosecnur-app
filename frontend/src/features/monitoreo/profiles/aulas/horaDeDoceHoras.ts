@@ -21,8 +21,18 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
 
 export type HoraDeDoceHoras = {
   codigo: string;
-  /** Lo que el parte trae escrito, tal cual. */
+  /**
+   * SÓLO la hora, «5:04».
+   *
+   * El parte publicado manda fecha y hora pegadas en un mismo campo
+   * —`applied_at` vale «2026-09-08 5:04»—, así que enseñar el texto crudo
+   * repetía la fecha en cada elemento de la lista: «2026-09-08 5:04,
+   * 2026-09-08 5:00, 2026-09-08 6:45…». Visto en pantalla el 2026-09-10. La
+   * fecha no aporta nada aquí: lo que se está señalando es la HORA.
+   */
   escrita: string;
+  /** El texto tal cual vino, para quien tenga que ir a buscarlo a la hoja. */
+  cruda: string;
   /** La ventana del curso según el plan («MAR 16:00-19:00»), si la hay. */
   ventana: string | null;
   /** La hora escrita más doce horas cae dentro de la ventana del plan. */
@@ -72,14 +82,15 @@ export function horasDeDoceHoras(
 
   const out: HoraDeDoceHoras[] = [];
   for (const p of partes ?? []) {
-    const escrita = texto(p?.applied_time) || texto(p?.applied_at);
-    const t = minutos(escrita);
+    const cruda = texto(p?.applied_time) || texto(p?.applied_at);
+    const t = minutos(cruda);
     if (t == null || t >= desde) continue;
+    const escrita = (cruda.match(/\d{1,2}[:.]\d{2}/) ?? [cruda])[0];
     const codigo = texto(p?.operational_code);
     const ventana = horarioPorCodigo.get(codigo) ?? null;
     const deTarde = t + 12 * 60;
     const cuadraDeTarde = ventanas(ventana ?? "").some(([a, b]) => deTarde >= a && deTarde <= b);
-    out.push({ codigo, escrita, ventana, cuadraDeTarde });
+    out.push({ codigo, escrita, cruda, ventana, cuadraDeTarde });
   }
   return out;
 }

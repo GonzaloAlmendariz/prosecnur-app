@@ -394,7 +394,14 @@ export function AulasRendimientoPorFacultad({
            cuántos la ventana del curso es de tarde— para que quien lleva la
            hoja decida; la lista de arriba los sigue contando tal como vinieron,
            en «Fuera de franja». */
-        <p className="mon-profile-muted aulas-rendimiento-pie">
+        <p
+          className="mon-profile-muted aulas-rendimiento-pie"
+          /* El texto CRUDO de cada parte, con su código, para quien tenga que ir
+             a buscar la fila en la hoja: en pantalla se enseña sólo la hora
+             —repetir la fecha nueve veces no se lee— pero el dato entero tiene
+             que estar a un hover de distancia. */
+          title={doceHoras.map((h) => `${h.codigo}: ${h.cruda}${h.ventana ? ` · plan ${h.ventana}` : ""}`).join("\n")}
+        >
           <strong>{fmt(doceHoras.length)}</strong>{" "}
           {doceHoras.length === 1 ? "parte trae" : "partes traen"} una hora
           anterior a las 7:00 —{doceHoras.slice(0, 6).map((h) => h.escrita).join(", ")}

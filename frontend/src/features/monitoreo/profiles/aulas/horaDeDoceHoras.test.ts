@@ -52,6 +52,18 @@ describe("horasDeDoceHoras", () => {
   it("no corrige el dato: devuelve lo que el parte trae escrito", () => {
     const out = horasDeDoceHoras([fila({ operational_code: "R 131.1", applied_time: "2:45" })], plan);
     expect(out[0].escrita).toBe("2:45");
+    expect(out[0].cruda).toBe("2:45");
+  });
+
+  it("del campo que trae fecha y hora pegadas enseña SÓLO la hora", () => {
+    // El parte publicado manda «2026-09-08 5:04» en `applied_at`, y la lista
+    // del aviso repetía la fecha en cada elemento. La cruda se conserva para
+    // quien tenga que ir a buscar la fila a la hoja.
+    const out = horasDeDoceHoras(
+      [fila({ operational_code: "R 131.1", applied_at: "2026-09-08 2:45" })], plan,
+    );
+    expect(out[0].escrita).toBe("2:45");
+    expect(out[0].cruda).toBe("2026-09-08 2:45");
   });
 
   it("una hora ilegible no entra: no se sabe si es de mañana o de tarde", () => {
