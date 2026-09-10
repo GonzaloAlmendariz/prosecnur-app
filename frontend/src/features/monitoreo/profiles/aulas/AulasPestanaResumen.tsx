@@ -418,6 +418,11 @@ export function AulasPestanaResumen({
                   ? filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)?.cuota
                   : Number(dashboard.avance_cuota?.total?.cuota)) ?? null}
                 corte={dashboard.generated_at ?? ""}
+                // El eje empieza en la primera jornada de aplicación, no en la
+                // primera cita pendiente: así este gráfico y el ritmo de arriba
+                // comparten calendario, que es lo que él pidió al ver que «los
+                // días del eje x tienen que alinearse con el ritmo».
+                desde={ritmoEnFoco?.dias?.[0]?.fecha ?? ""}
               />
             </section>
 

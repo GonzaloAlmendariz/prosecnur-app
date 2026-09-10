@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { cierrePorAgenda } from "./cierrePorAgenda";
 import { etiquetaDeFecha } from "./agendaPorDia";
+import { ejeDeDias } from "./ejeDeDias";
 import { fmt } from "./kpisDeAulas";
 import "./aulasCierrePorAgenda.css";
 
@@ -34,33 +35,24 @@ import "./aulasCierrePorAgenda.css";
 
 /** Alto del área de dibujo, en px. Cabe al lado de sus vecinos de Resumen. */
 const ALTO = 132;
-/**
- * Qué días del eje llevan rótulo.
- *
- * Hasta seis, repartidos por índice y con los dos extremos SIEMPRE: el primero y
- * el último son los que anclan la lectura —de cuándo a cuándo—, y son justo los
- * que un reparto regular se salta cuando el número de días no es múltiplo.
- */
-export function marcasDelEje(n: number, tope = 6): number[] {
-  if (n <= 0) return [];
-  if (n <= tope) return Array.from({ length: n }, (_, i) => i);
-  const paso = (n - 1) / (tope - 1);
-  const idx = Array.from({ length: tope }, (_, k) => Math.round(k * paso));
-  return [...new Set(idx)];
-}
+/** El mes en tres letras, bajo el día, sólo cuando cambia. */
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 
-/** «12/09»: en un eje apretado, el día y el mes bastan. */
-function diaCorto(iso: string): string {
-  const m = iso.match(/(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}/${m[2]}` : iso;
-}
-
-export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
+export function AulasCierrePorAgenda({ plan, meta, corte = "", desde = "" }: {
   plan: ReadonlyArray<MonitoreoRow> | null | undefined;
   /** La cuota contra la que se mide si la agenda alcanza. `null` si no viaja. */
   meta?: number | null;
   /** El día del corte, para no contar como futuro lo que ya pasó. */
   corte?: string;
+  /**
+   * El primer día del eje: la primera jornada de aplicación.
+   *
+   * Con él, este gráfico y el ritmo de arriba comparten calendario —«los dos
+   * gráficos temporales tienen que alinearse»— y el eje empieza donde empezó el
+   * operativo, no donde empieza la agenda pendiente. Sin él, el eje arranca en
+   * el primer día agendado, que es lo que hacía antes.
+   */
+  desde?: string;
 }): ReactNode {
   const c = cierrePorAgenda(plan, corte);
 
@@ -78,14 +70,42 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
   }
 
   const metaN = meta == null || !Number.isFinite(Number(meta)) ? null : Math.round(Number(meta));
-  const ultimo = c.dias[c.dias.length - 1];
+
+  /**
+   * **El eje son TODOS los días, no sólo los que tienen agenda.**
+   *
+   * Gonzalo: «todos los días deberían estar allí desde el primer día de
+   * aplicación hasta el último día agendado». El eje anterior era de posición
+   * —un punto por día CON algo agendado—, así que un salto de cinco días entre
+   * dos citas se dibujaba igual que uno de un día: la curva mentía sobre el
+   * tiempo. Con el calendario completo, la pendiente vuelve a significar
+   * velocidad.
+   *
+   * El acumulado se arrastra en los días sin cita, que es lo que de verdad pasa:
+   * ese día no entra nada.
+   */
+  const eje = ejeDeDias(desde || c.dias[0].fecha, c.ultimaFecha, corte);
+  const porFecha = new Map(c.dias.map((d) => [d.fecha, d]));
+  let arrastrePlan = c.conseguidas;
+  let arrastreObs = c.conseguidas;
+  const dias = (eje.length ? eje : c.dias.map((d) => ({ fecha: d.fecha, esDeCampo: true, pasado: false })))
+    .map((d) => {
+      const dato = porFecha.get(d.fecha);
+      if (dato) {
+        arrastrePlan = dato.acumuladoPlan;
+        arrastreObs = dato.acumuladoObservado;
+      }
+      return { fecha: d.fecha, acumuladoPlan: arrastrePlan, acumuladoObservado: arrastreObs };
+    });
+
+  const ultimo = dias[dias.length - 1];
   // El techo del eje incluye la meta: si la agenda no llega, el hueco tiene que
   // verse — que es justo la lectura que este panel existe para dar.
   const techo = Math.max(ultimo.acumuladoPlan, ultimo.acumuladoObservado, metaN ?? 0, 1);
-  const x = (i: number) => (c.dias.length === 1 ? 100 : (100 * i) / (c.dias.length - 1));
+  const x = (i: number) => (dias.length === 1 ? 100 : (100 * i) / (dias.length - 1));
   const y = (v: number) => ALTO - (ALTO * Math.min(v, techo)) / techo;
   const linea = (campo: "acumuladoPlan" | "acumuladoObservado") =>
-    c.dias.map((d, i) => `${x(i)},${y(d[campo])}`).join(" ");
+    dias.map((d, i) => `${x(i)},${y(d[campo])}`).join(" ");
 
   const alcanzaPlan = metaN != null && ultimo.acumuladoPlan >= metaN;
   const alcanzaObs = metaN != null && ultimo.acumuladoObservado >= metaN;
@@ -158,11 +178,16 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
           sobre una malla de calendario: el eje del gráfico es de posición, y un
           rótulo en una posición sin dato apuntaría a un sitio donde la curva no
           tiene punto. */}
+      {/* **Todos los días, con su número, y el mes sólo donde cambia.** Misma
+          regla que el ritmo de arriba, para que los dos ejes se lean igual. */}
       <div className="aulas-cpa-eje">
-        {marcasDelEje(c.dias.length).map((i) => (
-          <span key={c.dias[i].fecha} style={{ left: `${x(i)}%` }}>
+        {dias.map((d, i) => (
+          <span key={d.fecha} style={{ left: `${x(i)}%` }}>
             <i />
-            {diaCorto(c.dias[i].fecha)}
+            {d.fecha.slice(8, 10)}
+            {i === 0 || d.fecha.slice(5, 7) !== dias[i - 1].fecha.slice(5, 7) ? (
+              <b>{MESES[Number(d.fecha.slice(5, 7)) - 1]}</b>
+            ) : null}
           </span>
         ))}
       </div>

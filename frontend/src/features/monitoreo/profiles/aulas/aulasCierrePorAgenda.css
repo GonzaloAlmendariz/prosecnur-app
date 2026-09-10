@@ -93,7 +93,7 @@
    repartidos por `space-between` —que los pone donde no hay dato—. */
 .mon-profile-page.is-aulas-flow .aulas-cpa-eje {
   position: relative;
-  height: 26px;
+  height: 30px;
   margin: 2px 0 0;
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
@@ -107,8 +107,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   white-space: nowrap;
+}
+
+/* El mes, bajo su día y sólo donde cambia: repetido en los veinticinco rótulos
+   sería ruido, y quitarlo del todo dejaría un eje de números sin unidad. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-eje b {
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-faint);
 }
 
 /* El primero y el último se arriman al borde en vez de salirse del panel. */
