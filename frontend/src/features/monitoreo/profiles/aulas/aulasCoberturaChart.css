@@ -108,3 +108,31 @@
    tiempo, y un fallback inline es un color de feature escondido en una coma. */
 .mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-corto { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cobertura-tasas em.es-sobra { color: var(--pulso-success-fg); }
+
+/* **El balance en personas.** «Se les pedía 53,9 % y están rindiendo 60,0 %»
+   contesta si rinden lo que se supuso; esto contesta las otras dos preguntas
+   —cuánto se lleva de más o de menos a día de hoy, y si con lo agendado se
+   llega—, y en personas, que es como se decide si hay que pedir más aulas. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance {
+  display: grid;
+  gap: 3px;
+  margin: 8px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mismo par de tonos que la línea de las tasas de arriba: quedarse corto tiñe,
+   ir sobrado también, y los dos con el mismo peso que allí. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em {
+  font-style: normal;
+  font-weight: 560;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cobertura-balance em.es-sobra { color: var(--pulso-success-fg); }

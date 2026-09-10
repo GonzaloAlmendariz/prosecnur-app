@@ -555,6 +555,13 @@ export function AulasPestanaResumen({
                 // entero o el recorte de 500 filas.
                 totalDelPlan={totalAulas}
                 sinMetaMotor={dashboard.course_status_sin_meta}
+                // La cuota contra la que se mide si con lo agendado se llega: la
+                // de la facultad en foco, o la del estudio. Sale de
+                // `avance_cuota`, que es su dueño (ADR 0079) — recalcularla aquí
+                // daría una segunda cifra para la misma meta.
+                cuota={(facultadEnFoco
+                  ? filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)?.cuota
+                  : Number(dashboard.avance_cuota?.total?.cuota)) ?? null}
                 // Para que el vacío pueda decir «4 esperan aplicación» en vez de
                 // acusar al payload de no haber traído el reparto.
                 sinAplicarMotor={facultadEnFoco
