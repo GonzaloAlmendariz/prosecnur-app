@@ -118,3 +118,38 @@ test_that("el plan y las tablas usan almacenes distintos", {
   .mad_plan_normalizado(plan, espia)
   expect_equal(n, 0L)
 })
+
+# --- la conversion inversa: data.frame -> lista de filas ----------------------
+
+test_that("`.monitoreo_aulas_records` da lo mismo que indexar fila a fila", {
+  # La version anterior era `as.list(df[i, , drop = FALSE])` por fila. Se
+  # sustituyo por una que extrae las columnas UNA vez —diez veces mas rapida— y
+  # esto fija que el resultado no cambia. Las seis formas son las que aparecen
+  # en el plan y en los partes.
+  por_filas <- function(df) lapply(seq_len(nrow(df)), function(i) as.list(df[i, , drop = FALSE]))
+  mixta <- data.frame(f = factor(c("a", "b")), n = c(1.5, 2.5), stringsAsFactors = FALSE)
+  # **La columna-lista es el caso que obliga a distinguir**: `df[i, ]` conserva
+  # la envoltura de la celda y `col[[i]]` la quita.
+  mixta$lst <- list(list(1), list(2, 3))
+  casos <- list(
+    simple = data.frame(a = c("x", "y"), n = c(1, 2), stringsAsFactors = FALSE),
+    factores = data.frame(f = factor(c("a", "b")), stringsAsFactors = FALSE),
+    logicos = data.frame(l = c(TRUE, NA)),
+    fechas = data.frame(d = as.Date(c("2026-09-10", "2026-09-11"))),
+    faltantes = data.frame(a = c(NA_character_, "z"), n = c(NA_real_, 2), stringsAsFactors = FALSE),
+    mixta = mixta
+  )
+  for (nm in names(casos)) {
+    expect_identical(
+      .monitoreo_aulas_records(casos[[nm]]), por_filas(casos[[nm]]),
+      info = nm
+    )
+  }
+})
+
+test_that("respeta el tope de filas y el vacio", {
+  df <- data.frame(a = as.character(1:10), stringsAsFactors = FALSE)
+  expect_equal(length(.monitoreo_aulas_records(df, max_rows = 3)), 3L)
+  expect_equal(.monitoreo_aulas_records(data.frame()), list())
+  expect_equal(.monitoreo_aulas_records(NULL), list())
+})
