@@ -55,15 +55,34 @@ export type BancoDeExtras = {
   extras: ExtraDeBanco[];
 };
 
+/** El criterio de comparación de nombres del perfil: sin tildes ni mayúsculas. */
+const clave = (v: unknown) =>
+  String(v ?? "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 /** «—» y no «0»: no declarar el sexo no es lo mismo que no tener a nadie. */
 const cifra = (n: number | null | undefined) => (n == null ? "—" : fmt(n));
 
-export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
-  const [facultad, setFacultad] = useState<string>("");
+export function AulasBancoExtras({ banco, facultadEnFoco = "" }: {
+  banco: BancoDeExtras | null;
+  /**
+   * **La facultad de la CABECERA manda sobre el mando local.**
+   *
+   * Este panel tenía su propio selector desde antes de que el de la cabecera
+   * llegara a Consultas (2026-09-10). Con los dos a la vez, quien pone DERECHO
+   * arriba y ve aquí las quince facultades no sabe cuál gana; y el contrato de
+   * navegación v3 dice que una dimensión no se duplica en otra. Cuando la
+   * cabecera trae facultad, ésta filtra y el mando local se retira.
+   */
+  facultadEnFoco?: string;
+}) {
+  const [facultadLocal, setFacultadLocal] = useState<string>("");
+  const facultad = facultadEnFoco || facultadLocal;
+  const setFacultad = setFacultadLocal;
 
   const visibles = useMemo(() => {
     const todos = banco?.extras ?? [];
-    const propios = facultad ? todos.filter((e) => e.faculty === facultad) : todos;
+    const buscada = clave(facultad);
+    const propios = facultad ? todos.filter((e) => clave(e.faculty) === buscada) : todos;
     // Por mujeres desc: el caso que motiva la vista es «me faltan mujeres en
     // esta facultad». Quien busque hombres ordena por su columna al mirarla;
     // abrir por código no contesta ninguna de las dos preguntas.
@@ -128,11 +147,22 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
       {/* Las facultades como filtro Y como resumen a la vez: la misma fila dice
           cuánto queda ahí y sirve para entrar. Dos superficies —una tabla de
           resumen y un selector aparte— repetirían el mismo cruce. */}
+      {/* **Con la cabecera puesta, esto se queda como RESUMEN y deja de filtrar.**
+          Retirarlo entero se llevaría por delante el reparto por facultad, que
+          es la mitad de su función; dejarlo clickeable pondría dos mandos a
+          pelearse por la misma dimensión. */}
+      {facultadEnFoco ? (
+        <p className="mon-profile-muted">
+          Filtrado por <strong>{facultadEnFoco}</strong> desde el selector de la
+          cabecera. Quita la facultad de arriba para volver a elegir aquí.
+        </p>
+      ) : null}
       <ul className="aulas-banco-facultades">
         <li>
           <button
             type="button"
             className={facultad ? "" : "es-activa"}
+            disabled={Boolean(facultadEnFoco)}
             onClick={() => setFacultad("")}
           >
             <span className="aulas-banco-nombre">Todas</span>
@@ -152,9 +182,10 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
             <button
               type="button"
               className={[
-                facultad === f.faculty ? "es-activa" : "",
+                clave(facultad) === clave(f.faculty) && facultad ? "es-activa" : "",
                 f.extras === 0 ? "es-agotada" : "",
               ].filter(Boolean).join(" ")}
+              disabled={Boolean(facultadEnFoco)}
               onClick={() => setFacultad(facultad === f.faculty ? "" : f.faculty)}
             >
               <span className="aulas-banco-nombre">{f.faculty || "Sin facultad"}</span>
