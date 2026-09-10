@@ -47,6 +47,34 @@ AULAS_APLICADAS_CAMPO <- list(
   list(campo = "applied_date",       titulos = c("FECHA DE APLICACION")),
   list(campo = "applied_time",       titulos = c("HORA DE APLICACION")),
   list(campo = "application_status",  titulos = c("STATUS DE APLICACION")),
+  # **CON QUIEN**, pegada al estado que la pide (dictado de Gonzalo 2026-09-10:
+  # «al costado se supone que debería tener una columna para decir AULA
+  # UTILIZADA para estos casos donde quiero poner por quién la quiero
+  # reemplazar o complementar en caso sea un complemento»).
+  #
+  # Tres de los seis estados de aplicacion terminan en preposicion —REEMPLAZADA
+  # POR, COMPLEMENTADA CON— justamente porque piden un CUAL, y hasta hoy ese
+  # cual sólo existía en la otra hoja: «AULA UTILIZADA» vive en «Aulas
+  # Agendadas», pegada a STATUS MUESTRA. Las dos mitades de la misma frase
+  # estaban en pestañas distintas, así que quien marcaba el estado no tenía
+  # dónde escribir con quién.
+  #
+  # MISMO TITULO A PROPOSITO, y no es una colision: es el mismo dato leido en
+  # dos momentos. En Agendadas lo anota la decision de muestra —que reserva se
+  # activo— y aqui lo constata el campo —con cual se acabo aplicando—. Cuando
+  # difieren, esa diferencia ES el hallazgo y hay que poder verla; fundirlas en
+  # una sola celda la borraria.
+  #
+  # **«(CAMPO)» en el titulo, y no es adorno.** El bloque de esta hoja repite la
+  # parte de agenda entera, asi que «AULA UTILIZADA» YA aparece en el —posicion
+  # 13 del bloque, la de Agendadas—. Dos cabeceras identicas en la misma fila
+  # rompen el emparejado por titulo, que se queda con la primera: medido, la
+  # celda del campo se escribia en la 38 y el lector devolvia la 13, vacia. Y a
+  # ojo tampoco se distinguen. El sufijo dice CUAL de las dos es.
+  #
+  # La llena la PERSONA. Un libro viejo sin la columna se lee igual: el
+  # emparejado es por titulo y lo ausente sale como cadena vacia.
+  list(campo = "aula_utilizada",     titulos = c("AULA UTILIZADA (CAMPO)")),
   list(campo = "field_note",         titulos = c("OBSERVACIONES SOBRE APLICACIONES")),
   # Columna MANUAL (B6c, dictado de Gonzalo 2026-08-31): el enlace del PDF de la
   # ficha QR ESCANEADA que el equipo sube a su Drive. Es dato del equipo: la app
@@ -166,6 +194,11 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
         effective_surveys = num("effective_surveys"),
         applied_by = val("applied_by"),
         actual_room = val("actual_room"),
+        # CON QUE aula se acabo aplicando, tecleado por el coordinador. Se LEE
+        # y no se deriva: la gemela de «Aulas Agendadas» ya dice que reserva se
+        # activo, y el valor de esta columna es lo que el campo constato. La
+        # diferencia entre las dos es el hallazgo; fundirlas lo borraria.
+        aula_utilizada = val("aula_utilizada"),
         # A22: la celda puede venir tipada como FECHA de Excel y `.caa_txt` a
         # secas entregaba el serial («46282») como si fuera texto; `.caa_fecha`
         # lo vuelve %Y-%m-%d —el mismo formato que agendadas y que
