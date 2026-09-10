@@ -12,3 +12,36 @@
   color: var(--pulso-text-faint);
   font-weight: 400;
 }
+
+/* **Doce eslabones no caben en doce columnas iguales.**
+ *
+ * Gonzalo, con la captura delante: «se ve horrible». Y lo era: la reja de
+ * `aulasMonitoreo.css` reparte el ancho entre TODOS los eslabones de la cadena
+ * —`repeat(var(--aulas-eslabones), minmax(0, 1fr))`—, así que una cadena de
+ * once reservas dejaba columnas de ~30 px y el texto se partía carácter a
+ * carácter: «C H 8 4» en vertical, una letra por línea.
+ *
+ * La columna pasa a tener un ancho MÍNIMO real y la fila scrollea cuando no
+ * caben, que es lo que ya hacen las tablas anchas de este perfil. Se lee cada
+ * eslabón; comparar dos cadenas cuesta un arrastre, que es mejor trato que no
+ * poder leer ninguna.
+ *
+ * Va en la hoja del componente y no en `aulasMonitoreo.css`, que está congelada
+ * a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(118px, 1fr);
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+/* En compacto sigue mandando la fila que se ajusta, que es lo que ya decidía
+   `aulasMonitoreo.css` a menos de 1180 px. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
+    display: flex;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
