@@ -158,7 +158,28 @@
 /* `--aulas-min` es el peldaño de «ejes, marcas y rótulos micro» que el
    perfil declara; 9,5 px caía por debajo del suelo de su propia escala. */
 .aulas-metas-eje { font-size: var(--aulas-min); fill: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
+/* El nombre de la facultad, horizontal y en dos líneas: a 45° obligaba a girar
+   la cabeza y se comía 96 px de pie, que ahora son alto de barra. */
 .aulas-metas-etiqueta { font-size: var(--aulas-min); fill: var(--pulso-text-soft); }
+
+/* **El porcentaje encima de cada barra, del color de su barra.** Sin él hay que
+   estimar a ojo dónde cae el relleno dentro del hueco de la meta, que es justo
+   la comparación que este gráfico existe para dar. Los mismos dos tonos que el
+   relleno —no el gris del resto de rótulos— para que la cifra y su barra se
+   emparejen sin buscar. */
+.aulas-metas-pct {
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.aulas-metas-pct[data-sexo="hombres"] {
+  fill: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-text));
+}
+
+.aulas-metas-pct[data-sexo="mujeres"] {
+  fill: color-mix(in srgb, var(--pulso-accent-violet) 62%, var(--pulso-text));
+}
 .aulas-metas-barra-meta { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 1; }
 .aulas-metas-barra-logro { fill: var(--pulso-success-fg); }
 .aulas-metas-swatch[data-tramo="meta-contorno"] {
