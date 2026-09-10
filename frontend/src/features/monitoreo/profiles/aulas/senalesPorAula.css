@@ -80,7 +80,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla thead th {
   padding: 4px 10px 6px;
-  border-bottom: 1px solid var(--pulso-border-soft);
+  border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   font-size: var(--aulas-min);
   font-weight: 600;
@@ -95,7 +95,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-dt-tabla tbody tr > * {
   padding: 5px 10px;
-  border-bottom: 1px solid var(--pulso-border-soft);
+  border-bottom: 1px solid var(--pulso-border);
   vertical-align: middle;
 }
 

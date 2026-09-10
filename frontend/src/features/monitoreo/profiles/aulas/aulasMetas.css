@@ -21,7 +21,7 @@
 }
 .aulas-metas-cinta > div {
   padding: 10px 14px 11px;
-  border-right: 1px solid var(--pulso-border-soft, var(--pulso-border));
+  border-right: 1px solid var(--pulso-border, var(--pulso-border));
 }
 .aulas-metas-cinta > div:last-child { border-right: 0; }
 .aulas-metas-cinta dt {
@@ -78,7 +78,7 @@
 .aulas-metas-tabla th.es-izq { text-align: left; }
 .aulas-metas-tabla td {
   padding: 5px 9px;
-  border-bottom: 1px solid var(--pulso-border-soft, var(--pulso-border));
+  border-bottom: 1px solid var(--pulso-border, var(--pulso-border));
   vertical-align: middle;
 }
 .aulas-metas-tabla td.es-num {

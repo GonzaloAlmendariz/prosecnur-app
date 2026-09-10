@@ -353,19 +353,22 @@ function CeldasDeSexo({ celdas, tauPrevista }: {
           ? `Llegaron ${fmt(c.efectivas)} respuestas de ${etiqueta.toLowerCase()} y el padrón del aula declara ${fmt(c.elegibles)} elegibles. La cuenta cuadra con el total de la facultad, así que lo que no encaja es el padrón con quien respondió: el marco puede estar desfasado, o el sexo declarado en la encuesta no ser el del registro académico.`
           : undefined}
       >
-        {etiqueta}{" "}
+        {/* Cuatro celdas explícitas —y el hueco de la diferencia se dibuja
+            aunque no haya cifra—: son las columnas de una rejilla, y un item
+            que falta corre a las de abajo y descuadra la comparación. */}
+        <b>{etiqueta}</b>
         <strong>{pct(c.tasa_observada)}</strong>
-        <i>
-          de {pct(prevista)}
-        </i>
+        <i>de {pct(prevista)}</i>
         {/* En personas y con signo: el cero se escribe, porque «justo lo
             previsto» es un resultado y no la ausencia de uno. */}
-        {diferencia == null ? null : (
-          <em className={diferencia < 0 ? "es-corto" : diferencia > 0 ? "es-sobra" : ""}>
-            {diferencia > 0 ? "+" : diferencia < 0 ? "−" : ""}
-            {fmt(Math.abs(Math.round(diferencia)))}
-          </em>
-        )}
+        <em className={diferencia == null ? "" : diferencia < 0 ? "es-corto" : diferencia > 0 ? "es-sobra" : ""}>
+          {diferencia == null ? "" : (
+            <>
+              {diferencia > 0 ? "+" : diferencia < 0 ? "−" : ""}
+              {fmt(Math.abs(Math.round(diferencia)))}
+            </>
+          )}
+        </em>
       </span>
     );
   };
