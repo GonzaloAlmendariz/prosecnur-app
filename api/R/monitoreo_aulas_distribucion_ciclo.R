@@ -404,7 +404,13 @@ monitoreo_aulas_completar_distribucion <- function(filas_remotas, plan = list(),
       if (nzchar(escrito)) v[[i_dia]] <- escrito
     }
     i_estado <- col("ESTADO")
-    estado <- if (!is.na(i_estado)) toupper(trimws(v[[i_estado]])) else ""
+    # Por el canónico y no por `toupper(trimws())`: así «APLICADA SIN
+    # AGENDACION» —sin tilde, como la tecleó el equipo el 2026-09-10— es el
+    # mismo estado que la «AGENDACIÓN» que la app declara. Lo que no case con
+    # ninguno queda vacío y la fila se clasifica por su fecha, no por un estado
+    # inventado.
+    tecleado <- if (!is.na(i_estado)) v[[i_estado]] else ""
+    estado <- aulas_distribucion_estado_canonico(tecleado)
 
     # **Reagendada**: lo dice el equipo, o lo dice la comparación con el plan.
     # Las dos vías cuentan: el estado es la intención declarada y la diferencia

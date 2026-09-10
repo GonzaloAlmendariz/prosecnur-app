@@ -60,7 +60,7 @@
 #' @export
 MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN",
-  "REAGENDADA", "RECHAZADA"
+  "REAGENDADA", "RECHAZADA", "NO APLICADA"
 )
 
 #' El día de la semana, escrito.
@@ -278,7 +278,14 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   # con el tinte azulado que ya separa a su hermana por reagendacion. Las tres
   # se leen como «esto ya rindio» y siguen distinguiendose de un vistazo.
   `APLICADA SIN AGENDACIÓN` = "#D7E8F5",
-  `POR APLICAR` = "#FFF4C2", REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2"
+  `POR APLICAR` = "#FFF4C2", REAGENDADA = "#FFCC80", RECHAZADA = "#FFCDD2",
+  # **«NO APLICADA» es el séptimo, y no es «RECHAZADA»** (2026-09-10: el
+  # aplicador fue y el aula no era la agendada). Rechazada es una decisión del
+  # docente; ésta es una salida que no rindió, y el remedio es distinto: una se
+  # reemplaza, la otra se vuelve a intentar. En gris cálido, fuera de la familia
+  # roja del rechazo y de la amarilla de lo que aún está por hacer: se lee como
+  # «cerrada sin resultado».
+  `NO APLICADA` = "#DDD3CE"
 )
 
 #' Una regla de color POR VALOR de la celda de aplicador.
@@ -369,9 +376,16 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
     sheet_id, col_estado, 1L, length(rows),
     as.list(MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
   ))
+  # **Una regla por FORMA de escribirlo, no una por estado.** `TEXT_EQ` no
+  # normaliza: con una sola regla, la celda que alguien tecleó sin tilde se
+  # queda sin pintar — y es justo la tecleada a mano la que hay que ver. El
+  # 2026-09-10 el documento traía «APLICADA SIN AGENDACION» contra la
+  # «AGENDACIÓN» que la app declara.
   for (e in rev(names(.alpa_COLOR_ESTADO))) {
-    poner(.alpa_regla_color_col(sheet_id, length(rows), col_estado, e,
-                                .alpa_COLOR_ESTADO[[e]]))
+    for (forma in aulas_distribucion_formas_de_estado(e)) {
+      poner(.alpa_regla_color_col(sheet_id, length(rows), col_estado, forma,
+                                  .alpa_COLOR_ESTADO[[e]]))
+    }
   }
   # Las tres horas y el código, centrados: son cifras y se leen en columna.
   poner(.maaf_centrar(sheet_id, 2L, 7L, length(rows)))
