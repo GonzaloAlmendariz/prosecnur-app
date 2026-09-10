@@ -162,3 +162,56 @@ Cotejado contra `<scratchpad>/resumen.html`, que tiene CUATRO bloques:
 O sea que tiene razón en los dos: el «avance diario» del boceto no está dibujado
 como lo dibujó él, y el «sólo aplicados» estaba escrito en el título de su propio
 boceto desde el 2026-09-09.
+
+## 10 · LEÍDO EL SHEETS: qué dice de verdad la columna de estados
+
+Medido el 2026-09-10 sobre el libro `11HV4…VtRPc` (`<scratchpad>/estados3.R`).
+**Sólo lectura**: no se escribió nada en ninguna pestaña del equipo.
+
+La hoja **«Aulas Aplicadas (Campo)»** está partida en **bloques por rol**, y cada
+bloque repite sus ~38 columnas:
+
+```
+TITULAR | REEMPLAZO 1 | REEMPLAZO 2 | … | REEMPLAZO 11
+```
+
+Cada bloque trae su propia columna **`STATUS DE APLICACIÓN`**, y esto es lo que
+hay hoy:
+
+| Bloque | Valores |
+|---|---|
+| TITULAR | **APLICADA 58** · **NO APLICADA 1** |
+| REEMPLAZO 1 | **APLICADA 1** |
+| REEMPLAZO 2 … 11 | vacías |
+
+Y en «Aulas Agendadas», los otros dos ejes de estado:
+
+| Columna | Valores |
+|---|---|
+| `STATUS MUESTRA` | AGENDADA 141 · EN CONTACTO 25 · REAGENDADA 4 · RECHAZO 4 |
+| `STATUS DE LLAMADA` | Efectiva 64 · Contactado por WhatsApp 45 · No contesta 13 · Número no existe 10 · Apagado 9 · Contactar después 8 · Número fuera de servicio 7 · Rechazo 4 |
+
+### Tres conclusiones, y una hay que decírsela
+
+1. **La estructura que él quiere ES la del Sheets.** «Rol × estado» no hay que
+   inventarlo: el libro ya lo tiene como BLOQUE (titular / reemplazo n) ×
+   `STATUS DE APLICACIÓN`. El panel tiene que copiar esa forma.
+2. **«Efectiva de refuerzo» NO existe todavía en esa columna.** Hoy sólo hay
+   `APLICADA` y `NO APLICADA`. Él lo dijo con duda —«no estoy seguro»— y tenía
+   razón en dudar. Las tres situaciones A/B/C **no están registradas en ningún
+   sitio del libro**: si el operativo quiere distinguirlas, hay que añadir la
+   distinción a la hoja, y eso es decisión suya y del equipo. La app no puede
+   inferir un motivo de activación que nadie escribió.
+3. **«Efectiva» sí existe, pero en `STATUS DE LLAMADA`** y significa otra cosa:
+   que la llamada al docente salió bien. Si el panel usara esa palabra para
+   aplicaciones estaría cogiendo el vocabulario del eje equivocado.
+
+### TRES cifras distintas para «aplicados» — SIN RESOLVER
+
+- El Sheets dice **59** (58 titulares + 1 reemplazo con `APLICADA`).
+- La banda de KPIs de la app dice **52**.
+- Los partes de campo del `.pulso` son **46**.
+
+Tres números con el mismo nombre. Es exactamente la familia de defectos que este
+loop lleva persiguiendo, y hay que medir de dónde sale cada uno antes de tocar
+el panel del ítem 10.
