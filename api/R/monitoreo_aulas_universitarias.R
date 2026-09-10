@@ -1466,6 +1466,11 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # donde fueron deja al lector con dos totales que no cuadran, que es el mismo
   # agujero que ya se tapo con el banco y con las dormidas.
   attr(recortado, "sin_aplicar") <- as.integer(sum(meta_cs > 0 & en_juego_cs & !aplicado_cs))
+  # El reparto por ROL y estado, que es la forma del libro: la hoja «Aulas
+  # Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— con su propio
+  # `STATUS DE APLICACION`. Se calcula sobre `out`, que ya tiene el
+  # `application_state` derivado y el estado operativo cruzado con los partes.
+  attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out)
   recortado
 }
 
@@ -2549,6 +2554,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     course_status_reservas_dormidas = as.integer(attr(course_status, "reservas_dormidas") %||% 0L),
     course_status_con_meta = as.integer(attr(course_status, "con_meta") %||% 0L),
     course_status_sin_aplicar = as.integer(attr(course_status, "sin_aplicar") %||% 0L),
+    course_status_rol_y_estado = attr(course_status, "rol_y_estado") %||% list(),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
