@@ -109,3 +109,47 @@ test_that("sin plan o sin aulas aplicadas devuelve vacio, no celdas en cero", {
   plan$application_state <- rep("pendiente", 3)
   expect_equal(corre(plan = plan), list())
 })
+
+# --- la trampa que costó un bloque vacío en el payload ------------------------
+
+test_that("un plan SIN `application_state` no se lee como si nada estuviera aplicado", {
+  # **El fallo real, y por qué el resto de tests no lo vio.** `plan_df` NO tiene
+  # `application_state`: esa columna la deriva `.monitoreo_aulas_course_status()`
+  # sobre su propia copia. Los fixtures de arriba la traen, o sea que tienen la
+  # forma de `course_status` y no la del plan, así que pasaban en verde mientras
+  # el payload publicaba una lista vacía sin que nada fallara.
+  plan <- plan_fixture()
+  plan$application_state <- NULL
+  resp <- respuestas_fixture()
+
+  # Sin decir cuáles están aplicadas no puede inventárselo: devuelve vacío.
+  expect_equal(
+    monitoreo_aulas_efectividad_por_sexo(
+      plan, resp, cfg = list(source_mapping = list(sex_var = "sexo")),
+      valid_response = rep(TRUE, nrow(resp)), response_classroom = resp$aula
+    ),
+    list()
+  )
+
+  # Con el vector explícito —que es como lo llama el motor— sí calcula.
+  out <- monitoreo_aulas_efectividad_por_sexo(
+    plan, resp, cfg = list(source_mapping = list(sex_var = "sexo")),
+    valid_response = rep(TRUE, nrow(resp)), response_classroom = resp$aula,
+    aplicada = c(TRUE, TRUE, FALSE)
+  )
+  expect_equal(celda(out, "DERECHO", "F")$efectivas, 23L)
+})
+
+test_that("un vector `aplicada` de otro largo no se recicla en silencio", {
+  # Reciclar mandaría respuestas a la celda equivocada, que es peor que no
+  # calcular: el número saldría y sería falso.
+  resp <- respuestas_fixture()
+  expect_equal(
+    monitoreo_aulas_efectividad_por_sexo(
+      plan_fixture(), resp, cfg = list(source_mapping = list(sex_var = "sexo")),
+      valid_response = rep(TRUE, nrow(resp)), response_classroom = resp$aula,
+      aplicada = c(TRUE)
+    ),
+    list()
+  )
+})

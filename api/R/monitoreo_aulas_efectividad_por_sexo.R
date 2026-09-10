@@ -39,17 +39,33 @@
 #' @param cfg config de aulas (para la columna de sexo y sus equivalencias).
 #' @param valid_response logico por fila de `responses`.
 #' @param response_classroom identificador de aula de cada respuesta.
+#' @param aplicada vector logico por fila de `plan_df`: cuales estan aplicadas.
+#'
+#'   **Se pide, no se deduce.** La primera version lo leia de
+#'   `plan_df$application_state`, y esa columna NO EXISTE en `plan_df`: la deriva
+#'   `.monitoreo_aulas_course_status()` sobre su propia copia. El resultado fue
+#'   un bloque vacio en el payload sin que nada fallara —ninguna aula pasaba el
+#'   filtro— y el test no lo vio porque su fixture SI traia la columna, o sea
+#'   tenia la forma de `course_status` y no la del plan. Es la segunda vez que
+#'   este perfil paga la misma confusion entre las dos formas.
+#'
+#'   `NULL` cae a `application_state` para quien la tenga, pero el llamador de
+#'   dentro del motor pasa el vector explicito.
 #' @return lista de celdas `facultad x sexo` con elegibles, esperadas,
 #'   efectivas, las dos tasas y la diferencia en PERSONAS.
 #' @export
 monitoreo_aulas_efectividad_por_sexo <- function(plan_df, responses = data.frame(),
                                                  cfg = list(),
                                                  valid_response = logical(0),
-                                                 response_classroom = character(0)) {
+                                                 response_classroom = character(0),
+                                                 aplicada = NULL) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
 
-  estado <- as.character(plan_df$application_state %||% rep("", nrow(plan_df)))
-  aplicada <- estado %in% c("en_aplicacion", "cerrando")
+  if (is.null(aplicada)) {
+    estado <- as.character(plan_df$application_state %||% rep("", nrow(plan_df)))
+    aplicada <- estado %in% c("en_aplicacion", "cerrando")
+  }
+  aplicada <- if (length(aplicada) == nrow(plan_df)) aplicada %in% TRUE else rep(FALSE, nrow(plan_df))
   if (!any(aplicada)) return(list())
 
   fac_key <- .cm_criterios_fac_key(as.character(plan_df$faculty %||% plan_df$stratum %||% ""))
