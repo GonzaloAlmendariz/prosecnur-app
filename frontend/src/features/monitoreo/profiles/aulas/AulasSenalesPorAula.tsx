@@ -368,6 +368,21 @@ export function AulasSenalesPorAula({
               No esconde nada: cada curso-horario suelto sigue alcanzable en
               «Avance por curso-horario», en Resumen, que desde el mismo día trae
               su selector de rol. */}
+          {/* **Con una búsqueda activa se listan uno a uno.** El agrupado por
+              facultad existe porque 161 renglones no se leen; filtrando quedan
+              unos pocos y lo que se busca ES el código, así que la línea de
+              facultad —«PSICOLOGÍA · 5 cursos-horario»— contestaría al lado de
+              la pregunta: no deja confirmar que el CH tecleado es el que
+              salió. */}
+          {filtrado ? (
+            <ul className="aulas-dt-lista">
+              {pendientes.map((a) => (
+                <li key={a.clave}>
+                  {a.codigo} <em>{[a.estadoOperativo ?? "sin estado escrito", detalleDeLista(a)].filter(Boolean).join(" · ")}</em>
+                </li>
+              ))}
+            </ul>
+          ) : (
           <ul className="aulas-dt-lista">
             {pendientesPorFacultad(pendientes).map((f) => (
               <li key={f.facultad}>
@@ -388,6 +403,7 @@ export function AulasSenalesPorAula({
               </li>
             ))}
           </ul>
+          )}
         </details>
       ) : null}
 
