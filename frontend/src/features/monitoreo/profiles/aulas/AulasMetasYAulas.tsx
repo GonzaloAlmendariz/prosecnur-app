@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
+import { claseDeFacultad } from "./tonoDeFacultad";
 import { filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
@@ -53,17 +54,23 @@ export function AulasMetasYAulas({ filas }: {
               las facultades. */}
           {orden.map((f) => {
             const carriles = [
-              ["Hombres", f.meta_M, f.obtenidas_M, f.proyectadas_M],
-              ["Mujeres", f.meta_F, f.obtenidas_F, f.proyectadas_F],
+              ["Hombres", "hombres", f.meta_M, f.obtenidas_M, f.proyectadas_M],
+              ["Mujeres", "mujeres", f.meta_F, f.obtenidas_F, f.proyectadas_F],
             ] as const;
-            // El techo del carril: la meta o el total proyectado, lo que sea
-            // mayor. Sin el segundo término una facultad que se pasa saldría
-            // con la barra cortada justo donde empieza la buena noticia.
+            // **El techo NO puede depender del escenario.** Lo aplicado y la
+            // meta son los mismos con la tasa del diseño y con la obtenida; lo
+            // único que cambia entre las dos es la proyección. Si el techo se
+            // calcula incluyendo lo proyectado —como se hizo primero—, cambiar
+            // de tasa reescala el carril entero y se mueven la marca de la meta
+            // y la barra de lo aplicado, que no han cambiado. Gonzalo lo vio en
+            // pantalla el 2026-09-09: «se supone que lo único que debería
+            // cambiar es la brecha y lo verde claro, pero cambia todo».
+            //
+            // Así que la escala sale de la meta y de lo conseguido, y lo
+            // proyectado se recorta contra el borde cuando lo desborda: ver una
+            // barra tocar el final dice «se pasa» sin mentir sobre el resto.
             const techo = Math.max(
-              f.meta_M, f.meta_F,
-              f.obtenidas_M + (f.proyectadas_M ?? 0),
-              f.obtenidas_F + (f.proyectadas_F ?? 0),
-              1,
+              f.meta_M, f.meta_F, f.obtenidas_M, f.obtenidas_F, 1,
             ) * 1.04;
             const ancho = (v: number | null) =>
               `${Math.max(0, Math.min(100, (100 * (v ?? 0)) / techo))}%`;
@@ -71,7 +78,7 @@ export function AulasMetasYAulas({ filas }: {
               <tbody key={f.facultad}>
                 <tr className="es-facultad">
                   <td colSpan={7}>
-                    <span className="aulas-sexo-chip">{f.facultad}</span>{" "}
+                    <span className={claseDeFacultad(f.facultad)}>{f.facultad}</span>{" "}
                     {/* En la unidad del perfil —el curso-horario, masculino
                         (ADR 0060)— y no «aulas aplicadas»: los rótulos de
                         COLUMNA de «Avance por facultad y sexo» sí dicen «aulas»
@@ -83,18 +90,18 @@ export function AulasMetasYAulas({ filas }: {
                     </span>
                   </td>
                 </tr>
-                {carriles.map(([sexo, meta, obtenidas, proyectadas]) => {
+                {carriles.map(([sexo, tono, meta, obtenidas, proyectadas]) => {
                   const brecha = obtenidas + (proyectadas ?? 0) - meta;
                   const falta = brecha < 0;
                   return (
                     <tr key={sexo}>
                       <td />
                       <td className="es-sexo">
-                        <span className="aulas-sexo-chip">{sexo}</span>
+                        <span className="aulas-metas-sexo" data-sexo={tono}>{sexo}</span>
                       </td>
                       <td>
                         <div className="aulas-metas-gauge">
-                          <i className="es-aplicado" style={{ width: ancho(obtenidas) }} />
+                          <i className="es-aplicado" data-sexo={tono} style={{ width: ancho(obtenidas) }} />
                           <i
                             className="es-proyectado"
                             style={{ left: ancho(obtenidas), width: ancho(proyectadas) }}

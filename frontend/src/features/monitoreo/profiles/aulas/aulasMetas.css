@@ -125,8 +125,22 @@
 }
 .aulas-metas-swatch[data-tramo="meta"] { width: 2px; background: var(--pulso-text); }
 .aulas-metas-scroll { overflow-x: auto; }
-.aulas-metas-pie { color: var(--pulso-text-soft); font-size: 12.5px; margin: 12px 0 0; max-width: 72ch; }
-.aulas-metas-pie p { margin: 0 0 6px; }
+/* El pie del bloque. Iba suelto y pegado al borde izquierdo, sin separación de
+   la barra de arriba: «pones texto abajo de un gráfico y no le pones formato»
+   (Gonzalo, 2026-09-09). Ahora es una nota con su regla, su aire y su medida de
+   lectura, como las notas del resto del perfil. */
+.aulas-metas-pie {
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 18px 0 0;
+  padding: 12px 14px 2px;
+  border-top: 1px solid var(--pulso-border);
+  max-width: 78ch;
+}
+.aulas-metas-pie p { margin: 0 0 8px; }
+.aulas-metas-pie p:last-child { margin-bottom: 0; }
+.aulas-metas-pie strong { color: var(--pulso-text); font-weight: 500; }
 
 /* Barras «Metas por facultad». El contorno es la meta y el relleno lo
    conseguido, así que el contorno usa el color del texto —es una referencia,
@@ -143,3 +157,40 @@
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-text);
 }
+
+/* Los chips de SEXO, con la paleta de acentos que el perfil ya usa para los
+   pabellones. La primera versión los dejó en gris «porque la app no tiene
+   tokens de sexo»: los tenía —`--pulso-accent-steel` y `--pulso-accent-violet`
+   son de la misma paleta de identidad— y sin color la tabla se leía fría y sin
+   jerarquía (Gonzalo, 2026-09-09). Mismo tratamiento que `.aulas-chip-lugar`:
+   fondo al 13 %, borde al 34 %, tinta mezclada con el texto para asegurar
+   contraste. */
+.aulas-metas-sexo {
+  --chip-tono: var(--pulso-text-soft);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--chip-tono) 34%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--chip-tono) 13%, var(--pulso-surface));
+  color: color-mix(in srgb, var(--chip-tono) 58%, var(--pulso-text));
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aulas-metas-sexo[data-sexo="hombres"] { --chip-tono: var(--pulso-accent-steel); }
+.aulas-metas-sexo[data-sexo="mujeres"] { --chip-tono: var(--pulso-accent-violet); }
+
+/* Y las barras del avance, del tono de su carril: en gris las dos, la fila de
+   hombres y la de mujeres se distinguían sólo por el rótulo. */
+.aulas-metas-gauge .es-aplicado[data-sexo="hombres"] { background: var(--pulso-accent-steel); }
+.aulas-metas-gauge .es-aplicado[data-sexo="mujeres"] { background: var(--pulso-accent-violet); }
+
+/* El SVG ocupa el ancho del panel. Iba con `width` en píxeles y se quedaba
+   corto en pantallas anchas dejando un vacío a la derecha; con el viewBox
+   puesto, el ancho al 100 % escala sin deformar. */
+.aulas-metas-lienzo { width: 100%; height: auto; display: block; }
+.aulas-metas-barra-logro[data-sexo="hombres"] { fill: var(--pulso-accent-steel); }
+.aulas-metas-barra-logro[data-sexo="mujeres"] { fill: var(--pulso-accent-violet); }
+.aulas-metas-swatch[data-sexo="hombres"] { background: var(--pulso-accent-steel); }
+.aulas-metas-swatch[data-sexo="mujeres"] { background: var(--pulso-accent-violet); }

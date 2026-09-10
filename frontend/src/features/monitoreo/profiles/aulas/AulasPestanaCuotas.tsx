@@ -120,10 +120,16 @@ export function AulasPestanaCuotas({
         >
           <div className="mon-profile-panel-head">
             <h3>Metas por facultad y sexo</h3>
-            <span>
+            {/* **La procedencia del denominador viaja con el bloque que lo
+                usa.** Venía del panel «Cumplimiento de la cuota del estudio»,
+                retirado en esta misma poda: era lo único suyo que no dice
+                nadie más —de dónde sale la cuota y si está degradada—, y sin
+                ella la cinta publicaría un 2 500 sin decir de quién es. */}
+            <span title={cuotaDiseno.procedencia.detalle || undefined}>
               {alcance
-                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} facultades llegan con lo que ya tienen agendado`
+                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} facultades llegan con lo que ya tienen agendado · `
                 : null}
+              {cuotaDiseno.procedencia.chip}
             </span>
           </div>
           <AulasMetasMandos
@@ -183,29 +189,21 @@ export function AulasPestanaCuotas({
           </div>
         </section>
       ) : null}
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* **El título dice contra QUÉ**, porque hay otro «Cumplimiento» en
-              Resumen y las dos cifras no se parecen: aquí 2.668 de 2.500
-              —106.7 %— y allá 2.336 de 3.227 —72.4 %—. Las dos son correctas y
-              parten de las MISMAS 2.668 respuestas; lo que cambia es contra qué
-              se miden y qué se deja fuera. Ésta las cuenta todas contra la cuota
-              de alumnos del cálculo de muestra; la otra topa cada aula en su
-              meta, así que las 332 que sobran en aulas ya cumplidas no le suman
-              (2.336 + 332 = 2.668). */}
-          <h3>Cumplimiento de la cuota del estudio</h3>
-          {/* El chip declara el denominador —y su degradación, si la hay—; el
-              porqué viaja en el title, como el `detalle` de los KPIs. */}
-          <span title={cuotaDiseno.procedencia.detalle || undefined}>
-            {cuotaDiseno.procedencia.chip}
-          </span>
-        </div>
-        <AulasAvanceCuota vista={cuotaDiseno} />
-      </section>
+      {/* **«Cumplimiento de la cuota del estudio» se retiró el 2026-09-09**, con
+          autorización de Gonzalo sobre el revamp: «los bocetos a veces son
+          versiones mejoradas de los originales y los anteriores se van».
+
+          Publicaba «944 de 2.500 personas · 37,8 %» y esa MISMA pareja salía ya
+          dos veces más en la pantalla: en la banda de KPIs («Avance a la
+          muestra 37,8 %») y en la cinta del bloque nuevo (Muestra 2.500 ·
+          Efectivas 944). Su desglose por facultad —«CIENCIAS E INGENIERIA, 326
+          faltan»— lo dice «Avance por facultad y sexo» con más grano, porque
+          además lo parte por sexo, que es la pregunta de Gonzalo.
+
+          Lo único suyo que no decía nadie más era la PROCEDENCIA del
+          denominador, y se mudó al encabezado del bloque nuevo, que es el que
+          publica el 2.500. El componente `AulasAvanceCuota` sigue en el árbol:
+          esto es una desconexión, no un borrado. */}
       {/* **Aquí vivían las cinco tablas de «Avance de campo», y se fueron a
           Salidas** (Gonzalo, 2026-09-08): «se supone que aquí todo debe ser
           visual y con gráficos, y las has metido como tablas como sea cuando
@@ -225,48 +223,19 @@ export function AulasPestanaCuotas({
 
           El endpoint NO se toca: el gráfico del día de Rendimiento agrega la
           tabla `diario` con su propio `useTablasDeAvance()`. */}
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Hombres y mujeres por facultad</h3>
-          {/* En GRUPOS, que es la unidad del cruce de facultad y sexo y la que
-              usa la lectura de abajo («5 de 12 grupos cumplidos»). «Filas»
-              nombraba la tabla; «celdas» nombraba bien el cruce pero es
-              vocabulario de tabla estadística, y esta pantalla la abre quien no
-              diseñó la muestra. */}
-          {/* El denominador, no sólo el conteo: cada grupo se mide contra SU
-              cuota del diseño —la del cálculo de muestra—, y pasarse en uno no
-              cubre lo que falta en otro (ADR 0079). */}
-          <span>{fmt(quotaRows.length)} grupos · cada uno contra su cuota del diseño</span>
-        </div>
-        {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
-            una respuesta de faltar doscientas. */}
-        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
-        {/* Una fila por facultad, un carril por sexo, todos del MISMO largo:
-            aquí se compara el PORCENTAJE de avance, no la magnitud. La magnitud
-            la enseña la pirámide, abajo, y por eso son dos gráficos y no uno.
+      {/* **«Hombres y mujeres por facultad» se retiró el 2026-09-09**, misma
+          autorización. Sus dos piezas quedaron cubiertas por «Avance por
+          facultad y sexo», que es un superconjunto: aquéllas pintaban el
+          PORCENTAJE de avance por sexo en carriles del mismo largo, y ésta da
+          el porcentaje, las efectivas, la meta, lo que falta y —lo que ninguna
+          daba— las aulas aplicadas y planificadas de cada facultad.
 
-            Este panel mira HACIA ATRÁS: lo conseguido contra la meta. La
-            proyección —lo que traerán los cursos-horario en juego— es el panel
-            de abajo, que vino de Estratos. Hasta el 2026-09-08 este comentario
-            decía «la predicción vive en otra pestaña»; vivía, y por eso no la
-            miraba nadie. */}
-        <AulasBarrasPorFacultad
-          filas={quotaRows as MonitoreoRow[]}
-          foco={foco}
-          onFoco={onFoco}
-        />
-        {/* Y pegado a él, el remedio: a qué aula del banco ir para cerrar
-            justo esas celdas. Diagnóstico y remedio se leen juntos o no se
-            leen. */}
-        <AulasReservaDirigida
-          celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
-          porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
-        />
-      </section>
+          `AulasCuotasResumen` y `AulasBarrasPorFacultad` siguen en el árbol.
+
+          **Lo que NO se fue es el remedio**: «A qué aula del banco ir» no lo
+          dice nadie más, así que baja al panel de la reserva, junto a «Consumo
+          de la reserva», que habla de lo mismo. Diagnóstico y remedio se leen
+          juntos o no se leen. */}
       {/* **«Qué metas van a cerrar y cuáles no» queda SIN MONTAR desde el
           2026-09-09**, y el componente y su bloque del payload siguen ahí: esto
           no es un borrado, es una desconexión mientras Gonzalo decide.
@@ -309,6 +278,12 @@ export function AulasPestanaCuotas({
         {/* Los días de campo salen de los PARTES —los días en que el operativo
             salió de verdad— y no de `ritmo_diario`, que cuenta días con
             respuestas: una caída sólo puede ocurrir un día en que se sale. */}
+        {/* El remedio, que venía de «Hombres y mujeres por facultad»: a qué aula
+            del banco ir para cerrar justo las celdas que no llegan. */}
+        <AulasReservaDirigida
+          celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
+          porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
+        />
         <AulasConsumoDelBanco
           filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}

@@ -63,13 +63,18 @@ describe("«Metas por facultad»", () => {
     expect(html).not.toContain("CIENCIAS Y ARTES DE LA COMUNICACIÓN<");
   });
 
-  it("el ancho crece con las facultades: quince no caben en el de una", () => {
+  it("el lienzo crece con las facultades: quince no caben en el de una", () => {
+    // Se lee del viewBox y del `min-width`, no de un atributo `width` en
+    // píxeles: el SVG ocupa el 100 % del panel desde el 2026-09-09 —iba fijo y
+    // dejaba un vacío a la derecha en pantallas anchas— y su tamaño intrínseco
+    // vive ahora en esos dos sitios.
     const una = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
     const quince = renderToStaticMarkup(
       <AulasMetasBarras filas={Array.from({ length: 15 }, (_, i) => fila({ facultad: `F${i}` }))} />,
     );
-    const ancho = (h: string) => Number(/width="(\d+)"/.exec(h)?.[1] ?? 0);
+    const ancho = (h: string) => Number(/viewBox="0 0 (\d+)/.exec(h)?.[1] ?? 0);
     expect(ancho(quince)).toBeGreaterThan(ancho(una));
+    expect(quince).toContain("min-width:");
   });
 
   it("sin filas no pinta un lienzo vacío", () => {

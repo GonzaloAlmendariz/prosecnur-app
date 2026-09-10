@@ -95,3 +95,29 @@ describe("los mandos", () => {
     expect(html).toMatch(/aria-pressed="false"[^>]*>Sobremuestra/);
   });
 });
+
+describe("cambiar de tasa no puede mover lo que no cambia", () => {
+  // Gonzalo, 2026-09-09: «se supone que lo único que debería cambiar es la
+  // brecha y, en el gráfico, la parte verde clara. Pero cambia todo, se mueve
+  // la meta, se mueve lo verde». Tenía razón: el techo del carril incluía lo
+  // proyectado, así que al cambiar de escenario se reescalaba todo.
+  const anchos = (html: string, clase: string): string[] =>
+    [...html.matchAll(new RegExp(`class="${clase}"[^>]*style="([^"]*)"`, "g"))].map((m) => m[1]);
+
+  it("la marca de la meta y lo aplicado se quedan donde estaban", () => {
+    const conDiseno = renderToStaticMarkup(
+      <AulasMetasYAulas filas={[fila({ proyectadas_M: 63, proyectadas_F: 118 })]} />,
+    );
+    const conObtenida = renderToStaticMarkup(
+      <AulasMetasYAulas filas={[fila({ proyectadas_M: 45, proyectadas_F: 85 })]} />,
+    );
+    expect(anchos(conObtenida, "es-meta")).toEqual(anchos(conDiseno, "es-meta"));
+    expect(anchos(conObtenida, "es-aplicado")).toEqual(anchos(conDiseno, "es-aplicado"));
+  });
+
+  it("lo único que se mueve es lo proyectado", () => {
+    const a = renderToStaticMarkup(<AulasMetasYAulas filas={[fila({ proyectadas_M: 63 })]} />);
+    const b = renderToStaticMarkup(<AulasMetasYAulas filas={[fila({ proyectadas_M: 20 })]} />);
+    expect(anchos(b, "es-proyectado")).not.toEqual(anchos(a, "es-proyectado"));
+  });
+});
