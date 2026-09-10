@@ -4,6 +4,7 @@ import { AulasAvancePorCurso } from "./AulasAvancePorCurso";
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
+import { AulasResumenPorFacultad } from "./AulasResumenPorFacultad";
 import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
 import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
@@ -132,6 +133,29 @@ export function AulasPestanaResumen({
                   cuenta={respuestas?.cuenta}
                   sinAula={respuestas?.sinAula}
                   rotulo={respuestas?.rotulo ?? ""}
+                />
+              </section>
+            ) : null}
+            {/* **Las quince facultades de un vistazo**, que es lo que él pide de
+                esta pestaña y no estaba: «quiero ver las respuestas efectivas de
+                las facultades, quiero ver las aulas, quiero ver cuántas se han
+                aplicado; es el primer alcance que tengo cuando entro a avance».
+                El bloque de arriba da el TOTAL y filtra de una en una; éste las
+                pone todas. Cruza dos bloques que el motor ya emite, sin calcular
+                ninguna cifra nueva. */}
+            {desglose?.facultades?.length ? (
+              <section
+                className="mon-profile-panel"
+                data-qa-geometry-group="monitoring-aulas-avance"
+                data-qa-geometry-contract="intrinsic"
+              >
+                <div className="mon-profile-panel-head">
+                  <h3>Por facultad</h3>
+                  <span>efectivas y avance de los cursos-horario · ordenadas por lo conseguido</span>
+                </div>
+                <AulasResumenPorFacultad
+                  respuestas={desglose.facultades}
+                  aulas={dashboard.aulas_por_facultad}
                 />
               </section>
             ) : null}

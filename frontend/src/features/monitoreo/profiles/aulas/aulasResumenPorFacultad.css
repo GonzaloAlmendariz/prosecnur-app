@@ -1,0 +1,48 @@
+/* «Por facultad» del resumen: las quince de un vistazo.
+   Hoja propia — `aulasMonitoreo.css` está congelada a crecimiento. */
+.aulas-rpf { min-width: 0; }
+.aulas-rpf-lista { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.aulas-rpf-lista > li {
+  display: grid;
+  grid-template-columns: minmax(11rem, 16rem) 5.5rem minmax(0, 1fr) 6rem 7rem;
+  align-items: center;
+  gap: 12px;
+}
+.aulas-rpf-cab {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.aulas-rpf-cab > span:not(:first-child):not(:nth-child(3)) { text-align: right; }
+.aulas-rpf-num {
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+.aulas-rpf-efectivas { color: var(--pulso-text); font-weight: 600; font-size: 14px; }
+.aulas-rpf-debil { color: var(--pulso-text-faint); }
+.aulas-rpf-barra {
+  display: block;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.aulas-rpf-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--pulso-success-fg);
+}
+.aulas-rpf-sindato {
+  display: block;
+  padding-left: 6px;
+  font-style: normal;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--pulso-text-faint);
+}
