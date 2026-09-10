@@ -366,6 +366,9 @@ export function AulasPestanaResumen({
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 resumen={dashboard.course_status_cobertura ?? null}
+                // Para que el respaldo sepa si lo que le llegó es el plan
+                // entero o el recorte de 500 filas.
+                totalDelPlan={totalAulas}
                 sinMetaMotor={dashboard.course_status_sin_meta}
                 reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
