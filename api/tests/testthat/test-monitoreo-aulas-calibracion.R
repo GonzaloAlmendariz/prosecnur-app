@@ -137,8 +137,16 @@ test_that("sin aulas aplicadas el previsto es NA y la calibracion tambien", {
 # muy criptica en la app sino que se entienda claramente sin caer en jerga».
 
 test_that("cada estado tiene una frase que se entiende sola", {
-  expect_identical(.mac_etiqueta_estado("asegurada"), "Va a llegar, con margen")
-  expect_identical(.mac_etiqueta_estado("ajustada"), "Va a llegar, sin margen: hay que vigilarla")
+  # **La etiqueta nombra su universo desde el 2026-09-10.** `estado` mide el
+  # plan ENTERO, y con 30 celdas ese dia habia CERO cortas por esa lectura y
+  # SEIS contando solo lo agendado: las seis decian «Va a llegar, con margen»
+  # mientras el panel de abajo decia que no llegan.
+  expect_identical(.mac_etiqueta_estado("asegurada"), "Llega con todo el plan, con margen")
+  expect_identical(.mac_etiqueta_estado("ajustada"),
+                   "Llega con todo el plan, sin margen: hay que vigilarla")
+  # Y el deficit tambien: no llegar NI con todo el plan es peor que no llegar
+  # con lo agendado, y la palabra tiene que distinguirlo.
+  expect_match(.mac_etiqueta_estado("deficit_proyectado", 3L), "^No llega ni con todo el plan: faltan 3")
   expect_identical(.mac_etiqueta_estado("sin_cuota"), "Sin cuota trazada")
 })
 
