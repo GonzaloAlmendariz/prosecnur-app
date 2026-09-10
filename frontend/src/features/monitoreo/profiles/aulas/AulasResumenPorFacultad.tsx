@@ -30,11 +30,24 @@ import "./aulasResumenPorFacultad.css";
  * de las aulas en sus dos columnas de cifras —12 de 37— y, entero, en
  * «Cursos-horario por cobertura», más abajo en esta misma pestaña.
  */
-export function AulasResumenPorFacultad({ respuestas, aulas }: {
+export function AulasResumenPorFacultad({ respuestas, aulas, facultadEnFoco }: {
   respuestas: ReadonlyArray<MonitoreoAulasRespuestasCuenta & { facultad: string }> | null | undefined;
   aulas: ReadonlyArray<MonitoreoAulasPorFacultad> | null | undefined;
+  /**
+   * Con una facultad en foco, esta lista se queda en SU fila.
+   *
+   * Aquí el foco FILTRA y no resalta, al revés que en las otras pestañas, y no
+   * es una incoherencia: allí los paneles son rankings —lo que aportan es dónde
+   * cae una facultad entre las otras— y aquí es un resumen. Gonzalo,
+   * 2026-09-10: «cuando yo selecciono una facultad, debería mostrarme sólo la de
+   * esa facultad». El mando, además, sólo existe en esta pestaña desde a8d903a8.
+   */
+  facultadEnFoco?: string;
 }): ReactNode {
-  const filas = resumenPorFacultad(respuestas, aulas);
+  const todas = resumenPorFacultad(respuestas, aulas);
+  const filas = facultadEnFoco
+    ? todas.filter((f) => f.facultad.trim().toUpperCase() === facultadEnFoco.trim().toUpperCase())
+    : todas;
   if (!filas.length) return null;
   return (
     <div className="aulas-rpf">

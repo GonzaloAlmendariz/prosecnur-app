@@ -161,6 +161,7 @@ export function AulasPestanaResumen({
                 <AulasResumenPorFacultad
                   respuestas={desglose.facultades}
                   aulas={dashboard.aulas_por_facultad}
+                  facultadEnFoco={facultadEnFoco}
                 />
               </section>
             ) : null}
@@ -368,7 +369,7 @@ export function AulasPestanaResumen({
                   que el motor publicara `course_status_rol_y_estado`: no es un
                   segundo panel, es el mismo panel dibujado con lo que haya. */}
               {dashboard.course_status_rol_y_estado ? (
-                <AulasEstadoPorRol dashboard={dashboard} />
+                <AulasEstadoPorRol dashboard={dashboard} facultadEnFoco={facultadEnFoco} />
               ) : (
               <AulasEstadoChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}

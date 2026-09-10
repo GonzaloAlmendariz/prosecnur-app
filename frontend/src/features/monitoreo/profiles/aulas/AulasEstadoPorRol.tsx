@@ -75,18 +75,22 @@ function Grupo({ grupo }: { grupo: GrupoDeRol }): ReactNode {
   );
 }
 
-export function AulasEstadoPorRol({ dashboard }: {
+export function AulasEstadoPorRol({ dashboard, facultadEnFoco }: {
   dashboard: MonitoreoAulasDashboard | null | undefined;
+  /** Con una facultad en foco, el panel enseña SÓLO la suya. */
+  facultadEnFoco?: string;
 }): ReactNode {
-  const grupos = estadoPorRol(dashboard);
+  const grupos = estadoPorRol(dashboard, facultadEnFoco);
   // C3: el vacío nombra SU causa. «No hay datos» y «este tablero se generó con
   // una versión anterior del cálculo» se arreglan de maneras distintas.
   if (!grupos) {
+    // Los dos vacíos son distintos y se arreglan de maneras distintas (C3): una
+    // facultad sin cursos-horario no es un tablero viejo.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Este tablero se generó con una versión anterior del cálculo, que todavía
-        no reparte los cursos-horario por rol. Vuelve a traer respuestas para
-        recalcularlo.
+        {facultadEnFoco
+          ? `El sorteo no dejó ningún curso-horario en ${facultadEnFoco}.`
+          : "Este tablero se generó con una versión anterior del cálculo, que todavía no reparte los cursos-horario por rol. Vuelve a traer respuestas para recalcularlo."}
       </p>
     );
   }
