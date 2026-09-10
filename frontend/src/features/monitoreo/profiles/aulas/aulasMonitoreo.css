@@ -3194,54 +3194,10 @@
   white-space: nowrap;
 }
 
-/* Ritmo de la recolección: el eje de tiempo que el perfil no tenía.
-   Barras en CSS como la agenda por día — son los días de un operativo, no una
-   serie larga, y esta pestaña ya carga bastante. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias {
-  display: grid;
-  gap: 3px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 52px 60px;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--aulas-sec);
-  color: var(--pulso-text-soft);
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-fecha { white-space: nowrap; }
-.mon-profile-page.is-aulas-flow .aulas-ritmo-barra {
-  display: block;
-  height: 14px;
-  border-radius: 4px;
-  background: var(--pulso-surface-2);
-  overflow: hidden;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-barra > i {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-}
-/* Un día sin campo no se disimula: su fila queda apagada y el hueco de la barra
-   se ve, porque saber que ese día no se trabajó es parte de leer el ritmo. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li.es-sin-campo { opacity: 0.55; }
-.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra,
-.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra strong { color: var(--pulso-text); }
-/* El acumulado va más callado que el día: es contexto, no el dato de la fila.
-   Pero callado no es invisible: estaba con `--pulso-border-strong`, un token de
-   BORDE haciendo de color de texto, y medido daba **1.48:1** de contraste a
-   11 px —el minimo legible es 4.5—. Un borde esta calibrado para una linea de
-   1 px, no para glifos. `--pulso-text-faint` lo deja en ~5:1, todavia por
-   debajo del 8.28 de la cifra del dia, que es la jerarquia que se buscaba. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-text-faint); }
+/* La tabla de días del ritmo se retiró el 2026-09-10: el panel dibuja ahora el
+   gráfico del boceto —barras del día y línea del acumulado, cada uno con su
+   eje— en `aulasAvanceDiario.css`. Las clases de aquella lista se van con ella;
+   el guard de CSS sin dueño las cazó en la misma corrida. */
 
 /* El encabezado compartido dentro de la reja de aulas.
    `mon-workbench-main` aporta FILAS —`auto auto minmax(0,1fr)`— y la clase

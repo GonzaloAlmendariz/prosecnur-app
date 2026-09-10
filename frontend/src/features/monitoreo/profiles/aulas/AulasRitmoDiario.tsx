@@ -1,4 +1,4 @@
-import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { AulasAvanceDiario } from "./AulasAvanceDiario";
 import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
@@ -128,31 +128,18 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
         {media > 0 ? <> · {fmtCuenta(media)} al día</> : null}
         {mejor ? <> · el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
       </p>
-      <ol className="aulas-ritmo-dias" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {dias.map((d) => (
-          <li key={d.fecha} className={d.validas ? "" : "es-sin-campo"}>
-            <span className="aulas-ritmo-fecha">{etiquetaDeDia(d.fecha)}</span>
-            {/* Decorativa: las dos cifras de la fila —las del día y el
-                acumulado— ya son texto en las celdas de al lado, así que un
-                lector de pantalla tiene el dato sin la barra. La agenda por día
-                SÍ etiqueta las suyas porque allí la barra reparte tramos que no
-                están escritos en ninguna otra parte de la fila. */}
-            <span className="aulas-ritmo-barra" aria-hidden="true">
-              <i
-                style={{
-                  width: `${tope ? Math.max(d.validas ? 2 : 0, (100 * d.validas) / tope) : 0}%`,
-                  background: COLOR_RESULTADO.efectiva,
-                }}
-              />
-            </span>
-            {/* Las dos cifras del día: lo suyo y el acumulado. Sin el acumulado
-                hay que sumar diez barras de cabeza para saber por dónde va el
-                estudio, que es lo que se viene a mirar. */}
-            <span className="aulas-ritmo-cifra"><strong>{fmt(d.validas)}</strong></span>
-            <span className="aulas-ritmo-acumulado">{fmt(d.acumulado)}</span>
-          </li>
-        ))}
-      </ol>
+      {/* **El gráfico del boceto, no la tabla que lo sustituía.** Aquí había
+          una lista de diez filas —fecha, barra, cifra del día y acumulado en una
+          celda— con exactamente estos datos. La cifra estaba y la CURVA no, que
+          es lo que dice si el ritmo se sostiene. Gonzalo, 2026-09-10: «no estás
+          tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar,
+          como el avance diario».
+
+          Su forma: barras del día en el eje izquierdo, acumulado en línea sobre
+          el derecho, y cada rótulo de eje del color de su serie. El valor de
+          cada día se conserva encima de su barra, que es lo único que la tabla
+          daba y el boceto no. */}
+      <AulasAvanceDiario dias={dias} />
       {falta > 0 ? (
         <p className="mon-profile-table-recorte">
           {/* «para la meta TOTAL». Sin esa palabra, este pie dice «faltan 43» a
