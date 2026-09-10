@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { personasPorAula } from "./redondeoConservador";
-import { partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { MINIMO_PARA_COMPARAR, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { nombreDeAplicador } from "./nombreDeAplicador";
+import "./aulasRendimientoCorte.css";
 
 /**
  * Qué está rindiendo más y qué menos, facultad por facultad.
@@ -99,9 +100,8 @@ export function AulasRendimientoPorFacultad({
                 2026-09-09 es el % del potencial y no lo que deja cada visita:
                 si la cabecera dice una cosa y el orden obedece a otra, quien
                 lee saca la conclusión contraria. */}
-            Del <strong>{pct(filas[0].delPotencialAjustado)}</strong> de su potencial
-            ajustado ({filas[0].facultad}) al{" "}
-            <strong>{pct(filas[filas.length - 1].delPotencialAjustado)}</strong>{" "}
+            Del <strong>{pct(filas[0].delPotencial)}</strong> de su potencial ({filas[0].facultad}) al{" "}
+            <strong>{pct(filas[filas.length - 1].delPotencial)}</strong>{" "}
             ({filas[filas.length - 1].facultad})
           </>
         ) : (
@@ -174,13 +174,18 @@ export function AulasRendimientoPorFacultad({
           {/* La cabecera nombra lo que la BARRA dibuja, que desde el
               2026-09-09 es el potencial: si dijera «Efectivas por visita»,
               seguiríamos con un rótulo que promete otro número. */}
-          {/* **Ajustado, y el rótulo lo dice.** El potencial crudo normaliza el
-              tamaño del AULA pero no cuántas aulas se han visitado: el 2026-09-10
-              encabezaban la lista PSICOLOGÍA con el 100 % de UN curso-horario y
-              LETRAS Y CIENCIAS HUMANAS con el 90 % de otro. El crudo sigue a la
-              vista, en la línea de cada fila. */}
-          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya —efectivas del parte sobre elegibles—, encogida hacia la media del estudio según cuántos cursos-horario se llevan visitados: equivale a sumarle a cada fila cinco cursos-horario imaginarios al rendimiento medio. Es lo que ordena la lista y lo que dibuja la barra; el porcentaje crudo va bajo el nombre.">
-            Del potencial, ajustado
+          {/* **La barra dibuja lo OBSERVADO y el corte de evidencia hace el
+              trabajo que el encogimiento no podía.** El potencial crudo normaliza
+              el tamaño del aula pero no cuántas aulas hay detrás, y el 2026-09-10
+              encabezaban la lista PSICOLOGÍA con el 100 % de UNO y LETRAS Y
+              CIENCIAS HUMANAS con el 90 % de otro. Encoger hacia la media lo
+              arreglaba en el papel y lo rompía en pantalla: las seis primeras
+              barras salían a 69,0 · 66,5 · 65,1 · 64,8 · 63,8 · 62,7 %, seis
+              barras del mismo largo. Ahora las facultades con menos de tres
+              visitas se apartan a su propio grupo y la barra vuelve a dibujar lo
+              que de verdad se midió. */}
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya: efectivas del parte de campo sobre elegibles. Es la única medida que no depende de cuántos alumnos tenga el curso-horario, y por eso ordena la lista. Las facultades con menos de tres cursos-horario visitados se apartan al final: con una o dos visitas, un curso-horario afortunado mueve el porcentaje treinta puntos.">
+            Del potencial
           </span>
           <span role="columnheader" title="Efectivas del parte de campo conseguidas por cada curso-horario visitado: cuántas encuestas trae un viaje. Es logística, no rendimiento, y por eso no ordena.">
             Por visita
@@ -202,7 +207,28 @@ export function AulasRendimientoPorFacultad({
               dibuja la barra, y tenerla dos veces en la misma fila era pedirle
               al lector que comprobara que coinciden. */}
         </li>
-        {filas.map((f) => (
+        {filas.map((f, i) => {
+          // **El corte se DIBUJA, no se deduce.** Sin una línea que lo diga, una
+          // facultad con dos visitas al 100 % aparecería a media tabla y quien
+          // lee concluiría que rinde peor que la de arriba, cuando lo que pasa
+          // es que todavía no se compara. El separador va antes de la PRIMERA de
+          // las apartadas y sólo si hay alguna comparable delante: una lista
+          // entera de facultades con una visita no se encabeza con un aviso de
+          // que no hay nada arriba.
+          const anterior = filas[i - 1];
+          const apartada = f.aulas < MINIMO_PARA_COMPARAR;
+          const abreElCorte = apartada && i > 0 && (anterior?.aulas ?? 0) >= MINIMO_PARA_COMPARAR;
+          return (
+          <Fragment key={f.facultad}>
+          {abreElCorte ? (
+            <li key="corte" role="row" className="aulas-rendimiento-corte">
+              <span role="cell">
+                Con menos de {MINIMO_PARA_COMPARAR} cursos-horario visitados —
+                todavía no se comparan: con una o dos visitas, un curso-horario
+                afortunado mueve el porcentaje treinta puntos
+              </span>
+            </li>
+          ) : null}
           <li key={f.facultad} role="row"
             className={clave === "faculty" && f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             {/* Sólo es control cuando agrupa POR FACULTAD: en las otras lentes
@@ -218,14 +244,17 @@ export function AulasRendimientoPorFacultad({
                   día, y normalizarlas mangaría rótulos que no son nombres. */}
               {clave === "applied_by" ? nombreDeAplicador(f.facultad) : f.facultad}
               {/* «encuestas» a secas obligaba a adivinar de que cuenta hablaba. */}
-              {/* El CRUDO va aquí, pegado a la evidencia que lo sostiene: «1
-                  curso-horario · 17 efectivas · 100,0 % de su potencial» se lee
-                  entero y se entiende por qué la barra ajustada queda más
-                  corta. Separados, el ajustado parecería un error. */}
+              {/* El AJUSTADO va aquí, pegado a la evidencia que lo explica: «2
+                  cursos-horario · 35 efectivas · 69,0 % pesando la evidencia» dice
+                  de un vistazo cuánto de ese 92,1 % es observación y cuánto es
+                  suerte de dos aulas. Aparte de la barra porque no puede
+                  ordenarla: aplasta la lista contra la media. */}
               <em>
                 {fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} ·{" "}
                 {fmt(f.efectivas)} efectivas
-                {f.delPotencial != null ? <> · {pct(f.delPotencial)} de su potencial sin ajustar</> : null}
+                {f.delPotencialAjustado != null
+                  ? <> · {pct(f.delPotencialAjustado)} pesando la evidencia</>
+                  : null}
               </em>
             </NombreDeFacultad>
             {/* **La barra mide LO QUE ORDENA la lista: el % del potencial.**
@@ -245,12 +274,12 @@ export function AulasRendimientoPorFacultad({
                 celda, el lector perdería la posición en la fila. */}
             <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
-              aria-label={`Recogido de los alumnos elegibles, ajustado por cuántos cursos-horario se han visitado: ${pct(f.delPotencialAjustado)} (crudo ${pct(f.delPotencial)})`}>
+              aria-label={`Recogido de los alumnos elegibles: ${pct(f.delPotencial)}`}>
               <i style={{
-                width: `${Math.max(4, Math.min(100, f.delPotencialAjustado ?? 0))}%`,
-                background: (f.delPotencialAjustado ?? 0) >= mediaPotencial
+                width: `${Math.max(4, Math.min(100, f.delPotencial ?? 0))}%`,
+                background: (f.delPotencial ?? 0) >= mediaPotencial
                   ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
-              }}>{pct(f.delPotencialAjustado)}</i>
+              }}>{pct(f.delPotencial)}</i>
             </span>
             </span>
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden
@@ -270,7 +299,9 @@ export function AulasRendimientoPorFacultad({
             <span role="cell" className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
 
           </li>
-        ))}
+          </Fragment>
+          );
+        })}
       </ul>
       {/* El pie explica las columnas EN SU ORDEN y con SU NOMBRE.
           Antes decía «ordenadas por lo que deja cada visita» —que es la columna
