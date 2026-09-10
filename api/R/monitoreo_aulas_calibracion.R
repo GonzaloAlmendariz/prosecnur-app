@@ -337,6 +337,26 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   round(stats::pnorm((proyeccion - cuota) / sqrt(varianza * phi)), 3)
 }
 
+#' Unidades de `previsto` para que la calibracion observada pese la mitad.
+#'
+#' 60 es del orden de dos aulas medianas: con una sola aula aplicada el diseño
+#' sigue mandando, y hacia las cuatro o cinco manda el campo. No es un umbral
+#' magico —es un peso— y por eso vive con nombre en vez de incrustado.
+#' @noRd
+.MAC_ENCOGIMIENTO <- 60
+
+#' La calibracion del campo, encogida hacia 1.
+#'
+#' Sin encoger, una celda con un aula aplicada que rindio el doble de lo previsto
+#' proyectaria el doble para TODO lo que le queda. El encogimiento hace que la
+#' correccion valga en proporcion a cuanto se ha observado.
+#' @noRd
+.mac_factor_de_campo <- function(cal, previsto) {
+  p <- suppressWarnings(as.numeric(previsto)[1])
+  if (!is.finite(cal) || cal <= 0 || !is.finite(p) || p <= 0) return(1)
+  (p * cal + .MAC_ENCOGIMIENTO) / (p + .MAC_ENCOGIMIENTO)
+}
+
 #' Un aula aplicada DE HECHO, se llame como se llame en el plan.
 #'
 #' Misma regla que `.madt_aplicada_de_hecho()` en `monitoreo_aulas_dos_tasas.R`:
@@ -446,9 +466,19 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     # suma a proposito —es lo correcto—: si no se sabe cuanto varia una de las
     # que faltan, no se puede afirmar una probabilidad para esa celda.
     varz <- if (aplicada) NULL else .mac_varianza_por_sexo(fila, esp$valores)
+    # **Tres baldes y no dos.** `ap` es lo aplicado, `pe` todo lo que falta y
+    # `ag` la parte de `pe` que YA TIENE FECHA. Gonzalo, 2026-09-10: «tanto b
+    # como c son importantes, deben servir para mayor contexto» — o sea que la
+    # pantalla necesita distinguir el techo (todo el plan en juego) de lo que
+    # hay comprometido (lo agendado), y no elegir uno.
+    agendada <- nzchar(.monitoreo_scalar(fila$scheduled_date %||% fila$fecha %||% "", ""))
     for (sx in names(esp$valores)) {
       k <- paste0(fac, "|", sx, "|", if (aplicada) "ap" else "pe")
       acc[[k]] <- (acc[[k]] %||% 0) + esp$valores[[sx]]
+      if (!aplicada && agendada) {
+        ka <- paste0(fac, "|", sx, "|ag")
+        acc[[ka]] <- (acc[[ka]] %||% 0) + esp$valores[[sx]]
+      }
       if (!is.null(varz)) {
         kv <- paste0(fac, "|", sx)
         accv[[kv]] <- (accv[[kv]] %||% 0) + varz[[sx]]
@@ -465,18 +495,42 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     logrado <- suppressWarnings(as.numeric(.monitoreo_scalar(celda$observed %||% 0, 0))[1])
     previsto <- acc[[paste0(fac, "|", sx, "|ap")]] %||% NA_real_
     pendiente <- acc[[paste0(fac, "|", sx, "|pe")]] %||% 0
+    # Lo pendiente que YA tiene fecha: es el subconjunto comprometido.
+    pendiente_ag <- acc[[paste0(fac, "|", sx, "|ag")]] %||% 0
     proyeccion <- (if (is.finite(logrado)) logrado else 0) + pendiente
     pool <- suppressWarnings(as.numeric(pool_restante[[paste0(fac, "|", sx)]] %||% NA_real_)[1])
     varianza <- accv[[paste0(fac, "|", sx)]] %||% NA_real_
     estado <- .mac_estado_proyectado(cuota, proyeccion, pool)
     brecha <- .mac_brecha(cuota, proyeccion)
     cal <- .mac_calibracion(logrado, previsto)
+    base <- if (is.finite(logrado)) logrado else 0
+    # (b) SOLO lo agendado, a la tasa que el diseño le puso.
+    proy_ag <- base + pendiente_ag
+    # (c) lo mismo, corregido por lo que el campo ESTA rindiendo en esta celda.
+    #
+    # El factor es la calibracion —logrado sobre previsto— ENCOGIDA hacia 1: con
+    # una sola aula aplicada su cociente no es la tasa de la celda, y publicarlo
+    # crudo haria bailar la proyeccion con cada parte que entra. El peso del
+    # encogimiento es el propio `previsto`, que ya mide cuanto se ha observado:
+    # con poco previsto manda el diseño, y a medida que el campo acumula manda
+    # el campo. `.MAC_ENCOGIMIENTO` son las unidades de previsto que hacen falta
+    # para que la observada pese la mitad.
+    factor <- .mac_factor_de_campo(cal, previsto)
+    proy_ag_obs <- base + pendiente_ag * factor
     list(
       faculty = .monitoreo_scalar(celda$faculty %||% "", ""), sex = sx,
       cuota = cuota, logrado = logrado,
       previsto = if (is.finite(previsto)) round(previsto, 1) else NA_real_,
       aporte_pendiente = round(pendiente, 1),
+      # Lo comprometido, que es el subconjunto con fecha del pendiente.
+      aporte_agendado = round(pendiente_ag, 1),
       proyeccion = round(proyeccion, 1),
+      # Las otras dos lecturas de la misma pregunta. Van JUNTAS a proposito: la
+      # diferencia entre ellas dice si el campo rinde por encima o por debajo de
+      # lo que el diseño supuso, y esa diferencia es informacion, no ruido.
+      proyeccion_agendada = round(proy_ag, 1),
+      proyeccion_agendada_observada = round(proy_ag_obs, 1),
+      factor_de_campo = if (is.finite(factor)) round(factor, 3) else NA_real_,
       brecha = brecha,
       calibracion = if (is.finite(cal)) round(cal, 3) else NA_real_,
       estado = estado,
