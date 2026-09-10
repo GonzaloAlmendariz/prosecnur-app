@@ -33,6 +33,9 @@ Sólo Gonzalo lo da por terminado.
 | 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
 | 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
 | 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |
+| 30 | «El día nueve había sido el día con mayor cantidad de aplicaciones agendadas y aplicadas, y la tabla no está mostrando eso» | datos | ☐ **verificar**; puede ser el desfase del `.pulso` del 09 |
+| 31 | «Habría que ver Resumen cómo estaría mapeando esto: ¿por aulas, por cuotas, por ambas? Sería bueno tener eso bien definido» | Resumen | ☐ |
+| 32 | El seguimiento desgranado POR FACULTAD en Resumen (ver abajo) | Resumen | ☐ **el panel que Resumen necesita** |
 | 26 | «Poder hacer clic en un tramo de cobertura y que abajo se muestre, de forma profesional y minimalista, cuáles son esos CH, con el rendimiento del aula, el esperado, los elegibles esperados y los obtenidos» | `AulasCursosDeUnTramo` | ☑ `c17e8780` — falta MIRARLO, y «los que esperábamos ver» necesita reimportar el sorteo |
 
 ## Lo ya contestado, con su medición
@@ -483,3 +486,52 @@ en ninguna parte de esa pestaña. El dato vive en el Sheets y ya llega al plan
 **Consecuencia de orden**: alinear el eje del pronóstico es trabajo válido —el
 eje de fechas sirve para cualquier curva— pero la CURVA que dibuja va a cambiar.
 Conviene no pulir el abanico de tres rectas hasta decidir el modelo.
+
+## 32 · El seguimiento desgranado por facultad — lo que Resumen tiene que contestar
+
+> «Si estamos viendo una facultad en particular en el resumen, creo que sí sería
+> interesante ver **cuántas aulas tienen agendadas, cuántas faltan, cuándo se van
+> a llenar todas las aulas que tenemos planificadas, si es que hay alguna aula
+> adicional que estamos planteando o debería plantearse, si se están llegando las
+> cuotas con las aulas agendadas hasta ahora, si se está llegando a la cuota de
+> hombres, si se está llegando a la cuota de mujeres**. Eso sería muy interesante
+> tenerlo en resumen por facultad, y ya que tenemos el selector en el encabezado,
+> sería interesante poder verlo de esa forma para poder tener el seguimiento
+> desgranado de cada facultad y poder saber qué hacer en cada una de ellas.»
+
+**Son siete preguntas y ya hay motor para casi todas:**
+
+| Pregunta | De dónde sale | ¿Existe? |
+|---|---|---|
+| cuántas aulas agendadas | `cierrePorAgenda().dias` | ☑ `a9d34e55` |
+| cuántas faltan (sin fecha) | `cierrePorAgenda().sinAgendar` | ☑ |
+| cuándo se llenan las planificadas | `cierrePorAgenda().ultimaFecha` | ☑ pero sólo dice hasta dónde llega lo AGENDADO |
+| si hace falta un aula adicional | reserva de cadena + banco, contra la brecha | ◐ hay `reserva_de_la_cadena` y `banco_extras` |
+| si se llega a la cuota con lo agendado | `proyeccion_metas` | ☑ es «Metas y aulas», hoy sólo en Metas |
+| cuota de hombres | ídem | ☑ |
+| cuota de mujeres | ídem | ☑ |
+
+**O sea que el panel es sobre todo de COMPOSICIÓN, no de motor nuevo**: junta en
+una sola lectura por facultad lo que hoy está repartido entre tres pestañas. Y el
+selector de la cabecera ya filtra Resumen desde `c5d92a02`.
+
+**Y contesta de paso el ítem 31**: mapea por las DOS cosas —aulas y cuotas— porque
+la pregunta operativa las cruza: «¿me alcanzan las aulas que tengo agendadas para
+llegar a la cuota de mujeres de esta facultad?».
+
+## 30 · El día 9 y la tabla que no lo muestra
+
+> «En el día a día de rendimiento, yo tenía entendido que el día nueve había sido
+> el día con mayor cantidad de aplicaciones agendadas y aplicadas. Sin embargo,
+> veo que la tabla no está mostrando eso. Quizás tenga que ver porque la
+> información no está actualizada a fecha de hoy.»
+
+**Medido el 2026-09-10 sobre el `.pulso` armado el 09**: el ritmo dice 07/09 →
+329, 08/09 → 313, 09/09 → 302, o sea que el 9 es el MENOR de los tres en
+respuestas. Pero en el Sheets, las marcas `APLICADA` por fecha son 07/09 → 16,
+08/09 → 17, **09/09 → 24**: el 9 SÍ es el día con más aplicaciones.
+
+**No se contradicen: cuentan cosas distintas.** El ritmo cuenta RESPUESTAS que
+llegaron a la plataforma ese día y el Sheets cuenta CURSOS-HORARIO aplicados. Una
+aplicación del 9 por la tarde deja respuestas que entran el 10. Su intuición era
+sobre aplicaciones y la tabla habla de respuestas — y ninguna de las dos lo dice.
