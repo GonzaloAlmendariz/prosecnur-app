@@ -379,7 +379,7 @@ export function AulasEfectividadSeguimiento({
         {hayPrevisto ? (
           <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> dónde se esperaba llegar</span>
         ) : null}
-        <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> hasta dónde va, de 0 a 100 %</span>
+        <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> Hasta dónde va, de 0 a 100 %</span>
       </p>
 
       {/* Es una TABLA de datos y va como tabla: el encabezado anterior era un

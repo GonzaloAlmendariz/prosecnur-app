@@ -56,6 +56,15 @@
 
 /* La tabla de gauges: aplicado + proyectado contra la marca de la meta. */
 .aulas-metas-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* `fixed` es lo que hace que el `colgroup` mande: en `auto`, el navegador
+   reparte según el contenido y la columna de la barra se come el resto. */
+.aulas-metas-tabla.es-fija { table-layout: fixed; }
+.aulas-metas-tabla.es-fija td, .aulas-metas-tabla.es-fija th { overflow: hidden; }
+/* El nombre de la facultad puede ser largo —«GASTRONOMÍA, HOTELERÍA Y
+   TURISMO»— y el chip no debe empujar la fila: se parte en dos líneas antes
+   que estirar la columna. */
+.aulas-metas-tabla .es-titulo-facultad { white-space: normal; }
+.aulas-metas-tabla .es-titulo-facultad .aulas-chip { white-space: normal; text-align: left; }
 .aulas-metas-tabla th {
   font-size: 10px;
   letter-spacing: 0.09em;
@@ -85,7 +94,6 @@
 .aulas-metas-gauge {
   position: relative;
   height: 18px;
-  min-width: 140px;
   background: var(--pulso-surface-2);
   border-radius: 2px;
 }
