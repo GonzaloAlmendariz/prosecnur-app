@@ -514,6 +514,11 @@ export function AulasPestanaResumen({
                 // entero o el recorte de 500 filas.
                 totalDelPlan={totalAulas}
                 sinMetaMotor={dashboard.course_status_sin_meta}
+                // Para que el vacío pueda decir «4 esperan aplicación» en vez de
+                // acusar al payload de no haber traído el reparto.
+                sinAplicarMotor={facultadEnFoco
+                  ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.sin_aplicar
+                  : dashboard.course_status_sin_aplicar}
                 reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
