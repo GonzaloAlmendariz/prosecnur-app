@@ -1,4 +1,8 @@
+import { useState } from "react";
+import { Search, XCircle } from "../../../../vendor/lucide-react";
+
 import type { MonitoreoAulasDosTasas } from "../../../../api/monitoreo";
+import { filtraSenales } from "./filtroDeCursoHorario";
 import { pendientesPorFacultad } from "./pendientesPorFacultad";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { ptsDeBanda, senalesPorAula, tasaEnPct, type AulaMedida } from "./senalesPorAula";
@@ -85,6 +89,10 @@ export function AulasSenalesPorAula({
    */
   relevos?: Record<string, { disponibles: number; siguiente: string }>;
 }) {
+  // El hook va ANTES de los early returns: bajo la guarda, React lo pierde al
+  // cambiar de rama y tumba la pestaña con el #310, y ningún test de render lo
+  // ve porque el estado sin bloque nunca llega a montar el buscador.
+  const [busca, setBusca] = useState("");
   const res = senalesPorAula(bloque);
 
   // C3: cada vacío es SUYO y nombra su causa; «backend viejo» y «plan sin
@@ -106,13 +114,20 @@ export function AulasSenalesPorAula({
     );
   }
 
-  const { senalados, descuadres, conformes, sinMedir, pendientes, retiradas, desconocidos, criterio } = res;
-  const bajo = senalados.filter((a) => a.senal === "bajo").length;
-  const sobre = senalados.length - bajo;
+  // **El encabezado cuenta el operativo, no la consulta.** Los grupos de abajo
+  // se filtran; la frase de arriba —«de los N aplicados con margen trazado, M se
+  // salen»— sale del censo COMPLETO y no se mueve al teclear. Un censo que
+  // cambia con lo que uno busca no es un censo, y el contador del buscador ya
+  // dice cuántas filas quedaron.
+  const { senalados: todosSenalados, conformes: todosConformes, criterio } = res;
+  const { senalados, descuadres, conformes, sinMedir, pendientes, retiradas, desconocidos, encontrados, total, filtrado } =
+    filtraSenales(res, busca);
+  const bajo = todosSenalados.filter((a) => a.senal === "bajo").length;
+  const sobre = todosSenalados.length - bajo;
   // SOLO los contrastados (aplicados con banda): ni pendientes ni retirados ni
   // descuadres entran al numerador o al denominador del encabezado (hallazgo
   // 2) — el rótulo viejo prometía rendimiento y entregaba agenda.
-  const contrastables = senalados.length + conformes.length;
+  const contrastables = todosSenalados.length + todosConformes.length;
   const reparto = [
     bajo > 0 ? `${fmt(bajo)} por debajo` : "",
     sobre > 0 ? `${fmt(sobre)} por encima` : "",
@@ -125,11 +140,11 @@ export function AulasSenalesPorAula({
           rendimiento de la agenda. */}
       <p className="aulas-dt-cabeza">
         <span>
-          {senalados.length > 0 ? (
+          {todosSenalados.length > 0 ? (
             <>
               De los <strong>{fmt(contrastables)}</strong> cursos-horario
-              aplicados con margen trazado, <strong>{fmt(senalados.length)}</strong>{" "}
-              {senalados.length === 1 ? "se sale del suyo" : "se salen del suyo"}: {reparto}.
+              aplicados con margen trazado, <strong>{fmt(todosSenalados.length)}</strong>{" "}
+              {todosSenalados.length === 1 ? "se sale del suyo" : "se salen del suyo"}: {reparto}.
             </>
           ) : contrastables > 0 ? (
             <>
@@ -151,6 +166,42 @@ export function AulasSenalesPorAula({
           sale del cálculo por su tasa
         </span>
       </p>
+
+      {/* **El buscador cruza los siete grupos.** Gonzalo, el 2026-09-09: «son
+          muchísimos cursos horarios… a lo mejor algún selector de curso
+          horario, un buscador». Un curso-horario puede estar en cualquiera de
+          los grupos y ES el dato que se busca, así que el filtro no privilegia
+          ninguno: la respuesta a «dónde está CH 74» es el grupo que queda con
+          filas, y por eso al filtrar se abren todos los plegados. */}
+      <div className="aulas-dt-buscador">
+        <div className="aulas-dt-buscador-campo">
+          <Search size={13} />
+          <input
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.currentTarget.value)}
+            placeholder="Buscar curso-horario, facultad o estado"
+            aria-label="Buscar un curso-horario en todos los grupos"
+          />
+          {busca ? (
+            <button type="button" onClick={() => setBusca("")} aria-label="Limpiar la búsqueda">
+              <XCircle size={13} />
+            </button>
+          ) : null}
+        </div>
+        <span>
+          {filtrado
+            ? `${fmt(encontrados)} de ${fmt(total)} cursos-horario`
+            : `${fmt(total)} cursos-horario en total`}
+        </span>
+      </div>
+      {filtrado && encontrados === 0 ? (
+        <p className="mon-profile-muted">
+          Ningún curso-horario coincide con «{busca}». Se busca por código, por
+          facultad y por estado operativo, y todos los términos tienen que
+          aparecer.
+        </p>
+      ) : null}
 
       {/* El descuadre con nombre propio (hallazgo 1): más efectivas que
           elegibles es una inconsistencia de números, no un logro, y no se
@@ -262,7 +313,7 @@ export function AulasSenalesPorAula({
           taparía justo a los señalados. `details` lo deja alcanzable con
           teclado sin costarle alto al panel (C2/C4). */}
       {conformes.length > 0 ? (
-        <details className="aulas-dt-conformes">
+        <details className="aulas-dt-conformes" open={filtrado}>
           <summary>
             <strong>{fmt(conformes.length)}</strong> dentro de su margen · verlos uno a uno
           </summary>
@@ -279,7 +330,7 @@ export function AulasSenalesPorAula({
       {/* Los aplicados que no se pudieron contrastar, cada grupo con su motivo:
           un vacío que diagnostica, no un hueco (C3). */}
       {sinMedir.map((g) => (
-        <details key={g.senal} className="aulas-dt-grupo">
+        <details key={g.senal} className="aulas-dt-grupo" open={filtrado}>
           <summary>
             <strong>{fmt(g.aulas.length)}</strong>{" "}
             {g.aulas.length === 1 ? "curso-horario" : "cursos-horario"} — {g.motivo}
@@ -298,7 +349,7 @@ export function AulasSenalesPorAula({
           condicional a aplicarse, así que del pendiente se enseña lo que se
           espera —con su estado literal— y ningún juicio. */}
       {pendientes.length > 0 ? (
-        <details className="aulas-dt-grupo">
+        <details className="aulas-dt-grupo" open={filtrado}>
           <summary>
             <strong>{fmt(pendientes.length)}</strong>{" "}
             {pendientes.length === 1
@@ -343,7 +394,7 @@ export function AulasSenalesPorAula({
       {/* Los retirados: dejarlos en «bajo, 0%» duplicaría el asiento del hueco
           a perpetuidad; su reemplazo o cancelación ya responde por ellos. */}
       {retiradas.length > 0 ? (
-        <details className="aulas-dt-grupo">
+        <details className="aulas-dt-grupo" open={filtrado}>
           <summary>
             <strong>{fmt(retiradas.length)}</strong>{" "}
             {retiradas.length === 1
