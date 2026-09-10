@@ -371,3 +371,48 @@ este perfil—:
 **El tramo tiene que ser clicable y la lista es un PANEL DEBAJO**, no un popover:
 él dice «abajo se mostrara». Y la dirección debería viajar en la URL como el
 resto del perfil (`panel=` o `foco=`), no en un `useState` suelto.
+
+## LA CADENA DE MATRICULADOS A EFECTIVAS — definición suya, y lo que el dato tiene
+
+Me equivoqué al preguntar si «elegibles obtenidos» eran los asistentes. Su
+corrección, textual:
+
+> «Los **elegibles** son los estudiantes matriculados que cumplen los criterios
+> de inclusión y exclusión. Y los **elegibles esperados** son aquellos que
+> consideramos que van a ver, en base a la tasa de rendimiento o efectividad que
+> establecimos por facultad y también por aula cuando hablamos de forma granular.
+> Y eso se compara con las **efectivas** que tuvimos. Una cosa es decir que de
+> cincuenta matriculados va a haber treinta por temas de asistencia, y de esos
+> treinta van a haber veinte: esos veinte son la tasa de efectividad que
+> habíamos calculado. Pero puede ser que en la realidad tengamos veinticinco o
+> tengamos quince.»
+
+**La cadena, entonces**: matriculados → elegibles (cumplen criterios) → los que
+esperamos ver (asistencia) → los que esperamos que respondan (efectividad) → las
+efectivas reales.
+
+### Lo que el plan guarda de verdad, medido sobre CH 1
+
+| Campo | Valor | Qué es |
+|---|---|---|
+| `enrolled_total` | 30 | matriculados |
+| `eligible_n` | **28** | elegibles: cumplen criterios |
+| `rendimiento_ref` | 0,56 | tasa de referencia |
+| `factor_facultad` | 0,927 | ajuste de su facultad |
+| `tasa_efectividad_aula` | **0,519** | = 0,56 × 0,927 |
+| `expected_valid` | **14,5** | = 28 × 0,519 |
+| `p_aplicada_ref` | 0,87 | probabilidad de que el aula llegue a aplicarse — otra cosa |
+
+**El hallazgo, y hay que decírselo**: el escalón intermedio de su cadena —«de 28
+elegibles esperábamos VER 17»— **no está guardado en ninguna parte**. La tasa del
+aula (0,519) ya lleva dentro la asistencia y la disposición a responder juntas,
+así que el plan salta de elegibles a efectivas esperadas en un solo paso. Los
+asistentes sí se observan, pero sólo DESPUÉS, en el parte de campo
+(`observed_students`, `attendance_pct`).
+
+**Consecuencia para el ítem 26**: la lista de un tramo puede enseñar elegibles,
+efectivas esperadas, asistentes observados y efectivas reales, con la tasa
+prevista al lado de la observada. Lo que NO puede enseñar, con el dato de hoy, es
+«elegibles esperados» como cifra propia: habría que declarar la tasa de asistencia
+por separado en el cálculo de muestra para poder partir el 0,519 en sus dos
+mitades.
