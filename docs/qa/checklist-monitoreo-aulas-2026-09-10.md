@@ -67,7 +67,7 @@ No bloquea ninguna decisión; se cierra cuando lo de arriba esté.
 | 15 | «Tiene que haber un hover por cada barra» | `AulasAvanceDiario` | ☐ |
 | 16 | «Tiene que estar alineado con el gráfico de abajo, de cuándo se termina de aplicar el plan… los días del eje x tienen que alinearse con el ritmo de recolección» | `ejeDeDias` + los dos gráficos | ☑ **visto en pantalla**: los dos gráficos comparten calendario, 07 SET → 01 OCT, mismos 25 días |
 | 17 | «Los días en el eje x no se ven bien» | ambos | ☑ **visto**: los 25 días con su número, horizontales, y el mes sólo al cambiar (SET, OCT) |
-| 40 | **Deuda descubierta por el guard nuevo**: 18 `--pulso-*` huérfanos en nueve hojas del perfil (`--pulso-border-soft`, `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`…). Cada uno es un elemento que hoy se pinta sin el color que pide, en silencio | hojas del perfil | ☐ **congelado con TOPE=18**; cerrarlos exige mirar cada uno en pantalla |
+| 40 | **Deuda descubierta por el guard nuevo**: 18 `--pulso-*` huérfanos en nueve hojas del perfil (`--pulso-border-soft`, `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`…). Cada uno es un elemento que hoy se pinta sin el color que pide, en silencio | hojas del perfil | ◐ **de 18 a 13** (`ad8d9ab6`): cerrados los seis `--pulso-border-soft` —el token del perfil es `--pulso-border`— y el `--pulso-warning` del panel de agendación, que es `--pulso-warn-accent`. Quedan 13: `--pulso-on-accent`, `--pulso-surface-muted`, `--pulso-radius-sm`, `--pulso-focus`, `--pulso-module-monitoreo`, `--pulso-state-ok-fg`, `--pulso-success-text`, `--pulso-border-subtle`, `--pulso-warning-text` |
 
 ### Cerrados
 
