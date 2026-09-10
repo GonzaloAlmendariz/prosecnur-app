@@ -1549,7 +1549,21 @@ export type MonitoreoAulasDashboard = {
 	   * `sin_aula` son las respuestas cuya aula no se pudo identificar: entran en
 	   * `total` y en NINGUNA facultad, así que las facultades no suman el total.
 	   */
-	  respuestas_desglose?: {
+	  /**
+   * Qué relevo le queda a cada titular: `{ "CH 3": { disponibles, siguiente } }`.
+   *
+   * Es la SALIDA de la tabla del margen —dice quién rindió por debajo y ahí se
+   * paraba—. Medido el 2026-09-10: 13 de los 14 por debajo tenían reserva viva.
+   *
+   * **No es `reserva_dirigida`**: aquélla va por celda en déficit y busca en el
+   * banco de extras a qué aula NUEVA ir; ésta mira la cadena del propio
+   * curso-horario, el relevo que el sorteo ya le asignó.
+   *
+   * Un titular sin relevo NO aparece —no aparece con cero—, así que la ausencia
+   * de la clave significa «no tiene», nunca «no se calculó».
+   */
+  reserva_de_la_cadena?: Record<string, { disponibles: number; siguiente: string }>;
+  respuestas_desglose?: {
 	    total: MonitoreoAulasRespuestasCuenta & { sin_aula: number };
 	    facultades: Array<MonitoreoAulasRespuestasCuenta & { facultad: string }>;
 	  };
