@@ -301,10 +301,22 @@ export function AulasRendimientoPorFacultad({
             <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
               aria-label={`Recogido de los alumnos elegibles: ${pct(f.delPotencial)}`}>
+              {/* **Las apartadas se dibujan en pálido.** Visto en pantalla el
+                  2026-09-10: bajo el corte quedaban las barras MÁS LARGAS del
+                  panel —620, 571 y 558 px contra 437 de la primera comparable—
+                  porque una facultad con una sola visita al 100 % dibuja el
+                  carril entero. El ojo va al trazo largo antes que al rótulo, y
+                  el panel decía con la tinta lo contrario de lo que decía con
+                  las palabras. El largo NO se toca —el dato es el dato— y lo
+                  que cambia es el peso del color. */}
               <i style={{
                 width: `${Math.max(4, Math.min(100, f.delPotencial ?? 0))}%`,
-                background: (f.delPotencial ?? 0) >= mediaPotencial
-                  ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
+                background: apartada
+                  ? `color-mix(in srgb, ${(f.delPotencial ?? 0) >= mediaPotencial
+                      ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial} 32%, var(--pulso-surface))`
+                  : (f.delPotencial ?? 0) >= mediaPotencial
+                    ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
+                color: apartada ? "var(--pulso-text-soft)" : undefined,
               }}>{pct(f.delPotencial)}</i>
             </span>
             </span>
@@ -344,16 +356,17 @@ export function AulasRendimientoPorFacultad({
         {explicaLasColumnas ? (
           <>
             <strong>Del potencial</strong> es qué parte de los alumnos elegibles se ha
-            recogido. <strong>Ajustado</strong> —lo que dibuja la barra y ordena la
-            lista— es ese mismo porcentaje acercado a la media del estudio según
-            cuánta evidencia hay detrás: equivale a sumarle a cada{" "}
-            {unidad.toLowerCase()} cinco cursos-horario imaginarios al rendimiento medio,
-            así uno solo afortunado no encabeza. El porcentaje sin ajustar va bajo cada
-            nombre, con los cursos-horario que lo sostienen.{" "}
-            <strong>Por visita</strong> es lo que deja cada curso-horario visitado —cuántas
-            encuestas trae un viaje, que es logística y no rendimiento—, y lleva su
-            propio ajustado por la misma regla. <strong>De los asistentes</strong> mide el
-            trabajo dentro del curso-horario.
+            recogido, y es lo que dibuja la barra y ordena la lista. Debajo de cada
+            nombre va el mismo porcentaje <strong>pesando la evidencia</strong>:
+            acercado a la media del estudio según cuántos cursos-horario lo
+            sostienen —equivale a sumarle a cada {unidad.toLowerCase()} cinco
+            cursos-horario imaginarios al rendimiento medio—. No ordena nada; está
+            para leer cuánto de un porcentaje alto es trabajo y cuánto es una tanda
+            corta. <strong>Por visita</strong> es lo que deja cada curso-horario
+            visitado —cuántas encuestas trae un viaje, que es logística y no
+            rendimiento—, y lleva su propio <strong>ajustado</strong> por la misma
+            regla. <strong>De los asistentes</strong> mide el trabajo dentro del
+            curso-horario.
           </>
         ) : null}
         {/* **De dónde salen los tramos.** Sin decirlo, ver «7:00 – 9:00» con 26
