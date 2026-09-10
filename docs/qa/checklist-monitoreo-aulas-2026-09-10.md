@@ -22,7 +22,7 @@ Lo que hace que el tablero dé una cifra falsa o que no se entienda qué muestra
 | 3 | «Sigue saliendo fail page, lo cual me da a entender de que algo está fallando» | por diagnosticar | ☐ falta reproducirlo: no se sabe en qué pantalla ni con qué acción |
 | 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☑ se queda y ahora se explica: el reparto es de los YA APLICADOS, así que «sin respuestas» es la categoría más grave — falta MIRARLO |
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☑ el título decía AULAS y la cifra contaba RESPUESTAS; la meta se explica en castellano y las tres etiquetas dicen su unidad — falta MIRARLO |
-| 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
+| 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☑ con el 4: la fila enseña el eslabón que faltaba —cuánto deja un curso-horario suyo— y la celda «Pedir» lleva la cadena entera con SUS números — falta MIRARLO |
 
 ### P2 — el modelo, no la pintura
 
@@ -41,7 +41,7 @@ Cada una es una decisión del operativo que hoy hay que tomar mirando otra cosa.
 
 | # | Lo que pidió | Dónde vive | Estado |
 |---|---|---|---|
-| 4 | «A quién hay que agendar… no entiendo en base a qué te basas» + «hay facultades que todavía no terminan de agendar los titulares» | `AulasAlertaDeAnticipacion` | ☐ |
+| 4 | «A quién hay que agendar… no entiendo en base a qué te basas» + «hay facultades que todavía no terminan de agendar los titulares» | `AulasAlertaDeAnticipacion` | ☑ la cadena por fila: faltan N → cada curso-horario suyo deja M → bastarían K → se piden K+ por las caídas de 2025 |
 | 5 | «Tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué tipo de reemplazos» | motor: `sample_role` + `replacement_reason` | ☐ |
 | 7 | «En cada curso-horario contra su propio margen… mostrarlos por facultad, y poder escoger entre los aplicados, los titulares, o el reemplazo uno con el reemplazo dos» | `AulasSenalesPorAula` + `senalesPorAula.ts` | ☐ |
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |

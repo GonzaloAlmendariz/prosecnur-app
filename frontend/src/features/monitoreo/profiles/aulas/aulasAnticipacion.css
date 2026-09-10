@@ -1,0 +1,19 @@
+/* «A quién hay que agendar»: el eslabón de la cadena, bajo el nombre.
+
+   Hoja propia porque `aulasMonitoreo.css` —donde vive el resto del panel— está
+   congelada a crecimiento, y esto es superficie nueva. */
+
+/* Cuánto deja un curso-horario de esta facultad: el paso que faltaba entre
+   «faltan 7» y «pedir 2». Sin él los dos números no se relacionan con nada, y
+   ésa fue la pregunta: «¿en base a qué te basas?». */
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-nombre em {
+  display: block;
+  margin-top: 1px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  /* El nombre manda; esto lo acompaña sin competir por el ancho de su columna. */
+  white-space: normal;
+}
