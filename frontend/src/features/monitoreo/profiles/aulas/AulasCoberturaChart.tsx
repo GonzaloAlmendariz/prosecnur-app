@@ -105,6 +105,28 @@ export function AulasCoberturaChart({
     return coberturaPorAula(filas);
   }, [filas, resumen, sinMetaMotor, recortado]);
 
+  /**
+   * Qué tramo está desplegado.
+   *
+   * **Con `useState` y no con la dirección, a sabiendas.** La gramática tiene
+   * cinco dimensiones y ninguna encaja: `panel` es booleano —un panel abierto o
+   * cerrado, no cuál de seis— y `foco` ya lo ocupa la facultad, que desde
+   * `c5d92a02` filtra toda la pestaña. Meter el tramo en `foco` obligaría a
+   * elegir entre mirar una facultad y abrir un tramo, y él quiere las dos.
+   *
+   * El coste es que este despliegue no sobrevive a una recarga ni se puede
+   * enviar por enlace. Es un detalle DENTRO de un panel, no una vista, así que
+   * el coste es pequeño — pero está declarado, no olvidado.
+   */
+  const [abierto, setAbierto] = useState("");
+
+  // **ARRIBA DE LA GUARDA, y no junto a su uso.** Vivía pegado a la tabla que lo
+  // consume, doscientas líneas más abajo, y por tanto DESPUÉS del `if (!total)`.
+  // Mientras la cobertura siempre tuviera filas no pasaba nada; al filtrar por
+  // facultad, una sin reparto entra por el vacío, React cuenta un hook menos que
+  // en el render anterior y la aplicación entera cae con el #300. Se ve poniendo
+  // una facultad en el selector, no en un test que monta el componente una vez.
+
   // `sinMeta` ya viene contado del motor: decir CUÁNTOS no declaran meta manda a
   // la columna que hay que rellenar, y distingue ese caso de no tener plan.
   if (!total) {
@@ -131,20 +153,6 @@ export function AulasCoberturaChart({
   // del reparto— pero susurra (E10). Y muere la lógica de altura compacta:
   // cinco filas CSS se autodimensionan donde el Plotly pedía 360px fijos.
   const max = Math.max(1, ...tramos.map((t) => t.aulas));
-  /**
-   * Qué tramo está desplegado.
-   *
-   * **Con `useState` y no con la dirección, a sabiendas.** La gramática tiene
-   * cinco dimensiones y ninguna encaja: `panel` es booleano —un panel abierto o
-   * cerrado, no cuál de seis— y `foco` ya lo ocupa la facultad, que desde
-   * `c5d92a02` filtra toda la pestaña. Meter el tramo en `foco` obligaría a
-   * elegir entre mirar una facultad y abrir un tramo, y él quiere las dos.
-   *
-   * El coste es que este despliegue no sobrevive a una recarga ni se puede
-   * enviar por enlace. Es un detalle DENTRO de un panel, no una vista, así que
-   * el coste es pequeño — pero está declarado, no olvidado.
-   */
-  const [abierto, setAbierto] = useState("");
   const tasas = tasasDeLaCobertura(filas);
   const detalle = tramos.map((t) => `${t.etiqueta}: ${fmt(t.aulas)}`).join(" · ");
 
