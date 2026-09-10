@@ -8,6 +8,7 @@ import { AulasResumenPorFacultad } from "./AulasResumenPorFacultad";
 import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
 import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
+import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
@@ -347,7 +348,7 @@ export function AulasPestanaResumen({
                 {/* «cada uno»: la unidad recién nombrada es el curso-horario,
                     masculino (E17 — el contrato de género caza participios,
                     no pronombres, y éste se le escapó). */}
-                <span>{contadorDelReparto(dashboard.course_status_estados)} · en qué punto del circuito está cada uno</span>
+                <span>por rol, con el idioma del libro · en qué punto del circuito está cada uno</span>
               </div>
               {/* Los dos ejes van en paneles propios porque contestan preguntas
                   distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -355,19 +356,29 @@ export function AulasPestanaResumen({
                   de abajo cuánto lleva recogido cada una. Los dos van ANTES de la
                   tabla: la tabla dice aula por aula y esto dice la forma del
                   conjunto. */}
+              {/* **Por ROL, y el eje plano sólo como respaldo.** El reparto
+                  anterior mezclaba tres cosas —el estado de agendamiento, el rol
+                  en el sorteo y el desenlace— y por eso metía las 1 173 reservas
+                  de cadena en un solo tramo. Gonzalo, 2026-09-10: «no entiendo
+                  por qué en reserva hay mil ciento sesenta y nueve», y luego la
+                  taxonomía entera: titulares sin agendar, rechazados, aplicados;
+                  reemplazos utilizados, en cadena, al aire; y el banco.
+
+                  El eje plano se conserva para los tableros generados antes de
+                  que el motor publicara `course_status_rol_y_estado`: no es un
+                  segundo panel, es el mismo panel dibujado con lo que haya. */}
+              {dashboard.course_status_rol_y_estado ? (
+                <AulasEstadoPorRol dashboard={dashboard} />
+              ) : (
               <AulasEstadoChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
                 resumen={dashboard.course_status_estados ?? null}
-                // Para que el respaldo sepa si le llegó el plan entero o el
-                // recorte de 500 filas, igual que en cobertura.
                 totalDelPlan={totalAulas}
                 desconocidasMotor={dashboard.course_status_estados_desconocidos}
-                // La reserva adicional, contada por el motor sobre TODAS las
-                // filas: sin ella, el pie decía «2.109 de 2.109 cursos-horario
-                // en juego» sobre un operativo de 193 visitas.
                 reservaMotor={dashboard.course_status_banco}
                 dormidasMotor={dashboard.course_status_reservas_dormidas}
               />
+              )}
             </section>
             {/* **AQUI HUBO UNA PAREJA DE DOS COLUMNAS Y AHORA NO.** El grid
                 `aulas-avance-pareja` juntaba «Cursos-horario por cobertura» con

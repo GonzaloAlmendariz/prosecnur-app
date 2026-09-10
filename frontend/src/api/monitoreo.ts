@@ -1631,6 +1631,23 @@ export type MonitoreoAulasDashboard = {
 	  course_status_banco?: number;
 	  course_status_reservas_dormidas?: number;
 	  course_status_con_meta?: number;
+	  /** Los que están en juego y con meta pero TODAVÍA NO se han aplicado. */
+	  course_status_sin_aplicar?: number;
+	  /**
+	   * El estado de aplicación repartido por ROL, que es la forma del libro:
+	   * «Aulas Aplicadas (Campo)» va por bloques —TITULAR, REEMPLAZO 1…11— y cada
+	   * uno lleva su propio `STATUS DE APLICACIÓN`.
+	   *
+	   * `en_cadena` contra `al_aire` es la distinción que el eje plano no podía
+	   * hacer y que nadie escribe en el libro: una reserva deja de poder usarse
+	   * en cuanto algún eslabón de su cadena se aplica.
+	   */
+	  course_status_rol_y_estado?: {
+	    titulares?: { total?: number; aplicado?: number; agendado?: number;
+	                  sin_agendar?: number; rechazado?: number; reemplazado?: number };
+	    reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number };
+	    banco?: { total?: number; utilizado?: number; disponible?: number };
+	  };
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;
