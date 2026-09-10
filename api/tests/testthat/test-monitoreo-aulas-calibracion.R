@@ -364,3 +364,71 @@ test_that("el parte de campo también vale como evidencia, sin respuestas de pla
   expect_equal(a$previsto, 80)
   expect_equal(a$aporte_pendiente, 0)
 })
+
+# --- Las tres proyecciones: techo, comprometido y comprometido-con-lo-que-rinde -
+
+.mac3_plan <- function() list(
+  # Aplicada: 40 logradas de 80 previstas -> la celda rinde al 0,5.
+  list(faculty = "DERECHO", operational_code = "CH 1", respuestas_validas = 40,
+       scheduled_date = "2026-09-07", mujeres_esperadas = 80, hombres_esperados = 0),
+  # Pendiente CON fecha: entra en las tres.
+  list(faculty = "DERECHO", operational_code = "CH 2", respuestas_validas = 0,
+       scheduled_date = "2026-09-12", mujeres_esperadas = 60, hombres_esperados = 0),
+  # Pendiente SIN fecha: sólo entra en el techo.
+  list(faculty = "DERECHO", operational_code = "CH 3", respuestas_validas = 0,
+       scheduled_date = "", mujeres_esperadas = 50, hombres_esperados = 0)
+)
+.mac3 <- function() monitoreo_aulas_avance_sexo_facultad(
+  .mac3_plan(), list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 40)))[[1]]
+
+test_that("el aporte AGENDADO es el subconjunto con fecha del pendiente", {
+  a <- .mac3()
+  expect_equal(a$aporte_pendiente, 110)   # 60 + 50
+  expect_equal(a$aporte_agendado, 60)     # solo CH 2
+})
+
+test_that("las tres proyecciones se publican y se ordenan como lo que miden", {
+  a <- .mac3()
+  # (a) el TECHO: todo lo que está en juego, tenga fecha o no.
+  expect_equal(a$proyeccion, 150)                 # 40 + 110
+  # (b) lo COMPROMETIDO: sólo lo que tiene fecha.
+  expect_equal(a$proyeccion_agendada, 100)        # 40 + 60
+  # El techo nunca puede ser menor que lo comprometido.
+  expect_gte(a$proyeccion, a$proyeccion_agendada)
+})
+
+test_that("la (c) corrige por lo que el campo rinde, ENCOGIDO hacia el diseño", {
+  # La celda va 40 de 80 previstas: rinde a 0,5. Sin encoger, las 60 agendadas
+  # valdrían 30 y la (c) daría 70. Con el encogimiento —80 de previsto contra un
+  # peso de 60— el factor queda entre 0,5 y 1, así que la (c) cae ENTRE las dos.
+  a <- .mac3()
+  expect_lt(a$proyeccion_agendada_observada, a$proyeccion_agendada)
+  expect_gt(a$proyeccion_agendada_observada, 70)
+  expect_equal(a$factor_de_campo, round((80 * 0.5 + 60) / (80 + 60), 3))
+})
+
+test_that("sin nada aplicado la (c) NO inventa una corrección: vale lo mismo que la (b)", {
+  # Es el primer día de campo. Un factor sacado de cero observaciones sería una
+  # opinión con forma de cifra.
+  r <- monitoreo_aulas_avance_sexo_facultad(
+    list(list(faculty = "DERECHO", operational_code = "CH 9", respuestas_validas = 0,
+              scheduled_date = "2026-09-12", mujeres_esperadas = 60, hombres_esperados = 0)),
+    list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 0)))[[1]]
+  expect_equal(r$factor_de_campo, 1)
+  expect_equal(r$proyeccion_agendada_observada, r$proyeccion_agendada)
+})
+
+test_that("una celda que rinde POR ENCIMA de lo previsto proyecta más, no menos", {
+  # Es el caso real de HSVG26ULT2 el 2026-09-10: la observada va por encima de la
+  # prevista, así que la (c) proyecta MÁS que la (b) —2 880 contra 2 640—. Si el
+  # signo se invirtiera, el panel avisaría al revés.
+  r <- monitoreo_aulas_avance_sexo_facultad(
+    list(
+      list(faculty = "DERECHO", operational_code = "CH 1", respuestas_validas = 120,
+           scheduled_date = "2026-09-07", mujeres_esperadas = 80, hombres_esperados = 0),
+      list(faculty = "DERECHO", operational_code = "CH 2", respuestas_validas = 0,
+           scheduled_date = "2026-09-12", mujeres_esperadas = 60, hombres_esperados = 0)),
+    list(list(faculty = "DERECHO", sex = "F", target = 400, observed = 120)))[[1]]
+  expect_gt(r$factor_de_campo, 1)
+  expect_gt(r$proyeccion_agendada_observada, r$proyeccion_agendada)
+})
