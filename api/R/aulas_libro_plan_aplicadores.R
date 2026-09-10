@@ -38,7 +38,6 @@
 #'
 #' En MAYÚSCULAS y en el vocabulario del libro, que es donde el equipo ya los
 #' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
-#' @export
 #'
 #' **«APLICADA SIN AGENDACIÓN» es el sexto, y no es un matiz de los otros dos**
 #' (Gonzalo, 2026-09-10, sobre una que aplicaron esa manana: «al final pudimos
@@ -52,6 +51,13 @@
 #' nunca hubo cita. Separarlas es lo que permite medir cuanto del avance sale
 #' de la agenda y cuanto de tocar puertas, que son dos operativos distintos con
 #' costes distintos.
+#'
+#' **El `@export` va al FINAL del bloque, no en medio.** Estaba tras el primer
+#' párrafo y con prosa detrás: roxygen no admite texto después de una etiqueta,
+#' así que se comía la marca y la constante no llegaba a `NAMESPACE`. Nadie lo
+#' vio porque el fichero conservaba la línea de una regeneración anterior; salió
+#' al regenerar el 2026-09-10.
+#' @export
 MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   "POR APLICAR", "APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN",
   "REAGENDADA", "RECHAZADA"

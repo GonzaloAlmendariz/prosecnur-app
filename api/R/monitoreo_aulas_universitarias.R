@@ -628,6 +628,13 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
 }
 
 monitoreo_aulas_normalize_plan <- function(plan = list()) {
+  # **Y la memoria por CONTENIDO, porque la marca de abajo no sobrevive.**
+  # Medido: siete llamadas por build y cero atajos. Ver
+  # `monitoreo_aulas_df_cache.R`.
+  .mad_plan_normalizado(plan, .monitoreo_aulas_normalize_plan_calcula)
+}
+
+.monitoreo_aulas_normalize_plan_calcula <- function(plan = list()) {
   # **Camino rapido: un plan ya normalizado se devuelve tal cual.**
   #
   # Medido sobre el simulacro de campo malo, 1.424 aulas: el tablero tarda
