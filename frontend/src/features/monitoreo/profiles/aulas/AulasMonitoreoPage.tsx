@@ -61,6 +61,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasSelectorDeFacultad } from "./AulasSelectorDeFacultad";
+import { mandoDeFacultadVisible } from "./mandoDeFacultad";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
@@ -1818,16 +1819,31 @@ export default function AulasMonitoreoPage() {
             title={activeDef.label}
             detail={activeDef.desc}
             pestanaLabel={pestanaActivaLabel}
-            // El selector manda sobre la SECCIÓN entera, así que vive en la
-            // cabecera y no dentro de un panel: ahí se movía con el scroll y
-            // sólo existía en la pestaña que lo montaba.
-            control={(
+            // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
+            //
+            // Está en la cabecera y no dentro de un panel porque ahí se movía con
+            // el scroll. Pero estaba en las CINCO pestañas de Avance y en las
+            // otras cuatro secciones, y Gonzalo lo dijo el 2026-09-10: «el
+            // selector de facultades que está en el encabezado debería ser un
+            // botón que sólo esté en resumen, no en las demás pestañas, porque
+            // es Resumen quien maneja este selector».
+            //
+            // Tiene razón en el reparto: Resumen es la única pestaña donde el
+            // foco FILTRA —el bloque «Respuestas» enseña las de esa facultad—;
+            // en las demás sólo RESALTA una fila de un ranking
+            // (`focoQueCruzaLaSeccion.test.tsx`). Un mando que en cuatro de cada
+            // cinco pantallas no cambia lo que se lee, sino que pinta una fila,
+            // pide más atención de la que devuelve.
+            //
+            // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
+            // quitarlo vuelve a Resumen, que es de donde salió.
+            control={mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (
               <AulasSelectorDeFacultad
                 facultades={facultadesDelEstudio}
                 valor={facultadDeLaCabecera}
                 onFoco={cambiarFoco}
               />
-            )}
+            ) : undefined}
           />
           )
         }
