@@ -1,0 +1,90 @@
+/* «Estado de aplicación» por rol. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento y esto es superficie nueva. */
+.mon-profile-page.is-aulas-flow .aulas-epr { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-grupos {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-grupo { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 5px;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-cabeza em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+}
+
+/* Cada barra reparte SU grupo al 100 %: 174 titulares y 1 173 reservas no se
+   comparan en un carril común sin dejar a los titulares en una raya. */
+.mon-profile-page.is-aulas-flow .aulas-epr-barra {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-barra > i { display: block; height: 100%; }
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(0, 15rem));
+  gap: 2px 14px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li > i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li > span {
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li > span strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El detalle ocupa la columna del texto, no la del cuadrito: sangrado bajo su
+   propia etiqueta y no bajo el color, que lo dejaba flotando. */
+.mon-profile-page.is-aulas-flow .aulas-epr-leyenda > li > em {
+  grid-column: 2;
+  color: var(--pulso-text-faint);
+  font-style: normal;
+  line-height: 1.3;
+}
