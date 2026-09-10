@@ -80,7 +80,14 @@ export function tresLecturasDeCuota(
       comprometido,
       conElCampo: numero(c.proyeccion_agendada_observada),
       factorDeCampo: numeroONulo(c.factor_de_campo),
-      faltaComprometido: Math.max(0, cuota - comprometido),
+      // **Hacia ARRIBA y entera**, la misma regla que `.mac_brecha()` en el
+      // motor: «si faltan 0,1 encuestas falta una persona». Sin el techo, la
+      // celda de CIENCIAS Y ARTES DE LA COMUNICACIÓN —cuota 54 y 53,8
+      // comprometidas— salía en la lista de las que no llegan diciendo
+      // «faltan 0», que es una fila contradiciéndose a sí misma. Visto en
+      // pantalla el 2026-09-10. Es lo único que se PIDE, y no se pide media
+      // encuesta.
+      faltaComprometido: Math.ceil(Math.max(0, cuota - comprometido)),
       // **La distinción que da el remedio.** Si el techo llega y lo comprometido
       // no, el plan tiene aulas de sobra y lo que falta es ponerles fecha; si no
       // llega ni el techo, agendar no basta y hay que ir al banco.

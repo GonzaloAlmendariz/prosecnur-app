@@ -325,6 +325,13 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   `POR APLICAR SIN AGENDACIÓN` = "#E8EEF2"
 )
 
+#' La tinta de la raya que separa un día del siguiente.
+#'
+#' La misma del texto de la hoja: la raya organiza, no señala, y en negro puro
+#' compite con los colores de estado que sí llevan información.
+#' @keywords internal
+.alpa_COLOR_SEPARADOR <- "#1F2937"
+
 #' Una regla de color POR VALOR de la celda de aplicador.
 #'
 #' No un relleno fijo por fila: la columna lleva desplegable y quien la cambia
@@ -357,6 +364,51 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
     ),
     index = 0L
   ))
+}
+
+#' La línea que separa un día del siguiente, dibujada por la APP.
+#'
+#' **La dibujaba el equipo a mano y se desalineó en cuanto la app insertó una
+#' fila.** El 2026-09-10 la sincronización metió CH 137 —sábado 12/09, 08:45, la
+#' más temprana de su día— al principio del bloque del sábado, y la raya gruesa
+#' se quedó en la fila de abajo: la cita nueva aparecía colgando del viernes.
+#' Gonzalo: «pero ahora la línea negra del sábado quedó allí arriba de esa
+#' aula».
+#'
+#' Una separación manual no puede sobrevivir a un motor que inserta filas, y el
+#' equipo no tiene por qué recolocarla cada vez. Es estructura de la hoja, no
+#' dato suyo: la pone quien mueve las filas.
+#'
+#' Se limpia el interior del rango ANTES de dibujar, o la raya vieja quedaría
+#' además de la nueva. Sólo las horizontales interiores: los bordes exteriores
+#' del bloque no son nuestros.
+#'
+#' @param sheet_id id de la pestaña.
+#' @param rows las filas publicadas, la primera la cabecera.
+#' @return lista de requests, vacía si no hay al menos dos días.
+#' @keywords internal
+.alpa_separadores_de_dia <- function(sheet_id, rows) {
+  datos <- rows[-1L]
+  if (length(datos) < 2L) return(list())
+  i_fecha <- which(.alpa_CABECERA == "FECHA")[[1L]]
+  n_col <- length(.alpa_CABECERA)
+  fechas <- vapply(datos, function(r) {
+    v <- as.list(r)
+    if (i_fecha <= length(v)) .alpa_txt(v[[i_fecha]]) else ""
+  }, character(1))
+  cortes <- which(fechas[-1L] != fechas[-length(fechas)]) + 1L
+  if (!length(cortes)) return(list())
+  rango <- function(desde, hasta) list(
+    sheetId = sheet_id, startRowIndex = as.integer(desde), endRowIndex = as.integer(hasta),
+    startColumnIndex = 0L, endColumnIndex = as.integer(n_col))
+  limpiar <- list(updateBorders = list(
+    range = rango(1L, length(rows)),
+    innerHorizontal = list(style = "NONE")))
+  c(list(limpiar), lapply(cortes, function(j) list(updateBorders = list(
+    # `j` cuenta filas de DATOS; +1 por la cabecera, y el índice del API es 0-based.
+    range = rango(j, j + 1L),
+    top = list(style = "SOLID_THICK", width = 2L,
+               color = .monitoreo_sheets_rgb(.alpa_COLOR_SEPARADOR))))))
 }
 
 #' Formato de la hoja: cabecera, desplegable de aplicador y su color por valor.
@@ -424,6 +476,9 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
                                   .alpa_COLOR_ESTADO[[e]]))
     }
   }
+  # La raya entre día y día, al final: se dibuja sobre el rango ya conocido y
+  # limpia la del reparto anterior, que con filas insertadas queda corrida.
+  for (req in .alpa_separadores_de_dia(sheet_id, rows)) poner(req)
   # Las tres horas y el código, centrados: son cifras y se leen en columna.
   poner(.maaf_centrar(sheet_id, 2L, 7L, length(rows)))
   for (a in list(list(desde = 0L, hasta = 1L, px = 240L),

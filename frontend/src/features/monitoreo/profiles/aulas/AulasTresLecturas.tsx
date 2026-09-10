@@ -99,7 +99,7 @@ export function AulasTresLecturas({ celdas }: {
                 <i className="aulas-tres-meta" style={{ left: pc(f.cuota) }} />
               </span>
               <span className="aulas-tres-cifras">
-                <b>faltan {fmt(Math.round(f.faltaComprometido))}</b>
+                <b>faltan {fmt(f.faltaComprometido)}</b>
                 {fmt(Math.round(f.comprometido))} de {fmt(f.cuota)}
                 {f.factorDeCampo != null && Math.abs(f.factorDeCampo - 1) >= 0.01 ? (
                   <> · el campo va al {pctPerfil(f.factorDeCampo * 100)} de lo previsto</>

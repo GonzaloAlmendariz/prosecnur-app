@@ -233,3 +233,55 @@ test_that("una aplicada SIN AGENDACIÓN cuenta como rendida y no se reporta como
   expect_true(aulas_distribucion_estado_canonico("APLICADA SIN AGENDACION")
               %in% prosecnurapp:::.madm_APLICADOS)
 })
+
+# --- La raya entre días la dibuja la APP ---------------------------------------
+#
+# La dibujaba el equipo a mano y se desalineó en cuanto la app insertó una fila:
+# el 2026-09-10 la sincronización metió CH 137 —sábado 12/09 a las 08:45, la más
+# temprana de su día— al principio del bloque, y la raya se quedó en la fila de
+# abajo. La cita nueva aparecía colgando del viernes. Gonzalo: «pero ahora la
+# línea negra del sábado quedó allí arriba de esa aula».
+
+test_that("la raya cae donde cambia la fecha, no donde cayó la vez pasada", {
+  fila <- function(dia, fecha, cod) as.list(c(
+    "Interno Pulso", dia, fecha, "", "", "", cod, "", "", "", "", "POR APLICAR"))
+  rows <- list(
+    as.list(prosecnurapp:::.alpa_CABECERA),
+    fila("Viernes", "11/09", "CH 45"),
+    fila("Viernes", "11/09", "CH 142"),
+    fila("Sábado", "12/09", "CH 137"),   # la insertada, primera de su día
+    fila("Sábado", "12/09", "CH 33"))
+  reqs <- prosecnurapp:::.alpa_separadores_de_dia(0L, rows)
+  bordes <- Filter(function(r) !is.null(r$updateBorders$top), reqs)
+  expect_length(bordes, 1L)
+  # Fila 4 del documento (cabecera + 2 del viernes): índice 0-based = 3.
+  expect_identical(bordes[[1]]$updateBorders$range$startRowIndex, 3L)
+  expect_identical(bordes[[1]]$updateBorders$top$style, "SOLID_THICK")
+})
+
+test_that("se limpia la raya anterior antes de dibujar la nueva", {
+  # Sin limpiar, la del reparto pasado quedaría ADEMÁS de la nueva y el bloque
+  # saldría partido en dos sitios.
+  fila <- function(fecha) as.list(c("Interno Pulso", "Lunes", fecha, "", "", "",
+                                    "CH 1", "", "", "", "", "POR APLICAR"))
+  reqs <- prosecnurapp:::.alpa_separadores_de_dia(0L, list(
+    as.list(prosecnurapp:::.alpa_CABECERA), fila("07/09"), fila("08/09")))
+  expect_identical(reqs[[1]]$updateBorders$innerHorizontal$style, "NONE")
+  # Y la limpieza cubre TODAS las filas, no sólo hasta el primer corte.
+  expect_identical(reqs[[1]]$updateBorders$range$endRowIndex, 3L)
+})
+
+test_that("con un solo día no se dibuja ninguna raya", {
+  fila <- as.list(c("Interno Pulso", "Lunes", "07/09", "", "", "",
+                    "CH 1", "", "", "", "", "POR APLICAR"))
+  expect_length(prosecnurapp:::.alpa_separadores_de_dia(
+    0L, list(as.list(prosecnurapp:::.alpa_CABECERA), fila, fila)), 0L)
+})
+
+test_that("el formato de la hoja incluye las rayas", {
+  fila <- function(dia, fecha) as.list(c("Interno Pulso", dia, fecha, "", "", "",
+                                         "CH 1", "", "", "", "", "POR APLICAR"))
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(0L, list(
+    as.list(prosecnurapp:::.alpa_CABECERA), fila("Lunes", "07/09"), fila("Martes", "08/09")))
+  expect_true(any(vapply(reqs, function(r) !is.null(r$updateBorders), logical(1))))
+})
