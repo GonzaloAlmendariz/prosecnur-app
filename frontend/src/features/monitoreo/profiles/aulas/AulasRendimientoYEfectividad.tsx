@@ -6,7 +6,7 @@ import type {
 } from "../../../../api/monitoreo";
 import { fmt } from "./kpisDeAulas";
 import {
-  lecturaDeEfectividad, proyeccionDeLaFacultad, riesgoDeCierre,
+  lecturaDeEfectividad, proyeccionDeLaFacultad, repartoDeSenales, riesgoDeCierre,
 } from "./resumenDeEfectividad";
 import "./aulasRendimientoYEfectividad.css";
 
@@ -48,10 +48,27 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
   }
 
   const riesgo = facultad ? null : riesgoDeCierre(bloque);
+  // **La otra mitad de lo que hay que resumir.** El carril contesta si el
+  // operativo rinde lo que se supuso; esto, si eso es parejo. Una media de 58 %
+  // puede ser quince facultades en 58 o siete en 40 y ocho en 75, y las dos
+  // piden cosas distintas. Sin foco: con una facultad puesta, el reparto de las
+  // quince no es lo que se está mirando.
+  const reparto = facultad ? null : repartoDeSenales(bloque);
   const proyeccion = facultad ? proyeccionDeLaFacultad(fila) : null;
-  const banda = lectura.bandaBajo != null && lectura.bandaAlto != null
+  const intervalo = lectura.bandaBajo != null && lectura.bandaAlto != null
     ? `${(lectura.bandaBajo * 100).toFixed(1)} – ${(lectura.bandaAlto * 100).toFixed(1)} %`
     : "";
+  /**
+   * **Cómo se calculó el intervalo, en el `title` de quien lo enseña.**
+   *
+   * No es decoración metodológica: es lo que impide leer un IC ancho como un
+   * problema de la facultad en vez de como lo que es —pocos cursos-horario
+   * aplicados todavía—.
+   */
+  const comoSeCalcula = "Intervalo de confianza al 95 % de la tasa observada (τ = efectivas ÷ elegibles), "
+    + "estimador de razón con los cursos-horario como conglomerados: los elegibles de uno comparten "
+    + "profesor, hora y sala, así que no son ensayos independientes. Con menos de dos cursos-horario "
+    + "aplicados no hay dispersión que medir y el intervalo no se publica.";
 
   return (
     <div className="aulas-rye" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -67,6 +84,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
           extremos y la banda se pinta: sólo entonces las marcas están EN algún
           sitio. Una tasa va de 0 a 100 y el carril también, porque comprimirlo
           al tramo con datos exagera la distancia entre las dos. */}
+      <div className="aulas-rye-cuerpo">
       {lectura.previsto != null && lectura.observado != null ? (
         <div className="aulas-rye-regla">
           <div className="aulas-rye-carril" role="img" aria-label={lectura.frase}>
@@ -75,12 +93,14 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
             <span className="aulas-rye-tick" style={{ left: "25%" }} />
             <span className="aulas-rye-tick" style={{ left: "50%" }} />
             <span className="aulas-rye-tick" style={{ left: "75%" }} />
-            {/* La banda de la observada, que es lo que impide leer el punto como
-                exacto: con tres cursos-horario aplicados ocupa media regla. */}
+            {/* El IC 95 % de la observada, que es lo que impide leer el punto
+                como exacto: con tres cursos-horario aplicados ocupa media
+                regla, y eso no es un problema de la facultad — es que todavía
+                no hay con qué estrecharlo. */}
             {lectura.bandaBajo != null && lectura.bandaAlto != null ? (
               <span
                 className="aulas-rye-banda"
-                title={`La tasa observada cae entre ${banda}`}
+                title={`IC 95 %: ${intervalo}. ${comoSeCalcula}`}
                 style={{
                   left: `${Math.min(100, Math.max(0, lectura.bandaBajo * 100))}%`,
                   width: `${Math.min(100, Math.max(0, (lectura.bandaAlto - lectura.bandaBajo) * 100))}%`,
@@ -107,18 +127,39 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
               <i className="aulas-rye-clave is-previsto" /> diseño
               {" · "}
               <i className="aulas-rye-clave is-observado" /> campo
-              {lectura.bandaBajo != null ? <>{" · "}<i className="aulas-rye-clave is-banda" /> su banda</> : null}
+              {lectura.bandaBajo != null ? (
+                <>{" · "}<i className="aulas-rye-clave is-banda" />{" "}
+                <abbr title={comoSeCalcula}>IC 95 %</abbr></>
+              ) : null}
             </em>
             <span>100 %</span>
           </p>
         </div>
       ) : null}
+      {reparto ? (
+        /* Al lado del carril y no debajo: son la misma pregunta en dos granos
+           —el conjunto y sus partes— y el carril, que sólo ocupa el tramo entre
+           el 51 % y el 64 %, dejaba media superficie del panel en blanco. */
+        <ul className="aulas-rye-reparto">
+          <li><strong>{fmt(reparto.conforme)}</strong> como lo previsto</li>
+          {reparto.sobre ? <li><strong>{fmt(reparto.sobre)}</strong> por encima de su vara</li> : null}
+          {reparto.bajo ? <li className="es-bajo"><strong>{fmt(reparto.bajo)}</strong> por debajo de su vara</li> : null}
+          {reparto.sinVara ? <li className="es-sin"><strong>{fmt(reparto.sinVara)}</strong> sin vara todavía</li> : null}
+          <li className="es-pie">de {fmt(reparto.total)} facultades</li>
+        </ul>
+      ) : null}
+      </div>
       <p className="aulas-rye-base">
         {/* De dónde sale la observada. Una tasa sin su base se lee como exacta,
-            y con tres cursos-horario aplicados no lo es — por eso viaja la banda. */}
+            y con tres cursos-horario aplicados no lo es — por eso viaja su
+            intervalo de confianza. */}
         Sobre {fmt(lectura.aulas)} {lectura.aulas === 1 ? "curso-horario aplicado" : "cursos-horario aplicados"}
         {" · "}{fmt(lectura.efectivas)} efectivas de {fmt(lectura.elegibles)} elegibles
-        {banda ? <> · la observada cae entre {banda}</> : null}
+        {intervalo ? (
+          <> · <abbr title={comoSeCalcula}>IC 95 %</abbr>{" "}
+          {lectura.margen != null ? <>± {lectura.margen.toFixed(1)} pts, </> : null}
+          {intervalo}</>
+        ) : null}
       </p>
       {riesgo ? <p className="aulas-rye-cierre">{riesgo.frase}</p> : null}
       {proyeccion ? <p className="aulas-rye-cierre">{proyeccion.frase}</p> : null}

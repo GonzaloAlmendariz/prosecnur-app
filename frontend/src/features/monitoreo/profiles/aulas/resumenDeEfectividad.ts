@@ -29,9 +29,31 @@ export type LecturaDeEfectividad = {
   observado: number | null;
   /** La diferencia en PUNTOS porcentuales; `null` si falta alguna de las dos. */
   puntos: number | null;
-  /** La banda de la observada, para no leer un punto como si fuera exacto. */
+  /**
+   * **El intervalo de confianza al 95 % de la observada**, no una «banda».
+   *
+   * Gonzalo, 2026-09-10: «¿más que su banda es el margen de error? siento que
+   * podemos ser más académicos, hasta con un margen de confianza». Lo es, y con
+   * nombre propio: el motor calcula τ̂ = Σefectivas/Σelegibles y su error
+   * estándar por el estimador de RAZÓN linealizado, con las aulas como
+   * conglomerados y Z = 1,959964 (`.maes_banda_razon`). Llamarlo «banda» era
+   * quedarse corto: es un IC 95 %, y decirlo permite leerlo como se debe.
+   *
+   * El conglomerado no es un adorno: los elegibles de un curso-horario comparten
+   * profesor, hora y sala y responden juntos o no responden, así que tratar τ
+   * como binomial sobre Σelegibles daría un intervalo varias veces más angosto
+   * que el real y señalaría facultades por ruido de agrupamiento.
+   */
   bandaBajo: number | null;
   bandaAlto: number | null;
+  /**
+   * El semiancho en PUNTOS porcentuales —el «± tanto»— cuando el intervalo es
+   * simétrico respecto del punto. `null` cuando se recortó contra 0 o 100: τ es
+   * una fracción de elegibles y un intervalo que asomara fuera prometería un
+   * rendimiento imposible, pero entonces el «±» ya no describe el intervalo y
+   * escribirlo mentiría sobre su forma.
+   */
+  margen: number | null;
   /** De cuántas aulas y cuántos elegibles sale la observada. */
   aulas: number;
   elegibles: number;
@@ -68,6 +90,24 @@ function puntosEntre(previsto: number | null, observado: number | null) {
   const b = pct(observado);
   if (a == null || b == null) return null;
   return Math.round((b - a) * 10) / 10;
+}
+
+/**
+ * El «± tanto» del intervalo, sólo si de verdad lo describe.
+ *
+ * El motor acota el IC a [0, 1] porque τ es una fracción, y ese recorte lo
+ * vuelve asimétrico: en una facultad con pocas aulas el extremo bajo puede topar
+ * en cero. Publicar entonces «58,1 % ± 6,0» describiría un intervalo que no es
+ * el que se calculó. Se admite un cuarto de punto de holgura por el redondeo a
+ * cuatro decimales con el que viaja.
+ */
+function margenSimetrico(punto: number | null, bajo: number | null, alto: number | null) {
+  if (punto == null || bajo == null || alto == null) return null;
+  const izquierda = (punto - bajo) * 100;
+  const derecha = (alto - punto) * 100;
+  if (!Number.isFinite(izquierda) || !Number.isFinite(derecha)) return null;
+  if (Math.abs(izquierda - derecha) > 0.25) return null;
+  return Math.round(((izquierda + derecha) / 2) * 10) / 10;
 }
 
 /**
@@ -111,10 +151,13 @@ export function lecturaDeEfectividad(
             ? `El diseño supuso ${pct(previsto)} % y el campo está dando ${pct(observado)} %: ${Math.abs(puntos ?? 0)} puntos por debajo.`
             : `El diseño supuso ${pct(previsto)} % y el campo está dando ${pct(observado)} %: lo previsto, dentro de la banda.`;
 
+  const bajo = base.banda_bajo ?? null;
+  const alto = base.banda_alto ?? null;
   return {
     previsto, observado, puntos,
-    bandaBajo: base.banda_bajo ?? null,
-    bandaAlto: base.banda_alto ?? null,
+    bandaBajo: bajo,
+    bandaAlto: alto,
+    margen: margenSimetrico(observado, bajo, alto),
     aulas,
     elegibles: Number(base.elegibles_aplicados ?? 0) || 0,
     efectivas: Number(base.efectivas ?? 0) || 0,
@@ -164,6 +207,45 @@ export function riesgoDeCierre(
       ? `Ninguna facultad se queda corta con lo agendado, aunque ${fmt(bajoTau)} ${bajoTau === 1 ? "rinde" : "rinden"} por debajo de su tasa prevista.`
       : "Con lo agendado, todas las facultades cierran su cuota.";
   return { facultadesEnRiesgo: enRiesgo, alumnosEnRiesgo: alumnos, facultadesBajoSuTau: bajoTau, frase };
+}
+
+/**
+ * **Cuántas facultades caen a cada lado de su propia vara.**
+ *
+ * El carril del total contesta «¿rinde el operativo lo que se supuso?» y deja
+ * fuera la pregunta que la pestaña de Efectividad contesta facultad por
+ * facultad: **si eso es parejo o hay dispersión**. Una media de 58 % puede ser
+ * quince facultades en 58 o siete en 40 y ocho en 75, y las dos piden cosas
+ * distintas.
+ *
+ * Se cuenta por la SEÑAL del motor, que la calcula con la banda de cada
+ * facultad y no con su punto: con tres cursos-horario aplicados la tasa de una
+ * facultad es ruido, y contar por el signo llamaría «por debajo» a media tabla.
+ * Las que no tienen banda —sin campo o sin tasa prevista— se cuentan aparte:
+ * no son conformes, es que todavía no se sabe.
+ */
+export function repartoDeSenales(
+  bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined,
+) {
+  const filas = bloque?.facultades ?? [];
+  if (!filas.length) return null;
+  let sobre = 0, bajo = 0, conforme = 0, sinVara = 0;
+  for (const f of filas) {
+    if (f.senal === "sobre") sobre += 1;
+    else if (f.senal === "bajo") bajo += 1;
+    else if (f.senal === "conforme") conforme += 1;
+    else sinVara += 1;
+  }
+  const partes = [
+    conforme ? `${fmt(conforme)} como lo previsto` : "",
+    sobre ? `${fmt(sobre)} por encima` : "",
+    bajo ? `${fmt(bajo)} por debajo` : "",
+    sinVara ? `${fmt(sinVara)} sin vara todavía` : "",
+  ].filter(Boolean);
+  return {
+    total: filas.length, sobre, bajo, conforme, sinVara,
+    frase: `De ${fmt(filas.length)} facultades: ${partes.join(" · ")}.`,
+  };
 }
 
 /**
