@@ -28,12 +28,23 @@ function fuentes(dir: string): string[] {
  * suya—, pero TRES reimplementaban el cuerpo y uno formateaba distinto. Es
  * decir: la profecía del docstring, cumplida.
  *
+ * **Y el mismo día se extendió a TODO monitoreo**, porque el guard vivía dentro
+ * de `profiles/aulas/` mientras telefónico y acreditación tenían SEIS copias
+ * más y dos de ellas con `toFixed(1)`, que escribe punto decimal: «49.7%» en un
+ * panel y «49,7%» en la tabla de al lado. Un guard que sólo mira su carpeta deja
+ * el resto de la casa sin puerta.
+ *
  * Este test no prohíbe un helper local que DELEGUE: prohíbe el que construya la
  * cadena por su cuenta. La diferencia se ve en el fuente y sólo en el fuente —
  * dos formatos del mismo número se ven idénticos hasta que uno tiene decimales
  * y el otro no.
  */
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
+/**
+ * Las carpetas que se vigilan. `core/` entra porque ahí viven las casas de los
+ * formateadores comunes y una copia nueva allí sería la peor de todas.
+ */
+const CARPETAS = ["core", "profiles"];
 
 /**
  * Excepciones vivas, cada una con su motivo. Una lista que ya no aplica no
@@ -42,8 +53,16 @@ const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const CON_MOTIVO = new Map<string, string>([
   [
     "kpisDeAulas.ts",
-    "Es la CASA del formateador: aquí vive `pctPerfil()`. Si esta excepción "
-      + "desapareciera, el porcentaje del perfil no lo escribiría nadie.",
+    "Es la CASA del formateador de aulas: aquí vive `pctPerfil()`, con espacio "
+      + "antes del símbolo. Si esta excepción desapareciera, el porcentaje del "
+      + "perfil no lo escribiría nadie.",
+  ],
+  [
+    "formatoComun.ts",
+    "La CASA de los otros dos: `pct()` —entero— y `pctDecimal()` —un decimal, "
+      + "sin espacio—, que usan telefónico y acreditación. Dos formatos "
+      + "distintos y los dos se usan; lo que no puede haber es dos escrituras "
+      + "de cada uno.",
   ],
   [
     "AulasAlertaDeAnticipacion.tsx",
@@ -60,7 +79,7 @@ const CONSTRUYE_PORCENTAJE =
 describe("un solo formateador de porcentaje en el perfil", () => {
   it("ningún archivo de producción construye el suyo", () => {
     const culpables: string[] = [];
-    for (const archivo of fuentes(AQUI)) {
+    for (const archivo of CARPETAS.flatMap((c) => fuentes(path.join(AQUI, c)))) {
       const nombre = path.basename(archivo);
       if (CON_MOTIVO.has(nombre)) continue;
       const fuente = readFileSync(archivo, "utf8");
@@ -79,7 +98,9 @@ describe("un solo formateador de porcentaje en el perfil", () => {
   });
 
   it("las excepciones declaradas siguen existiendo", () => {
-    const vivas = new Set(fuentes(AQUI).map((f) => path.basename(f)));
+    const vivas = new Set(
+      CARPETAS.flatMap((c) => fuentes(path.join(AQUI, c))).map((f) => path.basename(f)),
+    );
     for (const nombre of CON_MOTIVO.keys()) {
       expect(vivas.has(nombre), `${nombre} ya no existe: quita su excepción`).toBe(true);
     }
