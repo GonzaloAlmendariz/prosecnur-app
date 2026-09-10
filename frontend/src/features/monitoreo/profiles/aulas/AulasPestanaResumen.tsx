@@ -14,6 +14,8 @@ import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
 import { delMapaPorFacultad } from "./delMapaPorFacultad";
+import { AulasRendimientoYEfectividad } from "./AulasRendimientoYEfectividad";
+import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { deLaFacultad } from "./deLaFacultad";
@@ -488,6 +490,31 @@ export function AulasPestanaResumen({
                 con UN solo miembro no es un layout que arreglar, es un contenedor
                 que ya no tiene razon de existir. Si algun dia vuelven a ser dos,
                 vuelve el envoltorio con ellas. */}
+            {/* **Resumen resume también Rendimiento y Efectividad.** Gonzalo, dos
+                veces: «no estás resumiendo la información ni de rendimiento ni de
+                efectividad… si Resumen tiene que ser un resumen».
+
+                Va aquí y no al final por la secuencia: el estado dice dónde está
+                cada aula, esto dice cuánto rinde lo que ya se aplicó, y la
+                cobertura de abajo, qué aulas se quedaron cortas — leído en ese
+                orden, la cobertura deja de ser una lista y pasa a tener causa. Y
+                no se mete entre la cobertura y «A quién hay que agendar», que él
+                pidió expresamente que fueran juntos. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Rendimiento y efectividad</h3>
+                <span>lo que supuso el diseño contra lo que está dando el campo</span>
+              </div>
+              <AulasRendimientoYEfectividad
+                bloque={dashboard.efectividad_seguimiento}
+                fila={filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)}
+                facultad={facultadEnFoco ?? ""}
+              />
+            </section>
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
