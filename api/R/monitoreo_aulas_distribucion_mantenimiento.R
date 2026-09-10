@@ -679,7 +679,8 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
                                                      aplicadas = character(0),
                                                      roster = character(0),
                                                      desde = "", hasta = "",
-                                                     aplicar = FALSE) {
+                                                     aplicar = FALSE,
+                                                     fijadas_guardadas = list()) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(400, "E_SHEETS_SPREADSHEET",
@@ -720,6 +721,13 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
 
   # 1 · lo que el coordinador decidió, para que el motor deje de reordenarlo.
   fij <- monitoreo_aulas_fijaciones_desde_distribucion(remoto, plan, roster)
+  # Y en qué se quedó atrás la adopción vigente. Sale de lo que YA se leyó: ni
+  # un request más. Es el aviso que faltaba el 2026-09-09, cuando la app llevaba
+  # 86 fijaciones viejas y once citas habían cambiado de nombre en la hoja.
+  desfase <- tryCatch(
+    monitoreo_aulas_fijaciones_desfasadas(fijadas_guardadas, fij$fijadas),
+    error = function(e) NULL
+  )
   # 2 · las agendadas que no tienen cita, y dónde entra cada una.
   faltan <- monitoreo_aulas_agendadas_sin_cita(plan, remoto, desde = desde, hasta = hasta)
   inserciones <- monitoreo_aulas_posiciones_de_las_nuevas(remoto, faltan$faltantes)
@@ -791,6 +799,14 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     estado = list(cambios = est$cambios, conflictos = est$conflictos,
                   observaciones = est$observaciones %||% list()),
     fijaciones = fij$fijadas,
+    # **En qué se quedó atrás lo adoptado.** Sólo `cambiadas` contradice a la
+    # app; nuevas y retiradas se declaran y no encienden nada.
+    fijaciones_desfasadas = list(
+      hay = isTRUE((desfase %||% list())$hay),
+      cambiadas = (desfase %||% list())$cambiadas %||% list(),
+      nuevas = (desfase %||% list())$nuevas %||% list(),
+      retiradas = (desfase %||% list())$retiradas %||% list()
+    ),
     fijaciones_no_reconocidas = list(
       aplicadores = fij$aplicadores_desconocidos,
       codigos = fij$codigos_desconocidos
@@ -1017,6 +1033,9 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
         destino, plan = plan,
         aplicadas = monitoreo_aulas_codigos_aplicados(plan, partes, efectivas),
         roster = roster,
+        # Las fijaciones VIGENTES, para poder decir en qué se quedó atrás la
+        # adopción sin salir otra vez a la red.
+        fijadas_guardadas = aulas_cfg[["reparto_fijado"]] %||% list(),
         desde = desde, hasta = hasta,
         aplicar = aplicar
       )
@@ -1135,6 +1154,9 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
                                         ""))
                        }, character(1)), collapse = "; "))
   )
+  # El desfase va PRIMERO cuando lo hay: es lo único de la frase que dice que lo
+  # que se está mirando en la app no es lo que el equipo tiene delante.
+  aviso <- monitoreo_aulas_fijaciones_desfasadas_texto(out$fijaciones_desfasadas)
   cabeza <- if (!length(partes)) {
     if (hecho) "No hizo falta cambiar nada." else "No haría falta cambiar nada."
   } else {
@@ -1148,5 +1170,5 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
               sprintf("%s (%s)", x$curso_horario, x$fecha)
             }, character(1)), collapse = ", "))
   }
-  paste(cabeza, cola)
+  paste(c(if (nzchar(aviso)) aviso, cabeza, cola), collapse = " ")
 }

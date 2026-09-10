@@ -1364,7 +1364,11 @@ export default function AulasMonitoreoPage() {
         tono:
           res.sin_aplicador.length ||
           res.estado.conflictos.length ||
-          (res.aulas?.corregidas ?? 0) > 0
+          (res.aulas?.corregidas ?? 0) > 0 ||
+          // Que el reparto de la app no sea el de la hoja es lo más grave que
+          // puede decir este recibo: significa que la pestaña de Asignación
+          // lleva quién sabe cuánto enseñando una foto vieja.
+          res.fijaciones_desfasadas?.hay
             ? "atencion"
             : "ok",
       });
