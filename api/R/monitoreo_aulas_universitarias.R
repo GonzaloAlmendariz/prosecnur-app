@@ -1471,6 +1471,37 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # `STATUS DE APLICACION`. Se calcula sobre `out`, que ya tiene el
   # `application_state` derivado y el estado operativo cruzado con los partes.
   attr(recortado, "rol_y_estado") <- monitoreo_aulas_rol_y_estado(out)
+  # **Y el mismo reparto POR FACULTAD.** Gonzalo, 2026-09-10: «el selector de
+  # facultad que está en el encabezado no hace que los gráficos actualicen…
+  # cuando yo selecciono una facultad, debería mostrarme sólo la de esa
+  # facultad; todos los demás gráficos se deben acomodar a ello».
+  #
+  # Se calcula aquí y no en el frontend por una razón medida: `course_status`
+  # viaja RECORTADO a 500 filas de las 1 392 del plan, así que filtrar en la
+  # pantalla daría el reparto de un recorte y lo presentaría como el de la
+  # facultad. El mismo agujero que ya costó dos paneles en este perfil.
+  fac_cs <- trimws(as.character(out$faculty %||% rep("", nrow(out))))
+  attr(recortado, "rol_y_estado_por_facultad") <- stats::setNames(
+    lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f)
+      monitoreo_aulas_rol_y_estado(out[fac_cs == f, , drop = FALSE])),
+    sort(unique(fac_cs[nzchar(fac_cs)]))
+  )
+  # La cobertura de cada facultad, con el MISMO criterio que la global: sólo los
+  # aplicados, y las que no declaran meta fuera del reparto.
+  attr(recortado, "cobertura_por_facultad") <- stats::setNames(
+    lapply(sort(unique(fac_cs[nzchar(fac_cs)])), function(f) {
+      dentro <- fac_cs == f & con_meta
+      tramo_f <- tramo[dentro]
+      list(
+        cobertura = lapply(claves_cob, function(k)
+          list(clave = k, aulas = as.integer(sum(tramo_f == k, na.rm = TRUE)),
+               etiqueta = monitoreo_aulas_etiqueta_tramo(k))),
+        con_meta = as.integer(sum(dentro)),
+        sin_aplicar = as.integer(sum(fac_cs == f & meta_cs > 0 & en_juego_cs & !aplicado_cs))
+      )
+    }),
+    sort(unique(fac_cs[nzchar(fac_cs)]))
+  )
   recortado
 }
 
@@ -2555,6 +2586,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     course_status_con_meta = as.integer(attr(course_status, "con_meta") %||% 0L),
     course_status_sin_aplicar = as.integer(attr(course_status, "sin_aplicar") %||% 0L),
     course_status_rol_y_estado = attr(course_status, "rol_y_estado") %||% list(),
+    course_status_rol_y_estado_por_facultad = attr(course_status, "rol_y_estado_por_facultad") %||% list(),
+    course_status_cobertura_por_facultad = attr(course_status, "cobertura_por_facultad") %||% list(),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una

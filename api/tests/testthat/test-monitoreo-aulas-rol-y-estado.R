@@ -108,3 +108,44 @@ test_that("sin filas devuelve el reparto en cero y no revienta", {
   expect_identical(d$titulares$total, 0L)
   expect_identical(d$reemplazos$al_aire, 0L)
 })
+
+test_that("el reparto por facultad se calcula en el MOTOR, sobre el plan entero", {
+  # Gonzalo, 2026-09-10: «cuando yo selecciono una facultad, debería mostrarme
+  # sólo la de esa facultad; todos los demás gráficos se deben acomodar a ello».
+  #
+  # Se calcula aquí y no en la pantalla porque `course_status` viaja RECORTADO a
+  # 500 filas: filtrar en el front daría el reparto de un recorte presentado como
+  # el de la facultad.
+  fila <- function(cod, fac, estado, rol = "titular") list(
+    operational_code = cod, classroom_id = cod, sample_role = rol, faculty = fac,
+    expected_valid = 10, eligible_n = 30, sample_status = "agendada",
+    operational_status = estado, responses_total = 0)
+
+  d <- monitoreo_aulas_dashboard(list(
+    fila("CH 1", "DERECHO", "aplicada"),
+    fila("CH 2", "DERECHO", "agendada"),
+    fila("CH 3", "LETRAS", "aplicada"),
+    fila("CH 4", "LETRAS", "aplicada"),
+    fila("CH 5", "LETRAS", "sin_contactar")
+  ), data.frame(), list())
+
+  por_fac <- d$course_status_rol_y_estado_por_facultad
+  expect_true(all(c("DERECHO", "LETRAS") %in% names(por_fac)))
+  expect_identical(por_fac$DERECHO$titulares$total, 2L)
+  expect_identical(por_fac$DERECHO$titulares$aplicado, 1L)
+  expect_identical(por_fac$LETRAS$titulares$total, 3L)
+  expect_identical(por_fac$LETRAS$titulares$aplicado, 2L)
+
+  # Y las partes suman el todo: si una facultad se perdiera por el camino, esta
+  # comprobación lo diría en vez de dejar un reparto corto.
+  expect_identical(
+    sum(vapply(por_fac, function(x) x$titulares$total, integer(1))),
+    d$course_status_rol_y_estado$titulares$total)
+
+  # La cobertura por facultad usa el MISMO criterio que la global: sólo aplicados.
+  cob <- d$course_status_cobertura_por_facultad
+  expect_identical(cob$DERECHO$con_meta, 1L)
+  expect_identical(cob$DERECHO$sin_aplicar, 1L)
+  expect_identical(cob$LETRAS$con_meta, 2L)
+  expect_identical(cob$LETRAS$sin_aplicar, 1L)
+})
