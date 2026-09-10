@@ -6,7 +6,7 @@ import { coberturaPorAula } from "./coberturaPorAula";
 import { AulasCursosDeUnTramo } from "./AulasCursosDeUnTramo";
 import { tasasDeLaCobertura } from "./tasasDeLaCobertura";
 import { balanceDeLaCobertura } from "./balanceDeLaCobertura";
-import { fmt, pctPerfil } from "./kpisDeAulas";
+import { fmt, pctPerfil, unDecimalPerfil } from "./kpisDeAulas";
 import { MINIMO_PARA_COMPARAR } from "./rendimientoPorFacultad";
 import "./aulasCoberturaChart.css";
 
@@ -249,7 +249,7 @@ export function AulasCoberturaChart({
               {" "}y están rindiendo <strong>{pctPerfil(tasas.observada)}</strong>
               {tasas.desvio != null && Math.abs(tasas.desvio) >= 0.1 ? (
                 <em className={tasas.desvio < 0 ? "es-corto" : "es-sobra"}>
-                  {tasas.desvio > 0 ? "+" : "−"}{pctPerfil(Math.abs(tasas.desvio))} pts
+                  {tasas.desvio > 0 ? "+" : "−"}{unDecimalPerfil(Math.abs(tasas.desvio))} pts
                 </em>
               ) : null}
             </>
