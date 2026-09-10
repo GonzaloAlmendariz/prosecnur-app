@@ -440,3 +440,55 @@ describe("la columna de respaldo concuerda con su cifra", () => {
     expect(conNecesarias(4)).toContain("hacen falta 4 de 118");
   });
 });
+
+/**
+ * **El grano que la τ general esconde.**
+ *
+ * Gonzalo, 2026-09-10: «ese valor no debería estar en términos generales sino en
+ * términos de sexo; a ese gráfico le falta granularidad: tiene la tasa general
+ * pero también necesitamos la tasa por sexo y por facultad, y el superávit o
+ * déficit de alumnos por sexo y por facultad».
+ *
+ * La razón de fondo es la misma que sostiene toda la brecha del ADR 0079: la
+ * cuota se fija por facultad Y sexo, y un hombre de más no cubre a una mujer que
+ * falta. Una facultad puede ir conforme en su τ y estar corta en una celda.
+ */
+describe("las dos celdas de sexo de cada facultad", () => {
+  const celdas = [
+    { faculty_key: "derecho", sexo: "F" as const, elegibles: 70, esperadas: 35,
+      efectivas: 23, tasa_prevista: 0.5, tasa_observada: 0.3286, diferencia: -12 },
+    { faculty_key: "derecho", sexo: "M" as const, elegibles: 30, esperadas: 15,
+      efectivas: 18, tasa_prevista: 0.5, tasa_observada: 0.6, diferencia: 3 },
+  ];
+
+  it("enseña la observada sobre la prevista y la diferencia en personas", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento bloque={bloque()} porSexo={celdas} />,
+    );
+    expect(html).toContain("Mujeres");
+    expect(html).toContain("Hombres");
+    expect(html).toContain("32.9 %");
+    expect(html).toContain("50.0 %");
+    // En personas y con signo: −12 en una celda y +3 en la otra, que es
+    // exactamente lo que la τ general de la facultad promedia y esconde.
+    expect(html).toContain("−12");
+    expect(html).toContain("+3");
+  });
+
+  it("sin el bloque por sexo la tabla se pinta igual que antes", () => {
+    const html = renderToStaticMarkup(<AulasEfectividadSeguimiento bloque={bloque()} />);
+    expect(html).not.toContain("Mujeres");
+    expect(html).toContain("Tasa prevista");
+  });
+
+  it("una celda sin elegibles no se dibuja: no hay tasa que enseñar", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento
+        bloque={bloque()}
+        porSexo={[{ ...celdas[0], elegibles: 0 }, celdas[1]]}
+      />,
+    );
+    expect(html).not.toContain("Mujeres");
+    expect(html).toContain("Hombres");
+  });
+});

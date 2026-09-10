@@ -324,3 +324,48 @@
   font-variant-numeric: tabular-nums;
 }
 
+
+/* --- las dos celdas de sexo, bajo el nombre de la facultad ------------------- */
+
+/* Van aquí y no en columnas nuevas: la tabla ya tiene siete y la τ por sexo son
+   seis cifras más por fila, que en columnas obligarían a leer en zigzag para
+   comparar una facultad consigo misma. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 3px 0 0 0;
+  padding-left: 2px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong {
+  color: var(--pulso-text);
+  font-weight: 580;
+}
+
+/* La prevista es la vara: se lee detrás de la observada, como en el resto del
+   perfil. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda i {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em {
+  font-style: normal;
+  font-weight: 560;
+  color: var(--pulso-text-soft);
+}
+
+/* Sólo lo que va corto se tiñe: es lo que hay que ver de un barrido. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-corto { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em.es-sobra { color: var(--pulso-success-fg); }

@@ -2682,6 +2682,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       avance_cuota = avance_cuota,
       desde = .ritmo_borde("desde"), hasta = .ritmo_borde("hasta")
     ),
+    # **La efectividad al grano de FACULTAD x SEXO.** Gonzalo, 2026-09-10: «ese
+    # valor no debería estar en términos generales sino en términos de sexo; a
+    # ese gráfico le falta granularidad: tiene la tasa general pero también
+    # necesitamos la tasa por sexo y por facultad, y el superávit o déficit de
+    # alumnos por sexo y por facultad». La τ general promedia dos poblaciones
+    # que el operativo no trata igual —la cuota se fija por facultad Y sexo, y
+    # la brecha se suma celda a celda—. Ver
+    # `monitoreo_aulas_efectividad_por_sexo.R`.
+    efectividad_por_sexo = monitoreo_aulas_efectividad_por_sexo(
+      plan_df, responses, cfg = cfg,
+      valid_response = valid_response, response_classroom = response_classroom
+    ),
     quotas_sex_faculty = quotas_sex_faculty,
     # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
     # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula

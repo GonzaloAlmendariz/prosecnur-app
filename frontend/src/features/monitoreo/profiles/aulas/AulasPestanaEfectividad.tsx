@@ -61,6 +61,10 @@ export function AulasPestanaEfectividad({
                 bloque={dashboard.efectividad_seguimiento}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
+                // El mismo dato al grano de facultad × sexo. Lo calcula el
+                // motor sobre el plan entero: repartir aquí el padrón por sexo
+                // exigiría `course_status`, que viaja recortado a 500 filas.
+                porSexo={dashboard.efectividad_por_sexo ?? null}
               />
             </section>
             {/* **La tendencia, que es lo que faltaba.** Gonzalo, 2026-09-09:

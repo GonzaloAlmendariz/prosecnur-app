@@ -257,14 +257,89 @@ function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
   return `${esperado} y la observada ${pct(f.tau_observado)}, entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}: ${rel}.`;
 }
 
+/** Una celda de facultad × sexo, tal como la publica el motor. */
+type CeldaDeSexo = {
+  faculty_key: string;
+  sexo: "F" | "M";
+  elegibles: number;
+  esperadas: number;
+  efectivas: number;
+  tasa_prevista: number | null;
+  tasa_observada: number | null;
+  diferencia: number;
+};
+
+/**
+ * Las dos celdas de sexo de una facultad, bajo su nombre.
+ *
+ * **Se nombra el sexo entero, no un símbolo.** «♀ 23» obliga a descifrar un
+ * glifo que no todo el mundo lee igual, y esta tabla ya la mira gente que no
+ * diseñó el estudio.
+ *
+ * **La tasa va con su diferencia en personas**, que es la pareja que decide:
+ * «49 %» no dice si faltan tres alumnas o cuarenta, y «−40» no dice si es un
+ * desastre o el tamaño normal de esa celda.
+ */
+function CeldasDeSexo({ celdas }: { celdas?: { F?: CeldaDeSexo; M?: CeldaDeSexo } }) {
+  if (!celdas || (!celdas.F && !celdas.M)) return null;
+  const una = (c: CeldaDeSexo | undefined, etiqueta: string) => {
+    if (!c || !c.elegibles) return null;
+    return (
+      <span className="aulas-tau-sexo-celda" key={etiqueta}>
+        {etiqueta}{" "}
+        <strong>{c.tasa_observada == null ? "—" : `${(Math.round(c.tasa_observada * 1000) / 10).toFixed(1)} %`}</strong>
+        <i>
+          de {c.tasa_prevista == null ? "—" : `${(Math.round(c.tasa_prevista * 1000) / 10).toFixed(1)} %`}
+        </i>
+        {/* En personas y con signo: el cero se escribe, porque «justo lo
+            previsto» es un resultado y no la ausencia de uno. */}
+        <em className={c.diferencia < 0 ? "es-corto" : c.diferencia > 0 ? "es-sobra" : ""}>
+          {c.diferencia > 0 ? "+" : c.diferencia < 0 ? "−" : ""}
+          {fmt(Math.abs(Math.round(c.diferencia)))}
+        </em>
+      </span>
+    );
+  };
+  return (
+    <span className="aulas-tau-sexo" title="Tasa observada sobre la prevista, y las respuestas de más o de menos, en las mujeres y en los hombres de esta facultad.">
+      {una(celdas.F, "Mujeres")}
+      {una(celdas.M, "Hombres")}
+    </span>
+  );
+}
+
 export function AulasEfectividadSeguimiento({
-  bloque, facultadEnFoco, onFoco,
+  bloque, facultadEnFoco, onFoco, porSexo = null,
 }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   /** Resalta, no filtra: igual que el resto de listas del perfil. */
   facultadEnFoco?: string;
   onFoco?: (foco: FocoDeCuota) => void;
+  /**
+   * El mismo dato al grano de FACULTAD × SEXO. Gonzalo, 2026-09-10: «a ese
+   * gráfico le falta granularidad: tiene la tasa general pero también
+   * necesitamos la tasa por sexo y por facultad, y el superávit o déficit de
+   * alumnos por sexo y por facultad».
+   */
+  porSexo?: ReadonlyArray<CeldaDeSexo> | null;
 }) {
+  /**
+   * Las dos celdas de cada facultad, indexadas por su clave.
+   *
+   * **Va bajo el nombre y no en columnas nuevas.** La tabla ya tiene siete y la
+   * τ por sexo son seis cifras más por fila; puestas en columnas obligarían a
+   * leer en zigzag para comparar una facultad consigo misma. Debajo del nombre,
+   * cada celda se lee al lado de la general que la resume.
+   */
+  const sexosDe = useMemo(() => {
+    const m = new Map<string, { F?: CeldaDeSexo; M?: CeldaDeSexo }>();
+    for (const c of porSexo ?? []) {
+      const actual = m.get(c.faculty_key) ?? {};
+      actual[c.sexo] = c;
+      m.set(c.faculty_key, actual);
+    }
+    return m;
+  }, [porSexo]);
   const filas = useMemo(
     () => (bloque?.facultades ?? []).filter((f) => f.tau_previsto != null || f.aulas_aplicadas > 0),
     [bloque],
@@ -449,6 +524,12 @@ export function AulasEfectividadSeguimiento({
                         {f.residual_base === "sin_base" ? " · sin base histórica propia" : ""}
                       </em>
                     </NombreDeFacultad>
+                    {/* **El grano que la τ general esconde.** La cuota se fija
+                        por facultad Y sexo y la brecha se suma celda a celda —un
+                        hombre de más no cubre a una mujer que falta—, así que
+                        una facultad puede ir conforme en su tasa y estar corta
+                        en una de las dos. */}
+                    <CeldasDeSexo celdas={sexosDe.get(f.faculty_key)} />
                   </th>
                   <td className="aulas-tau-cifra es-debil">{pct(f.tau_previsto)}</td>
                   <td className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>

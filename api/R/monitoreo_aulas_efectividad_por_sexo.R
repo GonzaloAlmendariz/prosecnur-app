@@ -1,0 +1,149 @@
+# La efectividad al grano de FACULTAD x SEXO.
+#
+# Gonzalo, 2026-09-10, sobre la tabla de efectividad: «ese valor no deberia
+# estar en terminos generales sino en terminos de sexo; a ese grafico le falta
+# granularidad en todo: tiene la tasa general pero tambien necesitamos la tasa
+# por sexo y por facultad, y el superavit o deficit de alumnos por sexo y por
+# facultad».
+#
+# La tabla mide τ = efectivas / elegibles por facultad. Esa τ promedia dos
+# poblaciones que el operativo NO trata igual: la cuota se fija por facultad Y
+# sexo (ADR 0079) y la brecha se suma celda a celda porque un hombre de mas no
+# cubre a una mujer que falta. Una facultad puede ir conforme en su τ general y
+# estar corta en una de las dos celdas — que es exactamente el patron del
+# agregado que esconde lo que muerde por celda.
+#
+# **Los tres insumos existen y cada uno tiene su dueño; aqui no se inventa
+# ninguno:**
+#
+# - los ELEGIBLES por sexo salen de la composicion del padron del aula
+#   (`sex_top_1`/`sex_top_1_n`/`sex_top_2`/`sex_top_2_n` del plan). Ojo con la
+#   trampa ya medida en este repo: `sex_top_1` es el sexo MAS FRECUENTE, no
+#   «mujeres» — leerlo como mujeres invierte la mitad de las aulas.
+# - las ESPERADAS por sexo las reparte `.mac_esperadas_por_sexo()`, que prefiere
+#   la hoja de control cuando existe y cae a la composicion del aula si no. No
+#   se recalculan aqui: dos repartos de la misma meta acaban discrepando.
+# - las EFECTIVAS por sexo se cuentan de las respuestas, con los mismos dueños
+#   que las cuotas: `.monitoreo_aulas_response_faculty_values()` para la
+#   facultad, `monitoreo_aulas_columna_sexo()` + `monitoreo_aulas_sexo_key()`
+#   para el sexo y `.maac_atribucion()` para el aula.
+#
+# **Y las tres se miden sobre EL MISMO conjunto de aulas: las aplicadas.**
+# Mezclar esperadas de todo el plan con efectivas de lo aplicado daria un
+# deficit falso del tamaño de lo que todavia no se ha visitado.
+
+#' Efectividad por facultad y sexo.
+#'
+#' @param plan_df el plan, con su composicion por sexo.
+#' @param responses respuestas.
+#' @param cfg config de aulas (para la columna de sexo y sus equivalencias).
+#' @param valid_response logico por fila de `responses`.
+#' @param response_classroom identificador de aula de cada respuesta.
+#' @return lista de celdas `facultad x sexo` con elegibles, esperadas,
+#'   efectivas, las dos tasas y la diferencia en PERSONAS.
+#' @export
+monitoreo_aulas_efectividad_por_sexo <- function(plan_df, responses = data.frame(),
+                                                 cfg = list(),
+                                                 valid_response = logical(0),
+                                                 response_classroom = character(0)) {
+  if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
+
+  estado <- as.character(plan_df$application_state %||% rep("", nrow(plan_df)))
+  aplicada <- estado %in% c("en_aplicacion", "cerrando")
+  if (!any(aplicada)) return(list())
+
+  fac_key <- .cm_criterios_fac_key(as.character(plan_df$faculty %||% plan_df$stratum %||% ""))
+  etiqueta <- as.character(plan_df$faculty %||% plan_df$stratum %||% "")
+
+  # --- elegibles y esperadas, aula a aula ------------------------------------
+  acc <- new.env(parent = emptyenv())
+  suma <- function(k, campo, valor) {
+    if (!is.finite(valor) || valor <= 0) return(invisible(NULL))
+    actual <- get0(k, envir = acc, ifnotfound = NULL)
+    if (is.null(actual)) actual <- list(elegibles = 0, esperadas = 0, efectivas = 0, aulas = 0)
+    actual[[campo]] <- actual[[campo]] + valor
+    assign(k, actual, envir = acc)
+  }
+  etiquetas <- list()
+
+  for (i in which(aplicada)) {
+    k <- fac_key[[i]]
+    if (!nzchar(k)) next
+    fila <- plan_df[i, , drop = FALSE]
+    # El padron del aula, con su sexo declarado. `.pulso_sexo_fm` traduce la
+    # etiqueta a F/M; sin ella no se reparte nada, porque suponer que el sexo
+    # mas frecuente son mujeres es justo el error que ya costo una lectura al
+    # reves de todo el tablero.
+    s1 <- .pulso_sexo_fm(.monitoreo_scalar(fila$sex_top_1 %||% "", ""))
+    s2 <- .pulso_sexo_fm(.monitoreo_scalar(fila$sex_top_2 %||% "", ""))
+    n1 <- suppressWarnings(as.numeric(fila$sex_top_1_n %||% NA))[1]
+    n2 <- suppressWarnings(as.numeric(fila$sex_top_2_n %||% NA))[1]
+    if (identical(s1, "F") || identical(s1, "M")) {
+      if (is.finite(n1)) suma(paste(k, s1, sep = "|"), "elegibles", n1)
+      if ((identical(s2, "F") || identical(s2, "M")) && is.finite(n2)) {
+        suma(paste(k, s2, sep = "|"), "elegibles", n2)
+      }
+    }
+    esp <- .mac_esperadas_por_sexo(fila)
+    if (length(esp$valores)) {
+      for (sx in names(esp$valores)) {
+        sk <- .pulso_sexo_fm(sx)
+        if (identical(sk, "F") || identical(sk, "M")) {
+          suma(paste(k, sk, sep = "|"), "esperadas", as.numeric(esp$valores[[sx]]))
+          suma(paste(k, sk, sep = "|"), "aulas", 1 / max(1L, length(esp$valores)))
+        }
+      }
+    }
+    if (!k %in% names(etiquetas)) etiquetas[[k]] <- etiqueta[[i]]
+  }
+
+  # --- efectivas por facultad y sexo, SOLO de las aulas aplicadas ------------
+  if (is.data.frame(responses) && nrow(responses) && length(response_classroom)) {
+    atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
+    facultad <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
+    if (length(facultad) != nrow(atr)) facultad <- rep("", nrow(atr))
+    sex_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+    sexo_raw <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
+    if (length(sexo_raw) != nrow(atr)) sexo_raw <- rep("", nrow(atr))
+    sexo_key <- monitoreo_aulas_sexo_key(sexo_raw, cfg)
+    # **Sólo las respuestas de un aula APLICADA.** Es lo que hace comparables
+    # las efectivas con las esperadas de arriba; contar las que llegaron por un
+    # aula que el plan aun no da por aplicada compararia dos universos.
+    de_aplicada <- !is.na(atr$fila) & aplicada[pmax(1L, atr$fila)]
+    keep <- atr$valid & nzchar(facultad) & sexo_key %in% c("F", "M") & de_aplicada
+    if (any(keep)) {
+      fk <- .cm_criterios_fac_key(facultad[keep])
+      sk <- sexo_key[keep]
+      for (j in seq_along(fk)) {
+        if (!nzchar(fk[[j]])) next
+        suma(paste(fk[[j]], sk[[j]], sep = "|"), "efectivas", 1)
+      }
+    }
+  }
+
+  claves <- sort(ls(acc))
+  out <- list()
+  for (k in claves) {
+    v <- get(k, envir = acc)
+    partes <- strsplit(k, "|", fixed = TRUE)[[1]]
+    fk <- partes[[1]]; sx <- partes[[2]]
+    elegibles <- v$elegibles
+    # Sin elegibles no hay tasa; la diferencia en personas SI se puede dar, que
+    # es la mitad de lo que se pregunta.
+    tasa <- function(x) if (elegibles > 0) round(x / elegibles, 4) else NA_real_
+    out[[length(out) + 1L]] <- list(
+      faculty_key = fk,
+      facultad = etiquetas[[fk]] %||% fk,
+      sexo = sx,
+      elegibles = as.integer(round(elegibles)),
+      esperadas = round(v$esperadas, 1),
+      efectivas = as.integer(round(v$efectivas)),
+      tasa_prevista = tasa(v$esperadas),
+      tasa_observada = tasa(v$efectivas),
+      # En PERSONAS y con signo, que es como se decide si hay que agendar mas
+      # aulas para esa celda.
+      diferencia = round(v$efectivas - v$esperadas, 1)
+    )
+  }
+  out
+}

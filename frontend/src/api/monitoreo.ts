@@ -1620,6 +1620,30 @@ export type MonitoreoAulasDashboard = {
 	   * 500 filas y los bloques ya agregados, y ninguno trae el día de cada
 	   * respuesta. `meta` y `brecha` son las de `avance_cuota` (ADR 0079).
 	   */
+	  /**
+	   * La efectividad al grano de FACULTAD × SEXO.
+	   *
+	   * La τ general promedia dos poblaciones que el operativo no trata igual: la
+	   * cuota se fija por facultad Y sexo (ADR 0079) y la brecha se suma celda a
+	   * celda, porque un hombre de más no cubre a una mujer que falta. Una
+	   * facultad puede ir conforme en su τ y estar corta en una de las dos.
+	   *
+	   * Todo sobre las aulas APLICADAS: mezclar esperadas de todo el plan con
+	   * efectivas de lo aplicado daría un déficit del tamaño de lo no visitado.
+	   */
+	  efectividad_por_sexo?: Array<{
+	    faculty_key: string;
+	    facultad: string;
+	    sexo: "F" | "M";
+	    /** Del padrón del aula; `sex_top_1` es el sexo MÁS frecuente, no mujeres. */
+	    elegibles: number;
+	    esperadas: number;
+	    efectivas: number;
+	    tasa_prevista: number | null;
+	    tasa_observada: number | null;
+	    /** En PERSONAS y con signo: efectivas − esperadas. */
+	    diferencia: number;
+	  }>;
 	  ritmo_por_facultad?: Array<{
 	    facultad: string;
 	    faculty_key: string;
