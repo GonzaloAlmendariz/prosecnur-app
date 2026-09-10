@@ -400,3 +400,50 @@ test_that("lo específico se pinta ANTES que lo genérico", {
   expect_lt(pos("APLICADA POR REAGENDACIÓN"), pos("APLICADA"))
   expect_lt(pos("APLICADA DE REFUERZO"), pos("APLICADA"))
 })
+
+# --- El «mejor postor» se estima con lo que el campo RINDE, no con el diseño ---
+#
+# El motor publicaba `factor_de_campo` por celda y `monitoreo_aulas_reserva_por_celda()`
+# no lo leía: `tasa_aula` caía siempre al rendimiento por tramo. La costura
+# existía y estaba sin usar. Si el campo va al 60 % de lo previsto, ordenar
+# candidatos por la tasa del diseño es elegir mal.
+
+test_that("el aporte esperado baja cuando el campo rinde por debajo de lo previsto", {
+  # El aporte se lee de `sex_top_*`, que es como el plan describe la
+  # composición del aula: los dos sexos más frecuentes con su conteo.
+  aula <- function(id) list(
+    classroom_id = id, operational_code = id, faculty = "DERECHO",
+    sample_role = "extra_reserve_pool", eligible_n = 60,
+    sex_top_1 = "F", sex_top_1_n = 40, sex_top_2 = "M", sex_top_2_n = 20)
+  celda <- function(factor) list(list(
+    faculty = "DERECHO", sex = "F", estado = "deficit_proyectado", brecha = 40L,
+    factor_de_campo = factor))
+  plan <- list(aula("R 200.1"))
+  con_diseno <- monitoreo_aulas_reserva_por_celda(celda(NA_real_), plan)
+  con_campo  <- monitoreo_aulas_reserva_por_celda(celda(0.6), plan)
+  ap <- function(o) o[[1]]$candidatos[[1]]$aporte_esperado
+  expect_gt(ap(con_diseno), 0)
+  expect_lt(ap(con_campo), ap(con_diseno))
+  # Y la tasa que se declara es la corregida, no la del diseño: el número que se
+  # enseña tiene que ser el que se usó.
+  tasa <- function(o) o[[1]]$candidatos[[1]]$tasa_efectividad
+  expect_lt(tasa(con_campo), tasa(con_diseno))
+  expect_equal(tasa(con_campo), round(tasa(con_diseno) * 0.6, 3), tolerance = 0.002)
+})
+
+test_that("sin factor medible se usa la tasa del diseño, como antes", {
+  aula <- list(classroom_id = "R 200.1", operational_code = "R 200.1",
+               faculty = "DERECHO", sample_role = "extra_reserve_pool",
+               eligible_n = 60,
+               sex_top_1 = "F", sex_top_1_n = 40, sex_top_2 = "M", sex_top_2_n = 20)
+  celda <- function(f) list(list(faculty = "DERECHO", sex = "F",
+                                 estado = "deficit_proyectado", brecha = 40L,
+                                 factor_de_campo = f))
+  base <- monitoreo_aulas_reserva_por_celda(celda(NA_real_), list(aula))
+  # Un factor 0 o negativo no es «rinde cero»: es que no se pudo medir.
+  for (malo in list(NA_real_, 0, -1)) {
+    expect_identical(
+      monitoreo_aulas_reserva_por_celda(celda(malo), list(aula))[[1]]$candidatos[[1]]$aporte_esperado,
+      base[[1]]$candidatos[[1]]$aporte_esperado)
+  }
+})

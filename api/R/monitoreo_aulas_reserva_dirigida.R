@@ -185,9 +185,28 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
   }, avance)
   if (!length(en_deficit)) return(list())
   out <- lapply(en_deficit, function(c1) {
+    # **El aporte se estima con lo que el campo ESTÁ rindiendo en ESA celda**,
+    # no sólo con la tasa que el diseño le puso.
+    #
+    # `tasa_aula` caía siempre al rendimiento por tramo —la tasa del diseño—
+    # mientras el motor publicaba `factor_de_campo` por celda y nadie lo leía: la
+    # costura existía y estaba sin usar. Si en DERECHO Mujeres el campo va al
+    # 80 % de lo previsto, un aula de 60 elegibles no va a rendir lo que el
+    # diseño dice, y ordenar candidatos por una cifra optimista es elegir mal el
+    # mejor postor.
+    #
+    # El factor ya viene ENCOGIDO hacia 1 por el propio motor —con poco
+    # observado manda el diseño—, así que aquí se usa tal cual y no se vuelve a
+    # amortiguar. Sin factor medible se cae a la tasa del diseño, que es el
+    # comportamiento de antes.
+    factor <- suppressWarnings(as.numeric(.monitoreo_scalar(c1$factor_de_campo %||% NA_real_, NA_real_))[1])
+    tasa_de_la_celda <- if (is.finite(factor) && factor > 0) {
+      function(n) .cm_efectividad_rendimiento(n) * factor
+    } else NULL
     cand <- monitoreo_aulas_reserva_dirigida(
       pool = banco, facultad = .monitoreo_scalar(c1$faculty %||% "", ""),
       sexo = .monitoreo_scalar(c1$sex %||% "F", "F"),
+      tasa_aula = tasa_de_la_celda,
       ya_medidos = ya_medidos, tope = tope
     )
     aporte <- if (length(cand)) sum(vapply(cand, function(x) x$aporte_esperado, numeric(1))) else 0
