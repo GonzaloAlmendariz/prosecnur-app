@@ -58,18 +58,46 @@ describe("«Metas por facultad»", () => {
     expect(Math.max(...alturas(html, "aulas-metas-barra-meta"))).toBeLessThan(util);
   });
 
-  it("una facultad de nombre largo se recorta para que quepa el pie", () => {
+  it("una facultad de nombre largo cabe ENTERA repartida en líneas", () => {
+    // **El tope pasó de dos líneas a cinco el 2026-09-10** (Gonzalo: «el eje
+    // puede tener más de dos filas hasta 5 con tal de que entre bien»). Con dos,
+    // «CIENCIAS Y ARTES DE LA COMUNICACIÓN» salía cortada con puntos
+    // suspensivos y se pisaba con su vecina: el rótulo dejaba de distinguir una
+    // facultad de otra, que es para lo único que está.
+    //
+    // El recorte NO desapareció —sigue abajo, para lo que ni en cinco cabe—,
+    // pero deja de ser lo normal.
     const html = renderToStaticMarkup(
       <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS Y ARTES DE LA COMUNICACIÓN" })]} />,
     );
-    // El rótulo se contrae —fuera las palabras vacías, dos líneas, puntos
-    // suspensivos si aún no cabe— y el nombre ENTERO queda en el `title`, que es
-    // donde no estorba. Antes se recortaba sin más y el nombre completo no
-    // estaba en ninguna parte del gráfico.
-    expect(html).toContain("…");
+    expect(html).not.toContain("…");
+    expect(html).toContain(">COMUNICACIÓN</tspan>");
+    // El nombre entero sigue en el `title`, que es donde no estorba.
     expect(html).toContain("<title>CIENCIAS Y ARTES DE LA COMUNICACIÓN</title>");
-    // Y no se pinta entero como texto del eje, que es lo que no cabía.
+    // Y no se pinta de corrido como una sola línea, que es lo que no cabía.
     expect(html).not.toContain(">CIENCIAS Y ARTES DE LA COMUNICACIÓN</tspan>");
+  });
+
+  it("lo que no cabe ni en cinco líneas SIGUE recortándose", () => {
+    // El techo no es decorativo: sin él, un nombre absurdo empujaría el pie del
+    // gráfico sin límite.
+    const largo = "UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE";
+    const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila({ facultad: largo })]} />);
+    expect(html).toContain("…");
+    expect(html).toContain(`<title>${largo}</title>`);
+  });
+
+  it("el pie crece con las líneas, y no a costa de las barras", () => {
+    // Subir el tope sin esto le habría robado a la barra el alto que se le había
+    // devuelto al quitar los rótulos en diagonal.
+    const corto = renderToStaticMarkup(<AulasMetasBarras filas={[fila({ facultad: "DERECHO" })]} />);
+    const largo = renderToStaticMarkup(
+      <AulasMetasBarras filas={[fila({ facultad: "CIENCIAS Y ARTES DE LA COMUNICACIÓN" })]} />,
+    );
+    const alto = (html: string) => Number(/viewBox="0 0 [0-9.]+ ([0-9.]+)"/.exec(html)?.[1] ?? 0);
+    expect(alto(largo)).toBeGreaterThan(alto(corto));
+    // Y con un nombre corto el gráfico queda EXACTAMENTE como estaba.
+    expect(alto(corto)).toBe(340);
   });
 
   it("el lienzo crece con las facultades: quince no caben en el de una", () => {

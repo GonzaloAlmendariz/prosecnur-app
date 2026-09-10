@@ -14,11 +14,23 @@ const HUECO = 5;
  * del gráfico; con los nombres en dos líneas horizontales bastan 54, y esos 42
  * px van a la barra, que es lo que se compara.
  */
-const ALTO = 340;
+const ALTO_BARRAS = 340;
 const MARGEN = { arriba: 22, abajo: 54, izq: 42, der: 8 };
 
 /** Cuántos caracteres caben por línea del rótulo, al ancho de un grupo. */
 const POR_LINEA = 13;
+/**
+ * **Hasta CINCO líneas, no dos** (Gonzalo, 2026-09-10: «el eje puede tener más
+ * de dos filas hasta 5 con tal de que entre bien»).
+ *
+ * Con el tope en dos, «ARQUITECTURA Y URBANISMO» y «GASTRONOMÍA, HOTELERÍA Y
+ * TURISMO» salían cortadas con puntos suspensivos y se pisaban con su vecina:
+ * el rótulo dejaba de distinguir una facultad de otra, que es para lo único que
+ * está. Visto en pantalla ese día.
+ */
+const MAX_LINEAS = 5;
+/** Alto de cada línea del rótulo, en unidades del viewBox. */
+const ALTO_LINEA = 11;
 
 /**
  * El nombre de una facultad en dos líneas, cortando por palabras.
@@ -29,7 +41,9 @@ const POR_LINEA = 13;
  * que sirve el rótulo. Lo que no cabe se corta con puntos suspensivos y el
  * nombre entero queda en el `title`.
  */
-export function enDosLineas(nombre: string, porLinea = POR_LINEA): string[] {
+export function enDosLineas(
+  nombre: string, porLinea = POR_LINEA, maxLineas = MAX_LINEAS,
+): string[] {
   const palabras = String(nombre ?? "").trim().split(/\s+/)
     .filter((p) => p && !["Y", "DE", "LA", "EL", "LAS", "LOS", "DEL"].includes(p.toUpperCase()));
   const lineas: string[] = [];
@@ -38,12 +52,13 @@ export function enDosLineas(nombre: string, porLinea = POR_LINEA): string[] {
     if (!actual) actual = p;
     else if (`${actual} ${p}`.length <= porLinea) actual = `${actual} ${p}`;
     else { lineas.push(actual); actual = p; }
-    if (lineas.length === 2) break;
+    if (lineas.length === maxLineas) break;
   }
-  if (actual && lineas.length < 2) lineas.push(actual);
-  // Dos líneas es el techo: una tercera empujaría el pie del gráfico y nos
-  // devolvería al problema que esto viene a resolver.
-  return lineas.slice(0, 2).map((l, i, todas) => (
+  if (actual && lineas.length < maxLineas) lineas.push(actual);
+  // El techo ya no empuja el pie a ciegas: el gráfico crece lo que ocupen las
+  // líneas que de verdad se usan (`altoDelPie` abajo), así que subirlo no le
+  // roba alto a las barras — que era el motivo por el que estaba en dos.
+  return lineas.slice(0, maxLineas).map((l, i, todas) => (
     l.length > porLinea + 2
       ? `${l.slice(0, porLinea + 1)}…`
       : (i === todas.length - 1 && palabras.join(" ").length > todas.join(" ").length ? `${l}…` : l)
@@ -78,7 +93,16 @@ export function AulasMetasBarras({ filas }: {
     1,
   ) * 1.08;
   const ancho = MARGEN.izq + MARGEN.der + orden.length * GRUPO;
-  const util = ALTO - MARGEN.arriba - MARGEN.abajo;
+  // **El pie crece con los rótulos, y el alto del gráfico con él.** Antes el pie
+  // eran 54 px fijos para dos líneas; subir el tope a cinco sin esto le habría
+  // robado a las barras justo el alto que se les había devuelto. Se paga sólo lo
+  // que ocupan las líneas que de verdad se usan: con facultades de nombre corto
+  // el gráfico queda igual que antes.
+  const lineasPorFacultad = orden.map((f) => enDosLineas(f.facultad).length);
+  const maxLineas = Math.max(2, ...(lineasPorFacultad.length ? lineasPorFacultad : [2]));
+  const abajo = MARGEN.abajo + (maxLineas - 2) * ALTO_LINEA;
+  const ALTO = ALTO_BARRAS + (maxLineas - 2) * ALTO_LINEA;
+  const util = ALTO - MARGEN.arriba - abajo;
   const y = (v: number) => MARGEN.arriba + util * (1 - v / techo);
   const alto = (v: number) => Math.max(0, (util * v) / techo);
 
@@ -166,7 +190,7 @@ export function AulasMetasBarras({ filas }: {
                 </g>
               ))}
               <text
-                x={x0 + BARRA + HUECO / 2} y={ALTO - MARGEN.abajo + 14}
+                x={x0 + BARRA + HUECO / 2} y={ALTO - abajo + 14}
                 textAnchor="middle" className="aulas-metas-etiqueta"
               >
                 {lineas.map((linea, k) => (
