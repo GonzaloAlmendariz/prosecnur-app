@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AulasEfectividadPorDia } from "./AulasEfectividadPorDia";
 import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
 import { AulasSenalesPorAula } from "./AulasSenalesPorAula";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -60,6 +61,30 @@ export function AulasPestanaEfectividad({
                 bloque={dashboard.efectividad_seguimiento}
                 facultadEnFoco={facultadEnFoco}
                 onFoco={onFoco}
+              />
+            </section>
+            {/* **La tendencia, que es lo que faltaba.** Gonzalo, 2026-09-09:
+                «si la efectividad era baja al principio pero ahora se está
+                recuperando: patrones, tendencias». Los otros dos paneles son
+                fotos —una por facultad y otra por curso-horario— y ninguna dice
+                hacia dónde va. Medido sobre el operativo, va: 54,1 % → 58,6 %
+                → 88,9 % en tres jornadas.
+
+                Va DESPUÉS del agregado por facultad y ANTES del detalle por
+                curso-horario: quien entra quiere saber cómo va el campo antes
+                de bajar a una fila. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Hacia dónde va la efectividad</h3>
+                <span>jornada a jornada · dice si el campo está mejorando o si hay que intervenir</span>
+              </div>
+              <AulasEfectividadPorDia
+                partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
+                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
               />
             </section>
             {/* La MISMA pregunta un grano más abajo: es el «en paralelo» del
