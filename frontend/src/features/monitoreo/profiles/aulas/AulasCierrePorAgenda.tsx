@@ -102,7 +102,11 @@ export function AulasCierrePorAgenda({ plan, meta, corte = "" }: {
         </svg>
         {/* Los rótulos van FUERA del SVG: dentro, con `preserveAspectRatio` en
             «none», el texto se estira con el ancho del panel. */}
-        <span className="aulas-cpa-techo">{fmt(techo)}</span>
+        {/* Redondeado: el techo sale de un acumulado con decimales —la
+            corrección por rendimiento no da enteros— y el rótulo decía
+            «2.850,1». Media respuesta no existe, y es la misma regla que ya
+            gobierna el resto del perfil. */}
+        <span className="aulas-cpa-techo">{fmt(Math.round(techo))}</span>
         {metaN != null && metaN <= techo ? (
           <span className="aulas-cpa-rotulo-meta" style={{ top: `${(100 * y(metaN)) / ALTO}%` }}>
             meta {fmt(metaN)}

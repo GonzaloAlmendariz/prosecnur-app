@@ -117,8 +117,19 @@ function estaFuera(f: MonitoreoRow): boolean {
  */
 export function cierrePorAgenda(
   plan: ReadonlyArray<MonitoreoRow> | null | undefined,
-  corte = "",
+  corteCrudo = "",
 ): CierrePorAgenda {
+  /**
+   * **El corte se recorta a `YYYY-MM-DD` aquí dentro.**
+   *
+   * Las filas ya pasaban por `fechaDe()`, pero el corte entraba tal cual y
+   * acababa siendo la FECHA de un día del eje —las agendadas cuya fecha ya pasó
+   * se mueven al corte—. Quien lo llama le pasa `generated_at`, que es un
+   * instante completo, y en pantalla el primer rótulo del eje decía
+   * «2026-09-10T17:19:56Z». Se vio al mirarlo, no en los tests: los fixtures le
+   * pasan la fecha ya corta.
+   */
+  const corte = fechaDe(corteCrudo);
   const vacio: CierrePorAgenda = {
     dias: [], conseguidas: 0, ultimaFecha: "", sinAgendar: 0,
     esperadasSinAgendar: 0, motivo: "sin-plan",
