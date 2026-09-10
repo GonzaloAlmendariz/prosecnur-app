@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { tintaSobre } from "../../coloresDeResultado";
-import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
+import { TRAMOS_DE_APLICACION, clavesDelTramo, estadoDeAplicacion } from "./estadoDeAplicacion";
 import { fmt } from "./kpisDeAulas";
 import "./aulasEstadoChart.css";
 
@@ -132,7 +132,10 @@ export function AulasEstadoChart({
         const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
         const estados = TRAMOS_DE_APLICACION.map((t) => ({
           clave: t.clave, etiqueta: t.etiqueta, color: t.color,
-          aulas: porClave.get(t.clave) ?? 0,
+          // Un tramo puede recoger varias claves del motor —los aplicados
+          // recogen `en_aplicacion` y `cerrando`—, así que se SUMAN. Leer sólo
+          // `t.clave` dejaba el tramo fundido en cero sin que nada fallara.
+          aulas: clavesDelTramo(t).reduce((n, k) => n + (porClave.get(k) ?? 0), 0),
         }));
         const total = estados.reduce((n, e) => n + e.aulas, 0);
         if (total) {

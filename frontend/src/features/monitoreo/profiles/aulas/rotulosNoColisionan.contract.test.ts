@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
+import { TRAMOS_DE_APLICACION, clavesDelTramo } from "./estadoDeAplicacion";
 import { aulasKpis } from "./kpisDeAulas";
 import { FIELD_LABELS } from "./aulasPresentation";
 
@@ -40,24 +40,37 @@ describe("los rótulos de tramo no chocan con los de la banda", () => {
   });
 
   /**
-   * **Aviso de alcance, para que no pase inadvertido.**
+   * **Y no hay tramo «en curso», porque al curso-horario se va UNA vez.**
    *
-   * El KPI se llamaba «Aplicadas» a secas y la comparación de arriba es de
-   * cadena completa, así que mientras duró ese rótulo el guard impedía además
-   * que un tramo se llamase «Aplicada» —el defecto que lo hizo nacer—. Al
-   * ponerle la unidad al KPI («Cursos-horario aplicados»), esa protección
-   * concreta deja de venir sola.
+   * Aquí vivía el guard opuesto: que el tramo `en_aplicacion` no se llamara con
+   * el participio de terminado, porque el motor lo define como «tiene respuestas
+   * pero todavía NO es aplicada ni cerrada», o sea en curso.
    *
-   * Se reafirma aquí, sobre el tramo que falló de verdad, en vez de intentar un
-   * guard más listo que nadie ha necesitado todavía: `en_aplicacion` es «tiene
-   * respuestas pero todavía NO es aplicada ni cerrada»
-   * (`monitoreo_aulas_universitarias.R:1335`), o sea EN CURSO, y «Aplicada» es
-   * el participio de terminado.
+   * Gonzalo, 2026-09-10, y es la regla de fondo del operativo:
+   *
+   * > «Al aula no se puede ir dos veces. Por más que un aula esté incompleta,
+   * > hay que avisar que no se llegó —para eso tenemos el rendimiento de los
+   * > cursos aplicados—, pero no vamos a volver a ir. Aula que se aplica es un
+   * > aula que se aplica, no es que está en proceso, no es que está poco a poco,
+   * > que vamos a ir una vez y luego otra vez. No. Al curso-horario se va una
+   * > sola vez.»
+   *
+   * O sea que «en curso» no era un rótulo mal elegido: era un estado que no
+   * existe. Los dos tramos se funden en «Aplicado», y este contrato pasa a
+   * sujetar que sigan fundidos — volver a partirlos reintroduciría un proceso
+   * que el operativo no tiene, y con él el choque de «Aplicada 0» junto a
+   * «APLICADAS 48».
    */
-  it("y el tramo en curso no se llama con el participio de terminado", () => {
-    const enCurso = TRAMOS_DE_APLICACION.find((t) => t.clave === "en_aplicacion");
-    expect(enCurso, "el tramo `en_aplicacion` desapareció: revisa este contrato").toBeDefined();
-    expect(raiz(enCurso!.etiqueta)).not.toBe("aplicada");
+  it("los aplicados son UN tramo, y recoge las dos claves del motor", () => {
+    const aplicado = TRAMOS_DE_APLICACION.find((t) => t.clave === "aplicado");
+    expect(aplicado, "el tramo `aplicado` desapareció: revisa este contrato").toBeDefined();
+    expect([...clavesDelTramo(aplicado!)].sort()).toEqual(["cerrando", "en_aplicacion"]);
+    // Y no queda ningún tramo suelto con esas claves, que sería la partición de
+    // vuelta por otra puerta.
+    const sueltos = TRAMOS_DE_APLICACION
+      .filter((t) => t.clave !== "aplicado")
+      .filter((t) => clavesDelTramo(t).some((k) => k === "en_aplicacion" || k === "cerrando"));
+    expect(sueltos).toEqual([]);
   });
 
   it("ningún tramo de aplicación usa una palabra de la banda", () => {

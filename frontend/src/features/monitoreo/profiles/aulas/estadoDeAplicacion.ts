@@ -76,13 +76,29 @@ export const TRAMOS_DE_APLICACION = [
   // Es la misma reparación que ya se le hizo al tramo de al lado cuando se
   // llamaba «Cumple» —ver el comentario de abajo—: dos superficies no pueden
   // usar la misma palabra para dos ejes distintos.
-  { clave: "en_aplicacion", etiqueta: "En aplicación", color: COLOR_RESULTADO.parcial },
-  // «Cumple» era la MISMA palabra que el KPI de arriba y que «Meta cumplida» del
-  // grafico de cobertura, para tres cosas distintas. Este tramo no dice que un
-  // aula llego a su meta: el motor lo define como `aplicada|cerrada` **O**
-  // `validas >= meta`, asi que basta con haber salido a campo. «En cierre» es lo
-  // que de verdad significa, y deja la palabra «meta» para quien la mide.
-  { clave: "cerrando", etiqueta: "En cierre", color: COLOR_RESULTADO.efectiva },
+  // **UN solo tramo para los aplicados, y por decisión suya.**
+  //
+  // Aquí vivían dos: «En aplicación» (`en_aplicacion`, tiene respuestas o está
+  // en campo) y «En cierre» (`cerrando`, aplicada, cerrada o ya en su meta).
+  // Gonzalo, 2026-09-10: «no entiendo lo de en cierre», y al preguntarle:
+  // «disuélvelo dentro de titulares aplicados».
+  //
+  // «En cierre» no salió nunca del operativo: se inventó aquí para sustituir a
+  // «Cumple», que chocaba con el KPI de la banda. Y el choque que aquel arreglo
+  // perseguía —la leyenda decía «Aplicada 0» junto a una banda que decía
+  // «APLICADAS 48», con las 48 en el tramo de al lado— **desaparece al fundir
+  // los dos**: ahora el tramo y la banda cuentan lo mismo y por eso pueden
+  // llamarse igual. El defecto era la partición, no la palabra.
+  //
+  // Un tramo puede recoger VARIAS claves del motor: por eso `claves` es una
+  // lista. El motor conserva las suyas —las usa para ordenar y para otros
+  // paneles—; lo que se funde es el idioma de la pantalla.
+  {
+    clave: "aplicado",
+    claves: ["en_aplicacion", "cerrando"],
+    etiqueta: "Aplicado",
+    color: COLOR_RESULTADO.efectiva,
+  },
   // `REEMPLAZADA` en **STATUS MUESTRA**. Antes caían en «Sin agendar», que es
   // falso por partida doble: estaban agendadas y ya no van a aplicarse porque su
   // reserva tomó el relevo. Medido sobre el estudio de 196: de las 48 que decían
@@ -110,6 +126,15 @@ export const TRAMOS_DE_APLICACION = [
  * gráfico lo dirá en vez de perder aulas por el camino —que es exactamente el
  * patrón de lista cerrada que ya costó doce ítems de esta cola—.
  */
+/**
+ * Las claves del motor que recoge un tramo. Casi todos recogen la suya; los
+ * aplicados recogen dos, y el día que el motor parta otro estado se resuelve
+ * aquí sin tocar a los consumidores.
+ */
+export function clavesDelTramo(tramo: { clave: string; claves?: readonly string[] }): readonly string[] {
+  return tramo.claves ?? [tramo.clave];
+}
+
 export function estadoDeAplicacion(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   const estados: EstadoDeAplicacion[] = TRAMOS_DE_APLICACION.map((e) => ({
     clave: e.clave, etiqueta: e.etiqueta, aulas: 0, color: e.color,
@@ -118,7 +143,7 @@ export function estadoDeAplicacion(filas: ReadonlyArray<MonitoreoAulasPlanRow>) 
 
   for (const fila of filas) {
     const clave = typeof fila.application_state === "string" ? fila.application_state.trim() : "";
-    const indice = TRAMOS_DE_APLICACION.findIndex((e) => e.clave === clave);
+    const indice = TRAMOS_DE_APLICACION.findIndex((e) => clavesDelTramo(e).includes(clave));
     if (indice < 0) { desconocidas += 1; continue; }
     estados[indice].aulas += 1;
   }
