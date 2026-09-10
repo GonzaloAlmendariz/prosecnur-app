@@ -127,3 +127,17 @@
 .aulas-metas-scroll { overflow-x: auto; }
 .aulas-metas-pie { color: var(--pulso-text-soft); font-size: 12.5px; margin: 12px 0 0; max-width: 72ch; }
 .aulas-metas-pie p { margin: 0 0 6px; }
+
+/* Barras «Metas por facultad». El contorno es la meta y el relleno lo
+   conseguido, así que el contorno usa el color del texto —es una referencia,
+   no un dato— y el relleno el mismo verde que «aplicado» en el gauge: la misma
+   cosa dicha en los dos gráficos se pinta igual. */
+.aulas-metas-rejilla { stroke: var(--pulso-border); stroke-width: 1; }
+.aulas-metas-eje { font-size: 9.5px; fill: var(--pulso-text-faint); font-variant-numeric: tabular-nums; }
+.aulas-metas-etiqueta { font-size: 9.5px; fill: var(--pulso-text-soft); }
+.aulas-metas-barra-meta { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 1; }
+.aulas-metas-barra-logro { fill: var(--pulso-success-fg); }
+.aulas-metas-swatch[data-tramo="meta-contorno"] {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-text);
+}
