@@ -33,6 +33,8 @@ import { pct } from "../../core/formatoComun";
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { cuotasResumen } from "./cuotasResumen";
+import { deLaFacultad } from "./deLaFacultad";
+import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import { mermaDeRespuestas, type CifrasDeRespuestas } from "./mermaDeRespuestas";
 import { parteDeCampo } from "./parteDeCampo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
@@ -287,7 +289,30 @@ function respuestasKpi(kpis: CifrasDeRespuestas | null | undefined): AulasKpi {
   };
 }
 
-function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
+function registroKpi(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco = ""): AulasKpi {
+  // Con una facultad puesta, los aplicados son los SUYOS. Salen del reparto por
+  // rol que el motor calcula sobre el plan entero —no del `course_status`
+  // recortado a 500 filas—, y son los titulares aplicados de esa facultad.
+  const mapa = dashboard?.course_status_rol_y_estado_por_facultad ?? null;
+  const hayReparto = !!mapa && Object.keys(mapa).length > 0;
+  const suyo = facultadEnFoco ? delMapaPorFacultad(mapa, facultadEnFoco) : null;
+  // **Con una facultad puesta, la cifra del estudio NO sirve de respaldo.** Sin
+  // esta rama, una facultad que no aparece en el reparto heredaba los 56
+  // aplicados del operativo entero y los presentaba como suyos. Cero es el dato
+  // correcto cuando el reparto llegó y ella no está —no tiene aulas en el
+  // plan—; cuando el reparto no llegó, la banda lo declara en vez de contar.
+  const aplicados = facultadEnFoco
+    ? Number(suyo?.titulares?.aplicado ?? 0)
+    : Number(dashboard?.kpis?.aulas_aplicadas ?? 0);
+  if (facultadEnFoco && !hayReparto) {
+    return {
+      label: "Cursos-horario aplicados",
+      icono: ClipboardCheck,
+      value: "S/D",
+      pista: "el reparto por facultad no llegó con los datos",
+      detalle: "Cuenta el curso-horario que alguien registró en esta app, el que su parte declara aplicado y el que ya recibe respuestas por la plataforma. Con una facultad en el selector hace falta el reparto que calcula el motor sobre el plan entero, y este payload no lo trae.",
+    };
+  }
   return {
     // **El rótulo dice su unidad.** Decía «Aplicadas» a secas, en una banda
     // donde la tarjeta de al lado —«Válidas 2,668»— cuenta PERSONAS: quien no
@@ -297,12 +322,14 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // tarjeta y la tabla lo llaman igual.
     label: "Cursos-horario aplicados",
     icono: ClipboardCheck,
-    value: fmt(dashboard?.kpis?.aulas_aplicadas),
+    value: fmt(aplicados),
     // **Y la pista dice las TRES vías, porque desde el 2026-09-07 son tres.**
     // Decía «declarados en el registro de campo» y prometía que la cifra no se
     // derivaba de las respuestas; ese día se derivó, porque con ocho aulas
     // produciendo encuestas la tarjeta enseñaba UNA.
-    pista: "registrados, con parte o ya recibiendo respuestas",
+    pista: facultadEnFoco && suyo
+      ? `de ${fmt(suyo.titulares?.total ?? 0)} titulares de ${facultadEnFoco}`
+      : "registrados, con parte o ya recibiendo respuestas",
     detalle: "Cuenta el curso-horario que alguien registró en esta app, el que su parte declara aplicado y el que ya recibe respuestas por la plataforma. Basta con uno: el parte llega al cerrar la aplicación y a veces tarda, pero las respuestas llegan solas.",
   };
 }
@@ -369,6 +396,15 @@ export function aulasKpis(
    * decorado. Opcional: sin ella, la banda se comporta como antes.
    */
   pestana = "",
+  /**
+   * La facultad del selector de la cabecera, si hay una puesta.
+   *
+   * La banda presidía un Resumen filtrado diciendo las cifras del estudio
+   * entero: «1 063 efectivas · meta 2 500 · 56 aplicados» encima de un panel que
+   * decía «12 de 99» para Psicología. Dos lecturas contradictorias a diez
+   * centímetros, y la de arriba es la que se lee primero.
+   */
+  facultadEnFoco = "",
 ): AulasKpi[] {
   const kpis = dashboard?.kpis;
 
@@ -789,7 +825,7 @@ export function aulasKpis(
   // Las cinco primeras salen de UNA fuente, `avance_cuota`, que es la misma de
   // la tabla de abajo y la misma que el libro escribe en «Avance de campo»: si
   // el KPI y la tabla discrepan, el lector no tiene forma de saber cuál creer.
-  const metas = metasDeAvance(dashboard);
+  const metas = metasDeAvance(dashboard, facultadEnFoco);
   return [
     {
       label: "Efectivas",
@@ -808,7 +844,9 @@ export function aulasKpis(
       label: "Muestra",
       icono: Target,
       value: metas.muestra ? fmt(metas.muestra) : "S/D",
-      pista: metas.muestra ? "la meta del estudio" : "el estudio no declara cuota del diseño",
+      pista: metas.muestra
+        ? (facultadEnFoco ? `la meta de ${facultadEnFoco}` : "la meta del estudio")
+        : (facultadEnFoco ? "el diseño no trazó cuota para esta facultad" : "el estudio no declara cuota del diseño"),
       detalle: "La cuota que el diseño fijó para el estudio, repartida por facultad y por sexo.",
     },
     {
@@ -823,17 +861,23 @@ export function aulasKpis(
       label: "Sobremuestra",
       icono: Layers,
       value: metas.sobremuestra ? fmt(metas.sobremuestra) : "S/D",
-      pista: metas.sobremuestra ? "la segunda meta del estudio" : "el estudio no declara sobremuestra",
+      // Con una facultad puesta no es que falte: es que el diseño la fijó para
+      // el estudio y no por facultad, y prorratearla sería inventar una meta.
+      pista: metas.sobremuestra
+        ? "la segunda meta del estudio"
+        : facultadEnFoco ? "el diseño la fija para el estudio, no por facultad" : "el estudio no declara sobremuestra",
       detalle: "La sobremuestra del diseño. Recibe el mismo trato que la muestra: meta, avance y faltantes, en total, por sexo y por facultad.",
     },
     {
       label: "Avance a la sobremuestra",
       icono: BarChart3,
       value: metas.avanceSobremuestra === null ? "S/D" : pctPerfil(metas.avanceSobremuestra * 100),
-      pista: metas.sobremuestra ? `faltan ${fmt(metas.faltanSobremuestra)}` : "sin sobremuestra contra la que medir",
+      pista: metas.sobremuestra
+        ? `faltan ${fmt(metas.faltanSobremuestra)}`
+        : facultadEnFoco ? "no hay sobremuestra por facultad contra la que medir" : "sin sobremuestra contra la que medir",
       detalle: "Efectivas sobre la sobremuestra, con la misma regla de suma por grupo que el avance a la muestra.",
     },
-    registroKpi(dashboard),
+    registroKpi(dashboard, facultadEnFoco),
     {
       label: "Cursos-horario planificados",
       icono: CalendarRange,
@@ -852,7 +896,53 @@ export function aulasKpis(
  * `quotas_sex_faculty`, porque pasarse en una facultad o en un sexo no cubre lo
  * que falta en otro (ADR 0079) — la misma regla que ya aplicaba `cuotaKpi`.
  */
-function metasDeAvance(dashboard: MonitoreoAulasDashboard | null): {
+/**
+ * Las mismas cinco cifras, pero de UNA facultad.
+ *
+ * **De `avance_cuota.facultades`, que es su dueño** (ADR 0079): efectivas,
+ * cuota y brecha salen de la fila de esa facultad, no de una resta sobre el
+ * total. La brecha de una facultad es la suma de sus celdas de sexo — restar
+ * cuota menos conseguido publica cero justo donde faltan mujeres.
+ *
+ * **La sobremuestra NO se reparte.** El diseño la declara para el estudio y no
+ * por facultad; prorratearla sería inventarse una segunda meta que nadie fijó,
+ * así que esas dos casillas quedan en «S/D» y lo dicen.
+ */
+function metasDeUnaFacultad(
+  dashboard: MonitoreoAulasDashboard | null,
+  avance: Record<string, unknown> | null,
+  facultad: string,
+  numero: (valor: unknown) => number,
+) {
+  const filas = (avance?.facultades ?? []) as Array<Record<string, unknown>>;
+  const suya = delMapaPorFacultad(
+    Object.fromEntries(filas.map((f) => [String(f.facultad ?? ""), f])),
+    facultad,
+  );
+  // Sus celdas de sexo, para el faltante sumado grupo a grupo. Es la misma
+  // regla del agregado y se aplica al mismo subconjunto que la fila.
+  const suyas = deLaFacultad((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[], facultad);
+  const cuota = cuotasResumen(suyas as MonitoreoRow[]).general;
+
+  const efectivas = numero(suya?.respuestas_validas) || cuota.logrado || 0;
+  const muestra = numero(suya?.cuota) || cuota.meta || 0;
+  const faltan = suya?.brecha == null
+    ? (cuota.celdas ? cuota.faltan : Math.max(0, muestra - efectivas))
+    : Math.max(0, numero(suya.brecha));
+  const rol = delMapaPorFacultad(dashboard?.course_status_rol_y_estado_por_facultad, facultad);
+  return {
+    efectivas,
+    muestra,
+    sobremuestra: 0,
+    avanceMuestra: muestra > 0 ? efectivas / muestra : null,
+    avanceSobremuestra: null,
+    faltanMuestra: faltan,
+    faltanSobremuestra: 0,
+    planificados: Number(rol?.titulares?.total ?? 0) || 0,
+  };
+}
+
+function metasDeAvance(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco = ""): {
   efectivas: number;
   muestra: number;
   sobremuestra: number;
@@ -864,11 +954,14 @@ function metasDeAvance(dashboard: MonitoreoAulasDashboard | null): {
 } {
   const avance = (dashboard?.avance_cuota ?? null) as Record<string, unknown> | null;
   const total = (avance?.total ?? {}) as Record<string, unknown>;
-  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
   const numero = (valor: unknown): number => {
     const n = Number(valor ?? 0);
     return Number.isFinite(n) && n > 0 ? n : 0;
   };
+
+  if (facultadEnFoco) return metasDeUnaFacultad(dashboard, avance, facultadEnFoco, numero);
+
+  const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
   // Efectivas: la del avance contra la cuota; si el motor no la publica, la
   // suma de lo observado en los grupos, que es su mismo origen.
   const efectivas = numero(total.respuestas_validas) || cuota.logrado || 0;

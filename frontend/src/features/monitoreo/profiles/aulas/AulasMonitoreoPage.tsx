@@ -264,10 +264,17 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion, pestana, cargando = false, onIr = null }: {
+function AulasKpiBand({ dashboard, seccion, pestana, facultadEnFoco = "", cargando = false, onIr = null }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
   pestana: string;
+  /**
+   * La facultad del selector de la cabecera. La banda presidía un Resumen ya
+   * filtrado con las cifras del estudio entero —«1 063 efectivas · meta 2 500»
+   * encima de un panel que decía «12 de 99»—, y la de arriba es la que se lee
+   * primero.
+   */
+  facultadEnFoco?: string;
   /** El proyecto todavía se está leyendo y no hay dashboard con qué contar. */
   cargando?: boolean;
   /**
@@ -277,7 +284,7 @@ function AulasKpiBand({ dashboard, seccion, pestana, cargando = false, onIr = nu
    */
   onIr?: ((clave: string) => void) | null;
 }) {
-  const kpis = aulasKpis(dashboard, seccion, pestana);
+  const kpis = aulasKpis(dashboard, seccion, pestana, facultadEnFoco);
   // **Un cero mientras se carga no es un dato, es una cuenta que aún no se
   // pudo hacer.**
   //
@@ -1876,6 +1883,7 @@ export default function AulasMonitoreoPage() {
             dashboard={dashboard}
             seccion={seccionActiva}
             pestana={pestanaActiva}
+            facultadEnFoco={facultadDeLaCabecera}
             cargando={loading}
             onIr={(clave) => elegirPestana(seccionActiva, clave)}
           />

@@ -371,3 +371,90 @@ describe("A2: la tarjeta de respuestas dice lo mismo que el embudo", () => {
     expect(tarjeta?.tone).toBe("warn");
   });
 });
+
+/**
+ * **La banda obedece al selector de la cabecera.**
+ *
+ * Captura del 2026-09-10 con Psicología puesta: el Resumen decía «12 de 99
+ * respuestas que pide el plan» y la banda de arriba, «1 063 efectivas · Muestra
+ * 2 500 · 56 cursos-horario aplicados». Dos lecturas contradictorias a diez
+ * centímetros, y la de arriba se lee primero.
+ */
+describe("los KPIs de Avance con una facultad en el selector", () => {
+  const tablero = {
+    kpis: { aulas_aplicadas: 56, respuestas_validas: 1063 },
+    course_status_con_meta: 174,
+    avance_cuota: {
+      total: { cuota: 2500, respuestas_validas: 1063, brecha: 1437 },
+      meta_diseno: 2500,
+      meta_operativa: 3750,
+      facultades: [
+        { facultad: "PSICOLOGÍA", faculty_key: "psicologia", cuota: 75, respuestas_validas: 12, brecha: 63 },
+        { facultad: "DERECHO", faculty_key: "derecho", cuota: 400, respuestas_validas: 300, brecha: 0 },
+      ],
+    },
+    quotas_sex_faculty: [
+      { faculty: "PSICOLOGÍA", sex: "F", target: 40, observed: 8 },
+      { faculty: "PSICOLOGÍA", sex: "M", target: 35, observed: 4 },
+      { faculty: "DERECHO", sex: "F", target: 200, observed: 200 },
+      { faculty: "DERECHO", sex: "M", target: 200, observed: 100 },
+    ],
+    course_status_rol_y_estado_por_facultad: {
+      "PSICOLOGÍA": { titulares: { total: 6, aplicado: 1 } },
+      "DERECHO": { titulares: { total: 30, aplicado: 22 } },
+    },
+  } as unknown as MonitoreoAulasDashboard;
+
+  const por = (facultad: string) =>
+    Object.fromEntries(aulasKpis(tablero, "avance", "", facultad).map((k) => [k.label, k]));
+
+  it("las cifras son las de la facultad, no las del estudio", () => {
+    const k = por("PSICOLOGÍA");
+    expect(k["Efectivas"].value).toBe("12");
+    expect(k["Muestra"].value).toBe("75");
+    expect(k["Avance a la muestra"].value).toBe("16.0 %");
+    expect(k["Cursos-horario aplicados"].value).toBe("1");
+    expect(k["Cursos-horario planificados"].value).toBe("6");
+  });
+
+  it("sin facultad puesta sigue diciendo las del estudio", () => {
+    const k = Object.fromEntries(aulasKpis(tablero, "avance").map((x) => [x.label, x]));
+    expect(k["Efectivas"].value).toBe("1,063");
+    expect(k["Muestra"].value).toBe("2,500");
+    expect(k["Cursos-horario aplicados"].value).toBe("56");
+  });
+
+  it("lo que falta es la BRECHA de su fila, no la resta de su cuota", () => {
+    // 75 - 12 = 63 coincide aquí; lo que se comprueba es que sale del bloque.
+    const conExcedente = {
+      ...tablero,
+      avance_cuota: {
+        ...(tablero as unknown as { avance_cuota: Record<string, unknown> }).avance_cuota,
+        facultades: [{ facultad: "PSICOLOGÍA", cuota: 75, respuestas_validas: 80, brecha: 17 }],
+      },
+    } as unknown as MonitoreoAulasDashboard;
+    const k = Object.fromEntries(
+      aulasKpis(conExcedente, "avance", "", "PSICOLOGÍA").map((x) => [x.label, x]),
+    );
+    // La resta daría CERO con 80 sobre 75, y hay diecisiete mujeres pendientes.
+    expect(k["Avance a la muestra"].pista).toBe("faltan 17");
+  });
+
+  it("la sobremuestra no se prorratea, y la pista dice por qué", () => {
+    const k = por("PSICOLOGÍA");
+    expect(k["Sobremuestra"].value).toBe("S/D");
+    expect(k["Sobremuestra"].pista).toContain("no por facultad");
+    expect(k["Avance a la sobremuestra"].value).toBe("S/D");
+  });
+
+  it("empareja aunque la tilde de la facultad venga descompuesta", () => {
+    expect(por("PSICOLOGÍA".normalize("NFD"))["Muestra"].value).toBe("75");
+  });
+
+  it("una facultad sin fila en el bloque no hereda las cifras del estudio", () => {
+    const k = por("ARQUITECTURA");
+    expect(k["Efectivas"].value).toBe("0");
+    expect(k["Muestra"].value).toBe("S/D");
+    expect(k["Cursos-horario aplicados"].value).toBe("0");
+  });
+});
