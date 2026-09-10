@@ -103,3 +103,86 @@ test_that("un plan sin la columna del libro no inventa desenlaces", {
   df$application_status <- NULL
   expect_equal(monitoreo_aulas_desenlaces_por_tipo(df)$total, 0L)
 })
+
+# ── El hecho ocurre antes de que el libro lo escriba ─────────────────────────
+#
+# Gonzalo, al ver el primer reparto en 0/0/0: «pero si ya han habido tipo A, en
+# Derecho por ejemplo». Tenia razon: el verbo del libro se teclea AL APLICAR, y
+# un reemplazo ocurre cuando el titular cae y se activa su reserva.
+
+plan_derecho <- function() {
+  data.frame(
+    operational_code = c("CH 85", "R 85.1", "CH 90", "R 90.1", "CH 7", "R 7.1"),
+    titular_operational_code = c("CH 85", "CH 85", "CH 90", "CH 90", "CH 7", "CH 7"),
+    sample_role = c("titular", "chain_reserve", "titular", "chain_reserve",
+                    "titular", "chain_reserve"),
+    faculty = rep("DERECHO", 6),
+    sample_status = c("rechazo", "en_contacto", "rechazo", "agendada",
+                      "rechazo", "sin_contactar"),
+    application_status = rep("POR APLICAR", 6),
+    contact_date = c("2026-09-03", "2026-09-08", "2026-09-03", "", "2026-09-02", ""),
+    scheduled_date = c("", "", "", "2026-09-17", "", ""),
+    aula_utilizada = rep("", 6),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("un titular caido con su relevo activado YA es un reemplazo", {
+  # Los dos de DERECHO del corte del 2026-09-10, con el libro todavia en
+  # «POR APLICAR» porque nadie ha ido a aplicar.
+  r <- monitoreo_aulas_desenlaces_por_tipo(plan_derecho())
+  expect_equal(r$reemplazadas$total, 2L)
+  expect_equal(r$reemplazadas$por_facultad[[1]]$facultad, "DERECHO")
+})
+
+test_that("dice cuales los declara el libro y cuales se deducen del campo", {
+  # La diferencia entre los dos numeros dice cuanto le falta al libro para
+  # estar al dia con el campo.
+  r <- monitoreo_aulas_desenlaces_por_tipo(plan_derecho())
+  expect_equal(r$reemplazadas$declarados, 0L)
+  expect_equal(r$reemplazadas$en_curso, 2L)
+})
+
+test_that("un caso que el libro YA declara no se cuenta dos veces", {
+  df <- plan_derecho()
+  df$application_status[df$operational_code == "CH 85"] <- "REEMPLAZADA POR"
+  df$aula_utilizada[df$operational_code == "CH 85"] <- "R 85.1"
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$reemplazadas$total, 2L)
+  expect_equal(r$reemplazadas$declarados, 1L)
+  expect_equal(r$reemplazadas$en_curso, 1L)
+})
+
+test_that("un titular caido SIN relevo no es un reemplazo: es trabajo pendiente", {
+  # CH 7 rechazo y su reserva sigue sin contactar. Contarlo como reemplazo
+  # diria que su hueco ya esta cubierto, y no lo esta.
+  r <- monitoreo_aulas_desenlaces_por_tipo(plan_derecho())
+  expect_equal(r$caidos_sin_relevo, 1L)
+  expect_false(any(vapply(r$reemplazadas$aulas, function(a) a$codigo == "CH 7", logical(1))))
+})
+
+test_that("el titular aplicado con su reserva TAMBIEN aplicada es un complemento", {
+  # Es lo que distingue B de A: el titular no salio, los dos cuentan.
+  df <- plan_derecho()
+  df$sample_status <- c("agendada", "agendada", "rechazo", "agendada", "rechazo", "sin_contactar")
+  df$application_status <- c("APLICADA", "APLICADA", "POR APLICAR", "POR APLICAR",
+                             "POR APLICAR", "POR APLICAR")
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$complementadas$total, 1L)
+  expect_equal(r$complementadas$en_curso, 1L)
+  expect_equal(r$complementadas$aulas[[1]]$codigo, "CH 85")
+})
+
+test_that("un extra del banco aplicado es refuerzo aunque el libro no lo diga", {
+  # El banco no cuelga de ningun titular: aplicarlo ES salir por cuota.
+  df <- rbind(plan_derecho(), data.frame(
+    operational_code = "E 1", titular_operational_code = "",
+    sample_role = "extra_reserve_pool", faculty = "DERECHO",
+    sample_status = "agendada", application_status = "APLICADA",
+    contact_date = "", scheduled_date = "2026-09-12", aula_utilizada = "",
+    stringsAsFactors = FALSE
+  ))
+  r <- monitoreo_aulas_desenlaces_por_tipo(df)
+  expect_equal(r$refuerzos$total, 1L)
+  expect_equal(r$refuerzos$en_curso, 1L)
+})

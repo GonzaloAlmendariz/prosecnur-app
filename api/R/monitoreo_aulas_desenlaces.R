@@ -20,6 +20,27 @@
 # como si nadie la hubiera tocado. Eso se arreglo en
 # `monitoreo_aulas_desenlace_aplicacion()`; esto publica el reparto.
 #
+# **UN DESENLACE OCURRE ANTES DE QUE EL LIBRO LO ESCRIBA.**
+#
+# Gonzalo, al ver el primer reparto en 0/0/0: «pero si ya han habido tipo A, en
+# Derecho por ejemplo». Tenia razon y el fallo era del motor: contaba solo el
+# VERBO del libro, y ese verbo se teclea en STATUS DE APLICACION, o sea **al
+# aplicar**. Un reemplazo tipo A ocurre mucho antes: en el momento en que el
+# titular cae y se activa su reserva. Medido el 2026-09-10: cuatro titulares en
+# rechazo con su reserva 1 ya en juego —CH 85 y CH 90 de DERECHO, CH 29, CH
+# 131— y los cuatro con `application_status` en `pendiente`, porque todavia no
+# se ha ido a aplicar ninguno.
+#
+# Asi que cada desenlace se cuenta por DOS caminos y se dice por cual:
+#
+#   declarados  el coordinador escribio el verbo en el libro. Es el registro.
+#   en curso    el HECHO ya ocurrio y el libro todavia no lo dice. Se deduce del
+#               estado de muestra del titular y de sus reservas.
+#
+# No se suman a ciegas: un caso que tiene las dos cosas cuenta como declarado.
+# Y la diferencia entre los dos numeros es informacion, no ruido: dice cuanto
+# le falta al libro para estar al dia con el campo.
+#
 # **A y B se declaran desde el TITULAR; C desde la reserva.** Es el reparto por
 # eslabon que el propio libro impone: un titular puede haber sido reemplazado o
 # complementado —y entonces dice con CUAL en «AULA UTILIZADA»—, y una reserva
@@ -44,6 +65,7 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
     reemplazadas = .mar_grupo(),
     complementadas = .mar_grupo(),
     refuerzos = .mar_grupo(),
+    caidos_sin_relevo = 0L,
     sin_aula_utilizada = 0L,
     total = 0L
   )
@@ -60,9 +82,53 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
   # A y B las declara el titular; C, la reserva. Se respeta el eslabon aunque el
   # libro traiga el verbo en la fila equivocada: contar una C desde un titular
   # inflaria los refuerzos con aulas que nadie salio a reforzar.
-  reemplazadas <- .mar_grupo(df[estado == "reemplazada_por" & es_titular, , drop = FALSE])
-  complementadas <- .mar_grupo(df[estado == "complementada_con" & es_titular, , drop = FALSE])
-  refuerzos <- .mar_grupo(df[estado == "aplicada_de_refuerzo" & !es_titular, , drop = FALSE])
+  codigo <- .mar_col(df, "operational_code")
+  del_titular <- .mar_col(df, "titular_operational_code")
+  muestra <- vapply(.mar_col(df, "sample_status"), monitoreo_aulas_estado_muestra,
+                    character(1), USE.NAMES = FALSE)
+  en_juego <- nzchar(trimws(.mar_col(df, "contact_date"))) |
+    nzchar(trimws(.mar_col(df, "scheduled_date")))
+
+  # Los titulares que CAYERON: rechazo del docente, o ya marcados reemplazados.
+  cayo <- es_titular & muestra %in% c("rechazo", "reemplazada")
+  # Y de esos, los que tienen al menos una reserva suya ya en juego. Esa pareja
+  # —titular caido + relevo activado— ES el reemplazo, lo diga el libro o no.
+  con_relevo <- vapply(codigo, function(cod) {
+    if (!nzchar(cod)) return(FALSE)
+    any(!es_titular & del_titular == cod & en_juego)
+  }, logical(1), USE.NAMES = FALSE)
+
+  declarada_a <- estado == "reemplazada_por" & es_titular
+  reemplazadas <- .mar_grupo(
+    df[declarada_a | (cayo & con_relevo), , drop = FALSE],
+    declarados = df[declarada_a, , drop = FALSE]
+  )
+  # **Un titular caido SIN relevo no es un reemplazo: es trabajo pendiente.**
+  # Contarlo aqui diria que su hueco ya esta cubierto.
+  sin_relevo <- sum(cayo & !con_relevo & !declarada_a)
+
+  # B: el titular rindio poco y se le sumo una reserva. El hecho se deduce
+  # cuando los DOS se aplicaron —el titular no salio, los dos cuentan—, que es
+  # exactamente lo que distingue B de A.
+  aplicado <- estado %in% c("aplicada", "complementada_con", "aplicada_de_refuerzo")
+  con_relevo_aplicado <- vapply(codigo, function(cod) {
+    if (!nzchar(cod)) return(FALSE)
+    any(!es_titular & del_titular == cod & aplicado)
+  }, logical(1), USE.NAMES = FALSE)
+  declarada_b <- estado == "complementada_con" & es_titular
+  complementadas <- .mar_grupo(
+    df[declarada_b | (es_titular & aplicado & con_relevo_aplicado & !cayo), , drop = FALSE],
+    declarados = df[declarada_b, , drop = FALSE]
+  )
+
+  # C: salir a una reserva por cuota, sin titular caido. El banco de extras no
+  # cuelga de ningun titular, asi que aplicarlo ES refuerzo por definicion.
+  del_banco <- rol == "extra_reserve_pool"
+  declarada_c <- estado == "aplicada_de_refuerzo" & !es_titular
+  refuerzos <- .mar_grupo(
+    df[declarada_c | (del_banco & aplicado), , drop = FALSE],
+    declarados = df[declarada_c, , drop = FALSE]
+  )
 
   # **Un A o un B sin «AULA UTILIZADA» es media frase.** Los dos verbos terminan
   # en preposicion justamente porque piden un CUAL, y sin el no se puede seguir
@@ -74,6 +140,9 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
     reemplazadas = reemplazadas,
     complementadas = complementadas,
     refuerzos = refuerzos,
+    # Titulares caidos a los que todavia NO se ha activado ningun relevo: el
+    # hueco sigue abierto y alguien tiene que llamar.
+    caidos_sin_relevo = as.integer(sin_relevo),
     sin_aula_utilizada = as.integer(sin_cual),
     total = as.integer(reemplazadas$total + complementadas$total + refuerzos$total)
   )
@@ -94,9 +163,11 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
 #' en un caso y una lista en otro acaba con dos ramas, y una de las dos se
 #' prueba sola.
 #' @noRd
-.mar_grupo <- function(filas = NULL) {
+.mar_grupo <- function(filas = NULL, declarados = NULL) {
+  n_dec <- if (is.null(declarados)) 0L else as.integer(nrow(declarados))
   if (is.null(filas) || !nrow(filas)) {
-    return(list(total = 0L, por_facultad = list(), aulas = list()))
+    return(list(total = 0L, declarados = 0L, en_curso = 0L,
+                por_facultad = list(), aulas = list()))
   }
   fac <- .mar_col(filas, "faculty")
   fac[!nzchar(trimws(fac))] <- "Sin facultad"
@@ -116,5 +187,13 @@ monitoreo_aulas_desenlaces_por_tipo <- function(df) {
       efectivas = suppressWarnings(as.numeric(.mar_col(filas, "effective_surveys")[i]))
     )
   })
-  list(total = nrow(filas), por_facultad = por_facultad, aulas = aulas)
+  list(
+    total = nrow(filas),
+    # Cuantos los dice el LIBRO y cuantos se deducen del campo. La diferencia
+    # dice cuanto le falta al libro para estar al dia.
+    declarados = n_dec,
+    en_curso = as.integer(nrow(filas) - n_dec),
+    por_facultad = por_facultad,
+    aulas = aulas
+  )
 }
