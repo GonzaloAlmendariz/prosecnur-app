@@ -501,7 +501,12 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
                  list(desde = 8L, hasta = 9L, px = 190L),
                  list(desde = 9L, hasta = 10L, px = 280L),
                  list(desde = 10L, hasta = 11L, px = 230L),
-                 list(desde = 11L, hasta = 12L, px = 120L))) {
+                 # ESTADO a 240: en 120 px no cabía «APLICADA POR REAGENDACIÓN»
+                 # —el rótulo más largo de los siete— y el chip salía cortado a
+                 # media palabra. Gonzalo, 2026-09-10: «dale más ancho a la
+                 # columna estado». Se le da el mismo que a APLICADOR, que es la
+                 # otra columna que lleva un nombre entero.
+                 list(desde = 11L, hasta = 12L, px = 240L))) {
     poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
   }
   requests
