@@ -103,11 +103,41 @@ test_that("`sex_top_1` es el sexo MAS FRECUENTE, no mujeres", {
   expect_equal(celda(out, "DERECHO", "F")$elegibles, 50L)
 })
 
-test_that("sin plan o sin aulas aplicadas devuelve vacio, no celdas en cero", {
+test_that("sin plan devuelve vacio, no celdas en cero", {
   expect_equal(monitoreo_aulas_efectividad_por_sexo(data.frame()), list())
+})
+
+test_that("un plan sin aplicadas Y SIN RESPUESTAS no publica celdas", {
   plan <- plan_fixture()
   plan$application_state <- rep("pendiente", 3)
-  expect_equal(corre(plan = plan), list())
+  expect_equal(
+    monitoreo_aulas_efectividad_por_sexo(
+      plan, data.frame(), cfg = list(source_mapping = list(sex_var = "sexo")),
+      valid_response = logical(0), response_classroom = character(0)
+    ),
+    list()
+  )
+})
+
+test_that("**una respuesta valida basta para dar por visitado el curso-horario**", {
+  # Regla de la casa, la misma que `estaAplicado` en el frontend y la que usa el
+  # resto del perfil como respaldo: si de un curso-horario llegaron respuestas,
+  # alguien fue. El plan crudo no lo sabe —su `operational_status` dice
+  # «planificada» en las 1 392 filas y `application_state` ni existe: eso lo
+  # produce `course_status` cruzando respuestas y partes—, y ese derivado ni
+  # conserva el padron por sexo ni mantiene el orden del plan, asi que alinearlo
+  # aqui seria una atadura que puede romperse en silencio.
+  plan <- plan_fixture()
+  plan$application_state <- rep("pendiente", 3)
+  out <- corre(plan = plan)
+  expect_true(length(out) > 0)
+  # Las tres tienen respuestas en el fixture, así que las dos facultades entran:
+  # es exactamente lo que dice la regla. Una sin respuestas seguiría fuera, y eso
+  # lo fija el caso de arriba.
+  expect_equal(
+    sort(unique(vapply(out, function(x) x$facultad, character(1)))),
+    c("DERECHO", "PSICOLOGÍA")
+  )
 })
 
 # --- la trampa que costó un bloque vacío en el payload ------------------------
@@ -122,14 +152,22 @@ test_that("un plan SIN `application_state` no se lee como si nada estuviera apli
   plan$application_state <- NULL
   resp <- respuestas_fixture()
 
-  # Sin decir cuáles están aplicadas no puede inventárselo: devuelve vacío.
+  # Sin la columna Y SIN RESPUESTAS no puede inventárselo: devuelve vacío.
   expect_equal(
     monitoreo_aulas_efectividad_por_sexo(
-      plan, resp, cfg = list(source_mapping = list(sex_var = "sexo")),
-      valid_response = rep(TRUE, nrow(resp)), response_classroom = resp$aula
+      plan, data.frame(), cfg = list(source_mapping = list(sex_var = "sexo")),
+      valid_response = logical(0), response_classroom = character(0)
     ),
     list()
   )
+  # Con respuestas SÍ, por la regla de arriba: quien recibió respuestas se
+  # visitó, y eso no depende de ninguna columna de estado.
+  expect_true(length(
+    monitoreo_aulas_efectividad_por_sexo(
+      plan, resp, cfg = list(source_mapping = list(sex_var = "sexo")),
+      valid_response = rep(TRUE, nrow(resp)), response_classroom = resp$aula
+    )
+  ) > 0)
 
   # Con el vector explícito —que es como lo llama el motor— sí calcula.
   out <- monitoreo_aulas_efectividad_por_sexo(
