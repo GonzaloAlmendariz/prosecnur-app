@@ -344,3 +344,59 @@ test_that("aunque no haya cortes, la raya vieja se borra", {
   expect_length(reqs, 1L)
   expect_identical(reqs[[1]]$updateBorders$innerHorizontal$style, "NONE")
 })
+
+# --- El vocabulario del LIBRO, que es otro que el de la distribución ----------
+
+test_that("«APLICADA POR REAGENDACIÓN» está en el STATUS DE APLICACIÓN del libro", {
+  # Gonzalo, 2026-09-10: «además a las que se aplicaron por reagendación las has
+  # quitado, cuando ésas también deberían estar». No la quitó nadie: nunca
+  # estuvo. La distribución sí la tenía, así que la misma aula salía «APLICADA
+  # POR REAGENDACIÓN» en la hoja de los aplicadores y sólo «APLICADA» en el
+  # libro, y con eso se pierde lo único que esa palabra cuenta.
+  expect_true("APLICADA POR REAGENDACIÓN" %in% aulas_libro_status_aplicacion_de(1L))
+  # También en la reserva: una reserva se puede aplicar después de moverla.
+  expect_true("APLICADA POR REAGENDACIÓN" %in% aulas_libro_status_aplicacion_de(2L))
+  # Y sigue siendo un vocabulario DISTINTO del de la distribución: el libro
+  # tiene «REEMPLAZADA POR» y la distribución no.
+  expect_true("REEMPLAZADA POR" %in% aulas_libro_status_aplicacion_de(1L))
+  expect_false("REEMPLAZADA POR" %in% MONITOREO_AULAS_ESTADOS_DISTRIBUCION)
+})
+
+test_that("NINGÚN estado del libro se queda sin color", {
+  # La guarda contra la avería que Gonzalo vio dos veces el mismo día: el
+  # vocabulario crece y el pintor se queda atrás, así que un estado sale sin
+  # pintar en el Sheets vivo del operativo y nadie se entera hasta que alguien
+  # lo mira. Pasó con «REEMPLAZADA POR» (2026-09-04, visto el 09-10) y con «POR
+  # APLICAR», que salía en blanco al lado de las verdes.
+  #
+  # Se pregunta al pintor DE VERDAD en vez de leer el archivo: renombrar la
+  # tabla de reglas no puede apagar este test.
+  reqs <- monitoreo_aulas_sheets_formato_requests(
+    "Aulas Aplicadas (Campo)", sheet_id = 0L, n_filas = 40L, n_cols = 120L)
+  pintados <- unlist(lapply(reqs, function(r) {
+    v <- tryCatch(r$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue,
+                  error = function(e) NULL)
+    if (is.null(v)) NULL else as.character(v)
+  }), use.names = FALSE)
+  vocabulario <- unique(c(aulas_libro_status_aplicacion_de(1L),
+                          aulas_libro_status_aplicacion_de(2L)))
+  sin_color <- setdiff(vocabulario, pintados)
+  expect_equal(sin_color, character(0),
+               info = paste("estados sin regla de color:", paste(sin_color, collapse = ", ")))
+})
+
+test_that("lo específico se pinta ANTES que lo genérico", {
+  # La comparación es «contiene» y gana el índice menor: si «APLICADA» fuera
+  # primero, «NO APLICADA» y «APLICADA POR REAGENDACIÓN» saldrían verdes y la
+  # columna entera mentiría.
+  reqs <- monitoreo_aulas_sheets_formato_requests(
+    "Aulas Aplicadas (Campo)", sheet_id = 0L, n_filas = 40L, n_cols = 120L)
+  textos <- unlist(lapply(reqs, function(r) {
+    tryCatch(r$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue,
+             error = function(e) NULL)
+  }), use.names = FALSE)
+  pos <- function(t) which(textos == t)[[1]]
+  expect_lt(pos("NO APLICADA"), pos("APLICADA"))
+  expect_lt(pos("APLICADA POR REAGENDACIÓN"), pos("APLICADA"))
+  expect_lt(pos("APLICADA DE REFUERZO"), pos("APLICADA"))
+})
