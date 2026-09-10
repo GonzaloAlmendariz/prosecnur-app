@@ -10,6 +10,9 @@ import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasAgendacion } from "./AulasAgendacion";
+import { AulasSeguimientoDeFacultad } from "./AulasSeguimientoDeFacultad";
+import { seguimientoDeFacultad } from "./seguimientoDeFacultad";
+import { proyeccionElegida } from "./proyeccionDeMetas";
 import "./aulasPanelPartido.css";
 import { AulasCierrePorAgenda } from "./AulasCierrePorAgenda";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
@@ -28,7 +31,9 @@ import { contadorDeLoQueReparte } from "./contadorDeLoQueReparte";
 import { parteDeCampo } from "./parteDeCampo";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
-import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoRow } from "../../../../api/monitoreo";
+import type {
+  MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasProyeccionFila, MonitoreoRow,
+} from "../../../../api/monitoreo";
 
 /**
  * La pestaña «Resumen» del perfil de aulas.
@@ -203,8 +208,65 @@ export function AulasPestanaResumen({
     (dashboard?.ritmo_por_facultad ?? null) as RitmoDeFacultad[] | null,
     facultadEnFoco,
   );
+  /**
+   * **El seguimiento desgranado de la facultad puesta** (ítem 32).
+   *
+   * Gonzalo, siete preguntas de una tirada: «si estamos viendo una facultad en
+   * particular en el resumen, sería interesante ver cuántas aulas tienen
+   * agendadas, cuántas faltan, cuándo se van a llenar todas las aulas que
+   * tenemos planificadas, si es que hay alguna aula adicional que estamos
+   * planteando o debería plantearse, si se están llegando las cuotas con las
+   * aulas agendadas hasta ahora, si se está llegando a la cuota de hombres, si
+   * se está llegando a la cuota de mujeres».
+   *
+   * El helper estaba escrito y probado desde ese mismo día y sin montar. Aquí
+   * sólo se le pasan las piezas que el tablero ya trae.
+   *
+   * Sin `useMemo`, como el resto de esta pestaña: la línea vive después de la
+   * guarda y un hook aquí se llamaría en unos renders y no en otros.
+   */
+  const seguimiento = facultadEnFoco
+    ? seguimientoDeFacultad(
+        facultadEnFoco,
+        (dashboard.agenda ?? []) as MonitoreoRow[],
+        // La proyección de ESTA facultad, con la tasa que está rindiendo el
+        // campo y no con la del diseño: Resumen mide lo que pasa, y cuando una
+        // facultad no tiene tasa propia el motor ya cae a la del diseño y lo
+        // marca. Se saca con `deLaFacultad`, el mismo criterio de comparación
+        // de nombres que usa toda la pestaña.
+        (deLaFacultad(
+          (proyeccionElegida(dashboard.proyeccion_metas, "muestra", "obtenida") ?? []) as unknown as Array<Record<string, unknown>>,
+          facultadEnFoco,
+        )[0] ?? null) as unknown as MonitoreoAulasProyeccionFila | null,
+        corteDelEstudio(
+          (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
+          dashboard?.generated_at,
+        ).dia,
+        dashboard.reserva_de_la_cadena,
+        (dashboard.banco_extras?.por_facultad ?? []).map((f) => ({
+          facultad: f.faculty, disponibles: f.disponibles,
+        })),
+      )
+    : null;
   return (
     <>
+            {/* **El desglose de UNA facultad abre la pestaña cuando hay una
+                puesta**, y no existe cuando no la hay: sin facultad, los paneles
+                de abajo ya contestan lo mismo para las quince y éste sería una
+                decimosexta copia. */}
+            {seguimiento ? (
+              <section
+                className="mon-profile-panel"
+                data-qa-geometry-group="monitoring-aulas-avance"
+                data-qa-geometry-contract="intrinsic"
+              >
+                <div className="mon-profile-panel-head">
+                  <h3>Cómo va {seguimiento.facultad}</h3>
+                  <span>sus cursos-horario, sus tres metas y qué le queda por activar</span>
+                </div>
+                <AulasSeguimientoDeFacultad seguimiento={seguimiento} />
+              </section>
+            ) : null}
             {/* **Abre la pestaña porque es la pregunta anterior a todas.** Antes
                 de cuánto se ha cumplido: de lo que ha entrado, qué cuenta. Y las
                 que no cuentan, separadas por su razón — 37 que no son del
