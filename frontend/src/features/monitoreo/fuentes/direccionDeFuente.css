@@ -1,0 +1,15 @@
+/* El motivo por el que una dirección pegada no se reconoce como Google Sheet.
+ *
+ * Hoja propia y regla SIN scope de perfil: la misma pantalla de registro de
+ * fuentes vive en telefónico y en acreditación, y ponerla en la hoja de un
+ * perfil dejaba al otro con el aviso sin estilo. Es la misma razón por la que
+ * el mensaje sale de `leerDireccionDeSheets()` y no se redacta en cada página.
+ *
+ * `monitoreo.css` está congelada a crecimiento, así que esto no va allí. */
+.mon-acr-sheet-aviso {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-warn-fg);
+}

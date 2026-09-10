@@ -1,3 +1,5 @@
+import "./direccionDeFuente.css";
+
 // Qué hay detrás de lo que el usuario pega al conectar una fuente.
 //
 // §4.3 de `docs/plan-fuentes-legibles-2026-07.md`. El ANTES pedía pegar un

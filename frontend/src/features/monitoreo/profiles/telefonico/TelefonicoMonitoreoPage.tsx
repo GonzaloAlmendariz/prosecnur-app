@@ -9614,6 +9614,9 @@ function AcreditacionSheetsByActorView({
   const [selectedActor, setSelectedActor] = useState(actorOptions[0] ?? "");
   const selectedSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(selectedActor)) ?? null;
   const [spreadsheetId, setSpreadsheetId] = useState("");
+  // La lectura que decide si lo pegado es un Sheet, para que la guarda de los
+  // botones no diga «hay texto» mientras este módulo ya sabe que no lo es.
+  const lecturaDelActor = leerDireccionDeSheets(spreadsheetId);
   const [sheetName, setSheetName] = useState("");
   const [range, setRange] = useState("");
   const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
@@ -9758,6 +9761,9 @@ function AcreditacionSheetsByActorView({
               <label>
                 <span>Enlace del Google Sheet</span>
                 <input value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.currentTarget.value)} placeholder="https://docs.google.com/spreadsheets/d/..." disabled={Boolean(busy) || !selectedActor} />
+                {spreadsheetId.trim() && !lecturaDelActor.ok ? (
+                  <small className="mon-acr-sheet-aviso">{lecturaDelActor.mensaje}</small>
+                ) : null}
               </label>
               <label>
                 <span>Pestaña del actor</span>
@@ -9768,11 +9774,11 @@ function AcreditacionSheetsByActorView({
                 <input value={range} onChange={(event) => setRange(event.currentTarget.value)} placeholder="Opcional" disabled={Boolean(busy) || !selectedActor} />
               </label>
               <div className="mon-acr-sheet-actions">
-                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !selectedActor}>
+                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelActor.ok || !selectedActor}>
                   {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
                   Leer pestañas
                 </button>
-                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !spreadsheetId.trim() || !sheetName.trim()}>
+                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !lecturaDelActor.ok || !sheetName.trim()}>
                   {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
                   Confirmar base
                 </button>

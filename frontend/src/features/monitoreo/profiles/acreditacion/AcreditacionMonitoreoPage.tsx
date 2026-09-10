@@ -124,6 +124,7 @@ import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetc
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { pct } from "../../core/formatoComun";
+import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
 import { pctDecimal } from "../../core/formatoComun";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
@@ -7558,6 +7559,13 @@ function AcreditacionSheetSourceEditor({
   const [spreadsheetId, setSpreadsheetId] = useState(firstSource?.sheet_binding?.spreadsheet_id ?? "");
   const [sheetName, setSheetName] = useState(firstSource?.sheet_binding?.sheet_name ?? "");
   const [sourceLabel, setSourceLabel] = useState(firstSource?.label || preset.sourceLabel);
+  // **La lectura que DECIDE si lo pegado es un Sheet**, y de la que salen las
+  // guardas de los botones. Antes decidían con `!spreadsheetId.trim()` —«hay
+  // texto»— y el motivo de rechazo, que este módulo ya redacta, no se calculaba
+  // ni se enseñaba: pegar cualquier cosa dejaba los botones activos y el error
+  // llegaba del backend sin decir qué arreglar. Gemelo del mismo agujero
+  // cerrado en el perfil telefónico (2026-09-09).
+  const lecturaDelSpreadsheet = leerDireccionDeSheets(spreadsheetId);
   const [range, setRange] = useState(firstSource?.sheet_binding?.range ?? "");
   const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
   const [busy, setBusy] = useState<"inspect" | "save" | null>(null);
@@ -7680,6 +7688,9 @@ function AcreditacionSheetSourceEditor({
             placeholder="https://docs.google.com/spreadsheets/d/..."
             disabled={Boolean(busy)}
           />
+          {spreadsheetId.trim() && !lecturaDelSpreadsheet.ok ? (
+            <small className="mon-acr-sheet-aviso">{lecturaDelSpreadsheet.mensaje}</small>
+          ) : null}
         </label>
         <label>
           <span>{preset.sheetLabel ?? "Pestaña"}</span>
@@ -7709,11 +7720,11 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <div className="mon-acr-sheet-actions">
-          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim()}>
+          <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok}>
             {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
             Leer pestañas
           </button>
-          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !sheetName.trim()}>
+          <button type="button" onClick={() => { void saveSheet(); }} disabled={Boolean(busy) || !lecturaDelSpreadsheet.ok || !sheetName.trim()}>
             {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <CheckCircle2 size={14} />}
             {editingSourceId ? "Guardar ajuste" : "Registrar base"}
           </button>
