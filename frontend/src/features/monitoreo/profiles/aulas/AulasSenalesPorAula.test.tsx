@@ -45,9 +45,14 @@ describe("el relevo, que es la salida de la tabla", () => {
     expect(html).not.toContain("R 7.1");
   });
 
-  it("sin el bloque de relevos la tabla se pinta igual que antes", () => {
+  it("sin el BLOQUE no se afirma nada: ni «relevo listo» ni «sin relevo»", () => {
+    // El aserto anterior sólo miraba «relevo listo» y por eso no vio que la
+    // pantalla decía «sin relevo» en las nueve filas señaladas teniendo 13 de
+    // 14 un relevo vivo. Un tablero construido antes de que el motor emitiera
+    // el bloque no SABE, y no saber no es lo mismo que no tener.
     const html = renderToStaticMarkup(<AulasSenalesPorAula bloque={bloqueConSenal} />);
     expect(html).toContain("CH 82");
     expect(html).not.toContain("relevo listo");
+    expect(html).not.toContain("sin relevo");
   });
 });

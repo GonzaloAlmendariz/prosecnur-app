@@ -221,8 +221,18 @@ export function AulasSenalesPorAula({
                         En una fila por encima de su margen, «tiene 9 reservas»
                         es ruido: nadie va a activar el relevo de un
                         curso-horario que rindió de más. */}
-                    {a.senal === "bajo" ? (
-                      relevos?.[a.codigo] ? (
+                    {/* **«Sin relevo» sólo se afirma cuando HAY mapa.** Sin el
+                        bloque —un tablero construido antes de que el motor lo
+                        emitiera— no se sabe nada del relevo, y decir «sin
+                        relevo» ahí es afirmar lo contrario de la verdad: visto
+                        en pantalla el 2026-09-10, las nueve filas señaladas
+                        decían «sin relevo» y 13 de 14 tenían uno vivo.
+
+                        La distinción estaba escrita en el comentario del tipo
+                        —ausencia de CLAVE es «no tiene», ausencia de BLOQUE es
+                        «no se calculó»— y no en el código. */}
+                    {a.senal === "bajo" && relevos ? (
+                      relevos[a.codigo] ? (
                         <em className="aulas-dt-relevo" title={`El sorteo le asignó ${fmt(relevos[a.codigo].disponibles)} ${relevos[a.codigo].disponibles === 1 ? "reserva" : "reservas"} de cadena todavía sin usar; la siguiente por orden es ${relevos[a.codigo].siguiente}.`}>
                           relevo listo: {relevos[a.codigo].siguiente}
                         </em>
