@@ -9,10 +9,50 @@
   margin: 0; padding: 0; list-style: none;
   display: flex; flex-direction: column; gap: 4px;
 }
-.mon-profile-page.is-aulas-flow .aulas-cobertura-filas li {
+.mon-profile-page.is-aulas-flow .aulas-cobertura-filas li { min-width: 0; }
+/* La rejilla pasa del `li` al BOTÓN: desde que cada tramo se puede abrir, la
+   fila entera es el control, y dejar la rejilla fuera partía el botón en tres
+   trozos que no se podían pulsar juntos. `minmax(0, …)` en las dos flexibles —el
+   mínimo automático de una columna deja que el contenido empuje el track y se
+   salga de su caja, medido en el trío de Rendimiento el 2026-09-10. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila {
   display: grid;
-  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr) 48px;
-  align-items: center; gap: 10px;
+  grid-template-columns: minmax(0, 230px) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:disabled {
+  cursor: default;
+}
+
+/* El hover sólo donde hay algo que abrir: un tramo vacío que se ilumina al pasar
+   promete un gesto que no responde. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:not(:disabled):hover {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cobertura-fila:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
+  outline-offset: 1px;
+}
+
+/* El tramo abierto se queda marcado: sin esto, la tabla de abajo aparece y no
+   se sabe de cuál de los seis salió. */
+.mon-profile-page.is-aulas-flow .aulas-cobertura-filas li.es-abierto .aulas-cobertura-fila {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 11%, transparent);
 }
 .mon-profile-page.is-aulas-flow .aulas-cobertura-etiqueta {
   font-size: 11.5px;
