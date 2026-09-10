@@ -2582,6 +2582,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       .monitoreo_aulas_records(plan_df), responses = responses,
       partes = partes_campo, cuotas = cfg[["design_targets"]], cfg = cfg
     ),
+    # **De cuántas respuestas cuentan, y por qué no cuentan las demás.** La
+    # resta muda —«944 de 1 049»— metía en la misma bolsa las que no son del
+    # operativo y las que sí lo son y no pasan el criterio. Son dos cosas: la
+    # primera no pide nada, la segunda es trabajo hecho que no suma. Ver
+    # `monitoreo_aulas_respuestas_desglose.R`.
+    respuestas_desglose = monitoreo_aulas_respuestas_desglose(
+      .monitoreo_aulas_records(plan_df), responses = responses, cfg = cfg
+    ),
     # Y las aulas de cada facultad: cuántas planificó el sorteo y cuántas se han
     # aplicado. Van por facultad y no por sexo — un aula no se reparte entre
     # hombres y mujeres, la misma visita da de los dos.
