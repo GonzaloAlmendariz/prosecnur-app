@@ -309,7 +309,16 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
   it("y el pie sigue existiendo para el panel que sí lo pinta", () => {
     // El control: si alguien retirase el párrafo pensando que los `title` lo
     // sustituyen, el panel principal perdería su explicación visible.
-    expect(fuente).toContain("corrige el tamaño de la muestra");
+    //
+    // **Anclado en los NOMBRES de las columnas y no en una frase suelta.**
+    // Antes se agarraba a «corrige el tamaño de la muestra» y se puso rojo el
+    // 2026-09-10 por reescribir el párrafo sin quitarlo: un guard que muere al
+    // reescribir la prosa que vigila no vigila la prosa, vigila una cadena.
+    const pie = fuente.slice(fuente.indexOf("explicaLasColumnas ? ("));
+    for (const etiqueta of ["Del potencial", "Ajustado", "Por visita", "De los asistentes"]) {
+      expect(pie, `el pie ya no explica «${etiqueta}»`)
+        .toContain(`<strong>${etiqueta}</strong>`);
+    }
   });
 });
 
