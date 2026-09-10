@@ -32,9 +32,13 @@
 #' estatus que sea por aplicar, aplicada, reagendada, rechazada».
 #'
 #' Las dos primeras las sabe la app —el parte o las respuestas dicen si el aula
-#' se aplicó—; las dos últimas las teclea el equipo y son la razón de que la
-#' columna exista: una reagendación se anota aquí ANTES de aplicarse, y así la
-#' app puede reconocerla.
+#' se aplicó—; las demás las elige el equipo en el chip desplegable de la
+#' columna, y son la razón de que exista: una reagendación se anota aquí ANTES
+#' de aplicarse, y así la app puede reconocerla.
+#'
+#' **«APLICADA» no es sólo de la app**: el coordinador también puede elegirla, y
+#' normalmente antes de que llegue el parte. Por eso el motor nunca la degrada
+#' —ver `aulas_distribucion_estado_a_publicar()`—.
 #'
 #' En MAYÚSCULAS y en el vocabulario del libro, que es donde el equipo ya los
 #' lee («APLICADA» es el mismo valor que escribe la hoja de campo).
@@ -140,6 +144,20 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
 .alpa_COLOR_INTERNO <- "#E3E0DA"
 
 #' @keywords internal
+#' El estado ya publicado de una cita, o `""` si esa cita no estaba.
+#'
+#' Con `[[` directo, una clave ausente en un vector con nombre LANZA en vez de
+#' devolver `NULL`, así que el `%||%` de al lado nunca llega a actuar: el fallo
+#' sale como «subscript out of bounds» tres capas más abajo, en un helper que no
+#' tiene nada que ver. Se busca por posición, que sí devuelve vacío.
+#' @keywords internal
+.alpa_estado_previo <- function(previos, codigo, fecha) {
+  nombres <- names(previos %||% character(0))
+  if (!length(nombres)) return("")
+  i <- match(paste(codigo, fecha, sep = "\r"), nombres)
+  if (is.na(i)) "" else as.character(previos[[i]])
+}
+
 .alpa_txt <- function(x, default = "") {
   v <- suppressWarnings(as.character(x %||% default)[1])
   if (length(v) != 1L || is.na(v)) default else trimws(v)
@@ -172,7 +190,8 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
 #' @return lista de filas (la primera es la cabecera) o `NULL`.
 #' @export
 aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL,
-                                              partes = list(), efectivas = NULL) {
+                                              partes = list(), efectivas = NULL,
+                                              estados_previos = character(0)) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(NULL)
   cfg <- if (is.list(cfg)) cfg else list()
   # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
@@ -238,10 +257,14 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
         .alpa_txt(it[["salida"]]),
         paste0(.alpa_txt(it[["inicio"]]), " a ", .alpa_txt(it[["fin"]])),
         cod, m$aula, m$facultad, m$curso, m$docente,
-        # POR APLICAR mientras no conste lo contrario. Los otros tres los
-        # decide el campo: dos los sabe la app (aplicada) y dos los teclea el
-        # equipo (reagendada, rechazada).
-        if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR"
+        # POR APLICAR mientras no conste lo contrario — pero SIN DEGRADAR lo que
+        # ya esté puesto: «APLICADA» también la elige el coordinador en el chip
+        # desplegable, antes de que llegue el parte, y publicarle «POR APLICAR»
+        # encima borraría lo que él sabe y la app todavía no.
+        aulas_distribucion_estado_a_publicar(
+          if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
+          .alpa_estado_previo(estados_previos, cod, cuando$fecha)
+        )
       )
     }
   }

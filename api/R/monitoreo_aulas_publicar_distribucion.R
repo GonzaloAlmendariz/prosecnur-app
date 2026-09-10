@@ -62,9 +62,23 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       "El enlace no parece de Google Sheets: no trae el identificador del documento."
     )
   }
+  # **Leer ANTES de generar.** El estado que ya está puesto en el documento
+  # manda sobre el que la app deduce: «APLICADA» la elige también el coordinador
+  # en el chip desplegable, y suele hacerlo antes de que llegue el parte. Sin
+  # esta lectura el motor le publicaría «POR APLICAR» encima.
+  hoja_previa <- tryCatch({
+    meta0 <- .monitoreo_sheets_metadata(id)
+    .madc_pestana_de_la_distribucion(id, vapply(meta0$sheets %||% list(), function(h) {
+      .monitoreo_scalar((h$properties %||% list())$title, "")
+    }, character(1)))
+  }, error = function(e) "")
+  remoto_previo <- if (nzchar(hoja_previa)) {
+    tryCatch(.cads_valores_de_pestana(id, hoja_previa), error = function(e) list())
+  } else list()
   filas <- aulas_libro_filas_plan_aplicadores(
     plan %||% list(), disponibilidad, cfg = config_reparto,
-    partes = partes %||% list(), efectivas = efectivas
+    partes = partes %||% list(), efectivas = efectivas,
+    estados_previos = aulas_distribucion_estados_publicados(remoto_previo)
   )
   if (is.null(filas)) {
     stop_api(
@@ -88,15 +102,11 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # llamada que se hace sin pensar («republico y ya»). Las cuatro hojas del
   # equipo en el libro operativo llevan esta misma guarda desde hace semanas;
   # esta pestaña se había quedado sin ella justo cuando pasó a tener dueño.
-  hoja_existente <- tryCatch({
-    meta <- .monitoreo_sheets_metadata(id)
-    titulos <- vapply(meta$sheets %||% list(), function(h) {
-      .monitoreo_scalar((h$properties %||% list())$title, "")
-    }, character(1))
-    .madc_pestana_de_la_distribucion(id, titulos)
-  }, error = function(e) "")
+  # Se reusa lo leído arriba: el presupuesto de requests de este ciclo está
+  # pineado en su test y volver a pedir metadata lo duplicaría.
+  hoja_existente <- hoja_previa
   if (nzchar(hoja_existente)) {
-    remoto <- tryCatch(.cads_valores_de_pestana(id, hoja_existente), error = function(e) list())
+    remoto <- remoto_previo
     con_datos <- sum(vapply(remoto, function(r) {
       any(nzchar(trimws(as.character(unlist(r %||% list(), use.names = FALSE)))))
     }, logical(1)))
