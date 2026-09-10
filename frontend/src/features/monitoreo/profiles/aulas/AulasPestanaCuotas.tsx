@@ -295,9 +295,34 @@ export function AulasPestanaCuotas({
             esta pestaña, y porque su remedio ya vive dos líneas más abajo.
             Separarlos obligaría a cambiar de pestaña entre el diagnóstico y la
             acción. */}
+        {/* SECCIÓN PROPIA, y no un bloque dentro de «Consumo de la reserva».
+            Montado ahí, el panel salía bajo un título que no es el suyo —C1: una
+            superficie declara qué es— y quien lo mirara leería «consumo de la
+            reserva» sobre unas barras que hablan de cuotas. Visto en pantalla el
+            2026-09-10. */}
+        </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Qué grupos no llegan, y con qué remedio</h3>
+          <span>lo recogido, lo que traerá lo agendado y el techo de todo el plan</span>
+        </div>
         <AulasTresLecturas
           celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
         />
+      </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>A qué aula del banco ir</h3>
+          <span>candidatos para cerrar cada grupo que no llega</span>
+        </div>
         {/* El remedio, que venía de «Hombres y mujeres por facultad»: a qué aula
             del banco ir para cerrar justo las celdas que no llegan. */}
         <AulasReservaDirigida
