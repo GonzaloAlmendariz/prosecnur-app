@@ -81,7 +81,11 @@ describe("las hojas del perfil sólo piden tokens que existen", () => {
    * dieciocho. Es el mismo trato que el perfil ya le da al vocabulario de la
    * unidad. Al cerrar huérfanos, baja el TOPE.
    */
-  const TOPE = 18;
+  // 2026-09-10: de 18 a 13. Se cerraron los seis `--pulso-border-soft` —el
+  // token del perfil se llama `--pulso-border`— al rediseñar la tabla de
+  // efectividad, y el `--pulso-warning` del panel de agendación, que es
+  // `--pulso-warn-accent`.
+  const TOPE = 13;
 
   test(`no supera los ${TOPE} tokens huérfanos medidos al escribir el guard`, () => {
     const culpables = hojas.flatMap((hoja) => {

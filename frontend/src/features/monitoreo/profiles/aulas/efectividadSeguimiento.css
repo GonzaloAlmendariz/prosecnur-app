@@ -83,8 +83,14 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-tabla thead th {
-  padding: 4px 10px 6px;
-  border-bottom: 1px solid var(--pulso-border-soft);
+  /* Pegajoso: son quince filas altas y al llegar a la mitad de la tabla ya no
+     se sabía qué columna era cuál. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  padding: 7px 10px 8px;
+  border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
   /* 11px y sin uppercase: a 10 px en mayúsculas el encabezado competía con los
      datos y rompía las letras griegas. */
@@ -100,13 +106,21 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr > * {
-  padding: 5px 10px;
-  border-bottom: 1px solid var(--pulso-border-soft);
+  /* Más aire vertical: con 5 px la metadata de una fila casi tocaba el nombre
+     de la siguiente y la tabla se leía como un bloque continuo. */
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--pulso-border);
   vertical-align: middle;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr:last-child > * {
   border-bottom: 0;
+}
+
+/* Zebra muy leve: guía el ojo a lo largo de una fila de siete columnas sin
+   competir con el resaltado del foco ni con el fondo de las que van bajas. */
+.mon-profile-page.is-aulas-flow .aulas-tau-tabla tbody tr:nth-child(even):not(.es-bajo) {
+  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
 }
 
 /* La primera celda es `th scope="row"`: identifica la fila. */
@@ -330,23 +344,42 @@
 /* Van aquí y no en columnas nuevas: la tabla ya tiene siete y la τ por sexo son
    seis cifras más por fila, que en columnas obligarían a leer en zigzag para
    comparar una facultad consigo misma. */
+/* **Las dos celdas de sexo, en rejilla y no en prosa.**
+ *
+ * Gonzalo, 2026-09-10, con la captura de una fila delante: «creo que toda esta
+ * sección puede tener mejor formato, ahora se ve muy desnuda y poco
+ * profesional». Iban en un `flex` con `wrap`, así que «Mujeres 55,9 % de 54,6 %
+ * +1» y su «Hombres…» caían donde cupieran: las cifras no se alineaban entre
+ * los dos sexos de una misma facultad ni entre facultades, que es justo la
+ * comparación para la que existen.
+ *
+ * Ahora son cuatro columnas fijas —sexo · observada · prevista · diferencia— y
+ * un bloque con fondo propio, así que la vista puede barrer una columna hacia
+ * abajo. Los anchos van en `em` para que sigan al tamaño de letra. */
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
-  margin: 3px 0 0 0;
-  padding-left: 2px;
+  display: grid;
+  gap: 1px;
+  margin: 5px 0 1px;
+  padding: 4px 7px 5px;
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
   font-size: var(--aulas-min);
   color: var(--pulso-text-faint);
   font-weight: 400;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 4.8em 4.2em 4.8em 2.8em;
   align-items: baseline;
-  gap: 4px;
+  gap: 0 6px;
   font-variant-numeric: tabular-nums;
 }
+
+/* La observada y la diferencia, a la derecha de su columna: es donde se leen
+   los dígitos cuando se comparan hacia abajo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong,
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda em { text-align: right; }
 
 .mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda strong {
   color: var(--pulso-text);
@@ -378,4 +411,11 @@
   cursor: help;
   text-decoration: underline dotted var(--pulso-border-strong);
   text-underline-offset: 3px;
+}
+
+/* El sexo, en su columna: peso normal y color tenue, que la cifra es lo que
+   se compara. */
+.mon-profile-page.is-aulas-flow .aulas-tau-sexo-celda b {
+  font-weight: 500;
+  color: var(--pulso-text-soft);
 }
