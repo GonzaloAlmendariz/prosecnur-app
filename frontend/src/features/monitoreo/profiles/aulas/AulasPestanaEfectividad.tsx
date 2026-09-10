@@ -110,6 +110,7 @@ export function AulasPestanaEfectividad({
               <AulasSenalesPorAula
                 bloque={dashboard.dos_tasas}
                 facultadEnFoco={facultadEnFoco}
+                relevos={dashboard.reserva_de_la_cadena}
               />
             </section>
     </>

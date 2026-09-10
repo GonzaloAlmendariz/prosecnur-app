@@ -58,3 +58,14 @@
   line-height: 1.5;
   max-width: 92ch;
 }
+
+/* El relevo, junto al chip de «bajo su margen». Tenue y en su línea: es la
+   salida de la fila, no su titular — el dato que manda sigue siendo la tasa. */
+.aulas-dt-relevo {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-success-fg);
+}
+.aulas-dt-relevo.es-sin { color: var(--pulso-text-faint); }
