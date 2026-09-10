@@ -102,26 +102,40 @@ test_that("«APLICADA» puesta por el coordinador sobrevive a un motor que no se
   }
 })
 
-test_that("sobre lo vacío y sobre «POR APLICAR» sí escribe lo que dedujo", {
+test_that("sólo la celda VACÍA se siembra; «POR APLICAR» escrita tampoco se asciende", {
+  # La primera versión de esto ascendía «POR APLICAR» a «APLICADA» cuando la app
+  # se enteraba. Choca con su regla —«la celda escrita se conserva siempre»— y
+  # con lo que hace el ciclo diario, que no toca ninguna celda con contenido. Un
+  # ascenso también es escribir encima, y el daño de CH 111 y CH 82 fue
+  # exactamente eso.
   expect_identical(aulas_distribucion_estado_a_publicar("APLICADA", ""), "APLICADA")
-  expect_identical(aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR"), "APLICADA")
   expect_identical(aulas_distribucion_estado_a_publicar("POR APLICAR", ""), "POR APLICAR")
+  expect_identical(aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR"),
+                   "POR APLICAR")
+  # Lo que la app sabe no se pierde: sale en el recibo como observación, que es
+  # donde una discrepancia se lee sin que nadie la escriba encima.
 })
 
-test_that("«POR APLICAR SIN AGENDACIÓN» asciende a su desenlace, no a «APLICADA» a secas", {
-  # Fueron sin cita y rindió: perder el «sin agendación» borraría de dónde salió
-  # esa encuesta, que es justo lo que la pareja de estados existe para contar.
+test_that("el motor NO asciende una celda escrita, ni siquiera a su desenlace", {
+  # Su regla del 2026-09-09, textual: «el status de aplicada es manual y lo hace
+  # el aplicador, no la app; la app solo pone por defecto POR APLICAR al
+  # construir, punto». Nació de un daño medido: cuando la app proponía ascensos,
+  # CH 111 y CH 82 —agendadas para el viernes 11 y con cero respuestas— salieron
+  # APLICADA porque un parte estaba tecleado en la fila de al lado, y la hoja
+  # decía que dos aulas del futuro ya estaban hechas.
   expect_identical(
     aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR SIN AGENDACIÓN"),
-    "APLICADA SIN AGENDACIÓN")
-  # Sin tilde también, que es como está en el desplegable de la hoja.
-  expect_identical(
-    aulas_distribucion_estado_a_publicar("APLICADA", "POR APLICAR SIN AGENDACION"),
-    "APLICADA SIN AGENDACIÓN")
-  # Mientras no rinda, se queda donde está.
-  expect_identical(
-    aulas_distribucion_estado_a_publicar("POR APLICAR", "POR APLICAR SIN AGENDACIÓN"),
     "POR APLICAR SIN AGENDACIÓN")
+  expect_identical(
+    aulas_distribucion_estado_a_publicar("APLICADA", "REAGENDADA"), "REAGENDADA")
+})
+
+test_that("un valor escrito que la app NO reconoce tampoco se pisa", {
+  # Borrarlo por no reconocerlo sería el peor desenlace de una lista cerrada: el
+  # equipo escribió algo y la app lo hace desaparecer.
+  expect_identical(
+    aulas_distribucion_estado_a_publicar("POR APLICAR", "PENDIENTE DE CONFIRMAR"),
+    "PENDIENTE DE CONFIRMAR")
 })
 
 test_that("los estados publicados se indexan por curso-horario Y fecha", {
@@ -207,4 +221,15 @@ test_that("un código que de verdad no está en el plan SIGUE declarándose", {
   out <- monitoreo_aulas_completar_distribucion(
     list(cab, fila), plan = list(list(operational_code = "CH 164")))
   expect_identical(out$resumen$desconocida, 1L)
+})
+
+test_that("una aplicada SIN AGENDACIÓN cuenta como rendida y no se reporta como desalineada", {
+  # Sin ella en `.madm_APLICADOS`, la fila que aplicaron sin cita salía como
+  # «sin_plan» o «ya_no_agendada» y el recibo pedía atención sobre algo hecho.
+  expect_true("APLICADA SIN AGENDACIÓN" %in% prosecnurapp:::.madm_APLICADOS)
+  # Y «POR APLICAR SIN AGENDACIÓN» NO: ésa todavía no ha rendido.
+  expect_false("POR APLICAR SIN AGENDACIÓN" %in% prosecnurapp:::.madm_APLICADOS)
+  # La comparación va por canónico: en la hoja está sin tilde.
+  expect_true(aulas_distribucion_estado_canonico("APLICADA SIN AGENDACION")
+              %in% prosecnurapp:::.madm_APLICADOS)
 })
