@@ -353,9 +353,9 @@ function CeldasDeSexo({ celdas, tauPrevista }: {
           : undefined}
       >
         {etiqueta}{" "}
-        <strong>{c.tasa_observada == null ? "—" : `${(Math.round(c.tasa_observada * 1000) / 10).toFixed(1)} %`}</strong>
+        <strong>{pct(c.tasa_observada)}</strong>
         <i>
-          de {prevista == null ? "—" : `${(Math.round(prevista * 1000) / 10).toFixed(1)} %`}
+          de {pct(prevista)}
         </i>
         {/* En personas y con signo: el cero se escribe, porque «justo lo
             previsto» es un resultado y no la ausencia de uno. */}

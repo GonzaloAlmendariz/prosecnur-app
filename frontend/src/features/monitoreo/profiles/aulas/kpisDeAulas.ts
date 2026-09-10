@@ -147,8 +147,21 @@ export function fmtAporte(value: unknown, fallback = "0") {
   return Math.max(0, Math.floor(n + 1e-9)).toLocaleString("es-PE");
 }
 
+/**
+ * Un decimal, con **coma**, que es como escribe los números el resto del perfil.
+ *
+ * Existe porque `pctPerfil()` no cubría todo lo que se publica con un decimal:
+ * los extremos de un intervalo de confianza, los puntos de una diferencia y un
+ * margen «±3,4 pts» se escribían con `toFixed(1)` —que da punto decimal— al
+ * lado de tasas con coma, en el mismo párrafo. Formatear en un solo sitio es la
+ * regla de la casa; el símbolo se pega aparte.
+ */
+export function unDecimalPerfil(n: number) {
+  return n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
 export function pctPerfil(n: number) {
-  return `${n.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+  return `${unDecimalPerfil(n)} %`;
 }
 
 export function fmtCuenta(value: unknown, fallback = "0") {

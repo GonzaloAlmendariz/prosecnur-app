@@ -5,7 +5,7 @@ import type {
   MonitoreoAulasEfectividadSeguimiento,
 } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { fmt } from "./kpisDeAulas";
+import { fmt, pctPerfil, unDecimalPerfil } from "./kpisDeAulas";
 import {
   lecturaDeEfectividad, proyeccionDeLaFacultad, repartoDeSenales, riesgoDeCierre,
 } from "./resumenDeEfectividad";
@@ -87,7 +87,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
   // Con una facultad puesta, la columna de la derecha es SU proyección; sin
   // ella, el reparto de las quince.
   const reparto = facultad ? null : repartoDeSenales(bloque);
-  const unDecimal = (v: number) => (Math.round(v * 1000) / 10).toFixed(1);
+  const unDecimal = (v: number) => unDecimalPerfil(Math.round(v * 1000) / 10);
   const intervalo = lectura.bandaBajo != null && lectura.bandaAlto != null
     ? `${unDecimal(lectura.bandaBajo)} – ${unDecimal(lectura.bandaAlto)} %`
     : "";
@@ -101,7 +101,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
    * sitio es la regla de la casa y aquí había dos.
    */
   const pct = (v: number | null) =>
-    v == null ? "—" : `${(Math.round(v * 1000) / 10).toFixed(1)} %`;
+    v == null ? "—" : pctPerfil(Math.round(v * 1000) / 10);
 
   /**
    * **Cómo se calculó el intervalo, al alcance del cursor.**
@@ -157,7 +157,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
               >
                 {lectura.tono === "conforme"
                   ? "dentro del intervalo"
-                  : `${lectura.puntos > 0 ? "+" : "−"}${Math.abs(lectura.puntos).toFixed(1)} pts`}
+                  : `${lectura.puntos > 0 ? "+" : "−"}${unDecimalPerfil(Math.abs(lectura.puntos))} pts`}
               </span>
             ) : null}
           </p>
@@ -234,7 +234,7 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
                     <span>
                       {intervalo} <em>
                         margen de la medición
-                        {lectura.margen != null ? ` (±${lectura.margen.toFixed(1)} pts, IC 95 %)` : " (IC 95 %)"}
+                        {lectura.margen != null ? ` (±${unDecimalPerfil(lectura.margen)} pts, IC 95 %)` : " (IC 95 %)"}
                         {lectura.aulas < 8 ? `: es ancho porque sólo hay ${fmt(lectura.aulas)} cursos-horario aplicados` : ""}
                       </em>
                     </span>
