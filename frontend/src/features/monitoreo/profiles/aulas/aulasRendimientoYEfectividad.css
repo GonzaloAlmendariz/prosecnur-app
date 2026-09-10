@@ -14,36 +14,95 @@
 .mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo strong,
 .mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo { color: var(--pulso-text); }
 
-/* El carril: 0 % a la izquierda, 100 % a la derecha, con las dos marcas encima.
-   Es una regla, no un gráfico — por eso no lleva ejes ni escala propia. */
+/* La regla: el carril más su escala. Va de 0 a 100 % porque eso es lo que puede
+   valer una tasa; comprimirla al tramo con datos exageraría la distancia entre
+   las dos marcas, que es justo lo que este panel viene a medir. */
+.mon-profile-page.is-aulas-flow .aulas-rye-regla { margin: 12px 0 2px; }
+
 .mon-profile-page.is-aulas-flow .aulas-rye-carril {
   position: relative;
-  height: 10px;
-  margin: 10px 0 8px;
-  border-radius: 999px;
-  background: var(--pulso-surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--pulso-border-soft);
+  height: 14px;
+  border-radius: 4px;
+  /* **El fondo se VE.** La primera versión pedía `--pulso-surface-sunken`, que
+     NO EXISTE en `tokens.css`: la variable no resolvía, el carril se quedaba
+     transparente sobre el panel y en pantalla eran dos rayitas flotando en el
+     aire. Sin regla visible no hay escala, y sin escala dos marcas no dicen
+     nada. Se usa la misma mezcla con la que la cobertura pinta su carril. */
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pulso-border);
+}
+
+/* La banda de la observada: una zona, no un punto. */
+.mon-profile-page.is-aulas-flow .aulas-rye-banda {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  border-left: 1px solid var(--pulso-border-strong);
+  border-right: 1px solid var(--pulso-border-strong);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-rye-marca {
   position: absolute;
-  top: -3px;
-  width: 3px;
-  height: 16px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
   margin-left: -1px;
-  border-radius: 2px;
 }
 
-/* El diseño es la vara: se dibuja tenue y detrás. */
+/* El diseño es la vara: tenue y a rayas, para que no compita con el campo. */
 .mon-profile-page.is-aulas-flow .aulas-rye-marca.is-previsto {
   background: var(--pulso-text-faint);
 }
 
-/* El campo es lo que se mira: sólido y encima. */
+/* El campo es lo que se mira: sólido, más ancho y encima de todo. */
 .mon-profile-page.is-aulas-flow .aulas-rye-marca.is-observado {
-  background: var(--pulso-module-accent, var(--pulso-text));
-  height: 20px;
-  top: -5px;
+  width: 3px;
+  background: var(--pulso-text);
+}
+
+/* La escala y la leyenda, en la misma línea: 0 % a la izquierda, 100 % a la
+   derecha y las claves en medio. Nada flota sobre las marcas — dos rótulos a
+   6,7 puntos de distancia se pisan, y este perfil ya tiene un guard que lo caza. */
+.mon-profile-page.is-aulas-flow .aulas-rye-escala {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-escala em {
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-clave {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 3px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-clave.is-previsto { background: var(--pulso-text-faint); }
+.mon-profile-page.is-aulas-flow .aulas-rye-clave.is-observado { background: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-rye-clave.is-banda {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-rye-base,
