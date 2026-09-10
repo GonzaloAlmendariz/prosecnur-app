@@ -6,6 +6,8 @@ import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
 
 const GRUPO = 62;
+/** Las quince facultades del estudio: el lienzo se dimensiona contra este caso. */
+const FACULTADES_DE_REFERENCIA = 15;
 const BARRA = 19;
 const HUECO = 5;
 /**
@@ -92,7 +94,32 @@ export function AulasMetasBarras({ filas }: {
     ...orden.map((f) => Math.max(f.meta_M, f.meta_F, f.obtenidas_M, f.obtenidas_F)),
     1,
   ) * 1.08;
-  const ancho = MARGEN.izq + MARGEN.der + orden.length * GRUPO;
+  /**
+   * **Con pocas facultades, las barras engordan; el lienzo no se estira.**
+   *
+   * El SVG lleva `width: 100%` y un `viewBox` que crecía con el número de
+   * facultades, así que el navegador lo escalaba hasta llenar el panel. Con las
+   * quince del estudio la escala es ~1,2 y no se nota. Con el selector de
+   * facultad puesto —una sola fila— el `viewBox` medía 112 y la escala se iba a
+   * ×10: el «33 %» de una barra ocupaba media pantalla y el gráfico dejaba de
+   * ser un gráfico. Visto en pantalla el 2026-09-10 con DERECHO puesto.
+   *
+   * Dos piezas: el grupo se ensancha hasta cuatro veces cuando hay pocas
+   * facultades —las barras se ven gruesas en vez de diminutas— y el lienzo nunca
+   * baja del ancho que tendría lleno, así que la escala se queda donde estaba y
+   * el texto mide siempre lo mismo. Lo que sobra se reparte a los lados.
+   */
+  const engorde = Math.min(4, Math.max(1, FACULTADES_DE_REFERENCIA / orden.length));
+  const grupo = GRUPO * engorde;
+  const barra = BARRA * engorde;
+  const hueco = HUECO * engorde;
+  const anchoDeLosGrupos = orden.length * grupo;
+  const ancho = Math.max(
+    MARGEN.izq + MARGEN.der + anchoDeLosGrupos,
+    MARGEN.izq + MARGEN.der + FACULTADES_DE_REFERENCIA * GRUPO,
+  );
+  /** Lo que sobra a la izquierda cuando los grupos no llenan el lienzo. */
+  const sangria = (ancho - MARGEN.izq - MARGEN.der - anchoDeLosGrupos) / 2;
   // **El pie crece con los rótulos, y el alto del gráfico con él.** Antes el pie
   // eran 54 px fijos para dos líneas; subir el tope a cinco sin esto le habría
   // robado a las barras justo el alto que se les había devuelto. Se paga sólo lo
@@ -143,10 +170,10 @@ export function AulasMetasBarras({ filas }: {
           );
         })}
         {orden.map((f, i) => {
-          const x0 = MARGEN.izq + i * GRUPO + 8;
+          const x0 = MARGEN.izq + sangria + i * grupo + 8 * engorde;
           const carriles = [
             [f.meta_M, f.obtenidas_M, 0, "hombres"],
-            [f.meta_F, f.obtenidas_F, BARRA + HUECO, "mujeres"],
+            [f.meta_F, f.obtenidas_F, barra + hueco, "mujeres"],
           ] as const;
           // **En dos líneas y horizontal, no en diagonal.** Él: «las etiquetas
           // del eje x pueden tener wrap y tener mayor contracción para que no
@@ -159,14 +186,14 @@ export function AulasMetasBarras({ filas }: {
               {carriles.map(([meta, obtenidas, dx, tono]) => (
                 <g key={dx}>
                   <rect
-                    x={x0 + dx} y={y(meta)} width={BARRA} height={alto(meta)}
+                    x={x0 + dx} y={y(meta)} width={barra} height={alto(meta)}
                     className="aulas-metas-barra-meta"
                   />
                   {/* Cada sexo con su tono, el mismo de su chip en las tablas:
                       en verde las dos, el carril de hombres y el de mujeres
                       sólo se distinguían por la posición. */}
                   <rect
-                    x={x0 + dx} y={y(obtenidas)} width={BARRA} height={alto(obtenidas)}
+                    x={x0 + dx} y={y(obtenidas)} width={barra} height={alto(obtenidas)}
                     className="aulas-metas-barra-logro" data-sexo={tono}
                   >
                     <title>
@@ -181,7 +208,7 @@ export function AulasMetasBarras({ filas }: {
                       justo la comparación que el gráfico existe para dar. */}
                   {meta > 0 ? (
                     <text
-                      x={x0 + dx + BARRA / 2} y={y(meta) - 5} textAnchor="middle"
+                      x={x0 + dx + barra / 2} y={y(meta) - 5} textAnchor="middle"
                       className="aulas-metas-pct" data-sexo={tono}
                     >
                       {Math.round((100 * obtenidas) / meta)}%
@@ -190,11 +217,11 @@ export function AulasMetasBarras({ filas }: {
                 </g>
               ))}
               <text
-                x={x0 + BARRA + HUECO / 2} y={ALTO - abajo + 14}
+                x={x0 + barra + hueco / 2} y={ALTO - abajo + 14}
                 textAnchor="middle" className="aulas-metas-etiqueta"
               >
                 {lineas.map((linea, k) => (
-                  <tspan key={linea} x={x0 + BARRA + HUECO / 2} dy={k === 0 ? 0 : 11}>{linea}</tspan>
+                  <tspan key={linea} x={x0 + barra + hueco / 2} dy={k === 0 ? 0 : 11}>{linea}</tspan>
                 ))}
                 <title>{f.facultad}</title>
               </text>

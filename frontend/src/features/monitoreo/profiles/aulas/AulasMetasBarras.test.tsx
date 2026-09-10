@@ -100,18 +100,36 @@ describe("«Metas por facultad»", () => {
     expect(alto(corto)).toBe(340);
   });
 
-  it("el lienzo crece con las facultades: quince no caben en el de una", () => {
-    // Se lee del viewBox y del `min-width`, no de un atributo `width` en
-    // píxeles: el SVG ocupa el 100 % del panel desde el 2026-09-09 —iba fijo y
-    // dejaba un vacío a la derecha en pantallas anchas— y su tamaño intrínseco
-    // vive ahora en esos dos sitios.
+  it("el lienzo no se encoge con pocas facultades: engordan las barras", () => {
+    // **Por qué NO crece de una a quince.** El SVG ocupa el 100 % del panel, así
+    // que un `viewBox` estrecho lo escala el navegador: con una sola facultad
+    // medía 112 y la escala se iba a ×10 —el «33 %» de una barra ocupaba media
+    // pantalla—. Visto en pantalla el 2026-09-10 con DERECHO en el selector, que
+    // es lo que destapó poner el mando de facultad en toda la sección.
+    //
+    // El lienzo se queda en el ancho del caso lleno y lo que cambia es el grosor
+    // de la barra, así que el texto mide siempre lo mismo.
     const una = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
     const quince = renderToStaticMarkup(
       <AulasMetasBarras filas={Array.from({ length: 15 }, (_, i) => fila({ facultad: `F${i}` }))} />,
     );
+    const veinte = renderToStaticMarkup(
+      <AulasMetasBarras filas={Array.from({ length: 20 }, (_, i) => fila({ facultad: `F${i}` }))} />,
+    );
     const ancho = (h: string) => Number(/viewBox="0 0 (\d+)/.exec(h)?.[1] ?? 0);
-    expect(ancho(quince)).toBeGreaterThan(ancho(una));
+    expect(ancho(una)).toBe(ancho(quince));
+    // Por encima del caso de referencia sí crece, y entonces aparece el scroll.
+    expect(ancho(veinte)).toBeGreaterThan(ancho(quince));
     expect(quince).toContain("min-width:");
+  });
+
+  it("con una sola facultad la barra es cuatro veces más gruesa", () => {
+    const grosor = (h: string) => Number(/width="([\d.]+)"/.exec(h)?.[1] ?? 0);
+    const una = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
+    const quince = renderToStaticMarkup(
+      <AulasMetasBarras filas={Array.from({ length: 15 }, (_, i) => fila({ facultad: `F${i}` }))} />,
+    );
+    expect(grosor(una)).toBe(grosor(quince) * 4);
   });
 
   it("sin filas no pinta un lienzo vacío", () => {
