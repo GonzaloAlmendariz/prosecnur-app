@@ -246,6 +246,9 @@ export function AulasCoberturaChart({
           filas={filas}
           tramo={abierto}
           etiqueta={tramos.find((t) => t.clave === abierto)?.etiqueta ?? abierto}
+          // Lo que dice la BARRA sobre la que se acaba de hacer clic, para que
+          // la lista no afirme un total que la barra contradice.
+          enElTramo={tramos.find((t) => t.clave === abierto)?.aulas ?? null}
           onCerrar={() => setAbierto("")}
         />
       ) : null}
