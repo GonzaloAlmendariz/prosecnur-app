@@ -62,6 +62,53 @@ export type ReparteDeAgendacion = {
   rechazos: number;
 };
 
+/** Qué reemplazos hay en juego y de qué tipo, para el ítem 5 del dictado. */
+export type ReemplazosActivados = {
+  /** Cuántos ya tienen parte de campo: el «cuántos se aplicaron» de la pregunta. */
+  aplicados: number;
+  /** Por nivel de equivalencia, del más parecido al titular al menos. */
+  porEquivalencia: Array<{ nivel: string; palabras: string; aulas: number }>;
+  /** A qué titulares cubren, por su código operativo. */
+  cubren: string[];
+  /**
+   * Cuántos NO declaran motivo (`replacement_reason` vacío).
+   *
+   * En el corte del 2026-09-10 son los cuatro: el porqué de cada relevo está en
+   * la nota de campo, en prosa, y el campo que lo codifica va vacío. Se publica
+   * en vez de callarse: sin motivo, dentro de un mes nadie sabrá por qué se
+   * activó esta reserva y no otra.
+   */
+  sinMotivo: number;
+};
+
+/**
+ * De qué tipo es un reemplazo, en palabras.
+ *
+ * `equivalence_level` lo escribe el sorteo y dice CUÁNTO se parece la reserva al
+ * titular que cubre; es lo que decide si el reemplazo conserva la
+ * representatividad de la celda o la degrada. Gonzalo: «tampoco me estás
+ * diciendo cuántos reemplazos ya se aplicaron y qué tipo de reemplazos».
+ *
+ * Una lista cerrada que se traga lo que no conoce deja el nivel sin nombre y
+ * nadie se entera, así que lo desconocido se devuelve tal cual.
+ *
+ * **No se dice «celda»**, aunque sea el nombre del campo: el perfil retiró esa
+ * palabra de la pantalla y tiene su propio guard (`cifrasConFormato`). Aquí
+ * además sobra: lo que decide es si la reserva se PARECE al titular que releva,
+ * y eso se dice con «perfil».
+ */
+const EQUIVALENCIA: Record<string, string> = {
+  misma_celda: "del mismo perfil que el titular",
+  celda_equivalente: "de un perfil equivalente",
+  misma_facultad: "de la misma facultad, otro perfil",
+  reserva_extra: "del banco de extras",
+};
+
+export function equivalenciaEnPalabras(nivel: unknown): string {
+  const clave = texto(nivel).toLowerCase();
+  return EQUIVALENCIA[clave] ?? (clave || "sin nivel declarado");
+}
+
 export type AgendacionDeAulas = {
   titulares: number;
   /** Ya tienen fecha de visita, se hayan aplicado o no. */
@@ -72,6 +119,8 @@ export type AgendacionDeAulas = {
   reparto: ReparteDeAgendacion;
   /** Las reservas que ya se están agendando, repartidas igual. */
   reemplazos: ReparteDeAgendacion;
+  /** Y de qué tipo son esas reservas, y a quién cubren. */
+  activados: ReemplazosActivados;
   /**
    * Agendados **sin fecha de contacto registrada**: tienen día de visita pero
    * no dejaron cuándo se habló, así que no entran en ninguna barra. Si esto
@@ -101,6 +150,7 @@ export function agendacionDeAulas(
   });
   const vacio: AgendacionDeAulas = {
     titulares: 0, conFecha: 0, sinFecha: 0, reparto: cero(), reemplazos: cero(),
+    activados: { aplicados: 0, porEquivalencia: [], cubren: [], sinMotivo: 0 },
     sinDiaDeContacto: 0, faltanPorFacultad: [],
     porDia: [], ultimosDias: 0, ultimosAulas: 0, hasta: "",
   };
@@ -151,6 +201,45 @@ export function agendacionDeAulas(
   for (const f of titulares) anotar(f, reparto, true);
   for (const f of reservas) anotar(f, reemplazos, false);
 
+  /**
+   * **De qué tipo es cada relevo que ya está en juego.**
+   *
+   * Gonzalo: «tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué
+   * tipo de reemplazos». El tipo es `equivalence_level`, que escribe el sorteo y
+   * dice cuánto se parece la reserva al titular que cubre: de eso depende que el
+   * relevo conserve la celda o la degrade.
+   *
+   * «Aplicados» se mide por el parte —`applied_surveys` o `applied_at`— y no por
+   * tener fecha: agendar una reserva no es haber ido.
+   */
+  const porNivel = new Map<string, number>();
+  const cubren: string[] = [];
+  let aplicados = 0;
+  let sinMotivo = 0;
+  for (const f of reservas) {
+    const nivel = texto(f.equivalence_level).toLowerCase() || "sin_nivel";
+    porNivel.set(nivel, (porNivel.get(nivel) ?? 0) + 1);
+    const titular = texto(f.titular_operational_code) || texto(f.replacement_for);
+    if (titular) cubren.push(titular);
+    if (texto(f.applied_surveys) || texto(f.applied_at)) aplicados += 1;
+    if (!texto(f.replacement_reason)) sinMotivo += 1;
+  }
+  // El orden es el del sorteo —del relevo más parecido al menos—, no el de
+  // frecuencia: es la escala que dice cuánto se degrada la celda.
+  const ORDEN = ["misma_celda", "celda_equivalente", "misma_facultad", "reserva_extra"];
+  const activados: ReemplazosActivados = {
+    aplicados,
+    porEquivalencia: [...porNivel.entries()]
+      .map(([nivel, aulas]) => ({ nivel, palabras: equivalenciaEnPalabras(nivel), aulas }))
+      .sort((a, b) => {
+        const ia = ORDEN.indexOf(a.nivel);
+        const ib = ORDEN.indexOf(b.nivel);
+        return (ia < 0 ? ORDEN.length : ia) - (ib < 0 ? ORDEN.length : ib);
+      }),
+    cubren: [...new Set(cubren)].sort(),
+    sinMotivo,
+  };
+
   const dias = [...porDia.entries()]
     .map(([f, d]) => ({ fecha: f, aulas: d.titulares + d.reemplazos, ...d }))
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -164,6 +253,7 @@ export function agendacionDeAulas(
     sinFecha: reparto.enContacto + reparto.sinContactar,
     reparto,
     reemplazos,
+    activados,
     sinDiaDeContacto,
     faltanPorFacultad: [...faltan.entries()]
       .map(([facultad, aulas]) => ({ facultad, aulas }))

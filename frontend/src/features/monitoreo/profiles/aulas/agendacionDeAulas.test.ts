@@ -99,3 +99,51 @@ describe("agendacionDeAulas", () => {
     expect(agendacionDeAulas(null).porDia).toEqual([]);
   });
 });
+
+describe("los reemplazos que ya están en juego", () => {
+  /**
+   * Gonzalo, ítem 5 del dictado: «tampoco me estás diciendo cuántos reemplazos
+   * ya se aplicaron y qué tipo de reemplazos».
+   *
+   * En el corte del 2026-09-10 la respuesta es: cuatro activados —los cuatro
+   * rechazos de titulares—, todos de la misma celda, y CERO aplicados.
+   */
+  const conRelevos = [
+    fila({ faculty: "DERECHO", sample_status: "rechazo", scheduled_date: "", contact_date: "2026-09-03" }),
+    fila({
+      sample_role: "chain_reserve", faculty: "DERECHO", contact_date: "2026-09-09",
+      equivalence_level: "misma_celda", titular_operational_code: "CH 90",
+    }),
+    fila({
+      sample_role: "chain_reserve", faculty: "LETRAS", scheduled_date: "2026-09-16",
+      equivalence_level: "reserva_extra", titular_operational_code: "CH 12",
+      replacement_reason: "El docente rechazó", applied_surveys: "18",
+    }),
+  ];
+
+  it("dice de qué tipo es cada relevo, del más parecido al menos", () => {
+    const a = agendacionDeAulas(conRelevos);
+    expect(a.activados.porEquivalencia.map((e) => [e.nivel, e.aulas])).toEqual([
+      ["misma_celda", 1],
+      ["reserva_extra", 1],
+    ]);
+    expect(a.activados.porEquivalencia[0].palabras).toBe("del mismo perfil que el titular");
+  });
+
+  it("aplicado es haber ido, no tener fecha", () => {
+    expect(agendacionDeAulas(conRelevos).activados.aplicados).toBe(1);
+  });
+
+  it("dice a qué titulares cubren", () => {
+    expect(agendacionDeAulas(conRelevos).activados.cubren).toEqual(["CH 12", "CH 90"]);
+  });
+
+  it("cuenta los que no declaran motivo: sin él nadie sabrá por qué se activó", () => {
+    expect(agendacionDeAulas(conRelevos).activados.sinMotivo).toBe(1);
+  });
+
+  it("un nivel que el sorteo no conoce no se traga en silencio", () => {
+    const raro = [fila({ sample_role: "chain_reserve", contact_date: "2026-09-09", equivalence_level: "vecindad_3" })];
+    expect(agendacionDeAulas(raro).activados.porEquivalencia[0].palabras).toBe("vecindad_3");
+  });
+});

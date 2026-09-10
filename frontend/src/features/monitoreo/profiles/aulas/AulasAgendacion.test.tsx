@@ -17,7 +17,10 @@ const agenda = [
   fila({ faculty: "DERECHO", contact_date: "2026-09-09", scheduled_date: "2026-09-15" }),
   fila({ faculty: "PSICOLOGÍA", contact_date: "2026-09-09", scheduled_date: "" }),
   fila({ faculty: "PSICOLOGÍA", scheduled_date: "" }),
-  fila({ sample_role: "chain_reserve", faculty: "LETRAS", contact_date: "2026-09-09" }),
+  fila({
+    sample_role: "chain_reserve", faculty: "LETRAS", contact_date: "2026-09-09",
+    equivalence_level: "misma_celda", titular_operational_code: "CH 7",
+  }),
 ];
 
 describe("el panel de agendación", () => {
@@ -35,6 +38,16 @@ describe("el panel de agendación", () => {
     const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
     expect(html).toContain("Reemplazos en juego");
     expect(html).toContain("aulas-agd-clave es-reemplazo");
+  });
+
+  it("dice cuántos reemplazos se aplicaron, de qué tipo y a quién cubren", () => {
+    // «Tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué tipo
+    // de reemplazos» (ítem 5). Aplicado es haber ido, no tener fecha.
+    const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
+    expect(html).toContain("ninguno aplicado todavía");
+    expect(html).toContain("del mismo perfil que el titular");
+    expect(html).toContain("cubren CH 7");
+    expect(html).toContain("sin motivo declarado en el libro");
   });
 
   it("dibuja TODOS los días del rango, también los que no tuvieron agendación", () => {
