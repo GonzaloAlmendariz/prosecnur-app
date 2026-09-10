@@ -482,3 +482,17 @@
   font-weight: 500;
   color: var(--pulso-text-soft);
 }
+
+/* **La lectura que dice qué hacer**, no sólo cómo va: cuántas facultades piden
+   aula adicional, cuántas hay que vigilar y cuántas no tienen todavía base para
+   juzgarse. Va en su propia línea y con una regla delante porque es una
+   conclusión, no un dato más de la frase de arriba. */
+.mon-profile-page.is-aulas-flow .aulas-tau-aviso {
+  flex-basis: 100%;
+  margin-top: 2px;
+  padding-left: 9px;
+  border-left: 2px solid color-mix(in srgb, var(--pulso-border-strong) 70%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: var(--tau-meta);
+  line-height: 1.5;
+}
