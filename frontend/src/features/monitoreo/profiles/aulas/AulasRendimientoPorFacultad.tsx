@@ -3,7 +3,7 @@ import { Fragment, useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { personasPorAula } from "./redondeoConservador";
-import { MINIMO_PARA_COMPARAR, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { MINIMO_PARA_COMPARAR, esCajonSinDato, partesSinCifraDeEfectivas, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
@@ -78,6 +78,14 @@ export function AulasRendimientoPorFacultad({
   // de un parte que a una de doce.
   const totalEfectivas = filas.reduce((n, f) => n + f.efectivas, 0);
   const totalElegibles = filas.reduce((n, f) => n + f.elegibles, 0);
+  // Los dos grupos, para la frase de cabecera: la lista ya llega ordenada con
+  // las comparables delante, pero la frase necesita nombrarlas por separado.
+  // Los cajones de «no se sabe» quedan fuera de los dos: un «Sin aplicador» con
+  // cinco partes tiene visitas de sobra y no es una facultad que rinda, así que
+  // sin este filtro podía salir nombrado como la que más rinde de la tanda.
+  const conNombre = filas.filter((f) => !esCajonSinDato(f.facultad));
+  const comparables = conNombre.filter((f) => f.aulas >= MINIMO_PARA_COMPARAR);
+  const apartadas = conNombre.filter((f) => f.aulas < MINIMO_PARA_COMPARAR);
   const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
   const media = aulas ? Math.round((10 * efectivas) / aulas) / 10 : 0;
 
@@ -94,18 +102,36 @@ export function AulasRendimientoPorFacultad({
         {/* Sin género: el mismo componente sirve a facultad, aplicador y franja,
             y «la que más rinde (Equipo 4)» no concuerda. «De X a Y» vale para
             los tres y además es más corto. */}
-        {filas.length > 1 ? (
+        {comparables.length > 1 ? (
           <>
             {/* La frase nombra lo que ORDENA la lista, que desde el
                 2026-09-09 es el % del potencial y no lo que deja cada visita:
                 si la cabecera dice una cosa y el orden obedece a otra, quien
-                lee saca la conclusión contraria. */}
-            Del <strong>{pct(filas[0].delPotencial)}</strong> de su potencial ({filas[0].facultad}) al{" "}
-            <strong>{pct(filas[filas.length - 1].delPotencial)}</strong>{" "}
-            ({filas[filas.length - 1].facultad})
+                lee saca la conclusión contraria.
+
+                **Y recorre sólo el grupo que se compara.** Tomaba la primera y
+                la ÚLTIMA fila de la lista, y desde el corte de evidencia la
+                última no es la que menos rinde: es la que menos visitas tiene.
+                Con el operativo de hoy la frase habría dicho «del 74,5 % al
+                100 %», que se lee como que el rango sube. */}
+            Del <strong>{pct(comparables[0].delPotencial)}</strong> de su potencial
+            ({comparables[0].facultad}) al{" "}
+            <strong>{pct(comparables[comparables.length - 1].delPotencial)}</strong>{" "}
+            ({comparables[comparables.length - 1].facultad})
+            {apartadas.length > 0 ? (
+              <>
+                {" "}· {fmt(apartadas.length)} con menos de {MINIMO_PARA_COMPARAR}{" "}
+                cursos-horario todavía no{" "}
+                {apartadas.length === 1 ? "entra" : "entran"} en la comparación
+              </>
+            ) : null}
           </>
+        ) : comparables.length === 1 ? (
+          <>Sólo <strong>{comparables[0].facultad}</strong> lleva{" "}
+          {MINIMO_PARA_COMPARAR} cursos-horario o más: todavía no hay con qué compararla</>
         ) : (
-          <>Todo el trabajo está en <strong>{filas[0].facultad}</strong></>
+          <>Ninguna llega a {MINIMO_PARA_COMPARAR} cursos-horario visitados:
+          todavía no hay rendimiento que comparar</>
         )}
         {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
         {fmt(aulas)} {aulas === 1 ? "curso-horario visitado" : "cursos-horario visitados"}
