@@ -136,6 +136,20 @@ export const PESO_DEL_PRIOR = 5;
  */
 export const MINIMO_PARA_COMPARAR = 3;
 
+/**
+ * Los cajones de «no se sabe»: no son un nivel de rendimiento, son partes a los
+ * que les falta un dato. Van al final de la lista pase lo que pase con su cifra
+ * y NO entran en la comparación, aunque acumulen visitas de sobra — un «Sin
+ * aplicador» con cinco partes es un agujero de registro, no una facultad que
+ * rinde.
+ *
+ * Vive exportado porque la pantalla también lo necesita: la frase de cabecera
+ * dice «del X % (A) al Y % (B)» y sin este filtro podía nombrar a «Sin hora».
+ */
+export const esCajonSinDato = (nombre: string) =>
+  nombre === "Sin fecha" || nombre === "Sin hora"
+  || nombre === "Sin aplicador" || nombre === "Sin facultad";
+
 export const FRANJAS_DE_APLICACION = [
   { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
   { clave: "dia", etiqueta: "9:01 – 19:00", hasta: 19 * 60 },
@@ -331,11 +345,10 @@ export function rendimientoPorFacultad(
   // cero al lado de los días reales y se lee como que ese día no se rindió.
   // Medido el 2026-09-09: en «Día de la semana» había exactamente eso, un
   // cajón con un parte de 45.
-  const SIN_DATO = new Set(["Sin fecha", "Sin hora", "Sin aplicador", "Sin facultad"]);
   // Tres cajones en este orden: las comparables, las que aún tienen poca
   // evidencia y los «no se sabe». Dentro de cada uno manda el potencial CRUDO,
   // que es lo observado y lo que la barra dibuja.
-  const orden = (f: RendimientoDeFacultad) => (SIN_DATO.has(f.facultad)
+  const orden = (f: RendimientoDeFacultad) => (esCajonSinDato(f.facultad)
     ? 2
     : f.aulas >= MINIMO_PARA_COMPARAR ? 0 : 1);
   return salida.sort((x, y) => orden(x) - orden(y)
