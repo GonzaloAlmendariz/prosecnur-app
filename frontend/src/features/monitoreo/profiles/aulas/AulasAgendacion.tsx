@@ -113,8 +113,10 @@ export function AulasAgendacion({ agenda, corte = "" }: {
             {dias.map((d, i) => {
               const porcentaje = tope ? (100 * d.aulas) / tope : 0;
               // Con la barra casi llena la cifra no cabe encima y se saldría del
-              // carril: entra dentro, en blanco sobre el relleno.
-              const dentro = porcentaje > 78;
+              // carril: entra dentro, en blanco sobre el relleno. El umbral sale
+              // de la cuenta, no del ojo: el carril mide 96 px y la cifra con su
+              // aire ocupa 14, así que encima cabe hasta el 85 %.
+              const dentro = porcentaje > 85;
               const cambiaDeMes = i === 0 || d.fecha.slice(5, 7) !== dias[i - 1].fecha.slice(5, 7);
               return (
                 <li key={d.fecha} className={d.aulas ? "" : "es-sin-agendar"}>
