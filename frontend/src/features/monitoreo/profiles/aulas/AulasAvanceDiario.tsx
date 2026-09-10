@@ -44,6 +44,22 @@ const PAD = { arriba: 22, abajo: 44, izq: 52, der: 56 };
 const ANCHO = 1100;
 
 /**
+ * Dónde cae el día `i` de `n` dentro del ancho útil, en FRACCIÓN de 0 a 1.
+ *
+ * Se exporta porque el pronóstico de cierre dibuja sobre el mismo eje y tiene
+ * que poner sus fechas exactamente donde las pone este gráfico. Dos fórmulas
+ * distintas —una al centro del hueco y otra en los extremos— desplazan las
+ * series medio día y la alineación se pierde justo donde se mira.
+ */
+export const MARGEN_EJE = { izq: PAD.izq / ANCHO, der: PAD.der / ANCHO };
+
+export function fraccionDelDia(i: number, n: number): number {
+  if (n <= 0) return MARGEN_EJE.izq;
+  const util = 1 - MARGEN_EJE.izq - MARGEN_EJE.der;
+  return MARGEN_EJE.izq + (util * (i + 0.5)) / n;
+}
+
+/**
  * El techo del eje, redondeado hacia arriba a una cifra que se pueda leer.
  *
  * El boceto usaba `max · 1,15` y en pantalla los ejes decían **189, 378** y
@@ -107,7 +123,8 @@ export function AulasAvanceDiario({ dias, hasta }: {
   // del carril serían 170 px de barra, que se lee como un bloque y no como una
   // serie. El tope de 46 px es el del boceto.
   const ancho1 = Math.min(46, (util.x / puntos.length) * 0.5);
-  const cx = (i: number) => PAD.izq + (util.x * (i + 0.5)) / puntos.length;
+  // La MISMA fórmula que usa el pronóstico de abajo, y por eso vive fuera.
+  const cx = (i: number) => ancho * fraccionDelDia(i, puntos.length);
   const yBarra = (v: number) => PAD.arriba + util.y * (1 - v / techoBarra);
   const yLinea = (v: number) => PAD.arriba + util.y * (1 - v / techoLinea);
   const suelo = yBarra(0);
