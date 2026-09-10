@@ -29,7 +29,7 @@ Sólo Gonzalo lo da por terminado.
 | 22 | «En cursos por cobertura, no entiendo por qué la categoría sin respuesta sigue… si es necesario tenerla ahí, la dejamos» | `AulasCoberturaChart` | ☐ se queda, pero tiene que explicarse |
 | 23 | «No entiendo lo del cumplimiento por aula, no entiendo por qué hay una meta de 3 233… no entiendo eso de cuántas cumplen meta, cuántas faltan» | `AulasAvanceEnRespuestas` | ☐ |
 | 24 | «No está claro las que hay que agendar, por qué me estás diciendo que hay que agendarlas» | `AulasAlertaDeAnticipacion` | ☐ es el ítem 4, repetido |
-| 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☐ **el grande de Resumen** |
+| 25 | «No estás resumiendo la información ni de rendimiento ni de efectividad… si Resumen tiene que ser un resumen» | pestaña Resumen | ☑ panel «Rendimiento y efectividad» entre el estado y la cobertura: la tasa del diseño contra la del campo en un carril común, su base, y si con lo agendado se cierra. Con facultad en foco, su proyección — falta MIRARLO |
 | 27 | «El pronóstico no es lineal: no depende de que si hoy aplicamos treinta mañana serán treinta. Depende del RITMO DE LA AGENDA» | `pronosticoDeCierre` | ☐ **cambia el modelo, no el gráfico** |
 | 28 | «Es muy importante tener en Resumen cómo va la agendación de aulas, porque es lo que nos permite decir a estas aulas vamos a ir a aplicar, y eso está en el Sheets» | Resumen | ☐ |
 | 29 | «Ni la agendación ni las metas son lineales: dependen de las aulas agendadas y de los esperables de ellas, contrastando el rendimiento planificado con el que vamos encontrando, y ya podemos ir prediciendo para cada facultad cómo nos irá» | `proyeccionDeMetas` + pronóstico | ☐ |

@@ -1,0 +1,57 @@
+/* El resumen de Rendimiento y Efectividad. Hoja propia: `aulasMonitoreo.css`
+   está congelada a crecimiento y esto es superficie nueva. */
+.mon-profile-page.is-aulas-flow .aulas-rye { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-rye-lectura {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.45;
+}
+
+/* El tono NO grita: tiñe la primera palabra del pie, no el párrafo entero. Una
+   facultad que rinde por encima de lo previsto no es una alerta. */
+.mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo strong,
+.mon-profile-page.is-aulas-flow .aulas-rye-lectura.is-bajo { color: var(--pulso-text); }
+
+/* El carril: 0 % a la izquierda, 100 % a la derecha, con las dos marcas encima.
+   Es una regla, no un gráfico — por eso no lleva ejes ni escala propia. */
+.mon-profile-page.is-aulas-flow .aulas-rye-carril {
+  position: relative;
+  height: 10px;
+  margin: 10px 0 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--pulso-border-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-marca {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 16px;
+  margin-left: -1px;
+  border-radius: 2px;
+}
+
+/* El diseño es la vara: se dibuja tenue y detrás. */
+.mon-profile-page.is-aulas-flow .aulas-rye-marca.is-previsto {
+  background: var(--pulso-text-faint);
+}
+
+/* El campo es lo que se mira: sólido y encima. */
+.mon-profile-page.is-aulas-flow .aulas-rye-marca.is-observado {
+  background: var(--pulso-module-accent, var(--pulso-text));
+  height: 20px;
+  top: -5px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-base,
+.mon-profile-page.is-aulas-flow .aulas-rye-cierre {
+  margin: 6px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.4;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-rye-cierre { color: var(--pulso-text); }
