@@ -6,7 +6,7 @@ Sólo Gonzalo lo da por terminado.
 | # | Indicación (suya) | Dónde vive | Estado |
 |---|---|---|---|
 | 1 | «No sé para qué sirven finalmente los botones rojos… ¿cuál es la diferencia entre ambos?» | `AulasMonitoreoPage.tsx` (`advanceTitle`, `refreshTitle`, `syncField`) | ◐ contestado abajo; falta decidir si la pantalla lo dice sin hover |
-| 2 | «El selector de facultades del encabezado… debería ser un botón que sólo esté en Resumen, no en las demás pestañas» | `AulasSelectorDeFacultad` en la cabecera de `AulasMonitoreoPage.tsx` | ☐ |
+| 2 | «El selector de facultades del encabezado… debería ser un botón que sólo esté en Resumen, no en las demás pestañas» | `mandoDeFacultad.ts` | ☑ `a8d903a8` |
 | 3 | «Sigue saliendo fail page, lo cual me da a entender de que algo está fallando» | por diagnosticar | ☐ falta reproducirlo: no se sabe en qué pantalla ni con qué acción |
 | 4 | «A quién hay que agendar… no entiendo en base a qué te basas» + «hay facultades que todavía no terminan de agendar los titulares» | `AulasAlertaDeAnticipacion` | ☐ |
 | 5 | «Tampoco me estás diciendo cuántos reemplazos ya se aplicaron y qué tipo de reemplazos» | motor: `sample_role` + `replacement_reason` | ☐ |
@@ -14,9 +14,9 @@ Sólo Gonzalo lo da por terminado.
 | 7 | «En cada curso-horario contra su propio margen… mostrarlos por facultad, y poder escoger entre los aplicados, los titulares, o el reemplazo uno con el reemplazo dos» | `AulasSenalesPorAula` + `senalesPorAula.ts` | ☐ |
 | 8 | «La pregunta principal es identificar qué tan bien o mal nos está yendo respecto a lo planeado… y cuándo sería necesario solicitar un aula adicional» | pestaña Efectividad | ☐ |
 | 9 | «Con una o dos aulas eso no es suficiente base… pero cuando ya empezamos a tener una porción importante de las aulas aplicadas y vemos que no vamos a llegar, poder avisarte a tiempo» | ídem, es la condición de disparo de (8) | ☐ |
-| 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía completa, abajo | `estadoDeAplicacion.ts` + motor | ☐ |
+| 10 | «Hay que tener la terminología clara en el estado de aplicación» — su taxonomía y las situaciones A/B/C, abajo | `estadoDeAplicacion.ts` + motor | ☐ **primero LEER la columna de estados del Sheets** |
 | 11 | «No entiendo lo de en cierre» | `estadoDeAplicacion.ts:85` | ☐ es un rótulo que inventamos aquí, no del operativo |
-| 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | `rendimientoPorFacultad.ts` | ☐ |
+| 12 | «En el rendimiento por curso-horario tiene que considerar también que debe medirlo sólo aquellos que han sido aplicados» | motor: `monitoreo_aulas_universitarias.R` | ☑ `158c56bc` — repartía 219 y sólo 45 se habían aplicado |
 | 13 | «No estás tomando en cuenta mi artefacto donde dejé varios gráficos a utilizar, como el avance diario» | `<scratchpad>/resumen.html` | ☐ ver el cotejo abajo |
 
 ## Lo ya contestado, con su medición
@@ -89,17 +89,45 @@ desenlace. Por eso las 1 169 caen todas en un solo cajón que no dice nada.
 | reemplazos de refuerzo | ¿? | refuerzan un aula ya aplicada |
 | reemplazos complementarios / aulas extra | `extra_reserve_pool` | banco de extras |
 
-**Dos huecos que hay que resolver antes de dibujar nada**, y son preguntas para
-él, no decisiones mías:
+### Las tres situaciones de reemplazo, A · B · C (textual, 2026-09-10)
 
-1. **«Reemplazo de refuerzo»** no existe como rol en el motor. Los roles son
-   `titular`, `chain_reserve` y `extra_reserve_pool`. Hay que saber si un
-   refuerzo es un extra usado sobre un aula que YA se aplicó, o una figura
-   nueva.
-2. **«En cierre»** es un rótulo que se inventó aquí —sustituyó a «Cumple»— y él
-   no lo reconoce. El motor define ese tramo como `aplicada|cerrada` **o**
-   `validas >= meta`. O se renombra con una palabra del operativo, o el tramo se
-   disuelve dentro de «titulares aplicados».
+Contestó el hueco 1 sin que hiciera falta preguntarlo dos veces:
+
+> «La situación **a** era **el reemplazo literal**. **b** era una situación donde
+> un aula no llegaba a donde se requería y se necesitaba su reemplazo para
+> **complementar**. Y **c**, que en general necesitábamos más aulas y llamábamos
+> a **cualquier reemplazo disponible, que estuviera al aire**.»
+
+> «Yo pensaba que ya había un mecanismo dentro de la aplicación que te permitía
+> reconocer eso. E incluso, si te das cuenta, **en el Sheets hay una columna con
+> estados de aplicación** que también te permite identificar eso —entre efectiva,
+> efectiva de refuerzo, no estoy seguro—, pero **ahí en el Sheets te recomiendo
+> que también te guíes de los estados del Sheets, porque la idea es que ambos
+> hablen el mismo idioma** de alguna u otra forma.»
+
+O sea que las tres NO son tres roles del sorteo: son tres **motivos de
+activación** de un reemplazo, y el rol (`chain_reserve` / `extra_reserve_pool`)
+es otra dimensión:
+
+| | Qué pasó | Qué se activa |
+|---|---|---|
+| **A** | el titular cayó | su reserva de cadena, en orden |
+| **B** | el aula se aplicó y **no llegó** a lo que se le pedía | un reemplazo que **complementa** — es el «refuerzo» |
+| **C** | falta volumen en general | **cualquiera** que esté disponible «al aire» |
+
+**Y el idioma manda desde el Sheets, no desde aquí.** Su instrucción es explícita:
+la columna de estados de aplicación del libro ya distingue estos casos («efectiva»,
+«efectiva de refuerzo»…) y la app tiene que hablar ese idioma. **Antes de dibujar
+nada del ítem 10 hay que LEER los valores reales de esa columna** —los distintos,
+con su frecuencia— y construir el vocabulario sobre ellos. Inventar aquí una
+taxonomía paralela es exactamente lo que él está pidiendo que no pase.
+
+**Queda un hueco, y es pregunta para él:**
+
+- **«En cierre»** es un rótulo que se inventó aquí —sustituyó a «Cumple»— y él no
+  lo reconoce. El motor define ese tramo como `aplicada|cerrada` **o**
+  `validas >= meta`. O se renombra con una palabra del Sheets, o el tramo se
+  disuelve dentro de «titulares aplicados».
 
 ## 13 · Qué del artefacto de Resumen está y qué no
 
