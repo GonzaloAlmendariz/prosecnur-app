@@ -12,6 +12,7 @@ import {
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { caidaObservada } from "./tasaDeCaida";
 import { NombreDeFacultad } from "./NombreDeFacultad";
+import "./aulasAnticipacion.css";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt } from "./kpisDeAulas";
 
@@ -58,6 +59,37 @@ const CARGA_QUE_MANDA = 2 / 3;
 
 /** `0.235` → `24 %`. */
 const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
+
+/**
+ * Por qué se le piden N cursos-horario a esta facultad, con sus números.
+ *
+ * Es la cadena completa en una frase: lo que falta, lo que deja cada
+ * curso-horario suyo, cuántos bastarían y por qué se piden más. El pie del panel
+ * ya explicaba la REGLA —la tasa de caída de 2025— pero no la aplicaba a la fila
+ * que se está mirando, y la pregunta era justo ésa: «¿en base a qué te basas?».
+ */
+function razonDelPedido(f: AlertaDeFacultad): string {
+  if (!f.aulasAPedir) return "Todavía no se puede dimensionar: falta saber cuánto deja un curso-horario de esta facultad.";
+  const partes: string[] = [];
+  // **El sexo se traduce, no se pone en minúscula.** Viaja como «F»/«M» y
+  // `s.sexo.toLowerCase()` publicaría «6 de f». Hay un guard del perfil que lo
+  // caza y aquí lo cazó: `etiquetaDeSexo` es el único dueño de esa traducción.
+  const porSexo = f.faltanPorSexo
+    .filter((s) => s.faltan > 0)
+    .map((s) => `${fmt(s.faltan)} de ${etiquetaDeSexo(s.sexo)}`)
+    .join(" y ");
+  partes.push(`Faltan ${fmt(f.faltan)} respuestas${porSexo ? ` (${porSexo})` : ""}.`);
+  if (f.esperadoPorAula > 0) {
+    const bastan = f.aulasNecesarias === 1
+      ? "bastaría 1"
+      : `bastarían ${fmt(f.aulasNecesarias ?? 0)}`;
+    partes.push(`Cada curso-horario suyo deja unas ${fmt(Math.round(f.esperadoPorAula))}, así que ${bastan}.`);
+  }
+  if ((f.aulasAPedir ?? 0) > (f.aulasNecesarias ?? 0)) {
+    partes.push(`Se piden ${fmt(f.aulasAPedir)} porque una parte no llega a aplicarse: en 2025 cayeron 21 de cada 170 titulares.`);
+  }
+  return partes.join(" ");
+}
 
 export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [], facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
@@ -223,10 +255,27 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
         </li>
         {conBrecha.map((f) => (
           <li key={f.facultad} role="row" className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
+            {/* **El eslabón que faltaba de la cadena.** Gonzalo, dos veces:
+                «a quién hay que agendar, no entiendo en base a qué te basas» y
+                «no está claro las que hay que agendar, por qué me estás diciendo
+                que hay que agendarlas». La fila daba el principio —«faltan 7»— y
+                el final —«pedir 2»—, y entre los dos hay un paso que no estaba:
+                cuánto deja un curso-horario de ESA facultad. Sin él, 7 y 2 no se
+                relacionan con nada. */}
             <NombreDeFacultad facultad={f.facultad} className="aulas-anticipacion-nombre"
               rol="rowheader"
-              enFoco={f.facultad === facultadEnFoco} />
-            <span role="cell" className="aulas-anticipacion-pedir">
+              enFoco={f.facultad === facultadEnFoco}>
+              {f.facultad}
+              {f.esperadoPorAula > 0 ? (
+                <em>cada curso-horario suyo deja unas {fmt(Math.round(f.esperadoPorAula))} respuestas</em>
+              ) : null}
+            </NombreDeFacultad>
+            <span
+              role="cell"
+              className="aulas-anticipacion-pedir"
+              /* La cadena entera, con los números de ESTA facultad. */
+              title={razonDelPedido(f)}
+            >
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>
             {/* Extras de ESA facultad sin usar. `null` es «no se sabe», que no es
