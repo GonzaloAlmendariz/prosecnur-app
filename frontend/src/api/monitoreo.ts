@@ -1387,6 +1387,14 @@ export type MonitoreoAulasReparto = {
   semilla?: number;
 };
 
+/** El estado de aplicación repartido por rol; la forma del libro. */
+export type MonitoreoAulasRolYEstado = {
+  titulares?: { total?: number; aplicado?: number; agendado?: number;
+                sin_agendar?: number; rechazado?: number; reemplazado?: number };
+  reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number };
+  banco?: { total?: number; utilizado?: number; disponible?: number };
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1642,12 +1650,19 @@ export type MonitoreoAulasDashboard = {
 	   * hacer y que nadie escribe en el libro: una reserva deja de poder usarse
 	   * en cuanto algún eslabón de su cadena se aplica.
 	   */
-	  course_status_rol_y_estado?: {
-	    titulares?: { total?: number; aplicado?: number; agendado?: number;
-	                  sin_agendar?: number; rechazado?: number; reemplazado?: number };
-	    reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number };
-	    banco?: { total?: number; utilizado?: number; disponible?: number };
-	  };
+	  course_status_rol_y_estado?: MonitoreoAulasRolYEstado;
+	  /**
+	   * El mismo reparto por FACULTAD, para que el selector de la cabecera filtre
+	   * de verdad. Se calcula en el motor y no aquí porque `course_status` viaja
+	   * recortado a 500 filas: filtrarlo en la pantalla daría el reparto de un
+	   * recorte con nombre de facultad.
+	   */
+	  course_status_rol_y_estado_por_facultad?: Record<string, MonitoreoAulasRolYEstado>;
+	  course_status_cobertura_por_facultad?: Record<string, {
+	    cobertura?: Array<{ clave: string; aulas: number; etiqueta?: string }>;
+	    con_meta?: number;
+	    sin_aplicar?: number;
+	  }>;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

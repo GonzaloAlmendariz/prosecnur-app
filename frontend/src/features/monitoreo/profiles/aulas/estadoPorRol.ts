@@ -46,8 +46,25 @@ const n = (v: unknown) => {
  * con una versión anterior—, para que la vista pueda decirlo en vez de dibujar
  * tres grupos en cero, que se leería como «no hay nada» y es otra cosa.
  */
-export function estadoPorRol(dashboard: MonitoreoAulasDashboard | null | undefined): GrupoDeRol[] | null {
-  const bloque = dashboard?.course_status_rol_y_estado;
+export function estadoPorRol(
+  dashboard: MonitoreoAulasDashboard | null | undefined,
+  /**
+   * La facultad en foco, si el selector de la cabecera tiene una puesta.
+   *
+   * **Se pide su bloque al motor, no se filtra aquí.** Gonzalo, 2026-09-10: «el
+   * selector no hace que los gráficos actualicen; cuando yo selecciono una
+   * facultad, debería mostrarme sólo la de esa facultad». Filtrar en la pantalla
+   * habría significado filtrar `course_status`, que viaja recortado a 500 filas
+   * de las 1 392 del plan: el reparto de un recorte con nombre de facultad.
+   *
+   * Una facultad que el motor no reparte —porque no tiene ni un curso-horario—
+   * devuelve `null`, y la vista lo dice en vez de enseñar tres grupos en cero.
+   */
+  facultad?: string,
+): GrupoDeRol[] | null {
+  const bloque = facultad
+    ? dashboard?.course_status_rol_y_estado_por_facultad?.[facultad]
+    : dashboard?.course_status_rol_y_estado;
   if (!bloque || (!bloque.titulares && !bloque.reemplazos && !bloque.banco)) return null;
   const t = bloque.titulares ?? {};
   const r = bloque.reemplazos ?? {};
