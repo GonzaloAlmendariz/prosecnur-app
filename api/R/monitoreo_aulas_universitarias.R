@@ -2604,6 +2604,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     avance_sexo_facultad = .mau_avance_celdas,
     # Y para las celdas que NO van a llegar, a que aula del banco ir. Solo donde
     # hay decision que tomar: una celda asegurada no necesita candidatos.
+    # **Qué relevo le queda a cada titular.** Es la SALIDA que le faltaba a la
+    # tabla del margen: dice quién rindió por debajo y, hasta ahora, ahí se
+    # paraba. Medido el 2026-09-10: 13 de los 14 por debajo tienen reserva de
+    # cadena viva. No se confunde con `reserva_dirigida`, que va por celda en
+    # déficit y busca en el banco de extras — ver el motor.
+    reserva_de_la_cadena = monitoreo_aulas_reserva_de_la_cadena(
+      .monitoreo_aulas_records(plan_df)
+    ),
     reserva_dirigida = monitoreo_aulas_reserva_por_celda(
       .mau_avance_celdas, .agenda_registros
     ),
