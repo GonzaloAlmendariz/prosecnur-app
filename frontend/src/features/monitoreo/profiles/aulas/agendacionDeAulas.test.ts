@@ -12,8 +12,12 @@ const agenda = [
   fila({ faculty: "PSICOLOGÍA", contact_date: "2026-09-09", scheduled_date: "" }),
   fila({ faculty: "PSICOLOGÍA", scheduled_date: "" }),
   fila({ faculty: "DERECHO", scheduled_date: "", sample_status: "rechazo" }),
-  // Una reserva NO se agenda hasta que hace falta: fuera de todas las cuentas.
+  // Una reserva a la que nadie tocó NO se agenda hasta que hace falta: fuera.
   fila({ sample_role: "chain_reserve", faculty: "DERECHO", scheduled_date: "" }),
+  // Ésta sí está en juego: se la contactó el 09 y todavía no da fecha.
+  fila({ sample_role: "chain_reserve", faculty: "LETRAS", contact_date: "2026-09-09" }),
+  // Y ésta ya tiene fecha de visita, sin que nadie apuntara cuándo se habló.
+  fila({ sample_role: "chain_reserve", faculty: "LETRAS", scheduled_date: "2026-09-16" }),
 ];
 
 describe("agendacionDeAulas", () => {
@@ -26,6 +30,30 @@ describe("agendacionDeAulas", () => {
     expect(a.conFecha).toBe(3);
     // Dos sin fecha; el rechazo NO cuenta como pendiente.
     expect(a.sinFecha).toBe(2);
+  });
+
+  it("separa al que no contesta del que nadie ha llamado", () => {
+    // Gonzalo, 2026-09-10: «cuántos en contacto se tiene que aún no recibimos
+    // respuesta». Insistir y empezar son dos trabajos distintos.
+    const a = agendacionDeAulas(agenda);
+    expect(a.reparto.enContacto).toBe(1);
+    expect(a.reparto.sinContactar).toBe(1);
+    expect(a.reparto.rechazos).toBe(1);
+    expect(a.reparto.conFecha + a.reparto.enContacto + a.reparto.sinContactar + a.reparto.rechazos)
+      .toBe(a.reparto.total);
+  });
+
+  it("las reservas EN JUEGO se cuentan aparte, no se pierden", () => {
+    // Una reserva ya contactada o agendada es trabajo real; las intactas no.
+    const a = agendacionDeAulas(agenda);
+    expect(a.reemplazos.total).toBe(2);
+    expect(a.reemplazos.conFecha).toBe(1);
+    expect(a.reemplazos.enContacto).toBe(1);
+  });
+
+  it("avisa de los agendados sin fecha de contacto: no salen en las barras", () => {
+    // Si esto crece, el ritmo dibujado va por debajo del real.
+    expect(agendacionDeAulas(agenda).sinDiaDeContacto).toBe(1);
   });
 
   it("un rechazo no es trabajo pendiente de agendar", () => {
@@ -41,8 +69,8 @@ describe("agendacionDeAulas", () => {
     // Dos el 01 y dos el 09: la quinta y la sexta fila no traen `contact_date`
     // y la séptima es reserva. (Conté tres al escribirlo; el fixture manda.)
     expect(a.porDia).toEqual([
-      { fecha: "2026-09-01", aulas: 2 },
-      { fecha: "2026-09-09", aulas: 2 },
+      { fecha: "2026-09-01", aulas: 2, titulares: 2, reemplazos: 0 },
+      { fecha: "2026-09-09", aulas: 3, titulares: 2, reemplazos: 1 },
     ]);
   });
 
@@ -50,11 +78,14 @@ describe("agendacionDeAulas", () => {
     // Un fin de semana sin agendar hundiría el ritmo con ceros que nadie trabajó.
     const a = agendacionDeAulas(agenda, { ultimos: 1 });
     expect(a.ultimosDias).toBe(1);
-    expect(a.ultimosAulas).toBe(2);
+    // Los tres del 09: dos titulares y la reserva que se puso en juego.
+    expect(a.ultimosAulas).toBe(3);
   });
 
-  it("dice hasta qué día llega lo agendado", () => {
-    expect(agendacionDeAulas(agenda).hasta).toBe("2026-09-15");
+  it("dice hasta qué día llega lo agendado, contando los reemplazos", () => {
+    // El 16 es la visita de una reserva ya activada: el plan de campo llega
+    // hasta ahí, y mirar sólo a los titulares lo dejaría corto.
+    expect(agendacionDeAulas(agenda).hasta).toBe("2026-09-16");
   });
 
   it("las que faltan se ordenan por cuántas, y nombran su facultad", () => {

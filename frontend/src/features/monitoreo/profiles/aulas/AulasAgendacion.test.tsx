@@ -15,32 +15,49 @@ const agenda = [
   fila({ faculty: "DERECHO", contact_date: "2026-09-01", scheduled_date: "2026-09-08" }),
   fila({ faculty: "DERECHO", contact_date: "2026-09-03", scheduled_date: "2026-09-09" }),
   fila({ faculty: "DERECHO", contact_date: "2026-09-09", scheduled_date: "2026-09-15" }),
+  fila({ faculty: "PSICOLOGÍA", contact_date: "2026-09-09", scheduled_date: "" }),
   fila({ faculty: "PSICOLOGÍA", scheduled_date: "" }),
-  fila({ faculty: "PSICOLOGÍA", scheduled_date: "" }),
+  fila({ sample_role: "chain_reserve", faculty: "LETRAS", contact_date: "2026-09-09" }),
 ];
 
 describe("el panel de agendación", () => {
-  it("dice lo que queda por agendar y a quién le falta", () => {
+  it("separa los tres trabajos: agendar, insistir y empezar", () => {
+    // «Falta tomar en cuenta agendación que son reemplazos, agendaciones de
+    // titulares, y cuántos en contacto se tiene que aún no recibimos respuesta».
     const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
-    expect(html).toContain("Quedan <strong>2</strong>");
+    expect(html).toContain("<strong>3</strong> de 5 titulares");
+    expect(html).toContain("en contacto sin respuesta");
+    expect(html).toContain("sin contactar aún");
     expect(html).toContain("PSICOLOGÍA");
   });
 
-  it("dibuja un día por cada jornada CON agendación", () => {
+  it("cuenta aparte la reserva que ya está en juego", () => {
     const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
-    // Tres días con actividad: 01, 03 y 09. La comilla final importa: sin ella
-    // el contador también cuenta el `<ul class="aulas-agd-dias">` que los envuelve.
-    expect((html.match(/aulas-agd-dia"/g) ?? []).length).toBe(3);
+    expect(html).toContain("Reemplazos en juego");
+    expect(html).toContain("aulas-agd-clave es-reemplazo");
+  });
+
+  it("dibuja TODOS los días del rango, también los que no tuvieron agendación", () => {
+    // Un eje que salta el sábado dibuja un ritmo que no existió. Del 01 al 09
+    // son nueve columnas, y sólo tres traen cifra.
+    const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
+    expect((html.match(/aulas-agd-dia"/g) ?? []).length).toBe(9);
+    expect((html.match(/es-sin-agendar/g) ?? []).length).toBe(6);
+  });
+
+  it("el eje llega hasta el corte aunque hoy no se haya agendado nada", () => {
+    const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} corte="2026-09-12" />);
+    expect((html.match(/aulas-agd-dia"/g) ?? []).length).toBe(12);
+  });
+
+  it("escribe el mes al empezar y sólo cuando cambia", () => {
+    const html = renderToStaticMarkup(<AulasAgendacion agenda={agenda} />);
+    expect((html.match(/aulas-agd-mes/g) ?? []).length).toBe(1);
+    expect(html).toContain("set");
   });
 
   it("dice hasta cuándo llega lo ya agendado", () => {
     expect(renderToStaticMarkup(<AulasAgendacion agenda={agenda} />)).toContain("15/09");
-  });
-
-  it("con todo agendado lo dice, en vez de enseñar un cero", () => {
-    const todo = agenda.filter((f) => f.scheduled_date);
-    const html = renderToStaticMarkup(<AulasAgendacion agenda={todo} />);
-    expect(html).toContain("Todos los cursos-horario titulares tienen fecha");
   });
 
   it("sin titulares declara la ausencia, no dibuja un panel vacío", () => {
