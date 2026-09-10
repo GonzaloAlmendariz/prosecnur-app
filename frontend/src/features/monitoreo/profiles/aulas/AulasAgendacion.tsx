@@ -140,12 +140,39 @@ export function AulasAgendacion({ agenda, corte = "" }: {
 
       {a.reemplazos.total ? (
         <p className="aulas-agd-pie">
-          Reemplazos en juego: <strong>{fmt(a.reemplazos.conFecha)}</strong> con fecha
-          {a.reemplazos.enContacto ? (
-            <> · <strong>{fmt(a.reemplazos.enContacto)}</strong> en contacto</>
+          {/* **Cuántos y DE QUÉ TIPO.** Gonzalo: «tampoco me estás diciendo
+              cuántos reemplazos ya se aplicaron y qué tipo de reemplazos». El
+              tipo es el nivel de equivalencia que escribe el sorteo, y dice
+              cuánto se parece la reserva al titular que releva: de eso depende
+              que la celda se conserve o se degrade. */}
+          Reemplazos en juego: <strong>{fmt(a.reemplazos.total)}</strong>
+          {" — "}
+          {a.activados.aplicados
+            ? <><strong>{fmt(a.activados.aplicados)}</strong> ya aplicados</>
+            : <>ninguno aplicado todavía</>}
+          {a.reemplazos.conFecha ? <> · <strong>{fmt(a.reemplazos.conFecha)}</strong> con fecha</> : null}
+          {a.reemplazos.enContacto ? <> · <strong>{fmt(a.reemplazos.enContacto)}</strong> en contacto</> : null}
+          {a.reemplazos.sinContactar ? <> · <strong>{fmt(a.reemplazos.sinContactar)}</strong> sin contactar</> : null}
+          {a.activados.porEquivalencia.length ? (
+            <>
+              {". "}
+              {a.activados.porEquivalencia.map((e, i) => (
+                <span key={e.nivel}>
+                  {i ? " · " : ""}<strong>{fmt(e.aulas)}</strong> {e.palabras}
+                </span>
+              ))}
+            </>
           ) : null}
-          {a.reemplazos.sinContactar ? (
-            <> · <strong>{fmt(a.reemplazos.sinContactar)}</strong> sin contactar</>
+          {a.activados.cubren.length ? (
+            <> · cubren {a.activados.cubren.slice(0, 6).join(", ")}
+              {a.activados.cubren.length > 6 ? ` y ${fmt(a.activados.cubren.length - 6)} más` : ""}</>
+          ) : null}
+          {/* **El motivo no viene, y se dice.** `replacement_reason` va vacío en
+              los cuatro relevos del corte: el porqué está en la nota de campo,
+              en prosa. Callarlo dejaría que dentro de un mes nadie sepa por qué
+              se activó esta reserva y no otra. */}
+          {a.activados.sinMotivo ? (
+            <> · <strong>{fmt(a.activados.sinMotivo)}</strong> sin motivo declarado en el libro</>
           ) : null}
         </p>
       ) : null}
