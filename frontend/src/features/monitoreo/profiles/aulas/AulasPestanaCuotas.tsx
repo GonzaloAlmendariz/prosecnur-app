@@ -15,6 +15,7 @@ import { AulasBarrasPorFacultad } from "./AulasBarrasPorFacultad";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasCuotasResumen, type FocoDeCuota } from "./AulasCuotasResumen";
 import { avanceCuota } from "./avanceCuota";
+import { deLaFacultad } from "./deLaFacultad";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import type {
@@ -86,7 +87,31 @@ export function AulasPestanaCuotas({
   if (pestana !== "cuotas") return null;
   void tabla;
   // La combinación elegida sale del motor; la pantalla no deriva ninguna.
-  const proyeccion = proyeccionElegida(dashboard.proyeccion_metas, meta, tasa);
+  const proyeccionDelEstudio = proyeccionElegida(dashboard.proyeccion_metas, meta, tasa);
+  /**
+   * **Con una facultad puesta, la pestaña entera es la de ESA facultad.**
+   *
+   * Gonzalo, 2026-09-10: «mejor todo Avance debería tener el selector de
+   * facultad, y absolutamente todos los gráficos deben ajustarse y ser robustos
+   * a mostrar o todas las facultades o una específica».
+   *
+   * Se filtra la ENTRADA y no cada panel: la cinta, las tres barras y el pie
+   * salen todos de `proyeccion`, así que recortarla una vez los deja
+   * coherentes sin tocar cinco componentes ni inventar cinco formas de comparar
+   * dos nombres de facultad. Es la misma decisión que ya tomó `deLaFacultad`
+   * para Resumen.
+   *
+   * Vacío en vez de `[]`: un array vacío es `truthy` y montaría la sección
+   * entera con cero barras. Aquí «esta facultad no tiene cuota declarada» y «el
+   * estudio no declaró cuotas» son cosas distintas y se dicen distinto (C3).
+   */
+  const proyeccionEnFoco = facultadEnFoco
+    ? (deLaFacultad(
+        proyeccionDelEstudio as unknown as ReadonlyArray<Record<string, unknown>>,
+        facultadEnFoco,
+      ) as unknown as typeof proyeccionDelEstudio)
+    : proyeccionDelEstudio;
+  const proyeccion = proyeccionEnFoco?.length ? proyeccionEnFoco : null;
   const cinta = cintaDeMetas(proyeccion);
   const alcance = facultadesQueNoLlegan(proyeccion);
   const respaldo = respaldoDeLaTasa(proyeccion);
@@ -94,7 +119,10 @@ export function AulasPestanaCuotas({
   // Las derivaciones vienen CON la pestaña: sólo las usa ella, comprobado por
   // grep antes de mover.
   const quotaRows = ordenarPorFacultadYSexo(
-    (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+    deLaFacultad(
+      (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+      facultadEnFoco,
+    ) as Array<Record<string, unknown>>,
     (fila) => Number(fila.missing ?? 0),
   );
   // El view-model del cumplimiento contra el diseño se calcula UNA vez y
@@ -113,7 +141,14 @@ export function AulasPestanaCuotas({
           devuelve `null`: la sección entera no se monta y la pestaña sigue
           diciendo lo que sí sabe. Es la distinción que importa — «no se sabe» no
           es «no llega» (C3). */}
-      {proyeccion ? (
+      {/* **El marco se queda aunque la facultad no tenga cuota** (C2). Antes la
+          sección simplemente no se montaba y el lector veía una pantalla más
+          corta sin saber por qué; con un selector de facultad encima eso pasa a
+          ser lo normal, no la excepción. El vacío va DENTRO del panel y bajo su
+          propio título: un segundo panel con el mismo rótulo lo cazó el guard
+          `titulosDePanel` en el acto, y con razón — dos «Metas por facultad y
+          sexo» en la misma pantalla no son un vacío, son un duplicado. */}
+      {proyeccion || (facultadEnFoco && proyeccionDelEstudio?.length) ? (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-avance"
@@ -127,12 +162,25 @@ export function AulasPestanaCuotas({
                 nadie más —de dónde sale la cuota y si está degradada—, y sin
                 ella la cinta publicaría un 2 500 sin decir de quién es. */}
             <span title={cuotaDiseno.procedencia.detalle || undefined}>
-              {alcance
+              {/* Con una facultad puesta, «1 de 1 facultades llegan» es una
+                  cuenta correcta y una frase inútil: se dice de ella. */}
+              {alcance && facultadEnFoco
+                ? `${alcance.noLlegan ? "no llega" : "llega"} con lo que ya tiene agendado · `
+                : null}
+              {alcance && !facultadEnFoco
                 ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} facultades llegan con lo que ya tienen agendado · `
                 : null}
               {cuotaDiseno.procedencia.chip}
             </span>
           </div>
+          {!proyeccion ? (
+            <p className="mon-profile-muted">
+              {facultadEnFoco} no tiene cuota declarada en el diseño, así que no
+              hay meta contra la que proyectar. El resto del estudio sí la tiene:
+              quita la facultad del selector para verlo.
+            </p>
+          ) : (
+          <>
           <AulasMetasMandos
             rotulo="Meta"
             opciones={[
@@ -188,6 +236,8 @@ export function AulasPestanaCuotas({
             ) : null}
             {supuestos.map((frase) => <p key={frase}>{frase}</p>)}
           </div>
+          </>
+          )}
         </section>
       ) : null}
       {/* **«Cumplimiento de la cuota del estudio» se retiró el 2026-09-09**, con
@@ -311,7 +361,10 @@ export function AulasPestanaCuotas({
           <span>lo recogido, lo que traerá lo agendado y el techo de todo el plan</span>
         </div>
         <AulasTresLecturas
-          celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
+          celdas={deLaFacultad(
+            (dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>,
+            facultadEnFoco,
+          ) as Array<Record<string, unknown>>}
         />
       </section>
       <section
@@ -326,7 +379,10 @@ export function AulasPestanaCuotas({
         {/* El remedio, que venía de «Hombres y mujeres por facultad»: a qué aula
             del banco ir para cerrar justo las celdas que no llegan. */}
         <AulasReservaDirigida
-          celdas={(dashboard.reserva_dirigida ?? []) as MonitoreoAulasReservaDirigida[]}
+          celdas={deLaFacultad(
+            (dashboard.reserva_dirigida ?? []) as unknown as Array<Record<string, unknown>>,
+            facultadEnFoco,
+          ) as unknown as MonitoreoAulasReservaDirigida[]}
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
         />
         <AulasConsumoDelBanco

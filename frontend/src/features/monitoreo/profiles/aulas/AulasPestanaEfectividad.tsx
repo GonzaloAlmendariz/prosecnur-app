@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { deLaFacultad } from "./deLaFacultad";
 import { AulasEfectividadPorDia } from "./AulasEfectividadPorDia";
 import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
 import { AulasSenalesPorAula } from "./AulasSenalesPorAula";
@@ -86,9 +87,18 @@ export function AulasPestanaEfectividad({
                 <h3>Hacia dónde va la efectividad</h3>
                 <span>jornada a jornada · dice si el campo está mejorando o si hay que intervenir</span>
               </div>
+              {/* El recorte va en la ENTRADA, como en Resumen: las dos listas
+                  traen `faculty`, así que el panel no necesita saber nada del
+                  selector para responderle. */}
               <AulasEfectividadPorDia
-                partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
-                plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+                partes={deLaFacultad(
+                  (dashboard.partes_campo ?? []) as unknown as Array<Record<string, unknown>>,
+                  facultadEnFoco,
+                ) as unknown as MonitoreoRow[]}
+                plan={deLaFacultad(
+                  (dashboard.agenda ?? []) as unknown as Array<Record<string, unknown>>,
+                  facultadEnFoco,
+                ) as unknown as MonitoreoRow[]}
               />
             </section>
             {/* La MISMA pregunta un grano más abajo: es el «en paralelo» del
