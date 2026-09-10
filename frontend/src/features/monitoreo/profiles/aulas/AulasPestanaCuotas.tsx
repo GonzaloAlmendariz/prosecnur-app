@@ -350,6 +350,19 @@ export function AulasPestanaCuotas({
             superficie declara qué es— y quien lo mirara leería «consumo de la
             reserva» sobre unas barras que hablan de cuotas. Visto en pantalla el
             2026-09-10. */}
+        {/* **Y su cuerpo volvió a este panel el mismo día.** Al sacar las tres
+            lecturas se llevó por delante a `AulasConsumoDelBanco`, que acabó
+            dentro de «A qué aula del banco ir»: «Consumo de la reserva» quedaba
+            como un título sin nada debajo y el panel de al lado publicaba
+            «ningún curso-horario ha sido reemplazado todavía» bajo el rótulo
+            equivocado. Dos veces la misma avería —un cuerpo bajo un título
+            ajeno— y las dos se vieron sólo en pantalla. */}
+        <AulasConsumoDelBanco
+          filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
+          diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
+        />
         </section>
       <section
         className="mon-profile-panel"
@@ -384,12 +397,6 @@ export function AulasPestanaCuotas({
             facultadEnFoco,
           ) as unknown as MonitoreoAulasReservaDirigida[]}
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
-        />
-        <AulasConsumoDelBanco
-          filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
-          diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
-          facultadEnFoco={facultadEnFoco}
-          onFoco={onFoco}
         />
       </section>
       {/* **La pirámide «Tamaño de cada meta» se retiró el 2026-09-08**, con
