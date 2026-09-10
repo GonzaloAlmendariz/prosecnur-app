@@ -16,7 +16,9 @@ const agenda = [
   fila({ faculty: "DERECHO", operational_code: "CH 1", application_state: "cerrando", expected_valid: 10, respuestas_validas: 9 }),
   fila({ faculty: "DERECHO", operational_code: "CH 2", application_state: "lista", expected_valid: 10, scheduled_date: "2026-09-12" }),
   fila({ faculty: "DERECHO", operational_code: "CH 3", application_state: "lista", expected_valid: 10, scheduled_date: "2026-09-15" }),
-  fila({ faculty: "DERECHO", operational_code: "CH 4", application_state: "pendiente", expected_valid: 10 }),
+  // Con su ROL, que es lo que distingue un titular por agendar de una reserva
+  // dormida. Sin él, `cierrePorAgenda` no lo cuenta — y hace bien.
+  fila({ faculty: "DERECHO", operational_code: "CH 4", sample_role: "titular", application_state: "pendiente", expected_valid: 10 }),
   // Otra facultad: no debe contaminar.
   fila({ faculty: "LETRAS", operational_code: "CH 9", application_state: "lista", expected_valid: 10, scheduled_date: "2026-09-30" }),
 ];
