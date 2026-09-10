@@ -543,6 +543,21 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
   .mav_fecha(iso)
 }
 
+#' ¿La celda tiene FORMA de fecha, aunque no se pueda situar?
+#'
+#' «11/09» es una fecha a la que le falta el año, no un texto ilegible. La
+#' distinción parece de matiz y no lo es: `monitoreo_aulas_filas_dudosas()`
+#' pasaba la propia celda como `desde` cuando no había ventana, así que
+#' `.madm_fecha_de_la_hoja("11/09", "11/09")` no encontraba año y devolvía "" —
+#' y las 93 filas de la hoja salían marcadas `fecha_ilegible` a la vez.
+#' Un aviso que señala TODAS las filas no señala ninguna.
+#' @keywords internal
+.madm_tiene_forma_de_fecha <- function(corta) {
+  v <- .alpa_txt(corta)
+  nzchar(v) && (grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", v) ||
+                  grepl("^[0-9]{1,2}/[0-9]{1,2}$", v))
+}
+
 #' Las filas escritas que no cuadran, dichas una por una.
 #'
 #' Tres cosas, y ninguna se toca:
@@ -579,7 +594,21 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "")
     dicha <- .madm_celda(v, c_fecha)
     if (!nzchar(cod)) { anotar(i, "", "sin_curso_horario", dicha); next }
     if (!nzchar(dicha)) next
-    iso <- .madm_fecha_de_la_hoja(dicha, if (nzchar(d0)) d0 else dicha)
+    # **Sin ventana no se pasa la propia celda como año.** «11/09» no puede
+    # aportar el año que le falta, así que aquello devolvía "" para TODAS las
+    # filas y las marcaba ilegibles en bloque. Sin `desde` no hay año que
+    # aplicar y una fecha corta bien escrita no es dudosa: es una fecha que
+    # esta llamada no puede situar, y eso no es un defecto de la hoja.
+    if (!nzchar(d0)) {
+      # Sin ventana no hay año que aplicar, así que sólo se puede juzgar la
+      # FORMA. Una fecha corta bien escrita no es dudosa: es una fecha que esta
+      # llamada no puede situar, y eso no es un defecto de la hoja.
+      if (!.madm_tiene_forma_de_fecha(dicha)) anotar(i, cod, "fecha_ilegible", dicha)
+      next
+    }
+    # Con ventana se intenta situar de verdad, y lo que no se sitúa cae —tenga
+    # o no forma de fecha: «45/13» encaja en el patrón y no existe.
+    iso <- .madm_fecha_de_la_hoja(dicha, d0)
     if (!nzchar(iso)) { anotar(i, cod, "fecha_ilegible", dicha); next }
     if (nzchar(d0) && nzchar(d1) && (iso < d0 || iso > d1)) {
       anotar(i, cod, "fuera_de_la_semana", dicha)
@@ -1103,7 +1132,19 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   n_cor <- as.integer(aulas$corregidas %||% 0L)
   n_orf <- length(out$sin_agenda %||% list())
   hecho <- isTRUE(out$aplicado)
+  # **Sin rango declarado, «lo que falta» es todo el horizonte.** El rango del
+  # reparto es lo que acota esta acción, y cuando el config no lo trae la
+  # ventana sale vacía y entran las semanas enteras que están aplazadas a
+  # propósito. Medido el 2026-09-09 sobre el operativo: sin rango proponía
+  # añadir 49 aulas de las semanas 2 a 4. No se inventa un rango —qué semana se
+  # reparte lo decide el lead— pero se dice, porque proponerlas en silencio es
+  # lo que hace que alguien las aplique sin querer.
+  ventana <- out$ventana %||% list()
+  sin_rango <- !nzchar(.alpa_txt(ventana$desde)) && !nzchar(.alpa_txt(ventana$hasta))
   partes <- c(
+    if (n_add && sin_rango) sprintf(
+      "no hay rango de reparto declarado, así que entra TODO lo agendado: %d aula%s de aquí en adelante",
+      n_add, if (n_add == 1L) "" else "s"),
     if (n_add) sprintf("%s %d aula%s agendada%s que no tenía cita",
                        if (hecho) "Se añadieron" else "Se añadirían", n_add,
                        if (n_add == 1L) "" else "s", if (n_add == 1L) "" else "s"),
