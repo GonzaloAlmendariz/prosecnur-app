@@ -1,0 +1,74 @@
+/* «Cómo va la agendación». Hoja propia: `aulasMonitoreo.css` está congelada. */
+.mon-profile-page.is-aulas-flow .aulas-agd { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-agd-lectura {
+  margin: 0 0 12px;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-lectura strong { font-variant-numeric: tabular-nums; }
+
+/* Un día por columna, con su cifra encima: son pocos días y caben todos, que es
+   la regla de los ejes de este perfil desde el 2026-09-10. */
+.mon-profile-page.is-aulas-flow .aulas-agd-dias {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-dias li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-n {
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-barra {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 56px;
+  background: color-mix(in srgb, var(--pulso-bg) 60%, var(--pulso-surface));
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-barra i {
+  display: block;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+  min-height: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-dia {
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-pie,
+.mon-profile-page.is-aulas-flow .aulas-agd-faltan {
+  margin: 8px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agd-faltan strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}

@@ -10,6 +10,7 @@ import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
+import { AulasAgendacion } from "./AulasAgendacion";
 import { AulasCierrePorAgenda } from "./AulasCierrePorAgenda";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
@@ -382,6 +383,27 @@ export function AulasPestanaResumen({
                 hasta={horizonteDelCierre}
               />
             </section>
+            {/* **Cómo va la agendación, antes de a dónde lleva.** Gonzalo: «es
+                muy importante tener en Resumen cómo va la agendación de aulas,
+                porque es lo que nos permite decir a estas aulas vamos a ir a
+                aplicar». Va pegado al panel de abajo porque ése PROYECTA sobre
+                la agenda: leer primero a qué ritmo se llena y luego hasta dónde
+                llega es la misma secuencia con la que se decide. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Cómo va la agendación</h3>
+                {/* La unidad y la fecha que se cuenta: `contact_date`, cuándo se
+                    habló con el docente, y no `scheduled_date`, cuándo se va al
+                    aula. Mezclarlas daría el calendario de visitas disfrazado de
+                    ritmo de trabajo. */}
+                <span>cursos-horario titulares a los que se les puso fecha, por día</span>
+              </div>
+              <AulasAgendacion agenda={agendaEnFoco} />
+            </section>
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"
@@ -391,8 +413,8 @@ export function AulasPestanaResumen({
                 {/* **Vino de Rendimiento el 2026-09-08.** Allá desentonaba: esa
                     pestaña contesta «qué rinde más» y esto es un pronóstico del
                     operativo, que es lo que Resumen mide. Y aquí gana un vecino:
-                    va pegado al ritmo diario, porque es su continuación —cómo
-                    viene el ritmo, y a dónde lleva—. */}
+                    va pegado a la agendación de arriba, porque proyecta sobre
+                    ella —cómo se llena la agenda, y hasta dónde llega—. */}
                 {/* **El título contestaba una pregunta que él no hacía.**
                     Gonzalo, sobre el panel anterior: «¿estamos viendo cuándo se
                     va a terminar de aplicar lo agendado, o cuándo vamos a llegar
