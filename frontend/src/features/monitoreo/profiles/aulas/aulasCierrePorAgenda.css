@@ -55,6 +55,17 @@
   stroke-width: 2.5;
 }
 
+/* El punto del final de la curva: HTML y no SVG, porque con el `viewBox`
+   estirado un `<circle>` se pinta como elipse. */
+.mon-profile-page.is-aulas-flow .aulas-cpa-fin {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
 .mon-profile-page.is-aulas-flow .aulas-cpa-meta {
   stroke: var(--pulso-border-strong);
   stroke-width: 1;
