@@ -272,7 +272,17 @@ export function rendimientoPorFacultad(
   // encuestas trae un viaje, que es logística— pero ya no manda en el orden.
   // Sin elegibles no hay potencial que calcular: esas filas caen al final, con
   // el desempate por visita, en vez de encabezar por un `null`.
-  return salida.sort((x, y) => (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
+  // **Los cajones de «no se sabe» van al final, pase lo que pase con su cifra.**
+  // «Sin fecha», «Sin hora», «Sin aplicador» y «Sin facultad» no son un nivel de
+  // rendimiento: son partes a los que les falta un dato. Ordenados con los
+  // demás, un «Sin fecha» con un solo parte a cero se planta como una barra en
+  // cero al lado de los días reales y se lee como que ese día no se rindió.
+  // Medido el 2026-09-09: en «Día de la semana» había exactamente eso, un
+  // cajón con un parte de 45.
+  const SIN_DATO = new Set(["Sin fecha", "Sin hora", "Sin aplicador", "Sin facultad"]);
+  const orden = (f: RendimientoDeFacultad) => (SIN_DATO.has(f.facultad) ? 1 : 0);
+  return salida.sort((x, y) => orden(x) - orden(y)
+    || (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
     || (y.porAula ?? -1) - (x.porAula ?? -1)
     || y.efectivas - x.efectivas
     || x.facultad.localeCompare(y.facultad, "es"));
