@@ -300,7 +300,16 @@ export function AulasPestanaResumen({
                 // Psicología puesta. Sin foco se prefiere el del motor, que corre
                 // sobre las 1.392 filas y no sobre las 500 que viajan.
                 resumen={facultadEnFoco ? null : (dashboard?.cumplimiento_respuestas ?? null)}
-                validasTotales={Number(dashboard.kpis?.respuestas_validas ?? 0) || 0}
+                // Y las válidas del DENOMINADOR también son las de la facultad
+                // en foco. Con el KPI global, la línea de abajo decía «1.051 se
+                // recogieron en eslabones que ya no son el que cuenta» dentro de
+                // un panel que arriba hablaba de doce: la cifra era del operativo
+                // entero y sólo la palabra «respuestas» las emparentaba.
+                validasTotales={
+                  (facultadEnFoco
+                    ? Number(respuestas?.cuenta?.efectivas ?? 0)
+                    : Number(dashboard.kpis?.respuestas_validas ?? 0)) || 0
+                }
               />
             </section>
             {/* Va justo después del cumplimiento: primero CUÁNTO se lleva y en
