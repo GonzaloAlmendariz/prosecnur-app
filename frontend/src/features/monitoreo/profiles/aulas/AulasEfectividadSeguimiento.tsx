@@ -7,6 +7,7 @@ import type {
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import "./efectividadSeguimiento.css";
 
 /**
@@ -449,6 +450,19 @@ export function AulasEfectividadSeguimiento({
   }
 
   const t = bloque.total;
+  /**
+   * **Con una facultad puesta, la lectura de arriba es la SUYA.**
+   *
+   * La tabla se queda entera —es una comparación entre facultades y filtrarla a
+   * una fila la deja sin sentido—, pero la frase que la encabeza hablaba del
+   * estudio: con DERECHO en el selector decía «en los 62 cursos-horario ya
+   * aplicados», que son los de las quince. Visto en pantalla el 2026-09-10.
+   *
+   * Es lo que él pidió cuando puso el selector: «debe ser capaz de mostrar lo
+   * general pero también lo específico por facultad».
+   */
+  const enFocoFila = filaDeLaFacultad(bloque, facultadEnFoco);
+  const elAgregado = enFocoFila ?? t;
   // LA ESCALA ES 0–100 %, FIJA.
   //
   // Antes la barra era un segmento flotante sobre una escala recortada al
@@ -477,16 +491,21 @@ export function AulasEfectividadSeguimiento({
                  finito, y `NaN != null` es `true`. Preguntar por `null` deja
                  pasar el `NaN` y la frase sigue con el guion dentro. Es el mismo
                  `Number(null) === 0` de siempre. */}
-          {Number.isFinite(t.tau_previsto) ? (
+          {Number.isFinite(elAgregado.tau_previsto) ? (
             <>
-              En los {fmt(t.aulas_aplicadas)} cursos-horario ya aplicados, la <strong>tasa de la
-              facultad</strong> suponía que respondería el <strong>{pct(t.tau_previsto)}</strong>{" "}
-              de los alumnos. Está respondiendo el <strong>{pct(t.tau_observado)}</strong>.
+              {enFocoFila ? <>En {enFocoFila.facultad}, en</> : "En"} los{" "}
+              {fmt(elAgregado.aulas_aplicadas)} cursos-horario ya aplicados, la <strong>tasa de la
+              facultad</strong> suponía que respondería el <strong>{pct(elAgregado.tau_previsto)}</strong>{" "}
+              de los alumnos. Está respondiendo el <strong>{pct(elAgregado.tau_observado)}</strong>.
+              {/* Lo general junto a lo específico: sin esto, quien pone una
+                  facultad pierde de vista contra qué la está comparando. */}
+              {enFocoFila ? <> En todo el estudio, <strong>{pct(t.tau_observado)}</strong>.</> : null}
             </>
           ) : (
             <>
-              En los {fmt(t.aulas_aplicadas)} cursos-horario ya aplicados está respondiendo el{" "}
-              <strong>{pct(t.tau_observado)}</strong> de los alumnos. El estudio no
+              {enFocoFila ? <>En {enFocoFila.facultad}, en</> : "En"} los{" "}
+              {fmt(elAgregado.aulas_aplicadas)} cursos-horario ya aplicados está respondiendo el{" "}
+              <strong>{pct(elAgregado.tau_observado)}</strong> de los alumnos. El estudio no
               declara la tasa con la que se dimensionó, así que no hay contra qué
               compararlo.
             </>
