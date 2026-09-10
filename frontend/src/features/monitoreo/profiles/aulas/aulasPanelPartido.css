@@ -1,0 +1,34 @@
+/* **Un panel con más de un tema dentro.**
+ *
+ * Gonzalo juntó el 2026-09-10 lo que estaba en paneles separados —«Cómo va la
+ * agendación» con «Estado de aplicación», y «Hasta dónde llega lo agendado» con
+ * «Rendimiento y efectividad» y «Cursos-horario por cobertura»— porque cada
+ * grupo es un solo tema contado por partes. Juntarlos sin marcar las partes
+ * habría dado un panel largo donde no se sabe dónde acaba un gráfico y empieza
+ * el siguiente: esta hoja pone la costura.
+ *
+ * Hoja propia: `aulasMonitoreo.css` está congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-parte {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-parte h4 {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  font-weight: 600;
+  color: var(--pulso-text);
+  letter-spacing: -0.01em;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-parte span {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  text-align: right;
+}
