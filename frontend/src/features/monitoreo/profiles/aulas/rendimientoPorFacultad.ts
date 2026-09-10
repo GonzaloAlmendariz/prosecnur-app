@@ -56,6 +56,23 @@ export type RendimientoDeFacultad = {
   deLosAsistentes: number | null;
   /** Efectivas sobre los elegibles del curso, 0-100. `null` si no se conocen. */
   delPotencial: number | null;
+  /**
+   * El potencial ENCOGIDO hacia el del estudio, con el mismo prior declarado
+   * que `porAulaAjustado`: `PESO_DEL_PRIOR` cursos-horario imaginarios al
+   * rendimiento medio.
+   *
+   * Por qué hacía falta aunque el potencial ya sea una fracción: normaliza el
+   * tamaño del AULA, no el número de aulas observadas. Medido en pantalla el
+   * 2026-09-10, el ranking lo encabezaban PSICOLOGÍA con 100,0 % de UN
+   * curso-horario, ARTE Y DISEÑO con 92,1 % de dos y LETRAS Y CIENCIAS HUMANAS
+   * con 90,0 % de uno — que es literalmente lo que Gonzalo pidió evitar: «¿cuál
+   * está rindiendo más? Es relativo, porque hay facultades más grandes y otras
+   * más pequeñas». Una facultad con un aula perfecta no rinde más que una con
+   * treinta y nueve al 60 %; tiene menos evidencia, no más mérito.
+   *
+   * `null` cuando no hay elegibles: sin denominador no hay nada que encoger.
+   */
+  delPotencialAjustado: number | null;
 };
 
 function texto(valor: unknown): string {
@@ -228,6 +245,7 @@ export function rendimientoPorFacultad(
       f = {
         facultad, aulas: 0, efectivas: 0, asistentes: 0, elegibles: 0,
         porAula: null, porAulaAjustado: null, deLosAsistentes: null, delPotencial: null,
+        delPotencialAjustado: null,
       };
       acumulado.set(facultad, f);
     }
@@ -243,6 +261,10 @@ export function rendimientoPorFacultad(
   const totalEfectivas = [...acumulado.values()].reduce((n, f) => n + f.efectivas, 0);
   const totalAulas = [...acumulado.values()].reduce((n, f) => n + f.aulas, 0);
   const media = totalAulas ? totalEfectivas / totalAulas : 0;
+  // La media del POTENCIAL, ponderada por elegibles y no promediando tasas: es
+  // hacia donde encoge `delPotencialAjustado`.
+  const totalElegibles = [...acumulado.values()].reduce((n, f) => n + f.elegibles, 0);
+  const mediaPotencial = totalElegibles ? (100 * totalEfectivas) / totalElegibles : 0;
 
   const salida = [...acumulado.values()].map((f) => ({
     ...f,
@@ -252,6 +274,16 @@ export function rendimientoPorFacultad(
       : null,
     deLosAsistentes: f.asistentes ? Math.round((1000 * f.efectivas) / f.asistentes) / 10 : null,
     delPotencial: f.elegibles ? Math.round((1000 * f.efectivas) / f.elegibles) / 10 : null,
+    // El encogimiento se pondera en CURSOS-HORARIO y no en elegibles, que es lo
+    // que dice el prior: «cinco cursos-horario imaginarios al rendimiento
+    // medio». Ponderarlo en elegibles haría que una facultad de un aula pequeña
+    // pesara un 8 % de lo suyo en vez del 17 % que le toca por tener un aula.
+    delPotencialAjustado: f.elegibles
+      ? Math.round(
+          (10 * (f.aulas * ((100 * f.efectivas) / f.elegibles) + PESO_DEL_PRIOR * mediaPotencial))
+            / (f.aulas + PESO_DEL_PRIOR),
+        ) / 10
+      : null,
   }));
 
   // **Por el % DEL POTENCIAL, que es la única medida sin tamaño.**
@@ -282,6 +314,8 @@ export function rendimientoPorFacultad(
   const SIN_DATO = new Set(["Sin fecha", "Sin hora", "Sin aplicador", "Sin facultad"]);
   const orden = (f: RendimientoDeFacultad) => (SIN_DATO.has(f.facultad) ? 1 : 0);
   return salida.sort((x, y) => orden(x) - orden(y)
+    // Manda el AJUSTADO, que es lo que la barra dibuja; el crudo desempata.
+    || (y.delPotencialAjustado ?? -1) - (x.delPotencialAjustado ?? -1)
     || (y.delPotencial ?? -1) - (x.delPotencial ?? -1)
     || (y.porAula ?? -1) - (x.porAula ?? -1)
     || y.efectivas - x.efectivas

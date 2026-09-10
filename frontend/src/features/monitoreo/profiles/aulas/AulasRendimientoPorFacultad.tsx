@@ -99,8 +99,9 @@ export function AulasRendimientoPorFacultad({
                 2026-09-09 es el % del potencial y no lo que deja cada visita:
                 si la cabecera dice una cosa y el orden obedece a otra, quien
                 lee saca la conclusión contraria. */}
-            Del <strong>{pct(filas[0].delPotencial)}</strong> de su potencial ({filas[0].facultad}) al{" "}
-            <strong>{pct(filas[filas.length - 1].delPotencial)}</strong>{" "}
+            Del <strong>{pct(filas[0].delPotencialAjustado)}</strong> de su potencial
+            ajustado ({filas[0].facultad}) al{" "}
+            <strong>{pct(filas[filas.length - 1].delPotencialAjustado)}</strong>{" "}
             ({filas[filas.length - 1].facultad})
           </>
         ) : (
@@ -173,14 +174,22 @@ export function AulasRendimientoPorFacultad({
           {/* La cabecera nombra lo que la BARRA dibuja, que desde el
               2026-09-09 es el potencial: si dijera «Efectivas por visita»,
               seguiríamos con un rótulo que promete otro número. */}
-          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya: efectivas del parte de campo sobre elegibles. Es la única medida que no depende de cuántos alumnos tenga el curso-horario, y por eso ordena la lista.">
-            Del potencial
+          {/* **Ajustado, y el rótulo lo dice.** El potencial crudo normaliza el
+              tamaño del AULA pero no cuántas aulas se han visitado: el 2026-09-10
+              encabezaban la lista PSICOLOGÍA con el 100 % de UN curso-horario y
+              LETRAS Y CIENCIAS HUMANAS con el 90 % de otro. El crudo sigue a la
+              vista, en la línea de cada fila. */}
+          <span role="columnheader" title="Qué proporción de los alumnos elegibles se ha recogido ya —efectivas del parte sobre elegibles—, encogida hacia la media del estudio según cuántos cursos-horario se llevan visitados: equivale a sumarle a cada fila cinco cursos-horario imaginarios al rendimiento medio. Es lo que ordena la lista y lo que dibuja la barra; el porcentaje crudo va bajo el nombre.">
+            Del potencial, ajustado
           </span>
           <span role="columnheader" title="Efectivas del parte de campo conseguidas por cada curso-horario visitado: cuántas encuestas trae un viaje. Es logística, no rendimiento, y por eso no ordena.">
             Por visita
           </span>
-          <span role="columnheader" title={`Corrige el tamaño de la muestra: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
-            Ajustado por tamaño
+          {/* «Ajustado por tamaño» a secas, con la barra ya ajustada al lado, era
+              una palabra para dos cosas: ésta encoge las ENCUESTAS POR VISITA,
+              la barra encoge el POTENCIAL. Cada una nombra su base. */}
+          <span role="columnheader" title={`Las encuestas por visita corregidas por cuánta evidencia hay: equivale a sumarle a cada ${unidad.toLowerCase()} cinco cursos-horario con el rendimiento medio, así una con dos afortunadas no encabeza la lista.`}>
+            Por visita, ajustado
           </span>
           {/* Las dos tasas nombran su NUMERADOR en el title —efectivas del
               parte—, como ya hacía «Efectivas por visita»: el ADR 0082 pide que
@@ -209,7 +218,15 @@ export function AulasRendimientoPorFacultad({
                   día, y normalizarlas mangaría rótulos que no son nombres. */}
               {clave === "applied_by" ? nombreDeAplicador(f.facultad) : f.facultad}
               {/* «encuestas» a secas obligaba a adivinar de que cuenta hablaba. */}
-              <em>{fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.efectivas)} efectivas</em>
+              {/* El CRUDO va aquí, pegado a la evidencia que lo sostiene: «1
+                  curso-horario · 17 efectivas · 100,0 % de su potencial» se lee
+                  entero y se entiende por qué la barra ajustada queda más
+                  corta. Separados, el ajustado parecería un error. */}
+              <em>
+                {fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} ·{" "}
+                {fmt(f.efectivas)} efectivas
+                {f.delPotencial != null ? <> · {pct(f.delPotencial)} de su potencial sin ajustar</> : null}
+              </em>
             </NombreDeFacultad>
             {/* **La barra mide LO QUE ORDENA la lista: el % del potencial.**
                 Medía «por visita» mientras el orden pasaba al potencial
@@ -228,12 +245,12 @@ export function AulasRendimientoPorFacultad({
                 celda, el lector perdería la posición en la fila. */}
             <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
-              aria-label={`Recogido de los alumnos elegibles: ${pct(f.delPotencial)}`}>
+              aria-label={`Recogido de los alumnos elegibles, ajustado por cuántos cursos-horario se han visitado: ${pct(f.delPotencialAjustado)} (crudo ${pct(f.delPotencial)})`}>
               <i style={{
-                width: `${Math.max(4, Math.min(100, f.delPotencial ?? 0))}%`,
-                background: (f.delPotencial ?? 0) >= mediaPotencial
+                width: `${Math.max(4, Math.min(100, f.delPotencialAjustado ?? 0))}%`,
+                background: (f.delPotencialAjustado ?? 0) >= mediaPotencial
                   ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
-              }}>{pct(f.delPotencial)}</i>
+              }}>{pct(f.delPotencialAjustado)}</i>
             </span>
             </span>
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden

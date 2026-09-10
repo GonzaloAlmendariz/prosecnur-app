@@ -26,6 +26,57 @@ describe("rendimientoPorFacultad", () => {
     expect(salida[1].deLosAsistentes).toBe(70);
   });
 
+  it("un curso-horario perfecto deja de encabezar el ranking cuando hay evidencia detrás de otro", () => {
+    // Lo que se vio en pantalla el 2026-09-10: PSICOLOGÍA con el 100,0 % de UN
+    // curso-horario y LETRAS Y CIENCIAS HUMANAS con el 90,0 % de otro, por
+    // delante de facultades con doce visitas. El potencial crudo normaliza el
+    // tamaño del AULA, no cuántas aulas hay detrás del número.
+    //
+    // Lo que el encogimiento SÍ garantiza y lo que NO: acerca cada facultad a
+    // la media del estudio en proporción a su evidencia, así que **no puede
+    // hundir a nadie por debajo de esa media**. Si el estudio entero anda por
+    // el 76 %, un aula al 100 % sigue por encima de una facultad al 75 % —y es
+    // correcto, su mejor estimación es más alta, sólo que menos firme—. Lo que
+    // corrige es lo que se ve aquí: con la media abajo, la facultad con doce
+    // visitas al 95 % adelanta a la del aula única.
+    const plan = [
+      parte({ operational_code: "U", eligible_n: 20 }),
+      ...Array.from({ length: 12 }, (_, i) => parte({ operational_code: `D${i}`, eligible_n: 40 })),
+      ...Array.from({ length: 20 }, (_, i) => parte({ operational_code: `V${i}`, eligible_n: 40 })),
+    ];
+    const partes = [
+      parte({ operational_code: "U", faculty: "DeUnAula", effective_surveys: 20, observed_students: 20 }),
+      ...Array.from({ length: 12 }, (_, i) =>
+        parte({ operational_code: `D${i}`, faculty: "DeDoce", effective_surveys: 38, observed_students: 39 })),
+      ...Array.from({ length: 20 }, (_, i) =>
+        parte({ operational_code: `V${i}`, faculty: "DeVeinte", effective_surveys: 10, observed_students: 34 })),
+    ];
+    const salida = rendimientoPorFacultad(partes, plan);
+    const uno = salida.find((f) => f.facultad === "DeUnAula")!;
+    const doce = salida.find((f) => f.facultad === "DeDoce")!;
+
+    // Crudo: el aula única encabeza, 100 % contra 95 %.
+    expect(uno.delPotencial).toBe(100);
+    expect(doce.delPotencial).toBe(95);
+    // Ajustado: se invierte.
+    expect(uno.delPotencialAjustado).toBeLessThan(doce.delPotencialAjustado!);
+    // Y es el ORDEN de la lista el que cambia, no sólo el campo: si la lista
+    // siguiera ordenando por el crudo, las dos líneas de arriba pasarían igual
+    // y no probarían nada de lo que se ve en pantalla.
+    expect(salida.map((f) => f.facultad)).toEqual(["DeDoce", "DeUnAula", "DeVeinte"]);
+    // El crudo NO se pierde: sigue publicado al lado, que es lo que explica por
+    // qué la barra ajustada queda más corta que el porcentaje de la fila.
+    expect(uno.delPotencial).toBe(100);
+  });
+
+  it("sin elegibles no hay nada que encoger y el ajustado es null, no un cero", () => {
+    const salida = rendimientoPorFacultad(
+      [parte({ operational_code: "X", faculty: "SinPlan", effective_surveys: 10, observed_students: 12 })],
+    );
+    expect(salida[0].delPotencial).toBeNull();
+    expect(salida[0].delPotencialAjustado).toBeNull();
+  });
+
   it("el encogimiento CAMBIA el orden cuando las facultades son de tamaños distintos", () => {
     // El caso real: en el estudio de 2025 las facultades van de 2 a 39 aulas
     // (Ciencias Contables 2, Ciencias e Ingeniería 39). Una facultad con dos
@@ -236,8 +287,12 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
   // barra —la lista pasó a ordenar por el potencial— y tenerla dos veces en la
   // misma fila obligaba a comprobar que coincidían. Entra «Por visita», que
   // bajó de barra a columna.
+  // El 2026-09-10 los dos rótulos que decían «ajustado» se separaron: la barra
+  // pasó a dibujar el potencial ENCOGIDO —una facultad con un aula al 100 % no
+  // rinde más que una con treinta y nueve al 60 %— y con dos «ajustado» en la
+  // misma fila hacía falta que cada uno nombrara su base.
   it.each([
-    "Del potencial", "Por visita", "Ajustado por tamaño",
+    "Del potencial, ajustado", "Por visita", "Por visita, ajustado",
     "De los que asistieron",
   ])(
     "«%s» lleva su definición en la cabecera",
