@@ -74,8 +74,15 @@ describe("los gráficos vecinos de Resumen no se confunden entre sí", () => {
     expect(resumen).toContain("en qué punto del circuito está cada uno");
   });
 
-  it("y el de cobertura, cuánto lleva recogido", () => {
-    expect(resumen).toContain("cuánto lleva recogido cada uno");
+  it("y el de cobertura, cuánto lleva recogido y sobre qué universo", () => {
+    // Desde el 2026-09-10 dice además que reparte los YA APLICADOS: sin eso, la
+    // fila «Sin respuestas» se leía como cursos-horario pendientes cuando es la
+    // categoría más grave del reparto —se fue y no llegó nada—. Él: «no
+    // entiendo por qué la categoría sin respuestas sigue».
+    // Sin fijar la sangría del JSX: el subtítulo va partido en dos líneas de
+    // fuente y un reformateo tumbaría el guard sin que nada hubiera cambiado.
+    expect(resumen.replace(/\s+/g, " ")).toContain("recogido cada uno de su propia meta");
+    expect(resumen).toContain("ya aplicados");
   });
 
   it("y sus subtítulos ya no son idénticos", () => {

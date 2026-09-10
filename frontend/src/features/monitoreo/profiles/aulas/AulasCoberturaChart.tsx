@@ -206,7 +206,19 @@ export function AulasCoberturaChart({
               disabled={t.aulas === 0}
               aria-expanded={t.clave === abierto}
               onClick={() => setAbierto(t.clave === abierto ? "" : t.clave)}
-              title={t.aulas === 0 ? t.etiqueta : `${t.etiqueta} — ver los cursos-horario`}
+              /* **Qué significa cada tramo, no sólo su nombre.** Gonzalo, sobre
+                 el primero: «no entiendo por qué la categoría sin respuestas
+                 sigue; si es necesario tenerla ahí, la dejamos». Es necesaria y
+                 es la más grave del reparto —el gráfico sólo reparte los YA
+                 APLICADOS, así que «sin respuestas» no es uno pendiente: es uno
+                 al que se fue y del que no llegó nada—, pero eso no se podía
+                 saber leyendo la fila. */
+              title={[
+                t.clave === "nulo"
+                  ? "Se aplicó y no llegó ninguna respuesta: el enlace no funcionó, nadie escaneó o el parte no cuadra."
+                  : t.etiqueta,
+                t.aulas === 0 ? "" : "— ver los cursos-horario",
+              ].filter(Boolean).join(" ")}
             >
               <span className="aulas-cobertura-etiqueta">{t.etiqueta}</span>
               <span className="aulas-cobertura-pista">

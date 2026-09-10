@@ -556,7 +556,8 @@ export function AulasPestanaResumen({
                     un gráfico que sólo repartía los de Derecho. */}
                 <span>{contadorDelReparto(facultadEnFoco
                   ? delMapaPorFacultad(dashboard.course_status_cobertura_por_facultad, facultadEnFoco)?.cobertura
-                  : dashboard.course_status_cobertura)} · cuánto lleva recogido cada uno</span>
+                  : dashboard.course_status_cobertura)} ya aplicados · cuánto lleva
+                  recogido cada uno de su propia meta</span>
               </div>
               <AulasCoberturaChart
                 filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
