@@ -225,3 +225,25 @@ describe("las dos lecturas conviven", () => {
     expect(riesgoDeCierre(conFilas)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
   });
 });
+
+/**
+ * **Un solo redondeo, o el panel se contradice en la misma línea.**
+ *
+ * En pantalla salió «51.3 % → 58.1 % · +6.7 pts». Las dos cifras venían de
+ * `toFixed(1)` sobre el crudo —0,5135 cae por debajo del medio punto en
+ * binario— y el chip, de `puntosEntre()`, que redondea a 51,4. 58,1 − 51,3 son
+ * 6,8: quien resta lo que ve no llega a lo que el panel dice.
+ */
+describe("el redondeo de las tasas es uno solo", () => {
+  it("la diferencia publicada cuadra con las cifras a un decimal", () => {
+    const l = lecturaDeEfectividad(bloque)!;
+    const unDecimal = (v: number) => Math.round(v * 1000) / 10;
+    expect(unDecimal(l.observado!) - unDecimal(l.previsto!)).toBeCloseTo(l.puntos!, 5);
+  });
+
+  it("y 0,5135 redondea a 51,4, no a 51,3", () => {
+    // El caso exacto que se vio en pantalla: `toFixed` da 51.3 y la resta 6.8.
+    expect(Math.round(0.5135 * 1000) / 10).toBe(51.4);
+    expect((0.5135 * 100).toFixed(1)).toBe("51.3");
+  });
+});

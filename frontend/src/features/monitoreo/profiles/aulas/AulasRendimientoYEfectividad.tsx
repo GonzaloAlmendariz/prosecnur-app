@@ -87,10 +87,21 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
   // Con una facultad puesta, la columna de la derecha es SU proyección; sin
   // ella, el reparto de las quince.
   const reparto = facultad ? null : repartoDeSenales(bloque);
+  const unDecimal = (v: number) => (Math.round(v * 1000) / 10).toFixed(1);
   const intervalo = lectura.bandaBajo != null && lectura.bandaAlto != null
-    ? `${(lectura.bandaBajo * 100).toFixed(1)} – ${(lectura.bandaAlto * 100).toFixed(1)} %`
+    ? `${unDecimal(lectura.bandaBajo)} – ${unDecimal(lectura.bandaAlto)} %`
     : "";
-  const pct = (v: number | null) => (v == null ? "—" : `${(v * 100).toFixed(1)} %`);
+  /**
+   * **El mismo redondeo que usa el helper para restar.**
+   *
+   * Con `toFixed(1)`, 0,5135 sale «51.3» —el binario cae por debajo del medio
+   * punto— mientras `puntosEntre()` redondea a 51,4 y publica «+6,7 pts». En
+   * pantalla se leía «51.3 % → 58.1 % · +6.7 pts», y 58,1 − 51,3 son 6,8: el
+   * panel se contradecía a sí mismo en la misma línea. Redondear en un solo
+   * sitio es la regla de la casa y aquí había dos.
+   */
+  const pct = (v: number | null) =>
+    v == null ? "—" : `${(Math.round(v * 1000) / 10).toFixed(1)} %`;
 
   /**
    * **Cómo se calculó el intervalo, al alcance del cursor.**
