@@ -12,6 +12,7 @@ import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
+import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { deLaFacultad } from "./deLaFacultad";
@@ -181,6 +182,14 @@ export function AulasPestanaResumen({
   // El foco es el del perfil —el mismo que ya gobierna «A quién hay que
   // agendar»—, no un selector propio del bloque.
   const respuestas = respuestasDeLaFacultad(desglose, facultadEnFoco);
+  // La serie temporal del panel de abajo. El reparto por facultad lo hace el
+  // motor —las respuestas no viajan—, así que aquí sólo se elige entre series
+  // ya calculadas, sobre el mismo eje de días.
+  const ritmoEnFoco = ritmoDeLaFacultad(
+    (dashboard?.ritmo_diario ?? null) as RitmoDiario | null,
+    (dashboard?.ritmo_por_facultad ?? null) as RitmoDeFacultad[] | null,
+    facultadEnFoco,
+  );
   return (
     <>
             {/* **Abre la pestaña porque es la pregunta anterior a todas.** Antes
@@ -309,7 +318,7 @@ export function AulasPestanaResumen({
                     dos cifras para la misma palabra. Los 12 son corridos y 2 son fin
                     de semana sin campo; el contador lo dice en vez de elegir uno. */}
                 <span>{(() => {
-                  const dias = (dashboard?.ritmo_diario?.dias ?? []) as Array<{ validas?: unknown }>;
+                  const dias = (ritmoEnFoco?.dias ?? []) as Array<{ validas?: unknown }>;
                   const conCampo = dias.filter((d) => Number(d?.validas ?? 0) > 0).length;
                   // **Y el NUMERADOR.** Este panel cuenta válidas de PLATAFORMA;
                   // los rankings de Rendimiento cuentan encuestas DEL PARTE, y sobre
@@ -332,7 +341,7 @@ export function AulasPestanaResumen({
                   de cuándo se termina de aplicar el plan tienen que alinearse
                   con el ritmo de recolección». */}
               <AulasRitmoDiario
-                ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null}
+                ritmo={ritmoEnFoco}
                 hasta={horizonteDelCierre}
               />
             </section>

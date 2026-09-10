@@ -54,10 +54,19 @@ MONITOREO_AULAS_COLUMNAS_FECHA <- c(
 # lo que le falta a cada grupo de facultad y sexo (ADR 0079). Un estudio puede
 # llevar 2.668 sobre una cuota de 2.500 y deber 170 personas donde la cuota no
 # cierra, y la resta da cero justo en ese caso.
+#' @param desde,hasta Extremos del calendario, `YYYY-MM-DD`. Por defecto los
+#'   pone la propia serie. Se pasan cuando varias series tienen que compartir
+#'   eje: el ritmo de una facultad que solo aplico dos dias dibujaria un eje de
+#'   dos dias y, puesto al lado del de otra, mentiria sobre el calendario del
+#'   operativo. Un dia FUERA de los extremos no se descarta: los extremos se
+#'   ensanchan hasta contenerlo, porque perder una respuesta para que el eje
+#'   quede bonito es peor que un eje mas ancho.
 monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
                                          valid_response = logical(0),
                                          meta = 0,
-                                         brecha = NULL) {
+                                         brecha = NULL,
+                                         desde = NULL,
+                                         hasta = NULL) {
   .brecha <- suppressWarnings(as.numeric(brecha %||% NA_real_))
   .brecha <- if (length(.brecha) == 1L && is.finite(.brecha)) max(0, .brecha) else NA_real_
   vacio <- list(dias = list(), dias_con_campo = 0L, mejor_dia = NULL,
@@ -84,7 +93,18 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
   # El calendario COMPLETO entre el primer y el ultimo dia con campo, con ceros
   # donde no se trabajo. Saltar esos dias comprimiria el eje y haria parecer
   # continuo un operativo que tuvo fines de semana y pausas.
-  todos <- format(seq(as.Date(fechas[[1]]), as.Date(fechas[[length(fechas)]]), by = "day"), "%Y-%m-%d")
+  primero <- as.Date(fechas[[1]])
+  ultimo <- as.Date(fechas[[length(fechas)]])
+  .borde <- function(valor) {
+    if (is.null(valor)) return(NULL)
+    d <- suppressWarnings(as.Date(substr(trimws(as.character(valor)), 1L, 10L), format = "%Y-%m-%d"))
+    if (length(d) != 1L || is.na(d)) NULL else d
+  }
+  d0 <- .borde(desde)
+  d1 <- .borde(hasta)
+  if (!is.null(d0)) primero <- min(primero, d0)
+  if (!is.null(d1)) ultimo <- max(ultimo, d1)
+  todos <- format(seq(primero, ultimo, by = "day"), "%Y-%m-%d")
   por_dia <- stats::setNames(rep(0L, length(todos)), todos)
   por_dia[fechas] <- validas
 
