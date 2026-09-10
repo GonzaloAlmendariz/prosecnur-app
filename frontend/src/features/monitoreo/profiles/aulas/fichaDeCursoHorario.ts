@@ -27,6 +27,7 @@
  * cuenta las que tienen parte de campo.
  */
 
+import { MES_LARGO } from "../../mesesEnPalabras";
 import { fmt } from "./kpisDeAulas";
 
 export type EstadoDeCursoHorario =
@@ -184,10 +185,6 @@ export function buscarCursosHorario(
 }
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre",
-];
 
 /**
  * «martes 8 de setiembre» desde un `YYYY-MM-DD`.
@@ -205,7 +202,7 @@ export function fechaEnPalabras(iso: unknown): string {
   if (!m) return t;
   const [a, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const d = new Date(Date.UTC(a, mes - 1, dia));
-  const nombreMes = MESES[mes - 1];
+  const nombreMes = MES_LARGO[mes - 1];
   if (!nombreMes || Number.isNaN(d.getTime())) return t;
   // `fmt` también para el día del mes: el guard `cifrasConFormato` pide que
   // TODA cifra visible pase por el formateador del perfil, y tiene razón como

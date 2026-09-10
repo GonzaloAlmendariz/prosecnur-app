@@ -6,6 +6,7 @@ import type {
   MonitoreoInternalQueryIssue,
   MonitoreoInternalQueryTotal,
 } from "../../api/client";
+import { MES_LARGO } from "./mesesEnPalabras";
 
 export type InternalQueryFilters = {
   search: string;
@@ -51,20 +52,6 @@ export type InternalQueryTemplate = {
   defaultFilters?: Partial<InternalQueryFilters>;
 };
 
-const INTERNAL_QUERY_MONTHS_ES = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
 
 export const INTERNAL_QUERY_BLOCKS: Array<{
   key: InternalQueryBlockKey;
@@ -498,14 +485,14 @@ export function formatInternalQueryDateLabel(value: unknown) {
   const text = cleanString(value);
   const date = parseInternalQueryDate(text);
   if (!date) return text || "Sin fecha";
-  return `${date.getDate()} ${INTERNAL_QUERY_MONTHS_ES[date.getMonth()] ?? ""}`.trim();
+  return `${date.getDate()} ${MES_LARGO[date.getMonth()] ?? ""}`.trim();
 }
 
 export function formatInternalQueryDateAxisLabel(value: unknown) {
   const text = cleanString(value);
   const date = parseInternalQueryDate(text);
   if (!date) return text || "Sin fecha";
-  const month = (INTERNAL_QUERY_MONTHS_ES[date.getMonth()] ?? "").slice(0, 3);
+  const month = (MES_LARGO[date.getMonth()] ?? "").slice(0, 3);
   return `${date.getDate()} ${month}`.trim();
 }
 

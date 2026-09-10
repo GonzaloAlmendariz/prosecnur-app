@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
 import { ejeDeDias, serieSobreElEje } from "./ejeDeDias";
+import { mesCortoDe } from "../../mesesEnPalabras";
 import type { DiaDeRitmo } from "./AulasRitmoDiario";
 import "./aulasAvanceDiario.css";
 
@@ -42,9 +43,6 @@ const PAD = { arriba: 22, abajo: 44, izq: 52, der: 56 };
  * 10 px de los rótulos sigan siendo 10 px en pantalla.
  */
 const ANCHO = 1100;
-
-/** El mes en tres letras, para escribirlo bajo el día sólo cuando cambia. */
-const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 
 /**
  * Dónde cae el día `i` de `n` dentro del ancho útil, en FRACCIÓN de 0 a 1.
@@ -188,7 +186,7 @@ export function AulasAvanceDiario({ dias, hasta }: {
             </text>
             {i === 0 || d.fecha.slice(5, 7) !== puntos[i - 1].fecha.slice(5, 7) ? (
               <text x={cx(i)} y={ALTO - PAD.abajo + 28} textAnchor="middle"
-                className="aulas-avdia-mes">{MESES[Number(d.fecha.slice(5, 7)) - 1]}</text>
+                className="aulas-avdia-mes">{mesCortoDe(d.fecha)}</text>
             ) : null}
           </g>
         ))}

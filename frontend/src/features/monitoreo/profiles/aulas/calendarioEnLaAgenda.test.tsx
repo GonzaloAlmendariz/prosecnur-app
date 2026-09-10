@@ -42,7 +42,7 @@ describe("AulasCalendarioDeAgenda", () => {
     for (const col of ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]) {
       expect(html).toContain(`>${col}</th>`);
     }
-    expect(html).toContain("septiembre 2026");
+    expect(html).toContain("setiembre 2026");
   });
 
   it("cada celda agendada dice su día del mes y su cuenta", () => {
