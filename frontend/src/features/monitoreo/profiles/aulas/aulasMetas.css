@@ -183,14 +183,32 @@
 
 /* Y las barras del avance, del tono de su carril: en gris las dos, la fila de
    hombres y la de mujeres se distinguían sólo por el rótulo. */
-.aulas-metas-gauge .es-aplicado[data-sexo="hombres"] { background: var(--pulso-accent-steel); }
-.aulas-metas-gauge .es-aplicado[data-sexo="mujeres"] { background: var(--pulso-accent-violet); }
+/* **Los dos tonos, igualados en peso.** Puestos crudos, el violeta
+   (`#7c3aed`) pesa mucho más que el acero (`#4f7cbf`): la fila de mujeres
+   gritaba y la de hombres susurraba, y una tabla en la que un sexo destaca por
+   el color miente sobre el dato. Se mezclan los dos contra la tinta para
+   acercar su luminosidad — es lo que el artefacto hacía con sus dos hex y aquí
+   se hace con los tokens. */
+.aulas-metas-gauge .es-aplicado[data-sexo="hombres"] {
+  background: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-text));
+}
+.aulas-metas-gauge .es-aplicado[data-sexo="mujeres"] {
+  background: color-mix(in srgb, var(--pulso-accent-violet) 62%, var(--pulso-text));
+}
 
 /* El SVG ocupa el ancho del panel. Iba con `width` en píxeles y se quedaba
    corto en pantallas anchas dejando un vacío a la derecha; con el viewBox
    puesto, el ancho al 100 % escala sin deformar. */
 .aulas-metas-lienzo { width: 100%; height: auto; display: block; }
-.aulas-metas-barra-logro[data-sexo="hombres"] { fill: var(--pulso-accent-steel); }
-.aulas-metas-barra-logro[data-sexo="mujeres"] { fill: var(--pulso-accent-violet); }
-.aulas-metas-swatch[data-sexo="hombres"] { background: var(--pulso-accent-steel); }
-.aulas-metas-swatch[data-sexo="mujeres"] { background: var(--pulso-accent-violet); }
+.aulas-metas-barra-logro[data-sexo="hombres"] {
+  fill: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-text));
+}
+.aulas-metas-barra-logro[data-sexo="mujeres"] {
+  fill: color-mix(in srgb, var(--pulso-accent-violet) 62%, var(--pulso-text));
+}
+.aulas-metas-swatch[data-sexo="hombres"] {
+  background: color-mix(in srgb, var(--pulso-accent-steel) 88%, var(--pulso-text));
+}
+.aulas-metas-swatch[data-sexo="mujeres"] {
+  background: color-mix(in srgb, var(--pulso-accent-violet) 62%, var(--pulso-text));
+}
