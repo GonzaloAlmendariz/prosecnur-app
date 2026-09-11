@@ -39,6 +39,9 @@ está, nunca teclearla.
 | 25 | **La quinta circunstancia: la cadena intacta** | `AulasHistoriaCadena` | ☑ 110 de 174 no habían pasado nada y enterraban las 26 que sí |
 | 26 | **Cada cadena tiene salida** (complementar / buscar relevo) | ídem | ☑ `bfd2c115` |
 | 27 | **La llamada de facultad al pie de Brechas** («el refuerzo no sale de una fila») | `AulasLlamadaDeFacultad` | ☑ `52091ce6` |
+| 28 | **El anti-colisión del mapa mira también las burbujas** | `AulasMapaDeLaDeuda` | ☑ cinco etiquetas pisaban y el detector daba cero |
+| 29 | **Los tokens del perfil alcanzan a los portales** | `aulasMonitoreo.css` + `tokensDelPortal.contract.test.ts` | ☑ `9a91a3d9` — `createPortal` sale del selector; todo el popover a 16 px |
+| 30 | **El pie del popover deja de dibujarse detrás de la lista** | `aulasReemplazos.css` | ☑ `40201209` — grid de cuatro filas con cinco hijos |
 | 17 | **La tarjeta de candidato con el lenguaje del ensayo**: puesto, identidad con facultad y docente, las dos varas a la derecha, lo que rinde por sexo | `AulasPopoverReemplazo` + su hoja | ☑ |
 
 ## Lo que el artefacto promete y el dato todavía no da
