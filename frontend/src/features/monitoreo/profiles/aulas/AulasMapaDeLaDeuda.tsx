@@ -75,12 +75,36 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad, enFoco = "" }: {
     (a, b) => (Math.abs(b.mujeres) + Math.abs(b.hombres)) - (Math.abs(a.mujeres) + Math.abs(a.hombres)),
   );
 
+  /**
+   * **Las burbujas ocupan sitio, y el detector no las veía.**
+   *
+   * Gonzalo, 2026-09-11, señalando el mapa. Medido en vivo cruzando cada texto
+   * contra cada círculo: **cinco etiquetas encima de una burbuja ajena** —«EE.GG.
+   * Ciencias» y «CC. e Ingeniería» sobre la de Arte y Diseño, «Arquitectura» y
+   * «Artes Escénicas» una sobre la otra, «CC. y Artes Com.» sobre Psicología—.
+   * Y el detector daba cero choques, porque sólo comparaba etiqueta contra
+   * etiqueta: caber no es no pisarse.
+   *
+   * Los puntos se siembran en `ocupadas` ANTES de colocar ningún rótulo, así
+   * que cada etiqueta prueba sus ocho posiciones contra las burbujas además de
+   * contra las etiquetas ya puestas. El radio se recalcula igual que abajo —la
+   * misma fórmula, no una copia con otro número— y se le suma un punto de aire
+   * para que el texto no bese el borde del círculo.
+   */
+  const radioDe = (f: DeudaDeFacultad) => 4 + Math.min(6, Math.sqrt(f.aulas) * 1.6);
+  for (const f of conCampo) {
+    const r = radioDe(f) + 1;
+    const px = ejeX(f.hombres);
+    const py = ejeY(f.mujeres);
+    ocupadas.push({ x1: px - r, x2: px + r, y1: py - r, y2: py + r });
+  }
+
   const puntos = orden.map((f) => {
     const debeM = f.mujeres < 0, debeH = f.hombres < 0;
     const tono = debeM && debeH ? "var(--pulso-danger-fg)"
       : (debeM || debeH) ? "var(--pulso-warn-accent)"
       : "var(--pulso-success-fg)";
-    const r = 4 + Math.min(6, Math.sqrt(f.aulas) * 1.6);
+    const r = radioDe(f);
     const px = ejeX(f.hombres), py = ejeY(f.mujeres);
     const texto = facultadCorta(f.facultad);
     const an = texto.length * ANCHO_LETRA;
