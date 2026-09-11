@@ -27,8 +27,8 @@ import { ESTADOS_QUE_LIBERAN } from "./candidatosDeReemplazo";
  * escrito; eso ya mordió una vez en este perfil (4 tipo A en curso, 0
  * declarados). Lo que se mira es si su titular salió:
  *
- * - **El titular también se aplicó** → no cayó nadie, el plan ya tenía esa
- *   celda cubierta, y lo que trae esta aula es NETO. Es B o C.
+ * - **El titular también salió** → no cayó nadie, el plan ya tenía esa celda
+ *   cubierta, y lo que trae esta aula es NETO. Es B o C.
  * - **El titular no salió** → esta aula está ocupando su sitio. REPONE: el plan
  *   contaba con esas respuestas, sólo que de otra aula.
  * - **Reserva adicional aplicada** → nunca tuvo titular al que reponer. Neta
@@ -40,8 +40,24 @@ const numero = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
-const seAplico = (f: MonitoreoAulasPlanRow | undefined) =>
-  !!f && ESTADOS_QUE_LIBERAN.has(texto(f.operational_status).toLowerCase());
+/**
+ * **Ya salió: por sus RESPUESTAS o por su estado, en ese orden.**
+ *
+ * El estado operativo lo teclea alguien al registrar el campo, y el hecho
+ * ocurre antes que el verbo. Medido en HSVG26ULT2 el 2026-09-10: las 1.218
+ * reservas del plan estaban en `planificada` mientras una cadena ya había
+ * alcanzado la meta de su titular —el KPI «Cerraron con reemplazo» decía 1
+ * contando por respuestas—. Mirar sólo el estado dejaba este panel diciendo
+ * «todavía ninguna» encima de aulas que llevaban días rindiendo.
+ *
+ * Es la misma trampa que ya mordió en los desenlaces del libro (4 tipo A en
+ * curso, 0 declarados) y la misma corrección: el hecho manda. Las respuestas
+ * van primero porque son el hecho; el estado se sigue mirando porque un aula
+ * puede cerrarse sin haber traído ninguna.
+ */
+const yaSalio = (f: MonitoreoAulasPlanRow | undefined) =>
+  !!f && (numero(f.respuestas_validas) > 0
+    || ESTADOS_QUE_LIBERAN.has(texto(f.operational_status).toLowerCase()));
 
 /** Qué fue esta aula para el plan. */
 export type PapelEnElPlan = "repone" | "neta";
@@ -88,7 +104,7 @@ export function aulasQueSeMetieron(
   for (const f of todas) {
     const rol = texto(f.sample_role);
     if (rol === "titular") continue;      // el titular es el plan, no lo que se metió
-    if (!seAplico(f)) continue;           // todavía no rindió nada que juzgar
+    if (!yaSalio(f)) continue;            // todavía no rindió nada que juzgar
 
     const efectivas = Math.round(numero(f.respuestas_validas));
     const deLaReserva = rol === "extra_reserve_pool";
@@ -97,7 +113,7 @@ export function aulasQueSeMetieron(
     // Sin titular al que reponer —reserva adicional— o con el titular ya
     // aplicado, lo que trae es ganancia entera sobre el plan.
     const papel: PapelEnElPlan =
-      deLaReserva || !claveTitular || seAplico(titular) ? "neta" : "repone";
+      deLaReserva || !claveTitular || yaSalio(titular) ? "neta" : "repone";
 
     const anon = f as Record<string, unknown>;
     const m = anon.validas_mujeres;
