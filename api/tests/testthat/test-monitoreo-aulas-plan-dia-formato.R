@@ -111,3 +111,34 @@ test_that("los anchos cubren las 15 columnas del listado y las horas van centrad
 test_that("sin filas no hay requests; el vacío no inventa bandas", {
   expect_identical(monitoreo_aulas_plan_dia_formato_requests(9L, list()), list())
 })
+
+# --- El área del día elegido no se queda muda ---------------------------------
+#
+# El bloque reserva tantas filas como el día más cargado para que el desborde de
+# la fórmula no choque con el listado. Sin día elegido eso son veinticinco filas
+# vacías entre dos cabeceras iguales, y Gonzalo lo leyó como un bug: «el plan del
+# día estaba bugueado, había filas arriba que estaban vacías». No lo estaba —
+# estaba sin usar—, pero para quien abre la hoja es lo mismo.
+
+test_that("sin día elegido el área DICE qué hacer, en vez de quedarse en blanco", {
+  geo <- list(sel_col = 1L, sel_fila = 1L, fila_cabecera_listado = 29L,
+              n_filas = 201L, n_cols = 21L, col_fecha = 1L, col_codigo = 8L)
+  f <- prosecnurapp:::.mapds_formula(geo)
+  # La rama del selector vacío ya no devuelve la cadena vacía.
+  expect_false(grepl('=IF($B$1="";"";', f, fixed = TRUE))
+  expect_true(grepl(prosecnurapp:::.mapds_SIN_DIA_ELEGIDO, f, fixed = TRUE))
+  # Y la frase apunta al desplegable, que está justo encima.
+  expect_true(grepl("arriba", prosecnurapp:::.mapds_SIN_DIA_ELEGIDO, fixed = TRUE))
+})
+
+test_that("el aviso de «ese día no tiene aulas» NO se pisa con el de «elige día»", {
+  # Son dos huecos distintos: uno es que no has elegido y el otro es que ese día
+  # no hay nada. Decir lo mismo en los dos casos haría creer que el selector no
+  # funciona justo cuando sí funcionó.
+  f <- prosecnurapp:::.mapds_formula(list(
+    sel_col = 1L, sel_fila = 1L, fila_cabecera_listado = 29L,
+    n_filas = 201L, n_cols = 21L, col_fecha = 1L, col_codigo = 8L))
+  expect_true(grepl("Sin aulas agendadas para ese día.", f, fixed = TRUE))
+  expect_false(identical(prosecnurapp:::.mapds_SIN_DIA_ELEGIDO,
+                         "Sin aulas agendadas para ese día."))
+})
