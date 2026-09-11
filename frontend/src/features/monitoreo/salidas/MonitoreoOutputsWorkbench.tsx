@@ -664,11 +664,15 @@ export function MonitoreoOutputsWorkbench({
   const [includeTargets, setIncludeTargets] = useState(false);
   const [activeAudience, setActiveAudience] = useState<OutputAudience>("client");
   const [internalConfirmed, setInternalConfirmed] = useState(false);
+  // Sello de la generación: cambia la URL de descarga en cada PDF nuevo, para
+  // que el navegador no pueda servir el anterior de su caché.
+  const [pdfSello, setPdfSello] = useState<number>(0);
   const [pdfJobId, setPdfJobId] = useState<string | null>(null);
   const [pdfProgress, setPdfProgress] = useState<number | null>(null);
   const [pdfReady, setPdfReady] = useState(false);
   const [pdfMessage, setPdfMessage] = useState("");
   const [pdfError, setPdfError] = useState("");
+  const [productionPdfSello, setProductionPdfSello] = useState<number>(0);
   const [productionPdfJobId, setProductionPdfJobId] = useState<string | null>(null);
   const [productionPdfProgress, setProductionPdfProgress] = useState<number | null>(null);
   const [productionPdfReady, setProductionPdfReady] = useState(false);
@@ -1244,6 +1248,7 @@ export function MonitoreoOutputsWorkbench({
                   setPdfJobId(null);
                   setPdfProgress(100);
                   setPdfReady(true);
+                  setPdfSello(Date.now());
                   setPdfMessage(copy.ready);
                 }}
                 onError={(message) => {
@@ -1260,7 +1265,7 @@ export function MonitoreoOutputsWorkbench({
               {pdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {pdfError}</div> : null}
               {pdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {pdfMessage}</div> : null}
               {pdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl()} download>
+                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl({ v: pdfSello })} download>
                   <Download size={14} />
                   {copy.download}
                 </a>
@@ -1312,6 +1317,7 @@ export function MonitoreoOutputsWorkbench({
                   setProductionPdfJobId(null);
                   setProductionPdfProgress(100);
                   setProductionPdfReady(true);
+                  setProductionPdfSello(Date.now());
                   setProductionPdfMessage(productionCopy.ready);
                 }}
                 onError={(message) => {
@@ -1328,7 +1334,7 @@ export function MonitoreoOutputsWorkbench({
               {productionPdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {productionPdfError}</div> : null}
               {productionPdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {productionPdfMessage}</div> : null}
               {productionPdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl()} download>
+                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl({ v: productionPdfSello })} download>
                   <Download size={14} />
                   {productionCopy.download}
                 </a>
