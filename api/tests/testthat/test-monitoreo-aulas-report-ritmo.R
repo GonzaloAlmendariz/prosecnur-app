@@ -97,3 +97,36 @@ test_that("el corte se lee en hora local y en castellano", {
                "09 de septiembre de 2026, 16:50 h")
   expect_equal(prosecnurapp:::.marp_corte_legible(""), "")
 })
+
+test_that("las cuatro superficies que listan facultades comparten un solo orden", {
+  # El orden lo fija `.calaf_avance_por_facultad()` —por lo que FALTA, no
+  # alfabetico: la facultad que peor va abre la tabla— y las demas superficies lo
+  # HEREDAN. Si alguna reordenara por su cuenta, el documento se contradiria al
+  # pasar de pagina: la tercera fila de «Metas» dejaria de ser la tercera de
+  # «Detalle». Esta prueba fija la herencia; no reimplementa el criterio.
+  fac <- data.frame(
+    Facultad = c("PRIMERA", "SEGUNDA", "TERCERA"),
+    Muestra = c(100, 100, 100), Sobremuestra = c(150, 150, 150),
+    `Faltantes muestra` = c(80, 10, 40),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  diario <- data.frame(
+    Facultad = rep(c("PRIMERA", "SEGUNDA", "TERCERA"), each = 2L),
+    `Día` = rep(c("2026-09-07", "2026-09-08"), 3L),
+    `Día de la semana` = "lunes",
+    `Efectivas del día` = c(5, 5, 1, 1, 3, 3),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  r <- monitoreo_aulas_ritmo_de_avance(diario, fac)
+  expect_equal(vapply(r$facultades, function(p) p$facultad, character(1)),
+               as.character(fac$Facultad))
+
+  # Y una facultad que tiene serie pero NO esta en la tabla va al final, nunca
+  # intercalada: el orden de la tabla manda sobre el alfabetico.
+  diario_extra <- rbind(diario, data.frame(
+    Facultad = "AJENA", `Día` = "2026-09-07", `Día de la semana` = "lunes",
+    `Efectivas del día` = 9, check.names = FALSE, stringsAsFactors = FALSE))
+  r2 <- monitoreo_aulas_ritmo_de_avance(diario_extra, fac)
+  expect_equal(vapply(r2$facultades, function(p) p$facultad, character(1)),
+               c("PRIMERA", "SEGUNDA", "TERCERA", "AJENA"))
+})
