@@ -280,7 +280,7 @@
                            dias = .marp_etiquetas_de_dia(p$serie),
                            diarias = p$serie$efectivas, acumulado = p$serie$acumulado,
                            metas = metas, tokens = tok, ty = ty, geo = geo,
-                           etiquetar_barras = FALSE, compacto = TRUE)
+                           compacto = TRUE)
   }
   invisible(NULL)
 }
@@ -429,6 +429,97 @@
                                       fontsize = ty$body, fontface = if (vale) "bold" else "plain"))
     }
     pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.35)
+  }
+  invisible(NULL)
+}
+
+# --- La tabla de detalle, una hoja por meta ----------------------------------
+#
+# Dibuja UN juego de columnas sobre las filas indicadas. El llamador decide qué
+# columnas: hoy son dos hojas —muestra y sobremuestra— que comparten facultad,
+# las tres de «Efectivas» y las aulas, porque son el contexto contra el que se
+# lee cualquiera de las dos metas y quien tenga delante una sola hoja tiene que
+# poder leerla sola.
+
+.marp_tabla_detalle <- function(df, filas, columnas, tok, ty, x0,
+                                y_tabla, alto_fila, criterio = NULL) {
+  anchos <- vapply(columnas, function(c) c$w, numeric(1))
+  xs <- cumsum(c(x0, anchos))
+  ancho_total <- sum(anchos)
+
+  # Banda de grupo: «Hom.» y «Muj.» aparecen bajo «Efectivas» y bajo la meta, y
+  # sin el grupo no se sabe cuál es cuál. Los tramos se DERIVAN del campo
+  # `grupo` de cada columna —columnas contiguas con el mismo grupo forman una
+  # banda—, nunca de índices contados a mano.
+  etiquetas <- vapply(columnas, function(c) c$grupo, character(1))
+  i <- 1L
+  while (i <= length(etiquetas)) {
+    if (!nzchar(etiquetas[[i]])) { i <- i + 1L; next }
+    j <- i
+    while (j < length(etiquetas) && identical(etiquetas[[j + 1L]], etiquetas[[i]])) j <- j + 1L
+    grid::grid.text(pulso_pdf_versalitas(etiquetas[[i]]),
+                    x = (xs[i] + xs[j + 1L]) / 2, y = y_tabla + 0.050,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = tok$navy, fontsize = 6.0, fontface = "bold"))
+    pulso_pdf_hairline(xs[i], xs[j + 1L], y_tabla + 0.044, tokens = tok, lwd = 0.8)
+    i <- j + 1L
+  }
+
+  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla + 0.030, tokens = tok, lwd = 0.9)
+  for (i in seq_along(columnas)) {
+    c <- columnas[[i]]
+    grid::grid.text(pulso_pdf_versalitas(c$rotulo),
+                    x = if (c$num) xs[i + 1L] - 0.006 else xs[i] + 0.006,
+                    y = y_tabla + 0.010, just = c(if (c$num) "right" else "left", "bottom"),
+                    gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+  }
+  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla, tokens = tok, lwd = 0.5)
+
+  y <- y_tabla - alto_fila
+  for (n in seq_along(filas)) {
+    fila <- df[filas[[n]], , drop = FALSE]
+    if (n %% 2L == 0L) {
+      grid::grid.rect(x = x0, y = y, width = ancho_total, height = alto_fila,
+                      just = c("left", "bottom"),
+                      gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
+    }
+    for (i in seq_along(columnas)) {
+      c <- columnas[[i]]
+      v <- fila[[c$campo]]
+      es_falta <- startsWith(c$campo, "Faltantes")
+      if (identical(c$campo, "Facultad")) {
+        nombre <- .form_pdf_clean_text(as.character(v))
+        tope <- pulso_pdf_chars(c$w, factor = 118) - 1L
+        # Elipsis en TRES PUNTOS ASCII: el device PDF no tiene el U+2026 y R lo
+        # sustituye con aviso, así que en el documento salía otro carácter.
+        if (nchar(nombre) > tope) nombre <- paste0(substr(nombre, 1L, tope - 3L), "...")
+        grid::grid.text(nombre, x = xs[i] + 0.010, y = y + alto_fila / 2,
+                        just = c("left", "centre"),
+                        gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
+        next
+      }
+      falta <- suppressWarnings(as.numeric(v))
+      cerrada <- es_falta && is.finite(falta) && falta <= 0
+      grid::grid.text(.marp_personas(v, faltante = es_falta),
+                      x = xs[i + 1L] - 0.006, y = y + alto_fila / 2,
+                      just = c("right", "centre"),
+                      gp = grid::gpar(col = if (cerrada) tok$success else tok$ink,
+                                      fontsize = ty$body,
+                                      fontface = if (cerrada) "bold" else "plain"))
+    }
+    pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = 0.35)
+    y <- y - alto_fila
+  }
+
+  if (!is.null(criterio)) {
+    # ENVUELTO, no `grid.text`: es una frase larga y sin envoltura se salía por
+    # el borde derecho —«…que el diseño fijó por fa»—.
+    .form_pdf_text(
+      paste0("Se cuenta ", criterio$numerador, " contra ", criterio$denominador,
+             ". ", criterio$no_cubre),
+      x = x0, y = max(0.095, y - 0.014), w = ancho_total,
+      chars = pulso_pdf_chars(ancho_total), fontsize = ty$caption,
+      col = tok$faint, line_h = 0.020)
   }
   invisible(NULL)
 }

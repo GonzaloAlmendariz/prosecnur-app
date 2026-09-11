@@ -207,48 +207,77 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   # Cuántas filas entran por página: se calcula, no se adivina, para que la
   # última página no quede con una fila colgando fuera del marco.
-  alto_fila <- 0.040
+  # 0,044 y no 0,040: quince facultades a 0,040 dejaban dos centímetros muertos
+  # al pie de la hoja, y el renglón más suelto se lee mejor.
+  alto_fila <- 0.044
   # La tabla arranca justo bajo el cromo: con 0,645 quedaban veinte milímetros
   # de página en blanco entre la regla y la primera fila, y las quince
   # facultades se partían en dos hojas sin necesidad.
   y_tabla <- 0.755
-  por_pagina <- max(1L, floor((y_tabla - 0.10) / alto_fila))
+  # **Ni huérfanas ni páginas desparejas.** Con quince facultades a 0,044 caben
+  # catorce y la decimoquinta se iba sola a una hoja entera: una página con una
+  # fila no es una página, es un error de composición. Dos reglas, en orden:
+  #
+  #   1. Si todo cabe apretando el renglón hasta el mínimo legible, cabe: se
+  #      prefiere una hoja bien llena a dos medio vacías.
+  #   2. Si de verdad no cabe, las filas se reparten PAREJAS entre las hojas que
+  #      hagan falta, en vez de llenar la primera y dejar el resto a la última.
+  .ALTO_FILA_MINIMO <- 0.0355
+  alto_util <- y_tabla - 0.10
+  if (nrow(df) * .ALTO_FILA_MINIMO <= alto_util) {
+    alto_fila <- min(alto_fila, alto_util / nrow(df))
+  }
+  por_pagina <- max(1L, floor(alto_util / alto_fila))
+  n_hojas <- max(1L, ceiling(nrow(df) / por_pagina))
+  por_pagina <- ceiling(nrow(df) / n_hojas)
   paginas <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_pagina))
 
-  # Las mismas DIECISIETE columnas que la hoja del libro, en el orden que dictó
-  # Gonzalo el 2026-09-08 (ver `AULAS_AVANCE_CABECERAS$facultad`): **cada meta
-  # seguida de lo que le falta**, primero en total y después por sexo, hombres
-  # antes que mujeres. Los rótulos van cortos porque cada columna mide 0,051
-  # npc; la banda de grupo de arriba dice de qué son.
+  # **La tabla de detalle va en DOS páginas, no en una de diecisiete columnas.**
+  # Con las diecisiete juntas cada columna medía 0,051 npc y los nombres de
+  # facultad se truncaban —«ESTUDIOS GENERA...», «CIENCIAS E INGE...»—, que en
+  # un documento de cliente es justo lo que no se puede recortar. Partida por
+  # meta, cada página lleva diez columnas anchas y el nombre entero.
   #
-  # El `grupo` es un CAMPO de cada columna y no un tramo contado: la versión
-  # anterior escribía `grupo(8L, 10L, "Faltantes")` y el día que la tabla ganó
-  # dos columnas esos índices habrían pintado la banda sobre otras.
-  ancho <- 0.051
-  col <- function(campo, rotulo, grupo = "", w = ancho, num = TRUE) {
+  # Facultad, las tres de «Efectivas» y «Aulas» se REPITEN en las dos: son el
+  # contexto contra el que se lee cualquiera de las dos metas, y quien tenga
+  # delante una sola de las hojas tiene que poder leerla sola.
+  col <- function(campo, rotulo, grupo = "", w = 0.066, num = TRUE) {
     list(campo = campo, rotulo = rotulo, grupo = grupo, w = w, num = num)
   }
-  columnas <- list(
-    col("Facultad", "Facultad", w = 0.130, num = FALSE),
+  comunes_izq <- list(
+    # 0,266 npc = 31 caracteres: entra «ESTUDIOS GENERALES LETRAS» entero, que
+    # con 0,205 salía «ESTUDIOS GENERALES L...». En un documento de cliente el
+    # nombre de la facultad es lo último que se puede recortar.
+    col("Facultad", "Facultad", w = 0.266, num = FALSE),
     col("Efectivas", "Total", "Efectivas"),
     col("Efectivas hombres", "Hom.", "Efectivas"),
-    col("Efectivas mujeres", "Muj.", "Efectivas"),
-    col("Muestra", "Meta", "Muestra y lo que le falta"),
-    col("Faltantes muestra", "Faltan", "Muestra y lo que le falta"),
-    col("Muestra hombres", "Hom.", "Muestra y lo que le falta"),
-    col("Faltantes hombres muestra", "Faltan", "Muestra y lo que le falta"),
-    col("Muestra mujeres", "Muj.", "Muestra y lo que le falta"),
-    col("Faltantes mujeres muestra", "Faltan", "Muestra y lo que le falta"),
-    col("Sobremuestra", "Meta", "Sobremuestra y lo que le falta"),
-    col("Faltantes sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
-    col("Sobremuestra hombres", "Hom.", "Sobremuestra y lo que le falta"),
-    col("Faltantes hombres sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
-    col("Sobremuestra mujeres", "Muj.", "Sobremuestra y lo que le falta"),
-    col("Faltantes mujeres sobremuestra", "Faltan", "Sobremuestra y lo que le falta"),
-    col("Aulas aplicadas", "Aulas")
+    col("Efectivas mujeres", "Muj.", "Efectivas")
   )
+  comun_der <- list(col("Aulas aplicadas", "Aulas", w = 0.060))
+  detalle <- function(meta) {
+    prefijo <- if (identical(meta, "muestra")) "Muestra" else "Sobremuestra"
+    sufijo <- if (identical(meta, "muestra")) "muestra" else "sobremuestra"
+    grupo <- paste(prefijo, "y lo que le falta")
+    c(comunes_izq, list(
+      col(prefijo, "Meta", grupo),
+      col(paste("Faltantes", sufijo), "Faltan", grupo),
+      col(paste(prefijo, "hombres"), "Hom.", grupo),
+      col(paste0("Faltantes hombres ", sufijo), "Faltan", grupo),
+      col(paste(prefijo, "mujeres"), "Muj.", grupo),
+      col(paste0("Faltantes mujeres ", sufijo), "Faltan", grupo)
+    ), comun_der)
+  }
+  # La sobremuestra sólo tiene hoja si el estudio la publica.
+  hay_sobremuestra <- is.finite(suppressWarnings(as.numeric(model$total$sobremuestra))) &&
+    suppressWarnings(as.numeric(model$total$sobremuestra)) > 0
+  hojas_detalle <- list(list(clave = "muestra", titulo = "Detalle por facultad: muestra",
+                             columnas = detalle("muestra")))
+  if (hay_sobremuestra) {
+    hojas_detalle[[2L]] <- list(clave = "sobremuestra",
+                                titulo = "Detalle por facultad: sobremuestra",
+                                columnas = detalle("sobremuestra"))
+  }
   x0 <- 0.04
-  xs <- cumsum(c(x0, vapply(columnas, function(c) c$w, numeric(1))))
 
   # --- El documento -----------------------------------------------------------
   #
@@ -267,7 +296,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     (if (n_paneles) ceiling(n_paneles / 8) else 0L) +           # ritmo por facultad
     1L +                                                        # metas por facultad
     ceiling(nrow(df) / .marp_filas_por_pagina_avance()) +        # avance visual
-    length(paginas)                                             # detalle numérico
+    length(paginas) * length(hojas_detalle)                     # detalle numérico
 
   antetitulo <- "Monitoreo de cursos-horario"
   pag <- 0L
@@ -347,94 +376,18 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     pie()
   }
 
-  for (p in seq_along(paginas)) {
-    nueva(
-      "Detalle por facultad",
-      if (length(paginas) > 1L) sprintf("%s · %d de %d", subtitulo, p, length(paginas)) else subtitulo
-    )
-
-    # Cabecera de grupos: «Mujeres» y «Hombres» aparecen dos veces —bajo la
-    # muestra y bajo lo conseguido— y sin el grupo no se sabe cuál es cuál.
-    grupo <- function(desde, hasta, texto) {
-      grid::grid.text(texto, x = (xs[desde] + xs[hasta + 1L]) / 2, y = y_tabla + 0.048,
-                      just = c("center", "bottom"),
-                      gp = grid::gpar(col = tok$soft, fontsize = ty$foot, fontface = "bold"))
-      pulso_pdf_hairline(xs[desde], xs[hasta + 1L], y_tabla + 0.042, tokens = tok)
+  for (hoja in hojas_detalle) {
+    for (p in seq_along(paginas)) {
+      nueva(
+        hoja$titulo,
+        if (length(paginas) > 1L) sprintf("%s · %d de %d", subtitulo, p, length(paginas)) else subtitulo
+      )
+      .marp_tabla_detalle(df, paginas[[p]], hoja$columnas, tok, ty, x0,
+                          y_tabla = y_tabla, alto_fila = alto_fila,
+                          criterio = if (identical(hoja, hojas_detalle[[length(hojas_detalle)]]) &&
+                                         p == length(paginas)) model$criterio else NULL)
+      pie()
     }
-    # Los tramos se DERIVAN del campo `grupo` de cada columna: columnas
-    # contiguas con el mismo grupo forman una banda.
-    etiquetas <- vapply(columnas, function(c) c$grupo, character(1))
-    i <- 1L
-    while (i <= length(etiquetas)) {
-      if (!nzchar(etiquetas[[i]])) { i <- i + 1L; next }
-      j <- i
-      while (j < length(etiquetas) && identical(etiquetas[[j + 1L]], etiquetas[[i]])) j <- j + 1L
-      grupo(i, j, etiquetas[[i]])
-      i <- j + 1L
-    }
-
-    grid::grid.rect(x = x0, y = y_tabla, width = sum(vapply(columnas, function(c) c$w, numeric(1))),
-                    height = 0.034, just = c("left", "bottom"),
-                    gp = grid::gpar(fill = tok$tbl_header, col = tok$tbl_frame, lwd = 0.6))
-    for (i in seq_along(columnas)) {
-      c <- columnas[[i]]
-      grid::grid.text(c$rotulo, x = if (c$num) xs[i + 1L] - 0.006 else xs[i] + 0.006,
-                      y = y_tabla + 0.012, just = c(if (c$num) "right" else "left", "bottom"),
-                      gp = grid::gpar(col = tok$navy, fontsize = ty$foot, fontface = "bold"))
-    }
-
-    y <- y_tabla - alto_fila
-    for (k in paginas[[p]]) {
-      fila <- df[k, , drop = FALSE]
-      falta <- suppressWarnings(as.numeric(fila[["Faltantes muestra"]]))
-      abierta <- is.finite(falta) && falta > 0
-      if (which(paginas[[p]] == k) %% 2L == 0L) {
-        grid::grid.rect(x = x0, y = y, width = sum(vapply(columnas, function(c) c$w, numeric(1))),
-                        height = alto_fila, just = c("left", "bottom"),
-                        gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
-      }
-      # SIN filete de acento. Estando el campo a mitad, casi todas las facultades
-      # están abiertas y el filete pintaba una columna roja continua de arriba
-      # abajo: deja de señalar nada y le da al documento un tono de alarma que
-      # el dato no tiene. Lo que falta ya lo dicen las columnas «Faltan».
-      invisible(abierta)
-      for (i in seq_along(columnas)) {
-        c <- columnas[[i]]
-        v <- fila[[c$campo]]
-        txt <- if (identical(c$campo, "Facultad")) {
-          # Recortado a su columna: «Ciencias y Artes de la Comunicación» se
-          # salía e invadía la cifra de al lado. Una etiqueta con elipsis se
-          # lee; una cifra pisada, no.
-          nombre <- .form_pdf_clean_text(as.character(v))
-          tope <- pulso_pdf_chars(c$w) - 1L
-          # Elipsis en TRES PUNTOS ASCII y no «…»: el device PDF no tiene el
-          # U+2026 en su fuente y R lo sustituye con un aviso, así que en el
-          # documento salía otro carácter.
-          if (nchar(nombre) > tope) paste0(substr(nombre, 1L, tope - 3L), "...") else nombre
-        } else {
-          .marp_personas(v, faltante = startsWith(c$campo, "Faltantes"))
-        }
-        grid::grid.text(txt, x = if (c$num) xs[i + 1L] - 0.006 else xs[i] + 0.010,
-                        y = y + alto_fila / 2, just = c(if (c$num) "right" else "left", "centre"),
-                        gp = grid::gpar(col = tok$ink, fontsize = ty$body))
-      }
-      pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = 0.4)
-      y <- y - alto_fila
-    }
-
-    if (p == length(paginas)) {
-      # ENVUELTO, no `grid.text`: el pie es una frase larga y sin envoltura se
-      # salía por el borde derecho —«…que el diseño fijó por fa»—. Visto en el
-      # PNG de la última página, que es la única donde el pie aparece.
-      ancho <- xs[length(xs)] - x0
-      .form_pdf_text(
-        paste0("Se cuenta ", model$criterio$numerador, " contra ",
-               model$criterio$denominador, ". ", model$criterio$no_cubre),
-        x = x0, y = max(0.09, y - 0.012), w = ancho,
-        chars = pulso_pdf_chars(ancho), fontsize = ty$foot,
-        col = tok$faint, line_h = 0.022)
-    }
-    pie()
   }
   invisible(output_file)
 }

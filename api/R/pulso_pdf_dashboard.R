@@ -133,12 +133,15 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
                                    color_barra = tokens$navy,
                                    color_linea = tokens$success,
                                    etiquetar_barras = TRUE,
+                                   etiquetar_acumulado = TRUE,
                                    compacto = FALSE,
                                    rotulos_eje = TRUE) {
   n <- length(dias)
   if (!n) return(invisible(NULL))
   diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
-  fs <- if (compacto) 5.2 else ty$caption
+  # En panel pequeño el cuerpo baja a 4,6: con 5,2 la cifra del día y la del
+  # acumulado se tocaban en las facultades donde ambas series van juntas.
+  fs <- if (compacto) 4.6 else ty$caption
   metas <- metas[is.finite(metas)]
 
   # El tope del acumulado incluye las metas: una meta fuera de la caja no se ve
@@ -186,16 +189,44 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
     }
   }
 
+  # Cada cuántos puntos se rotula. Con quince jornadas, quince cifras encima de
+  # quince barras son una fila de dígitos ilegible; se rotula uno de cada
+  # `salto` y SIEMPRE el último, que es el que se busca.
+  tope_rotulos <- if (compacto) 6L else 14L
+  salto <- max(1L, ceiling(n / tope_rotulos))
+  se_rotula <- function(i) (i - 1L) %% salto == 0L || i == n
+
   ancho_barra <- min((w / n) * 0.56, if (compacto) 0.022 else 0.052)
+  alto_texto <- fs * 0.0022
+  altos <- numeric(n)
   for (i in seq_len(n)) {
     v <- .ppd_num(diarias[[i]], 0)
     if (v <= 0) next
-    grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = h * (v / tope_dia),
+    alto_barra <- h * (v / tope_dia)
+    altos[[i]] <- alto_barra
+    grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = alto_barra,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.88))
-    if (etiquetar_barras) {
-      grid::grid.text(.ppd_miles(v), x = px(i), y = py_dia(v) + 0.010, just = c("centre", "bottom"),
-                      gp = grid::gpar(col = tokens$navy, fontsize = fs, fontface = "bold"))
+    if (!etiquetar_barras || !se_rotula(i)) next
+    # **La cifra del día va DENTRO de la barra cuando cabe.** Encima competía
+    # con la cifra del acumulado, que pasa por ahí mismo: dos números casi
+    # pegados y ninguno pertenece visiblemente a su serie. Dentro de la barra
+    # pertenece a la barra, sin flecha ni leyenda que lo explique.
+    if (alto_barra > alto_texto * 2.6) {
+      # El punto del acumulado se posa justo en el borde alto de la barra
+      # cuando el día es el primero de la serie: la cifra del día quedaba
+      # tapada por el círculo. Se baja un renglón dentro de la misma barra.
+      y_rotulo <- y + alto_barra - alto_texto * 0.9
+      y_punto <- py_acu(acumulado[[i]])
+      choca <- is.finite(y_punto) && abs(y_punto - y_rotulo) < alto_texto * 1.4
+      if (choca && alto_barra > alto_texto * 4.2) y_rotulo <- y_rotulo - alto_texto * 1.8
+      grid::grid.text(.ppd_miles(v), x = px(i), y = y_rotulo,
+                      just = c("centre", "top"),
+                      gp = grid::gpar(col = tokens$surface, fontsize = fs, fontface = "bold"))
+    } else {
+      grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto_barra + 0.008,
+                      just = c("centre", "bottom"),
+                      gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
     }
   }
 
@@ -229,6 +260,46 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
     grid::grid.circle(x = px(vivos), y = py_acu(acumulado[vivos]),
                       r = grid::unit(r, "npc"),
                       gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = 0.6))
+    # El acumulado dice su cifra sobre el punto y en el color de su serie: sin
+    # ella el lector ve la pendiente pero no sabe por cuánto va el campo en
+    # ninguna jornada salvo la última, y ni siquiera en ésa (Gonzalo,
+    # 2026-09-11: «falta el acumulado de cada día»).
+    if (etiquetar_acumulado) {
+      for (i in vivos) {
+        if (!se_rotula(i)) next
+        yy <- py_acu(acumulado[[i]])
+        # **El rótulo esquiva la barra POR EL COSTADO.** Encima del punto caía
+        # dentro del relleno navy —verde sobre azul oscuro, ilegible— porque la
+        # línea del acumulado cruza las barras: las dos series comparten caja y
+        # sólo la escala las separa. Al lado del punto siempre hay papel blanco,
+        # salvo al borde derecho, donde se pasa al otro lado.
+        dentro <- yy < y + altos[[i]] + alto_texto
+        if (dentro) {
+          margen <- ancho_barra / 2 + 0.005
+          ancho_txt <- nchar(.ppd_miles(acumulado[[i]])) * fs * 0.00085
+          cabe_der <- px(i) + margen + ancho_txt < x + w
+          cabe_izq <- px(i) - margen - ancho_txt > x
+          if (cabe_der || cabe_izq) {
+            grid::grid.text(.ppd_miles(acumulado[[i]]),
+                            x = px(i) + (if (cabe_der) margen else -margen), y = yy,
+                            just = c(if (cabe_der) "left" else "right", "centre"),
+                            gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
+          } else {
+            # Sin papel a los lados, por encima de la barra: es el único sitio
+            # donde no se pisa con nada.
+            grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i),
+                            y = y + altos[[i]] + alto_texto * 1.6, just = c("centre", "bottom"),
+                            gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
+          }
+        } else {
+          arriba <- yy < y + h - 0.028
+          grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i),
+                          y = yy + (if (arriba) r + 0.006 else -(r + 0.006)),
+                          just = c("centre", if (arriba) "bottom" else "top"),
+                          gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
+        }
+      }
+    }
   }
 
   if (rotulos_eje) {
