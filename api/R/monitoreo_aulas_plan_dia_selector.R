@@ -45,6 +45,21 @@
 .mapds_ETIQUETA_SELECTOR <- "VER EL DÍA:"
 .mapds_ETIQUETA_AREA <- "PLAN DEL DÍA ELEGIDO"
 
+#' Lo que dice el área cuando todavía no se ha elegido día.
+#'
+#' **Una zona en blanco no se lee como «sin elegir», se lee como ROTA.** El
+#' bloque reserva tantas filas como el día más cargado para que el desborde de
+#' la fórmula no choque con el listado, así que sin día elegido el usuario ve
+#' veinticinco filas vacías entre dos cabeceras iguales. Gonzalo, 2026-09-10,
+#' abriendo el libro: «el plan del día estaba bugueado, que había como filas
+#' arriba que estaban vacías, que no se estaban mostrando bien».
+#'
+#' No lo estaba: estaba sin usar. Pero para quien abre la hoja es lo mismo, y
+#' el arreglo es que el hueco diga qué hacer en vez de callarse. La flecha
+#' apunta al desplegable, que está justo encima.
+#' @keywords internal
+.mapds_SIN_DIA_ELEGIDO <- "▲ Elige un día arriba para ver sólo lo de ese día."
+
 # Las filas (1-based) que traen la cabecera del listado — «FECHA AGENDADA» y
 # «CURSO-HORARIO» juntas. Con bloque hay dos (la repetida del área y la del
 # listado); la del LISTADO es la última, mismo criterio que el contrato.
@@ -190,10 +205,10 @@
   }
   sprintf(
     paste0(
-      '=IF(%s="";"";IFERROR(FILTER(%s%d:%s%d;%s=%s;%s<>"");',
+      '=IF(%s="";%s;IFERROR(FILTER(%s%d:%s%d;%s=%s;%s<>"");',
       '"Sin aulas agendadas para ese día."))'
     ),
-    sel,
+    sel, sprintf('"%s"', .mapds_SIN_DIA_ELEGIDO),
     .malar_col_a1(1L), desde, .malar_col_a1(geo$n_cols), hasta,
     rango(geo$col_fecha), sel_txt,
     rango(geo$col_codigo)
