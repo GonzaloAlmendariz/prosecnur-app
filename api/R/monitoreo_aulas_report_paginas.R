@@ -421,38 +421,73 @@
 # diecisiete columnas sigue al final del documento: ésta responde «¿cómo va?» de
 # un vistazo, aquélla responde «¿cuánto exactamente?».
 
-# Cada facultad ocupa su renglón más los dos de sexo: 0,094 npc con los cuerpos
-# de la escala de cliente. Entre el encabezado (0,758) y el pie (0,115) hay
-# 0,643, así que caben SEIS. Se calcula y no se teclea, porque la cifra depende
-# del cuerpo tipográfico y ya cambió una vez al subir la escala.
-.MARP_ALTO_BLOQUE_FACULTAD <- 0.034 + 2 * 0.030
+# --- Cómo se reparten n filas entre hojas ------------------------------------
+#
+# Dos reglas, en orden, y las MISMAS para todas las tablas del documento:
+#
+#   1. Si todo cabe apretando el renglón hasta el mínimo legible, cabe. Una hoja
+#      llena se lee mejor que dos medio vacías, y una tabla partida obliga a
+#      recordar la primera mitad mientras se lee la segunda.
+#   2. Si de verdad no cabe, las filas se reparten PAREJAS entre las hojas que
+#      hagan falta, en vez de llenar la primera y dejar la última coja.
+#
+# Vivía escrita dos veces —una en la tabla de detalle y otra aquí—, y la segunda
+# copia se quedó sin la regla 1: quince facultades que cabían en una hoja salían
+# repartidas en dos de ocho y siete, con media página en blanco en cada una.
 
-.marp_filas_por_pagina_avance <- function() {
-  max(1L, floor((0.758 - 0.115) / .MARP_ALTO_BLOQUE_FACULTAD))
+#' @param n filas a repartir.
+#' @param arriba,abajo los npc donde empieza y acaba el área de tabla.
+#' @param alto_max,alto_min renglón cómodo y renglón mínimo legible.
+#' @return lista con `por_hoja`, `hojas` y el `alto` de fila resultante.
+#' @keywords internal
+.marp_reparto_de_filas <- function(n, arriba, abajo, alto_max, alto_min) {
+  n <- max(1L, as.integer(n))
+  util <- max(alto_min, arriba - abajo)
+  alto <- if (n * alto_min <= util) min(alto_max, util / n) else alto_max
+  por_hoja <- max(1L, floor(util / alto))
+  hojas <- max(1L, ceiling(n / por_hoja))
+  por_hoja <- ceiling(n / hojas)
+  list(por_hoja = por_hoja, hojas = hojas, alto = alto)
 }
 
+.MARP_TABLA_AVANCE <- list(arriba = 0.763, abajo = 0.115, alto_max = 0.046, alto_min = 0.036)
+
+.marp_reparto_avance <- function(n) {
+  do.call(.marp_reparto_de_filas, c(list(n = n), .MARP_TABLA_AVANCE))
+}
+
+# **Una fila por facultad, no tres.** La versión anterior daba a cada facultad un
+# renglón de nombre y dos de sexo, y quince facultades se comían TRES hojas
+# diciendo exactamente los mismos números que «Detalle por facultad» dice en una.
+# Lo único que aportaba sobre el detalle era la barra; lo que costaba era la
+# forma. Con los dos sexos en columnas —cada uno con su barra y su porcentaje—
+# las quince entran en una hoja y el documento pasa de seis páginas de facultades
+# a cuatro.
 .marp_pagina_avance_visual <- function(facultades, idx, tok, ty, x0, ancho,
                                        aulas_plan = numeric(0),
                                        filas_por_hoja = length(idx)) {
   pesos <- pulso_pdf_pesos()
   col <- function(k, i) suppressWarnings(as.numeric(facultades[[k]][[i]]))
 
-  # Geometría declarada UNA vez: encabezados y celdas se posicionan con los
-  # mismos números o se desalinean al primer retoque.
-  #
-  # **Sin columnas de aulas.** «Aplicadas» y «Previstas» sólo tenían valor en la
-  # fila de facultad y dejaban dos columnas en blanco bajo cada pareja de sexo:
-  # un encabezado que gobierna un tercio de las filas no es una columna. Esa
-  # cifra pasa a ser una acotación en la propia fila de facultad, donde se lee
-  # junto al nombre al que pertenece, y su ancho se reparte entre las columnas
-  # que sí tienen dato en todas las filas.
-  w_fac <- 0.270; w_sexo <- 0.070; w_barra <- 0.210
-  x_fac <- x0; x_sexo <- x_fac + w_fac; x_barra <- x_sexo + w_sexo
-  w_num <- (x0 + ancho - (x_barra + w_barra) - 0.014) / 4
-  x_num <- (x_barra + w_barra + 0.014) + (seq_len(4L) - 1L) * w_num
+  w_fac <- 0.240
+  w_sexo <- 0.155          # barra + porcentaje, una columna por sexo
+  w_num <- 0.070
+  x_fac <- x0
+  x_h <- x_fac + w_fac
+  x_m <- x_h + w_sexo + 0.012
+  x_num <- (x_m + w_sexo + 0.020) + (seq_len(4L) - 1L) * w_num
 
-  y_top <- 0.790
-  # Encabezado sin banda de relleno, como el resto de las tablas del documento.
+  y_top <- 0.795
+  banda <- function(desde, hasta, texto) {
+    grid::grid.text(pulso_pdf_versalitas(texto), x = (desde + hasta) / 2, y = y_top + 0.016,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = tok$navy, fontsize = ty$eyebrow, fontface = "bold"))
+    pulso_pdf_hairline(desde, hasta, y_top + 0.010, tokens = tok, lwd = pesos$fila)
+  }
+  banda(x_h, x_h + w_sexo, "Hombres")
+  banda(x_m, x_m + w_sexo, "Mujeres")
+  banda(x_num[[1L]], x_num[[4L]] + w_num, "Totales de la facultad")
+
   pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = pesos$bloque)
   cab <- function(txt, x, just = "right") {
     grid::grid.text(pulso_pdf_versalitas(txt), x = x, y = y_top - 0.024,
@@ -460,67 +495,54 @@
                     gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   cab("Facultad", x_fac, "left")
-  cab("Avance", x_barra, "left")
-  cabeceras <- c("%", "Efectivas", "Meta", "Faltan")
-  for (k in seq_along(cabeceras)) cab(cabeceras[[k]], x_num[[k]] + w_num)
+  cab("Avance", x_h, "left")
+  cab("Avance", x_m, "left")
+  for (k in seq_along(c("Efectivas", "Meta", "Faltan", "Aulas"))) {
+    cab(c("Efectivas", "Meta", "Faltan", "Aulas")[[k]], x_num[[k]] + w_num)
+  }
   pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.032, tokens = tok, lwd = pesos$columna)
 
-  # **El alto de fila se DERIVA de cuántas caben, no se teclea.** Con un valor
-  # fijo, el reparto parejo dejaba cinco facultades en una hoja con capacidad
-  # para seis y el 40 % de la página en blanco. Repartiendo el hueco disponible
-  # entre las filas de la hoja, el aire se convierte en respiración de la tabla.
-  # Se toma de `filas_por_hoja` y no de `length(idx)` para que la última hoja
-  # —la que puede venir corta— tenga el mismo renglón que las demás.
-  alto_bloque <- (y_top - 0.032 - 0.115) / max(1L, filas_por_hoja)
-  alto_bloque <- min(alto_bloque, 0.150)
-  alto_fac <- alto_bloque * 0.38; alto_sexo <- alto_bloque * 0.31
+  alto <- .marp_reparto_avance(filas_por_hoja)$alto
   y <- y_top - 0.032
   for (i in idx) {
-    y <- y - alto_fac
+    y <- y - alto
     nombre <- .form_pdf_clean_text(as.character(facultades[["Facultad"]][[i]]))
-    tope_txt <- pulso_pdf_chars(w_fac + w_sexo, factor = 118)
+    tope_txt <- pulso_pdf_chars(w_fac, factor = 118) - 1L
     if (nchar(nombre) > tope_txt) nombre <- paste0(substr(nombre, 1L, tope_txt - 3L), "...")
-    grid::grid.text(nombre, x = x_fac, y = y + alto_fac / 2 - 0.002, just = c("left", "centre"),
+    grid::grid.text(nombre, x = x_fac, y = y + alto / 2, just = c("left", "centre"),
                     gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
 
-    aplicadas <- col("Aulas aplicadas", i)
-    previstas <- suppressWarnings(as.numeric(
-      aulas_plan[[as.character(facultades[["Facultad"]][[i]])]] %||% NA_real_))
-    if (is.finite(aplicadas)) {
-      texto <- if (is.finite(previstas) && previstas > 0) {
-        sprintf("%s de %s cursos-horario aplicados", .marp_personas(aplicadas),
-                .marp_personas(previstas))
-      } else sprintf("%s cursos-horario aplicados", .marp_personas(aplicadas))
-      grid::grid.text(texto, x = x0 + ancho, y = y + alto_fac / 2 - 0.002,
+    for (s in list(list("hombres", tok$sexo_h, x_h), list("mujeres", tok$sexo_m, x_m))) {
+      ef <- col(paste("Efectivas", s[[1L]]), i)
+      meta <- col(paste("Muestra", s[[1L]]), i)
+      pct <- if (is.finite(meta) && meta > 0) ef / meta else NA_real_
+      w_barra <- w_sexo - 0.048
+      pulso_pdf_barra_progreso(s[[3L]], y + alto * 0.34, w_barra, alto * 0.30,
+                               pct, tokens = tok, color = s[[2L]], fondo = tok$canvas)
+      grid::grid.text(.marp_pct(pct), x = s[[3L]] + w_sexo, y = y + alto / 2,
                       just = c("right", "centre"),
-                      gp = grid::gpar(col = tok$faint, fontsize = ty$caption))
+                      gp = grid::gpar(col = tok$ink, fontsize = ty$body))
     }
 
-    for (s in list(list("Hombres", "hombres", tok$sexo_h), list("Mujeres", "mujeres", tok$sexo_m))) {
-      y <- y - alto_sexo
-      ef <- col(paste("Efectivas", s[[2L]]), i)
-      meta <- col(paste("Muestra", s[[2L]]), i)
-      faltan <- col(paste0("Faltantes ", s[[2L]], " muestra"), i)
-      pct <- if (is.finite(meta) && meta > 0) ef / meta else NA_real_
-
-      grid::grid.text(s[[1L]], x = x_sexo, y = y + alto_sexo / 2, just = c("left", "centre"),
-                      gp = grid::gpar(col = tok$soft, fontsize = ty$footer))
-      pulso_pdf_barra_progreso(x_barra, y + alto_sexo * 0.32, w_barra, alto_sexo * 0.36,
-                               pct, tokens = tok, color = s[[3L]], fondo = tok$canvas)
-      cerrada <- is.finite(faltan) && faltan <= 0
-      cifras <- list(
-        list(.marp_pct(pct), tok$ink, "bold"),
-        list(.marp_personas(ef), tok$ink, "plain"),
-        list(.marp_personas(meta), tok$ink, "plain"),
-        list(.marp_personas(faltan, faltante = TRUE),
-             if (cerrada) tok$success else tok$ink, if (cerrada) "bold" else "plain")
-      )
-      for (k in seq_along(cifras)) {
-        grid::grid.text(cifras[[k]][[1L]], x = x_num[[k]] + w_num, y = y + alto_sexo / 2,
-                        just = c("right", "centre"),
-                        gp = grid::gpar(col = cifras[[k]][[2L]], fontsize = ty$body,
-                                        fontface = cifras[[k]][[3L]]))
-      }
+    faltan <- col("Faltantes muestra", i)
+    cerrada <- is.finite(faltan) && faltan <= 0
+    previstas <- suppressWarnings(as.numeric(
+      aulas_plan[[as.character(facultades[["Facultad"]][[i]])]] %||% NA_real_))
+    cifras <- list(
+      list(.marp_personas(col("Efectivas", i)), tok$ink, "plain"),
+      list(.marp_personas(col("Muestra", i)), tok$ink, "plain"),
+      list(.marp_personas(faltan, faltante = TRUE),
+           if (cerrada) tok$success else tok$ink, if (cerrada) "bold" else "plain"),
+      list(if (is.finite(previstas) && previstas > 0) {
+             sprintf("%s / %s", .marp_personas(col("Aulas aplicadas", i)),
+                     .marp_personas(previstas))
+           } else .marp_personas(col("Aulas aplicadas", i)), tok$soft, "plain")
+    )
+    for (k in seq_along(cifras)) {
+      grid::grid.text(cifras[[k]][[1L]], x = x_num[[k]] + w_num, y = y + alto / 2,
+                      just = c("right", "centre"),
+                      gp = grid::gpar(col = cifras[[k]][[2L]], fontsize = ty$body,
+                                      fontface = cifras[[k]][[3L]]))
     }
     pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pesos$fila)
   }
