@@ -138,3 +138,26 @@ test_that("una marca ya puesta por la app cuenta para reemitir su formato", {
   expect_length(out$escribibles, 0L)
   expect_identical(out$respetadas[[1]]$habia, "REFUERZO POR CONTACTAR")
 })
+
+test_that("el texto DECLARA por que el formato no entro, en vez de callarlo", {
+  # La version anterior tenia dos caminos mudos —sin sheetId y sin requests— que
+  # dejaban la celda en rojo sin una sola linea que lo dijera. Un paso que puede
+  # no ocurrir tiene que contar por que no ocurrio.
+  mudo <- list(escritas = list(), respetadas = list(1), sin_fila = character(0),
+               aplicado = TRUE,
+               formato = list(list(hoja = "Aulas Agendadas (Extra)", estado = "sin-sheet-id",
+                                   error = "")))
+  txt <- monitoreo_aulas_publicar_marcas_texto(mudo)
+  expect_match(txt, "NO entraron")
+  expect_match(txt, "sin-sheet-id")
+
+  roto <- list(escritas = list(1), respetadas = list(), sin_fila = character(0),
+               aplicado = TRUE,
+               formato = list(list(hoja = "X", estado = "error", error = "403 sin permiso")))
+  expect_match(monitoreo_aulas_publicar_marcas_texto(roto), "403 sin permiso")
+
+  bien <- list(escritas = list(1), respetadas = list(), sin_fila = character(0),
+               aplicado = TRUE,
+               formato = list(list(hoja = "X", estado = "aplicado", error = "")))
+  expect_match(monitoreo_aulas_publicar_marcas_texto(bien), "Desplegable y color reemitidos")
+})
