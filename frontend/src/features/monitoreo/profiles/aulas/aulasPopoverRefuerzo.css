@@ -16,7 +16,7 @@
 }
 
 .aulas-refuerzo-popover {
-  width: min(720px, 100%);
+  width: min(780px, 100%);
   max-height: min(76vh, 720px);
   display: flex;
   flex-direction: column;
@@ -185,20 +185,6 @@
 }
 .aulas-refuerzo-curso em { font-style: normal; color: var(--pulso-text-faint); }
 
-.aulas-refuerzo-rinde {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  font-variant-numeric: tabular-nums;
-}
-.aulas-refuerzo-rinde b { font-weight: 600; color: var(--pulso-text); }
-.aulas-refuerzo-rinde strong {
-  padding: 0 6px;
-  border-radius: 5px;
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text);
-  font-weight: 700;
-}
-
 .aulas-refuerzo-cierra { display: grid; gap: 5px; }
 .aulas-refuerzo-vara {
   display: grid;
@@ -252,3 +238,66 @@
   .aulas-refuerzo-fila { grid-template-columns: 26px minmax(0, 1fr); }
   .aulas-refuerzo-cierra { grid-column: 2; }
 }
+
+/* Las tres varas, con la misma forma que en el popover de reemplazo: es la
+   misma decisión vista desde el otro extremo y no puede tener dos lenguajes. */
+.aulas-refuerzo-varas3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-varas3 thead th {
+  padding: 0 6px 3px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+  text-align: right;
+}
+.aulas-refuerzo-varas3 thead th:first-child { text-align: left; }
+.aulas-refuerzo-varas3 tbody th {
+  padding: 2px 6px 2px 0;
+  color: var(--pulso-text-soft);
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+.aulas-refuerzo-varas3 tbody th em {
+  display: block;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+}
+.aulas-refuerzo-varas3 td { padding: 2px 6px; text-align: right; color: var(--pulso-text-soft); }
+.aulas-refuerzo-varas3 td b { color: var(--pulso-text); font-weight: 600; }
+.aulas-refuerzo-varas3 .es-techo th,
+.aulas-refuerzo-varas3 .es-techo td { color: var(--pulso-text-faint); }
+.aulas-refuerzo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-refuerzo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
+
+/* Lo que cierra en RESPUESTAS, junto al porcentaje: la barra da la proporción
+   y esta cifra el absoluto, que es con el que se suma mentalmente cuántos
+   candidatos hacen falta. */
+.aulas-refuerzo-util {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-util b { color: var(--pulso-text-soft); font-weight: 600; }
+
+/* La acción, que no existía: se podía mirar pero no decidir. */
+.aulas-refuerzo-elegir {
+  justify-self: start;
+  margin-top: 8px;
+  padding: 6px 13px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-refuerzo-elegir:hover { filter: brightness(0.94); }
