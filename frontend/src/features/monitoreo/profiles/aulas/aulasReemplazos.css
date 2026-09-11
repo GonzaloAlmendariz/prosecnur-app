@@ -313,3 +313,110 @@
   background: transparent;
 }
 .aulas-reemplazo-medida em { white-space: nowrap; }
+
+/* ── La deuda contra la que se elige ──────────────────────────────────────
+   Gonzalo, 2026-09-10: «¿bajo qué concepto lo estamos haciendo, qué estamos
+   mejorando, y qué es lo que se tiene que mejorar en primer lugar?». Sin las
+   dos cifras aquí arriba, las dos varas de cada candidato son dos números y
+   «el que más ayuda» no dice a qué ayuda.
+
+   Van SEPARADAS y no sumadas: la facultad puede ir sobrada en un sexo y corta
+   en el otro, y ahí un relevo que traiga el sexo cubierto no arregla nada. */
+.aulas-reemplazo-deuda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 7px 0 0;
+  align-items: center;
+}
+.aulas-reemplazo-deuda span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-deuda span.es-debe {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-danger-fg) 8%, transparent);
+}
+.aulas-reemplazo-deuda b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-deuda span.es-debe b { color: var(--pulso-danger-fg); }
+.aulas-reemplazo-deuda em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+/* ── El dilema, en dos cursos-horario ─────────────────────────────────────
+   Cuando el mejor por parecido y el mejor por ayuda son aulas distintas, se
+   enfrentan: qué gana cada una y qué concede. La «o» va sobre la línea en una
+   pastilla redonda — una columna de texto en medio se estrangula en cuanto el
+   popover se estrecha, y así se veía en el ensayo antes de arreglarlo. */
+.aulas-reemplazo-duelo {
+  position: relative;
+  margin: 10px 0 2px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.aulas-reemplazo-duelo-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.aulas-reemplazo-duelo-titulo h4 { margin: 0; font-size: 12.5px; font-weight: 600; }
+.aulas-reemplazo-duelo-titulo span { font-size: 11.5px; color: var(--pulso-text-faint); }
+
+.aulas-reemplazo-duelo-lados { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.aulas-reemplazo-duelo-lados > div {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 10px 13px;
+}
+.aulas-reemplazo-duelo-lados > div + div { border-left: 1px solid var(--pulso-border); }
+.aulas-reemplazo-duelo-lados .vara {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.aulas-reemplazo-duelo-lados .es-parecido .vara { color: var(--pulso-primary); }
+.aulas-reemplazo-duelo-lados .es-ayuda .vara { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-duelo-lados b { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.aulas-reemplazo-duelo-lados .gana { font-size: 12px; color: var(--pulso-text); line-height: 1.45; }
+.aulas-reemplazo-duelo-lados .concede { font-size: 11.5px; color: var(--pulso-text-faint); line-height: 1.4; }
+.aulas-reemplazo-duelo-lados strong { font-variant-numeric: tabular-nums; }
+
+.aulas-reemplazo-duelo-o {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 16px);
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .aulas-reemplazo-duelo-lados { grid-template-columns: 1fr; }
+  .aulas-reemplazo-duelo-lados > div + div { border-left: 0; border-top: 1px solid var(--pulso-border); }
+  .aulas-reemplazo-duelo-o { display: none; }
+}
