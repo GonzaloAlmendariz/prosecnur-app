@@ -128,9 +128,29 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   poner("titulo", "ASIGNACIÓN DE APLICADORES")
   semilla <- as.integer(rep[["semilla"]] %||% 0L)
   rango <- rep[["rango"]]
+  # **El rótulo dice QUIÉN repartió, y decía «sorteo» cuando ya no repartía el
+  # sorteo.**
+  #
+  # Desde que la app adopta la hoja de los aplicadores, cada cita adoptada es
+  # una fijación y el sorteo ya no la mueve: el 2026-09-10 eran NOVENTA Y TRES
+  # de las noventa y seis, y la hoja seguía encabezada con «Sorteo: original
+  # (alfabético)». Quien la abre entiende que repartió la app —y por tanto que
+  # puede volver a repartir distinto—, cuando lo que hay ahí es la decisión del
+  # coordinador. Es justo al revés.
+  #
+  # Con fijaciones se nombra su procedencia y cuántas son; sin ellas se dice el
+  # sorteo, como siempre.
+  fijadas <- length(cfg[["reparto_fijado"]] %||% list())
   poner("nota", sprintf(
-    "Sorteo: %s · Rango: %s · Generada con el reparto vigente de la app",
-    if (semilla > 0L) sprintf("n.º %d", semilla + 1L) else "original (alfabético)",
+    "%s · Rango: %s · Generada con el reparto vigente de la app",
+    if (fijadas > 0L) {
+      sprintf("Reparto: %s de la hoja de los aplicadores; el resto lo completa la app",
+              if (fijadas == 1L) "1 cita tomada" else sprintf("%d citas tomadas", fijadas))
+    } else if (semilla > 0L) {
+      sprintf("Sorteo: n.º %d", semilla + 1L)
+    } else {
+      "Sorteo: original (alfabético)"
+    },
     if (is.list(rango)) sprintf("del %s al %s", rango[["desde"]], rango[["hasta"]]) else "todo el horizonte"
   ))
   poner("nota", "Materiales se recogen 30 min antes; salida al aula 15 min antes de la hora pactada.")
