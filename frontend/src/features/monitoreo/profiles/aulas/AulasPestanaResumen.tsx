@@ -23,7 +23,6 @@ import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import { AulasRendimientoYEfectividad } from "./AulasRendimientoYEfectividad";
 import { AulasPeorRendimiento } from "./AulasPeorRendimiento";
 import { AulasFacultadesEnRiesgo } from "./AulasFacultadesEnRiesgo";
-import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
@@ -625,20 +624,18 @@ export function AulasPestanaResumen({
                 // índice con el que se entra a mirarla.
                 onFoco={(facultad) => onFoco({ tipo: "facultad", valor: facultad })}
               />
-              {/* **Debajo del aviso, porque es su respuesta.** El panel de
-                  arriba dice quién no llega; éste dice con qué aulas se
-                  arreglaría y a quién no le toca. Gonzalo, 2026-09-11:
-                  «dimensionemos los mejores refuerzos, qué facultades ahora lo
-                  necesitan, partiendo de un techo de 15 aulas agendables más». */}
-              <div className="aulas-parte">
-                <h4>Los mejores refuerzos para el techo</h4>
-                <span>a qué facultad va cada aula, qué cierra y con qué se solapa</span>
-              </div>
-              <AulasRepartoDelTecho
-                bloque={dashboard.efectividad_seguimiento}
-                celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
-                plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
-              />
+              {/* **El reparto del techo se mudó a Consultas › Refuerzos el
+                  2026-09-11**, por pedido de Gonzalo: «los refuerzos deberían
+                  tener su propia pestaña en Consultas luego de la pestaña
+                  Extras». Aquí queda el puntero y no una copia: el reparto tiene
+                  acciones —elegir el techo, marcar— y dos superficies que
+                  marquen lo mismo es exactamente cómo se pierde la cuenta de
+                  qué se pidió. */}
+              <p className="mon-profile-muted">
+                Con qué cursos-horario se arregla lo de arriba —y cuántos caben en el
+                techo— está en <strong>Consultas › Refuerzos</strong>, que además
+                lleva la cuenta de lo ya pedido.
+              </p>
               <div className="aulas-parte">
                 <h4>Facultades que más se alejan de su previsión</h4>
                 <span>tasa observada contra la prevista de su propio diseño</span>

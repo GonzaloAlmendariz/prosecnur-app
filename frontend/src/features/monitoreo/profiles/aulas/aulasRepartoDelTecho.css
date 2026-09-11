@@ -103,3 +103,122 @@
   }
   .mon-profile-page.is-aulas-flow .aulas-techo-solape { grid-column: 2 / -1; }
 }
+
+/* ── El mando del techo y el autopicker ───────────────────────────────────
+   Gonzalo, 2026-09-11: «poder seleccionar el número de aulas y un autopicker
+   de los mejores refuerzos». El control va ARRIBA de la lectura porque la
+   cambia entera: con otro techo, la lista y el «no reciben ninguna» son otros. */
+.mon-profile-page.is-aulas-flow .aulas-techo-mando {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px minmax(0, 190px);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-cuantas {
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+  min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-paso {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 26px;
+  align-items: stretch;
+  gap: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-paso button {
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+  line-height: 1;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-paso button:hover:not(:disabled) {
+  border-color: var(--pulso-primary);
+  color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-paso button:disabled { opacity: 0.45; cursor: default; }
+.mon-profile-page.is-aulas-flow .aulas-techo-paso input {
+  min-width: 0;
+  width: 100%;
+  padding: 3px 4px;
+  text-align: center;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-auto {
+  padding: 5px 9px;
+  border: 1px solid var(--pulso-primary-border);
+  border-radius: 7px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-auto:disabled { opacity: 0.55; cursor: default; }
+
+/* El acuse: lo que contestó el motor, que antes se guardaba y no se pintaba. */
+.mon-profile-page.is-aulas-flow .aulas-techo-acuse {
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: var(--pulso-surface-3);
+  border-left: 3px solid var(--pulso-success-fg);
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-acuse.es-fallo { border-left-color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-techo-acuse b { color: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-techo-acuse button {
+  border: 0; background: none; padding: 0;
+  color: var(--pulso-primary);
+  font-size: var(--aulas-min);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-lista.es-con-accion li {
+  grid-template-columns: 20px minmax(0, 1fr) 104px 118px minmax(0, 1.1fr) 78px;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-accion { display: grid; }
+.mon-profile-page.is-aulas-flow .aulas-techo-accion button {
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-accion button:hover:not(:disabled) {
+  border-color: var(--pulso-primary);
+  color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-accion button:disabled { opacity: 0.45; cursor: default; }
+
+@media (max-width: 1100px) {
+  .mon-profile-page.is-aulas-flow .aulas-techo-lista.es-con-accion li {
+    grid-template-columns: 20px minmax(0, 1fr) 104px 118px 78px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-techo-lista.es-con-accion .aulas-techo-solape {
+    grid-column: 2 / -1;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-techo-mando {
+    grid-template-columns: minmax(0, 1fr) 108px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-techo-auto { grid-column: 1 / -1; }
+}
