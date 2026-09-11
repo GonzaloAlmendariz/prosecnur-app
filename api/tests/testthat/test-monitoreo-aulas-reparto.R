@@ -563,11 +563,25 @@ test_that("B36: la fijación cuenta en la carga — el resto se reequilibra sobr
   expect_equal(sum(.marp_equidad(res)), 2)
 })
 
-test_that("B36: fijada fuera de la oferta se aplica con advertencia — la voluntad manda, el motor declara", {
+test_that("B36: fijada fuera de la oferta se aplica y NO se le advierte — la puso una persona", {
+  # **La advertencia se calló el 2026-09-11.** Gonzalo, sobre siete aulas de
+  # Jesús Ramiro marcadas «fuera de su disponibilidad declarada»: «lo de Jesús
+  # es que finalmente pudo y se presentó a oficina a querer aplicar; son cosas
+  # que son parte de la impredictibilidad del campo».
+  #
+  # Y al mirarlo salió algo más: el reparto del SORTEO filtra candidatos por
+  # `.marep_cubre()`, así que nunca pudo producir esta advertencia. Sólo se
+  # levantaba en la primera pasada —las FIJADAS—, o sea que sólo marcaba
+  # decisiones de personas y jamás un error de la app. Un aviso que sólo puede
+  # equivocarse no avisa: enseña a ignorar los avisos.
+  #
+  # El SOLAPE sí se sigue avisando: dos citas a la misma hora no las cubre
+  # nadie, las haya decidido quien las haya decidido.
+  #
   # Alba no cubre [10:00, 10:20] y «Perico Externo» ni siquiera está en la
-  # disponibilidad: ambas fijaciones se aplican (decisión del usuario) y
-  # ambas llegan con su advertencia. Perico entra a la equidad con su carga:
-  # sin él, la suma de asignaciones no cuadraría con el resumen.
+  # disponibilidad: ambas fijaciones se aplican (decisión del usuario) y ninguna
+  # se marca. Perico entra a la equidad con su carga: sin él, la suma de
+  # asignaciones no cuadraría con el resumen.
   disp <- list(
     .marp_apl("Alba Parcial", list(viernes = list(.marp_bloque("09:00", "10:10"))))
   )
@@ -580,10 +594,13 @@ test_that("B36: fijada fuera de la oferta se aplica con advertencia — la volun
   a1 <- .marp_asig(dia, "CH 1")
   expect_identical(a1[["aplicador"]], "Alba Parcial")
   expect_true(isTRUE(a1[["fijada"]]))
-  expect_identical(a1[["advertencia"]], "sin_disponibilidad")
+  # Sin aviso el campo NO viaja: el motor lo omite en vez de mandar una cadena
+  # vacía, así que se comprueba la ausencia y no el "".
+  sin_aviso <- function(a) is.null(a[["advertencia"]]) || !nzchar(a[["advertencia"]])
+  expect_true(sin_aviso(a1))
   a2 <- .marp_asig(dia, "CH 2")
   expect_identical(a2[["aplicador"]], "Perico Externo")
-  expect_identical(a2[["advertencia"]], "sin_disponibilidad")
+  expect_true(sin_aviso(a2))
   eq <- .marp_equidad(res)
   expect_equal(unname(eq[["Perico Externo"]]), 1)
   # Nada quedó descubierto: la fijación cubre, aunque advierta.

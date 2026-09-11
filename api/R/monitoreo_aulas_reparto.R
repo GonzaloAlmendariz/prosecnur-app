@@ -348,8 +348,24 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       .marep_cubre(oferta[[elegido]][[dia_clave]], cita$ini_ocupado, cita$fin)
     solapa <- .marep_solapa(ocupadas[[paste(elegido, cita$fecha, sep = "\r")]],
                             cita$ini_ocupado, cita$fin)
-    es_interno <- identical(elegido, MONITOREO_AULAS_INTERNO_PULSO)
-    advertencia <- if (solapa) "se_solapa" else if (!cubre && !es_interno) "sin_disponibilidad" else ""
+    # **A una cita FIJADA no se le avisa de la disponibilidad.**
+    #
+    # Gonzalo, 2026-09-11, sobre Jesús Ramiro con siete aulas marcadas «fuera de
+    # su disponibilidad declarada»: «lo de Jesús es que finalmente pudo y se
+    # presentó a oficina a querer aplicar; son cosas que son parte de la
+    # impredictibilidad del campo».
+    #
+    # Y ahí está: una fijada la puso una PERSONA, muchas veces justamente porque
+    # el horario declarado se quedó viejo. Avisar de que no lo cubre no informa
+    # de nada y, peor, marca como anomalía a quien se sumó. Es el mismo motivo
+    # por el que el comodín ya la tenía callada: un aviso que salta donde no hay
+    # problema deja de leerse, y entonces tampoco se lee donde sí lo hay.
+    #
+    # El SOLAPE sigue avisándose: dos citas a la misma hora no las cubre nadie,
+    # las haya decidido quien las haya decidido. Y en la segunda pasada —la que
+    # reparte el SORTEO— la advertencia se mantiene entera: ahí sí es un error
+    # de la app mandar a alguien fuera de lo que dijo poder.
+    advertencia <- if (solapa) "se_solapa" else ""
     # Un fijado externo a la oferta entra a la equidad al verse: sin él la
     # suma de asignaciones no cuadraría con el resumen.
     if (!elegido %in% names(carga)) {

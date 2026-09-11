@@ -531,9 +531,14 @@ test_that("con disponibilidad, su hoja se publica y las del equipo siguen intact
   texto <- paste(unlist(vals), collapse = " | ")
   expect_match(texto, "DISPONIBILIDAD DE APLICADORES")
   # Las dos tablas que la hoja existe para cruzar (rehecha el 2026-09-04: tres
-  # ejes no caben en una columna).
-  expect_match(texto, "CUÁNTOS HAY, HORA POR HORA", fixed = TRUE)
-  expect_match(texto, "QUIÉN PUEDE CADA DÍA", fixed = TRUE)
+  # ejes no caben en una columna). La segunda pasó a columnas por HORA el
+  # 2026-09-11 —él: «los rangos horarios ya siempre son iguales, entonces quién
+  # puede cada día tiene que sistematizarse por hora»— y su título cambió con
+  # ella. Se comprueba contra la constante y no contra el literal: éste fue el
+  # TERCER sitio que lo repetía, y los otros dos apagaron el color de la tabla
+  # en silencio al renombrarla.
+  expect_match(texto, prosecnurapp:::.ALD_TITULO_CONTEOS, fixed = TRUE)
+  expect_match(texto, prosecnurapp:::.ALD_TITULO_PERSONAS, fixed = TRUE)
   expect_match(texto, "Ana Prueba")
 })
 
