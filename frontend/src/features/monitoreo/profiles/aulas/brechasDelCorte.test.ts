@@ -166,3 +166,29 @@ describe("el parte que se contradice consigo mismo", () => {
     expect(brechasDelCorte(filas)[0].codigo).toBe("CH 3");
   });
 });
+
+describe("el conflicto no se cuenta como un aplicado que rinde mal", () => {
+  // El helper vive aquí: el del `describe` de arriba no cruza de bloque.
+  const fila = (extra: Record<string, unknown>) => ([{
+    operational_code: "CH 3", faculty: "CC. e Ingeniería", sample_role: "titular",
+    eligible_n: 29, expected_valid: 15.1, respuestas_validas: 0,
+    application_status: "aplicada", observed_students: 15,
+    sample_status: "en_contacto", scheduled_date: "", ...extra,
+  }] as unknown as Record<string, unknown>[]);
+
+  it("va en la lista pero fuera del conteo de los que rinden por debajo", () => {
+    // Contarlo ahí da por bueno el registro que se pide revisar, y la tabla
+    // decía «31 aplicados rinden por debajo» incluyendo a CH 3.
+    const filas = [
+      ...fila({}),
+      // `faltan` sale de `brecha`, que es lo que publica el motor: sin ella la
+      // fila sale «cumplida» y el test no probaría nada.
+      ...fila({ operational_code: "CH 9", respuestas_validas: 2, brecha: 13,
+                scheduled_date: "2026-09-09" }),
+    ] as unknown as Parameters<typeof brechasDelCorte>[0];
+    const out = brechasDelCorte(filas);
+    expect(out.filter((b) => b.severidad === "parte_en_conflicto")).toHaveLength(1);
+    expect(out.filter((b) => b.severidad !== "parte_en_conflicto" && b.severidad !== "cumplida"
+      && b.severidad !== "sin_aplicar")).toHaveLength(1);
+  });
+});
