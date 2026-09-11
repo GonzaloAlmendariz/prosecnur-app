@@ -17,6 +17,7 @@ import {
 import {
   apiJobStatus,
   apiMonitoreoClientReportPdf,
+  type MonitoreoPortadaPdf,
   apiMonitoreoProcessingHandoffExport,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
@@ -613,6 +614,9 @@ export function MonitoreoOutputsWorkbench({
 }: MonitoreoOutputsWorkbenchProps) {
   const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
   const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
+  // La portada existe sólo en el renderizador de aulas. Ofrecer sus campos en un
+  // perfil cuyo PDF no la dibuja sería prometer un control que no hace nada.
+  const ofrecePortada = ofreceClientPdf && family === "aulas";
   const ofreceProductionPdf = pdfSupport?.production ?? pdfDeLaFamilia.production;
   const hasSnapshot = corte.hasSnapshot;
   const nRows = corte.ingesta;
@@ -628,6 +632,28 @@ export function MonitoreoOutputsWorkbench({
     () => productionPdfTitleSeed(family, defaultTitle, routeLabel),
     [defaultTitle, family, routeLabel],
   );
+  // **Los seis campos de la portada, declarados una vez.** El rótulo, el
+  // placeholder —que dice lo que el motor pondrá si se deja en blanco— y el
+  // tope de caracteres viven juntos, para que la tarjeta no tenga seis bloques
+  // casi iguales que se desincronizan al primer retoque.
+  const camposDePortada: ReadonlyArray<{
+    clave: keyof MonitoreoPortadaPdf;
+    rotulo: string;
+    ejemplo: string;
+    tope: number;
+    ancho?: "completo";
+  }> = [
+    { clave: "titulo", rotulo: "Título", ejemplo: "Avance del trabajo de campo", tope: 140 },
+    { clave: "subtitulo", rotulo: "Subtítulo", ejemplo: "El nombre del estudio", tope: 180 },
+    { clave: "cliente", rotulo: "Preparado para", ejemplo: "Sin destinatario en la portada", tope: 140 },
+    { clave: "periodo", rotulo: "Periodo de campo", ejemplo: "Del primer al último día con respuestas", tope: 90 },
+    { clave: "corte", rotulo: "Datos al", ejemplo: "La fecha del corte sincronizado", tope: 90 },
+    { clave: "nota", rotulo: "Nota al pie", ejemplo: "Sin nota", tope: 320, ancho: "completo" },
+  ];
+  const [portada, setPortada] = useState<MonitoreoPortadaPdf>({});
+  const [portadaAbierta, setPortadaAbierta] = useState(false);
+  const portadaEscrita = Object.values(portada).filter((v) => (v ?? "").trim() !== "").length;
+
   const [includeTargets, setIncludeTargets] = useState(false);
   const [activeAudience, setActiveAudience] = useState<OutputAudience>("client");
   const [internalConfirmed, setInternalConfirmed] = useState(false);
@@ -964,7 +990,11 @@ export function MonitoreoOutputsWorkbench({
     setPdfMessage("");
     setPdfError("");
     try {
-      const start = await apiMonitoreoClientReportPdf({ includeTargets, ...(config ? { config } : {}) });
+      const start = await apiMonitoreoClientReportPdf({
+        includeTargets,
+        ...(config ? { config } : {}),
+        ...(ofrecePortada ? { portada } : {}),
+      });
       setPdfJobId(start.job_id);
     } catch (e) {
       setPdfProgress(null);
@@ -1143,6 +1173,49 @@ export function MonitoreoOutputsWorkbench({
               {readiness.bloqueos.length ? (
                 <div className="mon-outputs-alert is-error">
                   <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
+                </div>
+              ) : null}
+              {ofrecePortada ? (
+                <div className="mon-outputs-portada">
+                  <button
+                    type="button"
+                    className="mon-outputs-portada__toggle"
+                    aria-expanded={portadaAbierta}
+                    onClick={() => setPortadaAbierta((v) => !v)}
+                  >
+                    <span>Portada del PDF</span>
+                    <small>
+                      {portadaEscrita
+                        ? `${portadaEscrita} de ${camposDePortada.length} escritos`
+                        : "Se completa sola con los datos del corte"}
+                    </small>
+                  </button>
+                  {portadaAbierta ? (
+                    <div className="mon-outputs-portada__campos">
+                      {camposDePortada.map((campo) => (
+                        <label
+                          key={campo.clave}
+                          className="mon-outputs-field"
+                          data-ancho={campo.ancho ?? "medio"}
+                        >
+                          <span>{campo.rotulo}</span>
+                          <input
+                            type="text"
+                            value={portada[campo.clave] ?? ""}
+                            maxLength={campo.tope}
+                            placeholder={campo.ejemplo}
+                            disabled={Boolean(pdfJobId)}
+                            onChange={(event) =>
+                              setPortada((prev) => ({ ...prev, [campo.clave]: event.target.value }))
+                            }
+                          />
+                        </label>
+                      ))}
+                      <small className="mon-outputs-portada__nota">
+                        Lo que dejes en blanco lo escribe el reporte con lo que ves en gris.
+                      </small>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <button

@@ -4619,9 +4619,42 @@ export async function apiMonitoreoClientReportSheetsPublish(
   );
 }
 
+/**
+ * Los seis campos de la portada del PDF de avance.
+ *
+ * Todos opcionales, y todos **override opt-in**: lo que va en blanco lo resuelve
+ * el defecto que el motor deriva de los datos (el periodo sale del primer y el
+ * último día con efectivas; el corte, del sello del snapshot). Mandar un campo
+ * vacío NO borra su defecto.
+ */
+export type MonitoreoPortadaPdf = {
+  titulo?: string;
+  subtitulo?: string;
+  cliente?: string;
+  periodo?: string;
+  corte?: string;
+  nota?: string;
+};
+
+/** Sólo se manda lo que tiene texto: un campo vacío no viaja. */
+function portadaConTexto(portada?: MonitoreoPortadaPdf): MonitoreoPortadaPdf | null {
+  if (!portada) return null;
+  const limpia = Object.fromEntries(
+    Object.entries(portada)
+      .map(([k, v]) => [k, typeof v === "string" ? v.trim() : ""])
+      .filter(([, v]) => v !== ""),
+  ) as MonitoreoPortadaPdf;
+  return Object.keys(limpia).length ? limpia : null;
+}
+
 export async function apiMonitoreoClientReportPdf(
-  options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig> } = {},
+  options: {
+    includeTargets?: boolean;
+    config?: Partial<MonitoreoConfig>;
+    portada?: MonitoreoPortadaPdf;
+  } = {},
 ) {
+  const portada = portadaConTexto(options.portada);
   return handle<JobStart>(
     await apiFetch("/api/monitoreo/client-report/pdf", {
       method: "POST",
@@ -4629,6 +4662,7 @@ export async function apiMonitoreoClientReportPdf(
       body: JSON.stringify({
         include_targets: !!options.includeTargets,
         ...(options.config ? { config: options.config } : {}),
+        ...(portada ? { portada } : {}),
       }),
     }),
   );
