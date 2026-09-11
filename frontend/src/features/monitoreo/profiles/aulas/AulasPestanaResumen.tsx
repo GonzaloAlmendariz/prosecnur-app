@@ -21,6 +21,8 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { ritmoDeLaFacultad, type RitmoDeFacultad } from "./ritmoDeLaFacultad";
 import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import { AulasRendimientoYEfectividad } from "./AulasRendimientoYEfectividad";
+import { AulasPeorRendimiento } from "./AulasPeorRendimiento";
+import { AulasFacultadesEnRiesgo } from "./AulasFacultadesEnRiesgo";
 import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
@@ -591,6 +593,49 @@ export function AulasPestanaResumen({
                 bloque={dashboard.efectividad_seguimiento}
                 fila={filaDeLaFacultad(dashboard.efectividad_seguimiento, facultadEnFoco)}
                 facultad={facultadEnFoco ?? ""}
+              />
+              {/* **Quién rinde peor, no quién debe más.** Gonzalo, 2026-09-11:
+                  «no hay contexto sobre cuáles son las facultades con peor tasa
+                  observada vs tasa prevista o de diseño; podría ser hasta un KPI
+                  o una tarjeta con el top 4 o 5». Va pegado al rendimiento
+                  porque es la misma cuenta —observada contra prevista— leída por
+                  facultad en vez de por el estudio entero, y con el filtro
+                  puesto el de arriba sólo habla de UNA: sin esta lista no hay
+                  con qué compararla. */}
+              {/* **Antes que el ranking, porque es la pregunta que llega
+                  primero.** Gonzalo, 2026-09-11, mirando el ranking: «si en
+                  Gestión falta y estamos por debajo de lo esperado, ¿por qué no
+                  se notifica aquí, o ni siquiera aparece esa facultad?».
+                  Gestión tiene UN curso-horario aplicado: el ranking la
+                  apartaba por no llegar al mínimo para comparar, y además no
+                  está mal de tasa sino de agenda. Un aviso que sólo sabe de
+                  tasas deja fuera justo a la que no puede medirse. */}
+              <div className="aulas-parte">
+                <h4>Facultades en riesgo</h4>
+                <span>las que no llegan con lo agendado y las que aún no pueden medirse</span>
+              </div>
+              <AulasFacultadesEnRiesgo
+                bloque={dashboard.efectividad_seguimiento}
+                celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+                plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+                facultadEnFoco={facultadEnFoco}
+                // Pulsar una facultad la pone en el filtro del perfil entero:
+                // es el mismo gesto que el mapa de la deuda, y el aviso es el
+                // índice con el que se entra a mirarla.
+                onFoco={(facultad) => onFoco({ tipo: "facultad", valor: facultad })}
+              />
+              <div className="aulas-parte">
+                <h4>Facultades que más se alejan de su previsión</h4>
+                <span>tasa observada contra la prevista de su propio diseño</span>
+              </div>
+              <AulasPeorRendimiento
+                // **El ranking no se filtra.** Comparar es el trabajo de esta
+                // pieza y una facultad sola no se compara con nadie; el filtro
+                // entra marcando dónde cae la suya, no recortando la lista.
+                bloque={dashboard.efectividad_seguimiento}
+                porSexo={(dashboard.efectividad_por_sexo ?? []) as Array<Record<string, unknown>>}
+                plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+                facultadEnFoco={facultadEnFoco}
               />
               <div className="aulas-parte">
                 <h4>Cursos-horario por cobertura</h4>
