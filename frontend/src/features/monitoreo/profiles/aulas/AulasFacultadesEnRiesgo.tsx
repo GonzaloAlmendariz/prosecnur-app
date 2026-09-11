@@ -5,7 +5,7 @@ import { facultadCorta } from "./facultadEnPalabras";
 import type { RiesgoDeFacultad } from "./facultadesEnRiesgo";
 import { fechaEnPalabras } from "./fichaDeCursoHorario";
 import { fmt } from "./kpisDeAulas";
-import { citasVencidas, facultadesEnRiesgo, rechazoDelOperativo } from "./facultadesEnRiesgo";
+import { citasVencidas, facultadesEnRiesgo, gestionesSinVia, rechazoDelOperativo } from "./facultadesEnRiesgo";
 import { pctPerfil } from "./kpisDeAulas";
 import "./aulasFacultadesEnRiesgo.css";
 
@@ -89,6 +89,10 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
 
   const rechazo = rechazoDelOperativo(bloque);
   const vencidas = citasVencidas(bloque);
+  const sinVia = gestionesSinVia(bloque);
+  // Sólo las que no salen ya nombradas en una fila: repetirlas aquí sería
+  // contarlas dos veces en la misma pantalla.
+  const sinViaFuera = sinVia - filas.reduce((a, f) => a + f.cursosSinVia, 0);
   const cortas = filas.filter((f) => f.aviso === "agenda_corta").length;
   const ciegas = filas.length - cortas;
   const foco = (facultadEnFoco ?? "").trim();
@@ -230,6 +234,15 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
         {/* **Las citas que se pasaron.** No entran en la proyección —una fecha
             que pasó no es un día en que aplicar— y aquí se dicen, porque lo que
             piden es reagendarlas o darlas por caídas. */}
+        {/* **Las que no caen en ninguna facultad listada.** Una cita que no se
+            puede concertar es trabajo perdido aunque su facultad vaya sobrada:
+            de las 6 del estudio, 3 no aparecían en ningún sitio. */}
+        {sinViaFuera > 0 ? (
+          <> Fuera de estas facultades hay <b>{fmt(sinViaFuera)}</b>{" "}
+            {sinViaFuera === 1 ? "gestión más sin teléfono válido" : "gestiones más sin teléfono válido"}:
+            tampoco {sinViaFuera === 1 ? "va a cerrar" : "van a cerrar"} sola
+            {sinViaFuera === 1 ? "" : "s"}.</>
+        ) : null}
         {vencidas ? (
           <> <b>{fmt(vencidas.cursos)}</b>{" "}
             {vencidas.cursos === 1 ? "cita se pasó" : "citas se pasaron"} sin aplicarse
