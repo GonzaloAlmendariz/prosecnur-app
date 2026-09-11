@@ -77,7 +77,8 @@ pulso_pdf_type <- function(escala = c("tecnica", "cliente")) {
       body = 9.6,
       code = 9.0,
       footer = 8.8,
-      caption = 7.4
+      caption = 7.4,
+      eyebrow = 6.6
     ))
   }
   list(
@@ -87,7 +88,28 @@ pulso_pdf_type <- function(escala = c("tecnica", "cliente")) {
     body = 8.0,      # cuerpo
     code = 7.8,      # código / celdas de tabla
     footer = 8.0,    # periodo / nº pág
-    caption = 6.4    # etiquetas de KPI / captions
+    caption = 6.4,   # etiquetas de KPI / captions
+    eyebrow = 5.8    # versalitas con aire: antetítulos, rótulos de sección
+  )
+}
+
+# --- Pesos de regla ----------------------------------------------------------
+#
+# Tres funciones, tres grosores, y ninguno más. Sin este vocabulario un mismo
+# documento acumuló OCHO pesos distintos —0,28 · 0,3 · 0,4 · 0,5 · 0,6 · 0,7 ·
+# 0,8 · 0,9— para lo que son tres cosas: separar dos filas, cerrar un encabezado
+# de columnas y abrir o cerrar un bloque. Cada uno se eligió razonablemente en su
+# momento; juntos hacen que dos tablas de la misma hoja no se parezcan, y ésa es
+# exactamente la clase de descuido que se nota sin poder nombrarse.
+
+#' Grosores canónicos de regla del sistema Pulso PDF.
+#' @export
+pulso_pdf_pesos <- function() {
+  list(
+    fila = 0.3,      # divisoria entre dos filas de una tabla
+    columna = 0.6,   # bajo el encabezado de columnas
+    bloque = 0.9,    # apertura de tabla, cierre de bloque
+    acento = 2.2     # el segmento navy que ancla un título
   )
 }
 
