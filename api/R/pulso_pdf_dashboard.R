@@ -486,7 +486,7 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
       if (is.finite(h_meta) && h_meta > 0) {
         grid::grid.rect(x = cx, y = y, width = ancho_carril, height = h_meta,
                         just = c("centre", "bottom"),
-                        gp = grid::gpar(fill = tokens$surface, col = s$color, lwd = 0.7))
+                        gp = grid::gpar(fill = tokens$surface, col = s$color, lwd = 1.0))
       }
       # **El relleno NO pasa del contorno, aunque se haya superado la meta.**
       # Una facultad puede cerrar en 123 % —pasa, y es buena noticia— pero un
@@ -496,9 +496,12 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
       # escribe el 123 % completo (Gonzalo, 2026-09-11).
       if (is.finite(h_val) && h_val > 0) {
         h_pintado <- .ppd_alto_relleno(h_val, h_meta)
+        # El relleno con su propio filete oscuro: sin él, contra el contorno del
+        # mismo color, no se distingue dónde acaba lo conseguido y empieza lo
+        # que falta.
         grid::grid.rect(x = cx, y = y, width = ancho_carril, height = h_pintado,
                         just = c("centre", "bottom"),
-                        gp = grid::gpar(fill = s$color, col = NA))
+                        gp = grid::gpar(fill = s$color, col = tokens$ink, lwd = 0.4))
         # Un carril lleno se remata con un filete para que «lleno» y «lleno y de
         # sobra» no se vean idénticos.
         if (is.finite(h_meta) && h_val > h_meta) {
@@ -571,12 +574,17 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
 pulso_pdf_barra_progreso <- function(x, y, w, h, valor, tokens = pulso_pdf_tokens(),
                                      color = tokens$navy, fondo = tokens$tbl_zebra) {
   v <- .ppd_num(valor, 0)
+  # **El carril lleva filete.** Sin borde, una barra clara sobre papel blanco se
+  # confunde con el fondo y no se ve dónde acaba: lo que el lector compara es
+  # cuánto del carril está cubierto, así que el carril tiene que verse entero
+  # (Gonzalo, 2026-09-11). El filete es tenue y oscuro, no negro puro: el negro
+  # pesaría más que la propia barra.
   grid::grid.rect(x = x, y = y, width = w, height = h, just = c("left", "bottom"),
-                  gp = grid::gpar(fill = fondo, col = NA))
+                  gp = grid::gpar(fill = fondo, col = tokens$soft, lwd = 0.4))
   cubierto <- max(0, min(1, v))
   if (cubierto > 0) {
     grid::grid.rect(x = x, y = y, width = w * cubierto, height = h, just = c("left", "bottom"),
-                    gp = grid::gpar(fill = color, col = NA))
+                    gp = grid::gpar(fill = color, col = tokens$ink, lwd = 0.4))
   }
   invisible(NULL)
 }
@@ -715,13 +723,17 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     color_barra = tokens$navy,
                                     color_linea = tokens$success,
                                     reparto = 0.60, hueco = 0.105,
-                                    rotulo_acumulado = "", rotulo_diario = "") {
+                                    rotulo_acumulado = "", rotulo_diario = "",
+                                    compacto = FALSE) {
   pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
   fs <- ty$caption
   diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
   metas <- metas[is.finite(metas)]
+  # En panel, el cuerpo NO baja: lo que se reduce es cuántas cifras se escriben,
+  # no el tamaño al que se leen.
+  if (isTRUE(compacto)) hueco <- hueco * 0.60
 
   h_acu <- (h - hueco) * reparto
   h_dia <- (h - hueco) - h_acu
@@ -741,7 +753,8 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   px <- function(i) x + w * ((i - 0.5) / n)
 
   # --- Arriba: el acumulado contra la meta ---------------------------------
-  eje_acu <- .ppd_eje_bonito(max(c(acumulado[is.finite(acumulado)], metas, 1), na.rm = TRUE))
+  eje_acu <- .ppd_eje_bonito(max(c(acumulado[is.finite(acumulado)], metas, 1), na.rm = TRUE),
+                             pasos = if (isTRUE(compacto)) 2L else 4L)
   tope_acu <- max(eje_acu)
   py_acu <- function(v) {
     u <- suppressWarnings(as.numeric(v)); u[!is.finite(u)] <- 0
@@ -774,14 +787,23 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
       gp = grid::gpar(fill = color_linea, col = NA, alpha = 0.12))
     grid::grid.lines(x = grid::unit(px(vivos), "npc"),
                      y = grid::unit(py_acu(acumulado[vivos]), "npc"),
-                     gp = grid::gpar(col = color_linea, lwd = 2.0))
+                     gp = grid::gpar(col = color_linea, lwd = if (isTRUE(compacto)) 1.4 else 2.0))
   }
-  tope_rotulos <- 20L
+  # **El punto se dibuja SIEMPRE; lo que se espacia es la cifra.** Estaban en el
+  # mismo bucle, así que al escribir una etiqueta de cada dos desaparecían
+  # también los puntos intermedios y la curva parecía saltarse jornadas —«¿por
+  # qué el acumulado se salta días?», Gonzalo, 2026-09-11—. Son dos decisiones
+  # distintas: el dato existe todos los días, su rótulo cabe sólo a ratos.
+  r_punto <- if (isTRUE(compacto)) 0.0034 else 0.0055
+  for (i in vivos) {
+    grid::grid.circle(x = px(i), y = py_acu(acumulado[[i]]), r = grid::unit(r_punto, "npc"),
+                      gp = grid::gpar(fill = color_linea, col = tokens$surface,
+                                      lwd = pesos$columna))
+  }
+  tope_rotulos <- if (isTRUE(compacto)) 6L else 20L
   salto <- max(1L, ceiling(n / tope_rotulos))
   for (i in vivos) {
     if ((i - 1L) %% salto != 0L && i != n) next
-    grid::grid.circle(x = px(i), y = py_acu(acumulado[[i]]), r = grid::unit(0.0055, "npc"),
-                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = pesos$columna))
     grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
@@ -790,9 +812,10 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
 
   # --- Abajo: la jornada ----------------------------------------------------
-  eje_dia <- .ppd_eje_bonito(max(c(diarias[is.finite(diarias)], 1), na.rm = TRUE), pasos = 2L)
+  eje_dia <- .ppd_eje_bonito(max(c(diarias[is.finite(diarias)], 1), na.rm = TRUE),
+                             pasos = if (isTRUE(compacto)) 1L else 2L)
   tope_dia <- max(eje_dia) * 1.22
-  ancho_barra <- min((w / n) * 0.56, 0.052)
+  ancho_barra <- min((w / n) * 0.56, if (isTRUE(compacto)) 0.026 else 0.052)
   for (v in eje_dia[-1]) {
     grid::grid.text(.ppd_miles(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
                     just = c("right", "centre"),
@@ -805,7 +828,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
     grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = alto,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.9))
-    if ((i - 1L) %% salto != 0L && i != n) next
+    if ((i - 1L) %% (if (isTRUE(compacto)) max(1L, ceiling(n / 6L)) else salto) != 0L && i != n) next
     grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
                     gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
   }
@@ -813,7 +836,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
 
   # --- El eje de fechas, UNO solo al pie ------------------------------------
-  cada <- max(1L, ceiling(n / 14L))
+  cada <- max(1L, ceiling(n / (if (isTRUE(compacto)) 6L else 14L)))
   for (i in seq_len(n)) {
     if ((i - 1L) %% cada != 0L && i != n) next
     grid::grid.text(dias[[i]], x = px(i), y = y - 0.014, just = c("centre", "top"),

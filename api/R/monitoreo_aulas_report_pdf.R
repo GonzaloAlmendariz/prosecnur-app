@@ -352,17 +352,17 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
       por_hoja <- rejilla$por_hoja
       hojas <- split(seq_along(paneles), ceiling(seq_along(paneles) / por_hoja))
       for (h in seq_along(hojas)) {
-        nueva("Ritmo por facultad",
+        nueva("Ritmo de cada facultad",
               if (length(hojas) > 1L) {
                 sprintf("Cada panel con su propia escala · %d de %d", h, length(hojas))
               } else "Cada panel con su propia escala")
         .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util,
                                    columnas = rejilla$columnas)
-        pulso_pdf_leyenda(x0, 0.104, list(
-          list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
+        pulso_pdf_leyenda(x0, 0.100, list(
           list(texto = "Acumulado", color = tok$success, forma = "linea"),
+          list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
           list(texto = "Meta de la facultad", color = tok$danger, forma = "linea", lty = 2)
-        ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho_util)
+        ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho_util, fontsize = ty$body)
         pie()
       }
     }
