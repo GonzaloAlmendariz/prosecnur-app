@@ -19,7 +19,7 @@ monitoreo_aulas_estados <- function() {
 # de reemplazos los escribe) y los libros vivos v3 los traen tecleados.
 monitoreo_aulas_estados_muestra <- function() {
   c("sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
-    "en_reserva", "reemplazada")
+    "en_reserva", "reemplazada", "refuerzo_por_contactar")
 }
 
 # Estados de la APLICACION, tal como los escribe el parte de campo.
@@ -92,6 +92,15 @@ monitoreo_aulas_estado_muestra <- function(x) {
   key <- trimws(gsub("[[:space:]]+", " ", key))
   if (!nzchar(key)) return("sin_contactar")
   if (startsWith(key, "en reserva")) return("en_reserva")
+  # **«REFUERZO POR CONTACTAR» es un estado propio, no una variante de otro.**
+  #
+  # Gonzalo, 2026-09-11: «sería mejor que tenga un estado propio algo así como
+  # REFUERZO POR CONTACTAR». Lo marca la app cuando se elige un complemento (B) o
+  # un refuerzo (C), y dice exactamente lo que pasa: el aula está en juego y
+  # nadie ha llamado todavia. Distinguirlo de `sin_contactar` importa porque ese
+  # es el estado de los titulares que nunca se tocaron, y lo que el agendador
+  # necesita ver es SU cola: lo que la app le acaba de poner por delante.
+  if (startsWith(key, "refuerzo por contactar")) return("refuerzo_por_contactar")
   out <- switch(gsub(" ", "_", key, fixed = TRUE),
     agendada = "agendada",
     reagendada = "reagendada",

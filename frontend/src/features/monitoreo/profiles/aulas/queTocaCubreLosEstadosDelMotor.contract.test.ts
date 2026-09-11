@@ -26,13 +26,20 @@ function estadosDelMotor(): string[] {
 }
 
 describe("cada estado de muestra del motor tiene su acción", () => {
-  it("la lista del motor se lee y trae los siete de D-B13", () => {
-    // Cinco tecleables (D-B13, poda del dueño 2026-09-01) + dos derivados que
-    // siguen leyendose de libros vivos.
+  it("la lista del motor se lee y trae los ocho del vocabulario", () => {
+    // Cinco tecleables (D-B13, poda del dueño 2026-09-01), dos derivados que
+    // siguen leyéndose de libros vivos, y el que la APP escribe.
     expect(estadosDelMotor()).toEqual(
       ["sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
-       "en_reserva", "reemplazada"],
+       "en_reserva", "reemplazada", "refuerzo_por_contactar"],
     );
+  });
+
+  it("el estado que escribe la app pide lo único que pide: llamar", () => {
+    // Gonzalo, 2026-09-11, al pedir el estado propio: es la cola del agendador.
+    // Sin su rama caía al genérico y se perdía entre las que nadie tocó nunca.
+    expect(queTocaConCadaAula({ sample_status: "refuerzo_por_contactar" } as never, CORTE))
+      .toBe("Contactar: refuerzo");
   });
 
   it("ninguno cae al default por accidente: los que no piden llamada lo dicen", () => {

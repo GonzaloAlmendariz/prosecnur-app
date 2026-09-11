@@ -783,6 +783,9 @@ function diasDeCampoDelCorte(partes: ReadonlyArray<MonitoreoRow>): number {
 function renderAulasView({
   view,
   dashboard,
+  // Recarga la vista tras marcar un complemento o un refuerzo: el plan cambia y
+  // sin esto la pantalla sigue ofreciendo el aula que se acaba de apartar.
+  onGuardado = undefined,
   operations,
   vacioSinTablero,
   registro,
@@ -882,6 +885,8 @@ function renderAulasView({
     | ((aplicar: boolean, enlace?: string) => void | Promise<void>)
     | null;
   sincronizacion?: MonitoreoAulasSincronizacion | null;
+  /** Recarga la vista tras marcar un complemento (B) o un refuerzo (C). */
+  onGuardado?: () => void;
 }) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -960,6 +965,10 @@ function renderAulasView({
         pestana={pestana}
         reemplazosEnOrdenDeCadena={reemplazosEnOrdenDeCadena}
         facultadEnFoco={facultadEnFoco}
+        // Marcar un complemento o un refuerzo cambia el plan: sin recargar, la
+        // pantalla sigue ofreciendo como disponible el aula que se acaba de
+        // apartar.
+        onGuardado={onGuardado}
       />
     );
   }
@@ -1961,6 +1970,7 @@ export default function AulasMonitoreoPage() {
                 <AulasVistaPreviaDelLibro />
               </>
             ) : renderAulasView({
+              onGuardado: () => { void loadView(seccionActiva, true, true); },
               view: seccionActiva,
               dashboard,
               operations: (
