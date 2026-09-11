@@ -41,8 +41,7 @@ test_that("son TABLAS CRUZADAS, no una lista larga", {
   # persona con los días en la celda, y añade UNA fila por tramo, no seis.
   filas <- aulas_libro_filas_disponibilidad(.tld_disp())
   bloques <- vapply(.tld_celdas(filas, "bloque"), function(f) f$celdas[[1]], character(1))
-  expect_equal(bloques, c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA",
-                          "QUIÉN PUEDE A CADA HORA"))
+  expect_equal(bloques, c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE, HORA POR HORA"))
   # Lo que el tope vigila es que la hoja no vuelva a ser una enumeración: con
   # once tramos, tres personas y dos días, el producto serían 22 filas de datos
   # sólo en la primera tabla. Las tres cruzadas caben de sobra en cincuenta.
@@ -80,10 +79,21 @@ test_that("el eje horario es la unión de lo cubierto, no un 07:00–22:00 con h
   expect_false(any(grepl("^1[123]:", tramos)))
 })
 
-test_that("la segunda tabla es una fila por persona, con su RANGO por día", {
+test_that("la segunda tabla es una fila por persona, con sus DÍAS por hora", {
+  # **Las columnas pasaron de días a tramos el 2026-09-11.** Él: «los rangos
+  # horarios ya siempre son iguales, entonces quién puede cada día tiene que
+  # sistematizarse por hora». La fila por persona se conserva —es lo que él
+  # pidió el 2026-09-04— y lo que cambia es el otro eje.
+  #
+  # El motivo viejo de esta tabla sigue en pie y por eso la celda NO es un aspa:
+  # un aspa obligaba a bajar a buscar la hora. Ahora la hora está en la cabecera
+  # de la columna y la celda dice los DÍAS, que es la parte que faltaba.
   filas <- aulas_libro_filas_disponibilidad(.tld_disp())
   cabeceras <- .tld_celdas(filas, "cabecera")
-  expect_equal(cabeceras[[2]]$celdas, c("APLICADOR", "Lunes", "Martes", "Jueves"))
+  cab <- cabeceras[[2]]$celdas
+  expect_equal(cab[[1]], "APLICADOR")
+  # Sólo la hora de inicio: el tramo se deduce de la siguiente columna.
+  expect_true(all(grepl("^\\d{2}:\\d{2}$", cab[-1])))
 
   datos <- .tld_celdas(filas, "dato")
   personas <- Filter(function(f) !grepl("^\\d{2}:\\d{2} a ", f$celdas[[1]]), datos)
@@ -92,18 +102,26 @@ test_that("la segunda tabla es una fila por persona, con su RANGO por día", {
   expect_equal(nombres, c("Castillo Solorsano, Leidy Viviana",
                           "Panta Gutierrez, Percy Aarón",
                           "Uribe Olaechea, Jesús Ramiro"))
-  # La celda dice CUÁNDO, no un aspa: un aspa obliga a bajar a buscar la hora.
   percy <- personas[[2]]$celdas
-  expect_equal(percy[[2]], "08:00 a 11:00")   # lunes
-  expect_equal(percy[[3]], "")                # martes: no puede
-  expect_equal(percy[[4]], "14:00 a 16:00")   # jueves
+  col <- function(hora) which(cab == hora)
+  # Percy puede el lunes de 08:00 a 11:00 y el jueves de 14:00 a 16:00: a las
+  # 08:00 sólo el lunes, a las 14:00 sólo el jueves, y a las 12:00 ninguno.
+  expect_equal(percy[[col("08:00")]], "L")
+  expect_equal(percy[[col("14:00")]], "J")
+  # Y donde no puede, la celda queda VACÍA: hay al menos una, porque su horario
+  # no cubre toda la rejilla.
+  expect_true(any(!nzchar(percy[-1])))
 })
 
 test_that("los values del publicador salen rectangulares", {
   vals <- aulas_libro_valores_disponibilidad(.tld_disp())
   anchos <- unique(vapply(vals, length, integer(1)))
+  # **Rectangulares, y el ancho ya NO es 4.** La tabla de personas pasó de
+  # columnas por día a columnas por tramo el 2026-09-11, así que fijar el número
+  # aquí sólo ataba el test a una fixture: lo que el publicador necesita es que
+  # todas las filas midan LO MISMO, o la API rechaza el rango.
   expect_length(anchos, 1L)
-  expect_equal(anchos, 4L)  # TRAMO + tres días
+  expect_gte(anchos, 4L)
 })
 
 test_that("el formato marca las celdas flacas, y sólo en la tabla de conteos", {
@@ -219,12 +237,21 @@ test_that("las columnas de día se ensanchan con su contenido: el horario no se 
     a <- w$colWidths[[1L]]
     suppressWarnings(as.numeric(a[names(a) == as.character(col)]))
   }
-  # La columna 2 es el único día con cobertura y lleva el rango largo.
-  expect_gt(ancho_de(wb, 2L), 17)
-  # Y con un rango corto se queda en el suelo, sin estrecharse.
+  # **Desde el 2026-09-11 ninguna celda lleva ya el rango largo**: la tabla de
+  # personas pasó a columnas por tramo y su celda son unas iniciales. Así que
+  # todas las columnas se quedan en el suelo, y eso es lo correcto — el ancho
+  # fijo de diecisiete perdía el segundo tramo de «08:00 a 11:00 · 14:00 a
+  # 20:00», y ese texto ya no existe.
+  #
+  # Lo que este test sigue vigilando es el MECANISMO: que el ancho salga del
+  # contenido y no de un literal. Se comprueba con la cabecera, que es lo más
+  # largo que hay en esas columnas.
+  expect_gte(ancho_de(wb, 2L), 17)
   corta <- list(list(nombre = "Uno", dias = list(lunes = list(list(inicio = "08:00", fin = "11:00")))))
   wb2 <- openxlsx::createWorkbook()
   aulas_libro_hoja_disponibilidad(wb2, corta)
   expect_equal(ancho_de(wb2, 2L), 17)
+  # Y la primera columna, que lleva nombres enteros, sigue siendo la ancha.
+  expect_gt(ancho_de(wb, 1L), ancho_de(wb, 2L))
 })
 

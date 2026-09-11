@@ -28,6 +28,15 @@
 
 .ald_DIAS <- c("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
 
+# **Los títulos de los dos bloques viven AQUÍ y no repartidos en literales.**
+# Estaban escritos a mano en tres sitios —el constructor y dos detectores de
+# tabla— y al renombrar el segundo («QUIÉN PUEDE CADA DÍA» pasó a «QUIÉN PUEDE,
+# HORA POR HORA» el 2026-09-11) los detectores dejaron de reconocerlo: la tabla
+# perdió su color y su ancho sin que nada fallara. Un rótulo que gobierna
+# conducta se declara una vez.
+.ALD_TITULO_CONTEOS <- "CUÁNTOS HAY, HORA POR HORA"
+.ALD_TITULO_PERSONAS <- "QUIÉN PUEDE, HORA POR HORA"
+
 # La palabra bien escrita, que es la que va a la hoja. La clave del motor viene
 # sin tilde («miercoles») porque es un identificador, no un rótulo.
 .ald_ETIQUETA_DIA <- c(
@@ -101,7 +110,7 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
   poner("nota", "")
 
   # --- tabla 1: cuántos hay, hora por hora -----------------------------------
-  poner("bloque", "CUÁNTOS HAY, HORA POR HORA")
+  poner("bloque", .ALD_TITULO_CONTEOS)
   poner("nota", "Un tramo en 0 o en 1 es donde el día se cae si alguien falla: ahí hace falta reclutar.")
   poner("cabecera", c("TRAMO", cabecera_dias))
 
@@ -123,66 +132,59 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
   }
   poner("nota", "")
 
-  # --- tabla 2: quién puede cada día ------------------------------------------
+  # --- tabla 2: quién puede, HORA POR HORA -----------------------------------
   #
-  # La celda es el RANGO de la persona ese día, no un aspa: «08:00 a 11:00» dice
-  # cuándo llamarla y un aspa obliga a bajar a la tabla de arriba a buscarlo.
-  rangos <- .ald_rangos_por_persona(cruda, por_dia, claves)
-  if (length(rangos)) {
-    poner("bloque", "QUIÉN PUEDE CADA DÍA")
-    poner("cabecera", c("APLICADOR", cabecera_dias))
-    for (nombre in names(rangos)) {
-      poner("dato", c(nombre, unname(rangos[[nombre]][claves])))
-    }
-  }
-  poner("nota", "")
-
-  # --- tabla 3: quién puede a cada hora ---------------------------------------
-  #
-  # **El tercer cruce de los mismos tres ejes, y el que faltaba.** Hora × día da
-  # el conteo y persona × día da el rango; para saber QUIÉN puede el miércoles a
-  # las 15:30 había que leer treinta y un rangos de texto y cruzarlos de cabeza.
+  # **Una fila por persona, como antes; las columnas pasan de DÍAS a TRAMOS.**
   #
   # Gonzalo, 2026-09-11: «los rangos horarios ya siempre son iguales, entonces
-  # quién puede cada día tiene que sistematizarse por hora». Y ahí está la
-  # clave: como los tramos se repiten, la disponibilidad de una persona a una
-  # hora es un SUBCONJUNTO DE DÍAS, que cabe en seis letras. Por eso esta tabla
-  # es una cuadrícula y no una lista de nombres: una celda con dieciséis nombres
-  # es justo lo que él llamó críptico.
+  # quién puede cada día tiene que sistematizarse por hora, no sólo lunes, no
+  # sólo martes… y todo tiene que estar muy conciso y muy bien elaborado». «Quién
+  # puede cada día» era el título de esta tabla: no pidió una tercera, pidió que
+  # ÉSTA se ordenara por hora.
   #
-  # Se lee en los dos sentidos: la FILA dice quién puede a esa hora y qué días;
-  # la COLUMNA, cuándo puede esa persona.
+  # La celda era el rango escrito —«08:00 a 11:00 · 15:00 a 18:00»— y para saber
+  # quién cubre el miércoles a las 15:30 había que leer treinta y un rangos y
+  # cruzarlos de cabeza. Ahora la celda son los DÍAS en que esa persona puede a
+  # esa hora, en iniciales: como los tramos se repiten, esa respuesta cabe en
+  # seis letras. El rango no se pierde —se lee corrido en la fila— y a cambio la
+  # columna contesta de golpe a quién llamar para un aula de esa hora.
+  #
+  # Y encaja con la tabla de arriba: las dos quieren columnas ESTRECHAS (un
+  # conteo de dos cifras, unas iniciales), mientras que los rangos de texto
+  # pedían columnas anchas que dejaban la hoja en cuatro mil píxeles.
   personas <- sort(unique(unlist(lapply(claves, function(k) {
     unlist(lapply(por_dia[[k]][["franjas"]] %||% list(), function(f) {
       vapply(f[["nombres"]] %||% list(), function(n) aulas_nombre_aplicador(n), character(1))
     }), use.names = FALSE)
   }), use.names = FALSE)), method = "radix")
   if (length(personas) && length(tramos)) {
-    poner("bloque", "QUIÉN PUEDE A CADA HORA")
-    poner("nota", paste(
-      "La celda son los días en que esa persona puede a esa hora. La fila dice",
-      "a quién llamar para un aula de esa hora; la columna, cuándo puede cada quien."
-    ))
-    poner("cabecera", c("TRAMO", personas))
-    for (t in tramos) {
-      # Para cada persona, las INICIALES de los días en que cubre este tramo, en
-      # el orden de la semana y no en el de aparición.
-      celdas <- vapply(personas, function(p) {
-        dias <- character(0)
-        for (i in seq_along(claves)) {
-          k <- claves[[i]]
-          for (f in (por_dia[[k]][["franjas"]] %||% list())) {
-            tr <- sprintf("%s a %s", .ald_txt(f[["inicio"]]), .ald_txt(f[["fin"]]))
-            if (!identical(tr, t)) next
-            nombres <- vapply(f[["nombres"]] %||% list(),
-                              function(n) aulas_nombre_aplicador(n), character(1))
-            if (p %in% nombres) dias <- c(dias, .ald_inicial_de_dia(k))
-            break
-          }
+    # Persona → tramo → días, de una sola pasada por las franjas.
+    cubre <- list()
+    for (i in seq_along(claves)) {
+      k <- claves[[i]]
+      inicial <- .ald_inicial_de_dia(k)
+      for (f in (por_dia[[k]][["franjas"]] %||% list())) {
+        tr <- sprintf("%s a %s", .ald_txt(f[["inicio"]]), .ald_txt(f[["fin"]]))
+        for (n in (f[["nombres"]] %||% list())) {
+          quien <- aulas_nombre_aplicador(n)
+          if (is.null(cubre[[quien]])) cubre[[quien]] <- list()
+          cubre[[quien]][[tr]] <- c(cubre[[quien]][[tr]] %||% character(0), inicial)
         }
-        paste(dias, collapse = "")
-      }, character(1))
-      poner("dato", c(t, unname(celdas)))
+      }
+    }
+    poner("bloque", .ALD_TITULO_PERSONAS)
+    poner("nota", paste(
+      "La celda son los días en que esa persona puede a esa hora (L M X J V S).",
+      "La fila dice la semana de cada quien; la columna, a quién llamar para un",
+      "aula de esa hora."
+    ))
+    # Sólo la hora de INICIO en la cabecera: «08:00 a 08:30» en veintiocho
+    # columnas estrechas no se lee, y el tramo se deduce del siguiente.
+    poner("cabecera", c("APLICADOR", vapply(tramos, function(t) substr(t, 1L, 5L), character(1))))
+    for (quien in personas) {
+      poner("dato", c(quien, vapply(tramos, function(t) {
+        paste(cubre[[quien]][[t]] %||% character(0), collapse = "")
+      }, character(1))))
     }
   }
 
@@ -323,7 +325,7 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
   for (i in seq_along(filas)) {
     f <- filas[[i]]
     if (identical(f$tipo, "bloque")) {
-      en_conteos <- identical(f$celdas[[1]], "CUÁNTOS HAY, HORA POR HORA")
+      en_conteos <- identical(f$celdas[[1]], .ALD_TITULO_CONTEOS)
       next
     }
     if (!en_conteos || !identical(f$tipo, "dato")) next
@@ -348,7 +350,7 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
   for (i in seq_along(filas)) {
     f <- filas[[i]]
     if (identical(f$tipo, "bloque")) {
-      en_personas <- identical(f$celdas[[1]], "QUIÉN PUEDE CADA DÍA")
+      en_personas <- identical(f$celdas[[1]], .ALD_TITULO_PERSONAS)
       next
     }
     if (!en_personas || !identical(f$tipo, "dato")) next
@@ -471,9 +473,9 @@ aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
     if (identical(primera, "DISPONIBILIDAD DE APLICADORES")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
       poner(.maaf_alto_fila(sheet_id, i, 36L))
-    } else if (primera %in% c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA")) {
-      en_conteos <- identical(primera, "CUÁNTOS HAY, HORA POR HORA")
-      en_personas <- identical(primera, "QUIÉN PUEDE CADA DÍA")
+    } else if (primera %in% c(.ALD_TITULO_CONTEOS, .ALD_TITULO_PERSONAS)) {
+      en_conteos <- identical(primera, .ALD_TITULO_CONTEOS)
+      en_personas <- identical(primera, .ALD_TITULO_PERSONAS)
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
       poner(.maaf_alto_fila(sheet_id, i, 28L))
     } else if (primera %in% c("TRAMO", "APLICADOR")) {
