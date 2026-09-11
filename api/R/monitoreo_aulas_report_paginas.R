@@ -199,16 +199,16 @@
   if (is.finite(ritmo$meta %||% NA_real_)) metas <- c(metas, stats::setNames(ritmo$meta, "Muestra"))
   etiquetas <- .marp_etiquetas_de_dia(serie)
 
-  pulso_pdf_serie_diaria(x0, 0.225, ancho - 0.045, 0.545,
-                         dias = etiquetas, diarias = serie$efectivas,
-                         acumulado = serie$acumulado, metas = metas,
-                         tokens = tok, ty = ty, geo = geo)
+  # Las dos cajas se rotulan cada una en su sitio: como llevan una sola serie,
+  # no hay nada que distinguir dentro y la leyenda al pie sobraba.
+  pulso_pdf_serie_partida(x0 + 0.030, 0.215, ancho - 0.030, 0.575,
+                          dias = etiquetas, diarias = serie$efectivas,
+                          acumulado = serie$acumulado, metas = metas,
+                          tokens = tok, ty = ty, geo = geo,
+                          rotulo_acumulado = "Acumulado del campo",
+                          rotulo_diario = "Encuestas efectivas por jornada")
 
-  pulso_pdf_leyenda(x0, 0.150, list(
-    list(texto = "Encuestas efectivas del día", color = tok$navy, forma = "barra"),
-    list(texto = "Acumulado del campo", color = tok$success, forma = "linea"),
-    list(texto = "Muestra del diseño", color = tok$danger, forma = "linea", lty = 2)
-  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho)
+
 
   pico <- which.max(serie$efectivas)
   # La etiqueta del eje lleva un salto de línea dentro («09/09\nmié»): en una
