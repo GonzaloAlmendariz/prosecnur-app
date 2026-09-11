@@ -43,9 +43,7 @@ modelo_de_prueba <- function(n_facultades = 3L, dias = 3L, sobremuestra = TRUE) 
                  faltan_sobremuestra = if (sobremuestra) 110 * n_facultades else NA_real_),
     portada_defecto = list(titulo = "Avance", subtitulo = "", cliente = "",
                            periodo = "Del 07 al 09 de septiembre de 2026",
-                           corte = "09 de septiembre de 2026", nota = ""),
-    criterio = list(denominador = "la cuota", numerador = "las respuestas",
-                    no_cubre = if (sobremuestra) "La sobremuestra se reparte." else "")
+                           corte = "09 de septiembre de 2026", nota = "")
   )
 }
 

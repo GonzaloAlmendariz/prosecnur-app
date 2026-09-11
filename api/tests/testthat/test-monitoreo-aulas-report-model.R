@@ -84,14 +84,24 @@ test_that("los faltantes del total se SUMAN por facultad, no se netean", {
   expect_equal(m$total$facultades_abiertas, 1)
 })
 
-test_that("declara contra qué se midió y qué no cubre", {
+test_that("el modelo no carga prosa que ya no imprime nadie", {
+  # **Contrato anterior, retirado el 2026-09-11.** El modelo llevaba un bloque
+  # `criterio` con tres frases —qué cuenta como efectiva, contra qué se mide, qué
+  # pasa con la sobremuestra— que se imprimían al pie de la última tabla y luego
+  # en una página de cierre. Gonzalo retiró esa página («esta hoja no es
+  # necesaria») y con ella el último sitio donde esas frases se veían.
+  #
+  # Se comprueba su AUSENCIA y no simplemente se borra el test, porque el modelo
+  # es lo que viaja al worker del job: texto que nadie imprime ahí no es
+  # inofensivo, es una invitación a que el próximo renderizador lo saque «ya que
+  # está» y reaparezca la sobreexplicación que él viene podando.
   plan <- list(.marm_aula("A1", "FAC1", "CH 1"))
   m <- build_monitoreo_aulas_report_model(.marm_snap(rep("A1", 5)), .marm_cfg(plan))
-  expect_match(m$criterio$denominador, "cuota")
-  expect_match(m$criterio$numerador, "plataforma")
-  # La sobremuestra no viaja a Monitoreo y el documento lo dice en vez de
-  # dejar creer que la compara.
-  expect_match(m$criterio$no_cubre, "sobremuestra")
+  expect_null(m$criterio)
+
+  # Lo que sí viaja son cifras y los defectos de portada, que son datos.
+  expect_true(is.list(m$total))
+  expect_true(is.list(m$portada_defecto))
 })
 
 test_that("las aulas aplicadas viajan; las del plan ya no: Gonzalo cerró la pregunta", {

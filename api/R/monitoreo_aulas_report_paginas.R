@@ -188,9 +188,7 @@
                     y = y_top - 0.022, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
-  grid::grid.text(pulso_pdf_versalitas(ind), x = x0, y = y_top - 0.022,
-                  just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
+
   pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = pesos$columna)
 
   proporciones <- AULAS_AVANCE_PROPORCIONES$general %||% character(0)
@@ -238,7 +236,7 @@
                           dias = etiquetas, diarias = serie$efectivas,
                           acumulado = serie$acumulado, metas = metas,
                           tokens = tok, ty = ty, geo = geo,
-                          rotulo_acumulado = "Acumulado del campo",
+                          rotulo_acumulado = "Acumulado",
                           rotulo_diario = "Encuestas efectivas por jornada")
 
 
@@ -608,7 +606,7 @@
 # poder leerla sola.
 
 .marp_tabla_detalle <- function(df, filas, columnas, tok, ty, x0,
-                                y_tabla, alto_fila, criterio = NULL) {
+                                y_tabla, alto_fila) {
   pesos <- pulso_pdf_pesos()
   anchos <- vapply(columnas, function(c) c$w, numeric(1))
   xs <- cumsum(c(x0, anchos))
@@ -675,16 +673,6 @@
     y <- y - alto_fila
   }
 
-  if (!is.null(criterio)) {
-    # ENVUELTO, no `grid.text`: es una frase larga y sin envoltura se salía por
-    # el borde derecho —«…que el diseño fijó por fa»—.
-    .form_pdf_text(
-      paste0("Se cuentan ", criterio$numerador, " contra ", criterio$denominador,
-             ". ", criterio$no_cubre),
-      x = x0, y = max(0.095, y - 0.014), w = ancho_total,
-      chars = pulso_pdf_chars(ancho_total), fontsize = ty$caption,
-      col = tok$faint, line_h = 0.020)
-  }
   invisible(NULL)
 }
 

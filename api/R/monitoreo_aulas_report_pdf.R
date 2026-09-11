@@ -136,17 +136,6 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
       # 2026-09-08: «dos metas, la de 2 500 y la de 3 750»).
       sobremuestra = if (sobremuestra > 0) sobremuestra else NA_real_,
       faltan_sobremuestra = if (sobremuestra > 0) suma("Faltantes sobremuestra") else NA_real_
-    ),
-    # La procedencia viaja con el documento: quien lo reciba tiene que poder
-    # saber contra qué se midió sin preguntar.
-    criterio = list(
-      denominador = "la cuota de alumnos que el diseño fijó por facultad",
-      numerador = "las respuestas que llegaron a la plataforma y pasaron los filtros del estudio",
-      no_cubre = if (sobremuestra > 0) {
-        "La sobremuestra se reparte por facultad y por sexo con el ratio del diseño, y su columna de faltantes se mide contra ella."
-      } else {
-        "El estudio no publica la sobremuestra, así que sus columnas van en blanco."
-      }
     )
   )
 }
@@ -261,7 +250,9 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   detalle <- function(meta) {
     prefijo <- if (identical(meta, "muestra")) "Muestra" else "Sobremuestra"
     sufijo <- if (identical(meta, "muestra")) "muestra" else "sobremuestra"
-    grupo <- paste(prefijo, "y lo que le falta")
+    # La banda nombra el bloque y nada más: decía «Muestra y lo que le falta»,
+    # y «lo que le falta» es exactamente lo que la columna FALTAN dice debajo.
+    grupo <- prefijo
     c(comunes_izq, list(
       col(prefijo, "Meta", grupo),
       col(paste("Faltantes", sufijo), "Faltan", grupo),
