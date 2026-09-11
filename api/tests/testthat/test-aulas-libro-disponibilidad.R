@@ -30,13 +30,27 @@ test_that("sin oferta cargada no hay hoja: una vacía diría «nadie tiene horar
   expect_null(aulas_libro_valores_disponibilidad(list()))
 })
 
-test_that("son DOS tablas, no una lista larga", {
+test_that("son TABLAS CRUZADAS, no una lista larga", {
+  # **Tres desde el 2026-09-11, y el contrato no era «dos»: era que ninguna
+  # tabla enumere el producto hora × día.** Ésa fue su queja del 2026-09-04
+  # —«tenemos que asegurarnos de que el Excel no sea críptico»— cuando la hoja
+  # bajaba tramo por tramo, día tras día, en más de doscientas filas.
+  #
+  # El tercer cruce lo pidió él: «los rangos horarios ya siempre son iguales,
+  # entonces quién puede cada día tiene que sistematizarse por hora». Es hora ×
+  # persona con los días en la celda, y añade UNA fila por tramo, no seis.
   filas <- aulas_libro_filas_disponibilidad(.tld_disp())
   bloques <- vapply(.tld_celdas(filas, "bloque"), function(f) f$celdas[[1]], character(1))
-  expect_equal(bloques, c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA"))
-  # Once tramos y tres personas caben en menos de treinta filas; la versión de
-  # una sola lista gastaba más de cincuenta para lo mismo.
-  expect_lt(length(filas), 30L)
+  expect_equal(bloques, c("CUÁNTOS HAY, HORA POR HORA", "QUIÉN PUEDE CADA DÍA",
+                          "QUIÉN PUEDE A CADA HORA"))
+  # Lo que el tope vigila es que la hoja no vuelva a ser una enumeración: con
+  # once tramos, tres personas y dos días, el producto serían 22 filas de datos
+  # sólo en la primera tabla. Las tres cruzadas caben de sobra en cincuenta.
+  expect_lt(length(filas), 50L)
+  # Y ninguna tabla de datos pasa del número de TRAMOS: si alguna los multiplica
+  # por los días, volvió la lista.
+  datos <- length(.tld_celdas(filas, "dato"))
+  expect_lt(datos, 11L * 2L + length(.tld_celdas(filas, "cabecera")) * 3L)
 })
 
 test_that("la primera tabla cruza HORA por DÍA, con el conteo en la celda", {
