@@ -283,7 +283,12 @@
 #' @keywords internal
 .marp_rejilla_de_paneles <- function(n) {
   n <- max(0L, as.integer(n))
-  columnas <- if (n <= 2L) max(1L, n) else if (n <= 4L) 2L else 3L
+  # **Dos columnas, no tres.** Cada panel lleva ahora el gráfico doble —caja del
+  # acumulado, caja de las barras y el eje de fechas—, y en un tercio de ancho
+  # esas tres bandas se aplastan. A la mitad respiran, a costa de más hojas, que
+  # es el cambio que él autorizó: «no importa usar más página con tal de que se
+  # vea bien».
+  columnas <- if (n <= 1L) 1L else 2L
   cabida <- columnas * 2L
   # **Reparto parejo, como en las tablas.** Catorce facultades a seis por hoja
   # daban 6+6+2, y la última salía con dos paneles arriba a la izquierda y media
@@ -317,7 +322,7 @@
   w <- (ancho - hueco_x * (columnas - 1L)) / columnas
   filas <- max(1L, ceiling(length(paneles) / columnas))
   disponible <- techo - suelo - .AIRE_ENTRE_FILAS * (filas - 1L)
-  h <- min(0.420, disponible / filas - .BANDA_ROTULO - .BANDA_FECHAS)
+  h <- min(0.330, disponible / filas - .BANDA_ROTULO - .BANDA_FECHAS)
   h <- max(h, 0.120)
   paso_fila <- h + .BANDA_ROTULO + .BANDA_FECHAS + .AIRE_ENTRE_FILAS
   y_primera <- techo - .BANDA_ROTULO - h
@@ -344,14 +349,17 @@
       x = px, y = py + h + 0.012, just = c("left", "bottom"),
       gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
 
-    # Una sola meta por panel: la de la muestra. La sobremuestra se lee en las
-    # tarjetas y en las tablas, no aquí.
+    # **El mismo gráfico doble que «Ritmo del campo», en el espacio de cada
+    # facultad** (Gonzalo, 2026-09-11). Acumulado contra su meta arriba, barras
+    # de cada jornada abajo y un solo eje de fechas: esta página deja de ser una
+    # variante del gráfico general y pasa a ser el mismo gráfico, repetido. Lo
+    # que cambia de un panel a otro es la escala, no la forma.
     metas <- if (is.finite(meta) && meta > 0) stats::setNames(meta, "") else numeric(0)
-    pulso_pdf_serie_diaria(px, py, w, h,
-                           dias = .marp_etiquetas_de_dia(p$serie),
-                           diarias = p$serie$efectivas, acumulado = p$serie$acumulado,
-                           metas = metas, tokens = tok, ty = ty, geo = geo,
-                           compacto = TRUE)
+    pulso_pdf_serie_partida(px, py, w, h,
+                            dias = .marp_etiquetas_de_dia(p$serie),
+                            diarias = p$serie$efectivas,
+                            acumulado = p$serie$acumulado, metas = metas,
+                            tokens = tok, ty = ty, geo = geo, compacto = TRUE)
   }
   invisible(NULL)
 }
@@ -450,7 +458,7 @@
     list(texto = "Hombres", color = tok$sexo_h, forma = "barra"),
     list(texto = "Mujeres", color = tok$sexo_m, forma = "barra"),
     list(texto = "Cuota del diseño", color = tok$faint, forma = "contorno")
-  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho)
+  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho, fontsize = ty$body)
   invisible(NULL)
 }
 

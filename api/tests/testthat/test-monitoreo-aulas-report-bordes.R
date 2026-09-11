@@ -86,59 +86,34 @@ test_that("sin sobremuestra el detalle es UNA hoja y no dos", {
 })
 
 test_that("la rejilla de paneles se adapta al numero de facultades", {
-  # Con la rejilla fija de tres columnas, un estudio de dos facultades dibujaba
-  # dos paneles pequenos arriba a la izquierda y dejaba el 80 % de la hoja en
-  # blanco: la superficie tiene que contener su propio vacio.
+  # Con la rejilla fija, un estudio de dos facultades dibujaba dos paneles
+  # pequenos arriba a la izquierda y dejaba el 80 % de la hoja en blanco: la
+  # superficie tiene que contener su propio vacio.
+  #
+  # **Dos columnas como maximo, desde el 2026-09-11.** Cada panel lleva el mismo
+  # grafico doble que «Ritmo del campo» —caja del acumulado, caja de las barras y
+  # el eje de fechas—, y en un tercio de ancho esas tres bandas se aplastan. El
+  # contrato anterior permitia tres.
   r <- function(n) prosecnurapp:::.marp_rejilla_de_paneles(n)
   expect_equal(r(1L)$columnas, 1L)
   expect_equal(r(2L)$columnas, 2L)
-  expect_equal(r(4L)$columnas, 2L)
-  expect_equal(r(5L)$columnas, 3L)
-  expect_equal(r(14L)$columnas, 3L)
+  expect_equal(r(5L)$columnas, 2L)
+  expect_equal(r(14L)$columnas, 2L)
   # Nunca cero columnas ni cero paneles por hoja, con cualquier entrada.
   for (n in 0:20) {
     expect_gte(r(n)$columnas, 1L)
+    expect_lte(r(n)$columnas, 2L)
     expect_gte(r(n)$por_hoja, 1L)
   }
 })
 
-test_that("el reparto de filas prefiere una hoja llena a dos medio vacias", {
-  r <- prosecnurapp:::.marp_reparto_de_filas
-  # Quince filas que caben apretando el renglon caben: una sola hoja. Es el caso
-  # que fallaba —salian dos hojas de ocho y siete con media pagina en blanco en
-  # cada una— porque la regla estaba escrita dos veces y una copia se habia
-  # quedado sin esta mitad.
-  uno <- r(15L, arriba = 0.763, abajo = 0.115, alto_max = 0.046, alto_min = 0.036)
-  expect_equal(uno$hojas, 1L)
-  expect_equal(uno$por_hoja, 15L)
-  expect_lte(uno$alto, 0.046)
-  expect_gte(uno$alto, 0.036)
-
-  # Lo que de verdad no cabe se reparte PAREJO, no llenando la primera.
-  muchas <- r(40L, arriba = 0.763, abajo = 0.115, alto_max = 0.046, alto_min = 0.036)
-  expect_gt(muchas$hojas, 1L)
-  expect_lte(abs(muchas$por_hoja * muchas$hojas - 40L), muchas$hojas)
-  expect_equal(muchas$alto, 0.046)  # ya no se aprieta: no serviria de nada
-
-  # Nunca cero filas por hoja, con cualquier n.
-  for (n in c(1L, 2L, 7L, 13L, 25L, 60L)) {
-    out <- r(n, arriba = 0.763, abajo = 0.115, alto_max = 0.046, alto_min = 0.036)
-    expect_gte(out$por_hoja, 1L)
-    expect_gte(out$hojas, 1L)
-    expect_gte(out$por_hoja * out$hojas, n)
-  }
-  # Y tampoco con un area de tabla absurda.
-  degenerado <- r(10L, arriba = 0.2, abajo = 0.3, alto_max = 0.046, alto_min = 0.036)
-  expect_gte(degenerado$por_hoja, 1L)
-})
-
 test_that("las hojas de paneles se reparten parejas y ninguna queda coja", {
   r <- prosecnurapp:::.marp_rejilla_de_paneles
-  # Catorce facultades daban 6+6+2: la ultima hoja con dos paneles arriba a la
-  # izquierda y media pagina en blanco.
+  # Catorce facultades a cuatro por hoja darian 4+4+4+2: la ultima con dos
+  # paneles y media pagina en blanco. Repartidas, cuatro hojas parejas.
   catorce <- r(14L)
-  expect_equal(catorce$hojas, 3L)
-  expect_equal(catorce$por_hoja, 5L)
+  expect_equal(catorce$hojas, 4L)
+  expect_equal(catorce$por_hoja, 4L)
   # Ninguna hoja se pasa de su cabida (columnas x 2 filas).
   for (n in 1:40) {
     out <- r(n)
