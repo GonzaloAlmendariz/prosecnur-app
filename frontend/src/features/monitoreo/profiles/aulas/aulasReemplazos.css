@@ -66,7 +66,7 @@
    * interior son 392 y la fila de tres solapas —«Su cadena», «Reservas al aire»,
    * «Bolson extra», con sus contadores— pide 422. Se salia 30 px.
    */
-  width: min(500px, 92vw);
+  width: min(760px, 94vw);
   /* `minmax(0, 1fr)` y no el `auto` implicito: un hijo de grid tampoco encoge
    * por debajo de su contenido minimo salvo que se le permita, asi que la
    * CABECERA se dimensionaba a su contenido —421 px dentro de una tarjeta cuyo
@@ -232,7 +232,6 @@
    de dos barras de color deja las barras sin contraste propio. */
 .aulas-reemplazo-item.es-mejor { border-color: var(--pulso-text-soft); background: var(--pulso-surface); }
 
-
 /* El carril de la barra: el relleno lo pinta cada medida con su color, y el
    fondo es el mismo gris de borde en las dos para que se comparen. */
 .aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
@@ -245,7 +244,6 @@
    necesita tinta de texto; el ambar se queda en el rotulo, que es corto y va en
    semibold, donde 3,71 con peso si se sostiene. */
 .aulas-reemplazo-concesiones span { color: #8a570d; font-weight: var(--pulso-weight-semibold); }
-
 
 .aulas-reemplazo-vacio { margin: 0; padding: 10px; border-radius: 9px; background: var(--pulso-surface-muted); color: var(--pulso-text-soft); font-size: var(--aulas-min); }
 
@@ -384,7 +382,7 @@
    es donde se decide. Tres candidatos se barren en vertical sin leer nada. */
 .aulas-reemplazo-fila {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 184px;
+  grid-template-columns: 26px minmax(0, 1.15fr) minmax(210px, 0.85fr) 184px;
   align-items: start;
   gap: 12px;
 }
@@ -438,26 +436,6 @@
 /* Lo que el candidato rinde: dos cifras que suman la tercera, en una línea.
    Va en texto y no en chip porque es la frase con la que se decide, no una
    seña del box; los chips de encima son la identidad, ésta es la consecuencia. */
-.aulas-reemplazo-rinde {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.45;
-}
-.aulas-reemplazo-rinde b { font-weight: 600; color: var(--pulso-text); }
-.aulas-reemplazo-rinde strong {
-  padding: 0 6px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
-  color: var(--module-accent, var(--pulso-primary));
-  font-weight: 700;
-}
-.aulas-reemplazo-rinde em {
-  display: block;
-  font-style: normal;
-  font-size: 10.5px;
-  color: var(--pulso-text-faint);
-}
 
 .aulas-reemplazo-concesiones {
   margin: 0;
@@ -552,4 +530,57 @@
   font-style: normal;
   font-size: var(--aulas-min);
   color: var(--pulso-text-faint);
+}
+
+/* Las tres varas de lo que un curso-horario puede dar: elegibles, lo que el
+   plan pidió y lo que dará al ritmo de hoy. Tabla y no prosa porque lo que se
+   hace con ellas es COMPARAR columnas —el sexo— y filas —la vara—, y en prosa
+   eso obliga a reconstruirlo de memoria en cada candidato. */
+.aulas-reemplazo-varas3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--aulas-min);
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-varas3 thead th {
+  padding: 0 6px 4px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+  text-align: right;
+}
+.aulas-reemplazo-varas3 thead th:first-child { text-align: left; }
+.aulas-reemplazo-varas3 tbody th {
+  padding: 3px 6px 3px 0;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+  text-align: left;
+  white-space: nowrap;
+}
+/* De dónde sale la tasa del pronóstico: medida sobre este curso-horario o
+   prestada de su facultad. No son lo mismo y la fila lo dice. */
+.aulas-reemplazo-varas3 tbody th em {
+  display: block;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+.aulas-reemplazo-varas3 td {
+  padding: 3px 6px;
+  text-align: right;
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-varas3 td b { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+/* El techo va apagado —es el marco, no la decisión— y el pronóstico destacado,
+   que es la cifra con la que se elige. */
+.aulas-reemplazo-varas3 .es-techo th,
+.aulas-reemplazo-varas3 .es-techo td { color: var(--pulso-text-faint); }
+.aulas-reemplazo-varas3 .es-ritmo th,
+.aulas-reemplazo-varas3 .es-ritmo td { color: var(--pulso-text); }
+.aulas-reemplazo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
+
+@media (max-width: 820px) {
+  .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
+  .aulas-reemplazo-varas3, .aulas-reemplazo-varas { grid-column: 2; }
 }

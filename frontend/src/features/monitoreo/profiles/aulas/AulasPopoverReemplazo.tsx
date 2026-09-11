@@ -11,6 +11,7 @@ import {
 } from "./candidatosDeReemplazo";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { composicionDelAula } from "./composicionDelAula";
+import { pronosticoDelAula } from "./pronosticoDelAula";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 
@@ -196,29 +197,65 @@ function Candidato({
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}
             {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
           </span>
-          {/* **Lo que este candidato RINDE, con los dos sexos.**
+          {/* **Las tres varas de lo que puede dar, en una tabla.**
 
-              Gonzalo, 2026-09-10: «sería muy bueno que en el popover no sólo te
-              muestre la cantidad de mujeres en los al aire, sino también la
-              cantidad de hombres y mujeres en todos los que te muestra». Con un
-              aula entran los dos y los dos mueven la cuota; enseñar sólo el
-              sexo que cierra la brecha deja la mitad de la decisión a ciegas.
+              Gonzalo, 2026-09-11: «le falta los hombres y mujeres elegibles y
+              los esperados en base a lo planeado y en base a lo obtenido hasta
+              ahora». Son tres cosas distintas y la tarjeta enseñaba una sola:
 
-              Se enseña lo ESPERADO —elegibles por la tasa de su aula—, que es
-              lo que de verdad va a llegar, y el total es la suma de las dos
-              cifras, nunca un tercer redondeo. */}
+              - **Elegibles** es el techo, el padrón entero.
+              - **Según el plan** es el compromiso del diseño, y no se mueve.
+              - **Al ritmo de hoy** es el pronóstico con la tasa que el campo
+                está consiguiendo de verdad, y cambia cada jornada.
+
+              Las dos últimas DISCREPAN, y esa discrepancia es la decisión: un
+              curso-horario cuyo plan pide 16 y al ritmo real dará 11 no es lo
+              mismo que uno cuyo plan pide 11 y dará 14. Con una sola cifra no
+              se sabía siquiera cuál de las dos se estaba usando. */}
           {(() => {
-            const r = repartoPorSexo(f);
-            if (!r.elegibles.total) return null;
+            const pr = pronosticoDelAula(f);
+            if (!pr.elegibles.total) return null;
+            const fila = (
+              rotulo: string,
+              v: { mujeres: number; hombres: number; total: number },
+              clase: string,
+              nota?: string,
+            ) => (
+              <tr className={clase}>
+                <th scope="row">
+                  {rotulo}
+                  {nota ? <em>{nota}</em> : null}
+                </th>
+                <td>{fmt(v.mujeres)}</td>
+                <td>{fmt(v.hombres)}</td>
+                <td><b>{fmt(v.total)}</b></td>
+              </tr>
+            );
             return (
-              <span className="aulas-reemplazo-rinde">
-                Rinde <b>{r.esperadas.mujeres}</b>{" "}
-                {r.esperadas.mujeres === 1 ? "mujer" : "mujeres"} y{" "}
-                <b>{r.esperadas.hombres}</b>{" "}
-                {r.esperadas.hombres === 1 ? "hombre" : "hombres"}
-                {" = "}<strong>{r.esperadas.total}</strong>
-                <em>de {fmt(r.elegibles.total)} elegibles al {pctPerfil(r.tasa * 100)}</em>
-              </span>
+              <table className="aulas-reemplazo-varas3">
+                <thead>
+                  <tr>
+                    <th scope="col" />
+                    <th scope="col">Mujeres</th>
+                    <th scope="col">Hombres</th>
+                    <th scope="col">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fila("Elegibles", pr.elegibles, "es-techo")}
+                  {pr.plan ? fila("Según el plan", pr.plan, "es-plan") : null}
+                  {fila(
+                    "Al ritmo de hoy",
+                    pr.ritmo,
+                    "es-ritmo",
+                    // De dónde sale la tasa, porque no es lo mismo medida sobre
+                    // este curso-horario que prestada de su facultad.
+                    pr.deDondeLaTasa === "aula" ? `${pctPerfil(pr.tasa * 100)} suyo`
+                      : pr.deDondeLaTasa === "facultad" ? `${pctPerfil(pr.tasa * 100)} de su facultad`
+                      : `${pctPerfil(pr.tasa * 100)} del perfil, sin medida propia`,
+                  )}
+                </tbody>
+              </table>
             );
           })()}
           {/* Lo que se concede al tomarlo. Vacío cuando es del mismo grupo: ahí
