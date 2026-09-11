@@ -67,6 +67,15 @@ export type AulaDelReparto = {
   /** Con cuál de las YA elegidas solapa, si con alguna. */
   solapaCon: string;
   traslape: TraslapeEntreElegidas;
+  /**
+   * **Traslape con lo YA APLICADO de su facultad**, en tanto por uno.
+   *
+   * De cada 100 alumnos convocados en esa facultad, cuántos estuvieron ya en un
+   * curso-horario aplicado. No es el traslape entre candidatas —ése es
+   * `traslape`— sino el de esta aula contra el campo que ya se hizo: cuanto más
+   * alto, más probable que sus elegibles ya hayan respondido y salgan repetidos.
+   */
+  traslapeAplicado: number;
 };
 
 export type FacultadDelReparto = {
@@ -197,6 +206,7 @@ export function repartoDelTecho(
       docenteYaContactado: cand.docenteYaContactado,
       solapaCon,
       traslape,
+      traslapeAplicado: Number(cand.exposicionDeLaFacultad) || 0,
     });
   }
 
