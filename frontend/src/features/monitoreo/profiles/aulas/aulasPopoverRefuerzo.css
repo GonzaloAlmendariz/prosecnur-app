@@ -297,3 +297,50 @@
   color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
 }
+
+/* **Las tres varas del candidato.**
+ *
+ * Estas once reglas se perdieron el 2026-09-11 al limpiar las de la forma
+ * vieja: el borrado automático buscaba `aulas-refuerzo-vara` como subcadena y
+ * `aulas-refuerzo-varas3` la contiene, así que se llevó la tabla entera. En
+ * pantalla se veía «Proyección actual50.5 % suyo» pegado y sin alinear, y
+ * Gonzalo lo leyó como lo que parecía: «parece que está roto».
+ *
+ * Un borrado por subcadena de selector se lleva a sus vecinos con prefijo
+ * común, y ninguna suite lo ve: el CSS no tiene quien lo compile. */
+.aulas-refuerzo-varas3 {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-refuerzo-varas3 thead th {
+  padding: 0 6px 3px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-weight: 400;
+  text-align: right;
+}
+.aulas-refuerzo-varas3 thead th:first-child { text-align: left; }
+.aulas-refuerzo-varas3 tbody th {
+  padding: 2px 6px 2px 0;
+  color: var(--pulso-text-soft);
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+}
+/* De dónde sale la tasa del pronóstico, en su propio renglón: pegada al rótulo
+   se leía «Proyección actual50.5 % suyo». */
+.aulas-refuerzo-varas3 tbody th em {
+  display: block;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 400;
+}
+.aulas-refuerzo-varas3 td { padding: 2px 6px; text-align: right; color: var(--pulso-text-soft); }
+.aulas-refuerzo-varas3 td b { color: var(--pulso-text); font-weight: 600; }
+.aulas-refuerzo-varas3 .es-techo th,
+.aulas-refuerzo-varas3 .es-techo td { color: var(--pulso-text-faint); }
+.aulas-refuerzo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
+.aulas-refuerzo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
