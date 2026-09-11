@@ -24,7 +24,7 @@ está, nunca teclearla.
 | 9 | **Brechas rediseñada**: franja de severidad, «rinde contra lo previsto de su facultad», botón por fila | ídem | ☑ y además lista sólo lo aplicado que rindió corto: los sin campo se cuentan, no se listan |
 | 10 | **Reemplazos rediseñada**: fila por cadena, titular a la izquierda, tira de eslabones con ancho mínimo, tres visibles y «+N por detrás», pastilla de desenlace | `AulasHistoriaCadena` | ☑ `0b56c532` — rejilla `218px \| tira`, 138 px por eslabón, filo por circunstancia |
 | 11 | **El mapa de la deuda**: un punto por facultad, hombres contra mujeres, cuadrantes, anti-colisión de etiquetas, clic que abre la facultad | Avance › Efectividad **y Consultas › Brechas** | ☑ `4dfcbe34` — con foco: la elegida se marca y las demás se apagan, nunca se van |
-| 12 | **El ranking de facultades**: deuda ordenada, barras por sexo desde el centro, veredicto en palabras | ídem | ☑ la serie de tres jornadas sigue bloqueada por dato |
+| 12 | **El ranking de facultades**: deuda ordenada, barras por sexo desde el centro, **serie de tres jornadas con su rumbo**, veredicto en palabras | ídem + `rumboDeLaFacultad.ts` | ☑ `6d3c9d31` — **el dato tampoco faltaba**: `serieDeRendimiento` ya daba los días; faltaba derivar la deuda acumulada |
 | 13 | **El porqué de una facultad**: sus cursos-horario y lo que dejó cada uno | ídem | ☑ el detalle da la frase y el consejo; la lista vive en la tabla de abajo para no contar lo mismo dos veces |
 | 14 | **El embudo del aula**: padrón → en el aula → respondieron → válidas, y qué escalón pesó más | `embudoDelAula.ts` + `AulasEmbudoDelAula` | ☑ `5fa9f16e` — **el dato SÍ estaba**: `observed_students` en 54 partes y `eligible_n` en el plan. La casilla decía «falta el dato» sin haberlo buscado |
 | 15 | **La matriz «qué sirve para qué»**: las tres procedencias × los tres casos | `AulasQueSirveParaQue`, al pie de Brechas | ☑ `553cc71e` — no es un cartel: cada procedencia trae cuántas hay hoy |
@@ -57,8 +57,15 @@ está, nunca teclearla.
   Medido en el payload vivo: CH 2 con 29 convocados y 22 en el aula. Lo que
   faltaba no era el dato, era cruzarlo por código. Declarar una ausencia sin
   haberla buscado costó esta casilla varios días.
-- **La serie por jornada (12).** Hoy la deuda por facultad se publica al corte,
-  no por día. Hace falta que el motor la reparta como ya hace
+- ~~**La serie por jornada (12).**~~ **Resuelta el 2026-09-11, y la casilla
+  también estaba mal.** `serieDeRendimiento` ya devolvía `dias` con elegibles,
+  efectivas y reparto por sexo; lo que faltaba era derivar la deuda acumulada
+  de cada jornada. **Dos de dos casillas «bloqueadas por dato» eran falsas** —
+  ver `feedback_una_casilla_bloqueada_se_reverifica`.
+
+  (Nota original, conservada para que se vea de dónde venía: hoy la deuda por
+  facultad se publica al corte, no por día. Hace falta que el motor la reparta
+  como ya hace
   `monitoreo_aulas_ritmo_por_facultad`.
 - **El plazo (5).** `alertaDeAnticipacion` ya calcula `pedirAntesDe`, pero vive
   en Resumen: hay que pasarlo al popover sin recalcularlo.
