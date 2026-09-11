@@ -26,12 +26,6 @@
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
-.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante {
-  fill: var(--pulso-text-faint);
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 .mon-profile-page.is-aulas-flow .aulas-mapa-punto { cursor: pointer; }
 .mon-profile-page.is-aulas-flow .aulas-mapa-punto text {
@@ -80,12 +74,19 @@
   fill: var(--pulso-success-fg);
   fill-opacity: 0.05;
 }
-.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante.es-debe { fill: var(--pulso-danger-fg); }
-.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante.es-bien { fill: var(--pulso-success-fg); }
 .mon-profile-page.is-aulas-flow .aulas-mapa-eje {
   fill: var(--pulso-text-faint);
   font-size: 10px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+}
+/* El lado que duele, con su tinta: la dirección del eje ES la lectura del
+   cuadrante, y en gris las dos mitades se leen igual. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-debe { fill: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-titulo {
+  fill: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
 }
 
 /* El foco del punto: un halo concéntrico en vez del anillo del navegador, que

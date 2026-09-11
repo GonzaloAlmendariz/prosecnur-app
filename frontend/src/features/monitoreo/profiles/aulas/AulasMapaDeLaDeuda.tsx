@@ -23,7 +23,7 @@ import "./aulasMapaDeLaDeuda.css";
  */
 const TOPE = 50;
 const AN = 560, AL = 430;
-const M = { arriba: 22, abajo: 54, izq: 58, der: 22 };
+const M = { arriba: 30, abajo: 62, izq: 74, der: 28 };
 const UTIL = { an: AN - M.izq - M.der, al: AL - M.arriba - M.abajo };
 const MARCAS = [-25, -5, 0, 5, 25];
 
@@ -207,28 +207,43 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad, enFoco = "" }: {
         {/* El marco del área, para que el gráfico tenga borde y no flote. */}
         <rect className="aulas-mapa-borde" x={M.izq} y={M.arriba} width={UTIL.an} height={UTIL.al} />
 
-        {/* Las cuatro esquinas, por dentro. Se leen en el orden del ojo: el
-            bueno arriba a la derecha, el malo abajo a la izquierda. */}
-        <text className="aulas-mapa-cuadrante" x={M.izq + 8} y={M.arriba + 15}>debe hombres</text>
-        <text className="aulas-mapa-cuadrante es-bien" x={M.izq + UTIL.an - 8} y={M.arriba + 15} textAnchor="end">
-          por encima en los dos
-        </text>
-        <text className="aulas-mapa-cuadrante es-debe" x={M.izq + 8} y={M.arriba + UTIL.al - 8}>
-          debe en los dos
-        </text>
-        <text className="aulas-mapa-cuadrante" x={M.izq + UTIL.an - 8} y={M.arriba + UTIL.al - 8} textAnchor="end">
-          debe mujeres
-        </text>
-
         {puntos}
 
-        {/* Los rótulos de eje, en su propio renglón bajo las marcas. */}
-        <text className="aulas-mapa-eje" x={M.izq + UTIL.an / 2} y={AL - 8} textAnchor="middle">
-          respuestas de más o de menos en HOMBRES
+        {/* **Los rótulos viven en los MÁRGENES, no dentro del área.**
+
+            Gonzalo, 2026-09-10: «el gráfico de coordenadas tiene muchos
+            márgenes a los lados […] hay cosas que están dentro de los ejes que
+            se topan con los puntos por una cuestión de límites. Para no quitar
+            espacio a los límites, muchas de las etiquetas pueden ir a los
+            bordes o a los márgenes de una forma bastante elegante, y así
+            asegurarnos que tampoco se vea completamente vacío en los márgenes».
+
+            Las dos mitades de cada eje ya son la lectura de los cuadrantes —a
+            la izquierda se debe, a la derecha sobra—, así que los cuatro
+            rótulos de cuadrante se sustituyen por dos ejes con dirección. El
+            texto sale del área, el margen deja de estar en blanco, y lo que
+            antes eran cuatro etiquetas compitiendo con las burbujas son ahora
+            dos renglones que nadie pisa. El cuadrante sigue distinguiéndose por
+            su tinte, que no ocupa sitio. */}
+        <text className="aulas-mapa-eje es-debe" x={M.izq} y={AL - 24}>← debe hombres</text>
+        <text className="aulas-mapa-eje" x={M.izq + UTIL.an} y={AL - 24} textAnchor="end">
+          va por encima →
         </text>
-        <text className="aulas-mapa-eje" x={15} y={M.arriba + UTIL.al / 2} textAnchor="middle"
-          transform={`rotate(-90 15 ${M.arriba + UTIL.al / 2})`}>
-          … y en MUJERES
+        <text className="aulas-mapa-eje es-titulo" x={M.izq + UTIL.an / 2} y={AL - 8} textAnchor="middle">
+          HOMBRES
+        </text>
+
+        <text className="aulas-mapa-eje es-debe" x={22} y={M.arriba + UTIL.al} textAnchor="start"
+          transform={`rotate(-90 22 ${M.arriba + UTIL.al})`}>
+          ← debe mujeres
+        </text>
+        <text className="aulas-mapa-eje" x={22} y={M.arriba} textAnchor="end"
+          transform={`rotate(-90 22 ${M.arriba})`}>
+          va por encima →
+        </text>
+        <text className="aulas-mapa-eje es-titulo" x={11} y={M.arriba + UTIL.al / 2} textAnchor="middle"
+          transform={`rotate(-90 11 ${M.arriba + UTIL.al / 2})`}>
+          MUJERES
         </text>
       </svg>
 
