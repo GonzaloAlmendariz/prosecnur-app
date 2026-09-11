@@ -105,9 +105,12 @@
   )
   if (!any(vapply(datos, function(d) is.finite(d$avance), logical(1)))) return(invisible(NULL))
 
-  pulso_pdf_rotulo_seccion(x0, y + 0.098, "Reparto por sexo",
-                           bajada = "Cada sexo tiene su propia cuota: cubrir de más en uno no cubre lo que falta en el otro.",
-                           tokens = tok, ty = ty, ancho = 0.058)
+  # Sin bajada. Decía «cada sexo tiene su propia cuota: cubrir de más en uno no
+  # cubre lo que falta en el otro», que es explicarle al cliente algo que sabe
+  # mejor que nadie: es su propio diseño muestral. Las dos barras y sus dos
+  # denominadores ya lo dicen sin una línea de texto.
+  pulso_pdf_rotulo_seccion(x0, y + 0.072, "Reparto por sexo", tokens = tok, ty = ty,
+                           ancho = 0.058)
   w <- (ancho - 0.040) / 2
   for (k in seq_along(datos)) {
     d <- datos[[k]]
@@ -133,10 +136,11 @@
   filas <- general[!(as.character(general[[ind]]) %in% "Aulas asignadas"), , drop = FALSE]
   if (!nrow(filas)) return(invisible(NULL))
 
-  pulso_pdf_rotulo_seccion(
-    x0, y_top + 0.058, "Avance general",
-    bajada = "Las mismas cifras de la hoja «Avance de campo» del libro del operativo.",
-    tokens = tok, ty = ty, ancho = 0.052)
+  # La procedencia —«las mismas cifras de la hoja Avance de campo del libro»— es
+  # una garantía INTERNA, para que tres superficies no puedan discrepar. Al
+  # cliente no le dice nada: él no ve el libro.
+  pulso_pdf_rotulo_seccion(x0, y_top + 0.044, "Avance general", tokens = tok, ty = ty,
+                           ancho = 0.052)
 
   w_rot <- 0.300
   w_col <- (ancho - w_rot) / 3
@@ -313,38 +317,58 @@
   meta_h <- col("Muestra hombres"); meta_m <- col("Muestra mujeres")
   ef_h <- col("Efectivas hombres"); ef_m <- col("Efectivas mujeres")
 
-  rejilla <- .ppd_eje_bonito(max(c(meta_h, meta_m, ef_h, ef_m, 1), na.rm = TRUE), pasos = 4L)
-  # Aire sobre el carril más alto: sin él, el porcentaje del carril que llega al
-  # techo se dibuja fuera de la caja y no aparece en el documento.
-  tope <- max(rejilla) * 1.10
-
   cortes <- if (n >= .MARP_UMBRAL_DOS_FILAS) {
     mitad <- ceiling(n / 2)
     list(seq_len(mitad), seq.int(mitad + 1L, n))
   } else list(seq_len(n))
 
-  alto_fila <- if (length(cortes) == 2L) 0.255 else 0.520
-  y_fila <- if (length(cortes) == 2L) c(0.455, 0.135) else 0.190
+  # **Misma escala, altos distintos.** La regla de Gonzalo es que todas las
+  # facultades se midan con la misma vara, y eso se cumple manteniendo constante
+  # los npc por encuesta. Lo que NO hay que mantener constante es el alto de la
+  # caja: con las dos filas igual de altas, la de abajo —cuyas facultades no
+  # pasan de cien— salía con tres cuartos de aire vacío mientras la de arriba
+  # iba apretada. Cada fila recibe el alto que le corresponde por su techo, así
+  # que un centímetro sigue valiendo lo mismo en las dos.
+  rejillas <- lapply(cortes, function(idx) {
+    .ppd_eje_bonito(max(c(meta_h[idx], meta_m[idx], ef_h[idx], ef_m[idx], 1), na.rm = TRUE),
+                    pasos = 4L)
+  })
+  # Aire sobre el carril más alto: sin él, el porcentaje del que llega al techo
+  # se dibuja fuera de la caja y no aparece en el documento.
+  topes <- vapply(rejillas, function(r) max(r) * 1.10, numeric(1))
+
+  .MARP_ALTO_TRAZADO <- 0.545   # lo que queda entre la leyenda y el pie
+  .MARP_ALTO_MINIMO <- 0.105    # una fila nunca baja de aquí, aunque su techo sea ínfimo
+  altos <- .MARP_ALTO_TRAZADO * topes / sum(topes)
+  altos <- pmax(altos, .MARP_ALTO_MINIMO)
+  if (sum(altos) > .MARP_ALTO_TRAZADO) altos <- altos * (.MARP_ALTO_TRAZADO / sum(altos))
+
+  # Los rótulos de facultad ocupan hasta tres renglones bajo cada fila.
+  hueco_rotulos <- 0.075
+  y_fila <- numeric(length(cortes))
+  techo <- 0.740
+  for (f in seq_along(cortes)) {
+    y_fila[[f]] <- techo - altos[[f]]
+    techo <- y_fila[[f]] - hueco_rotulos
+  }
 
   for (f in seq_along(cortes)) {
     idx <- cortes[[f]]
     pulso_pdf_barras_meta(
-      x0 + 0.030, y_fila[[f]], ancho - 0.030, alto_fila,
+      x0 + 0.030, y_fila[[f]], ancho - 0.030, altos[[f]],
       categorias = nombres[idx],
       series = list(
         list(nombre = "Hombres", color = tok$sexo_h, meta = meta_h[idx], valor = ef_h[idx]),
         list(nombre = "Mujeres", color = tok$sexo_m, meta = meta_m[idx], valor = ef_m[idx])
       ),
-      tope = tope, tokens = tok, ty = ty, rejilla = rejilla[-1])
+      tope = topes[[f]], tokens = tok, ty = ty, rejilla = rejillas[[f]][-1])
   }
 
   pulso_pdf_leyenda(x0, 0.775, list(
-    list(texto = "Hombres: conseguido", color = tok$sexo_h, forma = "barra"),
-    list(texto = "Mujeres: conseguido", color = tok$sexo_m, forma = "barra")
+    list(texto = "Hombres", color = tok$sexo_h, forma = "barra"),
+    list(texto = "Mujeres", color = tok$sexo_m, forma = "barra"),
+    list(texto = "Cuota del diseño", color = tok$faint, forma = "contorno")
   ), tokens = tok, ty = ty)
-  grid::grid.text("El contorno de cada carril es la cuota del diseno; el relleno, lo conseguido.",
-                  x = x0 + ancho, y = 0.775, just = c("right", "centre"),
-                  gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
   invisible(NULL)
 }
 
