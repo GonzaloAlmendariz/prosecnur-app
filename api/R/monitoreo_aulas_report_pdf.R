@@ -218,7 +218,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   # (`.marp_reparto_de_filas()`): apretar el renglón antes que abrir hoja, y si
   # hay que abrirla, repartir parejo. Aquí vivía una copia, y tener la regla en
   # dos sitios ya costó una tabla partida en dos hojas que cabía en una.
-  reparto <- .marp_reparto_de_filas(nrow(df), arriba = y_tabla, abajo = 0.10,
+  reparto <- .marp_reparto_de_filas(nrow(df), arriba = y_tabla,
+                                    abajo = .MARP_MARCO$suelo,
                                     alto_max = alto_fila, alto_min = 0.0355)
   alto_fila <- reparto$alto
   por_pagina <- reparto$por_hoja
