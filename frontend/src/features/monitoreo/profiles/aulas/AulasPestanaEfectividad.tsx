@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { deLaFacultad } from "./deLaFacultad";
 import { parteDeCampo } from "./parteDeCampo";
 import { AulasEfectividadPorDia } from "./AulasEfectividadPorDia";
@@ -31,6 +32,31 @@ export function AulasPestanaEfectividad({
 
   return (
     <>
+            {/* **El contexto, antes del detalle.** Gonzalo, 2026-09-10:
+                «¿qué tan bajo en comparación con qué, cómo va la facultad? […]
+                puedo seleccionar una facultad a la que peor le está yendo y ver
+                por qué le está yendo tan mal […] ojo, no siempre es que le esté
+                yendo mal a nivel general, sino le puede estar yendo mal en un
+                sexo en particular».
+
+                La tabla de abajo compara facultades entre sí; esto dice en qué
+                esquina está cada una y cuáles deben de un solo sexo, que es lo
+                que la cifra global esconde. */}
+            <section
+              className="mon-profile-panel"
+              data-qa-geometry-group="monitoring-aulas-avance"
+              data-qa-geometry-contract="intrinsic"
+            >
+              <div className="mon-profile-panel-head">
+                <h3>Cómo le va a cada facultad</h3>
+                <span>lo que debe hoy, por sexo · pulsa una para ver qué la hundió</span>
+              </div>
+              <AulasComoVaCadaFacultad
+                bloque={dashboard.efectividad_seguimiento}
+                porSexo={(dashboard.efectividad_por_sexo ?? []) as Array<Record<string, unknown>>}
+                facultadEnFoco={facultadEnFoco}
+              />
+            </section>
             <section
               className="mon-profile-panel"
               data-qa-geometry-group="monitoring-aulas-avance"

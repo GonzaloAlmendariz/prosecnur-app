@@ -1,0 +1,50 @@
+/* El mapa de la deuda por sexo. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-mapa { display: grid; gap: 8px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-reja { stroke: var(--pulso-border-strong); stroke-width: 1; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-cero { stroke: var(--pulso-text-faint); stroke-width: 1.2; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-hilo { stroke: var(--pulso-border-strong); stroke-width: 0.8; }
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-marca {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto { cursor: pointer; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto text {
+  fill: var(--pulso-text);
+  font-size: 10px;
+  font-weight: 600;
+  transition: fill 140ms ease;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto circle { transition: stroke-width 140ms ease; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover text,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible text {
+  fill: var(--module-accent, var(--pulso-primary));
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover circle,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible circle { stroke-width: 3; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible { outline: none; }
+
+.mon-profile-page.is-aulas-flow .aulas-mapa-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  line-height: 1.45;
+}
