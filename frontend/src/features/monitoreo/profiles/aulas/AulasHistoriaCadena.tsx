@@ -51,7 +51,10 @@ const ESLABONES_A_LA_VISTA = 3;
  * tira— porque lo que decide si hay trabajo es si a esa reserva se la llamó.
  */
 function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boolean; caido: boolean } {
-  const s = String(eslabon.status ?? "").trim().toLowerCase();
+  // El libro los manda con guion bajo —`sin_contactar`— y eso es transporte,
+  // no vocabulario: en pantalla salía «Sin_contactar». Se normaliza el guion y
+  // se respeta la palabra, que sí es suya.
+  const s = String(eslabon.status ?? "").trim().toLowerCase().replace(/_/g, " ");
   if (eslabon.validas > 0) {
     return { texto: `${fmt(eslabon.validas)} de ${fmt(eslabon.meta)}`, vivo: true, caido: false };
   }
@@ -65,7 +68,7 @@ function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boole
   return { texto: s.charAt(0).toUpperCase() + s.slice(1), vivo: false, caido: false };
 }
 
-type Circunstancia = "abierta" | "seca" | "corta" | "cerrada";
+type Circunstancia = "abierta" | "seca" | "corta" | "intacta" | "cerrada";
 
 /** Qué le pasó a esta cadena, que es lo que decide su filo y su pastilla. */
 function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla: string } {
@@ -86,11 +89,13 @@ function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla:
   if (titular && titular.validas > 0) {
     return { clave: "corta", pastilla: "Rindió poco: complementar" };
   }
-  return { clave: "abierta", pastilla: "El titular sigue en pie" };
+  // Su titular sigue agendado y aún no ha salido: no ha pasado nada, y por eso
+  // no es una cadena en juego. Se cuenta, no se lista.
+  return { clave: "intacta", pastilla: "El titular sigue en pie" };
 }
 
 /** El orden de la lista: primero lo que pide trabajo hoy. */
-const URGENCIA: Record<Circunstancia, number> = { seca: 0, abierta: 1, corta: 2, cerrada: 3 };
+const URGENCIA: Record<Circunstancia, number> = { seca: 0, abierta: 1, corta: 2, cerrada: 3, intacta: 4 };
 
 export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }): ReactNode {
   // El hook va antes de cualquier salida temprana: uno bajo la guarda se llama
@@ -150,7 +155,11 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
     n === 0 ? <strong className="es-cero">0</strong> : <strong>{fmt(n)}</strong>
   );
 
-  const piden = ordenadas.filter((x) => x.c.clave !== "cerrada");
+  // **Sólo lo que tiene algo que contar.** Una cadena intacta —su titular
+  // sigue agendado y no ha salido— y una cerrada no piden nada; en el corte del
+  // 2026-09-10 son 136 y 38 de 174, y listarlas enterraba las cuatro que sí.
+  const piden = ordenadas.filter((x) => x.c.clave !== "cerrada" && x.c.clave !== "intacta");
+  const intactas = ordenadas.filter((x) => x.c.clave === "intacta").length;
   const vistas = todas ? ordenadas : piden.slice(0, 25);
   const restantes = ordenadas.length - vistas.length;
 
@@ -171,11 +180,38 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           : ""}
       </p>
 
+      {/* Lo que se lista y lo que se cuenta, dicho antes de la lista: sin esto,
+          «136 sin cerrar» arriba y cuatro tarjetas abajo se leen como un
+          recorte silencioso. */}
+      <p className="aulas-cadenas-alcance">
+        Se {piden.length === 1 ? "lista la" : "listan las"} <strong>{fmt(piden.length)}</strong>{" "}
+        {piden.length === 1 ? "que pide" : "que piden"} trabajo
+        {intactas ? (
+          <> · <strong>{fmt(intactas)}</strong>{" "}
+            {intactas === 1 ? "sigue intacta, con su titular" : "siguen intactas, con su titular"} en pie</>
+        ) : null}
+        {cerraronEnTitular + cerraronEnReemplazo ? (
+          <> · <strong>{fmt(cerraronEnTitular + cerraronEnReemplazo)}</strong>{" "}
+            {cerraronEnTitular + cerraronEnReemplazo === 1 ? "ya cerró" : "ya cerraron"}</>
+        ) : null}
+      </p>
+
       {juntaronSinCerrar ? (
         <p className="aulas-cadenas-matiz">
           En <strong>{juntaronSinCerrar}</strong> de las abiertas la cadena ya juntó
           lo que pide el hueco, pero <strong>ningún curso-horario solo</strong> alcanzó su propia meta:
           por eso siguen contando como brecha en el resto del perfil.
+        </p>
+      ) : null}
+
+      {piden.length === 0 && !todas ? (
+        <p className="aulas-cadenas-vacio">
+          Ninguna cadena pide trabajo hoy: nadie ha rechazado y ningún
+          curso-horario aplicado se quedó corto.
+          {intactas ? (
+            <>{" "}{intactas === 1 ? "La" : "Las"} <strong>{fmt(intactas)}</strong>{" "}
+              {intactas === 1 ? "que sigue intacta espera" : "que siguen intactas esperan"} a su titular.</>
+          ) : null}
         </p>
       ) : null}
 
