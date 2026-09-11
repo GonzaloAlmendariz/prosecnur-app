@@ -806,3 +806,29 @@ test_that("sin vía y estancada no se cuentan dos veces", {
   expect_identical(f$cursos_sin_via, 1L)
   expect_identical(f$cursos_estancados, 0L)
 })
+
+test_that("el aviso sin teléfono dice CUÁLES, no sólo cuántas", {
+  # «3 no tienen teléfono válido» dice que hay un problema; «CH 3, CH 17 y CH 89»
+  # dice qué hacer esta tarde.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada"),
+    .efs_aula("A3", "Derecho", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada")
+  )
+  plan[[2]]$call_status <- "Número no existe"
+  plan[[3]]$call_status <- "Número fuera de servicio"
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  expect_identical(f$cursos_sin_via, 2L)
+  expect_identical(as.character(f$codigos_sin_via), c("CH 2", "CH 3"))
+})
+
+test_that("sin ninguna, los códigos viajan vacíos y no como NULL", {
+  # Un campo que desaparece obliga a la vista a distinguir «no hay» de «no vino».
+  plan <- list(.efs_aula("A1", "Arte", eligible = 20, orden = 1, aplicada = TRUE))
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Arte", cuota = 5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Arte")
+  expect_identical(length(f$codigos_sin_via), 0L)
+})

@@ -495,6 +495,13 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   cursos_sin_via_k <- if (any(sin_via)) {
     tapply(rep(1, sum(sin_via)), fk_track[sin_via], sum)
   } else numeric(0)
+  # **Y CUÁLES son.** «3 no tienen teléfono válido» dice que hay un problema;
+  # «CH 3, CH 17 y CH 89» dice qué hacer esta tarde. El aviso mas accionable del
+  # panel no puede quedarse en un conteo.
+  cod_track <- .maac_chr_col(tracked_df, "operational_code")
+  codigos_sin_via_k <- if (any(sin_via)) {
+    split(cod_track[sin_via], fk_track[sin_via])
+  } else list()
   cursos_estancados_k <- if (any(estancada)) {
     tapply(rep(1, sum(estancada)), fk_track[estancada], sum)
   } else numeric(0)
@@ -664,6 +671,9 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
       # PARALELO: sin telefono valido, o estancadas mas dias de los que la
       # reserva necesita para su propio contacto y confirmacion.
       cursos_sin_via = as.integer(.maac_toma_num(cursos_sin_via_k, k, 0)),
+      # Tope de tres: mas nombres en una linea dejan de leerse, y el resto se
+      # cuenta. `I()` para que un solo codigo viaje como lista y no como escalar.
+      codigos_sin_via = I(as.character(utils::head(codigos_sin_via_k[[k]] %||% character(0), 3))),
       cursos_estancados = as.integer(.maac_toma_num(cursos_estancados_k, k, 0)),
       # Citas que pasaron sin aplicarse. Ni aforo ni «por agendar»: piden
       # reagendar o darlas por caidas, y hasta entonces no rinden nada.

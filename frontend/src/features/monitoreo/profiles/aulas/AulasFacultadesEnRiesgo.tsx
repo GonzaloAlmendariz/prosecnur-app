@@ -40,13 +40,23 @@ import "./aulasFacultadesEnRiesgo.css";
  */
 function AvisoDeCubrir({ fila }: { fila: RiesgoDeFacultad }): ReactNode {
   if (!fila.cursosSinVia && !fila.cursosEstancados) {
-    return <>Si no cierran, quedan sus reservas.</>;
+    return fila.cursosSinAgendar === 1
+      ? <>Si no cierra, queda su reserva.</>
+      : <>Si no cierran, quedan sus reservas.</>;
   }
   return (
     <b className="aulas-riesgo-cubrir">
       {fila.cursosSinVia ? (
-        <><b>{fmt(fila.cursosSinVia)}</b>{" "}
-          {fila.cursosSinVia === 1 ? "no tiene teléfono válido" : "no tienen teléfono válido"}</>
+        // Con los códigos delante, el aviso deja de ser un diagnóstico y pasa a
+        // ser una lista de llamadas que hacer.
+        <>{fila.codigosSinVia.length
+          ? <>{fila.codigosSinVia.join(", ")}
+              {fila.cursosSinVia > fila.codigosSinVia.length
+                ? <> y {fmt(fila.cursosSinVia - fila.codigosSinVia.length)} más</>
+                : null}{" "}
+              {fila.cursosSinVia === 1 ? "no tiene" : "no tienen"} teléfono válido</>
+          : <><b>{fmt(fila.cursosSinVia)}</b>{" "}
+              {fila.cursosSinVia === 1 ? "no tiene" : "no tienen"} teléfono válido</>}</>
       ) : null}
       {fila.cursosSinVia && fila.cursosEstancados ? " y " : null}
       {fila.cursosEstancados ? (
@@ -145,21 +155,32 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                         el riesgo de cada vía, no una sola puerta. */}
                     {f.loQueToca === "agendar" ? (
                       <span className="aulas-riesgo-toca es-agendar">
-                        {f.cursosSinAgendar ? (
-                          <>Empieza por sus <b>{fmt(f.cursosSinAgendar)}</b>{" "}
-                            {f.cursosSinAgendar === 1 ? "curso-horario" : "cursos-horario"} del plan
-                            sin fecha, que {f.cursosSinAgendar === 1 ? "bastaría" : "bastarían"} y no
-                            gastan reserva
-                            {f.cursosEnGestion
-                              ? <> — pero <b>{fmt(f.cursosEnGestion)}</b> ya{" "}
-                                  {f.cursosEnGestion === 1 ? "está" : "están"} en gestión sin
-                                  cerrar</>
-                              : null}.{" "}
-                            <AvisoDeCubrir fila={f} /></>
+                        {/* **Tres redacciones, porque son tres situaciones.** Con
+                            todo lo que queda ya en gestión, «empieza por tus 2 —
+                            pero 2 están en gestión» se contradice a sí mismo; y
+                            en singular, «sus 1 curso-horario […] no gastan
+                            reserva» no concuerda. Visto en pantalla el
+                            2026-09-11 en Psicología y Ciencias Sociales. */}
+                        {!f.cursosSinAgendar ? (
+                          <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.{" "}</>
+                        ) : f.cursosEnGestion >= f.cursosSinAgendar ? (
+                          <>{f.cursosSinAgendar === 1
+                            ? <>El curso-horario que le queda sin fecha bastaría, y ya está en
+                                gestión sin cerrar.</>
+                            : <>Los <b>{fmt(f.cursosSinAgendar)}</b> que le quedan sin fecha
+                                bastarían, y ya están todos en gestión sin cerrar.</>}{" "}</>
                         ) : (
-                          <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.{" "}
-                            <AvisoDeCubrir fila={f} /></>
+                          <>{f.cursosSinAgendar === 1
+                            ? <>Empieza por el curso-horario que le queda sin fecha: bastaría y no
+                                gasta reserva.</>
+                            : <>Empieza por sus <b>{fmt(f.cursosSinAgendar)}</b> cursos-horario sin
+                                fecha, que bastarían y no gastan reserva
+                                {f.cursosEnGestion
+                                  ? <> —<b>{fmt(f.cursosEnGestion)}</b> ya{" "}
+                                      {f.cursosEnGestion === 1 ? "está" : "están"} en gestión—</>
+                                  : null}.</>}{" "}</>
                         )}
+                        <AvisoDeCubrir fila={f} />
                       </span>
                     ) : f.loQueToca === "reforzar" ? (
                       <span className="aulas-riesgo-toca es-reforzar">
