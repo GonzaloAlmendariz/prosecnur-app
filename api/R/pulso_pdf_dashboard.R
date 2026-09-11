@@ -189,12 +189,18 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
     }
   }
 
-  # Cada cuántos puntos se rotula. Con quince jornadas, quince cifras encima de
-  # quince barras son una fila de dígitos ilegible; se rotula uno de cada
-  # `salto` y SIEMPRE el último, que es el que se busca.
-  tope_rotulos <- if (compacto) 6L else 14L
+  # Cada cuántos puntos se rotula. Se rotula uno de cada `salto` y SIEMPRE el
+  # último, que es el que se busca. En la caja grande caben veinte cifras sin
+  # tocarse; en un panel de small multiple, ocho.
+  tope_rotulos <- if (compacto) 8L else 20L
   salto <- max(1L, ceiling(n / tope_rotulos))
   se_rotula <- function(i) (i - 1L) %% salto == 0L || i == n
+
+  # **En panel pequeño, la cifra del día sólo si la serie es corta.** Con quince
+  # jornadas, PSICOLOGÍA salía con quince «1» dentro de quince barras: quince
+  # dígitos que no dicen nada y tapan la única línea que sí. El acumulado se
+  # rotula siempre, porque es la curva que responde la pregunta del panel.
+  if (isTRUE(compacto) && n > 6L) etiquetar_barras <- FALSE
 
   ancho_barra <- min((w / n) * 0.56, if (compacto) 0.022 else 0.052)
   alto_texto <- fs * 0.0022
@@ -324,7 +330,11 @@ pulso_pdf_leyenda <- function(x, y, entradas, tokens = pulso_pdf_tokens(),
   for (k in seq_along(entradas)) {
     e <- entradas[[k]]
     forma <- e$forma %||% "barra"
-    if (identical(forma, "linea")) {
+    if (identical(forma, "contorno")) {
+      grid::grid.rect(x = cx, y = y, width = 0.014, height = 0.012,
+                      just = c("left", "centre"),
+                      gp = grid::gpar(fill = NA, col = e$color, lwd = 0.8))
+    } else if (identical(forma, "linea")) {
       grid::grid.lines(x = grid::unit(c(cx, cx + 0.020), "npc"), y = grid::unit(y, "npc"),
                        gp = grid::gpar(col = e$color, lwd = 1.8, lty = e$lty %||% 1))
     } else {

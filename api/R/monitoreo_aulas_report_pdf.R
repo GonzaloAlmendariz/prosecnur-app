@@ -345,7 +345,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
         nueva("Ritmo por facultad",
               if (length(hojas) > 1L) {
                 sprintf("Cada panel con su propia escala · %d de %d", h, length(hojas))
-              } else "Cada panel con su propia escala; el eje de días es el mismo en todos")
+              } else "Cada panel con su propia escala")
         .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util)
         pulso_pdf_leyenda(x0, 0.095, list(
           list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
