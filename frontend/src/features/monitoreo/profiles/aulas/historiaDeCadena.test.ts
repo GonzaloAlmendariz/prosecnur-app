@@ -219,3 +219,20 @@ describe("el eslabón sin vía de contacto", () => {
     expect(cadena.eslabones.every((e) => e.sinVia === false)).toBe(true);
   });
 });
+
+/**
+ * **El desenlace manda sobre la vía de contacto.** Visto en pantalla el
+ * 2026-09-11: CH 89 llevaba la pastilla «Rechazó el docente» y su propio
+ * eslabón decía «Sin teléfono», que le cambiaba el motivo de la caída.
+ */
+describe("la precedencia del estado del eslabón", () => {
+  test("el que rechazó sigue diciendo que rechazó, tenga o no teléfono", () => {
+    const filas = [
+      { ...titular("CH 89", 0, 20), sample_status: "rechazo", call_status: "Número no existe" },
+      { ...reserva("R 89.1", "CH 89", 1, 0, 20), sample_status: "sin_contactar" },
+    ] as unknown as MonitoreoAulasPlanRow[];
+    const [cadena] = historiaDeCadena(filas).historias;
+    // El dato sigue viajando: lo que cambia es qué se enseña primero.
+    expect(cadena.eslabones.find((e) => e.codigo === "CH 89")?.sinVia).toBe(true);
+  });
+});

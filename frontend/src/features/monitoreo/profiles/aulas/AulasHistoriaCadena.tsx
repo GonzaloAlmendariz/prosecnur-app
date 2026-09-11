@@ -62,16 +62,20 @@ function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boole
   if (eslabon.validas > 0) {
     return { texto: `${fmt(eslabon.validas)} de ${fmt(eslabon.meta)}`, vivo: true, caido: false };
   }
-  // **Sin teléfono manda sobre «En contacto».** Ese estado se lee como gestión
-  // en marcha, y con el número muerto no hay gestión: lo que toca es saltar al
-  // siguiente eslabón. Medido el 2026-09-11 en la cadena de CH 85.
+  // **El desenlace manda sobre la vía.** Un docente que ya RECHAZÓ está caído
+  // por eso, y da igual su teléfono; sustituirlo por «Sin teléfono» le cambiaba
+  // el motivo. Visto el 2026-09-11: CH 89 llevaba la pastilla «Rechazó el
+  // docente» y su propio eslabón decía «Sin teléfono».
+  if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false, caido: true };
+  if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false, caido: true };
+  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true, caido: false };
+  // **Sin teléfono manda sobre «En contacto» y sobre «Sin contactar».** Los dos
+  // se leen como gestión que puede avanzar, y con el número muerto no avanza:
+  // lo que toca es saltar al siguiente eslabón. Medido en la cadena de CH 85.
   if (eslabon.sinVia) {
     return { texto: "Sin teléfono", vivo: false, caido: true };
   }
-  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true, caido: false };
   if (s.startsWith("en contacto")) return { texto: "En contacto", vivo: true, caido: false };
-  if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false, caido: true };
-  if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false, caido: true };
   if (s.startsWith("en reserva") || s.startsWith("sin contactar") || !s) {
     return { texto: eslabon.orden === 0 ? "Sin contactar" : "Sin contactar", vivo: false, caido: false };
   }
