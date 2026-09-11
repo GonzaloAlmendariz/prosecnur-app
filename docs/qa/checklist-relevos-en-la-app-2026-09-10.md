@@ -43,6 +43,9 @@ está, nunca teclearla.
 | 29 | **Los tokens del perfil alcanzan a los portales** | `aulasMonitoreo.css` + `tokensDelPortal.contract.test.ts` | ☑ `9a91a3d9` — `createPortal` sale del selector; todo el popover a 16 px |
 | 30 | **El pie del popover deja de dibujarse detrás de la lista** | `aulasReemplazos.css` | ☑ `40201209` — grid de cuatro filas con cinco hijos |
 | 17 | **La tarjeta de candidato con el lenguaje del ensayo**: puesto, identidad con facultad y docente, las dos varas a la derecha, lo que rinde por sexo | `AulasPopoverReemplazo` + su hoja | ☑ |
+| 31 | **El aviso de traslape en palabras** («el 37,3 % de los cupos de su facultad ya se aplicó» no se entendía) | `AulasPopoverRefuerzo` | ☑ `8538ed32` — «cupos» era vocabulario del motor: ahora dice de cada 100 convocados cuántos ya estuvieron en un curso-horario aplicado, y qué consecuencia tiene |
+| 32 | **El top de peor rendimiento en Resumen** (tasa observada contra prevista, ajustándose cuando entran complementos y refuerzos) | `peorRendimientoDeFacultad.ts` + `AulasPeorRendimiento` | ☑ `270e0eec` — sólo lista las que van POR DEBAJO: el primer corte metía tres al 100,1 %, 102,1 % y 102,3 % bajo un título que promete lo contrario |
+| 33 | **Las facultades en riesgo que el ranking de tasas no ve** («si en Gestión falta, ¿por qué ni siquiera aparece esa facultad?») | `facultadesEnRiesgo.ts` + `AulasFacultadesEnRiesgo` | ◐ montado y verde en tests; falta verlo en pantalla con el corte de las 11:14 |
 
 ## Lo que el artefacto promete y el dato todavía no da
 

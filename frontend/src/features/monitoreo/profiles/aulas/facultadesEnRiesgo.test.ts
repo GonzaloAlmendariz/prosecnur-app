@@ -1,0 +1,129 @@
+import { describe, expect, it } from "vitest";
+
+import { facultadesEnRiesgo } from "./facultadesEnRiesgo";
+import type { MonitoreoAulasEfectividadSeguimiento, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+
+/**
+ * «Si en Gestión falta y estamos por debajo de lo esperado, ¿por qué no se
+ * notifica aquí, o ni siquiera aparece esa facultad?» (Gonzalo, 2026-09-11).
+ *
+ * El fixture reproduce los tres casos medidos en HSVG26ULT2 ese día: la que
+ * tiene campo pero no llega con lo agendado, la que no tiene campo y sí tiene
+ * fechas, y la que va sobrada y no debe aparecer.
+ */
+const bloque = {
+  total: {},
+  facultades: [
+    { facultad: "GESTIÓN", faculty_key: "gestion", aulas_aplicadas: 1, reservas_libres: 42 },
+    { facultad: "CONTABLES", faculty_key: "contables", aulas_aplicadas: 0, reservas_libres: 7 },
+    { facultad: "EDUCACION", faculty_key: "educacion", aulas_aplicadas: 0, reservas_libres: 14 },
+    { facultad: "DERECHO", faculty_key: "derecho", aulas_aplicadas: 6, reservas_libres: 207 },
+    // Poco campo, pero su cuota ya está cerrada: no medirse no le cuesta nada.
+    { facultad: "CUBIERTA", faculty_key: "cubierta", aulas_aplicadas: 1, reservas_libres: 3 },
+    // Poco campo y le falta poco, con mucho de sobra en camino.
+    { facultad: "HOLGADA", faculty_key: "holgada", aulas_aplicadas: 1, reservas_libres: 9 },
+  ],
+} as unknown as MonitoreoAulasEfectividadSeguimiento;
+
+const cuota = (faculty: string, sex_key: string, target: number, achieved: number) =>
+  ({ faculty, sex_key, target, achieved, missing: Math.max(0, target - achieved) });
+
+const celdas = [
+  // Gestión: pide 60 y lleva 10; lo agendado no le va a alcanzar.
+  cuota("GESTIÓN", "F", 30, 5), cuota("GESTIÓN", "M", 30, 5),
+  cuota("CONTABLES", "F", 10, 0), cuota("CONTABLES", "M", 10, 0),
+  cuota("EDUCACION", "F", 12, 0), cuota("EDUCACION", "M", 12, 0),
+  // Derecho ya cubrió lo suyo: no es un riesgo y no entra.
+  cuota("DERECHO", "F", 10, 10), cuota("DERECHO", "M", 10, 10),
+  cuota("CUBIERTA", "F", 6, 6), cuota("CUBIERTA", "M", 6, 6),
+  cuota("HOLGADA", "F", 6, 5), cuota("HOLGADA", "M", 6, 5),
+];
+
+const aula = (faculty: string, code: string, fecha: string, eligible: number) => ({
+  faculty, operational_code: code, sample_role: "titular",
+  scheduled_date: fecha, operational_status: "planificada", sample_status: "agendada",
+  eligible_n: eligible, sex_top_1: "F", sex_top_1_n: Math.round(eligible / 2),
+  sex_top_2: "M", sex_top_2_n: eligible - Math.round(eligible / 2),
+  tasa_facultad: 0.5, respuestas_validas: 0,
+});
+
+const plan = [
+  aula("GESTIÓN", "CH 137", "2026-09-12", 30),
+  aula("GESTIÓN", "CH 138", "2026-09-14", 20),
+  aula("CONTABLES", "CH 167", "2026-09-14", 30),
+  aula("CONTABLES", "CH 165", "2026-09-17", 20),
+  // Educación no tiene NADA agendado: es el caso que urge.
+  { ...aula("EDUCACION", "CH 162", "", 30), sample_status: "", operational_status: "planificada" },
+  aula("DERECHO", "CH 1", "2026-09-14", 40),
+  aula("CUBIERTA", "CH 2", "2026-09-14", 20),
+  aula("HOLGADA", "CH 3", "2026-09-14", 40),
+] as unknown as MonitoreoAulasPlanRow[];
+
+describe("las facultades en riesgo que el ranking de tasas no ve", () => {
+  it("nombra a la que no llega con lo agendado aunque tenga poco campo", () => {
+    // Gestión tiene UN curso-horario aplicado: el ranking de rendimiento la
+    // aparta por no llegar al mínimo para comparar y no la menciona.
+    const filas = facultadesEnRiesgo(bloque, celdas, plan);
+    const g = filas.find((f) => f.clave === "gestion")!;
+    expect(g.aviso).toBe("agenda_corta");
+    expect(g.cursosEnCamino).toBe(2);
+    // 50 elegibles al 50 % dan 24, no 25: el pronóstico redondea POR SEXO
+    // (15 mujeres al 50 % son 7, no 7,5) y la deuda tampoco se compensa entre
+    // sexos. De 50 que faltan quedarían 26.
+    expect(g.enCamino).toBe(24);
+    expect(g.quedaria).toBe(26);
+    expect(g.reservasLibres).toBe(42);
+  });
+
+  it("la que no tiene campo pero sí fechas se avisa como sin medir, no como corta", () => {
+    const c = facultadesEnRiesgo(bloque, celdas, plan).find((f) => f.clave === "contables")!;
+    expect(c.aviso).toBe("a_ciegas");
+    // Sus 25 esperadas cubren los 20 que pide: el riesgo no es la cuota, es que
+    // no hay tasa propia con la que saber si esas 25 van a aparecer.
+    expect(c.quedaria).toBe(0);
+    expect(c.proximaFecha).toBe("2026-09-14");
+  });
+
+  it("la que no tiene campo NI fechas se queda sin próxima fecha", () => {
+    // Es el caso que urge de verdad: nadie va a medirla si no se activa una
+    // reserva, y el panel lo tiene que poder decir.
+    const e = facultadesEnRiesgo(bloque, celdas, plan).find((f) => f.clave === "educacion")!;
+    expect(e.proximaFecha).toBe("");
+    expect(e.cursosEnCamino).toBe(0);
+    // Y sale como corta, porque sin nada agendado su cuota entera está en pie.
+    expect(e.aviso).toBe("agenda_corta");
+    expect(e.quedaria).toBe(24);
+  });
+
+  it("la que va cubierta y con campo no aparece: un aviso que lista a todas no avisa", () => {
+    expect(facultadesEnRiesgo(bloque, celdas, plan).some((f) => f.clave === "derecho")).toBe(false);
+  });
+
+  it("la agenda corta va primero y por tamaño, que es lo que se puede mover hoy", () => {
+    expect(facultadesEnRiesgo(bloque, celdas, plan).map((f) => f.clave))
+      .toEqual(["gestion", "educacion", "contables"]);
+  });
+
+  it("no avisa de la que tiene poco campo y la cuota ya cerrada", () => {
+    // Medido el 2026-09-11: el panel avisaba de Educación con 24 de 24
+    // respuestas. No poder medirse sólo importa si hay algo en juego.
+    expect(facultadesEnRiesgo(bloque, celdas, plan).some((f) => f.clave === "cubierta")).toBe(false);
+  });
+
+  it("no avisa de la que debe poco y tiene mucho de sobra en camino", () => {
+    // Gastronomía: le faltaban 2 y traía 21. Incluirla diluye el aviso.
+    expect(facultadesEnRiesgo(bloque, celdas, plan).some((f) => f.clave === "holgada")).toBe(false);
+  });
+
+  it("la que nunca se ha medido entra aunque lo agendado le sobre", () => {
+    // Contables trae 35 para los 20 que faltan y aun así entra: nada de lo que
+    // se le prevé está comprobado en esa facultad.
+    const c = facultadesEnRiesgo(bloque, celdas, plan).find((f) => f.clave === "contables")!;
+    expect(c.aplicados).toBe(0);
+    expect(c.enCamino).toBeGreaterThan(c.falta);
+  });
+
+  it("sin bloque no inventa avisos", () => {
+    expect(facultadesEnRiesgo(null, celdas, plan)).toEqual([]);
+  });
+});
