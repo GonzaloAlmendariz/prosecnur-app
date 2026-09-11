@@ -24,17 +24,21 @@ import "./aulasHistoriaCadena.css";
  *   recorre en orden —el primero vivo es el que se trabaja— y los de detrás
  *   importan como cuántos quedan, no como cuáles son.
  *
- * **El filo izquierdo dice el estado antes de leer nada**, y son cuatro
- * circunstancias distintas, no tres grados de una:
+ * **El filo izquierdo dice el estado antes de leer nada**, y son cinco
+ * circunstancias distintas, no grados de una:
  *
+ * - **seca**: el titular cayó y no queda nadie detrás. No hay a quién llamar;
+ *   la salida es pedir aula adicional. Va primera: es la única sin salida
+ *   dentro de su propia cadena.
  * - **abierta**: el titular cayó y hay reserva por delante. Es la que pide
  *   trabajo hoy.
- * - **seca**: el titular cayó y no queda nadie detrás. No hay a quién llamar;
- *   la salida es pedir aula adicional.
- * - **corta**: el titular se aplicó y rindió poco. Su cadena está intacta y lo
+ * - **corta**: el titular se aplicó y rindió poco. Su cadena sigue entera y lo
  *   que ofrece es COMPLEMENTAR. La misma superficie, otra circunstancia.
  * - **cerrada**: llegó a su meta, con el titular o con un reemplazo. Es
- *   registro, no trabajo, y va al final.
+ *   registro, no trabajo.
+ * - **intacta**: no le ha pasado nada todavía. Se cuenta y no se lista —eran
+ *   110 de 174 y enterraban a las 26 que sí piden algo—, que es la razón por la
+ *   que existe como circunstancia propia y no como ausencia de las otras.
  *
  * No se agrupa en tres secciones con su título: agrupar obligaba a buscar la
  * cadena concreta en la sección que le tocara. Una sola lista ordenada por
