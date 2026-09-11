@@ -1,0 +1,205 @@
+/* «Cómo le va a cada facultad». Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento. */
+.mon-profile-page.is-aulas-flow .aulas-cvf {
+  --cvf-dato: 15px;
+  --cvf-txt: 13px;
+  --cvf-meta: 11.5px;
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--cvf-txt);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-lista {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Seis columnas fijas: la comparación entre facultades se lee HACIA ABAJO, y
+   para eso las cifras tienen que caer en la misma vertical. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px 118px;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila:hover {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-fila:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-lista li.es-abierta .aulas-cvf-fila {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 34%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre { display: grid; gap: 1px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre b { font-size: var(--cvf-txt); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-nombre > span {
+  font-size: var(--cvf-meta);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda {
+  text-align: right;
+  font-size: var(--cvf-dato);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda small {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--pulso-text-faint);
+  letter-spacing: 0.02em;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-debe { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-sobra { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-deuda.es-cero { color: var(--pulso-text-faint); }
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-sexos { display: grid; gap: 3px; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 7px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-letra {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril {
+  position: relative;
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+/* El cero, marcado en el centro: cruzarlo es lo que separa deber de sobrar. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pulso-border-strong);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i.es-debe {
+  right: 50%;
+  background: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-carril i.es-sobra {
+  left: 50%;
+  background: var(--pulso-success-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-debe { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-sobra { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-barra b.es-cero { color: var(--pulso-text-faint); }
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa {
+  display: grid;
+  gap: 1px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b { font-size: var(--cvf-txt); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-bajo { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa b.es-ok { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cvf-tasa > span {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-align: center;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_en_los_dos {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 10%, transparent);
+  color: var(--pulso-danger-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_mujeres,
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-debe_hombres {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 12%, transparent);
+  color: var(--pulso-warn-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-por_encima {
+  background: color-mix(in srgb, var(--pulso-success-fg) 10%, transparent);
+  color: var(--pulso-success-fg);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-en_lo_previsto,
+.mon-profile-page.is-aulas-flow .aulas-cvf-veredicto.es-sin_campo {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cvf-porque {
+  display: grid;
+  gap: 5px;
+  margin: 2px 0 7px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 30%, transparent);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-porque p {
+  margin: 0;
+  font-size: var(--cvf-txt);
+  color: var(--pulso-text);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-consejo { color: var(--pulso-text-soft) !important; }
+
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
+    grid-template-columns: minmax(0, 1fr) 74px minmax(0, 1fr);
+    row-gap: 7px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-cvf-tasa,
+  .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { grid-column: span 1; }
+}
