@@ -20,8 +20,11 @@ test_that("con citas adoptadas el rótulo nombra su procedencia, no el sorteo", 
     rep("Interno Pulso", 93), paste0("CH ", seq_len(93)))))
   nota <- nota_de(cfg)
   expect_match(nota, "93 citas tomadas de la hoja de los aplicadores", fixed = TRUE)
-  # Y deja de decir que repartió un sorteo, que es lo que engañaba.
-  expect_false(grepl("Sorteo", nota, fixed = TRUE))
+  # Deja de encabezarse con el sorteo, que es lo que engañaba…
+  expect_false(startsWith(nota, "Sorteo"))
+  # …pero el sorteo NO desaparece: sigue repartiendo lo que nadie fijó, y la
+  # hoja tiene que poder decir cuál corrió.
+  expect_match(nota, "el resto, sorteo original (alfabético)", fixed = TRUE)
 })
 
 test_that("una sola cita se dice en singular", {
@@ -33,7 +36,16 @@ test_that("una sola cita se dice en singular", {
 
 test_that("sin citas adoptadas sigue diciendo el sorteo, como siempre", {
   expect_match(nota_de(list()), "Sorteo: original (alfabético)", fixed = TRUE)
-  expect_match(nota_de(list(reparto_semilla = 4L)), "Sorteo:", fixed = TRUE)
+  expect_match(nota_de(list(reparto_semilla = 4L)), "Sorteo: n.º 5", fixed = TRUE)
+})
+
+test_that("con fijaciones Y semilla se nombran los DOS, en su orden de mando", {
+  # Primero lo decidido y después lo sorteado: el sorteo sigue repartiendo lo
+  # que nadie fijó y la hoja tiene que poder decir cuál corrió.
+  nota <- nota_de(list(reparto_fijado = list(`CH 1` = "Interno Pulso"),
+                       reparto_semilla = 4L))
+  expect_match(nota, "1 cita tomada de la hoja de los aplicadores", fixed = TRUE)
+  expect_match(nota, "el resto, sorteo n.º 5", fixed = TRUE)
 })
 
 test_that("el rango sigue estando, venga de donde venga el reparto", {
