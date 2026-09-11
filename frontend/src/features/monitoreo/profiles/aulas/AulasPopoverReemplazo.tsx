@@ -10,6 +10,7 @@ import {
   type OrigenDeCandidato,
 } from "./candidatosDeReemplazo";
 import { composicionDelAula } from "./composicionDelAula";
+import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
@@ -190,7 +191,7 @@ function Candidato({
             {/* **La facultad primero** (canon B34). Es la frontera dura del
                 modelo —de ahí no se sale— y al comparar candidatos de tres
                 procedencias hay que ver de dónde es cada uno sin leer. */}
-            {f.faculty ? <ChipDato>{f.faculty}</ChipDato> : null}
+            {f.faculty ? <ChipDato>{facultadCorta(String(f.faculty))}</ChipDato> : null}
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}
             {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
           </span>
@@ -248,7 +249,7 @@ function Candidato({
           {queda ? (
             <span className="aulas-reemplazo-resto">
               {queda.total
-                ? <>a {String(f.faculty || "la facultad")} le quedarían <b>{fmt(queda.total)}</b>
+                ? <>a {facultadCorta(String(f.faculty)) || "la facultad"} le quedarían <b>{fmt(queda.total)}</b>
                     {queda.m && queda.h ? <> ({fmt(queda.m)} M · {fmt(queda.h)} H)</>
                       : queda.m ? <> mujeres</> : <> hombres</>}</>
                 : <>con éste la facultad cierra su cuota</>}

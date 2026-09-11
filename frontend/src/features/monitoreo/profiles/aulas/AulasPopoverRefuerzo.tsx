@@ -6,6 +6,7 @@ import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import type { BrechaPorSexo } from "./candidatosDeReemplazo";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { etiquetaDeFecha } from "./agendaPorDia";
+import { facultadCorta } from "./facultadEnPalabras";
 import { planDeRefuerzo, refuerzosDeFacultad, type CandidatoDeRefuerzo } from "./refuerzosDeFacultad";
 import "./aulasPopoverRefuerzo.css";
 
@@ -83,16 +84,19 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onC
  * `renderToStaticMarkup`: un portal en el servidor devuelve cadena vacía y no
  * se puede probar nada de lo que hay dentro.
  */
-export function ContenidoDeRefuerzo({ facultad, filas, deuda, pedirAntesDe, onCerrar }: {
+export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, pedirAntesDe, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   deuda: BrechaPorSexo;
   pedirAntesDe?: string | null;
   onCerrar?: () => void;
 }) {
+  // El nombre se normaliza UNA vez y se usa en las seis veces que aparece; el
+  // filtro sigue mirando el nombre crudo, que es la clave del payload.
+  const facultad = facultadCorta(facultadCruda);
   const candidatos = useMemo(
-    () => refuerzosDeFacultad(filas, facultad, deuda),
-    [filas, facultad, deuda],
+    () => refuerzosDeFacultad(filas, facultadCruda, deuda),
+    [filas, facultadCruda, deuda],
   );
   const plan = useMemo(() => planDeRefuerzo(candidatos, deuda), [candidatos, deuda]);
   const debeM = Math.max(0, Math.round(deuda.mujeres));
