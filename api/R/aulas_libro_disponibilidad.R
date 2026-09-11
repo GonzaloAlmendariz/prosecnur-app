@@ -135,8 +135,70 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
       poner("dato", c(nombre, unname(rangos[[nombre]][claves])))
     }
   }
+  poner("nota", "")
+
+  # --- tabla 3: quién puede a cada hora ---------------------------------------
+  #
+  # **El tercer cruce de los mismos tres ejes, y el que faltaba.** Hora × día da
+  # el conteo y persona × día da el rango; para saber QUIÉN puede el miércoles a
+  # las 15:30 había que leer treinta y un rangos de texto y cruzarlos de cabeza.
+  #
+  # Gonzalo, 2026-09-11: «los rangos horarios ya siempre son iguales, entonces
+  # quién puede cada día tiene que sistematizarse por hora». Y ahí está la
+  # clave: como los tramos se repiten, la disponibilidad de una persona a una
+  # hora es un SUBCONJUNTO DE DÍAS, que cabe en seis letras. Por eso esta tabla
+  # es una cuadrícula y no una lista de nombres: una celda con dieciséis nombres
+  # es justo lo que él llamó críptico.
+  #
+  # Se lee en los dos sentidos: la FILA dice quién puede a esa hora y qué días;
+  # la COLUMNA, cuándo puede esa persona.
+  personas <- sort(unique(unlist(lapply(claves, function(k) {
+    unlist(lapply(por_dia[[k]][["franjas"]] %||% list(), function(f) {
+      vapply(f[["nombres"]] %||% list(), function(n) aulas_nombre_aplicador(n), character(1))
+    }), use.names = FALSE)
+  }), use.names = FALSE)), method = "radix")
+  if (length(personas) && length(tramos)) {
+    poner("bloque", "QUIÉN PUEDE A CADA HORA")
+    poner("nota", paste(
+      "La celda son los días en que esa persona puede a esa hora. La fila dice",
+      "a quién llamar para un aula de esa hora; la columna, cuándo puede cada quien."
+    ))
+    poner("cabecera", c("TRAMO", personas))
+    for (t in tramos) {
+      # Para cada persona, las INICIALES de los días en que cubre este tramo, en
+      # el orden de la semana y no en el de aparición.
+      celdas <- vapply(personas, function(p) {
+        dias <- character(0)
+        for (i in seq_along(claves)) {
+          k <- claves[[i]]
+          for (f in (por_dia[[k]][["franjas"]] %||% list())) {
+            tr <- sprintf("%s a %s", .ald_txt(f[["inicio"]]), .ald_txt(f[["fin"]]))
+            if (!identical(tr, t)) next
+            nombres <- vapply(f[["nombres"]] %||% list(),
+                              function(n) aulas_nombre_aplicador(n), character(1))
+            if (p %in% nombres) dias <- c(dias, .ald_inicial_de_dia(k))
+            break
+          }
+        }
+        paste(dias, collapse = "")
+      }, character(1))
+      poner("dato", c(t, unname(celdas)))
+    }
+  }
 
   filas
+}
+
+# La inicial con la que un día se escribe en la cuadrícula. La X del miércoles
+# es la convención del castellano —la M ya es del martes— y sin ella dos días
+# compartirían letra, que es la forma de que una cuadrícula deje de servir.
+.ALD_INICIALES <- c(lunes = "L", martes = "M", miercoles = "X", "miércoles" = "X",
+                    jueves = "J", viernes = "V", sabado = "S", "sábado" = "S",
+                    domingo = "D")
+.ald_inicial_de_dia <- function(clave) {
+  k <- tolower(trimws(as.character(clave %||% "")[1]))
+  v <- .ALD_INICIALES[[k]] %||% ""
+  if (nzchar(v)) v else toupper(substr(k, 1L, 1L))
 }
 
 # Persona → (día → rango legible). De la oferta CRUDA cuando la hay, porque ahí
