@@ -574,3 +574,94 @@
   }
   invisible(NULL)
 }
+
+# --- Página de cierre: cómo se mide ------------------------------------------
+#
+# El criterio vivía como un párrafo al pie de la última tabla, donde competía
+# con la fila final y no lo leía nadie. Es la parte del documento que sostiene
+# todas las demás: define qué cuenta como encuesta y contra qué se mide. En un
+# entregable de consultoría eso no es una nota al pie, es la página de cierre.
+#
+# No es sobreexplicar —la regla que Gonzalo fijó el 2026-09-11—: un cliente sabe
+# lo que es su propia cuota, pero no tiene por qué saber qué filtros aplica el
+# estudio para dar una respuesta por efectiva, ni con qué corte se cerró la
+# medición. Eso es procedencia, y la procedencia viaja con el número.
+
+.marp_pagina_criterio <- function(model, tok, ty, x0, ancho) {
+  pesos <- pulso_pdf_pesos()
+  criterio <- model$criterio %||% list()
+  ritmo <- model$ritmo
+
+  mayuscula <- function(txt) {
+    if (!nzchar(txt)) return(txt)
+    paste0(toupper(substr(txt, 1L, 1L)), substr(txt, 2L, nchar(txt)))
+  }
+
+  bloques <- list(
+    list("Qué cuenta como encuesta efectiva",
+         mayuscula(paste0(criterio$numerador %||% "", "."))),
+    list("Contra qué se mide",
+         mayuscula(paste0(criterio$denominador %||% "", "."))),
+    list("Por qué los faltantes no se netean",
+         paste("La cuota es de cada facultad y de cada sexo. Cubrir de más en una no cubre",
+               "lo que falta en otra, así que el total de faltantes suma los de cada celda",
+               "en vez de netearlos."))
+  )
+  if (nzchar(criterio$no_cubre %||% "")) {
+    bloques[[length(bloques) + 1L]] <- list("La sobremuestra", criterio$no_cubre)
+  }
+
+  w_rotulo <- 0.250
+  w_texto <- ancho - w_rotulo - 0.030
+
+  # **Los cuatro rótulos se espacian o no se espacia ninguno.** Dejando que cada
+  # uno decida por su cuenta, «LA SOBREMUESTRA» salía con aire y «POR QUÉ LOS
+  # FALTANTES NO SE NETEAN» sin él, en la misma columna y a la misma altura: una
+  # discrepancia que se lee como error de composición, no como adaptación.
+  cabe_espaciado <- all(vapply(bloques, function(b) {
+    identical(pulso_pdf_versalitas(b[[1L]], ancho = w_rotulo, fontsize = ty$eyebrow),
+              pulso_pdf_versalitas(b[[1L]]))
+  }, logical(1)))
+
+  # El alto se reparte entre los bloques que haya, para que la página cierre
+  # llena tanto con tres definiciones como con cinco.
+  y_alto <- 0.760; y_bajo <- 0.290
+  paso <- (y_alto - y_bajo) / length(bloques)
+  y <- y_alto
+  for (k in seq_along(bloques)) {
+    b <- bloques[[k]]
+    # La primera no lleva regla: una hairline pegada bajo el cromo se lee como
+    # una segunda línea de cabecera.
+    if (k > 1L) pulso_pdf_hairline(x0, x0 + ancho, y + paso * 0.30, tokens = tok, lwd = pesos$fila)
+    grid::grid.text(if (cabe_espaciado) pulso_pdf_versalitas(b[[1L]]) else toupper(b[[1L]]),
+                    x = x0, y = y, just = c("left", "top"),
+                    gp = grid::gpar(col = tok$navy, fontsize = ty$eyebrow, fontface = "bold"))
+    .form_pdf_text(b[[2L]], x = x0 + w_rotulo + 0.030, y = y + 0.006, w = w_texto,
+                   chars = pulso_pdf_chars(w_texto, factor = 118), fontsize = ty$body,
+                   col = tok$ink, line_h = 0.026)
+    y <- y - paso
+  }
+
+  # La procedencia del corte, al pie y en su propia franja.
+  pulso_pdf_hairline(x0, x0 + ancho, y + paso * 0.30, tokens = tok, lwd = pesos$columna)
+  dias <- length(ritmo$dias %||% character(0))
+  datos <- list(
+    list("Corte de los datos", model$portada_defecto$corte %||% ""),
+    list("Periodo de campo", model$portada_defecto$periodo %||% ""),
+    list("Jornadas con aplicación", if (dias) format(dias, big.mark = ",") else "")
+  )
+  datos <- Filter(function(d) nzchar(d[[2L]]), datos)
+  if (length(datos)) {
+    w_col <- ancho / length(datos)
+    for (k in seq_along(datos)) {
+      x <- x0 + (k - 1L) * w_col
+      grid::grid.text(pulso_pdf_versalitas(datos[[k]][[1L]], ancho = w_col - 0.020,
+                                           fontsize = ty$eyebrow),
+                      x = x, y = y - 0.010, just = c("left", "top"),
+                      gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
+      grid::grid.text(datos[[k]][[2L]], x = x, y = y - 0.046, just = c("left", "top"),
+                      gp = grid::gpar(col = tok$ink, fontsize = ty$body))
+    }
+  }
+  invisible(NULL)
+}
