@@ -42,16 +42,24 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
   s
 }
 
-#' Encuentra la fila de encabezado que trae las DOS columnas que hacen falta.
+#' Encuentra la fila de encabezado y TODOS sus pares (codigo, estado).
 #'
-#' **Se busca, no se asume.** El libro del operativo lleva bloques con banda de
-#' titulo encima, asi que la fila 1 no siempre es el encabezado; y anclar por
-#' numero fijo es exactamente como se pisa la celda de otro. Si ninguna fila trae
-#' las dos columnas, esta hoja no participa.
+#' **Se busca, y en plural.** El libro del operativo lleva BLOQUES de ~38
+#' columnas —titular, R1, R2…— y cada bloque repite su propio «CURSO-HORARIO» y
+#' su «STATUS MUESTRA». Mirar solo el primero deja fuera a todas las reservas de
+#' cadena: medido el 2026-09-11, de quince marcadas se pintaron nueve (los EXTRA,
+#' que viven en filas propias) y las seis reservas salieron «sin fila en el
+#' libro» teniendo su fila delante. Los pares se emparejan POR ORDEN, que es el
+#' orden en que la hoja escribe los bloques.
+#'
+#' Y la fila tampoco se asume: el libro lleva banda de titulo encima, asi que la
+#' 1 no siempre es el encabezado, y anclar por numero fijo es como se pisa la
+#' celda de otro.
 #'
 #' @param valores `values` crudos de la pestaña (lista de filas).
-#' @param col_codigo,col_estado rotulos a encontrar.
-#' @return lista `{fila, col_codigo, col_estado}` en base 1, o `NULL`.
+#' @param col_codigo,col_estado rotulos a emparejar.
+#' @return lista `{fila, pares}` donde cada par es `{codigo, estado}` en base 1,
+#'   o `NULL` si ninguna fila trae los dos rotulos.
 #' @keywords internal
 .mapm_encabezado <- function(valores, col_codigo = "CURSO-HORARIO",
                              col_estado = "STATUS MUESTRA") {
@@ -61,26 +69,94 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
     celdas <- toupper(.mapm_txt(unlist(valores[[i]], use.names = FALSE)))
     ic <- which(celdas == toupper(col_codigo))
     ie <- which(celdas == toupper(col_estado))
-    if (length(ic) && length(ie)) {
-      return(list(fila = i, col_codigo = ic[[1]], col_estado = ie[[1]]))
-    }
+    if (!length(ic) || !length(ie)) next
+    # Un bloque sin su pareja no participa: escribir en un STATUS MUESTRA cuya
+    # columna de codigo no existe seria marcar una fila a ciegas.
+    n <- min(length(ic), length(ie))
+    pares <- lapply(seq_len(n), function(k) list(codigo = ic[[k]], estado = ie[[k]]))
+    return(list(fila = i, pares = pares))
   }
   NULL
 }
 
-#' Arma el `remoto` de dos columnas que espera el motor de la excepcion.
+#' Arma el `remoto` de dos columnas de UN bloque, como lo espera el motor.
 #' @keywords internal
-.mapm_remoto <- function(valores, enc) {
-  cuerpo <- if (length(valores) > enc$fila) valores[(enc$fila + 1L):length(valores)] else list()
+.mapm_remoto <- function(valores, fila_enc, par) {
+  cuerpo <- if (length(valores) > fila_enc) valores[(fila_enc + 1L):length(valores)] else list()
   celda <- function(fila, j) {
     v <- unlist(fila, use.names = FALSE)
     if (length(v) >= j) .mapm_txt(v[[j]]) else ""
   }
   data.frame(
-    `CURSO-HORARIO` = vapply(cuerpo, celda, character(1), j = enc$col_codigo),
-    `STATUS MUESTRA` = vapply(cuerpo, celda, character(1), j = enc$col_estado),
+    `CURSO-HORARIO` = vapply(cuerpo, celda, character(1), j = par$codigo),
+    `STATUS MUESTRA` = vapply(cuerpo, celda, character(1), j = par$estado),
     check.names = FALSE, stringsAsFactors = FALSE
   )
+}
+
+#' El sheetId numerico de cada pestaña, que las requests de formato necesitan.
+#' @keywords internal
+.mapm_sheet_ids <- function(spreadsheet_id) {
+  url <- paste0(.monitoreo_sheets_api_base(spreadsheet_id), "?fields=sheets.properties")
+  meta <- tryCatch(.monitoreo_google_api(url), error = function(e) NULL)
+  out <- list()
+  for (h in (meta$sheets %||% list())) {
+    pr <- h$properties %||% list()
+    nombre <- .mapm_txt(pr$title)
+    if (nzchar(nombre)) out[[nombre]] <- as.integer(.monitoreo_scalar(pr$sheetId, NA_integer_))
+  }
+  out
+}
+
+#' Desplegable y color para las columnas que esta publicacion acaba de tocar.
+#'
+#' **Dos averias que se ven en pantalla y no en el resultado.** El valor escrito
+#' no pertenece al desplegable de esa columna, asi que Sheets lo marca con el
+#' triangulo rojo «el valor introducido debe ser un elemento de la lista
+#' especificada»; y el morado de `.mafs_REGLAS_STATUS_MUESTRA` no llega, porque
+#' la hoja es del equipo y la app no le reenvia formato.
+#'
+#' Se arregla SOLO en las columnas tocadas y sin borrar nada: la validacion se
+#' reemite con el vocabulario completo —`strict = FALSE`, asi que no pelea con
+#' lo que el equipo ya tenga escrito— y el color entra como regla condicional
+#' aditiva sobre ese texto exacto.
+#'
+#' @param sheet_id sheetId numerico de la pestaña.
+#' @param columnas columnas de STATUS MUESTRA tocadas (base 1).
+#' @param fila_enc fila del encabezado (base 1).
+#' @param n_filas filas de la pestaña.
+#' @return lista de requests de `:batchUpdate` (vacia si no hay columnas).
+#' @keywords internal
+.mapm_requests_de_columna <- function(sheet_id, columnas, fila_enc, n_filas) {
+  if (!length(columnas) || is.na(sheet_id)) return(list())
+  desde <- as.integer(fila_enc)      # base 0, primera fila de datos
+  hasta <- as.integer(max(n_filas, fila_enc + 1L))
+  regla <- .mafs_REGLAS_STATUS_MUESTRA[[1]]
+  reqs <- list()
+  for (col in columnas) {
+    reqs[[length(reqs) + 1L]] <- .mafs_validacion_request(
+      sheet_id, col, desde, hasta, aulas_libro_status_muestra(1L))
+    reqs[[length(reqs) + 1L]] <- list(addConditionalFormatRule = list(
+      rule = list(
+        ranges = list(list(
+          sheetId = sheet_id,
+          startRowIndex = desde, endRowIndex = hasta,
+          startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)
+        )),
+        booleanRule = list(
+          condition = list(type = "TEXT_EQ",
+                           values = list(list(userEnteredValue = regla$texto))),
+          format = list(
+            backgroundColor = .monitoreo_sheets_rgb(regla$fondo),
+            textFormat = list(bold = TRUE,
+                              foregroundColor = .monitoreo_sheets_rgb(regla$tinta))
+          )
+        )
+      ),
+      index = 0L
+    ))
+  }
+  reqs
 }
 
 #' Publica «REFUERZO POR CONTACTAR» en las celdas libres de la hoja de agenda.
@@ -108,6 +184,9 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
   }
 
   pendientes <- vapply(marcadas, function(r) .mapm_txt(r$operational_code), character(1))
+  # La metadata se pide UNA vez y solo si hace falta escribir formato.
+  sheet_ids <- NULL
+  formato_fallo <- ""
   escritas <- list()
   respetadas <- list()
   por_hoja <- list()
@@ -121,27 +200,41 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
     enc <- .mapm_encabezado(valores)
     if (is.null(enc)) next
 
-    # Solo lo que sigue pendiente: un codigo ya resuelto en la primera hoja no
-    # se vuelve a buscar ni a escribir en la segunda.
-    aun <- Filter(function(r) .mapm_txt(r$operational_code) %in% pendientes, marcadas)
-    out <- monitoreo_aulas_marcas_por_publicar(aun, .mapm_remoto(valores, enc))
-
     datos <- list()
-    for (e in out$escribibles) {
-      # Fila absoluta = encabezado + posicion en el cuerpo. La columna es la que
-      # trajo el propio encabezado: nunca una letra fija.
-      fila_abs <- enc$fila + e$fila
-      datos[[length(datos) + 1L]] <- list(
-        range = sprintf("'%s'!%s%d", gsub("'", "''", hoja),
-                        .mapm_letra(enc$col_estado), fila_abs),
-        values = list(list(e$texto))
-      )
-      escritas[[length(escritas) + 1L]] <- list(
-        codigo = e$codigo, hoja = hoja, fila = fila_abs)
-    }
-    for (r in out$respetadas) {
-      respetadas[[length(respetadas) + 1L]] <- list(
-        codigo = r$codigo, hoja = hoja, habia = r$habia)
+    columnas_tocadas <- integer(0)
+    n_respetadas <- 0L
+    # **Bloque a bloque.** Cada uno tiene su columna de codigo y su columna de
+    # estado, y un codigo aparece en UNO solo: el titular en el bloque 0, la
+    # primera reserva en el R1, y asi. Se recorren todos y lo que se resuelve en
+    # uno sale de la lista de pendientes.
+    for (par in enc$pares) {
+      if (!length(pendientes)) break
+      aun <- Filter(function(r) .mapm_txt(r$operational_code) %in% pendientes, marcadas)
+      if (!length(aun)) break
+      out <- monitoreo_aulas_marcas_por_publicar(aun, .mapm_remoto(valores, enc$fila, par))
+
+      for (e in out$escribibles) {
+        # Fila absoluta = encabezado + posicion en el cuerpo. La columna es la
+        # del BLOQUE que trajo el codigo: nunca una letra fija.
+        fila_abs <- enc$fila + e$fila
+        datos[[length(datos) + 1L]] <- list(
+          range = sprintf("'%s'!%s%d", gsub("'", "''", hoja),
+                          .mapm_letra(par$estado), fila_abs),
+          values = list(list(e$texto))
+        )
+        escritas[[length(escritas) + 1L]] <- list(
+          codigo = e$codigo, hoja = hoja, fila = fila_abs)
+        columnas_tocadas <- union(columnas_tocadas, par$estado)
+      }
+      for (r in out$respetadas) {
+        respetadas[[length(respetadas) + 1L]] <- list(
+          codigo = r$codigo, hoja = hoja, habia = r$habia)
+        n_respetadas <- n_respetadas + 1L
+      }
+      pendientes <- setdiff(pendientes, c(
+        vapply(out$escribibles, function(e) e$codigo, character(1)),
+        vapply(out$respetadas, function(r) r$codigo, character(1))
+      ))
     }
 
     celdas <- 0L
@@ -155,20 +248,38 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
         body = list(valueInputOption = "RAW", data = datos)
       )
       celdas <- as.integer(.monitoreo_scalar(r$totalUpdatedCells, length(datos)))
+      # **Y que la celda no salga en rojo ni en gris.** El valor escrito no esta
+      # en el desplegable de esa columna —«el valor introducido debe ser un
+      # elemento de la lista especificada», visto en pantalla el 2026-09-11— y el
+      # morado de la paleta no llega porque la hoja es del equipo y la app no le
+      # reenvia formato. Las dos cosas se arreglan SOLO en las columnas que esta
+      # publicacion acaba de tocar, que es hasta donde llega la excepcion.
+      ids <- if (is.null(sheet_ids)) { sheet_ids <<- .mapm_sheet_ids(id); sheet_ids } else sheet_ids
+      sid <- ids[[hoja]] %||% NA_integer_
+      if (!is.na(sid)) {
+        reqs <- .mapm_requests_de_columna(sid, columnas_tocadas, enc$fila, length(valores))
+        if (length(reqs)) {
+          tryCatch(
+            .monitoreo_google_api(
+              paste0(.monitoreo_sheets_api_base(id), ":batchUpdate"),
+              method = "POST", body = list(requests = reqs)),
+            # El valor ya esta escrito, que es lo que pidio Gonzalo. Si el
+            # formato no entra, se dice en el resultado y no se tumba la
+            # publicacion entera por un color.
+            error = function(e) { formato_fallo <<- conditionMessage(e); NULL }
+          )
+        }
+      }
     }
     por_hoja[[length(por_hoja) + 1L]] <- list(
       hoja = hoja, escribibles = length(datos), celdas = celdas,
-      respetadas = length(out$respetadas))
+      respetadas = n_respetadas)
 
-    resueltos <- c(
-      vapply(out$escribibles, function(e) e$codigo, character(1)),
-      vapply(out$respetadas, function(r) r$codigo, character(1))
-    )
-    pendientes <- setdiff(pendientes, resueltos)
   }
 
   out <- list(escritas = escritas, respetadas = respetadas,
-              sin_fila = pendientes, por_hoja = por_hoja, aplicado = isTRUE(aplicar))
+              sin_fila = pendientes, por_hoja = por_hoja,
+              formato_fallo = formato_fallo, aplicado = isTRUE(aplicar))
   out$mensaje <- monitoreo_aulas_publicar_marcas_texto(out)
   out
 }
@@ -192,5 +303,12 @@ monitoreo_aulas_publicar_marcas_texto <- function(out) {
     partes <- paste0(partes, sprintf("; %d sin fila en el libro (%s)", n_sin,
                                      paste(utils::head(out$sin_fila, 5L), collapse = ", ")))
   }
-  paste0(partes, ".")
+  partes <- paste0(partes, ".")
+  # El formato se dice aparte: el valor YA esta escrito, y confundir «no entro
+  # el color» con «no se pinto la celda» manda a mirar la hoja equivocada.
+  fallo <- .mapm_txt(out$formato_fallo %||% "")
+  if (nzchar(fallo)) {
+    partes <- paste0(partes, " El valor quedo escrito, pero el desplegable y el color no se pudieron ajustar: ", fallo)
+  }
+  partes
 }
