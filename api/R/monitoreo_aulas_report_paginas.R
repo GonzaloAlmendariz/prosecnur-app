@@ -50,20 +50,21 @@
 
   # El medidor, con la sobremuestra marcada sobre la MISMA barra: las dos metas
   # se leen en la misma regla o no se comparan.
-  y_med <- 0.612
-  grid::grid.text("CUÁNTO SE LLEVA DE CADA META", x = x0, y = y_med + 0.052,
-                  just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$soft, fontsize = ty$caption, fontface = "bold"))
-  pulso_pdf_medidor(x0, y_med, ancho, 0.026, .marp_num(t$avance, 0),
+  y_med <- 0.596
+  pulso_pdf_rotulo_seccion(x0, y_med + 0.062, "Cuánto se lleva de cada meta",
+                           tokens = tok, ty = ty, ancho = 0.072)
+  # Más fino: una barra gruesa se lee como un bloque de color y compite con las
+  # tarjetas de arriba. Con 0,016 es una regla cargada, que es lo que es.
+  pulso_pdf_medidor(x0, y_med, ancho, 0.016, .marp_num(t$avance, 0),
                     tokens = tok, tono = tok$navy)
   grid::grid.text(paste0(.marp_pct(t$avance), " de la muestra"),
-                  x = x0, y = y_med - 0.026, just = c("left", "bottom"),
+                  x = x0, y = y_med - 0.030, just = c("left", "bottom"),
                   gp = grid::gpar(col = tok$ink, fontsize = ty$footer, fontface = "bold"))
   sm <- .marp_num(t$sobremuestra, NA_real_)
   if (is.finite(sm) && sm > 0) {
     avance_sm <- .marp_num(t$conseguidas, 0) / sm
     grid::grid.text(paste0(.marp_pct(avance_sm), " de la sobremuestra (", .marp_personas(sm), ")"),
-                    x = x0 + ancho, y = y_med - 0.026, just = c("right", "bottom"),
+                    x = x0 + ancho, y = y_med - 0.030, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$soft, fontsize = ty$footer))
     # La marca de dónde cae la muestra dentro de la sobremuestra no se dibuja:
     # el medidor mide contra la muestra y dos escalas en una barra se confunden.
@@ -82,37 +83,41 @@
   filas <- general[!(as.character(general[[ind]]) %in% "Aulas asignadas"), , drop = FALSE]
   if (!nrow(filas)) return(invisible(NULL))
 
-  grid::grid.text("AVANCE GENERAL", x = x0, y = y_top + 0.044, just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$navy, fontsize = ty$section, fontface = "bold"))
-  grid::grid.text("Las mismas cifras de la hoja «Avance de campo» del libro del operativo.",
-                  x = x0, y = y_top + 0.022, just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
+  pulso_pdf_rotulo_seccion(
+    x0, y_top + 0.058, "Avance general",
+    bajada = "Las mismas cifras de la hoja «Avance de campo» del libro del operativo.",
+    tokens = tok, ty = ty, ancho = 0.052)
 
   w_rot <- 0.300
   w_col <- (ancho - w_rot) / 3
   xs <- c(x0, x0 + w_rot, x0 + w_rot + w_col, x0 + w_rot + 2 * w_col, x0 + ancho)
   alto <- 0.036
 
-  grid::grid.rect(x = x0, y = y_top - 0.030, width = ancho, height = 0.030,
-                  just = c("left", "bottom"),
-                  gp = grid::gpar(fill = tok$tbl_header, col = tok$tbl_frame, lwd = 0.6))
+  # Sin banda de relleno: dos hairlines bastan para acotar el encabezado y dejan
+  # la tabla más liviana que un bloque de color.
+  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = 0.9)
   for (k in 2:4) {
-    grid::grid.text(names(general)[[k]], x = xs[k + 1L] - 0.010, y = y_top - 0.021,
-                    just = c("right", "bottom"),
-                    gp = grid::gpar(col = tok$navy, fontsize = ty$footer, fontface = "bold"))
+    grid::grid.text(pulso_pdf_versalitas(names(general)[[k]]), x = xs[k + 1L] - 0.010,
+                    y = y_top - 0.021, just = c("right", "bottom"),
+                    gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
   }
-  grid::grid.text(ind, x = x0 + 0.010, y = y_top - 0.021, just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$navy, fontsize = ty$footer, fontface = "bold"))
+  grid::grid.text(pulso_pdf_versalitas(ind), x = x0 + 0.010, y = y_top - 0.021,
+                  just = c("left", "bottom"),
+                  gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = 0.5)
 
   proporciones <- AULAS_AVANCE_PROPORCIONES$general %||% character(0)
   y <- y_top - 0.030 - alto
   for (i in seq_len(nrow(filas))) {
     rotulo <- as.character(filas[[ind]][[i]])
-    if (i %% 2L == 0L) {
+    # Las filas de porcentaje llevan un fondo tenue; las demás van limpias. La
+    # zebra alterna por posición y no por significado, así que pintaba de gris
+    # filas que no tienen nada en común.
+    destacada <- rotulo %in% proporciones
+    if (destacada) {
       grid::grid.rect(x = x0, y = y, width = ancho, height = alto, just = c("left", "bottom"),
                       gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
     }
-    destacada <- rotulo %in% proporciones
     grid::grid.text(rotulo, x = x0 + 0.010, y = y + alto / 2, just = c("left", "centre"),
                     gp = grid::gpar(col = tok$ink, fontsize = ty$body,
                                     fontface = if (destacada) "bold" else "plain"))

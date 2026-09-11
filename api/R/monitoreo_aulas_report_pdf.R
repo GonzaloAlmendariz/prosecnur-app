@@ -204,17 +204,14 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   pulso_pdf_abrir(output_file, geo = geo)
   on.exit(grDevices::dev.off(), add = TRUE)
 
-  # LA CABECERA SE SEPARA MÁS EN APAISADO. El kit separa título y subtítulo
-  # 0,016 npc, que en A4 vertical son ~4,7 mm y en apaisado ~3,3: con un título
-  # de 15 pt el subtítulo queda debajo de la caja del título y se pisan. Visto
-  # renderizando a PNG, no leyendo el código. Los tres `y` son parámetros del
-  # kit justamente para esto.
-  y_tit <- 0.955; y_sub <- 0.905; y_reg <- 0.870
 
   # Cuántas filas entran por página: se calcula, no se adivina, para que la
   # última página no quede con una fila colgando fuera del marco.
   alto_fila <- 0.040
-  y_tabla <- 0.66
+  # La tabla arranca justo bajo el cromo: con 0,645 quedaban veinte milímetros
+  # de página en blanco entre la regla y la primera fila, y las quince
+  # facultades se partían en dos hojas sin necesidad.
+  y_tabla <- 0.755
   por_pagina <- max(1L, floor((y_tabla - 0.10) / alto_fila))
   paginas <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_pagina))
 
@@ -259,13 +256,28 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   # las de la tabla: `pag` se incrementa en cada `grid.newpage()`. La portada no
   # lleva número ni pie —una portada numerada se lee como si faltara algo antes—.
   ancho_util <- 1 - 2 * x0
+
+  # El total de páginas se cuenta ANTES de dibujar: el folio «03 / 09» necesita
+  # el denominador en la primera página, no en la última.
+  ritmo_previo <- model$ritmo
+  hay_ritmo <- is.list(ritmo_previo) && is.data.frame(ritmo_previo$total) && nrow(ritmo_previo$total)
+  n_paneles <- if (hay_ritmo) length(ritmo_previo$facultades %||% list()) else 0L
+  total_paginas <- 1L +                                        # resumen
+    (if (hay_ritmo) 1L else 0L) +                              # ritmo global
+    (if (n_paneles) ceiling(n_paneles / 8) else 0L) +           # ritmo por facultad
+    1L +                                                        # metas por facultad
+    ceiling(nrow(df) / .marp_filas_por_pagina_avance()) +        # avance visual
+    length(paginas)                                             # detalle numérico
+
+  antetitulo <- "Monitoreo de cursos-horario"
   pag <- 0L
-  nueva <- function(sec_titulo, sec_subtitulo) {
+  nueva <- function(sec_titulo, sec_subtitulo, derecha = "") {
     grid::grid.newpage()
     pag <<- pag + 1L
-    pulso_pdf_header(sec_titulo, sec_subtitulo, tokens = tok, geo = geo,
-                     y_titulo = y_tit, y_subtitulo = y_sub, y_regla = y_reg)
+    pulso_pdf_cromo(antetitulo, sec_titulo, sec_subtitulo, tokens = tok, ty = ty,
+                    geo = geo, derecha = derecha)
   }
+  pie <- function() pulso_pdf_pie(pag, total_paginas, periodo, tokens = tok, ty = ty, geo = geo)
 
   if (isTRUE(con_portada)) {
     port <- pulso_pdf_portada_normalizar(
@@ -287,13 +299,13 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   nueva("Resumen del avance", "Dónde está el campo respecto de la muestra del diseño")
   .marp_pagina_resumen(model, tok, ty, geo, x0, ancho_util)
-  pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+  pie()
 
   ritmo <- model$ritmo
   if (is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total)) {
     nueva("Ritmo del campo", "Encuestas efectivas por jornada y acumulado contra las metas")
     .marp_pagina_ritmo(ritmo, tok, ty, geo, x0, ancho_util)
-    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+    pie()
 
     paneles <- ritmo$facultades %||% list()
     if (length(paneles)) {
@@ -310,7 +322,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
           list(texto = "Acumulado", color = tok$success, forma = "linea"),
           list(texto = "Meta de la facultad", color = tok$danger, forma = "linea", lty = 2)
         ), tokens = tok, ty = ty)
-        pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+        pie()
       }
     }
   }
@@ -318,7 +330,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   # «Metas por facultad»: el gráfico que ya se lee en pantalla, en el documento.
   nueva("Metas por facultad", "Lo conseguido dentro de la cuota de cada facultad, hombres y mujeres")
   .marp_pagina_metas(df, tok, ty, geo, x0, ancho_util)
-  pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+  pie()
 
   # La lectura visual del avance, antes del detalle numérico: responde «cómo va»
   # de un vistazo; la tabla de diecisiete columnas responde «cuánto exactamente».
@@ -331,7 +343,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
           } else "Efectivas conseguidas contra la cuota de cada sexo")
     .marp_pagina_avance_visual(df, hojas_avance[[h]], tok, ty, x0, ancho_util,
                                aulas_plan = model$aulas_planificadas %||% numeric(0))
-    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+    pie()
   }
 
   for (p in seq_along(paginas)) {
@@ -380,13 +392,11 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                         height = alto_fila, just = c("left", "bottom"),
                         gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
       }
-      # La que no ha cerrado lleva un filete de acento a la izquierda: el color
-      # no es el único portador —la columna «Faltan» dice lo mismo— pero ayuda
-      # a encontrarlas de un vistazo.
-      if (abierta) {
-        grid::grid.rect(x = x0, y = y, width = 0.004, height = alto_fila,
-                        just = c("left", "bottom"), gp = grid::gpar(fill = tok$danger, col = NA))
-      }
+      # SIN filete de acento. Estando el campo a mitad, casi todas las facultades
+      # están abiertas y el filete pintaba una columna roja continua de arriba
+      # abajo: deja de señalar nada y le da al documento un tono de alarma que
+      # el dato no tiene. Lo que falta ya lo dicen las columnas «Faltan».
+      invisible(abierta)
       for (i in seq_along(columnas)) {
         c <- columnas[[i]]
         v <- fila[[c$campo]]
@@ -423,7 +433,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
         chars = pulso_pdf_chars(ancho), fontsize = ty$foot,
         col = tok$faint, line_h = 0.022)
     }
-    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+    pie()
   }
   invisible(output_file)
 }
