@@ -41,6 +41,12 @@ const OTRO_SUJETO = new Map<string, string>([
   // acuerdo con el docente — el sentido en que «cita» sigue siendo la
   // palabra tras el barrido citas→aplicaciones), no el curso-horario.
   ["Fechas distintas con al menos una cita agendada", "la CITA pactada con el docente, femenina"],
+  // El verbo con el que termina cada fila de «Cada cadena, eslabón a eslabón»:
+  // lo que se cierra ahí es la CADENA —la unidad de esa superficie, y femenina
+  // en todo el perfil desde que existe «Cadena de reemplazos»—, no el
+  // curso-horario. Su vecina «cerrada por {código}» no la ve este detector
+  // porque va interpolada, y es el mismo sujeto.
+  ["cerrada por su titular", "la CADENA de reemplazos, que es la unidad de esa vista"],
 ]);
 
 /**
