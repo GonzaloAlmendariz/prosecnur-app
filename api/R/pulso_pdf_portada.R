@@ -49,75 +49,102 @@ pulso_pdf_portada_normalizar <- function(defectos = list(), usuario = list()) {
 #' @export
 pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
                               ty = pulso_pdf_type(), geo = pulso_pdf_geo("landscape"),
-                              destacados = list()) {
+                              destacados = list(), antetitulo = "") {
   m <- geo$margin
-  banda <- 0.30
+  banda <- 0.365
 
   grid::grid.rect(x = 0, y = 0, width = 1, height = 1, just = c("left", "bottom"),
                   gp = grid::gpar(fill = tokens$surface, col = NA))
   grid::grid.rect(x = 0, y = 0, width = banda, height = 1, just = c("left", "bottom"),
                   gp = grid::gpar(fill = tokens$navy, col = NA))
 
-  # El logo va sobre la banda navy, así que se dibuja en su versión de texto
-  # blanco si el PNG no carga: el fallback del kit escribe en navy y sobre navy
-  # no se vería.
-  if (!.pulso_pdf_portada_logo(banda / 2, 0.86, geo = geo)) {
-    grid::grid.text("PULSO PUCP", x = banda / 2, y = 0.86, just = c("centre", "centre"),
-                    gp = grid::gpar(col = "#ffffff", fontsize = 13, fontface = "bold"))
+  # --- La banda: logo arriba, procedencia abajo -----------------------------
+  #
+  # La primera versión dejaba la banda con el logo y nada más: un tercio de
+  # página en azul vacío, que no es sobriedad sino hueco. Los metadatos viven
+  # aquí porque son la FICHA del documento —para quién, de cuándo, con qué
+  # datos— y no el mensaje; en la columna blanca competían con el título.
+  x_banda <- 0.062
+  if (!.pulso_pdf_portada_logo(x_banda, 0.905, geo = geo, just = c("left", "centre"))) {
+    grid::grid.text("PULSO PUCP", x = x_banda, y = 0.905, just = c("left", "centre"),
+                    gp = grid::gpar(col = tokens$sobre_navy, fontsize = 13, fontface = "bold"))
   }
 
-  izq <- banda + 0.055
-  ancho <- 1 - izq - m
-
-  .form_pdf_text(portada$titulo, x = izq, y = 0.800, w = ancho,
-                 chars = pulso_pdf_chars(ancho, factor = 46), fontsize = 30,
-                 fontface = "bold", col = tokens$navy, line_h = 0.058)
-
-  if (nzchar(portada$subtitulo)) {
-    .form_pdf_text(portada$subtitulo, x = izq, y = 0.630, w = ancho,
-                   chars = pulso_pdf_chars(ancho, factor = 95), fontsize = 13,
-                   col = tokens$soft, line_h = 0.028)
-  }
-
-  grid::grid.lines(x = grid::unit(c(izq, izq + 0.085), "npc"), y = grid::unit(0.565, "npc"),
-                   gp = grid::gpar(col = tokens$navy, lwd = 2.4))
-
-  # Los metadatos van APILADOS y no en tres columnas. En columnas, «Pontificia
-  # Universidad Católica del Perú» mide más que su tercio y se monta sobre el
-  # periodo de al lado; repartir por ancho medido tampoco sirve, porque el campo
-  # lo escribe el usuario y su largo no se conoce al maquetar.
   meta <- list(
     list("Preparado para", portada$cliente),
     list("Periodo de campo", portada$periodo),
     list("Datos al", portada$corte)
   )
   meta <- Filter(function(p) nzchar(p[[2L]]), meta)
-  y <- 0.490
+  w_banda <- banda - x_banda - 0.030
+  y <- 0.455
   for (p in meta) {
-    grid::grid.text(toupper(p[[1L]]), x = izq, y = y, just = c("left", "bottom"),
-                    gp = grid::gpar(col = tokens$faint, fontsize = ty$caption, fontface = "bold"))
-    .form_pdf_text(p[[2L]], x = izq, y = y - 0.014, w = ancho,
-                   chars = pulso_pdf_chars(ancho, factor = 110), fontsize = 11.5,
-                   col = tokens$ink, line_h = 0.026)
-    y <- y - 0.082
+    grid::grid.lines(x = grid::unit(c(x_banda, x_banda + 0.030), "npc"),
+                     y = grid::unit(y + 0.034, "npc"),
+                     gp = grid::gpar(col = tokens$sobre_navy_tenue, lwd = 0.7))
+    grid::grid.text(pulso_pdf_versalitas(p[[1L]]), x = x_banda, y = y + 0.012,
+                    just = c("left", "bottom"),
+                    gp = grid::gpar(col = tokens$sobre_navy_tenue, fontsize = 5.8,
+                                    fontface = "bold"))
+    .form_pdf_text(p[[2L]], x = x_banda, y = y - 0.004, w = w_banda,
+                   chars = pulso_pdf_chars(w_banda, factor = 108), fontsize = 10.5,
+                   col = tokens$sobre_navy, line_h = 0.026)
+    y <- y - 0.112
   }
 
+  # --- La columna blanca: antetítulo, título, bajada y las cifras -----------
+  izq <- banda + 0.062
+  ancho <- 1 - izq - m
+
+  if (nzchar(antetitulo %||% "")) {
+    grid::grid.text(pulso_pdf_versalitas(antetitulo), x = izq, y = 0.905,
+                    just = c("left", "centre"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+  }
+
+  # El título NO usa todo el ancho de su columna: se le da el 78 %, para que
+  # rompa en dos líneas parejas en vez de dejar una sola palabra colgando. Un
+  # título compuesto se mide por el equilibrio de sus líneas, no por cuántas
+  # palabras caben en la primera.
+  w_titulo <- ancho * 0.78
+  .form_pdf_text(portada$titulo, x = izq, y = 0.735, w = w_titulo,
+                 chars = pulso_pdf_chars(w_titulo, factor = 44), fontsize = 27,
+                 fontface = "bold", col = tokens$navy, line_h = 0.054)
+
+  grid::grid.lines(x = grid::unit(c(izq, izq + 0.062), "npc"), y = grid::unit(0.565, "npc"),
+                   gp = grid::gpar(col = tokens$navy, lwd = 2.4))
+
+  if (nzchar(portada$subtitulo)) {
+    .form_pdf_text(portada$subtitulo, x = izq, y = 0.530, w = ancho,
+                   chars = pulso_pdf_chars(ancho, factor = 95), fontsize = 12,
+                   col = tokens$soft, line_h = 0.028)
+  }
+
+  # Las cifras van SIN tarjeta: en la página 2 el panel las agrupa entre otras
+  # cinco, pero en una portada una caja con relleno se lee como un recorte
+  # pegado. Aquí las separa una hairline y las ordena el mismo aire.
   if (length(destacados)) {
-    ancho_k <- (ancho - 0.018 * (length(destacados) - 1L)) / length(destacados)
+    pulso_pdf_hairline(izq, izq + ancho, 0.250, tokens = tokens, lwd = 0.9)
+    ancho_k <- ancho / length(destacados)
     for (k in seq_along(destacados)) {
       d <- destacados[[k]]
-      x0 <- izq + (k - 1L) * (ancho_k + 0.018)
-      pulso_pdf_panel(x0, 0.085, ancho_k, 0.145, tokens = tokens, fill = tokens$canvas,
-                      col = tokens$rule)
-      grid::grid.text(toupper(d$rotulo), x = x0 + 0.016, y = 0.205, just = c("left", "top"),
-                      gp = grid::gpar(col = tokens$soft, fontsize = ty$caption, fontface = "bold"))
-      grid::grid.text(d$valor, x = x0 + 0.016, y = 0.112, just = c("left", "bottom"),
-                      gp = grid::gpar(col = tokens$navy, fontsize = 22, fontface = "bold"))
+      x0 <- izq + (k - 1L) * ancho_k
+      if (k > 1L) {
+        grid::grid.lines(x = grid::unit(c(x0 - 0.018, x0 - 0.018), "npc"),
+                         y = grid::unit(c(0.115, 0.225), "npc"),
+                         gp = grid::gpar(col = tokens$rule, lwd = 0.5))
+      }
+      grid::grid.text(d$valor, x = x0, y = 0.160, just = c("left", "bottom"),
+                      gp = grid::gpar(col = tokens$navy, fontsize = 21, fontface = "bold"))
+      grid::grid.text(pulso_pdf_versalitas(d$rotulo), x = x0, y = 0.130,
+                      just = c("left", "bottom"),
+                      gp = grid::gpar(col = tokens$faint, fontsize = 5.8, fontface = "bold"))
     }
+    pulso_pdf_hairline(izq, izq + ancho, 0.105, tokens = tokens, lwd = 0.5)
   }
 
   if (nzchar(portada$nota)) {
-    .form_pdf_text(portada$nota, x = izq, y = 0.062, w = ancho,
+    .form_pdf_text(portada$nota, x = izq, y = 0.078, w = ancho,
                    chars = pulso_pdf_chars(ancho, factor = 150), fontsize = ty$caption,
                    col = tokens$faint, line_h = 0.020)
   }
@@ -126,7 +153,8 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
 
 # El logo sobre fondo navy: mismo dibujo que el del kit, pero sin el fallback en
 # navy. Devuelve TRUE si pudo pintar la imagen.
-.pulso_pdf_portada_logo <- function(x, y, geo = pulso_pdf_geo("landscape"), width_npc = 0.170) {
+.pulso_pdf_portada_logo <- function(x, y, geo = pulso_pdf_geo("landscape"),
+                                    width_npc = 0.170, just = c("centre", "centre")) {
   path <- .pulso_pdf_logo_path()
   if (is.na(path) || !requireNamespace("png", quietly = TRUE)) return(FALSE)
   img <- tryCatch(png::readPNG(path), error = function(e) NULL)
@@ -143,7 +171,7 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
     img <- blanco
   }
   grid::grid.raster(img, x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
-                    just = c("centre", "centre"), interpolate = TRUE,
+                    just = just, interpolate = TRUE,
                     width = grid::unit(width_npc, "npc"), height = grid::unit(h_npc, "npc"))
   TRUE
 }

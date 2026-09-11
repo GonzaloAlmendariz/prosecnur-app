@@ -286,7 +286,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     )
     t <- model$total
     grid::grid.newpage()
-    pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo, destacados = list(
+    pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo,
+                      antetitulo = "Monitoreo de cursos-horario", destacados = list(
       list(rotulo = "Avance de la muestra", valor = .marp_pct(t$avance)),
       list(rotulo = "Encuestas efectivas", valor = .marp_personas(t$conseguidas)),
       list(rotulo = "Cursos-horario aplicados", valor = .marp_personas(t$aulas_aplicadas))

@@ -34,6 +34,11 @@ pulso_pdf_tokens <- function() {
     tbl_div    = "#c9d1de",  # divisor de columnas
     canvas     = "#f6f8fb",  # lienzo de fondo (dashboards)
     surface    = "#ffffff",  # tarjetas/paneles
+    # Sobre fondo navy (portadas, bandas): el blanco para la cifra y un azul
+    # lavado para el rótulo. Un gris neutro sobre navy se ve sucio; el rótulo
+    # tiene que ser el MISMO tono de la marca, sólo más claro.
+    sobre_navy = "#ffffff",
+    sobre_navy_tenue = "#8ea8cc",
     # Sexo: los MISMOS valores que la app en pantalla
     # (`--pulso-module-dashboard` y `--pulso-accent-rose` de `tokens.css`). Van
     # copiados y no derivados porque el PDF no puede leer el CSS, y van copiados
