@@ -1,5 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { aulasQueSeMetieron, repartoDelAporte, type AulaQueSeMetio } from "./aporteDelAbc";
+import { aulasQueSeMetieron, type AulaQueSeMetio } from "./aporteDelAbc";
 
 /**
  * **Los tres caminos del libro, cada uno con su naturaleza.**
@@ -84,11 +84,31 @@ export function caminosDelLibro(
     return { declarados, enCurso };
   };
 
+  /**
+   * El reparto por sexo de UN camino, sea el que sea.
+   *
+   * `repartoDelAporte` separa por su cuenta lo neto de lo que repone y sólo
+   * publica el sexo de lo primero, así que la tarjeta de A —que repone— se
+   * quedaba sin su reparto aunque el dato estuviera: «10 respuestas repuestas»
+   * a secas, con las 1.392 filas del plan trayendo ya `validas_mujeres`.
+   * Y el sexo de lo repuesto importa igual: repone una celda, y con qué la
+   * repone decide si la cuota de la facultad se mueve o no.
+   *
+   * **Sólo se publica si TODAS lo traen.** Con la mitad sin sexo, «trajo 40
+   * mujeres» sería una cifra sobre parte de los cursos-horario presentada como
+   * si fuera sobre todos.
+   */
   const cifras = (aplicados: AulaQueSeMetio[]) => {
-    const r = repartoDelAporte(aplicados);
+    const conSexo = aplicados.filter((a) => a.porSexo);
+    const completo = aplicados.length > 0 && conSexo.length === aplicados.length;
     return {
       respuestas: aplicados.reduce((n, a) => n + a.efectivas, 0),
-      porSexo: r.gananciaPorSexo ?? (aplicados.length ? null : { mujeres: 0, hombres: 0 }),
+      porSexo: completo
+        ? {
+          mujeres: conSexo.reduce((n, a) => n + a.porSexo!.mujeres, 0),
+          hombres: conSexo.reduce((n, a) => n + a.porSexo!.hombres, 0),
+        }
+        : aplicados.length ? null : { mujeres: 0, hombres: 0 },
     };
   };
 
