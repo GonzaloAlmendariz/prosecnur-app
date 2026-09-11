@@ -256,9 +256,9 @@ function Candidato({
                     pr.tasa,
                     // De dónde sale la tasa, porque no es lo mismo medida sobre
                     // este curso-horario que prestada de su facultad.
-                    pr.deDondeLaTasa === "aula" ? "medida suya"
-                      : pr.deDondeLaTasa === "facultad" ? "de su facultad"
-                      : "del perfil, sin medida propia",
+                    pr.deDondeLaTasa === "aula" ? "tasa observada en él"
+                      : pr.deDondeLaTasa === "facultad" ? "tasa de su facultad"
+                      : "tasa del perfil, sin medición propia",
                   )}
                 </tbody>
               </table>

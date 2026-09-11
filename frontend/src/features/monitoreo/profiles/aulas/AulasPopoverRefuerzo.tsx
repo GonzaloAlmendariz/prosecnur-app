@@ -109,9 +109,23 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
   // El nombre se normaliza UNA vez y se usa en las seis veces que aparece; el
   // filtro sigue mirando el nombre crudo, que es la clave del payload.
   const facultad = facultadCorta(facultadCruda);
+  /**
+   * **El déficit contra el que se mide cada candidato descuenta lo agendado.**
+   *
+   * Gonzalo, 2026-09-11: «el déficit sigue diciendo quedarían 65 pero no
+   * contextualiza los CH ya agendados». Tenía razón y era la misma
+   * contradicción del veredicto, repetida en cada tarjeta: arriba decía que lo
+   * agendado cubre la cuota y debajo cada candidato seguía restando sobre los
+   * 82 brutos.
+   *
+   * Con el déficit ya cubierto queda en cero y el orden pasa a regirse por lo
+   * que rinden, que es lo correcto: ahí la lista ya no es un plan de cierre
+   * sino un respaldo, y lo que importa de un respaldo es cuánto trae.
+   */
+  const loQueQueda = deficit ? deficit.quedaria : deuda;
   const candidatos = useMemo(
-    () => refuerzosDeFacultad(filas, facultadCruda, deuda),
-    [filas, facultadCruda, deuda],
+    () => refuerzosDeFacultad(filas, facultadCruda, loQueQueda),
+    [filas, facultadCruda, loQueQueda],
   );
   /**
    * **El veredicto mide el déficit que QUEDA, no el bruto.**
@@ -121,7 +135,6 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
    * contradiciéndose, porque una descontaba lo que ya viene y la otra no. Quien
    * lee se queda con la que pide acción, que aquí es la equivocada.
    */
-  const loQueQueda = deficit ? deficit.quedaria : deuda;
   const plan = useMemo(
     () => planDeRefuerzo(candidatos, loQueQueda),
     [candidatos, loQueQueda],
@@ -260,7 +273,8 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
             {candidatos.map((c, i) => (
               <TarjetaDeRefuerzo
                 key={String(c.fila.operational_code || c.fila.classroom_id || i)}
-                c={c} puesto={i + 1} deficit={debeM + debeH} onElegir={onElegir}
+                c={c} puesto={i + 1} deficit={loQueQueda.mujeres + loQueQueda.hombres}
+                onElegir={onElegir}
               />
             ))}
           </ol>
@@ -326,12 +340,25 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
               facultad que empieza de una que va por la mitad. Y no se descuenta
               nada —un alumno cuenta en varias listas, así que el cociente es
               sobre cupos y no sobre gente—: avisa, no corrige. */}
-          {c.exposicionDeLaFacultad >= 0.5 ? (
-            <span className="aulas-refuerzo-aviso es-traslape">
-              El {pctPerfil(c.exposicionDeLaFacultad * 100)} de los cupos de su facultad ya
-              se aplicó: parte de estos elegibles ya habrá respondido
-            </span>
-          ) : null}
+          {/* **El traslape se enseña SIEMPRE**, incluso al 0 %. Gonzalo,
+              2026-09-11: «no necesito que me lo muestres sólo cuando es algo,
+              necesito que el traslape lo muestres siempre».
+              
+              Y tiene razón: un 0 % informa —ningún curso-horario de esa
+              facultad se ha aplicado todavía, así que no hay con qué
+              solaparse— mientras que la ausencia del renglón obliga a suponer
+              cuál de las dos cosas pasa. La tinta de alarma sí depende del
+              umbral: lo que cambia con el valor es cuánto pesa, no si se
+              sabe. */}
+          <span className={`aulas-refuerzo-aviso es-traslape${c.exposicionDeLaFacultad >= 0.5 ? " es-fuerte" : ""}`}>
+            Traslape estimado: el {pctPerfil(c.exposicionDeLaFacultad * 100)} de los cupos de
+            su facultad ya se aplicó
+            {c.exposicionDeLaFacultad >= 0.5
+              ? ", así que parte de estos elegibles ya habrá respondido"
+              : c.exposicionDeLaFacultad <= 0
+                ? ": todavía no hay con qué solaparse"
+                : ""}
+          </span>
           {/* **Las mismas tres varas que el popover de reemplazo.** Es la misma
               decisión vista desde el otro extremo, y con dos lenguajes distintos
               había que reaprender la lectura al cambiar de pantalla. Aquí pesan
@@ -375,9 +402,9 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
                   {/* De dónde sale la tasa: medida sobre este curso-horario o
                       prestada de su facultad. No son lo mismo. */}
                   <em>
-                    {pr.deDondeLaTasa === "aula" ? "medida suya"
-                      : pr.deDondeLaTasa === "facultad" ? "de su facultad"
-                      : "del perfil, sin medida propia"}
+                    {pr.deDondeLaTasa === "aula" ? "tasa observada en él"
+                      : pr.deDondeLaTasa === "facultad" ? "tasa de su facultad"
+                      : "tasa del perfil, sin medición propia"}
                   </em>
                 </th>
                 <td className="es-tasa">{pctPerfil(pr.tasa * 100)}</td>
@@ -417,15 +444,23 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
             renglones que se leen en cadena en vez de tres cifras que hay que
             reconciliar. */}
         <span className="aulas-refuerzo-cubre">
-          <em>cubre del déficit</em>
+          {/* Sin déficit que cubrir —lo agendado ya lo tapó— la fracción no
+              tiene denominador y hablar de «cubrir» sería falso: lo que aporta
+              un respaldo es lo que trae. */}
+          <em>{deficit > 0 ? "cubre del déficit" : "aportaría"}</em>
           <b>
-            {fmt(c.util)} <i>de {fmt(deficit)}</i>
+            {deficit > 0
+              ? <>{fmt(c.util)} <i>de {fmt(deficit)}</i></>
+              : <>{fmt(c.aporta.total)} <i>respuestas</i></>}
           </b>
-          <span className="aulas-refuerzo-carril" aria-hidden="true">
-            <b style={{ width: `${Math.min(100, Math.round(c.cierra * 100))}%` }} />
-          </span>
+          {deficit > 0 ? (
+            <span className="aulas-refuerzo-carril" aria-hidden="true">
+              <b style={{ width: `${Math.min(100, Math.round(c.cierra * 100))}%` }} />
+            </span>
+          ) : null}
           <span className="aulas-refuerzo-resto">
-            {!c.util ? "no reduce el déficit"
+            {deficit <= 0 ? "la cuota ya está cubierta"
+              : !c.util ? "no reduce el déficit"
               : queda ? `quedarían ${fmt(queda)}`
               : "lo cubre entero"}
           </span>
