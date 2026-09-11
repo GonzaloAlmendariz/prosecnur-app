@@ -5,6 +5,12 @@
 # toca `monitoreo_aulas_activar_reemplazo()`, que es el camino de A: son dos
 # circuitos y mezclarlos haria que la app escribiera donde el equipo ya escribe.
 #
+# DONDE SE VE, hoy: solo en la app. El morado de `.mafs_REGLAS_STATUS_MUESTRA`
+# se pinta en «Aulas Agendadas» y «Aulas Aplicadas (Campo)», y las dos son del
+# EQUIPO —`respetada`, ni una escritura con contenido remoto—. Para que el
+# agendador lo vea en el Sheets hace falta una hoja de la APP, que es decision
+# de Gonzalo y no se da por hecha aqui.
+#
 # Y por eso el estado NO es `agendada`. Gonzalo, el mismo dia: «un refuerzo
 # tampoco es una aplicacion garantizada; tambien hay que contactarlo y recien se
 # agenda previa su confirmacion». Dejarla en `agendada` la meteria en el aforo
@@ -82,6 +88,12 @@ monitoreo_aulas_marcar_refuerzo_texto <- function(out) {
   cod <- .mar_txt(fila$operational_code, "el curso-horario")
   tipo <- .mar_txt(fila$activation_origin, "refuerzo")
   para <- .mar_txt(fila$activated_for)
-  sprintf("%s queda como %s por contactar%s. El agendador lo vera en morado en el libro.",
+  # **Lo que se promete es lo que se puede cumplir.** El morado esta definido en
+  # la paleta, pero las dos hojas donde se pinta STATUS MUESTRA —«Aulas
+  # Agendadas» y «Aulas Aplicadas (Campo)»— son del EQUIPO: la app las declara
+  # `respetada` y no emite una sola escritura sobre ellas mientras tengan
+  # contenido. Asi que hoy esta marca vive SOLO en la app, y decir otra cosa
+  # mandaria al agendador a buscar un color que nadie va a escribir.
+  sprintf("%s queda como %s por contactar%s. Por ahora se ve en la app: las hojas de agenda son del equipo y la app no escribe en ellas.",
           cod, tipo, if (nzchar(para)) sprintf(" para %s", para) else "")
 }
