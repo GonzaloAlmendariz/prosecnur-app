@@ -139,9 +139,9 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
   n <- length(dias)
   if (!n) return(invisible(NULL))
   diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
-  # En panel pequeño el cuerpo baja a 4,6: con 5,2 la cifra del día y la del
-  # acumulado se tocaban en las facultades donde ambas series van juntas.
-  fs <- if (compacto) 4.6 else ty$caption
+  # En panel pequeño el cuerpo baja un punto respecto del caption del
+  # documento, no más: por debajo de 6 pt una cifra impresa deja de leerse.
+  fs <- if (compacto) max(6.2, ty$caption - 1.2) else ty$caption
   metas <- metas[is.finite(metas)]
 
   # El tope del acumulado incluye las metas: una meta fuera de la caja no se ve
@@ -312,29 +312,54 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
   invisible(NULL)
 }
 
-#' Leyenda horizontal de series (una muestra de color + su nombre).
+#' Leyenda horizontal de series.
+#'
+#' `centrado = TRUE` la compone respecto del eje de la caja que se le pase, en
+#' vez de alinearla a la izquierda. Una leyenda pegada al margen izquierdo con
+#' media página vacía a su derecha se lee como un resto; centrada bajo su
+#' gráfico se lee como parte de él.
+#'
+#' El ancho se MIDE, no se supone: cada entrada aporta su muestra, su aire y el
+#' texto estimado por el número de caracteres y el cuerpo. Sin medir no hay
+#' centro posible.
 #' @export
 pulso_pdf_leyenda <- function(x, y, entradas, tokens = pulso_pdf_tokens(),
-                              ty = pulso_pdf_type(), fontsize = NULL) {
+                              ty = pulso_pdf_type(), fontsize = NULL,
+                              centrado = FALSE, ancho = NULL) {
+  if (!length(entradas)) return(invisible(NULL))
   fs <- fontsize %||% ty$caption
-  cx <- x
+  muestra <- 0.016
+  aire_muestra <- 0.009
+  separacion <- 0.032
+  ancho_txt <- function(txt) nchar(txt) * fs * 0.00082
+
+  anchos <- vapply(entradas, function(e) muestra + aire_muestra + ancho_txt(e$texto),
+                   numeric(1))
+  total <- sum(anchos) + separacion * (length(entradas) - 1L)
+  cx <- if (isTRUE(centrado)) x + ((ancho %||% (1 - 2 * x)) - total) / 2 else x
+
   for (k in seq_along(entradas)) {
     e <- entradas[[k]]
     forma <- e$forma %||% "barra"
     if (identical(forma, "contorno")) {
-      grid::grid.rect(x = cx, y = y, width = 0.014, height = 0.012,
+      grid::grid.rect(x = cx, y = y, width = muestra, height = 0.011,
                       just = c("left", "centre"),
                       gp = grid::gpar(fill = NA, col = e$color, lwd = 0.8))
     } else if (identical(forma, "linea")) {
-      grid::grid.lines(x = grid::unit(c(cx, cx + 0.020), "npc"), y = grid::unit(y, "npc"),
-                       gp = grid::gpar(col = e$color, lwd = 1.8, lty = e$lty %||% 1))
+      grid::grid.lines(x = grid::unit(c(cx, cx + muestra), "npc"), y = grid::unit(y, "npc"),
+                       gp = grid::gpar(col = e$color, lwd = 1.6, lty = e$lty %||% 1))
+      if (is.null(e$lty) || identical(e$lty, 1)) {
+        grid::grid.circle(x = cx + muestra / 2, y = y, r = grid::unit(0.0032, "npc"),
+                          gp = grid::gpar(fill = e$color, col = tokens$surface, lwd = 0.5))
+      }
     } else {
-      grid::grid.rect(x = cx, y = y, width = 0.014, height = 0.012,
+      grid::grid.rect(x = cx, y = y, width = muestra, height = 0.011,
                       just = c("left", "centre"), gp = grid::gpar(fill = e$color, col = NA))
     }
-    grid::grid.text(e$texto, x = cx + 0.026, y = y, just = c("left", "centre"),
+    grid::grid.text(e$texto, x = cx + muestra + aire_muestra, y = y,
+                    just = c("left", "centre"),
                     gp = grid::gpar(col = tokens$soft, fontsize = fs))
-    cx <- cx + 0.030 + (nchar(e$texto) * fs * 0.00085) + 0.020
+    cx <- cx + anchos[[k]] + separacion
   }
   invisible(NULL)
 }

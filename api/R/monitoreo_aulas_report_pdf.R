@@ -194,7 +194,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                                                portada = list(),
                                                con_portada = TRUE) {
   tok <- pulso_pdf_tokens()
-  ty <- pulso_pdf_type()
+  ty <- pulso_pdf_type("cliente")
   geo <- pulso_pdf_geo("landscape")
   df <- model$facultades
   if (is.null(df) || !nrow(df)) {
@@ -293,7 +293,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   n_paneles <- if (hay_ritmo) length(ritmo_previo$facultades %||% list()) else 0L
   total_paginas <- 1L +                                        # resumen
     (if (hay_ritmo) 1L else 0L) +                              # ritmo global
-    (if (n_paneles) ceiling(n_paneles / 8) else 0L) +           # ritmo por facultad
+    (if (n_paneles) ceiling(n_paneles / 6) else 0L) +           # ritmo por facultad
     1L +                                                        # metas por facultad
     ceiling(nrow(df) / .marp_filas_por_pagina_avance()) +        # avance visual
     length(paginas) * length(hojas_detalle)                     # detalle numérico
@@ -344,7 +344,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
     paneles <- ritmo$facultades %||% list()
     if (length(paneles)) {
-      por_hoja <- 8L
+      # Seis por hoja: tres columnas por dos filas.
+      por_hoja <- 6L
       hojas <- split(seq_along(paneles), ceiling(seq_along(paneles) / por_hoja))
       for (h in seq_along(hojas)) {
         nueva("Ritmo por facultad",
@@ -352,11 +353,11 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                 sprintf("Cada panel con su propia escala · %d de %d", h, length(hojas))
               } else "Cada panel con su propia escala")
         .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util)
-        pulso_pdf_leyenda(x0, 0.095, list(
+        pulso_pdf_leyenda(x0, 0.104, list(
           list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
           list(texto = "Acumulado", color = tok$success, forma = "linea"),
           list(texto = "Meta de la facultad", color = tok$danger, forma = "linea", lty = 2)
-        ), tokens = tok, ty = ty)
+        ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho_util)
         pie()
       }
     }

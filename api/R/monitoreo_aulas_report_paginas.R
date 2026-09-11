@@ -12,12 +12,6 @@
   vapply(as.character(x), function(v) .form_pdf_clean_text(v), character(1), USE.NAMES = FALSE)
 }
 
-.marp_tono_de_avance <- function(p, tok) {
-  v <- suppressWarnings(as.numeric(p))
-  if (!length(v) || !is.finite(v[[1L]])) return(tok$soft)
-  if (v[[1L]] >= 0.95) tok$success else if (v[[1L]] >= 0.70) tok$warn else tok$danger
-}
-
 # --- Página de resumen -------------------------------------------------------
 #
 # Lo que un cliente mira primero, en el orden en que lo pregunta: cuánto se
@@ -47,7 +41,10 @@
   kpi(5L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
       if (identical(as.integer(t$facultades_abiertas), 1L)) "en 1 facultad"
       else sprintf("en %d facultades", as.integer(t$facultades_abiertas)),
-      if (.marp_num(t$faltan, 0) > 0) tok$warn else tok$success)
+      # Todas las tarjetas del mismo tono. El ámbar de «Faltan» era un juicio
+      # sobre un hecho que la cifra ya da, y cinco filetes de tres colores
+      # convierten la franja en un semáforo.
+      tok$navy)
   previstas <- sum(suppressWarnings(as.numeric(model$aulas_planificadas %||% numeric(0))), na.rm = TRUE)
   kpi(6L, "Cursos-horario aplicados", .marp_personas(t$aulas_aplicadas),
       if (is.finite(previstas) && previstas > 0) sprintf("de %s previstos", .marp_personas(previstas))
@@ -145,20 +142,20 @@
   pulso_pdf_rotulo_seccion(x0, y_top + 0.044, "Avance general", tokens = tok, ty = ty,
                            ancho = 0.052)
 
-  w_rot <- 0.300
+  w_rot <- 0.330
   w_col <- (ancho - w_rot) / 3
   xs <- c(x0, x0 + w_rot, x0 + w_rot + w_col, x0 + w_rot + 2 * w_col, x0 + ancho)
-  alto <- 0.036
+  alto <- 0.040
 
   # Sin banda de relleno: dos hairlines bastan para acotar el encabezado y dejan
   # la tabla más liviana que un bloque de color.
   pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = 0.9)
   for (k in 2:4) {
-    grid::grid.text(pulso_pdf_versalitas(names(general)[[k]]), x = xs[k + 1L] - 0.010,
-                    y = y_top - 0.021, just = c("right", "bottom"),
+    grid::grid.text(pulso_pdf_versalitas(names(general)[[k]]), x = xs[k + 1L],
+                    y = y_top - 0.022, just = c("right", "bottom"),
                     gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
   }
-  grid::grid.text(pulso_pdf_versalitas(ind), x = x0 + 0.010, y = y_top - 0.021,
+  grid::grid.text(pulso_pdf_versalitas(ind), x = x0, y = y_top - 0.022,
                   just = c("left", "bottom"),
                   gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
   pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = 0.5)
@@ -167,26 +164,22 @@
   y <- y_top - 0.030 - alto
   for (i in seq_len(nrow(filas))) {
     rotulo <- as.character(filas[[ind]][[i]])
-    # Las filas de porcentaje llevan un fondo tenue; las demás van limpias. La
-    # zebra alterna por posición y no por significado, así que pintaba de gris
-    # filas que no tienen nada en común.
+    # Sin fondos. Una fila se distingue por su aire y por su regla, no por un
+    # rectángulo gris: el relleno convierte la tabla en una rejilla y una rejilla
+    # se lee peor que una lista. Lo que era fondo tenue ahora es negrita, que ya
+    # bastaba para decir «esta fila es un porcentaje».
     destacada <- rotulo %in% proporciones
-    if (destacada) {
-      grid::grid.rect(x = x0, y = y, width = ancho, height = alto, just = c("left", "bottom"),
-                      gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
-    }
-    grid::grid.text(rotulo, x = x0 + 0.010, y = y + alto / 2, just = c("left", "centre"),
+    grid::grid.text(rotulo, x = x0, y = y + alto / 2, just = c("left", "centre"),
                     gp = grid::gpar(col = tok$ink, fontsize = ty$body,
                                     fontface = if (destacada) "bold" else "plain"))
     for (k in 2:4) {
       v <- filas[[k]][[i]]
       txt <- if (destacada) .marp_pct(v) else .marp_personas(v, faltante = grepl("^Faltantes", rotulo))
-      grid::grid.text(txt, x = xs[k + 1L] - 0.010, y = y + alto / 2, just = c("right", "centre"),
-                      gp = grid::gpar(col = if (destacada) tok$navy else tok$ink,
-                                      fontsize = ty$body,
+      grid::grid.text(txt, x = xs[k + 1L], y = y + alto / 2, just = c("right", "centre"),
+                      gp = grid::gpar(col = tok$ink, fontsize = ty$body,
                                       fontface = if (destacada) "bold" else "plain"))
     }
-    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.4)
+    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.3)
     y <- y - alto
   }
   invisible(NULL)
@@ -215,7 +208,7 @@
     list(texto = "Encuestas efectivas del día", color = tok$navy, forma = "barra"),
     list(texto = "Acumulado del campo", color = tok$success, forma = "linea"),
     list(texto = "Muestra del diseño", color = tok$danger, forma = "linea", lty = 2)
-  ), tokens = tok, ty = ty)
+  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho)
 
   pico <- which.max(serie$efectivas)
   # La etiqueta del eje lleva un salto de línea dentro («09/09\nmié»): en una
@@ -248,12 +241,14 @@
 # facultades pequeñas —DERECHO mueve diez veces lo que EDUCACIÓN— y el panel
 # dice su meta y su avance en palabras, que es lo que se compara.
 
-.marp_paneles_por_facultad <- function(paneles, tok, ty, geo, x0, ancho, columnas = 4L, filas = 2L) {
-  # El alto se reparte contando lo que cada fila necesita ADEMÁS del trazado:
-  # dos renglones de rótulo arriba (~0.045) y los días abajo (~0.035). La
-  # primera versión dejaba 0.075 de hueco y el título de la segunda fila caía
-  # sobre las fechas de la primera.
-  hueco_x <- 0.020; hueco_y <- 0.095
+.marp_paneles_por_facultad <- function(paneles, tok, ty, geo, x0, ancho, columnas = 3L) {
+  # **Tres columnas y no cuatro.** Con cuatro cabían ocho facultades por hoja,
+  # pero cada panel medía 0,21 npc de ancho —siete centímetros en A4 apaisado—
+  # y sus cifras salían a 4,6 pt: ilegibles proyectadas o impresas. A tres
+  # columnas el panel crece un tercio y el documento gana una hoja, que es un
+  # cambio que Gonzalo autorizó explícitamente: «no importa usar más página con
+  # tal de que se vea bien».
+  hueco_x <- 0.026; hueco_y <- 0.100
   w <- (ancho - hueco_x * (columnas - 1L)) / columnas
   h <- 0.245
   y_primera <- 0.500
@@ -270,15 +265,15 @@
     avance <- if (length(meta) && is.finite(meta) && meta > 0) conseguidas / meta else NA_real_
 
     nombre <- .form_pdf_clean_text(p$facultad)
-    tope <- pulso_pdf_chars(w, factor = 122)
+    tope <- pulso_pdf_chars(w, factor = 112)
     if (nchar(nombre) > tope) nombre <- paste0(substr(nombre, 1L, tope - 3L), "...")
-    grid::grid.text(nombre, x = px, y = py + h + 0.048, just = c("left", "bottom"),
-                    gp = grid::gpar(col = tok$navy, fontsize = 8.4, fontface = "bold"))
+    grid::grid.text(nombre, x = px, y = py + h + 0.052, just = c("left", "bottom"),
+                    gp = grid::gpar(col = tok$navy, fontsize = 10, fontface = "bold"))
     grid::grid.text(
       sprintf("%s de %s  ·  %s", .marp_personas(conseguidas),
               if (is.finite(meta)) .marp_personas(meta) else "-", .marp_pct(avance)),
       x = px, y = py + h + 0.026, just = c("left", "bottom"),
-      gp = grid::gpar(col = .marp_tono_de_avance(avance, tok), fontsize = ty$caption, fontface = "bold"))
+      gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
 
     # Una sola meta por panel: la de la muestra. La sobremuestra se lee en las
     # tarjetas y en las tablas, no aquí.
@@ -371,7 +366,7 @@
     list(texto = "Hombres", color = tok$sexo_h, forma = "barra"),
     list(texto = "Mujeres", color = tok$sexo_m, forma = "barra"),
     list(texto = "Cuota del diseño", color = tok$faint, forma = "contorno")
-  ), tokens = tok, ty = ty)
+  ), tokens = tok, ty = ty, centrado = TRUE, ancho = ancho)
   invisible(NULL)
 }
 
@@ -449,11 +444,11 @@
                       just = c("right", "centre"), gp = grid::gpar(col = tok$ink, fontsize = ty$body))
       grid::grid.text(.marp_personas(meta), x = x_num[[3L]] + w_num - 0.008, y = y + alto_sexo / 2,
                       just = c("right", "centre"), gp = grid::gpar(col = tok$ink, fontsize = ty$body))
-      vale <- is.finite(faltan) && faltan > 0
+      cerrada <- is.finite(faltan) && faltan <= 0
       grid::grid.text(.marp_personas(faltan, faltante = TRUE), x = x_num[[4L]] + w_num - 0.008,
                       y = y + alto_sexo / 2, just = c("right", "centre"),
-                      gp = grid::gpar(col = if (vale) tok$danger else tok$success,
-                                      fontsize = ty$body, fontface = if (vale) "bold" else "plain"))
+                      gp = grid::gpar(col = if (cerrada) tok$success else tok$ink,
+                                      fontsize = ty$body, fontface = if (cerrada) "bold" else "plain"))
     }
     pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.35)
   }
@@ -505,11 +500,8 @@
   y <- y_tabla - alto_fila
   for (n in seq_along(filas)) {
     fila <- df[filas[[n]], , drop = FALSE]
-    if (n %% 2L == 0L) {
-      grid::grid.rect(x = x0, y = y, width = ancho_total, height = alto_fila,
-                      just = c("left", "bottom"),
-                      gp = grid::gpar(fill = tok$tbl_zebra, col = NA))
-    }
+    # Sin zebra: quince rectángulos grises alternos hacen ruido y no ayudan a
+    # seguir el renglón —para eso está la hairline bajo cada fila—.
     for (i in seq_along(columnas)) {
       c <- columnas[[i]]
       v <- fila[[c$campo]]
@@ -520,21 +512,21 @@
         # Elipsis en TRES PUNTOS ASCII: el device PDF no tiene el U+2026 y R lo
         # sustituye con aviso, así que en el documento salía otro carácter.
         if (nchar(nombre) > tope) nombre <- paste0(substr(nombre, 1L, tope - 3L), "...")
-        grid::grid.text(nombre, x = xs[i] + 0.010, y = y + alto_fila / 2,
+        grid::grid.text(nombre, x = xs[i], y = y + alto_fila / 2,
                         just = c("left", "centre"),
-                        gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
+                        gp = grid::gpar(col = tok$ink, fontsize = ty$body))
         next
       }
       falta <- suppressWarnings(as.numeric(v))
       cerrada <- es_falta && is.finite(falta) && falta <= 0
       grid::grid.text(.marp_personas(v, faltante = es_falta),
-                      x = xs[i + 1L] - 0.006, y = y + alto_fila / 2,
+                      x = xs[i + 1L] - 0.004, y = y + alto_fila / 2,
                       just = c("right", "centre"),
                       gp = grid::gpar(col = if (cerrada) tok$success else tok$ink,
                                       fontsize = ty$body,
                                       fontface = if (cerrada) "bold" else "plain"))
     }
-    pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = 0.35)
+    pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = 0.28)
     y <- y - alto_fila
   }
 

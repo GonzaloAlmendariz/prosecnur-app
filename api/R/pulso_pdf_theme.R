@@ -55,7 +55,31 @@ pulso_pdf_tokens <- function() {
 }
 
 # --- Escala tipográfica (pt) -----------------------------------------------
-pulso_pdf_type <- function() {
+#' @param escala `"tecnica"` (por defecto) para los documentos densos —libro de
+#'   códigos, formulario—, donde el cuerpo pequeño es lo que permite que una
+#'   variable entre por página. `"cliente"` para los entregables que alguien lee
+#'   de un tirón: **un punto y medio más de cuerpo en todo**.
+#'
+#'   No es una preferencia: son dos problemas distintos. El libro de códigos se
+#'   consulta, y su lector busca un nombre en una lista; el reporte de avance se
+#'   lee, muchas veces proyectado o impreso, y con 8 pt de cuerpo y 6,4 de
+#'   caption las cifras de sus gráficos se ven diminutas (Gonzalo, 2026-09-11:
+#'   «los gráficos por alguna razón se sienten muy pequeños, las letras muy
+#'   chicas; no importa usar más página con tal de que se vea bien»).
+#' @export
+pulso_pdf_type <- function(escala = c("tecnica", "cliente")) {
+  escala <- match.arg(escala)
+  if (identical(escala, "cliente")) {
+    return(list(
+      title = 17,
+      subtitle = 10.5,
+      section = 15,
+      body = 9.6,
+      code = 9.0,
+      footer = 8.8,
+      caption = 7.4
+    ))
+  }
   list(
     title = 15,      # título de cabecera (bold, navy)
     subtitle = 9.5,  # subtítulo de cabecera (plain, soft)
