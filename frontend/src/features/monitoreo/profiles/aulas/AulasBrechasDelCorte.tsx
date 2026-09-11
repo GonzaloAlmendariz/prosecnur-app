@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { brechasDelCorte, repartoDeBrechas, type BrechaDeCurso } from "./brechasDelCorte";
+import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import "./aulasBrechasDelCorte.css";
@@ -134,7 +135,10 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
         <span className="aulas-brc-quien">
           <b>{b.codigo}</b>
           <em>
-            {b.facultad || "Sin facultad"}
+            {/* Normalizada, como en el mapa y en el popover: el libro las
+                escribe en mayúsculas y en la misma pantalla convivían las dos
+                grafías. La decisión vive en `facultadEnPalabras`. */}
+            {facultadCorta(b.facultad) || "Sin facultad"}
             {b.donde ? ` · ${b.donde}` : ""}
             {/* Su composición: decide si un relevo suyo cerraría lo que falta. */}
             {b.mujeres || b.hombres ? ` · ${fmt(b.mujeres)} M · ${fmt(b.hombres)} H` : ""}

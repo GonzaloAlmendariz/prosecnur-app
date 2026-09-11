@@ -43,7 +43,13 @@ describe("los candidatos llevan los chips del sistema", () => {
     expect(html).toContain("MAR 14:00-16:00");
     // La facultad también es seña del box (canon B34): al comparar candidatos
     // de tres orígenes hay que ver de dónde es cada uno.
-    expect(html).toMatch(/aulas-chips-fila[\s\S]*DERECHO/);
+    //
+    // **«Derecho» y no «DERECHO» desde el 2026-09-10**, cambio deliberado: el
+    // libro las escribe en mayúsculas y en la misma pantalla convivían las dos
+    // grafías —«ARTE Y DISEÑO» al lado de «CC. e Ingeniería»—. La normalización
+    // se decide en `facultadEnPalabras` y este chip la usa como el mapa y la
+    // tabla de brechas. Lo que el canon pide —que la facultad esté— no cambia.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*Derecho/);
     // El docente sigue en su peso, no dentro de un chip de color.
     expect(html).toContain("R. QUISPE");
   });
@@ -57,7 +63,7 @@ describe("los candidatos llevan los chips del sistema", () => {
     expect(html).not.toContain("aulas-chip-lugar");
     expect(html).not.toContain("aulas-chip-hora");
     // El box sigue diciendo su facultad (canon B34), aunque el catálogo no
-    // traiga salón ni sesión.
-    expect(html).toMatch(/aulas-chips-fila[\s\S]*DERECHO/);
+    // traiga salón ni sesión. Normalizada, ver arriba.
+    expect(html).toMatch(/aulas-chips-fila[\s\S]*Derecho/);
   });
 });
