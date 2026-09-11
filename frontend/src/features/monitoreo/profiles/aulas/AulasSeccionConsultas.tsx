@@ -184,6 +184,27 @@ export function AulasSeccionConsultas({
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
+            <h3>Qué pasó, y por dónde se sale</h3>
+            <span>el vocabulario del libro · reemplazo (A), complemento (B), refuerzo (C)</span>
+          </div>
+          {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
+              aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
+              lo que faltaba: «hay que diferenciar qué tan bien nos fue en esa
+              aula […] y cómo esa aula nos ayudó, porque esa aula no estaba
+              prevista». */}
+          <AulasTresCaminos
+            filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            porTipo={(dashboard.reemplazos_por_tipo ?? null) as Record<string, unknown> | null}
+          />
+        </section>
+        ) : null}
+        {enBrechas ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
             <h3>Deuda por sexo, facultad a facultad</h3>
             <span>el mapa de la deuda · pulsa una facultad para ver qué la hundió</span>
           </div>
@@ -280,27 +301,6 @@ export function AulasSeccionConsultas({
               />
             );
           })()}
-        </section>
-        ) : null}
-        {enBrechas ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            <h3>Qué pasó, y por dónde se sale</h3>
-            <span>el vocabulario del libro · reemplazo (A), complemento (B), refuerzo (C)</span>
-          </div>
-          {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
-              aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
-              lo que faltaba: «hay que diferenciar qué tan bien nos fue en esa
-              aula […] y cómo esa aula nos ayudó, porque esa aula no estaba
-              prevista». */}
-          <AulasTresCaminos
-            filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
-            porTipo={(dashboard.reemplazos_por_tipo ?? null) as Record<string, unknown> | null}
-          />
         </section>
         ) : null}
         {enParte ? (
