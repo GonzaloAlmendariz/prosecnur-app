@@ -327,13 +327,18 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   if (!nzchar(periodo)) periodo <- format(Sys.Date(), "%m-%Y")
 
-  nueva("Resumen del avance", "Dónde está el campo respecto de la muestra del diseño")
+  # Los subtítulos que sólo reformulan el título se van. «Dónde está el campo
+  # respecto de la muestra del diseño» bajo «Resumen del avance» no añade un
+  # dato: dice lo mismo con más palabras. El hueco del subtítulo queda para lo
+  # que informa —la paginación, el alcance de la hoja— y en su ausencia el
+  # título se sostiene solo.
+  nueva("Resumen del avance", "")
   .marp_pagina_resumen(model, tok, ty, geo, x0, ancho_util)
   pie()
 
   ritmo <- model$ritmo
   if (is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total)) {
-    nueva("Ritmo del campo", "Encuestas efectivas por jornada y acumulado contra la muestra del diseño")
+    nueva("Ritmo del campo", "")
     .marp_pagina_ritmo(ritmo, tok, ty, geo, x0, ancho_util)
     pie()
 
@@ -358,7 +363,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   }
 
   # «Metas por facultad»: el gráfico que ya se lee en pantalla, en el documento.
-  nueva("Metas por facultad", "Lo conseguido dentro de la cuota de cada facultad, hombres y mujeres")
+  nueva("Metas por facultad", "")
   .marp_pagina_metas(df, tok, ty, geo, x0, ancho_util)
   pie()
 
@@ -368,9 +373,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   hojas_avance <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_hoja_avance))
   for (h in seq_along(hojas_avance)) {
     nueva("Avance por facultad y sexo",
-          if (length(hojas_avance) > 1L) {
-            sprintf("Efectivas conseguidas contra la cuota de cada sexo · %d de %d", h, length(hojas_avance))
-          } else "Efectivas conseguidas contra la cuota de cada sexo")
+          if (length(hojas_avance) > 1L) sprintf("%d de %d", h, length(hojas_avance)) else "")
     .marp_pagina_avance_visual(df, hojas_avance[[h]], tok, ty, x0, ancho_util,
                                aulas_plan = model$aulas_planificadas %||% numeric(0))
     pie()
@@ -380,7 +383,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     for (p in seq_along(paginas)) {
       nueva(
         hoja$titulo,
-        if (length(paginas) > 1L) sprintf("%s · %d de %d", subtitulo, p, length(paginas)) else subtitulo
+        if (length(paginas) > 1L) sprintf("%d de %d", p, length(paginas)) else ""
       )
       .marp_tabla_detalle(df, paginas[[p]], hoja$columnas, tok, ty, x0,
                           y_tabla = y_tabla, alto_fila = alto_fila,
