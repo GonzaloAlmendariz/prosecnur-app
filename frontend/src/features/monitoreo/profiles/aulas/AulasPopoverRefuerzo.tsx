@@ -351,13 +351,23 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
               umbral: lo que cambia con el valor es cuánto pesa, no si se
               sabe. */}
           <span className={`aulas-refuerzo-aviso es-traslape${c.exposicionDeLaFacultad >= 0.5 ? " es-fuerte" : ""}`}>
-            Traslape estimado: el {pctPerfil(c.exposicionDeLaFacultad * 100)} de los cupos de
-            su facultad ya se aplicó
-            {c.exposicionDeLaFacultad >= 0.5
-              ? ", así que parte de estos elegibles ya habrá respondido"
-              : c.exposicionDeLaFacultad <= 0
-                ? ": todavía no hay con qué solaparse"
-                : ""}
+            {/* **En palabras, no en jerga.** Gonzalo, 2026-09-11: «cuidado con
+                el lenguaje: "el 37.3 % de los cupos de su facultad ya se
+                aplicó" no se entiende». «Cupos» era mío: lo que se cuenta son
+                plazas de lista de alumno, y el lector piensa en personas. Se
+                dice lo que significa —de cada cien convocados de esa facultad,
+                cuántos ya estuvieron en un aula aplicada— y qué consecuencia
+                tiene. */}
+            {c.exposicionDeLaFacultad <= 0
+              ? "Sin traslape: ningún curso-horario de esta facultad se ha aplicado todavía"
+              : <>
+                  De cada 100 alumnos convocados en esta facultad,{" "}
+                  <b>{Math.round(c.exposicionDeLaFacultad * 100)}</b> ya estuvieron en un
+                  curso-horario aplicado
+                  {c.exposicionDeLaFacultad >= 0.5
+                    ? ": muchos de estos elegibles ya habrán respondido y saldrían repetidos"
+                    : ""}
+                </>}
           </span>
           {/* **Las mismas tres varas que el popover de reemplazo.** Es la misma
               decisión vista desde el otro extremo, y con dos lenguajes distintos
