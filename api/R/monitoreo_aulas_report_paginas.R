@@ -8,6 +8,24 @@
 # primer elemento, sin aviso. Pasado un vector de facultades, la página de metas
 # salía con un único rótulo —«DERECHO»— y catorce carriles anónimos. Se ve
 # mirando el PDF; el código no falla.
+# --- El marco de la página ---------------------------------------------------
+#
+# Dónde empieza y dónde acaba el área de contenido. Estaban tecleados en cada
+# función: SIETE techos entre 0,740 y 0,800 y CINCO suelos entre 0,095 y 0,135,
+# para lo que son dos decisiones. No es que cada página quisiera un marco
+# distinto —es que cada una se ajustó a ojo cuando le tocó, y los valores
+# envejecieron por separado.
+#
+# Lo que una página añade —una leyenda al pie, un rótulo de sección arriba— se
+# RESTA del marco de forma explícita, para que se vea qué lo desplaza y no
+# parezca otro número elegido a ojo.
+.MARP_MARCO <- list(
+  techo = 0.800,    # bajo la regla del cromo, con aire
+  suelo = 0.108,    # sobre la regla del pie, con aire
+  leyenda = 0.032,  # lo que roba una leyenda tendida al pie
+  seccion = 0.062   # lo que roba un rótulo de sección con su regla
+)
+
 .marp_limpiar <- function(x) {
   vapply(as.character(x), function(v) .form_pdf_clean_text(v), character(1), USE.NAMES = FALSE)
 }
@@ -156,8 +174,9 @@
   xs <- c(x0, x0 + w_rot, x0 + w_rot + w_col, x0 + w_rot + 2 * w_col, x0 + ancho)
   # El renglón, por la misma regla que el resto de tablas: con 0,040 tecleados,
   # las diez filas de «Avance general» cruzaban la regla del pie.
-  alto <- .marp_reparto_de_filas(nrow(filas), arriba = y_top - 0.030, abajo = 0.112,
-                                 alto_max = 0.040, alto_min = 0.028)$alto
+  alto <- .marp_reparto_de_filas(nrow(filas), arriba = y_top - 0.030,
+                                 abajo = .MARP_MARCO$suelo, alto_max = 0.040,
+                                 alto_min = 0.028)$alto
 
   # Sin banda de relleno: dos hairlines bastan para acotar el encabezado y dejan
   # la tabla más liviana que un bloque de color.
@@ -282,8 +301,8 @@
   .BANDA_ROTULO <- 0.058   # nombre de la facultad + «147 de 363 · 40,5 %»
   .BANDA_FECHAS <- 0.034   # «07/09 / lun» bajo el eje
   .AIRE_ENTRE_FILAS <- 0.022
-  techo <- 0.800           # bajo la regla del cromo
-  suelo <- 0.135           # sobre la leyenda
+  techo <- .MARP_MARCO$techo
+  suelo <- .MARP_MARCO$suelo + .MARP_MARCO$leyenda
 
   hueco_x <- 0.026
   w <- (ancho - hueco_x * (columnas - 1L)) / columnas
@@ -379,6 +398,7 @@
   # La banda bajo cada fila creció al añadir la inicial de serie (H / M) entre
   # el eje y el nombre de la facultad: el trazado cede ese espacio en vez de
   # empujar los rótulos sobre el pie, que es lo que pasó al añadirla.
+  # Techo menos el rótulo de sección de la leyenda, suelo más la leyenda misma.
   .MARP_ALTO_TRAZADO <- 0.460   # lo que queda entre la leyenda y el pie
   .MARP_ALTO_MINIMO <- 0.092    # una fila nunca baja de aquí, aunque su techo sea ínfimo
   altos <- .MARP_ALTO_TRAZADO * topes / sum(topes)
@@ -451,7 +471,8 @@
   list(por_hoja = por_hoja, hojas = hojas, alto = alto)
 }
 
-.MARP_TABLA_AVANCE <- list(arriba = 0.763, abajo = 0.115, alto_max = 0.046, alto_min = 0.036)
+.MARP_TABLA_AVANCE <- list(arriba = 0.763, abajo = .MARP_MARCO$suelo,
+                           alto_max = 0.046, alto_min = 0.036)
 
 .marp_reparto_avance <- function(n) {
   do.call(.marp_reparto_de_filas, c(list(n = n), .MARP_TABLA_AVANCE))
