@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { composicionDelAula } from "./composicionDelAula";
 
 /**
  * A quién ir cuando un aula no sale, ordenado por lo que de verdad decide.
@@ -322,17 +323,18 @@ export function parecidoCon(
  * cinco veces mejor que traer treinta.
  */
 export function ayudaCon(
-  cand: MonitoreoAulasPlanRow & { sex_top_1?: string; sex_top_1_n?: number; sex_top_2_n?: number; tasa_efectividad_aula?: number },
+  // El reparto por sexo ya no se declara aquí: lo resuelve `composicionDelAula`
+  // con su propio tipo. Lo único que esta función necesita de más es la tasa.
+  cand: MonitoreoAulasPlanRow & { tasa_efectividad_aula?: number },
   brecha: BrechaPorSexo,
 ): number {
   const total = Math.max(0, brecha.mujeres) + Math.max(0, brecha.hombres);
   if (total <= 0) return 0;
   const tasa = numero(cand.tasa_efectividad_aula) > 0 ? numero(cand.tasa_efectividad_aula) : 0.55;
-  const n1 = numero(cand.sex_top_1_n);
-  const n2 = numero(cand.sex_top_2_n);
-  const dominante = texto(cand.sex_top_1).toUpperCase();
-  const mujeres = dominante === "M" ? n2 : n1;
-  const hombres = dominante === "M" ? n1 : n2;
+  // El reparto por sexo se lee en UN solo sitio —`composicionDelAula`—, que es
+  // el mismo que alimenta el chip del popover: dos lecturas de `sex_top_*`
+  // acaban separándose, y una de las dos invierte la composición.
+  const { mujeres, hombres } = composicionDelAula(cand);
   const cierraM = Math.min(mujeres * tasa, Math.max(0, brecha.mujeres));
   const cierraH = Math.min(hombres * tasa, Math.max(0, brecha.hombres));
   return (cierraM + cierraH) / total;

@@ -9,6 +9,7 @@ import {
   type CandidatoDeReemplazo,
   type OrigenDeCandidato,
 } from "./candidatosDeReemplazo";
+import { composicionDelAula } from "./composicionDelAula";
 import { pctPerfil } from "./kpisDeAulas";
 
 /**
@@ -78,14 +79,12 @@ const pct = (v: number) => pctPerfil(v * 100);
  * primero sea mujer: hacerlo invierte el aula entera.
  */
 function repartoPorSexo(f: MonitoreoAulasPlanRow) {
-  const anon = f as MonitoreoAulasPlanRow & {
-    sex_top_1?: string; sex_top_1_n?: number; sex_top_2_n?: number; tasa_efectividad_aula?: number;
-  };
-  const n1 = Number(anon.sex_top_1_n) || 0;
-  const n2 = Number(anon.sex_top_2_n) || 0;
-  const dominanteM = String(anon.sex_top_1 ?? "").trim().toUpperCase() === "M";
-  const mujeres = dominanteM ? n2 : n1;
-  const hombres = dominanteM ? n1 : n2;
+  const anon = f as MonitoreoAulasPlanRow & { tasa_efectividad_aula?: number };
+  // **El reparto se lee en UN solo sitio.** Esta función tenía su propia copia
+  // de la lectura de `sex_top_*` —la tercera del perfil, junto a la de
+  // `ayudaCon`— y las tres decían lo mismo por escrito. Son el mismo campo y la
+  // misma trampa: el primero es el sexo DOMINANTE, no las mujeres.
+  const { mujeres, hombres } = composicionDelAula(f);
   const tasa = Number(anon.tasa_efectividad_aula) > 0 ? Number(anon.tasa_efectividad_aula) : 0.55;
   return {
     elegibles: { mujeres, hombres, total: mujeres + hombres },
