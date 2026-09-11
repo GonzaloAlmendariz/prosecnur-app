@@ -23,7 +23,19 @@
  * Al raiz del perfil, y todo lo que estaba fuera de escala se ajusta al escalon
  * mas cercano hacia abajo —encoger nunca desborda, agrandar si—.
  */
-.mon-profile-page.is-aulas-flow {
+/* **Y los portales**, que viven en `document.body` y NO cuelgan de la pagina.
+   Medido en vivo el 2026-09-11 con el popover de reemplazo abierto: dentro de
+   el, `--aulas-min`, `--aulas-txt` y `--aulas-sec` resolvian a cadena VACIA, asi
+   que cada `font-size: var(--aulas-min)` era una declaracion invalida y todo el
+   popover heredaba los 16 px del documento. Un `var()` que no resuelve no
+   falla: deja la propiedad sin poner, y eso no se ve en ningun test.
+
+   Los dos popovers del perfil se dibujan con `createPortal` porque tienen que
+   escapar del `overflow` de la mesa; el precio es que salen del alcance de este
+   selector, y el remedio es nombrarlos aqui. */
+.mon-profile-page.is-aulas-flow,
+.aulas-reemplazo-fondo,
+.aulas-refuerzo-fondo {
   --aulas-txt: 12px;   /* la lectura de cada grafico y el texto de una fila */
   /* Alto del grafico de cobertura, y por tanto de la pareja de Avance. Vive
      aqui y no en el TSX porque su vecino —el tope de `.aulas-facultades-scroll`—
