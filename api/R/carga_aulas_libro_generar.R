@@ -428,9 +428,17 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   # `reemplazada` se QUEDA aunque el desplegable ya no la ofrezca: es el dato
   # vivo del export —el plan la publica al activar un reemplazo— y la
   # validación (allowBlank / strict = FALSE) tolera valores fuera de lista.
+  # `refuerzo_por_contactar` entra aqui o el libro lo escribe con guiones bajos.
+  # Medido el 2026-09-11 al preguntar Gonzalo si el estado sobrevive a regenerar
+  # el libro: SI sobrevive —cae en la rama de «fuera del vocabulario», que
+  # escribe el valor tal cual en mayusculas— pero saldria
+  # «REFUERZO_POR_CONTACTAR», y la regla de color busca «REFUERZO POR
+  # CONTACTAR» con espacios. Persistia el dato y se perdia el morado, que es
+  # justo lo que el agendador mira.
   conocidos <- c(agendada = "AGENDADA", reagendada = "REAGENDADA",
                  en_contacto = "EN CONTACTO", rechazo = "RECHAZO",
-                 reemplazada = "REEMPLAZADA", sin_contactar = "SIN CONTACTAR")
+                 reemplazada = "REEMPLAZADA", sin_contactar = "SIN CONTACTAR",
+                 refuerzo_por_contactar = "REFUERZO POR CONTACTAR")
   # `conocidos[[v]]` con un nombre que no esta REVIENTA («subscript out of
   # bounds») en vez de dar NULL: se pregunta por los nombres.
   if (v %in% names(conocidos)) return(unname(conocidos[[v]]))

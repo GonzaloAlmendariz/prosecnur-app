@@ -82,3 +82,34 @@ test_that("el morado del libro va PRIMERO en la paleta", {
   otras <- vapply(reglas[-1], function(r) grepl(r$texto, "REFUERZO POR CONTACTAR", fixed = TRUE), logical(1))
   expect_false(any(otras))
 })
+
+# --- E6: ¿sobrevive el estado a regenerar el libro? --------------------------
+#
+# Gonzalo, 2026-09-11: «si regenero el Sheets, ¿desaparece o persiste?».
+# Persiste —el libro se siembra desde el plan y el plan lo guarda— pero la
+# primera medición encontró que persistía MAL: `.calg_status_excel` no lo
+# conocía, caía en la rama de «fuera del vocabulario» y escribía el valor tal
+# cual en mayúsculas, o sea «REFUERZO_POR_CONTACTAR» con guiones bajos. La regla
+# de color busca la forma con espacios, así que el dato sobrevivía y el morado
+# se perdía: justo lo que el agendador mira.
+
+test_that("regenerar el libro escribe el estado en la forma que el color busca", {
+  expect_identical(prosecnurapp:::.calg_status_excel("refuerzo_por_contactar"),
+                   "REFUERZO POR CONTACTAR")
+  # Y la forma ya legible tampoco se rompe al releer y regenerar.
+  expect_identical(prosecnurapp:::.calg_status_excel("REFUERZO POR CONTACTAR"),
+                   "REFUERZO POR CONTACTAR")
+})
+
+test_that("el desplegable lo ofrece: si no, la celda sale con warning sobre un dato correcto", {
+  # Es el mismo problema que B13a documenta para «SIN CONTACTAR»: quien agenda
+  # leería un aviso de error donde hay una instrucción.
+  expect_true("REFUERZO POR CONTACTAR" %in% prosecnurapp:::AULAS_LIBRO_STATUS_MUESTRA_BASE)
+})
+
+test_that("el texto del libro y el de la paleta son el MISMO byte a byte", {
+  # Dos listas separadas es como un estado sale de dos colores en el mismo
+  # libro; aquí serían color y celda sin casar.
+  reglas <- prosecnurapp:::.mafs_REGLAS_STATUS_MUESTRA
+  expect_identical(reglas[[1]]$texto, prosecnurapp:::.calg_status_excel("refuerzo_por_contactar"))
+})

@@ -32,8 +32,13 @@
 # ofrecerlo byte a byte, o el chip sale con warning rojo sobre un dato correcto
 # (B13a, reporte del dueño 2026-09-01). La forma es la legible sin guion bajo —
 # la misma que `.capd_estado_legible` da al Plan del día.
+# «REFUERZO POR CONTACTAR» lo escribe la APP, no el equipo, pero tiene que estar
+# en la lista: sin el, la celda sale con el warning de validacion sobre un dato
+# correcto —el mismo problema que B13a documenta para «SIN CONTACTAR»— y quien
+# agenda lee un aviso de error donde hay una instruccion.
 AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
-  "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO"
+  "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO",
+  "REFUERZO POR CONTACTAR"
 )
 
 # **Un color por ESLABON, y de una paleta que se VE distinta (B18).**
