@@ -81,11 +81,30 @@
    * unica salida que tiene el usuario.
    */
   max-height: max(320px, calc(100vh - 48px));
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  /* **Columna flexible, no grid de filas contadas.**
+   *
+   * Decia `grid-template-rows: auto auto auto minmax(0, 1fr)` — cuatro filas
+   * para los cuatro hijos que habia cuando se escribio. El duelo entro despues
+   * y son cinco: la fila `1fr`, pensada para la lista, le toco al PIE, y la
+   * lista cayo en una fila implicita. Con el `max-height` de arriba
+   * comprimiendo, el pie quedaba en **altura 0 dibujandose detras de la
+   * lista** — medido en vivo el 2026-09-11: `offsetHeight: 0` con
+   * `scrollHeight: 23`.
+   *
+   * Es la misma averia que ya esta documentada en `.mon-profile-content` de
+   * `aulasMonitoreo.css`, y el mismo remedio: en columna flexible cada bloque
+   * toma lo suyo y solo la lista crece, sin depender de cuantos hijos
+   * condicionales haya. Contar filas obliga a recontarlas cada vez que alguien
+   * añade un bloque, y nadie se acuerda. */
+  display: flex;
+  flex-direction: column;
 }
 
 .aulas-reemplazo-fondo .aulas-reemplazo-lista {
-  /* SIN tope propio: lo gobierna el grid de la ventana.
+  /* La lista es el unico bloque que crece y el unico que scrollea. */
+  flex: 1 1 auto;
+  min-height: 0;
+  /* SIN tope propio: lo gobierna la ventana.
    *
    * Con `max-height: min(52vh, 440px)` la lista scrolleaba SIEMPRE, tambien en
    * pantallas donde los tres candidatos caben de sobra —el contenido son ~750 px
