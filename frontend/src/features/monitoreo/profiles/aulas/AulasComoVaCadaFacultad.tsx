@@ -171,19 +171,19 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
               rumbo), **dónde duele** (el desglose por sexo contra su vara) y
               **qué se hace** (el consejo y la puerta al refuerzo). */}
           <div className="aulas-cvf-columna">
-            <h5>Qué pasó</h5>
+            <h5>Situación</h5>
             <p>{f.frase}</p>
             {rumbo?.verbo ? <Rumbo r={rumbo} /> : (
               <p className="aulas-cvf-sinrumbo">
                 {f.aulas
-                  ? "Con una sola jornada aplicada todavía no hay rumbo que leer."
+                  ? "Con una sola jornada aplicada no hay tendencia que evaluar."
                   : "Sin jornadas aplicadas."}
               </p>
             )}
           </div>
 
           <div className="aulas-cvf-columna">
-            <h5>Dónde duele</h5>
+            <h5>Dónde está el déficit</h5>
             <table className="aulas-cvf-desglose">
               <tbody>
                 <tr className={f.mujeres < 0 ? "es-debe" : ""}>
@@ -211,23 +211,23 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
           </div>
 
           <div className="aulas-cvf-columna">
-            <h5>Qué se hace</h5>
+            <h5>Qué corresponde</h5>
             {f.veredicto === "debe_mujeres" || f.veredicto === "debe_hombres" ? (
               <p className="aulas-cvf-consejo">
-                Un relevo aquí sólo sirve si trae {f.veredicto === "debe_mujeres" ? "mujeres" : "hombres"}:
-                uno del otro sexo gasta una reserva y deja la deuda intacta.
+                Un relevo aquí sólo es útil si aporta {f.veredicto === "debe_mujeres" ? "mujeres" : "hombres"}:
+                uno del otro sexo consume una reserva sin reducir el déficit.
               </p>
             ) : null}
             {f.veredicto === "debe_en_los_dos" ? (
               <p className="aulas-cvf-consejo">
-                Debe en los dos sexos: cualquier relevo de su facultad mueve algo,
-                y el que más cierre es el que más se acerque a las dos cifras.
+                Registra déficit en ambos sexos: cualquier relevo de su facultad
+                contribuye, y el más eficaz es el que más se acerque a las dos cifras.
               </p>
             ) : null}
             {f.deuda >= 0 ? (
               <p className="aulas-cvf-consejo es-calma">
-                No debe respuestas: sus reservas se quedan para la facultad que
-                las necesite.
+                No registra déficit: sus reservas quedan disponibles para la
+                facultad que las necesite.
               </p>
             ) : null}
             {onRefuerzo && f.deuda < 0 ? (

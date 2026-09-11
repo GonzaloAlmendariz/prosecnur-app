@@ -57,7 +57,7 @@ describe("el veredicto llega antes que la lista", () => {
   it("cuando no alcanza dice cuánto queda y a qué obliga", () => {
     const html = pinta({ mujeres: 60, hombres: 0 });
     expect(html).toContain("es-corto");
-    expect(html).toContain("ampliación de marco");
+    expect(html).toContain("ampliar el marco");
     // 60 − 10 − 10 = 40 sin cubrir.
     expect(html).toContain("<strong>40</strong>");
   });
@@ -97,7 +97,10 @@ describe("cada candidato dice de dónde sale y qué deja detrás", () => {
     const soloH = fila({ operational_code: "R H", titular_operational_code: "CH 1", sex_top_1: "M", sex_top_1_n: 20, sex_top_2_n: 0 });
     const html = pinta({ mujeres: 8, hombres: 0 }, [...PLAN, soloH]);
     expect(html).toContain("es-inutil");
-    expect(html).toContain("no cierra nada de lo que se debe");
+        // Registro formalizado el 2026-09-11 a petición de Gonzalo («cuidado con
+    // la jerga, tratemos de ser más profesionales, formales»). Lo que el
+    // contrato comprueba no cambia; cambia la palabra.
+    expect(html).toContain("no reduce el déficit");
   });
 });
 

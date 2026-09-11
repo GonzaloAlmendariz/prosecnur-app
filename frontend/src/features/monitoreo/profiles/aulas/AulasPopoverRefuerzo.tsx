@@ -162,7 +162,7 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
               ].filter(Boolean);
               return `respuestas sin cubrir${trozos.length ? ` (${trozos.join(", ")})` : ""}.`;
             })()}
-            {" "}Toca pedir una ampliación de marco.
+            {" "}Se requiere ampliar el marco.
           </>
         )}
       </p>
@@ -186,7 +186,7 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
         <p className="aulas-refuerzo-vacio">
           {facultad} no tiene ningún curso-horario libre. Sus reservas siguen
           comprometidas con una cadena que aún no se resolvió, o ya se usaron.
-          Un refuerzo aquí pasa por ampliar el marco.
+          Un refuerzo aquí exige ampliar el marco.
         </p>
       )}
     </div>
@@ -253,7 +253,7 @@ function TarjetaDeRefuerzo({ c, puesto, onElegir }: {
               ) : null}
               <tr className="es-ritmo">
                 <th scope="row">
-                  Al ritmo de hoy
+                  Proyección actual
                   <em>
                     {pr.deDondeLaTasa === "aula" ? `${pctPerfil(pr.tasa * 100)} suyo`
                       : pr.deDondeLaTasa === "facultad" ? `${pctPerfil(pr.tasa * 100)} de su facultad`
@@ -282,13 +282,13 @@ function TarjetaDeRefuerzo({ c, puesto, onElegir }: {
             <strong>{Math.min(100, Math.round(c.cierra * 100))} %</strong>
           </span>
           <span className="aulas-refuerzo-util">
-            <b>{fmt(c.util)}</b> de las que faltan
+            <b>{fmt(c.util)}</b> del déficit
           </span>
           <span className="aulas-refuerzo-resto">
             {c.util ? (
-              queda ? <>quedarían <b>{fmt(queda)}</b></> : <>cierra la deuda entera</>
+              queda ? <>quedarían <b>{fmt(queda)}</b></> : <>cubre el déficit completo</>
             ) : (
-              <>no cierra nada de lo que se debe</>
+              <>no reduce el déficit</>
             )}
           </span>
         </span>

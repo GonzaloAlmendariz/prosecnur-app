@@ -47,7 +47,7 @@ export function AulasLlamadaDeFacultad({ facultad, deuda, mayorBrecha, onRefuerz
         {m && h ? " y " : null}
         {h ? <><strong>{fmt(h)}</strong> {h === 1 ? "hombre" : "hombres"}</> : null}
         {solaLaExplica
-          ? <>, y hay un curso-horario que arrastra <strong>{fmt(mayorBrecha)}</strong> él solo: sale más barato complementarlo.</>
+          ? <>, y hay un curso-horario que arrastra <strong>{fmt(mayorBrecha)}</strong> él solo: resulta más eficiente complementarlo.</>
           : <>, y ninguno de sus cursos-horario explica la brecha solo.</>}
       </span>
       <button type="button" className="aulas-llamada-boton" onClick={() => onRefuerzo(facultad)}>

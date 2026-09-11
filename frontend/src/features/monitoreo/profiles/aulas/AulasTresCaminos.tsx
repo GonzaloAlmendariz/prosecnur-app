@@ -37,7 +37,7 @@ export function AulasTresCaminos({ filas, porTipo }: {
     <div className="aulas-cam" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-cam-intro">
         Los tres se escriben en la misma columna del libro y lo que los separa no
-        es el trámite, es <strong>qué le pasó al titular</strong>.
+        es el trámite, es <strong>qué ocurrió con el titular</strong>.
         {total ? (
           <>
             {" "}Hay <strong>{fmt(total)}</strong> en curso
@@ -50,7 +50,7 @@ export function AulasTresCaminos({ filas, porTipo }: {
             ) : null}.
           </>
         ) : (
-          <> Todavía no se ha abierto ninguno.</>
+          <> Sin casos abiertos en este corte.</>
         )}
       </p>
 
@@ -97,7 +97,7 @@ function Camino({ c, abierto, onAbrir }: {
         <p className={`aulas-cam-aporte${repone ? " es-repone" : " es-suma"}`}>
           <b>{repone ? fmt(c.respuestas) : `+${fmt(c.respuestas)}`}</b>
           <span>
-            {repone ? "respuestas repuestas" : "respuestas de más"}
+            {repone ? "respuestas recuperadas" : "respuestas adicionales"}
             {c.porSexo ? ` · ${fmt(c.porSexo.mujeres)} mujeres y ${fmt(c.porSexo.hombres)} hombres` : ""}
           </span>
         </p>
@@ -105,7 +105,7 @@ function Camino({ c, abierto, onAbrir }: {
         <p className="aulas-cam-aporte es-vacio">
           <span>
             {c.enCurso
-              ? "Ninguno ha rendido todavía: están en camino."
+              ? "Ninguno ha rendido todavía: están en curso."
               : "Sin casos en este corte."}
           </span>
         </p>
@@ -113,7 +113,7 @@ function Camino({ c, abierto, onAbrir }: {
 
       <div className="aulas-cam-pie">
         <span className={`aulas-cam-donde es-${c.donde}`}>
-          {c.donde === "sheets" ? "Se resuelve en el Sheets de agendación" : "Se decide en la app"}
+          {c.donde === "sheets" ? "Se resuelve en el Sheets de agendación" : "Se decide en esta aplicación"}
         </span>
         {hayDetalle ? (
           <button type="button" className="aulas-cam-ver" aria-expanded={abierto} onClick={onAbrir}>
