@@ -40,3 +40,61 @@ describe("embudoDelAula", () => {
     expect(embudoDelAula([parte(0, 0, 0, 0)]).pasos).toEqual([]);
   });
 });
+
+describe("el escalón del padrón, encima de la asistencia", () => {
+  /**
+   * Es el escalón que la tasa del aula lleva dentro sin enseñarlo, y el más
+   * caro del operativo: de cuántos había convocados, cuántos aparecieron.
+   * Medido en HSVG26ULT2 el 2026-09-11: CH 2 con 29 elegibles y 22 en el aula.
+   *
+   * Se dio por bloqueado por falta de dato hasta que se miró el payload:
+   * `observed_students` está en 54 partes y `eligible_n` en el plan.
+   */
+  const parte = (codigo: string, vistos: number, extra: Record<string, unknown> = {}) =>
+    ({ operational_code: codigo, classroom_id: codigo, observed_students: vistos,
+       effective_surveys: vistos, ...extra }) as unknown as MonitoreoRow;
+  const aula = (codigo: string, elegibles: number) =>
+    ({ operational_code: codigo, classroom_id: codigo, eligible_n: elegibles }) as unknown as MonitoreoRow;
+
+  it("pone los convocados delante y la asistencia deja de ser el 100 %", () => {
+    const e = embudoDelAula([parte("CH 2", 22)], [aula("CH 2", 29)]);
+    expect(e.padron).toBe(29);
+    expect(e.pasos[0].clave).toBe("padron");
+    expect(e.pasos[0].quedan).toBe(29);
+    const asistencia = e.pasos.find((p) => p.clave === "asistentes")!;
+    expect(asistencia.quedan).toBe(22);
+    expect(asistencia.pierde).toBe(7);
+    expect(asistencia.pct).toBeCloseTo((100 * 22) / 29, 3);
+  });
+
+  it("un aula con DOS partes cuenta su padrón una sola vez", () => {
+    // Las hay, con dos sesiones. Duplicar el denominador hundiría la asistencia
+    // por debajo de la mitad sin que nada hubiera pasado en campo.
+    const e = embudoDelAula([parte("CH 5", 10), parte("CH 5", 8)], [aula("CH 5", 30)]);
+    expect(e.padron).toBe(30);
+    expect(e.asistentes).toBe(18);
+  });
+
+  it("con un parte que no cruza con el plan NO se dibuja el escalón", () => {
+    // La asistencia sería un cociente entre dos conjuntos distintos: los que
+    // estaban en tres aulas contra los convocados de dos.
+    const e = embudoDelAula([parte("CH 2", 22), parte("CH 9", 10)], [aula("CH 2", 29)]);
+    expect(e.padron).toBeNull();
+    expect(e.sinCruzar).toBe(1);
+    expect(e.pasos[0].clave).toBe("asistentes");
+    expect(e.pasos[0].pct).toBe(100);
+  });
+
+  it("sin plan se comporta como antes: el embudo empieza en el aula", () => {
+    const e = embudoDelAula([parte("CH 2", 22)]);
+    expect(e.padron).toBeNull();
+    expect(e.pasos[0].clave).toBe("asistentes");
+  });
+
+  it("el padrón nunca hace que se pierda un negativo", () => {
+    // Un aula donde aparecieron MÁS de los convocados —el padrón envejece— no
+    // puede publicar «−3 perdidos»: eso es un aviso, no una pérdida.
+    const e = embudoDelAula([parte("CH 7", 35)], [aula("CH 7", 30)]);
+    expect(e.pasos.find((p) => p.clave === "asistentes")!.pierde).toBe(0);
+  });
+});
