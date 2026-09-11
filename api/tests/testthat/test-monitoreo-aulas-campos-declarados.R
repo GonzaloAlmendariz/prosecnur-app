@@ -120,3 +120,43 @@ test_that("el conteo sobrevive al normalizador de config", {
   cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, control_sin_nombre = 7L))
   expect_identical(as.integer(cfg$control_sin_nombre), 7L)
 })
+
+# ── El sello de la marca de refuerzo sobrevive al normalizador ───────────────
+#
+# La lista de campos de `monitoreo_aulas_normalize_plan()` es CERRADA y lo que
+# no se declara se cae en silencio. Ya se llevo una vez las tres marcas de
+# `activar_reemplazo`; el 2026-09-11 se llevo `activation_origin` y
+# `activated_for`, que son lo UNICO que distingue una marca de la app de una
+# casilla tecleada. Medido en vivo: se marco EXTRA 11, el estado llego al
+# tablero y el origen no, asi que «Refuerzos pedidos» seguia vacio y el contador
+# del techo en cero con una pedida.
+
+test_that("marcar un refuerzo deja origen y destino visibles tras normalizar", {
+  plan <- list(list(classroom_id = "A-01", operational_code = "R 1.1", label = "x",
+                    wave = "M1", orden = 1, faculty = "DERECHO",
+                    sample_role = "chain_reserve", sample_status = "SIN CONTACTAR"))
+  marcado <- monitoreo_aulas_marcar_refuerzo(plan, "R 1.1", para = "DERECHO",
+                                             tipo = "refuerzo", motivo = "prueba",
+                                             ahora = "2026-09-11T10:00:00Z")
+  fila <- monitoreo_aulas_normalize_plan(marcado$plan)[[1]]
+  expect_identical(as.character(fila$sample_status), "refuerzo_por_contactar")
+  expect_identical(as.character(fila$activation_origin), "refuerzo")
+  expect_identical(as.character(fila$activated_for), "DERECHO")
+  expect_identical(as.character(fila$activated_at), "2026-09-11T10:00:00Z")
+  expect_identical(as.character(fila$activation_reason), "prueba")
+})
+
+test_that("los cuatro sellos siguen presentes cuando el estado ya avanzo", {
+  # La pregunta de Gonzalo: «¿la app sabe reconocer cuando paso de su estado
+  # especial a estar en contacto o incluso agendado?». Sabe si y solo si el
+  # sello sobrevive al cambio de estado.
+  plan <- list(list(classroom_id = "A-01", operational_code = "R 1.1", label = "x",
+                    wave = "M1", orden = 1, faculty = "DERECHO",
+                    sample_role = "chain_reserve", sample_status = "AGENDADA",
+                    activation_origin = "refuerzo", activated_for = "DERECHO",
+                    activated_at = "2026-09-11T10:00:00Z"))
+  fila <- monitoreo_aulas_normalize_plan(plan)[[1]]
+  expect_identical(as.character(fila$sample_status), "agendada")
+  expect_identical(as.character(fila$activation_origin), "refuerzo")
+  expect_identical(as.character(fila$activated_for), "DERECHO")
+})

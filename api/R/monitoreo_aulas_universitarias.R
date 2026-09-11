@@ -978,6 +978,17 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     replaced_at = get(c("replaced_at", "reemplazada_en"), ""),
     activated_at = get(c("activated_at", "activada_en"), ""),
     activation_reason = get(c("activation_reason", "motivo_activacion"), ""),
+    # **Quien pidio el refuerzo y para quien.** Los escribe
+    # `monitoreo_aulas_marcar_refuerzo()` y son lo UNICO que distingue una marca
+    # de la app de una casilla que alguien tecleo en el libro: el estado de
+    # muestra se mueve —EN CONTACTO, AGENDADA— y estos dos no. Sin declararlos
+    # aqui se caian por el mismo agujero que ya se llevo las tres marcas de
+    # `activar_reemplazo`: medido el 2026-09-11 contra el operativo, se marco
+    # EXTRA 11, el estado llego al tablero y el origen no, asi que «Refuerzos
+    # pedidos» seguia diciendo que no habia ninguno y el contador del techo
+    # seguia en cero.
+    activation_origin = get(c("activation_origin", "origen_activacion"), ""),
+    activated_for = get(c("activated_for", "activada_para"), ""),
     analysis_weight_warning = get(c("analysis_weight_warning", "alerta_peso_analitico"), ""),
     representativity_score = getn(c("representativity_score", "score_representatividad"), NA_real_),
     representativity_distance = getn(c("representativity_distance", "distancia_representatividad"), NA_real_),
