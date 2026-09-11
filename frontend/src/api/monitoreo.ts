@@ -4668,11 +4668,23 @@ export async function apiMonitoreoClientReportPdf(
   );
 }
 
-export function monitoreoClientReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+/**
+ * `v` identifica la generación. **No es cosmético.** La descarga vive siempre en
+ * la misma URL y el backend no manda `Cache-Control` para `/api/` —el filtro
+ * `no-store` de `plumber_app.R` sólo cubre lo que NO es API—, así que el
+ * navegador puede servir de su caché el PDF anterior. Quien cambia la portada,
+ * regenera y descarga se encontraría el documento viejo y concluiría que los
+ * campos no funcionan. Cambiando la URL en cada generación, no hay nada que
+ * acertar: es otra petición.
+ */
+export function monitoreoClientReportPdfDownloadUrl(
+  opts: { inline?: boolean; v?: string | number } = {},
+): string {
   const sid = localStorage.getItem(SESSION_KEY);
   const params = new URLSearchParams();
   if (sid) params.set("sid", sid);
   if (opts.inline) params.set("inline", "1");
+  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
   const qs = params.toString();
   return apiPath(`/api/monitoreo/client-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
@@ -4693,11 +4705,15 @@ export async function apiMonitoreoProductionReportPdf(
   );
 }
 
-export function monitoreoProductionReportPdfDownloadUrl(opts: { inline?: boolean } = {}): string {
+/** Mismo motivo que en el reporte de cliente: ver `monitoreoClientReportPdfDownloadUrl`. */
+export function monitoreoProductionReportPdfDownloadUrl(
+  opts: { inline?: boolean; v?: string | number } = {},
+): string {
   const sid = localStorage.getItem(SESSION_KEY);
   const params = new URLSearchParams();
   if (sid) params.set("sid", sid);
   if (opts.inline) params.set("inline", "1");
+  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
   const qs = params.toString();
   return apiPath(`/api/monitoreo/production-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
