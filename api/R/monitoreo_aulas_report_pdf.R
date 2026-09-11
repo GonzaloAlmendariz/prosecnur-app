@@ -297,7 +297,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
       ceiling(n_paneles / .marp_rejilla_de_paneles(n_paneles)$por_hoja)
     } else 0L) +                                                # ritmo por facultad
     1L +                                                        # metas por facultad
-    ceiling(nrow(df) / max(1L, ceiling(nrow(df) / max(1L, ceiling(nrow(df) / .marp_filas_por_pagina_avance()))))) + # avance visual
+    .marp_reparto_avance(nrow(df))$hojas +                       # avance visual
     length(paginas) * length(hojas_detalle) +                   # detalle numérico
     1L                                                          # cómo se mide
 
@@ -375,12 +375,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   # La lectura visual del avance, antes del detalle numérico: responde «cómo va»
   # de un vistazo; la tabla de diecisiete columnas responde «cuánto exactamente».
-  # Reparto parejo, igual que en la tabla de detalle: quince facultades a seis
-  # por hoja darían 6+6+3, y la última quedaría medio vacía al lado de dos
-  # llenas. Con el reparto parejo son tres hojas de cinco.
-  por_hoja_avance <- .marp_filas_por_pagina_avance()
-  n_hojas_avance <- max(1L, ceiling(nrow(df) / por_hoja_avance))
-  por_hoja_avance <- ceiling(nrow(df) / n_hojas_avance)
+  reparto_avance <- .marp_reparto_avance(nrow(df))
+  por_hoja_avance <- reparto_avance$por_hoja
   hojas_avance <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_hoja_avance))
   for (h in seq_along(hojas_avance)) {
     nueva("Avance por facultad y sexo",
