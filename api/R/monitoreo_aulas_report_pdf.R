@@ -214,22 +214,14 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   # de página en blanco entre la regla y la primera fila, y las quince
   # facultades se partían en dos hojas sin necesidad.
   y_tabla <- 0.755
-  # **Ni huérfanas ni páginas desparejas.** Con quince facultades a 0,044 caben
-  # catorce y la decimoquinta se iba sola a una hoja entera: una página con una
-  # fila no es una página, es un error de composición. Dos reglas, en orden:
-  #
-  #   1. Si todo cabe apretando el renglón hasta el mínimo legible, cabe: se
-  #      prefiere una hoja bien llena a dos medio vacías.
-  #   2. Si de verdad no cabe, las filas se reparten PAREJAS entre las hojas que
-  #      hagan falta, en vez de llenar la primera y dejar el resto a la última.
-  .ALTO_FILA_MINIMO <- 0.0355
-  alto_util <- y_tabla - 0.10
-  if (nrow(df) * .ALTO_FILA_MINIMO <= alto_util) {
-    alto_fila <- min(alto_fila, alto_util / nrow(df))
-  }
-  por_pagina <- max(1L, floor(alto_util / alto_fila))
-  n_hojas <- max(1L, ceiling(nrow(df) / por_pagina))
-  por_pagina <- ceiling(nrow(df) / n_hojas)
+  # El reparto lo decide la MISMA regla que usan las otras tablas del documento
+  # (`.marp_reparto_de_filas()`): apretar el renglón antes que abrir hoja, y si
+  # hay que abrirla, repartir parejo. Aquí vivía una copia, y tener la regla en
+  # dos sitios ya costó una tabla partida en dos hojas que cabía en una.
+  reparto <- .marp_reparto_de_filas(nrow(df), arriba = y_tabla, abajo = 0.10,
+                                    alto_max = alto_fila, alto_min = 0.0355)
+  alto_fila <- reparto$alto
+  por_pagina <- reparto$por_hoja
   paginas <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_pagina))
 
   # **La tabla de detalle va en DOS páginas, no en una de diecisiete columnas.**

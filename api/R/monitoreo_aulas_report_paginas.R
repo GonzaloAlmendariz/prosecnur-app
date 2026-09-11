@@ -154,9 +154,10 @@
   w_rot <- 0.330
   w_col <- (ancho - w_rot) / 3
   xs <- c(x0, x0 + w_rot, x0 + w_rot + w_col, x0 + w_rot + 2 * w_col, x0 + ancho)
-  # El renglón se deriva del hueco que queda hasta el pie: con 0,040 tecleados,
+  # El renglón, por la misma regla que el resto de tablas: con 0,040 tecleados,
   # las diez filas de «Avance general» cruzaban la regla del pie.
-  alto <- min(0.040, (y_top - 0.030 - 0.112) / nrow(filas))
+  alto <- .marp_reparto_de_filas(nrow(filas), arriba = y_top - 0.030, abajo = 0.112,
+                                 alto_max = 0.040, alto_min = 0.028)$alto
 
   # Sin banda de relleno: dos hairlines bastan para acotar el encabezado y dejan
   # la tabla más liviana que un bloque de color.
