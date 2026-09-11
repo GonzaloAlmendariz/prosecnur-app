@@ -225,3 +225,44 @@ describe("«meta» nombra la cuota y sólo la cuota", () => {
     expect([...muestra.matchAll(/\b(meta[A-Za-z]*)\s*[=:][^;\n]*expected_valid/g)]).toHaveLength(1);
   });
 });
+
+describe("la facultad sale del plan cuando el parte no la trae", () => {
+  /**
+   * Medido sobre HSVG26ULT2 el 2026-09-11: **cero de 57 partes traen
+   * `faculty`**. Agrupando por la del parte, las quince facultades caían en un
+   * único cubo «Sin facultad», y cualquier consumidor que buscara la suya por
+   * nombre se iba de vacío — que es lo que le pasó a la serie por jornada del
+   * ranking al estrenarse.
+   *
+   * Es el mismo defecto que vigila `elParteTraeSuFacultad`: el parte identifica
+   * el curso-horario, y la facultad la declara el plan.
+   */
+  const parteSinFacultad = (codigo: string, fecha: string, efectivas: number) =>
+    ({ operational_code: codigo, applied_at: fecha, effective_surveys: efectivas }) as unknown as MonitoreoRow;
+  const aula = (codigo: string, facultad: string) =>
+    ({ operational_code: codigo, faculty: facultad, eligible_n: 20, expected_valid: 10 }) as unknown as MonitoreoRow;
+
+  it("agrupa por la facultad del plan y no en un cubo «Sin facultad»", () => {
+    const s = serieDeRendimiento(
+      [parteSinFacultad("CH 1", "2026-09-08", 5), parteSinFacultad("CH 9", "2026-09-08", 7)],
+      [aula("CH 1", "DERECHO"), aula("CH 9", "LETRAS")],
+    );
+    const nombres = s.facultades.map((f) => f.facultad).sort();
+    expect(nombres).toEqual(["DERECHO", "LETRAS"]);
+    expect(nombres).not.toContain("Sin facultad");
+  });
+
+  it("la del parte manda si algún día la trae", () => {
+    const conFacultad = { operational_code: "CH 1", applied_at: "2026-09-08",
+      effective_surveys: 5, faculty: "ARTES" } as unknown as MonitoreoRow;
+    const s = serieDeRendimiento([conFacultad], [aula("CH 1", "DERECHO")]);
+    expect(s.facultades.map((f) => f.facultad)).toEqual(["ARTES"]);
+  });
+
+  it("sin plan y sin facultad en el parte sigue habiendo un cubo, y se llama por su nombre", () => {
+    // No se inventa una facultad: «Sin facultad» es la verdad cuando nadie la
+    // declara, y borrar la fila escondería partes que existen.
+    const s = serieDeRendimiento([parteSinFacultad("CH 1", "2026-09-08", 5)], []);
+    expect(s.facultades.map((f) => f.facultad)).toEqual(["Sin facultad"]);
+  });
+});

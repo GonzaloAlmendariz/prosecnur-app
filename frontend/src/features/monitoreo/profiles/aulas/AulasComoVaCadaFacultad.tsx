@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import { AulasMapaDeLaDeuda } from "./AulasMapaDeLaDeuda";
 import { deudaPorFacultad, palabraDelVeredicto, repartoDeDeudas, type DeudaDeFacultad } from "./deudaPorFacultad";
+import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { palabraDelRumbo, rumboDeLaFacultad, type RumboDeFacultad } from "./rumboDeLaFacultad";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
@@ -186,7 +187,7 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
               className="aulas-cvf-refuerzo"
               onClick={(e) => { e.stopPropagation(); onRefuerzo(f.facultad); }}
             >
-              Buscar refuerzo para {f.facultad}
+              Buscar refuerzo para {facultadCorta(f.facultad)}
             </button>
           ) : null}
         </div>
