@@ -1464,7 +1464,6 @@
 
 .mon-profile-page.is-aulas-flow .aulas-eslabon-codigo { font-weight: var(--pulso-weight-black); }
 .mon-profile-page.is-aulas-flow .aulas-eslabon-rol { color: var(--pulso-text-soft); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-cifra { color: var(--pulso-text); }
 .mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
   font-weight: var(--pulso-weight-black);
   color: var(--pulso-state-ready-fg);

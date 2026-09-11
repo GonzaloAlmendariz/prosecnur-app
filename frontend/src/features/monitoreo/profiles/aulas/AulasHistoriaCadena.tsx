@@ -14,21 +14,51 @@ import "./aulasHistoriaCadena.css";
  */
 
 /** Un eslabón: código, sus efectivas contra su meta, y si cerró. */
+/**
+ * En qué punto está un eslabon, en el vocabulario del libro.
+ *
+ * Se dice el ESTADO y no el rol —«en reserva 3» lo dice ya su posicion en la
+ * tira— porque lo que decide si hay trabajo es si a esa reserva se la llamo.
+ */
+function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boolean } {
+  const s = String(eslabon.status ?? "").trim().toLowerCase();
+  if (eslabon.validas > 0) return { texto: `${fmt(eslabon.validas)} de ${fmt(eslabon.meta)}`, vivo: true };
+  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true };
+  if (s.startsWith("en contacto")) return { texto: "En contacto", vivo: true };
+  if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false };
+  if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false };
+  if (s.startsWith("en reserva") || s.startsWith("sin contactar") || !s) {
+    return { texto: eslabon.orden === 0 ? "Sin contactar" : "Disponible", vivo: false };
+  }
+  return { texto: s.charAt(0).toUpperCase() + s.slice(1), vivo: false };
+}
+
 function Eslabon({ eslabon, cerro }: { eslabon: EslabonDeCadena; cerro: boolean }) {
+  const punto = puntoDelEslabon(eslabon);
   return (
-    <li className={`aulas-eslabon${cerro ? " es-cierre" : ""}${eslabon.orden === 0 ? " es-titular" : ""}`}>
+    <li className={[
+      "aulas-eslabon",
+      cerro ? "es-cierre" : "",
+      eslabon.orden === 0 ? "es-titular" : "",
+      punto.vivo && !cerro ? "es-activo" : "",
+      !punto.vivo && !cerro && eslabon.orden > 0 ? "es-dormido" : "",
+    ].filter(Boolean).join(" ")}>
       <span className="aulas-eslabon-codigo">{eslabon.codigo}</span>
-      <span className="aulas-eslabon-rol">
-        {/* `EN RESERVA n` es como el Excel numera el eslabón. */}
-        {eslabon.orden === 0 ? "titular" : `en reserva ${eslabon.orden}`}
-      </span>
-      <span className="aulas-eslabon-cifra">
-        {eslabon.validas} de {eslabon.meta.toLocaleString("es-PE")}
-      </span>
+      <span className="aulas-eslabon-rol">{punto.texto}</span>
       {cerro ? <span className="aulas-eslabon-sello">cumple</span> : null}
     </li>
   );
 }
+
+/**
+ * Cuantos eslabones se dibujan antes de contar el resto.
+ *
+ * La cadena se recorre en orden: el primero vivo es el que se esta trabajando y
+ * los de detras importan como CUANTOS quedan, no como cuales son. Con once
+ * reservas —las de HSVG2026— pintarlas todas daba columnas de treinta pixeles
+ * que partian «CH 84» letra a letra.
+ */
+const ESLABONES_A_LA_VISTA = 3;
 
 /**
  * Lo más cerca que llegó una cadena abierta, o nada si nadie se movió.
@@ -243,7 +273,15 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                  tercero de una cadena caía donde el segundo de otra. */
               style={{ "--aulas-eslabones": maxEslabones } as CSSProperties}
             >
-              {propias.map((historia) => (
+              {/* **Una fila por cadena, con el diseño del ensayo del 2026-09-10.**
+                  A la izquierda quién es y qué le pasó; a la derecha el
+                  recorrido. Antes el nombre iba encima y los eslabones debajo
+                  repartiéndose el ancho entre TODOS —hasta once—, así que cada
+                  columna medía treinta píxeles y «CH 84» salía en vertical, una
+                  letra por línea. Gonzalo, con la captura: «se ve horrible». */}
+              {propias.map((historia) => {
+                const detras = Math.max(0, historia.eslabones.length - ESLABONES_A_LA_VISTA);
+                return (
                 <li key={historia.titular} className={`aulas-cadena es-${historia.desenlace}`}>
                   <div className="aulas-cadena-head">
                     <strong>{historia.titular}</strong>
@@ -251,22 +289,26 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                     {/* El desenlace ya lo dice el grupo; en la fila sólo hace
                         falta CUÁL cerró, que es lo que cambia de una a otra. */}
                     {historia.cerro ? <em>cerró {historia.cerro}</em> : null}
-                    {/* Una cadena abierta no tiene historia que contar: sus tres
-                        eslabones dicen lo mismo. Se resume en una línea y el
-                        detalle queda para las que cerraron, que sí la cuentan.
-                        Eran 21 cajas de 59 px repitiendo «0 de N» tres veces. */}
                   </div>
                   <ul className="aulas-cadena-eslabones">
-                    {historia.eslabones.map((eslabon) => (
+                    {historia.eslabones.slice(0, ESLABONES_A_LA_VISTA).map((eslabon) => (
                       <Eslabon
                         key={eslabon.codigo}
                         eslabon={eslabon}
                         cerro={eslabon.codigo === historia.cerro}
                       />
                     ))}
+                    {/* Las de detrás se CUENTAN, no se pintan: son respaldo que
+                        todavía no entra en ninguna decisión. */}
+                    {detras ? (
+                      <li className="aulas-eslabon es-resto">
+                        + {fmt(detras)} por detrás
+                      </li>
+                    ) : null}
                   </ul>
                 </li>
-              ))}
+                );
+              })}
             </ol>
             )}
           </section>
