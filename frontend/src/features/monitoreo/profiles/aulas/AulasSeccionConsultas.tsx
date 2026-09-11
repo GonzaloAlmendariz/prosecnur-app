@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import {
   apiMonitoreoAulasImportFromCalcMuestra,
@@ -14,6 +14,9 @@ import {
 } from "../../../../api/client";
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { AulasBancoExtras } from "./AulasBancoExtras";
+import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
+import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
+import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
@@ -46,6 +49,17 @@ export function AulasSeccionConsultas({
   /** B77: la facultad en foco de la cabecera; corta las listas de la sección. */
   facultadEnFoco?: string;
 }): ReactNode {
+    /**
+     * **Qué curso-horario tiene el popover abierto.** Es estado de la sección y
+     * no dirección: no abre una vista nueva ni cambia lo que se lee, elige a
+     * quién se le está buscando relevo. Mismo trato que el mando de escenario de
+     * Metas.
+     *
+     * El hook va ARRIBA del todo, antes de cualquier salida temprana: uno
+     * colocado bajo la guarda de pestaña se llama en unos renders y no en
+     * otros, y eso es el React #310 que ya tumbó este perfil una vez.
+     */
+    const [relevoDe, setRelevoDe] = useState<string>("");
     // Las tres listas van en paneles propios. Concatenadas producian una tabla
     // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
@@ -194,15 +208,21 @@ export function AulasSeccionConsultas({
           {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
               concentran lo que falta, y puede ser al revés. Esto lo dice. */}
           <AulasConcentracionBrecha filas={(dashboard.brechas ?? []) as MonitoreoRow[]} />
-          <Tabla
-            rows={brechas}
-            empty="Ningún curso-horario tiene brecha abierta."
-            // Siete y se declaran: la octava la rellenaba el payload con
-            // `classroom_id`, que en las 86 filas vale lo mismo que
-            // `operational_code`. `faculty` entra a mano porque es el corte con
-            // el que se reparte el trabajo, no porque toque por orden.
-            preferredColumns={["operational_code", "label", "faculty", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
-            maxColumns={7}
+          {/* **La tabla genérica se fue el 2026-09-10.** Enseñaba siete columnas
+              del payload —`operational_status`, `expected_valid`— y ninguna
+              contestaba la pregunta con la que se entra: ¿esto es grave, y qué
+              hago con ello? Gonzalo, sobre ella: «esas tablas de la aplicación
+              se ven mal», y sobre el ensayo: «el diseño que tú has generado del
+              artefacto es el que tiene que tener».
+
+              Lo que cambia no es la pintura: la severidad se mide contra la
+              tasa prevista de SU facultad, el aula sin aplicar deja de contarse
+              como que rindió cero, y cada fila sale al popover con el verbo que
+              le toca. `AulasAvancePorCurso` sigue siendo la tabla para buscar
+              una fila concreta; ésta es para decidir. */}
+          <AulasBrechasDelCorte
+            filas={brechas as unknown as MonitoreoAulasPlanRow[]}
+            onRelevo={(codigo) => setRelevoDe(codigo)}
           />
         </section>
         ) : null}
@@ -320,6 +340,40 @@ export function AulasSeccionConsultas({
           <AulasBancoExtras banco={dashboard.banco_extras ?? null} facultadEnFoco={facultadEnFoco} />
         </section>
         ) : null}
+
+        {/* **El popover de candidatos, ahora también en Consultas.** Existía
+            desde antes y sólo se abría al registrar lo que pasó en el aula
+            —Modelo › Agenda—, que es donde se anota, no donde se decide.
+            Gonzalo, 2026-09-10: «muéstrame la app donde tomo las decisiones por
+            facultad para B y C». Aquí es.
+
+            Recibe el plan ENTERO y no el recorte de la facultad en foco: los
+            candidatos de un curso-horario son los de su cadena, y si el foco
+            estuviera puesto en otra facultad no habría ninguno. El filtro por
+            facultad ya lo hace el propio motor de candidatos, que nunca sale de
+            la del aula que releva. */}
+        {relevoDe ? (() => {
+          const todas = (dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[];
+          const caido = todas.find((f) =>
+            String(f.operational_code ?? "").trim() === relevoDe
+            || String(f.classroom_id ?? "").trim() === relevoDe);
+          if (!caido) return null;
+          return (
+            <AulasPopoverReemplazo
+              abierto
+              caido={caido}
+              filas={todas}
+              // Lo que le falta a SU facultad, por sexo: es contra lo que se
+              // elige, y el motor ya lo tiene por celda.
+              brecha={brechaDeLaFacultad(
+                (dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>,
+                String(caido.faculty ?? ""),
+              )}
+              onElegir={() => setRelevoDe("")}
+              onCerrar={() => setRelevoDe("")}
+            />
+          );
+        })() : null}
       </div>
   );
 }
