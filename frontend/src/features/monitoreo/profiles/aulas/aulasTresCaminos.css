@@ -112,10 +112,16 @@
   line-height: 1.4;
 }
 .aulas-cam-aporte b {
+  /* **La cifra no se parte.** Con la frase larga al lado —«respuestas repuestas
+     · 8 mujeres y 2 hombres»— el flex encogía el `<b>` hasta dejarlo sin ancho
+     y «10» salía como «1» y «0» en dos líneas. Visto en pantalla. */
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+.aulas-cam-aporte span { min-width: 0; }
 .aulas-cam-aporte span { color: var(--pulso-text-faint); }
 /* Lo que suma va en verde y con signo; lo que repone, en tinta normal: el plan
    ya contaba con esas respuestas y pintarlas de ganancia sería contarlas dos
