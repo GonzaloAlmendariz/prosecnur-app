@@ -48,7 +48,10 @@
       if (identical(as.integer(t$facultades_abiertas), 1L)) "en 1 facultad"
       else sprintf("en %d facultades", as.integer(t$facultades_abiertas)),
       if (.marp_num(t$faltan, 0) > 0) tok$warn else tok$success)
-  kpi(6L, "Cursos-horario aplicados", .marp_personas(t$aulas_aplicadas), "aulas visitadas", tok$navy)
+  previstas <- sum(suppressWarnings(as.numeric(model$aulas_planificadas %||% numeric(0))), na.rm = TRUE)
+  kpi(6L, "Cursos-horario aplicados", .marp_personas(t$aulas_aplicadas),
+      if (is.finite(previstas) && previstas > 0) sprintf("de %s previstos", .marp_personas(previstas))
+      else "", tok$navy)
 
   # Donde estaba el medidor de ancho completo va el reparto por sexo. El
   # medidor repetía el 42,5 % que la tarjeta ya daba —el mismo dato dos veces y
@@ -539,7 +542,7 @@
     # ENVUELTO, no `grid.text`: es una frase larga y sin envoltura se salía por
     # el borde derecho —«…que el diseño fijó por fa»—.
     .form_pdf_text(
-      paste0("Se cuenta ", criterio$numerador, " contra ", criterio$denominador,
+      paste0("Se cuentan ", criterio$numerador, " contra ", criterio$denominador,
              ". ", criterio$no_cubre),
       x = x0, y = max(0.095, y - 0.014), w = ancho_total,
       chars = pulso_pdf_chars(ancho_total), fontsize = ty$caption,

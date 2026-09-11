@@ -214,26 +214,17 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.88))
     if (!etiquetar_barras || !se_rotula(i)) next
-    # **La cifra del día va DENTRO de la barra cuando cabe.** Encima competía
-    # con la cifra del acumulado, que pasa por ahí mismo: dos números casi
-    # pegados y ninguno pertenece visiblemente a su serie. Dentro de la barra
-    # pertenece a la barra, sin flecha ni leyenda que lo explique.
-    if (alto_barra > alto_texto * 2.6) {
-      # El punto del acumulado se posa justo en el borde alto de la barra
-      # cuando el día es el primero de la serie: la cifra del día quedaba
-      # tapada por el círculo. Se baja un renglón dentro de la misma barra.
-      y_rotulo <- y + alto_barra - alto_texto * 0.9
-      y_punto <- py_acu(acumulado[[i]])
-      choca <- is.finite(y_punto) && abs(y_punto - y_rotulo) < alto_texto * 1.4
-      if (choca && alto_barra > alto_texto * 4.2) y_rotulo <- y_rotulo - alto_texto * 1.8
-      grid::grid.text(.ppd_miles(v), x = px(i), y = y_rotulo,
-                      just = c("centre", "top"),
-                      gp = grid::gpar(col = tokens$surface, fontsize = fs, fontface = "bold"))
-    } else {
-      grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto_barra + 0.008,
-                      just = c("centre", "bottom"),
-                      gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
-    }
+    # **La cifra del día va SIEMPRE encima de su barra** (Gonzalo, 2026-09-11:
+    # «las del día siempre sobre la barra, a veces no sé por qué la pones
+    # dentro»). La versión anterior la metía dentro cuando la barra era alta,
+    # para no chocar con la cifra del acumulado; esa colisión ya la resuelve el
+    # acumulado, que se aparta al costado cuando su punto cae dentro del
+    # relleno. Con la regla condicional, además, una misma serie escribía unas
+    # cifras dentro y otras fuera según la altura: dos tratamientos para el
+    # mismo dato, que es lo que hace que una página parezca descuidada.
+    grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto_barra + 0.008,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
   }
 
   # Las metas, con su rótulo pegado a la regla: una línea sin nombre obliga a
@@ -535,11 +526,15 @@ pulso_pdf_cromo <- function(antetitulo, titulo, subtitulo = "",
   }
   grid::grid.text(titulo, x = m, y = 0.905, just = c("left", "centre"),
                   gp = grid::gpar(col = tokens$navy, fontsize = 16.5, fontface = "bold"))
-  if (nzchar(subtitulo %||% "")) {
+  # La regla sube cuando no hay bajada. Dejarla fija a 0,845 abría una banda de
+  # papel entre el título y la línea que se leía como un renglón perdido: el
+  # hueco del subtítulo no puede quedar reservado cuando no hay subtítulo.
+  hay_bajada <- nzchar(subtitulo %||% "")
+  if (hay_bajada) {
     grid::grid.text(subtitulo, x = m, y = 0.868, just = c("left", "centre"),
                     gp = grid::gpar(col = tokens$soft, fontsize = 9))
   }
-  y_regla <- 0.845
+  y_regla <- if (hay_bajada) 0.845 else 0.872
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(y_regla, "npc"),
                    gp = grid::gpar(col = tokens$line, lwd = 0.6))
   grid::grid.lines(x = grid::unit(c(m, m + 0.052), "npc"), y = grid::unit(y_regla, "npc"),
