@@ -20,10 +20,18 @@ test_that("ninguna frase publicable usa jerga", {
 test_that("el pasado y el futuro no se confunden entre si", {
   # Las dos lecturas conviven en la misma pantalla: una dice donde estas y la
   # otra si vas a llegar. Si las frases se parecieran, la pantalla mentiria.
-  expect_match(monitoreo_aulas_etiqueta_celda("alcanzada"), "Ya llegó")
-  expect_match(.mac_etiqueta_estado("asegurada"), "Va a llegar")
-  expect_false(grepl("Va a llegar", monitoreo_aulas_etiqueta_celda("alcanzada")))
-  expect_false(grepl("Ya llegó", .mac_etiqueta_estado("asegurada")))
+  pasado <- monitoreo_aulas_etiqueta_celda("alcanzada")
+  futuro <- .mac_etiqueta_estado("asegurada")
+  expect_match(pasado, "Ya llegó")
+  # **La frase del futuro cambió el 2026-09-10 y esto no fija el literal.**
+  # Era «Va a llegar, con margen» y ahora nombra su universo —«Llega con todo el
+  # plan, con margen»— porque `estado` mide el plan ENTERO y esa promesa sólo se
+  # cumple si todo lo que aún no está agendado acaba agendándose. Lo que el test
+  # vigila no es la redacción sino que las dos lecturas no se confundan: una
+  # dice dónde estás y la otra si vas a llegar.
+  expect_match(futuro, "[Ll]lega")
+  expect_false(grepl("Ya llegó", futuro, fixed = TRUE))
+  expect_false(grepl("con todo el plan", pasado, fixed = TRUE))
 })
 
 test_that("el caso peor suena como el caso peor", {
