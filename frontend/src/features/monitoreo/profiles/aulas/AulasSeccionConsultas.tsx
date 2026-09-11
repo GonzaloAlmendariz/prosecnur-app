@@ -256,6 +256,9 @@ export function AulasSeccionConsultas({
             porSexo={(dashboard.efectividad_por_sexo ?? []) as Array<Record<string, unknown>>}
             facultadEnFoco={facultadEnFoco}
             onRefuerzo={(f) => setRefuerzoDe(f)}
+            // La serie por jornada: «una foto no dice el rumbo».
+            partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
+            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           />
         </section>
         ) : null}

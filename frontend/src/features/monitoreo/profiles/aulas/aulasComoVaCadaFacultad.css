@@ -221,3 +221,31 @@
   cursor: pointer;
 }
 .aulas-cvf-refuerzo:hover { filter: brightness(0.94); }
+
+/* La serie por jornada: la deuda al cierre de cada día. Tres o cuatro puntos y
+   una línea; lo que se compara es la FORMA —si baja, se está arreglando—, no el
+   valor exacto de cada uno. */
+.aulas-cvf-rumbo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+.aulas-cvf-rumbo svg { flex: 0 0 auto; width: 190px; height: 42px; overflow: visible; }
+/* La línea del cero: cruzarla es lo que separa deber de ir sobrado, igual que
+   en el mapa de la deuda. */
+.aulas-cvf-rumbo-cero { stroke: var(--pulso-border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.aulas-cvf-rumbo-linea { stroke-width: 1.6; }
+.aulas-cvf-rumbo-punto { fill: var(--pulso-surface); stroke-width: 1.4; }
+.aulas-cvf-rumbo-hoy { stroke-width: 1.6; }
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-punto { stroke: var(--pulso-success-fg); }
+.aulas-cvf-rumbo.es-mejora .aulas-cvf-rumbo-hoy { fill: var(--pulso-success-fg); stroke: var(--pulso-success-fg); }
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-punto { stroke: var(--pulso-danger-fg); }
+.aulas-cvf-rumbo.es-empeora .aulas-cvf-rumbo-hoy { fill: var(--pulso-danger-fg); stroke: var(--pulso-danger-fg); }
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-linea,
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-punto { stroke: var(--pulso-text-soft); }
+.aulas-cvf-rumbo.es-estable .aulas-cvf-rumbo-hoy { fill: var(--pulso-text-soft); stroke: var(--pulso-text-soft); }
