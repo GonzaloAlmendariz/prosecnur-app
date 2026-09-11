@@ -246,7 +246,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     col("Efectivas hombres", "Hom.", "Efectivas"),
     col("Efectivas mujeres", "Muj.", "Efectivas")
   )
-  comun_der <- list(col("Aulas aplicadas", "Aulas", w = 0.060))
+  comun_der <- list(col("Aulas aplicadas", "Aulas", w = 0.082))
   detalle <- function(meta) {
     prefijo <- if (identical(meta, "muestra")) "Muestra" else "Sobremuestra"
     sufijo <- if (identical(meta, "muestra")) "muestra" else "sobremuestra"
@@ -390,7 +390,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
         if (length(paginas) > 1L) sprintf("%d de %d", p, length(paginas)) else ""
       )
       .marp_tabla_detalle(df, paginas[[p]], hoja$columnas, tok, ty, x0,
-                          y_tabla = y_tabla, alto_fila = alto_fila)
+                          y_tabla = y_tabla, alto_fila = alto_fila,
+                          aulas_plan = model$aulas_planificadas %||% numeric(0))
       pie()
     }
   }

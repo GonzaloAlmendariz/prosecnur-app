@@ -586,8 +586,7 @@
 
     faltan <- col("Faltantes muestra", i)
     cerrada <- is.finite(faltan) && faltan <= 0
-    previstas <- suppressWarnings(as.numeric(
-      aulas_plan[[as.character(facultades[["Facultad"]][[i]])]] %||% NA_real_))
+    previstas <- .marp_previstas_de(aulas_plan, facultades[["Facultad"]][[i]])
     cifras <- list(
       list(.marp_personas(col("Efectivas", i)), tok$ink, "plain"),
       list(.marp_personas(col("Muestra", i)), tok$ink, "plain"),
@@ -617,8 +616,22 @@
 # lee cualquiera de las dos metas y quien tenga delante una sola hoja tiene que
 # poder leerla sola.
 
+# Cuántos cursos-horario tenía previstos una facultad. **Con `match()` y no con
+# `aulas_plan[[nombre]]`**: `[[ ]]` sobre un nombre ausente LANZA «subscript out
+# of bounds» —no devuelve `NULL`—, así que el `%||%` que venía detrás nunca
+# llegaba a actuar y el reporte entero reventaba. HSVG2026 no lo destapa porque
+# todas sus facultades están en el plan; basta una que no tenga titulares, o un
+# nombre que no case, para tumbar la generación.
+.marp_previstas_de <- function(aulas_plan, nombre) {
+  if (!length(aulas_plan) || is.null(names(aulas_plan))) return(NA_real_)
+  i <- match(as.character(nombre)[[1L]], names(aulas_plan))
+  if (is.na(i)) return(NA_real_)
+  v <- suppressWarnings(as.numeric(aulas_plan[[i]]))
+  if (length(v) && is.finite(v[[1L]])) v[[1L]] else NA_real_
+}
+
 .marp_tabla_detalle <- function(df, filas, columnas, tok, ty, x0,
-                                y_tabla, alto_fila) {
+                                y_tabla, alto_fila, aulas_plan = numeric(0)) {
   pesos <- pulso_pdf_pesos()
   anchos <- vapply(columnas, function(c) c$w, numeric(1))
   xs <- cumsum(c(x0, anchos))
@@ -672,14 +685,45 @@
                         gp = grid::gpar(col = tok$ink, fontsize = ty$body))
         next
       }
+      # Las aulas se dicen como en la otra tabla —«7 / 19»—: la cifra sola no
+      # deja ver si siete aulas son muchas o pocas sin ir a buscar el plan
+      # (Gonzalo, 2026-09-11).
+      if (identical(c$campo, "Aulas aplicadas")) {
+        previstas <- .marp_previstas_de(aulas_plan, fila[["Facultad"]])
+        txt <- if (is.finite(previstas) && previstas > 0) {
+          sprintf("%s / %s", .marp_personas(v), .marp_personas(previstas))
+        } else .marp_personas(v)
+        grid::grid.text(txt, x = xs[i + 1L] - 0.004, y = y + alto_fila / 2,
+                        just = c("right", "centre"),
+                        gp = grid::gpar(col = tok$soft, fontsize = ty$body))
+        next
+      }
+      # **La tabla se lee por pares: meta y lo que le falta.** Con diez columnas
+      # de cifras del mismo peso, encontrar la pareja de una facultad obliga a
+      # contar columnas. La meta va en navy y negrita y su faltante en color,
+      # así que cada par salta a la vista. Es la excepción a la regla de no
+      # pintar cifras: aquí el color no juzga, da estructura a una rejilla que
+      # sin ella no la tiene (Gonzalo, 2026-09-11).
+      #
+      # **Lo que sobra se dice como CERO EN VERDE, no como un negativo.** Se probó
+      # mostrando el excedente —«−66» en azul— y él lo descartó: de cara al
+      # cliente, una cuota cumplida es una cuota cumplida, y un número negativo
+      # invita a restarlo de otra celda. El motor ya clampa el faltante en cero
+      # por el mismo motivo (ADR 0079: los faltantes se suman, no se netean). El
+      # excedente es información INTERNA y ahí sí puede mostrarse.
       falta <- suppressWarnings(as.numeric(v))
-      cerrada <- es_falta && is.finite(falta) && falta <= 0
-      grid::grid.text(.marp_personas(v, faltante = es_falta),
-                      x = xs[i + 1L] - 0.004, y = y + alto_fila / 2,
+      es_meta <- !es_falta && !startsWith(c$campo, "Efectivas")
+      texto <- .marp_personas(v, faltante = es_falta)
+      color <- if (es_meta) tok$navy else tok$ink
+      negrita <- es_meta
+      if (es_falta) {
+        negrita <- TRUE
+        color <- if (is.finite(falta) && falta <= 0) tok$success else tok$danger
+      }
+      grid::grid.text(texto, x = xs[i + 1L] - 0.004, y = y + alto_fila / 2,
                       just = c("right", "centre"),
-                      gp = grid::gpar(col = if (cerrada) tok$success else tok$ink,
-                                      fontsize = ty$body,
-                                      fontface = if (cerrada) "bold" else "plain"))
+                      gp = grid::gpar(col = color, fontsize = ty$body,
+                                      fontface = if (negrita) "bold" else "plain"))
     }
     pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = pesos$fila)
     y <- y - alto_fila
