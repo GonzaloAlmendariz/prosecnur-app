@@ -5025,6 +5025,30 @@ mount_monitoreo <- function(pr) {
            mensaje = monitoreo_aulas_marcar_refuerzo_texto(out),
            state = .monitoreo_state_payload(sid))
     })) |>
+    plumber::pr_post("/api/monitoreo/aulas/publicar-marcas", wrap_endpoint(function(req, res, ...) {
+      # **La EXCEPCION, y la unica escritura de la app sobre una hoja del
+      # equipo.** Gonzalo dio la palabra el 2026-09-11 y solo para este caso:
+      # una columna (STATUS MUESTRA), solo las filas que la app marco, solo si
+      # la celda remota esta libre, y nunca un borrado.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      cfg <- s$monitoreo_config %||% list()
+      destino <- monitoreo_aulas_libro_destino(cfg)
+      if (!nzchar(destino)) {
+        stop_api(409, "E_AULAS_LIBRO_SIN_ORIGEN",
+                 "No hay un Google Sheets del operativo recordado al que publicar.")
+      }
+      plan <- s$monitoreo_aulas_plan %||%
+        ((cfg$aulas_universitarias %||% list())$plan %||% list())
+      # `aplicar = FALSE` es el ENSAYO: dice que celdas se pintarian sin tocar
+      # una sola. Es lo que deja mirar antes de escribir en la hoja de otro.
+      aplicar <- !identical(.monitoreo_scalar(body$aplicar %||% TRUE, TRUE), FALSE)
+      out <- monitoreo_aulas_publicar_marcas(destino, plan, aplicar = aplicar)
+      list(ok = TRUE, escritas = out$escritas, respetadas = out$respetadas,
+           sin_fila = as.list(out$sin_fila), por_hoja = out$por_hoja,
+           aplicado = out$aplicado, mensaje = out$mensaje)
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/marcar-refuerzos", wrap_endpoint(function(req, res, ...) {
       # **El lote, y existe por una medida.** Una marca suelta tardaba ~120 s
       # porque este endpoint reconstruye el tablero entero de 1.392 filas; el

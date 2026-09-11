@@ -108,6 +108,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
   }
 
   const cerrado = r.asignadas.reduce((n, a) => n + a.util, 0);
+  const cierran = r.asignadas.length - r.deHolgura;
 
   return (
     <div className="aulas-techo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -117,7 +118,16 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
         que más cierran: <strong>{fmt(r.asignadas.length)}</strong> en{" "}
         <strong>{fmt(new Set(r.asignadas.map((a) => a.facultad)).size)}</strong> facultades,
         que recuperan <strong>{fmt(cerrado)}</strong> respuestas.
-        {r.sobran ? <> Sobran <strong>{fmt(r.sobran)}</strong> del techo: ya no hay más déficit que cerrar.</> : null}
+        {r.deHolgura ? (
+          // **Las dos cifras separadas, y su base.** Sumarlas prometería un
+          // cierre que ya estaba hecho: las de margen no cierran nada.
+          <> De ésos, <strong>{fmt(cierran)}</strong>{" "}
+            {cierran === 1 ? "cierra brecha" : "cierran brecha"} y{" "}
+            <strong>{fmt(r.deHolgura)}</strong>{" "}
+            {r.deHolgura === 1 ? "es margen" : "son margen"} para las que quedaron
+            más al filo, que es en lo que se gasta el techo sobrante.</>
+        ) : null}
+        {r.sobran ? <> Sobran <strong>{fmt(r.sobran)}</strong> del techo: no queda inventario libre que dar.</> : null}
         {r.quedaSinCubrir ? (
           // El coste del techo, dicho: sin esto parece que quince alcanzan.
           <> Aun así quedarían <strong>{fmt(r.quedaSinCubrir)}</strong> respuestas sin cubrir.</>
@@ -140,20 +150,26 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
 
       <ol className={`aulas-techo-lista${onGuardado ? " es-con-accion" : ""}`}>
         {r.asignadas.map((a, i) => (
-          <li key={a.codigo} className={a.traslape ? `es-solapa es-${a.traslape}` : ""}>
+          <li key={a.codigo} className={`${a.holgura ? "es-holgura " : ""}${a.traslape ? `es-solapa es-${a.traslape}` : ""}`.trim()}>
             <span className="aulas-techo-puesto">{fmt(i + 1)}</span>
             <span className="aulas-techo-quien">
               <b>{a.codigo}</b>
               <em>{facultadCorta(a.facultad)}{a.docente ? ` · ${a.docente}` : ""}</em>
             </span>
             <span className="aulas-techo-aporte">
-              <b>+{fmt(a.util)}</b>
-              <em>de {fmt(a.aporta.total)} que rinde</em>
+              {/* En las de margen no hay brecha que cerrar, así que el «+N» sería
+                  un cierre inventado: se enseña lo que rinde y ya. */}
+              {a.holgura
+                ? <b className="es-margen">{fmt(a.aporta.total)}</b>
+                : <b>+{fmt(a.util)}</b>}
+              <em>{a.holgura ? "de margen" : `de ${fmt(a.aporta.total)} que rinde`}</em>
             </span>
             <span className="aulas-techo-resto">
-              {a.quedaDespues > 0
-                ? <>quedan <b>{fmt(a.quedaDespues)}</b></>
-                : <b className="es-cierra">cierra su cuota</b>}
+              {a.holgura
+                ? <b className="es-margen">margen</b>
+                : a.quedaDespues > 0
+                  ? <>quedan <b>{fmt(a.quedaDespues)}</b></>
+                  : <b className="es-cierra">cierra su cuota</b>}
             </span>
             {/* **El traslape, con su grado de certeza.** El de docente es un
                 hecho —la misma persona dos veces— y el de curso una sospecha:

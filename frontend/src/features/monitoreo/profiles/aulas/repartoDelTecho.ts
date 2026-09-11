@@ -68,6 +68,17 @@ export type AulaDelReparto = {
   solapaCon: string;
   traslape: TraslapeEntreElegidas;
   /**
+   * **Esta no cierra brecha: da margen.** Entra en la segunda vuelta, cuando el
+   * déficit ya está cubierto y el techo todavía tiene sitio.
+   *
+   * Gonzalo, 2026-09-11: «pero si sobran, Derecho puede tomar una más, o
+   * Sociales, no lo sé, las que veamos que están más flojas o ajustadas». El
+   * techo es cuánto campo se puede pagar; dejarlo sin gastar porque la cuenta
+   * dice cero no es prudencia, es desaprovecharlo — y la cuenta dice cero sobre
+   * una proyección, no sobre lo que va a pasar.
+   */
+  holgura: boolean;
+  /**
    * **Traslape con lo YA APLICADO de su facultad**, en tanto por uno.
    *
    * De cada 100 alumnos convocados en esa facultad, cuántos estuvieron ya en un
@@ -87,14 +98,23 @@ export type FacultadDelReparto = {
   queda: number;
   /** Cuántas más de su propia cola la cerrarían. `-1` si su inventario no da. */
   hacenFalta: number;
+  /**
+   * **Su colchón, en tanto por uno de lo que debía.** Cuánto de lo asignado
+   * sobra por encima de su deuda: 0 es «cierra justo» y 1 es «le sobra tanto
+   * como debía». Es lo que ordena la segunda vuelta —la más ajustada primero—
+   * y sale de la misma cuenta que el reparto, no de una segunda.
+   */
+  colchon: number;
 };
 
 export type RepartoDelTecho = {
   techo: number;
   asignadas: AulaDelReparto[];
   porFacultad: FacultadDelReparto[];
-  /** Aulas del techo que sobran porque ya no hay déficit que cerrar. */
+  /** Aulas del techo que sobran: ni cierran déficit ni encuentran a quién dar margen. */
   sobran: number;
+  /** De las asignadas, cuántas son de la segunda vuelta (margen, no brecha). */
+  deHolgura: number;
   /** Lo que sigue faltando en total tras gastar el techo entero. */
   quedaSinCubrir: number;
   /** Facultades que no reciben ninguna y siguen debiendo. */
@@ -112,7 +132,7 @@ export function repartoDelTecho(
   techo: number = TECHO_DE_AULAS_AGENDABLES,
 ): RepartoDelTecho {
   const vacio: RepartoDelTecho = {
-    techo, asignadas: [], porFacultad: [], sobran: Math.max(0, techo),
+    techo, asignadas: [], porFacultad: [], sobran: Math.max(0, techo), deHolgura: 0,
     quedaSinCubrir: 0, sinRecibir: [], traslapes: { docente: 0, curso: 0 },
   };
   const filas = bloque?.facultades ?? [];
@@ -121,6 +141,8 @@ export function repartoDelTecho(
   type EnJuego = {
     facultad: string; debeM: number; debeH: number; faltaba: number;
     cola: CandidatoDeRefuerzo[]; recibe: number;
+    /** Lo asignado por encima de lo que debía: su colchón en personas. */
+    exceso: number;
   };
 
   const enJuego: EnJuego[] = [];
@@ -140,7 +162,7 @@ export function repartoDelTecho(
       // Las que la app ya marcó están pedidas: volver a proponerlas contaría dos
       // veces el mismo aula contra el techo.
       .filter((c) => texto(c.fila.sample_status) !== "refuerzo_por_contactar");
-    enJuego.push({ facultad, debeM, debeH, faltaba: debeM + debeH, cola, recibe: 0 });
+    enJuego.push({ facultad, debeM, debeH, faltaba: debeM + debeH, cola, recibe: 0, exceso: 0 });
   }
   if (!enJuego.length) return vacio;
 
@@ -187,6 +209,9 @@ export function repartoDelTecho(
     if (traslape === "docente") traslapes.docente += 1;
     if (traslape === "curso") traslapes.curso += 1;
 
+    // El exceso: lo que rinde por encima de lo que su facultad debía. Es el
+    // colchón con el que la segunda vuelta decide quién va más justa.
+    fac.exceso += Math.max(0, cand.aporta.total - util);
     fac.debeM = Math.max(0, fac.debeM - cand.aporta.mujeres);
     fac.debeH = Math.max(0, fac.debeH - cand.aporta.hombres);
     fac.recibe += 1;
@@ -206,6 +231,89 @@ export function repartoDelTecho(
       docenteYaContactado: cand.docenteYaContactado,
       solapaCon,
       traslape,
+      holgura: false,
+      traslapeAplicado: Number(cand.exposicionDeLaFacultad) || 0,
+    });
+  }
+
+  /**
+   * **Segunda vuelta: el techo que sobra va a las más justas.**
+   *
+   * Gonzalo, 2026-09-11: «pero si sobran, Derecho puede tomar una más, o
+   * Sociales, no lo sé, las que veamos que están más flojas o ajustadas».
+   *
+   * La primera vuelta para cuando `util` llega a cero: con la proyección en la
+   * mano ya no hay brecha que cerrar. Pero la proyección no es lo que va a
+   * pasar, y el techo es cuánto campo se puede pagar: dejarlo sin gastar no es
+   * prudencia. Aquí se reparte lo que queda por **colchón relativo** —lo
+   * asignado por encima de lo que debía, sobre lo que debía—, así que primero
+   * recibe quien cerró más al filo. A igualdad, la que más debía de origen.
+   *
+   * Estas asignaciones se marcan `holgura` y no se cuentan como cierre de
+   * brecha: su `util` es 0 y la vista tiene que decirlo. Confundirlas con las
+   * de la primera vuelta sería prometer un cierre que ya estaba hecho.
+   */
+  const colchonDe = (f: EnJuego) => (f.faltaba > 0 ? f.exceso / f.faltaba : Number.POSITIVE_INFINITY);
+  while (asignadas.length < techo) {
+    let elegido: { fac: EnJuego; cand: CandidatoDeRefuerzo; penal: number } | null = null;
+    // Las facultades ordenadas por lo justo que quedaron; sólo las que aún
+    // tienen inventario libre entran.
+    const candidatas = [...enJuego].sort((a, b) =>
+      colchonDe(a) - colchonDe(b) || b.faltaba - a.faltaba);
+    for (const fac of candidatas) {
+      for (const c of fac.cola) {
+        const codigo = texto(c.fila.operational_code);
+        if (!codigo || usados.has(codigo)) continue;
+        if (c.aporta.total <= 0) continue;
+        const penal = (docentesElegidos.has(texto(c.fila.teacher).toUpperCase()) ? 2 : 0)
+          + (cursosElegidos.has(texto(c.fila.course_id).toUpperCase()) ? 1 : 0)
+          + (texto(c.docenteYaContactado) ? 1 : 0);
+        // Dentro de la facultad elegida, la que más rinde y menos se pisa.
+        if (!elegido || penal < elegido.penal
+          || (penal === elegido.penal && c.aporta.total > elegido.cand.aporta.total)) {
+          elegido = { fac, cand: c, penal };
+        }
+      }
+      // Una sola facultad por vuelta: en cuanto recibe, su colchón sube y el
+      // siguiente turno puede tocarle a otra. Es la misma disciplina que la
+      // primera vuelta, y es lo que reparte «una más a Derecho, otra a Sociales»
+      // en vez de darle las seis a la primera de la lista.
+      if (elegido) break;
+    }
+    if (!elegido) break;
+
+    const { fac, cand } = elegido;
+    const doc = texto(cand.fila.teacher).toUpperCase();
+    const curso = texto(cand.fila.course_id).toUpperCase();
+    const traslape: TraslapeEntreElegidas = docentesElegidos.has(doc) ? "docente"
+      : cursosElegidos.has(curso) ? "curso" : null;
+    const solapaCon = traslape === "docente" ? (docentesElegidos.get(doc) ?? "")
+      : traslape === "curso" ? (cursosElegidos.get(curso) ?? "") : "";
+    if (traslape === "docente") traslapes.docente += 1;
+    if (traslape === "curso") traslapes.curso += 1;
+
+    fac.exceso += cand.aporta.total;
+    fac.recibe += 1;
+    const codigo = texto(cand.fila.operational_code);
+    usados.add(codigo);
+    if (doc && !docentesElegidos.has(doc)) docentesElegidos.set(doc, codigo);
+    if (curso && !cursosElegidos.has(curso)) cursosElegidos.set(curso, codigo);
+
+    asignadas.push({
+      codigo,
+      facultad: fac.facultad,
+      docente: texto(cand.fila.teacher),
+      curso: texto(cand.fila.course_id),
+      aporta: cand.aporta,
+      // `util` es cierre de brecha y aquí no hay brecha que cerrar. Poner el
+      // aporte entero haría que la lectura de arriba sumara respuestas que ya
+      // estaban contadas.
+      util: 0,
+      quedaDespues: fac.debeM + fac.debeH,
+      docenteYaContactado: cand.docenteYaContactado,
+      solapaCon,
+      traslape,
+      holgura: true,
       traslapeAplicado: Number(cand.exposicionDeLaFacultad) || 0,
     });
   }
@@ -216,6 +324,7 @@ export function repartoDelTecho(
     recibe: f.recibe,
     queda: f.debeM + f.debeH,
     hacenFalta: cuantasFaltan(f.cola, usados, f.debeM, f.debeH),
+    colchon: f.faltaba > 0 ? f.exceso / f.faltaba : 0,
   })).sort((a, b) => b.queda - a.queda || b.faltaba - a.faltaba);
 
   return {
@@ -223,6 +332,7 @@ export function repartoDelTecho(
     asignadas,
     porFacultad,
     sobran: Math.max(0, techo - asignadas.length),
+    deHolgura: asignadas.filter((a) => a.holgura).length,
     quedaSinCubrir: porFacultad.reduce((n, f) => n + f.queda, 0),
     sinRecibir: porFacultad.filter((f) => f.recibe === 0 && f.queda > 0),
     traslapes,

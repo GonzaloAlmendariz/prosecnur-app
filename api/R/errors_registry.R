@@ -115,6 +115,7 @@ errores_registrados <- function() {
     "E_REFUERZO_YA_EN_MARCHA",                               "monitoreo_aulas_refuerzo.R",        "409",
     "E_REFUERZO_AJENO",                                      "monitoreo_aulas_refuerzo.R",        "409",
     "E_REFUERZO_LOTE_VACIO",                                 "monitoreo_aulas_refuerzo.R",        "400",
+    "E_MARCAS_SIN_NADA_QUE_PUBLICAR",                        "monitoreo_aulas_publicar_marcas.R", "409",
     "E_BASE_CONTROL_NO_EXISTE",                              "carga_base_control.R",              "400",
     "E_BASE_CONTROL_SIN_HOJA",                               "carga_base_control.R",              "422",
     "E_DAA_IAGEN_NO_EXISTE",                                 "carga_daa_iagen.R",                 "400",
