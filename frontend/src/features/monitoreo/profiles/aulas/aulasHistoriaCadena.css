@@ -13,35 +13,121 @@
   font-weight: 400;
 }
 
-/* **Doce eslabones no caben en doce columnas iguales.**
+/* **Una fila por cadena: quién a la izquierda, el recorrido a la derecha.**
  *
- * Gonzalo, con la captura delante: «se ve horrible». Y lo era: la reja de
- * `aulasMonitoreo.css` reparte el ancho entre TODOS los eslabones de la cadena
- * —`repeat(var(--aulas-eslabones), minmax(0, 1fr))`—, así que una cadena de
- * once reservas dejaba columnas de ~30 px y el texto se partía carácter a
- * carácter: «C H 8 4» en vertical, una letra por línea.
+ * Gonzalo, con la captura delante: «se ve horrible». Y lo era: la reja repartía
+ * el ancho entre TODOS los eslabones —hasta once— y dejaba columnas de treinta
+ * píxeles donde «CH 84» se partía carácter a carácter, una letra por línea.
  *
- * La columna pasa a tener un ancho MÍNIMO real y la fila scrollea cuando no
- * caben, que es lo que ya hacen las tablas anchas de este perfil. Se lee cada
- * eslabón; comparar dos cadenas cuesta un arrastre, que es mejor trato que no
- * poder leer ninguna.
- *
- * Va en la hoja del componente y no en `aulasMonitoreo.css`, que está congelada
- * a crecimiento. */
-.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-  grid-template-columns: none;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(118px, 1fr);
-  overflow-x: auto;
-  padding-bottom: 3px;
+ * Con el diseño del ensayo del 2026-09-10: el titular ocupa una columna fija de
+ * 208 px con su facultad y su desenlace, y los eslabones van en una tira de
+ * ancho mínimo real que scrollea si hace falta. Se dibujan tres y el resto se
+ * cuenta, porque la cadena se recorre en orden y las de detrás importan como
+ * cuántas quedan.
+ */
+.mon-profile-page.is-aulas-flow .aulas-cadena {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
 }
 
-/* En compacto sigue mandando la fila que se ajusta, que es lo que ya decidía
-   `aulasMonitoreo.css` a menos de 1180 px. */
-@media (max-width: 1180px) {
-  .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-    display: flex;
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
+.mon-profile-page.is-aulas-flow .aulas-cadena-head {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  padding: 11px 13px;
+  border-right: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-head strong {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-head span {
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-head em {
+  justify-self: start;
+  margin-top: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-success-fg);
+  white-space: nowrap;
+}
+
+/* La tira: ancho mínimo real y su propio scroll. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 11px 13px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones .aulas-eslabon {
+  flex: 0 0 auto;
+  min-width: 132px;
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-eslabon-codigo {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-eslabon-rol {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+/* El que se está trabajando: es donde mirar cuando la cadena está abierta. */
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-activo {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-activo .aulas-eslabon-rol {
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: 600;
+}
+/* La reserva que nadie ha tocado todavía: está, y no pide nada. */
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-dormido { opacity: 0.55; }
+
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-cierre {
+  border-color: var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 8%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--pulso-success-fg);
+}
+
+/* Lo que queda por detrás: se cuenta, no se pinta. */
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-resto {
+  min-width: 0;
+  border-style: dashed;
+  border-color: var(--pulso-border-strong);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11.5px;
+  white-space: nowrap;
+  align-self: center;
 }
