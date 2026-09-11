@@ -245,7 +245,7 @@ function Candidato({
                   {fila("Elegibles", pr.elegibles, "es-techo")}
                   {pr.plan ? fila("Según el plan", pr.plan, "es-plan") : null}
                   {fila(
-                    "Al ritmo de hoy",
+                    "Proyección actual",
                     pr.ritmo,
                     "es-ritmo",
                     // De dónde sale la tasa, porque no es lo mismo medida sobre
@@ -262,10 +262,10 @@ function Candidato({
               no hay nada que advertir y rellenarlo sería ruido. */}
           {c.concesiones.length ? (
             <span className="aulas-reemplazo-concesiones">
-              Concedes: {c.concesiones.join(" · ")}
+              Concede: {c.concesiones.join(" · ")}
             </span>
           ) : (
-            <span className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: no concedes nada.</span>
+            <span className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: sin concesiones.</span>
           )}
         </span>
 
@@ -276,7 +276,7 @@ function Candidato({
             candidato no ayuda, cuando lo cierto es que no hay nada que cerrar. */}
         <span className="aulas-reemplazo-varas">
           <span className="aulas-reemplazo-vara es-parecido">
-            <em>se parece</em>
+            <em>similitud</em>
             <i><b style={{ width: `${Math.round(c.parecido * 100)}%` }} /></i>
             <strong>{Math.round(c.parecido * 100)}</strong>
           </span>

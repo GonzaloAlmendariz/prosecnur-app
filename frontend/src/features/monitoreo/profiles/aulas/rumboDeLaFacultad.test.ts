@@ -36,7 +36,7 @@ describe("el rumbo de una facultad", () => {
     );
     expect(r.jornadas.map((j) => j.deuda)).toEqual([8, 1]);
     expect(r.verbo).toBe("mejora");
-    expect(palabraDelRumbo(r)).toContain("venía debiendo 8");
+        expect(palabraDelRumbo(r)).toContain("acumulaba 8");
   });
 
   it("la que empezó bien y se torció", () => {
@@ -49,7 +49,10 @@ describe("el rumbo de una facultad", () => {
     // Día 2: esperado 20, efectivas 13 → debe 7.
     expect(r.jornadas.map((j) => j.deuda)).toEqual([-2, 7]);
     expect(r.verbo).toBe("empeora");
-    expect(palabraDelRumbo(r)).toContain("empezó sin deber");
+        // Registro formalizado el 2026-09-11 a petición de Gonzalo («cuidado con
+    // la jerga, tratemos de ser más profesionales, formales»). Lo que el
+    // contrato comprueba no cambia; cambia la palabra.
+    expect(palabraDelRumbo(r)).toContain("partió sin déficit");
   });
 
   it("la deuda negativa NO se recorta a cero: esconde a la que va sobrada", () => {

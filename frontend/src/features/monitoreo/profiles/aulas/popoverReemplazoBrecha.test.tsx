@@ -46,7 +46,10 @@ const pinta = (brecha?: { mujeres: number; hombres: number }) =>
 describe("«cierra brecha» sólo se dibuja si hay brecha que cerrar", () => {
   it("sin brecha no pinta la medida en vez de pintarla a cero", () => {
     const html = pinta();
-    expect(html).toContain("se parece");
+        // Registro formalizado el 2026-09-11 a petición de Gonzalo («cuidado con
+    // la jerga, tratemos de ser más profesionales, formales»). Lo que el
+    // contrato comprueba no cambia; cambia la palabra.
+    expect(html).toContain("similitud");
     expect(html).not.toContain("cierra brecha");
   });
 
@@ -120,7 +123,7 @@ describe("la fila de esperadas suma", () => {
     // discrepan y por eso se enseñan juntos.
     const html = conReparto(10, 10, 0.5);
     expect(html).toContain("Elegibles");
-    expect(html).toContain("Al ritmo de hoy");
+    expect(html).toContain("Proyección actual");
     const techo = /<tr class="es-techo">[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
     expect([...techo.matchAll(/<td[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]))).toEqual([10, 10, 20]);
   });

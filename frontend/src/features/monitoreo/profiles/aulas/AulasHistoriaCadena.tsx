@@ -82,16 +82,16 @@ function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla:
   if (cayo) {
     return hayQuienSiga
       ? { clave: "abierta", pastilla: "Rechazó el docente" }
-      : { clave: "seca", pastilla: "Sin reserva por delante" };
+      : { clave: "seca", pastilla: "Sin reservas disponibles" };
   }
   // El titular no cayó: si ya rindió y se quedó corto, lo que ofrece es
   // complementar —su cadena sigue intacta—. Si aún no ha salido, sigue en pie.
   if (titular && titular.validas > 0) {
-    return { clave: "corta", pastilla: "Rindió poco: complementar" };
+    return { clave: "corta", pastilla: "Bajo rendimiento: complementar" };
   }
   // Su titular sigue agendado y aún no ha salido: no ha pasado nada, y por eso
   // no es una cadena en juego. Se cuenta, no se lista.
-  return { clave: "intacta", pastilla: "El titular sigue en pie" };
+  return { clave: "intacta", pastilla: "Titular vigente" };
 }
 
 /** El orden de la lista: primero lo que pide trabajo hoy. */
@@ -189,7 +189,7 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
           recorte silencioso. */}
       <p className="aulas-cadenas-alcance">
         Se {piden.length === 1 ? "lista la" : "listan las"} <strong>{fmt(piden.length)}</strong>{" "}
-        {piden.length === 1 ? "que pide" : "que piden"} trabajo
+        {piden.length === 1 ? "que requiere" : "que requieren"} gestión
         {intactas ? (
           <> · <strong>{fmt(intactas)}</strong>{" "}
             {intactas === 1 ? "sigue intacta, con su titular" : "siguen intactas, con su titular"} en pie</>
@@ -210,8 +210,8 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
 
       {piden.length === 0 && !todas ? (
         <p className="aulas-cadenas-vacio">
-          Ninguna cadena pide trabajo hoy: nadie ha rechazado y ningún
-          curso-horario aplicado se quedó corto.
+          Ninguna cadena requiere gestión: no hay rechazos y ningún
+          curso-horario aplicado se quedó por debajo de su meta.
           {intactas ? (
             <>{" "}{intactas === 1 ? "La" : "Las"} <strong>{fmt(intactas)}</strong>{" "}
               {intactas === 1 ? "que sigue intacta espera" : "que siguen intactas esperan"} a su titular.</>
@@ -232,7 +232,7 @@ export function AulasHistoriaCadena({ filas, onRelevo }: {
       {restantes > 0 || todas ? (
         <button type="button" className="aulas-cadenas-mas" onClick={() => setTodas((x) => !x)}>
           {todas
-            ? "Ver sólo las que piden trabajo"
+            ? "Ver sólo las que requieren gestión"
             : `Ver las ${fmt(ordenadas.length)} cadenas, cerradas incluidas`}
         </button>
       ) : null}

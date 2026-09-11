@@ -92,13 +92,13 @@ export function palabraDelRumbo(r: RumboDeFacultad): string {
     // El caso del ensayo: «debe siete y venía debiendo veinte» — se está
     // arreglando sola y pedirle un refuerzo sería gastarlo de más.
     return ultima <= 0
-      ? `se puso al día: venía debiendo ${Math.abs(primera)}`
-      : `se está arreglando: venía debiendo ${primera}`;
+      ? `recuperada: acumulaba ${Math.abs(primera)}`
+      : `en recuperación: acumulaba ${primera}`;
   }
   if (r.verbo === "empeora") {
     return primera <= 0
-      ? `se torció: empezó sin deber y ya debe ${ultima}`
-      : `va a peor: venía debiendo ${primera}`;
+      ? `en deterioro: partió sin déficit y acumula ${ultima}`
+      : `en deterioro: acumulaba ${primera}`;
   }
-  return "sin movimiento entre jornadas";
+  return "sin variación entre jornadas";
 }

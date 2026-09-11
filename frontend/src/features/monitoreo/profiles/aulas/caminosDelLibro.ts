@@ -127,7 +127,7 @@ export function caminosDelLibro(
       letra: "B",
       nombre: "Complemento",
       circunstancia:
-        "El curso-horario se aplicó y rindió poco. El titular no sale: se le suma una reserva y los dos cuentan.",
+        "El curso-horario se aplicó con bajo rendimiento. El titular no sale: se le suma una reserva y ambos cuentan.",
       donde: "app",
       ...conteo(bloque("complementadas"), deComplemento),
       aplicados: deComplemento,
