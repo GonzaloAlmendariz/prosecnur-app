@@ -156,10 +156,16 @@ monitoreo_aulas_ritmo_de_avance <- function(diario, facultades = NULL) {
     if (is.na(f)) return("")
     return(sprintf("%s de %s de %s", format(f, "%d"), .marr_MESES[[as.integer(format(f, "%m"))]], format(f, "%Y")))
   }
-  local <- format(ts, tz = "America/Lima", usetz = FALSE)
-  f <- as.Date(substr(local, 1L, 10L))
-  sprintf("%s de %s de %s, %s h", format(f, "%d"),
-          .marr_MESES[[as.integer(format(f, "%m"))]], format(f, "%Y"), substr(local, 12L, 16L))
+  # **Sólo el día, sin la hora** (Gonzalo, 2026-09-11). La hora del sello importa
+  # dentro del operativo —hay días con dos cortes— pero a quien recibe el
+  # documento no le dice nada que el día no diga ya, y una portada con «11:01 h»
+  # se lee como una precisión que promete más de lo que el dato tiene.
+  # La zona horaria SÍ se aplica antes de quedarse con el día: un sello de las
+  # 02:00 UTC es todavía la víspera en Lima, y sin convertir el corte saldría
+  # fechado un día después del que fue.
+  f <- as.Date(format(ts, tz = "America/Lima", usetz = FALSE))
+  sprintf("%s de %s de %s", format(f, "%d"),
+          .marr_MESES[[as.integer(format(f, "%m"))]], format(f, "%Y"))
 }
 
 #' Cursos-horario titulares por facultad, con el nombre de la facultad por clave.
