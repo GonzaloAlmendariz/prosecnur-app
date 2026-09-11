@@ -27,50 +27,100 @@
 .marp_pagina_resumen <- function(model, tok, ty, geo, x0, ancho) {
   t <- model$total
   huecos <- 0.016
-  n_kpi <- 5L
-  w_kpi <- (ancho - huecos * (n_kpi - 1L)) / n_kpi
-  y_kpi <- 0.680; h_kpi <- 0.155
 
-  kpi <- function(i, rotulo, valor, nota, tono, destacado = FALSE) {
-    pulso_pdf_kpi(x0 + (i - 1L) * (w_kpi + huecos), y_kpi, w_kpi, h_kpi,
-                  rotulo, valor, nota, tokens = tok, ty = ty, tono = tono,
-                  destacado = destacado)
+  # **Seis huecos, cinco tarjetas.** La primera vale por dos porque es la
+  # respuesta a la pregunta del documento; las otras cuatro la sostienen. Con
+  # los cinco del mismo tamaño, «Muestra del diseño» pesaba lo mismo que el
+  # avance y la página no decía por dónde empezar a leerla.
+  w_slot <- (ancho - huecos * 5) / 6
+  y_kpi <- 0.672; h_kpi <- 0.170
+  x_slot <- function(i) x0 + (i - 1L) * (w_slot + huecos)
+
+  .marp_kpi_principal(x_slot(1L), y_kpi, w_slot * 2 + huecos, h_kpi, t, tok, ty, tok$navy)
+
+  kpi <- function(i, rotulo, valor, nota, tono) {
+    pulso_pdf_kpi(x_slot(i), y_kpi, w_slot, h_kpi, rotulo, valor, nota,
+                  tokens = tok, ty = ty, tono = tono)
   }
-  tono_avance <- .marp_tono_de_avance(t$avance, tok)
-  kpi(1L, "Avance de la muestra", .marp_pct(t$avance),
-      sprintf("%s de %s", .marp_personas(t$conseguidas), .marp_personas(t$muestra)),
-      tono_avance, destacado = TRUE)
-  kpi(2L, "Encuestas efectivas", .marp_personas(t$conseguidas), "en plataforma", tok$navy)
-  kpi(3L, "Muestra del diseño", .marp_personas(t$muestra), "meta por facultad y sexo", tok$navy)
-  kpi(4L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
+  kpi(3L, "Encuestas efectivas", .marp_personas(t$conseguidas), "en plataforma", tok$navy)
+  kpi(4L, "Muestra del diseño", .marp_personas(t$muestra), "por facultad y sexo", tok$navy)
+  kpi(5L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
       if (identical(as.integer(t$facultades_abiertas), 1L)) "en 1 facultad"
       else sprintf("en %d facultades", as.integer(t$facultades_abiertas)),
       if (.marp_num(t$faltan, 0) > 0) tok$warn else tok$success)
-  kpi(5L, "Cursos-horario aplicados", .marp_personas(t$aulas_aplicadas), "aulas visitadas", tok$navy)
+  kpi(6L, "Cursos-horario aplicados", .marp_personas(t$aulas_aplicadas), "aulas visitadas", tok$navy)
 
-  # El medidor, con la sobremuestra marcada sobre la MISMA barra: las dos metas
-  # se leen en la misma regla o no se comparan.
-  y_med <- 0.596
-  pulso_pdf_rotulo_seccion(x0, y_med + 0.062, "Cuánto se lleva de cada meta",
-                           tokens = tok, ty = ty, ancho = 0.072)
-  # Más fino: una barra gruesa se lee como un bloque de color y compite con las
-  # tarjetas de arriba. Con 0,016 es una regla cargada, que es lo que es.
-  pulso_pdf_medidor(x0, y_med, ancho, 0.016, .marp_num(t$avance, 0),
-                    tokens = tok, tono = tok$navy)
-  grid::grid.text(paste0(.marp_pct(t$avance), " de la muestra"),
-                  x = x0, y = y_med - 0.030, just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$ink, fontsize = ty$footer, fontface = "bold"))
+  # Donde estaba el medidor de ancho completo va el reparto por sexo. El
+  # medidor repetía el 42,5 % que la tarjeta ya daba —el mismo dato dos veces y
+  # en el elemento más pesado de la hoja—; esto es información que sólo estaba
+  # enterrada en la tabla.
+  .marp_bloque_sexo(model$general, tok, ty, x0, ancho, y = 0.556)
+
+  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.455)
+  invisible(NULL)
+}
+
+# La tarjeta que manda: la cifra grande, su medidor y las dos metas en palabras.
+.marp_kpi_principal <- function(x, y, w, h, t, tok, ty, tono) {
+  pulso_pdf_panel(x, y, w, h, tokens = tok, fill = tok$canvas, col = NA, r = 0.006)
+  grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
+                  just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
+  pad <- 0.018
+  grid::grid.text(pulso_pdf_versalitas("Avance de la muestra"), x = x + pad, y = y + h - 0.030,
+                  just = c("left", "top"),
+                  gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+  grid::grid.text(.marp_pct(t$avance), x = x + pad, y = y + 0.074, just = c("left", "bottom"),
+                  gp = grid::gpar(col = tok$navy, fontsize = 34, fontface = "bold"))
+  grid::grid.text(sprintf("%s de %s", .marp_personas(t$conseguidas), .marp_personas(t$muestra)),
+                  x = x + w - pad, y = y + 0.082, just = c("right", "bottom"),
+                  gp = grid::gpar(col = tok$soft, fontsize = ty$body))
+  pulso_pdf_medidor(x + pad, y + 0.046, w - 2 * pad, 0.014, .marp_num(t$avance, 0),
+                    tokens = tok, tono = tono, fondo = tok$tbl_header)
   sm <- .marp_num(t$sobremuestra, NA_real_)
   if (is.finite(sm) && sm > 0) {
-    avance_sm <- .marp_num(t$conseguidas, 0) / sm
-    grid::grid.text(paste0(.marp_pct(avance_sm), " de la sobremuestra (", .marp_personas(sm), ")"),
-                    x = x0 + ancho, y = y_med - 0.030, just = c("right", "bottom"),
-                    gp = grid::gpar(col = tok$soft, fontsize = ty$footer))
-    # La marca de dónde cae la muestra dentro de la sobremuestra no se dibuja:
-    # el medidor mide contra la muestra y dos escalas en una barra se confunden.
+    grid::grid.text(
+      sprintf("Sobremuestra: %s de %s", .marp_pct(.marp_num(t$conseguidas, 0) / sm),
+              .marp_personas(sm)),
+      x = x + pad, y = y + 0.020, just = c("left", "bottom"),
+      gp = grid::gpar(col = tok$faint, fontsize = ty$caption))
   }
+  invisible(NULL)
+}
 
-  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.470)
+# Reparto por sexo: dos medidores con su cifra. Se lee de «Avance general», que
+# ya trae las tres columnas; aquí no se recalcula nada.
+.marp_bloque_sexo <- function(general, tok, ty, x0, ancho, y) {
+  if (!is.data.frame(general) || !nrow(general)) return(invisible(NULL))
+  ind <- names(general)[[1L]]
+  fila <- function(rotulo, col) {
+    i <- which(as.character(general[[ind]]) == rotulo)
+    if (!length(i)) return(NA_real_)
+    suppressWarnings(as.numeric(general[[col]][[i[[1L]]]]))
+  }
+  datos <- list(
+    list(rotulo = "Hombres", color = tok$sexo_h, avance = fila("Avance muestra", "Hombres"),
+         ef = fila("Efectivas", "Hombres"), meta = fila("Muestra", "Hombres")),
+    list(rotulo = "Mujeres", color = tok$sexo_m, avance = fila("Avance muestra", "Mujeres"),
+         ef = fila("Efectivas", "Mujeres"), meta = fila("Muestra", "Mujeres"))
+  )
+  if (!any(vapply(datos, function(d) is.finite(d$avance), logical(1)))) return(invisible(NULL))
+
+  pulso_pdf_rotulo_seccion(x0, y + 0.098, "Reparto por sexo",
+                           bajada = "Cada sexo tiene su propia cuota: cubrir de más en uno no cubre lo que falta en el otro.",
+                           tokens = tok, ty = ty, ancho = 0.058)
+  w <- (ancho - 0.040) / 2
+  for (k in seq_along(datos)) {
+    d <- datos[[k]]
+    x <- x0 + (k - 1L) * (w + 0.040)
+    grid::grid.text(d$rotulo, x = x, y = y + 0.020, just = c("left", "bottom"),
+                    gp = grid::gpar(col = tok$ink, fontsize = ty$body, fontface = "bold"))
+    grid::grid.text(sprintf("%s  ·  %s de %s", .marp_pct(d$avance),
+                            .marp_personas(d$ef), .marp_personas(d$meta)),
+                    x = x + w, y = y + 0.020, just = c("right", "bottom"),
+                    gp = grid::gpar(col = tok$soft, fontsize = ty$body))
+    pulso_pdf_medidor(x, y, w, 0.014, d$avance, tokens = tok, tono = d$color,
+                      fondo = tok$tbl_header)
+  }
   invisible(NULL)
 }
 
