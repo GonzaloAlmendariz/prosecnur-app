@@ -744,7 +744,8 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
   # Por CABECERA y no por nombre: el documento del operativo la tiene llamada
   # «Semana 1» y buscarla por «Plan del día» leía cero citas de una pestaña con
   # ochenta y seis.
-  hoja <- .madc_pestana_de_la_distribucion(id, titulos)
+  hojas_dist <- .madc_pestanas_de_la_distribucion(id, titulos)
+  hoja <- if (length(hojas_dist)) hojas_dist[[1L]] else ""
   if (!nzchar(hoja)) {
     stop_api(409, "E_AULAS_DISTRIBUCION_SIN_HOJA",
              paste("El Sheets de la distribución no trae ninguna pestaña con forma de",
@@ -766,8 +767,20 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
   cab <- .madm_cabecera(remoto)
   .madm_exigir_legible(cab)
 
+  # **Las fijaciones se adoptan de TODAS las semanas, no sólo de la primera
+  # pestaña.** `remoto` es la hoja sobre la que esta función además ESCRIBE —de
+  # ahí salen su `sheet_id`, su ancho y sus reglas—, pero lo que el coordinador
+  # decidió vive repartido en las pestañas semanales. Adoptar sólo una deja las
+  # decisiones de las demás sin fijar, y el reparto se las reordena en la
+  # siguiente corrida: es el mismo daño que la adopción existe para evitar.
+  remoto_todas <- remoto
+  for (h in hojas_dist[-1L]) {
+    v <- tryCatch(.cads_valores_de_pestana(id, h), error = function(e) list())
+    if (length(v) > 1L) remoto_todas <- c(remoto_todas, v[-1L])
+  }
+
   # 1 · lo que el coordinador decidió, para que el motor deje de reordenarlo.
-  fij <- monitoreo_aulas_fijaciones_desde_distribucion(remoto, plan, roster)
+  fij <- monitoreo_aulas_fijaciones_desde_distribucion(remoto_todas, plan, roster)
   # Y en qué se quedó atrás la adopción vigente. Sale de lo que YA se leyó: ni
   # un request más. Es el aviso que faltaba el 2026-09-09, cuando la app llevaba
   # 86 fijaciones viejas y once citas habían cambiado de nombre en la hoja.

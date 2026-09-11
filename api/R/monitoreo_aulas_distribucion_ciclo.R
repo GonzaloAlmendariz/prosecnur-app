@@ -114,19 +114,47 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
 #' @return el título de la pestaña, o `""` si ninguna tiene forma de distribución.
 #' @keywords internal
 .madc_pestana_de_la_distribucion <- function(id, titulos) {
+  hojas <- .madc_pestanas_de_la_distribucion(id, titulos)
+  if (!length(hojas)) "" else hojas[[1L]]
+}
+
+#' TODAS las pestañas con forma de distribución, en orden de semana.
+#'
+#' Desde que la app escribe una pestaña por semana (2026-09-11) el documento
+#' tiene varias, y quedarse con la primera es leer una semana y declarar
+#' ausentes las citas de las demás: el comparador diría «faltan 51» de un
+#' documento que las tiene todas publicadas, que es exactamente el falso
+#' negativo que este módulo ya pagó cuando buscaba la pestaña por su nombre.
+#'
+#' «Semana N» primero y en orden numérico —es donde vive lo vigente— y detrás
+#' cualquier otra con la cabecera de una distribución, que es como sobrevive la
+#' heredada «Plan del día».
+#'
+#' @param id documento.
+#' @param titulos títulos de sus pestañas.
+#' @return vector de títulos, posiblemente vacío.
+#' @keywords internal
+.madc_pestanas_de_la_distribucion <- function(id, titulos) {
   titulos <- titulos[nzchar(titulos)]
-  if (!length(titulos)) return("")
-  if (.mapd_hoja() %in% titulos) return(.mapd_hoja())
-  for (t in titulos) {
+  if (!length(titulos)) return(character(0))
+  n_semana <- suppressWarnings(as.integer(sub("^Semana\\s+(\\d+)$", "\\1", titulos)))
+  es_semana <- grepl("^Semana\\s+\\d+$", titulos) & !is.na(n_semana)
+  semanas <- titulos[es_semana][order(n_semana[es_semana])]
+  otros <- titulos[!es_semana]
+  # La heredada se acepta por NOMBRE sin gastar una lectura; el resto hay que
+  # mirarlas, y sólo entran si su primera fila es la cabecera de la app.
+  con_forma <- character(0)
+  for (t in otros) {
+    if (identical(t, .mapd_hoja())) { con_forma <- c(con_forma, t); next }
     cab <- tryCatch({
       v <- .cads_valores_de_pestana(id, t)
       if (!length(v)) character(0) else .madc_valores(v[[1]], length(.alpa_CABECERA))
     }, error = function(e) character(0))
     if (length(which(cab == "CURSO-HORARIO")) == 1L && length(which(cab == "FECHA")) == 1L) {
-      return(t)
+      con_forma <- c(con_forma, t)
     }
   }
-  ""
+  c(semanas, con_forma)
 }
 
 #' Lee el Sheets de la distribución y lo compara con el reparto vigente.
@@ -160,13 +188,22 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
   titulos <- vapply(meta$sheets %||% list(), function(h) {
     .monitoreo_scalar((h$properties %||% list())$title, "")
   }, character(1))
-  hoja <- .madc_pestana_de_la_distribucion(id, titulos)
+  # TODAS las pestañas de distribución, no la primera: con una hoja por semana,
+  # comparar contra una sola declararía «faltan» todas las citas de las demás.
+  hojas_dist <- .madc_pestanas_de_la_distribucion(id, titulos)
+  hoja <- if (length(hojas_dist)) hojas_dist[[1L]] else ""
   hay_hoja <- nzchar(hoja)
 
-  remoto <- if (!hay_hoja) list() else tryCatch(
-    .cads_valores_de_pestana(id, hoja),
-    error = function(e) list()
-  )
+  # Las filas de todas se apilan bajo la cabecera de la primera legible: la
+  # clave de comparación es (curso-horario, fecha) y no depende de en qué
+  # pestaña estaba la fila.
+  remoto <- list()
+  for (h in hojas_dist) {
+    v <- tryCatch(.cads_valores_de_pestana(id, h), error = function(e) list())
+    if (!length(v)) next
+    if (!length(remoto)) { remoto <- v; next }
+    if (length(v) > 1L) remoto <- c(remoto, v[-1L])
+  }
 
   cab <- if (length(remoto)) .madc_valores(remoto[[1]], length(.alpa_CABECERA)) else character(0)
   # Se localiza por RÓTULO porque es lo único que el documento remoto tiene: no

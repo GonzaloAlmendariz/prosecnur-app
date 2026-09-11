@@ -495,3 +495,36 @@ test_that("los cuatro estados tienen color, y «POR APLICAR» es amarillo", {
   expect_lt(canal("REAGENDADA", 2), canal("POR APLICAR", 2))
   expect_lt(canal("REAGENDADA", 3), 160)
 })
+
+# --- Con una pestaña por semana, leer una sola es leer medio documento -------
+#
+# Desde el 2026-09-11 la app escribe «Semana 1», «Semana 2»… Quedarse con la
+# primera haría que el comparador declarara «faltan» todas las citas de las
+# demás: el mismo falso negativo que costó dos días cuando buscaba la pestaña
+# por su nombre, ahora por quedarse con la primera que encuentra.
+
+test_that("leer la distribución suma las citas de todas las pestañas semanales", {
+  mock <- .sheets_api_mock()
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod, fecha) as.list(c("Ana Prueba", "Lunes", fecha, "09:30", "09:45",
+                                         "10:00 a 10:30", cod, "A101", "Ciencias",
+                                         "Cálculo", "Docente Uno", "POR APLICAR"))
+  mock$seed("Semana 1", values = list(cab, fila("CH 1", "07/09")))
+  mock$seed("Semana 2", values = list(cab, fila("CH 3", "14/09")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  filas_ahora <- list(cab, fila("CH 1", "07/09"), fila("CH 3", "14/09"))
+  out <- monitoreo_aulas_leer_distribucion("sheet_dist", filas = filas_ahora)
+  expect_identical(out$citas_remotas, 2L)
+  expect_length(out$faltan, 0L)
+  expect_length(out$sobran, 0L)
+  expect_true(isTRUE(out$coincide))
+})
+
+test_that("las pestañas semanales se ordenan por número, no alfabéticamente", {
+  # «Semana 10» < «Semana 2» en orden alfabético: sin ordenar por el número, la
+  # pestaña que encabeza el recibo sería la equivocada en cuanto el operativo
+  # pase de nueve semanas.
+  hojas <- prosecnurapp:::.madc_pestanas_de_la_distribucion(
+    "id", c("Semana 10", "Semana 2", "Semana 1"))
+  expect_identical(hojas, c("Semana 1", "Semana 2", "Semana 10"))
+})
