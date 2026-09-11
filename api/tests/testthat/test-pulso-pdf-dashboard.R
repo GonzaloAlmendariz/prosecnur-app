@@ -67,3 +67,40 @@ test_that("los colores de sexo del PDF son los mismos que los de la pantalla", {
   expect_equal(tolower(tok$sexo_h), "#4a6eb6")  # --pulso-module-dashboard
   expect_equal(tolower(tok$sexo_m), "#c2416b")  # --pulso-accent-rose
 })
+
+test_that("el sistema tiene UN cuerpo por rol y TRES pesos de regla", {
+  # La regresión: el documento acumuló cuatro cuerpos distintos para el mismo
+  # rol —5,8 · 6,0 · 6,2 · 6,4 en versalitas— y OCHO pesos de regla para tres
+  # funciones. Cada valor se eligió razonablemente en su momento; juntos hacen
+  # que dos tablas de la misma hoja no se parezcan.
+  for (escala in c("tecnica", "cliente")) {
+    ty <- pulso_pdf_type(escala)
+    expect_true(all(c("title", "subtitle", "section", "body", "code", "footer",
+                      "caption", "eyebrow") %in% names(ty)))
+    expect_true(all(vapply(ty, function(v) is.numeric(v) && v > 0, logical(1))))
+  }
+  # La escala de cliente es MAYOR en todos los roles: si algún día empata o baja,
+  # es que alguien tocó una y no la otra.
+  tec <- pulso_pdf_type("tecnica"); cli <- pulso_pdf_type("cliente")
+  for (k in names(tec)) expect_gt(cli[[k]], tec[[k]])
+
+  pesos <- pulso_pdf_pesos()
+  expect_setequal(names(pesos), c("fila", "columna", "bloque", "acento"))
+  # De más fina a más gruesa, en el orden de su jerarquía.
+  expect_lt(pesos$fila, pesos$columna)
+  expect_lt(pesos$columna, pesos$bloque)
+  expect_lt(pesos$bloque, pesos$acento)
+})
+
+test_that("las versalitas retiran el aire antes de salirse de su caja", {
+  # «CURSOS-HORARIO APLICADOS» espaciado no cabe en una tarjeta de KPI; sin
+  # medir, se salía por el borde derecho.
+  largo <- "Cursos-horario aplicados"
+  expect_true(grepl(" ", pulso_pdf_versalitas(largo), fixed = TRUE))
+  apretado <- pulso_pdf_versalitas(largo, ancho = 0.10, fontsize = 6.6)
+  expect_equal(apretado, toupper(largo))
+  holgado <- pulso_pdf_versalitas("Faltan", ancho = 0.10, fontsize = 6.6)
+  expect_true(grepl("F A L T A N", holgado, fixed = TRUE))
+  # Sin caja declarada, el comportamiento de siempre.
+  expect_true(grepl(" ", pulso_pdf_versalitas(largo, ancho = NULL), fixed = TRUE))
+})

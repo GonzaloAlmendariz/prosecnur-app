@@ -56,7 +56,7 @@
   # enterrada en la tabla.
   .marp_bloque_sexo(model$general, tok, ty, x0, ancho, y = 0.556)
 
-  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.455)
+  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.470)
   invisible(NULL)
 }
 
@@ -66,9 +66,10 @@
   grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
                   just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
   pad <- 0.018
-  grid::grid.text(pulso_pdf_versalitas("Avance de la muestra"), x = x + pad, y = y + h - 0.030,
-                  just = c("left", "top"),
-                  gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+  grid::grid.text(pulso_pdf_versalitas("Avance de la muestra", ancho = w - 2 * pad,
+                                       fontsize = ty$eyebrow),
+                  x = x + pad, y = y + h - 0.030, just = c("left", "top"),
+                  gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   grid::grid.text(.marp_pct(t$avance), x = x + pad, y = y + 0.074, just = c("left", "bottom"),
                   gp = grid::gpar(col = tok$navy, fontsize = 34, fontface = "bold"))
   grid::grid.text(sprintf("%s de %s", .marp_personas(t$conseguidas), .marp_personas(t$muestra)),
@@ -131,6 +132,7 @@
 # «Aulas asignadas» NO entra: el reparto interno de quién va a qué aula no es
 # asunto del cliente, y es la única fila de la tabla del libro que lo es.
 .marp_tabla_general <- function(general, tok, ty, x0, ancho, y_top) {
+  pesos <- pulso_pdf_pesos()
   if (!is.data.frame(general) || !nrow(general)) return(invisible(NULL))
   ind <- names(general)[[1L]]
   filas <- general[!(as.character(general[[ind]]) %in% "Aulas asignadas"), , drop = FALSE]
@@ -145,20 +147,22 @@
   w_rot <- 0.330
   w_col <- (ancho - w_rot) / 3
   xs <- c(x0, x0 + w_rot, x0 + w_rot + w_col, x0 + w_rot + 2 * w_col, x0 + ancho)
-  alto <- 0.040
+  # El renglón se deriva del hueco que queda hasta el pie: con 0,040 tecleados,
+  # las diez filas de «Avance general» cruzaban la regla del pie.
+  alto <- min(0.040, (y_top - 0.030 - 0.112) / nrow(filas))
 
   # Sin banda de relleno: dos hairlines bastan para acotar el encabezado y dejan
   # la tabla más liviana que un bloque de color.
-  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = 0.9)
+  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = pesos$bloque)
   for (k in 2:4) {
     grid::grid.text(pulso_pdf_versalitas(names(general)[[k]]), x = xs[k + 1L],
                     y = y_top - 0.022, just = c("right", "bottom"),
-                    gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+                    gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   grid::grid.text(pulso_pdf_versalitas(ind), x = x0, y = y_top - 0.022,
                   just = c("left", "bottom"),
-                  gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
-  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = 0.5)
+                  gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
+  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.030, tokens = tok, lwd = pesos$columna)
 
   proporciones <- AULAS_AVANCE_PROPORCIONES$general %||% character(0)
   y <- y_top - 0.030 - alto
@@ -179,7 +183,7 @@
                       gp = grid::gpar(col = tok$ink, fontsize = ty$body,
                                       fontface = if (destacada) "bold" else "plain"))
     }
-    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.3)
+    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pesos$fila)
     y <- y - alto
   }
   invisible(NULL)
@@ -268,7 +272,7 @@
     tope <- pulso_pdf_chars(w, factor = 112)
     if (nchar(nombre) > tope) nombre <- paste0(substr(nombre, 1L, tope - 3L), "...")
     grid::grid.text(nombre, x = px, y = py + h + 0.052, just = c("left", "bottom"),
-                    gp = grid::gpar(col = tok$navy, fontsize = 10, fontface = "bold"))
+                    gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
     grid::grid.text(
       sprintf("%s de %s  ·  %s", .marp_personas(conseguidas),
               if (is.finite(meta)) .marp_personas(meta) else "-", .marp_pct(avance)),
@@ -389,6 +393,7 @@
 .marp_pagina_avance_visual <- function(facultades, idx, tok, ty, x0, ancho,
                                        aulas_plan = numeric(0),
                                        filas_por_hoja = length(idx)) {
+  pesos <- pulso_pdf_pesos()
   col <- function(k, i) suppressWarnings(as.numeric(facultades[[k]][[i]]))
 
   # Geometría declarada UNA vez: encabezados y celdas se posicionan con los
@@ -407,17 +412,17 @@
 
   y_top <- 0.790
   # Encabezado sin banda de relleno, como el resto de las tablas del documento.
-  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = 0.9)
+  pulso_pdf_hairline(x0, x0 + ancho, y_top, tokens = tok, lwd = pesos$bloque)
   cab <- function(txt, x, just = "right") {
     grid::grid.text(pulso_pdf_versalitas(txt), x = x, y = y_top - 0.024,
                     just = c(just, "bottom"),
-                    gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+                    gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   cab("Facultad", x_fac, "left")
   cab("Avance", x_barra, "left")
   cabeceras <- c("%", "Efectivas", "Meta", "Faltan")
   for (k in seq_along(cabeceras)) cab(cabeceras[[k]], x_num[[k]] + w_num)
-  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.032, tokens = tok, lwd = 0.5)
+  pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.032, tokens = tok, lwd = pesos$columna)
 
   # **El alto de fila se DERIVA de cuántas caben, no se teclea.** Con un valor
   # fijo, el reparto parejo dejaba cinco facultades en una hoja con capacidad
@@ -476,7 +481,7 @@
                                         fontface = cifras[[k]][[3L]]))
       }
     }
-    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = 0.28)
+    pulso_pdf_hairline(x0, x0 + ancho, y, tokens = tok, lwd = pesos$fila)
   }
   invisible(NULL)
 }
@@ -491,6 +496,7 @@
 
 .marp_tabla_detalle <- function(df, filas, columnas, tok, ty, x0,
                                 y_tabla, alto_fila, criterio = NULL) {
+  pesos <- pulso_pdf_pesos()
   anchos <- vapply(columnas, function(c) c$w, numeric(1))
   xs <- cumsum(c(x0, anchos))
   ancho_total <- sum(anchos)
@@ -508,20 +514,20 @@
     grid::grid.text(pulso_pdf_versalitas(etiquetas[[i]]),
                     x = (xs[i] + xs[j + 1L]) / 2, y = y_tabla + 0.050,
                     just = c("centre", "bottom"),
-                    gp = grid::gpar(col = tok$navy, fontsize = 6.0, fontface = "bold"))
+                    gp = grid::gpar(col = tok$navy, fontsize = ty$eyebrow, fontface = "bold"))
     pulso_pdf_hairline(xs[i], xs[j + 1L], y_tabla + 0.044, tokens = tok, lwd = 0.8)
     i <- j + 1L
   }
 
-  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla + 0.030, tokens = tok, lwd = 0.9)
+  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla + 0.030, tokens = tok, lwd = pesos$bloque)
   for (i in seq_along(columnas)) {
     c <- columnas[[i]]
     grid::grid.text(pulso_pdf_versalitas(c$rotulo),
                     x = if (c$num) xs[i + 1L] - 0.006 else xs[i] + 0.006,
                     y = y_tabla + 0.010, just = c(if (c$num) "right" else "left", "bottom"),
-                    gp = grid::gpar(col = tok$faint, fontsize = 5.8, fontface = "bold"))
+                    gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
-  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla, tokens = tok, lwd = 0.5)
+  pulso_pdf_hairline(x0, x0 + ancho_total, y_tabla, tokens = tok, lwd = pesos$columna)
 
   y <- y_tabla - alto_fila
   for (n in seq_along(filas)) {
@@ -552,7 +558,7 @@
                                       fontsize = ty$body,
                                       fontface = if (cerrada) "bold" else "plain"))
     }
-    pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = 0.28)
+    pulso_pdf_hairline(x0, xs[length(xs)], y, tokens = tok, lwd = pesos$fila)
     y <- y - alto_fila
   }
 

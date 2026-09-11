@@ -50,6 +50,7 @@ pulso_pdf_portada_normalizar <- function(defectos = list(), usuario = list()) {
 pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
                               ty = pulso_pdf_type(), geo = pulso_pdf_geo("landscape"),
                               destacados = list(), antetitulo = "") {
+  pesos <- pulso_pdf_pesos()
   m <- geo$margin
   banda <- 0.365
 
@@ -84,7 +85,7 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
                      gp = grid::gpar(col = tokens$sobre_navy_tenue, lwd = 0.7))
     grid::grid.text(pulso_pdf_versalitas(p[[1L]]), x = x_banda, y = y + 0.012,
                     just = c("left", "bottom"),
-                    gp = grid::gpar(col = tokens$sobre_navy_tenue, fontsize = 5.8,
+                    gp = grid::gpar(col = tokens$sobre_navy_tenue, fontsize = ty$eyebrow,
                                     fontface = "bold"))
     .form_pdf_text(p[[2L]], x = x_banda, y = y - 0.004, w = w_banda,
                    chars = pulso_pdf_chars(w_banda, factor = 108), fontsize = 10.5,
@@ -99,7 +100,7 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
   if (nzchar(antetitulo %||% "")) {
     grid::grid.text(pulso_pdf_versalitas(antetitulo), x = izq, y = 0.905,
                     just = c("left", "centre"),
-                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+                    gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
 
   # El título NO usa todo el ancho de su columna: se le da el 78 %, para que
@@ -124,7 +125,7 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
   # cinco, pero en una portada una caja con relleno se lee como un recorte
   # pegado. Aquí las separa una hairline y las ordena el mismo aire.
   if (length(destacados)) {
-    pulso_pdf_hairline(izq, izq + ancho, 0.250, tokens = tokens, lwd = 0.9)
+    pulso_pdf_hairline(izq, izq + ancho, 0.250, tokens = tokens, lwd = pesos$bloque)
     ancho_k <- ancho / length(destacados)
     for (k in seq_along(destacados)) {
       d <- destacados[[k]]
@@ -132,15 +133,15 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
       if (k > 1L) {
         grid::grid.lines(x = grid::unit(c(x0 - 0.018, x0 - 0.018), "npc"),
                          y = grid::unit(c(0.115, 0.225), "npc"),
-                         gp = grid::gpar(col = tokens$rule, lwd = 0.5))
+                         gp = grid::gpar(col = tokens$rule, lwd = pesos$columna))
       }
       grid::grid.text(d$valor, x = x0, y = 0.160, just = c("left", "bottom"),
                       gp = grid::gpar(col = tokens$navy, fontsize = 21, fontface = "bold"))
       grid::grid.text(pulso_pdf_versalitas(d$rotulo), x = x0, y = 0.130,
                       just = c("left", "bottom"),
-                      gp = grid::gpar(col = tokens$faint, fontsize = 5.8, fontface = "bold"))
+                      gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
     }
-    pulso_pdf_hairline(izq, izq + ancho, 0.105, tokens = tokens, lwd = 0.5)
+    pulso_pdf_hairline(izq, izq + ancho, 0.105, tokens = tokens, lwd = pesos$columna)
   }
 
   if (nzchar(portada$nota)) {

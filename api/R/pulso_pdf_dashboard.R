@@ -59,9 +59,9 @@ pulso_pdf_kpi <- function(x, y, w, h, rotulo, valor, nota = "",
   grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
                   just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
   pad <- 0.018
-  grid::grid.text(pulso_pdf_versalitas(rotulo), x = x + pad, y = y + h - 0.030,
-                  just = c("left", "top"),
-                  gp = grid::gpar(col = tokens$faint, fontsize = 5.8, fontface = "bold"))
+  grid::grid.text(pulso_pdf_versalitas(rotulo, ancho = w - 2 * pad, fontsize = ty$eyebrow),
+                  x = x + pad, y = y + h - 0.030, just = c("left", "top"),
+                  gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
   grid::grid.text(valor, x = x + pad, y = y + (if (nzchar(nota)) 0.042 else 0.028),
                   just = c("left", "bottom"),
                   gp = grid::gpar(col = tokens$navy, fontsize = if (destacado) 26 else 18,
@@ -136,6 +136,7 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
                                    etiquetar_acumulado = TRUE,
                                    compacto = FALSE,
                                    rotulos_eje = TRUE) {
+  pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
   diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
@@ -234,7 +235,7 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
       yy <- py_acu(metas[[k]])
       if (yy > y + h) next
       grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(yy, "npc"),
-                       gp = grid::gpar(col = tokens$danger, lwd = 0.9, lty = 2))
+                       gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 2))
       nombre <- names(metas)[[k]] %||% ""
       if (nzchar(nombre)) {
         arriba <- yy < y + h - 0.030
@@ -256,7 +257,7 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
     r <- if (compacto) 0.0035 else 0.0055
     grid::grid.circle(x = px(vivos), y = py_acu(acumulado[vivos]),
                       r = grid::unit(r, "npc"),
-                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = 0.6))
+                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = pesos$columna))
     # El acumulado dice su cifra sobre el punto y en el color de su serie: sin
     # ella el lector ve la pendiente pero no sabe por cuánto va el campo en
     # ninguna jornada salvo la última, y ni siquiera en ésa (Gonzalo,
@@ -326,6 +327,7 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
 pulso_pdf_leyenda <- function(x, y, entradas, tokens = pulso_pdf_tokens(),
                               ty = pulso_pdf_type(), fontsize = NULL,
                               centrado = FALSE, ancho = NULL) {
+  pesos <- pulso_pdf_pesos()
   if (!length(entradas)) return(invisible(NULL))
   fs <- fontsize %||% ty$caption
   muestra <- 0.016
@@ -350,7 +352,7 @@ pulso_pdf_leyenda <- function(x, y, entradas, tokens = pulso_pdf_tokens(),
                        gp = grid::gpar(col = e$color, lwd = 1.6, lty = e$lty %||% 1))
       if (is.null(e$lty) || identical(e$lty, 1)) {
         grid::grid.circle(x = cx + muestra / 2, y = y, r = grid::unit(0.0032, "npc"),
-                          gp = grid::gpar(fill = e$color, col = tokens$surface, lwd = 0.5))
+                          gp = grid::gpar(fill = e$color, col = tokens$surface, lwd = pesos$columna))
       }
     } else {
       grid::grid.rect(x = cx, y = y, width = muestra, height = 0.011,
@@ -520,11 +522,19 @@ pulso_pdf_barra_progreso <- function(x, y, w, h, valor, tokens = pulso_pdf_token
 # SÓLO a rótulos cortos en mayúsculas, nunca a texto corrido.
 
 #' Aire entre letras para un rótulo corto en versalitas.
+#'
+#' `ancho` y `fontsize`, cuando se dan, hacen que el aire se RETIRE si el rótulo
+#' espaciado no cabe en su caja. El espaciado es un lujo tipográfico; que un
+#' rótulo se salga de su tarjeta no lo es. La primera versión no medía nada y al
+#' subir el cuerpo de 5,8 a 6,6 pt «CURSOS-HORARIO APLICADOS» se salió de su KPI.
 #' @export
-pulso_pdf_versalitas <- function(x, aire = " ") {
+pulso_pdf_versalitas <- function(x, aire = " ", ancho = NULL, fontsize = NULL) {
   txt <- toupper(trimws(as.character(x %||% "")[[1L]]))
   if (!nzchar(txt) || nchar(txt) > 48L) return(txt)
-  paste(strsplit(txt, "", fixed = TRUE)[[1L]], collapse = aire)
+  espaciado <- paste(strsplit(txt, "", fixed = TRUE)[[1L]], collapse = aire)
+  if (is.null(ancho) || is.null(fontsize)) return(espaciado)
+  cabe <- function(s) nchar(s) * fontsize * 0.00082 <= ancho
+  if (cabe(espaciado)) espaciado else txt
 }
 
 #' Cromo de página: antetítulo, título de sección, bajada y la regla doble.
@@ -538,30 +548,31 @@ pulso_pdf_versalitas <- function(x, aire = " ") {
 pulso_pdf_cromo <- function(antetitulo, titulo, subtitulo = "",
                             tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
                             geo = pulso_pdf_geo("landscape"), derecha = "") {
+  pesos <- pulso_pdf_pesos()
   m <- geo$margin; right <- 1 - m
   if (nzchar(antetitulo %||% "")) {
     grid::grid.text(pulso_pdf_versalitas(antetitulo), x = m, y = 0.955,
                     just = c("left", "centre"),
-                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+                    gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   if (nzchar(derecha %||% "")) {
     grid::grid.text(pulso_pdf_versalitas(derecha), x = right, y = 0.955,
                     just = c("right", "centre"),
-                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+                    gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   grid::grid.text(titulo, x = m, y = 0.905, just = c("left", "centre"),
-                  gp = grid::gpar(col = tokens$navy, fontsize = 16.5, fontface = "bold"))
+                  gp = grid::gpar(col = tokens$navy, fontsize = ty$title, fontface = "bold"))
   # La regla sube cuando no hay bajada. Dejarla fija a 0,845 abría una banda de
   # papel entre el título y la línea que se leía como un renglón perdido: el
   # hueco del subtítulo no puede quedar reservado cuando no hay subtítulo.
   hay_bajada <- nzchar(subtitulo %||% "")
   if (hay_bajada) {
     grid::grid.text(subtitulo, x = m, y = 0.868, just = c("left", "centre"),
-                    gp = grid::gpar(col = tokens$soft, fontsize = 9))
+                    gp = grid::gpar(col = tokens$soft, fontsize = ty$subtitle))
   }
   y_regla <- if (hay_bajada) 0.845 else 0.872
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(y_regla, "npc"),
-                   gp = grid::gpar(col = tokens$line, lwd = 0.6))
+                   gp = grid::gpar(col = tokens$line, lwd = pesos$columna))
   grid::grid.lines(x = grid::unit(c(m, m + 0.052), "npc"), y = grid::unit(y_regla, "npc"),
                    gp = grid::gpar(col = tokens$navy, lwd = 2.2))
   invisible(NULL)
@@ -572,20 +583,21 @@ pulso_pdf_cromo <- function(antetitulo, titulo, subtitulo = "",
 pulso_pdf_pie <- function(pagina, de = NA_integer_, periodo = "",
                           tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
                           geo = pulso_pdf_geo("landscape")) {
+  pesos <- pulso_pdf_pesos()
   m <- geo$margin; right <- 1 - m
   grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.068, "npc"),
-                   gp = grid::gpar(col = tokens$line, lwd = 0.6))
+                   gp = grid::gpar(col = tokens$line, lwd = pesos$columna))
   .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.098, geo = geo, tokens = tokens)
   if (nzchar(periodo)) {
     grid::grid.text(periodo, x = 0.5, y = 0.036, just = c("centre", "centre"),
-                    gp = grid::gpar(fontsize = 7.2, col = tokens$faint))
+                    gp = grid::gpar(fontsize = ty$caption, col = tokens$faint))
   }
   # Folio con el total: «03 / 09» dice cuánto queda; «Pág. 3» no.
   folio <- if (is.finite(de)) {
     sprintf("%02d / %02d", as.integer(pagina), as.integer(de))
   } else sprintf("%02d", as.integer(pagina))
   grid::grid.text(folio, x = right, y = 0.036, just = c("right", "centre"),
-                  gp = grid::gpar(fontsize = 7.6, col = tokens$soft, fontface = "bold"))
+                  gp = grid::gpar(fontsize = ty$caption, col = tokens$soft, fontface = "bold"))
   invisible(NULL)
 }
 
@@ -599,7 +611,7 @@ pulso_pdf_pie <- function(pagina, de = NA_integer_, periodo = "",
 pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
                                      tokens = pulso_pdf_tokens(), ty = pulso_pdf_type()) {
   grid::grid.text(pulso_pdf_versalitas(texto), x = x, y = y, just = c("left", "bottom"),
-                  gp = grid::gpar(col = tokens$navy, fontsize = 7.0, fontface = "bold"))
+                  gp = grid::gpar(col = tokens$navy, fontsize = ty$eyebrow, fontface = "bold"))
   grid::grid.lines(x = grid::unit(c(x, x + ancho), "npc"), y = grid::unit(y - 0.012, "npc"),
                    gp = grid::gpar(col = tokens$navy, lwd = 1.1))
   if (nzchar(bajada)) {
@@ -636,6 +648,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
                                     color_linea = tokens$success,
                                     reparto = 0.60, hueco = 0.105,
                                     rotulo_acumulado = "", rotulo_diario = "") {
+  pesos <- pulso_pdf_pesos()
   n <- length(dias)
   if (!n) return(invisible(NULL))
   fs <- ty$caption
@@ -652,7 +665,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   rotular <- function(txt, yy) {
     if (!nzchar(txt)) return(invisible(NULL))
     grid::grid.text(pulso_pdf_versalitas(txt), x = x, y = yy, just = c("left", "bottom"),
-                    gp = grid::gpar(col = tokens$faint, fontsize = 6.4, fontface = "bold"))
+                    gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
   }
   rotular(rotulo_acumulado, y_acu + h_acu + 0.016)
   rotular(rotulo_diario, y + h_dia + 0.020)
@@ -675,7 +688,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   for (k in seq_along(metas)) {
     yy <- py_acu(metas[[k]])
     grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(yy, "npc"),
-                     gp = grid::gpar(col = tokens$danger, lwd = 0.9, lty = 2))
+                     gp = grid::gpar(col = tokens$danger, lwd = pesos$bloque, lty = 2))
     nombre <- names(metas)[[k]] %||% ""
     if (nzchar(nombre)) {
       grid::grid.text(paste0(nombre, " ", .ppd_miles(metas[[k]])), x = x + w, y = yy + 0.010,
@@ -700,7 +713,7 @@ pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
   for (i in vivos) {
     if ((i - 1L) %% salto != 0L && i != n) next
     grid::grid.circle(x = px(i), y = py_acu(acumulado[[i]]), r = grid::unit(0.0055, "npc"),
-                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = 0.6))
+                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = pesos$columna))
     grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
                     just = c("centre", "bottom"),
                     gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
