@@ -1010,6 +1010,12 @@ export type MonitoreoAulasEfectividadFacultad = {
    */
   titulares_resueltos: number;
   titulares_rechazo: number;
+  /**
+   * Citas que pasaron sin aplicarse. Ni aforo ni «por agendar»: piden reagendar
+   * o darlas por caídas, y hasta entonces no rinden nada.
+   */
+  cursos_vencidos: number;
+  elegibles_vencidos: number;
   proyectado_agendado: number | null;
   /** `proyectado_agendado − cuota`. Negativo = no cierra con lo que hay agendado. */
   margen_agendado: number | null;
@@ -1207,6 +1213,9 @@ export type MonitoreoAulasEfectividadSeguimiento = {
      */
     titulares_resueltos: number;
     titulares_rechazo: number;
+    /** Citas pasadas sin aplicar en todo el estudio: alerta del operativo. */
+    cursos_vencidos: number;
+    elegibles_vencidos: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];
 };

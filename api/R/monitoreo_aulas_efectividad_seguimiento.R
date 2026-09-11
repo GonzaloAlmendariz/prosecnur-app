@@ -285,7 +285,8 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
 .monitoreo_aulas_efectividad_seguimiento <- function(plan_df, tracked_df, responses, cfg,
                                                     valid_response = logical(0),
                                                     response_classroom = character(0),
-                                                    avance_cuota = NULL) {
+                                                    avance_cuota = NULL,
+                                                    hoy = Sys.Date()) {
   vig <- .monitoreo_aulas_avance_vigencia(cfg)
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
 
@@ -348,7 +349,22 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   fk_track <- .maac_fac_key(.maac_chr_col(tracked_df, "faculty"))
   el_track <- .maac_num_col(tracked_df, "eligible_n")
   el_track[!is.finite(el_track) | el_track < 0] <- 0
-  apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS
+  # **El hecho ocurre antes que el verbo, tambien aqui.**
+  #
+  # `apl_track` miraba SOLO el estado operativo, que lo teclea el registro de
+  # campo y llega tarde. Unas lineas mas arriba, `aplicada` ya cuenta la tercera
+  # via —que esten llegando respuestas— y las dos deberian decir lo mismo.
+  #
+  # Lo que costaba: medido en HSVG26ULT2 el 2026-09-11, **68 cursos-horario
+  # tenian fecha pasada, respuestas recogidas y el estado todavia en
+  # `planificada`**. Contaban como pendientes, asi que su aforo entraba en la
+  # proyeccion —y sus respuestas ya estaban en `conseguido`: el mismo campo
+  # contado dos veces—. Derecho salia con 13 cursos-horario agendados cuando
+  # tiene 6 por delante, y su proyeccion daba 429 sobre una cuota de 363.
+  resp_track <- .maac_num_col(tracked_df, "respuestas_validas")
+  resp_track[!is.finite(resp_track)] <- 0
+  apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS |
+    resp_track > 0
   pend <- !apl_track & el_track > 0
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
 
@@ -379,8 +395,31 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
     .maac_chr_col(tracked_df, "scheduled_date"),
     .maac_chr_col(tracked_df, "operational_status")
   )
-  agend <- pend & agendada_track
+  # **Y una cita VENCIDA tampoco es aforo.**
+  #
+  # Medido sobre el plan de HSVG26ULT2 el 2026-09-11: **70 cursos-horario tenian
+  # fecha ya pasada y seguian sin aplicarse** —2 346 elegibles, las mas viejas
+  # del 7 de septiembre—, y la proyeccion los contaba como si fueran a rendir.
+  # Derecho tenia 6 de esas 13 citas vencidas y por eso salia holgado.
+  #
+  # Es el principio de Gonzalo un paso mas alla: si «planificado no es
+  # agendado», una cita que paso y no se aplico tampoco es un dia en el que
+  # aplicar. Se aparta del aforo y se publica con nombre propio, porque pide una
+  # accion —reagendar o dar por caida— que ninguna de las otras dos pide.
+  fec_track <- suppressWarnings(as.Date(substr(
+    .maac_chr_col(tracked_df, "scheduled_date"), 1, 10)))
+  corte <- suppressWarnings(as.Date(hoy))
+  vencida_track <- pend & agendada_track &
+    !is.na(fec_track) & !is.na(corte) & fec_track < corte
+
+  agend <- pend & agendada_track & !vencida_track
   agendados_k <- if (any(agend)) tapply(el_track[agend], fk_track[agend], sum) else numeric(0)
+  cursos_vencidos_k <- if (any(vencida_track)) {
+    tapply(rep(1, sum(vencida_track)), fk_track[vencida_track], sum)
+  } else numeric(0)
+  elegibles_vencidos_k <- if (any(vencida_track)) {
+    tapply(el_track[vencida_track], fk_track[vencida_track], sum)
+  } else numeric(0)
   # Cuantos cursos-horario sostienen esa proyeccion: sin el conteo, «94
   # esperadas» no dice si descansa en cinco aulas o en una.
   cursos_agendados_k <- if (any(agend)) tapply(rep(1, sum(agend)), fk_track[agend], sum) else numeric(0)
@@ -394,6 +433,8 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   # mas: contarlo entre «los que te quedan por agendar» manda al coordinador a
   # insistir con un docente que ya dijo que no.
   caido_track <- .maej_caido(.maac_chr_col(tracked_df, "sample_status"))
+  # Una vencida NO está «sin agendar»: ya se agendó y la cita se pasó. Meterla
+  # ahí diría que falta llamar al docente cuando lo que falta es reagendar.
   sin_agendar <- pend & !agendada_track & !caido_track
   cursos_sin_agendar_k <- if (any(sin_agendar)) {
     tapply(rep(1, sum(sin_agendar)), fk_track[sin_agendar], sum)
@@ -557,6 +598,10 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       elegibles_agendados = as.integer(round(el_agendados)),
       cursos_agendados = as.integer(.maac_toma_num(cursos_agendados_k, k, 0)),
       cursos_sin_agendar = as.integer(.maac_toma_num(cursos_sin_agendar_k, k, 0)),
+      # Citas que pasaron sin aplicarse. Ni aforo ni «por agendar»: piden
+      # reagendar o darlas por caidas, y hasta entonces no rinden nada.
+      cursos_vencidos = as.integer(.maac_toma_num(cursos_vencidos_k, k, 0)),
+      elegibles_vencidos = as.integer(round(.maac_toma_num(elegibles_vencidos_k, k, 0))),
       # Los dos, y no su cociente: sin el denominador, «33 %» puede ser 1 de 3.
       titulares_resueltos = as.integer(.maac_toma_num(resueltos_k, k, 0)),
       titulares_rechazo = as.integer(.maac_toma_num(rechazos_k, k, 0)),
@@ -678,6 +723,10 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       # aforo seguro, con una cifra medida en vez de una corazonada.
       titulares_resueltos = as.integer(sum(resuelto_plan)),
       titulares_rechazo = as.integer(sum(rechazo_plan)),
+      # El total de citas pasadas sin aplicar: es una alerta del operativo, no
+      # un matiz de la proyeccion.
+      cursos_vencidos = as.integer(sum(vencida_track)),
+      elegibles_vencidos = as.integer(round(sum(el_track[vencida_track]))),
       facultades_en_riesgo_agendado = as.integer(sum(en_riesgo_agendado)),
       alumnos_en_riesgo_agendado = round(sum(vapply(filas, function(x) {
         if (!((x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)
