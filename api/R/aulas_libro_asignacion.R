@@ -143,13 +143,18 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
   fijadas <- length(cfg[["reparto_fijado"]] %||% list())
   poner("nota", sprintf(
     "%s · Rango: %s · Generada con el reparto vigente de la app",
-    if (fijadas > 0L) {
-      sprintf("Reparto: %s de la hoja de los aplicadores; el resto lo completa la app",
-              if (fijadas == 1L) "1 cita tomada" else sprintf("%d citas tomadas", fijadas))
-    } else if (semilla > 0L) {
-      sprintf("Sorteo: n.º %d", semilla + 1L)
-    } else {
-      "Sorteo: original (alfabético)"
+    {
+      # El sorteo NO desaparece cuando hay fijaciones: sigue repartiendo lo que
+      # nadie fijó, y la hoja tiene que poder decir cuál corrió. Se nombran los
+      # dos y en su orden de mando: primero lo decidido, después lo sorteado.
+      del_sorteo <- if (semilla > 0L) sprintf("sorteo n.º %d", semilla + 1L) else "sorteo original (alfabético)"
+      if (fijadas > 0L) {
+        sprintf("Reparto: %s de la hoja de los aplicadores; el resto, %s",
+                if (fijadas == 1L) "1 cita tomada" else sprintf("%d citas tomadas", fijadas),
+                del_sorteo)
+      } else {
+        sprintf("Sorteo: %s", if (semilla > 0L) sprintf("n.º %d", semilla + 1L) else "original (alfabético)")
+      }
     },
     if (is.list(rango)) sprintf("del %s al %s", rango[["desde"]], rango[["hasta"]]) else "todo el horizonte"
   ))

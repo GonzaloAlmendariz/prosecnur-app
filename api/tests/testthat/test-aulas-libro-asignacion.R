@@ -81,7 +81,13 @@ test_that("B68: la configuración vigente manda — fijadas, duración y semilla
   expect_match(texto, "POR APLICAR", fixed = TRUE)
   # La duración del config se ve en el fin de la jornada.
   expect_match(texto, "10:45", fixed = TRUE)
-  expect_match(texto, "Sorteo: n")
+  # **La semilla se sigue viendo, pero ya no encabeza la nota.** Desde el
+  # 2026-09-10 el rótulo nombra primero de dónde viene el reparto —esta config
+  # trae una cita FIJADA— y deja el sorteo para lo que nadie fijó, que es el
+  # orden de mando real. Antes decía «Sorteo: n.º 4» aunque quien había
+  # repartido esa cita fuese el coordinador.
+  expect_match(texto, "sorteo n.º 4", fixed = TRUE)
+  expect_match(texto, "1 cita tomada de la hoja de los aplicadores", fixed = TRUE)
 })
 
 test_that("B68: sin disponibilidad NO hay hoja — una vacía se leería como «nadie asignado»", {
