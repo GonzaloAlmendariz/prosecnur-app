@@ -254,9 +254,25 @@ export function serieDeRendimiento(
   // lo dice en `meta_origen`. Ver la cabecera: promediarlas juntas daría una vara
   // que en parte es el techo.
   const esperadoDelDisenoPorAula = new Map<string, number>();
+  /**
+   * **La facultad de cada curso-horario, del PLAN.**
+   *
+   * El parte de campo no la trae: medido sobre HSVG26ULT2 el 2026-09-11, cero
+   * de 57 partes tienen `faculty`. Agrupando por la del parte, las quince
+   * facultades caían en un único cubo «Sin facultad» y cualquier consumidor que
+   * buscara la suya por nombre se iba de vacío —que es justo lo que le pasó a
+   * la serie por jornada del ranking al estrenarse—.
+   *
+   * Es el mismo defecto que vigila el guard `elParteTraeSuFacultad`, y se
+   * resuelve igual: el parte identifica el curso-horario, y la facultad se mira
+   * en el plan, que es quien la declara.
+   */
+  const facultadPorCodigo = new Map<string, string>();
   for (const fila of plan) {
     const codigo = texto(fila.operational_code);
     if (!codigo) continue;
+    const suya = texto(fila.faculty);
+    if (suya) facultadPorCodigo.set(codigo, suya);
     elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
     const esperado = numero(fila.expected_valid);
     esperadoPorAula.set(codigo, esperado);
@@ -266,9 +282,10 @@ export function serieDeRendimiento(
   for (const fila of partes) {
     const fecha = fechaDeAplicacion(fila.applied_at ?? fila.applied_date);
     if (!fecha) continue;
-    const facultad = texto(fila.faculty) || "Sin facultad";
     const efectivas = numero(fila.effective_surveys);
     const codigo = texto(fila.operational_code);
+    // La del parte primero —si algún día la trae, manda—, y si no la del plan.
+    const facultad = texto(fila.faculty) || facultadPorCodigo.get(codigo) || "Sin facultad";
     const elegibles = elegiblesPorCodigo.get(codigo) ?? numero(fila.eligible_n);
     esperadoDeLoVisitadoPorFacultad.set(
       facultad,
