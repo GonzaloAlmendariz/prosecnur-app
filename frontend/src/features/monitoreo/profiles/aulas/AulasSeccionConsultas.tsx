@@ -18,6 +18,7 @@ import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
+import { AulasAporteDelAbc } from "./AulasAporteDelAbc";
 import { AulasQueSirveParaQue } from "./AulasQueSirveParaQue";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
@@ -265,6 +266,24 @@ export function AulasSeccionConsultas({
             filas={brechas as unknown as MonitoreoAulasPlanRow[]}
             onRelevo={(codigo) => setRelevoDe(codigo)}
           />
+        </section>
+        ) : null}
+        {enBrechas ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Qué nos dieron las que se metieron</h3>
+            <span>lo que rindieron y lo que sumaron, que no son la misma cifra</span>
+          </div>
+          {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
+              aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
+              lo que faltaba: «hay que diferenciar qué tan bien nos fue en esa
+              aula […] y cómo esa aula nos ayudó, porque esa aula no estaba
+              prevista». */}
+          <AulasAporteDelAbc filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]} />
         </section>
         ) : null}
         {enBrechas ? (

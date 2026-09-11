@@ -101,14 +101,15 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad, enFoco = "" }: {
       const cx = px + s.dx, cy = py + s.dy;
       const x1 = s.anchor === "start" ? cx : s.anchor === "end" ? cx - an : cx - an / 2;
       const caja: Caja = { x1, x2: x1 + an, y1: cy - ALTO_ETIQUETA + 3, y2: cy + 3 };
-      const dentro = caja.x1 > 4 && caja.x2 < AN - 4 && caja.y1 > 6 && caja.y2 < AL - 30;
+      const dentro = caja.x1 > M.izq + 2 && caja.x2 < M.izq + UTIL.an - 2
+        && caja.y1 > M.arriba + 2 && caja.y2 < M.arriba + UTIL.al - 2;
       if (dentro && !ocupadas.some((o) => chocan(caja, o))) { puesto = { ...s, cx, cy, caja }; break; }
     }
     if (!puesto) {
       let cy = py + r + 14;
       for (let i = 0; i < 14; i += 1) {
         const caja: Caja = { x1: px + r + 6, x2: px + r + 6 + an, y1: cy - ALTO_ETIQUETA + 3, y2: cy + 3 };
-        if (caja.y2 < AL - 30 && !ocupadas.some((o) => chocan(caja, o))) {
+        if (caja.y2 < M.arriba + UTIL.al - 2 && !ocupadas.some((o) => chocan(caja, o))) {
           puesto = { dx: r + 6, dy: cy - py, anchor: "start", cx: px + r + 6, cy, caja };
           break;
         }
