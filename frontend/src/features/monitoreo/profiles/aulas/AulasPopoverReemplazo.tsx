@@ -10,7 +10,7 @@ import {
   type OrigenDeCandidato,
 } from "./candidatosDeReemplazo";
 import { composicionDelAula } from "./composicionDelAula";
-import { pctPerfil } from "./kpisDeAulas";
+import { fmt, pctPerfil } from "./kpisDeAulas";
 
 /**
  * A quién ir cuando un aula no sale.
@@ -274,6 +274,31 @@ export function ContenidoDeReemplazo({
   const lista = grupoActivo.mejores;
   const meta = GRUPOS.find((g) => g.id === activo)!;
 
+  /**
+   * **El dilema, en dos aulas.**
+   *
+   * Este popover lleva desde que se escribió diciendo que parecido y ayuda no se
+   * suman —«uno protege el diseño, el otro cierra la cuota»— y dejaba al lector
+   * con dos barras y ninguna conclusión. Cuando el mejor por cada vara son
+   * aulas DISTINTAS, que es justo cuando hay algo que decidir, se enfrentan.
+   *
+   * Se mira a los tres grupos y no sólo al activo: el dilema más caro es
+   * precisamente el que cruza dos orígenes —la de su cadena contra la que
+   * cierra la cuota—, y mirando un grupo cada vez no se ve.
+   *
+   * Si el mejor por ambas varas coincide, esto no aparece: no hay dilema.
+   */
+  const duelo = (() => {
+    if (!hayBrecha) return null;
+    const todos = GRUPOS.flatMap((g) => candidatos[g.id].mejores);
+    if (todos.length < 2) return null;
+    const porParecido = [...todos].sort((a, b) => b.parecido - a.parecido)[0];
+    const porAyuda = [...todos].sort((a, b) => b.ayuda - a.ayuda)[0];
+    const codigo = (c: typeof porParecido) => String(c.fila.operational_code || c.fila.classroom_id || "");
+    if (!porAyuda.ayuda || codigo(porParecido) === codigo(porAyuda)) return null;
+    return { porParecido, porAyuda, codigo };
+  })();
+
   return (
     <div className="aulas-reemplazo-popover" data-pulso-panel="aulas-reemplazo" ref={innerRef}>
       <header className="aulas-reemplazo-head">
@@ -282,6 +307,26 @@ export function ContenidoDeReemplazo({
           <p className="aulas-reemplazo-sub">
             {caido.course_name || caido.label} · {caido.stratum} · {caido.eligible_n} elegibles
           </p>
+          {/* **Contra qué se elige, antes de con qué.** Sin esto, las dos varas
+              de cada candidato son dos números y «el que más ayuda» no dice a
+              qué ayuda. Gonzalo, 2026-09-10: «¿bajo qué concepto lo estamos
+              haciendo, qué estamos mejorando, y qué es lo que se tiene que
+              mejorar en primer lugar?».
+
+              Son las dos cifras por separado y no su suma: la facultad puede ir
+              sobrada en un sexo y corta en el otro, y ahí un relevo que traiga
+              el sexo cubierto no arregla nada. */}
+          {hayBrecha ? (
+            <p className="aulas-reemplazo-deuda">
+              <span className={brecha!.mujeres > 0 ? "es-debe" : ""}>
+                <b>{fmt(Math.max(0, brecha!.mujeres))}</b> mujeres por conseguir
+              </span>
+              <span className={brecha!.hombres > 0 ? "es-debe" : ""}>
+                <b>{fmt(Math.max(0, brecha!.hombres))}</b> hombres por conseguir
+              </span>
+              <em>en {caido.faculty || "su facultad"}</em>
+            </p>
+          ) : null}
         </div>
         {onCerrar ? (
           <button type="button" className="aulas-reemplazo-cerrar" onClick={onCerrar} aria-label="Cerrar">×</button>
@@ -312,6 +357,38 @@ export function ContenidoDeReemplazo({
           </button>
         ))}
       </nav>
+
+      {duelo ? (
+        <div className="aulas-reemplazo-duelo">
+          <div className="aulas-reemplazo-duelo-titulo">
+            <h4>El dilema, en dos cursos-horario</h4>
+            <span>las dos varas no señalan el mismo: elige cuál pesa</span>
+          </div>
+          <div className="aulas-reemplazo-duelo-lados">
+            <div className="es-parecido">
+              <span className="vara">Protege el diseño</span>
+              <b>{duelo.codigo(duelo.porParecido)}</b>
+              <span className="gana">
+                Se parece al que releva: <strong>{pctPerfil(duelo.porParecido.parecido * 100)}</strong> de parecido.
+              </span>
+              <span className="concede">
+                Cierra <strong>{pctPerfil(duelo.porParecido.ayuda * 100)}</strong> de lo que falta.
+              </span>
+            </div>
+            <div className="es-ayuda">
+              <span className="vara">Cierra la cuota</span>
+              <b>{duelo.codigo(duelo.porAyuda)}</b>
+              <span className="gana">
+                Cierra <strong>{pctPerfil(duelo.porAyuda.ayuda * 100)}</strong> de lo que falta.
+              </span>
+              <span className="concede">
+                Se aleja del original: <strong>{pctPerfil(duelo.porAyuda.parecido * 100)}</strong> de parecido.
+              </span>
+            </div>
+          </div>
+          <span className="aulas-reemplazo-duelo-o" aria-hidden="true">o</span>
+        </div>
+      ) : null}
 
       <p className="aulas-reemplazo-pie">
         {meta.pie}
