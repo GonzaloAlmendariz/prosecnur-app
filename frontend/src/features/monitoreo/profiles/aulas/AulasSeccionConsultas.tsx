@@ -79,7 +79,35 @@ export function AulasSeccionConsultas({
     // cuadre del parte se filtra en sus INSUMOS para que sus contadores y sus
     // filas hablen del mismo subconjunto.
     const reemplazos = soloFacultad(reemplazosEnOrdenDeCadena(dashboard.reemplazos), facultadEnFoco);
-    const brechas = soloFacultad((dashboard.brechas ?? []) as Array<Record<string, unknown>>, facultadEnFoco);
+    /**
+     * **Las brechas, enriquecidas con su fila del plan.**
+     *
+     * `dashboard.brechas` publica doce columnas y le faltan justo las que esta
+     * tabla necesita para decidir: `eligible_n`, el horario y las dos tasas. Sin
+     * ellas, «Cuándo» y «Rinde» salían en «—» en las 136 filas —medido en
+     * pantalla el 2026-09-11, «de — previsto» en todas—, y «Rinde» es la
+     * columna que separa el curso-horario que se quedó corto del que es más
+     * grande que el promedio de su facultad.
+     *
+     * Se enriquece en vez de sustituir la fuente: el criterio de qué entra en
+     * la lista y cuántas son lo decide el motor, y cambiarlo por un filtro
+     * propio sobre `agenda` daría otro recuento sin que nadie lo pidiera. Lo
+     * que se añade son columnas de la MISMA fila, emparejada por su código.
+     */
+    const brechas = (() => {
+      const plan = new Map<string, Record<string, unknown>>();
+      for (const f of (dashboard.agenda ?? []) as Array<Record<string, unknown>>) {
+        const c = String(f.operational_code ?? f.classroom_id ?? "").trim();
+        if (c) plan.set(c, f);
+      }
+      const crudas = soloFacultad((dashboard.brechas ?? []) as Array<Record<string, unknown>>, facultadEnFoco);
+      return crudas.map((b) => {
+        const suya = plan.get(String(b.operational_code ?? b.classroom_id ?? "").trim());
+        // La fila de brechas manda sobre la del plan: su `brecha` y su
+        // `respuestas_validas` son las que el motor publicó para esta lista.
+        return suya ? { ...suya, ...b } : b;
+      });
+    })();
     const cuadre = parteDeCampo(
       soloFacultad((dashboard.partes_campo ?? []) as Array<Record<string, unknown>>, facultadEnFoco) as unknown as MonitoreoRow[],
       soloFacultad((dashboard.agenda ?? []) as Array<Record<string, unknown>>, facultadEnFoco) as unknown as MonitoreoRow[],
