@@ -267,7 +267,7 @@ function Cadena({ h, c, titular, onRelevo }: {
   const seña = [facultadCorta(h.facultad), cuando, donde].filter(Boolean).join(" · ");
 
   return (
-    <article className={`aulas-cadena es-${c.clave}`}>
+    <article className={`aulas-cadena es-${c.clave}${onRelevo && (c.clave === "corta" || c.clave === "seca") ? " con-salida" : ""}`}>
       <div className="aulas-cadena-quien">
         <span className="aulas-cadena-cod">{h.titular}</span>
         {seña ? <span className="aulas-cadena-meta">{seña}</span> : null}
@@ -310,19 +310,23 @@ function Cadena({ h, c, titular, onRelevo }: {
           </button>
         ) : null}
 
-        {/* **Cada fila tiene salida.** Es la regla que el ensayo pide para
-            Brechas y vale igual aquí: una cadena que pide trabajo y no ofrece
-            por dónde seguir obliga a salir de la pantalla para actuar. */}
-        {onRelevo && (c.clave === "corta" || c.clave === "seca") ? (
-          <button
-            type="button"
-            className="aulas-cadena-salida"
-            onClick={() => onRelevo(h.titular)}
-          >
+      </div>
+
+      {/* **Cada fila tiene salida.** Es la regla que el ensayo pide para
+          Brechas y vale igual aquí: una cadena que pide trabajo y no ofrece por
+          dónde seguir obliga a salir de la pantalla para actuar.
+
+          Va en columna propia y no dentro de la tira: ahí viajaba con el scroll
+          horizontal —quedando fuera de vista justo en las cadenas largas, que
+          son las que más lo necesitan— y su `margin-left: auto` se comía el
+          padding derecho del contenedor. */}
+      {onRelevo && (c.clave === "corta" || c.clave === "seca") ? (
+        <div className="aulas-cadena-salida">
+          <button type="button" onClick={() => onRelevo(h.titular)}>
             {c.clave === "corta" ? "Complementar" : "Buscar relevo"}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </article>
   );
 }
