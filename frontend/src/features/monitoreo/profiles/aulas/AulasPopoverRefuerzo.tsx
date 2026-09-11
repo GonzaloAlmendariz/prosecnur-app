@@ -7,6 +7,7 @@ import type { BrechaPorSexo } from "./candidatosDeReemplazo";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { facultadCorta } from "./facultadEnPalabras";
+import { pronosticoDelAula } from "./pronosticoDelAula";
 import { planDeRefuerzo, refuerzosDeFacultad, type CandidatoDeRefuerzo } from "./refuerzosDeFacultad";
 import "./aulasPopoverRefuerzo.css";
 
@@ -30,7 +31,7 @@ import "./aulasPopoverRefuerzo.css";
  * debo cierra?». No hay parecido que medir porque no hay nada a lo que
  * parecerse.
  */
-export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onCerrar }: {
+export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Lo que la facultad debe HOY, por sexo. Sale de las cuotas, no del cierre. */
@@ -42,6 +43,8 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onC
    * sin esa fecha la decisión parece que no tiene reloj.
    */
   pedirAntesDe?: string | null;
+  /** Tomar este curso-horario de refuerzo. Sin esto la lista sólo se mira. */
+  onElegir?: (fila: MonitoreoAulasPlanRow) => void;
   onCerrar: () => void;
 }): ReactNode {
   const caja = useRef<HTMLDivElement | null>(null);
@@ -72,7 +75,7 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onC
         ref={(el) => { caja.current = el; }}
       >
         <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda}
-          pedirAntesDe={pedirAntesDe} onCerrar={onCerrar} />
+          pedirAntesDe={pedirAntesDe} onElegir={onElegir} onCerrar={onCerrar} />
       </div>
     </div>,
     document.body,
@@ -84,11 +87,13 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onC
  * `renderToStaticMarkup`: un portal en el servidor devuelve cadena vacía y no
  * se puede probar nada de lo que hay dentro.
  */
-export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, pedirAntesDe, onCerrar }: {
+export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   deuda: BrechaPorSexo;
   pedirAntesDe?: string | null;
+  /** Tomar este curso-horario de refuerzo. Sin esto la lista sólo se mira. */
+  onElegir?: (fila: MonitoreoAulasPlanRow) => void;
   onCerrar?: () => void;
 }) {
   // El nombre se normaliza UNA vez y se usa en las seis veces que aparece; el
@@ -170,7 +175,10 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
           </p>
           <ol className="aulas-refuerzo-lista">
             {candidatos.map((c, i) => (
-              <TarjetaDeRefuerzo key={String(c.fila.operational_code || c.fila.classroom_id || i)} c={c} puesto={i + 1} />
+              <TarjetaDeRefuerzo
+                key={String(c.fila.operational_code || c.fila.classroom_id || i)}
+                c={c} puesto={i + 1} onElegir={onElegir}
+              />
             ))}
           </ol>
         </>
@@ -185,10 +193,13 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
   );
 }
 
-function TarjetaDeRefuerzo({ c, puesto }: { c: CandidatoDeRefuerzo; puesto: number }) {
+function TarjetaDeRefuerzo({ c, puesto, onElegir }: {
+  c: CandidatoDeRefuerzo;
+  puesto: number;
+  onElegir?: (fila: MonitoreoAulasPlanRow) => void;
+}) {
   const f = c.fila;
-  const anon = f as Record<string, unknown>;
-  const tasa = Number(anon.tasa_efectividad_aula) > 0 ? Number(anon.tasa_efectividad_aula) : 0.55;
+  const pr = pronosticoDelAula(f);
   const queda = c.quedaria.mujeres + c.quedaria.hombres;
 
   return (
@@ -210,12 +221,51 @@ function TarjetaDeRefuerzo({ c, puesto }: { c: CandidatoDeRefuerzo; puesto: numb
           <span className="aulas-chips-fila">
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}
             {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
-            <ChipDato>{fmt(Number(f.eligible_n) || 0)} elegibles al {pctPerfil(tasa * 100)}</ChipDato>
           </span>
-          <span className="aulas-refuerzo-rinde">
-            Rinde <b>{fmt(c.aporta.mujeres)}</b> mujeres y <b>{fmt(c.aporta.hombres)}</b> hombres
-            {" = "}<strong>{fmt(c.aporta.total)}</strong>
-          </span>
+          {/* **Las mismas tres varas que el popover de reemplazo.** Es la misma
+              decisión vista desde el otro extremo, y con dos lenguajes distintos
+              había que reaprender la lectura al cambiar de pantalla. Aquí pesan
+              todavía más: en C no hay un titular al que parecerse, así que lo
+              único que se compara entre candidatos es lo que van a dar. */}
+          <table className="aulas-refuerzo-varas3">
+            <thead>
+              <tr>
+                <th scope="col" />
+                <th scope="col">Mujeres</th>
+                <th scope="col">Hombres</th>
+                <th scope="col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="es-techo">
+                <th scope="row">Elegibles</th>
+                <td>{fmt(pr.elegibles.mujeres)}</td>
+                <td>{fmt(pr.elegibles.hombres)}</td>
+                <td><b>{fmt(pr.elegibles.total)}</b></td>
+              </tr>
+              {pr.plan ? (
+                <tr className="es-plan">
+                  <th scope="row">Según el plan</th>
+                  <td>{fmt(pr.plan.mujeres)}</td>
+                  <td>{fmt(pr.plan.hombres)}</td>
+                  <td><b>{fmt(pr.plan.total)}</b></td>
+                </tr>
+              ) : null}
+              <tr className="es-ritmo">
+                <th scope="row">
+                  Al ritmo de hoy
+                  <em>
+                    {pr.deDondeLaTasa === "aula" ? `${pctPerfil(pr.tasa * 100)} suyo`
+                      : pr.deDondeLaTasa === "facultad" ? `${pctPerfil(pr.tasa * 100)} de su facultad`
+                      : `${pctPerfil(pr.tasa * 100)} del perfil, sin medida propia`}
+                  </em>
+                </th>
+                <td>{fmt(c.aporta.mujeres)}</td>
+                <td>{fmt(c.aporta.hombres)}</td>
+                <td><b>{fmt(c.aporta.total)}</b></td>
+              </tr>
+            </tbody>
+          </table>
         </span>
 
         {/* **Lo que cierra, y lo que quedaría.** Las dos mitades de la misma
@@ -223,10 +273,16 @@ function TarjetaDeRefuerzo({ c, puesto }: { c: CandidatoDeRefuerzo; puesto: numb
             la tomas. La segunda es la que él pidió —«si tomas uno, a la facultad
             le quedan…»— y es la que evita tomar tres cuando bastaba una. */}
         <span className="aulas-refuerzo-cierra">
+          {/* El porcentaje lleva su signo: justo debajo va «quedarían 65», que
+              es un absoluto, y sin la unidad las dos cifras se leían como la
+              misma cosa. */}
           <span className="aulas-refuerzo-vara">
             <em>cierra</em>
             <i><b style={{ width: `${Math.min(100, Math.round(c.cierra * 100))}%` }} /></i>
-            <strong>{Math.min(100, Math.round(c.cierra * 100))}</strong>
+            <strong>{Math.min(100, Math.round(c.cierra * 100))} %</strong>
+          </span>
+          <span className="aulas-refuerzo-util">
+            <b>{fmt(c.util)}</b> de las que faltan
           </span>
           <span className="aulas-refuerzo-resto">
             {c.util ? (
@@ -237,6 +293,16 @@ function TarjetaDeRefuerzo({ c, puesto }: { c: CandidatoDeRefuerzo; puesto: numb
           </span>
         </span>
       </div>
+
+      {/* **Se puede decidir, no sólo mirar.** El popover de reemplazo cierra con
+          «Elegir R X» desde que se escribió; éste enseñaba dieciocho candidatos
+          y ninguna forma de tomar uno, así que obligaba a salir a otra pantalla
+          con el código apuntado a mano. */}
+      {onElegir ? (
+        <button type="button" className="aulas-refuerzo-elegir" onClick={() => onElegir(f)}>
+          Reforzar con {f.operational_code || f.classroom_id}
+        </button>
+      ) : null}
     </li>
   );
 }

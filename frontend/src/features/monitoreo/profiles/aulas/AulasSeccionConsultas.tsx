@@ -533,6 +533,9 @@ export function AulasSeccionConsultas({
                 refuerzoDe,
               ) ?? { mujeres: 0, hombres: 0 }}
               pedirAntesDe={alerta?.pedirAntesDe ?? null}
+              // Elegir cierra, como en el popover de reemplazo: la decisión se
+              // anota en el Sheets y volver a la lista invita a tomar dos.
+              onElegir={() => setRefuerzoDe("")}
               onCerrar={() => setRefuerzoDe("")}
             />
           );
