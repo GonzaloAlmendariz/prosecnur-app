@@ -95,14 +95,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
     return(NULL)
   }
   cfg <- if (is.list(cfg)) cfg else list()
-  rep <- monitoreo_aulas_reparto(
-    plan, disponibilidad,
-    fijadas = cfg[["reparto_fijado"]] %||% list(),
-    duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,
-    rango = cfg[["reparto_rango"]],
-    semilla = cfg[["reparto_semilla"]] %||% 0L,
-    concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
-  )
+  rep <- monitoreo_aulas_reparto_de_config(plan, disponibilidad, cfg)
 
   # Código → lugar confirmado (el catálogo como fallback), igual que la app.
   lugares <- new.env(parent = emptyenv())
@@ -309,14 +302,7 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
 aulas_libro_asignados_por_codigo <- function(plan, disponibilidad, cfg = list()) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(list())
   cfg <- if (is.list(cfg)) cfg else list()
-  rep <- monitoreo_aulas_reparto(
-    plan, disponibilidad,
-    fijadas = cfg[["reparto_fijado"]] %||% list(),
-    duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,
-    rango = cfg[["reparto_rango"]],
-    semilla = cfg[["reparto_semilla"]] %||% 0L,
-    concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
-  )
+  rep <- monitoreo_aulas_reparto_de_config(plan, disponibilidad, cfg)
   out <- list()
   for (dia in (rep[["dias"]] %||% list())) {
     for (item in (dia[["asignaciones"]] %||% list())) {

@@ -196,14 +196,7 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   cfg <- if (is.list(cfg)) cfg else list()
   # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
   # aquí con la MISMA config, como siempre.
-  if (!is.list(rep)) rep <- monitoreo_aulas_reparto(
-    plan, disponibilidad,
-    fijadas = cfg[["reparto_fijado"]] %||% list(),
-    duracion_min = cfg[["duracion_aplicacion_min"]] %||% 30L,
-    rango = cfg[["reparto_rango"]],
-    semilla = cfg[["reparto_semilla"]] %||% 0L,
-    concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
-  )
+  if (!is.list(rep)) rep <- monitoreo_aulas_reparto_de_config(plan, disponibilidad, cfg)
   # Del plan sólo se toma lo que la hoja enseña: aula, facultad, curso y
   # docente. Todo lo demás se queda fuera a propósito.
   meta <- new.env(parent = emptyenv())

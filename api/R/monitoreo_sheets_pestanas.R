@@ -176,6 +176,14 @@ monitoreo_sheets_pestanas_controladas <- function() {
     "Listas"
   )
 
+  # Las pestañas semanales del Sheets de los aplicadores (dictado 2026-09-11:
+  # «que la app aprenda a escribir una pestaña por semana»). El nombre NO se
+  # teclea aquí: se pide al mismo `.mads_hoja_de_semana()` que usa el
+  # publicador, porque una segunda grafía —«Semana N» contra «SEMANA N»— dejaría
+  # la publicación estrellándose contra su propio validador. Cincuenta y dos es
+  # el techo de un año de campo; el operativo de aulas dura seis semanas.
+  semanas_aplicadores <- vapply(seq_len(52L), .mads_hoja_de_semana, character(1))
+
   # Red de seguridad: lo que los generadores declaran HOY. Con el estado actual
   # no agrega ningún nombre (los bloques de arriba ya los cubren), pero si un
   # generador gana una pestaña mañana, entra aquí sola en vez de reventar la
@@ -189,5 +197,5 @@ monitoreo_sheets_pestanas_controladas <- function() {
     }), use.names = FALSE)
   }), use.names = FALSE)
 
-  unique(c(heredadas, ejecutivo_aulas, libro_aulas, declaradas))
+  unique(c(heredadas, ejecutivo_aulas, libro_aulas, semanas_aplicadores, declaradas))
 }

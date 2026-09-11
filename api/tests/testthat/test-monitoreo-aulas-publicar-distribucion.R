@@ -67,7 +67,14 @@ test_that("publica las dos hojas de la distribución y NINGUNA del equipo", {
   # persona y el plan del día del libro— y Gonzalo la corrigió el mismo día:
   # «le estás dando a los aplicadores más información de la que necesitan, y
   # documentación interna».
-  expect_setequal(names(escritas), "Plan del día")
+  # **La hoja se llama por su SEMANA desde el 2026-09-11.** Era «Plan del día»,
+  # un nombre fijo, y con dos semanas de campo en curso eso sólo podía acabar
+  # de una forma: la semana nueva escrita encima de la vieja. Gonzalo lo dictó
+  # dos veces —«cada hoja va a ser por semana» el 08/09, y «que la app aprenda
+  # a escribir una pestaña por semana» el 11/09—. Sigue siendo UNA hoja por
+  # publicación cuando el reparto cabe en una semana, que es la regla que este
+  # test sujeta; lo que cambió es de dónde sale su nombre.
+  expect_setequal(names(escritas), "Semana 1")
   expect_false(any(grepl("Aulas ", names(escritas), fixed = TRUE)))
 
   # Y sin ninguna columna de gestión: esperadas, obtenidas, elegibles y el
@@ -80,7 +87,7 @@ test_that("publica las dos hojas de la distribución y NINGUNA del equipo", {
   # reagendada, rechazada». No es información de gestión que se les enseña: es
   # donde ELLOS y el equipo escriben, y sin ella una reagendación no se puede
   # anotar antes de aplicarse.
-  cabecera <- unlist(escritas[["Plan del día"]][[1]], use.names = FALSE)
+  cabecera <- unlist(escritas[["Semana 1"]][[1]], use.names = FALSE)
   for (fuera in c("ESPERADAS", "OBTENIDAS", "ELEGIBLES", "ENLACE", "MATRICULADOS")) {
     expect_false(any(grepl(fuera, cabecera, fixed = TRUE)), info = fuera)
   }
@@ -272,10 +279,138 @@ test_that("publicar la distribución se niega cuando la pestaña ya tiene citas"
 
 test_that("un documento vacío sí se siembra: la guarda protege el trabajo, no el flujo", {
   mock <- .sheets_api_mock()
-  mock$seed("Plan del día", values = list())
+  mock$seed("Semana 1", values = list())
   testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
   out <- monitoreo_aulas_publicar_distribucion("sheet_dist", plan = .mapd_plan(),
                                                disponibilidad = .mapd_disp())
   expect_true(isTRUE(out$ok))
   expect_gt(out$citas, 0L)
+})
+
+# --- Una pestaña por semana ---------------------------------------------------
+#
+# Dictado de Gonzalo, dos veces. El 2026-09-08, cuando la app leía cero citas de
+# un documento con ochenta y seis porque buscaba «Plan del día» y la pestaña se
+# llamaba «Semana 1»: «cada hoja va a ser por semana». Entonces sólo se arregló
+# la LECTURA. El 2026-09-11, al armar el reparto del 14 al 18: «ojo, el reparto
+# va a una segunda hoja llamada Semana 2» y «que la app aprenda a escribir una
+# pestaña por semana».
+#
+# Lo que estaba roto no era el nombre: era que con UNA hoja fija la semana 2 se
+# publica encima de la 1, y la 1 es donde el coordinador lleva sus cambios.
+
+.mapd_plan_dos_semanas <- function() c(.mapd_plan(), list(
+  list(operational_code = "CH 3", classroom_id = "a3", sample_role = "titular",
+       sample_status = "agendada", operational_status = "agendada",
+       faculty = "Ciencias", course_name = "Álgebra", teacher = "Docente Tres",
+       scheduled_date = "2026-09-14", scheduled_time = "10:00 am",
+       scheduled_venue = "A102", eligible_n = 40, expected_valid = 20)
+))
+
+test_that("la semana se cuenta desde el lunes de la primera aula del plan", {
+  inicio <- monitoreo_aulas_inicio_de_campo(.mapd_plan_dos_semanas())
+  # El 07/09/2026 es lunes: el origen es ese mismo día.
+  expect_identical(format(inicio), "2026-09-07")
+  expect_identical(monitoreo_aulas_semana_de("2026-09-07", inicio), 1L)
+  # El domingo cierra la semana: el 13 sigue siendo la 1 y el 14 abre la 2.
+  expect_identical(monitoreo_aulas_semana_de("2026-09-13", inicio), 1L)
+  expect_identical(monitoreo_aulas_semana_de("2026-09-14", inicio), 2L)
+  expect_identical(monitoreo_aulas_semana_de("2026-09-21", inicio), 3L)
+  # Lo ilegible y lo anterior al origen NO inventan semana: sin esto una fecha
+  # rota bautizaría una pestaña «Semana NA» y el validador de pestañas
+  # controladas frenaría la publicación entera.
+  expect_true(is.na(monitoreo_aulas_semana_de("ayer", inicio)))
+  expect_true(is.na(monitoreo_aulas_semana_de("2026-08-31", inicio)))
+})
+
+test_that("un reparto que cruza el domingo se publica en dos pestañas", {
+  escritas <- NULL
+  local_mocked_bindings(
+    .monitoreo_sync_sheets_publish_tabs = function(id, tabs, format_requests = NULL, ...) {
+      escritas <<- tabs
+      # El formato tiene que llegar a las DOS: una semana sin desplegable de
+      # estado ni colores por aplicador es una tabla muerta desde la que nadie
+      # puede reasignar.
+      for (nm in names(tabs)) {
+        expect_gt(length(format_requests(7L, nm, tabs[[nm]])), 0L)
+      }
+      list(skipped_tabs = list())
+    },
+    .package = "prosecnurapp"
+  )
+  out <- monitoreo_aulas_publicar_distribucion(
+    "sheet_dist", plan = .mapd_plan_dos_semanas(), disponibilidad = .mapd_disp())
+  expect_setequal(names(escritas), c("Semana 1", "Semana 2"))
+  codigos <- function(hoja) {
+    cab <- unlist(escritas[[hoja]][[1]], use.names = FALSE)
+    col <- which(cab == "CURSO-HORARIO")
+    vapply(escritas[[hoja]][-1], function(r) unlist(r, use.names = FALSE)[[col]], character(1))
+  }
+  expect_setequal(codigos("Semana 1"), c("CH 1", "CH 2"))
+  expect_setequal(codigos("Semana 2"), "CH 3")
+  expect_setequal(vapply(out$hojas, function(h) h$hoja, character(1)),
+                  c("Semana 1", "Semana 2"))
+})
+
+test_that("la semana 1 con dueño no impide sembrar la semana 2", {
+  # **El defecto que obligó al cambio.** La guarda era por DOCUMENTO: bastaba
+  # que una pestaña tuviera citas para que la publicación entera se negara. Con
+  # una hoja por semana eso significa que el trabajo del coordinador en la
+  # semana en curso bloquea para siempre la siguiente.
+  mock <- .sheets_api_mock()
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod, fecha) as.list(c("Ana Prueba", "Lunes", fecha, "09:30", "09:45",
+                                         "10:00 a 10:30", cod, "A101", "Ciencias",
+                                         "Cálculo", "Docente Uno", "APLICADA"))
+  mock$seed("Semana 1", values = list(cab, fila("CH 1", "07/09"), fila("CH 2", "07/09")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_publicar_distribucion(
+    "sheet_dist", plan = .mapd_plan_dos_semanas(), disponibilidad = .mapd_disp())
+  expect_true(isTRUE(out$ok))
+  accion <- vapply(out$hojas, function(h) h$accion, character(1))
+  names(accion) <- vapply(out$hojas, function(h) h$hoja, character(1))
+  # La 1 se respeta y se DICE; callarla dejaría una publicación que parece
+  # completa habiendo dejado una semana fuera.
+  expect_identical(unname(accion[["Semana 1"]]), "respetada")
+  expect_identical(unname(accion[["Semana 2"]]), "actualizada")
+})
+
+test_that("si TODAS las semanas tienen dueño sigue siendo un error, no un silencio", {
+  mock <- .sheets_api_mock()
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod) as.list(c("Ana Prueba", "Lunes", "07/09", "09:30", "09:45",
+                                  "10:00 a 10:30", cod, "A101", "Ciencias",
+                                  "Cálculo", "Docente Uno", "POR APLICAR"))
+  mock$seed("Semana 1", values = list(cab, fila("CH 1"), fila("CH 2")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  err <- tryCatch(
+    monitoreo_aulas_publicar_distribucion("sheet_dist", plan = .mapd_plan(),
+                                          disponibilidad = .mapd_disp()),
+    api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_AULAS_DISTRIBUCION_CON_DUENO")
+  escrituras <- Filter(function(c) grepl("values", c$url) && !identical(c$method, "GET"),
+                       mock$env$calls)
+  expect_length(escrituras, 0L)
+})
+
+test_that("una semana que ya vive en la pestaña heredada no se duplica", {
+  # Los documentos que ya están en la calle traen la semana 1 en «Plan del día».
+  # Escribir «Semana 1» sin mirar dejaría la misma semana en dos pestañas y al
+  # aplicador con dos verdades abiertas.
+  mock <- .sheets_api_mock()
+  cab <- as.list(prosecnurapp:::.alpa_CABECERA)
+  fila <- function(cod) as.list(c("Ana Prueba", "Lunes", "07/09", "09:30", "09:45",
+                                  "10:00 a 10:30", cod, "A101", "Ciencias",
+                                  "Cálculo", "Docente Uno", "POR APLICAR"))
+  mock$seed("Plan del día", values = list(cab, fila("CH 1")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  err <- tryCatch(
+    monitoreo_aulas_publicar_distribucion("sheet_dist", plan = .mapd_plan(),
+                                          disponibilidad = .mapd_disp()),
+    api_error = function(e) e)
+  # Reconoce que esa semana ya tiene dueño AHÍ: la nombra por el nombre real de
+  # la pestaña, no por el canónico que habría creado.
+  expect_s3_class(err, "api_error")
+  expect_match(conditionMessage(err), "Plan del día", fixed = TRUE)
 })

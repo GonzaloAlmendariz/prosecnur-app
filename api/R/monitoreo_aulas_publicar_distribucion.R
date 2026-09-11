@@ -66,15 +66,26 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # manda sobre el que la app deduce: «APLICADA» la elige también el coordinador
   # en el chip desplegable, y suele hacerlo antes de que llegue el parte. Sin
   # esta lectura el motor le publicaría «POR APLICAR» encima.
-  hoja_previa <- tryCatch({
-    meta0 <- .monitoreo_sheets_metadata(id)
-    .madc_pestana_de_la_distribucion(id, vapply(meta0$sheets %||% list(), function(h) {
-      .monitoreo_scalar((h$properties %||% list())$title, "")
-    }, character(1)))
-  }, error = function(e) "")
-  remoto_previo <- if (nzchar(hoja_previa)) {
-    tryCatch(.cads_valores_de_pestana(id, hoja_previa), error = function(e) list())
-  } else list()
+  meta0 <- tryCatch(.monitoreo_sheets_metadata(id), error = function(e) NULL)
+  titulos_remotos <- vapply((meta0 %||% list())$sheets %||% list(), function(h) {
+    .monitoreo_scalar((h$properties %||% list())$title, "")
+  }, character(1))
+  hoja_previa <- tryCatch(
+    .madc_pestana_de_la_distribucion(id, titulos_remotos),
+    error = function(e) ""
+  )
+  # Cada pestaña se lee UNA vez por publicación: el presupuesto de requests de
+  # este ciclo está pineado en su test y la partición por semana multiplica las
+  # lecturas si no se memoiza.
+  leidas <- new.env(parent = emptyenv())
+  valores_de <- function(hoja) {
+    if (!nzchar(hoja)) return(list())
+    if (is.null(leidas[[hoja]])) {
+      leidas[[hoja]] <- tryCatch(.cads_valores_de_pestana(id, hoja), error = function(e) list())
+    }
+    leidas[[hoja]]
+  }
+  remoto_previo <- valores_de(hoja_previa)
   filas <- aulas_libro_filas_plan_aplicadores(
     plan %||% list(), disponibilidad, cfg = config_reparto,
     partes = partes %||% list(), efectivas = efectivas,
@@ -104,28 +115,71 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # esta pestaña se había quedado sin ella justo cuando pasó a tener dueño.
   # Se reusa lo leído arriba: el presupuesto de requests de este ciclo está
   # pineado en su test y volver a pedir metadata lo duplicaría.
-  hoja_existente <- hoja_previa
-  if (nzchar(hoja_existente)) {
-    remoto <- remoto_previo
-    con_datos <- sum(vapply(remoto, function(r) {
+  #
+  # **Y la guarda es POR PESTAÑA, no por documento.** Ésa es la mitad que la
+  # partición por semana obliga a cambiar: con una sola hoja, «hay citas
+  # escritas» y «no hay dónde publicar» eran lo mismo; con una hoja por semana,
+  # que la semana 1 tenga el trabajo del coordinador no puede impedir que se
+  # siembre la semana 2. Se respeta la que tiene dueño y se publica el resto.
+  citas_escritas <- function(valores) {
+    max(0L, sum(vapply(valores, function(r) {
       any(nzchar(trimws(as.character(unlist(r %||% list(), use.names = FALSE)))))
-    }, logical(1)))
-    if (con_datos > 1L) {
-      stop_api(
-        409, "E_AULAS_DISTRIBUCION_CON_DUENO",
-        paste0(
-          "La pestaña «", hoja_existente, "» ya tiene ", con_datos - 1L,
-          " citas escritas y el equipo edita ahí: publicar encima borraría sus ",
-          "cambios. Adopta la distribución para que la app tome sus filas, y ",
-          "añade sólo las aulas agendadas que falten."
-        ),
-        details = list(hoja = hoja_existente, citas = con_datos - 1L)
+    }, logical(1))) - 1L)
+  }
+
+  inicio <- monitoreo_aulas_inicio_de_campo(plan %||% list())
+  rep <- monitoreo_aulas_reparto_de_config(plan %||% list(), disponibilidad, config_reparto)
+  por_semana <- monitoreo_aulas_reparto_por_semana(rep, inicio)
+
+  tabs <- list()
+  respetadas <- list()
+  # Sin semanas legibles —un plan sin fechas, o fechas rotas— se publica como
+  # siempre, en la hoja de toda la vida: el documento no se queda sin publicar
+  # por no saber numerar sus semanas.
+  if (!length(por_semana) || identical(names(por_semana), "")) {
+    if (nzchar(hoja_previa) && citas_escritas(remoto_previo) > 0L) {
+      respetadas[[hoja_previa]] <- citas_escritas(remoto_previo)
+    } else {
+      tabs[[if (nzchar(hoja_previa)) hoja_previa else .mapd_hoja()]] <- filas
+    }
+  } else {
+    for (nombre in names(por_semana)) {
+      trozo <- por_semana[[nombre]]
+      destino <- .mads_hoja_para_semana(
+        titulos_remotos, nombre, .mads_fechas_cortas(trozo), hoja_previa, valores_de)
+      if (!nzchar(destino)) destino <- .mapd_hoja()
+      remoto <- valores_de(if (destino %in% titulos_remotos) destino else "")
+      escritas <- citas_escritas(remoto)
+      filas_semana <- aulas_libro_filas_plan_aplicadores(
+        plan %||% list(), disponibilidad, cfg = config_reparto, rep = trozo,
+        partes = partes %||% list(), efectivas = efectivas,
+        estados_previos = aulas_distribucion_estados_publicados(remoto)
       )
+      if (is.null(filas_semana) || length(filas_semana) < 2L) next
+      if (escritas > 0L) {
+        respetadas[[destino]] <- escritas
+        next
+      }
+      tabs[[destino]] <- filas_semana
     }
   }
 
-  tabs <- list()
-  tabs[[.mapd_hoja()]] <- filas
+  # Todas con dueño y ninguna que sembrar: es el caso de siempre —«republico y
+  # ya» sobre el trabajo del coordinador— y sigue siendo un error, no un no-op
+  # silencioso.
+  if (!length(tabs) && length(respetadas)) {
+    primera <- names(respetadas)[[1L]]
+    stop_api(
+      409, "E_AULAS_DISTRIBUCION_CON_DUENO",
+      paste0(
+        "La pestaña «", primera, "» ya tiene ", respetadas[[primera]],
+        " citas escritas y el equipo edita ahí: publicar encima borraría sus ",
+        "cambios. Adopta la distribución para que la app tome sus filas, y ",
+        "añade sólo las aulas agendadas que falten."
+      ),
+      details = list(hoja = primera, citas = respetadas[[primera]])
+    )
+  }
 
   # El roster que llena el desplegable y decide los colores: TODO el equipo con
   # disponibilidad declarada, no sólo quien hoy tiene cita. Reasignar es mover a
@@ -133,8 +187,12 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   roster <- vapply(disponibilidad %||% list(), function(x) {
     aulas_nombre_aplicador(x[["nombre"]] %||% x[["aplicador"]] %||% x)
   }, character(1))
+  # El formato va a TODAS las que se escriben. Antes bastaba comparar con el
+  # nombre único; con una hoja por semana, comparar con «Plan del día» dejaría
+  # la semana 2 sin desplegable de estado y sin colores por aplicador —la hoja
+  # se vería como una tabla muerta y nadie podría reasignar desde ella—.
   formato <- function(sheet_id, tab_name, rows) {
-    if (identical(tab_name, .mapd_hoja())) {
+    if (tab_name %in% names(tabs)) {
       return(aulas_libro_plan_aplicadores_formato_requests(
         sheet_id, rows, roster = as.list(roster[nzchar(roster)])))
     }
@@ -151,6 +209,13 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       filas = max(0L, length(tabs[[hoja]]) - 1L)
     )
   })
+  # Las que NO se escribieron viajan en el mismo recibo y con su motivo. Una
+  # semana respetada que no se nombra es una publicación que parece completa y
+  # dejó una semana fuera: el llamador no puede distinguirla de una que no
+  # existía —el defecto de descartar en silencio, aquí con una semana entera—.
+  hojas <- c(hojas, lapply(names(respetadas), function(hoja) {
+    list(hoja = hoja, accion = "respetada", filas = respetadas[[hoja]])
+  }))
   list(
     ok = TRUE,
     spreadsheet_id = id,
