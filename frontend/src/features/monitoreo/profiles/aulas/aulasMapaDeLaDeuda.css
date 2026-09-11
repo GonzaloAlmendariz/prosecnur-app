@@ -2,9 +2,16 @@
    congelada a crecimiento. */
 .mon-profile-page.is-aulas-flow .aulas-mapa { display: grid; gap: 8px; min-width: 0; }
 
+/* **El lienzo tiene un techo.** El SVG conserva su proporción (560 × 430), así
+   que a lo ancho de un panel de Consultas —971 px— salía de 746 px de alto: el
+   mapa ocupaba una pantalla entera y empujaba fuera de la vista el ranking que
+   lo acompaña, que es su otra mitad. El ancho se acota en vez del alto porque
+   así el gráfico no se deforma, y se centra para que el panel no quede cojo. */
 .mon-profile-page.is-aulas-flow .aulas-mapa-lienzo {
   display: block;
   width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
   height: auto;
   overflow: visible;
 }
