@@ -78,6 +78,8 @@ export type RiesgoDeFacultad = {
   cursosEnGestion: number;
   /** Sin teléfono válido: no es una gestión lenta, es una baja de hecho. */
   cursosSinVia: number;
+  /** Los códigos de ésas, hasta tres: es lo que hace el aviso accionable. */
+  codigosSinVia: string[];
   /** Abiertas más días de los que la reserva necesita para confirmar. */
   cursosEstancados: number;
   /**
@@ -169,6 +171,8 @@ export type CierreDeLaFacultad = {
   cursosEnGestion: number;
   /** Sin teléfono válido: no es una gestión lenta, es una baja de hecho. */
   cursosSinVia: number;
+  /** Los códigos de ésas, hasta tres: es lo que hace el aviso accionable. */
+  codigosSinVia: string[];
   /** Abiertas más días de los que la reserva necesita para confirmar. */
   cursosEstancados: number;
   loQueToca: "agendar" | "reforzar" | null;
@@ -223,6 +227,8 @@ export function cierreDeLaFacultad(
     // Las gestiones que ya no van a cerrar solas: sin teléfono, o abiertas más
     // días de los que la reserva necesita para su propio contacto.
     cursosSinVia: Number(f.cursos_sin_via) || 0,
+    codigosSinVia: (Array.isArray(f.codigos_sin_via) ? f.codigos_sin_via : [])
+      .map((c) => String(c ?? "").trim()).filter(Boolean),
     cursosEstancados: Number(f.cursos_estancados) || 0,
     // El margen del PLAN ENTERO decide cuál de las dos acciones toca: si con
     // todo agendado cerraría, el trabajo es agendar; si tampoco, refuerzo.
@@ -309,6 +315,7 @@ export function facultadesEnRiesgo(
       cursosVencidos: cierre.cursosVencidos,
       cursosEnGestion: cierre.cursosEnGestion,
       cursosSinVia: cierre.cursosSinVia,
+      codigosSinVia: cierre.codigosSinVia,
       cursosEstancados: cierre.cursosEstancados,
       loQueToca: cierre.loQueToca,
       enCamino,

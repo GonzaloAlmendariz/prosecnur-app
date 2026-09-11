@@ -47,6 +47,7 @@ function fac(sobre: Partial<MonitoreoAulasEfectividadFacultad> = {}): MonitoreoA
     elegibles_vencidos: 40,
     cursos_en_gestion: 2,
     cursos_sin_via: 1,
+    codigos_sin_via: ["CH 89"],
     cursos_estancados: 1,
     proyectado_agendado: 248.4,
     margen_agendado: -11.6,

@@ -1017,6 +1017,11 @@ export type MonitoreoAulasEfectividadFacultad = {
    * que la propia reserva necesita para contactar y confirmar.
    */
   cursos_sin_via: number;
+  /**
+   * Los códigos de esas aulas, hasta tres. «3 no tienen teléfono válido» dice
+   * que hay un problema; «CH 3, CH 17 y CH 89» dice qué hacer esta tarde.
+   */
+  codigos_sin_via: string[];
   cursos_estancados: number;
   /**
    * Titulares cuyo contacto YA se resolvió —tienen fecha, se aplicaron o
