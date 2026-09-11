@@ -14,7 +14,10 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  * y por eso viaja en la fila del plan (`tasa_facultad`).
  */
 
-export type SeveridadDeBrecha = "sin_aplicar" | "muy_por_debajo" | "por_debajo" | "cerca" | "cumplida";
+export type SeveridadDeBrecha =
+  | "sin_aplicar" | "muy_por_debajo" | "por_debajo" | "cerca" | "cumplida"
+  /** El parte la da por aplicada y nada lo respalda: se revisa, no se decide. */
+  | "parte_en_conflicto";
 
 export type BrechaDeCurso = {
   codigo: string;
@@ -34,6 +37,23 @@ export type BrechaDeCurso = {
   /** Su composición por sexo: decide si un relevo suyo cerraría lo que falta. */
   mujeres: number;
   hombres: number;
+  /**
+   * **Cuánta gente había en el aula, según el parte.**
+   *
+   * Gonzalo, 2026-09-11, mirando CH 3 con «0.0 %»: «no entiendo, ¿la CH 3 no
+   * hizo nada?». Sí hizo: se fue al aula y había 15 alumnos; lo que no salió
+   * fue ni una encuesta válida. Un cero sin esa cifra se lee como que nadie
+   * pisó el aula, y las dos cosas piden acciones muy distintas —volver a
+   * aplicar donde hay gente, o agendar donde no se llegó—.
+   *
+   * `null` cuando el parte no lo anotó: ahí no se puede decir nada.
+   */
+  enElAula: number | null;
+  /**
+   * El parte la da por aplicada y nada lo respalda: ni fecha, ni contacto
+   * cerrado, ni una encuesta. Hay que revisar el registro antes de decidir.
+   */
+  parteEnConflicto: boolean;
 };
 
 const texto = (v: unknown) => (v == null ? "" : String(v)).trim();
@@ -65,6 +85,11 @@ const opcional = (v: unknown) => {
  * cuenta en la lectura de arriba para que no desaparezca del mapa.
  */
 const PESO: Record<SeveridadDeBrecha, number> = {
+  // El conflicto va PRIMERO: no es un grado de rendimiento, es un registro que
+  // hay que mirar antes de decidir nada sobre esa aula. Confirmado el
+  // 2026-09-11 con Gonzalo — CH 3 era un duplicado del coordinador— así que va
+  // a volver a pasar y tiene que saltar a la vista.
+  parte_en_conflicto: -1,
   muy_por_debajo: 0, por_debajo: 1, cerca: 2, cumplida: 3, sin_aplicar: 4,
 };
 
@@ -86,12 +111,40 @@ export function brechasDelCorte(
     // **Sin aplicar NO es rendir cero.** Un aula a la que todavía no se ha ido
     // no ha fallado: le falta todo porque no le ha tocado, y su salida es la
     // agenda, no un relevo. Se distingue por el parte, no por la cifra.
-    const aplicada = efectivas > 0
-      || texto(f.application_status).toLowerCase() === "aplicada"
-      || numero((f as Record<string, unknown>).applied_surveys) > 0;
+    /**
+     * **Un «aplicada» que nada respalda es un dato en conflicto, no un hecho.**
+     *
+     * Gonzalo, 2026-09-11: «yo no veo que CH 3 se haya aplicado». Medido sobre
+     * las 1 392 filas del plan, la contradicción existe y son DOS: CH 3 y
+     * CH 143, las dos con «Número no existe» y el contacto sin cerrar.
+     *
+     * CH 143 se resuelve sola —trajo 23 encuestas, luego se aplicó y lo que no
+     * se actualizó fue el estado de contacto—. CH 3 no: decía «aplicada» sin
+     * fecha, sin contacto cerrado y sin una sola encuesta, y **resultó ser un
+     * duplicado que el coordinador marcó por error**; él lo corrigió en el libro
+     * al verlo. Esa es la razón de que esto exista: tratarla como aplicada la
+     * mete entre las que rinden mal y le ofrece complemento; tratarla como
+     * pendiente esconde que alguien marcó esa casilla. Ninguna de las dos deja
+     * ver el error, así que se marca y se pide revisar.
+     */
+    const diceAplicada = texto(f.application_status).toLowerCase() === "aplicada";
+    const sinFecha = !texto((f as Record<string, unknown>).scheduled_date);
+    const contactoAbierto = ["en_contacto", "sin_contactar", ""]
+      .includes(texto(f.sample_status).toLowerCase());
+    const parteEnConflicto = diceAplicada && efectivas === 0 && sinFecha && contactoAbierto;
+
+    const aplicada = !parteEnConflicto && (efectivas > 0
+      || diceAplicada
+      || numero((f as Record<string, unknown>).applied_surveys) > 0);
+
+    // Lo que el parte anotó como observado. Se distingue el «no lo anotó» del
+    // «había cero»: son cosas distintas y la fila sólo puede hablar del primero.
+    const bruto = texto((f as Record<string, unknown>).observed_students);
+    const enElAula = bruto === "" ? null : numero(bruto);
 
     let severidad: SeveridadDeBrecha;
-    if (!aplicada) severidad = "sin_aplicar";
+    if (parteEnConflicto) severidad = "parte_en_conflicto";
+    else if (!aplicada) severidad = "sin_aplicar";
     else if (faltan <= 0) severidad = "cumplida";
     else if (observada == null || prevista == null) severidad = "por_debajo";
     else {
@@ -109,9 +162,12 @@ export function brechasDelCorte(
       // Un aula sin aplicar se agenda; una aplicada que se quedó corta se
       // complementa. Nunca al revés: complementar la que no se visitó sería
       // gastar una reserva por un hueco que nadie ha intentado llenar.
-      accion: severidad === "sin_aplicar" ? "reemplazo"
+      // Un parte en conflicto no ofrece acción: lo que toca es revisarlo, y
+      // proponer complemento sobre un registro dudoso lo da por bueno.
+      accion: severidad === "parte_en_conflicto" ? "nada"
+        : severidad === "sin_aplicar" ? "reemplazo"
         : severidad === "cumplida" ? "nada" : "complemento",
-      mujeres, hombres,
+      mujeres, hombres, enElAula, parteEnConflicto,
     });
   }
   return salida.sort((a, b) =>

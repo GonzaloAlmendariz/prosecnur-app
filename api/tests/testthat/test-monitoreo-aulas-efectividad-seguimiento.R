@@ -832,3 +832,27 @@ test_that("sin ninguna, los códigos viajan vacíos y no como NULL", {
   f <- .efs_fila(d$efectividad_seguimiento, "Arte")
   expect_identical(length(f$codigos_sin_via), 0L)
 })
+
+test_that("el veredicto del PARTE también saca a un aula del aforo pendiente", {
+  # Visto con Gonzalo el 2026-09-11 sobre CH 3: su parte dice `aplicada` con 15
+  # alumnos en el aula y cero encuestas válidas, mientras su eje de muestra sigue
+  # en `en_contacto` con el teléfono muerto. Contaba como pendiente, su aforo
+  # entraba en la proyección y el aviso de «sin teléfono» la incluía, mandando a
+  # buscarle otra vía a un aula que ya se visitó.
+  plan <- list(
+    .efs_aula("A1", "Ingenieria", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Ingenieria", eligible = 100, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada")
+  )
+  # El parte la da por aplicada aunque no trajera ni una válida.
+  plan[[2]]$application_status <- "aplicada"
+  plan[[2]]$call_status <- "Número no existe"
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Ingenieria", cuota = 40))))
+  b <- d$efectividad_seguimiento
+  f <- .efs_fila(b, "Ingenieria")
+  # Su aforo no es futuro: ya se gastó.
+  expect_identical(f$elegibles_pendientes, 0L)
+  # Y no es una gestión que buscar por otra vía: ya se visitó.
+  expect_identical(f$cursos_sin_via, 0L)
+  expect_identical(f$cursos_en_gestion, 0L)
+})

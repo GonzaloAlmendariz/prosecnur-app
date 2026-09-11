@@ -116,6 +116,8 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
 }
 
 const PALABRA: Record<BrechaDeCurso["severidad"], string> = {
+  // No es un grado de rendimiento: es un registro que no se sostiene.
+  parte_en_conflicto: "el parte no cuadra",
   sin_aplicar: "sin aplicar",
   muy_por_debajo: "muy por debajo",
   por_debajo: "por debajo",
@@ -147,14 +149,34 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
       </th>
       <td>{b.cuando ? <span className="aulas-brc-cuando">{b.cuando}</span> : <span className="aulas-brc-nada">—</span>}</td>
       <td className="es-num">
-        {b.severidad === "sin_aplicar" ? (
+        {b.severidad === "parte_en_conflicto" ? (
+          // **Ni aplicada ni pendiente: en conflicto.** El parte la da por
+          // aplicada y no hay fecha, ni contacto cerrado, ni una encuesta.
+          // Elegir un lado en silencio esconde que alguien marcó esa casilla.
+          <span className="aulas-brc-conflicto">
+            revisar el parte
+            {b.enElAula != null ? <em>dice aplicada · {fmt(b.enElAula)} en el aula · 0 válidas</em> : null}
+          </span>
+        ) : b.severidad === "sin_aplicar" ? (
           <span className="aulas-brc-nada">sin campo</span>
         ) : (
           <span className={`aulas-brc-rinde${b.observada != null && b.prevista != null && b.observada >= b.prevista ? " es-ok" : " es-bajo"}`}>
             <b>{pct(b.observada)}</b>
-            {/* Contra lo que preveía SU facultad: sin esa referencia, el
-                porcentaje no dice si es bueno o malo. */}
-            <em>de {pct(b.prevista)} previsto</em>
+            {/* **Un cero necesita su porqué.** Gonzalo, 2026-09-11, sobre CH 3
+                con «0.0 %»: «no entiendo, ¿la CH 3 no hizo nada?». Sí fue: el
+                parte anotó 15 alumnos en el aula y no salió ni una encuesta
+                válida. Sin esa cifra, el cero se lee como que nadie pisó el
+                aula, y volver a aplicar donde hay gente no se parece en nada a
+                agendar donde no se llegó. */}
+            {b.efectivas === 0 && b.enElAula != null ? (
+              <em>{b.enElAula === 0
+                ? "el parte no encontró a nadie"
+                : `${fmt(b.enElAula)} en el aula · ninguna válida`}</em>
+            ) : (
+              // Contra lo que preveía SU facultad: sin esa referencia, el
+              // porcentaje no dice si es bueno o malo.
+              <em>de {pct(b.prevista)} previsto</em>
+            )}
           </span>
         )}
       </td>
