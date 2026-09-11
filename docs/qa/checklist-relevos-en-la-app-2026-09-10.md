@@ -38,6 +38,7 @@ está, nunca teclearla.
 | 24 | **La facultad, normalizada en todas las superficies** | `facultadEnPalabras` | ☑ `8c3e3e8f` — quedaban tres sitios leyendo `faculty` crudo |
 | 25 | **La quinta circunstancia: la cadena intacta** | `AulasHistoriaCadena` | ☑ 110 de 174 no habían pasado nada y enterraban las 26 que sí |
 | 26 | **Cada cadena tiene salida** (complementar / buscar relevo) | ídem | ☑ `bfd2c115` |
+| 27 | **La llamada de facultad al pie de Brechas** («el refuerzo no sale de una fila») | `AulasLlamadaDeFacultad` | ☑ `52091ce6` |
 | 17 | **La tarjeta de candidato con el lenguaje del ensayo**: puesto, identidad con facultad y docente, las dos varas a la derecha, lo que rinde por sexo | `AulasPopoverReemplazo` + su hoja | ☑ |
 
 ## Lo que el artefacto promete y el dato todavía no da
