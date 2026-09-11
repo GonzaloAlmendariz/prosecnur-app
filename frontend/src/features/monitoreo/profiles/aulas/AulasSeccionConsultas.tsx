@@ -23,6 +23,7 @@ import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasCadenaDetalle } from "./AulasCadenaDetalle";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
@@ -174,26 +175,19 @@ export function AulasSeccionConsultas({
               cuota, en cambio, es por facultad: veinte reservas libres no
               sirven si la facultad que perdió un aula tiene cero. */}
           <AulasColchonPorFacultad filas={agendaFilas} />
-          {/* La tabla cambia de unidad y lo dice: la lectura cuenta cadenas y
-              aquí va cada aula de esas cadenas, la que cayó y sus reservas. Sin
-              este renglón, 24 arriba y 50 abajo se leen como una contradicción. */}
-          <p className="mon-profile-muted">
-            Cada cadena, aula por aula: la que cayó y sus reservas.
-          </p>
-          <Tabla
-            rows={reemplazos}
-            empty="Ningún curso-horario ha necesitado reemplazo."
-            // El ORDEN y el ESTADO van delante del rol: con seis reservas del
-            // mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten
-            // en las seis filas, y lo que hay que ver es cuál sigue y cuáles ya
-            // se usaron.
-            // `motivo` y no `replacement_reason`: el motivo vive en un campo
-            // distinto según el papel de la fila —la que cae lo lleva en
-            // `replacement_reason` y la que entra en `activation_reason`—, así
-            // que sobre las 26 filas de reserva esa columna era estructuralmente
-            // vacía. El motor lo resuelve en una sola columna.
-            preferredColumns={["operational_code", "faculty", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
-          />
+          {/* **La tabla genérica se fue el 2026-09-10**, por lo mismo que la de
+              Brechas: enseñaba siete columnas del payload —`sample_status`,
+              `replacement_order`, `sample_role`— y ninguna contestaba la
+              pregunta con la que se entra, que no es «qué dice el libro de esta
+              fila» sino «¿esta cadena necesita algo de mí hoy?». Con seis
+              reservas del mismo titular repetía «reemplaza a CH 1» seis veces y
+              había que reconstruir a quién pertenecían.
+
+              Ahora la unidad es la CADENA y sus eslabones van dentro, en orden,
+              con el que toca marcado y el caído tachado. Y cada cadena termina
+              en un verbo —a quién llamar, o por qué no hay a quién—, no en un
+              estado. */}
+          <AulasCadenaDetalle filas={agendaFilas} />
         </section>
         ) : null}
         {enBrechas ? (
