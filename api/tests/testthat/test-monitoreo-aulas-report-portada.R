@@ -46,3 +46,48 @@ test_that("lo que la UI deja en blanco lo resuelve el defecto del motor", {
   expect_equal(final$titulo, "Avance del trabajo de campo")
   expect_equal(final$periodo, "Del 07 al 09 de septiembre de 2026")
 })
+
+test_that("el job runner reenvia la portada al renderizador de aulas", {
+  # **El eslabon que nadie mira.** La portada viaja request -> aduana -> args del
+  # job -> runner -> renderizador. El runner es el unico paso donde un argumento
+  # puede perderse en silencio: si no lo declarara, el PDF saldria con los
+  # defectos del motor y nadie veria un error.
+  visto <- NULL
+  testthat::local_mocked_bindings(
+    monitoreo_aulas_advance_report_pdf = function(model, output_file, ...) {
+      visto <<- list(...)
+      writeLines("x", output_file)
+      invisible(output_file)
+    },
+    .package = "prosecnurapp"
+  )
+  modelo <- list(report_kind = "aulas_advance_pdf", family = "aulas_universitarias")
+  ruta_modelo <- tempfile(fileext = ".rds"); saveRDS(modelo, ruta_modelo)
+  destino <- tempfile(fileext = ".pdf")
+
+  monitoreo_client_report_pdf_job_runner(
+    model_path = ruta_modelo, include_targets = FALSE, result_path = destino,
+    portada = list(cliente = "PUCP", titulo = "Avance"))
+
+  expect_equal(visto$portada$cliente, "PUCP")
+  expect_equal(visto$portada$titulo, "Avance")
+  expect_false(isTRUE(visto$include_targets))
+})
+
+test_that("el runner sigue funcionando sin portada, que es el caso de las otras familias", {
+  visto <- NULL
+  testthat::local_mocked_bindings(
+    monitoreo_aulas_advance_report_pdf = function(model, output_file, ...) {
+      visto <<- list(...)
+      writeLines("x", output_file)
+      invisible(output_file)
+    },
+    .package = "prosecnurapp"
+  )
+  ruta_modelo <- tempfile(fileext = ".rds")
+  saveRDS(list(report_kind = "aulas_advance_pdf"), ruta_modelo)
+  destino <- tempfile(fileext = ".pdf")
+  expect_no_error(monitoreo_client_report_pdf_job_runner(
+    model_path = ruta_modelo, result_path = destino))
+  expect_length(visto$portada, 0L)
+})
