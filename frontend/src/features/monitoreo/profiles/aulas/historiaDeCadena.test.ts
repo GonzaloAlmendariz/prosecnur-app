@@ -236,3 +236,20 @@ describe("la precedencia del estado del eslabón", () => {
     expect(cadena.eslabones.find((e) => e.codigo === "CH 89")?.sinVia).toBe(true);
   });
 });
+
+describe("el motivo de la caída no se inventa", () => {
+  test("un titular sin teléfono NO rechazó: la cadena lo dice con su palabra", () => {
+    // Medido el 2026-09-11: CH 89 está en `en_contacto` con «Número no existe» y
+    // la fila le ponía «Rechazó el docente». Un motivo inventado sobre un
+    // docente concreto cambia a quién se le reclama y cómo.
+    const filas = [
+      { ...titular("CH 89", 0, 20), sample_status: "en_contacto", call_status: "Número no existe" },
+      { ...reserva("R 89.1", "CH 89", 1, 0, 20), sample_status: "sin_contactar" },
+    ] as unknown as MonitoreoAulasPlanRow[];
+    const [cadena] = historiaDeCadena(filas).historias;
+    const tit = cadena.eslabones.find((e) => e.orden === 0)!;
+    expect(tit.sinVia).toBe(true);
+    // El estado de muestra sigue siendo el suyo: nadie lo convirtió en rechazo.
+    expect(tit.status).toBe("en_contacto");
+  });
+});

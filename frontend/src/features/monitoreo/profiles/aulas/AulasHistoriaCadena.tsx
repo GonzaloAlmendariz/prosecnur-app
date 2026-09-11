@@ -94,8 +94,15 @@ function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla:
   const hayQuienSiga = h.eslabones.some((e) => e.orden > 0 && !puntoDelEslabon(e).caido);
 
   if (cayo) {
+    // **La pastilla dice el MOTIVO, y son dos.** Medido el 2026-09-11: CH 89
+    // está en `en_contacto` con el teléfono muerto —no rechazó nada— y la fila
+    // le ponía «Rechazó el docente», porque la pastilla se deducía de que el
+    // eslabón estuviera caído. Un motivo inventado sobre un docente concreto es
+    // peor que no decir ninguno: cambia a quién se reclama y cómo.
+    const porRechazo = /^rechaz/.test(String(titular?.status ?? "").trim().toLowerCase());
+    const motivo = porRechazo ? "Rechazó el docente" : "Sin vía de contacto";
     return hayQuienSiga
-      ? { clave: "abierta", pastilla: "Rechazó el docente" }
+      ? { clave: "abierta", pastilla: motivo }
       : { clave: "seca", pastilla: "Sin reservas disponibles" };
   }
   // El titular no cayó: si ya rindió y se quedó corto, lo que ofrece es
