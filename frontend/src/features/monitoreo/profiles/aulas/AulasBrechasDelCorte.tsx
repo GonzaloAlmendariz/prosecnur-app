@@ -57,6 +57,11 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
    * grande que no cabe en la tabla tiene que seguir viéndose.
    */
   const atendibles = brechas.filter((b) => b.severidad !== "cumplida" && b.severidad !== "sin_aplicar");
+  // El parte en conflicto se LISTA —va primero, es lo que hay que mirar— pero no
+  // se cuenta entre los aplicados que rinden mal: todavía no se sabe si se
+  // aplicó. Contarlo ahí daba por bueno el registro que se pide revisar.
+  const enConflicto = atendibles.filter((b) => b.severidad === "parte_en_conflicto");
+  const rindenMal = atendibles.filter((b) => b.severidad !== "parte_en_conflicto");
   const visibles = atendibles.slice(0, 40);
   const cumplidas = brechas.filter((b) => b.severidad === "cumplida").length;
   const restantes = atendibles.length - visibles.length;
@@ -76,12 +81,21 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
           quedaron cortos— y deja lo que no está aquí al final, nombrado y con su
           salida, para que no parezca que se perdió. */}
       <p className="aulas-brc-lectura">
-        <strong>{fmt(atendibles.length)}</strong> cursos-horario aplicados rinden por debajo
-        {" y suman "}<strong>{fmt(atendibles.reduce((n, b) => n + Math.max(0, b.faltan), 0))}</strong>
+        <strong>{fmt(rindenMal.length)}</strong> cursos-horario aplicados rinden por debajo
+        {" y suman "}<strong>{fmt(rindenMal.reduce((n, b) => n + Math.max(0, b.faltan), 0))}</strong>
         {" respuestas por conseguir"}
         {r.muyPorDebajo ? <> · <strong>{fmt(r.muyPorDebajo)}</strong> rinden menos de la mitad de lo previsto</> : null}
         {r.sinAplicar ? (
           <> · aparte, <strong>{fmt(r.sinAplicar)}</strong> todavía sin aplicar: ésos se agendan, no se complementan</>
+        ) : null}
+        {/* **El conflicto va con nombre propio.** No es un aplicado que rinde
+            mal ni uno sin aplicar: es un registro que no se sostiene, y ya pilló
+            un duplicado del coordinador el 2026-09-11. */}
+        {enConflicto.length ? (
+          <> · <strong>{fmt(enConflicto.length)}</strong>{" "}
+            {enConflicto.length === 1
+              ? "tiene el parte en conflicto y encabeza la tabla: revísalo antes de decidir"
+              : "tienen el parte en conflicto y encabezan la tabla: revísalos antes de decidir"}</>
         ) : null}
       </p>
 
@@ -182,7 +196,11 @@ function Fila({ b, onRelevo }: { b: BrechaDeCurso; onRelevo?: (codigo: string) =
       </td>
       <td className="es-num"><b className="aulas-brc-faltan">{fmt(b.faltan)}</b></td>
       <td>
-        {b.accion === "nada" ? (
+        {b.severidad === "parte_en_conflicto" ? (
+          // Decía «ya cumplió», que es justo lo contrario de lo que pasa: no se
+          // sabe si se aplicó. Visto en pantalla el 2026-09-11 sobre CH 3.
+          <span className="aulas-brc-nada">revisar el registro</span>
+        ) : b.accion === "nada" ? (
           <span className="aulas-brc-nada">ya cumplió</span>
         ) : (
           <button
