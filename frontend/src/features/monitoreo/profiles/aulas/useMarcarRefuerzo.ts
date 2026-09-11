@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 import {
-  apiMonitoreoAulasDesmarcarRefuerzo, apiMonitoreoAulasMarcarRefuerzo,
+  apiMonitoreoAulasDesmarcarRefuerzo, apiMonitoreoAulasDesmarcarRefuerzos,
+  apiMonitoreoAulasMarcarRefuerzo, apiMonitoreoAulasMarcarRefuerzos,
 } from "../../../../api/monitoreo";
-import { fmt } from "./kpisDeAulas";
 
 /**
  * **Marcar un curso-horario como refuerzo, de uno en uno o de quince en quince.**
@@ -59,31 +59,28 @@ export function useMarcarRefuerzo(onGuardado?: () => void) {
     if (!pedidos.length) return;
     setAviso("");
     setFallos([]);
+    // **Una sola petición, no N.** Antes iba en serie y cada marca costaba ~2
+    // minutos —el endpoint reconstruye el tablero entero de 1.392 filas—, así
+    // que quince eran media hora con la pantalla bloqueada. El progreso ya no
+    // puede ir por petición: lo que se enseña es cuántas se pidieron.
     setProgreso({ hechas: 0, total: pedidos.length });
-    const caidas: FalloDeMarca[] = [];
-    let hechas = 0;
-    for (const p of pedidos) {
-      setMarcando(p.codigo);
-      try {
-        await apiMonitoreoAulasMarcarRefuerzo({
-          operational_code: p.codigo, tipo: p.tipo, para: p.para, motivo: p.motivo,
-        });
-        hechas += 1;
-      } catch (e) {
-        caidas.push({ codigo: p.codigo, motivo: e instanceof Error ? e.message : "No se pudo marcar." });
-      }
-      setProgreso({ hechas, total: pedidos.length });
+    try {
+      const res = await apiMonitoreoAulasMarcarRefuerzos({
+        pedidos: pedidos.map((p) => ({
+          codigo: p.codigo, para: p.para, tipo: p.tipo, motivo: p.motivo,
+        })),
+      });
+      setProgreso({ hechas: res.marcadas?.length ?? 0, total: pedidos.length });
+      setAviso(res.mensaje);
+      setFallos((res.fallidas ?? []).map((f) => ({
+        codigo: f.operational_code, motivo: f.message,
+      })));
+      if ((res.marcadas?.length ?? 0) > 0) onGuardado?.();
+    } catch (e) {
+      setFallos([{ codigo: "", motivo: e instanceof Error ? e.message : "No se pudo marcar el lote." }]);
+    } finally {
+      setProgreso(null);
     }
-    setMarcando("");
-    setFallos(caidas);
-    // El aviso dice las dos cifras y su base: «14 de 15» no se confunde con
-    // «14», que es lo que haría creer que entraron todas.
-    setAviso(hechas === pedidos.length
-      ? `Quedaron marcados los ${fmt(hechas)} que pediste.`
-      : `Quedaron marcados ${fmt(hechas)}; se pidieron ${fmt(pedidos.length)}.`);
-    // Una sola recarga al final: quince recargas seguidas dejan la pantalla
-    // parpadeando y cada una vuelve a pedir el tablero entero.
-    if (hechas > 0) onGuardado?.();
   };
 
   /**
@@ -111,30 +108,25 @@ export function useMarcarRefuerzo(onGuardado?: () => void) {
     }
   };
 
-  /** Deshacer un lote entero, en serie y por el mismo motivo que el marcado. */
+  /** Deshacer un lote entero, en una sola petición y por el mismo motivo. */
   const retirarVarias = async (codigos: ReadonlyArray<string>) => {
     if (!codigos.length) return;
     setAviso("");
     setFallos([]);
     setProgreso({ hechas: 0, total: codigos.length });
-    const caidas: FalloDeMarca[] = [];
-    let hechas = 0;
-    for (const codigo of codigos) {
-      setMarcando(codigo);
-      try {
-        await apiMonitoreoAulasDesmarcarRefuerzo({ operational_code: codigo });
-        hechas += 1;
-      } catch (e) {
-        caidas.push({ codigo, motivo: e instanceof Error ? e.message : "No se pudo retirar." });
-      }
-      setProgreso({ hechas, total: codigos.length });
+    try {
+      const res = await apiMonitoreoAulasDesmarcarRefuerzos({ pedidos: [...codigos] });
+      setProgreso({ hechas: res.retiradas?.length ?? 0, total: codigos.length });
+      setAviso(res.mensaje);
+      setFallos((res.fallidas ?? []).map((f) => ({
+        codigo: f.operational_code, motivo: f.message,
+      })));
+      if ((res.retiradas?.length ?? 0) > 0) onGuardado?.();
+    } catch (e) {
+      setFallos([{ codigo: "", motivo: e instanceof Error ? e.message : "No se pudo retirar el lote." }]);
+    } finally {
+      setProgreso(null);
     }
-    setMarcando("");
-    setFallos(caidas);
-    setAviso(hechas === codigos.length
-      ? `Volvieron al inventario los ${fmt(hechas)} que pediste.`
-      : `Volvieron al inventario ${fmt(hechas)}; se pidieron ${fmt(codigos.length)}.`);
-    if (hechas > 0) onGuardado?.();
   };
 
   return { marcando, progreso, aviso, fallos, marcar, marcarVarias, retirar, retirarVarias, limpiar };

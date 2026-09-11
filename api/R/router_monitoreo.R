@@ -5025,6 +5025,58 @@ mount_monitoreo <- function(pr) {
            mensaje = monitoreo_aulas_marcar_refuerzo_texto(out),
            state = .monitoreo_state_payload(sid))
     })) |>
+    plumber::pr_post("/api/monitoreo/aulas/marcar-refuerzos", wrap_endpoint(function(req, res, ...) {
+      # **El lote, y existe por una medida.** Una marca suelta tardaba ~120 s
+      # porque este endpoint reconstruye el tablero entero de 1.392 filas; el
+      # autopicker de quince eran ~30 minutos. Aqui las N marcas se aplican
+      # sobre el plan en memoria y el tablero se reconstruye UNA vez.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      pedidos <- body$pedidos %||% body$marcas %||% list()
+      if (!length(pedidos)) {
+        stop_api(400, "E_REFUERZO_LOTE_VACIO",
+                 "El lote no trae ningun curso-horario que marcar.")
+      }
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_marcar_refuerzos(plan, pedidos)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, marcadas = out$marcadas, fallidas = out$fallidas,
+           mensaje = monitoreo_aulas_lote_texto(out, "marcados"),
+           state = .monitoreo_state_payload(sid))
+    })) |>
+    plumber::pr_post("/api/monitoreo/aulas/desmarcar-refuerzos", wrap_endpoint(function(req, res, ...) {
+      # La contracara del autopicker: si se marcan quince de una vez, tiene que
+      # poder soltarse quince de una vez, y con una sola reconstruccion.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      pedidos <- body$pedidos %||% body$codigos %||% list()
+      if (!length(pedidos)) {
+        stop_api(400, "E_REFUERZO_LOTE_VACIO",
+                 "El lote no trae ningun curso-horario que retirar.")
+      }
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_desmarcar_refuerzos(plan, pedidos)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, retiradas = out$retiradas, fallidas = out$fallidas,
+           mensaje = monitoreo_aulas_lote_texto(out, "retirados"),
+           state = .monitoreo_state_payload(sid))
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/desmarcar-refuerzo", wrap_endpoint(function(req, res, ...) {
       # Deshacer la marca. Sin esto, el autopicker —quince de golpe— era una
       # decision sin vuelta, y un lote mal elegido dejaba quince cursos-horario

@@ -81,8 +81,10 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
             motivo: `Reparto del techo: cierra ${fmt(a.util)} respuestas de su facultad.`,
           }))); }}
         >
+          {/* El lote es UNA petición: el progreso por pieza sería mentira.
+              Lo que se dice es cuántas se pidieron y que está en marcha. */}
           {marca.progreso
-            ? `Marcando ${fmt(marca.progreso.hechas)} de ${fmt(marca.progreso.total)}…`
+            ? `Marcando ${fmt(marca.progreso.total)}, puede tardar…`
             : `Marcar ${r.asignadas.length === 1 ? "el mejor" : `los ${fmt(r.asignadas.length)} mejores`}`}
         </button>
       ) : null}

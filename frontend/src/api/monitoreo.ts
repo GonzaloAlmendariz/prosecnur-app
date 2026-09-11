@@ -5966,6 +5966,66 @@ export async function apiMonitoreoAulasDesmarcarRefuerzo(payload: {
   );
 }
 
+/** Lo que el motor devuelve de cada curso-horario que NO entró en un lote. */
+export type MonitoreoAulasMarcaFallida = {
+  operational_code: string;
+  code: string;
+  message: string;
+};
+
+/**
+ * Marca VARIOS cursos-horario de una vez.
+ *
+ * Existe por una medida, no por elegancia: una marca suelta tarda ~2 minutos
+ * porque el endpoint reconstruye el tablero entero de 1.392 filas, así que el
+ * autopicker de quince en serie eran ~30 minutos con la pantalla bloqueada. En
+ * lote el tablero se reconstruye UNA vez.
+ *
+ * No aborta en la primera que falla: devuelve las que entraron y, aparte, cuál
+ * no y por qué.
+ */
+export async function apiMonitoreoAulasMarcarRefuerzos(payload: {
+  pedidos: ReadonlyArray<{
+    codigo: string;
+    para?: string;
+    tipo: "complemento" | "refuerzo";
+    motivo?: string;
+  }>;
+}) {
+  return handle<{
+    ok: true;
+    marcadas: MonitoreoAulasPlanRow[];
+    fallidas: MonitoreoAulasMarcaFallida[];
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/marcar-refuerzos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/** Retira VARIAS marcas de una vez, con una sola reconstrucción del tablero. */
+export async function apiMonitoreoAulasDesmarcarRefuerzos(payload: {
+  pedidos: ReadonlyArray<string>;
+}) {
+  return handle<{
+    ok: true;
+    retiradas: MonitoreoAulasPlanRow[];
+    fallidas: MonitoreoAulasMarcaFallida[];
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/desmarcar-refuerzos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 /**
  * La conversación app↔Sheets que el sync de aulas corre cuando hay un
  * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
