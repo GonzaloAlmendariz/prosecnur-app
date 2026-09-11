@@ -765,7 +765,6 @@
     height: 100%;
   }
 
-
 }
 
 /* ── El vacío se contiene, no se estira ────────────────────────────────────
@@ -1064,7 +1063,6 @@
   min-width: 0;
 }
 
-
 /* Un panel que contiene un GRÁFICO es intrínseco, no `1fr`.
    `.mon-profile-panel` reparte `auto minmax(0,1fr)` porque su caso normal es una
    tabla, que sí debe llenar lo que le den. Un gráfico no puede: Plotly fija su
@@ -1212,23 +1210,6 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ready-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-reemplazo { border-left-color: var(--pulso-state-partial-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, var(--pulso-resultado-rechazo)); }
-
-.mon-profile-page.is-aulas-flow .aulas-cadena-head {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadena-head strong { font-size: 13px; }
-.mon-profile-page.is-aulas-flow .aulas-cadena-head span,
-.mon-profile-page.is-aulas-flow .aulas-cadena-head em {
-  font-size: var(--aulas-sec);
-  color: var(--pulso-text-soft);
-  font-style: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* El banco de extras. Las facultades son filtro Y resumen a la vez: la misma
    fila dice cuánto queda ahí y sirve para entrar. Dos superficies —una tabla de
@@ -1416,58 +1397,12 @@
    n.º 2 es la columna n.º 2 para todas, y una cadena que cerró antes deja su
    última columna vacía: ese hueco ES el dato —cerró en dos y no en tres—, no
    un vacío sin dueño (C3). */
-.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-  display: grid;
-  grid-template-columns: repeat(var(--aulas-eslabones, 3), minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  min-width: 0;
-}
-
-/* En compacto la reja aprieta demasiado: tres columnas de ~90 px parten
-   «en reserva 2» en dos líneas. Ahí vuelve a la fila que se ajusta, donde el
-   texto manda y la comparación entre cadenas se pierde a cambio de leerse. */
-@media (max-width: 1180px) {
-  .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-    display: flex;
-    flex-wrap: wrap;
-  }
-}
 
 /* La reja da la COLUMNA; la burbuja no la rellena. Estirada a los 341 px de
    la columna quedaba con la mitad del ancho en hueco: alineaba, sí, pero a
    cambio de tres cajas medio vacías. Anclada al inicio, los códigos siguen
    cayendo uno bajo otro —que es lo que permite comparar— y cada burbuja mide
    lo que dice. */
-.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones > .aulas-eslabon {
-  justify-self: start;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
-  font-size: var(--aulas-sec);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon.es-cierre {
-  border-color: color-mix(in srgb, var(--pulso-state-ready-fg) 45%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-state-ready-fg) 8%, #fff);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-eslabon-codigo { font-weight: var(--pulso-weight-black); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-rol { color: var(--pulso-text-soft); }
-.mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
-  font-weight: var(--pulso-weight-black);
-  color: var(--pulso-state-ready-fg);
-}
 
 /* La fila del corte es un botón cuando enfoca: se resetea el chrome nativo y se
    conserva la rejilla, y el activo se marca con la franja de módulo. */
@@ -1729,7 +1664,6 @@
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
-
 
 /* El chip de estado de las tablas. Mismo material que los chips de estado de
    los otros perfiles —borde teñido por `color-mix`, radio de chip, peso alto y
@@ -2766,34 +2700,8 @@
 
 /* Las cadenas, agrupadas por desenlace. Sin grupos eran 24 cajas idénticas en
    1 554 px: las tres que cerraron quedaban enterradas entre veintiuna iguales. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo + .aulas-cadenas-grupo {
-  margin-top: 12px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo > h4 {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-sec);
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 /* El conteo del grupo, en la misma tinta pero sin el peso del rótulo. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-grupo > h4 span {
-  font-weight: var(--pulso-weight-medium);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── La franja de flujo, con el material del perfil ──────────────────────────
    `AulasApplicationFlow` es COMPARTIDA: la usan también Salidas y la auditoría
@@ -2832,12 +2740,6 @@
    no se distingue una fila de otra. En columnas alineadas se comparan, que es
    lo que la sección Consultas pide. Las cifras van tabulares y a la derecha
    para que el ojo baje por la columna sin releer. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla th.es-cifra,
-.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla td.es-cifra {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 
 /* El envoltorio de esta tabla vive dentro del panel de cadenas, que ya reparte
    su alto; sin esto heredaría el `calc(100vh - 360px)` del resto y empujaría
@@ -5293,7 +5195,6 @@
   color: var(--pulso-module-monitoring);
 }
 
-
 /* **Dónde está el operativo ahora mismo.** El recorrido de Cálculo marca con un
    badge en qué paso estás; estas cuatro tarjetas eran una rejilla al mismo
    nivel. La fase en curso es la primera que todavía no está lista.
@@ -5556,7 +5457,6 @@
   background: color-mix(in srgb, var(--pulso-success-fg) 14%, transparent);
   color: var(--pulso-success-text, var(--pulso-success-fg));
 }
-
 
 /* ── Avance proyectado por celda facultad × sexo ───────────────────────────
    El unico panel del perfil que manda a alguien a un aula, asi que la fila se

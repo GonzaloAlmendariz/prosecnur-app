@@ -1,163 +1,124 @@
-import { useMemo } from "react";
-import type { CSSProperties } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { facultadCorta } from "./facultadEnPalabras";
 import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
 import { fmt } from "./kpisDeAulas";
 import "./aulasHistoriaCadena.css";
 
 /**
- * Cómo llegó cada cadena a su meta —o por qué sigue abierta.
+ * **Cadena de reemplazos — una fila por cadena, con la tira a la derecha.**
  *
- * Contesta las tres preguntas del cierre en el orden en que se hacen: si
- * cumplimos con el titular, cómo fue su reemplazo, y cuál de los dos cerró.
+ * Ésta es la forma del ensayo de «Relevos de aula», y el motivo por el que
+ * existe está en su propia nota: antes «CH 84» salía partido letra a letra en
+ * doce columnas. Las cadenas de HSVG2026 tienen hasta once reservas y repartir
+ * el ancho entre todas dejaba columnas de treinta píxeles.
+ *
+ * La rejilla es `218px | tira`:
+ *
+ * - **A la izquierda, quién cayó y por qué.** Código, dónde y cuándo, y la
+ *   pastilla con lo que le pasó. Esa columna es fija, así que el código nunca
+ *   se parte y las cadenas se comparan en vertical.
+ * - **A la derecha, el recorrido.** La tira es horizontal y scrollea: **138 px
+ *   de mínimo por eslabón**, tres a la vista y el resto contado. La cadena se
+ *   recorre en orden —el primero vivo es el que se trabaja— y los de detrás
+ *   importan como cuántos quedan, no como cuáles son.
+ *
+ * **El filo izquierdo dice el estado antes de leer nada**, y son cuatro
+ * circunstancias distintas, no tres grados de una:
+ *
+ * - **abierta**: el titular cayó y hay reserva por delante. Es la que pide
+ *   trabajo hoy.
+ * - **seca**: el titular cayó y no queda nadie detrás. No hay a quién llamar;
+ *   la salida es pedir aula adicional.
+ * - **corta**: el titular se aplicó y rindió poco. Su cadena está intacta y lo
+ *   que ofrece es COMPLEMENTAR. La misma superficie, otra circunstancia.
+ * - **cerrada**: llegó a su meta, con el titular o con un reemplazo. Es
+ *   registro, no trabajo, y va al final.
+ *
+ * No se agrupa en tres secciones con su título: agrupar obligaba a buscar la
+ * cadena concreta en la sección que le tocara. Una sola lista ordenada por
+ * urgencia, y el filo distingue.
  */
 
-/** Un eslabón: código, sus efectivas contra su meta, y si cerró. */
-/**
- * En qué punto está un eslabon, en el vocabulario del libro.
- *
- * Se dice el ESTADO y no el rol —«en reserva 3» lo dice ya su posicion en la
- * tira— porque lo que decide si hay trabajo es si a esa reserva se la llamo.
- */
-function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boolean } {
-  const s = String(eslabon.status ?? "").trim().toLowerCase();
-  if (eslabon.validas > 0) return { texto: `${fmt(eslabon.validas)} de ${fmt(eslabon.meta)}`, vivo: true };
-  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true };
-  if (s.startsWith("en contacto")) return { texto: "En contacto", vivo: true };
-  if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false };
-  if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false };
-  if (s.startsWith("en reserva") || s.startsWith("sin contactar") || !s) {
-    return { texto: eslabon.orden === 0 ? "Sin contactar" : "Disponible", vivo: false };
-  }
-  return { texto: s.charAt(0).toUpperCase() + s.slice(1), vivo: false };
-}
-
-function Eslabon({ eslabon, cerro }: { eslabon: EslabonDeCadena; cerro: boolean }) {
-  const punto = puntoDelEslabon(eslabon);
-  return (
-    <li className={[
-      "aulas-eslabon",
-      cerro ? "es-cierre" : "",
-      eslabon.orden === 0 ? "es-titular" : "",
-      punto.vivo && !cerro ? "es-activo" : "",
-      !punto.vivo && !cerro && eslabon.orden > 0 ? "es-dormido" : "",
-    ].filter(Boolean).join(" ")}>
-      <span className="aulas-eslabon-codigo">{eslabon.codigo}</span>
-      <span className="aulas-eslabon-rol">{punto.texto}</span>
-      {cerro ? <span className="aulas-eslabon-sello">cumple</span> : null}
-    </li>
-  );
-}
-
-/**
- * Cuantos eslabones se dibujan antes de contar el resto.
- *
- * La cadena se recorre en orden: el primero vivo es el que se esta trabajando y
- * los de detras importan como CUANTOS quedan, no como cuales son. Con once
- * reservas —las de HSVG2026— pintarlas todas daba columnas de treinta pixeles
- * que partian «CH 84» letra a letra.
- */
+/** Cuántos eslabones se dibujan antes de contar el resto. */
 const ESLABONES_A_LA_VISTA = 3;
 
 /**
- * Lo más cerca que llegó una cadena abierta, o nada si nadie se movió.
+ * El estado de UN eslabón, en las palabras del operativo.
+ *
+ * Se dice el ESTADO y no el rol —«en reserva 3» lo dice ya su posición en la
+ * tira— porque lo que decide si hay trabajo es si a esa reserva se la llamó.
  */
-function loMasCerca(historia: HistoriaDeCadena) {
-  if (!historia.validas) return null;
-  return historia.eslabones.reduce((a, b) => (
-    (b.meta > 0 ? b.validas / b.meta : 0) > (a.meta > 0 ? a.validas / a.meta : 0) ? b : a
-  ));
+function puntoDelEslabon(eslabon: EslabonDeCadena): { texto: string; vivo: boolean; caido: boolean } {
+  const s = String(eslabon.status ?? "").trim().toLowerCase();
+  if (eslabon.validas > 0) {
+    return { texto: `${fmt(eslabon.validas)} de ${fmt(eslabon.meta)}`, vivo: true, caido: false };
+  }
+  if (s.startsWith("agendada") || s.startsWith("reagendada")) return { texto: "Agendado", vivo: true, caido: false };
+  if (s.startsWith("en contacto")) return { texto: "En contacto", vivo: true, caido: false };
+  if (s.startsWith("rechazo")) return { texto: "Rechazó", vivo: false, caido: true };
+  if (s.startsWith("reemplazada")) return { texto: "Reemplazado", vivo: false, caido: true };
+  if (s.startsWith("en reserva") || s.startsWith("sin contactar") || !s) {
+    return { texto: eslabon.orden === 0 ? "Sin contactar" : "Sin contactar", vivo: false, caido: false };
+  }
+  return { texto: s.charAt(0).toUpperCase() + s.slice(1), vivo: false, caido: false };
 }
 
-/**
- * Las cadenas abiertas, en TABLA.
- *
- * Eran veintiuna tarjetas con borde, radio de tarjeta y franja de color, todas
- * diciendo «1 reserva · sin una sola respuesta»: un muro de cápsulas idénticas
- * en el que no se distingue una fila de otra ni se puede comparar nada. Y es
- * justo la sección donde Gonzalo pidió tablas —«mira cómo los demás monitoreos
- * usan tablas en consultas y en lo demás usan cosas más visuales»—.
- *
- * En columnas alineadas la lista vuelve a ser legible: el ojo baja por
- * «Reservas» y por «Lo más cerca» y ve dónde queda margen sin leer veintiún
- * párrafos. Las que SÍ cerraron conservan su forma narrada, porque ahí cada
- * cadena cuenta algo distinto y son tres, no veintiuna.
- */
-function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCadena> }) {
-  return (
-    <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-      <table className="mon-profile-table aulas-cadenas-tabla">
-        <thead>
-          <tr>
-            {/* `scope="col"` en todas: la tabla del control ya lo declaraba y
-                éstas no, así que el perfil tenía dos tablas de datos con dos
-                criterios. Sin él, un lector de pantalla no sabe qué encabezado
-                gobierna cada celda salvo que lo adivine. */}
-            <th scope="col">Curso-horario</th>
-            <th scope="col">Facultad</th>
-            <th scope="col" className="es-cifra">Reservas</th>
-            {/* «Efectivas» y no «Válidas»: D-L12 fijó que la respuesta que pasa
-                los filtros se llama efectiva. La cifra es `respuestas_validas`
-                —la efectiva de plataforma—; la clave interna no se renombra. */}
-            <th scope="col" className="es-cifra">Efectivas</th>
-            <th scope="col" className="es-cifra">Meta</th>
-            <th scope="col">Lo más cerca</th>
-          </tr>
-        </thead>
-        <tbody>
-          {historias.map((historia) => {
-            const mejor = loMasCerca(historia);
-            return (
-              <tr key={historia.titular}>
-                <td><strong>{historia.titular}</strong></td>
-                <td>{historia.facultad}</td>
-                <td className="es-cifra">{historia.eslabones.length - 1}</td>
-                <td className="es-cifra">{historia.validas}</td>
-                {/* **En es-PE el decimal ES el punto**: `13.4` estaba bien, y la
-                    corrección que se hizo aquí partía de una premisa falsa —Perú
-                    usa la convención 1,234.56, no la coma decimal—. El
-                    `toLocaleString` se queda porque sí aporta lo otro: la meta
-                    sale de elegibles × tasa y una de más de mil llevaría su coma
-                    de miles, que escrita cruda no tendría. */}
-                <td className="es-cifra">{historia.meta.toLocaleString("es-PE")}</td>
-                <td>
-                  {/* «—» y no una frase: en el operativo real casi ninguna
-                      cadena abierta recibió respuestas, y repetir veintiuna
-                      veces «nadie recibió respuestas» grita más que el dato.
-                      El hecho se dice UNA vez, en la lectura de arriba. */}
-                  {mejor
-                    ? `${mejor.codigo}, ${fmt(mejor.validas)} de ${mejor.meta.toLocaleString("es-PE")}`
-                    : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+type Circunstancia = "abierta" | "seca" | "corta" | "cerrada";
+
+/** Qué le pasó a esta cadena, que es lo que decide su filo y su pastilla. */
+function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla: string } {
+  if (h.desenlace === "titular") return { clave: "cerrada", pastilla: "Cerró con el titular" };
+  if (h.desenlace === "reemplazo") return { clave: "cerrada", pastilla: `Cerró con ${h.cerro}` };
+
+  const titular = h.eslabones.find((e) => e.orden === 0);
+  const cayo = titular ? puntoDelEslabon(titular).caido : false;
+  const hayQuienSiga = h.eslabones.some((e) => e.orden > 0 && !puntoDelEslabon(e).caido);
+
+  if (cayo) {
+    return hayQuienSiga
+      ? { clave: "abierta", pastilla: "Rechazó el docente" }
+      : { clave: "seca", pastilla: "Sin reserva por delante" };
+  }
+  // El titular no cayó: si ya rindió y se quedó corto, lo que ofrece es
+  // complementar —su cadena sigue intacta—. Si aún no ha salido, sigue en pie.
+  if (titular && titular.validas > 0) {
+    return { clave: "corta", pastilla: "Rindió poco: complementar" };
+  }
+  return { clave: "abierta", pastilla: "El titular sigue en pie" };
 }
 
-/**
- * Los grupos, en el orden en que se decide: primero lo que hay que resolver,
- * después lo que ya se resolvió y sirve de registro. `titular` no lleva grupo
- * propio porque una cadena que cerró con su titular no consumió reserva: se
- * cuenta en la lectura de arriba y no ocupa una sección.
- */
-const GRUPOS = [
-  { desenlace: "abierta" as const, titulo: "Sin cerrar" },
-  { desenlace: "reemplazo" as const, titulo: "Cerraron con un reemplazo" },
-  { desenlace: "titular" as const, titulo: "Cerraron con el titular" },
-];
+/** El orden de la lista: primero lo que pide trabajo hoy. */
+const URGENCIA: Record<Circunstancia, number> = { seca: 0, abierta: 1, corta: 2, cerrada: 3 };
 
-export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  // `sinRespuestaAlguna` sale del modelo: el KPI de arriba usa el mismo número
-  // para decidir su pista, y dos cuentas separadas del mismo hecho se separan.
+export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }): ReactNode {
+  // El hook va antes de cualquier salida temprana: uno bajo la guarda se llama
+  // en unos renders y no en otros, y eso es el React #310 que ya tumbó esto.
+  const [todas, setTodas] = useState(false);
+
   const {
     historias, sinReserva, cerraronEnTitular, cerraronEnReemplazo, abiertas,
     sinRespuestaAlguna,
   } = useMemo(() => historiaDeCadena(filas), [filas]);
+
+  // El plan por código, para que cada cadena diga dónde y cuándo es su titular.
+  const porCodigo = useMemo(() => {
+    const m = new Map<string, MonitoreoAulasPlanRow>();
+    for (const f of filas) {
+      const c = String(f.operational_code ?? f.classroom_id ?? "").trim();
+      if (c) m.set(c, f);
+    }
+    return m;
+  }, [filas]);
+
+  const ordenadas = useMemo(() => {
+    const con = historias.map((h) => ({ h, c: circunstanciaDe(h) }));
+    return con.sort((a, b) =>
+      URGENCIA[a.c.clave] - URGENCIA[b.c.clave]
+      || b.h.eslabones.length - a.h.eslabones.length
+      || a.h.titular.localeCompare(b.h.titular));
+  }, [historias]);
 
   if (!historias.length) {
     return (
@@ -165,49 +126,43 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         {sinReserva
           // No es lo mismo «no hay plan» que «el diseño no asignó reservas».
           // Decía «ninguno necesitó reemplazo», que suena a la mejor noticia
-          // posible y es justo lo contrario: son las aulas que, si caen, no
-          // tienen con qué cubrirse.
+          // posible y es justo lo contrario: son los cursos-horario que, si
+          // caen, no tienen con qué cubrirse.
           ? `Ninguno de los ${fmt(sinReserva)} cursos-horario titulares tiene reserva asignada.`
           : "El plan todavía no declara cadenas de reemplazo."}
       </p>
     );
   }
 
-  // **Las cadenas que juntaron lo que pide el hueco sin que ninguna aula sola
-  // llegara a la suya.** Es el caso que hace que la tabla se contradiga a la
-  // vista: enseña «efectivas 17» al lado de «meta 15» —la del titular, sumando la
-  // cadena— y el resumen dice «sin cerrar».
-  //
-  // Las dos cosas son ciertas y la regla es deliberada: una cadena cierra cuando
-  // UN aula alcanza SU propia meta, porque el resto del perfil calcula la brecha
-  // por aula. Sumar los eslabones diría que cerró mientras `brechas` y el KPI
-  // siguen contándola. Pero dos fuentes del mismo hecho que no coinciden tienen
-  // que decirlo, o quien lee elige una y desconfía de la otra.
+  // **Las cadenas que juntaron lo que pide el hueco sin que ninguna sola
+  // llegara a la suya.** Las dos cosas son ciertas y la regla es deliberada:
+  // una cadena cierra cuando UN curso-horario alcanza SU propia meta, porque el
+  // resto del perfil calcula la brecha por curso-horario. Pero dos fuentes del
+  // mismo hecho que no coinciden tienen que decirlo.
   const juntaronSinCerrar = historias.filter(
     (h) => h.desenlace === "abierta" && h.meta > 0 && h.validas >= h.meta,
   ).length;
 
-  /* Loop mejora-ui E10: el cero de la lectura susurra. «0 cerraron con el
-     titular · 0 con un reemplazo · 174 sin cerrar» ponía los tres números al
-     mismo peso, y los dos ceros —que son la ausencia, no el dato que se viene
-     a buscar— competían con el 174. Mismo lenguaje que el «—» de la ficha
-     (E6) y la tarjeta agotada del banco (E8); la regla vive en
-     aulasHistoriaCadena.css. */
+  // El cero de la lectura susurra: «0 cerraron con el titular · 0 con un
+  // reemplazo · 174 sin cerrar» ponía los tres al mismo peso, y los dos ceros
+  // —que son la ausencia— competían con el 174.
   const Cuenta = ({ n }: { n: number }) => (
     n === 0 ? <strong className="es-cero">0</strong> : <strong>{fmt(n)}</strong>
   );
 
+  const piden = ordenadas.filter((x) => x.c.clave !== "cerrada");
+  const vistas = todas ? ordenadas : piden.slice(0, 25);
+  const restantes = ordenadas.length - vistas.length;
+
   return (
-    <div className="aulas-cadenas">
+    <div className="aulas-cadenas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         <Cuenta n={cerraronEnTitular} /> cerraron con el titular ·{" "}
         <Cuenta n={cerraronEnReemplazo} /> con un reemplazo ·{" "}
         <Cuenta n={abiertas} /> sin cerrar
-        {/* **La unidad, porque cambia a media frase.** Los tres numeros de antes
-            son CADENAS y este son CURSOS-HORARIO titulares —el vacio de este
-            mismo componente lo dice: «ninguno de los N cursos-horario titulares
-            tiene reserva»—. Sin nombrarlo, «24 cadenas · … · 146 sin reserva» se
-            lee como 146 cadenas, y no hay 146 cadenas: hay 24. */}
+        {/* **La unidad, porque cambia a media frase.** Los tres números de antes
+            son CADENAS y éste son CURSOS-HORARIO titulares. Sin nombrarlo,
+            «24 cadenas · … · 146 sin reserva» se lee como 146 cadenas. */}
         {sinReserva
           ? ` · ${sinReserva} ${sinReserva === 1 ? "curso-horario titular" : "cursos-horario titulares"} sin reserva asignada`
           : ""}
@@ -215,6 +170,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           ? ` · ${fmt(sinRespuestaAlguna)} de las abiertas no han recibido ni una respuesta`
           : ""}
       </p>
+
       {juntaronSinCerrar ? (
         <p className="aulas-cadenas-matiz">
           En <strong>{juntaronSinCerrar}</strong> de las abiertas la cadena ya juntó
@@ -222,98 +178,87 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           por eso siguen contando como brecha en el resto del perfil.
         </p>
       ) : null}
-      {/* Agrupadas por desenlace. Eran 24 cajas idénticas en 1 554 px de alto:
-          las tres que cerraron —la respuesta a «cuál fue la cadena que nos
-          permitió llegar a la meta»— quedaban enterradas entre veintiuna que se
-          ven exactamente igual. Primero las que piden decisión, después las que
-          son registro de lo que funcionó. */}
-      {GRUPOS.map((grupo) => {
-        const propias = historias.filter((h) => h.desenlace === grupo.desenlace);
-        if (!propias.length) return null;
-        const maxEslabones = propias.reduce((max, h) => Math.max(max, h.eslabones.length), 1);
-        return (
-          <section
-            key={grupo.desenlace}
-            className="aulas-cadenas-grupo"
-            // Repetida por desenlace. Declararla fue lo correcto —sin grupo
-            // esta superficie era invisible para el gate: ni conforme ni no
-            // conforme, sencillamente no medida— pero el contrato estaba
-            // equivocado, y el propio archivo lo desmiente doce líneas más
-            // abajo: «las abiertas van en tabla y las cerradas narradas: no es
-            // una inconsistencia, es que son dos preguntas distintas». Dos
-            // presentaciones distintas y dos volúmenes distintos son secciones
-            // INDEPENDIENTES, o sea `intrinsic`.
-            //
-            // Y `equal` no significaba lo que el comentario anterior creía. Un
-            // `data-qa-geometry-group` no declara «estos elementos hermanos
-            // miden igual»: declara «este elemento es un grupo, y sus miembros
-            // son sus hijos». Con `equal` el gate exigía que el `<h4>` del
-            // título midiera lo mismo que el contenido, y reportaba
-            // `equal-frame-drift · memberHeights: [13, 852]`. Medido el
-            // 2026-08-29 en `consultas/reemplazos`.
-            data-qa-geometry-group="monitoring-aulas-cadenas"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <h4>
-              {grupo.titulo}
-              <span>{propias.length}</span>
-            </h4>
-            {/* Las abiertas van en tabla y las cerradas narradas: no es una
-                inconsistencia, es que son dos preguntas distintas. En las
-                abiertas se compara —quién tiene margen— y en las cerradas se
-                lee una historia de tres eslabones. */}
-            {grupo.desenlace === "abierta" ? <CadenasAbiertas historias={propias} /> : (
-            <ol
-              className="aulas-cadenas-lista"
-              /* Cuántos eslabones tiene la cadena más larga de ESTE grupo. Con
-                 él, el eslabón n.º 2 de una cadena cae bajo el n.º 2 de la de
-                 al lado, y la profundidad —cuántos reemplazos hizo falta— se
-                 ve por POSICIÓN en vez de leerse contando burbujas. Antes cada
-                 burbuja medía según su texto —129, 166 y 222 px— así que el
-                 tercero de una cadena caía donde el segundo de otra. */
-              style={{ "--aulas-eslabones": maxEslabones } as CSSProperties}
-            >
-              {/* **Una fila por cadena, con el diseño del ensayo del 2026-09-10.**
-                  A la izquierda quién es y qué le pasó; a la derecha el
-                  recorrido. Antes el nombre iba encima y los eslabones debajo
-                  repartiéndose el ancho entre TODOS —hasta once—, así que cada
-                  columna medía treinta píxeles y «CH 84» salía en vertical, una
-                  letra por línea. Gonzalo, con la captura: «se ve horrible». */}
-              {propias.map((historia) => {
-                const detras = Math.max(0, historia.eslabones.length - ESLABONES_A_LA_VISTA);
-                return (
-                <li key={historia.titular} className={`aulas-cadena es-${historia.desenlace}`}>
-                  <div className="aulas-cadena-head">
-                    <strong>{historia.titular}</strong>
-                    <span>{historia.facultad}</span>
-                    {/* El desenlace ya lo dice el grupo; en la fila sólo hace
-                        falta CUÁL cerró, que es lo que cambia de una a otra. */}
-                    {historia.cerro ? <em>cerró {historia.cerro}</em> : null}
-                  </div>
-                  <ul className="aulas-cadena-eslabones">
-                    {historia.eslabones.slice(0, ESLABONES_A_LA_VISTA).map((eslabon) => (
-                      <Eslabon
-                        key={eslabon.codigo}
-                        eslabon={eslabon}
-                        cerro={eslabon.codigo === historia.cerro}
-                      />
-                    ))}
-                    {/* Las de detrás se CUENTAN, no se pintan: son respaldo que
-                        todavía no entra en ninguna decisión. */}
-                    {detras ? (
-                      <li className="aulas-eslabon es-resto">
-                        + {fmt(detras)} por detrás
-                      </li>
-                    ) : null}
-                  </ul>
-                </li>
-                );
-              })}
-            </ol>
-            )}
-          </section>
-        );
-      })}
+
+      <div
+        className="aulas-cadenas-lista"
+        data-qa-geometry-group="monitoring-aulas-cadenas"
+        data-qa-geometry-contract="intrinsic"
+      >
+        {vistas.map(({ h, c }) => (
+          <Cadena key={h.titular} h={h} c={c} titular={porCodigo.get(h.titular)} />
+        ))}
+      </div>
+
+      {restantes > 0 || todas ? (
+        <button type="button" className="aulas-cadenas-mas" onClick={() => setTodas((x) => !x)}>
+          {todas
+            ? "Ver sólo las que piden trabajo"
+            : `Ver las ${fmt(ordenadas.length)} cadenas, cerradas incluidas`}
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+function Cadena({ h, c, titular }: {
+  h: HistoriaDeCadena;
+  c: { clave: Circunstancia; pastilla: string };
+  titular: MonitoreoAulasPlanRow | undefined;
+}): ReactNode {
+  const [abierta, setAbierta] = useState(false);
+  const detras = Math.max(0, h.eslabones.length - ESLABONES_A_LA_VISTA);
+  const vistos = abierta ? h.eslabones : h.eslabones.slice(0, ESLABONES_A_LA_VISTA);
+  // El primero que no se ha caído es el que se trabaja.
+  const trabajando = h.eslabones.find((e) => e.orden > 0 && !puntoDelEslabon(e).caido)?.codigo ?? "";
+
+  const cuando = String(titular?.sesiones_dia_hora ?? titular?.schedule ?? "").trim();
+  const donde = String(titular?.venue ?? "").trim();
+  const seña = [facultadCorta(h.facultad), cuando, donde].filter(Boolean).join(" · ");
+
+  return (
+    <article className={`aulas-cadena es-${c.clave}`}>
+      <div className="aulas-cadena-quien">
+        <span className="aulas-cadena-cod">{h.titular}</span>
+        {seña ? <span className="aulas-cadena-meta">{seña}</span> : null}
+        <span className={`aulas-cadena-pastilla es-${c.clave}`}>{c.pastilla}</span>
+      </div>
+
+      {/* La tira, horizontal y con scroll propio: 138 px de mínimo por eslabón.
+          Comparar dos cadenas cuesta un arrastre; antes no se podía leer
+          ninguna. */}
+      <div className="aulas-cadena-tira">
+        {vistos.map((e, i) => {
+          const punto = puntoDelEslabon(e);
+          const esCierre = h.cerro === e.codigo;
+          return (
+            <span key={e.codigo} className="aulas-cadena-paso">
+              {i ? <i className="aulas-cadena-flecha" aria-hidden="true">›</i> : null}
+              <span className={[
+                "aulas-cadena-eslabon",
+                e.orden === 0 ? "es-titular" : "",
+                esCierre ? "es-cierre" : "",
+                punto.caido ? "es-caido" : "",
+                !esCierre && e.codigo === trabajando ? "es-activo" : "",
+                !punto.vivo && !punto.caido && !esCierre && e.codigo !== trabajando ? "es-dormido" : "",
+              ].filter(Boolean).join(" ")}>
+                <b>{e.codigo}</b>
+                <em>{punto.texto}</em>
+              </span>
+            </span>
+          );
+        })}
+        {detras && !abierta ? (
+          <button type="button" className="aulas-cadena-resto" onClick={() => setAbierta(true)}>
+            + {fmt(detras)} {detras === 1 ? "reserva" : "reservas"}
+            {c.clave === "cerrada" ? " intactas" : " por detrás"}
+          </button>
+        ) : null}
+        {abierta && detras ? (
+          <button type="button" className="aulas-cadena-resto" onClick={() => setAbierta(false)}>
+            Plegar
+          </button>
+        ) : null}
+      </div>
+    </article>
   );
 }

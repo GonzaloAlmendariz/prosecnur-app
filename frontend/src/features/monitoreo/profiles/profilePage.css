@@ -1152,7 +1152,26 @@
   border: 1px solid var(--pulso-border);
   border-radius: 18px;
   background: var(--pulso-surface);
-  overflow: hidden;
+  /* **`clip` y no `hidden`: aquí estaba el scroll jail de verdad.**
+
+     Gonzalo, 2026-09-10: «hay un espacio en blanco aquí». El primer intento
+     puso `clip` en `.mon-workbench-main` —los tests pasaron y en pantalla el
+     hueco seguía—: quien crea el contenedor de scroll es ESTA caja, que es la
+     que lleva el `overflow` junto al radio de 18 px.
+
+     Su contenido desborda, así que con `hidden` es un contenedor scrollable
+     SIN barra: cualquier cosa que desplace el foco dentro —un
+     `scrollIntoView`, un `focus()` sobre algo fuera de vista, el reset al
+     cambiar de pestaña— le sube el `scrollTop`, y sin barra nadie puede
+     devolverlo. El contenido se queda desplazado hacia arriba y deja el hueco
+     al pie hasta que se recarga la página. Medido en vivo provocando un
+     `scrollIntoView`: `scrollTop: 105.5`, hueco de 107 px.
+
+     `clip` recorta igual —también con el radio— y NO crea contenedor de
+     scroll, así que no hay nada que desplazar. Es «No Scroll Jail» de
+     docs/ui-layout-grammar.md: el scroll lo tiene quien lo declara, y aquí es
+     `.mon-workbench-content`, que sí trae barra. */
+  overflow: clip;
 }
 
 .mon-profile-sidebar {
