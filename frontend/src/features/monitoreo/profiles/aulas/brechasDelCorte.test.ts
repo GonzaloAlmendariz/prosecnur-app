@@ -96,3 +96,73 @@ describe("las brechas del corte", () => {
     expect(repartoDeBrechas([]).total).toBe(0);
   });
 });
+
+/**
+ * «No entiendo, ¿la CH 3 no hizo nada?» (Gonzalo, 2026-09-11, sobre un «0.0 %»).
+ * Sí fue: el parte anotó 15 alumnos en el aula y no salió ni una encuesta
+ * válida. Sin esa cifra el cero se lee como que nadie pisó el aula, y volver a
+ * aplicar donde hay gente no se parece en nada a agendar donde no se llegó.
+ */
+describe("el porqué de un cero", () => {
+  const conParte = (extra: Record<string, unknown>) => ([{
+    operational_code: "CH 3", faculty: "CC. e Ingeniería", sample_role: "titular",
+    eligible_n: 29, expected_valid: 15.1, respuestas_validas: 0,
+    application_status: "aplicada", ...extra,
+  }] as unknown as Parameters<typeof brechasDelCorte>[0]);
+
+  it("publica cuánta gente había en el aula cuando el parte lo anotó", () => {
+    const [f] = brechasDelCorte(conParte({ observed_students: 15, scheduled_date: "2026-09-10" }));
+    expect(f.enElAula).toBe(15);
+    expect(f.efectivas).toBe(0);
+  });
+
+  it("distingue «no lo anotó» de «había cero»", () => {
+    // Son cosas distintas y la fila sólo puede hablar de la primera.
+    expect(brechasDelCorte(conParte({ observed_students: "", scheduled_date: "2026-09-10" }))[0].enElAula).toBeNull();
+    expect(brechasDelCorte(conParte({ observed_students: 0, scheduled_date: "2026-09-10" }))[0].enElAula).toBe(0);
+  });
+});
+
+/**
+ * **Un «aplicada» que nada respalda no se cree ni se descarta: se revisa.**
+ *
+ * Gonzalo, 2026-09-11: «yo no veo que CH 3 se haya aplicado» — y tenía razón,
+ * era un duplicado que el coordinador marcó por error y corrigió en el libro al
+ * verlo. Ésa es la razón de que esta señal exista: va a volver a pasar.
+ */
+describe("el parte que se contradice consigo mismo", () => {
+  const fila = (extra: Record<string, unknown>) => ([{
+    operational_code: "CH 3", faculty: "CC. e Ingeniería", sample_role: "titular",
+    eligible_n: 29, expected_valid: 15.1, respuestas_validas: 0,
+    application_status: "aplicada", observed_students: 15,
+    sample_status: "en_contacto", scheduled_date: "", ...extra,
+  }] as unknown as Parameters<typeof brechasDelCorte>[0]);
+
+  it("sin fecha, sin contacto cerrado y sin una encuesta, se marca en conflicto", () => {
+    const [f] = brechasDelCorte(fila({}));
+    expect(f.parteEnConflicto).toBe(true);
+    expect(f.severidad).toBe("parte_en_conflicto");
+    // Y NO se le ofrece complemento: proponerlo da el registro por bueno.
+    expect(f.accion).toBe("nada");
+  });
+
+  it("con encuestas encima no hay conflicto: el campo desmiente al estado", () => {
+    // Es el caso de CH 143, que trajo 23 con el contacto sin cerrar. Ahí lo que
+    // falta es actualizar la fila, no revisar si se aplicó.
+    const [f] = brechasDelCorte(fila({ respuestas_validas: 23, observed_students: 24 }));
+    expect(f.parteEnConflicto).toBe(false);
+  });
+
+  it("con fecha agendada tampoco: hay un día que respalda el parte", () => {
+    expect(brechasDelCorte(fila({ scheduled_date: "2026-09-09" }))[0].parteEnConflicto).toBe(false);
+  });
+
+  it("va primero en el orden: es lo que hay que mirar antes de decidir nada", () => {
+    const filas = [
+      ...(fila({}) as unknown as Record<string, unknown>[]),
+      ...(fila({ operational_code: "CH 9", application_status: "aplicada",
+                 respuestas_validas: 2, scheduled_date: "2026-09-09" }) as unknown as Record<string, unknown>[]),
+    ] as unknown as Parameters<typeof brechasDelCorte>[0];
+    expect(brechasDelCorte(filas)[0].codigo).toBe("CH 3");
+  });
+});

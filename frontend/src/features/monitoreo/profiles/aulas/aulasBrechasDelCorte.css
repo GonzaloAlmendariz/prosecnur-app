@@ -148,6 +148,24 @@
   font-size: var(--brc-meta);
 }
 
+/* El parte se contradice consigo mismo. Va en tono de advertencia y no de
+   error: el registro puede ser bueno y lo que falte sea actualizar el resto de
+   la fila —CH 143 trajo 23 encuestas con el contacto sin cerrar—. Lo que no
+   puede es decidirse por el operativo en silencio. */
+.mon-profile-page.is-aulas-flow .aulas-brc-conflicto {
+  display: grid;
+  gap: 0;
+  text-align: right;
+  color: var(--pulso-warn-fg);
+  font-size: var(--brc-meta);
+  font-weight: var(--pulso-weight-semibold);
+}
+.mon-profile-page.is-aulas-flow .aulas-brc-conflicto em {
+  font-style: normal;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-faint);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-brc-boton {
   font: inherit;
   font-size: var(--brc-meta);

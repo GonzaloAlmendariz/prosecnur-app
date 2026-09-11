@@ -370,9 +370,19 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   # proyeccion —y sus respuestas ya estaban en `conseguido`: el mismo campo
   # contado dos veces—. Derecho salia con 13 cursos-horario agendados cuando
   # tiene 6 por delante, y su proyeccion daba 429 sobre una cuota de 363.
+  # **Las MISMAS tres vías que `aplicada`, no dos.** Al arreglarlo la primera vez
+  # añadí las respuestas y olvidé el veredicto del PARTE, que es la tercera.
+  #
+  # Lo que costaba, visto con Gonzalo el 2026-09-11 sobre CH 3: su parte dice
+  # `aplicada` con 15 alumnos en el aula y cero encuestas válidas, mientras su
+  # eje de muestra sigue en `en_contacto` con el teléfono muerto —nadie lo
+  # actualizó—. Contaba como pendiente, su aforo entraba en la proyección y el
+  # aviso de «gestiones sin teléfono» la incluía, mandando a buscarle otra vía a
+  # un aula que ya se visitó.
   resp_track <- .maac_num_col(tracked_df, "respuestas_validas")
   resp_track[!is.finite(resp_track)] <- 0
   apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS |
+    .maac_chr_col(tracked_df, "application_status") %in% "aplicada" |
     resp_track > 0
   pend <- !apl_track & el_track > 0
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
