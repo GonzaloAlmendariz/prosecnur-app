@@ -532,6 +532,7 @@ export function AulasSeccionConsultas({
               lista de candidatas y la de pedidas se lean como una sola. */}
           <AulasRefuerzosPedidos
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            onGuardado={onGuardado}
           />
         </section>
         ) : null}

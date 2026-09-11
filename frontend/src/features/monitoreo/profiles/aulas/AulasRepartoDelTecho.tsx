@@ -48,9 +48,13 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
 
   const mando = fijo ? null : (
     <div className="aulas-techo-mando">
-      <label className="aulas-techo-cuantas" htmlFor="aulas-techo-n">
-        Techo de cursos-horario agendables
-      </label>
+      <span className="aulas-techo-cuantas">
+        <label htmlFor="aulas-techo-n">Techo de cursos-horario agendables</label>
+        {/* El 1fr de la izquierda tiene que trabajar: el control solo dejaba
+            una franja vacía y no decía contra qué se está eligiendo el número. */}
+        <em>cuántos más cabe agendar además de lo que ya hay en pie · el reparto
+          los coloca donde más cierran, no donde más se debe</em>
+      </span>
       <div className="aulas-techo-paso">
         <button
           type="button" aria-label="Bajar el techo"

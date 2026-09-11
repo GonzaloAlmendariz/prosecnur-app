@@ -4,6 +4,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt } from "./kpisDeAulas";
 import { seguimientoDeRefuerzos, type PasoDelRefuerzo } from "./seguimientoDeRefuerzos";
+import { useMarcarRefuerzo } from "./useMarcarRefuerzo";
 import "./aulasRefuerzosPedidos.css";
 
 /**
@@ -33,10 +34,17 @@ const RÓTULO: Record<PasoDelRefuerzo, string> = {
 /** El orden del embudo, que es el que se dibuja aunque un paso esté en cero. */
 const ESCALONES: PasoDelRefuerzo[] = ["por_contactar", "en_gestion", "con_fecha", "aplicado"];
 
-export function AulasRefuerzosPedidos({ plan }: {
+export function AulasRefuerzosPedidos({ plan, onGuardado }: {
   plan: ReadonlyArray<MonitoreoAulasPlanRow> | null | undefined;
+  /** Recarga el tablero tras retirar una marca; sin esto la fila no se mueve. */
+  onGuardado?: () => void;
 }): ReactNode {
+  // El hook va antes del vacío: uno bajo la guarda se llama en unos renders y
+  // no en otros, que es el React #310 que ya tumbó este perfil una vez.
+  const marca = useMarcarRefuerzo(onGuardado);
   const s = seguimientoDeRefuerzos(plan);
+  const puedeRetirar = !!onGuardado;
+  const enEspera = s.pedidos.filter((p) => p.paso === "por_contactar").map((p) => p.codigo);
 
   if (!s.pedidos.length) {
     return (
@@ -62,6 +70,34 @@ export function AulasRefuerzosPedidos({ plan }: {
         ) : null}
       </p>
 
+      {marca.aviso || marca.fallos.length ? (
+        <p className={`aulas-acuse-marca${marca.fallos.length ? " es-fallo" : ""}`} role="status">
+          {marca.aviso}
+          {marca.fallos.length ? (
+            <>{marca.fallos.length === 1 ? "No se pudo retirar " : "No se pudieron retirar "}
+              <b>{marca.fallos.map((f) => f.codigo).join(", ")}</b>: {marca.fallos[0]?.motivo}</>
+          ) : null}
+          {" "}<button type="button" onClick={marca.limpiar}>Entendido</button>
+        </p>
+      ) : null}
+
+      {puedeRetirar && enEspera.length > 1 ? (
+        <p className="aulas-pedidos-lote">
+          {/* Deshacer el lote entero, que es la contracara del autopicker: si se
+              marcan quince de una vez, tiene que poder soltarse quince de una
+              vez. Sólo alcanza a las que nadie ha llamado. */}
+          <button
+            type="button"
+            disabled={!!marca.marcando || !!marca.progreso}
+            onClick={() => { void marca.retirarVarias(enEspera); }}
+          >
+            {marca.progreso
+              ? `Retirando ${fmt(marca.progreso.hechas)} de ${fmt(marca.progreso.total)}…`
+              : `Retirar ${fmt(enEspera.length)} que aún esperan llamada`}
+          </button>
+        </p>
+      ) : null}
+
       {/* El embudo, con los cuatro escalones siempre: un paso en cero es un
           dato —nadie ha llamado todavía— y esconderlo lo haría parecer que la
           cola empieza más adelante de donde empieza. */}
@@ -74,7 +110,7 @@ export function AulasRefuerzosPedidos({ plan }: {
         ))}
       </ol>
 
-      <ul className="aulas-pedidos-lista">
+      <ul className={`aulas-pedidos-lista${puedeRetirar ? " es-con-accion" : ""}`}>
         {s.pedidos.map((p) => (
           <li key={p.codigo}>
             <span className={`aulas-pedidos-paso es-${p.paso}`}>{RÓTULO[p.paso]}</span>
@@ -91,6 +127,19 @@ export function AulasRefuerzosPedidos({ plan }: {
               {p.validas > 0
                 ? <><b>{fmt(p.validas)}</b> respuestas</>
                 : <em>sin respuestas aún</em>}
+            </span>
+            {/* **Retirar sólo mientras nadie la haya llamado.** En cuanto el
+                agendador la pasa a EN CONTACTO deja de ser una decisión
+                pendiente: soltarla borraría su trabajo, y el motor lo rechaza.
+                Por eso el botón desaparece en vez de fallar al pulsarlo. */}
+            <span className="aulas-pedidos-accion">
+              {puedeRetirar && p.paso === "por_contactar" ? (
+                <button
+                  type="button"
+                  disabled={!!marca.marcando || !!marca.progreso}
+                  onClick={() => { void marca.retirar(p.codigo); }}
+                >{marca.marcando === p.codigo ? "Retirando…" : "Retirar"}</button>
+              ) : null}
             </span>
           </li>
         ))}

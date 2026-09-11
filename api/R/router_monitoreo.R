@@ -5025,6 +5025,28 @@ mount_monitoreo <- function(pr) {
            mensaje = monitoreo_aulas_marcar_refuerzo_texto(out),
            state = .monitoreo_state_payload(sid))
     })) |>
+    plumber::pr_post("/api/monitoreo/aulas/desmarcar-refuerzo", wrap_endpoint(function(req, res, ...) {
+      # Deshacer la marca. Sin esto, el autopicker —quince de golpe— era una
+      # decision sin vuelta, y un lote mal elegido dejaba quince cursos-horario
+      # apartados del inventario sin forma de devolverlos.
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      codigo <- .monitoreo_scalar(body$operational_code %||% body$codigo %||% "", "")
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_desmarcar_refuerzo(plan, codigo)
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, retirada = out$retirada,
+           mensaje = monitoreo_aulas_desmarcar_refuerzo_texto(out),
+           state = .monitoreo_state_payload(sid))
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/activar-reemplazo", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       body <- .monitoreo_parse_body(req)

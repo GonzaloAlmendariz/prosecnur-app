@@ -1,6 +1,8 @@
 import { useState } from "react";
 
-import { apiMonitoreoAulasMarcarRefuerzo } from "../../../../api/monitoreo";
+import {
+  apiMonitoreoAulasDesmarcarRefuerzo, apiMonitoreoAulasMarcarRefuerzo,
+} from "../../../../api/monitoreo";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -84,5 +86,56 @@ export function useMarcarRefuerzo(onGuardado?: () => void) {
     if (hechas > 0) onGuardado?.();
   };
 
-  return { marcando, progreso, aviso, fallos, marcar, marcarVarias, limpiar };
+  /**
+   * **Deshacer.** Sin esto el autopicker era una decisión sin vuelta: quince de
+   * golpe y ninguna forma de devolver al inventario un lote mal elegido.
+   *
+   * El motor sólo retira lo que la app marcó y nadie tocó todavía; si el
+   * agendador ya lo pasó a EN CONTACTO contesta `E_REFUERZO_YA_EN_MARCHA`, y
+   * ese mensaje es justo lo que hay que enseñar: dice por qué no se puede.
+   */
+  const retirar = async (codigo: string) => {
+    setMarcando(codigo);
+    setAviso("");
+    setFallos([]);
+    try {
+      const res = await apiMonitoreoAulasDesmarcarRefuerzo({ operational_code: codigo });
+      setAviso(res.mensaje);
+      onGuardado?.();
+      return true;
+    } catch (e) {
+      setFallos([{ codigo, motivo: e instanceof Error ? e.message : "No se pudo retirar." }]);
+      return false;
+    } finally {
+      setMarcando("");
+    }
+  };
+
+  /** Deshacer un lote entero, en serie y por el mismo motivo que el marcado. */
+  const retirarVarias = async (codigos: ReadonlyArray<string>) => {
+    if (!codigos.length) return;
+    setAviso("");
+    setFallos([]);
+    setProgreso({ hechas: 0, total: codigos.length });
+    const caidas: FalloDeMarca[] = [];
+    let hechas = 0;
+    for (const codigo of codigos) {
+      setMarcando(codigo);
+      try {
+        await apiMonitoreoAulasDesmarcarRefuerzo({ operational_code: codigo });
+        hechas += 1;
+      } catch (e) {
+        caidas.push({ codigo, motivo: e instanceof Error ? e.message : "No se pudo retirar." });
+      }
+      setProgreso({ hechas, total: codigos.length });
+    }
+    setMarcando("");
+    setFallos(caidas);
+    setAviso(hechas === codigos.length
+      ? `Volvieron al inventario los ${fmt(hechas)} que pediste.`
+      : `Volvieron al inventario ${fmt(hechas)}; se pidieron ${fmt(codigos.length)}.`);
+    if (hechas > 0) onGuardado?.();
+  };
+
+  return { marcando, progreso, aviso, fallos, marcar, marcarVarias, retirar, retirarVarias, limpiar };
 }
