@@ -58,6 +58,22 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
              "El estudio no trae la cuota del diseño por facultad: sin ella el reporte de avance no se puede afirmar.")
   }
 
+  # La SERIE DIARIA, que es lo que sostiene los gráficos de ritmo. Sale de la
+  # misma función que escribe el bloque «Avance diario» del libro, y
+  # `monitoreo_aulas_ritmo_de_avance()` se queda sólo con las columnas de avance:
+  # las de rendimiento no cruzan a un documento de cliente.
+  diario <- tryCatch(
+    .calad_avance_diario(plan, responses = data, validas = validas,
+                         cuotas = aulas_cfg$design_targets, cfg = aulas_cfg),
+    error = function(e) NULL
+  )
+  ritmo <- monitoreo_aulas_ritmo_de_avance(diario, facultades)
+
+  # Cursos-horario TITULARES por facultad: el denominador de «cuántas aulas de
+  # las previstas se han visitado». La tabla por facultad sólo trae las
+  # aplicadas, y sin su plan una cifra de aulas no dice si va bien.
+  aulas_plan <- .marp_titulares_por_facultad(plan)
+
   suma <- function(col) sum(suppressWarnings(as.numeric(facultades[[col]])), na.rm = TRUE)
   muestra <- suma("Muestra")
   # Las columnas se llaman como las dictó Gonzalo el 2026-09-08 («efectivas»,
@@ -66,6 +82,19 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   conseguidas <- suma("Efectivas")
   sobremuestra <- suma("Sobremuestra")
 
+  # Los DEFECTOS de la portada: derivados de lo que el motor ya sabe, y
+  # sobreescribibles uno por uno desde la UI (`pulso_pdf_portada_normalizar()`).
+  # Viajan en el modelo para que el panel pueda mostrarlos como placeholder: un
+  # defecto que no se ve no es sobreescribible, es una sorpresa.
+  portada_defecto <- list(
+    titulo = "Avance del trabajo de campo",
+    subtitulo = .marp_nombre_del_estudio(aulas_cfg),
+    cliente = "",
+    periodo = .marp_periodo_de_campo(ritmo),
+    corte = .marp_corte_legible(snapshot$synced_at %||% ""),
+    nota = ""
+  )
+
   list(
     report_kind = "aulas_advance_pdf",
     family = "aulas_universitarias",
@@ -73,6 +102,26 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     synced_at = .monitoreo_scalar(snapshot$synced_at %||% "", ""),
     include_targets = isTRUE(include_targets),
     facultades = facultades,
+    ritmo = ritmo,
+    aulas_planificadas = aulas_plan,
+    portada_defecto = portada_defecto,
+    # La tabla traspuesta de «Avance general», la primera de las dos que Gonzalo
+    # aprobó del libro. Se pide a la MISMA función que la escribe allí; el PDF
+    # decide qué filas muestra, no cómo se calculan.
+    general = tryCatch(
+      .calag_tabla_general(facultades, list(
+        aplicadas = sum(suppressWarnings(as.numeric(facultades[["Aulas aplicadas"]])), na.rm = TRUE),
+        # PLANIFICADAS son los TITULARES, no las filas del plan: el plan lleva
+        # dentro el banco de reservas, y contarlo entero publicaba «56 aulas
+        # aplicadas de 1.392 planificadas», que es 25 veces el operativo real y
+        # se lee como un campo que no arrancó. Es el mismo criterio que
+        # `aulas_libro_indicadores()` usa para la hoja.
+        planificadas = sum(vapply(plan, function(u) {
+          identical(.cai_txt(u$sample_role), "titular")
+        }, logical(1)))
+      )),
+      error = function(e) NULL
+    ),
     total = list(
       muestra = muestra,
       conseguidas = conseguidas,
@@ -116,7 +165,7 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 
 .marp_pct <- function(x) {
   v <- suppressWarnings(as.numeric(x))
-  if (!length(v) || !is.finite(v[1])) return("—")
+  if (!length(v) || !is.finite(v[1])) return("-")
   sprintf("%.1f %%", v[1] * 100)
 }
 
@@ -125,7 +174,7 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 # hacia abajo, que es no prometer de más. Mismo criterio que la pantalla.
 .marp_personas <- function(x, faltante = FALSE) {
   v <- suppressWarnings(as.numeric(x))
-  if (!length(v) || !is.finite(v[1])) return("—")
+  if (!length(v) || !is.finite(v[1])) return("-")
   n <- if (faltante) ceiling(v[1]) else floor(v[1])
   formatC(as.integer(n), big.mark = ",", format = "d")
 }
@@ -141,7 +190,9 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                                                include_targets = FALSE,
                                                titulo = "Avance del trabajo de campo",
                                                subtitulo = "Cursos-horario · avance por facultad",
-                                               periodo = "") {
+                                               periodo = "",
+                                               portada = list(),
+                                               con_portada = TRUE) {
   tok <- pulso_pdf_tokens()
   ty <- pulso_pdf_type()
   geo <- pulso_pdf_geo("landscape")
@@ -149,9 +200,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   if (is.null(df) || !nrow(df)) {
     stop_api(409, "E_AULAS_SIN_CUOTAS", "El modelo no trae facultades que informar.")
   }
-  if (!nzchar(periodo)) periodo <- format(Sys.Date(), "%m-%Y")
 
-  grDevices::pdf(output_file, width = geo$w_in, height = geo$h_in, onefile = TRUE)
+  pulso_pdf_abrir(output_file, geo = geo)
   on.exit(grDevices::dev.off(), add = TRUE)
 
   # LA CABECERA SE SEPARA MÁS EN APAISADO. El kit separa título y subtítulo
@@ -203,29 +253,92 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   x0 <- 0.04
   xs <- cumsum(c(x0, vapply(columnas, function(c) c$w, numeric(1))))
 
-  for (p in seq_along(paginas)) {
+  # --- El documento -----------------------------------------------------------
+  #
+  # La numeración de páginas corre sobre TODAS las páginas dibujadas, no sobre
+  # las de la tabla: `pag` se incrementa en cada `grid.newpage()`. La portada no
+  # lleva número ni pie —una portada numerada se lee como si faltara algo antes—.
+  ancho_util <- 1 - 2 * x0
+  pag <- 0L
+  nueva <- function(sec_titulo, sec_subtitulo) {
     grid::grid.newpage()
-    pulso_pdf_header(titulo, subtitulo, tokens = tok, geo = geo,
+    pag <<- pag + 1L
+    pulso_pdf_header(sec_titulo, sec_subtitulo, tokens = tok, geo = geo,
                      y_titulo = y_tit, y_subtitulo = y_sub, y_regla = y_reg)
+  }
 
-    if (p == 1L) {
-      t <- model$total
-      # La portada lleva lo que el cliente pregunta primero, en una línea.
-      resumen <- sprintf(
-        "De una muestra de %s alumnos se llevan %s: %s de avance. Faltan %s repartidos en %s.",
-        .marp_personas(t$muestra), .marp_personas(t$conseguidas), .marp_pct(t$avance),
-        .marp_personas(t$faltan, faltante = TRUE),
-        if (identical(as.integer(t$facultades_abiertas), 1L)) "1 facultad"
-        else sprintf("%d facultades", as.integer(t$facultades_abiertas))
-      )
-      grid::grid.text(resumen, x = x0, y = 0.820, just = c("left", "top"),
-                      gp = grid::gpar(col = tok$ink, fontsize = ty$body))
-      # Los faltantes NO se netean, y quien lea el total va a querer restarlo.
-      grid::grid.text(
-        "La cuota es de cada facultad y de cada sexo: cubrir de más en una no cubre lo que falta en otra.",
-        x = x0, y = 0.780, just = c("left", "top"),
-        gp = grid::gpar(col = tok$soft, fontsize = ty$foot))
+  if (isTRUE(con_portada)) {
+    port <- pulso_pdf_portada_normalizar(
+      defectos = model$portada_defecto %||% list(titulo = titulo, subtitulo = subtitulo),
+      usuario = portada
+    )
+    t <- model$total
+    grid::grid.newpage()
+    pulso_pdf_portada(port, tokens = tok, ty = ty, geo = geo, destacados = list(
+      list(rotulo = "Avance de la muestra", valor = .marp_pct(t$avance)),
+      list(rotulo = "Encuestas efectivas", valor = .marp_personas(t$conseguidas)),
+      list(rotulo = "Cursos-horario aplicados", valor = .marp_personas(t$aulas_aplicadas))
+    ))
+    if (!nzchar(periodo) && nzchar(port$periodo)) periodo <- port$periodo
+    titulo <- port$titulo
+  }
+
+  if (!nzchar(periodo)) periodo <- format(Sys.Date(), "%m-%Y")
+
+  nueva("Resumen del avance", "Dónde está el campo respecto de la muestra del diseño")
+  .marp_pagina_resumen(model, tok, ty, geo, x0, ancho_util)
+  pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+
+  ritmo <- model$ritmo
+  if (is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total)) {
+    nueva("Ritmo del campo", "Encuestas efectivas por jornada y acumulado contra las metas")
+    .marp_pagina_ritmo(ritmo, tok, ty, geo, x0, ancho_util)
+    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+
+    paneles <- ritmo$facultades %||% list()
+    if (length(paneles)) {
+      por_hoja <- 8L
+      hojas <- split(seq_along(paneles), ceiling(seq_along(paneles) / por_hoja))
+      for (h in seq_along(hojas)) {
+        nueva("Ritmo por facultad",
+              if (length(hojas) > 1L) {
+                sprintf("Cada panel con su propia escala · %d de %d", h, length(hojas))
+              } else "Cada panel con su propia escala; el eje de días es el mismo en todos")
+        .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util)
+        pulso_pdf_leyenda(x0, 0.095, list(
+          list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
+          list(texto = "Acumulado", color = tok$success, forma = "linea"),
+          list(texto = "Meta de la facultad", color = tok$danger, forma = "linea", lty = 2)
+        ), tokens = tok, ty = ty)
+        pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+      }
     }
+  }
+
+  # «Metas por facultad»: el gráfico que ya se lee en pantalla, en el documento.
+  nueva("Metas por facultad", "Lo conseguido dentro de la cuota de cada facultad, hombres y mujeres")
+  .marp_pagina_metas(df, tok, ty, geo, x0, ancho_util)
+  pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+
+  # La lectura visual del avance, antes del detalle numérico: responde «cómo va»
+  # de un vistazo; la tabla de diecisiete columnas responde «cuánto exactamente».
+  por_hoja_avance <- .marp_filas_por_pagina_avance()
+  hojas_avance <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_hoja_avance))
+  for (h in seq_along(hojas_avance)) {
+    nueva("Avance por facultad y sexo",
+          if (length(hojas_avance) > 1L) {
+            sprintf("Efectivas conseguidas contra la cuota de cada sexo · %d de %d", h, length(hojas_avance))
+          } else "Efectivas conseguidas contra la cuota de cada sexo")
+    .marp_pagina_avance_visual(df, hojas_avance[[h]], tok, ty, x0, ancho_util,
+                               aulas_plan = model$aulas_planificadas %||% numeric(0))
+    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
+  }
+
+  for (p in seq_along(paginas)) {
+    nueva(
+      "Detalle por facultad",
+      if (length(paginas) > 1L) sprintf("%s · %d de %d", subtitulo, p, length(paginas)) else subtitulo
+    )
 
     # Cabecera de grupos: «Mujeres» y «Hombres» aparecen dos veces —bajo la
     # muestra y bajo lo conseguido— y sin el grupo no se sabe cuál es cuál.
@@ -310,7 +423,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
         chars = pulso_pdf_chars(ancho), fontsize = ty$foot,
         col = tok$faint, line_h = 0.022)
     }
-    pulso_pdf_footer(p, periodo, tokens = tok, geo = geo)
+    pulso_pdf_footer(pag, periodo, tokens = tok, geo = geo)
   }
   invisible(output_file)
 }
