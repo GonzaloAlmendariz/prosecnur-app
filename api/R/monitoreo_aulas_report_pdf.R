@@ -281,18 +281,14 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   # lleva número ni pie —una portada numerada se lee como si faltara algo antes—.
   ancho_util <- 1 - 2 * x0
 
-  # El total de páginas se cuenta ANTES de dibujar: el folio «03 / 09» necesita
-  # el denominador en la primera página, no en la última.
-  ritmo_previo <- model$ritmo
-  hay_ritmo <- is.list(ritmo_previo) && is.data.frame(ritmo_previo$total) && nrow(ritmo_previo$total)
-  n_paneles <- if (hay_ritmo) length(ritmo_previo$facultades %||% list()) else 0L
-  total_paginas <- 1L +                                        # resumen
-    (if (hay_ritmo) 1L else 0L) +                              # ritmo global
-    (if (n_paneles > 1L) .marp_rejilla_de_paneles(n_paneles)$hojas else 0L) +
-                                                                # ritmo por facultad
-    1L +                                                        # metas por facultad
-    .marp_reparto_avance(nrow(df))$hojas +                       # avance visual
-    length(paginas) * length(hojas_detalle)                     # detalle numérico
+  # El total de páginas se cuenta ANTES de dibujar —el folio «03 / 09» necesita
+  # el denominador en la primera página— y lo cuenta el PLAN DEL DOCUMENTO, que
+  # es una sola declaración de qué secciones hay y cuántas hojas ocupa cada una.
+  # Aquí vivía una suma de seis sumandos que había que mantener sincronizada con
+  # el bucle de abajo: la misma duplicación que ya costó cuatro defectos.
+  plan_doc <- monitoreo_aulas_plan_del_documento(
+    model, hojas_detalle = length(hojas_detalle), paginas_detalle = length(paginas))
+  total_paginas <- sum(plan_doc$hojas)
 
   antetitulo <- "Monitoreo de cursos-horario"
   pag <- 0L

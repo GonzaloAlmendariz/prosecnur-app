@@ -122,3 +122,49 @@ test_that("las hojas de paneles se reparten parejas y ninguna queda coja", {
     expect_gte(out$hojas, 1L)
   }
 })
+
+test_that("el plan del documento coincide con las paginas que salen del PDF", {
+  # **El contrato que faltaba.** Todo el pulido de este reporte se verifico
+  # abriendo el archivo y contando, con runners que mueren con la sesion. Aqui el
+  # documento declara sus secciones y se comprueba que el PDF salga con esas
+  # hojas: si el bucle de dibujo y el plan divergen —que es lo que pasaba cuando
+  # el total se sumaba a mano—, esto falla.
+  #
+  # La portada no entra en el plan: no lleva folio. Por eso el PDF tiene siempre
+  # una pagina mas que la suma de las secciones.
+  for (caso in list(
+    list(nombre = "quince facultades", m = modelo_de_prueba(15L)),
+    list(nombre = "una facultad", m = modelo_de_prueba(1L)),
+    list(nombre = "sin ritmo", m = modelo_de_prueba(3L, dias = 0L)),
+    list(nombre = "sin sobremuestra", m = modelo_de_prueba(3L, sobremuestra = FALSE)),
+    list(nombre = "cuatro facultades", m = modelo_de_prueba(4L))
+  )) {
+    destino <- tempfile(fileext = ".pdf")
+    monitoreo_aulas_advance_report_pdf(caso$m, destino)
+    hojas_detalle <- if (is.finite(suppressWarnings(as.numeric(caso$m$total$sobremuestra)))) 2L else 1L
+    plan <- prosecnurapp:::monitoreo_aulas_plan_del_documento(
+      caso$m, hojas_detalle = hojas_detalle, paginas_detalle = 1L)
+    expect_equal(paginas_del_pdf(destino), sum(plan$hojas) + 1L, info = caso$nombre)
+    # Ninguna seccion declarada con cero hojas: o esta, o no esta.
+    expect_true(all(plan$hojas >= 1L), info = caso$nombre)
+  }
+})
+
+test_that("el plan apaga las secciones que el estudio no tiene", {
+  plan <- function(m, ...) prosecnurapp:::monitoreo_aulas_plan_del_documento(m, ...)
+  completo <- plan(modelo_de_prueba(15L), hojas_detalle = 2L)
+  expect_true("Ritmo del campo" %in% completo$seccion)
+  expect_true("Ritmo de cada facultad" %in% completo$seccion)
+
+  # Sin serie fechada no hay ninguna de las dos secciones de ritmo.
+  sin_ritmo <- plan(modelo_de_prueba(3L, dias = 0L))
+  expect_false(any(grepl("Ritmo", sin_ritmo$seccion)))
+
+  # Con una sola facultad, su panel repetiria el grafico general.
+  una <- plan(modelo_de_prueba(1L))
+  expect_true("Ritmo del campo" %in% una$seccion)
+  expect_false("Ritmo de cada facultad" %in% una$seccion)
+
+  # El orden es el de impresion, y el resumen siempre abre.
+  expect_equal(completo$seccion[[1L]], "Resumen del avance")
+})

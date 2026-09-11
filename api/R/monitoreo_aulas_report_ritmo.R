@@ -183,3 +183,52 @@ monitoreo_aulas_ritmo_de_avance <- function(diario, facultades = NULL) {
   tb <- table(fac)
   stats::setNames(as.numeric(tb), names(tb))
 }
+
+# --- El plan del documento ---------------------------------------------------
+#
+# Qué secciones lleva el reporte y cuántas hojas ocupa cada una. Existe por dos
+# motivos que son el mismo: el folio «03 / 09» necesita el total ANTES de dibujar
+# la primera página, y hasta ahora ese total se sumaba a mano en el renderizador
+# —una expresión de seis sumandos que había que mantener sincronizada con el
+# bucle que dibuja—. Es la duplicación que ya ha producido cuatro defectos en
+# este mismo documento: un valor que gobierna el comportamiento, escrito dos
+# veces, con una copia que envejece sola.
+#
+# Declarado aquí, además, el documento se puede COMPROBAR sin renderizarlo: un
+# test afirma el plan y contrasta que el PDF salga con esas páginas. Sin esto, la
+# única forma de verificar la composición era abrir el archivo y contar, que es
+# lo que se ha hecho toda la tarde con runners que mueren con la sesión.
+
+#' Secciones del reporte de avance y hojas de cada una.
+#'
+#' @param model salida de `build_monitoreo_aulas_report_model()`.
+#' @param hojas_detalle cuántas hojas de detalle por meta (1 sin sobremuestra, 2
+#'   con ella) y `paginas_detalle` cuántas páginas ocupa cada una.
+#' @return `data.frame` con `seccion` y `hojas`, en el orden en que se imprimen.
+#'   La portada NO entra: no lleva folio, y contarla desplazaría el numerador de
+#'   todas las demás.
+#' @keywords internal
+monitoreo_aulas_plan_del_documento <- function(model, hojas_detalle = 1L,
+                                               paginas_detalle = 1L) {
+  ritmo <- model$ritmo
+  hay_ritmo <- is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total) > 0L
+  n_paneles <- if (hay_ritmo) length(ritmo$facultades %||% list()) else 0L
+  n_fac <- if (is.data.frame(model$facultades)) nrow(model$facultades) else 0L
+
+  secciones <- list(
+    list("Resumen del avance", 1L),
+    list("Ritmo del campo", if (hay_ritmo) 1L else 0L),
+    list("Ritmo de cada facultad",
+         if (n_paneles > 1L) .marp_rejilla_de_paneles(n_paneles)$hojas else 0L),
+    list("Metas por facultad", 1L),
+    list("Avance por facultad y sexo", .marp_reparto_avance(n_fac)$hojas),
+    list("Detalle por facultad",
+         as.integer(hojas_detalle) * as.integer(paginas_detalle))
+  )
+  secciones <- Filter(function(s) s[[2L]] > 0L, secciones)
+  data.frame(
+    seccion = vapply(secciones, function(s) s[[1L]], character(1)),
+    hojas = vapply(secciones, function(s) as.integer(s[[2L]]), integer(1)),
+    stringsAsFactors = FALSE
+  )
+}
