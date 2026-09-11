@@ -52,13 +52,16 @@ pulso_pdf_panel <- function(x, y, w, h, tokens = pulso_pdf_tokens(),
 pulso_pdf_kpi <- function(x, y, w, h, rotulo, valor, nota = "",
                           tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
                           tono = tokens$navy, destacado = FALSE) {
-  pulso_pdf_panel(x, y, w, h, tokens = tokens)
-  grid::grid.rect(x = x, y = y, width = 0.0045, height = h, just = c("left", "bottom"),
-                  gp = grid::gpar(fill = tono, col = NA))
-  pad <- 0.016
-  grid::grid.text(toupper(rotulo), x = x + pad, y = y + h - 0.030,
+  # Sin marco y con filete ARRIBA. El marco completo de la primera versión
+  # encajonaba cinco tarjetas seguidas en cinco cajas y la página parecía un
+  # formulario; el filete superior las agrupa como columnas de una misma franja.
+  pulso_pdf_panel(x, y, w, h, tokens = tokens, fill = tokens$canvas, col = NA, r = 0.006)
+  grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
+                  just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
+  pad <- 0.018
+  grid::grid.text(pulso_pdf_versalitas(rotulo), x = x + pad, y = y + h - 0.030,
                   just = c("left", "top"),
-                  gp = grid::gpar(col = tokens$soft, fontsize = ty$caption, fontface = "bold"))
+                  gp = grid::gpar(col = tokens$faint, fontsize = 5.8, fontface = "bold"))
   grid::grid.text(valor, x = x + pad, y = y + (if (nzchar(nota)) 0.042 else 0.028),
                   just = c("left", "bottom"),
                   gp = grid::gpar(col = tokens$navy, fontsize = if (destacado) 26 else 18,
@@ -407,6 +410,100 @@ pulso_pdf_barra_progreso <- function(x, y, w, h, valor, tokens = pulso_pdf_token
   if (cubierto > 0) {
     grid::grid.rect(x = x, y = y, width = w * cubierto, height = h, just = c("left", "bottom"),
                     gp = grid::gpar(fill = color, col = NA))
+  }
+  invisible(NULL)
+}
+
+# --- Tipografía editorial ----------------------------------------------------
+#
+# `grid` no tiene letter-spacing. Un rótulo en versalitas sin aire entre letras
+# se lee apelmazado y es justo lo que separa un documento que parece hecho por
+# un motor de uno que parece compuesto. Se consigue intercalando un espacio fino
+# entre caracteres: es el mismo truco de la composición en plomo, y se aplica
+# SÓLO a rótulos cortos en mayúsculas, nunca a texto corrido.
+
+#' Aire entre letras para un rótulo corto en versalitas.
+#' @export
+pulso_pdf_versalitas <- function(x, aire = " ") {
+  txt <- toupper(trimws(as.character(x %||% "")[[1L]]))
+  if (!nzchar(txt) || nchar(txt) > 48L) return(txt)
+  paste(strsplit(txt, "", fixed = TRUE)[[1L]], collapse = aire)
+}
+
+#' Cromo de página: antetítulo, título de sección, bajada y la regla doble.
+#'
+#' Sustituye a `pulso_pdf_header()` en los documentos de cliente. La diferencia
+#' es la REGLA DOBLE: un segmento corto y grueso en navy bajo el título, y la
+#' hairline clara que cruza la página entera. Una sola línea de punta a punta
+#' parte la hoja en dos; el segmento corto ancla el bloque de título y la
+#' hairline sólo separa.
+#' @export
+pulso_pdf_cromo <- function(antetitulo, titulo, subtitulo = "",
+                            tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
+                            geo = pulso_pdf_geo("landscape"), derecha = "") {
+  m <- geo$margin; right <- 1 - m
+  if (nzchar(antetitulo %||% "")) {
+    grid::grid.text(pulso_pdf_versalitas(antetitulo), x = m, y = 0.955,
+                    just = c("left", "centre"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+  }
+  if (nzchar(derecha %||% "")) {
+    grid::grid.text(pulso_pdf_versalitas(derecha), x = right, y = 0.955,
+                    just = c("right", "centre"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = 6.0, fontface = "bold"))
+  }
+  grid::grid.text(titulo, x = m, y = 0.905, just = c("left", "centre"),
+                  gp = grid::gpar(col = tokens$navy, fontsize = 16.5, fontface = "bold"))
+  if (nzchar(subtitulo %||% "")) {
+    grid::grid.text(subtitulo, x = m, y = 0.868, just = c("left", "centre"),
+                    gp = grid::gpar(col = tokens$soft, fontsize = 9))
+  }
+  y_regla <- 0.845
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(y_regla, "npc"),
+                   gp = grid::gpar(col = tokens$line, lwd = 0.6))
+  grid::grid.lines(x = grid::unit(c(m, m + 0.052), "npc"), y = grid::unit(y_regla, "npc"),
+                   gp = grid::gpar(col = tokens$navy, lwd = 2.2))
+  invisible(NULL)
+}
+
+#' Pie de documento de cliente: hairline, marca, periodo y folio «03 / 09».
+#' @export
+pulso_pdf_pie <- function(pagina, de = NA_integer_, periodo = "",
+                          tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
+                          geo = pulso_pdf_geo("landscape")) {
+  m <- geo$margin; right <- 1 - m
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.068, "npc"),
+                   gp = grid::gpar(col = tokens$line, lwd = 0.6))
+  .pulso_pdf_draw_logo(m, 0.036, width_npc = 0.098, geo = geo, tokens = tokens)
+  if (nzchar(periodo)) {
+    grid::grid.text(periodo, x = 0.5, y = 0.036, just = c("centre", "centre"),
+                    gp = grid::gpar(fontsize = 7.2, col = tokens$faint))
+  }
+  # Folio con el total: «03 / 09» dice cuánto queda; «Pág. 3» no.
+  folio <- if (is.finite(de)) {
+    sprintf("%02d / %02d", as.integer(pagina), as.integer(de))
+  } else sprintf("%02d", as.integer(pagina))
+  grid::grid.text(folio, x = right, y = 0.036, just = c("right", "centre"),
+                  gp = grid::gpar(fontsize = 7.6, col = tokens$soft, fontface = "bold"))
+  invisible(NULL)
+}
+
+#' Rótulo de sección dentro de una página: versalitas con aire, regla corta y
+#' una bajada opcional.
+#'
+#' No compite con el título de página: es del tamaño de un pie, no de un titular.
+#' Un segundo titular grande en la misma hoja obliga al lector a decidir cuál
+#' manda.
+#' @export
+pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
+                                     tokens = pulso_pdf_tokens(), ty = pulso_pdf_type()) {
+  grid::grid.text(pulso_pdf_versalitas(texto), x = x, y = y, just = c("left", "bottom"),
+                  gp = grid::gpar(col = tokens$navy, fontsize = 7.0, fontface = "bold"))
+  grid::grid.lines(x = grid::unit(c(x, x + ancho), "npc"), y = grid::unit(y - 0.012, "npc"),
+                   gp = grid::gpar(col = tokens$navy, lwd = 1.1))
+  if (nzchar(bajada)) {
+    grid::grid.text(bajada, x = x, y = y - 0.030, just = c("left", "bottom"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = ty$caption))
   }
   invisible(NULL)
 }
