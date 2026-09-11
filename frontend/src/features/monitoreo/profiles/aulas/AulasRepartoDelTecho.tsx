@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
-import { repartoDelTecho, TECHO_DE_AULAS_AGENDABLES } from "./repartoDelTecho";
+import { repartoDelTecho } from "./repartoDelTecho";
+import {
+  leeTechoRecordado, recuerdaTecho, TECHO_MAXIMO, TECHO_MINIMO, TECHO_PASO,
+} from "./techoElegible";
+import { useMarcarRefuerzo } from "./useMarcarRefuerzo";
 import "./aulasRepartoDelTecho.css";
 
 /**
@@ -17,25 +21,83 @@ import "./aulasRepartoDelTecho.css";
  * decisión: **a quién** va cada curso-horario y cuánto cierra, **qué facultad se queda
  * sin recibir** —que es el coste del techo, no un detalle— y **qué elegidas
  * solapan entre sí**, que es lo que hace que la suma de aportes prometa de más.
+ *
+ * Y dos que se pueden hacer desde aquí, del encargo del mismo día: **elegir el
+ * techo** —«poder seleccionar el número de aulas»— y **marcarlas de una vez**
+ * —«un autopicker de los mejores refuerzos»—. Lo marcado sale de esta lista y
+ * aparece en «Refuerzos pedidos», justo debajo.
  */
-export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo }: {
+export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGuardado }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   celdasDeCuota: ReadonlyArray<Record<string, unknown>> | null | undefined;
   plan: ReadonlyArray<MonitoreoAulasPlanRow> | null | undefined;
+  /** Fija el techo y esconde el control. Lo usan las pruebas, no la pantalla. */
   techo?: number;
+  /** Recarga el tablero tras marcar; sin esto lo marcado no sale de la lista. */
+  onGuardado?: () => void;
 }): ReactNode {
-  const r = repartoDelTecho(bloque, celdasDeCuota, plan, techo ?? TECHO_DE_AULAS_AGENDABLES);
+  // **Los hooks van antes de cualquier salida temprana.** Uno colocado bajo el
+  // vacío se llamaría en unos renders y no en otros: es el React #310 que ya
+  // tumbó este perfil una vez.
+  const [elegido, setElegido] = useState(() => leeTechoRecordado());
+  const marca = useMarcarRefuerzo(onGuardado);
+
+  const fijo = techo != null;
+  const enUso = fijo ? techo : elegido;
+  const r = repartoDelTecho(bloque, celdasDeCuota, plan, enUso);
+
+  const mando = fijo ? null : (
+    <div className="aulas-techo-mando">
+      <label className="aulas-techo-cuantas" htmlFor="aulas-techo-n">
+        Techo de cursos-horario agendables
+      </label>
+      <div className="aulas-techo-paso">
+        <button
+          type="button" aria-label="Bajar el techo"
+          disabled={enUso <= TECHO_MINIMO}
+          onClick={() => setElegido(recuerdaTecho(enUso - TECHO_PASO))}
+        >−</button>
+        <input
+          id="aulas-techo-n" type="number" inputMode="numeric"
+          min={TECHO_MINIMO} max={TECHO_MAXIMO} value={enUso}
+          onChange={(e) => setElegido(recuerdaTecho(e.target.value))}
+        />
+        <button
+          type="button" aria-label="Subir el techo"
+          disabled={enUso >= TECHO_MAXIMO}
+          onClick={() => setElegido(recuerdaTecho(enUso + TECHO_PASO))}
+        >+</button>
+      </div>
+      {r.asignadas.length && onGuardado ? (
+        <button
+          type="button" className="aulas-techo-auto"
+          disabled={!!marca.marcando || !!marca.progreso}
+          onClick={() => { void marca.marcarVarias(r.asignadas.map((a) => ({
+            codigo: a.codigo, tipo: "refuerzo" as const, para: a.facultad,
+            motivo: `Reparto del techo: cierra ${fmt(a.util)} respuestas de su facultad.`,
+          }))); }}
+        >
+          {marca.progreso
+            ? `Marcando ${fmt(marca.progreso.hechas)} de ${fmt(marca.progreso.total)}…`
+            : `Marcar ${r.asignadas.length === 1 ? "el mejor" : `los ${fmt(r.asignadas.length)} mejores`}`}
+        </button>
+      ) : null}
+    </div>
+  );
 
   if (!r.asignadas.length) {
     return (
-      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {r.quedaSinCubrir > 0
-          ? <>Hay <strong>{fmt(r.quedaSinCubrir)}</strong> respuestas por cubrir y ningún
-              curso-horario del inventario las cierra: lo que queda disponible no aporta al
-              sexo que falta.</>
-          : <>Ninguna facultad necesita refuerzo ahora mismo: lo que tienen agendado
-              cubre lo que les falta.</>}
-      </p>
+      <div className="aulas-techo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {mando}
+        <p className="mon-profile-muted">
+          {r.quedaSinCubrir > 0
+            ? <>Hay <strong>{fmt(r.quedaSinCubrir)}</strong> respuestas por cubrir y ningún
+                curso-horario del inventario las cierra: lo que queda disponible no aporta al
+                sexo que falta.</>
+            : <>Ninguna facultad necesita refuerzo ahora mismo: lo que tienen agendado
+                cubre lo que les falta.</>}
+        </p>
+      </div>
     );
   }
 
@@ -43,6 +105,7 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo }: {
 
   return (
     <div className="aulas-techo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      {mando}
       <p className="aulas-techo-lectura">
         Con un techo de <strong>{fmt(r.techo)}</strong> cursos-horario más, éstos son los
         que más cierran: <strong>{fmt(r.asignadas.length)}</strong> en{" "}
@@ -55,7 +118,21 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo }: {
         ) : null}
       </p>
 
-      <ol className="aulas-techo-lista">
+      {/* **La confirmación se ve.** Antes el motor contestaba y su mensaje se
+          guardaba en un estado que nadie pintaba: quien pulsaba veía
+          desaparecer la fila y nada más. */}
+      {marca.aviso || marca.fallos.length ? (
+        <p className={`aulas-techo-acuse${marca.fallos.length ? " es-fallo" : ""}`} role="status">
+          {marca.aviso}
+          {marca.fallos.length ? (
+            <> {marca.fallos.length === 1 ? "No entró" : "No entraron"}{" "}
+              <b>{marca.fallos.map((f) => f.codigo).join(", ")}</b>: {marca.fallos[0]?.motivo}</>
+          ) : null}
+          {" "}<button type="button" onClick={marca.limpiar}>Entendido</button>
+        </p>
+      ) : null}
+
+      <ol className={`aulas-techo-lista${onGuardado ? " es-con-accion" : ""}`}>
         {r.asignadas.map((a, i) => (
           <li key={a.codigo} className={a.traslape ? `es-solapa es-${a.traslape}` : ""}>
             <span className="aulas-techo-puesto">{fmt(i + 1)}</span>
@@ -97,6 +174,18 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo }: {
                 <em>a su docente ya se le llamó por {a.docenteYaContactado}</em>
               ) : null}
             </span>
+            {/* Marcar de una en una, para el caso en que el lote no valga: el
+                traslape descalifica a una concreta y el resto sigue bien. */}
+            {onGuardado ? (
+              <span className="aulas-techo-accion">
+                <button
+                  type="button"
+                  disabled={!!marca.marcando || !!marca.progreso}
+                  onClick={() => { void marca.marcar(a.codigo, "refuerzo", a.facultad,
+                    `Reparto del techo: cierra ${fmt(a.util)} respuestas de su facultad.`); }}
+                >{marca.marcando === a.codigo ? "Marcando…" : "Marcar"}</button>
+              </span>
+            ) : null}
           </li>
         ))}
       </ol>
@@ -128,6 +217,10 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo }: {
             {r.traslapes.docente === 1 ? "repite docente" : "repiten docente"} y{" "}
             <b>{fmt(r.traslapes.curso)}</b>{" "}
             {r.traslapes.curso === 1 ? "repite curso" : "repiten curso"} con otra de la lista.</>
+        ) : null}
+        {onGuardado ? (
+          <> Marcar deja el curso-horario en <b>REFUERZO POR CONTACTAR</b>: no lo agenda,
+            lo pone en la cola del agendador y lo saca de esta lista.</>
         ) : null}
       </p>
     </div>

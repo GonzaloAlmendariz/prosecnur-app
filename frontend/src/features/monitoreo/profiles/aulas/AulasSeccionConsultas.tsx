@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 
 import {
   apiMonitoreoAulasImportFromCalcMuestra,
-  apiMonitoreoAulasMarcarRefuerzo,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
   apiMonitoreoState,
@@ -15,6 +14,10 @@ import {
 } from "../../../../api/client";
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { AulasBancoExtras } from "./AulasBancoExtras";
+import { useMarcarRefuerzo } from "./useMarcarRefuerzo";
+import "./aulasRefuerzosPedidos.css";
+import { AulasRefuerzosPedidos } from "./AulasRefuerzosPedidos";
+import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasLlamadaDeFacultad } from "./AulasLlamadaDeFacultad";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
@@ -72,23 +75,16 @@ export function AulasSeccionConsultas({
    * del Sheets, pero se pinta en «Aulas Agendadas» y «Aulas Aplicadas (Campo)»,
    * que son del equipo y la app no toca.
    */
-  const [marcando, setMarcando] = useState("");
-  const [avisoDeMarca, setAvisoDeMarca] = useState("");
-  const marcar = async (codigo: string, tipo: "complemento" | "refuerzo", para: string) => {
-    setMarcando(codigo);
-    setAvisoDeMarca("");
-    try {
-      const res = await apiMonitoreoAulasMarcarRefuerzo({
-        operational_code: codigo, tipo, para,
-      });
-      setAvisoDeMarca(res.mensaje);
-      onGuardado?.();
-    } catch (e) {
-      setAvisoDeMarca(e instanceof Error ? e.message : "No se pudo marcar el refuerzo.");
-    } finally {
-      setMarcando("");
-    }
-  };
+  /**
+   * **La llamada vive en `useMarcarRefuerzo` y no aquí.** La comparte con el
+   * reparto del techo de la pestaña Refuerzos, y la copia que había en esta
+   * hoja tenía un defecto que sólo se ve al buscarle el consumidor: guardaba el
+   * mensaje del motor en un estado **que ningún JSX pintaba**. Quien marcaba
+   * veía cerrarse el popover y nada más —ni confirmación, ni el motivo cuando
+   * el motor la rechazaba—.
+   */
+  const marca = useMarcarRefuerzo(onGuardado);
+  const marcar = marca.marcar;
     /**
      * **Qué curso-horario tiene el popover abierto.** Es estado de la sección y
      * no dirección: no abre una vista nueva ni cambia lo que se lee, elige a
@@ -170,7 +166,8 @@ export function AulasSeccionConsultas({
     const enParte = pestana === "parte";
     const enBrechas = pestana === "brechas";
     const enExtras = pestana === "extras";
-    const enCadena = !enFicha && !enParte && !enBrechas && !enExtras;
+    const enRefuerzos = pestana === "refuerzos";
+    const enCadena = !enFicha && !enParte && !enBrechas && !enExtras && !enRefuerzos;
   return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
         {enFicha ? (
@@ -488,6 +485,69 @@ export function AulasSeccionConsultas({
           />
           <AulasBancoExtras banco={dashboard.banco_extras ?? null} facultadEnFoco={facultadEnFoco} />
         </section>
+        ) : null}
+
+        {enRefuerzos ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-refuerzos"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Refuerzos dentro del techo</h3>
+            <span>
+              cuántos cursos-horario más se pueden agendar · a qué facultad va cada uno
+            </span>
+          </div>
+          {/* **La continuación de Extras.** Allí está el inventario; aquí, qué
+              conviene pedir de él. El reparto vivía en Resumen y Gonzalo lo
+              movió el 2026-09-11: «los refuerzos deberían tener su propia
+              pestaña en Consultas luego de la pestaña Extras». En Resumen
+              competía con otros ocho paneles y, sobre todo, allí no cabían sus
+              acciones: elegir el techo y marcar. */}
+          <AulasRepartoDelTecho
+            bloque={dashboard.efectividad_seguimiento}
+            celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+            // El plan ENTERO, sin el filtro de facultad: el reparto compara
+            // facultades entre sí para decidir a cuál le rinde más cada aula, y
+            // con una sola en foco no habría reparto que hacer.
+            plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            onGuardado={onGuardado}
+          />
+        </section>
+        ) : null}
+        {enRefuerzos ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-refuerzos-pedidos"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Refuerzos pedidos</h3>
+            <span>a dónde fue lo marcado y en qué punto está su gestión</span>
+          </div>
+          {/* La respuesta a «qué pasa cuando ya selecciones uno, a dónde se va»
+              (Gonzalo, 2026-09-11). En panel aparte del reparto y no dentro de
+              él: uno decide y el otro rinde cuentas, y mezclarlos haría que la
+              lista de candidatas y la de pedidas se lean como una sola. */}
+          <AulasRefuerzosPedidos
+            plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+          />
+        </section>
+        ) : null}
+
+        {/* **El acuse de la marca, que antes no se pintaba.** El popover se
+            cierra al elegir, así que sin esto la única señal de que el motor
+            contestó era que la fila cambiaba de sitio en otra pestaña. */}
+        {marca.aviso || marca.fallos.length ? (
+          <p className={`aulas-acuse-marca${marca.fallos.length ? " es-fallo" : ""}`} role="status">
+            {marca.aviso}
+            {marca.fallos.length ? (
+              <>No se pudo marcar <b>{marca.fallos.map((f) => f.codigo).join(", ")}</b>:{" "}
+                {marca.fallos[0]?.motivo}</>
+            ) : null}
+            {" "}<button type="button" onClick={marca.limpiar}>Entendido</button>
+          </p>
         ) : null}
 
         {/* **El popover de candidatos, ahora también en Consultas.** Existía

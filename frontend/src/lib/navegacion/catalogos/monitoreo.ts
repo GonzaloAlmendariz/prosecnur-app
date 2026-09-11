@@ -15,6 +15,7 @@ import {
   Download,
   Gauge,
   Layers3,
+  LifeBuoy,
   Link2,
   ListChecks,
   MapPin,
@@ -339,6 +340,17 @@ export const MONITOREO_PESTANAS = {
       // hombres y mujeres de cada facultad. Estaban en el plan —639 en el
       // estudio de 2026 contra 202 titulares— y no se veían en ninguna pantalla.
       pestana("aulas", "consultas", "extras", "Extras", "Aulas adicionales para la cuota por facultad", Boxes),
+      // **Pestaña propia, y detrás de Extras, por pedido de Gonzalo del
+      // 2026-09-11**: «los refuerzos deberían tener su propia pestaña en
+      // Consultas luego de la pestaña Extras».
+      //
+      // Va después de Extras porque es su continuación: Extras dice qué
+      // inventario hay, y Refuerzos qué se hace con él —cuáles conviene pedir
+      // dentro de un techo, cuáles se pidieron ya y en qué punto está la
+      // gestión de cada una—. Y va en pestaña propia porque es un circuito
+      // entero con acciones: elegir el techo, marcar y seguir lo marcado no
+      // caben de paso en un panel de Resumen.
+      pestana("aulas", "consultas", "refuerzos", "Refuerzos", "Qué reforzar dentro del techo y en qué va lo pedido", LifeBuoy),
     ],
   },
 } as const satisfies Record<

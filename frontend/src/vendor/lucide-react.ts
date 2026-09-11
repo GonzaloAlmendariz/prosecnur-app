@@ -153,6 +153,7 @@ export { default as Keyboard } from "lucide-react/dist/esm/icons/keyboard.mjs";
 export { default as KeyRound } from "lucide-react/dist/esm/icons/key-round.mjs";
 export { default as Landmark } from "lucide-react/dist/esm/icons/landmark.mjs";
 export { default as Layers } from "lucide-react/dist/esm/icons/layers.mjs";
+export { default as LifeBuoy } from "lucide-react/dist/esm/icons/life-buoy.mjs";
 export { default as Layers3 } from "lucide-react/dist/esm/icons/layers.mjs";
 export { default as LayoutDashboard } from "lucide-react/dist/esm/icons/layout-dashboard.mjs";
 export { default as LayoutGrid } from "lucide-react/dist/esm/icons/layout-grid.mjs";
