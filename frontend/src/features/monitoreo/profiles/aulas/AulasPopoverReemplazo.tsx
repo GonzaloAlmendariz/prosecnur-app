@@ -136,83 +136,95 @@ function Candidato({
   const f = c.fila;
   return (
     <li className={`aulas-reemplazo-item${puesto === 1 ? " es-mejor" : ""}`}>
-      <div className="aulas-reemplazo-cabeza">
+      {/* **La tarjeta, con el lenguaje del ensayo del 2026-09-10.** Gonzalo:
+          «no se parece en absolutamente nada a la sofisticación y el buen
+          diseño que habías tenido en el artefacto». Tenía razón: la pieza
+          llevaba una tabla de cuatro columnas para el sexo, dos barras de medida
+          apiladas y un botón de ancho completo, y eso se lee como un formulario,
+          no como una elección entre tres aulas.
+
+          Lo que manda ahora es la comparación: el puesto a la izquierda, la
+          identidad en el centro, la composición en un chip y **las dos varas
+          juntas a la derecha**, que es donde se decide. */}
+      <div className="aulas-reemplazo-fila">
         <span className="aulas-reemplazo-puesto">{puesto}</span>
-        <span className="aulas-reemplazo-codigo">{f.operational_code || f.classroom_id}</span>
-        {puesto === 1 ? <span className="aulas-reemplazo-sello">el mejor</span> : null}
-      </div>
 
-      {/* Lo que hace falta para decidir: qué curso, dónde, de qué facultad,
-          cuándo. El dónde y el cuándo van como chips del Sistema Pabellón
-          (B33) — el mismo A206 con el mismo tono que la Agenda—, y la
-          facultad como badge (canon B34): al comparar candidatos de tres
-          orígenes hay que ver de dónde es cada uno. El docente y los
-          elegibles quedan en su peso de texto. */}
-      <p className="aulas-reemplazo-curso">{f.course_name || f.label || "Curso sin nombre"}</p>
-      {f.venue || f.faculty || f.sesiones_dia_hora ? (
-        <div className="aulas-chips-fila">
-          {f.venue ? <ChipLugar lugar={f.venue} /> : null}
-          {f.faculty ? <ChipDato>{f.faculty}</ChipDato> : null}
-          {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
-        </div>
-      ) : null}
-      <p className="aulas-reemplazo-datos">
-        {f.teacher ? <span>{f.teacher}</span> : null}
-        <span>{f.eligible_n} elegibles</span>
-      </p>
-
-      {/* El sexo, en las dos lecturas. Va ANTES de las medidas porque es el
-          dato con el que se juzga si «cierra brecha» significa algo aquí. */}
-      {(() => {
-        const r = repartoPorSexo(f);
-        return (
-          <table className="aulas-reemplazo-sexo">
-            <tbody>
-              <tr>
-                <th scope="row">Elegibles</th>
-                <td><b>{r.elegibles.mujeres}</b> mujeres</td>
-                <td><b>{r.elegibles.hombres}</b> hombres</td>
-                <td className="es-total">{r.elegibles.total}</td>
-              </tr>
-              <tr>
-                <th scope="row">Esperadas <em>×{r.tasa.toFixed(2)}</em></th>
-                <td><b>{r.esperadas.mujeres}</b> mujeres</td>
-                <td><b>{r.esperadas.hombres}</b> hombres</td>
-                <td className="es-total">{r.esperadas.total}</td>
-              </tr>
-            </tbody>
-          </table>
-        );
-      })()}
-
-      <div className="aulas-reemplazo-medidas">
-        <span className="aulas-reemplazo-medida">
-          <em>se parece</em>
-          <Barra valor={c.parecido} tono="parecido" />
-          <strong>{pct(c.parecido)}</strong>
-        </span>
-        {conBrecha ? (
-          <span className="aulas-reemplazo-medida">
-            <em>cierra brecha</em>
-            <Barra valor={c.ayuda} tono="ayuda" />
-            <strong>{pct(c.ayuda)}</strong>
+        <span className="aulas-reemplazo-quien">
+          <span className="aulas-reemplazo-codigo">
+            {f.operational_code || f.classroom_id}
+            {puesto === 1 ? <b className="aulas-reemplazo-sello">el mejor</b> : null}
           </span>
-        ) : null}
-      </div>
+          <span className="aulas-reemplazo-curso">
+            {f.course_name || f.label || "Curso sin nombre"}
+            {/* El docente en su peso de texto, no dentro de un chip de color:
+                no se decide por él, pero es a quien hay que llamar. */}
+            {f.teacher ? <em> · {f.teacher}</em> : null}
+          </span>
+          <span className="aulas-chips-fila">
+            {/* **La facultad primero** (canon B34). Es la frontera dura del
+                modelo —de ahí no se sale— y al comparar candidatos de tres
+                procedencias hay que ver de dónde es cada uno sin leer. */}
+            {f.faculty ? <ChipDato>{f.faculty}</ChipDato> : null}
+            {f.venue ? <ChipLugar lugar={f.venue} /> : null}
+            {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
+          </span>
+          {/* **Lo que este candidato RINDE, con los dos sexos.**
 
-      {/* Lo que se concede al tomarlo. Vacío cuando es de la misma celda: ahí no
-          hay nada que advertir y rellenarlo con «mismo todo» sería ruido. */}
-      {c.concesiones.length ? (
-        <p className="aulas-reemplazo-concesiones">
-          <span>Cambias:</span> {c.concesiones.join(" · ")}
-        </p>
-      ) : (
-        <p className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: no concedes nada.</p>
-      )}
+              Gonzalo, 2026-09-10: «sería muy bueno que en el popover no sólo te
+              muestre la cantidad de mujeres en los al aire, sino también la
+              cantidad de hombres y mujeres en todos los que te muestra». Con un
+              aula entran los dos y los dos mueven la cuota; enseñar sólo el
+              sexo que cierra la brecha deja la mitad de la decisión a ciegas.
+
+              Se enseña lo ESPERADO —elegibles por la tasa de su aula—, que es
+              lo que de verdad va a llegar, y el total es la suma de las dos
+              cifras, nunca un tercer redondeo. */}
+          {(() => {
+            const r = repartoPorSexo(f);
+            if (!r.elegibles.total) return null;
+            return (
+              <span className="aulas-reemplazo-rinde">
+                Rinde <b>{r.esperadas.mujeres}</b> mujeres y <b>{r.esperadas.hombres}</b> hombres
+                {" = "}<strong>{r.esperadas.total}</strong>
+                <em>de {fmt(r.elegibles.total)} elegibles al {pctPerfil(r.tasa)}</em>
+              </span>
+            );
+          })()}
+          {/* Lo que se concede al tomarlo. Vacío cuando es del mismo grupo: ahí
+              no hay nada que advertir y rellenarlo sería ruido. */}
+          {c.concesiones.length ? (
+            <span className="aulas-reemplazo-concesiones">
+              Concedes: {c.concesiones.join(" · ")}
+            </span>
+          ) : (
+            <span className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: no concedes nada.</span>
+          )}
+        </span>
+
+        {/* **Las dos varas, juntas y nunca sumadas.** Una protege el diseño
+            —que el reemplazo se parezca al que cae— y la otra cierra la cuota;
+            puestas una debajo de otra se comparan de un vistazo. «Cierra
+            brecha» sólo existe si hay brecha: pintarla a cero diría que el
+            candidato no ayuda, cuando lo cierto es que no hay nada que cerrar. */}
+        <span className="aulas-reemplazo-varas">
+          <span className="aulas-reemplazo-vara es-parecido">
+            <em>se parece</em>
+            <i><b style={{ width: `${Math.round(c.parecido * 100)}%` }} /></i>
+            <strong>{Math.round(c.parecido * 100)}</strong>
+          </span>
+          {conBrecha ? (
+            <span className="aulas-reemplazo-vara es-ayuda">
+              <em>cierra brecha</em>
+              <i><b style={{ width: `${Math.round(c.ayuda * 100)}%` }} /></i>
+              <strong>{Math.round(c.ayuda * 100)}</strong>
+            </span>
+          ) : null}
+        </span>
+      </div>
 
       {onElegir ? (
         <button type="button" className="aulas-reemplazo-elegir" onClick={() => onElegir(f)}>
-          Reemplazar con ésta
+          Elegir {f.operational_code || f.classroom_id}
         </button>
       ) : null}
     </li>

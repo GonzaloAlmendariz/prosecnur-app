@@ -15,12 +15,12 @@ import {
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
+import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
-import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { AulasFichaDeCursoHorario } from "./AulasFichaDeCursoHorario";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
@@ -192,6 +192,38 @@ export function AulasSeccionConsultas({
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
+            <h3>A quién le va peor, y en qué sexo</h3>
+            <span>el mapa de la deuda · pulsa una facultad para ver qué la hundió</span>
+          </div>
+          {/* **El contexto va ANTES de la tabla, no después.**
+
+              Gonzalo, 2026-09-10, sobre lo que había aquí: «este embudo raro que
+              has hecho de los cinco con más brecha, los diez, los veinte… eso ni
+              siquiera estaba planteado en el artefacto; en el artefacto tenías un
+              mapa de ejes de cuál faltaba más, si faltaba más en hombres o en
+              mujeres».
+
+              Tenía razón en las dos mitades. El embudo contestaba «¿hay atajo?»,
+              que es una pregunta sobre la FORMA de la lista y no sobre el campo:
+              saber que los diez peores concentran el 28 % no dice a quién llamar.
+              El mapa sí: sitúa cada facultad en su cuadrante y separa la que debe
+              en los dos sexos de la que sólo debe en uno —el caso que la cifra
+              global esconde—, y al pulsarla abre su fila. Es el índice con el que
+              se entra a la tabla que va debajo. */}
+          <AulasComoVaCadaFacultad
+            bloque={dashboard.efectividad_seguimiento}
+            porSexo={(dashboard.efectividad_por_sexo ?? []) as Array<Record<string, unknown>>}
+            facultadEnFoco={facultadEnFoco}
+          />
+        </section>
+        ) : null}
+        {enBrechas ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
             {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
                 columna del libro la trae escrita. */}
             <h3>Cursos-horario con brecha</h3>
@@ -205,9 +237,6 @@ export function AulasSeccionConsultas({
               {" · "}el diagnóstico que decide si toca complemento (B) o refuerzo (C)
             </span>
           </div>
-          {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
-              concentran lo que falta, y puede ser al revés. Esto lo dice. */}
-          <AulasConcentracionBrecha filas={(dashboard.brechas ?? []) as MonitoreoRow[]} />
           {/* **La tabla genérica se fue el 2026-09-10.** Enseñaba siete columnas
               del payload —`operational_status`, `expected_valid`— y ninguna
               contestaba la pregunta con la que se entra: ¿esto es grave, y qué
@@ -365,8 +394,15 @@ export function AulasSeccionConsultas({
               filas={todas}
               // Lo que le falta a SU facultad, por sexo: es contra lo que se
               // elige, y el motor ya lo tiene por celda.
+              // **`quotas_sex_faculty` y no `avance_sexo_facultad`.** El
+              // segundo trae `brecha`, que es lo que faltará AL CIERRE
+              // proyectando todo el plan: en este corte vale 0 en las treinta
+              // celdas —«llega con todo el plan, con margen»— y con eso la
+              // ayuda de cada candidato se apagaba entera. Lo que decide a
+              // quién meter es lo que falta HOY, que es `missing`, y ése vive
+              // en las cuotas. Es el mismo bloque que lee Registro de campo.
               brecha={brechaDeLaFacultad(
-                (dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>,
+                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
                 String(caido.faculty ?? ""),
               )}
               onElegir={() => setRelevoDe("")}

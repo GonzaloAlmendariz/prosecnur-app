@@ -40,26 +40,54 @@ export function AulasBrechasDelCorte({ filas, onRelevo }: {
   }
 
   const r = repartoDeBrechas(brechas);
-  // La lista es larga —136 en el corte del 10 de setiembre— y se lee de arriba
-  // abajo hasta que deja de haber trabajo: se publica lo que pide atención y el
-  // resto se cuenta.
-  const visibles = brechas.filter((b) => b.severidad !== "cumplida").slice(0, 40);
-  const cumplidas = brechas.length - brechas.filter((b) => b.severidad !== "cumplida").length;
-  const restantes = brechas.filter((b) => b.severidad !== "cumplida").length - visibles.length;
+  /**
+   * **La tabla lista lo APLICADO que se quedó corto, y sólo eso.**
+   *
+   * Gonzalo, 2026-09-10: «no entiendo por qué está mostrando los sin campo
+   * cuando debería mostrar los aplicados que tienen bajo rendimiento».
+   *
+   * Un curso-horario sin aplicar no tiene rendimiento que juzgar: su columna
+   * «Rinde» iría vacía y su «Faltan» sería la meta entera, así que ordenado por
+   * lo que falta copaba las primeras filas y empujaba fuera de la vista justo lo
+   * que esta tabla existe para encontrar. Su salida tampoco es la misma —se
+   * agenda, no se complementa—, y ese trabajo vive en Agendación.
+   *
+   * No desaparece: se cuenta en la lectura de arriba, que es donde una cifra
+   * grande que no cabe en la tabla tiene que seguir viéndose.
+   */
+  const atendibles = brechas.filter((b) => b.severidad !== "cumplida" && b.severidad !== "sin_aplicar");
+  const visibles = atendibles.slice(0, 40);
+  const cumplidas = brechas.filter((b) => b.severidad === "cumplida").length;
+  const restantes = atendibles.length - visibles.length;
+
+  if (!atendibles.length) {
+    return (
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        Ningún curso-horario aplicado se quedó por debajo de lo previsto
+        {r.sinAplicar ? <> · quedan {fmt(r.sinAplicar)} sin aplicar, que se resuelven agendando</> : null}.
+      </p>
+    );
+  }
 
   return (
     <div className="aulas-brc" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      {/* La lectura encabeza con lo que la tabla contesta —cuántos aplicados se
+          quedaron cortos— y deja lo que no está aquí al final, nombrado y con su
+          salida, para que no parezca que se perdió. */}
       <p className="aulas-brc-lectura">
-        <strong>{fmt(r.faltanEnTotal)}</strong> respuestas por conseguir en{" "}
-        <strong>{fmt(r.total)}</strong> cursos-horario
-        {r.sinAplicar ? <> · <strong>{fmt(r.sinAplicar)}</strong> todavía sin aplicar</> : null}
+        <strong>{fmt(atendibles.length)}</strong> cursos-horario aplicados rinden por debajo
+        {" y suman "}<strong>{fmt(atendibles.reduce((n, b) => n + Math.max(0, b.faltan), 0))}</strong>
+        {" respuestas por conseguir"}
         {r.muyPorDebajo ? <> · <strong>{fmt(r.muyPorDebajo)}</strong> rinden menos de la mitad de lo previsto</> : null}
+        {r.sinAplicar ? (
+          <> · aparte, <strong>{fmt(r.sinAplicar)}</strong> todavía sin aplicar: ésos se agendan, no se complementan</>
+        ) : null}
       </p>
 
       <div className="aulas-brc-marco">
         <table className="aulas-brc-tabla">
           <caption className="aulas-brc-caption">
-            Cursos-horario con brecha, ordenados por lo que hay que atender primero.
+            Cursos-horario aplicados que rindieron por debajo, del más grave al menos.
           </caption>
           <thead>
             <tr>

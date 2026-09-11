@@ -51,9 +51,24 @@ describe("las brechas del corte", () => {
     expect(cumplida.accion).toBe("nada");
   });
 
-  it("ordena por lo que hay que atender primero", () => {
-    // Sin aplicar antes que lo corto, y dentro de cada grupo lo que más falta.
-    expect(brechasDelCorte(plan).map((x) => x.codigo)).toEqual(["CH 61", "CH 23", "CH 84", "CH 95"]);
+  it("ordena por lo que hay que atender primero: el bajo rendimiento, no el sin aplicar", () => {
+    /**
+     * **Contrato cambiado a propósito el 2026-09-10**, no un test que se
+     * aflojó. Antes `sin_aplicar` pesaba 0 y encabezaba; ahora cierra la lista.
+     *
+     * Gonzalo, con la tabla delante: «no entiendo por qué está mostrando los sin
+     * campo cuando debería mostrar los aplicados que tienen bajo rendimiento».
+     * Un aula sin visitar no tiene rendimiento que juzgar —le falta la meta
+     * entera porque no le ha tocado—, así que al ordenar por lo que falta
+     * copaba las primeras filas y enterraba el aula que sí se visitó y se quedó
+     * corta, que es la única que justifica meter otra aula detrás.
+     *
+     * El orden de dentro no cambia: lo más grave primero y, a igual severidad,
+     * lo que más falta.
+     */
+    expect(brechasDelCorte(plan).map((x) => x.codigo)).toEqual(["CH 23", "CH 84", "CH 95", "CH 61"]);
+    // Y la razón de que CH 61 baje es su severidad, no su cifra.
+    expect(brechasDelCorte(plan).at(-1)!.severidad).toBe("sin_aplicar");
   });
 
   it("trae la composición por sexo: decide si un relevo cerraría lo que falta", () => {

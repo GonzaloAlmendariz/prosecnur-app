@@ -213,53 +213,9 @@
    de dos barras de color deja las barras sin contraste propio. */
 .aulas-reemplazo-item.es-mejor { border-color: var(--pulso-text-soft); background: var(--pulso-surface); }
 
-.aulas-reemplazo-cabeza { display: flex; align-items: center; gap: 6px; }
-.aulas-reemplazo-puesto {
-  display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
-  background: var(--pulso-text-soft); color: var(--pulso-surface);
-  font-size: var(--aulas-min); font-weight: var(--pulso-weight-semibold);
-}
-.aulas-reemplazo-codigo { font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
-.aulas-reemplazo-sello {
-  padding: 1px 6px; border-radius: 8px;
-  background: var(--pulso-text); color: var(--pulso-surface);
-  font-size: var(--aulas-min); text-transform: uppercase; letter-spacing: 0.04em;
-}
 
-.aulas-reemplazo-curso { margin: 0; font-size: var(--aulas-txt); }
-.aulas-reemplazo-datos { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
-.aulas-reemplazo-datos span { white-space: nowrap; }
-
-/* Las dos medidas comparten columnas, y la del valor se mide sola.
- *
- * Estaba clavada a `34px`, ancho de «99%». «100%» tiene un caracter mas y pedia
- * 48: se salia 14 px y el usuario veia el porcentaje cortado. Un ancho fijo para
- * un texto variable falla en el caso extremo, que aqui es justo el que mas
- * importa —un candidato que se parece al 100 %—.
- *
- * `display: contents` en cada fila hace que sus tres partes sean items del
- * MISMO grid, asi que la columna del valor se dimensiona con `max-content` sobre
- * las dos filas a la vez: nunca recorta y las barras siguen acabando alineadas.
- * Con una columna por fila, «99 %» y «100 %» dejarian las barras desparejas.
- */
-.aulas-reemplazo-medidas {
-  display: grid;
-  /* `minmax(48px, max-content)`: 48 es el SUELO —lo que mide «100 %», el valor
-   * mas ancho posible— y `max-content` el techo. El suelo alinea las barras
-   * ENTRE tarjetas, que es donde se nota: con `max-content` a secas, una tarjeta
-   * al 99 % reservaba 37 px y otra al 100 % reservaba 48, y las barras acababan
-   * desparejas bajando por la lista. El techo garantiza que si la fuente crece
-   * el valor sigue sin recortarse, que era el defecto original —una columna
-   * clavada a 34 px para un texto que a veces pide 48—.
-   */
-  grid-template-columns: 72px minmax(0, 1fr) minmax(48px, max-content);
-  align-items: center;
-  gap: 3px 6px;
-}
-
-.aulas-reemplazo-medida { display: contents; }
-.aulas-reemplazo-medida em { color: var(--pulso-text-soft); font-size: var(--aulas-min); font-style: normal; }
-.aulas-reemplazo-medida strong { font-size: var(--aulas-min); font-variant-numeric: tabular-nums; text-align: right; }
+/* El carril de la barra: el relleno lo pinta cada medida con su color, y el
+   fondo es el mismo gris de borde en las dos para que se comparen. */
 .aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
 .aulas-reemplazo-barra i { display: block; height: 100%; border-radius: 3px; }
 .aulas-reemplazo-barra.es-parecido i { background: #002457; }
@@ -269,40 +225,19 @@
    del item: por debajo del piso, y medido en pantalla. A este tamano el aviso
    necesita tinta de texto; el ambar se queda en el rotulo, que es corto y va en
    semibold, donde 3,71 con peso si se sostiene. */
-.aulas-reemplazo-concesiones { margin: 0; color: var(--pulso-text); font-size: var(--aulas-min); }
 .aulas-reemplazo-concesiones span { color: #8a570d; font-weight: var(--pulso-weight-semibold); }
-.aulas-reemplazo-concesiones.es-limpia { color: var(--pulso-text-soft); }
 
-.aulas-reemplazo-elegir {
-  justify-self: start; margin-top: 2px; padding: 4px 10px;
-  border: 1px solid var(--pulso-border); border-radius: 7px;
-  background: var(--pulso-surface); cursor: pointer;
-  color: var(--pulso-text); font-size: var(--aulas-min); font-weight: var(--pulso-weight-medium);
-}
 
 .aulas-reemplazo-vacio { margin: 0; padding: 10px; border-radius: 9px; background: var(--pulso-surface-muted); color: var(--pulso-text-soft); font-size: var(--aulas-min); }
 
 /* El reparto por sexo, en dos lecturas: a cuanta gente se entra (elegibles) y
    cuantas encuestas salen (esperadas). Van en tabla y no en prosa porque se
    comparan entre candidatos: la columna alinea, la frase no. */
-.aulas-reemplazo-sexo { width: 100%; border-collapse: collapse; font-size: var(--aulas-min); }
-.aulas-reemplazo-sexo th {
-  padding: 2px 8px 2px 0; color: var(--pulso-text-soft);
-  font-weight: var(--pulso-weight-medium); text-align: left; white-space: nowrap;
-}
-.aulas-reemplazo-sexo th em { font-style: normal; opacity: 0.7; }
-.aulas-reemplazo-sexo td { padding: 2px 8px 2px 0; color: var(--pulso-text-soft); white-space: nowrap; }
-.aulas-reemplazo-sexo td b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
 /* El archivo terminaba con este selector ABIERTO a fin de archivo (51 «{» vs
    50 «}»): en dev el parser cierra el bloque solo y nadie lo nota, pero en el
    bundle concatenado el bloque abierto se TRAGA los archivos siguientes y el
    escritorio entero perdía el CSS del perfil. Cerrado con las declaraciones
    coherentes con sus filas hermanas. */
-.aulas-reemplazo-sexo td.es-total {
-  color: var(--pulso-text);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
 
 /* E24 — dos toques del loop de mejora (2026-09-03): el cero de la solapa
    susurra (la doctrina de E8/E10: declarado, clickeable, sin gritar), y el
@@ -312,7 +247,6 @@
   color: var(--pulso-text-faint);
   background: transparent;
 }
-.aulas-reemplazo-medida em { white-space: nowrap; }
 
 /* ── La deuda contra la que se elige ──────────────────────────────────────
    Gonzalo, 2026-09-10: «¿bajo qué concepto lo estamos haciendo, qué estamos
@@ -419,4 +353,149 @@
   .aulas-reemplazo-duelo-lados { grid-template-columns: 1fr; }
   .aulas-reemplazo-duelo-lados > div + div { border-left: 0; border-top: 1px solid var(--pulso-border); }
   .aulas-reemplazo-duelo-o { display: none; }
+}
+
+/* ── La tarjeta de candidato, con el lenguaje del ensayo ──────────────────
+   Gonzalo, 2026-09-10: «no se parece en absolutamente nada a la sofisticación
+   y el buen diseño que habías tenido en el artefacto».
+
+   Lo que cambia: la pieza llevaba una tabla de cuatro columnas para el sexo,
+   dos barras apiladas y un botón de ancho completo —forma de formulario—. Aquí
+   manda la COMPARACIÓN: puesto, identidad, y las dos varas a la derecha, que
+   es donde se decide. Tres candidatos se barren en vertical sin leer nada. */
+.aulas-reemplazo-fila {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 184px;
+  align-items: start;
+  gap: 12px;
+}
+
+.aulas-reemplazo-puesto {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-item:first-child .aulas-reemplazo-puesto {
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+}
+
+.aulas-reemplazo-quien { display: grid; gap: 4px; min-width: 0; }
+
+.aulas-reemplazo-codigo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.aulas-reemplazo-sello {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.aulas-reemplazo-curso {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+  line-height: 1.35;
+}
+.aulas-reemplazo-curso em { font-style: normal; color: var(--pulso-text-faint); }
+
+/* Lo que el candidato rinde: dos cifras que suman la tercera, en una línea.
+   Va en texto y no en chip porque es la frase con la que se decide, no una
+   seña del box; los chips de encima son la identidad, ésta es la consecuencia. */
+.aulas-reemplazo-rinde {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+.aulas-reemplazo-rinde b { font-weight: 600; color: var(--pulso-text); }
+.aulas-reemplazo-rinde strong {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: 700;
+}
+.aulas-reemplazo-rinde em {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-reemplazo-concesiones {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-warn-fg);
+  line-height: 1.4;
+}
+.aulas-reemplazo-concesiones.es-limpia { color: var(--pulso-text-faint); }
+
+/* Las dos varas, juntas y nunca sumadas. */
+.aulas-reemplazo-varas { display: grid; gap: 5px; }
+.aulas-reemplazo-vara {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 7px;
+}
+.aulas-reemplazo-vara em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+.aulas-reemplazo-vara i {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.aulas-reemplazo-vara i b { display: block; height: 100%; border-radius: 3px; }
+.aulas-reemplazo-vara.es-parecido i b { background: var(--pulso-primary); }
+.aulas-reemplazo-vara.es-ayuda i b { background: var(--module-accent, var(--pulso-primary)); }
+.aulas-reemplazo-vara strong {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+/* El botón deja de ocupar todo el ancho: es una acción, no un formulario. */
+.aulas-reemplazo-elegir {
+  justify-self: start;
+  margin-top: 9px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-reemplazo-elegir:hover { filter: brightness(0.94); }
+
+@media (max-width: 640px) {
+  .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
+  .aulas-reemplazo-varas { grid-column: 2; }
 }
