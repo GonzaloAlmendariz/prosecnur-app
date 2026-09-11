@@ -15,6 +15,7 @@ import {
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
+import { AulasLlamadaDeFacultad } from "./AulasLlamadaDeFacultad";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
@@ -245,6 +246,40 @@ export function AulasSeccionConsultas({
             filas={brechas as unknown as MonitoreoAulasPlanRow[]}
             onRelevo={(codigo) => setRelevoDe(codigo)}
           />
+          {/* **El refuerzo no sale de una fila.** Es la nota del ensayo: cuando
+              la brecha es de la facultad, ninguna aula la explica, y esa entrada
+              va abajo y separada. Meterla dentro de la tabla pediría colgarle la
+              acción a una fila arbitraria.
+
+              Sin facultad en foco se elige la que más debe, que es de la que
+              alguien querría salir a reforzar al mirar esta tabla. */}
+          {(() => {
+            const cuotas = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+            const candidata = facultadEnFoco || (() => {
+              let peor = "";
+              let cuanto = 0;
+              for (const f of new Set(brechas.map((b) => String((b as Record<string, unknown>).faculty ?? "")))) {
+                if (!f) continue;
+                const d = brechaDeLaFacultad(cuotas, f);
+                const suma = d ? Math.max(0, d.mujeres) + Math.max(0, d.hombres) : 0;
+                if (suma > cuanto) { cuanto = suma; peor = f; }
+              }
+              return peor;
+            })();
+            if (!candidata) return null;
+            const suyas = brechas.filter(
+              (b) => String((b as Record<string, unknown>).faculty ?? "") === candidata);
+            const mayor = suyas.reduce(
+              (n, b) => Math.max(n, Math.round(Number((b as Record<string, unknown>).brecha) || 0)), 0);
+            return (
+              <AulasLlamadaDeFacultad
+                facultad={candidata}
+                deuda={brechaDeLaFacultad(cuotas, candidata)}
+                mayorBrecha={mayor}
+                onRefuerzo={(f) => setRefuerzoDe(f)}
+              />
+            );
+          })()}
         </section>
         ) : null}
         {enBrechas ? (
