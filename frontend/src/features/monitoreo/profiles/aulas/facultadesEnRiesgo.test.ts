@@ -18,7 +18,11 @@ const bloque = {
     { facultad: "GESTIÓN", faculty_key: "gestion", aulas_aplicadas: 1, reservas_libres: 42,
       cuota: 60, conseguido: 10, cursos_agendados: 2, proyectado_agendado: 34,
       margen_agendado: -26, riesgo_agendado: "riesgo" },
-    { facultad: "CONTABLES", faculty_key: "contables", aulas_aplicadas: 0, reservas_libres: 7 },
+    // Sin campo: el motor no proyecta y el panel estima con su τ prevista.
+    { facultad: "CONTABLES", faculty_key: "contables", aulas_aplicadas: 0, reservas_libres: 7,
+      cuota: 20, conseguido: 0, cursos_agendados: 3, elegibles_agendados: 59,
+      tau_previsto: 0.6453, proyectado_agendado: null, margen_agendado: null,
+      riesgo_agendado: "sin_campo", cursos_sin_agendar: 4 },
     { facultad: "EDUCACION", faculty_key: "educacion", aulas_aplicadas: 0, reservas_libres: 14 },
     { facultad: "DERECHO", faculty_key: "derecho", aulas_aplicadas: 6, reservas_libres: 207 },
     // Poco campo, pero su cuota ya está cerrada: no medirse no le cuesta nada.
@@ -82,10 +86,14 @@ describe("las facultades en riesgo que el ranking de tasas no ve", () => {
 
   it("si el motor no proyecta —facultad sin campo— la cifra se marca como estimada", () => {
     // ADR 0082: sin campo el motor NO cae a la τ prevista, porque eso publica el
-    // supuesto como medición. El panel estima igual, y lo dice.
+    // supuesto como medición. El panel estima igual con el aforo que SÍ publica
+    // el motor, y lo dice. Antes caía a cero: «esperan traer 0» con 59 citados.
     const c = facultadesEnRiesgo(bloque, celdas, plan).find((f) => f.clave === "contables")!;
     expect(c.medido).toBe(false);
-    expect(c.enCamino).toBeGreaterThan(0);
+    expect(c.cursosEnCamino).toBe(3);
+    // 59 elegibles citados por su τ prevista de 0,6453.
+    expect(c.enCamino).toBe(38);
+    expect(c.quedaria).toBe(0);
   });
 
   it("la que no tiene campo pero sí fechas se avisa como sin medir, no como corta", () => {
