@@ -608,3 +608,135 @@ pulso_pdf_rotulo_seccion <- function(x, y, texto, bajada = "", ancho = 0.10,
   }
   invisible(NULL)
 }
+
+# --- La serie diaria PARTIDA en dos cajas ------------------------------------
+#
+# Por qué existe, además de `pulso_pdf_serie_diaria()`: con las dos series en un
+# mismo rectángulo hay que darles dos ejes, y dos ejes obligan a decidir cuál
+# manda. Si manda el acumulado, la meta del diseño estira la escala —2.500
+# contra un campo que va por 1.390— y el tercio alto de la caja se queda en
+# blanco mientras las barras del día viven aplastadas abajo. Si manda el día,
+# la curva del acumulado se sale.
+#
+# Partido, cada serie tiene la caja que le corresponde y su propio eje, sin
+# ninguna escala prestada: arriba el acumulado contra la meta, que es la
+# pregunta «¿cuánto llevamos?»; abajo el pulso de cada jornada, que es «¿a qué
+# ritmo?». El eje de fechas es UNO y va al pie, compartido por las dos.
+
+#' Avance diario en dos cajas apiladas: acumulado arriba, jornada abajo.
+#'
+#' @inheritParams pulso_pdf_serie_diaria
+#' @param reparto proporción del alto que se lleva la caja del acumulado.
+#' @export
+pulso_pdf_serie_partida <- function(x, y, w, h, dias, diarias, acumulado,
+                                    metas = numeric(0),
+                                    tokens = pulso_pdf_tokens(), ty = pulso_pdf_type(),
+                                    geo = pulso_pdf_geo("landscape"),
+                                    color_barra = tokens$navy,
+                                    color_linea = tokens$success,
+                                    reparto = 0.60, hueco = 0.105,
+                                    rotulo_acumulado = "", rotulo_diario = "") {
+  n <- length(dias)
+  if (!n) return(invisible(NULL))
+  fs <- ty$caption
+  diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
+  metas <- metas[is.finite(metas)]
+
+  h_acu <- (h - hueco) * reparto
+  h_dia <- (h - hueco) - h_acu
+  y_acu <- y + h_dia + hueco
+
+  # Los rótulos de las dos cajas los pone la primitiva, no el llamador: sus
+  # alturas se derivan del reparto, y escritos fuera se desincronizan en cuanto
+  # alguien cambia `reparto` o `hueco`.
+  rotular <- function(txt, yy) {
+    if (!nzchar(txt)) return(invisible(NULL))
+    grid::grid.text(pulso_pdf_versalitas(txt), x = x, y = yy, just = c("left", "bottom"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = 6.4, fontface = "bold"))
+  }
+  rotular(rotulo_acumulado, y_acu + h_acu + 0.016)
+  rotular(rotulo_diario, y + h_dia + 0.020)
+
+  px <- function(i) x + w * ((i - 0.5) / n)
+
+  # --- Arriba: el acumulado contra la meta ---------------------------------
+  eje_acu <- .ppd_eje_bonito(max(c(acumulado[is.finite(acumulado)], metas, 1), na.rm = TRUE))
+  tope_acu <- max(eje_acu)
+  py_acu <- function(v) {
+    u <- suppressWarnings(as.numeric(v)); u[!is.finite(u)] <- 0
+    y_acu + h_acu * (u / tope_acu)
+  }
+  for (v in eje_acu) {
+    grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(py_acu(v), "npc"),
+                     gp = grid::gpar(col = tokens$rule, lwd = 0.4, lty = if (v == 0) 1 else 3))
+    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = py_acu(v), just = c("right", "centre"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = fs))
+  }
+  for (k in seq_along(metas)) {
+    yy <- py_acu(metas[[k]])
+    grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(yy, "npc"),
+                     gp = grid::gpar(col = tokens$danger, lwd = 0.9, lty = 2))
+    nombre <- names(metas)[[k]] %||% ""
+    if (nzchar(nombre)) {
+      grid::grid.text(paste0(nombre, " ", .ppd_miles(metas[[k]])), x = x + w, y = yy + 0.010,
+                      just = c("right", "bottom"),
+                      gp = grid::gpar(col = tokens$danger, fontsize = fs, fontface = "bold"))
+    }
+  }
+  vivos <- which(is.finite(acumulado))
+  if (length(vivos) >= 2L) {
+    # Relleno bajo la curva: con una sola línea la caja de arriba se veía vacía
+    # por dentro. El área dice de un golpe cuánto del camino está hecho.
+    grid::grid.polygon(
+      x = grid::unit(c(px(vivos), rev(px(vivos))), "npc"),
+      y = grid::unit(c(py_acu(acumulado[vivos]), rep(y_acu, length(vivos))), "npc"),
+      gp = grid::gpar(fill = color_linea, col = NA, alpha = 0.12))
+    grid::grid.lines(x = grid::unit(px(vivos), "npc"),
+                     y = grid::unit(py_acu(acumulado[vivos]), "npc"),
+                     gp = grid::gpar(col = color_linea, lwd = 2.0))
+  }
+  tope_rotulos <- 20L
+  salto <- max(1L, ceiling(n / tope_rotulos))
+  for (i in vivos) {
+    if ((i - 1L) %% salto != 0L && i != n) next
+    grid::grid.circle(x = px(i), y = py_acu(acumulado[[i]]), r = grid::unit(0.0055, "npc"),
+                      gp = grid::gpar(fill = color_linea, col = tokens$surface, lwd = 0.6))
+    grid::grid.text(.ppd_miles(acumulado[[i]]), x = px(i), y = py_acu(acumulado[[i]]) + 0.013,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(col = color_linea, fontsize = fs, fontface = "bold"))
+  }
+  grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y_acu, "npc"),
+                   gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
+
+  # --- Abajo: la jornada ----------------------------------------------------
+  eje_dia <- .ppd_eje_bonito(max(c(diarias[is.finite(diarias)], 1), na.rm = TRUE), pasos = 2L)
+  tope_dia <- max(eje_dia) * 1.22
+  ancho_barra <- min((w / n) * 0.56, 0.052)
+  for (v in eje_dia[-1]) {
+    grid::grid.text(.ppd_miles(v), x = x - 0.008, y = y + h_dia * (v / tope_dia),
+                    just = c("right", "centre"),
+                    gp = grid::gpar(col = tokens$faint, fontsize = fs))
+  }
+  for (i in seq_len(n)) {
+    v <- .ppd_num(diarias[[i]], 0)
+    if (v <= 0) next
+    alto <- h_dia * (v / tope_dia)
+    grid::grid.rect(x = px(i), y = y, width = ancho_barra, height = alto,
+                    just = c("centre", "bottom"),
+                    gp = grid::gpar(fill = color_barra, col = NA, alpha = 0.9))
+    if ((i - 1L) %% salto != 0L && i != n) next
+    grid::grid.text(.ppd_miles(v), x = px(i), y = y + alto + 0.008, just = c("centre", "bottom"),
+                    gp = grid::gpar(col = color_barra, fontsize = fs, fontface = "bold"))
+  }
+  grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),
+                   gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
+
+  # --- El eje de fechas, UNO solo al pie ------------------------------------
+  cada <- max(1L, ceiling(n / 14L))
+  for (i in seq_len(n)) {
+    if ((i - 1L) %% cada != 0L && i != n) next
+    grid::grid.text(dias[[i]], x = px(i), y = y - 0.014, just = c("centre", "top"),
+                    gp = grid::gpar(col = tokens$soft, fontsize = fs))
+  }
+  invisible(NULL)
+}
