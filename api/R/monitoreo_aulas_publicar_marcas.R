@@ -230,6 +230,15 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
         respetadas[[length(respetadas) + 1L]] <- list(
           codigo = r$codigo, hoja = hoja, habia = r$habia)
         n_respetadas <- n_respetadas + 1L
+        # **La marca que ya estaba puesta es NUESTRA, no trabajo del equipo.**
+        # Sin esta rama, republicar no arreglaba nunca el color: la celda ya
+        # llevaba el texto, asi que salia «respetada», `datos` quedaba vacio y el
+        # desplegable y el morado no se emitian. Medido en pantalla el
+        # 2026-09-11: nueve celdas escritas y las nueve con el triangulo rojo
+        # despues de republicar.
+        if (identical(toupper(.mapm_txt(r$habia)), "REFUERZO POR CONTACTAR")) {
+          columnas_tocadas <- union(columnas_tocadas, par$estado)
+        }
       }
       pendientes <- setdiff(pendientes, c(
         vapply(out$escribibles, function(e) e$codigo, character(1)),
@@ -248,6 +257,10 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
         body = list(valueInputOption = "RAW", data = datos)
       )
       celdas <- as.integer(.monitoreo_scalar(r$totalUpdatedCells, length(datos)))
+    }
+    # **El formato va aunque no se haya escrito nada nuevo.** Es la unica forma
+    # de que republicar arregle una marca que ya estaba puesta y salia en rojo.
+    if (aplicar && length(columnas_tocadas)) {
       # **Y que la celda no salga en rojo ni en gris.** El valor escrito no esta
       # en el desplegable de esa columna —«el valor introducido debe ser un
       # elemento de la lista especificada», visto en pantalla el 2026-09-11— y el
