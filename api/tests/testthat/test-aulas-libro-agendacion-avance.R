@@ -105,3 +105,21 @@ test_that("el denominador de «Agendado del plan» no castiga por los rechazos",
   }
   expect_identical(valor(con_rechazo), valor(sin_rechazo))
 })
+
+test_that("la proporción conserva sus decimales: 13 de 19 es 68,4 % y no 68,0 %", {
+  # `.cala_celda_num()` redondea a CUATRO decimales lo que es proporción y a DOS
+  # lo que es conteo. Declarar «aquí no hay proporciones» convertía 0,6842 en
+  # 0,68, y la celda salía «68,0 %» con un patrón de un decimal que nunca
+  # variaba. Visto en el Sheets publicado.
+  fila <- function(cod, estado) list(
+    operational_code = cod, faculty = "DERECHO", sample_role = "titular",
+    sample_status = estado,
+    scheduled_date = if (identical(estado, "agendada")) "2026-09-07" else "")
+  u <- c(lapply(1:13, function(i) fila(sprintf("CH %d", i), "agendada")),
+         lapply(14:19, function(i) fila(sprintf("CH %d", i), "sin_contactar")))
+  valores <- aulas_libro_hoja_agendacion(aulas_libro_agendacion(u))
+  planas <- unlist(lapply(valores, function(r) as.character(unlist(r))), use.names = FALSE)
+  # 13/19 = 0.6842…; con el redondeo de conteo saldría 0.68.
+  expect_true(any(planas == "0.6842"))
+  expect_false(any(planas == "0.68"))
+})
