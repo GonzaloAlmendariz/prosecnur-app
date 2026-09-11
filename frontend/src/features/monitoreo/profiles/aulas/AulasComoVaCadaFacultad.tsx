@@ -3,6 +3,8 @@ import { useState, type ReactNode } from "react";
 import { AulasMapaDeLaDeuda } from "./AulasMapaDeLaDeuda";
 import { deudaPorFacultad, palabraDelVeredicto, repartoDeDeudas, type DeudaDeFacultad } from "./deudaPorFacultad";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { palabraDelRumbo, rumboDeLaFacultad, type RumboDeFacultad } from "./rumboDeLaFacultad";
+import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
 import "./aulasComoVaCadaFacultad.css";
 
@@ -20,7 +22,7 @@ import "./aulasComoVaCadaFacultad.css";
  * global esconde—; **la lista** las ordena por lo que deben, que es la pregunta
  * con la que se entra. Pulsar un punto abre su fila: el mapa es el índice.
  */
-export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRefuerzo }: {
+export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRefuerzo, partes = [], plan = [] }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   porSexo: ReadonlyArray<Record<string, unknown>> | null | undefined;
   /** La facultad de la cabecera abre su fila al entrar. */
@@ -37,6 +39,16 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRef
    * refuerzo desde una facultad. Son las dos puertas del mismo libro.
    */
   onRefuerzo?: (facultad: string) => void;
+  /**
+   * Los partes y el plan, para la serie por jornada de cada facultad.
+   *
+   * Es la nota «Una foto no dice el rumbo» del ensayo: la deuda de hoy no
+   * separa a la que debe siete y venía debiendo veinte de la que debe siete y
+   * venía en cero. La primera se está arreglando sola y pedirle un refuerzo
+   * sería gastarlo de más.
+   */
+  partes?: ReadonlyArray<MonitoreoRow>;
+  plan?: ReadonlyArray<MonitoreoRow>;
 }): ReactNode {
   // El hook va antes de cualquier salida temprana: uno bajo la guarda se llama
   // en unos renders y no en otros, y eso es el React #300 que ya tumbó esto.
@@ -86,6 +98,7 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRef
             abierta={activa === f.facultad}
             onAbrir={() => setAbierta((antes) => (antes === f.facultad ? "" : f.facultad))}
             onRefuerzo={onRefuerzo}
+            rumbo={rumboDeLaFacultad(partes, plan, f.facultad, f.prevista)}
           />
         ))}
       </ul>
@@ -113,9 +126,11 @@ function BarraDeSexo({ letra, valor }: { letra: string; valor: number }): ReactN
   );
 }
 
-function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo }: {
+function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
   f: DeudaDeFacultad; abierta: boolean; onAbrir: () => void;
   onRefuerzo?: (facultad: string) => void;
+  /** Su serie por jornada, ya calculada arriba. */
+  rumbo?: RumboDeFacultad;
 }): ReactNode {
   const sinCampo = f.veredicto === "sin_campo";
   const pct = (v: number | null) => (v == null ? "—" : pctPerfil(v * 100));
@@ -145,6 +160,7 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo }: {
       {abierta ? (
         <div className="aulas-cvf-porque">
           <p>{f.frase}</p>
+          {rumbo?.verbo ? <Rumbo r={rumbo} /> : null}
           {/* Qué hacer con eso, en el vocabulario del operativo. La lista de
               cursos-horario que la hundieron vive en Consultas › Brechas, que es
               donde además se puede actuar sobre cada uno: repetirla aquí daría
@@ -176,5 +192,38 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo }: {
         </div>
       ) : null}
     </li>
+  );
+}
+
+/**
+ * La serie por jornada de una facultad: su deuda al cierre de cada día.
+ *
+ * Dibujada a mano y no con una librería: son tres o cuatro puntos y lo que se
+ * compara es la FORMA —si baja, se está arreglando—, no el valor exacto de
+ * cada uno. La línea del cero está porque cruzarla es lo que separa deber de ir
+ * sobrado, igual que en el mapa.
+ */
+function Rumbo({ r }: { r: RumboDeFacultad }): ReactNode {
+  const AN = 190, AL = 42, M = 4;
+  const valores = r.jornadas.map((j) => j.deuda);
+  const tope = Math.max(1, ...valores.map((v) => Math.abs(v)));
+  const x = (i: number) => M + (AN - 2 * M) * (r.jornadas.length < 2 ? 0.5 : i / (r.jornadas.length - 1));
+  const y = (v: number) => M + (AL - 2 * M) * (1 - (v + tope) / (2 * tope));
+  const linea = r.jornadas.map((j, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(j.deuda).toFixed(1)}`).join(" ");
+
+  return (
+    <p className={`aulas-cvf-rumbo es-${r.verbo}`}>
+      <svg viewBox={`0 0 ${AN} ${AL}`} role="img"
+        aria-label={`Deuda por jornada: ${r.jornadas.map((j) => `${j.fecha}: ${j.deuda}`).join(", ")}`}>
+        <line className="aulas-cvf-rumbo-cero" x1={M} y1={y(0).toFixed(1)} x2={AN - M} y2={y(0).toFixed(1)} />
+        <path className="aulas-cvf-rumbo-linea" d={linea} fill="none" />
+        {r.jornadas.map((j, i) => (
+          <circle key={j.fecha} cx={x(i).toFixed(1)} cy={y(j.deuda).toFixed(1)}
+            r={i === r.jornadas.length - 1 ? 3.2 : 2}
+            className={i === r.jornadas.length - 1 ? "aulas-cvf-rumbo-hoy" : "aulas-cvf-rumbo-punto"} />
+        ))}
+      </svg>
+      <span>{palabraDelRumbo(r)}</span>
+    </p>
   );
 }
