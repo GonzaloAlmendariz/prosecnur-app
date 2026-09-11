@@ -174,3 +174,121 @@ monitoreo_aulas_desmarcar_refuerzo_texto <- function(out) {
   cod <- .mar_txt((out$retirada %||% list())$operational_code, "el curso-horario")
   sprintf("%s vuelve al inventario de reservas sin contactar.", cod)
 }
+
+# ── El lote ──────────────────────────────────────────────────────────────────
+#
+# **Por que existe.** Medido en vivo el 2026-09-11 contra el operativo: UNA
+# llamada a `/aulas/marcar-refuerzo` tardo ~120 s, porque el endpoint reconstruye
+# el tablero entero de 1.392 filas. El autopicker marca en SERIE, asi que las
+# quince del techo eran ~30 minutos con la pantalla bloqueada. En lote, las N
+# marcas se aplican sobre el plan en memoria y el tablero se reconstruye UNA vez.
+#
+# **Y no se para en la primera que falla.** Un lote de quince donde la tercera
+# esta comprometida tiene que dejar entrar las otras doce y decir cual no entro y
+# por que; abortar el lote entero castigaria las buenas por culpa de una.
+
+#' Aplica la misma operacion a varios cursos-horario sobre un solo plan.
+#'
+#' @param plan lista de filas del plan.
+#' @param pedidos lista de listas con `codigo` y, para marcar, `para`, `tipo` y
+#'   `motivo`.
+#' @param una funcion que aplica el caso de uno y devuelve `list(plan=, fila=)`.
+#' @return lista con `plan`, `hechas` (lista de filas) y `fallidas`.
+#' @keywords internal
+.mar_en_lote <- function(plan, pedidos, una) {
+  hechas <- list()
+  fallidas <- list()
+  for (p in pedidos) {
+    codigo <- .mar_txt(p$codigo %||% p$operational_code %||% "")
+    out <- tryCatch(una(plan, p), error = function(e) e)
+    if (inherits(out, "error")) {
+      fallidas[[length(fallidas) + 1L]] <- list(
+        operational_code = codigo,
+        code = if (inherits(out, "api_error")) out$code else "E_INTERNAL",
+        message = conditionMessage(out)
+      )
+      next
+    }
+    plan <- out$plan
+    hechas[[length(hechas) + 1L]] <- out$fila
+  }
+  list(plan = plan, hechas = hechas, fallidas = fallidas)
+}
+
+#' Marca varios cursos-horario como refuerzo por contactar, de una vez.
+#'
+#' @param plan lista de filas del plan.
+#' @param pedidos lista de listas con `codigo`, `para`, `tipo` y `motivo`.
+#' @param ahora sello de tiempo comun; por defecto el del sistema.
+#' @return lista con `plan`, `marcadas` y `fallidas`.
+#' @export
+monitoreo_aulas_marcar_refuerzos <- function(plan = list(), pedidos = list(), ahora = NULL) {
+  if (!length(plan)) {
+    stop_api(409, "E_AULAS_SIN_PLAN",
+             "No hay plan de cursos-horario sobre el que marcar refuerzos.")
+  }
+  if (!length(pedidos)) {
+    stop_api(400, "E_REFUERZO_LOTE_VACIO", "El lote no trae ningun curso-horario que marcar.")
+  }
+  # El sello es COMUN a todo el lote: quince marcas de la misma decision con
+  # quince horas distintas harian parecer que se decidieron una a una.
+  ahora <- .mar_txt(ahora, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  out <- .mar_en_lote(plan, pedidos, function(plan, p) {
+    r <- monitoreo_aulas_marcar_refuerzo(
+      plan,
+      codigo = .mar_txt(p$codigo %||% p$operational_code %||% ""),
+      para = .mar_txt(p$para %||% p$destino %||% ""),
+      tipo = .mar_txt(p$tipo %||% "refuerzo", "refuerzo"),
+      motivo = .mar_txt(p$motivo %||% p$reason %||% ""),
+      ahora = ahora
+    )
+    list(plan = r$plan, fila = r$marcada)
+  })
+  list(plan = out$plan, marcadas = out$hechas, fallidas = out$fallidas)
+}
+
+#' Retira varias marcas de refuerzo de una vez.
+#'
+#' @param plan lista de filas del plan.
+#' @param pedidos lista de listas con `codigo`, o vector de codigos.
+#' @return lista con `plan`, `retiradas` y `fallidas`.
+#' @export
+monitoreo_aulas_desmarcar_refuerzos <- function(plan = list(), pedidos = list()) {
+  if (!length(plan)) {
+    stop_api(409, "E_AULAS_SIN_PLAN",
+             "No hay plan de cursos-horario sobre el que retirar marcas.")
+  }
+  # Un vector de codigos es la forma natural de pedir esto desde la vista, y
+  # aceptarlo aqui evita que el router invente una segunda forma.
+  if (is.character(pedidos)) pedidos <- lapply(pedidos, function(x) list(codigo = x))
+  if (!length(pedidos)) {
+    stop_api(400, "E_REFUERZO_LOTE_VACIO", "El lote no trae ningun curso-horario que retirar.")
+  }
+  out <- .mar_en_lote(plan, pedidos, function(plan, p) {
+    r <- monitoreo_aulas_desmarcar_refuerzo(
+      plan, codigo = .mar_txt(p$codigo %||% p$operational_code %||% ""))
+    list(plan = r$plan, fila = r$retirada)
+  })
+  list(plan = out$plan, retiradas = out$hechas, fallidas = out$fallidas)
+}
+
+#' La frase que la vista enseña tras un lote.
+#'
+#' @param out salida de `monitoreo_aulas_marcar_refuerzos()` o de
+#'   `monitoreo_aulas_desmarcar_refuerzos()`.
+#' @param verbo texto del participio, p. ej. `"marcados"`.
+#' @return texto.
+#' @export
+monitoreo_aulas_lote_texto <- function(out, verbo = "marcados") {
+  hechas <- length(out$marcadas %||% out$retiradas %||% list())
+  fallidas <- length(out$fallidas %||% list())
+  pedidas <- hechas + fallidas
+  # Las DOS cifras y su base: «14» a secas se lee como si hubieran entrado todas.
+  if (fallidas == 0L) {
+    return(sprintf("Quedaron %s los %d que pediste.", verbo, hechas))
+  }
+  sprintf("Quedaron %s %d de %d; %s.", verbo, hechas, pedidas,
+          paste(vapply(out$fallidas, function(f) {
+            sprintf("%s no entro (%s)", .mar_txt(f$operational_code, "uno"), .mar_txt(f$code))
+          }, character(1)), collapse = "; "))
+}

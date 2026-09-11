@@ -92,7 +92,7 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
             onClick={() => { void marca.retirarVarias(enEspera); }}
           >
             {marca.progreso
-              ? `Retirando ${fmt(marca.progreso.hechas)} de ${fmt(marca.progreso.total)}…`
+              ? `Retirando ${fmt(marca.progreso.total)}, puede tardar…`
               : `Retirar ${fmt(enEspera.length)} que aún esperan llamada`}
           </button>
         </p>

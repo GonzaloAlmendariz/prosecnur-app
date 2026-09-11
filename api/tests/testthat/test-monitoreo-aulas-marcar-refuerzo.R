@@ -209,3 +209,82 @@ test_that("retirar exige codigo y plan", {
   expect_error(monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(), ""), "Falta el codigo")
   expect_error(monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(), "R 9.9"), "No existe")
 })
+
+# ── El lote ─────────────────────────────────────────────────────────────────
+#
+# Existe por una medida, no por elegancia: una marca suelta tardaba ~120 s
+# porque el endpoint reconstruye el tablero entero de 1.392 filas, asi que el
+# autopicker de quince eran ~30 minutos de espera.
+
+.mrf_libro_n <- function(codigos, estado = "SIN CONTACTAR") {
+  lapply(codigos, function(cod) {
+    list(operational_code = cod, faculty = "DERECHO", sample_role = "chain_reserve",
+         sample_status = estado)
+  })
+}
+
+test_that("el lote marca las N sobre un solo plan y con un solo sello", {
+  out <- monitoreo_aulas_marcar_refuerzos(
+    .mrf_libro_n(c("R 1.1", "R 1.2", "R 1.3")),
+    list(list(codigo = "R 1.1", para = "DERECHO"),
+         list(codigo = "R 1.2", para = "DERECHO"),
+         list(codigo = "R 1.3", para = "DERECHO")),
+    ahora = "2026-09-11T10:00:00Z")
+  expect_length(out$marcadas, 3L)
+  expect_length(out$fallidas, 0L)
+  expect_true(all(vapply(out$plan, function(r) identical(r$sample_status, "refuerzo_por_contactar"), logical(1))))
+  # Un sello COMUN: quince horas distintas harian parecer quince decisiones.
+  expect_true(all(vapply(out$marcadas, function(r) identical(r$activated_at, "2026-09-11T10:00:00Z"), logical(1))))
+})
+
+test_that("una comprometida no aborta el lote: entran las demas y se dice cual no", {
+  plan <- c(.mrf_libro_n(c("R 1.1")),
+            .mrf_libro_n(c("R 1.2"), estado = "AGENDADA"),
+            .mrf_libro_n(c("R 1.3")))
+  out <- monitoreo_aulas_marcar_refuerzos(
+    plan,
+    list(list(codigo = "R 1.1"), list(codigo = "R 1.2"), list(codigo = "R 1.3")),
+    ahora = "2026-09-11T10:00:00Z")
+  expect_length(out$marcadas, 2L)
+  expect_length(out$fallidas, 1L)
+  expect_identical(out$fallidas[[1]]$operational_code, "R 1.2")
+  expect_identical(out$fallidas[[1]]$code, "E_REFUERZO_NO_DISPONIBLE")
+  # Y la que fallo sigue como estaba: el lote no la dejo a medias.
+  expect_identical(out$plan[[2]]$sample_status, "AGENDADA")
+})
+
+test_that("un codigo que no existe cae como fallida, no como excepcion del lote", {
+  out <- monitoreo_aulas_marcar_refuerzos(
+    .mrf_libro_n(c("R 1.1")),
+    list(list(codigo = "R 1.1"), list(codigo = "R 9.9")))
+  expect_length(out$marcadas, 1L)
+  expect_identical(out$fallidas[[1]]$code, "E_AULA_NO_ENCONTRADA")
+})
+
+test_that("el lote vacio y el plan vacio se rechazan con su propio codigo", {
+  expect_error(monitoreo_aulas_marcar_refuerzos(.mrf_libro_n("R 1.1"), list()), "ningun curso-horario")
+  expect_error(monitoreo_aulas_marcar_refuerzos(list(), list(list(codigo = "R 1.1"))), "No hay plan")
+})
+
+test_that("retirar en lote acepta un vector de codigos y devuelve las reservas", {
+  marcado <- monitoreo_aulas_marcar_refuerzos(
+    .mrf_libro_n(c("R 1.1", "R 1.2")),
+    list(list(codigo = "R 1.1"), list(codigo = "R 1.2")),
+    ahora = "2026-09-11T10:00:00Z")
+  out <- monitoreo_aulas_desmarcar_refuerzos(marcado$plan, c("R 1.1", "R 1.2"))
+  expect_length(out$retiradas, 2L)
+  expect_length(out$fallidas, 0L)
+  expect_true(all(vapply(out$plan, function(r) identical(r$sample_status, "sin_contactar"), logical(1))))
+  expect_true(all(vapply(out$plan, function(r) is.null(r$activation_origin), logical(1))))
+})
+
+test_that("el texto del lote dice las DOS cifras cuando alguna no entro", {
+  uno <- list(marcadas = list(1, 2, 3), fallidas = list())
+  expect_identical(monitoreo_aulas_lote_texto(uno, "marcados"),
+                   "Quedaron marcados los 3 que pediste.")
+  dos <- list(marcadas = list(1, 2),
+              fallidas = list(list(operational_code = "R 1.2", code = "E_REFUERZO_NO_DISPONIBLE")))
+  # «2» a secas se leeria como si hubieran entrado todas.
+  expect_match(monitoreo_aulas_lote_texto(dos, "marcados"), "2 de 3")
+  expect_match(monitoreo_aulas_lote_texto(dos, "marcados"), "R 1\\.2 no entro")
+})
