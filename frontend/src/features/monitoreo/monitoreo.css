@@ -1221,7 +1221,23 @@
   height: 100%;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  overflow: hidden;
+  /* **`clip` y no `hidden`: el scroll jail de la regla de layout.**
+
+     Gonzalo, 2026-09-10, con la mesa de Consultas delante: «hay un espacio en
+     blanco aquí». Lo era, y de 342 px: este contenedor lleva `height: 100%` y
+     su hijo se desborda, así que con `hidden` es un CONTENEDOR SCROLLABLE sin
+     barra. Cualquier cosa que desplace el foco dentro —un `scrollIntoView`, un
+     `focus()` sobre algo fuera de vista, el reset al cambiar de pestaña— le
+     sube el `scrollTop`, y como no hay barra nadie puede devolverlo: el
+     contenido se queda desplazado hacia arriba y deja ese hueco al pie hasta
+     que se recarga la página. Medido en vivo: `scrollTop: 341.5`, y al
+     ponerlo a cero el hueco pasó de 342 px a 1.
+
+     `clip` recorta igual pero NO crea un contenedor de scroll, así que no hay
+     nada que desplazar. Es el remedio de «No Scroll Jail» de
+     docs/ui-layout-grammar.md: el scroll lo tiene quien lo declara
+     —`.mon-workbench-content`, que sí trae barra—, y nadie más. */
+  overflow: clip;
   background: var(--pulso-surface);
 }
 
