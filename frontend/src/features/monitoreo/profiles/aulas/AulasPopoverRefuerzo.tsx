@@ -146,10 +146,18 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
         ) : (
           <>
             No alcanza con lo libre en {facultad}: aun tomándolas todas quedarían{" "}
-            <strong>{fmt(plan.restaM + plan.restaH)}</strong> respuestas sin cubrir
-            {plan.restaM ? <> ({fmt(plan.restaM)} mujeres</> : <> (</>}
-            {plan.restaH ? <>{plan.restaM ? ", " : ""}{fmt(plan.restaH)} hombres</> : null})
-            . Toca pedir una ampliación de marco.
+            {/* El desglose se arma en una sola expresión: partido en tres
+                trozos de JSX dejaba un espacio suelto antes del punto —«(46
+                mujeres, 36 hombres) . Toca»— que se veía en pantalla. */}
+            <strong>{fmt(plan.restaM + plan.restaH)}</strong>{" "}
+            {(() => {
+              const trozos = [
+                plan.restaM ? `${fmt(plan.restaM)} mujeres` : "",
+                plan.restaH ? `${fmt(plan.restaH)} hombres` : "",
+              ].filter(Boolean);
+              return `respuestas sin cubrir${trozos.length ? ` (${trozos.join(", ")})` : ""}.`;
+            })()}
+            {" "}Toca pedir una ampliación de marco.
           </>
         )}
       </p>
