@@ -103,11 +103,14 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                         vuelve, y no se comparte entre facultades. */}
                     {f.loQueToca === "agendar" ? (
                       <span className="aulas-riesgo-toca es-agendar">
-                        {f.cursosSinAgendar
-                          ? <>Le quedan <b>{fmt(f.cursosSinAgendar)}</b> {f.cursosSinAgendar === 1
-                              ? "curso-horario del plan por agendar" : "cursos-horario del plan por agendar"}{" "}
-                              que bastarían: aquí toca <b>agendar</b> antes que gastar reserva.</>
-                          : <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.</>}
+                        {f.cursosSinAgendar === 1
+                          ? <>Le queda <b>1</b> curso-horario del plan por agendar, y bastaría:
+                              aquí toca <b>agendar</b> antes que gastar reserva.</>
+                          : f.cursosSinAgendar
+                            ? <>Le quedan <b>{fmt(f.cursosSinAgendar)}</b> cursos-horario del plan
+                                por agendar, y bastarían: aquí toca <b>agendar</b> antes que gastar
+                                reserva.</>
+                            : <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.</>}
                       </span>
                     ) : f.loQueToca === "reforzar" ? (
                       <span className="aulas-riesgo-toca es-reforzar">
