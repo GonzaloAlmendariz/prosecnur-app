@@ -299,9 +299,15 @@ function Cadena({ h, c, titular, onRelevo }: {
           );
         })}
         {detras && !abierta ? (
-          <button type="button" className="aulas-cadena-resto" onClick={() => setAbierta(true)}>
-            + {fmt(detras)} {detras === 1 ? "reserva" : "reservas"}
-            {c.clave === "cerrada" ? " intactas" : " por detrás"}
+          <button
+            type="button"
+            className="aulas-cadena-resto"
+            title={c.clave === "cerrada"
+              ? `${fmt(detras)} ${detras === 1 ? "reserva intacta" : "reservas intactas"}: la cadena cerró sin gastarlas`
+              : `${fmt(detras)} ${detras === 1 ? "reserva" : "reservas"} por detrás de las que se ven`}
+            onClick={() => setAbierta(true)}
+          >
+            +{fmt(detras)} {detras === 1 ? "reserva" : "reservas"}
           </button>
         ) : null}
         {abierta && detras ? (

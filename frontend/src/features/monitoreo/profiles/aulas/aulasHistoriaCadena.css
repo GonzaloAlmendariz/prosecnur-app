@@ -95,6 +95,10 @@
 
 /* ── La tira ────────────────────────────────────────────────────────────── */
 
+/* La tira desvanece su borde derecho: con más eslabones de los que caben, un
+   corte seco se lee como un defecto de maquetación y el degradado se lee como
+   «sigue, arrástrala». La máscara no recorta nada —el contenido sigue ahí y se
+   alcanza con scroll o con teclado—, sólo lo atenúa. */
 .mon-profile-page.is-aulas-flow .aulas-cadena-tira {
   display: flex;
   align-items: center;
@@ -103,6 +107,7 @@
   overflow-x: auto;
   scrollbar-width: thin;
   min-width: 0;
+  mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent 100%);
 }
 .mon-profile-page.is-aulas-flow .aulas-cadena-paso {
   display: flex;
