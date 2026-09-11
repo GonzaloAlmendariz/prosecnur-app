@@ -126,3 +126,15 @@ test_that("sin columnas tocadas no sale un solo request de formato", {
   expect_length(prosecnurapp:::.mapm_requests_de_columna(123L, integer(0), 2L, 40L), 0L)
   expect_length(prosecnurapp:::.mapm_requests_de_columna(NA_integer_, c(3L), 2L, 40L), 0L)
 })
+
+test_that("una marca ya puesta por la app cuenta para reemitir su formato", {
+  # Sin esto, republicar no arreglaba nunca el color: la celda ya llevaba el
+  # texto, salia «respetada», no habia datos que escribir y el desplegable y el
+  # morado no se emitian. Visto en pantalla el 2026-09-11.
+  remoto <- data.frame(
+    `CURSO-HORARIO` = c("R 1.1"), `STATUS MUESTRA` = c("REFUERZO POR CONTACTAR"),
+    check.names = FALSE, stringsAsFactors = FALSE)
+  out <- monitoreo_aulas_marcas_por_publicar(list(.mapm_fila("R 1.1")), remoto)
+  expect_length(out$escribibles, 0L)
+  expect_identical(out$respetadas[[1]]$habia, "REFUERZO POR CONTACTAR")
+})
