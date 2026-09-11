@@ -26,6 +26,18 @@ export type EslabonDeCadena = {
   meta: number;
   /** Si ese eslabón, por sí solo, alcanzó su meta. */
   cumple: boolean;
+  /**
+   * **No hay por dónde llamarle.** El resultado de la llamada dice «Número no
+   * existe» o «fuera de servicio», así que su «En contacto» no es una gestión en
+   * marcha: es una vía muerta.
+   *
+   * Visto en pantalla el 2026-09-11: la cadena de CH 85 —Derecho, titular
+   * rechazado— mostraba `R 85.1 · En contacto`, y ese mismo R 85.1 salía en el
+   * panel de riesgo entre los que no tienen teléfono válido. Quien trabajara
+   * esta pantalla habría vuelto a llamar a un número inexistente en vez de
+   * saltar a R 85.2.
+   */
+  sinVia: boolean;
 };
 
 export type HistoriaDeCadena = {
@@ -151,6 +163,13 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
           validas,
           meta,
           cumple: meta > 0 && validas >= meta,
+          // El mismo criterio que el motor (`.maau_con_fecha` y su vecino
+          // `sin_via`): sin tildes y por subcadena, porque el libro lo escribe
+          // a mano —«Número no existe», «NUMERO FUERA DE SERVICIO»—.
+          sinVia: /no existe|fuera de servicio/.test(
+            texto((fila as { call_status?: unknown }).call_status)
+              .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+          ),
         };
       })
       .sort((a, b) => a.orden - b.orden || comparaCodigos(a.codigo, b.codigo));
