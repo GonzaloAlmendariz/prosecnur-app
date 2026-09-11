@@ -2785,7 +2785,8 @@ monitoreo_sync_job_runner <- function(sources_path,
 monitoreo_client_report_pdf_job_runner <- function(model_path,
                                                    include_targets = FALSE,
                                                    result_path = NULL,
-                                                   progress_path = NULL) {
+                                                   progress_path = NULL,
+                                                   portada = list()) {
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)
   report("prepare", percent = 15, message = "Preparando reporte...")
   model <- readRDS(model_path)
@@ -2799,7 +2800,8 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
     monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
     report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
-    monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets)
+    monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets,
+                                       portada = portada)
   } else {
     report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
     monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
@@ -3234,6 +3236,7 @@ mount_monitoreo <- function(pr) {
         attr(snapshot, "occurrences_snapshot") <- occ_snap
       }
       model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      portada <- monitoreo_aulas_portada_desde_body(parsed)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
@@ -3256,7 +3259,8 @@ mount_monitoreo <- function(pr) {
         sid = sid,
         kind = report_job_kind,
         func = pdf_job_runner,
-        args = list(model_path = model_path, include_targets = include_targets),
+        args = list(model_path = model_path, include_targets = include_targets,
+                    portada = portada),
         result_filename = filename,
         on_complete = function(j) {
           if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
