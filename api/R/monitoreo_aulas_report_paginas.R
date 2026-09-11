@@ -717,8 +717,13 @@
   }, logical(1)))
 
   # El alto se reparte entre los bloques que haya, para que la página cierre
-  # llena tanto con tres definiciones como con cinco.
-  y_alto <- 0.760; y_bajo <- 0.290
+  # llena tanto con tres definiciones como con cinco. Los extremos salen del
+  # marco del documento: esta página se maquetó antes de que el marco existiera
+  # y arrancaba veinte milímetros por debajo de las demás, con el tercio final
+  # en blanco.
+  .ALTO_PROCEDENCIA <- 0.092   # rótulo + valor de la franja del pie
+  y_alto <- .MARP_MARCO$techo
+  y_bajo <- .MARP_MARCO$suelo + .ALTO_PROCEDENCIA
   paso <- (y_alto - y_bajo) / length(bloques)
   y <- y_alto
   for (k in seq_along(bloques)) {
