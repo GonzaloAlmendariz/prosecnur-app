@@ -70,6 +70,11 @@ export type RiesgoDeFacultad = {
    */
   cursosSinAgendar: number;
   /**
+   * Citas que pasaron sin aplicarse. No son aforo ni están «por agendar»: hay
+   * que reagendarlas o darlas por caídas, y mientras tanto no rinden nada.
+   */
+  cursosVencidos: number;
+  /**
    * **Qué corresponde hacer, que no es lo mismo en las dos.**
    *
    * Gonzalo, 2026-09-11, mirando Derecho en las dos pantallas: «por un lado a
@@ -94,6 +99,23 @@ export type RiesgoDeFacultad = {
    */
   aviso: AvisoDeFacultad;
 };
+
+/**
+ * **Las citas que pasaron sin aplicarse, en todo el estudio.**
+ *
+ * Van al pie del panel y no en una fila: no son de una facultad, son un estado
+ * del operativo, y lo que piden —reagendar o dar por caída— no se parece a
+ * nada de lo que piden las otras dos. Medido el 2026-09-11: sólo **2** de las
+ * 70 con fecha pasada seguían sin aplicar; las otras 68 ya habían traído
+ * respuestas con el estado operativo todavía en «planificada».
+ */
+export function citasVencidas(
+  bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined,
+): { cursos: number; elegibles: number } | null {
+  const cursos = Number(bloque?.total?.cursos_vencidos ?? 0) || 0;
+  if (cursos <= 0) return null;
+  return { cursos, elegibles: Number(bloque?.total?.elegibles_vencidos ?? 0) || 0 };
+}
 
 /**
  * Cuántos de cada 100 titulares contactados han rechazado en este operativo.
@@ -128,6 +150,8 @@ export type CierreDeLaFacultad = {
   /** Lo que faltaría aun saliendo bien todo lo agendado. */
   quedaria: number;
   cursosSinAgendar: number;
+  /** Citas pasadas sin aplicar: piden reagendar, no llamar por primera vez. */
+  cursosVencidos: number;
   loQueToca: "agendar" | "reforzar" | null;
   /** `false` cuando el motor no proyecta (facultad sin campo) y la cifra se estima. */
   medido: boolean;
@@ -175,6 +199,7 @@ export function cierreDeLaFacultad(
     // El conteo de cursos-horario no depende de la τ: el motor lo publica igual.
     cursosEnCamino: Number(f.cursos_agendados) || respaldo?.cursos || 0,
     cursosSinAgendar: Number(f.cursos_sin_agendar) || 0,
+    cursosVencidos: Number(f.cursos_vencidos) || 0,
     // El margen del PLAN ENTERO decide cuál de las dos acciones toca: si con
     // todo agendado cerraría, el trabajo es agendar; si tampoco, refuerzo.
     loQueToca: quedaria <= 0 ? null
@@ -257,6 +282,7 @@ export function facultadesEnRiesgo(
       falta,
       cursosEnCamino,
       cursosSinAgendar: cierre.cursosSinAgendar,
+      cursosVencidos: cierre.cursosVencidos,
       loQueToca: cierre.loQueToca,
       enCamino,
       /** `false` cuando la facultad no tiene campo y la cifra es una estimación. */

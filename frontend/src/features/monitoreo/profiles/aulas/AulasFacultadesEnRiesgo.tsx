@@ -4,7 +4,7 @@ import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from
 import { facultadCorta } from "./facultadEnPalabras";
 import { fechaEnPalabras } from "./fichaDeCursoHorario";
 import { fmt } from "./kpisDeAulas";
-import { facultadesEnRiesgo, rechazoDelOperativo } from "./facultadesEnRiesgo";
+import { citasVencidas, facultadesEnRiesgo, rechazoDelOperativo } from "./facultadesEnRiesgo";
 import { pctPerfil } from "./kpisDeAulas";
 import "./aulasFacultadesEnRiesgo.css";
 
@@ -43,6 +43,7 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
   }
 
   const rechazo = rechazoDelOperativo(bloque);
+  const vencidas = citasVencidas(bloque);
   const cortas = filas.filter((f) => f.aviso === "agenda_corta").length;
   const ciegas = filas.length - cortas;
   const foco = (facultadEnFoco ?? "").trim();
@@ -152,6 +153,15 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
         {/* **Y lo planificado tampoco es aforo seguro.** Gonzalo, 2026-09-11:
             «hasta que no esté agendado no sabemos realmente si vamos a poder
             aplicar allí». Se dice con lo ya ocurrido, no con una previsión. */}
+        {/* **Las citas que se pasaron.** No entran en la proyección —una fecha
+            que pasó no es un día en que aplicar— y aquí se dicen, porque lo que
+            piden es reagendarlas o darlas por caídas. */}
+        {vencidas ? (
+          <> <b>{fmt(vencidas.cursos)}</b>{" "}
+            {vencidas.cursos === 1 ? "cita se pasó" : "citas se pasaron"} sin aplicarse
+            ({fmt(vencidas.elegibles)} alumnos): no cuentan en ninguna proyección hasta
+            que se reagenden.</>
+        ) : null}
         {" "}Un curso-horario del plan sin fecha todavía no es una aplicación: el
         docente puede rechazar
         {rechazo

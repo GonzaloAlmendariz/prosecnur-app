@@ -627,3 +627,81 @@ test_that("lo planificado sin fecha no es aforo seguro: se publica cuántos rech
   # Y el que sigue sin contactar sigue contándose como pendiente de agendar.
   expect_identical(f$cursos_sin_agendar, 1L)
 })
+
+test_that("una cita VENCIDA sin aplicar no cuenta como aforo agendado", {
+  # Medido sobre el plan de HSVG26ULT2 el 2026-09-11: 70 cursos-horario tenían
+  # fecha ya pasada y seguían sin aplicarse (2 346 elegibles, las más viejas del
+  # 7 de septiembre) y la proyección los contaba como si fueran a rendir. Derecho
+  # tenía 6 de esas 13 citas vencidas, y por eso salía holgado.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+    .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-07")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  b <- d$efectividad_seguimiento
+  # El dashboard no fija la fecha, así que la vencida se comprueba llamando al
+  # motor con el corte explícito: es lo que hace falsable la regla.
+  f <- .efs_fila(b, "Derecho")
+  expect_true(is.integer(f$cursos_vencidos))
+})
+
+test_that("con el corte puesto, la cita pasada se aparta y se publica aparte", {
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+    .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-07")
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = .efs_dt(list(.efs_fac("Derecho", cuota = 40)))
+  ))
+  df <- .monitoreo_aulas_df(cfg$plan, "plan")
+  resp <- .efs_resp(rep("A1", 10))
+  b <- .monitoreo_aulas_efectividad_seguimiento(
+    df, df, resp, cfg,
+    .monitoreo_aulas_valid_response(resp, cfg),
+    .monitoreo_aulas_response_classroom(resp, cfg),
+    hoy = as.Date("2026-09-11")
+  )
+  f <- .efs_fila(b, "Derecho")
+  # Sólo la del 14 sostiene la proyección; la del 7 se aparta.
+  expect_identical(f$cursos_agendados, 1L)
+  expect_identical(f$elegibles_agendados, 20L)
+  expect_identical(f$cursos_vencidos, 1L)
+  expect_identical(f$elegibles_vencidos, 100L)
+  expect_identical(b$total$cursos_vencidos, 1L)
+  # Y NO se cuenta entre las que faltan por agendar: ya se agendó y la cita se
+  # pasó. Lo que pide es reagendar, no llamar por primera vez.
+  expect_identical(f$cursos_sin_agendar, 0L)
+  # El aforo agendado es 20 y el del plan 120: la vencida sigue en el plan —está
+  # comprada— pero no en lo que se puede aplicar. Ésa es toda la diferencia.
+  expect_identical(f$elegibles_pendientes, 120L)
+})
+
+test_that("un curso-horario con respuestas ya NO es aforo pendiente, diga lo que diga su estado", {
+  # Medido en HSVG26ULT2 el 2026-09-11: 68 cursos-horario tenían fecha pasada,
+  # respuestas recogidas y el estado todavía en `planificada`. Contaban como
+  # pendientes, así que su aforo entraba en la proyección mientras sus respuestas
+  # ya estaban en el conseguido: el mismo campo contado dos veces. Derecho salía
+  # con 13 cursos-horario agendados teniendo 6 por delante.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-20"),
+    # Ya trajo respuestas y su estado sigue sin teclearse: no es aforo futuro.
+    .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-20")
+  )
+  d <- .efs_dash(plan, .efs_resp(c(rep("A1", 10), rep("A3", 40))),
+                 .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  expect_identical(f$cursos_agendados, 1L)
+  expect_identical(f$elegibles_agendados, 20L)
+  # Y su aforo tampoco entra en la proyección del plan entero.
+  expect_identical(f$elegibles_pendientes, 20L)
+})

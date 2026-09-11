@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cierreDeLaFacultad, facultadesEnRiesgo } from "./facultadesEnRiesgo";
+import { cierreDeLaFacultad, citasVencidas, facultadesEnRiesgo } from "./facultadesEnRiesgo";
 import type { MonitoreoAulasEfectividadSeguimiento, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
 /**
@@ -195,5 +195,24 @@ describe("agendar y reforzar son dos acciones y el motor dice cuál toca", () =>
     expect(delPanel.quedaria).toBe(deLaFicha.quedaria);
     expect(delPanel.enCamino).toBe(deLaFicha.enCamino);
     expect(delPanel.loQueToca).toBe(deLaFicha.loQueToca);
+  });
+});
+
+
+describe("las citas que se pasaron", () => {
+  const bloqueCon = (total: Record<string, unknown>) =>
+    ({ total, facultades: [] }) as unknown as Parameters<typeof citasVencidas>[0];
+
+  it("se publican aparte porque piden reagendar, no reforzar ni llamar", () => {
+    // Medido el 2026-09-11: de 70 cursos-horario con fecha pasada, 68 ya habían
+    // traído respuestas con el estado operativo todavía en «planificada». Sólo
+    // 2 seguían sin aplicar.
+    expect(citasVencidas(bloqueCon({ cursos_vencidos: 2, elegibles_vencidos: 91 })))
+      .toEqual({ cursos: 2, elegibles: 91 });
+  });
+
+  it("sin ninguna no se dice nada: un aviso que sale siempre deja de avisar", () => {
+    expect(citasVencidas(bloqueCon({ cursos_vencidos: 0, elegibles_vencidos: 0 }))).toBeNull();
+    expect(citasVencidas(null)).toBeNull();
   });
 });
