@@ -206,3 +206,31 @@
     border-bottom: 1px solid var(--pulso-border);
   }
 }
+
+/* Lo que se lista y lo que se cuenta, dicho antes de la lista: sin esto, «136
+   sin cerrar» arriba y cuatro tarjetas abajo se leen como un recorte que nadie
+   declaró. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-alcance {
+  margin: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-alcance strong {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Este vacío es un ESTADO del operativo —todo el plan en pie y nadie caído—,
+   no una laguna de datos, y se redacta como tal. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--pulso-success-fg);
+  background: color-mix(in srgb, var(--pulso-success-fg) 6%, transparent);
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio strong { color: var(--pulso-text); }
