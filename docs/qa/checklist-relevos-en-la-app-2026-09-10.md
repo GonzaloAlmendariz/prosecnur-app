@@ -22,7 +22,7 @@ está, nunca teclearla.
 | 7 | **El popover se abre desde Brechas** — la entrada del complemento (B) | `AulasSeccionConsultas` | ☑ botón por fila de `AulasBrechasDelCorte` |
 | 8 | **La entrada del refuerzo (C)** por facultad | `AulasComoVaCadaFacultad` → `AulasPopoverRefuerzo` | ☑ `f0ddffad` — no al pie de Brechas: C arranca de una facultad, no de un curso-horario |
 | 9 | **Brechas rediseñada**: franja de severidad, «rinde contra lo previsto de su facultad», botón por fila | ídem | ☑ y además lista sólo lo aplicado que rindió corto: los sin campo se cuentan, no se listan |
-| 10 | **Reemplazos rediseñada**: fila por cadena, titular a la izquierda, tira de eslabones con ancho mínimo, tres visibles y «+N por detrás», pastilla de desenlace | `AulasHistoriaCadena` | ◐ el ancho mínimo ya está (`4bd4fa44`); falta la estructura |
+| 10 | **Reemplazos rediseñada**: fila por cadena, titular a la izquierda, tira de eslabones con ancho mínimo, tres visibles y «+N por detrás», pastilla de desenlace | `AulasHistoriaCadena` | ☑ `0b56c532` — rejilla `218px \| tira`, 138 px por eslabón, filo por circunstancia |
 | 11 | **El mapa de la deuda**: un punto por facultad, hombres contra mujeres, cuadrantes, anti-colisión de etiquetas, clic que abre la facultad | Avance › Efectividad **y Consultas › Brechas** | ☑ `4dfcbe34` — con foco: la elegida se marca y las demás se apagan, nunca se van |
 | 12 | **El ranking de facultades**: deuda ordenada, barras por sexo desde el centro, veredicto en palabras | ídem | ☑ la serie de tres jornadas sigue bloqueada por dato |
 | 13 | **El porqué de una facultad**: sus cursos-horario y lo que dejó cada uno | ídem | ☑ el detalle da la frase y el consejo; la lista vive en la tabla de abajo para no contar lo mismo dos veces |
@@ -33,6 +33,11 @@ está, nunca teclearla.
 | 19 | **El mapa, robusto al filtro y con sus rótulos en los márgenes** | `AulasMapaDeLaDeuda` | ☑ `b408afbf` — las demás facultades se apagan, nunca se van |
 | 20 | **Rindió ≠ aportó**: las dos varas de un aula que se metió | `AulasAporteDelAbc` + `aporteDelAbc.ts` | ☑ `94e54d5f` — el criterio es el hecho (¿salió su titular?), no el verbo del libro |
 | 21 | **Las válidas por sexo de cada curso-horario** | motor, `.monitoreo_aulas_validas_por_sexo` | ☑ `b408afbf` — **no se verá hasta que el backend R se recargue** |
+| 22 | **Los tres caminos A/B/C, separados** | `AulasTresCaminos` + `caminosDelLibro.ts` | ☑ `0b56c532` — «son naturalezas distintas y lógicas distintas» |
+| 23 | **Los títulos en el registro del ensayo** | Consultas | ☑ «Qué pasó, y por dónde se sale», «Deuda por sexo, facultad a facultad» |
+| 24 | **La facultad, normalizada en todas las superficies** | `facultadEnPalabras` | ☑ `8c3e3e8f` — quedaban tres sitios leyendo `faculty` crudo |
+| 25 | **La quinta circunstancia: la cadena intacta** | `AulasHistoriaCadena` | ☑ 110 de 174 no habían pasado nada y enterraban las 26 que sí |
+| 26 | **Cada cadena tiene salida** (complementar / buscar relevo) | ídem | ☑ `bfd2c115` |
 | 17 | **La tarjeta de candidato con el lenguaje del ensayo**: puesto, identidad con facultad y docente, las dos varas a la derecha, lo que rinde por sexo | `AulasPopoverReemplazo` + su hoja | ☑ |
 
 ## Lo que el artefacto promete y el dato todavía no da
