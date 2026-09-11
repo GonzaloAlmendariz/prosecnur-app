@@ -18,6 +18,8 @@ import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
+import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
+import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
@@ -424,17 +426,31 @@ export function AulasSeccionConsultas({
             —el motor acota a la facultad por su cuenta, que es la frontera
             dura— y la deuda de esa facultad de las mismas cuotas que usa el
             complemento, para que las dos puertas midan contra el mismo número. */}
-        {refuerzoDe ? (
-          <AulasPopoverRefuerzo
-            facultad={refuerzoDe}
-            filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
-            deuda={brechaDeLaFacultad(
-              (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
-              refuerzoDe,
-            ) ?? { mujeres: 0, hombres: 0 }}
-            onCerrar={() => setRefuerzoDe("")}
-          />
-        ) : null}
+        {refuerzoDe ? (() => {
+          // El plazo sale del mismo sitio que la tabla «Cuándo pedir aula
+          // adicional» de Resumen, no de una segunda cuenta: dos fechas
+          // distintas para el mismo día útil es la avería más cara del perfil.
+          const alerta = alertaDeAnticipacion(
+            proyeccionPorAgenda(
+              (dashboard.agenda ?? []) as MonitoreoRow[],
+              (dashboard.partes_campo ?? []) as MonitoreoRow[],
+              (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[],
+            ),
+            dashboard.banco_extras?.por_facultad ?? [],
+          ).find((a) => a.facultad === refuerzoDe);
+          return (
+            <AulasPopoverRefuerzo
+              facultad={refuerzoDe}
+              filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+              deuda={brechaDeLaFacultad(
+                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+                refuerzoDe,
+              ) ?? { mujeres: 0, hombres: 0 }}
+              pedirAntesDe={alerta?.pedirAntesDe ?? null}
+              onCerrar={() => setRefuerzoDe("")}
+            />
+          );
+        })() : null}
       </div>
   );
 }

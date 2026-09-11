@@ -5,6 +5,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import type { BrechaPorSexo } from "./candidatosDeReemplazo";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { etiquetaDeFecha } from "./agendaPorDia";
 import { planDeRefuerzo, refuerzosDeFacultad, type CandidatoDeRefuerzo } from "./refuerzosDeFacultad";
 import "./aulasPopoverRefuerzo.css";
 
@@ -28,11 +29,18 @@ import "./aulasPopoverRefuerzo.css";
  * debo cierra?». No hay parecido que medir porque no hay nada a lo que
  * parecerse.
  */
-export function AulasPopoverRefuerzo({ facultad, filas, deuda, onCerrar }: {
+export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Lo que la facultad debe HOY, por sexo. Sale de las cuotas, no del cierre. */
   deuda: BrechaPorSexo;
+  /**
+   * El último día útil para llamar sin que la facultad se quede parada, de
+   * `alertaDeAnticipacion`. Un refuerzo no se aplica el día que se decide: hay
+   * que hablar con el docente y hay una semana de anticipación de por medio, y
+   * sin esa fecha la decisión parece que no tiene reloj.
+   */
+  pedirAntesDe?: string | null;
   onCerrar: () => void;
 }): ReactNode {
   const caja = useRef<HTMLDivElement | null>(null);
@@ -62,7 +70,8 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, onCerrar }: {
         aria-label={`Refuerzo para ${facultad}: cursos-horario libres`}
         ref={(el) => { caja.current = el; }}
       >
-        <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda} onCerrar={onCerrar} />
+        <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda}
+          pedirAntesDe={pedirAntesDe} onCerrar={onCerrar} />
       </div>
     </div>,
     document.body,
@@ -74,10 +83,11 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, onCerrar }: {
  * `renderToStaticMarkup`: un portal en el servidor devuelve cadena vacía y no
  * se puede probar nada de lo que hay dentro.
  */
-export function ContenidoDeRefuerzo({ facultad, filas, deuda, onCerrar }: {
+export function ContenidoDeRefuerzo({ facultad, filas, deuda, pedirAntesDe, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   deuda: BrechaPorSexo;
+  pedirAntesDe?: string | null;
   onCerrar?: () => void;
 }) {
   const candidatos = useMemo(
@@ -100,6 +110,13 @@ export function ContenidoDeRefuerzo({ facultad, filas, deuda, onCerrar }: {
               <>
                 Debe <b>{fmt(debeM)}</b> mujeres y <b>{fmt(debeH)}</b> hombres
                 {" · "}<strong>{fmt(debeM + debeH)}</strong> respuestas
+                {/* **El reloj de la decisión.** Un refuerzo no se aplica el día
+                    que se elige: hay que hablar con el docente y median siete
+                    días de anticipación. Sin la fecha, la lista de abajo parece
+                    que se puede mirar mañana igual. */}
+                {pedirAntesDe ? (
+                  <> · pídelo antes del <b>{etiquetaDeFecha(pedirAntesDe)}</b></>
+                ) : null}
               </>
             ) : (
               <>No debe respuestas: la cuota de esta facultad está cubierta.</>
