@@ -38,3 +38,35 @@ monitoreo_aulas_portada_desde_body <- function(parsed) {
   names(out) <- .MONITOREO_PORTADA_CAMPOS
   out
 }
+
+# --- El plan vive en la SESIÓN, no en la config -------------------------------
+#
+# `s$monitoreo_config$aulas_universitarias$plan` está vacío en un proyecto
+# guardado: el plan de cursos-horario se guarda aparte, en `s$monitoreo_aulas_plan`,
+# porque son miles de filas y no tienen por qué viajar en cada payload de config.
+# Las rutas del perfil lo saben y lo inyectan (`aulas_plan <- s$monitoreo_aulas_plan
+# %||% aulas_cfg$plan`), pero el endpoint del PDF de cliente normaliza la config
+# y la pasa tal cual, así que el modelo salía sin plan y respondía
+# `E_AULAS_SIN_PLAN`: el botón de la app fallaba con un estudio perfectamente
+# cargado.
+#
+# No se vio en meses de tests ni renderizando a mano —el runner lo inyectaba— y
+# sí al pedirle el documento a la aplicación por su propio endpoint.
+
+#' Completa la config de aulas con lo que vive suelto en la sesión.
+#'
+#' @param cfg config ya normalizada.
+#' @param s estado de sesión.
+#' @return la misma `cfg` con `aulas_universitarias$plan` y `$partes_campo`
+#'   resueltos desde la sesión cuando la config no los trae.
+#' @keywords internal
+monitoreo_aulas_config_con_sesion <- function(cfg, s) {
+  if (!is.list(cfg)) return(cfg)
+  au <- cfg$aulas_universitarias
+  if (!is.list(au)) return(cfg)
+  if (!length(au$plan %||% list())) au$plan <- s$monitoreo_aulas_plan %||% list()
+  if (!length(au$partes_campo %||% list())) au$partes_campo <- s$monitoreo_aulas_partes_campo %||% list()
+  if (!length(au$control %||% list())) au$control <- s$monitoreo_aulas_control %||% list()
+  cfg$aulas_universitarias <- au
+  cfg
+}

@@ -3230,6 +3230,7 @@ mount_monitoreo <- function(pr) {
       snapshot <- s$monitoreo_snapshot %||% NULL
       snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
+      cfg <- monitoreo_aulas_config_con_sesion(cfg, s)
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
       occ_snap <- s$monitoreo_territorial_occurrences_snapshot %||% NULL
       if (is.list(occ_snap) && is.data.frame(occ_snap$data) && nrow(occ_snap$data) && !is.null(snapshot)) {

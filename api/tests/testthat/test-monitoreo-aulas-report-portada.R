@@ -91,3 +91,30 @@ test_that("el runner sigue funcionando sin portada, que es el caso de las otras 
     model_path = ruta_modelo, result_path = destino))
   expect_length(visto$portada, 0L)
 })
+
+test_that("la config del PDF se completa con el plan que vive suelto en la sesion", {
+  # **El fallo que sólo aparece llamando al endpoint.** El plan de cursos-horario
+  # no viaja dentro de `monitoreo_config`: se guarda aparte, en
+  # `s$monitoreo_aulas_plan`, porque son miles de filas. Las rutas del perfil lo
+  # saben y lo inyectan; el endpoint del PDF de cliente normalizaba la config y
+  # la pasaba tal cual, así que el modelo salía sin plan y el boton respondia
+  # `E_AULAS_SIN_PLAN` con un estudio perfectamente cargado. No lo vio ningun
+  # test ni el render a mano —el runner inyectaba el plan— y si la app.
+  completa <- prosecnurapp:::monitoreo_aulas_config_con_sesion
+  cfg <- list(aulas_universitarias = list(plan = list(), partes_campo = list()))
+  s <- list(monitoreo_aulas_plan = list(list(faculty = "DERECHO")),
+            monitoreo_aulas_partes_campo = list(list(codigo = "CH 1")),
+            monitoreo_aulas_control = list())
+  out <- completa(cfg, s)
+  expect_length(out$aulas_universitarias$plan, 1L)
+  expect_length(out$aulas_universitarias$partes_campo, 1L)
+
+  # Lo que la config YA trae manda: no se pisa con la sesión.
+  cfg2 <- list(aulas_universitarias = list(plan = list("del payload")))
+  expect_equal(completa(cfg2, s)$aulas_universitarias$plan, list("del payload"))
+
+  # Y con una config de otra familia no toca nada.
+  cfg3 <- list(territorial = list(x = 1))
+  expect_equal(completa(cfg3, s), cfg3)
+  expect_equal(completa(NULL, s), NULL)
+})
