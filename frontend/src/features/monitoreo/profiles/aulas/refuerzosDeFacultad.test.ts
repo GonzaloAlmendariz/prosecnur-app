@@ -164,3 +164,56 @@ describe("el plan dice si alcanza", () => {
     expect(p.hacenFalta).toBe(1);
   });
 });
+
+describe("una cadena se resuelve por el HECHO, no por el estado tecleado", () => {
+  /**
+   * Gonzalo, 2026-09-11, sobre el popover de refuerzo de Ciencias Sociales: «me
+   * preocupa este caso, no queda ningún reemplazo disponible».
+   *
+   * No quedaba ninguno porque el inventario miraba `operational_status`, que
+   * nadie había tecleado. Medido en ese momento sobre HSVG26ULT2: por estado,
+   * **0 cadenas resueltas y 0 reservas liberadas**; por las respuestas, **61 y
+   * 398**. La pantalla mandaba a ampliar el marco a quien ya tenía con qué, que
+   * es el error más caro que puede cometer.
+   */
+  const fila = (extra: Record<string, unknown>): MonitoreoAulasPlanRow =>
+    ({
+      faculty: "DERECHO", eligible_n: 20, sex_top_1: "F", sex_top_1_n: 12, sex_top_2_n: 8,
+      tasa_efectividad_aula: 0.5, sample_role: "chain_reserve",
+      operational_status: "planificada", sample_status: "en_reserva", ...extra,
+    }) as unknown as MonitoreoAulasPlanRow;
+
+  it("el titular con respuestas libera su cadena aunque siga en «planificada»", () => {
+    const plan = [
+      fila({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "planificada", respuestas_validas: 14 }),
+      fila({ operational_code: "R 1.1", titular_operational_code: "CH 1" }),
+      fila({ operational_code: "R 1.2", titular_operational_code: "CH 1" }),
+    ];
+    const codigos = inventarioDeLaFacultad(plan, "DERECHO").map((x) => String(x.fila.operational_code));
+    expect(codigos).toEqual(["R 1.1", "R 1.2"]);
+  });
+
+  it("sin respuestas y sin estado, la cadena sigue viva y sus reservas atadas", () => {
+    // El control: si el arreglo fuera «liberar siempre», este caso fallaría y
+    // se gastaría la red de un titular que todavía puede caer.
+    const plan = [
+      fila({ operational_code: "CH 2", sample_role: "titular", titular_operational_code: "CH 2",
+        operational_status: "planificada", respuestas_validas: 0 }),
+      fila({ operational_code: "R 2.1", titular_operational_code: "CH 2" }),
+    ];
+    expect(inventarioDeLaFacultad(plan, "DERECHO")).toEqual([]);
+  });
+
+  it("la reserva que ya rindió no vuelve al inventario", () => {
+    const plan = [
+      fila({ operational_code: "CH 3", sample_role: "titular", titular_operational_code: "CH 3",
+        operational_status: "planificada", respuestas_validas: 0 }),
+      fila({ operational_code: "R 3.1", titular_operational_code: "CH 3", respuestas_validas: 9 }),
+      fila({ operational_code: "R 3.2", titular_operational_code: "CH 3" }),
+    ];
+    // R 3.1 cubrió el slot con sus respuestas: libera a R 3.2 y ella no vuelve.
+    const codigos = inventarioDeLaFacultad(plan, "DERECHO").map((x) => String(x.fila.operational_code));
+    expect(codigos).toEqual(["R 3.2"]);
+  });
+});
