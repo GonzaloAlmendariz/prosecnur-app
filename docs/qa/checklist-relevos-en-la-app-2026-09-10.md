@@ -26,7 +26,7 @@ está, nunca teclearla.
 | 11 | **El mapa de la deuda**: un punto por facultad, hombres contra mujeres, cuadrantes, anti-colisión de etiquetas, clic que abre la facultad | Avance › Efectividad **y Consultas › Brechas** | ☑ `4dfcbe34` — con foco: la elegida se marca y las demás se apagan, nunca se van |
 | 12 | **El ranking de facultades**: deuda ordenada, barras por sexo desde el centro, veredicto en palabras | ídem | ☑ la serie de tres jornadas sigue bloqueada por dato |
 | 13 | **El porqué de una facultad**: sus cursos-horario y lo que dejó cada uno | ídem | ☑ el detalle da la frase y el consejo; la lista vive en la tabla de abajo para no contar lo mismo dos veces |
-| 14 | **El embudo del aula**: padrón → en el aula → respondieron → válidas, y qué escalón pesó más | ídem | ☐ **falta el dato**: la app no guarda cuántos estaban en el aula (ver abajo) |
+| 14 | **El embudo del aula**: padrón → en el aula → respondieron → válidas, y qué escalón pesó más | `embudoDelAula.ts` + `AulasEmbudoDelAula` | ☑ `5fa9f16e` — **el dato SÍ estaba**: `observed_students` en 54 partes y `eligible_n` en el plan. La casilla decía «falta el dato» sin haberlo buscado |
 | 15 | **La matriz «qué sirve para qué»**: las tres procedencias × los tres casos | `AulasQueSirveParaQue`, al pie de Brechas | ☑ `553cc71e` — no es un cartel: cada procedencia trae cuántas hay hoy |
 | 16 | **El embudo raro de top-N se retira** | `AulasConcentracionBrecha` | ☑ `4dfcbe34` — «eso ni siquiera estaba planteado en el artefacto»; contestaba una pregunta sobre la forma de la lista, no sobre el campo |
 | 18 | **Los nombres de facultad, normalizados en un solo sitio** | `facultadEnPalabras.ts` | ☑ `553cc71e` — el mapa acortaba siete y dejaba el resto en mayúsculas |
@@ -51,11 +51,12 @@ está, nunca teclearla.
   reparto por sexo» hasta que la app se reinicie. No se reinstaló a propósito —
   un `R CMD INSTALL` a medias deja la app caída.
 
-- **El embudo (14).** El escalón «estaban en el aula» no está guardado: la tasa
-  del aula ya lo lleva dentro. Es el hallazgo de
-  `project_cadena_elegibles_a_efectivas`. O se publica ese escalón desde el
-  parte de campo —`observed_students`—, o el embudo se queda en tres pasos y lo
-  dice.
+- ~~**El embudo (14).**~~ **Resuelto el 2026-09-11, y la casilla estaba mal.**
+  Decía que el escalón «estaban en el aula» no estaba guardado; sí lo está:
+  `observed_students` viaja en 54 partes del corte y `eligible_n` en el plan.
+  Medido en el payload vivo: CH 2 con 29 convocados y 22 en el aula. Lo que
+  faltaba no era el dato, era cruzarlo por código. Declarar una ausencia sin
+  haberla buscado costó esta casilla varios días.
 - **La serie por jornada (12).** Hoy la deuda por facultad se publica al corte,
   no por día. Hace falta que el motor la reparta como ya hace
   `monitoreo_aulas_ritmo_por_facultad`.
