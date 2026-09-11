@@ -378,6 +378,46 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   # Cuantos cursos-horario sostienen esa proyeccion: sin el conteo, «94
   # esperadas» no dice si descansa en cinco aulas o en una.
   cursos_agendados_k <- if (any(agend)) tapply(rep(1, sum(agend)), fk_track[agend], sum) else numeric(0)
+  # Y los que estan en el plan SIN fecha: son los que se pueden agendar sin
+  # gastar una reserva. Gonzalo, 2026-09-11: «sospecho que en gran parte es
+  # porque nos falta agendar […] pero ninguno se complementa ni me dice si
+  # aquello es necesario». Con esto la vista puede separar las dos acciones —
+  # agendar lo que ya es tuyo, o llamar a un docente de refuerzo— que cuestan
+  # cosas muy distintas.
+  # **El que ya rechazo NO se agenda.** Su salida es la reserva, no una llamada
+  # mas: contarlo entre «los que te quedan por agendar» manda al coordinador a
+  # insistir con un docente que ya dijo que no.
+  caido_track <- .maej_caido(.maac_chr_col(tracked_df, "sample_status"))
+  sin_agendar <- pend & !agendada_track & !caido_track
+  cursos_sin_agendar_k <- if (any(sin_agendar)) {
+    tapply(rep(1, sum(sin_agendar)), fk_track[sin_agendar], sum)
+  } else numeric(0)
+
+  # **Un curso-horario sin agendar NO es aforo seguro.**
+  #
+  # Gonzalo, 2026-09-11: «ojo, toma en cuenta que un CH puede estar en titulares
+  # (planificado) pero hasta que no esté agendado no sabemos realmente si vamos
+  # a poder aplicar allí o no». Decir «le quedan 23 sin fecha y con ellos
+  # cerraría» promete algo que depende de que el docente acepte.
+  #
+  # Lo que se puede afirmar es lo ya OCURRIDO: de los titulares cuyo contacto ya
+  # se resolvio —tienen fecha, se aplicaron o rechazaron—, cuantos rechazaron.
+  # Esa proporcion es la base para decir que no todos los pendientes daran
+  # fecha, sin inventar una tasa de conversion que nadie ha medido.
+  rol_plan <- .maac_chr_col(plan_df, "sample_role")
+  es_titular_plan <- !nzchar(rol_plan) | rol_plan == "titular"
+  muestra_plan <- .maac_chr_col(plan_df, "sample_status")
+  rechazo_plan <- es_titular_plan & .maej_caido(muestra_plan)
+  resuelto_plan <- es_titular_plan & (
+    rechazo_plan | aplicada |
+      .maau_agendada(muestra_plan, .maac_chr_col(plan_df, "operational_status")))
+  fk_plan_todos <- .maac_fac_key(.maac_chr_col(plan_df, "faculty"))
+  rechazos_k <- if (any(rechazo_plan)) {
+    tapply(rep(1, sum(rechazo_plan)), fk_plan_todos[rechazo_plan], sum)
+  } else numeric(0)
+  resueltos_k <- if (any(resuelto_plan)) {
+    tapply(rep(1, sum(resuelto_plan)), fk_plan_todos[resuelto_plan], sum)
+  } else numeric(0)
 
   libres <- .maes_reservas_libres(plan_df)
   banco <- .maes_banco_disponible(plan_df)
@@ -510,6 +550,10 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       # --- la misma cuenta, solo sobre lo que tiene fecha ---
       elegibles_agendados = as.integer(round(el_agendados)),
       cursos_agendados = as.integer(.maac_toma_num(cursos_agendados_k, k, 0)),
+      cursos_sin_agendar = as.integer(.maac_toma_num(cursos_sin_agendar_k, k, 0)),
+      # Los dos, y no su cociente: sin el denominador, «33 %» puede ser 1 de 3.
+      titulares_resueltos = as.integer(.maac_toma_num(resueltos_k, k, 0)),
+      titulares_rechazo = as.integer(.maac_toma_num(rechazos_k, k, 0)),
       proyectado_agendado = if (is.finite(margen_agendado$proyectado)) round(margen_agendado$proyectado, 1) else NA_real_,
       margen_agendado = if (is.finite(margen_agendado$restante)) round(margen_agendado$restante, 1) else NA_real_,
       riesgo_agendado = margen_agendado$estado,
@@ -623,6 +667,11 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       # Lo mismo contando SOLO lo agendado. Es el par de cifras que separa «hay
       # aforo en el plan» de «hay fecha para aplicarlo», y su distancia es
       # cuanto queda por agendar antes de que haga falta reserva.
+      # Cuantos titulares del estudio ya resolvieron su contacto y cuantos
+      # rechazaron. Es la base para decir que lo planificado sin fecha no es
+      # aforo seguro, con una cifra medida en vez de una corazonada.
+      titulares_resueltos = as.integer(sum(resuelto_plan)),
+      titulares_rechazo = as.integer(sum(rechazo_plan)),
       facultades_en_riesgo_agendado = as.integer(sum(en_riesgo_agendado)),
       alumnos_en_riesgo_agendado = round(sum(vapply(filas, function(x) {
         if (!((x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)

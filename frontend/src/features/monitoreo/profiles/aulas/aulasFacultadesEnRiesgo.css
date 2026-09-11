@@ -126,3 +126,16 @@
   /* La frase baja a su propio renglón antes que encogerse hasta no leerse. */
   .mon-profile-page.is-aulas-flow .aulas-riesgo-dice { grid-column: 2 / -1; }
 }
+
+/* Qué corresponde hacer. Va en su propio renglón y con color propio porque es
+   la única parte accionable de la fila: agendar lo que ya es tuyo y contactar a
+   un docente de refuerzo cuestan cosas muy distintas. */
+.mon-profile-page.is-aulas-flow .aulas-riesgo-toca {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--aulas-min);
+  line-height: 1.4;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-toca.es-agendar { color: var(--pulso-primary); }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-toca.es-reforzar { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-toca b { font-weight: var(--pulso-weight-semibold); }

@@ -4,7 +4,8 @@ import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from
 import { facultadCorta } from "./facultadEnPalabras";
 import { fechaEnPalabras } from "./fichaDeCursoHorario";
 import { fmt } from "./kpisDeAulas";
-import { facultadesEnRiesgo } from "./facultadesEnRiesgo";
+import { facultadesEnRiesgo, rechazoDelOperativo } from "./facultadesEnRiesgo";
+import { pctPerfil } from "./kpisDeAulas";
 import "./aulasFacultadesEnRiesgo.css";
 
 /**
@@ -41,6 +42,7 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
     );
   }
 
+  const rechazo = rechazoDelOperativo(bloque);
   const cortas = filas.filter((f) => f.aviso === "agenda_corta").length;
   const ciegas = filas.length - cortas;
   const foco = (facultadEnFoco ?? "").trim();
@@ -92,7 +94,28 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                   <>Sus <b>{fmt(f.cursosEnCamino)}</b> {f.cursosEnCamino === 1
                     ? "curso-horario agendado espera" : "cursos-horario agendados esperan"} traer{" "}
                     <b>{fmt(f.enCamino)}</b>: le {f.quedaria === 1 ? "faltaría" : "faltarían"}{" "}
-                    <b className="es-falta">{fmt(f.quedaria)}</b> aunque todos salgan bien.</>
+                    <b className="es-falta">{fmt(f.quedaria)}</b> aunque todos salgan bien.
+                    {/* **Y qué corresponde hacer, que no es lo mismo en las
+                        dos.** Sin esto, la única lectura posible de «le faltan
+                        91» es pedir refuerzo, y en Derecho el aforo ya existe:
+                        lo que falta es fecha. Una reserva gastada de más no
+                        vuelve, y no se comparte entre facultades. */}
+                    {f.loQueToca === "agendar" ? (
+                      <span className="aulas-riesgo-toca es-agendar">
+                        {f.cursosSinAgendar
+                          ? <>Le quedan <b>{fmt(f.cursosSinAgendar)}</b> {f.cursosSinAgendar === 1
+                              ? "curso-horario del plan por agendar" : "cursos-horario del plan por agendar"}{" "}
+                              que bastarían: aquí toca <b>agendar</b> antes que gastar reserva.</>
+                          : <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.</>}
+                      </span>
+                    ) : f.loQueToca === "reforzar" ? (
+                      <span className="aulas-riesgo-toca es-reforzar">
+                        Ni agendando {f.cursosSinAgendar
+                          ? <>los <b>{fmt(f.cursosSinAgendar)}</b> que le quedan sin fecha</>
+                          : "el resto de su plan"} llegaría: aquí sí toca contactar
+                        docentes de aulas de refuerzo.
+                      </span>
+                    ) : null}</>
                 ) : f.cursosEnCamino ? (
                   // Lo que está en juego y con qué margen: «trae 35 para los 20
                   // que faltan» dice a la vez que alcanza y que nadie lo ha
@@ -126,6 +149,16 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
         Lo que se espera de un curso-horario agendado es una proyección sobre su
         padrón, no un hecho: sirve para decidir a quién reforzar hoy, no para dar
         una cuota por cubierta. Las reservas no se comparten entre facultades.
+        {/* **Y lo planificado tampoco es aforo seguro.** Gonzalo, 2026-09-11:
+            «hasta que no esté agendado no sabemos realmente si vamos a poder
+            aplicar allí». Se dice con lo ya ocurrido, no con una previsión. */}
+        {" "}Un curso-horario del plan sin fecha todavía no es una aplicación: el
+        docente puede rechazar
+        {rechazo
+          ? <>, y en este operativo lo {rechazo.rechazos === 1 ? "ha hecho" : "han hecho"}{" "}
+            <b>{fmt(rechazo.rechazos)}</b> de {fmt(rechazo.resueltos)} titulares
+            ya contactados ({pctPerfil(rechazo.porCiento)}).</>
+          : "."}
       </p>
     </div>
   );

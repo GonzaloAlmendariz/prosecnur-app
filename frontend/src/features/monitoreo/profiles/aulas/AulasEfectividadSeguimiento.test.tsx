@@ -40,6 +40,9 @@ function fac(sobre: Partial<MonitoreoAulasEfectividadFacultad> = {}): MonitoreoA
     // plan que todavía no tienen día.
     elegibles_agendados: 60,
     cursos_agendados: 3,
+    cursos_sin_agendar: 5,
+    titulares_resueltos: 19,
+    titulares_rechazo: 3,
     proyectado_agendado: 248.4,
     margen_agendado: -11.6,
     riesgo_agendado: "riesgo",
@@ -90,6 +93,7 @@ function bloque(sobre: Partial<MonitoreoAulasEfectividadSeguimiento> = {}): Moni
       aulas_aplicadas: 68, elegibles_aplicados: 2000, efectivas: 1020,
       facultades_bajo_su_tau: 0, facultades_en_riesgo: 0, alumnos_en_riesgo: 0,
       facultades_en_riesgo_agendado: 0, alumnos_en_riesgo_agendado: 0,
+      titulares_resueltos: 60, titulares_rechazo: 9,
     },
     facultades: [fac()],
     ...sobre,

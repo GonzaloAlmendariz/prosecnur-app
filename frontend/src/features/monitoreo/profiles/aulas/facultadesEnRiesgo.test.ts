@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { facultadesEnRiesgo } from "./facultadesEnRiesgo";
+import { cierreDeLaFacultad, facultadesEnRiesgo } from "./facultadesEnRiesgo";
 import type { MonitoreoAulasEfectividadSeguimiento, MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
 /**
@@ -138,5 +138,54 @@ describe("las facultades en riesgo que el ranking de tasas no ve", () => {
 
   it("sin bloque no inventa avisos", () => {
     expect(facultadesEnRiesgo(null, celdas, plan)).toEqual([]);
+  });
+});
+
+/**
+ * «Por un lado a Derecho no le va mal y por otro a Derecho le falta muchísimo
+ * […] sospecho que en gran parte es porque nos falta agendar […] pero ninguno
+ * se complementa ni me dice si aquello es necesario» (Gonzalo, 2026-09-11).
+ */
+describe("agendar y reforzar son dos acciones y el motor dice cuál toca", () => {
+  const facultad = (sobre: Record<string, unknown>) => ({
+    facultad: "DERECHO", faculty_key: "derecho", aulas_aplicadas: 7,
+    cuota: 363, conseguido: 147, cursos_agendados: 6, proyectado_agendado: 272,
+    margen_agendado: -91, riesgo_agendado: "riesgo", cursos_sin_agendar: 17,
+    margen_restante: 207, ...sobre,
+  }) as unknown as Parameters<typeof cierreDeLaFacultad>[0];
+
+  it("rinde bien y está corta de campo: toca agendar, no gastar reserva", () => {
+    // El caso real de Derecho. Con todo su plan proyecta de sobra (+207) y con
+    // lo agendado se queda a 91: el aforo existe, lo que falta es fecha.
+    const c = cierreDeLaFacultad(facultad({}))!;
+    expect(c.loQueToca).toBe("agendar");
+    expect(c.falta).toBe(216);
+    expect(c.enCamino).toBe(125);
+    expect(c.quedaria).toBe(91);
+    expect(c.cursosSinAgendar).toBe(17);
+  });
+
+  it("cuando ni su plan entero alcanza, toca refuerzo", () => {
+    // Ahí sí corresponde contactar docentes de aulas de refuerzo: una reserva
+    // gastada no vuelve y no se comparte entre facultades.
+    expect(cierreDeLaFacultad(facultad({ margen_restante: -40 }))!.loQueToca).toBe("reforzar");
+  });
+
+  it("la que ya cierra con lo agendado no pide ninguna de las dos", () => {
+    expect(cierreDeLaFacultad(facultad({ margen_agendado: 12 }))!.loQueToca).toBeNull();
+  });
+
+  it("las dos lecturas salen de la MISMA cuenta", () => {
+    // El panel de Resumen y la ficha de Brechas leen `cierreDeLaFacultad`: es lo
+    // que evita que una diga «va bien» y la otra «le falta muchísimo» sin que
+    // ninguna explique por qué.
+    const bloqueDerecho = {
+      total: {}, facultades: [facultad({ reservas_libres: 207 })],
+    } as unknown as Parameters<typeof facultadesEnRiesgo>[0];
+    const delPanel = facultadesEnRiesgo(bloqueDerecho, [], [])[0];
+    const deLaFicha = cierreDeLaFacultad(facultad({}))!;
+    expect(delPanel.quedaria).toBe(deLaFicha.quedaria);
+    expect(delPanel.enCamino).toBe(deLaFicha.enCamino);
+    expect(delPanel.loQueToca).toBe(deLaFicha.loQueToca);
   });
 });

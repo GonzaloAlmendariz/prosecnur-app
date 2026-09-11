@@ -543,3 +543,52 @@ test_that("el predicado de agendada tiene un solo dueño", {
   expect_false(.maau_agendada(NA, NA))
   expect_identical(.maau_agendada(character(0), character(0)), logical(0))
 })
+
+test_that("separa lo que se puede agendar de lo que exige reserva", {
+  # Gonzalo, 2026-09-11 mirando Derecho: «sospecho que en gran parte es porque
+  # nos falta agendar […] pero ninguno se complementa ni me dice si aquello es
+  # necesario». Las dos acciones cuestan cosas distintas: agendar un titular que
+  # ya es tuyo no gasta nada; llamar a un docente de refuerzo gasta una reserva
+  # que no se comparte entre facultades.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE, status = "agendada"),
+    .efs_aula("A3", "Derecho", eligible = 40, orden = 3, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada"),
+    .efs_aula("A4", "Derecho", eligible = 40, orden = 4, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  expect_identical(f$cursos_agendados, 1L)
+  expect_identical(f$cursos_sin_agendar, 2L)
+  # Con lo agendado no llega —20 de 40— pero su propio plan da de sobra: aquí
+  # el trabajo es agendar, no pedir refuerzo.
+  expect_true(f$riesgo_agendado %in% c("riesgo", "riesgo_firme"))
+  expect_identical(f$riesgo, "holgado")
+})
+
+test_that("lo planificado sin fecha no es aforo seguro: se publica cuántos rechazaron", {
+  # Gonzalo, 2026-09-11: «un CH puede estar en titulares (planificado) pero hasta
+  # que no esté agendado no sabemos realmente si vamos a poder aplicar allí».
+  # Lo que se puede afirmar es lo ya ocurrido, y por eso viajan los DOS números:
+  # sin denominador, «33 %» puede ser 1 de 3.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE, status = "agendada"),
+    .efs_aula("A3", "Derecho", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "rechazo", op_status = "planificada"),
+    # Éste todavía no ha resuelto su contacto: no cuenta en ninguna de las dos.
+    .efs_aula("A4", "Derecho", eligible = 20, orden = 4, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  b <- d$efectividad_seguimiento
+  f <- .efs_fila(b, "Derecho")
+  expect_identical(f$titulares_resueltos, 3L)
+  expect_identical(f$titulares_rechazo, 1L)
+  expect_identical(b$total$titulares_resueltos, 3L)
+  expect_identical(b$total$titulares_rechazo, 1L)
+  # Y el que sigue sin contactar sigue contándose como pendiente de agendar.
+  expect_identical(f$cursos_sin_agendar, 1L)
+})
