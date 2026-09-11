@@ -149,6 +149,15 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   if (length(v) != 1L || !is.finite(v)) default else v
 }
 
+#' Dias que una gestion puede estar abierta antes de cubrirla en paralelo.
+#'
+#' No es paciencia: es el plazo que la RESERVA necesita para su propio contacto
+#' y confirmacion. Gonzalo, 2026-09-11: «un refuerzo tampoco es una aplicacion
+#' garantizada». Esperar a que el titular falle del todo deja sin margen a la
+#' unica alternativa.
+#' @keywords internal
+MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
+
 # --- el margen ----------------------------------------------------------------
 
 #' El margen que le queda a una facultad, proyectando el aforo pendiente.
@@ -440,6 +449,56 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
     tapply(rep(1, sum(sin_agendar)), fk_track[sin_agendar], sum)
   } else numeric(0)
 
+  # **Y «por agendar» son dos cosas que piden acciones distintas.**
+  #
+  # Gonzalo, 2026-09-11: «el toca agendar a veces puede que no logre agendar
+  # sobre los titulares, por lo que aplicar refuerzos». Medido ese dia en
+  # HSVG26ULT2: de los 174 titulares, **cero estaban sin contactar** —144
+  # agendados, 4 reagendados, 22 en gestion y 4 en rechazo—. Los que faltan por
+  # agendar no son llamadas pendientes: son docentes ya llamados que no cierran
+  # fecha, y decirle al coordinador «te quedan 6 por agendar» le hace creer que
+  # tiene seis llamadas por delante cuando lo que tiene son seis gestiones
+  # encalladas.
+  en_gestion <- sin_agendar &
+    tolower(trimws(.maac_chr_col(tracked_df, "sample_status"))) %in% "en_contacto"
+  cursos_en_gestion_k <- if (any(en_gestion)) {
+    tapply(rep(1, sum(en_gestion)), fk_track[en_gestion], sum)
+  } else numeric(0)
+
+  # **Cuáles de esas gestiones ya no van a cerrar solas.**
+  #
+  # Gonzalo, 2026-09-11: «si vemos que los titulares no confirman, poder ir
+  # reforzando con reemplazos disponibles», y «partiendo del hecho de que un
+  # refuerzo tampoco es una aplicación garantizada». Lo segundo es lo que obliga
+  # a lo primero: si cubrir con reserva TAMBIÉN pasa por contactar, confirmar y
+  # recién agendar, esperar a que el titular falle del todo llega tarde.
+  #
+  # Dos señales, y la primera no es cuestión de paciencia. Medido en HSVG26ULT2
+  # el 2026-09-11: de 22 gestiones abiertas, **seis tenían el teléfono muerto**
+  # —«Número no existe», «Número fuera de servicio»—, una de ellas de Derecho y
+  # dos con diez días encima. Ésas no son gestiones lentas: no hay por dónde
+  # llamar, y el panel las contaba como aforo por agendar.
+  via_contacto <- tolower(trimws(.maac_chr_col(tracked_df, "call_status")))
+  via_contacto <- iconv(via_contacto, to = "ASCII//TRANSLIT")
+  via_contacto[is.na(via_contacto)] <- ""
+  sin_via <- en_gestion & grepl("no existe|fuera de servicio", via_contacto)
+
+  # La segunda sí es de paciencia, y el umbral se declara: cinco dias de campo
+  # abierto sin cerrar fecha es cuando conviene empezar a cubrir en paralelo,
+  # porque la reserva necesita su propio plazo de contacto y confirmacion.
+  fec_contacto <- suppressWarnings(as.Date(substr(
+    .maac_chr_col(tracked_df, "contact_date"), 1, 10)))
+  dias_gestion <- as.numeric(corte - fec_contacto)
+  estancada <- en_gestion & !sin_via &
+    !is.na(dias_gestion) & dias_gestion >= MONITOREO_AULAS_DIAS_PARA_CUBRIR
+
+  cursos_sin_via_k <- if (any(sin_via)) {
+    tapply(rep(1, sum(sin_via)), fk_track[sin_via], sum)
+  } else numeric(0)
+  cursos_estancados_k <- if (any(estancada)) {
+    tapply(rep(1, sum(estancada)), fk_track[estancada], sum)
+  } else numeric(0)
+
   # **Un curso-horario sin agendar NO es aforo seguro.**
   #
   # Gonzalo, 2026-09-11: «ojo, toma en cuenta que un CH puede estar en titulares
@@ -598,6 +657,14 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       elegibles_agendados = as.integer(round(el_agendados)),
       cursos_agendados = as.integer(.maac_toma_num(cursos_agendados_k, k, 0)),
       cursos_sin_agendar = as.integer(.maac_toma_num(cursos_sin_agendar_k, k, 0)),
+      # De los anteriores, los que YA se contactaron y no cierran fecha. Lo que
+      # piden es insistir o darlos por caidos, no llamar por primera vez.
+      cursos_en_gestion = as.integer(.maac_toma_num(cursos_en_gestion_k, k, 0)),
+      # De las gestiones abiertas, las que ya piden cubrirse con reserva EN
+      # PARALELO: sin telefono valido, o estancadas mas dias de los que la
+      # reserva necesita para su propio contacto y confirmacion.
+      cursos_sin_via = as.integer(.maac_toma_num(cursos_sin_via_k, k, 0)),
+      cursos_estancados = as.integer(.maac_toma_num(cursos_estancados_k, k, 0)),
       # Citas que pasaron sin aplicarse. Ni aforo ni «por agendar»: piden
       # reagendar o darlas por caidas, y hasta entonces no rinden nada.
       cursos_vencidos = as.integer(.maac_toma_num(cursos_vencidos_k, k, 0)),
@@ -727,6 +794,10 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       # un matiz de la proyeccion.
       cursos_vencidos = as.integer(sum(vencida_track)),
       elegibles_vencidos = as.integer(round(sum(el_track[vencida_track]))),
+      cursos_en_gestion = as.integer(sum(en_gestion)),
+      cursos_sin_via = as.integer(sum(sin_via)),
+      cursos_estancados = as.integer(sum(estancada)),
+      dias_para_cubrir = as.integer(MONITOREO_AULAS_DIAS_PARA_CUBRIR),
       facultades_en_riesgo_agendado = as.integer(sum(en_riesgo_agendado)),
       alumnos_en_riesgo_agendado = round(sum(vapply(filas, function(x) {
         if (!((x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)

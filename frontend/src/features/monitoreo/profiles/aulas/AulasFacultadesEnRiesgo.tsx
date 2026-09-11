@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
 import { facultadCorta } from "./facultadEnPalabras";
+import type { RiesgoDeFacultad } from "./facultadesEnRiesgo";
 import { fechaEnPalabras } from "./fichaDeCursoHorario";
 import { fmt } from "./kpisDeAulas";
 import { citasVencidas, facultadesEnRiesgo, rechazoDelOperativo } from "./facultadesEnRiesgo";
@@ -24,6 +25,40 @@ import "./aulasFacultadesEnRiesgo.css";
  * Este panel contesta lo otro: **quién no va a llegar con lo que tiene por
  * delante, y quién todavía no puede saberlo.**
  */
+/**
+ * **Qué gestiones hay que cubrir con reserva SIN esperar a que fallen.**
+ *
+ * Gonzalo, 2026-09-11: «si vemos que los titulares no confirman, poder ir
+ * reforzando con reemplazos disponibles», y la premisa de la que parte: «un
+ * refuerzo tampoco es una aplicación garantizada». Justamente porque la reserva
+ * necesita su propio contacto y confirmación, esperar a que el titular falle
+ * del todo llega tarde.
+ *
+ * Se separan porque no son lo mismo: sin teléfono válido no hay gestión que
+ * madure —es una baja de hecho— y una gestión estancada todavía puede cerrar,
+ * sólo que ya no conviene apostarlo todo a ella.
+ */
+function AvisoDeCubrir({ fila }: { fila: RiesgoDeFacultad }): ReactNode {
+  if (!fila.cursosSinVia && !fila.cursosEstancados) {
+    return <>Si no cierran, quedan sus reservas.</>;
+  }
+  return (
+    <b className="aulas-riesgo-cubrir">
+      {fila.cursosSinVia ? (
+        <><b>{fmt(fila.cursosSinVia)}</b>{" "}
+          {fila.cursosSinVia === 1 ? "no tiene teléfono válido" : "no tienen teléfono válido"}</>
+      ) : null}
+      {fila.cursosSinVia && fila.cursosEstancados ? " y " : null}
+      {fila.cursosEstancados ? (
+        <><b>{fmt(fila.cursosEstancados)}</b>{" "}
+          {fila.cursosEstancados === 1 ? "lleva" : "llevan"} días sin cerrar</>
+      ) : null}
+      : empieza a cubrir{fila.cursosSinVia + fila.cursosEstancados === 1 ? "la" : "las"} con reserva
+      en paralelo, que el refuerzo también tarda en confirmar.
+    </b>
+  );
+}
+
 export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadEnFoco, onFoco }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   celdasDeCuota: ReadonlyArray<Record<string, unknown>> | null | undefined;
@@ -101,23 +136,38 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                         91» es pedir refuerzo, y en Derecho el aforo ya existe:
                         lo que falta es fecha. Una reserva gastada de más no
                         vuelve, y no se comparte entre facultades. */}
+                    {/* **Por dónde empezar, no qué excluir.** Gonzalo,
+                        2026-09-11: «el toca agendar a veces puede que no logre
+                        agendar sobre los titulares, por lo que aplicar
+                        refuerzos; y a los refuerzos también se les contacta y
+                        recién se agenda previa su confirmación, por lo que no
+                        es una aplicación asegurada». El consejo dice el orden y
+                        el riesgo de cada vía, no una sola puerta. */}
                     {f.loQueToca === "agendar" ? (
                       <span className="aulas-riesgo-toca es-agendar">
-                        {f.cursosSinAgendar === 1
-                          ? <>Le queda <b>1</b> curso-horario del plan por agendar, y bastaría:
-                              aquí toca <b>agendar</b> antes que gastar reserva.</>
-                          : f.cursosSinAgendar
-                            ? <>Le quedan <b>{fmt(f.cursosSinAgendar)}</b> cursos-horario del plan
-                                por agendar, y bastarían: aquí toca <b>agendar</b> antes que gastar
-                                reserva.</>
-                            : <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.</>}
+                        {f.cursosSinAgendar ? (
+                          <>Empieza por sus <b>{fmt(f.cursosSinAgendar)}</b>{" "}
+                            {f.cursosSinAgendar === 1 ? "curso-horario" : "cursos-horario"} del plan
+                            sin fecha, que {f.cursosSinAgendar === 1 ? "bastaría" : "bastarían"} y no
+                            gastan reserva
+                            {f.cursosEnGestion
+                              ? <> — pero <b>{fmt(f.cursosEnGestion)}</b> ya{" "}
+                                  {f.cursosEnGestion === 1 ? "está" : "están"} en gestión sin
+                                  cerrar</>
+                              : null}.{" "}
+                            <AvisoDeCubrir fila={f} /></>
+                        ) : (
+                          <>Con su plan completo cerraría: el hueco es de agenda, no de aforo.{" "}
+                            <AvisoDeCubrir fila={f} /></>
+                        )}
                       </span>
                     ) : f.loQueToca === "reforzar" ? (
                       <span className="aulas-riesgo-toca es-reforzar">
                         Ni agendando {f.cursosSinAgendar
-                          ? <>los <b>{fmt(f.cursosSinAgendar)}</b> que le quedan sin fecha</>
-                          : "el resto de su plan"} llegaría: aquí sí toca contactar
-                        docentes de aulas de refuerzo.
+                          ? <>{f.cursosSinAgendar === 1 ? "el que le queda" : <>los <b>{fmt(f.cursosSinAgendar)}</b> que le quedan</>} sin fecha</>
+                          : "el resto de su plan"} llegaría: hay que contactar docentes
+                        de aulas de refuerzo ya, además de cerrar lo que esté en gestión.{" "}
+                        <AvisoDeCubrir fila={f} />
                       </span>
                     ) : null}</>
                 ) : f.cursosEnCamino ? (
@@ -165,8 +215,13 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
             ({fmt(vencidas.elegibles)} alumnos): no cuentan en ninguna proyección hasta
             que se reagenden.</>
         ) : null}
-        {" "}Un curso-horario del plan sin fecha todavía no es una aplicación: el
-        docente puede rechazar
+        {/* **Ni el titular ni el refuerzo son aforo asegurado.** El refuerzo
+            pasa por el mismo embudo: se le contacta, confirma, y recién
+            entonces se agenda. Sin decirlo, «activa una reserva» se lee como
+            «ya tienes las respuestas». */}
+        {" "}Un curso-horario del plan sin fecha todavía no es una aplicación —y un
+        refuerzo tampoco: también hay que contactarlo y sólo se agenda cuando el
+        docente confirma—. El docente puede rechazar
         {rechazo
           ? <>, y en este operativo lo {rechazo.rechazos === 1 ? "ha hecho" : "han hecho"}{" "}
             <b>{fmt(rechazo.rechazos)}</b> de {fmt(rechazo.resueltos)} titulares

@@ -705,3 +705,104 @@ test_that("un curso-horario con respuestas ya NO es aforo pendiente, diga lo que
   # Y su aforo tampoco entra en la proyección del plan entero.
   expect_identical(f$elegibles_pendientes, 20L)
 })
+
+test_that("«por agendar» separa al que nadie llamó del que ya no cierra", {
+  # Gonzalo, 2026-09-11: «el toca agendar a veces puede que no logre agendar
+  # sobre los titulares, por lo que aplicar refuerzos». Medido ese día: de los
+  # 174 titulares, CERO estaban sin contactar; 22 llevaban semanas en gestión.
+  # «Te quedan 6 por agendar» hacía creer que eran seis llamadas por delante.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada"),
+    .efs_aula("A3", "Derecho", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  b <- d$efectividad_seguimiento
+  f <- .efs_fila(b, "Derecho")
+  expect_identical(f$cursos_sin_agendar, 2L)
+  expect_identical(f$cursos_en_gestion, 1L)
+  expect_identical(b$total$cursos_en_gestion, 1L)
+})
+
+test_that("una gestión sin teléfono válido no es aforo: pide reserva ya", {
+  # Gonzalo, 2026-09-11: «si vemos que los titulares no confirman, poder ir
+  # reforzando con reemplazos disponibles», partiendo de que «un refuerzo
+  # tampoco es una aplicación garantizada». Medido ese día: de 22 gestiones
+  # abiertas, SEIS tenían el teléfono muerto —«Número no existe», «Número fuera
+  # de servicio»—, una de Derecho y dos con diez días encima.
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada"),
+    .efs_aula("A3", "Derecho", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada")
+  )
+  plan[[2]]$call_status <- "Número no existe"
+  plan[[3]]$call_status <- "Contactar después"
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
+  b <- d$efectividad_seguimiento
+  f <- .efs_fila(b, "Derecho")
+  expect_identical(f$cursos_en_gestion, 2L)
+  # La del teléfono muerto se señala aparte: no es una gestión lenta.
+  expect_identical(f$cursos_sin_via, 1L)
+  expect_identical(b$total$cursos_sin_via, 1L)
+})
+
+test_that("una gestión estancada más días de los que la reserva necesita se señala", {
+  plan <- list(
+    .efs_aula("A1", "Letras", eligible = 20, orden = 1, aplicada = TRUE),
+    # Contactada hace 9 días y sin cerrar: la reserva necesita su propio plazo.
+    .efs_aula("A2", "Letras", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada"),
+    # Contactada ayer: todavía no.
+    .efs_aula("A3", "Letras", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada")
+  )
+  plan[[2]]$contact_date <- "2026-09-02"
+  plan[[3]]$contact_date <- "2026-09-10"
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = .efs_dt(list(.efs_fac("Letras", cuota = 40)))
+  ))
+  df <- .monitoreo_aulas_df(cfg$plan, "plan")
+  resp <- .efs_resp(rep("A1", 10))
+  b <- .monitoreo_aulas_efectividad_seguimiento(
+    df, df, resp, cfg,
+    .monitoreo_aulas_valid_response(resp, cfg),
+    .monitoreo_aulas_response_classroom(resp, cfg),
+    hoy = as.Date("2026-09-11")
+  )
+  f <- .efs_fila(b, "Letras")
+  expect_identical(f$cursos_en_gestion, 2L)
+  expect_identical(f$cursos_estancados, 1L)
+  expect_identical(b$total$dias_para_cubrir, 5L)
+})
+
+test_that("sin vía y estancada no se cuentan dos veces", {
+  # La del teléfono muerto ya tiene su aviso: sumarla también a las estancadas
+  # inflaría el número que dice cuántas reservas hay que mover.
+  plan <- list(
+    .efs_aula("A1", "Arte", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Arte", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "en_contacto", op_status = "planificada")
+  )
+  plan[[2]]$call_status <- "Número fuera de servicio"
+  plan[[2]]$contact_date <- "2026-09-01"
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = .efs_dt(list(.efs_fac("Arte", cuota = 40)))
+  ))
+  df <- .monitoreo_aulas_df(cfg$plan, "plan")
+  resp <- .efs_resp(rep("A1", 10))
+  b <- .monitoreo_aulas_efectividad_seguimiento(
+    df, df, resp, cfg,
+    .monitoreo_aulas_valid_response(resp, cfg),
+    .monitoreo_aulas_response_classroom(resp, cfg),
+    hoy = as.Date("2026-09-11")
+  )
+  f <- .efs_fila(b, "Arte")
+  expect_identical(f$cursos_sin_via, 1L)
+  expect_identical(f$cursos_estancados, 0L)
+})

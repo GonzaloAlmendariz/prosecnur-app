@@ -1004,6 +1004,21 @@ export type MonitoreoAulasEfectividadFacultad = {
    */
   cursos_sin_agendar: number;
   /**
+   * De los anteriores, los que **ya se contactaron y no cierran fecha**. Lo que
+   * piden es insistir o darlos por caídos, no llamar por primera vez: el
+   * 2026-09-11, de los 174 titulares de HSVG2026 ninguno estaba sin contactar y
+   * 22 llevaban días en gestión.
+   */
+  cursos_en_gestion: number;
+  /**
+   * De las gestiones abiertas, las que ya piden cubrirse con reserva **en
+   * paralelo**: `cursos_sin_via` no tiene teléfono válido («Número no existe»,
+   * «fuera de servicio») y `cursos_estancados` lleva más días abiertos que los
+   * que la propia reserva necesita para contactar y confirmar.
+   */
+  cursos_sin_via: number;
+  cursos_estancados: number;
+  /**
    * Titulares cuyo contacto YA se resolvió —tienen fecha, se aplicaron o
    * rechazaron— y cuántos de ésos rechazaron. Viajan los dos y no su cociente:
    * sin denominador, «33 %» puede ser 1 de 3.
@@ -1216,6 +1231,12 @@ export type MonitoreoAulasEfectividadSeguimiento = {
     /** Citas pasadas sin aplicar en todo el estudio: alerta del operativo. */
     cursos_vencidos: number;
     elegibles_vencidos: number;
+    /** Los que están en gestión y no cierran fecha. */
+    cursos_en_gestion: number;
+    cursos_sin_via: number;
+    cursos_estancados: number;
+    /** El umbral declarado: días abiertos tras los que conviene cubrir. */
+    dias_para_cubrir: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];
 };
