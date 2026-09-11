@@ -191,7 +191,8 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                         Ni agendando {f.cursosSinAgendar
                           ? <>{f.cursosSinAgendar === 1 ? "el que le queda" : <>los <b>{fmt(f.cursosSinAgendar)}</b> que le quedan</>} sin fecha</>
                           : "el resto de su plan"} llegaría: hay que contactar docentes
-                        de aulas de refuerzo ya, además de cerrar lo que esté en gestión.{" "}
+                        de cursos-horario de refuerzo ya, además de cerrar lo que esté en
+                        gestión.{" "}
                         <AvisoDeCubrir fila={f} />
                       </span>
                     ) : null}</>

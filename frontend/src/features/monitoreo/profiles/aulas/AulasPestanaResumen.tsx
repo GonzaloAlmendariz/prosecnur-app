@@ -23,6 +23,7 @@ import { delMapaPorFacultad } from "./delMapaPorFacultad";
 import { AulasRendimientoYEfectividad } from "./AulasRendimientoYEfectividad";
 import { AulasPeorRendimiento } from "./AulasPeorRendimiento";
 import { AulasFacultadesEnRiesgo } from "./AulasFacultadesEnRiesgo";
+import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { corteDelEstudio } from "./corteDelEstudio";
@@ -623,6 +624,20 @@ export function AulasPestanaResumen({
                 // es el mismo gesto que el mapa de la deuda, y el aviso es el
                 // índice con el que se entra a mirarla.
                 onFoco={(facultad) => onFoco({ tipo: "facultad", valor: facultad })}
+              />
+              {/* **Debajo del aviso, porque es su respuesta.** El panel de
+                  arriba dice quién no llega; éste dice con qué aulas se
+                  arreglaría y a quién no le toca. Gonzalo, 2026-09-11:
+                  «dimensionemos los mejores refuerzos, qué facultades ahora lo
+                  necesitan, partiendo de un techo de 15 aulas agendables más». */}
+              <div className="aulas-parte">
+                <h4>Los mejores refuerzos para el techo</h4>
+                <span>a qué facultad va cada aula, qué cierra y con qué se solapa</span>
+              </div>
+              <AulasRepartoDelTecho
+                bloque={dashboard.efectividad_seguimiento}
+                celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+                plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
               />
               <div className="aulas-parte">
                 <h4>Facultades que más se alejan de su previsión</h4>

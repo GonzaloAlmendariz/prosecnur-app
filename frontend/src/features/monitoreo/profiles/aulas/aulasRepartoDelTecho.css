@@ -1,0 +1,105 @@
+/* El reparto de un techo de aulas de refuerzo. La lista se lee en orden: la
+   primera es la que más cierra, y cada una dice a quién ayuda y qué deja. */
+
+.mon-profile-page.is-aulas-flow .aulas-techo { display: grid; gap: 9px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-techo-lectura,
+.mon-profile-page.is-aulas-flow .aulas-techo-fuera {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-lectura strong,
+.mon-profile-page.is-aulas-flow .aulas-techo-fuera b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-lista {
+  display: grid; gap: 5px; margin: 0; padding: 0; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-lista li {
+  display: grid;
+  /* Ninguna pista se mide por contenido: cada fila es su propio grid y con
+     `auto` las columnas dejarían de coincidir entre filas. */
+  grid-template-columns: 20px minmax(0, 1fr) 104px 118px minmax(0, 1.1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  border-left: 3px solid transparent;
+}
+/* Solapar no descalifica —el aula sigue siendo la que más cierra— así que el
+   aviso va en el filo y no en el fondo. */
+.mon-profile-page.is-aulas-flow .aulas-techo-lista li.es-docente { border-left-color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-techo-lista li.es-curso { border-left-color: var(--pulso-border-strong); }
+
+.mon-profile-page.is-aulas-flow .aulas-techo-puesto {
+  display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-quien { display: grid; gap: 0; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-techo-quien b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-quien em,
+.mon-profile-page.is-aulas-flow .aulas-techo-aporte em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-aporte {
+  display: grid; gap: 0; text-align: right; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-aporte b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-success-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-resto {
+  text-align: right;
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-resto b { color: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-techo-resto b.es-cierra { color: var(--pulso-success-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-techo-solape {
+  font-size: var(--aulas-min);
+  line-height: 1.35;
+  min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-solape b.es-docente { color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-techo-solape b.es-curso { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-techo-solape em {
+  font-style: normal; color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-techo-pie {
+  margin: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-pie b { color: var(--pulso-text-soft); }
+
+@media (max-width: 1100px) {
+  .mon-profile-page.is-aulas-flow .aulas-techo-lista li {
+    grid-template-columns: 20px minmax(0, 1fr) 104px 118px;
+  }
+  .mon-profile-page.is-aulas-flow .aulas-techo-solape { grid-column: 2 / -1; }
+}
