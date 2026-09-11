@@ -295,7 +295,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     (if (hay_ritmo) 1L else 0L) +                              # ritmo global
     (if (n_paneles) ceiling(n_paneles / 6) else 0L) +           # ritmo por facultad
     1L +                                                        # metas por facultad
-    ceiling(nrow(df) / .marp_filas_por_pagina_avance()) +        # avance visual
+    ceiling(nrow(df) / max(1L, ceiling(nrow(df) / max(1L, ceiling(nrow(df) / .marp_filas_por_pagina_avance()))))) + # avance visual
     length(paginas) * length(hojas_detalle)                     # detalle numérico
 
   antetitulo <- "Monitoreo de cursos-horario"
@@ -370,13 +370,19 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   # La lectura visual del avance, antes del detalle numérico: responde «cómo va»
   # de un vistazo; la tabla de diecisiete columnas responde «cuánto exactamente».
+  # Reparto parejo, igual que en la tabla de detalle: quince facultades a seis
+  # por hoja darían 6+6+3, y la última quedaría medio vacía al lado de dos
+  # llenas. Con el reparto parejo son tres hojas de cinco.
   por_hoja_avance <- .marp_filas_por_pagina_avance()
+  n_hojas_avance <- max(1L, ceiling(nrow(df) / por_hoja_avance))
+  por_hoja_avance <- ceiling(nrow(df) / n_hojas_avance)
   hojas_avance <- split(seq_len(nrow(df)), ceiling(seq_len(nrow(df)) / por_hoja_avance))
   for (h in seq_along(hojas_avance)) {
     nueva("Avance por facultad y sexo",
           if (length(hojas_avance) > 1L) sprintf("%d de %d", h, length(hojas_avance)) else "")
     .marp_pagina_avance_visual(df, hojas_avance[[h]], tok, ty, x0, ancho_util,
-                               aulas_plan = model$aulas_planificadas %||% numeric(0))
+                               aulas_plan = model$aulas_planificadas %||% numeric(0),
+                               filas_por_hoja = por_hoja_avance)
     pie()
   }
 

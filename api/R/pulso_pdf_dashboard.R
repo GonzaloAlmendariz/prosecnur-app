@@ -502,7 +502,7 @@ pulso_pdf_barra_progreso <- function(x, y, w, h, valor, tokens = pulso_pdf_token
                                      color = tokens$navy, fondo = tokens$tbl_zebra) {
   v <- .ppd_num(valor, 0)
   grid::grid.rect(x = x, y = y, width = w, height = h, just = c("left", "bottom"),
-                  gp = grid::gpar(fill = fondo, col = tokens$rule, lwd = 0.35))
+                  gp = grid::gpar(fill = fondo, col = NA))
   cubierto <- max(0, min(1, v))
   if (cubierto > 0) {
     grid::grid.rect(x = x, y = y, width = w * cubierto, height = h, just = c("left", "bottom"),
