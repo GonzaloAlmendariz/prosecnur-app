@@ -9,6 +9,7 @@ import {
   type CandidatoDeReemplazo,
   type OrigenDeCandidato,
 } from "./candidatosDeReemplazo";
+import { etiquetaDeFecha } from "./agendaPorDia";
 import { composicionDelAula } from "./composicionDelAula";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
@@ -283,6 +284,7 @@ export function ContenidoDeReemplazo({
   caido,
   filas,
   brecha,
+  pedirAntesDe,
   onElegir,
   onCerrar,
   innerRef,
@@ -291,6 +293,16 @@ export function ContenidoDeReemplazo({
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Lo que falta en la facultad del aula que cae. Sin brecha, «ayuda» es 0 para todos. */
   brecha?: BrechaPorSexo;
+  /**
+   * El último día útil para llamar sin que la facultad se quede parada, de
+   * `alertaDeAnticipacion`.
+   *
+   * Es la nota «Decidir tiene fecha» del ensayo: *«un relevo agendado tarde no
+   * llega a aplicarse antes del cierre. El plazo va en la cabecera, donde se
+   * decide, y no en otra pantalla»*. Vivía sólo en el panel «Cuándo pedir aula
+   * adicional» de Resumen, a dos clicks de aquí.
+   */
+  pedirAntesDe?: string | null;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
   onCerrar?: () => void;
   /** Lo pone el modal para saber qué es «dentro» al detectar clicks fuera. */
@@ -376,6 +388,18 @@ export function ContenidoDeReemplazo({
                 <b>{fmt(Math.max(0, brecha!.hombres))}</b> hombres por conseguir
               </span>
               <em>en {facultadCorta(String(caido.faculty ?? "")) || "su facultad"}</em>
+            </p>
+          ) : null}
+          {/* **El plazo, en la cabecera y no en otra pantalla.** Un relevo
+              agendado tarde no llega a aplicarse antes del cierre, y sin la
+              fecha delante la lista de abajo parece que se puede mirar mañana
+              igual. Sale del mismo sitio que la tabla «Cuándo pedir aula
+              adicional» de Resumen: dos fechas distintas para el mismo día útil
+              es la avería más cara de este perfil. */}
+          {pedirAntesDe ? (
+            <p className="aulas-reemplazo-plazo">
+              Pídelo antes del <b>{etiquetaDeFecha(pedirAntesDe)}</b>
+              <em>después, no llega a aplicarse antes del cierre</em>
             </p>
           ) : null}
         </div>
@@ -503,6 +527,8 @@ export function AulasPopoverReemplazo({
   caido: MonitoreoAulasPlanRow;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   brecha?: BrechaPorSexo;
+  /** El último día útil para llamar; viaja al contenido con el resto. */
+  pedirAntesDe?: string | null;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
   onCerrar?: () => void;
 }) {

@@ -453,6 +453,18 @@ export function AulasSeccionConsultas({
                 (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
                 String(caido.faculty ?? ""),
               )}
+              // El plazo sale del MISMO sitio que la tabla «Cuándo pedir aula
+              // adicional» de Resumen y que el popover de refuerzo: dos fechas
+              // distintas para el mismo día útil es la avería más cara de este
+              // perfil.
+              pedirAntesDe={alertaDeAnticipacion(
+                proyeccionPorAgenda(
+                  (dashboard.agenda ?? []) as MonitoreoRow[],
+                  (dashboard.partes_campo ?? []) as MonitoreoRow[],
+                  (dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[],
+                ),
+                dashboard.banco_extras?.por_facultad ?? [],
+              ).find((a) => a.facultad === String(caido.faculty ?? ""))?.pedirAntesDe ?? null}
               onElegir={() => setRelevoDe("")}
               onCerrar={() => setRelevoDe("")}
             />

@@ -528,3 +528,28 @@
   line-height: 1.4;
 }
 .aulas-reemplazo-resto b { font-weight: 600; color: var(--pulso-text-soft); }
+
+/* El plazo, en la cabecera y no en otra pantalla: un relevo agendado tarde no
+   llega a aplicarse antes del cierre. Va bajo la deuda porque es el tercer
+   dato con el que se decide —contra qué, con qué, y hasta cuándo—. */
+.aulas-reemplazo-plazo {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 5px 0 0;
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+}
+.aulas-reemplazo-plazo b {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+.aulas-reemplazo-plazo em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
