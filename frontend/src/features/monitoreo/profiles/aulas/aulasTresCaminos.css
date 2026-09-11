@@ -19,11 +19,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
   gap: 10px;
-  align-items: start;
+  /* **Las tres miden igual.** Son tarjetas hermanas de una misma lectura y con
+     `start` cada una se quedaba con el alto de su contenido: la de A —que trae
+     su aporte y su botón— sacaba una cabeza a las otras dos y las tres dejaban
+     de leerse como un juego. El pie se ancla abajo, así que «se decide en la
+     app» cae a la misma altura en las tres. */
+  align-items: stretch;
 }
 
 .aulas-cam-uno {
   display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
   gap: 9px;
   padding: 12px 13px 11px;
   border: 1px solid var(--pulso-border);
@@ -122,6 +128,7 @@
 .aulas-cam-aporte.es-vacio { background: transparent; padding: 0 2px; }
 
 .aulas-cam-pie {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
