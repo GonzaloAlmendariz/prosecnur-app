@@ -200,7 +200,9 @@
 .mon-profile-page.is-aulas-flow .aulas-cadenas-mas:hover { background: var(--pulso-surface-2); }
 
 @media (max-width: 760px) {
-  .mon-profile-page.is-aulas-flow .aulas-cadena { grid-template-columns: minmax(0, 1fr); }
+  .mon-profile-page.is-aulas-flow .aulas-cadena,
+  .mon-profile-page.is-aulas-flow .aulas-cadena.con-salida { grid-template-columns: minmax(0, 1fr); }
+  .mon-profile-page.is-aulas-flow .aulas-cadena-salida { justify-items: start; padding: 0 14px 11px; }
   .mon-profile-page.is-aulas-flow .aulas-cadena-quien {
     border-right: 0;
     border-bottom: 1px solid var(--pulso-border);
@@ -235,12 +237,18 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-cadenas-vacio strong { color: var(--pulso-text); }
 
-/* La salida de la fila: la cadena corta ofrece complementar y la seca, buscar
-   relevo. Va al final de la tira, que es donde acaba la lectura. */
+/* La salida de la fila, en COLUMNA PROPIA y no dentro de la tira: ahí viajaba
+   con el scroll horizontal —quedaba fuera de vista justo en las cadenas
+   largas— y su `margin-left: auto` se comía el padding derecho. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.con-salida {
+  grid-template-columns: 218px minmax(0, 1fr) auto;
+}
 .mon-profile-page.is-aulas-flow .aulas-cadena-salida {
-  flex: 0 0 auto;
-  align-self: center;
-  margin-left: auto;
+  display: grid;
+  place-items: center;
+  padding: 11px 14px 11px 4px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida button {
   padding: 6px 13px;
   border: 1px solid var(--module-accent, var(--pulso-primary));
   border-radius: 8px;
@@ -252,4 +260,4 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.mon-profile-page.is-aulas-flow .aulas-cadena-salida:hover { filter: brightness(0.94); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida button:hover { filter: brightness(0.94); }
