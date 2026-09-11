@@ -74,6 +74,16 @@ export type CandidatoDeReemplazo = {
    * nada que conceder y decir «misma celda» sería ruido.
    */
   concesiones: string[];
+  /**
+   * **No hay por dónde llamarle.** El resultado de la llamada dice «Número no
+   * existe» o «fuera de servicio».
+   *
+   * No lo descarta —la decisión es de quien llama, y un docente puede tener otra
+   * vía— pero proponerlo sin decirlo manda a gastar una llamada que ya se sabe
+   * perdida. Visto el 2026-09-11: R 85.1 encabezaba la cadena de CH 85 con el
+   * número muerto, y ni el popover ni la tira lo decían.
+   */
+  sinVia: boolean;
 };
 
 export type BrechaPorSexo = { mujeres: number; hombres: number };
@@ -366,10 +376,25 @@ export function candidatosDeReemplazo(
       ayuda,
       total: PESO_DEL_PARECIDO * parecido + (1 - PESO_DEL_PARECIDO) * ayuda,
       concesiones,
+      // Mismo criterio que el motor y que la tira de la cadena: por subcadena y
+      // sin tildes, porque el libro lo escribe a mano.
+      sinVia: /no existe|fuera de servicio/.test(
+        texto((fila as { call_status?: unknown }).call_status)
+          .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+      ),
     };
   };
   const mejores = (lista: MonitoreoAulasPlanRow[], origen: OrigenDeCandidato): GrupoDeCandidatos => {
-    const puntuados = lista.map((f) => puntuar(f, origen)).sort((a, b) => b.total - a.total);
+    // **El que no tiene teléfono va detrás, no fuera.** Sigue siendo candidato
+    // —puede tener otra vía— pero encabezar la lista con un número muerto manda
+    // a gastar la primera llamada en la que ya se sabe perdida.
+    //
+    // Sólo aquí: la CADENA PROPIA no pasa por esta función y se ordena por
+    // `replacement_order`, porque ahí manda el procedimiento —la reserva 1 antes
+    // que la 2— y cambiarlo es la decisión D4, que es de Gonzalo. En su cadena
+    // la app avisa; no reordena.
+    const puntuados = lista.map((f) => puntuar(f, origen))
+      .sort((a, b) => Number(a.sinVia) - Number(b.sinVia) || b.total - a.total);
     return { disponibles: puntuados.length, mejores: puntuados.slice(0, tope) };
   };
 
