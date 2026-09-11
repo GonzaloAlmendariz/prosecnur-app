@@ -122,3 +122,48 @@ describe("el reparto por sexo se declara sólo si está completo", () => {
     expect(t.gananciaPorSexo).toEqual({ mujeres: 0, hombres: 9 });
   });
 });
+
+describe("«ya salió» se mide por las respuestas, no por el estado tecleado", () => {
+  /**
+   * Medido en HSVG26ULT2 el 2026-09-10: las 1.218 reservas del plan estaban en
+   * `planificada` mientras el KPI «Cerraron con reemplazo» decía 1, porque ese
+   * KPI cuenta por respuestas y no por estado. Mirando sólo el estado, este
+   * panel decía «todavía ninguna» encima de un aula que llevaba días rindiendo.
+   */
+  it("una reserva con respuestas cuenta aunque nadie haya tecleado su estado", () => {
+    const plan = [
+      fila({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "planificada", respuestas_validas: 14 }),
+      fila({ operational_code: "R 1.1", titular_operational_code: "CH 1",
+        operational_status: "planificada", respuestas_validas: 9 }),
+    ];
+    const r = aulasQueSeMetieron(plan);
+    expect(r).toHaveLength(1);
+    expect(r[0].codigo).toBe("R 1.1");
+    // Y su titular también salió —trajo 14—, así que lo suyo es neto.
+    expect(r[0].papel).toBe("neta");
+  });
+
+  it("el titular se juzga con la MISMA vara: si trajo respuestas, no cayó", () => {
+    // Con dos varas distintas —respuestas para la reserva, estado para el
+    // titular— un titular que rindió sin registrar saldría como caído y su
+    // acompañante se contaría como reposición.
+    const plan = [
+      fila({ operational_code: "CH 2", sample_role: "titular", titular_operational_code: "CH 2",
+        operational_status: "planificada", respuestas_validas: 0 }),
+      fila({ operational_code: "R 2.1", titular_operational_code: "CH 2",
+        operational_status: "planificada", respuestas_validas: 9 }),
+    ];
+    expect(aulasQueSeMetieron(plan)[0].papel).toBe("repone");
+  });
+
+  it("un aula cerrada sin una sola respuesta sigue contando: cerró", () => {
+    const plan = [
+      fila({ operational_code: "CH 3", sample_role: "titular", titular_operational_code: "CH 3", operational_status: "aplicada" }),
+      fila({ operational_code: "R 3.1", titular_operational_code: "CH 3", operational_status: "cerrada", respuestas_validas: 0 }),
+    ];
+    const r = aulasQueSeMetieron(plan);
+    expect(r).toHaveLength(1);
+    expect(r[0].efectivas).toBe(0);
+  });
+});
