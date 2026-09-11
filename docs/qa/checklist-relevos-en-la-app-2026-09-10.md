@@ -45,7 +45,8 @@ está, nunca teclearla.
 | 17 | **La tarjeta de candidato con el lenguaje del ensayo**: puesto, identidad con facultad y docente, las dos varas a la derecha, lo que rinde por sexo | `AulasPopoverReemplazo` + su hoja | ☑ |
 | 31 | **El aviso de traslape en palabras** («el 37,3 % de los cupos de su facultad ya se aplicó» no se entendía) | `AulasPopoverRefuerzo` | ☑ `8538ed32` — «cupos» era vocabulario del motor: ahora dice de cada 100 convocados cuántos ya estuvieron en un curso-horario aplicado, y qué consecuencia tiene |
 | 32 | **El top de peor rendimiento en Resumen** (tasa observada contra prevista, ajustándose cuando entran complementos y refuerzos) | `peorRendimientoDeFacultad.ts` + `AulasPeorRendimiento` | ☑ `270e0eec` — sólo lista las que van POR DEBAJO: el primer corte metía tres al 100,1 %, 102,1 % y 102,3 % bajo un título que promete lo contrario |
-| 33 | **Las facultades en riesgo que el ranking de tasas no ve** («si en Gestión falta, ¿por qué ni siquiera aparece esa facultad?») | `facultadesEnRiesgo.ts` + `AulasFacultadesEnRiesgo` | ◐ montado y verde en tests; falta verlo en pantalla con el corte de las 11:14 |
+| 33 | **Las facultades en riesgo que el ranking de tasas no ve** («si en Gestión falta, ¿por qué ni siquiera aparece esa facultad?») | `facultadesEnRiesgo.ts` + `AulasFacultadesEnRiesgo` | ☑ `1f69ef49` — visto en pantalla con el corte de las 11:14: Derecho debe 91 con 6 agendados, Gestión sólo 2 |
+| 34 | **Dos frases de la misma pantalla decían lo contrario sobre «lo agendado»** | `resumenDeEfectividad.ts` | ☑ `d2551f2f` — el motor proyecta sobre todo el eslabón en juego, reservas incluidas; cada frase declara su base |
 
 ## Lo que el artefacto promete y el dato todavía no da
 
