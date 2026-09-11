@@ -61,3 +61,22 @@ está, nunca teclearla.
   `monitoreo_aulas_ritmo_por_facultad`.
 - **El plazo (5).** `alertaDeAnticipacion` ya calcula `pedirAntesDe`, pero vive
   en Resumen: hay que pasarlo al popover sin recalcularlo.
+
+## Las cinco decisiones que el ensayo deja abiertas
+
+Su cierre las nombra así: «cinco cosas que no quiero elegir yo, porque cambian
+cómo se trabaja y no cómo se ve». Dos quedaron resueltas al implementar; las
+otras tres están **bloqueadas por decisión de Gonzalo**, no pendientes de
+trabajo.
+
+| # | Decisión | Estado |
+|---|---|---|
+| D1 | **Qué pasa con el peso cuando entra una extra.** Las extra no cargaban peso de diseño, así que al sustituir un titular cubren el aula pero no su condición. ¿Lo avisa el popover al elegirla, o es cosa del ponderador y aquí no se dice? | 🔒 **bloqueada** — es metodológica y toca al ponderador |
+| D2 | **Dónde entra el refuerzo**: al pie de Brechas o como panel propio en Extras. | ☑ resuelta **en los dos**: al pie de Brechas (`AulasLlamadaDeFacultad`, pegado a su diagnóstico) y desde la fila de facultad del mapa (pegado a su inventario). Las dos puertas abren el mismo popover |
+| D3 | **Si el botón nombra la letra.** | ☑ resuelta: lo nombra — «Buscar relevo» o «Complementar» según la acción que toque, y el motor decide cuál |
+| D4 | **Qué manda en el orden del popover.** Hoy manda la cadena aunque otro puntúe mejor, porque es la guía del procedimiento. En B —el titular no cayó— quizá deba mandar la ayuda. | 🔒 **bloqueada** — cambia el procedimiento, no la pantalla. Hoy: cadena primero siempre, y el duelo enseña cuándo discrepan las dos varas |
+| D5 | **Si se puede activar desde aquí**, o el popover sólo propone y alguien lo anota en el Sheets. Activar desde la app ya existe para A; para B y C no. | 🔒 **bloqueada** — toca el motor y el libro vivo |
+
+**Por qué bloqueadas y no pendientes**: las tres cambian cómo trabaja el
+equipo, no cómo se ve la pantalla. Elegirlas en silencio sería decidir por
+Gonzalo en su propio operativo.
