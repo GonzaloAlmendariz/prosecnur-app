@@ -71,20 +71,55 @@ describe("lecturaDeEfectividad", () => {
 
 describe("riesgoDeCierre", () => {
   it("con todas cerrando lo dice sin adornos", () => {
-    expect(riesgoDeCierre(bloque)!.frase).toBe("Contando las reservas por activar, todas las facultades cierran su cuota.");
+    expect(riesgoDeCierre(bloque)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
   });
 
   it("rendir bajo su tasa y no cerrar la cuota son DOS cosas", () => {
     const b = { total: { ...bloque.total, facultades_bajo_su_tau: 4, facultades_en_riesgo: 0 } } as unknown as MonitoreoAulasEfectividadSeguimiento;
     const r = riesgoDeCierre(b)!;
-    expect(r.frase).toContain("Ninguna facultad se queda corta");
+    expect(r.frase).toContain("todas las facultades cierran su cuota");
     expect(r.frase).toContain("4 rinden por debajo");
     expect(r.facultadesEnRiesgo).toBe(0);
   });
 
-  it("el número que decide es el de las que no cierran, con su déficit", () => {
-    const b = { total: { ...bloque.total, facultades_en_riesgo: 2, alumnos_en_riesgo: 170 } } as unknown as MonitoreoAulasEfectividadSeguimiento;
-    expect(riesgoDeCierre(b)!.frase).toBe("2 facultades no cierran su cuota ni activando sus reservas: faltarían 170 alumnos.");
+  /**
+   * **La frase manda la cifra de lo AGENDADO.** Gonzalo, 2026-09-11: «es lo que
+   * más importa siempre, porque es lo que tenemos». La del plan entero entra
+   * como matiz, porque separa dos acciones distintas: agendar lo que queda, o
+   * activar reservas.
+   */
+  it("el número que decide es el de las que no cierran CON LO AGENDADO", () => {
+    const b = { total: {
+      ...bloque.total, facultades_en_riesgo: 0, alumnos_en_riesgo: 0,
+      facultades_en_riesgo_agendado: 2, alumnos_en_riesgo_agendado: 170,
+    } } as unknown as MonitoreoAulasEfectividadSeguimiento;
+    const r = riesgoDeCierre(b)!;
+    expect(r.frase).toContain("2 facultades no cierran su cuota con lo que tienen agendado: faltarían 170 alumnos.");
+    // Y dice que el trabajo es agendar, no pedir reserva.
+    expect(r.frase).toContain("El plan que les queda por agendar da para cubrirlo.");
+    expect(r.facultadesEnRiesgoAgendado).toBe(2);
+  });
+
+  it("cuando ni agendando el plan entero alcanza, lo dice: ahí sí hace falta reserva", () => {
+    const b = { total: {
+      ...bloque.total, facultades_en_riesgo: 1, alumnos_en_riesgo: 40,
+      facultades_en_riesgo_agendado: 3, alumnos_en_riesgo_agendado: 200,
+    } } as unknown as MonitoreoAulasEfectividadSeguimiento;
+    const r = riesgoDeCierre(b)!;
+    expect(r.frase).toContain("3 facultades no cierran su cuota con lo que tienen agendado");
+    expect(r.frase).toContain("una seguiría corta");
+    expect(r.frase).toContain("activar reservas");
+  });
+
+  it("la cifra del plan entero NO sustituye a la de lo agendado", () => {
+    // Es el caso real de HSVG26ULT2: el motor daba 0 en riesgo porque contaba
+    // aulas del plan que nadie ha agendado, y en pantalla convivía con un panel
+    // que decía que cinco no llegaban.
+    const b = { total: {
+      ...bloque.total, facultades_en_riesgo: 0, alumnos_en_riesgo: 0,
+      facultades_en_riesgo_agendado: 5, alumnos_en_riesgo_agendado: 120,
+    } } as unknown as MonitoreoAulasEfectividadSeguimiento;
+    expect(riesgoDeCierre(b)!.frase).not.toContain("todas las facultades cierran");
   });
 });
 
@@ -222,7 +257,7 @@ describe("las dos lecturas conviven", () => {
   it("el riesgo del operativo no depende de la facultad mirada", () => {
     // Es la conclusión general y no deja de ser cierta porque se esté mirando
     // una facultad: el panel la enseña siempre.
-    expect(riesgoDeCierre(conFilas)!.frase).toBe("Contando las reservas por activar, todas las facultades cierran su cuota.");
+    expect(riesgoDeCierre(conFilas)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
   });
 });
 

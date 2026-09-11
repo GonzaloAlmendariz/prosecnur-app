@@ -13,7 +13,11 @@
 .efs_aula <- function(id, fac, eligible = 20, orden = 1, aplicada = TRUE,
                       rol = "titular", status = "agendada",
                       efectivas_parte = NULL, factor_fac = NULL, fac_k = NULL,
-                      titular_code = "", replacement_order = NULL) {
+                      titular_code = "", replacement_order = NULL,
+                      # Sin esto toda fila no aplicada nacía «agendada» en los dos
+                      # ejes y no había forma de sembrar una SIN agendar, que es
+                      # justo lo que separa las dos proyecciones.
+                      op_status = NULL) {
   fila <- list(
     classroom_id = id,
     operational_code = sprintf("CH %d", orden),
@@ -26,7 +30,7 @@
     # del tablero. `application_status` se deja DIVERGENTE a proposito —siempre
     # sin llenar, como llega de un estudio real— para que un motor que lea la
     # columna equivocada de rojo aqui en vez de en pantalla.
-    operational_status = if (aplicada) "aplicada" else "agendada",
+    operational_status = if (aplicada) "aplicada" else (op_status %||% "agendada"),
     application_status = ""
   )
   # `effective_surveys` es lo que el aplicador ANOTÓ: se siembra a propósito
@@ -431,4 +435,111 @@ test_that("la cadena se gasta antes que el banco, y se dice cuantas de cada uno"
   expect_identical(f$reservas_de_cadena, 1L)
   expect_gt(f$reservas_de_banco, 0L)
   expect_equal(f$reservas_necesarias, f$reservas_de_cadena + f$reservas_de_banco)
+})
+
+# --- la segunda proyección: sólo sobre lo agendado ----------------------------
+#
+# Gonzalo, 2026-09-11: «que el motor proyecte también sólo sobre lo agendado
+# (que finalmente es lo que más importa siempre, porque es lo que tenemos)».
+#
+# El disparador: en pantalla convivían «Con lo agendado, todas las facultades
+# cierran su cuota» y un panel que decía que cinco no llegaban. Ninguna mentía —
+# el motor proyectaba sobre TODO el eslabón en juego, agendado o no— pero las
+# dos se llamaban «lo agendado».
+
+test_that("con todo el pendiente agendado las dos proyecciones coinciden", {
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE, status = "agendada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 10))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  expect_identical(f$elegibles_agendados, f$elegibles_pendientes)
+  expect_equal(f$proyectado_agendado, f$proyectado)
+  expect_identical(f$riesgo_agendado, f$riesgo)
+})
+
+test_that("un curso-horario sin agendar entra en el aforo del plan y NO en el agendado", {
+  plan <- list(
+    .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
+    # Con fecha: cuenta en las dos.
+    .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE, status = "agendada"),
+    # Sin contactar en los dos ejes: es aforo del plan, pero no hay día en que
+    # se pueda aplicar. Es la distancia entre las dos proyecciones.
+    .efs_aula("A3", "Derecho", eligible = 60, orden = 3, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 10))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Derecho")
+  expect_identical(f$elegibles_pendientes, 80L)
+  expect_identical(f$elegibles_agendados, 20L)
+  # τ observada 0,5: el plan entero proyecta 10 + 40 y lo agendado 10 + 10.
+  expect_equal(f$proyectado, 50)
+  expect_equal(f$proyectado_agendado, 20)
+  expect_identical(f$cursos_agendados, 1L)
+})
+
+test_that("una facultad puede estar holgada en el plan y en riesgo con lo agendado", {
+  plan <- list(
+    .efs_aula("A1", "Gestion", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Gestion", eligible = 20, orden = 2, aplicada = FALSE, status = "agendada"),
+    .efs_aula("A3", "Gestion", eligible = 200, orden = 3, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  # Cuota 60: con el plan entero proyecta 10 + 110 = 120 y cierra; con lo
+  # agendado, 10 + 10 = 20 y no. Es el caso de Derecho en HSVG26ULT2.
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Gestion", cuota = 60))))
+  b <- d$efectividad_seguimiento
+  f <- .efs_fila(b, "Gestion")
+  expect_identical(f$riesgo, "holgado")
+  expect_true(f$riesgo_agendado %in% c("riesgo", "riesgo_firme"))
+  expect_equal(f$margen_agendado, -40)
+  expect_identical(b$total$facultades_en_riesgo, 0L)
+  expect_identical(b$total$facultades_en_riesgo_agendado, 1L)
+  expect_equal(b$total$alumnos_en_riesgo_agendado, 40)
+  # Y el déficit del plan sigue en cero: son dos preguntas y se publican las dos.
+  expect_equal(b$total$alumnos_en_riesgo, 0)
+})
+
+test_that("agendada se lee de los DOS ejes de estado, no sólo del operativo", {
+  # Lo teclea quien coordina en el eje de muestra y el registro de campo llega
+  # tarde: mirar sólo el operativo dejó 22 aulas con fecha como «Sin agendar».
+  plan <- list(
+    .efs_aula("A1", "Letras", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Letras", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada"),
+    .efs_aula("A3", "Letras", eligible = 20, orden = 3, aplicada = FALSE,
+              status = "sin_contactar", op_status = "contactada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras", cuota = 10))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Letras")
+  expect_identical(f$elegibles_agendados, 40L)
+  expect_identical(f$cursos_agendados, 2L)
+})
+
+test_that("sin nada agendado la proyección es lo conseguido, no un NA", {
+  plan <- list(
+    .efs_aula("A1", "Arte", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Arte", eligible = 40, orden = 2, aplicada = FALSE,
+              status = "sin_contactar", op_status = "planificada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Arte", cuota = 30))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Arte")
+  expect_identical(f$elegibles_agendados, 0L)
+  expect_identical(f$cursos_agendados, 0L)
+  # Lo agendado no aporta nada: la proyección es lo que ya se consiguió.
+  expect_equal(f$proyectado_agendado, 10)
+  expect_identical(f$riesgo_agendado, "riesgo_firme")
+})
+
+test_that("el predicado de agendada tiene un solo dueño", {
+  # Si alguien lo reescribe en otro sitio, las dos definiciones se separan: es
+  # la palabra que el operativo usa en dos ejes distintos.
+  expect_true(.maau_agendada("AGENDADA", "planificada"))
+  expect_true(.maau_agendada(" Reagendada ", ""))
+  expect_true(.maau_agendada("sin_contactar", "CONTACTADA"))
+  expect_false(.maau_agendada("sin_contactar", "planificada"))
+  expect_false(.maau_agendada("en_reserva", "planificada"))
+  expect_false(.maau_agendada(NA, NA))
+  expect_identical(.maau_agendada(character(0), character(0)), logical(0))
 })

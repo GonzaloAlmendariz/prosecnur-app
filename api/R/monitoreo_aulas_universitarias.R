@@ -1377,7 +1377,11 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   # al coordinador que salga a agendar ocho aulas que no debe tocar salvo que
   # caiga su titular. Medido: las 8 que decian «Sin agendar» eran las 8 reservas
   # libres, y ademas con fecha en la fila. Tramo propio, como las reemplazadas.
-  agendada_en_muestra <- muestra %in% c("agendada", "reagendada")
+  # El predicado vive en `.maau_agendada()` (monitoreo_aulas_agendada.R) desde
+  # que la proyeccion sobre lo agendado necesito el mismo criterio: escrito dos
+  # veces se separa, y «agendada» es justo la palabra que el operativo usa en
+  # dos ejes distintos.
+  agendada_en_muestra <- muestra %in% MONITOREO_AULAS_MUESTRA_AGENDADA
   # MISMA definicion que `monitoreo_aulas_reservas_disponibles()`: una reserva
   # que el motor considera disponible es la que esta en el banco. Si las dos
   # divergen, el tramo dira que hay reservas que la activacion ya no ofrece.
@@ -1393,7 +1397,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     "cerrando",
     ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
            ifelse(muestra == "reemplazada", "reemplazada",
-                  ifelse(rows$operational_status %in% c("agendada", "contactada") | agendada_en_muestra,
+                  ifelse(rows$operational_status %in% MONITOREO_AULAS_OPERATIVO_AGENDADA | agendada_en_muestra,
                          "lista",
                          ifelse(en_reserva, "en_reserva", "pendiente"))))
   )

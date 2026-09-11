@@ -980,6 +980,26 @@ export type MonitoreoAulasEfectividadFacultad = {
   proyectado_pesimista: number | null;
   /** `proyectado − cuota`. Negativo = no cierra. */
   margen_restante: number | null;
+  /**
+   * **La misma cuenta, sólo sobre lo que tiene fecha.**
+   *
+   * Gonzalo, 2026-09-11: «que el motor proyecte también sólo sobre lo agendado,
+   * que finalmente es lo que más importa siempre, porque es lo que tenemos».
+   *
+   * `proyectado` proyecta sobre todo el eslabón en juego sin aplicar, tenga
+   * fecha o no —sobre todo, titulares que nadie ha contactado—; esto proyecta
+   * sólo sobre los cursos-horario agendados. La distancia entre ambos es el
+   * aforo del plan que sigue sin fecha. Medido en HSVG26ULT2: Derecho salía
+   * `holgado` con 570,2 sobre una cuota de 363 y sus 6 cursos-horario con fecha
+   * esperaban traer 125 sobre una deuda de 216.
+   */
+  elegibles_agendados: number;
+  /** Cuántos cursos-horario sostienen esa proyección. */
+  cursos_agendados: number;
+  proyectado_agendado: number | null;
+  /** `proyectado_agendado − cuota`. Negativo = no cierra con lo que hay agendado. */
+  margen_agendado: number | null;
+  riesgo_agendado: MonitoreoAulasEfectividadFacultad["riesgo"];
   residual: number | null;
   residual_k: number | null;
   /**
@@ -1158,6 +1178,12 @@ export type MonitoreoAulasEfectividadSeguimiento = {
     facultades_en_riesgo: number;
     /** Sólo el déficit de las que están en riesgo: no se compensa entre facultades. */
     alumnos_en_riesgo: number;
+    /**
+     * Lo mismo contando SÓLO lo agendado. Es la cifra operativa: `facultades_en_riesgo`
+     * cuenta con aforo que todavía no tiene día en que aplicarse.
+     */
+    facultades_en_riesgo_agendado: number;
+    alumnos_en_riesgo_agendado: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];
 };

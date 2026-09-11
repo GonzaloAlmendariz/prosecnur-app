@@ -65,10 +65,16 @@ export type LecturaDeEfectividad = {
 };
 
 export type RiesgoDeCierre = {
-  /** Las que su proyección NO cierra la cuota. Es el número que decide. */
+  /** Las que no cierran ni con todo el aforo del plan, agendado o no. */
   facultadesEnRiesgo: number;
   /** El déficit de esas facultades, sin compensar con las que van sobradas. */
   alumnosEnRiesgo: number;
+  /**
+   * **Las que no cierran con lo que tienen AGENDADO.** Es la cifra que decide
+   * hoy: la otra cuenta con aulas del plan que todavía no tienen día.
+   */
+  facultadesEnRiesgoAgendado: number;
+  alumnosEnRiesgoAgendado: number;
   /** Las que rinden bajo su τ con evidencia; no es lo mismo que estar en riesgo. */
   facultadesBajoSuTau: number;
   frase: string;
@@ -201,24 +207,37 @@ export function riesgoDeCierre(
   const enRiesgo = Number(t.facultades_en_riesgo ?? 0) || 0;
   const alumnos = Math.round(Number(t.alumnos_en_riesgo ?? 0) || 0);
   const bajoTau = Number(t.facultades_bajo_su_tau ?? 0) || 0;
+  const enRiesgoAg = Number(t.facultades_en_riesgo_agendado ?? 0) || 0;
+  const alumnosAg = Math.round(Number(t.alumnos_en_riesgo_agendado ?? 0) || 0);
+
   /**
-   * **La frase declara su base, y su base NO es «lo agendado».**
+   * **La frase manda la cifra de lo AGENDADO, que es la que se puede mover.**
    *
    * Decía «Con lo agendado, todas las facultades cierran su cuota» justo encima
    * del panel de facultades en riesgo, que decía que cinco no llegaban: dos
    * respuestas opuestas a la misma pregunta en la misma pantalla (medido el
-   * 2026-09-11). Ninguna mentía — el motor proyecta sobre TODO el eslabón en
-   * juego del plan, esté agendado o no, reservas de cadena incluidas
-   * (`pendientes_k` en `monitoreo_aulas_efectividad_seguimiento.R`), y Derecho
-   * tiene 207 reservas libres—; lo que fallaba era que las dos se llamaban
-   * «lo agendado».
+   * 2026-09-11). Ninguna mentía — el motor sólo sabía proyectar sobre TODO el
+   * eslabón en juego, tuviera fecha o no— y las dos se llamaban «lo agendado».
+   *
+   * Desde `.maes_margen` sobre `agendados_k` el motor publica las dos, y aquí
+   * manda la operativa: Gonzalo, 2026-09-11, «es lo que más importa siempre,
+   * porque es lo que tenemos». La otra entra sólo como matiz —si el plan sin
+   * agendar da para cubrirlo, el trabajo es agendar; si tampoco, hace falta
+   * reserva— porque son dos acciones distintas.
    */
-  const frase = enRiesgo
-    ? `${fmt(enRiesgo)} ${enRiesgo === 1 ? "facultad no cierra" : "facultades no cierran"} su cuota ni activando sus reservas: faltarían ${fmt(alumnos)} ${alumnos === 1 ? "alumno" : "alumnos"}.`
+  const frase = enRiesgoAg
+    ? `${fmt(enRiesgoAg)} ${enRiesgoAg === 1 ? "facultad no cierra" : "facultades no cierran"} su cuota con lo que tienen agendado: faltarían ${fmt(alumnosAg)} ${alumnosAg === 1 ? "alumno" : "alumnos"}.`
+      + (enRiesgo
+        ? ` Ni agendando el resto de su plan: ${enRiesgo === 1 ? "una seguiría corta" : `${fmt(enRiesgo)} seguirían cortas`} y haría falta activar reservas.`
+        : " El plan que les queda por agendar da para cubrirlo.")
     : bajoTau
-      ? `Ninguna facultad se queda corta contando sus reservas por activar, aunque ${fmt(bajoTau)} ${bajoTau === 1 ? "rinde" : "rinden"} por debajo de su tasa prevista.`
-      : "Contando las reservas por activar, todas las facultades cierran su cuota.";
-  return { facultadesEnRiesgo: enRiesgo, alumnosEnRiesgo: alumnos, facultadesBajoSuTau: bajoTau, frase };
+      ? `Con lo agendado, todas las facultades cierran su cuota, aunque ${fmt(bajoTau)} ${bajoTau === 1 ? "rinde" : "rinden"} por debajo de su tasa prevista.`
+      : "Con lo agendado, todas las facultades cierran su cuota.";
+  return {
+    facultadesEnRiesgo: enRiesgo, alumnosEnRiesgo: alumnos,
+    facultadesEnRiesgoAgendado: enRiesgoAg, alumnosEnRiesgoAgendado: alumnosAg,
+    facultadesBajoSuTau: bajoTau, frase,
+  };
 }
 
 /**

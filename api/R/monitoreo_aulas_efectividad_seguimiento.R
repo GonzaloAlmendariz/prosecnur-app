@@ -352,6 +352,33 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   pend <- !apl_track & el_track > 0
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
 
+  # **La segunda proyeccion: solo sobre lo AGENDADO.**
+  #
+  # Gonzalo, 2026-09-11: «que el motor proyecte tambien solo sobre lo agendado,
+  # que finalmente es lo que mas importa siempre, porque es lo que tenemos».
+  #
+  # `pendientes_k` incluye TODO el eslabon en juego sin aplicar, tenga fecha o
+  # no: sobre todo, los titulares que nadie ha contactado todavia. Proyectar
+  # sobre eso contesta «si se aplicara el plan entero, ¿cierra?», que es una
+  # pregunta legitima —mide el aforo que el diseño dejo disponible— pero NO es
+  # la que se hace un coordinador el lunes por la mañana. Medido en HSVG26ULT2
+  # el 2026-09-11: Derecho salia `holgado` con proyeccion 570,2 sobre una cuota
+  # de 363, y sus 6 cursos-horario con fecha esperaban traer 125 sobre una deuda
+  # de 216. El resto de su aforo son aulas que nadie ha agendado aun.
+  #
+  # Las dos proyecciones se publican JUNTAS y con nombres distintos. Sustituir
+  # una por otra cambiaria la pregunta sin avisar; y la distancia entre ambas es
+  # informacion: es exactamente el aforo del plan que sigue sin fecha.
+  agendada_track <- .maau_agendada(
+    .maac_chr_col(tracked_df, "sample_status"),
+    .maac_chr_col(tracked_df, "operational_status")
+  )
+  agend <- pend & agendada_track
+  agendados_k <- if (any(agend)) tapply(el_track[agend], fk_track[agend], sum) else numeric(0)
+  # Cuantos cursos-horario sostienen esa proyeccion: sin el conteo, «94
+  # esperadas» no dice si descansa en cinco aulas o en una.
+  cursos_agendados_k <- if (any(agend)) tapply(rep(1, sum(agend)), fk_track[agend], sum) else numeric(0)
+
   libres <- .maes_reservas_libres(plan_df)
   banco <- .maes_banco_disponible(plan_df)
 
@@ -424,6 +451,15 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       list(proyectado = NA_real_, optimista = NA_real_, pesimista = NA_real_,
            restante = NA_real_, estado = "sin_cumplimiento")
     }
+    # La misma cuenta con el otro aforo: solo lo que tiene fecha. Misma funcion
+    # —una sola formula del margen— y otro pendiente.
+    el_agendados <- .maac_toma_num(agendados_k, k, 0)
+    margen_agendado <- if (is.finite(conseguido)) {
+      .maes_margen(conseguido, el_agendados, banda, cuota)
+    } else {
+      list(proyectado = NA_real_, optimista = NA_real_, pesimista = NA_real_,
+           restante = NA_real_, estado = "sin_cumplimiento")
+    }
     # Las reservas cierran el hueco DEL MARGEN, no la diferencia de tau: una
     # facultad puede rendir por debajo de su tau y cerrar igual porque compro
     # colchon de sobra —medido en la seleccion 2026: margen mediano +49,2 % de
@@ -471,6 +507,12 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       proyectado_pesimista = if (is.finite(margen$pesimista)) round(margen$pesimista, 1) else NA_real_,
       margen_restante = if (is.finite(margen$restante)) round(margen$restante, 1) else NA_real_,
       riesgo = margen$estado,
+      # --- la misma cuenta, solo sobre lo que tiene fecha ---
+      elegibles_agendados = as.integer(round(el_agendados)),
+      cursos_agendados = as.integer(.maac_toma_num(cursos_agendados_k, k, 0)),
+      proyectado_agendado = if (is.finite(margen_agendado$proyectado)) round(margen_agendado$proyectado, 1) else NA_real_,
+      margen_agendado = if (is.finite(margen_agendado$restante)) round(margen_agendado$restante, 1) else NA_real_,
+      riesgo_agendado = margen_agendado$estado,
       # El residual, y si tiene base. `residual_base` en {"propia","sin_base",
       # "sin_dato"}: sin_dato es que el plan no trae la columna, que NO es lo
       # mismo que un histórico que no alcanzó.
@@ -529,6 +571,8 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   # como uno solo fue lo que el backtest E1 mostró que engaña.
   bajo_su_tau <- vapply(filas, function(x) identical(x$senal, "bajo"), logical(1))
   en_riesgo <- vapply(filas, function(x) (x$riesgo %||% "") %in% c("riesgo", "riesgo_firme"), logical(1))
+  en_riesgo_agendado <- vapply(
+    filas, function(x) (x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"), logical(1))
 
   list(
     schema = MONITOREO_AULAS_EFECTIVIDAD_SCHEMA,
@@ -574,6 +618,15 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       alumnos_en_riesgo = round(sum(vapply(filas, function(x) {
         if (!((x$riesgo %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)
         v <- x$margen_restante
+        if (is.finite(v) && v < 0) -v else 0
+      }, numeric(1))), 1),
+      # Lo mismo contando SOLO lo agendado. Es el par de cifras que separa «hay
+      # aforo en el plan» de «hay fecha para aplicarlo», y su distancia es
+      # cuanto queda por agendar antes de que haga falta reserva.
+      facultades_en_riesgo_agendado = as.integer(sum(en_riesgo_agendado)),
+      alumnos_en_riesgo_agendado = round(sum(vapply(filas, function(x) {
+        if (!((x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)
+        v <- x$margen_agendado
         if (is.finite(v) && v < 0) -v else 0
       }, numeric(1))), 1)
     ),
