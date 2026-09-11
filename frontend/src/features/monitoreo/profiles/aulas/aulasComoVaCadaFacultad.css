@@ -32,7 +32,7 @@
    para eso las cifras tienen que caer en la misma vertical. */
 .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
   display: grid;
-  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px 118px;
+  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px max-content;
   align-items: center;
   gap: 13px;
   width: 100%;
@@ -196,12 +196,23 @@
 .mon-profile-page.is-aulas-flow .aulas-cvf-consejo { color: var(--pulso-text-soft) !important; }
 
 @media (max-width: 1180px) {
+  /* **La columna del veredicto se mide por su texto, no por un número.**
+
+     Gonzalo, 2026-09-11: «el box de debe está con overflow». Y lo estaba: esta
+     columna valía 74 px fijos y «Debe en mujeres» pide 101, así que el fondo de
+     la píldora se cortaba a mitad de palabra.
+
+     Un ancho fijo para un texto variable falla justo en el caso que más
+     importa: aquí el veredicto más largo es el de la facultad que peor va.
+     `max-content` la ajusta a la etiqueta más ancha del juego, y como todas las
+     filas se miden contra la misma columna siguen alineadas entre sí. */
   .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
-    grid-template-columns: minmax(0, 1fr) 74px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
     row-gap: 7px;
   }
   .mon-profile-page.is-aulas-flow .aulas-cvf-tasa,
   .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { grid-column: span 1; }
+  .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { justify-self: start; }
 }
 
 /* La entrada al refuerzo (C). Va dentro del detalle de la facultad y no en la
