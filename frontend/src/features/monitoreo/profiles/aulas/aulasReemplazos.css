@@ -444,6 +444,13 @@
   line-height: 1.4;
 }
 .aulas-reemplazo-concesiones.es-limpia { color: var(--pulso-text-faint); }
+/* Sin vía de contacto. No descalifica al candidato —la decisión es de quien
+   llama— pero va en tono de advertencia porque cambia lo primero que hay que
+   hacer con él: buscarle otro teléfono antes de marcar. */
+.aulas-reemplazo-concesiones.es-sin-via {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
 
 /* Las dos varas, juntas y nunca sumadas. */
 .aulas-reemplazo-varas { display: grid; gap: 5px; }

@@ -326,3 +326,71 @@ describe("el contador dice cuántas HAY, no cuántas se enseñan", () => {
     expect(r.cadena.mejores).toHaveLength(3);
   });
 });
+
+/**
+ * **El candidato sin teléfono se propone, pero avisado y detrás.**
+ *
+ * Visto el 2026-09-11: R 85.1 encabezaba la cadena de CH 85 con el número
+ * muerto, y ni el popover ni la tira lo decían. No se descarta —puede tener
+ * otra vía— pero ponerlo primero manda a gastar la primera llamada en la que
+ * ya se sabe perdida.
+ */
+describe("el candidato sin vía de contacto", () => {
+  const reserva = (codigo: string, orden: number, call: string) =>
+    fila({ operational_code: codigo, titular_operational_code: "CH 1",
+           sample_role: "chain_reserve", replacement_order: orden,
+           call_status: call } as never);
+
+  it("se marca por el resultado de la llamada y no descarta al candidato", () => {
+    const caido = fila({ operational_code: "CH 1", titular_operational_code: "CH 1",
+                         sample_role: "titular", sample_status: "rechazo" });
+    const filas = [
+      caido,
+      reserva("R 1.1", 1, "Número no existe"),
+      reserva("R 1.2", 2, "Contactar después"),
+    ];
+    const res = candidatosDeReemplazo(filas, caido, { mujeres: 5, hombres: 5 });
+    const por = Object.fromEntries(
+      res.cadena.mejores.map((c) => [String(c.fila.operational_code), c.sinVia]));
+    expect(por["R 1.1"]).toBe(true);
+    expect(por["R 1.2"]).toBe(false);
+    // Sigue estando: es el usuario quien decide si le busca otra vía.
+    expect(res.cadena.disponibles).toBe(2);
+  });
+
+  it("dentro de su cadena NO se reordena: ahí manda el procedimiento", () => {
+    // La reserva 1 va antes que la 2 aunque su teléfono esté muerto. Cambiar eso
+    // es la decisión D4 —qué manda en el orden— y está en manos de Gonzalo: lo
+    // que la app hace es AVISAR, no decidir por él.
+    const caido = fila({ operational_code: "CH 1", titular_operational_code: "CH 1",
+                         sample_role: "titular", sample_status: "rechazo" });
+    const res = candidatosDeReemplazo(
+      [caido, reserva("R 1.1", 1, "Número no existe"), reserva("R 1.2", 2, "")],
+      caido, { mujeres: 5, hombres: 5 });
+    expect(String(res.cadena.mejores[0].fila.operational_code)).toBe("R 1.1");
+    expect(res.cadena.mejores[0].sinVia).toBe(true);
+  });
+
+  it("fuera de su cadena sí va detrás: ahí no hay procedimiento que respetar", () => {
+    // Las reservas de OTRA cadena y el banco se ordenan por puntuación, no por
+    // orden de relevo: entre dos que puntúan igual, primero la que se puede
+    // llamar.
+    const caido = fila({ operational_code: "CH 9", titular_operational_code: "CH 9",
+                         sample_role: "titular", sample_status: "rechazo" });
+    const suelta = (codigo: string, call: string) =>
+      fila({ operational_code: codigo, titular_operational_code: "CH 1",
+             sample_role: "chain_reserve", replacement_order: 1, call_status: call } as never);
+    const filas = [
+      caido,
+      // Su titular ya salió: sus reservas quedan al aire y son candidatas.
+      fila({ operational_code: "CH 1", titular_operational_code: "CH 1",
+             sample_role: "titular", operational_status: "aplicada" }),
+      suelta("R 1.1", "NUMERO FUERA DE SERVICIO"),
+      suelta("R 1.2", ""),
+    ];
+    const res = candidatosDeReemplazo(filas, caido, { mujeres: 5, hombres: 5 });
+    const orden = res.otra_cadena.mejores.map((c) => String(c.fila.operational_code));
+    expect(orden[0]).toBe("R 1.2");
+    expect(orden).toContain("R 1.1");
+  });
+});

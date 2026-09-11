@@ -291,6 +291,15 @@ function Candidato({
           ) : (
             <span className="aulas-reemplazo-concesiones es-limpia">Mismo grupo: sin concesiones.</span>
           )}
+          {/* **Antes de marcar el número.** No lo descarta —puede tener otra
+              vía— pero proponerlo en silencio manda a gastar una llamada que ya
+              se sabe perdida. Visto el 2026-09-11: R 85.1 encabezaba la cadena
+              de CH 85 con el teléfono muerto y nada lo decía. */}
+          {c.sinVia ? (
+            <span className="aulas-reemplazo-concesiones es-sin-via">
+              Su última llamada no encontró número: habrá que buscarle otra vía.
+            </span>
+          ) : null}
         </span>
 
         {/* **Las dos varas, juntas y nunca sumadas.** Una protege el diseño
