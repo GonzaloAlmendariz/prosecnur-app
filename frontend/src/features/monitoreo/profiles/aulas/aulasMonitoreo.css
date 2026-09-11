@@ -1104,7 +1104,9 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cuota-fila {
   display: grid;
-  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) minmax(104px, auto);
+  /* La última no puede crecer a `auto`: cada fila la mediría por su contenido
+     y las tres columnas dejarían de coincidir entre filas. */
+  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) 128px;
   align-items: center;
   gap: 10px;
   min-width: 0;

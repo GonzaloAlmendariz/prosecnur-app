@@ -11,7 +11,9 @@
 .aulas-tres-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
 
 .aulas-tres-filas { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.aulas-tres-fila { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 2fr) minmax(120px, auto); gap: 6px 14px; align-items: center; }
+/* La tercera no crece a `auto`: cada fila la mediría por su contenido y las tres
+   columnas dejarían de coincidir entre filas. */
+.aulas-tres-fila { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 2fr) 148px; gap: 6px 14px; align-items: center; }
 .aulas-tres-nombre { overflow-wrap: normal; word-break: keep-all; }
 .aulas-tres-nombre strong { display: block; font-weight: 600; }
 .aulas-tres-nombre em { font-style: normal; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
