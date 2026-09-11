@@ -499,3 +499,13 @@
   .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
   .aulas-reemplazo-varas { grid-column: 2; }
 }
+
+/* El coste de la decisión, bajo las dos varas: con qué se queda la facultad si
+   se toma este candidato. Va en el mismo carril que las medidas porque es su
+   consecuencia, no un dato más de identidad. */
+.aulas-reemplazo-resto {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-reemplazo-resto b { font-weight: 600; color: var(--pulso-text-soft); }
