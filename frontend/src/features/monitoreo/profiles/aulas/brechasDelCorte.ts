@@ -46,9 +46,26 @@ const opcional = (v: unknown) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-/** El orden en que se atiende: primero lo que no se aplicó, luego lo más corto. */
+/**
+ * El orden en que se atiende: **primero lo que se aplicó y rindió por debajo**.
+ *
+ * Gonzalo, 2026-09-10, con la tabla delante: «no entiendo por qué está mostrando
+ * los sin campo cuando debería mostrar los aplicados que tienen bajo
+ * rendimiento».
+ *
+ * Tenía razón, y el motivo es metodológico antes que visual. Un curso-horario al
+ * que todavía no se ha ido **no tiene brecha medida**: le falta la meta entera
+ * porque no le ha tocado, y esa cifra es el plan, no un resultado. Ponerlo
+ * arriba —ordenado por `faltan`, donde siempre gana— enterraba justo lo que esta
+ * tabla existe para encontrar: el aula que YA se visitó y se quedó corta, que es
+ * la única que justifica meter otra aula detrás. El sin aplicar se atiende en
+ * Agendación, con una llamada, no con una reserva.
+ *
+ * Por eso `sin_aplicar` pasa al final del peso, y además sale de las filas: se
+ * cuenta en la lectura de arriba para que no desaparezca del mapa.
+ */
 const PESO: Record<SeveridadDeBrecha, number> = {
-  sin_aplicar: 0, muy_por_debajo: 1, por_debajo: 2, cerca: 3, cumplida: 4,
+  muy_por_debajo: 0, por_debajo: 1, cerca: 2, cumplida: 3, sin_aplicar: 4,
 };
 
 export function brechasDelCorte(
