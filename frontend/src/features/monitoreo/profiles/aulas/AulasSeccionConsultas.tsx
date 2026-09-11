@@ -19,7 +19,6 @@ import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
 import { AulasAporteDelAbc } from "./AulasAporteDelAbc";
-import { AulasQueSirveParaQue } from "./AulasQueSirveParaQue";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
@@ -284,25 +283,6 @@ export function AulasSeccionConsultas({
               aula […] y cómo esa aula nos ayudó, porque esa aula no estaba
               prevista». */}
           <AulasAporteDelAbc filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]} />
-        </section>
-        ) : null}
-        {enBrechas ? (
-        <section
-          className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-consultas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          <div className="mon-profile-panel-head">
-            <h3>Qué sirve para qué</h3>
-            <span>las tres procedencias contra los tres casos del libro</span>
-          </div>
-          {/* Cierra la pestaña porque es la regla que gobierna las dos puertas
-              de arriba: el complemento sale de una fila de la tabla, el refuerzo
-              de una facultad del mapa, y las dos tiran del mismo catálogo con
-              permisos distintos. No es un cartel —cada procedencia trae cuántas
-              hay hoy—, y lo que se aprende de ella es lo que más se olvida: una
-              reserva de cadena viva está libre y aun así no se puede gastar. */}
-          <AulasQueSirveParaQue filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]} />
         </section>
         ) : null}
         {enParte ? (
