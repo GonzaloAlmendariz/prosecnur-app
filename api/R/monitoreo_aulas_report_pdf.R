@@ -293,7 +293,9 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   n_paneles <- if (hay_ritmo) length(ritmo_previo$facultades %||% list()) else 0L
   total_paginas <- 1L +                                        # resumen
     (if (hay_ritmo) 1L else 0L) +                              # ritmo global
-    (if (n_paneles) ceiling(n_paneles / 6) else 0L) +           # ritmo por facultad
+    (if (n_paneles > 1L) {
+      ceiling(n_paneles / .marp_rejilla_de_paneles(n_paneles)$por_hoja)
+    } else 0L) +                                                # ritmo por facultad
     1L +                                                        # metas por facultad
     ceiling(nrow(df) / max(1L, ceiling(nrow(df) / max(1L, ceiling(nrow(df) / .marp_filas_por_pagina_avance()))))) + # avance visual
     length(paginas) * length(hojas_detalle) +                   # detalle numérico
@@ -344,9 +346,11 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     pie()
 
     paneles <- ritmo$facultades %||% list()
-    if (length(paneles)) {
-      # Seis por hoja: tres columnas por dos filas.
-      por_hoja <- 6L
+    # **Con UNA sola facultad no hay página de paneles.** Su serie es idéntica a
+    # la del gráfico global —la suma de una facultad es esa facultad—, así que la
+    # hoja repetiría el dibujo anterior con otro tamaño.
+    if (length(paneles) > 1L) {
+      por_hoja <- .marp_rejilla_de_paneles(length(paneles))$por_hoja
       hojas <- split(seq_along(paneles), ceiling(seq_along(paneles) / por_hoja))
       for (h in seq_along(hojas)) {
         nueva("Ritmo por facultad",

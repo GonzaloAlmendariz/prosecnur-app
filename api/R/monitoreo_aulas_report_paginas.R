@@ -245,24 +245,53 @@
 # facultades pequeñas —DERECHO mueve diez veces lo que EDUCACIÓN— y el panel
 # dice su meta y su avance en palabras, que es lo que se compara.
 
-.marp_paneles_por_facultad <- function(paneles, tok, ty, geo, x0, ancho, columnas = 3L) {
+#' Cuántas columnas para `n` paneles, y cuántos caben por hoja.
+#'
+#' La rejilla se ADAPTA al número de paneles en vez de ser siempre de tres por
+#' dos. Con un estudio de dos facultades, la rejilla fija dibujaba dos paneles
+#' pequeños arriba a la izquierda y dejaba el 80 % de la hoja en blanco: la
+#' superficie tiene que contener su propio vacío, y una página casi vacía no lo
+#' contiene, lo exhibe.
+#' @keywords internal
+.marp_rejilla_de_paneles <- function(n) {
+  columnas <- if (n <= 2L) n else if (n <= 4L) 2L else 3L
+  list(columnas = max(1L, columnas), por_hoja = max(1L, columnas * 2L))
+}
+
+.marp_paneles_por_facultad <- function(paneles, tok, ty, geo, x0, ancho,
+                                       columnas = .marp_rejilla_de_paneles(length(paneles))$columnas) {
   # **Tres columnas y no cuatro.** Con cuatro cabían ocho facultades por hoja,
   # pero cada panel medía 0,21 npc de ancho —siete centímetros en A4 apaisado—
   # y sus cifras salían a 4,6 pt: ilegibles proyectadas o impresas. A tres
   # columnas el panel crece un tercio y el documento gana una hoja, que es un
   # cambio que Gonzalo autorizó explícitamente: «no importa usar más página con
   # tal de que se vea bien».
-  hueco_x <- 0.026; hueco_y <- 0.100
+  # **Cada fila ocupa tres bandas, y las tres se declaran.** El rótulo de la
+  # facultad y su cifra por encima del trazado, el trazado, y las fechas por
+  # debajo. La versión anterior sólo contaba el trazado y estimaba el resto en un
+  # «hueco» único: el título de la segunda fila caía sobre las fechas de la
+  # primera. Lo que no se declara, se pisa.
+  .BANDA_ROTULO <- 0.058   # nombre de la facultad + «147 de 363 · 40,5 %»
+  .BANDA_FECHAS <- 0.034   # «07/09 / lun» bajo el eje
+  .AIRE_ENTRE_FILAS <- 0.022
+  techo <- 0.800           # bajo la regla del cromo
+  suelo <- 0.135           # sobre la leyenda
+
+  hueco_x <- 0.026
   w <- (ancho - hueco_x * (columnas - 1L)) / columnas
-  h <- 0.245
-  y_primera <- 0.500
+  filas <- max(1L, ceiling(length(paneles) / columnas))
+  disponible <- techo - suelo - .AIRE_ENTRE_FILAS * (filas - 1L)
+  h <- min(0.420, disponible / filas - .BANDA_ROTULO - .BANDA_FECHAS)
+  h <- max(h, 0.120)
+  paso_fila <- h + .BANDA_ROTULO + .BANDA_FECHAS + .AIRE_ENTRE_FILAS
+  y_primera <- techo - .BANDA_ROTULO - h
 
   for (k in seq_along(paneles)) {
     p <- paneles[[k]]
     i <- (k - 1L) %% columnas
     j <- (k - 1L) %/% columnas
     px <- x0 + i * (w + hueco_x)
-    py <- y_primera - j * (h + hueco_y)
+    py <- y_primera - j * paso_fila
 
     conseguidas <- if (nrow(p$serie)) p$serie$acumulado[[nrow(p$serie)]] else 0
     meta <- suppressWarnings(as.numeric(p$meta))
@@ -271,12 +300,12 @@
     nombre <- .form_pdf_clean_text(p$facultad)
     tope <- pulso_pdf_chars(w, factor = 112)
     if (nchar(nombre) > tope) nombre <- paste0(substr(nombre, 1L, tope - 3L), "...")
-    grid::grid.text(nombre, x = px, y = py + h + 0.052, just = c("left", "bottom"),
+    grid::grid.text(nombre, x = px, y = py + h + 0.034, just = c("left", "bottom"),
                     gp = grid::gpar(col = tok$navy, fontsize = ty$body, fontface = "bold"))
     grid::grid.text(
       sprintf("%s de %s  ·  %s", .marp_personas(conseguidas),
               if (is.finite(meta)) .marp_personas(meta) else "-", .marp_pct(avance)),
-      x = px, y = py + h + 0.026, just = c("left", "bottom"),
+      x = px, y = py + h + 0.012, just = c("left", "bottom"),
       gp = grid::gpar(col = tok$soft, fontsize = ty$caption))
 
     # Una sola meta por panel: la de la muestra. La sobremuestra se lee en las
