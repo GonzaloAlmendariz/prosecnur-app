@@ -200,3 +200,49 @@ export function planDeRefuerzo(candidatos: ReadonlyArray<CandidatoDeRefuerzo>, d
   }
   return { hacenFalta, alcanza: m + h === 0, sinDeuda: false, restaM: m, restaH: h };
 }
+
+/**
+ * El inventario del corte entero, por procedencia, para la matriz «qué sirve
+ * para qué».
+ *
+ * Es la misma cuenta que `inventarioDeLaFacultad` hecha sobre todas las
+ * facultades a la vez, más la tercera procedencia que aquélla excluye a
+ * propósito: los eslabones de cadenas VIVAS. Ésos no son inventario para el
+ * refuerzo —siguen siendo la red de su titular— pero sí son el grueso del
+ * catálogo, y una matriz que los callara dejaría creer que la reserva del
+ * estudio es lo poco que está libre.
+ */
+export function inventarioDelCorte(filas: ReadonlyArray<MonitoreoAulasPlanRow> | null | undefined) {
+  const facultades = new Set<string>();
+  for (const f of filas ?? []) {
+    const fac = texto(f.faculty);
+    if (fac) facultades.add(fac);
+  }
+  let alAire = 0;
+  let extra = 0;
+  for (const fac of facultades) {
+    for (const x of inventarioDeLaFacultad(filas, fac)) {
+      if (x.procedencia === "extra") extra += 1;
+      else alAire += 1;
+    }
+  }
+
+  // Los eslabones comprometidos: cadena sin resolver y ellos todavía dormidos.
+  const porCadena = new Map<string, MonitoreoAulasPlanRow[]>();
+  for (const f of filas ?? []) {
+    const clave = texto(f.titular_operational_code) || texto(f.operational_code);
+    if (!clave) continue;
+    const lista = porCadena.get(clave) ?? [];
+    lista.push(f);
+    porCadena.set(clave, lista);
+  }
+  let enCadenaViva = 0;
+  for (const cadena of porCadena.values()) {
+    if (cadena.some(seResolvio)) continue;
+    for (const f of cadena) {
+      if (texto(f.sample_role) === "titular") continue;
+      if (sigueDormida(f)) enCadenaViva += 1;
+    }
+  }
+  return { enCadenaViva, alAire, extra, total: enCadenaViva + alAire + extra };
+}
