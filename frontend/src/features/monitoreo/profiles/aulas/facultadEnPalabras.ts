@@ -105,7 +105,9 @@ export function facultadCorta(nombre: string | null | undefined): string {
   if (!n) return "";
   return n
     .replace(/^Estudios Generales /i, "EE.GG. ")
-    .replace(/^Ciencias y Artes de la Comunicaci[oó]n.*/i, "CC. y Artes de la Com.")
+    // El libro la abrevia ya en origen —«CIENCIAS Y ARTES DE LA COMUN.»—, así
+    // que la regla mira el prefijo y no el nombre entero.
+    .replace(/^Ciencias y Artes de la Comun.*/i, "CC. y Artes Com.")
     .replace(/^Ciencias Sociales.*/i, "Ciencias Sociales")
     .replace(/^Gastronom[ií]a.*/i, "Gastronomía")
     .replace(/^Gesti[oó]n y Alta Direcci[oó]n.*/i, "Gestión")
