@@ -211,9 +211,12 @@ function Candidato({
             if (!r.elegibles.total) return null;
             return (
               <span className="aulas-reemplazo-rinde">
-                Rinde <b>{r.esperadas.mujeres}</b> mujeres y <b>{r.esperadas.hombres}</b> hombres
+                Rinde <b>{r.esperadas.mujeres}</b>{" "}
+                {r.esperadas.mujeres === 1 ? "mujer" : "mujeres"} y{" "}
+                <b>{r.esperadas.hombres}</b>{" "}
+                {r.esperadas.hombres === 1 ? "hombre" : "hombres"}
                 {" = "}<strong>{r.esperadas.total}</strong>
-                <em>de {fmt(r.elegibles.total)} elegibles al {pctPerfil(r.tasa)}</em>
+                <em>de {fmt(r.elegibles.total)} elegibles al {pctPerfil(r.tasa * 100)}</em>
               </span>
             );
           })()}
@@ -372,7 +375,7 @@ export function ContenidoDeReemplazo({
               <span className={brecha!.hombres > 0 ? "es-debe" : ""}>
                 <b>{fmt(Math.max(0, brecha!.hombres))}</b> hombres por conseguir
               </span>
-              <em>en {caido.faculty || "su facultad"}</em>
+              <em>en {facultadCorta(String(caido.faculty ?? "")) || "su facultad"}</em>
             </p>
           ) : null}
         </div>

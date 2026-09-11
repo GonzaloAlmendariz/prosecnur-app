@@ -202,7 +202,7 @@ function TarjetaDeRefuerzo({ c, puesto }: { c: CandidatoDeRefuerzo; puesto: numb
           <span className="aulas-chips-fila">
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}
             {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
-            <ChipDato>{fmt(Number(f.eligible_n) || 0)} elegibles al {pctPerfil(tasa)}</ChipDato>
+            <ChipDato>{fmt(Number(f.eligible_n) || 0)} elegibles al {pctPerfil(tasa * 100)}</ChipDato>
           </span>
           <span className="aulas-refuerzo-rinde">
             Rinde <b>{fmt(c.aporta.mujeres)}</b> mujeres y <b>{fmt(c.aporta.hombres)}</b> hombres

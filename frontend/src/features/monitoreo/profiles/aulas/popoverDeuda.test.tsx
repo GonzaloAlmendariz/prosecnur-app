@@ -60,7 +60,11 @@ describe("el popover dice contra qué se elige", () => {
     const html = pinta({ mujeres: 14, hombres: 0 });
     expect(html).toContain("mujeres por conseguir");
     expect(html).toContain("hombres por conseguir");
-    expect(html).toContain("ARTES ESCÉNICAS");
+    // **«Artes Escénicas» y no «ARTES ESCÉNICAS» desde el 2026-09-10**, cambio
+    // deliberado: la normalización se decide en `facultadEnPalabras` y la usan
+    // el mapa, la tabla de brechas y los dos popovers. Lo que este contrato
+    // pide —que la cabecera diga de qué facultad es la deuda— no cambia.
+    expect(html).toContain("Artes Escénicas");
   });
 
   it("sin brecha no promete una deuda que nadie midió", () => {
