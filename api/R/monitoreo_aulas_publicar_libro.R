@@ -409,6 +409,13 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            actualizado = "",
                                            disponibilidad = NULL,
                                            config_reparto = list(),
+                                           # La config de AULAS, sólo por su
+                                           # `source_mapping`: sin ella la
+                                           # celda «OBTENIDAS POR SEXO» sale con
+                                           # el código crudo de la plataforma
+                                           # («1 20 · 2 14») mientras la de al
+                                           # lado dice «F 11 · M 11».
+                                           config_aulas = list(),
                                            adopcion_ok = FALSE,
                                            ya_existe_asignacion = FALSE) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
@@ -511,7 +518,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       unidades, partes = partes, efectivas = efectivas,
       efectivas_sexo = efectivas_sexo,
       asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
-                                                   cfg = config_reparto))
+                                                   cfg = config_reparto),
+      # El mapeo de sexo va en la config de aulas, no en la del reparto: sin él
+      # la celda sale con el código crudo de la plataforma.
+      cfg = config_aulas %||% list())
   )
   producidas[[.malp_hoja_plan_dia()]] <- .mapds_con_selector(plan_dia_listado)
   # «Avance de campo» (B2.2) se computa con lo que ESTE punto sí tiene: plan +
@@ -883,6 +893,9 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],
+      # Sólo por su `source_mapping`: es lo que traduce el valor crudo del sexo
+      # a la letra con la que el resto del libro lo dice.
+      config_aulas = aulas_cfg,
       traslape_daa = traslape_daa,
       actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       # B68 tercera pata: el reparto de la hoja es el de la app — misma

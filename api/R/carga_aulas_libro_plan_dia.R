@@ -245,18 +245,42 @@
   list(total = total, por_sexo = por_sexo)
 }
 
+# El valor crudo de la variable de sexo, dicho como lo dice el resto del libro.
+#
+# **Las obtenidas venian con el codigo de la plataforma y las esperadas con la
+# letra**: la misma fila decia «ESPERADAS POR SEXO: F 11 · M 11» y al lado
+# «OBTENIDAS POR SEXO: 1 20 · 2 14». Visto por Gonzalo el 2026-09-10 en el
+# Sheets vivo. `monitoreo_aulas_efectivas_por_sexo()` nombra sus grupos con los
+# valores tal como llegan —es lo correcto para un motor, que no debe inventar
+# etiquetas— y la traduccion es cosa de quien PINTA.
+#
+# El mapeo es el que el estudio declaro en Fuentes
+# (`source_mapping$sex_female_values` / `sex_male_values`); sin el, el valor
+# sale tal cual, que es mejor que adivinar. «Sin declarar» pasa intacto: una
+# respuesta sin sexo es un dato del campo y no un hueco a esconder.
+.capd_letra_de_sexo <- function(valor, cfg = list()) {
+  bruto <- trimws(as.character(valor %||% "")[1])
+  if (!nzchar(bruto)) return("")
+  mapa <- (cfg[["source_mapping"]] %||% list())
+  clave <- function(x) toupper(trimws(as.character(x)))
+  if (clave(bruto) %in% clave(unlist(mapa[["sex_female_values"]] %||% list()))) return("F")
+  if (clave(bruto) %in% clave(unlist(mapa[["sex_male_values"]] %||% list()))) return("M")
+  bruto
+}
+
 # Un vector con nombre por sexo, escrito como la celda de esperadas: «M 8 · F 6».
-# Vacio cuando no hay nada que decir; el «Sin declarar» del contador entra igual,
-# porque una respuesta sin sexo es un dato del campo y no un hueco a esconder.
-.capd_por_sexo <- function(v) {
+# Vacio cuando no hay nada que decir.
+.capd_por_sexo <- function(v, cfg = list()) {
   if (!length(v)) return("")
   paste(vapply(seq_along(v), function(i)
-    sprintf("%s %s", names(v)[[i]], .calg_num_txt(v[[i]])), character(1)),
+    sprintf("%s %s", .capd_letra_de_sexo(names(v)[[i]], cfg), .calg_num_txt(v[[i]])),
+    character(1)),
     collapse = " · ")
 }
 
 aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NULL,
-                                      efectivas_sexo = NULL, asignados = NULL) {
+                                      efectivas_sexo = NULL, asignados = NULL,
+                                      cfg = list()) {
   # Partes por código e intento, con el MISMO índice `%s#%d` del generador de
   # «Aulas Aplicadas (Campo)»: dos índices distintos para el mismo parte es la
   # clase de lista paralela que este libro ya pagó.
@@ -377,7 +401,7 @@ aulas_libro_hoja_plan_dia <- function(unidades, partes = list(), efectivas = NUL
       } else NULL),
       .capd_por_sexo(if (nzchar(cod_u) && cod_u %in% names(efectivas_sexo %||% list())) {
         efectivas_sexo[[cod_u]]
-      } else NULL),
+      } else NULL, cfg),
       aplicador,
       estado,
       .calg_txt(u$link)
