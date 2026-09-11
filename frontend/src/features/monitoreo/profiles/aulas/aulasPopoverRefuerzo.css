@@ -407,3 +407,15 @@
   padding-right: 10px;
 }
 .aulas-refuerzo-varas3 .es-ritmo td.es-tasa { color: var(--pulso-text-soft); }
+
+/* El traslape se enseña siempre; sólo lleva tinta de alarma cuando pesa. */
+.aulas-refuerzo-aviso.es-traslape {
+  border-left-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-aviso.es-traslape.es-fuerte {
+  border-left-color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 7%, transparent);
+  color: var(--pulso-danger-fg);
+}
