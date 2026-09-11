@@ -584,3 +584,17 @@
   .aulas-reemplazo-fila { grid-template-columns: 26px minmax(0, 1fr); }
   .aulas-reemplazo-varas3, .aulas-reemplazo-varas { grid-column: 2; }
 }
+
+/* La distancia entre lo que el plan pidió y lo que va a dar. Cuando coinciden
+   se dice en gris —el dato es que no hay nada que decidir—; cuando se separan,
+   esa distancia es la decisión y lleva tinta. */
+.aulas-reemplazo-desvio {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-reemplazo-desvio b { font-weight: var(--pulso-weight-semibold); }
+.aulas-reemplazo-desvio.es-corto { color: var(--pulso-danger-fg); }
+.aulas-reemplazo-desvio.es-sobra { color: var(--pulso-success-fg); }
