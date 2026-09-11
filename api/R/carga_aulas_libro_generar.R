@@ -1473,7 +1473,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   hojas[["Plan del día"]] <- aulas_libro_hoja_plan_dia(
     unidades, partes = partes, efectivas = efectivas,
     efectivas_sexo = efectivas_sexo,
-    asignados = asignados_por_codigo)
+    asignados = asignados_por_codigo,
+    # Para traducir el valor crudo del sexo a la letra con la que el resto del
+    # libro lo dice: el mapeo lo declaró el estudio en Fuentes.
+    cfg = cfg)
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
