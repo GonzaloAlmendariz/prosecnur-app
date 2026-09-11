@@ -104,3 +104,40 @@ test_that("las versalitas retiran el aire antes de salirse de su caja", {
   # Sin caja declarada, el comportamiento de siempre.
   expect_true(grepl(" ", pulso_pdf_versalitas(largo, ancho = NULL), fixed = TRUE))
 })
+
+# --- Accesibilidad -----------------------------------------------------------
+
+.contraste_wcag <- function(a, b) {
+  lum <- function(hex) {
+    canal <- grDevices::col2rgb(hex)[, 1] / 255
+    f <- function(c) if (c <= 0.03928) c / 12.92 else ((c + 0.055) / 1.055)^2.4
+    0.2126 * f(canal[[1]]) + 0.7152 * f(canal[[2]]) + 0.0722 * f(canal[[3]])
+  }
+  la <- lum(a); lb <- lum(b)
+  (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+}
+
+test_that("todo color de TEXTO llega al 4,5:1 de WCAG AA sobre blanco", {
+  # `faint` estaba en 3,15:1 y es el color de casi todos los rótulos pequeños
+  # del documento —encabezados de columna, ejes, antetítulos— a 5,8 y 7,4 pt,
+  # que no son «texto grande» por ningún criterio.
+  tok <- pulso_pdf_tokens()
+  for (rol in c("navy", "ink", "soft", "faint", "sexo_h", "sexo_m", "success", "danger")) {
+    expect_gte(.contraste_wcag(tok[[rol]], "#ffffff"), 4.5)
+  }
+  # Y el blanco sobre la banda navy de la portada.
+  expect_gte(.contraste_wcag(tok$sobre_navy, tok$navy), 4.5)
+})
+
+test_that("los dos colores de sexo son el MISMO gris, y por eso nada puede depender solo de ellos", {
+  # Esto no es un fallo que corregir en el token —son la identidad de la app en
+  # pantalla—: es la razón por la que el gráfico de metas escribe la inicial de
+  # cada serie bajo su carril. La prueba fija el hecho para que nadie retire esa
+  # inicial creyendo que el color basta.
+  tok <- pulso_pdf_tokens()
+  gris <- function(hex) {
+    canal <- grDevices::col2rgb(hex)[, 1] / 255
+    0.2126 * canal[[1]] + 0.7152 * canal[[2]] + 0.0722 * canal[[3]]
+  }
+  expect_lt(abs(gris(tok$sexo_h) - gris(tok$sexo_m)), 0.10)
+})

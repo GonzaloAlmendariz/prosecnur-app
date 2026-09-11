@@ -474,9 +474,28 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
 
   grid::grid.lines(x = grid::unit(c(x, x + w), "npc"), y = grid::unit(y, "npc"),
                    gp = grid::gpar(col = tokens$tbl_frame, lwd = 0.7))
+
+  # **La inicial de cada serie bajo su carril.** Azul y rosa tienen la misma
+  # luminancia (0,160 y 0,163): impreso en blanco y negro, los dos carriles de
+  # un grupo son el mismo gris y la leyenda no sirve para distinguirlos. La
+  # letra lo resuelve sin color, y de paso ahorra ir a buscar la leyenda incluso
+  # a todo color. Sólo cuando la serie declara su `inicial`.
+  if (any(vapply(series, function(s) nzchar(s$inicial %||% ""), logical(1)))) {
+    for (i in seq_len(n)) {
+      centro <- x + paso * (i - 0.5)
+      for (j in seq_len(k)) {
+        s <- series[[j]]
+        if (!nzchar(s$inicial %||% "")) next
+        cx <- centro + (j - (k + 1) / 2) * (ancho_carril * 1.12)
+        grid::grid.text(s$inicial, x = cx, y = y - 0.011, just = c("centre", "top"),
+                        gp = grid::gpar(col = s$color, fontsize = fs, fontface = "bold"))
+      }
+    }
+  }
+
   for (i in seq_len(n)) {
     .form_pdf_text(categorias[[i]], x = x + paso * (i - 1) + paso * 0.06,
-                   y = y - 0.010, w = paso * 0.88,
+                   y = y - 0.032, w = paso * 0.88,
                    chars = pulso_pdf_chars(paso * 0.88, factor = 128),
                    fontsize = fs, col = tokens$soft, line_h = 0.017)
   }

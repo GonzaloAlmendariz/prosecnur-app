@@ -24,7 +24,12 @@ pulso_pdf_tokens <- function() {
     navy   = "#002457",  # marca Pulso: títulos, reglas, nombres de variable
     ink    = "#1f2933",  # texto principal
     soft   = "#5f6b7a",  # secundario: subtítulos, códigos, periodo, nº pág
-    faint  = "#8792a2",  # terciario: notas tenues, ejes
+    # #8792a2 daba 3,15:1 sobre blanco: por debajo del 4,5:1 de WCAG AA para
+    # texto normal, y es el color de CASI TODOS los rótulos pequeños del
+    # documento —encabezados de columna, ejes, antetítulos, versalitas— a 5,8 y
+    # 7,4 pt, que no son «texto grande» por ningún criterio. Oscurecido sobre su
+    # propio matiz hasta cruzar el umbral: 4,53:1. Medido, no estimado.
+    faint  = "#6e7784",  # terciario: notas tenues, ejes
     rule   = "#d0d5dd",  # regla hairline (divisores)
     line   = "#d8e0ef",  # regla de cabecera/pie
     # Tabla estructurada
@@ -45,6 +50,13 @@ pulso_pdf_tokens <- function() {
     # CON esta nota porque un lector del PDF y un lector de la pantalla comparan
     # los dos: si el azul de hombres no fuera el mismo azul, el documento
     # contradiría a la herramienta con la que se hizo.
+    # **En gris son el mismo tono**: sus luminancias relativas son 0,160 y 0,163,
+    # así que una impresión en blanco y negro los vuelve indistinguibles. No se
+    # corrigen aquí —son la identidad de la app en pantalla y el documento se
+    # compara con ella—, se compensa en el dibujo: ningún gráfico puede confiar
+    # SÓLO en estos dos colores para decir cuál es cuál. En «Metas por facultad»
+    # cada carril lleva su letra; en las tablas, su fila dice «Hombres» o
+    # «Mujeres». Medido con la fórmula de luminancia de WCAG.
     sexo_h = "#4a6eb6",
     sexo_m = "#c2416b",
     # Acentos semánticos (opcionales, para dashboards; no decorativos)
