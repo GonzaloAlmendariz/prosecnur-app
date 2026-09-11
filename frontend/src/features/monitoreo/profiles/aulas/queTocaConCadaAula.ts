@@ -10,7 +10,7 @@
 //
 // Los estados son los canónicos del motor —`monitoreo_aulas_estados_muestra()`:
 // sin_contactar, en_contacto, agendada, reagendada, rechazo, en_reserva,
-// reemplazada— más los dos ejes
+// reemplazada, refuerzo_por_contactar— más los dos ejes
 // que el motor mantiene separados a propósito: cómo se consiguió el aula y cómo
 // fue la aplicación.
 
@@ -54,6 +54,11 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
 
   const estado = clave(fila.sample_status);
   // Un reemplazado salió del plan por su reserva: ya no se llama a este docente.
+  // **La cola del agendador.** La app acaba de poner esta aula por delante como
+  // complemento (B) o refuerzo (C) y nadie la ha llamado: lo que toca es
+  // justamente eso, y es lo primero de su lista. Sin esta rama caía al genérico
+  // y se perdía entre las que nunca se tocaron.
+  if (estado === "refuerzo_por_contactar") return "Contactar: refuerzo";
   if (estado === "reemplazada") return "Reemplazado";
   if (estado === "en_reserva") return "En reserva";
   // El docente dijo que no: no se le vuelve a llamar; la cadena releva (B13b).

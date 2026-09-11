@@ -5906,6 +5906,39 @@ export async function apiMonitoreoAulasActivarReemplazo(payload: {
 }
 
 /**
+ * **Marca un complemento (B) o un refuerzo (C) como REFUERZO POR CONTACTAR.**
+ *
+ * Gonzalo, 2026-09-11: «el popover necesita operar sobre B y C porque A se
+ * aplica desde el mismo Sheets sin ayuda de la app, la app solo lo lee». Por eso
+ * esto no pasa por `apiMonitoreoAulasActivarReemplazo`: son dos circuitos, y escribir
+ * también el de A pondría a la app a competir con quien agenda en vivo.
+ *
+ * El aula NO queda «agendada» sino en su estado propio: está en juego y nadie ha
+ * llamado. En el libro sale en morado, que es la cola del agendador.
+ */
+export async function apiMonitoreoAulasMarcarRefuerzo(payload: {
+  /** El curso-horario que entra a ayudar. */
+  operational_code: string;
+  /** A quién ayuda: un curso-horario en B, una facultad en C. */
+  para?: string;
+  tipo: "complemento" | "refuerzo";
+  motivo?: string;
+}) {
+  return handle<{
+    ok: true;
+    marcada: MonitoreoAulasPlanRow;
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/marcar-refuerzo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/**
  * La conversación app↔Sheets que el sync de aulas corre cuando hay un
  * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
  * las de la app, en ese orden. El bloque viaja SOLO con destino recordado —

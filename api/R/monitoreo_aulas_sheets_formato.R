@@ -108,6 +108,15 @@
 # colores en el mismo libro. El orden importa: `contains` sobre la celda, y el
 # índice menor gana.
 .mafs_REGLAS_STATUS_MUESTRA <- list(
+  # **El morado va PRIMERO.** `contains` sobre la celda y gana el indice menor:
+  # ninguna de las de abajo casa hoy con «REFUERZO POR CONTACTAR», pero si
+  # manana alguien anade una regla con «CONTACT» se la comeria en silencio.
+  #
+  # Gonzalo, 2026-09-11: «que sea como de un morado especial». Es la cola del
+  # agendador —lo que la app acaba de poner por delante— y no se parece a
+  # ninguno de los otros cinco: no es una gestion en curso ni una reserva
+  # dormida, es una llamada que hay que hacer hoy.
+  list(texto = "REFUERZO POR CONTACTAR", fondo = "#F0E9F7", tinta = "#5B2E86"),
   list(texto = "AGENDADA", fondo = "#E3F3E8", tinta = "#155E2E"),
   list(texto = "EN CONTACTO", fondo = "#FDF3D8", tinta = "#7A5B12"),
   list(texto = "RECHAZO", fondo = "#FDE7E7", tinta = "#8A1C1C"),

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import {
   apiMonitoreoAulasImportFromCalcMuestra,
+  apiMonitoreoAulasMarcarRefuerzo,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
   apiMonitoreoState,
@@ -46,7 +47,7 @@ import type { TablaDelPerfil } from "./tablaDelPerfil";
  */
 export function AulasSeccionConsultas({
   dashboard, Tabla, pestana, reemplazosEnOrdenDeCadena,
-  facultadEnFoco = undefined,
+  facultadEnFoco = undefined, onGuardado,
 }: {
   dashboard: MonitoreoAulasDashboard;
   Tabla: TablaDelPerfil;
@@ -54,7 +55,39 @@ export function AulasSeccionConsultas({
   reemplazosEnOrdenDeCadena: (filas: ReadonlyArray<Record<string, unknown>>) => Array<Record<string, unknown>>;
   /** B77: la facultad en foco de la cabecera; corta las listas de la sección. */
   facultadEnFoco?: string;
+  /**
+   * Recarga la vista tras marcar un complemento o un refuerzo. Sin esto, el
+   * aula se queda en el plan con su estado nuevo y la pantalla sigue
+   * ofreciéndola como disponible hasta el siguiente refresco.
+   */
+  onGuardado?: () => void;
 }): ReactNode {
+  /**
+   * **Marcar es de B y de C, nunca de A.** Gonzalo, 2026-09-11: «el popover
+   * necesita operar sobre B y C porque A se aplica desde el mismo Sheets sin
+   * ayuda de la app, la app solo lo lee».
+   *
+   * El aula queda en REFUERZO POR CONTACTAR —no en agendada— porque nadie la ha
+   * llamado todavía, y sale en morado en el libro para que el agendador vea su
+   * cola de un vistazo.
+   */
+  const [marcando, setMarcando] = useState("");
+  const [avisoDeMarca, setAvisoDeMarca] = useState("");
+  const marcar = async (codigo: string, tipo: "complemento" | "refuerzo", para: string) => {
+    setMarcando(codigo);
+    setAvisoDeMarca("");
+    try {
+      const res = await apiMonitoreoAulasMarcarRefuerzo({
+        operational_code: codigo, tipo, para,
+      });
+      setAvisoDeMarca(res.mensaje);
+      onGuardado?.();
+    } catch (e) {
+      setAvisoDeMarca(e instanceof Error ? e.message : "No se pudo marcar el refuerzo.");
+    } finally {
+      setMarcando("");
+    }
+  };
     /**
      * **Qué curso-horario tiene el popover abierto.** Es estado de la sección y
      * no dirección: no abre una vista nueva ni cambia lo que se lee, elige a
@@ -503,7 +536,19 @@ export function AulasSeccionConsultas({
                 ),
                 dashboard.banco_extras?.por_facultad ?? [],
               ).find((a) => a.facultad === String(caido.faculty ?? ""))?.pedirAntesDe ?? null}
-              onElegir={() => setRelevoDe("")}
+              // **Aquí conviven A y B, y sólo B se marca.** Si el titular cayó
+              // —rechazo o reemplazada— esto es un reemplazo (A), y A se aplica
+              // en el Sheets: la app sólo lo lee. Si el titular sigue en pie y
+              // lo que se busca es sumar, es un complemento (B) y sí se marca.
+              onElegir={(fila) => {
+                const cayo = /^(rechaz|reemplazada)/.test(
+                  String(caido.sample_status ?? "").trim().toLowerCase());
+                if (!cayo) {
+                  void marcar(String(fila.operational_code ?? ""), "complemento",
+                              String(caido.operational_code ?? ""));
+                }
+                setRelevoDe("");
+              }}
               onCerrar={() => setRelevoDe("")}
             />
           );
@@ -556,9 +601,14 @@ export function AulasSeccionConsultas({
                   : undefined;
               })()}
               pedirAntesDe={alerta?.pedirAntesDe ?? null}
-              // Elegir cierra, como en el popover de reemplazo: la decisión se
-              // anota en el Sheets y volver a la lista invita a tomar dos.
-              onElegir={() => setRefuerzoDe("")}
+              // **C se marca desde aquí.** Antes sólo cerraba: la decisión se
+              // perdía y el agendador no se enteraba. Ahora el aula queda en
+              // REFUERZO POR CONTACTAR —no agendada, que nadie la ha llamado—
+              // y sale en morado en el libro.
+              onElegir={(fila) => {
+                void marcar(String(fila.operational_code ?? ""), "refuerzo", refuerzoDe);
+                setRefuerzoDe("");
+              }}
               onCerrar={() => setRefuerzoDe("")}
             />
           );
