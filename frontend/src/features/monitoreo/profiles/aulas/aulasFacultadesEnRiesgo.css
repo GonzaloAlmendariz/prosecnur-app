@@ -1,0 +1,121 @@
+/* Los dos riesgos que el ranking de rendimiento no ve: la facultad que no llega
+   con lo que tiene agendado y la que todavía no puede medirse. */
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo { display: grid; gap: 9px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lectura {
+  margin: 0;
+  font-size: var(--aulas-txt);
+  color: var(--pulso-text-soft);
+  line-height: 1.5;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lectura strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lista {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lista li {
+  display: grid;
+  grid-template-columns: 66px minmax(150px, 210px) minmax(0, 1fr) 74px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  /* El riesgo en el borde y no en el fondo: el fondo de color convierte una
+     lista de cuatro en una alarma y las dos no piden la misma urgencia. */
+  border-left: 3px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lista li.es-corta { border-left-color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lista li.es-ciega { border-left-color: var(--pulso-warn-fg); }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-lista li.es-foco { outline: 1px solid var(--pulso-primary); }
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-marca {
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 5px;
+  background: var(--pulso-surface-3);
+}
+.mon-profile-page.is-aulas-flow .es-corta .aulas-riesgo-marca { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .es-ciega .aulas-riesgo-marca { color: var(--pulso-warn-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien { display: grid; gap: 0; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien b,
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien button {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien button:hover { text-decoration: underline; }
+.mon-profile-page.is-aulas-flow .aulas-riesgo-quien em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-dice {
+  font-size: var(--aulas-sec);
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+  min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-dice b {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+/* Lo que faltaría es la cifra que decide, y es la única que se tiñe. */
+.mon-profile-page.is-aulas-flow .aulas-riesgo-dice b.es-falta { color: var(--pulso-danger-fg); }
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-reservas {
+  display: grid;
+  gap: 0;
+  text-align: right;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-reservas b {
+  font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-riesgo-reservas em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-riesgo-pie {
+  margin: 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .mon-profile-page.is-aulas-flow .aulas-riesgo-lista li {
+    grid-template-columns: 66px minmax(0, 1fr) 74px;
+  }
+  /* La frase baja a su propio renglón antes que encogerse hasta no leerse. */
+  .mon-profile-page.is-aulas-flow .aulas-riesgo-dice { grid-column: 2 / -1; }
+}

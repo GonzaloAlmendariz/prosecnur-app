@@ -43,7 +43,7 @@ const yaSalio = (f: MonitoreoAulasPlanRow) =>
  * Se mira el estado de muestra y el operativo, porque el operativo llega tarde
  * —lo teclea quien registra el campo— y aquí importa lo contrario: adelantarse.
  */
-const estaEnCamino = (f: MonitoreoAulasPlanRow) => {
+export const estaEnCamino = (f: MonitoreoAulasPlanRow) => {
   if (yaSalio(f)) return false;
   const estados = `${texto(f.sample_status)} ${texto(f.operational_status)}`.toLowerCase();
   return /agendada|reagendada|contactada|en_campo|programada/.test(estados);
