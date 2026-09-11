@@ -22,7 +22,7 @@ import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
 import { AulasTresCaminos } from "./AulasTresCaminos";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
-import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
+import { brechaDeLaFacultad, cuotaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
@@ -532,6 +532,12 @@ export function AulasSeccionConsultas({
                 (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
                 refuerzoDe,
               ) ?? { mujeres: 0, hombres: 0 }}
+              // La meta y lo logrado, para que la cifra se explique sola y no
+              // parezca contradecir al ranking del que se viene.
+              cuota={cuotaDeLaFacultad(
+                (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+                refuerzoDe,
+              )}
               pedirAntesDe={alerta?.pedirAntesDe ?? null}
               // Elegir cierra, como en el popover de reemplazo: la decisión se
               // anota en el Sheets y volver a la lista invita a tomar dos.

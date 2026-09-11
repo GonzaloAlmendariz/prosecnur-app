@@ -286,3 +286,14 @@
   color: var(--pulso-text-faint);
   line-height: 1.4;
 }
+
+/* De dónde sale la cifra de la cabecera: la meta y lo que lleva. Una cifra que
+   puede explicarse a sí misma no contradice a la de la pantalla anterior. */
+.aulas-refuerzo-detrasDe {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}

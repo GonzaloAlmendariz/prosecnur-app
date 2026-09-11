@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import type { BrechaPorSexo } from "./candidatosDeReemplazo";
+import type { CuotaDeFacultad } from "./brechaDeLaFacultad";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { facultadCorta } from "./facultadEnPalabras";
@@ -31,11 +32,13 @@ import "./aulasPopoverRefuerzo.css";
  * debo cierra?». No hay parecido que medir porque no hay nada a lo que
  * parecerse.
  */
-export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onElegir, onCerrar }: {
+export function AulasPopoverRefuerzo({ facultad, filas, deuda, cuota, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Lo que la facultad debe HOY, por sexo. Sale de las cuotas, no del cierre. */
   deuda: BrechaPorSexo;
+  /** La cuota con su meta y lo logrado, para que la cifra se explique sola. */
+  cuota?: CuotaDeFacultad;
   /**
    * El último día útil para llamar sin que la facultad se quede parada, de
    * `alertaDeAnticipacion`. Un refuerzo no se aplica el día que se decide: hay
@@ -74,7 +77,7 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onE
         aria-label={`Refuerzo para ${facultad}: cursos-horario libres`}
         ref={(el) => { caja.current = el; }}
       >
-        <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda}
+        <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda} cuota={cuota}
           pedirAntesDe={pedirAntesDe} onElegir={onElegir} onCerrar={onCerrar} />
       </div>
     </div>,
@@ -87,10 +90,12 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, pedirAntesDe, onE
  * `renderToStaticMarkup`: un portal en el servidor devuelve cadena vacía y no
  * se puede probar nada de lo que hay dentro.
  */
-export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, pedirAntesDe, onElegir, onCerrar }: {
+export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuota, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   deuda: BrechaPorSexo;
+  /** La cuota con su meta y lo logrado, para que la cifra se explique sola. */
+  cuota?: CuotaDeFacultad;
   pedirAntesDe?: string | null;
   /** Tomar este curso-horario de refuerzo. Sin esto la lista sólo se mira. */
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
@@ -117,7 +122,15 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
           <p className="aulas-refuerzo-deuda">
             {debeM + debeH > 0 ? (
               <>
-                Debe <b>{fmt(debeM)}</b> mujeres y <b>{fmt(debeH)}</b> hombres
+                {/* **La cifra dice QUÉ mide.** Gonzalo, 2026-09-11: «dice
+                    déficit de 65 pero en la otra ventana el déficit es de 6, no
+                    entiendo». Las dos eran ciertas: el ranking mide lo que se
+                    perdió en las aulas YA VISITADAS, y esto mide lo que falta
+                    para cerrar la CUOTA de la facultad, contando también lo que
+                    aún no se ha visitado. Sin decirlo, la segunda parece
+                    contradecir a la primera. */}
+                Para cerrar su cuota faltan <b>{fmt(debeM)}</b> mujeres y{" "}
+                <b>{fmt(debeH)}</b> hombres
                 {" · "}<strong>{fmt(debeM + debeH)}</strong> respuestas
                 {/* **El reloj de la decisión.** Un refuerzo no se aplica el día
                     que se elige: hay que hablar con el docente y median siete
@@ -130,6 +143,14 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
             ) : (
               <>No debe respuestas: la cuota de esta facultad está cubierta.</>
             )}
+            {/* De dónde sale esa cifra: la meta y lo que lleva. Una cifra que
+                puede explicarse a sí misma no contradice a la de al lado. */}
+            {cuota && (cuota.meta.mujeres || cuota.meta.hombres) ? (
+              <em className="aulas-refuerzo-detrasDe">
+                lleva {fmt(cuota.logrado.mujeres)} de {fmt(cuota.meta.mujeres)} mujeres
+                {" y "}{fmt(cuota.logrado.hombres)} de {fmt(cuota.meta.hombres)} hombres
+              </em>
+            ) : null}
           </p>
         </div>
         {onCerrar ? (
