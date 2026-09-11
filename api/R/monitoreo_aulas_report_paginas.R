@@ -37,7 +37,14 @@
                   tokens = tok, ty = ty, tono = tono)
   }
   kpi(3L, "Encuestas efectivas", .marp_personas(t$conseguidas), "en plataforma", tok$navy)
-  kpi(4L, "Muestra del diseño", .marp_personas(t$muestra), "por facultad y sexo", tok$navy)
+  # **«Muestra del diseño» era un eco.** Su cifra y su nota ya estaban dentro de
+  # la tarjeta del avance —«1.390 de 2.500»—, en la banda más visible del
+  # documento. En su lugar, un hecho que no aparece en ninguna otra parte: cuántas
+  # facultades han cerrado su cuota. Es lo que convierte «faltan 1.110» en una
+  # noticia con forma.
+  cerradas <- nrow(model$facultades) - .marp_num(t$facultades_abiertas, 0)
+  kpi(4L, "Facultades que cerraron", .marp_personas(cerradas),
+      sprintf("de %s", .marp_personas(nrow(model$facultades))), tok$navy)
   kpi(5L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
       if (identical(as.integer(t$facultades_abiertas), 1L)) "en 1 facultad"
       else sprintf("en %d facultades", as.integer(t$facultades_abiertas)),
