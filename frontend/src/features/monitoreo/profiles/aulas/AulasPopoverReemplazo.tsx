@@ -258,6 +258,24 @@ function Candidato({
               </table>
             );
           })()}
+          {/* **La discrepancia entre las dos varas, dicha.** Cuando coinciden
+              —un candidato que aún no ha salido, cuyo plan se calculó con la
+              misma tasa— leer dos filas iguales no aporta; cuando se separan,
+              esa distancia ES la decisión y hay que encontrarla sin restar a
+              mano. */}
+          {(() => {
+            const pr = pronosticoDelAula(f);
+            if (pr.desvio == null) return null;
+            return pr.desvio === 0 ? (
+              <span className="aulas-reemplazo-desvio es-igual">La proyección coincide con el plan.</span>
+            ) : (
+              <span className={`aulas-reemplazo-desvio${pr.desvio < 0 ? " es-corto" : " es-sobra"}`}>
+                {pr.desvio < 0
+                  ? <>Va a dar <b>{fmt(Math.abs(pr.desvio))}</b> menos de lo que el plan le pedía.</>
+                  : <>Va a dar <b>{fmt(pr.desvio)}</b> más de lo que el plan le pedía.</>}
+              </span>
+            );
+          })()}
           {/* Lo que se concede al tomarlo. Vacío cuando es del mismo grupo: ahí
               no hay nada que advertir y rellenarlo sería ruido. */}
           {c.concesiones.length ? (

@@ -177,7 +177,7 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
             {candidatos.map((c, i) => (
               <TarjetaDeRefuerzo
                 key={String(c.fila.operational_code || c.fila.classroom_id || i)}
-                c={c} puesto={i + 1} onElegir={onElegir}
+                c={c} puesto={i + 1} deficit={debeM + debeH} onElegir={onElegir}
               />
             ))}
           </ol>
@@ -193,9 +193,11 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, ped
   );
 }
 
-function TarjetaDeRefuerzo({ c, puesto, onElegir }: {
+function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
   c: CandidatoDeRefuerzo;
   puesto: number;
+  /** Lo que la facultad debe en total: el denominador de «17 de 82». */
+  deficit: number;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
 }) {
   const f = c.fila;
@@ -266,30 +268,47 @@ function TarjetaDeRefuerzo({ c, puesto, onElegir }: {
               </tr>
             </tbody>
           </table>
+          {/* La discrepancia entre las dos varas, dicha: cuando coinciden leer
+              dos filas iguales no aporta, y cuando se separan esa distancia es
+              la decisión. */}
+          {pr.desvio != null ? (
+            <span className={`aulas-refuerzo-desvio${pr.desvio === 0 ? " es-igual" : pr.desvio < 0 ? " es-corto" : " es-sobra"}`}>
+              {pr.desvio === 0 ? "La proyección coincide con el plan."
+                : pr.desvio < 0 ? `Va a dar ${fmt(Math.abs(pr.desvio))} menos de lo que el plan le pedía.`
+                : `Va a dar ${fmt(pr.desvio)} más de lo que el plan le pedía.`}
+            </span>
+          ) : null}
         </span>
 
         {/* **Lo que cierra, y lo que quedaría.** Las dos mitades de la misma
             decisión: cuánto de la deuda tapa este curso-horario, y con qué te quedas si
             la tomas. La segunda es la que él pidió —«si tomas uno, a la facultad
             le quedan…»— y es la que evita tomar tres cuando bastaba una. */}
-        <span className="aulas-refuerzo-cierra">
-          {/* El porcentaje lleva su signo: justo debajo va «quedarían 65», que
-              es un absoluto, y sin la unidad las dos cifras se leían como la
-              misma cosa. */}
-          <span className="aulas-refuerzo-vara">
-            <em>cierra</em>
-            <i><b style={{ width: `${Math.min(100, Math.round(c.cierra * 100))}%` }} /></i>
-            <strong>{Math.min(100, Math.round(c.cierra * 100))} %</strong>
-          </span>
-          <span className="aulas-refuerzo-util">
-            <b>{fmt(c.util)}</b> del déficit
+        {/* **Una sola lectura, no tres cifras sueltas.**
+
+            Gonzalo, 2026-09-11, señalando esta esquina: «esta sección no la
+            entiendo». Y no se entendía: «cierra 21 %», «17 del déficit» y
+            «quedarían 65» eran la misma cosa dicha tres veces, en tres unidades
+            distintas, y ninguna decía de qué eran. El 21 % no declaraba su
+            base, el 17 no decía sobre cuánto, y el 65 aparecía sin haber dicho
+            nunca que el déficit eran 82.
+
+            Ahora es una fracción con su denominador a la vista —«17 de 82»—, la
+            barra como proporción de ESA fracción, y el resto debajo. Tres
+            renglones que se leen en cadena en vez de tres cifras que hay que
+            reconciliar. */}
+        <span className="aulas-refuerzo-cubre">
+          <em>cubre del déficit</em>
+          <b>
+            {fmt(c.util)} <i>de {fmt(deficit)}</i>
+          </b>
+          <span className="aulas-refuerzo-carril" aria-hidden="true">
+            <b style={{ width: `${Math.min(100, Math.round(c.cierra * 100))}%` }} />
           </span>
           <span className="aulas-refuerzo-resto">
-            {c.util ? (
-              queda ? <>quedarían <b>{fmt(queda)}</b></> : <>cubre el déficit completo</>
-            ) : (
-              <>no reduce el déficit</>
-            )}
+            {!c.util ? "no reduce el déficit"
+              : queda ? `quedarían ${fmt(queda)}`
+              : "lo cubre entero"}
           </span>
         </span>
       </div>

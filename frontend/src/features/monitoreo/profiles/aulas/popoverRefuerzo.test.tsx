@@ -90,7 +90,15 @@ describe("cada candidato dice de dónde sale y qué deja detrás", () => {
   it("dice lo que quedaría debiendo si se toma, que es el coste de la decisión", () => {
     const html = pinta({ mujeres: 30, hombres: 0 });
     // Aporta 10 de las 30 que se deben: quedarían 20.
-    expect(html).toContain("quedarían <b>20</b>");
+    //
+    // **La forma cambió el 2026-09-11**: eran tres cifras sueltas —«cierra
+    // 21 %», «17 del déficit», «quedarían 65»— que decían lo mismo en tres
+    // unidades sin declarar su base, y Gonzalo lo señaló: «esta sección no la
+    // entiendo». Ahora es una fracción con su denominador y el resto debajo.
+    // Lo que el contrato pide —que se diga con qué se queda la facultad— no
+    // cambia.
+    expect(html).toContain("10 <i>de 30</i>");
+    expect(html).toContain("quedarían 20");
   });
 
   it("el que no cierra nada se marca en vez de esconderse", () => {

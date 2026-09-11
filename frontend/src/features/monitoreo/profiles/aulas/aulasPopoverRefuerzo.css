@@ -184,39 +184,6 @@
   line-height: 1.35;
 }
 .aulas-refuerzo-curso em { font-style: normal; color: var(--pulso-text-faint); }
-
-.aulas-refuerzo-cierra { display: grid; gap: 5px; }
-.aulas-refuerzo-vara {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 22px;
-  align-items: center;
-  gap: 7px;
-}
-.aulas-refuerzo-vara em {
-  font-style: normal;
-  font-size: 10.5px;
-  color: var(--pulso-text-faint);
-}
-.aulas-refuerzo-vara i {
-  display: block;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--pulso-surface-3);
-  overflow: hidden;
-}
-.aulas-refuerzo-vara i b {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: var(--module-accent, var(--pulso-primary));
-}
-.aulas-refuerzo-vara strong {
-  font-size: 11px;
-  font-weight: 600;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-soft);
-}
 .aulas-refuerzo-resto {
   font-size: 11px;
   color: var(--pulso-text-faint);
@@ -236,55 +203,14 @@
 
 @media (max-width: 640px) {
   .aulas-refuerzo-fila { grid-template-columns: 26px minmax(0, 1fr); }
-  .aulas-refuerzo-cierra { grid-column: 2; }
 }
 
 /* Las tres varas, con la misma forma que en el popover de reemplazo: es la
    misma decisión vista desde el otro extremo y no puede tener dos lenguajes. */
-.aulas-refuerzo-varas3 {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-}
-.aulas-refuerzo-varas3 thead th {
-  padding: 0 6px 3px;
-  border-bottom: 1px solid var(--pulso-border);
-  color: var(--pulso-text-faint);
-  font-weight: 400;
-  text-align: right;
-}
-.aulas-refuerzo-varas3 thead th:first-child { text-align: left; }
-.aulas-refuerzo-varas3 tbody th {
-  padding: 2px 6px 2px 0;
-  color: var(--pulso-text-soft);
-  font-weight: 400;
-  text-align: left;
-  white-space: nowrap;
-}
-.aulas-refuerzo-varas3 tbody th em {
-  display: block;
-  font-style: normal;
-  color: var(--pulso-text-faint);
-  font-size: 10px;
-}
-.aulas-refuerzo-varas3 td { padding: 2px 6px; text-align: right; color: var(--pulso-text-soft); }
-.aulas-refuerzo-varas3 td b { color: var(--pulso-text); font-weight: 600; }
-.aulas-refuerzo-varas3 .es-techo th,
-.aulas-refuerzo-varas3 .es-techo td { color: var(--pulso-text-faint); }
-.aulas-refuerzo-varas3 .es-ritmo td b { color: var(--module-accent, var(--pulso-primary)); }
-.aulas-refuerzo-varas3 .es-plan { border-top: 1px solid var(--pulso-border); }
 
 /* Lo que cierra en RESPUESTAS, junto al porcentaje: la barra da la proporción
    y esta cifra el absoluto, que es con el que se suma mentalmente cuántos
    candidatos hacen falta. */
-.aulas-refuerzo-util {
-  font-size: 10.5px;
-  color: var(--pulso-text-faint);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.aulas-refuerzo-util b { color: var(--pulso-text-soft); font-weight: 600; }
 
 /* La acción, que no existía: se podía mirar pero no decidir. */
 .aulas-refuerzo-elegir {
@@ -301,3 +227,62 @@
   cursor: pointer;
 }
 .aulas-refuerzo-elegir:hover { filter: brightness(0.94); }
+
+/* La distancia entre el plan y la proyección, con el mismo criterio que en el
+   popover de reemplazo: en gris cuando coinciden, con tinta cuando se separan. */
+.aulas-refuerzo-desvio {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}
+.aulas-refuerzo-desvio.es-corto { color: var(--pulso-danger-fg); }
+.aulas-refuerzo-desvio.es-sobra { color: var(--pulso-success-fg); }
+
+/* **Cuánto cubre del déficit, en una sola lectura.**
+
+   Eran tres cifras sueltas —«cierra 21 %», «17 del déficit», «quedarían 65»—
+   que decían lo mismo en tres unidades y ninguna declaraba su base. Ahora la
+   fracción lleva su denominador a la vista, la barra es la proporción de esa
+   misma fracción, y el resto va debajo. */
+.aulas-refuerzo-cubre { display: grid; gap: 3px; align-content: start; }
+.aulas-refuerzo-cubre em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-cubre > b {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--module-accent, var(--pulso-primary));
+}
+/* El denominador en su peso: es el marco de la cifra, no la cifra. */
+.aulas-refuerzo-cubre > b i {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pulso-text-faint);
+}
+.aulas-refuerzo-carril {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+.aulas-refuerzo-carril b {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+.aulas-refuerzo-resto {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+  line-height: 1.4;
+}

@@ -52,6 +52,18 @@ export type PronosticoDelAula = {
   /** La tasa con la que se calcula el ritmo, y de dónde sale. */
   tasa: number;
   deDondeLaTasa: "aula" | "facultad" | "perfil";
+  /**
+   * **Cuánto se aparta la proyección de lo que el plan pidió.**
+   *
+   * Positivo es dar de más. `null` cuando el plan no declara meta, porque
+   * entonces no hay contra qué compararse y un cero diría «coinciden».
+   *
+   * Es la cifra que hace accionable la tabla: las dos filas discrepan sólo
+   * cuando el curso-horario ya se aplicó y su tasa propia se separó de la que
+   * usó el diseño. Mientras coinciden —el caso de un candidato que no ha
+   * salido— decirlo ahorra leer dos filas iguales.
+   */
+  desvio: number | null;
 };
 
 /** La tasa del perfil cuando no hay ninguna medida. Se declara al usarla. */
@@ -76,11 +88,14 @@ export function pronosticoDelAula(f: MonitoreoAulasPlanRow): PronosticoDelAula {
   const deDondeLaTasa = delAula > 0 ? "aula" : deLaFacultad > 0 ? "facultad" : "perfil";
 
   const metaDelPlan = Math.round(numero(f.expected_valid));
+  const plan = metaDelPlan > 0 ? reparte(metaDelPlan, mujeres, hombres) : null;
+  const ritmo = reparte(Math.floor(elegibles.total * tasa), mujeres, hombres);
   return {
     elegibles,
-    plan: metaDelPlan > 0 ? reparte(metaDelPlan, mujeres, hombres) : null,
-    ritmo: reparte(Math.floor(elegibles.total * tasa), mujeres, hombres),
+    plan,
+    ritmo,
     tasa,
     deDondeLaTasa,
+    desvio: plan ? ritmo.total - plan.total : null,
   };
 }
