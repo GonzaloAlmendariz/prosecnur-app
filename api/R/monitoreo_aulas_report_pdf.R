@@ -183,8 +183,19 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
 #'
 #' @param model salida de `build_monitoreo_aulas_report_model()`.
 #' @param output_file ruta del PDF.
-#' @param include_targets sin uso hoy; el modelo ya trae la cuota.
-#' @param titulo,subtitulo,periodo parámetros estándar de todo motor.
+#' @param include_targets **ignorado a propósito**, y no por descuido. Este
+#'   reporte se define CONTRA la cuota del diseño —«1.390 de 2.500», «faltan
+#'   1.110», las columnas de meta de cada tabla—, así que un documento sin metas
+#'   no sería una variante: sería otro documento, y vacío. Se conserva en la
+#'   firma porque el runner de jobs llama igual a los cuatro renderizadores. El
+#'   panel de Salidas oculta la casilla «Incluir metas» en cursos-horario por
+#'   este mismo motivo (`ofreceMetasOpcionales` en `MonitoreoOutputsWorkbench`);
+#'   si algún día se decide usarlo aquí, hay que reactivarla allí.
+#' @param titulo,subtitulo,periodo parámetros estándar de todo motor. En este
+#'   reporte son el ÚLTIMO recurso de la portada: lo que se imprime sale de
+#'   `model$portada_defecto` —que el motor deriva de los datos— y de lo que el
+#'   usuario escriba en el panel. Estos dos sólo asoman con un modelo armado a
+#'   mano que no traiga `portada_defecto`.
 #' @export
 monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                                                include_targets = FALSE,
