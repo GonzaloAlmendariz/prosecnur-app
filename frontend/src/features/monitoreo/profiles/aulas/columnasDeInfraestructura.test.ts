@@ -77,19 +77,29 @@ describe("el sexo dominante del aula no entra en las tablas del operativo", () =
     // conteo, y eso tiene que seguir así. Ya hay precedente de que la
     // construcción se malinterpreta: `sub_a` es el sexo más frecuente y se leyó
     // como «mujeres», lo que invirtió una tabla de cuotas entera.
-    const popover = fs.readFileSync(path.join(aqui, "AulasPopoverReemplazo.tsx"), "utf8");
-    const candidatos = fs.readFileSync(path.join(aqui, "candidatosDeReemplazo.ts"), "utf8");
-    for (const [nombre, src] of [["el popover", popover], ["los candidatos", candidatos]] as const) {
-      // Las dos formas que hay hoy: comparar `sex_top_1` en línea, o pasarlo
-      // por una variable. Lo que se exige es que el dominante se RESUELVA y
-      // salgan de ahí un conteo de mujeres y otro de hombres, no cómo se
-      // escriba.
-      expect(src, `${nombre} ya no lee sex_top_1`).toContain("sex_top_1");
-      // En un archivo van pegados y en el otro pasan por una variable, así que
-      // se comprueban por separado en vez de exigir una forma concreta.
-      expect(src, `${nombre} dejó de normalizar la caja`).toContain("toUpperCase()");
-      expect(src, `${nombre} dejó de comparar contra "M"`).toMatch(/===\s*"M"/);
-      expect(src, `${nombre} ya no deriva mujeres y hombres`).toMatch(/mujeres[\s\S]{0,200}hombres/);
+    /* **La lectura se unificó en `composicionDelAula` el 2026-09-10.** Vivía
+       escrita tres veces —el popover, la puntuación de ayuda y el chip nuevo— y
+       este guard comprobaba la FORMA en cada archivo: el `toUpperCase()`, la
+       comparación contra «M», las dos variables. Al mudarla a su módulo el
+       guard se puso rojo sin que nada se hubiera roto: es la trampa del guard
+       anclado a un símbolo que se renombra.
+
+       Ahora exige lo que de verdad importa: que exista UN sitio que resuelva el
+       dominante, y que quien decide con el sexo pase por él en vez de volver a
+       leer `sex_top_*` por su cuenta. */
+    const casa = fs.readFileSync(path.join(aqui, "composicionDelAula.ts"), "utf8");
+    expect(casa, "la casa del reparto ya no lee sex_top_1").toContain("sex_top_1");
+    expect(casa, "la casa dejó de normalizar la caja").toContain("toUpperCase()");
+    expect(casa, "la casa ya no compara contra F ni M").toMatch(/===\s*"[FM]"/);
+    expect(casa, "la casa ya no deriva mujeres y hombres").toMatch(/mujeres[\s\S]{0,300}hombres/);
+
+    for (const archivo of ["AulasPopoverReemplazo.tsx", "candidatosDeReemplazo.ts"]) {
+      const src = fs.readFileSync(path.join(aqui, archivo), "utf8");
+      expect(src, `${archivo} decide con el sexo y no pasa por composicionDelAula`)
+        .toContain("composicionDelAula");
+      const codigo = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+      expect(codigo, `${archivo} volvió a leer sex_top_* por su cuenta`)
+        .not.toMatch(/sex_top_[12]_n/);
     }
   });
 });
