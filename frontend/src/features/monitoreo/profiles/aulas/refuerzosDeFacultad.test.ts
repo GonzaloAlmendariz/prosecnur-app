@@ -217,3 +217,79 @@ describe("una cadena se resuelve por el HECHO, no por el estado tecleado", () =>
     expect(codigos).toEqual(["R 3.2"]);
   });
 });
+
+describe("el traslape: con quién estaríamos repitiendo", () => {
+  /**
+   * Gonzalo, 2026-09-11: «los refuerzos y complementos también deben tomar en
+   * cuenta el traslape de alumno y de docente, por si no vaya a ser que estemos
+   * llamando a un docente ya contactado o el porcentaje de alumnos ya aplicados
+   * sea muy fuerte».
+   *
+   * Medido en HSVG26ULT2: **84 de las 1.216 reservas libres comparten docente
+   * con un curso-horario ya tocado**.
+   */
+  const fila2 = (extra: Record<string, unknown>): MonitoreoAulasPlanRow =>
+    ({
+      faculty: "DERECHO", eligible_n: 20, sex_top_1: "F", sex_top_1_n: 12, sex_top_2_n: 8,
+      tasa_efectividad_aula: 0.5, sample_role: "chain_reserve",
+      operational_status: "planificada", sample_status: "en_reserva", ...extra,
+    }) as unknown as MonitoreoAulasPlanRow;
+
+  it("avisa si el docente del candidato ya fue contactado por otro curso-horario", () => {
+    const plan = [
+      fila2({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "aplicada", teacher: "PEREZ, ANA" }),
+      fila2({ operational_code: "R 1.1", titular_operational_code: "CH 1", teacher: "PEREZ, ANA" }),
+      fila2({ operational_code: "R 1.2", titular_operational_code: "CH 1", teacher: "LOPEZ, JUAN" }),
+    ];
+    const c = refuerzosDeFacultad(plan, "DERECHO", { mujeres: 10, hombres: 0 });
+    const repetido = c.find((x) => x.fila.operational_code === "R 1.1")!;
+    const limpio = c.find((x) => x.fila.operational_code === "R 1.2")!;
+    expect(repetido.docenteYaContactado).toBe("PEREZ, ANA");
+    expect(limpio.docenteYaContactado).toBe("");
+  });
+
+  it("avisa y NO excluye: a veces es justo el docente más dispuesto", () => {
+    const plan = [
+      fila2({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "aplicada", teacher: "PEREZ, ANA" }),
+      fila2({ operational_code: "R 1.1", titular_operational_code: "CH 1", teacher: "PEREZ, ANA" }),
+    ];
+    const c = refuerzosDeFacultad(plan, "DERECHO", { mujeres: 10, hombres: 0 });
+    expect(c.map((x) => x.fila.operational_code)).toContain("R 1.1");
+  });
+
+  it("un docente sólo agendado también cuenta: ya se le llamó", () => {
+    const plan = [
+      fila2({ operational_code: "CH 2", sample_role: "titular", titular_operational_code: "CH 2",
+        operational_status: "aplicada", respuestas_validas: 5 }),
+      fila2({ operational_code: "CH 3", sample_role: "titular", titular_operational_code: "CH 3",
+        sample_status: "agendada", teacher: "SOTO, MARIA" }),
+      fila2({ operational_code: "R 2.1", titular_operational_code: "CH 2", teacher: "SOTO, MARIA" }),
+    ];
+    const c = refuerzosDeFacultad(plan, "DERECHO", { mujeres: 10, hombres: 0 });
+    expect(c.find((x) => x.fila.operational_code === "R 2.1")!.docenteYaContactado).toBe("SOTO, MARIA");
+  });
+
+  it("estima cuánta población de la facultad ya pasó por un curso-horario aplicado", () => {
+    // No se sabe QUIÉN respondió, pero sí cuántos cupos se tocaron: 60 de 100.
+    const plan = [
+      fila2({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "aplicada", eligible_n: 60 }),
+      fila2({ operational_code: "CH 2", sample_role: "titular", titular_operational_code: "CH 2",
+        operational_status: "planificada", eligible_n: 40 }),
+      fila2({ operational_code: "R 1.1", titular_operational_code: "CH 1" }),
+    ];
+    const c = refuerzosDeFacultad(plan, "DERECHO", { mujeres: 10, hombres: 0 });
+    expect(c[0].exposicionDeLaFacultad).toBeCloseTo(0.6, 3);
+  });
+
+  it("sin nada aplicado la exposición es cero, y con el padrón vacío también", () => {
+    const plan = [
+      fila2({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
+        operational_status: "aplicada", eligible_n: 0, respuestas_validas: 3 }),
+      fila2({ operational_code: "R 1.1", titular_operational_code: "CH 1" }),
+    ];
+    expect(refuerzosDeFacultad(plan, "DERECHO", { mujeres: 10, hombres: 0 })[0].exposicionDeLaFacultad).toBe(0);
+  });
+});

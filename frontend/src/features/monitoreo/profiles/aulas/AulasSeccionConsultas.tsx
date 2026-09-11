@@ -23,6 +23,7 @@ import { AulasTresCaminos } from "./AulasTresCaminos";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { brechaDeLaFacultad, cuotaDeLaFacultad } from "./brechaDeLaFacultad";
+import { deficitOperativo } from "./deficitOperativo";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
@@ -538,6 +539,22 @@ export function AulasSeccionConsultas({
                 (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
                 refuerzoDe,
               )}
+              // **Lo que ya viene descontado, y el marco del plan.** El déficit
+              // sin descontar lo agendado manda a reforzar facultades que ya
+              // están cubiertas, y eso gasta una reserva que otra necesita.
+              deficit={(() => {
+                const c = cuotaDeLaFacultad(
+                  (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+                  refuerzoDe,
+                );
+                return c
+                  ? deficitOperativo(
+                    c,
+                    (dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[],
+                    refuerzoDe,
+                  )
+                  : undefined;
+              })()}
               pedirAntesDe={alerta?.pedirAntesDe ?? null}
               // Elegir cierra, como en el popover de reemplazo: la decisión se
               // anota en el Sheets y volver a la lista invita a tomar dos.
