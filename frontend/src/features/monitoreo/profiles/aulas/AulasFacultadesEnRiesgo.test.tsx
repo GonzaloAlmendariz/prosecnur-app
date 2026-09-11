@@ -92,6 +92,22 @@ describe("«Facultades en riesgo»", () => {
   });
 });
 
+describe("las gestiones sin teléfono que NO caen en una facultad listada", () => {
+  it("se cuentan en el pie: una cita imposible es trabajo perdido igual", () => {
+    // Medido el 2026-09-11: de las 6 del estudio sólo 3 caían en una facultad
+    // del panel. Las otras 3 no aparecían en ninguna parte de la app.
+    const out = renderToStaticMarkup(<AulasFacultadesEnRiesgo
+      bloque={bloque({}, { cursos_sin_via: 6 })} celdasDeCuota={[]} plan={[]} />);
+    expect(out).toContain("Fuera de estas facultades hay <b>5</b> gestiones más sin teléfono válido");
+  });
+
+  it("no las repite cuando ya salen todas nombradas en su fila", () => {
+    const out = renderToStaticMarkup(<AulasFacultadesEnRiesgo
+      bloque={bloque({}, { cursos_sin_via: 1 })} celdasDeCuota={[]} plan={[]} />);
+    expect(out).not.toContain("Fuera de estas facultades");
+  });
+});
+
 describe("los códigos del aviso", () => {
   const conCodigos = (codigos: string[], cuantas: number) =>
     renderToStaticMarkup(<AulasFacultadesEnRiesgo

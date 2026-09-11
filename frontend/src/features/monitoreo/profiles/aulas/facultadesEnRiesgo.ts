@@ -133,6 +133,20 @@ export function citasVencidas(
 }
 
 /**
+ * **Las gestiones sin teléfono válido de TODO el operativo.**
+ *
+ * El aviso por fila sólo lo ven las facultades que no llegan, y una cita que no
+ * se puede concertar es trabajo perdido aunque su facultad vaya sobrada:
+ * medido el 2026-09-11, de las 6 del estudio sólo 3 caían en una facultad
+ * listada. Las otras 3 no aparecían en ninguna parte.
+ */
+export function gestionesSinVia(
+  bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined,
+): number {
+  return Number(bloque?.total?.cursos_sin_via ?? 0) || 0;
+}
+
+/**
  * Cuántos de cada 100 titulares contactados han rechazado en este operativo.
  * `null` sin base suficiente: con tres resueltos, una proporción es ruido.
  */
