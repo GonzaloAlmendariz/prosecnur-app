@@ -164,7 +164,7 @@ export function AulasSeccionConsultas({
           {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
               lo que se pregunta al cerrar el operativo; después cuánta reserva
               se gastó. La tabla de abajo queda como el detalle fila a fila. */}
-          <AulasHistoriaCadena filas={agendaFilas} />
+          <AulasHistoriaCadena filas={agendaFilas} onRelevo={(codigo) => setRelevoDe(codigo)} />
           {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
               reservas y caídas, así que un titular sin ninguna reserva —el caso
               de L54— no aparecería y el gráfico diría que el plan tiene un

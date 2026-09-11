@@ -97,7 +97,11 @@ function circunstanciaDe(h: HistoriaDeCadena): { clave: Circunstancia; pastilla:
 /** El orden de la lista: primero lo que pide trabajo hoy. */
 const URGENCIA: Record<Circunstancia, number> = { seca: 0, abierta: 1, corta: 2, cerrada: 3, intacta: 4 };
 
-export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }): ReactNode {
+export function AulasHistoriaCadena({ filas, onRelevo }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /** Abre el popover de candidatos con ese curso-horario, como en Brechas. */
+  onRelevo?: (codigo: string) => void;
+}): ReactNode {
   // El hook va antes de cualquier salida temprana: uno bajo la guarda se llama
   // en unos renders y no en otros, y eso es el React #310 que ya tumbó esto.
   const [todas, setTodas] = useState(false);
@@ -221,7 +225,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         data-qa-geometry-contract="intrinsic"
       >
         {vistas.map(({ h, c }) => (
-          <Cadena key={h.titular} h={h} c={c} titular={porCodigo.get(h.titular)} />
+          <Cadena key={h.titular} h={h} c={c} titular={porCodigo.get(h.titular)} onRelevo={onRelevo} />
         ))}
       </div>
 
@@ -236,16 +240,27 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
   );
 }
 
-function Cadena({ h, c, titular }: {
+function Cadena({ h, c, titular, onRelevo }: {
   h: HistoriaDeCadena;
   c: { clave: Circunstancia; pastilla: string };
   titular: MonitoreoAulasPlanRow | undefined;
+  onRelevo?: (codigo: string) => void;
 }): ReactNode {
   const [abierta, setAbierta] = useState(false);
   const detras = Math.max(0, h.eslabones.length - ESLABONES_A_LA_VISTA);
   const vistos = abierta ? h.eslabones : h.eslabones.slice(0, ESLABONES_A_LA_VISTA);
-  // El primero que no se ha caído es el que se trabaja.
-  const trabajando = h.eslabones.find((e) => e.orden > 0 && !puntoDelEslabon(e).caido)?.codigo ?? "";
+  /**
+   * El primero que no se ha caído es el que se trabaja — **pero sólo cuando el
+   * titular cayó**.
+   *
+   * En una cadena `corta` el titular se aplicó y sigue dentro: nadie está
+   * siendo contactado, y destacar su primera reserva hacía creer que sí. Ahí lo
+   * que toca no es llamar a la siguiente, es decidir si se complementa, y para
+   * eso está el botón.
+   */
+  const trabajando = c.clave === "abierta" || c.clave === "seca"
+    ? h.eslabones.find((e) => e.orden > 0 && !puntoDelEslabon(e).caido)?.codigo ?? ""
+    : "";
 
   const cuando = String(titular?.sesiones_dia_hora ?? titular?.schedule ?? "").trim();
   const donde = String(titular?.venue ?? "").trim();
@@ -292,6 +307,19 @@ function Cadena({ h, c, titular }: {
         {abierta && detras ? (
           <button type="button" className="aulas-cadena-resto" onClick={() => setAbierta(false)}>
             Plegar
+          </button>
+        ) : null}
+
+        {/* **Cada fila tiene salida.** Es la regla que el ensayo pide para
+            Brechas y vale igual aquí: una cadena que pide trabajo y no ofrece
+            por dónde seguir obliga a salir de la pantalla para actuar. */}
+        {onRelevo && (c.clave === "corta" || c.clave === "seca") ? (
+          <button
+            type="button"
+            className="aulas-cadena-salida"
+            onClick={() => onRelevo(h.titular)}
+          >
+            {c.clave === "corta" ? "Complementar" : "Buscar relevo"}
           </button>
         ) : null}
       </div>
