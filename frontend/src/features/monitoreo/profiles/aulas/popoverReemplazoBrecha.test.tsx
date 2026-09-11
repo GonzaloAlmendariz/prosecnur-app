@@ -94,20 +94,34 @@ describe("la fila de esperadas suma", () => {
     );
   };
 
+  /**
+   * **La fila vive ahora en la tabla de tres varas** (2026-09-11): el candidato
+   * enseña sus elegibles, lo que el plan pidió y lo que dará al ritmo de hoy,
+   * y esta comprobación se hace sobre la última. Lo que el contrato pide —que
+   * las dos cifras de sexo den el total— no cambia; cambia dónde se lee.
+   */
+  const celdas = (html: string) => {
+    const fila = /<tr class="es-ritmo">[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
+    return [...fila.matchAll(/<td[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]));
+  };
+
   it("el caso real: 5 mujeres y 24 hombres al 0,52 dan 14, no 15", () => {
-    const html = conReparto(5, 24, 0.52);
     // 2 + 12 = 14. El total ya no se redondea por su cuenta.
-    expect(html).toContain("<b>2</b> mujeres");
-    expect(html).toContain("<b>12</b> hombres");
-    expect(html).toContain(">14<");
-    expect(html).not.toContain(">15<");
+    expect(celdas(conReparto(5, 24, 0.52))).toEqual([2, 12, 14]);
   });
 
   it("cuando no hay resto, las tres cifras coinciden igual", () => {
     // El control: si el arreglo fuera «restar uno siempre», este caso fallaría.
+    expect(celdas(conReparto(10, 10, 0.5))).toEqual([5, 5, 10]);
+  });
+
+  it("y las tres varas se leen a la vez: el techo, el plan y el ritmo", () => {
+    // Lo que Gonzalo pedía: los elegibles por sexo y los DOS esperados, que
+    // discrepan y por eso se enseñan juntos.
     const html = conReparto(10, 10, 0.5);
-    expect(html).toContain("<b>5</b> mujeres");
-    expect(html).toContain("<b>5</b> hombres");
-    expect(html).toContain(">10<");
+    expect(html).toContain("Elegibles");
+    expect(html).toContain("Al ritmo de hoy");
+    const techo = /<tr class="es-techo">[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
+    expect([...techo.matchAll(/<td[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]))).toEqual([10, 10, 20]);
   });
 });

@@ -160,36 +160,86 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
       </button>
       {abierta ? (
         <div className="aulas-cvf-porque">
-          <p>{f.frase}</p>
-          {rumbo?.verbo ? <Rumbo r={rumbo} /> : null}
-          {/* Qué hacer con eso, en el vocabulario del operativo. La lista de
-              cursos-horario que la hundieron vive en Consultas › Brechas, que es
-              donde además se puede actuar sobre cada uno: repetirla aquí daría
-              dos sitios contando lo mismo. */}
-          {f.veredicto === "debe_mujeres" || f.veredicto === "debe_hombres" ? (
-            <p className="aulas-cvf-consejo">
-              Un relevo aquí sólo sirve si trae {f.veredicto === "debe_mujeres" ? "mujeres" : "hombres"}:
-              uno del otro sexo gasta una reserva y deja la deuda intacta.
-            </p>
-          ) : null}
-          {f.veredicto === "debe_en_los_dos" ? (
-            <p className="aulas-cvf-consejo">
-              Debe en los dos sexos: cualquier relevo de su facultad mueve algo,
-              y el que más cierre es el que más se acerque a las dos cifras.
-            </p>
-          ) : null}
-          {/* **Y aquí se entra al refuerzo.** Sólo con deuda: sin ella no hay
-              nada que reforzar, y ofrecer el botón igual gastaría una reserva
-              que otra facultad va a necesitar. */}
-          {onRefuerzo && f.deuda < 0 ? (
-            <button
-              type="button"
-              className="aulas-cvf-refuerzo"
-              onClick={(e) => { e.stopPropagation(); onRefuerzo(f.facultad); }}
-            >
-              Buscar refuerzo para {facultadCorta(f.facultad)}
-            </button>
-          ) : null}
+          {/* **Tres columnas y no una.** Gonzalo, 2026-09-11, con el detalle
+              delante: «aquí la idea está súper bien pero aún puedes asegurar que
+              se vea mejor, que ocupe todo el ancho, te sea más robusto e
+              informativo».
+
+              Tenía razón: la sparkline ocupaba un tercio y el resto era hueco.
+              Ahora el ancho se reparte entre las tres preguntas que se hacen
+              aquí y que hasta ahora contestaba sólo la primera: **qué pasó** (el
+              rumbo), **dónde duele** (el desglose por sexo contra su vara) y
+              **qué se hace** (el consejo y la puerta al refuerzo). */}
+          <div className="aulas-cvf-columna">
+            <h5>Qué pasó</h5>
+            <p>{f.frase}</p>
+            {rumbo?.verbo ? <Rumbo r={rumbo} /> : (
+              <p className="aulas-cvf-sinrumbo">
+                {f.aulas
+                  ? "Con una sola jornada aplicada todavía no hay rumbo que leer."
+                  : "Sin jornadas aplicadas."}
+              </p>
+            )}
+          </div>
+
+          <div className="aulas-cvf-columna">
+            <h5>Dónde duele</h5>
+            <table className="aulas-cvf-desglose">
+              <tbody>
+                <tr className={f.mujeres < 0 ? "es-debe" : ""}>
+                  <th scope="row">Mujeres</th>
+                  <td>{f.mujeres > 0 ? `+${fmt(f.mujeres)}` : f.mujeres < 0 ? `−${fmt(Math.abs(f.mujeres))}` : "0"}</td>
+                  <td><em>{f.mujeres < 0 ? "por conseguir" : f.mujeres > 0 ? "de más" : "en lo previsto"}</em></td>
+                </tr>
+                <tr className={f.hombres < 0 ? "es-debe" : ""}>
+                  <th scope="row">Hombres</th>
+                  <td>{f.hombres > 0 ? `+${fmt(f.hombres)}` : f.hombres < 0 ? `−${fmt(Math.abs(f.hombres))}` : "0"}</td>
+                  <td><em>{f.hombres < 0 ? "por conseguir" : f.hombres > 0 ? "de más" : "en lo previsto"}</em></td>
+                </tr>
+                <tr className="es-tasa">
+                  <th scope="row">Rinde</th>
+                  <td>{f.observada == null ? "—" : pctPerfil(f.observada * 100)}</td>
+                  <td><em>de {f.prevista == null ? "—" : pctPerfil(f.prevista * 100)} previsto</em></td>
+                </tr>
+                <tr className="es-tasa">
+                  <th scope="row">Aplicados</th>
+                  <td>{fmt(f.aulas)}</td>
+                  <td><em>cursos-horario con parte</em></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="aulas-cvf-columna">
+            <h5>Qué se hace</h5>
+            {f.veredicto === "debe_mujeres" || f.veredicto === "debe_hombres" ? (
+              <p className="aulas-cvf-consejo">
+                Un relevo aquí sólo sirve si trae {f.veredicto === "debe_mujeres" ? "mujeres" : "hombres"}:
+                uno del otro sexo gasta una reserva y deja la deuda intacta.
+              </p>
+            ) : null}
+            {f.veredicto === "debe_en_los_dos" ? (
+              <p className="aulas-cvf-consejo">
+                Debe en los dos sexos: cualquier relevo de su facultad mueve algo,
+                y el que más cierre es el que más se acerque a las dos cifras.
+              </p>
+            ) : null}
+            {f.deuda >= 0 ? (
+              <p className="aulas-cvf-consejo es-calma">
+                No debe respuestas: sus reservas se quedan para la facultad que
+                las necesite.
+              </p>
+            ) : null}
+            {onRefuerzo && f.deuda < 0 ? (
+              <button
+                type="button"
+                className="aulas-cvf-refuerzo"
+                onClick={(e) => { e.stopPropagation(); onRefuerzo(f.facultad); }}
+              >
+                Buscar refuerzo para {facultadCorta(f.facultad)}
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </li>
