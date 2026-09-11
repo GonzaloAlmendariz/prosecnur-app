@@ -119,6 +119,7 @@ function Candidato({
   c,
   puesto,
   conBrecha,
+  brecha,
   onElegir,
 }: {
   c: CandidatoDeReemplazo;
@@ -131,9 +132,34 @@ function Candidato({
    * y un cero por no medir no pueden verse igual.
    */
   conBrecha: boolean;
+  /** Lo que la facultad debe hoy, para decir con qué se queda si se toma éste. */
+  brecha?: BrechaPorSexo;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
 }) {
   const f = c.fila;
+  /**
+   * **El coste de la decisión: con qué se queda la facultad si se toma éste.**
+   *
+   * Gonzalo lo pidió con esas palabras —«si tomas uno, a la facultad le
+   * quedan…»— y es la mitad que faltaba: «cierra brecha 64 %» dice cuánto tapa
+   * este candidato, pero no dice si con eso basta. Dos aulas con la misma
+   * medida dejan deudas distintas cuando la facultad debe en los dos sexos, y
+   * ahí es donde se elige.
+   *
+   * Se corta cada sexo contra lo que se debe de ESE sexo: lo que sobra de uno
+   * no tapa lo que falta del otro, aunque siga contando para el total del
+   * estudio.
+   */
+  const queda = (() => {
+    if (!brecha) return null;
+    const debeM = Math.max(0, Math.round(brecha.mujeres));
+    const debeH = Math.max(0, Math.round(brecha.hombres));
+    if (debeM + debeH === 0) return null;
+    const r = repartoPorSexo(f);
+    const m = Math.max(0, debeM - r.esperadas.mujeres);
+    const h = Math.max(0, debeH - r.esperadas.hombres);
+    return { m, h, total: m + h, antes: debeM + debeH };
+  })();
   return (
     <li className={`aulas-reemplazo-item${puesto === 1 ? " es-mejor" : ""}`}>
       {/* **La tarjeta, con el lenguaje del ensayo del 2026-09-10.** Gonzalo:
@@ -217,6 +243,15 @@ function Candidato({
               <em>cierra brecha</em>
               <i><b style={{ width: `${Math.round(c.ayuda * 100)}%` }} /></i>
               <strong>{Math.round(c.ayuda * 100)}</strong>
+            </span>
+          ) : null}
+          {queda ? (
+            <span className="aulas-reemplazo-resto">
+              {queda.total
+                ? <>a {String(f.faculty || "la facultad")} le quedarían <b>{fmt(queda.total)}</b>
+                    {queda.m && queda.h ? <> ({fmt(queda.m)} M · {fmt(queda.h)} H)</>
+                      : queda.m ? <> mujeres</> : <> hombres</>}</>
+                : <>con éste la facultad cierra su cuota</>}
             </span>
           ) : null}
         </span>
@@ -419,6 +454,7 @@ export function ContenidoDeReemplazo({
               c={c}
               puesto={i + 1}
               conBrecha={hayBrecha}
+              brecha={brecha}
               onElegir={onElegir}
             />
           ))}
