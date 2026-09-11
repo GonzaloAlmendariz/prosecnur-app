@@ -16,6 +16,7 @@ import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { useMarcarRefuerzo } from "./useMarcarRefuerzo";
 import "./aulasRefuerzosPedidos.css";
+import { AulasEleccionPorFacultad } from "./AulasEleccionPorFacultad";
 import { AulasRefuerzosPedidos } from "./AulasRefuerzosPedidos";
 import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
@@ -511,6 +512,32 @@ export function AulasSeccionConsultas({
             // El plan ENTERO, sin el filtro de facultad: el reparto compara
             // facultades entre sí para decidir a cuál le rinde más cada aula, y
             // con una sola en foco no habría reparto que hacer.
+            plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            onGuardado={onGuardado}
+          />
+        </section>
+        ) : null}
+        {enRefuerzos ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-refuerzos-eleccion"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Tomar refuerzos de una en una</h3>
+            <span>se entra por la facultad que peor está y la cola se rehace tras cada elección</span>
+          </div>
+          {/* **El otro modo de gastar el techo, y no sustituye al de arriba.**
+              Gonzalo, 2026-09-11: «podemos ir seleccionando de uno en uno y el
+              top se actualiza tomando en cuenta que si escogemos uno el
+              traslape podría aumentar para el resto». El reparto propone un
+              lote entero por utilidad; esto decide una a una, y tras cada
+              elección la cola se rehace. Va DESPUÉS del reparto porque el
+              reparto es la lectura con la que se entra: dónde rinde más el
+              techo antes de repartirlo a mano. */}
+          <AulasEleccionPorFacultad
+            bloque={dashboard.efectividad_seguimiento}
+            celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             onGuardado={onGuardado}
           />
