@@ -53,6 +53,11 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-seca { border-left: 3px solid var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-corta { border-left: 3px solid var(--module-accent, var(--pulso-primary)); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-cerrada { border-left: 3px solid var(--pulso-success-fg); }
+/* La quinta circunstancia también lleva filo: sólo aparece al desplegar «ver
+   todas», y ahí era la única fila sin marca izquierda mientras las otras cuatro
+   la tenían. Neutro a propósito —no le ha pasado nada— pero presente, porque la
+   ausencia de filo se leía como un fallo de pintado. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-intacta { border-left: 3px solid var(--pulso-border); }
 
 /* La columna fija: por eso el código nunca se parte y las cadenas se comparan
    en vertical. */
@@ -92,6 +97,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-seca { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-corta { color: var(--module-accent, var(--pulso-primary)); }
 .mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-cerrada { color: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena-pastilla.es-intacta { color: var(--pulso-text-faint); }
 
 /* ── La tira ────────────────────────────────────────────────────────────── */
 
