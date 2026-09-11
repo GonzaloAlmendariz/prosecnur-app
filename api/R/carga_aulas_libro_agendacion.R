@@ -83,6 +83,10 @@ AULAS_AGENDACION_CABECERAS <- list(
 #' también es numérica, y adivinar por el tipo pintaría «152» como «15 200 %».
 #' @keywords internal
 AULAS_AGENDACION_PROPORCIONES <- list(
+  # El bloque de arriba es TRASPUESTO —los conceptos son filas, no columnas—,
+  # así que aquí el nombre es el de la FILA. Es el mismo reparto que hace
+  # `AULAS_AVANCE_PROPORCIONES$general` en la hoja hermana.
+  total = c("Agendado del plan"),
   facultad = c("Agendado")
 )
 
@@ -239,6 +243,21 @@ AULAS_AGENDACION_TITULOS <- c(
       sum(!ag & !e$es_extra & !e$dormido & !e$rechazo & !e$reemplazada)),
     c("Rechazos", sum(e$rechazo))
   ))
+  # **La fracción, arriba del todo, que es donde se mira.** Las cifras de este
+  # bloque contestan «cuántas hay» y ninguna contestaba «cuánto llevamos»: con
+  # 152 agendadas y 23 sin agendar hay que hacer la división mentalmente cada
+  # vez. Es la misma lectura que «Avance muestra» le da a la hoja hermana.
+  #
+  # El denominador es lo que HAY QUE agendar: lo agendado más lo que sigue
+  # pendiente. No entran los rechazos —ya se resolvieron por el otro camino y
+  # contarlos bajaría el porcentaje por trabajo que nadie debe hacer— ni las
+  # extra, por lo mismo que no entran arriba.
+  pendientes <- sum(!ag & !e$es_extra & !e$dormido & !e$rechazo & !e$reemplazada)
+  por_agendar <- sum(ag) + pendientes
+  filas <- c(filas, list(c(
+    "Agendado del plan",
+    if (por_agendar > 0) sum(ag) / por_agendar else NA_real_
+  )))
   data.frame(
     Indicador = vapply(filas, function(x) x[[1]], character(1)),
     Total = as.numeric(vapply(filas, function(x) x[[2]], character(1))),
@@ -617,16 +636,25 @@ aulas_libro_agendacion_formato_requests <- function(sheet_id, rows) {
     if (!nzchar(tabla)) next
     hasta <- if (k < length(cabeceras)) cabeceras[[k + 1L]] - 1L else length(rows)
     if (hasta <= i_cab) next
-    for (j in seq_len(n_cols)) {
-      if (!.calan_es_proporcion(celda(i_cab, j), tabla)) next
-      poner(list(repeatCell = list(
-        range = list(sheetId = sheet_id,
-                     startRowIndex = as.integer(i_cab), endRowIndex = as.integer(hasta),
-                     startColumnIndex = as.integer(j - 1L), endColumnIndex = as.integer(j)),
-        cell = list(userEnteredFormat = list(
-          numberFormat = list(type = "PERCENT", pattern = "0.0%"))),
-        fields = "userEnteredFormat.numberFormat"
-      )))
+    pct <- function(fila_desde, fila_hasta, col) poner(list(repeatCell = list(
+      range = list(sheetId = sheet_id,
+                   startRowIndex = as.integer(fila_desde), endRowIndex = as.integer(fila_hasta),
+                   startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)),
+      cell = list(userEnteredFormat = list(
+        numberFormat = list(type = "PERCENT", pattern = "0.0%"))),
+      fields = "userEnteredFormat.numberFormat"
+    )))
+    if (identical(tabla, "total")) {
+      # **Bloque TRASPUESTO**: los conceptos son filas y el nombre a mirar es el
+      # de la primera celda de cada fila, no el de la cabecera. Formatear por
+      # columna aquí pintaría de porcentaje las siete cifras del bloque.
+      for (i in (i_cab + 1L):hasta) {
+        if (.calan_es_proporcion(celda(i, 1L), tabla)) pct(i - 1L, i, 2L)
+      }
+    } else {
+      for (j in seq_len(n_cols)) {
+        if (.calan_es_proporcion(celda(i_cab, j), tabla)) pct(i_cab, hasta, j)
+      }
     }
   }
   requests
@@ -754,6 +782,16 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
     if (length(cols_pct)) {
       openxlsx::addStyle(wb, hoja, porcentaje, rows = filas_tabla,
                          cols = cols_pct, gridExpand = TRUE, stack = TRUE)
+    }
+    # En el bloque traspuesto la proporción es una FILA, no una columna: su
+    # celda es la del valor y hay que pintarla aparte, o se queda con el
+    # `#,##0` de sus vecinas y «0.874» sale como «1».
+    if (identical(clave, "total") && ncol(tabla) >= 2L) {
+      for (k in seq_len(nrow(tabla))) {
+        if (!.calan_es_proporcion(tabla[[1L]][[k]], clave)) next
+        openxlsx::addStyle(wb, hoja, porcentaje, rows = cabecera_en + k,
+                           cols = 2L, gridExpand = TRUE, stack = TRUE)
+      }
     }
     openxlsx::addStyle(wb, hoja, rejilla, rows = cabecera_en:(cabecera_en + nrow(tabla)),
                        cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
