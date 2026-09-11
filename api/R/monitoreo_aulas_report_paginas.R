@@ -368,14 +368,17 @@
   # se dibuja fuera de la caja y no aparece en el documento.
   topes <- vapply(rejillas, function(r) max(r) * 1.10, numeric(1))
 
-  .MARP_ALTO_TRAZADO <- 0.545   # lo que queda entre la leyenda y el pie
-  .MARP_ALTO_MINIMO <- 0.105    # una fila nunca baja de aquí, aunque su techo sea ínfimo
+  # La banda bajo cada fila creció al añadir la inicial de serie (H / M) entre
+  # el eje y el nombre de la facultad: el trazado cede ese espacio en vez de
+  # empujar los rótulos sobre el pie, que es lo que pasó al añadirla.
+  .MARP_ALTO_TRAZADO <- 0.460   # lo que queda entre la leyenda y el pie
+  .MARP_ALTO_MINIMO <- 0.092    # una fila nunca baja de aquí, aunque su techo sea ínfimo
   altos <- .MARP_ALTO_TRAZADO * topes / sum(topes)
   altos <- pmax(altos, .MARP_ALTO_MINIMO)
   if (sum(altos) > .MARP_ALTO_TRAZADO) altos <- altos * (.MARP_ALTO_TRAZADO / sum(altos))
 
-  # Los rótulos de facultad ocupan hasta tres renglones bajo cada fila.
-  hueco_rotulos <- 0.075
+  # Bajo cada fila: la inicial de serie y hasta tres renglones de nombre.
+  hueco_rotulos <- 0.104
   y_fila <- numeric(length(cortes))
   techo <- 0.740
   for (f in seq_along(cortes)) {
@@ -389,8 +392,10 @@
       x0 + 0.030, y_fila[[f]], ancho - 0.030, altos[[f]],
       categorias = nombres[idx],
       series = list(
-        list(nombre = "Hombres", color = tok$sexo_h, meta = meta_h[idx], valor = ef_h[idx]),
-        list(nombre = "Mujeres", color = tok$sexo_m, meta = meta_m[idx], valor = ef_m[idx])
+        list(nombre = "Hombres", inicial = "H", color = tok$sexo_h,
+             meta = meta_h[idx], valor = ef_h[idx]),
+        list(nombre = "Mujeres", inicial = "M", color = tok$sexo_m,
+             meta = meta_m[idx], valor = ef_m[idx])
       ),
       tope = topes[[f]], tokens = tok, ty = ty, rejilla = rejillas[[f]][-1])
   }
