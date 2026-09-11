@@ -48,3 +48,10 @@
   font-size: var(--aulas-min);
   line-height: 1.45;
 }
+
+/* Con una facultad elegida, el resto del mapa baja a fondo: sigue estando —es
+   lo que da la comparación— pero deja de competir por la mirada. */
+.aulas-mapa-punto.es-apagada { opacity: 0.3; }
+.aulas-mapa-punto.es-apagada text { opacity: 0.55; }
+.aulas-mapa-punto.es-foco text { font-weight: 700; }
+.aulas-mapa-anillo { opacity: 0.5; }
