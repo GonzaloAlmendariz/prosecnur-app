@@ -357,7 +357,13 @@ export function AulasSeccionConsultas({
           </p>
           {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
               duplicados pesen más que los rechazos. */}
-          <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
+          {/* El plan va con los partes para poder poner el escalón del PADRÓN
+              encima del de asistencia: el parte trae `observed_students` pero no
+              de cuántos había convocados, y eso vive en el plan. */}
+          <AulasEmbudoDelAula
+            filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
+            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          />
           {/* La resta ya viene hecha del motor —el mismo helper que decide el
               descuadre—, así que esta línea y el aviso de Validación no pueden
               discrepar. Es el destino que le faltaba a «Cuadre del parte de

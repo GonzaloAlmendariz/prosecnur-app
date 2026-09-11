@@ -28,6 +28,20 @@ export type PasoDelEmbudo = {
 export type EmbudoDelAula = {
   partes: number;
   asistentes: number;
+  /**
+   * **El escalón de arriba: cuánta gente había en el padrón de esas aulas.**
+   *
+   * `null` cuando no se puede cruzar —sin plan, o con partes cuyo código no
+   * aparece en él—. No saber cuánta gente había y saber que no había nadie son
+   * cosas distintas, y un cero se leería como lo segundo.
+   *
+   * El denominador son SÓLO las aulas que tienen parte: sumar el padrón entero
+   * compararía a los que estaban en veinte aulas contra los elegibles de
+   * doscientas y daría una asistencia absurda.
+   */
+  padron: number | null;
+  /** Cuántas aulas con parte no se pudieron cruzar con el plan. */
+  sinCruzar: number;
   pasos: PasoDelEmbudo[];
   /**
    * Los descuentos que NINGÚN parte declara.
@@ -48,7 +62,20 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula {
+const texto = (v: unknown) => (v == null ? "" : String(v).trim());
+
+export function embudoDelAula(
+  filas: ReadonlyArray<MonitoreoRow>,
+  /**
+   * El plan, para poder poner el escalón del PADRÓN encima del de asistencia.
+   *
+   * Es el escalón más caro del operativo y el que la tasa del aula lleva dentro
+   * sin enseñarlo: de cuántos había convocados, cuántos aparecieron. Se pasa
+   * aparte porque el parte no lo trae —sólo `observed_students`— y vive en
+   * `eligible_n` de la fila del plan.
+   */
+  plan: ReadonlyArray<MonitoreoRow> = [],
+): EmbudoDelAula {
   let asistentes = 0;
   let rechazos = 0;
   let duplicados = 0;
@@ -73,7 +100,39 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
     if (f.duplicates != null && f.duplicates !== "" && Number.isFinite(Number(f.duplicates))) conDuplicados += 1;
   }
 
-  const vacio = { partes: filas.length, asistentes: 0, pasos: [], pasosSinDeclarar: [], declaradas, descuadre: 0 };
+  /**
+   * El padrón de las aulas que tienen parte, cruzado por su código.
+   *
+   * Un aula con dos partes —las hay, con dos sesiones— cuenta su padrón UNA
+   * vez: si no, la asistencia saldría por debajo de la mitad por duplicar el
+   * denominador. De ahí el `Set`.
+   */
+  const porCodigo = new Map<string, number>();
+  for (const f of plan) {
+    const c = texto(f.operational_code) || texto(f.classroom_id);
+    const n = num(f.eligible_n);
+    if (c && n > 0) porCodigo.set(c, n);
+  }
+  let padron = 0;
+  let sinCruzar = 0;
+  const yaContadas = new Set<string>();
+  for (const f of filas) {
+    const c = texto(f.operational_code) || texto(f.classroom_id);
+    const suyo = c ? porCodigo.get(c) : undefined;
+    if (suyo == null) { sinCruzar += 1; continue; }
+    if (yaContadas.has(c)) continue;
+    yaContadas.add(c);
+    padron += suyo;
+  }
+  // El escalón sólo se dibuja si se pudo cruzar TODO lo que tiene parte: con la
+  // mitad sin cruzar, la asistencia sería un cociente entre dos conjuntos
+  // distintos.
+  const padronUtil = padron > 0 && sinCruzar === 0 ? padron : null;
+
+  const vacio = {
+    partes: filas.length, asistentes: 0, pasos: [], pasosSinDeclarar: [],
+    declaradas, descuadre: 0, padron: padronUtil, sinCruzar,
+  };
   if (!asistentes) return vacio;
 
   const trasRechazos = asistentes - rechazos;
@@ -84,18 +143,37 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
   // dos centímetros. Redondear es una decisión de presentación y se toma en la
   // vista, que además es donde vive el formato de la casa: un decimal y espacio
   // antes del «%».
-  const pct = (n: number) => (100 * n) / asistentes;
+  // El punto de partida es el padrón cuando se pudo cruzar, y si no la
+  // asistencia. Con el padrón encima, «Estaban en el aula» ya no es el 100 %:
+  // es justo la primera pérdida, que es lo que el escalón existe para enseñar.
+  const arranque = padronUtil ?? asistentes;
+  const pct = (n: number) => (100 * n) / arranque;
 
   return {
     partes: filas.length,
     asistentes,
+    padron: padronUtil,
+    sinCruzar,
     pasos: [
+      // **El padrón, encima de la asistencia.** Es el escalón que la tasa del
+      // aula lleva dentro sin enseñarlo, y el más caro del operativo: medido en
+      // HSVG26ULT2, de 29 convocados en CH 2 aparecieron 22. Sin él, el embudo
+      // empezaba dando por hecho que todos los convocados estaban en la sala.
+      ...(padronUtil
+        ? [{ clave: "padron", etiqueta: "Convocados en el padrón", quedan: padronUtil, pierde: 0, pct: 100 }]
+        : []),
       // **El rotulo nombra la cifra GRANDE, que es lo que queda.** Decia «No
       // quisieron responder» junto a «4 650 −187», y el 4 650 no son los que no
       // quisieron: son los que siguen —los que no quisieron son 187—. El primer
       // paso funcionaba solo porque no tiene resta. Un rotulo pegado a un numero
       // que no es el suyo se lee mal aunque los dos numeros esten bien.
-      { clave: "asistentes", etiqueta: "Estaban en el aula", quedan: asistentes, pierde: 0, pct: 100 },
+      {
+        clave: "asistentes",
+        etiqueta: "Estaban en el aula",
+        quedan: asistentes,
+        pierde: padronUtil ? Math.max(0, padronUtil - asistentes) : 0,
+        pct: pct(asistentes),
+      },
       // Los dos descuentos sólo entran si ALGÚN parte los declara. Sin eso el
       // paso no dice «no hubo rechazos», dice «nadie lo anotó», y dibujarlo
       // afirma lo primero.

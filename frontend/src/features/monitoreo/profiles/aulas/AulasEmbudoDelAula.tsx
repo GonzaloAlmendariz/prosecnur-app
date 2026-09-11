@@ -19,8 +19,12 @@ import { fmt, pctPerfil } from "./kpisDeAulas";
  * angosta cada uno.
  */
 
-export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
-  const e = useMemo(() => embudoDelAula(filas), [filas]);
+export function AulasEmbudoDelAula({ filas, plan = [] }: {
+  filas: ReadonlyArray<MonitoreoRow>;
+  /** El plan, para el escalón del padrón: el parte no trae los convocados. */
+  plan?: ReadonlyArray<MonitoreoRow>;
+}) {
+  const e = useMemo(() => embudoDelAula(filas, plan), [filas, plan]);
 
   if (!e.pasos.length) {
     return (
