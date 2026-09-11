@@ -5941,6 +5941,32 @@ export async function apiMonitoreoAulasMarcarRefuerzo(payload: {
 }
 
 /**
+ * Retira una marca de refuerzo que puso la app y devuelve el curso-horario al
+ * inventario de reservas sin contactar.
+ *
+ * Sólo retira lo que la app marcó y nadie ha tocado todavía: en cuanto el
+ * agendador lo pasa a EN CONTACTO o AGENDADA, la marca dejó de ser una decisión
+ * pendiente y retirarla borraría el trabajo de otra persona; el motor lo
+ * rechaza con `E_REFUERZO_YA_EN_MARCHA`.
+ */
+export async function apiMonitoreoAulasDesmarcarRefuerzo(payload: {
+  operational_code: string;
+}) {
+  return handle<{
+    ok: true;
+    retirada: MonitoreoAulasPlanRow;
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/desmarcar-refuerzo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+/**
  * La conversación app↔Sheets que el sync de aulas corre cuando hay un
  * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
  * las de la app, en ese orden. El bloque viaja SOLO con destino recordado —

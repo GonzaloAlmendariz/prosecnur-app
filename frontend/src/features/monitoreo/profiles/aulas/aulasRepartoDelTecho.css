@@ -119,9 +119,20 @@
   border: 1px solid var(--pulso-border);
 }
 .mon-profile-page.is-aulas-flow .aulas-techo-cuantas {
-  font-size: var(--aulas-sec);
-  color: var(--pulso-text-soft);
+  display: grid;
+  gap: 1px;
   min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-cuantas label {
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-cuantas em {
+  font-style: normal;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.35;
 }
 .mon-profile-page.is-aulas-flow .aulas-techo-paso {
   display: grid;

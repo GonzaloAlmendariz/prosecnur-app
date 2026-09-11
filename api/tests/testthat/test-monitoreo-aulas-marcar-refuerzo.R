@@ -113,3 +113,99 @@ test_that("el texto del libro y el de la paleta son el MISMO byte a byte", {
   reglas <- prosecnurapp:::.mafs_REGLAS_STATUS_MUESTRA
   expect_identical(reglas[[1]]$texto, prosecnurapp:::.calg_status_excel("refuerzo_por_contactar"))
 })
+
+# ── La forma del libro, que es la que trae el plan de la sesion ──────────────
+#
+# Medido el 2026-09-11 contra el operativo real: el plan que vive en la sesion
+# guarda `sample_status` tal como lo escribe el libro —«SIN CONTACTAR»— y el
+# motor comparaba contra el vocabulario normalizado `sin_contactar`. Resultado:
+# las 1.213 reservas disponibles del plan contestaban «ya esta comprometida (SIN
+# CONTACTAR)» y el circuito entero de refuerzos era inalcanzable desde la app.
+# El defecto no lo veia ningun test porque todas las fixtures se escribian ya
+# normalizadas.
+
+.mrf_libro <- function(codigo = "R 1.1", estado = "SIN CONTACTAR") {
+  list(list(operational_code = codigo, faculty = "DERECHO", sample_role = "chain_reserve",
+            sample_status = estado))
+}
+
+test_that("marca una reserva cuyo estado viene en la forma del libro", {
+  out <- monitoreo_aulas_marcar_refuerzo(.mrf_libro(), "R 1.1", para = "DERECHO",
+                                         tipo = "refuerzo", ahora = "2026-09-11T10:00:00Z")
+  expect_identical(out$marcada$sample_status, "refuerzo_por_contactar")
+  expect_identical(out$marcada$activation_origin, "refuerzo")
+})
+
+test_that("«EN RESERVA» del libro tambien es una reserva disponible", {
+  out <- monitoreo_aulas_marcar_refuerzo(.mrf_libro(estado = "EN RESERVA"), "R 1.1",
+                                         ahora = "2026-09-11T10:00:00Z")
+  expect_identical(out$marcada$sample_status, "refuerzo_por_contactar")
+})
+
+test_that("«AGENDADA» del libro sigue siendo intocable", {
+  expect_error(
+    monitoreo_aulas_marcar_refuerzo(.mrf_libro(estado = "AGENDADA"), "R 1.1"),
+    "comprometida"
+  )
+})
+
+# ── Deshacer ────────────────────────────────────────────────────────────────
+#
+# El autopicker marca quince de golpe; sin vuelta atras, un lote mal elegido
+# deja quince cursos-horario apartados del inventario.
+
+.mrf_marcada <- function(extra = list()) {
+  fila <- list(operational_code = "R 1.1", faculty = "DERECHO", sample_role = "chain_reserve",
+               sample_status = "refuerzo_por_contactar", activated_at = "2026-09-11T10:00:00Z",
+               activation_origin = "refuerzo", activated_for = "DERECHO",
+               activation_reason = "prueba")
+  list(utils::modifyList(fila, extra))
+}
+
+test_that("retirar devuelve la reserva al inventario y borra los sellos enteros", {
+  out <- monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(), "R 1.1")
+  expect_identical(out$retirada$sample_status, "sin_contactar")
+  # Los cuatro sellos, no tres: un `activation_origin` huerfano haria que el
+  # seguimiento siguiera contando como pedida un aula que ya se solto.
+  expect_null(out$retirada$activated_at)
+  expect_null(out$retirada$activation_origin)
+  expect_null(out$retirada$activated_for)
+  expect_null(out$retirada$activation_reason)
+})
+
+test_that("no retira una marca cuya gestion ya empezo", {
+  # El agendador la paso a EN CONTACTO: retirarla borraria su trabajo.
+  expect_error(
+    monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(list(sample_status = "en_contacto")), "R 1.1"),
+    "gestion empezo"
+  )
+  expect_error(
+    monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(list(sample_status = "AGENDADA")), "R 1.1"),
+    "gestion empezo"
+  )
+})
+
+test_that("no retira una marca que no puso la app", {
+  expect_error(
+    monitoreo_aulas_desmarcar_refuerzo(
+      .mrf_marcada(list(activation_origin = NULL)), "R 1.1"),
+    "no la puso la app"
+  )
+})
+
+test_that("retirar y volver a marcar deja la fila como al principio", {
+  # El ciclo completo, que es lo que el boton de deshacer promete.
+  uno <- monitoreo_aulas_marcar_refuerzo(.mrf_libro(), "R 1.1", para = "DERECHO",
+                                         ahora = "2026-09-11T10:00:00Z")
+  dos <- monitoreo_aulas_desmarcar_refuerzo(uno$plan, "R 1.1")
+  tres <- monitoreo_aulas_marcar_refuerzo(dos$plan, "R 1.1", para = "DERECHO",
+                                          ahora = "2026-09-11T11:00:00Z")
+  expect_identical(tres$marcada$sample_status, "refuerzo_por_contactar")
+  expect_identical(tres$marcada$activated_at, "2026-09-11T11:00:00Z")
+})
+
+test_that("retirar exige codigo y plan", {
+  expect_error(monitoreo_aulas_desmarcar_refuerzo(list(), "R 1.1"), "No hay plan")
+  expect_error(monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(), ""), "Falta el codigo")
+  expect_error(monitoreo_aulas_desmarcar_refuerzo(.mrf_marcada(), "R 9.9"), "No existe")
+})
