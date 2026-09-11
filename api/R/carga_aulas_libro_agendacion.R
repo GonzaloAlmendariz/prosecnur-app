@@ -536,7 +536,18 @@ aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
     poner(unname(.calan_NOTAS[[clave]]))
     # `proporciones = character(0)`: aquí no hay ni una. Ver la nota de arriba
     # sobre por qué no se pregunta al vocabulario de «Avance de campo».
-    for (f in .cala_tabla_filas(tabla, clave, proporciones = character(0))) poner(f)
+    # **Las proporciones de ESTA hoja, no `character(0)`.** `.cala_celda_num()`
+    # redondea a cuatro decimales lo que es proporción y a DOS lo que es
+    # conteo, así que declarar «aquí no hay ninguna» convertía 0,6842 en 0,68 y
+    # la celda enseñaba «68,0 %» con un patrón de un decimal que nunca variaba:
+    # trece de diecinueve es 68,4 %. Visto en el Sheets publicado el 2026-09-10.
+    #
+    # `traspuesta` para el bloque de arriba, donde la proporción es una FILA.
+    for (f in .cala_tabla_filas(
+      tabla, clave,
+      traspuesta = identical(clave, "total"),
+      proporciones = AULAS_AGENDACION_PROPORCIONES[[clave]] %||% character(0)
+    )) poner(f)
     poner("")
   }
   filas
