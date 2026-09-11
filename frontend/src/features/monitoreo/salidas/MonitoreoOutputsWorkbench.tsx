@@ -13,6 +13,7 @@ import {
   Table2,
   Upload,
   UsersRound,
+  ChevronDown,
 } from "lucide-react";
 import {
   apiJobStatus,
@@ -1183,6 +1184,7 @@ export function MonitoreoOutputsWorkbench({
                     aria-expanded={portadaAbierta}
                     onClick={() => setPortadaAbierta((v) => !v)}
                   >
+                    <ChevronDown size={14} aria-hidden />
                     <span>Portada del PDF</span>
                     <small>
                       {portadaEscrita

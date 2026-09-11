@@ -1812,14 +1812,40 @@
   background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
 }
 
+/*
+ * El galón dice que el bloque se abre. Sin él, el titular «Portada del PDF» se
+ * lee como un encabezado y nadie descubre que hay seis campos debajo: un
+ * control plegado que no declara que lo está es un control que no existe.
+ */
 .mon-outputs-portada__toggle {
   display: grid;
-  gap: 2px;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "galon titulo" "galon resumen";
+  align-items: center;
+  gap: 2px 8px;
   padding: 0;
   border: 0;
   background: none;
   text-align: left;
   cursor: pointer;
+}
+
+.mon-outputs-portada__toggle > svg {
+  grid-area: galon;
+  color: var(--pulso-muted, #64748b);
+  transition: transform 140ms ease;
+}
+
+.mon-outputs-portada__toggle[aria-expanded="false"] > svg {
+  transform: rotate(-90deg);
+}
+
+.mon-outputs-portada__toggle span {
+  grid-area: titulo;
+}
+
+.mon-outputs-portada__toggle small {
+  grid-area: resumen;
 }
 
 .mon-outputs-portada__toggle span {
