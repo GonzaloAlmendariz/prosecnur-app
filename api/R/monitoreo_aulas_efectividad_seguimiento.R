@@ -369,8 +369,14 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   # Las dos proyecciones se publican JUNTAS y con nombres distintos. Sustituir
   # una por otra cambiaria la pregunta sin avisar; y la distancia entre ambas es
   # informacion: es exactamente el aforo del plan que sigue sin fecha.
-  agendada_track <- .maau_agendada(
+  # **Con FECHA, no «en marcha».** `.maau_agendada()` cuenta tambien
+  # `contactada`, que sirve para no rotular «Sin agendar» algo que alguien ya
+  # gestiona, pero aqui se proyecta aforo: estar llamando al docente no es tener
+  # dia en que aplicar. Medido: contando las `en_contacto`, Derecho pasaba de
+  # 234 elegibles agendados a 488 y salia holgada sin tener las citas.
+  agendada_track <- .maau_con_fecha(
     .maac_chr_col(tracked_df, "sample_status"),
+    .maac_chr_col(tracked_df, "scheduled_date"),
     .maac_chr_col(tracked_df, "operational_status")
   )
   agend <- pend & agendada_track

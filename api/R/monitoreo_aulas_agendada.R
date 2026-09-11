@@ -44,3 +44,52 @@ MONITOREO_AULAS_OPERATIVO_AGENDADA <- c("agendada", "contactada")
   muestra %in% MONITOREO_AULAS_MUESTRA_AGENDADA |
     operativo %in% MONITOREO_AULAS_OPERATIVO_AGENDADA
 }
+
+
+# --- y la otra pregunta: ¿hay FECHA? -----------------------------------------
+#
+# `.maau_agendada()` contesta «¿esto ya está en marcha?» —y por eso cuenta
+# `contactada`, que es lo que evita rotular «Sin agendar» a un aula que alguien
+# ya está gestionando—. Para PROYECTAR aforo esa no es la pregunta.
+#
+# Medido en HSVG26ULT2 el 2026-09-11: Derecho tenia 6 cursos-horario con fecha y
+# otros 6 en `en_contacto`. Contando los doce, su proyeccion sobre «lo agendado»
+# pasaba de 234 elegibles a 488 y la facultad salia holgada; con los seis reales
+# no. Gonzalo lo habia dicho la misma manana: «un CH puede estar en titulares
+# (planificado) pero hasta que no este agendado no sabemos realmente si vamos a
+# poder aplicar alli o no». Estar llamando al docente no es tener fecha.
+#
+# Una definicion por pregunta: dos predicados, dos nombres, y ningun sitio
+# eligiendo el que mas le convenga.
+
+#' Si cada fila tiene FECHA comprometida: es lo unico que se puede aplicar.
+#'
+#' @param sample_status estado de muestra.
+#' @param scheduled_date fecha agendada, tal cual viene del frame.
+#' @param operational_status estado operativo.
+#' @return vector logico del largo de la entrada.
+#' @keywords internal
+.maau_con_fecha <- function(sample_status, scheduled_date, operational_status = NULL) {
+  norm <- function(v) {
+    if (is.null(v)) return(character(0))
+    v <- as.character(v)
+    v[is.na(v)] <- ""
+    tolower(trimws(v))
+  }
+  muestra <- norm(sample_status)
+  fecha <- norm(scheduled_date)
+  operativo <- norm(operational_status)
+  n <- max(length(muestra), length(fecha), length(operativo))
+  if (!n) return(logical(0))
+  for (nm in c("muestra", "fecha", "operativo")) {
+    v <- get(nm)
+    length(v) <- n
+    v[is.na(v)] <- ""
+    assign(nm, v)
+  }
+  # `contactada` NO entra: contactar no es agendar. El estado OPERATIVO
+  # `agendada` si, porque ahi el registro de campo ya confirmo la cita.
+  muestra %in% MONITOREO_AULAS_MUESTRA_AGENDADA |
+    operativo %in% "agendada" |
+    nzchar(fecha)
+}

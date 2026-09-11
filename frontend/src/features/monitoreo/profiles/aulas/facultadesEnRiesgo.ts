@@ -138,19 +138,42 @@ export function cierreDeLaFacultad(
   respaldo?: { meta: number; logrado: number; quedaria: number; enCamino: number; cursos: number },
 ): CierreDeLaFacultad | null {
   if (!f) return null;
-  const medido = Number.isFinite(Number(f.margen_agendado));
+  // **`Number(null)` es 0, y 0 es finito.** Sin el `!= null`, una facultad sin
+  // campo —el motor manda NA, que llega como `null`— se daba por medida con
+  // margen cero: quedaba sin riesgo y con «esperan traer 0» sobre 59 elegibles
+  // ya citados. Lo cazó su propio test.
+  const medido = f.margen_agendado != null && Number.isFinite(Number(f.margen_agendado));
   const meta = Number(f.cuota) || respaldo?.meta || 0;
-  const logrado = Number.isFinite(Number(f.conseguido)) ? Number(f.conseguido) : respaldo?.logrado ?? 0;
+  const logrado = f.conseguido != null && Number.isFinite(Number(f.conseguido))
+    ? Number(f.conseguido) : respaldo?.logrado ?? 0;
   const falta = Math.max(0, meta - logrado);
+
+  /**
+   * **El respaldo de la facultad sin campo, con su tasa a la vista.**
+   *
+   * Sin un curso-horario aplicado el motor no proyecta, y con razón: caer a la
+   * τ prevista publicaría el supuesto como medición (ADR 0082). Pero el panel
+   * necesita decir si lo agendado le alcanzaría, así que usa su propio aforo
+   * agendado —que el motor sí publica— por la τ que su diseño le supuso, y lo
+   * declara como cifra prestada. Antes caía a `deficitOperativo` y salía en
+   * cero: Ciencias Contables decía «esperan traer 0» con 59 elegibles citados.
+   */
+  const tauPrestada = Number(f.tau_previsto);
+  const aforo = Number(f.elegibles_agendados) || 0;
+  const prestado = Number.isFinite(tauPrestada) && aforo > 0
+    ? Math.round(aforo * tauPrestada)
+    : respaldo?.enCamino ?? 0;
+
   const quedaria = medido
     ? Math.max(0, Math.round(-Number(f.margen_agendado)))
-    : respaldo?.quedaria ?? 0;
+    : Math.max(0, falta - prestado);
   const enCamino = medido
     ? Math.max(0, Math.round(Number(f.proyectado_agendado) - logrado))
-    : respaldo?.enCamino ?? 0;
+    : prestado;
   return {
     meta, logrado, falta, quedaria, enCamino, medido,
-    cursosEnCamino: medido ? Number(f.cursos_agendados) || 0 : respaldo?.cursos ?? 0,
+    // El conteo de cursos-horario no depende de la τ: el motor lo publica igual.
+    cursosEnCamino: Number(f.cursos_agendados) || respaldo?.cursos || 0,
     cursosSinAgendar: Number(f.cursos_sin_agendar) || 0,
     // El margen del PLAN ENTERO decide cuál de las dos acciones toca: si con
     // todo agendado cerraría, el trabajo es agendar; si tampoco, refuerzo.

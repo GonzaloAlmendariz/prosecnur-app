@@ -17,7 +17,7 @@
                       # Sin esto toda fila no aplicada nacía «agendada» en los dos
                       # ejes y no había forma de sembrar una SIN agendar, que es
                       # justo lo que separa las dos proyecciones.
-                      op_status = NULL) {
+                      op_status = NULL, fecha = NULL) {
   fila <- list(
     classroom_id = id,
     operational_code = sprintf("CH %d", orden),
@@ -35,6 +35,7 @@
   )
   # `effective_surveys` es lo que el aplicador ANOTÓ: se siembra a propósito
   # distinto de lo que llega a plataforma para que un test pueda distinguirlos.
+  if (!is.null(fecha)) fila$scheduled_date <- fecha
   if (!is.null(efectivas_parte)) fila$effective_surveys <- efectivas_parte
   if (!is.null(factor_fac)) fila$factor_facultad <- factor_fac
   if (!is.null(fac_k)) fila$facultad_k <- fac_k
@@ -501,7 +502,7 @@ test_that("una facultad puede estar holgada en el plan y en riesgo con lo agenda
   expect_equal(b$total$alumnos_en_riesgo, 0)
 })
 
-test_that("agendada se lee de los DOS ejes de estado, no sólo del operativo", {
+test_that("la fecha se lee del estado de muestra Y de la columna de fecha", {
   # Lo teclea quien coordina en el eje de muestra y el registro de campo llega
   # tarde: mirar sólo el operativo dejó 22 aulas con fecha como «Sin agendar».
   plan <- list(
@@ -509,12 +510,46 @@ test_that("agendada se lee de los DOS ejes de estado, no sólo del operativo", {
     .efs_aula("A2", "Letras", eligible = 20, orden = 2, aplicada = FALSE,
               status = "agendada", op_status = "planificada"),
     .efs_aula("A3", "Letras", eligible = 20, orden = 3, aplicada = FALSE,
-              status = "sin_contactar", op_status = "contactada")
+              status = "sin_contactar", op_status = "planificada", fecha = "2026-09-14")
   )
   d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras", cuota = 10))))
   f <- .efs_fila(d$efectividad_seguimiento, "Letras")
   expect_identical(f$elegibles_agendados, 40L)
   expect_identical(f$cursos_agendados, 2L)
+})
+
+test_that("CONTACTAR no es agendar: sin fecha no entra en la proyección", {
+  # Gonzalo, 2026-09-11: «un CH puede estar en titulares (planificado) pero hasta
+  # que no esté agendado no sabemos realmente si vamos a poder aplicar allí».
+  # Medido en HSVG26ULT2: Derecho tenía 6 cursos-horario con fecha y otros 6 en
+  # `en_contacto`; contando los doce pasaba de 234 elegibles agendados a 488 y
+  # salía holgada sin tener las citas.
+  plan <- list(
+    .efs_aula("A1", "Psico", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "Psico", eligible = 20, orden = 2, aplicada = FALSE,
+              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+    .efs_aula("A3", "Psico", eligible = 100, orden = 3, aplicada = FALSE,
+              status = "en_contacto", op_status = "contactada")
+  )
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Psico", cuota = 40))))
+  f <- .efs_fila(d$efectividad_seguimiento, "Psico")
+  expect_identical(f$elegibles_agendados, 20L)
+  expect_identical(f$cursos_agendados, 1L)
+  # Y sigue contándose entre lo que queda por agendar, que es donde sirve.
+  expect_identical(f$cursos_sin_agendar, 1L)
+  # Con 20 elegibles al 50 % no llega a 40: sin la corrección salía holgada.
+  expect_true(f$riesgo_agendado %in% c("riesgo", "riesgo_firme"))
+})
+
+test_that("los dos predicados contestan preguntas distintas y no se confunden", {
+  # `.maau_agendada` = ¿está en marcha? (rotula «Sin agendar»).
+  # `.maau_con_fecha` = ¿hay día en que aplicar? (proyecta aforo).
+  expect_true(.maau_agendada("en_contacto", "contactada"))
+  expect_false(.maau_con_fecha("en_contacto", "", "contactada"))
+  expect_true(.maau_con_fecha("sin_contactar", "2026-09-14", "planificada"))
+  expect_true(.maau_con_fecha("AGENDADA", "", "planificada"))
+  expect_false(.maau_con_fecha("sin_contactar", "", "planificada"))
+  expect_identical(.maau_con_fecha(character(0), character(0), character(0)), logical(0))
 })
 
 test_that("sin nada agendado la proyección es lo conseguido, no un NA", {
