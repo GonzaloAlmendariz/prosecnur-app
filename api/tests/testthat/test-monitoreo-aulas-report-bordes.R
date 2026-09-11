@@ -168,3 +168,23 @@ test_that("el plan apaga las secciones que el estudio no tiene", {
   # El orden es el de impresion, y el resumen siempre abre.
   expect_equal(completo$seccion[[1L]], "Resumen del avance")
 })
+
+test_that("una facultad que no esta en el plan no tumba el reporte", {
+  # `aulas_plan[[nombre]]` con un nombre ausente LANZA «subscript out of bounds»
+  # —no devuelve NULL—, asi que el `%||%` que venia detras nunca actuaba. Se
+  # descubrio renderizando un estudio de treinta facultades: con las quince de
+  # HSVG2026 no aparece, porque todas estan en el plan.
+  previstas <- prosecnurapp:::.marp_previstas_de
+  plan <- stats::setNames(c(19, 37), c("DERECHO", "CIENCIAS"))
+  expect_equal(previstas(plan, "DERECHO"), 19)
+  expect_true(is.na(previstas(plan, "FACULTAD QUE NO ESTA")))
+  expect_true(is.na(previstas(numeric(0), "DERECHO")))
+  expect_true(is.na(previstas(c(1, 2), "DERECHO")))   # sin nombres
+
+  # Y el documento entero se genera con una facultad fuera del plan.
+  m <- modelo_de_prueba(3L)
+  m$aulas_planificadas <- m$aulas_planificadas[1L]
+  destino <- tempfile(fileext = ".pdf")
+  expect_no_error(monitoreo_aulas_advance_report_pdf(m, destino))
+  expect_gte(paginas_del_pdf(destino), 4L)
+})
