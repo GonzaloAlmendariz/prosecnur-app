@@ -139,3 +139,12 @@
 .mon-profile-page.is-aulas-flow .aulas-riesgo-toca.es-agendar { color: var(--pulso-primary); }
 .mon-profile-page.is-aulas-flow .aulas-riesgo-toca.es-reforzar { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-riesgo-toca b { font-weight: var(--pulso-weight-semibold); }
+
+/* Las gestiones que ya no van a cerrar solas. Llevan la tinta del aviso porque
+   es lo único de la fila que hay que hacer HOY: la reserva necesita su propio
+   plazo de contacto y confirmación, así que esperar a que el titular falle del
+   todo llega tarde. */
+.mon-profile-page.is-aulas-flow .aulas-riesgo-cubrir {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-semibold);
+}

@@ -74,6 +74,12 @@ export type RiesgoDeFacultad = {
    * que reagendarlas o darlas por caídas, y mientras tanto no rinden nada.
    */
   cursosVencidos: number;
+  /** De los que faltan por agendar, los ya contactados que no cierran fecha. */
+  cursosEnGestion: number;
+  /** Sin teléfono válido: no es una gestión lenta, es una baja de hecho. */
+  cursosSinVia: number;
+  /** Abiertas más días de los que la reserva necesita para confirmar. */
+  cursosEstancados: number;
   /**
    * **Qué corresponde hacer, que no es lo mismo en las dos.**
    *
@@ -83,9 +89,16 @@ export type RiesgoDeFacultad = {
    * complementa ni me dice si aquello es necesario».
    *
    * - `agendar`: su propio plan da para cubrir el hueco; lo que falta es fecha.
-   *   No se toca la reserva, que no se comparte entre facultades.
-   * - `reforzar`: ni agendando todo su plan llega. Aquí sí toca contactar
-   *   docentes de aulas de refuerzo.
+   *   Se empieza por ahí porque no gasta reserva, **no porque excluya el
+   *   refuerzo**: Gonzalo, 2026-09-11, «a veces puede que no se logre agendar
+   *   sobre los titulares, por lo que aplicar refuerzos». Si las gestiones no
+   *   cierran, la reserva sigue ahí y hay que activarla con margen.
+   * - `reforzar`: ni agendando todo su plan llega. Aquí toca contactar docentes
+   *   de aulas de refuerzo **además** de cerrar lo que esté en gestión.
+   *
+   * **Ninguna de las dos es aforo asegurado.** Un refuerzo pasa por el mismo
+   * embudo que un titular —se le contacta, confirma, y recién entonces se
+   * agenda—, así que activarlo tampoco es tener la aplicación.
    */
   loQueToca: "agendar" | "reforzar" | null;
   /**
@@ -152,6 +165,12 @@ export type CierreDeLaFacultad = {
   cursosSinAgendar: number;
   /** Citas pasadas sin aplicar: piden reagendar, no llamar por primera vez. */
   cursosVencidos: number;
+  /** De los que faltan por agendar, los ya contactados que no cierran fecha. */
+  cursosEnGestion: number;
+  /** Sin teléfono válido: no es una gestión lenta, es una baja de hecho. */
+  cursosSinVia: number;
+  /** Abiertas más días de los que la reserva necesita para confirmar. */
+  cursosEstancados: number;
   loQueToca: "agendar" | "reforzar" | null;
   /** `false` cuando el motor no proyecta (facultad sin campo) y la cifra se estima. */
   medido: boolean;
@@ -200,6 +219,11 @@ export function cierreDeLaFacultad(
     cursosEnCamino: Number(f.cursos_agendados) || respaldo?.cursos || 0,
     cursosSinAgendar: Number(f.cursos_sin_agendar) || 0,
     cursosVencidos: Number(f.cursos_vencidos) || 0,
+    cursosEnGestion: Number(f.cursos_en_gestion) || 0,
+    // Las gestiones que ya no van a cerrar solas: sin teléfono, o abiertas más
+    // días de los que la reserva necesita para su propio contacto.
+    cursosSinVia: Number(f.cursos_sin_via) || 0,
+    cursosEstancados: Number(f.cursos_estancados) || 0,
     // El margen del PLAN ENTERO decide cuál de las dos acciones toca: si con
     // todo agendado cerraría, el trabajo es agendar; si tampoco, refuerzo.
     loQueToca: quedaria <= 0 ? null
@@ -283,6 +307,9 @@ export function facultadesEnRiesgo(
       cursosEnCamino,
       cursosSinAgendar: cierre.cursosSinAgendar,
       cursosVencidos: cierre.cursosVencidos,
+      cursosEnGestion: cierre.cursosEnGestion,
+      cursosSinVia: cierre.cursosSinVia,
+      cursosEstancados: cierre.cursosEstancados,
       loQueToca: cierre.loQueToca,
       enCamino,
       /** `false` cuando la facultad no tiene campo y la cifra es una estimación. */
