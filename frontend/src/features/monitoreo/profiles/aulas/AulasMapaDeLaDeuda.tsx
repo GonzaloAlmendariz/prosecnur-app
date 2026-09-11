@@ -48,10 +48,22 @@ const chocan = (a: Caja, b: Caja) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 &
 const ANCHO_LETRA = 5.3;
 const ALTO_ETIQUETA = 12;
 
-export function AulasMapaDeLaDeuda({ filas, onFacultad }: {
+export function AulasMapaDeLaDeuda({ filas, onFacultad, enFoco = "" }: {
   filas: ReadonlyArray<DeudaDeFacultad>;
   /** Pulsar un punto abre esa facultad abajo: el mapa es el índice, no un adorno. */
   onFacultad?: (facultad: string) => void;
+  /**
+   * **La facultad elegida se destaca; las demás NO se van.**
+   *
+   * Gonzalo, 2026-09-10: «todo eso es robusto ante el filtro, porque puedes
+   * tenerlo para todas las facultades, pero también puedes tenerlo para una
+   * facultad en particular». Filtrar el mapa a una sola dejaría una burbuja
+   * suelta en un plano vacío, que no compara nada: lo que hace útil este
+   * gráfico es justamente dónde cae la tuya respecto de las otras. Así que con
+   * una elegida se apagan las demás y la suya se marca con su anillo, que es
+   * «para una en particular» sin perder el «respecto de todas».
+   */
+  enFoco?: string;
 }): ReactNode {
   const conCampo = filas.filter((f) => f.veredicto !== "sin_campo");
   if (conCampo.length < 2) {
@@ -119,10 +131,12 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad }: {
     const lejos = Math.abs(puesto.dy) > r + 16;
 
     const signo = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(Math.abs(n))}` : "0");
+    const suya = !!enFoco && f.facultad === enFoco;
+    const apagada = !!enFoco && !suya;
     return (
       <g
         key={f.clave || f.facultad}
-        className="aulas-mapa-punto"
+        className={`aulas-mapa-punto${suya ? " es-foco" : ""}${apagada ? " es-apagada" : ""}`}
         role={onFacultad ? "button" : "img"}
         tabIndex={onFacultad ? 0 : undefined}
         aria-label={`${f.facultad}: ${signo(f.mujeres)} en mujeres, ${signo(f.hombres)} en hombres.${onFacultad ? " Abre su detalle." : ""}`}
@@ -142,7 +156,14 @@ export function AulasMapaDeLaDeuda({ filas, onFacultad }: {
             className="aulas-mapa-hilo"
           />
         ) : null}
-        <circle cx={px.toFixed(1)} cy={py.toFixed(1)} r={r.toFixed(1)} fill={tono} fillOpacity={0.22} stroke={tono} strokeWidth={1.6} />
+        {/* El anillo de la elegida va DETRÁS de su burbuja y con su mismo tono:
+            marca sin cambiarle el color, que aquí significa en qué sexo debe. */}
+        {suya ? (
+          <circle cx={px.toFixed(1)} cy={py.toFixed(1)} r={(r + 5).toFixed(1)}
+            className="aulas-mapa-anillo" fill="none" stroke={tono} strokeWidth={1.2} />
+        ) : null}
+        <circle cx={px.toFixed(1)} cy={py.toFixed(1)} r={r.toFixed(1)} fill={tono}
+          fillOpacity={suya ? 0.34 : 0.22} stroke={tono} strokeWidth={suya ? 2.2 : 1.6} />
         <text x={puesto.cx.toFixed(1)} y={puesto.cy.toFixed(1)} textAnchor={puesto.anchor}>{texto}</text>
       </g>
     );

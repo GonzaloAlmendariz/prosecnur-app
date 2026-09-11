@@ -17,6 +17,7 @@ import { AulasBancoExtras } from "./AulasBancoExtras";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
+import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
@@ -60,6 +61,13 @@ export function AulasSeccionConsultas({
      * otros, y eso es el React #310 que ya tumbó este perfil una vez.
      */
     const [relevoDe, setRelevoDe] = useState<string>("");
+    /**
+     * **La segunda puerta del libro.** `relevoDe` abre el complemento (B) desde
+     * un aula que se quedó corta; `refuerzoDe` abre el refuerzo (C) desde una
+     * facultad que no va a cerrar su cuota. Son dos decisiones distintas con
+     * criterios distintos —parecido contra cuota— y por eso dos superficies.
+     */
+    const [refuerzoDe, setRefuerzoDe] = useState<string>("");
     // Las tres listas van en paneles propios. Concatenadas producian una tabla
     // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
@@ -214,6 +222,7 @@ export function AulasSeccionConsultas({
             bloque={dashboard.efectividad_seguimiento}
             porSexo={(dashboard.efectividad_por_sexo ?? []) as Array<Record<string, unknown>>}
             facultadEnFoco={facultadEnFoco}
+            onRefuerzo={(f) => setRefuerzoDe(f)}
           />
         </section>
         ) : null}
@@ -410,6 +419,22 @@ export function AulasSeccionConsultas({
             />
           );
         })() : null}
+
+        {/* **El refuerzo (C), abierto desde una facultad.** Toma el plan entero
+            —el motor acota a la facultad por su cuenta, que es la frontera
+            dura— y la deuda de esa facultad de las mismas cuotas que usa el
+            complemento, para que las dos puertas midan contra el mismo número. */}
+        {refuerzoDe ? (
+          <AulasPopoverRefuerzo
+            facultad={refuerzoDe}
+            filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            deuda={brechaDeLaFacultad(
+              (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+              refuerzoDe,
+            ) ?? { mujeres: 0, hombres: 0 }}
+            onCerrar={() => setRefuerzoDe("")}
+          />
+        ) : null}
       </div>
   );
 }

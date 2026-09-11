@@ -203,3 +203,21 @@
   .mon-profile-page.is-aulas-flow .aulas-cvf-tasa,
   .mon-profile-page.is-aulas-flow .aulas-cvf-veredicto { grid-column: span 1; }
 }
+
+/* La entrada al refuerzo (C). Va dentro del detalle de la facultad y no en la
+   fila: es una acción sobre una facultad ya elegida, no una columna más que
+   comparar. */
+.aulas-cvf-refuerzo {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.aulas-cvf-refuerzo:hover { filter: brightness(0.94); }

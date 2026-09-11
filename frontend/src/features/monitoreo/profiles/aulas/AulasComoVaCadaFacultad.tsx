@@ -20,11 +20,23 @@ import "./aulasComoVaCadaFacultad.css";
  * global esconde—; **la lista** las ordena por lo que deben, que es la pregunta
  * con la que se entra. Pulsar un punto abre su fila: el mapa es el índice.
  */
-export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco }: {
+export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRefuerzo }: {
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined;
   porSexo: ReadonlyArray<Record<string, unknown>> | null | undefined;
   /** La facultad de la cabecera abre su fila al entrar. */
   facultadEnFoco?: string;
+  /**
+   * **La puerta del refuerzo (C).** Gonzalo, 2026-09-10: «¿dónde asignamos los
+   * refuerzos? […] el contexto de rendimiento no sólo nos muestra las aulas
+   * bajas, sino nos permite también tener un espacio para poder precisamente
+   * aplicar refuerzo».
+   *
+   * Aquí es donde tiene que estar, y no en la tabla de brechas, porque C no
+   * arranca de un aula: arranca de una facultad que no va a cerrar su cuota. La
+   * tabla de abajo abre el complemento (B) desde una fila; esta lista abre el
+   * refuerzo desde una facultad. Son las dos puertas del mismo libro.
+   */
+  onRefuerzo?: (facultad: string) => void;
 }): ReactNode {
   // El hook va antes de cualquier salida temprana: uno bajo la guarda se llama
   // en unos renders y no en otros, y eso es el React #300 que ya tumbó esto.
@@ -62,6 +74,7 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco }: {
 
       <AulasMapaDeLaDeuda
         filas={filas}
+        enFoco={activa}
         onFacultad={(f) => setAbierta((antes) => (antes === f ? "" : f))}
       />
 
@@ -72,6 +85,7 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco }: {
             f={f}
             abierta={activa === f.facultad}
             onAbrir={() => setAbierta((antes) => (antes === f.facultad ? "" : f.facultad))}
+            onRefuerzo={onRefuerzo}
           />
         ))}
       </ul>
@@ -99,8 +113,9 @@ function BarraDeSexo({ letra, valor }: { letra: string; valor: number }): ReactN
   );
 }
 
-function FilaDeFacultad({ f, abierta, onAbrir }: {
+function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo }: {
   f: DeudaDeFacultad; abierta: boolean; onAbrir: () => void;
+  onRefuerzo?: (facultad: string) => void;
 }): ReactNode {
   const sinCampo = f.veredicto === "sin_campo";
   const pct = (v: number | null) => (v == null ? "—" : pctPerfil(v * 100));
@@ -145,6 +160,18 @@ function FilaDeFacultad({ f, abierta, onAbrir }: {
               Debe en los dos sexos: cualquier relevo de su facultad mueve algo,
               y el que más cierre es el que más se acerque a las dos cifras.
             </p>
+          ) : null}
+          {/* **Y aquí se entra al refuerzo.** Sólo con deuda: sin ella no hay
+              nada que reforzar, y ofrecer el botón igual gastaría una reserva
+              que otra facultad va a necesitar. */}
+          {onRefuerzo && f.deuda < 0 ? (
+            <button
+              type="button"
+              className="aulas-cvf-refuerzo"
+              onClick={(e) => { e.stopPropagation(); onRefuerzo(f.facultad); }}
+            >
+              Buscar refuerzo para {f.facultad}
+            </button>
           ) : null}
         </div>
       ) : null}
