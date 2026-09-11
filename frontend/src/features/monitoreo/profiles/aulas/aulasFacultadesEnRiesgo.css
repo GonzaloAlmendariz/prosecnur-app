@@ -63,6 +63,13 @@
   border: 0;
   background: none;
   padding: 0;
+  /* **`display: block` y no el `flex` del perfil.** Los botones del perfil son
+     flex centrados, así que el nombre salía centrado en su columna mientras el
+     subtítulo de debajo empezaba a la izquierda: se veía descolgado. Medido en
+     pantalla el 2026-09-11. */
+  display: block;
+  width: fit-content;
+  max-width: 100%;
   text-align: left;
   cursor: pointer;
   font-family: inherit;
