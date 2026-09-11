@@ -92,9 +92,16 @@ test_that("el periodo de campo se redacta desde el eje de dias", {
   expect_equal(prosecnurapp:::.marp_periodo_de_campo(list()), "")
 })
 
-test_that("el corte se lee en hora local y en castellano", {
+test_that("el corte da el DIA, y el dia que fue en Lima", {
+  # Sin hora: dentro del operativo importa —hay dias con dos cortes— pero en la
+  # portada se lee como una precision que promete mas de lo que el dato tiene.
   expect_equal(prosecnurapp:::.marp_corte_legible("2026-09-09T21:50:21Z"),
-               "09 de septiembre de 2026, 16:50 h")
+               "09 de septiembre de 2026")
+  # La zona horaria se aplica ANTES de quedarse con el dia: las 02:00 UTC del 10
+  # son todavia el 9 en Lima, y sin convertir el corte saldria fechado un dia
+  # despues del que fue.
+  expect_equal(prosecnurapp:::.marp_corte_legible("2026-09-10T02:00:00Z"),
+               "09 de septiembre de 2026")
   expect_equal(prosecnurapp:::.marp_corte_legible(""), "")
 })
 

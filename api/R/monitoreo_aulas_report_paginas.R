@@ -232,7 +232,11 @@
 
   # Las dos cajas se rotulan cada una en su sitio: como llevan una sola serie,
   # no hay nada que distinguir dentro y la leyenda al pie sobraba.
-  pulso_pdf_serie_partida(x0 + 0.030, 0.215, ancho - 0.030, 0.575,
+  # El gráfico llega hasta el marco de la página. Ocupaba hasta 0,215 porque
+  # debajo iba la frase de cierre; retirada, esa banda se quedó vacía y la hoja
+  # parecía cortada a media altura. Quitar texto no es dejar un hueco donde
+  # estaba: es repartirlo.
+  pulso_pdf_serie_partida(x0 + 0.030, .MARP_MARCO$suelo + 0.032, ancho - 0.030, 0.660,
                           dias = etiquetas, diarias = serie$efectivas,
                           acumulado = serie$acumulado, metas = metas,
                           tokens = tok, ty = ty, geo = geo,
