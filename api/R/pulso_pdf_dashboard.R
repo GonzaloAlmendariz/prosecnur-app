@@ -59,16 +59,57 @@ pulso_pdf_kpi <- function(x, y, w, h, rotulo, valor, nota = "",
   grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
                   just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
   pad <- 0.018
-  grid::grid.text(pulso_pdf_versalitas(rotulo, ancho = w - 2 * pad, fontsize = ty$eyebrow),
-                  x = x + pad, y = y + h - 0.030, just = c("left", "top"),
-                  gp = grid::gpar(col = tokens$faint, fontsize = ty$eyebrow, fontface = "bold"))
-  grid::grid.text(valor, x = x + pad, y = y + (if (nzchar(nota)) 0.042 else 0.028),
-                  just = c("left", "bottom"),
+  # **El rótulo se parte en dos líneas antes que recortarse.** Espaciado si cabe,
+  # sin espaciar si no, y en dos renglones si tampoco: «FACULTADES QUE LLEGARON
+  # A LA META» no entra de una en una tarjeta estrecha, y cortarlo en
+  # «FACULTADES QUE L...» deja al lector adivinando. La elipsis queda como
+  # último recurso, dentro del envoltorio.
+  .ppd_rotulo_envuelto(rotulo, x = x + pad, y = y + h - 0.028, w = w - 2 * pad,
+                       fontsize = ty$eyebrow, col = tokens$faint)
+  # **La cifra va SIEMPRE a la misma altura**, haya nota o no. Subirla cuando no
+  # hay nota parece «centrar mejor» esa tarjeta y lo que hace es romper la línea
+  # que forman las cinco: basta una sin nota para que su número quede a distinta
+  # altura que el de al lado.
+  grid::grid.text(valor, x = x + pad, y = y + 0.042, just = c("left", "bottom"),
                   gp = grid::gpar(col = tokens$navy, fontsize = if (destacado) 26 else 18,
                                   fontface = "bold"))
   if (nzchar(nota)) {
     grid::grid.text(nota, x = x + pad, y = y + 0.020, just = c("left", "bottom"),
                     gp = grid::gpar(col = tokens$soft, fontsize = ty$caption))
+  }
+  invisible(NULL)
+}
+
+# Versalitas que caben en `ancho`: con aire si entra, sin aire si no, y
+# recortadas con elipsis ASCII si tampoco. El device PDF no tiene el U+2026.
+.ppd_rotulo_que_cabe <- function(texto, ancho, fontsize) {
+  txt <- pulso_pdf_versalitas(texto, ancho = ancho, fontsize = fontsize)
+  tope <- max(4L, floor(ancho / (fontsize * 0.00082)))
+  if (nchar(txt) <= tope) return(txt)
+  paste0(substr(txt, 1L, tope - 3L), "...")
+}
+
+# Rótulo de versalitas que cabe en `w`, partiéndolo en hasta dos renglones.
+# Devuelve invisible; dibuja donde se le dice, anclado arriba a la izquierda.
+.ppd_rotulo_envuelto <- function(texto, x, y, w, fontsize, col, max_lineas = 2L) {
+  espaciado <- pulso_pdf_versalitas(texto, ancho = w, fontsize = fontsize)
+  tope <- max(4L, floor(w / (fontsize * 0.00082)))
+  if (nchar(espaciado) <= tope) {
+    grid::grid.text(espaciado, x = x, y = y, just = c("left", "top"),
+                    gp = grid::gpar(col = col, fontsize = fontsize, fontface = "bold"))
+    return(invisible(NULL))
+  }
+  lineas <- strwrap(toupper(texto), width = max(4L, tope))
+  if (length(lineas) > max_lineas) {
+    lineas <- lineas[seq_len(max_lineas)]
+    ultima <- lineas[[max_lineas]]
+    if (nchar(ultima) > tope - 3L) ultima <- substr(ultima, 1L, tope - 3L)
+    lineas[[max_lineas]] <- paste0(ultima, "...")
+  }
+  for (k in seq_along(lineas)) {
+    grid::grid.text(lineas[[k]], x = x, y = y - (k - 1L) * (fontsize * 0.0021),
+                    just = c("left", "top"),
+                    gp = grid::gpar(col = col, fontsize = fontsize, fontface = "bold"))
   }
   invisible(NULL)
 }
@@ -140,9 +181,12 @@ pulso_pdf_serie_diaria <- function(x, y, w, h, dias, diarias, acumulado,
   n <- length(dias)
   if (!n) return(invisible(NULL))
   diarias <- as.numeric(diarias); acumulado <- as.numeric(acumulado)
-  # En panel pequeño el cuerpo baja un punto respecto del caption del
-  # documento, no más: por debajo de 6 pt una cifra impresa deja de leerse.
-  fs <- if (compacto) max(6.2, ty$caption - 1.2) else ty$caption
+  # **El panel pequeño usa el MISMO cuerpo que el grande.** Bajarlo 1,2 pt
+  # «porque es pequeño» es lo que hacía que las cifras de las facultades se
+  # vieran diminutas: el panel es más chico, pero el lector es el mismo y el
+  # papel también. Lo que se achica es cuántas cifras caben —eso ya lo resuelve
+  # el salto de rótulos—, no el tamaño al que se leen.
+  fs <- ty$caption
   metas <- metas[is.finite(metas)]
 
   # El tope del acumulado incluye las metas: una meta fuera de la caja no se ve
@@ -493,11 +537,16 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
     }
   }
 
+  # El rótulo va CENTRADO bajo su grupo, no alineado al borde izquierdo del
+  # tramo: con dos carriles por categoría, el centro del grupo es donde el ojo
+  # busca su nombre, y un rótulo de tres líneas alineado a la izquierda parecía
+  # pertenecer al grupo anterior.
   for (i in seq_len(n)) {
     .form_pdf_text(categorias[[i]], x = x + paso * (i - 1) + paso * 0.06,
                    y = y - 0.032, w = paso * 0.88,
                    chars = pulso_pdf_chars(paso * 0.88, factor = 128),
-                   fontsize = fs, col = tokens$soft, line_h = 0.017)
+                   fontsize = fs, col = tokens$soft, line_h = 0.017,
+                   align = "center")
   }
   invisible(NULL)
 }

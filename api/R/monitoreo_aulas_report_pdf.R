@@ -301,8 +301,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
                                                                 # ritmo por facultad
     1L +                                                        # metas por facultad
     .marp_reparto_avance(nrow(df))$hojas +                       # avance visual
-    length(paginas) * length(hojas_detalle) +                   # detalle numérico
-    1L                                                          # cómo se mide
+    length(paginas) * length(hojas_detalle)                     # detalle numérico
 
   antetitulo <- "Monitoreo de cursos-horario"
   pag <- 0L
@@ -408,11 +407,6 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
       pie()
     }
   }
-
-  # El cierre: qué cuenta, contra qué, y con qué corte se midió.
-  nueva("Cómo se mide este avance", "")
-  .marp_pagina_criterio(model, tok, ty, x0, ancho_util)
-  pie()
 
   invisible(output_file)
 }

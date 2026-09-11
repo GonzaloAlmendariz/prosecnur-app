@@ -54,14 +54,20 @@
     pulso_pdf_kpi(x_slot(i), y_kpi, w_slot, h_kpi, rotulo, valor, nota,
                   tokens = tok, ty = ty, tono = tono)
   }
-  kpi(3L, "Encuestas efectivas", .marp_personas(t$conseguidas), "en plataforma", tok$navy)
+  # Sin nota. Decía «en plataforma», que es cómo hablamos NOSOTROS del origen del
+  # dato; para quien lee el reporte, una encuesta efectiva es una encuesta
+  # efectiva. Las notas que quedan en las otras tarjetas son denominadores —«de
+  # 15», «de 174 previstos»—, que sí dicen algo que la cifra sola no dice.
+  kpi(3L, "Encuestas efectivas", .marp_personas(t$conseguidas), "", tok$navy)
   # **«Muestra del diseño» era un eco.** Su cifra y su nota ya estaban dentro de
   # la tarjeta del avance —«1.390 de 2.500»—, en la banda más visible del
   # documento. En su lugar, un hecho que no aparece en ninguna otra parte: cuántas
-  # facultades han cerrado su cuota. Es lo que convierte «faltan 1.110» en una
-  # noticia con forma.
+  # facultades llegaron a su meta. Es lo que convierte «faltan 1.110» en una
+  # noticia con forma. El rótulo dice «llegaron a la meta» y no «cerraron»
+  # (Gonzalo, 2026-09-11): «cerrar» es jerga de operativo —el equipo cierra una
+  # facultad— y el cliente no habla así de su propio estudio.
   cerradas <- nrow(model$facultades) - .marp_num(t$facultades_abiertas, 0)
-  kpi(4L, "Facultades que cerraron", .marp_personas(cerradas),
+  kpi(4L, "Facultades que llegaron a la meta", .marp_personas(cerradas),
       sprintf("de %s", .marp_personas(nrow(model$facultades))), tok$navy)
   kpi(5L, "Faltan", .marp_personas(t$faltan, faltante = TRUE),
       if (identical(as.integer(t$facultades_abiertas), 1L)) "en 1 facultad"
@@ -79,9 +85,9 @@
   # medidor repetía el 42,5 % que la tarjeta ya daba —el mismo dato dos veces y
   # en el elemento más pesado de la hoja—; esto es información que sólo estaba
   # enterrada en la tabla.
-  .marp_bloque_sexo(model$general, tok, ty, x0, ancho, y = 0.556)
+  .marp_bloque_sexo(model$general, tok, ty, x0, ancho, y = 0.586)
 
-  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.470)
+  .marp_tabla_general(model$general, tok, ty, x0, ancho, y_top = 0.500)
   invisible(NULL)
 }
 
@@ -91,10 +97,8 @@
   grid::grid.rect(x = x, y = y + h - 0.0032, width = w, height = 0.0032,
                   just = c("left", "bottom"), gp = grid::gpar(fill = tono, col = NA))
   pad <- 0.018
-  grid::grid.text(pulso_pdf_versalitas("Avance de la muestra", ancho = w - 2 * pad,
-                                       fontsize = ty$eyebrow),
-                  x = x + pad, y = y + h - 0.030, just = c("left", "top"),
-                  gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
+  .ppd_rotulo_envuelto("Avance de la muestra", x = x + pad, y = y + h - 0.028,
+                       w = w - 2 * pad, fontsize = ty$eyebrow, col = tok$faint)
   grid::grid.text(.marp_pct(t$avance), x = x + pad, y = y + 0.074, just = c("left", "bottom"),
                   gp = grid::gpar(col = tok$navy, fontsize = 34, fontface = "bold"))
   grid::grid.text(sprintf("%s de %s", .marp_personas(t$conseguidas), .marp_personas(t$muestra)),
@@ -113,7 +117,7 @@
   invisible(NULL)
 }
 
-# Reparto por sexo: dos medidores con su cifra. Se lee de «Avance general», que
+# Hombres y mujeres: dos medidores con su cifra. Se lee de «Avance general», que
 # ya trae las tres columnas; aquí no se recalcula nada.
 .marp_bloque_sexo <- function(general, tok, ty, x0, ancho, y) {
   if (!is.data.frame(general) || !nrow(general)) return(invisible(NULL))
@@ -131,12 +135,10 @@
   )
   if (!any(vapply(datos, function(d) is.finite(d$avance), logical(1)))) return(invisible(NULL))
 
-  # Sin bajada. Decía «cada sexo tiene su propia cuota: cubrir de más en uno no
-  # cubre lo que falta en el otro», que es explicarle al cliente algo que sabe
-  # mejor que nadie: es su propio diseño muestral. Las dos barras y sus dos
-  # denominadores ya lo dicen sin una línea de texto.
-  pulso_pdf_rotulo_seccion(x0, y + 0.072, "Reparto por sexo", tokens = tok, ty = ty,
-                           ancho = 0.058)
+  # **Sin rótulo.** Decía «Reparto por sexo», que es jerga de diseño muestral y
+  # además no nombra nada que no esté ya escrito: las dos barras llevan
+  # «Hombres» y «Mujeres» con su porcentaje y su denominador. Un rótulo que
+  # repite lo que hay debajo sólo añade un renglón (Gonzalo, 2026-09-11).
   w <- (ancho - 0.040) / 2
   for (k in seq_along(datos)) {
     d <- datos[[k]]
@@ -241,15 +243,12 @@
 
 
 
-  pico <- which.max(serie$efectivas)
-  # La etiqueta del eje lleva un salto de línea dentro («09/09\nmié»): en una
-  # frase corrida eso parte la oración en dos renglones a media palabra.
-  dia_pico <- gsub("\n", " ", etiquetas[[pico]], fixed = TRUE)
-  grid::grid.text(
-    sprintf("%d jornadas de campo. El día más productivo fue el %s, con %s encuestas efectivas.",
-            nrow(serie), dia_pico, .marp_personas(serie$efectivas[[pico]])),
-    x = x0, y = 0.108, just = c("left", "bottom"),
-    gp = grid::gpar(col = tok$soft, fontsize = ty$footer))
+  # Sin frase de cierre. Decía «5 jornadas de campo. El día más productivo fue el
+  # 09/09 mié, con 466 encuestas efectivas», y las tres cosas están dibujadas
+  # encima: las jornadas son las barras, la más alta es la más productiva y su
+  # cifra está escrita sobre ella. Un pie que narra el gráfico que tiene al lado
+  # no informa, subraya (Gonzalo, 2026-09-11: «sobreexplicación no necesaria, ya
+  # hablamos de eso»).
   invisible(NULL)
 }
 
@@ -376,6 +375,15 @@
 .MARP_UMBRAL_DOS_FILAS <- 8L
 
 .marp_pagina_metas <- function(facultades, tok, ty, geo, x0, ancho) {
+  # **Aquí, y sólo aquí, el orden es por TAMAÑO de la cuota, de mayor a menor**
+  # (Gonzalo, 2026-09-11). Las tablas siguen ordenadas por lo que FALTA, que es
+  # lo que se busca en una tabla; este gráfico existe para comparar el tamaño del
+  # trabajo entre facultades, y ordenado por tamaño esa comparación se lee sin
+  # recorrer la página. De paso, la partición en dos filas deja de mezclar
+  # magnitudes: arriba las grandes, abajo las pequeñas.
+  cuota <- suppressWarnings(as.numeric(facultades[["Muestra"]]))
+  facultades <- facultades[order(-ifelse(is.finite(cuota), cuota, -1)), , drop = FALSE]
+
   n <- nrow(facultades)
   nombres <- .marp_limpiar(facultades[["Facultad"]])
   col <- function(k) suppressWarnings(as.numeric(facultades[[k]]))
@@ -499,13 +507,26 @@
   pesos <- pulso_pdf_pesos()
   col <- function(k, i) suppressWarnings(as.numeric(facultades[[k]][[i]]))
 
+  # **El ancho de las columnas numéricas se DERIVA del hueco que queda.** Estaba
+  # tecleado en 0,070 y las cuatro sumaban 0,280 sobre un hueco de 0,322: la
+  # última columna acababa cuatro milímetros antes del borde de la tabla, con las
+  # reglas de fila y la banda de grupo llegando más lejos que las cifras que
+  # cubren. Una tabla se lee por sus bordes; si el último no coincide, todo
+  # parece movido aunque cada columna esté bien.
   w_fac <- 0.240
   w_sexo <- 0.155          # barra + porcentaje, una columna por sexo
-  w_num <- 0.070
+  hueco_sexos <- 0.012     # entre el carril de hombres y el de mujeres
+  hueco_totales <- 0.020   # entre el último carril y el bloque de cifras
   x_fac <- x0
   x_h <- x_fac + w_fac
-  x_m <- x_h + w_sexo + 0.012
-  x_num <- (x_m + w_sexo + 0.020) + (seq_len(4L) - 1L) * w_num
+  x_m <- x_h + w_sexo + hueco_sexos
+  x_totales <- x_m + w_sexo + hueco_totales
+  n_num <- 4L
+  w_num <- (x0 + ancho - x_totales) / n_num
+  x_num <- x_totales + (seq_len(n_num) - 1L) * w_num
+  # El borde derecho de la última columna ES el de la tabla, o la geometría está
+  # mal declarada y no hay retoque que lo arregle.
+  stopifnot(abs((x_num[[n_num]] + w_num) - (x0 + ancho)) < 1e-9)
 
   y_top <- 0.795
   banda <- function(desde, hasta, texto) {
@@ -527,9 +548,8 @@
   cab("Facultad", x_fac, "left")
   cab("Avance", x_h, "left")
   cab("Avance", x_m, "left")
-  for (k in seq_along(c("Efectivas", "Meta", "Faltan", "Aulas"))) {
-    cab(c("Efectivas", "Meta", "Faltan", "Aulas")[[k]], x_num[[k]] + w_num)
-  }
+  cabeceras <- c("Efectivas", "Meta", "Faltan", "Aulas")
+  for (k in seq_along(cabeceras)) cab(cabeceras[[k]], x_num[[k]] + w_num)
   pulso_pdf_hairline(x0, x0 + ancho, y_top - 0.032, tokens = tok, lwd = pesos$columna)
 
   alto <- .marp_reparto_avance(filas_por_hoja)$alto
@@ -668,98 +688,3 @@
   invisible(NULL)
 }
 
-# --- Página de cierre: cómo se mide ------------------------------------------
-#
-# El criterio vivía como un párrafo al pie de la última tabla, donde competía
-# con la fila final y no lo leía nadie. Es la parte del documento que sostiene
-# todas las demás: define qué cuenta como encuesta y contra qué se mide. En un
-# entregable de consultoría eso no es una nota al pie, es la página de cierre.
-#
-# No es sobreexplicar —la regla que Gonzalo fijó el 2026-09-11—: un cliente sabe
-# lo que es su propia cuota, pero no tiene por qué saber qué filtros aplica el
-# estudio para dar una respuesta por efectiva, ni con qué corte se cerró la
-# medición. Eso es procedencia, y la procedencia viaja con el número.
-
-.marp_pagina_criterio <- function(model, tok, ty, x0, ancho) {
-  pesos <- pulso_pdf_pesos()
-  criterio <- model$criterio %||% list()
-  ritmo <- model$ritmo
-
-  mayuscula <- function(txt) {
-    if (!nzchar(txt)) return(txt)
-    paste0(toupper(substr(txt, 1L, 1L)), substr(txt, 2L, nchar(txt)))
-  }
-
-  bloques <- list(
-    list("Qué cuenta como encuesta efectiva",
-         mayuscula(paste0(criterio$numerador %||% "", "."))),
-    list("Contra qué se mide",
-         mayuscula(paste0(criterio$denominador %||% "", "."))),
-    list("Por qué los faltantes no se netean",
-         paste("La cuota es de cada facultad y de cada sexo. Cubrir de más en una no cubre",
-               "lo que falta en otra, así que el total de faltantes suma los de cada celda",
-               "en vez de netearlos."))
-  )
-  if (nzchar(criterio$no_cubre %||% "")) {
-    bloques[[length(bloques) + 1L]] <- list("La sobremuestra", criterio$no_cubre)
-  }
-
-  w_rotulo <- 0.250
-  w_texto <- ancho - w_rotulo - 0.030
-
-  # **Los cuatro rótulos se espacian o no se espacia ninguno.** Dejando que cada
-  # uno decida por su cuenta, «LA SOBREMUESTRA» salía con aire y «POR QUÉ LOS
-  # FALTANTES NO SE NETEAN» sin él, en la misma columna y a la misma altura: una
-  # discrepancia que se lee como error de composición, no como adaptación.
-  cabe_espaciado <- all(vapply(bloques, function(b) {
-    identical(pulso_pdf_versalitas(b[[1L]], ancho = w_rotulo, fontsize = ty$eyebrow),
-              pulso_pdf_versalitas(b[[1L]]))
-  }, logical(1)))
-
-  # El alto se reparte entre los bloques que haya, para que la página cierre
-  # llena tanto con tres definiciones como con cinco. Los extremos salen del
-  # marco del documento: esta página se maquetó antes de que el marco existiera
-  # y arrancaba veinte milímetros por debajo de las demás, con el tercio final
-  # en blanco.
-  .ALTO_PROCEDENCIA <- 0.092   # rótulo + valor de la franja del pie
-  y_alto <- .MARP_MARCO$techo
-  y_bajo <- .MARP_MARCO$suelo + .ALTO_PROCEDENCIA
-  paso <- (y_alto - y_bajo) / length(bloques)
-  y <- y_alto
-  for (k in seq_along(bloques)) {
-    b <- bloques[[k]]
-    # La primera no lleva regla: una hairline pegada bajo el cromo se lee como
-    # una segunda línea de cabecera.
-    if (k > 1L) pulso_pdf_hairline(x0, x0 + ancho, y + paso * 0.30, tokens = tok, lwd = pesos$fila)
-    grid::grid.text(if (cabe_espaciado) pulso_pdf_versalitas(b[[1L]]) else toupper(b[[1L]]),
-                    x = x0, y = y, just = c("left", "top"),
-                    gp = grid::gpar(col = tok$navy, fontsize = ty$eyebrow, fontface = "bold"))
-    .form_pdf_text(b[[2L]], x = x0 + w_rotulo + 0.030, y = y + 0.006, w = w_texto,
-                   chars = pulso_pdf_chars(w_texto, factor = 118), fontsize = ty$body,
-                   col = tok$ink, line_h = 0.026)
-    y <- y - paso
-  }
-
-  # La procedencia del corte, al pie y en su propia franja.
-  pulso_pdf_hairline(x0, x0 + ancho, y + paso * 0.30, tokens = tok, lwd = pesos$columna)
-  dias <- length(ritmo$dias %||% character(0))
-  datos <- list(
-    list("Corte de los datos", model$portada_defecto$corte %||% ""),
-    list("Periodo de campo", model$portada_defecto$periodo %||% ""),
-    list("Jornadas con aplicación", if (dias) format(dias, big.mark = ",") else "")
-  )
-  datos <- Filter(function(d) nzchar(d[[2L]]), datos)
-  if (length(datos)) {
-    w_col <- ancho / length(datos)
-    for (k in seq_along(datos)) {
-      x <- x0 + (k - 1L) * w_col
-      grid::grid.text(pulso_pdf_versalitas(datos[[k]][[1L]], ancho = w_col - 0.020,
-                                           fontsize = ty$eyebrow),
-                      x = x, y = y - 0.010, just = c("left", "top"),
-                      gp = grid::gpar(col = tok$faint, fontsize = ty$eyebrow, fontface = "bold"))
-      grid::grid.text(datos[[k]][[2L]], x = x, y = y - 0.046, just = c("left", "top"),
-                      gp = grid::gpar(col = tok$ink, fontsize = ty$body))
-    }
-  }
-  invisible(NULL)
-}
