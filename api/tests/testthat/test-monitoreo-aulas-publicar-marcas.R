@@ -161,3 +161,26 @@ test_that("el texto DECLARA por que el formato no entro, en vez de callarlo", {
                formato = list(list(hoja = "X", estado = "aplicado", error = "")))
   expect_match(monitoreo_aulas_publicar_marcas_texto(bien), "Desplegable y color reemitidos")
 })
+
+test_that("empareja los bloques con sufijo R1, R2, que es como rotula el libro", {
+  # `paste0(titulos_bloque, " R", b - 1L)` en carga_aulas_libro_generar.R. Con
+  # igualdad exacta solo aparecia el titular y las reservas de cadena salian
+  # «sin fila en el libro» teniendo su fila delante.
+  valores <- list(
+    list("CURSO-HORARIO", "STATUS MUESTRA", "STATUS DE LLAMADA",
+         "CURSO-HORARIO R1", "STATUS MUESTRA R1",
+         "CURSO-HORARIO R2", "STATUS MUESTRA R2"),
+    list("CH 1", "AGENDADA", "", "R 1.1", "SIN CONTACTAR", "R 1.2", "")
+  )
+  enc <- prosecnurapp:::.mapm_encabezado(valores)
+  expect_length(enc$pares, 3L)
+  expect_identical(enc$pares[[2]]$codigo, 4L)
+  expect_identical(enc$pares[[2]]$estado, 5L)
+  expect_identical(enc$pares[[3]]$estado, 7L)
+  # «STATUS DE LLAMADA» no se cuela como columna de estado.
+  expect_false(3L %in% vapply(enc$pares, function(p) p$estado, integer(1)))
+  # Y la reserva del bloque R1 se encuentra.
+  remoto <- prosecnurapp:::.mapm_remoto(valores, enc$fila, enc$pares[[2]])
+  out <- monitoreo_aulas_marcas_por_publicar(list(.mapm_fila("R 1.1")), remoto)
+  expect_identical(out$escribibles[[1]]$codigo, "R 1.1")
+})
