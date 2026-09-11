@@ -48,10 +48,15 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
   return (
     <div className="aulas-riesgo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-riesgo-lectura">
+        {/* **La base, dicha.** Arriba, «Rendimiento y efectividad» proyecta
+            sobre todo el eslabón en juego —reservas incluidas— y dice que
+            todas cierran. Éste cuenta sólo lo que tiene fecha, que es lo que se
+            puede aplicar sin activar nada. Sin decirlo, las dos frases se leen
+            como una contradicción. */}
         {cortas ? (
           <><strong>{fmt(cortas)}</strong>{" "}
-            {cortas === 1 ? "facultad no llega" : "facultades no llegan"} a su cuota
-            ni con todo lo que tiene agendado.</>
+            {cortas === 1 ? "facultad no llega" : "facultades no llegan"} a su cuota con
+            lo que tiene <b>agendado hoy</b>: el resto tendría que salir de sus reservas.</>
         ) : null}
         {ciegas ? (
           <>{cortas ? " " : ""}<strong>{fmt(ciegas)}</strong>{" "}

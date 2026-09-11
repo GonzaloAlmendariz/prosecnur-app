@@ -71,7 +71,7 @@ describe("lecturaDeEfectividad", () => {
 
 describe("riesgoDeCierre", () => {
   it("con todas cerrando lo dice sin adornos", () => {
-    expect(riesgoDeCierre(bloque)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
+    expect(riesgoDeCierre(bloque)!.frase).toBe("Contando las reservas por activar, todas las facultades cierran su cuota.");
   });
 
   it("rendir bajo su tasa y no cerrar la cuota son DOS cosas", () => {
@@ -84,7 +84,7 @@ describe("riesgoDeCierre", () => {
 
   it("el número que decide es el de las que no cierran, con su déficit", () => {
     const b = { total: { ...bloque.total, facultades_en_riesgo: 2, alumnos_en_riesgo: 170 } } as unknown as MonitoreoAulasEfectividadSeguimiento;
-    expect(riesgoDeCierre(b)!.frase).toBe("2 facultades no cierran su cuota con lo que tienen agendado: faltarían 170 alumnos.");
+    expect(riesgoDeCierre(b)!.frase).toBe("2 facultades no cierran su cuota ni activando sus reservas: faltarían 170 alumnos.");
   });
 });
 
@@ -222,7 +222,7 @@ describe("las dos lecturas conviven", () => {
   it("el riesgo del operativo no depende de la facultad mirada", () => {
     // Es la conclusión general y no deja de ser cierta porque se esté mirando
     // una facultad: el panel la enseña siempre.
-    expect(riesgoDeCierre(conFilas)!.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
+    expect(riesgoDeCierre(conFilas)!.frase).toBe("Contando las reservas por activar, todas las facultades cierran su cuota.");
   });
 });
 
