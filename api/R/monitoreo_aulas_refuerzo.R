@@ -187,6 +187,29 @@ monitoreo_aulas_desmarcar_refuerzo_texto <- function(out) {
 # esta comprometida tiene que dejar entrar las otras doce y decir cual no entro y
 # por que; abortar el lote entero castigaria las buenas por culpa de una.
 
+#' Un pedido del lote, venga como objeto o como codigo suelto.
+#'
+#' **Por que hace falta.** Un `["EXTRA 10", "EXTRA 11"]` de JSON llega aqui como
+#' LISTA de escalares de texto, no como vector: `is.character(pedidos)` es FALSE
+#' y cada elemento es un `character(1)`, asi que `p$codigo` revienta con «$
+#' operator is invalid for atomic vectors». Medido en vivo el 2026-09-11: el
+#' lote de retirar contesto E_INTERNAL con las nueve marcas puestas.
+#'
+#' @param p elemento del lote: lista con `codigo`, o el codigo a secas.
+#' @return lista con `codigo`, `para`, `tipo` y `motivo`.
+#' @keywords internal
+.mar_pedido <- function(p) {
+  if (!is.list(p)) {
+    return(list(codigo = .mar_txt(p), para = "", tipo = "refuerzo", motivo = ""))
+  }
+  list(
+    codigo = .mar_txt(p$codigo %||% p$operational_code %||% ""),
+    para = .mar_txt(p$para %||% p$destino %||% ""),
+    tipo = .mar_txt(p$tipo %||% "refuerzo", "refuerzo"),
+    motivo = .mar_txt(p$motivo %||% p$reason %||% "")
+  )
+}
+
 #' Aplica la misma operacion a varios cursos-horario sobre un solo plan.
 #'
 #' @param plan lista de filas del plan.
@@ -199,7 +222,8 @@ monitoreo_aulas_desmarcar_refuerzo_texto <- function(out) {
   hechas <- list()
   fallidas <- list()
   for (p in pedidos) {
-    codigo <- .mar_txt(p$codigo %||% p$operational_code %||% "")
+    p <- .mar_pedido(p)
+    codigo <- .mar_txt(p$codigo)
     out <- tryCatch(una(plan, p), error = function(e) e)
     if (inherits(out, "error")) {
       fallidas[[length(fallidas) + 1L]] <- list(
@@ -235,11 +259,7 @@ monitoreo_aulas_marcar_refuerzos <- function(plan = list(), pedidos = list(), ah
   ahora <- .mar_txt(ahora, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
   out <- .mar_en_lote(plan, pedidos, function(plan, p) {
     r <- monitoreo_aulas_marcar_refuerzo(
-      plan,
-      codigo = .mar_txt(p$codigo %||% p$operational_code %||% ""),
-      para = .mar_txt(p$para %||% p$destino %||% ""),
-      tipo = .mar_txt(p$tipo %||% "refuerzo", "refuerzo"),
-      motivo = .mar_txt(p$motivo %||% p$reason %||% ""),
+      plan, codigo = p$codigo, para = p$para, tipo = p$tipo, motivo = p$motivo,
       ahora = ahora
     )
     list(plan = r$plan, fila = r$marcada)
@@ -260,13 +280,14 @@ monitoreo_aulas_desmarcar_refuerzos <- function(plan = list(), pedidos = list())
   }
   # Un vector de codigos es la forma natural de pedir esto desde la vista, y
   # aceptarlo aqui evita que el router invente una segunda forma.
-  if (is.character(pedidos)) pedidos <- lapply(pedidos, function(x) list(codigo = x))
+  # `.mar_pedido()` acepta ya el codigo suelto, asi que aqui basta con partir
+  # un vector en elementos.
+  if (is.character(pedidos)) pedidos <- as.list(pedidos)
   if (!length(pedidos)) {
     stop_api(400, "E_REFUERZO_LOTE_VACIO", "El lote no trae ningun curso-horario que retirar.")
   }
   out <- .mar_en_lote(plan, pedidos, function(plan, p) {
-    r <- monitoreo_aulas_desmarcar_refuerzo(
-      plan, codigo = .mar_txt(p$codigo %||% p$operational_code %||% ""))
+    r <- monitoreo_aulas_desmarcar_refuerzo(plan, codigo = p$codigo)
     list(plan = r$plan, fila = r$retirada)
   })
   list(plan = out$plan, retiradas = out$hechas, fallidas = out$fallidas)

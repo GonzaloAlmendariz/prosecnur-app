@@ -288,3 +288,19 @@ test_that("el texto del lote dice las DOS cifras cuando alguna no entro", {
   expect_match(monitoreo_aulas_lote_texto(dos, "marcados"), "2 de 3")
   expect_match(monitoreo_aulas_lote_texto(dos, "marcados"), "R 1\\.2 no entro")
 })
+
+test_that("el lote acepta codigos sueltos, que es como llegan de JSON", {
+  # Medido en vivo: un `["EXTRA 10", ...]` de JSON llega como LISTA de escalares
+  # de texto, no como vector, y `p$codigo` reventaba con «$ operator is invalid
+  # for atomic vectors». El lote de retirar contesto E_INTERNAL con las nueve
+  # marcas puestas.
+  marcado <- monitoreo_aulas_marcar_refuerzos(
+    .mrf_libro_n(c("R 1.1", "R 1.2")),
+    list("R 1.1", "R 1.2"),
+    ahora = "2026-09-11T10:00:00Z")
+  expect_length(marcado$marcadas, 2L)
+  # Y la forma exacta del cuerpo JSON: lista de escalares.
+  out <- monitoreo_aulas_desmarcar_refuerzos(marcado$plan, list("R 1.1", "R 1.2"))
+  expect_length(out$retiradas, 2L)
+  expect_length(out$fallidas, 0L)
+})
