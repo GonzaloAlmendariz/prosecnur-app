@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
-import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { apiMonitoreoAulasPublicarMarcas, type MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt } from "./kpisDeAulas";
 import { seguimientoDeRefuerzos, type PasoDelRefuerzo } from "./seguimientoDeRefuerzos";
@@ -42,6 +42,24 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
   // El hook va antes del vacío: uno bajo la guarda se llama en unos renders y
   // no en otros, que es el React #310 que ya tumbó este perfil una vez.
   const marca = useMarcarRefuerzo(onGuardado);
+  /**
+   * **La publicación de las marcas a la hoja del equipo.** Vive aquí y no en el
+   * reparto porque publica lo YA pedido, que es lo que este panel lleva.
+   */
+  const [publicando, setPublicando] = useState(false);
+  const [acusePub, setAcusePub] = useState("");
+  const publicar = async () => {
+    setPublicando(true);
+    setAcusePub("");
+    try {
+      const res = await apiMonitoreoAulasPublicarMarcas({ aplicar: true });
+      setAcusePub(res.mensaje);
+    } catch (e) {
+      setAcusePub(e instanceof Error ? e.message : "No se pudo publicar.");
+    } finally {
+      setPublicando(false);
+    }
+  };
   const s = seguimientoDeRefuerzos(plan);
   const puedeRetirar = !!onGuardado;
   const enEspera = s.pedidos.filter((p) => p.paso === "por_contactar").map((p) => p.codigo);
@@ -69,6 +87,22 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
             {s.cuenta.rechazado === 1 ? "rechazó" : "rechazaron"}.</>
         ) : null}
       </p>
+
+      {/* **La excepción, y la única escritura de la app sobre una hoja del
+          equipo.** Gonzalo dio la palabra el 2026-09-11 y sólo para esto: una
+          columna, sólo las filas marcadas, sólo si la celda está libre, y nunca
+          un borrado. Lo que el equipo ya escribió se respeta y se cuenta. */}
+      <p className="aulas-pedidos-lote">
+        <button type="button" disabled={publicando} onClick={() => { void publicar(); }}>
+          {publicando ? "Pintando en el Sheets…" : "Pintar en el Sheets de agendación"}
+        </button>
+      </p>
+      {acusePub ? (
+        <p className="aulas-acuse-marca" role="status">
+          {acusePub}{" "}
+          <button type="button" onClick={() => setAcusePub("")}>Entendido</button>
+        </p>
+      ) : null}
 
       {marca.aviso || marca.fallos.length ? (
         <p className={`aulas-acuse-marca${marca.fallos.length ? " es-fallo" : ""}`} role="status">

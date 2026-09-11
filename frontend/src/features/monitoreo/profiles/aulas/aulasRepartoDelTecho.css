@@ -233,3 +233,15 @@
   }
   .mon-profile-page.is-aulas-flow .aulas-techo-auto { grid-column: 1 / -1; }
 }
+
+/* La segunda vuelta: las que no cierran brecha, sólo dan margen a la facultad
+   que quedó más al filo. Se distinguen sin gritar: el filo en el borde y la
+   cifra en el tono del texto, porque no son un logro, son un colchón. */
+.mon-profile-page.is-aulas-flow .aulas-techo-lista li.es-holgura {
+  border-left-color: var(--pulso-primary-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-techo-aporte b.es-margen,
+.mon-profile-page.is-aulas-flow .aulas-techo-resto b.es-margen {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}

@@ -6027,6 +6027,33 @@ export async function apiMonitoreoAulasDesmarcarRefuerzos(payload: {
 }
 
 /**
+ * Lleva «REFUERZO POR CONTACTAR» a la hoja de agendación del equipo.
+ *
+ * Es la ÚNICA escritura de la app sobre una hoja del equipo, y va con las
+ * cuatro garantías del motor: una sola columna (STATUS MUESTRA), sólo las filas
+ * que la app marcó, sólo si la celda remota está libre —vacía, «EN RESERVA» o
+ * «SIN CONTACTAR»— y nunca un borrado. `aplicar: false` es el ensayo: dice qué
+ * celdas se pintarían sin tocar ninguna.
+ */
+export async function apiMonitoreoAulasPublicarMarcas(payload?: { aplicar?: boolean }) {
+  return handle<{
+    ok: true;
+    escritas: Array<{ codigo: string; hoja: string; fila: number }>;
+    respetadas: Array<{ codigo: string; hoja: string; habia: string }>;
+    sin_fila: string[];
+    por_hoja: Array<{ hoja: string; escribibles: number; celdas: number; respetadas: number }>;
+    aplicado: boolean;
+    mensaje: string;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/publicar-marcas", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload ?? { aplicar: true }),
+    }),
+  );
+}
+
+/**
  * La conversación app↔Sheets que el sync de aulas corre cuando hay un
  * `libro_sheets` recordado (unidad B7): LEE las hojas del equipo y RE-PUBLICA
  * las de la app, en ese orden. El bloque viaja SOLO con destino recordado —

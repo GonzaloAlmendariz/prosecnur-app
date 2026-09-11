@@ -35,14 +35,42 @@ describe("el reparto de un techo de aulas", () => {
     expect(TECHO_DE_AULAS_AGENDABLES).toBe(15);
   });
 
-  it("no gasta el techo entero si el déficit se cierra antes", () => {
+  it("gasta el techo que sobra dando margen, y no lo cuenta como cierre", () => {
+    // **Cambio deliberado del 2026-09-11, pedido por Gonzalo**: «pero si sobran,
+    // Derecho puede tomar una más, o Sociales, no lo sé, las que veamos que
+    // están más flojas o ajustadas». Antes esta prueba exigía lo contrario —el
+    // reparto paraba al cerrar el déficit— y esa parada dejaba el techo sin usar
+    // sobre una PROYECCIÓN, que no es lo que va a pasar.
     const celdas = [celda("A", "F", 10, 9), celda("A", "M", 10, 9)];
     const plan = [reserva("R 1", "A"), reserva("R 2", "A"), reserva("R 3", "A")];
     const out = repartoDelTecho(bloque(["A"]), celdas, plan, 15);
-    // Una sola aula de 40 al 50 % cubre los 2 que faltan.
-    expect(out.asignadas).toHaveLength(1);
-    expect(out.sobran).toBe(14);
+    // Una sola aula de 40 al 50 % cubre los 2 que faltan; las otras dos del
+    // inventario entran como margen, y el techo se acaba porque no hay más.
+    expect(out.asignadas).toHaveLength(3);
+    expect(out.deHolgura).toBe(2);
+    expect(out.sobran).toBe(12);
     expect(out.quedaSinCubrir).toBe(0);
+    // Y las de margen NO suman cierre: su `util` es 0. Sumarlas prometería un
+    // cierre que ya estaba hecho.
+    expect(out.asignadas.filter((a) => a.holgura).every((a) => a.util === 0)).toBe(true);
+    expect(out.asignadas[0]?.holgura).toBe(false);
+  });
+
+  it("el margen va a la facultad que cerró más al filo, no siempre a la misma", () => {
+    // A cierra justo (debe 20 y su aula rinde 20) y B cierra con colchón (debe 4
+    // y la suya rinde 20). Con una sola de sobra, le toca a A.
+    const celdas = [
+      celda("A", "F", 20, 10), celda("A", "M", 20, 10),
+      celda("B", "F", 20, 18), celda("B", "M", 20, 18),
+    ];
+    const plan = [
+      reserva("R 1", "A"), reserva("R 2", "A"),
+      reserva("R 3", "B"), reserva("R 4", "B"),
+    ];
+    const out = repartoDelTecho(bloque(["A", "B"]), celdas, plan, 3);
+    const margen = out.asignadas.filter((a) => a.holgura);
+    expect(margen).toHaveLength(1);
+    expect(margen[0]?.facultad).toBe("A");
   });
 
   it("reparte por lo que cada aula CIERRA, no por quién debe más", () => {
