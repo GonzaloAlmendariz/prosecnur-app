@@ -14,7 +14,10 @@ import type { MonitoreoAulasEfectividadSeguimiento, MonitoreoAulasPlanRow } from
 const bloque = {
   total: {},
   facultades: [
-    { facultad: "GESTIÓN", faculty_key: "gestion", aulas_aplicadas: 1, reservas_libres: 42 },
+    // Con cifras del motor: son las que mandan.
+    { facultad: "GESTIÓN", faculty_key: "gestion", aulas_aplicadas: 1, reservas_libres: 42,
+      cuota: 60, conseguido: 10, cursos_agendados: 2, proyectado_agendado: 34,
+      margen_agendado: -26, riesgo_agendado: "riesgo" },
     { facultad: "CONTABLES", faculty_key: "contables", aulas_aplicadas: 0, reservas_libres: 7 },
     { facultad: "EDUCACION", faculty_key: "educacion", aulas_aplicadas: 0, reservas_libres: 14 },
     { facultad: "DERECHO", faculty_key: "derecho", aulas_aplicadas: 6, reservas_libres: 207 },
@@ -66,13 +69,23 @@ describe("las facultades en riesgo que el ranking de tasas no ve", () => {
     const filas = facultadesEnRiesgo(bloque, celdas, plan);
     const g = filas.find((f) => f.clave === "gestion")!;
     expect(g.aviso).toBe("agenda_corta");
+    expect(g.reservasLibres).toBe(42);
+    // **Las cifras salen del MOTOR, no de una segunda fórmula en TypeScript.**
+    // `proyectado_agendado` 34 sobre lo conseguido 10 son 24 en camino, y su
+    // `margen_agendado` −26 es lo que faltaría. Que coincidan con lo que el
+    // respaldo daba no es casualidad: es la misma cuenta, hecha una sola vez.
+    expect(g.medido).toBe(true);
     expect(g.cursosEnCamino).toBe(2);
-    // 50 elegibles al 50 % dan 24, no 25: el pronóstico redondea POR SEXO
-    // (15 mujeres al 50 % son 7, no 7,5) y la deuda tampoco se compensa entre
-    // sexos. De 50 que faltan quedarían 26.
     expect(g.enCamino).toBe(24);
     expect(g.quedaria).toBe(26);
-    expect(g.reservasLibres).toBe(42);
+  });
+
+  it("si el motor no proyecta —facultad sin campo— la cifra se marca como estimada", () => {
+    // ADR 0082: sin campo el motor NO cae a la τ prevista, porque eso publica el
+    // supuesto como medición. El panel estima igual, y lo dice.
+    const c = facultadesEnRiesgo(bloque, celdas, plan).find((f) => f.clave === "contables")!;
+    expect(c.medido).toBe(false);
+    expect(c.enCamino).toBeGreaterThan(0);
   });
 
   it("la que no tiene campo pero sí fechas se avisa como sin medir, no como corta", () => {

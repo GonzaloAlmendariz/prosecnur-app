@@ -101,8 +101,11 @@ export function AulasFacultadesEnRiesgo({ bloque, celdasDeCuota, plan, facultadE
                     <b>{fmt(f.cursosEnCamino)}</b> {f.cursosEnCamino === 1
                       ? "curso-horario agendado espera" : "cursos-horario agendados esperan"} traer{" "}
                     <b>{fmt(f.enCamino)}</b> para {f.falta === 1
-                      ? <>la respuesta que le falta</> : <>las <b>{fmt(f.falta)}</b> que le faltan</>},
-                    con una tasa que todavía no se ha comprobado ahí.</>
+                      ? <>la respuesta que le falta</> : <>las <b>{fmt(f.falta)}</b> que le faltan</>}
+                    {/* **De dónde sale ese número.** Sin campo el motor no
+                        proyecta —caer a la tasa prevista publicaría el supuesto
+                        como medición— y esta cifra la estima el perfil. */}
+                    {f.medido ? "." : ", con una tasa prestada: en esta facultad todavía no se ha comprobado ninguna."}</>
                 ) : (
                   // El caso que de verdad urge: sin campo y sin nada agendado,
                   // nadie va a medirla si no se activa una reserva.

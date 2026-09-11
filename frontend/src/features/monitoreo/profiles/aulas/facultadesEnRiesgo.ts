@@ -62,6 +62,11 @@ export type RiesgoDeFacultad = {
   proximaFecha: string;
   reservasLibres: number;
   /**
+   * `true` si las cifras salen del motor. `false` en la facultad sin campo,
+   * donde el motor no proyecta y el respaldo estima con una tasa prestada.
+   */
+  medido: boolean;
+  /**
    * Cuál de los dos riesgos manda. La agenda corta va primero: es accionable
    * hoy —se activa una reserva— y no depende de esperar a medir.
    */
@@ -90,11 +95,34 @@ export function facultadesEnRiesgo(
     );
     const def = cuota ? deficitOperativo(cuota, plan, facultad) : null;
 
-    const quedaria = def?.quedaria.total ?? 0;
-    const meta = (cuota?.meta.mujeres ?? 0) + (cuota?.meta.hombres ?? 0);
-    const logrado = (cuota?.logrado.mujeres ?? 0) + (cuota?.logrado.hombres ?? 0);
+    /**
+     * **La cuenta la hace el MOTOR, no esta función.**
+     *
+     * Desde el 2026-09-11 el motor publica `proyectado_agendado` y
+     * `margen_agendado`: la misma fórmula del margen sobre el aforo que tiene
+     * fecha. Antes esto lo derivaba `deficitOperativo` en TypeScript y la
+     * pantalla acababa con dos respuestas a la misma pregunta.
+     *
+     * El respaldo en TS sigue vivo para UN caso: la facultad sin campo. Ahí el
+     * motor no proyecta a propósito (ADR 0082: caer a la τ prevista publicaría
+     * el supuesto como medición) y el panel necesita igual una estimación para
+     * decir si lo agendado le alcanzaría — declarándola como lo que es.
+     */
+    const delMotor = Number.isFinite(Number(f.margen_agendado));
+    const meta = Number(f.cuota) || (cuota?.meta.mujeres ?? 0) + (cuota?.meta.hombres ?? 0);
+    const logrado = Number.isFinite(Number(f.conseguido))
+      ? Number(f.conseguido)
+      : (cuota?.logrado.mujeres ?? 0) + (cuota?.logrado.hombres ?? 0);
     const falta = Math.max(0, meta - logrado);
-    const enCamino = def?.enCamino.total ?? 0;
+    const quedaria = delMotor
+      ? Math.max(0, Math.round(-Number(f.margen_agendado)))
+      : def?.quedaria.total ?? 0;
+    const enCamino = delMotor
+      ? Math.max(0, Math.round(Number(f.proyectado_agendado) - logrado))
+      : def?.enCamino.total ?? 0;
+    const cursosEnCamino = delMotor
+      ? Number(f.cursos_agendados) || 0
+      : def?.cursosEnCamino ?? 0;
 
     /**
      * **No medirse es un riesgo sólo cuando hay algo en juego.** Sin campo
@@ -125,8 +153,10 @@ export function facultadesEnRiesgo(
       meta,
       logrado,
       falta,
-      cursosEnCamino: def?.cursosEnCamino ?? 0,
+      cursosEnCamino,
       enCamino,
+      /** `false` cuando la facultad no tiene campo y la cifra es una estimación. */
+      medido: delMotor,
       quedaria,
       proximaFecha,
       reservasLibres: Number(f.reservas_libres) || 0,
