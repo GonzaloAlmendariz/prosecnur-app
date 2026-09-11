@@ -286,9 +286,8 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
   n_paneles <- if (hay_ritmo) length(ritmo_previo$facultades %||% list()) else 0L
   total_paginas <- 1L +                                        # resumen
     (if (hay_ritmo) 1L else 0L) +                              # ritmo global
-    (if (n_paneles > 1L) {
-      ceiling(n_paneles / .marp_rejilla_de_paneles(n_paneles)$por_hoja)
-    } else 0L) +                                                # ritmo por facultad
+    (if (n_paneles > 1L) .marp_rejilla_de_paneles(n_paneles)$hojas else 0L) +
+                                                                # ritmo por facultad
     1L +                                                        # metas por facultad
     .marp_reparto_avance(nrow(df))$hojas +                       # avance visual
     length(paginas) * length(hojas_detalle) +                   # detalle numérico
@@ -343,14 +342,21 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     # la del gráfico global —la suma de una facultad es esa facultad—, así que la
     # hoja repetiría el dibujo anterior con otro tamaño.
     if (length(paneles) > 1L) {
-      por_hoja <- .marp_rejilla_de_paneles(length(paneles))$por_hoja
+      # **La rejilla la fija el TOTAL de facultades, no cada hoja.** Dejando que
+      # cada hoja eligiera sus columnas por su cuenta, la última —con cuatro
+      # paneles en vez de cinco— pasaba a dos columnas y sus paneles salían un
+      # tercio más grandes que los de las hojas anteriores. Un lector que pasa
+      # de página ve el mismo gráfico cambiar de tamaño sin motivo.
+      rejilla <- .marp_rejilla_de_paneles(length(paneles))
+      por_hoja <- rejilla$por_hoja
       hojas <- split(seq_along(paneles), ceiling(seq_along(paneles) / por_hoja))
       for (h in seq_along(hojas)) {
         nueva("Ritmo por facultad",
               if (length(hojas) > 1L) {
                 sprintf("Cada panel con su propia escala · %d de %d", h, length(hojas))
               } else "Cada panel con su propia escala")
-        .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util)
+        .marp_paneles_por_facultad(paneles[hojas[[h]]], tok, ty, geo, x0, ancho_util,
+                                   columnas = rejilla$columnas)
         pulso_pdf_leyenda(x0, 0.104, list(
           list(texto = "Efectivas del día", color = tok$navy, forma = "barra"),
           list(texto = "Acumulado", color = tok$success, forma = "linea"),

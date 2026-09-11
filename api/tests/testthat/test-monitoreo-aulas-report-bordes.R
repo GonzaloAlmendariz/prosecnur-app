@@ -133,3 +133,19 @@ test_that("el reparto de filas prefiere una hoja llena a dos medio vacias", {
   degenerado <- r(10L, arriba = 0.2, abajo = 0.3, alto_max = 0.046, alto_min = 0.036)
   expect_gte(degenerado$por_hoja, 1L)
 })
+
+test_that("las hojas de paneles se reparten parejas y ninguna queda coja", {
+  r <- prosecnurapp:::.marp_rejilla_de_paneles
+  # Catorce facultades daban 6+6+2: la ultima hoja con dos paneles arriba a la
+  # izquierda y media pagina en blanco.
+  catorce <- r(14L)
+  expect_equal(catorce$hojas, 3L)
+  expect_equal(catorce$por_hoja, 5L)
+  # Ninguna hoja se pasa de su cabida (columnas x 2 filas).
+  for (n in 1:40) {
+    out <- r(n)
+    expect_lte(out$por_hoja, out$columnas * 2L)
+    expect_gte(out$por_hoja * out$hojas, n)
+    expect_gte(out$hojas, 1L)
+  }
+})

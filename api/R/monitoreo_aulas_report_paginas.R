@@ -281,8 +281,16 @@
 #' contiene, lo exhibe.
 #' @keywords internal
 .marp_rejilla_de_paneles <- function(n) {
-  columnas <- if (n <= 2L) n else if (n <= 4L) 2L else 3L
-  list(columnas = max(1L, columnas), por_hoja = max(1L, columnas * 2L))
+  n <- max(0L, as.integer(n))
+  columnas <- if (n <= 2L) max(1L, n) else if (n <= 4L) 2L else 3L
+  cabida <- columnas * 2L
+  # **Reparto parejo, como en las tablas.** Catorce facultades a seis por hoja
+  # daban 6+6+2, y la última salía con dos paneles arriba a la izquierda y media
+  # página en blanco. Repartidas, son 5+5+4: todas las hojas conservan sus dos
+  # filas y el mismo tamaño de panel, y ninguna queda coja.
+  hojas <- max(1L, ceiling(max(1L, n) / cabida))
+  list(columnas = columnas, hojas = hojas,
+       por_hoja = max(1L, ceiling(max(1L, n) / hojas)))
 }
 
 .marp_paneles_por_facultad <- function(paneles, tok, ty, geo, x0, ancho,
