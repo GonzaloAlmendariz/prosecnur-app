@@ -113,7 +113,19 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
     () => refuerzosDeFacultad(filas, facultadCruda, deuda),
     [filas, facultadCruda, deuda],
   );
-  const plan = useMemo(() => planDeRefuerzo(candidatos, deuda), [candidatos, deuda]);
+  /**
+   * **El veredicto mide el déficit que QUEDA, no el bruto.**
+   *
+   * Decía «Alcanza: con 6 cursos-horario se cierra lo que debe» justo debajo de
+   * «con lo agendado la cuota queda cubierta»: dos frases del mismo párrafo
+   * contradiciéndose, porque una descontaba lo que ya viene y la otra no. Quien
+   * lee se queda con la que pide acción, que aquí es la equivocada.
+   */
+  const loQueQueda = deficit ? deficit.quedaria : deuda;
+  const plan = useMemo(
+    () => planDeRefuerzo(candidatos, loQueQueda),
+    [candidatos, loQueQueda],
+  );
   const debeM = Math.max(0, Math.round(deuda.mujeres));
   const debeH = Math.max(0, Math.round(deuda.hombres));
 
@@ -206,7 +218,13 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
       ) : null}
 
       <p className={`aulas-refuerzo-veredicto${plan.alcanza ? " es-alcanza" : " es-corto"}`}>
-        {plan.sinDeuda ? (
+        {deficit?.loAgendadoAlcanza ? (
+          <>
+            No hace falta reforzar: lo que ya está agendado cubre la cuota. Esta
+            lista queda como respaldo por si alguno de esos {fmt(deficit.cursosEnCamino)} no
+            llega a aplicarse.
+          </>
+        ) : plan.sinDeuda ? (
           <>Nada que reforzar aquí. Los cursos-horario libres de {facultad} se quedan para relevar si cae un titular.</>
         ) : plan.alcanza ? (
           <>
@@ -323,6 +341,10 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
             <thead>
               <tr>
                 <th scope="col" />
+                {/* La tasa, en columna propia y no bajo el rótulo: así las dos
+                    —la que el plan asumió y la que el campo da— se comparan de
+                    un vistazo, y esa diferencia es de dónde sale el desvío. */}
+                <th scope="col">Tasa</th>
                 <th scope="col">Mujeres</th>
                 <th scope="col">Hombres</th>
                 <th scope="col">Total</th>
@@ -331,6 +353,7 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
             <tbody>
               <tr className="es-techo">
                 <th scope="row">Elegibles</th>
+                <td className="es-tasa">—</td>
                 <td>{fmt(pr.elegibles.mujeres)}</td>
                 <td>{fmt(pr.elegibles.hombres)}</td>
                 <td><b>{fmt(pr.elegibles.total)}</b></td>
@@ -338,6 +361,9 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
               {pr.plan ? (
                 <tr className="es-plan">
                   <th scope="row">Según el plan</th>
+                  <td className="es-tasa">
+                    {pr.tasaDelPlan == null ? "—" : pctPerfil(pr.tasaDelPlan * 100)}
+                  </td>
                   <td>{fmt(pr.plan.mujeres)}</td>
                   <td>{fmt(pr.plan.hombres)}</td>
                   <td><b>{fmt(pr.plan.total)}</b></td>
@@ -346,12 +372,15 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
               <tr className="es-ritmo">
                 <th scope="row">
                   Proyección actual
+                  {/* De dónde sale la tasa: medida sobre este curso-horario o
+                      prestada de su facultad. No son lo mismo. */}
                   <em>
-                    {pr.deDondeLaTasa === "aula" ? `${pctPerfil(pr.tasa * 100)} suyo`
-                      : pr.deDondeLaTasa === "facultad" ? `${pctPerfil(pr.tasa * 100)} de su facultad`
-                      : `${pctPerfil(pr.tasa * 100)} del perfil, sin medida propia`}
+                    {pr.deDondeLaTasa === "aula" ? "medida suya"
+                      : pr.deDondeLaTasa === "facultad" ? "de su facultad"
+                      : "del perfil, sin medida propia"}
                   </em>
                 </th>
+                <td className="es-tasa">{pctPerfil(pr.tasa * 100)}</td>
                 <td>{fmt(c.aporta.mujeres)}</td>
                 <td>{fmt(c.aporta.hombres)}</td>
                 <td><b>{fmt(c.aporta.total)}</b></td>

@@ -398,3 +398,12 @@
   font-variant-numeric: tabular-nums;
 }
 .aulas-refuerzo-plan b { color: var(--pulso-text-soft); font-weight: 600; }
+
+/* La columna de la tasa: antes de los sexos, porque es la vara con la que se
+   calculó la fila y no un resultado más. */
+.aulas-refuerzo-varas3 td.es-tasa {
+  color: var(--pulso-text-faint);
+  text-align: right;
+  padding-right: 10px;
+}
+.aulas-refuerzo-varas3 .es-ritmo td.es-tasa { color: var(--pulso-text-soft); }

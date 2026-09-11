@@ -103,9 +103,18 @@ describe("la fila de esperadas suma", () => {
    * y esta comprobación se hace sobre la última. Lo que el contrato pide —que
    * las dos cifras de sexo den el total— no cambia; cambia dónde se lee.
    */
+  /**
+   * Las celdas de GENTE de una fila, saltando la de la tasa.
+   *
+   * La columna de tasa se añadió el 2026-09-11 —Gonzalo: «el 50.5 % suyo no se
+   * lee bien, debería ser una columna con ambos porcentajes»— y va delante de
+   * los sexos, así que un lector posicional la recogería como si fuera una
+   * cifra de personas. Se excluye por su clase, no por su posición: mover una
+   * columna no debe cambiar lo que este contrato mide.
+   */
   const celdas = (html: string) => {
     const fila = /<tr class="es-ritmo">[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
-    return [...fila.matchAll(/<td[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]));
+    return [...fila.matchAll(/<td(?![^>]*es-tasa)[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]));
   };
 
   it("el caso real: 5 mujeres y 24 hombres al 0,52 dan 14, no 15", () => {
@@ -124,7 +133,10 @@ describe("la fila de esperadas suma", () => {
     const html = conReparto(10, 10, 0.5);
     expect(html).toContain("Elegibles");
     expect(html).toContain("Proyección actual");
+    // Y la tasa en su columna, con las dos varas comparables.
+    expect(html).toContain("Tasa");
     const techo = /<tr class="es-techo">[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
-    expect([...techo.matchAll(/<td[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1]))).toEqual([10, 10, 20]);
+    expect([...techo.matchAll(/<td(?![^>]*es-tasa)[^>]*>(?:<b>)?(\d+)/g)].map((m) => Number(m[1])))
+      .toEqual([10, 10, 20]);
   });
 });
