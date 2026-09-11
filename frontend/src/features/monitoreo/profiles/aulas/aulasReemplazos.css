@@ -598,3 +598,13 @@
 .aulas-reemplazo-desvio b { font-weight: var(--pulso-weight-semibold); }
 .aulas-reemplazo-desvio.es-corto { color: var(--pulso-danger-fg); }
 .aulas-reemplazo-desvio.es-sobra { color: var(--pulso-success-fg); }
+
+/* La columna de la tasa: va antes de los sexos porque es la vara con la que se
+   calculó la fila, no un resultado más. En gris para que las cifras de gente
+   sigan mandando. */
+.aulas-reemplazo-varas3 td.es-tasa {
+  color: var(--pulso-text-faint);
+  text-align: right;
+  padding-right: 10px;
+}
+.aulas-reemplazo-varas3 .es-ritmo td.es-tasa { color: var(--pulso-text-soft); }

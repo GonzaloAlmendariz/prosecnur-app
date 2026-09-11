@@ -219,6 +219,7 @@ function Candidato({
               rotulo: string,
               v: { mujeres: number; hombres: number; total: number },
               clase: string,
+              tasa: number | null,
               nota?: string,
             ) => (
               <tr className={clase}>
@@ -226,6 +227,9 @@ function Candidato({
                   {rotulo}
                   {nota ? <em>{nota}</em> : null}
                 </th>
+                {/* La tasa en columna propia: las dos se comparan de un vistazo
+                    y su diferencia es de dónde sale el desvío de abajo. */}
+                <td className="es-tasa">{tasa == null ? "—" : pctPerfil(tasa * 100)}</td>
                 <td>{fmt(v.mujeres)}</td>
                 <td>{fmt(v.hombres)}</td>
                 <td><b>{fmt(v.total)}</b></td>
@@ -236,23 +240,25 @@ function Candidato({
                 <thead>
                   <tr>
                     <th scope="col" />
+                    <th scope="col">Tasa</th>
                     <th scope="col">Mujeres</th>
                     <th scope="col">Hombres</th>
                     <th scope="col">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {fila("Elegibles", pr.elegibles, "es-techo")}
-                  {pr.plan ? fila("Según el plan", pr.plan, "es-plan") : null}
+                  {fila("Elegibles", pr.elegibles, "es-techo", null)}
+                  {pr.plan ? fila("Según el plan", pr.plan, "es-plan", pr.tasaDelPlan) : null}
                   {fila(
                     "Proyección actual",
                     pr.ritmo,
                     "es-ritmo",
+                    pr.tasa,
                     // De dónde sale la tasa, porque no es lo mismo medida sobre
                     // este curso-horario que prestada de su facultad.
-                    pr.deDondeLaTasa === "aula" ? `${pctPerfil(pr.tasa * 100)} suyo`
-                      : pr.deDondeLaTasa === "facultad" ? `${pctPerfil(pr.tasa * 100)} de su facultad`
-                      : `${pctPerfil(pr.tasa * 100)} del perfil, sin medida propia`,
+                    pr.deDondeLaTasa === "aula" ? "medida suya"
+                      : pr.deDondeLaTasa === "facultad" ? "de su facultad"
+                      : "del perfil, sin medida propia",
                   )}
                 </tbody>
               </table>

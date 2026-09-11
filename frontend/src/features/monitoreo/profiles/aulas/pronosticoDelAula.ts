@@ -53,6 +53,19 @@ export type PronosticoDelAula = {
   tasa: number;
   deDondeLaTasa: "aula" | "facultad" | "perfil";
   /**
+   * **La tasa que el plan asumió**: su meta sobre el padrón.
+   *
+   * Va junto a la del ritmo y no debajo del rótulo. Gonzalo, 2026-09-11: «el
+   * 50.5 % suyo no se lee bien, debería ser una columna entre antes de mujeres,
+   * con ambos porcentajes». Tiene razón y no es sólo forma: las dos tasas en la
+   * misma columna se comparan de un vistazo —el plan asumía 47,2 % y el campo
+   * está dando 50,5 %— y esa diferencia es de dónde sale el desvío de abajo.
+   *
+   * `null` cuando el plan no declara meta o el padrón está vacío: no hay tasa
+   * que calcular y un cero diría que el diseño no esperaba nada.
+   */
+  tasaDelPlan: number | null;
+  /**
    * **Cuánto se aparta la proyección de lo que el plan pidió.**
    *
    * Positivo es dar de más. `null` cuando el plan no declara meta, porque
@@ -96,6 +109,7 @@ export function pronosticoDelAula(f: MonitoreoAulasPlanRow): PronosticoDelAula {
     ritmo,
     tasa,
     deDondeLaTasa,
+    tasaDelPlan: plan && elegibles.total > 0 ? plan.total / elegibles.total : null,
     desvio: plan ? ritmo.total - plan.total : null,
   };
 }
