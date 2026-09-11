@@ -108,3 +108,27 @@ sin snapshot de monitoreo y sin cuotas.
   antes de escribirlo y deja la UI caída varios minutos.
 - Enriquecer `api/inst/reference_projects/hsvg2026/` con un snapshot de
   monitoreo, para que el bucle de verificación sea reproducible fuera de sesión.
+
+## Generado desde la app (2026-09-11, 16:06)
+
+El PDF ya sale por el camino real: `POST /api/monitoreo/client-report/pdf` →
+job `monitoreo.aulas_advance_pdf` → `HSVG26_para_ui_avance_aulas_monitoreo_11_09_26.pdf`
+(325 KB, 11 páginas: portada + 10 numeradas). Antes respondía
+`E_AULAS_SIN_PLAN`; el defecto y su arreglo están en `e2770d71`.
+
+### Abierto — «planificados» vale 74 en la app y 174 en el PDF
+
+Mismo corte, mismo rótulo, dos números:
+
+| Superficie | Cifra | De dónde sale |
+|---|---|---|
+| Tarjeta «Cursos-horario planificados · titulares del plan» | **74** | `dashboard.course_status_con_meta` (`kpisDeAulas.ts:1003`) |
+| PDF, «Aulas planificadas» y «de 174 previstos» | **174** | filas del plan con `sample_role == "titular"` (`monitoreo_aulas_report_pdf.R:119`) |
+
+Los titulares del plan son **174** (medido sobre `s$monitoreo_aulas_plan`:
+1.392 filas = 174 titular + 1.173 chain_reserve + 45 extra_reserve_pool), y la
+columna x/x del detalle por facultad suma 75 / 174. `con_meta` es otra
+población —las que están **en juego y con meta declarada**—, así que la tarjeta
+promete «titulares del plan» y muestra otra cosa; de ahí que la app enseñe 75
+aplicados sobre 74 planificados. El PDF no está afectado: es la etiqueta de la
+tarjeta la que no corresponde a su número.
