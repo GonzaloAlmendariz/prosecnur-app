@@ -34,6 +34,14 @@ pulso_pdf_tokens <- function() {
     tbl_div    = "#c9d1de",  # divisor de columnas
     canvas     = "#f6f8fb",  # lienzo de fondo (dashboards)
     surface    = "#ffffff",  # tarjetas/paneles
+    # Sexo: los MISMOS valores que la app en pantalla
+    # (`--pulso-module-dashboard` y `--pulso-accent-rose` de `tokens.css`). Van
+    # copiados y no derivados porque el PDF no puede leer el CSS, y van copiados
+    # CON esta nota porque un lector del PDF y un lector de la pantalla comparan
+    # los dos: si el azul de hombres no fuera el mismo azul, el documento
+    # contradiría a la herramienta con la que se hizo.
+    sexo_h = "#4a6eb6",
+    sexo_m = "#c2416b",
     # Acentos semánticos (opcionales, para dashboards; no decorativos)
     success = "#0f766e",  # verde territorial (zonas aplicadas, cumplimiento alto)
     warn    = "#b7791f",
@@ -65,6 +73,30 @@ pulso_pdf_geo <- function(orientation = c("portrait", "landscape")) {
     list(orientation = orientation, page_w = 11.69, page_h = 8.27,
          margin = 0.048, y_top = 0.900, y_bottom = 0.082)
   }
+}
+
+#' Abre el device PDF con la geometría del kit.
+#'
+#' Existe porque el nombre de los campos se puede escribir mal y nadie se entera:
+#' el reporte de avance de aulas pedía `geo$w_in`/`geo$h_in` —que no existen— y
+#' `grDevices::pdf()` caía en silencio a su defecto de 7×7 pulgadas. El documento
+#' se generaba, se abría y se veía razonable; simplemente no era apaisado, y la
+#' tabla ancha para la que se eligió el apaisado venía apretándose desde el día
+#' uno. Un `$` sobre una lista devuelve `NULL` por un nombre inexistente, así que
+#' no hay error que ver. Con esta función el nombre se escribe UNA vez.
+#'
+#' @param path ruta del PDF.
+#' @param geo salida de `pulso_pdf_geo()`.
+#' @export
+pulso_pdf_abrir <- function(path, geo = pulso_pdf_geo(), onefile = TRUE) {
+  w <- geo$page_w; h <- geo$page_h
+  if (!is.numeric(w) || !is.numeric(h) || !length(w) || !length(h) ||
+      !is.finite(w[[1L]]) || !is.finite(h[[1L]])) {
+    stop("pulso_pdf_abrir(): la geometria no trae page_w/page_h numericos.")
+  }
+  grDevices::pdf(path, width = w[[1L]], height = h[[1L]],
+                 paper = "special", onefile = onefile)
+  invisible(path)
 }
 
 # --- Logo con corrección de aspecto -----------------------------------------
