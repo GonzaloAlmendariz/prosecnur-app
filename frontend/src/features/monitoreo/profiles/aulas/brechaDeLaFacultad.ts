@@ -24,6 +24,58 @@ import { sexSeriesKind } from "../../../calcMuestra/sexoPalette";
  * cero: el popover distingue los dos casos y con cero pintaría «0 %» a los tres
  * candidatos, que se lee como «ninguno ayuda» en vez de «aquí no se mide».
  */
+/**
+ * La cuota de la facultad con su contexto: no sólo lo que falta, también la
+ * meta y lo logrado.
+ *
+ * **Por qué hace falta el contexto.** Gonzalo, 2026-09-11: «dice déficit de 65
+ * pero en la otra ventana el déficit es de 6, no entiendo». Las dos cifras eran
+ * ciertas y median cosas distintas —el ranking, lo que se perdió en las aulas
+ * YA VISITADAS; el popover, lo que falta para cerrar la CUOTA— y ninguna decía
+ * cuál era. Una cifra que no puede explicarse a sí misma acaba contradiciendo a
+ * la de al lado.
+ *
+ * Medido en HSVG26ULT2, Ciencias Sociales: cuota de 79 mujeres, lleva 33,
+ * faltan 46. Y su rendimiento sobre lo visitado es −7. Las dos son verdad.
+ */
+export type CuotaDeFacultad = BrechaPorSexo & {
+  /** La meta de la facultad por sexo: el denominador que faltaba. */
+  meta: { mujeres: number; hombres: number };
+  /** Lo conseguido hasta el corte. */
+  logrado: { mujeres: number; hombres: number };
+};
+
+export function cuotaDeLaFacultad(
+  celdas: ReadonlyArray<Record<string, unknown>> | undefined,
+  facultad: string,
+): CuotaDeFacultad | undefined {
+  const base = brechaDeLaFacultad(celdas, facultad);
+  if (!base) return undefined;
+  const clave = String(facultad ?? "").trim().toLocaleUpperCase();
+  const meta = { mujeres: 0, hombres: 0 };
+  const logrado = { mujeres: 0, hombres: 0 };
+  for (const celda of celdas ?? []) {
+    if (!celda || typeof celda !== "object") continue;
+    if (String(celda.faculty ?? "").trim().toLocaleUpperCase() !== clave) continue;
+    const key = String(celda.sex_key ?? "").trim().toLocaleUpperCase();
+    const kind = key === "F" ? "female"
+      : key === "M" ? "male"
+      : sexSeriesKind(String(celda.sex ?? "").trim());
+    if (kind !== "female" && kind !== "male") continue;
+    const donde = kind === "female" ? "mujeres" : "hombres";
+    const objetivo = Number(celda.target);
+    // `achieved` cuando el motor lo publica; si no, meta menos lo que falta,
+    // que es la misma resta que él hizo para producir `missing`.
+    const hecho = Number(celda.achieved);
+    if (Number.isFinite(objetivo)) meta[donde] += Math.max(0, objetivo);
+    if (Number.isFinite(hecho)) logrado[donde] += Math.max(0, hecho);
+    else if (Number.isFinite(objetivo)) {
+      logrado[donde] += Math.max(0, objetivo - Math.max(0, Number(celda.missing) || 0));
+    }
+  }
+  return { ...base, meta, logrado };
+}
+
 export function brechaDeLaFacultad(
   celdas: ReadonlyArray<Record<string, unknown>> | undefined,
   facultad: string,

@@ -321,3 +321,16 @@
 @media (max-width: 900px) {
   .mon-profile-page.is-aulas-flow .aulas-cvf-porque { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 }
+
+/* Qué mide esta columna y qué no: sin esto, «−7» aquí y «faltan 46» en el
+   popover de refuerzo se leen como una contradicción, y son dos preguntas. */
+.mon-profile-page.is-aulas-flow .aulas-cvf-aclara {
+  margin: 4px 0 0;
+  font-size: var(--aulas-min);
+  color: var(--pulso-text-faint);
+  line-height: 1.45;
+}
+.mon-profile-page.is-aulas-flow .aulas-cvf-aclara strong {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}

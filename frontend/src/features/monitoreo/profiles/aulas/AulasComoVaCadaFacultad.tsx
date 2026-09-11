@@ -183,18 +183,18 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
           </div>
 
           <div className="aulas-cvf-columna">
-            <h5>Dónde está el déficit</h5>
+            <h5>Rendimiento hasta ahora</h5>
             <table className="aulas-cvf-desglose">
               <tbody>
                 <tr className={f.mujeres < 0 ? "es-debe" : ""}>
                   <th scope="row">Mujeres</th>
                   <td>{f.mujeres > 0 ? `+${fmt(f.mujeres)}` : f.mujeres < 0 ? `−${fmt(Math.abs(f.mujeres))}` : "0"}</td>
-                  <td><em>{f.mujeres < 0 ? "por conseguir" : f.mujeres > 0 ? "de más" : "en lo previsto"}</em></td>
+                  <td><em>{f.mujeres < 0 ? "bajo lo previsto" : f.mujeres > 0 ? "sobre lo previsto" : "en lo previsto"}</em></td>
                 </tr>
                 <tr className={f.hombres < 0 ? "es-debe" : ""}>
                   <th scope="row">Hombres</th>
                   <td>{f.hombres > 0 ? `+${fmt(f.hombres)}` : f.hombres < 0 ? `−${fmt(Math.abs(f.hombres))}` : "0"}</td>
-                  <td><em>{f.hombres < 0 ? "por conseguir" : f.hombres > 0 ? "de más" : "en lo previsto"}</em></td>
+                  <td><em>{f.hombres < 0 ? "bajo lo previsto" : f.hombres > 0 ? "sobre lo previsto" : "en lo previsto"}</em></td>
                 </tr>
                 <tr className="es-tasa">
                   <th scope="row">Rinde</th>
@@ -208,6 +208,16 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
                 </tr>
               </tbody>
             </table>
+            {/* **Qué mide esta columna y qué NO.** Gonzalo, 2026-09-11: «dice
+                déficit de 65 pero en la otra ventana el déficit es de 6, no
+                entiendo». Las dos cifras son ciertas y miden cosas distintas:
+                aquí, cómo rindió lo que YA se aplicó; en el popover de refuerzo,
+                cuánto falta para cerrar la cuota contando lo que aún no se ha
+                visitado. Sin decirlo, la segunda parece desmentir a la primera. */}
+            <p className="aulas-cvf-aclara">
+              Sobre los <strong>{fmt(f.aulas)}</strong> ya aplicados. Lo que falta
+              para cerrar su cuota es otra cifra, y sale al buscar refuerzo.
+            </p>
           </div>
 
           <div className="aulas-cvf-columna">
