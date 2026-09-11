@@ -48,18 +48,27 @@ type OutputFamily = "acreditacion" | "territorial" | "telefonico" | "aulas";
 /**
  * Qué PDF sabe emitir cada familia.
  *
- * La garantía vive acá y no en el call site a propósito:
- * `.monitoreo_client_report_model_for_snapshot` solo ramifica para territorial y
- * telefónico, así que cursos-horario cae al modelo de acreditación y el botón
- * entregaría un documento con actores y encuestas que ese perfil no tiene. Si el
- * permiso dependiera de que cada montaje recuerde pasar la prop, el primer
- * montaje que la olvide vuelve a ofrecer el documento equivocado.
+ * La garantía vive acá y no en el call site a propósito: si el permiso
+ * dependiera de que cada montaje recuerde pasar la prop, el primer montaje que
+ * la olvide vuelve a ofrecer el documento equivocado.
+ *
+ * **`aulas.client` pasó a `true` el 2026-09-11.** Estaba en `false` porque
+ * `.monitoreo_client_report_model_for_snapshot()` sólo ramificaba para
+ * territorial y telefónico, así que cursos-horario caía al modelo de
+ * acreditación y el botón habría entregado un documento con «actores» y
+ * «encuestas» que ese perfil no tiene. Esa rama existe desde el 2026-08-27
+ * (`build_monitoreo_aulas_report_model`) y el reporte se terminó el 2026-09-11:
+ * el guard llevaba dos semanas protegiendo contra algo ya arreglado, y sólo se
+ * vio al abrir la app y no encontrar la tarjeta.
+ *
+ * `aulas.production` sigue en `false`: el PDF de producción por aplicador es
+ * otro reporte, y el motor de aulas no lo construye.
  */
 export const PDF_POR_FAMILIA: Record<OutputFamily, { client: boolean; production: boolean }> = {
   acreditacion: { client: true, production: true },
   territorial: { client: true, production: true },
   telefonico: { client: true, production: true },
-  aulas: { client: false, production: false },
+  aulas: { client: true, production: false },
 };
 type PublicationStatus = {
   kind: "idle" | "checking" | "publishing" | "success" | "error";
