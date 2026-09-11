@@ -68,8 +68,9 @@ export function AulasSeccionConsultas({
    * ayuda de la app, la app solo lo lee».
    *
    * El aula queda en REFUERZO POR CONTACTAR —no en agendada— porque nadie la ha
-   * llamado todavía, y sale en morado en el libro para que el agendador vea su
-   * cola de un vistazo.
+   * llamado todavía. Ojo: hoy eso se ve SOLO aquí. El morado existe en la paleta
+   * del Sheets, pero se pinta en «Aulas Agendadas» y «Aulas Aplicadas (Campo)»,
+   * que son del equipo y la app no toca.
    */
   const [marcando, setMarcando] = useState("");
   const [avisoDeMarca, setAvisoDeMarca] = useState("");
@@ -601,10 +602,9 @@ export function AulasSeccionConsultas({
                   : undefined;
               })()}
               pedirAntesDe={alerta?.pedirAntesDe ?? null}
-              // **C se marca desde aquí.** Antes sólo cerraba: la decisión se
-              // perdía y el agendador no se enteraba. Ahora el aula queda en
-              // REFUERZO POR CONTACTAR —no agendada, que nadie la ha llamado—
-              // y sale en morado en el libro.
+              // **C se marca desde aquí.** Antes sólo cerraba y la decisión se
+              // perdía. Ahora el aula queda en REFUERZO POR CONTACTAR —no
+              // agendada, que nadie la ha llamado—, visible en la app.
               onElegir={(fila) => {
                 void marcar(String(fila.operational_code ?? ""), "refuerzo", refuerzoDe);
                 setRefuerzoDe("");

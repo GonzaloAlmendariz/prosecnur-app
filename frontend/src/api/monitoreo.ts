@@ -5914,7 +5914,9 @@ export async function apiMonitoreoAulasActivarReemplazo(payload: {
  * también el de A pondría a la app a competir con quien agenda en vivo.
  *
  * El aula NO queda «agendada» sino en su estado propio: está en juego y nadie ha
- * llamado. En el libro sale en morado, que es la cola del agendador.
+ * llamado. Hoy esa marca se ve SOLO en la app: el morado está definido, pero las
+ * dos hojas que pintan STATUS MUESTRA son del equipo y la app no escribe en
+ * ellas mientras tengan contenido.
  */
 export async function apiMonitoreoAulasMarcarRefuerzo(payload: {
   /** El curso-horario que entra a ayudar. */
