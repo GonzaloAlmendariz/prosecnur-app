@@ -5047,7 +5047,7 @@ mount_monitoreo <- function(pr) {
       out <- monitoreo_aulas_publicar_marcas(destino, plan, aplicar = aplicar)
       list(ok = TRUE, escritas = out$escritas, respetadas = out$respetadas,
            sin_fila = as.list(out$sin_fila), por_hoja = out$por_hoja,
-           aplicado = out$aplicado, mensaje = out$mensaje)
+           formato = out$formato, aplicado = out$aplicado, mensaje = out$mensaje)
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/marcar-refuerzos", wrap_endpoint(function(req, res, ...) {
       # **El lote, y existe por una medida.** Una marca suelta tardaba ~120 s

@@ -187,6 +187,7 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
   # La metadata se pide UNA vez y solo si hace falta escribir formato.
   sheet_ids <- NULL
   formato_fallo <- ""
+  formato <- list()
   escritas <- list()
   respetadas <- list()
   por_hoja <- list()
@@ -260,6 +261,15 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
     }
     # **El formato va aunque no se haya escrito nada nuevo.** Es la unica forma
     # de que republicar arregle una marca que ya estaba puesta y salia en rojo.
+    #
+    # **Y cada salida se DECLARA.** La version anterior tenia dos caminos mudos
+    # —sin sheetId y sin requests— que dejaban la celda en rojo sin una sola
+    # linea que lo dijera: el acuse hablaba de celdas escritas y del color no
+    # decia nada, ni bien ni mal. Un paso que puede no ocurrir tiene que contar
+    # por que no ocurrio.
+    fmt <- list(hoja = hoja, columnas = length(columnas_tocadas),
+                sheet_id = NA_integer_, requests = 0L, estado = "sin-columnas",
+                error = "")
     if (aplicar && length(columnas_tocadas)) {
       # **Y que la celda no salga en rojo ni en gris.** El valor escrito no esta
       # en el desplegable de esa columna —«el valor introducido debe ser un
@@ -267,23 +277,40 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
       # morado de la paleta no llega porque la hoja es del equipo y la app no le
       # reenvia formato. Las dos cosas se arreglan SOLO en las columnas que esta
       # publicacion acaba de tocar, que es hasta donde llega la excepcion.
-      ids <- if (is.null(sheet_ids)) { sheet_ids <<- .mapm_sheet_ids(id); sheet_ids } else sheet_ids
-      sid <- ids[[hoja]] %||% NA_integer_
-      if (!is.na(sid)) {
+      if (is.null(sheet_ids)) {
+        sheet_ids <- tryCatch(.mapm_sheet_ids(id), error = function(e) {
+          fmt$error <<- conditionMessage(e)
+          list()
+        })
+      }
+      sid <- if (hoja %in% names(sheet_ids)) sheet_ids[[hoja]] else NA_integer_
+      fmt$sheet_id <- sid
+      if (is.na(sid)) {
+        fmt$estado <- "sin-sheet-id"
+      } else {
         reqs <- .mapm_requests_de_columna(sid, columnas_tocadas, enc$fila, length(valores))
-        if (length(reqs)) {
-          tryCatch(
+        fmt$requests <- length(reqs)
+        if (!length(reqs)) {
+          fmt$estado <- "sin-requests"
+        } else {
+          ok <- tryCatch({
             .monitoreo_google_api(
               paste0(.monitoreo_sheets_api_base(id), ":batchUpdate"),
-              method = "POST", body = list(requests = reqs)),
-            # El valor ya esta escrito, que es lo que pidio Gonzalo. Si el
-            # formato no entra, se dice en el resultado y no se tumba la
-            # publicacion entera por un color.
-            error = function(e) { formato_fallo <<- conditionMessage(e); NULL }
-          )
+              method = "POST", body = list(requests = reqs))
+            TRUE
+          },
+          # El valor ya esta escrito, que es lo que pidio Gonzalo. Si el formato
+          # no entra, se dice y no se tumba la publicacion entera por un color.
+          error = function(e) { fmt$error <<- conditionMessage(e); FALSE })
+          fmt$estado <- if (isTRUE(ok)) "aplicado" else "error"
+          if (!isTRUE(ok)) formato_fallo <- fmt$error
         }
       }
+    } else if (!aplicar) {
+      fmt$estado <- "ensayo"
     }
+    formato[[length(formato) + 1L]] <- fmt
+
     por_hoja[[length(por_hoja) + 1L]] <- list(
       hoja = hoja, escribibles = length(datos), celdas = celdas,
       respetadas = n_respetadas)
@@ -292,7 +319,8 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
 
   out <- list(escritas = escritas, respetadas = respetadas,
               sin_fila = pendientes, por_hoja = por_hoja,
-              formato_fallo = formato_fallo, aplicado = isTRUE(aplicar))
+              formato = formato, formato_fallo = formato_fallo,
+              aplicado = isTRUE(aplicar))
   out$mensaje <- monitoreo_aulas_publicar_marcas_texto(out)
   out
 }
@@ -317,11 +345,24 @@ monitoreo_aulas_publicar_marcas_texto <- function(out) {
                                      paste(utils::head(out$sin_fila, 5L), collapse = ", ")))
   }
   partes <- paste0(partes, ".")
-  # El formato se dice aparte: el valor YA esta escrito, y confundir «no entro
-  # el color» con «no se pinto la celda» manda a mirar la hoja equivocada.
-  fallo <- .mapm_txt(out$formato_fallo %||% "")
-  if (nzchar(fallo)) {
-    partes <- paste0(partes, " El valor quedo escrito, pero el desplegable y el color no se pudieron ajustar: ", fallo)
+  # **El formato se dice SIEMPRE y aparte.** El valor ya esta escrito, y
+  # confundir «no entro el color» con «no se pinto la celda» manda a mirar la
+  # hoja equivocada; callar cuando no se intento es peor todavia.
+  estados <- vapply(out$formato %||% list(), function(f) .mapm_txt(f$estado), character(1))
+  if (length(estados)) {
+    if (all(estados %in% c("aplicado", "ensayo", "sin-columnas"))) {
+      if (any(estados == "aplicado")) {
+        partes <- paste0(partes, " Desplegable y color reemitidos en la columna.")
+      }
+    } else {
+      detalle <- vapply(out$formato, function(f) {
+        sprintf("%s: %s%s", .mapm_txt(f$hoja), .mapm_txt(f$estado),
+                if (nzchar(.mapm_txt(f$error))) paste0(" — ", .mapm_txt(f$error)) else "")
+      }, character(1))
+      partes <- paste0(partes,
+        " El valor esta escrito, pero el desplegable y el color NO entraron (",
+        paste(detalle, collapse = "; "), ").")
+    }
   }
   partes
 }
