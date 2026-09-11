@@ -18,12 +18,11 @@ import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasComoVaCadaFacultad } from "./AulasComoVaCadaFacultad";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { AulasPopoverRefuerzo } from "./AulasPopoverRefuerzo";
-import { AulasAporteDelAbc } from "./AulasAporteDelAbc";
+import { AulasTresCaminos } from "./AulasTresCaminos";
 import { alertaDeAnticipacion } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
-import { AulasCadenaDetalle } from "./AulasCadenaDetalle";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
@@ -175,19 +174,6 @@ export function AulasSeccionConsultas({
               cuota, en cambio, es por facultad: veinte reservas libres no
               sirven si la facultad que perdió un aula tiene cero. */}
           <AulasColchonPorFacultad filas={agendaFilas} />
-          {/* **La tabla genérica se fue el 2026-09-10**, por lo mismo que la de
-              Brechas: enseñaba siete columnas del payload —`sample_status`,
-              `replacement_order`, `sample_role`— y ninguna contestaba la
-              pregunta con la que se entra, que no es «qué dice el libro de esta
-              fila» sino «¿esta cadena necesita algo de mí hoy?». Con seis
-              reservas del mismo titular repetía «reemplaza a CH 1» seis veces y
-              había que reconstruir a quién pertenecían.
-
-              Ahora la unidad es la CADENA y sus eslabones van dentro, en orden,
-              con el que toca marcado y el caído tachado. Y cada cadena termina
-              en un verbo —a quién llamar, o por qué no hay a quién—, no en un
-              estado. */}
-          <AulasCadenaDetalle filas={agendaFilas} />
         </section>
         ) : null}
         {enBrechas ? (
@@ -197,7 +183,7 @@ export function AulasSeccionConsultas({
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            <h3>A quién le va peor, y en qué sexo</h3>
+            <h3>Deuda por sexo, facultad a facultad</h3>
             <span>el mapa de la deuda · pulsa una facultad para ver qué la hundió</span>
           </div>
           {/* **El contexto va ANTES de la tabla, no después.**
@@ -268,15 +254,18 @@ export function AulasSeccionConsultas({
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            <h3>Qué nos dieron las que se metieron</h3>
-            <span>lo que rindieron y lo que sumaron, que no son la misma cifra</span>
+            <h3>Qué pasó, y por dónde se sale</h3>
+            <span>el vocabulario del libro · reemplazo (A), complemento (B), refuerzo (C)</span>
           </div>
           {/* Cierra el circuito de la pestaña: arriba se decide a quién meter,
               aquí se ve qué dio meterlo. Y con las dos varas separadas, que era
               lo que faltaba: «hay que diferenciar qué tan bien nos fue en esa
               aula […] y cómo esa aula nos ayudó, porque esa aula no estaba
               prevista». */}
-          <AulasAporteDelAbc filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]} />
+          <AulasTresCaminos
+            filas={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            porTipo={(dashboard.reemplazos_por_tipo ?? null) as Record<string, unknown> | null}
+          />
         </section>
         ) : null}
         {enParte ? (
