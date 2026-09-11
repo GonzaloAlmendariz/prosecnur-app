@@ -996,6 +996,20 @@ export type MonitoreoAulasEfectividadFacultad = {
   elegibles_agendados: number;
   /** Cuántos cursos-horario sostienen esa proyección. */
   cursos_agendados: number;
+  /**
+   * Los del plan que siguen sin fecha. Son los que se pueden agendar **sin
+   * gastar una reserva**, y separan las dos acciones que una facultad corta
+   * puede necesitar: agendar lo que ya es suyo, o llamar a un docente de
+   * refuerzo.
+   */
+  cursos_sin_agendar: number;
+  /**
+   * Titulares cuyo contacto YA se resolvió —tienen fecha, se aplicaron o
+   * rechazaron— y cuántos de ésos rechazaron. Viajan los dos y no su cociente:
+   * sin denominador, «33 %» puede ser 1 de 3.
+   */
+  titulares_resueltos: number;
+  titulares_rechazo: number;
   proyectado_agendado: number | null;
   /** `proyectado_agendado − cuota`. Negativo = no cierra con lo que hay agendado. */
   margen_agendado: number | null;
@@ -1184,6 +1198,15 @@ export type MonitoreoAulasEfectividadSeguimiento = {
      */
     facultades_en_riesgo_agendado: number;
     alumnos_en_riesgo_agendado: number;
+    /**
+     * **Lo planificado sin fecha no es aforo seguro.** Gonzalo, 2026-09-11: «un
+     * CH puede estar en titulares (planificado) pero hasta que no esté agendado
+     * no sabemos realmente si vamos a poder aplicar allí». Éstos son los dos
+     * números de lo ya ocurrido, con los que se puede decir eso sin inventar
+     * una tasa de conversión.
+     */
+    titulares_resueltos: number;
+    titulares_rechazo: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];
 };

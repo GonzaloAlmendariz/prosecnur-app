@@ -4,6 +4,8 @@ import { AulasMapaDeLaDeuda } from "./AulasMapaDeLaDeuda";
 import { deudaPorFacultad, palabraDelVeredicto, repartoDeDeudas, type DeudaDeFacultad } from "./deudaPorFacultad";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { cierreDeLaFacultad, type CierreDeLaFacultad } from "./facultadesEnRiesgo";
+import { filaDeLaFacultad } from "./resumenDeEfectividad";
 import { palabraDelRumbo, rumboDeLaFacultad, type RumboDeFacultad } from "./rumboDeLaFacultad";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
@@ -100,6 +102,9 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRef
             onAbrir={() => setAbierta((antes) => (antes === f.facultad ? "" : f.facultad))}
             onRefuerzo={onRefuerzo}
             rumbo={rumboDeLaFacultad(partes, plan, f.facultad, f.prevista)}
+            // Cómo va a cerrar, del motor y no de una cuenta propia: es la
+            // lectura que faltaba junto a la de rendimiento.
+            cierre={cierreDeLaFacultad(filaDeLaFacultad(bloque, f.facultad))}
           />
         ))}
       </ul>
@@ -127,11 +132,13 @@ function BarraDeSexo({ letra, valor }: { letra: string; valor: number }): ReactN
   );
 }
 
-function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
+function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo, cierre }: {
   f: DeudaDeFacultad; abierta: boolean; onAbrir: () => void;
   onRefuerzo?: (facultad: string) => void;
   /** Su serie por jornada, ya calculada arriba. */
   rumbo?: RumboDeFacultad;
+  /** Cómo va a cerrar su cuota, leído del motor. */
+  cierre?: CierreDeLaFacultad | null;
 }): ReactNode {
   const sinCampo = f.veredicto === "sin_campo";
   const pct = (v: number | null) => (v == null ? "—" : pctPerfil(v * 100));
@@ -214,10 +221,50 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo }: {
                 aquí, cómo rindió lo que YA se aplicó; en el popover de refuerzo,
                 cuánto falta para cerrar la cuota contando lo que aún no se ha
                 visitado. Sin decirlo, la segunda parece desmentir a la primera. */}
-            <p className="aulas-cvf-aclara">
-              Sobre los <strong>{fmt(f.aulas)}</strong> ya aplicados. Lo que falta
-              para cerrar su cuota es otra cifra, y sale al buscar refuerzo.
-            </p>
+            {/* **Las dos lecturas, juntas.** Gonzalo, 2026-09-11: «por un lado
+                a Derecho no le va mal y por otro a Derecho le falta muchísimo […]
+                ninguno se complementa ni me dice si aquello es necesario».
+                Remitir a «otra cifra» sin darla obligaba a cruzar dos pantallas
+                para entender que una facultad puede rendir bien y estar corta de
+                campo — que es el caso más común y el que decide a quién llamar. */}
+            {(() => {
+              const c = cierre;
+              if (!c || !c.meta) {
+                return (
+                  <p className="aulas-cvf-aclara">
+                    Sobre los <strong>{fmt(f.aulas)}</strong> ya aplicados: mide si lo
+                    aplicado rindió, no si se va a llegar a la cuota.
+                  </p>
+                );
+              }
+              return (
+                <p className="aulas-cvf-aclara">
+                  Sobre los <strong>{fmt(f.aulas)}</strong> ya aplicados: mide si lo
+                  aplicado rindió, no si se va a llegar.{" "}
+                  {c.falta === 0
+                    ? <>Su cuota de <strong>{fmt(c.meta)}</strong> ya está cubierta.</>
+                    : <>Para cerrar su cuota de <strong>{fmt(c.meta)}</strong> le faltan{" "}
+                        <strong>{fmt(c.falta)}</strong> respuestas
+                        {c.cursosEnCamino
+                          ? <>, y sus <strong>{fmt(c.cursosEnCamino)}</strong> cursos-horario
+                              agendados esperan traer <strong>{fmt(c.enCamino)}</strong></>
+                          : <>, y no tiene ningún curso-horario agendado</>}
+                        {c.quedaria > 0
+                          ? <>: <strong>quedarían {fmt(c.quedaria)}</strong>.</>
+                          : <>: con eso cierra.</>}</>}
+                  {c.loQueToca === "agendar" ? (
+                    <> Rinde lo previsto y va corta de campo:{" "}
+                      {c.cursosSinAgendar
+                        ? <>le quedan <strong>{fmt(c.cursosSinAgendar)}</strong> cursos-horario
+                            del plan por agendar, y ahí está el hueco</>
+                        : <>el hueco es de agenda, no de aforo</>}.</>
+                  ) : c.loQueToca === "reforzar" ? (
+                    <> Ni agendando el resto de su plan llegaría: aquí sí hace falta
+                      refuerzo.</>
+                  ) : null}
+                </p>
+              );
+            })()}
           </div>
 
           <div className="aulas-cvf-columna">

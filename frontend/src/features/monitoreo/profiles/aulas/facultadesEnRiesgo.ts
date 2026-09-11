@@ -1,4 +1,6 @@
-import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
+import type {
+  MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento, MonitoreoAulasEfectividadFacultad,
+} from "../../../../api/monitoreo";
 import { cuotaDeLaFacultad } from "./brechaDeLaFacultad";
 import { deficitOperativo, estaEnCamino } from "./deficitOperativo";
 import { MINIMO_PARA_COMPARAR } from "./peorRendimientoDeFacultad";
@@ -62,6 +64,26 @@ export type RiesgoDeFacultad = {
   proximaFecha: string;
   reservasLibres: number;
   /**
+   * Cursos-horario del plan sin fecha y sin rechazo: los que todavía se pueden
+   * agendar sin gastar una reserva. **No son aforo seguro**: hasta que el
+   * docente no acepta no se sabe si se podrá aplicar allí.
+   */
+  cursosSinAgendar: number;
+  /**
+   * **Qué corresponde hacer, que no es lo mismo en las dos.**
+   *
+   * Gonzalo, 2026-09-11, mirando Derecho en las dos pantallas: «por un lado a
+   * Derecho no le va mal y por otro a Derecho le falta muchísimo […] sospecho
+   * que en gran parte es porque nos falta agendar […] pero ninguno se
+   * complementa ni me dice si aquello es necesario».
+   *
+   * - `agendar`: su propio plan da para cubrir el hueco; lo que falta es fecha.
+   *   No se toca la reserva, que no se comparte entre facultades.
+   * - `reforzar`: ni agendando todo su plan llega. Aquí sí toca contactar
+   *   docentes de aulas de refuerzo.
+   */
+  loQueToca: "agendar" | "reforzar" | null;
+  /**
    * `true` si las cifras salen del motor. `false` en la facultad sin campo,
    * donde el motor no proyecta y el respaldo estima con una tasa prestada.
    */
@@ -72,6 +94,70 @@ export type RiesgoDeFacultad = {
    */
   aviso: AvisoDeFacultad;
 };
+
+/**
+ * Cuántos de cada 100 titulares contactados han rechazado en este operativo.
+ * `null` sin base suficiente: con tres resueltos, una proporción es ruido.
+ */
+export function rechazoDelOperativo(
+  bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined,
+): { resueltos: number; rechazos: number; porCiento: number } | null {
+  const resueltos = Number(bloque?.total?.titulares_resueltos ?? 0) || 0;
+  const rechazos = Number(bloque?.total?.titulares_rechazo ?? 0) || 0;
+  if (resueltos < MINIMO_PARA_COMPARAR) return null;
+  return { resueltos, rechazos, porCiento: (rechazos / resueltos) * 100 };
+}
+
+/**
+ * **Cómo va a cerrar UNA facultad, leído del motor.**
+ *
+ * Vive aparte porque lo piden dos superficies: el panel de Resumen, que ordena
+ * a las que no llegan, y la ficha de la facultad en Brechas, donde Gonzalo
+ * (2026-09-11) señaló que las dos lecturas no se hablaban — «por un lado a
+ * Derecho no le va mal y por otro a Derecho le falta muchísimo». Calcularlo dos
+ * veces es exactamente cómo se llega a dos respuestas para la misma pregunta.
+ */
+export type CierreDeLaFacultad = {
+  meta: number;
+  logrado: number;
+  /** Lo que falta para la cuota, sin descontar nada. */
+  falta: number;
+  cursosEnCamino: number;
+  /** Lo que esos cursos-horario esperan traer. Proyección, no hecho. */
+  enCamino: number;
+  /** Lo que faltaría aun saliendo bien todo lo agendado. */
+  quedaria: number;
+  cursosSinAgendar: number;
+  loQueToca: "agendar" | "reforzar" | null;
+  /** `false` cuando el motor no proyecta (facultad sin campo) y la cifra se estima. */
+  medido: boolean;
+};
+
+export function cierreDeLaFacultad(
+  f: MonitoreoAulasEfectividadFacultad | null | undefined,
+  respaldo?: { meta: number; logrado: number; quedaria: number; enCamino: number; cursos: number },
+): CierreDeLaFacultad | null {
+  if (!f) return null;
+  const medido = Number.isFinite(Number(f.margen_agendado));
+  const meta = Number(f.cuota) || respaldo?.meta || 0;
+  const logrado = Number.isFinite(Number(f.conseguido)) ? Number(f.conseguido) : respaldo?.logrado ?? 0;
+  const falta = Math.max(0, meta - logrado);
+  const quedaria = medido
+    ? Math.max(0, Math.round(-Number(f.margen_agendado)))
+    : respaldo?.quedaria ?? 0;
+  const enCamino = medido
+    ? Math.max(0, Math.round(Number(f.proyectado_agendado) - logrado))
+    : respaldo?.enCamino ?? 0;
+  return {
+    meta, logrado, falta, quedaria, enCamino, medido,
+    cursosEnCamino: medido ? Number(f.cursos_agendados) || 0 : respaldo?.cursos ?? 0,
+    cursosSinAgendar: Number(f.cursos_sin_agendar) || 0,
+    // El margen del PLAN ENTERO decide cuál de las dos acciones toca: si con
+    // todo agendado cerraría, el trabajo es agendar; si tampoco, refuerzo.
+    loQueToca: quedaria <= 0 ? null
+      : Number(f.margen_restante) >= 0 ? "agendar" : "reforzar",
+  };
+}
 
 export function facultadesEnRiesgo(
   bloque: MonitoreoAulasEfectividadSeguimiento | null | undefined,
@@ -108,21 +194,14 @@ export function facultadesEnRiesgo(
      * el supuesto como medición) y el panel necesita igual una estimación para
      * decir si lo agendado le alcanzaría — declarándola como lo que es.
      */
-    const delMotor = Number.isFinite(Number(f.margen_agendado));
-    const meta = Number(f.cuota) || (cuota?.meta.mujeres ?? 0) + (cuota?.meta.hombres ?? 0);
-    const logrado = Number.isFinite(Number(f.conseguido))
-      ? Number(f.conseguido)
-      : (cuota?.logrado.mujeres ?? 0) + (cuota?.logrado.hombres ?? 0);
-    const falta = Math.max(0, meta - logrado);
-    const quedaria = delMotor
-      ? Math.max(0, Math.round(-Number(f.margen_agendado)))
-      : def?.quedaria.total ?? 0;
-    const enCamino = delMotor
-      ? Math.max(0, Math.round(Number(f.proyectado_agendado) - logrado))
-      : def?.enCamino.total ?? 0;
-    const cursosEnCamino = delMotor
-      ? Number(f.cursos_agendados) || 0
-      : def?.cursosEnCamino ?? 0;
+    const cierre = cierreDeLaFacultad(f, {
+      meta: (cuota?.meta.mujeres ?? 0) + (cuota?.meta.hombres ?? 0),
+      logrado: (cuota?.logrado.mujeres ?? 0) + (cuota?.logrado.hombres ?? 0),
+      quedaria: def?.quedaria.total ?? 0,
+      enCamino: def?.enCamino.total ?? 0,
+      cursos: def?.cursosEnCamino ?? 0,
+    })!;
+    const { meta, logrado, falta, quedaria, enCamino, cursosEnCamino } = cierre;
 
     /**
      * **No medirse es un riesgo sólo cuando hay algo en juego.** Sin campo
@@ -154,9 +233,11 @@ export function facultadesEnRiesgo(
       logrado,
       falta,
       cursosEnCamino,
+      cursosSinAgendar: cierre.cursosSinAgendar,
+      loQueToca: cierre.loQueToca,
       enCamino,
       /** `false` cuando la facultad no tiene campo y la cifra es una estimación. */
-      medido: delMotor,
+      medido: cierre.medido,
       quedaria,
       proximaFecha,
       reservasLibres: Number(f.reservas_libres) || 0,
