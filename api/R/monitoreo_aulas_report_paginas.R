@@ -139,11 +139,14 @@
 
 .marp_pagina_ritmo <- function(ritmo, tok, ty, geo, x0, ancho) {
   serie <- ritmo$total
+  # **La sobremuestra NO entra en los gráficos** (Gonzalo, 2026-09-11: «que la
+  # sobremuestra que considere para los KPIs y tablas como ahora, pero ya no
+  # para gráficos»). Sigue en las tarjetas, en «Avance general» y en el detalle
+  # por facultad. Aquí sobraba por dos motivos: una segunda regla de meta
+  # duplica el mensaje, y su valor —3.750 contra 2.500— estiraba el eje del
+  # acumulado hasta 4.000 y dejaba la curva del campo aplastada contra el suelo.
   metas <- c()
   if (is.finite(ritmo$meta %||% NA_real_)) metas <- c(metas, stats::setNames(ritmo$meta, "Muestra"))
-  if (is.finite(ritmo$sobremuestra %||% NA_real_)) {
-    metas <- c(metas, stats::setNames(ritmo$sobremuestra, "Sobremuestra"))
-  }
   etiquetas <- .marp_etiquetas_de_dia(serie)
 
   pulso_pdf_serie_diaria(x0, 0.225, ancho - 0.045, 0.545,
@@ -154,7 +157,7 @@
   pulso_pdf_leyenda(x0, 0.150, list(
     list(texto = "Encuestas efectivas del día", color = tok$navy, forma = "barra"),
     list(texto = "Acumulado del campo", color = tok$success, forma = "linea"),
-    list(texto = "Metas del diseño", color = tok$danger, forma = "linea", lty = 2)
+    list(texto = "Muestra del diseño", color = tok$danger, forma = "linea", lty = 2)
   ), tokens = tok, ty = ty)
 
   pico <- which.max(serie$efectivas)
@@ -220,13 +223,9 @@
       x = px, y = py + h + 0.026, just = c("left", "bottom"),
       gp = grid::gpar(col = .marp_tono_de_avance(avance, tok), fontsize = ty$caption, fontface = "bold"))
 
-    # Las DOS metas en cada panel, como en el gráfico global: la sobremuestra
-    # forma parte del compromiso y dejarla fuera del panel pequeño haría que la
-    # misma facultad se viera más cerca de cerrar aquí que en la página anterior.
-    sm <- suppressWarnings(as.numeric(p$sobremuestra))
-    metas <- numeric(0)
-    if (is.finite(meta) && meta > 0) metas <- c(metas, stats::setNames(meta, ""))
-    if (length(sm) && is.finite(sm) && sm > 0) metas <- c(metas, stats::setNames(sm, ""))
+    # Una sola meta por panel: la de la muestra. La sobremuestra se lee en las
+    # tarjetas y en las tablas, no aquí.
+    metas <- if (is.finite(meta) && meta > 0) stats::setNames(meta, "") else numeric(0)
     pulso_pdf_serie_diaria(px, py, w, h,
                            dias = .marp_etiquetas_de_dia(p$serie),
                            diarias = p$serie$efectivas, acumulado = p$serie$acumulado,

@@ -303,7 +303,7 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
 
   ritmo <- model$ritmo
   if (is.list(ritmo) && is.data.frame(ritmo$total) && nrow(ritmo$total)) {
-    nueva("Ritmo del campo", "Encuestas efectivas por jornada y acumulado contra las metas")
+    nueva("Ritmo del campo", "Encuestas efectivas por jornada y acumulado contra la muestra del diseño")
     .marp_pagina_ritmo(ritmo, tok, ty, geo, x0, ancho_util)
     pie()
 
