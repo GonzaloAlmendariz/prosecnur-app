@@ -62,3 +62,44 @@
 .aulas-mapa-punto.es-apagada text { opacity: 0.55; }
 .aulas-mapa-punto.es-foco text { font-weight: 700; }
 .aulas-mapa-anillo { opacity: 0.5; }
+
+/* El marco del gráfico, rehecho el 2026-09-10: «el eje de coordenadas no
+   termina de verse bien». */
+.mon-profile-page.is-aulas-flow .aulas-mapa-borde {
+  fill: none;
+  stroke: var(--pulso-border);
+  stroke-width: 1;
+}
+/* El cuadrante que duele y el que va bien, teñidos: así «arriba a la derecha es
+   lo bueno» se ve antes de leer ningún rótulo. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-zona.es-debe {
+  fill: var(--pulso-danger-fg);
+  fill-opacity: 0.045;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-zona.es-bien {
+  fill: var(--pulso-success-fg);
+  fill-opacity: 0.05;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante.es-debe { fill: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-mapa-cuadrante.es-bien { fill: var(--pulso-success-fg); }
+.mon-profile-page.is-aulas-flow .aulas-mapa-eje {
+  fill: var(--pulso-text-faint);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+/* El foco del punto: un halo concéntrico en vez del anillo del navegador, que
+   envolvía el bounding box del `<g>` —círculo más etiqueta— y dibujaba una
+   cápsula amarilla de 300 px atravesando el gráfico. */
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto { outline: none; }
+.mon-profile-page.is-aulas-flow .aulas-mapa-halo {
+  stroke: var(--pulso-primary);
+  stroke-width: 2;
+  opacity: 0;
+  transition: opacity 90ms ease-out;
+}
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:focus-visible .aulas-mapa-halo,
+.mon-profile-page.is-aulas-flow .aulas-mapa-punto:hover .aulas-mapa-halo { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .mon-profile-page.is-aulas-flow .aulas-mapa-halo { transition: none; }
+}
