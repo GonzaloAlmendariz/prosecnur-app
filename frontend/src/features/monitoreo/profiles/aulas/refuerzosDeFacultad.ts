@@ -81,6 +81,44 @@ export type CandidatoDeRefuerzo = {
   cierra: number;
   /** Lo que quedaría debiendo la facultad si se toma este aula. */
   quedaria: BrechaPorSexo;
+  /**
+   * **Su docente ya fue contactado por otro curso-horario del operativo.**
+   *
+   * Gonzalo, 2026-09-11: «ojo, los refuerzos y complementos también deben tomar
+   * en cuenta el traslape de alumno y de docente, por si no vaya a ser que
+   * estemos llamando a un docente ya contactado».
+   *
+   * Medido en HSVG26ULT2: **84 de las 1.216 reservas libres comparten docente
+   * con un curso-horario ya tocado**. Volver a llamarle no es sólo incómodo:
+   * gasta la relación con quien ya hizo un favor, y un segundo «no» cierra
+   * también la puerta del primero.
+   *
+   * No descalifica al candidato —a veces es justo el docente más dispuesto—,
+   * así que se avisa y no se excluye. Vacío cuando no hay traslape.
+   */
+  docenteYaContactado: string;
+  /**
+   * **Cuánta población de su facultad ya pasó por un curso-horario aplicado.**
+   *
+   * Gonzalo, 2026-09-11: «los refuerzos y complementos también deben tomar en
+   * cuenta el traslape de alumno […] el porcentaje de alumnos ya aplicados sea
+   * muy fuerte». Y cuando se le dijo que el dato por alumno no existe: «a pesar
+   * de ello podemos asumir que si un aula tenía X número de elegibles y se
+   * aplicó, podemos asumir que ellos ya realizaron la encuesta a pesar de no
+   * saber exactamente quién».
+   *
+   * Tiene razón y es medible sin saber quién es quién: se suman los elegibles
+   * de los cursos-horario de esa facultad que YA se aplicaron y se dividen
+   * entre los elegibles de toda la facultad. Alto, ese cociente dice que buena
+   * parte de los alumnos que este candidato tiene en su lista probablemente ya
+   * respondieron, y sus respuestas saldrán como duplicados.
+   *
+   * **Es una estimación de EXPOSICIÓN, no un cruce de personas.** Un alumno
+   * lleva varios cursos y cuenta en varias listas, así que el cociente es sobre
+   * cupos y no sobre gente; sirve para avisar, no para descontar. Por eso la
+   * vista lo dice con esas palabras y no resta nada.
+   */
+  exposicionDeLaFacultad: number;
 };
 
 const TASA_POR_DEFECTO = 0.55;
@@ -178,12 +216,43 @@ export function refuerzosDeFacultad(
   const debeH = Math.max(0, Math.round(deuda.hombres));
   const debe = debeM + debeH;
 
+  /**
+   * Los docentes a los que el operativo ya recurrió, en TODO el estudio y no
+   * sólo en esta facultad: la molestia es de la persona, no de su facultad.
+   */
+  /**
+   * Los cupos de la facultad que ya pasaron por un curso-horario aplicado,
+   * sobre el total de cupos de la facultad. Ver `exposicionDeLaFacultad`.
+   */
+  let cuposTotales = 0;
+  let cuposAplicados = 0;
+  for (const f of filas ?? []) {
+    if (texto(f.faculty) !== texto(facultad)) continue;
+    if (texto(f.sample_role) !== "titular") continue;
+    const cupos = numero(f.eligible_n);
+    if (cupos <= 0) continue;
+    cuposTotales += cupos;
+    if (seResolvio(f)) cuposAplicados += cupos;
+  }
+  const exposicion = cuposTotales > 0 ? cuposAplicados / cuposTotales : 0;
+
+  const yaContactados = new Set<string>();
+  for (const f of filas ?? []) {
+    const quien = texto(f.teacher);
+    if (!quien) continue;
+    const estados = `${texto(f.sample_status)} ${texto(f.operational_status)}`.toLowerCase();
+    if (seResolvio(f) || /agendada|reagendada|contactada|rechaz/.test(estados)) {
+      yaContactados.add(quien.toLocaleUpperCase());
+    }
+  }
+
   return inventarioDeLaFacultad(filas, facultad)
     .map(({ fila, procedencia }) => {
       const a = aporteDelAula(fila);
       const utilM = Math.min(a.mujeres, debeM);
       const utilH = Math.min(a.hombres, debeH);
       const util = utilM + utilH;
+      const suDocente = texto(fila.teacher);
       return {
         fila,
         procedencia,
@@ -191,6 +260,9 @@ export function refuerzosDeFacultad(
         util,
         cierra: debe > 0 ? util / debe : 0,
         quedaria: { mujeres: debeM - utilM, hombres: debeH - utilH },
+        docenteYaContactado:
+          suDocente && yaContactados.has(suDocente.toLocaleUpperCase()) ? suDocente : "",
+        exposicionDeLaFacultad: exposicion,
       };
     })
     .sort((a, b) =>

@@ -5,6 +5,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import type { BrechaPorSexo } from "./candidatosDeReemplazo";
 import type { CuotaDeFacultad } from "./brechaDeLaFacultad";
+import type { DeficitOperativo } from "./deficitOperativo";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { facultadCorta } from "./facultadEnPalabras";
@@ -32,13 +33,15 @@ import "./aulasPopoverRefuerzo.css";
  * debo cierra?». No hay parecido que medir porque no hay nada a lo que
  * parecerse.
  */
-export function AulasPopoverRefuerzo({ facultad, filas, deuda, cuota, pedirAntesDe, onElegir, onCerrar }: {
+export function AulasPopoverRefuerzo({ facultad, filas, deuda, cuota, deficit, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** Lo que la facultad debe HOY, por sexo. Sale de las cuotas, no del cierre. */
   deuda: BrechaPorSexo;
   /** La cuota con su meta y lo logrado, para que la cifra se explique sola. */
   cuota?: CuotaDeFacultad;
+  /** El déficit descontando lo que ya viene, y el marco del plan. */
+  deficit?: DeficitOperativo;
   /**
    * El último día útil para llamar sin que la facultad se quede parada, de
    * `alertaDeAnticipacion`. Un refuerzo no se aplica el día que se decide: hay
@@ -78,7 +81,7 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, cuota, pedirAntes
         ref={(el) => { caja.current = el; }}
       >
         <ContenidoDeRefuerzo facultad={facultad} filas={filas} deuda={deuda} cuota={cuota}
-          pedirAntesDe={pedirAntesDe} onElegir={onElegir} onCerrar={onCerrar} />
+          deficit={deficit} pedirAntesDe={pedirAntesDe} onElegir={onElegir} onCerrar={onCerrar} />
       </div>
     </div>,
     document.body,
@@ -90,12 +93,14 @@ export function AulasPopoverRefuerzo({ facultad, filas, deuda, cuota, pedirAntes
  * `renderToStaticMarkup`: un portal en el servidor devuelve cadena vacía y no
  * se puede probar nada de lo que hay dentro.
  */
-export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuota, pedirAntesDe, onElegir, onCerrar }: {
+export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuota, deficit, pedirAntesDe, onElegir, onCerrar }: {
   facultad: string;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   deuda: BrechaPorSexo;
   /** La cuota con su meta y lo logrado, para que la cifra se explique sola. */
   cuota?: CuotaDeFacultad;
+  /** El déficit descontando lo que ya viene, y el marco del plan. */
+  deficit?: DeficitOperativo;
   pedirAntesDe?: string | null;
   /** Tomar este curso-horario de refuerzo. Sin esto la lista sólo se mira. */
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
@@ -151,6 +156,19 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
                 {" y "}{fmt(cuota.logrado.hombres)} de {fmt(cuota.meta.hombres)} hombres
               </em>
             ) : null}
+            {/* **El marco del plan.** Gonzalo, 2026-09-11: «el popover no avisa
+                cuántos CH ya están agendados, cuántos están aplicados y cuántos
+                propone el diseño». Sin ese marco, «82 respuestas» flota: no se
+                sabe si la facultad tiene doce cursos-horario o dos, ni cuántos
+                le quedan por delante. */}
+            {deficit ? (
+              <em className="aulas-refuerzo-plan">
+                El diseño le dio <b>{fmt(deficit.plan.delDiseno)}</b> cursos-horario:
+                {" "}<b>{fmt(deficit.plan.aplicados)}</b> aplicados ·{" "}
+                <b>{fmt(deficit.plan.agendados)}</b> agendados ·{" "}
+                <b>{fmt(deficit.plan.sinAgendar)}</b> sin agendar
+              </em>
+            ) : null}
           </p>
         </div>
         {onCerrar ? (
@@ -161,6 +179,32 @@ export function ContenidoDeRefuerzo({ facultad: facultadCruda, filas, deuda, cuo
       {/* El veredicto antes de la lista: si alcanza y con cuántas. Es con lo que
           se sale de aquí, y enterrarlo debajo de doce tarjetas obliga a
           sumarlas a mano. */}
+      {/* **Lo que ya viene, antes de decidir si hace falta más.**
+
+          Gonzalo, 2026-09-11: «el déficit debería también tomar en cuenta que
+          hay esperables agendadas, o sea que no es todo lo que debemos, porque
+          ya hay aulas agendadas que esperan recibir más».
+
+          No se estaba haciendo, y el efecto es grave: Ciencias Sociales pedía
+          82 respuestas con 7 cursos-horario pendientes que esperan traer 118.
+          La pantalla mandaba a reforzar una facultad ya cubierta, y reforzar de
+          más gasta una reserva que otra facultad va a necesitar. */}
+      {deficit && deficit.cursosEnCamino ? (
+        <p className={`aulas-refuerzo-encamino${deficit.loAgendadoAlcanza ? " es-cubierto" : ""}`}>
+          <b>{fmt(deficit.enCamino.total)}</b> respuestas ya en camino, de{" "}
+          <b>{fmt(deficit.cursosEnCamino)}</b>{" "}
+          {deficit.cursosEnCamino === 1 ? "curso-horario agendado" : "cursos-horario agendados"}
+          {" "}({fmt(deficit.enCamino.mujeres)} mujeres · {fmt(deficit.enCamino.hombres)} hombres).
+          {deficit.loAgendadoAlcanza
+            ? " Con eso la cuota queda cubierta: reforzar aquí gastaría una reserva que otra facultad va a necesitar."
+            : ` Aun así quedarían ${fmt(deficit.quedaria.total)} sin cubrir` +
+              (deficit.quedaria.mujeres && deficit.quedaria.hombres
+                ? ` (${fmt(deficit.quedaria.mujeres)} mujeres, ${fmt(deficit.quedaria.hombres)} hombres).`
+                : deficit.quedaria.mujeres ? ` (todas mujeres).` : ` (todos hombres).`)}
+          <i>Es una proyección sobre lo agendado, no un hecho.</i>
+        </p>
+      ) : null}
+
       <p className={`aulas-refuerzo-veredicto${plan.alcanza ? " es-alcanza" : " es-corto"}`}>
         {plan.sinDeuda ? (
           <>Nada que reforzar aquí. Los cursos-horario libres de {facultad} se quedan para relevar si cae un titular.</>
@@ -245,6 +289,31 @@ function TarjetaDeRefuerzo({ c, puesto, deficit, onElegir }: {
             {f.venue ? <ChipLugar lugar={f.venue} /> : null}
             {f.sesiones_dia_hora ? <ChipHora>{f.sesiones_dia_hora}</ChipHora> : null}
           </span>
+          {/* **Su docente ya fue contactado.** Gonzalo, 2026-09-11: «ojo, no
+              vaya a ser que estemos llamando a un docente ya contactado».
+              Medido: 84 de 1.216 reservas libres lo comparten. Se avisa y no se
+              excluye: a veces es justo el docente más dispuesto, y la decisión
+              es de quien llama. */}
+          {c.docenteYaContactado ? (
+            <span className="aulas-refuerzo-aviso">
+              Ya se contactó a este docente por otro curso-horario
+            </span>
+          ) : null}
+          {/* **El traslape de alumnos, estimado.** No se sabe quién respondió,
+              pero sí cuánta población de la facultad ya pasó por un
+              curso-horario aplicado: alto, buena parte de los elegibles de éste
+              probablemente ya respondieron y saldrán como duplicados.
+
+              El umbral es la mitad: por debajo, la señal no distingue una
+              facultad que empieza de una que va por la mitad. Y no se descuenta
+              nada —un alumno cuenta en varias listas, así que el cociente es
+              sobre cupos y no sobre gente—: avisa, no corrige. */}
+          {c.exposicionDeLaFacultad >= 0.5 ? (
+            <span className="aulas-refuerzo-aviso es-traslape">
+              El {pctPerfil(c.exposicionDeLaFacultad * 100)} de los cupos de su facultad ya
+              se aplicó: parte de estos elegibles ya habrá respondido
+            </span>
+          ) : null}
           {/* **Las mismas tres varas que el popover de reemplazo.** Es la misma
               decisión vista desde el otro extremo, y con dos lenguajes distintos
               había que reaprender la lectura al cambiar de pantalla. Aquí pesan
