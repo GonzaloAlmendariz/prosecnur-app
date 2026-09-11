@@ -1232,6 +1232,53 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   table(keys[mask])
 }
 
+#' El reparto por sexo de las validas de cada curso-horario.
+#'
+#' Gonzalo, 2026-09-10, sobre las aulas que se meten de complemento (B) o de
+#' refuerzo (C): «como esa aula no estaba prevista, los alumnos tanto hombres
+#' como mujeres que habiamos recolectado alli son alumnos netos o puros,
+#' ingresos completos». Para poder decir eso hace falta saber cuantas mujeres y
+#' cuantos hombres respondio CADA curso-horario, y el plan solo publicaba el
+#' total.
+#'
+#' El agregado por facultad que ya existe —`quotas_sex_faculty`— no sirve para
+#' esto: una facultad puede ir sobrada en mujeres y aun asi el unico refuerzo
+#' que se metio no haber traido ninguna, que es justo el caso en que la decision
+#' fue mala.
+#'
+#' **Sin columna de sexo no se publica CERO.** No saber el reparto y saber que
+#' no hubo mujeres son cosas distintas, y un cero se leeria como lo segundo. Se
+#' devuelve el plan sin las dos columnas, y la vista dice que no lo sabe.
+#'
+#' **El reparto puede no sumar el total, y eso es correcto.** Una respuesta con
+#' un sexo que el estudio no clasifica —«Prefiero no decir»— es valida y cuenta
+#' en `respuestas_validas`, pero no cae en ningun sexo. Repartirla seria
+#' inventar; la diferencia es visible y la vista la nombra.
+#'
+#' @param plan_df el plan ya normalizado, con `respuestas_validas` puesto.
+#' @param responses las respuestas de la plataforma.
+#' @param cfg config de aulas universitarias.
+#' @param valid_response mascara de validez, la misma que cuenta el total.
+#' @param response_classroom el aula de cada respuesta, ya emparejada.
+#' @return `plan_df` con `validas_mujeres` y `validas_hombres`, o tal cual si no
+#'   hay columna de sexo utilizable.
+.monitoreo_aulas_validas_por_sexo <- function(plan_df, responses, cfg,
+                                              valid_response, response_classroom) {
+  if (!is.data.frame(plan_df) || !nrow(plan_df)) return(plan_df)
+  sexo_col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  if (!nzchar(sexo_col)) return(plan_df)
+  sexo_key <- monitoreo_aulas_sexo_key(.monitoreo_aulas_values(responses, sexo_col, ""), cfg)
+  if (length(sexo_key) != length(response_classroom) || !any(nzchar(sexo_key))) return(plan_df)
+
+  plan_df$validas_mujeres <- .monitoreo_aulas_contar_por_fila(
+    plan_df,
+    .monitoreo_aulas_named_counts(response_classroom, valid_response %in% TRUE & sexo_key == "F"))
+  plan_df$validas_hombres <- .monitoreo_aulas_contar_por_fila(
+    plan_df,
+    .monitoreo_aulas_named_counts(response_classroom, valid_response %in% TRUE & sexo_key == "M"))
+  plan_df
+}
+
 #' La fecha de aplicacion de cada aula, SEGUN LA PLATAFORMA.
 #'
 #' Gonzalo, y ya lo habia dicho antes: «tienes que entender que lo que contamos
@@ -1408,6 +1455,9 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # 2026-09-10, las tres filas de «Se quedo a medias»).
     "observed_students",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
+    # El reparto por sexo de lo que ese curso-horario rindio. Sin el, la vista
+    # no puede decir que trajo un aula que no estaba prevista.
+    "validas_mujeres", "validas_hombres",
     # Las dos varas del esperado, para que la vista pueda separar «este salon
     # rindio mal» de «este salon es mas grande que el promedio de su facultad».
     "tasa_efectividad_aula", "tasa_facultad", "esperadas_facultad",
@@ -1942,6 +1992,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # copias. Antes esta linea solo miraba `classroom_id`, asi que brechas,
   # estratos y reemplazos se calculaban sobre ceros.
   plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
+
+  # El reparto por sexo de lo que rindio cada curso-horario, en su helper: la
+  # cuenta se decide en un sitio y se puede medir sin levantar el tablero.
+  plan_df <- .monitoreo_aulas_validas_por_sexo(
+    plan_df, responses, cfg, valid_response, response_classroom)
 
   # **La tasa prevista de la FACULTAD, que el plan declara y nunca traia.**
   #

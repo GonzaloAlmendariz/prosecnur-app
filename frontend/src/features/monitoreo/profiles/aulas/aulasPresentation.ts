@@ -279,6 +279,11 @@ export const FIELD_LABELS: Record<string, string> = {
   // plataforma» acá —; el cuadre del parte (L33) compara fuentes, no nombres.
   // Censo cuatro-cifras 2026-09-01, choque 6.
   respuestas_validas: "Respuestas efectivas",
+  // El reparto por sexo de lo que rindió ese curso-horario. Se nombra «efectivas
+  // de mujeres» y no «mujeres» a secas: la cifra es de respuestas, no de gente
+  // que estaba en el aula, y esos dos números no coinciden nunca.
+  validas_mujeres: "Efectivas de mujeres",
+  validas_hombres: "Efectivas de hombres",
   filter_passed: "Filtros aprobados",
   filter_rejected: "Filtros rechazados",
   // **«Brecha» son RESPUESTAS**, y la palabra contaba dos cosas en el perfil:
