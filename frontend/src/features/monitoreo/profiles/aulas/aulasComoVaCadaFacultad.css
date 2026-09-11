@@ -32,7 +32,14 @@
    para eso las cifras tienen que caer en la misma vertical. */
 .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
   display: grid;
-  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px max-content;
+  /* **La última columna va FIJA, no a `max-content`.** Cada fila es su propio
+     grid —son botones, no una tabla— así que con `max-content` cada una medía
+     su propia pastilla y repartía el resto de otra manera: medido el
+     2026-09-11, la columna de la deuda caía en x=495 en Derecho, 506 en
+     Psicología y 500 en Ciencias Sociales, y las barras y las tasas con ella.
+     Ninguna columna quedaba en columna. 124px caben la etiqueta más larga,
+     «Debe en hombres». */
+  grid-template-columns: minmax(150px, 1.5fr) 84px minmax(150px, 1.4fr) 116px 124px;
   align-items: center;
   gap: 13px;
   width: 100%;
@@ -207,7 +214,8 @@
      `max-content` la ajusta a la etiqueta más ancha del juego, y como todas las
      filas se miden contra la misma columna siguen alineadas entre sí. */
   .mon-profile-page.is-aulas-flow .aulas-cvf-fila {
-    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+    /* Mismo motivo que la pista ancha: `max-content` se mide POR FILA. */
+    grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr);
     row-gap: 7px;
   }
   .mon-profile-page.is-aulas-flow .aulas-cvf-tasa,
