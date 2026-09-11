@@ -41,7 +41,13 @@ AULAS_AGENDACION_CABECERAS <- list(
   total = c("Indicador", "Total"),
   facultad = c(
     "Facultad", "Slots",
-    "Agendadas", "Aplicadas", "Por aplicar",
+    # **«Agendado» es lo que convierte un inventario en un AVANCE** (2026-09-10).
+    # Esta hoja tenía once columnas y ninguna era un porcentaje: todas conteos.
+    # «Avance de campo» —la que él aprueba— lleva su `Avance muestra` contra la
+    # cuota, y por eso se lee como progreso con el mismo formato exacto. «34 de
+    # 37» y «3 de 3» son la misma cifra de trabajo pendiente y muy distinta
+    # noticia; el porcentaje es lo que las separa de un vistazo.
+    "Agendadas", "Agendado", "Aplicadas", "Por aplicar",
     "Titulares agendadas", "Reemplazos agendados",
     "Pendientes de agendar", "En contacto", "Sin contactar",
     "Rechazos", "Rechazos con reemplazo agendado", "Rechazos sin reemplazo"
@@ -63,6 +69,35 @@ AULAS_AGENDACION_CABECERAS <- list(
     "En contacto", "Sin contactar", "Rechazos", "Reemplazadas"
   )
 )
+
+#' Las columnas de esta hoja que son una PROPORCIÓN, no un conteo.
+#'
+#' La hoja nació con las cuatro tablas en conteos —así lo dice su propio
+#' escritor— y eso es justo lo que la separaba de «Avance de campo»: con el
+#' mismo navy, la misma cabecera y la misma rejilla, una se lee como progreso y
+#' la otra como inventario, porque sólo una dice qué fracción del trabajo va
+#' hecha. Gonzalo, 2026-09-10: «avance está muy bien… la de las agendaciones
+#' todavía le falta muchísimo para verse bien».
+#'
+#' Se declara aquí, por NOMBRE, y no se deduce del tipo: una columna de conteos
+#' también es numérica, y adivinar por el tipo pintaría «152» como «15 200 %».
+#' @keywords internal
+AULAS_AGENDACION_PROPORCIONES <- list(
+  facultad = c("Agendado")
+)
+
+#' ¿Esta columna de esta tabla es una proporción?
+#' @keywords internal
+.calan_es_proporcion <- function(rotulo, tabla = NULL) {
+  r <- trimws(as.character(rotulo %||% ""))
+  if (!length(r) || !nzchar(r)) return(FALSE)
+  lista <- if (is.null(tabla) || !nzchar(tabla)) {
+    unlist(AULAS_AGENDACION_PROPORCIONES, use.names = FALSE)
+  } else {
+    AULAS_AGENDACION_PROPORCIONES[[tabla]] %||% character(0)
+  }
+  r %in% lista
+}
 
 #' @keywords internal
 AULAS_AGENDACION_TITULOS <- c(
@@ -245,7 +280,13 @@ AULAS_AGENDACION_TITULOS <- c(
     agendadas <- saca("agendada")
     data.frame(
       f, length(cadenas),
-      agendadas, saca("aplicada"), agendadas - saca("aplicada"),
+      agendadas,
+      # Sobre los SLOTS de la facultad, que es el denominador de esta hoja: la
+      # cadena entera cuenta una vez, esté agendado el titular o su reemplazo.
+      # Sin slots no hay fracción y se declara vacío, no cero: «0 %» diría que
+      # no se ha agendado nada de algo que no existe.
+      if (length(cadenas) > 0L) agendadas / length(cadenas) else NA_real_,
+      saca("aplicada"), agendadas - saca("aplicada"),
       saca("agendada_titular"), saca("agendada_reemplazo"),
       # **Pendiente de agendar es la cadena sin NINGÚN eslabón agendado.** No se
       # resta el rechazo: un titular rechazado cuya reserva nadie ha llamado
@@ -565,6 +606,29 @@ aulas_libro_agendacion_formato_requests <- function(sheet_id, rows) {
     # a la izquierda y desalineada del resto.
     poner(.maaf_derecha(sheet_id, 1L, n_cols, min(cabeceras), length(rows)))
   }
+  # **La proporción tiene que vivir en la celda como NÚMERO**, o «0.918» se lee
+  # como un identificador. Esta hoja no tenía ni un `numberFormat` porque todas
+  # sus columnas eran conteos; con «Agendado» entra el primero, y sólo sobre esa
+  # columna: un `#,##0` general aquí no arregla nada —Sheets ya alinea— y un
+  # porcentaje sobre un conteo pintaría «152» como «15 200 %».
+  for (k in seq_along(cabeceras)) {
+    i_cab <- cabeceras[[k]]
+    tabla <- .calan_tabla_de_cabecera(vapply(seq_len(n_cols), function(j) celda(i_cab, j), character(1)))
+    if (!nzchar(tabla)) next
+    hasta <- if (k < length(cabeceras)) cabeceras[[k + 1L]] - 1L else length(rows)
+    if (hasta <= i_cab) next
+    for (j in seq_len(n_cols)) {
+      if (!.calan_es_proporcion(celda(i_cab, j), tabla)) next
+      poner(list(repeatCell = list(
+        range = list(sheetId = sheet_id,
+                     startRowIndex = as.integer(i_cab), endRowIndex = as.integer(hasta),
+                     startColumnIndex = as.integer(j - 1L), endColumnIndex = as.integer(j)),
+        cell = list(userEnteredFormat = list(
+          numberFormat = list(type = "PERCENT", pattern = "0.0%"))),
+        fields = "userEnteredFormat.numberFormat"
+      )))
+    }
+  }
   requests
 }
 
@@ -601,6 +665,10 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
                                    borderColour = "#C7D0DD")
   nota <- openxlsx::createStyle(fontColour = "#5B6472", wrapText = TRUE, valign = "top")
   numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0")
+  # La proporción viaja 0-1 y se ENSEÑA como porcentaje: el rótulo no lleva
+  # «(%)» —«el (%) significa que va en porcentaje, no que les pongas "(%)" al
+  # título»— así que el porcentaje tiene que vivir en la celda.
+  porcentaje <- openxlsx::createStyle(halign = "right", numFmt = "0.0%")
   cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#002457",
                                     fontColour = "#FFFFFF", halign = "left",
                                     wrapText = TRUE, valign = "bottom")
@@ -672,9 +740,20 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
     # Las cifras a la derecha, POR NOMBRE de columna y nunca por índice: el día
     # que una tabla gane una columna, un índice fijo pinta la de al lado.
     cols_num <- which(vapply(names(tabla), function(k) is.numeric(tabla[[k]]), logical(1)))
-    if (length(cols_num)) {
-      openxlsx::addStyle(wb, hoja, numero, rows = (cabecera_en + 1L):(cabecera_en + nrow(tabla)),
-                         cols = cols_num, gridExpand = TRUE, stack = TRUE)
+    # Las proporciones se separan de los conteos POR NOMBRE: por tipo no se
+    # distinguen —las dos son numéricas— y «152» con formato de porcentaje
+    # saldría como «15 200 %».
+    cols_pct <- cols_num[vapply(names(tabla)[cols_num],
+                                function(k) .calan_es_proporcion(k, clave), logical(1))]
+    cols_cuenta <- setdiff(cols_num, cols_pct)
+    filas_tabla <- (cabecera_en + 1L):(cabecera_en + nrow(tabla))
+    if (length(cols_cuenta)) {
+      openxlsx::addStyle(wb, hoja, numero, rows = filas_tabla,
+                         cols = cols_cuenta, gridExpand = TRUE, stack = TRUE)
+    }
+    if (length(cols_pct)) {
+      openxlsx::addStyle(wb, hoja, porcentaje, rows = filas_tabla,
+                         cols = cols_pct, gridExpand = TRUE, stack = TRUE)
     }
     openxlsx::addStyle(wb, hoja, rejilla, rows = cabecera_en:(cabecera_en + nrow(tabla)),
                        cols = seq_len(n_col), gridExpand = TRUE, stack = TRUE)
