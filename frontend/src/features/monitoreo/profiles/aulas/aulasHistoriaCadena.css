@@ -234,3 +234,22 @@
   line-height: 1.5;
 }
 .mon-profile-page.is-aulas-flow .aulas-cadenas-vacio strong { color: var(--pulso-text); }
+
+/* La salida de la fila: la cadena corta ofrece complementar y la seca, buscar
+   relevo. Va al final de la tira, que es donde acaba la lectura. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+  padding: 6px 13px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: 8px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font: inherit;
+  font-size: var(--aulas-min);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-salida:hover { filter: brightness(0.94); }
