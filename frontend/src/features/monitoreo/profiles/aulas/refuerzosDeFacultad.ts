@@ -38,8 +38,34 @@ const numero = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+/**
+ * **Ya salió: por sus RESPUESTAS o por su estado, en ese orden.**
+ *
+ * Gonzalo, 2026-09-11, mirando el popover de refuerzo de Ciencias Sociales: «me
+ * preocupa este caso, no queda ningún reemplazo disponible».
+ *
+ * No quedaba ninguno **porque esta función miraba el estado tecleado**. Medido
+ * sobre HSVG26ULT2 en ese momento, sobre el plan entero:
+ *
+ * | criterio | cadenas resueltas | reservas liberadas |
+ * |---|---|---|
+ * | por `operational_status` | **0** | **0** |
+ * | por las respuestas | **61** | **398** |
+ *
+ * Ciencias Sociales tenía 45 reservas encadenadas, cinco cursos-horario
+ * aplicados con respuestas, y el popover le decía «toca pedir una ampliación de
+ * marco». Es el error más caro que puede cometer esta pantalla: manda a ampliar
+ * el marco a quien ya tiene con qué.
+ *
+ * El estado lo teclea alguien al registrar el campo y llega tarde —las 1.218
+ * reservas del plan estaban en `planificada`—; el hecho ocurre antes que el
+ * verbo. Es la misma corrección que ya se hizo en `aporteDelAbc.yaSalio`, y la
+ * misma vara: **las respuestas primero, el estado después**, porque un
+ * curso-horario puede cerrarse sin haber traído ninguna.
+ */
 const seResolvio = (f: MonitoreoAulasPlanRow | undefined) =>
-  !!f && ESTADOS_QUE_LIBERAN.has(texto(f.operational_status).toLowerCase());
+  !!f && (numero(f.respuestas_validas) > 0
+    || ESTADOS_QUE_LIBERAN.has(texto(f.operational_status).toLowerCase()));
 
 /** De dónde sale el aula que se mete de refuerzo. */
 export type ProcedenciaDeRefuerzo = "al_aire" | "extra";
