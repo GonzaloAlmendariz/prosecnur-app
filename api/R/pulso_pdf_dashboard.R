@@ -544,10 +544,25 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
   # tramo: con dos carriles por categoría, el centro del grupo es donde el ojo
   # busca su nombre, y un rótulo de tres líneas alineado a la izquierda parecía
   # pertenecer al grupo anterior.
+  # **El rótulo se envuelve al ancho REAL de su hueco, sin el suelo de catorce
+  # caracteres del kit.** `pulso_pdf_chars()` nunca baja de 14 para que un texto
+  # corrido no salga en columna de una palabra, pero aquí el hueco de cada
+  # categoría puede ser mucho más estrecho que eso: con treinta facultades mide
+  # seis caracteres, y forzar catorce hacía que «ARQUITECTURA Y URBANISMO» se
+  # montara sobre su vecina. Cinco es el suelo razonable para un rótulo de eje.
+  ancho_rotulo <- paso * 0.88
+  tope_rotulo <- pulso_pdf_chars(ancho_rotulo, factor = 128, min_chars = 5L)
   for (i in seq_len(n)) {
+    # Envolver no basta: `strwrap` no parte una PALABRA, y «ARQUITECTURA» son
+    # doce caracteres donde caben seis, así que la línea se salía del hueco y
+    # tocaba a la categoría vecina. Cada línea se recorta a lo que cabe, con
+    # elipsis ASCII —el device PDF no tiene el U+2026—.
+    lineas <- strwrap(categorias[[i]], width = tope_rotulo)
+    lineas <- vapply(lineas, function(l) {
+      if (nchar(l) <= tope_rotulo) l else paste0(substr(l, 1L, max(1L, tope_rotulo - 3L)), "...")
+    }, character(1), USE.NAMES = FALSE)
     .form_pdf_text(categorias[[i]], x = x + paso * (i - 1) + paso * 0.06,
-                   y = y - 0.032, w = paso * 0.88,
-                   chars = pulso_pdf_chars(paso * 0.88, factor = 128),
+                   y = y - 0.032, w = ancho_rotulo, lines = lineas,
                    fontsize = fs, col = tokens$soft, line_h = 0.017,
                    align = "center")
   }
