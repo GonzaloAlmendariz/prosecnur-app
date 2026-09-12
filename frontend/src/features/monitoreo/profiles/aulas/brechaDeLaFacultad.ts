@@ -64,9 +64,22 @@ export function cuotaDeLaFacultad(
     if (kind !== "female" && kind !== "male") continue;
     const donde = kind === "female" ? "mujeres" : "hombres";
     const objetivo = Number(celda.target);
-    // `achieved` cuando el motor lo publica; si no, meta menos lo que falta,
-    // que es la misma resta que él hizo para producir `missing`.
-    const hecho = Number(celda.achieved);
+    // **El campo se llama `observed`, no `achieved`.** Medido el 2026-09-12
+    // contra el operativo: las 30 celdas de `quotas_sex_faculty` traen
+    // `observed` —223 sobre una meta de 398, con `missing` 175— y NINGUNA trae
+    // `achieved`. Este alias no lo publica el motor en ninguna parte del
+    // backend, así que la rama principal era código muerto y todo pasaba por el
+    // respaldo de abajo.
+    //
+    // Funcionaba —`target - missing` da lo mismo— y por eso no se veía. Pero un
+    // respaldo que se usa SIEMPRE no es un respaldo: es la única vía, con una
+    // rama delante que sugiere que hay dos fuentes cuando hay una. El día que
+    // `missing` no viaje, esto devuelve la meta entera como logrado y nadie se
+    // entera.
+    //
+    // `achieved` se conserva por si algún payload viejo lo traía; el orden
+    // manda y `observed` va primero.
+    const hecho = Number(celda.observed ?? celda.achieved);
     if (Number.isFinite(objetivo)) meta[donde] += Math.max(0, objetivo);
     if (Number.isFinite(hecho)) logrado[donde] += Math.max(0, hecho);
     else if (Number.isFinite(objetivo)) {

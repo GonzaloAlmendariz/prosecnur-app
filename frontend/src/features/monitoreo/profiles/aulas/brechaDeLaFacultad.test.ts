@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
+import { brechaDeLaFacultad, cuotaDeLaFacultad } from "./brechaDeLaFacultad";
 import { candidatosDeReemplazo } from "./candidatosDeReemplazo";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
@@ -101,5 +101,36 @@ describe("la brecha CAMBIA a quien se ofrece", () => {
     );
     expect(brecha).toEqual({ mujeres: 40, hombres: 0 });
     expect(primeroDelGrupo(brecha)).toBe("R 2");
+  });
+});
+
+describe("la cuota se lee del campo que el motor publica de verdad", () => {
+  // Medido el 2026-09-12 contra el operativo: las 30 celdas de
+  // `quotas_sex_faculty` traen `observed` —223 sobre una meta de 398, con
+  // `missing` 175— y ninguna trae `achieved`. El código preguntaba por
+  // `achieved`, así que la rama principal era código muerto y todo pasaba por
+  // el respaldo `target - missing`.
+  const cuotaCelda = (extra: Record<string, unknown>) =>
+    ({ faculty: "DERECHO", sex_key: "F", target: 398, ...extra }) as Record<string, unknown>;
+
+  it("lee `observed`, que es el nombre real", () => {
+    const c = cuotaDeLaFacultad([cuotaCelda({ observed: 223, missing: 175 })], "DERECHO");
+    expect(c?.logrado.mujeres).toBe(223);
+  });
+
+  it("sin `observed` cae al respaldo y no inventa", () => {
+    // La rama que SÍ se usaba: meta menos lo que falta, la misma resta del motor.
+    const c = cuotaDeLaFacultad([cuotaCelda({ missing: 175 })], "DERECHO");
+    expect(c?.logrado.mujeres).toBe(223);
+  });
+
+  it("un payload viejo con `achieved` sigue funcionando", () => {
+    const c = cuotaDeLaFacultad([cuotaCelda({ achieved: 200, missing: 198 })], "DERECHO");
+    expect(c?.logrado.mujeres).toBe(200);
+  });
+
+  it("`observed` manda sobre `achieved` si llegaran los dos", () => {
+    const c = cuotaDeLaFacultad([cuotaCelda({ observed: 223, achieved: 1, missing: 175 })], "DERECHO");
+    expect(c?.logrado.mujeres).toBe(223);
   });
 });
