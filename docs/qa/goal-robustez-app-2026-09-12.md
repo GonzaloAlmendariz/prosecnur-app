@@ -266,6 +266,42 @@ correrse en todo el loop**, y es el candidato natural del próximo tramo.
 acreditación y telefónico y NO es defecto — el motor asigna los dos nombres al
 mismo vector (`monitoreo_engine.R:19143-19144`).
 
+## Territorial, barrido entero (tick 40) — y salió limpio
+
+Tres clases sobre las 15 vistas del perfil. **Ningún defecto vivo.** Vale
+anotarlo con su cifra porque un «sin hallazgos» sin barrido detrás no vale nada:
+
+- **Clase 3 (dos vocabularios)**: 57 estados comparados, **los 57 atados**. Nueve
+  son vocabulario propio del perfil, ahora declarado con su procedencia en
+  `territorial/estadosAtadosAlMotor.contract.test.ts` (`7c1dd4b4`), el PRIMER
+  contrato de esta familia. Dos mutantes muertos.
+- **Clase 1 (endpoint sin invocar)**: 87 rutas de monitoreo declaradas, **1 sin
+  rastro** — `/api/monitoreo/sheets/oauth/exchange`. No es defecto vivo: la
+  función ya se invoca desde `router_connections.R:596`; el endpoint de
+  monitoreo es un duplicado muerto. Deuda menor, anotada y no arreglada.
+- **Clase 11 (respaldo que se usa siempre)**: `row.validas ?? row.response_count`
+  en la tabla «Válidas» **no es defecto** — el motor asigna `validas` siempre
+  (`monitoreo_engine.R:14049`, `as.integer`, nunca nulo) y `response_count` no
+  existe en el territorial. El respaldo es código muerto.
+
+### Tres falsos positivos, para no volver a perseguirlos
+
+1. `sin_gps`/`without_gps`, `sin_cruce`/`without_cross`,
+   `fuera_distrito`/`outside_frame` **no son un vocabulario duplicado**: son dos
+   union types deliberados —estado del caso vs tipo de sección— con conversión
+   explícita en `TerritorialValidationGeoWorkbench.tsx:2608-2641`.
+2. `en_zona`/`en_distrito`/`fuera_distrito` no están en R porque **los calcula el
+   frontend** desde `geo_estado` (mismo archivo, 1851-1860).
+3. **El sesgo del propio barrido**: en R los nombres de campo van SIN comillas
+   (`outside_route = ...`), así que contrastar contra `"literal"` fabrica
+   huérfanos falsos. Corregirlo bajó los huérfanos de 11 a 9, y los 9 restantes
+   eran todos legítimos.
+
+**Lo que esto dice del método**: en estático, territorial ya está sano. El
+rendimiento que queda en esta familia no está en barrer más clases a mano — está
+en el QA visual, que sigue sin correrse y que en territorial no puede aprobar
+por conformidad (0 de 15 vistas declaran geometría).
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
