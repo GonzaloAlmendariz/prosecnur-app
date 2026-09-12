@@ -179,6 +179,7 @@ Verificación:
 
 - Front: `pnpm -C frontend typecheck` · `pnpm -C frontend test` · `pnpm -C frontend exec tsc --noEmit --pretty false`
 - R focalizado: `Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-<X>.R")'`
+- **R por área, que es lo que debe correrse al cerrar un cambio**: `make gate-area AREA=aulas GATE_ARGS='--patron "refuerzo|reemplazo"'`. Corre las suites que casan el patrón **más los contratos transversales, siempre**: `errors-registry`, `namespace-contract`, `campos-declarados` y `estado-normalizado`. Existe porque «las suites que toqué» deja fuera justo a los contratos —se rompen desde OTRO archivo— y `test-errors-registry.R` llevó tres commits en rojo sin que nadie lo viera. Sin `GATE_ARGS` corre el área entera (250 suites en aulas: lento, para el cierre).
 - R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además instalar el paquete:
 
   ```bash
