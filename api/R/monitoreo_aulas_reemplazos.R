@@ -30,7 +30,30 @@
 
 # El titular de una cadena: para un titular es el mismo, para una reserva es su
 # `replacement_for`. Sale del campo, no de la posicion — ver L41.
+# **La cadena se resuelve por `titular_operational_code`, no por
+# `replacement_for`.**
+#
+# Es la misma leccion que `.calg_titular()` en `carga_aulas_libro_generar.R` ya
+# tiene escrita, y aqui no se habia aplicado: «`replacement_for` NO sirve para
+# esto y es el error que costo el mapeo entero: tanto `calc_muestra_aulas.R`
+# como `monitoreo_aulas_apply_replacement()` lo escriben con el `classroom_id`
+# del titular —`arc232_0905`—, que es su clave interna y no un codigo
+# operativo. Medido sobre HSVG2026 (2 615 filas): de los 202 `replacement_for`
+# distintos, CERO coincidian con un titular». `titular_operational_code` si
+# habla ese idioma: 1 774 de 1 774 reservas encadenadas caen en su titular.
+#
+# El efecto de leerlo al reves, medido el 2026-09-12 con las tres formas:
+# `titular_operational_code` daba **0** reservas disponibles,
+# `replacement_for` con el `classroom_id` daba **0**, y solo un
+# `replacement_for` con codigo operativo —el caso que no ocurre en los datos—
+# daba 1. Es decir: sobre el plan real, activar un reemplazo contestaba
+# «no quedan reservas» teniendolas todas.
+#
+# `replacement_for` se conserva DETRAS como respaldo: un plan viejo que solo lo
+# traiga, y con codigo operativo, sigue resolviendose.
 .mar_titular_de <- function(fila) {
+  toc <- .mar_txt(fila$titular_operational_code)
+  if (nzchar(toc)) return(toc)
   rf <- .mar_txt(fila$replacement_for)
   if (nzchar(rf)) rf else .mar_txt(fila$operational_code)
 }
