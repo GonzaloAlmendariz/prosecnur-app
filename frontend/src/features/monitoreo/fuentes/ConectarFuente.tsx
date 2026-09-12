@@ -244,7 +244,6 @@ export function ConectarFuente({
   // A qué servidor de Kobo pertenece la cuenta conectada. Se resuelve del
   // perfil activo en vez de asumir el público: ver servidorKobo.ts.
   const [koboServidor, setKoboServidor] = useState(KOBO_POR_DEFECTO);
-  const [koboPerfil, setKoboPerfil] = useState("");
   const [encuestasSm, setEncuestasSm] = useState<Array<{ id: string; title: string }> | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -264,7 +263,6 @@ export function ConectarFuente({
       .then((data) => {
         if (!vigente) return;
         setKoboServidor(servidorKoboActivo(data.connections));
-        setKoboPerfil(perfilKoboActivo(data.connections));
       })
       .catch(() => undefined);
     return () => {
@@ -333,7 +331,6 @@ export function ConectarFuente({
         const servidor = servidorKoboActivo(conexiones?.connections);
         const perfil = perfilKoboActivo(conexiones?.connections);
         setKoboServidor(servidor);
-        setKoboPerfil(perfil);
         const data = await apiMonitoreoKoboAssets(servidor, 100, { profile_id: perfil });
         setAssetsKobo(data.assets ?? []);
       } else if (servicio === "surveymonkey") {
