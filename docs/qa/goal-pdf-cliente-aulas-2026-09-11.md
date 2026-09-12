@@ -116,7 +116,7 @@ job `monitoreo.aulas_advance_pdf` → `HSVG26_para_ui_avance_aulas_monitoreo_11_
 (325 KB, 11 páginas: portada + 10 numeradas). Antes respondía
 `E_AULAS_SIN_PLAN`; el defecto y su arreglo están en `e2770d71`.
 
-### Abierto — «planificados» vale 74 en la app y 174 en el PDF
+### CERRADO (2026-09-12) — «planificados» valía 74 en la app y 174 en el PDF
 
 Mismo corte, mismo rótulo, dos números:
 
@@ -132,3 +132,14 @@ población —las que están **en juego y con meta declarada**—, así que la t
 promete «titulares del plan» y muestra otra cosa; de ahí que la app enseñe 75
 aplicados sobre 74 planificados. El PDF no está afectado: es la etiqueta de la
 tarjeta la que no corresponde a su número.
+
+**Cerrado.** La tarjeta ya no lee `course_status_con_meta`: lee
+`course_status_rol_y_estado.titulares.total`, que es la misma fuente que usan el
+PDF de cliente y la columna x/x del detalle por facultad, y que la rama de
+`metasDeUnaFacultad` ya usaba —con foco en una facultad el número era correcto y
+sin foco no, sobre la misma tarjeta— (`kpisDeAulas.ts:1015`).
+
+Verificado el 2026-09-12 releyendo el código, no el doc: **esta sección seguía
+diciendo «Abierto» cuando ya estaba arreglado**. Un abierto que no lo está
+cuesta el tiempo de volver a diagnosticarlo, que es justo lo que este documento
+existe para ahorrar.
