@@ -220,6 +220,52 @@ La diferencia entre los dos es la que importa: **un alias muerto se arregla; uno
 vivo en otro sitio sólo necesita decirse.** Cambiar el segundo habría sido tocar
 por tocar.
 
+## La clase 12: dos respaldos del mismo dato ausente, en la misma pantalla
+
+Hermana de la 11, y peor: la 11 es un respaldo que se usa siempre; ésta son DOS
+respaldos que se contradicen a la vista.
+
+`Casos asignados` es una columna opcional del libro. Los dos perfiles que pintan
+el panel de barrido resolvían su ausencia de dos maneras distintas **en la misma
+superficie**: la cabecera con `row.assigned ?? 0` («0 personas asignadas») y
+cada fila con `row.assigned ?? row.pending` (tantas asignadas como le faltan por
+barrer). Un responsable que barrió 98 de 100 salía «2 personas asignadas · 0
+casos barridos · 100 % pendiente», bajo una cabecera que decía 0.
+
+Arreglado en `837e3194` con `barridoDelResponsable()` + `totalDeAsignadas()`:
+sin la columna no hay asignadas ni porcentaje, se muestra «S/D» y cuántos
+responsables no traen el dato. Mutante: revertir el cableo deja 4 rojos.
+
+**El guard va acotado a propósito.** Lo intenté genérico —agrupar por campo los
+respaldos divergentes de todo `features/monitoreo`— y da **129 casos en 415
+archivos**, casi todos legítimos (`?? ""` al normalizar y `?? otro.campo` al
+mostrar son contextos distintos). Un guard que nace con 129 en su línea base no
+guarda nada. También quedan fuera los `?? 0` que sólo ORDENAN listas: no
+publican ninguna cifra. Si alguien retoma la idea genérica, el filtro que le
+falta es «¿este valor se publica o sólo se compara?», y eso no sale de un regex.
+
+## El desnivel entre familias, medido (2026-09-12)
+
+El barrido de las 11 clases se hizo **entero sobre cursos-horario**. Lo que las
+otras tres familias tienen hoy:
+
+| familia | contract tests | .tsx | `data-qa-geometry-capacity` |
+|---|---|---|---|
+| aulas | **31** | 116 | 79 |
+| territorial | **0** | 15 | 0 |
+| acreditación | **0** | 12 | 4 |
+| telefónico | **2** | 11 | 0 |
+
+Territorial y telefónico tienen operativo real. La primera consecuencia concreta
+es que `ui-quick-check --require-geometry` no puede aprobar por conformidad en
+esas vistas: no hay nada declarado que comprobar. **El QA visual sigue sin
+correrse en todo el loop**, y es el candidato natural del próximo tramo.
+
+**Falso positivo registrado** para no volver a perseguirlo:
+`item.duplicate_count ?? item.duplicate_group_size` aparece 9 veces entre
+acreditación y telefónico y NO es defecto — el motor asigna los dos nombres al
+mismo vector (`monitoreo_engine.R:19143-19144`).
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
