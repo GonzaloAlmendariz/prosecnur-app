@@ -658,6 +658,47 @@ La defensa cuesta un comando y queda en CLAUDE.md (`33643579`):
 `md5 -q out/*.png | sort -u | wc -l`. Si sale menos que el número de rutas, no
 mediste lo que creías.
 
+## AULAS no se puede medir con el QA visual: no hay fixture (tick 49)
+
+Pregunta de Gonzalo a mitad del tick: «¿qué has hecho para Monitoreo de aulas?».
+Al ir a medirla salió el hueco:
+
+| proyecto de referencia | perfil | monitoreo |
+|---|---|---|
+| acnur_acg | territorial | ready |
+| acnur_pdm | telefónico | ready |
+| acrconta | acreditación | ready |
+| acrconta_mazo | — | pending |
+| **hsvg2026** | **aulas** | **pending** |
+
+`hsvg2026` trae Cálculo de muestra listo y **Monitoreo sin configurar**, así que
+las 5 secciones caen a la misma pantalla: `ok=true captures=5 issues=0` y
+**1 sola imagen distinta**. Sin la regla del `md5` (`33643579`, escrita veinte
+minutos antes) habría informado «aulas medida, 0 issues».
+
+**La familia mejor instrumentada del repo —31 contract tests, 79 de 116 archivos
+con geometría declarada, gate de 3.888 tests— es la única que el QA visual no
+puede cubrir**, porque no hay `.pulso` versionado con su Monitoreo configurado.
+La memoria `reference_pulso_por_perfil_de_monitoreo` ya lo insinuaba: mapea
+telefónico, territorial y acreditación, y no menciona aulas.
+
+Dos salidas, y la elige Gonzalo: usar su `.pulso` real de HSVG2026 en local (sin
+commitear), o construir un proyecto de referencia de aulas con Monitoreo listo
+(`api/scripts/pulso_anonimizar.R` + `make reference-project-verify`).
+
+### Balance de aulas en el loop, para no adornarlo
+
+- **Fase 1**: todo el trabajo fue aulas. Las 13 clases del catálogo NACIERON
+  barriéndola, y los defectos vivos que se arreglaron eran casi todos suyos
+  (marcar refuerzo rechazaba 1.213 de 1.218; el sello perdido; activar reemplazo;
+  las reservas de cadena al Sheets; el formato con dos salidas mudas; `achieved`
+  como alias muerto).
+- **Ticks 39-49: CERO cambios míos en aulas.** Fui a las familias que estaban a
+  cero contratos con el criterio de que aulas ya estaba barrida. Defendible, pero
+  le quitó el foco al operativo real.
+- La otra sesión sí está en aulas: **23 commits hoy** (Plan del día, distribución,
+  recibo de sincronización). No son míos.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
