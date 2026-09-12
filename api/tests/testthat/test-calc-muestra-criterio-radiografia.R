@@ -1171,7 +1171,29 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
     #      **cambian exactamente 2 rutas de todas — los dos ecos de
     #      `frame_hash` — y cero filas o campos de datos**; del culpable a HEAD
     #      el payload es identico byte a byte.
-    "0a7a5b0162583d203982d08eebc0b7520333ff0039dc62f28cfbf98b2f4b6018"
+    "c8a12bcae2da12c19c9a0c3ed3c446b379dfaed470de98ecde611035b14f608c"
+    #   7. `8c4f96c1` anadio el bloque `recorte_por_facultad` («cuanto recorta
+    #      cada criterio, facultad por facultad») y el contrato del config
+    #      volvio a mover el `frame_hash` que la radiografia ECOA.
+    #
+    #      **Cuarta vez que este oraculo se queda rojo sin que nadie lo mire**
+    #      —F71, F114, G39 y ahora—, y otra vez la misma causa: un cambio en R
+    #      que no se siente como tocar logica.
+    #
+    #      El confinamiento se hizo como lo pide el punto 5, ENUMERANDO RUTAS y
+    #      no podando, y esta vez sobre el motor viejo de verdad: se extrajo
+    #      `api/` en `7cd86828` con `git archive`, se reconstruyo el payload con
+    #      SU fixture —usar el de hoy mezclaria el cambio del motor con el del
+    #      fixture— y reprodujo exactamente el hash esperado. Comparadas las
+    #      hojas del payload, 3.621 contra 3.874:
+    #
+    #        · 0 rutas desaparecieron,
+    #        · 253 rutas nuevas, TODAS bajo `/recorte_por_facultad/`,
+    #        · y solo 2 rutas comunes cambiaron de valor: `/frame_hash` y
+    #          `/matriz_embudo/frame_hash`, que son el mismo eco del punto 6.
+    #
+    #      Nada mas se movio: ni una cifra de los criterios, ni el embudo, ni el
+    #      orden. Por eso se re-bendice.
   )
 })
 
