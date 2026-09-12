@@ -190,6 +190,14 @@ diferencia definicional, o «arreglará» un acierto.
 El resto del cotejo por facultad sale limpio: 15 de 15 coinciden en efectivas y
 en muestra.
 
+**Y hay una TERCERA superficie que rompe el empate.** El libro operativo —la
+hoja «Avance de campo», la que el equipo mira a diario— suma **75**, igual que
+el PDF: su `carga_aulas_libro_avance_facultad.R:123` llama a
+`monitoreo_aulas_aula_aplicada()` con su comentario diciéndolo. Así que de las
+tres superficies, dos usan la definición única y la que se desvía es el desglose
+por rol del tablero. Eso no decide qué arreglo es el correcto, pero sí dice
+dónde está lo raro.
+
 **Por qué no se arregló en el acto.** Vive en `monitoreo_aulas_universitarias.R`
 —motor grande y en el área que la otra sesión está commiteando esta misma noche,
 incluido `1d4f3888`, que va justo de motores comparando el estado en crudo— y la
