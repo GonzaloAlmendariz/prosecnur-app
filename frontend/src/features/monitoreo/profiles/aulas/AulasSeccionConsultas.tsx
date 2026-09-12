@@ -35,6 +35,7 @@ import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { AulasFichaDeCursoHorario } from "./AulasFichaDeCursoHorario";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
+import { AulasPartesQueNoCuadran } from "./AulasPartesQueNoCuadran";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { historiaDeCadena } from "./historiaDeCadena";
 import { parteDeCampo } from "./parteDeCampo";
@@ -424,6 +425,12 @@ export function AulasSeccionConsultas({
             partes={cuadre.filas as MonitoreoRow[]}
             plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           />
+          {/* **Los que no cuadran, antes del censo.** La frase de arriba dice
+              cuántos son; esto dice CUÁLES y por cuánto, con la resta hecha. La
+              tabla se queda debajo: noventa partes son un censo y para un censo
+              sirve, pero la pregunta de la pestaña no se contesta leyendo
+              catorce columnas. */}
+          <AulasPartesQueNoCuadran filas={cuadre.filas as MonitoreoRow[]} />
           <Tabla
             rows={cuadre.filas}
             empty="Todavía no se ha registrado ningún parte de campo."
