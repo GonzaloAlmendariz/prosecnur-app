@@ -182,6 +182,11 @@ vaults-index:
 # Mismo motivo que gate-area, del otro lado: los contratos que escanean todo el
 # árbol se rompen desde otro archivo y no los corre nadie hasta el CI.
 #   make gate-front AREA=monitoreo/profiles/aulas
+# ¿La app sirve el código de ahora, o un build anterior?
+# Mirar la pantalla sin saber de cuándo es lo que enseña es mirar el pasado.
+build-al-dia:
+	@node scripts/build-al-dia.mjs
+
 gate-front:
 	@node scripts/gate-front.mjs $(AREA)
 

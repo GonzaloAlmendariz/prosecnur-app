@@ -148,6 +148,14 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   El gate por área filtra por patrón: quien toca el handoff filtra por
   «handoff». Metí tres áreas en un archivo llamado de una sola y dos quedaron
   fuera de su gate.
+- **Mirar la app sin saber qué build sirve es mirar el pasado.** El bundle era
+  de las 04:07 y el arreglo de «planificados 74 → 174» de las 04:19: la pantalla
+  seguía enseñando el defecto y estuve a punto de reportarlo como vivo, con el
+  código arreglado doce minutos antes. Primo del warm start que recicla un
+  worktree viejo y de los dos backends sobre el mismo `.pulso`. **`make
+  build-al-dia` lo contesta en un segundo**, y hay que preguntárselo ANTES de
+  creerle a la pantalla. Corolario incómodo: releer el código tampoco basta para
+  cerrar un defecto —hay que mirar la app— pero mirar la app sin esto tampoco.
 - **`querySelector` DESCIENDE.** Medir los paneles de una vista con
   `section` + `querySelector("h3")` cuenta también cualquier contenedor que sea
   `<section>` —el `mon-workbench` lo es— y devuelve el título de su primer hijo:
