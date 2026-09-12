@@ -60,15 +60,15 @@ export function AulasTablasDeAvance(): ReactNode {
     // El fallo se dice con su causa, no con un panel vacío: sin esto la vista
     // se leería como «este estudio no tiene tablas», que es otra cosa.
     return (
-      <p className="mon-profile-muted aulas-tav-vacio">
+      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         No se pudieron leer las tablas de avance: {error}
       </p>
     );
   }
-  if (!tablas) return <p className="mon-profile-muted aulas-tav-vacio">Leyendo las tablas de avance...</p>;
+  if (!tablas) return <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">Leyendo las tablas de avance...</p>;
   if (!tablas.length) {
     return (
-      <p className="mon-profile-muted aulas-tav-vacio">
+      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay tablas de avance. Aparecen cuando el estudio declara su
         plan de cursos-horario y llegan las primeras respuestas.
       </p>
@@ -76,7 +76,11 @@ export function AulasTablasDeAvance(): ReactNode {
   }
 
   return (
-    <div className="aulas-tav">
+    // El contenedor de datos del panel «Así se verá el libro». Sin declararlo,
+    // el runner cae al ENCABEZADO del panel y canta `capacity-drift` sobre sus
+    // 5 px de padding. Mismo patrón que «Respuestas», «Por facultad», «Avance
+    // por facultad y sexo» y «Metas por facultad y sexo».
+    <div className="aulas-tav" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       {corte ? <p className="aulas-tav-corte">{corte}</p> : null}
       {tablas.map((t) => <Tabla key={t.clave} tabla={t} />)}
     </div>
@@ -99,7 +103,7 @@ function Tabla({ tabla }: { tabla: MonitoreoAulasAvanceTabla }): ReactNode {
       {!filas.length ? (
         // El vacío lo redacta el motor, con su causa. No se inventa aquí uno
         // nuevo: la hoja y la pantalla dirían cosas distintas del mismo hueco.
-        <p className="mon-profile-muted aulas-tav-vacio">
+        <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
           {tabla.vacio || "Sin filas que mostrar todavía."}
         </p>
       ) : (
