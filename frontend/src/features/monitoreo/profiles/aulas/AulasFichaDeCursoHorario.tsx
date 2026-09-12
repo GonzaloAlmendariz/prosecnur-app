@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ClipboardCheck, Gauge, Target, Users } from "../../../../vendor/lucide-react";
@@ -266,7 +266,7 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
 }
 
 export function AulasFichaDeCursoHorario({
-  agenda, partes, bandas, control = [],
+  agenda, partes, bandas, control = [], codigoEnFoco = "", onElegir,
 }: {
   /** El plan entero. */
   agenda: ReadonlyArray<Record<string, unknown>>;
@@ -275,9 +275,42 @@ export function AulasFichaDeCursoHorario({
   bandas: ReadonlyArray<Record<string, unknown>>;
   /** La Base de control: la CUARTA fuente, de donde sale la duración. */
   control?: ReadonlyArray<Record<string, unknown>>;
+  /**
+   * El curso-horario que trae la dirección, YA sin el prefijo `aula:` —lo
+   * quita el padre, igual que para `RegistroDeCampo`—.
+   *
+   * **La ficha era la única superficie del perfil que no se podía enlazar.**
+   * `?foco=aula:CH 21` ya abre el Registro de campo sobre esa aula desde el
+   * 2026-09-08, pero «Buscar por código» guardaba el suyo en un `useState`
+   * suelto: no había forma de mandar a nadie a la ficha de un curso-horario, ni
+   * de volver a ella con el botón Atrás, ni de que otra superficie —la tabla de
+   * la agenda, la ruta del día— llevara hasta aquí. El mecanismo existía y esta
+   * superficie no lo usaba.
+   */
+  codigoEnFoco?: string;
+  /** Se avisa al elegir, para que la dirección siga a la selección. */
+  onElegir?: (codigo: string) => void;
 }) {
-  const [consulta, setConsulta] = useState("");
-  const [elegido, setElegido] = useState("");
+  // **La dirección manda DESDE EL PRIMER RENDER**, con el mismo initializer que
+  // usa `RegistroDeCampo` y por el mismo motivo: un efecto recién corre tras el
+  // montaje, así que la ficha parpadearía vacía un frame y en render estático
+  // no abriría nunca. El efecto de abajo queda para los cambios posteriores.
+  const [consulta, setConsulta] = useState(() => codigoEnFoco.trim());
+  const [elegido, setElegido] = useState(() => claveDeBusqueda(codigoEnFoco));
+
+  // Un foco que cambia DESPUÉS del montaje —otra superficie navega, o el botón
+  // Atrás— tiene que mover la ficha. Se compara por la clave normalizada, que
+  // es como se compara el resto: el código viaja por la URL y vuelve con el
+  // formato que le dé el navegador.
+  useEffect(() => {
+    const clave = claveDeBusqueda(codigoEnFoco);
+    if (!clave || clave === claveDeBusqueda(consulta)) return;
+    setConsulta(codigoEnFoco.trim());
+    setElegido(clave);
+    // `consulta` NO va en las dependencias: teclear en el buscador volvería a
+    // disparar el efecto y la dirección pisaría lo que se está escribiendo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoEnFoco]);
 
   const porCodigo = useMemo(() => {
     const p = new Map<string, Record<string, unknown>>();
@@ -317,6 +350,19 @@ export function AulasFichaDeCursoHorario({
     const clave = claveDeBusqueda(fila.operational_code);
     return fichaDeCursoHorario(fila, porCodigo.get(clave), porBanda.get(clave), porControl.get(clave));
   }, [fila, porCodigo, porBanda, porControl]);
+
+  // **La dirección sigue a lo que se ve, no sólo a lo que se clickea.** A la
+  // ficha se llega por tres caminos —teclear el código, pulsar un atajo, elegir
+  // entre varios homónimos— y sólo el tercero pasa por un `onClick`. Sin esto,
+  // quien teclea «CH 43» ve la ficha y copia una URL que no lleva a ella, que es
+  // la avería que este tick vino a cerrar. Se escribe con `replace` —lo hace
+  // `useFocoMonitoreo`—, así que teclear no llena el historial.
+  const codigoVisible = ficha?.codigo ?? "";
+  useEffect(() => {
+    if (!codigoVisible || !onElegir) return;
+    if (claveDeBusqueda(codigoVisible) === claveDeBusqueda(codigoEnFoco)) return;
+    onElegir(codigoVisible);
+  }, [codigoVisible, codigoEnFoco, onElegir]);
 
   return (
     <div data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -374,7 +420,7 @@ export function AulasFichaDeCursoHorario({
                   type="button"
                   className="aulas-ficha-opcion"
                   aria-pressed={ficha?.codigo === String(f.operational_code)}
-                  onClick={() => setElegido(clave)}
+                  onClick={() => { setElegido(clave); onElegir?.(String(f.operational_code)); }}
                 >
                   {String(f.operational_code)}
                 </button>

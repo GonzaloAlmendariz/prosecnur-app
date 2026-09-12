@@ -34,6 +34,7 @@ import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { AulasFichaDeCursoHorario } from "./AulasFichaDeCursoHorario";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasPartesQueNoCuadran } from "./AulasPartesQueNoCuadran";
 import { aulasKpis, fmt } from "./kpisDeAulas";
@@ -52,7 +53,7 @@ import type { TablaDelPerfil } from "./tablaDelPerfil";
  */
 export function AulasSeccionConsultas({
   dashboard, Tabla, pestana, reemplazosEnOrdenDeCadena,
-  facultadEnFoco = undefined, onGuardado,
+  facultadEnFoco = undefined, onGuardado, foco = null, onFoco,
 }: {
   dashboard: MonitoreoAulasDashboard;
   Tabla: TablaDelPerfil;
@@ -66,6 +67,15 @@ export function AulasSeccionConsultas({
    * ofreciéndola como disponible hasta el siguiente refresco.
    */
   onGuardado?: () => void;
+  /**
+   * El foco de la dirección (`?foco=aula:CH 21`). Aquí lo consume «Buscar por
+   * código»: es el mismo mecanismo con el que la dirección abre el Registro de
+   * campo sobre un aula, y la ficha era la única superficie del perfil que no
+   * lo usaba.
+   */
+  foco?: FocoDeCuota;
+  /** Para que la dirección siga al curso-horario que la ficha está enseñando. */
+  onFoco?: (foco: FocoDeCuota) => void;
 }): ReactNode {
   /**
    * **Marcar es de B y de C, nunca de A.** Gonzalo, 2026-09-11: «el popover
@@ -186,6 +196,12 @@ export function AulasSeccionConsultas({
                 código quiere encontrarlo, y no hallarlo por un filtro puesto en
                 otra pestaña se lee como «no existe». */}
             <AulasFichaDeCursoHorario
+              // SIN el prefijo: el foco viaja como `aula:CH 1` y el
+              // `operational_code` es `CH 1`. Pasarlo crudo no casa nunca —ya
+              // pasó en `RegistroDeCampo`— y la ficha se queda vacía sin decir
+              // por qué.
+              codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
+              onElegir={(codigo) => onFoco?.({ tipo: "aula", valor: codigo })}
               agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               bandas={(dashboard.dos_tasas?.aulas ?? []) as Array<Record<string, unknown>>}
