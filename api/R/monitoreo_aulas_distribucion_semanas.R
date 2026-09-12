@@ -198,3 +198,30 @@ monitoreo_aulas_reparto_de_config <- function(plan, disponibilidad, cfg = list()
     concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
   )
 }
+
+#' La pestaña donde toca sincronizar, según la ventana que se pide.
+#'
+#' **El defecto que cierra.** `monitoreo_aulas_sincronizar_distribucion()`
+#' escogía `hojas_dist[[1]]` —la primera pestaña con forma de distribución— y
+#' ahí insertaba las agendadas sin cita. Con «Semana 1» y «Semana 2» vivas eso
+#' significa que pedir la sincronización del 14 al 20 metía las citas de la
+#' semana 2 EN LA HOJA DE LA SEMANA 1, encima del trabajo del coordinador y en
+#' la pestaña que los aplicadores ya no miran. No falla ni avisa: escribe en el
+#' sitio equivocado y devuelve `ok`.
+#'
+#' Si la ventana no rinde semana —sin fechas, o el plan sin agenda— se queda con
+#' la primera, que es el comportamiento de siempre.
+#'
+#' @param hojas las pestañas de distribución, en orden de semana.
+#' @param plan filas del plan (de donde sale el origen del conteo).
+#' @param desde fecha ISO de la punta izquierda de la ventana.
+#' @return el título de la pestaña.
+#' @keywords internal
+.mads_hoja_de_la_ventana <- function(hojas, plan, desde) {
+  hojas <- hojas[nzchar(hojas %||% character(0))]
+  if (!length(hojas)) return("")
+  n <- monitoreo_aulas_semana_de(desde, monitoreo_aulas_inicio_de_campo(plan %||% list()))
+  if (is.na(n)) return(hojas[[1L]])
+  nombre <- .mads_hoja_de_semana(n)
+  if (nzchar(nombre) && nombre %in% hojas) nombre else hojas[[1L]]
+}

@@ -563,3 +563,36 @@ test_that("el enlace se recuerda la PRIMERA vez y no se vuelve a pisar", {
     prosecnurapp:::.malp_adoptar_distribucion(
       cfg$aulas_universitarias, list(), list())$motivo, "sin_destino"))
 })
+
+# --- La sincronización escribe en la pestaña de SU semana --------------------
+#
+# El defecto que cierra: la función tomaba `hojas_dist[[1]]` y ahí insertaba las
+# agendadas sin cita. Con «Semana 1» y «Semana 2» vivas, pedir la ventana del 14
+# al 20 metía las citas de la semana 2 en la hoja de la semana 1 — encima del
+# trabajo del coordinador, en la pestaña que los aplicadores ya no miran, y
+# devolviendo `ok` sin un aviso.
+
+test_that("la ventana elige la pestaña de su semana, no la primera", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular",
+         scheduled_date = "2026-09-07", scheduled_time = "10:00 am"),
+    list(operational_code = "CH 3", sample_role = "titular",
+         scheduled_date = "2026-09-16", scheduled_time = "10:00 am")
+  )
+  hojas <- c("Semana 1", "Semana 2", "Semana 3")
+  # El 07/09 es lunes de la semana 1; el 14/09 abre la 2.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-14"), "Semana 2")
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-07"), "Semana 1")
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-09-21"), "Semana 3")
+  # Una semana cuya pestaña todavía no existe cae a la primera, que es el
+  # comportamiento de siempre: no se inventa una hoja al vuelo desde aquí.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, "2026-10-05"), "Semana 1")
+  # Y sin ventana legible, igual: la primera.
+  expect_identical(
+    prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, ""), "Semana 1")
+  expect_identical(prosecnurapp:::.mads_hoja_de_la_ventana(character(0), plan, "2026-09-14"), "")
+})
