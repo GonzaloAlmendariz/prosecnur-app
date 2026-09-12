@@ -236,6 +236,25 @@
       values = list(list(.mapds_formula(geo)))
     )
   )
+  # **Y se MIRA lo que quedó.** Escribir la fórmula y devolver TRUE sin leerla
+  # es declarar éxito sin comprobar el resultado: el 2026-09-12 el recibo decía
+  # «Plan del día: actualizada» mientras la celda del área estaba en `#REF!` —
+  # el bloque que contesta «qué toca hoy»— y nadie se enteró hasta que alguien
+  # la leyó a mano diez horas después.
+  #
+  # Un GET de UNA celda. Si Sheets devolvió un error de fórmula, se nombra y
+  # viaja al recibo; el resto de la publicación no se toca, porque la hoja SÍ se
+  # escribió y revertirla sería peor. Un fallo del propio GET no inventa un
+  # problema: se calla, que es distinto de callar el `#REF!` que sí se vio.
+  computado <- tryCatch({
+    r <- .monitoreo_google_api(paste0(
+      .monitoreo_sheets_api_base(spreadsheet_id),
+      "/values/", utils::URLencode(rango, reserved = TRUE)))
+    .monitoreo_scalar(((r$values %||% list())[[1]] %||% list())[[1]], "")
+  }, error = function(e) "")
+  if (grepl("^#(REF|N/A|VALUE|NAME|DIV/0|NULL|ERROR)", trimws(computado))) {
+    return(invisible(trimws(computado)))
+  }
   invisible(TRUE)
 }
 
