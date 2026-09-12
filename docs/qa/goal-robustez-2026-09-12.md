@@ -351,3 +351,28 @@ documento: **el primer sospechoso fue mi instrumento.** Un barrido con una regex
 demasiado estrecha inventa hallazgos igual que un runner con claves inventadas;
 verificar el instrumento antes de acusar al medido es lo que separa un hallazgo
 de una pérdida de tiempo.
+
+## Lo publicado para la semana 2, verificado contra lo que se armó
+
+Releída la pestaña «Semana 2» del Sheets de los aplicadores y cotejada con el
+reparto que la generó:
+
+| | |
+|---|---|
+| Citas publicadas | **50**, las mismas 50 del reparto |
+| Publicadas que no estaban en el reparto | **0** |
+| Del reparto sin publicar | **0** |
+| Días | 14, 15, 16, 17 y 18/09 |
+| Aplicadores distintos | 17 |
+
+**Un aviso operativo, no un defecto.** De las 50 citas, una está a nombre de
+**«Interno Pulso»**, que no es ninguno de los 19 de la semana: `CH 107`,
+miércoles 16/09, 08:50, aula Z201, Ciencias Sociales, MACROECONOMÍA 2. Viene de
+una fijación que ya estaba en la hoja del coordinador y **la app hizo lo
+correcto respetándola** —el reparto no pisa lo que el equipo decidió—, pero
+conviene saberlo antes del miércoles: si «Interno Pulso» no es alguien que vaya
+a ir, esa aula se queda sin nadie y no lo dirá ningún aviso, porque para el
+motor está cubierta.
+
+Y 17 aplicadores distintos sobre 19 disponibles: los dos sin carga son Damaso
+Abanto y Dolores Resurrección, por el modo concentrado, ya reportado.
