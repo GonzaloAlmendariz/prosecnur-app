@@ -8,7 +8,7 @@ y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.
 |---|---|---|---|
 | C1 | «Avance de agendación» debería considerar las aulas **extra** agendadas | `carga_aulas_libro_agendacion.R` `.calan_total`, `.calan_facultad`, `.calan_semana`, `.calan_dia` | ◐ medido |
 | C2 | La jerga de la columna **«Slots»** no es buena | `AULAS_AGENDACION_CABECERAS$facultad` + su nota al pie | ☐ |
-| C3 | ¿La agendación considera el estatus nuevo **«REFUERZO POR CONTACTAR»**? ¿Es robusta ante estatus nuevos? | `carga_aulas_libro_formato.R` (`STATUS_MUESTRA_BASE`), `.calan_ejes` | ☐ |
+| C3 | ¿La agendación considera el estatus nuevo **«REFUERZO POR CONTACTAR»**? ¿Es robusta ante estatus nuevos? | `monitoreo_aulas_estados_desconocidos.R` (nuevo) + recibo del import + `AulasFuentesDelEstudio.tsx` | ☑ `4822a441` |
 | C4 | ¿«Aulas Aplicadas (Campo)» y «(Extra)» **pintan** las aulas pedidas como refuerzo? | `monitoreo_aulas_sheets_formato.R` | ☐ |
 | C5 | El **morado** del refuerzo no se ve en STATUS MUESTRA | idem C4 + `respetada` por hoja | ◐ causa identificada |
 | C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` (arreglado en código) | ◐ falta ejecutarlo |
@@ -76,3 +76,31 @@ se anclan al lunes de la primera aula agendada del plan, y el publicador escribe
 
 Lo que queda por comprobar es **desde dónde se pide**: que la pantalla permita
 elegir el roster y la semana sin pasar por una llamada a la función.
+
+
+### C3 · cerrado — medido y blindado
+
+Dos respuestas distintas, y la segunda era la que importaba:
+
+· **«REFUERZO POR CONTACTAR» SÍ se reconoce**, con rama propia desde el
+  2026-09-11 (`monitoreo_aulas_estado_muestra` → `refuerzo_por_contactar`), y
+  está en el desplegable del libro. Medido sobre el operativo: **2.785 celdas de
+  STATUS MUESTRA** en las cuatro hojas (12 bloques de cadena en «Aulas
+  Agendadas», 12 en «Aplicadas (Campo)», 1 en cada Extra), **6 ortografías
+  distintas, 0 desconocidas** — con sus 30 «REFUERZO POR CONTACTAR».
+· **Pero no era robusto, y su instinto acertaba**: el traductor termina en un
+  `default` que devuelve `sin_contactar`. Un estatus nuevo, o el mismo mal
+  escrito, no falla ni avisa: se convierte en el estado de los titulares que
+  nadie tocó, el aula **vuelve a la cola de llamadas** y se cuenta como
+  pendiente. Es la avería que B13b ya documentó para «EN CONTACTO» y «RECHAZO».
+
+Ahora el import lo declara —con el texto tal cual está en la hoja, cuántas filas
+y la consecuencia— y sale en «Fuentes del estudio», junto al aviso de columnas
+renombradas. El detector **no lleva su propia copia del vocabulario**: le
+pregunta al traductor y declara lo que cae por el default, así que cuando el
+traductor aprenda un estado nuevo el detector deja de declararlo solo.
+
+**Instrumento corregido a mitad de medición**: mi primera lectura buscó
+`STATUS MUESTRA` por igualdad exacta y encontró **1 columna** donde hay **12** —
+los bloques de reemplazo rotulan con sufijo (`STATUS MUESTRA R1`…). Medía el
+titular y nada más. Con el prefijo: 219 → 2.785 celdas.
