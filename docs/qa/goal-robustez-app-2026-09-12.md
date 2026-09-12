@@ -562,6 +562,50 @@ dentro de UNA corrida sí comparten pila, que es la forma de ahorrar warm start.
 
 Anotado en CLAUDE.md junto a la trampa del flag de Plotly (`aabf6173`).
 
+## El flag de Plotly rompe las vistas SIN Plotly (tick 47)
+
+`--post-click-wait-selector ".js-plotly-plot"` aplicado a toda una familia mató la
+corrida de acreditación en la primera ruta:
+
+> La ruta "/monitoreo?seccion=actores" no alcanzó readiness final antes de la
+> captura: **sin-marca-de-readiness**. Esa vista no declara `data-audit-ready`:
+> es una laguna de contrato, y esperar más no la arregla.
+
+Esa misma sección capturó bien en el tick 44 **sin** el flag, así que el flag es
+lo que cambia. Por qué exactamente, sin determinar — no teorizo. Lo práctico:
+**el flag sólo a las vistas que montan Plotly**, que son pocas y están
+localizadas:
+
+| familia | monta gráficos |
+|---|---|
+| territorial | `TerritorialAdvanceWorkbench.tsx` → sección **avance** |
+| acreditación | `AcreditacionMonitoreoPage.tsx` + mini + `PhoneDailyTrend` |
+| telefónico | `TelefonicoMonitoreoPage.tsx` + mini → **avance** (hecha, tick 45) |
+
+Para el resto, las capturas del tick 44 valen: lo único que no se puede juzgar en
+ellas son los gráficos.
+
+De paso, **el aviso del tick 42 hizo su trabajo**: dijo que la vista no declara
+readiness y que esperar no lo arregla, en vez del escueto
+`sin-marca-de-readiness` que en el tick 41 me costó un ciclo entero.
+
+### Observado en acreditación/actores, con cifra y sin atribuir
+
+El chip de cabecera dice **«ENCUESTAS 7»** y las cuatro tarjetas de actor suman
+**8**: Administrativos 1 · Docentes 2 · Egresados 4 · Estudiantes 1. La
+explicación probable es encuestas ÚNICAS arriba frente a asignaciones por actor
+abajo —una encuesta compartida por dos actores cuadraría 7 y 8—, en cuyo caso
+ninguna cifra está mal y lo que falla es que la pantalla no deja verlo.
+
+**No lo he atribuido a una función**: no localicé el productor del chip en el
+tiempo del tick. Queda como observación con evidencia
+(`qa-acred/quick-monitoreo-seccion-actores-1440x1000-auto.png`), no como defecto.
+
+Segunda cosa de esa vista: **todo el contenido cabe en el tercio superior** y
+quedan ~500 px en blanco a 1440x1000. El gate no lo reporta —no es recorte ni
+desborde— y no es defecto, pero es la tercera vista del loop donde el gate
+aprueba una pantalla medio vacía.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
