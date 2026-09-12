@@ -30,7 +30,7 @@ test_that("un rechazo con reemplazo agendado NO se cuenta como pendiente, y uno 
   )
   f <- aulas_libro_agendacion(plan)$facultad
   expect_identical(nrow(f), 1L)
-  expect_identical(f$Slots, 2L)
+  expect_identical(f[["Aulas del diseño"]], 2L)
   expect_identical(f$Rechazos, 2L)
   expect_identical(f$`Rechazos con reemplazo agendado`, 1L)
   expect_identical(f$`Rechazos sin reemplazo`, 1L)
@@ -50,7 +50,7 @@ test_that("las reservas EXTRA no son slots: no reemplazan a nadie", {
     lapply(1:5, function(i) .calan_u(sprintf("EX %d", i), rol = "extra_reserve_pool"))
   )
   f <- aulas_libro_agendacion(plan)$facultad
-  expect_identical(f$Slots, 3L)
+  expect_identical(f[["Aulas del diseño"]], 3L)
   expect_identical(f$`Pendientes de agendar`, 0L)
   # Pero siguen existiendo, en su propia fila de la tabla por eslabón.
   esl <- aulas_libro_agendacion(plan)$eslabon
@@ -101,7 +101,7 @@ test_that("por día se cuenta por FILA y no por cadena: dos fechas son dos traba
   expect_identical(a$dia$`De reemplazos`, c(0L, 1L))
   expect_identical(a$dia$`Día de la semana`, c("Lunes", "Miércoles"))
   # La cadena, en cambio, es UNA: el slot no se cuenta dos veces.
-  expect_identical(a$facultad$Slots, 1L)
+  expect_identical(a$facultad[["Aulas del diseño"]], 1L)
   expect_identical(a$facultad$Agendadas, 1L)
 })
 
