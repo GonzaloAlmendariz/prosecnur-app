@@ -87,7 +87,12 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   si el archivo no está—. El riesgo sólo existe con `readdirSync`/`globSync`:
   preguntarle al sistema de archivos qué hay y filtrar. **Siete de dieciocho
   eran falsos positivos del propio barrido** — tercera vez en este loop.
-  **Tope 11.** El más silencioso era `nombresNormalizados`, con
+  **Tope 7** (de 26 al abrir la clase; el perfil de cursos-horario, limpio).
+  El centinela tiene DOS formas y el meta-guard reconoce las dos: contar lo
+  encontrado, o declarar la lista de archivos a vigilar y comprobar que siguen
+  existiendo —así lo hacía ya `capacidadDeclarada`, y el meta-guard lo acusó por
+  la sintaxis: **cuarto falso positivo suyo**—. El más silencioso era
+  `nombresNormalizados`, con
   `it.each(fuentes)`: con la lista vacía no corre ni un caso y la suite pasa sin
   un solo rojo NI un solo test ejecutado.
 - Claves del tablero consumidas por el perfil: **52, cero huérfanas**.
