@@ -248,6 +248,14 @@ const ALTURA_PROPIA_PENDIENTE = [
 ];
 
 describe("geometría del chrome", () => {
+  // **Centinela de no-mudez.** El barrido enumera el árbol y luego se afirma
+  // que no hay infractores. Si dejara de encontrar archivos —una carpeta que se
+  // mueve, un filtro que deja de casar— la lista saldría vacía y el guard
+  // pasaría en verde sin haber leído nada.
+  test("el barrido encuentra archivos, o no está guardando nada", () => {
+    expect(archivosCss().length).toBeGreaterThan(20);
+  });
+
   test("ninguna banda nueva declara su propio alto", () => {
     const infractores = todasLasReglas()
       .filter((r) => ES_BANDA.test(r.selector))

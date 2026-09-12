@@ -47,6 +47,14 @@ function archivosFuente(dir: string = SRC): string[] {
 }
 
 describe("deck de avisos efímeros", () => {
+  // **Centinela de no-mudez.** El barrido enumera el árbol y luego se afirma
+  // que no hay infractores. Si dejara de encontrar archivos —una carpeta que se
+  // mueve, un filtro que deja de casar— la lista saldría vacía y el guard
+  // pasaría en verde sin haber leído nada.
+  test("el barrido encuentra archivos, o no está guardando nada", () => {
+    expect(archivosFuente().length).toBeGreaterThan(200);
+  });
+
   test("nadie nuevo monta su propio aria-live de toasts", () => {
     const infractores: string[] = [];
 

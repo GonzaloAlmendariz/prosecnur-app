@@ -27,6 +27,14 @@ function valorDelToken(nombre: string): string | null {
 }
 
 describe("los desenlaces dicen lo mismo en CSS y en TypeScript", () => {
+  // **Centinela de no-mudez.** Aquí el barrido no es del disco sino de
+  // `COLOR_RESULTADO`: si esa constante quedara vacía, las dos listas de abajo
+  // saldrían vacías y el guard pasaría diciendo que CSS y TypeScript coinciden
+  // sin haber comparado un solo color.
+  it("hay desenlaces que comparar, o no está guardando nada", () => {
+    expect(Object.keys(COLOR_RESULTADO).length).toBeGreaterThan(2);
+  });
+
   it("cada color de `COLOR_RESULTADO` tiene su token con el mismo valor", () => {
     const desajustes = Object.entries(COLOR_RESULTADO)
       .map(([clave, valor]) => ({ clave, ts: valor.toLowerCase(), css: valorDelToken(clave) }))
