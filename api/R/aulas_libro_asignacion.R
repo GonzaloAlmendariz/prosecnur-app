@@ -90,12 +90,37 @@
 #' @return `NULL` sin disponibilidad; si hay, lista de filas `{tipo, celdas}`
 #'   con `tipo` en `titulo | nota | dia | cabecera | dato | alerta | bloque`.
 #' @keywords internal
-aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
+aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list(),
+                                         partes = list()) {
   if (is.null(disponibilidad) || !is.list(disponibilidad) || !length(disponibilidad)) {
     return(NULL)
   }
   cfg <- if (is.list(cfg)) cfg else list()
   rep <- monitoreo_aulas_reparto_de_config(plan, disponibilidad, cfg)
+
+  # **La columna de estado era la cadena «POR APLICAR», siempre.**
+  #
+  # Medido en el operativo el 2026-09-12: las 95 filas decían «POR APLICAR»
+  # —lunes y martes incluidos, con sus partes ya rendidos—. Un rótulo que
+  # promete un estado y entrega una constante es peor que no tener la columna:
+  # quien la lee cree que sabe qué falta y lo que tiene es el reparto entero.
+  #
+  # Ahora sale de `monitoreo_aulas_aula_aplicada()`, que es la ÚNICA definición
+  # de «aplicada» de este operativo —el parte lo declara, o el aula ya tiene
+  # respuestas—. No se inventa aquí una cuarta.
+  aplicado <- local({
+    unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+    marcas <- tryCatch(monitoreo_aulas_aula_aplicada(unidades, partes = partes %||% list()),
+                       error = function(e) logical(0))
+    env <- new.env(parent = emptyenv())
+    if (length(marcas) == length(unidades)) {
+      for (i in seq_along(unidades)) {
+        cod <- .ala_txt(unidades[[i]][["operational_code"]])
+        if (nzchar(cod)) assign(cod, isTRUE(marcas[[i]]), envir = env)
+      }
+    }
+    function(cod) isTRUE(mget(cod, envir = env, ifnotfound = list(FALSE))[[1]])
+  })
 
   # Código → lugar confirmado (el catálogo como fallback), igual que la app.
   lugares <- new.env(parent = emptyenv())
@@ -219,7 +244,17 @@ aulas_libro_filas_asignacion <- function(plan, disponibilidad, cfg = list()) {
           lg <- lugar_de(cod)
           if (nzchar(lg)) sprintf("%s (%s)", cod, lg) else cod
         }, character(1)), collapse = " · "),
-        "POR APLICAR"
+        # Cuántas de las de esa persona ese día ya están aplicadas. Se dice el
+        # parcial («1 de 3») y no sólo sí/no: una jornada a medias es una
+        # noticia distinta de una sin empezar, y es la que manda a preguntar.
+        local({
+          hechas <- sum(vapply(citas, function(a) aplicado(.ala_txt(a[["codigo"]])),
+                               logical(1)))
+          n <- length(citas)
+          if (hechas == 0L) "POR APLICAR"
+          else if (hechas == n) sprintf("APLICADA%s", if (n == 1L) "" else "S")
+          else sprintf("%d de %d aplicadas", hechas, n)
+        })
       ))
     }
     poner("nota", "")
@@ -320,8 +355,9 @@ aulas_libro_asignados_por_codigo <- function(plan, disponibilidad, cfg = list())
 #' @return `NULL` sin disponibilidad; si hay, lista de filas (vector character
 #'   por fila) lista para `monitoreo_sheets_publish_tabs()`.
 #' @keywords internal
-aulas_libro_valores_asignacion <- function(plan, disponibilidad, cfg = list()) {
-  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg)
+aulas_libro_valores_asignacion <- function(plan, disponibilidad, cfg = list(),
+                                           partes = list()) {
+  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg, partes = partes)
   if (is.null(filas)) return(NULL)
   lapply(filas, function(f) as.list(f$celdas))
 }
@@ -334,8 +370,9 @@ aulas_libro_valores_asignacion <- function(plan, disponibilidad, cfg = list()) {
 #' @param cfg el config de aulas vigente.
 #' @return TRUE si la hoja se escribió; FALSE si no había reparto.
 #' @keywords internal
-aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list()) {
-  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg)
+aulas_libro_hoja_asignacion <- function(wb, plan, disponibilidad, cfg = list(),
+                                        partes = list()) {
+  filas <- aulas_libro_filas_asignacion(plan, disponibilidad, cfg = cfg, partes = partes)
   if (is.null(filas)) return(invisible(FALSE))
 
   hoja <- "Asignación de aplicadores"

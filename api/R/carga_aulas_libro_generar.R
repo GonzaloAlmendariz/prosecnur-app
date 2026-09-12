@@ -2045,7 +2045,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # B68 (dictado 2026-09-03): la hoja «Asignación de aplicadores» — la doble
   # escritura del reparto. Sin disponibilidad en sesión no se escribe: una
   # hoja vacía se leería como «nadie asignado». Vive en su archivo propio.
-  aulas_libro_hoja_asignacion(wb, plan_completo, disponibilidad, cfg = cfg)
+  aulas_libro_hoja_asignacion(wb, plan_completo, disponibilidad, cfg = cfg, partes = partes)
   # Dictado 2026-09-04: «que el equipo de campo también pueda saber cuándo o a
   # quién reclutar y no dependa enteramente de mí». Condicional, como su
   # hermana: sin oferta cargada la hoja no se produce.
