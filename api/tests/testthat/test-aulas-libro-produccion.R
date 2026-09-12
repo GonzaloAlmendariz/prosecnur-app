@@ -207,3 +207,34 @@ test_that("sin campo, el .xlsx no lleva una hoja de producción vacía", {
   # distinto de «todavía no se ha cargado el campo».
   expect_false("Producción de aplicadores" %in% openxlsx::getSheetNames(destino))
 })
+
+test_that("en el .xlsx las cifras también son números, no texto", {
+  skip_if_not_installed("openxlsx")
+  # El constructor ya devuelve números, pero cada salida tiene su escritor y
+  # `as.matrix` sobre una lista mixta lo aplasta TODO a texto: el arreglo de
+  # Sheets se perdía aquí y la columna «AULAS APLICADAS» tampoco se podía
+  # ordenar en el libro descargado.
+  #
+  # **Y hay que leerlo con el instrumento bueno**: `read.xlsx` sobre la hoja
+  # entera devuelve character porque la columna es mixta (títulos arriba,
+  # cifras abajo), así que decía «texto» con el archivo bien escrito. Se leen
+  # SÓLO las filas de datos, donde la columna es homogénea.
+  plan <- lapply(1:2, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA", scheduled_date = "2026-09-11",
+    scheduled_time = "10:00", faculty = "DERECHO", teacher = "D", course_name = "C"))
+  partes <- list(list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+                      aplicador = "Ana Prueba", efectivas = 18, asistentes = 25))
+  destino <- tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, destino, partes = partes)
+
+  filas <- aulas_libro_filas_produccion(plan, partes)
+  i_dato <- which(vapply(filas, function(f) identical(f$tipo, "dato"), logical(1)))[[1]]
+  d <- openxlsx::read.xlsx(destino, sheet = "Producción de aplicadores",
+                           colNames = FALSE, rows = i_dato, cols = 2:5)
+  for (j in seq_along(d)) {
+    expect_true(is.numeric(d[[j]]),
+                info = sprintf("columna %d llegó como %s", j + 1L, class(d[[j]])[1]))
+  }
+})

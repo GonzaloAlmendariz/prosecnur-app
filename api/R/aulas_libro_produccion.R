@@ -291,6 +291,18 @@ aulas_libro_valores_produccion <- function(plan = list(), partes = list()) {
   lapply(filas, function(f) as.list(f$celdas))
 }
 
+# Una fila de celdas como `data.frame` de una fila, conservando el tipo de cada
+# una: `openxlsx` respeta los tipos de un data.frame y aplasta los de una
+# matriz.
+.alp_fila_df <- function(celdas) {
+  celdas <- as.list(celdas)
+  if (!length(celdas)) return(data.frame(x = "", stringsAsFactors = FALSE))
+  out <- stats::setNames(
+    lapply(celdas, function(v) if (is.numeric(v)) v else as.character(v)),
+    paste0("v", seq_along(celdas)))
+  as.data.frame(out, stringsAsFactors = FALSE, check.names = FALSE)
+}
+
 #' Escribe la hoja «Producción de aplicadores» sobre el workbook del libro.
 #'
 #' @param wb workbook de openxlsx ya en construcción.
@@ -317,7 +329,13 @@ aulas_libro_hoja_produccion <- function(wb, plan = list(), partes = list()) {
   )
   for (i in seq_along(filas)) {
     f <- filas[[i]]
-    openxlsx::writeData(wb, hoja, t(as.matrix(f$celdas)), startRow = i, colNames = FALSE)
+    # **`as.matrix` sobre una lista mixta lo convierte TODO a texto**, y ahí se
+    # perdía en el `.xlsx` lo que ya se había arreglado en Sheets: las cifras
+    # volvían a ser cadenas y la columna «AULAS APLICADAS» tampoco se podía
+    # ordenar en el libro descargado. Un `data.frame` de una fila conserva el
+    # tipo de cada celda. Es el mismo constructor para las dos salidas; lo que
+    # divergía era el escritor.
+    openxlsx::writeData(wb, hoja, .alp_fila_df(f$celdas), startRow = i, colNames = FALSE)
     est <- estilos[[f$tipo]]
     if (!is.null(est)) {
       openxlsx::addStyle(wb, hoja, est, rows = i,
