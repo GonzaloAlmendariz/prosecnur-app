@@ -408,3 +408,28 @@ Un tropiezo del camino que vale como aviso: `monitoreo_publication_model()` NO
 acepta `reports=`; el dashboard entra por `dashboard=` y de ahí saca los
 informes. Pasárselo da «unused argument» y parece un fallo del motor cuando es
 del llamador.
+
+### Y una descripción que nombra otra familia — sin consumidor verificado
+
+Al mirar el CONTENIDO de ese modelo (y no sólo su forma) aparece esto: la
+pestaña titulada **«Resumen de aulas»** lleva la descripción **«Resumen agregado
+de avance territorial.»** Las otras cinco están bien; sólo ésa nombra otra
+familia. Se ve que el texto se heredó del modelo territorial y nadie lo movió al
+crear el de aulas.
+
+Dos observaciones más del mismo vistazo, y las dos son de criterio, no de
+código: «Avance agregado» y «Cuotas y brechas» describen **«umbral interno»** en
+un libro de CLIENTE, y la regla de la casa para estos entregables es la
+contraria —lo interno se queda fuera; al cliente le importa el avance en sí
+mismo—.
+
+**Lo que NO está verificado, y por eso esto no se declara defecto:** si el campo
+`description` llega a la hoja publicada o se queda en el modelo. Buscado sin
+encontrarlo: ningún serializador de `api/R` lo escribe de forma evidente. Hasta
+saberlo, esto es «el modelo dice una cosa rara», no «el cliente lee una cosa
+rara», y la diferencia es justo la que separa un hallazgo de una suposición.
+**Siguiente paso concreto**: publicar el libro de cliente a un Sheets de prueba
+—no al del operativo— y leer la pestaña. Si `description` no aparece, es sólo
+metadata y basta corregir el texto por higiene; si aparece, es texto que el
+cliente lee y hay que arreglarlo antes de la primera publicación, que aún no ha
+ocurrido.
