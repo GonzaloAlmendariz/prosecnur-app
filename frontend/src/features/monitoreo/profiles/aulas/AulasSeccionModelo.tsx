@@ -41,6 +41,8 @@ export function AulasSeccionModelo({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  fueraDelReparto = [],
+  onDeclararFuera = null,
   onDeclararRango = null,
   onResortear = null,
   onConcentrar = null,
@@ -64,6 +66,9 @@ export function AulasSeccionModelo({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad; llega a la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Quién no sale en el despliegue vigente; viaja hasta la malla de oferta. */
+  fueraDelReparto?: ReadonlyArray<string>;
+  onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo del reparto. */
@@ -176,6 +181,8 @@ export function AulasSeccionModelo({
               onFijarReparto={onFijarReparto}
               onConfirmarDuracion={onConfirmarDuracion}
               onImportarDisponibilidad={onImportarDisponibilidad}
+              fueraDelReparto={fueraDelReparto}
+              onDeclararFuera={onDeclararFuera}
               onDeclararRango={onDeclararRango}
               onResortear={onResortear}
               onConcentrar={onConcentrar}

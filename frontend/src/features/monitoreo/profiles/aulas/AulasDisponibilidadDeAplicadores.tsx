@@ -63,6 +63,8 @@ export function AulasDisponibilidadDeAplicadores({
   demandaFirme = null,
   fechaQueToca = null,
   onImportar = null,
+  fuera = [],
+  onDeclararFuera = null,
 }: {
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   oferta: MallaDeOferta | null;
@@ -84,6 +86,15 @@ export function AulasDisponibilidadDeAplicadores({
   fechaQueToca?: string | null;
   /** B74: importar/reemplazar el excel de disponibilidad. */
   onImportar?: ((archivo: File) => void | Promise<void>) | null;
+  /**
+   * Quién NO sale en el despliegue vigente (`reparto_fuera` del config), con
+   * el nombre CRUDO de la oferta. El operativo pierde y gana gente cada
+   * semana —la 1 salió con 19 y la 2 con 17— y hasta ahora dejar a alguien
+   * fuera obligaba a editar el Excel y volver a cargarlo.
+   */
+  fuera?: ReadonlyArray<string>;
+  /** Persiste la lista; `null` deja el control fuera (sólo lectura). */
+  onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
 }) {
   const [celdaActiva, setCeldaActiva] = useState<{ i: number; j: number } | null>(null);
   const [fijada, setFijada] = useState(false);
@@ -197,6 +208,35 @@ export function AulasDisponibilidadDeAplicadores({
             </label>
           );
         })()}
+        {/* **Quién no sale, y el botón para decidirlo.** La lista se MUESTRA
+            aunque no se pueda editar: una decisión que actúa sobre el reparto
+            y no se ve es la mitad de un defecto —el reparto saldría distinto
+            sin que nadie sepa por qué—. */}
+        {fuera.length ? (
+          <p className="aulas-dispo-fuera">
+            {fuera.length === 1 ? "No sale este despliegue: " : "No salen este despliegue: "}
+            {fuera.map((n) => nombreDeAplicador(n)).join(", ")}.
+          </p>
+        ) : null}
+        {aplicadorElegido && onDeclararFuera ? (() => {
+          const estaFuera = fuera.includes(aplicadorElegido);
+          return (
+            <button
+              type="button"
+              className="aulas-dispo-fuera-boton"
+              onClick={() => {
+                const siguiente = estaFuera
+                  ? fuera.filter((n) => n !== aplicadorElegido)
+                  : [...fuera, aplicadorElegido];
+                void onDeclararFuera(siguiente);
+              }}
+            >
+              {estaFuera
+                ? `${nombreDeAplicador(aplicadorElegido)} vuelve a salir`
+                : `${nombreDeAplicador(aplicadorElegido)} no sale este despliegue`}
+            </button>
+          );
+        })() : null}
         {aplicadorElegido ? (() => {
           const semana = semanaDelAplicador(oferta, aplicadorElegido);
           return (

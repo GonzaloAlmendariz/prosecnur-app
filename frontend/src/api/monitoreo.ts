@@ -764,6 +764,12 @@ export type MonitoreoAulasConfig = {
    * ISO; `{}` lo des-declara (todo el horizonte).
    */
   reparto_rango?: { desde?: string; hasta?: string } | null;
+  /**
+   * Quién NO sale en el despliegue vigente, con el nombre CRUDO de la oferta
+   * (dictado 2026-09-12). El motor los quita antes de repartir; el backend
+   * compara por una clave que ignora coma, tildes y mayúsculas.
+   */
+  reparto_fuera?: string[] | null;
   /** B67: la semilla del resorteo — rota el desempate del reparto; 0 = alfabeto. */
   reparto_semilla?: number;
   /** Dictado 2026-09-04: concentrar el día del aplicador (default TRUE). */
