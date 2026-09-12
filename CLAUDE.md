@@ -209,7 +209,13 @@ Verificación:
     existe en ese perfil **no falla**: aterriza muda en la sección por defecto, y
     el gate mide y aprueba la misma pantalla N veces. Pasó el 2026-09-12 con 5
     «vistas» de acreditación que eran un solo archivo byte a byte.
-  - **Las corridas NO se paralelizan.** Dos a la vez se pisan en el puerto de la
+  - **`desplazamientoH=N` en el resumen** dice cuántos contenedores esconden
+    contenido a la derecha, y el informe trae el selector y los píxeles. No
+    falla el gate —desplazarse en horizontal es legítimo—, pero un `0` ahí es
+    lo único que permite afirmar que no se está perdiendo una columna.
+  - **Las corridas NO se paralelizan** —y sus TESTS tampoco: correr
+    `node --test scripts/tests/*.test.mjs` con una captura en background fabrica
+    rojos por contención (4 tests caídos, los 4 verdes aislados).** Dos a la vez se pisan en el puerto de la
     API y la segunda muere con «/api/system/bootstrap no devolvió sid». Van en
     serie; varias `--route` dentro de UNA corrida sí comparten la pila.
   - **`--ir` encadena y captura SÓLO el final.** Varias vistas en una sola pila
