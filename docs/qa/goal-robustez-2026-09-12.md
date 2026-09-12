@@ -326,3 +326,28 @@ un barrido de procedencia que sale limpio también cierra una pregunta, y porque
 deja dicho **cuál es exactamente la superficie de contacto del PDF con el resto
 de la app**: cinco claves. Cuanto más pequeña, menos sitios donde el entregable
 puede envenenarse sin avisar.
+
+## La clase 11 barrida también en R: 41 campos, cero casos
+
+La otra sesión barrió la clase 11 —«un respaldo que se usa siempre»— en el
+perfil del frontend: 299 campos, dos casos. Falta la otra mitad, que es la mía:
+**los campos del PLAN que leen el PDF de cliente y el generador del libro.**
+
+Barrido: **41 campos**. Cuatro salieron marcados y los cuatro se explican, con
+lo que quedan **cero casos reales**:
+
+| Campo | Veredicto |
+|---|---|
+| `sex_top_` | **artefacto de mi propio barrido**: la regex `[a-z_]+` cortaba antes del dígito de `sex_top_1` / `sex_top_2`, que sí existen |
+| `aula_utilizada` | lo AÑADE `aulas_libro_anotar_aula_utilizada()` antes de la lectura (`carga_aulas_libro_generar.R:1334`) |
+| `estado_aplicacion` | lo AÑADE el mismo paso previo (línea 1356) |
+| `notes` | vivo en OTRA estructura: es el nombre que usa la hoja (`carga_aulas_agendadas.R:105`) y el lector lo mapea a `replacement_note`. El sitio de lectura ya lo explica: «leer solo `notes` perdia las 190 observaciones de 2025» |
+
+Mismo criterio que ellos aplicaron a `sex_key`: **un alias muerto se arregla;
+uno vivo en otro sitio sólo necesita decirse.** Aquí no había ninguno muerto.
+
+Y una nota sobre el primero, que es la advertencia que más se repite en este
+documento: **el primer sospechoso fue mi instrumento.** Un barrido con una regex
+demasiado estrecha inventa hallazgos igual que un runner con claves inventadas;
+verificar el instrumento antes de acusar al medido es lo que separa un hallazgo
+de una pérdida de tiempo.
