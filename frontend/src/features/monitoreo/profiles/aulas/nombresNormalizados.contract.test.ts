@@ -49,6 +49,13 @@ const fuentes = fs
   .filter((f) => f.endsWith(".tsx") && !f.includes(".test."));
 
 describe("los nombres de aplicador se pintan normalizados", () => {
+  // **Centinela de no-mudez.** `it.each(fuentes)` con la lista vacía no corre ni
+  // un caso y la suite pasa en verde: el guard se apagaría sin un solo rojo si
+  // el filtro dejara de casar —un renombre, una carpeta que se mueve—.
+  it("el barrido encuentra las vistas del perfil, o no está guardando nada", () => {
+    expect(fuentes.length).toBeGreaterThan(40);
+  });
+
   it.each(fuentes)("%s", (archivo) => {
     const lineas = fs
       .readFileSync(path.join(aqui, archivo), "utf8")

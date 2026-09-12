@@ -74,6 +74,14 @@ function sinComentarios(src: string): string {
 }
 
 describe("el género de las etiquetas concuerda con la unidad", () => {
+  // **Centinela de no-mudez.** El barrido recorre el árbol del perfil y luego
+  // se afirma que no hay culpables. Si dejara de encontrar fuentes —un
+  // renombre, una carpeta que se mueve— la lista saldría vacía y el guard
+  // pasaría en verde sin haber leído un solo archivo.
+  it("el barrido encuentra las fuentes del perfil, o no está guardando nada", () => {
+    expect(fuentes(AQUI).length).toBeGreaterThan(40);
+  });
+
   it("ningún rótulo del perfil habla del curso-horario en femenino", () => {
     const mayus = RAICES.map((r) => r[0].toUpperCase() + r.slice(1)).join("|");
     const cuerpo = `(?:${RAICES.join("|")}|${mayus})a(?:s)?\\b`;

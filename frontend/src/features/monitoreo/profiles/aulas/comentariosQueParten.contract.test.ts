@@ -82,8 +82,11 @@ describe("un comentario no puede cambiar lo que se lee", () => {
   });
 
   it("y el perfil de aulas está limpio", () => {
-    const sucios = readdirSync(AQUI)
-      .filter((f) => f.endsWith(".tsx"))
+    const vistas = readdirSync(AQUI).filter((f) => f.endsWith(".tsx"));
+    // Centinela de no-mudez: sin vistas, `sucios` sale vacío y el guard pasa sin
+    // haber leído un solo archivo.
+    expect(vistas.length).toBeGreaterThan(40);
+    const sucios = vistas
       .map((f) => ({ f, malos: comentariosQueParten(readFileSync(join(AQUI, f), "utf-8")) }))
       .filter((x) => x.malos.length);
     expect(sucios.map((x) => `${x.f}:${x.malos.join(",")}`)).toEqual([]);
