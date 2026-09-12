@@ -754,6 +754,29 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # se teclea ese estado. Va aparte y al final, con un filtro que sólo deja
   # pasar requests de formato: escribir cómo se ve su hoja es seguro, escribir
   # lo que dice les borraría el trabajo.
+  # **Una hoja de la app que ENCOGE se declara.** El 2026-09-12 una publicación
+  # hecha con el estado rearmado desde el propio Sheets dejó «Base de control»
+  # sin 3.555 celdas y «Avance de campo» con 105 filas donde tenía 181 —al
+  # round-trip le faltaban las respuestas de plataforma y media hoja de
+  # control—, y el recibo dijo «actualizada» las dos veces. Encoger y
+  # actualizar se veían igual.
+  #
+  # No se impide: hay razones legítimas para que una hoja encoja (un plan que
+  # se recorta, un rango más chico). Se NOMBRA, con las dos cifras, que es lo
+  # que permite decidir si toca revisar antes de que alguien lo note por su
+  # cuenta tres días después.
+  encogidas <- list()
+  for (hoja in hojas_app) {
+    antes <- .malp_filas_con_contenido(remotas[[hoja]] %||% list())
+    ahora <- .malp_filas_con_contenido(producidas[[hoja]] %||% list())
+    # Sólo cuando había algo y se pierde al menos un quinto: el ruido de una
+    # fila arriba o abajo no es una noticia.
+    if (antes > 0L && ahora < antes * 0.8) {
+      encogidas[[length(encogidas) + 1L]] <- list(
+        hoja = hoja, antes = as.integer(antes), ahora = as.integer(ahora))
+    }
+  }
+
   respetadas <- vapply(hojas_libro, function(h) identical(acciones[[h]], "respetada"),
                        logical(1))
   formato_equipo <- monitoreo_aulas_formato_a_respetadas(
@@ -768,6 +791,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     # Qué hojas del equipo recibieron el formato nuevo sin que se les tocara un
     # solo valor, y qué se quedó fuera por no declarar que tocaba formato.
     formato_equipo = formato_equipo,
+    # Hojas de la APP que salieron con bastante menos contenido del que tenían.
+    # Vacío es lo normal; con entradas, hay que mirar antes de seguir.
+    encogidas = encogidas,
     spreadsheet_id = id,
     spreadsheet_url = .monitoreo_scalar(
       pub$spreadsheet_url,

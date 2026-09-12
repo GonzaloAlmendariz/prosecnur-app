@@ -718,3 +718,64 @@ test_that("cuando la fórmula queda bien el recibo no inventa un aviso", {
   expect_true(isTRUE(out$ok))
   expect_identical(out$plan_dia_formula_error, "")
 })
+
+# --- una hoja de la app que ENCOGE se declara --------------------------------
+#
+# El 2026-09-12 una publicación hecha con el estado rearmado desde el propio
+# Sheets dejó «Base de control» sin 3.555 celdas y «Avance de campo» con 105
+# filas donde tenía 181 —al round-trip le faltaban las respuestas de plataforma
+# y media hoja de control—, y el recibo dijo «actualizada» las dos veces.
+# Encoger y actualizar se veían igual, y eso es lo que hace que nadie mire.
+
+test_that("publicar declara las hojas de la app que salen mucho más cortas", {
+  skip_if_not_installed("digest")
+  # Un plan de doce aulas en tres facultades y varios días: lo bastante para
+  # que las hojas de la app tengan cuerpo. Luego se publica con UNA, que es la
+  # forma de que encojan de verdad y no por una fila.
+  aula <- function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA",
+    scheduled_date = sprintf("2026-09-%02d", 7 + (i %% 5)),
+    scheduled_time = sprintf("%02d:00", 8 + (i %% 8)),
+    faculty = c("DERECHO", "PSICOLOGÍA", "ARTE Y DISEÑO")[[1 + (i %% 3)]],
+    teacher = sprintf("Docente %d", i), course_name = sprintf("Curso %d", i))
+  grande <- lapply(1:12, aula)
+
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  primera <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = grande, partes = list())
+  # En la siembra no hay nada previo, así que nada puede encoger.
+  expect_length(primera$encogidas, 0L)
+
+  segunda <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = grande[1], partes = list())
+  expect_gt(length(segunda$encogidas), 0L)
+  for (e in segunda$encogidas) {
+    # Con sus dos cifras: «encogió» sin el antes y el después no deja decidir.
+    expect_true(nzchar(e$hoja))
+    expect_gt(e$antes, e$ahora)
+  }
+  # Y son hojas de la APP: las del equipo no pueden aparecer aquí, porque ni
+  # siquiera se escriben.
+  hojas <- vapply(segunda$encogidas, function(e) e$hoja, character(1))
+  expect_false(any(c("Aulas Agendadas", "Aulas Aplicadas (Campo)") %in% hojas))
+})
+
+test_that("una hoja que crece o se mantiene NO se declara encogida", {
+  skip_if_not_installed("digest")
+  aula <- function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA", scheduled_date = "2026-09-08",
+    scheduled_time = "10:00", faculty = "DERECHO",
+    teacher = "Docente", course_name = "Curso")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = lapply(1:3, aula), partes = list())
+  crece <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = lapply(1:9, aula), partes = list())
+  expect_length(crece$encogidas, 0L)
+})
