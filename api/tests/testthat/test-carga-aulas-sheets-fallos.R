@@ -98,3 +98,28 @@ test_that("un XLSForm ilegible no deja pasar el handoff sin verificar", {
   # handoff sin instrumento no es un handoff verificado.
   expect_true(grepl("sin XLSForm que comprobar", bloque, fixed = TRUE))
 })
+
+test_that("el token de la cache de aulas NO depende del report_scope", {
+  # `monitoreo_aulas_dashboard()` no recibe `scope` —su firma es
+  # `(plan, responses, config)`—, asi que el payload no puede depender de el.
+  # Incluirlo en el token multiplicaba la cache por cuatro con entradas
+  # identicas: medido contra el operativo, los cuatro scopes que pide
+  # `scopeForView()` devuelven el mismo payload byte a byte, a ~8 s y 5,92 MB
+  # cada uno.
+  #
+  # **Si este test empieza a fallar, mira ANTES si el constructor ya usa el
+  # scope**: en ese caso el token debe volver a incluirlo y este test se cambia
+  # a proposito. Lo que no vale es que el token lo lleve «por si acaso».
+  cfg <- list(control = list(), partes_campo = list(), libro = list(importado_en = "2026-09-12"))
+  plan <- list(list(operational_code = "CH 1"))
+  t_uno <- monitoreo_aulas_cache_token("base", plan, cfg, scope = "advance_summary")
+  t_dos <- monitoreo_aulas_cache_token("base", plan, cfg, scope = "queries_summary")
+  expect_identical(t_uno, t_dos)
+
+  # Y lo que SI tiene que invalidar, sigue invalidando: el token no se ha vuelto
+  # constante de paso.
+  expect_false(identical(
+    t_uno,
+    monitoreo_aulas_cache_token("base", c(plan, plan), cfg, scope = "advance_summary")))
+  expect_false(identical(t_uno, monitoreo_aulas_cache_token("otra-base", plan, cfg)))
+})

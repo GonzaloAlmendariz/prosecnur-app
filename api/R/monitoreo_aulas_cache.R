@@ -180,9 +180,22 @@ monitoreo_aulas_cache_token <- function(base, plan, cfg, scope = "full",
   # Los partes y el control se comparan por tamaño Y por su marca de lectura: el
   # numero de filas solo no distingue una correccion a mano en el Excel, que es
   # justo el caso que el operativo tiene declarado como posible.
+  # **El `scope` NO entra en el token, y no es un olvido.**
+  #
+  # `monitoreo_aulas_dashboard()` no recibe `scope` —su firma es
+  # `(plan, responses, config)`— asi que el payload de aulas NO PUEDE depender
+  # de el. Incluirlo aqui multiplicaba la cache por cuatro con entradas
+  # identicas: medido el 2026-09-12 contra el operativo, los cuatro
+  # `report_scope` que pide `scopeForView()` devuelven el mismo payload BYTE A
+  # BYTE (6.207.442 caracteres; normalizando los sellos de tiempo, iguales), y
+  # cada uno costaba ~8 s y 5,92 MB. Cambiar de seccion en el perfil volvia a
+  # construir el tablero que ya se tenia.
+  #
+  # Se mantiene el PARAMETRO: el endpoint lo sigue aceptando y el dia que el
+  # constructor lo use de verdad, vuelve a esta lista —y el test que lo ata se
+  # cambia a proposito, que es como tiene que doler.
   paste(
     as.character(base %||% ""),
-    as.character(scope %||% "full"),
     largo(plan),
     largo(cfg$control),
     largo(cfg$partes_campo),

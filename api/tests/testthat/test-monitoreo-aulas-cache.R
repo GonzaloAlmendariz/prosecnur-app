@@ -58,7 +58,7 @@ test_that("importar partes de campo invalida la cache", {
   expect_false(identical(t1, t2))
 })
 
-test_that("el token distingue plan, control, libro y scope", {
+test_that("el token distingue plan, control y libro, pero NO el scope", {
   plan <- .mac_plan()
   base <- monitoreo_aulas_cache_token("t", plan, list())
   expect_false(identical(base, monitoreo_aulas_cache_token("t", .mac_plan(4), list())))
@@ -68,7 +68,25 @@ test_that("el token distingue plan, control, libro y scope", {
   # `importado_en` — el que sella el importador; el pin usaba `leido_en`, un
   # alias que nadie escribia (A15).
   expect_false(identical(base, monitoreo_aulas_cache_token("t", plan, list(libro = list(importado_en = "2026-08-24T10:00:00Z")))))
-  expect_false(identical(base, monitoreo_aulas_cache_token("t", plan, list(), scope = "validation_summary")))
+  # **El `scope` NO distingue, y el contrato cambia a proposito el 2026-09-12.**
+  #
+  # Esta linea exigia lo contrario y era la unica de las cinco sin una razon
+  # escrita al lado: entro por simetria —«el token distingue todo lo que
+  # recibe»— no por una necesidad medida.
+  #
+  # Lo medido: `monitoreo_aulas_dashboard()` NO recibe `scope` (su firma es
+  # `(plan, responses, config)`), asi que el payload no puede depender de el. Y
+  # contra el operativo real, los cuatro `report_scope` que pide
+  # `scopeForView()` devuelven el mismo payload BYTE A BYTE —6.207.442
+  # caracteres, iguales tras normalizar los sellos de tiempo—. Distinguir por
+  # algo de lo que el valor no depende multiplicaba la cache por cuatro: cambiar
+  # de seccion en el perfil costaba ~8 s y 5,92 MB para reconstruir el tablero
+  # que ya se tenia.
+  #
+  # **Si esto vuelve a fallar, mira ANTES si el constructor ya usa el scope.**
+  # Si lo usa, el token debe volver a incluirlo y esta linea se cambia otra vez,
+  # a proposito. Lo que no vale es llevarlo «por si acaso».
+  expect_identical(base, monitoreo_aulas_cache_token("t", plan, list(), scope = "validation_summary"))
   # Y el token del tablero manda: si cambia la data, cambia este.
   expect_false(identical(base, monitoreo_aulas_cache_token("otro", plan, list())))
 })
