@@ -291,3 +291,29 @@ de aplicadores» nueva y «Plan del día» sin su `#REF!`.
 **Regla que queda, y es la tercera vez que este día la escribe:** el libro se
 publica **desde la sesión de la app**. Y el cotejo de una publicación va celda a
 celda en TODAS las hojas, también en las que cambiaron a propósito.
+
+
+## Cierre del loop (2026-09-12, por decisión de Gonzalo)
+
+**Las nueve indicaciones del dictado, cerradas.** Con ellas, dos hojas nuevas en
+el libro, el `#REF!` resuelto en el documento y el formato llegando por fin a
+las hojas del equipo.
+
+**Lo que el loop encontró por su cuenta**, todo con guard y mutante muerto: el
+singular que se hizo plural y dejó cinco consumidores atrás · la identidad
+comparada literalmente, en tres instancias · la cadena vacía que no es una
+celda vacía · las cifras que viajaban como texto en tres hojas y en las dos
+salidas · el estatus y el código que degradaban en silencio · el libro que no
+se puede regenerar a partir de sí mismo.
+
+**Lo que el loop rompió y restauró**: tres hojas de la app degradadas por
+publicar desde el round-trip —«Base de control», «Avance de campo» y «Avance de
+agendación», ésta última siete horas con «Aulas del diseño» sumando 1.372 donde
+iban 170—. Las tres volvieron a 0 celdas distintas del respaldo, que existía
+porque se tomó antes de escribir. Y el incidente quedó cerrado en las tres
+capas: arreglado, impedido (`0aa22873`) y vigilado
+(`test-aulas-libro-dos-caminos.R`).
+
+**Lo que queda es de él**: la cadena del libro, el semáforo de consistencia,
+E10, «Plan del día» y una publicación desde la sesión de la app. Están en el
+encargo del loop y en este documento; ninguna corre prisa.
