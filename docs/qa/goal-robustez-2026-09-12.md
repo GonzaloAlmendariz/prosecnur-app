@@ -26,7 +26,7 @@ Tres afirmaciones comprobables, no impresiones:
 |---|---|---|
 | Typecheck | limpio | limpio |
 | Vitest | **5 rojos** de 8.929 | **0** — 933 archivos, 8.930 tests |
-| `testthat` completo | **10 rojos** | 10 de la base cerrados |
+| `testthat` completo | **10 rojos** | **36.093 pass, 0 fail** (medido por la otra sesión, `b2fd0662`) |
 | `--audit` / `--check` | 2 congelados crecidos | verdes |
 | PDF de avance | — | 11 páginas, cifras cuadradas |
 
