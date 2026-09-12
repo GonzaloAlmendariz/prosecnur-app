@@ -511,3 +511,26 @@ test_that("un plan viejo que solo trae replacement_for operativo sigue resolvien
   plan <- .mar_cadena_fixture(list(replacement_for = "CH 1"))
   expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
 })
+
+test_that("las reservas se reconocen tambien en la forma del LIBRO", {
+  # Clase 3 del catalogo, viva en el camino A. El plan de sesion guarda
+  # `sample_status` como lo escribe el libro —«SIN CONTACTAR», «EN RESERVA»— y
+  # `MONITOREO_AULAS_ESTADOS_DORMIDOS` habla snake_case. Medido antes del
+  # arreglo: la forma del libro devolvia 0 reservas y la normalizada 1.
+  for (estado in c("sin_contactar", "SIN CONTACTAR", "en_reserva", "EN RESERVA",
+                   "planificada", "PLANIFICADA", "-")) {
+    plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                     sample_status = estado))
+    expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+  }
+})
+
+test_that("una reserva COMPROMETIDA no se ofrece, venga como venga escrita", {
+  # La contracara: normalizar no puede volver disponible lo que esta en campo.
+  for (estado in c("agendada", "AGENDADA", "reagendada", "REAGENDADA",
+                   "en_contacto", "EN CONTACTO", "rechazo", "RECHAZO")) {
+    plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                     sample_status = estado))
+    expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 0L)
+  }
+})

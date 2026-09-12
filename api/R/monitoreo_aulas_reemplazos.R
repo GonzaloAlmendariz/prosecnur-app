@@ -51,6 +51,20 @@
 #
 # `replacement_for` se conserva DETRAS como respaldo: un plan viejo que solo lo
 # traiga, y con codigo operativo, sigue resolviendose.
+# **El estado de muestra se NORMALIZA antes de compararlo, siempre.**
+#
+# El plan que vive en la sesion guarda `sample_status` tal como viene del libro
+# —«SIN CONTACTAR», «EN RESERVA», «PLANIFICADA»— mientras el vocabulario de
+# `MONITOREO_AULAS_ESTADOS_DORMIDOS` es el snake_case. Medido el 2026-09-12
+# sobre este mismo motor: con la forma del libro,
+# `monitoreo_aulas_reservas_disponibles()` devolvia **0** reservas y con la
+# normalizada **1**. Es el mismo defecto que el 2026-09-11 dejo 1 213 de 1 218
+# reservas inalcanzables en el circuito de refuerzos, aqui en el camino A.
+#
+# Va en un helper y no repetido en cada comparacion: el defecto nacio de tener
+# que acordarse, y acordarse tres veces es acordarse dos.
+.mar_estado <- function(fila) monitoreo_aulas_estado_muestra(fila$sample_status)
+
 .mar_titular_de <- function(fila) {
   toc <- .mar_txt(fila$titular_operational_code)
   if (nzchar(toc)) return(toc)
@@ -87,7 +101,7 @@
   cand <- plan[[pos]]
   caida <- plan[[pos_caida]]
 
-  if (!.mar_txt(cand$sample_status) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS) {
+  if (!.mar_estado(cand) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS) {
     stop_api(409, "E_REEMPLAZO_NO_DISPONIBLE",
              sprintf("'%s' ya esta comprometida (%s): no se puede activar para otra cosa.",
                      elegida, .mar_txt(cand$sample_status, "sin estado")))
@@ -175,7 +189,7 @@ monitoreo_aulas_reservas_disponibles <- function(plan = list(), codigo = "") {
     identical(.mar_txt(r$sample_role), "chain_reserve") &&
       identical(.mar_titular_de(r), cadena) &&
       !identical(.mar_txt(r$operational_code), codigo) &&
-      .mar_txt(r$sample_status) %in% libres
+      .mar_estado(r) %in% libres
   }, logical(1)))
   if (!length(idx)) return(integer(0))
   # Por orden de cadena; el que no lo declare va al final en vez de al frente.
@@ -235,7 +249,7 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
     usadas <- sum(vapply(plan, function(r) {
       identical(.mar_txt(r$sample_role), "chain_reserve") &&
         identical(.mar_titular_de(r), cadena) &&
-        !.mar_txt(r$sample_status) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS
+        !.mar_estado(r) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS
     }, logical(1)))
     return(list(plan = plan, activada = NULL, reemplazada = codigo,
                 agotada = TRUE, origen = NA_character_,

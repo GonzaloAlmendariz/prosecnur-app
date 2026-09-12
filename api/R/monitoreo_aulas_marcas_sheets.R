@@ -52,8 +52,12 @@ MONITOREO_AULAS_CELDA_LIBRE <- c("", "EN RESERVA", "SIN CONTACTAR")
 monitoreo_aulas_marcas_por_publicar <- function(plan = list(), remoto = NULL,
                                                 col_codigo = "CURSO-HORARIO",
                                                 col_estado = "STATUS MUESTRA") {
+  # **Normalizado, no crudo.** El plan de sesion trae la forma del libro en
+  # cuanto se relee el Sheets —«REFUERZO POR CONTACTAR», mayusculas y espacios—
+  # y este filtro comparaba contra el snake_case: la segunda publicacion de una
+  # marca ya leida del libro no encontraba ninguna. Clase 3 del catalogo.
   marcadas <- Filter(function(r) {
-    identical(.mams_txt(r$sample_status), "refuerzo_por_contactar")
+    identical(monitoreo_aulas_estado_muestra(r$sample_status), "refuerzo_por_contactar")
   }, plan %||% list())
   vacio <- list(escribibles = list(), respetadas = list(), sin_fila = character(0))
   if (!length(marcadas)) return(vacio)
