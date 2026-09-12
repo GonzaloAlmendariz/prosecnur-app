@@ -93,6 +93,10 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   necesita y 1 era real** (`test-graficos-negrita-render`, que afirma dentro de
   un bucle: sin coincidencias no ejecutaba **ni una sola aserción**). Tope **0**
   en el backend, y el meta-guard entra al `gate-area` como transversal.
+  **Variantes ya barridas y en cero**: bucles que afirman sin comprobar que hay
+  algo que recorrer (R y frontend), e `it.each` sobre una lista del disco —que
+  con la lista vacía no ejecuta ni un caso—. Y un agujero del propio meta-guard:
+  miraba `.test.ts` y dejaba fuera **210** archivos `.test.tsx`.
   El centinela tiene DOS formas y el meta-guard reconoce las dos: contar lo
   encontrado, o declarar la lista de archivos a vigilar y comprobar que siguen
   existiendo —así lo hacía ya `capacidadDeclarada`, y el meta-guard lo acusó por
