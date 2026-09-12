@@ -157,3 +157,47 @@ test_that("dos personas distintas siguen siendo dos", {
   expect_false(is.null(.tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Aquino Dulanto, Alejandro")))
   expect_false(is.null(.tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Aquino Dulanto, Alejandra")))
 })
+
+# --- la hoja existe en las DOS salidas, no sólo en Sheets --------------------
+#
+# El constructor de filas es uno solo, pero cada salida tiene su escritor: el
+# `.xlsx` le pone estilos por tipo de fila y Sheets recibe los values planos.
+# Una hoja que dejara de escribirse en el `.xlsx` no rompería ningún test de
+# los de arriba —el constructor seguiría devolviendo sus filas— y nadie lo
+# notaría hasta abrir el libro generado.
+
+test_that("el libro .xlsx lleva la hoja de producción cuando hay campo", {
+  skip_if_not_installed("openxlsx")
+  plan <- lapply(1:3, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    sample_role = "titular", operational_status = "agendada",
+    sample_status = "AGENDADA", scheduled_date = "2026-09-11",
+    scheduled_time = sprintf("%02d:00", 8 + i), faculty = "DERECHO",
+    teacher = "Docente", course_name = "Curso"))
+  partes <- list(
+    list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+         aplicador = "Ana Prueba", efectivas = 18, asistentes = 25))
+  destino <- tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, destino, partes = partes)
+  hojas <- openxlsx::getSheetNames(destino)
+  expect_true("Producción de aplicadores" %in% hojas)
+  # Y va DESPUÉS de la de asignación cuando las dos están: se lee al cerrar la
+  # jornada, no al empezarla.
+  d <- openxlsx::read.xlsx(destino, sheet = "Producción de aplicadores", colNames = FALSE)
+  expect_identical(as.character(d[1, 1]), "PRODUCCIÓN DE APLICADORES")
+  expect_gt(nrow(d), 5L)
+})
+
+test_that("sin campo, el .xlsx no lleva una hoja de producción vacía", {
+  skip_if_not_installed("openxlsx")
+  plan <- list(list(operational_code = "CH 1", classroom_id = "a1",
+                    sample_role = "titular", operational_status = "agendada",
+                    sample_status = "AGENDADA", scheduled_date = "2026-09-11",
+                    scheduled_time = "10:00", faculty = "DERECHO",
+                    teacher = "Docente", course_name = "Curso"))
+  destino <- tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, destino, partes = list())
+  # Una hoja de producción vacía se leería como «nadie ha aplicado», que es
+  # distinto de «todavía no se ha cargado el campo».
+  expect_false("Producción de aplicadores" %in% openxlsx::getSheetNames(destino))
+})
