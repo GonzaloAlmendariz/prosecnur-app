@@ -368,11 +368,19 @@ reparto que la generó:
 **Un aviso operativo, no un defecto.** De las 50 citas, una está a nombre de
 **«Interno Pulso»**, que no es ninguno de los 19 de la semana: `CH 107`,
 miércoles 16/09, 08:50, aula Z201, Ciencias Sociales, MACROECONOMÍA 2. Viene de
-una fijación que ya estaba en la hoja del coordinador y **la app hizo lo
-correcto respetándola** —el reparto no pisa lo que el equipo decidió—, pero
-conviene saberlo antes del miércoles: si «Interno Pulso» no es alguien que vaya
-a ir, esa aula se queda sin nadie y no lo dirá ningún aviso, porque para el
-motor está cubierta.
+una fijación que ya estaba en la hoja del coordinador.
+
+**Y la app no sólo la respeta: lo tiene declarado.** «INTERNO PULSO» es el
+comodín del operativo, dictado por Gonzalo el 2026-09-04 —«cuando no hay
+aplicadores disponibles y lo termina haciendo alguien de Pulso»—; vive en
+`MONITOREO_AULAS_INTERNO_PULSO`, entra en `equipo` para las fijaciones
+(`monitoreo_aulas_distribucion_ciclo.R:335`) y tiene su advertencia de
+disponibilidad callada a propósito, porque no es una persona con horario. El
+solape sí se le avisa: «dos citas a la misma hora no las cubre nadie, ni Pulso».
+
+Así que no es un hueco del guard sino una decisión codificada, y la nota se
+queda como lo que es —operativa—: esa cita significa **«va alguien de Pulso»**, y
+alguien tiene que estar en Z201 el miércoles a las 08:50.
 
 Y 17 aplicadores distintos sobre 19 disponibles: los dos sin carga son Damaso
 Abanto y Dolores Resurrección, por el modo concentrado, ya reportado.
