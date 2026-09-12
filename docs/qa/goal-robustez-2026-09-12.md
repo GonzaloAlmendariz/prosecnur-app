@@ -384,3 +384,27 @@ alguien tiene que estar en Z201 el miércoles a las 08:50.
 
 Y 17 aplicadores distintos sobre 19 disponibles: los dos sin carga son Damaso
 Abanto y Dolores Resurrección, por el modo concentrado, ya reportado.
+
+## El libro de cliente de aulas, que nunca se ha publicado, sí se arma
+
+En la pantalla de Salidas, «GOOGLE SHEETS · CLIENTE» sale **Pendiente**: para
+este estudio ese entregable no se ha generado nunca. Un entregable que nadie ha
+ejercitado es justo el que falla el día que hace falta, así que se probó a
+armarlo con el estado real.
+
+`monitoreo_publication_model(..., audience = "client")` construye sin error:
+
+| | |
+|---|---|
+| Familia detectada | `university_classroom_fieldwork` |
+| Pestañas | **6** — Portada · Resumen de aulas · Avance agregado · Cuotas y brechas · Avance diario · Corte y fuentes |
+| Marcos vacíos | **ninguno** |
+
+No prueba que el contenido sea el correcto —eso pide leerlo, y publicarlo
+necesita el go de Gonzalo—, pero sí que el motor no se cae y que las seis
+pestañas traen datos. Que es lo que separa «no lo hemos usado» de «no funciona».
+
+Un tropiezo del camino que vale como aviso: `monitoreo_publication_model()` NO
+acepta `reports=`; el dashboard entra por `dashboard=` y de ahí saca los
+informes. Pasárselo da «unused argument» y parece un fallo del motor cuando es
+del llamador.
