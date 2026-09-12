@@ -96,9 +96,15 @@ function contextoAcreditado({
  * el conteo, así que un ajuste operativo deliberado deja al paquete sin emitir
  * y sin explicación. El aviso tiene que decir la causa, no sólo el hecho.
  *
- * Devuelve `null` cuando SÍ se puede emitir.
+ * Sólo se llama cuando el paquete NO se puede emitir: el llamador ya tiene
+ * `fingerprint === null` para saberlo, y devolver aquí un `null` que nunca se
+ * usa obligaría a cada llamador a redactar su propio texto por defecto. El
+ * texto genérico es el DEFECTO de
+ * esta función y no del llamador: puesto en el llamador obliga a la página —un
+ * archivo congelado a crecimiento— a cargar con la redacción, y deja el caso
+ * por defecto lejos de los cinco casos que decide aquí.
  */
-export function paqueteDefensaMotivo(context: PaqueteDefensaContext): string | null {
+export function paqueteDefensaMotivo(context: PaqueteDefensaContext): string {
   const { estudio, workspace, aulasState, marcoDesactualizado = false } = context;
   const totalComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
   const facultyComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
@@ -112,7 +118,6 @@ export function paqueteDefensaMotivo(context: PaqueteDefensaContext): string | n
   if (diff) {
     return `La selección se sorteó para ${diff.seleccionadas} cursos-horario y la fórmula pide ${diff.pedidas}. El paquete no se emite con las dos cifras a la vez: vuelve a sortear con el objetivo vigente, o ajusta el objetivo al sorteo.`;
   }
-  if (contextoAcreditado(context)) return null;
   return "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.";
 }
 
