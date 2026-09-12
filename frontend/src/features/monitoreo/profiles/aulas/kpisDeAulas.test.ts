@@ -145,7 +145,13 @@ describe("la banda de KPIs", () => {
 describe("los siete KPIs de Avance", () => {
   const conMetas = {
     kpis: { aulas_aplicadas: 16, respuestas_validas: 212 },
-    course_status_con_meta: 174,
+    // **Las dos poblaciones, con cifras DISTINTAS a propósito.** El fixture las
+    // tenía iguales en 174 y por eso este test estuvo verde mientras la tarjeta
+    // publicaba 74 en el estudio real: `con_meta` («en juego y con meta») no es
+    // «titulares del plan», que es lo que el rótulo promete y el denominador de
+    // lo aplicado. Iguales, el test no puede distinguir de cuál lee.
+    course_status_con_meta: 74,
+    course_status_rol_y_estado: { titulares: { total: 174 } },
     avance_cuota: {
       total: { cuota: 2500, respuestas_validas: 212 },
       meta_diseno: 2500,
@@ -383,7 +389,8 @@ describe("A2: la tarjeta de respuestas dice lo mismo que el embudo", () => {
 describe("los KPIs de Avance con una facultad en el selector", () => {
   const tablero = {
     kpis: { aulas_aplicadas: 56, respuestas_validas: 1063 },
-    course_status_con_meta: 174,
+    course_status_con_meta: 74,
+    course_status_rol_y_estado: { titulares: { total: 174 } },
     avance_cuota: {
       total: { cuota: 2500, respuestas_validas: 1063, brecha: 1437 },
       meta_diseno: 2500,

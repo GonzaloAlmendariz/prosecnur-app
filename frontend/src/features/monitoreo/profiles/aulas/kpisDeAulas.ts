@@ -1000,7 +1000,21 @@ function metasDeAvance(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco
     // Contra la sobremuestra la brecha por grupo no viaja al front todavía, así
     // que se declara el neto y no se finge un desglose que no se tiene.
     faltanSobremuestra: Math.max(0, sobremuestra - efectivas),
-    planificados: Number(dashboard?.course_status_con_meta ?? 0)
-      || Number(dashboard?.course_status_total ?? 0) || 0,
+    // **Los TITULARES, la misma fuente que la rama por facultad.**
+    //
+    // Leía `course_status_con_meta`, que es otra población —las que están en
+    // juego y con meta declarada— y el rótulo promete «titulares del plan». En
+    // HSVG2026 eso publicaba 74 planificados con 87 aplicados encima: más
+    // aplicadas que planificadas, que es imposible y se ve a simple vista. Los
+    // titulares son 174, y es lo que ya dicen el PDF de cliente y la columna
+    // x/x del detalle por facultad.
+    //
+    // La rama de `metasDeUnaFacultad` ya leía `rol.titulares.total`: con foco
+    // en una facultad el número era correcto y sin foco no, sobre la misma
+    // tarjeta. Ahora las dos salen de `course_status_rol_y_estado`.
+    planificados: Number(
+      (dashboard?.course_status_rol_y_estado as { titulares?: { total?: unknown } } | null)
+        ?.titulares?.total ?? 0,
+    ) || 0,
   };
 }
