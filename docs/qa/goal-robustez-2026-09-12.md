@@ -428,8 +428,17 @@ mismo—.
 encontrarlo: ningún serializador de `api/R` lo escribe de forma evidente. Hasta
 saberlo, esto es «el modelo dice una cosa rara», no «el cliente lee una cosa
 rara», y la diferencia es justo la que separa un hallazgo de una suposición.
-**Siguiente paso concreto**: publicar el libro de cliente a un Sheets de prueba
-—no al del operativo— y leer la pestaña. Si `description` no aparece, es sólo
-metadata y basta corregir el texto por higiene; si aparece, es texto que el
-cliente lee y hay que arreglarlo antes de la primera publicación, que aún no ha
-ocurrido.
+**RESUELTO en el tick siguiente, y sin publicar nada.** No hacía falta un Sheets
+de prueba: se construyeron las pestañas con sus valores
+(`monitoreo_publication_sheets_tabs(..., audience = "client")`) y se barrieron
+las **1.862 celdas** de las seis. «territorial» y «umbral interno» aparecen en
+**cero**.
+
+Es decir: `description` es metadata del modelo y **no llega a la hoja**. El
+cliente no lee nada de eso. Queda como higiene del código —un texto heredado que
+conviene corregir cuando se toque ese fichero— y **no como defecto del
+entregable**.
+
+Lo que vale como método: la pregunta «¿lo ve el cliente?» se contestó
+construyendo la salida y mirando sus celdas, no razonando sobre el código. Es
+más barato, es concluyente, y no toca el Sheets de nadie.
