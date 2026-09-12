@@ -244,3 +244,54 @@ test_that("un fallo de Drive al crear la carpeta llega con su causa, no generico
   expect_identical(err$code, "E_DRIVE_FICHAS")
   expect_match(err$message, "backendError", fixed = TRUE)
 })
+
+# --- El transporte sale acotado ----------------------------------------------
+#
+# `test-api-http-transporte.R` censa qué archivos pueden construir handles de
+# curl, y exige que cada uno traiga «su constructor acotado y su test de
+# módulo». Éste es ese test: sin él, el censo sería un permiso en blanco —
+# bastaría estar en la lista para que nadie volviera a mirar si el handle lleva
+# timeout.
+#
+# Importa porque Plumber es de un solo hilo: una subida a Drive sin timeout no
+# devuelve un error, cuelga el backend entero y la app se queda muda.
+
+test_that("la subida a Drive construye su handle con los timeouts acotados", {
+  visto <- new.env(parent = emptyenv())
+  visto$acotado <- 0L
+  visto$timeout <- NA_real_
+
+  testthat::local_mocked_bindings(
+    .monitoreo_google_apply_timeouts = function(handle) {
+      visto$acotado <- visto$acotado + 1L
+      handle
+    }
+  )
+  testthat::local_mocked_bindings(
+    handle_setopt = function(handle, ...) {
+      args <- list(...)
+      if (!is.null(args$timeout)) visto$timeout <- as.numeric(args$timeout)[1]
+      invisible(handle)
+    },
+    curl_fetch_memory = function(url, handle = NULL) {
+      list(status_code = 200L, content = charToRaw('{"id":"f1","name":"n","webViewLink":"u"}'))
+    },
+    .package = "curl"
+  )
+
+  path <- withr::local_tempfile(fileext = ".zip")
+  writeBin(charToRaw(paste(rep("x", 4096L), collapse = "")), path)
+  out <- prosecnurapp:::.cdr_drive_upload(
+    metadata = list(name = "fichas.zip"), path = path,
+    media_type = "application/zip", token = "tk"
+  )
+
+  # `.cdr_drive_upload` devuelve el JSON ya parseado, no la respuesta cruda.
+  expect_identical(out$id, "f1")
+  # El constructor acotado se usó: es el que pone `connecttimeout`, que es lo
+  # que impide quedarse colgado ANTES de mandar un solo byte.
+  expect_gte(visto$acotado, 1L)
+  # Y el timeout final es un número finito y positivo, no el default de libcurl
+  # (que es «para siempre»).
+  expect_true(is.finite(visto$timeout) && visto$timeout > 0)
+})
