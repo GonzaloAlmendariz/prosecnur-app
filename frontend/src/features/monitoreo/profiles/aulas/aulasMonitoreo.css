@@ -3366,7 +3366,17 @@
    columna a mano y quedaban las otras. */
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul {
   display: grid;
-  grid-template-columns: 108px 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  /* **El «cuándo» va a `max-content`, no a 108 px.** Con `white-space: nowrap`
+     una pista fija no recorta: DESBORDA sobre la de al lado. Medido en pantalla
+     el 2026-09-12: «lun 07/09 11:30 am» se comía el gap entero y salía
+     «11:30 amCH 7» pegado, mientras «lun 07/09 6:30 pm» —tres caracteres menos—
+     se leía con holgura. Caber no es no pisarse, y el gate no lo ve: no hay
+     recorte, ni derrame, ni solape de cajas.
+     `max-content` se puede usar AQUÍ y no en el `li` por lo que dice el
+     comentario de abajo: el reparto subió al `ul` y los `li` son `subgrid`, así
+     que la columna la fija el más ancho de TODAS las filas y todas quedan
+     alineadas. En el `li` cada fila era su propia grilla y desalineaba. */
+  grid-template-columns: max-content 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul > li {
