@@ -699,6 +699,51 @@ commitear), o construir un proyecto de referencia de aulas con Monitoreo listo
 - La otra sesión sí está en aulas: **23 commits hoy** (Plan del día, distribución,
   recibo de sincronización). No son míos.
 
+## El sello perdido: dos defectos en el circuito de refuerzos (ticks 50-51)
+
+Salieron de una petición operativa de Gonzalo —recuperar sus 15 refuerzos del
+Sheets y guardar— y de ir a MIRAR la pestaña después.
+
+**La raíz**: al publicar sólo viaja `STATUS MUESTRA`; `activation_origin` —el
+sello de «lo pidió la app»— se queda en la sesión. Todo el circuito se apoyaba en
+ese sello, así que lo recuperado del libro era invisible para la app.
+
+| superficie | decía | con los 15 dentro |
+|---|---|---|
+| pestaña Refuerzos | «Marcar los 15 mejores» | **no los veía** (`5284a71c`) |
+| reparto del techo | «La app lleva **0** de 15» | 4 sitios contando por sello (`4b7374e6`) |
+
+El segundo es el peligroso: invita a pedir 15 MÁS sobre los 15 que ya hay, y su
+filtro de candidatos los devolvía al pool.
+
+Criterio único en `esRefuerzoPedido()`: sello **o** estado `refuerzo_*`
+(inequívoco). `agendada`/`en_contacto` NO —los tiene cualquiera de las 1.392—.
+`origen` dice el sello real, o «libro» cuando no hay ninguno, así que la
+distinción que el contrato viejo protegía **no se pierde, cambia de sitio**.
+
+**Verificado en pantalla con el proyecto real**: embudo en «15 espera llamada ·
+0 en contacto · 0 con fecha · 0 aplicado», los 15 códigos listados con su
+facultad y su botón Retirar, y «La app lleva **15** de un techo de 15: el techo
+está gastado». Las pedidas por facultad suman 15.
+
+**No recupera** un refuerzo que ya avanzó a EN CONTACTO/AGENDADA **y** perdió el
+sello: ése es indistinguible de un aula normal, y se dice en el código.
+
+### Cuarto barrido genérico descartado, y ya es un patrón del método
+
+Al verificar salió «1 pedidas» y «1 la cierran» (arreglado, `935a6928`). Barrí
+aulas buscando plural fijo tras una cifra: **125 candidatos en 55 archivos**, y
+la mayoría son ruido —«más», «en», «con», «según», «están», «esperan»: preposiciones
+y verbos que no concuerdan con el número—. Saber si una cifra **puede valer 1**
+pide análisis de flujo, no un regex.
+
+Van cuatro: respaldos divergentes (129), clases sin CSS (46), y ahora plurales
+(125). **El patrón**: un barrido genérico sobre lenguaje natural o sobre
+convenciones opcionales nace con una línea base inservible. Los que SÍ han
+funcionado en este loop miran una relación verificable de dos lados —el estado
+contra lo que publica el motor, el token contra su declaración, la marca contra
+lo que lee el puente—.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
