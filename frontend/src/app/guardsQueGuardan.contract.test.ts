@@ -36,7 +36,11 @@ function tests(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const completo = path.join(dir, e.name);
     if (e.isDirectory()) return tests(completo);
-    return e.name.endsWith(".test.ts") ? [completo] : [];
+    // **`.tsx` también.** La primera versión sólo miraba `.test.ts` y dejaba
+    // fuera 210 archivos: un agujero en el propio meta-guard, que es el chiste
+    // que este archivo lleva contando. Hoy ninguno de ellos tiene la firma —se
+    // comprobó— pero mañana uno podría, y nadie lo vería.
+    return /\.test\.tsx?$/.test(e.name) ? [completo] : [];
   });
 }
 
@@ -91,6 +95,6 @@ describe("guards que podrían dejar de guardar", () => {
 
   test("el meta-guard encuentra guards de verdad, o él mismo está mudo", () => {
     // El chiste se cuenta solo: un meta-guard de la no-mudez que se queda mudo.
-    expect(tests(SRC).length).toBeGreaterThan(200);
+    expect(tests(SRC).length).toBeGreaterThan(400);
   });
 });
