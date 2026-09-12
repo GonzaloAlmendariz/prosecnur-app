@@ -502,3 +502,29 @@ defecto que no existía y lo reporté como urgente. El guard no sólo cerró el
 invariante: fue lo que me delató, porque falló donde no debía. Escribir la
 prueba antes de creerse el hallazgo es lo que separó esto de una alarma falsa
 entregada.
+
+### Y el `#REF!` diagnosticado: ni la fórmula, ni el área, ni los datos
+
+Cerrado el hilo, con todo medido sobre la hoja viva y sin escribir en ella:
+
+| Comprobación | Resultado |
+|---|---|
+| La fórmula | **intacta y bien formada** — `IF($B$1="";…;IFERROR(FILTER(A30:U234;…);…))` |
+| El área del desborde (filas 4–27) | **vacía en A:Z**; sólo la fila 4 tiene la fórmula |
+| Filas que devuelve el FILTER para el día elegido (11/09) | **18**, con **24** libres |
+| Para el día más cargado (09/09) | **24**, con 24 libres: cabe exacto |
+
+Es decir: la fórmula está bien, el sitio donde desborda está libre y lo que
+devuelve cabe. **El `#REF!` no puede venir de un desborde.**
+
+La explicación que queda —y se declara como la más probable, NO como verificada—
+es que sea un **valor calculado obsoleto**: la fórmula se escribe en un PUT
+aparte (`USER_ENTERED`) después del `values:batchUpdate` que reescribe la hoja,
+y en ese instante intermedio el listado está en otras filas. Si nadie ha abierto
+el documento desde la última publicación, la API devuelve ese valor viejo en
+caché.
+
+**Cómo confirmarlo en cinco segundos y sin herramientas**: abrir el documento y
+mirar esa celda. Google recalcula al abrir. Si se arregla sola, era eso; si
+sigue en `#REF!` con la fórmula y el área que acabamos de comprobar, entonces sí
+hay algo que no entendemos y merece volver.
