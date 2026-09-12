@@ -403,6 +403,11 @@ export function AulasSeccionModelo({
               distribución ya la calculaba `agendamiento.ts`; sólo publicaba su
               centro. */}
           <Tabla
+            // **La fila no puede contar todo lo que sabemos de ese
+            // curso-horario**: son 70 columnas de las que caben 14, con 365 px
+            // escondidos a la derecha (medido el 2026-09-12). El código lleva a
+            // donde sí cabe todo, que es su ficha.
+            onVerFicha={verFichaDe}
             rows={filasDeLaAgenda}
             // C3: un eslabón sin filas —el hueco de una cadena profunda— deja
             // su vacío dentro del marco de la tabla, y el copy nombra QUÉ
