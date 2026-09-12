@@ -24,7 +24,7 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 3 | Dos vocabularios para el mismo estado | `test-monitoreo-aulas-estado-normalizado.R` | 9→6/3 |
 | 4 | Un paso que puede no ocurrir y no lo cuenta | `test-monitoreo-aulas-publicar-marcas.R` | 55→54/1 y 51/4 |
 | 5 | Anclar por igualdad exacta lo que el libro escribe con sufijo | (en publicar-marcas) | 55→49/1 |
-| 6 | Un gate que no se corre | `make gate-area` | 108/2 |
+| 6 | Un gate que no se corre | `make gate-area` (R) + `make gate-front` | 108/2 · 2 guards |
 | 7 | Un concepto con dos implementaciones | `test-helpers-sin-duplicar.R` | 2→1/1 |
 | 8 | Un estado de React que se escribe y nadie pinta | `estadoQueNadieLee.contract.test.ts` | 2→1/1 |
 | 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` + `test-guards-que-guardan.R` | 2→1/1 en ambos |
