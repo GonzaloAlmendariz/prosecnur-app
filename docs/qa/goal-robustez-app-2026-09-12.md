@@ -206,8 +206,19 @@ La firma de la clase: **un respaldo que se usa siempre no es un respaldo, es la
 día que falte lo que alimenta al respaldo, devuelve un número plausible y falso
 —aquí, la meta entera como logrado—.
 
-Dónde buscar más: `x.a ?? x.b` o `Number(x.a)` con respaldo, donde `a` no
-aparezca en ningún `=` del backend. **No barrido todavía.**
+**Barrido hecho** (contra el payload vivo, no contra el código): **299 campos
+snake_case que el perfil lee**, 64 fuera del tablero —casi todos de OTROS
+objetos: config, estado, respuestas de endpoints— y **sólo dos con la firma**:
+
+- `achieved`: muerto en todo el backend → arreglado a `observed` (`efa3bd98`).
+- `sex_key`: **vivo, pero en otra estructura** —lo publica
+  `calc_muestra_distribucion.R`— y ausente de `quotas_sex_faculty`, que es lo
+  que este código lee. Se deja el orden y se documenta (`5a73cac3`): si algún
+  día llegara es más fiable, pero hoy quien sostiene esto es el respaldo.
+
+La diferencia entre los dos es la que importa: **un alias muerto se arregla; uno
+vivo en otro sitio sólo necesita decirse.** Cambiar el segundo habría sido tocar
+por tocar.
 
 ## Abierto en el diario, y es decisión suya
 
