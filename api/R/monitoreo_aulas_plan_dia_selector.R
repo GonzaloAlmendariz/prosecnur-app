@@ -229,9 +229,57 @@
 # a USER_ENTERED (Sheets parsearía «0205» y fechas por locale). Se llama tras
 # CADA escritura efectiva de la hoja: el rectángulo recién escrito dejó la
 # celda vacía.
+# Deja REALMENTE vacías las celdas de la reserva. Dos rangos y no uno: la fila
+# de la fórmula conserva su columna A —ahí va la fórmula— y se limpian sus
+# demás columnas; de la fila siguiente hasta el final de la reserva se limpia
+# todo el ancho. Nunca toca el listado, que empieza en `fila_cabecera_listado`.
+.mapds_vaciar_area <- function(spreadsheet_id, hoja, geo) {
+  h <- .monitoreo_sheets_quote_sheet(hoja)
+  ultima <- geo$fila_cabecera_listado - 2L   # la de encima del renglón separador
+  if (is.na(ultima) || ultima < geo$fila_formula) return(invisible(FALSE))
+  ancho <- .malar_col_a1(max(1L, as.integer(geo$n_cols)))
+  rangos <- c(
+    if (geo$n_cols > 1L) sprintf("%s!B%d:%s%d", h, geo$fila_formula, ancho, geo$fila_formula),
+    if (ultima > geo$fila_formula) sprintf("%s!A%d:%s%d", h, geo$fila_formula + 1L, ancho, ultima)
+  )
+  if (!length(rangos)) return(invisible(FALSE))
+  # `values:batchClear` y no un `:clear` por rango: el segundo pide un cuerpo
+  # vacío y `list()` de R se serializa como `[]`, que Google rechaza con
+  # «Root element must be a message» — el error se tragaba en silencio y el
+  # área seguía escrita. Éste lleva sus rangos DENTRO del cuerpo, así que no
+  # hay cuerpo vacío que serializar mal, y limpia los dos de una sola llamada.
+  #
+  # Un fallo aquí no tumba la publicación: la hoja ya está escrita y lo peor que
+  # pasa es que el bloque siga sin expandirse, que es el estado de antes.
+  tryCatch(.monitoreo_google_api(
+    paste0(.monitoreo_sheets_api_base(spreadsheet_id), "/values:batchClear"),
+    method = "POST", body = list(ranges = as.list(rangos))),
+    error = function(e) NULL)
+  invisible(TRUE)
+}
+
 .mapds_formula_publicar <- function(spreadsheet_id, hoja, values) {
   geo <- .mapds_geometria(values)
   if (is.null(geo)) return(invisible(FALSE))
+  # **Antes de la fórmula, VACIAR de verdad el área del desborde.**
+  #
+  # Ésta es la causa real del `#REF!` que el operativo arrastró toda la jornada
+  # del 2026-09-12, y costó tres hipótesis falsas averiguarla. La hoja se
+  # escribe como un RECTÁNGULO, así que Sheets rellena con **cadena vacía**
+  # todas las celdas de las filas de reserva. Una cadena vacía **no es una
+  # celda vacía**: `ISBLANK` la da por ocupada y `FILTER` se niega a expandirse
+  # sobre ella con «Array result was not expanded because it would overwrite
+  # data in B4».
+  #
+  # Y es invisible desde fuera: `values.get` devuelve "" igual que para una
+  # celda vacía, y `includeGridData` no le ve `userEnteredValue`. Por eso el
+  # área «estaba limpia» en todas las mediciones y el bloque seguía roto.
+  # Reescribir la fórmula tampoco servía —el estorbo no estaba en la fórmula—.
+  #
+  # `updateCells` con `fields = "userEnteredValue"` y filas sin valor deja las
+  # celdas REALMENTE vacías. Sólo el rectángulo de la reserva: la fila de la
+  # fórmula y el listado de abajo no se tocan.
+  .mapds_vaciar_area(spreadsheet_id, hoja, geo)
   rango <- sprintf("%s!A%d", .monitoreo_sheets_quote_sheet(hoja), geo$fila_formula)
   .monitoreo_google_api(
     paste0(

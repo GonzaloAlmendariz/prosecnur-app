@@ -231,6 +231,8 @@ test_that("una celda atascada en error se desatasca y deja de acusarse", {
       if (identical(v, "")) atascada <<- FALSE
       return(list(updatedCells = 1L))
     }
+    # El vaciado del área es otra cosa que leer la celda: no cuenta como lectura.
+    if (grepl("batchClear", url, fixed = TRUE)) return(list(clearedRanges = list()))
     vistas <<- c(vistas, "get")
     list(values = list(list(if (atascada) "#REF!" else "2026-09-10")))
   }
@@ -280,4 +282,65 @@ test_that("la reserva del área deja margen para lo que se agende después", {
   expect_gt(hueco, 4L)
   # El mínimo es de cuatro filas: un día flojo no puede quedarse sin margen.
   expect_gte(hueco - 4L, 4L)
+})
+
+# --- la causa REAL del #REF!: cadena vacía no es celda vacía -----------------
+#
+# El operativo arrastró el bloque roto toda la jornada del 2026-09-12 y costó
+# tres hipótesis falsas. La hoja se escribe como un RECTÁNGULO, así que Sheets
+# rellena con CADENA VACÍA las celdas de las filas de reserva. Una cadena vacía
+# no es una celda vacía: `ISBLANK` la da por ocupada y `FILTER` se niega a
+# expandirse con «would overwrite data in B4».
+#
+# Y es invisible desde fuera: `values.get` devuelve "" igual que para una celda
+# vacía y `includeGridData` no le ve `userEnteredValue`, así que el área
+# «estaba limpia» en todas las mediciones mientras bloqueaba el desborde.
+
+test_that("antes de poner la fórmula se vacía el área de verdad", {
+  limpiados <- character(0)
+  puestos <- character(0)
+  handler <- function(url, method = "GET", body = NULL, ...) {
+    if (grepl("batchClear", url, fixed = TRUE)) {
+      # Los rangos viajan en el CUERPO, no en la URL: un `:clear` por rango
+      # exige cuerpo vacío y `list()` se serializa como `[]`, que Google
+      # rechaza. El test mira el cuerpo para que ese error no vuelva.
+      limpiados <<- c(limpiados, as.character(unlist(body$ranges)))
+      return(list(clearedRanges = as.character(unlist(body$ranges))))
+    }
+    if (identical(method, "PUT")) {
+      puestos <<- c(puestos, "formula")
+      return(list(updatedCells = 1L))
+    }
+    list(values = list(list("2026-09-10")))
+  }
+  testthat::local_mocked_bindings(.monitoreo_google_api = handler)
+  values <- .tpdf_filas()
+  geo <- .mapds_geometria(values)
+  expect_true(isTRUE(.mapds_formula_publicar("sheet_x", "Plan del día", values)))
+
+  # Se limpió ANTES de escribir la fórmula: al revés, el propio PUT volvería a
+  # dejar el estorbo y no habría servido de nada.
+  expect_length(limpiados, 2L)
+  expect_length(puestos, 1L)
+  # Y lo limpiado es SÓLO la reserva: la columna A de la fila de la fórmula se
+  # respeta (ahí va la fórmula) y el listado no se roza.
+  expect_match(limpiados[[1]], sprintf("!B%d:", geo$fila_formula), fixed = TRUE)
+  expect_match(limpiados[[2]], sprintf("!A%d:", geo$fila_formula + 1L), fixed = TRUE)
+  ultima <- geo$fila_cabecera_listado - 2L
+  expect_match(limpiados[[2]], sprintf("%d$", ultima))
+  expect_false(any(grepl(sprintf("%d$", geo$fila_cabecera_listado), limpiados)))
+})
+
+test_that("si la limpieza falla, la publicación sigue y la fórmula se escribe", {
+  # Lo peor que puede pasar es que el bloque siga sin expandirse, que es el
+  # estado de antes. Tumbar la publicación entera por eso sería peor.
+  puestos <- 0L
+  handler <- function(url, method = "GET", body = NULL, ...) {
+    if (grepl("batchClear", url, fixed = TRUE)) stop("cuota")
+    if (identical(method, "PUT")) { puestos <<- puestos + 1L; return(list(updatedCells = 1L)) }
+    list(values = list(list("2026-09-10")))
+  }
+  testthat::local_mocked_bindings(.monitoreo_google_api = handler)
+  expect_true(isTRUE(.mapds_formula_publicar("sheet_x", "Plan del día", .tpdf_filas())))
+  expect_equal(puestos, 1L)
 })
