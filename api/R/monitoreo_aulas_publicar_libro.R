@@ -1021,12 +1021,18 @@ mount_monitoreo_aulas_libro <- function(pr) {
       out <- monitoreo_aulas_leer_distribucion(destino, filas)
       # Y qué hay de las filas que el equipo añadió a mano: cuáles se pueden
       # completar con los datos del curso-horario y cuáles son reagendaciones.
-      # La MISMA pestaña que acaba de leer `monitoreo_aulas_leer_distribucion`,
-      # que la localiza por su cabecera y no por su nombre: el documento del
-      # operativo la tiene llamada «Semana 1».
+      # Las MISMAS pestañas que acaba de leer `monitoreo_aulas_leer_distribucion`,
+      # que las localiza por su cabecera y no por su nombre. **Todas, no la
+      # primera**: desde que hay una pestaña por semana, leer sólo la primera
+      # deja las filas que el equipo escribió en «Semana 2» fuera del análisis
+      # —ni se completan ni se declaran reagendadas— y el recibo sale limpio
+      # porque no las miró.
       remoto <- tryCatch(
-        .cads_valores_de_pestana(.monitoreo_extract_spreadsheet_id(destino),
-                                 .monitoreo_scalar(out$hoja, .mapd_hoja())),
+        monitoreo_aulas_distribucion_valores(
+          .monitoreo_extract_spreadsheet_id(destino),
+          if (length(out$hojas %||% list())) out$hojas
+          else .monitoreo_scalar(out$hoja, .mapd_hoja())
+        ),
         error = function(e) list()
       )
       completado <- tryCatch(
