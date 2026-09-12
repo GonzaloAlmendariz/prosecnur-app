@@ -205,3 +205,50 @@ test_that("con un día muy cargado la reserva CRECE con él, no se queda fija", 
   expect_gte(medida$mas_cargado, 12L)
   expect_gte(medida$reserva, medida$mas_cargado)
 })
+
+# --- un `#REF!` puede ser un recuerdo, no un hecho ---------------------------
+#
+# Medido en el operativo el 2026-09-12. La celda del área decía `#REF!` y
+# Google daba el motivo exacto: «Array result was not expanded because it would
+# overwrite data in B4». Pero B4 estaba VACÍA —ni `userEnteredValue`, ni
+# combinaciones, ni rangos protegidos— y el día elegido cabía de sobra: 18
+# filas para una reserva de 24. El estorbo existió, desapareció, y el resultado
+# se quedó cacheado: `FILTER` no es volátil y Google sirve el error viejo
+# mientras ninguna entrada cambie. Abrir el documento tampoco lo recalcula.
+#
+# Reescribir la misma fórmula no basta (Sheets ve el mismo contenido): hay que
+# vaciar la celda y volver a ponerla. Sólo tras haber visto un error.
+
+test_that("una celda atascada en error se desatasca y deja de acusarse", {
+  vistas <- character(0)
+  puestos <- character(0)
+  # La celda arranca en `#REF!` y se limpia en cuanto alguien la reescribe.
+  atascada <- TRUE
+  handler <- function(url, method = "GET", body = NULL, ...) {
+    if (identical(method, "PUT")) {
+      v <- as.character(body$values[[1]][[1]])
+      puestos <<- c(puestos, if (nzchar(v)) "formula" else "vacio")
+      if (identical(v, "")) atascada <<- FALSE
+      return(list(updatedCells = 1L))
+    }
+    vistas <<- c(vistas, "get")
+    list(values = list(list(if (atascada) "#REF!" else "2026-09-10")))
+  }
+  testthat::local_mocked_bindings(.monitoreo_google_api = handler)
+  out <- .mapds_formula_publicar("sheet_x", "Plan del día", .tpdf_filas())
+  expect_true(isTRUE(out))
+  # Se vació ANTES de volver a poner la fórmula: reescribir lo mismo no fuerza
+  # el recálculo, y ése era justamente el fallo.
+  expect_identical(puestos, c("formula", "vacio", "formula"))
+  expect_length(vistas, 2L)
+})
+
+test_that("si el error sobrevive al desatasco, entonces sí viaja al recibo", {
+  handler <- function(url, method = "GET", body = NULL, ...) {
+    if (identical(method, "PUT")) return(list(updatedCells = 1L))
+    list(values = list(list("#REF!")))
+  }
+  testthat::local_mocked_bindings(.monitoreo_google_api = handler)
+  expect_identical(.mapds_formula_publicar("sheet_x", "Plan del día", .tpdf_filas()),
+                   "#REF!")
+})

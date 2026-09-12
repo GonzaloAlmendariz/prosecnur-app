@@ -246,15 +246,47 @@
   # viaja al recibo; el resto de la publicación no se toca, porque la hoja SÍ se
   # escribió y revertirla sería peor. Un fallo del propio GET no inventa un
   # problema: se calla, que es distinto de callar el `#REF!` que sí se vio.
-  computado <- tryCatch({
+  leer_celda <- function() tryCatch({
     r <- .monitoreo_google_api(paste0(
       .monitoreo_sheets_api_base(spreadsheet_id),
       "/values/", utils::URLencode(rango, reserved = TRUE)))
-    .monitoreo_scalar(((r$values %||% list())[[1]] %||% list())[[1]], "")
+    trimws(.monitoreo_scalar(((r$values %||% list())[[1]] %||% list())[[1]], ""))
   }, error = function(e) "")
-  if (grepl("^#(REF|N/A|VALUE|NAME|DIV/0|NULL|ERROR)", trimws(computado))) {
-    return(invisible(trimws(computado)))
-  }
+  es_error <- function(x) grepl("^#(REF|N/A|VALUE|NAME|DIV/0|NULL|ERROR)", x)
+
+  computado <- leer_celda()
+  if (!es_error(computado)) return(invisible(TRUE))
+
+  # **Un error puede ser un recuerdo, no un hecho.** Medido en el operativo el
+  # 2026-09-12: la celda decía `#REF!` y Google daba el motivo exacto —«Array
+  # result was not expanded because it would overwrite data in B4»— con B4
+  # VACÍA (sin `userEnteredValue`, sin combinaciones, sin rangos protegidos) y
+  # el día elegido cabiendo de sobra: 18 filas para una reserva de 24. O sea,
+  # el estorbo existió, desapareció, y el resultado se quedó cacheado: `FILTER`
+  # no es volátil, así que mientras ninguna de sus entradas cambie Google sirve
+  # el error viejo aunque ya no sea cierto. Abrir el documento tampoco lo
+  # recalcula, que era la salida que se había supuesto.
+  #
+  # Reescribir la MISMA fórmula no basta —Sheets ve el mismo contenido—, así
+  # que se vacía la celda y se vuelve a poner: eso sí obliga al recálculo. Sólo
+  # cuando YA se vio un error, nunca de rutina, y sólo sobre la celda de la
+  # app. Si después de eso el error sigue, entonces es un hecho y viaja al
+  # recibo.
+  poner <- function(valor) .monitoreo_google_api(
+    paste0(
+      .monitoreo_sheets_api_base(spreadsheet_id),
+      "/values/", utils::URLencode(rango, reserved = TRUE),
+      "?valueInputOption=USER_ENTERED"
+    ),
+    method = "PUT",
+    body = list(range = rango, majorDimension = "ROWS", values = list(list(valor)))
+  )
+  reintento <- tryCatch({
+    poner("")
+    poner(.mapds_formula(geo))
+    leer_celda()
+  }, error = function(e) computado)
+  if (es_error(reintento)) return(invisible(reintento))
   invisible(TRUE)
 }
 
