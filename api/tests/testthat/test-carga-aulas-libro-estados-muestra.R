@@ -1,4 +1,4 @@
-# B13b — los CINCO estados tecleables de STATUS MUESTRA.
+# B13b — los estados de STATUS MUESTRA: CINCO tecleables y uno que escribe la app.
 #
 # Decisión CERRADA del dueño (D-B13, docs/qa/checklist-operativo-aulas-2026-08-31.md;
 # poda final textual 2026-09-01): «simplemente pon rechazo. Sin contactar, en
@@ -28,7 +28,24 @@
 # estado inicial; este archivo pinea que la lista es EXACTAMENTE los cinco.
 # El pin de B13a es subconjunto del de aquí: verdes a la vez sin conflicto.
 
+# LOS CINCO TECLEABLES — el dictado del dueño, en su orden. Es lo que el equipo
+# elige a mano, y no ha cambiado.
 .b13b_CINCO <- c("SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO")
+
+# LA LISTA DEL DESPLEGABLE, que desde `1e0c2c0a` no es la misma cosa.
+#
+# «REFUERZO POR CONTACTAR» lo escribe la APP, no el equipo; no es un sexto
+# tecleable. Pero tiene que estar EN la lista de validación, porque si no la
+# celda sale con el warning rojo sobre un dato correcto y quien agenda lee un
+# aviso de error donde hay una instrucción — exactamente el problema que B13a
+# ya había documentado para «SIN CONTACTAR».
+#
+# Este archivo pineaba la lista contra `.b13b_CINCO` y se quedó en rojo siete
+# veces cuando llegó el sexto. El pin no estaba de más: estaba midiendo la
+# pregunta equivocada. «Cuántos teclea el equipo» y «qué ofrece el desplegable»
+# son dos preguntas, y desde que existe un estado que la app escribe sola ya no
+# tienen la misma respuesta.
+.b13b_LISTA <- c(.b13b_CINCO, "REFUERZO POR CONTACTAR")
 
 .b13b_SLUG <- c(
   "SIN CONTACTAR" = "sin_contactar",
@@ -79,18 +96,18 @@
   NULL
 }
 
-# --- Pin 1: el desplegable ofrece EXACTAMENTE los cinco ----------------------
+# --- Pin 1: el desplegable ofrece EXACTAMENTE la lista -----------------------
 
-test_that("B13b: el desplegable de STATUS MUESTRA ofrece los cinco tecleables, byte a byte y nada más", {
+test_that("B13b: el desplegable ofrece los cinco tecleables mas el que escribe la app, y nada mas", {
   # A CUALQUIER profundidad de cadena: la posición en cadena ya la dice el
   # código R n.k, así que «EN RESERVA k» no vuelve a la lista ni con cadenas
   # de doce. El orden es el del dictado del dueño.
-  expect_identical(aulas_libro_status_muestra(1L), .b13b_CINCO)
-  expect_identical(aulas_libro_status_muestra(3L), .b13b_CINCO)
-  expect_identical(aulas_libro_status_muestra(12L), .b13b_CINCO)
+  expect_identical(aulas_libro_status_muestra(1L), .b13b_LISTA)
+  expect_identical(aulas_libro_status_muestra(3L), .b13b_LISTA)
+  expect_identical(aulas_libro_status_muestra(12L), .b13b_LISTA)
 })
 
-test_that("B13b: la hoja «Listas» del xlsx ofrece los cinco y ningún derivado", {
+test_that("B13b: la hoja «Listas» del xlsx ofrece la lista entera y ningún derivado de cadena", {
   plan <- list(
     .b13b_unidad("CH 1"),
     .b13b_unidad("R 1.1", "chain_reserve", "CH 1", 1),
@@ -106,7 +123,7 @@ test_that("B13b: la hoja «Listas» del xlsx ofrece los cinco y ningún derivado
   expect_length(col, 1L)
   valores <- as.character(l[[col]])[-1]
   valores <- valores[!is.na(valores) & nzchar(valores)]
-  expect_identical(valores, .b13b_CINCO)
+  expect_identical(valores, .b13b_LISTA)
 })
 
 # --- Pin 6: paridad xlsx ↔ Sheets --------------------------------------------
@@ -124,7 +141,7 @@ test_that("B13b: los desplegables del Sheets ofrecen lo mismo que la hoja «List
   status <- Filter(function(v) "AGENDADA" %in% v, listas)
   expect_gt(length(status), 0L)
   for (v in status) {
-    expect_identical(v, .b13b_CINCO)
+    expect_identical(v, .b13b_LISTA)
     expect_identical(v, aulas_libro_status_muestra(3L))
   }
 
