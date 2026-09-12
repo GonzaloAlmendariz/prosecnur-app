@@ -136,3 +136,58 @@
   line-height: 1.5;
   color: var(--pulso-text);
 }
+
+/* Por dónde empezar: lo que la pestaña ofrece mientras no hay código tecleado.
+   Los códigos van como chips pulsables, y la lista NO se recorta —«…y N más»
+   es justo lo que el Sistema Pabellón prohíbe—: si crece, scrollea. */
+.aulas-ficha-atajos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.aulas-ficha-atajo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+.aulas-ficha-atajo-titulo strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.aulas-ficha-atajo-titulo em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-ficha-atajo-codigos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.aulas-ficha-atajo-codigos button {
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.aulas-ficha-atajo-codigos button:hover {
+  border-color: var(--pulso-border-strong);
+  background: color-mix(in srgb, var(--pulso-accent) 10%, var(--pulso-surface));
+}
