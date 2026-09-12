@@ -1,0 +1,78 @@
+/* Los partes que no cuadran, como unidades y no como filas de tabla.
+   Cada uno se lee entero sin desplazarse: quién, la resta, y el saldo. */
+.aulas-descuadres {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 14px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.aulas-descuadre {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(220px, 2fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+}
+
+.aulas-descuadre-quien {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.aulas-descuadre-quien > strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.aulas-descuadre-cuenta {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-descuadre-cuenta b {
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.aulas-descuadre-saldo {
+  justify-self: end;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.aulas-descuadre-saldo.es-falta {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.aulas-descuadre-saldo.es-sobra {
+  background: color-mix(in srgb, var(--pulso-accent) 12%, var(--pulso-surface));
+  color: var(--pulso-text);
+}
+
+/* A un ancho de portátil las tres columnas no caben sin apretar los números. */
+@media (max-width: 1180px) {
+  .aulas-descuadre {
+    grid-template-columns: 1fr auto;
+  }
+  .aulas-descuadre-cuenta {
+    grid-column: 1 / -1;
+  }
+}
