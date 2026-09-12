@@ -40,7 +40,13 @@ AULAS_AGENDACION_CABECERAS <- list(
   # Dos columnas y siete filas, que es lo que se mira antes que nada.
   total = c("Indicador", "Total"),
   facultad = c(
-    "Facultad", "Slots",
+    # **«Slots» era jerga y el propio lead lo dijo** (2026-09-12): «no entiendo
+    # la columna slots… creo que podemos mejorar un poco la jerga, creo que
+    # slots francamente no es como algo muy bueno». El CONCEPTO se queda —es la
+    # CADENA: un titular con todos sus reemplazos cuenta una vez, y por eso las
+    # reservas extra no entran—; lo que cambia es la palabra, que ahora dice
+    # qué se cuenta sin obligar a leer la nota al pie.
+    "Facultad", "Aulas del diseño",
     # **«Agendado» es lo que convierte un inventario en un AVANCE** (2026-09-10).
     # Esta hoja tenía once columnas y ninguna era un porcentaje: todas conteos.
     # «Avance de campo» —la que él aprueba— lleva su `Avance muestra` contra la
@@ -476,9 +482,11 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
     "cifras no tienen por qué coincidir con éstas, y ninguna de las dos sobra."
   ),
   facultad = paste(
-    "La unidad es la CADENA, no la fila: un titular y sus reemplazos son un solo",
-    "slot. Una cadena cuenta como agendada si cualquiera de sus eslabones lo",
-    "está, y las reservas extra no son slots porque no reemplazan a nadie."
+    "«Aulas del diseño» son las que el sorteo le asignó a esa facultad, y la",
+    "unidad es la CADENA, no la fila: un titular con todos sus reemplazos cuenta",
+    "UNA. Una cadena está agendada si cualquiera de sus eslabones lo está. Las",
+    "reservas extra no entran aquí porque no reemplazan a nadie: son aulas",
+    "añadidas después para cerrar cuotas, y tienen su propia columna."
   ),
   semana = paste(
     "Semanas de lunes a sábado, contadas desde el lunes de la primera aula",

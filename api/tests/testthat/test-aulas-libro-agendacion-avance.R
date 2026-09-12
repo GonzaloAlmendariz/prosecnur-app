@@ -16,7 +16,7 @@ test_that("el bloque por facultad declara qué fracción va agendada", {
 test_that("un conteo NO se confunde con una proporción", {
   # Por tipo no se distinguen —las dos son numéricas— y un porcentaje sobre un
   # conteo pintaría «152» como «15 200 %».
-  for (conteo in c("Slots", "Agendadas", "Aplicadas", "Por aplicar", "Rechazos")) {
+  for (conteo in c("Aulas del diseño", "Agendadas", "Aplicadas", "Por aplicar", "Rechazos")) {
     expect_false(prosecnurapp:::.calan_es_proporcion(conteo, "facultad"),
                  info = conteo)
   }
@@ -122,4 +122,17 @@ test_that("la proporción conserva sus decimales: 13 de 19 es 68,4 % y no 68,0 %
   # 13/19 = 0.6842…; con el redondeo de conteo saldría 0.68.
   expect_true(any(planas == "0.6842"))
   expect_false(any(planas == "0.68"))
+})
+
+test_that("el rótulo del denominador no vuelve a ser jerga", {
+  # Gonzalo, 2026-09-12: «no entiendo la columna slots… creo que slots
+  # francamente no es como algo muy bueno». El concepto se quedó —la CADENA—
+  # y lo que cambió fue la palabra. Este pin existe porque un rótulo que
+  # gobierna lo que alguien entiende se revierte sin querer al refactorizar.
+  cab <- prosecnurapp:::AULAS_AGENDACION_CABECERAS$facultad
+  expect_false("Slots" %in% cab)
+  expect_true("Aulas del diseño" %in% cab)
+  # Y sigue siendo un CONTEO, no una proporción: cambiar el nombre no puede
+  # colarlo en la lista de porcentajes y pintar «19» como «1 900 %».
+  expect_false(prosecnurapp:::.calan_es_proporcion("Aulas del diseño", "facultad"))
 })
