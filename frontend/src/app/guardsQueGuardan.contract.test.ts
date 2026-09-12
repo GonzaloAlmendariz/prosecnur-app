@@ -28,9 +28,9 @@ const SRC = path.resolve(__dirname, "..");
 /**
  * Medido el 2026-09-12: eran **26**. Con los seis puestos en el perfil de
  * cursos-horario —`cifrasConFormato` incluido, que valida TODAS las cifras
- * visibles— quedan **7** con enumeración real del árbol. Baja conforme se pongan; NO se sube.
+ * visibles— quedan **2**, ambos en cálculo de muestra — área de otra sesión, se dejan medidos. Baja conforme se pongan; NO se sube.
  */
-const TOPE_SIN_CENTINELA = 7;
+const TOPE_SIN_CENTINELA = 2;
 
 function tests(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
