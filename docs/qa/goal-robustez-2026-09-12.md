@@ -442,3 +442,35 @@ entregable**.
 Lo que vale como método: la pregunta «¿lo ve el cliente?» se contestó
 construyendo la salida y mirando sus celdas, no razonando sobre el código. Es
 más barato, es concluyente, y no toca el Sheets de nadie.
+
+## ABIERTO Y OPERATIVO — el «Plan del día» se rompe el lunes al elegir el 14/09
+
+La hoja «Plan del día» del libro operativo —la que campo abre para saber qué
+toca hoy— tiene su bloque de cabecera roto: la celda de la fórmula muestra
+**`#REF!`**.
+
+Medido sobre la hoja publicada, sin tocarla:
+
+| | |
+|---|---|
+| Filas reservadas para el desborde del filtro | **24** (entre las dos cabeceras «FECHA AGENDADA», filas 3 y 29) |
+| Día más cargado del listado | **2026-09-14 con 28 citas** |
+| Días que desbordan la reserva | **sólo el 14/09** |
+
+El mecanismo está documentado en el propio motor
+(`monitoreo_aulas_plan_dia_selector.R:121`): «FILTER revienta con `#REF!` si el
+desborde choca con una celda ocupada», y por eso reserva «tantas filas como
+aulas trae el día más cargado» —`reserva <- max(as.integer(table(fechas)))`—.
+
+**La reserva y el listado que van en la MISMA hoja no cuadran entre sí**: 24
+contra 28. O sea que la reserva se calculó sobre un listado con menos citas del
+que acabó publicado al lado. Consecuencia concreta: **el lunes por la mañana,
+elegir «2026-09-14» en el selector deja el bloque en `#REF!`**, justo el día más
+cargado del operativo y justo cuando más gente lo va a abrir. Los demás días
+caben y funcionan.
+
+No se arregla desde aquí: escribir en esa hoja es publicar al Sheets del
+operativo y eso necesita el go de Gonzalo. Lo que sí se puede adelantar es el
+guard —que la reserva sea siempre `>=` el día más cargado del listado que se
+publica con ella—, porque eso es un invariante interno de la hoja y se prueba
+con mocks.
