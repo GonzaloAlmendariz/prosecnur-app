@@ -45,8 +45,19 @@ const ORIGENES_DE_LA_APP = new Set(["refuerzo", "complemento"]);
  * EN CONTACTO o AGENDADA **y** perdió el sello es indistinguible de un aula
  * normal. Ése sólo vuelve si se marcó desde la app en esta misma sesión.
  */
-const estadoInequivocoDeRefuerzo = (fila: MonitoreoAulasPlanRow) =>
+export const estadoInequivocoDeRefuerzo = (fila: MonitoreoAulasPlanRow) =>
   texto(fila.sample_status).toLowerCase().replace(/\s+/g, "_").startsWith("refuerzo");
+
+/**
+ * **Es un refuerzo que consume techo**, lo haya sellado la app o lo haya
+ * devuelto el libro sin sello. Único criterio para todo el circuito: tenerlo
+ * en dos sitios fue lo que dejó a la pestaña Refuerzos y al reparto del techo
+ * contando cosas distintas sobre el mismo plan.
+ */
+export function esRefuerzoPedido(fila: MonitoreoAulasPlanRow): boolean {
+  return ORIGENES_DE_LA_APP.has(texto(fila.activation_origin).toLowerCase())
+    || estadoInequivocoDeRefuerzo(fila);
+}
 
 export type PasoDelRefuerzo =
   | "por_contactar" | "en_gestion" | "con_fecha" | "aplicado" | "rechazado" | "otro";
