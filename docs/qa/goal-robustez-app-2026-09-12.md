@@ -626,6 +626,38 @@ quedan ~500 px en blanco a 1440x1000. El gate no lo reporta —no es recorte ni
 desborde— y no es defecto, pero es la tercera vista del loop donde el gate
 aprueba una pantalla medio vacía.
 
+## Cinco «vistas» de acreditación eran UNA, byte a byte (tick 49)
+
+Abrí la captura de `seccion=resultados` y era idéntica a `seccion=actores`: misma
+top bar («Fuentes» activa), mismo título, mismo contenido. El `md5` lo confirmó:
+
+| familia | capturas | distintas |
+|---|---|---|
+| territorial | 6 | **6** |
+| telefónico | 5 | **5** |
+| acreditación | 5 | **1** (`fdcf0325`, las cinco) |
+
+**Causa: mía.** Saqué los ids de sección (`actores`, `contexto`, `resultados`,
+`hojas-ruta`, `pathways`) del bloque `id: "acreditacion"` de `modules.ts`, que es
+el modo de **Cálculo de muestra**, no el de Monitoreo. Las de Monitoreo son
+`fuentes`, `modelo`, `consultas`, `telefonico`, `avance`.
+
+**Corrección del recuento**: no eran 16 vistas medidas sino **12** (6+5+1).
+
+**NO es defecto de producto.** Una `?seccion=` que no existe en el modo activo
+cae a la de por defecto, y eso es coherente con la gramática: `direccion.ts:148-154`
+dice que en un módulo con modos «el juego de secciones lo reescribe el modo
+activo». Asumí que una URL inválida fallaría; no tiene por qué.
+
+**Sí es una trampa del gate**, y de las caras: la dirección inválida no falla, la
+vista por defecto monta, declara readiness y **el gate la mide y la aprueba**. Se
+miden N veces la misma pantalla creyendo que son N vistas, con `ok=true` en todas.
+Ninguna cifra del informe lo delata.
+
+La defensa cuesta un comando y queda en CLAUDE.md (`33643579`):
+`md5 -q out/*.png | sort -u | wc -l`. Si sale menos que el número de rutas, no
+mediste lo que creías.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
