@@ -14,4 +14,9 @@ export type TablaDelPerfil = (props: {
   preferredColumns?: string[];
   totalReal?: number;
   maxColumns?: number;
+  /**
+   * Llevar de un código de curso-horario a su ficha. Opcional: sin ella las
+   * celdas de código se pintan como hoy, texto plano.
+   */
+  onVerFicha?: ((codigo: string) => void) | null;
 }) => ReactNode;

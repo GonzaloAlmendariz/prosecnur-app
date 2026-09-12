@@ -36,6 +36,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AccionEnCelda, COLUMNA_DE_ACCION } from "./AccionEnCelda";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
+import { COLUMNAS_DE_CODIGO, CodigoEnCelda } from "./CodigoEnCelda";
 import { COLUMNAS_DE_NOTA, NotaEnCelda } from "./NotaEnCelda";
 import { identidadEnCelda } from "./AulasSistemaPabellon";
 import { columnasConDato } from "./columnasConDato";
@@ -359,10 +360,17 @@ export function DataTable({
   preferredColumns = [],
   maxColumns = 8,
   totalReal,
+  onVerFicha = null,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  /**
+   * Llevar de una celda de código a la ficha de ese curso-horario. Opcional a
+   * propósito: sin ella la celda se pinta como hoy y la tabla sigue siendo
+   * renderizable sin Router.
+   */
+  onVerFicha?: ((codigo: string) => void) | null;
   /**
    * El total del motor cuando el payload viene topeado, para que el pie divida
    * por el plan y no por lo que cupo en la respuesta. Ver `recorteTabla`.
@@ -469,7 +477,16 @@ export function DataTable({
                       ? <AccionEnCelda valor={String(row[column] ?? "")} />
                       : COLUMNAS_DE_NOTA.has(column)
                         ? <NotaEnCelda texto={String(row[column] ?? "")} origen={COLUMNAS_DE_NOTA.get(column) ?? ""} />
-                        : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
+                        : COLUMNAS_DE_CODIGO.has(column)
+                          ? (
+                            <CodigoEnCelda
+                              valor={String(row[column] ?? "")}
+                              hrefDeFicha={(codigo) =>
+                                `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+                              onVerFicha={onVerFicha ?? undefined}
+                            />
+                          )
+                          : identidadEnCelda(column, String(row[column] ?? "")) ?? String(row[column] ?? "")}
                 </td>
               ))}
             </tr>
