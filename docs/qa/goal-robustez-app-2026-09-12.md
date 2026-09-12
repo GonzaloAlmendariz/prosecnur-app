@@ -87,7 +87,9 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   si el archivo no está—. El riesgo sólo existe con `readdirSync`/`globSync`:
   preguntarle al sistema de archivos qué hay y filtrar. **Siete de dieciocho
   eran falsos positivos del propio barrido** — tercera vez en este loop.
-  **Tope 7** (de 26 al abrir la clase; el perfil de cursos-horario, limpio).
+  **Tope 2** (de 26 al abrir la clase). Los dos que quedan están en cálculo de
+  muestra —`cssHuerfano` y `plegadoCriterios`—, área de la otra sesión: medidos
+  y sin tocar.
   El centinela tiene DOS formas y el meta-guard reconoce las dos: contar lo
   encontrado, o declarar la lista de archivos a vigilar y comprobar que siguen
   existiendo —así lo hacía ya `capacidadDeclarada`, y el meta-guard lo acusó por
