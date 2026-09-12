@@ -186,8 +186,10 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
     stop_api(400, "E_AULAS_SHEETS_SIN_ID",
              "Falta el identificador del Google Sheets del libro de aulas.")
   }
+  # Normalizado por el mismo motivo que en `monitoreo_aulas_marcas_sheets.R`:
+  # releer el libro deja el estado en su forma de Excel y el crudo no casa.
   marcadas <- Filter(function(r) {
-    identical(.mapm_txt(r$sample_status), "refuerzo_por_contactar")
+    identical(monitoreo_aulas_estado_muestra(r$sample_status), "refuerzo_por_contactar")
   }, plan %||% list())
   if (!length(marcadas)) {
     stop_api(409, "E_MARCAS_SIN_NADA_QUE_PUBLICAR",
