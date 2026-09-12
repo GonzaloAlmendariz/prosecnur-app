@@ -165,7 +165,7 @@ export function AulasControles({ filas, plan = [] }: {
   }, [plan]);
 
   if (!controles.length) {
-    return <p className="mon-profile-muted">No hay controles de validación para este corte.</p>;
+    return <p data-qa-geometry-capacity="owned" data-qa-geometry-member="true" className="mon-profile-muted">No hay controles de validación para este corte.</p>;
   }
 
   return (
