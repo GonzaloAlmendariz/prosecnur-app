@@ -1047,9 +1047,30 @@ async function irADireccion(page, destino, timeoutMs) {
   const readiness = await esperarListo(page, timeoutMs);
   if (!readiness?.listo) {
     throw new Error(
-      `La dirección "${destino}" no alcanzó readiness final: ${readiness?.motivo || "estado desconocido"}.`,
+      `La dirección "${destino}" no alcanzó readiness final: ${readiness?.motivo || "estado desconocido"}.`
+      + pistaDeReadiness(readiness, timeoutMs),
     );
   }
+}
+
+// El motivo solo dice el HECHO. Para actuar hace falta el tope que se agotó: el
+// warm start de Monitoreo con proyecto real tarda 4-6 min y el tope por defecto
+// son 30 s, así que `marca-en-false` ahí no significa «la vista está rota», sino
+// «no le diste tiempo». Distinguir una causa de otra costó un ciclo entero.
+function pistaDeReadiness(readiness, timeoutMs) {
+  const segundos = Math.round(timeoutMs / 1000);
+  if (readiness?.motivo === "marca-en-false") {
+    return ` La vista declara su contrato y aún no lo cumple tras ${segundos} s.`
+      + " Si es Monitoreo con proyecto real, súbelo: --timeout-ms 420000.";
+  }
+  if (readiness?.motivo === "sin-proyecto-abierto") {
+    return " La sesión no tiene proyecto abierto: el fallo no es de esta vista.";
+  }
+  if (readiness?.motivo === "sin-marca-de-readiness") {
+    return " Esa vista no declara `data-audit-ready`: es una laguna de contrato,"
+      + " y esperar más no la arregla.";
+  }
+  return ` Tope agotado: ${segundos} s.`;
 }
 
 // Readiness preguntada a la app, no adivinada con sleeps.
@@ -1209,7 +1230,8 @@ async function runCaptures(opts, stack) {
           const tabReadiness = await esperarListo(page, opts.timeoutMs);
           if (!tabReadiness?.listo) {
             throw new Error(
-              `La pestaña "${tab}" no alcanzó readiness final: ${tabReadiness?.motivo || "estado desconocido"}.`,
+              `La pestaña "${tab}" no alcanzó readiness final: ${tabReadiness?.motivo || "estado desconocido"}.`
+              + pistaDeReadiness(tabReadiness, opts.timeoutMs),
             );
           }
           if (opts.waitAfterClickSelector) {
@@ -1220,7 +1242,8 @@ async function runCaptures(opts, stack) {
         const finalReadiness = await esperarListo(page, opts.timeoutMs);
         if (!finalReadiness?.listo) {
           throw new Error(
-            `La ruta "${route}" no alcanzó readiness final antes de la captura: ${finalReadiness?.motivo || "estado desconocido"}.`,
+            `La ruta "${route}" no alcanzó readiness final antes de la captura: ${finalReadiness?.motivo || "estado desconocido"}.`
+            + pistaDeReadiness(finalReadiness, opts.timeoutMs),
           );
         }
         let postClickWaitSelectorMatched = true;
