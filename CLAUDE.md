@@ -204,6 +204,11 @@ Verificación:
     matriz capturada sin ese flag no sirve para juzgar gráficos, y el gate la da
     por buena —un panel de 250 px en blanco no es recorte, ni derrame, ni
     desborde—. (`--wait-selector` no vale: se evalúa antes.)
+  - **Comprueba que las capturas son DISTINTAS antes de darlas por mediciones
+    distintas**: `md5 -q out/*.png | sort -u | wc -l`. Una `?seccion=` que no
+    existe en ese perfil **no falla**: aterriza muda en la sección por defecto, y
+    el gate mide y aprueba la misma pantalla N veces. Pasó el 2026-09-12 con 5
+    «vistas» de acreditación que eran un solo archivo byte a byte.
   - **Las corridas NO se paralelizan.** Dos a la vez se pisan en el puerto de la
     API y la segunda muere con «/api/system/bootstrap no devolvió sid». Van en
     serie; varias `--route` dentro de UNA corrida sí comparten la pila.
