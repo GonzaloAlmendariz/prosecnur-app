@@ -36,7 +36,10 @@ export function AulasResumenRespuestas({
   const noCuentan = cuenta.fuera_del_operativo + cuenta.no_pasan_criterio;
   const ancho = (v: number, total: number) => `${total > 0 ? (100 * v) / total : 0}%`;
   return (
-    <div className="aulas-resp">
+    // Sin declararse miembro, el gate cae al encabezado del panel y canta
+    // `capacity-drift` sobre sus 5 px de padding: un síntoma que no se parece
+    // en nada a su causa. Los paneles sanos del grupo lo declaran así.
+    <div className="aulas-resp" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       {/* **Aquí hubo una tira de pastillas de facultad y se retiró el
           2026-09-09**: «se ve horrible y debería ser un selector como el que ya
           está en el header» (Gonzalo). Y lo estaba — `AulasSelectorDeFacultad`
