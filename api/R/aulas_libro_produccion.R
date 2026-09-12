@@ -59,6 +59,28 @@
   trimws(gsub("[[:space:]]+", " ", k))
 }
 
+# Las celdas de una fila con su tipo: en las filas de DATO, lo que es un número
+# viaja como número. Es la regla de la casa —la escribe «Avance de agendación»:
+# «para que el Sheets pueda ordenarlas y sumarlas»— y la comparten las tres
+# hojas de filas tipadas, que antes tenían tres copias de la misma conversión
+# (o ninguna). Los títulos, bloques y notas son texto siempre.
+#
+# Se reusa `.cala_celda_num()` en vez de una conversión propia: redondea igual
+# que el resto del libro, y dos formas de redondear es el defecto de fondo.
+.alp_celdas <- function(tipo, celdas) {
+  celdas <- as.list(celdas)
+  # Las que NO son dato vuelven como VECTOR de caracteres, que es la forma que
+  # tenían: convertirlas en lista cambiaba el tipo de las cabeceras y rompía a
+  # quien las compara con un `c("TRAMO", ...)`. Sólo las de dato necesitan ser
+  # lista, porque mezclan texto y número.
+  if (!identical(tipo, "dato")) return(as.character(unlist(celdas)))
+  lapply(celdas, function(v) {
+    txt <- trimws(as.character(v %||% "")[1])
+    x <- suppressWarnings(as.numeric(txt))
+    if (nzchar(txt) && length(x) == 1L && is.finite(x)) .cala_celda_num(txt) else as.character(v)
+  })
+}
+
 .alp_txt <- function(x, alt = "") {
   v <- tryCatch(as.character(x %||% "")[1], error = function(...) "")
   if (length(v) == 0L || is.na(v)) alt else trimws(v)
@@ -159,20 +181,7 @@ aulas_libro_filas_produccion <- function(plan = list(), partes = list()) {
   # en vez de una conversión propia — el defecto sería el mismo de siempre: dos
   # formas de hacer lo mismo.
   poner <- function(tipo, celdas) {
-    celdas <- as.list(celdas)
-    if (identical(tipo, "dato")) {
-      celdas <- lapply(celdas, function(v) {
-        x <- suppressWarnings(as.numeric(v))
-        if (length(x) == 1L && is.finite(x) && nzchar(trimws(as.character(v)))) {
-          .cala_celda_num(v)
-        } else {
-          as.character(v)
-        }
-      })
-    } else {
-      celdas <- lapply(celdas, as.character)
-    }
-    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = celdas)
+    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = .alp_celdas(tipo, celdas))
   }
 
   # El nombre que se muestra: la grafía con coma, que es el estándar de la casa
@@ -294,6 +303,10 @@ aulas_libro_valores_produccion <- function(plan = list(), partes = list()) {
 # Una fila de celdas como `data.frame` de una fila, conservando el tipo de cada
 # una: `openxlsx` respeta los tipos de un data.frame y aplasta los de una
 # matriz.
+#
+# Lo usan las TRES hojas de filas tipadas —producción, asignación y
+# disponibilidad—: tenían el mismo `t(as.matrix(...))` copiado, que es la forma
+# de que el arreglo de una no llegue a las otras.
 .alp_fila_df <- function(celdas) {
   celdas <- as.list(celdas)
   if (!length(celdas)) return(data.frame(x = "", stringsAsFactors = FALSE))
