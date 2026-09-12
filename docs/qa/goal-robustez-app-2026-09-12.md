@@ -124,6 +124,11 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   `it.each(fuentes)`: con la lista vacía no corre ni un caso y la suite pasa sin
   un solo rojo NI un solo test ejecutado.
 - Claves del tablero consumidas por el perfil: **52, cero huérfanas**.
+- **La suite COMPLETA de R, la que nunca se corre**: `test_dir` entero tarda
+  **~1 h 25 min** en este equipo (con gates en paralelo) y da **36.093 pass, 0
+  fail, 0 error** (2026-09-12). Es la clase 6 en su forma extrema —el gate que
+  cuesta una hora es el que puede esconder un rojo semanas— y hoy está limpia.
+  El frontend completo: **935 archivos, 8.949 tests, 0 fallos**.
 
 ## Trampas del propio método, aprendidas aquí
 
