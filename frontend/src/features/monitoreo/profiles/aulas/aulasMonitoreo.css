@@ -3416,6 +3416,28 @@
   white-space: nowrap;
 }
 
+/* El código lleva a su ficha. NO se pinta como enlace de cuerpo de texto —azul
+   y subrayado en cada una de las 199 entradas sería un mar de azul sobre la
+   única columna que ordena la lectura—: hereda el color del código y sólo
+   descubre el subrayado al pasar el puntero o al recibir el foco. El foco de
+   teclado sí se ve siempre, que es lo que lo deja alcanzable. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace:hover {
+  color: var(--pulso-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo-enlace:focus-visible {
+  outline: 2px solid var(--pulso-primary);
+  outline-offset: 2px;
+}
+
 /* El pabellón y el salón NO se recortan con elipsis: es dato operativo, y un
    «A10…» no lleva a nadie a ninguna parte. */
 .mon-profile-page.is-aulas-flow .aulas-ruta-donde {
@@ -5473,8 +5495,8 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-agenda {
-  background: color-mix(in srgb, var(--pulso-module-monitoreo, var(--pulso-accent)) 14%, transparent);
-  color: var(--pulso-module-monitoreo, var(--pulso-accent));
+  background: color-mix(in srgb, var(--pulso-module-monitoreo, var(--pulso-primary)) 14%, transparent);
+  color: var(--pulso-module-monitoreo, var(--pulso-primary));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-aplicacion {

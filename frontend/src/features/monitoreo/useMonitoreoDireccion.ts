@@ -290,17 +290,38 @@ export function useMonitoreoDireccion(
  * Se escribe con `replace`: elegir un corte no es navegar, y no debe llenar el
  * historial con un paso por cada click.
  */
-export function useFocoMonitoreo(): [string | null, (valor: string | null) => void] {
+export function useFocoMonitoreo(): [
+  string | null,
+  (valor: string | null, destino?: { seccion?: string; pestana?: string }) => void,
+] {
   const location = useLocation();
   const navigate = useNavigate();
 
   const params = new URLSearchParams(location.search);
   const foco = params.get(PARAMS_DIRECCION.foco);
 
-  const escribir = useCallback((valor: string | null) => {
+  /**
+   * `destino` mueve la SECCIÓN y la PESTAÑA en la misma navegación que el foco.
+   *
+   * **Sin él, cruzar de sección con foco no funciona, y falla en silencio.**
+   * Medido el 2026-09-12 con el enlace del código a su ficha: la página
+   * cambiaba su vista por estado y a la vez este escritor navegaba con el
+   * `search` del render actual —que todavía decía `seccion=modelo`—; el efecto
+   * de seguimiento leía esa URL, la creía una petición externa y devolvía la
+   * vista a modelo. El foco quedaba puesto y la sección nunca cambiaba.
+   *
+   * Con el destino en la misma navegación no hay dos escritores compitiendo:
+   * la URL manda y la vista la sigue, que es lo que el contrato v3 promete.
+   */
+  const escribir = useCallback((
+    valor: string | null,
+    destino?: { seccion?: string; pestana?: string },
+  ) => {
     const siguientes = new URLSearchParams(location.search);
     if (valor) siguientes.set(PARAMS_DIRECCION.foco, valor);
     else siguientes.delete(PARAMS_DIRECCION.foco);
+    if (destino?.seccion) siguientes.set(PARAMS_DIRECCION.seccion, destino.seccion);
+    if (destino?.pestana) siguientes.set(PARAMS_DIRECCION.pestana, destino.pestana);
     const query = siguientes.toString();
     navigate(`${location.pathname}${query ? `?${query}` : ""}`, { replace: true });
   }, [location.pathname, location.search, navigate]);

@@ -38,6 +38,7 @@ import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasDist
  */
 export function AulasSeccionModelo({
   dashboard, pestana, facultadEnFoco, onFoco, tabla, traza, agendaRows, agendaReservas,
+  verFichaDe = null,
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
@@ -60,6 +61,11 @@ export function AulasSeccionModelo({
   traza: ReactNode;
   agendaRows: (dashboard: MonitoreoAulasDashboard | null) => Array<Record<string, unknown>>;
   agendaReservas: (dashboard: MonitoreoAulasDashboard | null) => number;
+  /**
+   * Llevar de un curso-horario de la ruta a su ficha en Consultas. Opcional:
+   * sin ella el código de cada entrada se pinta como hoy, texto plano.
+   */
+  verFichaDe?: ((codigo: string) => void) | null;
   /** Fijar/soltar el aplicador de una cita del reparto (B36); llega a Asignación. */
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
   /** B70: persistir la duración de la aplicación confirmada en el slider. */
@@ -276,6 +282,11 @@ export function AulasSeccionModelo({
             })()}</span>
           </div>
           <AulasAgendaPorFacultad
+            // El `href` se escribe aunque no haya callback: es la dirección
+            // real de esa ficha, y sirve para copiarla o abrirla aparte.
+            hrefDeFicha={(codigo) =>
+              `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+            onVerFicha={verFichaDe ?? undefined}
             filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
             // El choque cita/horario de clase, desde las ventanas del MOTOR
             // (choquesDeHorario — dictado 2026-09-03 sobre CH 30).

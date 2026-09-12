@@ -26,7 +26,7 @@ function fechaCorta(iso: string): string {
   return `${dia} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function AulasAgendaPorFacultad({ filas, choques }: {
+export function AulasAgendaPorFacultad({ filas, choques, hrefDeFicha, onVerFicha }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
    * Código → choque cita/horario de clase (`choquesDeHorario`), computado por
@@ -34,6 +34,27 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
    * como siempre — el aviso es una capa, no una dependencia.
    */
   choques?: ReadonlyMap<string, string>;
+  /**
+   * La dirección de la ficha de ese curso-horario, para que el código de cada
+   * entrada LLEVE a todo lo que sabemos de él.
+   *
+   * **Esta vista ya trata el curso-horario como una unidad** —día, hora, chip
+   * de lugar, docente, estado y la nota de gestión, uno por entrada— y el
+   * código era el único dato muerto de la fila: para ver su ficha había que
+   * cambiar de sección y teclearlo a mano.
+   *
+   * Va como `href` de verdad y no como botón: así se copia, se abre en pestaña
+   * nueva y se lee con el teclado. El `onClick` navega por el router —la SPA no
+   * puede recargar: el warm start del proyecto tarda minutos— y el `href` queda
+   * de respaldo.
+   *
+   * Ambas OPCIONALES a propósito: sin ellas la entrada pinta el `<span>` de
+   * siempre, que es lo que mantiene el componente renderizable sin Router
+   * —varios contratos lo pintan con `renderToStaticMarkup`—.
+   */
+  hrefDeFicha?: (codigo: string) => string;
+  /** Navegación por el router; sin ella el `href` hace su trabajo solo. */
+  onVerFicha?: (codigo: string) => void;
 }) {
   const facultades = useMemo(() => agendaPorFacultad(filas), [filas]);
 
@@ -104,7 +125,25 @@ export function AulasAgendaPorFacultad({ filas, choques }: {
                     {a.hora ? <em> {a.hora}</em> : null}
                   </span>
                   <span className="aulas-ruta-codigo">
-                    {a.codigo}
+                    {hrefDeFicha ? (
+                      <a
+                        className="aulas-ruta-codigo-enlace"
+                        href={hrefDeFicha(a.codigo)}
+                        title={`Ver la ficha de ${a.codigo}`}
+                        onClick={(e) => {
+                          // Un click con modificador —o con la rueda— es una
+                          // petición de abrir en otra pestaña: ahí NO se
+                          // intercepta, o se le quita al usuario lo único que
+                          // un enlace le daba de más que un botón.
+                          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                          if (!onVerFicha) return;
+                          e.preventDefault();
+                          onVerFicha(a.codigo);
+                        }}
+                      >
+                        {a.codigo}
+                      </a>
+                    ) : a.codigo}
                     {/* Una reserva se ve como reserva. Iba suelta entre los
                         titulares de su facultad —un `R 21.1` junto a un `CH 21`—
                         y su relación había que adivinarla por el número. */}
