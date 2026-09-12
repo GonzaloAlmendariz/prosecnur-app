@@ -2049,7 +2049,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Dictado 2026-09-04: «que el equipo de campo también pueda saber cuándo o a
   # quién reclutar y no dependa enteramente de mí». Condicional, como su
   # hermana: sin oferta cargada la hoja no se produce.
-  aulas_libro_hoja_disponibilidad(wb, disponibilidad)
+  aulas_libro_hoja_disponibilidad(wb, disponibilidad, plan = plan_completo, cfg = cfg)
   # Dictado 2026-09-12: «necesitamos saber la producción de los aplicadores,
   # quién está aplicando más, quién está aplicando menos, en qué rangos
   # horarios». Es la cara de SALIDA de la de asignación —lo aplicado, no lo
