@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { avisoDistribucion, enlaceDeDistribucion } from "./distribucionDeAplicadores";
+import {
+  avisoDistribucion,
+  avisoDistribucionPublicada,
+  enlaceDeDistribucion,
+} from "./distribucionDeAplicadores";
 
 /**
  * S7 (loop estética-aulas-sheets, 2026-09-07). El Sheets que leen los
@@ -103,5 +107,37 @@ describe("avisoDistribucion", () => {
       expect(a.estado).toBe("sin-cita");
       expect(a.texto).toContain("3 aulas agendadas no tienen");
     });
+  });
+});
+
+/**
+ * Publicar con una pestaña por semana ya no es una sola cosa.
+ *
+ * La semana que el coordinador está editando se RESPETA y no se escribe. El
+ * aviso sólo decía «N publicadas» —el total del reparto—, así que una semana
+ * respetada era invisible y el número prometía más de lo escrito.
+ */
+describe("el aviso de la distribución publicada dice qué NO se tocó", () => {
+  it("nombra la semana respetada y su motivo", () => {
+    const aviso = avisoDistribucionPublicada({
+      citas: 50,
+      hojas: [
+        { hoja: "Semana 1", accion: "respetada", filas: 101 },
+        { hoja: "Semana 2", accion: "actualizada", filas: 50 },
+      ],
+    });
+    expect(aviso.texto).toContain("«Semana 2»");
+    expect(aviso.texto).toContain("«Semana 1»");
+    expect(aviso.texto).toMatch(/no se tocó/);
+    expect(aviso.texto).toMatch(/manda el equipo/);
+    // Respetar es lo correcto: no es una alarma.
+    expect(aviso.tono).toBe("ok");
+  });
+
+  it("sin desglose por hoja sigue diciendo lo de siempre", () => {
+    const aviso = avisoDistribucionPublicada({ citas: 50 });
+    expect(aviso.texto).toContain("50");
+    expect(aviso.texto).not.toMatch(/no se tocó/);
+    expect(aviso.tono).toBe("ok");
   });
 });
