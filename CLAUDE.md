@@ -204,6 +204,11 @@ Verificación:
     matriz capturada sin ese flag no sirve para juzgar gráficos, y el gate la da
     por buena —un panel de 250 px en blanco no es recorte, ni derrame, ni
     desborde—. (`--wait-selector` no vale: se evalúa antes.)
+  - **`overflow-x` sobre un `<td>` con `colSpan` en una tabla `table-layout:
+    fixed` es FALSO POSITIVO**: la caja de esa celda mide lo que suman sus
+    columnas y el contenido se pinta sobre el ancho real, sin recorte. Mira la
+    captura antes de tocar CSS —11 «desbordes» de Avance > Metas resultaron ser
+    texto que se lee entero—.
   - **Comprueba que las capturas son DISTINTAS antes de darlas por mediciones
     distintas**: `md5 -q out/*.png | sort -u | wc -l`. Una `?seccion=` que no
     existe en ese perfil **no falla**: aterriza muda en la sección por defecto, y
