@@ -2100,6 +2100,28 @@
   border-radius: 12px;
 }
 
+/* **La señal de que hay columnas a la derecha.** Medido en Consultas > Parte:
+   454 px ocultos, y nada lo decía —la última columna se leía partida y parecía
+   un recorte—. Va como pseudo-elemento `sticky` y NO como `background` del
+   contenedor: ese intento no se vio (2026-09-12), porque el degradado queda
+   detrás de la tabla. `float` lo mete en el flujo desplazable y `sticky` lo
+   pega al borde visible, así que aparece sólo mientras quede algo por ver. */
+.mon-profile-table-wrap::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  float: right;
+  width: 26px;
+  height: 100%;
+  margin-left: -26px;
+  pointer-events: none;
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--pulso-text) 14%, transparent),
+    transparent
+  );
+}
+
 .mon-profile-table {
   width: 100%;
   min-width: 720px;
