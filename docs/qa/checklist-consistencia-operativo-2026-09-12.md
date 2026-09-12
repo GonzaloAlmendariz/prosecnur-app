@@ -228,3 +228,36 @@ decisiones del diseño:
 **Las nueve indicaciones del dictado están cerradas.** Quedan dos cosas que no
 son del dictado: el **semáforo de consistencia** (propuesto, sin respuesta) y la
 **inconsistencia abierta** 85 / 73-75 / 87, sin medir.
+
+## La publicación al documento — qué llegó y qué hubo que restaurar
+
+Con el go explícito de Gonzalo, y con **respaldo previo de las diez pestañas**
+(126.153 celdas a un `.rds`), que es lo que hizo reversible lo que vino después.
+
+**Llegó al documento:**
+· **«Producción de aplicadores»**, hoja nueva (48 filas).
+· «Avance de agendación» con la columna de extras y el aviso de CH 143.
+· «Plan del día» sin el `#REF!` y con el área ya vaciada de verdad.
+· El formato nuevo a las dos hojas del equipo: 180 requests, 0 descartados.
+
+**Hubo que restaurar dos hojas, y el motivo es mío, no del motor.** Publiqué con
+el estado reconstruido leyendo el propio Sheets, y ese round-trip no devuelve
+todo lo que tiene la sesión:
+
+| hoja | qué se perdió | restaurada |
+|---|---|---|
+| «Avance de campo» | de 181 filas a 105: el bloque por facultad × aplicador necesita `efectivas` (respuestas de plataforma), que sólo tiene la sesión | ✓ 0 celdas distintas |
+| «Base de control» | 3.555 celdas: la ola `M1` de toda la columna A, los contadores de los tres filtros y sus rótulos | ✓ 0 celdas distintas |
+
+Y una trampa que costó dos intentos: **una celda combinada se traga la
+escritura**. El `PUT` devolvía `updatedCells: 1` y la celda seguía vacía, porque
+la publicación corta había combinado celdas según SU contenido y las filas
+restauradas caían dentro. Se descombina primero (`unmergeCells`) y, si la hoja
+va a quedar más estrecha, se vacía entera antes de escribir.
+
+**Las cuatro hojas del equipo: 0 celdas tocadas por la publicación.** Las
+diferencias que aparecieron entre lecturas eran partes que alguien estaba
+tecleando en vivo (un aplicador, fecha 11/09, hora 14:34, aula D206).
+
+**Regla que queda**: el libro se publica **desde la sesión de la app**, no desde
+un estado rearmado leyendo el documento.
