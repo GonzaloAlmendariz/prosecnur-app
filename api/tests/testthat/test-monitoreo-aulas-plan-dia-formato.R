@@ -252,3 +252,32 @@ test_that("si el error sobrevive al desatasco, entonces sí viaja al recibo", {
   expect_identical(.mapds_formula_publicar("sheet_x", "Plan del día", .tpdf_filas()),
                    "#REF!")
 })
+
+# --- la reserva del área lleva holgura ---------------------------------------
+#
+# Medido en el operativo el 2026-09-12: el día más cargado traía 24 aulas y la
+# reserva era de 24 exactas. Cero margen. El equipo agenda en vivo, así que UNA
+# aula más en ese día revienta el bloque en `#REF!` hasta la próxima
+# publicación — y es el bloque que contesta «qué toca hoy».
+test_that("la reserva del área deja margen para lo que se agende después", {
+  # Un día con 4 aulas y otro con 1: el más cargado manda.
+  plan <- c(
+    lapply(1:4, function(i) list(
+      operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+      sample_role = "titular", operational_status = "agendada",
+      scheduled_date = "2026-09-10", scheduled_time = sprintf("%02d:00", 8 + i),
+      faculty = "DERECHO", teacher = "D", course_name = "C")),
+    list(list(operational_code = "CH 9", classroom_id = "a9", sample_role = "titular",
+              operational_status = "agendada", scheduled_date = "2026-09-11",
+              scheduled_time = "10:00", faculty = "DERECHO", teacher = "D",
+              course_name = "C"))
+  )
+  values <- .mapds_con_selector(.malp_df_a_values(aulas_libro_hoja_plan_dia(plan)))
+  geo <- .mapds_geometria(values)
+  # Filas en blanco entre la de la fórmula y la cabecera del listado: la
+  # reserva más el renglón de separación.
+  hueco <- geo$fila_cabecera_listado - geo$fila_formula - 1L
+  expect_gt(hueco, 4L)
+  # El mínimo es de cuatro filas: un día flojo no puede quedarse sin margen.
+  expect_gte(hueco - 4L, 4L)
+})

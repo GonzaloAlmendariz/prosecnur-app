@@ -120,7 +120,16 @@
   # Tantas filas reservadas como aulas trae el día más cargado: el spill del
   # filtro nunca alcanza el listado (FILTER revienta con #REF! si el desborde
   # choca con una celda ocupada).
-  reserva <- max(as.integer(table(fechas)))
+  #
+  # **Y con HOLGURA, porque la reserva justa dura hasta la siguiente agenda.**
+  # Medido en el operativo el 2026-09-12: el día más cargado traía 24 aulas y la
+  # reserva era de 24 exactas — cero filas de margen. El equipo agenda en vivo,
+  # así que basta UNA aula más en ese día para que el bloque reviente en `#REF!`
+  # y se quede así hasta la próxima publicación; y el bloque es el que contesta
+  # «qué toca hoy». El margen no cuesta nada —son filas en blanco sobre una hoja
+  # que se regenera entera— y compra las agendaciones de una jornada.
+  cargado <- max(as.integer(table(fechas)))
+  reserva <- cargado + max(4L, as.integer(ceiling(cargado * 0.25)))
   c(
     list(list(.mapds_ETIQUETA_SELECTOR, "")),
     list(list(.mapds_ETIQUETA_AREA)),
