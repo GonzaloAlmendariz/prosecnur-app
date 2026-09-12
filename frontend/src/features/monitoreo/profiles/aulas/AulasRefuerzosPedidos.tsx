@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 
 import { apiMonitoreoAulasPublicarMarcas, type MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { AulasRefuerzosSinGuardar } from "./AulasRefuerzosSinGuardar";
 import { facultadCorta } from "./facultadEnPalabras";
 import { fmt } from "./kpisDeAulas";
 import { seguimientoDeRefuerzos, type PasoDelRefuerzo } from "./seguimientoDeRefuerzos";
@@ -104,6 +105,7 @@ export function AulasRefuerzosPedidos({ plan, onGuardado }: {
         </p>
       ) : null}
 
+      <AulasRefuerzosSinGuardar marcados={s.pedidos.length} />
       {marca.aviso || marca.fallos.length ? (
         <p className={`aulas-acuse-marca${marca.fallos.length ? " es-fallo" : ""}`} role="status">
           {marca.aviso}
