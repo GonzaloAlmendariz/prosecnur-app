@@ -465,3 +465,63 @@ describe("los KPIs de Avance con una facultad en el selector", () => {
     expect(k["Cursos-horario aplicados"].value).toBe("0");
   });
 });
+
+/**
+ * **EL GUARD DE LA CLASE: la misma cifra, dos fuentes según la rama.**
+ *
+ * El 2026-09-12 la tarjeta «Cursos-horario planificados» publicaba 74 sin foco y
+ * el número correcto con una facultad puesta, porque cada rama leía un campo
+ * distinto del tablero. Lo vio un ojo humano —87 aplicados sobre 74
+ * planificados es imposible—, no un test: el fixture le daba el mismo valor a
+ * las dos poblaciones y la aserción pasaba leyera de donde leyera.
+ *
+ * Una regresión sobre ese caso no cierra la clase; sólo cierra esa tarjeta. El
+ * invariante que sí la cierra es de COHERENCIA y no depende de qué campo lea
+ * cada rama: **lo general tiene que ser la suma de lo particular**. Si mañana
+ * alguien cambia una de las dos ramas a otra fuente, esta suma deja de cuadrar
+ * aunque el fixture mienta.
+ */
+describe("coherencia entre la banda general y la banda por facultad", () => {
+  const tablero = {
+    kpis: { aulas_aplicadas: 23, respuestas_validas: 312 },
+    // Las dos poblaciones con cifras distintas, para que la aserción sea
+    // falsable: `con_meta` NO es «titulares del plan».
+    course_status_con_meta: 9,
+    course_status_rol_y_estado: { titulares: { total: 36 } },
+    avance_cuota: {
+      total: { cuota: 475, respuestas_validas: 312 },
+      meta_diseno: 475,
+      facultades: [
+        { facultad: "PSICOLOGÍA", faculty_key: "psicologia", cuota: 75, respuestas_validas: 12 },
+        { facultad: "DERECHO", faculty_key: "derecho", cuota: 400, respuestas_validas: 300 },
+      ],
+    },
+    quotas_sex_faculty: [],
+    course_status_rol_y_estado_por_facultad: {
+      "PSICOLOGÍA": { titulares: { total: 6, aplicado: 1 } },
+      "DERECHO": { titulares: { total: 30, aplicado: 22 } },
+    },
+  } as unknown as MonitoreoAulasDashboard;
+
+  const num = (v: string) => Number(String(v).replace(/[^\d.-]/g, ""));
+  const kpi = (facultad: string, label: string) =>
+    aulasKpis(tablero, "avance", "", facultad).find((k) => k.label === label);
+
+  it("«Cursos-horario planificados» general es la suma de las facultades", () => {
+    const general = num(kpi("", "Cursos-horario planificados")!.value);
+    const suma = ["PSICOLOGÍA", "DERECHO"]
+      .map((f) => num(kpi(f, "Cursos-horario planificados")!.value))
+      .reduce((a, b) => a + b, 0);
+    // 6 + 30 = 36, y NO 9, que es lo que devolvía la fuente equivocada.
+    expect(suma).toBe(36);
+    expect(general).toBe(suma);
+  });
+
+  it("«Efectivas» general es la suma de las facultades", () => {
+    const general = num(kpi("", "Efectivas")!.value);
+    const suma = ["PSICOLOGÍA", "DERECHO"]
+      .map((f) => num(kpi(f, "Efectivas")!.value))
+      .reduce((a, b) => a + b, 0);
+    expect(general).toBe(suma);
+  });
+});
