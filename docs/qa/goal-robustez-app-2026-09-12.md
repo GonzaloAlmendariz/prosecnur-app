@@ -420,6 +420,34 @@ frente a `*Contract.test.ts`, `"literal"` frente al nombre desnudo en R, y ahora
 `-capacity` frente a `-group`—. Antes de publicar un conteo de cobertura, enumerar
 primero los mecanismos que cuentan como cobertura.
 
+## Territorial medido entero, 6 de 6 secciones (tick 43)
+
+Primera familia completa por el QA visual. Una sola pila para las 5 secciones que
+faltaban: `ok=false captures=5 issues=1 · popovers=15 popoverIssues=0 ·
+geometryGroups=6 geometryIssues=0 geometryCoverageMisses=0 · scrollJails=0
+derrames=0 solapes=0 desbordes=0 · pageErrors=0 apiErrors=0 resourceErrors=0`.
+
+**El issue, arreglado y reverificado en el mismo tick** (`6942ea10`): en Consultas,
+el placeholder «Buscar UUID, UMP, distrito, manzana o encuestador...» medía
+**323 px en 294 disponibles** y se cortaba a media palabra — `placeholder-clipped`.
+El input usaba el placeholder como etiqueta y no tenía nombre accesible, así que
+la enumeración pasó al `aria-label` (que no se recorta) y el campo dice lo justo.
+Reverificado con el mismo instrumento: `ok=true issues=0`.
+
+### Cómo se corre esto sin desperdiciar tiempo
+
+**Varios `--route` SÍ comparten una sola pila** —una API, un Vite, una sesión—,
+así que 5 secciones caben en una corrida. Lo que no comparten es la hidratación
+de cada página: **~12 min para 5**. En este tick estuve a punto de darla por
+colgada a los 10 min y escribir en el encargo la conclusión contraria; la corrida
+terminó bien. **No la des por muerta antes de ~15 min.**
+
+Lo que NO funciona para esto es `--ir` repetido: encadena las direcciones y
+captura sólo la última (`runCaptures`: el bucle `for (const destino of
+opts.direcciones)` corre entero antes de la captura). Las vistas se piden por
+`--route` con query, que es para lo que existe la regla de que toda vista sea
+enlazable.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
