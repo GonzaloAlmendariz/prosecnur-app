@@ -81,13 +81,14 @@
   })
 }
 
-.alp_txt <- function(x, alt = "") {
-  v <- tryCatch(as.character(x %||% "")[1], error = function(...) "")
-  if (length(v) == 0L || is.na(v)) alt else trimws(v)
-}
+# El texto de una celda se lee con `.ald_txt()`, de la hoja de disponibilidad:
+# es el MISMO cuerpo y la casa dice que los micro-helpers se comparten, no se
+# redefinen por módulo. Redefinirlo aquí puso en rojo
+# `test-helpers-sin-duplicar.R` el mismo día que nació esta hoja — el guard
+# hizo su trabajo.
 
 .alp_num <- function(x) {
-  v <- suppressWarnings(as.numeric(.alp_txt(x)))
+  v <- suppressWarnings(as.numeric(.ald_txt(x)))
   if (length(v) != 1L || is.na(v)) NA_real_ else v
 }
 
@@ -105,9 +106,9 @@
 # justo en las franjas raras.
 .alp_minutos <- function(pt, agendada) {
   del_parte <- .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[["hora"]])
-  h <- monitoreo_aulas_hora_parse(.alp_txt(del_parte))[[1]]
+  h <- monitoreo_aulas_hora_parse(.ald_txt(del_parte))[[1]]
   if (!is.na(h)) return(h)
-  monitoreo_aulas_hora_parse(.alp_txt(agendada))[[1]]
+  monitoreo_aulas_hora_parse(.ald_txt(agendada))[[1]]
 }
 
 #' Las filas de la hoja de producción, tipadas — el ÚNICO constructor.
@@ -124,7 +125,7 @@ aulas_libro_filas_produccion <- function(plan = list(), partes = list()) {
   # Código → su fila del plan, para la hora pactada y la facultad.
   del_plan <- new.env(parent = emptyenv())
   for (u in unidades) {
-    cod <- .alp_txt(u[["operational_code"]])
+    cod <- .ald_txt(u[["operational_code"]])
     if (nzchar(cod) && is.null(del_plan[[cod]])) del_plan[[cod]] <- u
   }
 
@@ -137,7 +138,7 @@ aulas_libro_filas_produccion <- function(plan = list(), partes = list()) {
   vale <- new.env(parent = emptyenv())
   if (length(aplicadas) == length(unidades)) {
     for (i in seq_along(unidades)) {
-      cod <- .alp_txt(unidades[[i]][["operational_code"]])
+      cod <- .ald_txt(unidades[[i]][["operational_code"]])
       if (nzchar(cod)) assign(cod, isTRUE(aplicadas[[i]]), envir = vale)
     }
   }
@@ -145,10 +146,10 @@ aulas_libro_filas_produccion <- function(plan = list(), partes = list()) {
   gente <- list()
   for (pt in partes) {
     if (!is.list(pt)) next
-    cod <- .alp_txt(pt[["operational_code"]] %||% pt[["classroom_id"]])
+    cod <- .ald_txt(pt[["operational_code"]] %||% pt[["classroom_id"]])
     if (!nzchar(cod)) next
     if (!isTRUE(mget(cod, envir = vale, ifnotfound = list(FALSE))[[1]])) next
-    crudo <- .alp_txt(
+    crudo <- .ald_txt(
       .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[["aplicador"]]))
     quien <- .alp_clave(crudo)
     if (!nzchar(quien)) next
