@@ -106,6 +106,16 @@ export function avisoConversacion(
     frases.push("La publicación terminó pero no dijo qué pasó con cada hoja.");
     tono = "atencion";
   }
+  // El bloque que contesta «qué toca hoy» quedó en error: se dice con su código
+  // y con qué hacer. Publicar y callar esto es lo que dejó un `#REF!` diez
+  // horas en la hoja que campo abre cada mañana.
+  const formulaRota = String(res.publicado?.plan_dia_formula_error ?? "").trim();
+  if (formulaRota) {
+    frases.push(
+      `El bloque «Plan del día» quedó en ${formulaRota}: ábrelo en el Sheets para que recalcule y, si sigue igual, vuelve a publicar.`,
+    );
+    tono = "atencion";
+  }
   if (motivoLectura) {
     // Un motivo de lectura que este código no conoce: con su nombre.
     frases.push(`La lectura declaró «${motivoLectura}».`);

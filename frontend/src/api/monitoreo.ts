@@ -6095,6 +6095,13 @@ export type MonitoreoAulasLibroConversacion = {
     hojas?: MonitoreoAulasHojaPublicada[];
     spreadsheet_url?: string;
     updated_at?: string;
+    /**
+     * Vacío cuando todo fue bien; el código de error de Sheets («#REF!»,
+     * «#N/A»…) cuando la celda del área del «Plan del día» quedó rota. El
+     * publicador lee la celda que acaba de escribir: antes decía «actualizada»
+     * sobre un bloque roto y sólo se veía abriendo el documento.
+     */
+    plan_dia_formula_error?: string;
   } | null;
 };
 
