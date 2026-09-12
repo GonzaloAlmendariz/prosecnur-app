@@ -592,13 +592,41 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
 #'   que no depende del rango.
 #' @return lista de `{fila, curso_horario, motivo, valor}`.
 #' @export
-monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "") {
+# La clave con la que se reconoce un curso-horario escrito a mano. Colapsa
+# espacios y mayúsculas y nada más: «CH164» y «CH 164» son el mismo aula, y dos
+# códigos que sólo se diferencien en eso no existen. NO se quita la puntuación
+# —«R 1.1» y «R 11» son aulas distintas— ni se tocan las tildes: aquí no las hay.
+.madm_clave_codigo <- function(x) {
+  toupper(gsub("[[:space:]]+", "", trimws(as.character(x %||% "")[1])))
+}
+
+monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "",
+                                          plan = NULL) {
   cab <- .madm_cabecera(filas_remotas)
   .madm_exigir_legible(cab)
   c_cod <- .madm_col(cab, "CURSO-HORARIO")
   c_fecha <- .madm_col(cab, "FECHA")
   d0 <- .mav_fecha(desde); d1 <- .mav_fecha(hasta)
   filas <- if (length(filas_remotas) > 1L) filas_remotas[-1L] else list()
+
+  # **El código de la hoja se busca en el plan, y los dos fallos se separan.**
+  # Hasta ahora esta función sólo juzgaba la FECHA, así que una fila con el
+  # código mal escrito pasaba muda: nunca encontraba su aula, nunca se le
+  # corregía nada, y el recibo no tenía por qué mencionarla. Medido en el
+  # operativo el 2026-09-12: la hoja traía «CH164» donde el plan tiene
+  # «CH 164» — se vio de casualidad porque además caía fuera de la ventana.
+  #
+  # Y son dos noticias distintas: un código que el plan no conoce de ninguna
+  # forma es un dato inventado o de otro estudio; uno que existe con otra
+  # escritura es una celda que se arregla en diez segundos. Decir «desconocido»
+  # a los dos mandaría a buscar un aula que está ahí.
+  del_plan <- NULL
+  if (!is.null(plan)) {
+    filas_plan <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else plan
+    codigos <- vapply(filas_plan, function(u) .alpa_txt(u[["operational_code"]]), character(1))
+    codigos <- unique(codigos[nzchar(codigos)])
+    del_plan <- stats::setNames(as.list(codigos), vapply(codigos, .madm_clave_codigo, character(1)))
+  }
 
   salida <- list()
   anotar <- function(i, cod, motivo, valor) {
@@ -611,6 +639,16 @@ monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "")
     cod <- .madm_celda(v, c_cod)
     dicha <- .madm_celda(v, c_fecha)
     if (!nzchar(cod)) { anotar(i, "", "sin_curso_horario", dicha); next }
+    if (!is.null(del_plan)) {
+      k <- .madm_clave_codigo(cod)
+      bueno <- del_plan[[k]]
+      if (is.null(bueno)) {
+        anotar(i, cod, "codigo_desconocido", dicha)
+      } else if (!identical(bueno, cod)) {
+        # Se dice CÓMO está escrito en el plan: es lo que hay que teclear.
+        anotar(i, cod, "codigo_con_otra_escritura", bueno)
+      }
+    }
     if (!nzchar(dicha)) next
     # **Sin ventana no se pasa la propia celda como año.** «11/09» no puede
     # aportar el año que le falta, así que aquello devolvía "" para TODAS las
@@ -883,7 +921,7 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     # y arreglarlos por nuestra cuenta es decidir por él sobre su fila.
     dudosas = tryCatch(
       monitoreo_aulas_filas_dudosas(remoto, desde = faltan$ventana$desde,
-                                    hasta = faltan$ventana$hasta),
+                                    hasta = faltan$ventana$hasta, plan = plan),
       error = function(e) list()
     ),
     # La inversa de `anadidas`, y la cara cara: una cita escrita cuya aula ya no

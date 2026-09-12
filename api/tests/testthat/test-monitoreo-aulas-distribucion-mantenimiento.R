@@ -682,3 +682,58 @@ test_that("la frase del recibo nombra la hoja destino, cambie algo o no", {
   expect_match(sin_hoja, "No hizo falta cambiar nada.", fixed = TRUE)
   expect_false(grepl("«", sin_hoja, fixed = TRUE))
 })
+
+# --- un código mal escrito en la hoja no puede pasar mudo --------------------
+#
+# Medido en el operativo el 2026-09-12: la hoja de los aplicadores traía
+# «CH164» donde el plan tiene «CH 164». Comparados literales, esa fila nunca
+# encuentra su aula: no se le corrige el aula, no se le sincroniza el estado, y
+# el recibo no tenía por qué mencionarla. Se vio de casualidad, porque además
+# caía fuera de la ventana.
+#
+# Y son DOS noticias distintas. Un código que el plan no conoce de ninguna
+# forma es un dato inventado o de otro estudio; uno que existe con otra
+# escritura es una celda que se arregla en diez segundos. Decir «desconocido» a
+# los dos manda a buscar un aula que está ahí.
+
+test_that("un código con otra escritura se nombra, y se dice cómo va escrito", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH164"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  raros <- Filter(function(d) identical(d$motivo, "codigo_con_otra_escritura"), out)
+  expect_length(raros, 1L)
+  expect_identical(raros[[1]]$curso_horario, "CH164")
+  # El valor es la escritura BUENA: es lo que hay que teclear en la celda.
+  expect_identical(raros[[1]]$valor, "CH 164")
+})
+
+test_that("un código que el plan no conoce se declara distinto", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH 900"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  motivos <- vapply(out, function(d) d$motivo, character(1))
+  expect_true("codigo_desconocido" %in% motivos)
+  expect_false("codigo_con_otra_escritura" %in% motivos)
+})
+
+test_that("el que está bien escrito no se toca, y sin plan no se juzga el código", {
+  plan <- list(list(operational_code = "CH 164", sample_role = "titular"))
+  hoja <- .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                                "CH 164"))
+  out <- monitoreo_aulas_filas_dudosas(hoja, desde = "2026-09-07",
+                                       hasta = "2026-09-12", plan = plan)
+  motivos <- vapply(out, function(d) d$motivo, character(1))
+  expect_false(any(grepl("^codigo_", motivos)))
+
+  # Sin plan la función no puede juzgar el código y NO lo inventa: seguiría
+  # mirando sólo la fecha, como siempre.
+  sin_plan <- monitoreo_aulas_filas_dudosas(
+    .madm_hoja(.madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00",
+                          "CH164")),
+    desde = "2026-09-07", hasta = "2026-09-12")
+  expect_false(any(grepl("^codigo_", vapply(sin_plan, function(d) d$motivo, character(1)))))
+})
