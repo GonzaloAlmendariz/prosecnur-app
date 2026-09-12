@@ -186,8 +186,28 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         <Par clave="Curso">{f.curso}</Par>
         <Par clave="Sección">{f.seccion}</Par>
         <Par clave="Docente">{f.docente}</Par>
+        <Par clave="Tipo de docente">{f.docenteTipo}</Par>
         <Par clave="Aplicador">{f.responsable}</Par>
       </Grupo>
+
+      {/* **Con qué llamar, sin salir de la ficha.** Estaba en el plan y había que
+          ir a buscarlo a otra pestaña para marcar un teléfono. */}
+      <Grupo titulo="Cómo se le contactó">
+        <Par clave="Medio">{f.contactoMedio}</Par>
+        <Par clave="Cuándo">{f.contactoFecha}</Par>
+        <Par cifra clave="Intentos">{f.contactoIntentos == null ? null : fmt(f.contactoIntentos)}</Par>
+        <Par clave="Resultado de la llamada">{f.estadoLlamada}</Par>
+        <Par clave="Recibió el correo">{f.correoRecibido}</Par>
+        <Par clave="Teléfono">{f.docenteTelefono}</Par>
+        <Par clave="Correo">{f.docenteCorreo}</Par>
+      </Grupo>
+
+      {f.origenDeActivacion ? (
+        <Grupo titulo="Por qué está en juego">
+          <Par clave="Entró como">{f.origenDeActivacion}</Par>
+          <Par clave="Ayuda a">{f.activadoPara}</Par>
+        </Grupo>
+      ) : null}
 
       {esReserva ? (
         <Grupo titulo="Su lugar en la cadena">
@@ -197,6 +217,13 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
       ) : null}
 
       <Grupo titulo="El detalle del campo">
+        <Par clave="Aplicado el">{f.aplicadoEn}</Par>
+        <Par clave="Aplicado por">{f.aplicadoPor}</Par>
+        {/* El aforo entero, que es lo que sitúa a los elegibles. */}
+        <Par cifra clave="Matriculados">{f.matriculados == null ? null : fmt(f.matriculados)}</Par>
+        <Par cifra clave="Observados en el aula">{f.observados == null ? null : fmt(f.observados)}</Par>
+        <Par cifra clave="Rechazos">{f.rechazos == null ? null : fmt(f.rechazos)}</Par>
+        <Par cifra clave="Duplicados">{f.duplicados == null ? null : fmt(f.duplicados)}</Par>
         {/* Los que de verdad estaban: sólo lo sabe el parte de campo. */}
         <Par cifra clave="Asistentes (parte)">{f.asistentes == null ? null : fmt(f.asistentes)}</Par>
         {/* **Las dos fuentes, por separado.** No se reconcilian: la plataforma
@@ -214,18 +241,39 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         <Par clave="Contra su margen">{f.senal}</Par>
       </Grupo>
       <Contraste obtenida={f.efectividadObtenida} prevista={f.efectividadPrevista} />
+
+      {/* **Cuánto tardaron en responder.** No está en el plan: viene de la Base
+          de control, que es una cuarta fuente. Sin ella, «sin dato» —no un cero
+          que se leería como «respondieron al instante»—. */}
+      {f.duracionMedia != null || f.duracionMin != null || f.duracionMax != null ? (
+        <Grupo titulo="Cuánto duró responder">
+          <Par cifra clave="Mediana (min)">{f.duracionMedia == null ? null : f.duracionMedia}</Par>
+          <Par cifra clave="La más corta">{f.duracionMin == null ? null : f.duracionMin}</Par>
+          <Par cifra clave="La más larga">{f.duracionMax == null ? null : f.duracionMax}</Par>
+        </Grupo>
+      ) : null}
+
+      {/* Lo único que no está en ninguna cifra: lo que el aplicador escribió. */}
+      {f.notaDeCampo ? (
+        <div className="aulas-ficha-nota">
+          <span>Lo que dijo el campo</span>
+          <p>{f.notaDeCampo}</p>
+        </div>
+      ) : null}
     </>
   );
 }
 
 export function AulasFichaDeCursoHorario({
-  agenda, partes, bandas,
+  agenda, partes, bandas, control = [],
 }: {
   /** El plan entero. */
   agenda: ReadonlyArray<Record<string, unknown>>;
   partes: ReadonlyArray<Record<string, unknown>>;
   /** `dos_tasas.aulas`: sólo los que el motor pudo contrastar. */
   bandas: ReadonlyArray<Record<string, unknown>>;
+  /** La Base de control: la CUARTA fuente, de donde sale la duración. */
+  control?: ReadonlyArray<Record<string, unknown>>;
 }) {
   const [consulta, setConsulta] = useState("");
   const [elegido, setElegido] = useState("");
@@ -240,6 +288,16 @@ export function AulasFichaDeCursoHorario({
     for (const f of bandas) b.set(claveDeBusqueda(f.codigo ?? f.operational_code), f);
     return b;
   }, [bandas]);
+  // La Base de control nombra el curso-horario con su propia columna; se cruza
+  // por la MISMA clave normalizada que el resto, no por igualdad de texto.
+  const porControl = useMemo(() => {
+    const c = new Map<string, Record<string, unknown>>();
+    for (const f of control) {
+      const clave = claveDeBusqueda(f.curso_horario ?? f.operational_code ?? f.codigo);
+      if (clave) c.set(clave, f);
+    }
+    return c;
+  }, [control]);
 
   const encontrados = useMemo(() => buscarCursosHorario(agenda, consulta), [agenda, consulta]);
   const fila = useMemo(() => {
@@ -251,8 +309,8 @@ export function AulasFichaDeCursoHorario({
   const ficha = useMemo(() => {
     if (!fila) return null;
     const clave = claveDeBusqueda(fila.operational_code);
-    return fichaDeCursoHorario(fila, porCodigo.get(clave), porBanda.get(clave));
-  }, [fila, porCodigo, porBanda]);
+    return fichaDeCursoHorario(fila, porCodigo.get(clave), porBanda.get(clave), porControl.get(clave));
+  }, [fila, porCodigo, porBanda, porControl]);
 
   return (
     <div data-qa-geometry-capacity="owned" data-qa-geometry-member>
