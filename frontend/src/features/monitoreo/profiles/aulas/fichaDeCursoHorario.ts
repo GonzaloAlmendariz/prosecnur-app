@@ -71,6 +71,45 @@ export type FichaDeCursoHorario = {
   /** El veredicto de la banda, cuando el motor lo trazó. */
   senal: string | null;
   enlace: string;
+
+  // ——— «que se muestre absolutamente todo lo que sabemos sobre ese CH»
+  // (Gonzalo, 2026-09-12). Lo de abajo YA lo publica el motor y no llegaba a
+  // esta pantalla; ninguna cifra se calcula aquí.
+
+  /** Cómo y cuándo se le buscó, del plan. */
+  contactoMedio: string;
+  contactoFecha: string;
+  contactoIntentos: number | null;
+  /** El resultado de la última llamada, tal como lo teclearon. */
+  estadoLlamada: string;
+  correoRecibido: string;
+  /** Para llamarlo sin salir de la ficha. */
+  docenteTelefono: string;
+  docenteCorreo: string;
+  docenteTipo: string;
+  /** Cuándo se aplicó y quién estuvo, del plan y del parte. */
+  aplicadoEn: string;
+  aplicadoPor: string;
+  /** Por qué está en juego: el sello del refuerzo y a quién ayuda. */
+  origenDeActivacion: string;
+  activadoPara: string;
+  /** Lo que el aplicador escribió a mano. Es lo único que no está en ninguna cifra. */
+  notaDeCampo: string;
+  /** El aforo entero, para situar a los elegibles. */
+  matriculados: number | null;
+  observados: number | null;
+  rechazos: number | null;
+  duplicados: number | null;
+  /**
+   * **Cuánto tardaron en responder**, en minutos. NO está en el plan: vive en la
+   * Base de control, que es una cuarta fuente que esta ficha cruza.
+   */
+  duracionMedia: number | null;
+  duracionMin: number | null;
+  duracionMax: number | null;
+  /** Los otros dos enlaces del operativo. */
+  enlacePdf: string;
+  qr: string;
 };
 
 function texto(x: unknown): string {
@@ -109,6 +148,8 @@ export function fichaDeCursoHorario(
   fila: Record<string, unknown>,
   parte?: Record<string, unknown>,
   banda?: Record<string, unknown>,
+  /** Fila de la Base de control del mismo curso-horario: de aquí sale la duración. */
+  control?: Record<string, unknown>,
 ): FichaDeCursoHorario {
   const elegibles = numeroONulo(fila.eligible_n);
   const validas = numeroONulo(fila.respuestas_validas);
@@ -156,6 +197,31 @@ export function fichaDeCursoHorario(
     brecha: numeroONulo(fila.brecha),
     senal: banda ? texto(banda.senal) || null : null,
     enlace: texto(fila.link),
+
+    contactoMedio: texto(fila.contact_medium),
+    contactoFecha: texto(fila.contact_date),
+    contactoIntentos: numeroONulo(fila.contact_attempts),
+    estadoLlamada: texto(fila.call_status),
+    correoRecibido: texto(fila.email_received),
+    docenteTelefono: texto(fila.teacher_phone),
+    docenteCorreo: texto(fila.teacher_email),
+    docenteTipo: texto(fila.teacher_type),
+    // El parte manda sobre el plan en lo que pasó EN EL AULA: quien estuvo allí
+    // lo anotó, y el plan lo recoge después.
+    aplicadoEn: texto(parte?.applied_at) || texto(fila.applied_at),
+    aplicadoPor: texto(parte?.applied_by) || texto(fila.applied_by),
+    origenDeActivacion: texto(fila.activation_origin),
+    activadoPara: texto(fila.activated_for),
+    notaDeCampo: texto(parte?.field_note) || texto(fila.field_note),
+    matriculados: numeroONulo(fila.enrolled_total),
+    observados: numeroONulo(parte?.observed_students) ?? numeroONulo(fila.observed_students),
+    rechazos: numeroONulo(parte?.refusals) ?? numeroONulo(fila.refusals),
+    duplicados: numeroONulo(parte?.duplicates) ?? numeroONulo(fila.duplicates),
+    duracionMedia: numeroONulo(control?.duracion_media),
+    duracionMin: numeroONulo(control?.duracion_min),
+    duracionMax: numeroONulo(control?.duracion_max),
+    enlacePdf: texto(fila.pdf_link),
+    qr: texto(fila.qr),
   };
 }
 

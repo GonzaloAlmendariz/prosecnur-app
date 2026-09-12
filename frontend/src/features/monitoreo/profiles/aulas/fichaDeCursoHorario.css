@@ -109,3 +109,30 @@
   background: var(--pulso-text); opacity: 0.75; transform: translateX(-1px);
 }
 .aulas-ficha-contraste-lectura { color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+
+/* La nota del aplicador: lo único de la ficha que no es una cifra, así que se
+   sale de la rejilla de pares y se lee como lo que es, una frase. */
+.aulas-ficha-nota {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--pulso-accent);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-raised);
+}
+
+.aulas-ficha-nota > span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-ficha-nota > p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}

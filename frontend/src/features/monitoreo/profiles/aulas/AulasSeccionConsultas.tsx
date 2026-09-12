@@ -188,6 +188,9 @@ export function AulasSeccionConsultas({
               agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               bandas={(dashboard.dos_tasas?.aulas ?? []) as Array<Record<string, unknown>>}
+              // La CUARTA fuente. Se llama `control_calidad` en el tablero, no
+              // `control`: buscarla por el nombre de la hoja no la encuentra.
+              control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
             />
           </section>
         ) : null}
