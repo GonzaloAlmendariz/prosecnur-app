@@ -157,6 +157,36 @@ monitoreo_aulas_crear_distribucion <- function(titulo = "") {
   c(semanas, con_forma)
 }
 
+#' Las filas de TODAS las pestañas de distribución, apiladas.
+#'
+#' Bajo la cabecera de la primera legible: la clave con la que se compara una
+#' cita es (curso-horario, fecha) y no depende de en qué pestaña estaba la
+#' fila. Existe como función porque desde que hay **una pestaña por semana**
+#' (`83d98403`) hay más de un sitio que necesita el documento ENTERO, y la
+#' versión inline se quedó en dos: el lector apilaba y el publicador leía sólo
+#' la primera, así que las filas que el equipo escribiera en «Semana 2» no
+#' entraban al análisis y el recibo salía limpio por no haberlas mirado.
+#'
+#' Una pestaña que no se deja leer no tumba la lectura de las demás: se salta.
+#' Eso es deliberado —una cuota de Google no debe convertir «tengo dos semanas»
+#' en «no tengo nada»— y es también su límite: quien necesite distinguir vacío
+#' de ilegible tiene que preguntar por pestaña.
+#'
+#' @param id id del documento (ya extraído).
+#' @param hojas nombres de las pestañas de distribución, en orden.
+#' @return lista de filas: la cabecera de la primera legible y debajo todas.
+#' @keywords internal
+monitoreo_aulas_distribucion_valores <- function(id, hojas) {
+  out <- list()
+  for (h in as.character(unlist(hojas %||% list(), use.names = FALSE))) {
+    v <- tryCatch(.cads_valores_de_pestana(id, h), error = function(e) list())
+    if (!length(v)) next
+    if (!length(out)) { out <- v; next }
+    if (length(v) > 1L) out <- c(out, v[-1L])
+  }
+  out
+}
+
 #' Lee el Sheets de la distribución y lo compara con el reparto vigente.
 #'
 #' Contesta la pregunta del operativo —**¿lo que están viendo los aplicadores es
@@ -194,16 +224,7 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
   hoja <- if (length(hojas_dist)) hojas_dist[[1L]] else ""
   hay_hoja <- nzchar(hoja)
 
-  # Las filas de todas se apilan bajo la cabecera de la primera legible: la
-  # clave de comparación es (curso-horario, fecha) y no depende de en qué
-  # pestaña estaba la fila.
-  remoto <- list()
-  for (h in hojas_dist) {
-    v <- tryCatch(.cads_valores_de_pestana(id, h), error = function(e) list())
-    if (!length(v)) next
-    if (!length(remoto)) { remoto <- v; next }
-    if (length(v) > 1L) remoto <- c(remoto, v[-1L])
-  }
+  remoto <- monitoreo_aulas_distribucion_valores(id, hojas_dist)
 
   cab <- if (length(remoto)) .madc_valores(remoto[[1]], length(.alpa_CABECERA)) else character(0)
   # Se localiza por RÓTULO porque es lo único que el documento remoto tiene: no
@@ -270,6 +291,11 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
     url = paste0("https://docs.google.com/spreadsheets/d/", id, "/edit"),
     titulo = .monitoreo_scalar((meta$properties %||% list())$title, ""),
     hoja = if (hay_hoja) hoja else .mapd_hoja(),
+    # TODAS las de distribución, en orden de semana. `hoja` es la primera y se
+    # conserva por compatibilidad, pero quien vaya a LEER el documento entero
+    # necesita la lista: desde que hay una pestaña por semana, quedarse con la
+    # primera es leer sólo la semana 1.
+    hojas = as.list(hojas_dist),
     hoja_presente = hay_hoja,
     cabecera_legible = legible,
     citas_remotas = length(mapa_remoto),
@@ -280,7 +306,10 @@ monitoreo_aulas_leer_distribucion <- function(spreadsheet_id, filas = NULL) {
     sobran = vapply(sobran, legible_texto, character(1), USE.NAMES = FALSE),
     cambiadas = cambiadas,
     # Lo que hay en el documento y el motor no produce. Se nombra, no se toca.
-    pestanas_ajenas = setdiff(titulos[nzchar(titulos)], hoja)
+    # Contra TODAS las de distribución, no contra la primera: con una pestaña
+    # por semana, restar sólo «Semana 1» declara ajena a «Semana 2», que es
+    # hoja de la app — y «ajena» es la etiqueta que dice «no la toques».
+    pestanas_ajenas = setdiff(titulos[nzchar(titulos)], hojas_dist)
   )
 }
 

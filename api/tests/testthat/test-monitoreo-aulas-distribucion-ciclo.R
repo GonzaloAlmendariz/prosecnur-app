@@ -41,7 +41,16 @@
         list(properties = list(title = "Asignación de aplicadores"))
       )
     ),
-    .cads_valores_de_pestana = function(id, pestana) filas,
+    # La vieja «Asignación de aplicadores» tiene OTRA cabecera: devolverle las
+    # mismas filas la haría indistinguible de una hoja de distribución —el
+    # motor las reconoce por su cabecera— y entonces el test no probaría nada
+    # sobre cuál es ajena, sólo que la primera no lo es.
+    .cads_valores_de_pestana = function(id, pestana) {
+      if (identical(pestana, "Asignación de aplicadores")) {
+        return(list(list("CODIGO", "PERSONA")))
+      }
+      filas
+    },
     .package = "prosecnurapp",
     .env = envir
   )
@@ -527,4 +536,57 @@ test_that("las pestañas semanales se ordenan por número, no alfabéticamente",
   hojas <- prosecnurapp:::.madc_pestanas_de_la_distribucion(
     "id", c("Semana 10", "Semana 2", "Semana 1"))
   expect_identical(hojas, c("Semana 1", "Semana 2", "Semana 10"))
+})
+
+# --- una pestaña de la app no es una pestaña ajena ----------------------------
+#
+# Desde `83d98403` el documento lleva UNA PESTAÑA POR SEMANA. El lector restaba
+# las ajenas contra `hoja` —la PRIMERA— así que «Semana 2» salía declarada
+# ajena: la etiqueta que significa «esto no es nuestro, no lo toques». Y el
+# publicador leía las filas del equipo de esa misma primera pestaña, dejando
+# fuera del análisis todo lo que alguien escribiera en la semana 2.
+test_that("con varias semanas, ninguna hoja de la app se declara ajena", {
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = c(list(as.list(.mdc_cab())),
+                                   list(.mdc_fila_manual("CH 7", fecha = "07/09"))))
+  mock$seed("Semana 2", values = c(list(as.list(.mdc_cab())),
+                                   list(.mdc_fila_manual("CH 9", fecha = "14/09"))))
+  mock$seed("Apuntes", values = list(list("cosas", "que", "anoté")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  out <- monitoreo_aulas_leer_distribucion("sheet_dist")
+
+  ajenas <- as.character(unlist(out$pestanas_ajenas %||% list()))
+  expect_false("Semana 1" %in% ajenas)
+  expect_false("Semana 2" %in% ajenas)
+  expect_true("Apuntes" %in% ajenas)
+  # Y el recibo entrega la LISTA, no sólo la primera: quien vaya a leer el
+  # documento entero la necesita.
+  expect_identical(as.character(unlist(out$hojas %||% list())), c("Semana 1", "Semana 2"))
+  expect_identical(out$hoja, "Semana 1")
+  # Las citas de las dos semanas cuentan: apilar es lo que hace que «faltan» no
+  # invente huecos.
+  expect_equal(out$citas_remotas, 2L)
+})
+
+test_that("el apilado junta todas las semanas bajo una sola cabecera", {
+  llamadas <- character(0)
+  testthat::local_mocked_bindings(
+    .cads_valores_de_pestana = function(id, pestana) {
+      llamadas <<- c(llamadas, pestana)
+      if (identical(pestana, "Semana 3")) stop("cuota")
+      list(as.list(.mdc_cab()),
+           .mdc_fila_manual(sprintf("CH %s", sub("^Semana ", "", pestana)), fecha = "07/09"))
+    }
+  )
+  out <- monitoreo_aulas_distribucion_valores("id", list("Semana 1", "Semana 2", "Semana 3"))
+  # Una cabecera y una fila por semana legible: la de la 2 NO arrastra su
+  # cabecera, que sería una fila fantasma sin curso-horario.
+  expect_length(out, 3L)
+  expect_identical(as.character(out[[1]][[1]]), as.character(.mdc_cab()[[1]]))
+  codigos <- vapply(out[-1], function(f) as.character(unlist(f))[
+    which(as.character(.mdc_cab()) == "CURSO-HORARIO")], character(1))
+  expect_setequal(codigos, c("CH 1", "CH 2"))
+  # Y la que no se deja leer se salta sin tumbar a las demás: una cuota de
+  # Google no convierte «tengo dos semanas» en «no tengo nada».
+  expect_identical(llamadas, c("Semana 1", "Semana 2", "Semana 3"))
 })
