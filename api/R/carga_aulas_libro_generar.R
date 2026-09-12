@@ -2050,6 +2050,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # quién reclutar y no dependa enteramente de mí». Condicional, como su
   # hermana: sin oferta cargada la hoja no se produce.
   aulas_libro_hoja_disponibilidad(wb, disponibilidad)
+  # Dictado 2026-09-12: «necesitamos saber la producción de los aplicadores,
+  # quién está aplicando más, quién está aplicando menos, en qué rangos
+  # horarios». Es la cara de SALIDA de la de asignación —lo aplicado, no lo
+  # repartido— y por eso va después de ella. Condicional como sus hermanas: sin
+  # partes no se escribe, porque una hoja vacía diría «nadie ha aplicado».
+  aulas_libro_hoja_produccion(wb, plan_completo, partes)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde
