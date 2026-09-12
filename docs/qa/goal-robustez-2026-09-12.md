@@ -308,3 +308,21 @@ sacaste?»**, que es una pregunta de procedencia y no de valor. El guard que
 corresponde es el de la otra sesión —clase 11, «un respaldo que se usa
 siempre»—, y por eso las dos formas de mirar se necesitan: una ve los números
 que no cuadran, la otra ve los caminos que nadie recorre.
+
+## La pregunta de procedencia, aplicada al PDF de cliente
+
+Aprendida la lección del punto ciego, se le hizo al PDF la pregunta que el
+cotejo de valores no puede hacer: **¿de qué campos lee, y existen?**
+
+Lee muy poco de fuera, que es parte de por qué aguanta:
+
+| Origen | Claves que lee | Estado |
+|---|---|---|
+| `cfg$aulas_universitarias` | `plan`, `partes_campo`, `design_targets` | las tres presentes y con contenido (1.392 · 72 · 12) |
+| `snapshot` | `data`, `synced_at` | las dos presentes (1.519 filas · sello ISO) |
+
+Ninguna rama muerta ni respaldo tapando una clave inexistente. Se anota porque
+un barrido de procedencia que sale limpio también cierra una pregunta, y porque
+deja dicho **cuál es exactamente la superficie de contacto del PDF con el resto
+de la app**: cinco claves. Cuanto más pequeña, menos sitios donde el entregable
+puede envenenarse sin avisar.
