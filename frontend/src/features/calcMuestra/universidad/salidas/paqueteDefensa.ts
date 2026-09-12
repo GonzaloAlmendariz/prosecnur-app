@@ -82,6 +82,40 @@ function contextoAcreditado({
   return { status, selection, frameHash, selectionRunId };
 }
 
+/**
+ * **Por qué NO se puede emitir el paquete, en las palabras del caso.**
+ *
+ * `contextoAcreditado` devuelve `null` por seis motivos distintos y la página
+ * los resumía todos en el mismo aviso: «requiere cálculo, marco y selección
+ * vigentes para el escenario elegido». Para cinco de ellos eso orienta. Para el
+ * sexto —la selección se sorteó para un tamaño y la fórmula pide otro— manda al
+ * lector a revisar tres cosas que están perfectamente bien, y no menciona la
+ * única que no lo está.
+ *
+ * Es el caso que ADR 0066 hace NORMAL, no excepcional: la selección manda sobre
+ * el conteo, así que un ajuste operativo deliberado deja al paquete sin emitir
+ * y sin explicación. El aviso tiene que decir la causa, no sólo el hecho.
+ *
+ * Devuelve `null` cuando SÍ se puede emitir.
+ */
+export function paqueteDefensaMotivo(context: PaqueteDefensaContext): string | null {
+  const { estudio, workspace, aulasState, marcoDesactualizado = false } = context;
+  const totalComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  if (!totalComp || !facultyComp) {
+    return "El estudio no declara los componentes de universidad y facultad.";
+  }
+  const status = resolveClassroomArtifactStatus({
+    workspace, totalComp, facultyComp, aulasState, marcoDesactualizado,
+  });
+  const diff = status.selectionTargetDiff;
+  if (diff) {
+    return `La selección se sorteó para ${diff.seleccionadas} cursos-horario y la fórmula pide ${diff.pedidas}. El paquete no se emite con las dos cifras a la vez: vuelve a sortear con el objetivo vigente, o ajusta el objetivo al sorteo.`;
+  }
+  if (contextoAcreditado(context)) return null;
+  return "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.";
+}
+
 export function paqueteDefensaFingerprint(context: PaqueteDefensaContext): PaqueteDefensaFingerprint | null {
   const acreditado = contextoAcreditado(context);
   if (!acreditado) return null;
