@@ -350,3 +350,70 @@ test_that("en Sheets la primera columna también mide, y sólo cuenta las filas 
   expect_equal(ancho1(filas_cortas), 260L)
 })
 
+
+# --- las aulas EXTRA agendadas se ven, y no se cuentan como titulares --------
+#
+# Gonzalo, 2026-09-12: «Avance de agendación debería también considerar las
+# aulas extra, ¿no? Ahorita solo está considerando las agendadas, lo agendado,
+# las aplicadas, por aplicar, titulares agendadas, reemplazos agendados, pero
+# no están las extras agendadas; a menos que lo estés considerando dentro de
+# reemplazos».
+#
+# La respuesta medida fue peor que su sospecha: **no caían en reemplazos, caían
+# en TITULARES**. `es_reserva` es FALSE para el banco, así que `!es_reserva`
+# las recogía junto a las aulas que el diseño muestral eligió. No se veía
+# porque las 45 del banco del operativo estaban sin agendar; se habría visto el
+# día que alguien agendara la primera, y como un titular de más.
+
+.tag_fila_extra <- function(codigo, fecha, rol = "extra_reserve_pool") {
+  list(operational_code = codigo, classroom_id = tolower(gsub(" ", "", codigo)),
+       sample_role = rol, operational_status = "agendada",
+       scheduled_date = fecha, scheduled_time = "10:00",
+       faculty = "DERECHO", teacher = "Docente", course_name = "Curso",
+       sample_status = "AGENDADA")
+}
+
+test_that("una extra agendada NO engorda «De titulares» ni en el día ni en la semana", {
+  plan <- list(
+    .tag_fila_extra("CH 1", "2026-09-08", rol = "titular"),
+    .tag_fila_extra("R 1.1", "2026-09-08", rol = "chain_reserve"),
+    .tag_fila_extra("EXTRA 7", "2026-09-08")
+  )
+  ejes <- prosecnurapp:::.calan_ejes(plan, partes = list())
+  dia <- prosecnurapp:::.calan_por_dia(ejes)
+  expect_equal(dia[["Agendadas"]][[1]], 3L)
+  expect_equal(dia[["De titulares"]][[1]], 1L)
+  expect_equal(dia[["De reemplazos"]][[1]], 1L)
+  expect_equal(dia[["De reservas extra"]][[1]], 1L)
+  # Y las tres columnas suman el total: si una población se cuela en dos, deja
+  # de cuadrar y es lo único que lo delata.
+  expect_equal(dia[["De titulares"]][[1]] + dia[["De reemplazos"]][[1]] +
+                 dia[["De reservas extra"]][[1]], dia[["Agendadas"]][[1]])
+
+  sem <- prosecnurapp:::.calan_por_semana(ejes)
+  expect_equal(sem[["De titulares"]][[1]], 1L)
+  expect_equal(sem[["De reservas extra"]][[1]], 1L)
+  expect_equal(sem[["De titulares"]][[1]] + sem[["De reemplazos"]][[1]] +
+                 sem[["De reservas extra"]][[1]], sem[["Agendadas"]][[1]])
+})
+
+test_that("la fila «De reservas extra» se dice aunque sea cero, si hay banco", {
+  # Una fila que aparece y desaparece no distingue «ninguna agendada» de «esta
+  # hoja no las mira», que es exactamente la duda que tuvo el lead.
+  con_banco <- list(
+    .tag_fila_extra("CH 1", "2026-09-08", rol = "titular"),
+    # Del banco y SIN agendar: la fila tiene que salir igual, en cero.
+    list(operational_code = "EXTRA 1", classroom_id = "x1",
+         sample_role = "extra_reserve_pool", operational_status = "contactada",
+         faculty = "DERECHO", sample_status = "SIN CONTACTAR")
+  )
+  total <- prosecnurapp:::.calan_total(prosecnurapp:::.calan_ejes(con_banco, partes = list()))
+  fila <- total[total$Indicador == "De reservas extra", , drop = FALSE]
+  expect_equal(nrow(fila), 1L)
+  expect_equal(fila$Total[[1]], 0)
+
+  # Sin banco NO se dice: ahí sí sería una fila sobre algo que no existe.
+  sin_banco <- list(.tag_fila_extra("CH 1", "2026-09-08", rol = "titular"))
+  total2 <- prosecnurapp:::.calan_total(prosecnurapp:::.calan_ejes(sin_banco, partes = list()))
+  expect_equal(nrow(total2[total2$Indicador == "De reservas extra", , drop = FALSE]), 0L)
+})
