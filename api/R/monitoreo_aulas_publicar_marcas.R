@@ -119,6 +119,26 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
   out
 }
 
+#' Los estados en que puede terminar el paso de formato de UNA hoja.
+#'
+#' **El vocabulario es cerrado y esta declarado a proposito.** La clase 4 del
+#' catalogo —un paso que puede no ocurrir y no lo cuenta— se cuela justo por
+#' aqui: se añade una rama de salida, se olvida darle nombre, y el resultado
+#' vuelve a quedarse mudo mientras el acuse habla de las celdas escritas. Con la
+#' lista declarada, `test-monitoreo-aulas-publicar-marcas.R` puede exigir que
+#' cada estado que el codigo produce este aqui y que el texto sepa decirlo.
+#'
+#' - `aplicado`: se emitieron las requests y Google las acepto.
+#' - `error`: se emitieron y fallaron; el motivo viaja en `error`.
+#' - `ensayo`: `aplicar = FALSE`, no se toco nada a proposito.
+#' - `sin-columnas`: ninguna celda de esta hoja era de la app.
+#' - `sin-sheet-id`: la pestaña no aparecio en la metadata del libro.
+#' - `sin-requests`: habia columnas pero no salio ninguna request.
+#' @keywords internal
+MONITOREO_AULAS_FORMATO_ESTADOS <- c(
+  "aplicado", "error", "ensayo", "sin-columnas", "sin-sheet-id", "sin-requests"
+)
+
 #' Desplegable y color para las columnas que esta publicacion acaba de tocar.
 #'
 #' **Dos averias que se ven en pantalla y no en el resultado.** El valor escrito
