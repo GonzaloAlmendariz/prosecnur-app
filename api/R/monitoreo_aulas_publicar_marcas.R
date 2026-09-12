@@ -19,11 +19,12 @@
 # sino en «Aulas Agendadas (Extra)», y el reparto del techo elige sobre todo
 # extras. Publicar solo en la primera dejaria fuera justo a la mayoria.
 
-.mapm_txt <- function(v) {
-  v <- as.character(v %||% "")
-  v[is.na(v)] <- ""
-  trimws(v)
-}
+# El helper de texto es el de `monitoreo_aulas_marcas_sheets.R` —`.mams_txt`— y
+# no uno propio: este archivo tenia una copia IDENTICA byte a byte. Son los dos
+# lados del mismo gesto (aquel decide que celdas, este las escribe) y CLAUDE.md
+# lo dice para todo el paquete: los micro-helpers se comparten, no se redefinen
+# por modulo. Medido el 2026-09-12: de 69 helpers de texto del backend, solo 4
+# cuerpos tienen copias, y este par era uno de ellos.
 
 #' Las hojas de agendacion donde puede vivir un curso-horario marcado.
 #' @keywords internal
@@ -99,7 +100,7 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
   cuerpo <- if (length(valores) > fila_enc) valores[(fila_enc + 1L):length(valores)] else list()
   celda <- function(fila, j) {
     v <- unlist(fila, use.names = FALSE)
-    if (length(v) >= j) .mapm_txt(v[[j]]) else ""
+    if (length(v) >= j) .mams_txt(v[[j]]) else ""
   }
   data.frame(
     `CURSO-HORARIO` = vapply(cuerpo, celda, character(1), j = par$codigo),
@@ -116,7 +117,7 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
   out <- list()
   for (h in (meta$sheets %||% list())) {
     pr <- h$properties %||% list()
-    nombre <- .mapm_txt(pr$title)
+    nombre <- .mams_txt(pr$title)
     if (nzchar(nombre)) out[[nombre]] <- as.integer(.monitoreo_scalar(pr$sheetId, NA_integer_))
   }
   out
@@ -204,7 +205,7 @@ MONITOREO_AULAS_FORMATO_ESTADOS <- c(
 monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
                                             hojas = MONITOREO_AULAS_HOJAS_DE_AGENDA,
                                             aplicar = TRUE) {
-  id <- .mapm_txt(spreadsheet_id)[1]
+  id <- .mams_txt(spreadsheet_id)[1]
   if (!nzchar(id)) {
     stop_api(400, "E_AULAS_SHEETS_SIN_ID",
              "Falta el identificador del Google Sheets del libro de aulas.")
@@ -219,7 +220,7 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
              "No hay ningun curso-horario marcado como refuerzo por contactar.")
   }
 
-  pendientes <- vapply(marcadas, function(r) .mapm_txt(r$operational_code), character(1))
+  pendientes <- vapply(marcadas, function(r) .mams_txt(r$operational_code), character(1))
   # La metadata se pide UNA vez y solo si hace falta escribir formato.
   sheet_ids <- NULL
   formato_fallo <- ""
@@ -246,7 +247,7 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
     # uno sale de la lista de pendientes.
     for (par in enc$pares) {
       if (!length(pendientes)) break
-      aun <- Filter(function(r) .mapm_txt(r$operational_code) %in% pendientes, marcadas)
+      aun <- Filter(function(r) .mams_txt(r$operational_code) %in% pendientes, marcadas)
       if (!length(aun)) break
       out <- monitoreo_aulas_marcas_por_publicar(aun, .mapm_remoto(valores, enc$fila, par))
 
@@ -273,7 +274,7 @@ monitoreo_aulas_publicar_marcas <- function(spreadsheet_id, plan = list(),
         # desplegable y el morado no se emitian. Medido en pantalla el
         # 2026-09-11: nueve celdas escritas y las nueve con el triangulo rojo
         # despues de republicar.
-        if (identical(toupper(.mapm_txt(r$habia)), "REFUERZO POR CONTACTAR")) {
+        if (identical(toupper(.mams_txt(r$habia)), "REFUERZO POR CONTACTAR")) {
           columnas_tocadas <- union(columnas_tocadas, par$estado)
         }
       }
@@ -384,7 +385,7 @@ monitoreo_aulas_publicar_marcas_texto <- function(out) {
   # **El formato se dice SIEMPRE y aparte.** El valor ya esta escrito, y
   # confundir «no entro el color» con «no se pinto la celda» manda a mirar la
   # hoja equivocada; callar cuando no se intento es peor todavia.
-  estados <- vapply(out$formato %||% list(), function(f) .mapm_txt(f$estado), character(1))
+  estados <- vapply(out$formato %||% list(), function(f) .mams_txt(f$estado), character(1))
   if (length(estados)) {
     if (all(estados %in% c("aplicado", "ensayo", "sin-columnas"))) {
       if (any(estados == "aplicado")) {
@@ -392,8 +393,8 @@ monitoreo_aulas_publicar_marcas_texto <- function(out) {
       }
     } else {
       detalle <- vapply(out$formato, function(f) {
-        sprintf("%s: %s%s", .mapm_txt(f$hoja), .mapm_txt(f$estado),
-                if (nzchar(.mapm_txt(f$error))) paste0(" — ", .mapm_txt(f$error)) else "")
+        sprintf("%s: %s%s", .mams_txt(f$hoja), .mams_txt(f$estado),
+                if (nzchar(.mams_txt(f$error))) paste0(" — ", .mams_txt(f$error)) else "")
       }, character(1))
       partes <- paste0(partes,
         " El valor esta escrito, pero el desplegable y el color NO entraron (",
