@@ -137,3 +137,44 @@ quieto.
 Corolario para leer un rojo de una corrida larga: **antes de diagnosticarlo,
 re-correr ese fichero solo**. Si pasa, era el árbol moviéndose; si falla, es
 tuyo.
+
+## ABIERTO — una CUARTA definición de «aplicado», medida
+
+`monitoreo_aulas_aula_aplicada.R` se abre diciendo: «**Una sola definición de
+"este curso-horario se aplicó"**. Había tres, y las tres daban respuestas
+distintas sobre las mismas aulas el 2026-09-07 […] Aquí está, y las tres la
+llaman.»
+
+**No las tres: hay una cuarta que no la llama.**
+`monitoreo_aulas_rol_y_estado()` cuenta `aplicado` como
+`application_state %in% c("en_aplicacion","cerrando")`, y `application_state` lo
+deriva el propio tablero (`monitoreo_aulas_universitarias.R:1422`) de
+`operational_status` y `responses_total` — nunca pregunta por el parte.
+
+**Medido sobre HSVG2026, misma entrada por los dos caminos:**
+
+| | tablero | PDF / canónica |
+|---|---|---|
+| efectivas | 1.390 | 1.390 ✓ |
+| muestra | 2.500 | 2.500 ✓ |
+| titulares del plan | 174 | 174 ✓ |
+| **aulas aplicadas** | **73** | **75** ✗ |
+| facultades | 15 | 15 ✓ |
+
+La diferencia se localiza en **una sola aula, `CH 3`**: su parte la declara
+aplicada y todavía no tiene respuestas, así que la canónica la cuenta —«el parte
+es el veredicto de quien estuvo ahí»— y `application_state` la deja en
+`pendiente`. (El otro punto de diferencia entre 74 y 75 es `R 131.1`, una reserva
+aplicada, que el desglose por rol cuenta aparte y no en titulares: eso es
+correcto.)
+
+Consecuencia: la misma pantalla puede decir 73 en el desglose por rol y 75 en su
+KPI, sobre el mismo corte.
+
+**Por qué no se arregló en el acto.** Vive en `monitoreo_aulas_universitarias.R`
+—motor grande y en el área que la otra sesión está commiteando esta misma noche,
+incluido `1d4f3888`, que va justo de motores comparando el estado en crudo— y la
+derivación de `application_state` alimenta varios paneles. Tocarla a ciegas
+ripplea. Queda con su reproducción hecha: `<scratchpad>/cotejo.R` compara las dos
+lecturas sobre la misma entrada y `<scratchpad>/cual2.R` nombra el aula que
+difiere.
