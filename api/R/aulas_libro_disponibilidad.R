@@ -75,7 +75,8 @@
 #'   (`monitoreo_aulas_disponibilidad_bloque`), o la oferta cruda de la sesión.
 #' @return lista de filas tipadas, o `NULL` si no hay oferta que enseñar.
 #' @keywords internal
-aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
+aulas_libro_filas_disponibilidad <- function(disponibilidad = list(),
+                                             plan = list(), cfg = list()) {
   bloque <- disponibilidad
   cruda <- disponibilidad
   # Acepta las dos formas: el bloque ya armado o la oferta cruda de sesión. Sin
@@ -188,7 +189,84 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
     }
   }
 
+  # --- CUÁNTOS SALEN CADA SEMANA ---------------------------------------------
+  #
+  # Dictado de Gonzalo (2026-09-12): «algo que también podrías tomar en cuenta
+  # es los aplicadores disponibles por semana. La primera semana habían creo
+  # que algo de veintiuno o veinticuatro, ahora hay un poco menos. Más o menos
+  # los aplicadores que hemos tomado en cuenta para hacer la distribución».
+  #
+  # **La disponibilidad NO sabe de semanas y no puede contestarlo.** Es una
+  # matriz día-de-la-semana × franja: dice que alguien puede los martes, no que
+  # pueda el martes 15. Preguntarle por semanas daría siempre la misma cifra.
+  #
+  # Quien sí lo sabe es el REPARTO: sus citas llevan fecha, y agrupadas por
+  # semana dicen cuántas personas salen en cada una — que es literalmente «los
+  # que hemos tomado en cuenta para hacer la distribución». Por eso este bloque
+  # necesita el plan, y por eso NO aparece cuando no lo hay: sin fechas no hay
+  # semanas, y una tabla de una sola fila diría que el operativo dura una
+  # semana.
+  filas <- c(filas, .ald_filas_por_semana(plan, disponibilidad, cfg))
   filas
+}
+
+.ALD_TITULO_SEMANAS <- "CUÁNTOS SALEN CADA SEMANA"
+
+# Las filas del bloque semanal, o `list()` si el plan no permite construirlo.
+.ald_filas_por_semana <- function(plan, disponibilidad, cfg) {
+  plan <- plan %||% list()
+  if (!length(plan)) return(list())
+  inicio <- tryCatch(monitoreo_aulas_inicio_de_campo(plan), error = function(e) as.Date(NA))
+  if (is.na(inicio)) return(list())
+  rep <- tryCatch(monitoreo_aulas_reparto_de_config(plan, disponibilidad, cfg %||% list()),
+                  error = function(e) NULL)
+  semanas <- tryCatch(monitoreo_aulas_reparto_por_semana(rep, inicio), error = function(e) list())
+  if (length(semanas) < 1L) return(list())
+
+  out <- list()
+  poner <- function(tipo, celdas) {
+    out[[length(out) + 1L]] <<- list(tipo = tipo, celdas = as.character(celdas))
+  }
+  gente_de <- function(sem) {
+    unique(unlist(lapply((sem %||% list())[["dias"]] %||% list(), function(d) {
+      vapply(d[["asignaciones"]] %||% list(),
+             function(a) aulas_nombre_aplicador(.ald_txt(a[["aplicador"]])), character(1))
+    })))
+  }
+  citas_de <- function(sem) {
+    sum(vapply((sem %||% list())[["dias"]] %||% list(),
+               function(d) length(d[["asignaciones"]] %||% list()), integer(1)))
+  }
+
+  poner("nota", "")
+  poner("bloque", .ALD_TITULO_SEMANAS)
+  poner("nota", paste(
+    "Cuánta gente sale de verdad cada semana, que no es lo mismo que cuánta",
+    "declaró disponibilidad: la matriz de arriba es por día de la semana y no",
+    "distingue el martes 8 del martes 15. Esto sale del reparto, con sus fechas."))
+  poner("cabecera", c("SEMANA", "DÍAS", "APLICACIONES", "APLICADORES",
+                      "ENTRAN", "SALEN"))
+  nombres <- names(semanas)
+  previos <- NULL
+  for (k in seq_along(semanas)) {
+    sem <- semanas[[k]]
+    quienes <- sort(gente_de(sem))
+    fechas <- .mads_fechas_cortas(sem)
+    entran <- if (is.null(previos)) character(0) else setdiff(quienes, previos)
+    salen <- if (is.null(previos)) character(0) else setdiff(previos, quienes)
+    poner("dato", c(
+      nombres[[k]],
+      if (length(fechas)) sprintf("%s a %s", fechas[[1]], fechas[[length(fechas)]]) else "",
+      as.character(citas_de(sem)),
+      as.character(length(quienes)),
+      # Los nombres, no el conteo: lo que se hace con esto es llamar a esa
+      # persona o preguntar por qué ya no está.
+      if (length(entran)) paste(entran, collapse = "; ") else "",
+      if (length(salen)) paste(salen, collapse = "; ") else ""
+    ))
+    previos <- quienes
+  }
+  out
 }
 
 # La inicial con la que un día se escribe en la cuadrícula. La X del miércoles
@@ -265,8 +343,9 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list()) {
 #' @param disponibilidad la oferta de la sesión.
 #' @return lista de filas de celdas, o `NULL`.
 #' @keywords internal
-aulas_libro_valores_disponibilidad <- function(disponibilidad = list()) {
-  filas <- aulas_libro_filas_disponibilidad(disponibilidad)
+aulas_libro_valores_disponibilidad <- function(disponibilidad = list(),
+                                               plan = list(), cfg = list()) {
+  filas <- aulas_libro_filas_disponibilidad(disponibilidad, plan = plan, cfg = cfg)
   if (is.null(filas)) return(NULL)
   ancho <- max(vapply(filas, function(f) length(f$celdas), integer(1)))
   lapply(filas, function(f) {
@@ -285,8 +364,9 @@ aulas_libro_valores_disponibilidad <- function(disponibilidad = list()) {
 #' @param disponibilidad la clave de sesión; `NULL` o vacía = no se escribe.
 #' @return TRUE si la hoja se escribió; FALSE si no había oferta.
 #' @keywords internal
-aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad) {
-  filas <- aulas_libro_filas_disponibilidad(disponibilidad)
+aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad, plan = list(),
+                                            cfg = list()) {
+  filas <- aulas_libro_filas_disponibilidad(disponibilidad, plan = plan, cfg = cfg)
   if (is.null(filas)) return(invisible(FALSE))
 
   hoja <- "Disponibilidad de aplicadores"
@@ -473,12 +553,16 @@ aulas_libro_disponibilidad_formato_requests <- function(sheet_id, rows) {
     if (identical(primera, "DISPONIBILIDAD DE APLICADORES")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
       poner(.maaf_alto_fila(sheet_id, i, 36L))
-    } else if (primera %in% c(.ALD_TITULO_CONTEOS, .ALD_TITULO_PERSONAS)) {
+    } else if (primera %in% c(.ALD_TITULO_CONTEOS, .ALD_TITULO_PERSONAS,
+                              .ALD_TITULO_SEMANAS)) {
+      # El bloque semanal entra en la MISMA lista que sus hermanos: enumerarlos
+      # aquí a mano fue lo que dejó a «QUIÉN PUEDE, HORA POR HORA» sin color al
+      # renombrarlo (la nota de `.ALD_TITULO_*`).
       en_conteos <- identical(primera, .ALD_TITULO_CONTEOS)
       en_personas <- identical(primera, .ALD_TITULO_PERSONAS)
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
       poner(.maaf_alto_fila(sheet_id, i, 28L))
-    } else if (primera %in% c("TRAMO", "APLICADOR")) {
+    } else if (primera %in% c("TRAMO", "APLICADOR", "SEMANA")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
     } else if (length(llenas) == 1L && nzchar(primera)) {
       # Las notas: gris pequeño e itálico, como en sus hermanas.

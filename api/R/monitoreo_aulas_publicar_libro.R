@@ -472,7 +472,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   # La disponibilidad no depende del plan: sale sólo de la oferta cargada, así
   # que se produce aunque el reparto no tenga nada que repartir todavía.
-  valores_disponibilidad <- aulas_libro_valores_disponibilidad(disponibilidad)
+  valores_disponibilidad <- aulas_libro_valores_disponibilidad(
+    disponibilidad, plan = plan %||% list(), cfg = config_reparto)
   if (!is.null(valores_disponibilidad)) {
     hojas_app <- c(hojas_app, .malp_hoja_disponibilidad())
   }

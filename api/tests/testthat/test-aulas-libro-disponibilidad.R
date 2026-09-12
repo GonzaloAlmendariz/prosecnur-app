@@ -255,3 +255,97 @@ test_that("las columnas de día se ensanchan con su contenido: el horario no se 
   expect_gt(ancho_de(wb, 1L), ancho_de(wb, 2L))
 })
 
+
+# --- cuántos salen cada semana ------------------------------------------------
+#
+# Dictado de Gonzalo (2026-09-12): «los aplicadores disponibles por semana. La
+# primera semana habían creo que algo de veintiuno o veinticuatro, ahora hay un
+# poco menos. Más o menos los aplicadores que hemos tomado en cuenta para hacer
+# la distribución».
+#
+# **La disponibilidad no puede contestarlo y ése es el punto.** Es una matriz
+# día-de-la-semana × franja: sabe que alguien puede los martes, no que pueda el
+# martes 15. Quien lo sabe es el reparto, cuyas citas llevan fecha. Medido en el
+# operativo: semana 1 con 19 aplicadores y 101 citas, semana 2 con 17 y 50.
+
+.tald_semana_fila <- function(filas, semana) {
+  en <- FALSE
+  for (f in filas) {
+    if (identical(f$tipo, "bloque")) { en <- identical(f$celdas[[1]], "CUÁNTOS SALEN CADA SEMANA"); next }
+    if (en && identical(f$tipo, "dato") && identical(f$celdas[[1]], semana)) return(f$celdas)
+  }
+  NULL
+}
+
+.tald_plan_dos_semanas <- function() {
+  c(
+    lapply(1:3, function(i) list(
+      operational_code = sprintf("CH %d", i), sample_role = "titular",
+      operational_status = "agendada", scheduled_date = "2026-09-08",
+      scheduled_time = sprintf("%02d:00", 9 + i))),
+    lapply(4:5, function(i) list(
+      operational_code = sprintf("CH %d", i), sample_role = "titular",
+      operational_status = "agendada", scheduled_date = "2026-09-15",
+      scheduled_time = sprintf("%02d:00", 9 + i)))
+  )
+}
+
+.tald_disp_martes <- function(nombre, ...) {
+  list(nombre = nombre, dias = list(martes = list(list(inicio = "08:00", fin = "20:00"))))
+}
+
+test_that("sin plan NO se dibuja el bloque: una sola fila diría que el campo dura una semana", {
+  filas <- aulas_libro_filas_disponibilidad(list(.tald_disp_martes("Ana Prueba")))
+  expect_null(.tald_semana_fila(filas, "Semana 1"))
+  # Y con un plan sin fechas, tampoco: sin fechas no hay semanas.
+  sin_fecha <- list(list(operational_code = "CH 1", sample_role = "titular",
+                         operational_status = "contactada"))
+  filas2 <- aulas_libro_filas_disponibilidad(list(.tald_disp_martes("Ana Prueba")),
+                                             plan = sin_fecha)
+  expect_null(.tald_semana_fila(filas2, "Semana 1"))
+})
+
+test_that("cuenta las personas que SALEN cada semana, con sus fechas y sus citas", {
+  disp <- list(.tald_disp_martes("Ana Prueba"), .tald_disp_martes("Berta Ficticia"))
+  filas <- aulas_libro_filas_disponibilidad(disp, plan = .tald_plan_dos_semanas())
+  s1 <- .tald_semana_fila(filas, "Semana 1")
+  s2 <- .tald_semana_fila(filas, "Semana 2")
+  expect_false(is.null(s1)); expect_false(is.null(s2))
+  # 2026-09-08 es martes de la semana del lunes 07; 2026-09-15, de la siguiente.
+  expect_identical(s1[[2]], "08/09 a 08/09")
+  expect_identical(s2[[2]], "15/09 a 15/09")
+  expect_identical(s1[[3]], "3")   # aplicaciones
+  expect_identical(s2[[3]], "2")
+  # La primera semana no tiene con qué comparar: no inventa entradas ni salidas.
+  expect_identical(s1[[5]], "")
+  expect_identical(s1[[6]], "")
+})
+
+test_that("los que entran y los que salen van por NOMBRE, no por conteo", {
+  # Lo que se hace con este dato es llamar a esa persona o preguntar por qué ya
+  # no está; «-1 aplicador» no sirve para ninguna de las dos cosas.
+  disp <- list(.tald_disp_martes("Ana Prueba"), .tald_disp_martes("Berta Ficticia"))
+  filas <- aulas_libro_filas_disponibilidad(disp, plan = .tald_plan_dos_semanas())
+  s2 <- .tald_semana_fila(filas, "Semana 2")
+  entran <- s2[[5]]; salen <- s2[[6]]
+  expect_true(nzchar(entran) || nzchar(salen))
+  expect_false(grepl("^[0-9]+$", paste0(entran, salen)))
+})
+
+test_that("el bloque semanal gana su banda en Sheets, como sus hermanos", {
+  # El rótulo gobierna el color, y enumerarlo a mano en el formateador fue lo
+  # que dejó a «QUIÉN PUEDE, HORA POR HORA» sin banda al renombrarlo.
+  disp <- list(.tald_disp_martes("Ana Prueba"))
+  filas <- aulas_libro_filas_disponibilidad(disp, plan = .tald_plan_dos_semanas())
+  rows <- lapply(filas, function(f) as.list(f$celdas))
+  reqs <- aulas_libro_disponibilidad_formato_requests(9L, rows)
+  i_bloque <- which(vapply(rows, function(r) identical(as.character(r[[1]]),
+                                                       "CUÁNTOS SALEN CADA SEMANA"), logical(1)))
+  expect_length(i_bloque, 1L)
+  con_banda <- vapply(reqs, function(r) {
+    rc <- r[["repeatCell"]]
+    if (is.null(rc)) return(NA_integer_)
+    as.integer(rc$range$startRowIndex %||% NA_integer_) + 1L
+  }, integer(1))
+  expect_true(i_bloque %in% con_banda[!is.na(con_banda)])
+})
