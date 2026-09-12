@@ -193,6 +193,16 @@ Verificación:
   - **Nunca dos instalaciones a la vez, y nunca interrumpir una.** `R CMD INSTALL` borra el paquete antes de escribirlo, así que una corrida abortada —o dos sesiones instalando sobre la misma librería— deja el directorio **vacío**: ningún backend puede cargar `prosecnurapp` y la UI entera responde *failed to fetch*. Antes de instalar, comprobar que nadie más lo está haciendo (`pgrep -f "R CMD INSTALL"`, y que no exista `00LOCK-api` en la librería) y dejar terminar sin matar el proceso: tarda varios minutos por el `inst/`. Con worktrees paralelos esto es fácil de provocar; ver `docs/loops-reparacion.md`.
 - Agentic OS: `node agentic/sync-agentic-os.mjs --check` · `node --test agentic/tests/*.test.mjs`
 - Visual: `make ui-quick-check` · `make visual-qa` · `make monitoreo-qa`
+  - **El tope por defecto son 30 s y no alcanza para Monitoreo**: su warm start
+    con proyecto real tarda 4–6 min, así que el runner se rinde en
+    `marca-en-false` antes de capturar nada. Pásale `--timeout-ms 420000` (o
+    `UI_QA_TIMEOUT_MS`). Ese motivo ahí no significa «la vista está rota»,
+    significa «no le diste tiempo»: son acciones opuestas y distinguirlas costó
+    un ciclo entero el 2026-09-12.
+  - **`--ir` encadena y captura SÓLO el final.** Varias vistas en una sola pila
+    se piden con varios `--route` y query (`--route "/monitoreo?seccion=modelo"`),
+    que es para lo que existe la regla de que toda vista sea enlazable; así se
+    paga un warm start en vez de uno por vista.
 - Auditoría canónica: `make audit-reference-build` · `make audit-project-visual-matrix` · `make desktop-audit`
 - Proyectos de referencia: `make reference-project-verify` (gate de PII + cobertura) · `make reference-project-run REFERENCE_PROJECT=<slug>` · `make reference-project-visual-matrix REFERENCE_PROJECT=<slug>`
 
