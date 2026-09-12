@@ -494,6 +494,60 @@ Revertí un mutante con `git checkout --` sobre un archivo que **ya tenía mi
 arreglo sin commitear**, y me llevé por delante el arreglo junto con el mutante.
 Para deshacer un mutante hay que revertir LA LÍNEA, no el archivo.
 
+## Las 16 capturas del tick 44 están tomadas ANTES de que Plotly pinte (tick 45)
+
+Abrí la captura de telefónico/avance y el panel «Ritmo general Kobo» tenía el
+gráfico **completamente vacío**: marco de ~250 px, eje X con sus valores (14, 74,
+109, 133, 75, 15, 3), leyenda, y ni una barra. Estuve a punto de reportarlo como
+defecto del producto.
+
+**No lo es.** Recapturado con `--post-click-wait-selector ".js-plotly-plot"`, el
+gráfico sale perfecto: barras, línea de acumulado, los dos ejes rotulados y la
+línea de corte. Era artefacto de mi captura — exactamente lo que advierte la
+ayuda del runner: *el puente de readiness dice que la vista montó, no que su
+contenido asíncrono terminó de pintarse*.
+
+**Corrección del tick 44**: dije «16 vistas medidas y aprueban». Se midieron **en
+un estado intermedio**: cualquier panel con Plotly estaba vacío al capturar. El
+`ok=true` vale para lo que midió, pero la cobertura es menor de lo que afirmé, y
+las capturas no sirven para juzgar gráficos. **Hay que rehacerlas con el flag.**
+
+Y una laguna del gate que esto deja a la vista: **un panel de 250 px vacío no
+produce ningún issue**. No es recorte, ni derrame, ni desborde. `ok=true` con un
+hueco donde debía haber un gráfico.
+
+### Verificado y NO arreglado: clases muertas en el mini de ritmo
+
+`is-plotly-ready` / `is-plotly-loading` aparecen **una sola vez en todo el repo**
+(`telefonico/avance/AcreditacionAdvanceDailyMini.tsx:117`) y **ningún CSS las
+define**; tampoco las consulta ningún test ni script. El `useState` + `useEffect`
++ `useCallback` + `chartSignature` que las alimentan trabajan en cada render para
+componer una clase que no pinta nada.
+
+No lo arreglo a ciegas: `handlePlotlyReady` cuelga del ciclo de vida de Plotly y
+quitarlo puede cambiar cuándo re-renderiza. Ahora que sé capturar con Plotly
+pintado, se puede verificar de verdad.
+
+**Además, el componente está DUPLICADO y divergido**: `acreditacion/avance/` y
+`telefonico/avance/AcreditacionAdvanceDailyMini.tsx`, mismo nombre, 479 y 477
+líneas; sólo la de telefónico tiene `compactHeight` y el estado de Plotly. Un
+arreglo en una no llega a la otra.
+
+### Barrido de clases sin CSS: medido, NO publicado
+
+Clases `is-*`/`mon-*` compuestas en TSX de monitoreo cuyo bloque no existe en
+ningún CSS: el barrido da 46 sobre 1.626, pero **al menos 10 son artefactos**
+(prefijos de plantilla como `mon-mode-`, que terminan en guion). No publico la
+cifra hasta afinarlo; sí queda el criterio: el límite correcto es
+`\.clase(?![\w-])`, porque `\b` no distingue el bloque de su variante BEM
+`__elemento` ni de un `-sufijo`.
+
+**Cuarta vez que un barrido mío sale sesgado**, y esta vez el sesgo estaba en la
+herramienta con la que verifiqué el barrido: un `grep` con `[a-z0-9-]*` truncaba
+`.mon-vacio-con-salida__accion` y mostraba el prefijo como si fuera el bloque, lo
+que me hizo creer que el barrido daba un falso positivo. **Dos herramientas con el
+mismo sesgo dan conclusiones opuestas y ninguna avisa.**
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
