@@ -46,10 +46,14 @@ export function AulasPartesQueNoCuadran({ filas }: {
         const declaradas = numero(f.effective_surveys);
         const esperado = numero(f.esperado);
         const diferencia = numero(f.diferencia);
-        // El signo dice de qué lado falla, y son dos problemas distintos: de
-        // menos, encuestas que no llegaron; de más, encuestas sin quien las
-        // respondiera en esa aula.
-        const faltan = diferencia != null && diferencia > 0;
+        // **El signo es `efectivas − esperado`** (`monitoreo_aulas_reconciliacion.R:51`),
+        // así que NEGATIVO significa que faltan: se declararon menos de las que
+        // el aula daba. Lo escribí al revés y el test lo confirmó porque la
+        // fixture llevaba mi suposición dentro; en pantalla decía «sobran 27»
+        // con 50 en el aula y 23 declaradas.
+        // Son dos problemas distintos: de menos, encuestas que no llegaron; de
+        // más, encuestas sin quien las respondiera en esa aula.
+        const faltan = diferencia != null && diferencia < 0;
 
         return (
           <article key={codigo || String(f.source_row ?? Math.random())} className="aulas-descuadre">
