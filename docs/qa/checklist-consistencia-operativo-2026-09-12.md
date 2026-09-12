@@ -261,3 +261,33 @@ tecleando en vivo (un aplicador, fecha 11/09, hora 14:34, aula D206).
 
 **Regla que queda**: el libro se publica **desde la sesión de la app**, no desde
 un estado rearmado leyendo el documento.
+
+## La publicación rompió «Avance de agendación», y tardé siete horas en verlo
+
+**Lo que pasó.** Publiqué con el plan reconstruido leyendo el Sheets. En esa
+relectura **las 1.173 reservas de cadena vuelven sin su titular** —el libro no
+guarda ese vínculo en ninguna columna: la cadena vive en la geometría de la
+hoja—, así que cada reserva cuenta como su propia cadena. La columna «Aulas del
+diseño» pasó de **19, 20, 37, 22…** (170 cadenas, las del diseño) a sumar
+**1.372**. Es la hoja que el coordinador mira para saber cuánto falta por
+agendar.
+
+**Por qué no lo vi al cotejar.** Para las hojas del EQUIPO hice el cotejo celda
+a celda —0 diferencias—. Para las de la APP miré sólo la forma: filas y
+celdas. «Avance de agendación» pasó de 558 a 575 celdas y **yo tenía la
+historia**: acababa de añadirle la columna de reservas extra y el aviso de
+CH 143. Cuadraba, y dejé de mirar. **Una explicación plausible del cambio no es
+una verificación del contenido.**
+
+**Cómo apareció.** Midiendo una consecuencia que yo mismo había AFIRMADO sin
+medir —«diría 1.392 donde el diseño puso 219»—. Era cierta, y además ya estaba
+publicada.
+
+**Estado ahora.** Restaurada desde el respaldo: 0 celdas distintas. Con ella son
+**tres** las hojas de la app que hubo que devolver (Base de control, Avance de
+campo y ésta). En el documento quedan sólo los dos cambios buenos: «Producción
+de aplicadores» nueva y «Plan del día» sin su `#REF!`.
+
+**Regla que queda, y es la tercera vez que este día la escribe:** el libro se
+publica **desde la sesión de la app**. Y el cotejo de una publicación va celda a
+celda en TODAS las hojas, también en las que cambiaron a propósito.
