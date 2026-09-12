@@ -29,7 +29,12 @@ export function AulasMetasYAulas({ filas }: {
   const orden = filasAlfabeticas(filas);
   if (!orden.length) return null;
   return (
-    <>
+    // El contenedor de datos del panel «Metas por facultad y sexo». Sin
+    // declararlo, el runner cae a los hijos del `section` y mide el ENCABEZADO
+    // como si fuera datos: `capacity-drift` sobre sus 5 px de padding, un
+    // síntoma que no se parece a su causa. Es el mismo patrón que ya arreglaron
+    // «Respuestas», «Por facultad» y «Avance por facultad y sexo».
+    <div className="aulas-metas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-metas-leyenda">
         <span><i className="aulas-metas-swatch" data-tramo="aplicado" />Aplicado</span>
         <span><i className="aulas-metas-swatch" data-tramo="proyectado" />Proyectado de lo agendado</span>
@@ -136,6 +141,6 @@ export function AulasMetasYAulas({ filas }: {
           })}
         </table>
       </div>
-    </>
+    </div>
   );
 }
