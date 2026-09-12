@@ -28,9 +28,9 @@ const SRC = path.resolve(__dirname, "..");
 /**
  * Medido el 2026-09-12: eran **26**. Con los seis puestos en el perfil de
  * cursos-horario —`cifrasConFormato` incluido, que valida TODAS las cifras
- * visibles— quedan **11** con enumeración real del árbol. Baja conforme se pongan; NO se sube.
+ * visibles— quedan **7** con enumeración real del árbol. Baja conforme se pongan; NO se sube.
  */
-const TOPE_SIN_CENTINELA = 11;
+const TOPE_SIN_CENTINELA = 7;
 
 function tests(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -55,8 +55,20 @@ function tests(dir: string): string[] {
 const ENUMERA = /(readdirSync|globSync)/;
 /** Afirma que no hay culpables. */
 const AFIRMA_VACIO = /(toEqual\(\[\]\)|toHaveLength\(0\))/;
-/** El centinela: comprobar que se buscó en algo. */
+/**
+ * **El centinela, en sus DOS formas.**
+ *
+ * La directa es contar lo que encontró el barrido (`toBeGreaterThan`). La otra
+ * —mejor, cuando se puede— es declarar la lista de archivos a vigilar y
+ * comprobar que TODOS siguen existiendo: `capacidadDeclarada` lo hace así y su
+ * comentario ya decía por qué («si uno se renombra, el guard dejaría de
+ * vigilarlo en silencio»). Este meta-guard la acusaba por no usar la forma
+ * directa: cuarto falso positivo suyo, y la lección es la misma de siempre —lo
+ * que se mide es el efecto, no la sintaxis—.
+ */
 const CENTINELA = /(toBeGreaterThan|length\)\.toBe\([1-9])/;
+/** La segunda forma: «los archivos que declaro vigilar siguen ahí». */
+const CENTINELA_POR_LISTA = /!?\w+\.has\(/;
 
 describe("guards que podrían dejar de guardar", () => {
   test("no crecen los guards que afirman «vacío» sin comprobar que buscaron", () => {
@@ -65,7 +77,7 @@ describe("guards que podrían dejar de guardar", () => {
       const fuente = readFileSync(archivo, "utf8");
       if (!/readFileSync/.test(fuente)) continue;
       if (!ENUMERA.test(fuente) || !AFIRMA_VACIO.test(fuente)) continue;
-      if (CENTINELA.test(fuente)) continue;
+      if (CENTINELA.test(fuente) || CENTINELA_POR_LISTA.test(fuente)) continue;
       sinCentinela.push(path.relative(SRC, archivo));
     }
     expect(

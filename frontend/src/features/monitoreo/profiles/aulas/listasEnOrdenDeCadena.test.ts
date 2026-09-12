@@ -38,6 +38,15 @@ const LISTAS = [
 ];
 
 describe("las listas de unidades usan la regla de orden de cadena", () => {
+  // **Centinela de no-mudez.** Los dos barridos de abajo enumeran el directorio
+  // del perfil y afirman que nadie redefine `fmt` ni el comparador. Sin
+  // fuentes, las dos listas salen vacías y el guard pasa sin leer un archivo.
+  it("el barrido encuentra las fuentes del perfil, o no está guardando nada", () => {
+    expect(
+      fs.readdirSync(aqui).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts")).length,
+    ).toBeGreaterThan(60);
+  });
+
   it.each(LISTAS)("$archivo — $que", ({ archivo }) => {
     const fuente = fs.readFileSync(path.join(aqui, archivo), "utf8");
     expect(fuente).toContain("ordenarPorCadenaOperativa");
