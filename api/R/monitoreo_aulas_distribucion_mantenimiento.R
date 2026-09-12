@@ -745,7 +745,11 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
   # «Semana 1» y buscarla por «Plan del día» leía cero citas de una pestaña con
   # ochenta y seis.
   hojas_dist <- .madc_pestanas_de_la_distribucion(id, titulos)
-  hoja <- if (length(hojas_dist)) hojas_dist[[1L]] else ""
+  # Y la pestaña de LA SEMANA QUE SE PIDE, no la primera: con «Semana 1» y
+  # «Semana 2» vivas, sincronizar del 14 al 20 quedándose con la primera metía
+  # las citas de la semana 2 en la hoja de la semana 1, encima del trabajo del
+  # coordinador y donde los aplicadores ya no miran. Y sin avisar: devolvía ok.
+  hoja <- .mads_hoja_de_la_ventana(hojas_dist, plan, desde)
   if (!nzchar(hoja)) {
     stop_api(409, "E_AULAS_DISTRIBUCION_SIN_HOJA",
              paste("El Sheets de la distribución no trae ninguna pestaña con forma de",
@@ -789,7 +793,10 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
     error = function(e) NULL
   )
   # 2 · las agendadas que no tienen cita, y dónde entra cada una.
-  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, remoto, desde = desde, hasta = hasta)
+  # Contra TODAS las pestañas: una cita que ya está publicada en otra semana no
+  # es una que falte. Compararla sólo contra la hoja de destino la volvería a
+  # proponer y acabaría duplicada en dos pestañas.
+  faltan <- monitoreo_aulas_agendadas_sin_cita(plan, remoto_todas, desde = desde, hasta = hasta)
   inserciones <- monitoreo_aulas_posiciones_de_las_nuevas(remoto, faltan$faltantes)
   # 3 · el ESTADO que la plataforma demuestra, sin pisar lo tecleado.
   est <- monitoreo_aulas_estados_distribucion(
