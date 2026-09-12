@@ -60,3 +60,22 @@ test_that("los fallos llegan hasta el resumen de la importacion", {
   # Las dos puertas de importacion del libro lo emiten.
   expect_gte(sum(grepl("hojas_con_fallo", router, fixed = TRUE)), 2L)
 })
+
+test_that("si renovar el acceso falla, su motivo viaja en el error", {
+  # El 401 de Google dice «invalid authentication credentials» y manda a revisar
+  # el permiso del documento. Cuando lo que falló fue LEER el secreto —un
+  # escalón antes—, ése es el mensaje equivocado, no uno de menos.
+  local_mocked_bindings(
+    .monitoreo_google_api_once = function(url, method = "GET", body = NULL, token = NULL) {
+      list(status_code = 401L,
+           parsed = list(error = list(message = "Request had invalid authentication credentials.")))
+    },
+    .monitoreo_sheets_refresh_access_token = function() {
+      stop("no se pudo descifrar el secreto guardado", call. = FALSE)
+    }
+  )
+  err <- tryCatch(prosecnurapp:::.monitoreo_google_api("https://x"),
+                  error = function(e) conditionMessage(e))
+  expect_match(err, "invalid authentication", fixed = TRUE)
+  expect_match(err, "no se pudo descifrar el secreto guardado", fixed = TRUE)
+})
