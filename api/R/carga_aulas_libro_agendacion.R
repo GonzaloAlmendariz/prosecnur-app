@@ -454,8 +454,23 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
     facultad = .calan_por_facultad(e),
     semana = .calan_por_semana(e, ancla),
     dia = .calan_por_dia(e, ancla),
-    eslabon = .calan_por_eslabon(e)
+    eslabon = .calan_por_eslabon(e),
+    # **Las que se aplicaron sin constar agendadas.** No es una cifra más: es
+    # la explicación de por qué dos tablas de esta misma hoja no cuadran, y
+    # hasta ahora había que salir a buscarla. Medido en el operativo el
+    # 2026-09-12: 87 aulas con parte, 86 de ellas agendadas — la que faltaba
+    # era CH 143, con el parte rendido y STATUS MUESTRA todavía en «EN
+    # CONTACTO» y sin fecha. Es el patrón de siempre: el hecho ocurre antes que
+    # el verbo, alguien aplica y la celda de la agenda se teclea después (o no).
+    aplicadas_sin_agendar = .calan_aplicadas_sin_agendar(e)
   )
+}
+
+# Los códigos con parte que la hoja de agenda no da por agendados.
+.calan_aplicadas_sin_agendar <- function(e) {
+  i <- which(e$aplicada & !e$agendada)
+  if (!length(i)) return(character(0))
+  unique(e$codigo[i])
 }
 
 # --- la pestaña ---------------------------------------------------------------
@@ -546,6 +561,21 @@ aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
 
   poner("Avance de agendación")
   poner(corte)
+  # El aviso va ARRIBA, junto al corte: es lo que explica por qué «Ya
+  # aplicados» y las agendadas de abajo no cuadran, y enterrarlo al final lo
+  # convertiría en un detalle que nadie relaciona con la diferencia que ve.
+  sin_agendar <- as.character(ag[["aplicadas_sin_agendar"]] %||% character(0))
+  if (length(sin_agendar)) {
+    poner(sprintf(
+      paste("%s tiene%s parte de campo y la hoja de agenda no %s da por",
+            "agendada%s: %s. Por eso «Ya aplicados» puede superar a las",
+            "agendadas de las tablas de abajo."),
+      if (length(sin_agendar) == 1L) "1 aula" else sprintf("%d aulas", length(sin_agendar)),
+      if (length(sin_agendar) == 1L) "" else "n",
+      if (length(sin_agendar) == 1L) "la" else "las",
+      if (length(sin_agendar) == 1L) "" else "s",
+      paste(sort(sin_agendar), collapse = ", ")))
+  }
   poner("")
 
   for (clave in names(AULAS_AGENDACION_CABECERAS)) {

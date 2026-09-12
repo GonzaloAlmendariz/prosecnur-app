@@ -417,3 +417,47 @@ test_that("la fila «De reservas extra» se dice aunque sea cero, si hay banco",
   total2 <- prosecnurapp:::.calan_total(prosecnurapp:::.calan_ejes(sin_banco, partes = list()))
   expect_equal(nrow(total2[total2$Indicador == "De reservas extra", , drop = FALSE]), 0L)
 })
+
+# --- por qué «Ya aplicados» puede superar a las agendadas ---------------------
+#
+# Medido en el operativo el 2026-09-12: 87 aulas con parte y 86 de ellas
+# agendadas. La diferencia era **CH 143**, con el parte rendido y STATUS
+# MUESTRA todavía en «EN CONTACTO», sin fecha agendada. No es un error de la
+# hoja: es el patrón de siempre —el hecho ocurre antes que el verbo, alguien
+# aplica y la celda de la agenda se teclea después o no se teclea—, y hasta
+# ahora había que salir a buscar cuál era para entender el descuadre.
+
+test_that("un aula con parte que no consta agendada se nombra, no se deja adivinar", {
+  plan <- list(
+    .tag_fila_extra("CH 1", "2026-09-08", rol = "titular"),
+    # Aplicada de verdad, pero la agenda se quedó en «EN CONTACTO» y sin fecha.
+    list(operational_code = "CH 143", classroom_id = "ch143", sample_role = "titular",
+         operational_status = "contactada", faculty = "DERECHO",
+         sample_status = "EN CONTACTO")
+  )
+  partes <- list(list(operational_code = "CH 143", intento = 1L, estado = "aplicada",
+                      aplicador = "Ana Prueba", efectivas = 12, asistentes = 20))
+  ag <- aulas_libro_agendacion(plan, partes = partes)
+  expect_identical(ag$aplicadas_sin_agendar, "CH 143")
+
+  # Y sale ARRIBA, junto al corte: enterrarlo al final lo convertiría en un
+  # detalle que nadie relaciona con la diferencia que está viendo.
+  filas <- aulas_libro_hoja_agendacion(ag)
+  textos <- vapply(filas, function(f) as.character(unlist(f))[1] %||% "", character(1))
+  aviso <- which(grepl("no la da por agendada", textos, fixed = TRUE))
+  expect_length(aviso, 1L)
+  expect_lt(aviso, 5L)
+  expect_true(grepl("CH 143", textos[[aviso]], fixed = TRUE))
+  expect_true(grepl("«Ya aplicados» puede superar", textos[[aviso]], fixed = TRUE))
+})
+
+test_that("sin ninguna así, la hoja no inventa el aviso", {
+  ag <- aulas_libro_agendacion(
+    list(.tag_fila_extra("CH 1", "2026-09-08", rol = "titular")),
+    partes = list(list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+                       efectivas = 10)))
+  expect_identical(ag$aplicadas_sin_agendar, character(0))
+  textos <- vapply(aulas_libro_hoja_agendacion(ag),
+                   function(f) as.character(unlist(f))[1] %||% "", character(1))
+  expect_false(any(grepl("por agendada", textos, fixed = TRUE)))
+})
