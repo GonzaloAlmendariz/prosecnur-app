@@ -50,7 +50,7 @@ export function AulasResumenPorFacultad({ respuestas, aulas, facultadEnFoco }: {
     : todas;
   if (!filas.length) return null;
   return (
-    <div className="aulas-rpf">
+    <div className="aulas-rpf" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <ul className="aulas-rpf-lista" role="table"
         aria-label="Respuestas efectivas y aulas de cada facultad">
         <li role="row" className="aulas-rpf-cab">
