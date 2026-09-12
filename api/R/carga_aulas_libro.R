@@ -222,5 +222,12 @@ aulas_libro_importar_sheets_en_sesion <- function(sid, spreadsheet_id, pestanas 
                    "Comprueba el enlace del documento y que la cuenta conectada",
                    "tenga acceso."))
   }
-  .calb_aplicar_en_sesion(sid, aulas_libro_importar_valores(hojas))
+  out <- .calb_aplicar_en_sesion(sid, aulas_libro_importar_valores(hojas))
+  # **Las que fallaron viajan hasta la respuesta.** Sin esto el dato moria aqui:
+  # `aulas_libro_leer_de_sheets()` ya sabe distinguir «esa pestaña no existe» de
+  # «no se pudo leer», y esa distincion solo sirve si llega a quien pulsa. Una
+  # pestaña que cayo por cuota o por red no es una hoja ausente: es un reintento.
+  fallos <- attr(hojas, "fallos") %||% list()
+  if (length(fallos)) out$hojas_con_fallo <- fallos
+  out
 }
