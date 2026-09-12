@@ -1,5 +1,13 @@
 # Robustez — la noche del 2026-09-11 al 12
 
+> **Hay DOS documentos de robustez con fecha del 12/09 y es a propósito.**
+> `goal-robustez-app-2026-09-12.md` es el MARCO: el catálogo de clases de
+> defecto, con el listón de que una clase sólo está cerrada con un guard que la
+> caza, probado matando un mutante, y un barrido con su cifra. Éste es el
+> DIARIO de una noche: qué se midió, qué se arregló y las recetas que costaron
+> encontrar. Si buscas «cómo se cierra una clase», ve al otro; si buscas «qué
+> pasó y cómo reproducirlo», estás en el bueno.
+
 Encargo de Gonzalo: «Deja la app robusta y solida en un loop deifnido de mejora
 continua». Lo que sigue es lo que se midió, lo que se arregló y —sobre todo— las
 recetas que costaron tiempo encontrar, para que el siguiente no las repita.
@@ -205,3 +213,13 @@ derivación de `application_state` alimenta varios paneles. Tocarla a ciegas
 ripplea. Queda con su reproducción hecha: `<scratchpad>/cotejo.R` compara las dos
 lecturas sobre la misma entrada y `<scratchpad>/cual2.R` nombra el aula que
 difiere.
+
+## Autoevaluación contra el listón del marco
+
+El marco pide tres cosas para dar una clase por cerrada: guard, mutante muerto y
+barrido con su cifra. Contra esa vara, **el barrido de `$` sobre `NA`
+(`95c19b00`) está a medias**: tiene el barrido y su cifra —cuatro slots, cinco
+consumidores, un solo sitio sin guarda— y tiene la regresión del sitio
+concreto (`f02b96fc`), pero **no tiene un guard de la CLASE**: si mañana
+aparece un quinto slot o un sexto consumidor, nada lo caza. Queda declarado como
+lo que es, a medio cerrar, y no como hecho.
