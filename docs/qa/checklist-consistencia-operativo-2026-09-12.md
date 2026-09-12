@@ -12,7 +12,7 @@ y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.
 | C4 | ¿«Aulas Aplicadas (Campo)» y «(Extra)» **pintan** las aulas pedidas como refuerzo? | `monitoreo_aulas_sheets_formato.R` | ☐ |
 | C5 | El **morado** del refuerzo no se ve en STATUS MUESTRA | idem C4 + `respetada` por hoja | ◐ causa identificada |
 | C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` (arreglado en código) | ◐ falta ejecutarlo |
-| C7 | «Asignación de aplicadores» más clara, y sobre todo la **producción por aplicador**: quién aplica más y menos, en qué rangos horarios, cuánto en horario regular y cuánto en especial (noche / mañana) | hoja nueva del libro | ☐ |
+| C7 | «Asignación de aplicadores» más clara, y sobre todo la **producción por aplicador** | `aulas_libro_produccion.R` (hoja nueva) + `aulas_libro_asignacion.R` | ☑ `41f1058c` `2c2e94d5` |
 | C8 | **Disponibilidad de aplicadores**: añadir los **disponibles por semana** (la 1 tenía ~21–24; ahora menos) | `carga_disponibilidad_aplicadores` + su hoja | ☐ |
 | C9 | ¿La app hace la distribución **por semana a partir de una lista dada**, nombrándola «Semana N»? | `monitoreo_aulas_distribucion_semanas.R`, `monitoreo_aulas_publicar_distribucion.R` | ◐ medido |
 
@@ -104,3 +104,39 @@ traductor aprenda un estado nuevo el detector deja de declararlo solo.
 `STATUS MUESTRA` por igualdad exacta y encontró **1 columna** donde hay **12** —
 los bloques de reemplazo rotulan con sufijo (`STATUS MUESTRA R1`…). Medía el
 titular y nada más. Con el prefijo: 219 → 2.785 celdas.
+
+
+### C7 · cerrado — dos hojas, no una columna
+
+«Asignación de aplicadores» sale del reparto y existe antes de que nadie pise un
+aula; **«Producción de aplicadores»** sale de los partes y sólo existe después.
+Mezclarlas sería una palabra para dos cosas. La nueva lleva dos tablas: carga y
+rendimiento por persona (aulas aplicadas, encuestas efectivas, **por aula**,
+asistentes vistos) y el reparto entre las tres franjas del dictado — mañana
+temprano (antes de 09:00), regular, noche (desde 18:00) — con los **nombres** de
+quienes sostienen las dos caras.
+
+Y la de asignación dejó de mentir: su columna «ESTADO DE APLICACIÓN» era la
+**cadena literal «POR APLICAR»** en las 95 filas, lunes y martes incluidos con
+sus partes ya rendidos (`2c2e94d5`).
+
+**Medida contra el operativo, destapó un defecto real**: 87 aulas aplicadas, 21
+mañana / 62 regular / 4 noche — y **dos personas contadas dos veces**. Agrupaba
+por `aulas_nombre_aplicador()`, que su propia cabecera declara PRESENTACIÓN y no
+identidad («sin coma no se reordena lo que no se sabe separar»): «Aquino
+Dulanto, Alejandro» (2 aulas) y «Aquino Dulanto Alejandro» (2) eran dos
+aplicadores, y «Chavez Espinoza» otros dos. Ahora agrupa por una clave que
+ignora coma, tildes y mayúsculas, muestra la grafía de la casa y **declara las
+dobles** para que alguien arregle la celda del parte.
+
+### De la revisión de las diez pestañas
+
+Censo completo en el encargo del loop. Una sola pestaña con error (`Plan del
+día`, `A4=#REF!`), y una fragilidad medida: la reserva del área era de **24
+filas para un día más cargado de 24** — cero margen, y el equipo agenda en vivo,
+así que una sola aula más la rompía. Corregido en `cc14ca31`.
+
+**Pestañas propuestas y aún sin decisión suya**: disponibles por semana (C8) y
+un **semáforo de consistencia** que cruce el libro consigo mismo y con la app
+—agendadas contra plan, aplicadas contra partes contra plataforma, citas contra
+reparto— con su cifra a cada lado.
