@@ -4759,8 +4759,15 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
 
 .monitoreo_google_api <- function(url, method = "GET", body = NULL) {
   first <- .monitoreo_google_api_once(url, method = method, body = body)
+  # **Si el refresco falla, su motivo NO se pierde.** Se tragaba con `NULL` y
+  # entonces salia el 401 crudo de Google —«invalid authentication
+  # credentials»—, que manda a revisar el permiso del documento. La causa real
+  # suele ser otra y esta un escalon antes: el secreto no se pudo leer. Decir el
+  # 401 en ese caso es la razon equivocada, no una razon de menos.
+  fallo_refresco <- ""
   if (identical(as.integer(first$status_code), 401L)) {
-    refreshed <- tryCatch(.monitoreo_sheets_refresh_access_token(), error = function(e) NULL)
+    refreshed <- tryCatch(.monitoreo_sheets_refresh_access_token(),
+                          error = function(e) { fallo_refresco <<- conditionMessage(e); NULL })
     if (nzchar(.monitoreo_scalar(refreshed, ""))) {
       first <- .monitoreo_google_api_once(url, method = method, body = body, token = refreshed)
     }
@@ -4768,6 +4775,9 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
   parsed <- first$parsed
   if (first$status_code >= 300L) {
     msg <- parsed$error$message %||% parsed$error_description %||% sprintf("Google Sheets respondio HTTP %s.", first$status_code)
+    if (nzchar(fallo_refresco)) {
+      msg <- paste0(msg, " (y renovar el acceso tampoco funciono: ", fallo_refresco, ")")
+    }
     stop(msg, call. = FALSE)
   }
   parsed
