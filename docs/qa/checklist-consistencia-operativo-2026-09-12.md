@@ -6,14 +6,14 @@ y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| C1 | «Avance de agendación» debería considerar las aulas **extra** agendadas | `carga_aulas_libro_agendacion.R` `.calan_total`, `.calan_facultad`, `.calan_semana`, `.calan_dia` | ◐ medido |
-| C2 | La jerga de la columna **«Slots»** no es buena | `AULAS_AGENDACION_CABECERAS$facultad` + su nota al pie | ☐ |
+| C1 | «Avance de agendación» debería considerar las aulas **extra** agendadas | `carga_aulas_libro_agendacion.R` | ☑ `d061541b` |
+| C2 | La jerga de la columna **«Slots»** no es buena | idem | ☑ `82dcd92c` |
 | C3 | ¿La agendación considera el estatus nuevo **«REFUERZO POR CONTACTAR»**? ¿Es robusta ante estatus nuevos? | `monitoreo_aulas_estados_desconocidos.R` (nuevo) + recibo del import + `AulasFuentesDelEstudio.tsx` | ☑ `4822a441` |
 | C4 | ¿«Aulas Aplicadas (Campo)» y «(Extra)» **pintan** las aulas pedidas como refuerzo? | `monitoreo_aulas_formato_respetadas.R` (nuevo) | ☑ `fddb13d5` + aplicado |
 | C5 | El **morado** del refuerzo no se ve en STATUS MUESTRA | idem C4 | ☑ `fddb13d5` + aplicado |
 | C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` | ☑ `8d915b9b` + aplicado |
 | C7 | «Asignación de aplicadores» más clara, y sobre todo la **producción por aplicador** | `aulas_libro_produccion.R` (hoja nueva) + `aulas_libro_asignacion.R` | ☑ `41f1058c` `2c2e94d5` |
-| C8 | **Disponibilidad de aplicadores**: añadir los **disponibles por semana** (la 1 tenía ~21–24; ahora menos) | `carga_disponibilidad_aplicadores` + su hoja | ☐ |
+| C8 | **Disponibilidad de aplicadores**: añadir los **disponibles por semana** | `aulas_libro_disponibilidad.R` | ☑ `190033e7` |
 | C9 | ¿La app hace la distribución **por semana a partir de una lista dada**, nombrándola «Semana N»? | `monitoreo_aulas_distribucion_semanas.R`, `monitoreo_aulas_publicar_distribucion.R` | ◐ medido |
 
 Leyenda: ☐ pendiente · ◐ en curso / medido sin cerrar · ☑ cerrado · ⛔ bloqueado
@@ -175,3 +175,27 @@ cadena vacía no es una celda vacía: `ISBLANK` la da por ocupada y `FILTER` no
 se expande. Invisible desde fuera: `values.get` devuelve `""` para las dos.
 El publicador ahora vacía el área con `values:batchClear` antes de poner la
 fórmula. Aplicado: el bloque muestra las 18 aulas del viernes.
+
+
+## C1, C2 y C8 · cerrados
+
+**C1 — y era peor que su sospecha.** Preguntó si las extra estaban metidas en
+reemplazos. No: **caían en TITULARES**. Las tablas por día y por semana
+contaban `sum(!es_reserva)`, y una aula del banco tiene `es_reserva = FALSE`.
+No se veía porque las 45 del banco están sin agendar; se habría visto el día
+que alguien agendara la primera, y como un titular de más. Ahora «De reservas
+extra» es columna propia y **las tres suman el total** —si una población se
+cuela en dos, deja de cuadrar—, y la fila del total se dice aunque sea cero
+siempre que el plan tenga banco.
+
+**C2.** «Slots» → **«Aulas del diseño»**. El concepto se queda: la unidad es la
+CADENA, un titular con todos sus reemplazos cuenta UNA, y por eso las extra no
+entran. Antes de renombrar se buscó quién ancla por ese literal —aquí un
+renombrado silencioso ya dejó una tabla sin color— y sólo lo leían los tests.
+
+**C8 — y la hoja no podía contestarlo.** La disponibilidad es una matriz
+día-de-la-semana × franja: sabe que alguien puede los martes, no que pueda el
+martes 15. El bloque nuevo sale del REPARTO, que sí tiene fechas. Medido:
+semana 1 → 19 aplicadores / 101 citas; semana 2 → 17 / 50 (salen Damaso,
+Dolores y Panta; entra Álvarez Espinosa). Entran y salen van por NOMBRE: lo que
+se hace con ese dato es llamar a esa persona.
