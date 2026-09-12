@@ -223,6 +223,11 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
   plan[[pos_caida]]$sample_status <- "reemplazada"
   if (nzchar(motivo)) plan[[pos_caida]]$replacement_reason <- motivo
   plan[[pos_caida]]$replaced_at <- ahora
+  # **Y QUIEN la reemplazo, igual que por la otra puerta.** La activacion con
+  # reserva elegida a mano (`.mar_activar_elegida`) lo escribia y esta no: el
+  # mismo hecho quedaba registrado a medias segun por donde se entrara, y
+  # `replaced_at` sin sucesor no dice a donde fue el slot.
+  plan[[pos_caida]]$replaced_by <- .mar_txt(plan[[pos_reserva]]$operational_code)
 
   plan[[pos_reserva]]$sample_status <- "agendada"
   plan[[pos_reserva]]$activated_at <- ahora

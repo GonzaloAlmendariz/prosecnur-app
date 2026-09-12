@@ -976,6 +976,13 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # CERRADA: lo que no se declara aqui se cae, y por eso `monitoreo_aulas_activar_reemplazo()`
     # escribia estas tres marcas y el tablero las mostraba vacias.
     replaced_at = get(c("replaced_at", "reemplazada_en"), ""),
+    # **Quien la reemplazo.** Lo escribe `monitoreo_aulas_activar_reemplazo()`
+    # en la fila que CAE (`monitoreo_aulas_reemplazos.R:112`) y es la otra mitad
+    # de `replaced_at`: la fecha sin el sucesor no dice a donde fue el slot.
+    # Estaba sin declarar, asi que se caia aqui igual que se cayeron
+    # `activation_origin` y `activated_for` — la misma lista cerrada, el tercer
+    # campo que se traga.
+    replaced_by = get(c("replaced_by", "reemplazada_por"), ""),
     activated_at = get(c("activated_at", "activada_en"), ""),
     activation_reason = get(c("activation_reason", "motivo_activacion"), ""),
     # **Quien pidio el refuerzo y para quien.** Los escribe
