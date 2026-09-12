@@ -93,7 +93,10 @@ aulas_libro_filas_disponibilidad <- function(disponibilidad = list(),
 
   filas <- list()
   poner <- function(tipo, celdas) {
-    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = as.character(celdas))
+    # `.alp_celdas`: en las filas de DATO lo que es número viaja como número,
+    # que es la regla de la casa y lo que permite ordenar y sumar la columna.
+    # Compartido con las otras dos hojas de filas tipadas.
+    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = .alp_celdas(tipo, celdas))
   }
 
   # Los días CON cobertura, en orden de semana: una columna por cada uno. Un día
@@ -385,7 +388,11 @@ aulas_libro_hoja_disponibilidad <- function(wb, disponibilidad, plan = list(),
 
   for (i in seq_along(filas)) {
     f <- filas[[i]]
-    openxlsx::writeData(wb, hoja, t(as.matrix(f$celdas)), startRow = i, colNames = FALSE)
+    # `.alp_fila_df` y no `as.matrix`: la matriz aplasta a texto una fila con
+    # cifras, y entonces el libro descargado no se puede ordenar ni sumar por
+    # esa columna. El helper vive en aulas_libro_produccion.R y lo comparten
+    # las tres hojas de filas tipadas.
+    openxlsx::writeData(wb, hoja, .alp_fila_df(f$celdas), startRow = i, colNames = FALSE)
     est <- estilos[[f$tipo]]
     if (!is.null(est)) {
       openxlsx::addStyle(wb, hoja, est, rows = i,

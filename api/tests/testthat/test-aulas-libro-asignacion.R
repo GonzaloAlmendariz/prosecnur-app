@@ -243,7 +243,7 @@ test_that("una fila por aplicador y día, con su jornada de punta a punta", {
   jornada <- datos[[1]]$celdas
   expect_equal(jornada[[1]], "Ana Prueba")
   expect_equal(jornada[[2]], "Viernes 11/09")
-  expect_equal(jornada[[3]], "2")            # a cuántas aulas va ese día
+  expect_equal(jornada[[3]], 2)  # las cifras van como número            # a cuántas aulas va ese día
   expect_equal(jornada[[4]], "09:30")        # en oficina: su primer recojo
   expect_equal(jornada[[5]], "09:45")        # sale a aplicar
   expect_equal(jornada[[6]], "16:30")        # termina con la última

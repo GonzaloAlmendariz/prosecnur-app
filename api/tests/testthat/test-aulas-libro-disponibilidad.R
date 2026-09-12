@@ -62,9 +62,10 @@ test_that("la primera tabla cruza HORA por DÍA, con el conteo en la celda", {
   por_tramo <- stats::setNames(lapply(datos, function(f) f$celdas[-1L]),
                                vapply(datos, function(f) f$celdas[[1]], character(1)))
   # A las 09:00 el lunes están las dos; el martes y el jueves, nadie.
-  expect_equal(por_tramo[["09:00 a 09:30"]], c("2", "0", "0"))
+  # Las cifras son NÚMEROS: es lo que deja ordenarlas y sumarlas en la hoja.
+  expect_equal(unlist(por_tramo[["09:00 a 09:30"]]), c(2, 0, 0))
   # A las 07:30 sólo hay martes.
-  expect_equal(por_tramo[["07:30 a 08:00"]], c("0", "1", "0"))
+  expect_equal(unlist(por_tramo[["07:30 a 08:00"]]), c(0, 1, 0))
 })
 
 test_that("el eje horario es la unión de lo cubierto, no un 07:00–22:00 con huecos", {
