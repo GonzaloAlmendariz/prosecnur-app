@@ -120,6 +120,21 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
 - **Un guard que da un falso rojo se acaba ignorando** — `tokensDefinidos` se
   cazaba a sí mismo al escanear los tests.
 - **Una exclusión sin su motivo escrito** es por donde se cuela el caso real.
+- **`querySelector` DESCIENDE.** Medir los paneles de una vista con
+  `section` + `querySelector("h3")` cuenta también cualquier contenedor que sea
+  `<section>` —el `mon-workbench` lo es— y devuelve el título de su primer hijo:
+  parecía un panel DUPLICADO y un hueco de 1.334 px, y no había ni una cosa ni
+  la otra. Para contar paneles hay que anclarse a `.mon-profile-panel`, que es
+  lo que declara «esto es un panel», no a la etiqueta.
+
+## La pestaña Refuerzos, medida (2026-09-12)
+
+Tres paneles, sin desbordes: «dentro del techo» **1.728 px**, «de una en una»
+621, «pedidos» 103 (vacío). El viewport del banco de trabajo son **550 px**, así
+que la vista mide 2.630 y se recorre casi entera con scroll. El primero se lleva
+el 66 % del alto porque lista 15 filas + el mando + las dos lecturas. Si hay que
+tocar algo de diseño, es ése: **el orden de lectura es correcto —propone,
+decide, rinde cuentas— pero la proporción no lo acompaña.**
 
 ## Lo que queda, y qué necesita
 
