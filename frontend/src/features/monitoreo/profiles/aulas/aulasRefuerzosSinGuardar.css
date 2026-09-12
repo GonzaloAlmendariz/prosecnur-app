@@ -1,0 +1,71 @@
+/* El aviso de refuerzos sin guardar, al pie del panel de refuerzos pedidos.
+   Tono de atención, no de error: no hay nada roto todavía. */
+.mon-aulas-refuerzos-sin-guardar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-warn-bg);
+}
+
+.mon-aulas-refuerzos-sin-guardar > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-aulas-refuerzos-sin-guardar strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.mon-aulas-refuerzos-sin-guardar em {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.mon-aulas-refuerzos-sin-guardar-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mon-aulas-refuerzos-sin-guardar-accion button {
+  padding: 7px 14px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  cursor: pointer;
+}
+
+.mon-aulas-refuerzos-sin-guardar-accion button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pulso-accent) 12%, var(--pulso-surface));
+}
+
+.mon-aulas-refuerzos-sin-guardar-accion button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mon-aulas-refuerzos-sin-guardar-accion span,
+.mon-aulas-refuerzos-guardado {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-aulas-refuerzos-guardado {
+  margin: 10px 0 0;
+}
