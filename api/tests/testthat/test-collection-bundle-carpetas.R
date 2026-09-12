@@ -82,17 +82,38 @@ test_that("cada casilla del papel tiene su columna en la hoja del libro", {
 
 test_that("las columnas que el aplicador puede llenar tienen casilla en el papel", {
   casillas <- tolower(paste(collection_material_application_log_labels(), collapse = " "))
-  # Lo que solo se sabe estando en el aula. Quedan fuera a proposito los
-  # derivados —«% asistencia»— y los que trae el marco —«matriculados»—.
+  # **La lista NO se teclea: se DERIVA de las columnas del libro.**
   #
-  # **Esta lista es una TERCERA copia del vocabulario** (la ficha y las columnas
-  # del libro son las otras dos) y por eso se escribe con el nombre corto que
-  # vive DENTRO del nombre de su columna, no con un sinonimo. «efectivas»
-  # envejecio sola aqui cuando la columna paso a «CANTIDAD DE ENCUESTAS
-  # APLICADAS»: el test de arriba se puso rojo y este lo tapaba pidiendo la
-  # palabra vieja. Si una columna se renombra, esta lista se mueve con ella.
-  for (col in c("asistentes", "encuestas aplicadas", "rechazos", "duplicados",
-                "aplicador", "aula", "fecha", "hora", "observaciones")) {
+  # Escrita a mano era una tercera copia del vocabulario —la ficha y las
+  # columnas eran las otras dos— y envejeció sola: cuando la columna pasó a
+  # «CANTIDAD DE ENCUESTAS APLICADAS» esta lista seguía pidiendo «efectivas», y
+  # con eso TAPABA al test de arriba, que sí estaba viendo la divergencia. Un
+  # guard que se sostiene en una copia del dato que vigila no vigila nada.
+  #
+  # Lo único que se declara es lo que NO le toca al aplicador, por nombre EXACTO
+  # de columna: los derivados y los que trae el marco. Todo lo demás se deriva,
+  # así que renombrar una columna mueve este test con ella en vez de dejarlo
+  # pidiendo la palabra vieja.
+  fuera_del_papel <- c(
+    "% ASISTENCIA",                      # derivado de asistentes y elegibles
+    "MATRICULADOS TOTAL DTI",            # del marco, no del aula
+    "MATRICULADOS ELEGIBLES",            # idem
+    "STATUS DE APLICACIÓN",              # lo elige el coordinador en el chip
+    "AULA UTILIZADA (CAMPO)",            # lo resuelve la cadena
+    "ENLACE DE FICHA ESCANEADA"          # lo pega quien escanea, no quien aplica
+  )
+  columnas_del_aplicador <- setdiff(prosecnurapp:::.calg_titulos_campo(), fuera_del_papel)
+  expect_gt(length(columnas_del_aplicador), 5L)
+  # El nombre corto que tiene que aparecer en el papel: la columna sin su
+  # cuantificador ni su complemento, que es como la escribe la ficha.
+  corto <- function(x) {
+    x <- tolower(trimws(x))
+    x <- sub("^cantidad de ", "", x)
+    x <- sub(" de aplicaci[oó]n$", "", x)
+    x <- sub(" sobre aplicaciones$", "", x)
+    trimws(sub("\\s*\\(.*\\)$", "", x))
+  }
+  for (col in vapply(columnas_del_aplicador, corto, character(1))) {
     expect_true(grepl(col, casillas, fixed = TRUE),
                 info = sprintf("«%s» se pide en el libro y no en el papel", col))
   }
