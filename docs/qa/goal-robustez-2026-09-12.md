@@ -238,3 +238,25 @@ afirmación era cierta y el guard existe, así que **no hay clase nueva**.
 Se anota porque un resultado negativo también cierra una pregunta, y porque la
 alternativa —dejarla escrita como «hallazgo» sin medirla— es exactamente lo que
 dos etapas falsas de esta misma noche costaron.
+
+## Tres clases que faltan en el catálogo común
+
+`goal-robustez-app-2026-09-12.md` es el catálogo compartido —ya recogió la 10,
+«la mitad que ESCRIBE se queda sin migrar», que salió de aquí—. Estas tres son
+de esta sesión, tienen guard y mutante muerto, y **les toca entrar ahí**:
+
+| Clase | Guard | Mutante |
+|---|---|---|
+| Un slot que sale `NA` en vez de ausente, con `$` encadenado encima | `test-calc-muestra-referencia-slots-na.R` | 2 fallos al revertir `f02b96fc` |
+| La misma cifra sale de dos fuentes según la rama | `kpisDeAulas.test.ts`, «coherencia general vs facultad» | 2 fallos al volver a `course_status_con_meta` |
+| Dos superficies nombran distinto el mismo campo | `test-collection-bundle-carpetas.R`, derivado de `.calg_titulos_campo()` | 2 + 2: rótulo de la ficha, y columna renombrada en la spec |
+
+No se añadieron directamente porque esa sesión está escribiendo ese fichero cada
+pocos minutos y meterse ahí en caliente es cómo se pierde el trabajo del otro.
+Se suman cuando pare.
+
+Y una nota sobre la segunda: su invariante no es «lee el campo X» sino **«lo
+general es la suma de lo particular»**. Eso es lo que la hace resistente — un
+guard que fija la fuente se rompe con cualquier refactor legítimo; uno que fija
+la coherencia sólo se rompe cuando el dato deja de cuadrar, que es justo lo que
+se quiere vigilar.
