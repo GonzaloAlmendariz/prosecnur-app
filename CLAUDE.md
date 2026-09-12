@@ -199,6 +199,14 @@ Verificación:
     `UI_QA_TIMEOUT_MS`). Ese motivo ahí no significa «la vista está rota»,
     significa «no le diste tiempo»: son acciones opuestas y distinguirlas costó
     un ciclo entero el 2026-09-12.
+  - **Sin `--post-click-wait-selector ".js-plotly-plot"`, todo panel con gráfico
+    sale VACÍO**: la readiness dice que la vista montó, no que Plotly pintó. Una
+    matriz capturada sin ese flag no sirve para juzgar gráficos, y el gate la da
+    por buena —un panel de 250 px en blanco no es recorte, ni derrame, ni
+    desborde—. (`--wait-selector` no vale: se evalúa antes.)
+  - **Las corridas NO se paralelizan.** Dos a la vez se pisan en el puerto de la
+    API y la segunda muere con «/api/system/bootstrap no devolvió sid». Van en
+    serie; varias `--route` dentro de UNA corrida sí comparten la pila.
   - **`--ir` encadena y captura SÓLO el final.** Varias vistas en una sola pila
     se piden con varios `--route` y query (`--route "/monitoreo?seccion=modelo"`),
     que es para lo que existe la regla de que toda vista sea enlazable; así se
