@@ -193,3 +193,73 @@ test_that("activar un reemplazo deja a la caida diciendo QUIEN la reemplazo", {
   expect_identical(as.character(normalizada$replaced_by), "R 1.1")
   expect_identical(as.character(normalizada$replaced_at), "2026-09-12T10:00:00Z")
 })
+
+# ── EL GUARD: ningun campo que un motor escriba se cae al normalizar ─────────
+#
+# **Por que hace falta y por que se BARRE en vez de listarse a mano.** La lista
+# de campos de `monitoreo_aulas_normalize_plan()` es cerrada y lo no declarado
+# se cae en silencio; ya se tragó `activation_origin`, `activated_for` y
+# `replaced_by` en tres episodios distintos, y cada uno se descubrió mirando la
+# app, no corriendo tests. Una lista escrita a mano aquí tendria el mismo
+# defecto que la de alla: el motor numero nueve la deja atras sin avisar.
+#
+# Asi que el guard **no sabe cuales son los campos**: los saca del codigo. Barre
+# `api/R/*.R` buscando el patron con el que TODOS los motores escriben sobre una
+# fila del plan —`plan[[pos]]$campo <- …`— y exige que cada uno sobreviva a una
+# vuelta por el normalizador. Un motor nuevo entra al guard solo.
+#
+# Y comprueba COMPORTAMIENTO, no texto: borra una linea del normalizador y este
+# test cae, que es justo el mutante que hay que matar.
+
+test_that("todo campo que un motor escribe en el plan sobrevive al normalizador", {
+  dir_r <- testthat::test_path("..", "..", "R")
+  skip_if_not(dir.exists(dir_r), "sin fuentes de api/R a mano")
+
+  fuentes <- list.files(dir_r, pattern = "\\.R$", full.names = TRUE)
+  escritos <- unique(unlist(lapply(fuentes, function(f) {
+    lineas <- readLines(f, warn = FALSE)
+    # El patron de los motores: `plan[[pos]]$campo <-`. Se ancla en `plan[[`
+    # para no recoger asignaciones sobre otras estructuras.
+    hits <- regmatches(lineas, regexpr("plan\\[\\[[a-z_]+\\]\\]\\$[a-z_]+", lineas))
+    sub(".*\\$", "", hits)
+  })))
+  escritos <- sort(escritos[nzchar(escritos)])
+  # Si el barrido deja de encontrar nada, el guard se habria vuelto mudo: es la
+  # avería de «una búsqueda que no encuentra no puede callar».
+  expect_gt(length(escritos), 5L)
+
+  # **Los que el normalizador transforma a proposito**, y por eso no se les
+  # puede pedir que devuelvan el centinela. Los DOS pasan por un vocabulario
+  # cerrado, asi que un valor que no pertenece a el sale convertido:
+  #
+  #   - `sample_status` por `monitoreo_aulas_estado_muestra()`, que convierte lo
+  #     desconocido en `sin_contactar`.
+  #   - `replacement_reason` por `.monitoreo_aulas_reason()` (~1032 de
+  #     `monitoreo_aulas_universitarias.R`), que lo convierte en «otro».
+  #
+  # Su supervivencia la prueban los tests de esos vocabularios, no este. La
+  # lista se escribe con su MOTIVO a la vista: una exclusion sin razon escrita
+  # es por donde se cuela el campo que si se estaba cayendo.
+  TRANSFORMADOS <- c("sample_status", "replacement_reason")
+  aprobar <- setdiff(escritos, TRANSFORMADOS)
+
+  centinela <- "CENTINELA-42"
+  fila <- list(classroom_id = "A-01", operational_code = "CH 1", label = "x",
+               wave = "M1", orden = 1, sample_role = "titular")
+  for (campo in aprobar) fila[[campo]] <- centinela
+
+  normalizada <- monitoreo_aulas_normalize_plan(list(fila))[[1]]
+  perdidos <- aprobar[vapply(aprobar, function(campo) {
+    !identical(as.character(normalizada[[campo]] %||% ""), centinela)
+  }, logical(1))]
+
+  expect_identical(
+    perdidos, character(0),
+    info = paste0(
+      "Estos campos los escribe algun motor sobre una fila del plan y el ",
+      "normalizador NO los declara, asi que se caen camino al tablero sin que ",
+      "nada falle: ", paste(perdidos, collapse = ", "),
+      ". Declararlos en `.monitoreo_aulas_normalize_plan_calcula()`."
+    )
+  )
+})
