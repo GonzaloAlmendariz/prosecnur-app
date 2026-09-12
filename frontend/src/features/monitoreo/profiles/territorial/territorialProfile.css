@@ -1641,7 +1641,7 @@
 
 .mon-territorial-route-map-status {
   position: absolute;
-  top: 10px;
+  top: 58px;
   right: 10px;
   display: inline-flex;
   align-items: center;
@@ -11990,7 +11990,7 @@
 
 .mon-territorial-route-map-loading {
   position: absolute;
-  top: 10px;
+  top: 58px;
   right: 10px;
   display: inline-flex;
   align-items: center;
