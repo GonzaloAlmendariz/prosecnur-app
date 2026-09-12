@@ -56,11 +56,26 @@ export function AulasReservaDirigida(
   return (
     <section
       className="aulas-reserva-dirigida"
-      data-qa-geometry-group="aulas-reserva-dirigida"
-      data-qa-geometry-contract="intrinsic"
+      // **Es el cuerpo del panel que la monta, no un grupo aparte.** Declaraba
+      // `data-qa-geometry-group` propio, y eso la SACABA de los miembros de su
+      // panel: el runner los filtra por `closest("[data-qa-geometry-group]")
+      // === group` (ui-quick-check.mjs:2083) y el `closest` de un grupo es él
+      // mismo. Sin miembros declarados, el panel caía a sus hijos directos y
+      // medía el ENCABEZADO —`mon-profile-panel-head`, 36 px— como contenedor
+      // de datos: `capacity-drift` sobre sus 5 px de padding, un síntoma que no
+      // se parece a su causa. Como miembro dueño de su capacidad el gate la
+      // mira igual —sale en el audit del panel— y el encabezado deja de
+      // medirse. Mismo patrón que «Metas por facultad y sexo» y «Respuestas».
+      data-qa-geometry-capacity="owned"
+      data-qa-geometry-member="true"
     >
+      {/* **El título lo pone el panel que la monta, no ella.** Medido en
+          pantalla el 2026-09-12: «A qué aula del banco ir» salía DOS VECES
+          seguidas —el `h3` del panel y este `h4`, mismo texto, 36 px de
+          distancia—. El único montaje de este componente es el panel de
+          `AulasPestanaCuotas`, que ya declara qué es; lo que aquí sí informa es
+          el conteo, y ése se queda. */}
       <header className="aulas-reserva-dirigida-head">
-        <h4>A qué aula del banco ir</h4>
         {/* **«que hoy no llega» prometía otro número.** El motor filtra esta
             lista por `estado ∈ {deficit_proyectado, deficit_no_subsanable}`, o
             sea por el déficit PROYECTADO: una celda que hoy está 38 encuestas
