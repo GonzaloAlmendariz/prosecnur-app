@@ -122,12 +122,43 @@ export function avisoDistribucion(
   };
 }
 
-/** El recibo tras publicar: qué se escribió y que el enlace quedó guardado. */
-export function avisoDistribucionPublicada(res: { citas?: number; url?: string }): { texto: string; tono: TonoAviso } {
+/**
+ * El recibo tras publicar: qué se escribió, **qué NO** y que el enlace quedó
+ * guardado.
+ *
+ * Desde que el documento lleva una pestaña por semana, publicar ya no es una
+ * sola cosa: la semana que el coordinador está editando se RESPETA y no se
+ * escribe. Este aviso sólo decía «N publicadas» —el total del reparto—, así que
+ * una semana respetada era invisible y el número prometía más de lo que se
+ * había escrito. Callar lo que no se hizo es la forma más cara de declarar
+ * éxito.
+ */
+export function avisoDistribucionPublicada(res: {
+  citas?: number;
+  url?: string;
+  hojas?: Array<{ hoja?: string; accion?: string; filas?: number }>;
+}): { texto: string; tono: TonoAviso } {
   const n = Number(res.citas);
   const cuantas = Number.isFinite(n) ? `${citas(n)} publicadas` : "publicada";
+  const hojas = res.hojas ?? [];
+  const respetadas = hojas.filter((h) => String(h?.accion ?? "") === "respetada");
+  const escritas = hojas.filter((h) => String(h?.accion ?? "") === "actualizada");
+
+  const frases = [`Distribución de los aplicadores ${cuantas}.`];
+  if (escritas.length) {
+    frases.push(`Se escribió ${escritas.map((h) => `«${h.hoja}»`).join(" y ")}.`);
+  }
+  if (respetadas.length) {
+    // Con su motivo, que es lo que distingue «no se pudo» de «no se debía».
+    frases.push(
+      `${respetadas.map((h) => `«${h.hoja}»`).join(" y ")} ${respetadas.length === 1 ? "no se tocó" : "no se tocaron"}: ` +
+        "ya tiene citas escritas y ahí manda el equipo.",
+    );
+  }
+  frases.push("El enlace quedó guardado: la próxima publicación lo usa sin pedirlo.");
   return {
-    texto: `Distribución de los aplicadores ${cuantas}. El enlace quedó guardado: la próxima publicación lo usa sin pedirlo.`,
+    texto: frases.join(" "),
+    // Respetar una semana es lo correcto, no un problema: el tono no sube.
     tono: "ok",
   };
 }
