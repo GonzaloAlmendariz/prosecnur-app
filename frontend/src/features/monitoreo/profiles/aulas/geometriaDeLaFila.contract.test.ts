@@ -24,6 +24,9 @@ const aqui = path.dirname(fileURLToPath(import.meta.url));
  */
 describe("las filas-rejilla no miden columnas por su contenido", () => {
   const hojas = fs.readdirSync(aqui).filter((f) => f.endsWith(".css"));
+  // Centinela de no-mudez: sin hojas, la lista de culpables sale vacía y el
+  // guard pasa sin haber mirado nada.
+  expect(hojas.length).toBeGreaterThan(20);
 
   it.each(hojas)("%s", (hoja) => {
     const fuente = fs.readFileSync(path.join(aqui, hoja), "utf8")

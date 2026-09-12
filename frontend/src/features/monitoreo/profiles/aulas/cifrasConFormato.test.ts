@@ -64,6 +64,18 @@ const fuentes = fs
   .readdirSync(aqui)
   .filter((f) => (f.endsWith(".tsx") || f.endsWith(".ts")) && !f.includes(".test."));
 
+/**
+ * **El centinela de no-mudez.** Este guard enumera el directorio y luego afirma
+ * que la lista de culpables está vacía. Si el barrido dejara de encontrar
+ * fuentes —un renombre, una carpeta que se mueve, un filtro que deja de casar—
+ * la lista saldría vacía y el guard pasaría **sin haber mirado nada**, en verde
+ * y para siempre. Ha pasado en este repo con un guard anclado a un símbolo por
+ * nombre.
+ */
+it("el barrido encuentra las fuentes del perfil, o no está guardando nada", () => {
+  expect(fuentes.length).toBeGreaterThan(60);
+});
+
 describe("las cifras del perfil de aulas van formateadas", () => {
   it.each(fuentes)("%s", (archivo) => {
     const fuente = fs
