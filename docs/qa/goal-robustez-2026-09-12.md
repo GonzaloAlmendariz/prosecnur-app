@@ -171,6 +171,25 @@ correcto.)
 Consecuencia: la misma pantalla puede decir 73 en el desglose por rol y 75 en su
 KPI, sobre el mismo corte.
 
+**Y el cotejo por facultad separa dos cosas que no son la misma.** Difieren DOS
+facultades, no una, y por motivos distintos:
+
+| Facultad | tablero (rol) | PDF | qué es |
+|---|---|---|---|
+| CIENCIAS E INGENIERIA | 17 | 18 | **el defecto**: `CH 3`, titular con parte y sin respuestas |
+| ARTE Y DISEÑO | 6 | 7 | **no es defecto**: `R 131.1`, reserva de cadena aplicada |
+
+La segunda no hay que «arreglarla»: el desglose por rol la cuenta —con razón— en
+`reemplazos.utilizado` y no en `titulares.aplicado`, mientras que la columna
+«Aulas aplicadas» del PDF responde a otra pregunta, «en cuántas aulas se
+aplicó», donde la reserva sí entra. Son dos preguntas legítimas con dos
+respuestas legítimas, y por eso **las dos columnas no se pueden comparar de
+frente**: quien vaya a arreglar el defecto tiene que restar antes esta
+diferencia definicional, o «arreglará» un acierto.
+
+El resto del cotejo por facultad sale limpio: 15 de 15 coinciden en efectivas y
+en muestra.
+
 **Por qué no se arregló en el acto.** Vive en `monitoreo_aulas_universitarias.R`
 —motor grande y en el área que la otra sesión está commiteando esta misma noche,
 incluido `1d4f3888`, que va justo de motores comparando el estado en crudo— y la
