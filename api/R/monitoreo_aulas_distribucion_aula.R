@@ -75,11 +75,20 @@ monitoreo_aulas_aulas_distribucion <- function(filas, plan = list()) {
 
   # Código → aula que el plan pacta. `[[` de punta a punta: el `$` de R
   # parcial-matchea y `u$venue` pescaría cualquier `venue_*` que llegue.
+  # **Se indexa por CLAVE, no por el texto tal cual.** La adopción de la hoja ya
+  # empareja «CH164» con «CH 164» (`monitoreo_aulas_fijaciones_desde_distribucion`
+  # normaliza), así que aquí el texto literal hacía que las DOS respuestas a la
+  # misma pregunta —¿de qué aula habla esta fila?— no coincidieran: la cita
+  # conservaba su aplicador y se quedaba sin la corrección del aula. Medido en
+  # el Sheets el 2026-09-12: cinco filas de «Semana 1» escritas sin el espacio
+  # (CH164, CH143, CH128, CH89, CH91) y ninguna con la escritura buena.
   del_plan <- list()
   for (u in .madm_unidades(plan)) {
     cod <- .alpa_txt(u[["operational_code"]] %||% u[["classroom_id"]])
-    if (!nzchar(cod) || !is.null(del_plan[[cod]])) next
-    del_plan[[cod]] <- .alpa_txt(u[["scheduled_venue"]], .alpa_txt(u[["venue"]]))
+    if (!nzchar(cod)) next
+    k <- .madm_clave_codigo(cod)
+    if (!is.null(del_plan[[k]])) next
+    del_plan[[k]] <- .alpa_txt(u[["scheduled_venue"]], .alpa_txt(u[["venue"]]))
   }
 
   columna <- character(length(filas))
@@ -93,7 +102,7 @@ monitoreo_aulas_aulas_distribucion <- function(filas, plan = list()) {
     columna[[r]] <- escrito
     cod <- .madm_celda(v, c_cod)
     if (!nzchar(cod)) next
-    esperado <- .alpa_txt(del_plan[[cod]] %||% "")
+    esperado <- .alpa_txt(del_plan[[.madm_clave_codigo(cod)]] %||% "")
     if (!nzchar(esperado)) {
       # El plan no sabe dónde: se conserva lo que haya y se cuenta, porque una
       # cita sin aula en ninguno de los dos lados es un hueco del operativo,

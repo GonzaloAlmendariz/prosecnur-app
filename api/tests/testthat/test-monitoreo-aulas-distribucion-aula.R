@@ -122,3 +122,65 @@ test_that("sin cambios de aula la frase no menciona aulas", {
     sin_aplicador = list()))
   expect_false(grepl("aula", texto, fixed = TRUE))
 })
+
+# --- las dos respuestas a «¿de qué aula habla esta fila?» ---------------------
+#
+# La adopción de la hoja ya emparejaba «CH164» con «CH 164»
+# (`monitoreo_aulas_fijaciones_desde_distribucion` normaliza el código), y esta
+# corrección comparaba el texto tal cual. Resultado: la misma fila conservaba su
+# aplicador y se quedaba SIN la corrección del aula — dos respuestas a la misma
+# pregunta, que es la familia de defectos que más ha costado en este operativo.
+#
+# Medido en el Sheets el 2026-09-12: cinco filas de «Semana 1» escritas sin el
+# espacio (CH164, CH143, CH128, CH89, CH91) y ninguna con la escritura buena,
+# así que las cinco estaban en ese hueco.
+
+test_that("un código sin el espacio encuentra su aula igual que con él", {
+  cab <- prosecnurapp:::.alpa_CABECERA
+  pon <- function(codigo, aula_escrita) {
+    fila <- as.list(rep("", length(cab)))
+    fila[[which(cab == "APLICADOR")]] <- "Ana Prueba"
+    fila[[which(cab == "CURSO-HORARIO")]] <- codigo
+    fila[[which(cab == "FECHA")]] <- "07/09"
+    fila[[which(cab == "AULA")]] <- aula_escrita
+    list(as.list(cab), fila)
+  }
+  plan <- list(list(operational_code = "CH 164", classroom_id = "ch164",
+                    sample_role = "titular", operational_status = "agendada",
+                    sample_status = "AGENDADA", scheduled_date = "2026-09-07",
+                    scheduled_time = "09:00", scheduled_venue = "I108"))
+
+  # En blanco: se rellena con la del plan, se escriba como se escriba el código.
+  for (cod in c("CH 164", "CH164", "ch164", "CH  164")) {
+    out <- monitoreo_aulas_aulas_distribucion(pon(cod, ""), plan)
+    expect_equal(out$rellenadas, 1L, info = cod)
+    expect_equal(out$sin_dato, 0L, info = cod)
+  }
+
+  # Y con un aula que NO coincide, se corrige: es el caso que manda a alguien
+  # al sitio equivocado.
+  out <- monitoreo_aulas_aulas_distribucion(pon("CH164", "I203"), plan)
+  expect_equal(out$corregidas, 1L)
+})
+
+test_that("dos aulas distintas siguen siendo dos: la clave no las funde", {
+  # La clave colapsa espacios y mayúsculas y NADA más. «R 1.1» y «R 11» son
+  # aulas distintas y tienen que seguir siéndolo.
+  cab <- prosecnurapp:::.alpa_CABECERA
+  fila <- function(codigo) {
+    f <- as.list(rep("", length(cab)))
+    f[[which(cab == "CURSO-HORARIO")]] <- codigo
+    f[[which(cab == "FECHA")]] <- "07/09"
+    f
+  }
+  plan <- list(
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         scheduled_date = "2026-09-07", scheduled_venue = "A101"),
+    list(operational_code = "R 11", sample_role = "chain_reserve",
+         scheduled_date = "2026-09-07", scheduled_venue = "B202"))
+  out <- monitoreo_aulas_aulas_distribucion(
+    list(as.list(cab), fila("R 1.1"), fila("R 11")), plan)
+  expect_equal(out$rellenadas, 2L)
+  aulas <- vapply(out$cambios, function(c) as.character(c$despues %||% ""), character(1))
+  expect_setequal(aulas, c("A101", "B202"))
+})
