@@ -27,7 +27,7 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 6 | Un gate que no se corre | `make gate-area` | 108/2 |
 | 7 | Un concepto con dos implementaciones | `test-helpers-sin-duplicar.R` | 2→1/1 |
 | 8 | Un estado de React que se escribe y nadie pinta | `estadoQueNadieLee.contract.test.ts` | 2→1/1 |
-| 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` | 2→1/1 |
+| 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` + `test-guards-que-guardan.R` | 2→1/1 en ambos |
 
 La 9 es la más cara: apaga la infraestructura que sostiene a las demás y **no
 deja rastro** —no hay rojo, no hay aviso, sólo deja de proteger—. La forma es
@@ -89,7 +89,10 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
   eran falsos positivos del propio barrido** — tercera vez en este loop.
   **Tope 2** (de 26 al abrir la clase). Los dos que quedan están en cálculo de
   muestra —`cssHuerfano` y `plegadoCriterios`—, área de la otra sesión: medidos
-  y sin tocar.
+  y sin tocar. **En R: 9 guards enumeran `api/R`, 6 ya tenían centinela, 1 no lo
+  necesita y 1 era real** (`test-graficos-negrita-render`, que afirma dentro de
+  un bucle: sin coincidencias no ejecutaba **ni una sola aserción**). Tope **0**
+  en el backend, y el meta-guard entra al `gate-area` como transversal.
   El centinela tiene DOS formas y el meta-guard reconoce las dos: contar lo
   encontrado, o declarar la lista de archivos a vigilar y comprobar que siguen
   existiendo —así lo hacía ya `capacidadDeclarada`, y el meta-guard lo acusó por
