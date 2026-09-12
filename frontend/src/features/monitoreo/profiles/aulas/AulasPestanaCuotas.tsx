@@ -125,6 +125,17 @@ export function AulasPestanaCuotas({
     ) as Array<Record<string, unknown>>,
     (fila) => Number(fila.missing ?? 0),
   );
+  // **El mismo filtro que aplica `AulasReservaDirigida` para decidir si tiene
+  // algo que decir** (`brecha > 0`), y sobre las mismas celdas que recibe —las
+  // de la facultad en foco, no las de todas—. Con el filtro sin aplicar, una
+  // facultad cuyas celdas ya cierran pintaba el panel y el hijo devolvía
+  // `null`: encabezado con nada debajo, que es justo lo que ese `null` existe
+  // para evitar.
+  const hayReservaDirigida = (deLaFacultad(
+    (dashboard.reserva_dirigida ?? []) as Array<Record<string, unknown>>,
+    facultadEnFoco,
+  ) as Array<Record<string, unknown>>).some((c) => c && Number(c.brecha ?? 0) > 0);
+
   // El view-model del cumplimiento contra el diseño se calcula UNA vez y
   // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
   // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
@@ -380,6 +391,17 @@ export function AulasPestanaCuotas({
           ) as Array<Record<string, unknown>>}
         />
       </section>
+      {/* **El panel entero desaparece cuando no hay a qué ir.** `AulasReservaDirigida`
+          devuelve `null` sin decisiones —decisión deliberada, con dos contratos
+          que la fijan: «un "todo bien" compite por la atención»—, y sin esta
+          guarda la section pintaba su encabezado igual: un título con nada
+          debajo. Si la intención es no ocupar sitio, quien no debe ocuparlo es
+          el panel.
+
+          El `capacity-drift` que se veía aquí NO era eso —el cuerpo estaba,
+          254 px con dos grupos en déficit— sino el encabezado midiéndose como
+          contenedor de datos; se arregla declarando la capacidad en el hijo. */}
+      {hayReservaDirigida ? (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -399,6 +421,7 @@ export function AulasPestanaCuotas({
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
         />
       </section>
+      ) : null}
       {/* **La pirámide «Tamaño de cada meta» se retiró el 2026-09-08**, con
           decisión de Gonzalo («toma decisiones por mí viendo lo mejor y más
           intuitivo y profesional»).

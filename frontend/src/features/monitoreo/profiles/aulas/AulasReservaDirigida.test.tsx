@@ -107,9 +107,17 @@ describe("AulasReservaDirigida", () => {
   });
 
   it("declara su geometria: sin C1 el gate no la mira", () => {
+    // **Como MIEMBRO de su panel, no como grupo aparte.** Con grupo propio
+    // quedaba fuera de los miembros del panel —el runner los filtra por
+    // `closest("[data-qa-geometry-group]") === group`— y el panel caia a sus
+    // hijos directos, midiendo el ENCABEZADO como contenedor de datos:
+    // `capacity-drift` de 5 px sobre `mon-profile-panel-head`, medido el
+    // 2026-09-12 en avance>cuotas. Declarada asi, el gate la sigue mirando
+    // (sale en el audit del panel) y el encabezado deja de medirse.
     const out = html([celda()]);
-    expect(out).toContain('data-qa-geometry-group="aulas-reserva-dirigida"');
-    expect(out).toContain('data-qa-geometry-contract="intrinsic"');
+    expect(out).toContain('data-qa-geometry-capacity="owned"');
+    expect(out).toContain('data-qa-geometry-member="true"');
+    expect(out).not.toContain('data-qa-geometry-group=');
   });
 
   it("dos celdas de la misma facultad se leen por separado, y manda la que no cierra", () => {
