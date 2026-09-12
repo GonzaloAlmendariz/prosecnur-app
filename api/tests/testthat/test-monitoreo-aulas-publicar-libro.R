@@ -779,3 +779,56 @@ test_that("una hoja que crece o se mantiene NO se declara encogida", {
     spreadsheet_id = "sheet_libro", plan = lapply(1:9, aula), partes = list())
   expect_length(crece$encogidas, 0L)
 })
+
+# --- publicar se niega con reservas huérfanas, igual que generar -------------
+#
+# El 2026-09-12: `aulas_libro_generar()` se niega a escribir un libro cuyas
+# reservas no sepan de qué cadena son; este publicador NO lo comprobaba, y es el
+# que escribe en el documento del operativo. Publicar con un plan reconstruido
+# leyendo el propio Sheets —donde las reservas vuelven sin su titular— dejó
+# «Avance de agendación» con «Aulas del diseño» sumando 1.372 donde iban 170, y
+# estuvo así siete horas: no falló, no avisó, y el cotejo por forma no lo vio.
+#
+# Dos caminos que escriben el mismo libro no pueden tener dos contratos. El que
+# escribe en vivo, menos.
+
+test_that("publicar a Sheets se niega si una reserva no sabe de qué cadena es", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         operational_status = "agendada", sample_status = "AGENDADA",
+         scheduled_date = "2026-09-11", scheduled_time = "10:00",
+         faculty = "DERECHO", teacher = "D", course_name = "C"),
+    # La huérfana: sin `titular_operational_code`.
+    list(operational_code = "R 1.1", classroom_id = "r11",
+         sample_role = "chain_reserve", sample_status = "EN RESERVA 1",
+         faculty = "DERECHO", teacher = "D2", course_name = "C2"))
+
+  expect_error(
+    monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = plan,
+                                   partes = .mapl_partes()),
+    "cadena")
+  # Y no escribió NADA antes de negarse: media publicación sería peor que
+  # ninguna.
+  expect_length(.mapl_values_titulos(mock$env$calls), 0L)
+})
+
+test_that("con la cadena completa publica como siempre", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", sample_role = "titular",
+         operational_status = "agendada", sample_status = "AGENDADA",
+         scheduled_date = "2026-09-11", scheduled_time = "10:00",
+         faculty = "DERECHO", teacher = "D", course_name = "C"),
+    list(operational_code = "R 1.1", classroom_id = "r11",
+         sample_role = "chain_reserve", titular_operational_code = "CH 1",
+         replacement_order = 1L, sample_status = "EN RESERVA 1",
+         faculty = "DERECHO", teacher = "D2", course_name = "C2"))
+  out <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = plan,
+                                        partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+})
