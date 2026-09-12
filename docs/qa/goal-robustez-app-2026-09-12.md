@@ -1,5 +1,17 @@
 # GOAL — Robustez: que la app no falle al usarse
 
+> **Hay DOS documentos de robustez con fecha del 12/09 y es a propósito.**
+> Éste es el **MARCO**: el catálogo de clases de defecto y el listón —una clase
+> sólo está cerrada con un guard que la caza, probado matando un mutante, y un
+> barrido con su cifra—. El otro, `goal-robustez-2026-09-12.md`, es el **DIARIO**
+> de la noche del 11 al 12: qué se midió, qué se arregló y las recetas que
+> costaron encontrar. Si buscas «cómo se cierra una clase», estás en el bueno;
+> si buscas «qué pasó y cómo reproducirlo», ve al otro.
+>
+> El puntero lo puso primero el diario; éste no lo devolvía, así que quien
+> llegara aquí no sabía que el otro existe. Dos sesiones trabajan este árbol y
+> los dos documentos se escribieron a la vez.
+
 Encargo de Gonzalo del 2026-09-12: «deja la app robusta y sólida en un loop
 definido de mejora continua».
 
@@ -28,6 +40,13 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 7 | Un concepto con dos implementaciones | `test-helpers-sin-duplicar.R` | 2→1/1 |
 | 8 | Un estado de React que se escribe y nadie pinta | `estadoQueNadieLee.contract.test.ts` | 2→1/1 |
 | 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` + `test-guards-que-guardan.R` | 2→1/1 en ambos |
+| 10 | La mitad que ESCRIBE se queda sin migrar | `test-monitoreo-aulas-distribucion-mantenimiento.R` | 4 fallos |
+
+La 10 la cerró la otra sesión (`1ca67233`) y entra aquí porque este documento es
+el catálogo común: cuando un cambio enseña a la mitad que LEE y la que ESCRIBE
+se queda apuntando a lo viejo. El guard no comprueba el helper sino el defecto
+en su forma observable —una cita del 16/09 cae en «Semana 2», «Semana 1» queda
+intacta byte a byte y la cita nueva no aparece en ella—.
 
 La 9 es la más cara: apaga la infraestructura que sostiene a las demás y **no
 deja rastro** —no hay rojo, no hay aviso, sólo deja de proteger—. La forma es
@@ -139,6 +158,14 @@ que la vista mide 2.630 y se recorre casi entera con scroll. El primero se lleva
 el 66 % del alto porque lista 15 filas + el mando + las dos lecturas. Si hay que
 tocar algo de diseño, es ése: **el orden de lectura es correcto —propone,
 decide, rinde cuentas— pero la proporción no lo acompaña.**
+
+## Abierto en el diario, y es decisión suya
+
+Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
+ser la única y que «las tres la llaman», pero `monitoreo_aulas_rol_y_estado()`
+no la llama — deriva `application_state` del tablero y **nunca pregunta por el
+parte**. Detalle y medida en el diario. Es la clase «una palabra para dos cosas»
+y no se arregla sin decidir cuál manda.
 
 ## Lo que queda, y qué necesita
 
