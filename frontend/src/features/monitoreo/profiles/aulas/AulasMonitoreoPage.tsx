@@ -972,6 +972,11 @@ function renderAulasView({
         pestana={pestana}
         reemplazosEnOrdenDeCadena={reemplazosEnOrdenDeCadena}
         facultadEnFoco={facultadEnFoco}
+        // El mismo par que ya recibe Calidad: `?foco=aula:<código>` abre
+        // «Buscar por código» sobre ese curso-horario, y la ficha que se está
+        // viendo se escribe de vuelta en la dirección.
+        foco={foco}
+        onFoco={onFoco}
         // Marcar un complemento o un refuerzo cambia el plan: sin recargar, la
         // pantalla sigue ofreciendo como disponible el aula que se acaba de
         // apartar.
