@@ -60,3 +60,19 @@ describe("los refuerzos que vuelven del libro se ven", () => {
     expect(s.pedidos).toHaveLength(0);
   });
 });
+
+describe("el techo cuenta lo recuperado del libro", () => {
+  it("15 refuerzos sin sello gastan 15 del techo, no 0", async () => {
+    // El contador decía «La app lleva 0 de un techo de 15: quedan 15 por
+    // repartir» con los 15 ya pedidos, y eso invita a pedir 15 MÁS encima.
+    const { pedidasPorLaApp } = await import("./eleccionPorFacultad");
+    const plan = ["EXTRA 10", "R 161.5", "R 75.6"].map((c) =>
+      fila({ operational_code: c, sample_status: "refuerzo_por_contactar", activation_origin: "" }));
+    expect(pedidasPorLaApp(plan)).toBe(3);
+  });
+
+  it("un aula normal no gasta techo", async () => {
+    const { pedidasPorLaApp } = await import("./eleccionPorFacultad");
+    expect(pedidasPorLaApp([fila({ sample_status: "agendada", activation_origin: "" })])).toBe(0);
+  });
+});

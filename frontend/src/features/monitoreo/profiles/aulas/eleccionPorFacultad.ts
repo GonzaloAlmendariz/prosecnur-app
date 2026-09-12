@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow, MonitoreoAulasEfectividadSeguimiento } from "../../../../api/monitoreo";
+import { esRefuerzoPedido } from "./seguimientoDeRefuerzos";
 import { cuotaDeLaFacultad } from "./brechaDeLaFacultad";
 import { deficitOperativo } from "./deficitOperativo";
 import { refuerzosDeFacultad } from "./refuerzosDeFacultad";
@@ -38,7 +39,8 @@ const texto = (v: unknown) => (v == null ? "" : String(v).trim());
 const clave = (v: unknown) => texto(v).toUpperCase();
 
 /** Los orígenes que escribe la app al marcar; los de A son otros. */
-const ORIGENES_DE_LA_APP = new Set(["refuerzo", "complemento"]);
+/** El sello se pierde al recuperar del libro: el estado `refuerzo_*` también cuenta. */
+const yaPedido = (f: MonitoreoAulasPlanRow) => esRefuerzoPedido(f);
 
 export type MotivoDeRelego = "docente" | "curso" | null;
 
@@ -99,7 +101,7 @@ export function pedidasPorLaApp(
 ): number {
   let n = 0;
   for (const f of plan ?? []) {
-    if (ORIGENES_DE_LA_APP.has(texto(f.activation_origin).toLowerCase())) n += 1;
+    if (yaPedido(f)) n += 1;
   }
   return n;
 }
@@ -136,7 +138,7 @@ export function eleccionPorFacultad(
     const debeH = Math.max(0, Math.round(def.quedaria.hombres));
     const elegidas = filas.filter((r) =>
       clave(r.faculty) === clave(facultad)
-      && ORIGENES_DE_LA_APP.has(texto(r.activation_origin).toLowerCase())).length;
+      && yaPedido(r)).length;
     if (debeM + debeH <= 0 && elegidas === 0) continue;
     const cola = colaDeFacultad(filas, facultad, debeM, debeH);
     facultades.push({
@@ -181,7 +183,7 @@ function colaDeFacultad(
   // Lo ya elegido de ESTA facultad: contra eso se mide el traslape nuevo.
   const yaElegidas = filas.filter((r) =>
     clave(r.faculty) === clave(facultad)
-    && ORIGENES_DE_LA_APP.has(texto(r.activation_origin).toLowerCase()));
+    && yaPedido(r));
   const docentesTomados = new Map<string, string>();
   const cursosTomados = new Map<string, string>();
   for (const r of yaElegidas) {
@@ -195,7 +197,7 @@ function colaDeFacultad(
   const cola = refuerzosDeFacultad(filas, facultad, { mujeres: debeM, hombres: debeH })
     // Las que la app ya pidió no vuelven a ofrecerse: contarían dos veces contra
     // el techo y ya viven en «Refuerzos pedidos».
-    .filter((c) => !ORIGENES_DE_LA_APP.has(texto(c.fila.activation_origin).toLowerCase()))
+    .filter((c) => !yaPedido(c.fila))
     .map((c) => {
       const doc = clave(c.fila.teacher);
       const cur = clave(c.fila.course_id);
