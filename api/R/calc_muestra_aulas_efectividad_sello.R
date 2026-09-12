@@ -105,7 +105,20 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
   if (!is.list(config)) return(config)
   ya <- config$efectividad
   if (is.list(ya) && length(ya$por_facultad %||% list())) return(config)
-  filas <- referencia$cadenas_reemplazo$filas %||% NULL
+  # **`$` encadenado sobre algo que puede NO ser una lista.** Cuando la
+  # referencia no trae cadenas de reemplazo, `cadenas_reemplazo` no viene
+  # ausente: viene `NA` —un logical de longitud 1—, y `NA$filas` no devuelve
+  # NULL, LANZA «$ operator is invalid for atomic vectors». `%||%` no lo
+  # atrapa, porque sólo mira el NULL.
+  #
+  # Eso reventaba `POST /api/calc-muestra/marco/construir` con un 500 E_INTERNAL
+  # —no un error accionable, un 500— para cualquier sesión que hubiera cargado
+  # la referencia histórica de asistencia sin cadenas de reemplazo, que es el
+  # caso normal de una base que sólo trae el histórico de asistencia. Fuera de
+  # los dos `tryCatch` del endpoint, así que el mensaje real ni siquiera
+  # llegaba al cliente.
+  cadenas <- referencia[["cadenas_reemplazo"]]
+  filas <- if (is.list(cadenas)) cadenas[["filas"]] else NULL
   sello <- calc_muestra_aulas_sello_por_facultad(filas)
   if (!length(sello)) return(config)
   ef <- if (is.list(ya)) ya else list()
