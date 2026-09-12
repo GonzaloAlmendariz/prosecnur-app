@@ -27,6 +27,14 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 6 | Un gate que no se corre | `make gate-area` | 108/2 |
 | 7 | Un concepto con dos implementaciones | `test-helpers-sin-duplicar.R` | 2→1/1 |
 | 8 | Un estado de React que se escribe y nadie pinta | `estadoQueNadieLee.contract.test.ts` | 2→1/1 |
+| 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` | 2→1/1 |
+
+La 9 es la más cara: apaga la infraestructura que sostiene a las demás y **no
+deja rastro** —no hay rojo, no hay aviso, sólo deja de proteger—. La forma es
+enumerar un directorio, filtrar y afirmar que la lista de culpables está vacía:
+si el filtro deja de casar, la lista sale vacía *porque no se miró nada*. La
+vacuna es una línea: comprobar que el barrido encontró algo antes de afirmar que
+no encontró nada malo.
 
 ### El patrón que une a los peores
 
@@ -71,6 +79,9 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
 - Helpers de texto en el backend: **69 distintos, sólo 5 con cuerpo repetido**.
   El conteo bruto (61 archivos) exagera: la mayoría tiene comportamiento propio.
 - `useState` en el frontend: **1.754**, uno huérfano.
+- Guards que leen fuentes: **300** (94 en R, 206 en el frontend). Con la firma
+  peligrosa —enumerar, filtrar y afirmar vacío sin centinela— **26, todos en el
+  frontend; en R, cero**. Tope actual **24** y baja conforme se pongan.
 - Claves del tablero consumidas por el perfil: **52, cero huérfanas**.
 
 ## Trampas del propio método, aprendidas aquí
