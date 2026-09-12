@@ -7,6 +7,7 @@ import {
   type EstadoDeCursoHorario, type FichaDeCursoHorario,
 } from "./fichaDeCursoHorario";
 import { ChipDato, ChipLugar } from "./AulasSistemaPabellon";
+import { porDondeEmpezarLaFicha } from "./porDondeEmpezarLaFicha";
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import "./fichaDeCursoHorario.css";
 
@@ -306,6 +307,11 @@ export function AulasFichaDeCursoHorario({
     return porElegido ?? encontrados[0];
   }, [encontrados, elegido]);
 
+  const atajos = useMemo(
+    () => porDondeEmpezarLaFicha(agenda as never, partes),
+    [agenda, partes],
+  );
+
   const ficha = useMemo(() => {
     if (!fila) return null;
     const clave = claveDeBusqueda(fila.operational_code);
@@ -326,6 +332,29 @@ export function AulasFichaDeCursoHorario({
           {fmt(agenda.length)} cursos-horario del plan · da igual el espacio y las mayúsculas
         </span>
       </div>
+
+      {/* **Un buscador vacío no es un vacío legítimo.** Había mucho que ofrecer
+          —lo que no cuadra, los refuerzos en cola— y la pestaña lo escondía tras
+          saberse un código de memoria. Listas COMPLETAS: sin «…y N más». */}
+      {!consulta.trim() && atajos.length ? (
+        <div className="aulas-ficha-atajos" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          {atajos.map((a) => (
+            <section key={a.clave}>
+              <p className="aulas-ficha-atajo-titulo">
+                <strong>{a.titulo}</strong>
+                <em>{fmt(a.codigos.length)} · {a.motivo}</em>
+              </p>
+              <div className="aulas-ficha-atajo-codigos">
+                {a.codigos.map((c) => (
+                  <button key={c} type="button" onClick={() => { setConsulta(c); setElegido(""); }}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : null}
 
       {consulta.trim() && !encontrados.length ? (
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
