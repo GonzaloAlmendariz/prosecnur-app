@@ -173,6 +173,12 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # que la app pueda producir en base a lo agendado». Sexta de la app, y sin
     # condición: lo que mide existe desde el primer día del operativo.
     "Avance de agendación",
+    # Dictado 2026-09-12: «necesitamos saber la producción de los aplicadores,
+    # quién está aplicando más, quién está aplicando menos, en qué rangos
+    # horarios». Séptima de la app y condicional: sin partes no se produce.
+    # Es la cara de SALIDA de «Asignación de aplicadores» —lo aplicado, no lo
+    # repartido— y por eso son dos hojas y no una columna más.
+    "Producción de aplicadores",
     "Listas"
   )
 

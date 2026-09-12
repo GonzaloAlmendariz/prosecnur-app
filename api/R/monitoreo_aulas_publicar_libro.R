@@ -126,6 +126,8 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 # disponibilidad (hay reparto que contar). Sin ella ni se produce ni entra a
 # `hojas_libro`: una pestaña remota previa queda intacta, ni un request.
 .malp_hoja_asignacion <- function() "Asignación de aplicadores"
+# La hermana de salida: lo que YA se aplicó (dictado 2026-09-12).
+.malp_hoja_produccion <- function() "Producción de aplicadores"
 
 #' ¿Se puede reescribir «Asignación de aplicadores» sin riesgo de contradecir?
 #'
@@ -193,7 +195,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   # congelara una fila de más.
   if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
                   .malp_hoja_plan_dia(), .malp_hoja_asignacion(),
-                  .malp_hoja_disponibilidad())) 1L else 2L
+                  .malp_hoja_disponibilidad(), .malp_hoja_produccion())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -341,6 +343,10 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_disponibilidad())) {
     requests <- c(requests, aulas_libro_disponibilidad_formato_requests(sheet_id, rows))
   }
+  # La de producción, con la misma gramática visual (aulas_libro_produccion.R).
+  if (identical(tab_name, .malp_hoja_produccion())) {
+    requests <- c(requests, aulas_libro_produccion_formato_requests(sheet_id, rows))
+  }
   # B14: los desplegables y calendarios de las pestañas Extra — los mismos
   # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
   # Para cualquier otra pestaña devuelve vacío.
@@ -439,6 +445,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # B68: los values de la asignación se construyen sobre el plan CRUDO (el
   # mismo insumo que la pestaña de la app) con la config vigente del reparto;
   # NULL = sin disponibilidad = la hoja no juega esta publicación.
+  # La hoja de PRODUCCIÓN, hermana de la de asignación: lo que ya se aplicó.
+  # NULL = todavía no hay campo = la hoja no juega esta publicación.
+  valores_produccion <- aulas_libro_valores_produccion(plan %||% list(), partes %||% list())
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
@@ -466,6 +475,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   valores_disponibilidad <- aulas_libro_valores_disponibilidad(disponibilidad)
   if (!is.null(valores_disponibilidad)) {
     hojas_app <- c(hojas_app, .malp_hoja_disponibilidad())
+  }
+  # La producción tampoco depende del reparto: sale de los partes. Va DESPUÉS
+  # de la disponibilidad porque se lee al final de la jornada, no al empezarla.
+  if (!is.null(valores_produccion)) {
+    hojas_app <- c(hojas_app, .malp_hoja_produccion())
   }
   con_extras <- length(extras) > 0L
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
@@ -566,6 +580,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_disponibilidad)) {
     producidas[[.malp_hoja_disponibilidad()]] <- valores_disponibilidad
+  }
+  if (!is.null(valores_produccion)) {
+    producidas[[.malp_hoja_produccion()]] <- valores_produccion
   }
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
