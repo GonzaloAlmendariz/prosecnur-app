@@ -178,6 +178,13 @@ vaults-index:
 # Existe porque «las suites que toqué» deja fuera justo a los contratos, que se
 # rompen desde otro archivo: test-errors-registry llevó tres commits en rojo.
 #   make gate-area AREA=aulas
+# El gate de un área del FRONTEND: sus suites más los contratos transversales.
+# Mismo motivo que gate-area, del otro lado: los contratos que escanean todo el
+# árbol se rompen desde otro archivo y no los corre nadie hasta el CI.
+#   make gate-front AREA=monitoreo/profiles/aulas
+gate-front:
+	@node scripts/gate-front.mjs $(AREA)
+
 gate-area:
 	@Rscript scripts/gate-area.R $(or $(AREA),aulas) $(GATE_ARGS)
 
