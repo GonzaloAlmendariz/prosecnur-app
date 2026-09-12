@@ -440,7 +440,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # mismo insumo que la pestaña de la app) con la config vigente del reparto;
   # NULL = sin disponibilidad = la hoja no juega esta publicación.
   valores_asignacion <- aulas_libro_valores_asignacion(
-    plan %||% list(), disponibilidad, cfg = config_reparto
+    plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
   # **No se reescribe una asignación que puede contradecir a la del equipo.**
   #

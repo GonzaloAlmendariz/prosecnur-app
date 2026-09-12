@@ -381,3 +381,62 @@ test_that("en el Sheets la columna del aplicador también crece con el nombre", 
   expect_gt(grande, 300L)
   expect_lte(grande, 520L)
 })
+
+# --- la columna de estado decía siempre lo mismo -----------------------------
+#
+# Medido en el operativo el 2026-09-12: las 95 filas de «ESTADO DE APLICACIÓN»
+# decían «POR APLICAR» —lunes y martes incluidos, con sus partes ya rendidos—
+# porque el valor era la cadena literal. Un rótulo que promete un estado y
+# entrega una constante es peor que no tener la columna: quien la lee cree que
+# sabe qué falta y lo que tiene delante es el reparto entero.
+
+.tla_estado_de <- function(filas, aplicador) {
+  col <- which(.ala_CABECERA == "ESTADO DE APLICACIÓN")
+  datos <- Filter(function(f) identical(f$tipo, "dato") &&
+                    length(f$celdas) >= col &&
+                    startsWith(f$celdas[[1]], aplicador), filas)
+  vapply(datos, function(f) f$celdas[[col]], character(1))
+}
+
+test_that("el estado de la jornada sale de los partes, no de una constante", {
+  # 2026-09-11 es VIERNES. Dos aulas de la misma persona el mismo día.
+  plan <- list(
+    .tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"),
+    .tla_fila("CH 2", fecha = "2026-09-11", hora = "15:00", venue = "J308")
+  )
+  disp <- list(.tla_disp("Ana Prueba"))
+
+  # Sin ningún parte: la jornada está por hacer.
+  sin <- aulas_libro_filas_asignacion(plan, disp)
+  expect_identical(.tla_estado_de(sin, "Ana Prueba"), "POR APLICAR")
+
+  # Con una de las dos rendida: la jornada va a medias, y eso se dice con su
+  # parcial — una jornada empezada es una noticia distinta de una sin empezar.
+  media <- aulas_libro_filas_asignacion(plan, disp, partes = list(
+    list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+         observed_students = 20, effective_surveys = 18)))
+  expect_identical(.tla_estado_de(media, "Ana Prueba"), "1 de 2 aplicadas")
+
+  # Y con las dos: cerrada.
+  todas <- aulas_libro_filas_asignacion(plan, disp, partes = list(
+    list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+         observed_students = 20, effective_surveys = 18),
+    list(operational_code = "CH 2", intento = 1L, estado = "aplicada",
+         observed_students = 15, effective_surveys = 12)))
+  expect_identical(.tla_estado_de(todas, "Ana Prueba"), "APLICADAS")
+})
+
+test_that("la hoja usa la definición canónica de aplicada, no una cuarta suya", {
+  # El aula que ya tiene respuestas cuenta como aplicada aunque el parte no lo
+  # declare: eso lo decide `monitoreo_aulas_aula_aplicada()` y esta hoja no
+  # puede tener su propio criterio. Se comprueba mockeándola: si la hoja
+  # consultara otra cosa, el estado no se movería.
+  plan <- list(.tla_fila("CH 1", fecha = "2026-09-11", hora = "10:00", venue = "A703"))
+  testthat::local_mocked_bindings(
+    monitoreo_aulas_aula_aplicada = function(unidades, partes = list(), efectivas = NULL) {
+      rep(TRUE, length(unidades))
+    }
+  )
+  filas <- aulas_libro_filas_asignacion(plan, list(.tla_disp("Ana Prueba")))
+  expect_identical(.tla_estado_de(filas, "Ana Prueba"), "APLICADA")
+})
