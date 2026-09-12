@@ -644,6 +644,24 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
       es_iso <- function(x) grepl("^\\d{4}-\\d{2}-\\d{2}$", x)
       if (es_iso(d1) && es_iso(d2)) list(desde = d1, hasta = d2) else NULL
     }),
+    # **Quien NO sale esta semana** (dictado 2026-09-12). El operativo pierde y
+    # gana gente de una semana a otra —la 1 salio con 19 y la 2 con 17— y hasta
+    # ahora la unica forma de dejar a alguien fuera era editar el archivo de
+    # disponibilidad y volver a cargarlo. Es una lista de NOMBRES tal como los
+    # trae la oferta; el reparto los quita antes de repartir.
+    #
+    # Los nombres se guardan como llegan, sin normalizar a la forma de mostrar:
+    # `aulas_nombre_aplicador()` es presentacion y usarla como identidad ya
+    # partio a una persona en dos en la hoja de produccion (2026-09-12). La
+    # comparacion la hace el motor con su propia clave.
+    reparto_fuera = local({
+      crudo <- config[["reparto_fuera"]]
+      if (is.null(crudo)) return(NULL)
+      v <- trimws(as.character(unlist(crudo, use.names = FALSE)))
+      v <- unique(v[!is.na(v) & nzchar(v)])
+      if (!length(v)) return(character(0))
+      v
+    }),
     # **Las fijaciones del reparto de aplicadores (B36)** — codigo de cita →
     # aplicador, la voluntad explicita del usuario sobre el greedy. Misma
     # doctrina de whitelist: sin esta entrada, fijar una cita y guardar el
