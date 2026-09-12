@@ -9,9 +9,9 @@ y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.
 | C1 | «Avance de agendación» debería considerar las aulas **extra** agendadas | `carga_aulas_libro_agendacion.R` `.calan_total`, `.calan_facultad`, `.calan_semana`, `.calan_dia` | ◐ medido |
 | C2 | La jerga de la columna **«Slots»** no es buena | `AULAS_AGENDACION_CABECERAS$facultad` + su nota al pie | ☐ |
 | C3 | ¿La agendación considera el estatus nuevo **«REFUERZO POR CONTACTAR»**? ¿Es robusta ante estatus nuevos? | `monitoreo_aulas_estados_desconocidos.R` (nuevo) + recibo del import + `AulasFuentesDelEstudio.tsx` | ☑ `4822a441` |
-| C4 | ¿«Aulas Aplicadas (Campo)» y «(Extra)» **pintan** las aulas pedidas como refuerzo? | `monitoreo_aulas_sheets_formato.R` | ☐ |
-| C5 | El **morado** del refuerzo no se ve en STATUS MUESTRA | idem C4 + `respetada` por hoja | ◐ causa identificada |
-| C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` (arreglado en código) | ◐ falta ejecutarlo |
+| C4 | ¿«Aulas Aplicadas (Campo)» y «(Extra)» **pintan** las aulas pedidas como refuerzo? | `monitoreo_aulas_formato_respetadas.R` (nuevo) | ☑ `fddb13d5` + aplicado |
+| C5 | El **morado** del refuerzo no se ve en STATUS MUESTRA | idem C4 | ☑ `fddb13d5` + aplicado |
+| C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` | ☑ `8d915b9b` + aplicado |
 | C7 | «Asignación de aplicadores» más clara, y sobre todo la **producción por aplicador** | `aulas_libro_produccion.R` (hoja nueva) + `aulas_libro_asignacion.R` | ☑ `41f1058c` `2c2e94d5` |
 | C8 | **Disponibilidad de aplicadores**: añadir los **disponibles por semana** (la 1 tenía ~21–24; ahora menos) | `carga_disponibilidad_aplicadores` + su hoja | ☐ |
 | C9 | ¿La app hace la distribución **por semana a partir de una lista dada**, nombrándola «Semana N»? | `monitoreo_aulas_distribucion_semanas.R`, `monitoreo_aulas_publicar_distribucion.R` | ◐ medido |
@@ -140,3 +140,38 @@ así que una sola aula más la rompía. Corregido en `cc14ca31`.
 un **semáforo de consistencia** que cruce el libro consigo mismo y con la app
 —agendadas contra plan, aplicadas contra partes contra plataforma, citas contra
 reparto— con su cifra a cada lado.
+
+
+## C4 y C5 · cerrados y APLICADOS al documento
+
+Gonzalo (2026-09-12): «Tienes mi go en todo y mi decisión es sí». Lo que
+bloqueaba no era el color sino la regla de dueño: una hoja `respetada` no entra
+al motor —así se protege el trabajo del equipo— y el efecto colateral era que
+**ningún formato nuevo les llegaba nunca** después de la siembra.
+
+El permiso se implementa **con un filtro, no con cuidado**
+(`monitoreo_aulas_formato_respetadas.R`): cada request pasa por `.mafr_seguro()`
+y sale sólo si declara tocar formato. Mira la **máscara `fields`**, no el tipo,
+porque el tipo no distingue — el formateador del libro manda `updateCells` de
+formato puro a diario.
+
+**Aplicado al operativo y cotejado celda a celda**: 180 requests de formato a
+las dos hojas del equipo, 0 descartados, y en la segunda pasada **0 celdas
+distintas** en «Aulas Agendadas» (295.660 caracteres) y «Aulas Aplicadas
+(Campo)» (374.053). Las reglas condicionales ya llevan **«REFUERZO POR
+CONTACTAR»** en las dos hojas.
+
+*(La primera pasada mostró una fila distinta en «Aplicadas (Campo)». No fue el
+envío: dos lecturas seguidas sin escribir nada dieron 0 diferencias y la
+segunda pasada completa también. Era el equipo editando en vivo. Se comprobó
+en vez de suponerlo, que es la diferencia entre una verificación y una excusa.)*
+
+## C6 · cerrado — y la hipótesis que le di era falsa
+
+Le dije que era un valor cacheado y que bastaba con abrir el documento. **No lo
+era.** La causa: la hoja se escribe como RECTÁNGULO y Sheets rellena las filas
+de reserva con **cadena vacía** — `COUNTA` de una fila «vacía» da 20 —. Una
+cadena vacía no es una celda vacía: `ISBLANK` la da por ocupada y `FILTER` no
+se expande. Invisible desde fuera: `values.get` devuelve `""` para las dos.
+El publicador ahora vacía el área con `values:batchClear` antes de poner la
+fórmula. Aplicado: el bloque muestra las 18 aulas del viernes.
