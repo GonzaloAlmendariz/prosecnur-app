@@ -649,3 +649,36 @@ test_that("con dos semanas vivas, la cita nueva se escribe en la pestaña de SU 
                           function(f) as.character(unlist(f))), use.names = FALSE)
   expect_false("CH 20" %in% trimws(plano1))
 })
+
+# --- el recibo dice EN QUÉ pestaña se trabajó --------------------------------
+#
+# Desde `83d98403` el Sheets de los aplicadores lleva una pestaña por semana y
+# el destino de esta sincronización lo decide la ventana pedida. El recibo
+# contaba lo que se hizo y callaba dónde: el mismo botón puede escribir en
+# «Semana 1» o en «Semana 2» y la frase salía idéntica. Con esto, mirar la
+# semana equivocada se ve en la primera línea.
+test_that("la frase del recibo nombra la hoja destino, cambie algo o no", {
+  con_cambios <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, hoja = "Semana 2",
+    anadidas = list(list(curso_horario = "CH 35")),
+    estado = list(cambios = list(), conflictos = list()),
+    sin_aplicador = list()
+  ))
+  expect_match(con_cambios, "En «Semana 2»:", fixed = TRUE)
+  # Y al anteponer el destino la frase deja de empezar la oración.
+  expect_match(con_cambios, "En «Semana 2»: se añadieron", fixed = TRUE)
+
+  en_paz <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, hoja = "Semana 2", anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()), sin_aplicador = list()
+  ))
+  expect_match(en_paz, "No hizo falta cambiar nada en «Semana 2».", fixed = TRUE)
+
+  # Sin hoja en el recibo la frase no inventa un destino ni se rompe.
+  sin_hoja <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    estado = list(cambios = list(), conflictos = list()), sin_aplicador = list()
+  ))
+  expect_match(sin_hoja, "No hizo falta cambiar nada.", fixed = TRUE)
+  expect_false(grepl("«", sin_hoja, fixed = TRUE))
+})
