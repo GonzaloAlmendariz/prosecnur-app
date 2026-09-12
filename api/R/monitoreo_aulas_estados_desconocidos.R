@@ -141,3 +141,49 @@ monitoreo_aulas_codigos_sin_plan <- function(filas, plan = list()) {
   data.frame(codigo = names(tab)[ord], filas = as.integer(tab)[ord],
              stringsAsFactors = FALSE)
 }
+
+
+# --- reservas que vuelven sin su cadena ---------------------------------------
+#
+# Medido el 2026-09-12 sobre el libro real: de las 1.392 filas que devuelve la
+# relectura, **1.173 son reservas de cadena y NINGUNA trae
+# `titular_operational_code`**. No es cosa de Sheets: el lector del `.xlsx` da
+# exactamente lo mismo, porque **el libro no guarda ese vínculo en ninguna
+# columna** — la cadena vive en la GEOMETRÍA de la hoja, un bloque por eslabón a
+# la derecha del titular, y al volverse filas se pierde de qué titular era cada
+# una.
+#
+# Consecuencias, y por eso hay que decirlo:
+# · `aulas_libro_generar()` se NIEGA a escribir un libro con reservas huérfanas
+#   —falla fuerte, que está bien—, así que **un libro releído no se puede
+#   regenerar**;
+# · y lo que cuenta por CADENA cuenta mal en silencio: en «Avance de agendación»
+#   cada reserva pasa a ser su propia cadena, y «Aulas del diseño» diría 1.392
+#   donde el diseño puso 219.
+#
+# Se DECLARA, no se adivina. El código lleva dentro la cadena («R 123.1» es de
+# «CH 123») y derivarlo sería fácil, pero eso es decidir que la convención de
+# códigos es un contrato del dominio — decisión del lead, no de un detector.
+
+#' Cuántas reservas de cadena vuelven sin saber de qué titular son.
+#'
+#' @param plan el plan reconstruido.
+#' @return lista `{reservas, sin_cadena, ejemplos}`; `sin_cadena` es 0 cuando
+#'   todo está completo.
+#' @export
+monitoreo_aulas_reservas_sin_cadena <- function(plan = list()) {
+  unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+  if (!length(unidades)) return(list(reservas = 0L, sin_cadena = 0L, ejemplos = character(0)))
+  txt <- function(u, k) trimws(as.character(u[[k]] %||% "")[1])
+  rol <- vapply(unidades, function(u) txt(u, "sample_role"), character(1))
+  es_reserva <- rol %in% "chain_reserve"
+  if (!any(es_reserva)) return(list(reservas = 0L, sin_cadena = 0L, ejemplos = character(0)))
+  tit <- vapply(unidades, function(u) txt(u, "titular_operational_code"), character(1))
+  huerfanas <- es_reserva & !nzchar(tit)
+  list(
+    reservas = as.integer(sum(es_reserva)),
+    sin_cadena = as.integer(sum(huerfanas)),
+    ejemplos = utils::head(vapply(unidades[huerfanas], function(u) txt(u, "operational_code"),
+                                  character(1)), 5L)
+  )
+}

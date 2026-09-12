@@ -114,6 +114,9 @@ aulas_libro_importar <- function(path) {
     # note el descuadre.
     # Y códigos que el plan no reconoce ni normalizando: un parte así NO cuenta
     # como aplicado y la cifra de avance baja sin que nada falle.
+    # Reservas que vuelven sin saber de qué titular son: con ellas el libro no
+    # se puede regenerar y lo que cuenta por cadena cuenta de más.
+    reservas_sin_cadena = monitoreo_aulas_reservas_sin_cadena(plan),
     codigos_sin_plan = local({
       d <- monitoreo_aulas_codigos_sin_plan(c(partes, control$filas %||% list()), plan)
       lapply(seq_len(nrow(d)),
@@ -204,6 +207,7 @@ aulas_libro_importar <- function(path) {
     agenda_campos_ausentes = out$agenda_campos_ausentes,
     estados_desconocidos = out$estados_desconocidos,
     codigos_sin_plan = out$codigos_sin_plan,
+    reservas_sin_cadena = out$reservas_sin_cadena,
     resumen = out$resumen
   ))
   out
