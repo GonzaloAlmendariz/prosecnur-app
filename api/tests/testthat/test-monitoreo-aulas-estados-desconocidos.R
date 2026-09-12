@@ -69,3 +69,50 @@ test_that("el estado por defecto del detector es el que el traductor usa", {
   expect_identical(prosecnurapp:::.maed_POR_DEFECTO,
                    monitoreo_aulas_estado_muestra("una cosa que nadie escribió jamás"))
 })
+
+# --- códigos que el plan no conoce -------------------------------------------
+#
+# La hermana del detector de estados. Medido en el operativo el 2026-09-12: 0
+# partes y 0 filas de control con el código fuera del plan, y tiene explicación
+# —esas dos hojas las siembra la app con los códigos ya puestos—. Donde sí se
+# teclean es en el Sheets de la distribución, y ahí había CINCO mal escritos.
+# Este guard existe para el día en que esa protección falle: un parte cuyo
+# código no case NO cuenta como aplicado, y la cifra de avance baja sin que
+# nada falle.
+
+test_that("con todo casando no declara nada", {
+  plan <- list(list(operational_code = "CH 1"), list(operational_code = "CH 2"))
+  partes <- list(list(operational_code = "CH 1", intento = 1L),
+                 list(operational_code = "CH 2", intento = 1L))
+  expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(partes, plan)), 0L)
+})
+
+test_that("un código que el plan no tiene se nombra, con cuántas filas", {
+  plan <- list(list(operational_code = "CH 1"))
+  partes <- list(list(operational_code = "CH 900", intento = 1L),
+                 list(operational_code = "CH 900", intento = 2L),
+                 list(operational_code = "CH 1", intento = 1L))
+  d <- monitoreo_aulas_codigos_sin_plan(partes, plan)
+  expect_equal(nrow(d), 1L)
+  expect_identical(d$codigo, "CH 900")
+  expect_identical(d$filas, 2L)
+})
+
+test_that("mal escrito NO es desconocido: son dos noticias distintas", {
+  # «CH164» con el plan en «CH 164» es una celda que se arregla, no un dato de
+  # otro estudio. Confundirlas mandaría a buscar un aula que está ahí — la
+  # misma separación que hace el detector de la hoja de distribución.
+  plan <- list(list(operational_code = "CH 164"))
+  expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(
+    list(list(operational_code = "CH164", intento = 1L)), plan)), 0L)
+  expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(
+    list(list(operational_code = "ch 164", intento = 1L)), plan)), 0L)
+})
+
+test_that("sin plan no declara a todo el mundo desconocido", {
+  # Sin plan no hay con qué comparar, y decir que TODO es desconocido sería un
+  # aviso que grita en cada importación sobre datos correctos.
+  partes <- list(list(operational_code = "CH 1", intento = 1L))
+  expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(partes, list())), 0L)
+  expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(list(), list())), 0L)
+})

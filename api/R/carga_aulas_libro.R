@@ -112,6 +112,13 @@ aulas_libro_importar <- function(path) {
     # como trabajo pendiente. Es la avería que B13b documentó para «EN
     # CONTACTO» y «RECHAZO»; esto la hace visible sin esperar a que alguien
     # note el descuadre.
+    # Y códigos que el plan no reconoce ni normalizando: un parte así NO cuenta
+    # como aplicado y la cifra de avance baja sin que nada falle.
+    codigos_sin_plan = local({
+      d <- monitoreo_aulas_codigos_sin_plan(c(partes, control$filas %||% list()), plan)
+      lapply(seq_len(nrow(d)),
+             function(i) list(codigo = d$codigo[[i]], filas = as.integer(d$filas[[i]])))
+    }),
     estados_desconocidos = local({
       d <- monitoreo_aulas_estados_muestra_desconocidos(
         vapply(plan, function(u) .monitoreo_scalar(u[["sample_status"]], ""),
@@ -196,6 +203,7 @@ aulas_libro_importar <- function(path) {
     control_sin_nombre = out$control_sin_nombre,
     agenda_campos_ausentes = out$agenda_campos_ausentes,
     estados_desconocidos = out$estados_desconocidos,
+    codigos_sin_plan = out$codigos_sin_plan,
     resumen = out$resumen
   ))
   out

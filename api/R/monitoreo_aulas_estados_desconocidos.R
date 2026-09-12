@@ -90,3 +90,54 @@ monitoreo_aulas_estados_desconocidos_texto <- function(desconocidos) {
                 "a la cola de llamadas: %s."),
           nrow(desconocidos), paste(piezas, collapse = "; "))
 }
+
+
+# --- códigos que el plan no conoce -------------------------------------------
+#
+# La hermana del detector de estados, y por el mismo motivo: lo que el libro
+# trae y la app no sabe emparejar hay que decirlo, no dejarlo caer.
+#
+# Medido en el operativo el 2026-09-12: **0 partes y 0 filas de control** con el
+# código fuera del plan, y tiene explicación —esas dos hojas las siembra la app
+# con los códigos ya puestos, así que el equipo no los teclea—. Donde sí se
+# teclean es en el Sheets de la distribución, y ahí había CINCO mal escritos.
+# Este detector existe para el día en que esa protección falle: un parte cuyo
+# código no case NO cuenta como aplicado, y ese día la cifra de avance baja sin
+# que nada falle.
+
+#' Los códigos de una lista de filas que el plan no reconoce.
+#'
+#' Compara por una clave que colapsa espacios y mayúsculas, así que «CH164» no
+#' se declara desconocido si el plan tiene «CH 164»: eso es otra cosa —una
+#' celda mal escrita— y confundirlas mandaría a buscar un aula que está ahí.
+#'
+#' @param filas partes o filas de control.
+#' @param plan el plan de la sesión.
+#' @return `data.frame` de dos columnas, `codigo` y `filas`; cero filas si todo
+#'   casa.
+#' @export
+monitoreo_aulas_codigos_sin_plan <- function(filas, plan = list()) {
+  vacio <- data.frame(codigo = character(0), filas = integer(0),
+                      stringsAsFactors = FALSE)
+  filas <- filas %||% list()
+  if (!length(filas)) return(vacio)
+  unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+  if (!length(unidades)) return(vacio)
+  clave <- function(x) toupper(gsub("[[:space:]]+", "", trimws(as.character(x %||% "")[1])))
+  conocidos <- unique(vapply(unidades, function(u) {
+    clave(u[["operational_code"]] %||% u[["classroom_id"]])
+  }, character(1)))
+  conocidos <- conocidos[nzchar(conocidos)]
+
+  cods <- vapply(filas, function(f) {
+    trimws(as.character((f[["operational_code"]] %||% f[["classroom_id"]] %||% "")[1]))
+  }, character(1))
+  cods <- cods[!is.na(cods) & nzchar(cods)]
+  if (!length(cods)) return(vacio)
+  fuera <- cods[!(vapply(cods, clave, character(1), USE.NAMES = FALSE) %in% conocidos)]
+  if (!length(fuera)) return(vacio)
+  tab <- table(fuera)
+  ord <- order(-as.integer(tab), names(tab))
+  data.frame(codigo = names(tab)[ord], filas = as.integer(tab)[ord],
+             stringsAsFactors = FALSE)
+}
