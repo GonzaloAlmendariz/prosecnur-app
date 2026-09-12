@@ -448,6 +448,52 @@ opts.direcciones)` corre entero antes de la captura). Las vistas se piden por
 `--route` con query, que es para lo que existe la regla de que toda vista sea
 enlazable.
 
+## Las tres familias bloqueadas, medidas (tick 44)
+
+16 vistas. Las tres que el defecto de readiness dejaba fuera del gate ya miden y
+aprueban con `--require-geometry --fail-on-issues`:
+
+| familia | vistas | resultado | grupos de geometría |
+|---|---|---|---|
+| territorial | 6 | 1 issue, arreglado y reverificado | 6 |
+| acreditación | 5 | **ok=true, 0 issues** | 10 |
+| telefónico | 5 | **ok=true, 0 issues** | 6 |
+
+En las tres: 0 pageErrors, 0 apiErrors, 0 resourceErrors, 0 scrollJails, 0
+derrames, 0 desbordes, 0 geometryIssues, 0 geometryCoverageMisses.
+
+### El defecto que el gate NO cazó, y salió de mirar la captura
+
+En Validación territorial, «Cargando cartografia» y «Completando cartografia
+local» se anclaban en `top:10px; right:10px` — la misma esquina que
+`.mon-territorial-map-tools`, que lleva `z-index: 4`. La barra de zoom se les
+montaba encima y sólo asomaban **dos letras** («Co»). El usuario ve un mapa a
+medias y la explicación está debajo del control.
+
+`ui-quick-check` reportó **`solapes=0`**. Arreglado en `36b4d5ed` (los dos a
+`top: 58px`) con guard propio que lee el CSS, porque **un detector que no lo vio
+no puede ser el único que lo vigile**. Mutante muerto.
+
+**Esto acota lo que el gate visual prueba**: mide recortes, derrames, desbordes,
+scroll jails y consistencia geométrica de los grupos declarados. NO cazó dos
+elementos absolutos superpuestos en la misma esquina. Un `ok=true` es una cota
+inferior de calidad, no un certificado — las capturas siguen valiendo la pena
+mirarlas.
+
+### Lo que se ve en las capturas y es decisión suya
+
+En Validación territorial, «RECONCILIACIÓN UMP — **Sin sospechas espaciales**»
+encabeza una lista donde UMP 1, 2 y 3 muestran «8 fuera distrito», «10 fuera
+distrito», «8 fuera distrito» en rojo. Son dos comprobaciones distintas —el GPS
+sugiere otra UMP vs el punto cae fuera del distrito— pero se leen como una
+contradicción. Misma familia que las tres cifras de «¿qué falta?» en Avance.
+
+### Trampa del método, propia
+
+Revertí un mutante con `git checkout --` sobre un archivo que **ya tenía mi
+arreglo sin commitear**, y me llevé por delante el arreglo junto con el mutante.
+Para deshacer un mutante hay que revertir LA LÍNEA, no el archivo.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
