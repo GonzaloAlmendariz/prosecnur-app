@@ -172,6 +172,27 @@ el 66 % del alto porque lista 15 filas + el mando + las dos lecturas. Si hay que
 tocar algo de diseño, es ése: **el orden de lectura es correcto —propone,
 decide, rinde cuentas— pero la proporción no lo acompaña.**
 
+## Las tarjetas del Resumen, barridas (2026-09-12, con el build al día)
+
+**7 tarjetas, las 7 leen la fuente que su rótulo promete.** Efectivas 1.390 =
+`respuestas_validas`; los dos avances cuadran con su división (55,6 % y 37,1 %);
+planificados **174** = titulares del plan, ya corregido.
+
+**El matiz que queda, y es decisión de contenido, no defecto**: «CURSOS-HORARIO
+APLICADOS · 75» y «PLANIFICADOS · 174 · titulares del plan» están una al lado de
+la otra e invitan a leer **75/174 como una tasa**, y no lo es — el numerador y
+el denominador son poblaciones distintas. Medido sobre el operativo:
+
+| Cifra | Qué cuenta |
+|---|---|
+| **75** | con parte **o** con respuestas (lo dice su subtítulo) |
+| **74** | con respuestas: 73 titulares + 1 reserva de cadena |
+| **73** | titulares con respuestas (`rol.titulares.aplicado`) |
+
+Las tres son correctas para su definición y la tarjeta declara la suya. Lo que
+no hay es una pareja numerador/denominador del mismo grano. Emparejarla —75 con
+el total de lo aplicable, o 73 con 174— es decisión de Gonzalo.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
