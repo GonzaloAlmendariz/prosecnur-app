@@ -528,3 +528,50 @@ caché.
 mirar esa celda. Google recalcula al abrir. Si se arregla sola, era eso; si
 sigue en `#REF!` con la fórmula y el área que acabamos de comprobar, entonces sí
 hay algo que no entendemos y merece volver.
+
+## Un singular que se hizo plural deja consumidores atrás
+
+La clase más rentable del cierre. `83d98403` hizo que el Sheets de los
+aplicadores llevara **una pestaña por semana**. El productor quedó bien; los
+consumidores que leían «la hoja» en singular, no. Aparecieron **cinco**, uno
+por uno y a lo largo de varias horas:
+
+| # | Dónde | Qué hacía mal | Commit |
+|---|---|---|---|
+| 1 | publicar la distribución | el aviso decía cuántas citas, no qué semana quedó sin tocar | `72f31ddb` |
+| 2 | sincronizar | el recibo contaba qué hizo y callaba en qué pestaña | `f33ee814` |
+| 3 | `pestanas_ajenas` | restaba contra la PRIMERA: «Semana 2» salía declarada ajena | `5e9b4fe6` |
+| 4 | `filas_del_equipo` | leía sólo la primera: lo escrito en la 2 no entraba al análisis | `5e9b4fe6` |
+| 5 | **la adopción** | fijaba sólo la semana 1, así que el sorteo podía **mover la 2** | `7df233cc` |
+
+El quinto es el caro: adoptar es lo que congela el reparto para que agendar un
+aula nueva no reordene asignaciones ya comunicadas a las diecinueve personas.
+Leyendo una sola pestaña, ese blindaje cubría media operación.
+
+**Cómo se busca, y es mecánico:** cuando un cambio convierte un singular en
+plural, `grep` del nombre viejo (`hoja`, `$hoja`, `.mapd_hoja()`) y visitar a
+TODOS los que lo consumían. El productor no es el trabajo; el barrido sí. Y el
+apilado dejó de estar inline: `monitoreo_aulas_distribucion_valores(id, hojas)`
+es el único sitio donde vive, para que el sexto consumidor no pueda nacer
+distinto.
+
+Emparenta con «cambié lo que el sistema hace y no cambié lo que el sistema
+cuenta»: tres de los cinco eran exactamente eso.
+
+## El `#REF!` del «Plan del día»: un error puede ser un recuerdo
+
+Cerrado el 2026-09-12 con el mensaje literal de Google, no con una hipótesis.
+`effectiveValue.errorValue.message` decía **«Array result was not expanded
+because it would overwrite data in B4»** — y B4 estaba vacía (sin
+`userEnteredValue`), la hoja sin merges (0) ni rangos protegidos (0), y el día
+elegido cabía: 18 filas para una reserva de 24.
+
+`FILTER` no es volátil: mientras ninguna entrada cambie, Google sirve el
+resultado cacheado. **Abrir el documento no recalcula** — que era la salida que
+yo había supuesto y le dije al lead, y era falsa. Reescribir la misma fórmula
+tampoco basta (Sheets ve el mismo contenido): hay que **vaciar la celda y
+volver a ponerla**. `32030b5b` lo hace, pero sólo cuando ya vio un error.
+
+**La receta cara, para no repetirla**: pedirle a Sheets el motivo se hace con
+`?includeGridData=true&ranges=<A1>&fields=sheets(data(rowData(values(effectiveValue))))`.
+`values.get` sólo devuelve `#REF!` como texto y no dice por qué.
