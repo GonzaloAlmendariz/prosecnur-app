@@ -179,6 +179,13 @@ export function avisoLibroPublicado(res: {
   destino_guardado?: boolean;
   lectura_previa?: LecturaPreviaDelLibro | null;
   adopcion_distribucion?: AdopcionDeLaDistribucion | null;
+  /**
+   * Hojas de la APP que salieron con bastante menos contenido del que tenían.
+   * Vacío es lo normal. Con entradas hay que mirar: el 2026-09-12 una
+   * publicación dejó «Base de control» sin 3.555 celdas y el recibo dijo
+   * «actualizada» igual — encoger y actualizar se veían lo mismo.
+   */
+  encogidas?: ReadonlyArray<{ hoja: string; antes: number; ahora: number }> | null;
 }): { texto: string; tono: TonoAviso } {
   const hojas = res.hojas ?? [];
   if (!hojas.length) {
@@ -190,10 +197,23 @@ export function avisoLibroPublicado(res: {
   }
   const lectura = fraseDeLecturaPrevia(res.lectura_previa);
   const adopcion = fraseDeAdopcion(res.adopcion_distribucion);
+  const encogidas = (res.encogidas ?? []).filter((e) => e && e.antes > e.ahora);
   const partes = [
     ...(lectura.texto ? [lectura.texto] : []),
     ...(adopcion.texto ? [adopcion.texto] : []),
     `Libro publicado: ${hojas.map(fraseDeHoja).join(" · ")}.`,
+    // **Lo que encogió va con sus dos cifras.** «Se actualizó» sobre una hoja
+    // que perdió la mitad del contenido es cierto y es inútil: lo que hay que
+    // poder decidir es si tocaba revisar antes de que alguien lo note solo.
+    ...(encogidas.length
+      ? [
+          `${encogidas.length === 1 ? "Una hoja salió" : `${encogidas.length} hojas salieron`} con bastante menos contenido del que tenía: ` +
+            encogidas
+              .map((e) => `«${e.hoja}» de ${cuenta(e.antes, "fila", "filas")} a ${cuenta(e.ahora, "fila", "filas")}`)
+              .join("; ") +
+            ". Conviene mirarlas antes de darlas por buenas.",
+        ]
+      : []),
   ];
   if (res.destino_guardado) {
     partes.push("El enlace quedó guardado: leer y publicar lo usarán sin volver a pedirlo.");
@@ -202,7 +222,10 @@ export function avisoLibroPublicado(res: {
   // adopción fallida —que deja «Asignación de aplicadores» contradiciendo a la
   // hoja de los 22— se pintaba en verde porque la lectura del libro sí había
   // ido bien, y eso es exactamente cómo un aviso deja de mirarse.
-  const tono: TonoAviso = lectura.tono === "atencion" || adopcion.tono === "atencion"
+  // Y una hoja que encogió pesa igual que los otros dos: es lo que puede
+  // haber perdido trabajo.
+  const tono: TonoAviso = encogidas.length ||
+    lectura.tono === "atencion" || adopcion.tono === "atencion"
     ? "atencion"
     : lectura.tono;
   return { texto: partes.join(" "), tono };

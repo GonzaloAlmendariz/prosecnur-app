@@ -205,3 +205,27 @@ describe("la adopción de la hoja de los aplicadores se dice", () => {
     expect(texto).not.toContain("adoptó");
   });
 });
+
+describe("las hojas que encogen", () => {
+  it("las nombra con sus dos cifras y pone el aviso en atención", () => {
+    // El 2026-09-12 una publicación dejó «Base de control» sin 3.555 celdas y
+    // el recibo dijo «actualizada» igual: encoger y actualizar se veían lo
+    // mismo, que es lo que hace que nadie mire.
+    const { texto, tono } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 40 }],
+      encogidas: [{ hoja: "Base de control", antes: 88, ahora: 40 }],
+    });
+    expect(texto).toContain("«Base de control» de 88 filas a 40 filas");
+    expect(texto).toContain("menos contenido");
+    expect(tono).toBe("atencion");
+  });
+
+  it("sin ninguna, ni una palabra de más", () => {
+    const { texto, tono } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 40 }],
+      encogidas: [],
+    });
+    expect(texto).not.toContain("menos contenido");
+    expect(tono).toBe("ok");
+  });
+});
