@@ -575,3 +575,38 @@ volver a ponerla**. `32030b5b` lo hace, pero sólo cuando ya vio un error.
 **La receta cara, para no repetirla**: pedirle a Sheets el motivo se hace con
 `?includeGridData=true&ranges=<A1>&fields=sheets(data(rowData(values(effectiveValue))))`.
 `values.get` sólo devuelve `#REF!` como texto y no dice por qué.
+
+## Barrido: qué hojas del libro mandan sus cifras como TEXTO
+
+La regla la escribe «Avance de agendación» en su propio código: «las cifras
+viajan como NÚMEROS, no como texto, para que el Sheets pueda ordenarlas y
+sumarlas». «Producción de aplicadores» la incumplía y **sólo se vio mirando el
+documento publicado** — sus tests del constructor pasaban con las dos formas.
+Barrido sobre el libro real, celdas que parecen número:
+
+| hoja | números | texto-que-es-número | causa |
+|---|---|---|---|
+| Avance de agendación | 437 | **0** | correcta |
+| Producción de aplicadores | — | 122 | **arreglado** (`37804401`) |
+| Plan del día | 0 | 315 | **el motor las emite como texto** |
+| Asignación de aplicadores | 0 | 74 | el motor las emite como texto |
+| Disponibilidad de aplicadores | 0 | 168 | el motor las emite como texto |
+| Base de control | 0 | 3.516 | **mi restauración con RAW** |
+| Avance de campo | 0 | 1.261 | **mi restauración con RAW** |
+
+**Las dos últimas son consecuencia mía y hay que decirlo.** Al restaurarlas
+desde el respaldo escribí con `valueInputOption=RAW` y el respaldo guardaba
+valores FORMATEADOS —cadenas—, así que el contenido volvió intacto y el TIPO
+no: lo que eran números quedaron como texto. La reparación arregló lo que se
+midió y degradó lo que no se estaba mirando. **El arreglo limpio es publicar el
+libro desde la sesión de la app**, que regenera esas hojas con sus tipos.
+
+Las tres del medio son del motor y están **medidas, no arregladas**: cambiarlas
+toca `data.frame`s de columnas de texto que alimentan también el `.xlsx`, y
+«Plan del día» es la hoja que el operativo abre cada mañana. Su valor marginal
+es poder ordenar y sumar una columna que ya lleva su fila de totales. Se deja
+declarado para decidirlo con el lead, no se toca de oficio.
+
+**La lección del tick**: un entregable se verifica DONDE se usa. El test del
+constructor pasaba con las dos formas, y el defecto sólo existía en el
+documento.
