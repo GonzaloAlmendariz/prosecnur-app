@@ -204,6 +204,9 @@ aulas_libro_importar_valores <- function(hojas = list()) {
 #'   genera la app, que es el caso normal: el equipo sube ese archivo a Drive
 #'   y trabaja sobre el.
 #' @return lista de `values` por clave, lista para `aulas_libro_importar_valores()`.
+#'   Lleva el atributo `fallos`: las pestañas que NO se pudieron leer por un
+#'   motivo que no es «no existe», cada una con su mensaje. Una pestaña ausente
+#'   y una que fallo por red no son lo mismo y antes se contaban igual.
 #' @export
 aulas_libro_leer_de_sheets <- function(spreadsheet_id, pestanas = list()) {
   id <- as.character(spreadsheet_id %||% "")[1]
@@ -228,11 +231,33 @@ aulas_libro_leer_de_sheets <- function(spreadsheet_id, pestanas = list()) {
   nombres <- utils::modifyList(por_defecto, as.list(pestanas %||% list()))
 
   out <- list()
+  # **«No existe» y «no se pudo leer» NO son lo mismo, y se estaban contando
+  # igual.** Cualquier error —red caida, cuota de la API, permiso revocado,
+  # token vencido— se tragaba con `NULL` y la pestaña acababa en
+  # `hojas_ausentes`, donde la UI dice «no esta en el libro». Es peor que
+  # callar: manda a mirar el Sheets cuando lo que habia que hacer era
+  # reintentar, y si la pestaña era «Aulas Aplicadas (Campo)» el parte entero
+  # desaparece de la lectura sin una sola alarma.
+  #
+  # Los fallos viajan como ATRIBUTO para no cambiar la firma de una funcion con
+  # consumidores; quien los quiera, `attr(x, "fallos")`.
+  fallos <- list()
   for (clave in names(por_defecto)) {
     pestana <- as.character(nombres[[clave]] %||% "")[1]
     if (!nzchar(trimws(pestana))) next
-    valores <- tryCatch(.cads_valores_de_pestana(id, pestana), error = function(e) NULL)
-    if (!is.null(valores) && length(valores)) out[[clave]] <- valores
+    valores <- tryCatch(.cads_valores_de_pestana(id, pestana),
+                        error = function(e) structure(list(), fallo = conditionMessage(e)))
+    motivo <- attr(valores, "fallo")
+    if (!is.null(motivo)) {
+      # **Si no se sabe clasificar, es un fallo.** La pestaña que no existe se
+      # reconoce porque la API se queja del RANGO; cualquier otra cosa —o algo
+      # que no sepamos leer— se reporta, que es fallar cerrado.
+      if (!grepl("unable to parse range|no such sheet|rango", motivo, ignore.case = TRUE)) {
+        fallos[[length(fallos) + 1L]] <- list(clave = clave, pestana = pestana, motivo = motivo)
+      }
+      next
+    }
+    if (length(valores)) out[[clave]] <- valores
   }
-  out
+  structure(out, fallos = fallos)
 }

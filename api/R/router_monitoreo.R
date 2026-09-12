@@ -5285,6 +5285,10 @@ mount_monitoreo <- function(pr) {
         ok = TRUE,
         resumen = out$resumen,
         hojas_ausentes = out$hojas_ausentes,
+        # Las que NO se pudieron leer, aparte de las ausentes: una pestaña que
+        # cayo por cuota o por red no es una hoja que falte, y decirlo igual
+        # manda a mirar el Sheets cuando tocaba reintentar.
+        hojas_con_fallo = out$hojas_con_fallo %||% list(),
         control_sin_nombre = out$control_sin_nombre,
         # `aulas_libro_importar_en_sesion()` calcula las dos y la respuesta las
         # dejaba morir aqui. Es el tercer caso del mismo patron en este mismo
@@ -5361,6 +5365,10 @@ mount_monitoreo <- function(pr) {
         ok = TRUE,
         resumen = out$resumen,
         hojas_ausentes = out$hojas_ausentes,
+        # Las que NO se pudieron leer, aparte de las ausentes: una pestaña que
+        # cayo por cuota o por red no es una hoja que falte, y decirlo igual
+        # manda a mirar el Sheets cuando tocaba reintentar.
+        hojas_con_fallo = out$hojas_con_fallo %||% list(),
         control_sin_nombre = out$control_sin_nombre,
         fusion = out$fusion,
         agenda_campos_ausentes = out$agenda_campos_ausentes,
