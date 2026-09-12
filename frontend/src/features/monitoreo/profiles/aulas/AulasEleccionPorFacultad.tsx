@@ -77,8 +77,10 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
               <b>{facultadCorta(f.facultad)}</b>
               <em>
                 debe {fmt(f.debe)}
-                {f.elegidas ? ` · ${fmt(f.elegidas)} pedidas` : ""}
-                {f.hacenFalta > 0 ? ` · ${fmt(f.hacenFalta)} la cierran`
+                {/* El verbo concuerda con el número: «1 pedidas» y «1 la cierran»
+                    salían así con los 15 refuerzos reales dentro. */}
+                {f.elegidas ? ` · ${fmt(f.elegidas)} ${f.elegidas === 1 ? "pedida" : "pedidas"}` : ""}
+                {f.hacenFalta > 0 ? ` · ${fmt(f.hacenFalta)} la ${f.hacenFalta === 1 ? "cierra" : "cierran"}`
                   : f.hacenFalta < 0 ? " · su inventario no alcanza" : ""}
               </em>
             </button>
