@@ -107,6 +107,18 @@ aulas_libro_importar <- function(path) {
     # que ningun titulo bautiza. Un «TELEFONO DE DOCENTE» renombrado a «CELULAR»
     # se leia vacio en silencio.
     agenda_campos_ausentes = as.list(attr(plan, "campos_ausentes") %||% character(0)),
+    # **Y estatus que la app no sabe leer.** Caen en `sin_contactar` sin avisar,
+    # o sea que un aula ya gestionada vuelve a la cola de llamadas y se cuenta
+    # como trabajo pendiente. Es la avería que B13b documentó para «EN
+    # CONTACTO» y «RECHAZO»; esto la hace visible sin esperar a que alguien
+    # note el descuadre.
+    estados_desconocidos = local({
+      d <- monitoreo_aulas_estados_muestra_desconocidos(
+        vapply(plan, function(u) .monitoreo_scalar(u[["sample_status"]], ""),
+               character(1), USE.NAMES = FALSE))
+      lapply(seq_len(nrow(d)),
+             function(i) list(valor = d$valor[[i]], filas = as.integer(d$filas[[i]])))
+    }),
     resumen = list(
       unidades = length(plan),
       titulares = as.integer(titulares),
@@ -183,6 +195,7 @@ aulas_libro_importar <- function(path) {
     hojas_ausentes = out$hojas_ausentes,
     control_sin_nombre = out$control_sin_nombre,
     agenda_campos_ausentes = out$agenda_campos_ausentes,
+    estados_desconocidos = out$estados_desconocidos,
     resumen = out$resumen
   ))
   out
