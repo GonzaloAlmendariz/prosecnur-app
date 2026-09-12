@@ -393,6 +393,33 @@ tres alternativas en `Acreditacion/TelefonicoSourcesModel.ts`) no existe en
 `api/R`. No hace daño porque `sourceId` siempre viene de `source.id`; si algún
 día llegara vacío, `"" === ""` casaría con el primer candidato que hubiera.
 
+## La geometría declarada, medida con los DOS mecanismos (tick 43)
+
+El tick 41 dijo «territorial: 0 de 15 declaran geometría» contando sólo
+`data-qa-geometry-capacity`. **Esa cifra estaba sesgada**: hay dos mecanismos y el
+gate acepta los dos. Con ambos:
+
+| familia | `-capacity` | `-group` | `-member` |
+|---|---|---|---|
+| aulas | 79 | 19 | 78 |
+| territorial | **0** | 2 | 1 |
+| acreditación | 4 | 5 | 5 |
+| telefónico | **0** | 1 | 0 |
+
+Y el detalle que importa: el grupo que hace aprobar a territorial es
+`monitoring-workbench-rows`, declarado en **`components/MonitoreoWorkbenchChrome.tsx`
+—el chrome compartido—**, no en ninguna vista de territorial. El gate comprueba de
+verdad que las filas del workbench sean consistentes entre sí (contrato
+`intrinsic`, tolerancia 2 px), y eso es genuino; pero **ningún panel de territorial
+declara su propia capacidad**. Aprobar el gate y estar instrumentado no son lo
+mismo, y ahora está medido en vez de intuido.
+
+**Nota de método, tercera vez en tres ticks**: cada cifra que publiqué sobre
+cobertura salió sesgada por contar UN patrón donde había varios —`*.contract.test.ts`
+frente a `*Contract.test.ts`, `"literal"` frente al nombre desnudo en R, y ahora
+`-capacity` frente a `-group`—. Antes de publicar un conteo de cobertura, enumerar
+primero los mecanismos que cuentan como cobertura.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
