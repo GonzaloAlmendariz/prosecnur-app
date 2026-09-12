@@ -62,10 +62,21 @@
     lec <- monitoreo_aulas_leer_distribucion(id)
     hoja <- .monitoreo_scalar(lec$hoja, "")
     if (!nzchar(hoja)) return(vacio("sin_hoja"))
-    remoto <- .cads_valores_de_pestana(id, hoja)
+    # **TODAS las semanas, no la primera.** Adoptar es lo que CONGELA el
+    # reparto: cada fila del documento se vuelve una fijación y el motor deja
+    # de reordenarla. Leyendo sólo «Semana 1», las asignaciones de la semana 2
+    # —ya comunicadas a las diecinueve personas— quedaban sin fijar y una
+    # republicación podía moverlas, que es justo el defecto que la adopción
+    # existe para impedir.
+    hojas <- lec$hojas %||% list()
+    if (!length(hojas)) hojas <- hoja
+    remoto <- monitoreo_aulas_distribucion_valores(id, hojas)
     if (length(remoto) < 2L) return(vacio("hoja_vacia"))
     fij <- monitoreo_aulas_fijaciones_desde_distribucion(remoto, plan, .malp_roster(s))
     list(ok = TRUE, omitida = FALSE, motivo = "", error = "", hoja = hoja,
+         # Las que de verdad se leyeron: decir «Semana 1» cuando se adoptaron
+         # dos es contar la mitad de lo que se hizo.
+         hojas = as.list(as.character(unlist(hojas, use.names = FALSE))),
          fijadas = fij$fijadas %||% list(),
          aplicadores_desconocidos = fij$aplicadores_desconocidos %||% character(0))
   }, error = function(e) vacio("error", conditionMessage(e)))

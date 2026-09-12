@@ -116,8 +116,26 @@ export type AdopcionDeLaDistribucion = {
   motivo?: string;
   error?: string;
   hoja?: string;
+  /** Todas las pestañas de las que se adoptó, una por semana. */
+  hojas?: string[] | null;
   adoptadas?: number;
 };
+
+/**
+ * Cómo se nombra el destino de la adopción.
+ *
+ * Con una pestaña por semana, decir «Semana 1» cuando se congelaron dos es
+ * contar la mitad de lo que se hizo — y la mitad que falta es justamente la
+ * que las diecinueve personas ya tienen leída.
+ */
+function dondeSeAdoptó(ad: AdopcionDeLaDistribucion): string {
+  const hojas = (ad.hojas ?? []).map((h) => String(h).trim()).filter(Boolean);
+  if (hojas.length > 1) {
+    return `${hojas.slice(0, -1).map((h) => `«${h}»`).join(", ")} y «${hojas[hojas.length - 1]}»`;
+  }
+  const una = hojas[0] ?? String(ad.hoja ?? "").trim();
+  return una ? `«${una}»` : "la hoja de los aplicadores";
+}
 
 /**
  * La frase de la adopción, o vacía cuando el recibo no la trae.
@@ -136,7 +154,7 @@ export function fraseDeAdopcion(ad: AdopcionDeLaDistribucion | null | undefined)
   if (ad.ok) {
     const n = Number(ad.adoptadas ?? 0);
     return {
-      texto: `Se adoptó lo que el coordinador dejó escrito en «${ad.hoja || "la hoja de los aplicadores"}»: ${cuenta(n, "asignación", "asignaciones")}, que el sorteo ya no mueve.`,
+      texto: `Se adoptó lo que el coordinador dejó escrito en ${dondeSeAdoptó(ad)}: ${cuenta(n, "asignación", "asignaciones")}, que el sorteo ya no mueve.`,
       tono: "ok",
     };
   }
