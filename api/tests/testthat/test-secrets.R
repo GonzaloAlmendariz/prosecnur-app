@@ -22,10 +22,27 @@ test_that("un secreto escrito con el esquema viejo se abre y se migra solo", {
   skip_if_not_installed("openssl")
   nombre <- "prueba_migracion_clave"
   on.exit(prosecnur_secret_clear(nombre), add = TRUE)
+  # **La clave legada se PINEA para este test, y por el mismo motivo que existe
+  # el test de arriba.** La derivación legada mira `nodename`, que en macOS
+  # cambia al cambiar de red — es el fallo del 2026-09-08. En una corrida
+  # completa de la suite (~1 h) eso pasa de verdad: si el nombre de la máquina
+  # cambia entre la escritura y la lectura, las dos mitades usan claves
+  # distintas y el test sale rojo con el texto descifrado en basura. Medido el
+  # 2026-09-12: rojo en la corrida completa, verde al correr el fichero solo.
+  #
+  # Lo que este test comprueba es la MIGRACIÓN —abrir con la clave vieja y
+  # re-cifrar con la de la instalación—, no la estabilidad del hostname. Con la
+  # clave legada pineada, la migración se prueba igual y el rojo aleatorio
+  # desaparece; un rojo que aparece y se va enseña a ignorar el fichero, y éste
+  # es justo el que guarda el incidente que tumbó todos los conectores en pleno
+  # campo.
+  clave_legada <- prosecnurapp:::.derive_key_legado()
+  local_mocked_bindings(.derive_key_legado = function() clave_legada)
+
   # Se escribe a mano con la clave LEGADA, como estaban los secretos en disco.
   iv <- openssl::rand_bytes(16L)
   ct <- openssl::aes_cbc_encrypt(charToRaw("token-viejo"),
-                                 key = prosecnurapp:::.derive_key_legado(), iv = iv)
+                                 key = clave_legada, iv = iv)
   con <- file(prosecnurapp:::.secret_path(nombre), open = "wb")
   writeBin(c(iv, as.raw(ct)), con); close(con)
 
