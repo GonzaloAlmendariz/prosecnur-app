@@ -189,6 +189,11 @@ monitoreo_aulas_reparto_por_semana <- function(rep, inicio) {
 #' @export
 monitoreo_aulas_reparto_de_config <- function(plan, disponibilidad, cfg = list()) {
   cfg <- if (is.list(cfg)) cfg else list()
+  # **Quien no sale esta semana se quita ANTES de repartir**, no después: si el
+  # greedy ya le asignó citas, quitarlas después deja huecos en vez de
+  # repartirlas entre los que sí salen, que es lo que hace falta.
+  disponibilidad <- monitoreo_aulas_disponibilidad_sin(
+    disponibilidad, cfg[["reparto_fuera"]])
   monitoreo_aulas_reparto(
     plan, disponibilidad,
     fijadas = cfg[["reparto_fijado"]] %||% list(),
@@ -197,6 +202,35 @@ monitoreo_aulas_reparto_de_config <- function(plan, disponibilidad, cfg = list()
     semilla = cfg[["reparto_semilla"]] %||% 0L,
     concentrado = if (is.null(cfg[["reparto_concentrado"]])) TRUE else isTRUE(cfg[["reparto_concentrado"]])
   )
+}
+
+#' La oferta sin las personas que no salen esta semana.
+#'
+#' Los nombres se comparan por una clave que ignora coma, tildes y mayúsculas:
+#' el nombre llega tecleado —de la config, de la UI o del libro— y compararlo
+#' tal cual dejaría fuera a nadie por una tilde. Es la misma lección que partió
+#' a una persona en dos en la hoja de producción (2026-09-12).
+#'
+#' @param disponibilidad la oferta cargada.
+#' @param fuera nombres que no salen; `NULL` o vacío devuelve la oferta intacta.
+#' @return la oferta sin esas personas.
+#' @export
+monitoreo_aulas_disponibilidad_sin <- function(disponibilidad, fuera = NULL) {
+  fuera <- trimws(as.character(unlist(fuera %||% character(0), use.names = FALSE)))
+  fuera <- fuera[nzchar(fuera)]
+  if (!length(fuera) || !is.list(disponibilidad) || !length(disponibilidad)) {
+    return(disponibilidad)
+  }
+  clave <- function(x) {
+    k <- tolower(trimws(as.character(x %||% "")[1]))
+    k <- iconv(k, to = "ASCII//TRANSLIT")
+    if (is.na(k)) return("")
+    trimws(gsub("[[:space:]]+", " ", gsub("[^a-z ]", " ", k)))
+  }
+  vetados <- vapply(fuera, clave, character(1), USE.NAMES = FALSE)
+  Filter(function(p) {
+    !(clave((p %||% list())[["nombre"]]) %in% vetados)
+  }, disponibilidad)
 }
 
 #' La pestaña donde toca sincronizar, según la ventana que se pide.
