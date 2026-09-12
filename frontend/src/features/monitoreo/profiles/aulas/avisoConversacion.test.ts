@@ -209,3 +209,35 @@ describe("avisoConversacion", () => {
     expect(res?.texto).toContain("no dijo qué pasó con cada hoja");
   });
 });
+
+/**
+ * El bloque «Plan del día» roto se DICE.
+ *
+ * El 2026-09-12 el recibo declaraba «Plan del día: actualizada» mientras la
+ * celda del área estaba en `#REF!` — el bloque que contesta «qué toca hoy»— y
+ * sólo se vio abriendo el documento diez horas después. Desde `de73f2e3` el
+ * publicador lee la celda que escribe y manda el código en el recibo; sin este
+ * aviso, ese dato moriría camino a la pantalla.
+ */
+describe("el aviso cuando el «Plan del día» queda en error", () => {
+  const conversacion = (extra: Record<string, unknown>) =>
+    ({
+      conversado: true,
+      leido: { resumen: { partes_de_campo: 3 }, hojas_ausentes: [] },
+      publicado: { hojas: [{ hoja: "Plan del día", accion: "actualizada", filas: 40 }], ...extra },
+    }) as never;
+
+  it("nombra el código de error y dice qué hacer", () => {
+    const aviso = avisoConversacion(conversacion({ plan_dia_formula_error: "#REF!" }));
+    expect(aviso).not.toBeNull();
+    expect(aviso?.texto).toContain("#REF!");
+    expect(aviso?.texto).toMatch(/ábrelo|recalcule|vuelve a publicar/i);
+    // Y no se queda en «ok»: es algo que hay que mirar.
+    expect(aviso?.tono).toBe("atencion");
+  });
+
+  it("sin error no inventa el aviso", () => {
+    const aviso = avisoConversacion(conversacion({ plan_dia_formula_error: "" }));
+    expect(aviso?.texto ?? "").not.toContain("Plan del día» quedó");
+  });
+});
