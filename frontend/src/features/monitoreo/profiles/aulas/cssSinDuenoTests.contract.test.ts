@@ -43,6 +43,13 @@ function fuentesDelFrontend(dir: string, acc: string[] = []): string[] {
 }
 
 describe("el CSS del perfil no estila clases que ya no existen", () => {
+  // **Centinela de no-mudez.** El escaneo recorre el árbol del frontend; si
+  // dejara de encontrar fuentes, la lista de clases huérfanas saldría vacía y
+  // el guard pasaría en verde sin haber leído nada.
+  it("el escaneo encuentra fuentes, o no está guardando nada", () => {
+    expect(fuentesDelFrontend(RAIZ).length).toBeGreaterThan(200);
+  });
+
   // **Timeout explícito: éste no es un test de lógica, es un escaneo de disco.**
   //
   // Lee TODAS las hojas del perfil y TODOS sus componentes. Aislado tarda ~3 s,
