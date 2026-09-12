@@ -590,3 +590,42 @@ test_that("el apilado junta todas las semanas bajo una sola cabecera", {
   # Google no convierte «tengo dos semanas» en «no tengo nada».
   expect_identical(llamadas, c("Semana 1", "Semana 2", "Semana 3"))
 })
+
+# --- adoptar congela TODAS las semanas, no la primera -------------------------
+#
+# Adoptar es lo que impide que el sorteo mueva asignaciones ya comunicadas:
+# cada fila del documento se vuelve una fijación. Desde que hay una pestaña por
+# semana, leer sólo «Semana 1» dejaba la semana 2 sin fijar —ya leída por las
+# diecinueve personas— y una republicación podía reordenarla. Es exactamente el
+# defecto que la adopción existe para impedir, reaparecido por el lado del
+# plural.
+test_that("la adopción fija lo escrito en todas las semanas", {
+  pedidas <- character(0)
+  testthat::local_mocked_bindings(
+    .monitoreo_sheets_metadata = function(id) list(
+      spreadsheetId = id, properties = list(title = "Distribución"),
+      sheets = list(list(properties = list(title = "Semana 1")),
+                    list(properties = list(title = "Semana 2")))
+    ),
+    .cads_valores_de_pestana = function(id, pestana) {
+      pedidas <<- c(pedidas, pestana)
+      codigo <- if (identical(pestana, "Semana 2")) "CH 9" else "CH 1"
+      quien <- if (identical(pestana, "Semana 2")) "Berta Ficticia" else "Ana Prueba"
+      list(as.list(.mdc_cab()), .mdc_fila(codigo, "08/09", quien))
+    }
+  )
+  plan <- list(list(operational_code = "CH 1", sample_role = "titular"),
+               list(operational_code = "CH 9", sample_role = "titular"))
+  ad <- prosecnurapp:::.malp_adoptar_distribucion(
+    list(distribucion_sheets = list(spreadsheet_id = "sheet_dist")),
+    plan,
+    list(monitoreo_aulas_disponibilidad = list(
+      list(nombre = "Ana Prueba"), list(nombre = "Berta Ficticia")))
+  )
+  expect_true(isTRUE(ad$ok))
+  # Las dos semanas se leyeron y las dos citas quedaron fijadas.
+  expect_true(all(c("Semana 1", "Semana 2") %in% pedidas))
+  expect_setequal(names(ad$fijadas), c("CH 1", "CH 9"))
+  # Y el recibo dice en cuáles: «Semana 1» a secas contaría la mitad.
+  expect_identical(as.character(unlist(ad$hojas)), c("Semana 1", "Semana 2"))
+})

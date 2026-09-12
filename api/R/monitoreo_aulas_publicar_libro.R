@@ -939,6 +939,9 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       motivo = adopcion$motivo %||% "",
       error = adopcion$error %||% "",
       hoja = adopcion$hoja %||% "",
+      # Y en cuáles: con una pestaña por semana, «Semana 1» a secas no dice si
+      # se congeló también lo que las diecinueve personas ya leyeron de la 2.
+      hojas = adopcion$hojas %||% list(),
       adoptadas = length(adopcion$fijadas),
       fijaciones_previas = fijaciones_previas,
       aplicadores_desconocidos = adopcion$aplicadores_desconocidos %||% character(0)

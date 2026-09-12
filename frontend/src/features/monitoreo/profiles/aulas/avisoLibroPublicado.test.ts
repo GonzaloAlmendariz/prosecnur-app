@@ -151,6 +151,31 @@ describe("la adopción de la hoja de los aplicadores se dice", () => {
     expect(tono).toBe("ok");
   });
 
+  it("con una pestaña por semana las nombra TODAS, no la primera", () => {
+    // Adoptar es lo que congela el reparto. Decir «Semana 1» cuando se
+    // congelaron dos deja sin contar justo la semana que las diecinueve
+    // personas ya tienen leída.
+    const { texto } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+      adopcion_distribucion: {
+        ok: true,
+        hoja: "Semana 1",
+        hojas: ["Semana 1", "Semana 2"],
+        adoptadas: 140,
+      },
+    });
+    expect(texto).toContain("«Semana 1» y «Semana 2»");
+    expect(texto).toContain("140 asignaciones");
+  });
+
+  it("sin lista de hojas sigue nombrando la única que trae", () => {
+    const { texto } = avisoLibroPublicado({
+      hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
+      adopcion_distribucion: { ok: true, hoja: "Semana 1", hojas: [], adoptadas: 3 },
+    });
+    expect(texto).toContain("«Semana 1»");
+  });
+
   it("sin destino recordado AVISA, porque Asignación se rehízo a ciegas", () => {
     // Publicar rehace «Asignación de aplicadores». Si no leyó la hoja de los 22,
     // lo hace con un sorteo nuevo que no tiene por qué caer donde cayó el
