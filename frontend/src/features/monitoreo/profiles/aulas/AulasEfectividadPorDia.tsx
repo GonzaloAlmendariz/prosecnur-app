@@ -46,7 +46,17 @@ export function AulasEfectividadPorDia({ partes, plan }: {
   const FRASE = { sube: "va subiendo", baja: "va bajando", estable: "se mantiene" } as const;
 
   return (
-    <div className="aulas-efdia">
+    // **La rama CON datos declaraba menos que su propio vacío.** El `return` de
+    // arriba —el de «todavía no hay partes»— ya marcaba la capacidad, y éste
+    // no: sin ella el runner cae a los hijos del `section` del panel y mide el
+    // ENCABEZADO —`mon-profile-panel-head`, 36 px— como si fuera el contenedor
+    // de datos, y canta `capacity-drift` sobre sus 5 px de padding. Es el
+    // patrón que ya arreglaron «Metas por facultad y sexo», «Respuestas» y «A
+    // qué aula del banco ir»; los otros cuatro paneles de esta misma pestaña
+    // —`aulas-cvf`, `aulas-mapa`, `aulas-tau`, `aulas-dt`— lo declaran y salen
+    // limpios. Arreglar el vacío y dejar el lleno sin declarar deja el gate en
+    // rojo justo cuando hay datos, que es siempre.
+    <div className="aulas-efdia" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       {t ? (
         <p className="aulas-efdia-lectura">
           La efectividad <strong>{FRASE[t.sentido]}</strong>: del{" "}
