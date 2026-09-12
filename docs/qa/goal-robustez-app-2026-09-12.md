@@ -40,6 +40,7 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 7 | Un concepto con dos implementaciones | `test-helpers-sin-duplicar.R` | 2→1/1 |
 | 8 | Un estado de React que se escribe y nadie pinta | `estadoQueNadieLee.contract.test.ts` | 2→1/1 |
 | 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` + `test-guards-que-guardan.R` | 2→1/1 en ambos |
+| 11 | Un respaldo que se usa SIEMPRE | `brechaDeLaFacultad.test.ts` | 12→11/1 |
 | 10 | La mitad que ESCRIBE se queda sin migrar | `test-monitoreo-aulas-distribucion-mantenimiento.R` | 4 fallos |
 
 La 10 la cerró la otra sesión (`1ca67233`) y entra aquí porque este documento es
@@ -192,6 +193,21 @@ el denominador son poblaciones distintas. Medido sobre el operativo:
 Las tres son correctas para su definición y la tarjeta declara la suya. Lo que
 no hay es una pareja numerador/denominador del mismo grano. Emparejarla —75 con
 el total de lo aplicable, o 73 con 174— es decisión de Gonzalo.
+
+## La clase 11: un respaldo que se usa siempre
+
+`brechaDeLaFacultad` leía `celda.achieved` con un respaldo `target - missing`.
+**El motor no publica `achieved` en ninguna parte**: las 30 celdas traen
+`observed`. La rama principal era código muerto y todo pasaba por el respaldo,
+que da el mismo número — por eso nunca se vio.
+
+La firma de la clase: **un respaldo que se usa siempre no es un respaldo, es la
+única vía**, con una rama delante que sugiere dos fuentes donde hay una. Y el
+día que falte lo que alimenta al respaldo, devuelve un número plausible y falso
+—aquí, la meta entera como logrado—.
+
+Dónde buscar más: `x.a ?? x.b` o `Number(x.a)` con respaldo, donde `a` no
+aparezca en ningún `=` del backend. **No barrido todavía.**
 
 ## Abierto en el diario, y es decisión suya
 
