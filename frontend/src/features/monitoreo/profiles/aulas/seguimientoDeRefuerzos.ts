@@ -26,6 +26,28 @@ const numero = (v: unknown) => {
 /** Los orígenes que escribe la app al marcar. Los de `activar-reemplazo` son otros. */
 const ORIGENES_DE_LA_APP = new Set(["refuerzo", "complemento"]);
 
+/**
+ * **El sello se pierde al recuperar del Sheets, y el refuerzo seguía siendo uno.**
+ *
+ * Al publicar sólo viaja STATUS MUESTRA: `activation_origin` se queda en la
+ * sesión. Así que un refuerzo leído de vuelta del libro llega con el estado
+ * correcto y **sin sello**, y este panel —que filtraba sólo por sello— lo
+ * descartaba. Medido el 2026-09-12 sobre el operativo: los 15 refuerzos
+ * recuperados del libro tenían `activation_origin` vacío los 15, y la pestaña
+ * ofrecía «marcar los 15 mejores» como si no hubiera ninguno.
+ *
+ * El estado `refuerzo_*` es inequívoco: ningún aula normal lo lleva, sólo lo
+ * escribe el circuito de refuerzos. Por eso vale como segunda puerta, y sólo
+ * ése — `en_contacto` o `agendada` los tiene cualquier aula, y admitirlos
+ * listaría las 1.392.
+ *
+ * Lo que esto NO recupera, y conviene no fingirlo: un refuerzo que ya avanzó a
+ * EN CONTACTO o AGENDADA **y** perdió el sello es indistinguible de un aula
+ * normal. Ése sólo vuelve si se marcó desde la app en esta misma sesión.
+ */
+const estadoInequivocoDeRefuerzo = (fila: MonitoreoAulasPlanRow) =>
+  texto(fila.sample_status).toLowerCase().replace(/\s+/g, "_").startsWith("refuerzo");
+
 export type PasoDelRefuerzo =
   | "por_contactar" | "en_gestion" | "con_fecha" | "aplicado" | "rechazado" | "otro";
 
@@ -33,7 +55,7 @@ export type RefuerzoSeguido = {
   codigo: string;
   facultad: string;
   docente: string;
-  /** «refuerzo» (C) o «complemento» (B). */
+  /** «refuerzo» (C), «complemento» (B), o «libro» si volvió del Sheets sin sello. */
   origen: string;
   /** A quién ayuda: una facultad en C, un curso-horario en B. */
   para: string;
@@ -65,7 +87,11 @@ export function pasoDelRefuerzo(fila: MonitoreoAulasPlanRow): PasoDelRefuerzo {
   if (numero(fila.respuestas_validas) > 0) return "aplicado";
   const op = texto(fila.operational_status).toLowerCase();
   if (["aplicada", "cerrada", "parcial"].includes(op)) return "aplicado";
-  const sm = texto(fila.sample_status).toLowerCase();
+  // Las DOS formas del mismo estado. El backend normaliza antes de publicar
+  // —medido: el payload trae `refuerzo_por_contactar`—, pero el libro teclea
+  // «REFUERZO POR CONTACTAR» y en este perfil ya hubo una vía que entregó la
+  // forma cruda: comparar sólo contra una rechazó 1.213 de 1.218 reservas.
+  const sm = texto(fila.sample_status).toLowerCase().replace(/\s+/g, "_");
   if (sm === "refuerzo_por_contactar") return "por_contactar";
   if (sm === "en_contacto") return "en_gestion";
   if (sm === "agendada" || sm === "reagendada") return "con_fecha";
@@ -82,14 +108,20 @@ export function seguimientoDeRefuerzos(
   const pedidos: RefuerzoSeguido[] = [];
 
   for (const f of plan ?? []) {
-    if (!ORIGENES_DE_LA_APP.has(texto(f.activation_origin).toLowerCase())) continue;
+    const sello = texto(f.activation_origin).toLowerCase();
+    const puestoPorLaApp = ORIGENES_DE_LA_APP.has(sello);
+    if (!puestoPorLaApp && !estadoInequivocoDeRefuerzo(f)) continue;
     const paso = pasoDelRefuerzo(f);
     cuenta[paso] += 1;
     pedidos.push({
       codigo: texto(f.operational_code),
       facultad: texto(f.faculty),
       docente: texto(f.teacher),
-      origen: texto(f.activation_origin).toLowerCase(),
+      // La procedencia se dice tal cual: el sello de la app si lo trae, el de
+      // otro circuito (`reemplazo`) si es ése, y «libro» SÓLO cuando no hay
+      // ninguno —que es como vuelve lo recuperado del Sheets—. Inventar un
+      // sello borraría justo la distinción que este panel existe para hacer.
+      origen: sello || "libro",
       para: texto((f as { activated_for?: unknown }).activated_for),
       desde: texto((f as { activated_at?: unknown }).activated_at),
       paso,
