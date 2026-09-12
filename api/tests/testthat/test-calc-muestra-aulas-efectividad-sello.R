@@ -155,3 +155,28 @@ test_that("sin marco el estudio sale intacto", {
   expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, NULL), est)
   expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, list()), est)
 })
+
+# --- Una referencia sin cadenas de reemplazo no puede tumbar el endpoint ------
+#
+# `cadenas_reemplazo` no viene ausente cuando no hay datos: viene `NA`, un
+# logical de longitud 1. `referencia$cadenas_reemplazo$filas` sobre eso no
+# devuelve NULL — LANZA «$ operator is invalid for atomic vectors», y `%||%` no
+# lo atrapa porque sólo mira el NULL.
+#
+# El sellador corre en `POST /api/calc-muestra/marco/construir` FUERA de sus dos
+# tryCatch, así que el usuario recibía un 500 E_INTERNAL —sin mensaje, sólo un
+# `error_id`— en cuanto había cargado la referencia histórica de asistencia. Es
+# el caso normal de una base que trae asistencia y no reemplazos.
+
+test_that("una referencia con `cadenas_reemplazo` atómico no lanza: devuelve la config intacta", {
+  cfg <- list(efectividad = NULL, alumnos_por_ch = 30)
+  for (valor in list(NA, NA_character_, "", 0L, c(1, 2), TRUE)) {
+    ref <- list(periodo = "2025-II", cadenas_reemplazo = valor)
+    expect_silent(out <- calc_muestra_aulas_sellar_efectividad(cfg, ref))
+    expect_identical(out, cfg)
+  }
+  # Y el NULL de siempre sigue igual.
+  expect_identical(
+    calc_muestra_aulas_sellar_efectividad(cfg, list(cadenas_reemplazo = NULL)), cfg)
+  expect_identical(calc_muestra_aulas_sellar_efectividad(cfg, NULL), cfg)
+})
