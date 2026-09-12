@@ -576,11 +576,18 @@ lo que cambia. Por qué exactamente, sin determinar — no teorizo. Lo práctico
 **el flag sólo a las vistas que montan Plotly**, que son pocas y están
 localizadas:
 
-| familia | monta gráficos |
-|---|---|
-| territorial | `TerritorialAdvanceWorkbench.tsx` → sección **avance** |
-| acreditación | `AcreditacionMonitoreoPage.tsx` + mini + `PhoneDailyTrend` |
-| telefónico | `TelefonicoMonitoreoPage.tsx` + mini → **avance** (hecha, tick 45) |
+| familia | importa Plotly | ¿lo MONTA de verdad? |
+|---|---|---|
+| territorial | `TerritorialAdvanceWorkbench.tsx` | **NO** — `waitSelectorMisses=1` |
+| acreditación | página + mini + `PhoneDailyTrend` | sin confirmar |
+| telefónico | página + mini | **SÍ**, en avance (hecha, tick 45) |
+
+**Corrección del tick 47: el import NO prueba el render.** Armé esa tabla leyendo
+imports y di por hecho que territorial/avance tenía gráficos. La corrida con el
+flag lo desmiente: `ok=false ... waitSelectorMisses=1` con `issues=0` — el
+selector nunca apareció. Coincide con la captura, que tiene círculo de progreso
+SVG y barras CSS, ningún Plotly. **`waitSelectorMisses` es la forma barata de
+saber si una vista monta gráficos**; adivinarlo por imports no lo es.
 
 Para el resto, las capturas del tick 44 valen: lo único que no se puede juzgar en
 ellas son los gráficos.
@@ -597,9 +604,22 @@ explicación probable es encuestas ÚNICAS arriba frente a asignaciones por acto
 abajo —una encuesta compartida por dos actores cuadraría 7 y 8—, en cuyo caso
 ninguna cifra está mal y lo que falla es que la pantalla no deja verlo.
 
-**No lo he atribuido a una función**: no localicé el productor del chip en el
-tiempo del tick. Queda como observación con evidencia
-(`qa-acred/quick-monitoreo-seccion-actores-1440x1000-auto.png`), no como defecto.
+**Atribuido en el tick 48, y la sospecha era correcta**: son dos conteos de cosas
+distintas con la MISMA palabra, uno al lado del otro.
+
+- El chip: `<FranjaDeFuentes encuestas={surveyCount} …>` en
+  `AcreditacionMonitoreoPage.tsx`, con
+  `surveyCount = activeSources.filter(isPlatformResponseSource).length` — fuentes
+  de respuesta **activas y únicas**.
+- La tarjeta: `plural(cuenta.respuestas, "encuesta", "encuestas")` en
+  `profiles/acreditacion/fuentes/ActoresDelEstudio.tsx:257` — fuentes de respuesta
+  **atribuidas a ese actor**, de modo que una compartida por dos actores cuenta
+  dos veces.
+
+**Ninguna de las dos cifras está mal**: 7 fuentes activas y 8 atribuciones son
+ambas ciertas. Lo que falla es que la pantalla no deja verlo, y eso cambia lo que
+la cabecera significa → **decisión de Gonzalo**, no arreglo de robustez. Evidencia:
+`qa-acred/quick-monitoreo-seccion-actores-1440x1000-auto.png`.
 
 Segunda cosa de esa vista: **todo el contenido cabe en el tercio superior** y
 quedan ~500 px en blanco a 1440x1000. El gate no lo reporta —no es recorte ni
