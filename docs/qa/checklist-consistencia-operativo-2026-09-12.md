@@ -14,7 +14,7 @@ y **sólo él lo da por terminado**. Cada vez que se mencione, se dibuja entero.
 | C6 | **«Plan del día» sigue con el `#REF!`** — que se solucione | `monitoreo_aulas_plan_dia_selector.R` | ☑ `8d915b9b` + aplicado |
 | C7 | «Asignación de aplicadores» más clara, y sobre todo la **producción por aplicador** | `aulas_libro_produccion.R` (hoja nueva) + `aulas_libro_asignacion.R` | ☑ `41f1058c` `2c2e94d5` |
 | C8 | **Disponibilidad de aplicadores**: añadir los **disponibles por semana** | `aulas_libro_disponibilidad.R` | ☑ `190033e7` |
-| C9 | ¿La app hace la distribución **por semana a partir de una lista dada**, nombrándola «Semana N»? | `monitoreo_aulas_distribucion_semanas.R`, `monitoreo_aulas_publicar_distribucion.R` | ◐ medido |
+| C9 | ¿La app hace la distribución **por semana a partir de una lista dada**, nombrándola «Semana N»? | idem + `AulasDisponibilidadDeAplicadores.tsx` | ☑ `1a046f0d` `9a1f4d9b` |
 
 Leyenda: ☐ pendiente · ◐ en curso / medido sin cerrar · ☑ cerrado · ⛔ bloqueado
 (espera decisión suya).
@@ -199,3 +199,32 @@ martes 15. El bloque nuevo sale del REPARTO, que sí tiene fechas. Medido:
 semana 1 → 19 aplicadores / 101 citas; semana 2 → 17 / 50 (salen Damaso,
 Dolores y Panta; entra Álvarez Espinosa). Entran y salen van por NOMBRE: lo que
 se hace con ese dato es llamar a esa persona.
+
+
+## C9 · cerrado — y la mitad ya existía
+
+Medido antes de construir, que fue la mitad del trabajo:
+
+· **Elegir la semana YA se podía**: el «rango de despliegue» (B75) vive en la
+  pantalla de Asignación, persiste en el config y re-particiona el reparto; la
+  pestaña se nombra sola «Semana N».
+· **Lo que faltaba era la LISTA**: dejar a alguien fuera obligaba a editar el
+  Excel de disponibilidad y volver a cargarlo — literalmente lo que se hizo a
+  mano para la semana 2 con los 19 sin Brenda.
+
+Clave `reparto_fuera` en el config + `monitoreo_aulas_disponibilidad_sin()`, y
+el control en la malla de oferta, que es donde se ven los nombres. Tres
+decisiones del diseño:
+
+1. **Se quita ANTES de repartir.** Quitarle las citas después dejaría huecos en
+   vez de pasárselas a quien sí sale.
+2. **Los nombres se comparan por clave**, ignorando coma, tildes y mayúsculas:
+   compararlos literales no dejaría fuera a nadie. Misma lección que partió a
+   dos personas en cuatro en la hoja de producción.
+3. **Si quitar a alguien descubre un aula, se declara** en `no_cubiertos`; y la
+   lista de quién está fuera **se muestra aunque no se pueda editar**. Una
+   decisión que cambia el reparto y no se ve es media avería.
+
+**Las nueve indicaciones del dictado están cerradas.** Quedan dos cosas que no
+son del dictado: el **semáforo de consistencia** (propuesto, sin respuesta) y la
+**inconsistencia abierta** 85 / 73-75 / 87, sin medir.
