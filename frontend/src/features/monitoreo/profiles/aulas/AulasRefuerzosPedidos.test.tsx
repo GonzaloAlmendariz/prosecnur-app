@@ -25,7 +25,10 @@ const pinta = (filas: MonitoreoAulasPlanRow[]) =>
 
 describe("Refuerzos pedidos", () => {
   it("sin nada marcado dice dónde aparecerá lo que se marque, no un vacío mudo", () => {
-    const html = pinta([fila({ activation_origin: "" })]);
+    // «Nada marcado» es un plan SIN refuerzos, no una fila con el estado especial
+    // y sin sello: ésa es justo la que vuelve del Sheets, y desde el 2026-09-12
+    // cuenta como pedida. Antes esta fixture pasaba por vacía por accidente.
+    const html = pinta([fila({ sample_status: "sin_contactar", activation_origin: "" })]);
     expect(html).toContain("Todavía no has marcado ningún refuerzo");
   });
 

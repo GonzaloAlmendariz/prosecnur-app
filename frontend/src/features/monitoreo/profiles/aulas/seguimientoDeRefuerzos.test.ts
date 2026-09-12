@@ -11,15 +11,22 @@ const fila = (p: Record<string, unknown>) => ({
 } as unknown as MonitoreoAulasPlanRow);
 
 describe("seguimientoDeRefuerzos", () => {
-  it("sólo recoge lo que marcó la app, no todo lo que esté en ese estado", () => {
-    // Una fila puede llevar el estado especial sin venir de la app (alguien lo
-    // tecleó en el libro). El sello de origen es lo que distingue una de otra.
+  it("recoge todo lo que lleva el estado especial, y DICE de dónde vino cada uno", () => {
+    // Antes esto exigía el sello de la app y descartaba el resto. La intención
+    // —distinguir lo que pedí aquí de lo que tecleó el equipo— sigue en pie,
+    // pero se cumple en el campo `origen`, no escondiendo filas: al publicar
+    // sólo viaja STATUS MUESTRA, así que un refuerzo recuperado del libro
+    // llega SIN sello, y con la regla vieja desaparecía. Medido el 2026-09-12
+    // sobre el operativo: los 15 refuerzos reales volvieron con
+    // `activation_origin` vacío y la pestaña los daba por inexistentes.
     const s = seguimientoDeRefuerzos([
       fila({ operational_code: "R 1.1" }),
       fila({ operational_code: "R 2.2", activation_origin: "" }),
       fila({ operational_code: "R 3.3", activation_origin: "reemplazo" }),
     ]);
-    expect(s.pedidos.map((p) => p.codigo)).toEqual(["R 1.1"]);
+    expect(s.pedidos.map((p) => p.codigo).sort()).toEqual(["R 1.1", "R 2.2", "R 3.3"]);
+    const porCodigo = Object.fromEntries(s.pedidos.map((p) => [p.codigo, p.origen]));
+    expect(porCodigo).toEqual({ "R 1.1": "refuerzo", "R 2.2": "libro", "R 3.3": "reemplazo" });
   });
 
   it("reconoce la transición del estado especial a contacto, fecha y aplicación", () => {
