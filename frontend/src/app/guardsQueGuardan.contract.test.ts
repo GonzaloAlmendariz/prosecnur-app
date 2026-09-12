@@ -25,8 +25,12 @@ import { describe, expect, test } from "vitest";
 
 const SRC = path.resolve(__dirname, "..");
 
-/** Medido el 2026-09-12: 26 guards enumeran y afirman vacío sin centinela. */
-const TOPE_SIN_CENTINELA = 24;
+/**
+ * Medido el 2026-09-12: eran **26**. Con los seis puestos en el perfil de
+ * cursos-horario —`cifrasConFormato` incluido, que valida TODAS las cifras
+ * visibles— quedan **20**. Baja conforme se pongan; NO se sube.
+ */
+const TOPE_SIN_CENTINELA = 20;
 
 function tests(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

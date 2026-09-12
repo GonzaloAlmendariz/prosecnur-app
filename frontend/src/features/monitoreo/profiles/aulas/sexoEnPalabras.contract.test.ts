@@ -35,6 +35,14 @@ const sinComentarios = (t: string) =>
   t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
 describe("el sexo no se publica como la letra que llega del payload", () => {
+  // **Centinela de no-mudez.** El barrido recorre el árbol del perfil y luego
+  // se afirma que no hay culpables. Si dejara de encontrar fuentes —un
+  // renombre, una carpeta que se mueve— la lista saldría vacía y el guard
+  // pasaría en verde sin haber leído un solo archivo.
+  it("el barrido encuentra las fuentes del perfil, o no está guardando nada", () => {
+    expect(fuentes(RAIZ).length).toBeGreaterThan(40);
+  });
+
   it("nadie pasa `.sex`/`.sexo` por `toLowerCase()` para pintarlo", () => {
     // Ésta es exactamente la línea que publicaba «38 m». Bajar el caso de una
     // letra no la convierte en palabra.
