@@ -66,20 +66,23 @@ MONITOREO_AULAS_HOJAS_DE_AGENDA <- c("Aulas Agendadas", "Aulas Agendadas (Extra)
   if (!length(valores)) return(NULL)
   tope <- min(length(valores), 20L)
   for (i in seq_len(tope)) {
-    celdas <- toupper(.mapm_txt(unlist(valores[[i]], use.names = FALSE)))
-    # **Por PREFIJO, no por igualdad.** Los bloques R1+ del libro rotulan con
-    # sufijo —«CURSO-HORARIO R1», «STATUS MUESTRA R1»,
-    # `paste0(titulos_bloque, " R", b - 1L)` en `carga_aulas_libro_generar.R`—,
-    # asi que comparar exacto encontraba SOLO el titular. Medido el 2026-09-11:
-    # de quince marcadas, las seis reservas de cadena salian «sin fila en el
-    # libro» teniendo su fila delante.
+    # **La MISMA regla de rotulo que el lector del libro, no una segunda.**
     #
-    # El prefijo es seguro porque los otros rotulos que empiezan por «STATUS»
-    # —«STATUS DE LLAMADA», «STATUS DE APLICACION»— no empiezan por «STATUS
-    # MUESTRA»; el ancla es la etiqueta entera, no la primera palabra.
-    empieza <- function(pref) which(startsWith(celdas, toupper(pref)))
-    ic <- sort(unique(c(empieza(col_codigo), empieza("CURSO HORARIO"))))
-    ie <- empieza(col_estado)
+    # Los bloques R1+ rotulan con sufijo —«CURSO-HORARIO R1», «STATUS MUESTRA
+    # R1», `paste0(titulos_bloque, " R", b - 1L)` en
+    # `carga_aulas_libro_generar.R`— y comparar exacto encontraba SOLO el
+    # titular: el 2026-09-11, de quince marcadas, las seis reservas de cadena
+    # salian «sin fila en el libro» teniendo su fila delante.
+    #
+    # La primera reparacion puso aqui un `startsWith` propio. Funcionaba, pero
+    # era una SEGUNDA regla de rotulo: `.caa_key()` ya hace exactamente esto
+    # desde `carga_aulas_agendadas.R` —quita el sufijo ` R<n>`, normaliza
+    # acentos, espacios y mayusculas— y ademas conoce los alias. Dos
+    # implementaciones del mismo concepto es la deriva que en este repo se
+    # arregla borrando una, no sincronizandolas.
+    celdas <- .caa_key(unlist(valores[[i]], use.names = FALSE))
+    ic <- which(celdas %in% .caa_key(c(col_codigo, "CURSO HORARIO")))
+    ie <- which(celdas %in% .caa_key(col_estado))
     if (!length(ic) || !length(ie)) next
     # Un bloque sin su pareja no participa: escribir en un STATUS MUESTRA cuya
     # columna de codigo no existe seria marcar una fila a ciegas.

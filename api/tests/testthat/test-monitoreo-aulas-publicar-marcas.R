@@ -229,3 +229,26 @@ test_that("un final limpio no inventa una alarma", {
                  formato = list(list(hoja = "X", estado = "aplicado", error = "")))
   expect_no_match(monitoreo_aulas_publicar_marcas_texto(limpio), "NO entraron")
 })
+
+test_that("el rotulo se lee con la MISMA regla que el lector del libro", {
+  # La primera reparacion de la clase 5 puso aqui un `startsWith` propio: una
+  # segunda regla de rotulo al lado de `.caa_key()`, que ya quitaba el sufijo
+  # ` R<n>` desde `carga_aulas_agendadas.R`. Usar la canonica trae gratis lo que
+  # la copia no sabia: acentos, espacios de mas y minusculas.
+  variantes <- list(
+    c("CURSO-HORARIO", "STATUS MUESTRA"),          # la forma canonica
+    c("CURSO-HORARIO R1", "STATUS MUESTRA R1"),    # el bloque de reemplazo
+    c("curso-horario", "status muestra"),          # minusculas
+    c("CURSO-HORARIO ", " STATUS  MUESTRA"),       # espacios de mas y dobles
+    c("CURSO HORARIO", "STATUS MUESTRA")           # el alias sin guion
+  )
+  for (v in variantes) {
+    enc <- prosecnurapp:::.mapm_encabezado(list(as.list(v), list("R 1.1", "SIN CONTACTAR")))
+    expect_false(is.null(enc), info = paste("no encontro el encabezado:", paste(v, collapse = " / ")))
+    expect_length(enc$pares, 1L)
+    remoto <- prosecnurapp:::.mapm_remoto(
+      list(as.list(v), list("R 1.1", "SIN CONTACTAR")), enc$fila, enc$pares[[1]])
+    out <- monitoreo_aulas_marcas_por_publicar(list(.mapm_fila("R 1.1")), remoto)
+    expect_length(out$escribibles, 1L)
+  }
+})
