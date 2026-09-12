@@ -120,6 +120,10 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
 - **Un guard que da un falso rojo se acaba ignorando** — `tokensDefinidos` se
   cazaba a sí mismo al escanear los tests.
 - **Una exclusión sin su motivo escrito** es por donde se cuela el caso real.
+- **Un test guardado bajo el nombre de OTRA área no se corre cuando hace falta.**
+  El gate por área filtra por patrón: quien toca el handoff filtra por
+  «handoff». Metí tres áreas en un archivo llamado de una sola y dos quedaron
+  fuera de su gate.
 - **`querySelector` DESCIENDE.** Medir los paneles de una vista con
   `section` + `querySelector("h3")` cuenta también cualquier contenedor que sea
   `<section>` —el `mon-workbench` lo es— y devuelve el título de su primer hijo:
