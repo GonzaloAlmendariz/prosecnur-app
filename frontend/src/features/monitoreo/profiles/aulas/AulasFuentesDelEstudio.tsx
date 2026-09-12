@@ -104,6 +104,9 @@ export type ReciboDelLibro = {
   /** Campos del bloque de agenda que ningún título de la hoja bautiza. Una
       columna renombrada en el Sheets se leía vacía sin decirlo. */
   agenda_campos_ausentes?: ReadonlyArray<string>;
+  /** Estatus de muestra que la app no sabe leer: caen en «SIN CONTACTAR» y
+      devuelven a la cola de llamadas aulas que ya se gestionaron. */
+  estados_desconocidos?: ReadonlyArray<{ valor: string; filas: number }>;
   resumen?: {
     unidades?: number;
     /** Cuántas facultades cubre el libro: un libro de 15 y uno de 6 son cosas distintas. */
@@ -218,6 +221,21 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
             La hoja de agenda no trae{" "}
             {recibo.agenda_campos_ausentes.map((c) => ROTULO_DE_CAMPO[c] ?? c).join(", ")}
             : esas columnas se leen vacías.
+          </p>
+        ) : null}
+        {/* **Un estatus que la app no reconoce no falla: degrada.** Cae en
+            «SIN CONTACTAR», que es el estado de los titulares que nadie tocó,
+            así que un aula ya gestionada vuelve a la cola de llamadas y se
+            cuenta como trabajo pendiente. Se dice el texto TAL CUAL está en la
+            hoja —es la celda que hay que corregir— y se dice la consecuencia,
+            que es lo que convierte el aviso en algo accionable. */}
+        {recibo.estados_desconocidos?.length ? (
+          <p className="aulas-fuente-falta">
+            {recibo.estados_desconocidos
+              .map((e) => `«${e.valor}» (${e.filas} ${e.filas === 1 ? "fila" : "filas"})`)
+              .join("; ")}
+            : la app no reconoce ese estatus de muestra y lo lee como «SIN
+            CONTACTAR», así que esas aulas vuelven a la cola de llamadas.
           </p>
         ) : null}
       </div>
