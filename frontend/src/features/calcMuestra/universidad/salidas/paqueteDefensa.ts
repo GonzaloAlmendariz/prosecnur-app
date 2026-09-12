@@ -65,6 +65,20 @@ function contextoAcreditado({
   const frameHash = String(aulasState?.frame?.frame_hash ?? "").trim();
   const selectionRunId = String(selection?.selection_run_id ?? "").trim();
   if (!status.selectedResultReady || !status.selectionReady || !frameHash || !selectionRunId || !selection) return null;
+  /**
+   * **El paquete de defensa es MÁS estricto que la pantalla, y a propósito.**
+   *
+   * `classroomHandoff` publica `selectionTargetDiff` sin descalificar: por ADR
+   * 0066 la selección manda sobre el conteo, y una superficie puede decir «se
+   * sortearon 174 donde la fórmula pedía 165» y seguir funcionando. Eso vale
+   * para mirar; no vale para defender.
+   *
+   * Aquí se serializa un `n_objetivo` junto a una selección concreta, y si los
+   * dos no son del mismo escenario el documento afirma algo que no ocurrió —el
+   * peor defecto posible en la pieza que existe justamente para sostener el
+   * método ante un tercero—. Ante la duda, no se emite: se falla cerrado.
+   */
+  if (status.selectionTargetDiff) return null;
   return { status, selection, frameHash, selectionRunId };
 }
 

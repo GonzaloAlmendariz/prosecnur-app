@@ -36,7 +36,13 @@ describe("AulasPerfilTab", () => {
     );
     expect(html).toContain("Todavía no hay una selección que perfilar");
     expect(html).toContain("Cursos-horario titulares");
-    expect(html).toContain('data-audit-ready="false"');
+    // **`true`, y no `false`.** Este contrato exigía `false` y quedó atrás
+    // cuando se selló la regla contraria en `auditReadyRoutes.contract.test`:
+    // un vacío es un estado TERMINAL, no una carga a medias, y la readiness se
+    // publica en los tres estados terminales. Declararlo `false` decía
+    // «todavía no terminé» de una vista que ya había terminado, el gate no la
+    // medía y el puente la reportaba como no lista.
+    expect(html).toContain('data-audit-ready="true"');
   });
 
   it("reparte las aulas por facultad y suma sus elegibles", () => {
