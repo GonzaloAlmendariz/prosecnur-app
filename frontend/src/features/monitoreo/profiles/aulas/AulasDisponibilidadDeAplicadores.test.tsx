@@ -172,3 +172,40 @@ describe("el día que toca sella su fila de oferta (hermano de B43/B46)", () => 
     expect(html).not.toContain("es-el-que-toca");
   });
 });
+
+describe("quién no sale este despliegue", () => {
+  const conGente = () => bloque([
+    { dia: "lunes", franjas: [
+      { inicio: "09:00", fin: "09:30", disponibles: 2,
+        nombres: ["Ana Prueba", "CASTILLO SOLORSANO, LEIDY"] },
+    ] },
+  ]);
+  const pintaCon = (fuera: string[]) => {
+    const oferta = mallaDeOferta(conGente());
+    const vivas = oferta ? columnasVivas(oferta.franjas.length, [oferta.disponibles]) : [];
+    return renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} fuera={fuera} />,
+    );
+  };
+
+  it("dice los nombres aunque no se pueda editar la lista", () => {
+    // Una decisión que cambia el reparto y no se ve es media avería: el
+    // reparto saldría distinto y nadie sabría por qué. Se muestra SIEMPRE,
+    // haya control o no — aquí se pinta sin `onDeclararFuera`.
+    const html = pintaCon(["CASTILLO SOLORSANO, LEIDY"]);
+    expect(html).toContain("No sale este despliegue");
+    // Y con el nombre normalizado, que es como se lee en todo el módulo.
+    expect(html).toContain("Castillo Solorsano, Leidy");
+  });
+
+  it("sin nadie fuera no dibuja la frase", () => {
+    const html = pintaCon([]);
+    expect(html).not.toContain("No sale este despliegue");
+    expect(html).not.toContain("No salen este despliegue");
+  });
+
+  it("con dos o más, lo dice en plural", () => {
+    const html = pintaCon(["Ana Prueba", "CASTILLO SOLORSANO, LEIDY"]);
+    expect(html).toContain("No salen este despliegue");
+  });
+});

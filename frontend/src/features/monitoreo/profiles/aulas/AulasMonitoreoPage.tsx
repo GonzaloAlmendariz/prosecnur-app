@@ -802,6 +802,8 @@ function renderAulasView({
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
   onDeclararRango = null,
+  fueraDelReparto = [],
+  onDeclararFuera = null,
   onResortear = null,
   onConcentrar = null,
   distribucionRecordada = null,
@@ -874,6 +876,9 @@ function renderAulasView({
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** Quién no sale en el despliegue vigente, y cómo cambiarlo. */
+  fueraDelReparto?: ReadonlyArray<string>;
+  onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo del reparto. */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** Dictado 2026-09-04: concentrar el día del aplicador en el reparto. */
@@ -933,6 +938,8 @@ function renderAulasView({
         onConfirmarDuracion={onConfirmarDuracion}
         onImportarDisponibilidad={onImportarDisponibilidad}
         onDeclararRango={onDeclararRango}
+        fueraDelReparto={fueraDelReparto}
+        onDeclararFuera={onDeclararFuera}
         onResortear={onResortear}
         onConcentrar={onConcentrar}
         distribucionRecordada={distribucionRecordada}
@@ -1599,6 +1606,21 @@ export default function AulasMonitoreoPage() {
    * refresco trae el reparto con el desempate rotado; equidad y fijaciones
    * intactas (contrato del motor).
    */
+  /**
+   * C9: quién no sale en este despliegue. Se persiste en el config
+   * (`reparto_fuera`) y el refresco forzado trae el reparto ya sin esa gente
+   * —el motor los quita ANTES de repartir, así que las citas se reparten entre
+   * quienes sí salen en vez de quedar descubiertas—.
+   */
+  const declararFuera = useCallback(async (nombres: string[]) => {
+    try {
+      await apiMonitoreoAulasConfig({ reparto_fuera: nombres } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [loadView, seccionActiva]);
+
   const resortear = useCallback(async (semillaSiguiente: number) => {
     try {
       await apiMonitoreoAulasConfig({ reparto_semilla: semillaSiguiente } as Partial<MonitoreoAulasConfig>);
@@ -2079,6 +2101,10 @@ export default function AulasMonitoreoPage() {
               onConfirmarDuracion: confirmarDuracion,
               onImportarDisponibilidad: importarDisponibilidad,
               onDeclararRango: declararRango,
+              // C9 (dictado 2026-09-12): quién NO sale este despliegue, sin
+              // tener que editar el Excel de disponibilidad y recargarlo.
+              fueraDelReparto: aulasConfig?.reparto_fuera ?? [],
+              onDeclararFuera: declararFuera,
               onResortear: resortear,
               onConcentrar: concentrar,
               // S7: el Sheets de los aplicadores, recordado en la config.

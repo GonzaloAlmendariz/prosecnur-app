@@ -121,6 +121,8 @@ export function AulasCargaDeCampo({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  fueraDelReparto = [],
+  onDeclararFuera = null,
   onDeclararRango = null,
   onResortear = null,
   onConcentrar = null,
@@ -161,6 +163,10 @@ export function AulasCargaDeCampo({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad; lo pinta la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Quién no sale en el despliegue vigente (`reparto_fuera` del config). */
+  fueraDelReparto?: ReadonlyArray<string>;
+  /** Persiste esa lista; `null` deja el control fuera (sólo lectura). */
+  onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue; lo pinta Asignación. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** B67: pedir otro sorteo (persiste la semilla siguiente). */
@@ -464,6 +470,8 @@ export function AulasCargaDeCampo({
           // día de campo.
           fechaQueToca={repartoVista?.dias.find((x) => x.fecha >= hoy)?.fecha ?? null}
           onImportar={onImportarDisponibilidad}
+          fuera={fueraDelReparto}
+          onDeclararFuera={onDeclararFuera}
         />
       ) : null}
       {vista === "asignacion" ? (
