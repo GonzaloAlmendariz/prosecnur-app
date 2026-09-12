@@ -292,11 +292,16 @@ test_that("libro a Sheets: las hojas del equipo con contenido quedan respetadas"
   expect_false(any(.mapl_hojas_equipo %in% tocadas))
   expect_true("Base de control" %in% tocadas)
 
-  # Ni un request estructural (updateCells/reset/formato/metadata) apuntando a
-  # los sheetId del equipo: `respetada` es NO tocarlas, no tocarlas poco.
+  # Sobre los sheetId del equipo sí puede haber requests —desde el 2026-09-12
+  # el FORMATO viaja, por decisión de Gonzalo—, pero cada uno tiene que pasar
+  # el filtro: colores y desplegables sí, contenido jamás. Antes esta línea
+  # decía «ni un request», y el precio era que el morado de «REFUERZO POR
+  # CONTACTAR» no llegaba a la hoja donde se teclea ese estado.
   estructurales <- Filter(function(r) is.null(r$addSheet), .mapl_batch_requests(mock$env$calls))
-  ids_tocados <- .mapl_sheet_ids_en(estructurales)
-  expect_false(any(ids_tocados %in% c(id_agendadas, id_aplicadas)))
+  del_equipo <- Filter(function(r) {
+    any(.mapl_sheet_ids_en(list(r)) %in% c(id_agendadas, id_aplicadas))
+  }, estructurales)
+  for (r in del_equipo) expect_true(prosecnurapp:::.mafr_seguro(r))
 
   # Y el contenido del equipo sigue intacto en el remoto.
   expect_identical(
@@ -329,9 +334,24 @@ test_that("libro a Sheets: republicar sin cambios de control no reescribe nada",
   expect_identical(.mapl_accion(res2, "Base de control"), "sin_cambios")
 
   segundas <- .mapl_desde(mock$env$calls, primeras)
-  expect_lte(length(segundas), 3L)
+  # Tres del ciclo más UNA: desde el 2026-09-12 el formato SÍ se reenvía a las
+  # hojas del equipo (decisión de Gonzalo), y esa llamada es un `batchUpdate`
+  # de formato, nunca de values.
+  expect_lte(length(segundas), 4L)
   urls <- vapply(segundas, function(c) c$url, character(1))
   expect_false(any(grepl("values:batchUpdate", urls, fixed = TRUE)))
+
+  # **Y lo que viaja en esa llamada no puede escribir una sola celda.** Es la
+  # línea que el «sí» de Gonzalo no borra: pintar su hoja es seguro, escribirla
+  # les borraría el trabajo.
+  formato <- Filter(function(c) grepl(":batchUpdate", c$url, fixed = TRUE) &&
+                      !grepl("values:batchUpdate", c$url, fixed = TRUE), segundas)
+  for (llamada in formato) {
+    for (req in (llamada$body$requests %||% list())) {
+      expect_true(prosecnurapp:::.mafr_seguro(req))
+      expect_false(grepl("userEnteredValue", paste(unlist(req), collapse = " "), fixed = TRUE))
+    }
+  }
 })
 
 # --- 4. la regla es de dueño, no de delta ------------------------------------

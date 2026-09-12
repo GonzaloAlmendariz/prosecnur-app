@@ -746,11 +746,27 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     }
   }
 
+  # **El formato SÍ va a las hojas del equipo** (decisión de Gonzalo,
+  # 2026-09-12). Una hoja `respetada` no entra al motor —así se les protege el
+  # trabajo— y por eso el color y el desplegable nuevos se quedaban dentro de
+  # la app: el morado de «REFUERZO POR CONTACTAR» nunca llegó a la hoja donde
+  # se teclea ese estado. Va aparte y al final, con un filtro que sólo deja
+  # pasar requests de formato: escribir cómo se ve su hoja es seguro, escribir
+  # lo que dice les borraría el trabajo.
+  respetadas <- vapply(hojas_libro, function(h) identical(acciones[[h]], "respetada"),
+                       logical(1))
+  formato_equipo <- monitoreo_aulas_formato_a_respetadas(
+    id, hojas_libro[respetadas], remotas = remotas, tab_map = tab_map,
+    con_daa = con_daa)
+
   list(
     ok = TRUE,
     # Vacío cuando todo fue bien; con el código de error de Sheets («#REF!»,
     # «#N/A»…) cuando la celda del área del «Plan del día» quedó rota.
     plan_dia_formula_error = plan_dia_formula_error,
+    # Qué hojas del equipo recibieron el formato nuevo sin que se les tocara un
+    # solo valor, y qué se quedó fuera por no declarar que tocaba formato.
+    formato_equipo = formato_equipo,
     spreadsheet_id = id,
     spreadsheet_url = .monitoreo_scalar(
       pub$spreadsheet_url,

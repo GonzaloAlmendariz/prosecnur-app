@@ -681,10 +681,19 @@ test_that("dueño intacto: republicar con hojas del equipo pobladas = cero reque
     partes = .masf_partes()
   )
 
-  # Ni formato ni validaciones sobre los sheetId del equipo: `respetada` es NO
-  # tocarlas, tampoco para embellecerlas.
-  expect_length(.masf_estructurales_de(mock$env$calls, id_agendadas), 0L)
-  expect_length(.masf_estructurales_de(mock$env$calls, id_aplicadas), 0L)
+  # **Qué cambió el 2026-09-12 y qué NO.** Antes `respetada` significaba no
+  # tocarlas ni para embellecerlas, y el efecto era que el morado de «REFUERZO
+  # POR CONTACTAR» nunca llegó a la hoja donde se teclea ese estado. Gonzalo
+  # decidió que el formato sí viaje. Lo que sigue prohibido —y es lo que esta
+  # regla protege de verdad— es escribirles CONTENIDO: sobre sus sheetId puede
+  # haber colores y desplegables, jamás un valor.
+  for (id in c(id_agendadas, id_aplicadas)) {
+    reqs <- .masf_estructurales_de(mock$env$calls, id)
+    expect_gt(length(reqs), 0L)
+    for (r in reqs) expect_true(prosecnurapp:::.mafr_seguro(r))
+  }
+  # Y por la puerta de los values no entra nada suyo: eso lo pinea el test de
+  # dueño de test-monitoreo-aulas-publicar-libro.R, que sigue igual.
 
   # Y NO por ausencia de la capa de formato: la Base de control se creó en esta
   # misma publicación y sí recibió su freeze de dos cabeceras.
@@ -708,14 +717,48 @@ test_that("republicar sin cambios no reenvía formato ni validaciones", {
     spreadsheet_id = "sheet_libro", plan = plan, partes = .masf_partes()
   )
 
-  # Segunda vuelta: el equipo es dueño de sus hojas ya sembradas y las de la
-  # app no cambiaron de contenido ni de dimensiones → el formato de la siembra
-  # se conserva, no se rehace (patrón batch-2: formato solo en creación o
-  # cambio de dims).
+  # Segunda vuelta: las hojas de la APP no cambiaron de contenido ni de
+  # dimensiones → su formato se conserva y no se rehace (patrón batch-2:
+  # formato sólo en creación o cambio de dims).
+  #
+  # **Lo que sí cambió el 2026-09-12**: a las hojas del EQUIPO el formato se
+  # les reenvía siempre, por decisión de Gonzalo — antes no les llegaba nunca
+  # después de la siembra, y por eso el morado de «REFUERZO POR CONTACTAR»
+  # nunca apareció en la hoja donde se teclea ese estado. Eso es formato, no
+  # contenido: lo que NO puede viajar por ahí es un valor, y aquí se comprueba.
   nuevas <- .masf_estructurales(.masf_desde(mock$env$calls, corte))
-  expect_length(.masf_validaciones_en(nuevas), 0L)
-  expect_length(.masf_dim_columnas(nuevas), 0L)
-  expect_length(.masf_frozen_rows_en(nuevas), 0L)
+  # Los ids se leen DESPUÉS de la primera publicación: el mock arranca sin
+  # hojas y las crea la siembra. Leerlos antes daba NULL y la partición salía
+  # al revés —todo caía del lado de la app— con el test en verde sobre nada.
+  ids_equipo <- unlist(lapply(c("Aulas Agendadas", "Aulas Aplicadas (Campo)"),
+                              function(h) mock$env$sheets[[h]]$sheetId))
+  expect_length(ids_equipo, 2L)
+  # `.masf_sheet_ids_en` no alcanza a los tipos nuevos —una regla condicional
+  # lleva su `sheetId` dentro de `rule$ranges`—, así que se busca a cualquier
+  # profundidad. Con el extractor corto, TODO caía del lado de la app y el
+  # test aprobaba una partición que no había ocurrido.
+  ids_de <- function(x) {
+    if (!is.list(x)) return(integer(0))
+    nm <- names(x) %||% rep("", length(x))
+    out <- integer(0)
+    for (i in seq_along(x)) {
+      if (identical(nm[[i]], "sheetId")) {
+        out <- c(out, suppressWarnings(as.integer(unlist(x[[i]])[1])))
+      } else {
+        out <- c(out, ids_de(x[[i]]))
+      }
+    }
+    out[!is.na(out)]
+  }
+  de_la_app <- Filter(function(r) !any(ids_de(r) %in% ids_equipo), nuevas)
+  expect_length(.masf_validaciones_en(de_la_app), 0L)
+  expect_length(.masf_dim_columnas(de_la_app), 0L)
+  expect_length(.masf_frozen_rows_en(de_la_app), 0L)
+
+  # Y todo lo que se emitió sobre las del equipo pasa el filtro de formato.
+  del_equipo <- Filter(function(r) any(ids_de(r) %in% ids_equipo), nuevas)
+  expect_gt(length(del_equipo), 0L)
+  for (r in del_equipo) expect_true(prosecnurapp:::.mafr_seguro(r))
 })
 
 test_that("la capa de formato vive en su archivo propio", {
