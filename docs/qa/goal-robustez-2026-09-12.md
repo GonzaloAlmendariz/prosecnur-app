@@ -286,3 +286,25 @@ denominador del otro y el resultado parece coherente. Coincidir en el número no
 prueba que sea el mismo dato — es la misma lección que ya costó una sesión con
 las tasas, y aquí aparece con dos conjuntos que difieren en exactamente un
 elemento cada uno.
+
+## El punto ciego del cotejo entre superficies
+
+El cotejo que encontró la cuarta definición de «aplicado» compara VALORES: la
+misma entrada por dos caminos, campo a campo. Tiene un punto ciego que conviene
+dejar escrito, porque acaba de demostrarse.
+
+`efa3bd98` arregló que `brechaDeLaFacultad` leyera `achieved`, un campo que el
+motor **no publica en ninguna parte**: la rama principal era código muerto y
+todo pasaba por el respaldo `target - missing`. Medido sobre el operativo: las
+**30 celdas** de `quotas_sex_faculty` traen `observed` y **ninguna** trae
+`achieved`; y en las **30**, `observed == target - missing`.
+
+Es decir: el respaldo daba exactamente el mismo número que la rama correcta, así
+que **ningún cotejo de valores podía verlo**. Mi barrido comparó esas cuotas
+contra el PDF y salió limpio — con razón, porque los valores lo estaban.
+
+La pregunta que sí lo caza no es «¿cuánto vale?» sino **«¿de qué campo lo
+sacaste?»**, que es una pregunta de procedencia y no de valor. El guard que
+corresponde es el de la otra sesión —clase 11, «un respaldo que se usa
+siempre»—, y por eso las dos formas de mirar se necesitan: una ve los números
+que no cuadran, la otra ve los caminos que nadie recorre.
