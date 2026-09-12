@@ -103,6 +103,17 @@ export function brechaDeLaFacultad(
     if (!celda || typeof celda !== "object") continue;
     if (String(celda.faculty ?? "").trim().toLocaleUpperCase() !== clave) continue;
 
+    // **Medido el 2026-09-12: sobre `quotas_sex_faculty`, `sex_key` NO llega.**
+    // Las 30 celdas del operativo traen `faculty, sex, target, observed,
+    // missing, progress_pct, status, source`. El campo existe —lo publica
+    // `calc_muestra_distribucion.R` y lo lee la pestaña de distribución— pero
+    // no en ESTA estructura, así que aquí la vía real es siempre el respaldo.
+    //
+    // El orden se deja como está a propósito: si algún día llegara, `sex_key`
+    // es más fiable que normalizar el crudo. Lo que no vale es creer que la
+    // rama de arriba está viva — no lo está, y `sexSeriesKind()` es quien
+    // sostiene esto hoy.
+    //
     // `sex_key` es el sexo ya normalizado por el motor a F/M; `sex` es como
     // venía en la columna. Se prefiere la clave y sólo se cae al crudo cuando
     // no viaja, porque es la que el propio motor usó para agregar.
