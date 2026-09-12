@@ -223,3 +223,18 @@ consumidores, un solo sitio sin guarda— y tiene la regresión del sitio
 concreto (`f02b96fc`), pero **no tiene un guard de la CLASE**: si mañana
 aparece un quinto slot o un sexto consumidor, nada lo caza. Queda declarado como
 lo que es, a medio cerrar, y no como hecho.
+
+## Una afirmación del código, comprobada — y era cierta
+
+`.calg_celdas_parte` reparte los valores a las columnas con un `switch` POR
+TÍTULO, y su comentario afirma: «un titulo que este switch no conozca sale
+vacio, y el barrido de ida y vuelta lo caza».
+
+Comprobado desalineando una rama —`"CANTIDAD DE RECHAZOS" = n("rechazos")`
+renombrada, dejando la cabecera intacta y la celda vacía—: **caen 3 tests**,
+`test-carga-aulas-libro-roundtrip.R` (dos) y `test-carga-aulas-libro.R`. La
+afirmación era cierta y el guard existe, así que **no hay clase nueva**.
+
+Se anota porque un resultado negativo también cierra una pregunta, y porque la
+alternativa —dejarla escrita como «hallazgo» sin medirla— es exactamente lo que
+dos etapas falsas de esta misma noche costaron.
