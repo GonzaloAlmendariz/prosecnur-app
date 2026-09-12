@@ -160,3 +160,36 @@ test_that("los cuatro sellos siguen presentes cuando el estado ya avanzo", {
   expect_identical(as.character(fila$activation_origin), "refuerzo")
   expect_identical(as.character(fila$activated_for), "DERECHO")
 })
+
+test_that("activar un reemplazo deja a la caida diciendo QUIEN la reemplazo", {
+  # Tercer campo que se tragaba la lista cerrada, tras `activation_origin` y
+  # `activated_for`. `monitoreo_aulas_reemplazos.R:112` escribe `replaced_by` en
+  # la fila que cae y el normalizador declaraba solo `replaced_at`: la fecha sin
+  # el sucesor no dice a donde fue el slot.
+  #
+  # Y el test que existia —test-monitoreo-aulas-reemplazos.R:382— miraba la
+  # salida del MOTOR, antes de normalizar: verde con el dato muerto.
+  plan <- list(
+    list(classroom_id = "A-01", operational_code = "CH 1", label = "x", wave = "M1",
+         orden = 1, faculty = "DERECHO", sample_role = "titular",
+         sample_status = "agendada", titular_operational_code = "CH 1"),
+    list(classroom_id = "A-02", operational_code = "R 1.1", label = "y", wave = "M1",
+         orden = 2, faculty = "DERECHO", sample_role = "chain_reserve",
+         sample_status = "sin_contactar", titular_operational_code = "CH 1")
+  )
+  # La puerta de la reserva ELEGIDA a mano, que es la que se pudo ejercitar con
+  # una fixture minima. La automatica escribia `replaced_at` sin `replaced_by` y
+  # se corrigio en el mismo commit, pero con este plan contesta «agotada» —
+  # `monitoreo_aulas_reservas_disponibles()` pide mas de lo que arma esta
+  # fixture— y NO se da por probada: queda anotada en el encargo del loop.
+  out <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", ahora = "2026-09-12T10:00:00Z",
+                                           elegida = "R 1.1")
+  caida <- Filter(function(r) identical(r$operational_code, "CH 1"), out$plan)[[1]]
+  expect_identical(caida$replaced_by, "R 1.1")
+
+  # Y sobrevive al normalizador, que es donde se moria.
+  filas <- monitoreo_aulas_normalize_plan(out$plan)
+  normalizada <- Filter(function(r) identical(as.character(r$operational_code), "CH 1"), filas)[[1]]
+  expect_identical(as.character(normalizada$replaced_by), "R 1.1")
+  expect_identical(as.character(normalizada$replaced_at), "2026-09-12T10:00:00Z")
+})
