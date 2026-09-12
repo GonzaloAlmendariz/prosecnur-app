@@ -260,3 +260,29 @@ general es la suma de lo particular»**. Eso es lo que la hace resistente — un
 guard que fija la fuente se rompe con cualquier refactor legítimo; uno que fija
 la coherencia sólo se rompe cuando el dato deja de cuadrar, que es justo lo que
 se quiere vigilar.
+
+## Los DOS «74» no son el mismo 74
+
+El barrido de tarjetas del marco (`8c572302`) publica una tabla con 75, 74 y 73,
+y las tres descripciones son correctas. Pero conviene decir una cosa más, porque
+es la trampa de toda esta jornada en su forma más pura: **hay dos conjuntos
+distintos de 74 aulas y coinciden sólo en el tamaño.**
+
+Medido (`<scratchpad>/dos74.R`):
+
+| Conjunto | n | Composición |
+|---|---|---|
+| A · titulares con respuestas | 73 | — |
+| **B · titulares por la canónica** | **74** | A **+ `CH 3`** (parte, sin respuestas) |
+| **C · todo lo que tiene respuestas** | **74** | A **+ `R 131.1`** (reserva de cadena) |
+| D · todo por la canónica | 75 | A + `CH 3` + `R 131.1` |
+
+`identical(sort(B), sort(C))` → **FALSE**. Sólo en B: `CH 3`. Sólo en C:
+`R 131.1`.
+
+Importa para quien tome la decisión pendiente: si se lee «74» en dos sitios y se
+asume que hablan de lo mismo, se empareja un numerador de un conjunto con un
+denominador del otro y el resultado parece coherente. Coincidir en el número no
+prueba que sea el mismo dato — es la misma lección que ya costó una sesión con
+las tasas, y aquí aparece con dos conjuntos que difieren en exactamente un
+elemento cada uno.
