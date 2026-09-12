@@ -663,3 +663,38 @@ test_that("la publicación adopta los cambios manuales de la hoja de aplicadores
   expect_equal(out$adopcion_distribucion$adoptadas, 1L)
   expect_equal(out$adopcion_distribucion$hoja, "Semana 1")
 })
+
+# --- Publicar no es declarar éxito sin mirar ---------------------------------
+#
+# El 2026-09-12 el recibo decía «Plan del día: actualizada» mientras la celda
+# del área —el bloque que contesta «qué toca hoy»— estaba en `#REF!`. Nadie se
+# enteró hasta que alguien la leyó a mano diez horas después: la fórmula se
+# escribía con un PUT y se devolvía TRUE sin volver a mirarla.
+#
+# Ahora se lee la celda escrita y, si Sheets la dejó en error, el código viaja
+# en el recibo. La hoja NO se revierte —se escribió de verdad— pero deja de
+# poder decir «actualizada» sobre un bloque roto.
+
+test_that("si la fórmula del «Plan del día» queda en error, el recibo lo dice", {
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = mock$handler,
+    .mapds_formula_publicar = function(spreadsheet_id, hoja, values) invisible("#REF!")
+  )
+  out <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+  expect_identical(out$plan_dia_formula_error, "#REF!")
+})
+
+test_that("cuando la fórmula queda bien el recibo no inventa un aviso", {
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = mock$handler,
+    .mapds_formula_publicar = function(spreadsheet_id, hoja, values) invisible(TRUE)
+  )
+  out <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes())
+  expect_true(isTRUE(out$ok))
+  expect_identical(out$plan_dia_formula_error, "")
+})

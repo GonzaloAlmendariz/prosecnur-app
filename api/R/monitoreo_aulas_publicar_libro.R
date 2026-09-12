@@ -719,12 +719,21 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # (USER_ENTERED). En un ciclo sin_cambios no se emite nada: la fórmula ya
   # vive en el documento.
   hoja_pd <- .malp_hoja_plan_dia()
+  # El aviso de que la celda quedó en error viaja al recibo: publicar y decir
+  # «actualizada» sobre un bloque roto es el silencio que este ciclo ya pagó.
+  plan_dia_formula_error <- ""
   if (acciones[[hoja_pd]] %in% c("sembrada", "actualizada")) {
-    .mapds_formula_publicar(id, hoja_pd, producidas[[hoja_pd]])
+    res_formula <- .mapds_formula_publicar(id, hoja_pd, producidas[[hoja_pd]])
+    if (is.character(res_formula) && nzchar(res_formula)) {
+      plan_dia_formula_error <- res_formula
+    }
   }
 
   list(
     ok = TRUE,
+    # Vacío cuando todo fue bien; con el código de error de Sheets («#REF!»,
+    # «#N/A»…) cuando la celda del área del «Plan del día» quedó rota.
+    plan_dia_formula_error = plan_dia_formula_error,
     spreadsheet_id = id,
     spreadsheet_url = .monitoreo_scalar(
       pub$spreadsheet_url,
