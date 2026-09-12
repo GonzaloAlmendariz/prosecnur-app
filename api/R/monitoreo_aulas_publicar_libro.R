@@ -435,6 +435,35 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # antes del filtro y ya ordenado (facultad alfabetica, dentro por codigo).
   extras <- aulas_libro_extras_banco(plan %||% list(), partes = partes, control = control)
   unidades <- .calg_unidades_del_libro(plan %||% list(), partes = partes, control = control)
+  # **El MISMO guard que el generador del `.xlsx`, y por el mismo motivo.**
+  #
+  # `aulas_libro_generar()` se niega a escribir un libro cuyas reservas no
+  # sepan de qué cadena son; este publicador no lo comprobaba, y es el que
+  # escribe en el documento del operativo. El 2026-09-12 eso dejó «Avance de
+  # agendación» con la columna «Aulas del diseño» sumando 1.372 donde iban 170
+  # —cada reserva huérfana cuenta como su propia cadena— y estuvo así siete
+  # horas: publicar no falló, no avisó, y el cotejo por forma no lo vio.
+  #
+  # Dos caminos que escriben el mismo libro no pueden tener dos contratos. El
+  # que escribe en vivo, menos.
+  sin_cadena_pub <- .calg_reservas_sin_cadena(unidades, partes = partes)
+  if (length(sin_cadena_pub)) {
+    codigos <- unique(Filter(nzchar, vapply(sin_cadena_pub, function(u) {
+      .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
+    }, character(1))))
+    stop_api(
+      409, "E_AULAS_LIBRO_SIN_CADENAS",
+      sprintf(paste0(
+        "%d fila(s) del plan irian al Sheets sin su codigo de cadena ",
+        "(titular_operational_code): %s. Con ellas, todo lo que cuenta por ",
+        "CADENA cuenta de mas —«Aulas del diseño» de «Avance de agendacion» ",
+        "sumaria una por reserva— y el libro publicado no se puede regenerar. ",
+        "Suele pasar al publicar con un plan reconstruido leyendo el propio ",
+        "Sheets: publica desde la sesion de la app."
+      ), length(sin_cadena_pub), paste(utils::head(codigos, 12L), collapse = ", ")),
+      details = list(filas = length(sin_cadena_pub), codigos = as.list(codigos))
+    )
+  }
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "No hay plan de aulas del que publicar el libro.")
