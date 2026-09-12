@@ -443,7 +443,7 @@ Lo que vale como método: la pregunta «¿lo ve el cliente?» se contestó
 construyendo la salida y mirando sus celdas, no razonando sobre el código. Es
 más barato, es concluyente, y no toca el Sheets de nadie.
 
-## ABIERTO Y OPERATIVO — el «Plan del día» se rompe el lunes al elegir el 14/09
+## ~~El «Plan del día» se rompe el lunes~~ — RETRACTADO: mi medición estaba mal
 
 La hoja «Plan del día» del libro operativo —la que campo abre para saber qué
 toca hoy— tiene su bloque de cabecera roto: la celda de la fórmula muestra
@@ -469,8 +469,36 @@ elegir «2026-09-14» en el selector deja el bloque en `#REF!`**, justo el día 
 cargado del operativo y justo cuando más gente lo va a abrir. Los demás días
 caben y funcionan.
 
-No se arregla desde aquí: escribir en esa hoja es publicar al Sheets del
-operativo y eso necesita el go de Gonzalo. Lo que sí se puede adelantar es el
-guard —que la reserva sea siempre `>=` el día más cargado del listado que se
-publica con ella—, porque eso es un invariante interno de la hoja y se prueba
-con mocks.
+### RETRACTACIÓN
+
+**Todo el párrafo de arriba, salvo el `#REF!`, está MAL.** Al escribir el guard
+falló sobre el fixture de un test —reserva 1 contra «máximo» 2, con dos días de
+una cita cada uno— y eso delató al instrumento: yo contaba como cita **cualquier
+fila que empezara por una fecha**, y las filas de sección, los subtotales de
+jornada y el bloque de pendientes también la llevan.
+
+Con el criterio de PRODUCCIÓN —`.mapds_fechas_aula()`, que exige
+`CURSO-HORARIO` en la fila— la hoja del operativo da:
+
+| | |
+|---|---|
+| Filas contadas | 159 |
+| Día más cargado | **2026-09-09 con 24** |
+| Reserva | **24** |
+| ¿Cabe? | **SÍ** |
+
+La reserva es exacta y **el lunes no se rompe nada por desborde**. El `#REF!` de
+la fila 4 es real y sigue ahí, pero su causa **no es** la que dije y queda
+**abierta y sin diagnosticar**.
+
+Lo que sí queda hecho es el guard, y con el criterio bueno: la reserva ha de ser
+siempre `>=` el día más cargado **contado como lo cuenta producción**. Mutante
+muerto: fijarla en 8 lo pone en rojo. Vive en
+`test-monitoreo-aulas-plan-dia-formato.R`.
+
+**La lección es la de siempre y esta vez me tocó a mí**: medí la hoja con un
+criterio mío en vez de con el del código que la escribe, y con eso «encontré» un
+defecto que no existía y lo reporté como urgente. El guard no sólo cerró el
+invariante: fue lo que me delató, porque falló donde no debía. Escribir la
+prueba antes de creerse el hallazgo es lo que separó esto de una alarma falsa
+entregada.

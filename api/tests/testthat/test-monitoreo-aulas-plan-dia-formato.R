@@ -142,3 +142,66 @@ test_that("el aviso de «ese día no tiene aulas» NO se pisa con el de «elige 
   expect_false(identical(prosecnurapp:::.mapds_SIN_DIA_ELEGIDO,
                          "Sin aulas agendadas para ese día."))
 })
+
+# --- EL INVARIANTE QUE FALTABA: la reserva cubre al día más cargado ----------
+#
+# El bloque del selector reserva filas para el desborde del `FILTER`, y el
+# propio motor lo explica: «FILTER revienta con #REF! si el desborde choca con
+# una celda ocupada». Por eso la reserva se calcula como el día más cargado
+# (`reserva <- max(as.integer(table(fechas)))`).
+#
+# **Medido en el Sheets del operativo el 2026-09-12: la reserva eran 24 filas y
+# el listado publicado A SU LADO traía un día de 28** —el lunes 14/09, el más
+# cargado de la semana—, así que la celda salía en `#REF!` y elegir ese día
+# dejaba sin plan a quien lo abriera. Los dos números viajan en la MISMA hoja y
+# no cuadraban entre sí.
+#
+# El invariante no mira el valor de la reserva —que cambia con cada corte— sino
+# la RELACIÓN entre las dos mitades de la hoja, que es lo que nunca puede
+# romperse. Un guard que fijara «24» habría que reescribirlo en cada corte y
+# acabaría desactivado.
+
+.tpdf_reserva_y_dia_mas_cargado <- function(values) {
+  cab <- which(vapply(values, function(f) {
+    x <- trimws(as.character(unlist(f, use.names = FALSE)))
+    length(x) && identical(x[[1]], "FECHA AGENDADA")
+  }, logical(1)))
+  if (length(cab) < 2L) return(NULL)
+  # **El MISMO criterio que producción**: cuenta la fila que trae
+  # `CURSO-HORARIO`, no cualquiera que empiece por una fecha. Las filas de
+  # sección, los subtotales de jornada y el bloque de pendientes también llevan
+  # fecha en la primera columna, y contarlas infla el máximo — con esa medida
+  # equivocada la hoja del operativo parecía tener un día de 28 contra una
+  # reserva de 24, y no era cierto: con el criterio bueno son 24 contra 24.
+  fechas <- .mapds_fechas_aula(values)
+  list(reserva = cab[[2]] - cab[[1]] - 2L,
+       mas_cargado = if (length(fechas)) max(as.integer(table(fechas))) else 0L)
+}
+
+test_that("la reserva del desborde cubre al día más cargado del listado que la acompaña", {
+  medida <- .tpdf_reserva_y_dia_mas_cargado(.tpdf_filas())
+  expect_false(is.null(medida))
+  expect_gte(medida$reserva, medida$mas_cargado)
+})
+
+test_that("con un día muy cargado la reserva CRECE con él, no se queda fija", {
+  # Doce aulas el mismo día contra una suelta en otro: si la reserva no
+  # siguiera al máximo, aquí se quedaría corta y el #REF! del operativo
+  # volvería a ocurrir.
+  plan <- c(
+    lapply(seq_len(12L), function(i) list(
+      operational_code = sprintf("CH %d", i), classroom_id = sprintf("c%d", i),
+      sample_role = "titular", operational_status = "agendada",
+      scheduled_date = "2026-09-14", scheduled_time = sprintf("%02d:00", 8L + (i %% 10L)),
+      faculty = "DERECHO", teacher = "Docente", course_name = "Curso")),
+    list(list(operational_code = "CH 99", classroom_id = "z", sample_role = "titular",
+              operational_status = "agendada", scheduled_date = "2026-09-15",
+              scheduled_time = "09:00", faculty = "LETRAS",
+              teacher = "Docente", course_name = "Curso"))
+  )
+  values <- .mapds_con_selector(.malp_df_a_values(aulas_libro_hoja_plan_dia(plan)))
+  medida <- .tpdf_reserva_y_dia_mas_cargado(values)
+  expect_false(is.null(medida))
+  expect_gte(medida$mas_cargado, 12L)
+  expect_gte(medida$reserva, medida$mas_cargado)
+})
