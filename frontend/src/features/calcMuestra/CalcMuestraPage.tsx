@@ -2421,15 +2421,7 @@ export default function CalcMuestraPage() {
     setMsg(null);
     const contextoInicial = await leerContextoPaquete();
     if (!contextoInicial.fingerprint) {
-      // El aviso dice LA CAUSA. El texto único mandaba a revisar cálculo, marco
-      // y selección incluso cuando los tres estaban bien y lo que fallaba era
-      // otra cosa: que el sorteo se corrió para un tamaño y la fórmula pide
-      // otro, que por ADR 0066 es un caso normal y no un error.
-      setMsg({
-        kind: "warn",
-        text: paqueteDefensaMotivo(contextoInicial)
-          ?? "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.",
-      });
+      setMsg({ kind: "warn", text: paqueteDefensaMotivo(contextoInicial) });
       return;
     }
     const fingerprintInicial = contextoInicial.fingerprint;
