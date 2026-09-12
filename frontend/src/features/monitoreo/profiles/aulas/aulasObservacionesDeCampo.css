@@ -11,4 +11,8 @@
 .mon-profile-page.is-aulas-flow .aulas-observaciones-fecha {
   color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
+  /* La fecha se partía en dos líneas cuando la observación es larga —«4/09»
+     quedaba como «4/0» y «9» debajo—, y una fecha rota no se lee como fecha.
+     Es lo bastante corta para no robar sitio al texto. */
+  white-space: nowrap;
 }
