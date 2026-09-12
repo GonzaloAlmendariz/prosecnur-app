@@ -184,3 +184,48 @@ test_that("empareja los bloques con sufijo R1, R2, que es como rotula el libro",
   out <- monitoreo_aulas_marcas_por_publicar(list(.mapm_fila("R 1.1")), remoto)
   expect_identical(out$escribibles[[1]]$codigo, "R 1.1")
 })
+
+# ── La clase 4: ningun camino del paso de formato puede quedarse mudo ────────
+#
+# Publicar decia «se pintaron N celdas» y del desplegable y el color no decia
+# nada, ni bien ni mal: si no habia sheetId, o no salia ninguna request, el paso
+# se saltaba en silencio y la celda quedaba en rojo. A Gonzalo le costo tres
+# vueltas mirando la hoja equivocada.
+#
+# El guard ata las tres piezas: los estados que el CODIGO produce, la lista
+# DECLARADA, y el TEXTO que los enseña. Una rama nueva sin nombre rompe la
+# primera; un nombre sin frase rompe la tercera.
+
+test_that("todo estado que el codigo produce esta en el vocabulario declarado", {
+  fuente <- readLines(testthat::test_path("..", "..", "R", "monitoreo_aulas_publicar_marcas.R"),
+                      warn = FALSE)
+  # Las asignaciones literales `fmt$estado <- "x"` y el `estado = "x"` del molde.
+  hits <- regmatches(fuente, gregexpr('(fmt\\$estado <- |estado = )"[a-z-]+"', fuente))
+  producidos <- unique(vapply(strsplit(unlist(hits), '"', fixed = TRUE),
+                              function(p) p[[2]], character(1)))
+  expect_gt(length(producidos), 3L)  # si el barrido enmudece, el guard no guarda
+  expect_setequal(intersect(producidos, MONITOREO_AULAS_FORMATO_ESTADOS), producidos)
+})
+
+test_that("el texto DICE cada estado que no sea un final limpio", {
+  # Los tres finales limpios callan; los otros tres tienen que salir nombrados.
+  base <- list(escritas = list(1), respetadas = list(), sin_fila = character(0),
+               aplicado = TRUE)
+  for (estado in setdiff(MONITOREO_AULAS_FORMATO_ESTADOS,
+                         c("aplicado", "ensayo", "sin-columnas"))) {
+    out <- utils::modifyList(base, list(
+      formato = list(list(hoja = "Aulas Agendadas", estado = estado, error = ""))))
+    txt <- monitoreo_aulas_publicar_marcas_texto(out)
+    expect_match(txt, "NO entraron", info = sprintf("el estado «%s» no se declara", estado))
+    expect_match(txt, estado, fixed = TRUE,
+                 info = sprintf("el texto no nombra «%s»", estado))
+  }
+})
+
+test_that("un final limpio no inventa una alarma", {
+  # La contracara: declarar SIEMPRE no puede volverse ruido en el caso bueno.
+  limpio <- list(escritas = list(1), respetadas = list(), sin_fila = character(0),
+                 aplicado = TRUE,
+                 formato = list(list(hoja = "X", estado = "aplicado", error = "")))
+  expect_no_match(monitoreo_aulas_publicar_marcas_texto(limpio), "NO entraron")
+})
