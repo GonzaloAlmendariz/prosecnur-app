@@ -345,6 +345,54 @@ El tick 40 publicó «territorial: 0 contract tests». **Es falso**: tenía uno,
 familias está medida con ese sesgo y **cuenta de menos en todas**. El conteo que
 no miente es por `readinessQueSeDeclara`-style: barrer, no listar.
 
+## El QA visual CAPTURA por fin, y el tope era la otra mitad (tick 42)
+
+Dos causas, no una. El tick 41 arregló la marca borrada; faltaba ésta:
+**`DEFAULT_TIMEOUT_MS` son 30 s** (`scripts/ui-quick-check.mjs:18`) y el warm
+start de Monitoreo con proyecto real tarda **4-6 min**. Con el tope por defecto,
+`make ui-quick-check` sobre cualquier vista de Monitoreo **no puede pasar nunca**.
+
+Medido sobre `monitoreo/territorial/avance` con `acnur_acg`:
+
+| tope | resultado |
+|---|---|
+| 30 s (defecto) | se rinde en `marca-en-false` |
+| **420 s** | **ok=true · captures=1 · issues=0 · geometryGroups=1 · geometryIssues=0 · geometryCoverageMisses=0** |
+
+Con `--require-geometry --fail-on-issues` también aprueba, así que **es verde por
+conformidad, no por ausencia**. Es la primera vista de Monitoreo que el QA visual
+mide en todo el loop. Matiz honesto: aprueba con **1 grupo** de geometría
+declarado en una pantalla de ~10 paneles; aulas declara 79 de 116 archivos. Pasar
+el gate y estar instrumentado no son lo mismo.
+
+`acnur_acg` **sí** trae monitoreo (`modules_summary.states.monitoreo = "ready"`):
+la hipótesis del proyecto equivocado queda descartada.
+
+El aviso se arregló en `cb7de8e2`: decía el hecho y no la causa, y distinguir
+«está rota» de «no le diste tiempo» costó un ciclo entero. La pista va en helper
+único porque el mismo aviso ciego estaba en los TRES sitios que esperan readiness.
+
+### Hallazgo de la pantalla: tres respuestas a «¿qué falta?» (para Gonzalo)
+
+En Avance territorial, a la vez y sin base común visible:
+
+- «ESTADO GENERAL DEL CAMPO»: 1.283 de 1.200 válidas · 107 % · «Meta superada,
+  +83» · **PENDIENTES 0**.
+- «UMP pendientes»: **21**, cada una con «FALTAN 8» (≈168 encuestas).
+- «ESTADO UMP · CUOTA OPERATIVA»: 147 completas · **3 cuota pendiente** · 0 no
+  iniciadas.
+- «Distritos con brecha: 0 — Sin distritos rezagados».
+
+**Cada cifra puede ser correcta en su base** —válidas, UMPs, cuota operativa— y
+por eso no lo llamo defecto. Pero la pantalla responde 0, 3 y 21 a la misma
+pregunta, con la meta ya superada. Es la pareja 75/174 otra vez: emparejarlas
+cambia lo que la tarjeta significa, así que **lo decide él**.
+
+**Rama muerta anotada, sin arreglar**: `dimensions.survey_source_id` (primera de
+tres alternativas en `Acreditacion/TelefonicoSourcesModel.ts`) no existe en
+`api/R`. No hace daño porque `sourceId` siempre viene de `source.id`; si algún
+día llegara vacío, `"" === ""` casaría con el primer candidato que hubiera.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
