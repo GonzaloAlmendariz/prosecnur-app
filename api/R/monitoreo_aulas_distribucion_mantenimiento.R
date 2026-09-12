@@ -1251,10 +1251,27 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   # El desfase va PRIMERO cuando lo hay: es lo único de la frase que dice que lo
   # que se está mirando en la app no es lo que el equipo tiene delante.
   aviso <- monitoreo_aulas_fijaciones_desfasadas_texto(out$fijaciones_desfasadas)
+  # **La hoja destino se nombra.** Desde que el Sheets lleva una pestaña por
+  # semana (`83d98403`), a qué pestaña va esta sincronización lo decide la
+  # ventana pedida, no una constante: el mismo botón puede escribir en «Semana
+  # 1» o en «Semana 2». Sin decirlo, el recibo cuenta lo que se hizo y calla
+  # DÓNDE, que es justo lo que hace falta para saber si se tocó la semana que
+  # toca. Se dice también cuando no cambió nada: «no hizo falta» sin destino no
+  # distingue una semana en paz de haber mirado la pestaña equivocada.
+  destino <- .alpa_txt(out$hoja)
+  en_hoja <- if (nzchar(destino)) sprintf(" en «%s»", destino) else ""
   cabeza <- if (!length(partes)) {
-    if (hecho) "No hizo falta cambiar nada." else "No haría falta cambiar nada."
+    if (hecho) sprintf("No hizo falta cambiar nada%s.", en_hoja)
+    else sprintf("No haría falta cambiar nada%s.", en_hoja)
   } else {
-    paste0(paste(partes, collapse = "; "), ".")
+    cuerpo <- paste0(paste(partes, collapse = "; "), ".")
+    if (nzchar(destino)) {
+      # La frase se redactó para empezar la oración; al anteponerle el destino
+      # deja de ser el principio.
+      substr(cuerpo, 1L, 1L) <- tolower(substr(cuerpo, 1L, 1L))
+      cuerpo <- sprintf("En «%s»: %s", destino, cuerpo)
+    }
+    cuerpo
   }
   cola <- if (n_sin == 0L) {
     "Todas las citas tienen aplicador."
