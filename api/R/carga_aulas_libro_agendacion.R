@@ -56,13 +56,21 @@ AULAS_AGENDACION_CABECERAS <- list(
   # la semana va antes que el día: primero el resumen con el que se decide si la
   # semana entrante está cubierta, y después el detalle con el que se organiza
   # cada jornada. `AULAS_AGENDACION_TITULOS` lleva el mismo orden a propósito.
+  # **«De reservas extra» es una columna y no un sumando de otra.** Sin ella,
+  # un extra agendado caía en «De titulares» —`es_reserva` es FALSE para el
+  # banco— e inflaba el conteo de lo que el diseño muestral eligió con lo que
+  # se añadió después. En el operativo del 2026-09-12 no se veía porque las 45
+  # del banco estaban sin agendar; se vería el día que alguien agende la
+  # primera, y como un titular de más.
   semana = c(
     "Semana", "Desde", "Hasta",
-    "Agendadas", "De titulares", "De reemplazos", "Aplicadas", "Por aplicar"
+    "Agendadas", "De titulares", "De reemplazos", "De reservas extra",
+    "Aplicadas", "Por aplicar"
   ),
   dia = c(
     "Día", "Día de la semana", "Semana",
-    "Agendadas", "De titulares", "De reemplazos", "Aplicadas", "Por aplicar"
+    "Agendadas", "De titulares", "De reemplazos", "De reservas extra",
+    "Aplicadas", "Por aplicar"
   ),
   eslabon = c(
     "Eslabón", "En el plan", "Agendadas", "Aplicadas",
@@ -229,7 +237,12 @@ AULAS_AGENDACION_TITULOS <- c(
     c("De titulares", sum(titular)),
     c("De reemplazos", sum(reserva))
   )
-  if (any(extra)) filas[[length(filas) + 1L]] <- c("De reservas extra", sum(extra))
+  # **Se dice aunque sea cero, siempre que el plan TENGA banco.** Una fila que
+  # aparece y desaparece no distingue «ninguna agendada» de «esta hoja no las
+  # mira», y ésa fue literalmente la duda de Gonzalo el 2026-09-12: «debería
+  # también considerar las aulas extra, ¿no?». Sin banco no se dice: ahí sí
+  # sería una fila sobre algo que no existe.
+  if (any(e$es_extra)) filas[[length(filas) + 1L]] <- c("De reservas extra", sum(extra))
   filas <- c(filas, list(
     c("Ya aplicados", sum(ag & e$aplicada)),
     c("Pendientes de aplicar", sum(ag & !e$aplicada)),
@@ -344,7 +357,8 @@ AULAS_AGENDACION_TITULOS <- c(
       .alpa_dia_y_fecha(d)$fecha,
       .alpa_dia_y_fecha(d)$dia,
       semanas[[k]],
-      length(j), sum(!e$es_reserva[j]), sum(e$es_reserva[j]),
+      length(j), sum(!e$es_reserva[j] & !e$es_extra[j]), sum(e$es_reserva[j]),
+      sum(e$es_extra[j]),
       aplicadas, length(j) - aplicadas,
       stringsAsFactors = FALSE
     )
@@ -370,7 +384,8 @@ AULAS_AGENDACION_TITULOS <- c(
     aplicadas <- sum(e$aplicada[j])
     data.frame(
       paste("Semana", n), r$desde, r$hasta,
-      length(j), sum(!e$es_reserva[j]), sum(e$es_reserva[j]),
+      length(j), sum(!e$es_reserva[j] & !e$es_extra[j]), sum(e$es_reserva[j]),
+      sum(e$es_extra[j]),
       aplicadas, length(j) - aplicadas,
       stringsAsFactors = FALSE
     )
