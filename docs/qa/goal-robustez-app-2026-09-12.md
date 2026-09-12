@@ -302,6 +302,49 @@ rendimiento que queda en esta familia no está en barrer más clases a mano — 
 en el QA visual, que sigue sin correrse y que en territorial no puede aprobar
 por conformidad (0 de 15 vistas declaran geometría).
 
+## La clase 13: ausente y «en falso» significan cosas opuestas (tick 41)
+
+`estadoListo()` (`lib/navegacion/runtime.ts:67-71`) responde dos motivos que se
+leen al revés: **sin** `[data-audit-ready]` dice `sin-marca-de-readiness` —«esta
+vista no participa del contrato»— y quien mide **corta**; con la marca en
+`"false"` dice `marca-en-false` —«hay contrato y aún no se cumple»— y **espera**.
+
+React no renderiza un atributo cuyo valor es `undefined`. Los TRES perfiles de
+monitoreo publicaban `data-audit-ready={cargando ? undefined : "..."}`: durante
+toda la carga afirmaban el primer motivo. **El QA visual daba por no medibles
+territorial, acreditación y telefónico enteros —38 vistas— y el gate no fallaba,
+simplemente no llegaba.** Verde por ausencia, en el propio instrumento que existe
+para impedirlo.
+
+Arreglado en `1183ef8d`. **Prueba de punta a punta**, que es lo que vale aquí: con
+`ui-quick-check` sobre `acnur_acg`, el motivo de `monitoreo/territorial/avance`
+pasó de `sin-marca-de-readiness` a `marca-en-false`. La vista aún no alcanza
+readiness con ese proyecto —eso queda abierto— pero ahora el runner la espera y
+el motivo dice dónde mirar.
+
+Guard: `app/readinessQueSeDeclara.contract.test.ts`. **Barre**, que es lo que
+faltaba: el contrato hermano `auditReadyRoutes` nombra páginas UNA A UNA, así que
+una página que nadie añadió nunca se entera. Declara los dos sitios donde borrar
+la marca sí es correcto (PageFrame delegando al panel interior; `isRoster`, que
+no es carga), verificados uno a uno.
+
+### Un contrato que fotografía la forma acaba defendiendo el defecto
+
+`TerritorialReadinessContract` se llamaba «no publica monitoreo mientras la vista
+sigue cargando» —intención correcta— pero afirmaba la FORMA exacta
+`/\{activeLoading \? undefined :/`. Cuando el defecto ES la forma, el contrato lo
+congela: estuvo en verde todo el tiempo. Reescrito sobre la intención. **Es la
+clase 9 en su forma más incómoda**: el guard no dejó de guardar, guardaba lo
+contrario de lo que debía.
+
+### Corrección de una cifra del tick 40
+
+El tick 40 publicó «territorial: 0 contract tests». **Es falso**: tenía uno,
+`TerritorialReadinessContract.test.ts`, que mi barrido no vio porque contaba sólo
+`*.contract.test.ts` y ése usa otro patrón de nombre. La tabla del desnivel entre
+familias está medida con ese sesgo y **cuenta de menos en todas**. El conteo que
+no miente es por `readinessQueSeDeclara`-style: barrer, no listar.
+
 ## Abierto en el diario, y es decisión suya
 
 Una **cuarta definición de «aplicado»**: `monitoreo_aulas_aula_aplicada.R` dice
