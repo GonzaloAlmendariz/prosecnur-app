@@ -348,7 +348,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
     expect(model.comparison).toBeNull();
   });
 
-  it("acredita cada artefacto con su propio target, no con el eco global", () => {
+  it("la comparación exige su target; la selección ejecutada manda y publica el desvío", () => {
     const workspaceBase = universityDefaultWorkspace();
     const workspace = {
       ...workspaceBase,
@@ -376,10 +376,33 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
       } as unknown as CalcMuestraAulasState,
     });
 
+    // La COMPARACIÓN sí se acredita contra el target vigente: su trabajo es
+    // decir qué método conviene PARA ese tamaño, así que corrida con otro no
+    // responde a la pregunta.
     expect(model.comparisonReady).toBe(true);
-    expect(model.selectionReady).toBe(false);
-    expect(model.selection).toBeNull();
-    expect(model.m1Rows).toHaveLength(0);
+
+    // **La SELECCIÓN ya no.** Se exigía además que su target coincidiera, y
+    // Gonzalo lo cambió el 2026-08-26: «si la selección de aulas finalmente
+    // indica ciento setenta y cuatro, entonces es ciento setenta y cuatro las
+    // titulares de monitoreo». Medido sobre HSVG26ULT, de las siete condiciones
+    // sólo fallaba ésa —sorteó 174 donde la fórmula pedía 165— y con ella caía
+    // el pase a Monitoreo entero: cuatro filas en «pendiente» y «completa la
+    // selección» sobre una selección completa. Es el principio del ADR 0066
+    // aplicado al conteo: el dimensionamiento es el paso intermedio y la
+    // selección es el entregable.
+    //
+    // Este test se quedó con el contrato viejo y llevaba rojo desde entonces.
+    expect(model.selectionReady).toBe(true);
+    expect(model.selection).not.toBeNull();
+
+    // Y aceptarla tiene consecuencias visibles aguas abajo: sus filas entran.
+    expect(model.m1Rows).toHaveLength(1);
+
+    // NOTA. El desvío («se sortearon 7 donde la fórmula pedía 13») lo calcula
+    // `classroomHandoff` en `selectionTargetDiff` y lo consume el paquete de
+    // defensa, pero `buildClassroomLabModel` NO lo reexpone: la pantalla de
+    // aulas no puede escribirlo aunque el motor lo sepa. Queda anotado; no se
+    // cambia aquí la forma pública del modelo sin una superficie que lo pida.
   });
 
   it("P2 publica solo las cifras del componente por facultad", () => {
