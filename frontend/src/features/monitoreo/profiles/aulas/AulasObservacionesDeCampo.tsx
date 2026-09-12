@@ -65,20 +65,33 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
           hueco —las gestionadas que NO traen nota—, porque ésas son las que
           faltan por anotar. Y el denominador se llama por lo que es: aulas
           gestionadas, no partes. */}
+      {/* **`conNota` cuenta NOTAS y `partes` cuenta AULAS**, y aquí se
+          comparaban: la línea decía «283 de 200 cursos-horario gestionados
+          traen observación», que es imposible —un aula puede traer dos notas,
+          la de agendarla y la de aplicarla—. Peor: el HUECO, que es lo que se
+          quería mirar, salía con `partes > conNota` y por eso no aparecía
+          nunca. Ahora el «de N» usa las AULAS con nota, y las notas totales se
+          dicen aparte, que es lo que de verdad son. */}
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)}{" "}
+        <strong>{fmt(r.aulasConNota)}</strong> de {fmt(r.partes)}{" "}
         {r.partes === 1 ? "curso-horario gestionado trae" : "cursos-horario gestionados traen"} observación
+        {r.conNota > r.aulasConNota ? (
+          <>
+            {" "}· <strong>{fmt(r.conNota)}</strong>{" "}
+            {r.conNota === 1 ? "nota" : "notas"} en total
+          </>
+        ) : null}
         {r.observaciones.length < r.conNota ? (
           <>
             {" "}· <strong>{fmt(r.observaciones.length)}</strong>{" "}
             {r.observaciones.length === 1 ? "cosa distinta" : "cosas distintas"}
           </>
         ) : null}
-        {r.partes > r.conNota ? (
+        {r.partes > r.aulasConNota ? (
           <>
             {" "}·{" "}
             <span className="aulas-observaciones-hueco">
-              {fmt(r.partes - r.conNota)} sin anotar
+              {fmt(r.partes - r.aulasConNota)} sin anotar
             </span>
           </>
         ) : null}

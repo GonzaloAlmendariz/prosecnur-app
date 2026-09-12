@@ -39,7 +39,9 @@ describe("observacionesDeCampo", () => {
 
   it("sin observaciones no inventa ninguna", () => {
     const r = observacionesDeCampo([parte({ operational_code: "CH 1" })]);
-    expect(r).toEqual({ observaciones: [], conNota: 0, partes: 1 });
+    // `aulasConNota` se añadió el 2026-09-12: `conNota` cuenta NOTAS y un aula
+    // puede traer dos, así que comparar una con `partes` daba «283 de 200».
+    expect(r).toEqual({ observaciones: [], conNota: 0, aulasConNota: 0, partes: 1 });
   });
 
   it("el mismo aplicador no se repite en la lista de quién lo reportó", () => {

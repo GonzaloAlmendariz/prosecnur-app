@@ -127,8 +127,17 @@ export type ObservacionDeCampo = {
 
 export type ResumenDeObservaciones = {
   observaciones: ObservacionDeCampo[];
-  /** Partes con observación, sobre el total. */
+  /**
+   * **NOTAS, no cursos-horario.** Un curso-horario puede traer dos —lo que costó
+   * agendarlo y lo que pasó al aplicarlo—, así que esta cifra pasa del total de
+   * aulas y NO es comparable con `partes`.
+   */
   conNota: number;
+  /**
+   * Cursos-horario con al menos una nota. Éste sí se compara con `partes`, y es
+   * el que da el hueco: las gestionadas que aún no tienen nada anotado.
+   */
+  aulasConNota: number;
   partes: number;
 };
 
@@ -138,6 +147,12 @@ export function observacionesDeCampo(
 ): ResumenDeObservaciones {
   const grupos = new Map<string, ObservacionDeCampo & { porAplicador: Map<string, number> }>();
   let conNota = 0;
+  // Cursos-horario con al menos una nota. `conNota` cuenta NOTAS y un aula
+  // puede traer dos, así que sin este conjunto la pantalla comparaba notas
+  // contra aulas: «283 de 200 cursos-horario gestionados traen observación»
+  // —imposible— y, peor, el HUECO que se quería ver (`partes > conNota`) no se
+  // enseñaba nunca, porque 283 > 200.
+  const aulasConNota = new Set<string>();
   // Un aula puede traer la MISMA nota por los dos caminos —se registró en la app
   // y además se transcribió al libro—. Sin esta guarda contaría dos aulas donde
   // hay una, y «2 aulas» sobre un operativo de una sola es peor que no decirlo.
@@ -175,6 +190,7 @@ export function observacionesDeCampo(
         vistos.add(huella);
       }
       conNota += 1;
+      if (codigo) aulasConNota.add(codigo);
       const k = clave(texto);
       const g = grupos.get(k) ?? {
         texto, aulas: 0, origenes: [] as OrigenDeObservacion[],
@@ -227,5 +243,10 @@ export function observacionesDeCampo(
     const codigo = txt(p.operational_code);
     if (codigo) universo.add(codigo);
   }
-  return { observaciones, conNota, partes: universo.size || partes.length };
+  return {
+    observaciones,
+    conNota,
+    aulasConNota: aulasConNota.size,
+    partes: universo.size || partes.length,
+  };
 }
