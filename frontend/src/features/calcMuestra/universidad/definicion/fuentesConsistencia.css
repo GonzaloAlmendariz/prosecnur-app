@@ -1,3 +1,9 @@
+/* La cabecera propia se retiró de `DefConsistenciaTab` —el chrome de la
+   pestaña ya pinta icono, título y detalle, y repetirlos ocupaba dos
+   tercios de lo visible en 1024x600—. Sus reglas se fueron con ella: CSS
+   que sobrevive a su marcado es deuda que ningún compilador cobra (F101).
+   Si vuelve a hacer falta una cabecera, se escribe con la del chrome. */
+
 .cmv2-fuentes-consistencia {
   display: grid;
   gap: var(--pulso-space-5);
@@ -10,41 +16,6 @@
   min-width: 0;
   padding-top: var(--pulso-space-5);
   border-top: 1px solid var(--pulso-border);
-}
-
-.cmv2-fuentes-consistencia-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-3);
-}
-
-.cmv2-fuentes-consistencia-head > span {
-  display: grid;
-  place-items: center;
-  flex: 0 0 36px;
-  inline-size: 36px;
-  block-size: 36px;
-  border-radius: var(--pulso-radius);
-  color: var(--cmv2-accent);
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-fuentes-consistencia-head h3 {
-  margin: 2px 0 0;
-}
-
-.cmv2-fuentes-consistencia-head small {
-  color: var(--pulso-text-muted);
-  font-size: 0.69rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.cmv2-fuentes-consistencia-head p {
-  max-width: 78ch;
-  margin: var(--pulso-space-2) 0 0;
-  color: var(--pulso-text-muted);
-  line-height: 1.5;
 }
 
 .cmv2-fuentes-consistencia-block .cmv2-marco-stack {
