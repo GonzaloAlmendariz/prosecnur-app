@@ -462,10 +462,16 @@ collection_material_application_log_labels <- function() {
   # el formulario de captura de la hoja «Aulas Aplicadas (Campo)».
   #
   # Y no coincidian. La ficha pedia «Alumnos en aula» donde la hoja espera
-  # «CANTIDAD DE ASISTENTES», y «Encuestas aplicadas» donde espera «CANTIDAD DE
-  # EFECTIVAS»: quien transcribe tenia que traducir dos nombres en cada aula, y
-  # una traduccion repetida 193 veces es una fuente de error que no hacia falta
-  # tener.
+  # «CANTIDAD DE ASISTENTES», y el nombre de las efectivas bailo entre las dos:
+  # quien transcribe tenia que traducir en cada aula, y una traduccion repetida
+  # 193 veces es una fuente de error que no hacia falta tener.
+  #
+  # **El baile costo un rojo.** La casilla se puso «Efectivas» cuando la columna
+  # se llamaba «CANTIDAD DE EFECTIVAS»; la columna paso despues a «CANTIDAD DE
+  # ENCUESTAS APLICADAS» y la casilla se quedo atras. La regla es que manda LA
+  # COLUMNA —es la que el importador relee y la que ya esta escrita en el Sheets
+  # vivo del operativo—, y la casilla lleva la forma corta que cabe dentro de su
+  # nombre. `test-collection-bundle-carpetas.R` lo vigila en los dos sentidos.
   #
   # «Observaciones» estaba en la hoja —«OBSERVACIONES SOBRE APLICACIONES»— y en
   # el generador de fichas anterior, y no en esta ficha: lo que el aplicador
@@ -479,7 +485,7 @@ collection_material_application_log_labels <- function() {
   # Cada casilla lleva el nombre de SU columna en la hoja, para que transcribir
   # sea copiar y no traducir:
   #
-  #   CANTIDAD DE ASISTENTES · CANTIDAD DE EFECTIVAS · CANTIDAD DE RECHAZOS
+  #   CANTIDAD DE ASISTENTES · CANTIDAD DE ENCUESTAS APLICADAS · CANTIDAD DE RECHAZOS
   #   DUPLICADOS (YA RESPONDIERON) · AULA · APLICADOR
   #   FECHA DE APLICACION · HORA DE APLICACION · OBSERVACIONES SOBRE APLICACIONES
   #
@@ -492,7 +498,7 @@ collection_material_application_log_labels <- function() {
   # transcribe al libro interpreta 193 veces. Cuatro caracteres en la etiqueta
   # ahorran esa interpretacion.
   c(
-    "Asistentes: | Efectivas:",
+    "Asistentes: | Encuestas aplicadas:",
     "Rechazos: | Duplicados:",
     "Aula: | Aplicador:",
     "Fecha (DD/MM/AA): | Hora (00:00 AM/PM):",

@@ -84,8 +84,15 @@ test_that("las columnas que el aplicador puede llenar tienen casilla en el papel
   casillas <- tolower(paste(collection_material_application_log_labels(), collapse = " "))
   # Lo que solo se sabe estando en el aula. Quedan fuera a proposito los
   # derivados —«% asistencia»— y los que trae el marco —«matriculados»—.
-  for (col in c("asistentes", "efectivas", "rechazos", "duplicados", "aplicador",
-                "aula", "fecha", "hora", "observaciones")) {
+  #
+  # **Esta lista es una TERCERA copia del vocabulario** (la ficha y las columnas
+  # del libro son las otras dos) y por eso se escribe con el nombre corto que
+  # vive DENTRO del nombre de su columna, no con un sinonimo. «efectivas»
+  # envejecio sola aqui cuando la columna paso a «CANTIDAD DE ENCUESTAS
+  # APLICADAS»: el test de arriba se puso rojo y este lo tapaba pidiendo la
+  # palabra vieja. Si una columna se renombra, esta lista se mueve con ella.
+  for (col in c("asistentes", "encuestas aplicadas", "rechazos", "duplicados",
+                "aplicador", "aula", "fecha", "hora", "observaciones")) {
     expect_true(grepl(col, casillas, fixed = TRUE),
                 info = sprintf("«%s» se pide en el libro y no en el papel", col))
   }
