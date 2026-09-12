@@ -405,6 +405,7 @@ errores_registrados <- function() {
     "E_KOBO_ASSET_REQUIRED",                                 "router_carga.R",                    "400",
     "E_KOBO_ASSET_UID",                                      "router_carga.R",                    "400",
     "E_KOBO_NO_ASSETS",                                      "router_carga.R",                    "400",
+    "E_KOBO_RESPUESTA_ILEGIBLE",                             "kobo_api.R",                        "502",
     "E_KOBO_NOT_FOUND",                                      "kobo_api.R",                        "404",
     "E_KOBO_OCCURRENCES_ASSET",                              "router_monitoreo.R",                "400",
     "E_KOBO_OCCURRENCES_DEPLOY",                             "router_monitoreo.R",                "400",
