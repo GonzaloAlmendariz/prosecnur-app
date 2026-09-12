@@ -205,7 +205,12 @@ function TerritorialReviewCasesWorkbenchImpl({
                 <input
                   value={filters.search}
                   onChange={(event) => patchFilters({ search: event.target.value })}
-                  placeholder="Buscar UUID, UMP, distrito, manzana o encuestador..."
+                  // El placeholder medía 323 px en 294 disponibles y se cortaba a media
+                  // palabra (lo cazó ui-quick-check como `placeholder-clipped`). La
+                  // enumeración completa se lee ahora en el nombre accesible, que no
+                  // se recorta, y el campo dice lo justo.
+                  aria-label="Buscar por UUID, UMP, distrito, manzana o encuestador"
+                  placeholder="Buscar UUID, UMP o encuestador…"
                 />
               </label>
               <TerritorialReviewSelect label="Distrito" value={filters.district} options={options.districts} onChange={(district) => patchFilters({ district })} />
