@@ -463,3 +463,51 @@ test_that("si el estudio no reparte por facultad, el reemplazo sigue pasando", {
                                          ahora = "2026-01-01T00:00:00Z")
   expect_equal(r$activada, "E-ARQ")
 })
+
+# ── La cadena se resuelve por el campo que habla el idioma de los codigos ────
+#
+# Medido el 2026-09-12: `.mar_titular_de()` leia `replacement_for`, que
+# `calc_muestra_aulas.R` y `monitoreo_aulas_apply_replacement()` escriben con el
+# `classroom_id` del titular —`arc232_0905`—, no con su codigo operativo. Sobre
+# HSVG2026, de los 202 `replacement_for` distintos CERO coincidian con un
+# titular. El efecto: activar un reemplazo contestaba «no quedan reservas»
+# teniendolas todas.
+#
+# `carga_aulas_libro_generar.R` ya tenia la leccion escrita en `.calg_titular()`;
+# lo que faltaba era aplicarla aqui. Dos capas leyendo la misma relacion por
+# campos distintos es la deriva que este test cierra.
+
+.mar_cadena_fixture <- function(reserva_extra) {
+  list(
+    list(classroom_id = "arc232_0905", operational_code = "CH 1",
+         sample_role = "titular", sample_status = "agendada"),
+    utils::modifyList(
+      list(classroom_id = "arc232_0906", operational_code = "R 1.1",
+           sample_role = "chain_reserve", sample_status = "sin_contactar",
+           replacement_order = 1),
+      reserva_extra)
+  )
+}
+
+test_that("la reserva se encuentra por titular_operational_code, como la escribe el libro", {
+  plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+  # Y la activacion completa funciona por esa via, que es la que llega del libro.
+  out <- monitoreo_aulas_activar_reemplazo(plan, "CH 1", ahora = "2026-09-12T10:00:00Z")
+  expect_false(isTRUE(out$agotada))
+  expect_identical(out$activada, "R 1.1")
+})
+
+test_that("un replacement_for con el classroom_id interno ya no rompe la cadena", {
+  # La forma EXACTA que escriben los motores. Antes daba cero reservas; ahora el
+  # titular declarado manda y el `replacement_for` inservible no estorba.
+  plan <- .mar_cadena_fixture(list(titular_operational_code = "CH 1",
+                                   replacement_for = "arc232_0905"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+})
+
+test_that("un plan viejo que solo trae replacement_for operativo sigue resolviendose", {
+  # El respaldo: no se rompe lo que ya funcionaba.
+  plan <- .mar_cadena_fixture(list(replacement_for = "CH 1"))
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "CH 1"), 1L)
+})
