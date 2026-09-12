@@ -36,6 +36,14 @@ function archivosDeVista(dir: string): string[] {
 }
 
 describe("colores de resultado", () => {
+  // **Centinela de no-mudez.** El barrido recorre el árbol de vistas y luego se
+  // afirma que nadie escribe los literales de color a mano. Si dejara de
+  // encontrar archivos, la lista de culpables saldría vacía y el guard pasaría
+  // en verde sin haber leído nada.
+  it("el barrido encuentra vistas, o no está guardando nada", () => {
+    expect(archivosDeVista(RAIZ).length).toBeGreaterThan(30);
+  });
+
   // Solo los cromáticos: el gris de «revisión» y el del acumulado coinciden con
   // el color del texto de los ejes, así que su literal aparece por motivos
   // legítimos. Ver `COLORES_DE_RESULTADO_EXCLUSIVOS`.

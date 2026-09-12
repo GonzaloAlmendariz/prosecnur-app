@@ -77,6 +77,14 @@ const CONSTRUYE_PORCENTAJE =
   /(toLocaleString|toFixed)\([^)]*\)[^;\n]{0,40}(%|\bpor ciento\b)|(%|\bpor ciento\b)[^;\n]{0,20}(toLocaleString|toFixed)\(/;
 
 describe("un solo formateador de porcentaje en el perfil", () => {
+  // **Centinela de no-mudez.** El barrido recorre las carpetas declaradas y
+  // luego se afirma que nadie escribe su propio formateador. Si dejara de
+  // encontrar fuentes —una carpeta renombrada, un filtro que deja de casar— la
+  // lista saldría vacía y el guard pasaría en verde sin leer un solo archivo.
+  it("el barrido encuentra las fuentes, o no está guardando nada", () => {
+    expect(CARPETAS.flatMap((c) => fuentes(path.join(AQUI, c))).length).toBeGreaterThan(30);
+  });
+
   it("ningún archivo de producción construye el suyo", () => {
     const culpables: string[] = [];
     for (const archivo of CARPETAS.flatMap((c) => fuentes(path.join(AQUI, c)))) {

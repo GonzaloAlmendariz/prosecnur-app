@@ -28,9 +28,9 @@ const SRC = path.resolve(__dirname, "..");
 /**
  * Medido el 2026-09-12: eran **26**. Con los seis puestos en el perfil de
  * cursos-horario —`cifrasConFormato` incluido, que valida TODAS las cifras
- * visibles— quedan **20**. Baja conforme se pongan; NO se sube.
+ * visibles— quedan **11** con enumeración real del árbol. Baja conforme se pongan; NO se sube.
  */
-const TOPE_SIN_CENTINELA = 20;
+const TOPE_SIN_CENTINELA = 11;
 
 function tests(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -40,8 +40,19 @@ function tests(dir: string): string[] {
   });
 }
 
-/** Enumera el árbol y filtra: ahí es donde cero coincidencias pasa por «todo bien». */
-const ENUMERA = /(readdirSync|globSync|\.filter\(|\.flatMap\()/;
+/**
+ * **Enumeración REAL del sistema de archivos.** La primera versión contaba
+ * también `.filter(` y `.flatMap(`, y eso marcaba guards que sólo iteran una
+ * lista LITERAL de archivos —`auditReadyRoutes`, por ejemplo, recorre dos
+ * shells escritos a mano—. Ésos no pueden quedarse mudos: si el archivo no
+ * está, `readFileSync` revienta, que es fallar cerrado.
+ *
+ * El riesgo sólo existe cuando el guard pregunta al sistema de archivos QUÉ hay
+ * y filtra el resultado: ahí, cero coincidencias pasa por «todo bien». Afinarlo
+ * bajó la cifra de 18 a 11 — siete eran falsos positivos de este mismo barrido,
+ * que es justo la trampa que el GOAL tiene anotada.
+ */
+const ENUMERA = /(readdirSync|globSync)/;
 /** Afirma que no hay culpables. */
 const AFIRMA_VACIO = /(toEqual\(\[\]\)|toHaveLength\(0\))/;
 /** El centinela: comprobar que se buscó en algo. */
