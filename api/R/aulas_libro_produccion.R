@@ -150,8 +150,29 @@ aulas_libro_filas_produccion <- function(plan = list(), partes = list()) {
   if (!length(gente)) return(NULL)
 
   filas <- list()
+  # **Las cifras viajan como NÚMEROS, no como texto.** Es la regla de la casa y
+  # la escribe su hermana «Avance de agendación»: «para que el Sheets pueda
+  # ordenarlas y sumarlas». Verificado en el documento publicado el 2026-09-12:
+  # esta hoja las mandaba como texto («14» en vez de 14), así que en la hoja
+  # que existe para contestar «quién aplica más» no se podía ordenar la columna
+  # que lo dice. Se reusa `.cala_celda_num()`, que redondea igual que las demás,
+  # en vez de una conversión propia — el defecto sería el mismo de siempre: dos
+  # formas de hacer lo mismo.
   poner <- function(tipo, celdas) {
-    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = as.character(celdas))
+    celdas <- as.list(celdas)
+    if (identical(tipo, "dato")) {
+      celdas <- lapply(celdas, function(v) {
+        x <- suppressWarnings(as.numeric(v))
+        if (length(x) == 1L && is.finite(x) && nzchar(trimws(as.character(v)))) {
+          .cala_celda_num(v)
+        } else {
+          as.character(v)
+        }
+      })
+    } else {
+      celdas <- lapply(celdas, as.character)
+    }
+    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = celdas)
   }
 
   # El nombre que se muestra: la grafía con coma, que es el estándar de la casa

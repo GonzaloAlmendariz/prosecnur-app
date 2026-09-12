@@ -52,10 +52,16 @@ test_that("ordena de MÁS a MENOS aulas, que es la pregunta literal", {
   }
   expect_identical(orden, c("Ana Prueba", "Berta Ficticia"))
   ana <- .tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Ana Prueba")
-  expect_identical(ana[[2]], "2")   # aulas
-  expect_identical(ana[[3]], "30")  # efectivas
-  expect_identical(ana[[4]], "15.0")  # por aula: lo que separa carga de rendimiento
-  expect_identical(ana[[5]], "45")  # asistentes vistos
+  # **Las cifras van como NÚMEROS**: es la regla de la casa —«para que el Sheets
+  # pueda ordenarlas y sumarlas»— y en esta hoja es lo que permite ordenar por
+  # «quién aplica más», que es literalmente su título.
+  expect_equal(ana[[2]], 2)    # aulas
+  expect_equal(ana[[3]], 30)   # efectivas
+  expect_equal(ana[[4]], 15)   # por aula: lo que separa carga de rendimiento
+  expect_equal(ana[[5]], 45)   # asistentes vistos
+  for (k in 2:5) expect_true(is.numeric(ana[[k]]), info = as.character(k))
+  # Y el nombre sigue siendo texto: no todo lo de una fila es cifra.
+  expect_true(is.character(ana[[1]]))
 })
 
 test_that("reparte las aplicaciones entre las tres franjas del dictado", {
@@ -67,9 +73,9 @@ test_that("reparte las aplicaciones entre las tres franjas del dictado", {
     .tlp_parte("CH 1", "Ana Prueba"), .tlp_parte("CH 2", "Ana Prueba"),
     .tlp_parte("CH 3", "Ana Prueba"), .tlp_parte("CH 4", "Ana Prueba")))
   ana <- .tlp_dato(filas, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")
-  expect_identical(ana[2:4], c("1", "2", "1"))
+  expect_equal(unlist(ana[2:4]), c(1, 2, 1))
   total <- .tlp_dato(filas, "EN QUÉ FRANJA APLICA CADA UNO", "TOTAL")
-  expect_identical(total[2:4], c("1", "2", "1"))
+  expect_equal(unlist(total[2:4]), c(1, 2, 1))
   # Y las franjas caras se nombran con NOMBRES: lo que se hace con este dato es
   # hablar con esa persona, no leer un número.
   notas <- vapply(Filter(function(f) identical(f$tipo, "nota"), filas),
@@ -84,13 +90,13 @@ test_that("manda la hora del PARTE, y la agendada es el respaldo", {
   plan <- list(.tlp_fila("CH 1", "10:00"))
   filas <- aulas_libro_filas_produccion(
     plan, list(.tlp_parte("CH 1", "Ana Prueba", hora = "19:30")))
-  expect_identical(.tlp_dato(filas, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")[2:4],
-                   c("0", "0", "1"))
+  expect_equal(unlist(.tlp_dato(filas, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")[2:4]),
+               c(0, 0, 1))
   # Sin hora en el parte, la agendada sostiene la franja: perderla dejaría la
   # tabla contando de menos justo en las franjas raras.
   filas2 <- aulas_libro_filas_produccion(plan, list(.tlp_parte("CH 1", "Ana Prueba")))
-  expect_identical(.tlp_dato(filas2, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")[2:4],
-                   c("0", "1", "0"))
+  expect_equal(unlist(.tlp_dato(filas2, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")[2:4]),
+               c(0, 1, 0))
 })
 
 test_that("un aula sin ninguna hora cuenta aparte, no se le inventa turno", {
@@ -98,7 +104,7 @@ test_that("un aula sin ninguna hora cuenta aparte, no se le inventa turno", {
     list(.tlp_fila("CH 1")), list(.tlp_parte("CH 1", "Ana Prueba")))
   ana <- .tlp_dato(filas, "EN QUÉ FRANJA APLICA CADA UNO", "Ana Prueba")
   expect_length(ana, 5L)          # la columna SIN HORA sólo aparece si hace falta
-  expect_identical(ana[2:5], c("0", "0", "0", "1"))
+  expect_equal(unlist(ana[2:5]), c(0, 0, 0, 1))
 })
 
 test_that("sólo cuenta lo APLICADO, con la definición canónica", {
@@ -110,7 +116,7 @@ test_that("sólo cuenta lo APLICADO, con la definición canónica", {
                   estado = "por_aplicar")
   filas <- aulas_libro_filas_produccion(
     plan, list(.tlp_parte("CH 1", "Ana Prueba"), abierto))
-  expect_identical(.tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Ana Prueba")[[2]], "1")
+  expect_equal(.tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Ana Prueba")[[2]], 1)
 
   # Si la definición canónica dijera que las dos están aplicadas, esta hoja
   # diría dos: no tiene criterio propio.
@@ -121,7 +127,7 @@ test_that("sólo cuenta lo APLICADO, con la definición canónica", {
   )
   filas2 <- aulas_libro_filas_produccion(
     plan, list(.tlp_parte("CH 1", "Ana Prueba"), abierto))
-  expect_identical(.tlp_dato(filas2, "QUIÉN HA APLICADO MÁS", "Ana Prueba")[[2]], "2")
+  expect_equal(.tlp_dato(filas2, "QUIÉN HA APLICADO MÁS", "Ana Prueba")[[2]], 2)
 })
 
 test_that("una persona tecleada de dos formas es UNA persona, y se dice", {
@@ -138,7 +144,7 @@ test_that("una persona tecleada de dos formas es UNA persona, y se dice", {
     .tlp_parte("CH 3", "Aquino  Dulanto,  Alejandro", efectivas = 10)))
   fila <- .tlp_dato(filas, "QUIÉN HA APLICADO MÁS", "Aquino Dulanto, Alejandro")
   expect_false(is.null(fila))
-  expect_identical(fila[[2]], "3")
+  expect_equal(fila[[2]], 3)
   # Se muestra con la coma, que es el estándar de la casa.
   expect_identical(fila[[1]], "Aquino Dulanto, Alejandro")
   # Y la doble grafía se declara: aquí se juntan, pero la celda del libro sigue
