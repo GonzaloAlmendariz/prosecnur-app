@@ -596,3 +596,56 @@ test_that("la ventana elige la pestaña de su semana, no la primera", {
     prosecnurapp:::.mads_hoja_de_la_ventana(hojas, plan, ""), "Semana 1")
   expect_identical(prosecnurapp:::.mads_hoja_de_la_ventana(character(0), plan, "2026-09-14"), "")
 })
+
+# --- EL GUARD DE LA CLASE: que la mitad que ESCRIBE también migre -------------
+#
+# `a8d761ee` enseñó al publicador a partir por semana y la mitad que escribe de
+# la sincronización se quedó atrás: seguía tomando `hojas_dist[[1]]`, así que
+# pedir la ventana del 14 al 20 con dos semanas vivas metía las citas de la
+# semana 2 en la hoja de la semana 1 —encima del trabajo del coordinador, en la
+# pestaña que los aplicadores ya no miran, y devolviendo `ok` sin un aviso—.
+# `83d98403` lo arregló; el test de `.mads_hoja_de_la_ventana` cubre el
+# selector, y este cubre EL RECORRIDO ENTERO, que es donde la mitad se quedó.
+#
+# Con dos pestañas sembradas: la fila nueva de una cita del 16/09 tiene que caer
+# en «Semana 2» y «Semana 1» tiene que quedar intacta, byte a byte.
+
+test_that("con dos semanas vivas, la cita nueva se escribe en la pestaña de SU semana", {
+  mock <- .sheets_api_mock()
+  mock$seed("Semana 1", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30", "CH 1", estado = "")
+  ))
+  mock$seed("Semana 2", values = .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "14/09", "09:30", "09:45", "10:00 a 10:30", "CH 9", estado = "")
+  ))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  antes_s1 <- mock$env$sheets[["Semana 1"]]$values
+
+  out <- monitoreo_aulas_sincronizar_distribucion(
+    "sheet_dist",
+    plan = list(
+      .madm_aula("CH 1", "2026-09-07", "10:00 am"),   # semana 1, ya publicada
+      .madm_aula("CH 9", "2026-09-14", "10:00 am"),   # semana 2, ya publicada
+      .madm_aula("CH 20", "2026-09-16", "11:00 am")   # semana 2, FALTA
+    ),
+    roster = "Ana Prueba", desde = "2026-09-14", hasta = "2026-09-20",
+    aplicar = TRUE
+  )
+
+  # El destino se eligió por la VENTANA, no por el orden de las pestañas.
+  expect_identical(out$hoja, "Semana 2")
+
+  # La semana 1 no se tocó: ni una fila, ni un valor.
+  expect_identical(mock$env$sheets[["Semana 1"]]$values, antes_s1)
+
+  # Y la cita que faltaba entró en la semana 2.
+  v2 <- mock$env$sheets[["Semana 2"]]$values
+  plano <- unlist(lapply(v2, function(f) as.character(unlist(f))), use.names = FALSE)
+  expect_true("CH 20" %in% trimws(plano))
+  expect_true("CH 9" %in% trimws(plano))
+  # Y NO se coló en la semana 1, que es el defecto que esto vigila.
+  plano1 <- unlist(lapply(mock$env$sheets[["Semana 1"]]$values,
+                          function(f) as.character(unlist(f))), use.names = FALSE)
+  expect_false("CH 20" %in% trimws(plano1))
+})
