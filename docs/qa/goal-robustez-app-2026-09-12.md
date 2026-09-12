@@ -524,9 +524,14 @@ define**; tampoco las consulta ningún test ni script. El `useState` + `useEffec
 + `useCallback` + `chartSignature` que las alimentan trabajan en cada render para
 componer una clase que no pinta nada.
 
-No lo arreglo a ciegas: `handlePlotlyReady` cuelga del ciclo de vida de Plotly y
-quitarlo puede cambiar cuándo re-renderiza. Ahora que sé capturar con Plotly
-pintado, se puede verificar de verdad.
+**Matizado en el tick 46, y conviene leerlo antes de tocar nada**: la maquinaria
+NO está muerta. `onReady` existe de verdad en `frontend/src/lib/PlotlyChart.tsx:102`
+y se invoca (líneas 140 y 185); el `dashboard/shared/PlotlyChart.tsx` es sólo un
+re-export, y por buscar ahí estuve a punto de escribir que el callback no se
+llamaba nunca. Lo único que falta es **el CSS que aprovechaba esas dos clases** —
+casi seguro un fade-in mientras Plotly monta, que es un parpadeo real: mis propias
+capturas del tick 44 lo demuestran. Elegir entre reponer el estilo o retirar las
+clases es decisión de diseño, no de robustez: queda para Gonzalo.
 
 **Además, el componente está DUPLICADO y divergido**: `acreditacion/avance/` y
 `telefonico/avance/AcreditacionAdvanceDailyMini.tsx`, mismo nombre, 479 y 477
@@ -547,6 +552,15 @@ herramienta con la que verifiqué el barrido: un `grep` con `[a-z0-9-]*` truncab
 `.mon-vacio-con-salida__accion` y mostraba el prefijo como si fuera el bloque, lo
 que me hizo creer que el barrido daba un falso positivo. **Dos herramientas con el
 mismo sesgo dan conclusiones opuestas y ninguna avisa.**
+
+## Las corridas de ui-quick-check NO se paralelizan (tick 46)
+
+Lancé territorial y acreditación a la vez para ganar tiempo y territorial murió
+con **«La API arrancó con proyecto, pero /api/system/bootstrap no devolvió sid»**:
+las dos pilas se pisan en el puerto de la API. Van **en serie**. Varias `--route`
+dentro de UNA corrida sí comparten pila, que es la forma de ahorrar warm start.
+
+Anotado en CLAUDE.md junto a la trampa del flag de Plotly (`aabf6173`).
 
 ## Abierto en el diario, y es decisión suya
 
