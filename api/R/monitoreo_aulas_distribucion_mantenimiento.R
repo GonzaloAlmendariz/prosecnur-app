@@ -576,6 +576,14 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
                   grepl("^[0-9]{1,2}/[0-9]{1,2}$", v))
 }
 
+# La clave con la que se reconoce un curso-horario escrito a mano. Colapsa
+# espacios y mayúsculas y nada más: «CH164» y «CH 164» son el mismo aula, y dos
+# códigos que sólo se diferencien en eso no existen. NO se quita la puntuación
+# —«R 1.1» y «R 11» son aulas distintas— ni se tocan las tildes: aquí no las hay.
+.madm_clave_codigo <- function(x) {
+  toupper(gsub("[[:space:]]+", "", trimws(as.character(x %||% "")[1])))
+}
+
 #' Las filas escritas que no cuadran, dichas una por una.
 #'
 #' Tres cosas, y ninguna se toca:
@@ -592,14 +600,6 @@ monitoreo_aulas_estados_distribucion <- function(filas_remotas,
 #'   que no depende del rango.
 #' @return lista de `{fila, curso_horario, motivo, valor}`.
 #' @export
-# La clave con la que se reconoce un curso-horario escrito a mano. Colapsa
-# espacios y mayúsculas y nada más: «CH164» y «CH 164» son el mismo aula, y dos
-# códigos que sólo se diferencien en eso no existen. NO se quita la puntuación
-# —«R 1.1» y «R 11» son aulas distintas— ni se tocan las tildes: aquí no las hay.
-.madm_clave_codigo <- function(x) {
-  toupper(gsub("[[:space:]]+", "", trimws(as.character(x %||% "")[1])))
-}
-
 monitoreo_aulas_filas_dudosas <- function(filas_remotas, desde = "", hasta = "",
                                           plan = NULL) {
   cab <- .madm_cabecera(filas_remotas)
