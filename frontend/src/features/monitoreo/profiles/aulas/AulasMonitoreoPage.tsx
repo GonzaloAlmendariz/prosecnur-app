@@ -797,6 +797,7 @@ function renderAulasView({
   criterioDeEfectiva = null,
   criterioDeAula = null,
   irAPestana = null,
+  verFichaDe = null,
   onDeclararUmbralDeDuracion = null,
   onFijarReparto = null,
   onConfirmarDuracion = null,
@@ -855,6 +856,12 @@ function renderAulasView({
    * cada sección es el componente de arriba.
    */
   irAPestana?: ((clave: string) => void) | null;
+  /**
+   * Del código de un curso-horario a su ficha: cruza de sección, mueve su
+   * pestaña y deja el foco puesto. Lo arma la página, que es quien recuerda la
+   * pestaña activa de cada sección.
+   */
+  verFichaDe?: ((codigo: string) => void) | null;
   /**
    * Declarar a partir de cuántos minutos una respuesta es sospechosa.
    *
@@ -930,6 +937,7 @@ function renderAulasView({
         pestana={pestana}
         facultadEnFoco={facultadEnFoco}
         onFoco={onFoco}
+        verFichaDe={verFichaDe}
         tabla={DataTable}
         traza={<HandoffTracePanel dashboard={dashboard} />}
         agendaRows={agendaRows}
@@ -2098,6 +2106,23 @@ export default function AulasMonitoreoPage() {
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
               irAPestana: (clave) => elegirPestana(seccionActiva, clave),
+              // **Del código de una entrada a su ficha.** Cruza de sección, así
+              // que no le basta `irAPestana`: escribe sección, pestaña y foco
+              // en UNA sola navegación, y la vista la sigue.
+              //
+              // Hacerlo en dos —mover la vista por estado y el foco por la
+              // URL— NO funciona y falla callando: el escritor del foco navega
+              // con el `search` del render actual, que todavía trae la sección
+              // vieja, y el efecto de seguimiento devuelve la vista a donde
+              // estaba. Medido en pantalla el 2026-09-12: el foco quedaba
+              // puesto y la sección nunca cambiaba.
+              //
+              // No se navega a mano: escribir la dirección con `useSearchParams`
+              // aquí convertiría a este archivo en el séptimo lector, que es lo
+              // que el contrato de `lectoresDeDireccion` impide.
+              verFichaDe: (codigo: string) => {
+                escribirFoco(`aula:${codigo}`, { seccion: "consultas", pestana: "ficha" });
+              },
               // El umbral de duración sospechosa: el motor lo aceptaba desde
               // siempre y no había dónde ponerlo.
               onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
