@@ -215,6 +215,7 @@ import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./acreditacionTelefono.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { barridoDelResponsable, totalDeAsignadas } from "../barridoDelResponsable";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -5882,7 +5883,7 @@ function AcreditacionPhonePendingInsistence({
     };
   }).sort((a, b) => b.pending - a.pending || b.noAnswer - a.noAnswer || a.name.localeCompare(b.name, "es"));
 
-  const totalAssigned = rows.reduce((sum, row) => sum + (row.assigned ?? 0), 0);
+  const { valor: totalAssigned, sinDato: sinAsignadas } = totalDeAsignadas(rows);
   const totalPending = rows.reduce((sum, row) => sum + row.pending, 0);
   const totalNoAnswer = rows.reduce((sum, row) => sum + row.noAnswer, 0);
   const totalAttemptCases = rows.reduce((sum, row) => sum + row.buckets.reduce((inner, bucket) => inner + bucket.value, 0), 0);
@@ -5908,7 +5909,7 @@ function AcreditacionPhonePendingInsistence({
         <em>{formatMetric(rows.length)} responsables</em>
       </header>
       <div className="mon-phone-pending-workbench-summary">
-        <span><strong>{formatMetric(totalAssigned)}</strong><em>personas asignadas</em></span>
+        <span><strong>{totalAssigned == null ? "S/D" : formatMetric(totalAssigned)}</strong><em>personas asignadas{sinAsignadas ? ` · ${formatMetric(sinAsignadas)} sin dato` : ""}</em></span>
         <span className={totalPending ? "is-warning" : "is-ok"}><strong>{formatMetric(totalPending)}</strong><em>casos por barrer</em></span>
         <span><strong>{formatMetric(totalNoAnswer)}</strong><em>casos que no contestan</em></span>
         <span><strong>{avgAttempts == null ? "S/D" : avgAttempts.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</strong><em>promedio de intentos</em></span>
@@ -5923,17 +5924,16 @@ function AcreditacionPhonePendingInsistence({
       </div>
       <div className="mon-phone-pending-workbench-list">
         {rows.map((row) => {
-          const assigned = Math.max(0, row.assigned ?? row.pending);
-          const swept = Math.max(0, row.swept ?? Math.max(0, assigned - row.pending));
-          const pendingPct = safePercentValue(row.pending, assigned) ?? 0;
-          const sweptPct = safePercentValue(swept, assigned) ?? 0;
+          const { asignadas: assigned, barridos: swept, pctPendiente, pctBarrido } = barridoDelResponsable(row);
+          const pendingPct = pctPendiente ?? 0;
+          const sweptPct = pctBarrido ?? 0;
           const attemptTotal = Math.max(1, row.noAnswer);
           return (
             <section key={row.key} className={`mon-phone-pending-person is-${row.pending ? "pending" : "clear"}`}>
               <header>
                 <div>
                   <strong>{row.name}</strong>
-                  <em>{formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
+                  <em>{assigned == null ? "S/D" : formatMetric(assigned)} personas asignadas · {formatMetric(row.noAnswer)} casos sin respuesta telefónica</em>
                 </div>
                 <span className={row.pending ? "is-warning" : "is-ok"}>
                   <strong>{formatMetric(row.pending)}</strong>
@@ -5942,11 +5942,11 @@ function AcreditacionPhonePendingInsistence({
               </header>
               <div className="mon-phone-pending-track-block">
                 <div className="mon-phone-track-labels">
-                  <span><strong>{formatMetric(swept)}</strong><em>casos barridos</em></span>
+                  <span><strong>{swept == null ? "S/D" : formatMetric(swept)}</strong><em>casos barridos</em></span>
                   <span><strong>{formatMetric(row.pending)}</strong><em>casos por barrer</em></span>
                 </div>
-                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
-                  {swept > 0 ? <i className="is-swept" style={{ "--phone-segment": `${Math.max(0, Math.min(100, sweptPct))}%` } as CSSProperties} /> : null}
+                <div className="mon-phone-pending-track" aria-label={`${row.name}: ${swept == null ? "S/D" : formatMetric(swept)} barridos y ${formatMetric(row.pending)} por barrer`}>
+                  {(swept ?? 0) > 0 ? <i className="is-swept" style={{ "--phone-segment": `${Math.max(0, Math.min(100, sweptPct))}%` } as CSSProperties} /> : null}
                   {row.pending > 0 ? <i className="is-pending" style={{ "--phone-segment": `${Math.max(0, Math.min(100, pendingPct))}%` } as CSSProperties} /> : null}
                   {!swept && !row.pending ? <i className="is-empty" style={{ "--phone-segment": "100%" } as CSSProperties} /> : null}
                 </div>
