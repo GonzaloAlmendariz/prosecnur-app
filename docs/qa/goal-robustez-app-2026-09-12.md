@@ -42,12 +42,48 @@ diga cuántos hermanos vivos quedaban. Sin las tres, no está cerrada. No vale
 | 9 | **Un guard que deja de guardar** | `guardsQueGuardan.contract.test.ts` + `test-guards-que-guardan.R` | 2→1/1 en ambos |
 | 11 | Un respaldo que se usa SIEMPRE | `brechaDeLaFacultad.test.ts` | 12→11/1 |
 | 10 | La mitad que ESCRIBE se queda sin migrar | `test-monitoreo-aulas-distribucion-mantenimiento.R` | 4 fallos |
+| 12 | **Un singular que se hizo plural deja consumidores atrás** | `test-monitoreo-aulas-distribucion-ciclo.R` + los de sincronización | 1 y 4 rojos |
+| 13 | Cambié lo que el sistema HACE y no lo que CUENTA | recibos de publicar/sincronizar/adoptar | 3 rojos |
+| 14 | **Una identidad comparada literalmente** | `test-aulas-libro-produccion.R` + `test-monitoreo-aulas-distribucion-aula.R` | 3 y 10 rojos |
+| 15 | Una cadena vacía no es una celda vacía | `test-monitoreo-aulas-plan-dia-formato.R` | 2 rojos |
+| 16 | Encoger y actualizar se ven igual en el recibo | `test-monitoreo-aulas-publicar-libro.R` + `avisoLibroPublicado.test.ts` | 1 rojo por capa |
+| 17 | Un default que degrada en silencio (estatus, código) | `test-monitoreo-aulas-estados-desconocidos.R` | 7, 6, 2 y 1 rojos |
 
 La 10 la cerró la otra sesión (`1ca67233`) y entra aquí porque este documento es
 el catálogo común: cuando un cambio enseña a la mitad que LEE y la que ESCRIBE
 se queda apuntando a lo viejo. El guard no comprueba el helper sino el defecto
 en su forma observable —una cita del 16/09 cae en «Semana 2», «Semana 1» queda
 intacta byte a byte y la cita nueva no aparece en ella—.
+
+Las 12 a 17 las cerró la otra sesión el 2026-09-12 por la tarde, trabajando el
+operativo de aulas contra datos reales. Las tres que más rindieron:
+
+**12 — el plural.** `83d98403` hizo que el Sheets de los aplicadores llevara una
+pestaña por semana. El productor quedó bien; los consumidores que leían «la
+hoja» en singular, no, y aparecieron **cinco**: el aviso de publicar, el recibo
+de sincronizar, `pestanas_ajenas` (declaraba «Semana 2» como hoja ajena),
+`filas_del_equipo` y **la adopción**, que fijaba sólo la semana 1 — y adoptar es
+lo que impide que el sorteo mueva asignaciones ya comunicadas a diecinueve
+personas. Barrido: `grep` del nombre en singular y visita a todos.
+
+**14 — la identidad literal.** Tres instancias el mismo día. El nombre del
+aplicador partía a dos personas en cuatro en la hoja de producción (`Aquino
+Dulanto, Alejandro` y `Aquino Dulanto Alejandro`) porque se agrupaba por
+`aulas_nombre_aplicador()`, que su propia cabecera declara **presentación, no
+identidad**. Y el código del aula: la ADOPCIÓN normaliza «CH164»→«CH 164» y la
+CORRECCIÓN DE AULA comparaba literal, así que cinco filas de «Semana 1»
+conservaban su aplicador y se quedaban sin la corrección del aula. Barrido de
+los demás índices por código: partes y Base de control **0 fuera del plan**,
+porque esas hojas las siembra la app con los códigos puestos — la exposición
+está donde la gente teclea.
+
+**15 — la cadena vacía.** El `#REF!` del «Plan del día» que se arrastró una
+jornada. La hoja se escribe como RECTÁNGULO y Sheets rellena las filas de
+reserva con cadena vacía; `ISBLANK` la da por ocupada y `FILTER` no se expande.
+Invisible desde fuera: `values.get` devuelve `""` para una celda vacía y para
+una con cadena vacía, e `includeGridData` no le ve `userEnteredValue`. Sólo una
+fórmula evaluada DENTRO de la hoja lo delata (`COUNTA` de una fila «vacía» dio
+20). Costó tres hipótesis falsas, una de ellas comunicada al lead como causa.
 
 La 9 es la más cara: apaga la infraestructura que sostiene a las demás y **no
 deja rastro** —no hay rojo, no hay aviso, sólo deja de proteger—. La forma es
