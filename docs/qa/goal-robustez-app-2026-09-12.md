@@ -81,7 +81,10 @@ buscando; uno que miente manda al sitio equivocado, y eso cuesta mucho más.
 - `useState` en el frontend: **1.754**, uno huérfano.
 - Guards que leen fuentes: **300** (94 en R, 206 en el frontend). Con la firma
   peligrosa —enumerar, filtrar y afirmar vacío sin centinela— **26, todos en el
-  frontend; en R, cero**. Tope actual **24** y baja conforme se pongan.
+  frontend; en R, cero**. Seis ya llevan centinela (todos del perfil de
+  cursos-horario): **tope 20**, y baja conforme se pongan. El más silencioso era
+  `nombresNormalizados`, con `it.each(fuentes)`: con la lista vacía no corre ni
+  un caso y la suite pasa sin un solo rojo NI un solo test ejecutado.
 - Claves del tablero consumidas por el perfil: **52, cero huérfanas**.
 
 ## Trampas del propio método, aprendidas aquí
