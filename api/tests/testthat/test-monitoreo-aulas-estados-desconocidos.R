@@ -116,3 +116,56 @@ test_that("sin plan no declara a todo el mundo desconocido", {
   expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(partes, list())), 0L)
   expect_equal(nrow(monitoreo_aulas_codigos_sin_plan(list(), list())), 0L)
 })
+
+# --- reservas que vuelven sin su cadena --------------------------------------
+#
+# Medido el 2026-09-12 sobre el libro real: de las 1.392 filas que devuelve la
+# relectura, 1.173 son reservas y NINGUNA trae `titular_operational_code`. No es
+# cosa de Sheets —el lector del `.xlsx` da lo mismo—: el libro no guarda ese
+# vínculo en ninguna columna, porque la cadena vive en la geometría de la hoja.
+#
+# Y se paga dos veces: `aulas_libro_generar()` se niega a escribir un libro con
+# reservas huérfanas (falla fuerte, bien), y lo que cuenta por CADENA cuenta mal
+# en silencio — cada reserva pasa a ser su propia cadena.
+
+test_that("con la cadena completa no declara nada", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1"))
+  out <- monitoreo_aulas_reservas_sin_cadena(plan)
+  expect_equal(out$reservas, 1L)
+  expect_equal(out$sin_cadena, 0L)
+})
+
+test_that("una reserva huérfana se cuenta y se nombra", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve"),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve",
+         titular_operational_code = ""))
+  out <- monitoreo_aulas_reservas_sin_cadena(plan)
+  expect_equal(out$reservas, 2L)
+  expect_equal(out$sin_cadena, 2L)
+  # Con ejemplos: «1.173 huérfanas» sin un código no dice por dónde mirar.
+  expect_true("R 1.1" %in% out$ejemplos)
+})
+
+test_that("un plan sin reservas no inventa el aviso", {
+  plan <- list(list(operational_code = "CH 1", sample_role = "titular"))
+  out <- monitoreo_aulas_reservas_sin_cadena(plan)
+  expect_equal(out$reservas, 0L)
+  expect_equal(out$sin_cadena, 0L)
+  expect_length(out$ejemplos, 0L)
+  # Y un plan vacío tampoco.
+  expect_equal(monitoreo_aulas_reservas_sin_cadena(list())$sin_cadena, 0L)
+})
+
+test_that("el titular sin cadena NO cuenta: la cadena es cosa de las reservas", {
+  # Un titular no tiene `titular_operational_code` y eso es correcto. Contarlo
+  # haría que el aviso saltara en TODOS los libros sanos, y un aviso que grita
+  # siempre se apaga.
+  plan <- list(list(operational_code = "CH 1", sample_role = "titular"),
+               list(operational_code = "EXTRA 1", sample_role = "extra_reserve_pool"))
+  expect_equal(monitoreo_aulas_reservas_sin_cadena(plan)$sin_cadena, 0L)
+})
