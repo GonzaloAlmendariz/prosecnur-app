@@ -112,7 +112,23 @@ kobo_api_default_base_url <- function() {
     stop(sprintf("KoboToolbox devolvio HTTP %d: %s", res$status_code, body), call. = FALSE)
   }
 
-  jsonlite::fromJSON(body, simplifyVector = FALSE)
+  # **El ultimo escalon del mismo patron, y estaba sin cubrir.** Este archivo ya
+  # tipa el 401, el 403 y el 404 porque un `stop()` crudo llega al cliente como
+  # «Error interno del servidor (ref. …)». El parseo quedaba fuera: un 200 con
+  # HTML —un portal cautivo, un proxy corporativo— reventaba aqui y salia con
+  # esa misma referencia hexadecimal, sin decir que lo que llego no era JSON.
+  #
+  # Y un cuerpo vacio no es un fallo: es un 204 o un DELETE, y devuelve lista.
+  if (!nzchar(trimws(body))) return(list())
+  tryCatch(
+    jsonlite::fromJSON(body, simplifyVector = FALSE),
+    error = function(e) {
+      stop_api(502, "E_KOBO_RESPUESTA_ILEGIBLE",
+               paste0("KoboToolbox contesto correctamente pero su respuesta no es JSON. ",
+                      "Suele ser un proxy o un portal de red interponiendose. ",
+                      "Detalle: ", conditionMessage(e)))
+    }
+  )
 }
 
 .kobo_api_request_json <- function(url,
@@ -143,15 +159,34 @@ kobo_api_default_base_url <- function() {
     )
     curl::handle_setopt(h, postfields = body)
   }
-  res <- curl::curl_fetch_memory(url, handle = h)
+  # Por el MISMO wrapper que el resto del cliente: `curl::curl_fetch_memory`
+  # directo aqui dejaba esta puerta fuera del mock de las pruebas, asi que su
+  # manejo de errores no lo cubria nadie.
+  res <- .kobo_api_http_fetch(url, h)
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
+  # **Un 200 con cuerpo ILEGIBLE no es una respuesta vacia.** El `NULL` del
+  # parseo se leia aguas abajo como «Kobo no devolvio envios», o sea CERO
+  # respuestas — y eso, en mitad de una jornada de campo, es la cifra mas cara
+  # que esta app puede dar por buena. Pasa de verdad: un portal cautivo o un
+  # proxy corporativo contestan 200 con HTML.
+  #
+  # El cuerpo vacio SI es legitimo (un DELETE, un 204) y sigue dando `NULL` sin
+  # ruido. Lo que se separa es «no habia nada» de «habia algo y no se entiende».
+  ilegible <- ""
   parsed <- if (nzchar(body)) {
-    tryCatch(jsonlite::fromJSON(body, simplifyVector = FALSE), error = function(e) NULL)
+    tryCatch(jsonlite::fromJSON(body, simplifyVector = FALSE),
+             error = function(e) { ilegible <<- conditionMessage(e); NULL })
   } else {
     NULL
   }
   ok <- res$status_code < 400L
+  if (ok && nzchar(ilegible) && isTRUE(fail)) {
+    stop_api(502, "E_KOBO_RESPUESTA_ILEGIBLE",
+             paste0("KoboToolbox contesto correctamente pero su respuesta no es JSON. ",
+                    "Suele ser un proxy o un portal de red interponiendose. ",
+                    "Detalle: ", ilegible))
+  }
   if (!ok && isTRUE(fail)) {
     # Mismo motivo que en `.kobo_api_fetch_json`: si no se tipa, el diagnóstico
     # se pierde y al cliente le llega E_INTERNAL.
