@@ -20292,7 +20292,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : undefined}
+          data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />

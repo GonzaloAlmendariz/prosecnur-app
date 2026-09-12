@@ -18389,7 +18389,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       >
         <span
           hidden
-          data-audit-ready={auditReady ? "monitoreo-acreditacion" : undefined}
+          data-audit-ready={auditReady ? "monitoreo-acreditacion" : "false"}
           data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />

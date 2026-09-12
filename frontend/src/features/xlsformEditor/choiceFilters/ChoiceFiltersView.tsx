@@ -80,7 +80,7 @@ export function ChoiceFiltersView({
       className="pulso-xcf-overlay"
       role="dialog"
       aria-label="Filtros de opciones del formulario"
-      data-audit-ready={ready ? "true" : undefined}
+      data-audit-ready={ready ? "true" : "false"}
     >
       <header className="pulso-xcf-header">
         <div className="pulso-xcf-header-left">
