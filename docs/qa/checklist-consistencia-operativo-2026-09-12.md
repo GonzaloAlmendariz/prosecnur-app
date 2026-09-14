@@ -317,3 +317,49 @@ capas: arreglado, impedido (`0aa22873`) y vigilado
 **Lo que queda es de él**: la cadena del libro, el semáforo de consistencia,
 E10, «Plan del día» y una publicación desde la sesión de la app. Están en el
 encargo del loop y en este documento; ninguna corre prisa.
+
+## Control de facultad (2026-09-14) — la hoja nueva, y el único paso que falta
+
+Pedido de Gonzalo, fuera del dictado de los nueve: «hasta ahora hemos estado
+midiendo el avance de las facultades por la facultad establecida en la base,
+pero no hemos hecho el control sobre lo que los alumnos reportan, no hemos
+cruzado ambas»; y sobre dónde: «me gustaría que quedara en una hoja del excel
+como control de calidad para tenerlo de referencia».
+
+**Hecho y commiteado** (`eb6cb1aa`): el libro lleva la hoja «Control de
+facultad», por los dos caminos —el `.xlsx` que el equipo descarga y el Sheets
+del operativo—. Pone la facultad del aula al lado de la que declara quien
+respondió, facultad por facultad, y lista los cruces de más a menos. No cambia
+ningún conteo del avance: es un control, no una reatribución.
+
+**Las cifras, medidas sobre el snapshot del 2026-09-11:**
+
+| | |
+|---|---|
+| Respuestas comparables | 1.390 |
+| Coinciden | 1.310 (94,2 %) |
+| Declaran otra facultad | **80 (5,8 %)** |
+| Respuestas sin aula del plan | 39 |
+| Con aula pero sin facultad declarada | 90 |
+
+Lo más grueso: Arte y Diseño ↔ Arquitectura en los dos sentidos (25 y 13),
+Estudios Generales Ciencias → Ciencias e Ingeniería (11), Estudios Generales
+Letras → Derecho (6). Por facultad, las que más reciben gente de fuera son
+Arte y Diseño (21,4 % de sus respuestas), Arquitectura (15,9 %) y Estudios
+Generales Letras (10,8 %). **Ciencias Contables tiene 0 aulas y 6 declarantes**:
+hoy esa gente no aparece en ninguna fila del avance por facultad.
+
+**El paso que falta, y es de una vez sola.** La hoja sólo se produce si el
+estudio DECLARA dos cosas en `source_mapping` —igual que con el sexo—:
+
+- `faculty_var`: la columna donde el alumno declara su facultad. En HSVG2026 es
+  `datos_demo/P7`.
+- `faculty_labels`: el catálogo que traduce el código a nombre («7» →
+  «CIENCIAS Y ARTES DE LA COMUNICACIÓN»), porque la plataforma manda el código.
+
+Sin `faculty_var` no hay hoja. Sin `faculty_labels` tampoco: el cruce compararía
+un «7» contra un nombre, daría 100 % de desacuerdo y se leería como una
+catástrofe de campo que no ocurrió; el motor se niega y dice por qué. Las dos
+claves ya persisten en la config del proyecto (están en la whitelist del
+normalizador). **Falta declararlas en el `.pulso` de HSVG2026**, que es la
+sesión de Gonzalo: hasta entonces el libro sale como hoy, sin la hoja.
