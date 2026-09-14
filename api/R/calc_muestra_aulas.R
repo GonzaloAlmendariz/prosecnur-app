@@ -2768,7 +2768,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     .cm_aulas_progress(on_progress, "simulacion_mc", current = i, total = runs,
                        message = sprintf("Simulación Monte Carlo: corrida %d de %d", i, runs))
     sim <- .cm_aulas_select_waves(aula_frame, sim_selector, engine, waves, seed = selector$seed + i * 7919L, objective = objective)
-    sim <- sim[.cm_aulas_role_values(sim) != "extra_reserve_pool", , drop = FALSE]
+    # Dominio del conteo: SOLO titulares. Este pi alimenta pi_final y de ahi sale
+    # weight_classroom = 1/pi como peso de ANALISIS del aula que entro a la
+    # muestra; figurar en una cadena de reemplazo (M2..Mk) no es estar en la
+    # muestra. Seguimos SIMULANDO el plan completo de olas —el proceso secuencial
+    # con descuento depende de el—, lo que cambia es QUE se cuenta. El comparador
+    # de metodos ya usaba este grano (waves <- c("M1")); era este path el desalineado.
+    sim <- sim[.cm_aulas_role_values(sim) == "titular", , drop = FALSE]
     counts[unique(sim$classroom_id)] <- counts[unique(sim$classroom_id)] + 1L
   }
   pi <- counts / runs
@@ -2776,9 +2782,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   budgeted <- runs < requested_runs
   pool_note <- if (.cm_aulas_engine_key(engine) == "pool_controlado") sprintf(" y hasta %s selecciones candidatas por corrida", sim_selector$candidate_pool_size) else ""
   note <- if (budgeted) {
-    sprintf("Marco grande: se ejecutaron %s de %s corridas presupuestadas para mantener interactividad (SE reportado refleja las corridas ejecutadas)%s.", runs, requested_runs, pool_note)
+    sprintf("Marco grande: se ejecutaron %s de %s corridas presupuestadas para mantener interactividad; pi es la probabilidad de salir titular y el SE reportado refleja las corridas ejecutadas%s.", runs, requested_runs, pool_note)
   } else {
-    sprintf("Simulacion ejecutada con %s corridas sobre el plan completo de titulares y reemplazos%s.", runs, pool_note)
+    sprintf("Simulacion ejecutada con %s corridas: pi es la probabilidad de salir titular%s.", runs, pool_note)
   }
   list(
     pi = pi,
@@ -4473,9 +4479,23 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   selection_df$nonresponse_policy <- .cm_aulas_scalar(selector$nonresponse_policy, "disposition_codes_and_adjustments")
   selection_df$replacement_policy <- .cm_aulas_scalar(selector$replacement_policy, "reservas_coordinadas_sin_redisenar")
 
+  # Techo del invariante de tamano fijo sobre la pi publicada; el criterio vive
+  # en calc_muestra_aulas_pi_escala.R. Dos canales porque son dos hechos
+  # distintos: la escala es del diseno y la ponderacion anulada es de la fila.
+  # La pi del marco es la del lookup: el rescate (el piso) solo toca filas
+  # seleccionadas y la suma que se juzga aqui es la del estimador.
+  es_titular <- .cm_aulas_role_values(selection_df) == "titular"
+  aviso_escala <- .cm_aulas_aviso_pi_fuera_de_escala(pi_final_lookup, design_pi, aula_frame$stratum)
+  aviso_peso <- .cm_aulas_aviso_ponderacion_anulada(selection_df$pi_final, selection_df$pi_design, es_titular, nrow(aula_frame))
+  if (length(aviso_peso) && any(es_titular)) {
+    previo <- selection_df$weight_warning[es_titular]
+    selection_df$weight_warning[es_titular] <- ifelse(nzchar(previo), paste(previo, aviso_peso, sep = " | "), aviso_peso)
+  }
+
   source_bundle <- .cm_aulas_source_bundle(engine)
   methodological_warning <- unique(c(
     fallback_warnings,
+    aviso_escala,
     if (probability_source == "monte_carlo_after_optimization") {
       "Se eligio la mejor muestra entre candidatas; pi_final usa simulacion Monte Carlo posterior a la optimizacion."
     } else {

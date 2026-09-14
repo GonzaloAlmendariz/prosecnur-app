@@ -158,11 +158,14 @@ test_that("MC conserva las corridas solicitadas en marco chico (<=1200)", {
   expect_equal(mc$runs, requested)     # sin recorte
   expect_equal(mc$requested, requested)
   expect_false(isTRUE(mc$budgeted))
-  # Lo que se protege es que la nota diga que corrio sobre el plan COMPLETO, sin
-  # recorte por presupuesto; no la redaccion. Estaba clavado a «plan completo de
-  # olas» y «olas» salio de la nota el 2026-08-22: en Simulacion aparecia sin
-  # contexto, porque el vocabulario de olas vive en la pestana Reemplazos.
-  expect_match(mc$note, "plan completo")
+  # La senal de "sin recorte" es `mc$budgeted` (arriba), no la redaccion: ya se
+  # movio dos veces. Estuvo clavada a «plan completo de olas»; «olas» salio el
+  # 2026-08-22 (en Simulacion aparecia sin contexto, el vocabulario de olas vive
+  # en la pestana Reemplazos) y «plan completo» el 2026-09-14, cuando el dominio
+  # del conteo MC paso a TITULARES: la nota declaraba contar el plan entero de
+  # titulares y reemplazos, que era exactamente el defecto. Lo que se afirma aqui
+  # es lo que el MC estima, que si es contrato.
+  expect_match(mc$note, "probabilidad de salir titular")
   expect_true(any(is.finite(mc$pi) & mc$pi > 0))
 })
 
