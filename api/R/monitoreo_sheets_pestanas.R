@@ -179,6 +179,11 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # Es la cara de SALIDA de «Asignación de aplicadores» —lo aplicado, no lo
     # repartido— y por eso son dos hojas y no una columna más.
     "Producción de aplicadores",
+    # Dictado 2026-09-14: «me gustaría que quedara en una hoja del excel como
+    # control de calidad». La facultad del aula contra la que el alumno
+    # declara. Octava de la app y condicional: sin `faculty_var` declarada en
+    # el mapping del estudio no se produce.
+    "Control de facultad",
     "Listas"
   )
 
