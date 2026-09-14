@@ -212,3 +212,192 @@ test_that("las dos claves del cruce SOBREVIVEN al normalizador de la config", {
     faculty_labels = stats::setNames(list("", "DERECHO"), c("7", "")))))
   expect_identical(length(sucio$source_mapping$faculty_labels), 0L)
 })
+
+# --- el bloque por sexo: «¿y si cerramos campo aquí y aquí no?» ---------------
+#
+# Pregunta de Gonzalo (2026-09-14): «debería poder ayudarnos a comparar con esta
+# cuenta cómo vamos con el avance de hombres y mujeres por facultad, porque ¿qué
+# pasa si en el avance que reportamos cerramos campo y aquí no?». Cerrar una
+# facultad que llegó a su cuota contando por el aula, cuando por lo que los
+# alumnos declaran sigue corta, es cerrar sobre una cuota que nunca se llenó — y
+# ya no hay cómo volver.
+
+.tmcfd_cfg_sexo <- function(...) {
+  cfg <- .tmcfd_cfg(...)
+  cfg$source_mapping$sex_var <- "sexo"
+  cfg$source_mapping$sex_female_values <- list("1")
+  cfg$source_mapping$sex_male_values <- list("2")
+  cfg
+}
+
+.tmcfd_resp_sexo <- function(codigos, facs, sexos) {
+  data.frame(collectorID = codigos, fac = facs, sexo = sexos,
+             stringsAsFactors = FALSE)
+}
+
+.tmcfd_cuotas <- function(...) list(facultades = list(...))
+
+test_that("avisa de la facultad que cerraría por el aula y no por lo declarado", {
+  # CH 2 es de Arte y Diseño. Sus tres hombres llenan la meta contando por el
+  # aula; uno de ellos declara ser de Arquitectura, así que por lo declarado
+  # Arte y Diseño se queda en 2 de 3.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp_sexo(c("CH 2", "CH 2", "CH 2", "CH 1"),
+                     c("2", "2", "1", "1"),
+                     c("2", "2", "2", "1")),
+    .tmcfd_cfg_sexo(),
+    cuotas = .tmcfd_cuotas(
+      list(facultad = "ARTE Y DISEÑO", cuota_sexo = list(F = 0, M = 3))))
+  arte <- Filter(function(f) identical(f$facultad, "ARTE Y DISEÑO"), o$por_sexo)[[1]]
+  expect_identical(arte$aula_M, 3L)
+  expect_identical(arte$declaradas_M, 2L)
+  expect_true(arte$riesgo_M)
+  expect_identical(arte$faltan_M, 1L)
+})
+
+test_that("no avisa cuando las dos cuentas llegan a la meta", {
+  # Mismo tamaño de celda, sin nadie de fuera: cerrar aquí es cerrar de verdad.
+  # Sin este caso el aviso podría estar encendido siempre y nadie lo notaría.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp_sexo(c("CH 2", "CH 2"), c("2", "2"), c("2", "2")),
+    .tmcfd_cfg_sexo(),
+    cuotas = .tmcfd_cuotas(
+      list(facultad = "ARTE Y DISEÑO", cuota_sexo = list(F = 0, M = 2))))
+  arte <- Filter(function(f) identical(f$facultad, "ARTE Y DISEÑO"), o$por_sexo)[[1]]
+  expect_false(arte$riesgo_M)
+  expect_identical(arte$faltan_M, 0L)
+})
+
+test_that("una facultad que NO llegó a la meta por el aula no dispara el aviso", {
+  # El aviso es sobre el cierre, no sobre el desacuerdo: si todavía no cierra
+  # por ninguna de las dos cuentas, no hay decisión que advertir. Un aviso en
+  # las quince facultades no se lee, se ignora.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp_sexo(c("CH 2", "CH 2"), c("2", "1"), c("2", "2")),
+    .tmcfd_cfg_sexo(),
+    cuotas = .tmcfd_cuotas(
+      list(facultad = "ARTE Y DISEÑO", cuota_sexo = list(F = 0, M = 9))))
+  arte <- Filter(function(f) identical(f$facultad, "ARTE Y DISEÑO"), o$por_sexo)[[1]]
+  expect_false(arte$riesgo_M)
+})
+
+test_that("la meta se empareja con la abreviatura del marco, no sólo con el nombre exacto", {
+  # El plan dice «CIENCIAS Y ARTES DE LA COMUN.» y el diseño escribe el nombre
+  # entero. Emparejar por texto exacto dejaría esa facultad sin meta y sin aviso
+  # para siempre, en silencio.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp_sexo("CH 3", "7", "1"),
+    .tmcfd_cfg_sexo(),
+    cuotas = .tmcfd_cuotas(list(facultad = "CIENCIAS Y ARTES DE LA COMUNICACIÓN",
+                                cuota_sexo = list(F = 1, M = 0))))
+  com <- Filter(function(f) grepl("^CIENCIAS Y ARTES", f$facultad), o$por_sexo)[[1]]
+  expect_identical(com$meta_F, 1)
+  expect_identical(com$aula_F, 1L)
+})
+
+test_that("sin sexo declarado no hay bloque por sexo, y sin cuotas no hay meta", {
+  # Misma doctrina que el resto del perfil: adivinar qué código es mujer ya
+  # costó una lectura al revés en este estudio.
+  sin_sexo <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(), .tmcfd_resp_sexo("CH 1", "1", "1"), .tmcfd_cfg())
+  expect_identical(length(sin_sexo$por_sexo), 0L)
+
+  sin_cuotas <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(), .tmcfd_resp_sexo("CH 1", "1", "1"), .tmcfd_cfg_sexo())
+  expect_true(length(sin_cuotas$por_sexo) > 0L)
+  arq <- sin_cuotas$por_sexo[[1]]
+  expect_true(is.na(arq$meta_F))
+  expect_false(arq$riesgo_F)
+})
+
+test_that("la hoja trae el bloque con su cabecera y el aviso escrito", {
+  filas <- aulas_libro_filas_control_facultad(
+    .tmcfd_plan(),
+    .tmcfd_resp_sexo(c("CH 2", "CH 2", "CH 2", "CH 1"),
+                     c("2", "2", "1", "1"), c("2", "2", "2", "1")),
+    .tmcfd_cfg_sexo(),
+    cuotas = .tmcfd_cuotas(
+      list(facultad = "ARTE Y DISEÑO", cuota_sexo = list(F = 0, M = 3))))
+  primeras <- vapply(filas, function(f) as.character(f$celdas[[1]]), character(1))
+  expect_true("SI CERRAMOS POR EL AULA, ¿CERRAMOS DE VERDAD?" %in% primeras)
+  cabecera <- Filter(function(f) identical(as.character(f$celdas[[1]]), "FACULTAD") &&
+                       length(f$celdas) == 8L, filas)
+  expect_identical(length(cabecera), 1L)
+  avisos <- unlist(lapply(filas, function(f)
+    as.character(f$celdas[[length(f$celdas)]])))
+  expect_true(any(grepl("CERRARÍA POR AULA Y NO POR LO DECLARADO", avisos)))
+  expect_true(any(grepl("faltarían 1 hombres", avisos)))
+})
+
+# --- la matriz de consistencia ------------------------------------------------
+#
+# Pedido de Gonzalo (2026-09-14): «un seguimiento de quién responde otra
+# carrera, en cada facultad a qué carrera responde; creo que es una matriz de
+# consistencia de 15x15».
+
+test_that("la matriz es cuadrada, la diagonal son los que coinciden y cada fila suma su total", {
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp(c("CH 1", "CH 1", "CH 2", "CH 3", "CH 4"),
+                c("1", "2", "2", "7", "10")),
+    .tmcfd_cfg())
+  n <- length(o$matriz)
+  expect_true(all(vapply(o$matriz, function(f) length(f$celdas), integer(1)) == n))
+  # Las dos invariantes que hacen que la matriz sea LA misma medida que el
+  # resumen de arriba: sin ellas podría cuadrar por dentro y contradecir al
+  # encabezado de la hoja.
+  expect_identical(sum(vapply(o$matriz, function(f) f$total, integer(1))),
+                   o$comparables)
+  expect_identical(sum(vapply(seq_along(o$matriz), function(i)
+    o$matriz[[i]]$celdas[[i]], integer(1))), o$coinciden)
+})
+
+test_that("filas y columnas van en el MISMO orden, también con la abreviatura", {
+  # Si filas y columnas se ordenaran por separado, la diagonal dejaría de ser
+  # la coincidencia y nada fallaría: los totales seguirían cuadrando. Este caso
+  # lo ancla con la abreviatura del plan («COMUN.») contra el nombre largo del
+  # cuestionario, que es donde el emparejamiento tiene su regla propia.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(),
+    .tmcfd_resp(c("CH 3", "CH 3", "CH 1"), c("7", "7", "1")),
+    .tmcfd_cfg())
+  i <- which(vapply(o$matriz, function(f) grepl("^CIENCIAS Y ARTES", f$facultad),
+                    logical(1)))
+  expect_identical(length(i), 1L)
+  expect_identical(o$matriz[[i]]$celdas[[i]], 2L)
+  expect_identical(o$matriz[[i]]$coinciden, 2L)
+})
+
+test_that("la matriz incluye la facultad que nadie tiene como aula pero alguien declara", {
+  # Su fila va en cero y su COLUMNA es la que importa: dice quién está llenando
+  # una cuota que no tiene aulas.
+  o <- monitoreo_aulas_cruce_facultad_declarada(
+    .tmcfd_plan(), .tmcfd_resp(c("CH 4", "CH 4"), c("11", "1")), .tmcfd_cfg())
+  i <- which(vapply(o$matriz, function(f)
+    identical(f$facultad, "ARQUITECTURA Y URBANISMO"), logical(1)))
+  expect_identical(length(i), 1L)
+  expect_identical(o$matriz[[i]]$total, 0L)
+  columna <- sum(vapply(o$matriz, function(f) f$celdas[[i]], integer(1)))
+  expect_identical(columna, 1L)
+})
+
+test_that("la hoja dibuja la matriz numerada y con su fila por facultad", {
+  filas <- aulas_libro_filas_control_facultad(
+    .tmcfd_plan(),
+    .tmcfd_resp(c("CH 1", "CH 1", "CH 2"), c("1", "2", "2")),
+    .tmcfd_cfg())
+  primeras <- vapply(filas, function(f) as.character(f$celdas[[1]]), character(1))
+  expect_true("MATRIZ DE CONSISTENCIA" %in% primeras)
+  expect_true("AULA \\ DECLARA" %in% primeras)
+  # La numeración de las columnas tiene que casar con la de las filas: es lo
+  # único que hace legible una matriz sin repetir quince nombres largos arriba.
+  cab <- filas[[which(primeras == "AULA \\ DECLARA")[[1]]]]
+  n_facs <- sum(grepl("^[0-9]+\\. ", primeras))
+  expect_identical(length(cab$celdas), n_facs + 2L)
+  expect_identical(as.character(cab$celdas[[2]]), "1")
+  expect_true(any(grepl("^1\\. ", primeras)))
+})

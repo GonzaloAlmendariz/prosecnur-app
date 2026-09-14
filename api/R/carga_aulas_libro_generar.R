@@ -2060,7 +2060,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # el alumno declara. Condicional: sin `faculty_var` declarada en el mapping
   # del estudio no se produce — adivinar cuál es la pregunta de la facultad
   # sería inventar el dato que el control existe para vigilar.
-  aulas_libro_hoja_control_facultad(wb, plan_completo, responses, cfg = cfg)
+  aulas_libro_hoja_control_facultad(wb, plan_completo, responses, cfg = cfg,
+                                   cuotas = cuotas)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde

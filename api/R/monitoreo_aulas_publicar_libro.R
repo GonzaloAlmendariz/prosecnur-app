@@ -486,7 +486,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # El control de facultad (dictado 2026-09-14): condicional a que el estudio
   # declare su `faculty_var`. NULL = no juega esta publicación.
   valores_control_fac <- aulas_libro_valores_control_facultad(
-    plan %||% list(), responses, cfg = config_aulas %||% list())
+    plan %||% list(), responses, cfg = config_aulas %||% list(), cuotas = cuotas)
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
