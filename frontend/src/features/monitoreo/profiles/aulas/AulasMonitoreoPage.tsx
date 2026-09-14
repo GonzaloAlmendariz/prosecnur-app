@@ -1777,8 +1777,14 @@ export default function AulasMonitoreoPage() {
       // tenía nada que le avisara de que no había traído nada, y la creyó. El
       // motor redacta la causa y su consecuencia; aquí sólo se enseña, y manda
       // sobre el aviso del libro porque decide si las cifras son de hoy.
+      // El tono lo decide el motor, que es quien sabe en qué modo volvió
+      // vacía: un incremental sin respuestas nuevas no es una incidencia y
+      // pintarlo en rojo enseña a ignorar el aviso. Sin `tono` —payload de una
+      // versión anterior— se mantiene el comportamiento de siempre.
       const vacias = result.state?.aviso_fuentes_vacias;
-      if (vacias?.mensaje) setAviso({ texto: vacias.mensaje, tono: "atencion" });
+      if (vacias?.mensaje) {
+        setAviso({ texto: vacias.mensaje, tono: vacias.tono === "ok" ? "ok" : "atencion" });
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {

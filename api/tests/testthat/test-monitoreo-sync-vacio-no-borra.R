@@ -210,3 +210,77 @@ test_that("el aviso viaja en el resultado del job, no se queda en el motor", {
   expect_true(any(grepl("aviso_fuentes_vacias", fuente, fixed = TRUE)),
               info = "el resultado del sync dejó de publicar el aviso de fuentes vacías")
 })
+
+# =============================================================================
+# Cero registros en INCREMENTAL no es una incidencia
+# (2026-09-14, HSVG2026 en campo)
+# =============================================================================
+#
+# Gonzalo, mirando Avance > Metas: «no se actualiza». En pantalla, el aviso de
+# arriba: «HSVG 2026 PUCP (Kobo EU) no devolvió ningún registro en esta
+# sincronización (...) revisa la conexión antes de leer el avance». La conexión
+# estaba bien: su fuente sincroniza en modo `incremental` —última entrada
+# 16:52:35Z con 118 registros— y un incremental pide SÓLO las posteriores al
+# cursor, así que devuelve cero cada vez que nadie envía entre dos pulsaciones.
+#
+# El aviso se había escrito para el reemplazo full, donde volver vacío sí
+# significa algo: un full pide todo y todo no puede ser nada. Con un texto
+# único, el operativo leía una alarma de conexión cada vez que pulsaba el botón
+# dos veces seguidas. Un aviso que se enciende cuando no pasa nada enseña a
+# ignorarlo.
+
+.svnb_resumen <- function(id, modo, filas, etiqueta = "", desde = "") {
+  stats::setNames(list(list(
+    source_id = id, source_label = etiqueta, kind = "kobo",
+    mode = modo, rows = filas,
+    cursor = if (nzchar(desde)) list(updated_at = desde) else list()
+  )), id)
+}
+
+test_that("un incremental sin respuestas nuevas NO manda a revisar la conexión", {
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(
+    .svnb_resumen("kobo_1", "incremental", 0L, "HSVG 2026 PUCP (Kobo EU)",
+                  "2026-09-14T16:52:35Z"),
+    conservadas = 2164L)
+  expect_identical(aviso$tono, "ok")
+  expect_identical(aviso$modo, "incremental")
+  expect_false(grepl("revisa la conexión", aviso$mensaje, fixed = TRUE))
+  # Y dice lo que sí es un dato: desde cuándo no entra nada. Es lo que separa
+  # «el campo está parado ahora» de «el cursor se quedó colgado».
+  expect_true(grepl("2026-09-14T16:52:35Z", aviso$mensaje, fixed = TRUE))
+  expect_true(grepl("2 164", aviso$mensaje, fixed = TRUE))
+})
+
+test_that("un full que vuelve vacío SIGUE siendo una alarma", {
+  # El contraejemplo que impide arreglar el falso positivo apagando el aviso
+  # entero: aquí volver vacío es la señal que salvó el 08/09.
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(
+    .svnb_resumen("kobo_1", "full", 0L, "HSVG 2026 PUCP (Kobo EU)"),
+    conservadas = 2164L)
+  expect_identical(aviso$tono, "atencion")
+  expect_identical(aviso$modo, "full")
+  expect_true(grepl("revisa la conexión", aviso$mensaje, fixed = TRUE))
+})
+
+test_that("sin nada que conservar, un incremental vacío tampoco se calla", {
+  # Cero conservadas es cero en pantalla: aunque el modo sea incremental, ahí
+  # no hay «lo de antes» que mirar y el aviso tiene que seguir siendo el fuerte.
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(
+    .svnb_resumen("kobo_1", "incremental", 0L, "HSVG 2026 PUCP (Kobo EU)"),
+    conservadas = 0L)
+  expect_identical(aviso$tono, "atencion")
+  expect_true(grepl("sin respuestas cargadas", aviso$mensaje, fixed = TRUE))
+})
+
+test_that("con una incremental vacía y una full vacía, manda la alarma", {
+  resumen <- c(.svnb_resumen("kobo_1", "incremental", 0L, "Kobo EU"),
+               .svnb_resumen("sm_2", "full", 0L, "SurveyMonkey"))
+  aviso <- prosecnurapp:::.monitoreo_sync_aviso_vacias(resumen, conservadas = 100L)
+  expect_identical(aviso$tono, "atencion")
+  expect_identical(length(aviso$fuentes), 2L)
+})
+
+test_that("una fuente que sí trajo filas no entra en el aviso, en ningún modo", {
+  expect_null(prosecnurapp:::.monitoreo_sync_aviso_vacias(
+    .svnb_resumen("kobo_1", "incremental", 118L, "Kobo EU"), conservadas = 2164L))
+})

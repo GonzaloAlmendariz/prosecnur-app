@@ -4097,6 +4097,15 @@ export type MonitoreoAvisoFuentesVacias = {
   conservadas: number;
   /** El aviso ya redactado por el motor: la causa y su consecuencia. */
   mensaje: string;
+  /**
+   * Con qué cara se enseña. `"ok"` cuando no hay nada que arreglar: en modo
+   * incremental, cero registros es lo que devuelve una sincronización sana si
+   * nadie envió desde la anterior. `"atencion"` cuando un full volvió vacío,
+   * que sí es una señal. Ausente en payloads viejos: se lee como `"atencion"`.
+   */
+  tono?: "ok" | "atencion";
+  /** `"incremental"` o `"full"`: en cuál de los dos modos volvió vacía. */
+  modo?: "incremental" | "full";
 };
 
 export type MonitoreoSourcePayload = {
