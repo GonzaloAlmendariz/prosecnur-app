@@ -445,6 +445,18 @@ monitoreo_aulas_default_config <- function() {
       # la columna calla: adivinar cual de las variables de la base es el sexo
       # es exactamente el error que ya costo una lectura en este estudio.
       sex_var = "",
+      # **La variable donde el alumno DECLARA su facultad**, y el catálogo que
+      # traduce su código a nombre (`faculty_labels`: «7» →
+      # «CIENCIAS Y ARTES DE LA COMUNICACIÓN»). Alimentan la hoja «Control de
+      # facultad», que cruza esa declaración con la facultad que el diseño le
+      # puso al curso-horario. Sin las dos no hay hoja, y es deliberado: el
+      # avance por facultad se cuenta con la del marco, así que adivinar cuál
+      # pregunta es la facultad sería inventar justo el dato que el control
+      # existe para vigilar. Sin el catálogo, el cruce compararía un «7» contra
+      # un nombre y daría 100 % de desacuerdo — una catástrofe de campo que no
+      # ocurrió.
+      faculty_var = "",
+      faculty_labels = list(),
       # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
       # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
       # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
@@ -536,6 +548,14 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
       # Misma doctrina de whitelist: sin esta linea, declararla en la UI no
       # persistiria y el campo se caeria en silencio.
       sex_var = .monitoreo_scalar(mapping$sex_var %||% mapping$sexo_var, defaults$source_mapping$sex_var),
+      # Misma doctrina de whitelist: sin nombrarlas aquí, declararlas no
+      # persistiría y la hoja de control nunca aparecería en el libro.
+      faculty_var = .monitoreo_scalar(
+        mapping$faculty_var %||% mapping$facultad_var,
+        defaults$source_mapping$faculty_var),
+      faculty_labels = .mcfd_normalizar_etiquetas(
+        mapping$faculty_labels %||% mapping$etiquetas_facultad %||%
+          defaults$source_mapping$faculty_labels),
       # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
       # declararlos no persistiria.
       # Caían a `list()` pelada en vez de a `defaults`, así que un body sin

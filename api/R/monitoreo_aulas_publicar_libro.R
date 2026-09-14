@@ -128,6 +128,8 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 .malp_hoja_asignacion <- function() "Asignación de aplicadores"
 # La hermana de salida: lo que YA se aplicó (dictado 2026-09-12).
 .malp_hoja_produccion <- function() "Producción de aplicadores"
+# El control de calidad de facultad declarada (dictado 2026-09-14).
+.malp_hoja_control_facultad <- function() "Control de facultad"
 
 #' ¿Se puede reescribir «Asignación de aplicadores» sin riesgo de contradecir?
 #'
@@ -195,7 +197,8 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   # congelara una fila de más.
   if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
                   .malp_hoja_plan_dia(), .malp_hoja_asignacion(),
-                  .malp_hoja_disponibilidad(), .malp_hoja_produccion())) 1L else 2L
+                  .malp_hoja_disponibilidad(), .malp_hoja_produccion(),
+                  .malp_hoja_control_facultad())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -347,6 +350,9 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_produccion())) {
     requests <- c(requests, aulas_libro_produccion_formato_requests(sheet_id, rows))
   }
+  if (identical(tab_name, .malp_hoja_control_facultad())) {
+    requests <- c(requests, aulas_libro_control_facultad_formato_requests(sheet_id, rows))
+  }
   # B14: los desplegables y calendarios de las pestañas Extra — los mismos
   # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
   # Para cualquier otra pestaña devuelve vacío.
@@ -477,6 +483,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # La hoja de PRODUCCIÓN, hermana de la de asignación: lo que ya se aplicó.
   # NULL = todavía no hay campo = la hoja no juega esta publicación.
   valores_produccion <- aulas_libro_valores_produccion(plan %||% list(), partes %||% list())
+  # El control de facultad (dictado 2026-09-14): condicional a que el estudio
+  # declare su `faculty_var`. NULL = no juega esta publicación.
+  valores_control_fac <- aulas_libro_valores_control_facultad(
+    plan %||% list(), responses, cfg = config_aulas %||% list())
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
@@ -510,6 +520,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # de la disponibilidad porque se lee al final de la jornada, no al empezarla.
   if (!is.null(valores_produccion)) {
     hojas_app <- c(hojas_app, .malp_hoja_produccion())
+  }
+  if (!is.null(valores_control_fac)) {
+    hojas_app <- c(hojas_app, .malp_hoja_control_facultad())
   }
   con_extras <- length(extras) > 0L
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
@@ -613,6 +626,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_produccion)) {
     producidas[[.malp_hoja_produccion()]] <- valores_produccion
+  }
+  if (!is.null(valores_control_fac)) {
+    producidas[[.malp_hoja_control_facultad()]] <- valores_control_fac
   }
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
