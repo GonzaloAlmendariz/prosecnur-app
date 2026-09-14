@@ -62,14 +62,19 @@
 #' @param responses `data.frame` de respuestas de la plataforma.
 #' @param cfg config de aulas universitarias (`source_mapping$faculty_var` y,
 #'   opcionalmente, `faculty_labels`: código declarado → nombre).
-#' @return lista `{ok, comparables, coinciden, discrepan, por_facultad, pares,
-#'   sin_aula, sin_declarar}`; `ok = FALSE` cuando el estudio no declara su
+#' @param cuotas bloque `design_targets` de la config, para saber qué facultad
+#'   cerraría por el aula y no por lo declarado. Sin él el bloque por sexo sale
+#'   igual, sin la columna de meta.
+#' @return lista `{ok, comparables, coinciden, discrepan, por_facultad,
+#'   por_sexo, matriz, pares, sin_aula, sin_declarar}`; `ok = FALSE` cuando el estudio no declara su
 #'   variable o no hay con qué cruzar.
 #' @export
-monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list()) {
+monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list(),
+                                                     cuotas = NULL) {
   vacio <- function(motivo = "") list(
     ok = FALSE, motivo = motivo, comparables = 0L, coinciden = 0L, discrepan = 0L,
-    por_facultad = list(), pares = list(), sin_aula = 0L, sin_declarar = 0L)
+    por_facultad = list(), por_sexo = list(), matriz = list(), pares = list(),
+    sin_aula = 0L, sin_declarar = 0L)
   if (!length(plan) || !is.data.frame(responses) || !nrow(responses)) {
     return(vacio("sin plan o sin respuestas"))
   }
@@ -160,6 +165,9 @@ monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list
       facultad = f, respuestas = 0L, coinciden = 0L, discrepan = 0L,
       declaradas = sum(j))
   }
+  # El nombre del MARCO manda cuando los dos lados nombran la misma facultad:
+  # es el que usan las metas y el resto del libro.
+  facs_canon <- c(facs, sort(solo_declaradas, method = "radix"))
 
   pares <- if (any(!igual)) {
     p <- paste(fac_aula[comparables][!igual], "→", declarada[comparables][!igual])
@@ -172,6 +180,9 @@ monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list
   list(
     ok = TRUE,
     motivo = "",
+    por_sexo = .mcfd_por_sexo(responses, cfg, comparables, fac_aula, declarada,
+                              facs_canon, cuotas),
+    matriz = .mcfd_matriz(fac_aula[comparables], declarada[comparables], facs_canon),
     comparables = as.integer(sum(comparables)),
     coinciden = as.integer(sum(igual)),
     discrepan = as.integer(sum(!igual)),
@@ -209,10 +220,124 @@ monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list
   .mcfd_normalizar_etiquetas(mapping[["faculty_labels"]] %||% list())
 }
 
+# **Lo que Gonzalo preguntó el 2026-09-14: «¿qué pasa si en el avance que
+# reportamos cerramos campo y aquí no?».**
+#
+# El avance por facultad —y sus cuotas de mujeres y hombres— se cuenta con la
+# facultad del AULA. Si una facultad llega a su cuota por esa cuenta, se cierra
+# campo ahí. Pero parte de esas respuestas son de alumnos de otras facultades:
+# por lo que ellos declaran, la facultad puede seguir corta. Cerrar entonces es
+# cerrar sobre una cuota que nunca se llenó, y ya no hay cómo volver.
+#
+# Este bloque pone las dos cuentas al lado, por sexo, contra la meta del diseño.
+# NO cambia el avance: avisa.
+.mcfd_por_sexo <- function(responses, cfg, comparables, fac_aula, declarada,
+                           facs_canon, cuotas) {
+  col <- monitoreo_aulas_columna_sexo(responses, cfg)
+  if (!nzchar(col) || !(col %in% names(responses))) return(list())
+  sexo <- monitoreo_aulas_sexo_key(responses[[col]], cfg)[comparables]
+  # Misma doctrina que el resto: sin saber QUÉ CÓDIGO es mujer no se cuenta por
+  # sexo. Una cifra por sexo inventada es peor que ninguna.
+  if (!any(sexo %in% c("F", "M"))) return(list())
+
+  metas <- .mcfd_metas_por_facultad(cuotas)
+  fa <- fac_aula[comparables]
+  de <- declarada[comparables]
+  cuenta <- function(mascara, sx) sum(mascara & sexo == sx)
+
+  lapply(facs_canon, function(f) {
+    i <- vapply(fa, function(x) isTRUE(.mcfd_misma_facultad(x, f)), logical(1),
+                USE.NAMES = FALSE)
+    j <- vapply(de, function(x) isTRUE(.mcfd_misma_facultad(x, f)), logical(1),
+                USE.NAMES = FALSE)
+    # **La meta se busca con la MISMA regla de igualdad que el resto**, no por
+    # clave exacta: el plan abrevia («CIENCIAS Y ARTES DE LA COMUN.») y el
+    # diseño puede escribir el nombre entero. Con clave exacta esa facultad se
+    # quedaba sin meta y sin aviso para siempre, en silencio.
+    meta <- .mcfd_meta_de(metas, f)
+    fila <- list(
+      facultad = f,
+      aula_F = cuenta(i, "F"), aula_M = cuenta(i, "M"),
+      declaradas_F = cuenta(j, "F"), declaradas_M = cuenta(j, "M"),
+      meta_F = suppressWarnings(as.numeric(meta$F %||% NA)),
+      meta_M = suppressWarnings(as.numeric(meta$M %||% NA))
+    )
+    # El aviso, que es el punto del bloque: la celda que cerraría contando por
+    # el aula y NO cerraría contando lo que el alumno declara.
+    faltan <- function(meta_v, dec_v) {
+      if (!is.finite(meta_v)) return(0L)
+      max(0L, as.integer(meta_v) - as.integer(dec_v))
+    }
+    cierra <- function(meta_v, aula_v) is.finite(meta_v) && aula_v >= meta_v
+    fila$riesgo_F <- cierra(fila$meta_F, fila$aula_F) &&
+      faltan(fila$meta_F, fila$declaradas_F) > 0L
+    fila$riesgo_M <- cierra(fila$meta_M, fila$aula_M) &&
+      faltan(fila$meta_M, fila$declaradas_M) > 0L
+    fila$faltan_F <- faltan(fila$meta_F, fila$declaradas_F)
+    fila$faltan_M <- faltan(fila$meta_M, fila$declaradas_M)
+    fila
+  })
+}
+
+# Meta de mujeres y hombres por facultad, del bloque `design_targets`.
+.mcfd_metas_por_facultad <- function(cuotas) {
+  filas <- if (is.list(cuotas)) (cuotas[["facultades"]] %||% list()) else list()
+  out <- list()
+  for (f in filas) {
+    if (!is.list(f)) next
+    nombre <- .monitoreo_scalar(f[["facultad"]], "")
+    if (!nzchar(nombre)) next
+    cs <- f[["cuota_sexo"]] %||% list()
+    out[[length(out) + 1L]] <- list(
+      facultad = nombre, F = cs[["F"]] %||% NA, M = cs[["M"]] %||% NA)
+  }
+  out
+}
+
+.mcfd_meta_de <- function(metas, facultad) {
+  for (m in metas) if (isTRUE(.mcfd_misma_facultad(m$facultad, facultad))) return(m)
+  list()
+}
+
+# **La matriz de consistencia, pedida el 2026-09-14**: «un seguimiento de quién
+# responde otra carrera, en cada facultad a qué carrera responde; creo que es
+# una matriz de consistencia de 15x15».
+#
+# Filas: la facultad del AULA. Columnas: la que el alumno DECLARA. La diagonal
+# son los que coinciden y todo lo de fuera es el desacuerdo, leído en las dos
+# direcciones: la fila dice a dónde se va la gente de esta facultad y la
+# columna, de dónde viene la que llena su cuota.
+#
+# El orden de filas y columnas es el MISMO —`facs_canon`, que ya incluye a las
+# facultades que nadie tiene como aula pero alguien declara—, así que la matriz
+# es cuadrada por construcción y cada fila suma su total. Si filas y columnas
+# se ordenaran por separado, la diagonal dejaría de ser la coincidencia sin que
+# nada fallara.
+.mcfd_matriz <- function(fa, de, facs_canon) {
+  if (!length(facs_canon)) return(list())
+  # Cada respuesta se clasifica UNA vez contra el orden canónico; comparar
+  # facultad por facultad dentro del doble bucle costaba N×15×15 llamadas.
+  indice <- function(v) vapply(v, function(x) {
+    for (i in seq_along(facs_canon)) {
+      if (isTRUE(.mcfd_misma_facultad(x, facs_canon[[i]]))) return(i)
+    }
+    NA_integer_
+  }, integer(1), USE.NAMES = FALSE)
+  ia <- indice(fa); id <- indice(de)
+  lapply(seq_along(facs_canon), function(i) {
+    fila <- vapply(seq_along(facs_canon), function(j) {
+      sum(!is.na(ia) & !is.na(id) & ia == i & id == j)
+    }, integer(1))
+    list(facultad = facs_canon[[i]], celdas = fila, total = sum(fila),
+         coinciden = fila[[i]])
+  })
+}
+
 # --- la hoja del libro --------------------------------------------------------
 
 .MCFD_HOJA <- "Control de facultad"
-.MCFD_BLOQUES <- c("FACULTAD POR FACULTAD", "DÓNDE SE CRUZAN")
+.MCFD_BLOQUES <- c("FACULTAD POR FACULTAD", "SI CERRAMOS POR EL AULA, ¿CERRAMOS DE VERDAD?",
+                   "MATRIZ DE CONSISTENCIA", "DÓNDE SE CRUZAN")
 
 #' Las filas de la hoja de control, tipadas — mismo contrato que sus hermanas.
 #'
@@ -223,8 +348,8 @@ monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list
 #'   qué cruzar; si no, lista de filas `{tipo, celdas}`.
 #' @keywords internal
 aulas_libro_filas_control_facultad <- function(plan = list(), responses = NULL,
-                                               cfg = list()) {
-  o <- monitoreo_aulas_cruce_facultad_declarada(plan, responses, cfg)
+                                               cfg = list(), cuotas = NULL) {
+  o <- monitoreo_aulas_cruce_facultad_declarada(plan, responses, cfg, cuotas = cuotas)
   if (!isTRUE(o$ok) || !o$comparables) return(NULL)
 
   filas <- list()
@@ -262,9 +387,61 @@ aulas_libro_filas_control_facultad <- function(plan = list(), responses = NULL,
   poner("dato", c("TOTAL", o$comparables, o$coinciden, o$discrepan,
                   pct(o$discrepan, o$comparables), o$comparables, "+0"))
 
-  if (length(o$pares)) {
+  if (length(o$por_sexo)) {
     poner("nota", "")
     poner("bloque", .MCFD_BLOQUES[[2]])
+    poner("nota", paste(
+      "El avance por facultad —y sus cuotas de mujeres y hombres— se cuenta con",
+      "la facultad del AULA. Si una facultad llega a su cuota por esa cuenta se",
+      "cierra campo ahí, pero parte de esas respuestas son de alumnos de otras",
+      "facultades: por lo que ellos declaran puede seguir corta. Este bloque no",
+      "cambia el avance; avisa de dónde cerrar sería cerrar en falso."))
+    poner("cabecera", c("FACULTAD", "META M", "POR AULA M", "DECLARAN M",
+                        "META H", "POR AULA H", "DECLARAN H", "AVISO"))
+    num <- function(x) if (is.finite(x)) as.character(as.integer(x)) else ""
+    hay_aviso <- FALSE
+    for (f in o$por_sexo) {
+      aviso <- character(0)
+      if (isTRUE(f$riesgo_F)) aviso <- c(aviso, sprintf("faltarían %d mujeres", f$faltan_F))
+      if (isTRUE(f$riesgo_M)) aviso <- c(aviso, sprintf("faltarían %d hombres", f$faltan_M))
+      if (length(aviso)) {
+        hay_aviso <- TRUE
+        aviso <- paste("CERRARÍA POR AULA Y NO POR LO DECLARADO:",
+                       paste(aviso, collapse = " y "))
+      } else {
+        aviso <- ""
+      }
+      poner("dato", c(f$facultad, num(f$meta_F), f$aula_F, f$declaradas_F,
+                      num(f$meta_M), f$aula_M, f$declaradas_M, aviso))
+    }
+    if (!hay_aviso) {
+      poner("nota", paste(
+        "Hoy ninguna facultad cerraría por el aula quedándose corta por lo que",
+        "los alumnos declaran. El aviso aparece solo si eso cambia."))
+    }
+  }
+
+  if (length(o$matriz) > 1L) {
+    poner("nota", "")
+    poner("bloque", .MCFD_BLOQUES[[3]])
+    poner("nota", paste(
+      "Cada fila es la facultad del AULA y cada columna, la que el alumno",
+      "DECLARA; las columnas van numeradas en el mismo orden que las filas. La",
+      "diagonal son los que coinciden. Leída por filas dice a dónde se va la",
+      "gente recogida en esta facultad; por columnas, de dónde viene la que",
+      "está llenando su cuota."))
+    n <- length(o$matriz)
+    poner("cabecera", c("AULA \\ DECLARA", as.character(seq_len(n)), "TOTAL"))
+    for (k in seq_len(n)) {
+      f <- o$matriz[[k]]
+      poner("dato", c(sprintf("%d. %s", k, f$facultad),
+                      as.list(f$celdas), f$total))
+    }
+  }
+
+  if (length(o$pares)) {
+    poner("nota", "")
+    poner("bloque", .MCFD_BLOQUES[[4]])
     poner("nota", paste(
       "De qué facultad era el aula y de cuál dice ser quien respondió. Lo que",
       "más se repite suele ser un curso compartido o un alumno de Estudios",
@@ -281,8 +458,8 @@ aulas_libro_filas_control_facultad <- function(plan = list(), responses = NULL,
 #' Los valores planos de la hoja de control, para Sheets.
 #' @keywords internal
 aulas_libro_valores_control_facultad <- function(plan = list(), responses = NULL,
-                                                 cfg = list()) {
-  filas <- aulas_libro_filas_control_facultad(plan, responses, cfg)
+                                                 cfg = list(), cuotas = NULL) {
+  filas <- aulas_libro_filas_control_facultad(plan, responses, cfg, cuotas = cuotas)
   if (is.null(filas)) return(NULL)
   lapply(filas, function(f) as.list(f$celdas))
 }
@@ -290,8 +467,8 @@ aulas_libro_valores_control_facultad <- function(plan = list(), responses = NULL
 #' Escribe la hoja «Control de facultad» sobre el workbook del libro.
 #' @keywords internal
 aulas_libro_hoja_control_facultad <- function(wb, plan = list(), responses = NULL,
-                                              cfg = list()) {
-  filas <- aulas_libro_filas_control_facultad(plan, responses, cfg)
+                                              cfg = list(), cuotas = NULL) {
+  filas <- aulas_libro_filas_control_facultad(plan, responses, cfg, cuotas = cuotas)
   if (is.null(filas)) return(invisible(FALSE))
   hoja <- .MCFD_HOJA
   openxlsx::addWorksheet(wb, hoja)
