@@ -363,3 +363,25 @@ catástrofe de campo que no ocurrió; el motor se niega y dice por qué. Las dos
 claves ya persisten en la config del proyecto (están en la whitelist del
 normalizador). **Falta declararlas en el `.pulso` de HSVG2026**, que es la
 sesión de Gonzalo: hasta entonces el libro sale como hoy, sin la hoja.
+
+### Lo que la hoja contesta además (2026-09-14, `5f5723f7`)
+
+**«¿Qué pasa si en el avance que reportamos cerramos campo y aquí no?»** Un
+bloque por sexo pone las dos cuentas —por el aula y por lo declarado— contra la
+meta del diseño, y avisa sólo donde la celda cerraría por el aula y no por lo
+declarado. Hoy salta en **una**:
+
+| Facultad | Sexo | Meta | Por el aula | Declaran |
+|---|---|---|---|---|
+| Arte y Diseño | Hombres | 25 | **25** | **19** |
+
+Cerrar ahí por el avance reportado es cerrar con 6 hombres menos de los que el
+diseño pide. Educación mujeres (meta 20 · aula 20 · declaran 20) es el caso
+contrario y el aviso no la enciende.
+
+**La matriz de consistencia 15×15.** Filas: la facultad del aula; columnas: la
+declarada, numeradas en el mismo orden; la diagonal son los que coinciden. Por
+filas dice a dónde se va la gente recogida en una facultad; por columnas, de
+dónde viene la que llena su cuota. Ciencias Contables entra con la fila en cero
+y la columna en 6. Dos invariantes la atan al resumen y están en test: las
+filas suman 1.390 y la diagonal 1.310.
