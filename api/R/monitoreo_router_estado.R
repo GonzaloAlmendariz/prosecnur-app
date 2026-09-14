@@ -164,15 +164,57 @@
   if (!length(vacias)) return(NULL)
   # La ETIQUETA, no el id: «HSVG 2026 PUCP (Kobo EU)» le dice algo a quien mira;
   # «kobo_annup72aedz886eoauev5o» no.
-  nombres <- vapply(vacias, function(id) {
+  info <- lapply(vacias, function(id) {
     item <- (sync_summary %||% list())[[id]] %||% list()
     etiqueta <- .monitoreo_scalar(item$source_label, "")
-    if (nzchar(etiqueta)) etiqueta else id
-  }, character(1), USE.NAMES = FALSE)
+    list(
+      nombre = if (nzchar(etiqueta)) etiqueta else id,
+      incremental = identical(.monitoreo_scalar(item$mode, "full"), "incremental"),
+      desde = .monitoreo_scalar((item$cursor %||% list())$updated_at, "")
+    )
+  })
+  nombres <- vapply(info, function(x) x$nombre, character(1), USE.NAMES = FALSE)
   filas <- suppressWarnings(as.integer(conservadas))
   if (is.na(filas)) filas <- 0L
   lista <- paste(nombres, collapse = ", ")
   verbo <- if (length(nombres) == 1L) "no devolvió ningún registro" else "no devolvieron ningún registro"
+
+  # **En modo incremental, cero registros es la respuesta NORMAL.**
+  #
+  # El aviso se escribió para el reemplazo full: ahí volver vacío significa que
+  # algo pasó, porque un full pide TODO y todo no puede ser nada. En
+  # incremental se piden sólo las posteriores al cursor, así que una
+  # sincronización sana devuelve cero cada vez que nadie ha enviado desde la
+  # anterior. Con el texto único, el operativo de HSVG2026 leía «revisa la
+  # conexión» en pantalla —en pleno campo— cada vez que pulsaba el botón dos
+  # veces seguidas, y la conexión estaba perfecta. Un aviso que se enciende
+  # cuando no pasa nada enseña a ignorarlo, que es justo lo contrario de para
+  # lo que se puso.
+  #
+  # Lo que sí hace falta decir es DESDE CUÁNDO no entra nada: eso es lo que
+  # distingue «el campo está parado ahora mismo» de «el cursor se quedó
+  # colgado», y es un dato, no una alarma.
+  solo_incremental <- all(vapply(info, function(x) x$incremental, logical(1)))
+  if (solo_incremental && filas > 0L) {
+    desde <- unique(Filter(nzchar, vapply(info, function(x) x$desde, character(1),
+                                          USE.NAMES = FALSE)))
+    cola <- if (length(desde) == 1L) {
+      paste0(" La última que sí trajo respuestas fue la de ", desde, ".")
+    } else {
+      ""
+    }
+    return(list(
+      fuentes = as.list(nombres), conservadas = filas, tono = "ok",
+      modo = "incremental",
+      mensaje = paste0(
+        lista, " no trajo respuestas NUEVAS: sigues viendo las ",
+        format(filas, big.mark = " ", trim = TRUE, scientific = FALSE),
+        " que ya estaban, que es lo correcto. No es un fallo de conexión — en ",
+        "modo incremental sólo se piden las posteriores a la última que entró, ",
+        "así que cero significa que nadie ha enviado desde entonces.", cola)
+    ))
+  }
+
   mensaje <- if (filas > 0L) {
     paste0(
       lista, " ", verbo, " en esta sincronización, así que se conservan las ",
@@ -186,7 +228,8 @@
       "Revisa la conexión y el formulario antes de leer el avance."
     )
   }
-  list(fuentes = as.list(nombres), conservadas = filas, mensaje = mensaje)
+  list(fuentes = as.list(nombres), conservadas = filas, mensaje = mensaje,
+       tono = "atencion", modo = "full")
 }
 
 .monitoreo_sync_stable_row_key <- function(data) {
