@@ -477,6 +477,15 @@ monitoreo_aulas_default_config <- function() {
     representativity = list(),
     # Metas del diseño importadas de calc-muestra (ver monitoreo_aulas_metas_diseno.R).
     design_targets = list(),
+    # **Los TRAMOS del operativo: rangos de fecha con nombre propio.** Dictado
+    # 2026-09-15: «más que semana en el estricto senso, con rango a los que
+    # llamamos de forma personalizada; en este caso seleccioné dos rangos
+    # semanales y les puse Semana 1 y Semana 2, pero puede ser otro rango con
+    # otros nombres». El rango y su nombre son decisión suya y no se deducen de
+    # ningún sitio, así que se guardan; el estado de cada tramo se deriva del
+    # plan en cada corrida (`monitoreo_aulas_tramos_estado()`). Sin tramos
+    # declarados el motor cae a las semanas de calendario de siempre.
+    tramos = list(),
     # B70 (dictado 2026-09-03): la duración de la aplicación en minutos. 30 es
     # la verdad operativa de hoy («la aplicación dura media hora»); el slider
     # de Carga de campo la edita y la persiste por aquí. Los motores de
@@ -753,6 +762,12 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # Esta lista es CERRADA y el engine re-normaliza la config en cada pase:
     # sin este passthrough las metas del diseño se tragaban en el segundo pase.
     design_targets = config[["design_targets"]] %||% config[["metas_diseno"]] %||% defaults$design_targets,
+    # Misma doctrina de whitelist que el resto: sin nombrarlos aquí, declarar
+    # un tramo en la UI no persistiría y el mecanismo entero se caería en
+    # silencio al primer «actualizar». Se normalizan al guardar —fechas ISO,
+    # orden por inicio, se descarta el tramo sin las dos fechas— para que lo
+    # guardado ya esté en la forma en que el motor lo lee.
+    tramos = .mat_normalizar(config[["tramos"]] %||% defaults$tramos),
     alerts = list(
       min_valid_per_class = max(1L, .monitoreo_int(alerts$min_valid_per_class %||% alerts$min_validas_aula, defaults$alerts$min_valid_per_class)),
       warn_partial_under_valid = max(1L, .monitoreo_int(alerts$warn_partial_under_valid %||% alerts$alerta_parcial_menor_a, defaults$alerts$warn_partial_under_valid))
