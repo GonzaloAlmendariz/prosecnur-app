@@ -776,3 +776,47 @@ test_that("una hora con la nota del equipo detrás ya recibe su fila", {
   expect_identical(out$faltantes[[1]]$recojo, "14:00")
   expect_length(out$descartadas, 0L)
 })
+
+test_that("lo que el rango del reparto deja fuera se CUENTA y se dice", {
+  # Gonzalo, 2026-09-15: «el agendador ya agendó algunas para esta semana, ¿esas
+  # por qué no las muestra el excel cuando actualizo todo?». Medido sobre su
+  # proyecto: `reparto_rango` seguía en «2026-09-07 → 2026-09-12» —la semana
+  # ANTERIOR— y la ventana por defecto del sincronizador es ésa, así que todo lo
+  # agendado para la semana en curso salía por el `next` del rango y el recibo
+  # decía «0 aulas por añadir». No faltaba ninguna Y faltaban todas: el recibo
+  # no podía distinguirlo.
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("CH 1", "2026-09-10", "10:00 am"),   # dentro
+    .madm_aula("EXTRA 15", "2026-09-16", "9:45 am"),
+    .madm_aula("R 3.1", "2026-09-15", "8:00 pm"),
+    # Una futura NO agendada no es una omisión: es plan, y meterla en la cuenta
+    # convertiría el aviso en ruido permanente.
+    .madm_aula("CH 7", "2026-09-30", "10:00 am", estado = "sin_contactar")
+  )
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja,
+                                            desde = "2026-09-07", hasta = "2026-09-12")
+  expect_identical(vapply(out$faltantes, function(f) f$curso_horario, character(1)), "CH 1")
+  expect_identical(sort(unlist(out$fuera_de_ventana)), c("EXTRA 15", "R 3.1"))
+})
+
+test_that("el recibo nombra el rango que está dejando fuera las citas", {
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = FALSE, anadidas = list(),
+    fuera_de_ventana = list("EXTRA 15", "R 3.1"),
+    ventana = list(desde = "2026-09-07", hasta = "2026-09-12")))
+  expect_true(grepl("2 aulas agendadas quedaron fuera del rango", texto, fixed = TRUE))
+  # Con sus fechas: sin ellas hay que ir a buscar qué rango está puesto, que es
+  # justo el dato que falta cuando uno se pregunta por qué no aparece nada.
+  expect_true(grepl("07/09 → 12/09", texto, fixed = TRUE))
+  expect_true(grepl("actualiza su rango", texto, fixed = TRUE))
+})
+
+test_that("sin nada fuera del rango el recibo no inventa el aviso", {
+  # El contraejemplo: un aviso que sale siempre deja de leerse a la semana.
+  texto <- monitoreo_aulas_sincronizacion_texto(list(
+    aplicado = TRUE, anadidas = list(),
+    fuera_de_ventana = list(),
+    ventana = list(desde = "2026-09-14", hasta = "2026-09-20")))
+  expect_false(grepl("fuera del rango", texto, fixed = TRUE))
+})
