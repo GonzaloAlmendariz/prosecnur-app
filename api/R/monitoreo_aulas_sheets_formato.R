@@ -475,7 +475,13 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
     ),
     rule = list(
       condition = list(type = "DATE_IS_VALID"),
-      showCustomUi = TRUE,
+      # **Sin chip de calendario.** `showCustomUi = TRUE` dibuja el mismo
+      # triangulito que un desplegable, así que FECHA AGENDADA se veía como una
+      # lista cerrada que no es: Gonzalo, 2026-09-15, «sale así, e incluso como
+      # si fecha y hora fueran un desplegable». Las columnas con lista de
+      # verdad —STATUS MUESTRA, DÍA, MOMENTO— sí lo llevan, y confundirlas con
+      # una fecha de texto libre invita a buscar opciones que no existen.
+      showCustomUi = FALSE,
       strict = FALSE
     )
   ))
