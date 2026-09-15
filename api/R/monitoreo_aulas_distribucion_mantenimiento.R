@@ -169,8 +169,21 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
     vistos <- c(vistos, cod)
     if (cod %in% en_hoja) next
 
-    fecha <- .mav_fecha(u[["scheduled_date"]])
-    if (!nzchar(fecha)) next        # sin fecha no está agendada: no es un descarte
+    escrita <- .alpa_txt(u[["scheduled_date"]])
+    fecha <- .mav_fecha(escrita)
+    if (!nzchar(fecha)) {
+      # Sin NADA escrito no está agendada, y eso no es un descarte: es el
+      # estado normal de la mayor parte del plan.
+      if (!nzchar(escrita)) next
+      # **Pero con algo escrito que no se puede leer, sí.** El equipo pone
+      # texto en la celda de fecha —«Confirmará por correo» en EXTRA 17, visto
+      # el 2026-09-15— y esa aula desaparecía por el mismo `next` que las que
+      # no tienen fecha: indistinguible de «no está agendada», que es justo lo
+      # que esta función existe para no hacer. Alguien la agendó a medias y
+      # nadie se enteraba.
+      descartar(cod, "fecha_ilegible", escrita)
+      next
+    }
     if (nzchar(d0) && fecha < d0) next
     if (nzchar(d1) && fecha > d1) next
 
