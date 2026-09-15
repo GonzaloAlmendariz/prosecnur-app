@@ -163,6 +163,7 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
   }
 
   vistos <- character(0)
+  fuera_ventana <- character(0)
   for (u in .madm_unidades(plan)) {
     cod <- .alpa_txt(u[["operational_code"]])
     if (!nzchar(cod) || cod %in% vistos) next
@@ -184,8 +185,24 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
       descartar(cod, "fecha_ilegible", escrita)
       next
     }
-    if (nzchar(d0) && fecha < d0) next
-    if (nzchar(d1) && fecha > d1) next
+    if ((nzchar(d0) && fecha < d0) || (nzchar(d1) && fecha > d1)) {
+      # **Lo que el rango deja fuera se CUENTA, aunque no se proponga.**
+      #
+      # El rango del reparto es una decisión —aplazar a propósito las semanas
+      # siguientes— y por eso estas aulas no entran. Pero el rango se queda
+      # viejo: el 2026-09-15 el proyecto llevaba guardado «07/09 → 12/09», la
+      # semana ANTERIOR, así que todo lo agendado para la semana en curso salía
+      # por aquí y el recibo decía «0 aulas por añadir». Gonzalo: «el agendador
+      # ya agendó algunas para esta semana, ¿esas por qué no las muestra el
+      # excel cuando actualizo todo?». Estaban; las tapaba el rango.
+      #
+      # Sólo se cuentan las que de verdad podrían entrar —las agendadas—: el
+      # resto del plan futuro no es una omisión, es plan.
+      if (monitoreo_aulas_estado_muestra(u[["sample_status"]]) %in% .madm_AGENDADOS) {
+        fuera_ventana <- c(fuera_ventana, cod)
+      }
+      next
+    }
 
     estado <- monitoreo_aulas_estado_muestra(u[["sample_status"]])
     if (!(estado %in% .madm_AGENDADOS)) {
@@ -234,6 +251,7 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
   list(
     faltantes = faltantes,
     descartadas = descartadas,
+    fuera_de_ventana = as.list(fuera_ventana),
     en_hoja = length(en_hoja),
     ventana = list(desde = d0, hasta = d1)
   )
@@ -948,6 +966,7 @@ monitoreo_aulas_sincronizar_distribucion <- function(spreadsheet_id,
       error = function(e) list()
     ),
     ventana = faltan$ventana,
+    fuera_de_ventana = faltan$fuera_de_ventana %||% list(),
     # La columna que el equipo teclea: si la hoja aún no la tiene, esta acción
     # la crea en su sitio con su desplegable y sus colores.
     columna_estado_nueva = is.na(c_estado),
@@ -1200,6 +1219,20 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
     }))
 }
 
+# El rango en la forma corta que se lee dentro de una frase: «07/09 → 12/09».
+.madm_rango_texto <- function(ventana) {
+  corta <- function(iso) {
+    v <- .alpa_txt(iso)
+    if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", v)) return(v)
+    paste0(substr(v, 9, 10), "/", substr(v, 6, 7))
+  }
+  d <- corta((ventana %||% list())$desde); h <- corta((ventana %||% list())$hasta)
+  if (nzchar(d) && nzchar(h)) paste(d, "→", h)
+  else if (nzchar(d)) paste("desde", d)
+  else if (nzchar(h)) paste("hasta", h)
+  else "sin rango"
+}
+
 #' El recibo de la sincronización, en una frase.
 #'
 #' Termina siempre por lo que decide si la jornada está cerrada: cuántas citas
@@ -1220,6 +1253,7 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
   n_rel <- as.integer(aulas$rellenadas %||% 0L)
   n_cor <- as.integer(aulas$corregidas %||% 0L)
   n_orf <- length(out$sin_agenda %||% list())
+  n_fue <- length(out$fuera_de_ventana %||% list())
   hecho <- isTRUE(out$aplicado)
   # **Sin rango declarado, «lo que falta» es todo el horizonte.** El rango del
   # reparto es lo que acota esta acción, y cuando el config no lo trae la
@@ -1249,6 +1283,16 @@ monitoreo_aulas_sincronizacion_texto <- function(out) {
     if (n_add && sin_rango) sprintf(
       "no hay rango de reparto declarado, así que entra TODO lo agendado: %d aula%s de aquí en adelante",
       n_add, if (n_add == 1L) "" else "s"),
+    # **Un rango viejo se dice, y con sus fechas.** Sin esta frase el recibo
+    # decía «0 aulas por añadir» sobre una semana entera de citas agendadas, y
+    # no había forma de distinguir «no falta ninguna» de «las estoy dejando
+    # fuera por un rango de la semana pasada».
+    if (n_fue) sprintf(
+      paste("%d aula%s agendada%s quedaron fuera del rango del reparto (%s):",
+            "si el reparto ya es de otra semana, actualiza su rango antes de",
+            "sincronizar"),
+      n_fue, if (n_fue == 1L) "" else "s", if (n_fue == 1L) "" else "s",
+      .madm_rango_texto(ventana)),
     if (n_add) sprintf("%s %d aula%s agendada%s que no tenía cita",
                        if (hecho) "Se añadieron" else "Se añadirían", n_add,
                        if (n_add == 1L) "" else "s", if (n_add == 1L) "" else "s"),
