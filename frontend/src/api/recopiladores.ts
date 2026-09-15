@@ -600,7 +600,16 @@ export type CollectionFichaPrueba = {
  * enlace y no el archivo: regenerarlo es determinista.
  */
 export async function apiRecopiladoresMaterialPruebas() {
-  const raw = await handle<unknown>(await apiFetch("/api/recopiladores/materials/pruebas"));
+  // Sin `headers()` la petición viaja SIN `X-Pulso-Session`. El backend
+  // responde `E_NO_SESSION`, y el manejador de errores de `core.ts` reacciona a
+  // ese código borrando el sid y emitiendo `pulso:session-lost`: la sesión se
+  // rehace en blanco y el proyecto abierto se cierra solo. Como esta llamada la
+  // dispara el `useEffect` de montaje de Materiales, entrar a esa sección
+  // expulsaba del proyecto una y otra vez.
+  const raw = await handle<unknown>(await apiFetch(
+    "/api/recopiladores/materials/pruebas",
+    { headers: headers() },
+  ));
   if (!isRecord(raw)) throw contractError("materials/pruebas no es un objeto.");
   return asArray<CollectionFichaPrueba>(raw.pruebas).filter((x) => Boolean(x?.codigo));
 }
