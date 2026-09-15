@@ -302,6 +302,26 @@ aulas_libro_extras_sheets_requests <- function(sheet_id, tab_name, rows) {
         sheet_id, .mafs_col_agenda(campo, 1L), cabeceras, n_filas
       )
     }
+    # **El semáforo de STATUS MUESTRA también aquí.**
+    #
+    # Las reglas de color viven en `monitoreo_aulas_sheets_formato.R` detrás de
+    # `identical(hoja, "Aulas Agendadas")`, comparación EXACTA, así que esta
+    # pestaña —«Aulas Agendadas (Extra)»— nunca las recibía: su desplegable
+    # ofrecía los seis estados y ninguno se teñía. Gonzalo, 2026-09-15, con el
+    # bloque de extras delante: «y sin color los demás estados de agendación».
+    #
+    # Se reusan las MISMAS reglas y el mismo constructor, no una copia: el día
+    # que un estado cambie de tono, cambia en las dos pestañas o en ninguna.
+    # Es el mismo motivo por el que el vocabulario de columnas vive en un solo
+    # sitio.
+    col_status <- .mafs_col_agenda("sample_status", 1L)
+    reglas <- .mafs_REGLAS_STATUS_MUESTRA
+    for (i in seq_along(reglas)) {
+      requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
+        sheet_id, col_status, cabeceras, n_filas,
+        reglas[[i]]$texto, reglas[[i]]$fondo, reglas[[i]]$tinta, i - 1L
+      )
+    }
     return(requests)
   }
   if (identical(tab_name, AULAS_LIBRO_HOJA_APLICADAS_EXTRA)) {

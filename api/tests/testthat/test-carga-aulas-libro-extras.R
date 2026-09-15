@@ -547,3 +547,52 @@ test_that("B14: las dos hojas extra están en la lista de pestañas controladas"
   expect_identical(veto, "",
                    info = "el validador de pestañas controladas rechaza las hojas extra")
 })
+
+# --- El formato de «Aulas Agendadas (Extra)» ---------------------------------
+#
+# Gonzalo, 2026-09-15, con el bloque de extras delante: «sale así, e incluso
+# como si fecha y hora fueran un desplegable» y «sin color los demás estados de
+# agendación».
+
+.clex_requests_extra <- function(n = 12L) {
+  prosecnurapp:::aulas_libro_extras_sheets_requests(
+    7L, AULAS_LIBRO_HOJA_AGENDADAS_EXTRA, rep(list(list()), n))
+}
+
+test_that("la pestaña Extra recibe el semáforo de STATUS MUESTRA", {
+  # Las reglas de color viven detrás de `identical(hoja, "Aulas Agendadas")`,
+  # comparación EXACTA, así que «Aulas Agendadas (Extra)» ofrecía los seis
+  # estados en su desplegable y no teñía ninguno.
+  r <- .clex_requests_extra()
+  cf <- Filter(function(x) identical(names(x)[[1]], "addConditionalFormatRule"), r)
+  expect_identical(length(cf), length(prosecnurapp:::.mafs_REGLAS_STATUS_MUESTRA))
+  # Son las MISMAS reglas, no una copia: si alguien cambia un tono allá y aquí
+  # no, este test lo dice.
+  textos <- vapply(cf, function(x)
+    x$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue,
+    character(1))
+  expect_identical(textos, vapply(prosecnurapp:::.mafs_REGLAS_STATUS_MUESTRA,
+                                  function(g) g$texto, character(1)))
+  # Y caen sobre STATUS MUESTRA, que en esta pestaña es la columna 12.
+  cols <- unique(vapply(cf, function(x)
+    as.integer(x$addConditionalFormatRule$rule$ranges[[1]]$startColumnIndex) + 1L,
+    integer(1)))
+  expect_identical(cols, prosecnurapp:::.mafs_col_agenda("sample_status", 1L))
+})
+
+test_that("la fecha NO se ofrece como desplegable", {
+  # `showCustomUi = TRUE` dibuja el mismo triangulito que una lista cerrada, y
+  # FECHA AGENDADA es texto libre: invita a buscar opciones que no existen.
+  r <- .clex_requests_extra()
+  dv <- Filter(function(x) identical(names(x)[[1]], "setDataValidation"), r)
+  fechas <- Filter(function(x)
+    identical(x$setDataValidation$rule$condition$type, "DATE_IS_VALID"), dv)
+  expect_true(length(fechas) >= 1L)
+  for (f in fechas) expect_false(isTRUE(f$setDataValidation$rule$showCustomUi))
+  # Las que SÍ son lista cerrada conservan el suyo: quitarlo en todas dejaría
+  # al equipo tecleando a mano estados que tienen vocabulario.
+  listas <- Filter(function(x)
+    identical(x$setDataValidation$rule$condition$type, "ONE_OF_LIST"), dv)
+  expect_true(length(listas) >= 1L)
+  for (l in listas) expect_true(isTRUE(l$setDataValidation$rule$showCustomUi))
+})
