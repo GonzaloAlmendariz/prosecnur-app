@@ -2969,6 +2969,25 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # `monitoreo_aulas_desenlaces.R`. NO es `monitoreo_aulas_reemplazos.R`, que
     # es el gesto de ACTIVAR un reemplazo desde la app.
     reemplazos_por_tipo = monitoreo_aulas_desenlaces_por_tipo(plan_df),
+    # **Los tramos del operativo y su estado, DERIVADO** (dictado 2026-09-15).
+    # El rango y su nombre se guardan porque son decisión suya; las citas, las
+    # aplicadas y las que faltan se cuentan aquí en cada corrida. Sin tramos
+    # declarados salen las semanas de calendario del plan, que es lo que la
+    # pestaña de la distribución ya usaba: declararlos es un añadido, no un
+    # corte. Ver `monitoreo_aulas_tramos.R`.
+    tramos = monitoreo_aulas_tramos_estado(
+      monitoreo_aulas_tramos(cfg, .monitoreo_aulas_records(plan_df)),
+      .monitoreo_aulas_records(plan_df),
+      partes = partes_campo,
+      # Las efectivas cuentan como aplicada un aula que produjo respuestas
+      # aunque nadie haya tecleado su estado: el hecho ocurre antes que el
+      # verbo, y sin ellas el tramo en curso se lee siempre más vacío de lo
+      # que está.
+      efectivas = tryCatch(
+        monitoreo_aulas_efectivas_por_aula(
+          .monitoreo_aulas_records(plan_df), responses, cfg),
+        error = function(e) NULL)
+    ),
     quotas_sex_faculty = quotas_sex_faculty,
     # **«Con lo que ya tengo agendado, ¿llego?»**, por facultad y sexo, en las
     # cuatro combinaciones de los dos mandos de la pestaña «Metas». Se calcula

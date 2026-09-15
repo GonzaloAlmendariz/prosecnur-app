@@ -41,6 +41,11 @@ const OTRO_SUJETO = new Map<string, string>([
   // acuerdo con el docente — el sentido en que «cita» sigue siendo la
   // palabra tras el barrido citas→aplicaciones), no el curso-horario.
   ["Fechas distintas con al menos una cita agendada", "la CITA pactada con el docente, femenina"],
+  // La tabla de tramos cuenta CITAS —su propia columna se llama así— y no
+  // cursos-horario: un mismo curso-horario reagendado aporta una cita a cada
+  // tramo. El encabezado va en femenino porque concuerda con la columna que
+  // tiene al lado, que es lo que el ojo empareja.
+  ["Aplicadas", "la CITA del tramo, femenina — la columna vecina se llama «Citas»"],
 ]);
 
 /**
@@ -132,7 +137,16 @@ describe("el género de las etiquetas concuerda con la unidad", () => {
   it("las excepciones siguen existiendo: una lista que ya no aplica no protege nada", () => {
     const todo = fuentes(AQUI).map((f) => readFileSync(f, "utf8")).join("\n");
     for (const [literal, motivo] of OTRO_SUJETO) {
-      expect(todo.includes(`"${literal}"`), `«${literal}» ya no está en el perfil (${motivo}); quítala de OTRO_SUJETO`).toBe(true);
+      // **Las MISMAS dos formas que el barrido de arriba.** Buscaba sólo
+      // `"literal"` entre comillas, y el detector caza además el rótulo de JSX
+      // plano —`<th>Aplicadas</th>`—, que es como se escribe una cabecera de
+      // tabla. Una excepción declarada para uno de ésos no podía satisfacer
+      // nunca este chequeo: quedaba en rojo pidiendo que se quitara la única
+      // línea que mantenía verde al otro test. Se vio al declarar «Aplicadas»
+      // de la tabla de tramos, 2026-09-15.
+      const presente = todo.includes(`"${literal}"`)
+        || new RegExp(`>\\s*${literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*<`).test(todo);
+      expect(presente, `«${literal}» ya no está en el perfil (${motivo}); quítala de OTRO_SUJETO`).toBe(true);
     }
   });
 });

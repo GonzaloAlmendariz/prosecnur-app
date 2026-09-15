@@ -765,6 +765,14 @@ export type MonitoreoAulasConfig = {
    */
   reparto_rango?: { desde?: string; hasta?: string } | null;
   /**
+   * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
+   * 2026-09-15). Lo que se guarda es la decisión —el rango y cómo se llama—;
+   * su estado (citas, aplicadas, por aplicar) se deriva del plan y viaja en el
+   * dashboard, no aquí. Sin tramos declarados el backend cae a las semanas de
+   * calendario del plan.
+   */
+  tramos?: { nombre?: string; desde?: string; hasta?: string }[] | null;
+  /**
    * Quién NO sale en el despliegue vigente, con el nombre CRUDO de la oferta
    * (dictado 2026-09-12). El motor los quita antes de repartir; el backend
    * compara por una clave que ignora coma, tildes y mayúsculas.
@@ -1526,6 +1534,30 @@ export type MonitoreoAulasDesenlace = {
  * B · complemento — el titular rindió poco y se le sumó una reserva; los dos cuentan.
  * C · refuerzo — se salió a una reserva por cuota, sin titular caído.
  */
+/**
+ * Un TRAMO del operativo: un rango de fecha con nombre propio (dictado de
+ * Gonzalo, 2026-09-15: «más que semana en el estricto senso, con rango a los
+ * que llamamos de forma personalizada»).
+ *
+ * `nombre`, `desde` y `hasta` son la decisión guardada; todo lo demás lo
+ * DERIVA el backend del plan en cada corrida, así que no puede quedarse viejo.
+ * `declarado` distingue el tramo que alguien nombró del respaldo por semanas
+ * de calendario que el motor produce cuando no hay ninguno.
+ */
+export type MonitoreoAulasTramo = {
+  nombre: string;
+  desde: string;
+  hasta: string;
+  declarado?: boolean;
+  citas?: number;
+  aplicadas?: number;
+  por_aplicar?: number;
+  /** Citas con algo escrito en la fecha que no se deja leer: no caen en ningún tramo. */
+  sin_fecha_legible?: number;
+  /** El que contiene hoy. Entre dos tramos manda el siguiente, no el que pasó. */
+  vigente?: boolean;
+};
+
 export type MonitoreoAulasReemplazosPorTipo = {
   reemplazadas?: MonitoreoAulasDesenlace;
   complementadas?: MonitoreoAulasDesenlace;
@@ -1841,6 +1873,8 @@ export type MonitoreoAulasDashboard = {
 	   * el campo ya vive. Ver `monitoreo_aulas_desenlaces.R`.
 	   */
 	  reemplazos_por_tipo?: MonitoreoAulasReemplazosPorTipo;
+	  /** Los tramos del operativo con su estado derivado. Ver `MonitoreoAulasTramo`. */
+	  tramos?: MonitoreoAulasTramo[];
 	  /**
 	   * El mismo reparto por FACULTAD, para que el selector de la cabecera filtre
 	   * de verdad. Se calcula en el motor y no aquí porque `course_status` viaja

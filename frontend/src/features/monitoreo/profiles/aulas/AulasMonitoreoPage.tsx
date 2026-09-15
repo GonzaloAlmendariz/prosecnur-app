@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
+  MonitoreoAulasTramo,
   MonitoreoAulasDistribucionSheets,
   MonitoreoAulasSincronizacion,
 } from "../../../../api/monitoreo";
@@ -900,6 +901,10 @@ function renderAulasView({
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** Los tramos del operativo con su estado derivado, de paso hacia la asignación. */
+  tramos?: MonitoreoAulasTramo[];
+  onGuardarTramos?: ((tramos: { nombre: string; desde: string; hasta: string }[]) => void | Promise<void>) | null;
+  guardandoTramos?: boolean;
   /** Quién no sale en el despliegue vigente, y cómo cambiarlo. */
   fueraDelReparto?: ReadonlyArray<string>;
   onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
@@ -1124,6 +1129,7 @@ export default function AulasMonitoreoPage() {
   // Espera del job de descarga de la plataforma, amarrada al ciclo de vida de
   // esta página: al salir del módulo el poll se corta en vez de seguir vivo.
   const esperarSyncDeFuentes = useWaitForSourceSyncJob();
+  const [guardandoTramos, setGuardandoTramos] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
     texto: "", tono: "ok",
   });
@@ -1622,6 +1628,27 @@ export default function AulasMonitoreoPage() {
    * (`reparto_rango`; `{}` lo des-declara) y el refresco forzado trae el
    * reparto re-particionado con lo aplazado declarado.
    */
+  /**
+   * Los TRAMOS del operativo (dictado 2026-09-15). Se persiste la LISTA
+   * entera, porque quitar uno es tan legítimo como añadirlo y un merge por
+   * nombre dejaría vivo el que alguien acaba de borrar. `[]` devuelve el
+   * estudio al respaldo por semanas de calendario, que es el comportamiento de
+   * siempre para quien no los ha declarado.
+   */
+  const guardarTramos = useCallback(async (
+    tramos: { nombre: string; desde: string; hasta: string }[],
+  ) => {
+    setGuardandoTramos(true);
+    try {
+      await apiMonitoreoAulasConfig({ tramos } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoTramos(false);
+    }
+  }, [loadView, seccionActiva]);
+
   const declararRango = useCallback(async (rango: { desde: string; hasta: string } | null) => {
     try {
       await apiMonitoreoAulasConfig({ reparto_rango: rango ?? {} } as Partial<MonitoreoAulasConfig>);
@@ -2154,6 +2181,12 @@ export default function AulasMonitoreoPage() {
               onConfirmarDuracion: confirmarDuracion,
               onImportarDisponibilidad: importarDisponibilidad,
               onDeclararRango: declararRango,
+              // Los tramos del operativo y su estado ya derivado por el motor.
+              // Van al lado del rango porque contestan la misma pregunta —«qué
+              // estoy repartiendo»— y el rango queda como la excepción.
+              tramos: dashboard?.tramos ?? [],
+              onGuardarTramos: guardarTramos,
+              guardandoTramos,
               // C9 (dictado 2026-09-12): quién NO sale este despliegue, sin
               // tener que editar el Excel de disponibilidad y recargarlo.
               fueraDelReparto: aulasConfig?.reparto_fuera ?? [],

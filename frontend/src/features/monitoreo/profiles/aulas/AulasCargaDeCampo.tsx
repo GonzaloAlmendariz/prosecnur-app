@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
+import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
 import { Check, Pencil } from "../../../../vendor/lucide-react";
 
@@ -124,6 +124,9 @@ export function AulasCargaDeCampo({
   fueraDelReparto = [],
   onDeclararFuera = null,
   onDeclararRango = null,
+  tramos = [],
+  onGuardarTramos = null,
+  guardandoTramos = false,
   onResortear = null,
   onConcentrar = null,
   distribucion = null,
@@ -169,6 +172,10 @@ export function AulasCargaDeCampo({
   onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue; lo pinta Asignación. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** Los tramos del operativo con su estado derivado; sólo de paso hacia la asignación. */
+  tramos?: MonitoreoAulasTramo[];
+  onGuardarTramos?: ((tramos: { nombre: string; desde: string; hasta: string }[]) => void | Promise<void>) | null;
+  guardandoTramos?: boolean;
   /** B67: pedir otro sorteo (persiste la semilla siguiente). */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** S7: el Sheets de los aplicadores (recordado + huella vigente) y su publicación. */
@@ -483,6 +490,9 @@ export function AulasCargaDeCampo({
           ventanas={ventanasDeCita}
           onFijar={onFijarReparto}
           onDeclararRango={onDeclararRango}
+          tramos={tramos}
+          onGuardarTramos={onGuardarTramos}
+          guardandoTramos={guardandoTramos}
           onResortear={onResortear}
           onConcentrar={onConcentrar}
           distribucion={distribucion}

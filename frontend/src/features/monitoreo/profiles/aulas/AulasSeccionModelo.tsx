@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
+import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 import type { ReactNode } from "react";
 
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
@@ -45,6 +45,9 @@ export function AulasSeccionModelo({
   fueraDelReparto = [],
   onDeclararFuera = null,
   onDeclararRango = null,
+  tramos = [],
+  onGuardarTramos = null,
+  guardandoTramos = false,
   onResortear = null,
   onConcentrar = null,
   distribucionRecordada = null,
@@ -77,6 +80,10 @@ export function AulasSeccionModelo({
   onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
+  /** Los tramos del operativo con su estado derivado; sólo de paso hacia la asignación. */
+  tramos?: MonitoreoAulasTramo[];
+  onGuardarTramos?: ((tramos: { nombre: string; desde: string; hasta: string }[]) => void | Promise<void>) | null;
+  guardandoTramos?: boolean;
   /** B67: pedir otro sorteo del reparto. */
   onResortear?: ((semillaSiguiente: number) => void | Promise<void>) | null;
   /** Dictado 2026-09-04: concentrar el día del aplicador; llega a Asignación. */
@@ -190,6 +197,9 @@ export function AulasSeccionModelo({
               fueraDelReparto={fueraDelReparto}
               onDeclararFuera={onDeclararFuera}
               onDeclararRango={onDeclararRango}
+              tramos={tramos}
+              onGuardarTramos={onGuardarTramos}
+              guardandoTramos={guardandoTramos}
               onResortear={onResortear}
               onConcentrar={onConcentrar}
               distribucion={{ recordado: distribucionRecordada, vigente: dashboard.reparto?.distribucion ?? null }}

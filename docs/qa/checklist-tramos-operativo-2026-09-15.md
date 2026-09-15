@@ -32,7 +32,7 @@ se actualiza solo.
 | T3 | Sin tramos declarados, las semanas de calendario de siempre | mismo motor, como respaldo | ☑ |
 | T4 | El tramo VIGENTE es el que contiene hoy | mismo motor | ☑ |
 | T5 | El sincronizador usa el tramo vigente cuando no hay rango explícito | ruta de `sincronizar-distribucion` | ☑ con tramos declarados |
-| T6 | UI para crear, nombrar y listar tramos | pendiente, siguiente tanda | ☐ **lo único que falta** |
+| T6 | UI para crear, nombrar y listar tramos | `AulasTramosDelOperativo.tsx` + `tramosDelOperativo.ts` | ☑ |
 
 ## Decisiones tomadas
 
@@ -75,3 +75,28 @@ ojo entre los tramos.
 en lista. El endpoint de config ya los acepta y los persiste —fusiona el body
 sobre lo guardado, clave a clave—, así que el mecanismo funciona hoy por API;
 lo que no existe todavía es dónde pulsarlo.
+
+## T6, la pantalla (2026-09-15)
+
+Vive en «Cómo se reparte», de Asignación de aplicadores, **encima** del rango:
+los tramos son la decisión de fondo y el rango sólo se toca para salirse de
+ella. Puestos al revés se leería como si el rango fuera lo normal y el tramo un
+adorno, que es justo la confusión que dejó el reparto mirando la semana pasada
+durante una semana entera.
+
+Tres cosas que la tabla hace y conviene no deshacer:
+
+- **Sólo se teclean el nombre y las dos fechas.** Citas, aplicadas y por
+  aplicar llegan derivadas y no son editables: un conteo tecleado envejece.
+- **El estado se empareja por RANGO, no por posición.** Insertar un tramo en
+  medio dejaría las cifras pegadas a la fila de al lado sin que nada fallara —
+  los números siguen ahí, sólo que en la fila equivocada.
+- **La tabla ES las props mientras nadie escribe.** Sin estado que sincronizar
+  no hay forma de que se separen, se pinta sin ejecutar un efecto y un Recargar
+  de fondo no borra lo que alguien iba a guardar.
+
+De paso, un guard de la casa que no podía cumplirse: `generoDeLaUnidad`
+detectaba rótulos en JSX plano (`<th>Aplicadas</th>`) pero su chequeo de
+vigencia sólo buscaba el literal entrecomillado, así que una excepción
+declarada para uno de ésos quedaba en rojo pidiendo que se borrara la única
+línea que mantenía verde al otro test. Ahora comprueba las dos formas.
