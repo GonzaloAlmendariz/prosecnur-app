@@ -74,9 +74,13 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
   out <- .lafac_tabla_dos()
   # El orden del segundo dictado del 2026-09-08: CADA META SEGUIDA DE LO QUE LE
   # FALTA, primero en total y después por sexo, hombres antes que mujeres.
+  #
+  # Y el del 2026-09-15: el bloque de aulas PEGADO a «Efectivas» —donde se
+  # compara con algo— en vez de cerrando la tabla veinte columnas más allá.
   expect_identical(names(out), c(
     "Facultad",
     "Efectivas", "Avance muestra",
+    "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
     "Efectivas hombres", "Avance muestra hombres",
     "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
@@ -84,9 +88,12 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
     "Muestra mujeres", "Faltantes mujeres muestra",
     "Sobremuestra", "Faltantes sobremuestra",
     "Sobremuestra hombres", "Faltantes hombres sobremuestra",
-    "Sobremuestra mujeres", "Faltantes mujeres sobremuestra",
-    "Aulas aplicadas"
+    "Sobremuestra mujeres", "Faltantes mujeres sobremuestra"
   ))
+  # «Aulas aplicadas» aparece UNA vez: la que cerraba la tabla se movió, no se
+  # duplicó. Con el contrato comparando listas enteras esto ya lo cubre, pero
+  # un duplicado es justo lo que un `identical` mal actualizado dejaría pasar.
+  expect_identical(sum(names(out) == "Aulas aplicadas"), 1L)
   # Y son EXACTAMENTE las del vocabulario compartido, que es de donde las leen
   # el renderer del Sheets, el writer del xlsx y el PDF. Si esta igualdad se
   # rompe, tres salidas se quedan pintando columnas que ya no existen.
@@ -406,4 +413,92 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
     if (any(grepl("BOLD", toupper(as.character(so$style$fontDecoration %||% "")), fixed = TRUE))) negrita <- TRUE
   }
   expect_true(negrita)
+})
+
+# --- El bloque de aulas: aplicadas · planificadas · proyectadas al cierre -----
+#
+# Dictado de Gonzalo (2026-09-15): «que la columna de aulas aplicadas esté a su
+# derecha y también la de aulas planificadas para que podamos ver si se están
+# aplicando el número que se tenía previsto o más incluso, partiendo del hecho
+# que se han pedido refuerzos. Hasta estoy pensando en una columna que sea la
+# suma de las aplicadas con las agendadas».
+
+# **El eje de aplicación es `application_status`, no el operativo.** El
+# operativo (`planificada`/`agendada`/`reemplazada`) es el circuito y el libro
+# no lo mueve a «aplicada» nunca: el 2026-09-07 la tabla salió publicada con
+# «Aulas aplicadas: 0» en las quince facultades mientras ocho aulas producían
+# encuestas. Aquí se separan a propósito para que la fixture no pueda repetir
+# esa confusión sin que un test lo diga.
+.lafac_unidad <- function(code, fac, rol = "titular", estado = "planificada",
+                          fecha = "", aplicacion = "") {
+  list(classroom_id = code, operational_code = code, faculty = fac,
+       label = code, sample_role = rol, wave = "M1",
+       eligible_n = 30, expected_valid = 10,
+       sample_status = estado, scheduled_date = fecha,
+       application_status = aplicacion,
+       operational_status = estado)
+}
+
+.lafac_aulas <- function(plan) {
+  out <- prosecnurapp:::.calaf_avance_por_facultad(
+    plan, efectivas = NULL, cuotas = .lafac_cuotas(.lafac_fac("FAC1", 10)))
+  out[1L, c("Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre")]
+}
+
+test_that("planificadas son los TITULARES, no todo lo que hay en el plan", {
+  # Una reserva de cadena reemplaza a un titular que cayó: no es un aula de más.
+  # Contarla aquí inflaría el plan contra el que se compara lo aplicado, que es
+  # justo la comparación que esta columna existe para permitir. Es la misma
+  # cuenta que publica «Rendimiento por facultad»: una pregunta, una respuesta.
+  v <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1"),
+    .lafac_unidad("CH 2", "FAC1"),
+    .lafac_unidad("R 1.1", "FAC1", rol = "chain_reserve")))
+  expect_identical(v[["Aulas planificadas"]], 2L)
+})
+
+test_that("proyectadas suma las aplicadas y las que ya tienen fecha", {
+  v <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", estado = "agendada", fecha = "2026-09-14",
+                  aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", estado = "agendada", fecha = "2026-09-17"),
+    .lafac_unidad("CH 3", "FAC1", estado = "planificada")))
+  expect_identical(v[["Aulas aplicadas"]], 1L)
+  expect_identical(v[["Aulas proyectadas al cierre"]], 2L)
+  # La tercera no tiene fecha: no se puede aplicar, así que no se proyecta. Un
+  # «3» aquí sería prometer un cierre que nadie ha agendado.
+  expect_identical(v[["Aulas planificadas"]], 3L)
+})
+
+test_that("un aula aplicada que conserva su fecha NO se cuenta dos veces", {
+  # El campo teclea la fecha al agendar y no la borra al aplicar, así que las
+  # dos listas se solapan. Sumarlas sin descontar la intersección daría una
+  # proyección por encima del plan en cuanto el operativo avanzara —y el
+  # número existe justo para compararse con el plan—.
+  v <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", estado = "agendada", fecha = "2026-09-14",
+                  aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", estado = "agendada", fecha = "2026-09-14",
+                  aplicacion = "aplicada")))
+  expect_identical(v[["Aulas aplicadas"]], 2L)
+  expect_identical(v[["Aulas proyectadas al cierre"]], 2L)
+})
+
+test_that("proyectadas puede pasar de planificadas: eso es un refuerzo agendado", {
+  # Es el caso que motivó la columna. Una extra activada y agendada hace que la
+  # facultad cierre por encima de su plan, y el número tiene que poder decirlo
+  # en vez de toparse en el plan.
+  v <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("E 1", "FAC1", rol = "extra_reserve_pool",
+                  estado = "agendada", fecha = "2026-09-18")))
+  expect_identical(v[["Aulas planificadas"]], 2L)
+  expect_identical(v[["Aulas proyectadas al cierre"]], 3L)
+})
+
+test_that("sin fecha ni estado, proyectadas iguala a las aplicadas y no revienta", {
+  v <- .lafac_aulas(list(.lafac_unidad("CH 1", "FAC1", estado = "")))
+  expect_identical(v[["Aulas aplicadas"]], 0L)
+  expect_identical(v[["Aulas proyectadas al cierre"]], 0L)
 })
