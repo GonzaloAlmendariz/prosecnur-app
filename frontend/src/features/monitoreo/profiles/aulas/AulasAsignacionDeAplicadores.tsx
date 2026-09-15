@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { MonitoreoAulasSincronizacion } from "../../../../api/monitoreo";
+import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 
 import { AlertTriangle, Check, CheckCircle2, Copy, Info, Pin, Shuffle } from "../../../../vendor/lucide-react";
 import {
@@ -12,6 +12,7 @@ import { AulasCroquisDeCampus } from "./AulasCroquisDeCampus";
 import { hoyISO } from "./calendarioDeAgenda";
 import { nombreDeAplicador } from "./nombreDeAplicador";
 import { cadenasDelDia, tramoDeCadena } from "./cadenasDelDia";
+import AulasTramosDelOperativo from "./AulasTramosDelOperativo";
 
 /**
  * El comodín del operativo: lo aplica alguien de Pulso porque no hay
@@ -165,7 +166,20 @@ export function AulasAsignacionDeAplicadores({
   onPublicarDistribucion = null,
   onSincronizarDistribucion = null,
   sincronizacion = null,
+  tramos = [],
+  onGuardarTramos = null,
+  guardandoTramos = false,
 }: {
+  /**
+   * Los TRAMOS del operativo con su estado ya derivado (dictado 2026-09-15).
+   * Van con el rango porque contestan la misma pregunta —«qué estoy
+   * repartiendo»—, pero al revés: el tramo se declara una vez y el vigente
+   * manda solo; el rango es la excepción para mirar otra semana a propósito.
+   */
+  tramos?: MonitoreoAulasTramo[];
+  /** Persiste la lista entera; `[]` vuelve al respaldo por semanas. */
+  onGuardarTramos?: ((tramos: { nombre: string; desde: string; hasta: string }[]) => void | Promise<void>) | null;
+  guardandoTramos?: boolean;
   /**
    * S7 (2026-09-07): el Sheets que leen los aplicadores —recordado en la
    * config— y la huella del reparto vigente, para decir si quedó viejo.
@@ -476,6 +490,18 @@ export function AulasAsignacionDeAplicadores({
                 instrumentos dentro de una caja sin nombre; ahora la caja dice
                 qué gobierna. */}
             <p className="aulas-asigna-mandos-rotulo">Cómo se reparte</p>
+            {/* Los tramos primero: son la decisión de fondo —qué periodo está
+                en curso— y el rango de abajo sólo se toca para salirse de
+                ella. Puestos al revés, se lee como si el rango fuera lo normal
+                y el tramo un adorno, que es justo la confusión que dejó el
+                reparto mirando la semana pasada durante una semana entera. */}
+            {onGuardarTramos ? (
+              <AulasTramosDelOperativo
+                tramos={tramos}
+                onGuardar={(t) => onGuardarTramos(t)}
+                ocupado={guardandoTramos}
+              />
+            ) : null}
             {onDeclararRango ? (
               <RangoDeDespliegue
                 rango={reparto.rango}
