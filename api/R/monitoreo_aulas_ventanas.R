@@ -59,6 +59,16 @@
 .mav_hora_una <- function(v) {
   if (is.na(v)) return(NA_real_)
   v <- tolower(trimws(v))
+  # **Una nota entre paréntesis detrás de la hora no la borra.** El equipo
+  # anota en la propia celda —«2:30 pm (Aplicada sin agendar)»— y con el patrón
+  # anclado en `$` la celda entera caía a NA. Medido sobre el operativo el
+  # 2026-09-15: cinco aulas (CH 89, 91, 99, 128 y 164) sin hora legible por
+  # esto, y una aula sin hora NO recibe fila en «Distribución de aplicadores»,
+  # así que nadie va. La hora está escrita y es inequívoca; lo único que sobra
+  # es el comentario. Se le quita el paréntesis final y se lee, y si detrás
+  # hubiera algo que no fuera una nota entre paréntesis el patrón sigue
+  # exigiendo el final de cadena y devolviendo NA.
+  v <- trimws(sub("\\([^()]*\\)[[:space:]]*$", "", v))
   # Los minutos son opcionales SOLO con sufijo am/pm: «8pm» aparecio en el
   # libro real y caia a NA. Con sufijo la intencion es inequivoca; un «8» a
   # secas sigue siendo NA — demasiado ambiguo para adivinarlo (A29).

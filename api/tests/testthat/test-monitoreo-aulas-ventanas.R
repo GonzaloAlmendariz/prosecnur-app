@@ -259,3 +259,27 @@ test_that("determinismo: dos corridas idénticas y sin reloj en el motor", {
   fuente <- readLines(motor, warn = FALSE)
   expect_false(any(grepl("Sys\\.time|Sys\\.Date", fuente)))
 })
+
+test_that("una nota entre paréntesis detrás de la hora no borra la hora", {
+  # El equipo anota en la propia celda del Sheets. Medido sobre el operativo el
+  # 2026-09-15: cinco aulas —CH 89, 91, 99, 128 y 164— con «2:30 pm (Aplicada
+  # sin agendar)» y hora ilegible, y un aula sin hora legible NO recibe fila en
+  # «Distribución de aplicadores», así que no va nadie. La hora está escrita y
+  # es inequívoca; lo único que sobra es el comentario.
+  expect_identical(monitoreo_aulas_hora_parse("2:30 pm (Aplicada sin agendar)")[[1]], 14 * 60 + 30)
+  expect_identical(monitoreo_aulas_hora_parse("11:45 am (Aplicada sin agendar)")[[1]], 11 * 60 + 45)
+  expect_identical(monitoreo_aulas_hora_parse("14:30  (nota)")[[1]], 14 * 60 + 30)
+})
+
+test_that("la tolerancia se queda en la nota final y no se traga otra basura", {
+  # El contraejemplo que impide arreglarlo aflojando el patrón entero: lo que
+  # se quita es UN paréntesis al final, no cualquier cosa detrás de la hora.
+  # Una celda que dice otra cosa después sigue siendo ilegible, y eso es lo
+  # correcto: «2:30 pm (nota) sobra» ya no se sabe qué promete.
+  expect_true(is.na(monitoreo_aulas_hora_parse("2:30 pm (nota) sobra")[[1]]))
+  expect_true(is.na(monitoreo_aulas_hora_parse("(solo nota)")[[1]]))
+  expect_true(is.na(monitoreo_aulas_hora_parse("por confirmar")[[1]]))
+  # Y lo que ya se leía se sigue leyendo igual.
+  expect_identical(monitoreo_aulas_hora_parse("8pm")[[1]], 20 * 60)
+  expect_identical(monitoreo_aulas_hora_parse("9:25am")[[1]], 9 * 60 + 25)
+})

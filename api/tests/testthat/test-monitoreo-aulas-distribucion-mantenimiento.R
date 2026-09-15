@@ -737,3 +737,42 @@ test_that("el que está bien escrito no se toca, y sin plan no se juzga el códi
     desde = "2026-09-07", hasta = "2026-09-12")
   expect_false(any(grepl("^codigo_", vapply(sin_plan, function(d) d$motivo, character(1)))))
 })
+
+test_that("una fecha ESCRITA que no se puede leer se declara, no desaparece", {
+  # Gonzalo, 2026-09-15: «se han empezado a agendar nuevas aplicaciones entre
+  # refuerzo, en reemplazos disponible y en aulas extra y al actualizar no se
+  # agregan las filas a distribución de aplicadores». Medido sobre el operativo:
+  # EXTRA 17 tiene «Confirmará por correo» en la celda de fecha, y esa aula caía
+  # por el MISMO `next` que las que no tienen fecha ninguna. Alguien la agendó a
+  # medias y el recibo no lo decía: indistinguible de «no está agendada», que es
+  # justo lo que esta función existe para no hacer.
+  hoja <- .madm_hoja()
+  plan <- list(
+    .madm_aula("EXTRA 17", "Confirmará por correo", "10:00 am"),
+    .madm_aula("CH 9", "", "10:00 am")
+  )
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 0L)
+  motivos <- vapply(out$descartadas, function(d) d$motivo, character(1))
+  codigos <- vapply(out$descartadas, function(d) d$curso_horario, character(1))
+  expect_identical(motivos, "fecha_ilegible")
+  expect_identical(codigos, "EXTRA 17")
+  # El detalle trae lo que estaba escrito: sin eso hay que ir al Sheets a
+  # adivinar qué se tecleó.
+  expect_identical(out$descartadas[[1]]$detalle, "Confirmará por correo")
+  # Y la celda VACÍA sigue sin ser un descarte: es el estado normal de la mayor
+  # parte del plan y llenar el recibo con mil filas lo vuelve ilegible.
+  expect_false("CH 9" %in% codigos)
+})
+
+test_that("una hora con la nota del equipo detrás ya recibe su fila", {
+  # La otra mitad del mismo síntoma: cinco aulas del operativo escriben
+  # «2:30 pm (Aplicada sin agendar)» y se descartaban por «sin_hora».
+  hoja <- .madm_hoja()
+  plan <- list(.madm_aula("CH 91", "2026-09-10", "2:30 pm (Aplicada sin agendar)"))
+  out <- monitoreo_aulas_agendadas_sin_cita(plan, hoja)
+  expect_length(out$faltantes, 1L)
+  expect_identical(out$faltantes[[1]]$curso_horario, "CH 91")
+  expect_identical(out$faltantes[[1]]$recojo, "14:00")
+  expect_length(out$descartadas, 0L)
+})
