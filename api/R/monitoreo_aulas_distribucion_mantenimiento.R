@@ -1150,6 +1150,27 @@ mount_monitoreo_aulas_distribucion <- function(pr) {
       # del reparto salen 0, que es la verdad de ese día.
       desde <- .monitoreo_scalar(parsed[["desde"]] %||% parsed[["from"]], "")
       hasta <- .monitoreo_scalar(parsed[["hasta"]] %||% parsed[["to"]], "")
+      # **Con TRAMOS declarados manda el tramo vigente, no el rango guardado.**
+      #
+      # Es el mecanismo que pidió Gonzalo el 2026-09-15: «cuando se cree una
+      # nueva semana de aplicación la app ya las sabe». `reparto_rango` es un
+      # valor único que sólo se teclea a mano y por eso se queda viejo —el
+      # 15/09, en plena semana 2, seguía en «07/09 → 12/09» y dejaba 70 citas
+      # agendadas fuera sin decirlo—. Declarar los tramos es optar por este
+      # camino; un estudio que no los declara se comporta exactamente como
+      # ayer, con el rango del reparto.
+      if (!nzchar(desde) && !nzchar(hasta)) {
+        tramos <- monitoreo_aulas_tramos(aulas_cfg, plan)
+        vigente <- if (length(aulas_cfg[["tramos"]] %||% list())) {
+          monitoreo_aulas_tramo_vigente(tramos)
+        } else {
+          NULL
+        }
+        if (is.list(vigente)) {
+          desde <- vigente$desde
+          hasta <- vigente$hasta
+        }
+      }
       if (!nzchar(desde) && !nzchar(hasta)) {
         rep <- tryCatch(
           monitoreo_aulas_reparto(
