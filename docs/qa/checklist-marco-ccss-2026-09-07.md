@@ -290,3 +290,81 @@ ni un encoder independiente con el que cruzar— así que la comprobación de qu
 abre y de que el valor llega es escanearlo, que es para lo que existe el piloto.
 Y hoy el valor NO va a llegar: el formulario sigue sin el campo `collectorID`
 (ítem 18).
+
+---
+
+# Quinta tanda — 2026-09-15 · el piso de densidad
+
+**Pedido de Gonzalo:** «¿no sería mejor ir a aulas donde la mayoría sean
+elegibles?». Decisión: piso del 50 % y volver a sortear.
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| 20 | Piso de densidad al 50 % (criterio 7 del motor) | `filters$require_min_prevalence=TRUE`, `min_prevalence_pct=0.5` | **hecho** — 155 → 136 aulas |
+| 21 | Volver a sortear con el marco nuevo | `CCSS2026_seleccion_piso50.pulso` | **hecho** — 50 titulares + 1 extra + 85 reservas |
+| 22 | Sociología sin titulares: reforzar | EXTRA 1 = `soc370_0731` | **hecho** — decisión de Gonzalo del 15/09 |
+| 23 | Regenerar fichas con el preset de campo | `CCSS2026_fichas_piso50_15_09_26.zip` | **hecho** — 136 fichas, sha256 `c96bb325…` |
+| 24 | Regenerar la ficha PILOTO | `CCSS2026_ficha_PILOTO_piso50_15_09_26.pdf` | **hecho** |
+| 25 | **La representatividad guardada no se reproduce** | `.pulso` vigente | **bloqueado** — ver abajo |
+
+## Tres correcciones propias
+
+**El criterio ya existía y dije que no.** Es el criterio 7 del motor:
+`eligible_ratio >= min_prevalence_pct` (`calc_muestra_aulas_criterios.R:1044`),
+apagado por defecto (`require_min_prevalence = FALSE`) con umbral 0,8. No hubo
+que añadir nada al motor: sólo encenderlo en 0,5.
+
+**Las cifras de densidad que reporté primero eran mías, no del motor.** Las
+calculé reconstruyendo la base desde `CCSS2026_base_alumnos_marco_07_09_26.xlsx`
+—cuya hoja `Data` es del 07/09, cuando el marco aún excluía DAA y HSVG— y me
+salieron 52 aulas bajo el 50 % y 19 personas sin alcance. El marco del motor dice
+**19 aulas y 3 personas**. La lección: el marco del motor trae `eligible_ratio`
+ya calculado; no hay que rehacerlo por fuera.
+
+**El `.pulso` guarda una representatividad que su propio objetivo no
+reproduce.** Corriendo el sorteo vigente sin tocar nada —mismo marco, mismo
+selector, mismo seed— salen **las mismas 50 aulas** (50/50) y los mismos 1.188
+elegibles, pero la representatividad da **38,2**, no el **65,8** guardado. El
+`objective_config` grabado es el de por defecto (faculty, program, level,
+schedule, modality, size_group); el 65,8 salió de un objetivo a medida que no
+quedó registrado. El sorteo es reproducible; la cifra no. Queda bloqueado hasta
+decidir qué objetivo es el oficial, y **el 65,8 no debe citarse** en la
+propuesta mientras tanto.
+
+## El efecto del piso, medido contra la línea base correcta (38,2)
+
+| | Vigente | Piso 50 % |
+|---|---|---|
+| Aulas del marco | 155 | 136 |
+| Representatividad | 38,2 | **44,2** |
+| Distancia | 0,6177 | **0,5584** |
+| Elegibles en titulares | 1.188 | **1.212** |
+| Mínimo de elegibles | 6 | **10** |
+| Densidad mínima | 27 % | **50 %** |
+| Densidad mediana | 77,2 % | **81,5 %** |
+
+Las 19 aulas que caen son 10 de cursos de nivel 5, 7 de nivel 10 y 2 de nivel 6.
+**No caen todas las de nivel 10**: quedan 2 entre las titulares, las que sí
+tienen mayoría de gente de 6–9. El criterio mira la densidad, no el rótulo del
+curso.
+
+Barrido de pisos (representatividad / titulares de Sociología): 30 % → 38,3 / 1;
+35 % → 39,7 / 2; 40 % → 41,9 / 1; 45 % → 45,2 / 2; **50 % → 44,2 / 0**.
+
+## Por qué la carrera del curso no filtra a los alumnos
+
+`NIVEL DEL CURSO` es el nivel del curso en el plan de estudios; el filtro 6–9 se
+aplica a las **personas**. Control: de todos los elegibles del marco, 475 son de
+sexto, 792 de séptimo, 676 de octavo y 494 de noveno. **Cero fuera de 6–9.** Es
+el [ADR 0081](../adrs/0081-la-facultad-de-un-aula-no-es-la-de-sus-alumnos.md)
+aplicado al nivel: el aula es el vehículo, no el objeto de medición.
+
+## Ítem nuevo que destapó la revisión
+
+**A1 «Ciclo» del formulario sólo ofrece sexto, séptimo, octavo y noveno**, es
+obligatoria y no condiciona nada. En las 50 aulas titulares se sientan 1.569
+personas y 1.188 son población: las otras ~370 (217 de quinto, 132 de décimo)
+pueden escanear el QR y no tienen casilla verdadera. O abandonan, o marcan una
+falsa y entran como si fueran de 6–9, que es la variable sobre la que están las
+metas. Se arregla en la misma edición que agregue `collectorID` (ítem 18):
+abrir A1 y cortar la encuesta fuera de 6–9, que además deja contado el descarte.
