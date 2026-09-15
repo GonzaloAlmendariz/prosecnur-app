@@ -290,8 +290,29 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
         if (is.character(df[[j]])) nchar(df[[j]], type = "chars") else 0L)
     }), use.names = FALSE)
     largos <- largos[is.finite(largos)]
-    as.integer(min(42L, max(if (j == 1L) 34L else 16L, if (length(largos)) max(largos) + 2L else 0L)))
+    # **El techo de una posición compartida lo paga la tabla que NO la pidió.**
+    #
+    # Dictado de Gonzalo (2026-09-15): «que en avance por facultad efectivas no
+    # ocupe tanto ancho». Medido: la columna 2 salía a 38 y «Efectivas» —un
+    # número de cuatro dígitos— no tiene nada que ver con eso. En la posición 2
+    # también vive «Aplicador» de «Producción por aplicador», cuyos nombres
+    # miden 28 de mediana, y una pestaña tiene UN ancho por columna, no uno por
+    # tabla: el máximo de las cinco manda sobre las cinco.
+    #
+    # El techo de las posiciones compartidas baja a 20 y el nombre largo baja de
+    # línea (`.cai_texto_envuelto`, aplicado a las columnas de texto). La
+    # primera columna conserva el suyo porque ahí las cinco tablas dicen lo
+    # mismo —la facultad— y nadie hereda el ancho de nadie.
+    as.integer(min(if (j == 1L) 42L else 20L,
+                   max(if (j == 1L) 34L else 16L,
+                       if (length(largos)) max(largos) + 2L else 0L)))
   }, integer(1))
+}
+
+# Texto que baja de línea en vez de cortarse. Va arriba a la izquierda para que
+# un nombre de dos renglones no quede flotando en medio de la fila.
+.cai_texto_envuelto <- function() {
+  openxlsx::createStyle(wrapText = TRUE, valign = "top", halign = "left")
 }
 
 # --- El SEMÁFORO de la hoja, el mismo criterio en los dos renderers -----------
@@ -508,6 +529,16 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
       texto <- vapply(nombres, function(k) is.character(tabla[[k]]), logical(1))
       cols_pct <- which(es_pct & !texto)
       cols_num <- setdiff(which(!texto), cols_pct)
+      # Con el techo de ancho en 20, 61 de los 66 nombres de aplicador se
+      # cortarían: bajan de línea en vez de perderse. Sin esto, estrechar la
+      # columna cambia un defecto de lectura por otro peor —un dato a medias
+      # parece un dato entero—.
+      cols_txt <- setdiff(which(texto), 1L)
+      if (length(cols_txt)) {
+        openxlsx::addStyle(wb, hoja, .cai_texto_envuelto(),
+                           rows = (cabecera_en + 1L):(cabecera_en + n),
+                           cols = cols_txt, gridExpand = TRUE, stack = TRUE)
+      }
       if (length(cols_num)) {
         openxlsx::addStyle(wb, hoja, numero, rows = (cabecera_en + 1L):(cabecera_en + n),
                            cols = cols_num, gridExpand = TRUE, stack = TRUE)

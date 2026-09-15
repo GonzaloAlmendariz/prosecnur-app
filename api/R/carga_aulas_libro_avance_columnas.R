@@ -46,6 +46,19 @@ AULAS_AVANCE_CABECERAS <- list(
     # haber un porcentaje de avance»). Un conteo suelto no dice si 109 es mucho
     # o poco sin buscar la muestra siete columnas más allá.
     "Efectivas", "Avance muestra",
+    # **Las tres de aulas, pegadas a «Efectivas»** (dictado 2026-09-15: «que la
+    # columna de aulas aplicadas esté a su derecha y también la de aulas
+    # planificadas para que podamos ver si se están aplicando el número que se
+    # tenía previsto o más incluso, partiendo del hecho que se han pedido
+    # refuerzos»). «Aulas aplicadas» cerraba la tabla veinte columnas más allá,
+    # donde no se compara con nada.
+    #
+    # «Aulas proyectadas al cierre» es la suma de las aplicadas y las que ya
+    # tienen fecha: cuántas habrá cuando el operativo termine si todo lo
+    # agendado se aplica. Contra «Aulas planificadas» dice de un vistazo si una
+    # facultad va a cerrar por encima de su plan —que es lo que los refuerzos
+    # buscan— o por debajo.
+    "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
     "Efectivas hombres", "Avance muestra hombres",
     "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
@@ -53,8 +66,7 @@ AULAS_AVANCE_CABECERAS <- list(
     "Muestra mujeres", "Faltantes mujeres muestra",
     "Sobremuestra", "Faltantes sobremuestra",
     "Sobremuestra hombres", "Faltantes hombres sobremuestra",
-    "Sobremuestra mujeres", "Faltantes mujeres sobremuestra",
-    "Aulas aplicadas"
+    "Sobremuestra mujeres", "Faltantes mujeres sobremuestra"
   ),
   rendimiento = c(
     "Facultad", "Aulas aplicadas", "Aulas planificadas",

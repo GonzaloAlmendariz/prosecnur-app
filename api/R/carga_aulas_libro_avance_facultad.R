@@ -121,6 +121,19 @@
   # `monitoreo_aulas_aula_aplicada()`, y la comparten esta tabla, la Base de
   # control y el Plan del día.
   apl <- monitoreo_aulas_aula_aplicada(unidades, partes = partes, efectivas = efectivas)
+  # El rol, para contar las PLANIFICADAS igual que «Rendimiento por facultad»:
+  # los titulares del plan. Una reserva de cadena reemplaza a un titular que
+  # cayó, no es un aula de más, y contarla aquí inflaría el plan contra el que
+  # se compara lo aplicado.
+  rol <- vapply(unidades, function(u) .cai_txt(u$sample_role), character(1))
+  # Y el compromiso con FECHA, que es lo único que se puede aplicar: la
+  # definición vive en `.maau_con_fecha()` y no se reescribe aquí. Contactada
+  # no entra — contactar no es agendar.
+  con_fecha <- .maau_con_fecha(
+    vapply(unidades, function(u) .cai_txt(u$sample_status), character(1)),
+    vapply(unidades, function(u) .cai_txt(u$scheduled_date), character(1)),
+    vapply(unidades, function(u) .cai_txt(u$operational_status), character(1)))
+  if (length(con_fecha) != length(apl)) con_fecha <- rep(FALSE, length(apl))
   clave <- .cm_criterios_fac_key(fac)
 
   # El ratio del diseño: sobremuestra entre muestra. Sale del bloque, no se
@@ -219,6 +232,13 @@
       Facultad = .cai_txt(f$facultad),
       Efectivas = conseguidas,
       `Avance muestra` = avance(conseguidas, cuota),
+      `Aulas aplicadas` = sum(idx & apl),
+      `Aulas planificadas` = sum(idx & rol == "titular"),
+      # **Aplicadas más las que tienen fecha y todavía no se han aplicado.** Un
+      # aula ya aplicada conserva su fecha, así que sumar las dos listas sin
+      # descontar la intersección la contaría dos veces y la proyección saldría
+      # por encima del plan en cuanto el operativo avanzara.
+      `Aulas proyectadas al cierre` = sum(idx & apl) + sum(idx & con_fecha & !apl),
       `Efectivas hombres` = unname(sx[["M"]]),
       `Avance muestra hombres` = avance(unname(sx[["M"]]), cuota_m),
       `Efectivas mujeres` = unname(sx[["F"]]),
@@ -237,7 +257,6 @@
       `Faltantes hombres sobremuestra` = falta_sexo(sm$M, unname(sx[["M"]])),
       `Sobremuestra mujeres` = sm$F,
       `Faltantes mujeres sobremuestra` = falta_sexo(sm$F, unname(sx[["F"]])),
-      `Aulas aplicadas` = sum(idx & apl),
       check.names = FALSE, stringsAsFactors = FALSE
     )
     # El contrato es el vocabulario, no esta lista literal: si las dos se
