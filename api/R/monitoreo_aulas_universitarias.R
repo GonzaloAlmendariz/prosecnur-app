@@ -1207,6 +1207,28 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     slot_number = slot_cadena,
     replacement_order = rep_order
   )
+  # **Una EXTRA es cabeza de su propia cadena, y hasta hoy nadie se lo escribía.**
+  #
+  # La convención está declarada en los tests desde el 2026-08-31 —«un extra
+  # activado es cabeza de su propia cadena: lleva su propio código como
+  # `titular_operational_code`, la misma convención que los titulares»— pero el
+  # sorteo le pone `operational_code` y deja el otro campo vacío
+  # (`calc_muestra_aulas_codigos.R`, bloque `extra_idx`). Mientras la extra
+  # duerme no se nota; en cuanto recibe parte de campo, `E_AULAS_LIBRO_SIN_CADENAS`
+  # la rechaza y **se cae la publicación entera**.
+  #
+  # Pasó el 2026-09-16 con EXTRA 36, el primer refuerzo aplicado: cada «Traer
+  # respuestas» moría con ese error y el Sheets del operativo llevaba días
+  # congelado mientras la app se actualizaba con normalidad. Gonzalo lo vio
+  # desde fuera: «actualiza la data de la app pero ya no actualiza el Sheets».
+  #
+  # No cambia ninguna cuenta: todo el que resuelve cadenas lo hace con
+  # `ifelse(nzchar(titular), titular, codigo)` —«Avance de agendación», «en
+  # juego», el arrastre— así que la extra ya se agrupaba consigo misma. Lo que
+  # cambia es que ahora lo dice, y el libro publicado se puede regenerar.
+  sin_cabeza <- out$sample_role == "extra_reserve_pool" & !nzchar(out$titular_operational_code)
+  out$titular_operational_code[sin_cabeza] <- out$operational_code[sin_cabeza]
+
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
   rownames(out) <- NULL
   res <- .monitoreo_aulas_records(out)
