@@ -81,6 +81,7 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
     "Facultad",
     "Efectivas", "Avance muestra",
     "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+    "Aulas sobre el plan",
     "Efectivas hombres", "Avance muestra hombres",
     "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
@@ -442,7 +443,8 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
 .lafac_aulas <- function(plan) {
   out <- prosecnurapp:::.calaf_avance_por_facultad(
     plan, efectivas = NULL, cuotas = .lafac_cuotas(.lafac_fac("FAC1", 10)))
-  out[1L, c("Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre")]
+  out[1L, c("Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+            "Aulas sobre el plan")]
 }
 
 test_that("planificadas son los TITULARES, no todo lo que hay en el plan", {
@@ -501,4 +503,77 @@ test_that("sin fecha ni estado, proyectadas iguala a las aplicadas y no revienta
   v <- .lafac_aulas(list(.lafac_unidad("CH 1", "FAC1", estado = "")))
   expect_identical(v[["Aulas aplicadas"]], 0L)
   expect_identical(v[["Aulas proyectadas al cierre"]], 0L)
+})
+
+test_that("«Aulas sobre el plan» es la resta, con su signo", {
+  # Dictado 2026-09-16, con la hoja publicada delante: «hay que diferenciar
+  # cuántas se tenían planificadas originalmente de cuántas se tienen
+  # proyectadas al cierre; puede ser que hayamos o vayamos a aplicar más o
+  # menos». Las dos columnas ya estaban juntas y aun así había que hacer la
+  # resta con el ojo, quince veces.
+  #
+  # Positivo: cerrará con más aulas que el plan —refuerzo agendado—.
+  mas <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("E 1", "FAC1", rol = "extra_reserve_pool",
+                  estado = "agendada", fecha = "2026-09-18")))
+  expect_identical(mas[["Aulas sobre el plan"]], 1L)
+
+  # Negativo: quedan aulas del plan que nadie ha agendado.
+  menos <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", estado = "agendada", fecha = "2026-09-17"),
+    .lafac_unidad("CH 2", "FAC1"),
+    .lafac_unidad("CH 3", "FAC1")))
+  expect_identical(menos[["Aulas sobre el plan"]], -2L)
+
+  # Cero NO es «no pasa nada»: es que lo agendado cubre el plan exactamente,
+  # que es lo normal en una facultad al día.
+  cero <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", estado = "agendada", fecha = "2026-09-17")))
+  expect_identical(cero[["Aulas sobre el plan"]], 0L)
+})
+
+test_that("la resta cuadra siempre con las dos columnas que compara", {
+  # El invariante que impide que las tres se separen: si alguien cambia cómo se
+  # cuenta una de las dos y no la resta, esto lo dice. Es la avería que este
+  # libro ya pagó con «Diferencia».
+  v <- .lafac_aulas(list(
+    .lafac_unidad("CH 1", "FAC1", aplicacion = "aplicada"),
+    .lafac_unidad("CH 2", "FAC1", estado = "agendada", fecha = "2026-09-17"),
+    .lafac_unidad("CH 3", "FAC1"),
+    .lafac_unidad("E 1", "FAC1", rol = "extra_reserve_pool",
+                  estado = "agendada", fecha = "2026-09-18")))
+  expect_identical(
+    v[["Aulas sobre el plan"]],
+    v[["Aulas proyectadas al cierre"]] - v[["Aulas planificadas"]])
+})
+
+test_that("«Aulas sobre el plan» NO se pinta como una diferencia con semáforo", {
+  # Verde arriba y rojo abajo diría que pasarse del plan es bueno y quedarse
+  # corto es malo, y aquí no: una facultad con refuerzos cierra por encima
+  # PORQUE sus aulas rindieron poco. El número lleva su signo; el color, no.
+  expect_false("Aulas sobre el plan" %in% AULAS_AVANCE_DIFERENCIAS)
+  expect_false(.calac_es_proporcion("Aulas sobre el plan", "facultad"))
+})
+
+test_that("la nota del bloque vive en el vocabulario, no copiada en cada renderer", {
+  # Estaba literal en los DOS renderers —el del .xlsx y el del Sheets—, que es
+  # justo lo que el archivo de vocabulario existe para impedir: el día que la
+  # frase cambie, uno de los dos seguiría publicando la anterior sin decirlo.
+  fuente <- function(archivo) {
+    ruta <- testthat::test_path("..", "..", "R", archivo)
+    paste(readLines(ruta, warn = FALSE), collapse = "\n")
+  }
+  expect_true(nzchar(AULAS_AVANCE_NOTAS$facultad))
+  for (archivo in c("carga_aulas_libro_avance.R", "carga_aulas_libro_indicadores.R")) {
+    src <- fuente(archivo)
+    expect_true(grepl("AULAS_AVANCE_NOTAS$facultad", src, fixed = TRUE), info = archivo)
+    expect_false(grepl("La cuota es de cada facultad", src, fixed = TRUE), info = archivo)
+  }
+  # Y la nota explica las tres columnas de aulas, que es para lo que se tocó.
+  for (pieza in c("planificadas", "proyectadas al cierre", "sobre el plan")) {
+    expect_true(grepl(pieza, AULAS_AVANCE_NOTAS$facultad, fixed = TRUE), info = pieza)
+  }
 })

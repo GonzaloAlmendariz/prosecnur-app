@@ -239,6 +239,12 @@
       # descontar la intersección la contaría dos veces y la proyección saldría
       # por encima del plan en cuanto el operativo avanzara.
       `Aulas proyectadas al cierre` = sum(idx & apl) + sum(idx & con_fecha & !apl),
+      # La resta, con su signo. Positivo: cerrará con más aulas de las que el
+      # sorteo le puso —refuerzo—. Negativo: quedan aulas del plan que nadie ha
+      # agendado. Cero no es «no pasa nada»: es que lo agendado cubre el plan
+      # exactamente, que es lo normal en una facultad al día.
+      `Aulas sobre el plan` = (sum(idx & apl) + sum(idx & con_fecha & !apl)) -
+        sum(idx & rol == "titular"),
       `Efectivas hombres` = unname(sx[["M"]]),
       `Avance muestra hombres` = avance(unname(sx[["M"]]), cuota_m),
       `Efectivas mujeres` = unname(sx[["F"]]),

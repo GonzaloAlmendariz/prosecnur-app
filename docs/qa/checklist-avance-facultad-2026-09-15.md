@@ -76,3 +76,29 @@ nadie las ha agendado aún, y eso es exactamente lo que había que poder ver.
 
 Verificado con cinco tests nuevos y el contrato de columnas actualizado; gate
 del área 2.840 pass · 0 fail.
+
+## Una columna más (2026-09-16, con la hoja ya publicada)
+
+> «Aquí hay que diferenciar cuántas se tenían planificadas originalmente de
+> cuántas se tienen proyectadas al cierre; puede ser que hayamos o vayamos a
+> aplicar más o menos de lo que finalmente se aplica.»
+
+Las dos columnas ya estaban juntas y aun así había que hacer la resta con el
+ojo, quince veces. Ahora la hace la hoja: **«Aulas sobre el plan»**, con signo.
+
+- **Positivo**: cerrará con más aulas de las que el sorteo le puso. Suele ser un
+  refuerzo ya agendado — y conviene recordar que eso pasa PORQUE sus aulas
+  rindieron menos de lo esperado.
+- **Negativo**: quedan aulas del plan que nadie ha agendado todavía.
+- **Cero** no es «no pasa nada»: es que lo agendado cubre el plan exactamente,
+  que es lo normal en una facultad al día.
+
+**No se llama «Diferencia» y no lleva semáforo**, a propósito: ese rótulo está
+reservado a las diferencias que se pintan de verde y rojo, y aquí pasarse del
+plan no es bueno ni quedarse corto es malo. El número lleva su signo; el color,
+no. Hay un test que lo fija.
+
+De paso, la nota que encabeza el bloque estaba **copiada literal en los dos
+renderers** —el del `.xlsx` y el del Sheets—, que es justo lo que el archivo de
+vocabulario existe para impedir. Ahora vive en `AULAS_AVANCE_NOTAS$facultad`,
+los dos la leen, y explica las tres columnas de aulas.

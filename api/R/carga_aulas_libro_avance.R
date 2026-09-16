@@ -203,7 +203,7 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
   # --- 2. AVANCE POR FACULTAD -------------------------------------------------
   bloque(
     "facultad", ind$facultades,
-    nota_arriba = "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo que falta en otra.",
+    nota_arriba = AULAS_AVANCE_NOTAS$facultad,
     nota_abajo = if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
       .calaf_nota_metas(ind$facultades)
     } else NULL,

@@ -59,6 +59,17 @@ AULAS_AVANCE_CABECERAS <- list(
     # facultad va a cerrar por encima de su plan —que es lo que los refuerzos
     # buscan— o por debajo.
     "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+    # Y la resta, que es la pregunta (dictado 2026-09-16, con la hoja
+    # publicada delante): «hay que diferenciar cuántas se tenían planificadas
+    # originalmente de cuántas se tienen proyectadas al cierre; puede ser que
+    # hayamos o vayamos a aplicar más o menos». Las dos columnas ya estaban
+    # juntas y aun así había que hacer la resta con el ojo, quince veces.
+    #
+    # **No se llama «Diferencia».** Ese rótulo está reservado a las diferencias
+    # con signo que el semáforo pinta de verde y rojo, y aquí pasarse del plan
+    # no es bueno ni malo: una facultad con refuerzos cierra por encima porque
+    # sus aulas rindieron poco. El número lleva su signo; el color, no.
+    "Aulas sobre el plan",
     "Efectivas hombres", "Avance muestra hombres",
     "Efectivas mujeres", "Avance muestra mujeres",
     "Muestra", "Faltantes muestra",
@@ -165,6 +176,23 @@ AULAS_AVANCE_CABECERAS <- list(
 AULAS_AVANCE_CAMPOS <- c(
   general = "general", facultad = "facultades", rendimiento = "rendimiento",
   aplicador = "aplicadores", diario = "diario"
+)
+
+#' La nota que encabeza cada tabla, donde el vocabulario la pueda gobernar.
+#'
+#' Vivía copiada literal en los DOS renderers —el del `.xlsx` y el del Sheets—,
+#' que es exactamente lo que este archivo existe para impedir: el día que una
+#' frase cambie, uno de los dos seguiría publicando la anterior y nadie lo
+#' diría. Es el mismo motivo por el que los rótulos viven aquí.
+#' @keywords internal
+AULAS_AVANCE_NOTAS <- list(
+  facultad = paste(
+    "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo",
+    "que falta en otra. «Aulas planificadas» son las que el sorteo le asignó a",
+    "la facultad y no cambian; «proyectadas al cierre» son las aplicadas más",
+    "las que ya tienen fecha, y «sobre el plan» es la resta: positivo, cerrará",
+    "con más aulas de las previstas —suele ser refuerzo—; negativo, hay aulas",
+    "del plan que nadie ha agendado todavía.")
 )
 
 #' El título de bloque de cada tabla, en el orden en que se publican.
