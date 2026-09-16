@@ -628,7 +628,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
     escribir_tabla(
       "facultad", ind$facultades,
-      nota_arriba = "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo que falta en otra.",
+      nota_arriba = AULAS_AVANCE_NOTAS$facultad,
       nota_abajo = .calaf_nota_metas(ind$facultades),
       con_total = TRUE
     )
