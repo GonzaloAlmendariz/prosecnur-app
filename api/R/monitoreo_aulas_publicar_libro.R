@@ -439,8 +439,13 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # el generador del `.xlsx` (y mismo E_* cuando no queda nada que publicar).
   # B14: ese banco gana sus dos hojas Extra propias, capturado del plan CRUDO
   # antes del filtro y ya ordenado (facultad alfabetica, dentro por codigo).
-  extras <- aulas_libro_extras_banco(plan %||% list(), partes = partes, control = control)
-  unidades <- .calg_unidades_del_libro(plan %||% list(), partes = partes, control = control)
+  # **La misma anotación que el generador, y antes del mismo guard.** El
+  # publicador toma el plan CRUDO de la sesión, así que el normalizador del
+  # plan no lo alcanza: sin esto, una extra con parte tumba la publicación
+  # entera aunque la app la vea bien. Ver `aulas_libro_anotar_cabeza_de_extras()`.
+  plan <- aulas_libro_anotar_cabeza_de_extras(plan %||% list())
+  extras <- aulas_libro_extras_banco(plan, partes = partes, control = control)
+  unidades <- .calg_unidades_del_libro(plan, partes = partes, control = control)
   # **El MISMO guard que el generador del `.xlsx`, y por el mismo motivo.**
   #
   # `aulas_libro_generar()` se niega a escribir un libro cuyas reservas no

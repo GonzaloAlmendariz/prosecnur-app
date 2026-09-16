@@ -1282,6 +1282,48 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   }, unidades %||% list())
 }
 
+#' Le escribe a cada EXTRA su propio código como cabeza de cadena.
+#'
+#' **Una extra es cabeza de su propia cadena y nadie se lo escribía.** La
+#' convención está declarada desde el 2026-08-31 —«un extra activado es cabeza
+#' de su propia cadena: lleva su propio código como `titular_operational_code`,
+#' la misma convención que los titulares»— pero el sorteo le pone
+#' `operational_code` y deja el otro campo vacío
+#' (`calc_muestra_aulas_codigos.R`, bloque `extra_idx`).
+#'
+#' Mientras la extra duerme no se nota. En cuanto recibe parte de campo,
+#' `E_AULAS_LIBRO_SIN_CADENAS` la rechaza y se cae la publicación ENTERA, no
+#' sólo su fila: el 2026-09-16, con EXTRA 36 —el primer refuerzo aplicado—, el
+#' Sheets del operativo llevaba días congelado mientras la app se actualizaba
+#' con normalidad.
+#'
+#' **Va aquí y no sólo en el normalizador del plan** porque el publicador toma
+#' el plan CRUDO de la sesión (`s$monitoreo_aulas_plan`) y nunca pasa por él:
+#' arreglarlo allá dejaba intacto justo el camino que escribe en vivo. Los dos
+#' escritores llaman a esta función sobre el plan completo, igual que a
+#' `aulas_libro_anotar_aula_utilizada()`.
+#'
+#' No cambia ninguna cuenta: todo el que agrupa cadenas resuelve
+#' `ifelse(nzchar(titular), titular, codigo)`, así que la extra ya se agrupaba
+#' consigo misma. Y NO toca lo que ya viene escrito —ni las reservas de cadena,
+#' que sin titular siguen rotas y deben seguir tumbando la publicación—.
+#'
+#' @param unidades filas del plan.
+#' @return las mismas filas, con la cabeza de cadena de cada extra escrita.
+#' @keywords internal
+aulas_libro_anotar_cabeza_de_extras <- function(unidades) {
+  lapply(unidades %||% list(), function(u) {
+    if (!is.list(u)) return(u)
+    rol <- tolower(trimws(as.character(u$sample_role %||% "")))
+    if (!identical(rol, "extra_reserve_pool")) return(u)
+    if (nzchar(.calg_txt(u$titular_operational_code))) return(u)
+    cod <- .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
+    if (!nzchar(cod)) return(u)
+    u$titular_operational_code <- cod
+    u
+  })
+}
+
 #' Las unidades que van al libro: todo menos el banco sin usar.
 #' @keywords internal
 .calg_unidades_del_libro <- function(unidades, partes = list(), control = list()) {
@@ -1396,6 +1438,9 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # sobre el plan COMPLETO y antes de cualquier filtro; si no, un titular cuya
   # reserva quedo fuera del recorte saldria sin su dato.
   unidades <- aulas_libro_anotar_aula_utilizada(unidades)
+  # La cabeza de cadena de las extras, antes de cualquier filtro y antes del
+  # guard: ver `aulas_libro_anotar_cabeza_de_extras()`.
+  unidades <- aulas_libro_anotar_cabeza_de_extras(unidades)
   plan_completo <- unidades
   # B14: el banco de extras sin usar se captura ANTES del filtro —el filtro es
   # justo lo que lo saca de las hojas principales— y gana sus dos hojas

@@ -15,12 +15,24 @@
 #    para que el libro no pueda pisar la ola interna del plan, que viene de
 #    Calculo de muestra.
 #
-# 2. **El generador declara, no mezcla.** Una reserva (chain_reserve, o un
-#    extra activado con parte) SIN `titular_operational_code` no produce una
-#    fila fantasma en silencio: `aulas_libro_generar` (o la hoja de agendadas)
-#    lanza `E_AULAS_LIBRO_SIN_CADENAS` (409) con mensaje causal. Umbral: UNA
-#    sola reserva sin toc dispara. Los titulares sin toc son legales: su toc es
-#    su propio codigo, y asi los trata hoy `.calg_titular`.
+# 2. **El generador declara, no mezcla.** Una reserva de CADENA sin
+#    `titular_operational_code` no produce una fila fantasma en silencio:
+#    `aulas_libro_generar` (o la hoja de agendadas) lanza
+#    `E_AULAS_LIBRO_SIN_CADENAS` (409) con mensaje causal. Umbral: UNA sola
+#    reserva sin toc dispara. Los titulares sin toc son legales: su toc es su
+#    propio codigo, y asi los trata hoy `.calg_titular`.
+#
+#    **Las EXTRA salieron de esa regla el 2026-09-16, a proposito.** Hasta
+#    entonces un extra con parte y sin toc tambien disparaba, y eso paro la
+#    publicacion entera del operativo cuando se aplico el primer refuerzo
+#    (EXTRA 36): cada «Traer respuestas» moria con este error mientras la app
+#    se actualizaba con normalidad. La diferencia con una reserva de cadena no
+#    es de grado: la cabeza de cadena de un extra SOLO puede ser el mismo
+#    —no reemplaza a nadie—, asi que escribirsela no es adivinar; la de una
+#    reserva es otra aula y no se puede derivar, asi que sigue siendo un error.
+#    El invariante que el guard protege —ninguna fila llega al Sheets sin
+#    cabeza de cadena— no se afloja: se cumple escribiendola en vez de
+#    rechazando la fila. Ver `aulas_libro_anotar_cabeza_de_extras()`.
 #
 # 3. **El handoff escribe lo que el libro necesita.** `collection_handoff`
 #    emite por fila `titular_operational_code`, `enrolled_total` y `eligible_n`.
@@ -194,7 +206,11 @@ test_that("UNA sola reserva sin toc dispara, aunque el resto del plan este sano"
   expect_identical(err$code, "E_AULAS_LIBRO_SIN_CADENAS")
 })
 
-test_that("un extra activado con parte tambien necesita su codigo de cadena", {
+test_that("un extra activado con parte RECIBE su codigo de cadena, no se rechaza", {
+  # Cambio deliberado del 2026-09-16, con su motivo en la cabecera de este
+  # archivo: la cabeza de cadena de un extra solo puede ser el mismo, asi que
+  # el libro se la escribe en vez de negarse a publicar. El invariante sigue:
+  # la fila llega al Sheets CON su cabeza.
   unidades <- list(
     list(operational_code = "CH 1", titular_operational_code = "CH 1",
          sample_role = "titular", faculty = "ARTE", course_name = "C1",
@@ -204,6 +220,28 @@ test_that("un extra activado con parte tambien necesita su codigo de cadena", {
          enrolled_total = 23)
   )
   partes <- list(list(operational_code = "EXTRA 1", observed_students = 10,
+                      effective_surveys = 8))
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  expect_no_error(aulas_libro_generar(unidades, path, partes = partes))
+  anotado <- aulas_libro_anotar_cabeza_de_extras(unidades)
+  expect_identical(
+    trimws(as.character(anotado[[2]]$titular_operational_code)), "EXTRA 1")
+})
+
+test_that("una reserva de CADENA con parte y sin toc sigue disparando", {
+  # El contraejemplo que sostiene el cambio de arriba: aqui la cabeza es OTRA
+  # aula y no se puede derivar, asi que derivarla seria inventar la cadena —y
+  # cada reserva huerfana cuenta como su propia cadena, que es lo que puso
+  # «Aulas del diseño» en 1.372 el 2026-09-12—.
+  unidades <- list(
+    list(operational_code = "CH 1", titular_operational_code = "CH 1",
+         sample_role = "titular", faculty = "ARTE", course_name = "C1",
+         eligible_n = 30, enrolled_total = 34),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         faculty = "ARTE", course_name = "CR1", eligible_n = 20,
+         enrolled_total = 23)
+  )
+  partes <- list(list(operational_code = "R 1.1", observed_students = 10,
                       effective_surveys = 8))
   path <- withr::local_tempfile(fileext = ".xlsx")
   err <- tryCatch(aulas_libro_generar(unidades, path, partes = partes),

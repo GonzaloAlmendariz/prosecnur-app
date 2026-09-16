@@ -52,3 +52,53 @@ test_that("los dos guards conocidos siguen ahí, por nombre", {
                 info = codigo)
   }
 })
+
+# --- La anotación de la cabeza de cadena, en los DOS caminos -----------------
+#
+# El 2026-09-16 el guard de cadenas paró la publicación del operativo por EXTRA
+# 36, el primer refuerzo con parte. El arreglo se puso primero en el
+# normalizador del plan y NO sirvió: el publicador toma el plan CRUDO de la
+# sesión (`s$monitoreo_aulas_plan`) y nunca pasa por él. Justo el camino que
+# escribe en vivo se quedó sin arreglar, que es la misma asimetría que este
+# archivo existe para vigilar.
+
+.taldc_anotaciones <- function(archivo) {
+  ruta <- testthat::test_path("..", "..", "R", archivo)
+  if (!file.exists(ruta)) return(NA_character_)
+  lineas <- sub("#.*$", "", readLines(ruta, warn = FALSE))
+  todo <- paste(lineas, collapse = "\n")
+  sort(unique(regmatches(todo, gregexpr("aulas_libro_anotar_[a-z_]+", todo))[[1]]))
+}
+
+test_that("toda anotación del plan se aplica en los DOS caminos", {
+  generar <- .taldc_anotaciones("carga_aulas_libro_generar.R")
+  publicar <- .taldc_anotaciones("monitoreo_aulas_publicar_libro.R")
+  # Centinela: si el barrido deja de encontrar nada, la comparación de dos
+  # listas vacías saldría verde sin haber leído una línea.
+  expect_false(any(is.na(c(generar, publicar))))
+  expect_true("aulas_libro_anotar_cabeza_de_extras" %in% generar)
+  expect_true("aulas_libro_anotar_cabeza_de_extras" %in% publicar)
+})
+
+test_that("una extra con parte ya no tumba NINGUNO de los dos caminos", {
+  unidades <- list(
+    list(operational_code = "CH 1", titular_operational_code = "CH 1",
+         classroom_id = "a-1", sample_role = "titular", faculty = "ARTE",
+         course_name = "C1", eligible_n = 30, enrolled_total = 34),
+    # Sin cabeza de cadena, como la deja el sorteo.
+    list(operational_code = "EXTRA 36", classroom_id = "x-36",
+         sample_role = "extra_reserve_pool", faculty = "ARTE",
+         course_name = "CX", eligible_n = 20, enrolled_total = 23)
+  )
+  partes <- list(list(operational_code = "EXTRA 36", observed_students = 18,
+                      effective_surveys = 14))
+  anotado <- aulas_libro_anotar_cabeza_de_extras(unidades)
+  expect_identical(
+    trimws(as.character(anotado[[2]]$titular_operational_code)), "EXTRA 36")
+  expect_identical(
+    length(prosecnurapp:::.calg_reservas_sin_cadena(anotado, partes = partes)), 0L)
+  # Y sin anotar sigue siendo el caso roto que el guard debe cazar: lo que
+  # cambió es la fila, no el guard.
+  expect_identical(
+    length(prosecnurapp:::.calg_reservas_sin_cadena(unidades, partes = partes)), 1L)
+})
