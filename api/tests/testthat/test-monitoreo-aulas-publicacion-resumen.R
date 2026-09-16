@@ -76,7 +76,7 @@ test_that("«a aplicar» son los titulares y el plan con reservas va aparte", {
   expect_equal(.mapr_valor(reports, "Cursos-horario del plan, con reservas"), 1347L)
   # Y el rotulo viejo ya no existe: nombraba el plan entero como si fuera lo que
   # hay que aplicar.
-  expect_true(is.na(.mapr_valor(reports, "Aulas planificadas")))
+  expect_true(is.na(.mapr_valor(reports, "Aulas planificadas originalmente")))
 })
 
 test_that("sin `aulas_titulares` cae al plan sin banco, que es la conducta anterior", {

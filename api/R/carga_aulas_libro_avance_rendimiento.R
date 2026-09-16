@@ -2,7 +2,7 @@
 #
 # Dictado de Gonzalo (2026-09-08): «Luego es necesario una tabla de RENDIMIENTO
 # POR FACULTAD, la cual tendrá las siguientes columnas: Facultad, Aulas
-# aplicadas, Aulas planificadas, Tasa de rendimiento de facultad esperado, Tasa
+# aplicadas, Aulas planificadas originalmente, Tasa de rendimiento de facultad esperado, Tasa
 # obtenida hasta el momento, Diferencia, Aulas adicionales solicitadas hasta el
 # momento». Y, sobre los rótulos: «la "tasa de facultad" es en realidad la
 # "Tasa de rendimiento de la facultad" y debe tener ese nombre».

@@ -84,7 +84,12 @@ del área 2.840 pass · 0 fail.
 > aplicar más o menos de lo que finalmente se aplica.»
 
 Las dos columnas ya estaban juntas y aun así había que hacer la resta con el
-ojo, quince veces. Ahora la hace la hoja: **«Aulas sobre el plan»**, con signo.
+ojo, quince veces. Ahora la hace la hoja: **«Aulas sobre el plan»**, con signo. Y la columna de la izquierda pasa a
+llamarse **«Aulas planificadas originalmente»** (2026-09-16): «originalmente»
+no es adorno, es lo que separa las dos cuentas ahora que van pegadas —las
+planificadas no se mueven, las proyectadas cambian cada día—. El renombre va a
+las TRES tablas que la publican, porque un concepto con dos nombres en la misma
+hoja es la avería que este libro ya pagó.
 
 - **Positivo**: cerrará con más aulas de las que el sorteo le puso. Suele ser un
   refuerzo ya agendado — y conviene recordar que eso pasa PORQUE sus aulas

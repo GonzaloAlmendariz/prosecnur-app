@@ -251,7 +251,7 @@ test_that("el rendimiento por facultad separa «no se ha ido» de «rinde por de
   ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12, `EX 1` = 8))
   r <- ind$rendimiento
   expect_identical(names(r), AULAS_AVANCE_CABECERAS$rendimiento)
-  expect_equal(r[["Aulas planificadas"]], 2L)   # los titulares
+  expect_equal(r[["Aulas planificadas originalmente"]], 2L)   # los titulares
   expect_equal(r[["Aulas aplicadas"]], 2L)      # CH 1 y EX 1 tienen efectivas
   expect_equal(r[["Aulas adicionales solicitadas hasta el momento"]], 1L)
   expect_equal(r[["Tasa de rendimiento de la facultad esperada"]], 0.6)

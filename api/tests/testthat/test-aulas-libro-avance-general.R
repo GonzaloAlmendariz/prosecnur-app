@@ -76,7 +76,7 @@ test_that("la cabecera y las diez filas son las que dictó Gonzalo, en su orden"
   expect_identical(as.character(g[[1L]]), c(
     "Efectivas", "Muestra", "Avance muestra", "Faltantes para la muestra",
     "Sobremuestra", "Avance sobremuestra", "Faltantes para la sobremuestra",
-    "Aulas aplicadas", "Aulas asignadas", "Aulas planificadas"
+    "Aulas aplicadas", "Aulas asignadas", "Aulas planificadas originalmente"
   ))
   # Ningún rótulo lleva «(%)»: Gonzalo, «el (%) significa que va en porcentaje,
   # no que les pongas "(%)" al título».
@@ -103,7 +103,7 @@ test_that("las tres filas de aulas van sólo en el total: un aula no tiene sexo"
   ind <- .lamet_ind(asignados = list(`CH 1` = "PEREZ GOMEZ, ANA"))
   g <- ind$general
   expect_equal(.lamet_fila(g, "Aulas aplicadas"), c(2, NA, NA))
-  expect_equal(.lamet_fila(g, "Aulas planificadas"), c(2, NA, NA))
+  expect_equal(.lamet_fila(g, "Aulas planificadas originalmente"), c(2, NA, NA))
   # ASIGNADAS son las que tienen aplicador en el reparto, no las agendadas.
   expect_equal(.lamet_fila(g, "Aulas asignadas"), c(1, NA, NA))
 })
@@ -195,7 +195,7 @@ test_that("en el Sheets la tabla abre con el titular y sus tasas van como NÚMER
   fila_ef <- filas[[which(primera == "Efectivas")]]
   expect_identical(fila_ef[[2L]], 10)
   # Una celda sin dato sigue siendo el «—» declarado, que no es un cero.
-  fila_aulas <- filas[[which(primera == "Aulas planificadas")]]
+  fila_aulas <- filas[[which(primera == "Aulas planificadas originalmente")]]
   expect_identical(fila_aulas[[3L]], "\u2014")
 })
 

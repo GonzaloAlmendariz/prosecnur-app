@@ -267,7 +267,7 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
 
   # «Avance general» declara igual sus tres filas de aulas, que no tienen sexo.
   cab_g <- .calax_fila_de(celdas, "Indicadores")
-  fila_pl <- .calax_fila_de(celdas, "Aulas planificadas")
+  fila_pl <- .calax_fila_de(celdas, "Aulas planificadas originalmente")
   expect_false(is.na(cab_g))
   expect_identical(as.character(celdas[fila_pl, 3]), "\u2014")
 })

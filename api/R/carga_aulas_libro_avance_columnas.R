@@ -58,7 +58,12 @@ AULAS_AVANCE_CABECERAS <- list(
     # agendado se aplica. Contra «Aulas planificadas» dice de un vistazo si una
     # facultad va a cerrar por encima de su plan —que es lo que los refuerzos
     # buscan— o por debajo.
-    "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+    # **«originalmente» no es adorno** (dictado 2026-09-16): es lo que separa
+    # las dos cuentas que ahora van pegadas. Las planificadas son las que el
+    # sorteo asignó y NO se mueven; las proyectadas cambian cada día con lo que
+    # se agenda. Llamándolas las dos «aulas» y ya, la columna de la izquierda se
+    # leía como «las que quedan por hacer».
+    "Aulas aplicadas", "Aulas planificadas originalmente", "Aulas proyectadas al cierre",
     # Y la resta, que es la pregunta (dictado 2026-09-16, con la hoja
     # publicada delante): «hay que diferenciar cuántas se tenían planificadas
     # originalmente de cuántas se tienen proyectadas al cierre; puede ser que
@@ -80,7 +85,7 @@ AULAS_AVANCE_CABECERAS <- list(
     "Sobremuestra mujeres", "Faltantes mujeres sobremuestra"
   ),
   rendimiento = c(
-    "Facultad", "Aulas aplicadas", "Aulas planificadas",
+    "Facultad", "Aulas aplicadas", "Aulas planificadas originalmente",
     # Las dos tasas en ENCUESTAS antes que en porcentaje (Gonzalo, 2026-09-08:
     # «las esperadas hasta ahora en base a las aulas aplicadas hasta hoy y la
     # tasa de rendimiento de facultad, y cuántas vamos»). Una tasa dice si el
@@ -188,8 +193,8 @@ AULAS_AVANCE_CAMPOS <- c(
 AULAS_AVANCE_NOTAS <- list(
   facultad = paste(
     "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo",
-    "que falta en otra. «Aulas planificadas» son las que el sorteo le asignó a",
-    "la facultad y no cambian; «proyectadas al cierre» son las aplicadas más",
+    "que falta en otra. «Aulas planificadas originalmente» son las que el sorteo",
+    "le asignó a la facultad y no cambian; «proyectadas al cierre» son las aplicadas más",
     "las que ya tienen fecha, y «sobre el plan» es la resta: positivo, cerrará",
     "con más aulas de las previstas —suele ser refuerzo—; negativo, hay aulas",
     "del plan que nadie ha agendado todavía.")
@@ -213,7 +218,7 @@ AULAS_AVANCE_TITULOS <- c(
 AULAS_AVANCE_FILAS_GENERAL <- c(
   "Efectivas", "Muestra", "Avance muestra", "Faltantes para la muestra",
   "Sobremuestra", "Avance sobremuestra", "Faltantes para la sobremuestra",
-  "Aulas aplicadas", "Aulas asignadas", "Aulas planificadas"
+  "Aulas aplicadas", "Aulas asignadas", "Aulas planificadas originalmente"
 )
 
 # --- La naturaleza de cada rótulo --------------------------------------------
