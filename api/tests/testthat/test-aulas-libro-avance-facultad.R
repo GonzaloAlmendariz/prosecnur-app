@@ -80,7 +80,7 @@ test_that("las columnas son las que dictó Gonzalo, en su orden", {
   expect_identical(names(out), c(
     "Facultad",
     "Efectivas", "Avance muestra",
-    "Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+    "Aulas aplicadas", "Aulas planificadas originalmente", "Aulas proyectadas al cierre",
     "Aulas sobre el plan",
     "Efectivas hombres", "Avance muestra hombres",
     "Efectivas mujeres", "Avance muestra mujeres",
@@ -443,7 +443,7 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
 .lafac_aulas <- function(plan) {
   out <- prosecnurapp:::.calaf_avance_por_facultad(
     plan, efectivas = NULL, cuotas = .lafac_cuotas(.lafac_fac("FAC1", 10)))
-  out[1L, c("Aulas aplicadas", "Aulas planificadas", "Aulas proyectadas al cierre",
+  out[1L, c("Aulas aplicadas", "Aulas planificadas originalmente", "Aulas proyectadas al cierre",
             "Aulas sobre el plan")]
 }
 
@@ -456,7 +456,7 @@ test_that("planificadas son los TITULARES, no todo lo que hay en el plan", {
     .lafac_unidad("CH 1", "FAC1"),
     .lafac_unidad("CH 2", "FAC1"),
     .lafac_unidad("R 1.1", "FAC1", rol = "chain_reserve")))
-  expect_identical(v[["Aulas planificadas"]], 2L)
+  expect_identical(v[["Aulas planificadas originalmente"]], 2L)
 })
 
 test_that("proyectadas suma las aplicadas y las que ya tienen fecha", {
@@ -469,7 +469,7 @@ test_that("proyectadas suma las aplicadas y las que ya tienen fecha", {
   expect_identical(v[["Aulas proyectadas al cierre"]], 2L)
   # La tercera no tiene fecha: no se puede aplicar, así que no se proyecta. Un
   # «3» aquí sería prometer un cierre que nadie ha agendado.
-  expect_identical(v[["Aulas planificadas"]], 3L)
+  expect_identical(v[["Aulas planificadas originalmente"]], 3L)
 })
 
 test_that("un aula aplicada que conserva su fecha NO se cuenta dos veces", {
@@ -495,7 +495,7 @@ test_that("proyectadas puede pasar de planificadas: eso es un refuerzo agendado"
     .lafac_unidad("CH 2", "FAC1", aplicacion = "aplicada"),
     .lafac_unidad("E 1", "FAC1", rol = "extra_reserve_pool",
                   estado = "agendada", fecha = "2026-09-18")))
-  expect_identical(v[["Aulas planificadas"]], 2L)
+  expect_identical(v[["Aulas planificadas originalmente"]], 2L)
   expect_identical(v[["Aulas proyectadas al cierre"]], 3L)
 })
 
@@ -547,7 +547,7 @@ test_that("la resta cuadra siempre con las dos columnas que compara", {
                   estado = "agendada", fecha = "2026-09-18")))
   expect_identical(
     v[["Aulas sobre el plan"]],
-    v[["Aulas proyectadas al cierre"]] - v[["Aulas planificadas"]])
+    v[["Aulas proyectadas al cierre"]] - v[["Aulas planificadas originalmente"]])
 })
 
 test_that("«Aulas sobre el plan» NO se pinta como una diferencia con semáforo", {
@@ -573,7 +573,7 @@ test_that("la nota del bloque vive en el vocabulario, no copiada en cada rendere
     expect_false(grepl("La cuota es de cada facultad", src, fixed = TRUE), info = archivo)
   }
   # Y la nota explica las tres columnas de aulas, que es para lo que se tocó.
-  for (pieza in c("planificadas", "proyectadas al cierre", "sobre el plan")) {
+  for (pieza in c("planificadas originalmente", "proyectadas al cierre", "sobre el plan")) {
     expect_true(grepl(pieza, AULAS_AVANCE_NOTAS$facultad, fixed = TRUE), info = pieza)
   }
 })

@@ -142,7 +142,7 @@ test_that("«Avance general» viaja declarada como traspuesta, con su tipo por f
   expect_identical(sem[[which(etiquetas == "Faltantes para la muestra")]], "meta_muestra")
   # Y las tres filas de aulas no tienen sexo: sus celdas de hombres y mujeres
   # viajan como `null`, no como cero.
-  aulas <- g$filas[[which(etiquetas == "Aulas planificadas")]]
+  aulas <- g$filas[[which(etiquetas == "Aulas planificadas originalmente")]]
   expect_identical(aulas[[2]], 2)
   expect_true(is.na(aulas[[3]]))
   expect_true(is.na(aulas[[4]]))
@@ -201,7 +201,7 @@ test_that("una celda sin dato cruza como `null`, no como objeto vacío", {
   # Y en la fila donde se vio: las tres de aulas no tienen sexo.
   parsed <- jsonlite::fromJSON(crudo, simplifyVector = FALSE)
   general <- Filter(function(t) identical(t$clave, "general"), parsed$tablas)[[1]]
-  fila <- Filter(function(f) identical(f[[1]], "Aulas planificadas"), general$filas)[[1]]
+  fila <- Filter(function(f) identical(f[[1]], "Aulas planificadas originalmente"), general$filas)[[1]]
   expect_true(is.numeric(fila[[2]]))
   expect_null(fila[[3]])
   expect_null(fila[[4]])

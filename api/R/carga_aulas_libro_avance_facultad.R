@@ -233,7 +233,7 @@
       Efectivas = conseguidas,
       `Avance muestra` = avance(conseguidas, cuota),
       `Aulas aplicadas` = sum(idx & apl),
-      `Aulas planificadas` = sum(idx & rol == "titular"),
+      `Aulas planificadas originalmente` = sum(idx & rol == "titular"),
       # **Aplicadas más las que tienen fecha y todavía no se han aplicado.** Un
       # aula ya aplicada conserva su fecha, así que sumar las dos listas sin
       # descontar la intersección la contaría dos veces y la proyección saldría

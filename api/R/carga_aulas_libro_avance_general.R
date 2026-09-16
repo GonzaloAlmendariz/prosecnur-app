@@ -23,7 +23,7 @@
 # Las tres filas de AULAS no son de personas: no se reparten por sexo y sus
 # celdas de Hombres y Mujeres quedan en blanco declarado. Contar aulas «de
 # mujeres» no significa nada — el aula es mixta por definición.
-.calag_FILAS_AULAS <- c("Aulas aplicadas", "Aulas asignadas", "Aulas planificadas")
+.calag_FILAS_AULAS <- c("Aulas aplicadas", "Aulas asignadas", "Aulas planificadas originalmente")
 
 # Suma de una columna de la tabla por facultad; NA si la columna no trae ningún
 # dato finito (sin variable de sexo declarada, sin sobremuestra en el diseño).
@@ -101,7 +101,7 @@
     "Faltantes para la sobremuestra" = arriba(falta_sm),
     "Aulas aplicadas" = solo_total(aulas$aplicadas),
     "Aulas asignadas" = solo_total(aulas$asignadas),
-    "Aulas planificadas" = solo_total(aulas$planificadas)
+    "Aulas planificadas originalmente" = solo_total(aulas$planificadas)
   )
 
   filas <- lapply(AULAS_AVANCE_FILAS_GENERAL, function(etiqueta) {
