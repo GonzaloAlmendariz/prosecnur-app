@@ -53,6 +53,7 @@ import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
 import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
 import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
 import { avisoConversacion } from "./avisoConversacion";
+import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoLibroPublicado } from "./avisoLibroPublicado";
@@ -1798,20 +1799,20 @@ export default function AulasMonitoreoPage() {
       // fallo de la conversación NO es un fallo del sync —el corte de campo
       // sí se recalculó—, así que va como aviso de atención, no a `error`.
       const conversacion = avisoConversacion(result.libro_conversacion);
-      if (conversacion) setAviso(conversacion);
       // B3 (2026-09-08): si la última sincronización volvió sin ningún registro,
       // se dice. El 08/09 Gonzalo leyó «Efectivas 0» en una pantalla que no
       // tenía nada que le avisara de que no había traído nada, y la creyó. El
       // motor redacta la causa y su consecuencia; aquí sólo se enseña, y manda
       // sobre el aviso del libro porque decide si las cifras son de hoy.
-      // El tono lo decide el motor, que es quien sabe en qué modo volvió
-      // vacía: un incremental sin respuestas nuevas no es una incidencia y
-      // pintarlo en rojo enseña a ignorar el aviso. Sin `tono` —payload de una
-      // versión anterior— se mantiene el comportamiento de siempre.
-      const vacias = result.state?.aviso_fuentes_vacias;
-      if (vacias?.mensaje) {
-        setAviso({ texto: vacias.mensaje, tono: vacias.tono === "ok" ? "ok" : "atencion" });
-      }
+      // **Un solo sitio para dos avisos: manda la gravedad, no el orden.**
+      //
+      // El de las fuentes se escribía DESPUÉS y pisaba al del libro sin mirar
+      // qué decía, así que una publicación fallida quedaba tapada por un «no
+      // trajo respuestas nuevas». Gonzalo lo vio desde fuera el 2026-09-16:
+      // «actualiza la data de la app pero ya no actualiza el Sheets», sin
+      // ningún error en pantalla. Ver `avisoDelSync.ts`.
+      const elegido = avisoDelSync(conversacion, result.state?.aviso_fuentes_vacias);
+      if (elegido) setAviso(elegido);
     } catch (e) {
       setError((e as Error).message);
     } finally {
