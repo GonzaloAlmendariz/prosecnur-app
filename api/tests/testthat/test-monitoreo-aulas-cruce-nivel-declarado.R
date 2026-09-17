@@ -202,3 +202,85 @@ test_that("un formulario que guarda el ciclo como ENTERO no necesita catalogo", 
   expect_true(r$ok)
   expect_identical(r$coinciden, 2L)
 })
+
+# --- la hoja, y que alguien la MONTE ----------------------------------------
+#
+# El motor de E24 costó tres hallazgos del mismo tipo: campos que el motor
+# publica y ninguna superficie consume. Por eso la mitad de este bloque no
+# prueba la hoja sino su ENGANCHE.
+
+test_that("sin cruce posible la hoja NO se escribe: una hoja vacia diria que todo coincide", {
+  cfg <- .mcnd_cfg(); cfg$source_mapping$declared_level_var <- ""
+  expect_null(aulas_libro_filas_control_nivel(
+    .mcnd_resp("20201234", "1"), .mcnd_padron(list()), cfg))
+  expect_null(aulas_libro_valores_control_nivel(
+    .mcnd_resp("20201234", "1"), .mcnd_padron(list()), cfg))
+})
+
+test_that("la hoja trae la matriz, las discrepancias y la bolsa desglosada", {
+  pad <- .mcnd_padron(list("20201234" = 6L, "20201235" = 6L, "20201236" = 7L))
+  filas <- aulas_libro_filas_control_nivel(
+    .mcnd_resp(c("20201234", "20201235", "20201236", "20990000"),
+               c("1", "2", "2", "1")), pad, .mcnd_cfg())
+  primeras <- vapply(filas, function(f) as.character(unlist(f$celdas)[[1]]), character(1))
+  expect_identical(primeras[[1]], "CONTROL DE NIVEL")
+  expect_true("MATRIZ DE CONSISTENCIA" %in% primeras)
+  expect_true("DISCREPANCIAS, UNA POR UNA" %in% primeras)
+  expect_true("RESPUESTAS SIN NIVEL" %in% primeras)
+  # «Otros» al FINAL de las columnas de la matriz, no entre los ciclos: es la
+  # opcion de escape y leerla entre ellos la haria parecer uno mas.
+  cab <- filas[[which(primeras == "NIVEL DEL PADRÓN")[[1]]]]$celdas
+  expect_identical(as.character(cab)[[1]], "NIVEL DEL PADRÓN")
+  # Y la hoja declara que NO reatribuye nada, que es lo que la separa del avance.
+  notas <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
+  expect_true(grepl("NO cambia ningún conteo", notas, fixed = TRUE))
+})
+
+test_that("el codigo del alumno NO viaja a la hoja: es PII y la hoja se comparte", {
+  pad <- .mcnd_padron(list("20201234" = 6L))
+  filas <- aulas_libro_filas_control_nivel(
+    .mcnd_resp(c("20201234", "20201235"), c("2", "1")), pad, .mcnd_cfg())
+  todo <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
+  expect_false(grepl("20201234", todo, fixed = TRUE))
+  expect_false(grepl("20201235", todo, fixed = TRUE))
+})
+
+test_that("el formato de Sheets reconoce sus cuatro cabeceras y sus bloques", {
+  pad <- .mcnd_padron(list("20201234" = 6L, "20201235" = 7L))
+  valores <- aulas_libro_valores_control_nivel(
+    .mcnd_resp(c("20201234", "20201235", "20990000"), c("1", "1", "2")),
+    pad, .mcnd_cfg())
+  reqs <- aulas_libro_control_nivel_formato_requests("hoja", valores)
+  # Sin requests, la hoja sale en Sheets sin una sola banda: es el defecto que
+  # ya mordio con el formato que no llegaba a una hoja sembrada.
+  expect_gt(length(reqs), 4L)
+})
+
+test_that("«Control de nivel» esta en el orden de pestanas del Sheets", {
+  # El enganche que faltaba y que costo tres hallazgos en E24: un motor sin
+  # consumidor no es una capacidad. Si la pestana no esta en el orden, la
+  # publicacion no la crea nunca.
+  orden <- monitoreo_sheets_pestanas_controladas()
+  expect_true("Control de nivel" %in% orden)
+  # Pegada a su hermana: las dos son controles del mismo tipo y se leen juntas.
+  expect_identical(which(orden == "Control de nivel"),
+                   which(orden == "Control de facultad") + 1L)
+})
+
+test_that("cada mitad de «Otros» se dice SOLO si existe", {
+  # Con 0 coincidencias la version anterior escribia «son 0 que coinciden», que
+  # no es una frase. Se vio generando el .xlsx con datos, no leyendo el motor.
+  pad <- .mcnd_padron(list("20201234" = 6L, "20201235" = 7L))
+  filas <- aulas_libro_filas_control_nivel(
+    .mcnd_resp(c("20201234", "20201235"), c("1", "5")), pad, .mcnd_cfg())
+  notas <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
+  expect_true(grepl("el padrón las pone DENTRO", notas, fixed = TRUE))
+  expect_false(grepl("0 marcaron", notas, fixed = TRUE))
+  # Y al contrario: con el padron fuera del rango, solo se dice la mitad buena.
+  pad2 <- .mcnd_padron(list("20201234" = 6L, "20201235" = 12L))
+  filas2 <- aulas_libro_filas_control_nivel(
+    .mcnd_resp(c("20201234", "20201235"), c("1", "5")), pad2, .mcnd_cfg())
+  notas2 <- paste(unlist(lapply(filas2, function(f) as.character(unlist(f$celdas)))), collapse = " ")
+  expect_true(grepl("coinciden, y no son un desacuerdo", notas2, fixed = TRUE))
+  expect_false(grepl("pone DENTRO", notas2, fixed = TRUE))
+})

@@ -234,3 +234,215 @@ monitoreo_aulas_cruce_nivel_declarado <- function(responses, padron = list(), cf
     sin_nivel = sin_nivel
   )
 }
+
+# --- la hoja del libro ------------------------------------------------------
+#
+# Mismo contrato y mismos tipos de fila que sus hermanas (`titulo`, `nota`,
+# `bloque`, `cabecera`, `dato`), para que el formateador del libro y el de
+# Sheets la reconozcan sin caso especial.
+
+.MCND_HOJA <- "Control de nivel"
+.MCND_BLOQUES <- c("MATRIZ DE CONSISTENCIA", "DISCREPANCIAS, UNA POR UNA",
+                   "RESPUESTAS SIN NIVEL")
+
+#' Las filas de la hoja «Control de nivel», tipadas.
+#'
+#' @param responses respuestas de la plataforma.
+#' @param padron el padrón cargado. **Viaja por argumento y no por la config**:
+#'   el padrón vive sólo en la sesión, nunca en la config que se persiste, para
+#'   que la purga lo alcance (ADR 0087).
+#' @param cfg config de aulas universitarias.
+#' @return `NULL` cuando el cruce no es posible —y entonces la hoja no se
+#'   escribe, porque una hoja vacía diría «todo coincide»—; si no, lista de
+#'   filas `{tipo, celdas}`.
+#' @keywords internal
+aulas_libro_filas_control_nivel <- function(responses = NULL, padron = list(),
+                                            cfg = list()) {
+  o <- monitoreo_aulas_cruce_nivel_declarado(responses, padron, cfg)
+  if (!isTRUE(o$ok) || !o$comparables) return(NULL)
+
+  filas <- list()
+  poner <- function(tipo, celdas) {
+    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = .alp_celdas(tipo, celdas))
+  }
+  pct <- function(n, d) if (d > 0) sprintf("%.1f %%", 100 * n / d) else ""
+
+  poner("titulo", "CONTROL DE NIVEL")
+  poner("nota", sprintf(paste(
+    "El nivel de la PERSONA —resuelto por su código contra el padrón— contra el",
+    "ciclo que esa misma persona declara en el cuestionario. %d respuestas",
+    "comparables: %d coinciden (%s) y %d no (%s)."),
+    o$comparables, o$coinciden, pct(o$coinciden, o$comparables),
+    o$discrepan, pct(o$discrepan, o$comparables)))
+  poner("nota", paste(
+    "Es un control, no una reatribución: esta hoja NO cambia ningún conteo del",
+    "avance. Las celdas de cuota se cuentan con el nivel del padrón, y aquí se",
+    "ve cuánta gente dice pertenecer a otro ciclo."))
+  # **Cada mitad de «Otros» se dice sólo si existe.** La primera versión las
+  # decía siempre y con 0 coincidencias salía «son 0 que coinciden», que no es
+  # una frase — y se ve sólo generando el .xlsx con datos, no leyendo el motor.
+  fd <- o$fuera_declarado
+  if (fd$coinciden > 0L || fd$discrepan > 0L) {
+    partes <- character(0)
+    if (fd$coinciden > 0L) {
+      partes <- c(partes, sprintf(paste(
+        "%d marcaron «Otros» y el padrón también las pone fuera de los ciclos",
+        "del estudio: coinciden, y no son un desacuerdo."), fd$coinciden))
+    }
+    if (fd$discrepan > 0L) {
+      partes <- c(partes, sprintf(paste(
+        "%d marcaron «Otros» pero el padrón las pone DENTRO: son las que",
+        "importan, porque se declaran fuera de una población a la que",
+        "pertenecen según la matrícula."), fd$discrepan))
+    }
+    poner("nota", paste(partes, collapse = " "))
+  }
+  poner("nota", "")
+
+  poner("bloque", .MCND_BLOQUES[[1]])
+  poner("nota", paste(
+    "Cada fila es un nivel del padrón y cada columna lo que esas personas",
+    "declararon. La diagonal es el acuerdo; «Otros» tiene columna propia y no",
+    "se confunde con no haber contestado."))
+  declarados <- sort(unique(unlist(lapply(o$matriz, function(f)
+    vapply(f$celdas, function(c) c$declarado, character(1))), use.names = FALSE)))
+  # «Otros» al final, siempre: es la opción de escape y leerla entre los ciclos
+  # la haría parecer uno más.
+  declarados <- c(setdiff(declarados, "Otros"), intersect("Otros", declarados))
+  poner("cabecera", c("NIVEL DEL PADRÓN", toupper(declarados), "COMPARABLES",
+                      "COINCIDEN", "% ACUERDO"))
+  for (f in o$matriz) {
+    de_la_fila <- vapply(f$celdas, function(c) c$declarado, character(1))
+    cuentas <- vapply(declarados, function(b) {
+      i <- which(de_la_fila == b)
+      if (length(i)) as.character(f$celdas[[i[[1]]]]$n) else ""
+    }, character(1), USE.NAMES = FALSE)
+    suyo <- o$por_nivel[[which(vapply(o$por_nivel, function(x) x$nivel,
+                                      character(1)) == f$nivel_padron)[[1]]]]
+    poner("dato", c(f$nivel_padron, cuentas, suyo$comparables, suyo$coinciden,
+                    pct(suyo$coinciden, suyo$comparables)))
+  }
+  poner("dato", c("TOTAL", rep("", length(declarados)), o$comparables, o$coinciden,
+                  pct(o$coinciden, o$comparables)))
+
+  if (length(o$pares)) {
+    poner("nota", "")
+    poner("bloque", .MCND_BLOQUES[[2]])
+    poner("nota", paste(
+      "La FILA es la de la base de respuestas, que es con lo que se busca. El",
+      "código no se escribe aquí: es dato personal y esta hoja se comparte."))
+    poner("cabecera", c("FILA EN LA BASE", "NIVEL DEL PADRÓN", "CICLO DECLARADO",
+                        "SE DECLARÓ FUERA"))
+    for (x in o$pares) {
+      poner("dato", c(x$fila, x$nivel_padron, x$declarado,
+                      if (isTRUE(x$es_otros)) "sí" else ""))
+    }
+  }
+
+  sn <- o$sin_nivel
+  if (isTRUE((sn$total %||% 0L) > 0L)) {
+    poner("nota", "")
+    poner("bloque", .MCND_BLOQUES[[3]])
+    poner("nota", paste(
+      "Respuestas válidas cuyo código no resolvió contra el padrón, así que no",
+      "cuentan para ninguna celda. Se desglosan por lo que se puede HACER con",
+      "cada grupo: las que SÍ declararon ciclo son las que vale la pena revisar",
+      "—hay persona y hay dato, lo que falla es el código—."))
+    poner("cabecera", c("GRUPO", "RESPUESTAS", "QUÉ HACER"))
+    poner("dato", c("Con ciclo declarado", sn$con_ciclo_declarado,
+                    "Revisar el código en la base"))
+    poner("dato", c("Sin ciclo declarado", sn$sin_ciclo_declarado,
+                    "Sin dato por donde empezar"))
+    poner("dato", c("Se declaró fuera del estudio", sn$se_declaro_fuera,
+                    "Fuera de universo declarado: no falta nada"))
+    poner("dato", c("TOTAL", sn$total, ""))
+    if (length(sn$por_motivo)) {
+      poner("nota", "")
+      poner("cabecera", c("MOTIVO DEL MOTOR", "RESPUESTAS"))
+      for (nm in names(sn$por_motivo)) {
+        poner("dato", c(gsub("_", " ", nm), as.character(sn$por_motivo[[nm]])))
+      }
+    }
+  }
+  filas
+}
+
+#' Los valores de la hoja, para el publicador de Sheets.
+#' @keywords internal
+aulas_libro_valores_control_nivel <- function(responses = NULL, padron = list(),
+                                              cfg = list()) {
+  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg)
+  if (is.null(filas)) return(NULL)
+  lapply(filas, function(f) as.list(f$celdas))
+}
+
+#' Escribe la hoja «Control de nivel» sobre el workbook del libro.
+#' @keywords internal
+aulas_libro_hoja_control_nivel <- function(wb, responses = NULL, padron = list(),
+                                           cfg = list()) {
+  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg)
+  if (is.null(filas)) return(invisible(FALSE))
+  hoja <- .MCND_HOJA
+  openxlsx::addWorksheet(wb, hoja)
+  estilos <- list(
+    titulo = openxlsx::createStyle(fontSize = 14, textDecoration = "bold"),
+    nota = openxlsx::createStyle(fontColour = "#6B6560", fontSize = 10),
+    cabecera = openxlsx::createStyle(textDecoration = "bold", fgFill = "#F3EDEA",
+                                     border = "bottom", borderColour = "#C9BEB8",
+                                     fontSize = 10),
+    bloque = openxlsx::createStyle(textDecoration = "bold", fontSize = 12)
+  )
+  for (i in seq_along(filas)) {
+    f <- filas[[i]]
+    openxlsx::writeData(wb, hoja, .alp_fila_df(f$celdas), startRow = i, colNames = FALSE)
+    est <- estilos[[f$tipo]]
+    if (!is.null(est)) {
+      openxlsx::addStyle(wb, hoja, est, rows = i, cols = seq_along(f$celdas),
+                         gridExpand = TRUE)
+    }
+  }
+  total <- openxlsx::createStyle(textDecoration = "bold", border = "top",
+                                 borderColour = "#C9BEB8")
+  for (i in seq_along(filas)) {
+    f <- filas[[i]]
+    if (identical(f$tipo, "dato") && identical(as.character(f$celdas[[1]]), "TOTAL")) {
+      openxlsx::addStyle(wb, hoja, total, rows = i, cols = seq_along(f$celdas),
+                         gridExpand = TRUE, stack = TRUE)
+    }
+  }
+  anchos <- c(30L, rep(15L, max(0L, max(vapply(filas, function(f) length(f$celdas),
+                                               integer(1))) - 1L)))
+  openxlsx::setColWidths(wb, hoja, cols = seq_along(anchos), widths = anchos)
+  openxlsx::freezePane(wb, hoja, firstActiveRow = 2L)
+  invisible(TRUE)
+}
+
+#' Requests de formato de la hoja de control de nivel en Sheets.
+#' @keywords internal
+aulas_libro_control_nivel_formato_requests <- function(sheet_id, rows) {
+  rows <- rows %||% list()
+  if (!length(rows)) return(list())
+  n_cols <- max(1L, max(vapply(rows, function(r) length(r %||% list()), integer(1))))
+  requests <- list()
+  poner <- function(req) requests[[length(requests) + 1L]] <<- req
+  cabeceras <- c("NIVEL DEL PADRÓN", "FILA EN LA BASE", "GRUPO", "MOTIVO DEL MOTOR")
+  for (i in seq_along(rows)) {
+    celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
+    primera <- if (length(celdas)) celdas[[1L]] else ""
+    if (identical(primera, "CONTROL DE NIVEL")) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
+      poner(.maaf_alto_fila(sheet_id, i, 36L))
+    } else if (primera %in% .MCND_BLOQUES) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 11L))
+      poner(.maaf_alto_fila(sheet_id, i, 28L))
+    } else if (primera %in% cabeceras) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
+    } else if (identical(primera, "TOTAL")) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#F3EDEA", "#3A3532"))
+    } else if (length(celdas) == 1L && nzchar(primera)) {
+      poner(.maaf_banda(sheet_id, i, n_cols, "#FFFFFF", "#6B6560",
+                        size = 9L, italic = TRUE, bold = FALSE))
+    }
+  }
+  requests
+}
