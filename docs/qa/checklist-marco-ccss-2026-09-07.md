@@ -366,5 +366,24 @@ obligatoria y no condiciona nada. En las 50 aulas titulares se sientan 1.569
 personas y 1.188 son población: las otras ~370 (217 de quinto, 132 de décimo)
 pueden escanear el QR y no tienen casilla verdadera. O abandonan, o marcan una
 falsa y entran como si fueran de 6–9, que es la variable sobre la que están las
-metas. Se arregla en la misma edición que agregue `collectorID` (ítem 18):
-abrir A1 y cortar la encuesta fuera de 6–9, que además deja contado el descarte.
+metas.
+
+**RESUELTO por decisión de Gonzalo (2026-09-17), y mi planteamiento estaba
+torcido.** Yo escribí que había que «abrir A1 y cortar la encuesta fuera de
+6–9». No hay que abrir nada: «pero no se supone que estábamos viendo a alumnos
+sólo de esos ciclos; aquellos que no pertenezcan a ese ciclo puede ponerlo en el
+nuevo "Otros" que se va a agregar allí». **La población ES ciclo 6 a 9**, así que
+el rango de A1 es el correcto y lo que falta es una opción **«Otros»** que le dé
+casilla verdadera al de un aula mixta y lo saque por el filtro. Sigue entrando en
+la misma edición que `collectorID` (ítem 18), pero como una opción añadida, no
+como un rediseño de la pregunta.
+
+Dos cosas que esa opción arrastra y hay que respetar:
+
+- **«Otros» es un screen-out, no una no-respuesta.** Quien lo marca no es
+  población: es fuera de universo declarado por la propia persona, y no puede
+  entrar al denominador como pérdida.
+- **En la hoja «Control de nivel», «Otros» no es discrepancia con el padrón**:
+  es coincidencia si el padrón también pone a esa persona fuera de 6–9. Tratarlo
+  como desacuerdo inflaría la discrepancia justo en las aulas mixtas, que son las
+  que el piso de 50 % dejó dentro a propósito.
