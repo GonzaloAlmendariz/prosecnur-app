@@ -2991,6 +2991,20 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # `monitoreo_aulas_desenlaces.R`. NO es `monitoreo_aulas_reemplazos.R`, que
     # es el gesto de ACTIVAR un reemplazo desde la app.
     reemplazos_por_tipo = monitoreo_aulas_desenlaces_por_tipo(plan_df),
+    # **El cruce facultad del aula ↔ facultad declarada, en resumen.** La hoja
+    # entera vive en el libro; aquí viaja sólo el titular —comparables, cuántas
+    # coinciden y el motivo cuando no se puede— porque es lo que la pantalla de
+    # declaración necesita para decir si el catálogo que alguien acaba de
+    # mapear es el correcto: un mapeo bueno coincide en ~95 % y uno corrido,
+    # en ~0 %. Sin esa devolución, mapear quince códigos a ciegas es un acto
+    # de fe. Ver `monitoreo_aulas_cruce_facultad_declarada.R`.
+    control_facultad = tryCatch({
+      o <- monitoreo_aulas_cruce_facultad_declarada(
+        .monitoreo_aulas_records(plan_df), responses, cfg)
+      list(ok = isTRUE(o$ok), motivo = o$motivo %||% "",
+           comparables = o$comparables, coinciden = o$coinciden,
+           discrepan = o$discrepan)
+    }, error = function(e) NULL),
     # **Los tramos del operativo y su estado, DERIVADO** (dictado 2026-09-15).
     # El rango y su nombre se guardan porque son decisión suya; las citas, las
     # aplicadas y las que faltan se cuentan aquí en cada corrida. Sin tramos

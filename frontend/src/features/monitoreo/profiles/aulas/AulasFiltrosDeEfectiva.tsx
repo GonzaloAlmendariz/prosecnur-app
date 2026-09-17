@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AulasFacultadDeclarada, { type AulasFacultadDeclaradaProps } from "./AulasFacultadDeclarada";
 import { AulasSexoYDescartes, type ValoresDeSexo } from "./AulasSexoYDescartes";
 
 import type { MonitoreoVariable } from "../../../../api/monitoreo";
@@ -38,6 +39,7 @@ export const MAXIMO_DE_FILTROS = 4;
 export function AulasFiltrosDeEfectiva({
   filtros, variables, criterio, guardando, onChange, onGuardar,
   variableDeSexo = "", onVariableDeSexo = null,
+  facultadDeclarada = null,
   valoresDeSexo = null, onValoresDeSexo = null,
   descartes = [], onDescartes = null, sugerenciasDeDescarte = [],
 }: {
@@ -57,6 +59,13 @@ export function AulasFiltrosDeEfectiva({
    * error que ya costó una lectura en este estudio.
    */
   variableDeSexo?: string;
+  /**
+   * La declaración de la facultad del alumno, gemela de la del sexo: sin ella
+   * no hay cruce entre la facultad del aula y la que el alumno dice, y sin ese
+   * cruce no se puede ver qué cuota la está llenando gente de otra facultad.
+   * `null` = la sesión no puede guardarla y el bloque no se ofrece.
+   */
+  facultadDeclarada?: AulasFacultadDeclaradaProps | null;
   /** `null` = sólo lectura; el selector no se pinta. */
   onVariableDeSexo?: ((variable: string) => void) | null;
   /**
@@ -229,6 +238,10 @@ export function AulasFiltrosDeEfectiva({
               onDescartes={onDescartes}
             />
           ) : null}
+          {/* La facultad declarada va debajo del sexo y no en otra pantalla:
+              son las dos variables que el estudio declara sobre quien responde,
+              y separarlas hace que la segunda no se encuentre. */}
+          {facultadDeclarada ? <AulasFacultadDeclarada {...facultadDeclarada} /> : null}
         </div>
       ) : null}
 
