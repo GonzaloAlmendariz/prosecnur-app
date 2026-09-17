@@ -45,7 +45,7 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
 # El descuento no es un refinamiento: en 2025, 446 alumnos de las 194 aulas
 # aplicadas ya habian sido medidos en otra (`ya_medidas`). Sin descontarlos, un
 # aula que solapa entera con lo ya visitado parece aportar y no aporta nada.
-.mard_aporte <- function(aula, sexo, ya_medidos) {
+.mard_aporte <- function(aula, sexo, ya_medidos, sin_sexo = FALSE) {
   # **Los dos lados por la CLAVE del sexo, no por su texto.** `sex_top_*` trae
   # el vocabulario del MARCO y `sexo` el de la celda —que es una etiqueta para
   # mostrar, y `.maac_sexo_etiqueta()` la produce como palabra—. Comparar
@@ -61,9 +61,20 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
   n1 <- if (is.finite(n1)) n1 else 0
   n2 <- if (is.finite(n2)) n2 else 0
   total <- n1 + n2
-  # Un `""` no casa con otro `""`: el sexo que no se reconoce no toma `n1` de
-  # rebote. Sin clave no hay celda que cerrar, y el silencio se declara arriba.
-  del_sexo <- if (!nzchar(sexo)) 0
+  # **Tres estados, no dos.** «La cuota no tiene dimensión de sexo» y «el sexo
+  # no se reconoce» son cosas distintas y el mismo `""` las decía las dos.
+  #
+  # Con `sin_sexo` —una cuota por el eje, sin celdas de sexo— cuentan TODOS los
+  # elegibles del aula: no hay sexo que cerrar, así que filtrar por uno deja el
+  # aporte en cero. Medido sobre el simulacro de CCSS por nivel: las cuatro
+  # celdas del eje recibían 0 candidatos con 342 personas de brecha y 86 aulas
+  # de reserva en el plan, sin que nada fallara.
+  #
+  # Sin esa marca, un `""` no casa con otro `""`: el sexo que no se reconoce no
+  # toma `n1` de rebote. Sin clave no hay celda que cerrar, y el silencio se
+  # declara arriba.
+  del_sexo <- if (isTRUE(sin_sexo)) total
+              else if (!nzchar(sexo)) 0
               else if (identical(s1, sexo)) n1
               else if (identical(s2, sexo)) n2 else 0
   if (total <= 0 || del_sexo <= 0) return(list(elegibles = 0, netos = 0, solape = 0))
@@ -107,6 +118,26 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
   ifelse(is.finite(v), floor(v + 1e-9), NA_real_)
 }
 
+# Un valor del eje, nombrado dentro de una oración: «CIENCIAS E INGENIERIA» con
+# el eje en facultad, «nivel 6» con el eje en nivel. La plantilla la DECLARA el
+# catálogo (`frase_valor`) y no se deriva de la etiqueta: derivarla obliga a
+# acertar con el artículo de cada eje nuevo, y esta cadena se lee en pantalla.
+.mard_frase_de_valor <- function(valor, eje = NULL) {
+  v <- .monitoreo_scalar(valor, "")
+  if (!nzchar(v)) return("")
+  plantilla <- .monitoreo_scalar((eje %||% list())[["frase_valor"]] %||% "%s", "%s")
+  sprintf(plantilla, v)
+}
+
+# De qué celda se habla, sin nombrarla: «esa facultad y ese sexo», «ese nivel».
+# La cláusula de sexo se añade SÓLO cuando la cuota tiene esa dimensión —una
+# cuota por nivel no la tiene— y con el eje en facultad y sexo la frase sale
+# byte a byte como la tenía HSVG.
+.mard_frase_de_celda <- function(eje = NULL, sin_sexo = FALSE) {
+  base <- .monitoreo_scalar((eje %||% list())[["frase_celda"]] %||% "esa facultad", "esa facultad")
+  if (isTRUE(sin_sexo)) base else paste0(base, " y ese sexo")
+}
+
 # El bloque de arriba documenta el helper interno y el de aqui la funcion
 # publica. Estaban PEGADOS —`@export` y luego `#' Personas, no decimales`—
 # y roxygen los funde en uno solo que termina en el objeto siguiente: el
@@ -115,31 +146,49 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
 #' Candidatos del banco para cerrar una celda facultad x sexo.
 #'
 #' @param pool lista de aulas disponibles fuera del plan.
-#' @param facultad facultad de la celda.
-#' @param sexo `"F"` o `"M"`.
+#' @param facultad valor del EJE de la celda. Conserva el nombre del parámetro
+#'   —la firma es pública— y su significado lo declara `eje`.
+#' @param sexo `"F"` o `"M"`. Se ignora con `grano = "eje"`.
 #' @param tasa_aula función que da la tasa de efectividad de un aula por su
 #'   número de elegibles; por defecto, la del rendimiento por tramo.
 #' @param ya_medidos ids de alumnos ya medidos en otras aulas.
 #' @param tope cuántos candidatos devolver.
+#' @param eje el eje resuelto por [monitoreo_aulas_eje()]. Sin él, `facultad`:
+#'   un estudio existente no cambia un byte.
+#' @param grano `"eje"` cuando la celda NO tiene dimensión de sexo, tal como lo
+#'   declara el motor en `avance_sexo_facultad`. No se infiere de un sexo vacío:
+#'   «la cuota no pide sexo» y «el sexo no se reconoce» piden respuestas
+#'   opuestas —contar a todos o no proponer nada— y confundirlas es justo el
+#'   defecto que este parámetro cierra.
 #' @return lista ordenada por aporte esperado a ESA celda.
 #' @export
 monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo = "F",
                                              tasa_aula = NULL, ya_medidos = character(0),
-                                             tope = 5L) {
-  fac <- .monitoreo_text_key(facultad)
+                                             tope = 5L, eje = NULL, grano = "") {
+  if (!is.list(eje) || !length(eje)) eje <- monitoreo_aulas_eje(list())
+  # **La columna del banco la dice el eje.** Buscaba `a$faculty` siempre, así
+  # que con la cuota por nivel comparaba «6» contra «CIENCIAS SOCIALES» y no
+  # encontraba nunca nada. Medido: 4 celdas, 0 candidatos, 342 de brecha.
+  columna <- .monitoreo_scalar(eje[["columna"]] %||% "faculty", "faculty")
+  fac <- .maac_eje_key(facultad, eje)
+  if (identical(fac, paste0("sin_", .monitoreo_scalar(eje[["clave"]], "facultad")))) fac <- ""
+  sin_sexo <- identical(.monitoreo_scalar(grano, ""), "eje")
   # La celda llega con su etiqueta ("Femenino", "Mujer", "F"); aquí se reduce a
   # la clave del diseño. Sin clave no se adivina: se devuelve vacío, porque
   # inventar a qué sexo pertenece un candidato es peor que no proponerlo.
-  sexo <- .maac_sexo_key(.monitoreo_scalar(sexo, "F"))
-  if (!nzchar(fac) || !nzchar(sexo) || !length(pool)) return(list())
+  sexo <- if (sin_sexo) "" else .maac_sexo_key(.monitoreo_scalar(sexo, "F"))
+  if (!nzchar(fac) || (!sin_sexo && !nzchar(sexo)) || !length(pool)) return(list())
   if (!is.function(tasa_aula)) tasa_aula <- function(n) .cm_efectividad_rendimiento(n)
   filas <- list()
   for (a in pool) {
     if (!is.list(a)) next
-    # **Sólo aulas de ESA facultad.** Es el punto entero del ítem: un aula que
-    # aporta 60 alumnos de otra facultad no cierra esta celda.
-    if (!identical(.monitoreo_text_key(a$faculty %||% ""), fac)) next
-    ap <- .mard_aporte(a, sexo, ya_medidos)
+    # **Sólo aulas del MISMO valor del eje.** Es el punto entero del ítem: un
+    # aula que aporta 60 alumnos de otra facultad —o de otro nivel— no cierra
+    # esta celda. La clave se saca con `.maac_eje_key`, la misma que usó
+    # `avance_cuota` para armar las celdas: dos normalizadores distintos sobre
+    # los dos lados de la comparación es como se fabrica un cero mudo.
+    if (!identical(.maac_eje_key(a[[columna]] %||% "", eje), fac)) next
+    ap <- .mard_aporte(a, sexo, ya_medidos, sin_sexo = sin_sexo)
     if (ap$netos <= 0) next
     elig <- suppressWarnings(as.numeric(.monitoreo_scalar(a$eligible_n %||% 0, 0))[1])
     if (!is.finite(elig) || elig <= 0) elig <- ap$elegibles
@@ -147,8 +196,13 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
     if (!is.finite(tasa) || tasa <= 0) next
     filas[[length(filas) + 1L]] <- list(
       classroom_id = .monitoreo_scalar(a$classroom_id %||% a$operational_code %||% "", ""),
-      faculty = .monitoreo_scalar(a$faculty %||% "", ""),
+      # El campo conserva su nombre —la firma es pública y el frontend lo lee—
+      # y lleva el valor del EJE del aula, que con el eje en facultad es lo que
+      # llevaba.
+      faculty = .monitoreo_scalar(a[[columna]] %||% "", ""),
       sexo = sexo,
+      # Sigue llamándose así porque el nombre es público. Con `sin_sexo` son los
+      # elegibles del aula sin más: no hay sexo del que sean.
       elegibles_del_sexo = .mard_personas(ap$elegibles),
       solape_estimado = .mard_personas(ap$solape),
       # El aporte que cierra la celda: alumnos de ESA facultad y ESE sexo, netos
@@ -159,10 +213,17 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
       # **La marca, sin la cual esto no se puede usar.** Sirve para correr la
       # estimacion con y sin estas encuestas: un peso no permite comprobarlo.
       origen_dirigido = TRUE,
-      motivo = sprintf("Aporta %s de %s a la cuota de %s de %s",
-                       .mard_personas(ap$netos * tasa), .mard_personas(ap$elegibles),
-                       if (identical(sexo, "F")) "mujeres" else "hombres",
-                       .monitoreo_scalar(a$faculty %||% "", ""))
+      # La frase que nombra la celda sale del EJE, declarada y no derivada: con
+      # `frase_valor = "%s"` la de facultad queda byte a byte como estaba.
+      motivo = if (sin_sexo)
+          sprintf("Aporta %s de %s a la cuota de %s",
+                  .mard_personas(ap$netos * tasa), .mard_personas(ap$elegibles),
+                  .mard_frase_de_valor(a[[columna]] %||% "", eje))
+        else
+          sprintf("Aporta %s de %s a la cuota de %s de %s",
+                  .mard_personas(ap$netos * tasa), .mard_personas(ap$elegibles),
+                  if (identical(sexo, "F")) "mujeres" else "hombres",
+                  .mard_frase_de_valor(a[[columna]] %||% "", eje))
     )
   }
   if (!length(filas)) return(list())
@@ -182,10 +243,13 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
 #' @param plan filas del plan (incluye el banco).
 #' @param ya_medidos ids de alumnos ya medidos.
 #' @param tope candidatos por celda.
+#' @param eje el eje resuelto por [monitoreo_aulas_eje()]. Sin él, `facultad`.
 #' @return lista por celda en déficit con sus candidatos.
 #' @export
 monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
-                                              ya_medidos = character(0), tope = 5L) {
+                                              ya_medidos = character(0), tope = 5L,
+                                              eje = NULL) {
+  if (!is.list(eje) || !length(eje)) eje <- monitoreo_aulas_eje(list())
   if (!length(avance) || !length(plan)) return(list())
   banco <- Filter(function(f) {
     is.list(f) && identical(
@@ -218,11 +282,15 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
     tasa_de_la_celda <- if (is.finite(factor) && factor > 0) {
       function(n) .cm_efectividad_rendimiento(n) * factor
     } else NULL
+    # **El grano viaja, no se adivina.** Lo declara el motor en la celda; con
+    # `"eje"` esa celda no tiene dimensión de sexo y pedirle una la dejaba sin
+    # candidatos en silencio.
+    grano <- .monitoreo_scalar(c1$grano %||% "", "")
     cand <- monitoreo_aulas_reserva_dirigida(
       pool = banco, facultad = .monitoreo_scalar(c1$faculty %||% "", ""),
       sexo = .monitoreo_scalar(c1$sex %||% "F", "F"),
       tasa_aula = tasa_de_la_celda,
-      ya_medidos = ya_medidos, tope = tope
+      ya_medidos = ya_medidos, tope = tope, eje = eje, grano = grano
     )
     aporte <- if (length(cand)) sum(vapply(cand, function(x) x$aporte_esperado, numeric(1))) else 0
     brecha <- suppressWarnings(as.integer(.monitoreo_scalar(c1$brecha %||% 0, 0))[1])
@@ -237,7 +305,12 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
       # dos cifras: un «hay 5 candidatos» no responde si con esos 5 se cierra.
       alcanza = length(cand) > 0 && aporte >= brecha,
       etiqueta = if (!length(cand))
-          "El banco no tiene cursos-horario de esa facultad y ese sexo"
+          # La celda se nombra con la frase DECLARADA del eje: con el eje en
+          # facultad y sexo sale «esa facultad y ese sexo», byte a byte como
+          # estaba; con la cuota por nivel, «ese nivel» — y no «esa facultad y
+          # ese sexo» sobre un estudio de una sola facultad y sin cuota de sexo.
+          sprintf("El banco no tiene cursos-horario de %s",
+                  .mard_frase_de_celda(eje, identical(grano, "eje")))
         else if (aporte >= brecha)
           sprintf("Con %d curso%s-horario del banco se cierra: aportan %s y faltan %d",
                   length(cand), if (length(cand) == 1L) "" else "s",

@@ -44,6 +44,17 @@
     etiqueta = "Facultad",
     etiqueta_plural = "Facultades",
     etiqueta_sin = "Sin facultad",
+    # **Las dos frases con las que se NOMBRA una celda en prosa.** Declaradas y
+    # no derivadas, por el mismo motivo que el plural: derivarlas de la etiqueta
+    # obliga a acertar con el género del demostrativo y del artículo en cada
+    # eje nuevo, y «esa nivel» aparecería en la pantalla más vista.
+    #
+    # `frase_celda` dice de qué celda se habla sin nombrarla («esa facultad»);
+    # `frase_valor` es la plantilla que nombra un valor dentro de una oración.
+    # Para facultad es `%s` a propósito: así las frases de HSVG salen byte a
+    # byte como estaban.
+    frase_celda = "esa facultad",
+    frase_valor = "%s",
     # La respuesta hereda el valor del aula del plan a la que se atribuyó.
     atribucion = "aula",
     fuente_valor = "plan"
@@ -55,6 +66,8 @@
     etiqueta = "Nivel",
     etiqueta_plural = "Niveles",
     etiqueta_sin = "Sin nivel",
+    frase_celda = "ese nivel",
+    frase_valor = "nivel %s",
     # La respuesta hereda el valor de la PERSONA, resuelta por su código
     # declarado contra el padrón. Sin padrón no hay valor: la respuesta va a la
     # bolsa declarada, no a una celda inventada.

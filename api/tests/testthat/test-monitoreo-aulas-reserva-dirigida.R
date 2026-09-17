@@ -263,3 +263,97 @@ test_that("un sexo que no se reconoce no propone nada, en vez de tomar el primer
   sin_sexo <- lapply(.mard_pool(), function(a) { a$sex_top_1 <- ""; a$sex_top_2 <- ""; a })
   expect_identical(monitoreo_aulas_reserva_dirigida(sin_sexo, "DERECHO", "F"), list())
 })
+
+# --- el eje declarado --------------------------------------------------------
+#
+# Medido sobre el simulacro de CCSS por nivel el 2026-09-17: las CUATRO celdas
+# del eje recibían 0 candidatos con 342 personas de brecha y 86 aulas de reserva
+# en el plan, y la pantalla decía «El banco no tiene cursos-horario de esa
+# facultad y ese sexo» — en un estudio de UNA facultad y sin cuota de sexo. Dos
+# causas, las dos mudas: la celda no trae sexo (`grano = "eje"`) y la guarda
+# exigía uno; y el pool se filtraba por `faculty` comparando «6» contra
+# «CIENCIAS SOCIALES».
+
+.mard_aula_nivel <- function(id, nivel, elig, s1, n1, s2, n2) {
+  a <- .mard_aula(id, "CIENCIAS SOCIALES", elig, s1, n1, s2, n2)
+  a$level <- nivel
+  a
+}
+
+.mard_pool_nivel <- function() list(
+  .mard_aula_nivel("N6a", "6", 40, "F", 22, "M", 18),
+  .mard_aula_nivel("N6b", "6", 20, "F", 11, "M", 9),
+  .mard_aula_nivel("N7", "7", 40, "F", 21, "M", 19)
+)
+
+.mard_eje_nivel <- function() monitoreo_aulas_eje(list(eje_cuota = "nivel"))
+
+test_that("con el eje en nivel el banco se busca por NIVEL, no por facultad", {
+  r <- monitoreo_aulas_reserva_dirigida(.mard_pool_nivel(), "6", "",
+                                        eje = .mard_eje_nivel(), grano = "eje")
+  expect_identical(sort(vapply(r, function(x) x$classroom_id, character(1))), c("N6a", "N6b"))
+  # Y el valor que publica cada candidato es el del EJE, no el de la facultad:
+  # el frontend lo pinta como identidad de la fila.
+  expect_identical(unique(vapply(r, function(x) x$faculty, character(1))), "6")
+})
+
+test_that("sin dimensión de sexo cuentan TODOS los elegibles del aula", {
+  # Es la diferencia entre 0 candidatos y 2. Con la cuota por nivel no hay sexo
+  # que cerrar, así que filtrar por uno deja el aporte en cero — y en cero se
+  # quedaba, sin que nada fallara.
+  r <- monitoreo_aulas_reserva_dirigida(.mard_pool_nivel(), "6", "",
+                                        eje = .mard_eje_nivel(), grano = "eje")
+  del_aula <- r[[which(vapply(r, function(x) x$classroom_id, character(1)) == "N6a")]]
+  expect_identical(del_aula$elegibles_del_sexo, 40)
+  # Contra la misma aula pedida por sexo: 22 mujeres, no 40.
+  solo_f <- monitoreo_aulas_reserva_dirigida(.mard_pool_nivel(), "6", "F",
+                                             eje = .mard_eje_nivel())
+  expect_identical(solo_f[[which(vapply(solo_f, function(x) x$classroom_id, character(1)) == "N6a")]]$elegibles_del_sexo, 22)
+})
+
+test_that("«no pide sexo» y «el sexo no se reconoce» siguen siendo cosas distintas", {
+  # La primera cuenta a todos; la segunda no propone nada. Confundirlas en un
+  # solo `""` es exactamente el defecto que `grano` cierra, así que las dos
+  # ramas se prueban juntas: sin `grano`, un sexo vacío sigue devolviendo vacío.
+  expect_identical(
+    monitoreo_aulas_reserva_dirigida(.mard_pool_nivel(), "6", "", eje = .mard_eje_nivel()),
+    list()
+  )
+  expect_gt(length(monitoreo_aulas_reserva_dirigida(
+    .mard_pool_nivel(), "6", "", eje = .mard_eje_nivel(), grano = "eje")), 0)
+})
+
+test_that("la prosa la DECLARA el eje, y la de facultad no se mueve un byte", {
+  # `frase_valor = "%s"` para facultad: la frase que HSVG lee en campo hoy.
+  legado <- monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", "F")[[1]]$motivo
+  expect_true(grepl("a la cuota de mujeres de DERECHO", legado, fixed = TRUE))
+  # Y con el eje en nivel el valor se nombra con su palabra: un «6» pelado
+  # dentro de «a la cuota de 6» se lee como una cifra, no como un nombre.
+  por_nivel <- monitoreo_aulas_reserva_dirigida(.mard_pool_nivel(), "6", "",
+                                                eje = .mard_eje_nivel(), grano = "eje")[[1]]$motivo
+  expect_true(grepl("a la cuota de nivel 6", por_nivel, fixed = TRUE))
+  expect_false(grepl("mujeres|hombres", por_nivel))
+})
+
+test_that("la celda sin candidatos se nombra con la frase de su eje", {
+  celda <- function(fac, sexo, grano) list(list(
+    faculty = fac, sex = sexo, grano = grano, estado = "deficit_proyectado", brecha = 10
+  ))
+  banco <- lapply(.mard_pool(), function(a) { a$sample_role <- "extra_reserve_pool"; a })
+  # Eje facultad: la frase de siempre, byte a byte.
+  sin_nada <- monitoreo_aulas_reserva_por_celda(celda("GASTRONOMIA", "F", ""), banco)
+  expect_identical(sin_nada[[1]]$etiqueta,
+                   "El banco no tiene cursos-horario de esa facultad y ese sexo")
+  # Eje nivel: ni «facultad» ni «sexo», que es lo que la pantalla decía sobre un
+  # estudio de una sola facultad y sin cuota de sexo.
+  banco_n <- lapply(.mard_pool_nivel(), function(a) { a$sample_role <- "extra_reserve_pool"; a })
+  por_nivel <- monitoreo_aulas_reserva_por_celda(celda("9", "", "eje"), banco_n,
+                                                 eje = .mard_eje_nivel())
+  expect_identical(por_nivel[[1]]$etiqueta, "El banco no tiene cursos-horario de ese nivel")
+  # Y cuando el banco SÍ tiene de ese nivel, la frase cambia de naturaleza: deja
+  # de ser un vacío y dice con qué se cierra.
+  con_banco <- monitoreo_aulas_reserva_por_celda(celda("6", "", "eje"), banco_n,
+                                                 eje = .mard_eje_nivel())
+  expect_true(grepl("^Con 2 cursos-horario del banco se cierra", con_banco[[1]]$etiqueta))
+  expect_true(con_banco[[1]]$alcanza)
+})

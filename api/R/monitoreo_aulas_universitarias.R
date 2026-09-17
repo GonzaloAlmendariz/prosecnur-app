@@ -2129,6 +2129,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   ya_normalizado <- !is.null(plan) && !is.null(plan_crudo) && identical(plan, plan_crudo)
   plan <- if (ya_normalizado) cfg[["plan"]] else plan
   plan_df <- .monitoreo_aulas_df(plan %||% cfg[["plan"]], "plan")
+  # El eje del estudio, resuelto UNA vez para todo el tablero. Sin declaración
+  # es `facultad`, así que un estudio existente no cambia un byte.
+  .mau_eje <- monitoreo_aulas_eje(cfg)
   if (!nrow(plan_df)) {
     return(list(
       schema = "monitoreo_aulas_dashboard_v1",
@@ -3221,7 +3224,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       .monitoreo_aulas_records(plan_df)
     ),
     reserva_dirigida = monitoreo_aulas_reserva_por_celda(
-      .mau_avance_celdas, .agenda_registros
+      .mau_avance_celdas, .agenda_registros, eje = .mau_eje
     ),
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),

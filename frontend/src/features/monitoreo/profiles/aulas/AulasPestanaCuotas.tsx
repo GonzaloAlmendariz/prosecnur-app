@@ -431,6 +431,7 @@ export function AulasPestanaCuotas({
             facultadEnFoco,
           ) as unknown as MonitoreoAulasReservaDirigida[]}
           porDebajoHoy={quotaRows.filter((f) => Number(f.missing ?? 0) > 0).length}
+          eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
       </section>
       ) : null}

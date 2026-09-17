@@ -1,6 +1,9 @@
 import type { MonitoreoAulasReservaDirigida } from "../../../../api/monitoreo";
 import { fmtCuenta } from "./kpisDeAulas";
 import { etiquetaDeSexo } from "./etiquetaDeSexo";
+import {
+  etiquetaDeValorEnGrafico, etiquetaSinValorDelEje, type EjeDeclarado,
+} from "./etiquetaDelEje";
 
 /**
  * A qué aula del banco ir por cada celda de cuota que no va a llegar.
@@ -30,19 +33,45 @@ import { etiquetaDeSexo } from "./etiquetaDeSexo";
  * frase, no casa y se muestra entera. La completa viaja en el `title`, así que
  * no se pierde nada.
  */
-function motivoSinLaCola(motivo: string, sexo: string, facultad: string): string {
+/**
+ * El motivo del candidato, sin la cola que repite la celda.
+ *
+ * El motor redacta «Aporta 12 de 30 a la cuota de mujeres de DERECHO», y la
+ * celda que contiene esta lista ya dice de quién es: la cola se repite cinco
+ * veces bajo su propio encabezado.
+ *
+ * **Se corta por el separador, no por la cola reconstruida.** La versión
+ * anterior armaba « a la cuota de <sexo> de <facultad>» y la comparaba con el
+ * final; eso obliga a esta capa a conocer la plantilla del motor, y el motor
+ * redacta ahora DOS —con dimensión de sexo y sin ella, que es el caso de una
+ * cuota por el eje—, cada una con la frase que su eje declara. Cortar por el
+ * separador funciona con las dos y con la siguiente. Si el motor cambia el
+ * separador no casa y el motivo se muestra entero, que es lo correcto; la
+ * frase completa viaja además en el `title`.
+ */
+function motivoSinLaCuota(motivo: string): string {
   // Concatenado y no interpolado a proposito: `cifrasConFormato` vigila las
   // plantillas porque ahi es donde una cifra llega a la pantalla sin formatear,
-  // y esta cadena no se pinta —es la cola con la que se compara—.
-  const cola = " a la cuota de " + sexo + " de " + facultad;
-  return motivo.endsWith(cola) ? motivo.slice(0, -cola.length) : motivo;
+  // y esta cadena no se pinta —es el separador con el que se compara—.
+  const sep = " a la cuota de ";
+  const i = motivo.lastIndexOf(sep);
+  return i > 0 ? motivo.slice(0, i) : motivo;
 }
 
 export function AulasReservaDirigida(
-  { celdas, porDebajoHoy }: {
+  { celdas, porDebajoHoy, eje }: {
     celdas: ReadonlyArray<MonitoreoAulasReservaDirigida>;
     /** Grupos de cuota con falta HOY (`missing > 0`), sin proyectar nada. */
     porDebajoHoy?: number;
+    /**
+     * La declaración del eje (`avance_cuota.eje`), para nombrar sus valores.
+     *
+     * Sin ella la celda se titulaba con el valor pelado: cuatro filas que
+     * decían «6», «7», «8», «9» debajo de un selector que ya las llamaba
+     * «Nivel 6». En una lista donde cada fila dice «faltan 104», un «7» suelto
+     * se lee como una cifra.
+     */
+    eje?: EjeDeclarado;
   },
 ) {
   const conDecision = celdas.filter((c) => c && Number(c.brecha) > 0);
@@ -114,7 +143,11 @@ export function AulasReservaDirigida(
               data-alcanza={celda.alcanza ? "si" : "no"}
             >
               <div className="aulas-reserva-dirigida-celda-head">
-                <strong>{celda.faculty || "Sin facultad"}</strong>
+                <strong>
+                  {celda.faculty
+                    ? etiquetaDeValorEnGrafico(celda.faculty, eje)
+                    : etiquetaSinValorDelEje(eje)}
+                </strong>
                 <span className="aulas-reserva-dirigida-sexo">{enPalabras}</span>
                 <span className="aulas-reserva-dirigida-brecha">faltan {fmtCuenta(celda.brecha)}</span>
               </div>
@@ -135,7 +168,7 @@ export function AulasReservaDirigida(
                     <li key={`${clave}‧${cand.classroom_id}`}>
                       <code>{cand.classroom_id}</code>
                       <span title={cand.motivo}>
-                        {motivoSinLaCola(cand.motivo, enPalabras, celda.faculty)}
+                        {motivoSinLaCuota(cand.motivo)}
                       </span>
                       {/* Sin padrón el solape es estimado, y decirlo es la
                           diferencia entre un número y un supuesto. Si NINGUNO lo
