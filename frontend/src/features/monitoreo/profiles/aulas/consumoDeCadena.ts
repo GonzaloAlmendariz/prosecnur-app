@@ -151,6 +151,14 @@ export function consumoDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   };
 }
 
+/**
+ * La clave de las filas cuyo valor del eje está vacío.
+ *
+ * Se exporta para que quien las pinte las reconozca y les ponga la palabra de
+ * SU eje («Sin facultad», «Sin nivel»): esta capa agrupa, no redacta.
+ */
+export const SIN_VALOR_DEL_EJE = "\u0000sin-valor";
+
 export type ColchonDeFacultad = {
   facultad: string;
   /** Cadenas —titulares— de la facultad. */
@@ -188,13 +196,32 @@ export type ColchonDeFacultad = {
  * nunca. Su reparto por facultad, con composición por sexo, vive en su propia
  * pestaña (`monitoreo_aulas_banco_extras.R`).
  */
-export function colchonPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): ColchonDeFacultad[] {
+export function colchonPorFacultad(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  /**
+   * **La columna por la que se agrupa, que la dice el EJE del estudio.**
+   *
+   * `faculty` por defecto, así que HSVG —15 facultades, en campo— no cambia un
+   * byte. Con la cuota por nivel, `level`: agrupando por facultad, CCSS cae a
+   * UNA fila («CIENCIAS SOCIALES») y el panel deja de decir dónde se rompe la
+   * reserva, que es su función entera.
+   *
+   * **`stratum` NO vale**, aunque parezca la columna natural: en el plan de
+   * HSVG2026 es `FACULTAD / SEXO / GRUPO` y tiene **76 valores** —medido sobre
+   * sus 1.392 aulas—, así que agrupar por ahí convertiría 15 filas en 76 en un
+   * estudio que está en campo. Que en CCSS `stratum` coincida con `level` es
+   * una coincidencia de ese diseño, no la regla.
+   */
+  columna: string = "faculty",
+): ColchonDeFacultad[] {
+  const valorDelEje = (fila: MonitoreoAulasPlanRow) =>
+    texto((fila as unknown as Record<string, unknown>)[columna]);
   const facultadDelTitular = new Map<string, string>();
   for (const fila of filas) {
     const rol = texto(fila.sample_role);
     if (rol === "chain_reserve" || rol === "extra_reserve_pool") continue;
     const cadena = titularDe(fila);
-    if (cadena) facultadDelTitular.set(cadena, texto(fila.faculty));
+    if (cadena) facultadDelTitular.set(cadena, valorDelEje(fila));
   }
 
   type Cuenta = { libres: number; total: number };
@@ -216,7 +243,10 @@ export function colchonPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>):
   for (const fila of filas) {
     const rol = texto(fila.sample_role);
     if (rol === "extra_reserve_pool") continue;
-    const propia = texto(fila.faculty) || "Sin facultad";
+    // El respaldo NO lleva la palabra del eje: quien lo pinta la pone, porque
+    // es el único que sabe cómo se dice «sin valor» en este estudio. Aquí sólo
+    // hace falta una clave estable que no se confunda con un valor real.
+    const propia = valorDelEje(fila) || SIN_VALOR_DEL_EJE;
     const cadena = titularDe(fila);
     if (!cadena) continue;
     if (rol !== "chain_reserve") {

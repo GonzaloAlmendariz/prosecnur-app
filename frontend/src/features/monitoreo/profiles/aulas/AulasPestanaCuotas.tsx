@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBolsasDelAvance } from "./AulasBolsasDelAvance";
 import { AulasComposicionReferencial } from "./AulasComposicionReferencial";
+import { etiquetaDelEje } from "./etiquetaDelEje";
 import { AulasMetasAvance } from "./AulasMetasAvance";
 import { AulasMetasBarras } from "./AulasMetasBarras";
 import { AulasMetasCinta } from "./AulasMetasCinta";
@@ -337,7 +338,16 @@ export function AulasPestanaCuotas({
               terminar igual que «Cuota sexo por facultad». La unidad va en el
               subtítulo. */}
           <h3>Consumo de la reserva</h3>
-          <span>por facultad, al ritmo de reemplazos observado</span>
+          {/* La unidad sigue al eje: «por facultad» en HSVG, «por nivel» en un
+              estudio cuya cuota es por nivel. Va en el subtítulo y no en el
+              título porque el guard `titulosDePanel` caza un `h3` que termine
+              igual que «Cuota sexo por facultad». */}
+          <span>
+            {`por ${etiquetaDelEje(
+              (dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })
+                ?.avance_cuota?.eje,
+            ).toLocaleLowerCase("es")}, al ritmo de reemplazos observado`}
+          </span>
         </div>
         {/* Los días de campo salen de los PARTES —los días en que el operativo
             salió de verdad— y no de `ritmo_diario`, que cuenta días con
@@ -375,6 +385,7 @@ export function AulasPestanaCuotas({
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
           facultadEnFoco={facultadEnFoco}
           onFoco={onFoco}
+          eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
         </section>
       <section
