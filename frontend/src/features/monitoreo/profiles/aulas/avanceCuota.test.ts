@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 
 import type {
   MonitoreoAulasAvanceCuota,
@@ -270,5 +270,62 @@ describe("numeroONulo", () => {
     expect(numeroONulo("3750")).toBe(3750);
     expect(numeroONulo("0")).toBe(0);
     expect(numeroONulo(0)).toBe(0);
+  });
+});
+
+describe("las bolsas del eje por persona llegan a la pantalla", () => {
+  /**
+   * **El motor las publicaba y ninguna pantalla las pintaba.** Comprobado con un
+   * grep sobre `src/` entero el 2026-09-17: nada consumía `sin_eje`,
+   * `duplicadas` ni `invariante`. Es el patrón del dato que muere camino a la
+   * UI, y el defecto era mío: las añadí al motor y ahí se quedaron.
+   */
+  const bloque = (total: Record<string, unknown>, eje?: Record<string, unknown>) => ({
+    schema: "monitoreo_aulas_avance_cuota_v1",
+    fuente: "design_targets", vigencia: "vigente", motivo: "",
+    tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+    eje: eje ?? null,
+    facultades: [{ facultad: "7", faculty_key: "7", cuota: 121, respuestas_validas: 10 }],
+    total: { cuota: 400, respuestas_validas: 10, brecha: 390, avance_pct: 2.5, ...total },
+  }) as never;
+
+  it("las nombra con el rótulo del eje, y sólo cuando hay algo", () => {
+    const con = avanceCuota(bloque({ sin_eje: 4, duplicadas: 2 },
+      { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" }));
+    const notas = (con.total?.notas ?? []).join(" · ");
+    expect(notas).toContain("4 sin nivel");
+    // **Personas, no respuestas.** La cuota es de personas: llamarlo «respuestas
+    // duplicadas» haría pensar que sobran encuestas cuando lo que hay es alguien
+    // contado una sola vez a propósito.
+    expect(notas).toContain("2 personas que respondió dos veces");
+    expect(notas).not.toContain("respuestas duplicadas");
+    // Con el eje en facultad las dos valen 0 y no se pintan: «0 sin nivel» es
+    // ruido, y es el mismo trato que reciben sus hermanas.
+    const sin = avanceCuota(bloque({ sin_eje: 0, duplicadas: 0 }));
+    expect((sin.total?.notas ?? []).join(" · ")).not.toContain("sin nivel");
+  });
+
+  it("una sola persona repetida se dice en singular", () => {
+    const uno = avanceCuota(bloque({ duplicadas: 1 }));
+    expect((uno.total?.notas ?? []).join(" · ")).toContain("1 persona que respondió dos veces");
+  });
+
+  it("el descuadre del invariante habla SÓLO cuando no cuadra", () => {
+    // Al revés que las notas: un «las partes suman» permanente es ruido, y un
+    // bloque cuyas partes no suman su total no se puede leer.
+    const cuadra = avanceCuota(bloque({ invariante: { ok: true, suma: 10, total: 10, solapadas: 0 } }));
+    expect(cuadra.total?.descuadre).toBeNull();
+    const no = avanceCuota(bloque({ invariante: { ok: false, suma: 8, total: 10, solapadas: 0 } }));
+    expect(no.total?.descuadre).toContain("8");
+    expect(no.total?.descuadre).toContain("10");
+    // Y el solape se nombra cuando existe: una respuesta en dos bolsas es otro
+    // defecto distinto de que falten.
+    const solape = avanceCuota(bloque({ invariante: { ok: false, suma: 12, total: 10, solapadas: 2 } }));
+    expect(solape.total?.descuadre).toContain("dos bolsas");
+  });
+
+  it("un bloque sin invariante no inventa un descuadre", () => {
+    // Un payload viejo no lo trae, y eso NO es un descuadre: es que no se midió.
+    expect(avanceCuota(bloque({})).total?.descuadre).toBeNull();
   });
 });
