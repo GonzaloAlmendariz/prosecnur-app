@@ -282,3 +282,79 @@ describe("el redondeo de las tasas es uno solo", () => {
     expect((0.5135 * 100).toFixed(1)).toBe("51.3");
   });
 });
+
+/**
+ * **Cero en riesgo sobre cero evaluadas NO es «todas cierran».**
+ *
+ * Medido el 2026-09-17 sobre el simulacro de CCSS por nivel, barriendo las 19
+ * pestañas del perfil: Resumen decía «con lo agendado, todas las facultades
+ * cierran su cuota» y Refuerzos «ninguna facultad debe nada ahora mismo»,
+ * mientras Metas —misma sesión, mismos datos— decía que los cuatro niveles no
+ * llegaban y faltaban 342 personas.
+ *
+ * La causa: el motor emitía CINCO filas para un estudio de cuatro niveles —las
+ * cuatro del eje con cuota y sin una sola aula atribuida, y una con la facultad
+ * del aula, 60 efectivas y sin cuota—, porque la cuota entra por el eje
+ * declarado y el plan se agrupa por la facultad del aula. Ninguna se evaluó, y
+ * el agregado convertía eso en un 0 que esta frase leía como buena noticia.
+ */
+describe("riesgoDeCierre: el denominador del riesgo", () => {
+  const conDenominador = (extra: Record<string, unknown>) => ({
+    total: { ...bloque.total, facultades_en_riesgo: 0, facultades_en_riesgo_agendado: 0, ...extra },
+  } as unknown as MonitoreoAulasEfectividadSeguimiento);
+
+  it("sin nada evaluado NO afirma, y dice la causa de cada mitad", () => {
+    const r = riesgoDeCierre(conDenominador({
+      facultades: 5, facultades_evaluadas: 0,
+      facultades_sin_campo: 4, facultades_sin_cuota: 1,
+    }))!;
+    expect(r.frase).toContain("No se puede decir si se cierra la cuota");
+    expect(r.frase).toContain("de 5 grupos, ninguno se pudo evaluar");
+    // Las dos causas piden arreglos distintos, así que se nombran las dos.
+    expect(r.frase).toContain("4 sin ningún curso-horario atribuido");
+    expect(r.frase).toContain("1 sin cuota del diseño contra la que medir");
+    expect(r.frase).not.toContain("cierran su cuota");
+    expect(r.evaluadas).toBe(0);
+  });
+
+  it("con algunas sin evaluar afirma SÓLO sobre lo que midió", () => {
+    // Un «todas cierran» con tres grupos sin medir es la misma mentira en
+    // pequeño.
+    const r = riesgoDeCierre(conDenominador({
+      facultades: 15, facultades_evaluadas: 12, facultades_sin_campo: 3,
+      facultades_sin_cuota: 0,
+    }))!;
+    expect(r.frase).toContain("las 12 que se pudieron evaluar, de 15");
+    expect(r.frase).toContain("3 sin ningún curso-horario atribuido");
+    expect(r.frase).not.toBe("Con lo agendado, todas las facultades cierran su cuota.");
+  });
+
+  it("con todo evaluado la frase es la de siempre, byte a byte", () => {
+    // HSVG está en campo: sus quince filas se evalúan y no puede cambiar de
+    // conducta por este arreglo.
+    const r = riesgoDeCierre(conDenominador({
+      facultades: 15, facultades_evaluadas: 15, facultades_sin_campo: 0,
+      facultades_sin_cuota: 0,
+    }))!;
+    expect(r.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
+  });
+
+  it("un payload SIN el denominador se cae a afirmar, no a «no se sabe»", () => {
+    // El campo es nuevo: un estado guardado antes del 2026-09-17 no lo trae, y
+    // declarar «no se sabe» sobre un estudio que sí cierra sería peor que el
+    // defecto que esto arregla.
+    expect(riesgoDeCierre(bloque)!.frase)
+      .toBe("Con lo agendado, todas las facultades cierran su cuota.");
+  });
+
+  it("y el riesgo REAL sigue mandando sobre el denominador", () => {
+    // Si hay grupos en riesgo, eso se dice: no se esconde tras «faltan grupos
+    // por evaluar».
+    const r = riesgoDeCierre(conDenominador({
+      facultades: 15, facultades_evaluadas: 12, facultades_sin_campo: 3,
+      facultades_en_riesgo_agendado: 2, alumnos_en_riesgo_agendado: 170,
+    }))!;
+    expect(r.frase).toContain("2 facultades no cierran");
+    expect(r.frase).toContain("170");
+  });
+});

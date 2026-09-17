@@ -77,6 +77,19 @@ export type RiesgoDeCierre = {
   alumnosEnRiesgoAgendado: number;
   /** Las que rinden bajo su τ con evidencia; no es lo mismo que estar en riesgo. */
   facultadesBajoSuTau: number;
+  /**
+   * **Cuántas se pudieron evaluar, que es el denominador de los dos conteos de
+   * riesgo.** Sin él, un 0 en riesgo dice dos cosas opuestas: «medí las quince
+   * y ninguna está en riesgo» y «no pude medir ninguna». La pantalla leía la
+   * segunda como la primera.
+   */
+  evaluadas: number;
+  /** Cuántas filas hay en total, evaluables o no. */
+  grupos: number;
+  /** Tienen cuota y ninguna aula atribuida. */
+  sinCampo: number;
+  /** Tienen campo y ninguna cuota contra la que medirlo. */
+  sinCuota: number;
   frase: string;
 };
 
@@ -209,6 +222,18 @@ export function riesgoDeCierre(
   const bajoTau = Number(t.facultades_bajo_su_tau ?? 0) || 0;
   const enRiesgoAg = Number(t.facultades_en_riesgo_agendado ?? 0) || 0;
   const alumnosAg = Math.round(Number(t.alumnos_en_riesgo_agendado ?? 0) || 0);
+  const grupos = Number(t.facultades ?? 0) || 0;
+  const sinCampo = Number(t.facultades_sin_campo ?? 0) || 0;
+  const sinCuota = Number(t.facultades_sin_cuota ?? 0) || 0;
+  /**
+   * **Sin denominador no se afirma.** `facultades_evaluadas` es nuevo, así que
+   * un payload viejo no lo trae: en ese caso se cae al comportamiento de
+   * siempre —afirmar— porque para los estudios que ya corren es cierto, y
+   * declarar «no se sabe» sobre HSVG sería peor que el defecto.
+   */
+  const evaluadas = t.facultades_evaluadas == null
+    ? Math.max(grupos, enRiesgoAg, 1)
+    : Number(t.facultades_evaluadas) || 0;
 
   /**
    * **La frase manda la cifra de lo AGENDADO, que es la que se puede mover.**
@@ -225,18 +250,50 @@ export function riesgoDeCierre(
    * agendar da para cubrirlo, el trabajo es agendar; si tampoco, hace falta
    * reserva— porque son dos acciones distintas.
    */
-  const frase = enRiesgoAg
+  /**
+   * **Cero en riesgo sobre cero evaluadas NO es «todas cierran».**
+   *
+   * Medido el 2026-09-17 sobre el simulacro de CCSS por nivel: las cinco filas
+   * salían sin evaluar —cuatro con cuota y sin campo, una con campo y sin
+   * cuota, porque la cuota entra por el eje declarado y el plan se agrupa por
+   * la facultad del aula— y esta frase publicaba «con lo agendado, todas las
+   * facultades cierran su cuota» mientras Metas, en la misma sesión, decía que
+   * los cuatro niveles no llegaban y faltaban 342 personas.
+   *
+   * Y la causa se DICE, porque son dos arreglos distintos: sin campo es que no
+   * hay aulas atribuidas a esos grupos; sin cuota, que el diseño no fijó una
+   * contra la que medirlos.
+   */
+  const porQueNoSeSabe = () => {
+    const partes: string[] = [];
+    if (sinCampo > 0) {
+      partes.push(`${fmt(sinCampo)} sin ningún curso-horario atribuido`);
+    }
+    if (sinCuota > 0) {
+      partes.push(`${fmt(sinCuota)} sin cuota del diseño contra la que medir`);
+    }
+    return partes.length ? ` — ${partes.join(" y ")}.` : ".";
+  };
+  const frase = evaluadas <= 0
+    ? `No se puede decir si se cierra la cuota: de ${fmt(grupos)} ${grupos === 1 ? "grupo" : "grupos"}, ninguno se pudo evaluar${porQueNoSeSabe()}`
+    : enRiesgoAg
     ? `${fmt(enRiesgoAg)} ${enRiesgoAg === 1 ? "facultad no cierra" : "facultades no cierran"} su cuota con lo que tienen agendado: faltarían ${fmt(alumnosAg)} ${alumnosAg === 1 ? "alumno" : "alumnos"}.`
       + (enRiesgo
         ? ` Ni agendando el resto de su plan: ${enRiesgo === 1 ? "una seguiría corta" : `${fmt(enRiesgo)} seguirían cortas`} y haría falta activar reservas.`
         : " El plan que les queda por agendar da para cubrirlo.")
     : bajoTau
       ? `Con lo agendado, todas las facultades cierran su cuota, aunque ${fmt(bajoTau)} ${bajoTau === 1 ? "rinde" : "rinden"} por debajo de su tasa prevista.`
-      : "Con lo agendado, todas las facultades cierran su cuota.";
+      : evaluadas < grupos
+        // Se afirma SÓLO sobre lo que se evaluó, y se dice qué quedó fuera: un
+        // «todas cierran» con tres grupos sin medir es la misma mentira en
+        // pequeño.
+        ? `Con lo agendado cierran su cuota las ${fmt(evaluadas)} que se pudieron evaluar, de ${fmt(grupos)}${porQueNoSeSabe()}`
+        : "Con lo agendado, todas las facultades cierran su cuota.";
   return {
     facultadesEnRiesgo: enRiesgo, alumnosEnRiesgo: alumnos,
     facultadesEnRiesgoAgendado: enRiesgoAg, alumnosEnRiesgoAgendado: alumnosAg,
-    facultadesBajoSuTau: bajoTau, frase,
+    facultadesBajoSuTau: bajoTau,
+    evaluadas, grupos, sinCampo, sinCuota, frase,
   };
 }
 
