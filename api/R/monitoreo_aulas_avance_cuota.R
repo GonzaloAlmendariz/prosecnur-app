@@ -488,6 +488,13 @@
     # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
     # `eje` se lee como `facultad`, que es lo que es.
     eje = monitoreo_aulas_eje_declaracion(eje),
+    # **Sexo y carrera, descriptivos y en su propio bloque.** No entran a las
+    # celdas ni a la brecha: la cuota es por el eje (decisión 2 del plan). Se
+    # calculan aquí —en el MOTOR— porque el payload del estado recorta
+    # `quotas$category_profiles` y un panel que la lea desde React vería
+    # `undefined` en un estudio real.
+    composicion = monitoreo_aulas_composicion_referencial(
+      cfg, resueltas = attr(eje_atr, "resueltas"), cuenta = eje_atr$cuenta),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**
