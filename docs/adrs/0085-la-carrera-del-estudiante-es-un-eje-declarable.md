@@ -1,6 +1,6 @@
 # ADR 0085 — La carrera del estudiante es un eje declarable, y el aula sigue siendo el vehículo
 
-- **Estado**: propuesta
+- **Estado**: Aceptado, con su cláusula 2 **reemplazada**
 - **Fecha**: 2026-09-15
 - **Ámbito**: Cálculo de muestra · Recopiladores · Monitoreo de aulas · libro
   operativo
@@ -8,6 +8,22 @@
   (del que es una aplicación un nivel más abajo) y
   [ADR 0082](0082-una-variable-casi-identificadora-no-balancea-degenera.md)
   (cuya guarda se conserva intacta)
+- **Reemplazo parcial**: su **cláusula 2** —«el eje lee la carrera del
+  ESTUDIANTE»— la reemplaza el
+  [ADR 0086](0086-el-eje-de-cuotas-lo-declara-el-estudio.md). Las cláusulas 1, 3
+  y 4 siguen vigentes y son el trabajo de fondo de este documento.
+
+> **AVISO DE ÁMBITO, 2026-09-17.** Este ADR se escribió con un dictado del
+> 15/09 que puso la CARRERA como eje de CCSS Perfil 2026-II. El 17/09 Gonzalo
+> fijó otra cosa: **«Recuerda que la meta no es por sexo y nivel sino sólo
+> nivel»**. Las metas del estudio se prometieron por **nivel curricular**, y
+> carrera y sexo son **referenciales** —se describen, no se exigen—. Lo que este
+> documento sigue aportando, y por lo que se conserva aceptado, es su cláusula 1
+> (el eje lo declara el estudio y no lo adivina el marco), su cláusula 3 (las
+> fichas no se reparten por carrera: el aula es compartida y sigue entera) y su
+> cláusula 4 (que «estrato» deje de ser sinónimo de la columna `faculty`, que es
+> el defecto de fondo y el que habría hecho caer las metas a `NA` en silencio).
+> Para el eje vigente y su contrato, ir al ADR 0086.
 
 ## Contexto
 
@@ -66,10 +82,14 @@ libro operativo, avance y brecha de Monitoreo. La app **sugiere** `carrera`
 cuando el marco trae una sola facultad, pero la decisión queda escrita, es
 reversible y no cambia sola porque se rehaga el marco.
 
-**2 · El eje lee la carrera del ESTUDIANTE, no la del curso.** Es el ADR 0081
-un nivel más abajo. La carrera del curso-horario queda como referencia
-descriptiva del aula; la que cuenta para metas, cuotas y representatividad es la
-de las personas matriculadas en ella.
+**2 · ~~El eje lee la carrera del ESTUDIANTE, no la del curso.~~**
+**REEMPLAZADA** por el [ADR 0086](0086-el-eje-de-cuotas-lo-declara-el-estudio.md)
+el 2026-09-17: el eje de cuotas de CCSS es el **nivel curricular**, y la carrera
+es referencial. Lo que de esta cláusula sobrevive, y el 0086 conserva, es su
+principio: cuando el eje sea una propiedad de la PERSONA —carrera o nivel—, la
+que cuenta es la del estudiante y no la del curso, que es el ADR 0081 un nivel
+más abajo. La carrera del curso-horario queda como referencia descriptiva del
+aula.
 
 **3 · Las fichas no se reparten por carrera.** El aula es compartida y sigue
 entera: una sola ficha, un solo QR, un solo aplicador. El árbol de carpetas del
