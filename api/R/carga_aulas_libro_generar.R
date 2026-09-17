@@ -122,9 +122,31 @@
 # dictado B15: «que todo eso se este jalando muy bien, no vaya a ser que jale
 # mal algun numero o interprete mal alguna fecha y el docente pierda seriedad
 # sobre el estudio».
+#
+# **Y entre la legible y el `label` hay un escalón que faltaba.** Medido en CCSS
+# Perfil 2026-II: `sesiones_legibles` viene en **0 de 136** aulas —su marco no la
+# produjo— mientras `sesiones_dia_hora` viene en **136 de 136** («LUN
+# 15:00-18:00») y `venue` trae el aula («Z410»). Con sólo dos escalones la celda
+# caía al `label`, que es el código interno del curso-horario (`ant310_0811`):
+# el que llama al docente no tenía el horario que iba a proponerle, que es
+# exactamente lo que el dictado B15 pedía evitar. El dato estaba en el campo
+# hermano y nadie lo miraba.
+#
+# HSVG no se mueve: ahí `sesiones_legibles` sí viene y gana igual que antes.
 .calg_sesiones_y_aula <- function(u) {
   legible <- .calg_txt(u$sesiones_legibles)
-  if (nzchar(legible)) legible else .calg_txt(u$label)
+  if (nzchar(legible)) return(legible)
+  # El día y la hora del catálogo DTI, con el aula al lado cuando la hay. Se
+  # compone con el mismo separador que usa la legible, para que las dos formas
+  # se lean igual en la misma columna.
+  dia_hora <- .calg_txt(u$sesiones_dia_hora)
+  aula <- .calg_txt(u$venue)
+  if (nzchar(dia_hora)) {
+    return(if (nzchar(aula)) paste(dia_hora, aula) else dia_hora)
+  }
+  # Sin día ni hora, el aula sola sigue diciendo más que el código interno.
+  if (nzchar(aula)) return(aula)
+  .calg_txt(u$label)
 }
 
 # **Las celdas del bloque de agenda, derivadas de la spec.**
