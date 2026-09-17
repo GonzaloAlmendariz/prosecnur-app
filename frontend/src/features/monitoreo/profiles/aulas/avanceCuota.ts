@@ -43,6 +43,16 @@ export type TotalDeAvanceCuota = {
   /** Lecturas secundarias —fuera de universo, sin aula del plan—; nunca se ocultan. */
   notas: string[];
   /**
+   * **Cuántas respuestas llegaron y no entran en ninguna celda**, que es la
+   * cifra que le falta a «Efectivas 58 de 400» para poder leerse.
+   *
+   * Es la suma de las cuatro bolsas, no una resta contra `validas`: cada bolsa
+   * la publica el motor y sumarlas dice lo mismo que el invariante comprueba.
+   * Restar `total − validas` daría el mismo número mientras el invariante
+   * cuadre y un número inventado justo cuando no —que es cuando importa—.
+   */
+  fueraDeCelda: number;
+  /**
    * **El invariante del bloque, y sólo cuando NO cuadra.**
    *
    * `respuestas_validas = Σ celdas + duplicados + sin eje + fuera de universo +
@@ -329,7 +339,11 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const sinEjeRotulo = bloque.eje?.etiqueta_sin ?? "Sin valor del eje";
   if (sinEje > 0) notasTotal.push(`${fmt(sinEje)} ${sinEjeRotulo.toLocaleLowerCase("es")}`);
   if (duplicadas > 0) {
-    notasTotal.push(`${fmt(duplicadas)} ${duplicadas === 1 ? "persona" : "personas"} que respondió dos veces`);
+    notasTotal.push(
+      duplicadas === 1
+        ? `${fmt(duplicadas)} persona que respondió dos veces`
+        : `${fmt(duplicadas)} personas que respondieron dos veces`,
+    );
   }
   // El invariante: se lee del motor, no se recalcula. Recalcularlo aquí daría
   // una segunda verdad sobre la misma suma.
@@ -372,6 +386,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       // con el denominador del diseño que con el del plan degradado.
       aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
       notas: notasTotal,
+      fueraDeCelda: fueraTotal + huerfanas + sinEje + duplicadas,
       descuadre,
     },
     filas,

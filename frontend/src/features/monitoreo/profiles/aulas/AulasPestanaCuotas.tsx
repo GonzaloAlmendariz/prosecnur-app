@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
+import { AulasBolsasDelAvance } from "./AulasBolsasDelAvance";
 import { AulasMetasAvance } from "./AulasMetasAvance";
 import { AulasMetasBarras } from "./AulasMetasBarras";
 import { AulasMetasCinta } from "./AulasMetasCinta";
@@ -384,6 +385,15 @@ export function AulasPestanaCuotas({
           <h3>Qué grupos no llegan, y con qué remedio</h3>
           <span>lo recogido, lo que traerá lo agendado y el techo de todo el plan</span>
         </div>
+        {/* **Las cuatro bolsas, sobre los grupos que no llegan.**
+            Aquí y no en el panel de metas de arriba, que es donde las puse
+            primero: ese panel se monta sólo si el estudio publica
+            `proyeccion_metas`, y CCSS no lo publica — visto en pantalla el
+            2026-09-17, con las bolsas otra vez en un sitio que nadie pinta.
+            Éste no tiene guarda y es el que declara la lectura de la cuota, así
+            que las respuestas que no entran en ninguna meta se leen junto a los
+            grupos que no la alcanzan. Ver la nota de `AulasBolsasDelAvance`. */}
+        {cuotaDiseno.total ? <AulasBolsasDelAvance total={cuotaDiseno.total} /> : null}
         <AulasTresLecturas
           celdas={deLaFacultad(
             (dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>,
