@@ -88,6 +88,18 @@
   c(list(as.list(nombres)), filas)
 }
 
+# Cuántas aulas llevan parte de campo en el modelo que se está escribiendo. Es
+# la fila «Aulas aplicadas» de «Avance general», que ya la calcula el motor: no
+# se cuenta otra vez aquí, que es como nacen dos cifras para lo mismo.
+.cala_aulas_aplicadas <- function(ind) {
+  g <- (ind %||% list())$general
+  if (!is.data.frame(g) || !nrow(g) || ncol(g) < 2L) return(NA_real_)
+  i <- which(as.character(g[[1]]) == "Aulas aplicadas")
+  if (!length(i)) return(NA_real_)
+  v <- suppressWarnings(as.numeric(g[[2]][[i[[1]]]]))
+  if (length(v) != 1L || !is.finite(v)) NA_real_ else v
+}
+
 #' Arma la hoja «Avance de campo» del libro como filas de celdas para Sheets.
 #'
 #' @param ind el modelo de `aulas_libro_indicadores()`: las cinco tablas
@@ -131,6 +143,18 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
   # libro lee horas de Lima, no el ISO UTC del estado. Cuando cae en el mismo
   # día del corte basta la hora; cuando no, se dice el día entero — que es
   # justo la noticia importante (los datos son de ayer).
+  # **Y con cuántas aulas se escribió.** La hora de arriba fecha las RESPUESTAS
+  # de la plataforma; las aulas aplicadas no vienen de ahí, vienen de los partes
+  # de campo, que entran leyendo el propio Sheets. Así que dos publicaciones con
+  # el mismo «actualizado a las 10:40» podían llevar distinto número de aulas, y
+  # el rótulo prometía una frescura que no cubría: Gonzalo comparó las dos
+  # vistas el 2026-09-17 —Derecho con 17 aulas en la hoja y 19 en la app— y no
+  # tenía con qué distinguir cuál era más nueva.
+  #
+  # Sale del MODELO y no del reloj, igual que la marca: publicar dos veces sin
+  # que cambie nada escribe lo mismo, y el motor batch+hash no reescribe la
+  # pestaña. Un reloj aquí la reescribiría en cada publicación.
+  aplicadas <- .cala_aulas_aplicadas(ind)
   marca <- .cai_marca_local(.cala_txt(actualizado))
   if (nzchar(marca)) {
     mismo_dia <- length(fecha) == 1L && !is.na(fecha) &&
@@ -140,6 +164,10 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
     } else {
       paste0(corte, " · datos de plataforma actualizados el ", marca)
     }
+  }
+  if (is.finite(aplicadas)) {
+    corte <- paste0(corte, " · escrito con ", format(aplicadas, big.mark = " ", trim = TRUE),
+                    if (aplicadas == 1) " aula con parte de campo" else " aulas con parte de campo")
   }
 
   filas <- list()

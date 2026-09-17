@@ -772,6 +772,14 @@ export type MonitoreoAulasConfig = {
    */
   design_targets?: { facultades?: { facultad?: string }[] } | null;
   /**
+   * El recibo de la última publicación del libro: cuándo se escribió y con qué
+   * corte de plataforma. Es lo que permite decir si el Sheets está al día sin
+   * tener que comparar dos pantallas a ojo. Ver `selloDePublicacion.ts`.
+   */
+  libro_publicado?: {
+    publicado_en?: string; synced_at?: string; hojas?: number; partes?: number;
+  } | null;
+  /**
    * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
    * 2026-09-15). Lo que se guarda es la decisión —el rango y cómo se llama—;
    * su estado (citas, aplicadas, por aplicar) se deriva del plan y viaja en el

@@ -387,3 +387,57 @@ test_that("S11: sin partes el xlsx escribe «Producción por aplicador» con su 
   expect_match(nota, "todavía no hay producción por aplicador")
   expect_true(.calax_fusionada_a_lo_ancho(h, fila + 1L))
 })
+
+test_that("la línea de corte dice también con cuántas aulas se escribió", {
+  # Gonzalo, 2026-09-17: comparó la pantalla y la hoja, Derecho decía 19 aulas
+  # en una y 17 en la otra, y las dos llevaban escrito «actualizados a las
+  # 10:40». La hora fecha las RESPUESTAS de la plataforma; las aulas aplicadas
+  # vienen de los partes, que entran por otro camino. Dos publicaciones con la
+  # misma hora podían llevar distinto número de aulas y el rótulo prometía una
+  # frescura que no cubría.
+  ind <- list(general = data.frame(
+    Indicadores = c("Efectivas", "Aulas aplicadas"), Total = c(2566, 142),
+    check.names = FALSE, stringsAsFactors = FALSE))
+  filas <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-17"),
+                                   actualizado = "2026-09-17T15:40:35Z")
+  corte <- as.character(filas[[2]][[1]])
+  expect_true(grepl("142 aulas con parte de campo", corte, fixed = TRUE))
+  expect_true(grepl("Al 17/09/2026", corte, fixed = TRUE))
+})
+
+test_that("sin el dato en el modelo, la línea NO se inventa la cifra", {
+  # Tres formas de no tenerlo, y las tres callan. **La tercera es la que
+  # importa**: con la tabla presente pero la fila ausente —o con un «—» donde
+  # iba el número, que es lo que escribe el motor cuando no hay partes— caer a
+  # cero diría «se publicó con 0 aulas», que es una afirmación, no un silencio.
+  sin_modelo <- aulas_libro_hoja_avance(list(), fecha = as.Date("2026-09-17"))
+  expect_false(grepl("aulas con parte", as.character(sin_modelo[[2]][[1]]), fixed = TRUE))
+
+  sin_fila <- aulas_libro_hoja_avance(
+    list(general = data.frame(Indicadores = "Efectivas", Total = 2566,
+                              check.names = FALSE, stringsAsFactors = FALSE)),
+    fecha = as.Date("2026-09-17"))
+  expect_false(grepl("aulas con parte", as.character(sin_fila[[2]][[1]]), fixed = TRUE))
+
+  sin_cifra <- aulas_libro_hoja_avance(
+    list(general = data.frame(Indicadores = "Aulas aplicadas", Total = "—",
+                              check.names = FALSE, stringsAsFactors = FALSE)),
+    fecha = as.Date("2026-09-17"))
+  expect_false(grepl("aulas con parte", as.character(sin_cifra[[2]][[1]]), fixed = TRUE))
+  expect_false(grepl("0 aulas", as.character(sin_cifra[[2]][[1]]), fixed = TRUE))
+})
+
+test_that("la cifra sale del MODELO y no del reloj: publicar dos veces escribe lo mismo", {
+  # Es la propiedad que hace que el motor batch+hash no reescriba la pestaña en
+  # cada publicación. Un reloj en esta celda la reescribiría siempre, y con ella
+  # el formato y las reglas de color de una hoja que veintidós personas tienen
+  # abierta.
+  ind <- list(general = data.frame(
+    Indicadores = "Aulas aplicadas", Total = 142,
+    check.names = FALSE, stringsAsFactors = FALSE))
+  uno <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-17"),
+                                 actualizado = "2026-09-17T15:40:35Z")
+  dos <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-17"),
+                                 actualizado = "2026-09-17T15:40:35Z")
+  expect_identical(uno[[2]][[1]], dos[[2]][[1]])
+})

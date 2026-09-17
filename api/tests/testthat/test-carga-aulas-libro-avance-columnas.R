@@ -234,11 +234,20 @@ test_that("la portada dice la HORA de la última actualización, y sale del esta
       ind, fecha = as.Date("2026-09-08"), actualizado = actualizado)[[2]][[1]])
   }
   # Mismo día que el corte: basta la hora, en hora local de Lima.
-  expect_match(linea("2026-09-08T19:16:22Z"), "^Al 08/09/2026 · datos de plataforma actualizados a las [0-9]{2}:[0-9]{2}$")
+  #
+  # **La línea lleva desde el 2026-09-17 una tercera parte**: con cuántas aulas
+  # con parte se escribió. La hora de la plataforma no cubría los partes —entran
+  # leyendo el propio Sheets— así que dos publicaciones con la misma hora podían
+  # llevar distinto número de aulas, y no había con qué distinguirlas. Sale del
+  # MODELO, no del reloj, para conservar la propiedad de arriba.
+  expect_match(linea("2026-09-08T19:16:22Z"),
+               "^Al 08/09/2026 · datos de plataforma actualizados a las [0-9]{2}:[0-9]{2} · escrito con [0-9]+ aulas? con parte de campo$")
   # Otro día: se dice entero, que es justo la noticia (los datos son de ayer).
-  expect_match(linea("2026-09-07T22:05:00Z"), "actualizados el 07/09/2026 [0-9]{2}:[0-9]{2}$")
-  # Sin marca, la portada es la de siempre: no se inventa una hora.
-  expect_identical(linea(""), "Al 08/09/2026")
+  expect_match(linea("2026-09-07T22:05:00Z"),
+               "actualizados el 07/09/2026 [0-9]{2}:[0-9]{2} · escrito con [0-9]+ aulas? con parte de campo$")
+  # Sin marca, la portada no se inventa una hora — pero sí dice con cuántas
+  # aulas se escribió, que no depende de la sincronización.
+  expect_match(linea(""), "^Al 08/09/2026 · escrito con [0-9]+ aulas? con parte de campo$")
   # Y el renderer sigue sin consultar el reloj en su cuerpo.
   cuerpo <- paste(deparse(body(aulas_libro_hoja_avance)), collapse = " ")
   expect_false(grepl("Sys.Date|Sys.time", cuerpo))

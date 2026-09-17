@@ -1350,3 +1350,23 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
   font-size: 11.5px;
   color: var(--pulso-text-soft);
 }
+
+/* El sello de la última publicación, al lado de «Traer respuestas».
+ *
+ * Es una frase de estado, no una alarma: en azul apagado cuando la hoja está
+ * al día y con la tinta de atención sólo cuando se quedó en un corte anterior.
+ * Se recorta con elipsis porque la barra de acciones es estrecha y el texto
+ * completo vive en el `title`: una frase que rompe la fila la vuelve ilegible
+ * para todo lo demás. */
+.mon-profile-page.is-aulas-flow .aulas-ops-sello {
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-ops-sello.es-atrasado,
+.mon-profile-page.is-aulas-flow .aulas-ops-sello.es-sin_publicar {
+  color: var(--pulso-danger-fg);
+}

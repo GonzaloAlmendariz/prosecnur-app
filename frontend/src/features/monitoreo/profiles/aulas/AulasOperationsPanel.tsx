@@ -10,6 +10,7 @@ import { contar } from "../../fuentes/vocabulario";
 import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload, UploadCloud } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 import { fmt } from "./kpisDeAulas";
+import { estadoDelSheets, type SelloDePublicacion } from "./selloDePublicacion";
 import {
   enlaceParaLeer, enlaceParaPublicar, enlaceRecordado, hayDestinoDelLibro, textoDelRecordado,
 } from "./destinoDelLibro";
@@ -56,6 +57,13 @@ export type AulasOperationsPanelProps = {
   busy: boolean;
   onImportPlan: () => void;
   onSyncField: () => void;
+  /**
+   * El recibo de la última publicación y el corte por el que va la app: con los
+   * dos, el panel dice si el Sheets está al día. Sin ellos calla, que es lo
+   * correcto —afirmar «al día» sin haber mirado es peor que no decir nada—.
+   */
+  selloDeLibro?: SelloDePublicacion | null;
+  sincronizadoEn?: string;
   /** Produce el libro que el equipo llena en Excel y lo descarga. */
   onGenerarLibro: () => void;
   /** Relee el libro que alguien llenó. */
@@ -71,8 +79,12 @@ export type AulasOperationsPanelProps = {
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
-  onLeerDeSheets, onPublicarASheets,
+  onLeerDeSheets, onPublicarASheets, selloDeLibro = null, sincronizadoEn = "",
 }: AulasOperationsPanelProps) {
+  // Se calcula aquí y no en el render de abajo para que la frase exista una
+  // sola vez: dos sitios decidiendo si el Sheets está al día acabarían
+  // discrepando, que es el defecto del que sale esta frase.
+  const sheets = estadoDelSheets(selloDeLibro, sincronizadoEn);
   const entradaLibro = useRef<HTMLInputElement | null>(null);
   // El destino del Sheets del operativo. El estado DURO —qué enlace quedó
   // recordado— vive en el backend (`libro_sheets` de la config); aquí sólo el
@@ -237,6 +249,12 @@ export function AulasOperationsPanel({
               cierto. */}
           <span>Traer respuestas</span>
         </button>
+        {/* Lo que el botón deja detrás: si el Sheets quedó escrito con este
+            mismo corte o se quedó en uno anterior. Sin esto, «se supone que
+            traer respuestas actualiza todo» no se podía comprobar. */}
+        <span className={`aulas-ops-sello es-${sheets.estado}`} title={sheets.texto}>
+          {sheets.texto}
+        </span>
         {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
             app lo relee. Sin estos dos botones sólo se podía cerrar por API.
             Desde el 2026-09-08 «Publicar al Sheets» LEE antes de escribir, así
