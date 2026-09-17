@@ -918,6 +918,12 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     # Hojas de la APP que salieron con bastante menos contenido del que tenían.
     # Vacío es lo normal; con entradas, hay que mirar antes de seguir.
     encogidas = encogidas,
+    # **De cuándo es el cruce con el otro estudio.** El veredicto se persiste en
+    # el `.pulso` y sobrevive a la sesión que lo calculó, así que sin esto el
+    # recibo publicaba una columna «TRASLAPE HSVG» sin decir si era de hoy o de
+    # la semana pasada. Es una foto de un operativo que se mueve todos los días.
+    # Vacío cuando el estudio no cruza contra nada.
+    traslape = if (is.null(traslape_daa)) list() else aulas_traslape_resumen(traslape_daa),
     spreadsheet_id = id,
     spreadsheet_url = .monitoreo_scalar(
       pub$spreadsheet_url,

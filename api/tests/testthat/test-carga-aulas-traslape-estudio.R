@@ -138,3 +138,79 @@ test_that("la clave del traslape esta censada en el esquema de sesion", {
   expect_identical(nrow(fila), 1L)
   expect_identical(as.character(fila$categoria[[1]]), "persistible")
 })
+
+# --- de cuando es el veredicto ----------------------------------------------
+#
+# El traslape es una FOTO de otro operativo que se mueve todos los dias, y su
+# veredicto se PERSISTE en el `.pulso`: sobrevive a la sesion que lo calculo.
+# Sin fecha se lee como si fuera de hoy, y eso no es una imprecision — es la
+# lectura equivocada: una unidad que el otro estudio agendo ayer sigue
+# apareciendo libre.
+
+.cate_uni <- function() list(
+  list(operational_code = "CH 1", classroom_id = "a1", teacher_email = "d1@pucp.edu.pe")
+)
+
+test_that("la procedencia viaja CON el veredicto, como el rotulo", {
+  t <- aulas_traslape_estudio(.cate_uni(), aulas = "a1", etiqueta = "HSVG",
+                              leido_en = "2026-09-17T14:00:00Z",
+                              fuente = "plan de HSVG2026 + su libro vivo")
+  expect_identical(attr(t, "rotulo"), "TRASLAPE HSVG")
+  expect_identical(attr(t, "leido_en"), "2026-09-17T14:00:00Z")
+  expect_identical(attr(t, "fuente"), "plan de HSVG2026 + su libro vivo")
+  expect_identical(attr(t, "etiqueta"), "HSVG")
+})
+
+test_that("sin fecha el aviso lo DICE, no lo calla", {
+  # Un `NA` en `dias` con el aviso vacio dejaria a la pantalla eligiendo entre
+  # no decir nada y decir «hace 0 dias». Las dos serian mentira.
+  t <- aulas_traslape_estudio(.cate_uni(), aulas = "a1", etiqueta = "HSVG")
+  v <- aulas_traslape_vigencia(t)
+  expect_true(is.na(v$dias))
+  expect_true(grepl("no dice de cuándo es", v$aviso))
+})
+
+test_that("con fecha dice cuantos dias, y se calla el mismo dia", {
+  t <- aulas_traslape_estudio(.cate_uni(), aulas = "a1", etiqueta = "HSVG",
+                              leido_en = "2026-09-17T00:00:00Z")
+  # Tres dias despues.
+  v <- aulas_traslape_vigencia(t, ahora = "2026-09-20T00:00:00Z")
+  expect_identical(v$dias, 3L)
+  expect_true(grepl("hace 3 días", v$aviso))
+  # El mismo dia: se calla. Un «hace 0 dias» permanente es ruido.
+  hoy <- aulas_traslape_vigencia(t, ahora = "2026-09-17T18:00:00Z")
+  expect_identical(hoy$dias, 0L)
+  expect_identical(hoy$aviso, "")
+  # Y el singular concuerda.
+  uno <- aulas_traslape_vigencia(t, ahora = "2026-09-18T06:00:00Z")
+  expect_true(grepl("hace 1 día\\.", uno$aviso))
+})
+
+test_that("una fecha que no se entiende se declara, no se lee como hoy", {
+  t <- aulas_traslape_estudio(.cate_uni(), aulas = "a1", etiqueta = "HSVG",
+                              leido_en = "ayer por la tarde")
+  v <- aulas_traslape_vigencia(t, ahora = "2026-09-20T00:00:00Z")
+  expect_true(is.na(v$dias))
+  expect_true(grepl("no se entiende", v$aviso))
+})
+
+test_that("el resumen LLEVA la vigencia: sin consumidor la fecha seria deuda", {
+  # Es la leccion de la sesion: un campo que el motor publica y nadie consume no
+  # es una capacidad. El recibo de la publicacion lo lee de aqui.
+  t <- aulas_traslape_estudio(.cate_uni(), aulas = "a1", etiqueta = "HSVG",
+                              leido_en = "2026-09-17T00:00:00Z",
+                              fuente = "plan + libro vivo")
+  r <- aulas_traslape_resumen(t)
+  expect_identical(r$unidades, 1L)
+  expect_identical(r$con_traslape, 1L)
+  expect_identical(r$leido_en, "2026-09-17T00:00:00Z")
+  expect_identical(r$fuente, "plan + libro vivo")
+  expect_identical(r$etiqueta, "HSVG")
+})
+
+test_that("un veredicto vacio no inventa vigencia", {
+  v <- aulas_traslape_vigencia(NULL)
+  expect_identical(v$leido_en, "")
+  expect_identical(v$aviso, "")
+  expect_true(is.na(v$dias))
+})
