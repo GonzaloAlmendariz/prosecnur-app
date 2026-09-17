@@ -444,6 +444,20 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # plan no lo alcanza: sin esto, una extra con parte tumba la publicación
   # entera aunque la app la vea bien. Ver `aulas_libro_anotar_cabeza_de_extras()`.
   plan <- aulas_libro_anotar_cabeza_de_extras(plan %||% list())
+  # **Y la OTRA anotación del generador, que faltaba.** «AULA UTILIZADA» sale de
+  # la cadena —los códigos `R n.k` que respaldan a ese titular— y la anota
+  # `aulas_libro_anotar_aula_utilizada()` sobre el plan COMPLETO, antes de
+  # cualquier filtro: un titular cuya reserva quedó fuera del recorte saldría sin
+  # su dato. El generador del `.xlsx` lo hace desde el dictado del 2026-09-04;
+  # este publicador no, y nadie lo vio porque la columna sale VACÍA, que se
+  # parece a «todavía no hay dato».
+  #
+  # Medido el 2026-09-17 comparando el Sheets publicado de CCSS contra el
+  # `.xlsx` del mismo plan: **50 de 50 filas** con `R n.1, R n.2` en el archivo y
+  # la celda en blanco en el documento donde se trabaja. Es la columna que dice
+  # qué aula del plan se usó, no en qué salón fue (corrección de Gonzalo del
+  # 17/09), así que sin ella no se puede cerrar una cadena.
+  plan <- aulas_libro_anotar_aula_utilizada(plan)
   extras <- aulas_libro_extras_banco(plan, partes = partes, control = control)
   unidades <- .calg_unidades_del_libro(plan, partes = partes, control = control)
   # **El MISMO guard que el generador del `.xlsx`, y por el mismo motivo.**
