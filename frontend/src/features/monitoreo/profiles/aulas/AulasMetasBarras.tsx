@@ -4,6 +4,7 @@ import { fmt } from "./kpisDeAulas";
 import { filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
+import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
 
 /** El ancho nominal de una columna, con las facultades de referencia en una fila. */
 const GRUPO = 62;
@@ -132,7 +133,14 @@ function hayQueEscalonar(
  * SVG y no una librería: son treinta rectángulos y una rejilla. Plotly entraría
  * al bundle por esto.
  */
-export function AulasMetasBarras({ filas }: {
+export function AulasMetasBarras({ filas , eje}: {
+  /**
+   * La declaración del eje de cuotas (`avance_cuota.eje`). Sin ella el gráfico
+   * se comporta igual que antes: el eje nace en facultad y su etiqueta es el
+   * valor crudo, que es lo que HSVG tiene en pantalla.
+   */
+  eje?: EjeDeclarado;
+
   filas: ReadonlyArray<MonitoreoAulasProyeccionFila> | null;
 }): ReactNode {
   const orden = filasAlfabeticas(filas);
@@ -171,7 +179,7 @@ export function AulasMetasBarras({ filas }: {
   /** Lo que le queda al rótulo antes de tocar al de al lado. */
   const disponible = grupo - AIRE;
 
-  const lineasPorFacultad = orden.map((f) => enLineas(f.facultad, disponible).length);
+  const lineasPorFacultad = orden.map((f) => enLineas(etiquetaDeValorEnGrafico(f.facultad, eje), disponible).length);
   const maxLineas = Math.max(1, ...lineasPorFacultad);
   /** Lo que ocupa el rotulado bajo cada fila de barras. */
   const pie = maxLineas * ALTO_LINEA + 8;
@@ -235,7 +243,7 @@ export function AulasMetasBarras({ filas }: {
               // etiquetas del eje x pueden tener wrap y tener mayor contracción
               // para que no estén dispuestas de forma diagonal». Un nombre a 45°
               // obliga a girar la cabeza y se comía 96 px de pie.
-              const lineas = enLineas(f.facultad, disponible);
+              const lineas = enLineas(etiquetaDeValorEnGrafico(f.facultad, eje), disponible);
               return (
                 <g key={f.facultad}>
                   {carriles.map(([meta, obtenidas, dx, tono]) => (
@@ -252,7 +260,7 @@ export function AulasMetasBarras({ filas }: {
                         className="aulas-metas-barra-logro" data-sexo={tono}
                       >
                         <title>
-                          {`${f.facultad} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
+                          {`${etiquetaDeValorEnGrafico(f.facultad, eje)} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
                           {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
                         </title>
                       </rect>
@@ -278,7 +286,7 @@ export function AulasMetasBarras({ filas }: {
                     {lineas.map((linea, k) => (
                       <tspan key={linea} x={centro} dy={k === 0 ? 0 : ALTO_LINEA}>{linea}</tspan>
                     ))}
-                    <title>{f.facultad}</title>
+                    <title>{etiquetaDeValorEnGrafico(f.facultad, eje)}</title>
                   </text>
                 </g>
               );

@@ -81,3 +81,29 @@ export function etiquetaDeValor(
   if (dim === "carrera") return facultadEnPalabras(v);
   return facultadCorta(v);
 }
+
+/**
+ * El valor del eje **en un gráfico**, sin cambiar lo que ya se pinta.
+ *
+ * Los tres gráficos de la pestaña Metas pintan `fila.facultad` CRUDO —«ARTE Y
+ * DISEÑO»— y su reparto en líneas está afinado contra esos anchos, medido sobre
+ * las quince facultades del estudio. Enrutarlos por `etiquetaDeValor` los
+ * mejoraría de paso («Arte y Diseño») pero cambiaría etiquetas que HSVG ya tiene
+ * en pantalla y descuadraría un ajuste que se hizo contando píxeles: eso es una
+ * decisión de diseño y no un efecto colateral de generalizar el eje.
+ *
+ * Así que para el eje FACULTAD devuelve el valor tal cual, y para cualquier otro
+ * eje lo dice con su palabra —«Nivel 7» y no «7»—, que es lo que este cambio
+ * viene a resolver: un número suelto en el pie de un gráfico se lee como una
+ * cifra, no como un nombre.
+ */
+export function etiquetaDeValorEnGrafico(
+  valor: string | null | undefined,
+  eje?: EjeDeclarado,
+): string {
+  const v = String(valor ?? "").trim();
+  if (!v) return "";
+  const clave = String(eje?.clave ?? "facultad");
+  if (clave === "facultad") return v;
+  return etiquetaDeValor(v, clave, eje);
+}

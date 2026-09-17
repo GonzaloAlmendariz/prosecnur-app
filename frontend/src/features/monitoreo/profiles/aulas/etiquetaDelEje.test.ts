@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  etiquetaDeValor, etiquetaDelEje, etiquetaPluralDelEje, etiquetaSinValorDelEje,
+  etiquetaDeValor, etiquetaDeValorEnGrafico, etiquetaDelEje, etiquetaPluralDelEje,
+  etiquetaSinValorDelEje,
 } from "./etiquetaDelEje";
 
 const FACULTAD = { clave: "facultad", etiqueta: "Facultad", etiqueta_plural: "Facultades", etiqueta_sin: "Sin facultad" };
@@ -65,6 +66,32 @@ describe("etiquetaDeValor", () => {
     // vacía: parece un dato.
     for (const v of ["", "   ", null, undefined]) {
       expect(etiquetaDeValor(v, "nivel", NIVEL)).toBe("");
+    }
+  });
+});
+
+describe("etiquetaDeValorEnGrafico: no cambia lo que ya se pinta", () => {
+  it("con el eje en FACULTAD devuelve el valor crudo", () => {
+    // Los tres gráficos de Metas pintan el nombre tal cual y su reparto en
+    // líneas está afinado contra esos anchos, contando píxeles sobre las quince
+    // facultades. Mejorarlos de paso («Arte y Diseño») descuadraría ese ajuste y
+    // cambiaría etiquetas que HSVG ya tiene en pantalla: es una decisión de
+    // diseño, no un efecto colateral de generalizar el eje.
+    expect(etiquetaDeValorEnGrafico("ARTE Y DISEÑO", FACULTAD)).toBe("ARTE Y DISEÑO");
+    expect(etiquetaDeValorEnGrafico("CIENCIAS E INGENIERIA")).toBe("CIENCIAS E INGENIERIA");
+    expect(etiquetaDeValorEnGrafico("ARTE Y DISEÑO", null)).toBe("ARTE Y DISEÑO");
+  });
+
+  it("con cualquier otro eje lo dice con su palabra", () => {
+    // Es lo que este cambio viene a resolver: un «7» suelto en el pie de un
+    // gráfico se lee como una cifra, no como un nombre.
+    expect(etiquetaDeValorEnGrafico("7", NIVEL)).toBe("Nivel 7");
+  });
+
+  it("un valor vacío no se convierte en un rótulo", () => {
+    for (const v of ["", "  ", null, undefined]) {
+      expect(etiquetaDeValorEnGrafico(v, NIVEL)).toBe("");
+      expect(etiquetaDeValorEnGrafico(v, FACULTAD)).toBe("");
     }
   });
 });
