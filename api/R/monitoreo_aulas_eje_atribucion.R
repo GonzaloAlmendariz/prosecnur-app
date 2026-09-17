@@ -184,6 +184,11 @@ monitoreo_aulas_eje_atribucion <- function(atr, plan_df = NULL, responses = NULL
   # Es la cuenta que permite leer el bloque sin creerlo.
   attr(out, "eje") <- monitoreo_aulas_eje_declaracion(eje)
   attr(out, "diagnostico") <- diag
+  # El cruce viaja con el resultado: el panel referencial necesita el sexo y la
+  # carrera de cada PERSONA, que salen de aquí. Cruzar otra vez daría la misma
+  # respuesta por el doble de trabajo, y sobre todo abriría la puerta a que las
+  # dos lecturas discrepen.
+  attr(out, "resueltas") <- resueltas
   attr(out, "aviso") <- .monitoreo_scalar(aviso, "")
   attr(out, "invariante") <- list(
     schema = MONITOREO_AULAS_EJE_ATRIBUCION_SCHEMA,
