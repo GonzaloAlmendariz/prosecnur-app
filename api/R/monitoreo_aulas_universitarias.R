@@ -2286,9 +2286,6 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # de `.monitoreo_aulas_cuotas_sexo_celdas` —que reemplazo a
   # `.monitoreo_aulas_quota_sex_faculty` en el tablero— y expone las mismas
   # claves `faculty`/`sex`/`target`/`observed` que esta funcion pide.
-  .mau_avance_celdas <- monitoreo_aulas_avance_sexo_facultad(
-    .monitoreo_aulas_records(tracked_df), quotas_sex_faculty
-  )
   # El avance contra la CUOTA del diseño: numerador sobre el plan entero,
   # denominador del bloque de metas mientras su sello siga vigente, y meta del
   # plan —declarada como tal— cuando no lo este.
@@ -2297,6 +2294,32 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
                                                celdas_sexo = quotas_sex_faculty,
                                                padron = padron)
+  # **Sin cuotas de sexo, las celdas proyectadas son las del EJE.**
+  #
+  # El panel «Qué grupos no llegan, y con qué remedio» —las tres lecturas: lo
+  # recogido, lo que traerá lo agendado y el techo de todo el plan— proyecta
+  # estas celdas. En un estudio cuya meta es sólo por nivel no hay ninguna celda
+  # de sexo, así que el panel publicaba su vacío («el estudio no declara cuotas
+  # de facultad y sexo») y **la pestaña se quedaba sin la cifra que el estudio
+  # prometió**: las cuatro cuotas por nivel —120 · 121 · 95 · 64— estaban en el
+  # payload y no se veían en ninguna parte.
+  #
+  # Lo vio el simulacro en la app, no un test. La salida no es un panel nuevo
+  # —el perfil ya tiene 19 pestañas— sino el MISMO panel con un grano menos
+  # fino: una celda por valor del eje, sin sexo.
+  #
+  # Ojo con la diferencia: a `avance_cuota` se le siguen pasando las celdas de
+  # SEXO, vacías si el estudio no las declara, porque ahí la ausencia es la que
+  # hace que la brecha sea el neto y no la suma (la meta es sólo por nivel). Lo
+  # que se rellena es el insumo del PROYECTOR, que es otra pregunta.
+  .mau_celdas_para_proyectar <- if (length(quotas_sex_faculty)) {
+    quotas_sex_faculty
+  } else {
+    .monitoreo_aulas_celdas_del_eje(avance_cuota)
+  }
+  .mau_avance_celdas <- monitoreo_aulas_avance_sexo_facultad(
+    .monitoreo_aulas_records(tracked_df), .mau_celdas_para_proyectar
+  )
   # El SUPUESTO que dimensionó, contrastado con el campo (ADR 0082). Comparte
   # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
   # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
@@ -2369,6 +2392,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   local({
     celdas <- .mau_avance_celdas %||% list()
     if (!length(celdas) || !nrow(avance_por_facultad)) return(invisible(NULL))
+    # **Y no si las celdas son del EJE: no tienen sexo que cortar.**
+    #
+    # Desde que el proyector recibe celdas del eje cuando el estudio no declara
+    # cuota por sexo, este bloque se encontraba con celdas sin dimensión de sexo
+    # y añadía sus cuatro columnas en `NA` —«esta facultad no tiene esa celda»—
+    # más una bandera `celda_corta = FALSE`. Son cuatro columnas que no
+    # significan nada: preguntar «¿cuántas mujeres faltan?» a una cuota que no
+    # es por sexo no tiene respuesta, ni siquiera `NA`. La tabla se queda con sus
+    # columnas de siempre, que es lo que su prueba de forma ya fijaba.
+    if (all(vapply(celdas, function(c1) identical(c1$grano %||% "", "eje"), logical(1)))) {
+      return(invisible(NULL))
+    }
     # **El sexo de la celda se casa por su CLAVE, no por su etiqueta.**
     #
     # `c1$sex` es la etiqueta con la que la celda se MUESTRA, y

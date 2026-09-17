@@ -749,3 +749,45 @@
   out <- out[, c(primeras, setdiff(names(out), primeras)), drop = FALSE]
   .monitoreo_aulas_records(out, max_rows = 240L)
 }
+
+#' Las celdas del EJE, con la forma de las celdas de sexo.
+#'
+#' El proyector de las tres lecturas (`monitoreo_aulas_avance_sexo_facultad()`)
+#' pide celdas `list(faculty, sex, target, observed)`. Cuando el estudio declara
+#' cuota por sexo, se las da `.monitoreo_aulas_cuotas_sexo_celdas()`. Cuando NO
+#' —la meta es sólo por el eje— no había nada que proyectar y el panel se
+#' quedaba vacío teniendo la cuota del estudio en el payload.
+#'
+#' Aquí se arman a partir de las filas que `avance_cuota` ya publicó: **un grano
+#' menos fino, no otra cuenta.** Nada se recalcula, y por eso las cifras del
+#' panel no pueden discrepar de las de la tabla.
+#'
+#' Sólo entran las filas CON cuota finita: una fila `sin_cuota` no tiene contra
+#' qué proyectarse, y darle un techo sería inventarle una meta.
+#'
+#' @param avance_cuota el bloque ya calculado.
+#' @return lista de celdas, con `grano = "eje"` para que la UI sepa que no hay
+#'   dimensión de sexo —que es distinto de no conocerla— y no rotule
+#'   «Sin sexo declarado» donde no hay sexo que declarar.
+#' @keywords internal
+.monitoreo_aulas_celdas_del_eje <- function(avance_cuota = list()) {
+  filas <- (avance_cuota %||% list())[["facultades"]] %||% list()
+  out <- list()
+  for (f in filas) {
+    if (!is.list(f)) next
+    cuota <- suppressWarnings(as.numeric(f[["cuota"]] %||% NA_real_))[1]
+    if (!is.finite(cuota) || cuota <= 0) next
+    valor <- .monitoreo_scalar(f[["facultad"]] %||% "", "")
+    if (!nzchar(valor)) next
+    out[[length(out) + 1L]] <- list(
+      faculty = valor,
+      # Vacío y no "F"/"M": esta celda NO tiene dimensión de sexo. El proyector
+      # lo tolera (`toupper("")` es "") y `grano` lo declara para la UI.
+      sex = "",
+      grano = "eje",
+      target = cuota,
+      observed = suppressWarnings(as.numeric(f[["respuestas_validas"]] %||% 0))[1]
+    )
+  }
+  out
+}

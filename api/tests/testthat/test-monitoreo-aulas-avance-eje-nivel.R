@@ -290,3 +290,71 @@ test_that("un estudio que SI declara cuota por sexo la sigue midiendo", {
   valores <- unique(vapply(d$quotas_sex_faculty, function(c1) as.character(c1$faculty %||% ""), character(1)))
   expect_false("CIENCIAS SOCIALES" %in% valores)
 })
+
+test_that("sin cuotas de sexo, el panel de las tres lecturas proyecta el EJE", {
+  # **El hueco que destapó mirar la pestaña**, y el más importante de los cuatro:
+  # `avance_cuota` traía las cuatro filas del eje con su cuota —120 · 121 · 95 ·
+  # 64— y el panel «Qué grupos no llegan, y con qué remedio» publicaba su vacío
+  # («el estudio no declara cuotas de facultad y sexo»), así que la pestaña se
+  # quedaba **sin la cifra que el estudio prometió**.
+  #
+  # La salida no es un panel nuevo —el perfil ya tiene 19 pestañas— sino el mismo
+  # panel con un grano menos fino: una celda por valor del eje.
+  cfg <- .aen_cfg()
+  d <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())
+  # La cuota por sexo sigue vacía: la meta es sólo por nivel y eso no cambia.
+  expect_identical(length(d$quotas_sex_faculty %||% list()), 0L)
+  # Pero el proyector recibe las celdas del eje y el panel tiene qué pintar.
+  celdas <- d$avance_sexo_facultad %||% list()
+  expect_gt(length(celdas), 0L)
+  valores <- vapply(celdas, function(c1) as.character(c1$faculty), character(1))
+  expect_setequal(valores, c("7", "8"))
+  # **`grano` declara que esa celda no tiene dimensión de sexo**, que es distinto
+  # de no conocerla: sin él la UI rotulaba «Sin sexo declarado» donde no hay sexo
+  # que declarar.
+  expect_true(all(vapply(celdas, function(c1) identical(c1$grano, "eje"), logical(1))))
+  expect_true(all(vapply(celdas, function(c1) identical(c1$sex, ""), logical(1))))
+  # Y la cuota de cada celda es la de su fila, no otra cuenta: nada se recalcula,
+  # y por eso el panel no puede discrepar de la tabla.
+  porFila <- stats::setNames(
+    vapply(d$avance_cuota$facultades, function(f) as.numeric(f$cuota), numeric(1)),
+    vapply(d$avance_cuota$facultades, function(f) as.character(f$facultad), character(1)))
+  for (c1 in celdas) {
+    expect_identical(as.numeric(c1$cuota), unname(porFila[[as.character(c1$faculty)]]))
+  }
+})
+
+test_that("una fila SIN cuota no se proyecta: no hay meta contra la que medir", {
+  # Darle un techo a una fila `sin_cuota` sería inventarle una meta.
+  celdas <- prosecnurapp:::.monitoreo_aulas_celdas_del_eje(list(facultades = list(
+    list(facultad = "7", cuota = 121, respuestas_validas = 10),
+    list(facultad = "10", cuota = NA_real_, respuestas_validas = 3),
+    list(facultad = "5", cuota = 0, respuestas_validas = 0),
+    list(facultad = "", cuota = 50, respuestas_validas = 0)
+  )))
+  expect_identical(length(celdas), 1L)
+  expect_identical(celdas[[1]]$faculty, "7")
+  expect_identical(as.numeric(celdas[[1]]$observed), 10)
+})
+
+test_that("con cuotas de sexo declaradas el proyector sigue recibiendo ESAS", {
+  # La contracara que protege a HSVG: donde el diseño declara la cuota por sexo,
+  # el panel sigue proyectando el grano fino y `grano` va vacío.
+  cfg <- .aen_cfg()
+  cfg$design_targets$facultades <- lapply(cfg$design_targets$facultades, function(f) {
+    f$cuota_sexo <- list(F = floor(f$cuota / 2), M = f$cuota - floor(f$cuota / 2))
+    f
+  })
+  cfg <- monitoreo_aulas_normalize_config(cfg)
+  d <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())
+  celdas <- d$avance_sexo_facultad %||% list()
+  expect_gt(length(celdas), 0L)
+  expect_true(all(vapply(celdas, function(c1) identical(c1$grano, ""), logical(1))))
+  # **Por la CLAVE, no por el texto.** `c1$sex` es la ETIQUETA con la que la
+  # celda se muestra —`.maac_sexo_etiqueta()` la produce como palabra: aquí sale
+  # «FEMENINO»— y compararla con «F» es el defecto que costó `22dc6ea2`. La clave
+  # se resuelve con el normalizador que existe para eso.
+  expect_true(all(vapply(
+    celdas, function(c1) prosecnurapp:::.maac_sexo_key(c1$sex) %in% c("F", "M"),
+    logical(1))))
+})
