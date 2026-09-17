@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBolsasDelAvance } from "./AulasBolsasDelAvance";
+import { AulasComposicionReferencial } from "./AulasComposicionReferencial";
 import { AulasMetasAvance } from "./AulasMetasAvance";
 import { AulasMetasBarras } from "./AulasMetasBarras";
 import { AulasMetasCinta } from "./AulasMetasCinta";
@@ -433,6 +434,26 @@ export function AulasPestanaCuotas({
         />
       </section>
       ) : null}
+      {/* **El panel referencial de sexo y carrera** (decisión 8 del plan del eje
+          declarable). Va aquí, al final y no entre «Qué grupos no llegan» y «A
+          qué aula del banco ir»: ésos son diagnóstico y remedio y se leen
+          juntos, y esto es contexto — a quién se está alcanzando, sin exigirle
+          nada a nadie.
+
+          El motor lo calcula desde el 2026-09-17 y hasta hoy no lo pintaba
+          nadie. Ver la nota de `AulasComposicionReferencial`, con el porqué de
+          que aquí no haya umbrales ni avisos de desvío. */}
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>A quién se está alcanzando</h3>
+          <span>sexo y carrera contra la población, como marco de comparación y no como cuota</span>
+        </div>
+        <AulasComposicionReferencial avanceCuota={dashboard.avance_cuota} />
+      </section>
       {/* **La pirámide «Tamaño de cada meta» se retiró el 2026-09-08**, con
           decisión de Gonzalo («toma decisiones por mí viendo lo mejor y más
           intuitivo y profesional»).
