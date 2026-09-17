@@ -457,6 +457,19 @@ monitoreo_aulas_default_config <- function() {
       # ocurrió.
       faculty_var = "",
       faculty_labels = list(),
+      # **La variable donde el alumno declara su CÓDIGO PUCP**, y cómo se llama
+      # esa pregunta en el cuestionario. Es la llave del padrón: con el eje de
+      # cuotas en «nivel», el nivel de una respuesta no está en la respuesta
+      # —está en la persona—, y el código es lo único que las une. Ver
+      # `carga_aulas_padron.R` y `monitoreo_aulas_nivel.R`.
+      #
+      # Se declara por la misma razón que `faculty_var`: adivinar qué pregunta
+      # trae el código sería inventar el dato del que dependen todas las celdas.
+      # Sin declararla, el eje «nivel» no puede medir y lo dice; no cae a la
+      # pregunta de ciclo autodeclarado, que es una decisión tomada (sin cruce
+      # no hay nivel).
+      student_code_var = "",
+      student_code_label = "",
       # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
       # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
       # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
@@ -576,6 +589,17 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
       faculty_labels = .mcfd_normalizar_etiquetas(
         mapping$faculty_labels %||% mapping$etiquetas_facultad %||%
           defaults$source_mapping$faculty_labels),
+      # La llave del padrón, por la misma doctrina: sin nombrarla aquí,
+      # declararla en la pantalla no sobreviviría al primer «actualizar» y el
+      # eje «nivel» se quedaría mudo sin que nadie supiera por qué.
+      student_code_var = .monitoreo_scalar(
+        mapping$student_code_var %||% mapping$codigo_var %||%
+          mapping$codigo_pucp_var,
+        defaults$source_mapping$student_code_var),
+      student_code_label = .monitoreo_scalar(
+        mapping$student_code_label %||% mapping$codigo_label %||%
+          mapping$codigo_pucp_label,
+        defaults$source_mapping$student_code_label),
       # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
       # declararlos no persistiria.
       # Caían a `list()` pelada en vez de a `defaults`, así que un body sin
