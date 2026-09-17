@@ -122,6 +122,14 @@ errores_registrados <- function() {
     "E_DAA_IAGEN_SIN_HOJAS",                                 "carga_daa_iagen.R",                 "422",
     "E_DISPONIBILIDAD_APLICADORES_NO_EXISTE",                "carga_disponibilidad_aplicadores.R", "400",
     "E_DISPONIBILIDAD_APLICADORES_SIN_ESTRUCTURA",           "carga_disponibilidad_aplicadores.R", "422",
+    "E_AULAS_PADRON_NO_EXISTE",                              "carga_aulas_padron.R",              "400",
+    "E_AULAS_PADRON_SIN_COLUMNAS",                           "carga_aulas_padron.R",              "422",
+    # Se distingue del anterior a proposito: «trae el nivel de creditos pero no
+    # el curricular» se arregla pidiendo otra extraccion a la DTI, no revisando
+    # el archivo. Las dos columnas coinciden en 11 de 1.354 casos.
+    "E_AULAS_PADRON_NIVEL_AUSENTE",                          "carga_aulas_padron.R",              "422",
+    "E_AULAS_PADRON_VACIO",                                  "carga_aulas_padron.R",              "422",
+    "E_AULAS_PADRON_FILTRO_SIN_COINCIDENCIAS",               "carga_aulas_padron.R",              "422",
     "E_ACREDITACION_BATCH_ACTORS",                           "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_BASE_CONFLICT",                    "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_CACHE_STALE",                      "carga_acreditacion_batch.R",        "indirecto",
