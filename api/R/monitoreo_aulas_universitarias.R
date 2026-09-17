@@ -2336,9 +2336,23 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   local({
     celdas <- .mau_avance_celdas %||% list()
     if (!length(celdas) || !nrow(avance_por_facultad)) return(invisible(NULL))
+    # **El sexo de la celda se casa por su CLAVE, no por su etiqueta.**
+    #
+    # `c1$sex` es la etiqueta con la que la celda se MUESTRA, y
+    # `.maac_sexo_etiqueta()` está hecha para que sea una palabra: la del plan
+    # (`sex_top_*`) primero, la de las respuestas después, y "F"/"M" pelado sólo
+    # como último recurso. Comparar `toupper()` contra "F" casaba en HSVG2026
+    # nada más que por coincidencia de vocabulario —su marco escribe "F"/"M"
+    # literal en `sex_top_1` (medido: 2.427 aulas "F", 1.916 "M")— y quedaba
+    # muda con cualquier otro: con la etiqueta "Femenino" las cuatro columnas de
+    # sexo salen NA, `meta_origen` cae a "prevista" y la brecha se publica como
+    # el NETO. Es el fallo que la cuota por sexo existe para impedir, y no
+    # fallaba nada: la prueba que guardaba este bloque llamaba a
+    # `monitoreo_aulas_avance_sexo_facultad()` con celdas escritas a mano cuyo
+    # `sex` ya venía "F"/"M".
     por <- function(fac, sexo, campo) {
       hit <- Filter(function(c1) identical(as.character(c1$faculty %||% ""), fac) &&
-                      identical(toupper(as.character(c1$sex %||% "")), sexo), celdas)
+                      identical(.maac_sexo_key(as.character(c1$sex %||% "")), sexo), celdas)
       if (!length(hit)) return(NA_real_)
       v <- suppressWarnings(as.numeric(hit[[1]][[campo]] %||% NA))
       if (length(v) == 1L && is.finite(v)) v else NA_real_
@@ -2390,16 +2404,38 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # visto en pantalla, «397 respuestas faltan» con «31 mujeres» y «114
     # hombres» debajo. Con la vara unica —la cuota— las dos celdas tienen que
     # sumar lo que le falta a su facultad, o el lector suma y no le cuadra.
+    # **La regla es UNA, y vive en `monitoreo_aulas_brecha_facultad.R`.** Esto
+    # tenía su propio `falta_ahora()` escrito aquí dentro: replicaba la doctrina
+    # —sumar lo que falta en cada celda, no restar el neto— pero no llamaba a la
+    # función compartida, así que era una TERCERA implementación de la misma
+    # cuenta junto al tablero y al libro. Con el eje de cuotas declarable eso es
+    # garantía de divergencia: la que no se toque seguiría leyendo `faculty`.
+    #
+    # `redondear_celda = TRUE` conserva exactamente lo que esta tabla publicaba
+    # (techo por celda); el tablero y el libro siguen sin redondear. La
+    # divergencia de redondeo queda declarada en la función, no escondida en tres
+    # sitios.
     falta_ahora <- function(f, sexo) {
-      cq <- por(f, sexo, "cuota"); lo <- por(f, sexo, "logrado")
-      if (!is.finite(cq)) return(NA_real_)
-      max(0, ceiling(cq - (if (is.finite(lo)) lo else 0) - 1e-9))
+      monitoreo_aulas_brecha_celda(por(f, sexo, "cuota"), por(f, sexo, "logrado"),
+                                   redondear = TRUE)
     }
     .por_celdas <- vapply(fac, function(f) {
-      dos <- c(falta_ahora(f, "F"), falta_ahora(f, "M"))
-      if (all(is.na(dos))) return(NA_real_)
-      sum(dos, na.rm = TRUE)
+      monitoreo_aulas_brecha_facultad(
+        cuota = 1,  # sólo para no cortar por cuota ausente: manda `celdas`
+        conseguidas = 0,
+        celdas = list(
+          list(target = por(f, "F", "cuota"), observed = por(f, "F", "logrado")),
+          list(target = por(f, "M", "cuota"), observed = por(f, "M", "logrado"))
+        ),
+        redondear_celda = TRUE
+      )
     }, numeric(1))
+    # Sin ninguna celda con cuota, la compartida cae al neto de su `cuota`
+    # ficticia; aquí eso no sirve, así que se detecta y se usa el neto real.
+    sin_celdas <- vapply(fac, function(f) {
+      !is.finite(por(f, "F", "cuota")) && !is.finite(por(f, "M", "cuota"))
+    }, logical(1))
+    .por_celdas[sin_celdas] <- NA_real_
     .por_total <- ceiling(pmax(0, avance_por_facultad$meta -
                                avance_por_facultad$respuestas_validas) - 1e-9)
     avance_por_facultad$brecha <<- ifelse(is.na(.por_celdas), .por_total, .por_celdas)
