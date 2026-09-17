@@ -68,6 +68,13 @@ export function AulasPestanaResumen({
   onFoco: (foco: FocoDeCuota) => void;
 }): ReactNode {
   if (pestana !== "resumen") return null;
+  // Se deriva del dashboard en vez de recibirla como prop: este componente ya
+  // lo tiene, y una prop más habría que pasarla desde el page-file, que está a
+  // dos líneas de su tope de crecimiento.
+  const ejeClave = String(
+    (dashboard as { avance_cuota?: { eje?: { clave?: unknown } } })
+      ?.avance_cuota?.eje?.clave ?? "facultad",
+  );
   const Tabla = tabla;
   // El parte cruzado con el plan, una sola vez: lo piden «Cuándo se termina de
   // aplicar el plan» y «A quién hay que agendar», que llegaron juntos desde
@@ -622,7 +629,10 @@ export function AulasPestanaResumen({
                 // Pulsar una facultad la pone en el filtro del perfil entero:
                 // es el mismo gesto que el mapa de la deuda, y el aviso es el
                 // índice con el que se entra a mirarla.
-                onFoco={(facultad) => onFoco({ tipo: "facultad", valor: facultad })}
+                // Con la clave del EJE, no con un literal: en un estudio cuyas
+                // metas son por nivel este gesto escribía `facultad:7` y el
+                // resto de la sección no lo reconocía como su foco.
+                onFoco={(facultad) => onFoco({ tipo: ejeClave as NonNullable<FocoDeCuota>["tipo"], valor: facultad })}
               />
               {/* **El reparto del techo se mudó a Consultas › Refuerzos el
                   2026-09-11**, por pedido de Gonzalo: «los refuerzos deberían

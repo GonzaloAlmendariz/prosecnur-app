@@ -19,13 +19,21 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * Sin `onFoco` se comporta exactamente como el `span` que había: las listas que
  * no participan del foco no cambian.
  */
-export function NombreDeFacultad({ facultad, className, enFoco, onFoco, rol, children }: {
+export function NombreDeFacultad({ facultad, className, enFoco, onFoco, rol, children, ejeClave = "facultad" }: {
   facultad: string;
   /** La clase de la celda, que conserva la maquetación de esa lista. */
   className: string;
   enFoco: boolean;
   /** Sin esto, no hay botón: sólo texto. */
   onFoco?: (foco: FocoDeCuota) => void;
+  /**
+   * La clave del eje de cuotas del estudio (`avance_cuota.eje.clave`).
+   *
+   * El foco se ESCRIBE con ella y no con un literal: HSVG sigue poniendo
+   * `facultad:` en sus enlaces byte a byte y un estudio por nivel pone `nivel:`.
+   * Por defecto `facultad`, que es lo que era.
+   */
+  ejeClave?: string;
   /**
    * El rol ARIA de la celda cuando su lista declara semántica de tabla
    * (`rowheader`). Sin esto la fila no tiene quién la identifique y el lector
@@ -53,7 +61,7 @@ export function NombreDeFacultad({ facultad, className, enFoco, onFoco, rol, chi
       // y se suelta el foco—, no una opción dentro de un conjunto.
       aria-pressed={enFoco}
       title={enFoco ? `Dejar de seguir ${facultad}` : `Seguir ${facultad} en toda la sección`}
-      onClick={() => onFoco(enFoco ? null : { tipo: "facultad", valor: facultad })}
+      onClick={() => onFoco(enFoco ? null : { tipo: ejeClave as NonNullable<FocoDeCuota>["tipo"], valor: facultad })}
     >
       {contenido}
     </button>

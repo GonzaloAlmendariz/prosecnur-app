@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
@@ -185,7 +186,9 @@ type PropsDeLaSerie = {
   /** La facultad elegida, si viene de la URL. Manda sobre el estado local. */
   facultadEnFoco?: string;
   /** Para escribirla en la URL cuando alguien elige otra. */
-  onFoco?: (foco: { tipo: "facultad"; valor: string }) => void;
+  // El tipo del foco es el del EJE del estudio, no el literal «facultad»: con
+  // esta firma un estudio por nivel no podía emitir su propio foco.
+  onFoco?: (foco: NonNullable<FocoDeCuota>) => void;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
   /** El plan, sólo para los elegibles de cada aula ya aplicada. */

@@ -38,14 +38,58 @@ import { fmt } from "./kpisDeAulas";
  * prefijo evita la ambigüedad de un valor suelto. Los consumidores que sólo
  * miran `facultad` siguen ignorando el resto, que es como estaba escrito.
  */
-export type FocoDeCuota = { tipo: "facultad" | "sexo" | "aula"; valor: string } | null;
+/**
+ * Las dimensiones que pueden estar en foco.
+ *
+ * **Lista CERRADA y espejo de la del motor** (`.MONITOREO_AULAS_EJES` en
+ * `api/R/monitoreo_aulas_eje.R`, más las descriptivas): un eje nuevo se agrega
+ * en los dos sitios, y eso es deliberado — una cadena libre aquí dejaría pasar
+ * `facutlad` sin que nada chille.
+ *
+ * `facultad` y `nivel` son EJES: sólo uno está activo por estudio, el que su
+ * config declara. `sexo` y `carrera` son descriptivas y acotan lo que se ve.
+ * **`aula` no acota nada: abre la ficha de ese curso-horario.**
+ */
+export type FocoTipo = "facultad" | "nivel" | "sexo" | "carrera" | "aula";
 
-/** Serializa el foco para la URL: `facultad:Derecho`, `sexo:F`, `aula:CH 31`. */
+export type FocoDeCuota = { tipo: FocoTipo; valor: string } | null;
+
+const FOCO_TIPOS: readonly FocoTipo[] = ["facultad", "nivel", "sexo", "carrera", "aula"];
+
+/** Las dimensiones que son EJE de cuota; sólo una está activa por estudio. */
+const FOCO_EJES: readonly FocoTipo[] = ["facultad", "nivel"];
+
+/**
+ * ¿El foco apunta al eje de cuotas del estudio?
+ *
+ * Es la pregunta que hacían cuatro sitios con `foco.tipo === "facultad"`, y con
+ * el eje declarable esa comparación es una respuesta cableada: en un estudio por
+ * NIVEL el foco del eje llega como `nivel:7` y esos cuatro sitios lo daban por
+ * «no es el eje». Se pregunta por el eje, no por su nombre de hoy.
+ *
+ * El `ejeClave` sale de la config del estudio (`avance_cuota.eje.clave`). Sin
+ * eje declarado es `facultad`, que es lo que era.
+ */
+export function esFocoDelEje(foco: FocoDeCuota, ejeClave?: string | null): boolean {
+  if (!foco) return false;
+  const eje = (ejeClave ?? "facultad") as FocoTipo;
+  return foco.tipo === (FOCO_EJES.includes(eje) ? eje : "facultad");
+}
+
+/**
+ * Lee el foco de la URL: `facultad:Derecho`, `nivel:7`, `sexo:F`, `aula:CH 31`.
+ *
+ * **Se ESCRIBE con la clave del eje del estudio, no con un literal**
+ * (`textoDesdeFoco` sólo reserializa lo que ya trae el objeto), así que HSVG
+ * sigue escribiendo y leyendo `facultad:` byte a byte y un estudio por nivel
+ * escribe `nivel:`. No hay alias que mantener: cada estudio usa su propia clave
+ * y la otra simplemente no aparece en sus enlaces.
+ */
 export function focoDesdeTexto(bruto: string | null): FocoDeCuota {
   const [tipo, ...resto] = (bruto ?? "").split(":");
   const valor = resto.join(":").trim();
-  if (!valor || (tipo !== "facultad" && tipo !== "sexo" && tipo !== "aula")) return null;
-  return { tipo, valor };
+  if (!valor || !FOCO_TIPOS.includes(tipo as FocoTipo)) return null;
+  return { tipo: tipo as FocoTipo, valor };
 }
 
 export function textoDesdeFoco(foco: FocoDeCuota) {
