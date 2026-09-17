@@ -42,15 +42,22 @@
 #' @param aulas_contactadas `classroom_id` del otro estudio con contacto o
 #'   aplicación registrada.
 #' @param etiqueta nombre corto del otro estudio para el texto de la celda.
-#' @return character NOMBRADO por código operativo, con el atributo `rotulo`
-#'   puesto en `TRASLAPE <etiqueta>` para que la columna del libro se titule
-#'   sola. Las unidades sin traslape quedan con `""`.
+#' @param leido_en marca ISO de CUÁNDO se leyó el otro estudio. **Sin ella el
+#'   veredicto no dice de cuándo es**, y un traslape sin fecha se lee como si
+#'   fuera de hoy: es la peor lectura posible, porque el operativo del otro
+#'   estudio se mueve todos los días. Vacío = no se sabe, y se declara.
+#' @param fuente de dónde se leyó, en una frase («plan de HSVG2026 + su libro
+#'   vivo»). Es lo único que permite repetir la lectura sin adivinar.
+#' @return character NOMBRADO por código operativo, con los atributos `rotulo`
+#'   —puesto en `TRASLAPE <etiqueta>`, para que la columna del libro se titule
+#'   sola—, `leido_en` y `fuente`. Las unidades sin traslape quedan con `""`.
 #' @export
 aulas_traslape_estudio <- function(unidades, aulas = character(0),
                                    docentes = character(0),
                                    contactados = character(0),
                                    aulas_contactadas = character(0),
-                                   etiqueta = "OTRO ESTUDIO") {
+                                   etiqueta = "OTRO ESTUDIO",
+                                   leido_en = "", fuente = "") {
   nrm <- function(x) tolower(trimws(as.character(unlist(x %||% character(0), use.names = FALSE))))
   aulas <- unique(nrm(aulas)); docentes <- unique(nrm(docentes))
   contactados <- unique(nrm(contactados)); aulas_contactadas <- unique(nrm(aulas_contactadas))
@@ -92,6 +99,12 @@ aulas_traslape_estudio <- function(unidades, aulas = character(0),
   # El rótulo viaja CON el veredicto: así la columna del libro se titula sola y
   # no hay que pasar el nombre del estudio por tres firmas.
   attr(out, "rotulo") <- sprintf("TRASLAPE %s", et)
+  # La procedencia viaja CON el veredicto, igual que el rótulo: el veredicto se
+  # persiste en el `.pulso` y sobrevive a la sesión que lo calculó, así que si la
+  # fecha no viaja con él no hay dónde recuperarla.
+  attr(out, "leido_en") <- .monitoreo_scalar(leido_en, "")
+  attr(out, "fuente") <- .monitoreo_scalar(fuente, "")
+  attr(out, "etiqueta") <- et
   out
 }
 
@@ -106,9 +119,77 @@ aulas_traslape_estudio <- function(unidades, aulas = character(0),
 aulas_traslape_resumen <- function(traslape) {
   v <- as.character(unlist(traslape %||% character(0), use.names = FALSE))
   con <- v[nzchar(v)]
-  list(
+  c(list(
     unidades = length(v),
     con_traslape = length(con),
     por_veredicto = if (length(con)) as.list(table(con)) else list()
+  ), aulas_traslape_vigencia(traslape))
+}
+
+# Una marca de tiempo a instante, o `NA` — nunca una excepción.
+#
+# **`as.POSIXct(x, tryFormats = ...)` LANZA cuando ningún formato casa**, no
+# devuelve `NA`, y `suppressWarnings()` no lo atrapa porque no es un warning.
+# El test lo destapó con «ayer por la tarde»: la función entera reventaba en vez
+# de declarar que la fecha no se entiende, que es justo lo que existe para
+# hacer.
+.cate_instante <- function(x) {
+  v <- trimws(as.character(x %||% "")[1])
+  if (!nzchar(v)) return(as.POSIXct(NA))
+  tryCatch(
+    suppressWarnings(as.POSIXct(v, tz = "UTC", tryFormats = c(
+      "%Y-%m-%dT%H:%M:%OSZ", "%Y-%m-%dT%H:%M:%S",
+      "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"))),
+    error = function(e) as.POSIXct(NA)
+  )
+}
+
+#' De cuándo es el veredicto, y cuánto hace que se leyó.
+#'
+#' **El traslape es una FOTO de otro operativo que se mueve todos los días.** Su
+#' veredicto se persiste en el `.pulso` y sobrevive a la sesión que lo calculó,
+#' así que sin fecha se lee como si fuera de hoy — y eso no es una imprecisión,
+#' es la lectura equivocada: una unidad que HSVG agendó ayer sigue apareciendo
+#' como libre.
+#'
+#' No hay umbral. La edad se dice y quien lee decide: no existe un número de
+#' días medido que separe «vigente» de «caducado», y fabricarlo haría que la
+#' pantalla afirmara algo que nadie midió.
+#'
+#' @param traslape salida de [aulas_traslape_estudio()].
+#' @param ahora marca ISO con la que comparar; por defecto, el reloj.
+#' @return lista `{etiqueta, leido_en, fuente, dias, aviso}`. `dias` es `NA`
+#'   cuando no hay fecha, y `aviso` lo DICE en vez de callarlo.
+#' @export
+aulas_traslape_vigencia <- function(traslape, ahora = NULL) {
+  leido <- .monitoreo_scalar(attr(traslape, "leido_en") %||% "", "")
+  fuente <- .monitoreo_scalar(attr(traslape, "fuente") %||% "", "")
+  etiqueta <- .monitoreo_scalar(attr(traslape, "etiqueta") %||% "", "")
+  vacio <- list(etiqueta = etiqueta, leido_en = "", fuente = fuente,
+                dias = NA_integer_, aviso = "")
+  if (is.null(traslape) || !length(traslape)) return(vacio)
+  if (!nzchar(leido)) {
+    vacio$aviso <- paste(
+      "El cruce no dice de cuándo es. Es una foto de otro operativo que se",
+      "mueve todos los días, así que sin fecha no se puede saber si una unidad",
+      "que aparece libre ya fue tomada."
+    )
+    return(vacio)
+  }
+  t1 <- .cate_instante(leido)
+  t0 <- if (is.null(ahora)) Sys.time() else .cate_instante(.monitoreo_scalar(ahora, ""))
+  if (!length(t1) || is.na(t1) || !length(t0) || is.na(t0)) {
+    # La fecha está pero no se entiende. Se dice: leerla mal y publicar «hace 0
+    # días» sería inventar vigencia.
+    return(list(etiqueta = etiqueta, leido_en = leido, fuente = fuente,
+                dias = NA_integer_,
+                aviso = sprintf("El cruce trae una fecha que no se entiende («%s»).", leido)))
+  }
+  dias <- as.integer(floor(as.numeric(difftime(t0, t1, units = "days"))))
+  list(
+    etiqueta = etiqueta, leido_en = leido, fuente = fuente, dias = dias,
+    aviso = if (dias <= 0L) "" else sprintf(
+      "El cruce se leyó hace %d %s. El operativo del otro estudio se mueve todos los días.",
+      dias, if (dias == 1L) "día" else "días")
   )
 }
