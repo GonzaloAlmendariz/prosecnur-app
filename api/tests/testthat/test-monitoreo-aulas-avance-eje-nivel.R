@@ -240,3 +240,53 @@ test_that("con eje por persona NO se mezcla el fallback por facultad", {
   # Y la cifra que se veía mal: la brecha total no puede pasar de la cuota.
   expect_lte(as.numeric(d$avance_cuota$total$brecha), as.numeric(d$avance_cuota$total$cuota))
 })
+
+test_that("la meta es por NIVEL y no por nivel y sexo", {
+  # Gonzalo, 2026-09-17: «recuerda que la meta no es por sexo y nivel sino sólo
+  # nivel». Decisión 2 del plan: la cuota es por el eje y es DURA; sexo y carrera
+  # son referenciales.
+  #
+  # **Yo lo había hecho mal en el simulacro**, no el motor: le puse `cuota_sexo`
+  # mitad y mitad dentro de cada nivel «para que el tablero tuviera celdas que
+  # enseñar», y eso es convertir en cuota dura algo que el estudio declaró
+  # descriptivo. Esta prueba existe para que no vuelva a pasar por comodidad.
+  #
+  # El diseño de CCSS declara `cuota` por nivel y NO declara `cuota_sexo`; el
+  # motor ya hacía lo correcto con eso, y aquí queda fijado.
+  cfg <- .aen_cfg()   # su `design_targets` no trae `cuota_sexo`
+  d <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())
+
+  # Ni una celda de sexo: no hay cuota que medir por sexo.
+  expect_identical(length(d$quotas_sex_faculty %||% list()), 0L)
+
+  # Y la brecha de cada nivel es su NETO —cuota menos conseguidas—, no la suma de
+  # unas celdas de sexo que nadie prometió.
+  por <- stats::setNames(
+    lapply(d$avance_cuota$facultades, identity),
+    vapply(d$avance_cuota$facultades, function(f) as.character(f$facultad), character(1)))
+  siete <- por[["7"]]
+  expect_identical(as.numeric(siete$brecha),
+                   as.numeric(siete$cuota) - as.numeric(siete$respuestas_validas))
+
+  # El sexo NO desaparece: se describe. Es la diferencia entre «no se mide» y
+  # «no se exige».
+  expect_true("sexo" %in% names(d$avance_cuota$composicion$dimensiones))
+})
+
+test_that("un estudio que SI declara cuota por sexo la sigue midiendo", {
+  # La contracara, que protege a HSVG: el ADR 0079 sigue vigente para el eje
+  # facultad, donde la cuota es facultad Y sexo y no se compensa entre celdas.
+  # Lo que cambia no es la regla: es que ahora se aplica sólo donde el diseño la
+  # declara.
+  cfg <- .aen_cfg()
+  cfg$design_targets$facultades <- lapply(cfg$design_targets$facultades, function(f) {
+    f$cuota_sexo <- list(F = floor(f$cuota / 2), M = f$cuota - floor(f$cuota / 2))
+    f
+  })
+  cfg <- monitoreo_aulas_normalize_config(cfg)
+  d <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())
+  expect_gt(length(d$quotas_sex_faculty %||% list()), 0L)
+  # Y todas las celdas hablan del eje, no de la facultad (el fallback sigue apagado).
+  valores <- unique(vapply(d$quotas_sex_faculty, function(c1) as.character(c1$faculty %||% ""), character(1)))
+  expect_false("CIENCIAS SOCIALES" %in% valores)
+})
