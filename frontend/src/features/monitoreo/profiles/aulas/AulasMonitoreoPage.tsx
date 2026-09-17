@@ -62,7 +62,7 @@ import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
-import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota, esFocoDelEje } from "./AulasCuotasResumen";
 import { AulasSelectorDeFacultad } from "./AulasSelectorDeFacultad";
 import { mandoDeFacultadVisible } from "./mandoDeFacultad";
 import { aulasKpis, fmt } from "./kpisDeAulas";
@@ -927,7 +927,15 @@ function renderAulasView({
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
   // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
   // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
-  const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+  // Se pregunta por el EJE, no por su nombre de hoy: en un estudio cuyas metas
+  // son por nivel el foco llega como `nivel:7` y esta comparación lo daba por
+  // «no es el eje», así que la sección entera dejaba de obedecer al foco. La
+  // clave la declara el motor en `avance_cuota.eje`; sin ella, `facultad`.
+  const ejeDeLaSeccion = String(
+    (dashboard as { avance_cuota?: { eje?: { clave?: unknown } } } | null)
+      ?.avance_cuota?.eje?.clave ?? "facultad",
+  );
+  const facultadEnFoco = esFocoDelEje(foco, ejeDeLaSeccion) ? foco!.valor : undefined;
   // El umbral declarado, leído del mismo bloque que dibuja el panel de tiempos
   // para que las dos pantallas no puedan discrepar.
   const umbralDeDuracion = (() => {
@@ -1155,6 +1163,17 @@ export default function AulasMonitoreoPage() {
     [seccionActiva],
   );
   const dashboard = dashboardFromState(state);
+  // **La clave del eje de cuotas del estudio, leída del motor.**
+  //
+  // El bloque `avance_cuota` declara de qué son sus celdas (`eje.clave`:
+  // `facultad` para todo lo vigente, `nivel` para CCSS Perfil 2026-II). Se lee
+  // aquí una vez y baja: preguntar por «facultad» en cada sitio era una
+  // respuesta cableada que en un estudio por nivel decía «no es el eje».
+  // Un payload viejo sin `eje` cae a `facultad`, que es lo que era.
+  const ejeClave = String(
+    (dashboard as { avance_cuota?: { eje?: { clave?: unknown } } } | null)
+      ?.avance_cuota?.eje?.clave ?? "facultad",
+  );
   // El foco de cuotas vive en la URL, como el resto de la dirección: así la
   // vista sigue siendo enlazable y el botón Atrás la deshace.
   //
@@ -1182,7 +1201,7 @@ export default function AulasMonitoreoPage() {
     }
     return [...vistas].sort((a, b) => a.localeCompare(b, "es"));
   }, [dashboard]);
-  const facultadDeLaCabecera = foco?.tipo === "facultad" ? foco.valor : "";
+  const facultadDeLaCabecera = esFocoDelEje(foco, ejeClave) ? foco!.valor : "";
   const cambiarFoco = useCallback(
     (siguiente: FocoDeCuota) => escribirFoco(textoDesdeFoco(siguiente) || null),
     [escribirFoco],

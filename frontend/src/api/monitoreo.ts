@@ -944,6 +944,51 @@ export type MonitoreoAulasAvanceCuota = {
   vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
   /** `""` o el porqué de la degradación, con sellos. */
   motivo: string;
+  /**
+   * **De qué son estas celdas.**
+   *
+   * `facultades`, `facultad` y `faculty_key` conservan sus nombres —contrato
+   * congelado, ADR 0079— y con el eje declarable sus VALORES pueden ser niveles.
+   * Sin esta declaración el mismo payload significa dos cosas y la UI adivina.
+   * Un contrato viejo sin `eje` se lee como `facultad`, que es lo que es.
+   */
+  eje?: {
+    clave: string;
+    columna: string;
+    etiqueta: string;
+    etiqueta_plural: string;
+    etiqueta_sin: string;
+    atribucion: "aula" | "persona" | string;
+    fuente_valor: "plan" | "padron" | string;
+    motivo: string;
+  } | null;
+  /**
+   * Sexo y carrera, DESCRIPTIVOS: composición obtenida contra la de la
+   * población. Sin umbrales y sin avisos de desvío a propósito — la cuota es por
+   * el eje, y pintar un desvío en rojo convertiría en incumplimiento algo que el
+   * estudio no prometió. Lo calcula el motor: el payload del estado recorta
+   * `quotas.category_profiles`, así que desde aquí no se puede derivar.
+   */
+  composicion?: {
+    schema: string;
+    caracter: "referencial" | string;
+    nota: string;
+    fuente: "padron" | "sin_cruce" | string;
+    personas: number;
+    dimensiones: Record<string, {
+      dimension: string;
+      etiqueta: string;
+      poblacion_total: number;
+      obtenidas_total: number;
+      filas: Array<{
+        categoria: string;
+        poblacion: number;
+        poblacion_pct: number | null;
+        obtenidas: number;
+        obtenidas_pct: number | null;
+      }>;
+    }>;
+  } | null;
   /** τ compartida; `null` cuando difiere por facultad. */
   tasa_esperada: number | null;
   tasa_fuente: "tau_disenio" | "certificacion" | "sin_tasa" | "";

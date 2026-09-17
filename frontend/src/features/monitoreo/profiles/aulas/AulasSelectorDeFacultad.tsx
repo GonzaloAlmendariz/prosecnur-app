@@ -16,15 +16,23 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * El foco es una dimensión de la gramática de navegación y viaja en la URL, así
  * que este componente no guarda estado: lee `valor` y avisa por `onFoco`.
  */
-export function AulasSelectorDeFacultad({ facultades, valor, onFoco }: {
+export function AulasSelectorDeFacultad({ facultades, valor, onFoco, ejeClave = "facultad" }: {
   /** Las facultades del estudio, ya ordenadas por quien las conoce. */
   facultades: ReadonlyArray<string>;
   /** La que está en foco, o cadena vacía para «todas». */
   valor: string;
   onFoco: (foco: FocoDeCuota) => void;
+  /**
+   * La clave del eje de cuotas del estudio (`avance_cuota.eje.clave`).
+   *
+   * El foco se ESCRIBE con ella, no con un literal: así HSVG sigue poniendo
+   * `facultad:` en sus enlaces byte a byte y un estudio por nivel pone `nivel:`.
+   * Por defecto `facultad`, que es lo que era.
+   */
+  ejeClave?: string;
 }) {
   if (!facultades.length) return null;
-  const poner = (v: string) => onFoco(v ? { tipo: "facultad", valor: v } : null);
+  const poner = (v: string) => onFoco(v ? { tipo: ejeClave as NonNullable<FocoDeCuota>["tipo"], valor: v } : null);
   // El paso circular: desde la última, «siguiente» vuelve a la primera. Sin eso
   // el recorrido se acaba y hay que volver al desplegable para seguir.
   const mover = (paso: number) => {
