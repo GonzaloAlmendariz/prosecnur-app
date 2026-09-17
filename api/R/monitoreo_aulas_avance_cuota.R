@@ -67,6 +67,16 @@
   k
 }
 
+# La misma cosa para el eje que el estudio declare. Se deja `.maac_fac_key()`
+# intacta —la usan otras familias que SÍ hablan de facultad— y este hermano
+# recibe el eje para saber cómo se llama su centinela.
+.maac_eje_key <- function(x, eje = NULL) {
+  k <- monitoreo_aulas_eje_key(x)
+  clave <- .monitoreo_scalar((eje %||% list())[["clave"]], "facultad")
+  k[!nzchar(k)] <- paste0("sin_", clave)
+  k
+}
+
 # --- sexo: clave canónica y etiqueta de display ------------------------------
 
 # Mapa valor -> clave {"F","M",""}. Los booleanos `.mabe_es_mujer()` /
@@ -231,7 +241,13 @@
 .monitoreo_aulas_avance_cuota <- function(plan_df, tracked_df, responses, cfg,
                                           valid_response = logical(0),
                                           response_classroom = character(0),
-                                          celdas_sexo = NULL) {
+                                          celdas_sexo = NULL,
+                                          # El padrón que traduce un código de
+                                          # alumno a su nivel. Sólo lo usa un eje
+                                          # con `atribucion = "persona"`; su
+                                          # ausencia NO se suple, se declara en
+                                          # el aviso del satélite.
+                                          padron = NULL) {
   vig <- .monitoreo_aulas_avance_vigencia(cfg)
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
   total_validas <- as.integer(sum(atr$valid))
@@ -240,33 +256,63 @@
   sexo_key <- if (nzchar(sex_col)) monitoreo_aulas_sexo_key(.monitoreo_aulas_values(responses, sex_col, ""), cfg) else character(0)
   if (length(sexo_key) != nrow(atr)) sexo_key <- rep("", nrow(atr))
 
-  fk_resp <- .maac_fac_key(atr$facultad)
-  atribuida <- atr$valid & atr$matched
-  cuenta <- atribuida & !atr$fuera
+  # **A qué celda va cada respuesta lo decide el EJE, no este bloque.**
+  #
+  # La cuenta vivía aquí: la clave era `.maac_fac_key(atr$facultad)` y el
+  # numerador `válida & con aula & dentro de universo`. Con el eje declarable eso
+  # deja de valer para un estudio cuyas metas son por NIVEL: el aula no sabe el
+  # nivel de cada alumno —el marco lo colapsó a su moda— así que el valor sale de
+  # la persona, y con él aparecen dos bolsas que antes no existían (`sin_eje` y
+  # `duplicadas`). La regla, su orden normativo y su invariante viven en
+  # `monitoreo_aulas_eje_atribucion.R`; aquí sólo se consume.
+  #
+  # **Con el eje en facultad esto es idéntico byte a byte**: el satélite lee el
+  # valor de la fila del plan, no deduplica, y su `cuenta` es literalmente la
+  # máscara de antes. Su prueba es de identidad, no de plausibilidad.
+  eje <- monitoreo_aulas_eje(cfg)
+  eje_atr <- monitoreo_aulas_eje_atribucion(
+    atr, plan_df = plan_df, responses = responses, cfg = cfg, eje = eje,
+    padron = padron)
+  fk_resp <- eje_atr$clave
+  cuenta <- eje_atr$cuenta
   contar <- function(mask) {
     if (!any(mask)) return(integer(0))
     tabla <- table(fk_resp[mask])
     stats::setNames(as.integer(tabla), names(tabla))
   }
   num_k <- contar(cuenta)
-  fuera_k <- contar(atribuida & atr$fuera)
+  fuera_k <- contar(eje_atr$fuera)
   sin_sexo_k <- contar(cuenta & sexo_key == "")
-  huerfanas <- as.integer(total_validas - sum(atribuida))
+  # Las tres bolsas del bloque. `fuera_universo` y `huerfanas` conservan su
+  # significado —son del AULA y no cambian con el eje, que es la cláusula que
+  # hace que el ADR 0088 aplique el 0079 en vez de contradecirlo—; `sin_eje` y
+  # `duplicadas` sólo existen cuando el eje se resuelve por persona.
+  huerfanas <- as.integer(sum(eje_atr$huerfana))
+  sin_eje_k <- contar(eje_atr$sin_eje)
+  duplicadas_k <- contar(eje_atr$duplicada)
 
-  fac_plan <- .maac_chr_col(plan_df, "faculty")
-  fk_plan <- .maac_fac_key(fac_plan)
+  # La columna del eje en el plan y en las seguidas, por alias: ninguna capa
+  # debería saber si mira `faculty` o `level`.
+  col_plan <- monitoreo_aulas_columna_eje(plan_df, eje)
+  val_plan <- if (nzchar(col_plan)) .maac_chr_col(plan_df, col_plan) else character(0)
+  if (!length(val_plan)) val_plan <- rep("", if (is.data.frame(plan_df)) nrow(plan_df) else 0L)
+  fk_plan <- .maac_eje_key(val_plan, eje)
   primeras <- !duplicated(fk_plan)
-  labels_plan <- stats::setNames(fac_plan[primeras], fk_plan[primeras])
+  labels_plan <- stats::setNames(val_plan[primeras], fk_plan[primeras])
   claves_plan <- fk_plan[primeras]
 
-  fk_tracked <- .maac_fac_key(.maac_chr_col(tracked_df, "faculty"))
+  col_tracked <- monitoreo_aulas_columna_eje(tracked_df, eje)
+  val_tracked <- if (nzchar(col_tracked)) .maac_chr_col(tracked_df, col_tracked) else character(0)
+  fk_tracked <- .maac_eje_key(val_tracked, eje)
   ev <- .maac_num_col(tracked_df, "expected_valid")
   ev[!is.finite(ev) | ev < 0] <- 0
   denom_plan <- if (length(fk_tracked)) tapply(ev, fk_tracked, sum) else numeric(0)
 
+  centinela <- paste0("sin_", .monitoreo_scalar(eje$clave, "facultad"))
+  etiqueta_sin <- .monitoreo_scalar(eje$etiqueta_sin, "Sin facultad")
   etiqueta_plan <- function(k) {
     lbl <- .maac_toma_chr(labels_plan, k)
-    if (nzchar(lbl)) lbl else if (identical(k, "sin_facultad")) "Sin facultad" else k
+    if (nzchar(lbl)) lbl else if (identical(k, centinela)) etiqueta_sin else k
   }
 
   filas <- list()
@@ -406,10 +452,28 @@
     avance_pct = if (is.finite(cuota_total) && cuota_total > 0) {
       round(100 * num_total / cuota_total, 1)
     } else NA_real_,
-    fuera_universo = as.integer(sum(atribuida & atr$fuera)),
-    # Invariante: total_validas - sum(atribuidas). Las huérfanas nunca entran a
-    # ninguna facultad; se declaran aquí, no se descartan.
-    huerfanas = huerfanas
+    fuera_universo = as.integer(sum(eje_atr$fuera)),
+    # Las huérfanas nunca entran a ninguna celda; se declaran aquí, no se
+    # descartan.
+    huerfanas = huerfanas,
+    # **Las dos bolsas que el eje por persona añade, y su invariante.**
+    #
+    # `sin_eje` son válidas que pasaron el paso del aula y cuya PERSONA no
+    # resuelve —sin código, ilegible, o no está en el padrón—: el estudio decidió
+    # que sin cruce no hay nivel y no cuentan para ninguna celda. `duplicadas`
+    # son segundas respuestas de la misma persona dentro de su celda; se marcan y
+    # se publican, porque la cuota es de personas y una cifra que baja sin
+    # explicación es peor que una cifra con su nota.
+    #
+    # Con el eje en facultad las dos son **0** y el invariante se reduce al de
+    # siempre. Se publican igual: un cero declarado dice «esto se midió», y su
+    # ausencia obligaría al lector a adivinar si la bolsa no existe o está vacía.
+    sin_eje = as.integer(sum(eje_atr$sin_eje)),
+    duplicadas = as.integer(sum(eje_atr$duplicada)),
+    # `respuestas_validas = Σ celdas + duplicados + sin_eje + fuera_universo +
+    # huerfanas`, comprobado por la misma función que lo comprueban sus pruebas:
+    # un invariante que sólo se verifica en el test se queda en el test.
+    invariante = monitoreo_aulas_eje_invariante(eje_atr, total_validas)
   )
 
   list(
@@ -417,6 +481,13 @@
     fuente = vig$fuente,
     vigencia = vig$vigencia,
     motivo = vig$motivo,
+    # **De qué son estas celdas.** El bloque publica `facultades` con su
+    # `facultad` y su `faculty_key` —nombres del contrato congelado (ADR 0079),
+    # que no se renombran— y con el eje declarable esos valores pueden ser
+    # niveles. Sin esta declaración, el mismo payload significa dos cosas
+    # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
+    # `eje` se lee como `facultad`, que es lo que es.
+    eje = monitoreo_aulas_eje_declaracion(eje),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**
