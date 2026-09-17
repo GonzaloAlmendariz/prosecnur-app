@@ -1131,6 +1131,7 @@ export default function AulasMonitoreoPage() {
   // esta página: al salir del módulo el poll se corta en vez de seguir vivo.
   const esperarSyncDeFuentes = useWaitForSourceSyncJob();
   const [guardandoTramos, setGuardandoTramos] = useState(false);
+  const [guardandoFacultad, setGuardandoFacultad] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
     texto: "", tono: "ok",
   });
@@ -1636,6 +1637,32 @@ export default function AulasMonitoreoPage() {
    * estudio al respaldo por semanas de calendario, que es el comportamiento de
    * siempre para quien no los ha declarado.
    */
+  /**
+   * QUÉ pregunta dice la facultad del alumno, y qué es cada código. Las dos
+   * cosas van juntas en la misma llamada: una variable declarada sin catálogo
+   * hace que el cruce compare un «7» contra un nombre, y el motor se niega —con
+   * razón— porque eso daría 100 % de desacuerdo sobre un campo sano.
+   */
+  const declararFacultad = useCallback(async (
+    variable: string, etiquetas: Record<string, string>,
+  ) => {
+    setGuardandoFacultad(true);
+    try {
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          faculty_var: variable,
+          faculty_labels: etiquetas,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoFacultad(false);
+    }
+  }, [loadView, seccionActiva, state]);
+
   const guardarTramos = useCallback(async (
     tramos: { nombre: string; desde: string; hasta: string }[],
   ) => {
@@ -2130,6 +2157,21 @@ export default function AulasMonitoreoPage() {
                     onChange={setFiltrosEfectiva}
                     onGuardar={() => { void guardarCriterio(); }}
                     variableDeSexo={state?.aulas_universitarias?.source_mapping?.sex_var ?? ""}
+                    facultadDeclarada={{
+                      variables: (state?.variables ?? []).map((v) => ({
+                        name: v.name, values: (v.values ?? []).map(String),
+                      })),
+                      facultadVar: state?.aulas_universitarias?.source_mapping?.faculty_var ?? "",
+                      etiquetas: (state?.aulas_universitarias?.source_mapping?.faculty_labels ?? {}) as Record<string, string>,
+                      // Las facultades que ofrece el desplegable salen del
+                      // DISEÑO, no de la base: son las que tienen cuota, y son
+                      // las que el cruce va a comparar contra lo declarado.
+                      facultadesDelPlan: (aulasConfig?.design_targets?.facultades ?? [])
+                        .map((f) => String(f?.facultad ?? "")).filter((f) => f !== ""),
+                      control: dashboard?.control_facultad ?? null,
+                      onDeclarar: declararFacultad,
+                      ocupado: guardandoFacultad,
+                    }}
                     onVariableDeSexo={declararVariableDeSexo}
                     valoresDeSexo={{
                       mujeres: (state?.aulas_universitarias?.source_mapping?.sex_female_values ?? []).map(String),

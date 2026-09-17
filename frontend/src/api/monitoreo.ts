@@ -765,6 +765,13 @@ export type MonitoreoAulasConfig = {
    */
   reparto_rango?: { desde?: string; hasta?: string } | null;
   /**
+   * Las metas del diseño importadas de Cálculo de muestra. Aquí sólo se declara
+   * lo que la pantalla consume —el nombre de cada facultad con cuota—, que es
+   * la lista que ofrece el desplegable al mapear los códigos de la facultad
+   * declarada. El bloque entero lo gobierna el backend.
+   */
+  design_targets?: { facultades?: { facultad?: string }[] } | null;
+  /**
    * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
    * 2026-09-15). Lo que se guarda es la decisión —el rango y cómo se llama—;
    * su estado (citas, aplicadas, por aplicar) se deriva del plan y viaja en el
@@ -809,6 +816,13 @@ export type MonitoreoAulasConfig = {
      * una lectura aquí (`sub_a` es el sexo más frecuente, no las mujeres).
      */
     sex_var?: string;
+    /**
+     * La variable donde el alumno DECLARA su facultad y el catálogo que
+     * traduce su código a nombre. Las dos juntas habilitan la hoja «Control de
+     * facultad»; sin el catálogo el cruce compararía un «7» contra un nombre.
+     */
+    faculty_var?: string;
+    faculty_labels?: Record<string, string>;
     valid_statuses: string[];
     /**
      * Los filtros que definen una encuesta EFECTIVA, hasta cuatro.
@@ -1875,6 +1889,15 @@ export type MonitoreoAulasDashboard = {
 	  reemplazos_por_tipo?: MonitoreoAulasReemplazosPorTipo;
 	  /** Los tramos del operativo con su estado derivado. Ver `MonitoreoAulasTramo`. */
 	  tramos?: MonitoreoAulasTramo[];
+	  /**
+	   * El titular del cruce facultad del aula ↔ facultad declarada. Sirve para
+	   * decir si el catálogo que alguien acaba de mapear es el correcto: bien
+	   * emparejado coincide en ~95 %, corrido una posición en ~1 %.
+	   */
+	  control_facultad?: {
+	    ok?: boolean; motivo?: string;
+	    comparables?: number; coinciden?: number; discrepan?: number;
+	  } | null;
 	  /**
 	   * El mismo reparto por FACULTAD, para que el selector de la cabecera filtre
 	   * de verdad. Se calcula en el motor y no aquí porque `course_status` viaja
