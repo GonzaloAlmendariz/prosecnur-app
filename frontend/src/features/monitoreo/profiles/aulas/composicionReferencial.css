@@ -1,0 +1,48 @@
+/* Hoja propia del panel referencial de sexo y carrera. `aulasMonitoreo.css`
+ * está congelado a crecimiento y esto es un componente nuevo: hoja nueva, como
+ * `tresLecturasDeCuota.css`. El guard `cssSinDueno` exige que cada clase de
+ * aquí la nombre un `.tsx`. */
+
+/* La leyenda: los dos repartos, dichos antes de dibujarlos. Sin semáforo — no
+ * hay «bien» ni «mal» aquí, y un tono de alarma lo inventaría. */
+.aulas-comp-leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 12px; font-size: var(--aulas-min); color: var(--pulso-text-soft); }
+.aulas-comp-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.aulas-comp-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.aulas-comp-swatch.es-poblacion { background: color-mix(in srgb, var(--pulso-text) 16%, transparent); }
+.aulas-comp-swatch.es-obtenidas { background: var(--pulso-module-monitoring); }
+
+.aulas-comp-dimensiones { display: grid; gap: 18px; }
+.aulas-comp-dimension { display: grid; gap: 8px; }
+.aulas-comp-titulo { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin: 0; }
+.aulas-comp-titulo h4 { margin: 0; font-size: var(--aulas-sec); font-weight: 650; color: var(--pulso-text); }
+.aulas-comp-titulo span { font-size: var(--aulas-min); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
+
+.aulas-comp-filas { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+/* Tres columnas que coinciden entre filas: la tercera fija, para que las cifras
+   de todas las filas se lean en la misma vertical. */
+/* La tercera columna, fija y ancha: con 132 px «52.6 % · 421 de la población»
+   partía «población» a una tercera línea y la dejaba huérfana. Visto en
+   pantalla, no en el markup. */
+.aulas-comp-fila { display: grid; grid-template-columns: minmax(140px, 1.2fr) minmax(150px, 2fr) 178px; gap: 4px 14px; align-items: center; }
+.aulas-comp-nombre { overflow-wrap: normal; word-break: keep-all; font-weight: 600; }
+
+/* Dos carriles apilados, uno por reparto. NO superpuestos: aquí ninguno
+   contiene al otro —son dos repartos distintos de dos poblaciones distintas—,
+   así que el ojo tiene que poder medir la diferencia de largo entre los dos. */
+.aulas-comp-carriles { display: grid; gap: 3px; }
+.aulas-comp-carril { position: relative; height: 9px; border-radius: 3px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
+/* `min-width` sólo para lo que existe: un 0 % dibujado como astilla de 1 px se
+   lee «casi nada» donde el dato dice «nada». ANTROPOLOGÍA tiene 23 personas en
+   la población y 0 recogidas, y esa diferencia es el dato. */
+.aulas-comp-tramo { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 3px; }
+.aulas-comp-tramo.es-algo { min-width: 2px; }
+.aulas-comp-tramo.es-poblacion { background: color-mix(in srgb, var(--pulso-text) 16%, transparent); }
+.aulas-comp-tramo.es-obtenidas { background: var(--pulso-module-monitoring); }
+
+/* Dos líneas y ninguna se parte: cada una lleva `nowrap` y la columna se
+   dimensionó para la más larga. Los tonos son los de los dos carriles —fuerte
+   lo recogido, suave la población—, así que la cifra se empareja con su barra
+   sin repetir un rótulo en cada una de las ocho filas. */
+.aulas-comp-cifras { text-align: right; font-size: var(--aulas-min); font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
+.aulas-comp-cifras span { display: block; white-space: nowrap; }
+.aulas-comp-cifras b { display: block; white-space: nowrap; font-weight: 650; color: var(--pulso-text); }
