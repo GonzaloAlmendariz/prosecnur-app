@@ -477,6 +477,13 @@ monitoreo_aulas_default_config <- function() {
     representativity = list(),
     # Metas del diseño importadas de calc-muestra (ver monitoreo_aulas_metas_diseno.R).
     design_targets = list(),
+    # **El eje de las cuotas.** Nace en «facultad», que es lo que las cinco
+    # capas hacían ya sin declararlo. Un estudio que mide por otra cosa —CCSS
+    # Perfil 2026-II mide por nivel curricular— lo dice aquí y el resto lo
+    # hereda. Ver monitoreo_aulas_eje.R. El motivo es para que un humano
+    # entienda la decisión al reabrir el proyecto, no un requisito del motor.
+    eje_cuota = "facultad",
+    eje_cuota_motivo = "",
     # **Los TRAMOS del operativo: rangos de fecha con nombre propio.** Dictado
     # 2026-09-15: «más que semana en el estricto senso, con rango a los que
     # llamamos de forma personalizada; en este caso seleccioné dos rangos
@@ -762,6 +769,13 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # Esta lista es CERRADA y el engine re-normaliza la config en cada pase:
     # sin este passthrough las metas del diseño se tragaban en el segundo pase.
     design_targets = config[["design_targets"]] %||% config[["metas_diseno"]] %||% defaults$design_targets,
+    # El eje de las cuotas, por la MISMA razón: sin nombrarlo aquí, declararlo
+    # en la UI no sobreviviría al primer «actualizar» y el estudio volvería a
+    # medir por facultad sin avisar. Se guarda crudo y lo resuelve
+    # `monitoreo_aulas_eje()`, que es el único que sabe qué ejes existen: un eje
+    # retirado del catálogo cae al default en vez de envenenar la config.
+    eje_cuota = config[["eje_cuota"]] %||% config[["ejeCuota"]] %||% defaults$eje_cuota,
+    eje_cuota_motivo = config[["eje_cuota_motivo"]] %||% config[["ejeCuotaMotivo"]] %||% defaults$eje_cuota_motivo,
     # Misma doctrina de whitelist que el resto: sin nombrarlos aquí, declarar
     # un tramo en la UI no persistiría y el mecanismo entero se caería en
     # silencio al primer «actualizar». Se normalizan al guardar —fechas ISO,
@@ -1316,6 +1330,12 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     # como stale.
     metas$selection_run_id <- cfg$selection_run_id
     metas$frame_hash <- cfg$frame_hash
+    # **Qué SIGNIFICAN las claves de `facultades`.** El campo conserva su nombre
+    # porque el contrato del import está congelado (test-monitoreo-aulas-metas-
+    # diseno.R, ADR 0079); lo que se añade es el bloque hermano que declara de
+    # qué eje son esas filas. Un `design_targets` viejo no lo trae y se lee como
+    # facultad, que es lo que es.
+    metas$eje <- monitoreo_aulas_eje_declaracion(monitoreo_aulas_eje(cfg))
     cfg$design_targets <- metas
     cfg$plan <- .monitoreo_aulas_aplicar_meta_tau(cfg$plan, metas)
   }

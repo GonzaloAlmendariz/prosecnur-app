@@ -111,6 +111,42 @@ test_that("la declaracion que viaja en los contratos es serializable y completa"
   expect_true(all(vapply(d, function(x) is.character(x) && length(x) == 1L, logical(1))))
 })
 
+test_that("el normalizador conserva el eje declarado, y lo aguanta en el segundo pase", {
+  # La lista blanca del normalizador es CERRADA y el engine re-normaliza la
+  # config en cada pase. Sin nombrar `eje_cuota` ahi, declararlo en la UI no
+  # sobreviviria al primer «actualizar» y el estudio volveria a medir por
+  # facultad SIN AVISAR. Es el mismo defecto que ya se comio `valid_filters`,
+  # `sex_var` y los tramos, y por eso se prueba el segundo pase, no el primero.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    eje_cuota = "nivel",
+    eje_cuota_motivo = "metas por nivel curricular"
+  ))
+  expect_identical(cfg$eje_cuota, "nivel")
+  expect_match(cfg$eje_cuota_motivo, "nivel curricular")
+
+  otra_vez <- monitoreo_aulas_normalize_config(cfg)
+  expect_identical(otra_vez$eje_cuota, "nivel")
+  expect_identical(monitoreo_aulas_eje(otra_vez)$columna, "level")
+})
+
+test_that("un estudio que no declara eje sale normalizado en facultad", {
+  cfg <- monitoreo_aulas_normalize_config(list())
+  expect_identical(cfg$eje_cuota, "facultad")
+  # Y el resolutor lo lee igual desde la config ya normalizada.
+  expect_identical(monitoreo_aulas_eje(cfg)$atribucion, "aula")
+})
+
+test_that("un eje retirado del catalogo cae al default en vez de envenenar la config", {
+  # La config guarda el valor CRUDO y el catalogo vive en el resolutor. Si algun
+  # dia se retira un eje, los proyectos que lo declararon tienen que seguir
+  # abriendose y midiendo por facultad, no romperse ni medir por una columna
+  # que ya no se resuelve.
+  cfg <- monitoreo_aulas_normalize_config(list(eje_cuota = "eje_que_ya_no_existe"))
+  expect_identical(cfg$eje_cuota, "eje_que_ya_no_existe")
+  expect_identical(monitoreo_aulas_eje(cfg)$clave, "facultad")
+  expect_identical(monitoreo_aulas_eje(cfg)$columna, "faculty")
+})
+
 test_that("sin eje, la declaracion dice facultad — un contrato viejo se lee bien", {
   # Un `design_targets` guardado antes de esto no trae bloque `eje`. Leerlo como
   # facultad no es un default de cortesia: es lo que ese contrato ES.
