@@ -8,6 +8,7 @@ import type {
   MonitoreoAulasProyeccionFila,
 } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
+import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
 
 /** El porcentaje de la casa (`pctPerfil`): un decimal y espacio antes del «%».
  *  Formatearlo aquí a mano era el tercer sitio del perfil escribiendo el mismo
@@ -35,7 +36,14 @@ const avancePct = (parte: number, total: number): string =>
  * se activan cuando una titular se cae, y contarlas daría las 1 392 filas del
  * banco, que no es el objetivo de nadie.
  */
-export function AulasMetasAvance({ filas, aulas }: {
+export function AulasMetasAvance({ filas, aulas , eje}: {
+  /**
+   * La declaración del eje de cuotas (`avance_cuota.eje`). Sin ella el gráfico
+   * se comporta igual que antes: el eje nace en facultad y su etiqueta es el
+   * valor crudo, que es lo que HSVG tiene en pantalla.
+   */
+  eje?: EjeDeclarado;
+
   filas: ReadonlyArray<MonitoreoAulasProyeccionFila> | null;
   aulas: ReadonlyArray<MonitoreoAulasPorFacultad> | null | undefined;
 }): ReactNode {
@@ -87,7 +95,7 @@ export function AulasMetasAvance({ filas, aulas }: {
             <tbody key={f.facultad}>
               <tr className="es-facultad">
                 <td colSpan={7} className="es-titulo-facultad">
-                  <span className={claseDeFacultad(f.facultad)}>{f.facultad}</span>
+                  <span className={claseDeFacultad(f.facultad)}>{etiquetaDeValorEnGrafico(f.facultad, eje)}</span>
                 </td>
                 {/* Sin dato de aulas se escribe «—» y no un cero: una facultad
                     sin aulas planificadas no existe, y el cero lo afirmaría. */}

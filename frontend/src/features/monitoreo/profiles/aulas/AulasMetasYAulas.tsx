@@ -5,6 +5,7 @@ import { claseDeFacultad } from "./tonoDeFacultad";
 import { filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
+import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
 
 /**
  * «Metas y aulas»: lo aplicado más lo que cabe esperar de las aulas que ya
@@ -23,7 +24,14 @@ import "./aulasMetas.css";
  * Y la marca de la meta va dentro del carril: si la barra no alcanza la marca,
  * ese sexo no llega ni yendo a todo lo que hay cerrado.
  */
-export function AulasMetasYAulas({ filas }: {
+export function AulasMetasYAulas({ filas , eje}: {
+  /**
+   * La declaración del eje de cuotas (`avance_cuota.eje`). Sin ella el gráfico
+   * se comporta igual que antes: el eje nace en facultad y su etiqueta es el
+   * valor crudo, que es lo que HSVG tiene en pantalla.
+   */
+  eje?: EjeDeclarado;
+
   filas: ReadonlyArray<MonitoreoAulasProyeccionFila> | null;
 }): ReactNode {
   const orden = filasAlfabeticas(filas);
@@ -55,7 +63,7 @@ export function AulasMetasYAulas({ filas }: {
           </colgroup>
           <thead>
             <tr>
-              <th className="es-izq">Facultad</th>
+              <th className="es-izq">{etiquetaDelEje(eje)}</th>
               <th className="es-izq" />
               <th className="es-izq">Aplicado + proyectado contra la meta</th>
               <th>Aplicado</th>
@@ -94,7 +102,7 @@ export function AulasMetasYAulas({ filas }: {
               <tbody key={f.facultad}>
                 <tr className="es-facultad">
                   <td colSpan={7}>
-                    <span className={claseDeFacultad(f.facultad)}>{f.facultad}</span>{" "}
+                    <span className={claseDeFacultad(f.facultad)}>{etiquetaDeValorEnGrafico(f.facultad, eje)}</span>{" "}
                     {/* En la unidad del perfil —el curso-horario, masculino
                         (ADR 0060)— y no «aulas aplicadas»: los rótulos de
                         COLUMNA de «Avance por facultad y sexo» sí dicen «aulas»
