@@ -297,7 +297,9 @@ describe("las bolsas del eje por persona llegan a la pantalla", () => {
     // **Personas, no respuestas.** La cuota es de personas: llamarlo «respuestas
     // duplicadas» haría pensar que sobran encuestas cuando lo que hay es alguien
     // contado una sola vez a propósito.
-    expect(notas).toContain("2 personas que respondió dos veces");
+    // Y concuerda: «personas que respondió» no es una frase, y esta nota se lee
+    // en la pantalla más vista del perfil.
+    expect(notas).toContain("2 personas que respondieron dos veces");
     expect(notas).not.toContain("respuestas duplicadas");
     // Con el eje en facultad las dos valen 0 y no se pintan: «0 sin nivel» es
     // ruido, y es el mismo trato que reciben sus hermanas.
@@ -308,6 +310,27 @@ describe("las bolsas del eje por persona llegan a la pantalla", () => {
   it("una sola persona repetida se dice en singular", () => {
     const uno = avanceCuota(bloque({ duplicadas: 1 }));
     expect((uno.total?.notas ?? []).join(" · ")).toContain("1 persona que respondió dos veces");
+  });
+
+  /**
+   * **Cuántas no entran en ninguna celda, que es lo que le falta a «Efectivas
+   * 58 de 400» para poder leerse.**
+   *
+   * Se SUMAN las cuatro bolsas del motor, no se resta `total − validas`: la
+   * resta da el mismo número mientras el invariante cuadre y un número
+   * inventado justo cuando no cuadra, que es cuando la cifra importa.
+   */
+  it("suma las cuatro bolsas y no las deriva de una resta", () => {
+    const v = avanceCuota(bloque({
+      respuestas_validas: 58, fuera_universo: 3, huerfanas: 1, sin_eje: 1, duplicadas: 1,
+      // El invariante NO cuadra a propósito: si el conteo saliera de
+      // `total − validas` este caso daría 6 por casualidad y el test pasaría
+      // con el bug puesto.
+      invariante: { ok: false, suma: 100, total: 64, solapadas: 0 },
+    }, { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" }));
+    expect(v.total?.fueraDeCelda).toBe(6);
+    const cero = avanceCuota(bloque({}));
+    expect(cero.total?.fueraDeCelda).toBe(0);
   });
 
   it("el descuadre del invariante habla SÓLO cuando no cuadra", () => {
