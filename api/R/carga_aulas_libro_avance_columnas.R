@@ -333,12 +333,24 @@ AULAS_AVANCE_FALTAN_SOBREMUESTRA <- c(
 #' Tres tablas empiezan por «Facultad», así que la primera celda no basta: se
 #' compara la fila entera contra las cabeceras declaradas. Devuelve `""` cuando
 #' la fila no es cabecera de ninguna.
+#'
+#' **Y contra todas las GRAFÍAS de cada una**, no sólo contra la constante: un
+#' documento escrito con el eje de cuotas en nivel trae «Nivel» donde la
+#' constante dice «Facultad» (`carga_aulas_libro_avance_eje.R`). Sin iterarlas,
+#' ese documento pierde color y ancho **sin fallar** al republicarse, que es el
+#' fallo mudo que el satélite del eje existe para evitar. La constante se
+#' compara PRIMERO, así que el camino de siempre no paga nada.
 #' @keywords internal
 .calac_tabla_de_cabecera <- function(celdas) {
   celdas <- trimws(as.character(celdas %||% character(0)))
   celdas <- celdas[seq_len(max(0L, max(c(0L, which(nzchar(celdas))))))]
   for (nombre in names(AULAS_AVANCE_CABECERAS)) {
     if (identical(celdas, AULAS_AVANCE_CABECERAS[[nombre]])) return(nombre)
+  }
+  for (nombre in names(AULAS_AVANCE_CABECERAS)) {
+    for (variante in .calae_cabeceras_posibles(nombre)) {
+      if (identical(celdas, variante)) return(nombre)
+    }
   }
   ""
 }
