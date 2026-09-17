@@ -470,6 +470,17 @@ monitoreo_aulas_default_config <- function() {
       # no hay nivel).
       student_code_var = "",
       student_code_label = "",
+      # **El ciclo que el alumno declara**, y su catálogo de opciones. No es una
+      # fuente de nivel —sin cruce no hay nivel, ADR 0088— sino el OTRO lado del
+      # control: la hoja «Control de nivel» contrasta el nivel del padrón contra
+      # lo que la misma persona declaró.
+      #
+      # El catálogo se declara por la misma razón que `faculty_labels`, y con el
+      # mismo modo de fallo medido: sin él se compara el código de la opción
+      # («1», «2») contra el nivel del padrón (6, 7) y el control publica cero
+      # coincidencias, que es la alarma máxima por hablar dos idiomas.
+      declared_level_var = "",
+      declared_level_labels = list(),
       # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
       # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
       # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
@@ -600,6 +611,16 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
         mapping$student_code_label %||% mapping$codigo_label %||%
           mapping$codigo_pucp_label,
         defaults$source_mapping$student_code_label),
+      # El otro lado del control de nivel, misma doctrina de whitelist: sin
+      # nombrarlos aquí, declararlos no persistiría y la hoja «Control de
+      # nivel» nunca aparecería en el libro.
+      declared_level_var = .monitoreo_scalar(
+        mapping$declared_level_var %||% mapping$ciclo_var %||%
+          mapping$nivel_declarado_var,
+        defaults$source_mapping$declared_level_var),
+      declared_level_labels = .mcfd_normalizar_etiquetas(
+        mapping$declared_level_labels %||% mapping$etiquetas_ciclo %||%
+          defaults$source_mapping$declared_level_labels),
       # Misma doctrina de whitelist que la linea de arriba: sin nombrarlos aqui,
       # declararlos no persistiria.
       # Caían a `list()` pelada en vez de a `defaults`, así que un body sin
