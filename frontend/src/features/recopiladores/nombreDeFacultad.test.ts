@@ -11,11 +11,24 @@ describe("nombreCortoDeFacultad", () => {
     expect(a.slice(0, 12)).not.toBe(b.slice(0, 12));
   });
 
-  it("baja las mayúsculas del marco sin romper las tildes", () => {
-    expect(nombreCortoDeFacultad("CIENCIAS E INGENIERIA")).toBe("Ciencias e Ingenieria");
+  it("baja las mayúsculas del marco y REPONE las tildes que no trae", () => {
+    // **Este test fijaba el defecto.** Se llamaba «sin romper las tildes» y
+    // afirmaba «Ciencias e Ingenieria» y «Educacion» — sin tilde—, que es lo que
+    // salía porque el capitalizador propio de esta pantalla no las reponía. El
+    // marco viene de un SQL que no las guarda, así que «no romperlas» no basta:
+    // hay que ponerlas. Monitoreo ya lo hacía, y esta pantalla publicaba el
+    // mismo nombre mal escrito — medido el 2026-09-17: 11 de 16 facultades con
+    // nombre distinto en las dos, y dos de esas diferencias eran ortografía.
+    //
+    // Desde entonces las dos consumen `src/lib/nombresDeFacultad.ts`. Las
+    // tildes no se inventan: cada una es una facultad concreta de la PUCP,
+    // listada en ese módulo.
+    expect(nombreCortoDeFacultad("CIENCIAS E INGENIERIA")).toBe("Ciencias e Ingeniería");
+    expect(nombreCortoDeFacultad("EDUCACION")).toBe("Educación");
+    expect(nombreCortoDeFacultad("PSICOLOGIA")).toBe("Psicología");
+    // Y las que ya venían bien no se tocan.
     expect(nombreCortoDeFacultad("ARQUITECTURA Y URBANISMO")).toBe("Arquitectura y Urbanismo");
     expect(nombreCortoDeFacultad("ARTES ESCÉNICAS")).toBe("Artes Escénicas");
-    expect(nombreCortoDeFacultad("EDUCACION")).toBe("Educacion");
   });
 
   it("deja las partículas en minúscula salvo al principio", () => {
