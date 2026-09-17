@@ -893,6 +893,23 @@ import type { BancoDeExtras } from "../features/monitoreo/profiles/aulas/AulasBa
 
 /** El total del bloque `avance_cuota`, ya agregado por el motor. */
 export type MonitoreoAulasAvanceCuotaTotal = {
+  /**
+   * Las tres cifras que el eje por persona añade, y su comprobación.
+   *
+   * `sin_eje` son válidas cuya PERSONA no resuelve —sin código, ilegible, o no
+   * está en el padrón—; `duplicadas` son personas que respondieron dos veces
+   * dentro de su celda. Con el eje en facultad las dos son 0 y se publican
+   * igual. `invariante` dice si las partes suman las válidas.
+   */
+  sin_eje?: number;
+  duplicadas?: number;
+  invariante?: {
+    schema?: string;
+    ok?: boolean;
+    suma?: number;
+    total?: number;
+    solapadas?: number;
+  } | null;
   /** `null` cuando el motor no puede afirmar una cuota total (NA). */
   cuota: number | null;
   respuestas_validas: number;

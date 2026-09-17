@@ -73,6 +73,14 @@ export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
             respuestas que existieron y no cuentan aquí, y callarlas haría que
             esta cifra y la de Procesamiento parecieran contradecirse. */}
         {total.notas.length ? <em> · {total.notas.join(" · ")}</em> : null}
+        {/* **El descuadre se pinta al revés que las notas: callado si cuadra.**
+            Un «las partes suman» permanente es ruido; un bloque cuyas partes NO
+            suman su total no se puede leer, y ninguna otra pantalla lo dice.
+            Va con `role="status"` y no como una nota más porque es lo único de
+            esta cabecera que pide una acción. */}
+        {total.descuadre ? (
+          <strong className="aulas-cuota-descuadre" role="status"> · {total.descuadre}</strong>
+        ) : null}
       </p>
       {/* **Por qué conviven un 106.7 % y un «170 por recoger».**
 

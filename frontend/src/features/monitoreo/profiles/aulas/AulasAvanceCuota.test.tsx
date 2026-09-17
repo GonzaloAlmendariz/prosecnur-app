@@ -24,6 +24,7 @@ const vista = (over: Partial<VistaDeAvanceCuota["total"]> = {}): VistaDeAvanceCu
     relleno: 100,
     aria: "106.7 % de la cuota",
     notas: [],
+    descuadre: null,
     ...over,
   },
   filas: [],

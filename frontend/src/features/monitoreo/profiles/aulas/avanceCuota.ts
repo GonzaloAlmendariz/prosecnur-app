@@ -42,6 +42,16 @@ export type TotalDeAvanceCuota = {
   aria: string;
   /** Lecturas secundarias —fuera de universo, sin aula del plan—; nunca se ocultan. */
   notas: string[];
+  /**
+   * **El invariante del bloque, y sólo cuando NO cuadra.**
+   *
+   * `respuestas_validas = Σ celdas + duplicados + sin eje + fuera de universo +
+   * huérfanas`. El motor lo comprueba y lo publica; aquí se pinta al revés que
+   * las notas: callado si cierra —un «cuadra» permanente es ruido— y ruidoso si
+   * no, porque un bloque cuyas partes no suman su total no se puede leer y
+   * ninguna otra pantalla lo va a decir.
+   */
+  descuadre: string | null;
 };
 
 export type FilaDeAvanceCuota = {
@@ -301,6 +311,34 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   if (fueraTotal > 0) notasTotal.push(`${fmt(fueraTotal)} fuera de universo`);
   if (huerfanas > 0) notasTotal.push(`${fmt(huerfanas)} sin curso-horario del plan`);
   /**
+   * **Las dos bolsas del eje por persona, que el motor publicaba y nadie
+   * pintaba.**
+   *
+   * Comprobado con un grep sobre `src/` entero el 2026-09-17: nada consumía
+   * `sin_eje` ni `duplicadas`. El motor las calcula y morían ahí.
+   *
+   * Mismo trato que sus hermanas —sólo cuando hay algo—, y por el mismo motivo:
+   * «0 sin nivel» es ruido, y con el eje en facultad las dos valen 0 siempre.
+   * Lo que sí es propio es el rótulo de `duplicadas`: cuenta **personas que
+   * respondieron dos veces**, no respuestas de más. La cuota es de personas, y
+   * llamarlo «respuestas duplicadas» haría pensar que sobran encuestas cuando lo
+   * que hay es alguien contado una sola vez a propósito.
+   */
+  const sinEje = numero(t.sin_eje);
+  const duplicadas = numero(t.duplicadas);
+  const sinEjeRotulo = bloque.eje?.etiqueta_sin ?? "Sin valor del eje";
+  if (sinEje > 0) notasTotal.push(`${fmt(sinEje)} ${sinEjeRotulo.toLocaleLowerCase("es")}`);
+  if (duplicadas > 0) {
+    notasTotal.push(`${fmt(duplicadas)} ${duplicadas === 1 ? "persona" : "personas"} que respondió dos veces`);
+  }
+  // El invariante: se lee del motor, no se recalcula. Recalcularlo aquí daría
+  // una segunda verdad sobre la misma suma.
+  const inv = bloque.total?.invariante;
+  const descuadre = inv && inv.ok === false
+    ? `Las partes no suman las válidas: ${fmt(numero(inv.suma))} contra ${fmt(numero(inv.total))}` +
+      (numero(inv.solapadas) > 0 ? `, y ${fmt(numero(inv.solapadas))} en dos bolsas a la vez` : "")
+    : null;
+  /**
    * **La cantidad tiene un nombre; de dónde sale lo dice el chip.**
    *
    * Era «Cuota del diseño» / «Meta del plan», y en la misma cabecera conviven ya
@@ -334,6 +372,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       // con el denominador del diseño que con el del plan degradado.
       aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
       notas: notasTotal,
+      descuadre,
     },
     filas,
     cumplidas: filas.filter((f) => f.cumplida).length,
