@@ -1340,6 +1340,23 @@ export type MonitoreoAulasEfectividadSeguimiento = {
     cursos_estancados: number;
     /** El umbral declarado: días abiertos tras los que conviene cubrir. */
     dias_para_cubrir: number;
+    /**
+     * **El denominador de los dos conteos de riesgo.** Sin él, un 0 en riesgo
+     * dice dos cosas opuestas: «medí los quince y ninguno está en riesgo» y «no
+     * pude medir ninguno». Medido el 2026-09-17 sobre CCSS por nivel: cinco
+     * grupos, **cero evaluados**, y la pantalla publicaba «todas las facultades
+     * cierran su cuota» mientras Metas decía que faltaban 342 personas.
+     *
+     * Opcionales porque un payload anterior al 2026-09-17 no los trae; el
+     * view-model se cae a afirmar en ese caso, que es lo cierto para los
+     * estudios que ya corren.
+     */
+    facultades?: number;
+    facultades_evaluadas?: number;
+    /** Tienen cuota del diseño y ninguna aula atribuida. */
+    facultades_sin_campo?: number;
+    /** Tienen campo y ninguna cuota contra la que medirlo. */
+    facultades_sin_cuota?: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];
 };

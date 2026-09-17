@@ -756,6 +756,31 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   en_riesgo_agendado <- vapply(
     filas, function(x) (x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"), logical(1))
 
+  # **CUÁNTAS se pudieron evaluar, que es lo que separa un cero medido de un
+  # cero por ausencia.**
+  #
+  # `facultades_en_riesgo_agendado = 0` decía dos cosas opuestas con el mismo
+  # número: «medí las quince y ninguna está en riesgo» y «no pude medir
+  # ninguna». La pantalla leía la segunda como la primera y publicaba «con lo
+  # agendado, todas las facultades cierran su cuota».
+  #
+  # Medido el 2026-09-17 sobre el simulacro de CCSS por nivel: las CINCO filas
+  # salían sin evaluar —cuatro `sin_campo` (tienen cuota del eje y ninguna aula
+  # atribuida) y una `sin_cumplimiento` (tiene las 60 efectivas y ninguna
+  # cuota)— porque la cuota entra por el eje declarado y el plan se agrupa por
+  # la facultad del aula, así que los dos lados del cruce no se encuentran. Tres
+  # pestañas tranquilizaban al coordinador mientras Metas decía que faltaban 342
+  # personas.
+  #
+  # **El veredicto por fila ya distinguía los tres casos**; lo que faltaba era
+  # subirlos al agregado. Con el eje en facultad las quince filas se evalúan y
+  # los tres conteos nuevos salen 15 / 0 / 0: HSVG no cambia de conducta.
+  .maes_motivo <- function(x) x$riesgo_agendado %||% x$riesgo %||% ""
+  sin_campo_n <- vapply(filas, function(x) identical(.maes_motivo(x), "sin_campo"), logical(1))
+  sin_cuota_n <- vapply(filas, function(x) .maes_motivo(x) %in% c("sin_cuota", "sin_cumplimiento"),
+                        logical(1))
+  evaluadas <- !sin_campo_n & !sin_cuota_n
+
   list(
     schema = MONITOREO_AULAS_EFECTIVIDAD_SCHEMA,
     generado_en = .cm_aulas_now_iso(),
@@ -823,7 +848,15 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
         if (!((x$riesgo_agendado %||% "") %in% c("riesgo", "riesgo_firme"))) return(0)
         v <- x$margen_agendado
         if (is.finite(v) && v < 0) -v else 0
-      }, numeric(1))), 1)
+      }, numeric(1))), 1),
+      # **El denominador de los dos conteos de riesgo.** Sin él, un 0 en riesgo
+      # es ambiguo: ver la nota larga de arriba. `facultades` es cuántas filas
+      # hay y `facultades_evaluadas` cuántas de ellas tienen las dos mitades
+      # —cuota y campo— con las que el riesgo se decide.
+      facultades = as.integer(length(filas)),
+      facultades_evaluadas = as.integer(sum(evaluadas)),
+      facultades_sin_campo = as.integer(sum(sin_campo_n)),
+      facultades_sin_cuota = as.integer(sum(sin_cuota_n))
     ),
     facultades = filas
   )
