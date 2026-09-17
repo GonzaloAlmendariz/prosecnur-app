@@ -57,6 +57,29 @@
   if (is.list(disp) && length(disp)) disp else NULL
 }
 
+# El padrón vigente de la sesión, por la misma vía y el mismo motivo que la
+# disponibilidad: el router está congelado y esta clave vive SOLO en la sesión.
+# Con `[[`, que el `$` parcial-matchea y `monitoreo_aulas_padron_corte` es una
+# clave hermana — la trampa que ya costó `config$plan` pescando `plan_rows`.
+.mac_padron_sesion <- function(sid) {
+  if (!nzchar(sid)) return(NULL)
+  s <- session_get(sid, required = FALSE)
+  if (!is.list(s)) return(NULL)
+  pad <- s[["monitoreo_aulas_padron"]]
+  if (is.list(pad) && length(pad[["filas"]] %||% list())) pad else NULL
+}
+
+# Su marca para el token: la vigencia de la extracción más cuántas personas
+# trae. **Sin esto, cargar o PURGAR el padrón no invalidaría el dashboard** y la
+# pantalla seguiría resolviendo niveles con el padrón de antes — o diciendo que
+# los resuelve cuando ya no hay padrón. Es la misma lección que la
+# disponibilidad, escrita justo arriba.
+.mac_padron_marca <- function(padron) {
+  if (!is.list(padron)) return("sin_padron")
+  paste0(.monitoreo_scalar(padron[["vigencia"]] %||% "", "sin_vigencia"), "|",
+         length(padron[["filas"]] %||% list()))
+}
+
 # La marca de contenido de la disponibilidad para el token de frescura. A
 # diferencia del libro, esta clave no lleva sello de importación, así que la
 # marca ES el contenido (nombres, días y bloques): editarla invalida aunque el
@@ -246,6 +269,7 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   sid <- as.character(sid %||% "")[1]
   token <- as.character(token %||% "")[1]
   disponibilidad <- .mac_disponibilidad_sesion(sid)
+  padron <- .mac_padron_sesion(sid)
   # B29 + decisión del lead sobre el hueco de cache: el router (congelado)
   # deriva el token sin ver la sesión, y la disponibilidad vive SOLO en la
   # sesión. Este es el único punto sid-aware, así que aquí se completa el
@@ -254,9 +278,15 @@ monitoreo_aulas_dashboard_cached <- function(sid, plan, data, cfg, token) {
   if (nzchar(token) && !is.null(disponibilidad)) {
     token <- paste(token, .mac_disponibilidad_marca(disponibilidad), sep = "|")
   }
+  # El padrón entra al token SIEMPRE que haya sid, con padrón o sin él: es la
+  # ausencia la que también tiene que invalidar, porque purgarlo cambia lo que
+  # el tablero puede afirmar.
+  if (nzchar(token)) {
+    token <- paste(token, .mac_padron_marca(padron), sep = "|")
+  }
   construir <- function() {
     .mac_publicar_disponibilidad(
-      monitoreo_aulas_dashboard(plan, data, cfg), plan, disponibilidad,
+      monitoreo_aulas_dashboard(plan, data, cfg, padron = padron), plan, disponibilidad,
       fijadas = (if (is.list(cfg)) cfg[["reparto_fijado"]] else NULL) %||% list(),
       duracion_min = if (is.list(cfg)) cfg[["duracion_aplicacion_min"]] else NULL,
       rango = if (is.list(cfg)) cfg[["reparto_rango"]] else NULL,

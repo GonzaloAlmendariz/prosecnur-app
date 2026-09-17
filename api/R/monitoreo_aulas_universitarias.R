@@ -2078,7 +2078,19 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   .monitoreo_aulas_records(out, max_rows = 240L)
 }
 
-monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list()) {
+monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list(),
+                                      # El padrón que traduce un código de alumno
+                                      # a su nivel. Vive SOLO en la sesión —nunca
+                                      # en la config, que se persiste y lo
+                                      # duplicaría fuera del alcance de la
+                                      # purga— así que entra por aquí. Lo
+                                      # inyecta `monitoreo_aulas_dashboard_cached()`,
+                                      # que es el único punto sid-aware, igual
+                                      # que hace con la disponibilidad. Un eje
+                                      # que no lo necesita lo ignora; uno que sí
+                                      # y no lo recibe lo DECLARA en su aviso, no
+                                      # lo suple.
+                                      padron = NULL) {
   cfg <- monitoreo_aulas_normalize_config(config)
   # **El plan se normaliza UNA vez, no dos.**
   #
@@ -2263,7 +2275,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Recibe las celdas de sexo YA calculadas arriba: la brecha de una facultad
   # es la suma de las suyas, no la resta de su total (ADR 0079).
   avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
-                                               celdas_sexo = quotas_sex_faculty)
+                                               celdas_sexo = quotas_sex_faculty,
+                                               padron = padron)
   # El SUPUESTO que dimensionó, contrastado con el campo (ADR 0082). Comparte
   # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
   # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
