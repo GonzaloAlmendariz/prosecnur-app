@@ -552,13 +552,35 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # de esa hoja, no un informe suelto: se abren juntas, y al final del documento
   # quedaba a nueve pestañas de lo que mide. Sigue siendo de la APP —está en
   # `hojas_app`, que es lo que decide el dueño—; aquí sólo cambia dónde nace.
+  # **El orden es el del operativo, no el del código.** Gonzalo, 2026-09-17,
+  # señalando las pestañas del documento vivo: «y este debería ser el orden».
+  # Son cuatro bloques, y se leen en el orden en que se trabaja:
+  #
+  #   1. AGENDAR — «Aulas Agendadas», su Extra y «Avance de agendación», que es
+  #      la lectura de las dos (el «va después de aulas agendadas» del 09/09).
+  #   2. PLANIFICAR — «Base de control» y «Plan del día».
+  #   3. APLICAR — «Aulas Aplicadas (Campo)» y su Extra.
+  #   4. EL RESULTADO — «Avance de campo» y las demás hojas de la app.
+  #
+  # Antes «Aulas Aplicadas» iba pegada a «Aulas Agendadas» —las dos del equipo
+  # juntas, que es un criterio de PROPIEDAD— y el control y el plan del día caían
+  # detrás. Quien abre el documento no busca por dueño: busca por el paso en que
+  # está.
+  #
+  # Ojo: esto gobierna el orden en que se CREAN las pestañas nuevas. Un documento
+  # que ya existe conserva el orden que tenga; reordenar el remoto exigiría
+  # `updateSheetProperties` sobre hojas del equipo y eso no está en la lista de
+  # requests seguros.
+  bloque_planificar <- intersect(
+    c(.malp_hoja_control(), .malp_hoja_plan_dia()), hojas_app)
   hojas_libro <- c(
     equipo[[1]],
     if (con_extras) AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
     .malp_hoja_agendacion(),
+    bloque_planificar,
     equipo[[2]],
     if (con_extras) AULAS_LIBRO_HOJA_APLICADAS_EXTRA,
-    setdiff(hojas_app, .malp_hoja_agendacion())
+    setdiff(hojas_app, c(.malp_hoja_agendacion(), bloque_planificar))
   )
   # Dueño por hoja: las Extra son del EQUIPO igual que sus contrapartes —
   # siembra unica y `respetada` al republicar (contrato 4 de B14).

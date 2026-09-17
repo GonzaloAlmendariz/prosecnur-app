@@ -1359,6 +1359,27 @@ aulas_libro_anotar_cabeza_de_extras <- function(unidades) {
 }
 
 
+# ¿Esta reserva ENTRÓ, o sólo está en la cadena por diseño?
+#
+# Dos señales, y basta una: la marca que escribe la activación
+# (`activated_at`, o su `activation_origin` / `activated_for`) o un estado
+# operativo que ya cuenta como campo. La segunda lista es exactamente la de
+# `reemplazos_usados`, para que «reemplazo usado» signifique lo mismo en el
+# tablero y en el libro.
+.CALG_ESTADOS_EN_CAMPO <- c("agendada", "en_campo", "aplicada", "cerrada", "parcial")
+
+.calg_reserva_activada <- function(u) {
+  for (k in c("activated_at", "activation_origin", "activated_for")) {
+    if (nzchar(.calg_txt(u[[k]]))) return(TRUE)
+  }
+  estado <- tolower(.calg_txt(u$operational_status))
+  if (nzchar(estado) && estado %in% .CALG_ESTADOS_EN_CAMPO) return(TRUE)
+  # `sample_status` es el que teclea el equipo en la hoja; «AGENDADA» ahí
+  # también dice que esa reserva entró.
+  muestra <- toupper(.calg_txt(u$sample_status))
+  nzchar(muestra) && grepl("AGENDADA|APLICADA", muestra, fixed = FALSE)
+}
+
 #' Anota en cada TITULAR que reserva ocupo su lugar.
 #'
 #' Dictado 2026-09-04: la columna «AULA UTILIZADA» tiene que decir «cual fue el
@@ -1387,6 +1408,22 @@ aulas_libro_anotar_aula_utilizada <- function(unidades) {
   for (u in unidades) {
     de <- .calg_txt(u$replacement_for)
     if (!nzchar(de)) next
+    # **`replacement_for` NO prueba que se usara: lo pone el DISEÑO.**
+    #
+    # La cabecera de arriba dice que esta columna cuenta quién entró de verdad y
+    # no quién podría, y por eso lee el campo que escribe la activación. Pero ese
+    # campo viene puesto en la importación: medido en CCSS Perfil 2026-II, las
+    # **85 reservas de cadena** traen su `replacement_for` con `activated_at`
+    # vacío y todo en `sin_contactar`, así que la columna salía con la cadena
+    # entera de cada titular —`R 1.1, R 1.2`— en las 50 filas, el primer día y
+    # sin que nadie hubiera reemplazado nada.
+    #
+    # Gonzalo, 2026-09-17: «AULA UTILIZADA se usa sólo cuando el aula es
+    # reemplazada o complementada con otra CH». Así que hace falta la señal de
+    # ACTIVACIÓN, y se usa la misma que ya decide `reemplazos_usados`
+    # (`monitoreo_aulas_universitarias.R`): la reserva entró si su estado
+    # operativo dice que fue a campo, o si lleva su marca de activación.
+    if (!.calg_reserva_activada(u)) next
     cod <- .calg_txt(u$operational_code)
     if (!nzchar(cod)) next
     usadas[[de]] <- c(usadas[[de]], cod)

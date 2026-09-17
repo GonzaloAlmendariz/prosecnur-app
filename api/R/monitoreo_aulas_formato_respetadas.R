@@ -129,6 +129,48 @@ monitoreo_aulas_formato_seguro <- function(requests) {
   out
 }
 
+#' Cuántas reglas condicionales tiene ya cada hoja del documento.
+#'
+#' Una sola llamada para todo el documento: preguntarlo hoja por hoja multiplica
+#' las peticiones sin añadir nada.
+#'
+#' @param spreadsheet_id el documento.
+#' @return vector entero con nombre = `sheetId` como texto. Vacío si la lectura
+#'   falla: no saber cuántas hay no es razón para no publicar el color.
+#' @keywords internal
+.mafr_reglas_por_hoja <- function(spreadsheet_id) {
+  url <- paste0("https://sheets.googleapis.com/v4/spreadsheets/", spreadsheet_id,
+                "?fields=sheets(properties(sheetId),conditionalFormats(booleanRule(condition(type))))")
+  doc <- tryCatch(.monitoreo_google_api(url), error = function(e) NULL)
+  hojas <- (doc %||% list())$sheets %||% list()
+  if (!length(hojas)) return(stats::setNames(integer(0), character(0)))
+  ids <- vapply(hojas, function(h) {
+    v <- suppressWarnings(as.integer(unlist((h$properties %||% list())$sheetId)[1]))
+    if (length(v) && !is.na(v)) as.character(v) else NA_character_
+  }, character(1))
+  n <- vapply(hojas, function(h) as.integer(length(h$conditionalFormats %||% list())), integer(1))
+  ok <- !is.na(ids)
+  stats::setNames(n[ok], ids[ok])
+}
+
+#' Los borrados que dejan una hoja sin sus reglas condicionales.
+#'
+#' **Se borran por ÍNDICE y de atrás hacia adelante.** Google reindexa tras cada
+#' borrado, así que ir de 0 hacia arriba deja la mitad puestas y quita las que no
+#' toca.
+#'
+#' @param sheet_id la pestaña.
+#' @param cuantas cuántas reglas tiene ahora.
+#' @return lista de requests, vacía si no tiene ninguna.
+#' @keywords internal
+.mafr_borrar_reglas <- function(sheet_id, cuantas) {
+  n <- suppressWarnings(as.integer(cuantas)[1])
+  if (!length(n) || is.na(n) || n <= 0L) return(list())
+  lapply(rev(seq_len(n)) - 1L, function(i) list(
+    deleteConditionalFormatRule = list(sheetId = as.integer(sheet_id), index = as.integer(i))
+  ))
+}
+
 #' Reenvía el formato a las hojas del equipo.
 #'
 #' Nació como «a respetadas» y el nombre se quedó corto: **una hoja SEMBRADA
@@ -138,6 +180,15 @@ monitoreo_aulas_formato_seguro <- function(requests) {
 #' 2026-II el 17/09, `formato_equipo` devolvió **0 requests** sobre ocho hojas
 #' recién sembradas, y el recibo decía «ok». El agendador abría el Sheets con
 #' «STATUS DE LLAMADA» en texto libre.
+#'
+#' @section Se limpia antes de pintar:
+#' Las reglas condicionales se AÑADEN, y este camino corre en cada publicación
+#' desde `4b6dd792`, así que sin limpiar se acumulan: medido sobre el documento
+#' vivo de CCSS, «Aulas Agendadas» pasó de **37 a 62 a 137 reglas** en cuatro
+#' publicaciones. Ahora cada hoja pierde las suyas antes de recibir las nuevas,
+#' de modo que publicar dos veces deja el mismo número — y eso es lo que su
+#' prueba comprueba, porque contarlas UNA vez no distingue «están» de «están
+#' tres veces».
 #'
 #' @section La geometría es del llamador, no de esta función:
 #' Se pinta sobre el rectángulo que se le pasa en `geometria`, y quién lo elige
@@ -172,6 +223,18 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
   requests <- list()
   tocadas <- character(0)
   descartados <- 0L
+  # Una sola lectura para todo el documento, y PEREZOSA: si ninguna hoja llega a
+  # necesitar formato —sin `sheetId` conocido, sin filas— no se emite ni una
+  # petición. Había un test que lo fijaba y tenía razón: preguntar «cuántas
+  # reglas hay» ya es una llamada.
+  reglas_previas <- NULL
+  previas_de <- function(sheet_id) {
+    if (is.null(reglas_previas)) reglas_previas <<- .mafr_reglas_por_hoja(spreadsheet_id)
+    k <- as.character(sheet_id)
+    # `[[` sobre un vector con nombre AUSENTE lanza «subscript out of bounds»,
+    # no `NULL` como en una lista: el `%||%` no lo salva.
+    if (k %in% names(reglas_previas)) as.integer(reglas_previas[[k]]) else 0L
+  }
   for (hoja in respetadas) {
     # **`tab_map[[hoja]]` NO es el id: es la ficha de la pestaña**, y el id vive
     # en su `sheet_id` (`.monitoreo_sheets_tab_map`). Pasarla entera metía la
@@ -185,6 +248,9 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
     if (!length(filas)) next
     brutos <- tryCatch(.malp_formato_requests(sheet_id, hoja, filas, con_daa = con_daa),
                        error = function(e) list())
+    # Primero se quitan las que ya tiene: si no, cada publicación deja otra
+    # copia de las mismas reglas encima.
+    brutos <- c(.mafr_borrar_reglas(sheet_id, previas_de(sheet_id)), brutos)
     filtrados <- monitoreo_aulas_formato_seguro(brutos)
     descartados <- descartados + as.integer(attr(filtrados, "descartados") %||% 0L)
     if (!length(filtrados)) next

@@ -334,10 +334,15 @@ test_that("libro a Sheets: republicar sin cambios de control no reescribe nada",
   expect_identical(.mapl_accion(res2, "Base de control"), "sin_cambios")
 
   segundas <- .mapl_desde(mock$env$calls, primeras)
-  # Tres del ciclo más UNA: desde el 2026-09-12 el formato SÍ se reenvía a las
-  # hojas del equipo (decisión de Gonzalo), y esa llamada es un `batchUpdate`
-  # de formato, nunca de values.
-  expect_lte(length(segundas), 4L)
+  # Tres del ciclo más DOS. La serie: **4** desde el 2026-09-12, cuando el
+  # formato empezó a reenviarse a las hojas del equipo (decisión de Gonzalo) con
+  # su `batchUpdate` de formato; y **5** desde el 2026-09-17, cuando ese reenvío
+  # pasó a LIMPIAR las reglas antes de pintarlas. La llamada que se suma es un
+  # GET que cuenta las reglas que ya hay, y es **una sola para todo el
+  # documento** por muchas hojas que lleve. Sin ella las reglas se acumulaban:
+  # medido sobre el Sheets vivo de CCSS, «Aulas Agendadas» pasó de 37 a 62 a 137
+  # reglas en cuatro publicaciones.
+  expect_lte(length(segundas), 5L)
   urls <- vapply(segundas, function(c) c$url, character(1))
   expect_false(any(grepl("values:batchUpdate", urls, fixed = TRUE)))
 
@@ -831,4 +836,44 @@ test_that("con la cadena completa publica como siempre", {
   out <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro", plan = plan,
                                         partes = .mapl_partes())
   expect_true(isTRUE(out$ok))
+})
+
+# =============================================================================
+# El orden de las pestañas es el del operativo
+# =============================================================================
+#
+# Gonzalo, 2026-09-17, señalando las pestañas del documento vivo: «y este
+# debería ser el orden». Cuatro bloques leídos en el orden en que se trabaja:
+# agendar, planificar, aplicar, el resultado. Antes las dos hojas del equipo
+# iban pegadas —criterio de PROPIEDAD— y el control y el plan del día caían
+# detrás; quien abre el documento no busca por dueño, busca por el paso en que
+# está.
+
+test_that("las pestañas se crean en el orden del operativo", {
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro", plan = .libro_de_prueba(), partes = .mapl_partes()
+  )
+  orden <- vapply(res$hojas, function(h) as.character(h$hoja), character(1))
+  esperado <- c("Aulas Agendadas", "Avance de agendación",
+                "Base de control", "Plan del día",
+                "Aulas Aplicadas (Campo)", "Avance de campo")
+  # Se comprueban las POSICIONES RELATIVAS y no la lista entera: el juego de
+  # hojas depende de lo que el estudio tenga (extras, disponibilidad,
+  # asignación), y fijar la lista completa rompería el test cada vez que una
+  # hoja condicional aparece o falta.
+  presentes <- esperado[esperado %in% orden]
+  expect_identical(match(presentes, orden), sort(match(presentes, orden)))
+  # Y las dos que motivaron el cambio, explícitas: el control y el plan del día
+  # van ANTES de las aplicadas.
+  if (all(c("Base de control", "Aulas Aplicadas (Campo)") %in% orden)) {
+    expect_lt(match("Base de control", orden), match("Aulas Aplicadas (Campo)", orden))
+  }
+  if (all(c("Plan del día", "Aulas Aplicadas (Campo)") %in% orden)) {
+    expect_lt(match("Plan del día", orden), match("Aulas Aplicadas (Campo)", orden))
+  }
+  # «Avance de agendación» sigue pegada a «Aulas Agendadas» (dictado del 09/09).
+  expect_lt(match("Avance de agendación", orden), match("Base de control", orden))
 })
