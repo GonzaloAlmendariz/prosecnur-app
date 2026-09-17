@@ -71,11 +71,17 @@
 #' @param total la fila de cierre, o `NULL`.
 #' @return lista lista para JSON, o `NULL` sin tabla.
 #' @keywords internal
-.maat_bloque <- function(clave, tabla, nota = "", nota_pie = "", total = NULL) {
+.maat_bloque <- function(clave, tabla, nota = "", nota_pie = "", total = NULL,
+                         eje = NULL) {
+  # **La cabecera que se PINTA lleva la palabra del eje; los tipos y el semáforo
+  # se deciden con el rótulo original.** Un «Nivel» en la primera columna no
+  # debe cambiar cómo se formatea la segunda, así que las dos vistas de la
+  # cabecera conviven a propósito y no se confunden.
   cabecera <- AULAS_AVANCE_CABECERAS[[clave]]
+  cabecera_vista <- aulas_avance_cabeceras_eje(clave, eje)
   if (!is.data.frame(tabla) || !nrow(tabla)) {
     return(list(clave = clave, titulo = unname(AULAS_AVANCE_TITULOS[[clave]]),
-                cabecera = as.list(cabecera), filas = list(), vacio = nota))
+                cabecera = as.list(cabecera_vista), filas = list(), vacio = nota))
   }
   # «Avance general» es la única traspuesta: una fila por concepto, así que su
   # naturaleza se decide por FILA y no por columna. Viaja declarado para que la
@@ -98,7 +104,7 @@
     nota = nota,
     nota_pie = nota_pie,
     traspuesta = traspuesta,
-    cabecera = as.list(cabecera),
+    cabecera = as.list(cabecera_vista),
     tipos = as.list(tipos_col),
     semaforos = as.list(sem_col),
     filas = filas
@@ -174,14 +180,18 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
   # La misma portada que la hoja, de la misma función: día del corte y hora de
   # la última sincronización, las dos derivadas del estado y no del reloj.
   portada <- aulas_libro_hoja_avance(
-    ind, actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""))
+    ind, actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
+    eje = monitoreo_aulas_eje(aulas_cfg))
   corte <- if (length(portada) >= 2L) as.character(portada[[2]][[1]]) else ""
 
   notas <- .maat_notas(ind)
+  # El eje del estudio, resuelto UNA vez para las cinco tablas. Sin declaración
+  # es `facultad` y las cabeceras salen idénticas.
+  eje <- monitoreo_aulas_eje(aulas_cfg)
   tablas <- lapply(names(AULAS_AVANCE_CABECERAS), function(clave) {
     tabla <- ind[[AULAS_AVANCE_CAMPOS[[clave]]]]
     .maat_bloque(
-      clave, tabla,
+      clave, tabla, eje = eje,
       nota = notas[[clave]] %||% "",
       nota_pie = if (identical(clave, "facultad") && is.data.frame(tabla) && nrow(tabla)) {
         .calaf_nota_metas(tabla)

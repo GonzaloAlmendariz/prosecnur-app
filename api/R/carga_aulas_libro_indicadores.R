@@ -399,7 +399,13 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 }
 
 aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
-                                             procedencia = NULL) {
+                                             procedencia = NULL,
+                                             # La declaración del eje de cuotas,
+                                             # sólo para la PALABRA de la primera
+                                             # columna. NULL = «Facultad», que
+                                             # es lo que era. Ver
+                                             # `carga_aulas_libro_avance_eje.R`.
+                                             eje = NULL) {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
   titulo <- openxlsx::createStyle(fontSize = 16, textDecoration = "bold",
@@ -497,7 +503,19 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     n_col <- length(nombres)
     n <- nrow(tabla)
     cabecera_en <- fila
-    openxlsx::writeData(wb, hoja, tabla, startCol = 1, startRow = cabecera_en)
+    # **La cabecera que se ESCRIBE lleva la palabra del eje; `nombres` conserva
+    # la original** y con ella siguen decidiendo el semáforo y las
+    # proporciones, que es la separación entera del satélite del eje. Y el xlsx
+    # tiene que decir lo MISMO que el Sheets: la misma hoja saliendo distinta
+    # en los dos sitios ya mordió una vez (2026-09-07, con la fecha de corte y
+    # el avance diario ausentes sólo en el Sheets).
+    para_escribir <- tabla
+    del_eje <- aulas_avance_cabeceras_eje(clave, eje)
+    if (length(del_eje) == n_col && !identical(as.character(del_eje[[1]]), nombres[[1]]) &&
+        identical(as.character(del_eje[-1]), as.character(nombres[-1]))) {
+      names(para_escribir)[[1]] <- as.character(del_eje[[1]])
+    }
+    openxlsx::writeData(wb, hoja, para_escribir, startCol = 1, startRow = cabecera_en)
     .cai_rayas(wb, hoja, tabla, cabecera_en, sin_dato_celda)
     openxlsx::addStyle(wb, hoja, cabecera, rows = cabecera_en, cols = seq_len(n_col),
                        gridExpand = TRUE)

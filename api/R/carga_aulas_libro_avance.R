@@ -69,7 +69,8 @@
 # —«facultad» en las dos— así que mezclarlas haría que una columna de aquélla
 # decidiera el formato de una de ésta. `NULL` conserva el comportamiento de
 # siempre: preguntar al vocabulario de «Avance de campo».
-.cala_tabla_filas <- function(tabla, clave, traspuesta = FALSE, proporciones = NULL) {
+.cala_tabla_filas <- function(tabla, clave, traspuesta = FALSE, proporciones = NULL,
+                              eje = NULL) {
   if (!is.data.frame(tabla) || !nrow(tabla)) return(list())
   nombres <- names(tabla)
   es_pct <- function(rotulo) {
@@ -85,7 +86,21 @@
     })
     celdas
   })
-  c(list(as.list(nombres)), filas)
+  # **La cabecera se EMITE con la palabra del eje; los tipos se deciden con el
+  # rótulo original.** Es la separación entera del satélite del eje: `es_pct()`
+  # y los ordenadores del motor siguen viendo «Facultad», y sólo la fila que un
+  # humano lee cambia. Sin eje declarado esto devuelve `nombres` tal cual.
+  cabecera <- nombres
+  if (length(cabecera) && !is.null(eje)) {
+    del_eje <- aulas_avance_cabeceras_eje(clave, eje)
+    # Se sustituye SÓLO la primera celda, y sólo si la cabecera de esa tabla es
+    # la misma que la constante: una tabla que ya no calza no se retoca a medias.
+    if (length(del_eje) == length(cabecera) &&
+        identical(as.character(cabecera[-1]), as.character(del_eje[-1]))) {
+      cabecera[[1]] <- del_eje[[1]]
+    }
+  }
+  c(list(as.list(cabecera)), filas)
 }
 
 # Cuántas aulas llevan parte de campo en el modelo que se está escribiendo. Es
@@ -119,7 +134,11 @@
 #'   puede llevar los dos tipos, y el tipo es justo lo que hace posible el
 #'   formato de porcentaje y el color por valor.
 #' @export
-aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
+aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
+                                    # La declaración del eje de cuotas, sólo
+                                    # para la PALABRA de la primera columna.
+                                    # NULL = «Facultad», que es lo que era.
+                                    eje = NULL) {
   ind <- if (is.list(ind)) ind else list()
 
   # El corte: inyectado, o derivado del último día del diario (ISO ordena
@@ -193,9 +212,11 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "") {
       return(invisible(NULL))
     }
     if (!is.null(nota_arriba)) poner(nota_arriba)
-    for (f in .cala_tabla_filas(tabla, clave, traspuesta = traspuesta)) poner(f)
+    for (f in .cala_tabla_filas(tabla, clave, traspuesta = traspuesta, eje = eje)) poner(f)
     if (isTRUE(con_total)) {
       total <- .calaf_fila_total(tabla)
+      # El `[[2]]` es la fila de DATOS, no la cabecera: aquí el eje no pinta
+      # nada y pasarlo sólo añadiría ruido.
       if (!is.null(total)) poner(.cala_tabla_filas(total, clave)[[2]])
     }
     if (!is.null(nota_abajo)) poner(nota_abajo)

@@ -1637,7 +1637,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas,
                                 cuotas = cuotas, cfg = cfg,
                                 asignados = asignados_por_codigo, extras = extras),
-    procedencia = procedencia
+    procedencia = procedencia,
+    # La palabra de la primera columna, del eje declarado. La constante de
+    # cabeceras no se toca: ver `carga_aulas_libro_avance_eje.R`.
+    eje = monitoreo_aulas_eje(cfg %||% list())
   )
   # Y detrás, «Avance de agendación»: qué se consiguió agendar, con los
   # reemplazos dentro. Se computa sobre el PLAN COMPLETO y no sobre `unidades`

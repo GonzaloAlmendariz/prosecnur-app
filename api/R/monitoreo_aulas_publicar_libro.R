@@ -668,7 +668,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
                                                    cfg = config_reparto),
       extras = extras
-    ), actualizado = actualizado)
+    ), actualizado = actualizado,
+    # La palabra de la primera columna, del eje declarado. La constante no se
+    # toca: ver `carga_aulas_libro_avance_eje.R`.
+    eje = monitoreo_aulas_eje(config_aulas %||% list()))
   )
   # «Avance de agendación»: qué se consiguió agendar, con los reemplazos dentro.
   # Se computa sobre el PLAN COMPLETO y no sobre `unidades` —las que entran al
