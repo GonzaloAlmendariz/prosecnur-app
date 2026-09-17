@@ -92,3 +92,87 @@ test_that("A4: sin reparto por sexo en el diseño, los dos restan el neto", {
   # Sin celdas no hay faltante por sexo que declarar.
   expect_true(is.na(r$libro$`Faltantes mujeres muestra`))
 })
+
+# =============================================================================
+# La TERCERA superficie, y el vocabulario que la tenía muda
+# =============================================================================
+#
+# `avance_por_facultad` —la tabla de «cada facultad contra su meta» del Resumen—
+# tenía su propia copia de «no se compensa entre celdas», escrita inline, sin
+# llamar a `monitoreo_aulas_brecha_facultad()`. Al unificarla salió a la luz que
+# NO estaba sumando celdas: publicaba el NETO.
+#
+# La causa no era la cuenta, era el emparejamiento. La celda se busca por su
+# `sex`, y ése es la ETIQUETA con la que la celda se muestra:
+# `.maac_sexo_etiqueta()` prefiere la palabra del plan (`sex_top_*`), luego la de
+# las respuestas, y sólo cae a "F"/"M" como último recurso. El bloque comparaba
+# `toupper(sex)` contra "F", y eso casa únicamente si el estudio escribe la letra
+# —HSVG2026 lo hace: su marco pone "F"/"M" literal en `sex_top_1`, medido 2.427 y
+# 1.916 aulas—. Con la etiqueta "Femenino" las cuatro columnas de sexo salían
+# `NA`, `meta_origen` caía a "prevista" y la brecha se publicaba neteada: un
+# hombre de menos cubierto por dos mujeres de más, que es exactamente lo que la
+# cuota por sexo existe para impedir.
+#
+# **Y nada fallaba.** La prueba que guardaba ese bloque
+# (`test-monitoreo-aulas-facultad-por-sexo.R`) llamaba a
+# `monitoreo_aulas_avance_sexo_facultad()` con celdas escritas a mano cuyo `sex`
+# ya venía "F"/"M": replicaba los valores del original sin pasar por el
+# emparejamiento que el bloque añadió. Este fixture no declara `sex_top_*`, así
+# que la etiqueta sale de las respuestas —"Femenino"— y la superficie se mide por
+# el mismo camino que en producción.
+
+.par_tercera <- function(dt) {
+  cfg <- .par_cfg(dt)
+  d <- monitoreo_aulas_dashboard(cfg$plan, .par_resp(), cfg)
+  d$avance_por_facultad[[1]]
+}
+
+test_that("A4: la tercera superficie suma celdas, con la etiqueta que sea", {
+  f <- .par_tercera(.par_dt(F = 6, M = 4))
+  # La celda se encontró: si no, las cuatro salen NA y el resto miente en verde.
+  expect_identical(as.numeric(f$mujeres_logrado), 8)
+  expect_identical(as.numeric(f$hombres_logrado), 1)
+  expect_identical(as.numeric(f$mujeres_deficit), 0)
+  expect_identical(as.numeric(f$hombres_deficit), 3)
+  # La misma brecha que el tablero y que el libro: 3, no el neto 1.
+  expect_identical(as.numeric(f$brecha), 3)
+  # Y la meta es la CUOTA, no el pronóstico. Con la celda perdida esto decía
+  # "prevista" y la tabla medía contra `expected_valid`.
+  expect_identical(f$meta_origen, "cuota")
+  # La bandera que la tabla existe para dar.
+  expect_true(f$celda_corta)
+})
+
+test_that("A4: la etiqueta de la celda no cambia la cifra", {
+  # El mismo estudio con el vocabulario de la letra —el de HSVG2026— tiene que
+  # dar lo mismo que con el de la palabra. Si las dos corridas discreparan, la
+  # cifra dependería de cómo escriba el sexo el marco.
+  letra <- .par_cfg(.par_dt(F = 6, M = 4))
+  letra$plan <- lapply(letra$plan, function(r) {
+    r$sex_top_1 <- "F"; r$sex_top_2 <- "M"
+    r$sex_top_1_n <- 18; r$sex_top_2_n <- 12
+    r
+  })
+  d <- monitoreo_aulas_dashboard(letra$plan, .par_resp(), letra)
+  con_letra <- d$avance_por_facultad[[1]]
+  con_palabra <- .par_tercera(.par_dt(F = 6, M = 4))
+  for (campo in c("brecha", "mujeres_logrado", "hombres_logrado",
+                  "mujeres_deficit", "hombres_deficit", "meta_origen")) {
+    expect_identical(con_letra[[campo]], con_palabra[[campo]])
+  }
+})
+
+test_that("A4: sin celdas de sexo, la tercera superficie cae al neto y no inventa columnas", {
+  # Un estudio sin reparto por sexo en el diseño no tiene celdas, y entonces la
+  # fila se queda con sus cinco columnas de siempre: el corte por sexo no se
+  # publica vacío. Se asienta la FORMA, porque es lo que distingue «esta
+  # facultad no tiene esa celda» de «esa celda está a cero», y con el eje
+  # declarable este mismo bloque va a tener que contestar lo mismo para un eje
+  # que no sea facultad.
+  f <- .par_tercera(.par_dt(F = NULL))
+  expect_identical(as.numeric(f$brecha), 1)
+  expect_null(f$mujeres_deficit)
+  expect_null(f$celda_corta)
+  expect_null(f$meta_origen)
+  expect_identical(as.numeric(f$meta), 10)
+})

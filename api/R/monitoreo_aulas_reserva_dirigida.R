@@ -46,14 +46,26 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
 # aplicadas ya habian sido medidos en otra (`ya_medidas`). Sin descontarlos, un
 # aula que solapa entera con lo ya visitado parece aportar y no aporta nada.
 .mard_aporte <- function(aula, sexo, ya_medidos) {
-  s1 <- toupper(.monitoreo_scalar(aula$sex_top_1 %||% "", ""))
-  s2 <- toupper(.monitoreo_scalar(aula$sex_top_2 %||% "", ""))
+  # **Los dos lados por la CLAVE del sexo, no por su texto.** `sex_top_*` trae
+  # el vocabulario del MARCO y `sexo` el de la celda —que es una etiqueta para
+  # mostrar, y `.maac_sexo_etiqueta()` la produce como palabra—. Comparar
+  # `toupper()` casaba sólo mientras los dos escribieran igual: en HSVG2026 el
+  # marco pone "F"/"M" literal, y con una etiqueta "Femenino" `del_sexo` salía
+  # 0, ninguna aula pasaba el filtro y la reserva dirigida publicaba CERO
+  # candidatos sin que nada fallara. Esa misma mudez ya costó una vez (ver el
+  # aviso de `monitoreo_aulas_calibracion.R`).
+  s1 <- .maac_sexo_key(.monitoreo_scalar(aula$sex_top_1 %||% "", ""))
+  s2 <- .maac_sexo_key(.monitoreo_scalar(aula$sex_top_2 %||% "", ""))
   n1 <- suppressWarnings(as.numeric(.monitoreo_scalar(aula$sex_top_1_n %||% 0, 0))[1])
   n2 <- suppressWarnings(as.numeric(.monitoreo_scalar(aula$sex_top_2_n %||% 0, 0))[1])
   n1 <- if (is.finite(n1)) n1 else 0
   n2 <- if (is.finite(n2)) n2 else 0
   total <- n1 + n2
-  del_sexo <- if (identical(s1, sexo)) n1 else if (identical(s2, sexo)) n2 else 0
+  # Un `""` no casa con otro `""`: el sexo que no se reconoce no toma `n1` de
+  # rebote. Sin clave no hay celda que cerrar, y el silencio se declara arriba.
+  del_sexo <- if (!nzchar(sexo)) 0
+              else if (identical(s1, sexo)) n1
+              else if (identical(s2, sexo)) n2 else 0
   if (total <= 0 || del_sexo <= 0) return(list(elegibles = 0, netos = 0, solape = 0))
   # Traslape: los ids que ya se midieron. Sin ids no se puede descontar y se
   # DECLARA, en vez de asumir que no hay solape —que es la suposicion optimista—.
@@ -115,8 +127,11 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
                                              tasa_aula = NULL, ya_medidos = character(0),
                                              tope = 5L) {
   fac <- .monitoreo_text_key(facultad)
-  sexo <- toupper(.monitoreo_scalar(sexo, "F"))
-  if (!nzchar(fac) || !length(pool)) return(list())
+  # La celda llega con su etiqueta ("Femenino", "Mujer", "F"); aquí se reduce a
+  # la clave del diseño. Sin clave no se adivina: se devuelve vacío, porque
+  # inventar a qué sexo pertenece un candidato es peor que no proponerlo.
+  sexo <- .maac_sexo_key(.monitoreo_scalar(sexo, "F"))
+  if (!nzchar(fac) || !nzchar(sexo) || !length(pool)) return(list())
   if (!is.function(tasa_aula)) tasa_aula <- function(n) .cm_efectividad_rendimiento(n)
   filas <- list()
   for (a in pool) {

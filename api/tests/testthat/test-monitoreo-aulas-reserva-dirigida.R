@@ -205,3 +205,61 @@ test_that("la reserva dirigida viaja en el payload del dashboard", {
   expect_false(is.null(d$avance_sexo_facultad))
   expect_false(is.null(d$quotas_sex_faculty))
 })
+
+# =============================================================================
+# El vocabulario del sexo, que estaba comparado a pelo por sus dos lados
+# =============================================================================
+#
+# `.mard_aporte()` casaba `toupper(aula$sex_top_1)` contra el `sexo` de la celda,
+# y esos dos valores vienen de sitios distintos: `sex_top_*` trae el vocabulario
+# del MARCO, y `sexo` llega desde `monitoreo_aulas_reserva_por_celda()` como
+# `c1$sex`, que es la ETIQUETA con la que la celda se muestra —y
+# `.maac_sexo_etiqueta()` la produce como palabra—. Con "Femenino" enfrente de
+# "F", `del_sexo` sale 0, ninguna aula pasa el filtro y la superficie publica
+# CERO candidatos sin que nada falle. Esa misma mudez ya costó una vez y está
+# avisada en `monitoreo_aulas_calibracion.R`.
+#
+# **El fixture de arriba no lo podía ver**: escribe "F"/"M" en los dos lados, así
+# que no distingue de cuál de los dos vocabularios lee el código. Estas pruebas
+# los separan a propósito.
+
+test_that("la etiqueta de la celda encuentra las mismas aulas que la letra", {
+  # Lo que llega de `reserva_por_celda` es la etiqueta, no la clave.
+  por_letra <- monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", "F")
+  for (etq in c("Femenino", "FEMENINO", "Mujer", "mujeres")) {
+    r <- monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", etq)
+    expect_identical(vapply(r, function(x) x$classroom_id, character(1)),
+                     c("A", "B", "C"), info = etq)
+    expect_equal(r[[1]]$aporte_esperado, por_letra[[1]]$aporte_esperado)
+  }
+  # Y el motivo se lee bien: con la etiqueta sin normalizar decía «hombres».
+  expect_true(grepl("mujeres", monitoreo_aulas_reserva_dirigida(
+    .mard_pool(), "DERECHO", "Femenino")[[1]]$motivo, fixed = TRUE))
+})
+
+test_that("un marco que escribe el sexo en palabras rinde lo mismo", {
+  # El otro lado de la comparación. HSVG2026 pone "F"/"M" literal en su marco
+  # —medido: 2.427 aulas "F" y 1.916 "M"—, y por eso esto casaba; otro estudio
+  # escribe «Mujer», y ahí la cifra no puede cambiar.
+  en_palabras <- lapply(.mard_pool(), function(a) {
+    a$sex_top_1 <- c(F = "Mujer", M = "Hombre")[[.maac_sexo_key(a$sex_top_1)]]
+    a$sex_top_2 <- c(F = "Mujer", M = "Hombre")[[.maac_sexo_key(a$sex_top_2)]]
+    a
+  })
+  letra <- monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", "F")
+  palabra <- monitoreo_aulas_reserva_dirigida(en_palabras, "DERECHO", "F")
+  expect_identical(vapply(palabra, function(x) x$classroom_id, character(1)),
+                   vapply(letra, function(x) x$classroom_id, character(1)))
+  expect_equal(vapply(palabra, function(x) x$aporte_esperado, numeric(1)),
+               vapply(letra, function(x) x$aporte_esperado, numeric(1)))
+})
+
+test_that("un sexo que no se reconoce no propone nada, en vez de tomar el primero", {
+  # Sin clave no hay celda que cerrar. Lo que NO puede pasar es que un `""` case
+  # con el `""` del aula y se lleve `sex_top_1_n` de rebote: eso propondría
+  # candidatos para un sexo inventado, que es peor que no proponer.
+  expect_identical(monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", "Otro"), list())
+  expect_identical(monitoreo_aulas_reserva_dirigida(.mard_pool(), "DERECHO", ""), list())
+  sin_sexo <- lapply(.mard_pool(), function(a) { a$sex_top_1 <- ""; a$sex_top_2 <- ""; a })
+  expect_identical(monitoreo_aulas_reserva_dirigida(sin_sexo, "DERECHO", "F"), list())
+})
