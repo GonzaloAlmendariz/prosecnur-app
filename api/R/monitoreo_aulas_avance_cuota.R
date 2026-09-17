@@ -349,9 +349,20 @@
         respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
       )
     }
-    # Facultades del plan que el diseño no trazó: sus respuestas se publican
-    # pero NO entran al % global — inventarles denominador sería peor.
-    for (k in claves_plan) {
+    # Valores del plan que el diseño no trazó: sus respuestas se publican pero
+    # NO entran al % global — inventarles denominador sería peor.
+    #
+    # **Y sólo cuando el eje se atribuye por AULA.** Con `atribucion = "persona"`
+    # la columna del plan no habla de la población del eje: es una propiedad del
+    # aula —su nivel MODAL, que el marco calculó para dimensionar— y ninguna
+    # respuesta puede caer ahí, porque el valor lo pone el padrón.
+    #
+    # Medido armando el simulacro de CCSS Perfil 2026-II: el diseño declara los
+    # niveles 6 a 9 y el plan trae además aulas de nivel modal 5 y 10, así que la
+    # tabla salía con **seis filas y no cuatro**, dos de ellas con cuota `NA` y
+    # cero respuestas para siempre. Dos filas vacías que nunca se llenan se leen
+    # como un hueco del operativo, y no lo son.
+    for (k in if (identical(.monitoreo_scalar(eje$atribucion, "aula"), "aula")) claves_plan else character(0)) {
       if (k %in% vistas) next
       filas[[length(filas) + 1L]] <- list(
         facultad = etiqueta_plan(k), faculty_key = k, cuota = NA_real_,
