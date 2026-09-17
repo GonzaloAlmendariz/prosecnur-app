@@ -864,3 +864,63 @@ test_that("«Plan del día» tipa su FECHA AGENDADA: 07/09 no puede leerse como 
   expect_true(any(grepl("^dd/mm", formatos)))
   expect_false(any(grepl("^mm/dd", formatos)))
 })
+
+# =============================================================================
+# «SESIONES Y AULA»: el horario que el que llama va a proponer
+# =============================================================================
+#
+# La celda prefiere `sesiones_legibles` —día↔aula apareados desde el catálogo
+# DTI— y caía directamente al `label`, que es el CÓDIGO INTERNO del
+# curso-horario (`ant310_0811`). Entre las dos faltaba un escalón, y con datos
+# reales se abrió: en CCSS Perfil 2026-II `sesiones_legibles` viene en **0 de
+# 136** aulas (su marco no la produjo) mientras `sesiones_dia_hora` viene en
+# **136 de 136** con «LUN 15:00-18:00» y `venue` trae el aula («Z410»).
+#
+# O sea: el dato estaba, en el campo hermano, y la columna publicaba un código
+# que al docente no le dice nada — justo lo que el dictado B15 pedía evitar
+# («no vaya a ser que jale mal algún número […] y el docente pierda seriedad
+# sobre el estudio»). Es la columna con la que se agenda, así que el fallback al
+# `label` no es un detalle cosmético: es una llamada sin horario que proponer.
+
+test_that("SESIONES Y AULA: la legible manda, y el dia y hora la respaldan", {
+  celda <- prosecnurapp:::.calg_sesiones_y_aula
+  # 1) La legible gana siempre que exista: HSVG no se mueve.
+  expect_identical(
+    celda(list(sesiones_legibles = "LUN 16:00-18:00 L101",
+               sesiones_dia_hora = "MAR 10:00-12:00", venue = "Z410",
+               label = "ant310_0811")),
+    "LUN 16:00-18:00 L101")
+  # 2) Sin legible, el día y la hora con su aula al lado.
+  expect_identical(
+    celda(list(sesiones_legibles = "", sesiones_dia_hora = "LUN 15:00-18:00",
+               venue = "Z410", label = "ant310_0811")),
+    "LUN 15:00-18:00 Z410")
+  # 3) Sin aula, el día y la hora solos: sigue siendo lo que hace falta para
+  #    proponer una fecha.
+  expect_identical(
+    celda(list(sesiones_dia_hora = "LUN 15:00-18:00", label = "ant310_0811")),
+    "LUN 15:00-18:00")
+  # 4) Sin día ni hora, el aula sola dice más que el código interno.
+  expect_identical(celda(list(venue = "Z410", label = "ant310_0811")), "Z410")
+  # 5) Y el `label` queda como ÚLTIMO recurso, que es lo que era.
+  expect_identical(celda(list(label = "ant310_0811")), "ant310_0811")
+})
+
+test_that("SESIONES Y AULA: el libro publica el horario, no el codigo del curso", {
+  # La comprobación sobre la hoja, no sólo sobre el helper: un test que mide el
+  # helper y no la aplicación declara cobertura que no tiene.
+  plan <- list(list(
+    classroom_id = "ant310_0811", operational_code = "CH 1",
+    label = "ant310_0811", sesiones_dia_hora = "LUN 15:00-18:00", venue = "Z410",
+    faculty = "CIENCIAS SOCIALES", program = "ANTROPOLOGÍA", level = "7",
+    course_name = "ANTROPOLOGÍA POLÍTICA 1", teacher = "DAMONTE VALENCIA, GERARDO HECTOR",
+    teacher_phone = "990340822", teacher_email = "gdamonte@pucp.pe",
+    sample_role = "titular", eligible_n = 12, expected_valid = 9.6, orden = 1
+  ))
+  hoja <- aulas_libro_hoja_agendadas(plan)
+  col <- which(as.character(unlist(hoja[1, ])) == "SESIONES Y AULA")
+  expect_length(col, 1L)
+  expect_identical(as.character(hoja[2, col[[1]]]), "LUN 15:00-18:00 Z410")
+  # Y que NO sea el código interno, que es el defecto concreto que se reparó.
+  expect_false(identical(as.character(hoja[2, col[[1]]]), "ant310_0811"))
+})
