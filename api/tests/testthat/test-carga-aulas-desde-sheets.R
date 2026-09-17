@@ -109,9 +109,16 @@ test_that("las dos puertas devuelven la MISMA forma", {
   expect_equal(sort(names(out$resumen)),
                sort(c("unidades", "titulares", "reservas", "contactadas",
                       "partes_de_campo", "filas_de_control")))
+  # Los tres últimos entraron con `2be6cf6c` (2026-09-12), que declara lo que el
+  # libro trae y el plan no conoce: un código de parte sin aula, un estado fuera
+  # del vocabulario y una reserva sin su cadena. El contrato no se actualizó con
+  # ellos y quedó rojo cinco días — un cambio deliberado que no toca su contrato
+  # deja el gate del área en rojo por un motivo que no es el del que lo corre.
   expect_equal(sort(names(out)),
                sort(c("plan", "partes", "control", "hojas_ausentes",
-                      "control_sin_nombre", "agenda_campos_ausentes", "resumen")))
+                      "control_sin_nombre", "agenda_campos_ausentes", "resumen",
+                      "codigos_sin_plan", "estados_desconocidos",
+                      "reservas_sin_cadena")))
 })
 
 # ---------------------------------------------------------------------------
