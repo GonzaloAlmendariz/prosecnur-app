@@ -64,6 +64,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota, esFocoDelEje } from "./AulasCuotasResumen";
 import { AulasSelectorDeFoco } from "./AulasSelectorDeFoco";
+import { valoresDelEje } from "./valoresDelEje";
 import { mandoDeFacultadVisible } from "./mandoDeFacultad";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
@@ -1204,16 +1205,22 @@ export default function AulasMonitoreoPage() {
    * que aparece en el parte dejaría fuera justo las que no han empezado, que
    * son las que hay que ir a mirar. Orden alfabético porque el selector se
    * recorre a mano con las flechas y el orden por rendimiento cambia cada día.
+   *
+   * **Salían de `quotas_sex_faculty` y ésa es la lista equivocada.** Son las
+   * celdas de SEXO, y un estudio cuya meta es sólo por nivel no declara ninguna:
+   * medido en el simulacro de CCSS Perfil 2026-II, la lista salía **vacía** y con
+   * ella **la dimensión del eje desaparecía del selector de la cabecera** — el
+   * control ofrecía «Carrera» y «Sexo» y ni una palabra del eje que manda.
+   *
+   * Ahora salen de `avance_cuota.facultades`, que es la lista del diseño para el
+   * EJE y existe declare o no cuotas de sexo. El razonamiento de la cabecera no
+   * cambia: sigue siendo el diseño y no lo que ha aparecido.
    */
-  const facultadesDelEstudio = useMemo(() => {
-    const filas = (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
-    const vistas = new Set<string>();
-    for (const f of filas) {
-      const nombre = String(f.faculty ?? f.facultad ?? "").trim();
-      if (nombre) vistas.add(nombre);
-    }
-    return [...vistas].sort((a, b) => a.localeCompare(b, "es"));
-  }, [dashboard]);
+  const facultadesDelEstudio = useMemo(() => valoresDelEje(
+    (dashboard as { avance_cuota?: { facultades?: Array<Record<string, unknown>> } } | null)
+      ?.avance_cuota?.facultades,
+    (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+  ), [dashboard]);
   const facultadDeLaCabecera = esFocoDelEje(foco, ejeClave) ? foco!.valor : "";
   const cambiarFoco = useCallback(
     (siguiente: FocoDeCuota) => escribirFoco(textoDesdeFoco(siguiente) || null),
