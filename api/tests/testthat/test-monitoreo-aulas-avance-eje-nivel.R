@@ -156,3 +156,53 @@ test_that("el eje NIVEL no toca el eje FACULTAD: identidad byte a byte", {
   expect_identical(av$total$huerfanas, 1L)
   expect_true(av$total$invariante$ok)
 })
+
+test_that("con eje por PERSONA el plan no genera filas que nunca se llenan", {
+  # **Salió armando el simulacro, no de un test.** El diseño declara los niveles
+  # de la cuota y el plan trae además aulas cuyo nivel MODAL es otro —en CCSS,
+  # 5 y 10—. Con eje por persona el valor lo pone el padrón, así que en esas
+  # filas no puede caer nunca una respuesta: la tabla salía con SEIS filas y no
+  # cuatro, dos con cuota `NA` y cero para siempre. Dos filas vacías que no se
+  # llenan se leen como un hueco del operativo.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+    eje_cuota = "nivel",
+    plan = c(.aen_plan(), list(
+      # El aula de nivel modal 10: existe en el plan y no es del universo del eje.
+      list(classroom_id = "a3", operational_code = "CH 3", label = "a3",
+           faculty = "CIENCIAS SOCIALES", level = "10", sample_role = "titular",
+           wave = "M1", orden = 3, eligible_n = 30, expected_valid = 12,
+           sample_status = "agendada"))),
+    design_targets = .aen_dt(),
+    source_mapping = list(collector_var = "collectorID", sex_var = "sexo",
+                          student_code_var = "codigo")))
+  av <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())$avance_cuota
+  claves <- vapply(av$facultades, function(f) as.character(f$facultad), character(1))
+  expect_setequal(claves, c("7", "8"))
+  expect_false("10" %in% claves)
+
+  # Y con eje por AULA el plan SÍ las genera, que es lo que HSVG publica hoy:
+  # ahí la columna del plan es la población del eje.
+  cfg2 <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+    plan = list(
+      list(classroom_id = "a1", operational_code = "CH 1", label = "a1",
+           faculty = "DERECHO", sample_role = "titular", wave = "M1", orden = 1,
+           eligible_n = 30, expected_valid = 12, sample_status = "agendada"),
+      list(classroom_id = "a2", operational_code = "CH 2", label = "a2",
+           faculty = "PSICOLOGIA", sample_role = "titular", wave = "M1", orden = 2,
+           eligible_n = 30, expected_valid = 12, sample_status = "agendada")),
+    design_targets = list(
+      schema = "monitoreo_aulas_design_targets_v1", source = "calc-muestra",
+      tasa_esperada = 0.5, tasa_fuente = "tau_disenio", total_cuota = 10,
+      facultades = list(list(facultad = "DERECHO",
+                             faculty_key = monitoreo_aulas_eje_key("DERECHO"),
+                             cuota = 10, tau = 0.5)),
+      selection_run_id = "run_1", frame_hash = "hash_1"),
+    source_mapping = list(collector_var = "collectorID")))
+  av2 <- monitoreo_aulas_dashboard(cfg2$plan, data.frame(collectorID = "a2"), cfg2)$avance_cuota
+  claves2 <- vapply(av2$facultades, function(f) as.character(f$facultad), character(1))
+  expect_true("PSICOLOGIA" %in% claves2)
+  psico <- Filter(function(f) identical(as.character(f$facultad), "PSICOLOGIA"), av2$facultades)[[1]]
+  expect_identical(psico$fuente_fila, "sin_cuota")
+})
