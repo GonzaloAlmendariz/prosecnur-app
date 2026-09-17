@@ -264,7 +264,16 @@
 aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   titulos_bloque <- .calg_titulos_agenda()
   con_daa <- .calg_daa_activo(traslape_daa)
-  if (con_daa) titulos_bloque <- c(titulos_bloque, "TRASLAPE DAA")
+  # El rótulo de la columna condicional viaja CON el veredicto (atributo
+  # `rotulo`, que pone `aulas_traslape_estudio()`): así un estudio que cruza
+  # contra HSVG en vez de contra la DAA titula su columna sin tocar tres firmas.
+  # Sin atributo es «TRASLAPE DAA», que es lo que HSVG2026 publica hoy: su hoja
+  # no cambia un byte.
+  if (con_daa) {
+    titulos_bloque <- c(titulos_bloque,
+                        .calg_txt(attr(traslape_daa, "rotulo") %||% "") |>
+                          (function(r) if (nzchar(r)) r else "TRASLAPE DAA")())
+  }
   # El veredicto de una unidad, o "" si el cruce no la menciona — celda vacia,
   # nunca NA: un default inventado diria «sin traslape» con la voz de un dato.
   daa_de <- function(u) {
