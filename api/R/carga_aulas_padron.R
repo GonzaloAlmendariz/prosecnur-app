@@ -145,6 +145,15 @@ monitoreo_aulas_codigo_key <- function(x) {
   toupper(gsub("[^A-Za-z0-9]", "", trimws(v)))
 }
 
+# Las claves que el filtro de poblacion conoce. Lista CERRADA: lo que no esta
+# aqui no se ignora, se RECHAZA (el porque, dentro de la funcion).
+#
+# **Va antes del bloque roxygen de `carga_aulas_padron()`, no entre el roxygen
+# y su funcion.** Metida en medio, el `@export` se pega a ESTA constante y la
+# funcion desaparece del NAMESPACE: el contrato lo caza, pero cuesta un gate.
+.CAP_FILTRO_CLAVES <- c("facultades", "carreras", "condiciones", "niveles",
+                        "edad_minima")
+
 #' El padrón de elegibles, leído de la base de matriculados.
 #'
 #' Deriva la tabla mínima que traduce un código de alumno a su nivel, su carrera
@@ -169,7 +178,12 @@ monitoreo_aulas_codigo_key <- function(x) {
 #' @param path ruta al `.xlsx` de matriculados.
 #' @param hoja nombre de la hoja; por defecto la primera que traiga las
 #'   columnas necesarias.
-#' @param filtro lista con la población del estudio, toda opcional:
+#' @param filtro lista con la población del estudio, toda opcional. Sus claves
+#'   son `facultades`, `carreras`, `condiciones`, `niveles` y `edad_minima`, y
+#'   **una clave que no esté en esa lista se rechaza** en vez de ignorarse:
+#'   `carreras` es el estrato cuando el estudio vive en UNA facultad (dictado de
+#'   Gonzalo, 2026-09-17), y llamar a esta función con una clave inventada hacía
+#'   que cargara la universidad entera con un aviso de «sin filtro». Detalle:
 #'   `facultades` (vector de nombres), `niveles` (vector de enteros),
 #'   `edad_minima` (entero), `condiciones` (vector de condiciones de matrícula
 #'   admitidas).
@@ -251,6 +265,22 @@ carga_aulas_padron <- function(path, hoja = NULL, filtro = list()) {
   # códigos del marco sin guardar el mapa (F114), así que no hay contra qué
   # comparar la identidad. El padrón ES la definición de población, y se declara.
   if (!is.list(filtro)) filtro <- list()
+  # **Una clave que el filtro no conoce NO se traga en silencio.**
+  #
+  # Me pasó el 2026-09-17 llamando a esta función con
+  # `list(columna = "FACULTAD", valores = "CIENCIAS SOCIALES")`: ninguna de las
+  # dos claves existe, el filtro no se aplicó y el padrón cargó **25.403
+  # personas de toda la universidad** con su aviso de «sin filtro» — que es
+  # cierto y no es el que hacía falta. Un padrón de la universidad entera
+  # traduce códigos de gente que no es del estudio, así que el error es del tipo
+  # que hay que gritar, no deducir.
+  desconocidas <- setdiff(names(filtro) %||% character(0), .CAP_FILTRO_CLAVES)
+  if (length(desconocidas)) {
+    stop_api(400, "E_AULAS_PADRON_FILTRO_CLAVE", sprintf(
+      "El filtro de poblacion no conoce %s. Las claves son: %s.",
+      paste(sprintf("«%s»", desconocidas), collapse = ", "),
+      paste(.CAP_FILTRO_CLAVES, collapse = ", ")))
+  }
   antes <- nrow(df)
   recorte <- function(columna, candidatos, etiqueta, normaliza = .cap_clave) {
     valores <- .monitoreo_chr_vec(candidatos)
@@ -270,6 +300,15 @@ carga_aulas_padron <- function(path, hoja = NULL, filtro = list()) {
   }
   recorte(.cap_columna(df, c("facultad", "nombrefac", "unidad_academica")),
           filtro$facultades, "facultad")
+  # **Y por CARRERA, que es el estrato cuando el estudio vive en UNA facultad.**
+  #
+  # Gonzalo, 2026-09-17, sobre la base de la DTI: «aquí en vez de facultad debe
+  # ser carrera, para este estudio donde la carrera es el estrato, no la
+  # facultad». Filtrar por facultad en CCSS Perfil 2026-II no acota nada —toda
+  # la población es Ciencias Sociales— y la agrupación que sí significa algo es
+  # la de sus seis carreras. Las dos vías conviven: un estudio que cruza
+  # facultades sigue filtrando por facultad.
+  recorte(.cap_columna(df, .CAP_ROLES$carrera), filtro$carreras, "carrera")
   recorte(.cap_columna(df, c("condicion_matricula", "condicion_de_matricula")),
           filtro$condiciones, "condicion de matricula")
 
@@ -291,6 +330,7 @@ carga_aulas_padron <- function(path, hoja = NULL, filtro = list()) {
              "El filtro de poblacion no dejo ninguna fila.")
   }
   declarado <- length(.monitoreo_chr_vec(filtro$facultades)) > 0L ||
+    length(.monitoreo_chr_vec(filtro$carreras)) > 0L ||
     length(niveles_ok) > 0L || is.finite(edad_min) ||
     length(.monitoreo_chr_vec(filtro$condiciones)) > 0L
   if (declarado) {

@@ -238,3 +238,92 @@ test_that("el resumen de un padron vacio o ausente no inventa nada", {
   expect_identical(r$por_nivel, list())
   expect_identical(monitoreo_aulas_padron_resumen(NULL)$personas, 0L)
 })
+
+# =============================================================================
+# El filtro de población: por CARRERA, y sin tragarse una clave que no conoce
+# =============================================================================
+#
+# Gonzalo, 2026-09-17, sobre la base de la DTI: «aquí en vez de facultad debe ser
+# carrera, para este estudio donde la carrera es el estrato, no la facultad».
+# Filtrar por facultad en CCSS Perfil 2026-II no acota nada —toda la población es
+# Ciencias Sociales— y la agrupación que significa algo es la de sus seis
+# carreras.
+#
+# Y la otra mitad sale de un error mío del mismo día: llamé a la función con
+# `list(columna = ..., valores = ...)`, que no son claves de este filtro. **No
+# pasó nada**: el filtro no se aplicó, el padrón cargó 25.403 personas de toda la
+# universidad, y el aviso decía «sin filtro» — cierto, y no el que hacía falta.
+# Un padrón de la universidad entera traduce códigos de gente que no es del
+# estudio, así que la clave desconocida se grita.
+
+.tcp_hoja_carreras <- function() data.frame(
+  `CODIGO PUCP` = c("20190001", "20190002", "20190003", "20190004"),
+  FACULTAD = rep("CIENCIAS SOCIALES", 4),
+  CARRERA = c("ECONOMÍA", "ECONOMÍA", "SOCIOLOGÍA", "ANTROPOLOGÍA"),
+  NIVEL_CURRICULAR = c(7L, 10L, 8L, 6L),
+  SEXO = c("F", "M", "F", "M"),
+  check.names = FALSE, stringsAsFactors = FALSE
+)
+
+.tcp_escribir <- function(df) {
+  f <- file.path(tempdir(), sprintf("padron-%d.xlsx", as.integer(runif(1, 1, 1e9))))
+  openxlsx::write.xlsx(df, f)
+  f
+}
+
+test_that("el filtro por CARRERA acota donde el de facultad no acotaría nada", {
+  skip_if_not_installed("openxlsx")
+  f <- .tcp_escribir(.tcp_hoja_carreras())
+  on.exit(unlink(f), add = TRUE)
+  # Por facultad: las cuatro, porque todas son de la misma. No acota.
+  todas <- carga_aulas_padron(f, filtro = list(facultades = "CIENCIAS SOCIALES"))
+  expect_identical(length(todas$filas), 4L)
+  # Por carrera: sólo las dos de Economía. Eso es el estrato.
+  eco <- carga_aulas_padron(f, filtro = list(carreras = "ECONOMÍA"))
+  expect_identical(length(eco$filas), 2L)
+  expect_true(all(vapply(eco$filas, function(r) identical(r$carrera, "ECONOMÍA"), logical(1))))
+  # Y se combina con el de niveles, que es el otro recorte de la población.
+  eco69 <- carga_aulas_padron(f, filtro = list(carreras = "ECONOMÍA", niveles = 6:9))
+  expect_identical(length(eco69$filas), 1L)
+  expect_identical(eco69$filas[[1]]$nivel, 7L)
+})
+
+test_that("una carrera que no existe se dice, no se devuelve vacío", {
+  skip_if_not_installed("openxlsx")
+  f <- .tcp_escribir(.tcp_hoja_carreras())
+  on.exit(unlink(f), add = TRUE)
+  # Cero coincidencias casi nunca es «esta población no existe»: es que se está
+  # comparando un código contra un nombre.
+  expect_error(
+    carga_aulas_padron(f, filtro = list(carreras = "INGENIERÍA INDUSTRIAL")),
+    "E_AULAS_PADRON_FILTRO_SIN_COINCIDENCIAS|Ninguna fila calza")
+})
+
+test_that("una clave que el filtro no conoce se RECHAZA", {
+  skip_if_not_installed("openxlsx")
+  f <- .tcp_escribir(.tcp_hoja_carreras())
+  on.exit(unlink(f), add = TRUE)
+  # El error concreto del 17/09, con su forma exacta.
+  expect_error(
+    carga_aulas_padron(f, filtro = list(columna = "FACULTAD", valores = "CIENCIAS SOCIALES")),
+    "E_AULAS_PADRON_FILTRO_CLAVE|no conoce")
+  # Y las cinco que sí conoce no se rechazan.
+  expect_silent(invisible(carga_aulas_padron(f, filtro = list(
+    facultades = "CIENCIAS SOCIALES", carreras = "ECONOMÍA", niveles = 7,
+    condiciones = character(0), edad_minima = NA_integer_))))
+})
+
+test_that("el aviso del filtro declarado cuenta también la carrera", {
+  skip_if_not_installed("openxlsx")
+  f <- .tcp_escribir(.tcp_hoja_carreras())
+  on.exit(unlink(f), add = TRUE)
+  # Sin esto, un filtro SÓLO por carrera caía en la rama del «sin filtro» y
+  # publicaba el aviso fuerte de un padrón sin acotar — diciendo lo contrario de
+  # lo que pasaba.
+  out <- carga_aulas_padron(f, filtro = list(carreras = "ECONOMÍA"))
+  # Los avisos viajan como ATRIBUTO, no como campo: leerlos con `$avisos` da
+  # `NULL` y el test pasaría con cualquier aviso, o sin ninguno.
+  avisos <- paste(attr(out, "avisos") %||% character(0), collapse = " ")
+  expect_true(grepl("Filtro de poblacion aplicado", avisos, fixed = TRUE))
+  expect_false(grepl("sin filtro", avisos, fixed = TRUE))
+})
