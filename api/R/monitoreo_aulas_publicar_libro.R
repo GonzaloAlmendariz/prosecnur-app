@@ -827,10 +827,23 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     }
   }
 
-  respetadas <- vapply(hojas_libro, function(h) identical(acciones[[h]], "respetada"),
-                       logical(1))
-  formato_equipo <- monitoreo_aulas_formato_a_respetadas(
-    id, hojas_libro[respetadas], remotas = remotas, tab_map = tab_map,
+  # **A TODAS las hojas del equipo, no sólo a las respetadas.** El filtro en
+  # `respetada` dejaba fuera justo el caso del primer día: en un documento nuevo
+  # todas salen `sembrada`, así que no se aplicaba ni una regla —medido en CCSS
+  # el 17/09: 0 requests sobre ocho hojas— y el recibo decía «ok». El agendador
+  # abría el Sheets con «STATUS DE LLAMADA» en texto libre.
+  #
+  # La geometría la elige este bloque, que es quien sabe qué le pasó a cada
+  # hoja: lo REMOTO para una respetada (tiene las filas que el equipo escribió)
+  # y lo PRODUCIDO para una sembrada (lo remoto estaba vacío, y con `remotas`
+  # vacío la función las saltaba una por una).
+  del_equipo <- hojas_libro[hojas_libro %in% hojas_equipo]
+  geometria <- lapply(stats::setNames(del_equipo, del_equipo), function(h) {
+    if (identical(acciones[[h]], "respetada")) remotas[[h]] %||% list()
+    else producidas[[h]] %||% list()
+  })
+  formato_equipo <- monitoreo_aulas_formato_a_hojas_del_equipo(
+    id, del_equipo, geometria = geometria, tab_map = tab_map,
     con_daa = con_daa)
 
   list(

@@ -129,25 +129,44 @@ monitoreo_aulas_formato_seguro <- function(requests) {
   out
 }
 
-#' Reenvía el formato a las hojas del equipo que la publicación respetó.
+#' Reenvía el formato a las hojas del equipo.
 #'
-#' La geometría sale de lo REMOTO, no de lo que la app produciría: la hoja del
-#' equipo tiene las filas que ellos han escrito, y pintar sobre un rectángulo
-#' imaginado dejaría bandas a media tabla.
+#' Nació como «a respetadas» y el nombre se quedó corto: **una hoja SEMBRADA
+#' también es del equipo y también necesita su color y su desplegable**. Con el
+#' filtro en `respetada`, un documento NUEVO —que es el primer día de campo—
+#' salía con los valores puestos y sin una sola regla: medido en CCSS Perfil
+#' 2026-II el 17/09, `formato_equipo` devolvió **0 requests** sobre ocho hojas
+#' recién sembradas, y el recibo decía «ok». El agendador abría el Sheets con
+#' «STATUS DE LLAMADA» en texto libre.
+#'
+#' @section La geometría es del llamador, no de esta función:
+#' Se pinta sobre el rectángulo que se le pasa en `geometria`, y quién lo elige
+#' es el publicador, porque es quien sabe qué pasó con cada hoja: para una
+#' `respetada` es lo REMOTO —la hoja tiene las filas que el equipo escribió, y
+#' pintar sobre un rectángulo imaginado dejaría bandas a media tabla—; para una
+#' `sembrada` es lo que la app acaba de escribir, porque lo remoto estaba vacío.
+#' Esa vacuidad era el segundo cerrojo: aun pasándole las sembradas, el
+#' `if (!length(filas)) next` las saltaba todas.
 #'
 #' @param spreadsheet_id el documento.
-#' @param respetadas nombres de las hojas del equipo que no se escribieron.
-#' @param remotas sus values, ya leídos por el publicador.
+#' @param hojas nombres de las hojas del equipo a formatear.
+#' @param geometria lista nombrada `hoja → values` con el rectángulo de cada
+#'   una. `remotas` se acepta como alias por compatibilidad.
 #' @param tab_map nombre de hoja → `sheetId`.
 #' @param con_daa si el libro lleva el bloque DAA (misma señal que el motor).
 #' @return lista `{hojas, requests, descartados, error}`; `hojas` son las que de
 #'   verdad recibieron formato.
 #' @keywords internal
-monitoreo_aulas_formato_a_respetadas <- function(spreadsheet_id, respetadas,
-                                                 remotas = list(), tab_map = list(),
-                                                 con_daa = FALSE) {
+monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
+                                                       geometria = list(),
+                                                       tab_map = list(),
+                                                       con_daa = FALSE,
+                                                       remotas = NULL) {
   vacio <- list(hojas = character(0), requests = 0L, descartados = 0L, error = "")
-  respetadas <- as.character(unlist(respetadas %||% character(0), use.names = FALSE))
+  # `remotas` es el nombre que tenía el parámetro cuando la geometría siempre
+  # venía de lo remoto. Se acepta para no romper a quien ya lo pasa por nombre.
+  if (is.null(geometria) || !length(geometria)) geometria <- remotas %||% list()
+  respetadas <- as.character(unlist(hojas %||% character(0), use.names = FALSE))
   if (!length(respetadas)) return(vacio)
 
   requests <- list()
@@ -162,7 +181,7 @@ monitoreo_aulas_formato_a_respetadas <- function(spreadsheet_id, respetadas,
     sheet_id <- suppressWarnings(as.integer(
       unlist((tab_map[[hoja]] %||% list())[["sheet_id"]])[1]))
     if (!length(sheet_id) || is.na(sheet_id)) next
-    filas <- remotas[[hoja]] %||% list()
+    filas <- geometria[[hoja]] %||% list()
     if (!length(filas)) next
     brutos <- tryCatch(.malp_formato_requests(sheet_id, hoja, filas, con_daa = con_daa),
                        error = function(e) list())
