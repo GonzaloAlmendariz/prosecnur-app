@@ -493,6 +493,10 @@ monitoreo_aulas_default_config <- function() {
     # plan en cada corrida (`monitoreo_aulas_tramos_estado()`). Sin tramos
     # declarados el motor cae a las semanas de calendario de siempre.
     tramos = list(),
+    # Cuándo se publicó el libro por última vez, con qué corte y con cuántos
+    # partes. Lo escribe el publicador al terminar; la pantalla lo enseña al
+    # lado de «Traer respuestas».
+    libro_publicado = list(),
     # B70 (dictado 2026-09-03): la duración de la aplicación en minutos. 30 es
     # la verdad operativa de hoy («la aplicación dura media hora»); el slider
     # de Carga de campo la edita y la persiste por aquí. Los motores de
@@ -782,6 +786,10 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # orden por inicio, se descarta el tramo sin las dos fechas— para que lo
     # guardado ya esté en la forma en que el motor lo lee.
     tramos = .mat_normalizar(config[["tramos"]] %||% defaults$tramos),
+    # El recibo de la última publicación del libro. Misma doctrina de whitelist:
+    # sin nombrarlo aquí, el sello se perdería en el primer guardado y volvería
+    # a no haber forma de saber si el Sheets está al día.
+    libro_publicado = config[["libro_publicado"]] %||% defaults$libro_publicado,
     alerts = list(
       min_valid_per_class = max(1L, .monitoreo_int(alerts$min_valid_per_class %||% alerts$min_validas_aula, defaults$alerts$min_valid_per_class)),
       warn_partial_under_valid = max(1L, .monitoreo_int(alerts$warn_partial_under_valid %||% alerts$alerta_parcial_menor_a, defaults$alerts$warn_partial_under_valid))

@@ -1033,7 +1033,34 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
     api_error = function(e) stop(e),
     error = .monitoreo_sheets_stop
   )
+  # **El sello de la publicación.** La app no guardaba en ningún sitio que había
+  # publicado: se sabía cuándo se IMPORTÓ el libro y cuándo se recordó el
+  # enlace, pero no cuándo se escribió. Así que ante dos vistas con cifras
+  # distintas —la pantalla y el Sheets— no había forma de saber cuál era más
+  # nueva, que es exactamente donde se atascó Gonzalo el 2026-09-17 con Derecho.
+  # «Se supone que traer respuestas actualiza todo», y lo hace; lo que faltaba
+  # era poder comprobarlo.
+  #
+  # Aquí SÍ va el reloj, al revés que en la hoja: esto es config, no una celda
+  # que el motor batch+hash compare para decidir si reescribe.
+  tryCatch({
+    aulas_cfg[["libro_publicado"]] <- list(
+      publicado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      synced_at = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
+      hojas = length(publicado$hojas %||% list()),
+      partes = length(s$monitoreo_aulas_partes_campo %||% list())
+    )
+    cfg[["aulas_universitarias"]] <- monitoreo_aulas_normalize_config(aulas_cfg)
+    .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)
+    .monitoreo_mark_project_dirty_if_open(sid)
+  }, error = function(e) {
+    # Un sello que no se pudo guardar NO tumba una publicación que sí ocurrió:
+    # el daño de perder el recibo es mucho menor que el de repetir la escritura.
+    invisible(NULL)
+  })
+
   c(publicado, list(
+    publicado_en = aulas_cfg[["libro_publicado"]][["publicado_en"]] %||% "",
     lectura_previa = list(
       ok = is.null(lectura_previa$error) && !isTRUE(lectura_previa$omitida),
       omitida = isTRUE(lectura_previa$omitida),

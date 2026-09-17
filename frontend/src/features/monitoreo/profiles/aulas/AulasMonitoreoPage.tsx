@@ -2094,6 +2094,8 @@ export default function AulasMonitoreoPage() {
                   origen={state?.aulas_origen}
                   onImportPlan={() => { void importPlan(); }}
                   onSyncField={() => { void syncField(); }}
+              selloDeLibro={aulasConfig?.libro_publicado ?? null}
+              sincronizadoEn={state?.synced_at ?? ""}
                   onGenerarLibro={() => { void generarLibro(); }}
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
                   onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
