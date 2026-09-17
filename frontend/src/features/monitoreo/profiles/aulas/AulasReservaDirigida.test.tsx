@@ -144,3 +144,61 @@ describe("AulasReservaDirigida", () => {
     expect(out.indexOf("mujeres")).toBeLessThan(out.indexOf("hombres"));
   });
 });
+
+describe("AulasReservaDirigida: el eje declarado", () => {
+  const NIVEL = {
+    clave: "nivel", etiqueta: "Nivel", etiqueta_plural: "Niveles", etiqueta_sin: "Sin nivel",
+  };
+  const porNivel = () => celda({
+    faculty: "6", sex: "", brecha: 104,
+    candidatos: [cand("R 1.2", {
+      faculty: "6", sexo: "",
+      motivo: "Aporta 11 de 40 a la cuota de nivel 6",
+    })],
+    etiqueta: "El banco no tiene cursos-horario de ese nivel",
+  });
+
+  it("titula la celda con la palabra del eje, no con el valor pelado", () => {
+    // Cuatro filas que decían «6», «7», «8», «9» debajo de un selector que ya
+    // las llamaba «Nivel 6». En una lista donde cada fila dice «faltan 104», un
+    // «7» suelto se lee como una cifra. Visto en pantalla el 2026-09-17.
+    const out = renderToStaticMarkup(
+      <AulasReservaDirigida celdas={[porNivel()]} eje={NIVEL} />,
+    );
+    expect(out).toContain("Nivel 6");
+  });
+
+  it("con el eje en facultad el rótulo no se mueve un byte", () => {
+    // HSVG está en campo: sus etiquetas de gráfico y de lista son el valor
+    // crudo, y `etiquetaDeValorEnGrafico` lo devuelve tal cual para ese eje.
+    const out = renderToStaticMarkup(<AulasReservaDirigida celdas={[celda()]} />);
+    expect(out).toContain("DERECHO");
+    expect(out).not.toContain("Facultad DERECHO");
+  });
+
+  it("recorta la cola del motivo con las DOS redacciones del motor", () => {
+    // Se corta por el separador « a la cuota de » y no por una cola
+    // reconstruida: el motor redacta una frase con dimensión de sexo y otra sin
+    // ella, cada una con la palabra que su eje declara, y esta capa no tiene
+    // por qué conocer ninguna de las dos plantillas.
+    const conSexo = renderToStaticMarkup(<AulasReservaDirigida celdas={[celda()]} />);
+    expect(conSexo).toContain(">Aporta 11 de 20<");
+    const sinSexo = renderToStaticMarkup(
+      <AulasReservaDirigida celdas={[porNivel()]} eje={NIVEL} />,
+    );
+    expect(sinSexo).toContain(">Aporta 11 de 40<");
+    // La frase entera sigue viajando en el `title`, así que no se pierde nada.
+    expect(sinSexo).toContain("Aporta 11 de 40 a la cuota de nivel 6");
+  });
+
+  it("un motivo con otra redacción se muestra entero, no a medias", () => {
+    // Si el motor cambia el separador, no casa: mostrarlo completo es correcto
+    // y recortar por una posición adivinada sería mutilarlo.
+    const out = renderToStaticMarkup(
+      <AulasReservaDirigida eje={NIVEL} celdas={[celda({
+        faculty: "6", sex: "", candidatos: [cand("R 9", { motivo: "Aporta 11 de 40" })],
+      })]} />,
+    );
+    expect(out).toContain(">Aporta 11 de 40<");
+  });
+});
