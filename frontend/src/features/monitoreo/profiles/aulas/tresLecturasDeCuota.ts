@@ -56,8 +56,16 @@ function numeroONulo(x: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** `M`/`F` del motor a la palabra que usa el resto del perfil. */
-export function sexoEnPalabra(sex: unknown): string {
+/**
+ * `M`/`F` del motor a la palabra que usa el resto del perfil.
+ *
+ * **Con `grano = "eje"` no hay palabra que decir.** Esa celda no tiene dimensión
+ * de sexo —es una cuota por nivel, no por nivel y sexo— y eso es distinto de no
+ * conocer el sexo: rotularla «Sin sexo declarado» diría que falta un dato que
+ * nadie pidió. El grano lo declara el motor; sin él, el trato es el de siempre.
+ */
+export function sexoEnPalabra(sex: unknown, grano?: unknown): string {
+  if (String(grano ?? "").trim() === "eje") return "";
   const s = String(sex ?? "").trim().toUpperCase();
   if (s === "F") return "Mujeres";
   if (s === "M") return "Hombres";
@@ -73,7 +81,7 @@ export function tresLecturasDeCuota(
     const comprometido = numero(c.proyeccion_agendada);
     return {
       facultad: String(c.faculty ?? "").trim() || "Sin facultad declarada",
-      sexo: sexoEnPalabra(c.sex),
+      sexo: sexoEnPalabra(c.sex, c.grano),
       cuota,
       logrado: numero(c.logrado),
       techo,

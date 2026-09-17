@@ -532,6 +532,11 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     proy_ag_obs <- base + pendiente_ag * factor
     list(
       faculty = .monitoreo_scalar(celda$faculty %||% "", ""), sex = sx,
+      # **El grano de la celda viaja.** Una celda del EJE no tiene dimensión de
+      # sexo, y eso es distinto de no conocerla: sin este campo la UI rotulaba
+      # «Sin sexo declarado» donde no hay sexo que declarar. Vacío para las
+      # celdas de facultad × sexo, que es lo que eran todas hasta ahora.
+      grano = .monitoreo_scalar(celda$grano %||% "", ""),
       cuota = cuota, logrado = logrado,
       previsto = if (is.finite(previsto)) round(previsto, 1) else NA_real_,
       aporte_pendiente = round(pendiente, 1),
