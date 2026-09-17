@@ -389,6 +389,7 @@ export function AulasPestanaCuotas({
             (dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>,
             facultadEnFoco,
           ) as Array<Record<string, unknown>>}
+          eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
         />
       </section>
       {/* **El panel entero desaparece cuando no hay a qué ir.** `AulasReservaDirigida`

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { lasQueNoLlegan, tresLecturasDeCuota } from "./tresLecturasDeCuota";
+import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
 import "./tresLecturasDeCuota.css";
 
 /**
@@ -26,9 +27,18 @@ import "./tresLecturasDeCuota.css";
  * veintitrés diciendo «todo bien» compite por la atención con las siete que
  * piden acción.
  */
-export function AulasTresLecturas({ celdas }: {
-  /** `avance_sexo_facultad`: las celdas de facultad × sexo del alumno. */
+export function AulasTresLecturas({ celdas, eje }: {
+  /**
+   * `avance_sexo_facultad`: las celdas del alumno.
+   *
+   * Son de facultad × sexo cuando el estudio declara cuota por sexo, y del EJE
+   * —una por valor, sin sexo— cuando su meta es sólo por el eje. Las segundas
+   * llegan con `grano = "eje"`, y es lo que hace que la fila no rotule «Sin sexo
+   * declarado» donde no hay sexo que declarar.
+   */
   celdas: ReadonlyArray<Record<string, unknown>>;
+  /** La declaración del eje (`avance_cuota.eje`), para nombrar sus valores. */
+  eje?: EjeDeclarado;
 }) {
   const todas = useMemo(() => tresLecturasDeCuota(celdas), [celdas]);
   const filas = useMemo(() => lasQueNoLlegan(todas), [todas]);
@@ -36,7 +46,7 @@ export function AulasTresLecturas({ celdas }: {
   if (!todas.length) {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        El estudio no declara cuotas de facultad y sexo que proyectar.
+        {`El estudio no declara cuotas de ${etiquetaDelEje(eje).toLocaleLowerCase("es")} que proyectar.`}
       </p>
     );
   }
@@ -78,13 +88,17 @@ export function AulasTresLecturas({ celdas }: {
           return (
             <li className="aulas-tres-fila" key={`${f.facultad}|${f.sexo}`}>
               <span className="aulas-tres-nombre">
-                <strong>{f.facultad}</strong>
+                {/* **Con su palabra, no el valor pelado.** En una lista donde
+                    cada fila dice «faltan 121», un «7» suelto se lee como una
+                    cifra y no como un nombre. Con el eje en facultad devuelve el
+                    valor tal cual, así que HSVG no se mueve. */}
+                <strong>{etiquetaDeValorEnGrafico(f.facultad, eje)}</strong>
                 <em>{f.sexo}</em>
               </span>
               <span
                 className="aulas-tres-carril"
                 role="img"
-                aria-label={`${f.facultad}, ${f.sexo}: cuota ${fmt(f.cuota)}, recogido ${fmt(f.logrado)}, con lo agendado ${fmt(Math.round(f.comprometido))}, techo ${fmt(Math.round(f.techo))}`}
+                aria-label={`${etiquetaDeValorEnGrafico(f.facultad, eje)}${f.sexo ? `, ${f.sexo}` : ""}: cuota ${fmt(f.cuota)}, recogido ${fmt(f.logrado)}, con lo agendado ${fmt(Math.round(f.comprometido))}, techo ${fmt(Math.round(f.techo))}`}
               >
                 <i className="aulas-tres-tramo es-techo" style={{ width: pc(f.techo) }} />
                 <i className="aulas-tres-tramo es-comprometido" style={{ width: pc(f.comprometido) }} />
