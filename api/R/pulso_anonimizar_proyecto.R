@@ -197,6 +197,15 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
   criterios <- .pulso_anon_traducir_criterios(estado, diccionario)
   estado <- criterios$estado
 
+  # **El padrón de aulas se purga aquí, no se anonimiza.** Seudonimizar sus
+  # códigos no serviría de nada: su única función es traducir un código REAL que
+  # viene en una respuesta, así que un padrón con códigos falsos no traduce —es
+  # peso muerto con forma de PII—. Y este es el sitio: `.pulso_strip_caches()`
+  # corre en el guardado normal, donde el padrón SÍ debe sobrevivir; lo que sale
+  # del equipo pasa por aquí. Queda su corte: los conteos, sin códigos.
+  purga <- monitoreo_aulas_padron_purgar(estado, motivo = "purga al exportar")
+  estado <- purga$estado
+
   saveRDS(.pulso_anon_lista_como_state(estado, envuelto$era_env), state_path)
 
   # Marca de procedencia en el manifest: un fixture publicado debe declarar que
@@ -449,6 +458,23 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     s <- readRDS(state_path)
     envuelto <- .pulso_anon_state_como_lista(s)
     .pulso_anon_walk_dataframes(envuelto$datos, registrar, ruta = "state")
+    # **El padrón de aulas no es un data.frame**, así que el recorrido de arriba
+    # pasa de largo por él: es una lista de listas con códigos de alumno reales
+    # (la única clave del proyecto que los guarda sin subrogar, ver
+    # `monitoreo_aulas_padron_purga.R`). Sin esta comprobación la purga al
+    # exportar sería una intención; con ella es un gate, y
+    # `make reference-project-verify` se pone rojo si una copia sale con padrón.
+    hallado <- monitoreo_aulas_padron_hallazgo_pii(envuelto$datos)
+    if (is.list(hallado)) {
+      hallazgos[[length(hallazgos) + 1L]] <- data.frame(
+        ruta = "state$monitoreo_aulas_padron",
+        columna = "codigo",
+        tipo = hallado$tipo,
+        n = as.integer(hallado$personas),
+        ejemplo = hallado$ejemplo,
+        stringsAsFactors = FALSE
+      )
+    }
   }
   for (p in list.files(file.path(stage, "files"), full.names = TRUE, recursive = TRUE)) {
     if (!.pulso_anon_es_xlsx(p)) next

@@ -327,6 +327,19 @@ session_schema <- function() {
     "monitoreo_aulas_partes_campo", "literal", "persistible",    "carga_aulas_libro.R", "session_set", "partes de campo leidos de la hoja «Aulas Aplicadas (Campo)»",
     "monitoreo_aulas_control",      "literal", "persistible",    "carga_aulas_libro.R", "session_set", "filas de la hoja «Base de control» que el equipo llena en campo",
     "monitoreo_aulas_disponibilidad", "literal", "persistible",  "monitoreo_aulas_cache.R", "directa", "B29/B74: la escribe POST /api/monitoreo/aulas/disponibilidad (router_monitoreo.R) desde el excel subido; el dashboard la lee con [[ y publica disponibilidad+reparto",
+    # REVIERTE EL F114 EN SU ALCANCE, y es deliberado: esta es la unica clave
+    # del proyecto que guarda codigos de alumno REALES, sin subrogar. El marco
+    # sigue subrogado (project_pulso.R) y population/exclusions siguen en NULL;
+    # lo que se revierte es una tabla, no la doctrina. Existe porque con el eje
+    # de cuotas en «nivel» el nivel de una respuesta esta en la PERSONA, y el
+    # codigo es lo unico que las une: no hay version anonima que sirva para
+    # traducir. Se purga a mano (DELETE /api/monitoreo/aulas/padron) y
+    # AUTOMATICAMENTE en toda copia que sale (pulso_anonimizar_proyecto.R).
+    "monitoreo_aulas_padron", "literal", "persistible", "carga_aulas_padron.R", "session_set", "padron codigo->nivel/carrera/sexo de la poblacion del estudio; unica clave con codigo PUCP real; se purga a mano y al exportar",
+    # Lo que queda cuando el padron se purga: los conteos por celda, SIN
+    # codigos. El avance por eje sigue publicandose desde aqui, declarado como
+    # congelado — no se puede continuar, y decirlo es lo unico honesto.
+    "monitoreo_aulas_padron_corte", "literal", "persistible", "carga_aulas_padron.R", "session_set", "corte congelado del avance por eje al purgar el padron: conteos por celda, sin codigos",
     "monitoreo_client_report_pdf", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_production_report_pdf", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_telefonico_report_pdf", "literal", "persistible", "router_monitoreo_telefonico.R", "session_set", "meta del PDF de avance telefonico; analoga a client/production_report_pdf",

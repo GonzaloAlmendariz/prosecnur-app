@@ -5307,6 +5307,94 @@ mount_monitoreo <- function(pr) {
     # por /api/files/upload (kind aulas_disponibilidad) y aqui se importa por
     # su file_id; la marca de disponibilidad ya vive en el token del dashboard
     # (B29), asi que el reparto se rearma solo en el siguiente estado.
+    # **El padrón que traduce un código de alumno a su nivel.** Puerta propia
+    # porque con Cálculo de muestra fuera de alcance no se puede derivar durante
+    # la construcción del marco: el nivel per-persona se colapsa a la moda del
+    # aula y el `.pulso` subroga los códigos sin guardar el mapa (F114). Ver
+    # `carga_aulas_padron.R`.
+    #
+    # El filtro de población se pasa desde el cliente y se guarda CON el padrón:
+    # sin él el lector devuelve todo pregrado —medido: 22.746 personas— y como
+    # «resuelve en el padrón» significa «es población», eso acreditaría celdas
+    # de gente que no lo es.
+    plumber::pr_post("/api/monitoreo/aulas/padron",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      ruta <- ""
+      fid <- .monitoreo_scalar(parsed$file_id, "")
+      if (nzchar(fid)) {
+        meta <- (s$files %||% list())[[fid]]
+        if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
+          stop_api(404, "E_AULAS_PADRON_FILE_ID",
+                   "El file_id no corresponde a un archivo de la sesion.")
+        }
+        ruta <- as.character(meta$path)
+      } else {
+        ruta <- .monitoreo_scalar(parsed$path, "")
+      }
+      if (!nzchar(ruta)) {
+        stop_api(400, "E_AULAS_PADRON_SIN_ORIGEN",
+                 "Indica el file_id del excel de matriculados del que sale el padron.")
+      }
+      # Todo con `[[`: el `$` parcial-matchea y este body viene del cliente.
+      filtro <- list(
+        facultades = parsed[["facultades"]] %||% parsed[["faculties"]],
+        niveles = parsed[["niveles"]] %||% parsed[["levels"]],
+        edad_minima = parsed[["edad_minima"]] %||% parsed[["edadMinima"]],
+        condiciones = parsed[["condiciones"]] %||% parsed[["conditions"]]
+      )
+      padron <- carga_aulas_padron(
+        ruta,
+        hoja = .monitoreo_scalar(parsed[["hoja"]] %||% parsed[["sheet"]], "") %||% NULL,
+        filtro = filtro
+      )
+      session_set(sid, "monitoreo_aulas_padron", padron)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        personas = length(padron$filas),
+        vigencia = padron$vigencia,
+        columnas = padron$columnas,
+        filtro = padron$filtro,
+        # El resumen NO lleva codigos: es lo publicable del padron y lo que
+        # queda cuando se purga.
+        resumen = monitoreo_aulas_padron_resumen(padron),
+        # Los avisos del lector, enteros. El de «sin filtro de poblacion» es el
+        # que hay que ver: un padron de toda la universidad es casi siempre un
+        # archivo equivocado.
+        avisos = as.list(attr(padron, "avisos") %||% character(0)),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    # **Purgar el padrón a mano**, cuando el campo cierra. Deja su corte: los
+    # conteos, sin códigos. Y hay que decir lo que cuesta: sin padrón una
+    # respuesta nueva no resuelve a ningún nivel, así que el avance por ese eje
+    # no se puede continuar. Purgar es cerrar la medición, no bajarle la
+    # resolución.
+    plumber::pr_delete("/api/monitoreo/aulas/padron",
+                       wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      estado <- list(
+        monitoreo_aulas_padron = s[["monitoreo_aulas_padron"]],
+        monitoreo_aulas_padron_corte = s[["monitoreo_aulas_padron_corte"]]
+      )
+      out <- monitoreo_aulas_padron_purgar(estado, motivo = "purga manual")
+      session_set(sid, "monitoreo_aulas_padron", NULL)
+      if (!is.null(out$estado[["monitoreo_aulas_padron_corte"]])) {
+        session_set(sid, "monitoreo_aulas_padron_corte",
+                    out$estado[["monitoreo_aulas_padron_corte"]])
+      }
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        purgado = out$purgado,
+        corte = out$estado[["monitoreo_aulas_padron_corte"]],
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/disponibilidad",
                      wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

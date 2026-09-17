@@ -12,7 +12,14 @@ allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza
                           # B74 (dictado 2026-09-03): el excel de disponibilidad
                           # de aplicadores entra por la app — misma via de dos
                           # pasos que el libro (upload aqui, import por file_id).
-                          "aulas_disponibilidad")
+                          "aulas_disponibilidad",
+                          # El excel de matriculados del que sale el padron que
+                          # traduce un codigo de alumno a su nivel. Misma via de
+                          # dos pasos. Ojo: el archivo ORIGINAL trae PII (nombre,
+                          # correo, codigo) y por eso no se guarda dentro del
+                          # `.pulso` — de el solo se deriva la tabla minima, que
+                          # se purga al exportar (monitoreo_aulas_padron_purga.R).
+                          "aulas_padron")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))
