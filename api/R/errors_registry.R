@@ -130,6 +130,8 @@ errores_registrados <- function() {
     "E_AULAS_PADRON_NIVEL_AUSENTE",                          "carga_aulas_padron.R",              "422",
     "E_AULAS_PADRON_VACIO",                                  "carga_aulas_padron.R",              "422",
     "E_AULAS_PADRON_FILTRO_SIN_COINCIDENCIAS",               "carga_aulas_padron.R",              "422",
+    "E_AULAS_PADRON_FILE_ID",                                "router_monitoreo.R",                "404",
+    "E_AULAS_PADRON_SIN_ORIGEN",                             "router_monitoreo.R",                "400",
     "E_ACREDITACION_BATCH_ACTORS",                           "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_BASE_CONFLICT",                    "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_CACHE_STALE",                      "carga_acreditacion_batch.R",        "indirecto",
