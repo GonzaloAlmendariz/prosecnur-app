@@ -344,7 +344,15 @@ test_that("formato Sheets: el libro completo cabe en 45 requests de formato", {
     expect_gt(length(reqs), 0L, label = sprintf("requests de %s", h$hoja))
     total <- total + length(reqs)
   }
-  expect_lte(total, 45L)
+  # La serie del tope, que es lo que dice por qué cambió: **45** hasta el
+  # 2026-09-17 y **70** desde que «MEDIO DE CONTACTO», «DÍA», «STATUS DE
+  # LLAMADA» y «RECIBIÓ CORREO» reciben su paleta en esta capa —antes sólo la
+  # tenían en el `.xlsx`, así que el Sheets salía en blanco justo en las
+  # columnas del barrido telefónico—. Medido con este fixture: **62**, con 8 de
+  # margen. El tope existe porque el coste crece con los BLOQUES y un
+  # `batchUpdate` no es gratis; la publicación completa de CCSS envió 107
+  # requests para las cuatro hojas del equipo y Google los aceptó.
+  expect_lte(total, 70L)
 })
 
 # --- B. validaciones (desplegables) -------------------------------------------
@@ -765,4 +773,59 @@ test_that("la capa de formato vive en su archivo propio", {
   r_dir <- testthat::test_path("..", "..", "R")
   skip_if_not(dir.exists(r_dir), "sin fuentes R/ a mano (paquete instalado)")
   expect_true(file.exists(file.path(r_dir, "monitoreo_aulas_sheets_formato.R")))
+})
+
+# =============================================================================
+# Las cinco columnas del barrido, también en Sheets
+# =============================================================================
+#
+# **Dos capas, dos lecturas de la misma regla.** El `.xlsx` llevaba las cinco
+# columnas tecleables con color y el Sheets publicado llevaba **sólo `STATUS
+# MUESTRA`**: medido contra el documento vivo de CCSS Perfil 2026-II el
+# 2026-09-17, 12 reglas y todas de esa columna. El agendador trabaja en el
+# Sheets, no en el xlsx, así que el color estaba justo donde nadie lo mira.
+#
+# El arreglo no copia los hex una tercera vez: los TRADUCE de
+# `aulas_libro_paletas_de_estado()`, que es la misma paleta que pinta el xlsx.
+# `STATUS MUESTRA` conserva su catálogo propio (`.mafs_REGLAS_STATUS_MUESTRA`)
+# porque lleva el morado de «REFUERZO POR CONTACTAR», que el xlsx no tiene.
+
+test_that("la paleta del xlsx se traduce a lo que Sheets necesita, sin repetir un hex", {
+  for (nombre in c("medio", "dia", "llamada", "correo")) {
+    xlsx <- aulas_libro_paletas_de_estado()[[nombre]]
+    sheets <- prosecnurapp:::.mafs_reglas_de_paleta(nombre)
+    expect_identical(length(sheets), length(xlsx), info = nombre)
+    for (i in seq_along(xlsx)) {
+      expect_identical(sheets[[i]]$texto, xlsx[[i]]$texto, info = nombre)
+      # El fondo del estilo de openxlsx viene en ARGB («FFE3F3E8») y Sheets
+      # quiere «#RRGGBB»: si la conversión se saltara los dos primeros
+      # caracteres mal, el color saldría distinto en cada capa y nadie lo vería
+      # hasta abrir las dos.
+      esperado <- paste0("#", toupper(substring(xlsx[[i]]$estilo$fill$fillBg$rgb, 3L)))
+      expect_identical(sheets[[i]]$fondo, esperado, info = nombre)
+      expect_match(sheets[[i]]$tinta, "^#[0-9A-F]{6}$")
+    }
+  }
+})
+
+test_that("los requests de «Aulas Agendadas» tiñen las CINCO columnas tecleables", {
+  # Sobre los requests, no sobre la paleta: una paleta perfecta que nadie emite
+  # deja la hoja en blanco igual, y es exactamente lo que pasó.
+  cabs <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos[[1]], character(1))
+  filas <- list(as.list(c(cabs, cabs, cabs)), as.list(rep("", 3 * length(cabs))))
+  reqs <- prosecnurapp:::.malp_formato_requests(9L, "Aulas Agendadas", filas)
+
+  # Cada regla de texto trae su valor: se agrupan por el texto buscado y se
+  # comprueba que están los vocabularios de las cuatro paletas nuevas.
+  textos <- unlist(lapply(reqs, function(r) {
+    vals <- ((r$addConditionalFormatRule$rule$booleanRule$condition$values) %||% list())
+    vapply(vals, function(v) v$userEnteredValue %||% "", character(1))
+  }))
+  for (nombre in c("medio", "dia", "llamada", "correo")) {
+    vocab <- vapply(aulas_libro_paletas_de_estado()[[nombre]], function(r) r$texto, character(1))
+    expect_true(all(vocab %in% textos), info = nombre)
+  }
+  # Y el morado de STATUS MUESTRA sigue estando: es del catálogo propio de esta
+  # capa y no se perdió al añadir las otras.
+  expect_true("REFUERZO POR CONTACTAR" %in% textos)
 })

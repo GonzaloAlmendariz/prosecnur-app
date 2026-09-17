@@ -83,7 +83,7 @@ test_that("reenvía el formato a la hoja del equipo y no manda ni un valor", {
   remotas <- list(`Aulas Agendadas` = list(
     as.list(c("ID MATCH", "CURSO-HORARIO", "STATUS MUESTRA")),
     as.list(c("1", "CH 1", "REFUERZO POR CONTACTAR"))))
-  out <- monitoreo_aulas_formato_a_respetadas(
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo(
     "sheet_x", "Aulas Agendadas", remotas = remotas,
     tab_map = list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L)))
 
@@ -105,11 +105,11 @@ test_that("sin hojas respetadas no emite una sola llamada", {
       llamadas <<- llamadas + 1L; list()
     }
   )
-  out <- monitoreo_aulas_formato_a_respetadas("sheet_x", character(0))
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo("sheet_x", character(0))
   expect_identical(out$hojas, character(0))
   expect_equal(llamadas, 0L)
   # Una hoja sin `sheetId` conocido tampoco inventa una llamada.
-  out2 <- monitoreo_aulas_formato_a_respetadas(
+  out2 <- monitoreo_aulas_formato_a_hojas_del_equipo(
     "sheet_x", "Aulas Agendadas", remotas = list(`Aulas Agendadas` = list(list("x"))),
     tab_map = list())
   expect_identical(out2$hojas, character(0))
@@ -121,7 +121,7 @@ test_that("si Google rechaza el formato, la publicación no se cae y se dice", {
   testthat::local_mocked_bindings(
     .monitoreo_google_api = function(url, method = "GET", body = NULL, ...) stop("cuota")
   )
-  out <- monitoreo_aulas_formato_a_respetadas(
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo(
     "sheet_x", "Aulas Agendadas",
     remotas = list(`Aulas Agendadas` = list(as.list(c("ID MATCH", "CURSO-HORARIO")))),
     tab_map = list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L)))
@@ -151,7 +151,7 @@ test_that("el filtro está EN el reenvío, no sólo disponible al lado", {
       enviado <<- body; list(replies = list())
     }
   )
-  out <- monitoreo_aulas_formato_a_respetadas(
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo(
     "sheet_x", "Aulas Agendadas",
     remotas = list(`Aulas Agendadas` = list(as.list(c("ID MATCH", "CURSO-HORARIO")))),
     tab_map = list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L)))
@@ -161,4 +161,79 @@ test_that("el filtro está EN el reenvío, no sólo disponible al lado", {
   # Y sobre todo: el peligroso NO salió por el cable.
   expect_false(grepl("userEnteredValue", paste(unlist(enviado), collapse = " "), fixed = TRUE))
   expect_length(enviado$requests, 1L)
+})
+
+# =============================================================================
+# El primer día de campo: una hoja SEMBRADA también es del equipo
+# =============================================================================
+#
+# El reenvío nació para las hojas `respetada` —las que el equipo ya había
+# llenado— y el filtro se quedó ahí. En un documento NUEVO todas las hojas del
+# equipo salen `sembrada`, así que no se aplicaba ni una regla: medido en CCSS
+# Perfil 2026-II el 2026-09-17, la primera publicación devolvió
+# `formato_equipo` con **0 requests sobre ocho hojas** y el recibo dijo «ok».
+# El agendador abría el Sheets con «STATUS DE LLAMADA» y «RECIBIÓ CORREO» en
+# texto libre, sin desplegable y sin color, el día de las llamadas.
+#
+# Y había un SEGUNDO cerrojo detrás del primero: la geometría salía de lo
+# remoto, que en una hoja recién sembrada está vacío, así que aun pasándole las
+# sembradas el `if (!length(filas)) next` las saltaba una por una. Por eso la
+# prueba comprueba las dos mitades.
+
+test_that("una hoja recien SEMBRADA recibe su formato, con la geometria producida", {
+  enviado <- NULL
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, method = "GET", body = NULL, ...) {
+      enviado <<- list(url = url, body = body); list(replies = list())
+    }
+  )
+  # Lo REMOTO está vacío —es un documento nuevo— y la geometría es la que la
+  # app acaba de escribir. Es el caso que el cerrojo de `remotas` saltaba.
+  producida <- list(`Aulas Agendadas` = list(
+    as.list(c("ID MATCH", "CURSO-HORARIO", "STATUS MUESTRA", "STATUS DE LLAMADA")),
+    as.list(c("1", "CH 1", "SIN CONTACTAR", ""))))
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo(
+    "sheet_x", "Aulas Agendadas", geometria = producida,
+    tab_map = list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L)))
+
+  expect_identical(out$hojas, "Aulas Agendadas")
+  expect_gt(out$requests, 0L)
+  expect_identical(out$error, "")
+  # Sigue sin mandar un solo valor: escribir cómo se ve su hoja es seguro,
+  # escribir lo que dice les borraría el trabajo.
+  expect_false(grepl("userEnteredValue", paste(unlist(enviado$body), collapse = " "),
+                     fixed = TRUE))
+})
+
+test_that("con la geometria vacia no se inventa un rectangulo", {
+  # La contracara: sin filas no hay dónde pintar, y pintar sobre un rectángulo
+  # imaginado dejaría bandas a media tabla. Cero llamadas, no un error.
+  llamadas <- 0L
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, method = "GET", body = NULL, ...) {
+      llamadas <<- llamadas + 1L; list()
+    }
+  )
+  out <- monitoreo_aulas_formato_a_hojas_del_equipo(
+    "sheet_x", "Aulas Agendadas", geometria = list(`Aulas Agendadas` = list()),
+    tab_map = list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L)))
+  expect_identical(out$hojas, character(0))
+  expect_equal(llamadas, 0L)
+})
+
+test_that("`remotas` sigue valiendo como alias de la geometria", {
+  # El parámetro se llamaba así cuando la geometría venía siempre de lo remoto.
+  # Se conserva para no romper a quien lo pasa por nombre — los tests de arriba
+  # lo hacen — y `geometria` manda cuando vienen las dos.
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(url, method = "GET", body = NULL, ...) list(replies = list())
+  )
+  filas <- list(as.list(c("ID MATCH", "STATUS MUESTRA")), as.list(c("1", "AGENDADA")))
+  tm <- list(`Aulas Agendadas` = list(title = "Aulas Agendadas", sheet_id = 9L))
+  por_alias <- monitoreo_aulas_formato_a_hojas_del_equipo(
+    "sheet_x", "Aulas Agendadas", remotas = list(`Aulas Agendadas` = filas), tab_map = tm)
+  por_nombre <- monitoreo_aulas_formato_a_hojas_del_equipo(
+    "sheet_x", "Aulas Agendadas", geometria = list(`Aulas Agendadas` = filas), tab_map = tm)
+  expect_identical(por_alias$requests, por_nombre$requests)
+  expect_identical(por_alias$hojas, "Aulas Agendadas")
 })

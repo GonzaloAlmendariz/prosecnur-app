@@ -124,6 +124,49 @@
   list(texto = "REEMPLAZADA", fondo = "#EEF0F3", tinta = "#5B6472")
 )
 
+# **Las otras cuatro paletas NO se escriben aquí: se traducen de la del xlsx.**
+#
+# `STATUS MUESTRA` tiene su catálogo propio arriba y se queda —lleva el morado
+# de «REFUERZO POR CONTACTAR», que el xlsx no tiene—, pero «MEDIO DE CONTACTO»,
+# «DÍA», «STATUS DE LLAMADA» y «RECIBIÓ CORREO» son idénticas en las dos capas,
+# y escribir sus hex una tercera vez es cómo se llega a que discrepen.
+#
+# **Y discrepaban.** Medido contra el Sheets publicado de CCSS el 2026-09-17:
+# el `.xlsx` llevaba las cinco columnas con color y el documento vivo llevaba
+# **sólo `STATUS MUESTRA`** —12 reglas, todas de esa columna—. El agendador
+# trabaja en el Sheets, no en el xlsx, así que el color estaba donde nadie lo
+# mira. Dos capas, dos lecturas de la misma regla.
+#
+# `aulas_libro_paletas_de_estado()` guarda estilos de openxlsx; de ahí salen el
+# fondo (`fill$fillBg$rgb`) y la tinta (`fontColour$rgb`) en ARGB, y Sheets
+# quiere `#RRGGBB`.
+.mafs_hex <- function(argb, por_defecto) {
+  v <- as.character(unlist(argb %||% "")[1] %||% "")
+  if (!nzchar(v) || is.na(v)) return(por_defecto)
+  v <- sub("^#", "", v)
+  if (nchar(v) == 8L) v <- substring(v, 3L)   # ARGB -> RGB
+  if (nchar(v) != 6L) return(por_defecto)
+  paste0("#", toupper(v))
+}
+
+.mafs_reglas_de_paleta <- function(nombre) {
+  pal <- tryCatch(aulas_libro_paletas_de_estado()[[nombre]], error = function(e) NULL)
+  lapply(pal %||% list(), function(r) list(
+    texto = as.character(r$texto),
+    fondo = .mafs_hex(r$estilo$fill$fillBg$rgb, "#EEF0F3"),
+    tinta = .mafs_hex(r$estilo$fontColour$rgb, "#5B6472")
+  ))
+}
+
+# Qué columna del bloque de agenda lleva cada paleta. Por CAMPO, como todo lo
+# demás: si el bloque gana una columna, esto no se descoloca.
+.MAFS_PALETAS_POR_CAMPO <- list(
+  contact_medium = "medio",
+  scheduled_day  = "dia",
+  call_status    = "llamada",
+  email_received = "correo"
+)
+
 # Columna (1-based) de un título del parte de campo en el intento `b`.
 .mafs_col_campo <- function(titulo, b) {
   (b - 1L) * .mafs_ancho_campo() + 1L + AULAS_AGENDADAS_ANCHO_BLOQUE +
@@ -316,6 +359,22 @@ monitoreo_aulas_sheets_formato_requests <- function(hoja, sheet_id, n_filas, n_c
           requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
             sheet_id, cols_status, cabeceras, n_filas,
             reglas[[i]]$texto, reglas[[i]]$fondo, reglas[[i]]$tinta, i - 1L
+          )
+        }
+      }
+      # Las otras cuatro columnas tecleables, cada una con SU paleta. Son las
+      # que el agendador recorre en vertical durante la jornada de llamadas, y
+      # hasta el 17/09 el Sheets las publicaba en blanco.
+      for (campo in names(.MAFS_PALETAS_POR_CAMPO)) {
+        reglas_c <- .mafs_reglas_de_paleta(.MAFS_PALETAS_POR_CAMPO[[campo]])
+        if (!length(reglas_c)) next
+        cols_c <- vapply(seq_len(bloques), function(b) .mafs_col_agenda(campo, b, con_daa), integer(1))
+        cols_c <- cols_c[cols_c <= n_cols]
+        if (!length(cols_c)) next
+        for (i in seq_along(reglas_c)) {
+          requests[[length(requests) + 1L]] <- .mafs_regla_contiene(
+            sheet_id, cols_c, cabeceras, n_filas,
+            reglas_c[[i]]$texto, reglas_c[[i]]$fondo, reglas_c[[i]]$tinta, i - 1L
           )
         }
       }
