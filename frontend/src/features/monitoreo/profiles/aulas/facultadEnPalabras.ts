@@ -1,97 +1,23 @@
 /**
- * **El nombre de una facultad, escrito igual en todas partes.**
+ * La forma corta de una facultad para las pantallas de Monitoreo.
  *
- * Gonzalo, 2026-09-10, con el mapa delante: «los nombres de las facultades no
- * están normalizados». Tenía razón y la causa era de forma, no de dato: el mapa
- * acortaba siete nombres largos por su forma conocida —«CIENCIAS E INGENIERÍA»
- * → «CC. e Ingeniería»— y dejaba los demás tal cual venían del libro, que es en
- * MAYÚSCULAS. El resultado eran las dos grafías en el mismo gráfico, a dos
- * centímetros: «ARTE Y DISEÑO» al lado de «CC. e Ingeniería».
+ * **El normalizador ya no vive aquí**: subió a `src/lib/nombresDeFacultad.ts`
+ * porque Recopiladores tenía el suyo y los dos daban resultados distintos para
+ * la misma facultad. Se re-exporta para no tocar a sus diecisiete importadores.
  *
- * Aquí se decide una sola vez, y el acortar y el normalizar se separan: son dos
- * trabajos distintos y sólo uno depende de que el nombre quepa.
+ * Lo que se queda es el ACORTADO, y se queda a propósito: aquí se abrevia para
+ * la etiqueta de un gráfico y en Recopiladores para una columna de 160 px. Dos
+ * anchos, dos respuestas legítimas.
  *
  * **El archivo se llama por la función y no por la cosa** —`facultadEnPalabras`
  * y no `nombreDeFacultad`— porque ya existe `NombreDeFacultad.tsx`, el
  * componente que pinta un nombre y pone el foco. En un disco que no distingue
  * mayúsculas los dos son el mismo archivo, y el typecheck lo cazó al primer
  * import.
- *
- * **Los acentos se reponen.** El libro escribe «EDUCACION» y «PSICOLOGIA» sin
- * tilde —el marco viene de un SQL que no las guarda—, y un `toLowerCase` con
- * capitalización deja «Educacion». No se inventa nada: cada reposición es una
- * facultad concreta de la PUCP, listada abajo y comprobable contra el marco.
  */
+import { facultadEnPalabras } from "../../../../lib/nombresDeFacultad";
 
-/** Palabras que en español van en minúscula dentro de un nombre propio. */
-const ATONAS = new Set(["de", "del", "la", "las", "los", "el", "y", "e", "en", "con", "para"]);
-
-/**
- * Las siglas del marco, que no se capitalizan: se escriben como son. La clave
- * es la forma sin puntos ni acentos con la que llegan del libro.
- */
-const SIGLAS = new Map([
-  ["EEGG", "EE.GG."],
-  ["EE.GG.", "EE.GG."],
-  ["CCHH", "CC.HH."],
-  ["CC.HH.", "CC.HH."],
-  ["CC.", "CC."],
-  ["PUCP", "PUCP"],
-]);
-
-/**
- * Las tildes que el marco no trae. Cada línea es una facultad de la PUCP; no
- * hay ninguna regla automática detrás, y añadir una nueva exige mirarla.
- */
-const TILDES = new Map([
-  ["educacion", "educación"],
-  ["psicologia", "psicología"],
-  ["gastronomia", "gastronomía"],
-  ["gestion", "gestión"],
-  ["direccion", "dirección"],
-  ["comunicacion", "comunicación"],
-  ["escenicas", "escénicas"],
-  ["ingenieria", "ingeniería"],
-  ["matematicas", "matemáticas"],
-  ["fisica", "física"],
-  ["quimica", "química"],
-  ["biologia", "biología"],
-  ["geografia", "geografía"],
-  ["economia", "economía"],
-  ["administracion", "administración"],
-  ["informacion", "información"],
-  ["publica", "pública"],
-  ["cientificas", "científicas"],
-]);
-
-/** Una palabra suelta, ya normalizada. */
-function palabra(w: string, primera: boolean): string {
-  const crudo = w.trim();
-  if (!crudo) return "";
-
-  const sigla = SIGLAS.get(crudo.toUpperCase());
-  if (sigla) return sigla;
-
-  const baja = TILDES.get(crudo.toLowerCase()) ?? crudo.toLowerCase();
-  if (!primera && ATONAS.has(baja)) return baja;
-  return baja.charAt(0).toUpperCase() + baja.slice(1);
-}
-
-/**
- * El nombre completo, normalizado: «CIENCIAS E INGENIERÍA» → «Ciencias e
- * Ingeniería», «EDUCACION» → «Educación».
- *
- * Un nombre que ya viene en mayúscula y minúscula se respeta tal cual sólo si
- * NO es todo mayúsculas: así un libro que ya escriba bien no se toca, y uno que
- * grite se normaliza.
- */
-export function facultadEnPalabras(nombre: string | null | undefined): string {
-  const n = String(nombre ?? "").trim();
-  if (!n) return "";
-  // Si ya trae minúsculas, alguien lo escribió a mano y se respeta.
-  if (n !== n.toUpperCase()) return n;
-  return n.split(/\s+/).map((w, i) => palabra(w, i === 0)).join(" ");
-}
+export { facultadEnPalabras };
 
 /**
  * La forma corta para un gráfico, donde el nombre entero no cabe sin pisar al
