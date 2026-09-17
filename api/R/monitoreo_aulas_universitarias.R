@@ -1905,7 +1905,27 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   )
 }
 
+# **El fallback es POR FACULTAD, y sólo vale si el eje es la facultad.**
+#
+# Cubre a las facultades que el diseño no trazó, proyectando el cruce
+# facultad × sexo del marco. Con el eje declarable eso deja de ser un respaldo y
+# pasa a ser OTRO VOCABULARIO: en el simulacro de CCSS Perfil 2026-II, cuyas
+# metas son por nivel, las celdas salían mezcladas —ocho del diseño (niveles 6 a
+# 9, sumando 400) más dos del fallback («CIENCIAS SOCIALES» F 404 y M 364)— y la
+# pantalla publicaba **«faltan 1.168» sobre una muestra de 400**: la misma
+# carencia contada dos veces, en dos idiomas.
+#
+# Lo encontró el simulacro en la app, no un test, y es el motivo por el que
+# Gonzalo pidió verlo: el número imposible estaba en la cabecera de la pestaña.
+#
+# Con `atribucion = "persona"` no hay fallback que ofrecer: si el diseño no trae
+# la cuota por sexo del eje, esa celda NO existe, y decirlo es mejor que
+# rellenarla con la cuenta de otra cosa.
 .monitoreo_aulas_quota_targets_fallback <- function(plan_df, cfg) {
+  eje <- monitoreo_aulas_eje(cfg)
+  if (!identical(.monitoreo_scalar(eje$atribucion, "aula"), "aula")) {
+    return(.monitoreo_aulas_plan_sex_faculty_targets(NULL))
+  }
   quota_df <- .monitoreo_aulas_quota_source_df(cfg)
   if (nrow(quota_df)) {
     faculty_col <- .monitoreo_aulas_col(quota_df, c("primary_raw", "faculty", "facultad"))

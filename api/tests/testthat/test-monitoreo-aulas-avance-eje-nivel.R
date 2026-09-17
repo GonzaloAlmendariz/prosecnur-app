@@ -206,3 +206,37 @@ test_that("con eje por PERSONA el plan no genera filas que nunca se llenan", {
   psico <- Filter(function(f) identical(as.character(f$facultad), "PSICOLOGIA"), av2$facultades)[[1]]
   expect_identical(psico$fuente_fila, "sin_cuota")
 })
+
+test_that("con eje por persona NO se mezcla el fallback por facultad", {
+  # **El defecto más visible que encontró el simulacro**, y no lo vio ningún
+  # test: la pantalla publicaba «faltan 1.168» sobre una muestra de 400.
+  #
+  # Las celdas de sexo salían de dos vocabularios a la vez: las del DISEÑO
+  # —niveles 6 a 9, sumando 400— más dos del fallback por facultad, que proyecta
+  # el cruce facultad × sexo del marco («CIENCIAS SOCIALES» F 404 y M 364). La
+  # misma carencia contada dos veces, en dos idiomas.
+  #
+  # El fallback existe para cubrir a las facultades que el diseño no trazó, y con
+  # el eje en facultad sigue haciendo su trabajo. Con `atribucion = "persona"` no
+  # hay fallback que ofrecer: si el diseño no trae la cuota por sexo del eje, esa
+  # celda no existe, y decirlo es mejor que rellenarla con la cuenta de otra cosa.
+  cfg <- .aen_cfg()
+  # El cruce facultad × sexo del marco, tal como lo copia `from_calc`: es el
+  # insumo del fallback, y con eje nivel no puede aparecer en las celdas.
+  cfg$quotas <- list(sex_by_faculty = data.frame(
+    primary_role = c("faculty", "faculty"), primary_raw = c("CIENCIAS SOCIALES", "CIENCIAS SOCIALES"),
+    secondary_role = c("sex", "sex"), secondary_raw = c("F", "M"),
+    count = c(421L, 379L), stringsAsFactors = FALSE))
+  d <- monitoreo_aulas_dashboard(cfg$plan, .aen_resp(), cfg, padron = .aen_padron())
+
+  celdas <- d$quotas_sex_faculty %||% list()
+  fuentes <- unique(vapply(celdas, function(c1) as.character(c1$source %||% ""), character(1)))
+  expect_false("calc_muestra_faculty_sex" %in% fuentes)
+  # Ninguna celda habla de la facultad: todas son del eje.
+  valores <- unique(vapply(celdas, function(c1) as.character(c1$faculty %||% ""), character(1)))
+  expect_false("CIENCIAS SOCIALES" %in% valores)
+  expect_true(all(valores %in% c("7", "8")))
+
+  # Y la cifra que se veía mal: la brecha total no puede pasar de la cuota.
+  expect_lte(as.numeric(d$avance_cuota$total$brecha), as.numeric(d$avance_cuota$total$cuota))
+})
