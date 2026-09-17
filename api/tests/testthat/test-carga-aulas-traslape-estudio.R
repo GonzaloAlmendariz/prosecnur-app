@@ -109,3 +109,32 @@ test_that("el resumen dice cuantas cayeron en cada veredicto", {
   expect_identical(as.integer(r$por_veredicto[["DOCENTE YA CONTACTADO EN HSVG"]]), 1L)
   expect_identical(aulas_traslape_resumen(character(0))$con_traslape, 0L)
 })
+
+test_that("el rotulo sobrevive el viaje por el `.pulso`", {
+  # **El riesgo silencioso.** El rótulo viaja como ATRIBUTO del vector, y un
+  # atributo que se pierde al serializar no rompe nada: la columna se titula
+  # «TRASLAPE DAA» y nadie se entera de que dice el nombre del estudio
+  # equivocado. La clave se persiste (`session_schema.R`), así que el viaje es
+  # real y hay que comprobarlo.
+  tr <- aulas_traslape_estudio(
+    list(list(operational_code = "CH 1", classroom_id = "a1",
+              teacher_email = "uno@pucp.pe")),
+    aulas = "a1", etiqueta = "HSVG")
+  f <- tempfile(fileext = ".rds")
+  on.exit(unlink(f), add = TRUE)
+  saveRDS(tr, f)
+  ida_y_vuelta <- readRDS(f)
+  expect_identical(attr(ida_y_vuelta, "rotulo"), "TRASLAPE HSVG")
+  expect_identical(ida_y_vuelta[["CH 1"]], "AULA EN EL PLAN DE HSVG")
+})
+
+test_that("la clave del traslape esta censada en el esquema de sesion", {
+  # Contrato de `session_schema.R`: clave nueva ⇒ fila nueva. El `read` de
+  # `monitoreo_aulas_daa_traslape` existía desde B8h y la clave nunca entró al
+  # censo, así que nadie sabía si sobrevivía al `.pulso` — y de eso depende que
+  # la columna aparezca al publicar desde la app.
+  esq <- session_schema()
+  fila <- esq[esq$clave == "monitoreo_aulas_daa_traslape", , drop = FALSE]
+  expect_identical(nrow(fila), 1L)
+  expect_identical(as.character(fila$categoria[[1]]), "persistible")
+})
