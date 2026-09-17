@@ -24,6 +24,22 @@ export type EjeDeclarado = {
   etiqueta?: string | null;
   etiqueta_plural?: string | null;
   etiqueta_sin?: string | null;
+  /**
+   * La columna del PLAN donde vive el valor del eje: `faculty`, `level`. La
+   * necesita quien agrupa filas del plan —el consumo de la reserva— y no sólo
+   * quien las rotula.
+   */
+  columna?: string | null;
+  /**
+   * De quién es el valor: `"aula"` cuando lo hereda del curso-horario del plan,
+   * `"persona"` cuando lo resuelve el código del alumno contra el padrón.
+   *
+   * Lo lee la pantalla para DECIRLO donde las dos lecturas conviven: con
+   * `"persona"`, el nivel de un aula es el de la mayoría de sus alumnos y el de
+   * una meta es el de cada persona, y son la misma palabra sobre dos
+   * poblaciones.
+   */
+  atribucion?: string | null;
 } | null | undefined;
 
 /** El rótulo singular del eje: «Facultad», «Nivel». Sin eje, «Facultad». */

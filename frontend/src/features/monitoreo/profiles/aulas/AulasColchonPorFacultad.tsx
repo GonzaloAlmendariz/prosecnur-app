@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { colchonPorFacultad } from "./consumoDeCadena";
+import { colchonPorFacultad, SIN_VALOR_DEL_EJE } from "./consumoDeCadena";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -68,8 +68,12 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
         </li>
         {facultades.map((f) => (
           <li key={f.facultad} role="row" className={f.agotadas ? "es-riesgo" : "es-cubierta"}>
-            <span role="rowheader" className="aulas-colchon-nombre" title={f.facultad}>
-              {f.facultad}
+            {/* La clave del grupo vacío es un centinela, no un rótulo: quien
+                pinta le pone la palabra. Este panel agrupa por facultad —es lo
+                único que ofrece— así que la suya es «Sin facultad». */}
+            <span role="rowheader" className="aulas-colchon-nombre"
+              title={f.facultad === SIN_VALOR_DEL_EJE ? "Sin facultad" : f.facultad}>
+              {f.facultad === SIN_VALOR_DEL_EJE ? "Sin facultad" : f.facultad}
               <em>{fmt(f.titulares)} {f.titulares === 1 ? "curso-horario" : "cursos-horario"}</em>
             </span>
             {/* La barra conserva su `role="img"` dentro de una celda propia: si
