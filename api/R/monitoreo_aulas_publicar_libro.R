@@ -130,6 +130,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 .malp_hoja_produccion <- function() "Producción de aplicadores"
 # El control de calidad de facultad declarada (dictado 2026-09-14).
 .malp_hoja_control_facultad <- function() "Control de facultad"
+.malp_hoja_control_nivel <- function() "Control de nivel"
 
 #' ¿Se puede reescribir «Asignación de aplicadores» sin riesgo de contradecir?
 #'
@@ -350,6 +351,9 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (identical(tab_name, .malp_hoja_produccion())) {
     requests <- c(requests, aulas_libro_produccion_formato_requests(sheet_id, rows))
   }
+  if (identical(tab_name, .malp_hoja_control_nivel())) {
+    requests <- c(requests, aulas_libro_control_nivel_formato_requests(sheet_id, rows))
+  }
   if (identical(tab_name, .malp_hoja_control_facultad())) {
     requests <- c(requests, aulas_libro_control_facultad_formato_requests(sheet_id, rows))
   }
@@ -428,6 +432,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            # («1 20 · 2 14») mientras la de al
                                            # lado dice «F 11 · M 11».
                                            config_aulas = list(),
+                                           # El padrón que traduce código →
+                                           # nivel, para la hoja «Control de
+                                           # nivel». Viaja por argumento y NO
+                                           # dentro de `config_aulas`: vive sólo
+                                           # en la sesión, para que la purga lo
+                                           # alcance (ADR 0087). NULL = la hoja
+                                           # no juega esta publicación.
+                                           padron = NULL,
                                            adopcion_ok = FALSE,
                                            ya_existe_asignacion = FALSE) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
@@ -506,6 +518,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # declare su `faculty_var`. NULL = no juega esta publicación.
   valores_control_fac <- aulas_libro_valores_control_facultad(
     plan %||% list(), responses, cfg = config_aulas %||% list(), cuotas = cuotas)
+  # Y su hermana por nivel. NULL = sin variable declarada o sin padrón = no
+  # juega esta publicación.
+  valores_control_niv <- aulas_libro_valores_control_nivel(
+    responses, padron, cfg = config_aulas %||% list())
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
@@ -542,6 +558,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_control_fac)) {
     hojas_app <- c(hojas_app, .malp_hoja_control_facultad())
+  }
+  if (!is.null(valores_control_niv)) {
+    hojas_app <- c(hojas_app, .malp_hoja_control_nivel())
   }
   con_extras <- length(extras) > 0L
   # Cada hoja Extra INMEDIATAMENTE despues de su contraparte (decision del
@@ -670,6 +689,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_control_fac)) {
     producidas[[.malp_hoja_control_facultad()]] <- valores_control_fac
+  }
+  if (!is.null(valores_control_niv)) {
+    producidas[[.malp_hoja_control_nivel()]] <- valores_control_niv
   }
 
   # Qué hay en el remoto: metadata para saber qué pestañas existen y UNA sonda
@@ -1064,6 +1086,10 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # Sólo por su `source_mapping`: es lo que traduce el valor crudo del sexo
       # a la letra con la que el resto del libro lo dice.
       config_aulas = aulas_cfg,
+      # El padrón, para la hoja «Control de nivel». De la SESIÓN y con `[[`:
+      # vive sólo ahí para que la purga lo alcance (ADR 0087), y el `$`
+      # parcial-matchearía `monitoreo_aulas_padron_corte`.
+      padron = s[["monitoreo_aulas_padron"]],
       traslape_daa = traslape_daa,
       actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       # B68 tercera pata: el reparto de la hoja es el de la app — misma

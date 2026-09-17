@@ -184,6 +184,12 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # declara. Octava de la app y condicional: sin `faculty_var` declarada en
     # el mapping del estudio no se produce.
     "Control de facultad",
+    # Su hermana por NIVEL, pegada a ella: las dos son controles de calidad del
+    # mismo tipo —un auto-reporte contra una tabla— y leerlas juntas es lo que
+    # permite saber si un desacuerdo es del alumno o del marco. Novena de la app
+    # y condicional por partida doble: sin `declared_level_var` y sin padrón no
+    # hay dos lados que cruzar (fase 4 del plan del eje declarable).
+    "Control de nivel",
     "Listas"
   )
 

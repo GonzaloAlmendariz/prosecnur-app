@@ -1496,7 +1496,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
                                efectivas = NULL, efectivas_sexo = NULL,
                                responses = NULL, validas = NULL,
                                cuotas = NULL, cfg = list(), procedencia = NULL,
-                               traslape_daa = NULL, disponibilidad = NULL) {
+                               traslape_daa = NULL, disponibilidad = NULL,
+                               # El padrón que traduce código → nivel. Viaja por
+                               # argumento y NO por `cfg`: vive sólo en la
+                               # sesión, para que la purga lo alcance (ADR 0087).
+                               # NULL = sin padrón = la hoja de control de nivel
+                               # no juega este libro, y lo dice por su ausencia.
+                               padron = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
@@ -2182,6 +2188,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # sería inventar el dato que el control existe para vigilar.
   aulas_libro_hoja_control_facultad(wb, plan_completo, responses, cfg = cfg,
                                    cuotas = cuotas)
+  # Su hermana por NIVEL (fase 4 del plan del eje declarable). Condicional por
+  # partida doble: sin `declared_level_var` declarada y sin padrón no hay dos
+  # lados que cruzar, y una hoja vacía diría «todo coincide».
+  aulas_libro_hoja_control_nivel(wb, responses, padron, cfg = cfg)
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde

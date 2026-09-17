@@ -5230,6 +5230,11 @@ mount_monitoreo <- function(pr) {
                           # sexo de la hoja de indicadores. Sin ellas ese bloque
                           # no se escribe: la cuota no se reconstruye.
                           cuotas = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$design_targets,
+                          # El padrón, para la hoja «Control de nivel». Se lee
+                          # de la SESIÓN con `[[` y no de la config: vive sólo
+                          # ahí para que la purga lo alcance (ADR 0087), y el
+                          # `$` parcial-matchearía `monitoreo_aulas_padron_corte`.
+                          padron = s[["monitoreo_aulas_padron"]],
                           cfg = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list()))
       # Las que entraron al archivo, no las del plan: el banco sin usar se queda
       # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
