@@ -295,6 +295,126 @@ aulas_libro_status_aplicacion_de <- function(bloque = 1L) {
 # como default sembrado en reemplazos y extras (dictado 2026-09-01). UNA lista
 # para las dos capas, como el resto de vocabularios de este archivo: la
 # consumen la hoja «Listas» del xlsx y los ONE_OF_LIST del Sheets publicado.
+#' Las paletas de los semáforos de texto del libro, en un solo sitio.
+#'
+#' Estaban como variables locales dentro del formateador, y su prueba no podía
+#' leerlas: comprobar el color acababa siendo mirar el XML del `.xlsx` y contar
+#' rangos, que dice que HAY regla pero no qué significa. Con la paleta
+#' declarada, el formateador y la prueba leen el MISMO objeto —que es la única
+#' forma de que la prueba no sea un espejo del código—.
+#'
+#' @return lista nombrada de paletas (`estado`, `medio`, `dia`, `llamada`,
+#'   `correo`); cada una es una lista de `list(texto, estilo)` y la regla que
+#'   las aplica es `contains` sobre el texto de la celda.
+#' @keywords internal
+aulas_libro_paletas_de_estado <- function() {
+# **El estado se ve sin leerlo.**
+#
+# Las columnas de estado son las que se recorren buscando «que falta»: con 951
+# filas y el valor en texto, encontrar las que siguen por agendar era leer
+# celda a celda. El color lo dice de un vistazo y el texto se queda —el color
+# solo no sirve: hay quien no lo distingue, y el fichero se imprime en blanco
+# y negro—.
+#
+# Los tonos salen de lo que significa cada estado, no de una paleta: verde lo
+# cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
+# `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
+# nada: simplemente no se tiñe.
+#
+# B13b: «EN CONTACTO» y «RECHAZO» entran al semaforo con los cinco
+# tecleables. EN CONTACTO en ambar claro —gestion en curso, espera accion,
+# distinto del verde de lo pactado—; RECHAZO en el rojo suave que ya usa el
+# descuadre del parte: terminal, y no es un logro. «EN RESERVA» y
+# «REEMPLAZADA» se QUEDAN aunque el desplegable ya no las ofrezca: los libros
+# vivos v3 las traen escritas y la regla es `contains` sobre la celda, no
+# sobre la lista de hoy (mismo criterio que «Llamada» en la paleta de medio).
+semaforo <- list(
+  list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "EN CONTACTO", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "RECHAZO", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
+  list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
+  list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
+)
+# **El medio de contacto: dos vías que se reparten distinto.**
+#
+# Una llamada se hace en el momento y un correo espera respuesta, así que
+# quien reparte el día necesita separarlas de un vistazo. Los tonos salen de
+# la misma familia que el semáforo —fondo claro, texto del mismo tono— para
+# que la hoja no acabe con dos lenguajes de color.
+# «Teléfono» lleva el tono que llevaba «Llamada» —es la misma via con el
+# nombre que dicto el dueño— y las dos reglas viejas se QUEDAN: los libros de
+# 2025 traen «Llamada» y «Presencial» escritos, y la regla es `contains`
+# sobre lo que hay en la celda, no sobre lo que ofrece el desplegable de hoy.
+paleta_medio <- list(
+  list(texto = "Teléfono", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "Llamada", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "Correo", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "Presencial", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86"))
+)
+
+# **El día: seis colores porque la columna se lee en vertical.**
+#
+# El agendador no lee un día, lee la COLUMNA entera buscando cuántas caen el
+# martes. Con un solo tono para todos hay que ir palabra por palabra. La lista
+# del desplegable es de tres letras (`AULAS_LIBRO_DIA`), y la regla es
+# `contains`, así que casa igual si alguien escribe «Martes» a mano.
+paleta_dia <- list(
+  list(texto = "LUN", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+  list(texto = "MAR", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
+  list(texto = "MIE", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "JUE", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "VIE", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86")),
+  list(texto = "SAB", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
+)
+
+# **El resultado de la llamada: siete estados y tres destinos.**
+#
+# Es la columna del barrido telefónico, y hasta aquí era la ÚNICA de las
+# tecleables que tenía desplegable y NO tenía color: quien recorre la hoja
+# buscando «a quién vuelvo a llamar» tenía que leerla palabra por palabra,
+# que es exactamente el trabajo que el color ahorra en `STATUS MUESTRA` y en
+# `DÍA`. Gonzalo, 17/09: «que todos los estatus y colores tanto de llamada, de
+# recibió correo, de encontrado o agendada estén disponibles para que HOY se
+# puedan realizar las llamadas telefónicas».
+#
+# Los tonos dicen el DESTINO de la fila, no el matiz del estado, porque eso es
+# lo que se busca a ojo: verde la que ya no hay que volver a llamar
+# (contacto logrado, por teléfono o por WhatsApp), ámbar la que vuelve a la
+# cola, rojo suave la que se cierra sin logro. Misma familia de color que el
+# semáforo de estados para que la hoja no acabe con dos lenguajes.
+#
+# Las reglas van con el texto COMPLETO de cada opción: `contains` sobre
+# «Contact» teñiría «Contactar después» y «Contactado por WhatsApp» con la
+# misma regla, que son destinos opuestos. Ninguna de las siete es subcadena de
+# otra, comprobado.
+paleta_llamada <- list(
+  list(texto = "Efectiva", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "Contactado por WhatsApp", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "Contactar después", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "No contesta", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "Apagado", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
+  list(texto = "Colgó", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
+  list(texto = "Rechazo", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C"))
+)
+
+# **Si recibió el correo: sí o todavía no.**
+#
+# El «No» va en GRIS y no en rojo a propósito: es el valor sembrado por
+# defecto en reemplazos y extras, así que la columna nace entera en «No» y
+# pintarla de rojo diría que hay cincuenta problemas el primer día. Gris es
+# «todavía no», que es lo que significa.
+paleta_correo <- list(
+  list(texto = "Sí", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+  list(texto = "No", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
+)
+
+  list(estado = semaforo, medio = paleta_medio, dia = paleta_dia,
+       llamada = paleta_llamada, correo = paleta_correo)
+}
+
 AULAS_LIBRO_RECIBIO_CORREO <- c("Sí", "No")
 
 # B23: el desplegable de «STATUS DE LLAMADA», en el orden del dictado
@@ -675,68 +795,6 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     }
   }
 
-  # **El estado se ve sin leerlo.**
-  #
-  # Las columnas de estado son las que se recorren buscando «que falta»: con 951
-  # filas y el valor en texto, encontrar las que siguen por agendar era leer
-  # celda a celda. El color lo dice de un vistazo y el texto se queda —el color
-  # solo no sirve: hay quien no lo distingue, y el fichero se imprime en blanco
-  # y negro—.
-  #
-  # Los tonos salen de lo que significa cada estado, no de una paleta: verde lo
-  # cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
-  # `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
-  # nada: simplemente no se tiñe.
-  #
-  # B13b: «EN CONTACTO» y «RECHAZO» entran al semaforo con los cinco
-  # tecleables. EN CONTACTO en ambar claro —gestion en curso, espera accion,
-  # distinto del verde de lo pactado—; RECHAZO en el rojo suave que ya usa el
-  # descuadre del parte: terminal, y no es un logro. «EN RESERVA» y
-  # «REEMPLAZADA» se QUEDAN aunque el desplegable ya no las ofrezca: los libros
-  # vivos v3 las traen escritas y la regla es `contains` sobre la celda, no
-  # sobre la lista de hoy (mismo criterio que «Llamada» en la paleta de medio).
-  semaforo <- list(
-    list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "EN CONTACTO", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
-    list(texto = "RECHAZO", estilo = openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")),
-    list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
-    list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
-    list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
-  )
-  # **El medio de contacto: dos vías que se reparten distinto.**
-  #
-  # Una llamada se hace en el momento y un correo espera respuesta, así que
-  # quien reparte el día necesita separarlas de un vistazo. Los tonos salen de
-  # la misma familia que el semáforo —fondo claro, texto del mismo tono— para
-  # que la hoja no acabe con dos lenguajes de color.
-  # «Teléfono» lleva el tono que llevaba «Llamada» —es la misma via con el
-  # nombre que dicto el dueño— y las dos reglas viejas se QUEDAN: los libros de
-  # 2025 traen «Llamada» y «Presencial» escritos, y la regla es `contains`
-  # sobre lo que hay en la celda, no sobre lo que ofrece el desplegable de hoy.
-  paleta_medio <- list(
-    list(texto = "Teléfono", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
-    list(texto = "Llamada", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
-    list(texto = "Correo", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
-    list(texto = "Presencial", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86"))
-  )
-
-  # **El día: seis colores porque la columna se lee en vertical.**
-  #
-  # El agendador no lee un día, lee la COLUMNA entera buscando cuántas caen el
-  # martes. Con un solo tono para todos hay que ir palabra por palabra. La lista
-  # del desplegable es de tres letras (`AULAS_LIBRO_DIA`), y la regla es
-  # `contains`, así que casa igual si alguien escribe «Martes» a mano.
-  paleta_dia <- list(
-    list(texto = "LUN", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
-    list(texto = "MAR", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B")),
-    list(texto = "MIE", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
-    list(texto = "JUE", estilo = openxlsx::createStyle(bgFill = "#FDF3D8", fontColour = "#7A5B12")),
-    list(texto = "VIE", estilo = openxlsx::createStyle(bgFill = "#EFEAF6", fontColour = "#553C86")),
-    list(texto = "SAB", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472"))
-  )
-
   # **Los números se escriben como números y las fechas como fechas.**
   #
   # Todo salía como texto plano, así que Excel no podía ordenar por fecha ni
@@ -780,10 +838,10 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   #
   # Cada entrada de `semaforos` puede traer sus propias `reglas`; sin ellas cae
   # al semáforo de estados, que es lo que hacían todas hasta ahora.
+  .calf_paletas <- aulas_libro_paletas_de_estado()
   for (sem in semaforos) {
     if (!length(sem$cols) || !sem$filas) next
-    reglas <- switch(sem$paleta %||% "estado",
-                     medio = paleta_medio, dia = paleta_dia, semaforo)
+    reglas <- .calf_paletas[[sem$paleta %||% "estado"]] %||% .calf_paletas$estado
     for (col in sem$cols) {
       for (regla in reglas) {
         openxlsx::conditionalFormatting(

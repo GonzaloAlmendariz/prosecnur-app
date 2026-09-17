@@ -1798,7 +1798,14 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "medio",
          cols = vapply(bloques, function(b) col_en_bloque("contact_medium", b), integer(1))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "dia",
-         cols = vapply(bloques, function(b) col_en_bloque("scheduled_day", b), integer(1)))
+         cols = vapply(bloques, function(b) col_en_bloque("scheduled_day", b), integer(1))),
+    # Las dos del barrido telefónico. Eran las únicas columnas tecleables con
+    # desplegable y SIN color, y son justo las que el agendador recorre en
+    # vertical durante la jornada de llamadas (dictado 2026-09-17).
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "llamada",
+         cols = vapply(bloques, function(b) col_en_bloque("call_status", b), integer(1))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, paleta = "correo",
+         cols = vapply(bloques, function(b) col_en_bloque("email_received", b), integer(1)))
   )
 
   # Que columnas del bloque son numeros y cuales fechas. Por nombre de campo,

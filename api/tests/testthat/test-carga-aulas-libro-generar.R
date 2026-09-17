@@ -261,16 +261,20 @@ test_that("el estado se tiñe, y solo el estado", {
     expect_true(any(grepl(estado, textos, fixed = TRUE)), info = estado)
   }
 
-  # Una regla por bloque de cadena y por PALETA. Eran 3 —el semaforo de estados
-  # en titular + dos reservas— y son 9 desde que «MEDIO DE CONTACTO» y «DÍA»
-  # tienen la suya: Gonzalo las pidio con color porque son las dos columnas que
-  # el agendador recorre en vertical para repartir su jornada.
+  # Una regla por bloque de cadena y por PALETA. La serie, que es la que cuenta
+  # la historia: eran **3** —el semáforo de estados en titular + dos reservas—,
+  # pasaron a **9** cuando «MEDIO DE CONTACTO» y «DÍA» ganaron la suya (Gonzalo
+  # las pidió con color porque son las dos columnas que el agendador recorre en
+  # vertical para repartir su jornada), y son **15** desde el 2026-09-17, cuando
+  # «STATUS DE LLAMADA» y «RECIBIÓ CORREO» ganaron las suyas: eran las dos
+  # únicas tecleables con desplegable y sin color, justo las del barrido
+  # telefónico.
   #
   # Lo que el guard defiende no cambia: cada columna lleva LA SUYA. El defecto
   # que evitaba era colgar el semaforo de ESTADOS de las validaciones, que
   # teñia esas dos con reglas que ninguna de sus celdas casa.
   rangos <- regmatches(xml, gregexpr('conditionalFormatting sqref="[^"]+"', xml))[[1]]
-  expect_equal(length(rangos), 9L)   # 3 paletas x (titular + dos reservas)
+  expect_equal(length(rangos), 15L)   # 5 paletas x (titular + dos reservas)
 })
 
 test_that("la hoja de aplicadas tiñe su propio estado", {
@@ -923,4 +927,97 @@ test_that("SESIONES Y AULA: el libro publica el horario, no el codigo del curso"
   expect_identical(as.character(hoja[2, col[[1]]]), "LUN 15:00-18:00 Z410")
   # Y que NO sea el código interno, que es el defecto concreto que se reparó.
   expect_false(identical(as.character(hoja[2, col[[1]]]), "ant310_0811"))
+})
+
+# =============================================================================
+# El barrido telefónico se ve sin leerlo
+# =============================================================================
+#
+# `STATUS MUESTRA`, `MEDIO DE CONTACTO` y `DÍA` llevaban color desde B13b/B18;
+# `STATUS DE LLAMADA` y `RECIBIÓ CORREO` eran las dos únicas columnas
+# TECLEABLES con desplegable y **sin** color. Y son justo las dos que el
+# agendador recorre en vertical durante la jornada: «a quién vuelvo a llamar» y
+# «a quién le falta el correo». Dictado de Gonzalo del 2026-09-17: «que todos
+# los estatus y colores tanto de llamada, de recibió correo, de encontrado o
+# agendada estén disponibles para que HOY se puedan realizar las llamadas
+# telefónicas».
+#
+# La comprobación se ancla por RÓTULO, no por posición: el semáforo se cuelga
+# por índice de columna y ya se pintó una vez sobre la columna equivocada
+# —`MEDIO DE CONTACTO` en vez de `STATUS DE APLICACIÓN`—, y una regla que
+# existe pero no tiñe nada no se ve por ningún lado.
+
+test_that("las cinco columnas del barrido llevan color, ancladas por su rotulo", {
+  plan <- lapply(1:3, function(i) list(
+    classroom_id = sprintf("c%d", i), operational_code = sprintf("CH %d", i),
+    label = sprintf("c%d", i), sesiones_dia_hora = "LUN 15:00-18:00", venue = "Z410",
+    faculty = "CIENCIAS SOCIALES", program = "ANTROPOLOGÍA", level = "7",
+    course_name = "CURSO", teacher = "DOCENTE", teacher_phone = "990000000",
+    sample_role = "titular", eligible_n = 12, expected_valid = 9.6, orden = i
+  ))
+  dest <- file.path(tempdir(), sprintf("libro-color-%d.xlsx", as.integer(runif(1, 1, 1e9))))
+  on.exit(unlink(dest), add = TRUE)
+  aulas_libro_generar(plan, dest)
+
+  hoja <- suppressMessages(openxlsx::read.xlsx(dest, sheet = "Aulas Agendadas", colNames = FALSE))
+  cab <- as.character(unlist(hoja[1, ]))
+  letra <- function(rotulo) {
+    i <- which(cab == rotulo)
+    expect_length(i, 1L)
+    # Índice de columna a letra de Excel, que es como la trae el `sqref`.
+    n <- i[[1]]; out <- ""
+    while (n > 0) { r <- (n - 1L) %% 26L; out <- paste0(LETTERS[r + 1L], out); n <- (n - 1L) %/% 26L }
+    out
+  }
+  reglas <- reglas_condicionales_de(dest, "Aulas Agendadas")
+
+  for (rotulo in c("STATUS MUESTRA", "MEDIO DE CONTACTO", "DÍA",
+                   "STATUS DE LLAMADA", "RECIBIÓ CORREO")) {
+    col <- letra(rotulo)
+    propias <- reglas[reglas$col == col, , drop = FALSE]
+    expect_gt(nrow(propias), 0L)
+    # `contains` y no otra clase: son semáforos de texto, no barras de datos.
+    expect_true(all(propias$tipo == "containsText"), info = rotulo)
+  }
+})
+
+test_that("el color de la llamada separa los tres destinos, y el correo no alarma", {
+  # Lo que se comprueba es el SIGNIFICADO del color, no que haya color: el
+  # agendador busca «a quién vuelvo a llamar», así que lo logrado, lo que vuelve
+  # a la cola y lo que se cierra sin logro tienen que distinguirse.
+  paletas <- prosecnurapp:::aulas_libro_paletas_de_estado()
+  ll <- paletas$llamada
+  # El color de un `bgFill` vive en `fill$fillBg$rgb`, no en `fillFg`: leer el
+  # campo equivocado devuelve `NULL` para TODOS y entonces cualquier par de
+  # tonos sale «idéntico» — el test pasaría con la paleta entera del mismo
+  # color, que es justo lo que viene a impedir.
+  tono <- function(p, texto) {
+    hit <- Filter(function(r) identical(r$texto, texto), p)
+    expect_length(hit, 1L)
+    rgb <- hit[[1]]$estilo$fill$fillBg$rgb
+    expect_true(is.character(rgb) && nzchar(rgb[[1]]), info = texto)
+    rgb[[1]]
+  }
+  # Las siete opciones del desplegable están todas cubiertas: una opción sin
+  # regla es una celda que se queda en blanco en la jornada.
+  expect_setequal(vapply(ll, function(r) r$texto, character(1)), AULAS_LIBRO_STATUS_LLAMADA)
+  # Logrado: la efectiva y la de WhatsApp comparten tono — las dos salen de la
+  # cola de llamadas.
+  expect_identical(tono(ll, "Efectiva"), tono(ll, "Contactado por WhatsApp"))
+  # Vuelve a la cola: los tres reintentos comparten tono, distinto del logrado.
+  expect_identical(tono(ll, "No contesta"), tono(ll, "Apagado"))
+  expect_identical(tono(ll, "No contesta"), tono(ll, "Contactar después"))
+  expect_false(identical(tono(ll, "No contesta"), tono(ll, "Efectiva")))
+  # Se cierra sin logro, y no se confunde con ninguno de los otros dos.
+  expect_identical(tono(ll, "Colgó"), tono(ll, "Rechazo"))
+  expect_false(identical(tono(ll, "Rechazo"), tono(ll, "Efectiva")))
+  expect_false(identical(tono(ll, "Rechazo"), tono(ll, "No contesta")))
+
+  co <- paletas$correo
+  expect_setequal(vapply(co, function(r) r$texto, character(1)), AULAS_LIBRO_RECIBIO_CORREO)
+  # El «No» NO va en el rojo del rechazo: es el valor sembrado por defecto, y
+  # pintar la columna entera de rojo el primer día diría que hay cincuenta
+  # problemas donde sólo hay correos sin enviar.
+  expect_false(identical(tono(co, "No"), tono(ll, "Rechazo")))
+  expect_identical(tono(co, "Sí"), tono(ll, "Efectiva"))
 })
