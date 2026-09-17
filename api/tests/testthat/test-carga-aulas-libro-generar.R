@@ -1021,3 +1021,74 @@ test_that("el color de la llamada separa los tres destinos, y el correo no alarm
   expect_false(identical(tono(co, "No"), tono(ll, "Rechazo")))
   expect_identical(tono(co, "Sí"), tono(ll, "Efectiva"))
 })
+
+# =============================================================================
+# «AULA UTILIZADA» dice quién entró, no quién podría
+# =============================================================================
+#
+# Gonzalo, 2026-09-17: «AULA UTILIZADA se usa sólo cuando el aula es reemplazada
+# o complementada con otra CH».
+#
+# La anotación leía `replacement_for`, y su propia cabecera explicaba que usaba
+# ESE campo «y no la cadena de diseño a propósito — la cadena dice quién PODRÍA
+# entrar, y esta columna dice quién entró de verdad». La distinción no se
+# sostenía: `replacement_for` **lo pone el diseño**. Medido en CCSS Perfil
+# 2026-II, las 85 reservas de cadena lo traen con `activated_at` vacío y todo en
+# `sin_contactar`, así que la columna salía con la cadena entera de cada titular
+# —«R 1.1, R 1.2»— en las 50 filas, el primer día y sin que nadie hubiera
+# reemplazado nada. Y llegó al Sheets del operativo.
+#
+# Un campo que existe no es una señal de que algo pasó.
+
+test_that("AULA UTILIZADA esta VACIA mientras ninguna reserva haya entrado", {
+  plan <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "SIN CONTACTAR", orden = 1),
+    # Las dos reservas de su cadena, tal como las trae el diseño: con su
+    # `replacement_for` puesto y sin una sola marca de activación.
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r11", sample_status = "SIN CONTACTAR", orden = 2),
+    list(classroom_id = "r12", operational_code = "R 1.2", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r12", sample_status = "SIN CONTACTAR", orden = 3)
+  )
+  out <- aulas_libro_anotar_aula_utilizada(plan)
+  expect_identical(out[[1]]$aula_utilizada %||% "", "")
+})
+
+test_that("AULA UTILIZADA se llena en cuanto una reserva ENTRA, por cualquiera de sus señales", {
+  base <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "REEMPLAZADA", orden = 1),
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", label = "r11", orden = 2)
+  )
+  # Cada señal por separado: la marca de activación, el estado operativo de
+  # campo y el estado que teclea el equipo en la hoja.
+  for (marca in list(list(activated_at = "2026-09-17T10:00:00Z"),
+                     list(activation_origin = "refuerzo"),
+                     list(operational_status = "agendada"),
+                     list(sample_status = "AGENDADA"))) {
+    plan <- base
+    plan[[2]][names(marca)] <- marca
+    out <- aulas_libro_anotar_aula_utilizada(plan)
+    expect_identical(out[[1]]$aula_utilizada, "R 1.1",
+                     info = paste(names(marca), collapse = ","))
+  }
+})
+
+test_that("si entraron VARIAS se listan todas, y lo tecleado a mano no se pisa", {
+  plan <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", sample_role = "titular",
+         label = "a1", sample_status = "COMPLEMENTADA", orden = 1),
+    list(classroom_id = "r11", operational_code = "R 1.1", sample_role = "chain_reserve",
+         replacement_for = "a1", operational_status = "aplicada", label = "r11", orden = 2),
+    list(classroom_id = "r12", operational_code = "R 1.2", sample_role = "chain_reserve",
+         replacement_for = "a1", operational_status = "agendada", label = "r12", orden = 3)
+  )
+  # Complementada: el titular no sale y le entran dos. Esconder la segunda diría
+  # que se usó una sola.
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.1, R 1.2")
+  # Y lo que ya venga escrito es la verdad de campo: la app no la pisa.
+  plan[[1]]$aula_utilizada <- "R 1.2"
+  expect_identical(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.2")
+})

@@ -149,6 +149,18 @@ test_that("AULA UTILIZADA va PEGADA a STATUS MUESTRA, que es donde se lee", {
   expect_equal(titulos[[i + 1L]], "AULA UTILIZADA")
 })
 
+# **Por qué estos fixtures llevan `activated_at`.** Se escribieron cuando
+# `replacement_for` parecía prueba de activación, y con datos reales no lo es: lo
+# pone el DISEÑO. Medido en CCSS Perfil 2026-II, las 85 reservas de cadena lo
+# traen con `activated_at` vacío y todo en «SIN CONTACTAR», así que la columna
+# salía con la cadena entera de cada titular el primer día —y llegó al Sheets del
+# operativo—. Gonzalo, 2026-09-17: «AULA UTILIZADA se usa sólo cuando el aula es
+# reemplazada o complementada con otra CH», y «puede ser que se use la titular y
+# no haga falta ni complementar ni reemplazar». Lo que estas pruebas querían
+# comprobar —que el titular sabe qué reserva ocupó su lugar— sigue igual; lo que
+# les faltaba era declarar que la reserva ENTRÓ. El caso de sólo-diseño está en
+# `test-carga-aulas-libro-generar.R`.
+
 test_that("AULA UTILIZADA la llena el coordinador: su celda va BLANCA", {
   # Nació como columna de la app y el dictado del 2026-09-08 la devolvió a la
   # persona: «lo apruebo, pero es algo que lo hace el coordinador de campo». Si
@@ -159,7 +171,8 @@ test_that("AULA UTILIZADA la llena el coordinador: su celda va BLANCA", {
   sembrado <- aulas_libro_anotar_aula_utilizada(list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
     list(operational_code = "R 1.1", classroom_id = "aula_2",
-         sample_role = "chain_reserve", replacement_for = "aula_1")
+         sample_role = "chain_reserve", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   ))
   expect_equal(sembrado[[1]]$aula_utilizada, "R 1.1")
   # Pero lo tecleado manda: la siembra no pisa la verdad de campo.
@@ -167,7 +180,8 @@ test_that("AULA UTILIZADA la llena el coordinador: su celda va BLANCA", {
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
          aula_utilizada = "R 9.9 (a mano)"),
     list(operational_code = "R 1.1", classroom_id = "aula_2",
-         sample_role = "chain_reserve", replacement_for = "aula_1")
+         sample_role = "chain_reserve", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   ))
   expect_equal(tecleado[[1]]$aula_utilizada, "R 9.9 (a mano)")
 })
@@ -176,7 +190,7 @@ test_that("el titular sabe qué reserva ocupó su lugar", {
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
     list(operational_code = "R 1.1", classroom_id = "aula_2", sample_role = "chain_reserve",
-         replacement_for = "aula_1")
+         replacement_for = "aula_1", activated_at = "2026-09-17T10:00:00Z")
   )
   out <- aulas_libro_anotar_aula_utilizada(plan)
   expect_equal(out[[1]]$aula_utilizada, "R 1.1")
@@ -188,8 +202,10 @@ test_that("si entraron VARIAS se listan todas: esconder la segunda mentiría", {
   # Es el caso B/C, donde el titular no sale y pueden sumarse dos reservas.
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular"),
-    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1"),
-    list(operational_code = "R 1.2", classroom_id = "aula_3", replacement_for = "aula_1")
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z"),
+    list(operational_code = "R 1.2", classroom_id = "aula_3", replacement_for = "aula_1",
+         activated_at = "2026-09-17T11:00:00Z")
   )
   expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 1.1, R 1.2")
 })
@@ -197,7 +213,8 @@ test_that("si entraron VARIAS se listan todas: esconder la segunda mentiría", {
 test_that("lo ya escrito en el libro manda: la app no lo pisa", {
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", aula_utilizada = "R 9.9"),
-    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   )
   expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$aula_utilizada, "R 9.9")
 })
@@ -217,7 +234,8 @@ test_that("el titular que CAYÓ sale como REEMPLAZADA POR", {
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
          operational_status = "reemplazada"),
-    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   )
   out <- aulas_libro_anotar_aula_utilizada(plan)
   expect_equal(out[[1]]$estado_aplicacion, "REEMPLAZADA POR")
@@ -228,7 +246,8 @@ test_that("el titular que sigue VIVO sale como COMPLEMENTADA CON", {
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
          operational_status = "agendada"),
-    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   )
   expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion,
                "COMPLEMENTADA CON")
@@ -238,7 +257,8 @@ test_that("lo tecleado en campo manda sobre lo derivado", {
   plan <- list(
     list(operational_code = "CH 1", classroom_id = "aula_1", sample_role = "titular",
          operational_status = "reemplazada", estado_aplicacion = "APLICADA"),
-    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1")
+    list(operational_code = "R 1.1", classroom_id = "aula_2", replacement_for = "aula_1",
+         activated_at = "2026-09-17T10:00:00Z")
   )
   expect_equal(aulas_libro_anotar_aula_utilizada(plan)[[1]]$estado_aplicacion, "APLICADA")
 })
