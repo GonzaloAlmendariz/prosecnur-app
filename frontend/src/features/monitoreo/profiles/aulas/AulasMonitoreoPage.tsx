@@ -63,7 +63,7 @@ import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { focoDesdeTexto, textoDesdeFoco, type FocoDeCuota, esFocoDelEje } from "./AulasCuotasResumen";
-import { AulasSelectorDeFacultad } from "./AulasSelectorDeFacultad";
+import { AulasSelectorDeFoco } from "./AulasSelectorDeFoco";
 import { mandoDeFacultadVisible } from "./mandoDeFacultad";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { MODULE_TONES } from "../../../../lib/modules";
@@ -1170,10 +1170,23 @@ export default function AulasMonitoreoPage() {
   // aquí una vez y baja: preguntar por «facultad» en cada sitio era una
   // respuesta cableada que en un estudio por nivel decía «no es el eje».
   // Un payload viejo sin `eje` cae a `facultad`, que es lo que era.
-  const ejeClave = String(
-    (dashboard as { avance_cuota?: { eje?: { clave?: unknown } } } | null)
-      ?.avance_cuota?.eje?.clave ?? "facultad",
-  );
+  const ejeDeclarado = (dashboard as {
+    avance_cuota?: { eje?: { clave?: string; etiqueta?: string; etiqueta_plural?: string; etiqueta_sin?: string } | null };
+  } | null)?.avance_cuota?.eje ?? null;
+  const ejeClave = String(ejeDeclarado?.clave ?? "facultad");
+  // Las categorías de una dimensión descriptiva, tal como el motor las publica.
+  // **Se leen de `avance_cuota.composicion` y no de `quotas.category_profiles`**:
+  // el payload del estado RECORTA esas listas —pesaban ~54 MB— y sustituirlas
+  // por conteos deja `undefined` aquí en un estudio real y cero en los tests
+  // sintéticos. Es el fallo mudo más caro de este perfil.
+  const categoriasDeLaComposicion = useCallback((dimension: string): string[] => {
+    const dims = (dashboard as {
+      avance_cuota?: { composicion?: { dimensiones?: Record<string, { filas?: Array<{ categoria?: unknown }> }> } | null };
+    } | null)?.avance_cuota?.composicion?.dimensiones;
+    const filas = dims?.[dimension]?.filas ?? [];
+    // Ya vienen ordenadas por población desde el motor: no se reordenan.
+    return filas.map((f) => String(f?.categoria ?? "").trim()).filter((v) => v.length > 0);
+  }, [dashboard]);
   // El foco de cuotas vive en la URL, como el resto de la dirección: así la
   // vista sigue siendo enlazable y el botón Atrás la deshace.
   //
@@ -1986,10 +1999,19 @@ export default function AulasMonitoreoPage() {
             // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
             // quitarlo vuelve a Resumen, que es de donde salió.
             control={mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (
-              <AulasSelectorDeFacultad
-                facultades={facultadesDelEstudio}
-                valor={facultadDeLaCabecera}
+              <AulasSelectorDeFoco
+                // El eje desde las filas del avance; carrera y sexo desde
+                // `avance_cuota.composicion`, que el motor publica YA ordenado
+                // por población — reordenarlos aquí haría bailar la lista con
+                // cada sincronización.
+                valores={{
+                  eje: facultadesDelEstudio,
+                  carrera: categoriasDeLaComposicion("carrera"),
+                  sexo: categoriasDeLaComposicion("sexo"),
+                }}
+                foco={foco}
                 onFoco={cambiarFoco}
+                eje={ejeDeclarado}
               />
             ) : undefined}
           />
