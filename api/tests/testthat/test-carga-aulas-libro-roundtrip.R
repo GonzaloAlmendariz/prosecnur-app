@@ -350,6 +350,10 @@ test_that("los campos del agendamiento vuelven, salvo el alias declarado", {
   # que no es suyo. Lo tecleado a mano sí se respeta —`aulas_libro_anotar_
   # aula_utilizada` no pisa una celda con contenido—, pero vive en el libro, no
   # de vuelta en el plan.
+  # `program` estuvo aqui un rato: la columna CARRERA se escribia y el lector la
+  # mapeaba, pero la lista cerrada que arma la fila de plan no la emitia, asi
+  # que el dato moria en el viaje. Es la MISMA lista que ya se trago
+  # `teacher_phone`. Este barrido la cazo en el acto, que es para lo que existe.
   expect_identical(perdidos, c("aula_utilizada", "notes"))
   expect_identical(as.character(b$plan$replacement_note), as.character(b$u$notes))
 })

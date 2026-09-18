@@ -225,6 +225,11 @@
     notes            = .calg_txt(u$notes %||% u$replacement_note),
     teacher_email    = .calg_txt(u$teacher_email),
     faculty          = .calg_txt(u$faculty),
+    # La carrera del curso-horario, al lado de la facultad. En un estudio de una
+    # sola facultad es la columna que de verdad identifica la fila: `faculty`
+    # repite el mismo valor en las 136 unidades de CCSS y `program` trae sus
+    # seis carreras.
+    program          = .calg_txt(u$program),
     level            = .calg_txt(u$level),
     enrolled_total   = .calg_num_txt(u$enrolled_total),
     eligible_n       = .calg_num_txt(u$eligible_n),

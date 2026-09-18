@@ -45,7 +45,7 @@
   "scheduled_venue", "scheduled_date", "scheduled_day",
   "scheduled_time", "scheduled_moment", "notes",
   # contexto: tiene que estar, pero no a la mano
-  "teacher_email", "faculty", "level", "enrolled_total", "eligible_n", "link"
+  "teacher_email", "faculty", "program", "level", "enrolled_total", "eligible_n", "link"
 )
 
 .v4_TITULOS_AGENDA <- c(
@@ -59,7 +59,7 @@
   "STATUS MUESTRA", "AULA UTILIZADA",
   "LUGAR DE APLICACIÓN", "FECHA AGENDADA", "DÍA", "HORA", "MOMENTO DE LA CLASE",
   "OBSERVACIONES",
-  "CORREO PUCP DOCENTE", "FACULTAD", "NIVEL DEL CURSO",
+  "CORREO PUCP DOCENTE", "FACULTAD", "CARRERA", "NIVEL DEL CURSO",
   "MATRICULADOS TOTAL DTI", "MATRICULADOS ELEGIBLES", "ENLACE DE LA FICHA"
 )
 
