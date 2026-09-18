@@ -108,3 +108,47 @@ test_that("sin respuestas devuelve la forma entera en ceros, no NULL", {
   expect_length(out$facultades, 0L)
   expect_identical(out, monitoreo_aulas_respuestas_desglose(list(), data.frame(), list()))
 })
+
+# **El aula se busca por las DOS claves.** Medido el 2026-09-18 sobre CCSS Perfil
+# 2026-II: `.monitoreo_aulas_response_classroom()` resolvía el `classroom_id`
+# (`ant310_0811`) y el mapa se indexaba por `operational_code` (`CH 1`), así que
+# 0 de 64 casaban. El panel «Respuestas» publicaba «64 sin curso-horario
+# identificable» bajo un «64 efectivas de 64 · 100,0 %», mientras `avance_cuota`
+# —que cruza contra la clave buena— contaba UNA huérfana.
+test_that("una respuesta que trae el classroom_id encuentra su aula igual", {
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "ant310_0811", faculty = "CIENCIAS SOCIALES"),
+    list(operational_code = "CH 2", classroom_id = "1eco36_0721", faculty = "CIENCIAS SOCIALES")
+  )
+  resp <- data.frame(classroom_id = c("ant310_0811", "1eco36_0721", "no_existe"),
+                     stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(classroom_id_var = "classroom_id"))
+  d <- monitoreo_aulas_respuestas_desglose(plan, responses = resp, cfg = cfg)
+  # Dos encuentran su aula; la tercera no existe en el plan y ésa sí es «sin aula».
+  expect_identical(d$total$sin_aula, 1L)
+  expect_identical(length(d$facultades), 1L)
+  expect_identical(d$facultades[[1]]$facultad, "CIENCIAS SOCIALES")
+  expect_identical(d$facultades[[1]]$observadas, 2L)
+})
+
+test_that("y la que trae el operational_code sigue encontrándola, byte a byte", {
+  # La clave de siempre se escribe PRIMERO y no se pisa: quien ya casaba, casa.
+  plan <- list(list(operational_code = "CH 1", classroom_id = "ant310_0811", faculty = "DERECHO"))
+  resp <- data.frame(classroom_id = c("CH 1", "CH 9"), stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(classroom_id_var = "classroom_id"))
+  d <- monitoreo_aulas_respuestas_desglose(plan, responses = resp, cfg = cfg)
+  expect_identical(d$total$sin_aula, 1L)
+  expect_identical(d$facultades[[1]]$facultad, "DERECHO")
+})
+
+test_that("un classroom_id que coincide con el operational_code de OTRA unidad no la roba", {
+  # Guard del cruce: la primera clave escrita manda, y es la de siempre.
+  plan <- list(
+    list(operational_code = "X1", classroom_id = "a", faculty = "PRIMERA"),
+    list(operational_code = "b",  classroom_id = "X1", faculty = "SEGUNDA")
+  )
+  resp <- data.frame(classroom_id = "X1", stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(classroom_id_var = "classroom_id"))
+  d <- monitoreo_aulas_respuestas_desglose(plan, responses = resp, cfg = cfg)
+  expect_identical(d$facultades[[1]]$facultad, "PRIMERA")
+})
