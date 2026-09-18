@@ -5378,6 +5378,40 @@ mount_monitoreo <- function(pr) {
     # respuesta nueva no resuelve a ningún nivel, así que el avance por ese eje
     # no se puede continuar. Purgar es cerrar la medición, no bajarle la
     # resolución.
+    # **Releer el cruce con el otro estudio, a petición.** Decisión de Gonzalo,
+    # 2026-09-18, entre «al abrir», «al sincronizar» y ésta: al abrir encarece
+    # el warm start con 1.392 aulas y un Sheets vivo, y al sincronizar lo ata a
+    # una acción que además PUBLICA. A petición es explícito y encaja con lo que
+    # ya existe: el recibo dice la edad del cruce y quien la ve decide.
+    #
+    # El traslape INFORMA, no descuenta ni excluye, y la lectura del otro
+    # estudio es de SOLO LECTURA: hay gente agendando en vivo en sus hojas.
+    plumber::pr_post("/api/monitoreo/aulas/traslape/recalcular",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      aulas_cfg <- (s$monitoreo_config %||% list())$aulas_universitarias %||% list()
+      unidades <- s[["monitoreo_aulas_plan"]] %||% aulas_cfg[["plan"]] %||% list()
+      if (!length(unidades)) {
+        stop_api(409, "E_AULAS_TRASLAPE_SIN_FUENTE",
+                 "Este estudio no tiene plan de aulas, así que no hay qué cruzar.")
+      }
+      tras <- monitoreo_aulas_traslape_recalcular(unidades, aulas_cfg)
+      session_set(sid, "monitoreo_aulas_daa_traslape", tras)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        # El resumen lleva la vigencia dentro (`409094d3`), así que el recibo
+        # dice de cuándo es sin que esta ruta lo recomponga.
+        traslape = aulas_traslape_resumen(tras),
+        # Lo que la lectura pudo: sin el libro vivo del otro estudio el cruce
+        # vale igual —los planes se cruzan— pero no puede afirmar quién fue
+        # contactado, y callarlo sería dar por medido lo que no se midió.
+        libro_leido = isTRUE(attr(tras, "libro_leido")),
+        aulas_del_otro = attr(tras, "aulas_del_otro") %||% 0L,
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
     plumber::pr_delete("/api/monitoreo/aulas/padron",
                        wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
