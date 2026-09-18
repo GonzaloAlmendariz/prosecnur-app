@@ -321,3 +321,41 @@ test_that("sin cuotas cortas no se proponen refuerzos, y se dice por qué", {
   expect_match(o$motivo, "por debajo de su meta")
   expect_length(o$candidatos, 0L)
 })
+
+# --- el payload: una capacidad existe sólo si alguien la consume ---
+
+test_that("el tablero publica los tres bloques de refuerzos", {
+  # Cuatro motores exportados y ningún consumidor es deuda, no avance.
+  plan <- list(
+    .ref_u("CH 20", fac = "DERECHO", operational_status = "aplicada"),
+    .ref_u("R 20.1", fac = "DERECHO", rol = "chain_reserve",
+           titular_operational_code = "CH 20", replacement_order = 1)
+  )
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list(techo_aulas_campo = 10))
+  expect_true(is.list(d$refuerzos))
+  expect_true(isTRUE(d$refuerzos$ok))
+  expect_equal(d$refuerzos$techo$declarado, 10)
+  expect_true("cuotas_urgentes" %in% names(d))
+  expect_true("candidatos_refuerzo" %in% names(d))
+})
+
+test_that("el cruce de facultad entra por argumento y no se recalcula", {
+  # Cuesta 11,9 s sobre las 3 000 respuestas de HSVG2026 y el tablero lo
+  # necesita dos veces —`control_facultad` y el bloque de riesgo—: calcularlo
+  # en cada uno llevó el dashboard de 7,6 s a 31 s.
+  #
+  # El fixture pasa un cruce IMPOSIBLE de obtener de estos datos: si el motor
+  # lo recalculara, la retención saldría distinta y el test no lo vería. Así
+  # sólo pasa si de verdad usa el que se le da.
+  plan <- list(.ref_u("CH 21", fac = "DERECHO", operational_status = "aplicada"))
+  marcado <- list(ok = TRUE, comparables = 999, coinciden = 999, discrepan = 0,
+                  por_sexo = list(list(facultad = "DERECHO", aula_M = 100,
+                                       declaradas_M = 50, aula_F = 0, declaradas_F = 0)),
+                  por_facultad = list())
+  r <- monitoreo_aulas_riesgo_facultades(plan, data.frame(), list(),
+                                         cruce = marcado, hoy = as.Date("2026-09-18"))
+  expect_true(isTRUE(r$ok))
+  celda <- Filter(function(c) identical(c$sexo, "M"), r$facultades[[1]]$sexo)
+  # Retención 50/100 = 0,5: sólo puede venir del cruce que se le pasó.
+  expect_equal(celda[[1]]$retencion, 0.5)
+})
