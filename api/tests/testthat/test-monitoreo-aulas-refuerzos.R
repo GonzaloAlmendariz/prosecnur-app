@@ -128,3 +128,94 @@ test_that("las tasas separan refuerzo, reemplazo y banco de los titulares", {
   expect_equal(o$rendimiento$titulares$elegibles, 100)
   expect_equal(o$rendimiento$banco$elegibles, 40)
 })
+
+# --- las cuotas urgentes: el eje de TIEMPO, no sólo el de cantidad ---
+
+.ref_riesgo <- function(...) {
+  # Un `monitoreo_aulas_riesgo_facultades()` de mentira con lo justo: este
+  # bloque consume su salida, no la recalcula.
+  list(ok = TRUE, facultades = list(utils::modifyList(list(
+    facultad = "DERECHO", agendadas = 2, sin_agendar = 0, reservas_libres = 50,
+    campo_cerrado = FALSE, proxima_cita = "2026-10-05", ultima_cita = "2026-10-10",
+    sexo = list(list(sexo = "M", cuota = 100, logrado = 90, al_cierre = 115,
+                     margen = 15, margen_declarado = NA_real_, prob_cierre = 1))
+  ), list(...))))
+}
+
+test_that("con los mismos números, la cuota cuya agenda se acaba antes es más urgente", {
+  # Es el eje que Gonzalo pidió: «a nivel de tiempo o agenda muy lejana o casi
+  # finalizando». Dos celdas idénticas en cantidad no corren el mismo riesgo si
+  # una ya no puede reaccionar.
+  lejos <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(ultima_cita = "2026-10-10"), hoy = as.Date("2026-09-18"))[[1]]
+  cerca <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(ultima_cita = "2026-09-21"), hoy = as.Date("2026-09-18"))[[1]]
+  expect_gt(cerca$urgencia, lejos$urgencia)
+  expect_true("tiempo" %in% as.character(cerca$ejes))
+  expect_equal(cerca$dias_a_la_ultima, 3)
+})
+
+test_that("una cuota corta sin nada que aplicar es el peor caso, aunque su número se vea bien", {
+  x <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(agendadas = 0, sin_agendar = 0, campo_cerrado = TRUE,
+                proxima_cita = "", ultima_cita = ""),
+    hoy = as.Date("2026-09-18"))[[1]]
+  expect_false(isTRUE(x$admite_refuerzo))
+  expect_true(any(grepl("no le queda nada por aplicar", as.character(x$por_que))))
+})
+
+test_that("el motivo nunca contradice a `admite_refuerzo`", {
+  # Con la agenda acabándose PERO aulas del plan sin fecha, sí se puede reforzar.
+  # La primera versión decía «un refuerzo ya no llegaría a tiempo» mientras el
+  # campo decía que sí: un rótulo que promete lo contrario de su propio dato.
+  x <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(ultima_cita = "2026-09-20", sin_agendar = 1),
+    hoy = as.Date("2026-09-18"))[[1]]
+  expect_true(isTRUE(x$admite_refuerzo))
+  expect_false(any(grepl("ya no llegaría a tiempo", as.character(x$por_que))))
+  expect_true(any(grepl("por agendar", as.character(x$por_que))))
+  # Y sin aulas por agendar, sí lo dice y el campo lo acompaña.
+  y <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(ultima_cita = "2026-09-20", sin_agendar = 0),
+    hoy = as.Date("2026-09-18"))[[1]]
+  expect_false(isTRUE(y$admite_refuerzo))
+  expect_true(any(grepl("ya no llegaría a tiempo", as.character(y$por_que))))
+})
+
+test_that("los motivos concuerdan en número y no llevan «(s)»", {
+  x <- monitoreo_aulas_cuotas_urgentes(
+    .ref_riesgo(agendadas = 0, sin_agendar = 1, reservas_libres = 1,
+                proxima_cita = "", ultima_cita = ""),
+    hoy = as.Date("2026-09-18"))[[1]]
+  txt <- paste(as.character(x$por_que), collapse = " | ")
+  expect_false(grepl("(s)", txt, fixed = TRUE))
+  expect_match(txt, "1 aula en el plan", fixed = TRUE)
+  expect_match(txt, "queda sólo 1 reserva libre", fixed = TRUE)
+})
+
+test_that("una cuota ya cumplida no aparece en la lista", {
+  # Lo recogido no se devuelve: pedir un refuerzo para una cuota cerrada gasta
+  # techo en la única facultad que no lo necesita.
+  #
+  # El fixture NO usa `modifyList` para la celda: es recursivo y FUSIONA la
+  # lista anidada en vez de reemplazarla, así que la celda «cumplida» heredaba
+  # el `logrado` de la base y el test se creía verde por el motivo contrario.
+  f <- .ref_riesgo()$facultades[[1]]
+  f$sexo <- list(list(sexo = "M", cuota = 100, logrado = 120, al_cierre = 130,
+                      margen = 30, margen_declarado = NA_real_, prob_cierre = 1))
+  vacia <- monitoreo_aulas_cuotas_urgentes(list(ok = TRUE, facultades = list(f)),
+                                           hoy = as.Date("2026-09-18"))
+  expect_length(vacia, 0L)
+})
+
+test_that("la lista sale ordenada de más a menos urgente", {
+  r <- list(ok = TRUE, facultades = list(
+    .ref_riesgo(ultima_cita = "2026-10-10")$facultades[[1]],
+    utils::modifyList(.ref_riesgo()$facultades[[1]],
+                      list(facultad = "PSICOLOGÍA", ultima_cita = "2026-09-20",
+                           agendadas = 1, reservas_libres = 2))))
+  u <- monitoreo_aulas_cuotas_urgentes(r, hoy = as.Date("2026-09-18"))
+  expect_length(u, 2L)
+  expect_identical(u[[1]]$facultad, "PSICOLOGÍA")
+  expect_gte(u[[1]]$urgencia, u[[2]]$urgencia)
+})

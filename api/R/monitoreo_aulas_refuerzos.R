@@ -260,3 +260,159 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
     })
   )
 }
+
+# ---------------------------------------------------------------------------
+# Las cuotas que ameritan un refuerzo, ordenadas por lo que aprieta.
+#
+# Dictado de Gonzalo (2026-09-18): «que el mapeo de cuotas en riesgo sea aun mas
+# claro, viendo cuales todavia estan muy lejanas (cuantitativamente pero tambien
+# a nivel de tiempo o agenda muy lejana o casi finalizando) y ameritan un
+# refuerzo o mas de uno».
+#
+# **El eje de TIEMPO, que faltaba.** Hasta aquí una cuota se juzgaba por cuánto
+# le falta y cuánto margen proyecta. Pero dos celdas con el mismo margen no
+# corren el mismo riesgo si una tiene su última cita el jueves y la otra el 1 de
+# octubre: la primera ya no puede reaccionar. Y una a la que no le queda nada
+# agendado es el peor caso aunque su número se vea bien, porque no hay nada que
+# pueda salir bien. Cada factor de tiempo pesa y, sobre todo, DICE por qué.
+#
+# **La vara es suya y es el orden, no la decisión** —«podemos tener los
+# refuerzos ordenados por orden de urgencia y de ellos escoger 10 por ejemplo,
+# pero eso ya lo haria yo uno por uno, sabiendo que informacion del contexto de
+# cada uno y la razon por la cual uno es mas importante que el otro»—. Por eso
+# cada cuota sale con `por_que`: una lista de motivos legibles, no una nota
+# global. Quien lee decide; el motor ordena y explica.
+
+#' Cuántos días faltan para una fecha ISO, o `NA` si no hay.
+#' @keywords internal
+.marf_dias <- function(iso, hoy) {
+  v <- .monitoreo_scalar(iso, "")
+  if (!nzchar(v)) return(NA_real_)
+  d <- suppressWarnings(as.Date(substr(v, 1L, 10L)))
+  if (is.na(d)) return(NA_real_)
+  as.numeric(d - as.Date(hoy))
+}
+
+#' «1 aula» y «2 aulas», nunca «1 aula(s)»: un paréntesis así es la marca de
+#' una frase armada sin mirar su número, y estos textos los lee el coordinador.
+#' @keywords internal
+.marf_plural <- function(n, uno, varios) {
+  sprintf("%d %s", as.integer(n), if (abs(n) == 1) uno else varios)
+}
+
+#' Las cuotas cortas, con su urgencia y el motivo de cada punto.
+#'
+#' @param riesgo el resultado de `monitoreo_aulas_riesgo_facultades()`.
+#' @param hoy fecha de referencia.
+#' @param dias_de_reaccion cuántos días necesita un refuerzo para llegar a
+#'   aplicarse: contactar al docente, cerrar fecha y aplicar. Por debajo de eso,
+#'   la agenda de esa cuota ya no admite otra aula y el aviso cambia de «ponle
+#'   un refuerzo» a «ya no da tiempo».
+#' @return lista de cuotas ordenada de más a menos urgente.
+#' @export
+monitoreo_aulas_cuotas_urgentes <- function(riesgo, hoy = Sys.Date(),
+                                            dias_de_reaccion = 5L) {
+  if (!isTRUE((riesgo %||% list())$ok)) return(list())
+  out <- list()
+  for (f in (riesgo$facultades %||% list())) {
+    for (c in (f$sexo %||% list())) {
+      falta <- .monitoreo_num(c$cuota, 0) - .monitoreo_num(c$logrado, 0)
+      if (!(falta > 0)) next
+      margen <- .monitoreo_num(c$margen, NA_real_)
+      mdec <- .monitoreo_num(c$margen_declarado, NA_real_)
+      prob <- .monitoreo_num(c$prob_cierre, NA_real_)
+      agendadas <- .monitoreo_num(f$agendadas, 0)
+      sin_agendar <- .monitoreo_num(f$sin_agendar, 0)
+      reservas <- .monitoreo_num(f$reservas_libres, 0)
+      dias_ult <- .marf_dias(f$ultima_cita, hoy)
+      dias_prox <- .marf_dias(f$proxima_cita, hoy)
+
+      motivos <- list(); urgencia <- 0
+      anotar <- function(peso, texto, eje) {
+        motivos[[length(motivos) + 1L]] <<- list(eje = eje, texto = texto, peso = peso)
+        urgencia <<- urgencia + peso
+      }
+      # --- el eje CUANTITATIVO ---
+      if (is.finite(margen) && margen < 0) {
+        anotar(100, sprintf("no llega ni aplicando todo lo agendado (%+d)",
+                            as.integer(round(margen))), "cantidad")
+      }
+      if (is.finite(prob) && prob < 0.95) {
+        anotar(60, sprintf("su probabilidad de cierre es %.2f", prob), "cantidad")
+      }
+      if (is.finite(mdec) && mdec < 0) {
+        anotar(50, sprintf("por la facultad que declaran no llega (%+d)",
+                           as.integer(round(mdec))), "cantidad")
+      }
+      if (is.finite(margen) && margen >= 0 && margen <= 10) {
+        anotar(30, sprintf("su margen es de sólo %+d", as.integer(round(margen))), "cantidad")
+      }
+      # --- el eje de TIEMPO ---
+      if (isTRUE(f$campo_cerrado)) {
+        anotar(80, "ya no le queda nada por aplicar: lo que falta no puede salir de su plan",
+               "tiempo")
+      } else if (agendadas == 0 && sin_agendar > 0) {
+        anotar(55, sprintf("tiene %s en el plan y ninguna con fecha",
+                           .marf_plural(sin_agendar, "aula", "aulas")), "tiempo")
+      }
+      if (is.finite(dias_ult) && agendadas > 0) {
+        if (dias_ult <= dias_de_reaccion) {
+          # **«Ya no da tiempo» sólo si de verdad no lo hay.** Una facultad con
+          # aulas del plan sin fecha todavía puede agendar una; decirle que no
+          # llega mientras `admite_refuerzo` dice que sí es un rótulo que
+          # promete lo contrario de su propio campo.
+          anotar(45, if (sin_agendar > 0) {
+            sprintf("su agenda se acaba en %s, aunque le quedan %s por agendar",
+                    .marf_plural(dias_ult, "día", "días"),
+                    .marf_plural(sin_agendar, "aula", "aulas"))
+          } else {
+            sprintf("su agenda se acaba en %s y un refuerzo ya no llegaría a tiempo",
+                    .marf_plural(dias_ult, "día", "días"))
+          }, "tiempo")
+        } else if (dias_ult <= dias_de_reaccion * 2) {
+          anotar(25, sprintf("su agenda se acaba en %s",
+                             .marf_plural(dias_ult, "día", "días")), "tiempo")
+        } else {
+          anotar(5, sprintf("su última cita es dentro de %d días: hay margen para reaccionar",
+                            as.integer(dias_ult)), "tiempo")
+        }
+      }
+      if (agendadas > 0 && agendadas <= 1) {
+        anotar(40, "todo lo que le falta cuelga de una sola aula", "tiempo")
+      }
+      # --- el eje de RESPALDO ---
+      if (reservas <= 10) {
+        anotar(20, sprintf("le %s sólo %s libre%s",
+                           if (abs(reservas) == 1) "queda" else "quedan",
+                           .marf_plural(reservas, "reserva", "reservas"),
+                           if (abs(reservas) == 1) "" else "s"), "respaldo")
+      }
+      urgencia <- urgencia + min(30, falta)
+      if (!length(motivos)) {
+        anotar(0, sprintf("le faltan %d y su margen es %+d", as.integer(falta),
+                          as.integer(round(margen))), "cantidad")
+      }
+      out[[length(out) + 1L]] <- list(
+        facultad = f$facultad, sexo = .monitoreo_scalar(c$sexo, ""),
+        cuota = .monitoreo_num(c$cuota, NA_real_), logrado = .monitoreo_num(c$logrado, NA_real_),
+        faltan = as.integer(round(falta)), al_cierre = .monitoreo_num(c$al_cierre, NA_real_),
+        margen = margen, margen_declarado = mdec, prob_cierre = prob,
+        aulas_agendadas = as.integer(agendadas), sin_agendar = as.integer(sin_agendar),
+        reservas_libres = as.integer(reservas),
+        proxima_cita = .monitoreo_scalar(f$proxima_cita, ""),
+        ultima_cita = .monitoreo_scalar(f$ultima_cita, ""),
+        dias_a_la_proxima = if (is.finite(dias_prox)) as.integer(dias_prox) else NA_integer_,
+        dias_a_la_ultima = if (is.finite(dias_ult)) as.integer(dias_ult) else NA_integer_,
+        # Si un refuerzo pedido hoy todavía podría aplicarse. Es la diferencia
+        # entre «ponle un refuerzo» y «ya no da tiempo, mira otra cosa».
+        admite_refuerzo = !isTRUE(f$campo_cerrado) &&
+          (!is.finite(dias_ult) || dias_ult > dias_de_reaccion || sin_agendar > 0),
+        urgencia = round(urgencia, 1),
+        por_que = I(vapply(motivos, function(m) m$texto, character(1))),
+        ejes = I(unique(vapply(motivos, function(m) m$eje, character(1))))
+      )
+    }
+  }
+  if (!length(out)) return(list())
+  out[order(-vapply(out, function(x) x$urgencia, numeric(1)))]
+}
