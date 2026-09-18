@@ -856,3 +856,54 @@ test_that("el veredicto del PARTE también saca a un aula del aforo pendiente", 
   expect_identical(f$cursos_sin_via, 0L)
   expect_identical(f$cursos_en_gestion, 0L)
 })
+
+# --- las claves del diseño y las del plan -----------------------------------
+#
+# **La raiz de tres mentiras de pantalla**, medida el 2026-09-17 sobre el
+# simulacro de CCSS por nivel: este motor unia las claves de `design_targets`
+# —«6», «7», «8», «9» con la cuota por nivel— con las de la columna `faculty`
+# del plan —«ciencias sociales»—, y fabricaba CINCO grupos para un estudio de
+# cuatro niveles: cuatro fantasma, con cuota y sin una sola aula que medir, y
+# uno con las 60 efectivas y sin cuota. Ninguno se podia evaluar, y de ahi
+# salian «todas las facultades cierran su cuota», «ninguna facultad debe nada»
+# y «ninguna necesita refuerzo» (arreglados en `0f434b03` y `4d46433a`).
+
+test_that("con el eje en el AULA, una facultad con cuota y sin aulas SI se enseña", {
+  # Es informacion real y por eso la union se conserva para el eje de siempre:
+  # tener cuota del diseño y cero aulas en el plan es justo lo que hay que ver.
+  plan <- list(.efs_aula("A1", "Letras", eligible = 20, orden = 1, aplicada = TRUE))
+  dt <- .efs_dt(list(.efs_fac("Letras", cuota = 10), .efs_fac("Derecho", cuota = 40)))
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), dt)
+  nombres <- vapply(d$efectividad_seguimiento$facultades,
+                    function(f) as.character(f$facultad), character(1))
+  expect_true("Letras" %in% nombres)
+  expect_true("Derecho" %in% nombres)
+  expect_identical(d$efectividad_seguimiento$total$facultades, 2L)
+})
+
+test_that("con el eje en la PERSONA no se inventan grupos que el plan no tiene", {
+  # Las claves del diseño son valores del eje y no se pueden casar contra
+  # ninguna aula: unirlas no añade un grupo, inventa uno. Lo que el estudio SI
+  # puede afirmar por nivel vive en `avance_cuota`, y Metas ya lo publica.
+  plan <- list(
+    .efs_aula("A1", "CIENCIAS SOCIALES", eligible = 20, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "CIENCIAS SOCIALES", eligible = 20, orden = 2, aplicada = TRUE)
+  )
+  dt <- .efs_dt(list(.efs_fac("6", cuota = 120), .efs_fac("7", cuota = 121)))
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+    plan = plan, design_targets = dt, eje_cuota = "nivel"
+  ))
+  d <- monitoreo_aulas_dashboard(cfg$plan, .efs_resp(rep("A1", 10)), cfg)
+  nombres <- vapply(d$efectividad_seguimiento$facultades,
+                    function(f) as.character(f$facultad), character(1))
+  # UNA fila, la del plan. Ni «6» ni «7» aparecen: no hay aula que medirles.
+  expect_identical(nombres, "CIENCIAS SOCIALES")
+  t <- d$efectividad_seguimiento$total
+  expect_identical(t$facultades, 1L)
+  # Y el DENOMINADOR lo dice: cero evaluadas, una sin cuota contra la que medir.
+  # Es lo que impide que la pantalla lea el cero como buena noticia.
+  expect_identical(t$facultades_evaluadas, 0L)
+  expect_identical(t$facultades_sin_cuota, 1L)
+  expect_identical(t$facultades_en_riesgo_agendado, 0L)
+})
