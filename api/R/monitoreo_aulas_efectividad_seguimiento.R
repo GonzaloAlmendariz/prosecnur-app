@@ -583,7 +583,34 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
     )
   }
 
-  claves <- unique(c(names(previstos), fk_plan[primeras]))
+  # **Las claves del diseño sólo se unen a las del plan cuando el valor del eje
+  # vive en el AULA.**
+  #
+  # `previstos` viene de `design_targets` y con la cuota por nivel sus claves son
+  # «6», «7», «8», «9»; `fk_plan` es la columna `faculty` del plan, o sea
+  # «ciencias sociales». Unir los dos conjuntos fabricaba CINCO grupos para un
+  # estudio de cuatro niveles: cuatro fantasma —con cuota y sin una sola aula que
+  # medir, porque `en_plan` no casa ni una— y uno con las 60 efectivas y sin
+  # cuota. Ninguna se podía evaluar, y de ahí salían los tres «todo bien» que
+  # tranquilizaban al coordinador (arreglados en `0f434b03` y `4d46433a`).
+  #
+  # Con `atribucion = "aula"` —el eje de siempre— las dos claves son la misma
+  # cosa y la unión es correcta: además conserva la facultad que tiene cuota del
+  # diseño y CERO aulas en el plan, que es información real y hay que enseñarla.
+  # Con `atribucion = "persona"` el valor del eje no está en el aula y esas
+  # claves no se pueden casar contra ninguna: unirlas no añade un grupo, inventa
+  # uno.
+  #
+  # Lo que el estudio SÍ puede afirmar por nivel —la brecha de cada celda— vive
+  # en `avance_cuota` y la pestaña Metas ya lo publica. Este motor mide τ sobre
+  # aulas, y por eso aquí se calla en vez de duplicarlo mal.
+  eje_seg <- monitoreo_aulas_eje(cfg)
+  eje_en_el_aula <- identical(.monitoreo_scalar(eje_seg$atribucion, "aula"), "aula")
+  claves <- if (eje_en_el_aula) {
+    unique(c(names(previstos), fk_plan[primeras]))
+  } else {
+    unique(fk_plan[primeras])
+  }
   claves <- claves[nzchar(claves)]
 
   filas <- list()
