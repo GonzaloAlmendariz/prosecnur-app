@@ -61,12 +61,36 @@ monitoreo_aulas_respuestas_desglose <- function(plan = list(), responses = NULL,
   valida <- !is.na(valida) & valida
   fuera <- !is.na(fuera) & fuera
 
+  # **El aula se busca por LAS DOS claves, porque la respuesta trae una sola y
+  # no siempre es la misma.**
+  #
+  # `.monitoreo_aulas_response_classroom()` devuelve el identificador que el
+  # estudio use: en CCSS Perfil 2026-II resuelve `ant310_0811` —el
+  # `classroom_id`— y el mapa se construía indexado por `operational_code`,
+  # que en ese plan es `CH 1`. `%||%` en R sólo cae por NULL, no por cadena
+  # vacía, así que el `classroom_id` no llegaba a usarse nunca como clave si el
+  # `operational_code` existía.
+  #
+  # Medido el 2026-09-18 sobre las 64 respuestas del simulacro: **0 de 64 casan
+  # contra `operational_code` y 63 de 64 contra `classroom_id`**. El panel
+  # «Respuestas» —cuyo subtítulo promete «por qué no cuentan las demás»—
+  # publicaba «64 sin curso-horario identificable» debajo de un «64 efectivas de
+  # 64 · 100,0 %», mientras `avance_cuota`, que cruza contra la clave correcta,
+  # contaba UNA huérfana. Dos lecturas del mismo hecho en la misma pantalla.
+  #
+  # Indexar por las dos no mueve a quien ya casaba: el `operational_code` se
+  # escribe primero y una clave ya tomada no se pisa.
   unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
   facultad_de <- list()
+  anota <- function(cod, facultad) {
+    cod <- trimws(as.character(cod %||% "")[1])
+    if (is.na(cod) || !nzchar(cod) || !is.null(facultad_de[[cod]])) return(invisible(NULL))
+    facultad_de[[cod]] <<- facultad
+  }
   for (u in unidades) {
-    cod <- trimws(as.character(u[["operational_code"]] %||% u[["classroom_id"]] %||% "")[1])
-    if (is.na(cod) || !nzchar(cod) || !is.null(facultad_de[[cod]])) next
-    facultad_de[[cod]] <- trimws(as.character(u[["faculty"]] %||% "")[1])
+    facultad <- trimws(as.character(u[["faculty"]] %||% "")[1])
+    anota(u[["operational_code"]], facultad)
+    anota(u[["classroom_id"]], facultad)
   }
   fac <- vapply(codigo, function(k) {
     v <- if (nzchar(k)) facultad_de[[k]] else NULL
