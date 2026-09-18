@@ -19,6 +19,10 @@ import {
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
 import { pct } from "../../core/formatoComun";
+import {
+  etiquetaDelEje, etiquetaPluralDelEje, etiquetaSinValorDelEje,
+  etiquetaDeValorEnGrafico, type EjeDeclarado,
+} from "./etiquetaDelEje";
 
 /**
  * `puntajeSobreCien` se retiró con el tile de Representatividad, su único
@@ -360,15 +364,24 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null, facultadEnFoco =
 function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const brechas = Number(dashboard?.kpis?.brechas ?? 0);
   // Nunca un agregado sin su desglose. «168» no dice dónde hay que ir; «168 en
-  // 20 facultades · la mayor, Educación con 232» sí. La facultad sale de
-  // `course_status`, que ya viaja con ella.
+  // 20 facultades · la mayor, Educación con 232» sí.
+  //
+  // **Y se reparte por la columna del EJE, no por `faculty` fijo.** En un
+  // estudio de una sola facultad esa cuenta era «en 1 facultad» —el desglose
+  // sin desglosar— y salía en SEIS pestañas, porque esta banda preside todas
+  // las de Consultas. El valor sale de `course_status`, que trae las dos
+  // columnas.
+  const eje = (dashboard as { avance_cuota?: { eje?: EjeDeclarado } } | null)?.avance_cuota?.eje;
+  const columna = eje?.columna || "faculty";
   const porFacultad = new Map<string, number>();
   for (const fila of (dashboard?.course_status ?? []) as Array<Record<string, unknown>>) {
     const b = Number(fila.brecha ?? 0);
     if (!Number.isFinite(b) || b <= 0) continue;
-    const f = String(fila.faculty ?? "").trim() || "Sin facultad";
+    const f = String(fila[columna] ?? "").trim() || etiquetaSinValorDelEje(eje);
     porFacultad.set(f, (porFacultad.get(f) ?? 0) + b);
   }
+  const unidad = etiquetaDelEje(eje).toLocaleLowerCase("es");
+  const unidades = etiquetaPluralDelEje(eje).toLocaleLowerCase("es");
   const mayor = [...porFacultad.entries()].sort((a, b) => b[1] - a[1])[0];
   return {
     // **«Brechas» no decía brecha de qué**, y la tarjeta de al lado —«Cuota por
@@ -384,17 +397,29 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     icono: AlertCircle,
     value: fmt(brechas),
     pista: porFacultad.size
-      ? `en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? "facultad" : "facultades"}`
+      ? `en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? unidad : unidades}`
       // No es «ninguno»: el desglose sale de `course_status`, que puede llegar
       // recortado. Se dice que falta el reparto, no que no haya brechas.
-      : "sin el desglose por facultad",
+      : `sin el desglose por ${unidad}`,
     detalle: mayor
       // Sin jerga: «course_status» es el nombre interno del payload y no le
       // dice nada a quien lee el tooltip — la idea es que la lista de
       // cursos-horario puede llegar recortada por tamaño (el tope declarado
       // del estado) y por eso el reparto es orden de magnitud.
-      ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. La lista de `
-        + `cursos-horario puede llegar recortada por tamaño, así que el reparto por facultad se lee como orden de magnitud.`
+      ? `La mayor es ${etiquetaDeValorEnGrafico(mayor[0], eje)}, con ${fmt(mayor[1])} respuestas por recoger. `
+        + `La lista de cursos-horario puede llegar recortada por tamaño, así que el reparto por ${unidad} `
+        + `se lee como orden de magnitud.`
+        // **El matiz del valor de PERSONA, dicho donde cabe.** Con un eje que
+        // resuelve por padrón, el valor de un curso-horario es el de la mayoría
+        // de sus alumnos y el de una meta es el de cada persona: son la misma
+        // palabra sobre dos poblaciones, y aquí se agrupan aulas. En la pista no
+        // entra; el tooltip existe para esto.
+        // La frase evita `${...} de`, que el guard de cifras crudas lee como una
+        // cifra seguida de su denominador. El guard no se debilita por una
+        // redacción: se redacta de otra forma.
+        + (eje?.atribucion === "persona"
+          ? ` El ${unidad} que agrupa aquí es el que declara la mayoría de los alumnos del curso-horario.`
+          : "")
       : undefined,
     tone: brechas ? "warn" : "neutral",
   };

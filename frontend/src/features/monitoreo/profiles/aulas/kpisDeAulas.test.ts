@@ -525,3 +525,55 @@ describe("coherencia entre la banda general y la banda por facultad", () => {
     expect(general).toBe(suma);
   });
 });
+
+/**
+ * **La banda de Consultas preside SEIS pestañas**, así que un desglose que no
+ * desglosa se ve seis veces. Con la cuota por nivel, «Cursos-horario bajo su
+ * meta · 50 · en 1 facultad» era eso: el reparto repartido por una columna que
+ * en ese estudio vale lo mismo en las 136 unidades.
+ *
+ * Gonzalo, 2026-09-18: «una particularidad es eso; la app debe ser útil para
+ * cualquier estudio, y por eso la importancia de que sea generalista y de
+ * configuración». El reparto sigue la columna DECLARADA, no una fija.
+ */
+describe("Cursos-horario bajo su meta: el desglose sigue al eje", () => {
+  const conEje = (eje: unknown, filas: unknown[]) =>
+    aulasKpis(
+      tablero({ course_status: filas, avance_cuota: { eje } } as Record<string, unknown>),
+      "consultas",
+    ).find((k) => k.label === "Cursos-horario bajo su meta");
+
+  const NIVEL = {
+    clave: "nivel", etiqueta: "Nivel", etiqueta_plural: "Niveles",
+    etiqueta_sin: "Sin nivel", columna: "level", atribucion: "persona",
+  };
+
+  it("con el eje en nivel reparte por nivel, y lo dice con su palabra", () => {
+    const k = conEje(NIVEL, [
+      { faculty: "CIENCIAS SOCIALES", level: "6", brecha: 30 },
+      { faculty: "CIENCIAS SOCIALES", level: "7", brecha: 12 },
+      { faculty: "CIENCIAS SOCIALES", level: "8", brecha: 5 },
+    ]);
+    // Tres, no uno: es el desglose que la tarjeta promete.
+    expect(k?.pista).toBe("en 3 niveles");
+    expect(k?.detalle).toContain("La mayor es Nivel 6");
+  });
+
+  it("y el matiz del valor de PERSONA va al tooltip, no a la pista", () => {
+    // Con un eje que resuelve por padrón, el valor de un curso-horario es el de
+    // la mayoría de sus alumnos y el de una meta es el de cada persona: misma
+    // palabra, dos poblaciones. En la pista no cabe; el tooltip existe para eso.
+    const k = conEje(NIVEL, [{ level: "6", brecha: 30 }]);
+    expect(k?.pista).toBe("en 1 nivel");
+    expect(k?.detalle).toContain("la mayoría de los alumnos del curso-horario");
+  });
+
+  it("sin eje declarado no se mueve un byte", () => {
+    // HSVG está en campo: su banda dice lo mismo que ayer.
+    const k = conEje(undefined, [
+      { faculty: "Derecho", brecha: 30 }, { faculty: "Ciencias", brecha: 12 },
+    ]);
+    expect(k?.pista).toBe("en 2 facultades");
+    expect(k?.detalle).not.toContain("mayoría de los alumnos");
+  });
+});
