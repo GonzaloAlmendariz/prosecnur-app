@@ -167,3 +167,60 @@ test_that("con el puente, un aula tocada en la hoja ajena SI sale como aplicada"
   expect_true(grepl("PLAN", unname(sin_puente[["CH 1"]])))
   expect_true(grepl("APLICADA", unname(con_puente[["CH 1"]])))
 })
+
+# --- una particularidad no se queda cableada --------------------------------
+#
+# Gonzalo, 2026-09-18: «el motivo de releer las aulas de hostigamiento y la DAA
+# no forman parte de la app en si mismas; son particularidades que estamos
+# tejiendo para este estudio. Pero una particularidad es eso: la app debe ser
+# util para cualquier estudio, y por eso la importancia de que sea generalista y
+# de configuracion».
+#
+# Lo que este bloque defiende es esa frase, en dos mitades: lo que VARIA por
+# estudio se declara, y lo que la app ya declara no se reteclea.
+
+test_that("la hoja del otro estudio es DECLARABLE, con el defecto de la app", {
+  # Otro operativo puede llamar a su hoja de otra forma, y entonces se dice en
+  # la config en vez de reescribir el motor.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE,
+    traslape_fuente = list(etiqueta = "OTRO", pulso = "/x.pulso", hoja = "Agenda 2027")))
+  expect_identical(monitoreo_aulas_traslape_fuente(cfg)$hoja, "Agenda 2027")
+  # Sin declararla, la que esta misma app escribe: el caso normal es cruzar
+  # contra otro estudio de aulas de Prosecnur.
+  sin <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, traslape_fuente = list(etiqueta = "OTRO", pulso = "/x.pulso")))
+  expect_identical(monitoreo_aulas_traslape_fuente(sin)$hoja, "Aulas Agendadas")
+})
+
+test_that("el lector NO reteclea los titulos: los lee de donde la app los declara", {
+  # **Guard de principio, no de conducta.** Escribir «CORREO PUCP DOCENTE» a
+  # mano aqui crearia una segunda verdad sobre la misma columna: el dia que la
+  # spec la renombre, el lector seguiria buscando el titulo viejo y devolveria
+  # vacio SIN FALLAR. Es la avería que este archivo entero existe para no
+  # repetir, y por eso se vigila en el fuente.
+  ruta <- testthat::test_path("..", "..", "R", "monitoreo_aulas_traslape_fuente.R")
+  fuente <- paste(readLines(ruta, warn = FALSE), collapse = "\n")
+  # Se quitan los comentarios: ahi los titulos SI se nombran, para explicar.
+  codigo <- gsub("(?m)#[^\n]*", "", fuente, perl = TRUE)
+  for (titulo in c("CORREO PUCP DOCENTE", "CURSO-HORARIO", "STATUS MUESTRA")) {
+    expect_false(grepl(titulo, codigo, fixed = TRUE), info = titulo)
+  }
+  # Y el estado inicial tampoco: lo declara el vocabulario del libro, primero de
+  # su lista y por ese mismo motivo.
+  expect_false(grepl("SIN CONTACTAR", codigo, fixed = TRUE))
+  # Lo que SI tiene que estar es la lectura de esas declaraciones.
+  expect_true(grepl("AULAS_AGENDADAS_BLOQUE", codigo, fixed = TRUE))
+  expect_true(grepl("AULAS_LIBRO_STATUS_MUESTRA_BASE", codigo, fixed = TRUE))
+})
+
+test_that("nada del motor nombra a un estudio concreto", {
+  # La etiqueta del otro estudio entra por config y sale por el rotulo; el
+  # codigo no la conoce. Un «HSVG» aqui seria la particularidad cableandose.
+  ruta <- testthat::test_path("..", "..", "R", "monitoreo_aulas_traslape_fuente.R")
+  codigo <- gsub("(?m)#[^\n]*", "",
+                 paste(readLines(ruta, warn = FALSE), collapse = "\n"), perl = TRUE)
+  for (estudio in c("HSVG", "DAA", "CCSS")) {
+    expect_false(grepl(estudio, codigo, fixed = TRUE), info = estudio)
+  }
+})

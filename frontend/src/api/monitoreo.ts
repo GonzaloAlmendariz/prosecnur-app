@@ -789,7 +789,16 @@ export type MonitoreoAulasConfig = {
    * tiene (ADR 0005), y aquí sólo va su identificador.
    */
   traslape_fuente?: {
-    etiqueta?: string; pulso?: string; spreadsheet_id?: string; motivo?: string;
+    etiqueta?: string; pulso?: string; spreadsheet_id?: string;
+    /**
+     * La hoja del otro estudio de la que se lee quién ya fue contactado. Vacía
+     * = la que esta misma app escribe. Es declarable porque **una
+     * particularidad no puede quedarse cableada**: otro operativo puede llamar
+     * a su hoja de otra forma, y entonces se dice aquí en vez de reescribir el
+     * motor.
+     */
+    hoja?: string;
+    motivo?: string;
   } | null;
   /**
    * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
