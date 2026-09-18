@@ -194,6 +194,11 @@
   suppressWarnings(as.numeric(resumen[[hoja]]$filas %||% NA_real_))[1]
 }
 
+.mapl_retenidos <- function(res, hoja) {
+  for (h in res$hojas) if (identical(h$hoja, hoja)) return(as.character(h$rotulos_retenidos %||% character(0)))
+  character(0)
+}
+
 .mapl_hojas_datos <- c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control")
 .mapl_hojas_equipo <- c("Aulas Agendadas", "Aulas Aplicadas (Campo)")
 
@@ -257,6 +262,40 @@ test_that("libro a Sheets: un documento vacío recibe las tres hojas sembradas",
 })
 
 # --- 2. dueño por hoja: contenido del equipo = intocable ---------------------
+
+test_that("una hoja respetada dice QUÉ rótulos no le llegaron", {
+  # Respetar la hoja del equipo es correcto y no se discute. Lo que no puede
+  # pasar es que el recibo lo calle: medido el 2026-09-18 sobre CCSS, el libro
+  # ganó la columna CARRERA y las cuatro hojas que crecieron son las del equipo,
+  # así que republicar devolvía cuatro «respetada» y ninguna señal de que la
+  # columna se quedó fuera. Con el campo a cuatro días.
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  # La hoja viva del equipo tiene «ID MATCH» y no tiene «CURSO-HORARIO».
+  mock$seed("Aulas Agendadas", values = list(
+    list("ID MATCH", "OLA"),
+    list("CH 1", "agendada a mano por el equipo")
+  ))
+  mock$seed("Base de control", values = list(list("corte viejo")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+
+  res <- monitoreo_aulas_publicar_libro(
+    spreadsheet_id = "sheet_libro",
+    plan = .libro_de_prueba(),
+    partes = .mapl_partes()
+  )
+
+  retenidos <- .mapl_retenidos(res, "Aulas Agendadas")
+  expect_identical(.mapl_accion(res, "Aulas Agendadas"), "respetada")
+  # Lo que el motor produce y esa hoja no tiene, por su nombre.
+  expect_true("CURSO-HORARIO" %in% retenidos)
+  # Y lo que sí tiene NO se reporta como retenido: sin esta mitad, publicar la
+  # cabecera entera pasaría por «te faltan todas» y no diría nada.
+  expect_false("ID MATCH" %in% retenidos)
+  # Una hoja de la APP no retiene nada: se reasserta entera.
+  expect_identical(.mapl_retenidos(res, "Base de control"), character(0))
+})
+
 
 test_that("libro a Sheets: las hojas del equipo con contenido quedan respetadas", {
   skip_if_not_installed("digest")

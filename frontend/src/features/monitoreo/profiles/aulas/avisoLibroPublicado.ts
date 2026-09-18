@@ -22,7 +22,33 @@ export type HojaDelLibroPublicada = {
   accion?: string;
   /** Filas de DATOS (sin cabeceras); en `respetada`, las que el equipo ya tiene. */
   filas?: number | null;
+  /**
+   * Los rótulos que el motor produce y esa hoja NO tiene. Sólo los trae una
+   * `respetada`: es lo que la protección del equipo deja fuera.
+   */
+  rotulos_retenidos?: string[] | null;
 };
+
+/**
+ * **Una hoja respetada puede estar a la que le falta una columna entera.**
+ *
+ * Medido el 2026-09-18 sobre CCSS Perfil 2026-II, con el campo a cuatro días: el
+ * libro del motor ganó la columna CARRERA, y las cuatro hojas que por eso
+ * crecieron son justo las del equipo. Republicar devolvía cuatro «respetada» —
+ * que es la conducta correcta, hay gente tecleando ahí— y ninguna señal de que
+ * la columna con la que se distingue una carrera de otra se quedó fuera.
+ * Respetar la hoja no cambia; callar lo que no llegó, sí.
+ *
+ * Se nombran hasta tres y se cuenta el resto: la cabecera entera de «Aulas
+ * Agendadas» son decenas de rótulos y un aviso que los enumera todos no se lee.
+ */
+function conRetenidos(rotulos: string[] | null | undefined): string {
+  const limpios = (rotulos ?? []).map((r) => String(r ?? "").trim()).filter(Boolean);
+  if (!limpios.length) return "";
+  const cabeza = limpios.slice(0, 3).map((r) => `«${r}»`).join(", ");
+  const resto = limpios.length - Math.min(3, limpios.length);
+  return `; no le llegó ${cabeza}${resto > 0 ? ` y ${fmt(resto)} más` : ""}`;
+}
 
 function conFilas(filas: number | null | undefined): string {
   const n = Number(filas);
@@ -46,7 +72,8 @@ export function fraseDeHoja(h: HojaDelLibroPublicada): string {
     case "sin_cambios":
       return `«${nombre}» sin cambios`;
     case "respetada":
-      return `«${nombre}» respetada${conFilas(h.filas)}: la llena el equipo, no la app`;
+      return `«${nombre}» respetada${conFilas(h.filas)}: la llena el equipo, no la app`
+        + conRetenidos(h.rotulos_retenidos);
     default:
       return accion
         ? `«${nombre}» ${accion}${conFilas(h.filas)}`

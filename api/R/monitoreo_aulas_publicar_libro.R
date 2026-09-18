@@ -396,8 +396,11 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 #'   se emite con el ancho corrido. Sin cruce, ni una request cambia.
 #' @return lista con `ok`, `spreadsheet_id`, `spreadsheet_url`, `updated_at` y
 #'   `hojas`: una entrada `{hoja, accion, filas}` por hoja del libro, con
-#'   `accion` en `sembrada | actualizada | sin_cambios | respetada` y `filas`
-#'   contando filas de datos (sin cabeceras del layout estándar).
+#'   `accion` en `sembrada | actualizada | sin_cambios | respetada`, `filas`
+#'   contando filas de datos (sin cabeceras del layout estándar) y
+#'   `rotulos_retenidos`: los rótulos que el motor produce y esa hoja no tiene,
+#'   que sólo puede traer una `respetada` —es lo que la protección del equipo
+#'   deja fuera, y sin decirlo el recibo se lee igual que uno al día—.
 #' @keywords internal
 monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            plan = list(),
@@ -729,6 +732,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
 
   acciones <- list()
   filas <- list()
+  retenidas <- list()
   tabs <- list()
   for (hoja in hojas_equipo) {
     contenido <- .malp_filas_con_contenido(remotas[[hoja]] %||% list())
@@ -737,6 +741,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       # `tabs`, así que el motor no puede tocarla ni para formato.
       acciones[[hoja]] <- "respetada"
       filas[[hoja]] <- max(0L, contenido - .malp_cabeceras(hoja))
+      # Y lo que por eso NO le llega, dicho por su nombre: respetar la hoja del
+      # equipo es correcto, pero un recibo que sólo dice «respetada» no
+      # distingue una hoja al día de una a la que le falta una columna entera.
+      retenidas[[hoja]] <- monitoreo_aulas_libro_rotulos_retenidos(
+        producidas[[hoja]], remotas[[hoja]], .malp_cabeceras(hoja))
     } else {
       tabs[[hoja]] <- producidas[[hoja]]
       acciones[[hoja]] <- "sembrada"
@@ -955,7 +964,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     hojas = lapply(hojas_libro, function(hoja) list(
       hoja = hoja,
       accion = acciones[[hoja]],
-      filas = filas[[hoja]]
+      filas = filas[[hoja]],
+      # Sólo una hoja `respetada` puede retener algo; en las demás va vacío y el
+      # consumidor no tiene que saber cuál es cuál.
+      rotulos_retenidos = as.character(retenidas[[hoja]] %||% character(0))
     ))
   )
 }
