@@ -130,7 +130,10 @@ test_that("al agendar por HTTP, queda constancia de que el aula entró de más",
   plan <- list(
     list(operational_code = "CH 40", titular_operational_code = "CH 40",
          classroom_id = "CH 40", collection_unit_id = "CH 40", sample_role = "titular",
-         faculty = "DERECHO", eligible_n = 40, sample_status = "en_contacto"),
+         faculty = "DERECHO", eligible_n = 40, sample_status = "en_contacto",
+         # El titular CONCRETÓ: si no, activar su reserva sería un caso A
+         # —reemplazo— y no habría nada «de más» que sellar.
+         operational_status = "aplicada", effective_surveys = 18),
     list(operational_code = "R 40.1", titular_operational_code = "CH 40",
          classroom_id = "R 40.1", collection_unit_id = "R 40.1",
          sample_role = "chain_reserve", replacement_order = 1,
@@ -140,7 +143,7 @@ test_that("al agendar por HTTP, queda constancia de que el aula entró de más",
                            body = list(config = list(plan = plan)))
   expect_identical(puesto$status, 200L)
 
-  # Se agenda la reserva. Su titular sigue «en_contacto»: no ha caído.
+  # Se agenda la reserva aunque su titular ya recogió 18: entra de más.
   r <- http_post_json(srv, "/api/monitoreo/aulas/agenda", sid = sid,
                       body = list(updates = list(list(
                         operational_code = "R 40.1", sample_status = "agendada",

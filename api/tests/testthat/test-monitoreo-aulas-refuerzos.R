@@ -10,10 +10,13 @@
   ), list(...))
 }
 
-test_that("una reserva cuyo titular sigue vivo es ADICIONAL, no reemplazo", {
+test_that("una reserva cuyo titular no concretó es REEMPLAZO (caso A)", {
   # Es la distinción que Gonzalo pidió el 2026-09-18 y que el plan no guarda:
   # «no hay forma de distinguir tan bien si un reemplazo fue por reemplazo
   # organico o en verdad fue un reemplazo al aire».
+  # Gonzalo, 2026-09-18: «en CH 3 está clarísimo, nunca concretó (aunque no fue
+  # rechazo) y se agendó a su reemplazo, es un caso A, deben haber más así».
+  # No concretar es MÁS ANCHO que caer: incluye al que nunca cerró fecha.
   plan <- list(
     .ref_u("CH 1", sample_status = "en_contacto"),
     .ref_u("R 1.1", rol = "chain_reserve", titular_operational_code = "CH 1",
@@ -21,10 +24,23 @@ test_that("una reserva cuyo titular sigue vivo es ADICIONAL, no reemplazo", {
   )
   o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
   a <- Filter(function(x) identical(x$codigo, "R 1.1"), o$activadas)[[1]]
+  expect_identical(a$clase, "reemplazo")
+  expect_identical(a$caso, "A")
+  expect_match(a$por_que, "no aplicó")
+})
+
+test_that("un titular con cita por delante todavía puede concretar: no se cierra como A", {
+  # Decirlo A hoy sería adelantar un desenlace que aún no ocurrió.
+  plan <- list(
+    .ref_u("CH 1b", sample_status = "agendada", scheduled_date = "2026-09-30"),
+    .ref_u("R 1b.1", rol = "chain_reserve", titular_operational_code = "CH 1b",
+           replacement_order = 1, operational_status = "aplicada")
+  )
+  o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
+  a <- Filter(function(x) identical(x$codigo, "R 1b.1"), o$activadas)[[1]]
   expect_identical(a$clase, "adicional")
-  # Y SIN letra: entre B y C no hay evidencia, sólo intención.
   expect_identical(a$caso, "")
-  expect_match(a$por_que, "todavía vivo")
+  expect_match(a$por_que, "aún puede hacerlo")
 })
 
 test_that("un titular ya aplicado NO convierte a su reserva en complemento", {
@@ -37,7 +53,7 @@ test_that("un titular ya aplicado NO convierte a su reserva en complemento", {
   # La diferencia entre B y C es la INTENCIÓN de quien eligió el aula, y eso no
   # está en los datos. Por eso lo no declarado sale sin letra.
   plan <- list(
-    .ref_u("CH 50", operational_status = "aplicada"),
+    .ref_u("CH 50", operational_status = "aplicada", effective_surveys = 12),
     .ref_u("R 50.1", rol = "chain_reserve", titular_operational_code = "CH 50",
            replacement_order = 1, sample_status = "agendada",
            scheduled_date = "2026-09-25")
@@ -53,7 +69,7 @@ test_that("lo declarado SÍ trae su letra", {
   # `monitoreo_aulas_marcar_refuerzo()` escribe «complemento» o «refuerzo», y
   # ahí la letra es un dato, no una deducción.
   plan <- list(
-    .ref_u("CH 51", operational_status = "aplicada"),
+    .ref_u("CH 51", operational_status = "aplicada", effective_surveys = 12),
     .ref_u("R 51.1", rol = "chain_reserve", titular_operational_code = "CH 51",
            replacement_order = 1, sample_status = "agendada",
            scheduled_date = "2026-09-25", activation_origin = "complemento"),
@@ -108,7 +124,7 @@ test_that("lo que la app dedujo y selló no se publica como declarado", {
   # la certeza de una decisión. Lo advirtió la sesión vecina mirando este mismo
   # diseño el 2026-09-18, y era cierto: se medía en HSVG2026.
   plan <- list(
-    .ref_u("CH 30", sample_status = "en_contacto"),
+    .ref_u("CH 30", operational_status = "aplicada", effective_surveys = 14),
     .ref_u("R 30.1", rol = "chain_reserve", titular_operational_code = "CH 30",
            replacement_order = 1, sample_status = "agendada",
            scheduled_date = "2026-09-25")
@@ -126,7 +142,7 @@ test_that("lo que la app dedujo y selló no se publica como declarado", {
 
 test_that("sellar es idempotente y no pisa lo que alguien declaró", {
   plan <- list(
-    .ref_u("CH 31", sample_status = "en_contacto"),
+    .ref_u("CH 31", operational_status = "aplicada", effective_surveys = 14),
     .ref_u("R 31.1", rol = "chain_reserve", titular_operational_code = "CH 31",
            replacement_order = 1, sample_status = "agendada",
            scheduled_date = "2026-09-25", activation_origin = "refuerzo",
@@ -137,7 +153,7 @@ test_that("sellar es idempotente y no pisa lo que alguien declaró", {
   expect_identical(o$plan[[2]]$activation_reason, "lo pidió el coordinador")
   # Y una segunda pasada sobre un plan ya sellado tampoco sella nada.
   sin_marca <- list(
-    .ref_u("CH 32", sample_status = "en_contacto"),
+    .ref_u("CH 32", operational_status = "aplicada", effective_surveys = 14),
     .ref_u("R 32.1", rol = "chain_reserve", titular_operational_code = "CH 32",
            replacement_order = 1, sample_status = "agendada",
            scheduled_date = "2026-09-25")
@@ -167,7 +183,7 @@ test_that("el aula se encuentra por su classroom_id cuando no trae código opera
   # vecina lo midió el 2026-09-18 en otro motor: 0 de 64 filas casaban por
   # código y 63 de 64 por aula, y la pantalla decía «64 sin identificar».
   plan <- list(
-    .ref_u("CH 34", sample_status = "en_contacto"),
+    .ref_u("CH 34", operational_status = "aplicada", effective_surveys = 14),
     utils::modifyList(
       .ref_u("R 34.1", rol = "chain_reserve", titular_operational_code = "CH 34",
              replacement_order = 1, sample_status = "agendada",

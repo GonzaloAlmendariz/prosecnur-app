@@ -76,6 +76,10 @@
     activated_at = chr("activated_at"),
     replacement_order = num("replacement_order"), eligible_n = num("eligible_n"),
     expected_valid = num("expected_valid"),
+    # Lo que el PARTE dice que se recogió. Es la otra fuente de «concretó»:
+    # sin respuestas atribuidas —un plan recién importado, un fixture— la
+    # atribución da 0 para todos y ningún titular concretaría nunca.
+    effective_surveys = num("effective_surveys"),
     sex_top_1 = chr("sex_top_1"), sex_top_1_n = num("sex_top_1_n"),
     sex_top_2 = chr("sex_top_2"), sex_top_2_n = num("sex_top_2_n"),
     stringsAsFactors = FALSE
@@ -174,20 +178,39 @@
                 detalle = "su cadena no tiene titular en el plan"))
   }
   t <- hermanos[[1L]]
-  # A: el único que la evidencia sostiene.
-  if (isTRUE(estados$caida[t]) && !isTRUE(estados$aplicada[t])) {
-    return(list(clase = "reemplazo", fuente = fuente,
-                detalle = sprintf("su titular %s está en %s",
-                                  df$operational_code[t], df$sample_status[t])))
-  }
-  if (isTRUE(estados$aplicada[t])) {
-    return(list(clase = "adicional", fuente = fuente,
-                detalle = sprintf("entró con su titular %s ya aplicado (%d efectivas)",
-                                  df$operational_code[t], as.integer(df$respuestas_validas[t]))))
+  # **A no es «rechazo»: es que el titular NO CONCRETÓ.** Gonzalo lo corrigió el
+  # 2026-09-18 con un caso que la regla anterior clasificaba mal: «en CH 3 está
+  # clarísimo, nunca concretó (aunque no fue rechazo) y se agendó a su
+  # reemplazo, es un caso A, deben haber más así». CH 3 se APLICÓ —y por eso no
+  # entraba por la rama del caído— pero con cero efectivas: fue el aula de los
+  # duplicados. Aplicar no es concretar.
+  #
+  # Con la regla corregida salen 12 casos A sobre HSVG2026 en vez de 3, y los
+  # 13 restantes coinciden con la lista de refuerzos que él mismo declaró.
+  # **Concretó = recogió efectivas, por cualquiera de las dos vías.** Las
+  # respuestas atribuidas de la plataforma o lo que anotó el parte; basta una.
+  concreto <- isTRUE(estados$aplicada[t]) &&
+    (df$respuestas_validas[t] > 0 || df$effective_surveys[t] > 0)
+  if (!concreto) {
+    detalle <- if (isTRUE(estados$aplicada[t])) {
+      sprintf("su titular %s consta aplicado pero con 0 efectivas: nunca concretó",
+              df$operational_code[t])
+    } else {
+      sprintf("su titular %s no aplicó (%s)", df$operational_code[t], df$sample_status[t])
+    }
+    # **Con cita por delante el titular TODAVÍA puede concretar**, así que
+    # llamarlo A hoy sería adelantar un desenlace. Se dice lo que se sabe.
+    if (isTRUE(estados$agendada[t])) {
+      return(list(clase = "adicional", fuente = fuente,
+                  detalle = sprintf("%s, pero tiene cita el %s y aún puede hacerlo",
+                                    detalle, substr(df$scheduled_date[t], 1L, 10L))))
+    }
+    return(list(clase = "reemplazo", fuente = fuente, detalle = detalle))
   }
   list(clase = "adicional", fuente = fuente,
-       detalle = sprintf("entró con su titular %s todavía vivo (%s)",
-                         df$operational_code[t], df$sample_status[t]))
+       detalle = sprintf("su titular %s concretó con %d efectivas: esta entró de más",
+                         df$operational_code[t],
+                         as.integer(max(df$respuestas_validas[t], df$effective_surveys[t]))))
 }
 
 #' Los refuerzos del operativo, su seguimiento y el margen contra el techo.
