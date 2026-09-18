@@ -222,8 +222,8 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
   # consume techo. Contarla gastaba margen que sí existe.
   cadena <- ifelse(nzchar(df$titular_operational_code), df$titular_operational_code,
                    df$operational_code)
-  cadenas_aplicadas <- unique(cadena[e$aplicada])
-  huerfana <- e$agendada & cadena %in% cadenas_aplicadas & df$sample_role != "extra_reserve_pool"
+  huerfana <- e$agendada & cadena %in% unique(cadena[e$aplicada]) &
+    df$sample_role != "extra_reserve_pool"
   gastadas <- sum(e$aplicada)
   por_gastar <- sum(e$agendada & !huerfana)
   techo <- .marf_techo(cfg)
@@ -236,8 +236,10 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
       por_gastar = as.integer(por_gastar),
       al_cierre = as.integer(gastadas + por_gastar),
       # Cuántos refuerzos caben todavía. `NA` sin techo declarado: decir un
-      # número ahí sería inventarle un límite al estudio.
-      caben = if (techo > 0) as.integer(techo - gastadas - por_gastar) else NA_integer_,
+      # número ahí sería inventarle un límite al estudio. Sale del MISMO cuerpo
+      # que usa la lista de candidatos: dos copias acabarían discrepando en el
+      # detalle que más cuesta, las citas huérfanas.
+      caben = .marf_techo_caben(df, e, cfg),
       vencidas = as.integer(sum(e$vencida)),
       citas_huerfanas = as.integer(sum(huerfana)),
       codigos_huerfanos = I(as.character(df$operational_code[huerfana]))
@@ -415,4 +417,107 @@ monitoreo_aulas_cuotas_urgentes <- function(riesgo, hoy = Sys.Date(),
   }
   if (!length(out)) return(list())
   out[order(-vapply(out, function(x) x$urgencia, numeric(1)))]
+}
+
+# ---------------------------------------------------------------------------
+# Los candidatos a refuerzo, ordenados y explicados. La app ORDENA; Gonzalo ELIGE.
+#
+# Su vara, textual (2026-09-18): «Tampoco sobreprometer aulas, podemos tener los
+# refuerzos ordenados por orden de urgencia y de ellos escoger 10 por ejemplo,
+# pero eso ya lo haria yo uno por uno, sabiendo que informacion del contexto de
+# cada uno y la razon por la cual uno es mas importante que el otro o porque
+# esta facultad esta en mas riesgo».
+#
+# De ahí las tres reglas de este bloque:
+#
+#   1. **Una lista, no un reparto.** Un cupo por facultad decidido aquí —«tres
+#      para Letras, cuatro para Gestión»— es exactamente la decisión que él se
+#      reserva. Sale una lista única, ordenada, y él corta donde quiera.
+#   2. **Cada candidato carga el porqué de SU cuota**, no una nota al pie: el
+#      número 7 tiene que poder defenderse contra el 8 sin abrir otra pantalla.
+#   3. **No se sobrepromete.** `dentro_del_techo` marca hasta dónde llega el
+#      sitio que queda; lo que sobra sigue en la lista —para el día que el techo
+#      suba o alguien caiga— pero declarado como lo que es.
+
+#' Los candidatos a refuerzo de cada cuota urgente.
+#'
+#' @param plan,responses,cfg,hoy como en `monitoreo_aulas_refuerzos()`.
+#' @param riesgo salida de `monitoreo_aulas_riesgo_facultades()`: de ahí salen
+#'   las cuotas y su urgencia. Sin él no hay a qué brecha atribuir un refuerzo.
+#' @param por_cuota cuántos candidatos ofrecer por cuota. Más de cuatro sobre la
+#'   misma brecha es ofrecer opciones que ya no la cambian.
+#' @return `{ok, motivo, hoy, caben, candidatos}`.
+#' @export
+monitoreo_aulas_candidatos_refuerzo <- function(plan = list(), responses = NULL,
+                                                cfg = list(), riesgo = NULL,
+                                                hoy = Sys.Date(), por_cuota = 4L) {
+  vacio <- function(motivo) list(ok = FALSE, motivo = motivo, hoy = as.character(hoy),
+                                 caben = NA_integer_, candidatos = list())
+  urgentes <- monitoreo_aulas_cuotas_urgentes(riesgo, hoy = hoy)
+  if (!length(urgentes)) {
+    return(vacio("ninguna cuota está por debajo de su meta: no hay a qué brecha atribuir un refuerzo."))
+  }
+  cfg <- monitoreo_aulas_normalize_config(cfg)
+  df <- .marf_marco(plan, responses, cfg)
+  if (is.null(df) || !nrow(df)) return(vacio("el estudio todavía no tiene plan de aulas."))
+  e <- .marf_estados(df, hoy)
+  libre <- e$disponible & df$sample_role != "titular"
+  if (!any(libre)) {
+    return(vacio("no queda ninguna reserva ni extra sin usar: los refuerzos tendrían que salir de un marco nuevo."))
+  }
+  caben <- .marf_techo_caben(df, e, cfg)
+
+  out <- list()
+  usados <- character(0)
+  for (u in urgentes) {
+    m <- libre & df$faculty == u$facultad & !(df$operational_code %in% usados)
+    if (!any(m)) next
+    idx <- which(m)
+    aporta <- if (identical(u$sexo, "M")) df$hombres[idx] else df$mujeres[idx]
+    # Por lo que aporta a la celda que falta, no por tamaño: un aula grande de
+    # mayoría contraria no mueve la cuota que se quiere cerrar.
+    idx <- idx[order(-aporta, -df$eligible_n[idx])]
+    idx <- utils::head(idx, max(1L, as.integer(por_cuota)))
+    for (i in idx) {
+      usados <- c(usados, df$operational_code[i])
+      out[[length(out) + 1L]] <- list(
+        cuota = sprintf("%s · %s", u$facultad,
+                        if (identical(u$sexo, "F")) "Mujeres" else "Hombres"),
+        facultad = u$facultad, sexo = u$sexo, faltan = u$faltan,
+        urgencia_de_la_cuota = u$urgencia,
+        por_que_la_cuota = u$por_que,
+        admite_refuerzo = isTRUE(u$admite_refuerzo),
+        codigo = df$operational_code[i], rol = df$sample_role[i],
+        curso = df$course_name[i], docente = df$teacher[i],
+        correo = df$teacher_email[i], horario = df$schedule[i],
+        elegibles = as.integer(df$eligible_n[i]),
+        aporta = as.integer(if (identical(u$sexo, "M")) df$hombres[i] else df$mujeres[i]),
+        hombres = as.integer(df$hombres[i]), mujeres = as.integer(df$mujeres[i])
+      )
+    }
+  }
+  if (!length(out)) {
+    return(vacio("las cuotas cortas no tienen ninguna reserva libre en su propia facultad."))
+  }
+  for (i in seq_along(out)) {
+    out[[i]]$orden <- i
+    out[[i]]$dentro_del_techo <- if (is.na(caben)) NA else i <= caben
+  }
+  list(ok = TRUE, motivo = "", hoy = as.character(hoy), caben = caben, candidatos = out)
+}
+
+#' Cuántos refuerzos caben todavía bajo el techo declarado.
+#'
+#' Extraído para que el conteo del techo tenga UN solo cuerpo: lo usan el
+#' seguimiento y la lista de candidatos, y dos copias acabarían discrepando en
+#' el detalle que más cuesta —las citas huérfanas, que no consumen techo—.
+#' @keywords internal
+.marf_techo_caben <- function(df, e, cfg) {
+  techo <- .marf_techo(cfg)
+  if (techo <= 0) return(NA_integer_)
+  cadena <- ifelse(nzchar(df$titular_operational_code), df$titular_operational_code,
+                   df$operational_code)
+  huerfana <- e$agendada & cadena %in% unique(cadena[e$aplicada]) &
+    df$sample_role != "extra_reserve_pool"
+  as.integer(techo - sum(e$aplicada) - sum(e$agendada & !huerfana))
 }

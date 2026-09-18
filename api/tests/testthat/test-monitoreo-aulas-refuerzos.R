@@ -219,3 +219,105 @@ test_that("la lista sale ordenada de más a menos urgente", {
   expect_identical(u[[1]]$facultad, "PSICOLOGÍA")
   expect_gte(u[[1]]$urgencia, u[[2]]$urgencia)
 })
+
+# --- los candidatos: la app ordena, Gonzalo elige ---
+
+.ref_plan_con_reservas <- function() {
+  # Dos facultades cortas y reservas libres en cada una, con mezclas de sexo
+  # opuestas para que elegir por aporte se note.
+  list(
+    .ref_u("CH 10", fac = "DERECHO", operational_status = "aplicada"),
+    .ref_u("R 10.1", fac = "DERECHO", rol = "chain_reserve",
+           titular_operational_code = "CH 10", replacement_order = 1,
+           eligible_n = 30, sex_top_1 = "F", sex_top_1_n = 28,
+           sex_top_2 = "M", sex_top_2_n = 2),
+    .ref_u("R 10.2", fac = "DERECHO", rol = "chain_reserve",
+           titular_operational_code = "CH 10", replacement_order = 2,
+           eligible_n = 60, sex_top_1 = "M", sex_top_1_n = 55,
+           sex_top_2 = "F", sex_top_2_n = 5)
+  )
+}
+
+.ref_riesgo_una <- function(sexo = "M", ...) {
+  list(ok = TRUE, facultades = list(utils::modifyList(list(
+    facultad = "DERECHO", agendadas = 2, sin_agendar = 0, reservas_libres = 50,
+    campo_cerrado = FALSE, proxima_cita = "2026-10-05", ultima_cita = "2026-10-10",
+    sexo = list(list(sexo = sexo, cuota = 100, logrado = 80, al_cierre = 110,
+                     margen = 10, margen_declarado = NA_real_, prob_cierre = 1))
+  ), list(...))))
+}
+
+test_that("el candidato se elige por lo que aporta a la celda que falta, no por su tamaño", {
+  # Un aula grande de mayoría contraria no mueve la cuota que se quiere cerrar.
+  hombres <- monitoreo_aulas_candidatos_refuerzo(
+    .ref_plan_con_reservas(), data.frame(), list(),
+    riesgo = .ref_riesgo_una("M"), hoy = as.Date("2026-09-18"))
+  expect_true(isTRUE(hombres$ok))
+  expect_identical(hombres$candidatos[[1]]$codigo, "R 10.2")
+  mujeres <- monitoreo_aulas_candidatos_refuerzo(
+    .ref_plan_con_reservas(), data.frame(), list(),
+    riesgo = .ref_riesgo_una("F"), hoy = as.Date("2026-09-18"))
+  # La misma facultad y el mismo plan: cambia la celda y cambia el primero.
+  expect_identical(mujeres$candidatos[[1]]$codigo, "R 10.1")
+})
+
+test_that("cada candidato carga el porqué de SU cuota, no una nota al pie", {
+  # El número 7 tiene que poder defenderse contra el 8 sin abrir otra pantalla.
+  o <- monitoreo_aulas_candidatos_refuerzo(
+    .ref_plan_con_reservas(), data.frame(), list(),
+    riesgo = .ref_riesgo_una("M", ultima_cita = "2026-09-20", reservas_libres = 3),
+    hoy = as.Date("2026-09-18"))
+  c1 <- o$candidatos[[1]]
+  expect_gt(length(as.character(c1$por_que)), 0L)
+  expect_true(any(grepl("agenda se acaba", as.character(c1$por_que))))
+  expect_true(is.finite(c1$urgencia_de_la_cuota))
+  expect_identical(c1$cuota, "DERECHO · Hombres")
+})
+
+test_that("no se sobrepromete: el techo marca hasta dónde llega el sitio", {
+  # Su vara: «Tampoco sobreprometer aulas». Lo que excede sigue en la lista
+  # —para el día que el techo suba o alguien caiga— pero declarado como tal.
+  o <- monitoreo_aulas_candidatos_refuerzo(
+    .ref_plan_con_reservas(), data.frame(), list(techo_aulas_campo = 2),
+    riesgo = .ref_riesgo_una("M"), hoy = as.Date("2026-09-18"))
+  # 1 aula aplicada, techo 2 → cabe 1.
+  expect_equal(o$caben, 1)
+  expect_true(isTRUE(o$candidatos[[1]]$dentro_del_techo))
+  expect_false(isTRUE(o$candidatos[[2]]$dentro_del_techo))
+})
+
+test_that("sin techo declarado no se marca ni se inventa un corte", {
+  o <- monitoreo_aulas_candidatos_refuerzo(
+    .ref_plan_con_reservas(), data.frame(), list(),
+    riesgo = .ref_riesgo_una("M"), hoy = as.Date("2026-09-18"))
+  expect_true(is.na(o$caben))
+  expect_true(all(vapply(o$candidatos, function(c) is.na(c$dentro_del_techo), logical(1))))
+})
+
+test_that("un aula no se ofrece dos veces aunque sirva a dos cuotas de su facultad", {
+  # Las dos celdas de una facultad comparten banca: proponer la misma aula en
+  # las dos la contaría dos veces contra el techo.
+  r <- list(ok = TRUE, facultades = list(utils::modifyList(
+    .ref_riesgo_una("M")$facultades[[1]],
+    list(sexo = list(
+      list(sexo = "M", cuota = 100, logrado = 80, al_cierre = 110, margen = 10,
+           margen_declarado = NA_real_, prob_cierre = 1),
+      list(sexo = "F", cuota = 100, logrado = 70, al_cierre = 105, margen = 5,
+           margen_declarado = NA_real_, prob_cierre = 1))))))
+  o <- monitoreo_aulas_candidatos_refuerzo(.ref_plan_con_reservas(), data.frame(), list(),
+                                           riesgo = r, hoy = as.Date("2026-09-18"))
+  codigos <- vapply(o$candidatos, function(c) c$codigo, character(1))
+  expect_identical(length(codigos), length(unique(codigos)))
+})
+
+test_that("sin cuotas cortas no se proponen refuerzos, y se dice por qué", {
+  r <- .ref_riesgo_una("M")
+  r$facultades[[1]]$sexo <- list(list(sexo = "M", cuota = 100, logrado = 130,
+                                      al_cierre = 140, margen = 40,
+                                      margen_declarado = NA_real_, prob_cierre = 1))
+  o <- monitoreo_aulas_candidatos_refuerzo(.ref_plan_con_reservas(), data.frame(), list(),
+                                           riesgo = r, hoy = as.Date("2026-09-18"))
+  expect_false(isTRUE(o$ok))
+  expect_match(o$motivo, "por debajo de su meta")
+  expect_length(o$candidatos, 0L)
+})
