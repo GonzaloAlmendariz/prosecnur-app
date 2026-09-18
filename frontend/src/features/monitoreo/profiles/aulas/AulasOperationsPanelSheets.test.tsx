@@ -137,3 +137,37 @@ describe("AulasOperationsPanel — publicar al Sheets", () => {
     expect(html).toContain("no se tocan");
   });
 });
+
+/**
+ * **Releer el cruce con el otro estudio**, a petición (Gonzalo, 2026-09-18).
+ *
+ * El botón existe SÓLO con fuente declarada. Un botón que únicamente puede
+ * fallar ocupa sitio para no hacer nada, y su causa —que el estudio no declara
+ * contra quién se cruza— no se arregla pulsándolo.
+ */
+describe("AulasOperationsPanel: releer el cruce", () => {
+  it("sin fuente declarada el botón NO se pinta", () => {
+    const html = pintar({ config: conPlan(), onRecalcularTraslape: undefined });
+    expect(html).not.toContain("Releer");
+  });
+
+  it("con fuente declarada dice contra quién relee", () => {
+    // El nombre del otro estudio en el rótulo: «Releer el cruce» a secas
+    // obligaría a recordar contra qué se cruza este proyecto.
+    const html = pintar({
+      config: conPlan(), onRecalcularTraslape: () => {}, traslapeDe: "HSVG",
+    });
+    expect(html).toContain("Releer cruce con HSVG");
+    // Y el título declara el alcance, que es lo que quita el miedo a pulsarlo:
+    // esto no escribe nada en las hojas del otro operativo.
+    expect(html).toContain("Sólo lee: no escribe nada en sus hojas");
+  });
+
+  it("sin plan importado queda apagado, con su motivo", () => {
+    const html = pintar({
+      config: { enabled: true } as unknown as Props["config"],
+      onRecalcularTraslape: () => {}, traslapeDe: "HSVG",
+    });
+    expect(html).toContain("Primero importa el plan de cursos-horario");
+  });
+});

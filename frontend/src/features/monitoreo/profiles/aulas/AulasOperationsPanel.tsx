@@ -75,11 +75,20 @@ export type AulasOperationsPanelProps = {
   /** Publica el libro al Sheets del operativo. Con enlace lo reemplaza y lo
    *  recuerda; `undefined` usa el destino ya recordado en el proyecto. */
   onPublicarASheets?: (enlace?: string) => void;
+  /**
+   * Releer el cruce con el otro estudio. **Ausente sin fuente declarada**: un
+   * botón que sólo puede fallar ocupa sitio para no hacer nada, y la causa —que
+   * el estudio no declara contra quién se cruza— no se arregla pulsándolo.
+   */
+  onRecalcularTraslape?: () => void;
+  /** Contra quién se cruza, para que el botón diga a quién relee. */
+  traslapeDe?: string;
 };
 
 export function AulasOperationsPanel({
   config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
-  onLeerDeSheets, onPublicarASheets, selloDeLibro = null, sincronizadoEn = "",
+  onLeerDeSheets, onPublicarASheets, onRecalcularTraslape, traslapeDe = "",
+  selloDeLibro = null, sincronizadoEn = "",
 }: AulasOperationsPanelProps) {
   // Se calcula aquí y no en el render de abajo para que la frase exista una
   // sola vez: dos sitios decidiendo si el Sheets está al día acabarían
@@ -335,6 +344,27 @@ export function AulasOperationsPanel({
           >
             {busy ? <Loader2 size={14} className="pulso-spin" /> : <UploadCloud size={14} />}
             <span>Publicar al Sheets</span>
+          </button>
+        ) : null}
+        {/* **Releer el cruce con el otro estudio.** Va junto a las dos de Sheets
+            porque es la misma familia —leer algo de fuera— y no junto a
+            «Publicar»: esto NO escribe nada, ni aquí ni allá. El otro estudio
+            se lee en solo lectura, que puede tener gente agendando en vivo.
+
+            Sin fuente declarada el botón no existe (ver `onRecalcularTraslape`):
+            pulsar algo que sólo puede fallar no acerca a la solución, que es
+            declarar contra quién se cruza. */}
+        {onRecalcularTraslape ? (
+          <button
+            type="button"
+            onClick={() => onRecalcularTraslape()}
+            disabled={busy || !hayPlan}
+            title={!hayPlan
+              ? "Primero importa el plan de cursos-horario"
+              : `Vuelve a leer ${traslapeDe || "el otro estudio"} y recalcula qué unidades comparte con éste. Sólo lee: no escribe nada en sus hojas`}
+          >
+            {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
+            <span>{traslapeDe ? `Releer cruce con ${traslapeDe}` : "Releer el cruce"}</span>
           </button>
         ) : null}
         <input
