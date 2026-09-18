@@ -983,6 +983,13 @@ export type MonitoreoAulasAvanceCuota = {
   /** `""` o el porqué de la degradación, con sellos. */
   motivo: string;
   /**
+   * **Por qué el eje no puede resolver, cuando no puede.** Distinto de `motivo`,
+   * que es la vigencia de las metas: son dos degradaciones y pueden darse a la
+   * vez. Lo llena un eje por PERSONA al que le falta la variable del código o el
+   * padrón; con el eje en el aula va siempre vacío.
+   */
+  aviso_eje?: string;
+  /**
    * **De qué son estas celdas.**
    *
    * `facultades`, `facultad` y `faculty_key` conservan sus nombres —contrato

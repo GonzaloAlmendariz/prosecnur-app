@@ -148,6 +148,7 @@ export function AulasPestanaCuotas({
   // monte decide ahora DOS cosas —él mismo y dónde va la procedencia del
   // denominador—, y dos copias de la misma regla divergen tarde o temprano.
   const hayPanelDeSexo = Boolean(proyeccion || (facultadEnFoco && proyeccionDelEstudio?.length));
+  const avisoDelEje = String(dashboard.avance_cuota?.aviso_eje ?? "").trim();
   return (
     <>
       {/* **Los cinco bloques del boceto del 2026-09-09**, en su orden dictado:
@@ -426,6 +427,16 @@ export function AulasPestanaCuotas({
             Éste no tiene guarda y es el que declara la lectura de la cuota, así
             que las respuestas que no entran en ninguna meta se leen junto a los
             grupos que no la alcanzan. Ver la nota de `AulasBolsasDelAvance`. */}
+        {/* **Por qué ninguna respuesta va a caer en su celda, dicho ANTES del
+            campo.** El motor lo diagnostica desde que el estudio se configura
+            —le falta la variable del código, o el padrón— y hasta el 2026-09-18
+            lo escribía en un atributo que no leía nadie: ni el motor que lo
+            llama, ni el payload, ni esta pantalla. Sin esto, el coordinador ve
+            todas las respuestas en la bolsa «sin nivel» y ninguna palabra sobre
+            la causa. Va lo primero del panel: condiciona todo lo que sigue. */}
+        {avisoDelEje ? (
+          <p className="mon-profile-muted" role="status">{avisoDelEje}</p>
+        ) : null}
         {cuotaDiseno.total ? <AulasBolsasDelAvance total={cuotaDiseno.total} /> : null}
         <AulasTresLecturas
           celdas={deLaFacultad(
