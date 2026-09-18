@@ -2888,7 +2888,23 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         n_brecha <- sum(monitoreo_aulas_celda_en_deuda(quota_status))
         sprintf("%s grupo%s de facultad y sexo con brecha.", n_brecha,
                 if (n_brecha == 1L) "" else "s")
-      }) else "Sin cuota sexo x facultad detectable.",
+      }) else if (length((cfg$design_targets %||% list())$facultades %||% list())) {
+        # **«No aplica» NO es «no lo sabemos».** El texto decía «sin cuota sexo
+        # x facultad detectable», que se lee como que la app buscó un dato y no
+        # lo encontró. En un estudio cuya cuota es por el eje y nada más —CCSS
+        # prometió sus metas por nivel curricular, con sexo y carrera
+        # referenciales— no falta nada: el diseño no lo prometió. Son los tres
+        # estados de siempre —no se sabe, medimos cero, no aplica— con el
+        # tercero colapsado en el primero.
+        #
+        # El ESTADO se queda en «sin comprobar», que es correcto: no hay nada
+        # que comprobar. Lo que cambia es el porqué, que es para lo que existe
+        # el detalle.
+        sprintf(paste(
+          "El diseño no fija cuota por sexo: la cuota de este estudio es por %s,",
+          "y el sexo se describe sin exigirle nada."),
+          tolower(.monitoreo_scalar(monitoreo_aulas_eje(cfg)$etiqueta, "facultad")))
+      } else "El estudio no declara cuota por sexo y grupo que comprobar.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (partes_comprobables > 0L) {
