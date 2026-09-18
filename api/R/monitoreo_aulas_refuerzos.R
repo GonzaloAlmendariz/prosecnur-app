@@ -124,14 +124,23 @@
 #'   * `refuerzo` — su titular sigue vivo o ya se aplicó, así que a esta aula la
 #'     eligió alguien para tapar una brecha.
 #'
-#' @return lista con `clase` y `fuente` (`registrada` si el plan lo dice,
-#'   `reconstruida` si hubo que deducirlo).
+#' @return lista con `clase` y `fuente`. La fuente tiene TRES grados, no dos:
+#'   `declarada` (alguien la marcó), `sellada` (la app la dedujo al agendar y
+#'   la escribió) y `reconstruida` (se deduce ahora, sin constar en el plan).
+#'
+#'   Los tres existen porque fundirlos le daría a una deducción la certeza de
+#'   una decisión. Lo advirtió la sesión vecina el 2026-09-18 mirando este
+#'   mismo diseño: «si las deduces y las publicas iguales, le das a 14 filas una
+#'   certeza que no tienen, y dentro de un mes nadie va a poder distinguir la
+#'   declarada de la inferida». Tenía razón: con dos grados, sellar convertía
+#'   ocho deducciones en «registrada».
 #' @keywords internal
 .marf_procedencia <- function(df, estados, i) {
   origen <- tolower(trimws(df$activation_origin[i]))
   if (nzchar(origen)) {
     clase <- if (grepl("refuerzo|complemento|extra", origen)) "refuerzo" else "reemplazo"
-    return(list(clase = clase, fuente = "registrada", detalle = df$activation_origin[i]))
+    fuente <- if (identical(origen, .MARF_ORIGEN_INFERIDO)) "sellada" else "declarada"
+    return(list(clase = clase, fuente = fuente, detalle = df$activation_origin[i]))
   }
   if (identical(df$sample_role[i], "extra_reserve_pool")) {
     return(list(clase = "banco", fuente = "reconstruida",
@@ -520,4 +529,98 @@ monitoreo_aulas_candidatos_refuerzo <- function(plan = list(), responses = NULL,
   huerfana <- e$agendada & cadena %in% unique(cadena[e$aplicada]) &
     df$sample_role != "extra_reserve_pool"
   as.integer(techo - sum(e$aplicada) - sum(e$agendada & !huerfana))
+}
+
+# ---------------------------------------------------------------------------
+# Sellar la procedencia al agendar: que un refuerzo siga constando como tal.
+#
+# Gonzalo, 2026-09-18: «Que los refuerzos se mantengan guardados en pulso»; y
+# antes, describiendo lo que pasaba: «el sheets los marco de morados y muchos se
+# agendaron entonces ya no estuvieron marcados como refuerzo».
+#
+# **Lo que faltaba no era la capacidad.** `monitoreo_aulas_marcar_refuerzo()`
+# existe desde el 11/09 y escribe los cuatro campos. Lo que pasa es que casi
+# nadie pasa por ella: medido el 2026-09-18 sobre HSVG26ULT2, de las 15 aulas
+# que entraron como refuerzo **una sola** tiene `activation_origin`. Las otras
+# catorce se agendaron directo, y al agendarse su `sample_status` pasó a
+# `agendada` —perdiendo el morado de `refuerzo_por_contactar`— sin que nada
+# dejara constancia de por qué estaban ahí.
+#
+# **Activar una reserva cuyo titular no ha caído ES un refuerzo**, y eso la app
+# lo sabe en el momento de agendar. Sellarlo entonces es registrar un hecho,
+# no adivinarlo después.
+#
+# **Lo inferido se marca como inferido.** El sello dice `refuerzo_inferido`,
+# distinto del `refuerzo` que escribe quien lo declara a mano: son dos grados
+# de certeza y fundirlos haría pasar por decisión lo que es una deducción. El
+# seguimiento los separa en `procedencia_fuente`.
+#
+# Es IDEMPOTENTE y no pisa: una fila que ya trae origen se queda como está.
+# Por eso la primera pasada también repara las catorce de atrás.
+
+.MARF_ORIGEN_INFERIDO <- "refuerzo_inferido"
+
+#' Deja constancia de por qué entró cada aula no titular que ya está en juego.
+#'
+#' @param plan filas del plan (crudo o normalizado).
+#' @param ahora sello de tiempo; por defecto el del sistema.
+#' @param hoy fecha de referencia para decidir qué está en juego.
+#' @return `{plan, selladas, codigos}`. `selladas = 0` cuando no había nada que
+#'   sellar, que es lo normal en cuanto el plan ya pasó una vez por aquí.
+#' @export
+monitoreo_aulas_sellar_procedencia <- function(plan = list(), ahora = NULL,
+                                               hoy = Sys.Date()) {
+  filas <- plan %||% list()
+  if (!length(filas)) return(list(plan = filas, selladas = 0L, codigos = character(0)))
+  df <- .marf_marco(filas, NULL, list())
+  if (is.null(df) || !nrow(df)) {
+    return(list(plan = filas, selladas = 0L, codigos = character(0)))
+  }
+  e <- .marf_estados(df, hoy)
+  ahora <- .monitoreo_scalar(ahora, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  # **Se indexa por las DOS claves, no por una con `%||%`.** `%||%` en R sólo
+  # cae por NULL: con `operational_code` presente pero VACÍO, el
+  # `classroom_id` no se usaría nunca. La sesión vecina lo midió el mismo día en
+  # otro motor —0 de 64 filas casaban por `operational_code` y 63 de 64 por
+  # `classroom_id`— y la pantalla decía «64 sin curso-horario identificable».
+  #
+  # El código operativo se escribe DESPUÉS, así que gana si las dos claves de
+  # dos unidades distintas colisionan.
+  pos <- list()
+  for (k in seq_along(filas)) {
+    aula <- .monitoreo_scalar(filas[[k]]$classroom_id, "")
+    if (nzchar(aula) && is.null(pos[[aula]])) pos[[aula]] <- k
+  }
+  for (k in seq_along(filas)) {
+    cod <- .monitoreo_scalar(filas[[k]]$operational_code, "")
+    if (nzchar(cod)) pos[[cod]] <- k
+  }
+  selladas <- character(0)
+  for (i in which((e$aplicada | e$agendada) & df$sample_role != "titular")) {
+    if (nzchar(df$activation_origin[i])) next
+    pr <- .marf_procedencia(df, e, i)
+    if (!identical(pr$clase, "refuerzo")) next
+    # Las DOS claves en orden, no una u otra: el normalizador INVENTA un
+    # `operational_code` cuando la fila no lo trae —una reserva sin código sale
+    # como `R 2.1`—, así que un fallback por «está vacío» no se dispara nunca y
+    # la fila no se encuentra. Se prueba el código y, si no está en el índice,
+    # el aula.
+    k <- NULL
+    for (clave in c(df$operational_code[i], df$classroom_id[i])) {
+      if (!nzchar(clave)) next
+      k <- pos[[clave]]
+      if (!is.null(k)) break
+    }
+    if (is.null(k) || is.na(k)) next
+    filas[[k]]$activation_origin <- .MARF_ORIGEN_INFERIDO
+    filas[[k]]$activation_reason <- pr$detalle
+    if (!nzchar(.monitoreo_scalar(filas[[k]]$activated_at, ""))) {
+      filas[[k]]$activated_at <- ahora
+    }
+    if (!nzchar(.monitoreo_scalar(filas[[k]]$activated_for, ""))) {
+      filas[[k]]$activated_for <- df$faculty[i]
+    }
+    selladas <- c(selladas, df$operational_code[i])
+  }
+  list(plan = filas, selladas = length(selladas), codigos = selladas)
 }
