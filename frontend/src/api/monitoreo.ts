@@ -780,6 +780,18 @@ export type MonitoreoAulasConfig = {
     publicado_en?: string; synced_at?: string; hojas?: number; partes?: number;
   } | null;
   /**
+   * **Contra qué otro estudio se cruza, y de dónde se lee.** Es una decisión de
+   * ESTE estudio —no un dato del otro— y por eso se persiste, igual que el eje
+   * de cuotas. Sin ella el cruce sólo lo puede inyectar un script y la app no
+   * tiene cómo releerlo, que fue el caso hasta el 2026-09-18.
+   *
+   * No lleva credenciales: el Sheets se lee con el token que el proyecto ya
+   * tiene (ADR 0005), y aquí sólo va su identificador.
+   */
+  traslape_fuente?: {
+    etiqueta?: string; pulso?: string; spreadsheet_id?: string; motivo?: string;
+  } | null;
+  /**
    * Los TRAMOS del operativo: rangos de fecha con nombre propio (dictado
    * 2026-09-15). Lo que se guarda es la decisión —el rango y cómo se llama—;
    * su estado (citas, aplicadas, por aplicar) se deriva del plan y viaja en el
@@ -6016,6 +6028,47 @@ export async function apiMonitoreoAulasPublicarLibro(enlace?: string) {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(limpio ? { url: limpio } : {}),
+    }),
+  );
+}
+
+/**
+ * **Relee el cruce con el otro estudio, a petición.**
+ *
+ * Decisión de Gonzalo (2026-09-18) entre «al abrir», «al sincronizar» y ésta:
+ * al abrir encarece el warm start con el plan ajeno entero y un Sheets vivo, y
+ * al sincronizar lo ata a una acción que además PUBLICA. A petición es
+ * explícito, y encaja con que el recibo ya diga la edad del cruce.
+ *
+ * El otro estudio se lee en SOLO LECTURA: puede haber gente agendando en vivo
+ * en sus hojas. Y el traslape informa, no descuenta ni excluye.
+ */
+export async function apiMonitoreoAulasRecalcularTraslape() {
+  return handle<{
+    ok: true;
+    traslape: {
+      unidades: number;
+      con_traslape: number;
+      por_veredicto: Record<string, number>;
+      etiqueta?: string;
+      leido_en?: string;
+      fuente?: string;
+      dias?: number | null;
+      aviso?: string;
+    };
+    /**
+     * Si se pudo leer el libro vivo del otro estudio. Sin él el cruce vale
+     * igual —los planes se cruzan— pero **no puede afirmar quién fue
+     * contactado**, y callarlo sería dar por medido lo que no se midió.
+     */
+    libro_leido: boolean;
+    aulas_del_otro: number;
+    saved_project: boolean;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/traslape/recalcular", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
     }),
   );
 }

@@ -230,3 +230,66 @@ export function avisoLibroPublicado(res: {
     : lectura.tono;
   return { texto: partes.join(" "), tono };
 }
+
+/**
+ * El recibo de releer el cruce con el otro estudio.
+ *
+ * Dice las tres cosas que decide quien lo pulsa: **cuántas unidades comparten
+ * algo**, **de qué tipo** —que es lo que separa «su docente ya habló con
+ * alguien» de «ya aplicaron en esa aula»— y **si el libro vivo se pudo leer**.
+ * Lo tercero no es un detalle técnico: sin él el cruce no puede afirmar quién
+ * fue contactado, y un recibo que lo calle da por medido lo que no se midió.
+ */
+export function avisoTraslapeRecalculado(res: {
+  traslape?: {
+    unidades?: number;
+    con_traslape?: number;
+    por_veredicto?: Record<string, number> | null;
+    etiqueta?: string;
+  } | null;
+  libro_leido?: boolean;
+  aulas_del_otro?: number;
+}): { texto: string; tono: TonoAviso } {
+  const t = res.traslape ?? {};
+  const con = Number(t.con_traslape ?? 0) || 0;
+  const total = Number(t.unidades ?? 0) || 0;
+  const quien = (t.etiqueta ?? "").trim() || "el otro estudio";
+  if (!total) {
+    return {
+      texto: `El cruce con ${quien} no devolvió ninguna unidad: revisa la fuente declarada.`,
+      tono: "atencion",
+    };
+  }
+  /**
+   * **El veredicto sin la cola que repite el estudio.** El motor los redacta
+   * enteros —«AULA EN EL PLAN DE HSVG»— porque cada uno viaja solo, en su celda
+   * del libro. Aquí van cuatro seguidos en una frase que ya empieza diciendo
+   * «Cruce con HSVG», así que la cola se repite cinco veces; y al pasarlos a
+   * minúscula el nombre del estudio salía «hsvg», que no es como se escribe.
+   * Mismo recorte que hace la lista de la reserva dirigida con su celda.
+   */
+  const sinLaCola = (v: string) => {
+    const texto = v.toLocaleLowerCase("es").trim();
+    const cola = quien.toLocaleLowerCase("es");
+    for (const sufijo of [` de ${cola}`, ` en ${cola}`]) {
+      if (texto.endsWith(sufijo)) return texto.slice(0, -sufijo.length);
+    }
+    // Si el motor cambia la redacción no casa, y se muestra entero: mutilarlo
+    // por una posición adivinada sería peor que repetir el nombre.
+    return texto;
+  };
+  const partes = Object.entries(t.por_veredicto ?? {})
+    // De mayor a menor: la lista existe para que el primero sea el que más pesa.
+    .sort((a, b) => Number(b[1]) - Number(a[1]))
+    .map(([k, v]) => `${fmt(v)} ${sinLaCola(k)}`);
+  const detalle = partes.length ? ` — ${partes.join(", ")}` : "";
+  // El libro NO leído no es un fallo del cruce: es un alcance menor, y el tono
+  // lo dice sin convertirlo en error.
+  const sinLibro = res.libro_leido === false
+    ? ` No se pudo leer el libro vivo de ${quien}, así que el cruce dice quién está en su plan pero no a quién ya contactaron.`
+    : "";
+  return {
+    texto: `Cruce con ${quien} releído: ${fmt(con)} de ${fmt(total)} unidades comparten algo${detalle}.${sinLibro}`,
+    tono: res.libro_leido === false ? "atencion" : "ok",
+  };
+}

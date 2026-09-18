@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avisoLibroPublicado } from "./avisoLibroPublicado";
+import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
 
 /**
  * Qué pasó con cada hoja al publicar el libro en el Sheets del operativo.
@@ -227,5 +227,69 @@ describe("las hojas que encogen", () => {
     });
     expect(texto).not.toContain("menos contenido");
     expect(tono).toBe("ok");
+  });
+});
+
+/**
+ * El recibo de releer el cruce. Dice las tres cosas que decide quien lo pulsa:
+ * cuántas unidades comparten algo, de qué tipo, y **si el libro vivo se pudo
+ * leer** — lo tercero no es un detalle técnico: sin él el cruce no puede
+ * afirmar quién fue contactado, y callarlo sería dar por medido lo que no se
+ * midió.
+ */
+describe("avisoTraslapeRecalculado", () => {
+  const base = {
+    traslape: {
+      unidades: 136, con_traslape: 68, etiqueta: "HSVG",
+      por_veredicto: {
+        "AULA EN EL PLAN DE HSVG": 32, "AULA YA APLICADA EN HSVG": 12,
+        "DOCENTE EN EL PLAN DE HSVG": 20, "DOCENTE YA CONTACTADO EN HSVG": 4,
+      },
+    },
+    libro_leido: true, aulas_del_otro: 1392,
+  };
+
+  it("resume con las cifras del cruce y ordena de mayor a menor", () => {
+    const a = avisoTraslapeRecalculado(base);
+    expect(a.texto).toContain("68 de 136 unidades comparten algo");
+    // El primero es el que más pesa: la lista existe para eso.
+    expect(a.texto.indexOf("32 aula en el plan")).toBeLessThan(a.texto.indexOf("4 docente ya contactado"));
+    expect(a.tono).toBe("ok");
+  });
+
+  it("sin libro vivo lo DICE, y baja el tono sin llamarlo error", () => {
+    // No es un fallo del cruce: es un alcance menor. Los planes se cruzan igual.
+    const a = avisoTraslapeRecalculado({ ...base, libro_leido: false });
+    expect(a.texto).toContain("no a quién ya contactaron");
+    expect(a.tono).toBe("atencion");
+  });
+
+  it("cero unidades manda a revisar la fuente, no a repetir el cruce", () => {
+    const a = avisoTraslapeRecalculado({ traslape: { unidades: 0 }, libro_leido: true });
+    expect(a.texto).toContain("revisa la fuente declarada");
+    expect(a.tono).toBe("atencion");
+  });
+});
+
+describe("avisoTraslapeRecalculado: la cola que repite el estudio", () => {
+  const con = (por: Record<string, number>) => avisoTraslapeRecalculado({
+    traslape: { unidades: 136, con_traslape: 68, etiqueta: "HSVG", por_veredicto: por },
+    libro_leido: true,
+  }).texto;
+
+  it("recorta «de HSVG» y «en HSVG»: la frase ya lo dijo", () => {
+    // Se vio en la app: cuatro veredictos seguidos repetían el nombre cinco
+    // veces en una frase, y en minúscula salía «hsvg», que no se escribe así.
+    const texto = con({ "AULA EN EL PLAN DE HSVG": 32, "AULA YA APLICADA EN HSVG": 12 });
+    expect(texto).toContain("32 aula en el plan");
+    expect(texto).toContain("12 aula ya aplicada");
+    expect(texto).not.toContain("hsvg");
+    // Y el nombre sigue estando UNA vez, al principio y bien escrito.
+    expect(texto).toContain("Cruce con HSVG");
+  });
+
+  it("una redacción que no casa se muestra entera, no a medias", () => {
+    // Mutilar por una posición adivinada sería peor que repetir el nombre.
+    expect(con({ "COMPARTEN ALGO CON OTRA COSA": 5 })).toContain("5 comparten algo con otra cosa");
   });
 });

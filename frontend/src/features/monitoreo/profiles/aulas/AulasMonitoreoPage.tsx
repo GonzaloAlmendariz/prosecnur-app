@@ -18,6 +18,7 @@ import {
   apiMonitoreoAulasPublicarDistribucion,
   apiMonitoreoAulasSincronizarDistribucion,
   apiMonitoreoAulasPublicarLibro,
+  apiMonitoreoAulasRecalcularTraslape,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
@@ -56,7 +57,7 @@ import { avisoConversacion } from "./avisoConversacion";
 import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
-import { avisoLibroPublicado } from "./avisoLibroPublicado";
+import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
 import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
 import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
@@ -1481,6 +1482,27 @@ export default function AulasMonitoreoPage() {
     }
   }, [loadView, seccionActiva]);
 
+  /**
+   * **Releer el cruce con el otro estudio.** A petición y no al abrir ni al
+   * sincronizar: leer el plan ajeno entero y su Sheets encarece el warm start,
+   * y atarlo a «traer respuestas» lo metería bajo un botón que además publica.
+   *
+   * No recarga el tablero: el cruce no cambia ninguna cifra del avance —informa,
+   * no descuenta— así que sólo el recibo tiene algo nuevo que decir.
+   */
+  const recalcularTraslape = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      setAviso(avisoTraslapeRecalculado(await apiMonitoreoAulasRecalcularTraslape()));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo releer el cruce con el otro estudio.");
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
   const publicarASheets = useCallback(async (enlace?: string) => {
     setMutating(true);
     setError("");
@@ -2148,6 +2170,12 @@ export default function AulasMonitoreoPage() {
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
                   onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
                   onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
+                  onRecalcularTraslape={
+                    aulasConfig?.traslape_fuente?.etiqueta
+                      ? () => { void recalcularTraslape(); }
+                      : undefined
+                  }
+                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
                 />
               ),
               vacioSinTablero: (
