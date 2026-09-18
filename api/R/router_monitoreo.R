@@ -5557,8 +5557,25 @@ mount_monitoreo <- function(pr) {
       incoming <- parsed$config %||% parsed$aulas_universitarias %||% parsed
       current <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
       if (!is.list(incoming)) incoming <- list()
-      for (nm in names(incoming)) current[[nm]] <- incoming[[nm]]
-      cfg$aulas_universitarias <- monitoreo_aulas_normalize_config(current)
+      # EL MERGE ES POR CLAVE RAIZ, asi que `source_mapping` se REEMPLAZA
+      # entero: un panel que guarda su propio trozo del mapeo se lleva por
+      # delante lo que el no conoce. `previous` es la misma red que el sync ya
+      # tiene desde el 2026-09-08 (`monitoreo_engine.R`), y aqui faltaba.
+      #
+      # Medido en el `.pulso` de HSVG2026 el 2026-09-18: el proyecto guardado a
+      # las 10:14 publico el libro con la hoja «Control de facultad» muda
+      # —`faculty_var` en "" y 0 etiquetas— cuando el 16/09 tenia
+      # `datos_demo/P7` y sus 15. Con el mapeo recuperado el cruce mide 2 745
+      # comparables y 137 que declaran otra facultad; sin el, el bloque entero
+      # contesta «el estudio no declara su variable de facultad».
+      #
+      # Conservar lo que no llega NO tapa el cambio deliberado: lo que viene en
+      # el body manda campo por campo, y declarar otra variable sigue pisando la
+      # anterior. Las dos mitades tienen su test en
+      # `test-http-contract-monitoreo-aulas-config.R`.
+      fusion <- current
+      for (nm in names(incoming)) fusion[[nm]] <- incoming[[nm]]
+      cfg$aulas_universitarias <- monitoreo_aulas_normalize_config(fusion, previous = current)
       profile <- cfg$monitoreo_profile %||% list()
       profile$family <- "aulas_universitarias"
       profile$status <- "active"
