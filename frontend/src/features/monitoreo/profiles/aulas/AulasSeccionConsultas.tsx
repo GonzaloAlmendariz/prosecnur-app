@@ -18,6 +18,7 @@ import { useMarcarRefuerzo } from "./useMarcarRefuerzo";
 import "./aulasRefuerzosPedidos.css";
 import { AulasEleccionPorFacultad } from "./AulasEleccionPorFacultad";
 import { AulasRefuerzosPedidos } from "./AulasRefuerzosPedidos";
+import { AulasRefuerzoPorCodigo } from "./AulasRefuerzoPorCodigo";
 import { AulasRepartoDelTecho } from "./AulasRepartoDelTecho";
 import { AulasBrechasDelCorte } from "./AulasBrechasDelCorte";
 import { AulasLlamadaDeFacultad } from "./AulasLlamadaDeFacultad";
@@ -586,6 +587,18 @@ export function AulasSeccionConsultas({
           <AulasEleccionPorFacultad
             bloque={dashboard.efectividad_seguimiento}
             celdasDeCuota={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+            plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
+            onGuardado={onGuardado}
+          />
+          {/* **Y el tercer modo: escribir el código.** Gonzalo, 2026-09-18: «la
+              app también debería poder permitir aplicar refuerzos manuales por
+              código de CH como por ejemplo R 23.4, y esa se verifique que esté
+              disponible y se clasifique como escogida para refuerzo». Los dos
+              paneles de arriba PROPONEN —por utilidad y por facultad—; éste es
+              para cuando ya se sabe cuál se quiere y sólo hace falta que la app
+              compruebe que se puede y lo deje registrado. Va al final porque es
+              la salida de la cola, no su entrada. */}
+          <AulasRefuerzoPorCodigo
             plan={(dashboard.agenda ?? []) as unknown as MonitoreoAulasPlanRow[]}
             onGuardado={onGuardado}
           />
