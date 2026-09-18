@@ -530,6 +530,9 @@ monitoreo_aulas_default_config <- function() {
     # de Carga de campo la edita y la persiste por aquí. Los motores de
     # ventanas/franjas/reparto la reciben por parámetro.
     duracion_aplicacion_min = 30L,
+    # Sin techo declarado: el estudio decide cuántas aulas admite y hasta que
+    # lo diga no se le supone ninguno (dictado 2026-09-18).
+    techo_aulas_campo = 0L,
     alerts = list(
       min_valid_per_class = 1L,
       warn_partial_under_valid = 5L
@@ -689,6 +692,24 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
           defaults$duracion_sospecha_min
       ))
       if (isTRUE(crit$declarado)) crit$umbral_min else NULL
+    }),
+    # **El techo de cursos-horario del operativo (dictado 2026-09-18).**
+    #
+    # Gonzalo: «Poder definir el techo de aulas y en base a ello poder pedir mas
+    # refuerzos». Cuántas aulas admite el estudio es una decisión suya —en
+    # HSVG2026 son 195— y hasta ahora vivía en su cabeza: cada vez que había que
+    # saber cuántos refuerzos caben, el número se tecleaba en una consulta.
+    #
+    # `0` es «sin techo declarado», que NO es un techo de cero: con él,
+    # `monitoreo_aulas_refuerzos()` devuelve `caben = NA` en vez de inventar un
+    # límite. Misma doctrina de whitelist que sus vecinas: sin esta entrada,
+    # declararlo y guardar el proyecto lo perdería en silencio.
+    techo_aulas_campo = local({
+      crudo <- suppressWarnings(as.integer(
+        (config[["techo_aulas_campo"]] %||% config[["techo_de_aulas"]] %||%
+           defaults$techo_aulas_campo)[1]
+      ))
+      if (is.na(crudo) || crudo < 0) 0L else crudo
     }),
     # **Cuánto dura la aplicación (B70, dictado 2026-09-03).** Misma doctrina
     # de whitelist: sin esta entrada, confirmar el slider y guardar el
