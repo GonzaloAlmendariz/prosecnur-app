@@ -68,6 +68,27 @@
 
 .efs_resp <- function(ids) data.frame(collectorID = ids, stringsAsFactors = FALSE)
 
+# --- fechas ANCLADAS AL CORTE, nunca escritas a mano --------------------------
+#
+# `.efs_dash()` entra por `monitoreo_aulas_dashboard()`, que no recibe `hoy` y
+# toma `Sys.Date()`. Así que una cita literal en el fixture se vuelve pasado
+# sola, sin que nadie toque una línea de código: los dos casos de aforo agendado
+# se escribieron el 2026-09-11 con la cita al 14 y amanecieron en rojo el 15,
+# cuando el motor empezó a apartarlas por vencidas —que es exactamente lo que
+# debe hacer, y lo prueba su propio caso más abajo—. Un rojo así manda a buscar
+# al motor un bug que no tiene, y los dos arreglos posibles son opuestos.
+#
+# Lo que el fixture quiere decir nunca fue «el 14»: es «tiene día por delante»
+# o «se le pasó». Escrito como relación con el corte, dice lo que mide y deja de
+# caducar. Los tres días de holgura sobran para que una corrida que cruce la
+# medianoche no cambie de respuesta.
+#
+# El caso que fija `hoy` explícitamente (`hoy = as.Date("2026-09-11")`) es el
+# otro camino válido y por eso conserva sus fechas literales: ahí el corte
+# también está clavado, así que el par completo es determinista.
+.efs_fecha_futura <- function(dias = 3) format(Sys.Date() + dias)
+.efs_fecha_pasada <- function(dias = 3) format(Sys.Date() - dias)
+
 .efs_fila <- function(block, nombre) {
   k <- .cm_criterios_fac_key(nombre)
   for (f in block$facultades) if (identical(as.character(f$faculty_key), k)) return(f)
@@ -510,7 +531,7 @@ test_that("la fecha se lee del estado de muestra Y de la columna de fecha", {
     .efs_aula("A2", "Letras", eligible = 20, orden = 2, aplicada = FALSE,
               status = "agendada", op_status = "planificada"),
     .efs_aula("A3", "Letras", eligible = 20, orden = 3, aplicada = FALSE,
-              status = "sin_contactar", op_status = "planificada", fecha = "2026-09-14")
+              status = "sin_contactar", op_status = "planificada", fecha = .efs_fecha_futura())
   )
   d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras", cuota = 10))))
   f <- .efs_fila(d$efectividad_seguimiento, "Letras")
@@ -527,7 +548,7 @@ test_that("CONTACTAR no es agendar: sin fecha no entra en la proyección", {
   plan <- list(
     .efs_aula("A1", "Psico", eligible = 20, orden = 1, aplicada = TRUE),
     .efs_aula("A2", "Psico", eligible = 20, orden = 2, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_futura()),
     .efs_aula("A3", "Psico", eligible = 100, orden = 3, aplicada = FALSE,
               status = "en_contacto", op_status = "contactada")
   )
@@ -636,16 +657,27 @@ test_that("una cita VENCIDA sin aplicar no cuenta como aforo agendado", {
   plan <- list(
     .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
     .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_futura()),
     .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-07")
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_pasada())
   )
   d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
   b <- d$efectividad_seguimiento
-  # El dashboard no fija la fecha, así que la vencida se comprueba llamando al
-  # motor con el corte explícito: es lo que hace falsable la regla.
   f <- .efs_fila(b, "Derecho")
-  expect_true(is.integer(f$cursos_vencidos))
+  # Aquí decía `expect_true(is.integer(f$cursos_vencidos))` —el TIPO— con el
+  # comentario de que la regla sólo era falsable llamando al motor con el corte
+  # explícito. Era verdad mientras la cita estaba escrita a mano: el dashboard
+  # toma `Sys.Date()` y no había forma de ponerle un ayer y un mañana. Anclada
+  # al corte sí la hay, así que el caso mide el reparto que promete su título en
+  # vez de comprobar que el campo existe.
+  expect_identical(f$cursos_agendados, 1L)
+  expect_identical(f$elegibles_agendados, 20L)
+  expect_identical(f$cursos_vencidos, 1L)
+  expect_identical(f$elegibles_vencidos, 100L)
+  expect_identical(b$total$cursos_vencidos, 1L)
+  # Y el plan entero las sigue contando a las dos: apartar la vencida es una
+  # afirmación sobre el aforo AGENDADO, no sobre lo que queda por aplicar.
+  expect_identical(f$elegibles_pendientes, 120L)
 })
 
 test_that("con el corte puesto, la cita pasada se aparta y se publica aparte", {
@@ -692,10 +724,10 @@ test_that("un curso-horario con respuestas ya NO es aforo pendiente, diga lo que
   plan <- list(
     .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
     .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-20"),
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_futura()),
     # Ya trajo respuestas y su estado sigue sin teclearse: no es aforo futuro.
     .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-20")
+              status = "agendada", op_status = "planificada", fecha = .efs_fecha_futura())
   )
   d <- .efs_dash(plan, .efs_resp(c(rep("A1", 10), rep("A3", 40))),
                  .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
