@@ -49,9 +49,36 @@ monitoreo_aulas_aula_aplicada <- function(unidades, partes = list(), efectivas =
         .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[["estado"]]) %||%
           u$application_status, "")
     }
-    if (identical(monitoreo_aulas_estado_aplicacion(estado), "aplicada")) return(TRUE)
-    if (is.null(efectivas) || !nzchar(cod) || !(cod %in% names(efectivas))) return(FALSE)
-    e <- suppressWarnings(as.numeric(efectivas[[cod]]))[1]
-    isTRUE(is.finite(e) && e > 0)
+    e <- if (is.null(efectivas) || !nzchar(cod) || !(cod %in% names(efectivas))) NA_real_ else
+      suppressWarnings(as.numeric(efectivas[[cod]]))[1]
+    recogio <- isTRUE(is.finite(e) && e > 0)
+    if (recogio) return(TRUE)
+    if (!identical(monitoreo_aulas_estado_aplicacion(estado), "aplicada")) return(FALSE)
+    # **UN PARTE SIN FIRMA NO PRUEBA QUE SE FUERA A CAMPO.**
+    #
+    # Gonzalo, 2026-09-18: «la fuente de verdad es Kobo —y es la fuente de
+    # verdad la que cuenta las efectivas siempre en TODA LA APP—, el parte de la
+    # ficha solo reporta lo que los aplicadores ven». Y su caso: «me preocupa
+    # que hayan pensado que se aplicó CH 3 cuando jamás se aplicó, sino que fue
+    # un caso A y se aplicó R 3.1, y todos los Sheets dan evidencia de eso».
+    #
+    # CH 3 tenía un parte con «APLICADA» y **ni fecha, ni aplicador, ni una sola
+    # respuesta en Kobo**, tomado además en un aula que no es la suya. Con eso
+    # bastaba para contarla entre las que fueron a campo, contra lo que dicen
+    # las otras tres fuentes: Kobo (0 respuestas), el Sheets (sin aula
+    # utilizada, sin fecha agendada) y el plan (`en_contacto`).
+    #
+    # El estado del parte sigue bastando cuando el parte está FIRMADO —trae
+    # fecha o aplicador—: eso es un acta de alguien que estuvo allí, y hay aulas
+    # que fueron y no recogieron nada porque todos habían respondido ya (CH 130
+    # con 15 duplicados, CH 166 con 21). Medido el 2026-09-18 sobre HSVG2026:
+    # de las cuatro aulas dadas por aplicadas sin respuestas en Kobo, tres
+    # traen fecha y aplicador y sólo CH 3 no trae ninguno de los dos.
+    if (is.null(pt)) return(TRUE)
+    firmado <- nzchar(.monitoreo_scalar(
+      .monitoreo_aulas_parte_primero(pt, .MONITOREO_AULAS_PARTE_ALIAS[["fecha"]]) %||%
+        pt$applied_date, "")) ||
+      nzchar(.monitoreo_scalar(pt$applied_by %||% pt$aplicador, ""))
+    isTRUE(firmado)
   }, logical(1))
 }
