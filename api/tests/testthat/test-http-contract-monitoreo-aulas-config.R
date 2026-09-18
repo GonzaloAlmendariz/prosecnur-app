@@ -123,7 +123,7 @@ test_that("declarar otra variable de facultad sigue pisando la anterior", {
 # directo y perdieron el morado de `refuerzo_por_contactar` al pasar a
 # `agendada`, sin dejar constancia. Gonzalo: «el sheets los marcó de morados y
 # muchos se agendaron, entonces ya no estuvieron marcados como refuerzo».
-test_that("al agendar por HTTP, un refuerzo queda sellado como tal", {
+test_that("al agendar por HTTP, queda constancia de que el aula entró de más", {
   srv <- http_contract_server()
   sid <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))$json$session_id
 
@@ -149,7 +149,7 @@ test_that("al agendar por HTTP, un refuerzo queda sellado como tal", {
   fila <- Filter(function(u) identical(as.character(u$operational_code), "R 40.1"),
                  r$json$agenda)
   expect_length(fila, 1L)
-  expect_identical(as.character(fila[[1]]$activation_origin), "refuerzo_inferido")
+  expect_identical(as.character(fila[[1]]$activation_origin), "adicional_inferido")
   expect_true(nzchar(as.character(fila[[1]]$activated_at %||% "")))
   # Y el titular, que no se activó, sigue sin sello.
   tit <- Filter(function(u) identical(as.character(u$operational_code), "CH 40"),
