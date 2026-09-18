@@ -90,11 +90,27 @@ test_that("un aula con respuestas está aplicada aunque nadie escriba su parte",
   ef <- c("CH 1" = 4, "CH 2" = 0)
   apl <- monitoreo_aulas_aula_aplicada(plan, partes = list(), efectivas = ef)
   expect_identical(apl, c(TRUE, FALSE))
-  # El parte manda cuando existe: es el veredicto de quien estuvo ahí.
+  # El parte manda cuando existe Y ESTÁ FIRMADO: es el veredicto de quien
+  # estuvo ahí, y una firma es lo que dice que alguien estuvo.
+  #
+  # Cambio deliberado del 2026-09-18. Gonzalo: «la fuente de verdad es Kobo
+  # —y es la fuente de verdad la que cuenta las efectivas siempre en TODA LA
+  # APP—, el parte de la ficha solo reporta lo que los aplicadores ven»; «me
+  # preocupa que hayan pensado que se aplicó CH 3 cuando jamás se aplicó».
+  # Medido ese día sobre HSVG2026: de 150 partes sólo CUATRO no traen ni fecha
+  # ni aplicador, y de ellos los dos que pierden la marca son justo los dos que
+  # no se aplicaron —CH 3, y CH 131 cuya nota dice «Se utilizó el reemplazo
+  # R131.1»—. Los otros dos tienen 11 respuestas en Kobo y siguen contando.
   apl2 <- monitoreo_aulas_aula_aplicada(
-    plan, partes = list(list(operational_code = "CH 2", estado = "APLICADA")),
+    plan, partes = list(list(operational_code = "CH 2", estado = "APLICADA",
+                             applied_date = "2026-09-15")),
     efectivas = ef)
   expect_identical(apl2, c(TRUE, TRUE))
+  # Sin firma y sin respuestas, no: un acta que nadie firmó no prueba la visita.
+  sin_firma <- monitoreo_aulas_aula_aplicada(
+    plan, partes = list(list(operational_code = "CH 2", estado = "APLICADA")),
+    efectivas = ef)
+  expect_identical(sin_firma, c(TRUE, FALSE))
   # Y sin ninguna de las dos, no se declara aplicada: cero respuestas y «no
   # sabemos» son la misma noticia aquí, y ninguna dice que alguien fue.
   expect_identical(

@@ -413,15 +413,20 @@ test_that("el estado de la jornada sale de los partes, no de una constante", {
   # Con una de las dos rendida: la jornada va a medias, y eso se dice con su
   # parcial — una jornada empezada es una noticia distinta de una sin empezar.
   media <- aulas_libro_filas_asignacion(plan, disp, partes = list(
+    # Con `applied_date`: desde el 2026-09-18 un parte sin fecha ni aplicador
+    # no basta para dar un aula por aplicada si Kobo no tiene respuestas suyas.
     list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+         applied_date = "2026-09-11",
          observed_students = 20, effective_surveys = 18)))
   expect_identical(.tla_estado_de(media, "Ana Prueba"), "1 de 2 aplicadas")
 
   # Y con las dos: cerrada.
   todas <- aulas_libro_filas_asignacion(plan, disp, partes = list(
     list(operational_code = "CH 1", intento = 1L, estado = "aplicada",
+         applied_date = "2026-09-11",
          observed_students = 20, effective_surveys = 18),
     list(operational_code = "CH 2", intento = 1L, estado = "aplicada",
+         applied_date = "2026-09-11",
          observed_students = 15, effective_surveys = 12)))
   expect_identical(.tla_estado_de(todas, "Ana Prueba"), "APLICADAS")
 })
