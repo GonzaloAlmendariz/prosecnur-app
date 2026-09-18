@@ -32,6 +32,7 @@ import { deficitOperativo } from "./deficitOperativo";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
+import { etiquetaDelEje } from "./etiquetaDelEje";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { AulasFichaDeCursoHorario } from "./AulasFichaDeCursoHorario";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
@@ -493,9 +494,23 @@ export function AulasSeccionConsultas({
               {" · "}de aquí sale el refuerzo (C)
             </span>
           </div>
+          {/* **La frase dice la cuota que el estudio TIENE, no una fija.**
+              Decía «para cerrar la cuota de hombres y mujeres de cada
+              facultad», y en un estudio cuya cuota es por nivel y sin sexo eso
+              es falso dos veces, en la línea que explica para qué existe el
+              panel entero. El sexo entra sólo si el diseño lo fijó —eso lo dice
+              `quotas_sex_faculty`, que es su propio dato— y la unidad sale del
+              eje declarado. */}
           <p className="mon-profile-muted">
             No reemplazan a ningún curso-horario: son cursos-horario adicionales
-            para cerrar la cuota de hombres y mujeres de cada facultad. Salir a
+            para cerrar la cuota{" "}
+            {(dashboard.quotas_sex_faculty ?? []).length
+              ? "de hombres y mujeres de cada "
+              : "de cada "}
+            {etiquetaDelEje(
+              (dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })
+                ?.avance_cuota?.eje,
+            ).toLocaleLowerCase("es")}. Salir a
             uno es el <strong>refuerzo (C)</strong>, y esa decisión se toma
             aquí, en la app; el reemplazo (A) se resuelve en el Sheets de
             agendación.
@@ -513,7 +528,11 @@ export function AulasSeccionConsultas({
             agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
             partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
           />
-          <AulasBancoExtras banco={dashboard.banco_extras ?? null} facultadEnFoco={facultadEnFoco} />
+          <AulasBancoExtras
+            banco={dashboard.banco_extras ?? null}
+            facultadEnFoco={facultadEnFoco}
+            eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
+          />
         </section>
         ) : null}
 
