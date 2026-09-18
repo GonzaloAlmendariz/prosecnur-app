@@ -347,6 +347,13 @@ const CHECK_LABELS: Record<string, string> = {
   // reconocidos» obliga a abrir el detalle para saber si eso importa.
   unknown_sample_status: "Cursos-horario contados como sin contactar sin estarlo",
   effective_representativity: "Representatividad efectiva",
+  // **Se queda con su nombre, y es deliberado.** Se probó a generalizarlo a
+  // «Cuota por sexo y grupo» para un estudio cuya cuota no es por facultad, y
+  // sale peor: este mapa es estático —no ve el eje— así que generalizar aquí
+  // vuelve el rótulo más VAGO para el estudio donde el control sí es exacto.
+  // Lo específico de cada estudio lo dice el detalle, que el motor sí redacta
+  // con su eje: «el diseño no fija cuota por sexo: la cuota de este estudio es
+  // por nivel».
   sex_faculty_quota: "Cuota por sexo y facultad",
   // Qué se está contando como respuesta válida. Se resolvía en silencio, y
   // contar TODO o filtrar por una columna equivocada dan números muy distintos.
