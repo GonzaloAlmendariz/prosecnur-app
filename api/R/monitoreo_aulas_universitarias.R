@@ -508,6 +508,10 @@ monitoreo_aulas_default_config <- function() {
     # entienda la decisión al reabrir el proyecto, no un requisito del motor.
     eje_cuota = "facultad",
     eje_cuota_motivo = "",
+    # **Contra qué otro estudio se cruza, y de dónde se lee.** Sin esto el
+    # veredicto del traslape sólo podía inyectarlo un runner externo y la app no
+    # tenía cómo recalcularlo. Ver `monitoreo_aulas_traslape_fuente.R`.
+    traslape_fuente = list(),
     # **Los TRAMOS del operativo: rangos de fecha con nombre propio.** Dictado
     # 2026-09-15: «más que semana en el estricto senso, con rango a los que
     # llamamos de forma personalizada; en este caso seleccioné dos rangos
@@ -825,6 +829,12 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # retirado del catálogo cae al default en vez de envenenar la config.
     eje_cuota = config[["eje_cuota"]] %||% config[["ejeCuota"]] %||% defaults$eje_cuota,
     eje_cuota_motivo = config[["eje_cuota_motivo"]] %||% config[["ejeCuotaMotivo"]] %||% defaults$eje_cuota_motivo,
+    # La fuente del cruce, por la MISMA razón: sin nombrarla aquí, declararla no
+    # sobreviviría al primer «actualizar» y el botón de recalcular se quedaría
+    # sin saber de dónde leer. Se normaliza al guardar y una clave desconocida
+    # se RECHAZA en vez de tragarse.
+    traslape_fuente = .matf_normalizar(
+      config[["traslape_fuente"]] %||% config[["traslapeFuente"]] %||% defaults$traslape_fuente),
     # Misma doctrina de whitelist que el resto: sin nombrarlos aquí, declarar
     # un tramo en la UI no persistiría y el mecanismo entero se caería en
     # silencio al primer «actualizar». Se normalizan al guardar —fechas ISO,
