@@ -56,7 +56,9 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {e.grupos > 0 && e.evaluadas === 0
-          ? `No se puede decir a quién reforzar: de ${fmt(e.grupos)} ${e.grupos === 1 ? "grupo" : "grupos"}, ninguno tiene una cuota por sexo que leer, y es por sexo como esta cola elige.`
+          // El vacío dice la causa y a dónde ir: la brecha que se venía a
+          // buscar existe: Metas la publica cuota a cuota.
+          ? `No se puede decir a quién reforzar: de ${fmt(e.grupos)} ${e.grupos === 1 ? "grupo" : "grupos"}, ninguno tiene una cuota por sexo que leer, y es por sexo como esta cola elige. La brecha de cada cuota está en Metas.`
           : "Ninguna facultad debe nada ahora mismo: lo que tienen agendado cubre lo que les falta, así que no hay a quién reforzar."}
       </p>
     );
