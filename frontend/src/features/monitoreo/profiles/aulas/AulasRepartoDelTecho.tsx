@@ -105,9 +105,16 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
                 curso-horario del inventario las cierra: lo que queda disponible no aporta al
                 sexo que falta.</>
             : r.grupos > 0 && r.evaluadas === 0
+              // **El vacío dice la causa Y a dónde ir.** Decir por qué no se
+              // puede repartir deja al coordinador sin siguiente paso, y la
+              // brecha que venía a buscar existe: Metas la publica cuota a
+              // cuota, sea cual sea el eje. Una cláusula, no un párrafo.
+              // «celda» es vocabulario interno y tiene su propio guard: no se
+              // debilita el guard, se redacta de otra forma.
               ? <>No se puede repartir el techo: de <strong>{fmt(r.grupos)}</strong>{" "}
                 {r.grupos === 1 ? "grupo" : "grupos"}, ninguno tiene una cuota por sexo que
-                leer, y es por sexo como este reparto decide.</>
+                leer, y es por sexo como este reparto decide. La brecha de cada cuota está
+                en Metas.</>
               : <>Ninguna facultad necesita refuerzo ahora mismo: lo que tienen agendado
                 cubre lo que les falta.</>}
         </p>
