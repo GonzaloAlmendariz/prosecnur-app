@@ -143,6 +143,11 @@ export function AulasPestanaCuotas({
   // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
   // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
   const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
+
+  // **La misma condición, leída una vez.** Que el panel de metas por sexo se
+  // monte decide ahora DOS cosas —él mismo y dónde va la procedencia del
+  // denominador—, y dos copias de la misma regla divergen tarde o temprano.
+  const hayPanelDeSexo = Boolean(proyeccion || (facultadEnFoco && proyeccionDelEstudio?.length));
   return (
     <>
       {/* **Los cinco bloques del boceto del 2026-09-09**, en su orden dictado:
@@ -162,7 +167,7 @@ export function AulasPestanaCuotas({
           propio título: un segundo panel con el mismo rótulo lo cazó el guard
           `titulosDePanel` en el acto, y con razón — dos «Metas por facultad y
           sexo» en la misma pantalla no son un vacío, son un duplicado. */}
-      {proyeccion || (facultadEnFoco && proyeccionDelEstudio?.length) ? (
+      {hayPanelDeSexo ? (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-avance"
@@ -395,7 +400,23 @@ export function AulasPestanaCuotas({
       >
         <div className="mon-profile-panel-head">
           <h3>Qué grupos no llegan, y con qué remedio</h3>
-          <span>lo recogido, lo que traerá lo agendado y el techo de todo el plan</span>
+          {/* **La procedencia del denominador, cuando no la dice nadie más.**
+              El chip que declara de dónde sale la cuota —y si su sello no se
+              pudo verificar— vivía sólo en «Metas por facultad y sexo», y ese
+              panel se monta bajo guarda. Medido el 2026-09-18 sobre CCSS: el
+              motor publicaba `vigencia: "no_verificable"` con su motivo escrito,
+              la pantalla enseñaba «Nivel 7 · faltan 121 · 0 de 121» y la palabra
+              «sello» no estaba en ninguna parte del DOM, ni en un `title`. El
+              aviso existía, tenía test, y no lo pintaba nadie.
+              Va en ESTE panel porque es el que no tiene guarda y el que declara
+              la lectura de la cuota; y sólo cuando el otro no está, para no
+              decir dos veces lo mismo. */}
+          <span title={!hayPanelDeSexo ? (cuotaDiseno.procedencia.detalle || undefined) : undefined}>
+            lo recogido, lo que traerá lo agendado y el techo de todo el plan
+            {!hayPanelDeSexo && cuotaDiseno.procedencia.chip
+              ? ` · ${cuotaDiseno.procedencia.chip}`
+              : ""}
+          </span>
         </div>
         {/* **Las cuatro bolsas, sobre los grupos que no llegan.**
             Aquí y no en el panel de metas de arriba, que es donde las puse
