@@ -22,6 +22,35 @@ describe("avisoLibroPublicado", () => {
     expect(tono).toBe("ok");
   });
 
+  it("una respetada a la que le falta una columna lo DICE, y una al día no inventa nada", () => {
+    // Respetar la hoja del equipo es correcto. Callar que la columna nueva no
+    // llegó, no: medido el 2026-09-18 sobre CCSS, el libro ganó CARRERA y las
+    // cuatro hojas que crecieron son las del equipo. Cuatro «respetada» y
+    // ninguna señal, con el campo a cuatro días.
+    const texto = avisoLibroPublicado({
+      hojas: [
+        { hoja: "Aulas Agendadas", accion: "respetada", filas: 45, rotulos_retenidos: ["CARRERA"] },
+        { hoja: "Aulas Aplicadas (Campo)", accion: "respetada", filas: 12 },
+      ],
+    } as never).texto;
+    expect(texto).toContain("«Aulas Agendadas» respetada (45 filas): la llena el equipo, no la app; no le llegó «CARRERA»");
+    // La que no retiene nada no gana ni una palabra.
+    expect(texto).toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo, no la app");
+    expect(texto).not.toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo, no la app; no le llegó");
+  });
+
+  it("con muchos rótulos retenidos nombra tres y cuenta el resto", () => {
+    // La cabecera entera son decenas de rótulos: un aviso que los enumera todos
+    // no se lee, y un aviso que no se lee no avisa.
+    const texto = avisoLibroPublicado({
+      hojas: [{
+        hoja: "Aulas Agendadas", accion: "respetada", filas: 45,
+        rotulos_retenidos: ["CARRERA", "TELÉFONO DE DOCENTE", "SESIONES Y AULA", "MEDIO DE CONTACTO", "RECIBIÓ CORREO"],
+      }],
+    } as never).texto;
+    expect(texto).toContain('no le llegó «CARRERA», «TELÉFONO DE DOCENTE», «SESIONES Y AULA» y 2 más');
+  });
+
   it("una hoja respetada SIEMPRE lleva su motivo: es la regla de dueño, no un fallo", () => {
     const { texto } = avisoLibroPublicado({
       hojas: [
