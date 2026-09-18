@@ -37,6 +37,10 @@ monitoreo_aulas_traslape_fuente <- function(cfg = list()) {
   hoja <- .monitoreo_extract_spreadsheet_id(.monitoreo_scalar(f[["spreadsheet_id"]] %||% "", ""))
   list(
     declarada = nzchar(pulso) || nzchar(hoja),
+    hoja = {
+      v <- .monitoreo_scalar(f[["hoja"]] %||% "", "")
+      if (nzchar(v)) v else .MATF_HOJA_POR_DEFECTO
+    },
     # La etiqueta va al rótulo de la columna del libro («TRASLAPE HSVG»), así
     # que sin ella el cruce no sabría cómo titularse.
     etiqueta = toupper(.monitoreo_scalar(f[["etiqueta"]] %||% "", "")),
@@ -88,6 +92,7 @@ monitoreo_aulas_traslape_fuente <- function(cfg = list()) {
     pulso = .monitoreo_scalar(x[["pulso"]] %||% "", ""),
     spreadsheet_id = .monitoreo_extract_spreadsheet_id(
       .monitoreo_scalar(x[["spreadsheet_id"]] %||% "", "")),
+    hoja = .monitoreo_scalar(x[["hoja"]] %||% "", ""),
     motivo = .monitoreo_scalar(x[["motivo"]] %||% "", "")
   )
   # Sin nada de donde leer, el bloque no se guarda: una fuente con sólo etiqueta
@@ -99,7 +104,14 @@ monitoreo_aulas_traslape_fuente <- function(cfg = list()) {
 # La lista va ANTES del roxygen de su función a propósito: una constante entre
 # el bloque y la función se lleva el `@export` y deja la función fuera del
 # NAMESPACE. Costó dos gates con `carga_aulas_padron`.
-.MATF_CLAVES <- c("etiqueta", "pulso", "spreadsheet_id", "motivo")
+.MATF_CLAVES <- c("etiqueta", "pulso", "spreadsheet_id", "hoja", "motivo")
+
+# La hoja del otro estudio de la que se lee quién ya fue contactado. Por defecto
+# la que esta misma app escribe, porque el caso normal es cruzar contra otro
+# estudio de aulas de Prosecnur; declarable porque **una particularidad no puede
+# quedarse cableada**: otro operativo puede llamar a su hoja de otra forma, y
+# entonces se dice en la config en vez de reescribir el motor.
+.MATF_HOJA_POR_DEFECTO <- "Aulas Agendadas"
 
 #' Lee el plan del otro estudio desde su `.pulso`, en SOLO LECTURA.
 #'
@@ -149,30 +161,52 @@ monitoreo_aulas_traslape_fuente <- function(cfg = list()) {
 #' @param id identificador del Sheets del otro estudio.
 #' @return lista `{contactados, aulas_contactadas, leido}`.
 #' @keywords internal
-.matf_libro_ajeno <- function(id) {
+.matf_libro_ajeno <- function(id, hoja = .MATF_HOJA_POR_DEFECTO) {
   vacio <- list(contactados = character(0), aulas_contactadas = character(0), leido = FALSE)
   id <- .monitoreo_extract_spreadsheet_id(.monitoreo_scalar(id, ""))
   if (!nzchar(id)) return(vacio)
+  hoja <- .monitoreo_scalar(hoja, .MATF_HOJA_POR_DEFECTO)
   url <- paste0(
     "https://sheets.googleapis.com/v4/spreadsheets/", id, "/values/",
-    utils::URLencode("Aulas Agendadas", reserved = TRUE),
+    utils::URLencode(hoja, reserved = TRUE),
     "?valueRenderOption=UNFORMATTED_VALUE")
   v <- tryCatch(.monitoreo_google_api(url)$values, error = function(e) NULL)
   if (!is.list(v) || length(v) < 2L) return(vacio)
   cab <- as.character(unlist(v[[1]]))
+  # **Los títulos NO se retecean: se leen de donde la app los declara.**
+  # `AULAS_AGENDADAS_BLOQUE` es la especificación de esa hoja, y escribirlos
+  # aquí a mano crearía una segunda verdad sobre la misma columna: el día que la
+  # spec renombre «CORREO PUCP DOCENTE», este lector seguiría buscando el
+  # título viejo y devolvería vacío sin fallar. Es la misma disciplina que el
+  # resto del libro y la razón por la que esto sirve para cualquier estudio, no
+  # sólo para el que lo motivó.
+  titulo_de <- function(campo) {
+    i <- which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) identical(s$campo, campo), logical(1)))
+    if (!length(i)) return(character(0))
+    AULAS_AGENDADAS_BLOQUE[[i[[1]]]]$titulos
+  }
   # Por PREFIJO y en todos los bloques: la hoja repite sus columnas una vez por
   # eslabón de la cadena y cada bloque lleva el sufijo del reemplazo. Buscar el
-  # título exacto sólo encontraría el primero.
-  i_mail <- which(grepl("^CORREO PUCP DOCENTE", cab))
-  i_ch <- which(grepl("^CURSO-HORARIO", cab))
-  i_sm <- which(grepl("^STATUS MUESTRA", cab))
+  # título exacto sólo encontraría el primero. Cualquiera de los alias declarados
+  # vale, que es lo que permite leer un libro de una generación anterior.
+  por_titulo <- function(campo) {
+    tit <- titulo_de(campo)
+    if (!length(tit)) return(integer(0))
+    which(Reduce(`|`, lapply(tit, function(x) startsWith(cab, x))))
+  }
+  i_mail <- por_titulo("teacher_email")
+  i_ch <- por_titulo("operational_code")
+  i_sm <- por_titulo("sample_status")
   if (!length(i_mail) && !length(i_ch)) return(vacio)
   nrm <- function(x) tolower(trimws(as.character(x %||% "")))
   # Lo que cuenta como «ya tocado»: el estado de muestra que el equipo teclea.
-  # Un «SIN CONTACTAR» no es contacto, y un vacío tampoco.
+  # El estado INICIAL no es contacto, y un vacío tampoco — y cuál es el inicial
+  # lo dice el vocabulario del libro, que lo declara primero de su lista por ese
+  # mismo motivo. Reteclearlo aquí sería la segunda verdad otra vez.
+  inicial <- toupper(AULAS_LIBRO_STATUS_MUESTRA_BASE[[1]])
   tocado <- function(estado) {
     e <- toupper(trimws(as.character(estado %||% "")))
-    nzchar(e) && !identical(e, "SIN CONTACTAR")
+    nzchar(e) && !identical(e, inicial)
   }
   correos <- character(0); aulas <- character(0)
   for (fila in v[-1]) {
@@ -242,7 +276,7 @@ monitoreo_aulas_traslape_recalcular <- function(unidades, cfg = list()) {
   g <- function(pl, k) vapply(pl, function(r) {
     v <- r[[k]]; if (is.null(v)) "" else as.character(v)[1]
   }, character(1))
-  libro <- .matf_libro_ajeno(fuente$spreadsheet_id)
+  libro <- .matf_libro_ajeno(fuente$spreadsheet_id, fuente$hoja)
   out <- aulas_traslape_estudio(
     unidades,
     aulas = g(ajeno, "classroom_id"),
