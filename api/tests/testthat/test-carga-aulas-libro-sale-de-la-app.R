@@ -65,6 +65,12 @@ test_that("el libro trae SEIS hojas, no tres", {
                     # dentro. Reemplaza a la «Tabla dinámica 2» que el
                     # coordinador rehacía a mano y que sólo veía el titular.
                     "Avance de agendación",
+                    # 2026-09-18, dictado de Gonzalo: si cada facultad llega a
+                    # su meta, de cuántas aulas depende y para cuándo son. El
+                    # juego de hojas CRECE a propósito; entra aquí aunque el
+                    # plan de esta fixture sea mínimo porque sus aulas traen
+                    # facultad y aforo, que es todo lo que la hoja necesita.
+                    "Facultades en riesgo",
                     "Listas"))
 })
 

@@ -190,6 +190,13 @@ monitoreo_sheets_pestanas_controladas <- function() {
     # y condicional por partida doble: sin `declared_level_var` y sin padrón no
     # hay dos lados que cruzar (fase 4 del plan del eje declarable).
     "Control de nivel",
+    # Dictado 2026-09-18: «la hoja de facultades en riesgo debe tener bastante
+    # contexto util […] hay que ser bastante precisos con todas esas
+    # informaciones». Si cada facultad llega a su meta, de cuántas aulas
+    # depende, para cuándo son y qué queda si una se cae. Décima de la app y
+    # condicional: sin ninguna facultad con meta contra la que medirse no se
+    # produce.
+    "Facultades en riesgo",
     "Listas"
   )
 
