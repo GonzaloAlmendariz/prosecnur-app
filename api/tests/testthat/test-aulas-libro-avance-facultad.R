@@ -577,3 +577,34 @@ test_that("la nota del bloque vive en el vocabulario, no copiada en cada rendere
     expect_true(grepl(pieza, AULAS_AVANCE_NOTAS$facultad, fixed = TRUE), info = pieza)
   }
 })
+
+# --- el grano que la nota afirma --------------------------------------------
+#
+# La nota decia SIEMPRE «por facultad y por sexo», y sobre CCSS —cuota por nivel,
+# sexo referencial— eso era falso dos veces al pie de una tabla que enseña
+# niveles. Se ve generando el libro, no leyendo el motor: la tabla decia
+# «Nivel 6 · muestra 120» y su pie, debajo, «la cuota del diseño por facultad y
+# por sexo».
+
+test_that("con cuota de sexo la nota dice «por facultad y por sexo», byte a byte", {
+  # HSVG esta en campo con esta frase: no puede moverse.
+  nota <- prosecnurapp:::.calaf_nota_metas(.lafac_tabla_dos())
+  expect_true(grepl("cada una por facultad y por sexo", nota, fixed = TRUE))
+})
+
+test_that("sin cuota de sexo la nota NO la afirma, y nombra el eje", {
+  # El grano se lee de la MISMA fila que la nota describe —sus columnas
+  # «Muestra hombres» y «Muestra mujeres», que la tabla deja vacias cuando el
+  # diseño no fijo cuota de sexo—. Leerlo de otra parte fue el defecto que
+  # escribi primero: busque `cuota_sexo` en una tabla que no lo tiene, y la nota
+  # habria dicho «por nivel» para todo el mundo, HSVG incluido.
+  sin_sexo <- prosecnurapp:::.calaf_avance_por_facultad(
+    list(.lafac_aula("A1", "6", "CH 1")), efectivas = c(`CH 1` = 3),
+    cuotas = .lafac_cuotas(.lafac_fac("6", 20)))
+  eje <- monitoreo_aulas_eje(list(eje_cuota = "nivel"))
+  nota <- prosecnurapp:::.calaf_nota_metas(sin_sexo, eje)
+  expect_true(grepl("la cuota del diseño por nivel;", nota, fixed = TRUE))
+  expect_false(grepl("por sexo", nota, fixed = TRUE))
+  # Y sin eje declarado, la palabra de siempre.
+  expect_true(grepl("por facultad;", prosecnurapp:::.calaf_nota_metas(sin_sexo), fixed = TRUE))
+})

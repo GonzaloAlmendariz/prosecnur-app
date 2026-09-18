@@ -254,7 +254,7 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
     "facultad", ind$facultades,
     nota_arriba = AULAS_AVANCE_NOTAS$facultad,
     nota_abajo = if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
-      .calaf_nota_metas(ind$facultades)
+      .calaf_nota_metas(ind$facultades, eje)
     } else NULL,
     vacio = "El estudio todavía no publica cuotas por facultad, así que no hay contra qué medir el avance.",
     con_total = TRUE

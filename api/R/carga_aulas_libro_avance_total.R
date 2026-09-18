@@ -55,10 +55,32 @@
 #' Sin sobremuestra en el diseño, lo declara en vez de callar (C3).
 #'
 #' @param fac el `ind$facultades` de `aulas_libro_indicadores()`.
+#' @param eje la declaración del eje ([monitoreo_aulas_eje()]). Sin ella,
+#'   `facultad`, que es lo que la nota decía.
+#' @param con_sexo si el estudio declara cuota POR SEXO. La nota afirmaba
+#'   siempre «por facultad y por sexo», y sobre CCSS —cuota por nivel, sexo
+#'   referencial— eso era falso dos veces al pie de una tabla que enseña
+#'   niveles. Se ve generando el libro, no leyendo el motor.
 #' @return una frase.
 #' @keywords internal
-.calaf_nota_metas <- function(fac) {
+.calaf_nota_metas <- function(fac, eje = NULL, con_sexo = NULL) {
   total <- .calaf_fila_total(fac)
+  # **Si el estudio promete por sexo se lee del DATO, y de la MISMA fila que la
+  # nota describe.** `fac` es la tabla del libro, no las metas del diseño: aquí
+  # el sexo está en sus columnas «Muestra hombres» y «Muestra mujeres», que la
+  # tabla deja vacías cuando el diseño no fijó cuota de sexo —esa maquinaria ya
+  # distingue «cero» de «no lo sabemos»—. Leerlo de otra parte era el defecto
+  # que escribí primero: busqué `cuota_sexo` en una tabla que no lo tiene y la
+  # nota habría dicho «por nivel» para todo el mundo, HSVG incluido.
+  if (is.null(con_sexo)) {
+    por_sexo <- suppressWarnings(as.numeric(c(
+      total[["Muestra hombres"]] %||% NA, total[["Muestra mujeres"]] %||% NA)))
+    con_sexo <- any(is.finite(por_sexo) & por_sexo > 0)
+  }
+  # **El grano de la cuota, dicho como es.** Con el eje en facultad y cuota de
+  # sexo sale «por facultad y por sexo», byte a byte como la lee HSVG.
+  unidad <- tolower(.monitoreo_scalar((eje %||% list())[["etiqueta"]] %||% "Facultad", "Facultad"))
+  grano <- if (isTRUE(con_sexo)) paste0("por ", unidad, " y por sexo") else paste0("por ", unidad)
   mu <- suppressWarnings(as.numeric(total[["Muestra"]] %||% NA))
   sm <- suppressWarnings(as.numeric(total[["Sobremuestra"]] %||% NA))
   cifra <- function(x) format(round(x), big.mark = " ", trim = TRUE, scientific = FALSE)
@@ -68,16 +90,18 @@
   if (is.finite(mu) && mu > 0 && is.finite(sm) && sm > 0) {
     paste0(
       "Muestra (", cifra(mu), ") y sobremuestra (", cifra(sm),
-      ") son las dos metas del estudio, cada una por facultad y por sexo. ",
+      ") son las dos metas del estudio, cada una ", grano, ". ",
       "Cada meta lleva al lado lo que le falta, y una celda de faltantes en cero ",
       "va pintada: verde si cubrió la muestra, celeste si cubrió la sobremuestra. ",
-      "La sobremuestra de cada facultad y de cada sexo reparte la del diseño con su ratio (x",
+      if (isTRUE(con_sexo))
+        "La sobremuestra de cada facultad y de cada sexo reparte la del diseño con su ratio (x"
+      else paste0("La sobremuestra de cada ", unidad, " reparte la del diseño con su ratio (x"),
       format(round(sm / mu, 2), trim = TRUE), ")."
     )
   } else {
     paste0(
-      "Cada meta lleva al lado lo que le falta. La muestra es la cuota del diseño por ",
-      "facultad y por sexo; el estudio no publica la sobremuestra, así que sus columnas ",
+      "Cada meta lleva al lado lo que le falta. La muestra es la cuota del diseño ",
+      grano, "; el estudio no publica la sobremuestra, así que sus columnas ",
       "van en blanco."
     )
   }

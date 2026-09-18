@@ -194,7 +194,7 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
       clave, tabla, eje = eje,
       nota = notas[[clave]] %||% "",
       nota_pie = if (identical(clave, "facultad") && is.data.frame(tabla) && nrow(tabla)) {
-        .calaf_nota_metas(tabla)
+        .calaf_nota_metas(tabla, eje)
       } else "",
       total = if (identical(clave, "facultad")) .calaf_fila_total(tabla) else NULL
     )
