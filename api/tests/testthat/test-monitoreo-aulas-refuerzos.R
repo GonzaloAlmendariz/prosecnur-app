@@ -10,7 +10,7 @@
   ), list(...))
 }
 
-test_that("una reserva cuyo titular sigue vivo es REFUERZO, no reemplazo", {
+test_that("una reserva cuyo titular sigue vivo es ADICIONAL, no reemplazo", {
   # Es la distinción que Gonzalo pidió el 2026-09-18 y que el plan no guarda:
   # «no hay forma de distinguir tan bien si un reemplazo fue por reemplazo
   # organico o en verdad fue un reemplazo al aire».
@@ -21,8 +21,53 @@ test_that("una reserva cuyo titular sigue vivo es REFUERZO, no reemplazo", {
   )
   o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
   a <- Filter(function(x) identical(x$codigo, "R 1.1"), o$activadas)[[1]]
-  expect_identical(a$clase, "refuerzo")
-  expect_match(a$por_que, "sigue vivo")
+  expect_identical(a$clase, "adicional")
+  # Y SIN letra: entre B y C no hay evidencia, sólo intención.
+  expect_identical(a$caso, "")
+  expect_match(a$por_que, "todavía vivo")
+})
+
+test_that("un titular ya aplicado NO convierte a su reserva en complemento", {
+  # **Lo demostró Gonzalo el 2026-09-18** con la lista de los quince refuerzos
+  # de la primera semana, todos caso C. Entre ellos R 161.5, R 161.6 y R 161.8,
+  # cuyo titular CH 161 ya se había aplicado con 12 efectivas: una versión
+  # anterior deducía «titular aplicado → complemento (B)» y las habría marcado
+  # B. Eran C, elegidas por la cuota de Psicología, no para completar a CH 161.
+  #
+  # La diferencia entre B y C es la INTENCIÓN de quien eligió el aula, y eso no
+  # está en los datos. Por eso lo no declarado sale sin letra.
+  plan <- list(
+    .ref_u("CH 50", operational_status = "aplicada"),
+    .ref_u("R 50.1", rol = "chain_reserve", titular_operational_code = "CH 50",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25")
+  )
+  o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
+  a <- Filter(function(x) identical(x$codigo, "R 50.1"), o$activadas)[[1]]
+  expect_identical(a$clase, "adicional")
+  expect_identical(a$caso, "")
+  expect_false(identical(a$clase, "complemento"))
+})
+
+test_that("lo declarado SÍ trae su letra", {
+  # `monitoreo_aulas_marcar_refuerzo()` escribe «complemento» o «refuerzo», y
+  # ahí la letra es un dato, no una deducción.
+  plan <- list(
+    .ref_u("CH 51", operational_status = "aplicada"),
+    .ref_u("R 51.1", rol = "chain_reserve", titular_operational_code = "CH 51",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25", activation_origin = "complemento"),
+    .ref_u("R 51.2", rol = "chain_reserve", titular_operational_code = "CH 51",
+           replacement_order = 2, sample_status = "agendada",
+           scheduled_date = "2026-09-26", activation_origin = "refuerzo")
+  )
+  o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
+  b <- Filter(function(x) identical(x$codigo, "R 51.1"), o$activadas)[[1]]
+  c <- Filter(function(x) identical(x$codigo, "R 51.2"), o$activadas)[[1]]
+  expect_identical(b$caso, "B")
+  expect_identical(c$caso, "C")
+  expect_identical(b$procedencia_fuente, "declarada")
+  expect_identical(c$procedencia_fuente, "declarada")
 })
 
 test_that("una reserva cuyo titular está caído es REEMPLAZO orgánico", {
@@ -34,6 +79,7 @@ test_that("una reserva cuyo titular está caído es REEMPLAZO orgánico", {
   o <- monitoreo_aulas_refuerzos(plan, data.frame(), list(), hoy = as.Date("2026-09-18"))
   a <- Filter(function(x) identical(x$codigo, "R 2.1"), o$activadas)[[1]]
   expect_identical(a$clase, "reemplazo")
+  expect_identical(a$caso, "A")
   expect_match(a$por_que, "rechazo")
 })
 
@@ -54,7 +100,7 @@ test_that("la procedencia tiene TRES grados de certeza, no dos", {
   leida <- Filter(function(x) identical(x$codigo, "R 3.2"), o$activadas)[[1]]
   expect_identical(deducida$procedencia_fuente, "reconstruida")
   expect_identical(leida$procedencia_fuente, "declarada")
-  expect_identical(leida$clase, "refuerzo")
+  expect_identical(leida$caso, "C")
 })
 
 test_that("lo que la app dedujo y selló no se publica como declarado", {
@@ -73,7 +119,7 @@ test_that("lo que la app dedujo y selló no se publica como declarado", {
   o <- monitoreo_aulas_refuerzos(sellado$plan, data.frame(), list(),
                                  hoy = as.Date("2026-09-18"))
   a <- Filter(function(x) identical(x$codigo, "R 30.1"), o$activadas)[[1]]
-  expect_identical(a$clase, "refuerzo")
+  expect_identical(a$clase, "adicional")
   expect_identical(a$procedencia_fuente, "sellada")
   expect_false(identical(a$procedencia_fuente, "declarada"))
 })
@@ -201,6 +247,7 @@ test_that("las tasas separan refuerzo, reemplazo y banco de los titulares", {
   expect_equal(o$rendimiento$titulares$n, 1)
   expect_equal(o$rendimiento$reemplazo$n, 1)
   expect_equal(o$rendimiento$banco$n, 1)
+  expect_equal(o$rendimiento$adicional$n, 1)
   expect_equal(o$rendimiento$titulares$elegibles, 100)
   expect_equal(o$rendimiento$banco$elegibles, 40)
 })

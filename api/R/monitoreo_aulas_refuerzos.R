@@ -115,14 +115,27 @@
        disponible = !aplicada & !agendada & !vencida & !caida)
 }
 
-#' Por qué entró un aula que no es titular.
+#' Por qué entró un aula que no es titular: el caso A, B o C.
 #'
-#' Tres respuestas, y la diferencia entre ellas decide qué se hace después:
+#' El vocabulario es de Gonzalo (2026-09-11, confirmado el 18): «A es reemplazo
+#' directo por rechazo, B es complemento a un CH y C son aulas adicionales que se
+#' usan de refuerzo».
 #'
-#'   * `banco` — un extra: no reemplaza a nadie, es aula adicional;
-#'   * `reemplazo` — su titular está caído, la cadena hizo su trabajo;
-#'   * `refuerzo` — su titular sigue vivo o ya se aplicó, así que a esta aula la
-#'     eligió alguien para tapar una brecha.
+#' **Sólo A se puede deducir; B y C no.** Que el titular esté caído es un hecho
+#' del plan, así que A se reconoce sola. Pero entre completar a un curso-horario
+#' concreto y reforzar a la facultad entera no hay ninguna diferencia observable:
+#' la distingue la INTENCIÓN de quien eligió el aula.
+#'
+#' Lo demostró Gonzalo el 2026-09-18 con la lista de los quince refuerzos de la
+#' primera semana, todos caso C. Entre ellos, R 161.5, R 161.6 y R 161.8, cuyo
+#' titular CH 161 YA se había aplicado con 12 efectivas. Una primera versión de
+#' esta función deducía «titular aplicado → complemento (B)» y habría clasificado
+#' esas tres como B: eran C, elegidas por la cuota de Psicología y no para
+#' completar a CH 161.
+#'
+#' Por eso lo no declarado sale como `adicional` —con su `caso` vacío— en vez de
+#' inventarle una letra. Es exactamente lo que hace valioso el registro: sin él
+#' no hay forma de saberlo, y con él se sabe sin deducir nada.
 #'
 #' @return lista con `clase` y `fuente`. La fuente tiene TRES grados, no dos:
 #'   `declarada` (alguien la marcó), `sellada` (la app la dedujo al agendar y
@@ -137,13 +150,18 @@
 #' @keywords internal
 .marf_procedencia <- function(df, estados, i) {
   origen <- tolower(trimws(df$activation_origin[i]))
-  if (nzchar(origen)) {
-    clase <- if (grepl("refuerzo|complemento|extra", origen)) "refuerzo" else "reemplazo"
-    fuente <- if (identical(origen, .MARF_ORIGEN_INFERIDO)) "sellada" else "declarada"
-    return(list(clase = clase, fuente = fuente, detalle = df$activation_origin[i]))
+  # Lo DECLARADO manda y trae su letra: `monitoreo_aulas_marcar_refuerzo()` ya
+  # escribe «complemento» o «refuerzo».
+  if (nzchar(origen) && !identical(origen, .MARF_ORIGEN_INFERIDO)) {
+    clase <- if (grepl("complemento", origen)) "complemento" else
+      if (grepl("refuerzo|extra", origen)) "refuerzo" else "reemplazo"
+    return(list(clase = clase, fuente = "declarada", detalle = df$activation_origin[i]))
   }
+  fuente <- if (nzchar(origen)) "sellada" else "reconstruida"
   if (identical(df$sample_role[i], "extra_reserve_pool")) {
-    return(list(clase = "banco", fuente = "reconstruida",
+    # Un extra no pertenece a ninguna cadena, así que A queda descartado; entre
+    # B y C sigue sin haber evidencia.
+    return(list(clase = "adicional", fuente = fuente,
                 detalle = "del banco de extras: no reemplaza a ninguna cadena"))
   }
   cadena <- if (nzchar(df$titular_operational_code[i])) df$titular_operational_code[i] else
@@ -152,22 +170,23 @@
                            df$operational_code) == cadena &
                       df$sample_role == "titular")
   if (!length(hermanos)) {
-    return(list(clase = "refuerzo", fuente = "reconstruida",
+    return(list(clase = "adicional", fuente = fuente,
                 detalle = "su cadena no tiene titular en el plan"))
   }
   t <- hermanos[[1L]]
-  if (isTRUE(estados$aplicada[t])) {
-    return(list(clase = "refuerzo", fuente = "reconstruida",
-                detalle = sprintf("su titular %s ya se aplicó con %d efectivas",
-                                  df$operational_code[t], as.integer(df$respuestas_validas[t]))))
-  }
-  if (isTRUE(estados$caida[t])) {
-    return(list(clase = "reemplazo", fuente = "reconstruida",
+  # A: el único que la evidencia sostiene.
+  if (isTRUE(estados$caida[t]) && !isTRUE(estados$aplicada[t])) {
+    return(list(clase = "reemplazo", fuente = fuente,
                 detalle = sprintf("su titular %s está en %s",
                                   df$operational_code[t], df$sample_status[t])))
   }
-  list(clase = "refuerzo", fuente = "reconstruida",
-       detalle = sprintf("su titular %s sigue vivo (%s)",
+  if (isTRUE(estados$aplicada[t])) {
+    return(list(clase = "adicional", fuente = fuente,
+                detalle = sprintf("entró con su titular %s ya aplicado (%d efectivas)",
+                                  df$operational_code[t], as.integer(df$respuestas_validas[t]))))
+  }
+  list(clase = "adicional", fuente = fuente,
+       detalle = sprintf("entró con su titular %s todavía vivo (%s)",
                          df$operational_code[t], df$sample_status[t]))
 }
 
@@ -196,7 +215,8 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
     list(
       codigo = df$operational_code[i], rol = df$sample_role[i],
       facultad = df$faculty[i], curso = df$course_name[i], docente = df$teacher[i],
-      clase = pr$clase, procedencia_fuente = pr$fuente, por_que = pr$detalle,
+      clase = pr$clase, caso = .marf_caso(pr$clase),
+      procedencia_fuente = pr$fuente, por_que = pr$detalle,
       estado = if (isTRUE(e$aplicada[i])) "aplicada" else "agendada",
       fecha = df$scheduled_date[i],
       elegibles = as.integer(df$eligible_n[i]),
@@ -220,8 +240,13 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
   rendimiento <- list(
     titulares = tasa(which(e$aplicada & df$sample_role == "titular")),
     reemplazo = tasa(aplicadas_de("reemplazo")),
+    complemento = tasa(aplicadas_de("complemento")),
     refuerzo = tasa(aplicadas_de("refuerzo")),
-    banco = tasa(aplicadas_de("banco"))
+    # Las que nadie declaró: se miden aparte porque mezclarlas con las de su
+    # letra supuesta es justo lo que haría pasar una deducción por un dato.
+    adicional = tasa(aplicadas_de("adicional")),
+    banco = tasa(activas[e$aplicada[activas] &
+                           df$sample_role[activas] == "extra_reserve_pool"])
   )
 
   # --- el techo, contado con las aulas QUE FUERON A CAMPO ---
@@ -251,8 +276,29 @@ monitoreo_aulas_refuerzos <- function(plan = list(), responses = NULL, cfg = lis
       caben = .marf_techo_caben(df, e, cfg),
       vencidas = as.integer(sum(e$vencida)),
       citas_huerfanas = as.integer(sum(huerfana)),
-      codigos_huerfanos = I(as.character(df$operational_code[huerfana]))
+      codigos_huerfanos = I(as.character(df$operational_code[huerfana])),
+      # **Las huérfanas tienen dos lecturas y las dos son ciertas**, así que se
+      # publican las dos con nombre propio en vez de elegir una y callar la
+      # otra. Tienen fecha y aplicador, pero su titular ya rindió: si nadie va,
+      # no consumen techo (`caben`); si alguien va igual porque la cita sigue
+      # en la hoja, sí (`caben_en_el_peor_caso`). Sobre HSVG2026 al 18/09 la
+      # diferencia es 19 contra 15, y revisarlas es lo que devuelve el margen.
+      caben_en_el_peor_caso = if (techo > 0) {
+        as.integer(.marf_techo_caben(df, e, cfg) - sum(huerfana))
+      } else NA_integer_
     ),
+    # **El embudo del DISEÑO: qué fue de cada curso-horario original.**
+    #
+    # Gonzalo, 2026-09-18: «se tenían 174 aulas de esas 174 originales, cuántas
+    # finalmente se aplicaron o reemplazaron, y sobre esas 174 se llamaron a más
+    # aulas a nivel de reemplazo». Es otro marco que el del techo: aquél cuenta
+    # aulas gastadas, éste sigue la suerte de cada titular del diseño.
+    #
+    # La distinción que pedía está en `adicionales`: de las reservas en juego,
+    # unas SUSTITUYEN a un titular caído y otras entraron sin que cayera nadie.
+    # Sobre HSVG2026 son 7 contra 11, y llamarlas a todas «reemplazos» escondía
+    # que dos tercios eran refuerzos.
+    diseno = .marf_embudo(df, e, cadena),
     activadas = activadas,
     rendimiento = rendimiento,
     # Lo que queda en la banca, por facultad: sin esto «pedir más refuerzos» no
@@ -515,6 +561,57 @@ monitoreo_aulas_candidatos_refuerzo <- function(plan = list(), responses = NULL,
   list(ok = TRUE, motivo = "", hoy = as.character(hoy), caben = caben, candidatos = out)
 }
 
+#' Qué fue de cada curso-horario del diseño original.
+#'
+#' Ocho destinos, y la frontera que importa es la de en medio: `resueltas` ya
+#' recogieron —ellas o su reemplazo—, `en_camino` tienen fecha y `sin_resolver`
+#' no tienen por dónde. Un titular aplicado que ADEMÁS recibió refuerzo se
+#' cuenta aparte: es aula gastada sobre una cadena que ya había rendido.
+#' @keywords internal
+.marf_embudo <- function(df, e, cadena) {
+  tit <- which(df$sample_role == "titular")
+  destino <- vapply(tit, function(i) {
+    c <- df$operational_code[i]
+    hijos <- which(cadena == c & df$sample_role == "chain_reserve")
+    if (isTRUE(e$aplicada[i])) {
+      return(if (any(e$aplicada[hijos])) "aplicada_y_reforzada" else "aplicada")
+    }
+    if (any(e$aplicada[hijos])) return("reemplazada_y_aplicada")
+    if (isTRUE(e$agendada[i])) return("ella_agendada")
+    if (any(e$agendada[hijos])) return("reemplazo_agendado")
+    if (isTRUE(e$vencida[i])) return("cita_vencida")
+    if (isTRUE(e$caida[i])) return("caida_sin_reemplazo")
+    "sin_agendar"
+  }, character(1))
+  n <- function(k) as.integer(sum(destino == k))
+  resueltas <- n("aplicada") + n("aplicada_y_reforzada") + n("reemplazada_y_aplicada")
+  en_camino <- n("ella_agendada") + n("reemplazo_agendado")
+  reservas <- which((e$aplicada | e$agendada) & df$sample_role == "chain_reserve")
+  extras <- which((e$aplicada | e$agendada) & df$sample_role == "extra_reserve_pool")
+  list(
+    titulares = length(tit),
+    aplicada = n("aplicada"),
+    aplicada_y_reforzada = n("aplicada_y_reforzada"),
+    reemplazada_y_aplicada = n("reemplazada_y_aplicada"),
+    ella_agendada = n("ella_agendada"),
+    reemplazo_agendado = n("reemplazo_agendado"),
+    cita_vencida = n("cita_vencida"),
+    sin_agendar = n("sin_agendar"),
+    caida_sin_reemplazo = n("caida_sin_reemplazo"),
+    resueltas = resueltas, en_camino = en_camino,
+    sin_resolver = length(tit) - resueltas - en_camino,
+    adicionales = list(
+      total = length(reservas) + length(extras),
+      reservas = length(reservas), extras = length(extras),
+      # La distinción que se pedía: sustituir a alguien caído no es lo mismo
+      # que entrar sin que cayera nadie.
+      sustituyen = n("reemplazada_y_aplicada") + n("reemplazo_agendado"),
+      refuerzo = as.integer(length(reservas) + length(extras) -
+                              n("reemplazada_y_aplicada") - n("reemplazo_agendado"))
+    )
+  )
+}
+
 #' Cuántos refuerzos caben todavía bajo el techo declarado.
 #'
 #' Extraído para que el conteo del techo tenga UN solo cuerpo: lo usan el
@@ -550,15 +647,28 @@ monitoreo_aulas_candidatos_refuerzo <- function(plan = list(), responses = NULL,
 # lo sabe en el momento de agendar. Sellarlo entonces es registrar un hecho,
 # no adivinarlo después.
 #
-# **Lo inferido se marca como inferido.** El sello dice `refuerzo_inferido`,
-# distinto del `refuerzo` que escribe quien lo declara a mano: son dos grados
-# de certeza y fundirlos haría pasar por decisión lo que es una deducción. El
-# seguimiento los separa en `procedencia_fuente`.
+# **Lo inferido se marca como inferido, y sin letra.** El sello dice
+# `adicional_inferido`: consta que el aula entró de más, no cuál de los dos
+# motivos. Entre completar un curso-horario (B) y reforzar una facultad (C) sólo
+# decide quien la eligió, así que ponerle letra sería inventarla. El seguimiento
+# separa los grados en `procedencia_fuente`.
 #
 # Es IDEMPOTENTE y no pisa: una fila que ya trae origen se queda como está.
 # Por eso la primera pasada también repara las catorce de atrás.
 
-.MARF_ORIGEN_INFERIDO <- "refuerzo_inferido"
+# «Adicional», no «refuerzo»: el sello dice lo ÚNICO que consta —que no es
+# un reemplazo por rechazo—. Llamarlo refuerzo prometería la letra C, y
+# entre B y C no hay evidencia que elegir.
+.MARF_ORIGEN_INFERIDO <- "adicional_inferido"
+
+#' La letra del caso, o vacía cuando nadie la declaró.
+#'
+#' `adicional` NO tiene letra a propósito: es «no es A, y entre B y C sólo lo
+#' sabe quien la eligió».
+#' @keywords internal
+.marf_caso <- function(clase) {
+  switch(clase %||% "", reemplazo = "A", complemento = "B", refuerzo = "C", "")
+}
 
 #' Deja constancia de por qué entró cada aula no titular que ya está en juego.
 #'
@@ -599,7 +709,10 @@ monitoreo_aulas_sellar_procedencia <- function(plan = list(), ahora = NULL,
   for (i in which((e$aplicada | e$agendada) & df$sample_role != "titular")) {
     if (nzchar(df$activation_origin[i])) next
     pr <- .marf_procedencia(df, e, i)
-    if (!identical(pr$clase, "refuerzo")) next
+    # Sólo lo que NO es un reemplazo por rechazo. Sellar un reemplazo
+    # convertiría en decisión deliberada lo que fue la cadena haciendo su
+    # trabajo, y sellar una letra que no consta sería inventarla.
+    if (!identical(pr$clase, "adicional")) next
     # Las DOS claves en orden, no una u otra: el normalizador INVENTA un
     # `operational_code` cuando la fila no lo trae —una reserva sin código sale
     # como `R 2.1`—, así que un fallback por «está vacío» no se dispara nunca y

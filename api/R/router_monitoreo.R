@@ -5617,8 +5617,9 @@ mount_monitoreo <- function(pr) {
       #
       # Es idempotente y NO pisa lo que alguien declaró a mano, así que la
       # primera pasada además repara las de atrás. Lo que sella se marca como
-      # deducido (`refuerzo_inferido`), no como declarado: son dos grados de
-      # certeza distintos.
+      # deducido (`adicional_inferido`), no como declarado, y SIN letra de
+      # caso: consta que entró de más, no si fue para completar un
+      # curso-horario (B) o para reforzar la facultad (C).
       plan <- monitoreo_aulas_sellar_procedencia(plan)$plan
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan
