@@ -65,6 +65,33 @@ agendación (`monitoreo_aulas_agendada.R`) los lleva otra sesión sobre este mis
 árbol. Escribir la procedencia en la activación toca su camino y hay que
 acordarlo antes, no en paralelo.
 
+## A12–A13 — la segunda vuelta sobre la hoja ya publicada
+
+> «Pero el desglose debe ser por facultad y sexo de forma independiente; además
+> falta colores formato» · «Y además el veredicto no lo das tú, porque suena a
+> AI slop. Sino tú proporcionas los datos»
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| A12 | El desglose principal es la CUOTA (facultad × sexo), no la facultad | bloque 1 de `carga_aulas_libro_riesgo.R`; la facultad entera baja a bloque de control | ☑ |
+| A13 | Semáforo con color en xlsx y en Sheets | `.MALR_SEMAFORO` + `.malr_peldano()`, fila teñida y celda con su tinta | ☑ |
+| A14 | Fuera los veredictos redactados; sólo datos | columnas VEREDICTO y LECTURA eliminadas; `.malr_veredicto()` borrada | ☑ |
+
+Los cinco peldaños y su criterio, que es lo que da el color:
+
+| Peldaño | Cuándo |
+|---|---|
+| NO LLEGA | margen negativo, o falta gente y ya no queda nada por aplicar |
+| EN EL FILO | probabilidad de cierre bajo 0,95, o no llega por lo declarado |
+| JUSTA | falta gente y el margen es 10 o menos |
+| EN CAMINO | falta gente, con margen mayor |
+| CERRADA | ya tiene su cuota |
+
+**La regla que costó una corrección**: una cuota ya cumplida NO corre peligro —lo
+recogido no se devuelve—, así que el margen chico sólo pesa cuando todavía falta
+gente. Sin eso, Contables y Educación salían en la lista de riesgo habiendo
+cerrado hacía días.
+
 ## Lo aprendido, para no reinvestigarlo
 
 - `monitoreo_aulas_normalize_config()` **sí conserva** `faculty_var`, `faculty_labels`

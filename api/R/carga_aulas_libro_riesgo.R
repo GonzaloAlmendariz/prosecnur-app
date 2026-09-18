@@ -6,13 +6,23 @@
 # encima, que tal lejos estan las agendaciones, si ya se aplicaron todas sus
 # aulas, etc. hay que ser bastante precisos con todas esas informaciones».
 #
-# **Por qué no basta el veredicto.** El motor de seguimiento ya dice si una
-# facultad cierra o no (`riesgo`, `riesgo_agendado`), y el 2026-09-18 las quince
-# salían en verde. Pero «ninguna en riesgo» no es lo mismo que «ninguna
-# apretada»: Letras y Ciencias Humanas cerraba su cuota de mujeres por UNA sola
-# aula del 24/09 y con seis reservas libres, y eso el veredicto no lo dice. La
-# hoja pone al lado las piezas con las que se decide: lo que hay, lo que falta,
-# de cuántas aulas depende, para cuándo son y qué queda si una se cae.
+# **Por qué no basta el indicador de riesgo del motor.** Ya dice si una facultad
+# cierra o no (`riesgo`, `riesgo_agendado`), y el 2026-09-18 las quince salían en
+# verde. Pero «ninguna en riesgo» no es lo mismo que «ninguna apretada»: Letras y
+# Ciencias Humanas cerraba su cuota de mujeres por UNA sola aula del 24/09 y con
+# seis reservas libres. La hoja pone al lado las piezas con las que se decide:
+# lo que hay, lo que falta, de cuántas aulas depende, para cuándo son y qué queda
+# si una se cae.
+#
+# **La unidad es la CUOTA, no la facultad** (dictado 2026-09-18: «el desglose
+# debe ser por facultad y sexo de forma independiente»). Las cuotas del diseño
+# son por celda, y una facultad puede cerrar su total con una de sus dos celdas
+# corta. La facultad entera se conserva en su propio bloque, como control.
+#
+# **La hoja da los datos, no el juicio** (mismo dictado: «el veredicto no lo das
+# tú, porque suena a AI slop. Sino tú proporcionas los datos»). Lo único en
+# palabras es el semáforo, que existe porque el color necesita una regla, y su
+# criterio va escrito en la cabecera de la hoja.
 #
 # **Ordenada por lo que aprieta, no por el alfabeto.** Primero la facultad con
 # menos margen al cierre. Una hoja alfabética obliga a leerla entera para
@@ -28,11 +38,58 @@
 
 .MALR_HOJA <- "Facultades en riesgo"
 .MALR_BLOQUES <- c(
-  "¿LLEGA O NO LLEGA?",
+  "CUOTA POR CUOTA: FACULTAD Y SEXO",
+  "LA FACULTAD ENTERA, COMO CONTROL",
   "LA AGENDA: DE CUÁNTO DEPENDE Y PARA CUÁNDO",
-  "POR SEXO, QUE ES DONDE MUERDE",
   "SI CONTÁRAMOS POR LA FACULTAD DECLARADA"
 )
+
+# **El semáforo, con su texto canónico.** El color no viaja solo: cada fila
+# lleva la palabra, y los dos renderers —xlsx y Sheets— la traducen a fondo y
+# tinta. Un color sin palabra se pierde al copiar la hoja, al imprimirla en
+# blanco y negro y para quien no distingue el rojo del verde; una palabra sin
+# color no se ve de un vistazo. Van juntos.
+.MALR_SEMAFORO <- list(
+  no_llega  = list(texto = "NO LLEGA",   fondo = "#FBD5D5", tinta = "#8A1C1C"),
+  filo      = list(texto = "EN EL FILO", fondo = "#FDE2B8", tinta = "#8A4B00"),
+  justa     = list(texto = "JUSTA",      fondo = "#FDF3D0", tinta = "#7A5C00"),
+  en_camino = list(texto = "EN CAMINO",  fondo = "#E3EDFA", tinta = "#1B4B8F"),
+  cerrada   = list(texto = "CERRADA",    fondo = "#E4F1E4", tinta = "#1E5B2A")
+)
+
+#' En qué peldaño del semáforo cae una cuota.
+#'
+#' **Una cuota ya cumplida NO corre peligro**: lo recogido no se devuelve. Por
+#' eso el margen chico sólo pesa cuando todavía falta gente; si no, la celda es
+#' `CERRADA` aunque su proyección sobre por poco. Confundir las dos cosas ponía
+#' en la lista de riesgo a Contables y Educación, que cerraron hace días.
+#'
+#' @param cuota,logrado,margen,prob,margen_declarado,campo_cerrado la celda.
+#' @return la clave del peldaño.
+#' @keywords internal
+.malr_peldano <- function(cuota, logrado, margen, prob = NA_real_,
+                          margen_declarado = NA_real_, campo_cerrado = FALSE) {
+  falta <- .malr_num(cuota, 0) - .malr_num(logrado, 0)
+  margen <- .malr_num(margen); prob <- .malr_num(prob)
+  mdec <- .malr_num(margen_declarado)
+  if (is.finite(margen) && margen < 0) return("no_llega")
+  if (falta > 0 && isTRUE(campo_cerrado)) return("no_llega")
+  if (falta <= 0) return("cerrada")
+  if (is.finite(prob) && prob < 0.95) return("filo")
+  if (is.finite(mdec) && mdec < 0) return("filo")
+  if (is.finite(margen) && margen <= 10) return("justa")
+  "en_camino"
+}
+
+#' El texto del semáforo de un peldaño.
+#' @keywords internal
+.malr_semaforo_texto <- function(clave) {
+  (.MALR_SEMAFORO[[clave]] %||% list(texto = ""))$texto
+}
+
+# La cabecera que marca la columna del semáforo, igual que su hermana del
+# margen: es el ancla de la que salen los colores de las dos salidas.
+.MALR_CABECERA_SEMAFORO <- "SEMÁFORO"
 
 .malr_num <- function(x, default = NA_real_) {
   if (is.null(x) || !length(x)) return(default)
@@ -71,22 +128,41 @@
 # La cabecera que marca una columna de margen. Es el ancla de la que salen el
 # numFmt del xlsx y el de Sheets: renombrarla sin tocar las dos salidas deja la
 # columna sin signo y en silencio, así que el contrato la comprueba.
-.MALR_CABECERA_MARGEN <- "SOBRE / BAJO LA META"
+.MALR_CABECERA_MARGEN <- "SOBRE / BAJO"
 .MALR_NUMFMT_MARGEN <- "+#,##0;-#,##0;0"
 
 #' Las columnas de margen de cada fila de cabecera, por número de fila.
 #'
 #' @param filas filas tipadas de la hoja.
-#' @return lista `fila -> índice de columna` para cada bloque que tenga margen.
+#' @return lista `fila -> vector de columnas` para cada bloque con margen. Son
+#'   VARIAS por bloque: la cuota por el aula y la misma por lo declarado llevan
+#'   cada una su margen, y quedarse con la primera dejaba la segunda sin signo.
 #' @keywords internal
 .malr_columnas_margen <- function(filas) {
+  out <- list()
+  cols <- integer(0)
+  for (i in seq_along(filas)) {
+    f <- filas[[i]]
+    celdas <- as.character(unlist(f$celdas, use.names = FALSE))
+    if (identical(f$tipo, "cabecera")) {
+      cols <- which(startsWith(celdas, .MALR_CABECERA_MARGEN))
+      next
+    }
+    if (identical(f$tipo, "dato") && length(cols)) out[[as.character(i)]] <- cols
+  }
+  out
+}
+
+#' La columna del semáforo de cada fila de dato, por número de fila.
+#' @keywords internal
+.malr_columnas_semaforo <- function(filas) {
   out <- list()
   col <- NA_integer_
   for (i in seq_along(filas)) {
     f <- filas[[i]]
     celdas <- as.character(unlist(f$celdas, use.names = FALSE))
     if (identical(f$tipo, "cabecera")) {
-      hit <- which(celdas == .MALR_CABECERA_MARGEN)
+      hit <- which(celdas == .MALR_CABECERA_SEMAFORO)
       col <- if (length(hit)) hit[[1L]] else NA_integer_
       next
     }
@@ -376,6 +452,12 @@ monitoreo_aulas_riesgo_facultades <- function(plan = list(), responses = NULL,
     vigencia_cuota = .malr_txt(seg$vigencia),
     total = list(
       facultades = length(out),
+      cuotas = sum(vapply(out, function(f) length(f$sexo), integer(1))),
+      cuotas_cortas = sum(vapply(out, function(f) {
+        sum(vapply(f$sexo, function(c) {
+          isTRUE(.malr_num(c$cuota, 0) - .malr_num(c$logrado, 0) > 0)
+        }, logical(1)))
+      }, integer(1))),
       en_riesgo = .malr_num((seg$total %||% list())$facultades_en_riesgo_agendado, 0),
       con_campo_cerrado = sum(vapply(out, function(f) isTRUE(f$campo_cerrado), logical(1))),
       cortas = sum(vapply(out, function(f) {
@@ -402,168 +484,123 @@ aulas_libro_filas_riesgo <- function(plan = list(), responses = NULL, cfg = list
   poner <- function(tipo, celdas) {
     filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = .alp_celdas(tipo, celdas))
   }
+  hoy_d <- if (inherits(hoy, "Date")) hoy else Sys.Date()
 
+  # **La hoja da los datos; el juicio es del que la lee.** Gonzalo, 2026-09-18:
+  # «el veredicto no lo das tú, porque suena a AI slop. Sino tú proporcionas los
+  # datos». La primera versión escribía una frase por fila —«Le falta 1 persona
+  # y la espera de 1 aula agendada»— que no añadía nada que las columnas no
+  # dijeran ya, y encima lo decía con voz de informe. Fuera.
+  #
+  # Lo único que queda en palabras es el SEMÁFORO, y está porque el color que
+  # pidió necesita una regla y un texto que lo acompañe: es una clasificación de
+  # cinco valores con su criterio escrito arriba, no una redacción.
   poner("titulo", "FACULTADES EN RIESGO")
-  poner("nota", sprintf(paste(
-    "Al %s. %d facultades: %d todavía por debajo de su cuota, %d con el campo",
-    "ya cerrado y %d que su proyección no alcanza. Ordenadas por lo que",
-    "aprieta: arriba la que tiene menos margen al cierre."),
-    format(if (inherits(hoy, "Date")) hoy else Sys.Date(), "%d/%m/%Y"),
-    o$total$facultades, o$total$cortas, o$total$con_campo_cerrado, o$total$en_riesgo))
+  poner("nota", sprintf("Al %s · %d cuotas (facultad × sexo) · %d de ellas todavía por debajo de su meta.",
+                        format(hoy_d, "%d/%m/%Y"), o$total$cuotas, o$total$cuotas_cortas))
   poner("nota", paste(
-    "«Al cierre» supone que se aplica TODO lo que hoy tiene fecha y que rinde",
-    "como viene rindiendo el campo de esa facultad. No cuenta lo que está sin",
-    "agendar: eso es aforo del plan, no aforo con día."))
+    "AL CIERRE = logrado + lo que aportan las aulas con fecha, a la tasa de esa",
+    "facultad. No cuenta lo que está sin agendar. SOBRE / BAJO = al cierre menos",
+    "la cuota."))
   poner("nota", sprintf(paste(
-    "La meta de cada facultad sale de %s. Cuando no viene del cálculo de",
-    "muestra es la que el propio plan esperaba de sus aulas, que no es lo",
-    "mismo que una cuota acordada."), .malr_fuente_cuota(o$fuente_cuota)))
+    "SEMÁFORO — NO LLEGA: el margen es negativo, o falta gente y ya no queda",
+    "nada por aplicar. EN EL FILO: probabilidad de cierre bajo 0,95 o no llega",
+    "por lo declarado. JUSTA: falta gente y el margen es 10 o menos. EN CAMINO:",
+    "falta gente con margen mayor. CERRADA: ya tiene su cuota. Meta tomada de %s."),
+    .malr_fuente_cuota(o$fuente_cuota)))
   poner("nota", "")
 
+  # ---- Bloque 1: la CUOTA, que es la celda facultad x sexo ----
   poner("bloque", .MALR_BLOQUES[[1]])
   poner("nota", paste(
-    "«Esperado de lo agendado» es lo que suman las aulas con fecha a la tasa de",
-    "esa facultad. «Al cierre» es lo logrado más eso. La última columna es lo",
-    "que sobra o falta contra la cuota: en negativo, no llega."))
-  poner("cabecera", c("FACULTAD", "CUOTA", "LOGRADO", "% DE LA CUOTA",
+    "Las cuotas del diseño son por facultad Y sexo, así que cada una se mide",
+    "por separado. Las columnas de agenda son de la facultad: las mismas aulas",
+    "sostienen sus dos celdas."))
+  poner("cabecera", c("FACULTAD", "SEXO", "CUOTA", "LOGRADO", "% DE LA CUOTA", "FALTAN",
                       "ESPERADO DE LO AGENDADO", "AL CIERRE", "SOBRE / BAJO LA META",
-                      "VEREDICTO"))
-  for (f in o$facultades) {
+                      "PROBABILIDAD DE CIERRE", "RETENCIÓN", "AL CIERRE POR LO DECLARADO",
+                      "SOBRE / BAJO POR LO DECLARADO", "AULAS AGENDADAS", "SIN AGENDAR",
+                      "VENCIDAS", "PRÓXIMA CITA", "ÚLTIMA CITA", "RESERVAS LIBRES",
+                      .MALR_CABECERA_SEMAFORO))
+  celdas <- unlist(lapply(o$facultades, function(f) {
+    lapply(f$sexo, function(c) c(list(facultad = f$facultad, padre = f), c))
+  }), recursive = FALSE)
+  peldano_de <- function(c) .malr_peldano(c$cuota, c$logrado, c$margen, c$prob_cierre,
+                                          c$margen_declarado, c$padre$campo_cerrado)
+  # Orden: primero el peldaño, y dentro de él lo más apretado.
+  rango <- c(no_llega = 1, filo = 2, justa = 3, en_camino = 4, cerrada = 5)
+  celdas <- celdas[order(
+    vapply(celdas, function(c) rango[[peldano_de(c)]], numeric(1)),
+    vapply(celdas, function(c) {
+      v <- c(.malr_num(c$margen_declarado), .malr_num(c$margen))
+      v <- v[is.finite(v)]
+      if (length(v)) min(v) else Inf
+    }, numeric(1)))]
+  for (c in celdas) {
+    f <- c$padre
+    falta <- .malr_num(c$cuota, 0) - .malr_num(c$logrado, 0)
     poner("dato", c(
-      f$facultad, .malr_ent(f$cuota), .malr_ent(f$logrado),
-      .malr_pct(f$logrado, f$cuota), .malr_ent(f$esperado_agendado),
-      .malr_ent(f$al_cierre), .malr_firmado(f$margen),
-      .malr_veredicto(f)))
+      c$facultad, if (identical(c$sexo, "F")) "Mujeres" else "Hombres",
+      .malr_ent(c$cuota), .malr_ent(c$logrado), .malr_pct(c$logrado, c$cuota),
+      if (falta > 0) .malr_ent(falta) else "",
+      .malr_ent(c$esperado), .malr_ent(c$al_cierre), .malr_firmado(c$margen),
+      if (is.finite(.malr_num(c$prob_cierre))) sprintf("%.2f", c$prob_cierre) else "",
+      if (is.finite(.malr_num(c$retencion))) sprintf("%.0f %%", 100 * c$retencion) else "",
+      .malr_ent(c$al_cierre_declarado), .malr_firmado(c$margen_declarado),
+      .malr_ent(f$agendadas), .malr_ent(f$sin_agendar), .malr_ent(f$vencidas),
+      .malr_fecha(f$proxima_cita), .malr_fecha(f$ultima_cita), .malr_ent(f$reservas_libres),
+      .malr_semaforo_texto(peldano_de(c))))
   }
 
+  # ---- Bloque 2: la facultad entera, como control ----
   poner("nota", "")
   poner("bloque", .MALR_BLOQUES[[2]])
   poner("nota", paste(
-    "De cuántas aulas depende lo que falta y para cuándo son. «Sin agendar» son",
-    "aulas del plan que todavía no tienen día; «vencidas», citas que pasaron sin",
-    "aplicarse y piden reagendar. «Reservas libres» es el colchón: con cuántas",
-    "se puede cubrir una que se caiga."))
+    "La suma de las dos celdas de cada facultad. Una facultad puede cerrar aquí",
+    "y tener una de sus dos cuotas corta, así que esta tabla no sustituye a la",
+    "de arriba: la controla."))
+  poner("cabecera", c("FACULTAD", "CUOTA", "LOGRADO", "% DE LA CUOTA", "FALTAN",
+                      "ESPERADO DE LO AGENDADO", "AL CIERRE", "SOBRE / BAJO LA META",
+                      .MALR_CABECERA_SEMAFORO))
+  # Ordenado por SU propio aprieto, no por el del bloque de arriba: heredarlo
+  # ponía Contables y Educación en cabeza de una tabla en la que están holgadas.
+  peldano_fac <- function(f) .malr_peldano(f$cuota, f$logrado, f$margen,
+                                           campo_cerrado = f$campo_cerrado)
+  por_facultad <- o$facultades[order(
+    vapply(o$facultades, function(f) rango[[peldano_fac(f)]], numeric(1)),
+    vapply(o$facultades, function(f) {
+      v <- .malr_num(f$margen); if (is.finite(v)) v else Inf
+    }, numeric(1)))]
+  for (f in por_facultad) {
+    falta <- .malr_num(f$cuota, 0) - .malr_num(f$logrado, 0)
+    poner("dato", c(
+      f$facultad, .malr_ent(f$cuota), .malr_ent(f$logrado), .malr_pct(f$logrado, f$cuota),
+      if (falta > 0) .malr_ent(falta) else "",
+      .malr_ent(f$esperado_agendado), .malr_ent(f$al_cierre), .malr_firmado(f$margen),
+      .malr_semaforo_texto(peldano_fac(f))))
+  }
+
+  # ---- Bloque 3: la agenda, aula por aula ----
+  poner("nota", "")
+  poner("bloque", .MALR_BLOQUES[[3]])
+  poner("nota", paste(
+    "SIN AGENDAR: aulas del plan que todavía no tienen día. VENCIDAS: citas que",
+    "pasaron sin aplicarse. RESERVAS LIBRES: con cuántas se puede cubrir una que",
+    "se caiga. CÓDIGOS: las aulas con fecha de las que depende lo que falta."))
   poner("cabecera", c("FACULTAD", "APLICADAS", "AGENDADAS", "SIN AGENDAR", "VENCIDAS",
                       "EN GESTIÓN", "AFORO AGENDADO", "PRÓXIMA CITA", "ÚLTIMA CITA",
-                      "DÍAS HASTA LA ÚLTIMA", "RESERVAS LIBRES", "ESTADO DEL CAMPO"))
-  for (f in o$facultades) {
+                      "DÍAS HASTA LA ÚLTIMA", "RESERVAS LIBRES", "CÓDIGOS AGENDADOS"))
+  for (f in por_facultad) {
     poner("dato", c(
       f$facultad, .malr_ent(f$aulas_aplicadas), .malr_ent(f$agendadas),
       .malr_ent(f$sin_agendar), .malr_ent(f$vencidas), .malr_ent(f$en_gestion),
       .malr_ent(f$aforo_agendado), .malr_fecha(f$proxima_cita), .malr_fecha(f$ultima_cita),
       if (is.finite(f$dias_a_la_ultima)) .malr_ent(f$dias_a_la_ultima) else "",
       .malr_ent(f$reservas_libres),
-      if (isTRUE(f$campo_cerrado)) "Ya no le queda nada por aplicar" else
-        "Le quedan aulas por aplicar"))
-  }
-
-  celdas <- unlist(lapply(o$facultades, function(f) {
-    lapply(f$sexo, function(c) c(list(facultad = f$facultad), c))
-  }), recursive = FALSE)
-  if (length(celdas)) {
-    poner("nota", "")
-    poner("bloque", .MALR_BLOQUES[[3]])
-    poner("nota", paste(
-      "Una facultad puede cerrar su cuota total y no cerrar la de mujeres o la",
-      "de hombres, y las cuotas son por celda. «Probabilidad» es la del motor:",
-      "por debajo de 1 hay escenarios en los que esa celda no llega."))
-    poner("cabecera", c("FACULTAD", "SEXO", "CUOTA", "LOGRADO", "ESPERADO DE LO AGENDADO",
-                        "AL CIERRE", "SOBRE / BAJO LA META", "PROBABILIDAD DE CIERRE",
-                        "LECTURA"))
-    orden <- order(vapply(celdas, function(c) {
-      v <- .malr_num(c$margen); if (is.finite(v)) v else Inf
-    }, numeric(1)))
-    for (c in celdas[orden]) {
-      poner("dato", c(
-        c$facultad, if (identical(c$sexo, "F")) "Mujeres" else "Hombres",
-        .malr_ent(c$cuota), .malr_ent(c$logrado), .malr_ent(c$esperado),
-        .malr_ent(c$al_cierre), .malr_firmado(c$margen),
-        if (is.finite(c$prob_cierre)) sprintf("%.2f", c$prob_cierre) else "",
-        c$etiqueta))
-    }
-  }
-
-  con_ret <- Filter(function(c) is.finite(.malr_num(c$retencion)), celdas)
-  if (length(con_ret)) {
-    poner("nota", "")
-    poner("bloque", .MALR_BLOQUES[[4]])
-    poner("nota", paste(
-      "El avance se cuenta con la facultad del AULA. Parte de esas respuestas",
-      "son de alumnos de otras facultades, así que por lo que ellos DECLARAN la",
-      "misma celda puede quedar corta. «Retención» es cuántos de los que su aula",
-      "entrega dicen ser de ella. Es un aviso, no un descuento: la hoja no",
-      "cambia ningún conteo del avance."))
-    poner("cabecera", c("FACULTAD", "SEXO", "CUOTA", "AL CIERRE POR EL AULA",
-                        "RETENCIÓN", "AL CIERRE POR LO DECLARADO",
-                        "SOBRE / BAJO LA META"))
-    orden <- order(vapply(con_ret, function(c) {
-      v <- .malr_num(c$margen_declarado); if (is.finite(v)) v else Inf
-    }, numeric(1)))
-    for (c in con_ret[orden]) {
-      poner("dato", c(
-        c$facultad, if (identical(c$sexo, "F")) "Mujeres" else "Hombres",
-        .malr_ent(c$cuota), .malr_ent(c$al_cierre),
-        sprintf("%.0f %%", 100 * .malr_num(c$retencion)),
-        .malr_ent(c$al_cierre_declarado), .malr_firmado(c$margen_declarado)))
-    }
+      paste(f$codigos_pendientes, collapse = ", ")))
   }
 
   filas
-}
-
-#' El veredicto de una facultad en una frase, con su motivo.
-#'
-#' **Dice la causa, no sólo el hecho.** «En riesgo» obliga a ir a buscar por
-#' qué; «No llega: le faltan 12 y no tiene nada agendado» ya dice qué hacer.
-#' @keywords internal
-.malr_veredicto <- function(f) {
-  margen <- .malr_num(f$margen)
-  falta <- .malr_num(f$cuota, 0) - .malr_num(f$logrado, 0)
-  # «1 aula(s)» es la marca de una frase armada sin mirar su número. Las dos
-  # unidades que aparecen aquí concuerdan.
-  #
-  # Y concuerdan sobre un número que puede NO EXISTIR: una facultad sin
-  # proyección deja el margen en NA, `abs(NA) == 1` devuelve NA y el `if` de
-  # abajo aborta la hoja entera. Pasó con tres fixtures del publicador.
-  personas <- function(n) {
-    if (!is.finite(n)) return("un número que todavía no se puede proyectar")
-    sprintf(if (abs(n) == 1) "%s persona" else "%s personas", .malr_ent(abs(n)))
-  }
-  aulas <- function(n) sprintf(if (n == 1) "%s aula agendada" else "%s aulas agendadas",
-                               .malr_ent(n))
-  faltar <- function(n) if (is.finite(n) && abs(n) == 1) "le falta" else "le faltan"
-  # Sin proyección no hay veredicto que dar, y decir «cerrada» sería inventarlo.
-  if (!is.finite(margen)) {
-    if (falta > 0) {
-      return(sprintf("%s %s y todavía no hay con qué proyectar su cierre",
-                     .malr_may(faltar(falta)), personas(falta)))
-    }
-    return("Ya tiene su cuota; su cierre todavía no se puede proyectar")
-  }
-  if (is.finite(margen) && margen < 0) {
-    if (isTRUE(f$campo_cerrado)) {
-      return(sprintf("NO LLEGA: %s %s y ya no le queda nada por aplicar",
-                     faltar(margen), personas(margen)))
-    }
-    return(sprintf("NO LLEGA: %s %s aun aplicando todo lo agendado",
-                   faltar(margen), personas(margen)))
-  }
-  if (falta > 0 && isTRUE(f$campo_cerrado)) {
-    return(sprintf("Corta en %s y ya no le queda nada por aplicar", personas(falta)))
-  }
-  if (falta > 0) {
-    return(sprintf("%s %s y %s de %s",
-                   .malr_may(faltar(falta)), personas(falta),
-                   if (abs(falta) == 1) "la espera" else "las espera",
-                   aulas(f$agendadas)))
-  }
-  # Ya llegó, pero llegar con dos de margen y llegar con ciento treinta no son
-  # la misma noticia: la primera se cae con que una sola aula rinda de menos.
-  if (is.finite(margen) && margen <= 5) {
-    return(sprintf("Ya cerró, pero con %s de margen: una caída la deja corta",
-                   personas(margen)))
-  }
-  sprintf("Cerrada, con %s sobre la cuota", personas(margen))
 }
 
 #' Los valores de la hoja para Sheets.
@@ -602,17 +639,30 @@ aulas_libro_hoja_riesgo <- function(wb, plan = list(), responses = NULL, cfg = l
                          gridExpand = TRUE)
     }
   }
-  # Las filas que NO llegan, en rojo: es la única marca de color de la hoja y
-  # por eso significa algo.
-  alarma <- openxlsx::createStyle(fontColour = "#9B1C1C", textDecoration = "bold")
-  for (i in seq_along(filas)) {
-    f <- filas[[i]]
-    if (!identical(f$tipo, "dato")) next
-    txt <- paste(as.character(unlist(f$celdas, use.names = FALSE)), collapse = " ")
-    if (grepl("NO LLEGA", txt, fixed = TRUE)) {
-      openxlsx::addStyle(wb, hoja, alarma, rows = i, cols = seq_along(f$celdas),
-                         gridExpand = TRUE, stack = TRUE)
-    }
+  # **El color sale del semáforo de la fila, no de buscar texto suelto.** La
+  # celda del semáforo lleva la palabra y de ahí sale el fondo, así que las dos
+  # cosas no pueden discrepar: cambiar el peldaño cambia los dos a la vez.
+  estilo_semaforo <- lapply(.MALR_SEMAFORO, function(x) {
+    openxlsx::createStyle(fgFill = x$fondo, fontColour = x$tinta,
+                          textDecoration = "bold", halign = "center")
+  })
+  fila_semaforo <- lapply(.MALR_SEMAFORO, function(x) {
+    openxlsx::createStyle(fgFill = x$fondo)
+  })
+  por_texto <- stats::setNames(names(.MALR_SEMAFORO),
+                               vapply(.MALR_SEMAFORO, function(x) x$texto, character(1)))
+  semaforos <- .malr_columnas_semaforo(filas)
+  for (fila in names(semaforos)) {
+    i <- as.integer(fila)
+    col <- semaforos[[fila]]
+    txt <- as.character(filas[[i]]$celdas[[col]])
+    clave <- por_texto[[txt]] %||% NA_character_
+    if (is.na(clave)) next
+    # La fila entera con el tinte suave, y la celda del semáforo con su tinta:
+    # se busca la fila roja de un vistazo y se lee la palabra al llegar.
+    openxlsx::addStyle(wb, hoja, fila_semaforo[[clave]], rows = i,
+                       cols = seq_along(filas[[i]]$celdas), gridExpand = TRUE, stack = TRUE)
+    openxlsx::addStyle(wb, hoja, estilo_semaforo[[clave]], rows = i, cols = col, stack = TRUE)
   }
   signo <- openxlsx::createStyle(numFmt = .MALR_NUMFMT_MARGEN, halign = "right")
   margenes <- .malr_columnas_margen(filas)
@@ -647,6 +697,24 @@ aulas_libro_hoja_riesgo <- function(wb, plan = list(), responses = NULL, cfg = l
   ))
 }
 
+#' Una banda de UNA celda: el hermano de `.maaf_banda()`, que pinta la fila.
+#' @keywords internal
+.malr_banda_celda <- function(sheet_id, fila, col, fondo, tinta) {
+  list(repeatCell = list(
+    range = list(
+      sheetId = sheet_id,
+      startRowIndex = as.integer(fila - 1L), endRowIndex = as.integer(fila),
+      startColumnIndex = as.integer(col - 1L), endColumnIndex = as.integer(col)
+    ),
+    cell = list(userEnteredFormat = list(
+      backgroundColor = .monitoreo_sheets_rgb(fondo),
+      textFormat = list(bold = TRUE, foregroundColor = .monitoreo_sheets_rgb(tinta)),
+      horizontalAlignment = "CENTER"
+    )),
+    fields = "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)"
+  ))
+}
+
 #' Requests de formato de la hoja en Sheets.
 #' @keywords internal
 aulas_libro_riesgo_formato_requests <- function(sheet_id, rows) {
@@ -657,18 +725,27 @@ aulas_libro_riesgo_formato_requests <- function(sheet_id, rows) {
   poner <- function(req) requests[[length(requests) + 1L]] <<- req
   # La columna de margen del bloque en curso: se fija al leer su cabecera y se
   # suelta al llegar a la del bloque siguiente, porque no todos la tienen.
-  col_margen <- NA_integer_
+  cols_margen <- integer(0)
+  col_semaforo <- NA_integer_
+  por_texto <- stats::setNames(names(.MALR_SEMAFORO),
+                               vapply(.MALR_SEMAFORO, function(x) x$texto, character(1)))
   for (i in seq_along(rows)) {
     celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
     primera <- if (length(celdas)) celdas[[1L]] else ""
     linea <- paste(celdas, collapse = " ")
+    clave_fila <- ""
     if (identical(primera, "FACULTAD")) {
-      hit <- which(celdas == .MALR_CABECERA_MARGEN)
-      col_margen <- if (length(hit)) hit[[1L]] else NA_integer_
+      cols_margen <- which(startsWith(celdas, .MALR_CABECERA_MARGEN))
+      hit <- which(celdas == .MALR_CABECERA_SEMAFORO)
+      col_semaforo <- if (length(hit)) hit[[1L]] else NA_integer_
     } else if (primera %in% .MALR_BLOQUES) {
-      col_margen <- NA_integer_
-    } else if (is.finite(col_margen) && nzchar(primera) && length(celdas) > 1L) {
-      poner(.malr_formato_signo(sheet_id, i, col_margen))
+      cols_margen <- integer(0)
+      col_semaforo <- NA_integer_
+    } else if (nzchar(primera) && length(celdas) > 1L) {
+      for (cm in cols_margen) poner(.malr_formato_signo(sheet_id, i, cm))
+      if (is.finite(col_semaforo) && length(celdas) >= col_semaforo) {
+        clave_fila <- por_texto[[celdas[[col_semaforo]]]] %||% ""
+      }
     }
     if (identical(primera, "FACULTADES EN RIESGO")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF", size = 13L))
@@ -678,8 +755,14 @@ aulas_libro_riesgo_formato_requests <- function(sheet_id, rows) {
       poner(.maaf_alto_fila(sheet_id, i, 28L))
     } else if (identical(primera, "FACULTAD")) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#E7EEF9", "#1B4B8F", wrap = TRUE))
-    } else if (grepl("NO LLEGA", linea, fixed = TRUE)) {
-      poner(.maaf_banda(sheet_id, i, n_cols, "#FDECEC", "#9B1C1C"))
+    } else if (nzchar(clave_fila)) {
+      sem <- .MALR_SEMAFORO[[clave_fila]]
+      # La fila con su tinte y la tinta normal del texto; la celda del semáforo
+      # va aparte, en negrita y centrada.
+      poner(.maaf_banda(sheet_id, i, n_cols, sem$fondo, "#3A3532", bold = FALSE))
+      if (is.finite(col_semaforo)) {
+        poner(.malr_banda_celda(sheet_id, i, col_semaforo, sem$fondo, sem$tinta))
+      }
     } else if (length(celdas) == 1L && nzchar(primera)) {
       poner(.maaf_banda(sheet_id, i, n_cols, "#FFFFFF", "#6B6560",
                         size = 9L, italic = TRUE, bold = FALSE))
