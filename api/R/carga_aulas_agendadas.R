@@ -106,6 +106,22 @@ AULAS_AGENDADAS_BLOQUE <- list(
   # --- contexto: tiene que estar, pero no a la mano ---
   list(campo = "teacher_email",    titulos = c("CORREO PUCP DOCENTE")),
   list(campo = "faculty",          titulos = c("FACULTAD")),
+  # **La CARRERA, al lado de la facultad y no en su lugar** (Gonzalo, 2026-09-17:
+  # «en vez de facultad debe ser carrera; para este estilo donde la carrera es el
+  # estrato, no la facultad»; decisión tomada el 18/09 sobre las dos opciones).
+  #
+  # Se AÑADE en vez de reemplazar por una razón operativa, no estética: «Aulas
+  # Agendadas» es del EQUIPO y la app la respeta, así que cambiar el título de
+  # FACULTAD dejaría el documento vivo a medio migrar —el motor escribiría
+  # CARRERA en documentos nuevos y el suyo seguiría con FACULTAD sin corregirse
+  # nunca—, mientras que ensanchar es el camino ya probado en ese mismo
+  # documento: la columna de traslape lo llevó de 73 a 76 con cero celdas
+  # distintas y el formato intacto.
+  #
+  # Y **no lleva «FACULTAD» de alias**: el alias capturaría la columna de al lado
+  # y metería «CIENCIAS SOCIALES» dentro de `program`, que es exactamente lo que
+  # esta columna existe para no decir.
+  list(campo = "program",          titulos = c("CARRERA")),
   list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
   list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
   # «MATRICULADOS ELEGIBLES» (B17, dictado textual): «aqui no hablamos de
@@ -324,6 +340,12 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         label = val("label"),
         course_name = val("course_name"),
         faculty = val("faculty"),
+        # **La carrera, que sin esta línea se leía del Excel y moría aquí.** Es
+        # la misma lista cerrada que ya se tragó `teacher_phone` —el dato con el
+        # que se agenda—, dos comentarios más abajo. El barrido de ida y vuelta
+        # la cazó en el acto: `program` salía en `perdidos` junto a los dos
+        # alias declarados.
+        program = val("program"),
         level = val("level"),
         teacher = val("teacher"),
         # La spec declara `teacher_phone` desde el principio y el generador lo

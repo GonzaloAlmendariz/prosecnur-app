@@ -69,8 +69,8 @@ test_that("el bloque de agenda tiene 23 titulos y ninguno es MUESTRA", {
   # LITERAL a proposito: un campo nuevo en la spec debe pasar por aqui y
   # declararse, no colarse. Esta se colo el 2026-09-04 y el rojo se quedo
   # esperando hasta el 2026-09-07.
-  expect_length(AULAS_AGENDADAS_BLOQUE, 24L)
-  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 24L)
+  expect_length(AULAS_AGENDADAS_BLOQUE, 25L)
+  expect_identical(AULAS_AGENDADAS_ANCHO_BLOQUE, 25L)
   expect_false("wave" %in% campos)
   # «STATUS MUESTRA» no es «MUESTRA»: se compara el titulo entero.
   titulos <- unlist(lapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos))
