@@ -164,11 +164,21 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo, cierre }: {
           <BarraDeSexo letra="M" valor={f.mujeres} />
           <BarraDeSexo letra="H" valor={f.hombres} />
         </span>
+        {/* **Sin tasa prevista no se colorea, y no se escribe «de — previsto».**
+            Medido el 2026-09-18 sobre CCSS Perfil 2026-II: su τ prevista es
+            `null` —el motor se niega a afirmarla sin cuota del diseño— y esta
+            tarjeta hacía dos cosas con ese hueco. Escribía «5,2 % de —
+            previsto», una frase con un agujero donde va la cifra; y coloreaba
+            en VERDE, porque `f.prevista ?? 0` convierte «no se sabe» en cero y
+            cualquier observado lo supera. Un 5,2 % en verde por no tener contra
+            qué compararse es verde por ausencia, que es lo contrario de lo que
+            el color existe para decir. */}
         <span className="aulas-cvf-tasa">
-          <b className={sinCampo ? "" : (f.observada ?? 0) >= (f.prevista ?? 0) ? "es-ok" : "es-bajo"}>
+          <b className={sinCampo || f.prevista == null ? ""
+            : (f.observada ?? 0) >= f.prevista ? "es-ok" : "es-bajo"}>
             {sinCampo ? "—" : pct(f.observada)}
           </b>
-          <span>de {pct(f.prevista)} previsto</span>
+          <span>{f.prevista == null ? "sin tasa prevista" : `de ${pct(f.prevista)} previsto`}</span>
         </span>
         <span className={`aulas-cvf-veredicto es-${f.veredicto}`}>{palabraDelVeredicto(f.veredicto)}</span>
       </button>
@@ -213,7 +223,9 @@ function FilaDeFacultad({ f, abierta, onAbrir, onRefuerzo, rumbo, cierre }: {
                 <tr className="es-tasa">
                   <th scope="row">Rinde</th>
                   <td>{f.observada == null ? "—" : pctPerfil(f.observada * 100)}</td>
-                  <td><em>de {f.prevista == null ? "—" : pctPerfil(f.prevista * 100)} previsto</em></td>
+                  {/* Mismo hueco que en la tarjeta: sin previsto no se escribe
+                      «de — previsto», se dice que no lo hay. */}
+                  <td><em>{f.prevista == null ? "sin tasa prevista" : `de ${pctPerfil(f.prevista * 100)} previsto`}</em></td>
                 </tr>
                 <tr className="es-tasa">
                   <th scope="row">Aplicados</th>
