@@ -255,7 +255,10 @@ export function AulasSeccionConsultas({
           {/* Y DÓNDE aguanta. El consumo de arriba es del operativo entero; la
               cuota, en cambio, es por facultad: veinte reservas libres no
               sirven si la facultad que perdió un aula tiene cero. */}
-          <AulasColchonPorFacultad filas={agendaFilas} />
+          <AulasColchonPorFacultad
+            filas={agendaFilas}
+            eje={(dashboard as { avance_cuota?: { eje?: Record<string, unknown> | null } })?.avance_cuota?.eje}
+          />
         </section>
         ) : null}
         {enBrechas ? (
