@@ -2196,6 +2196,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # sería inventar el dato que el control existe para vigilar.
   aulas_libro_hoja_control_facultad(wb, plan_completo, responses, cfg = cfg,
                                    cuotas = cuotas)
+  # «Facultades en riesgo» (dictado 2026-09-18): si cada facultad llega a su
+  # meta, de cuántas aulas depende y para cuándo son. Condicional a que el
+  # estudio tenga cuotas por facultad con las que juzgar.
+  aulas_libro_hoja_riesgo(wb, plan_completo, responses, cfg = cfg, cuotas = cuotas)
   # Su hermana por NIVEL (fase 4 del plan del eje declarable). Condicional por
   # partida doble: sin `declared_level_var` declarada y sin padrón no hay dos
   # lados que cruzar, y una hoja vacía diría «todo coincide».

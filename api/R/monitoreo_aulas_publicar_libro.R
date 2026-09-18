@@ -130,6 +130,9 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
 .malp_hoja_produccion <- function() "Producción de aplicadores"
 # El control de calidad de facultad declarada (dictado 2026-09-14).
 .malp_hoja_control_facultad <- function() "Control de facultad"
+# Si cada facultad llega a su meta, con el contexto que lo decide (dictado
+# 2026-09-18).
+.malp_hoja_riesgo <- function() "Facultades en riesgo"
 .malp_hoja_control_nivel <- function() "Control de nivel"
 
 #' ¿Se puede reescribir «Asignación de aplicadores» sin riesgo de contradecir?
@@ -199,7 +202,7 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   if (hoja %in% c("Aulas Agendadas", AULAS_LIBRO_HOJA_AGENDADAS_EXTRA,
                   .malp_hoja_plan_dia(), .malp_hoja_asignacion(),
                   .malp_hoja_disponibilidad(), .malp_hoja_produccion(),
-                  .malp_hoja_control_facultad())) 1L else 2L
+                  .malp_hoja_control_facultad(), .malp_hoja_riesgo())) 1L else 2L
 }
 
 # data.frame del generador (cabecera como primera fila, todo texto) → filas de
@@ -356,6 +359,9 @@ monitoreo_aulas_libro_sheets_normalizar <- function(x) {
   }
   if (identical(tab_name, .malp_hoja_control_facultad())) {
     requests <- c(requests, aulas_libro_control_facultad_formato_requests(sheet_id, rows))
+  }
+  if (identical(tab_name, .malp_hoja_riesgo())) {
+    requests <- c(requests, aulas_libro_riesgo_formato_requests(sheet_id, rows))
   }
   # B14: los desplegables y calendarios de las pestañas Extra — los mismos
   # vocabularios, a la geometría del bloque único (carga_aulas_libro_extras.R).
@@ -518,6 +524,16 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # declare su `faculty_var`. NULL = no juega esta publicación.
   valores_control_fac <- aulas_libro_valores_control_facultad(
     plan %||% list(), responses, cfg = config_aulas %||% list(), cuotas = cuotas)
+  # «Facultades en riesgo»: si cada una llega, de cuántas aulas depende y para
+  # cuándo son. NULL = el estudio todavía no tiene cuotas por facultad con las
+  # que juzgar = la hoja no juega esta publicación.
+  #
+  # Recalcula el dashboard por su cuenta (7,6 s medidos sobre HSVG2026) porque
+  # el publicador no lo tiene a mano. Es deliberado: la alternativa era que la
+  # hoja rehiciera las proyecciones con insumos propios, y entonces podría
+  # discrepar de la pantalla sin que nadie lo notara.
+  valores_riesgo <- aulas_libro_valores_riesgo(
+    plan %||% list(), responses, cfg = config_aulas %||% list(), cuotas = cuotas)
   # Y su hermana por nivel. NULL = sin variable declarada o sin padrón = no
   # juega esta publicación.
   valores_control_niv <- aulas_libro_valores_control_nivel(
@@ -558,6 +574,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_control_fac)) {
     hojas_app <- c(hojas_app, .malp_hoja_control_facultad())
+  }
+  if (!is.null(valores_riesgo)) {
+    hojas_app <- c(hojas_app, .malp_hoja_riesgo())
   }
   if (!is.null(valores_control_niv)) {
     hojas_app <- c(hojas_app, .malp_hoja_control_nivel())
@@ -692,6 +711,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   }
   if (!is.null(valores_control_fac)) {
     producidas[[.malp_hoja_control_facultad()]] <- valores_control_fac
+  }
+  if (!is.null(valores_riesgo)) {
+    producidas[[.malp_hoja_riesgo()]] <- valores_riesgo
   }
   if (!is.null(valores_control_niv)) {
     producidas[[.malp_hoja_control_nivel()]] <- valores_control_niv
