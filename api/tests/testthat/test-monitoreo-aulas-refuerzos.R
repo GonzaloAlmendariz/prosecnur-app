@@ -37,7 +37,7 @@ test_that("una reserva cuyo titular está caído es REEMPLAZO orgánico", {
   expect_match(a$por_que, "rechazo")
 })
 
-test_that("cada fila dice SI la procedencia se leyó o se dedujo", {
+test_that("la procedencia tiene TRES grados de certeza, no dos", {
   # Un dato registrado y uno inferido no valen lo mismo, y la vista no debe
   # poder confundirlos. Mientras nadie escriba `activation_origin`, todo es
   # reconstruido — 1 de 1 392 filas lo traía el 2026-09-18.
@@ -53,8 +53,84 @@ test_that("cada fila dice SI la procedencia se leyó o se dedujo", {
   deducida <- Filter(function(x) identical(x$codigo, "R 3.1"), o$activadas)[[1]]
   leida <- Filter(function(x) identical(x$codigo, "R 3.2"), o$activadas)[[1]]
   expect_identical(deducida$procedencia_fuente, "reconstruida")
-  expect_identical(leida$procedencia_fuente, "registrada")
+  expect_identical(leida$procedencia_fuente, "declarada")
   expect_identical(leida$clase, "refuerzo")
+})
+
+test_that("lo que la app dedujo y selló no se publica como declarado", {
+  # Con dos grados, sellar convertía ocho deducciones en «registrada» y les daba
+  # la certeza de una decisión. Lo advirtió la sesión vecina mirando este mismo
+  # diseño el 2026-09-18, y era cierto: se medía en HSVG2026.
+  plan <- list(
+    .ref_u("CH 30", sample_status = "en_contacto"),
+    .ref_u("R 30.1", rol = "chain_reserve", titular_operational_code = "CH 30",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25")
+  )
+  sellado <- monitoreo_aulas_sellar_procedencia(plan, ahora = "2026-09-18T12:00:00Z",
+                                                hoy = as.Date("2026-09-18"))
+  expect_equal(sellado$selladas, 1)
+  o <- monitoreo_aulas_refuerzos(sellado$plan, data.frame(), list(),
+                                 hoy = as.Date("2026-09-18"))
+  a <- Filter(function(x) identical(x$codigo, "R 30.1"), o$activadas)[[1]]
+  expect_identical(a$clase, "refuerzo")
+  expect_identical(a$procedencia_fuente, "sellada")
+  expect_false(identical(a$procedencia_fuente, "declarada"))
+})
+
+test_that("sellar es idempotente y no pisa lo que alguien declaró", {
+  plan <- list(
+    .ref_u("CH 31", sample_status = "en_contacto"),
+    .ref_u("R 31.1", rol = "chain_reserve", titular_operational_code = "CH 31",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25", activation_origin = "refuerzo",
+           activation_reason = "lo pidió el coordinador")
+  )
+  o <- monitoreo_aulas_sellar_procedencia(plan, hoy = as.Date("2026-09-18"))
+  expect_equal(o$selladas, 0)
+  expect_identical(o$plan[[2]]$activation_reason, "lo pidió el coordinador")
+  # Y una segunda pasada sobre un plan ya sellado tampoco sella nada.
+  sin_marca <- list(
+    .ref_u("CH 32", sample_status = "en_contacto"),
+    .ref_u("R 32.1", rol = "chain_reserve", titular_operational_code = "CH 32",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25")
+  )
+  a <- monitoreo_aulas_sellar_procedencia(sin_marca, hoy = as.Date("2026-09-18"))
+  b <- monitoreo_aulas_sellar_procedencia(a$plan, hoy = as.Date("2026-09-18"))
+  expect_equal(a$selladas, 1)
+  expect_equal(b$selladas, 0)
+})
+
+test_that("un reemplazo orgánico NO se sella como refuerzo", {
+  # Sellar de más es peor que no sellar: convertiría en decisión deliberada lo
+  # que fue la cadena haciendo su trabajo.
+  plan <- list(
+    .ref_u("CH 33", sample_status = "rechazo"),
+    .ref_u("R 33.1", rol = "chain_reserve", titular_operational_code = "CH 33",
+           replacement_order = 1, sample_status = "agendada",
+           scheduled_date = "2026-09-25")
+  )
+  o <- monitoreo_aulas_sellar_procedencia(plan, hoy = as.Date("2026-09-18"))
+  expect_equal(o$selladas, 0)
+})
+
+test_that("el aula se encuentra por su classroom_id cuando no trae código operativo", {
+  # `%||%` en R sólo cae por NULL: con `operational_code` presente pero VACÍO,
+  # indexar con `cod %||% aula` no usaría nunca el `classroom_id`. La sesión
+  # vecina lo midió el 2026-09-18 en otro motor: 0 de 64 filas casaban por
+  # código y 63 de 64 por aula, y la pantalla decía «64 sin identificar».
+  plan <- list(
+    .ref_u("CH 34", sample_status = "en_contacto"),
+    utils::modifyList(
+      .ref_u("R 34.1", rol = "chain_reserve", titular_operational_code = "CH 34",
+             replacement_order = 1, sample_status = "agendada",
+             scheduled_date = "2026-09-25"),
+      list(operational_code = "", classroom_id = "AULA-34-1"))
+  )
+  o <- monitoreo_aulas_sellar_procedencia(plan, hoy = as.Date("2026-09-18"))
+  expect_equal(o$selladas, 1)
+  expect_identical(o$plan[[2]]$activation_origin, prosecnurapp:::.MARF_ORIGEN_INFERIDO)
 })
 
 test_that("el techo se cuenta con las aulas que FUERON A CAMPO, no con el eslabón en juego", {

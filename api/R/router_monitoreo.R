@@ -5604,6 +5604,22 @@ mount_monitoreo <- function(pr) {
         # tal cual para no aplastarlo bajo E_AULAS_AGENDA.
         error = function(e) if (inherits(e, "api_error")) stop(e) else stop_api(400, "E_AULAS_AGENDA", conditionMessage(e))
       )
+      # **Agendar una reserva cuyo titular no ha caído ES un refuerzo**, y aquí
+      # es donde la app lo sabe. Sellarlo ahora es registrar un hecho; deducirlo
+      # después es adivinarlo.
+      #
+      # Medido el 2026-09-18 sobre HSVG26ULT2: de las 15 aulas que entraron como
+      # refuerzo, UNA sola tenía `activation_origin`. Las otras catorce se
+      # agendaron directo y perdieron el morado de `refuerzo_por_contactar` al
+      # pasar a `agendada`, sin que nada dejara constancia de por qué estaban
+      # ahí. Gonzalo: «el sheets los marcó de morados y muchos se agendaron,
+      # entonces ya no estuvieron marcados como refuerzo».
+      #
+      # Es idempotente y NO pisa lo que alguien declaró a mano, así que la
+      # primera pasada además repara las de atrás. Lo que sella se marca como
+      # deducido (`refuerzo_inferido`), no como declarado: son dos grados de
+      # certeza distintos.
+      plan <- monitoreo_aulas_sellar_procedencia(plan)$plan
       cfg$aulas_universitarias$enabled <- TRUE
       cfg$aulas_universitarias$plan <- plan
       profile <- cfg$monitoreo_profile %||% list()

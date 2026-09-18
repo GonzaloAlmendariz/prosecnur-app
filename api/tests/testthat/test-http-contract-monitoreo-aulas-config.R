@@ -115,3 +115,44 @@ test_that("declarar otra variable de facultad sigue pisando la anterior", {
   expect_identical(as.character(mapa$faculty_var), "datos_demo/P9")
   expect_identical(as.character(mapa$faculty_labels[["1"]]), "EDUCACION")
 })
+
+# Agendar una reserva cuyo titular sigue vivo deja constancia de que es refuerzo.
+#
+# Medido en HSVG26ULT2 el 2026-09-18: de las 15 aulas que entraron como
+# refuerzo, UNA tenía `activation_origin`. Las otras catorce se agendaron
+# directo y perdieron el morado de `refuerzo_por_contactar` al pasar a
+# `agendada`, sin dejar constancia. Gonzalo: «el sheets los marcó de morados y
+# muchos se agendaron, entonces ya no estuvieron marcados como refuerzo».
+test_that("al agendar por HTTP, un refuerzo queda sellado como tal", {
+  srv <- http_contract_server()
+  sid <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))$json$session_id
+
+  plan <- list(
+    list(operational_code = "CH 40", titular_operational_code = "CH 40",
+         classroom_id = "CH 40", collection_unit_id = "CH 40", sample_role = "titular",
+         faculty = "DERECHO", eligible_n = 40, sample_status = "en_contacto"),
+    list(operational_code = "R 40.1", titular_operational_code = "CH 40",
+         classroom_id = "R 40.1", collection_unit_id = "R 40.1",
+         sample_role = "chain_reserve", replacement_order = 1,
+         faculty = "DERECHO", eligible_n = 40, sample_status = "")
+  )
+  puesto <- http_post_json(srv, "/api/monitoreo/aulas/config", sid = sid,
+                           body = list(config = list(plan = plan)))
+  expect_identical(puesto$status, 200L)
+
+  # Se agenda la reserva. Su titular sigue «en_contacto»: no ha caído.
+  r <- http_post_json(srv, "/api/monitoreo/aulas/agenda", sid = sid,
+                      body = list(updates = list(list(
+                        operational_code = "R 40.1", sample_status = "agendada",
+                        scheduled_date = "2026-10-02"))))
+  expect_identical(r$status, 200L)
+  fila <- Filter(function(u) identical(as.character(u$operational_code), "R 40.1"),
+                 r$json$agenda)
+  expect_length(fila, 1L)
+  expect_identical(as.character(fila[[1]]$activation_origin), "refuerzo_inferido")
+  expect_true(nzchar(as.character(fila[[1]]$activated_at %||% "")))
+  # Y el titular, que no se activó, sigue sin sello.
+  tit <- Filter(function(u) identical(as.character(u$operational_code), "CH 40"),
+                r$json$agenda)
+  expect_false(nzchar(as.character(tit[[1]]$activation_origin %||% "")))
+})
