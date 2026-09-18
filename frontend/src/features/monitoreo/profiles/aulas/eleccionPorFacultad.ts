@@ -87,6 +87,23 @@ export type EleccionPorFacultad = {
   gastadas: number;
   /** Lo que queda del techo. Nunca negativo. */
   quedanDelTecho: number;
+  /**
+   * **Cuántos grupos se pudieron evaluar, y cuántos no.** Es el denominador sin
+   * el que una cola vacía dice dos cosas opuestas: «medí a todos y nadie debe
+   * nada» y «no pude medir a ninguno».
+   *
+   * Medido el 2026-09-17 sobre el simulacro de CCSS por nivel: el motor trae
+   * cinco grupos y la pantalla publicaba «ninguna facultad debe nada ahora
+   * mismo» mientras Metas, en la misma sesión, decía que los cuatro niveles no
+   * llegan y faltan 342 personas. La causa es que `cuotaDeLaFacultad()` exige
+   * que la celda de cuota tenga SEXO —descarta toda celda cuyo `kind` no sea
+   * `female` ni `male`— y una cuota por el eje declarado no lo tiene: sus
+   * celdas llegan con `sex = ""`. Toda esta maquinaria supone cuota por sexo.
+   */
+  evaluadas: number;
+  grupos: number;
+  /** Grupos cuya celda de cuota no se pudo leer (hoy: no trae sexo). */
+  sinCuota: number;
 };
 
 /**
@@ -118,18 +135,25 @@ export function eleccionPorFacultad(
   const base: EleccionPorFacultad = {
     facultades: [], cola: [], facultad: "",
     gastadas, quedanDelTecho: Math.max(0, techo - gastadas),
+    evaluadas: 0, grupos: 0, sinCuota: 0,
   };
 
   const deudoras = bloque?.facultades ?? [];
   if (!deudoras.length) return base;
 
+  // Se cuentan los grupos que el motor trae y los que se caen por no poder
+  // leerles la cuota: sin esos dos números, una cola vacía es ambigua.
+  let grupos = 0;
+  let sinCuota = 0;
+
   const facultades: FacultadParaElegir[] = [];
   for (const f of deudoras) {
     const facultad = texto(f.facultad);
     if (!facultad) continue;
+    grupos += 1;
     const cuota = cuotaDeLaFacultad(
       (celdasDeCuota ?? []) as Array<Record<string, unknown>>, facultad);
-    if (!cuota) continue;
+    if (!cuota) { sinCuota += 1; continue; }
     // `deficitOperativo` ya descuenta lo AGENDADO, y lo que la app marcó no está
     // agendado todavía —nadie ha llamado—, así que no se descuenta aquí: lo que
     // hace la marca es sacar esa fila de la cola, no bajar la deuda.
@@ -151,7 +175,10 @@ export function eleccionPorFacultad(
   }
   // La peor primero, que es como se pide: «viendo cuál está peor».
   facultades.sort((a, b) => b.debe - a.debe || a.facultad.localeCompare(b.facultad, "es"));
-  if (!facultades.length) return base;
+  // Los contadores viajan también en la salida vacía: son justo lo que la
+  // pantalla necesita para no leer «nadie debe nada» sobre grupos sin medir.
+  const cuentas = { evaluadas: grupos - sinCuota, grupos, sinCuota };
+  if (!facultades.length) return { ...base, ...cuentas };
 
   const elegida = facultades.find((f) => clave(f.facultad) === clave(facultadPedida))
     ?? facultades[0];
@@ -167,6 +194,7 @@ export function eleccionPorFacultad(
     cola: colaDeFacultad(filas, elegida.facultad, debeM, debeH),
     gastadas,
     quedanDelTecho: Math.max(0, techo - gastadas),
+    ...cuentas,
   };
 }
 

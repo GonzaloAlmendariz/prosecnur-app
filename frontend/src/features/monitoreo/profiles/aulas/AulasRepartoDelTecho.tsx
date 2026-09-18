@@ -96,11 +96,19 @@ export function AulasRepartoDelTecho({ bloque, celdasDeCuota, plan, techo, onGua
       <div className="aulas-techo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {mando}
         <p className="mon-profile-muted">
+          {/* «Nadie necesita refuerzo» sólo si se pudo mirar a alguien. Mismo
+              trato que en «Cómo va cada facultad» (`0f434b03`) y que en la cola
+              de elección: con cero grupos evaluados no se afirma, y se dice qué
+              faltó. Ver la nota de `eleccionPorFacultad`. */}
           {r.quedaSinCubrir > 0
             ? <>Hay <strong>{fmt(r.quedaSinCubrir)}</strong> respuestas por cubrir y ningún
                 curso-horario del inventario las cierra: lo que queda disponible no aporta al
                 sexo que falta.</>
-            : <>Ninguna facultad necesita refuerzo ahora mismo: lo que tienen agendado
+            : r.grupos > 0 && r.evaluadas === 0
+              ? <>No se puede repartir el techo: de <strong>{fmt(r.grupos)}</strong>{" "}
+                {r.grupos === 1 ? "grupo" : "grupos"}, ninguno tiene una cuota por sexo que
+                leer, y es por sexo como este reparto decide.</>
+              : <>Ninguna facultad necesita refuerzo ahora mismo: lo que tienen agendado
                 cubre lo que les falta.</>}
         </p>
       </div>

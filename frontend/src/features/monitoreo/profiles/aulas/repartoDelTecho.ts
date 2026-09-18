@@ -121,6 +121,15 @@ export type RepartoDelTecho = {
   sinRecibir: FacultadDelReparto[];
   /** Cuántas de las elegidas solapan con otra elegida, por tipo. */
   traslapes: { docente: number; curso: number };
+  /**
+   * **El denominador del reparto: cuántos grupos se pudieron mirar.** Sin él,
+   * «ninguna facultad necesita refuerzo» se publica igual sobre un estudio que
+   * cierra y sobre uno cuya cuota este reparto no sabe leer. Ver la nota de
+   * `eleccionPorFacultad`: la cuota se lee POR SEXO y una cuota por el eje
+   * declarado no lo trae.
+   */
+  evaluadas: number;
+  grupos: number;
 };
 
 const texto = (v: unknown) => (v == null ? "" : String(v).trim());
@@ -134,9 +143,14 @@ export function repartoDelTecho(
   const vacio: RepartoDelTecho = {
     techo, asignadas: [], porFacultad: [], sobran: Math.max(0, techo), deHolgura: 0,
     quedaSinCubrir: 0, sinRecibir: [], traslapes: { docente: 0, curso: 0 },
+    evaluadas: 0, grupos: 0,
   };
   const filas = bloque?.facultades ?? [];
   if (!filas.length || techo <= 0) return vacio;
+  // Los grupos que el motor trae y los que se caen por no poder leerles la
+  // cuota. Sin los dos, un reparto vacío es ambiguo.
+  let grupos = 0;
+  let sinCuota = 0;
 
   type EnJuego = {
     facultad: string; debeM: number; debeH: number; faltaba: number;
@@ -149,9 +163,10 @@ export function repartoDelTecho(
   for (const f of filas) {
     const facultad = texto(f.facultad);
     if (!facultad) continue;
+    grupos += 1;
     const cuota = cuotaDeLaFacultad(
       (celdasDeCuota ?? []) as Array<Record<string, unknown>>, facultad);
-    if (!cuota) continue;
+    if (!cuota) { sinCuota += 1; continue; }
     // Lo que falta DESPUÉS de lo agendado: pedir refuerzo por lo que ya viene en
     // camino gasta reservas que otra facultad va a necesitar.
     const def = deficitOperativo(cuota, plan, facultad);
@@ -164,7 +179,7 @@ export function repartoDelTecho(
       .filter((c) => texto(c.fila.sample_status) !== "refuerzo_por_contactar");
     enJuego.push({ facultad, debeM, debeH, faltaba: debeM + debeH, cola, recibe: 0, exceso: 0 });
   }
-  if (!enJuego.length) return vacio;
+  if (!enJuego.length) return { ...vacio, evaluadas: grupos - sinCuota, grupos };
 
   const asignadas: AulaDelReparto[] = [];
   const usados = new Set<string>();
@@ -336,6 +351,8 @@ export function repartoDelTecho(
     quedaSinCubrir: porFacultad.reduce((n, f) => n + f.queda, 0),
     sinRecibir: porFacultad.filter((f) => f.recibe === 0 && f.queda > 0),
     traslapes,
+    evaluadas: grupos - sinCuota,
+    grupos,
   };
 }
 

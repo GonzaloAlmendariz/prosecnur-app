@@ -41,10 +41,23 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
     techo ?? leeTechoRecordado());
 
   if (!e.facultades.length) {
+    /**
+     * **«Nadie debe nada» sólo si se pudo mirar a alguien.**
+     *
+     * Medido el 2026-09-17 sobre el simulacro de CCSS por nivel: esta frase se
+     * publicaba con los cinco grupos del motor sin evaluar, mientras Metas
+     * decía en la misma sesión que los cuatro niveles no llegan y faltan 342
+     * personas. La causa está en `eleccionPorFacultad`: toda esta maquinaria
+     * lee la cuota por SEXO, y una cuota por el eje declarado no lo tiene.
+     *
+     * Mismo trato que en «Cómo va cada facultad» (`0f434b03`): con cero
+     * evaluados no se afirma, y se dice qué faltó.
+     */
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        Ninguna facultad debe nada ahora mismo: lo que tienen agendado cubre lo
-        que les falta, así que no hay a quién reforzar.
+        {e.grupos > 0 && e.evaluadas === 0
+          ? `No se puede decir a quién reforzar: de ${fmt(e.grupos)} ${e.grupos === 1 ? "grupo" : "grupos"}, ninguno tiene una cuota por sexo que leer, y es por sexo como esta cola elige.`
+          : "Ninguna facultad debe nada ahora mismo: lo que tienen agendado cubre lo que les falta, así que no hay a quién reforzar."}
       </p>
     );
   }

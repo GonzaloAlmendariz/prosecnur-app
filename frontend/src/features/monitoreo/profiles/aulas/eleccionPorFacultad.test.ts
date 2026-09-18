@@ -128,3 +128,56 @@ describe("eleccionPorFacultad", () => {
     expect(e.cola).toEqual([]);
   });
 });
+
+/**
+ * **«Nadie debe nada» sólo si se pudo mirar a alguien.**
+ *
+ * Medido el 2026-09-17 sobre el simulacro de CCSS por nivel: la pantalla
+ * publicaba «ninguna facultad debe nada ahora mismo» con los cinco grupos del
+ * motor sin evaluar, mientras Metas —misma sesión, mismos datos— decía que los
+ * cuatro niveles no llegan y faltan 342 personas.
+ *
+ * La causa: `cuotaDeLaFacultad()` exige que la celda de cuota tenga SEXO
+ * —descarta toda celda cuyo `kind` no sea `female` ni `male`— y una cuota por el
+ * eje declarado no lo trae: sus celdas llegan con `sex = ""`. Toda esta
+ * maquinaria supone cuota por sexo, y eso hay que DECIRLO en vez de publicar un
+ * «todo bien».
+ */
+describe("eleccionPorFacultad: el denominador de la cola", () => {
+  const bloqueDe = (nombres: string[]) => ({
+    facultades: nombres.map((facultad) => ({ facultad })),
+  } as never);
+
+  it("cuenta los grupos y los que no tienen cuota que leer", () => {
+    // Celdas del eje: sin sexo, que es el caso de una cuota por nivel.
+    const sinSexo = [
+      { faculty: "6", sex: "", target: 120, observed: 16, missing: 104 },
+      { faculty: "7", sex: "", target: 121, observed: 18, missing: 103 },
+    ];
+    const e = eleccionPorFacultad(bloqueDe(["6", "7"]), sinSexo, [], "", 15);
+    expect(e.grupos).toBe(2);
+    expect(e.sinCuota).toBe(2);
+    expect(e.evaluadas).toBe(0);
+    expect(e.facultades).toHaveLength(0);
+  });
+
+  it("con celdas por sexo SÍ evalúa, y el conteo lo dice", () => {
+    // La vara de que el arreglo no cambia nada para un estudio con cuota por
+    // sexo: los dos grupos se evalúan y `sinCuota` queda en cero.
+    const conSexo = [
+      { faculty: "DERECHO", sex: "F", target: 100, observed: 40, missing: 60 },
+      { faculty: "DERECHO", sex: "M", target: 100, observed: 30, missing: 70 },
+    ];
+    const e = eleccionPorFacultad(bloqueDe(["DERECHO"]), conSexo, [], "", 15);
+    expect(e.grupos).toBe(1);
+    expect(e.sinCuota).toBe(0);
+    expect(e.evaluadas).toBe(1);
+  });
+
+  it("sin grupos del motor los contadores quedan en cero, no en NaN", () => {
+    const e = eleccionPorFacultad(bloqueDe([]), [], [], "", 15);
+    expect(e.grupos).toBe(0);
+    expect(e.evaluadas).toBe(0);
+    expect(e.sinCuota).toBe(0);
+  });
+});
