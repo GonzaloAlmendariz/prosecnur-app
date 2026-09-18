@@ -308,9 +308,20 @@ export function AulasRendimientoYEfectividad({ bloque, fila, facultad = "" }: {
             <p className="aulas-rye-titulo">
               Cómo va cada facultad<em>contra la tasa que el diseño le supuso a ella</em>
             </p>
+            {/* **El plural concuerda, y con UNA el reparto no reparte.** Decía
+                «1 facultades» y debajo «ninguna se compara con la media», que
+                con un solo grupo no dice nada: no hay media contra la que no
+                compararse. En un estudio de una sola facultad —CCSS— ese
+                bloque se leía dos veces mal en la misma línea. La cifra es
+                correcta; lo que falla es la frase que la acompaña. */}
             <p className="aulas-rye-cabeza">
-              <strong>{fmt(reparto?.total ?? 0)}</strong> facultades
-              <em>ninguna se compara con la media: cada una con su vara</em>
+              <strong>{fmt(reparto?.total ?? 0)}</strong>{" "}
+              {(reparto?.total ?? 0) === 1 ? "facultad" : "facultades"}
+              <em>
+                {(reparto?.total ?? 0) === 1
+                  ? "el estudio tiene una sola: no hay reparto que comparar"
+                  : "ninguna se compara con la media: cada una con su vara"}
+              </em>
             </p>
             <span
               className="aulas-rye-barra"

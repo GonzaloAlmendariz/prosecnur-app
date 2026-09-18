@@ -84,7 +84,14 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRef
         ) : null}
         {r.porEncima ? <> · <strong>{fmt(r.porEncima)}</strong> por encima de lo previsto</> : null}
         {r.sinCampo ? <> · <strong>{fmt(r.sinCampo)}</strong> sin campo todavía</> : null}
-        . La deuda no se compensa entre facultades: cada una cierra la suya.
+        {/* **«No se compensa entre facultades» sólo dice algo si hay más de
+            una.** Con un estudio de una sola —CCSS— la frase enuncia una regla
+            que no puede aplicarse, y ocupa el sitio de lo que sí hay que saber:
+            que la cuota de ese estudio no se mide aquí. La regla es real (ADR
+            0079) y se queda donde vale. */}
+        {filas.length > 1
+          ? ". La deuda no se compensa entre facultades: cada una cierra la suya."
+          : ". El estudio tiene una sola facultad, así que no hay deuda que repartir entre ellas."}
       </p>
 
       <AulasMapaDeLaDeuda

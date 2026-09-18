@@ -72,3 +72,51 @@ describe("cómo le va a cada facultad", () => {
     expect(deudaPorFacultad(null, porSexo)).toEqual([]);
   });
 });
+
+/**
+ * **Las frases que sólo dicen algo con más de un grupo.**
+ *
+ * Visto en pantalla el 2026-09-18 sobre CCSS, que tiene UNA facultad: el reparto
+ * decía «1 facultades» —plural cableado— y debajo «ninguna se compara con la
+ * media», que sin media no enuncia nada. Dos veces mal en la misma línea, con la
+ * cifra correcta. La regla de que la deuda no se compensa entre facultades es
+ * real (ADR 0079) y se queda donde vale; lo que no vale es decirla donde no hay
+ * entre quiénes.
+ *
+ * Se prueba por RENDER y no sobre el helper: el defecto estaba en la copia, y un
+ * test del helper lo habría dejado pasar.
+ */
+describe("las frases de comparación se callan con un solo grupo", () => {
+  it("con una sola facultad no promete un reparto que no existe", async () => {
+    const { AulasComoVaCadaFacultad } = await import("./AulasComoVaCadaFacultad");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const bloque = {
+      total: {},
+      facultades: [{
+        facultad: "CIENCIAS SOCIALES", faculty_key: "ciencias sociales",
+        aulas_aplicadas: 0, tau_observado: null,
+      }],
+    } as never;
+    const html = renderToStaticMarkup(
+      <AulasComoVaCadaFacultad bloque={bloque} porSexo={[]} />,
+    );
+    expect(html).toContain("El estudio tiene una sola facultad");
+    expect(html).not.toContain("no se compensa entre facultades");
+  });
+
+  it("con varias, la regla del ADR 0079 sigue dicha", async () => {
+    const { AulasComoVaCadaFacultad } = await import("./AulasComoVaCadaFacultad");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const bloque = {
+      total: {},
+      facultades: [
+        { facultad: "DERECHO", faculty_key: "derecho", aulas_aplicadas: 3, tau_observado: 0.5 },
+        { facultad: "LETRAS", faculty_key: "letras", aulas_aplicadas: 2, tau_observado: 0.4 },
+      ],
+    } as never;
+    const html = renderToStaticMarkup(
+      <AulasComoVaCadaFacultad bloque={bloque} porSexo={[]} />,
+    );
+    expect(html).toContain("no se compensa entre facultades");
+  });
+});
