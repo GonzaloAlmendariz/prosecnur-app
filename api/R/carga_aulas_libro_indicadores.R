@@ -647,7 +647,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     escribir_tabla(
       "facultad", ind$facultades,
       nota_arriba = AULAS_AVANCE_NOTAS$facultad,
-      nota_abajo = .calaf_nota_metas(ind$facultades),
+      nota_abajo = .calaf_nota_metas(ind$facultades, eje),
       con_total = TRUE
     )
   }
