@@ -2387,6 +2387,35 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     avance_cuota = avance_cuota
   )
 
+  # **Los refuerzos y el techo** (dictado 2026-09-18), calculados UNA vez.
+  #
+  # Los tres bloques del payload —`refuerzos`, `cuotas_urgentes` y
+  # `candidatos_refuerzo`— comparten insumo. Calcularlo dentro de cada uno
+  # llevó el tablero de 7,6 s a 43,4 s en la primera versión: el cruce de
+  # facultad declarada, que `monitoreo_aulas_riesgo_facultades()` necesita para
+  # la retención, se corría tres veces sobre 3 000 respuestas.
+  #
+  # Y el motor de riesgo pide un dashboard mientras AQUÍ se construye uno: se
+  # le pasa el par de piezas que consume —ya calculadas arriba— en lugar del
+  # objeto entero. Con `NULL` se llamaría a sí mismo.
+  .mau_registros <- .monitoreo_aulas_records(plan_df)
+  # El cruce de facultad declarada, UNA vez: lo consumen `control_facultad` y
+  # el bloque de riesgo, y cuesta 11,9 s sobre 3 000 respuestas.
+  .mau_cruce <- tryCatch(
+    monitoreo_aulas_cruce_facultad_declarada(.mau_registros, responses, cfg,
+                                             cuotas = cfg$design_targets),
+    error = function(e) NULL)
+  .mau_refuerzos <- tryCatch(
+    monitoreo_aulas_refuerzos(.mau_registros, responses, cfg),
+    error = function(e) NULL)
+  .mau_riesgo <- tryCatch(
+    monitoreo_aulas_riesgo_facultades(
+      .mau_registros, responses, cfg, cuotas = cfg$design_targets,
+      dashboard = list(efectividad_seguimiento = efectividad_seguimiento,
+                       avance_sexo_facultad = .mau_avance_celdas),
+      cruce = .mau_cruce),
+    error = function(e) NULL)
+
   # POR FACULTAD, en el motor y no en la vista.
   #
   # El perfil por facultad se calculaba en el frontend sobre `course_status`, que
@@ -3225,13 +3254,27 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # mapear es el correcto: un mapeo bueno coincide en ~95 % y uno corrido,
     # en ~0 %. Sin esa devolución, mapear quince códigos a ciegas es un acto
     # de fe. Ver `monitoreo_aulas_cruce_facultad_declarada.R`.
-    control_facultad = tryCatch({
-      o <- monitoreo_aulas_cruce_facultad_declarada(
-        .monitoreo_aulas_records(plan_df), responses, cfg)
-      list(ok = isTRUE(o$ok), motivo = o$motivo %||% "",
-           comparables = o$comparables, coinciden = o$coinciden,
-           discrepan = o$discrepan)
-    }, error = function(e) NULL),
+    control_facultad = if (is.null(.mau_cruce)) NULL else list(
+      ok = isTRUE(.mau_cruce$ok), motivo = .mau_cruce$motivo %||% "",
+      comparables = .mau_cruce$comparables, coinciden = .mau_cruce$coinciden,
+      discrepan = .mau_cruce$discrepan),
+    # **Los refuerzos y el techo** (dictado 2026-09-18). Tres bloques que salen
+    # de `monitoreo_aulas_refuerzos.R` y que la pantalla necesita juntos:
+    # cuánto sitio queda, qué cuotas aprietan y a quién llamar.
+    #
+    # El motor de riesgo pide un dashboard y AQUÍ estamos construyendo uno: se
+    # le pasa el par de piezas que consume —ya calculadas arriba— en vez del
+    # objeto entero. Pasarle `NULL` lo haría llamarse a sí mismo.
+    #
+    # Los tres van en `tryCatch` como sus vecinos: un bloque condicional no
+    # puede tumbar el tablero entero, y si falla se nota por su ausencia.
+    refuerzos = .mau_refuerzos,
+    cuotas_urgentes = tryCatch(monitoreo_aulas_cuotas_urgentes(.mau_riesgo),
+                               error = function(e) NULL),
+    candidatos_refuerzo = tryCatch(
+      monitoreo_aulas_candidatos_refuerzo(.mau_registros, responses, cfg,
+                                          riesgo = .mau_riesgo),
+      error = function(e) NULL),
     # **Los tramos del operativo y su estado, DERIVADO** (dictado 2026-09-15).
     # El rango y su nombre se guardan porque son decisión suya; las citas, las
     # aplicadas y las que faltan se cuentan aquí en cada corrida. Sin tramos

@@ -303,12 +303,15 @@
 #'   medidos sobre HSVG2026) y GARANTIZA que la hoja y la pantalla digan el
 #'   mismo número.
 #' @param hoy fecha de referencia.
+#' @param cruce el cruce de facultad declarada ya calculado, si quien llama lo
+#'   tiene. Es la pieza cara del bloque.
 #' @return `{ok, motivo, hoy, facultades, total}`. `ok = FALSE` cuando el
 #'   estudio todavía no tiene cuotas por facultad con las que juzgar.
 #' @export
 monitoreo_aulas_riesgo_facultades <- function(plan = list(), responses = NULL,
                                               cfg = list(), cuotas = NULL,
-                                              dashboard = NULL, hoy = Sys.Date()) {
+                                              dashboard = NULL, hoy = Sys.Date(),
+                                              cruce = NULL) {
   vacio <- function(motivo) list(ok = FALSE, motivo = motivo, hoy = as.character(hoy),
                                  facultades = list(), total = list())
   # **Esta hoja es CONDICIONAL y no puede tumbar el libro.** El dashboard pide
@@ -358,7 +361,11 @@ monitoreo_aulas_riesgo_facultades <- function(plan = list(), responses = NULL,
   # `discrepan`— y deja fuera `por_sexo`, que es justo lo que este bloque mira.
   # Leerlo de ahí daba una lista vacía y el bloque desaparecía de la hoja sin
   # decir por qué, que es peor que no tenerlo.
-  cruce <- tryCatch(
+  # **El cruce entra por argumento cuando quien llama ya lo tiene.** Cuesta
+  # 11,9 s sobre las 3 000 respuestas de HSVG2026, y el dashboard lo necesita
+  # también para `control_facultad`: calcularlo dos veces llevó el tablero de
+  # 7,6 s a 31 s. Sin él por argumento se pide, que es lo que hace el libro.
+  cruce <- cruce %||% tryCatch(
     monitoreo_aulas_cruce_facultad_declarada(plan, responses, cfg, cuotas = cuotas),
     error = function(e) list(ok = FALSE))
   retencion <- list()
