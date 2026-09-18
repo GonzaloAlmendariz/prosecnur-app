@@ -488,26 +488,34 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
                         just = c("centre", "bottom"),
                         gp = grid::gpar(fill = tokens$surface, col = s$color, lwd = 1.0))
       }
-      # **El relleno NO pasa del contorno, aunque se haya superado la meta.**
-      # Una facultad puede cerrar en 123 % —pasa, y es buena noticia— pero un
-      # relleno que se sale de su carril se monta sobre el rótulo del vecino y
-      # rompe la comparación entre carriles, que es lo único que este gráfico
-      # hace. El exceso se dice donde sí cabe decirlo: el porcentaje de encima
-      # escribe el 123 % completo (Gonzalo, 2026-09-11).
+      # **La barra llega hasta lo conseguido, y la meta se marca DENTRO de
+      # ella** (Gonzalo, 2026-09-18: «no creo que deba pintarse de verde, sino
+      # se pinta del mismo color pero la línea negra marca la meta y diferencia
+      # el resto de la barra, que es exceso»).
+      #
+      # Revierte el recorte al 100 % que rigió desde el 2026-09-11. El recorte
+      # dejaba a todas las facultades que pasan la cuota con la MISMA barra
+      # llena —115 % y 250 % idénticas— y remataba el exceso con un filete de
+      # 0,0035 npc, tan fino que la superación se leía más débil que la
+      # carencia: cuando falta, el contorno hueco sobre el relleno se ve de
+      # inmediato; cuando sobra, había que saber que ese borde estaba ahí. El
+      # eje ya venía dimensionado con las efectivas (`.ppd_eje_bonito()` sobre
+      # metas Y valores), así que el excedente cabe sin tocar la escala.
       if (is.finite(h_val) && h_val > 0) {
-        h_pintado <- .ppd_alto_relleno(h_val, h_meta)
         # El relleno con su propio filete oscuro: sin él, contra el contorno del
         # mismo color, no se distingue dónde acaba lo conseguido y empieza lo
         # que falta.
-        grid::grid.rect(x = cx, y = y, width = ancho_carril, height = h_pintado,
+        grid::grid.rect(x = cx, y = y, width = ancho_carril, height = h_val,
                         just = c("centre", "bottom"),
                         gp = grid::gpar(fill = s$color, col = tokens$ink, lwd = 0.4))
-        # Un carril lleno se remata con un filete para que «lleno» y «lleno y de
-        # sobra» no se vean idénticos.
-        if (is.finite(h_meta) && h_val > h_meta) {
-          grid::grid.rect(x = cx, y = y + h_meta, width = ancho_carril, height = 0.0035,
-                          just = c("centre", "bottom"),
-                          gp = grid::gpar(fill = tokens$success, col = NA))
+        # La cuota, cruzando la barra que la superó: lo de abajo es la meta y lo
+        # de arriba el exceso. Va en tinta y no en el color de la serie porque
+        # sobre el relleno del mismo color no se vería.
+        if (.ppd_marca_de_cuota(h_val, h_meta)) {
+          grid::grid.lines(
+            x = grid::unit(c(cx - ancho_carril / 2, cx + ancho_carril / 2), "npc"),
+            y = grid::unit(y + h_meta, "npc"),
+            gp = grid::gpar(col = tokens$ink, lwd = 1.1))
         }
       }
       if (isTRUE(etiqueta_pct) && is.finite(meta) && meta > 0) {
@@ -573,15 +581,16 @@ pulso_pdf_barras_meta <- function(x, y, w, h, categorias, series, tope,
   v <- suppressWarnings(as.numeric(x)); v[!is.finite(v)] <- NA_real_; v
 }
 
-# El alto que se PINTA dentro de un carril. Regla dictada por Gonzalo el
-# 2026-09-11: «a veces el 100 % puede sobrepasar, como 123 % por ejemplo, pero
-# la barra debe quedarse en 100 %». Vive aparte de la función de dibujo porque
-# es la regla, no el trazo, y una regla se verifica.
-.ppd_alto_relleno <- function(alto_valor, alto_meta) {
+# ¿Hay que marcar la cuota DENTRO de la barra? Sólo cuando se superó: si no se
+# llegó, la cuota ya se ve como contorno hueco por encima del relleno y una
+# segunda marca sería redundante. Regla dictada por Gonzalo el 2026-09-18, que
+# revierte el recorte al 100 % del 2026-09-11; vive aparte de la función de
+# dibujo porque es la regla, no el trazo, y una regla se verifica.
+.ppd_marca_de_cuota <- function(alto_valor, alto_meta) {
   if (!length(alto_meta) || !is.finite(alto_meta[[1L]]) || alto_meta[[1L]] <= 0) {
-    return(alto_valor)
+    return(FALSE)
   }
-  min(alto_valor, alto_meta[[1L]])
+  isTRUE(alto_valor > alto_meta[[1L]])
 }
 
 #' Barra de progreso en línea, para una celda de tabla.
