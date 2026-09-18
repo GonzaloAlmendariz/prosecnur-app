@@ -499,6 +499,16 @@
     # distintas y el consumidor tiene que adivinar cuál: un contrato viejo sin
     # `eje` se lee como `facultad`, que es lo que es.
     eje = monitoreo_aulas_eje_declaracion(eje),
+    # **Por qué el eje no puede resolver, cuando no puede.** El satélite lo
+    # diagnostica y lo escribía en un atributo que NADIE leía: ni este motor, ni
+    # el payload, ni la pantalla. Un aviso escrito, correcto y sin consumidor no
+    # avisa — así que con el eje por persona y sin la variable del código
+    # declarada, el coordinador vería todas las respuestas en la bolsa «sin
+    # nivel» y ninguna palabra sobre la causa.
+    #
+    # Va en campo propio y NO en `motivo`, que es de la vigencia de las metas:
+    # son dos degradaciones distintas y pueden darse a la vez.
+    aviso_eje = .monitoreo_scalar(attr(eje_atr, "aviso"), ""),
     # **Sexo y carrera, descriptivos y en su propio bloque.** No entran a las
     # celdas ni a la brecha: la cuota es por el eje (decisión 2 del plan). Se
     # calculan aquí —en el MOTOR— porque el payload del estado recorta

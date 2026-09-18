@@ -68,6 +68,25 @@ describe("la procedencia de la cuota llega a la pantalla que la publica", () => 
     expect(html).toContain("El sello de las metas no se puede verificar");
   });
 
+  it("el aviso del eje llega a la pantalla, que es donde el motor no llegaba", () => {
+    // El motor lo escribía en un atributo que no leía NADIE. Sin consumidor, el
+    // coordinador ve todas las respuestas en la bolsa «sin nivel» y ni una
+    // palabra de la causa. Medido sobre CCSS: eje por nivel, `student_code_var`
+    // vacío y un instrumento sin pregunta por el código.
+    const html = pinta({ ...BASE, avance_cuota: AVANCE({
+      aviso_eje: "El eje de cuotas se resuelve por el código del alumno y el estudio no declara en qué pregunta viene.",
+    }) });
+    expect(html).toContain("no declara en qué pregunta viene");
+    // Con `role="status"` para que un lector de pantalla lo anuncie: es la
+    // condición que invalida todo lo que hay debajo.
+    expect(html).toContain('role="status"');
+  });
+
+  it("sin aviso del eje no se pinta un párrafo vacío", () => {
+    const html = pinta({ ...BASE, avance_cuota: AVANCE({ aviso_eje: "" }) });
+    expect(html).not.toContain("no declara en qué pregunta viene");
+  });
+
   it("con el sello en regla no se inventa una advertencia", () => {
     // El chip sigue diciendo de dónde sale la cuota, pero sin la coletilla: un
     // aviso que sale siempre deja de avisar.

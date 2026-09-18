@@ -76,7 +76,20 @@ monitoreo_aulas_eje_atribucion <- function(atr, plan_df = NULL, responses = NULL
     motivo = character(n), stringsAsFactors = FALSE
   )
   if (!n) {
-    return(.maea_sellar(out, eje, aviso = "", resueltas = NULL))
+    # **El aviso de configuración no espera a la primera respuesta.**
+    # Que el estudio no declare la variable del código, o que no haya padrón, es
+    # una propiedad del CONFIG y se sabe hoy. Saliendo con `aviso = ""` el
+    # diagnóstico sólo aparecía cuando ya llegaban respuestas —es decir, en
+    # campo—, que es justo cuando ya no se puede arreglar a tiempo.
+    # Medido el 2026-09-18 sobre CCSS Perfil 2026-II: eje por nivel declarado,
+    # `student_code_var` vacío en el mapeo y el instrumento sin ninguna pregunta
+    # por el código; el estudio salía a campo el 22 y la app no lo decía.
+    aviso_cfg <- if (identical(.monitoreo_scalar(eje$atribucion, "aula"), "persona")) {
+      .maea_aviso_de_config(padron, cfg)
+    } else {
+      ""
+    }
+    return(.maea_sellar(out, eje, aviso = aviso_cfg, resueltas = NULL))
   }
 
   # --- paso 1: el aula, íntegro y primero -----------------------------------
@@ -141,9 +154,11 @@ monitoreo_aulas_eje_atribucion <- function(atr, plan_df = NULL, responses = NULL
   .maea_sellar(out, eje, aviso, resueltas)
 }
 
-# El aviso que nombra la CAUSA y dónde se arregla. Sin él, «0 de 4 celdas» con
-# quinientas respuestas dentro manda a revisar el enlace del recopilador.
-.maea_aviso_padron <- function(padron, resueltas, elegible, cfg) {
+# La mitad del aviso que NO depende de las respuestas: se puede dar el día que
+# se configura el estudio, no el día que empieza el campo. Vive aparte para que
+# el camino de cero respuestas y el de muchas digan LO MISMO — dos redacciones
+# de la misma regla divergen tarde o temprano.
+.maea_aviso_de_config <- function(padron, cfg) {
   hay_padron <- is.list(padron) && length(padron[["filas"]] %||% list()) > 0L
   declarada <- nzchar(.monitoreo_scalar(
     ((cfg %||% list())[["source_mapping"]] %||% list())[["student_code_var"]] %||% "", ""))
@@ -161,6 +176,14 @@ monitoreo_aulas_eje_atribucion <- function(atr, plan_df = NULL, responses = NULL
       "respuesta cae en su celda y el avance por eje queda en su último corte."
     ))
   }
+  ""
+}
+
+# El aviso que nombra la CAUSA y dónde se arregla. Sin él, «0 de 4 celdas» con
+# quinientas respuestas dentro manda a revisar el enlace del recopilador.
+.maea_aviso_padron <- function(padron, resueltas, elegible, cfg) {
+  de_config <- .maea_aviso_de_config(padron, cfg)
+  if (nzchar(de_config)) return(de_config)
   res <- resueltas$resuelto %in% TRUE
   considera <- if (is.logical(elegible) && length(elegible) == nrow(resueltas)) elegible else rep(TRUE, nrow(resueltas))
   if (any(considera) && !any(res & considera)) {
