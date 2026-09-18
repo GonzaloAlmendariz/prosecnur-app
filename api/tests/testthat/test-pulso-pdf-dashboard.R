@@ -4,14 +4,19 @@
 # override. Las tres regresiones de aquí abajo salieron de defectos que el
 # código no señalaba y que sólo se veían mirando el PDF renderizado.
 
-test_that("el relleno nunca pasa de su meta, aunque se haya superado", {
-  # Gonzalo, 2026-09-11: «a veces el 100 % puede sobrepasar como 123 % por
-  # ejemplo, pero la barra debe quedarse en 100 %».
-  expect_equal(prosecnurapp:::.ppd_alto_relleno(0.30, 0.20), 0.20)
-  expect_equal(prosecnurapp:::.ppd_alto_relleno(0.12, 0.20), 0.12)
-  # Sin meta no hay tope que aplicar: se pinta lo que hay.
-  expect_equal(prosecnurapp:::.ppd_alto_relleno(0.30, NA_real_), 0.30)
-  expect_equal(prosecnurapp:::.ppd_alto_relleno(0.30, 0), 0.30)
+test_that("la cuota se marca dentro de la barra solo cuando se supero", {
+  # Gonzalo, 2026-09-18: «no creo que deba pintarse de verde, sino se pinta del
+  # mismo color pero la línea negra marca la meta y diferencia el resto de la
+  # barra, que es exceso». Revierte el recorte al 100 % del 2026-09-11, que
+  # dejaba 115 % y 250 % con la misma barra llena.
+  expect_true(prosecnurapp:::.ppd_marca_de_cuota(0.30, 0.20))
+  # Sin superarla la cuota ya se ve como contorno hueco: marcarla otra vez
+  # dentro del relleno seria decir dos veces lo mismo.
+  expect_false(prosecnurapp:::.ppd_marca_de_cuota(0.12, 0.20))
+  expect_false(prosecnurapp:::.ppd_marca_de_cuota(0.20, 0.20))
+  # Sin meta no hay cuota que marcar.
+  expect_false(prosecnurapp:::.ppd_marca_de_cuota(0.30, NA_real_))
+  expect_false(prosecnurapp:::.ppd_marca_de_cuota(0.30, 0))
 })
 
 test_that("el eje se redondea a pasos legibles y siempre cubre el maximo", {
