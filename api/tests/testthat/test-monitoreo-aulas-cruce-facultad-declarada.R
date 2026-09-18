@@ -401,3 +401,63 @@ test_that("la hoja dibuja la matriz numerada y con su fila por facultad", {
   expect_identical(as.character(cab$celdas[[2]]), "1")
   expect_true(any(grepl("^1\\. ", primeras)))
 })
+
+# --- la caché de normalización ---
+
+test_that("memoizar la normalización no cambia lo que devuelve", {
+  # Es pura —un texto siempre da el mismo texto—, así que la caché no puede
+  # devolver algo distinto de lo que se calcularía. Este test lo fija: con la
+  # caché fría y con la caliente, el mismo resultado.
+  rm(list = ls(prosecnurapp:::.mcfd_norm_cache, all.names = TRUE),
+     envir = prosecnurapp:::.mcfd_norm_cache)
+  frio <- vapply(c("ESTUDIOS GENERALES LETRAS", "Gestión y Alta Dirección",
+                   "CIENCIAS Y ARTES DE LA COMUN.", "", NA_character_),
+                 function(x) prosecnurapp:::.mcfd_norm(x), character(1))
+  caliente <- vapply(c("ESTUDIOS GENERALES LETRAS", "Gestión y Alta Dirección",
+                       "CIENCIAS Y ARTES DE LA COMUN.", "", NA_character_),
+                     function(x) prosecnurapp:::.mcfd_norm(x), character(1))
+  expect_identical(frio, caliente)
+  expect_identical(unname(frio[[1]]), "ESTUDIOSGENERALESLETRAS")
+  expect_identical(unname(frio[[2]]), "GESTIONYALTADIRECCION")
+  expect_identical(unname(frio[[4]]), "")
+  # El vacío y el NA no se cachean: `assign("", ...)` es un error de R y el
+  # cruce llama con "" en cuanto una fila no trae facultad.
+  expect_identical(prosecnurapp:::.mcfd_norm(""), "")
+  expect_identical(prosecnurapp:::.mcfd_norm(NA_character_), "")
+  expect_false("" %in% ls(prosecnurapp:::.mcfd_norm_cache, all.names = TRUE))
+})
+
+test_that("la caché se vacía al llegar a su tope y sigue respondiendo bien", {
+  # El tope existe para que un uso con datos que no sean nombres de facultad no
+  # la haga crecer sin fin. Al vaciarse, la siguiente respuesta tiene que ser la
+  # misma: si no, la caché estaría decidiendo el resultado.
+  rm(list = ls(prosecnurapp:::.mcfd_norm_cache, all.names = TRUE),
+     envir = prosecnurapp:::.mcfd_norm_cache)
+  antes <- prosecnurapp:::.mcfd_norm("DERECHO")
+  for (i in seq_len(prosecnurapp:::.MCFD_NORM_TOPE + 5L)) {
+    prosecnurapp:::.mcfd_norm(paste0("RELLENO ", i))
+  }
+  expect_lt(length(prosecnurapp:::.mcfd_norm_cache), prosecnurapp:::.MCFD_NORM_TOPE)
+  expect_identical(prosecnurapp:::.mcfd_norm("DERECHO"), antes)
+})
+
+test_that("el cruce da lo mismo llamado dos veces seguidas", {
+  # La caché es estado que sobrevive entre llamadas: si contaminara el
+  # resultado, la segunda corrida diferiría de la primera.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "CH 1", collection_unit_id = "CH 1",
+         sample_role = "titular", faculty = "DERECHO", eligible_n = 10),
+    list(operational_code = "CH 2", classroom_id = "CH 2", collection_unit_id = "CH 2",
+         sample_role = "titular", faculty = "EDUCACION", eligible_n = 10)
+  )
+  resp <- data.frame(aula = c("CH 1", "CH 1", "CH 2"), P7 = c("1", "2", "2"),
+                     stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(
+    classroom_id_var = "aula", faculty_var = "P7",
+    faculty_labels = list("1" = "DERECHO", "2" = "EDUCACION")))
+  a <- monitoreo_aulas_cruce_facultad_declarada(plan, resp, cfg)
+  b <- monitoreo_aulas_cruce_facultad_declarada(plan, resp, cfg)
+  expect_identical(a$comparables, b$comparables)
+  expect_identical(a$coinciden, b$coinciden)
+  expect_identical(a$discrepan, b$discrepan)
+})

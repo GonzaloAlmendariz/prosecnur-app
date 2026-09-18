@@ -49,11 +49,39 @@
   n >= 10L && identical(substr(na, 1L, n), substr(nb, 1L, n))
 }
 
+# **La normalización se memoiza porque se pide miles de veces con quince
+# valores.** `.mcfd_misma_facultad()` se evalúa fila a fila en ocho sitios sobre
+# las respuestas comparables, y cada llamada normaliza sus dos nombres: sobre
+# HSVG2026 son 2 769 filas, o sea más de cinco mil `iconv` + `gsub` para quince
+# nombres de facultad distintos.
+#
+# Medido con `Rprof` el 2026-09-18: `.mcfd_misma_facultad` era el 89 % del
+# tiempo del cruce y `.mcfd_norm` el 79 %, repartido entre `sub`, `gsub` e
+# `iconv`. El cruce costaba 11,9 s y duplicaba el tablero entero.
+#
+# Es seguro: la función es PURA —un texto siempre da el mismo texto— así que la
+# caché no puede devolver algo distinto de lo que se calcularía. El tope existe
+# para que un uso con datos que no sean nombres de facultad no la haga crecer
+# sin fin; al llegar, se vacía y se vuelve a llenar.
+.MCFD_NORM_TOPE <- 4096L
+.mcfd_norm_cache <- new.env(parent = emptyenv())
+
 .mcfd_norm <- function(x) {
-  k <- toupper(trimws(as.character(x %||% "")[1]))
+  crudo <- as.character(x %||% "")[1]
+  # **El vacío no se cachea**: `assign("", ...)` es un error de R —«zero-length
+  # variable name»— y el cruce llama con "" en cuanto una fila no trae facultad.
+  # Lo cazó el contrato de la caché el mismo día que nació.
+  if (is.na(crudo) || !nzchar(crudo)) return("")
+  hit <- .mcfd_norm_cache[[crudo]]
+  if (!is.null(hit)) return(hit)
+  k <- toupper(trimws(crudo))
   k <- suppressWarnings(iconv(k, to = "ASCII//TRANSLIT"))
-  if (is.na(k)) return("")
-  gsub("[^A-Z]", "", k)
+  out <- if (is.na(k)) "" else gsub("[^A-Z]", "", k)
+  if (length(.mcfd_norm_cache) >= .MCFD_NORM_TOPE) {
+    rm(list = ls(.mcfd_norm_cache, all.names = TRUE), envir = .mcfd_norm_cache)
+  }
+  assign(crudo, out, envir = .mcfd_norm_cache)
+  out
 }
 
 #' El cruce entre la facultad del aula y la declarada por quien respondió.
