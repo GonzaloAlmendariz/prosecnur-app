@@ -730,3 +730,26 @@ test_that("ningun test mide el flujo con una tipografia distinta de la que dibuj
   crudas <- con_type[!grepl("crf_type_ficha", con_type)]
   expect_equal(crudas, character(0))
 })
+
+# **Lo que se imprime se limpia una vez, en `.crf_txt`.**
+#
+# La base de la DTI compone el docente como «APEPATERNO APEMATERNO, NOMBRES», y
+# con el apellido materno vacio sale «ADINS  , SEBASTIEN». Medido el 2026-09-20
+# sobre el plan de CCSS Perfil 2026-II: 5 de 136 fichas con espacio antes de la
+# coma y 3 con espacios dobles. En pantalla no se ve; en papel si.
+test_that("el texto impreso no lleva espacios dobles ni espacio antes de la coma", {
+  expect_identical(prosecnurapp:::.crf_txt("ADINS  , SEBASTIEN MARCEL"), "ADINS, SEBASTIEN MARCEL")
+  expect_identical(prosecnurapp:::.crf_txt("CAPPELLETTI  , VALENTINA"), "CAPPELLETTI, VALENTINA")
+  expect_identical(prosecnurapp:::.crf_txt("BENZI , DANIELE "), "BENZI, DANIELE")
+  # Otros signos que se pegan igual.
+  expect_identical(prosecnurapp:::.crf_txt("MAR y JUE 09:00 ; 11:00"), "MAR y JUE 09:00; 11:00")
+})
+
+test_that("un texto ya limpio no se mueve, y el vacio sigue cayendo al fallback", {
+  # Sin esta mitad, el arreglo podria estar reescribiendo todo y nadie lo veria.
+  expect_identical(prosecnurapp:::.crf_txt("DAMONTE VALENCIA, GERARDO HECTOR"),
+                   "DAMONTE VALENCIA, GERARDO HECTOR")
+  expect_identical(prosecnurapp:::.crf_txt("ANTROPOLOGÍA POLÍTICA 1"), "ANTROPOLOGÍA POLÍTICA 1")
+  expect_identical(prosecnurapp:::.crf_txt(""), "Por confirmar")
+  expect_identical(prosecnurapp:::.crf_txt("", ""), "")
+})
