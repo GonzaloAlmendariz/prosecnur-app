@@ -75,9 +75,16 @@
   # El cero a la izquierda no es adorno: sin el, el sistema de archivos ordena
   # «Reemplazo 1, Reemplazo 10, Reemplazo 11, Reemplazo 2» y el decimo se cuela
   # entre el primero y el segundo. Las cadenas de este estudio llegan a once.
+  #
+  # **Y van al primer nivel, no dentro de «Reemplazos».** Gonzalo, 2026-09-20:
+  # «solo todo en una carpeta separa por titular, reemplazos 1 y reemplazo 2».
+  # El envoltorio agrupaba, pero a costa de un clic para llegar a la carpeta que
+  # de verdad se abre; «Titulares», «Reemplazo 01» y «Reemplazo 02» uno al lado
+  # del otro es como se trabaja. Un reemplazo cuyo orden no se reconoce se queda
+  # en «Reemplazos» a secas, que sigue siendo su cajon y se ve.
   n <- suppressWarnings(as.integer(replacement_order %||% NA))
   if (length(n) != 1L || is.na(n) || n < 1L) return(cajon)
-  file.path(cajon, sprintf("Reemplazo %02d", n))
+  sprintf("Reemplazo %02d", n)
 }
 
 #' Si el paquete separa por facultad, y la ruta de una ficha.
