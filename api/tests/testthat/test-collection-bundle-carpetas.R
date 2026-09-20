@@ -245,13 +245,18 @@ test_that("un codigo que no reconocemos pasa tal cual", {
   expect_identical(.cmj_codigo_ordenable("CH 5", 0L), "CH 5")
 })
 
-test_that("los reemplazos se reparten en una carpeta por nivel", {
+test_that("los reemplazos se reparten en una carpeta por nivel, al primer nivel", {
   # 1.259 reemplazos dejaban 380 fichas en una sola carpeta, que es el mismo
   # problema que los tres cajones vinieron a resolver, un nivel mas abajo.
+  #
+  # Desde el 2026-09-20 la carpeta de nivel va al PRIMER nivel y no dentro de
+  # «Reemplazos». Gonzalo: «solo todo en una carpeta separa por titular,
+  # reemplazos 1 y reemplazo 2». El envoltorio agrupaba a costa de un clic para
+  # llegar a la carpeta que de verdad se abre.
   expect_identical(.cmj_carpeta_de_rol("titular"), "Titulares")
   expect_identical(.cmj_carpeta_de_rol("extra_reserve_pool"), "Adicionales")
-  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 1L), file.path("Reemplazos", "Reemplazo 01"))
-  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 11L), file.path("Reemplazos", "Reemplazo 11"))
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 1L), "Reemplazo 01")
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 11L), "Reemplazo 11")
 
   # El cero a la izquierda: sin el, «Reemplazo 10» se cuela entre el 1 y el 2.
   niveles <- vapply(c(1L, 2L, 10L, 11L), function(n) {
@@ -263,7 +268,7 @@ test_that("los reemplazos se reparten en una carpeta por nivel", {
   expect_identical(.cmj_carpeta_de_rol("chain_reserve"), "Reemplazos")
   expect_identical(.cmj_carpeta_de_rol("chain_reserve", NA), "Reemplazos")
   # Y no hay tope: si un estudio llega a 14, hay carpeta 14.
-  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 14L), file.path("Reemplazos", "Reemplazo 14"))
+  expect_identical(.cmj_carpeta_de_rol("chain_reserve", 14L), "Reemplazo 14")
 })
 
 # **El cajon de facultad solo aparece cuando hay mas de una.**
@@ -279,8 +284,8 @@ test_that("con una sola facultad el paquete no abre cajon de facultad", {
     prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", "Titulares", FALSE),
     "Titulares")
   expect_equal(
-    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", file.path("Reemplazos", "Reemplazo 01"), FALSE),
-    file.path("Reemplazos", "Reemplazo 01"))
+    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", "Reemplazo 01", FALSE),
+    "Reemplazo 01")
 })
 
 test_that("con varias facultades el cajon se mantiene, byte a byte", {
