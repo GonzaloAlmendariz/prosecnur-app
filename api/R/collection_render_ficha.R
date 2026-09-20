@@ -88,8 +88,23 @@
   base
 }
 
+# **Lo que se imprime se limpia una vez, aqui.**
+#
+# El dato de origen trae espacios que en pantalla no se ven y en papel si: la
+# base de la DTI compone el docente como «APEPATERNO APEMATERNO, NOMBRES» y con
+# el apellido materno vacio sale «ADINS  , SEBASTIEN». Medido el 2026-09-20
+# sobre el plan de CCSS Perfil 2026-II: 5 de 136 fichas con espacio antes de la
+# coma y 3 con espacios dobles.
+#
+# Se colapsa el blanco repetido y se pega la puntuacion al texto que la
+# precede. En un rotulo impreso un espacio doble nunca significa nada, asi que
+# no hay nada que preservar; y va en `.crf_txt` -por donde pasa TODO campo de
+# la ficha- y no en el plan, que es dato del estudio y no se reescribe para que
+# salga bonito.
 .crf_txt <- function(value, fallback = "Por confirmar") {
   v <- if (is.null(value) || !length(value)) "" else trimws(as.character(value)[1])
+  v <- gsub("[[:space:]]+", " ", v)
+  v <- gsub("[[:space:]]+([,;.:])", "\\1", v)
   if (!nzchar(v) || is.na(v)) fallback else v
 }
 
