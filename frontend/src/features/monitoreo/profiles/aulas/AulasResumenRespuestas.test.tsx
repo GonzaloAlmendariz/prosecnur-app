@@ -3,80 +3,47 @@ import { describe, expect, it } from "vitest";
 
 import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
 
-const cuenta = (extra = {}) => ({
-  observadas: 1049, efectivas: 944, fuera_del_operativo: 37, no_pasan_criterio: 68, ...extra,
-});
-
-describe("«Respuestas»", () => {
-  it("las dos razones se enseñan SEPARADAS, nunca como «105 descartadas»", () => {
-    // El rótulo que salió del perfil el 2026-09-07: metía en la misma bolsa lo
-    // que no es del operativo y lo que sí lo es y no pasa el criterio, que
-    // piden acciones opuestas.
-    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta()} />);
-    expect(html).toContain("Fuera del operativo");
-    expect(html).toContain("No pasan el criterio");
-    expect(html).not.toContain("descartadas");
-  });
-
-  it("la segunda barra reparte sólo lo que NO cuenta", () => {
-    // 68 sobre 105 es dos tercios; sobre 1 049 sería el 6 % y desaparecería.
-    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta()} />);
-    const anchos = [...html.matchAll(/width:([0-9.]+)%/g)].map((m) => Number(m[1]));
-    expect(anchos.some((w) => Math.abs(w - (100 * 68) / 105) < 0.01)).toBe(true);
-  });
-
-  it("el titular dice las dos cifras y su porcentaje", () => {
-    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta()} />);
-    expect(html).toContain("944");
-    expect(html).toContain("1,049");
-    expect(html).toMatch(/90[.,]0\s%/);
-  });
-
-  it("sin nada que descartar no pinta la segunda barra ni su leyenda", () => {
-    const html = renderToStaticMarkup(
-      <AulasResumenRespuestas cuenta={cuenta({ observadas: 10, efectivas: 10, fuera_del_operativo: 0, no_pasan_criterio: 0 })} />,
-    );
-    expect(html).not.toContain("que no cuentan");
-  });
-
-  it("las respuestas sin aula se DICEN: explican por qué las facultades no suman el total", () => {
-    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta()} sinAula={38} />);
-    expect(html).toContain("38");
-    expect(html).toContain("en ninguna facultad");
-  });
-
-  it("sin sinAula no inventa la nota", () => {
-    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta()} sinAula={0} />);
-    expect(html).not.toContain("en ninguna facultad");
-  });
-
-  it("sin observadas no pinta un bloque en ceros", () => {
-    expect(renderToStaticMarkup(<AulasResumenRespuestas cuenta={null} />)).toBe("");
-    expect(renderToStaticMarkup(
-      <AulasResumenRespuestas cuenta={cuenta({ observadas: 0, efectivas: 0, fuera_del_operativo: 0, no_pasan_criterio: 0 })} />,
-    )).toBe("");
-  });
-});
-
 /**
- * Las pastillas de facultad se retiraron el 2026-09-09: el selector de la
- * CABECERA ya pone `foco=facultad:…` y este bloque lo lee. Dos mandos para lo
- * mismo, y el de aquí «se veía horrible» (Gonzalo). Lo que se sigue sujetando
- * es lo que el bloque hace CON el foco, que es lo que no cambia.
+ * **«Todavía nada» se dice; no se calla.**
+ *
+ * Visto el 2026-09-20 sobre el proyecto con el que arranca CCSS Perfil 2026-II:
+ * con cero respuestas este bloque devolvía `null`, el panel de fuera se montaba
+ * igual, y quedaba una caja con el título «Respuestas · cuáles cuentan, y por
+ * qué no cuentan las demás» y absolutamente nada debajo —120 caracteres de HTML,
+ * un solo hijo—. Es lo primero que ve el coordinador el martes por la mañana,
+ * antes de la primera respuesta.
+ *
+ * Cláusula C3: una superficie contiene su propio vacío.
  */
-describe("el bloque sigue al foco de la cabecera", () => {
-  it("una facultad en foco SIN respuestas pinta su cero, no el bloque anterior", () => {
-    // Callarlo dejaría en pantalla la cuenta de la facultad anterior como si
-    // fuera de ésta.
-    const vacia = { observadas: 0, efectivas: 0, fuera_del_operativo: 0, no_pasan_criterio: 0 };
+
+const cuenta = (observadas: number) => ({
+  observadas, efectivas: observadas, fuera_del_operativo: 0, no_pasan_criterio: 0,
+}) as never;
+
+describe("Respuestas: el vacío es del bloque", () => {
+  it("sin ninguna respuesta lo dice, en vez de dejar el panel mudo", () => {
+    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta(0)} />);
+    expect(html).toContain("Todavía no ha llegado ninguna respuesta");
+    // Y no inventa barras ni porcentajes de la nada.
+    expect(html).not.toContain("aulas-resp-barra");
+  });
+
+  it("sin bloque del motor no se monta: no es lo mismo que un cero", () => {
+    // «No hay dato» y «hay dato y vale cero» se arreglan distinto, así que no
+    // pueden decir lo mismo.
+    expect(renderToStaticMarkup(<AulasResumenRespuestas cuenta={null} />)).toBe("");
+  });
+
+  it("con respuestas pinta lo de siempre", () => {
+    const html = renderToStaticMarkup(<AulasResumenRespuestas cuenta={cuenta(64)} />);
+    expect(html).not.toContain("Todavía no ha llegado");
+    expect(html).toContain("64");
+  });
+
+  it("con una facultad en foco y cero, sigue pintando su cero", () => {
+    // Ahí el cero ES la respuesta de esa facultad, y ya se pintaba antes.
     const html = renderToStaticMarkup(
-      <AulasResumenRespuestas cuenta={vacia} rotulo="EDUCACION" />,
-    );
-    expect(html).toContain("EDUCACION");
-    expect(html).toContain("0");
-    // Y sin porcentaje: 0 de 0 no es 0 %, es una división que no existe. Se
-    // busca el porcentaje ESCRITO —«90,0 %»— y no el carácter suelto: los
-    // anchos de las barras van en % y estarían siempre.
-    expect(html).not.toMatch(/\d[.,]\d\s%/);
+      <AulasResumenRespuestas cuenta={cuenta(0)} rotulo="CIENCIAS SOCIALES" />);
+    expect(html).not.toContain("Todavía no ha llegado");
   });
 });
