@@ -80,6 +80,31 @@
   file.path(cajon, sprintf("Reemplazo %02d", n))
 }
 
+#' Si el paquete separa por facultad, y la ruta de una ficha.
+#'
+#' **La facultad es un cajon solo cuando hay mas de una.**
+#'
+#' El nivel existe porque quien imprime reparte por facultad: en HSVG2026, con
+#' 15, es lo que separa los montones. En un estudio de UNA sola facultad no
+#' separa nada -las fichas quedan igual de juntas, un clic mas adentro- y ademas
+#' repite el mismo nombre en cada ruta.
+#'
+#' Gonzalo, 2026-09-20, sobre el paquete de CCSS Perfil 2026-II: «no hace falta
+#' que el zip divida, solo todo en una carpeta separa por titular, reemplazos 1
+#' y reemplazo 2».
+#'
+#' Se decide por el CONTENIDO del paquete y no por el estudio: uno con varias
+#' facultades las sigue separando sin que nadie lo declare.
+#' @keywords internal
+.cmj_separa_por_facultad <- function(facultades) {
+  length(unique(facultades[nzchar(facultades)])) > 1L
+}
+
+#' @keywords internal
+.cmj_carpeta_de_ficha <- function(facultad, cajon, separa) {
+  if (isTRUE(separa)) file.path(facultad, cajon) else cajon
+}
+
 #' El codigo operativo con su numero acolchado, para que la carpeta ordene.
 #'
 #' El sistema de archivos ordena alfabeticamente, y eso destroza el orden del
@@ -261,12 +286,16 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     # Un solo ancho para todo el paquete: mezclarlos entre carpetas haria que
     # «CH 01» y «CH 001» convivieran en el mismo zip.
     ancho_codigo <- .cmj_ancho_codigo(compiled$pages)
+    # Ver `.cmj_separa_por_facultad()`: el cajon de facultad solo aparece
+    # cuando el paquete trae mas de una.
+    separa_por_facultad <- .cmj_separa_por_facultad(vapply(compiled$pages,
+      function(pg) .cmj_path_segment(pg$unit$faculty, "Sin facultad"), character(1)))
     for (i in seq_len(n_unidades)) {
       indices <- grupos[[i]]
       page_i <- compiled$pages[[indices[[1]]]]
       facultad <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
       cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key, page_i$unit$replacement_order)
-      folder <- file.path(facultad, cajon)
+      folder <- .cmj_carpeta_de_ficha(facultad, cajon, separa_por_facultad)
       folder_path <- file.path(fichas_dir, folder)
       dir.create(folder_path, recursive = TRUE, showWarnings = FALSE)
       # **El codigo del aula delante, y el curso-horario en MAYUSCULAS.**

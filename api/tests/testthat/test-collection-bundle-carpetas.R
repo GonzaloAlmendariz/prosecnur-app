@@ -265,3 +265,35 @@ test_that("los reemplazos se reparten en una carpeta por nivel", {
   # Y no hay tope: si un estudio llega a 14, hay carpeta 14.
   expect_identical(.cmj_carpeta_de_rol("chain_reserve", 14L), file.path("Reemplazos", "Reemplazo 14"))
 })
+
+# **El cajon de facultad solo aparece cuando hay mas de una.**
+#
+# Gonzalo, 2026-09-20, sobre el paquete de CCSS Perfil 2026-II —una sola
+# facultad, 136 fichas—: «no hace falta que el zip divida, solo todo en una
+# carpeta separa por titular, reemplazos 1 y reemplazo 2». Con una facultad ese
+# nivel no separa nada y repite el mismo nombre en las 136 rutas. Con quince
+# —HSVG2026— es lo que separa los montones de quien imprime, y no se toca.
+test_that("con una sola facultad el paquete no abre cajon de facultad", {
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(rep("CIENCIAS SOCIALES", 136)))
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", "Titulares", FALSE),
+    "Titulares")
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("CIENCIAS SOCIALES", file.path("Reemplazos", "Reemplazo 01"), FALSE),
+    file.path("Reemplazos", "Reemplazo 01"))
+})
+
+test_that("con varias facultades el cajon se mantiene, byte a byte", {
+  # HSVG2026 esta en campo con quince: su paquete no se mueve.
+  expect_true(prosecnurapp:::.cmj_separa_por_facultad(c("DERECHO", "LETRAS", "DERECHO")))
+  expect_equal(
+    prosecnurapp:::.cmj_carpeta_de_ficha("DERECHO", "Titulares", TRUE),
+    file.path("DERECHO", "Titulares"))
+})
+
+test_that("un paquete vacio o sin facultad declarada no inventa el cajon", {
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(character(0)))
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(c("", "")))
+  # Una sola facultad ademas de vacios sigue siendo una sola.
+  expect_false(prosecnurapp:::.cmj_separa_por_facultad(c("", "CIENCIAS SOCIALES")))
+})
