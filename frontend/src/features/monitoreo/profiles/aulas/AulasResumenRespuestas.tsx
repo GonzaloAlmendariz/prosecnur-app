@@ -32,7 +32,22 @@ export function AulasResumenRespuestas({
   // facultad no tiene ninguna»— y callarla dejaría el bloque anterior en
   // pantalla como si fuera suyo. Sin foco, un cero es que no hay nada que
   // contar todavía.
-  if (!cuenta.observadas && !rotulo) return null;
+  //
+  // **Pero «nada que contar» se DICE, no se calla** (cláusula C3: una
+  // superficie contiene su propio vacío). Devolviendo `null` a secas, el panel
+  // de fuera seguía montándose y quedaba una caja con el título «Respuestas ·
+  // cuáles cuentan, y por qué no cuentan las demás» y nada debajo. Visto el
+  // 2026-09-20 sobre el proyecto con el que arranca CCSS: es literalmente lo
+  // primero que ve el coordinador el martes por la mañana, antes de la primera
+  // respuesta. No se pintan las barras —no hay cifras— pero sí la frase.
+  if (!cuenta.observadas && !rotulo) {
+    return (
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        Todavía no ha llegado ninguna respuesta. Cuando lleguen, aquí se separa
+        lo que cuenta de lo que no, y por qué.
+      </p>
+    );
+  }
   const noCuentan = cuenta.fuera_del_operativo + cuenta.no_pasan_criterio;
   const ancho = (v: number, total: number) => `${total > 0 ? (100 * v) / total : 0}%`;
   return (
