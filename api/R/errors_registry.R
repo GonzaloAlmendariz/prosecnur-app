@@ -122,6 +122,7 @@ errores_registrados <- function() {
     "E_DAA_IAGEN_SIN_HOJAS",                                 "carga_daa_iagen.R",                 "422",
     "E_DISPONIBILIDAD_APLICADORES_NO_EXISTE",                "carga_disponibilidad_aplicadores.R", "400",
     "E_DISPONIBILIDAD_APLICADORES_SIN_ESTRUCTURA",           "carga_disponibilidad_aplicadores.R", "422",
+    "E_DISPONIBILIDAD_PLANTILLA_RANGO",                      "aulas_disponibilidad_plantilla.R",  "400",
     "E_AULAS_PADRON_NO_EXISTE",                              "carga_aulas_padron.R",              "400",
     "E_AULAS_PADRON_SIN_COLUMNAS",                           "carga_aulas_padron.R",              "422",
     # Se distingue del anterior a proposito: «trae el nivel de creditos pero no

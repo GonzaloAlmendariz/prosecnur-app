@@ -89,11 +89,30 @@
 # Una celda de disponibilidad: 1, 0, o NA cuando no es legible (vacía o
 # basura). El llamador convierte el NA en 0 con aviso — se lee lo legible, se
 # avisa lo que no.
+#
+# **Y la X cuenta como 1** (Gonzalo, 2026-09-21: «que ya todas las columnas
+# estén y él solo ponga el nombre del aplicador y la x por día y hora»). Quien
+# llena una malla a mano marca con una aspa, no escribe unos: pedir 1/0 es
+# pedirle al coordinador que hable el idioma del parser. Antes una X se leía
+# como NA, el llamador la convertía en 0 con aviso, y la persona quedaba
+# **sin ninguna disponibilidad** aunque hubiera marcado la hoja entera.
+#
+# Se aceptan las grafías de una malla llenada a mano, y sus contrarias
+# explícitas —«no», «-»— que valen 0 SIN aviso: marcar el no es una respuesta,
+# no una celda ilegible.
+.CDISP_SI <- c("x", "si", "sí", "s", "v", "\u2713", "\u2714")
+.CDISP_NO <- c("no", "n", "-", "--", "\u2014")
+
 .cdisp_celda <- function(celda) {
   v <- as.character(celda)[1]
   if (length(v) != 1L || is.na(v) || !nzchar(trimws(v))) return(NA_real_)
-  n <- suppressWarnings(as.numeric(trimws(v)))
-  if (length(n) == 1L && is.finite(n) && n %in% c(0, 1)) n else NA_real_
+  v <- trimws(v)
+  n <- suppressWarnings(as.numeric(v))
+  if (length(n) == 1L && is.finite(n) && n %in% c(0, 1)) return(n)
+  marca <- tolower(v)
+  if (marca %in% .CDISP_SI) return(1)
+  if (marca %in% .CDISP_NO) return(0)
+  NA_real_
 }
 
 # Las franjas con 1 de un día, fusionadas: contiguas u honestamente solapadas
@@ -271,17 +290,29 @@ carga_disponibilidad_aplicadores <- function(path) {
         valor <- .cdisp_celda(crudo)
         if (is.na(valor)) {
           crudo_txt <- as.character(crudo)[1]
-          crudo_txt <- if (length(crudo_txt) != 1L || is.na(crudo_txt) ||
-                           !nzchar(trimws(crudo_txt))) {
-            "vacia"
-          } else {
-            sprintf("«%s»", trimws(crudo_txt))
+          vacia <- length(crudo_txt) != 1L || is.na(crudo_txt) || !nzchar(trimws(crudo_txt))
+          # **Una celda VACIA no se avisa: es la respuesta normal.**
+          #
+          # El aviso nacio con el formato 1/0, donde un hueco era un olvido. Con
+          # la plantilla que la app entrega se marca con X y **lo vacio significa
+          # «no disponible»**, que es la mayoria de la malla: una persona libre
+          # cinco franjas deja 85 casillas en blanco.
+          #
+          # Medido el 2026-09-21 llenando la plantilla con tres personas y seis
+          # marcas: **267 avisos**, uno por hueco, para una lectura que salio
+          # perfecta. Un aviso que salta en el caso normal deja de avisar, y
+          # entierra al que si importa —una celda con algo que no se entiende—
+          # entre cientos de lineas iguales.
+          #
+          # Lo ilegible SI se avisa, y ahora se lee: es la diferencia entre «no
+          # marco» y «escribio algo que no supe leer».
+          if (!vacia) {
+            avisos <- c(avisos, sprintf(
+              "La celda de %s (%s %s-%s) tiene «%s», que no se entiende como marca: se toma como no disponible.",
+              nombre, colinfo$dia, .mav_hhmm(colinfo$ini), .mav_hhmm(colinfo$fin),
+              trimws(crudo_txt)
+            ))
           }
-          avisos <- c(avisos, sprintf(
-            "La celda de %s (%s %s-%s) no es 1 ni 0 (venia %s): se toma como no disponible.",
-            nombre, colinfo$dia, .mav_hhmm(colinfo$ini), .mav_hhmm(colinfo$fin),
-            crudo_txt
-          ))
           valor <- 0
         }
         if (valor == 1) {

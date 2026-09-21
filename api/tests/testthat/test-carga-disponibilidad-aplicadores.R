@@ -83,8 +83,11 @@
 # Las filas sucias: una celda con basura y una vacía (valen 0 con aviso) y una
 # fila con nombre vacío (se salta).
 .cda_sucio <- function() c(.cda_limpio(), list(
+  # **La «x» dejo de ser basura el 2026-09-21**: la plantilla que la app entrega
+  # se marca con equis, asi que vale 1. El ejemplo de ilegible pasa a ser algo
+  # que de verdad no se entiende.
   list(nombre = "Caso Sucio",
-       celdas = c(1, "x", "", 1, 0, 0, 0, 0, 0)),
+       celdas = c(1, "tal vez", "", 1, 0, 0, 0, 0, 0)),
   list(nombre = "",
        celdas = c(1, 1, 1, 1, 1, 1, 1, 1, 1))
 ))
@@ -168,14 +171,20 @@ test_that("B29: la clave del día se pinea minúscula y sin tilde — «Sábado�
   expect_setequal(con_bloques, c("lunes", "viernes", "sabado"))
 })
 
-test_that("B29: celda vacía o basura vale 0 con aviso perseguible; el archivo limpio no avisa", {
+test_that("B29: lo ilegible vale 0 con aviso perseguible; lo VACIO vale 0 y no avisa", {
   sucio <- carga_disponibilidad_aplicadores(.cda_xlsx(.cda_sucio()))
-  # «x» y la celda vacía valen 0: Caso Sucio queda con 8-9 y 11-12 el lunes,
-  # SIN puente inventado por encima de las celdas ilegibles.
+  # Lo ilegible y la celda vacía valen 0: Caso Sucio queda con 8-9 y 11-12 el
+  # lunes, SIN puente inventado por encima de las celdas ilegibles.
   expect_identical(.cda_rangos(sucio, "Caso Sucio", "lunes"),
                    c("08:00-09:00", "11:00-12:00"))
   avisos <- attr(sucio, "avisos", exact = TRUE) %||% character(0)
   expect_gte(length(avisos), 1L)
+  # **Y el vacio NO avisa** (2026-09-21). Nacio avisando cuando el formato era
+  # 1/0 y un hueco era un olvido; con la plantilla de equis lo vacio es «no
+  # disponible», o sea la mayoria de la malla. Medido: tres personas y seis
+  # marcas daban 267 avisos sobre una lectura perfecta.
+  expect_false(any(grepl("venia vacia|vacia)", avisos)),
+               info = paste("avisos:", paste(utils::head(avisos, 3), collapse = " | ")))
   # La causa se puede perseguir: algún aviso nombra al aplicador afectado.
   expect_true(any(grepl("Caso Sucio", avisos, fixed = TRUE)),
               info = paste("avisos:", paste(avisos, collapse = " | ")))
