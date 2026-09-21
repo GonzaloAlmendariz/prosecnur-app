@@ -190,15 +190,36 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # Todas con dueño y ninguna que sembrar: es el caso de siempre —«republico y
   # ya» sobre el trabajo del coordinador— y sigue siendo un error, no un no-op
   # silencioso.
+  #
+  # **Pero la hoja de referencia se escribe ANTES de levantarlo.** Es la única
+  # que no tiene dueño y la única cuyo valor es estar al día; dejarla vieja
+  # porque las semanas están ocupadas castiga justo al coordinador que está
+  # trabajando. Se escribe, se dice en el mensaje, y el 409 sigue saltando para
+  # que nadie crea que su republicación tocó la distribución.
   if (!length(setdiff(names(tabs), hermanas)) && length(respetadas)) {
     primera <- names(respetadas)[[1L]]
+    extra <- ""
+    if (length(hermanas)) {
+      solo_hermanas <- tabs[names(tabs) %in% hermanas]
+      hecho <- tryCatch({
+        .monitoreo_sync_sheets_publish_tabs(
+          id, solo_hermanas,
+          format_requests = function(sheet_id, tab_name, rows) {
+            aulas_libro_por_agendar_formato_requests(sheet_id, rows)
+          })
+        TRUE
+      }, error = function(e) FALSE)
+      if (isTRUE(hecho)) {
+        extra <- paste0(" Sí se actualizó «", hermanas[[1L]], "», que no tiene dueño.")
+      }
+    }
     stop_api(
       409, "E_AULAS_DISTRIBUCION_CON_DUENO",
       paste0(
         "La pestaña «", primera, "» ya tiene ", respetadas[[primera]],
         " citas escritas y el equipo edita ahí: publicar encima borraría sus ",
         "cambios. Adopta la distribución para que la app tome sus filas, y ",
-        "añade sólo las aulas agendadas que falten."
+        "añade sólo las aulas agendadas que falten.", extra
       ),
       details = list(hoja = primera, citas = respetadas[[primera]])
     )

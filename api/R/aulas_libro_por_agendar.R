@@ -252,8 +252,12 @@ aulas_libro_por_agendar_formato_requests <- function(sheet_id, rows) {
     properties = list(sheetId = sheet_id, gridProperties = list(frozenRowCount = 2L)),
     fields = "gridProperties.frozenRowCount"
   )))
-  # El día y las horas, centrados; el resto se lee mejor a la izquierda.
-  poner(.maaf_centrar(sheet_id, 1L, 2L, length(rows)))
-  poner(.maaf_centrar(sheet_id, 7L, 7L, length(rows)))
+  # El día, la hora y los elegibles, centrados; el resto se lee mejor a la
+  # izquierda. `.maaf_centrar()` toma ÍNDICES base 0 con fin EXCLUSIVO, no
+  # números de columna: pasarle `(7, 7)` pedía H1:G28 y Google rechazaba el
+  # lote entero —incluidos la banda, los anchos y el congelado, que iban en la
+  # misma petición—. Por eso la hoja salió publicada y sin nada de formato.
+  poner(.maaf_centrar(sheet_id, 0L, 2L, length(rows)))
+  poner(.maaf_centrar(sheet_id, n_cols - 1L, n_cols, length(rows)))
   reqs
 }
