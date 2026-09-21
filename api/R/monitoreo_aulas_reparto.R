@@ -239,13 +239,28 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
   # de B11 heredado por franjas: una cita sin pactar no pide gente todavía).
   citas <- list()
   pendientes <- list()
+  # Las pactadas cuya ventana NO se puede leer. Existían y desaparecían: el
+  # `next` de abajo era mudo y la cita no salía por ningún lado —ni asignada,
+  # ni sin cubrir, ni por confirmar, ni fuera de rango—. Se destapó con CCSS
+  # Perfil 2026-II: CH 50 estaba agendada a las «11:45 pm» (un tipeo por am en
+  # el Sheets), el motor le sumó la duración y escribió `fin = "24:15"`, que su
+  # propio parser rechaza. 19 citas en la semana, 18 declaradas, y el hueco no
+  # avisaba de nada. Una cita que no se puede repartir se DECLARA sin cubrir:
+  # la vista ya sabe decir la causa —`salidasDeDescubiertos` la clasifica
+  # `sin-hora` cuando no encuentra ventana legible— y así el coordinador ve la
+  # fila, va al Sheets y corrige la hora.
+  ilegibles <- list() # fecha -> códigos
   for (aula in aulas) {
     fecha <- as.character(aula[["fecha"]] %||% "")
     if (!nzchar(fecha)) next
     if (identical(as.character(aula[["ventana"]] %||% ""), "confirmada")) {
       ini <- .marep_min(aula[["inicio"]])
       fin <- .marep_min(aula[["fin"]])
-      if (is.na(ini) || is.na(fin)) next
+      if (is.na(ini) || is.na(fin)) {
+        ilegibles[[fecha]] <- c(ilegibles[[fecha]],
+                                as.character(aula[["codigo"]] %||% ""))
+        next
+      }
       citas[[length(citas) + 1L]] <- list(
         codigo = as.character(aula[["codigo"]] %||% ""),
         fecha = fecha, ini = ini, fin = fin,
@@ -265,7 +280,11 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
   # B75: la partición por rango. Los códigos pactados se censan ANTES de
   # partir —una fijación cuya cita quedó fuera del rango NO es huérfana: su
   # cita existe, solo espera otra tanda—. Lo excluido viaja declarado.
-  codigos_pactados_total <- vapply(citas, function(x) x$codigo, character(1)) %||% character(0)
+  codigos_pactados_total <- c(
+    vapply(citas, function(x) x$codigo, character(1)) %||% character(0),
+    # La ilegible también tiene cita: fijarla no la vuelve huérfana.
+    unlist(ilegibles, use.names = FALSE) %||% character(0)
+  )
   fuera <- list() # fecha -> list(codigos, por_confirmar)
   if (!is.null(rango_vigente)) {
     dentro <- list()
@@ -285,6 +304,16 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
       f$por_confirmar <- c(f$por_confirmar, pendientes[[fecha]])
       fuera[[fecha]] <- f
       pendientes[[fecha]] <- NULL
+    }
+    # La ilegible parte por el mismo corte: tiene fecha, así que fuera del
+    # rango espera su tanda en `codigos` —es una cita pactada— y no se
+    # arrastra al día que se está repartiendo.
+    for (fecha in names(ilegibles)) {
+      if (fecha >= rango_vigente[[1]] && fecha <= rango_vigente[[2]]) next
+      f <- fuera[[fecha]] %||% list(codigos = character(0), por_confirmar = character(0))
+      f$codigos <- c(f$codigos, ilegibles[[fecha]])
+      fuera[[fecha]] <- f
+      ilegibles[[fecha]] <- NULL
     }
   }
 
@@ -311,7 +340,9 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
   # entran ANTES que las automáticas y el día se reordena por hora al final —
   # el contrato del payload («greedy por hora ascendente») no cambia.
   orden_dia <- list()
-  no_cubiertos <- list()
+  # Sembrado con las de ventana ilegible: nacen sin cubrir porque no hay hora
+  # contra la que buscar a nadie.
+  no_cubiertos <- ilegibles
 
   anotar_asignacion <- function(cita, elegido, fijada, advertencia = "") {
     clave_dia <- paste(elegido, cita$fecha, sep = "\r")
