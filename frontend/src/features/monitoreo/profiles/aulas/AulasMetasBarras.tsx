@@ -264,14 +264,33 @@ export function AulasMetasBarras({ filas , eje}: {
                           {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
                         </title>
                       </rect>
+                      {/* **La cuota, cruzando la barra que la superó** (Gonzalo,
+                          2026-09-21: «cuando una barra sobrepasa el 100 % debe
+                          verse bien, igual que en el PDF»). El contorno de la
+                          meta se dibuja ANTES que el relleno, así que en cuanto
+                          se pasa queda tapado y el gráfico deja de decir por
+                          cuánto: 115 % y 250 % se veían igual de llenas. Debajo
+                          de la línea está la meta; encima, el exceso. */}
+                      {meta > 0 && obtenidas > meta ? (
+                        <line
+                          x1={x0 + dx} x2={x0 + dx + barra}
+                          y1={y(meta, r)} y2={y(meta, r)}
+                          className="aulas-metas-marca-cuota"
+                        />
+                      ) : null}
                       {/* **El porcentaje encima, del color de su barra.** Él: «mostrar
                           mejor los porcentajes de cada barra en su parte superior con
                           el color de su coloreado». Sin él hay que estimar a ojo
                           dónde cae el relleno dentro del hueco de la meta, que es
-                          justo la comparación que el gráfico existe para dar. */}
+                          justo la comparación que el gráfico existe para dar.
+
+                          Va sobre lo MÁS ALTO que se dibuja, no sobre la meta:
+                          anclado a la meta, el «250 %» de Educación quedaba
+                          detrás de su propia barra, cortado por la mitad. */}
                       {meta > 0 ? (
                         <text
-                          x={x0 + dx + barra / 2} y={y(meta, r) - 5} textAnchor="middle"
+                          x={x0 + dx + barra / 2}
+                          y={y(Math.max(meta, obtenidas), r) - 5} textAnchor="middle"
                           className="aulas-metas-pct" data-sexo={tono}
                         >
                           {Math.round((100 * obtenidas) / meta)}%
