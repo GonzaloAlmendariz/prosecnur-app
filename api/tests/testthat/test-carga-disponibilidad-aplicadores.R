@@ -31,7 +31,15 @@
 #   `.mav_DIAS`).
 # - Tolerancias: celda vacía o basura vale 0 con AVISO en `attr(, "avisos")`
 #   (patrón carga_daa_iagen: se lee lo legible, se avisa lo que no); fila con
-#   nombre vacío se SALTA; espacios dobles en el nombre se colapsan a uno.
+#   nombre vacío se SALTA —y si traía marcas, se DECLARA en un aviso con su
+#   número de fila: alguien llenó una semana y olvidó el nombre—; espacios
+#   dobles en el nombre se colapsan a uno y la puntuación se pega al texto
+#   («ADINS  , SEBASTIEN» → «ADINS, SEBASTIEN»).
+# - DOS FILAS CON EL MISMO NOMBRE SON LA MISMA PERSONA y sus horas se SUMAN,
+#   con aviso que nombra las dos filas. La clave del calce normaliza
+#   mayúsculas, tildes y puntuación (`.cm_criterios_fac_key`), así que «JOSÉ
+#   PÉREZ» y «jose perez» son uno. Antes el reparto se quedaba con la primera
+#   fila y perdía las horas de la segunda en silencio.
 # - Errores registrables (stop_api, códigos que el writer registra en
 #   errors_registry.R): archivo inexistente →
 #   E_DISPONIBILIDAD_APLICADORES_NO_EXISTE (400); hoja sin la estructura
@@ -287,4 +295,80 @@ test_that("sin hoja final declarada se sigue leyendo «Disponibilidad», como si
   disp <- carga_disponibilidad_aplicadores(ruta)
   expect_equal(length(disp), 1L)
   expect_equal(disp[[1]]$nombre, "Ana Uno")
+})
+
+# --- la misma persona en dos filas, y la fila sin dueño -----------------------
+
+test_that("dos filas con el mismo nombre suman sus horas en vez de perder la segunda", {
+  # Medido el 2026-09-21: quien declaraba lunes en una fila y viernes en otra
+  # perdía el viernes. `.marep_oferta()` indexa por nombre y salta el que ya
+  # vio, así que el reparto informaba «nadie está libre» un día en que sí lo
+  # había: una escasez falsa, y muda.
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(list(
+    list(nombre = "Ana Prueba", celdas = c(1, 1, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "Ana Prueba", celdas = c(0, 0, 0, 0, 1, 1, 0, 0, 0))
+  )))
+  expect_identical(.cda_nombres(res), "Ana Prueba")
+  expect_identical(.cda_rangos(res, "Ana Prueba", "lunes"), "08:00-10:00")
+  expect_identical(.cda_rangos(res, "Ana Prueba", "viernes"), "12:00-14:00")
+  # Y no se hace en silencio: el aviso nombra LAS DOS filas, que es lo que
+  # permite ir a mirarlas.
+  av <- attr(res, "avisos")
+  fusion <- av[grepl("misma persona", av, fixed = TRUE)]
+  expect_length(fusion, 1L)
+  expect_true(grepl("Ana Prueba", fusion, fixed = TRUE))
+  expect_true(grepl("3", fusion, fixed = TRUE) && grepl("4", fusion, fixed = TRUE))
+})
+
+test_that("el calce de la fusión no se rompe por mayúsculas, tildes ni un espacio antes de la coma", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(list(
+    list(nombre = "JOSÉ PÉREZ", celdas = c(1, 0, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "jose perez", celdas = c(0, 0, 0, 0, 0, 0, 0, 1, 0)),
+    list(nombre = "ADINS  , SEBASTIEN", celdas = c(0, 1, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "ADINS, SEBASTIEN", celdas = c(0, 0, 0, 0, 0, 0, 0, 0, 1))
+  )))
+  # Dos personas, no cuatro. Y el nombre que queda es el PRIMERO que se
+  # escribió, ya limpio de ruido de tecleo.
+  expect_identical(.cda_nombres(res), c("JOSÉ PÉREZ", "ADINS, SEBASTIEN"))
+  expect_identical(.cda_rangos(res, "JOSÉ PÉREZ", "lunes"), "08:00-09:00")
+  expect_identical(.cda_rangos(res, "JOSÉ PÉREZ", "sabado"), "08:00-09:00")
+  expect_identical(.cda_rangos(res, "ADINS, SEBASTIEN", "lunes"), "09:00-10:00")
+  expect_identical(.cda_rangos(res, "ADINS, SEBASTIEN", "sabado"), "09:00-10:00")
+})
+
+test_that("dos filas de la misma persona que se PISAN quedan en un bloque, no en dos", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(list(
+    list(nombre = "Ana Prueba", celdas = c(1, 1, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "Ana Prueba", celdas = c(0, 1, 1, 0, 0, 0, 0, 0, 0))
+  )))
+  # 8-10 y 9-11 son 8-11: la fusión de intervalos corre DESPUÉS de sumar las
+  # filas, no dentro de cada una.
+  expect_identical(.cda_rangos(res, "Ana Prueba", "lunes"), "08:00-11:00")
+})
+
+test_that("una fila con marcas y sin nombre se declara con su número de fila", {
+  # Se descartaba en silencio: quien marca una semana y olvida el nombre
+  # desaparecía del reparto sin que nada lo dijera.
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(list(
+    list(nombre = "Ana Prueba", celdas = c(1, 1, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "", celdas = c(1, 1, 1, 0, 0, 0, 0, 0, 0))
+  )))
+  expect_identical(.cda_nombres(res), "Ana Prueba")
+  av <- attr(res, "avisos")
+  sin_nombre <- av[grepl("no trae nombre", av, fixed = TRUE)]
+  expect_length(sin_nombre, 1L)
+  # La fila 4 del excel (1 = días, 2 = franjas, 3 = Ana), y cuántas dice que
+  # SÍ puede — no cuántas celdas se entienden, que en una malla de ceros son
+  # todas.
+  expect_true(grepl("fila 4", sin_nombre, fixed = TRUE))
+  expect_true(grepl("3 franjas disponibles", sin_nombre, fixed = TRUE))
+})
+
+test_that("la fila de relleno de la plantilla —sin nombre y sin nada— sigue callada", {
+  res <- carga_disponibilidad_aplicadores(.cda_xlsx(list(
+    list(nombre = "Ana Prueba", celdas = c(1, 1, 0, 0, 0, 0, 0, 0, 0)),
+    list(nombre = "", celdas = rep("", 9L))
+  )))
+  expect_identical(.cda_nombres(res), "Ana Prueba")
+  expect_length(attr(res, "avisos"), 0L)
 })

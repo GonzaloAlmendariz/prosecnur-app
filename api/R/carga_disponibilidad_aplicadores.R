@@ -141,6 +141,21 @@
 #'
 #' Hoja «Disponibilidad» (o la primera del libro): fila 1 = día por columna,
 #' fila 2 = franja de una hora con rótulos AM/PM y el rótulo «Nombres» sobre
+# **El nombre, limpio de ruido de tecleo.**
+#
+# Colapsa los espacios dobles y PEGA la puntuación al texto que la precede:
+# «ADINS  , SEBASTIEN» es «ADINS, SEBASTIEN». Importa más de lo que parece —el
+# nombre es la identidad del aplicador en todo lo que viene después (malla,
+# reparto, hoja de los aplicadores), así que un espacio de sobra antes de una
+# coma fabrica una segunda persona—. Misma corrección que ya hace la ficha
+# impresa (`.crf_txt`), donde el mismo tecleo salía como «ADINS  , SEBASTIEN».
+.cdisp_nombre <- function(x) {
+  v <- as.character(x %||% "")[1]
+  if (length(v) != 1L || is.na(v)) return("")
+  v <- gsub("[[:space:]]+", " ", trimws(v))
+  gsub("[[:space:]]+([,;.:])", "\\1", v)
+}
+
 #' la columna de aplicadores, filas 3+ = nombre + celdas 1/0. Devuelve la
 #' lista de aplicadores `{nombre, dias}` con `dias` nombrada por día en
 #' minúscula sin tilde y bloques `{inicio, fin}` HH/MM de 24 horas, semántica
@@ -247,15 +262,56 @@ carga_disponibilidad_aplicadores <- function(path) {
   if (!length(columnas)) sin_estructura()
   if (col_nombres == 0L) col_nombres <- 1L
 
-  avisos <- character(0)
+  # **Dos baldes, y el orden importa.** Un aviso de FILA cambia quién está en el
+  # operativo —una persona que se fusiona, una que se omite, una disponibilidad
+  # sin dueño—; uno de CELDA es un matiz de una franja. Se emiten los de fila
+  # primero para que la vista, que enseña los primeros, enseñe los que piden
+  # actuar: con veinte celdas raras, el «"ANA QUISPE" sale en dos filas»
+  # quedaba enterrado, y es justo el que mueve el reparto.
+  avisos_de_fila <- character(0)
+  avisos_de_celda <- character(0)
   no_confirmados <- character(0)
   aplicadores <- list()
+  # Índice clave normalizada -> posición, la fila donde apareció primero, y sus
+  # bloques crudos por día. Existen para poder FUSIONAR dos filas de la misma
+  # persona; la fusión final se hace al salir del bucle.
+  indice <- list()
+  primera_fila <- list()
+  crudos <- list()
   if (nrow(df) >= 3L) {
     for (i in seq.int(3L, nrow(df))) {
-      nombre <- as.character(df[i, col_nombres])[1]
-      if (length(nombre) != 1L || is.na(nombre)) next
-      nombre <- gsub("[[:space:]]+", " ", trimws(nombre))
-      if (!nzchar(nombre)) next
+      # Se leen las celdas ANTES de mirar el nombre porque una fila SIN nombre
+      # pero CON marcas es un caso propio: alguien declaró horas y no se sabe
+      # de quién son. Se cuentan las dos cosas por separado —cuántas se
+      # entienden y cuántas dicen que SÍ puede—, que no es lo mismo: una fila
+      # de puros ceros tiene 90 celdas legibles y ninguna disponibilidad.
+      marcas <- vapply(columnas, function(colinfo) {
+        v <- .cdisp_celda(df[i, colinfo$col])
+        if (is.na(v)) NA_real_ else as.numeric(v)
+      }, numeric(1))
+      legibles <- sum(!is.na(marcas))
+      disponibles <- sum(marcas == 1, na.rm = TRUE)
+
+      nombre <- .cdisp_nombre(df[i, col_nombres])
+      if (!nzchar(nombre)) {
+        # **Una fila con marcas y sin nombre se DECLARA.**
+        #
+        # Se descartaba en silencio. Quien llena la plantilla puede marcar una
+        # semana entera y olvidar el nombre —o escribirlo en la columna de al
+        # lado—, y el resultado era una persona menos en el reparto sin que
+        # nada lo dijera. La fila vacía del todo sigue callada: es el relleno
+        # normal de la plantilla.
+        if (legibles > 0L) {
+          avisos_de_fila <- c(avisos_de_fila, sprintf(
+            "La fila %d %s pero no trae nombre: no se puede saber de quién es esa disponibilidad y se omite.",
+            i,
+            if (disponibles == 0L) "trae marcas y ninguna dice que pueda"
+            else if (disponibles == 1L) "declara 1 franja disponible"
+            else sprintf("declara %d franjas disponibles", disponibles)
+          ))
+        }
+        next
+      }
       if (col_confirmo > 0L) {
         conf <- as.character(df[i, col_confirmo])[1]
         conf <- if (length(conf) != 1L || is.na(conf)) "" else tolower(trimws(conf))
@@ -273,11 +329,8 @@ carga_disponibilidad_aplicadores <- function(path) {
       # que es como se entierra un aviso que sí importaba. Se declara en un
       # aviso, no se descarta en silencio: si la fila era de alguien que no
       # llenó nada, hay que verlo.
-      legibles <- sum(vapply(columnas, function(colinfo) {
-        !is.na(.cdisp_celda(df[i, colinfo$col]))
-      }, logical(1)))
       if (legibles == 0L) {
-        avisos <- c(avisos, sprintf(
+        avisos_de_fila <- c(avisos_de_fila, sprintf(
           "La fila de %s no trae ninguna celda con 1 ni 0: se omite por no ser un aplicador.",
           nombre
         ))
@@ -307,7 +360,7 @@ carga_disponibilidad_aplicadores <- function(path) {
           # Lo ilegible SI se avisa, y ahora se lee: es la diferencia entre «no
           # marco» y «escribio algo que no supe leer».
           if (!vacia) {
-            avisos <- c(avisos, sprintf(
+            avisos_de_celda <- c(avisos_de_celda, sprintf(
               "La celda de %s (%s %s-%s) tiene «%s», que no se entiende como marca: se toma como no disponible.",
               nombre, colinfo$dia, .mav_hhmm(colinfo$ini), .mav_hhmm(colinfo$fin),
               trimws(crudo_txt)
@@ -322,15 +375,52 @@ carga_disponibilidad_aplicadores <- function(path) {
         }
       }
 
-      dias <- list()
-      for (d in .cdisp_DIAS) {
-        if (!is.null(por_dia[[d]])) dias[[d]] <- .cdisp_fusionar(por_dia[[d]])
+      # **La misma persona en dos filas SUMA sus horas.**
+      #
+      # El reparto indexa la oferta por nombre y se quedaba con la PRIMERA fila
+      # («.marep_oferta»: un nombre ya visto se salta): quien declaraba lunes en
+      # una fila y viernes en otra perdía el viernes, y el reparto informaba
+      # «nadie está libre» un día en que sí lo había. Una escasez falsa y muda,
+      # que es la peor clase.
+      #
+      # Dos filas con el mismo nombre son la misma persona —en un operativo de
+      # veinte, dos homónimos no existen, y si existieran el sistema entero los
+      # confunde igual porque todo se lleva por nombre—. La clave normaliza
+      # mayúsculas, tildes y puntuación, así que «JOSÉ PÉREZ» y «jose perez»
+      # también son uno. Se declara en un aviso con las dos filas, para poder
+      # ir a mirarlas.
+      clave <- .cm_criterios_fac_key(nombre)
+      pos <- indice[[clave]]
+      if (is.null(pos)) {
+        aplicadores[[length(aplicadores) + 1L]] <- list(nombre = nombre, dias = list())
+        pos <- length(aplicadores)
+        indice[[clave]] <- pos
+        primera_fila[[clave]] <- i
+        crudos[[as.character(pos)]] <- por_dia
+      } else {
+        previo <- crudos[[as.character(pos)]] %||% list()
+        for (d in names(por_dia)) previo[[d]] <- c(previo[[d]], por_dia[[d]])
+        crudos[[as.character(pos)]] <- previo
+        avisos_de_fila <- c(avisos_de_fila, sprintf(
+          "«%s» sale en las filas %d y %d: se toman como la misma persona y sus horas se suman.",
+          aplicadores[[pos]]$nombre, primera_fila[[clave]], i
+        ))
       }
-      aplicadores[[length(aplicadores) + 1L]] <- list(nombre = nombre, dias = dias)
     }
   }
 
-  attr(aplicadores, "avisos") <- avisos
+  # La fusión de intervalos se hace al final, una vez por persona, para que dos
+  # filas que se pisan queden como un bloque y no como dos.
+  for (pos in seq_along(aplicadores)) {
+    por_dia <- crudos[[as.character(pos)]] %||% list()
+    dias <- list()
+    for (d in .cdisp_DIAS) {
+      if (!is.null(por_dia[[d]])) dias[[d]] <- .cdisp_fusionar(por_dia[[d]])
+    }
+    aplicadores[[pos]]$dias <- dias
+  }
+
+  attr(aplicadores, "avisos") <- c(avisos_de_fila, avisos_de_celda)
   # Quiénes quedaron fuera por no confirmar viaja aparte de los avisos: no es
   # una celda ilegible que haya que perseguir, es una decisión del equipo que la
   # vista tiene que poder enseñar sin confundirla con un defecto del libro.

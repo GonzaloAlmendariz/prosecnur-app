@@ -58,6 +58,7 @@ import { avisoConversacion } from "./avisoConversacion";
 import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
+import { avisoDisponibilidadImportada } from "./avisoDisponibilidadImportada";
 import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
 import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
 import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
@@ -1406,15 +1407,12 @@ export default function AulasMonitoreoPage() {
     try {
       const subido = await apiUpload(archivo, "aulas_disponibilidad");
       const res = await apiMonitoreoAulasDisponibilidad({ file_id: subido.file_id });
-      const celdasIlegibles = res.avisos.length;
-      setAviso({
-        texto: "Disponibilidad importada: " + fmt(res.aplicadores) + " aplicadores" +
-          (celdasIlegibles
-            ? " · " + fmt(celdasIlegibles) + " celdas ilegibles tomadas como no disponible"
-            : "") +
-          ". El reparto se rearmó con la oferta nueva.",
-        tono: celdasIlegibles ? "atencion" : "ok",
-      });
+      // El aviso lo arma `avisoDisponibilidadImportada`: aquí se contaban TODOS
+      // los avisos del lector y se les llamaba «celdas ilegibles», que dejó de
+      // ser cierto en cuanto el lector empezó a declarar filas —una persona en
+      // dos filas, una disponibilidad sin dueño—. Y los textos, que son los que
+      // dicen la fila del excel, no se enseñaban nunca.
+      setAviso(avisoDisponibilidadImportada(res));
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer la disponibilidad.");
