@@ -22,7 +22,11 @@ monitoreo_aulas_columna_sexo <- function(responses, cfg = list()) {
   if (!is.data.frame(responses) || !ncol(responses)) return("")
   declarada <- .monitoreo_scalar(
     ((cfg %||% list())[["source_mapping"]] %||% list())[["sex_var"]] %||% "", "")
-  if (nzchar(declarada) && declarada %in% names(responses)) return(declarada)
+  # Mismo resolvedor que el código: exacto, normalizado y la hoja del camino de
+  # grupos de Kobo. Sin él, un `sex_var` declarado sin su grupo caía al barrido
+  # por alias, que puede acertar por casualidad o capturar otra columna.
+  resuelta <- monitoreo_aulas_columna_declarada(responses, declarada)
+  if (nzchar(resuelta)) return(resuelta)
   .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
 }
 

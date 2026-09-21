@@ -52,15 +52,10 @@ monitoreo_aulas_columna_codigo <- function(responses, cfg = list()) {
   if (!is.data.frame(responses) || !ncol(responses)) return("")
   declarada <- .monitoreo_scalar(
     ((cfg %||% list())[["source_mapping"]] %||% list())[["student_code_var"]] %||% "", "")
-  if (nzchar(declarada) && declarada %in% names(responses)) return(declarada)
-  # Tolerancia mínima: el nombre declarado con otra caja o con espacios. No es
-  # adivinar la columna, es reconocer la que el estudio ya nombró.
-  if (nzchar(declarada)) {
-    idx <- match(.monitoreo_text_key(declarada), .monitoreo_text_key(names(responses)),
-                 nomatch = 0L)
-    if (idx > 0L) return(names(responses)[[idx]])
-  }
-  ""
+  # Exacto, normalizado y —desde 2026-09-21— la hoja del camino de grupos de
+  # Kobo: el estudio declara `cod_pucp` y la plataforma entrega
+  # `modulo_a/cod_pucp`. Ver `monitoreo_aulas_columna_declarada.R`.
+  monitoreo_aulas_columna_declarada(responses, declarada)
 }
 
 # El padrón como tabla de búsqueda: código normalizado -> fila. Se construye una
