@@ -90,13 +90,15 @@ test_that("la hoja hermana NO apaga la guarda de «republico encima de su trabaj
   # La hermana se publica aunque la semana tenga dueño —es cuando más sirve—,
   # pero eso no puede hacer que publicar sobre el trabajo del coordinador deje
   # de ser un error: sería cambiar un 409 declarado por un silencio.
-  fuente <- readLines("../../R/monitoreo_aulas_publicar_distribucion.R", warn = FALSE)
-  guarda <- grep("E_AULAS_DISTRIBUCION_CON_DUENO", fuente)
-  expect_length(guarda, 1L)
-  # La condición descuenta las hermanas antes de decidir que no hay nada que
-  # sembrar.
-  condicion <- fuente[seq(max(1L, guarda - 12L), guarda)]
-  expect_true(any(grepl("setdiff(names(tabs), hermanas)", condicion, fixed = TRUE)))
+  fuente <- paste(readLines("../../R/monitoreo_aulas_publicar_distribucion.R", warn = FALSE),
+                  collapse = "\n")
+  # El 409 sigue existiendo…
+  expect_true(grepl("E_AULAS_DISTRIBUCION_CON_DUENO", fuente, fixed = TRUE))
+  # …y su condición descuenta las hermanas antes de decidir que no hay nada que
+  # sembrar. Se busca en el archivo entero y no en las líneas de alrededor: la
+  # primera versión de este test ancló a doce líneas del `stop_api` y se rompió
+  # en cuanto la guarda se movió, que no es el defecto que viene a vigilar.
+  expect_true(grepl("setdiff(names(tabs), hermanas)", fuente, fixed = TRUE))
 })
 
 test_that("la hoja hermana está en la lista de pestañas que la publicación puede escribir", {
@@ -177,4 +179,40 @@ test_that("el color agrupa por DÍA, no una cebra por fila", {
 test_that("sin clases no se piden formatos para una hoja que no existe", {
   expect_identical(aulas_libro_por_agendar_formato_requests(1L, NULL), list())
   expect_identical(aulas_libro_por_agendar_formato_requests(1L, list()), list())
+})
+
+test_that("ningún rango del formato se sale de la grilla que se publica", {
+  # La hoja salió publicada y SIN NADA de formato porque una petición pedía
+  # H1:G28 sobre una grilla de 7 columnas: Google rechaza el lote ENTERO, así
+  # que se cayeron también la banda, los anchos y el congelado. El error venía
+  # de pasar números de columna a `.maaf_centrar()`, que toma índices base 0
+  # con fin exclusivo.
+  filas <- aulas_libro_filas_por_agendar(list(
+    .albpat_fila("CH 7", "MAR 08:00-10:00", "Z411"),
+    .albpat_fila("CH 8", "MIE 09:00-11:00", "Z412")))
+  n_cols <- length(.ALBPA_CABECERA)
+  n_filas <- length(filas)
+  for (r in aulas_libro_por_agendar_formato_requests(1L, filas)) {
+    rango <- r[[1]]$range
+    if (is.null(rango)) next
+    ci <- rango$startColumnIndex; cf <- rango$endColumnIndex
+    ri <- rango$startRowIndex;    rf <- rango$endRowIndex
+    if (!is.null(ci) && !is.null(cf)) {
+      expect_lt(ci, cf)
+      expect_lte(cf, n_cols)
+      expect_gte(ci, 0L)
+    }
+    if (!is.null(ri) && !is.null(rf)) {
+      expect_lt(ri, rf)
+      expect_lte(rf, n_filas)
+      expect_gte(ri, 0L)
+    }
+    # Y los de dimensión, que traen su propio rango.
+    if (identical(names(r)[[1]], "updateDimensionProperties")) {
+      d <- r$updateDimensionProperties$range
+      tope <- if (identical(d$dimension, "COLUMNS")) n_cols else n_filas
+      expect_lt(d$startIndex, d$endIndex)
+      expect_lte(d$endIndex, tope)
+    }
+  }
 })
