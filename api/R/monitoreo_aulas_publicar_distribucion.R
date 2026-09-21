@@ -160,32 +160,6 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
         partes = partes %||% list(), efectivas = efectivas,
         estados_previos = aulas_distribucion_estados_publicados(remoto)
       )
-      # **Y su hoja hermana: a qué clase se puede entrar sin cita esa semana.**
-      #
-      # Gonzalo, 2026-09-21: «¿y qué hay de la tabla al lado (o en otra hoja)
-      # con las aulas titulares aún no agendadas?». En OTRA hoja, no al lado:
-      # la pestaña de la semana la edita el coordinador en vivo y meterle
-      # columnas de otra cosa al costado rompería su geometría y su guarda.
-      #
-      # Esta sí se reescribe siempre, aunque tenga contenido: su valor entero
-      # es estar al día —una clase deja de estar «por agendar» en cuanto
-      # alguien la agenda— y respetarla la congelaría en el primer día
-      # publicando una lista falsa. La hoja lo dice en su primera fila.
-      #
-      # Y va ANTES de la guarda de dueño a propósito: que la semana tenga el
-      # trabajo del coordinador no puede dejar su tabla de referencia sin
-      # actualizar. Es justo el caso en que más sirve —él está repartiendo y
-      # necesita saber a qué más se puede entrar— y es la misma lección que
-      # obligó a hacer la guarda por pestaña y no por documento.
-      tramo <- .albpa_tramo(trozo)
-      por_agendar <- tryCatch(
-        aulas_libro_filas_por_agendar(plan %||% list(), tramo$desde, tramo$hasta),
-        error = function(e) NULL)
-      if (length(por_agendar) > 2L) {
-        hoja_hermana <- .albpa_hoja(destino)
-        tabs[[hoja_hermana]] <- por_agendar
-        hermanas <- c(hermanas, hoja_hermana)
-      }
       if (is.null(filas_semana) || length(filas_semana) < 2L) next
       if (escritas > 0L) {
         respetadas[[destino]] <- escritas
@@ -193,6 +167,24 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       }
       tabs[[destino]] <- filas_semana
     }
+  }
+
+  # **La hoja de las clases por agendar: UNA sola, sin semana.**
+  #
+  # Gonzalo, 2026-09-21: «no entiendo por qué sería semana 1 estos cursos por
+  # agendar si son aulas que pasan todas las semanas». Van por día de semana y
+  # no por fecha, así que no cuelgan de ninguna pestaña semanal.
+  #
+  # Se escribe SIEMPRE, aunque todas las semanas tengan dueño: su valor entero
+  # es estar al día —una clase desaparece en cuanto alguien la agenda— y es
+  # justo mientras el coordinador reparte cuando más sirve saber a qué más se
+  # puede entrar. No apaga la guarda de abajo: ésa cuenta sólo las pestañas de
+  # distribución.
+  por_agendar <- tryCatch(aulas_libro_filas_por_agendar(plan %||% list()),
+                          error = function(e) NULL)
+  if (length(por_agendar) > 2L) {
+    hermanas <- .albpa_hoja()
+    tabs[[hermanas]] <- por_agendar
   }
 
   # Todas con dueño y ninguna que sembrar: es el caso de siempre —«republico y
@@ -226,11 +218,15 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # distribución —desplegable de estado, colores por aplicador— y en una tabla
   # de referencia pondría un «POR APLICAR» donde no hay a quién asignar.
   formato <- function(sheet_id, tab_name, rows) {
-    if (tab_name %in% names(tabs) && !(tab_name %in% hermanas)) {
-      return(aulas_libro_plan_aplicadores_formato_requests(
-        sheet_id, rows, roster = as.list(roster[nzchar(roster)])))
+    if (!(tab_name %in% names(tabs))) return(list())
+    # La hoja de referencia tiene su PROPIO formato: la misma banda de la casa,
+    # el aviso legible y los días en bloques. Salió sin nada la primera vez por
+    # quedar fuera del de la distribución y no tener el suyo.
+    if (tab_name %in% hermanas) {
+      return(aulas_libro_por_agendar_formato_requests(sheet_id, rows))
     }
-    list()
+    aulas_libro_plan_aplicadores_formato_requests(
+      sheet_id, rows, roster = as.list(roster[nzchar(roster)]))
   }
   pub <- .monitoreo_sync_sheets_publish_tabs(id, tabs, format_requests = formato)
   saltadas <- as.character(unlist(pub$skipped_tabs %||% list(), use.names = FALSE))
