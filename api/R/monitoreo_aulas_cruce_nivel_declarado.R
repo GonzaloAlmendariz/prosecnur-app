@@ -93,8 +93,16 @@ monitoreo_aulas_cruce_nivel_declarado <- function(responses, padron = list(), cf
   if (!nzchar(var_ciclo)) {
     return(vacio("el estudio no declara su variable de ciclo autodeclarado"))
   }
-  if (!(var_ciclo %in% names(responses))) {
-    return(vacio(sprintf("la variable declarada («%s») no está en la base", var_ciclo)))
+  # Se resuelve con el MISMO resolvedor que el código y el sexo: Kobo devuelve
+  # las columnas con el prefijo de su grupo —`modulo_a/A1`— y el estudio las
+  # declara sin él. Con el match a secas, un `A1` correctamente declarado
+  # contestaba «la variable declarada no está en la base» y la hoja «Control de
+  # nivel» salía muda con el dato delante.
+  var_ciclo <- monitoreo_aulas_columna_declarada(responses, var_ciclo)
+  if (!nzchar(var_ciclo)) {
+    return(vacio(sprintf(
+      "la variable declarada («%s») no está en la base",
+      .monitoreo_scalar(mapping[["declared_level_var"]] %||% "", ""))))
   }
 
   # El nivel de la persona lo resuelve el MISMO motor que alimenta las celdas de

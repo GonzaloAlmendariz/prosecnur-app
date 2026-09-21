@@ -88,3 +88,42 @@ test_that("el resolvedor de SEXO usa la misma regla antes de caer a sus alias", 
   # Sin declaración, el barrido por alias sigue funcionando como siempre.
   expect_identical(monitoreo_aulas_columna_sexo(d, list()), "sexo")
 })
+
+test_that("los dos CRUCES declarados también resuelven el prefijo de grupo", {
+  # Tenían su propio `%in% names(responses)` y contestaban «la variable
+  # declarada no está en la base» con el dato delante. Medido el 2026-09-21: el
+  # instrumento de CCSS declara `A1` (Ciclo) y Kobo entrega `modulo_a/A1`, así
+  # que la hoja «Control de nivel» salía muda.
+  # Los códigos tienen que PARECER códigos PUCP: `.man_*` rechaza como
+  # ilegible lo que no lo parece, y un fixture con «111» mide el rechazo en vez
+  # del cruce.
+  d <- data.frame(
+    collectorID = c("CH 1", "CH 1"),
+    `modulo_a/cod_pucp` = c("20240111", "20240222"),
+    `modulo_a/A1` = c("6", "9"),
+    `modulo_a/P7` = c("CIENCIAS SOCIALES", "DERECHO"),
+    stringsAsFactors = FALSE, check.names = FALSE)
+  padron <- list(filas = list(
+    list(codigo = "20240111", nivel = 6L, carrera = "ECONOMÍA", sexo = "F"),
+    list(codigo = "20240222", nivel = 7L, carrera = "ECONOMÍA", sexo = "M")))
+  cfg <- list(source_mapping = list(
+    student_code_var = "cod_pucp", declared_level_var = "A1",
+    declared_level_labels = list(`6` = "6", `7` = "7", `8` = "8", `9` = "9", `70` = "Otro"),
+    collector_var = "collectorID"))
+
+  cr <- monitoreo_aulas_cruce_nivel_declarado(d, padron, cfg)
+  expect_true(isTRUE(cr$ok))
+  expect_false(grepl("no está en la base", cr$motivo %||% "", fixed = TRUE))
+  # Una coincide (6 y 6) y una discrepa (padrón 7, declara 9).
+  expect_identical(cr$comparables, 2L)
+  expect_identical(cr$coinciden, 1L)
+  expect_identical(cr$discrepan, 1L)
+
+  # Y cuando la variable de verdad NO está, el motivo sigue nombrando la que el
+  # estudio declaró —no la resuelta, que está vacía—.
+  cfg2 <- cfg
+  cfg2$source_mapping$declared_level_var <- "Z99"
+  cr2 <- monitoreo_aulas_cruce_nivel_declarado(d, padron, cfg2)
+  expect_false(isTRUE(cr2$ok))
+  expect_true(grepl("Z99", cr2$motivo, fixed = TRUE))
+})
