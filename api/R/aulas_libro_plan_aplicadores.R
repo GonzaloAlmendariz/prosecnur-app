@@ -158,9 +158,24 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   if (is.na(i)) "" else as.character(previos[[i]])
 }
 
+# **El respaldo entra con el hueco, no sólo con el NULL.**
+#
+# Estaba escrito `x %||% default`, y `%||%` sólo cae cuando el valor es NULL:
+# un campo PRESENTE y vacío —que es como llega casi todo lo que el equipo no
+# tecleó en el Sheets— ganaba, y el respaldo no se miraba nunca.
+#
+# Lo destapó la única llamada que pasa respaldo, la del aula
+# (`scheduled_venue` con `venue` detrás). Medido el 2026-09-21 publicando la
+# semana 1 de CCSS Perfil 2026-II: CH 9, CH 20 y CH 43 salieron a la hoja de
+# los aplicadores SIN AULA teniendo el catálogo su 106B, su J305 y su
+# «Z413 · Z203». Tres personas mañana con una fila que no dice a dónde ir.
+#
+# Las demás llamadas pasan el default vacío, donde vacío y respaldo son lo
+# mismo: el cambio sólo puede mejorar, nunca tapar un valor real.
 .alpa_txt <- function(x, default = "") {
-  v <- suppressWarnings(as.character(x %||% default)[1])
-  if (length(v) != 1L || is.na(v)) default else trimws(v)
+  v <- suppressWarnings(as.character(x)[1])
+  v <- if (length(v) != 1L || is.na(v)) "" else trimws(v)
+  if (nzchar(v)) v else default
 }
 
 #' Una celda pintada, para distinguir a cada aplicador.
