@@ -59,7 +59,36 @@ aulas_avance_cabeceras_eje <- function(clave, eje = NULL) {
   if (!identical(as.character(base[[1]]), .CALAE_CELDA_POR_DEFECTO)) return(base)
   # El eje ES la facultad: se devuelve el MISMO objeto, no una copia igual.
   if (identical(etiqueta, .CALAE_CELDA_POR_DEFECTO)) return(base)
+  # **Y sólo si las FILAS de esa tabla son del eje.**
+  #
+  # Cuatro de las cinco tablas empiezan por «Facultad», pero no todas agrupan lo
+  # mismo. `facultad` reparte las CELDAS DE CUOTA —le llegan de
+  # `cuotas$facultades`, que con el eje en nivel son 6, 7, 8 y 9—. Las otras tres
+  # agrupan AULAS: `rendimiento` mide τ por aula aplicada, `aplicador` reparte
+  # por quien aplica y `diario` por jornada, y en las tres la fila sale de
+  # `u$faculty`.
+  #
+  # Con `atribucion = "persona"` el nivel de un aula es el MODAL de sus alumnos,
+  # no el de nadie: llamarle «Nivel» a una columna cuyas filas son facultades es
+  # exactamente la mentira que este satélite venía a quitar. Visto el 2026-09-21
+  # en el libro de CCSS Perfil 2026-II: «Rendimiento por facultad» salía con
+  # cabecera «Nivel» y una sola fila, «CIENCIAS SOCIALES».
+  #
+  # Con el eje en el AULA —HSVG, y todo lo vigente— las dos cosas coinciden y las
+  # cuatro tablas se sustituyen como hasta ahora.
+  if (!.calae_filas_del_eje(clave, eje)) return(base)
   c(etiqueta, base[-1])
+}
+
+#' ¿Las filas de esta tabla son del eje, o son aulas?
+#'
+#' Con el eje atribuido al AULA la pregunta no se plantea: todo agrupa igual.
+#' Con `atribucion = "persona"` sólo la tabla de cuotas reparte por el eje.
+#' @keywords internal
+.calae_filas_del_eje <- function(clave, eje) {
+  atribucion <- .monitoreo_scalar((eje %||% list())[["atribucion"]] %||% "aula", "aula")
+  if (!identical(atribucion, "persona")) return(TRUE)
+  identical(as.character(clave)[1], "facultad")
 }
 
 #' Las primeras celdas que una cabecera del avance puede traer.

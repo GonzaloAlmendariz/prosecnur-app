@@ -38,13 +38,22 @@ test_that("una tabla cuya primera columna NO es el eje no se toca", {
                    AULAS_AVANCE_CABECERAS$general)
 })
 
-test_that("las tres que empiezan por «Facultad» si la cambian", {
+test_that("las que empiezan por «Facultad» la cambian SI sus filas son del eje", {
   por_facultad <- Filter(function(k) identical(AULAS_AVANCE_CABECERAS[[k]][[1]], "Facultad"),
                          names(AULAS_AVANCE_CABECERAS))
   # Medido: son cuatro —facultad, rendimiento, aplicador y diario—.
   expect_gte(length(por_facultad), 4L)
-  for (clave in por_facultad) {
-    expect_identical(aulas_avance_cabeceras_eje(clave, .calae_eje("nivel"))[[1]], "Nivel")
+  # **Pero no las cuatro reparten por el eje.** El 2026-09-21, en el libro de
+  # CCSS Perfil 2026-II, «Rendimiento por facultad» salia con cabecera «Nivel» y
+  # una sola fila, «CIENCIAS SOCIALES»: esa tabla agrupa AULAS y su fila sale de
+  # `u$faculty`, no de las celdas de cuota. Con `atribucion = "persona"` el nivel
+  # de un aula es el MODAL de sus alumnos, asi que rotularla «Nivel» es la misma
+  # mentira que este satelite vino a quitar. Sustituye solo `facultad`.
+  eje_persona <- .calae_eje("nivel")
+  expect_identical(aulas_avance_cabeceras_eje("facultad", eje_persona)[[1]], "Nivel")
+  for (clave in setdiff(por_facultad, "facultad")) {
+    expect_identical(aulas_avance_cabeceras_eje(clave, eje_persona)[[1]], "Facultad",
+                     info = paste("tabla", clave, "agrupa aulas"))
   }
 })
 
