@@ -1370,3 +1370,15 @@ span.aulas-carga-celda.es-deficit { background: color-mix(in srgb, var(--pulso-d
 .mon-profile-page.is-aulas-flow .aulas-ops-sello.es-sin_publicar {
   color: var(--pulso-danger-fg);
 }
+
+/* La plantilla y el import, pegados: primero se baja, después se sube. */
+.aulas-dispo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+button.aulas-dispo-importar {
+  text-align: left;
+  font-family: inherit;
+}

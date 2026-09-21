@@ -121,6 +121,7 @@ export function AulasCargaDeCampo({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  onPlantillaDisponibilidad = null,
   fueraDelReparto = [],
   onDeclararFuera = null,
   onDeclararRango = null,
@@ -166,6 +167,8 @@ export function AulasCargaDeCampo({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad; lo pinta la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Descargar la plantilla vacía de disponibilidad. */
+  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
   /** Quién no sale en el despliegue vigente (`reparto_fuera` del config). */
   fueraDelReparto?: ReadonlyArray<string>;
   /** Persiste esa lista; `null` deja el control fuera (sólo lectura). */
@@ -477,6 +480,7 @@ export function AulasCargaDeCampo({
           // día de campo.
           fechaQueToca={repartoVista?.dias.find((x) => x.fecha >= hoy)?.fecha ?? null}
           onImportar={onImportarDisponibilidad}
+          onPlantilla={onPlantillaDisponibilidad}
           fuera={fueraDelReparto}
           onDeclararFuera={onDeclararFuera}
         />

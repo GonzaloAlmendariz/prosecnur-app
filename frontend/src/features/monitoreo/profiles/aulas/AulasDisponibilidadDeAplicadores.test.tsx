@@ -209,3 +209,56 @@ describe("quién no sale este despliegue", () => {
     expect(html).toContain("No salen este despliegue");
   });
 });
+
+/**
+ * La plantilla y el import van juntos, y en los TRES estados.
+ *
+ * Gonzalo, 2026-09-21: «la app debe ser capaz de dar un formato para que el
+ * coordinador pueda llenarlos fácilmente». El motor la escribía desde hacía
+ * rato y no la llamaba nadie; el sitio donde más muerde su ausencia es el
+ * estado vacío, que es exactamente donde está quien todavía no tiene nada que
+ * importar.
+ */
+describe("la plantilla de disponibilidad, al lado del import", () => {
+  const conAcciones = (disponibilidad: MonitoreoAulasDisponibilidad | null) => {
+    const oferta = mallaDeOferta(disponibilidad);
+    const vivas = oferta ? columnasVivas(oferta.franjas.length, [oferta.disponibles]) : [];
+    return renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores
+        oferta={oferta}
+        vivas={vivas}
+        onImportar={() => {}}
+        onPlantilla={() => {}}
+      />,
+    );
+  };
+
+  const conGente = bloque({
+    lunes: [{ nombre: "Ana Prueba", inicio: "08:00", fin: "12:00" }],
+  });
+
+  it("ofrece bajar la plantilla en el estado vacío, que es donde más falta hace", () => {
+    const html = conAcciones(null);
+    expect(html).toContain("Descargar plantilla");
+    expect(html).toContain("Importar disponibilidad");
+  });
+
+  it("y también con la oferta ya cargada: la semana siguiente se vuelve a pedir", () => {
+    const html = conAcciones(conGente);
+    expect(html).toContain("Descargar plantilla");
+    expect(html).toContain("Importar disponibilidad");
+  });
+
+  it("dice con qué se llena, para que nadie tenga que adivinar el formato", () => {
+    expect(conAcciones(null)).toContain("se llena con 1 y 0");
+  });
+
+  it("sin manejadores no promete un botón que no hace nada", () => {
+    const oferta = mallaDeOferta(null);
+    const html = renderToStaticMarkup(
+      <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={[]} />,
+    );
+    expect(html).not.toContain("Descargar plantilla");
+    expect(html).not.toContain("Importar disponibilidad");
+  });
+});
