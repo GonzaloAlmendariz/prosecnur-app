@@ -549,3 +549,40 @@ test_that("sin celdas de sexo la brecha sigue siendo la resta del total", {
   fila <- .avc_fila(d$avance_cuota, "FAC2")
   expect_equal(fila$brecha, 20)
 })
+
+test_that("un diseno que declara sus celdas declara su total, aunque no traiga total_cuota", {
+  # Medido el 2026-09-21 sobre CCSS Perfil 2026-II: el `design_targets` del
+  # proyecto trae las cuatro celdas por nivel —119, 122, 97 y 62— y NO trae
+  # `total_cuota`, porque lo armo otro camino que el constructor canonico. El
+  # KPI de cabecera leia `total$cuota`, lo encontraba NA y publicaba «S/D · el
+  # estudio no declara cuota del diseno» encima de una tabla que sumaba 400: el
+  # titular negando lo que su propio detalle afirma.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10), .avc_aula("A2", "FAC2", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", 8), .avc_fac("FAC2", 12)))
+  dt$total_cuota <- NULL
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_identical(b$vigencia, "vigente")
+  # El respaldo es la MISMA cuenta del constructor canonico, no una invencion.
+  expect_equal(b$total$cuota, 20)
+  expect_equal(.avc_fila(b, "FAC1")$cuota, 8)
+  expect_equal(.avc_fila(b, "FAC2")$cuota, 12)
+})
+
+test_that("el total declarado por el diseno MANDA sobre la suma de las celdas", {
+  # Si el diseno dice su total, es el suyo: recomponerlo desde las celdas seria
+  # pisarle una cifra que el estudio calculo aparte (p. ej. con redondeos que no
+  # suman exacto).
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", 8)), total = 400)
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_equal(b$total$cuota, 400)
+})
+
+test_that("sin ninguna celda con cuota el total sigue sin afirmarse", {
+  # Ahi si no hay meta que decir, y un cero seria peor que un vacio declarado.
+  plan <- list(.avc_aula("A1", "FAC1", expected = 10))
+  dt <- .avc_dt(list(.avc_fac("FAC1", NA_real_)))
+  dt$total_cuota <- NULL
+  b <- .avc_dash(plan, .avc_resp("A1"), dt = dt)$avance_cuota
+  expect_true(is.null(b$total$cuota) || !is.finite(suppressWarnings(as.numeric(b$total$cuota))))
+})

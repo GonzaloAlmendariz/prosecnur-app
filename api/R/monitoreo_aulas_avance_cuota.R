@@ -374,7 +374,27 @@
         respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
       )
     }
+    # **Un diseño que declara sus celdas declara su total.**
+    #
+    # Se leía SOLO `total_cuota` del bloque, y un `design_targets` que no lo
+    # trae dejaba el total en NA teniendo sus celdas con cuota. Medido el
+    # 2026-09-21 sobre CCSS Perfil 2026-II: cuatro celdas por nivel —119, 122,
+    # 97 y 62— y el KPI de cabecera publicando «S/D · el estudio no declara
+    # cuota del diseño» encima de una tabla que sumaba 400. El titular negaba
+    # lo que su propio detalle afirmaba, que es la peor forma de un vacío: no
+    # se lee como «falta un dato», se lee como «no hay meta».
+    #
+    # El respaldo es la MISMA cuenta que hace el constructor canónico
+    # (`monitoreo_aulas_metas_diseno()`: `round(sum(cuotas[is.finite(cuotas)]))`),
+    # así que no se inventa una cifra: se recompone la que el bloque ya trae
+    # repartida. Sin ninguna celda con cuota sigue siendo NA — ahí sí no hay
+    # meta que afirmar.
     cuota_total <- .monitoreo_num(vig$dt$total_cuota, NA_real_)
+    if (!is.finite(cuota_total)) {
+      cuotas_celdas <- vapply(filas, function(x) .monitoreo_num(x$cuota, NA_real_), numeric(1))
+      cuotas_celdas <- cuotas_celdas[is.finite(cuotas_celdas)]
+      if (length(cuotas_celdas)) cuota_total <- round(sum(cuotas_celdas))
+    }
     num_total <- sum(vapply(filas, function(x) {
       if (is.finite(x$cuota %||% NA_real_)) as.numeric(x$respuestas_validas) else 0
     }, numeric(1)))
