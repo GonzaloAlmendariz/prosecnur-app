@@ -191,6 +191,9 @@ export function AulasSeccionModelo({
               // las vistas Disponibilidad y Asignación declaran ese vacío.
               disponibilidad={dashboard.disponibilidad}
               reparto={dashboard.reparto}
+              // A qué clase se puede entrar sin cita, en la misma ventana del
+              // reparto: titulares por agendar que se dictan esos días.
+              sinAgendar={dashboard.sin_agendar}
               onExportar={(opciones) =>
                 descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
               }

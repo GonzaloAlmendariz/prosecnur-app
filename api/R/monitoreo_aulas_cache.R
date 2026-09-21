@@ -175,6 +175,21 @@
       list(curso_horario = f$curso_horario, fecha = f$fecha, facultad = f$facultad)
     })
   )
+  # **Y a qué clase se puede entrar sin cita, al lado del despliegue.**
+  #
+  # Gonzalo, 2026-09-21: «el despliegue de las semanas [debe incluir] al lado
+  # una tabla con los cursos-horario no agendados que se podrían ir a aplicar
+  # […] sólo tendrían que tener bien clara la hora de inicio y fin de la clase
+  # y el aula donde se dan».
+  #
+  # Va en la MISMA ventana que el reparto —`.madm_ventana_del_reparto()`, el
+  # mismo helper que acota las agendadas sin cita— porque es una tabla que se
+  # lee al lado de esos días: ofrecer clases de otra semana pondría al
+  # aplicador a filtrar mentalmente lo que la vista tiene que filtrar por él.
+  dashboard[["sin_agendar"]] <- tryCatch({
+    v <- .masa_ventana_visible(dashboard[["reparto"]])
+    monitoreo_aulas_sin_agendar_por_dia(plan, desde = v$desde, hasta = v$hasta)
+  }, error = function(e) NULL)
   dashboard
 }
 

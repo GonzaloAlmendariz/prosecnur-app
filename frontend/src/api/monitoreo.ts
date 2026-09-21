@@ -1579,6 +1579,41 @@ export type MonitoreoAulasRepartoEquidad = {
  * mínima acumulada, sin solapes. La forma defensiva la trata
  * `repartoDeAplicadores()` en el feature.
  */
+/**
+ * Una clase a la que se puede entrar sin cita, en un día concreto.
+ *
+ * La unidad es (curso-horario, DÍA): el que se dicta martes y jueves llega dos
+ * veces, una por fecha, porque quien lee está mirando un día.
+ *
+ * **El aula puede venir sin resolver, y eso se respeta.** El catálogo arma los
+ * días y las aulas con funciones distintas —una reordena los días a orden de
+ * calendario, la otra deduplica las aulas en orden de entrada— así que con
+ * varias no se puede decir cuál toca ese día. Entonces `aula` llega vacía y
+ * manda `aulas`: pintar una de las dos mandaría a alguien a la puerta
+ * equivocada.
+ */
+export type MonitoreoAulasClaseSinCita = {
+  codigo: string;
+  curso?: string;
+  docente?: string;
+  /** El aula cuando es una sola; vacía cuando `aula_incierta`. */
+  aula?: string;
+  aulas?: string[];
+  aula_incierta?: boolean;
+  /** Hora de inicio y fin de la CLASE, en HH:MM de 24 horas. */
+  inicio: string;
+  fin: string;
+  modalidad?: string;
+  elegibles?: number | null;
+};
+
+export type MonitoreoAulasSinAgendar = {
+  dias: Array<{ fecha: string; dia?: string; cursos: MonitoreoAulasClaseSinCita[] }>;
+  total: number;
+  /** Las sin cita cuyo horario no se puede leer: se declaran, no se pierden. */
+  sin_horario?: Array<{ codigo: string; curso?: string; motivo?: string }>;
+};
+
 export type MonitoreoAulasReparto = {
   dias: MonitoreoAulasRepartoDia[];
   /**
@@ -1734,6 +1769,16 @@ export type MonitoreoAulasDashboard = {
    * la clave en sesión.
    */
   reparto?: MonitoreoAulasReparto | null;
+  /**
+   * A qué clase se puede entrar SIN cita, en la misma ventana del reparto.
+   *
+   * Gonzalo, 2026-09-21: «el despliegue de las semanas [debe incluir] al lado
+   * una tabla con los cursos-horario no agendados que se podrían ir a aplicar
+   * […] sólo tendrían que tener bien clara la hora de inicio y fin de la clase
+   * y el aula donde se dan». Sólo TITULARES por agendar: un reemplazo o una
+   * extra se activan por su cadena, no entrando por la puerta.
+   */
+  sin_agendar?: MonitoreoAulasSinAgendar | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo
