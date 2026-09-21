@@ -1095,3 +1095,63 @@ test_that("una persona que quedó con UNA sola aplicación se lleva una segunda 
   # Las cinco siguen repartidas: reparar no pierde ni duplica una cita.
   expect_equal(sum(unlist(viajes, use.names = FALSE)), 5L)
 })
+
+test_that("una cita pactada con ventana ilegible se declara sin cubrir, no desaparece", {
+  # CCSS Perfil 2026-II, semana 1: CH 50 estaba agendada a las «11:45 pm» —un
+  # tipeo por am en el Sheets del equipo—. B11 le suma la duración y escribe
+  # `fin = "24:15"`, que su propio parser rechaza; el reparto la descartaba con
+  # un `next` mudo. Medido sobre el proyecto real: 19 citas con fecha en la
+  # semana y 18 declaradas. El hueco no avisaba de nada, y justo esa cita era
+  # la que había que ir a corregir.
+  disp <- list(.marp_full("Ana Prueba"))
+  plan <- list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "9:00am"),
+    .marp_fila("CH 50", fecha = "2026-09-11", hora = "11:45 pm")
+  )
+  res <- monitoreo_aulas_reparto(plan, disp)
+
+  dia <- .marp_dia(res, "2026-09-11")
+  expect_true(is.list(dia))
+  # La legible se reparte como siempre.
+  expect_identical(.marp_asig(dia, "CH 1")[["aplicador"]], "Ana Prueba")
+  # La ilegible NO se asigna —no hay hora contra la que buscar a nadie— pero
+  # SÍ se declara: es lo que hace que el coordinador la vea y la arregle.
+  expect_null(.marp_asig(dia, "CH 50"))
+  expect_true("CH 50" %in% .marp_no_cubiertos(dia))
+  # Y no se cuela por la otra puerta: «por confirmar» es la fecha SIN hora
+  # pactada, y ésta tiene hora tecleada. El rótulo prometería otra cosa.
+  expect_false("CH 50" %in% .marp_por_confirmar(dia))
+
+  # El invariante que el `next` mudo rompía: toda cita con fecha sale por
+  # algún lado.
+  declaradas <- c(
+    vapply(dia[["asignaciones"]], function(a) a[["codigo"]], character(1)),
+    .marp_no_cubiertos(dia), .marp_por_confirmar(dia)
+  )
+  expect_setequal(declaradas, c("CH 1", "CH 50"))
+})
+
+test_that("la cita de ventana ilegible respeta el rango y no se arrastra a la tanda", {
+  disp <- list(.marp_full("Ana Prueba"))
+  plan <- list(
+    .marp_fila("CH 1", fecha = "2026-09-11", hora = "9:00am"),
+    .marp_fila("CH 50", fecha = "2026-09-18", hora = "11:45 pm")
+  )
+  res <- monitoreo_aulas_reparto(plan, disp,
+                                 rango = list(desde = "2026-09-07", hasta = "2026-09-13"))
+
+  fechas <- vapply(res[["dias"]], function(d) as.character(d[["fecha"]]), character(1))
+  expect_identical(fechas, "2026-09-11")
+  # Fuera del rango viaja como cita pactada —lo es: tiene fecha y hora
+  # tecleada—, no como «por confirmar».
+  fuera <- res[["fuera_de_rango"]]
+  expect_length(fuera, 1L)
+  expect_identical(fuera[[1]][["fecha"]], "2026-09-18")
+  expect_identical(unlist(fuera[[1]][["codigos"]]), "CH 50")
+  expect_length(unlist(fuera[[1]][["por_confirmar"]]), 0L)
+
+  # Y fijarla no la vuelve huérfana: su cita existe, sólo espera otra tanda.
+  res2 <- monitoreo_aulas_reparto(plan, disp, fijadas = list(`CH 50` = "Ana Prueba"),
+                                  rango = list(desde = "2026-09-07", hasta = "2026-09-13"))
+  expect_length(unlist(res2[["fijadas_sin_cita"]] %||% list()), 0L)
+})
