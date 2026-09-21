@@ -208,6 +208,16 @@ monitoreo_sheets_pestanas_controladas <- function() {
   # el techo de un año de campo; el operativo de aulas dura seis semanas.
   semanas_aplicadores <- vapply(seq_len(52L), .mads_hoja_de_semana, character(1))
 
+  # Y su hoja hermana, la de las clases a las que se puede entrar sin cita
+  # (2026-09-21). Mismo criterio que arriba y por el mismo motivo: el nombre se
+  # le pide a `.albpa_hoja()`, que es quien lo escribe en el publicador. Si se
+  # tecleara aquí, cambiar el separador en un sitio dejaría la publicación
+  # estrellándose contra su propio validador —que es exactamente lo que pasó al
+  # estrenarla: «La publicacion solo puede escribir pestanas controladas de
+  # monitoreo: Semana 1 · por agendar»—.
+  semanas_por_agendar <- vapply(semanas_aplicadores, .albpa_hoja, character(1),
+                                USE.NAMES = FALSE)
+
   # Red de seguridad: lo que los generadores declaran HOY. Con el estado actual
   # no agrega ningún nombre (los bloques de arriba ya los cubren), pero si un
   # generador gana una pestaña mañana, entra aquí sola en vez de reventar la
@@ -221,5 +231,6 @@ monitoreo_sheets_pestanas_controladas <- function() {
     }), use.names = FALSE)
   }), use.names = FALSE)
 
-  unique(c(heredadas, ejecutivo_aulas, libro_aulas, semanas_aplicadores, declaradas))
+  unique(c(heredadas, ejecutivo_aulas, libro_aulas, semanas_aplicadores,
+           semanas_por_agendar, declaradas))
 }
