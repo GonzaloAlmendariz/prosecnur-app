@@ -244,3 +244,38 @@ describe("el pie del gráfico y los porcentajes", () => {
     expect(html).not.toContain("Infinity");
   });
 });
+
+describe("una barra que pasa del 100 %", () => {
+  /** El `y` de los `<text class="aulas-metas-pct">`, en el orden del markup. */
+  const alturasDePorcentaje = (html: string): number[] =>
+    [...html.matchAll(/<text[^>]*class="aulas-metas-pct"[^>]*>/g)]
+      .map((m) => Number(/y="([-\d.]+)"/.exec(m[0])?.[1] ?? NaN));
+
+  it("marca la cuota dentro de la barra, y solo cuando se supero", () => {
+    // Gonzalo, 2026-09-21: «cuando una barra sobrepasa el 100 % debe verse
+    // bien, igual que en el PDF». El contorno de la meta se pinta ANTES que el
+    // relleno, asi que al pasarse queda tapado: sin esta linea, 115 % y 250 %
+    // se ven igual de llenas.
+    const pasada = fila({ meta_M: 10, obtenidas_M: 25, meta_F: 10, obtenidas_F: 25 });
+    const corta = fila({ meta_M: 10, obtenidas_M: 5, meta_F: 10, obtenidas_F: 5 });
+    const conExceso = renderToStaticMarkup(<AulasMetasBarras filas={[pasada]} />);
+    const sinExceso = renderToStaticMarkup(<AulasMetasBarras filas={[corta]} />);
+    expect(conExceso.match(/aulas-metas-marca-cuota/g)).toHaveLength(2);
+    // Sin superarla, la cuota ya se ve como contorno hueco por encima del
+    // relleno: marcarla otra vez seria decir dos veces lo mismo.
+    expect(sinExceso).not.toContain("aulas-metas-marca-cuota");
+  });
+
+  it("escribe el porcentaje sobre el tope real, no sobre la meta", () => {
+    // El defecto: anclado a la meta, el «250 %» de Educacion quedaba DETRAS de
+    // su propia barra, cortado por la mitad. En SVG la y crece hacia abajo, asi
+    // que estar «encima» de la barra es tener una y MENOR.
+    const html = renderToStaticMarkup(
+      <AulasMetasBarras filas={[fila({ meta_M: 10, obtenidas_M: 25, meta_F: 10, obtenidas_F: 10 })]} />,
+    );
+    const [hombres, mujeres] = alturasDePorcentaje(html);
+    expect(Number.isFinite(hombres)).toBe(true);
+    // El carril que se paso (25 de 10) escribe MAS ARRIBA que el que llego justo.
+    expect(hombres).toBeLessThan(mujeres);
+  });
+});
