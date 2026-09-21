@@ -88,3 +88,70 @@ test_that("un rango al reves se niega con su codigo, no escribe medio archivo", 
   expect_error(aulas_disponibilidad_plantilla(p, desde = 20L, hasta = 8L),
                "E_DISPONIBILIDAD_PLANTILLA_RANGO|no es válido")
 })
+
+# --- la puerta: qué plantilla pide la sesión --------------------------------
+#
+# El motor existía y no lo llamaba nadie. `.monitoreo_aulas_plantilla_args()`
+# es la frontera testeable del router satélite: decide el contenido desde la
+# sesión y el cuerpo del pedido, sin levantar plumber.
+
+test_that("la plantilla trae escritos los aplicadores ya declarados en la sesión", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_disponibilidad", list(
+    list(nombre = "Ana Prueba", dias = list()),
+    list(nombre = "Berta Ficticia", dias = list()),
+    # Repetido y vacío: ni duplica ni escribe una fila en blanco con nombre.
+    list(nombre = "Ana Prueba", dias = list()),
+    list(nombre = "   ", dias = list())
+  ))
+
+  args <- .monitoreo_aulas_plantilla_args(sid, list())
+  expect_identical(args$aplicadores, c("Ana Prueba", "Berta Ficticia"))
+  # Los huecos se piden SOBRE los conocidos: 2 declarados + 25 en blanco. Si
+  # `filas` los incluyera, una segunda vuelta con 25 personas dejaría 0 sitio
+  # para la gente nueva, que es justo lo que el operativo gana cada semana.
+  expect_identical(args$filas, 27L)
+  expect_identical(args$desde, 7L)
+  expect_identical(args$hasta, 22L)
+  expect_length(args$dias, 6L)
+})
+
+test_that("sin disponibilidad cargada la plantilla sale vacía, no rota", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  args <- .monitoreo_aulas_plantilla_args(sid, list())
+  expect_length(args$aplicadores, 0L)
+  expect_identical(args$filas, 25L)
+
+  # Y se escribe: el estado vacío es exactamente donde más se necesita.
+  destino <- file.path(tempdir(), "plantilla_vacia.xlsx")
+  on.exit(unlink(destino), add = TRUE)
+  aulas_disponibilidad_plantilla(destino, dias = args$dias, desde = args$desde,
+                                 hasta = args$hasta, filas = args$filas,
+                                 aplicadores = args$aplicadores)
+  expect_true(file.exists(destino))
+  hojas <- openxlsx::getSheetNames(destino)
+  expect_true("Disponibilidad" %in% hojas)
+})
+
+test_that("el cuerpo manda sobre los defaults, y la basura no los tumba", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  args <- .monitoreo_aulas_plantilla_args(sid, list(
+    dias = list("Lunes", "Martes"), desde = 8, hasta = 14, filas = 3
+  ))
+  expect_identical(args$dias, c("Lunes", "Martes"))
+  expect_identical(args$desde, 8L)
+  expect_identical(args$hasta, 14L)
+  expect_identical(args$filas, 3L)
+
+  # Ilegible = el default, no un NA que reviente aguas abajo.
+  basura <- .monitoreo_aulas_plantilla_args(sid, list(
+    dias = list("", "   "), desde = "ocho", hasta = NULL, filas = "x"
+  ))
+  expect_length(basura$dias, 6L)
+  expect_identical(basura$desde, 7L)
+  expect_identical(basura$hasta, 22L)
+  expect_identical(basura$filas, 25L)
+})

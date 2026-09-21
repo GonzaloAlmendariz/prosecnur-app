@@ -42,6 +42,7 @@ export function AulasSeccionModelo({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  onPlantillaDisponibilidad = null,
   fueraDelReparto = [],
   onDeclararFuera = null,
   onDeclararRango = null,
@@ -75,6 +76,8 @@ export function AulasSeccionModelo({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad; llega a la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Descargar la plantilla vacía de disponibilidad. */
+  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
   /** Quién no sale en el despliegue vigente; viaja hasta la malla de oferta. */
   fueraDelReparto?: ReadonlyArray<string>;
   onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
@@ -194,6 +197,7 @@ export function AulasSeccionModelo({
               onFijarReparto={onFijarReparto}
               onConfirmarDuracion={onConfirmarDuracion}
               onImportarDisponibilidad={onImportarDisponibilidad}
+              onPlantillaDisponibilidad={onPlantillaDisponibilidad}
               fueraDelReparto={fueraDelReparto}
               onDeclararFuera={onDeclararFuera}
               onDeclararRango={onDeclararRango}

@@ -13,6 +13,7 @@ import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vend
 import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasDisponibilidad,
+  apiMonitoreoAulasDisponibilidadPlantilla,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
   apiMonitoreoAulasPublicarDistribucion,
@@ -823,6 +824,7 @@ function renderAulasView({
   onFijarReparto = null,
   onConfirmarDuracion = null,
   onImportarDisponibilidad = null,
+  onPlantillaDisponibilidad = null,
   onDeclararRango = null,
   fueraDelReparto = [],
   onDeclararFuera = null,
@@ -902,6 +904,8 @@ function renderAulasView({
   onConfirmarDuracion?: ((min: number) => void | Promise<void>) | null;
   /** B74: importar el excel de disponibilidad de aplicadores. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
+  /** Descargar la plantilla vacía de disponibilidad. */
+  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** Los tramos del operativo con su estado derivado, de paso hacia la asignación. */
@@ -978,6 +982,7 @@ function renderAulasView({
         onFijarReparto={onFijarReparto}
         onConfirmarDuracion={onConfirmarDuracion}
         onImportarDisponibilidad={onImportarDisponibilidad}
+        onPlantillaDisponibilidad={onPlantillaDisponibilidad}
         onDeclararRango={onDeclararRango}
         fueraDelReparto={fueraDelReparto}
         onDeclararFuera={onDeclararFuera}
@@ -1321,6 +1326,42 @@ export default function AulasMonitoreoPage() {
       a.remove();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo generar el libro.");
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
+  /**
+   * La plantilla de disponibilidad, para que haya qué importar.
+   *
+   * El motor la sabía escribir —días, franjas, el 1 en verde y el 0 en rojo—
+   * y no la pedía nadie: hasta hoy el coordinador tenía que adivinar el
+   * formato que el lector espera. Misma mecánica de descarga efímera que el
+   * libro: un Excel operativo no vive dentro del proyecto, y sacarlo es el punto.
+   */
+  const plantillaDisponibilidad = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    setAviso({ texto: "", tono: "ok" });
+    try {
+      const res = await apiMonitoreoAulasDisponibilidadPlantilla();
+      setAviso({
+        texto: "Plantilla lista" +
+          (res.aplicadores
+            ? ": trae escritos los " + fmt(res.aplicadores) + " aplicadores ya declarados."
+            : ": se llena con el nombre de cada aplicador y un 1 o un 0 por franja.") +
+          " Al llenarla, vuelve por «Importar disponibilidad».",
+        tono: "ok",
+      });
+      const a = document.createElement("a");
+      a.href = res.download_url;
+      a.download = res.filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo generar la plantilla.");
     } finally {
       setMutating(false);
     }
@@ -2301,6 +2342,7 @@ export default function AulasMonitoreoPage() {
               onFijarReparto: fijarReparto,
               onConfirmarDuracion: confirmarDuracion,
               onImportarDisponibilidad: importarDisponibilidad,
+              onPlantillaDisponibilidad: plantillaDisponibilidad,
               onDeclararRango: declararRango,
               // Los tramos del operativo y su estado ya derivado por el motor.
               // Van al lado del rango porque contestan la misma pregunta —«qué

@@ -5797,6 +5797,39 @@ export async function apiMonitoreoAulasDisponibilidad(origen: { file_id: string 
 }
 
 /**
+ * La plantilla vacía de disponibilidad, para que el coordinador la llene.
+ *
+ * Gonzalo, 2026-09-21: «la app debe ser capaz de dar un formato para que el
+ * coordinador pueda llenarlos fácilmente, quizás que ya todas las columnas ya
+ * estén y él solo ponga el nombre del aplicador y la x por día y hora»; y el
+ * mismo día, sobre el contenido de la celda: «o cero y uno están bien, me
+ * parece más limpio pero que los ceros y los unos se pinten, 1 de verde y 0 de
+ * rojo».
+ *
+ * La entrega el motor con los días y las franjas ya puestos, las cabeceras
+ * giradas para que se lean enteras, el 1 en verde y el 0 en rojo, y una hoja
+ * «Cómo llenar» al lado. Los aplicadores YA declarados vienen escritos: la
+ * segunda vuelta no obliga a reteclear a nadie.
+ */
+export async function apiMonitoreoAulasDisponibilidadPlantilla() {
+  const result = await handle<{
+    ok: true;
+    file_id: string;
+    filename: string;
+    size: number;
+    /** Cuántos nombres ya conocidos vienen escritos en la plantilla. */
+    aplicadores: number;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/disponibilidad/plantilla", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({}),
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+/**
  * Relee el libro desde las tres pestañas de un Google Sheets.
  *
  * La otra puerta del mismo ciclo: el `.xlsx` sirve para el cierre, esto para el

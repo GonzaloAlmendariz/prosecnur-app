@@ -57,12 +57,51 @@ function BotonDeImportarDisponibilidad({ onImportar }: {
   );
 }
 
+/**
+ * La plantilla vacía, para que haya qué importar.
+ *
+ * Gonzalo, 2026-09-21: «la app debe ser capaz de dar un formato para que el
+ * coordinador pueda llenarlos fácilmente, quizás que ya todas las columnas ya
+ * estén y él solo ponga el nombre del aplicador y la x por día y hora».
+ *
+ * Va PEGADO al de importar y antes que él en el orden de lectura porque es el
+ * paso anterior: sin plantilla, «Importar disponibilidad» pide un archivo que
+ * nadie sabe cómo tiene que ser. Y muerde sobre todo en el estado vacío, que
+ * es exactamente donde está quien todavía no tiene nada.
+ */
+function BotonDePlantillaDisponibilidad({ onPlantilla }: {
+  onPlantilla?: (() => void | Promise<void>) | null;
+}) {
+  if (!onPlantilla) return null;
+  return (
+    <button type="button" className="aulas-dispo-importar" onClick={() => void onPlantilla()}>
+      Descargar plantilla (.xlsx)
+      <em>días y franjas ya puestos; se llena con 1 y 0, y los nombres ya declarados vienen escritos</em>
+    </button>
+  );
+}
+
+/** El par, en el orden en que se usan: primero se baja, después se sube. */
+function AccionesDeDisponibilidad({ onImportar, onPlantilla }: {
+  onImportar?: ((archivo: File) => void | Promise<void>) | null;
+  onPlantilla?: (() => void | Promise<void>) | null;
+}) {
+  if (!onImportar && !onPlantilla) return null;
+  return (
+    <div className="aulas-dispo-acciones">
+      <BotonDePlantillaDisponibilidad onPlantilla={onPlantilla} />
+      <BotonDeImportarDisponibilidad onImportar={onImportar} />
+    </div>
+  );
+}
+
 export function AulasDisponibilidadDeAplicadores({
   oferta,
   vivas,
   demandaFirme = null,
   fechaQueToca = null,
   onImportar = null,
+  onPlantilla = null,
   fuera = [],
   onDeclararFuera = null,
 }: {
@@ -86,6 +125,8 @@ export function AulasDisponibilidadDeAplicadores({
   fechaQueToca?: string | null;
   /** B74: importar/reemplazar el excel de disponibilidad. */
   onImportar?: ((archivo: File) => void | Promise<void>) | null;
+  /** Descargar la plantilla vacía que se llena y se vuelve a subir por aquí. */
+  onPlantilla?: (() => void | Promise<void>) | null;
   /**
    * Quién NO sale en el despliegue vigente (`reparto_fuera` del config), con
    * el nombre CRUDO de la oferta. El operativo pierde y gana gente cada
@@ -112,7 +153,7 @@ export function AulasDisponibilidadDeAplicadores({
           quién puede estar en campo en cada franja de 30 minutos y la pestaña de Asignación
           reparte las citas pactadas.
         </p>
-        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+        <AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />
       </div>
     );
   }
@@ -125,7 +166,7 @@ export function AulasDisponibilidadDeAplicadores({
           La disponibilidad está cargada, pero nadie declaró horas todavía: no hay oferta que
           pintar. Es distinto de no haberla cargado — el marco existe y se llenará con el equipo.
         </p>
-        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+        <AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />
       </div>
     );
   }
@@ -185,7 +226,7 @@ export function AulasDisponibilidadDeAplicadores({
             ? "La oferta declarada del equipo, con las citas confirmadas encima: el anillo dice dónde hay citas y la franja alarma cuando las citas superan a la gente."
             : "La oferta declarada del equipo, sobre la misma malla horaria que la demanda: conmuta con el patrón semanal para ver si la gente alcanza."}
         </p>
-        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+        <AccionesDeDisponibilidad onImportar={onImportar} onPlantilla={onPlantilla} />
         {(() => {
           const nombres = aplicadoresDeLaOferta(oferta);
           if (!nombres.length) return null;
