@@ -109,8 +109,14 @@ monitoreo_aulas_cruce_facultad_declarada <- function(plan, responses, cfg = list
   mapping <- cfg[["source_mapping"]] %||% list()
   var_fac <- .monitoreo_scalar(mapping[["faculty_var"]] %||% "", "")
   if (!nzchar(var_fac)) return(vacio("el estudio no declara su variable de facultad"))
-  if (!(var_fac %in% names(responses))) {
-    return(vacio(sprintf("la variable declarada («%s») no está en la base", var_fac)))
+  # Mismo resolvedor que el resto del perfil: el prefijo de grupo de Kobo
+  # (`datos_demo/P7`) no puede hacer que una variable bien declarada se lea
+  # como ausente.
+  var_fac <- monitoreo_aulas_columna_declarada(responses, var_fac)
+  if (!nzchar(var_fac)) {
+    return(vacio(sprintf(
+      "la variable declarada («%s») no está en la base",
+      .monitoreo_scalar(mapping[["faculty_var"]] %||% "", ""))))
   }
 
   # Código de aula → facultad del marco. Es la misma resolución que usa el
