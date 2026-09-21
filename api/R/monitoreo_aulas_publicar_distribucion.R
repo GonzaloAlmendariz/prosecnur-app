@@ -133,6 +133,11 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
 
   tabs <- list()
   respetadas <- list()
+  # Las hojas hermanas «por agendar» se cuentan aparte de las de distribución.
+  # Publicarlas no es sembrar una semana, y confundirlas apagaría la guarda de
+  # más abajo: con todas las semanas con dueño, `tabs` dejaría de estar vacío y
+  # el «republico y ya» encima del trabajo del coordinador pasaría en silencio.
+  hermanas <- character(0)
   # Sin semanas legibles —un plan sin fechas, o fechas rotas— se publica como
   # siempre, en la hoja de toda la vida: el documento no se queda sin publicar
   # por no saber numerar sus semanas.
@@ -155,6 +160,32 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
         partes = partes %||% list(), efectivas = efectivas,
         estados_previos = aulas_distribucion_estados_publicados(remoto)
       )
+      # **Y su hoja hermana: a qué clase se puede entrar sin cita esa semana.**
+      #
+      # Gonzalo, 2026-09-21: «¿y qué hay de la tabla al lado (o en otra hoja)
+      # con las aulas titulares aún no agendadas?». En OTRA hoja, no al lado:
+      # la pestaña de la semana la edita el coordinador en vivo y meterle
+      # columnas de otra cosa al costado rompería su geometría y su guarda.
+      #
+      # Esta sí se reescribe siempre, aunque tenga contenido: su valor entero
+      # es estar al día —una clase deja de estar «por agendar» en cuanto
+      # alguien la agenda— y respetarla la congelaría en el primer día
+      # publicando una lista falsa. La hoja lo dice en su primera fila.
+      #
+      # Y va ANTES de la guarda de dueño a propósito: que la semana tenga el
+      # trabajo del coordinador no puede dejar su tabla de referencia sin
+      # actualizar. Es justo el caso en que más sirve —él está repartiendo y
+      # necesita saber a qué más se puede entrar— y es la misma lección que
+      # obligó a hacer la guarda por pestaña y no por documento.
+      tramo <- .albpa_tramo(trozo)
+      por_agendar <- tryCatch(
+        aulas_libro_filas_por_agendar(plan %||% list(), tramo$desde, tramo$hasta),
+        error = function(e) NULL)
+      if (length(por_agendar) > 2L) {
+        hoja_hermana <- .albpa_hoja(destino)
+        tabs[[hoja_hermana]] <- por_agendar
+        hermanas <- c(hermanas, hoja_hermana)
+      }
       if (is.null(filas_semana) || length(filas_semana) < 2L) next
       if (escritas > 0L) {
         respetadas[[destino]] <- escritas
@@ -167,7 +198,7 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # Todas con dueño y ninguna que sembrar: es el caso de siempre —«republico y
   # ya» sobre el trabajo del coordinador— y sigue siendo un error, no un no-op
   # silencioso.
-  if (!length(tabs) && length(respetadas)) {
+  if (!length(setdiff(names(tabs), hermanas)) && length(respetadas)) {
     primera <- names(respetadas)[[1L]]
     stop_api(
       409, "E_AULAS_DISTRIBUCION_CON_DUENO",
@@ -191,8 +222,11 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # nombre único; con una hoja por semana, comparar con «Plan del día» dejaría
   # la semana 2 sin desplegable de estado y sin colores por aplicador —la hoja
   # se vería como una tabla muerta y nadie podría reasignar desde ella—.
+  # Las hojas «por agendar» quedan FUERA de este formato: es el de la
+  # distribución —desplegable de estado, colores por aplicador— y en una tabla
+  # de referencia pondría un «POR APLICAR» donde no hay a quién asignar.
   formato <- function(sheet_id, tab_name, rows) {
-    if (tab_name %in% names(tabs)) {
+    if (tab_name %in% names(tabs) && !(tab_name %in% hermanas)) {
       return(aulas_libro_plan_aplicadores_formato_requests(
         sheet_id, rows, roster = as.list(roster[nzchar(roster)])))
     }
@@ -206,7 +240,10 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       hoja = hoja,
       accion = if (hoja %in% saltadas) "sin_cambios" else "actualizada",
       # Filas de DATOS: la cabecera no es un dato y contarla infla el recibo.
-      filas = max(0L, length(tabs[[hoja]]) - 1L)
+      # La hoja hermana lleva DOS filas de encabezado —su aviso y su
+      # cabecera—, así que descontar una sola le sumaría una clase que no
+      # existe.
+      filas = max(0L, length(tabs[[hoja]]) - (if (hoja %in% hermanas) 2L else 1L))
     )
   })
   # Las que NO se escribieron viajan en el mismo recibo y con su motivo. Una
