@@ -1429,12 +1429,18 @@ button.aulas-dispo-importar {
   letter-spacing: 0.04em;
   color: var(--pulso-text-faint);
 }
-.aulas-sincita-cod { display: block; font-weight: 600; color: var(--pulso-text); }
-.aulas-sincita-curso { display: block; color: var(--pulso-text-soft); }
-.aulas-sincita-doc { display: block; font-size: 11px; color: var(--pulso-text-faint); }
-.aulas-sincita-hora { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aulas-sincita-cod { font-weight: 600; color: var(--pulso-text); white-space: nowrap; }
+.aulas-sincita-curso { color: var(--pulso-text-soft); }
+/* El horario abre la fila: tabular para que las horas queden en columna. */
+.aulas-sincita-hora {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
 .aulas-sincita-hora em,
-.aulas-sincita-aula em {
+.aulas-sincita-aula em,
+.aulas-sincita-curso em {
   display: block;
   font-style: normal;
   font-size: 11px;

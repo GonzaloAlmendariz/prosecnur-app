@@ -33,11 +33,22 @@ export function AulasClasesSinCita({ clases }: { clases: ClaseSinCita[] }) {
         sin cita
         <em>titulares por agendar que se dictan ese día; hay que pedir permiso en la puerta</em>
       </summary>
+      {/* El HORARIO manda y va primero (Gonzalo, 2026-09-21: «el horario de
+          clase es la primera columna»): quien lee esta tabla está buscando
+          dónde le cabe un hueco entre dos citas, así que la hora es por donde
+          entra la vista. Y es además la clave por la que el motor ordena, así
+          que la tabla se lee ascendente por su primera columna.
+
+          El CÓDIGO y el NOMBRE del curso van en columnas distintas («pero eso
+          en dos columnas diferentes»): el código es lo que se teclea en la
+          ficha y en el Sheets, y apelmazado contra el nombre había que ir a
+          buscarlo dentro de una celda de texto corrido. */}
       <table className="aulas-sincita-tabla">
         <thead>
           <tr>
+            <th scope="col">Horario</th>
             <th scope="col">Curso-horario</th>
-            <th scope="col">Clase</th>
+            <th scope="col">Curso</th>
             <th scope="col">Lugar</th>
             <th scope="col">Elegibles</th>
           </tr>
@@ -45,16 +56,18 @@ export function AulasClasesSinCita({ clases }: { clases: ClaseSinCita[] }) {
         <tbody>
           {clases.map((c, i) => (
             <tr key={`${c.codigo}\r${c.inicio}\r${i}`}>
-              <th scope="row">
-                <span className="aulas-sincita-cod">{c.codigo}</span>
-                {c.curso ? <span className="aulas-sincita-curso">{c.curso}</span> : null}
-                {c.docente ? <span className="aulas-sincita-doc">{c.docente}</span> : null}
-              </th>
               <td className="aulas-sincita-hora">
                 {c.inicio}–{c.fin}
                 {c.modalidad && c.modalidad.toUpperCase() !== "PRESENCIAL" ? (
                   <em>{c.modalidad.toLowerCase()}</em>
                 ) : null}
+              </td>
+              {/* El código es la identidad de la fila aunque no vaya primero:
+                  es lo que nombra a esta unidad en la ficha y en el Sheets. */}
+              <th scope="row" className="aulas-sincita-cod">{c.codigo}</th>
+              <td className="aulas-sincita-curso">
+                {c.curso || "—"}
+                {c.docente ? <em>{c.docente}</em> : null}
               </td>
               <td className="aulas-sincita-aula" data-incierta={c.aulaIncierta ? "1" : undefined}>
                 {aulaDeLaClase(c) || "—"}
