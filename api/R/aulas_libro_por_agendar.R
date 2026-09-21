@@ -102,8 +102,20 @@ aulas_libro_filas_por_agendar <- function(plan = list(), desde = "", hasta = "")
 }
 
 #' El tramo de fechas que cubre un trozo de reparto de una semana.
+#'
+#' La semana entera de lunes a sábado, **pero nunca hacia atrás**: una clase que
+#' ya se dictó no es una oportunidad. Al estrenar la hoja el 2026-09-21 salieron
+#' cinco filas del lunes 21 —ese mismo día, pasadas las cinco de la tarde— en
+#' las primeras posiciones, que es justo lo que un aplicador lee al abrirla a la
+#' mañana siguiente. Una lista de oportunidades que arranca con lo que ya no se
+#' puede hacer enseña a saltarse las primeras filas.
+#'
+#' @param rep_semana el trozo de reparto de esa semana.
+#' @param hoy la fecha de corte; parámetro para poder pinearla en el test —una
+#'   función que lee el reloj por dentro no se puede probar sin esperar a
+#'   mañana.
 #' @keywords internal
-.albpa_tramo <- function(rep_semana) {
+.albpa_tramo <- function(rep_semana, hoy = Sys.Date()) {
   f <- vapply((rep_semana %||% list())[["dias"]] %||% list(),
               function(d) .monitoreo_scalar(d[["fecha"]], ""), character(1))
   f <- f[grepl("^\\d{4}-\\d{2}-\\d{2}$", f)]
@@ -114,5 +126,13 @@ aulas_libro_filas_por_agendar <- function(plan = list(), desde = "", hasta = "")
   # más hueco hay.
   lunes <- .mads_lunes_de(min(f))
   if (is.na(lunes)) return(list(desde = min(f), hasta = max(f)))
-  list(desde = format(lunes, "%Y-%m-%d"), hasta = format(lunes + 5L, "%Y-%m-%d"))
+  desde <- lunes
+  hasta <- lunes + 5L
+  corte <- suppressWarnings(as.Date(hoy))
+  if (length(corte) == 1L && !is.na(corte) && corte > desde) desde <- corte
+  # Una semana que ya terminó no tiene nada que ofrecer, y devolverla al revés
+  # haría que el saneador del motor intercambiara las puntas y publicara una
+  # semana entera de clases pasadas.
+  if (desde > hasta) return(list(desde = "", hasta = ""))
+  list(desde = format(desde, "%Y-%m-%d"), hasta = format(hasta, "%Y-%m-%d"))
 }

@@ -87,9 +87,29 @@ test_that("el tramo es la SEMANA entera, no sólo los días con cita", {
   # Un jueves sin ninguna cita pactada es justo el día con más hueco: acotar el
   # tramo a los días del reparto escondería sus clases precisamente ahí.
   trozo <- list(dias = list(list(fecha = "2026-09-22"), list(fecha = "2026-09-23")))
-  expect_identical(.albpa_tramo(trozo), list(desde = "2026-09-21", hasta = "2026-09-26"))
+  expect_identical(.albpa_tramo(trozo, hoy = as.Date("2026-09-14")),
+                   list(desde = "2026-09-21", hasta = "2026-09-26"))
   # Sin fechas legibles no se inventa una semana.
   expect_identical(.albpa_tramo(list()), list(desde = "", hasta = ""))
+})
+
+test_that("el tramo NO mira hacia atrás: una clase que ya se dictó no es una oportunidad", {
+  # Al estrenar la hoja salieron cinco filas del lunes 21 —ese mismo día,
+  # pasadas las cinco de la tarde— en las primeras posiciones, que es lo que un
+  # aplicador lee al abrirla a la mañana siguiente.
+  trozo <- list(dias = list(list(fecha = "2026-09-22"), list(fecha = "2026-09-25")))
+  expect_identical(.albpa_tramo(trozo, hoy = as.Date("2026-09-21")),
+                   list(desde = "2026-09-21", hasta = "2026-09-26"))
+  expect_identical(.albpa_tramo(trozo, hoy = as.Date("2026-09-23")),
+                   list(desde = "2026-09-23", hasta = "2026-09-26"))
+  # Una semana que ya terminó no ofrece nada, y no se devuelve al revés: el
+  # saneador del motor intercambiaría las puntas y publicaría la semana entera
+  # de clases pasadas.
+  expect_identical(.albpa_tramo(trozo, hoy = as.Date("2026-10-05")),
+                   list(desde = "", hasta = ""))
+  # Publicar con antelación deja la semana entera, que es lo correcto.
+  expect_identical(.albpa_tramo(trozo, hoy = as.Date("2026-09-01")),
+                   list(desde = "2026-09-21", hasta = "2026-09-26"))
 })
 
 test_that("la hoja hermana NO apaga la guarda de «republico encima de su trabajo»", {
@@ -103,4 +123,20 @@ test_that("la hoja hermana NO apaga la guarda de «republico encima de su trabaj
   # sembrar.
   condicion <- fuente[seq(max(1L, guarda - 12L), guarda)]
   expect_true(any(grepl("setdiff(names(tabs), hermanas)", condicion, fixed = TRUE)))
+})
+
+test_that("la hoja hermana está en la lista de pestañas que la publicación puede escribir", {
+  # Estrenarla dio E_INTERNAL: «La publicacion solo puede escribir pestanas
+  # controladas de monitoreo: Semana 1 · por agendar». El validador está bien
+  # puesto —impide escribir en una pestaña cualquiera del documento del
+  # cliente— y lo que faltaba era declararla.
+  permitidas <- monitoreo_sheets_pestanas_controladas()
+  for (n in seq_len(6L)) {
+    expect_true(.albpa_hoja(.mads_hoja_de_semana(n)) %in% permitidas,
+                info = paste("semana", n))
+  }
+  # El nombre lo genera la MISMA función que lo escribe: si alguien cambia el
+  # separador, las dos listas se mueven juntas y no aparece una divergencia
+  # muda entre el publicador y su validador.
+  expect_true("Semana 1 · por agendar" %in% permitidas)
 })
