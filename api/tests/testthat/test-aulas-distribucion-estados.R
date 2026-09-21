@@ -447,3 +447,43 @@ test_that("sin factor medible se usa la tasa del diseño, como antes", {
       base[[1]]$candidatos[[1]]$aporte_esperado)
   }
 })
+
+# --- el aula que la hoja de los aplicadores dejaba en blanco -------------------
+
+test_that("el aula cae a `venue` cuando `scheduled_venue` viene vacía, no sólo cuando falta", {
+  # Medido el 2026-09-21 publicando la semana 1 de CCSS Perfil 2026-II: CH 9,
+  # CH 20 y CH 43 salieron a la hoja de los aplicadores SIN AULA teniendo el
+  # catálogo su 106B, su J305 y su «Z413 · Z203». La causa: `.alpa_txt()` usaba
+  # `x %||% default`, y `%||%` sólo cae con NULL —un campo PRESENTE y vacío,
+  # que es como llega casi todo lo que el equipo no tecleó, ganaba y el
+  # respaldo no se miraba nunca—. Tres personas con una fila que no dice a
+  # dónde ir.
+  expect_identical(.alpa_txt("", "J305"), "J305")
+  expect_identical(.alpa_txt("   ", "J305"), "J305")
+  expect_identical(.alpa_txt(NULL, "J305"), "J305")
+  expect_identical(.alpa_txt(NA, "J305"), "J305")
+  # Y lo declarado MANDA: el respaldo no pisa un aula que sí se tecleó.
+  expect_identical(.alpa_txt("Z411", "J305"), "Z411")
+  expect_identical(.alpa_txt("  Z411  ", "J305"), "Z411")
+  # Sin respaldo, el vacío sigue siendo vacío: no se inventa nada.
+  expect_identical(.alpa_txt(""), "")
+  expect_identical(.alpa_txt(NULL), "")
+})
+
+test_that("la fila del aplicador publica el aula del catálogo cuando la agenda no la tecleó", {
+  plan <- list(list(
+    operational_code = "CH 20", scheduled_date = "2026-09-22", scheduled_time = "8:15 pm",
+    sample_role = "titular", faculty = "CIENCIAS SOCIALES", course_name = "ECONOMETRÍA",
+    teacher = "DOCENTE, SINTÉTICO", scheduled_venue = "", venue = "J305"
+  ))
+  disp <- list(list(nombre = "Ana Prueba", dias = list(
+    martes = list(list(inicio = "08:00", fin = "22:00")))))
+  filas <- aulas_libro_filas_plan_aplicadores(plan, disp)
+  cab <- as.character(unlist(filas[[1]], use.names = FALSE))
+  col <- which(cab == "AULA")
+  expect_length(col, 1L)
+  cuerpo <- filas[-1]
+  expect_gte(length(cuerpo), 1L)
+  aulas <- vapply(cuerpo, function(f) as.character(unlist(f, use.names = FALSE))[[col]], character(1))
+  expect_true("J305" %in% aulas)
+})
