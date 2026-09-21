@@ -83,16 +83,56 @@ aulas_disponibilidad_plantilla <- function(path,
                                              nrow = length(cuerpo)), stringsAsFactors = FALSE),
                         startRow = 3, colNames = FALSE)
   }
+  # **Las cabeceras van GIRADAS, y no es estética.** Con seis días de quince
+  # franjas la hoja tiene 90 columnas: a un ancho que quepa en pantalla,
+  # «11:00am-12:00pm» sale cortado —«am-12:0»— y quien llena no sabe de qué hora
+  # es la casilla. Medido el 2026-09-21 renderizando la plantilla: las quince
+  # franjas ilegibles. Girar el rótulo deja la columna estrecha y el texto
+  # entero; es lo que hace cualquier malla de horarios.
   cab <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E7EEF9",
                                border = "bottom", borderColour = "#C9BEB8",
-                               halign = "center", fontSize = 9)
+                               halign = "center", valign = "bottom",
+                               fontSize = 9, textRotation = 90)
   openxlsx::addStyle(wb, "Disponibilidad", cab, rows = 1:2,
                      cols = seq_along(fila_franjas), gridExpand = TRUE)
+  # El rótulo «Nombres» no se gira: es la cabecera de una columna ancha.
+  openxlsx::addStyle(wb, "Disponibilidad",
+                     openxlsx::createStyle(textDecoration = "bold", fgFill = "#E7EEF9",
+                                           border = "bottom", borderColour = "#C9BEB8",
+                                           halign = "left", valign = "bottom", fontSize = 9),
+                     rows = 2, cols = 1)
+  # Alto suficiente para que el rótulo girado quepa entero.
+  openxlsx::setRowHeights(wb, "Disponibilidad", rows = 1, heights = 58)
+  openxlsx::setRowHeights(wb, "Disponibilidad", rows = 2, heights = 86)
   openxlsx::addStyle(wb, "Disponibilidad",
                      openxlsx::createStyle(textDecoration = "bold"),
                      rows = 3:(2 + length(cuerpo)), cols = 1, gridExpand = TRUE)
   openxlsx::setColWidths(wb, "Disponibilidad", cols = 1, widths = 34)
-  openxlsx::setColWidths(wb, "Disponibilidad", cols = 2:length(fila_franjas), widths = 6)
+  openxlsx::setColWidths(wb, "Disponibilidad", cols = 2:length(fila_franjas), widths = 5)
+  # **El 1 en verde y el 0 en rojo** (Gonzalo, 2026-09-21: «cero y uno están
+  # bien, me parece más limpio, pero que los ceros y los unos se pinten»).
+  #
+  # Una malla de 90 columnas de unos y ceros no se lee: el ojo no distingue un
+  # 1 de un 0 a esa densidad, y quien la revisa antes de importar no puede ver
+  # de un vistazo si una persona quedó con la fila entera en cero. Con color, el
+  # bloque de disponibilidad se ve como una forma.
+  #
+  # Es formato CONDICIONAL y no celdas pintadas a mano: pintar exigiría escribir
+  # un valor en las 90 columnas de cada fila, y entonces una fila sin tocar no se
+  # distinguiría de una contestada «no disponible en nada». En blanco se queda
+  # en blanco, y el color aparece al escribir.
+  filas_grid <- 3:(2 + length(cuerpo))
+  cols_grid <- 2:length(fila_franjas)
+  openxlsx::conditionalFormatting(
+    wb, "Disponibilidad", cols = cols_grid, rows = filas_grid,
+    rule = "==1", type = "expression",
+    style = openxlsx::createStyle(fontColour = "#1F6B4A", bgFill = "#E6F2EB",
+                                  halign = "center", textDecoration = "bold"))
+  openxlsx::conditionalFormatting(
+    wb, "Disponibilidad", cols = cols_grid, rows = filas_grid,
+    rule = "==0", type = "expression",
+    style = openxlsx::createStyle(fontColour = "#8C2230", bgFill = "#FBECED",
+                                  halign = "center"))
   # Congelar el nombre y las dos cabeceras: sin esto, a la tercera columna ya no
   # se sabe de quién es la fila ni de qué día es la franja.
   openxlsx::freezePane(wb, "Disponibilidad", firstActiveRow = 3, firstActiveCol = 2)
@@ -102,8 +142,9 @@ aulas_disponibilidad_plantilla <- function(path,
     "DISPONIBILIDAD DE APLICADORES",
     "",
     "1. Escribe un nombre por fila en la columna «Nombres».",
-    "2. Marca con una X la casilla de cada día y franja en la que esa persona puede aplicar.",
-    "3. Deja en blanco lo que no. También valen 1 y 0, o «sí» y «no».",
+    "2. Escribe 1 en cada día y franja en la que esa persona puede aplicar, y 0 en la que no.",
+    "   El 1 se pinta de verde y el 0 de rojo, para poder revisar la malla de un vistazo.",
+    "3. Lo que dejes en blanco cuenta como no disponible. También valen X, «sí» y «no».",
     "4. Guarda el archivo e impórtalo desde Monitoreo → Carga de campo → Disponibilidad de aplicadores.",
     "",
     "No muevas ni renombres las dos primeras filas: la app las lee para saber",
