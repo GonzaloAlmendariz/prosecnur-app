@@ -30,6 +30,8 @@ import {
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { Switch } from "../../../../components/Switch";
 import { agendaDelAplicador, mapaDeFijaciones, textoDelDespliegue, veredictoDeEquidad, type RepartoVista } from "./repartoDeAplicadores";
+import { AulasClasesSinCita } from "./AulasClasesSinCita";
+import type { ClaseSinCita } from "./clasesSinCita";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -153,6 +155,7 @@ function RangoDeDespliegue({ rango, onDeclarar }: {
 
 export function AulasAsignacionDeAplicadores({
   reparto,
+  sinCita = null,
   lugares,
   facultades,
   onFijar = null,
@@ -206,6 +209,8 @@ export function AulasAsignacionDeAplicadores({
   facultades?: ReadonlyMap<string, string>;
   /** `null` = la sesión no cargó la disponibilidad; se declara, no se rompe. */
   reparto: RepartoVista | null;
+  /** Clases sin cita de cada fecha; `null` = el motor no las calculó. */
+  sinCita?: ReadonlyMap<string, ClaseSinCita[]> | null;
   /**
    * Código → lugar de la cita (`lugaresDelPlan`): el bloque `reparto` viaja
    * sin lugares y el jefe de campo reparte por edificio. Opcional: sin mapa,
@@ -927,6 +932,11 @@ export function AulasAsignacionDeAplicadores({
                     piden gente todavía.
                   </p>
                 ) : null}
+                {/* Y a qué clase se puede entrar ese día sin haberla agendado.
+                    Va DENTRO del día porque sus horas sólo significan algo
+                    contra las citas de ese mismo día: «10:00-12:00 en J301» se
+                    lee para saber si cabe entre la cita de las 9 y la de la 1. */}
+                <AulasClasesSinCita clases={sinCita?.get(d.fecha) ?? []} />
               </section>
                 );
               });

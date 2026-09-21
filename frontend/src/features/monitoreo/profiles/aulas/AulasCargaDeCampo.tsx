@@ -8,6 +8,7 @@ import type {
   MonitoreoAulasFranjas,
   MonitoreoAulasPlanRow,
   MonitoreoAulasReparto,
+  MonitoreoAulasSinAgendar,
 } from "../../../../api/monitoreo";
 import {
   anchoMinimoDeMalla,
@@ -32,6 +33,7 @@ import { columnasVivas, mallaDeOferta } from "./disponibilidadDeAplicadores";
 import type { DistribucionSheetsRecordada, DistribucionVigente } from "./distribucionDeAplicadores";
 import { ventanasPorCita } from "./salidasDelReparto";
 import { repartoDeAplicadores } from "./repartoDeAplicadores";
+import { clasesSinCita } from "./clasesSinCita";
 import { etiquetaDeFecha } from "./agendaPorDia";
 import { hoyISO } from "./calendarioDeAgenda";
 import { semanaInicial, semanasDeCarga } from "./semanasDeCarga";
@@ -117,6 +119,7 @@ export function AulasCargaDeCampo({
   franjas,
   disponibilidad,
   reparto,
+  sinAgendar = null,
   onExportar,
   onFijarReparto = null,
   onConfirmarDuracion = null,
@@ -151,6 +154,8 @@ export function AulasCargaDeCampo({
   disponibilidad?: MonitoreoAulasDisponibilidad | null;
   /** El gemelo de `disponibilidad`: el reparto vigente, recomputado al conversar. */
   reparto?: MonitoreoAulasReparto | null;
+  /** Las clases a las que se puede entrar sin cita, por fecha. */
+  sinAgendar?: MonitoreoAulasSinAgendar | null;
   /**
    * El libro sale con lo que hay EN PANTALLA —eje y duración—, no con los
    * valores por defecto: la duración es un control y exportar 30 minutos
@@ -263,6 +268,7 @@ export function AulasCargaDeCampo({
   // pide el solape contra la oferta.
   const ventanasDeCita = useMemo(() => ventanasPorCita(franjas), [franjas]);
   const repartoVista = useMemo(() => repartoDeAplicadores(reparto), [reparto]);
+  const sinCita = useMemo(() => clasesSinCita(sinAgendar), [sinAgendar]);
   // El bloque `reparto` viaja sin lugares: la tabla de Asignación los busca en
   // el plan, con la MISMA regla que el detalle (lugar confirmado del libro
   // primero — dictado «LUGAR DE APLICACIÓN», 2026-09-02).
@@ -488,6 +494,7 @@ export function AulasCargaDeCampo({
       {vista === "asignacion" ? (
         <AulasAsignacionDeAplicadores
           reparto={repartoVista}
+          sinCita={sinCita?.porFecha ?? null}
           lugares={lugares}
           facultades={facultades}
           oferta={oferta}
