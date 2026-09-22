@@ -619,7 +619,11 @@
           if (any(ok)) v[ok] <- cod[atr$fila[ok]]
           v
         } else NULL
-      }),
+      },
+      # Quién aceptó participar. Sin esto, un rechazo sale como «no declaró su
+      # código», que manda a revisar el formulario cuando no hay nada que
+      # revisar: quien no consiente no llega a esa pregunta.
+      consentimiento = monitoreo_aulas_consentimiento(responses, cfg)),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**
