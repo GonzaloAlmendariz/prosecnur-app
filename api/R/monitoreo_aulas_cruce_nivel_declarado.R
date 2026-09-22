@@ -276,35 +276,6 @@ aulas_libro_filas_control_nivel <- function(responses = NULL, padron = list(),
   pct <- function(n, d) if (d > 0) sprintf("%.1f %%", 100 * n / d) else ""
 
   poner("titulo", "CONTROL DE NIVEL")
-  poner("nota", sprintf(paste(
-    "El nivel de la PERSONA —resuelto por su código contra el padrón— contra el",
-    "ciclo que esa misma persona declara en el cuestionario. %d respuestas",
-    "comparables: %d coinciden (%s) y %d no (%s)."),
-    o$comparables, o$coinciden, pct(o$coinciden, o$comparables),
-    o$discrepan, pct(o$discrepan, o$comparables)))
-  poner("nota", paste(
-    "Es un control, no una reatribución: esta hoja NO cambia ningún conteo del",
-    "avance. Las celdas de cuota se cuentan con el nivel del padrón, y aquí se",
-    "ve cuánta gente dice pertenecer a otro ciclo."))
-  # **Cada mitad de «Otros» se dice sólo si existe.** La primera versión las
-  # decía siempre y con 0 coincidencias salía «son 0 que coinciden», que no es
-  # una frase — y se ve sólo generando el .xlsx con datos, no leyendo el motor.
-  fd <- o$fuera_declarado
-  if (fd$coinciden > 0L || fd$discrepan > 0L) {
-    partes <- character(0)
-    if (fd$coinciden > 0L) {
-      partes <- c(partes, sprintf(paste(
-        "%d marcaron «Otros» y el padrón también las pone fuera de los ciclos",
-        "del estudio: coinciden, y no son un desacuerdo."), fd$coinciden))
-    }
-    if (fd$discrepan > 0L) {
-      partes <- c(partes, sprintf(paste(
-        "%d marcaron «Otros» pero el padrón las pone DENTRO: son las que",
-        "importan, porque se declaran fuera de una población a la que",
-        "pertenecen según la matrícula."), fd$discrepan))
-    }
-    poner("nota", paste(partes, collapse = " "))
-  }
   poner("nota", "")
 
   poner("bloque", .MCND_BLOQUES[[1]])

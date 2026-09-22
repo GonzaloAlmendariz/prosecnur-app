@@ -647,9 +647,9 @@
 
 # --- S2: las notas no se derraman -------------------------------------------
 #
-# Medido en el libro real del 07/09: las notas («La cuota es de cada facultad y
-# de cada sexo…», «La muestra es la cuota del diseño…») viajan en UNA celda de
-# la columna A; en Sheets se derraman hasta la primera celda ocupada y
+# Medido en el libro real del 07/09: una línea suelta —hoy el titular de «Avance
+# general» y el vacío declarado de una tabla sin filas— viaja en UNA celda de
+# la columna A; en Sheets se derrama hasta la primera celda ocupada y
 # sobresalen de su tabla. Aquí cada nota se fusiona a lo ancho publicado, baja
 # de línea, se lee desde arriba y su fila crece lo que el texto necesita. El
 # reset de pestaña del motor (`.monitoreo_sheets_reset_tab_requests`) deshace

@@ -461,3 +461,17 @@ test_that("el cruce da lo mismo llamado dos veces seguidas", {
   expect_identical(a$coinciden, b$coinciden)
   expect_identical(a$discrepan, b$discrepan)
 })
+
+test_that("la hoja ya no declara «es un control, no una reatribución»", {
+  # Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop
+  # para mí». La frase estaba en esta hoja y en su hermana de nivel; se fija la
+  # AUSENCIA en las dos porque reintroducirla en una sola no rompe nada.
+  filas <- aulas_libro_filas_control_facultad(
+    .tmcfd_plan(),
+    .tmcfd_resp(c("CH 1", "CH 1", "CH 2"), c("1", "2", "2")),
+    .tmcfd_cfg())
+  texto <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))),
+                 collapse = " ")
+  expect_false(grepl("no una reatribución", texto, fixed = TRUE))
+  expect_false(grepl("NO cambia ningún conteo", texto, fixed = TRUE))
+})

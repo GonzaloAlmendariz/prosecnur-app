@@ -342,18 +342,12 @@ test_that("la fila Total suma personas y aulas, y los faltantes sin netear (ADR 
   expect_null(prosecnurapp:::.calaf_fila_total(NULL))
 })
 
-test_that("la nota nombra las dos metas con el mismo rango y no llama referencial a la sobremuestra", {
-  nota <- prosecnurapp:::.calaf_nota_metas(.lafac_tabla_dos())
-  expect_match(nota, "Muestra \\(15\\) y sobremuestra \\(30\\) son las dos metas")
-  expect_match(nota, "x2\\)")
-  for (prohibida in c("referencial", "margen", "segunda meta", "techo")) {
-    expect_false(grepl(prohibida, nota, ignore.case = TRUE), info = prohibida)
-  }
-  # Sin sobremuestra en el diseño, lo dice.
-  sin <- prosecnurapp:::.calaf_avance_por_facultad(
-    list(.lafac_aula("A1", "FAC1", "CH 1")), efectivas = c(`CH 1` = 3),
-    cuotas = .lafac_cuotas(.lafac_fac("FAC1", 20)))
-  expect_match(prosecnurapp:::.calaf_nota_metas(sin), "no publica la sobremuestra")
+test_that("la tabla por facultad ya no lleva nota al pie, y la función que la escribía no existe", {
+  # Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop
+  # para mí». La tabla se explica sola. Se fija la AUSENCIA porque reintroducir
+  # una nota no rompe nada por sí solo.
+  ns <- asNamespace("prosecnurapp")
+  expect_false(exists(".calaf_nota_metas", envir = ns, inherits = FALSE))
 })
 
 # Localiza la cabecera de UNA tabla entre las filas publicadas. Se busca por la
@@ -389,8 +383,9 @@ test_that("en el Sheets y en el xlsx la tabla por facultad cierra con la fila To
   expect_identical(celda("Muestra"), 15)
   expect_identical(celda("Faltantes muestra"), 6)
   expect_identical(celda("Faltantes sobremuestra"), 20)
-  # Y la nota, la misma que el xlsx, justo debajo.
-  expect_identical(primera[[total + 1L]], prosecnurapp:::.calaf_nota_metas(ind$facultades))
+  # Y debajo del Total, nada: la nota al pie se fue y no la sustituye ningún
+  # texto. La fila siguiente es el separador en blanco del bloque.
+  expect_identical(primera[[total + 1L]], "")
 
   # xlsx: la misma fila, en negrita.
   wb <- openxlsx::createWorkbook()
@@ -558,53 +553,55 @@ test_that("«Aulas sobre el plan» NO se pinta como una diferencia con semáforo
   expect_false(.calac_es_proporcion("Aulas sobre el plan", "facultad"))
 })
 
-test_that("la nota del bloque vive en el vocabulario, no copiada en cada renderer", {
-  # Estaba literal en los DOS renderers —el del .xlsx y el del Sheets—, que es
-  # justo lo que el archivo de vocabulario existe para impedir: el día que la
-  # frase cambie, uno de los dos seguiría publicando la anterior sin decirlo.
+# --- las notas didácticas, y su ausencia -------------------------------------
+#
+# Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop para
+# mí» y, sobre la lista entera, «todas se van». No se sustituyen por una versión
+# corta ni por un tooltip. Lo que SÍ se queda es el vacío declarado de cada
+# tabla (C3): sin él una tabla sin filas es un rectángulo en blanco y nadie
+# distingue «no hay nada» de «esto se rompió».
+#
+# La prueba mira las DOS superficies y el vocabulario, porque una nota
+# reintroducida en uno solo de los dos renderers no rompe nada por sí sola — que
+# es exactamente el motivo por el que vivían en una constante compartida.
+
+test_that("ni el vocabulario ni los dos renderers vuelven a traer las notas del avance", {
+  ns <- asNamespace("prosecnurapp")
+  expect_false(exists("AULAS_AVANCE_NOTAS", envir = ns, inherits = FALSE))
   fuente <- function(archivo) {
     ruta <- testthat::test_path("..", "..", "R", archivo)
     paste(readLines(ruta, warn = FALSE), collapse = "\n")
   }
-  expect_true(nzchar(AULAS_AVANCE_NOTAS$facultad))
-  for (archivo in c("carga_aulas_libro_avance.R", "carga_aulas_libro_indicadores.R")) {
+  frases <- c("La cuota es de cada facultad",
+              "Las tasas se miden sobre los elegibles",
+              "Una fila por persona en cada facultad",
+              "Una fila por facultad y día",
+              "Cada meta lleva al lado")
+  for (archivo in c("carga_aulas_libro_avance.R", "carga_aulas_libro_indicadores.R",
+                    "carga_aulas_libro_avance_columnas.R",
+                    "carga_aulas_libro_avance_total.R")) {
     src <- fuente(archivo)
-    expect_true(grepl("AULAS_AVANCE_NOTAS$facultad", src, fixed = TRUE), info = archivo)
-    expect_false(grepl("La cuota es de cada facultad", src, fixed = TRUE), info = archivo)
-  }
-  # Y la nota explica las tres columnas de aulas, que es para lo que se tocó.
-  for (pieza in c("planificadas originalmente", "proyectadas al cierre", "sobre el plan")) {
-    expect_true(grepl(pieza, AULAS_AVANCE_NOTAS$facultad, fixed = TRUE), info = pieza)
+    for (frase in frases) {
+      expect_false(grepl(frase, src, fixed = TRUE), info = paste(archivo, frase))
+    }
   }
 })
 
-# --- el grano que la nota afirma --------------------------------------------
-#
-# La nota decia SIEMPRE «por facultad y por sexo», y sobre CCSS —cuota por nivel,
-# sexo referencial— eso era falso dos veces al pie de una tabla que enseña
-# niveles. Se ve generando el libro, no leyendo el motor: la tabla decia
-# «Nivel 6 · muestra 120» y su pie, debajo, «la cuota del diseño por facultad y
-# por sexo».
-
-test_that("con cuota de sexo la nota dice «por facultad y por sexo», byte a byte", {
-  # HSVG esta en campo con esta frase: no puede moverse.
-  nota <- prosecnurapp:::.calaf_nota_metas(.lafac_tabla_dos())
-  expect_true(grepl("cada una por facultad y por sexo", nota, fixed = TRUE))
-})
-
-test_that("sin cuota de sexo la nota NO la afirma, y nombra el eje", {
-  # El grano se lee de la MISMA fila que la nota describe —sus columnas
-  # «Muestra hombres» y «Muestra mujeres», que la tabla deja vacias cuando el
-  # diseño no fijo cuota de sexo—. Leerlo de otra parte fue el defecto que
-  # escribi primero: busque `cuota_sexo` en una tabla que no lo tiene, y la nota
-  # habria dicho «por nivel» para todo el mundo, HSVG incluido.
-  sin_sexo <- prosecnurapp:::.calaf_avance_por_facultad(
-    list(.lafac_aula("A1", "6", "CH 1")), efectivas = c(`CH 1` = 3),
-    cuotas = .lafac_cuotas(.lafac_fac("6", 20)))
-  eje <- monitoreo_aulas_eje(list(eje_cuota = "nivel"))
-  nota <- prosecnurapp:::.calaf_nota_metas(sin_sexo, eje)
-  expect_true(grepl("la cuota del diseño por nivel;", nota, fixed = TRUE))
-  expect_false(grepl("por sexo", nota, fixed = TRUE))
-  # Y sin eje declarado, la palabra de siempre.
-  expect_true(grepl("por facultad;", prosecnurapp:::.calaf_nota_metas(sin_sexo), fixed = TRUE))
+test_that("las cinco tablas publicadas no llevan ninguna nota didáctica", {
+  d <- .lafac_dos()
+  ind <- aulas_libro_indicadores(
+    d$plan, efectivas = d$efectivas, responses = d$responses,
+    validas = rep(TRUE, nrow(d$responses)), cuotas = d$cuotas, cfg = .lafac_cfg())
+  filas <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-08-15"))
+  textos <- unlist(lapply(filas, function(f) {
+    vapply(f, function(x) as.character(x %||% ""), character(1))
+  }), use.names = FALSE)
+  primera <- vapply(filas, function(f) as.character(f[[1]] %||% ""), character(1))
+  for (frase in c("La cuota es de cada facultad", "Las tasas se miden",
+                  "Una fila por persona", "Una fila por facultad y día",
+                  "Cada meta lleva al lado", "son las dos metas del estudio")) {
+    expect_false(any(grepl(frase, textos, fixed = TRUE)), info = frase)
+  }
+  # Y el corte sigue siendo el día, sin el sufijo de procedencia.
+  expect_identical(primera[[2]], "Al 15/08/2026")
 })

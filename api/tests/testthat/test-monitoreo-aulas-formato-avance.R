@@ -364,11 +364,18 @@ test_that("S2: cada nota de «Avance de campo» va fusionada a lo ancho, con aju
   n_cols <- max(lengths(rows))
   requests <- .mfa_requests(rows)
   primeras <- vapply(rows, function(r) trimws(as.character(r[[1]] %||% "")), character(1))
-  notas <- which(startsWith(primeras, "La cuota es de cada facultad") |
-                 startsWith(primeras, "Muestra (") |
-                 startsWith(primeras, "Una fila por persona") |
-                 startsWith(primeras, "Una fila por facultad y día"))
-  expect_gte(length(notas), 2L)
+  # **Se DETECTAN, no se listan.** La lista era de literales —las notas
+  # didácticas, retiradas el 2026-09-22— y con ellas fuera el test se quedaba
+  # midiendo un conjunto vacío y pasando en verde. Lo que se fija es la regla
+  # del formateador: una fila con UNA sola celda con texto largo en la columna A
+  # se fusiona. Hoy la cumplen el titular de «Avance general» y el vacío
+  # declarado de cada tabla sin filas (C3), que son justo los que se quedan.
+  solo_una <- vapply(rows, function(r) {
+    sum(nzchar(vapply(r, function(x) trimws(as.character(x %||% "")), character(1)))) == 1L
+  }, logical(1))
+  notas <- which(solo_una & nchar(primeras) > 20L &
+                   !(primeras %in% unname(AULAS_AVANCE_TITULOS)))
+  expect_gte(length(notas), 1L)
   for (fila in notas) {
     expect_identical(.mfa_fusiones_de(requests, fila, n_cols), 1L,
                      info = sprintf("la nota de la fila %d no va fusionada de A a la última columna", fila))

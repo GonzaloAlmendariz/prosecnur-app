@@ -2418,7 +2418,13 @@
   list(ok = TRUE, source = source, validation = validation, state = .monitoreo_state_payload(sid))
 }
 
-.monitoreo_client_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE) {
+.monitoreo_client_report_model_for_snapshot <- function(snapshot, cfg, include_targets = FALSE,
+                                                        # El padrón de la sesión, sólo para aulas:
+                                                        # su eje de cuota puede resolverse por
+                                                        # PERSONA y sin él la tabla no tiene de
+                                                        # dónde sacar sus efectivas (ADR 0087: no
+                                                        # viaja dentro de `cfg`).
+                                                        padron = NULL) {
   if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte a cliente.")
   }
@@ -2480,7 +2486,8 @@
     return(build_monitoreo_aulas_report_model(
       snapshot = snapshot,
       cfg = cfg,
-      include_targets = include_targets
+      include_targets = include_targets,
+      padron = padron
     ))
   }
   dashboard <- snapshot$dashboard %||% NULL
@@ -3100,7 +3107,8 @@ mount_monitoreo <- function(pr) {
       snapshot <- monitoreo_client_snapshot_with_carga_universe(snapshot, s)
       cfg <- monitoreo_normalize_config(parsed$config %||% s$monitoreo_config %||% list(), snapshot$data %||% data.frame())
       include_targets <- .monitoreo_bool(parsed$include_targets %||% parsed$includeTargets, FALSE)
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
+                                                          padron = s[["monitoreo_aulas_padron"]])
       spreadsheet_id <- .monitoreo_resolve_publication_spreadsheet_id(parsed, s, "client")
       if (!nzchar(spreadsheet_id)) stop_api(400, "E_SHEETS_SPREADSHEET", "Falta spreadsheet_id destino para el reporte a cliente.")
       tabs <- .monitoreo_client_report_tabs_payload(model)
@@ -3236,7 +3244,8 @@ mount_monitoreo <- function(pr) {
       if (is.list(occ_snap) && is.data.frame(occ_snap$data) && nrow(occ_snap$data) && !is.null(snapshot)) {
         attr(snapshot, "occurrences_snapshot") <- occ_snap
       }
-      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets)
+      model <- .monitoreo_client_report_model_for_snapshot(snapshot, cfg, include_targets = include_targets,
+                                                          padron = s[["monitoreo_aulas_padron"]])
       portada <- monitoreo_aulas_portada_desde_body(parsed)
       model_path <- job_save_rds(sid, "monitoreo_client_report_model", model)
       is_territorial_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "territorial_advance_pdf") ||

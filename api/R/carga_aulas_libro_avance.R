@@ -34,11 +34,6 @@
 # Lo que NO cambia: el «—» de una celda sin dato. Sin dato y cero son dos
 # noticias distintas, y en Sheets un hueco se lee como «se olvidaron».
 
-.cala_txt <- function(x) {
-  v <- as.character(x %||% "")
-  if (!length(v) || is.na(v[[1]])) "" else trimws(v[[1]])
-}
-
 # El vacío declarado de una celda numérica. Es texto a propósito: una celda que
 # dice «—» no puede confundirse con un cero ni entrar en una regla de color.
 .CALA_SIN_DATO <- "—"
@@ -103,18 +98,6 @@
   c(list(as.list(cabecera)), filas)
 }
 
-# Cuántas aulas llevan parte de campo en el modelo que se está escribiendo. Es
-# la fila «Aulas aplicadas» de «Avance general», que ya la calcula el motor: no
-# se cuenta otra vez aquí, que es como nacen dos cifras para lo mismo.
-.cala_aulas_aplicadas <- function(ind) {
-  g <- (ind %||% list())$general
-  if (!is.data.frame(g) || !nrow(g) || ncol(g) < 2L) return(NA_real_)
-  i <- which(as.character(g[[1]]) == "Aulas aplicadas")
-  if (!length(i)) return(NA_real_)
-  v <- suppressWarnings(as.numeric(g[[2]][[i[[1]]]]))
-  if (length(v) != 1L || !is.finite(v)) NA_real_ else v
-}
-
 #' Arma la hoja «Avance de campo» del libro como filas de celdas para Sheets.
 #'
 #' @param ind el modelo de `aulas_libro_indicadores()`: las cinco tablas
@@ -123,18 +106,12 @@
 #' @param fecha `Date` del corte, inyectada por quien publica. `NULL` deriva el
 #'   corte del propio modelo (el último día del avance diario); sin diario la
 #'   celda del corte declara la causa. Nunca se consulta el reloj aquí.
-#' @param actualizado marca ISO de la última sincronización de la plataforma
-#'   (`monitoreo_snapshot$synced_at`), para que la portada diga la HORA y no
-#'   sólo el día — Gonzalo, 2026-09-08: «aquí está el día pero falta la hora
-#'   última de actualización». Sale del ESTADO y no del reloj: publicar dos
-#'   veces sin sincronizar escribe lo mismo y el motor batch+hash no reescribe
-#'   la pestaña.
 #' @return lista de filas; cada fila es una lista de celdas que pueden ser texto
 #'   o NÚMERO. No es un data.frame a propósito: un data.frame de caracteres no
 #'   puede llevar los dos tipos, y el tipo es justo lo que hace posible el
 #'   formato de porcentaje y el color por valor.
 #' @export
-aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
+aulas_libro_hoja_avance <- function(ind, fecha = NULL,
                                     # La declaración del eje de cuotas, sólo
                                     # para la PALABRA de la primera columna.
                                     # NULL = «Facultad», que es lo que era.
@@ -158,36 +135,6 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
   } else {
     "Sin fecha de corte: el avance diario aun no trae respuestas de plataforma fechadas."
   }
-  # La hora de la última sincronización, en hora local legible: quien lee el
-  # libro lee horas de Lima, no el ISO UTC del estado. Cuando cae en el mismo
-  # día del corte basta la hora; cuando no, se dice el día entero — que es
-  # justo la noticia importante (los datos son de ayer).
-  # **Y con cuántas aulas se escribió.** La hora de arriba fecha las RESPUESTAS
-  # de la plataforma; las aulas aplicadas no vienen de ahí, vienen de los partes
-  # de campo, que entran leyendo el propio Sheets. Así que dos publicaciones con
-  # el mismo «actualizado a las 10:40» podían llevar distinto número de aulas, y
-  # el rótulo prometía una frescura que no cubría: Gonzalo comparó las dos
-  # vistas el 2026-09-17 —Derecho con 17 aulas en la hoja y 19 en la app— y no
-  # tenía con qué distinguir cuál era más nueva.
-  #
-  # Sale del MODELO y no del reloj, igual que la marca: publicar dos veces sin
-  # que cambie nada escribe lo mismo, y el motor batch+hash no reescribe la
-  # pestaña. Un reloj aquí la reescribiría en cada publicación.
-  aplicadas <- .cala_aulas_aplicadas(ind)
-  marca <- .cai_marca_local(.cala_txt(actualizado))
-  if (nzchar(marca)) {
-    mismo_dia <- length(fecha) == 1L && !is.na(fecha) &&
-      identical(substr(marca, 1, 10), format(fecha, "%d/%m/%Y"))
-    corte <- if (mismo_dia) {
-      paste0(corte, " · datos de plataforma actualizados a las ", substr(marca, 12, 16))
-    } else {
-      paste0(corte, " · datos de plataforma actualizados el ", marca)
-    }
-  }
-  if (is.finite(aplicadas)) {
-    corte <- paste0(corte, " · escrito con ", format(aplicadas, big.mark = " ", trim = TRUE),
-                    if (aplicadas == 1) " aula con parte de campo" else " aulas con parte de campo")
-  }
 
   filas <- list()
   poner <- function(...) {
@@ -203,7 +150,7 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
   # Un bloque: título, nota de arriba, tabla, cierre opcional, nota de abajo.
   # Los cinco se escriben con la misma rutina para que ninguno se quede sin su
   # vacío declarado ni sin su cabecera reconocible por el formateador.
-  bloque <- function(clave, tabla, nota_arriba = NULL, nota_abajo = NULL,
+  bloque <- function(clave, tabla, nota_arriba = NULL,
                      vacio = NULL, con_total = FALSE, traspuesta = FALSE) {
     poner(AULAS_AVANCE_TITULOS[[clave]])
     if (!is.data.frame(tabla) || !nrow(tabla)) {
@@ -219,7 +166,6 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
       # nada y pasarlo sólo añadiría ruido.
       if (!is.null(total)) poner(.cala_tabla_filas(total, clave)[[2]])
     }
-    if (!is.null(nota_abajo)) poner(nota_abajo)
     poner("")
     invisible(NULL)
   }
@@ -252,10 +198,6 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
   # --- 2. AVANCE POR FACULTAD -------------------------------------------------
   bloque(
     "facultad", ind$facultades,
-    nota_arriba = AULAS_AVANCE_NOTAS$facultad,
-    nota_abajo = if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
-      .calaf_nota_metas(ind$facultades, eje)
-    } else NULL,
     vacio = "El estudio todavía no publica cuotas por facultad, así que no hay contra qué medir el avance.",
     con_total = TRUE
   )
@@ -263,38 +205,18 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
   # --- 3. RENDIMIENTO POR FACULTAD --------------------------------------------
   bloque(
     "rendimiento", ind$rendimiento,
-    nota_arriba = paste(
-      "Las tasas se miden sobre los elegibles de las aulas ya aplicadas. Las",
-      "efectivas esperadas son esos elegibles por la tasa que el diseño le puso a",
-      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue.",
-      "El plan no trae elegibles por sexo, así que la esperada de hombres y la de",
-      "mujeres se reparten con la misma proporción con la que el diseño repartió",
-      "la cuota de esa facultad."
-    ),
     vacio = "El plan todavía no trae facultades con aulas que medir."
   )
 
   # --- 4. PRODUCCIÓN POR APLICADOR --------------------------------------------
   bloque(
     "aplicador", ind$aplicadores,
-    nota_arriba = paste(
-      "Una fila por persona en cada facultad. La tasa esperada es la de la",
-      "facultad, así que quien cubre dos se mide contra la vara de cada una.",
-      "«Efectivas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de",
-      "lo esperado. Sobre las que aún no aplica no falta ninguna ficha."
-    ),
     vacio = .cali_motivo_sin_aplicadores()
   )
 
   # --- 5. AVANCE DIARIO -------------------------------------------------------
   bloque(
     "diario", ind$diario,
-    nota_arriba = paste(
-      "Una fila por facultad y día. Las efectivas esperadas son la suma de las",
-      "metas de los cursos-horario que ya se aplicaron ese día, no de todos los",
-      "que estaban agendados: se compara contra lo que se hizo, no contra lo que",
-      "falta por hacer."
-    ),
     vacio = .cali_motivo_sin_diario(ind)
   )
 

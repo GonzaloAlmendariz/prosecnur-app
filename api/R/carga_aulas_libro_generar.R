@@ -1641,7 +1641,15 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   aulas_libro_escribir_indicadores(
     wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas,
                                 cuotas = cuotas, cfg = cfg,
-                                asignados = asignados_por_codigo, extras = extras),
+                                asignados = asignados_por_codigo, extras = extras,
+                                # El avance contra la cuota, sobre el plan
+                                # COMPLETO —no el recorte del libro— y con el
+                                # padrón: con el eje declarable las celdas de la
+                                # cuota pueden no ser facultades, y entonces sus
+                                # cifras salen de ahí. Ver
+                                # `monitoreo_aulas_avance_cuota_libro.R`.
+                                avance_cuota = monitoreo_aulas_avance_cuota_del_plan(
+                                  plan_completo, responses, cfg, padron = padron)),
     procedencia = procedencia,
     # La palabra de la primera columna, del eje declarado. La constante de
     # cabeceras no se toca: ver `carga_aulas_libro_avance_eje.R`.

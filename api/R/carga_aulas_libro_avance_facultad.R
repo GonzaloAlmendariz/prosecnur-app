@@ -102,13 +102,40 @@
 #' @param responses respuestas, para el reparto por sexo.
 #' @param validas vector lógico por fila de `responses`.
 #' @param cfg config de aulas, para localizar la columna de sexo.
+#' @param avance_cuota el bloque de [monitoreo_aulas_avance_cuota_del_plan()],
+#'   o `NULL`. Sólo se consume cuando el eje del estudio se atribuye por
+#'   PERSONA; con el eje en el aula esta tabla no cambia un byte, lo reciba o
+#'   no. Ver el bloque de abajo.
 #' @return `data.frame` con una fila por facultad, o `NULL` sin cuotas.
 #' @keywords internal
 .calaf_avance_por_facultad <- function(unidades, efectivas = NULL, cuotas = NULL,
                                        responses = NULL, validas = NULL, cfg = list(),
-                                       partes = list()) {
+                                       partes = list(), avance_cuota = NULL) {
   facs <- if (is.list(cuotas)) (cuotas$facultades %||% list()) else list()
   if (!length(facs)) return(NULL)
+
+  # **CUANDO LA CELDA DEL EJE NO ES UNA FACULTAD, LAS CIFRAS LAS PONE EL BLOQUE**
+  #
+  # Todo lo de abajo agrupa el plan por `u$faculty`. Con el eje declarable
+  # (ADR 0086) las filas de `cuotas$facultades` pueden ser NIVELES —CCSS Perfil
+  # 2026-II: claves "6" a "9"— mientras las 136 unidades del plan traen la misma
+  # facultad, así que `clave == k` no es TRUE nunca y las cuatro filas salían con
+  # Efectivas 0 y Avance 0,0 % el primer día de campo.
+  #
+  # No se arregla cambiando la clave a `u$level`: con `atribucion = "persona"` la
+  # cuota se resuelve por el código del alumno contra el padrón, y un aula de
+  # nivel 6 tiene alumnos de 5, 6 y 7. Atribuir por el nivel del AULA daría un
+  # número plausible y falso, que es lo que los ADR 0086/0088 existen para
+  # impedir. Las cifras salen del bloque que ya hizo ese cruce —uno solo—.
+  celdas_eje <- .maacl_celdas_por_clave(avance_cuota)
+  # **Y las cuatro columnas de AULAS van a raya, no a cero** (decisión de
+  # Gonzalo, 2026-09-22). Un aula no pertenece a un nivel: su nivel es el MODAL
+  # de sus alumnos, que el marco calculó para dimensionar. «Aulas aplicadas» o
+  # «Aulas planificadas originalmente» por nivel no es un cero, es una pregunta
+  # sin respuesta, y el cero se leía como un operativo que no arrancó. Las
+  # columnas se quedan en el contrato (`AULAS_AVANCE_CABECERAS$facultad`) y los
+  # renderers pintan su «—», sin nota que lo acompañe: la tabla se explica sola.
+  del_bloque <- !is.null(celdas_eje)
 
   # Índice del plan: código operativo -> facultad, y si el aula se aplicó.
   cod <- vapply(unidades, function(u) .cai_txt(u$operational_code), character(1))
@@ -163,8 +190,16 @@
   # Dos cruces del mismo dato se separan en cuanto uno cambia. Éste se apoya en
   # `monitoreo_aulas_efectivas_por_sexo()`, que ya resuelve las tres claves y ya
   # aplica el criterio de validez, y sólo agrega por facultad.
+  #
+  # **Y con el eje por persona no se hace**: `monitoreo_aulas_efectivas_por_sexo()`
+  # devuelve efectivas por AULA, y agregarlas por la clave de la celda del eje
+  # volvería a exigir que el aula pertenezca a un nivel. El bloque de cuota no
+  # publica el sexo por celda —sexo y carrera son referenciales y viajan en
+  # `composicion`, para todo el estudio—, así que las columnas de sexo callan
+  # (`con_reparto = FALSE`) en vez de decir cero. Cero y «no lo sabemos» son dos
+  # noticias distintas, y ésta es la segunda.
   sexo_por_fac <- list()
-  sexo_aula <- tryCatch(
+  sexo_aula <- if (del_bloque) NULL else tryCatch(
     monitoreo_aulas_efectivas_por_sexo(unidades, responses, cfg),
     error = function(e) NULL
   )
@@ -196,7 +231,14 @@
     # efectivas de cada sexo; sin variable declarada, la columna calla.
     sin_reparto <- if (con_reparto) c(F = 0, M = 0) else c(F = NA_real_, M = NA_real_)
     sx <- sexo_por_fac[[k]] %||% sin_reparto
-    conseguidas <- if (is.null(efectivas)) NA_real_ else sum(ef_fila[idx], na.rm = TRUE)
+    # La celda del eje, cuando el bloque la pone. `respuestas_validas` es la
+    # MISMA cifra que publica el tablero para esa celda: no hay dos cuentas.
+    celda <- if (del_bloque) (celdas_eje[[k]] %||% NULL) else NULL
+    conseguidas <- if (del_bloque) {
+      # Una celda del diseño que el bloque no emitió no existe: NA y no cero,
+      # igual que cualquier otra cifra que no se pudo medir.
+      if (is.null(celda)) NA_real_ else .cai_num(celda$respuestas_validas)
+    } else if (is.null(efectivas)) NA_real_ else sum(ef_fila[idx], na.rm = TRUE)
     sm <- if (is.null(sobremuestra)) list(total = NA_real_, F = NA_real_, M = NA_real_) else sobremuestra[[i]]
 
     # A4 (2026-09-08): la MISMA brecha que el tablero (ADR 0079, una función
@@ -210,6 +252,13 @@
     brecha <- function(meta, cel) {
       if (!is.finite(conseguidas)) NA_real_ else monitoreo_aulas_brecha_facultad(meta, conseguidas, cel)
     }
+    # Contra la MUESTRA, con el eje por persona, la brecha ya está calculada en
+    # la celda —y con la regla del ADR 0079 aplicada por la misma función que
+    # usa el tablero—: se lee, no se recalcula. La de la sobremuestra sigue
+    # saliendo de aquí porque el bloque no reparte la segunda meta.
+    brecha_muestra <- if (del_bloque) {
+      if (is.null(celda)) NA_real_ else .cai_num(celda$brecha)
+    } else brecha(cuota, celdas(cuota_f, cuota_m))
     # Lo que falta en UNA celda: sólo con reparto y con su meta; nunca negativo.
     falta_sexo <- function(meta_sexo, obs) {
       if (!con_reparto || !is.finite(meta_sexo) || !is.finite(obs)) NA_real_ else max(0, meta_sexo - obs)
@@ -232,19 +281,22 @@
       Facultad = .cai_txt(f$facultad),
       Efectivas = conseguidas,
       `Avance muestra` = avance(conseguidas, cuota),
-      `Aulas aplicadas` = sum(idx & apl),
-      `Aulas planificadas originalmente` = sum(idx & rol == "titular"),
+      `Aulas aplicadas` = if (del_bloque) NA_real_ else sum(idx & apl),
+      `Aulas planificadas originalmente` = if (del_bloque) NA_real_ else sum(idx & rol == "titular"),
       # **Aplicadas más las que tienen fecha y todavía no se han aplicado.** Un
       # aula ya aplicada conserva su fecha, así que sumar las dos listas sin
       # descontar la intersección la contaría dos veces y la proyección saldría
       # por encima del plan en cuanto el operativo avanzara.
-      `Aulas proyectadas al cierre` = sum(idx & apl) + sum(idx & con_fecha & !apl),
+      `Aulas proyectadas al cierre` = if (del_bloque) NA_real_ else {
+        sum(idx & apl) + sum(idx & con_fecha & !apl)
+      },
       # La resta, con su signo. Positivo: cerrará con más aulas de las que el
       # sorteo le puso —refuerzo—. Negativo: quedan aulas del plan que nadie ha
       # agendado. Cero no es «no pasa nada»: es que lo agendado cubre el plan
       # exactamente, que es lo normal en una facultad al día.
-      `Aulas sobre el plan` = (sum(idx & apl) + sum(idx & con_fecha & !apl)) -
-        sum(idx & rol == "titular"),
+      `Aulas sobre el plan` = if (del_bloque) NA_real_ else {
+        (sum(idx & apl) + sum(idx & con_fecha & !apl)) - sum(idx & rol == "titular")
+      },
       `Efectivas hombres` = unname(sx[["M"]]),
       `Avance muestra hombres` = avance(unname(sx[["M"]]), cuota_m),
       `Efectivas mujeres` = unname(sx[["F"]]),
@@ -252,7 +304,7 @@
       # LA MUESTRA es la cuota del diseño, no la suma de metas por aula: son dos
       # denominadores y el segundo está estructuralmente por encima (ADR 0079).
       Muestra = cuota,
-      `Faltantes muestra` = brecha(cuota, celdas(cuota_f, cuota_m)),
+      `Faltantes muestra` = brecha_muestra,
       `Muestra hombres` = cuota_m,
       `Faltantes hombres muestra` = falta_sexo(cuota_m, unname(sx[["M"]])),
       `Muestra mujeres` = cuota_f,
