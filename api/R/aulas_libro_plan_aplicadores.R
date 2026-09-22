@@ -297,6 +297,19 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   }
   v <- busca(traslape, codigo)
   if (!nzchar(v)) return("")
+  # **Sólo lo CONSUMADO, no lo que está en el plan del otro estudio.**
+  #
+  # Gonzalo, 2026-09-22: «una columna de si su aula fue aplicada, SÓLO SI LO
+  # FUE». El veredicto tiene cuatro valores y dos son hipótesis sobre el futuro
+  # —«AULA EN EL PLAN DE HSVG», «DOCENTE EN EL PLAN DE HSVG»—: dicen que esa
+  # aula también está en la muestra del otro estudio, no que allí haya pasado
+  # nada. Publicarlos llenaba la columna: 27 de 42 filas con aviso, y un aviso
+  # que grita en dos de cada tres filas tapa la única que de verdad importa.
+  #
+  # Los dos consumados llevan «YA» por construcción (`aulas_traslape_estudio`:
+  # «AULA YA APLICADA EN …», «DOCENTE YA CONTACTADO EN …»), que es lo que los
+  # separa de los otros dos en el mismo vocabulario.
+  if (!grepl("\\bYA\\b", v)) return("")
   etiqueta <- .alpa_txt(attr(traslape, "etiqueta", exact = TRUE) %||% "")
   # «AULA YA APLICADA EN HSVG» -> «Aula ya aplicada»: el estudio se nombra una
   # vez, al final y junto a su fecha, no dos veces en la misma celda.
