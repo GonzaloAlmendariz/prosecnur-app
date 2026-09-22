@@ -217,3 +217,57 @@ test_that("la regla entra en el lote de formato, antes que las del estado", {
   expect_true(any(es_estado))
   expect_lt(max(which(es_gris)), min(which(es_estado)))
 })
+
+# --- las agendadas cuya hora no se puede usar --------------------------------
+
+test_that("una cita AGENDADA sin hora utilizable sale en la hoja, no desaparece", {
+  # Gonzalo, 2026-09-22, con la hoja del día delante: «lo de la 37 y la 39 me
+  # preocupa». CH 37 tenía «Hora por confirmar» tecleado y CH 39 la celda
+  # vacía, las dos agendadas para ESE martes. El motor las manda a
+  # `por_confirmar` y el publicador sólo escribía las asignaciones: la app las
+  # contaba y el aplicador no las veía, así que nadie iba a un aula que el
+  # docente ya había concedido.
+  plan <- list(
+    .apsa_fila("CH 1", fecha = "2026-09-22", hora = "9:00am"),
+    .apsa_fila("CH 37", sesiones = "MAR 14:00-17:00", venue = "A37",
+               fecha = "2026-09-22", hora = "Hora por confirmar"),
+    .apsa_fila("CH 39", sesiones = "MAR 09:00-12:00", venue = "A39",
+               fecha = "2026-09-22")
+  )
+  filas <- .apsa_filas(plan)
+  cods <- .apsa_codigos(filas)
+  expect_true(all(c("CH 37", "CH 39") %in% cods))
+
+  suya <- Filter(function(f) identical(.apsa_col(f, "CURSO-HORARIO"), "CH 37"), filas)[[1]]
+  # Están AGENDADAS: su estado es POR APLICAR, no una apuesta sin agendación.
+  expect_identical(.apsa_col(suya, "ESTADO"), "POR APLICAR")
+  # El aplicador va vacío porque el motor no puede repartir sin hora.
+  expect_identical(.apsa_col(suya, "APLICADOR"), "")
+  # Y la celda DICE que falta la hora, con la ventana de la clase de ese día
+  # para que el coordinador sepa entre qué horas cerrar con el docente.
+  expect_identical(.apsa_col(suya, "APLICA"), "14:00 a 17:00 (por confirmar)")
+  # Sin hora no hay recojo ni salida que calcular: vacías, no inventadas.
+  expect_identical(.apsa_col(suya, "EN OFICINA"), "")
+  expect_identical(.apsa_col(suya, "SALE AL AULA"), "")
+  # El aula y el docente sí se saben, y son lo que hace falta para ir.
+  expect_identical(.apsa_col(suya, "AULA"), "A37")
+})
+
+test_that("sin ventana de clase tampoco se inventa una: se dice que falta la hora", {
+  plan <- list(
+    .apsa_fila("CH 1", fecha = "2026-09-22", hora = "9:00am"),
+    .apsa_fila("CH 40", fecha = "2026-09-22", hora = "Hora por confirmar")
+  )
+  suya <- Filter(function(f) identical(.apsa_col(f, "CURSO-HORARIO"), "CH 40"), .apsa_filas(plan))[[1]]
+  expect_identical(.apsa_col(suya, "APLICA"), "Hora por confirmar")
+})
+
+test_that("se ordenan por la hora de su clase, no al final del día", {
+  # Una cita por confirmar de las 9 va antes que una cita pactada de la 1: el
+  # coordinador lee el día en orden y decide a quién mandar.
+  plan <- list(
+    .apsa_fila("CH 1", fecha = "2026-09-22", hora = "1:00pm"),
+    .apsa_fila("CH 39", sesiones = "MAR 09:00-12:00", fecha = "2026-09-22")
+  )
+  expect_identical(.apsa_codigos(.apsa_filas(plan)), c("CH 39", "CH 1"))
+})
