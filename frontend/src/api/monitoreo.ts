@@ -2011,6 +2011,26 @@ export type MonitoreoAulasDashboard = {
       poblacion?: number | null;
     }>;
     sin_cruce?: Array<{ motivo: string; etiqueta: string; respuestas: number }>;
+    /**
+     * **Una fila por alumno**, la más reciente primero. El agregado contesta
+     * «cuántos»; esto contesta «quién, cuándo y desde qué curso-horario», que
+     * es con lo que se comprueba una respuesta concreta.
+     */
+    alumnos?: Array<{
+      codigo: string;
+      carrera: string;
+      nivel: string;
+      sexo: string;
+      fecha: string;
+      hora: string;
+      curso_horario: string;
+      estado: "identificado" | "repetida" | "sin_identificar" | string;
+      motivo?: string;
+      motivo_etiqueta?: string;
+    }>;
+    /** Cuántas filas de detalle se publican como máximo, y si recortó. */
+    tope?: number;
+    truncado?: boolean;
   };
   respuestas_desglose?: {
 	    total: MonitoreoAulasRespuestasCuenta & {

@@ -37,6 +37,19 @@ export type FilaDeCarrera = {
 
 export type MotivoSinCruce = { motivo: string; etiqueta: string; respuestas: number };
 
+export type FilaDeAlumno = {
+  codigo: string;
+  carrera: string;
+  nivel: string;
+  sexo: string;
+  fecha: string;
+  hora: string;
+  curso_horario: string;
+  estado: string;
+  motivo?: string;
+  motivo_etiqueta?: string;
+};
+
 export type BloqueDeCruce = {
   total: {
     consideradas: number;
@@ -47,6 +60,21 @@ export type BloqueDeCruce = {
   };
   carreras: FilaDeCarrera[];
   sin_cruce: MotivoSinCruce[];
+  alumnos?: FilaDeAlumno[];
+  tope?: number;
+  truncado?: boolean;
+};
+
+/**
+ * El estado de una fila, con su palabra. Tres y no dos: una repetida CRUZÓ
+ * —su persona existe— y no cuenta, que es distinto de no haberse podido
+ * identificar. Meterlas en la misma bolsa mandaría a revisar el código de quien
+ * lo escribió bien.
+ */
+const ESTADOS: Record<string, { texto: string; tono: string }> = {
+  identificado: { texto: "Identificado", tono: "ok" },
+  repetida: { texto: "Ya había respondido", tono: "aviso" },
+  sin_identificar: { texto: "Sin identificar", tono: "falla" },
 };
 
 const numero = (v: unknown) => {
@@ -71,6 +99,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
 
   const carreras = bloque?.carreras ?? [];
   const motivos = bloque?.sin_cruce ?? [];
+  const alumnos = bloque?.alumnos ?? [];
   const techo = Math.max(...carreras.map((c) => numero(c.personas)), 1);
   const tasa = total.tasa == null ? null : Math.round(numero(total.tasa) * 1000) / 10;
 
@@ -147,6 +176,62 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
           Ninguna respuesta ha cruzado todavía: abajo está por qué.
         </p>
       )}
+
+      {/* **Una fila por alumno, con hora y curso-horario.** Gonzalo, comparando
+          con la tabla de casos de plataforma de acreditación —actor/caso,
+          estado, fecha y hora, canal, cruce—: el agregado de arriba contesta
+          «cuántos» y esto contesta «quién, cuándo y desde dónde», que es con lo
+          que se va a comprobar una respuesta concreta. */}
+      {alumnos.length ? (
+        <div className="aulas-cxc-detalle">
+          <div className="aulas-cxc-detalle-head">
+            <span className="aulas-cxc-sincruce-rotulo">Quién respondió, uno por uno</span>
+            <span className="aulas-cxc-pie">
+              la más reciente primero
+              {/* El recorte se dice: en silencio haría creer que el operativo
+                  tiene las filas que se ven. */}
+              {bloque?.truncado
+                ? ` · se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
+                : null}
+            </span>
+          </div>
+          <ul className="aulas-cxc-alumnos" role="table" aria-label="Alumnos que respondieron, uno por uno">
+            <li role="row" className="aulas-cxc-cab">
+              <span role="columnheader">Código</span>
+              <span role="columnheader">Carrera y nivel</span>
+              <span role="columnheader">Fecha y hora</span>
+              <span role="columnheader">Curso-horario</span>
+              <span role="columnheader">Cruce</span>
+            </li>
+            {alumnos.map((a, i) => {
+              const estado = ESTADOS[a.estado] ?? { texto: a.estado, tono: "neutro" };
+              return (
+                <li key={`${a.codigo}-${a.fecha}-${a.hora}-${i}`} role="row">
+                  <span role="cell" className="aulas-cxc-codigo">{a.codigo || "—"}</span>
+                  <span role="cell" className="aulas-cxc-quien">
+                    {a.carrera ? <span className={claseDeFacultad(a.carrera)}>{a.carrera}</span> : null}
+                    {a.nivel ? <em className="aulas-cxc-nivel">nivel {a.nivel}</em> : null}
+                  </span>
+                  {/* Sin marca de tiempo, un guion: la fila sigue diciendo quién
+                      y de qué carrera, y lo que falta es la hora. */}
+                  <span role="cell" className="aulas-cxc-cuando">
+                    {a.fecha ? `${a.fecha} · ${a.hora || "--:--"}` : "—"}
+                  </span>
+                  <span role="cell" className="aulas-cxc-ch">{a.curso_horario || "—"}</span>
+                  <span role="cell">
+                    <span className="aulas-cxc-pill" data-tono={estado.tono}>{estado.texto}</span>
+                    {/* El motivo va pegado a SU fila: en la lista de arriba se
+                        sabe cuántas, aquí cuál. */}
+                    {a.motivo_etiqueta ? (
+                      <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
       {motivos.length ? (
         <div className="aulas-cxc-sincruce">

@@ -118,3 +118,77 @@ describe("la pestaña sólo existe en un estudio confidencial", () => {
     expect(avance.length).toBeGreaterThan(0);
   });
 });
+
+describe("el detalle: quién respondió, cuándo y desde dónde", () => {
+  /**
+   * Gonzalo, 2026-09-22: «esto debe ser más específico, ¿has revisado cómo lo
+   * hace acreditación? Es bastante específico con hora y todo». Su tabla de
+   * casos de plataforma publica actor/caso, estado, fecha y hora, canal y
+   * cruce, una fila por caso. El agregado contesta «cuántos»; esto contesta
+   * «quién, cuándo y desde qué curso-horario».
+   */
+  const conDetalle: BloqueDeCruce = {
+    ...BLOQUE,
+    alumnos: [
+      {
+        codigo: "20243380", carrera: "ECONOMÍA", nivel: "6", sexo: "M",
+        fecha: "2026-09-22", hora: "11:40", curso_horario: "CH 7",
+        estado: "identificado",
+      },
+      {
+        codigo: "20240596", carrera: "ECONOMÍA", nivel: "5", sexo: "F",
+        fecha: "2026-09-22", hora: "09:12", curso_horario: "CH 45",
+        estado: "repetida",
+      },
+      {
+        codigo: "", carrera: "", nivel: "", sexo: "",
+        fecha: "2026-09-22", hora: "08:00", curso_horario: "CH 45",
+        estado: "sin_identificar",
+        motivo: "sin_codigo_declarado", motivo_etiqueta: "No declararon su código",
+      },
+    ],
+  };
+
+  it("cada fila trae código, carrera, nivel, hora y curso-horario", () => {
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
+    expect(t).toContain("20243380");
+    expect(t).toContain("nivel 6");
+    expect(t).toContain("2026-09-22 · 11:40");
+    expect(t).toContain("CH 7");
+  });
+
+  it("tres estados con tres palabras: repetida no es sin identificar", () => {
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
+    expect(t).toContain("Identificado");
+    expect(t).toContain("Ya había respondido");
+    expect(t).toContain("Sin identificar");
+  });
+
+  it("el motivo va pegado a SU fila, no sólo al conteo de arriba", () => {
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
+    // Aparece dos veces: en el bloque de motivos y en la fila que lo sufre.
+    expect(t.match(/No declararon su código/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  });
+
+  it("sin marca de tiempo pone un guion y la fila sigue diciendo quién", () => {
+    const sinHora: BloqueDeCruce = {
+      ...conDetalle,
+      alumnos: [{ ...conDetalle.alumnos![0], fecha: "", hora: "" }],
+    };
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={sinHora} />));
+    expect(t).toContain("20243380");
+    expect(t).toContain("—");
+  });
+
+  it("el recorte se DICE: en silencio haría creer que son todas", () => {
+    const cortado: BloqueDeCruce = { ...conDetalle, truncado: true, tope: 3 };
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={cortado} />));
+    expect(t).toContain("se enseñan las 3 últimas de 72");
+  });
+
+  it("sin detalle el panel sigue entero: es un añadido, no un requisito", () => {
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={BLOQUE} />));
+    expect(t).toContain("62 alumnos distintos");
+    expect(t).not.toContain("uno por uno");
+  });
+});
