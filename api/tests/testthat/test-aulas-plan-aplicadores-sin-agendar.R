@@ -360,3 +360,26 @@ test_that("sin fecha, el traslape de docente no arrastra la coletilla", {
   tr <- .apsa_tr(c(`CH 26` = "DOCENTE YA CONTACTADO EN HSVG"))
   expect_identical(.alpa_traslape_nota(tr, "CH 26"), "Docente ya contactado · HSVG")
 })
+
+test_that("la columna sólo habla de lo CONSUMADO, no de lo que está en el plan del otro", {
+  # Gonzalo, 2026-09-22: «una columna de si su aula fue aplicada, SÓLO SI LO
+  # FUE». El veredicto tiene cuatro valores y dos son hipótesis sobre el
+  # futuro: dicen que esa aula también está en la muestra del otro estudio, no
+  # que allí haya pasado nada.
+  #
+  # Publicarlos llenaba la columna: 27 de 42 filas con aviso sobre el proyecto
+  # real, y un aviso que grita en dos de cada tres filas tapa la única que de
+  # verdad importa.
+  tr <- .apsa_tr(c(`CH 35` = "AULA YA APLICADA EN HSVG",
+                   `CH 26` = "DOCENTE YA CONTACTADO EN HSVG",
+                   `CH 42` = "AULA EN EL PLAN DE HSVG",
+                   `CH 38` = "DOCENTE EN EL PLAN DE HSVG"),
+                 fechas = c(`CH 35` = "17/09", `CH 26` = "09/09"))
+  expect_true(nzchar(.alpa_traslape_nota(tr, "CH 35")))
+  expect_true(nzchar(.alpa_traslape_nota(tr, "CH 26")))
+  expect_identical(.alpa_traslape_nota(tr, "CH 42"), "")
+  expect_identical(.alpa_traslape_nota(tr, "CH 38"), "")
+  # El «YA» es lo que los separa en el vocabulario del módulo, y se exige como
+  # palabra entera: «PLAYA» no es un veredicto consumado.
+  expect_identical(.alpa_traslape_nota(.apsa_tr(c(`CH 1` = "AULA DE PLAYA EN HSVG")), "CH 1"), "")
+})
