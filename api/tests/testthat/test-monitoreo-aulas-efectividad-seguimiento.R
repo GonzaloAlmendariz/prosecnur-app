@@ -66,6 +66,11 @@
   monitoreo_aulas_dashboard(cfg$plan, responses, cfg)
 }
 
+# Una cita que todavía no pasó. Fija en el calendario, se volvía VENCIDA al
+# llegar su día y el test dejaba de medir lo que decía: tres fallaron el
+# 2026-09-22 sin que el motor cambiara.
+.efs_futura <- function() format(Sys.Date() + 7)
+
 .efs_resp <- function(ids) data.frame(collectorID = ids, stringsAsFactors = FALSE)
 
 .efs_fila <- function(block, nombre) {
@@ -510,7 +515,7 @@ test_that("la fecha se lee del estado de muestra Y de la columna de fecha", {
     .efs_aula("A2", "Letras", eligible = 20, orden = 2, aplicada = FALSE,
               status = "agendada", op_status = "planificada"),
     .efs_aula("A3", "Letras", eligible = 20, orden = 3, aplicada = FALSE,
-              status = "sin_contactar", op_status = "planificada", fecha = "2026-09-14")
+              status = "sin_contactar", op_status = "planificada", fecha = .efs_futura())
   )
   d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras", cuota = 10))))
   f <- .efs_fila(d$efectividad_seguimiento, "Letras")
@@ -527,7 +532,7 @@ test_that("CONTACTAR no es agendar: sin fecha no entra en la proyección", {
   plan <- list(
     .efs_aula("A1", "Psico", eligible = 20, orden = 1, aplicada = TRUE),
     .efs_aula("A2", "Psico", eligible = 20, orden = 2, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-14"),
+              status = "agendada", op_status = "planificada", fecha = .efs_futura()),
     .efs_aula("A3", "Psico", eligible = 100, orden = 3, aplicada = FALSE,
               status = "en_contacto", op_status = "contactada")
   )
@@ -692,10 +697,10 @@ test_that("un curso-horario con respuestas ya NO es aforo pendiente, diga lo que
   plan <- list(
     .efs_aula("A1", "Derecho", eligible = 20, orden = 1, aplicada = TRUE),
     .efs_aula("A2", "Derecho", eligible = 20, orden = 2, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-20"),
+              status = "agendada", op_status = "planificada", fecha = .efs_futura()),
     # Ya trajo respuestas y su estado sigue sin teclearse: no es aforo futuro.
     .efs_aula("A3", "Derecho", eligible = 100, orden = 3, aplicada = FALSE,
-              status = "agendada", op_status = "planificada", fecha = "2026-09-20")
+              status = "agendada", op_status = "planificada", fecha = .efs_futura())
   )
   d <- .efs_dash(plan, .efs_resp(c(rep("A1", 10), rep("A3", 40))),
                  .efs_dt(list(.efs_fac("Derecho", cuota = 40))))
@@ -906,4 +911,78 @@ test_that("con el eje en la PERSONA no se inventan grupos que el plan no tiene",
   expect_identical(t$facultades_evaluadas, 0L)
   expect_identical(t$facultades_sin_cuota, 1L)
   expect_identical(t$facultades_en_riesgo_agendado, 0L)
+})
+
+# --- el numerador y el denominador son de la MISMA población ------------------
+#
+# Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: el diseño
+# mide niveles 6 a 9, el aula entera contesta, y las respuestas de nivel 5 y 10
+# entraban al numerador de τ mientras `eligible_n` sólo cuenta a los del diseño.
+# τ salía 75 % contra una prevista de 0,50, en el panel que decide reservas.
+
+.efs_persona <- function(codigos, collectors = rep("a1", length(codigos))) {
+  plan <- list(
+    list(classroom_id = "a1", operational_code = "CH 1", label = "a1",
+         faculty = "CIENCIAS SOCIALES", level = "7",
+         sample_role = "titular", wave = "M1", orden = 1,
+         eligible_n = 10, expected_valid = 5, sample_status = "agendada",
+         operational_status = "aplicada"),
+    list(classroom_id = "a2", operational_code = "CH 2", label = "a2",
+         faculty = "CIENCIAS SOCIALES", level = "5",
+         sample_role = "titular", wave = "M1", orden = 2,
+         eligible_n = 10, expected_valid = 5, sample_status = "agendada",
+         operational_status = "agendada")
+  )
+  dt <- list(
+    schema = "monitoreo_aulas_design_targets_v1", source = "calc-muestra",
+    tasa_esperada = 0.5, tasa_fuente = "tau_disenio", total_cuota = 20,
+    facultades = list(
+      list(facultad = "7", faculty_key = monitoreo_aulas_eje_key("7"), cuota = 10, tau = 0.5),
+      list(facultad = "8", faculty_key = monitoreo_aulas_eje_key("8"), cuota = 10, tau = 0.5)
+    ),
+    selection_run_id = "run_1", frame_hash = "hash_1"
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+    plan = plan, design_targets = dt, eje_cuota = "nivel",
+    source_mapping = list(collector_var = "collectorID", student_code_var = "codigo")
+  ))
+  padron <- list(
+    schema = "monitoreo_aulas_padron_v1", vigencia = "2026-09-07",
+    filas = list(
+      list(codigo = "20190001", nivel = 7L, carrera = "ECONOMÍA", sexo = "F"),
+      list(codigo = "20190002", nivel = 7L, carrera = "ECONOMÍA", sexo = "M"),
+      list(codigo = "20190003", nivel = 8L, carrera = "ECONOMÍA", sexo = "F"),
+      list(codigo = "20190501", nivel = 5L, carrera = "ECONOMÍA", sexo = "M"),
+      list(codigo = "20190502", nivel = 5L, carrera = "ECONOMÍA", sexo = "F")
+    )
+  )
+  resp <- data.frame(collectorID = collectors, codigo = codigos, stringsAsFactors = FALSE)
+  monitoreo_aulas_dashboard(cfg$plan, resp, cfg, padron = padron)
+}
+
+test_that("con el eje en la PERSONA, τ no cuenta arriba a quien no cuenta abajo", {
+  # Tres del diseño (niveles 7, 7 y 8) y dos de nivel 5, en un aula cuyos 10
+  # elegibles son sólo de niveles del diseño. τ = 3/10, no 5/10.
+  d <- .efs_persona(c("20190001", "20190002", "20190003", "20190501", "20190502"))
+  t <- d$efectividad_seguimiento$total
+  expect_identical(t$efectivas, 3L)
+  expect_identical(t$elegibles_aplicados, 10L)
+  expect_equal(t$tau_observado, 0.3)
+  # Y es la misma cuenta que suma a la cuota: la proyección no mezcla clases.
+  en_cuota <- sum(vapply(d$avance_cuota$facultades, function(f) {
+    if (is.finite(.monitoreo_num(f$cuota, NA_real_))) as.numeric(f$respuestas_validas) else 0
+  }, numeric(1)))
+  expect_identical(as.numeric(t$efectivas), en_cuota)
+})
+
+test_that("un aula donde sólo contestaron los de fuera del diseño ya está aplicada", {
+  # CH 2 figura agendada y sólo le llegan alumnos de nivel 5: no aporta a τ,
+  # pero se visitó, y su aforo no puede volver a la proyección como pendiente.
+  d <- .efs_persona(c("20190001", "20190501", "20190502"), collectors = c("a1", "a2", "a2"))
+  t <- d$efectividad_seguimiento$total
+  expect_identical(t$aulas_aplicadas, 2L)
+  expect_identical(t$elegibles_aplicados, 20L)
+  expect_identical(t$efectivas, 1L)
+  expect_equal(t$tau_observado, 0.05)
 })
