@@ -208,13 +208,6 @@ monitoreo_sheets_pestanas_controladas <- function() {
   # el techo de un año de campo; el operativo de aulas dura seis semanas.
   semanas_aplicadores <- vapply(seq_len(52L), .mads_hoja_de_semana, character(1))
 
-  # Y la hoja de las clases a las que se puede entrar sin cita (2026-09-21).
-  # UNA sola y sin semana: esas clases se dictan todas. El nombre se le pide a
-  # `.albpa_hoja()`, que es quien lo escribe en el publicador; teclearlo aquí
-  # dejaría la publicación estrellándose contra su propio validador en cuanto
-  # cambiara en un sitio —que es exactamente lo que pasó al estrenarla—.
-  semanas_por_agendar <- .albpa_hoja()
-
   # Red de seguridad: lo que los generadores declaran HOY. Con el estado actual
   # no agrega ningún nombre (los bloques de arriba ya los cubren), pero si un
   # generador gana una pestaña mañana, entra aquí sola en vez de reventar la
@@ -228,6 +221,5 @@ monitoreo_sheets_pestanas_controladas <- function() {
     }), use.names = FALSE)
   }), use.names = FALSE)
 
-  unique(c(heredadas, ejecutivo_aulas, libro_aulas, semanas_aplicadores,
-           semanas_por_agendar, declaradas))
+  unique(c(heredadas, ejecutivo_aulas, libro_aulas, semanas_aplicadores, declaradas))
 }

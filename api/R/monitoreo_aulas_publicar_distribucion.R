@@ -133,11 +133,6 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
 
   tabs <- list()
   respetadas <- list()
-  # Las hojas hermanas «por agendar» se cuentan aparte de las de distribución.
-  # Publicarlas no es sembrar una semana, y confundirlas apagaría la guarda de
-  # más abajo: con todas las semanas con dueño, `tabs` dejaría de estar vacío y
-  # el «republico y ya» encima del trabajo del coordinador pasaría en silencio.
-  hermanas <- character(0)
   # Sin semanas legibles —un plan sin fechas, o fechas rotas— se publica como
   # siempre, en la hoja de toda la vida: el documento no se queda sin publicar
   # por no saber numerar sus semanas.
@@ -169,23 +164,13 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
     }
   }
 
-  # **La hoja de las clases por agendar: UNA sola, sin semana.**
-  #
-  # Gonzalo, 2026-09-21: «no entiendo por qué sería semana 1 estos cursos por
-  # agendar si son aulas que pasan todas las semanas». Van por día de semana y
-  # no por fecha, así que no cuelgan de ninguna pestaña semanal.
-  #
-  # Se escribe SIEMPRE, aunque todas las semanas tengan dueño: su valor entero
-  # es estar al día —una clase desaparece en cuanto alguien la agenda— y es
-  # justo mientras el coordinador reparte cuando más sirve saber a qué más se
-  # puede entrar. No apaga la guarda de abajo: ésa cuenta sólo las pestañas de
-  # distribución.
-  por_agendar <- tryCatch(aulas_libro_filas_por_agendar(plan %||% list()),
-                          error = function(e) NULL)
-  if (length(por_agendar) > 2L) {
-    hermanas <- .albpa_hoja()
-    tabs[[hermanas]] <- por_agendar
-  }
+  # La hoja «Clases por agendar» DEJÓ DE EXISTIR el 2026-09-21. Gonzalo, viendo
+  # la primera versión: «en vez de tener dos hojas separadas […] podemos poner
+  # integrados todos los cursos-horario titulares no confirmados» en la hoja de
+  # la semana. Una hoja de referencia aparte es de sólo mirar; una fila en la
+  # hoja del reparto tiene su desplegable de aplicador y su chip de estado, y el
+  # coordinador la trabaja igual que las demás. Las emite
+  # `aulas_libro_filas_plan_aplicadores()`, con el resto.
 
   # Todas con dueño y ninguna que sembrar: es el caso de siempre —«republico y
   # ya» sobre el trabajo del coordinador— y sigue siendo un error, no un no-op
@@ -196,30 +181,15 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # porque las semanas están ocupadas castiga justo al coordinador que está
   # trabajando. Se escribe, se dice en el mensaje, y el 409 sigue saltando para
   # que nadie crea que su republicación tocó la distribución.
-  if (!length(setdiff(names(tabs), hermanas)) && length(respetadas)) {
+  if (!length(tabs) && length(respetadas)) {
     primera <- names(respetadas)[[1L]]
-    extra <- ""
-    if (length(hermanas)) {
-      solo_hermanas <- tabs[names(tabs) %in% hermanas]
-      hecho <- tryCatch({
-        .monitoreo_sync_sheets_publish_tabs(
-          id, solo_hermanas,
-          format_requests = function(sheet_id, tab_name, rows) {
-            aulas_libro_por_agendar_formato_requests(sheet_id, rows)
-          })
-        TRUE
-      }, error = function(e) FALSE)
-      if (isTRUE(hecho)) {
-        extra <- paste0(" Sí se actualizó «", hermanas[[1L]], "», que no tiene dueño.")
-      }
-    }
     stop_api(
       409, "E_AULAS_DISTRIBUCION_CON_DUENO",
       paste0(
         "La pestaña «", primera, "» ya tiene ", respetadas[[primera]],
         " citas escritas y el equipo edita ahí: publicar encima borraría sus ",
         "cambios. Adopta la distribución para que la app tome sus filas, y ",
-        "añade sólo las aulas agendadas que falten.", extra
+        "añade sólo las aulas agendadas que falten."
       ),
       details = list(hoja = primera, citas = respetadas[[primera]])
     )
@@ -235,17 +205,8 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   # nombre único; con una hoja por semana, comparar con «Plan del día» dejaría
   # la semana 2 sin desplegable de estado y sin colores por aplicador —la hoja
   # se vería como una tabla muerta y nadie podría reasignar desde ella—.
-  # Las hojas «por agendar» quedan FUERA de este formato: es el de la
-  # distribución —desplegable de estado, colores por aplicador— y en una tabla
-  # de referencia pondría un «POR APLICAR» donde no hay a quién asignar.
   formato <- function(sheet_id, tab_name, rows) {
     if (!(tab_name %in% names(tabs))) return(list())
-    # La hoja de referencia tiene su PROPIO formato: la misma banda de la casa,
-    # el aviso legible y los días en bloques. Salió sin nada la primera vez por
-    # quedar fuera del de la distribución y no tener el suyo.
-    if (tab_name %in% hermanas) {
-      return(aulas_libro_por_agendar_formato_requests(sheet_id, rows))
-    }
     aulas_libro_plan_aplicadores_formato_requests(
       sheet_id, rows, roster = as.list(roster[nzchar(roster)]))
   }
@@ -257,10 +218,7 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       hoja = hoja,
       accion = if (hoja %in% saltadas) "sin_cambios" else "actualizada",
       # Filas de DATOS: la cabecera no es un dato y contarla infla el recibo.
-      # La hoja hermana lleva DOS filas de encabezado —su aviso y su
-      # cabecera—, así que descontar una sola le sumaría una clase que no
-      # existe.
-      filas = max(0L, length(tabs[[hoja]]) - (if (hoja %in% hermanas) 2L else 1L))
+      filas = max(0L, length(tabs[[hoja]]) - 1L)
     )
   })
   # Las que NO se escribieron viajan en el mismo recibo y con su motivo. Una
