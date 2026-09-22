@@ -331,3 +331,32 @@ test_that("cada fila de la hoja lleva su nota, sea cita, sin agendar o por confi
   expect_true(any(grepl("09/09", notas, fixed = TRUE)))
   expect_true(any(grepl("11/09", notas, fixed = TRUE)))
 })
+
+test_that("el traslape de DOCENTE no se lee como el de AULA: son cosas distintas", {
+  # Aviso de Gonzalo por la sesión de HSVG2026, 2026-09-22: «si a estos tres les
+  # pones "Aula ya aplicada", tu aplicador va a leer que ese salón ya fue
+  # encuestado y no lo es: son alumnos que nunca han visto nuestra encuesta».
+  #
+  # Traslape de AULA = mismo curso-horario = LOS MISMOS ALUMNOS ya respondieron.
+  # Traslape de DOCENTE = otro curso = otros alumnos; sólo se repite la persona
+  # a la que hay que pedir permiso. El primero es un riesgo de muestra, el
+  # segundo una cuestión de trato.
+  tr <- .apsa_tr(c(`CH 35` = "AULA YA APLICADA EN HSVG",
+                   `CH 26` = "DOCENTE YA CONTACTADO EN HSVG"),
+                 fechas = c(`CH 35` = "17/09", `CH 26` = "09/09"))
+  aula <- .alpa_traslape_nota(tr, "CH 35")
+  docente <- .alpa_traslape_nota(tr, "CH 26")
+  expect_identical(aula, "Aula ya aplicada · HSVG 17/09")
+  # La fecha del docente es el día en que el otro estudio estuvo con él en OTRO
+  # curso: sin decirlo, se lee como el día en que se aplicó ESTA aula.
+  expect_identical(docente, "Docente ya contactado · HSVG 09/09 (otro curso)")
+  expect_false(grepl("Aula ya aplicada", docente, fixed = TRUE))
+  expect_false(grepl("otro curso", aula, fixed = TRUE))
+})
+
+test_that("sin fecha, el traslape de docente no arrastra la coletilla", {
+  # «(otro curso)» aclara de qué es la FECHA. Sin fecha no hay nada que aclarar
+  # y sólo alargaría la celda.
+  tr <- .apsa_tr(c(`CH 26` = "DOCENTE YA CONTACTADO EN HSVG"))
+  expect_identical(.alpa_traslape_nota(tr, "CH 26"), "Docente ya contactado · HSVG")
+})
