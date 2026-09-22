@@ -820,3 +820,74 @@ test_that("sin nada fuera del rango el recibo no inventa el aviso", {
     ventana = list(desde = "2026-09-14", hasta = "2026-09-20")))
   expect_false(grepl("fuera del rango", texto, fixed = TRUE))
 })
+
+# =============================================================================
+# La fila que declara no tener cita no puede haber perdido una
+# =============================================================================
+#
+# Gonzalo, 2026-09-22, sin entender el aviso y con razón: «en la distribución
+# también están las CH no confirmadas para que los aplicadores intenten agendar
+# sin cita». Esas filas existen PORQUE el aula no tiene acuerdo, así que
+# reportarlas como «ya no tienen su aula agendada ese día» es decirle que algo
+# que pidió a propósito es un problema.
+#
+# Medido ese día sobre la hoja del operativo: de 13 filas reportadas, CUATRO
+# eran de esta familia —CH 33, CH 42 y CH 3 marcadas REAGENDADA con su hora en
+# formato «(clase)», y CH 46 ya convertida a POR APLICAR SIN AGENDACIÓN—.
+#
+# Es la otra mitad del arreglo del 10/09, que añadió «APLICADA SIN AGENDACIÓN»
+# a los aplicados con este mismo razonamiento y dejó fuera «POR APLICAR SIN
+# AGENDACIÓN» por no haber rendido todavía: «¿ya rindió?» y «¿perdió su cita?»
+# son dos preguntas, y para la segunda da igual.
+
+test_that("las filas que declaran no tener cita no se reportan como desalineadas", {
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 1", estado = "POR APLICAR SIN AGENDACIÓN"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 2", estado = "REAGENDADA"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 10:30",
+               "CH 3", estado = "RECHAZADA")
+  )
+  # Las tres aulas perdieron su agenda: es justo el caso que dispararía el aviso.
+  plan <- list(
+    .madm_aula("CH 1", "", "", estado = "en_contacto"),
+    .madm_aula("CH 2", "", "", estado = "en_contacto"),
+    .madm_aula("CH 3", "", "", estado = "rechazada")
+  )
+  expect_length(
+    monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12"),
+    0L)
+})
+
+test_that("el control: las MISMAS filas con POR APLICAR si salen", {
+  # Lo que prueba que el silencio de arriba lo produce el estado de la fila y no
+  # la ventana ni el plan.
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 1", estado = "POR APLICAR"),
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "10:00 a 13:00 (clase)",
+               "CH 2", estado = "POR APLICAR")
+  )
+  plan <- list(
+    .madm_aula("CH 1", "", "", estado = "en_contacto"),
+    .madm_aula("CH 2", "", "", estado = "en_contacto")
+  )
+  out <- monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12")
+  expect_length(out, 2L)
+  expect_true(all(vapply(out, function(x) identical(x$motivo, "ya_no_agendada"), logical(1))))
+})
+
+test_that("tampoco se reportan como MOVIDAS: no tenian fecha que mover", {
+  # `aula_movida` es la otra rama del mismo chequeo y tenía el mismo agujero:
+  # CH 46 salió así el 22/09 estando ya convertida a «POR APLICAR SIN
+  # AGENDACIÓN».
+  hoja <- .madm_hoja(
+    .madm_fila("Ana Prueba", "Lunes", "07/09", "09:30", "09:45", "08:00 a 10:00 (clase)",
+               "CH 1", estado = "POR APLICAR SIN AGENDACIÓN")
+  )
+  plan <- list(.madm_aula("CH 1", "2026-09-10", "10:00", estado = "agendada"))
+  expect_length(
+    monitoreo_aulas_citas_sin_agenda(plan, hoja, desde = "2026-09-07", hasta = "2026-09-12"),
+    0L)
+})
