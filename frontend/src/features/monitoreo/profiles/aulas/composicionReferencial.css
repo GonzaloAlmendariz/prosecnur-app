@@ -5,11 +5,11 @@
 
 /* La leyenda: los dos repartos, dichos antes de dibujarlos. Sin semáforo — no
  * hay «bien» ni «mal» aquí, y un tono de alarma lo inventaría. */
-.aulas-comp-leyenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 12px; font-size: var(--aulas-min); color: var(--pulso-text-soft); }
-.aulas-comp-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+/* Sobre cuánta gente está medido todo esto, y nada más: los dos rótulos con su
+   muestra de color se fueron con las barras superpuestas —cada barra lleva
+   ahora el suyo pegado a la izquierda, y el color es de la categoría—. */
+.aulas-comp-leyenda { margin: 0 0 12px; font-size: var(--aulas-min); color: var(--pulso-text-faint); }
 .aulas-comp-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-.aulas-comp-swatch.es-poblacion { background: color-mix(in srgb, var(--pulso-text) 16%, transparent); }
-.aulas-comp-swatch.es-obtenidas { background: var(--pulso-module-monitoring); }
 
 .aulas-comp-dimensiones { display: grid; gap: 18px; }
 .aulas-comp-dimension { display: grid; gap: 8px; }
@@ -40,8 +40,10 @@
   display: flex;
   height: 22px;
   border-radius: 4px;
-  overflow: hidden;
   background: var(--pulso-surface-2);
+  /* **Sin `overflow: hidden`**, que recortaba el globo del hover contra el
+     borde de la barra. Las esquinas las redondean el primer y el último
+     segmento, que es lo que el recorte hacía. */
 }
 
 .aulas-comp-pila-vacia {
@@ -66,6 +68,49 @@
 }
 
 .aulas-comp-seg:last-child { box-shadow: none; }
+.aulas-comp-seg:first-child { border-radius: 4px 0 0 4px; }
+.aulas-comp-seg:last-child { border-radius: 0 4px 4px 0; }
+.aulas-comp-seg:only-child { border-radius: 4px; }
+
+/* **El globo del hover, que es donde viven ahora las cifras.** El `title` del
+   navegador tarda un segundo largo, sale donde el sistema quiere y no se puede
+   estilar; con seis segmentos por barra eso es la diferencia entre poder leer
+   el reparto y no poder. Sale también con el teclado: un dato que sólo existe
+   bajo el ratón no existe para quien no lo usa. */
+.aulas-comp-seg { position: relative; cursor: default; outline: none; }
+
+.aulas-comp-seg::after {
+  content: attr(data-info);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--pulso-text);
+  color: var(--pulso-surface);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.aulas-comp-seg:hover::after,
+.aulas-comp-seg:focus-visible::after { opacity: 1; }
+
+/* El segmento se aclara al pasar por encima: dice cuál está leyendo el globo
+   cuando hay seis pegados y el globo va centrado sobre uno estrecho. */
+.aulas-comp-seg:hover,
+.aulas-comp-seg:focus-visible { filter: brightness(1.12); }
+
+/* Los de los extremos empujan su globo hacia dentro: centrado sobre el primer
+   segmento se sale por la izquierda del panel. */
+.aulas-comp-seg:first-child::after { left: 0; transform: none; }
+.aulas-comp-seg:last-child::after { left: auto; right: 0; transform: none; }
 
 /* Lo que falta para el 100 %: categorías que el bloque no lista, o gente sin
    ese dato. Va sin nombre y en el gris del carril porque no es una categoría
@@ -90,27 +135,49 @@
   overflow: hidden;
 }
 
-.aulas-comp-leyenda-cats { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+/* **La leyenda es el pie de la barra, no una tabla.** En rejilla vertical eran
+   seis renglones de cuatro columnas debajo del gráfico, compitiendo con él. En
+   línea y centrada se lee de un vistazo y cada item se lleva sus dos cifras
+   juntas, así que ninguna columna tiene que cuadrar con la de al lado. */
+.aulas-comp-leyenda-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
 
 .aulas-comp-leyenda-cats > li {
-  display: grid;
-  grid-template-columns: 10px minmax(6rem, 14rem) 6.5rem minmax(0, 1fr);
+  display: inline-flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
   color: var(--pulso-text-faint);
+  /* La muestra de color se alinea con el texto y no con su línea base, que la
+     deja flotando medio píxel alta en cada item. */
+  line-height: 1.5;
 }
 
-.aulas-comp-leyenda-cats b {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
+.aulas-comp-leyenda-cats .aulas-comp-swatch { align-self: center; }
 
 .aulas-comp-leyenda-cats .aulas-comp-nombre { color: var(--pulso-text-soft); }
-.aulas-comp-pobl { font-variant-numeric: tabular-nums; }
+
+/* **El cero, dicho sin número.** La categoría que no tiene ni una recogida no
+   dibuja segmento, así que sin esto desaparecería del panel: se marca con el
+   color hueco y dos palabras. Un «0» suelto en una leyenda sin números se
+   leería como un error de la pantalla. */
+.aulas-comp-leyenda-cats > li[data-cero] .aulas-comp-nombre { color: var(--pulso-text-faint); }
+.aulas-comp-leyenda-cats > li[data-cero] .aulas-comp-swatch {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--comp-tono, var(--pulso-border));
+}
+.aulas-comp-leyenda-cats > li > em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
 
 /* La paleta del perfil, la misma de los pabellones y de los chips de aula: el
    tono sale del nombre, así que una carrera conserva su color entre pantallas. */

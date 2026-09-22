@@ -87,10 +87,17 @@ export function AulasComposicionReferencial({ avanceCuota }: {
           ya dice «no como cuota»: tres veces lo mismo en cuatro centímetros.
           Viaja en el payload para quien lo consuma —el PDF, el libro— y aquí el
           encabezado del panel hace su trabajo (C1). */}
+      {/* **Los dos cuadraditos se fueron con las barras superpuestas.** Eran
+          el color de cada carril —ámbar lo recogido, gris la población— y
+          desde que la barra se colorea por CATEGORÍA no corresponden a nada:
+          dos muestras de color que no aparecen en ninguna barra. Y los dos
+          rótulos que acompañaban tampoco hacen falta, porque cada barra lleva
+          el suyo pegado a la izquierda.
+
+          Queda lo único que la pantalla no dice en otro sitio: sobre cuánta
+          gente está medido todo esto. */}
       <p className="aulas-comp-leyenda">
-        <span><i className="aulas-comp-swatch es-obtenidas" />Recogido hasta hoy</span>
-        <span><i className="aulas-comp-swatch es-poblacion" />Población del estudio</span>
-        <span>{fmt(vista.personas)} {vista.personas === 1 ? "persona" : "personas"} resueltas contra el padrón</span>
+        {fmt(vista.personas)} {vista.personas === 1 ? "persona" : "personas"} resueltas contra el padrón
       </p>
       <div className="aulas-comp-dimensiones">
         {vista.dimensiones.map((d) => (
@@ -147,7 +154,15 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                               key={f.categoria}
                               className={`aulas-comp-seg es-tono-${tonos.get(f.categoria) ?? 0}`}
                               style={{ width: `${pct}%` }}
-                              title={`${f.etiqueta}: ${pctPerfil(pct)} · ${fmt(cual === "obtenidas" ? f.obtenidas : f.poblacion)}`}
+                              // **El hover lleva la cifra, y por eso la leyenda
+                              // ya no la lleva.** El `title` del navegador
+                              // tarda un segundo largo, sale donde el sistema
+                              // quiere y no se puede estilar; `data-info` lo
+                              // pinta la hoja. `tabIndex` para que también
+                              // salga con el teclado: un dato que sólo existe
+                              // bajo el ratón no existe para quien no lo usa.
+                              tabIndex={0}
+                              data-info={`${f.etiqueta} · ${pctPerfil(pct)} · ${fmt(cual === "obtenidas" ? f.obtenidas : f.poblacion)}`}
                             >
                               {/* El rótulo dentro sólo donde cabe. Debajo de ~9 %
                                   se recorta a un guión ilegible, y la leyenda ya
@@ -158,7 +173,8 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                         })}
                         {resto > 0.5 ? (
                           <i className="aulas-comp-seg es-resto" style={{ width: `${resto}%` }}
-                            title={`Otras categorías o sin dato: ${pctPerfil(resto)}`} />
+                            tabIndex={0}
+                            data-info={`Otras categorías o sin dato · ${pctPerfil(resto)}`} />
                         ) : null}
                       </>
                     )}
@@ -180,22 +196,35 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                       {pila("poblacion")}
                     </div>
                   </div>
-                  {/* La leyenda lleva las dos cifras de cada categoría: el
-                      segmento dice la forma y aquí está el número. Sin ella, una
-                      carrera en cero desaparecería de la barra y del panel. */}
+                  {/* **La leyenda, centrada y en línea.** Gonzalo: «creo que la
+                      leyenda puede estar centrada y verse más elegante».
+
+                      En rejilla vertical eran seis renglones de cuatro columnas
+                      —una tabla pequeña debajo de un gráfico, compitiendo con
+                      él—. En línea y centrada se lee como lo que es: el pie de
+                      la barra. Cada item se lleva sus dos cifras juntas, así
+                      que ninguna columna tiene que cuadrar con la de al lado.
+
+                      Y sigue llevando las dos cifras de cada categoría porque
+                      sin ellas una carrera en cero desaparecería de la barra y
+                      del panel. */}
                   <ul className="aulas-comp-leyenda-cats">
                     {d.filas.map((f) => (
-                      <li key={f.categoria}>
+                      // **Sin cifras: las lleva el hover de la barra.** Una
+                      // leyenda con números es una tabla pequeña debajo del
+                      // gráfico, y entonces el gráfico sobra. Aquí sólo dice
+                      // qué color es quién.
+                      //
+                      // **Salvo el cero, que se marca.** Que Antropología tenga
+                      // 0 recogidas y 23 en la población ES el dato, y sin su
+                      // segmento en la barra dejaría de verse en ninguna parte.
+                      // Se dice con el tono y el color hueco, no con un «0»:
+                      // un número suelto en una leyenda sin números se lee como
+                      // un error de la pantalla.
+                      <li key={f.categoria} data-cero={f.obtenidas ? undefined : "si"}>
                         <i className={`aulas-comp-swatch es-tono-${tonos.get(f.categoria) ?? 0}`} />
                         <span className="aulas-comp-nombre">{f.etiqueta}</span>
-                        <b>
-                          {f.obtenidasPct == null ? "S/D" : pctPerfil(f.obtenidasPct)}
-                          {" · "}{fmt(f.obtenidas)}
-                        </b>
-                        <span className="aulas-comp-pobl">
-                          {f.poblacionPct == null ? "S/D" : pctPerfil(f.poblacionPct)}
-                          {" de la población"}
-                        </span>
+                        {f.obtenidas ? null : <em>sin ninguna</em>}
                       </li>
                     ))}
                   </ul>
