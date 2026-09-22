@@ -152,3 +152,54 @@ test_that("un classroom_id que coincide con el operational_code de OTRA unidad n
   d <- monitoreo_aulas_respuestas_desglose(plan, responses = resp, cfg = cfg)
   expect_identical(d$facultades[[1]]$facultad, "PRIMERA")
 })
+
+# =============================================================================
+# La nota del panel se lee en el marco de las EFECTIVAS
+# =============================================================================
+#
+# `sin_aula` cuenta sobre las observadas, y la nota de la pantalla explica por
+# qué sumar las facultades no llega al total — total que ese panel enseña en
+# EFECTIVAS. Mientras nada se descarta las dos cuentas coinciden y la diferencia
+# no se ve.
+#
+# Se vio el 2026-09-22 al declarar `descartes` para los QR de «CAPACITACION» y
+# «PRUEBA» de CCSS Perfil 2026-II: la cabecera pasó a «21 efectivas de 29
+# respuestas», la única facultad a 10, y la nota seguía diciendo «19 … cuentan
+# en el total» con 8 de esas 19 recién salidas de él.
+
+test_that("sin_aula_efectivas cuadra la resta que la nota explica", {
+  d <- data.frame(x = 1:5, stringsAsFactors = FALSE)
+  local_mocked_bindings(
+    # Dos descartadas (no válidas), tres válidas.
+    .monitoreo_aulas_valid_response = function(...) c(TRUE, TRUE, TRUE, FALSE, FALSE),
+    .monitoreo_aulas_descartada = function(...) c(FALSE, FALSE, FALSE, TRUE, TRUE),
+    # De las cinco, sólo la primera tiene aula: las otras cuatro no.
+    .monitoreo_aulas_response_classroom = function(...) c("CH 1", "", "", "", ""),
+    .package = "prosecnurapp"
+  )
+  out <- monitoreo_aulas_respuestas_desglose(.mard_plan(), d, .mard_cfg())
+  # Las dos cuentas se publican, cada una cierta en su marco.
+  expect_identical(out$total$sin_aula, 4L)
+  expect_identical(out$total$sin_aula_efectivas, 2L)
+  # Y ésta es la que cuadra: efectivas del total menos efectivas de las
+  # facultades. Sin ella la nota afirma que cuentan en un total del que salieron.
+  efectivas_fac <- sum(vapply(out$facultades, function(f) f$efectivas, integer(1)))
+  expect_identical(out$total$efectivas - efectivas_fac, out$total$sin_aula_efectivas)
+})
+
+test_that("sin descartes las dos cuentas coinciden: nada se mueve para quien no descarta", {
+  d <- data.frame(x = 1:3, stringsAsFactors = FALSE)
+  local_mocked_bindings(
+    .monitoreo_aulas_valid_response = function(...) c(TRUE, TRUE, TRUE),
+    .monitoreo_aulas_descartada = function(...) c(FALSE, FALSE, FALSE),
+    .monitoreo_aulas_response_classroom = function(...) c("CH 1", "", ""),
+    .package = "prosecnurapp"
+  )
+  out <- monitoreo_aulas_respuestas_desglose(.mard_plan(), d, .mard_cfg())
+  expect_identical(out$total$sin_aula, out$total$sin_aula_efectivas)
+})
+
+test_that("sin respuestas la forma entera trae tambien el cero declarado", {
+  vacio <- monitoreo_aulas_respuestas_desglose(.mard_plan(), NULL, .mard_cfg())
+  expect_identical(vacio$total$sin_aula_efectivas, 0L)
+})

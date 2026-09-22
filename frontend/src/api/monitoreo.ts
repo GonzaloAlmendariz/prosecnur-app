@@ -1933,8 +1933,31 @@ export type MonitoreoAulasDashboard = {
    */
   reserva_de_la_cadena?: Record<string, { disponibles: number; siguiente: string }>;
   respuestas_desglose?: {
-	    total: MonitoreoAulasRespuestasCuenta & { sin_aula: number };
+	    total: MonitoreoAulasRespuestasCuenta & {
+	      sin_aula: number;
+	      /**
+	       * La misma cuenta sobre las EFECTIVAS. Es la que hace cuadrar la nota
+	       * del panel —cuyo total son las efectivas— en cuanto el estudio
+	       * declara `descartes`: sin ella decía «N cuentan en el total» con
+	       * parte de esas N ya fuera de él. Ausente en payloads anteriores.
+	       */
+	      sin_aula_efectivas?: number;
+	    };
 	    facultades: Array<MonitoreoAulasRespuestasCuenta & { facultad: string }>;
+	    /**
+	     * De qué son estas filas. El campo `facultad` conserva su nombre
+	     —contrato congelado— y su VALOR puede ser una carrera: un estudio que
+	     * vive dentro de una facultad agrupa este bloque por carrera, porque por
+	     * facultad es una tabla de una fila. Ausente en payloads anteriores.
+	     */
+	    agrupacion?: {
+	      clave: string;
+	      columna: string;
+	      etiqueta: string;
+	      etiqueta_plural: string;
+	      etiqueta_sin: string;
+	      motivo_degradacion: string;
+	    };
 	  };
 	  /**
 	   * Para cada celda de cuota en déficit, a qué aula del banco ir. Grano

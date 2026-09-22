@@ -65,7 +65,9 @@ monitoreo_aulas_proyeccion_payload <- function(plan, responses = NULL, partes = 
 #' @param responses respuestas, para saber cuáles se aplicaron.
 #' @param partes partes de campo, el otro eje de aplicación.
 #' @param cfg config de aulas.
-#' @return lista de `{facultad, planificadas, aplicadas}`.
+#' @return lista de `{facultad, planificadas, aplicadas}`. El campo conserva su
+#'   nombre —contrato congelado, ADR 0079— y su VALOR lo declara
+#'   [monitoreo_aulas_agrupacion()]: puede ser una carrera.
 #' @export
 monitoreo_aulas_aulas_por_facultad <- function(plan, responses = NULL, partes = list(),
                                                cfg = list()) {
@@ -73,7 +75,12 @@ monitoreo_aulas_aulas_por_facultad <- function(plan, responses = NULL, partes = 
   if (!length(plan)) return(list())
   txt <- function(x) trimws(as.character(x %||% ""))
   u <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else plan
-  fac <- vapply(u, function(x) txt(x[["faculty"]]), character(1))
+  # **La columna la dice la agrupación declarada**, no la constante. Un estudio
+  # que vive dentro de UNA facultad recibe aquí una tabla de una fila, y por
+  # carrera la misma tabla dice dónde está el trabajo. Sin declaración,
+  # `faculty`: idéntico a lo de siempre. Ver `monitoreo_aulas_agrupacion.R`.
+  columna <- .monitoreo_scalar(monitoreo_aulas_agrupacion(cfg)$columna, "faculty")
+  fac <- vapply(u, function(x) txt(x[[columna]]), character(1))
   rol <- vapply(u, function(x) tolower(txt(x[["sample_role"]])), character(1))
   ef <- tryCatch(monitoreo_aulas_efectivas_por_aula(plan, responses, cfg),
                  error = function(e) NULL)

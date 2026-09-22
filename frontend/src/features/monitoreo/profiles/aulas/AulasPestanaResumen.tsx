@@ -207,6 +207,9 @@ export function AulasPestanaResumen({
       : sumarDiasDeCampo(pron.ultimaFecha, pron.diasQueFaltan ?? 0));
 
   const desglose = dashboard.respuestas_desglose;
+  // La palabra con la que este bloque se nombra a sí mismo. Sin
+  // declaración —todo lo vigente— es «Facultad» y nada cambia.
+  const grupoSingular = (desglose?.agrupacion?.etiqueta ?? "").trim() || "Facultad";
   // Qué cuenta enseña el bloque: la del conjunto o la de la facultad en foco.
   // El foco es el del perfil —el mismo que ya gobierna «A quién hay que
   // agendar»—, no un selector propio del bloque.
@@ -317,12 +320,21 @@ export function AulasPestanaResumen({
                 data-qa-geometry-contract="intrinsic"
               >
                 <div className="mon-profile-panel-head">
-                  <h3>Por facultad</h3>
+                  {/* **El rótulo sale de la declaración del bloque.** El motor
+                      agrupa por lo que el estudio declara —facultad por
+                      defecto, carrera en un estudio que vive dentro de UNA
+                      facultad— y el campo sigue llamándose `facultad` por
+                      contrato. Un título cableado diría «Por facultad» encima de
+                      una columna de carreras. */}
+                  <h3>Por {grupoSingular.toLocaleLowerCase("es")}</h3>
                   {/* «Avance de los cursos-horario» describía la barra cuando la
                       barra dibujaba aplicadas sobre planificadas; desde
                       `94e378c0` la barra reparte las efectivas y ese avance vive
                       en las dos columnas de cifras. El rótulo dice lo que hay. */}
-                  <span>efectivas y cursos-horario aplicados de cada facultad · ordenadas por efectivas</span>
+                  <span>
+                    efectivas y cursos-horario aplicados de cada{" "}
+                    {grupoSingular.toLocaleLowerCase("es")} · ordenadas por efectivas
+                  </span>
                 </div>
                 <AulasResumenPorFacultad
                   respuestas={desglose.facultades}
