@@ -54,7 +54,8 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
                                                   disponibilidad = NULL,
                                                   config_reparto = list(),
                                                   partes = list(),
-                                                  efectivas = NULL) {
+                                                  efectivas = NULL,
+                                                  traslape = NULL) {
   id <- .monitoreo_extract_spreadsheet_id(spreadsheet_id)
   if (!nzchar(id)) {
     stop_api(
@@ -89,7 +90,8 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   filas <- aulas_libro_filas_plan_aplicadores(
     plan %||% list(), disponibilidad, cfg = config_reparto,
     partes = partes %||% list(), efectivas = efectivas,
-    estados_previos = aulas_distribucion_estados_publicados(remoto_previo)
+    estados_previos = aulas_distribucion_estados_publicados(remoto_previo),
+    traslape = traslape
   )
   if (is.null(filas)) {
     stop_api(
@@ -153,7 +155,8 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
       filas_semana <- aulas_libro_filas_plan_aplicadores(
         plan %||% list(), disponibilidad, cfg = config_reparto, rep = trozo,
         partes = partes %||% list(), efectivas = efectivas,
-        estados_previos = aulas_distribucion_estados_publicados(remoto)
+        estados_previos = aulas_distribucion_estados_publicados(remoto),
+        traslape = traslape
       )
       if (is.null(filas_semana) || length(filas_semana) < 2L) next
       if (escritas > 0L) {

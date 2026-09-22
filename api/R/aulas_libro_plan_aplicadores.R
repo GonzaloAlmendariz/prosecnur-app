@@ -23,7 +23,16 @@
 #' @keywords internal
 .alpa_CABECERA <- c(
   "APLICADOR", "DÍA", "FECHA", "EN OFICINA", "SALE AL AULA", "APLICA",
-  "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE", "ESTADO"
+  "CURSO-HORARIO", "AULA", "FACULTAD", "CURSO", "DOCENTE", "ESTADO",
+  # **El traslape con el OTRO estudio, y sólo cuando lo hay.**
+  #
+  # Gonzalo, 2026-09-22: «agreguemos una columna de si su aula fue aplicada,
+  # sólo si lo fue, poner la fecha en que fue aplicada». Sale de
+  # `monitoreo_aulas_daa_traslape` —el veredicto del cruce, que el proyecto ya
+  # persiste con su `etiqueta` y su `leido_en`— y va LA ÚLTIMA a propósito:
+  # ESTADO conserva la columna 12, así que el chip de estado y el gris de las
+  # filas sin agendación siguen apuntando donde apuntaban.
+  "TRASLAPE"
 )
 
 #' Los SIETE estados de una cita en la hoja de los aplicadores.
@@ -268,6 +277,39 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   "POR APLICAR SIN AGENDACIÓN"
 }
 
+
+#' La nota de traslape de un curso-horario, o "" si no lo tiene.
+#'
+#' Del veredicto persistido («AULA YA APLICADA EN HSVG») saca la frase que el
+#' aplicador necesita leer de un vistazo: «Aula ya aplicada · HSVG 17/09». La
+#' fecha viene del atributo `fechas` —código → día del otro estudio— y es la
+#' única parte que puede faltar: sin ella se publica la advertencia sin fecha,
+#' que sigue sirviendo, en vez de callarla.
+#' @keywords internal
+.alpa_traslape_nota <- function(traslape, codigo) {
+  if (!length(traslape) || !nzchar(codigo)) return("")
+  # `[[` con un nombre ausente REVIENTA («subscript out of bounds»), no
+  # devuelve NULL — la misma trampa que `.alpa_dia_y_fecha` ya documenta más
+  # arriba. Se busca la posición y se lee por índice.
+  busca <- function(v, n) {
+    i <- match(n, names(v %||% character(0)))
+    if (is.na(i)) "" else .alpa_txt(v[[i]])
+  }
+  v <- busca(traslape, codigo)
+  if (!nzchar(v)) return("")
+  etiqueta <- .alpa_txt(attr(traslape, "etiqueta", exact = TRUE) %||% "")
+  # «AULA YA APLICADA EN HSVG» -> «Aula ya aplicada»: el estudio se nombra una
+  # vez, al final y junto a su fecha, no dos veces en la misma celda.
+  texto <- v
+  if (nzchar(etiqueta)) {
+    texto <- sub(paste0("[[:space:]]+EN[[:space:]]+", etiqueta, "$"), "", texto)
+  }
+  texto <- paste0(toupper(substr(texto, 1L, 1L)), tolower(substr(texto, 2L, nchar(texto))))
+  fecha <- busca(attr(traslape, "fechas", exact = TRUE), codigo)
+  cola <- paste(c(etiqueta, fecha)[nzchar(c(etiqueta, fecha))], collapse = " ")
+  if (nzchar(cola)) paste0(texto, " \u00b7 ", cola) else texto
+}
+
 #' Las filas de la hoja que ven los aplicadores.
 #'
 #' @param plan filas del plan.
@@ -279,7 +321,8 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
 #' @export
 aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL,
                                               partes = list(), efectivas = NULL,
-                                              estados_previos = character(0)) {
+                                              estados_previos = character(0),
+                                              traslape = NULL) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(NULL)
   cfg <- if (is.list(cfg)) cfg else list()
   # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
@@ -351,7 +394,8 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
         aulas_distribucion_estado_a_publicar(
           if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
           .alpa_estado_previo(estados_previos, cod, cuando$fecha)
-        )
+        ),
+        .alpa_traslape_nota(traslape, cod)
       ))
     }
   }
@@ -389,7 +433,8 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
         cod, m$aula, m$facultad, m$curso, m$docente,
         aulas_distribucion_estado_a_publicar(
           if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
-          .alpa_estado_previo(estados_previos, cod, cuando$fecha))
+          .alpa_estado_previo(estados_previos, cod, cuando$fecha)),
+        .alpa_traslape_nota(traslape, cod)
       ))
     }
   }
@@ -443,7 +488,8 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
             paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin), " (clase)"),
             cod, m$aula, m$facultad, m$curso, m$docente,
             aulas_distribucion_estado_a_publicar(
-              deducido, .alpa_estado_previo(estados_previos, cod, cuando$fecha))
+              deducido, .alpa_estado_previo(estados_previos, cod, cuando$fecha)),
+            .alpa_traslape_nota(traslape, cod)
           ))
         }
       }
@@ -754,7 +800,10 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
                  # media palabra. Gonzalo, 2026-09-10: «dale más ancho a la
                  # columna estado». Se le da el mismo que a APLICADOR, que es la
                  # otra columna que lleva un nombre entero.
-                 list(desde = 11L, hasta = 12L, px = 240L))) {
+                 list(desde = 11L, hasta = 12L, px = 240L),
+                 # TRASLAPE: cabe «Aula ya aplicada · HSVG 17/09» entera. Es una
+                 # advertencia y cortarla a media frase la volvería un adorno.
+                 list(desde = 12L, hasta = 13L, px = 230L))) {
     poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
   }
   requests

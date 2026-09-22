@@ -271,3 +271,63 @@ test_that("se ordenan por la hora de su clase, no al final del día", {
   )
   expect_identical(.apsa_codigos(.apsa_filas(plan)), c("CH 39", "CH 1"))
 })
+
+# --- la columna de traslape con el otro estudio ------------------------------
+
+.apsa_tr <- function(valores, fechas = character(0), etiqueta = "HSVG") {
+  t <- valores
+  attr(t, "etiqueta") <- etiqueta
+  attr(t, "rotulo") <- paste("TRASLAPE", etiqueta)
+  if (length(fechas)) attr(t, "fechas") <- fechas
+  t
+}
+
+test_that("la nota dice el veredicto, el estudio y su fecha, una sola vez cada uno", {
+  # Gonzalo, 2026-09-22: «agreguemos una columna de si su aula fue aplicada,
+  # sólo si lo fue, poner la fecha en que fue aplicada».
+  tr <- .apsa_tr(c(`CH 7` = "AULA YA APLICADA EN HSVG",
+                   `CH 1` = "DOCENTE YA CONTACTADO EN HSVG"),
+                 fechas = c(`CH 7` = "17/09"))
+  expect_identical(.alpa_traslape_nota(tr, "CH 7"), "Aula ya aplicada · HSVG 17/09")
+  # Sin fecha se publica igual: la advertencia sirve aunque no se sepa el día.
+  expect_identical(.alpa_traslape_nota(tr, "CH 1"), "Docente ya contactado · HSVG")
+  # El estudio se nombra UNA vez, al final y junto a su fecha: el veredicto
+  # crudo ya lo traía dentro («… EN HSVG») y repetirlo daba «Aula ya aplicada
+  # en HSVG · HSVG 17/09».
+  expect_false(grepl("HSVG.*HSVG", .alpa_traslape_nota(tr, "CH 7")))
+})
+
+test_that("sin traslape la celda va vacía: es una advertencia, no una columna que rellenar", {
+  tr <- .apsa_tr(c(`CH 7` = "AULA YA APLICADA EN HSVG"))
+  expect_identical(.alpa_traslape_nota(tr, "CH 9"), "")
+  expect_identical(.alpa_traslape_nota(NULL, "CH 7"), "")
+  expect_identical(.alpa_traslape_nota(character(0), "CH 7"), "")
+  # Un código ausente NO revienta: `[[` con un nombre que no está lanza
+  # «subscript out of bounds», y eso tumbaba la hoja entera.
+  expect_silent(.alpa_traslape_nota(tr, "CH 999"))
+})
+
+test_that("la columna va la ÚLTIMA y ESTADO conserva la suya", {
+  # El chip de estado y el gris de las filas sin agendación apuntan por índice:
+  # meter TRASLAPE en medio los habría desplazado en silencio.
+  expect_identical(which(.alpa_CABECERA == "ESTADO"), 12L)
+  expect_identical(which(.alpa_CABECERA == "TRASLAPE"), 13L)
+  expect_length(.alpa_CABECERA, 13L)
+})
+
+test_that("cada fila de la hoja lleva su nota, sea cita, sin agendar o por confirmar", {
+  tr <- .apsa_tr(c(`CH 7` = "AULA YA APLICADA EN HSVG", `CH 1` = "AULA YA APLICADA EN HSVG",
+                   `CH 39` = "AULA YA APLICADA EN HSVG"),
+                 fechas = c(`CH 7` = "17/09", `CH 1` = "09/09", `CH 39` = "11/09"))
+  plan <- list(
+    .apsa_fila("CH 1", fecha = "2026-09-22", hora = "9:00am"),
+    .apsa_fila("CH 7", sesiones = "MAR 08:00-10:00"),
+    .apsa_fila("CH 39", sesiones = "MAR 15:00-17:00", fecha = "2026-09-22")
+  )
+  filas <- aulas_libro_filas_plan_aplicadores(plan, .apsa_disp(), traslape = tr)[-1L]
+  notas <- vapply(filas, function(f) as.character(unlist(f))[[13]], character(1))
+  expect_true(all(nzchar(notas)))
+  expect_true(any(grepl("17/09", notas, fixed = TRUE)))
+  expect_true(any(grepl("09/09", notas, fixed = TRUE)))
+  expect_true(any(grepl("11/09", notas, fixed = TRUE)))
+})
