@@ -138,3 +138,65 @@ test_that("sin fechas legibles en el reparto no se inventa una semana", {
   plan <- list(.apsa_fila("CH 7", sesiones = "MAR 08:00-10:00"))
   expect_length(.apsa_filas(plan), 0L)
 })
+
+# --- el gris suave que las distingue -----------------------------------------
+
+test_that("las filas sin agendación se tiñen de DÍA a DOCENTE, y no el aplicador", {
+  # Gonzalo, 2026-09-21: «para diferenciar las por aplicar y sin agendación,
+  # todas las filas menos la del aplicador deben ser gris suave».
+  filas <- aulas_libro_filas_plan_aplicadores(.APSA_PLAN, .apsa_disp())
+  reqs <- .alpa_reglas_sin_agendar(77L, length(filas))
+  expect_gte(length(reqs), 1L)
+  for (r in reqs) {
+    rango <- r$addConditionalFormatRule$rule$ranges[[1]]
+    # DÍA es la 2.ª y DOCENTE la 11.ª: índices 1..11 (fin exclusivo).
+    expect_identical(rango$startColumnIndex, 1L)
+    expect_identical(rango$endColumnIndex, 11L)
+    # El APLICADOR (índice 0) queda fuera: lo pidió él, y lleva el color de
+    # cada persona.
+    expect_gt(rango$startColumnIndex, 0L)
+    # Y el ESTADO (índice 11) también: su chip es el que nombra por qué la fila
+    # está gris, y teñirlo taparía la explicación de su propio tinte.
+    expect_lte(rango$endColumnIndex, 11L)
+    # La cabecera no se tiñe.
+    expect_identical(rango$startRowIndex, 1L)
+  }
+})
+
+test_that("el gris SIGUE AL VALOR del estado, no a las filas que hoy son sin agendar", {
+  # Pintado estático, una fila que el coordinador marca aplicada se quedaría
+  # con el aspecto de pendiente hasta la próxima publicación.
+  filas <- aulas_libro_filas_plan_aplicadores(.APSA_PLAN, .apsa_disp())
+  formulas <- vapply(.alpa_reglas_sin_agendar(1L, length(filas)), function(r) {
+    as.character(r$addConditionalFormatRule$rule$booleanRule$condition$values[[1]]$userEnteredValue)
+  }, character(1))
+  expect_true(all(grepl("^=\\$L2=", formulas)))
+  expect_true(any(grepl("POR APLICAR SIN AGENDACIÓN", formulas, fixed = TRUE)))
+  # La columna es FIJA y la fila RELATIVA: al contrario, cada celda se
+  # compararía con la del estado de la primera fila.
+  expect_false(any(grepl("$L$2", formulas, fixed = TRUE)))
+  # Y se cubre la forma SIN TILDES, que es la que puede haber quedado escrita
+  # en un documento heredado.
+  expect_true(any(grepl("SIN AGENDACION", formulas, fixed = TRUE)))
+})
+
+test_that("la regla entra en el lote de formato, antes que las del estado", {
+  # Google aplica la PRIMERA regla que casa, y cada una se inserta en index 0:
+  # las últimas añadidas quedan delante. El gris va antes para que el chip del
+  # ESTADO siga mandando en su columna.
+  filas <- aulas_libro_filas_plan_aplicadores(.APSA_PLAN, .apsa_disp())
+  reqs <- aulas_libro_plan_aplicadores_formato_requests(5L, filas, roster = list("Ana Prueba"))
+  es_gris <- vapply(reqs, function(r) {
+    if (!identical(names(r)[[1]], "addConditionalFormatRule")) return(FALSE)
+    cond <- r$addConditionalFormatRule$rule$booleanRule$condition
+    identical(as.character(cond$type %||% ""), "CUSTOM_FORMULA")
+  }, logical(1))
+  es_estado <- vapply(reqs, function(r) {
+    if (!identical(names(r)[[1]], "addConditionalFormatRule")) return(FALSE)
+    rango <- r$addConditionalFormatRule$rule$ranges[[1]]
+    identical(rango$startColumnIndex, 11L)
+  }, logical(1))
+  expect_true(any(es_gris))
+  expect_true(any(es_estado))
+  expect_lt(max(which(es_gris)), min(which(es_estado)))
+})
