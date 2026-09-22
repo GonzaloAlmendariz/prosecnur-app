@@ -93,7 +93,11 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
             </span>
           ) : null}
           {total.sin_cruce > 0 ? (
-            <span>{fmt(total.sin_cruce)} respuestas sin identificar</span>
+            <span>
+              {total.sin_cruce === 1
+                ? "1 respuesta sin identificar"
+                : `${fmt(total.sin_cruce)} respuestas sin identificar`}
+            </span>
           ) : null}
         </p>
       ) : null}
@@ -146,8 +150,12 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
 
       {motivos.length ? (
         <div className="aulas-cxc-sincruce">
+          {/* Concuerda. «Por qué 1 no se pudieron identificar» sale en pantalla el
+              día que queda una sola, que es justo el día que se lee con calma. */}
           <span className="aulas-cxc-sincruce-rotulo">
-            Por qué {fmt(total.sin_cruce)} no se pudieron identificar
+            {total.sin_cruce === 1
+              ? "Por qué una no se pudo identificar"
+              : `Por qué ${fmt(total.sin_cruce)} no se pudieron identificar`}
           </span>
           <ul className="aulas-cxc-motivos">
             {motivos.map((m) => (

@@ -68,6 +68,18 @@ describe("cruce de alumnos por carrera", () => {
     expect(t).not.toContain("respondió dos veces");
   });
 
+  it("concuerda en singular: es el caso del día que se lee con calma", () => {
+    const una: BloqueDeCruce = {
+      ...BLOQUE,
+      total: { ...BLOQUE.total, sin_cruce: 1, duplicadas: 0 },
+      sin_cruce: [{ motivo: "sin_codigo_declarado", etiqueta: "No declararon su código", respuestas: 1 }],
+    };
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={una} />));
+    expect(t).toContain("1 respuesta sin identificar");
+    expect(t).not.toContain("1 respuestas sin identificar");
+    expect(t).toContain("Por qué una no se pudo identificar");
+  });
+
   it("contiene su propio vacío cuando todavía no hay respuestas", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={null} />));
     expect(t).toContain("Todavía no hay respuestas con las que cruzar");
