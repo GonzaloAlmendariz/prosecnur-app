@@ -202,3 +202,53 @@ describe("AulasReservaDirigida: el eje declarado", () => {
     expect(out).toContain(">Aporta 11 de 40<");
   });
 });
+
+describe("cuando el banco no tiene salida para ninguno", () => {
+  /**
+   * Gonzalo, 2026-09-22, sobre la pestaña Metas: «no veo bien los niveles de
+   * avance […] los gráficos bonitos y elegantes». Medido en su pantalla: cuatro
+   * tarjetas de 80 px, una por nivel, repitiendo palabra por palabra «El banco
+   * no tiene cursos-horario de ese nivel». Media pantalla para una frase, y lo
+   * único que distinguía a las cuatro —cuánto falta— de adorno a la derecha.
+   */
+  const sinBanco = (valor: string, brecha: number) =>
+    celda({
+      faculty: valor, sex: "", brecha, candidatos: [],
+      aporte_de_los_candidatos: 0, alcanza: false,
+      etiqueta: "El banco no tiene cursos-horario de ese nivel",
+    });
+
+  const texto = (h: string) => h.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+
+  it("dice la frase UNA vez y conserva lo que distingue a cada grupo", () => {
+    const t = texto(html([sinBanco("7", 95), sinBanco("6", 86), sinBanco("8", 77)]));
+    expect(t.match(/El banco no tiene cursos-horario de ese nivel/g)).toHaveLength(1);
+    // Los grupos y su falta siguen enteros: es lo único que los separa.
+    expect(t).toContain("faltan 95");
+    expect(t).toContain("faltan 86");
+    expect(t).toContain("faltan 77");
+  });
+
+  it("con DOS motivos distintos no se colapsa: informan cosas distintas", () => {
+    // «el banco no tiene de ese nivel» y «sus aulas no alcanzan» se arreglan de
+    // formas distintas; juntarlos escondería una de las dos.
+    const t = texto(html([
+      sinBanco("7", 95),
+      celda({ faculty: "6", sex: "", brecha: 86, candidatos: [],
+        etiqueta: "Las reservas de su cadena ya están activadas" }),
+    ]));
+    expect(t).toContain("El banco no tiene cursos-horario de ese nivel");
+    expect(t).toContain("Las reservas de su cadena ya están activadas");
+  });
+
+  it("con un solo grupo no se colapsa: no hay repetición que evitar", () => {
+    const t = texto(html([sinBanco("7", 95)]));
+    expect(t).toContain("El banco no tiene cursos-horario de ese nivel");
+    expect(t).toContain("faltan 95");
+  });
+
+  it("si alguno SI tiene candidatos, la lista entera se queda", () => {
+    const t = texto(html([sinBanco("7", 95), celda({ faculty: "6", sex: "" })]));
+    expect(t).toContain("R 7");
+  });
+});

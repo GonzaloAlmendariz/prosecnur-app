@@ -82,6 +82,18 @@ export function AulasReservaDirigida(
   const orden = [...conDecision].sort((a, b) =>
     Number(a.alcanza) - Number(b.alcanza) || Number(b.brecha) - Number(a.brecha));
 
+  /**
+   * **Ninguno tiene salida y todos por el mismo motivo.** Entonces la lista no
+   * lista nada: repite una frase tantas veces como grupos haya. Se exige que la
+   * frase sea LA MISMA —no sólo que no haya candidatos— porque dos motivos
+   * distintos sí informan: «el banco no tiene de ese nivel» y «las reservas de
+   * su cadena ya están activadas» se arreglan de formas distintas.
+   */
+  const sinSalidaComun = orden.length > 1
+    && orden.every((c) => !c.candidatos.length)
+    && new Set(orden.map((c) => c.etiqueta ?? "")).size === 1
+    && Boolean(orden[0].etiqueta);
+
   return (
     <section
       className="aulas-reserva-dirigida"
@@ -124,6 +136,37 @@ export function AulasReservaDirigida(
         </span>
       </header>
 
+      {/* **Cuando el banco no tiene NADA para ninguno, se dice una vez.**
+          Gonzalo, 2026-09-22: «no veo bien los niveles de avance […] los
+          gráficos bonitos y elegantes». Medido en su pantalla: cuatro tarjetas
+          de 80 px, una por nivel, repitiendo palabra por palabra «El banco no
+          tiene cursos-horario de ese nivel». Media pantalla para una frase.
+          Lo único que distinguía a las cuatro —cuánto falta— quedaba de adorno
+          a la derecha de un mensaje idéntico.
+          Es la misma doctrina que ya aplica la marca de solape unas líneas más
+          abajo: lo que no distingue, no se repite por fila. */}
+      {sinSalidaComun ? (
+        <div className="aulas-reserva-dirigida-sin-salida">
+          <p className="aulas-reserva-dirigida-etiqueta">{orden[0].etiqueta}</p>
+          {/* Los grupos y su falta siguen enteros: es lo que SÍ los distingue,
+              y en una línea se comparan de un vistazo. */}
+          <ul className="aulas-reserva-dirigida-faltas">
+            {orden.map((celda) => (
+              <li key={`${celda.faculty}‧${celda.sex}`}>
+                <strong>
+                  {celda.faculty
+                    ? etiquetaDeValorEnGrafico(celda.faculty, eje)
+                    : etiquetaSinValorDelEje(eje)}
+                </strong>
+                {celda.sex ? (
+                  <span className="aulas-reserva-dirigida-sexo">{etiquetaDeSexo(celda.sex)}</span>
+                ) : null}
+                <span className="aulas-reserva-dirigida-brecha">faltan {fmtCuenta(celda.brecha)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
       <ul className="aulas-reserva-dirigida-lista">
         {orden.map((celda) => {
           const clave = `${celda.faculty}‧${celda.sex}`;
@@ -184,6 +227,7 @@ export function AulasReservaDirigida(
           );
         })}
       </ul>
+      )}
     </section>
   );
 }

@@ -115,3 +115,43 @@
   font-size: 0.72rem;
   color: var(--pulso-text-muted);
 }
+
+/* **La salida común, dicha una vez.** Cuando el banco no tiene nada para
+   ninguno y el motivo es el mismo, la lista de tarjetas repetía la frase tantas
+   veces como grupos —cuatro tarjetas de 80 px para una oración— y lo único que
+   las distinguía, cuánto falta, quedaba de adorno. Aquí la frase va arriba y
+   los grupos en una línea, que es donde se comparan. */
+.aulas-reserva-dirigida-sin-salida {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-warn-fg);
+  border-radius: var(--pulso-radius-chip, 6px);
+  background: var(--pulso-surface);
+}
+
+.aulas-reserva-dirigida-faltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-reserva-dirigida-faltas > li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.aulas-reserva-dirigida-faltas > li > strong {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
