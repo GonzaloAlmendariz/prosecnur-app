@@ -454,6 +454,14 @@ export function AulasEfectividadSeguimiento({
 
   const t = bloque.total;
   /**
+   * Cuántas filas se pudieron medir contra su cuota. Un payload anterior no
+   * trae el campo: entonces se cae a afirmar, que es lo que los estudios ya
+   * en marcha ven y para ellos es cierto. Mismo criterio que `riesgoDeCierre`.
+   */
+  const evaluadasDelBloque = t.facultades_evaluadas == null
+    ? Math.max(Number(t.facultades ?? 0) || 0, 1)
+    : Number(t.facultades_evaluadas) || 0;
+  /**
    * **Con una facultad puesta, la lectura de arriba es la SUYA.**
    *
    * La tabla se queda entera —es una comparación entre facultades y filtrarla a
@@ -522,8 +530,26 @@ export function AulasEfectividadSeguimiento({
             <strong>{fmt(alumnosQueFaltanEnTotal(filas))}</strong> alumnos en riesgo en{" "}
             {fmt(t.facultades_en_riesgo)} {t.facultades_en_riesgo === 1 ? "facultad" : "facultades"}.
           </span>
-        ) : (
+        ) : evaluadasDelBloque > 0 ? (
           <span>Ninguna facultad se queda corta de su cuota con lo que va rindiendo.</span>
+        ) : (
+          /**
+           * **Un cero en riesgo dice dos cosas opuestas.** «Las medí todas y
+           * ninguna está en riesgo» y «no pude medir ninguna» producen el mismo
+           * `facultades_en_riesgo = 0`, y esta frase elegía siempre la primera.
+           *
+           * Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II:
+           * `facultades_evaluadas = 0`, `facultades_sin_cuota = 1` —la cuota
+           * entra por el eje declarado (nivel) y este bloque agrupa por la
+           * facultad del aula, así que los dos lados del cruce no se
+           * encuentran— y la pantalla tranquilizaba.
+           *
+           * El motor ya publicaba el denominador; faltaba mirarlo.
+           */
+          <span>
+            Ninguna se pudo medir contra su cuota, así que de aquí no se puede
+            decir si cierra —no es que cierre—.
+          </span>
         )}
         {/* **Y qué hacer con eso** (ítems 8 y 9). Gonzalo: «la pregunta
             principal es identificar qué tan bien o mal nos está yendo respecto a

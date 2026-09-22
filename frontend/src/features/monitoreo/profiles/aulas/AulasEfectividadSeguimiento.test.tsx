@@ -578,3 +578,48 @@ describe("cuando llegan más respuestas de un sexo que elegibles", () => {
     expect(html).not.toContain("es-imposible");
   });
 });
+
+describe("un cero en riesgo no autoriza a tranquilizar", () => {
+  /**
+   * «Las medí todas y ninguna está en riesgo» y «no pude medir ninguna»
+   * producen el mismo `facultades_en_riesgo: 0`. La frase elegía siempre la
+   * primera, encima del panel con el que se decide si se piden aulas.
+   *
+   * Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: la cuota
+   * entra por el eje declarado —nivel— y este bloque agrupa por la facultad del
+   * aula, así que los dos lados del cruce no se encuentran. El motor publicaba
+   * `facultades_evaluadas: 0`; faltaba mirarlo.
+   */
+  it("con cero evaluadas dice que no se puede saber, no que cierre", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento
+        bloque={bloque({
+          facultades: [fac({ cuota: null, riesgo: "sin_cumplimiento", tau_previsto: null })],
+          total: { ...bloque().total, facultades_en_riesgo: 0, facultades_evaluadas: 0, facultades_sin_cuota: 1 },
+        })}
+      />,
+    );
+    expect(html).not.toContain("Ninguna facultad se queda corta");
+    expect(html).toContain("no se puede decir si cierra");
+  });
+
+  it("con evaluadas y ninguna en riesgo sigue afirmando, igual que siempre", () => {
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento
+        bloque={bloque({ total: { ...bloque().total, facultades_en_riesgo: 0, facultades_evaluadas: 15 } })}
+      />,
+    );
+    expect(html).toContain("Ninguna facultad se queda corta");
+  });
+
+  it("un payload sin el campo conserva la conducta anterior", () => {
+    // Para los estudios ya en marcha afirmar es cierto, y declarar «no se sabe»
+    // sobre ellos sería peor que el defecto. Mismo criterio que `riesgoDeCierre`.
+    const t = { ...bloque().total } as Record<string, unknown>;
+    delete t.facultades_evaluadas;
+    const html = renderToStaticMarkup(
+      <AulasEfectividadSeguimiento bloque={bloque({ total: t as never })} />,
+    );
+    expect(html).toContain("Ninguna facultad se queda corta");
+  });
+});
