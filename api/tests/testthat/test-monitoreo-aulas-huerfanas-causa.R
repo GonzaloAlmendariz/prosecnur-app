@@ -50,3 +50,49 @@ test_that("sin identificadores alineados NO se inventa el reparto", {
   expect_match(d$frase, "^2 respuestas válidas no corresponden")
   expect_false(grepl("recopilador:", d$frase))
 })
+
+# =============================================================================
+# El control y el numerador cuentan las mismas huérfanas
+# =============================================================================
+#
+# El panel de control traía su propio emparejamiento —dos claves, sin
+# normalizar— mientras el numerador del tablero usa tres, porque el QR de 2026
+# viaja el CÓDIGO OPERATIVO (`CH 45`) y no el `classroom_id`. Una respuesta bien
+# atribuida al avance salía en el control como huérfana, con el aviso en
+# `warning`.
+#
+# Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: «29
+# respuestas válidas no corresponden a ningún curso-horario» sobre 29
+# respuestas, con 10 de ellas contadas en el avance de CH 45.
+
+.mahc_plan <- function() list(
+  list(classroom_id = "a1", collection_unit_id = "u1", operational_code = "CH 45",
+       label = "a1", faculty = "CIENCIAS SOCIALES", level = "6",
+       sample_role = "titular", wave = "M1", orden = 1,
+       eligible_n = 30, expected_valid = 12, sample_status = "agendada")
+)
+
+test_that("una respuesta que trae el codigo operativo NO es huerfana en el control", {
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, plan = .mahc_plan(),
+    source_mapping = list(collector_var = "collectorID")
+  ))
+  resp <- data.frame(
+    collectorID = c("CH 45", "CH 45", "CAPACITACION", ""),
+    stringsAsFactors = FALSE
+  )
+  d <- monitoreo_aulas_dashboard(cfg$plan, resp, cfg)
+  detalle <- paste(unlist(d$validation), collapse = " ")
+  # El test se cae si la frase deja de estar: un `expect_false` sobre un texto
+  # vacío pasa siempre, y con él solo el caso verde sería indistinguible de
+  # «el panel desapareció».
+  expect_true(grepl("no corresponden a ning", detalle, fixed = TRUE))
+  # Dos huérfanas, no cuatro: la de capacitación y la que no trae recopilador.
+  expect_match(detalle, "2 respuestas válidas no corresponden", fixed = TRUE)
+  # Y el código del propio plan no puede figurar como colector ajeno.
+  expect_false(grepl("CH 45", detalle, fixed = TRUE))
+  expect_match(detalle, "CAPACITACION", fixed = TRUE)
+  # Y el avance dice el mismo número: es la comprobación de que hay UNA
+  # atribución, no dos que casi coinciden.
+  expect_identical(as.integer(d$avance_cuota$total$huerfanas), 2L)
+})
