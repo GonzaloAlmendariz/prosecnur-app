@@ -642,13 +642,45 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   }
   claves <- claves[nzchar(claves)]
 
+  # **Con el eje en la persona, la τ del diseño llega a los grupos del plan
+  # sólo si es UNA.**
+  #
+  # Las claves del diseño no casan con ningún grupo del plan (arriba), y con
+  # ellas se perdía también la τ: la fila de la facultad salía `sin_previsto` y
+  # la banda no tenía contra qué contrastarse. Medido el 2026-09-22 sobre CCSS
+  # Perfil 2026-II: los cuatro niveles declaran τ = 0,50 y el panel publicaba
+  # 0,578 observada sin nada al lado, en el bloque que decide reservas.
+  #
+  # Si todas las celdas declaran la misma τ, esa es la τ de cualquier grupo de
+  # aulas, se agrupen como se agrupen: no hay mezcla que suponer. Si difieren,
+  # la τ de una facultad dependería de cuántos alumnos de cada nivel tiene cada
+  # aula, que el marco colapsó a su moda: inventarla sería peor que callarla, y
+  # `tau_previsto_fuente` dice por qué falta.
+  tau_diseno <- vapply(previstos, function(p) .monitoreo_num(p$tau, NA_real_), numeric(1))
+  tau_diseno <- tau_diseno[is.finite(tau_diseno)]
+  tau_uniforme <- if (!eje_en_el_aula && length(tau_diseno) &&
+                      diff(range(tau_diseno)) < 1e-9) tau_diseno[[1]] else NA_real_
+  fuente_sin_celda <- if (eje_en_el_aula) "sin_tau_del_diseno"
+                      else if (is.finite(tau_uniforme)) "uniforme_del_diseno"
+                      else if (length(tau_diseno)) "diseno_con_tau_distintas"
+                      else "sin_tau_del_diseno"
+  tau_previsto_de <- function(k) {
+    p <- previstos[[k]]
+    if (is.list(p) && is.finite(.monitoreo_num(p$tau, NA_real_))) {
+      return(list(tau = .monitoreo_num(p$tau, NA_real_), fuente = "celda_del_diseno",
+                  etiqueta = p$etiqueta))
+    }
+    list(tau = tau_uniforme, fuente = fuente_sin_celda,
+         etiqueta = if (is.list(p)) p$etiqueta else k)
+  }
+
   filas <- list()
   for (k in claves) {
     en_plan <- n_plan > 0L & fk_plan == k
     mide_k <- mide & en_plan
     banda <- .maes_banda_razon(efectivas_fila[mide_k], elegibles[mide_k])
-    prev <- previstos[[k]]
-    tau_prev <- if (is.list(prev)) prev$tau else NA_real_
+    prev <- tau_previsto_de(k)
+    tau_prev <- prev$tau
     el_aplicados <- sum(elegibles[mide_k])
     el_pendientes <- .maac_toma_num(pendientes_k, k, 0)
 
@@ -702,10 +734,12 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
     filas[[length(filas) + 1L]] <- list(
       facultad = {
         lbl <- .maac_toma_chr(labels_plan, k)
-        if (nzchar(lbl)) lbl else if (is.list(prev)) prev$etiqueta else k
+        if (nzchar(lbl)) lbl else prev$etiqueta %||% k
       },
       faculty_key = k,
       tau_previsto = if (is.finite(tau_prev)) round(tau_prev, 4) else NA_real_,
+      # De dónde sale: su celda, la τ única del diseño, o por qué no hay.
+      tau_previsto_fuente = prev$fuente,
       tau_observado = if (is.finite(banda$tau)) round(banda$tau, 4) else NA_real_,
       banda_bajo = if (is.finite(banda$bajo)) round(banda$bajo, 4) else NA_real_,
       banda_alto = if (is.finite(banda$alto)) round(banda$alto, 4) else NA_real_,
@@ -791,10 +825,8 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   # una de 39, que es justo el sesgo que la banda existe para no cometer.
   banda_total <- .maes_banda_razon(efectivas_fila[mide], elegibles[mide])
   el_mide <- elegibles[mide]
-  tau_prev_fila <- vapply(fk_plan, function(k) {
-    p <- previstos[[k]]
-    if (is.list(p) && is.finite(p$tau)) p$tau else NA_real_
-  }, numeric(1), USE.NAMES = FALSE)
+  tau_prev_fila <- vapply(fk_plan, function(k) tau_previsto_de(k)$tau,
+                          numeric(1), USE.NAMES = FALSE)
   tp <- tau_prev_fila[mide]
   usable <- is.finite(tp) & is.finite(el_mide)
   # La τ prevista AGREGADA es la del aforo realmente aplicado: ponderarla por
