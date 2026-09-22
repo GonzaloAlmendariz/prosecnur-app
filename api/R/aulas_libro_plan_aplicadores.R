@@ -195,6 +195,79 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   ))
 }
 
+
+# =============================================================================
+# Los titulares SIN AGENDAR, dentro de la misma hoja
+# =============================================================================
+#
+# Gonzalo, 2026-09-21, después de ver la primera versión en una hoja aparte:
+# «en vez de tener dos hojas separadas, en la hoja de reparto de la semana 1
+# podemos poner integrados todos los cursos-horario titulares no confirmados
+# […] que sigan la misma lógica, la misma estructura que la base original».
+#
+# **Por qué en la MISMA hoja y no al lado.** Él mismo lo dijo: «la ventaja de
+# que esté en una misma hoja y que se repita en la siguiente semana es que
+# tienes la misma posibilidad de asignarles estados, la misma posibilidad de
+# asignarles responsables, y todo eso lo hacen manualmente: el coordinador de
+# campo asigna». Una hoja de referencia aparte es de sólo mirar; una fila en la
+# hoja del reparto tiene su desplegable de aplicador y su chip de estado, y se
+# trabaja igual que las demás.
+#
+# **CUÁNDO DEJA DE APARECER.** No siempre: «si ya ha sido aplicada o ha sido
+# rechazada, o en todo caso reagendada, tiene que adaptarse al contexto. Si ha
+# sido aplicado o rechazada, ya no vuelven a aparecer. Y si ha sido reagendada,
+# ya la podemos asumir como una agendación». Los cinco estados terminales de
+# los siete: una fila con cualquiera de ellos sale de la lista y no vuelve la
+# semana siguiente.
+#
+# Y el estado vive EN EL SHEETS, tecleado por el coordinador, así que la
+# decisión se toma leyendo lo publicado —no el plan—, que es lo que
+# `estados_previos` ya traía para no degradar lo que él puso.
+.ALPA_TERMINALES <- c(
+  "APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN",
+  "REAGENDADA", "RECHAZADA"
+)
+
+# ¿El código tiene ya un estado terminal en lo publicado? Se mira por CÓDIGO y
+# no por (código, fecha): una clase sin agendar se repite cada semana con otra
+# fecha, así que atar la respuesta a la fecha la haría reaparecer el lunes
+# siguiente como si nada hubiera pasado.
+.alpa_cerrada_en_publicado <- function(previos, codigo) {
+  nombres <- names(previos %||% character(0))
+  if (!length(nombres) || !nzchar(codigo)) return(FALSE)
+  suyas <- which(startsWith(nombres, paste0(codigo, "\r")))
+  if (!length(suyas)) return(FALSE)
+  estados <- vapply(suyas, function(i) aulas_distribucion_estado_canonico(previos[[i]]),
+                    character(1))
+  any(estados %in% .ALPA_TERMINALES)
+}
+
+# Las fechas de la semana que esta hoja cubre, por día de la semana. Salen del
+# reparto que se está publicando: una hoja por semana trae los días de SU
+# semana, y sin fechas legibles no hay dónde colgar una clase.
+.alpa_semana_de <- function(rep) {
+  f <- vapply((rep %||% list())[["dias"]] %||% list(),
+              function(d) .alpa_txt(d[["fecha"]]), character(1))
+  f <- f[grepl("^\\d{4}-\\d{2}-\\d{2}$", f)]
+  if (!length(f)) return(character(0))
+  lunes <- .mads_lunes_de(min(f))
+  if (is.na(lunes)) return(character(0))
+  fechas <- format(lunes + 0:5, "%Y-%m-%d")
+  stats::setNames(fechas, vapply(fechas, .mav_dia_token, character(1)))
+}
+
+# El estado que el motor DEDUCE para una clase sin agendar. Sólo dos de los
+# siete: lo demás lo elige el coordinador en el desplegable.
+.alpa_estado_sin_agendar <- function(fila, aplicada) {
+  # Dos fuentes de «ya se aplicó», y hacen falta las dos: la marca del operativo
+  # —parte de campo o efectivas de plataforma— y la evidencia de la propia fila
+  # (`respuestas_validas`), que es la que usa el resto del perfil para no
+  # depender de un `operational_status` que nadie actualiza.
+  if (isTRUE(aplicada) || .madt_aplicada_de_hecho(fila)) return("APLICADA SIN AGENDACIÓN")
+  if (.madt_rechazada(fila)) return("RECHAZADA")
+  "POR APLICAR SIN AGENDACIÓN"
+}
+
 #' Las filas de la hoja que ven los aplicadores.
 #'
 #' @param plan filas del plan.
@@ -246,19 +319,22 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
     }
   })
 
-  filas <- list(as.list(.alpa_CABECERA))
+  # Las filas se juntan POR FECHA antes de escribirse: las citas pactadas y las
+  # clases sin agendar del mismo día se leen como una sola agenda, ordenadas
+  # por hora, y no como dos listas pegadas.
+  por_fecha <- list()
+  anotar <- function(fecha, orden, fila) {
+    por_fecha[[fecha]] <<- c(por_fecha[[fecha]] %||% list(),
+                             list(list(orden = orden, fila = fila)))
+  }
+
   for (dia in (rep[["dias"]] %||% list())) {
     fecha <- .alpa_txt(dia[["fecha"]])
     cuando <- .alpa_dia_y_fecha(fecha)
-    items <- dia[["asignaciones"]] %||% list()
-    if (!length(items)) next
-    orden <- order(vapply(items, function(it) .alpa_txt(it[["recojo"]]), character(1)),
-                   vapply(items, function(it) .alpa_txt(it[["inicio"]]), character(1)),
-                   method = "radix")
-    for (it in items[orden]) {
+    for (it in (dia[["asignaciones"]] %||% list())) {
       cod <- .alpa_txt(it[["codigo"]])
       m <- meta[[cod]] %||% list(aula = "", facultad = "", curso = "", docente = "")
-      filas[[length(filas) + 1L]] <- list(
+      anotar(fecha, paste(.alpa_txt(it[["recojo"]]), .alpa_txt(it[["inicio"]]), cod), list(
         aulas_nombre_aplicador(.alpa_txt(it[["aplicador"]])),
         cuando$dia, cuando$fecha,
         .alpa_txt(it[["recojo"]]),
@@ -273,8 +349,62 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
           if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
           .alpa_estado_previo(estados_previos, cod, cuando$fecha)
         )
-      )
+      ))
     }
+  }
+
+  # **Y los TITULARES SIN AGENDAR de esa semana, con la misma estructura.**
+  # Ver la cabecera de este bloque, arriba: van aquí y no en una hoja aparte
+  # para que el coordinador pueda asignarles aplicador y estado igual que a las
+  # demás. El APLICADOR va vacío a propósito: lo pone él.
+  semana <- .alpa_semana_de(rep)
+  if (length(semana)) {
+    unidades <- if (is.data.frame(plan)) split(plan, seq_len(nrow(plan))) else (plan %||% list())
+    for (u in unidades) {
+      if (!identical(tolower(.alpa_txt(u[["sample_role"]])), "titular")) next
+      if (nzchar(.alpa_txt(u[["scheduled_date"]]))) next
+      cod <- .alpa_txt(u[["operational_code"]])
+      if (!nzchar(cod)) next
+      # Aplicada, rechazada o reagendada: se cierra y no vuelve la semana que
+      # viene. Se mira lo PUBLICADO, que es donde el coordinador la cerró, y la
+      # evidencia del propio operativo.
+      if (.alpa_cerrada_en_publicado(estados_previos, cod)) next
+      aplicada <- isTRUE(aplicadas[[cod]] %||% FALSE)
+      deducido <- .alpa_estado_sin_agendar(u, aplicada)
+      if (deducido %in% .ALPA_TERMINALES) next
+      m <- meta[[cod]] %||% list(aula = "", facultad = "", curso = "", docente = "")
+      for (ses in .mav_sesiones(.alpa_txt(u[["sesiones_dia_hora"]]))) {
+        for (token in ses$dias) {
+          fecha <- semana[[token]] %||% ""
+          if (!nzchar(fecha)) next
+          cuando <- .alpa_dia_y_fecha(fecha)
+          anotar(fecha, paste(.mav_hhmm(max(0, ses$ini - .mav_PREPARACION_MIN)),
+                              .mav_hhmm(ses$ini), cod), list(
+            "",
+            cuando$dia, cuando$fecha,
+            .mav_hhmm(max(0, ses$ini - .mav_PREPARACION_MIN)),
+            .mav_hhmm(max(0, ses$ini - .mav_SALIDA_MIN)),
+            # La ventana de la CLASE, no una aplicación de media hora: quien
+            # entra sin cita llega cuando puede dentro de ese rango.
+            paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin)),
+            cod, m$aula, m$facultad, m$curso, m$docente,
+            aulas_distribucion_estado_a_publicar(
+              deducido, .alpa_estado_previo(estados_previos, cod, cuando$fecha))
+          ))
+        }
+      }
+    }
+  }
+
+  filas <- list(as.list(.alpa_CABECERA))
+  # `sort(character(0), method = "radix")` LANZA; una semana sin nada que
+  # publicar es un caso normal —un plan sin fechas legibles— y devuelve la hoja
+  # con su cabecera, que el llamador ya sabe descartar.
+  fechas <- if (length(por_fecha)) sort(names(por_fecha), method = "radix") else character(0)
+  for (fecha in fechas) {
+    items <- por_fecha[[fecha]]
+    orden <- order(vapply(items, function(x) x$orden, character(1)), method = "radix")
+    for (x in items[orden]) filas[[length(filas) + 1L]] <- x$fila
   }
   filas
 }
