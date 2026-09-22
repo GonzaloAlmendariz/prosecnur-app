@@ -14,6 +14,7 @@ import { AulasFichaDeAula } from "./AulasFichaDeAula";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { AulasCrucePorCarrera } from "./AulasCrucePorCarrera";
 import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -51,6 +52,48 @@ export function AulasSeccionCalidad({
     // primero porque esta sección la usan dos personas —el jefe de campo, que
     // entra por lo que pasó en el aula, y el analista, que entra por los
     // controles— y lo que se registra viene antes de lo que se valida.
+    /**
+     * **El cruce de alumnos, sólo en un estudio confidencial.**
+     *
+     * Gonzalo, 2026-09-22: «en validación tiene que estar el cruce por alumnos
+     * por código PUCP, de la misma forma que en acreditación tenemos la lista
+     * de actores y su estatus, pero no por actores —porque todos son
+     * estudiantes— sino por la carrera a la que pertenecen».
+     *
+     * La pestaña la retira `railDeAulas` cuando el estudio es anónimo, pero
+     * esta rama vuelve a mirarlo: una dirección es enlazable, así que se puede
+     * llegar aquí con `?pestana=alumnos` en un estudio que no cruza, y entonces
+     * hay que decir por qué no hay nada en vez de pintar una tabla vacía.
+     */
+    if (pestana === "alumnos") {
+      const cruce = dashboard.cruce_por_carrera;
+      return (
+        <div className="mon-profile-stack aulas-tablas-apiladas">
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Quién respondió, por su código</h3>
+              <span>alumnos identificados contra el padrón · por la carrera a la que pertenecen</span>
+            </div>
+            {cruce?.aplica === false ? (
+              <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+                {cruce.motivo || "Este estudio no pide un código identificador."}
+              </p>
+            ) : (
+              <>
+                {cruce?.aviso_anonimato ? (
+                  <p className="mon-profile-muted" role="status">{cruce.aviso_anonimato}</p>
+                ) : null}
+                <AulasCrucePorCarrera bloque={cruce as never} />
+              </>
+            )}
+          </section>
+        </div>
+      );
+    }
     if (pestana === "abiertas") {
   return (
         <div className="mon-profile-stack aulas-tablas-apiladas">

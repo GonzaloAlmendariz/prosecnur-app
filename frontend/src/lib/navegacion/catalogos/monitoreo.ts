@@ -325,6 +325,13 @@ export const MONITOREO_PESTANAS = {
       // podria ser un tap o una pestaña en si misma». Vivia dentro de Registro
       // de campo, apretada con otros seis paneles, y leer respuestas abiertas
       // es un trabajo entero: se entra a hacer eso y no a mirarlo de paso.
+      // **Sólo existe en un estudio CONFIDENCIAL.** Gonzalo, 2026-09-22: «esta
+      // pestaña sólo está disponible si la encuesta, en vez de ser anónima, es
+      // confidencial» —las confidenciales piden un código identificador, las
+      // anónimas no—. El catálogo la declara y `railDeAulas` la retira cuando el
+      // estudio no pide código: el catálogo dice qué existe en el perfil, el
+      // rail qué existe en ESTE estudio.
+      pestana("aulas", "calidad", "alumnos", "Cruce de alumnos", "Quién respondió, por su código", Users),
       pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
     ],
     consultas: [

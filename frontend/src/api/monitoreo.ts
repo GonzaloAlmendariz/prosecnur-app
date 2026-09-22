@@ -1982,6 +1982,36 @@ export type MonitoreoAulasDashboard = {
     por_carrera?: Record<string, number>;
     por_sexo?: Record<string, number>;
   };
+  /**
+   * **El cruce de alumnos por código PUCP, repartido por carrera.** Lo calcula
+   * el bloque de cuotas —que es quien resuelve la persona de cada respuesta— y
+   * el tablero lo iza aquí para Validación.
+   *
+   * `aplica` es falso en un estudio ANÓNIMO: sin código identificador no hay a
+   * quién cruzar, y su pestaña no existe.
+   */
+  cruce_por_carrera?: {
+    schema?: string;
+    aplica?: boolean;
+    motivo?: string;
+    /** El estudio pide código Y se declara anónimo: no pueden ser las dos. */
+    aviso_anonimato?: string;
+    total?: {
+      consideradas: number;
+      personas: number;
+      duplicadas: number;
+      sin_cruce: number;
+      tasa: number | null;
+    };
+    carreras?: Array<{
+      carrera: string;
+      carrera_key?: string;
+      personas: number;
+      duplicadas?: number;
+      poblacion?: number | null;
+    }>;
+    sin_cruce?: Array<{ motivo: string; etiqueta: string; respuestas: number }>;
+  };
   respuestas_desglose?: {
 	    total: MonitoreoAulasRespuestasCuenta & {
 	      sin_aula: number;
