@@ -426,6 +426,56 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
   )
 }
 
+
+#' El gris suave de las filas SIN AGENDACIÓN, de DÍA a DOCENTE.
+#'
+#' Gonzalo, 2026-09-21, con la hoja integrada delante: «para diferenciar las por
+#' aplicar y sin agendación, todas las filas menos la del aplicador deben ser
+#' gris suave para diferenciarlas del resto».
+#'
+#' Va de DÍA a DOCENTE y deja fuera las dos columnas que YA tienen color propio:
+#' `APLICADOR` —que él pidió expresamente, y que lleva el color de cada
+#' persona— y `ESTADO`, cuyo chip es justamente el que nombra por qué la fila
+#' está gris. Teñirlo encima taparía la explicación de su propio tinte.
+#'
+#' Es una regla CONDICIONAL sobre el valor del estado, no un fondo pintado en
+#' las filas que hoy son sin agendar: en cuanto el coordinador la marca aplicada
+#' o rechazada en el desplegable, el gris se va solo. Pintarlo estático dejaría
+#' una fila cerrada con el aspecto de una pendiente hasta la próxima
+#' publicación, que es la misma lección que el color del aplicador ya aprendió.
+#' @keywords internal
+.alpa_GRIS_SIN_AGENDAR <- "#EEF1F4"
+
+.alpa_reglas_sin_agendar <- function(sheet_id, filas) {
+  col_dia <- which(.alpa_CABECERA == "DÍA")[[1]]
+  col_doc <- which(.alpa_CABECERA == "DOCENTE")[[1]]
+  col_est <- which(.alpa_CABECERA == "ESTADO")[[1]]
+  letra <- LETTERS[[col_est]]
+  lapply(aulas_distribucion_formas_de_estado("POR APLICAR SIN AGENDACIÓN"), function(forma) {
+    list(addConditionalFormatRule = list(
+      rule = list(
+        ranges = list(list(
+          sheetId = sheet_id,
+          startRowIndex = 1L, endRowIndex = as.integer(filas),
+          startColumnIndex = as.integer(col_dia - 1L),
+          endColumnIndex = as.integer(col_doc)
+        )),
+        booleanRule = list(
+          # La fórmula mira la celda del ESTADO de SU fila: columna fija, fila
+          # relativa. Con `TEXT_EQ` sobre el propio rango, cada celda se
+          # compararía consigo misma y nunca casaría.
+          condition = list(
+            type = "CUSTOM_FORMULA",
+            values = list(list(userEnteredValue = sprintf('=$%s2="%s"', letra, forma)))
+          ),
+          format = list(backgroundColor = .monitoreo_sheets_rgb(.alpa_GRIS_SIN_AGENDAR))
+        )
+      ),
+      index = 0L
+    ))
+  })
+}
+
 #' El color de cada estado, dictado por Gonzalo el 2026-09-08 con el documento
 #' del coordinador delante: «APLICADA (VERDE), POR APLICAR (AMARILLO) Y
 #' REAGENDADA (NARANJA U OTRO COLOR)».
@@ -609,6 +659,12 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
   # **El ESTADO también con desplegable**, y con su propio color por valor: es
   # una columna que el equipo teclea y una lista cerrada evita que «reagendado»,
   # «Reagendada» y «REAGENDADA» sean tres estados distintos para la app.
+  # El gris de las filas sin agendación va ANTES de las reglas de estado: las
+  # que se añaden después quedan delante en la lista y Google aplica la primera
+  # que casa. Así el chip del ESTADO manda en su columna y el gris manda en las
+  # demás, sin pelearse.
+  for (req in .alpa_reglas_sin_agendar(sheet_id, length(rows))) poner(req)
+
   col_estado <- which(.alpa_CABECERA == "ESTADO")[[1]]
   poner(.mafs_validacion_request(
     sheet_id, col_estado, 1L, length(rows),
