@@ -508,6 +508,10 @@ monitoreo_aulas_default_config <- function() {
     # entienda la decisión al reabrir el proyecto, no un requisito del motor.
     eje_cuota = "facultad",
     eje_cuota_motivo = "",
+    # Por qué dimensión agrupa el RESUMEN OPERATIVO de Avance. Es otra pregunta
+    # que el eje de cuotas y puede tener otra respuesta: ver
+    # `monitoreo_aulas_agrupacion.R`.
+    agrupacion_operativa = "facultad",
     # **Contra qué otro estudio se cruza, y de dónde se lee.** Sin esto el
     # veredicto del traslape sólo podía inyectarlo un runner externo y la app no
     # tenía cómo recalcularlo. Ver `monitoreo_aulas_traslape_fuente.R`.
@@ -850,6 +854,7 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     # retirado del catálogo cae al default en vez de envenenar la config.
     eje_cuota = config[["eje_cuota"]] %||% config[["ejeCuota"]] %||% defaults$eje_cuota,
     eje_cuota_motivo = config[["eje_cuota_motivo"]] %||% config[["ejeCuotaMotivo"]] %||% defaults$eje_cuota_motivo,
+    agrupacion_operativa = config[["agrupacion_operativa"]] %||% config[["agrupacionOperativa"]] %||% defaults$agrupacion_operativa,
     # La fuente del cruce, por la MISMA razón: sin nombrarla aquí, declararla no
     # sobreviviría al primer «actualizar» y el botón de recalcular se quedaría
     # sin saber de dónde leer. Se normaliza al guardar y una clave desconocida

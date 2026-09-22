@@ -35,7 +35,9 @@
 #' @param responses respuestas de la plataforma.
 #' @param cfg config de aulas.
 #' @return lista `{total, facultades}`; `total` con las tres cifras más
-#'   `observadas` y `sin_aula`, y `facultades` una lista de `{facultad, …}`.
+#'   `observadas`, `sin_aula` —sobre las observadas— y `sin_aula_efectivas`
+#'   —la misma cuenta sobre las que cuentan—, y `facultades` una lista de
+#'   `{facultad, …}`.
 #'   Sin respuestas devuelve la forma entera en ceros: el vacío se declara, no
 #'   se omite — una pantalla que no recibe el bloque no sabe si es que no hay
 #'   respuestas o si el motor no lo calculó.
@@ -44,7 +46,7 @@ monitoreo_aulas_respuestas_desglose <- function(plan = list(), responses = NULL,
                                                 cfg = list()) {
   vacio <- list(
     total = list(observadas = 0L, efectivas = 0L, fuera_del_operativo = 0L,
-                 no_pasan_criterio = 0L, sin_aula = 0L),
+                 no_pasan_criterio = 0L, sin_aula = 0L, sin_aula_efectivas = 0L),
     facultades = list()
   )
   if (is.null(responses) || !is.data.frame(responses) || !nrow(responses)) return(vacio)
@@ -87,8 +89,13 @@ monitoreo_aulas_respuestas_desglose <- function(plan = list(), responses = NULL,
     if (is.na(cod) || !nzchar(cod) || !is.null(facultad_de[[cod]])) return(invisible(NULL))
     facultad_de[[cod]] <<- facultad
   }
+  # La columna que agrupa la declara el estudio; sin declaración, `faculty`.
+  # Es la MISMA resolución que usa `aulas_por_facultad`, porque los dos bloques
+  # se cruzan en la pantalla: con dos columnas distintas la tabla saldría con el
+  # doble de filas y la mitad a medias.
+  columna_grupo <- .monitoreo_scalar(monitoreo_aulas_agrupacion(cfg)$columna, "faculty")
   for (u in unidades) {
-    facultad <- trimws(as.character(u[["faculty"]] %||% "")[1])
+    facultad <- trimws(as.character(u[[columna_grupo]] %||% "")[1])
     anota(u[["operational_code"]], facultad)
     anota(u[["classroom_id"]], facultad)
   }
@@ -109,11 +116,29 @@ monitoreo_aulas_respuestas_desglose <- function(plan = list(), responses = NULL,
 
   total <- cuenta(rep(TRUE, nrow(responses)))
   total$sin_aula <- sum(!nzchar(fac))
+  # **La misma cifra en el marco en que se lee.** `sin_aula` cuenta sobre las
+  # OBSERVADAS; la nota de la pantalla explica por qué sumar las facultades no
+  # llega al total, y el total que ese panel enseña son las EFECTIVAS. Mientras
+  # nada se descarta las dos coinciden y la diferencia no se ve.
+  #
+  # Se vio el 2026-09-22 al declarar `descartes` para los QR de capacitación y
+  # prueba de CCSS Perfil 2026-II: la cabecera pasó a «21 efectivas de 29
+  # respuestas», la única facultad a 10, y la nota seguía diciendo «19 … cuentan
+  # en el total», cuando 8 de esas 19 acababan de dejar de contar. La resta
+  # honesta es 11, que es además lo que el panel de control llama huérfanas.
+  #
+  # Las dos se publican: cada una es cierta en su marco, y quitar la de las
+  # observadas escondería cuántas respuestas llegaron sin aula.
+  total$sin_aula_efectivas <- sum(!nzchar(fac) & valida)
   total <- lapply(total, as.integer)
 
   nombres <- sort(unique(fac[nzchar(fac)]))
   facultades <- lapply(nombres, function(f) {
     c(list(facultad = f), lapply(cuenta(fac == f), as.integer))
   })
-  list(total = total, facultades = facultades)
+  # De qué son estas filas. El campo `facultad` conserva su nombre y su valor
+  # puede ser una carrera: sin esta declaración el rótulo de la pantalla
+  # tendría que adivinarlo.
+  list(total = total, facultades = facultades,
+       agrupacion = monitoreo_aulas_agrupacion_declaracion(monitoreo_aulas_agrupacion(cfg)))
 }

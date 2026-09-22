@@ -25,15 +25,31 @@ test_that("una config vacia, ausente o basura cae al mismo default", {
   esperado <- monitoreo_aulas_eje(list())
   # Cada una de estas es una forma real de llegar: proyecto viejo, bloque sin
   # el campo, y el campo con un valor que nadie declaró.
+  # «carrera» era el ejemplo de valor no declarado hasta el 2026-09-22, cuando
+  # se añadió al catálogo como dimensión del resumen operativo. Se cambia por
+  # uno que de verdad no existe, y la conducta nueva se afirma abajo en vez de
+  # perderse: un caso que deja de probar lo que probó tiene que decirlo.
   for (cfg in list(list(),
                    list(aulas_universitarias = list()),
                    list(aulas_universitarias = list(eje_cuota = "")),
-                   list(aulas_universitarias = list(eje_cuota = "carrera")),
+                   list(aulas_universitarias = list(eje_cuota = "sede")),
                    list(eje_cuota = NULL))) {
     obtenido <- monitoreo_aulas_eje(cfg)
     obtenido$motivo <- esperado$motivo
     expect_identical(obtenido, esperado)
   }
+})
+
+test_that("carrera SI es un eje declarado, y se atribuye por el aula", {
+  # Nació para el resumen operativo (`monitoreo_aulas_agrupacion.R`) y entra al
+  # mismo catálogo, así que un estudio que quiera medir por carrera lo declara
+  # sin tocar ninguna capa. Su valor sale de la fila del PLAN —la carrera del
+  # curso-horario—, que no es la de la persona: aquélla vive en el padrón.
+  eje <- monitoreo_aulas_eje(list(aulas_universitarias = list(eje_cuota = "carrera")))
+  expect_identical(eje$clave, "carrera")
+  expect_identical(eje$columna, "program")
+  expect_identical(eje$atribucion, "aula")
+  expect_identical(eje$fuente_valor, "plan")
 })
 
 test_that("el eje se lee igual desde la config completa y desde el bloque pelado", {

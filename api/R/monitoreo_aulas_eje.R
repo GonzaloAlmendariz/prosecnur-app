@@ -59,6 +59,25 @@
     atribucion = "aula",
     fuente_valor = "plan"
   ),
+  # **Carrera.** Nace como dimensión del RESUMEN OPERATIVO, no como eje de
+  # cuotas: CCSS Perfil 2026-II mide por nivel y describe por carrera. Se
+  # declara aquí igual que las otras para que un estudio que sí quiera medir
+  # por carrera no tenga que añadir nada. Su atribución es del AULA —la carrera
+  # del curso-horario—, que es lo correcto para «dónde está trabajando el
+  # equipo» y lo que NO hay que confundir con la carrera de la PERSONA, que sale
+  # del padrón y vive en el panel referencial.
+  carrera = list(
+    clave = "carrera",
+    columna = "program",
+    alias = c("program", "carrera", "programa", "especialidad", "plan_de_estudios"),
+    etiqueta = "Carrera",
+    etiqueta_plural = "Carreras",
+    etiqueta_sin = "Sin carrera",
+    frase_celda = "esa carrera",
+    frase_valor = "%s",
+    atribucion = "aula",
+    fuente_valor = "plan"
+  ),
   nivel = list(
     clave = "nivel",
     columna = "level",
