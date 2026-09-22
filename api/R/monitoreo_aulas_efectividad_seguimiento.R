@@ -331,22 +331,51 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   # Efectivas de PLATAFORMA por fila del plan. Solo cuentan las atribuidas a
   # una fila y dentro del universo: las de un aula que no existía o resultó
   # virtual no miden el rendimiento de nadie (mismas exclusiones que ADR 0079).
-  efectivas_fila <- rep(0, n_plan)
-  cuenta <- atr$valid & atr$matched & !atr$fuera
-  if (n_plan && any(cuenta)) {
-    tb <- table(atr$fila[cuenta])
-    idx <- suppressWarnings(as.integer(names(tb)))
-    ok <- is.finite(idx) & idx >= 1L & idx <= n_plan
-    efectivas_fila[idx[ok]] <- as.numeric(tb)[ok]
+  por_fila <- function(mask) {
+    out <- rep(0, n_plan)
+    if (n_plan && any(mask)) {
+      tb <- table(atr$fila[mask])
+      idx <- suppressWarnings(as.integer(names(tb)))
+      ok <- is.finite(idx) & idx >= 1L & idx <= n_plan
+      out[idx[ok]] <- as.numeric(tb)[ok]
+    }
+    out
   }
+  cuenta <- atr$valid & atr$matched & !atr$fuera
+  respuestas_fila <- por_fila(cuenta)
+
+  # **El numerador son las efectivas DEL DISEÑO, no toda respuesta del aula.**
+  #
+  # El denominador `eligible_n` cuenta a la población medida del aula, y con el
+  # eje en la PERSONA esa población es un subconjunto de quien se sienta en
+  # ella. Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: el
+  # diseño mide niveles 6 a 9 y el aula entera contesta; 35 de las 166
+  # efectivas eran de nivel 5 o 10. Contándolas arriba y no abajo, τ salía
+  # 75 % —por encima de la τ prevista de 0,50— en el panel que decide si se
+  # activan reservas. Numerador y denominador de dos poblaciones distintas no
+  # son una tasa.
+  #
+  # La máscara es la de `avance_cuota` (`casos`, atributo `efectiva`), la misma
+  # que usan el libro y el PDF para contar entrevistas efectivas: ya excluye el
+  # aula fuera de universo, la persona sin identificar, la duplicada y la que
+  # resolvió fuera del diseño. Y es la clase de caso que suma a `conseguido`,
+  # así que la proyección `conseguido + pendiente × τ` no mezcla dos cuentas.
+  # Con el eje en el AULA todas las claves del plan tienen celda y la máscara
+  # coincide con `cuenta`: HSVG no cambia.
+  efectiva_resp <- attr((avance_cuota %||% list())$casos, "efectiva", exact = TRUE)
+  efectivas_fila <- if (is.logical(efectiva_resp) && length(efectiva_resp) == length(cuenta)) {
+    por_fila(cuenta & efectiva_resp %in% TRUE)
+  } else respuestas_fila
 
   # Las tres vías del predicado compartido, resueltas sobre las columnas del
   # frame: el estado del circuito, el veredicto del parte y —la que faltaba— que
-  # ya estén llegando respuestas de esa aula.
+  # ya estén llegando respuestas de esa aula. **Cualquier respuesta**, no sólo
+  # las del diseño: un aula donde sólo contestaron alumnos de nivel 5 ya se
+  # visitó, y tratarla como pendiente devolvería su aforo a la proyección.
   aplicada <- if (n_plan) {
     .maac_chr_col(plan_df, "operational_status") %in% MONITOREO_AULAS_ESTADOS_APLICADOS |
       .maac_chr_col(plan_df, "application_status") %in% "aplicada" |
-      efectivas_fila > 0
+      respuestas_fila > 0
   } else logical(0)
 
   # El DENOMINADOR son las aulas APLICADAS. Un aula sin aplicar no rinde cero:
@@ -815,7 +844,10 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
     vigencia = vig$vigencia,
     motivo = vig$motivo,
     criterio = list(
-      numerador = "efectiva de plataforma (respuesta que pasa los filtros declarados)",
+      numerador = paste0(
+        "efectiva de plataforma (respuesta que pasa los filtros declarados) ",
+        "de la población que el diseño mide: la misma que suma a la cuota"
+      ),
       denominador = "elegibles de los cursos-horario aplicados al corte",
       disparador = paste0(
         "el margen restante: conseguido + aforo pendiente x tau observada, ",
