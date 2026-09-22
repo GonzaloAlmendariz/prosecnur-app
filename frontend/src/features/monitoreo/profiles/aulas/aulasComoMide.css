@@ -1,0 +1,86 @@
+/* «Cómo mide este estudio», en Fuentes. Hoja propia: `aulasMonitoreo.css` está
+   congelada a crecimiento; el precedente es `aulasResumenRespuestas.css`.
+
+   Geometría prestada de los dos vecinos del panel —el criterio de efectiva y
+   los descartes— para que las tres declaraciones se lean como lo que son: la
+   misma clase de decisión que «qué cuenta como efectiva», no un ajuste aparte.
+   Los chips reusan `.aulas-sexo-chip`, que ya vive en el monolito y ya estila
+   el `aria-pressed`: declarar aquí un segundo chip daría dos formas para lo
+   mismo. */
+
+.aulas-como-mide { display: grid; gap: 16px; }
+.aulas-como-mide-campo { display: grid; gap: 6px; }
+
+.aulas-como-mide-rotulo {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-heavy, 600);
+  color: var(--pulso-text);
+}
+
+.aulas-como-mide-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-como-mide-vacio { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); }
+
+.aulas-como-mide-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* El chip hereda de `.aulas-sexo-chip`; aquí sólo lo que es propio de esta
+   superficie: el estado deshabilitado tiene que LEERSE como «no se puede», y
+   no como «apagado», porque uno de los casos —un eje sin padrón— es
+   precisamente algo que el usuario querría pulsar. */
+.aulas-como-mide-chip:disabled { cursor: default; }
+.aulas-como-mide-chip:disabled[aria-pressed="false"] { opacity: 0.55; }
+.aulas-como-mide-chip em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  margin-left: 2px;
+}
+
+.aulas-como-mide-motivo {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  border-left: 2px solid var(--pulso-border);
+  padding-left: 8px;
+}
+
+/* La confirmación del eje: se separa del resto porque pide una decisión, y
+   ocupa su propia caja para que no se pulse por inercia al elegir el chip. */
+.aulas-como-mide-confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+.aulas-como-mide-confirmar > span { flex: 1 1 260px; }
+
+/* Los dos botones son los del tema (`pulso-button--primary` /
+   `--secondary`): declarar aquí un par propio daría dos formas para el mismo
+   gesto, y la segunda derivaría. Además el token de texto sobre acento que
+   copié al principio —`--pulso-on-accent`— **no existe**, y un `var()` que no
+   resuelve no falla: deja el botón sin color de texto. */
+
+.aulas-como-mide-fecha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aulas-como-mide-fecha input {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}

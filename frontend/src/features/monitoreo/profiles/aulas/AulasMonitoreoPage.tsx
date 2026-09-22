@@ -51,6 +51,7 @@ import { AulasVistaPreviaDelLibro } from "./AulasVistaPreviaDelLibro";
 import { AulasPestanaEfectividad } from "./AulasPestanaEfectividad";
 import { AulasPestanaEstratos } from "./AulasPestanaEstratos";
 import { AulasSeccionModelo } from "./AulasSeccionModelo";
+import { AulasComoMideElEstudio, type ComoMideElEstudio } from "./AulasComoMideElEstudio";
 import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
 import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
 import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
@@ -817,6 +818,7 @@ function renderAulasView({
   foco,
   onFoco,
   volumen = {},
+  comoMide = null,
   criterioDeEfectiva = null,
   criterioDeAula = null,
   irAPestana = null,
@@ -862,6 +864,12 @@ function renderAulasView({
    * config. Gonzalo: «la sección de fuentes no deja declarar las variables que
    * definen a una encuesta efectiva».
    */
+  /**
+   * Las tres declaraciones que gobiernan lo que el tablero significa, ya
+   * construidas. Se pasa hecha por el mismo motivo que `criterioDeEfectiva`:
+   * esta función no ve el estado ni sabe guardar.
+   */
+  comoMide?: ReactNode;
   criterioDeEfectiva?: ReactNode;
   /**
    * La declaración de qué es un aula válida, ya construida.
@@ -959,6 +967,7 @@ function renderAulasView({
         operations={operations}
         fuentes={fuentes}
         volumen={volumen}
+        comoMide={comoMide}
         criterioDeEfectiva={criterioDeEfectiva}
         umbralDeDuracion={umbralDeDuracion}
         onDeclararUmbralDeDuracion={onDeclararUmbralDeDuracion}
@@ -1164,6 +1173,7 @@ export default function AulasMonitoreoPage() {
    * vaciado a propósito—.
    */
   const [filtrosEfectiva, setFiltrosEfectiva] = useState<FiltroDeEfectiva[] | null>(null);
+  const [guardandoComoMide, setGuardandoComoMide] = useState(false);
   const [guardandoCriterio, setGuardandoCriterio] = useState(false);
 
   const activeDef = useMemo(
@@ -1637,6 +1647,37 @@ export default function AulasMonitoreoPage() {
       setError((e as Error).message);
     }
   }, [loadView, seccionActiva, state]);
+
+  /**
+   * **Las tres declaraciones de «cómo mide este estudio»**, por el mismo camino
+   * que el resto de la config de aulas: guardar y refrescar con el scope de
+   * VALIDACIÓN, que es donde viajan los veredictos que cambian. Con el scope de
+   * la sección el panel seguiría enseñando el reparto anterior.
+   *
+   * Se envía sólo lo que cambió: un `POST` con las tres claves reescribiría las
+   * otras dos con lo que la pantalla tenía en memoria, que no es lo mismo que
+   * lo que el motor tiene guardado.
+   */
+  const declararComoMide = useCallback(async (cambio: Partial<ComoMideElEstudio>) => {
+    setGuardandoComoMide(true);
+    setError("");
+    try {
+      const cuerpo: Record<string, unknown> = {};
+      if (cambio.eje !== undefined) cuerpo.eje_cuota = cambio.eje;
+      if (cambio.agrupacion !== undefined) cuerpo.agrupacion_operativa = cambio.agrupacion;
+      if (cambio.inicioCampo !== undefined) cuerpo.inicio_campo = cambio.inicioCampo;
+      if (!Object.keys(cuerpo).length) return;
+      await apiMonitoreoAulasConfig(cuerpo as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoComoMide(false);
+    }
+  }, []);
 
   const guardarCriterio = useCallback(async () => {
     if (!filtrosEfectiva) return;
@@ -2258,6 +2299,30 @@ export default function AulasMonitoreoPage() {
                   filas: Number(state?.n_rows ?? 0) || undefined,
                   columnas: (state?.variables ?? []).length || undefined,
                 }
+              ),
+              // Las tres declaraciones de «cómo mide este estudio», ya
+              // construidas: la sección no ve el estado ni sabe guardar.
+              comoMide: (
+                <AulasComoMideElEstudio
+                  valores={{
+                    eje: state?.aulas_universitarias?.eje_cuota ?? "",
+                    ejeMotivo: state?.aulas_universitarias?.eje_cuota_motivo ?? "",
+                    agrupacion: state?.aulas_universitarias?.agrupacion_operativa ?? "",
+                    inicioCampo: state?.aulas_universitarias?.inicio_campo ?? "",
+                  }}
+                  dimensiones={dashboard?.ejes_declarables ?? []}
+                  padron={{
+                    personas: Number(dashboard?.padron?.personas ?? 0) || 0,
+                    sinNivel: Number(dashboard?.padron?.sin_nivel ?? 0) || 0,
+                  }}
+                  fueraDelOperativo={
+                    dashboard?.respuestas_desglose?.total
+                      ? Number(dashboard.respuestas_desglose.total.fuera_del_operativo ?? 0) || 0
+                      : null
+                  }
+                  guardando={guardandoComoMide}
+                  onGuardar={(cambio) => { void declararComoMide(cambio); }}
+                />
               ),
               // El panel del criterio, ya construido: el render no ve el estado
               // ni sabe guardar. Sólo cuando hay base que mirar —sin variables

@@ -3227,6 +3227,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # recomponerla desde otro bloque del payload. Es el denominador global de
     # `avance_cuota`: la cuota del diseño vigente, o la meta del plan en
     # degradacion —que es exactamente la conducta que esta linea ya tenia.
+    # **Lo que la pantalla necesita para dejar DECLARAR cómo mide el estudio.**
+    #
+    # El eje de cuotas, la agrupación del resumen y el arranque del campo se
+    # declaraban sólo por API, así que sus tres decisiones vivían donde nadie
+    # las ve y sólo se cambiaban a mano. Para ofrecerlas hacen falta dos cosas
+    # que el payload no llevaba: el catálogo —para no copiarlo en TypeScript— y
+    # el recibo del padrón —para no ofrecer un eje por persona sin con qué
+    # resolverlo—.
+    ejes_declarables = monitoreo_aulas_ejes_declarables(),
+    # El resumen es lo PUBLICABLE del padrón: conteos, sin un solo código. Es lo
+    # mismo que queda cuando se purga, así que publicarlo no reabre el F114.
+    padron = monitoreo_aulas_padron_resumen(padron %||% list()),
     ritmo_diario = ritmo_global,
     # **La misma serie, repartida por facultad.** Con una facultad en el selector
     # del encabezado, «Ritmo de la recoleccion» seguia dibujando el operativo

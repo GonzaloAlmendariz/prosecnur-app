@@ -737,6 +737,29 @@ export type MonitoreoAulasPlanRow = {
 
 export type MonitoreoAulasConfig = {
   /**
+   * **Contra qué se mide la cuota del estudio.** `facultad` (el default de
+   * siempre), `nivel` o `carrera`. No es cosmético: con `nivel` el valor de
+   * cada respuesta sale de la PERSONA —su código declarado cruzado contra el
+   * padrón— y sin padrón ninguna cae en su celda.
+   */
+  eje_cuota?: string;
+  /** Por qué se eligió ese eje. Viaja con él y se publica. */
+  eje_cuota_motivo?: string;
+  /**
+   * **Por qué dimensión agrupa el resumen operativo de Avance**, que es otra
+   * pregunta que el eje de cuotas: aquél mide personas contra su meta, éste
+   * cuenta AULAS planificadas y aplicadas. Un estudio que vive dentro de una
+   * facultad mide por nivel y resume por carrera.
+   */
+  agrupacion_operativa?: string;
+  /**
+   * **El día que arrancó la recolección.** Lo anterior es ensayo —capacitación,
+   * pruebas del enlace— y sale por `fuera_del_operativo`. Existe porque
+   * `descartes` casa VALORES de una columna y una prueba abierta por el enlace
+   * no trae recopilador que casar. `""` no descarta nada.
+   */
+  inicio_campo?: string;
+  /**
    * Qué es un aula válida en este estudio. `null` mientras no se declare, que
    * es como están todos los estudios hoy: el veredicto se lo cree al Excel.
    * En modo «esperado» se compara con `efectivas_esperadas`, la meta que el
@@ -1932,6 +1955,33 @@ export type MonitoreoAulasDashboard = {
    * de la clave significa «no tiene», nunca «no se calculó».
    */
   reserva_de_la_cadena?: Record<string, { disponibles: number; siguiente: string }>;
+  /**
+   * El catálogo de dimensiones declarables, tal como lo publica el motor. La
+   * pantalla que deja elegir el eje NO lo copia: añadir una cuarta dimensión
+   * exigiría acordarse de dos sitios y el segundo se olvidaría.
+   */
+  ejes_declarables?: Array<{
+    clave: string;
+    etiqueta: string;
+    etiqueta_plural: string;
+    columna: string;
+    atribucion: "aula" | "persona" | string;
+    fuente_valor: "plan" | "padron" | string;
+    /** Un eje por persona sin padrón deja el avance en cero: hay que decirlo. */
+    requiere_padron: boolean;
+  }>;
+  /**
+   * El recibo PUBLICABLE del padrón: conteos, sin un solo código. Es lo mismo
+   * que queda al purgarlo, así que viaja sin reabrir el F114.
+   */
+  padron?: {
+    schema?: string;
+    personas: number;
+    sin_nivel?: number;
+    por_nivel?: Record<string, number>;
+    por_carrera?: Record<string, number>;
+    por_sexo?: Record<string, number>;
+  };
   respuestas_desglose?: {
 	    total: MonitoreoAulasRespuestasCuenta & {
 	      sin_aula: number;
