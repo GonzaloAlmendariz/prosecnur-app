@@ -1,9 +1,38 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasAvanceCuota } from "../../../../api/monitoreo";
-import { composicionReferencial } from "./composicionReferencial";
+import { composicionReferencial, type DimensionDeComposicion } from "./composicionReferencial";
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { tonoDeFacultad } from "./tonoDeFacultad";
+import { TONOS_DE_PABELLON } from "./sistemaPabellon";
 import "./composicionReferencial.css";
+
+/**
+ * **Un tono por categoría, distinto dentro de su barra.**
+ *
+ * El tono sale del NOMBRE, como manda el sistema del perfil: así una carrera
+ * conserva su color en todas las pantallas aunque cambie el orden. Pero una
+ * barra apilada exige además que dos segmentos vecinos no coincidan, y ocho
+ * tonos repartidos por hash colisionan con seis categorías más a menudo de lo
+ * que parece. Cuando pasa, el segundo se corre al siguiente libre: conserva la
+ * estabilidad donde importa —el mismo nombre, el mismo color mientras no
+ * choque— y garantiza que la barra se pueda leer.
+ */
+function tonosDeLaDimension(d: DimensionDeComposicion): Map<string, number> {
+  const usados = new Set<number>();
+  const out = new Map<string, number>();
+  for (const f of d.filas) {
+    let t = tonoDeFacultad(f.etiqueta) ?? 0;
+    let vueltas = 0;
+    while (usados.has(t) && vueltas < TONOS_DE_PABELLON) {
+      t = (t + 1) % TONOS_DE_PABELLON;
+      vueltas += 1;
+    }
+    usados.add(t);
+    out.set(f.categoria, t);
+  }
+  return out;
+}
 
 /**
  * **A quién se está alcanzando**, contra la composición de la población.
@@ -22,10 +51,21 @@ import "./composicionReferencial.css";
  * prometió. Se enseña la forma de los dos repartos y quien lee decide si le
  * dice algo. El motor tiene una prueba de AUSENCIA que defiende lo mismo.
  *
- * Los dos carriles van APILADOS y no superpuestos, al contrario que en «Qué
- * grupos no llegan»: allí lo logrado está DENTRO de lo comprometido y el ojo
- * tiene que leer inclusión; aquí son dos repartos de dos poblaciones distintas
- * y lo que hay que poder medir es la diferencia de largo.
+ * **Dos barras APILADAS al 100 %, una por reparto.** Gonzalo, 2026-09-22:
+ * «¿aquí no sería mejor barras apiladas elegantes por tipo de estrato —hombre
+ * y mujer— y luego las carreras, con la barra de base y la barra de cómo va el
+ * campo hasta ahora?».
+ *
+ * Tenía razón y el motivo se ve con las cifras de ese día: con una fila por
+ * categoría eran seis pares de barras finas y la comparación había que hacerla
+ * de dos en dos, de arriba abajo. Apiladas, el sesgo salta de un golpe —
+ * Economía ocupa el 77 % de lo recogido y el 45 % de la población—, que es
+ * justo lo que este panel existe para enseñar.
+ *
+ * Al 100 % y no a escala de volumen: lo que se compara es la FORMA de dos
+ * repartos de tamaños muy distintos (105 personas contra 800). A escala, la
+ * barra de lo recogido sería un hilo al lado de la otra y no habría nada que
+ * comparar.
  */
 export function AulasComposicionReferencial({ avanceCuota }: {
   avanceCuota: MonitoreoAulasAvanceCuota | null | undefined;
@@ -61,48 +101,107 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                 {fmt(d.obtenidasTotal)} de {fmt(d.poblacionTotal)} de la población
               </span>
             </div>
-            <ul className="aulas-comp-filas">
-              {d.filas.map((f) => {
-                const ancho = (v: number | null) =>
-                  `${Math.max(0, Math.min(100, (100 * (v ?? 0)) / d.tope))}%`;
+            {(() => {
+              const tonos = tonosDeLaDimension(d);
+              /**
+               * **Los porcentajes son los del modelo, no se recalculan.**
+               *
+               * El primer intento normalizaba cada segmento sobre la suma de
+               * las filas de su dimensión, y eso dice otra cosa que la leyenda
+               * de al lado: con las categorías cubriendo sólo parte de la
+               * población, la barra publicaba «ECONOMÍA 94 %» junto a un
+               * «44,8 %» en su propio renglón. Dos lecturas del mismo dato en
+               * cuatro centímetros.
+               *
+               * Lo que falta para el 100 % es real —categorías que el bloque no
+               * lista, o gente sin ese dato— y va en un tramo sin nombre en vez
+               * de repartirse entre las demás.
+               */
+              const pila = (cual: "obtenidas" | "poblacion") => {
+                const pctDe = (f: (typeof d.filas)[number]) =>
+                  (cual === "obtenidas" ? f.obtenidasPct : f.poblacionPct) ?? 0;
+                const suma = d.filas.reduce((acc, f) => acc + pctDe(f), 0);
+                const resto = Math.max(0, 100 - suma);
                 return (
-                  <li className="aulas-comp-fila" key={f.categoria}>
-                    <span className="aulas-comp-nombre">{f.etiqueta}</span>
-                    <span
-                      className="aulas-comp-carriles"
-                      role="img"
-                      aria-label={`${f.etiqueta}: ${f.poblacionPct == null ? "población sin porcentaje" : `${pctPerfil(f.poblacionPct)} de la población`}, ${f.obtenidasPct == null ? "recogido sin porcentaje" : `${pctPerfil(f.obtenidasPct)} de lo recogido`}`}
-                    >
-                      {/* **Lo recogido ARRIBA**, no debajo: las cifras de la
-                          derecha lo ponen primero porque es lo que cambia cada
-                          día, y con el orden invertido la pantalla se leía en
-                          un sentido y se medía en el otro. */}
-                      <i className="aulas-comp-carril">
-                        <i className={`aulas-comp-tramo es-obtenidas${(f.obtenidasPct ?? 0) > 0 ? " es-algo" : ""}`}
-                          style={{ width: ancho(f.obtenidasPct) }} />
-                      </i>
-                      <i className="aulas-comp-carril">
-                        <i className={`aulas-comp-tramo es-poblacion${(f.poblacionPct ?? 0) > 0 ? " es-algo" : ""}`}
-                          style={{ width: ancho(f.poblacionPct) }} />
-                      </i>
-                    </span>
-                    <span className="aulas-comp-cifras">
-                      {/* **El recogido primero y en negrita**: es la cifra que
-                          cambia cada día. La de población es el marco y no se
-                          mueve, así que va debajo y en el tono suave. */}
-                      <b>
-                        {f.obtenidasPct == null ? "S/D" : pctPerfil(f.obtenidasPct)}
-                        {" · "}{fmt(f.obtenidas)}
-                      </b>
-                      <span>
-                        {f.poblacionPct == null ? "S/D" : pctPerfil(f.poblacionPct)}
-                        {" · "}{fmt(f.poblacion)} de la población
-                      </span>
-                    </span>
-                  </li>
+                  <div className="aulas-comp-pila" role="img"
+                    aria-label={`${cual === "obtenidas" ? "Recogido hasta hoy" : "Población del estudio"}: ` +
+                      d.filas.map((f) => {
+                        const pct = cual === "obtenidas" ? f.obtenidasPct : f.poblacionPct;
+                        return `${f.etiqueta} ${pct == null ? "sin porcentaje" : pctPerfil(pct)}`;
+                      }).join(", ")}>
+                    {/* Sin nada recogido la barra no se dibuja vacía con un
+                        borde: se dice. Un carril gris al lado de otro lleno se
+                        lee como «van iguales» de reojo. */}
+                    {suma <= 0 ? (
+                      <span className="aulas-comp-pila-vacia">todavía nada</span>
+                    ) : (
+                      <>
+                        {d.filas.map((f) => {
+                          const pct = pctDe(f);
+                          // Un cero medido NO dibuja astilla: que ANTROPOLOGÍA
+                          // tenga 0 recogidas y 23 en la población ES el dato, y
+                          // un hilo de cortesía lo taparía.
+                          if (pct <= 0) return null;
+                          return (
+                            <i
+                              key={f.categoria}
+                              className={`aulas-comp-seg es-tono-${tonos.get(f.categoria) ?? 0}`}
+                              style={{ width: `${pct}%` }}
+                              title={`${f.etiqueta}: ${pctPerfil(pct)} · ${fmt(cual === "obtenidas" ? f.obtenidas : f.poblacion)}`}
+                            >
+                              {/* El rótulo dentro sólo donde cabe. Debajo de ~9 %
+                                  se recorta a un guión ilegible, y la leyenda ya
+                                  lo dice entero. */}
+                              {pct >= 9 ? <em>{pctPerfil(pct)}</em> : null}
+                            </i>
+                          );
+                        })}
+                        {resto > 0.5 ? (
+                          <i className="aulas-comp-seg es-resto" style={{ width: `${resto}%` }}
+                            title={`Otras categorías o sin dato: ${pctPerfil(resto)}`} />
+                        ) : null}
+                      </>
+                    )}
+                  </div>
                 );
-              })}
-            </ul>
+              };
+              return (
+                <>
+                  <div className="aulas-comp-pilas">
+                    {/* **Lo recogido ARRIBA**, no debajo: es lo que cambia cada
+                        día y lo que se viene a mirar; la población es el marco
+                        contra el que se compara y no se mueve. */}
+                    <div className="aulas-comp-pila-fila">
+                      <span className="aulas-comp-pila-rotulo">Recogido hasta hoy</span>
+                      {pila("obtenidas")}
+                    </div>
+                    <div className="aulas-comp-pila-fila">
+                      <span className="aulas-comp-pila-rotulo">Población del estudio</span>
+                      {pila("poblacion")}
+                    </div>
+                  </div>
+                  {/* La leyenda lleva las dos cifras de cada categoría: el
+                      segmento dice la forma y aquí está el número. Sin ella, una
+                      carrera en cero desaparecería de la barra y del panel. */}
+                  <ul className="aulas-comp-leyenda-cats">
+                    {d.filas.map((f) => (
+                      <li key={f.categoria}>
+                        <i className={`aulas-comp-swatch es-tono-${tonos.get(f.categoria) ?? 0}`} />
+                        <span className="aulas-comp-nombre">{f.etiqueta}</span>
+                        <b>
+                          {f.obtenidasPct == null ? "S/D" : pctPerfil(f.obtenidasPct)}
+                          {" · "}{fmt(f.obtenidas)}
+                        </b>
+                        <span className="aulas-comp-pobl">
+                          {f.poblacionPct == null ? "S/D" : pctPerfil(f.poblacionPct)}
+                          {" de la población"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              );
+            })()}
           </section>
         ))}
       </div>
