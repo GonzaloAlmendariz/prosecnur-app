@@ -424,14 +424,6 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            validas = NULL,
                                            cuotas = NULL,
                                            traslape_daa = NULL,
-                                           # Marca ISO de la última
-                                           # sincronización (`synced_at` del
-                                           # estado): la portada de «Avance de
-                                           # campo» dice la HORA, no sólo el
-                                           # día. Sale del estado y no del
-                                           # reloj, así que dos publicaciones
-                                           # sin sincronizar escriben lo mismo.
-                                           actualizado = "",
                                            disponibilidad = NULL,
                                            config_reparto = list(),
                                            # La config de AULAS, sólo por su
@@ -689,8 +681,15 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       # El mismo reparto que ya alimenta el «Plan del día» de esta publicación.
       asignados = aulas_libro_asignados_por_codigo(plan %||% list(), disponibilidad,
                                                    cfg = config_reparto),
-      extras = extras
-    ), actualizado = actualizado,
+      extras = extras,
+      # **El avance contra la cuota, que es lo que esta hoja publica.** Con el
+      # eje declarable las celdas de `design_targets` pueden ser NIVELES y el
+      # cruce por facultad del aula no casa ninguna: el 2026-09-22 esta misma
+      # hoja salió al Sheets del operativo con Efectivas 0 en las cuatro filas.
+      # Ver `monitoreo_aulas_avance_cuota_libro.R`.
+      avance_cuota = monitoreo_aulas_avance_cuota_del_plan(
+        plan %||% list(), responses, config_aulas %||% list(), padron = padron)
+    ),
     # La palabra de la primera columna, del eje declarado. La constante no se
     # toca: ver `carga_aulas_libro_avance_eje.R`.
     eje = monitoreo_aulas_eje(config_aulas %||% list()))
@@ -700,8 +699,7 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # libro—: para saber si un rechazo ya tiene relevo agendado hace falta la
   # cadena entera, y las reservas dormidas no entran al libro.
   producidas[[.malp_hoja_agendacion()]] <- aulas_libro_hoja_agendacion(
-    aulas_libro_agendacion(plan %||% unidades, partes = partes, efectivas = efectivas),
-    actualizado = actualizado
+    aulas_libro_agendacion(plan %||% unidades, partes = partes, efectivas = efectivas)
   )
   if (!is.null(valores_asignacion)) {
     producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
@@ -1134,7 +1132,6 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # parcial-matchearía `monitoreo_aulas_padron_corte`.
       padron = s[["monitoreo_aulas_padron"]],
       traslape_daa = traslape_daa,
-      actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       # B68 tercera pata: el reparto de la hoja es el de la app — misma
       # disponibilidad de sesión y misma config vigente (fijadas, duración,
       # rango, semilla).

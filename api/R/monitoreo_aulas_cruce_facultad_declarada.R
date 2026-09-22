@@ -399,10 +399,6 @@ aulas_libro_filas_control_facultad <- function(plan = list(), responses = NULL,
     "coinciden (%s) y %d no (%s)."),
     o$comparables, o$coinciden, pct(o$coinciden, o$comparables),
     o$discrepan, pct(o$discrepan, o$comparables)))
-  poner("nota", paste(
-    "Es un control, no una reatribución: esta hoja NO cambia ningún conteo del",
-    "avance. Sirve para saber cuánta de la cuota de una facultad la está",
-    "llenando gente de otra."))
   poner("nota", "")
 
   poner("bloque", .MCFD_BLOQUES[[1]])

@@ -183,23 +183,6 @@ AULAS_AVANCE_CAMPOS <- c(
   aplicador = "aplicadores", diario = "diario"
 )
 
-#' La nota que encabeza cada tabla, donde el vocabulario la pueda gobernar.
-#'
-#' Vivía copiada literal en los DOS renderers —el del `.xlsx` y el del Sheets—,
-#' que es exactamente lo que este archivo existe para impedir: el día que una
-#' frase cambie, uno de los dos seguiría publicando la anterior y nadie lo
-#' diría. Es el mismo motivo por el que los rótulos viven aquí.
-#' @keywords internal
-AULAS_AVANCE_NOTAS <- list(
-  facultad = paste(
-    "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo",
-    "que falta en otra. «Aulas planificadas originalmente» son las que el sorteo",
-    "le asignó a la facultad y no cambian; «proyectadas al cierre» son las aplicadas más",
-    "las que ya tienen fecha, y «sobre el plan» es la resta: positivo, cerrará",
-    "con más aulas de las previstas —suele ser refuerzo—; negativo, hay aulas",
-    "del plan que nadie ha agendado todavía.")
-)
-
 #' El título de bloque de cada tabla, en el orden en que se publican.
 #' @keywords internal
 AULAS_AVANCE_TITULOS <- c(

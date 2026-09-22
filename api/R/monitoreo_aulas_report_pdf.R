@@ -26,9 +26,14 @@
 #' @param snapshot snapshot de Monitoreo (`data`, `synced_at`).
 #' @param cfg config de Monitoreo ya normalizada o normalizable.
 #' @param include_targets si el documento incluye metas.
+#' @param padron el padrón de la sesión que traduce código de alumno → valor del
+#'   eje. Viaja por argumento y no dentro de `cfg` (ADR 0087). Sólo lo usa un
+#'   estudio cuyo eje de cuota se atribuye por PERSONA; sin él, la tabla de ese
+#'   estudio publica sus celdas sin efectivas en vez de inventarlas.
 #' @return lista con `report_kind`, `facultades`, `total` y la procedencia.
 #' @export
-build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = FALSE) {
+build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = FALSE,
+                                               padron = NULL) {
   if (is.null(snapshot) || !is.data.frame(snapshot$data) || !nrow(snapshot$data)) {
     stop_api(409, "E_NO_MONITOREO_DATA", "Sincroniza datos antes de generar el reporte de avance.")
   }
@@ -48,7 +53,11 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     responses = data, validas = validas, cfg = aulas_cfg,
     # Los partes también, para que «Aulas aplicadas» sea la misma cifra que en
     # el libro: la definición de aula aplicada es una sola.
-    partes = aulas_cfg$partes_campo %||% list()
+    partes = aulas_cfg$partes_campo %||% list(),
+    # Y el avance contra la cuota, por la misma razón: con el eje declarable las
+    # celdas del diseño pueden no ser facultades y sus cifras salen de ahí. Ver
+    # `monitoreo_aulas_avance_cuota_libro.R`.
+    avance_cuota = monitoreo_aulas_avance_cuota_del_plan(plan, data, aulas_cfg, padron = padron)
   )
 
   # Sin cuotas del diseño no hay avance que informar a un cliente: se dice, no
@@ -75,6 +84,13 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   aulas_plan <- .marp_titulares_por_facultad(plan)
 
   suma <- function(col) sum(suppressWarnings(as.numeric(facultades[[col]])), na.rm = TRUE)
+  # **Una columna SIN NINGÚN dato suma NA, no cero.** `na.rm = TRUE` sobre una
+  # columna entera de `NA` devuelve `0`, y desde que las celdas del eje pueden no
+  # ser facultades las cuatro columnas de aulas van a raya a propósito: un aula
+  # no pertenece a un nivel. Publicar «0 aulas aplicadas» ahí sería reintroducir
+  # en la portada del PDF el mismo cero que la tabla acaba de quitar. Es la misma
+  # función que suma la tabla «Avance general» del libro.
+  suma_o_raya <- function(col) .calam_suma(facultades, col)
   muestra <- suma("Muestra")
   # Las columnas se llaman como las dictó Gonzalo el 2026-09-08 («efectivas»,
   # «faltantes»); «Conseguidas», «Faltan» y «Aulas del plan» ya no existen en
@@ -110,7 +126,7 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     # decide qué filas muestra, no cómo se calculan.
     general = tryCatch(
       .calag_tabla_general(facultades, list(
-        aplicadas = sum(suppressWarnings(as.numeric(facultades[["Aulas aplicadas"]])), na.rm = TRUE),
+        aplicadas = suma_o_raya("Aulas aplicadas"),
         # PLANIFICADAS son los TITULARES, no las filas del plan: el plan lleva
         # dentro el banco de reservas, y contarlo entero publicaba «56 aulas
         # aplicadas de 1.392 planificadas», que es 25 veces el operativo real y
@@ -131,7 +147,7 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
       # favorable y es el número que un cliente citaría.
       faltan = suma("Faltantes muestra"),
       facultades_abiertas = sum(suppressWarnings(as.numeric(facultades[["Faltantes muestra"]])) > 0, na.rm = TRUE),
-      aulas_aplicadas = suma("Aulas aplicadas"),
+      aulas_aplicadas = suma_o_raya("Aulas aplicadas"),
       # La segunda meta, con el mismo trato que la primera (decisión de Gonzalo,
       # 2026-09-08: «dos metas, la de 2 500 y la de 3 750»).
       sobremuestra = if (sobremuestra > 0) sobremuestra else NA_real_,

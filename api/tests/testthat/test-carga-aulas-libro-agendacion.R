@@ -252,14 +252,19 @@ test_that("el xlsx gana su hoja, con los cuatro bloques y sus notas", {
   expect_match(texto, "Agendación por eslabón", fixed = TRUE)
 })
 
-test_that("las notas se FUSIONAN a lo ancho de la hoja, no se apilan en la columna A", {
-  # Se vio al abrir el libro, no aquí: escritas sólo en la columna A, las notas
-  # se partían en seis renglones dentro de una columna de 34 caracteres y
-  # empujaban la tabla media pantalla hacia abajo. El test miraba que el texto
-  # estuviera, que es lo que un texto apilado también cumple.
+test_that("el vacío declarado se FUSIONA a lo ancho de la hoja, no se apila en la columna A", {
+  # Se vio al abrir el libro, no aquí: escrito sólo en la columna A, el texto se
+  # partía en seis renglones dentro de una columna de 34 caracteres y empujaba
+  # la tabla media pantalla hacia abajo. El test miraba que el texto estuviera,
+  # que es lo que un texto apilado también cumple.
+  #
+  # Lo que se fusiona son los vacíos de `.calan_VACIOS` (C3): las notas
+  # didácticas de cada tabla se retiraron el 2026-09-22. Por eso el plan de este
+  # fixture no agenda nada — con las cuatro tablas llenas ya no queda una sola
+  # celda larga en la columna A que fusionar.
   skip_if_not_installed("openxlsx")
   wb <- openxlsx::createWorkbook()
-  plan <- list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"))
+  plan <- list(.calan_u("CH 1", estado = "en_contacto"))
   aulas_libro_escribir_agendacion(aulas_libro_agendacion(plan), wb)
   celdas <- wb$worksheets[[1]]$mergeCells
   expect_gt(length(celdas), 0L)
@@ -440,15 +445,13 @@ test_that("un aula con parte que no consta agendada se nombra, no se deja adivin
   ag <- aulas_libro_agendacion(plan, partes = partes)
   expect_identical(ag$aplicadas_sin_agendar, "CH 143")
 
-  # Y sale ARRIBA, junto al corte: enterrarlo al final lo convertiría en un
-  # detalle que nadie relaciona con la diferencia que está viendo.
-  filas <- aulas_libro_hoja_agendacion(ag)
-  textos <- vapply(filas, function(f) as.character(unlist(f))[1] %||% "", character(1))
-  aviso <- which(grepl("no la da por agendada", textos, fixed = TRUE))
-  expect_length(aviso, 1L)
-  expect_lt(aviso, 5L)
-  expect_true(grepl("CH 143", textos[[aviso]], fixed = TRUE))
-  expect_true(grepl("«Ya aplicados» puede superar", textos[[aviso]], fixed = TRUE))
+  # **El modelo lo sigue midiendo; la hoja ya no lo escribe.** El aviso se
+  # retiró con las notas didácticas (Gonzalo, 2026-09-22), así que el dato queda
+  # disponible para quien lo consuma y la pestaña no lo pregona.
+  textos <- vapply(aulas_libro_hoja_agendacion(ag),
+                   function(f) as.character(unlist(f))[1] %||% "", character(1))
+  expect_false(any(grepl("por agendada", textos, fixed = TRUE)))
+  expect_false(any(grepl("«Ya aplicados» puede superar", textos, fixed = TRUE)))
 })
 
 test_that("sin ninguna así, la hoja no inventa el aviso", {
@@ -460,4 +463,26 @@ test_that("sin ninguna así, la hoja no inventa el aviso", {
   textos <- vapply(aulas_libro_hoja_agendacion(ag),
                    function(f) as.character(unlist(f))[1] %||% "", character(1))
   expect_false(any(grepl("por agendada", textos, fixed = TRUE)))
+})
+
+test_that("las notas didácticas de las cuatro tablas se fueron, y su registro no existe", {
+  # Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop
+  # para mí» — `.calan_NOTAS` era el registro de las cinco. Lo que SÍ se queda
+  # es `.calan_VACIOS`: el estado vacío de cada tabla (C3), sin el cual una
+  # tabla sin filas es un rectángulo en blanco que no distingue «no hay nada»
+  # de «esto se rompió».
+  expect_false(exists(".calan_NOTAS", envir = asNamespace("prosecnurapp"), inherits = FALSE))
+  expect_true(exists(".calan_VACIOS", envir = asNamespace("prosecnurapp"), inherits = FALSE))
+
+  plan <- list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-07"))
+  textos <- vapply(aulas_libro_hoja_agendacion(aulas_libro_agendacion(plan)),
+                   function(f) as.character(unlist(f))[1] %||% "", character(1))
+  for (frase in c("Aquí la unidad es la FILA", "Aulas del diseño» son las que el sorteo",
+                  "Semanas de lunes a sábado", "la tabla dinámica hecha a mano")) {
+    expect_false(any(grepl(frase, textos, fixed = TRUE)), info = frase)
+  }
+  # Y el corte ya no arrastra la procedencia: el renderer ni siquiera acepta la
+  # marca de sincronización.
+  expect_false("actualizado" %in% names(formals(aulas_libro_hoja_agendacion)))
+  expect_false(any(grepl("datos de plataforma actualizados", textos, fixed = TRUE)))
 })

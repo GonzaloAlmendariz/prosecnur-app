@@ -64,7 +64,17 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
                                     # contar las aulas adicionales que el equipo
                                     # ya pidió y agendó aunque todavía no las
                                     # haya aplicado.
-                                    extras = list()) {
+                                    extras = list(),
+                                    # El bloque de avance contra la cuota
+                                    # (`monitoreo_aulas_avance_cuota_del_plan()`),
+                                    # que sólo tiene quien tiene el plan ENTERO y
+                                    # el padrón de la sesión. Va AL FINAL de la
+                                    # firma a propósito: hay un llamador que pasa
+                                    # los cinco primeros por posición
+                                    # (`carga_aulas_libro_generar.R`). NULL, o un
+                                    # estudio con el eje en el aula, dejan la
+                                    # tabla por facultad exactamente como estaba.
+                                    avance_cuota = NULL) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
 
@@ -118,7 +128,11 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   # Vive en `carga_aulas_libro_avance_facultad.R`.
   facultades <- .calaf_avance_por_facultad(
     unidades, efectivas = efectivas, cuotas = cuotas,
-    responses = responses, validas = validas, cfg = cfg, partes = partes
+    responses = responses, validas = validas, cfg = cfg, partes = partes,
+    # Con el eje declarable las celdas de la cuota pueden no ser facultades, y
+    # entonces las cifras salen del bloque que ya cruzó por persona. Ver
+    # `monitoreo_aulas_avance_cuota_libro.R`.
+    avance_cuota = avance_cuota
   )
 
   # **LAS CINCO TABLAS DICTADAS** (Gonzalo, 2026-09-08). Cada una vive en su
@@ -459,7 +473,7 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # llegar a la meta lo decide el VOCABULARIO por el nombre del rótulo
   # (`carga_aulas_libro_avance_columnas.R`), que es el mismo que lee el Sheets.
   escribir_tabla <- function(clave, tabla, nota_arriba = NULL,
-                             nota_abajo = NULL, vacio = NULL, con_total = FALSE) {
+                             vacio = NULL, con_total = FALSE) {
     titulo_bloque <- AULAS_AVANCE_TITULOS[[clave]]
     openxlsx::writeData(wb, hoja, titulo_bloque, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
@@ -589,10 +603,6 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     # misma clasificación por rótulo.
     .cai_semaforo(wb, hoja, tabla, cabecera_en, traspuesta)
     fila <<- ultima + 2L
-    if (!is.null(nota_abajo)) {
-      .cai_nota(wb, hoja, fila - 1L, nota_abajo, nota, n_hoja, anchos_col)
-      fila <<- fila + 1L
-    }
     invisible(NULL)
   }
 
@@ -644,49 +654,24 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # la cuota es por facultad. La producción dice a quién empujar; esto dice si
   # el estudio cierra.
   if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
-    escribir_tabla(
-      "facultad", ind$facultades,
-      nota_arriba = AULAS_AVANCE_NOTAS$facultad,
-      nota_abajo = .calaf_nota_metas(ind$facultades, eje),
-      con_total = TRUE
-    )
+    escribir_tabla("facultad", ind$facultades, con_total = TRUE)
   }
 
   # --- 3. RENDIMIENTO POR FACULTAD --------------------------------------------
   escribir_tabla(
     "rendimiento", ind$rendimiento,
-    nota_arriba = paste(
-      "Las tasas se miden sobre los elegibles de las aulas ya aplicadas. Las",
-      "efectivas esperadas son esos elegibles por la tasa que el diseño le puso a",
-      "la facultad: cuántas fichas debían salir de las aulas a las que ya se fue.",
-      "El plan no trae elegibles por sexo, así que la esperada de hombres y la de",
-      "mujeres se reparten con la misma proporción con la que el diseño repartió",
-      "la cuota de esa facultad."
-    ),
     vacio = "El plan todavía no trae facultades con aulas que medir."
   )
 
   # --- 4. PRODUCCIÓN POR APLICADOR --------------------------------------------
   escribir_tabla(
     "aplicador", ind$aplicadores,
-    nota_arriba = paste(
-      "Una fila por persona en cada facultad. La tasa esperada es la de la",
-      "facultad, así que quien cubre dos se mide contra la vara de cada una.",
-      "«Efectivas faltantes» es lo que sus aulas ya aplicadas rindieron por debajo de",
-      "lo esperado. Sobre las que aún no aplica no falta ninguna ficha."
-    ),
     vacio = .cali_motivo_sin_aplicadores()
   )
 
   # --- 5. AVANCE DIARIO -------------------------------------------------------
   escribir_tabla(
     "diario", ind$diario,
-    nota_arriba = paste(
-      "Una fila por facultad y día. Las efectivas esperadas son la suma de las",
-      "metas de los cursos-horario que ya se aplicaron ese día, no de todos los",
-      "que estaban agendados: se compara contra lo que se hizo, no contra lo que",
-      "falta por hacer."
-    ),
     vacio = .cali_motivo_sin_diario(ind)
   )
 

@@ -490,35 +490,6 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
 # las mismas primitivas.
 
 #' @keywords internal
-.calan_NOTAS <- c(
-  total = paste(
-    "Aquí la unidad es la FILA, no la cadena: un titular y su reemplazo agendados",
-    "son dos citas y dos visitas. La tabla de abajo cuenta cadenas, así que sus",
-    "cifras no tienen por qué coincidir con éstas, y ninguna de las dos sobra."
-  ),
-  facultad = paste(
-    "«Aulas del diseño» son las que el sorteo le asignó a esa facultad, y la",
-    "unidad es la CADENA, no la fila: un titular con todos sus reemplazos cuenta",
-    "UNA. Una cadena está agendada si cualquiera de sus eslabones lo está. Las",
-    "reservas extra no entran aquí porque no reemplazan a nadie: son aulas",
-    "añadidas después para cerrar cuotas, y tienen su propia columna."
-  ),
-  semana = paste(
-    "Semanas de lunes a sábado, contadas desde el lunes de la primera aula",
-    "agendada. El domingo no se trabaja; si alguna cae en domingo, cuenta en la",
-    "semana que empezó ese lunes."
-  ),
-  dia = paste(
-    "Aquí la unidad es la FILA y no la cadena: si un titular cayó y su reemplazo",
-    "se agendó para otro día, los dos días tienen trabajo."
-  ),
-  eslabon = paste(
-    "Lo que la tabla dinámica hecha a mano no podía ver: los once eslabones de",
-    "reemplazo viven a la derecha del titular, en la misma fila de la agenda."
-  )
-)
-
-#' @keywords internal
 .calan_VACIOS <- c(
   total = "Todavía no hay ningún curso-horario agendado.",
   facultad = "El plan todavía no trae facultades con aulas que agendar.",
@@ -536,10 +507,9 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
 #' se deriva del último día agendado del propio modelo.
 #'
 #' @param ag el modelo de `aulas_libro_agendacion()`.
-#' @param actualizado marca ISO de la última sincronización, para la portada.
 #' @return lista de filas de celdas.
 #' @export
-aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
+aulas_libro_hoja_agendacion <- function(ag) {
   ag <- if (is.list(ag)) ag else list()
   filas <- list()
   poner <- function(...) {
@@ -556,26 +526,8 @@ aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
   } else {
     "Todavía no hay ninguna aula con fecha agendada."
   }
-  marca <- .cai_marca_local(.cala_txt(actualizado))
-  if (nzchar(marca)) corte <- paste0(corte, " · datos de plataforma actualizados el ", marca)
-
   poner("Avance de agendación")
   poner(corte)
-  # El aviso va ARRIBA, junto al corte: es lo que explica por qué «Ya
-  # aplicados» y las agendadas de abajo no cuadran, y enterrarlo al final lo
-  # convertiría en un detalle que nadie relaciona con la diferencia que ve.
-  sin_agendar <- as.character(ag[["aplicadas_sin_agendar"]] %||% character(0))
-  if (length(sin_agendar)) {
-    poner(sprintf(
-      paste("%s tiene%s parte de campo y la hoja de agenda no %s da por",
-            "agendada%s: %s. Por eso «Ya aplicados» puede superar a las",
-            "agendadas de las tablas de abajo."),
-      if (length(sin_agendar) == 1L) "1 aula" else sprintf("%d aulas", length(sin_agendar)),
-      if (length(sin_agendar) == 1L) "" else "n",
-      if (length(sin_agendar) == 1L) "la" else "las",
-      if (length(sin_agendar) == 1L) "" else "s",
-      paste(sort(sin_agendar), collapse = ", ")))
-  }
   poner("")
 
   for (clave in names(AULAS_AGENDACION_CABECERAS)) {
@@ -586,9 +538,6 @@ aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
       poner("")
       next
     }
-    poner(unname(.calan_NOTAS[[clave]]))
-    # `proporciones = character(0)`: aquí no hay ni una. Ver la nota de arriba
-    # sobre por qué no se pregunta al vocabulario de «Avance de campo».
     # **Las proporciones de ESTA hoja, no `character(0)`.** `.cala_celda_num()`
     # redondea a cuatro decimales lo que es proporción y a DOS lo que es
     # conteo, así que declarar «aquí no hay ninguna» convertía 0,6842 en 0,68 y
@@ -815,14 +764,6 @@ aulas_libro_escribir_agendacion <- function(ag, wb, hoja = "Avance de agendació
       fila <- fila + 2L
       next
     }
-    # **La nota se FUSIONA a lo ancho de la hoja**, con el mismo helper que su
-    # hermana. Escrita sólo en la columna A se partía en seis renglones dentro
-    # de una columna de 34 caracteres y empujaba la tabla media pantalla hacia
-    # abajo: se vio al abrir el libro, no en los tests, que sólo miraban que el
-    # texto estuviera.
-    .cai_nota(wb, hoja, fila, unname(.calan_NOTAS[[clave]]), nota, n_hoja, anchos_col)
-    fila <- fila + 1L
-
     n_col <- ncol(tabla)
     cabecera_en <- fila
     openxlsx::writeData(wb, hoja, tabla, startCol = 1, startRow = cabecera_en)

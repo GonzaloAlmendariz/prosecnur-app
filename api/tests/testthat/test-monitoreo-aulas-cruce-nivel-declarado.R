@@ -231,9 +231,13 @@ test_that("la hoja trae la matriz, las discrepancias y la bolsa desglosada", {
   # opcion de escape y leerla entre ellos la haria parecer uno mas.
   cab <- filas[[which(primeras == "NIVEL DEL PADRÓN")[[1]]]]$celdas
   expect_identical(as.character(cab)[[1]], "NIVEL DEL PADRÓN")
-  # Y la hoja declara que NO reatribuye nada, que es lo que la separa del avance.
+  # Y la hoja NO lleva ya las notas didácticas que la encabezaban (Gonzalo,
+  # 2026-09-22: «son ai slop para mí»): ni la que explicaba qué se cruza contra
+  # qué, ni la de «es un control, no una reatribución». Los tres bloques de
+  # arriba son lo que la hoja dice de sí misma.
   notas <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
-  expect_true(grepl("NO cambia ningún conteo", notas, fixed = TRUE))
+  expect_false(grepl("NO cambia ningún conteo", notas, fixed = TRUE))
+  expect_false(grepl("El nivel de la PERSONA", notas, fixed = TRUE))
 })
 
 test_that("el codigo del alumno NO viaja a la hoja: es PII y la hoja se comparte", {
@@ -267,20 +271,20 @@ test_that("«Control de nivel» esta en el orden de pestanas del Sheets", {
                    which(orden == "Control de facultad") + 1L)
 })
 
-test_that("cada mitad de «Otros» se dice SOLO si existe", {
-  # Con 0 coincidencias la version anterior escribia «son 0 que coinciden», que
-  # no es una frase. Se vio generando el .xlsx con datos, no leyendo el motor.
+test_that("el aviso de las dos mitades de «Otros» ya no se escribe en la hoja", {
+  # Era una nota didáctica de las que Gonzalo retiró el 2026-09-22. Las dos
+  # mitades se siguen MIDIENDO —`fuera_declarado$coinciden` y `$discrepan`, con
+  # su prueba en el motor, más arriba en este mismo archivo— y la matriz de la
+  # hoja enseña «Otros» en su propia columna: lo que se va es el párrafo.
   pad <- .mcnd_padron(list("20201234" = 6L, "20201235" = 7L))
   filas <- aulas_libro_filas_control_nivel(
     .mcnd_resp(c("20201234", "20201235"), c("1", "5")), pad, .mcnd_cfg())
   notas <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
-  expect_true(grepl("el padrón las pone DENTRO", notas, fixed = TRUE))
-  expect_false(grepl("0 marcaron", notas, fixed = TRUE))
-  # Y al contrario: con el padron fuera del rango, solo se dice la mitad buena.
+  expect_false(grepl("el padrón las pone DENTRO", notas, fixed = TRUE))
+  expect_false(grepl("marcaron «Otros»", notas, fixed = TRUE))
   pad2 <- .mcnd_padron(list("20201234" = 6L, "20201235" = 12L))
   filas2 <- aulas_libro_filas_control_nivel(
     .mcnd_resp(c("20201234", "20201235"), c("1", "5")), pad2, .mcnd_cfg())
   notas2 <- paste(unlist(lapply(filas2, function(f) as.character(unlist(f$celdas)))), collapse = " ")
-  expect_true(grepl("coinciden, y no son un desacuerdo", notas2, fixed = TRUE))
-  expect_false(grepl("pone DENTRO", notas2, fixed = TRUE))
+  expect_false(grepl("coinciden, y no son un desacuerdo", notas2, fixed = TRUE))
 })

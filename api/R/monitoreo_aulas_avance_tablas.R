@@ -67,12 +67,12 @@
 #'
 #' @param clave la clave de la tabla en el vocabulario.
 #' @param tabla el `data.frame` del modelo.
-#' @param nota,nota_pie textos de la hoja, para que la pantalla diga lo mismo.
+#' @param nota el vacío declarado de la tabla, para que la pantalla diga lo
+#'   mismo que la hoja cuando no hay filas.
 #' @param total la fila de cierre, o `NULL`.
 #' @return lista lista para JSON, o `NULL` sin tabla.
 #' @keywords internal
-.maat_bloque <- function(clave, tabla, nota = "", nota_pie = "", total = NULL,
-                         eje = NULL) {
+.maat_bloque <- function(clave, tabla, nota = "", total = NULL, eje = NULL) {
   # **La cabecera que se PINTA lleva la palabra del eje; los tipos y el semáforo
   # se deciden con el rótulo original.** Un «Nivel» en la primera columna no
   # debe cambiar cómo se formatea la segunda, así que las dos vistas de la
@@ -102,7 +102,6 @@
     clave = clave,
     titulo = unname(AULAS_AVANCE_TITULOS[[clave]]),
     nota = nota,
-    nota_pie = nota_pie,
     traspuesta = traspuesta,
     cabecera = as.list(cabecera_vista),
     tipos = as.list(tipos_col),
@@ -174,14 +173,18 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
     validas = validas, cuotas = aulas_cfg[["design_targets"]], cfg = aulas_cfg,
     asignados = aulas_libro_asignados_por_codigo(
       plan, s[["monitoreo_aulas_disponibilidad"]], cfg = aulas_cfg),
-    extras = extras
+    extras = extras,
+    # **El bloque de cuota, sobre el plan ENTERO y con el padrón de la sesión.**
+    # `unidades` es el recorte que entra al libro; la cuota se mide sobre todo
+    # lo recogido. Y el padrón se lee con `[[` y no con `$`: vive sólo en la
+    # sesión (ADR 0087) y el `$` parcial-matchearía `monitoreo_aulas_padron_corte`.
+    avance_cuota = monitoreo_aulas_avance_cuota_del_plan(
+      plan, respuestas, aulas_cfg, padron = s[["monitoreo_aulas_padron"]])
   )
 
   # La misma portada que la hoja, de la misma función: día del corte y hora de
   # la última sincronización, las dos derivadas del estado y no del reloj.
-  portada <- aulas_libro_hoja_avance(
-    ind, actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
-    eje = monitoreo_aulas_eje(aulas_cfg))
+  portada <- aulas_libro_hoja_avance(ind, eje = monitoreo_aulas_eje(aulas_cfg))
   corte <- if (length(portada) >= 2L) as.character(portada[[2]][[1]]) else ""
 
   notas <- .maat_notas(ind)
@@ -193,9 +196,6 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
     .maat_bloque(
       clave, tabla, eje = eje,
       nota = notas[[clave]] %||% "",
-      nota_pie = if (identical(clave, "facultad") && is.data.frame(tabla) && nrow(tabla)) {
-        .calaf_nota_metas(tabla, eje)
-      } else "",
       total = if (identical(clave, "facultad")) .calaf_fila_total(tabla) else NULL
     )
   })
@@ -209,8 +209,9 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
   )
 }
 
-# Las notas de cada bloque, LAS MISMAS que escribe la hoja. Viven en el renderer
-# del Sheets y se leen de ahí en vez de copiarse: dos literales gemelos en dos
+# La línea suelta que cada bloque escribe bajo su título: hoy sólo el vacío
+# declarado de una tabla sin filas (C3) y el titular de «Avance general». Se lee
+# del renderer del Sheets en vez de copiarse: dos literales gemelos en dos
 # archivos es exactamente como se separan.
 .maat_notas <- function(ind) {
   filas <- aulas_libro_hoja_avance(ind)

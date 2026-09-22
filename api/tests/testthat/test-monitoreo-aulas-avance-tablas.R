@@ -148,16 +148,20 @@ test_that("«Avance general» viaja declarada como traspuesta, con su tipo por f
   expect_true(is.na(aulas[[4]]))
 })
 
-test_that("la portada trae el corte con su hora, y la tabla por facultad su fila Total", {
+test_that("la portada trae el corte PELADO, y la tabla por facultad su fila Total", {
+  # El corte es el día y nada más: el sufijo «· datos de plataforma actualizados
+  # a las HH:MM · escrito con N aulas con parte de campo» se retiró con las
+  # notas didácticas (Gonzalo, 2026-09-22). La hora de sincronización sigue
+  # viajando aparte, en `res$actualizado`, para quien la quiera.
   res <- monitoreo_aulas_avance_tablas(.maat_sesion())
-  expect_match(res$corte, "^Al [0-9]{2}/[0-9]{2}/[0-9]{4} · datos de plataforma actualizados")
+  expect_match(res$corte, "^Al [0-9]{2}/[0-9]{2}/[0-9]{4}$")
   expect_match(res$titular, "^Efectivas sobre la cuota:")
   fac <- .maat_de(res, "facultad")
   expect_identical(as.character(fac$total[[1]]), "Total")
-  # Y las notas son las MISMAS que escribe la hoja, no una segunda redacción.
-  expect_match(fac$nota, "^La cuota es de cada facultad")
-  expect_match(fac$nota_pie, "^Muestra \\(")
-  expect_false(any(grepl(" — ", c(fac$nota, fac$nota_pie), fixed = TRUE)))
+  # Y la tabla no lleva ninguna nota: ni la de arriba ni la del pie, que ya no
+  # existe como campo del bloque.
+  expect_identical(fac$nota %||% "", "")
+  expect_null(fac$nota_pie)
 })
 
 test_that("sin plan no se devuelve una tabla vacía: se dice por qué", {

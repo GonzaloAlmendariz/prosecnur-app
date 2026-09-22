@@ -223,32 +223,18 @@ test_that("una cabecera larga hace crecer su fila: WRAP reparte, no estira", {
   expect_gte(corta, 30L)
 })
 
-test_that("la portada dice la HORA de la última actualización, y sale del estado", {
-  # Gonzalo, 2026-09-08: «aquí está el día pero falta la hora última de
-  # actualización». La marca es `synced_at` del estado y NUNCA el reloj: dos
-  # publicaciones sin sincronizar escriben la misma celda, y el motor
-  # batch+hash no reescribe la pestaña por eso.
+test_that("la portada dice el corte y NADA más: la procedencia se fue con las notas", {
+  # Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop
+  # para mí». La línea llevaba pegados «· datos de plataforma actualizados a
+  # las HH:MM» y «· escrito con N aulas con parte de campo»; los dos se van y no
+  # los sustituye nada. El día del corte SÍ se queda.
   ind <- .calac_ind()
-  linea <- function(actualizado) {
-    as.character(aulas_libro_hoja_avance(
-      ind, fecha = as.Date("2026-09-08"), actualizado = actualizado)[[2]][[1]])
-  }
-  # Mismo día que el corte: basta la hora, en hora local de Lima.
-  #
-  # **La línea lleva desde el 2026-09-17 una tercera parte**: con cuántas aulas
-  # con parte se escribió. La hora de la plataforma no cubría los partes —entran
-  # leyendo el propio Sheets— así que dos publicaciones con la misma hora podían
-  # llevar distinto número de aulas, y no había con qué distinguirlas. Sale del
-  # MODELO, no del reloj, para conservar la propiedad de arriba.
-  expect_match(linea("2026-09-08T19:16:22Z"),
-               "^Al 08/09/2026 · datos de plataforma actualizados a las [0-9]{2}:[0-9]{2} · escrito con [0-9]+ aulas? con parte de campo$")
-  # Otro día: se dice entero, que es justo la noticia (los datos son de ayer).
-  expect_match(linea("2026-09-07T22:05:00Z"),
-               "actualizados el 07/09/2026 [0-9]{2}:[0-9]{2} · escrito con [0-9]+ aulas? con parte de campo$")
-  # Sin marca, la portada no se inventa una hora — pero sí dice con cuántas
-  # aulas se escribió, que no depende de la sincronización.
-  expect_match(linea(""), "^Al 08/09/2026 · escrito con [0-9]+ aulas? con parte de campo$")
-  # Y el renderer sigue sin consultar el reloj en su cuerpo.
+  linea <- as.character(aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-08"))[[2]][[1]])
+  expect_identical(linea, "Al 08/09/2026")
+  # Y el renderer ya no acepta la marca de sincronización: el parámetro murió
+  # con la frase que lo consumía.
+  expect_false("actualizado" %in% names(formals(aulas_libro_hoja_avance)))
+  # Sigue sin consultar el reloj en su cuerpo.
   cuerpo <- paste(deparse(body(aulas_libro_hoja_avance)), collapse = " ")
   expect_false(grepl("Sys.Date|Sys.time", cuerpo))
 })
