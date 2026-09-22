@@ -924,6 +924,14 @@ export type MonitoreoAulasAvanceCuotaTotal = {
    */
   sin_eje?: number;
   duplicadas?: number;
+  /**
+   * Válidas cuyo valor de eje RESOLVIÓ y el diseño no traza: nivel 5 en un
+   * estudio dimensionado de 6 a 9. No son `sin_eje` —resolvieron— ni
+   * huérfanas —casaron con el plan—, y hasta el 2026-09-22 no estaban en
+   * ninguna bolsa: el bloque publicaba 7 válidas sobre 9 atribuidas y el
+   * invariante en verde.
+   */
+  sin_celda?: number;
   invariante?: {
     schema?: string;
     ok?: boolean;
@@ -958,12 +966,17 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   /** `null` en las filas sin cuota: sin denominador no hay resta. */
   brecha: number | null;
   avance_pct: number | null;
-  fuente_fila: "diseno" | "plan" | "sin_cuota";
+  fuente_fila: "diseno" | "plan" | "sin_cuota" | "fuera_del_diseno";
   /**
    * `sin_aulas_en_plan` = facultad del diseño sin aulas sorteadas: hueco
    * estructural del sorteo, no retraso de campo.
+   *
+   * `fuera_del_diseno` = valor de eje OBSERVADO que el diseño no traza. Nace de
+   * respuestas que ya existen, así que nunca está vacía, y es lo contrario de
+   * una celda que no se llena: lo que dice es que esas encuestas se recogieron
+   * y no cuentan para ninguna cuota.
    */
-  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota";
+  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   fuera_universo: number;
   respuestas_sin_sexo: number;
 };

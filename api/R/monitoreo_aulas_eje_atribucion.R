@@ -230,13 +230,36 @@ monitoreo_aulas_eje_atribucion <- function(atr, plan_df = NULL, responses = NULL
 #' motor como sus pruebas: un invariante que sólo se verifica en el test se
 #' queda en el test.
 #'
+#' **`publicadas` es lo que el lector puede sumar con el dedo.** Sin ese
+#' argumento la comprobación usa `en_celdas`, que es la MÁSCARA del satélite —
+#' «tiene valor de eje»— y no el número de respuestas que acabaron en una celda
+#' impresa. Los dos coinciden mientras toda clave observada tenga celda, y
+#' dejan de coincidir en cuanto una no la tiene: entonces la suma cuadra contra
+#' el total, `ok` sale `TRUE`, y las respuestas de esa clave no están en ningún
+#' número de la pantalla. Medido el 2026-09-22, primer día de campo de CCSS
+#' Perfil 2026-II: nueve respuestas, siete de nivel 6 —celda del diseño— y dos
+#' de nivel 5, que el diseño no traza. El bloque publicaba `en_celdas = 9`,
+#' `respuestas_validas = 7`, todas las demás bolsas en cero y `ok = TRUE`.
+#'
 #' @param eje_atr salida de [monitoreo_aulas_eje_atribucion()].
 #' @param total_validas cuántas válidas había.
+#' @param publicadas cuántas respuestas suman las celdas realmente publicadas.
+#'   `NULL` conserva el comportamiento anterior.
 #' @return lista con `ok`, las partes y su suma.
 #' @export
-monitoreo_aulas_eje_invariante <- function(eje_atr, total_validas) {
+monitoreo_aulas_eje_invariante <- function(eje_atr, total_validas, publicadas = NULL) {
   inv <- attr(eje_atr, "invariante") %||% list()
-  partes <- c(inv$en_celdas %||% 0L, inv$duplicadas %||% 0L, inv$sin_eje %||% 0L,
+  en_celdas <- as.integer(inv$en_celdas %||% 0L)
+  pub <- suppressWarnings(as.integer(publicadas %||% NA_integer_))[1]
+  # La diferencia no se reparte ni se disculpa: se nombra. `sin_celda` son
+  # válidas cuyo valor de eje resolvió y el diseño no mide —nivel 5 en un
+  # estudio trazado de 6 a 9—, y son distintas de `sin_eje`, que son las que no
+  # resolvieron. Confundirlas mandaría a revisar el padrón, que está bien.
+  sin_celda <- if (is.na(pub)) 0L else max(0L, en_celdas - pub)
+  if (!is.na(pub)) en_celdas <- pub
+  inv$en_celdas <- en_celdas
+  inv$sin_celda <- sin_celda
+  partes <- c(en_celdas, sin_celda, inv$duplicadas %||% 0L, inv$sin_eje %||% 0L,
               inv$fuera_universo %||% 0L, inv$huerfanas %||% 0L)
   suma <- as.integer(sum(partes))
   total <- as.integer(suppressWarnings(as.numeric(total_validas %||% 0))[1] %||% 0L)

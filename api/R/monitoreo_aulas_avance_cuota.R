@@ -417,6 +417,49 @@
     num_total <- sum(vapply(filas, function(x) as.numeric(x$respuestas_validas), numeric(1)))
   }
 
+  # **Un valor de eje que el diseño no traza tiene fila, no silencio.**
+  #
+  # `num_k` tabula TODAS las claves con `cuenta`; arriba sólo se leen las que el
+  # diseño declara. Lo que sobra no caía en ninguna bolsa: ni celda, ni
+  # `sin_eje` —resolvió—, ni `fuera_universo` —el aula existía—, ni huérfana
+  # —casó con el plan—. Salía del bloque sin aparecer en ningún número.
+  #
+  # Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: nueve
+  # respuestas de CH 45, siete de nivel 6 y dos de nivel 5. La cabecera decía
+  # `respuestas_validas = 7`, el invariante `en_celdas = 9` y `ok = TRUE`. Dos
+  # de las nueve del día, invisibles, con el bloque afirmando que cuadraba.
+  #
+  # Y no es un caso de borde que se cierre solo: el eje se movió a la PERSONA
+  # justamente porque un aula de nivel 6 tiene alumnos de 5, 6 y 7. Pasará cada
+  # día de campo, y la fila lo dice con la palabra que corresponde — «el diseño
+  # no mide este nivel» — en vez de dejar que el coordinador busque una fuga.
+  #
+  # Es lo contrario de la fila derivada del PLAN que este bloque se niega a
+  # emitir unas líneas más arriba: aquélla nace de una propiedad del aula y
+  # nunca se llena; ésta nace de respuestas que ya existen y por construcción
+  # nunca está vacía.
+  claves_con_celda <- vapply(filas, function(x) {
+    .monitoreo_scalar(x$faculty_key, "")
+  }, character(1))
+  sin_celda_k <- num_k[!(names(num_k) %in% claves_con_celda)]
+  # La etiqueta sale del VALOR observado, no del plan: el plan no conoce esta
+  # clave —si la conociera, tendría celda— y `etiqueta_plan()` caería al código.
+  etiqueta_observada <- function(k) {
+    v <- eje_atr$valor[eje_atr$cuenta & eje_atr$clave %in% k]
+    v <- v[nzchar(v)]
+    if (length(v)) v[1] else etiqueta_plan(k)
+  }
+  for (k in names(sin_celda_k)) {
+    filas[[length(filas) + 1L]] <- list(
+      facultad = etiqueta_observada(k), faculty_key = k, cuota = NA_real_,
+      tau_prevista = NA_real_,
+      respuestas_validas = .maac_toma_int(num_k, k),
+      fuente_fila = "fuera_del_diseno", estado = "fuera_del_diseno",
+      fuera_universo = .maac_toma_int(fuera_k, k),
+      respuestas_sin_sexo = .maac_toma_int(sin_sexo_k, k)
+    )
+  }
+
   # **La brecha es la SUMA DE LAS CELDAS, no la resta del total.**
   #
   # Un hombre de mas no cubre a una mujer que falta. La doctrina ya estaba
@@ -501,10 +544,29 @@
     # ausencia obligaría al lector a adivinar si la bolsa no existe o está vacía.
     sin_eje = as.integer(sum(eje_atr$sin_eje)),
     duplicadas = as.integer(sum(eje_atr$duplicada)),
-    # `respuestas_validas = Σ celdas + duplicados + sin_eje + fuera_universo +
-    # huerfanas`, comprobado por la misma función que lo comprueban sus pruebas:
-    # un invariante que sólo se verifica en el test se queda en el test.
-    invariante = monitoreo_aulas_eje_invariante(eje_atr, total_validas)
+    # La quinta bolsa: resolvieron a un valor de eje que el diseño no traza.
+    # Tienen su fila arriba; el agregado va aquí para que la cabecera pueda
+    # decirlo sin recorrer la tabla, y para que el invariante lo compruebe.
+    sin_celda = as.integer(sum(sin_celda_k)),
+    # `respuestas_validas = Σ celdas + sin_celda + duplicados + sin_eje +
+    # fuera_universo + huerfanas`, comprobado por la misma función que lo
+    # comprueban sus pruebas: un invariante que sólo se verifica en el test se
+    # queda en el test.
+    #
+    # **Y se comprueba contra lo PUBLICADO**, no contra la máscara del
+    # satélite. `en_celdas` decía «tiene valor de eje»; las celdas impresas
+    # pueden ser menos, y esa diferencia era justo la que nadie veía.
+    invariante = monitoreo_aulas_eje_invariante(
+      eje_atr, total_validas,
+      publicadas = sum(vapply(filas, function(x) {
+        # Las filas fuera del diseño NO entran aquí: son la parte `sin_celda`
+        # del invariante, y contarlas en las dos dejaría a `sin_celda` en cero
+        # mientras la cabecera publica su conteo. Dos nombres para la misma
+        # cifra que no coinciden es peor que no publicarla.
+        if (identical(.monitoreo_scalar(x$estado, ""), "fuera_del_diseno")) 0
+        else as.numeric(.monitoreo_num(x$respuestas_validas, 0))
+      }, numeric(1)))
+    )
   )
 
   list(

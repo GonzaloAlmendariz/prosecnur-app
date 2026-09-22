@@ -358,3 +358,69 @@ test_that("con cuotas de sexo declaradas el proyector sigue recibiendo ESAS", {
     celdas, function(c1) prosecnurapp:::.maac_sexo_key(c1$sex) %in% c("F", "M"),
     logical(1))))
 })
+
+# =============================================================================
+# El nivel que el diseño no traza
+# =============================================================================
+#
+# El defecto que esto fija, medido el 2026-09-22 sobre el primer día de campo de
+# CCSS Perfil 2026-II: nueve respuestas de CH 45, siete personas de nivel 6 y
+# dos de nivel 5. El estudio traza celdas de 6 a 9, así que las dos de nivel 5
+# resolvían su eje —`cuenta = TRUE`— y ninguna celda las leía. No estaban en
+# `sin_eje` (habían resuelto), ni en `fuera_universo` (el aula existía), ni en
+# `huerfanas` (casaron con el plan). El bloque publicaba `respuestas_validas =
+# 7`, `en_celdas = 9` y `ok = TRUE`: dos de las nueve del día, invisibles, con
+# el invariante certificando que la cuenta cuadraba.
+#
+# No es un borde: el eje se movió a la persona PORQUE un aula de nivel 6 tiene
+# alumnos de 5, 6 y 7. Pasa cada jornada.
+
+.aen_nivel_fuera <- function() {
+  cfg <- .aen_cfg()
+  padron <- .aen_padron()
+  padron$filas[[length(padron$filas) + 1L]] <- list(
+    codigo = "20190005", nivel = 5L, carrera = "ECONOMÍA", sexo = "F")
+  resp <- rbind(.aen_resp(), data.frame(
+    collectorID = "a1", codigo = "20190005", sexo = "Femenino",
+    stringsAsFactors = FALSE))
+  monitoreo_aulas_dashboard(cfg$plan, resp, cfg, padron = padron)$avance_cuota
+}
+
+test_that("un nivel que el diseno no traza tiene su fila, con su conteo", {
+  av <- .aen_nivel_fuera()
+  etiquetas <- vapply(av$facultades, function(f) as.character(f$facultad), character(1))
+  expect_true("5" %in% etiquetas)
+  fila <- av$facultades[[match("5", etiquetas)]]
+  expect_identical(as.integer(fila$respuestas_validas), 1L)
+  expect_identical(fila$estado, "fuera_del_diseno")
+  # Sin cuota que el diseño no le dio: ni denominador inventado ni porcentaje.
+  expect_true(is.na(fila$cuota))
+  expect_true(is.na(fila$avance_pct))
+})
+
+test_that("esa respuesta no entra al % global pero SI al invariante, por su bolsa", {
+  av <- .aen_nivel_fuera()
+  t <- av$total
+  # El numerador de la cuota sigue siendo el de las celdas del diseño: 2 de
+  # nivel 7 más 1 de nivel 8. La de nivel 5 no lo mueve.
+  expect_identical(as.integer(t$respuestas_validas), 3L)
+  # Y se declara, con su nombre propio: no es `sin_eje` —resolvió— ni huérfana.
+  expect_identical(t$sin_celda, 1L)
+  # 7 válidas = 3 en celdas + 1 sin celda + 1 duplicada + 1 sin eje + 0 fuera +
+  # 1 huérfana. El invariante compara contra lo PUBLICADO, que es lo que el
+  # lector puede sumar con el dedo.
+  expect_true(t$invariante$ok)
+  expect_identical(t$invariante$suma, 7L)
+  expect_identical(t$invariante$solapadas, 0L)
+  expect_identical(t$invariante$partes$en_celdas, 3L)
+  expect_identical(t$invariante$partes$sin_celda, 1L)
+})
+
+test_that("sin niveles fuera del diseno la bolsa es un cero declarado", {
+  # El cero se publica: su ausencia obligaría a adivinar si la bolsa no existe
+  # o está vacía. Y es lo que protege a HSVG, cuyo eje es la facultad.
+  t <- .aen_avance()$total
+  expect_identical(t$sin_celda, 0L)
+  expect_identical(t$invariante$partes$sin_celda, 0L)
+  expect_identical(t$invariante$partes$en_celdas, 3L)
+})
