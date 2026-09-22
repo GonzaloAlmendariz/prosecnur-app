@@ -439,6 +439,13 @@ monitoreo_aulas_default_config <- function() {
       # Es la contracara de `valid_filters`: aquéllos dicen qué CUENTA, éstos
       # qué se descarta. Mismo formato `{var, values}`, y basta con que uno case.
       descartes = list(),
+      # **`valid_filters` también va aquí**, y no por el valor por defecto: la
+      # siembra desde el mapeo anterior recorre `names(defaults$source_mapping)`,
+      # así que una clave ausente de esta lista NO se conserva entre guardados
+      # parciales por mucho que el normalizador la lea. Faltaba, y era la otra
+      # mitad del borrado silencioso que se llevó los descartes.
+      valid_filters = list(),
+      consent_var = "",
       # **La variable que dice el sexo de quien respondio** (dictado
       # 2026-09-04: «poder mapear cuantas se esperaban en total y en hombres y
       # en mujeres y cuanto obtuvimos»). Sin declararla no se cuenta por sexo y
@@ -645,8 +652,19 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
       sex_male_values = as.list(.monitoreo_chr_vec(
         mapping$sex_male_values %||% mapping$valores_hombre %||%
           defaults$source_mapping$sex_male_values %||% list())),
+      # **Al `previous`, no a `list()` pelada.** Es exactamente la trampa que la
+      # línea de arriba describe para los valores de sexo, y aquí seguía viva:
+      # un `POST` que trae sólo parte del mapeo —declarar el criterio de
+      # efectiva, por ejemplo— se llevaba por delante los descartes, y con
+      # ellos los QR de capacitación y prueba volvían a contar como operativo.
+      # Medido el 2026-09-22 declarando `valid_filters` en CCSS Perfil 2026-II:
+      # `descartes` pasó de dos valores a cero sin que nada lo dijera.
+      #
+      # La UI no lo sufría porque envía el mapeo entero (`...source_mapping`);
+      # cualquier otro llamador sí, y el silencio es el problema.
       descartes = .monitoreo_aulas_filas_de_filtro(
-        mapping$descartes %||% mapping$descartadas %||% list()),
+        mapping$descartes %||% mapping$descartadas %||%
+          defaults$source_mapping$descartes %||% list()),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
       # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
       # al guardar.** Este normalizador es la whitelist de la config: lo que no
@@ -657,9 +675,17 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
       # `.pulso` viejo o de otra sesion: **un filtro sin variable o sin valores
       # descartaria TODAS las respuestas**, y el tope de cuatro es el que Gonzalo
       # declaro —«puede tener hasta 4»—.
+      # **La columna del consentimiento**, para que un rechazo se lea como
+      # rechazo y no como «no declaró su código». Va en la whitelist o no
+      # persiste. Vacía: el resolutor la busca por su cuenta
+      # (`monitoreo_aulas_consentimiento.R`).
+      consent_var = .monitoreo_scalar(
+        mapping$consent_var %||% mapping$consentimiento_var,
+        defaults$source_mapping$consent_var),
       valid_filters = local({
         crudos <- .monitoreo_aulas_filas_de_filtro(
-          mapping$valid_filters %||% mapping$filtros_validez
+          mapping$valid_filters %||% mapping$filtros_validez %||%
+            defaults$source_mapping$valid_filters
         )
         limpios <- list()
         for (f in crudos) {
