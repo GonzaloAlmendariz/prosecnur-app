@@ -303,6 +303,7 @@ export function AulasPestanaResumen({
                   cuenta={respuestas?.cuenta}
                   sinAula={respuestas?.sinAula}
                   rotulo={respuestas?.rotulo ?? ""}
+                  grupo={grupoSingular}
                 />
               </section>
             ) : null}
@@ -340,6 +341,7 @@ export function AulasPestanaResumen({
                   respuestas={desglose.facultades}
                   aulas={dashboard.aulas_por_facultad}
                   facultadEnFoco={facultadEnFoco}
+                  grupo={grupoSingular}
                 />
               </section>
             ) : null}

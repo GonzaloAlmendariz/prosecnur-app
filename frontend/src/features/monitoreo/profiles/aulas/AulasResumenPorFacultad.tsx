@@ -30,7 +30,7 @@ import "./aulasResumenPorFacultad.css";
  * de las aulas en sus dos columnas de cifras —12 de 37— y, entero, en
  * «Cursos-horario por cobertura», más abajo en esta misma pestaña.
  */
-export function AulasResumenPorFacultad({ respuestas, aulas, facultadEnFoco }: {
+export function AulasResumenPorFacultad({ respuestas, aulas, facultadEnFoco, grupo }: {
   respuestas: ReadonlyArray<MonitoreoAulasRespuestasCuenta & { facultad: string }> | null | undefined;
   aulas: ReadonlyArray<MonitoreoAulasPorFacultad> | null | undefined;
   /**
@@ -43,18 +43,26 @@ export function AulasResumenPorFacultad({ respuestas, aulas, facultadEnFoco }: {
    * esa facultad». El mando, además, sólo existe en esta pestaña desde a8d903a8.
    */
   facultadEnFoco?: string;
+  /**
+   * Cómo se llama lo que agrupa estas filas. El motor las agrupa por lo que el
+   * estudio declara —facultad por defecto, carrera en uno que vive dentro de
+   * UNA facultad— y el campo sigue llamándose `facultad` por contrato. Sin
+   * valor, «Facultad»: idéntico a lo de siempre.
+   */
+  grupo?: string;
 }): ReactNode {
   const todas = resumenPorFacultad(respuestas, aulas);
   const filas = facultadEnFoco
     ? todas.filter((f) => f.facultad.trim().toUpperCase() === facultadEnFoco.trim().toUpperCase())
     : todas;
   if (!filas.length) return null;
+  const etiqueta = (grupo ?? "").trim() || "Facultad";
   return (
     <div className="aulas-rpf" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <ul className="aulas-rpf-lista" role="table"
-        aria-label="Respuestas efectivas y aulas de cada facultad">
+        aria-label={`Respuestas efectivas y aulas de cada ${etiqueta.toLocaleLowerCase("es")}`}>
         <li role="row" className="aulas-rpf-cab">
-          <span role="columnheader">Facultad</span>
+          <span role="columnheader">{etiqueta}</span>
           <span role="columnheader">Efectivas</span>
           {/* La barra es el reparto de la MISMA cifra de la columna anterior:
               el rótulo lo dice para que nadie la lea como otra medida. */}

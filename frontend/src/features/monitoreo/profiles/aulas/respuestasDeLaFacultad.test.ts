@@ -79,3 +79,32 @@ describe("la nota cuadra con el total que el panel enseña", () => {
     expect(respuestasDeLaFacultad(viejo, undefined)?.sinAula).toBe(19);
   });
 });
+
+describe("la palabra del grupo llega a la tabla y a la nota", () => {
+  /**
+   * El motor agrupa por lo que el estudio declara y el campo sigue llamándose
+   * `facultad`. Si el rótulo no viaja, la pantalla pone «Facultad» encima de
+   * una columna de carreras y la nota dice «en ninguna facultad» debajo de una
+   * tabla de carreras: el payload es correcto y lo que se lee es falso.
+   */
+  it("el bloque declara cómo se llama su grupo", () => {
+    const desglose = {
+      total: {
+        observadas: 91, efectivas: 83, fuera_del_operativo: 8, no_pasan_criterio: 0,
+        sin_aula: 19, sin_aula_efectivas: 11,
+      },
+      facultades: [
+        { facultad: "ECONOMÍA", observadas: 72, efectivas: 72, fuera_del_operativo: 0, no_pasan_criterio: 0 },
+      ],
+      agrupacion: {
+        clave: "carrera", columna: "program", etiqueta: "Carrera",
+        etiqueta_plural: "Carreras", etiqueta_sin: "Sin carrera", motivo_degradacion: "",
+      },
+    };
+    expect(desglose.agrupacion.etiqueta).toBe("Carrera");
+    // Y el selector sigue devolviendo la cuenta del conjunto con su resta.
+    const v = respuestasDeLaFacultad(desglose, undefined);
+    expect(v?.sinAula).toBe(11);
+    expect(v?.cuenta?.efectivas).toBe(83);
+  });
+});

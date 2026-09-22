@@ -19,13 +19,19 @@ import "./aulasResumenRespuestas.css";
  * 6 % del total, que es donde el problema desaparecía de la vista.
  */
 export function AulasResumenRespuestas({
-  cuenta, sinAula, rotulo = "",
+  cuenta, sinAula, rotulo = "", grupo = "",
 }: {
   cuenta: MonitoreoAulasRespuestasCuenta | null | undefined;
   /** Respuestas sin aula identificable. Se declara; no se esconde. */
   sinAula?: number;
   /** La facultad en foco, si la hay. Vacío = el conjunto. */
   rotulo?: string;
+  /**
+   * Cómo se llama lo que agrupa el bloque de abajo —«Facultad», «Carrera»—.
+   * La nota dice «en ninguna ‹eso›» y tiene que nombrar el mismo grupo que la
+   * tabla que el lector acaba de mirar. Vacío: «facultad».
+   */
+  grupo?: string;
 }): ReactNode {
   if (!cuenta) return null;
   // Con una facultad en foco SÍ se pinta el cero: es su respuesta —«esta
@@ -113,8 +119,8 @@ export function AulasResumenRespuestas({
           total tiene aquí la explicación en vez de un descuadre. */}
       {sinAula && sinAula > 0 ? (
         <p className="aulas-resp-nota">
-          {fmt(sinAula)} sin curso-horario identificable: cuentan en el total y en
-          ninguna facultad.
+          {fmt(sinAula)} sin curso-horario identificable: cuentan en el total y en{" "}
+          ninguna {(grupo ?? "").trim().toLocaleLowerCase("es") || "facultad"}.
         </p>
       ) : null}
     </div>
