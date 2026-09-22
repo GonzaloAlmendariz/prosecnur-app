@@ -203,6 +203,10 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conRechazo} />));
     expect(t).toContain("Rechazó participar");
     expect(t).not.toContain("No declararon su código · CH 18");
+    // **Una vez por fila.** Con la columna de Respuesta diciendo el rechazo,
+    // repetirlo en la de Cruce obliga a leer dos veces para entender que es
+    // una sola cosa: «Rechazó participar · Sin identificar · Rechazó participar».
+    expect(t).not.toContain("Sin identificar · Rechazó participar");
   });
 
   it("«Aceptó» se dice en voz baja y sin columna de consentimiento va un guion", () => {
