@@ -395,11 +395,11 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
             # de tres horas en una columna que promete una aplicación se lee
             # como una aplicación de tres horas.
             #
-            # Se marca «· clase» en vez de inventar media hora al principio: el
+            # Se marca «(clase)» en vez de inventar media hora al principio: el
             # aplicador va antes de que empiece, pide permiso, y el docente
             # decide si entra al inicio, en el receso o al final —los tres
             # momentos que la propia agenda distingue—.
-            paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin), " · clase"),
+            paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin), " (clase)"),
             cod, m$aula, m$facultad, m$curso, m$docente,
             aulas_distribucion_estado_a_publicar(
               deducido, .alpa_estado_previo(estados_previos, cod, cuando$fecha))

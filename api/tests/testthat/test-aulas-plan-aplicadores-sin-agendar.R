@@ -71,7 +71,7 @@ test_that("un titular sin agendar entra en la hoja de la semana, con la misma es
   # La ventana es la de la CLASE, y la celda lo DICE: un rango de dos horas en
   # una columna que promete una aplicación se lee como una aplicación de dos
   # horas. En las agendadas la hora pactada manda y ya trae el momento dentro.
-  expect_identical(.apsa_col(suyas[[1]], "APLICA"), "08:00 a 10:00 · clase")
+  expect_identical(.apsa_col(suyas[[1]], "APLICA"), "08:00 a 10:00 (clase)")
   expect_identical(.apsa_col(suyas[[1]], "AULA"), "Z411")
 })
 
