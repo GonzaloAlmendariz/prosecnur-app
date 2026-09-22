@@ -61,3 +61,68 @@ describe("cuándo pedir un aula adicional", () => {
     expect(cuandoPedirAulaAdicional({ facultades: [] } as never)).toBeNull();
   });
 });
+
+describe("sin nadie a quien evaluar, no hay buenas noticias que dar", () => {
+  /**
+   * **Un cero en riesgo dice dos cosas opuestas.** «Las medí todas y ninguna
+   * está en riesgo» y «no pude medir ninguna» producen el mismo cero, y la
+   * frase elegía siempre la primera — encima del panel que existe para decidir
+   * si se piden aulas.
+   *
+   * Medido el 2026-09-22, primer día de campo de CCSS Perfil 2026-II: la cuota
+   * entra por el eje declarado (nivel) y este bloque agrupa por la facultad del
+   * aula, así que los dos lados del cruce no se encuentran. El motor publicaba
+   * `facultades_evaluadas: 0` y `facultades_sin_cuota: 1`, y la pantalla daba
+   * dos buenas noticias seguidas.
+   *
+   * No es lo mismo que `sinBase`: aquélla tiene contra qué medirse y le faltan
+   * aulas; ésta tiene las aulas y no tiene cuota.
+   */
+  it("con todas sin cuota NO afirma, y lo dice con su causa", () => {
+    const a = cuandoPedirAulaAdicional(bloque([
+      fila({ facultad: "CIENCIAS SOCIALES", riesgo: "sin_cumplimiento", aulas_aplicadas: 4, cuota: null }),
+    ]))!;
+    expect(a.sinEvaluar.map((f) => f.facultad)).toEqual(["CIENCIAS SOCIALES"]);
+    expect(a.frase).not.toContain("Ninguna facultad necesita aula adicional");
+    expect(a.frase).toContain("No se pudo evaluar ninguna");
+    // Y dice que el silencio no es una buena noticia, igual que hace `sinBase`.
+    expect(a.frase).toContain("no es que no haga falta");
+  });
+
+  it("`sin_campo` y `sin_cuota` cuentan igual: ninguna se pudo proyectar", () => {
+    const a = cuandoPedirAulaAdicional(bloque([
+      fila({ facultad: "A", riesgo: "sin_campo", aulas_aplicadas: 0 }),
+      fila({ facultad: "B", riesgo: "sin_cuota", aulas_aplicadas: 7 }),
+    ]))!;
+    expect(a.sinEvaluar).toHaveLength(2);
+    expect(a.frase).toContain("No se pudo evaluar ninguna");
+  });
+
+  it("manda `riesgo_agendado` cuando viene: es la cifra operativa", () => {
+    const a = cuandoPedirAulaAdicional(bloque([
+      fila({ facultad: "A", riesgo: "holgado", riesgo_agendado: "sin_cuota", aulas_aplicadas: 7 }),
+    ]))!;
+    expect(a.sinEvaluar).toHaveLength(1);
+  });
+
+  it("con algunas evaluadas la frase se ACOTA en vez de callarse", () => {
+    // Lo que se midió vale: callarlo por lo que no se pudo medir sería el
+    // defecto contrario.
+    const a = cuandoPedirAulaAdicional(bloque([
+      fila({ facultad: "A", riesgo: "holgado", aulas_aplicadas: 7 }),
+      fila({ facultad: "B", riesgo: "sin_cuota", aulas_aplicadas: 7 }),
+    ]))!;
+    expect(a.frase).toContain("De las 1 que se pudieron evaluar, ninguna necesita aula adicional");
+  });
+
+  it("sin filas sin evaluar la frase de siempre no cambia ni una coma", () => {
+    // La prueba de identidad para HSVG, cuyo eje es la facultad y evalúa sus
+    // quince filas: ahí este cambio no puede mover nada.
+    const a = cuandoPedirAulaAdicional(bloque([
+      fila({ facultad: "DERECHO", riesgo: "holgado", aulas_aplicadas: 9 }),
+      fila({ facultad: "LETRAS", riesgo: "ajustado", aulas_aplicadas: 9 }),
+    ]))!;
+    expect(a.sinEvaluar).toEqual([]);
+    expect(a.frase).toBe("Ninguna facultad necesita aula adicional con lo que tiene agendado.");
+  });
+});

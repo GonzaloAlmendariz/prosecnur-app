@@ -48,6 +48,18 @@ export type AvisoDeAulaAdicional = {
    * cursos-horario aplicados. Su silencio NO es una buena noticia.
    */
   sinBase: MonitoreoAulasEfectividadFacultad[];
+  /**
+   * **Las que no se pudieron evaluar, que es otra cosa que no tener base.**
+   *
+   * `sinBase` tiene contra qué medirse y aún no tiene suficientes aulas;
+   * éstas tienen las aulas y **no tienen cuota** —o no tienen campo—, así que
+   * no hay proyección que hacer. Pasa cuando la cuota entra por el eje
+   * declarado y este bloque agrupa por la facultad del aula: los dos lados del
+   * cruce no se encuentran. El motor ya lo distingue por fila (`sin_cuota`,
+   * `sin_cumplimiento`, `sin_campo`) y lo sube al agregado en
+   * `facultades_evaluadas`; lo que faltaba era que la frase lo mirara.
+   */
+  sinEvaluar: MonitoreoAulasEfectividadFacultad[];
   /** Los alumnos que faltarían en las de `pedirYa`, sumados. */
   alumnosQueFaltan: number;
   /** La lectura, ya redactada: es lo que se publica arriba de la tabla. */
@@ -74,6 +86,12 @@ export function cuandoPedirAulaAdicional(
     (f) => Number(f.aulas_aplicadas ?? 0) < MINIMO_PARA_COMPARAR
       && f.riesgo !== "riesgo_firme" && f.riesgo !== "riesgo",
   );
+  // Ni cuota contra la que proyectar, ni campo con el que hacerlo. No caben en
+  // ninguna de las tres categorías de arriba y hasta hoy caían por el hueco.
+  const sinEvaluar = filas.filter((f) => {
+    const r = f.riesgo_agendado ?? f.riesgo;
+    return r === "sin_cuota" || r === "sin_cumplimiento" || r === "sin_campo";
+  });
   const alumnosQueFaltan = pedirYa.reduce((n, f) => n + falta(f), 0);
 
   const partes: string[] = [];
@@ -91,7 +109,32 @@ export function cuandoPedirAulaAdicional(
     );
   }
   if (!pedirYa.length && !vigilar.length) {
-    partes.push("Ninguna facultad necesita aula adicional con lo que tiene agendado.");
+    /**
+     * **Afirmar exige haber evaluado a alguien.**
+     *
+     * Con TODAS las filas sin evaluar esta frase decía «ninguna necesita aula
+     * adicional» sin haber comparado nada, encima del panel que existe para
+     * decidir si se piden aulas. Medido el 2026-09-22, primer día de campo de
+     * CCSS Perfil 2026-II: `facultades_evaluadas = 0` y `facultades_sin_cuota
+     * = 1`, y la pantalla daba dos buenas noticias seguidas.
+     *
+     * Con algunas evaluadas y otras no, la frase se ACOTA en vez de callarse:
+     * lo que se midió vale, y de lo que no se dice abajo.
+     */
+    const evaluadas = filas.length - sinEvaluar.length;
+    if (evaluadas > 0) {
+      partes.push(
+        sinEvaluar.length
+          ? `De las ${fmt(evaluadas)} que se pudieron evaluar, ninguna necesita aula adicional con lo que tiene agendado.`
+          : "Ninguna facultad necesita aula adicional con lo que tiene agendado.",
+      );
+    } else {
+      partes.push(
+        "No se pudo evaluar ninguna: no hay cuota contra la que proyectar lo que"
+        + " tienen agendado. De aquí no se puede decir si hace falta aula"
+        + " adicional, no es que no haga falta.",
+      );
+    }
   }
   if (sinBase.length) {
     partes.push(
@@ -101,5 +144,5 @@ export function cuandoPedirAulaAdicional(
     );
   }
 
-  return { pedirYa, vigilar, sinBase, alumnosQueFaltan, frase: partes.join(" ") };
+  return { pedirYa, vigilar, sinBase, sinEvaluar, alumnosQueFaltan, frase: partes.join(" ") };
 }
