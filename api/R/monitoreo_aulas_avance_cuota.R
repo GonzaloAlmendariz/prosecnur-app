@@ -623,7 +623,36 @@
       # Quién aceptó participar. Sin esto, un rechazo sale como «no declaró su
       # código», que manda a revisar el formulario cuando no hay nada que
       # revisar: quien no consiente no llega a esa pregunta.
-      consentimiento = monitoreo_aulas_consentimiento(responses, cfg)),
+      consentimiento = monitoreo_aulas_consentimiento(responses, cfg),
+      # **Por qué cuenta o no cuenta cada respuesta.** Gonzalo, 2026-09-22:
+      # «que la tabla incluya las no efectivas con su estado» —después de
+      # declarar que un rechazo no es efectiva y ver que desaparecía de ella—.
+      #
+      # El vocabulario es el del embudo que el panel de Respuestas publica, y
+      # el orden de las ramas es el del propio embudo: una descartada ya no se
+      # juzga por el criterio, y una que no pasa el criterio no llega a tener
+      # aula. Invertirlo daría a la misma respuesta dos estados según por dónde
+      # se mire.
+      estados = local({
+        n <- if (is.data.frame(responses)) nrow(responses) else 0L
+        if (!n) character(0) else {
+          fuera <- tryCatch(.monitoreo_aulas_descartada(responses, cfg),
+                            error = function(e) rep(FALSE, n))
+          ok <- if (length(valid_response) == n) valid_response %in% TRUE else rep(TRUE, n)
+          consiente <- tryCatch(monitoreo_aulas_consentimiento(responses, cfg),
+                                error = function(e) rep("", n))
+          con_aula <- if (is.data.frame(atr) && nrow(atr) == n) atr$matched %in% TRUE else rep(TRUE, n)
+          out <- rep("efectiva", n)
+          out[ok & !con_aula] <- "huerfana"
+          # El rechazo antes que el criterio genérico: dice algo que «no pasa el
+          # criterio» no dice, y es lo que se mira para saber si hay algo que
+          # arreglar (no lo hay).
+          out[!ok] <- "no_criterio"
+          out[!ok & consiente == "rechaza"] <- "rechaza"
+          out[fuera %in% TRUE] <- "fuera_operativo"
+          out
+        }
+      })),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**

@@ -316,8 +316,11 @@ test_that("el estado de la respuesta viaja aparte del estado del cruce", {
   expect_identical(length(rechazo), 1L)
   expect_identical(rechazo[[1]]$estado, "sin_identificar")
   expect_identical(rechazo[[1]]$motivo_etiqueta, "Rechazó participar")
-  # Las que sí aceptaron lo dicen, y su cruce no cambia por ello.
-  aceptadas <- Filter(function(a) identical(a$respuesta, "acepta"), v$alumnos)
+  # **El campo pasó a ser el del EMBUDO** el 2026-09-22, al pedir Gonzalo que la
+  # tabla incluyera las no efectivas: «acepta» dejó de ser un estado —aceptar y
+  # contar es «efectiva»— y el rechazo se conserva porque dice algo que
+  # «no pasa el criterio» no dice.
+  aceptadas <- Filter(function(a) identical(a$respuesta, "efectiva"), v$alumnos)
   expect_identical(length(aceptadas), 6L)
 })
 
@@ -326,7 +329,9 @@ test_that("sin columna de consentimiento NO se supone que aceptaron", {
   v <- monitoreo_aulas_cruce_por_carrera(
     .mcc_resueltas(), cfg = .mcc_cfg(),
     responses = .mcc_respuestas(), aulas = .mcc_aulas())
-  expect_true(all(vapply(v$alumnos, function(a) identical(a$respuesta, ""), logical(1))))
+  # Sin consentimiento y sin estados declarados, toda la que acredita es
+  # «efectiva»: es lo que se sabe de ella, y no se inventa un rechazo.
+  expect_true(all(vapply(v$alumnos, function(a) identical(a$respuesta, "efectiva"), logical(1))))
   # Y los motivos siguen siendo los del cruce, sin inventar rechazos.
   expect_false("rechazo_participar" %in% vapply(v$sin_cruce, function(m) m$motivo, character(1)))
 })
