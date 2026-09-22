@@ -299,7 +299,10 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
       # Lo que la app sabe de su agenda, para poder completar una fila que el
       # equipo añada con sólo el código y la hora.
       fecha = .alpa_txt(u[["scheduled_date"]]),
-      hora = .alpa_txt(u[["scheduled_time"]])
+      hora = .alpa_txt(u[["scheduled_time"]]),
+      # Las sesiones del catálogo: con ellas se dibuja la ventana de la clase
+      # de una cita cuya hora todavía no se puede usar.
+      sesiones = .alpa_txt(u[["sesiones_dia_hora"]])
     )
   }
 
@@ -349,6 +352,44 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
           if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
           .alpa_estado_previo(estados_previos, cod, cuando$fecha)
         )
+      ))
+    }
+  }
+
+  # **LAS CITAS AGENDADAS SIN HORA UTILIZABLE, que no salían por ningún lado.**
+  #
+  # Gonzalo, 2026-09-22, con la hoja del día delante: «lo de la 37 y la 39 me
+  # preocupa». CH 37 y CH 39 están AGENDADAS para ese mismo martes y no
+  # aparecían en la hoja: el motor las manda a `por_confirmar` —una tiene
+  # «Hora por confirmar» tecleado y la otra la celda vacía— y el publicador
+  # sólo escribía las asignaciones. La app las contaba («2 por confirmar») y
+  # el aplicador no las veía, así que nadie iba a un aula que el docente ya
+  # había concedido.
+  #
+  # Van con el APLICADOR vacío porque el motor no puede repartir sin hora, y
+  # con estado «POR APLICAR»: están agendadas, no son una apuesta. Lo que les
+  # falta es la hora, y la celda lo dice.
+  for (dia in (rep[["dias"]] %||% list())) {
+    fecha <- .alpa_txt(dia[["fecha"]])
+    cuando <- .alpa_dia_y_fecha(fecha)
+    token <- .mav_dia_token(fecha)
+    for (cod in as.character(unlist(dia[["por_confirmar"]] %||% list(), use.names = FALSE))) {
+      cod <- .alpa_txt(cod)
+      if (!nzchar(cod)) next
+      m <- meta[[cod]] %||% list(aula = "", facultad = "", curso = "", docente = "")
+      # La ventana de la clase de ESE día, si el catálogo la trae: le dice al
+      # coordinador entre qué horas tendrá que cerrar con el docente.
+      ses <- Filter(function(x) token %in% x$dias, .mav_sesiones(m$sesiones %||% ""))
+      ini <- if (length(ses)) ses[[1]]$ini else NA_real_
+      aplica <- if (length(ses)) {
+        paste0(.mav_hhmm(ses[[1]]$ini), " a ", .mav_hhmm(ses[[1]]$fin), " (por confirmar)")
+      } else "Hora por confirmar"
+      anotar(fecha, paste(if (is.finite(ini)) .mav_hhmm(ini) else "zz", "zz", cod), list(
+        "", cuando$dia, cuando$fecha, "", "", aplica,
+        cod, m$aula, m$facultad, m$curso, m$docente,
+        aulas_distribucion_estado_a_publicar(
+          if (isTRUE(aplicadas[[cod]] %||% FALSE)) "APLICADA" else "POR APLICAR",
+          .alpa_estado_previo(estados_previos, cod, cuando$fecha))
       ))
     }
   }
