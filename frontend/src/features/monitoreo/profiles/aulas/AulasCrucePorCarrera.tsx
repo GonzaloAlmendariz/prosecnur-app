@@ -58,6 +58,7 @@ export type FilaDeAlumno = {
   hora: string;
   curso_horario: string;
   respuesta?: string;
+  respuesta_etiqueta?: string;
   estado: string;
   motivo?: string;
   motivo_etiqueta?: string;
@@ -91,21 +92,23 @@ const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
 ];
 
 /**
- * **El estado de la RESPUESTA, aparte del estado del cruce.** Son dos preguntas
- * —qué pasó con la encuesta, y si se pudo atar a alguien— y acreditación las
- * publica en dos columnas por eso mismo. Gonzalo, sobre CH 18: «no es
- * identificable porque fue un rechazo, eso la tabla de acreditación ya lo sabe
- * mostrar bien».
+ * **Por qué cuenta o no cuenta**, que es otra pregunta que si se pudo atar a
+ * alguien. Acreditación las publica en dos columnas por eso mismo, y Gonzalo
+ * lo señaló sobre CH 18: «no es identificable porque fue un rechazo, eso la
+ * tabla de acreditación ya lo sabe mostrar bien».
  *
- * «Aceptó» va en voz baja: es el 97 % de las filas y gritarlo taparía al 3 %
- * que dice algo. Vacío se pinta como guión: el estudio no tiene columna de
- * consentimiento y suponer que aceptaron pintaría de verde lo que nadie
- * contestó.
+ * El vocabulario es el del embudo que el panel de Respuestas ya publica
+ * —efectivas, fuera del operativo, no pasan el criterio— más la huérfana, que
+ * es efectiva y no tiene curso-horario. «Efectiva» va en voz baja porque es la
+ * mayoría de las filas y gritarla taparía a las que piden algo.
  */
-const RESPUESTAS: Record<string, { texto: string; tono: string }> = {
-  acepta: { texto: "Aceptó", tono: "neutro" },
-  rechaza: { texto: "Rechazó participar", tono: "falla" },
-};
+const RESPUESTAS: Array<{ clave: string; texto: string; tono: string }> = [
+  { clave: "efectiva", texto: "Efectiva", tono: "neutro" },
+  { clave: "huerfana", texto: "Sin curso-horario del plan", tono: "aviso" },
+  { clave: "rechaza", texto: "Rechazó participar", tono: "falla" },
+  { clave: "no_criterio", texto: "No pasa el criterio", tono: "falla" },
+  { clave: "fuera_operativo", texto: "Fuera del operativo", tono: "aviso" },
+];
 
 const numero = (v: unknown) => {
   const n = Number(v);
@@ -117,6 +120,7 @@ const llave = (v: unknown) =>
   String(v ?? "").toLocaleLowerCase("es").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null | undefined }) {
+  const [respuesta, setRespuesta] = useState<string>("");
   const [estado, setEstado] = useState<string>("");
   const [carreraEnFoco, setCarreraEnFoco] = useState<string>("");
   const [busca, setBusca] = useState<string>("");
@@ -132,13 +136,14 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
   const visibles = useMemo(() => {
     const terminos = llave(busca).split(/\s+/).filter(Boolean);
     return alumnos.filter((a) => {
+      if (respuesta && (a.respuesta ?? "") !== respuesta) return false;
       if (estado && a.estado !== estado) return false;
       if (carreraEnFoco && a.carrera !== carreraEnFoco) return false;
       if (!terminos.length) return true;
       const heno = llave([a.codigo, a.carrera, a.nivel, a.curso_horario, a.motivo_etiqueta].join(" "));
       return terminos.every((t) => heno.includes(t));
     });
-  }, [alumnos, estado, carreraEnFoco, busca]);
+  }, [alumnos, respuesta, estado, carreraEnFoco, busca]);
 
   const total = bloque?.total;
   /**
@@ -158,8 +163,8 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
   const motivos = bloque?.sin_cruce ?? [];
   const techo = Math.max(...carreras.map((c) => numero(c.personas)), 1);
   const tasa = total.tasa == null ? null : Math.round(numero(total.tasa) * 1000) / 10;
-  const porEstado = (clave: string) => alumnos.filter((a) => a.estado === clave).length;
-  const filtrado = Boolean(estado || carreraEnFoco || busca.trim());
+  const porRespuesta = (clave: string) => alumnos.filter((a) => (a.respuesta ?? "") === clave).length;
+  const filtrado = Boolean(respuesta || estado || carreraEnFoco || busca.trim());
 
   return (
     <div className="aulas-cxc" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -289,30 +294,38 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
           </div>
 
           {/* **Los filtros llevan su cuenta dentro.** Un chip que no dice
-              cuántas filas deja no se puede elegir sin probarlo, y con tres
-              estados probarlos todos es el trabajo que el chip venía a evitar. */}
+              cuántas filas deja no se puede elegir sin probarlo, y probarlos
+              todos es el trabajo que el chip venía a evitar.
+
+              **Los chips van por el EMBUDO y el cruce baja a un selector.**
+              Desde que la tabla incluye las no efectivas, el primer corte es
+              «¿ésta cuenta?» y el segundo «¿la pude identificar?»; con el cruce
+              en los chips, las descartadas —que no tienen cruce— no se podían
+              pedir. */}
           <div className="aulas-cxc-filtros">
-            <div className="aulas-cxc-chips" role="group" aria-label="Filtrar por resultado del cruce">
+            <div className="aulas-cxc-chips" role="group" aria-label="Filtrar por qué cuenta o no cuenta">
               <button
-                type="button" className="aulas-cxc-filtro" aria-pressed={!estado}
-                onClick={() => setEstado("")}
+                type="button" className="aulas-cxc-filtro" aria-pressed={!respuesta}
+                onClick={() => setRespuesta("")}
               >
-                Todos <em>{fmt(alumnos.length)}</em>
+                Todas <em>{fmt(alumnos.length)}</em>
               </button>
-              {ESTADOS.map((e) => {
-                const n = porEstado(e.clave);
+              {RESPUESTAS.map((e) => {
+                const n = porRespuesta(e.clave);
+                // **El chip de cero no se pinta.** Cinco estados es demasiado
+                // para dejarlos todos en gris; los del embudo que este estudio
+                // no produce —una huérfana, por ejemplo— no dicen nada
+                // ocupando sitio. Es lo contrario que con el cruce, que tiene
+                // tres y siempre significan algo.
+                if (!n) return null;
                 return (
                   <button
                     key={e.clave}
                     type="button"
                     className="aulas-cxc-filtro"
                     data-tono={e.tono}
-                    aria-pressed={estado === e.clave}
-                    // Sin filas no hay nada que filtrar. El chip se queda —en
-                    // gris— para decir que esa categoría existe y vale cero:
-                    // esconderlo haría pensar que no se mide.
-                    disabled={n === 0}
-                    onClick={() => setEstado(estado === e.clave ? "" : e.clave)}
+                    aria-pressed={respuesta === e.clave}
+                    onClick={() => setRespuesta(respuesta === e.clave ? "" : e.clave)}
                   >
                     {e.texto} <em>{fmt(n)}</em>
                   </button>
@@ -336,6 +349,16 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                 </select>
               </label>
             ) : null}
+
+            <label className="aulas-cxc-select">
+              <span>Cruce</span>
+              <select value={estado} onChange={(e) => setEstado(e.currentTarget.value)}>
+                <option value="">Todos</option>
+                {ESTADOS.map((e) => (
+                  <option key={e.clave} value={e.clave}>{e.texto}</option>
+                ))}
+              </select>
+            </label>
 
             <div className="aulas-cxc-buscador">
               <Search size={13} aria-hidden="true" />
@@ -395,18 +418,30 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                         </td>
                         <td className="aulas-cxc-ch">{a.curso_horario || "—"}</td>
                         <td>
-                          {a.respuesta && RESPUESTAS[a.respuesta] ? (
-                            <span className="aulas-cxc-pill" data-tono={RESPUESTAS[a.respuesta].tono}>
-                              {RESPUESTAS[a.respuesta].texto}
-                            </span>
-                          ) : (
-                            <span className="aulas-cxc-debil">—</span>
-                          )}
+                          {(() => {
+                            const r = RESPUESTAS.find((x) => x.clave === a.respuesta);
+                            // La etiqueta del motor manda si viene: así un
+                            // estado nuevo no sale como su clave cruda.
+                            const texto = a.respuesta_etiqueta || r?.texto || "";
+                            if (!texto) return <span className="aulas-cxc-debil">—</span>;
+                            return (
+                              <span className="aulas-cxc-pill" data-tono={r?.tono ?? "neutro"}>
+                                {texto}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td>
-                          <span className="aulas-cxc-pill" data-tono={e?.tono ?? "neutro"}>
-                            {e?.texto ?? a.estado}
-                          </span>
+                          {a.estado ? (
+                            <span className="aulas-cxc-pill" data-tono={e?.tono ?? "neutro"}>
+                              {e?.texto ?? a.estado}
+                            </span>
+                          ) : (
+                            // De una que no cuenta no se afirma el cruce: nunca
+                            // iba a contar y «sin identificar» se leería como un
+                            // problema que arreglar.
+                            <span className="aulas-cxc-debil">—</span>
+                          )}
                           {/* El motivo va pegado a SU fila: arriba se sabe
                               cuántas, aquí cuál.
 

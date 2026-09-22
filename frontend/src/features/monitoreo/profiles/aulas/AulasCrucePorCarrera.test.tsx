@@ -196,7 +196,7 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
       alumnos: [{
         codigo: "", carrera: "", nivel: "", sexo: "",
         fecha: "2026-09-22", hora: "09:56", curso_horario: "CH 18",
-        respuesta: "rechaza", estado: "sin_identificar",
+        respuesta: "rechaza", respuesta_etiqueta: "Rechazó participar", estado: "sin_identificar",
         motivo: "rechazo_participar", motivo_etiqueta: "Rechazó participar",
       }],
     };
@@ -209,16 +209,35 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
     expect(t).not.toContain("Sin identificar · Rechazó participar");
   });
 
-  it("«Aceptó» se dice en voz baja y sin columna de consentimiento va un guion", () => {
-    // Suponer que aceptaron pintaría de verde lo que nadie contestó.
-    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
-    expect(t).toContain("—");
-    const conConsent: BloqueDeCruce = {
+  it("las NO efectivas salen con su estado y sin afirmar su cruce", () => {
+    // Gonzalo, 2026-09-22: «que la tabla incluya las no efectivas con su
+    // estado». De una descartada no se dice «sin identificar»: nunca iba a
+    // contar, y el rótulo se leería como un problema que arreglar.
+    const conNoEfectivas: BloqueDeCruce = {
       ...conDetalle,
-      alumnos: [{ ...conDetalle.alumnos![0], respuesta: "acepta" }],
+      alumnos: [
+        { ...conDetalle.alumnos![0], respuesta: "efectiva", respuesta_etiqueta: "Efectiva" },
+        {
+          codigo: "", carrera: "", nivel: "", sexo: "",
+          fecha: "2026-09-15", hora: "17:50", curso_horario: "",
+          respuesta: "fuera_operativo", respuesta_etiqueta: "Fuera del operativo",
+          estado: "",
+        },
+      ],
     };
-    expect(texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conConsent} />)))
-      .toContain("Aceptó");
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conNoEfectivas} />));
+    expect(t).toContain("Fuera del operativo");
+    expect(t).toContain("Efectiva");
+    // El chip de su estado existe y lleva su cuenta.
+    expect(t).toContain("Fuera del operativo 1");
+  });
+
+  it("un estado del embudo que este estudio no produce NO se pinta en cero", () => {
+    // Cinco estados dejados todos en gris son ruido; el cruce, que tiene tres y
+    // siempre significan algo, sí conserva el suyo.
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
+    expect(t).not.toContain("Sin curso-horario del plan 0");
+    expect(t).not.toContain("No pasa el criterio 0");
   });
 
   it("sin detalle el panel sigue entero: es un añadido, no un requisito", () => {

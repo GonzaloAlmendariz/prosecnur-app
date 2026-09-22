@@ -2030,7 +2030,8 @@ export type MonitoreoAulasDashboard = {
        * `""` cuando el estudio no tiene columna de consentimiento —no se
        * supone que aceptaron—.
        */
-      respuesta?: "acepta" | "rechaza" | "" | string;
+      respuesta?: "efectiva" | "huerfana" | "rechaza" | "no_criterio" | "fuera_operativo" | "" | string;
+      respuesta_etiqueta?: string;
       estado: "identificado" | "repetida" | "sin_identificar" | string;
       motivo?: string;
       motivo_etiqueta?: string;

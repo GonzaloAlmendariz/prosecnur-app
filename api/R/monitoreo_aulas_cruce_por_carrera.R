@@ -29,8 +29,35 @@
 
 MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 
+# **Por qué una respuesta cuenta o no cuenta**, que es otra pregunta que si se
+# pudo atar a alguien. Gonzalo, 2026-09-22: «que la tabla incluya las no
+# efectivas con su estado» —después de declarar que un rechazo no es efectiva y
+# ver que desaparecía de la tabla—.
+#
+# El vocabulario es el del embudo que el panel de Respuestas ya publica
+# —efectivas, fuera del operativo, no pasan el criterio— más la huérfana, que
+# es efectiva y no tiene curso-horario al que atribuirse. Cinco estados y no
+# dos: cada uno se arregla en un sitio distinto, y «no cuenta» a secas no dice
+# en cuál.
+.MACC_RESPUESTA_ETIQUETA <- c(
+  efectiva = "Efectiva",
+  huerfana = "Sin curso-horario del plan",
+  rechaza = "Rechazó participar",
+  no_criterio = "No pasa el criterio",
+  fuera_operativo = "Fuera del operativo"
+)
+
 # El motivo ya resuelto de una fila, con respaldo al crudo cuando el llamador no
 # lo pasa (su firma es pública y alguien puede llamarla sin consentimiento).
+# El estado de una respuesta. Con `estados` declarados manda lo que diga el
+# motor; sin ellos se infiere del consentimiento, que es lo único que había.
+.macc_estado <- function(estados, consiente, acred, i) {
+  if (length(estados) >= i && nzchar(estados[i])) return(as.character(estados[i]))
+  if (length(consiente) >= i && identical(consiente[i], "rechaza")) return("rechaza")
+  if (length(acred) >= i && !acred[i]) return("")
+  "efectiva"
+}
+
 .macc_mot <- function(motivo_fila, sub, i) {
   if (length(motivo_fila) >= i) return(as.character(motivo_fila[i]))
   as.character(sub$motivo[i] %||% "")
@@ -40,22 +67,31 @@ MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 # es el orden con el que se comprueba algo que acaba de pasar—. Con tope
 # declarado: una tabla de miles de filas no se lee, y recortarla en silencio
 # haría creer que el operativo tiene las que se ven.
-.macc_detalle <- function(sub, cuenta, res, dup, responses, aulas, mask, tope,
-                          consiente = NULL, motivo_fila = NULL) {
+.macc_detalle <- function(sub, cuenta, res, dup, responses, aulas, tope,
+                          consentimiento = NULL, motivo_fila = NULL,
+                          estados = NULL, acredita = NULL) {
   n <- nrow(sub)
   if (!n) return(list(filas = list(), truncado = FALSE))
+  # Sin `estados` el detalle publica sólo lo que acredita, que es la conducta
+  # anterior: la firma es pública y alguien puede llamarla sin ellos.
+  visible <- if (length(estados) == n) rep(TRUE, n)
+             else if (length(acredita) == n) acredita %in% TRUE
+             else rep(TRUE, n)
   marca <- rep("", n)
-  if (is.data.frame(responses) && nrow(responses) == length(mask)) {
+  if (is.data.frame(responses) && nrow(responses) == n) {
     col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_TIEMPO)
-    if (nzchar(col)) marca <- as.character(responses[[col]])[mask]
+    if (nzchar(col)) marca <- as.character(responses[[col]])
   }
   aula <- rep("", n)
-  if (length(aulas) == length(mask)) aula <- as.character(aulas)[mask]
+  if (length(aulas) == n) aula <- as.character(aulas)
   aula[is.na(aula)] <- ""
+  consiente <- if (length(consentimiento) == n) consentimiento else rep("", n)
+  acred <- if (length(acredita) == n) acredita %in% TRUE else rep(TRUE, n)
   fecha <- monitoreo_aulas_fecha_local(marca)
   hora <- monitoreo_aulas_hora_local(marca)
   orden <- order(fecha, hora, decreasing = TRUE, method = "radix")
-  truncado <- n > tope
+  orden <- orden[visible[orden]]
+  truncado <- length(orden) > tope
   orden <- utils::head(orden, tope)
   filas <- lapply(orden, function(i) list(
     codigo = as.character(sub$codigo[i] %||% ""),
@@ -71,14 +107,23 @@ MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
     # Tres estados y no dos: una repetida CRUZÓ —su persona existe— y no
     # cuenta, que es distinto de no haberse podido identificar. Meterlas en la
     # misma bolsa mandaría a revisar el código de quien lo escribió bien.
-    estado = if (cuenta[i]) "identificado" else if (res[i] && dup[i]) "repetida" else "sin_identificar",
+    estado = if (!acred[i]) "" else if (cuenta[i]) "identificado"
+             else if (res[i] && dup[i]) "repetida" else "sin_identificar",
     # **El estado de la RESPUESTA, aparte del estado del cruce.** Son dos
     # preguntas —qué pasó con la encuesta, y si se pudo atar a alguien— y
     # acreditación las publica en dos columnas por eso mismo. Vacío cuando el
     # estudio no tiene columna de consentimiento: no se supone que aceptaron.
-    respuesta = if (length(consiente) >= i) as.character(consiente[i]) else "",
-    motivo = if (!res[i]) .macc_mot(motivo_fila, sub, i) else "",
-    motivo_etiqueta = if (!res[i]) {
+    # **Por qué cuenta o no cuenta**, que es otra pregunta que el cruce.
+    respuesta = .macc_estado(estados, consiente, acred, i),
+    respuesta_etiqueta = {
+      e <- .macc_estado(estados, consiente, acred, i)
+      unname(.MACC_RESPUESTA_ETIQUETA[[e]] %||% "")
+    },
+    # **El cruce sólo se afirma de lo que acredita.** De una descartada no se
+    # dice «sin identificar»: nunca iba a contar, y el rótulo se leería como un
+    # problema que arreglar.
+    motivo = if (acred[i] && !res[i]) .macc_mot(motivo_fila, sub, i) else "",
+    motivo_etiqueta = if (acred[i] && !res[i]) {
       m <- .macc_mot(motivo_fila, sub, i)
       unname(.macc_motivo_etiqueta[[m]] %||% m)
     } else ""
@@ -117,6 +162,10 @@ MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 #' @param consentimiento salida de [monitoreo_aulas_consentimiento()], una
 #'   entrada por respuesta. Con ella, quien rechazó participar deja de salir
 #'   como «no declaró su código».
+#' @param estados por qué cuenta o no cuenta cada respuesta —`efectiva`,
+#'   `huerfana`, `rechaza`, `no_criterio`, `fuera_operativo`—, una entrada por
+#'   respuesta. Con ellos el detalle incluye las que NO cuentan; sin ellos
+#'   publica sólo las que acreditan, como antes.
 #' @param poblacion conteos por carrera del padrón
 #'   ([monitoreo_aulas_padron_resumen()]`$por_carrera`), para que cada fila diga
 #'   cuántos son en total. Sin ellos la fila publica su conteo y nada más.
@@ -125,7 +174,8 @@ MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 monitoreo_aulas_cruce_por_carrera <- function(resueltas, elegible = NULL,
                                               poblacion = list(), cfg = list(),
                                               responses = NULL, aulas = NULL,
-                                              tope = 500L, consentimiento = NULL) {
+                                              tope = 500L, consentimiento = NULL,
+                                              estados = NULL) {
   # **Un estudio anónimo no tiene este cruce, y su superficie no debe existir.**
   #
   # Gonzalo, 2026-09-22: «esta pestaña sólo está disponible si la encuesta, en
@@ -220,8 +270,21 @@ monitoreo_aulas_cruce_por_carrera <- function(resueltas, elegible = NULL,
     list()
   }
 
-  detalle <- .macc_detalle(sub, cuenta, res, dup, responses, aulas, mask, tope,
-                           consiente, motivo_fila)
+  # **El agregado sigue contando sólo las que acreditan; el DETALLE se ensancha.**
+  # Meter las no efectivas en `personas` o en la tasa de cruce cambiaría lo que
+  # esas cifras significan —la tasa es «de lo que cuenta, cuánto identifiqué»—.
+  # Lo que el detalle añade es poder VERLAS, que es lo que se pedía.
+  n_todo <- nrow(resueltas)
+  a_todo <- function(x, base = FALSE) { v <- rep(base, n_todo); v[mask] <- x; v }
+  motivo_todo <- as.character(resueltas$motivo)
+  motivo_todo[mask] <- motivo_fila
+  detalle <- .macc_detalle(
+    resueltas, a_todo(cuenta), resueltas$resuelto %in% TRUE, a_todo(dup),
+    responses, aulas, tope,
+    consentimiento = if (length(consentimiento) == n_todo) as.character(consentimiento) else NULL,
+    motivo_fila = motivo_todo,
+    estados = if (length(estados) == n_todo) as.character(estados) else NULL,
+    acredita = mask)
 
   list(
     schema = MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA,
