@@ -35,6 +35,29 @@
 # entra: ésa todavía no ha rendido.
 .madm_APLICADOS <- c("APLICADA", "APLICADA POR REAGENDACIÓN", "APLICADA SIN AGENDACIÓN")
 
+#' Los estados con los que la PROPIA FILA declara que no sostiene una cita.
+#'
+#' Una fila con uno de estos no puede estar «desalineada con la agenda»: existe
+#' precisamente porque no hay cita. Avisar de ella es decirle al coordinador que
+#' algo que pidió a propósito es un problema.
+#'
+#' Es la otra mitad del arreglo del 2026-09-10, que añadió «APLICADA SIN
+#' AGENDACIÓN» a los aplicados con este mismo razonamiento y dejó fuera «POR
+#' APLICAR SIN AGENDACIÓN» por no haber rendido todavía. Pero «¿ya rindió?» y
+#' «¿perdió su cita?» son dos preguntas, y para la segunda da igual: esa fila
+#' NUNCA tuvo cita que perder.
+#'
+#' Medido el 2026-09-22 sobre la hoja del operativo, con Gonzalo sin entender el
+#' aviso y con razón: de las 13 filas reportadas como «ya no tienen su aula
+#' agendada ese día», CUATRO eran de esta familia —CH 33, CH 42 y CH 3 marcadas
+#' REAGENDADA con su hora en formato «(clase)», y CH 46 ya convertida a POR
+#' APLICAR SIN AGENDACIÓN—. Él mismo lo dijo: «en la distribución también están
+#' las CH no confirmadas para que los aplicadores intenten agendar sin cita».
+#'
+#' `RECHAZADA` entra por lo mismo: la fila ya dice que se cayó.
+#' @keywords internal
+.madm_SIN_CITA <- c("POR APLICAR SIN AGENDACIÓN", "REAGENDADA", "RECHAZADA")
+
 #' Los estados de la agenda que justifican mandar a alguien.
 #'
 #' `agendada` y `reagendada`, no todo lo que tiene hora. El plan trae
@@ -296,6 +319,10 @@ monitoreo_aulas_agendadas_sin_cita <- function(plan, filas_remotas,
 #' - `sin_plan` — el curso-horario no aparece en el plan. Puede ser una fila
 #'   tecleada a mano con el código mal escrito.
 #'
+#' **Lo que la fila declara SIN CITA tampoco entra** (`.madm_SIN_CITA`): esa
+#' fila existe porque el aula no tiene acuerdo, así que no puede estar
+#' desalineada con la agenda. Es la mitad que faltaba del arreglo del 10/09.
+#'
 #' **Lo aplicado NO entra**, y se reconoce por DOS sitios porque el estado de
 #' aplicación no vive en el plan: la columna ESTADO de la propia fila (que es lo
 #' que `monitoreo_aulas_estados_distribucion()` mantiene) y los códigos que
@@ -356,7 +383,11 @@ monitoreo_aulas_citas_sin_agenda <- function(plan, filas_remotas,
     if (cod %in% aplicadas) next
     # Por el canónico: el desplegable de la hoja tenía «APLICADA SIN AGENDACION»
     # sin tilde, y comparar en crudo la habría dejado fuera de la lista.
-    if (aulas_distribucion_estado_canonico(.madm_celda(v, c_estado)) %in% .madm_APLICADOS) next
+    estado_fila <- aulas_distribucion_estado_canonico(.madm_celda(v, c_estado))
+    if (estado_fila %in% .madm_APLICADOS) next
+    # Y la que declara que no sostiene cita tampoco: no puede haber perdido una
+    # que nunca tuvo. Ver `.madm_SIN_CITA`.
+    if (estado_fila %in% .madm_SIN_CITA) next
 
     a <- agenda[[cod]]
     if (is.null(a)) {
