@@ -986,3 +986,56 @@ test_that("un aula donde sólo contestaron los de fuera del diseño ya está apl
   expect_identical(t$efectivas, 1L)
   expect_equal(t$tau_observado, 0.05)
 })
+
+# --- la τ prevista con el eje en la persona -----------------------------------
+#
+# Las claves del diseño son niveles y los grupos del plan son facultades: con la
+# unión se perdía también la τ, y la fila salía `sin_previsto` —0,578 observada
+# sin nada al lado— aunque los cuatro niveles de CCSS declaran la misma 0,50.
+
+test_that("con una τ única en el diseño, el grupo del plan la hereda y la banda contrasta", {
+  d <- .efs_persona(c("20190001", "20190002", "20190003", "20190501", "20190502"))
+  seg <- d$efectividad_seguimiento
+  f <- seg$facultades[[1]]
+  expect_equal(f$tau_previsto, 0.5)
+  expect_identical(f$tau_previsto_fuente, "uniforme_del_diseno")
+  expect_false(identical(f$senal, "sin_previsto"))
+  expect_false(identical(f$estado, "sin_previsto"))
+  expect_equal(seg$total$tau_previsto, 0.5)
+})
+
+test_that("con τ distintas por nivel no se inventa una mezcla: se dice por qué falta", {
+  plan <- list(list(classroom_id = "a1", operational_code = "CH 1", label = "a1",
+                    faculty = "CIENCIAS SOCIALES", level = "7", sample_role = "titular",
+                    wave = "M1", orden = 1, eligible_n = 10, expected_valid = 5,
+                    sample_status = "agendada", operational_status = "aplicada"))
+  dt <- list(
+    schema = "monitoreo_aulas_design_targets_v1", source = "calc-muestra",
+    tasa_esperada = NA_real_, tasa_fuente = "tau_disenio", total_cuota = 20,
+    facultades = list(
+      list(facultad = "7", faculty_key = monitoreo_aulas_eje_key("7"), cuota = 10, tau = 0.5),
+      list(facultad = "8", faculty_key = monitoreo_aulas_eje_key("8"), cuota = 10, tau = 0.6)
+    ),
+    selection_run_id = "run_1", frame_hash = "hash_1"
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
+    plan = plan, design_targets = dt, eje_cuota = "nivel",
+    source_mapping = list(collector_var = "collectorID", student_code_var = "codigo")
+  ))
+  d <- monitoreo_aulas_dashboard(cfg$plan, data.frame(collectorID = "a1", codigo = "x"), cfg)
+  f <- d$efectividad_seguimiento$facultades[[1]]
+  expect_identical(f$tau_previsto, NA_real_)
+  expect_identical(f$tau_previsto_fuente, "diseno_con_tau_distintas")
+  expect_identical(f$estado, "sin_previsto")
+})
+
+test_that("con el eje en el AULA la τ sigue saliendo de su celda, y una facultad sin celda no hereda", {
+  plan <- list(.efs_aula("A1", "Letras", eligible = 20, orden = 1),
+               .efs_aula("A2", "Arte", eligible = 20, orden = 2))
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras", tau = 0.4))))
+  expect_identical(.efs_fila(d$efectividad_seguimiento, "Letras")$tau_previsto_fuente, "celda_del_diseno")
+  arte <- .efs_fila(d$efectividad_seguimiento, "Arte")
+  expect_identical(arte$tau_previsto, NA_real_)
+  expect_identical(arte$tau_previsto_fuente, "sin_tau_del_diseno")
+})
