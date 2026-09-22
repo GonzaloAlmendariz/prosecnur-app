@@ -598,6 +598,15 @@
     # `undefined` en un estudio real.
     composicion = monitoreo_aulas_composicion_referencial(
       cfg, resueltas = attr(eje_atr, "resueltas"), cuenta = eje_atr$cuenta),
+    # **El cruce por código, repartido por carrera.** Se calcula aquí porque
+    # aquí está resuelta la persona de cada respuesta; el tablero lo iza al
+    # primer nivel para Validación. Cruzar otra vez en el consumidor daría dos
+    # lecturas de la misma respuesta.
+    cruce_por_carrera = monitoreo_aulas_cruce_por_carrera(
+      attr(eje_atr, "resueltas"),
+      elegible = eje_atr$cuenta | eje_atr$duplicada | eje_atr$sin_eje,
+      poblacion = monitoreo_aulas_padron_resumen(padron %||% list())$por_carrera,
+      cfg = cfg),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**

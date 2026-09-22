@@ -121,11 +121,36 @@ function medidaDePestana(
  * @returns vacío cuando la sección no tiene pestañas —Fuentes y Validación son
  *   hojas del árbol—, y el shell dibuja el rail sin lista.
  */
+/**
+ * **Qué pestañas existen en ESTE estudio, que no es lo mismo que en el perfil.**
+ *
+ * El catálogo declara las del perfil de aulas; algunas sólo tienen sentido con
+ * cierta forma de estudio. «Cruce de alumnos» es la primera: vive del código
+ * identificador que piden las encuestas CONFIDENCIALES, y en una anónima no hay
+ * a quién cruzar (Gonzalo, 2026-09-22). El motor lo declara en
+ * `cruce_por_carrera.aplica`, así que la condición se lee, no se adivina aquí.
+ *
+ * Un payload anterior no trae el bloque: entonces la pestaña se retira, que es
+ * el estado en el que estaban todos los estudios hasta hoy.
+ */
+function existeEnEsteEstudio(
+  seccion: string,
+  key: string,
+  dashboard: MonitoreoAulasDashboard | null,
+): boolean {
+  if (seccion === "calidad" && key === "alumnos") {
+    return Boolean(dashboard?.cruce_por_carrera?.aplica);
+  }
+  return true;
+}
+
 export function railDeAulas(
   seccion: string,
   dashboard: MonitoreoAulasDashboard | null,
 ): MonitoreoWorkbenchRailTab[] {
-  return (PESTANAS[seccion] ?? []).map((pestana) => ({
+  return (PESTANAS[seccion] ?? [])
+    .filter((pestana) => existeEnEsteEstudio(seccion, pestana.key, dashboard))
+    .map((pestana) => ({
     key: pestana.key,
     label: pestana.label,
     detail: pestana.detail,

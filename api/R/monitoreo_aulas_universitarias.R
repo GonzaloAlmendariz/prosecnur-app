@@ -3236,6 +3236,16 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # el recibo del padrón —para no ofrecer un eje por persona sin con qué
     # resolverlo—.
     ejes_declarables = monitoreo_aulas_ejes_declarables(),
+    # **El cruce de alumnos por código PUCP, repartido por carrera.** De él
+    # depende todo el avance de un estudio cuyo eje se resuelve por persona, y
+    # sólo se publicaba su total.
+    #
+    # Lo calcula `avance_cuota`, que es quien resuelve la persona de cada
+    # respuesta, y aquí sólo se IZA al primer nivel: volver a cruzar daría dos
+    # lecturas de la misma respuesta, que es el defecto que este perfil lleva
+    # todo el día corrigiendo. Sube al primer nivel —en vez de leerse dentro del
+    # bloque de cuotas— porque lo consume Validación, que no habla de cuotas.
+    cruce_por_carrera = avance_cuota$cruce_por_carrera %||% list(),
     # El resumen es lo PUBLICABLE del padrón: conteos, sin un solo código. Es lo
     # mismo que queda cuando se purga, así que publicarlo no reabre el F114.
     padron = monitoreo_aulas_padron_resumen(padron %||% list()),
