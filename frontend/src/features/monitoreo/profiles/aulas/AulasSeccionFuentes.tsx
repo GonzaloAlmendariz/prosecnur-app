@@ -16,7 +16,7 @@ import type { MonitoreoAulasDashboard, MonitoreoSource } from "../../../../api/m
  * el reparto.
  */
 export function AulasSeccionFuentes({
-  dashboard, operations, fuentes, volumen, criterioDeEfectiva,
+  dashboard, operations, fuentes, volumen, criterioDeEfectiva, comoMide = null,
   umbralDeDuracion, onDeclararUmbralDeDuracion,
 }: {
   /**
@@ -30,6 +30,11 @@ export function AulasSeccionFuentes({
   fuentes: ReadonlyArray<MonitoreoSource>;
   volumen: { filas?: number; columnas?: number };
   criterioDeEfectiva: ReactNode;
+  /**
+   * Las tres declaraciones de «cómo mide este estudio», ya construidas por la
+   * página. `null` mientras no se pueda guardar todavía.
+   */
+  comoMide?: ReactNode;
   /** `minutos` es nulable: sin declarar no hay umbral, y un 0 diría que lo hay. */
   umbralDeDuracion: { declarado: boolean; minutos: number | null };
   /** Nulo cuando la página no sabe guardar todavía; el panel lo contempla. */
@@ -138,6 +143,33 @@ export function AulasSeccionFuentes({
             columnas={volumen.columnas}
           />
         </section>
+        {/* **Cómo mide este estudio.** Tres decisiones que gobiernan lo que el
+            tablero SIGNIFICA —contra qué se mide la cuota, por qué dimensión se
+            resume el operativo y desde cuándo lo recogido es campo— y que
+            existían sólo en el motor: se ponían por API y el estudio en marcha
+            no podía tocar su propia definición.
+
+            Van aquí, encima del criterio, porque se deciden ANTES: de qué son
+            las celdas manda sobre qué cuenta para ellas. */}
+        {comoMide ? (
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-criterio-efectiva"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cómo mide este estudio</h3>
+              <span className="mon-profile-panel-hint">
+                de qué son los grupos, cómo se agrupa el resumen y desde cuándo es campo
+              </span>
+            </div>
+            {/* `member` declarado por el mismo motivo que abajo: sin él el runner
+                mide el encabezado como si fuera el contenedor de datos. */}
+            <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+              {comoMide}
+            </div>
+          </section>
+        ) : null}
         {/* **Qué cuenta como efectiva**, aquí y no en otra sección: Fuentes es la
             que promete decir de dónde salen las respuestas, y de qué vale cada
             una es parte de eso. Hasta ahora no se podía declarar en aulas —los

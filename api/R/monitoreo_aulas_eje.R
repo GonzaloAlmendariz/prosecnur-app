@@ -114,6 +114,34 @@ monitoreo_aulas_eje <- function(cfg = list()) {
   eje
 }
 
+#' El catálogo de dimensiones declarables, para que la pantalla no lo copie.
+#'
+#' La lista vive aquí y es cerrada a propósito. Si el selector de Fuentes
+#' escribiera sus tres opciones a mano, añadir una cuarta dimensión exigiría
+#' acordarse de dos sitios y el segundo se olvidaría —es el mismo motivo por el
+#' que `atribucion` y `fuente_valor` viajan EN el eje y no en un `if`—.
+#'
+#' Cada entrada lleva `requiere_padron`, que es lo que separa una opción
+#' ofrecible de una que dejaría el estudio sin avance: un eje que se resuelve
+#' por persona necesita el padrón cargado y la variable del código declarada, y
+#' la pantalla tiene que poder decirlo ANTES de que lo elijan.
+#'
+#' @return lista de dimensiones, cada una con `clave`, `etiqueta`,
+#'   `etiqueta_plural`, `columna`, `atribucion`, `fuente_valor` y
+#'   `requiere_padron`.
+#' @export
+monitoreo_aulas_ejes_declarables <- function() {
+  unname(lapply(.MONITOREO_AULAS_EJES, function(e) list(
+    clave = .monitoreo_scalar(e$clave, ""),
+    etiqueta = .monitoreo_scalar(e$etiqueta, ""),
+    etiqueta_plural = .monitoreo_scalar(e$etiqueta_plural, ""),
+    columna = .monitoreo_scalar(e$columna, ""),
+    atribucion = .monitoreo_scalar(e$atribucion, "aula"),
+    fuente_valor = .monitoreo_scalar(e$fuente_valor, "plan"),
+    requiere_padron = identical(.monitoreo_scalar(e$fuente_valor, "plan"), "padron")
+  )))
+}
+
 #' La columna del eje en un data.frame concreto.
 #'
 #' El plan, el marco y las respuestas no nombran sus columnas igual, y ninguna

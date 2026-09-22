@@ -89,3 +89,30 @@ test_that("el ritmo deja de promediar el ensayo con el campo", {
   expect_identical(con_inicio$dias_con_campo, 1L)
   expect_identical(con_inicio$media_diaria, 3)
 })
+
+test_that("el tablero publica el recibo del padron: conteos, sin un solo codigo", {
+  # La pantalla que deja elegir el eje tiene que poder decir si hay padrón con
+  # el que resolverlo. Es lo mismo que queda al purgar, así que publicarlo no
+  # reabre el F114: `personas` y los conteos, nunca `filas`.
+  plan <- list(list(operational_code = "CH 1", classroom_id = "a1",
+                    faculty = "CIENCIAS SOCIALES", program = "ECONOMÍA", level = "6",
+                    sample_role = "titular", eligible_n = 30, expected_valid = 12))
+  padron <- list(schema = "monitoreo_aulas_padron_v1", vigencia = "2026-09-07", filas = list(
+    list(codigo = "20190001", nivel = 6L, carrera = "ECONOMÍA", sexo = "F"),
+    list(codigo = "20190002", nivel = 7L, carrera = "ECONOMÍA", sexo = "M")
+  ))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), .maic_cfg(""), padron = padron)
+  expect_identical(as.integer(d$padron$personas), 2L)
+  expect_identical(d$padron$schema, "monitoreo_aulas_padron_resumen_v1")
+  # Lo que NO puede viajar.
+  expect_null(d$padron$filas)
+  expect_false(grepl("20190001", jsonlite::toJSON(d$padron, auto_unbox = TRUE), fixed = TRUE))
+})
+
+test_that("sin padron el recibo es un cero declarado, no una ausencia", {
+  plan <- list(list(operational_code = "CH 1", classroom_id = "a1",
+                    faculty = "CIENCIAS SOCIALES", program = "ECONOMÍA", level = "6",
+                    sample_role = "titular", eligible_n = 30, expected_valid = 12))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), .maic_cfg(""))
+  expect_identical(as.integer(d$padron$personas), 0L)
+})

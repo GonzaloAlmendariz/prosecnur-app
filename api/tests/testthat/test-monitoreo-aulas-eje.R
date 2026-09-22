@@ -171,3 +171,47 @@ test_that("sin eje, la declaracion dice facultad — un contrato viejo se lee bi
   expect_identical(d$columna, "faculty")
   expect_identical(d$atribucion, "aula")
 })
+
+# =============================================================================
+# El catálogo viaja al payload para que la pantalla no lo copie
+# =============================================================================
+#
+# Las tres declaraciones que gobiernan cómo mide un estudio —el eje de cuotas,
+# la agrupación del resumen y el arranque del campo— sólo se podían poner por
+# API. Para ofrecerlas en Fuentes hace falta el catálogo: escribirlo a mano en
+# TypeScript significaría que añadir una cuarta dimensión exige acordarse de dos
+# sitios, y el segundo se olvida.
+
+test_that("el catalogo trae las dimensiones con lo que hace falta para ofrecerlas", {
+  ejes <- monitoreo_aulas_ejes_declarables()
+  claves <- vapply(ejes, function(e) e$clave, character(1))
+  expect_true(all(c("facultad", "carrera", "nivel") %in% claves))
+  # Las etiquetas viajan: la pantalla no inventa la palabra de cada dimensión.
+  etiquetas <- stats::setNames(vapply(ejes, function(e) e$etiqueta, character(1)), claves)
+  expect_identical(unname(etiquetas[["nivel"]]), "Nivel")
+  expect_identical(unname(etiquetas[["carrera"]]), "Carrera")
+})
+
+test_that("`requiere_padron` separa la opcion ofrecible de la que deja sin avance", {
+  # Un eje por PERSONA sin padrón cargado manda todas las respuestas a «sin
+  # nivel». La pantalla tiene que poder decirlo antes de que lo elijan, no
+  # después.
+  ejes <- monitoreo_aulas_ejes_declarables()
+  de <- function(k) Filter(function(e) identical(e$clave, k), ejes)[[1]]
+  expect_true(de("nivel")$requiere_padron)
+  expect_false(de("facultad")$requiere_padron)
+  expect_false(de("carrera")$requiere_padron)
+  # Y coincide con la atribución declarada, que es de donde sale.
+  expect_identical(de("nivel")$atribucion, "persona")
+  expect_identical(de("carrera")$atribucion, "aula")
+})
+
+test_that("el catalogo es el MISMO que resuelve el motor, no una copia", {
+  # Si divergieran, la pantalla ofrecería una opción que el motor ignora.
+  for (e in monitoreo_aulas_ejes_declarables()) {
+    resuelto <- monitoreo_aulas_eje(list(aulas_universitarias = list(eje_cuota = e$clave)))
+    expect_identical(resuelto$clave, e$clave)
+    expect_identical(resuelto$columna, e$columna)
+    expect_identical(resuelto$atribucion, e$atribucion)
+  }
+})
