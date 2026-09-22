@@ -512,6 +512,9 @@ monitoreo_aulas_default_config <- function() {
     # que el eje de cuotas y puede tener otra respuesta: ver
     # `monitoreo_aulas_agrupacion.R`.
     agrupacion_operativa = "facultad",
+    # El día que arrancó la recolección. Lo anterior es ensayo y sale por
+    # `fuera_del_operativo`: ver `monitoreo_aulas_inicio_campo.R`.
+    inicio_campo = "",
     # **Contra qué otro estudio se cruza, y de dónde se lee.** Sin esto el
     # veredicto del traslape sólo podía inyectarlo un runner externo y la app no
     # tenía cómo recalcularlo. Ver `monitoreo_aulas_traslape_fuente.R`.
@@ -855,6 +858,7 @@ monitoreo_aulas_normalize_config <- function(config = list(), previous = list())
     eje_cuota = config[["eje_cuota"]] %||% config[["ejeCuota"]] %||% defaults$eje_cuota,
     eje_cuota_motivo = config[["eje_cuota_motivo"]] %||% config[["ejeCuotaMotivo"]] %||% defaults$eje_cuota_motivo,
     agrupacion_operativa = config[["agrupacion_operativa"]] %||% config[["agrupacionOperativa"]] %||% defaults$agrupacion_operativa,
+    inicio_campo = config[["inicio_campo"]] %||% config[["inicioCampo"]] %||% defaults$inicio_campo,
     # La fuente del cruce, por la MISMA razón: sin nombrarla aquí, declararla no
     # sobreviviría al primer «actualizar» y el botón de recalcular se quedaría
     # sin saber de dónde leer. Se normaliza al guardar y una clave desconocida

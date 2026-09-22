@@ -92,11 +92,16 @@ monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
 #' los filtros de validez —son encuestas correctas— y no son del operativo. El
 #' primer día de HSVG2026 eran 36 de 204. `valid_filters` dice qué cuenta;
 #' `descartes` dice qué se saca, y basta con que uno case.
+#'
+#' **Y lo anterior al arranque del campo también sale**, cuando el estudio lo
+#' declara: la capacitación abierta por el enlace no trae ningún valor que
+#' `descartes` pueda casar. Ver `monitoreo_aulas_inicio_campo.R`.
 #' @keywords internal
 .monitoreo_aulas_descartada <- function(data, cfg) {
   if (!is.data.frame(data) || !nrow(data)) return(logical(0))
   reglas <- .monitoreo_aulas_filas_de_filtro((cfg$source_mapping %||% list())$descartes)
-  fuera <- rep(FALSE, nrow(data))
+  fuera <- monitoreo_aulas_antes_del_campo(data, cfg)
+  if (length(fuera) != nrow(data)) fuera <- rep(FALSE, nrow(data))
   for (f in reglas) {
     var <- .monitoreo_scalar(f$var %||% f$variable, "")
     vals <- .monitoreo_chr_vec(f$values %||% f$valores %||% character(0))
