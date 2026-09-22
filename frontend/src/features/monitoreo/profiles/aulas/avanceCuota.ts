@@ -76,7 +76,7 @@ export type FilaDeAvanceCuota = {
   carril: number;
   /** Ancho del relleno dentro del carril; capado a 100 sólo para pintar. */
   relleno: number;
-  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota";
+  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   cumplida: boolean;
   /** La cifra fuerte de la derecha; `null` cuando no hay resta que mostrar. */
   cifra: string | null;
@@ -175,7 +175,12 @@ function notasDeFila(bruta: MonitoreoAulasAvanceCuotaFacultad): string[] {
   return notas;
 }
 
-function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota, "carril"> {
+function fila(
+  bruta: MonitoreoAulasAvanceCuotaFacultad,
+  // La palabra del eje declarado («Nivel», «Facultad»). Se pasa en vez de
+  // cablear «facultad»: el bloque ya no siempre habla de facultades.
+  etiquetaEje?: string,
+): Omit<FilaDeAvanceCuota, "carril"> {
   const facultad = texto(bruta.facultad) || "Sin facultad";
   const clave = texto(bruta.faculty_key) || facultad;
   const cuota = numeroONulo(bruta.cuota);
@@ -183,14 +188,39 @@ function fila(bruta: MonitoreoAulasAvanceCuotaFacultad): Omit<FilaDeAvanceCuota,
   // Sin cuota manda aunque el estado no lo diga: sin denominador no se inventa
   // un porcentaje.
   const sinCuota = estadoBruto === "sin_cuota" || cuota == null;
+  // **`fuera_del_diseno` manda sobre `sinCuota`.** Las dos filas llegan sin
+  // cuota y sin ella la de nivel 5 se leía «facultad del plan sin cuota en el
+  // diseño»: una frase sobre el PLAN para algo que el plan no dijo. Son dos
+  // vacíos distintos y la regla del contrato es clasificarlos, no unificarlos.
+  const fueraDelDiseno = estadoBruto === "fuera_del_diseno";
   // Anotado para que el literal no se ensanche a `string` al entrar al objeto.
   const estado: FilaDeAvanceCuota["estado"] =
-    sinCuota ? "sin_cuota" : estadoBruto === "sin_aulas_en_plan" ? "sin_aulas_en_plan" : "ok";
+    fueraDelDiseno ? "fuera_del_diseno"
+      : sinCuota ? "sin_cuota"
+      : estadoBruto === "sin_aulas_en_plan" ? "sin_aulas_en_plan" : "ok";
   const validas = numero(bruta.respuestas_validas);
   const brecha = sinCuota ? 0 : Math.max(0, numero(bruta.brecha));
   const avance = sinCuota ? null : numero(bruta.avance_pct);
   const notas = notasDeFila(bruta);
   const cumplida = estado === "ok" && brecha === 0;
+
+  if (estado === "fuera_del_diseno") {
+    const eje = (etiquetaEje ?? "valor").toLocaleLowerCase("es");
+    return {
+      facultad, clave, cuota: null, validas, brecha, avance: null,
+      relleno: 0, estado, cumplida: false,
+      cifra: null,
+      lectura: `fuera del dise\u00f1o`,
+      subtexto: [`${fmt(validas)} recogidas`, ...notas].join(" \u00b7 "),
+      titulo: [
+        `El dise\u00f1o no traza este ${eje}: estas respuestas se recogieron y no ` +
+          `cuentan para ninguna cuota. Se publican para que la cuenta del d\u00eda ` +
+          `cuadre \u2014antes desaparec\u00edan del bloque\u2014.`,
+        ...notas,
+      ].join(" \u00b7 "),
+      aria: `${facultad}: fuera del dise\u00f1o, ${fmt(validas)} recogidas que no cuentan para ninguna cuota`,
+    };
+  }
 
   if (estado === "sin_cuota") {
     return {
@@ -298,8 +328,9 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
     };
   }
 
+  const etiquetaEje = texto(bloque.eje?.etiqueta) || "Facultad";
   const parciales = brutas
-    .map(fila)
+    .map((b) => fila(b, etiquetaEje))
     // Primero la que más lejos está: es el orden con el que se decide a dónde
     // va el equipo mañana. Las filas sin cuota no tienen brecha definida y
     // bajan al final, ordenadas por nombre.
@@ -338,6 +369,18 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
   const duplicadas = numero(t.duplicadas);
   const sinEjeRotulo = bloque.eje?.etiqueta_sin ?? "Sin valor del eje";
   if (sinEje > 0) notasTotal.push(`${fmt(sinEje)} ${sinEjeRotulo.toLocaleLowerCase("es")}`);
+  /**
+   * **La quinta bolsa.** Válidas cuyo valor de eje resolvió y el diseño no
+   * traza. Va con la palabra del eje dentro porque «1 fuera del diseño» no
+   * dice de qué dimensión habla, y el lector que ve caer el total necesita
+   * saber que la causa es el NIVEL y no el aula.
+   */
+  const sinCelda = numero(t.sin_celda);
+  if (sinCelda > 0) {
+    notasTotal.push(
+      `${fmt(sinCelda)} de un ${etiquetaEje.toLocaleLowerCase("es")} que el dise\u00f1o no mide`,
+    );
+  }
   if (duplicadas > 0) {
     notasTotal.push(
       duplicadas === 1
@@ -386,7 +429,7 @@ export function avanceCuota(bloque?: MonitoreoAulasAvanceCuota | null): VistaDeA
       // con el denominador del diseño que con el del plan degradado.
       aria: `${pctPerfil(avanceTotal)} de la ${etiqueta.toLowerCase()} · ${procedencia.chip}`,
       notas: notasTotal,
-      fueraDeCelda: fueraTotal + huerfanas + sinEje + duplicadas,
+      fueraDeCelda: fueraTotal + huerfanas + sinEje + duplicadas + sinCelda,
       descuadre,
     },
     filas,

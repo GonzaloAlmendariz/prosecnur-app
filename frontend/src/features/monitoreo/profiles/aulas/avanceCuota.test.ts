@@ -352,3 +352,66 @@ describe("las bolsas del eje por persona llegan a la pantalla", () => {
     expect(avanceCuota(bloque({})).total?.descuadre).toBeNull();
   });
 });
+
+describe("un valor del eje que el diseño no traza", () => {
+  /**
+   * **El defecto de campo, medido el 2026-09-22 en CCSS Perfil 2026-II.**
+   *
+   * Nueve respuestas del día: siete personas de nivel 6 —celda del diseño— y
+   * dos de nivel 5, que el estudio no traza. Las dos resolvían su eje contra el
+   * padrón, así que no eran «sin nivel»; casaban con el plan, así que no eran
+   * huérfanas; y ninguna celda las leía. El motor ya las emite como fila propia
+   * con `estado: "fuera_del_diseno"`; aquí se comprueba que la pantalla las
+   * distingue de una facultad del plan sin cuota, que es otra cosa.
+   */
+  const conNivelFuera = (eje?: Record<string, unknown>) => avanceCuota({
+    schema: "monitoreo_aulas_avance_cuota_v1",
+    fuente: "design_targets", vigencia: "vigente", motivo: "",
+    tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+    eje: eje ?? { clave: "nivel", etiqueta: "Nivel", etiqueta_sin: "Sin nivel" },
+    facultades: [
+      { facultad: "6", faculty_key: "6", cuota: 119, respuestas_validas: 7,
+        brecha: 112, avance_pct: 5.9, fuente_fila: "diseno", estado: "ok" },
+      { facultad: "5", faculty_key: "5", cuota: null, respuestas_validas: 2,
+        brecha: null, avance_pct: null,
+        fuente_fila: "fuera_del_diseno", estado: "fuera_del_diseno" },
+    ],
+    total: { cuota: 400, respuestas_validas: 7, brecha: 393, avance_pct: 1.8, sin_celda: 2 },
+  } as never);
+
+  it("tiene fila propia y no se lee como una facultad del plan sin cuota", () => {
+    const v = conNivelFuera();
+    const fila = v.filas.find((f) => f.clave === "5");
+    expect(fila?.estado).toBe("fuera_del_diseno");
+    expect(fila?.lectura).toBe("fuera del diseño");
+    expect(fila?.subtexto).toContain("2 recogidas");
+    // La redacción de `sin_cuota` habla del PLAN, y el plan no dijo nada de
+    // este nivel: son dos vacíos distintos y el contrato pide clasificarlos.
+    expect(fila?.titulo).not.toContain("del plan");
+    expect(fila?.titulo).toContain("nivel");
+    // Sin denominador no se inventa un porcentaje, igual que sus hermanas.
+    expect(fila?.cuota).toBeNull();
+    expect(fila?.avance).toBeNull();
+  });
+
+  it("la cabecera lo dice con la palabra del eje y lo suma a lo que no cuenta", () => {
+    const v = conNivelFuera();
+    expect((v.total?.notas ?? []).join(" · ")).toContain("2 de un nivel que el diseño no mide");
+    // `fueraDeCelda` es lo que le falta a «7 de 400» para poder leerse: sin
+    // esta bolsa decía 0 con dos encuestas del día fuera de toda celda.
+    expect(v.total?.fueraDeCelda).toBe(2);
+  });
+
+  it("sin bolsa no se pinta la nota: un cero ahí es ruido", () => {
+    const v = avanceCuota({
+      schema: "monitoreo_aulas_avance_cuota_v1",
+      fuente: "design_targets", vigencia: "vigente", motivo: "",
+      tasa_esperada: 0.5, tasa_fuente: "tau_disenio",
+      eje: { clave: "facultad", etiqueta: "Facultad", etiqueta_sin: "Sin facultad" },
+      facultades: [{ facultad: "Derecho", faculty_key: "derecho", cuota: 10, respuestas_validas: 3 }],
+      total: { cuota: 10, respuestas_validas: 3, brecha: 7, avance_pct: 30, sin_celda: 0 },
+    } as never);
+    expect((v.total?.notas ?? []).join(" · ")).not.toContain("no mide");
+    expect(v.total?.fueraDeCelda).toBe(0);
+  });
+});
