@@ -115,15 +115,40 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
     expect(html).not.toContain("--pulso-warn");
   });
 
-  it("un cero medido no dibuja astilla, y sigue en la leyenda", () => {
+  it("un cero medido no dibuja astilla, y se dice en la leyenda sin un numero", () => {
     // ANTROPOLOGÍA tiene 23 personas en la población y 0 recogidas, y esa
     // diferencia ES el dato: sin segmento en la barra de lo recogido, pero con
-    // su renglón —si desapareciera del panel, el cero dejaría de verse—.
+    // su renglón. Desde que las cifras viven en el hover, el cero se dice con
+    // el color hueco y dos palabras: un «0» suelto en una leyenda sin números
+    // se leería como un error de la pantalla.
     expect(html).toContain("ANTROPOLOGÍA");
-    expect(html).toContain("0.0 % · 0");
+    expect(html).toContain('data-cero="si"');
+    expect(html).toContain("sin ninguna");
     // Su segmento existe en población y no en lo recogido.
-    expect(html).toContain("ANTROPOLOGÍA: 2.9 %");
-    expect(html).not.toContain("ANTROPOLOGÍA: 0.0 %");
+    expect(html).toContain("ANTROPOLOGÍA · 2.9 % · 23");
+    expect(html).not.toContain("ANTROPOLOGÍA · 0.0 %");
+  });
+
+  /**
+   * **Las cifras viven en el hover, no en la leyenda.** Gonzalo: «la leyenda no
+   * necesita datos, porque las barras deben permitir hover elegante». Una
+   * leyenda con números es una tabla pequeña debajo del gráfico, y entonces el
+   * gráfico sobra.
+   */
+  it("la leyenda dice quien es cada color y nada mas", () => {
+    const leyendas = html.match(/<ul class="aulas-comp-leyenda-cats">.*?<\/ul>/gs) ?? [];
+    expect(leyendas.length).toBeGreaterThan(0);
+    for (const l of leyendas) {
+      expect(l).not.toMatch(/\d+\.\d+ %/);
+    }
+  });
+
+  it("cada segmento lleva su cifra en el hover, y sale tambien con el teclado", () => {
+    // Un dato que sólo existe bajo el ratón no existe para quien no lo usa.
+    expect(html).toContain('data-info="Mujeres · 63.8 % · 37"');
+    expect(html).toContain('tabindex="0"');
+    // Y no queda el `title` del navegador: dos globos para el mismo dato.
+    expect(html).not.toContain("title=");
   });
 
   /**
@@ -134,9 +159,9 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
    * centímetros.
    */
   it("el segmento usa el porcentaje del modelo, no uno recalculado", () => {
-    expect(html).toContain("ECONOMÍA: 44.8 %");
-    expect(html).not.toContain("ECONOMÍA: 94.0 %");
-    expect(html).not.toContain("ECONOMÍA: 100.0 %");
+    expect(html).toContain("ECONOMÍA · 44.8 %");
+    expect(html).not.toContain("ECONOMÍA · 94.0 %");
+    expect(html).not.toContain("ECONOMÍA · 100.0 %");
   });
 
   it("lo que falta para el 100 % se declara, no se reparte", () => {
