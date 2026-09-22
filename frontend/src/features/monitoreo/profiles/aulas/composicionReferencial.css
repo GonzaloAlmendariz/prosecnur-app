@@ -17,32 +17,116 @@
 .aulas-comp-titulo h4 { margin: 0; font-size: var(--aulas-sec); font-weight: 650; color: var(--pulso-text); }
 .aulas-comp-titulo span { font-size: var(--aulas-min); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 
-.aulas-comp-filas { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
-/* Tres columnas que coinciden entre filas: la tercera fija, para que las cifras
-   de todas las filas se lean en la misma vertical. */
-/* La tercera columna, fija y ancha: con 132 px «52.6 % · 421 de la población»
-   partía «población» a una tercera línea y la dejaba huérfana. Visto en
-   pantalla, no en el markup. */
-.aulas-comp-fila { display: grid; grid-template-columns: minmax(140px, 1.2fr) minmax(150px, 2fr) 178px; gap: 4px 14px; align-items: center; }
 .aulas-comp-nombre { overflow-wrap: normal; word-break: keep-all; font-weight: 600; }
 
-/* Dos carriles apilados, uno por reparto. NO superpuestos: aquí ninguno
-   contiene al otro —son dos repartos distintos de dos poblaciones distintas—,
-   así que el ojo tiene que poder medir la diferencia de largo entre los dos. */
-.aulas-comp-carriles { display: grid; gap: 3px; }
-.aulas-comp-carril { position: relative; height: 9px; border-radius: 3px; background: color-mix(in srgb, var(--pulso-text) 6%, transparent); }
-/* `min-width` sólo para lo que existe: un 0 % dibujado como astilla de 1 px se
-   lee «casi nada» donde el dato dice «nada». ANTROPOLOGÍA tiene 23 personas en
-   la población y 0 recogidas, y esa diferencia es el dato. */
-.aulas-comp-tramo { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 3px; }
-.aulas-comp-tramo.es-algo { min-width: 2px; }
-.aulas-comp-tramo.es-poblacion { background: color-mix(in srgb, var(--pulso-text) 16%, transparent); }
-.aulas-comp-tramo.es-obtenidas { background: var(--pulso-module-monitoring); }
+/* --- barras apiladas al 100 % ---------------------------------------------
+   Gonzalo, 2026-09-22: «¿no sería mejor barras apiladas elegantes por tipo de
+   estrato […] con la barra de base y la barra de cómo va el campo hasta ahora?».
+   Con una fila por categoría eran seis pares de barras finas y la comparación
+   había que hacerla de dos en dos; apiladas, el sesgo salta de un golpe. */
 
-/* Dos líneas y ninguna se parte: cada una lleva `nowrap` y la columna se
-   dimensionó para la más larga. Los tonos son los de los dos carriles —fuerte
-   lo recogido, suave la población—, así que la cifra se empareja con su barra
-   sin repetir un rótulo en cada una de las ocho filas. */
-.aulas-comp-cifras { text-align: right; font-size: var(--aulas-min); font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
-.aulas-comp-cifras span { display: block; white-space: nowrap; }
-.aulas-comp-cifras b { display: block; white-space: nowrap; font-weight: 650; color: var(--pulso-text); }
+.aulas-comp-pilas { display: grid; gap: 6px; margin: 2px 0 10px; }
+
+.aulas-comp-pila-fila {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.aulas-comp-pila-rotulo { font-size: 11.5px; color: var(--pulso-text-faint); }
+
+.aulas-comp-pila {
+  display: flex;
+  height: 22px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--pulso-surface-2);
+}
+
+.aulas-comp-pila-vacia {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11.5px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-comp-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2px;
+  height: 100%;
+  background: var(--comp-tono, var(--pulso-surface-2));
+  /* La hendidura entre segmentos la hace el propio fondo del carril, no un
+     borde: con seis segmentos, seis bordes de 1 px se comen tres puntos
+     porcentuales de ancho y la barra deja de sumar lo que dice. */
+  box-shadow: inset -1px 0 0 var(--pulso-surface);
+}
+
+.aulas-comp-seg:last-child { box-shadow: none; }
+
+/* Lo que falta para el 100 %: categorías que el bloque no lista, o gente sin
+   ese dato. Va sin nombre y en el gris del carril porque no es una categoría
+   más; repartirlo entre las demás sería inventar a quién pertenece. */
+.aulas-comp-seg.es-resto {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pulso-surface-2) 0 4px,
+    color-mix(in srgb, var(--pulso-border) 55%, transparent) 4px 8px
+  );
+}
+
+.aulas-comp-seg > em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  /* Los tonos del sistema son medios-oscuros: el blanco resuelve sobre los
+     ocho. La sombra sostiene el caso del ámbar, que es el más claro. */
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.aulas-comp-leyenda-cats { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+
+.aulas-comp-leyenda-cats > li {
+  display: grid;
+  grid-template-columns: 10px minmax(6rem, 14rem) 6.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.aulas-comp-leyenda-cats b {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.aulas-comp-leyenda-cats .aulas-comp-nombre { color: var(--pulso-text-soft); }
+.aulas-comp-pobl { font-variant-numeric: tabular-nums; }
+
+/* La paleta del perfil, la misma de los pabellones y de los chips de aula: el
+   tono sale del nombre, así que una carrera conserva su color entre pantallas. */
+.aulas-comp-seg.es-tono-0, .aulas-comp-swatch.es-tono-0 { --comp-tono: var(--pulso-accent-steel); }
+.aulas-comp-seg.es-tono-1, .aulas-comp-swatch.es-tono-1 { --comp-tono: var(--pulso-accent-green); }
+.aulas-comp-seg.es-tono-2, .aulas-comp-swatch.es-tono-2 { --comp-tono: var(--pulso-accent-rose); }
+.aulas-comp-seg.es-tono-3, .aulas-comp-swatch.es-tono-3 { --comp-tono: var(--pulso-accent-amber); }
+.aulas-comp-seg.es-tono-4, .aulas-comp-swatch.es-tono-4 { --comp-tono: var(--pulso-accent-violet); }
+.aulas-comp-seg.es-tono-5, .aulas-comp-swatch.es-tono-5 { --comp-tono: var(--pulso-accent-cyan); }
+.aulas-comp-seg.es-tono-6, .aulas-comp-swatch.es-tono-6 { --comp-tono: var(--pulso-module-monitoring); }
+.aulas-comp-seg.es-tono-7, .aulas-comp-swatch.es-tono-7 { --comp-tono: var(--pulso-module-processing); }
+
+.aulas-comp-swatch[class*="es-tono-"] {
+  background: var(--comp-tono);
+  border-radius: 2px;
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+}

@@ -94,7 +94,9 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
   it("enseña los dos repartos con sus cifras", () => {
     expect(html).toContain("Mujeres");
     expect(html).toContain("63.8 %");
-    expect(html).toContain("421 de la población");
+    // La población de cada categoría viaja en el `title` del segmento y en su
+    // renglón de la leyenda; el «de la población» de la cabecera es el total.
+    expect(html).toContain("421");
     expect(html).toContain("58 de 800 de la población");
   });
 
@@ -113,12 +115,36 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
     expect(html).not.toContain("--pulso-warn");
   });
 
-  it("un cero medido no dibuja astilla", () => {
+  it("un cero medido no dibuja astilla, y sigue en la leyenda", () => {
     // ANTROPOLOGÍA tiene 23 personas en la población y 0 recogidas, y esa
-    // diferencia ES el dato: `min-width` sólo para lo que existe.
-    const anchos = html.match(/aulas-comp-tramo es-obtenidas[^"]*"/g) ?? [];
-    expect(anchos.some((c) => !c.includes("es-algo"))).toBe(true);
-    expect(anchos.some((c) => c.includes("es-algo"))).toBe(true);
+    // diferencia ES el dato: sin segmento en la barra de lo recogido, pero con
+    // su renglón —si desapareciera del panel, el cero dejaría de verse—.
+    expect(html).toContain("ANTROPOLOGÍA");
+    expect(html).toContain("0.0 % · 0");
+    // Su segmento existe en población y no en lo recogido.
+    expect(html).toContain("ANTROPOLOGÍA: 2.9 %");
+    expect(html).not.toContain("ANTROPOLOGÍA: 0.0 %");
+  });
+
+  /**
+   * **La barra y su leyenda dicen el MISMO número.** El primer apilado
+   * normalizaba cada segmento sobre la suma de las filas de su dimensión, y con
+   * categorías que no cubren toda la población publicaba «ECONOMÍA 94 %» junto
+   * a un «44,8 %» en su propio renglón: dos lecturas del mismo dato en cuatro
+   * centímetros.
+   */
+  it("el segmento usa el porcentaje del modelo, no uno recalculado", () => {
+    expect(html).toContain("ECONOMÍA: 44.8 %");
+    expect(html).not.toContain("ECONOMÍA: 94.0 %");
+    expect(html).not.toContain("ECONOMÍA: 100.0 %");
+  });
+
+  it("lo que falta para el 100 % se declara, no se reparte", () => {
+    // En la fixture las dos carreras cubren 47,7 % de la población: el resto es
+    // gente de categorías que el bloque no lista, y repartirlo entre las dos
+    // sería inventar a quién pertenece.
+    expect(html).toContain("es-resto");
+    expect(html).toContain("Otras categorías o sin dato");
   });
 
   it("no repite la nota del motor sobre su propio título", () => {
