@@ -2750,17 +2750,24 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
 
   # Una respuesta huerfana es la que trae un colector que NO pertenece a ninguna
   # aula del plan: un QR de otro estudio, una ficha vieja, un id mal tecleado.
-  # Antes este chequeo solo miraba si la respuesta TENIA valor de colector, no
-  # si ese valor casaba con algo, asi que una respuesta de un aula inexistente
-  # pasaba como buena. Comprobarlo solo es posible desde que el emparejamiento
-  # conoce `collection_unit_id`.
-  ids_del_plan <- unique(c(
-    as.character(plan_df$classroom_id %||% character(0)),
-    as.character(plan_df$collection_unit_id %||% character(0))
-  ))
-  ids_del_plan <- ids_del_plan[nzchar(ids_del_plan)]
+  #
+  # **Y se decide con la MISMA atribucion que el numerador del tablero.** Esto
+  # tenia su propio emparejamiento, con dos claves —`classroom_id` y
+  # `collection_unit_id`— y sin normalizar; el numerador usa tres, porque «el QR
+  # de 2026 viaja el codigo operativo» (`.maac_atribucion`, tercera clave). El
+  # resultado era que una respuesta bien atribuida al tablero salia aqui como
+  # huerfana, con el aviso en `warning`.
+  #
+  # Medido el 2026-09-22, primer dia de campo de CCSS Perfil 2026-II: el panel
+  # decia «29 respuestas validas no corresponden a ningun curso-horario» sobre
+  # 29 respuestas —o sea, todas— cuando 10 estaban atribuidas a CH 45 y contadas
+  # en el avance. Lo destapo el aviso nuevo al NOMBRAR los valores: «CH 45»
+  # aparecia en la lista de colectores ajenos de su propio plan.
+  #
+  # Dos lecturas de la misma respuesta no pueden convivir: la que cuenta manda.
   huerfanas <- if (length(valid_response)) {
-    valid_response %in% TRUE & (!nzchar(response_classroom) | !(response_classroom %in% ids_del_plan))
+    atr_control <- .maac_atribucion(plan_df, valid_response, response_classroom)
+    atr_control$valid %in% TRUE & !(atr_control$matched %in% TRUE)
   } else {
     logical(0)
   }
