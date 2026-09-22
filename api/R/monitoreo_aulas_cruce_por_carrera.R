@@ -29,6 +29,50 @@
 
 MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 
+# El detalle: una fila por respuesta considerada, la más reciente primero —que
+# es el orden con el que se comprueba algo que acaba de pasar—. Con tope
+# declarado: una tabla de miles de filas no se lee, y recortarla en silencio
+# haría creer que el operativo tiene las que se ven.
+.macc_detalle <- function(sub, cuenta, res, dup, responses, aulas, mask, tope) {
+  n <- nrow(sub)
+  if (!n) return(list(filas = list(), truncado = FALSE))
+  marca <- rep("", n)
+  if (is.data.frame(responses) && nrow(responses) == length(mask)) {
+    col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_TIEMPO)
+    if (nzchar(col)) marca <- as.character(responses[[col]])[mask]
+  }
+  aula <- rep("", n)
+  if (length(aulas) == length(mask)) aula <- as.character(aulas)[mask]
+  aula[is.na(aula)] <- ""
+  fecha <- monitoreo_aulas_fecha_local(marca)
+  hora <- monitoreo_aulas_hora_local(marca)
+  orden <- order(fecha, hora, decreasing = TRUE, method = "radix")
+  truncado <- n > tope
+  orden <- utils::head(orden, tope)
+  filas <- lapply(orden, function(i) list(
+    codigo = as.character(sub$codigo[i] %||% ""),
+    carrera = as.character(sub$carrera[i] %||% ""),
+    nivel = {
+      v <- suppressWarnings(as.integer(sub$nivel[i]))
+      if (is.finite(v)) as.character(v) else ""
+    },
+    sexo = as.character(sub$sexo[i] %||% ""),
+    fecha = fecha[i],
+    hora = hora[i],
+    curso_horario = aula[i],
+    # Tres estados y no dos: una repetida CRUZÓ —su persona existe— y no
+    # cuenta, que es distinto de no haberse podido identificar. Meterlas en la
+    # misma bolsa mandaría a revisar el código de quien lo escribió bien.
+    estado = if (cuenta[i]) "identificado" else if (res[i] && dup[i]) "repetida" else "sin_identificar",
+    motivo = if (!res[i]) as.character(sub$motivo[i] %||% "") else "",
+    motivo_etiqueta = if (!res[i]) {
+      m <- as.character(sub$motivo[i] %||% "")
+      unname(.macc_motivo_etiqueta[[m]] %||% m)
+    } else ""
+  ))
+  list(filas = filas, truncado = truncado)
+}
+
 .macc_motivo_etiqueta <- c(
   sin_codigo_declarado = "No declararon su código",
   codigo_ilegible = "El código no es legible",
@@ -42,13 +86,20 @@ MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA <- "monitoreo_aulas_cruce_por_carrera_v1"
 #'   AULA. Sólo ésas se consideran, igual que en el resto del bloque.
 #' @param cfg config de aulas, para saber si el estudio pide código. Un estudio
 #'   ANÓNIMO no tiene este cruce y la superficie no debe existir en él.
+#' @param responses las respuestas, para fechar cada fila. Sin ellas el detalle
+#'   sale sin fecha ni hora, no se omite.
+#' @param aulas etiqueta del curso-horario al que se atribuyó cada respuesta,
+#'   una por fila de `resueltas`.
+#' @param tope cuántas filas de detalle se publican como máximo.
 #' @param poblacion conteos por carrera del padrón
 #'   ([monitoreo_aulas_padron_resumen()]`$por_carrera`), para que cada fila diga
 #'   cuántos son en total. Sin ellos la fila publica su conteo y nada más.
 #' @return lista `{schema, total, carreras, sin_cruce}`.
 #' @export
 monitoreo_aulas_cruce_por_carrera <- function(resueltas, elegible = NULL,
-                                              poblacion = list(), cfg = list()) {
+                                              poblacion = list(), cfg = list(),
+                                              responses = NULL, aulas = NULL,
+                                              tope = 500L) {
   # **Un estudio anónimo no tiene este cruce, y su superficie no debe existir.**
   #
   # Gonzalo, 2026-09-22: «esta pestaña sólo está disponible si la encuesta, en
@@ -77,7 +128,8 @@ monitoreo_aulas_cruce_por_carrera <- function(resueltas, elegible = NULL,
       "revisa la declaración en Fuentes.") else "",
     total = list(consideradas = 0L, personas = 0L, duplicadas = 0L,
                  sin_cruce = 0L, tasa = NA_real_),
-    carreras = list(), sin_cruce = list()
+    carreras = list(), sin_cruce = list(),
+    alumnos = list(), tope = as.integer(tope), truncado = FALSE
   )
   if (!aplica) return(vacio)
   if (!is.data.frame(resueltas) || !nrow(resueltas)) return(vacio)
@@ -132,11 +184,23 @@ monitoreo_aulas_cruce_por_carrera <- function(resueltas, elegible = NULL,
     list()
   }
 
+  detalle <- .macc_detalle(sub, cuenta, res, dup, responses, aulas, mask, tope)
+
   list(
     schema = MONITOREO_AULAS_CRUCE_CARRERA_SCHEMA,
     aplica = TRUE,
     motivo = "",
     aviso_anonimato = vacio$aviso_anonimato,
+    # **Fila por alumno, no sólo el conteo.** Gonzalo, 2026-09-22, comparando
+    # con acreditación: «esto debe ser más específico ¿has revisado cómo lo hace
+    # acreditación? Es bastante específico con hora y todo». Su tabla de casos de
+    # plataforma publica actor/caso, estado, FECHA Y HORA, canal y cruce, una
+    # fila por caso; el agregado por carrera contesta «cuántos» y no «quién,
+    # cuándo y desde qué curso-horario», que es con lo que se va a comprobar
+    # una respuesta concreta.
+    alumnos = detalle$filas,
+    tope = as.integer(tope),
+    truncado = detalle$truncado,
     total = list(
       consideradas = as.integer(nrow(sub)),
       personas = as.integer(sum(cuenta)),

@@ -606,7 +606,20 @@
       attr(eje_atr, "resueltas"),
       elegible = eje_atr$cuenta | eje_atr$duplicada | eje_atr$sin_eje,
       poblacion = monitoreo_aulas_padron_resumen(padron %||% list())$por_carrera,
-      cfg = cfg),
+      cfg = cfg, responses = responses,
+      # El código operativo del curso-horario al que se atribuyó cada respuesta.
+      # Sale de la MISMA atribución que cuenta —`atr$fila`— y no de un segundo
+      # emparejamiento: dos lecturas de la misma respuesta es el defecto que
+      # este bloque lleva el día corrigiendo.
+      aulas = {
+        cod <- .maac_chr_col(plan_df, "operational_code")
+        if (length(cod) && is.data.frame(atr) && nrow(atr)) {
+          v <- rep("", nrow(atr))
+          ok <- !is.na(atr$fila)
+          if (any(ok)) v[ok] <- cod[atr$fila[ok]]
+          v
+        } else NULL
+      }),
     tasa_esperada = if (length(vig$facultades)) .monitoreo_num(vig$dt$tasa_esperada, NA_real_) else NA_real_,
     tasa_fuente = if (length(vig$facultades)) .monitoreo_scalar(vig$dt$tasa_fuente, "") else "",
     # **La meta y su sobremuestra, que el diseño calcula y no llegaban.**

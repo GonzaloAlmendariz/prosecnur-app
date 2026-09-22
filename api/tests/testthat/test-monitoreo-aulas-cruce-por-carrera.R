@@ -182,3 +182,97 @@ test_that("sin contradiccion no hay aviso: un cero permanente seria ruido", {
   expect_true(v$aplica)
   expect_identical(v$aviso_anonimato, "")
 })
+
+# =============================================================================
+# El detalle: una fila por alumno, con hora y curso-horario
+# =============================================================================
+#
+# Gonzalo, 2026-09-22, comparando con acreditación: «esto debe ser más
+# específico, ¿has revisado cómo lo hace acreditación? Es bastante específico
+# con hora y todo». Su tabla de casos de plataforma publica actor/caso, estado,
+# FECHA Y HORA, canal y cruce, una fila por caso. El agregado por carrera
+# contesta «cuántos» y no «quién, cuándo y desde qué curso-horario», que es con
+# lo que se comprueba una respuesta concreta.
+
+.mcc_respuestas <- function() data.frame(
+  start = c("2026-09-22T09:10:00", "2026-09-22T11:40:00", "2026-09-22T09:12:00",
+            "2026-09-21T15:00:00", "2026-09-22T08:00:00", "2026-09-22T08:05:00",
+            "2026-09-22T08:07:00"),
+  stringsAsFactors = FALSE
+)
+
+.mcc_aulas <- function() c("CH 45", "CH 7", "CH 45", "CH 26", "CH 45", "CH 45", "CH 45")
+
+test_that("cada fila trae a quien respondio, cuando y desde que curso-horario", {
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(),
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  expect_identical(length(v$alumnos), 7L)
+  uno <- Filter(function(a) identical(a$codigo, "20190002"), v$alumnos)[[1]]
+  expect_identical(uno$carrera, "ECONOMÍA")
+  expect_identical(uno$nivel, "7")
+  expect_identical(uno$fecha, "2026-09-22")
+  expect_identical(uno$hora, "11:40")
+  expect_identical(uno$curso_horario, "CH 7")
+  expect_identical(uno$estado, "identificado")
+})
+
+test_that("la mas reciente primero: es el orden con el que se comprueba lo que acaba de pasar", {
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(),
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  horas <- vapply(v$alumnos, function(a) paste(a$fecha, a$hora), character(1))
+  expect_identical(horas, sort(horas, decreasing = TRUE))
+  expect_identical(v$alumnos[[1]]$hora, "11:40")
+})
+
+test_that("tres estados, no dos: repetida CRUZO y no cuenta", {
+  # Meter la repetida con las que no se identificaron mandaría a revisar el
+  # código de quien lo escribió bien.
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(),
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  estados <- table(vapply(v$alumnos, function(a) a$estado, character(1)))
+  expect_identical(unname(estados[["identificado"]]), 3L)
+  expect_identical(unname(estados[["repetida"]]), 1L)
+  expect_identical(unname(estados[["sin_identificar"]]), 3L)
+  # Y la que no se identificó lleva su motivo con la frase que dice dónde se
+  # arregla, no sólo la clave.
+  sin <- Filter(function(a) identical(a$estado, "sin_identificar"), v$alumnos)
+  expect_true(all(vapply(sin, function(a) nzchar(a$motivo_etiqueta), logical(1))))
+  # Y la identificada NO lleva motivo: un motivo vacío es ruido en cada fila.
+  ident <- Filter(function(a) identical(a$estado, "identificado"), v$alumnos)
+  expect_true(all(vapply(ident, function(a) identical(a$motivo, ""), logical(1))))
+})
+
+test_that("sin respuestas el detalle sale sin fecha, no se omite", {
+  # La fila sigue diciendo quién y de qué carrera: el dato que falta es la hora.
+  v <- monitoreo_aulas_cruce_por_carrera(.mcc_resueltas(), cfg = .mcc_cfg())
+  expect_identical(length(v$alumnos), 7L)
+  expect_true(all(vapply(v$alumnos, function(a) identical(a$fecha, ""), logical(1))))
+})
+
+test_that("el tope se declara y se dice cuando recorta", {
+  # Recortar en silencio haría creer que el operativo tiene las filas que se ven.
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(),
+    responses = .mcc_respuestas(), aulas = .mcc_aulas(), tope = 3L)
+  expect_identical(length(v$alumnos), 3L)
+  expect_true(v$truncado)
+  expect_identical(v$tope, 3L)
+  # Y el TOTAL sigue siendo el de todas: el tope es de la tabla, no del conteo.
+  expect_identical(v$total$consideradas, 7L)
+})
+
+test_that("`elegible` acota tambien el detalle, y sin desalinear la fecha", {
+  # El riesgo real: `responses` viene sin filtrar y `sub` sí, así que emparejar
+  # por posición sin aplicar la misma máscara le pondría a cada fila la hora de
+  # otra. Aquí la primera respuesta es de las 09:10 y la cuarta de ayer.
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), elegible = c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE),
+    cfg = .mcc_cfg(), responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  expect_identical(length(v$alumnos), 1L)
+  expect_identical(v$alumnos[[1]]$codigo, "20190003")
+  expect_identical(v$alumnos[[1]]$fecha, "2026-09-21")
+  expect_identical(v$alumnos[[1]]$curso_horario, "CH 26")
+})
