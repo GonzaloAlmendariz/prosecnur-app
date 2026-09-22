@@ -384,9 +384,22 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
             cuando$dia, cuando$fecha,
             .mav_hhmm(max(0, ses$ini - .mav_PREPARACION_MIN)),
             .mav_hhmm(max(0, ses$ini - .mav_SALIDA_MIN)),
-            # La ventana de la CLASE, no una aplicación de media hora: quien
-            # entra sin cita llega cuando puede dentro de ese rango.
-            paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin)),
+            # **La ventana de la CLASE, y se dice que lo es.**
+            #
+            # Gonzalo, 2026-09-21, viendo «19:00 a 22:00» en la columna APLICA:
+            # «si la aplicación dura media hora, y la agenda ya pone una hora
+            # acordada, ¿por qué no se respeta esa hora?». En las AGENDADAS sí
+            # se respeta —la hora pactada ya trae el momento dentro: CH 2 tiene
+            # clase de 10:00 a 13:00, momento «al final», y hora acordada
+            # 12:45— pero en una sin cita nadie ha acordado ninguna, y un rango
+            # de tres horas en una columna que promete una aplicación se lee
+            # como una aplicación de tres horas.
+            #
+            # Se marca «· clase» en vez de inventar media hora al principio: el
+            # aplicador va antes de que empiece, pide permiso, y el docente
+            # decide si entra al inicio, en el receso o al final —los tres
+            # momentos que la propia agenda distingue—.
+            paste0(.mav_hhmm(ses$ini), " a ", .mav_hhmm(ses$fin), " · clase"),
             cod, m$aula, m$facultad, m$curso, m$docente,
             aulas_distribucion_estado_a_publicar(
               deducido, .alpa_estado_previo(estados_previos, cod, cuando$fecha))
