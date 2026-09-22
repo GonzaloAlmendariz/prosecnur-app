@@ -408,8 +408,14 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                             {e?.texto ?? a.estado}
                           </span>
                           {/* El motivo va pegado a SU fila: arriba se sabe
-                              cuántas, aquí cuál. */}
-                          {a.motivo_etiqueta ? (
+                              cuántas, aquí cuál.
+
+                              **Salvo cuando la columna de al lado ya lo dijo.**
+                              Con el rechazo, «Rechazó participar · Sin
+                              identificar · Rechazó participar» en el mismo
+                              renglón hace leer dos veces para entender que es
+                              una sola cosa. */}
+                          {a.motivo_etiqueta && a.motivo !== "rechazo_participar" ? (
                             <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
                           ) : null}
                         </td>
