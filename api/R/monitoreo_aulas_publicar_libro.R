@@ -423,6 +423,15 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
                                            responses = NULL,
                                            validas = NULL,
                                            cuotas = NULL,
+                                           # Marca ISO de la última
+                                           # sincronización (`synced_at` del
+                                           # estado): las portadas de «Avance de
+                                           # campo» y «Avance de agendación»
+                                           # llevan su hora. Del estado y no del
+                                           # reloj, así que dos publicaciones
+                                           # sin sincronizar escriben lo mismo y
+                                           # el motor batch+hash no reescribe.
+                                           actualizado = "",
                                            traslape_daa = NULL,
                                            disponibilidad = NULL,
                                            config_reparto = list(),
@@ -531,8 +540,14 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     plan %||% list(), responses, cfg = config_aulas %||% list(), cuotas = cuotas)
   # Y su hermana por nivel. NULL = sin variable declarada o sin padrón = no
   # juega esta publicación.
+  # El bloque de avance contra la cuota, UNA vez para las dos hojas que lo
+  # necesitan: «Avance de campo» (sus cifras por celda del eje) y «Control de
+  # nivel» (su fuga por aula). Calcularlo dos veces daría dos cruces del mismo
+  # dato, que es el defecto que este módulo lleva meses corrigiendo.
+  avance_cuota <- monitoreo_aulas_avance_cuota_del_plan(
+    plan %||% list(), responses, config_aulas %||% list(), padron = padron)
   valores_control_niv <- aulas_libro_valores_control_nivel(
-    responses, padron, cfg = config_aulas %||% list())
+    responses, padron, cfg = config_aulas %||% list(), avance_cuota = avance_cuota)
   valores_asignacion <- aulas_libro_valores_asignacion(
     plan %||% list(), disponibilidad, cfg = config_reparto, partes = partes %||% list()
   )
@@ -686,10 +701,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       # eje declarable las celdas de `design_targets` pueden ser NIVELES y el
       # cruce por facultad del aula no casa ninguna: el 2026-09-22 esta misma
       # hoja salió al Sheets del operativo con Efectivas 0 en las cuatro filas.
-      # Ver `monitoreo_aulas_avance_cuota_libro.R`.
-      avance_cuota = monitoreo_aulas_avance_cuota_del_plan(
-        plan %||% list(), responses, config_aulas %||% list(), padron = padron)
-    ),
+      # Ver `monitoreo_aulas_avance_cuota_libro.R`. Calculado arriba, una vez.
+      avance_cuota = avance_cuota
+    ), actualizado = actualizado,
     # La palabra de la primera columna, del eje declarado. La constante no se
     # toca: ver `carga_aulas_libro_avance_eje.R`.
     eje = monitoreo_aulas_eje(config_aulas %||% list()))
@@ -699,7 +713,8 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # libro—: para saber si un rechazo ya tiene relevo agendado hace falta la
   # cadena entera, y las reservas dormidas no entran al libro.
   producidas[[.malp_hoja_agendacion()]] <- aulas_libro_hoja_agendacion(
-    aulas_libro_agendacion(plan %||% unidades, partes = partes, efectivas = efectivas)
+    aulas_libro_agendacion(plan %||% unidades, partes = partes, efectivas = efectivas),
+    actualizado = actualizado
   )
   if (!is.null(valores_asignacion)) {
     producidas[[.malp_hoja_asignacion()]] <- valores_asignacion
@@ -1124,6 +1139,8 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       # Las cuotas del diseño, para el avance por facultad de «Avance de
       # campo»: el mismo bloque que /aulas/generar-libro pasa al xlsx.
       cuotas = aulas_cfg[["design_targets"]],
+      # La hora del corte de las dos portadas, del estado.
+      actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       # Sólo por su `source_mapping`: es lo que traduce el valor crudo del sexo
       # a la letra con la que el resto del libro lo dice.
       config_aulas = aulas_cfg,

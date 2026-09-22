@@ -25,7 +25,13 @@
 # vocabulario compartido (`carga_aulas_libro_avance_columnas.R`), que es el
 # mismo que usan el renderer del Sheets y el writer del xlsx. Repetirlos era la
 # tercera copia de la misma lista, y la tercera copia es la que se queda vieja.
-.maaf_TITULOS_BLOQUE <- unname(AULAS_AVANCE_TITULOS)
+# **Y es una FUNCIÓN, no una constante.** Con el eje declarable el título lleva
+# la palabra del eje («Avance por nivel»), así que reconocerlos exige TODAS sus
+# grafías —`.calae_titulos_posibles()`—, y esa lista se deriva del catálogo de
+# ejes, que colaciona después de este archivo. Una constante evaluada al cargar
+# no lo encontraría; y sin la lista completa, un bloque escrito con otro eje
+# pierde su banda, deja de delimitar su tabla y pasa por nota, sin fallar.
+.maaf_titulos_bloque <- function() c(.calae_titulos_posibles(), .calaco_titulos_posibles())
 
 # La primera celda de cada cabecera, para las heurísticas de nota y de ancho.
 # La IDENTIFICACIÓN de una tabla, en cambio, compara la fila ENTERA
@@ -93,6 +99,14 @@
 
 # El alto en píxeles de UNA fila (updateDimensionProperties ROWS): el aire de
 # los títulos, que a alto por defecto se ven apretados contra su banda.
+# El alto de una fila normal en Sheets. Es el valor por defecto del producto:
+# reasentarlo devuelve la fila a su estado, no la encoge.
+.MAAF_ALTO_NORMAL <- 21L
+# Y el de un título de bloque, que lleva banda y negrita. Es el mismo que usa la
+# hoja «Control de nivel» para sus bandas: dos hojas del mismo libro no se ven
+# distintas por una constante.
+.MAAF_ALTO_TITULO <- 28L
+
 .maaf_alto_fila <- function(sheet_id, fila, pixeles) {
   list(updateDimensionProperties = list(
     range = list(
@@ -132,7 +146,7 @@
   for (i in seq_along(rows)) {
     celdas <- m[i, ]
     primera <- celdas[[1L]]
-    if (primera %in% .maaf_TITULOS_BLOQUE) {
+    if (primera %in% .maaf_titulos_bloque()) {
       requests[[length(requests) + 1L]] <-
         .maaf_banda(sheet_id, i, n_cols, "#002457", "#FFFFFF")
     } else if (nzchar(.calac_tabla_de_cabecera(celdas))) {
@@ -186,6 +200,20 @@
 # fijo es una dependencia invisible con el orden: quien inserta una columna no
 # tiene forma de saber que existe, y así salió publicado un techo de 188 aulas
 # pintado como «18800,0 %».
+# La cabecera PUBLICADA de una tabla localizada, sin sus celdas vacías de cola.
+#
+# **Se lee de la hoja y no de `AULAS_AVANCE_CABECERAS`**, y ésa es la corrección
+# que el recorte por declaración obligó a hacer: desde que las columnas se
+# derivan de lo que el estudio declara, la constante puede tener veintitrés
+# rótulos donde la hoja publica cinco. Recorrer la constante indexaba la matriz
+# de la hoja fuera de rango —«subscript out of bounds» al publicar— y, con
+# «Cobertura», que ni siquiera está en esa constante, dejaba la cabecera en
+# `NULL` y la tabla entera sin formato.
+.maaf_cabecera_de <- function(tabla, m) {
+  fila <- trimws(as.character(m[tabla$cabecera, ]))
+  fila[seq_len(max(0L, max(c(0L, which(nzchar(fila))))))]
+}
+
 .maaf_tablas <- function(m) {
   n_filas <- nrow(m)
   out <- list()
@@ -196,7 +224,7 @@
     j <- i
     while (j < n_filas) {
       siguiente <- m[j + 1L, ]
-      if (siguiente[[1L]] %in% .maaf_TITULOS_BLOQUE) break
+      if (siguiente[[1L]] %in% .maaf_titulos_bloque()) break
       if (sum(nzchar(siguiente)) < 2L) break
       j <- j + 1L
     }
@@ -249,22 +277,34 @@
   requests <- list()
   num <- .maaf_numeros(rows, ncol(m))
   for (tabla in .maaf_tablas(m)) {
-    cabecera <- AULAS_AVANCE_CABECERAS[[tabla$clave]]
+    cabecera <- .maaf_cabecera_de(tabla, m)
     traspuesta <- identical(tabla$clave, "general")
     n_cols_tabla <- length(cabecera)
+    if (!n_cols_tabla) next
     rotulos <- if (traspuesta) m[tabla$desde:tabla$hasta, 1L] else cabecera
     for (k in seq_along(rotulos)) {
       if (!traspuesta && k == 1L) next
       rango <- .maaf_rango(sheet_id, tabla, k, traspuesta, n_cols_tabla)
-      # Una columna sin ninguna cifra publicada es de texto: no lleva numFmt.
-      hay_cifra <- if (traspuesta) {
-        any(is.finite(num[tabla$desde + k - 1L, seq_len(n_cols_tabla)][-1L]))
-      } else {
-        any(is.finite(num[tabla$desde:tabla$hasta, k]))
-      }
-      if (!hay_cifra) next
-      patron <- if (.calac_es_proporcion(rotulos[[k]], tabla$clave)) {
+      # **El formato se REASIENTA siempre, venga o no una cifra.**
+      #
+      # Antes se saltaba la columna sin ningún número —«una columna sin cifra es
+      # de texto»— y eso la dejaba con el formato que tuviera esa celda en la
+      # publicación ANTERIOR. Con las tablas derivándose por estudio y con
+      # bloques nuevos que las mueven de fila, la celda de debajo casi nunca es
+      # la misma: el 2026-09-22 salió «Casos fuera del universo 27» pintado
+      # «2700,0 %» y la tasa esperada 0,6651 pintada «1». Los valores estaban
+      # bien y la hoja mentía igual.
+      #
+      # Es la misma doctrina que el reset de pestaña: lo que no se reasienta,
+      # se hereda.
+      naturaleza <- .calac_naturaleza(rotulos[[k]], tabla$clave)
+      # Un rótulo que el vocabulario no declara NO se formatea a ojo: se deja
+      # como está y el test de naturalezas lo caza antes de publicar.
+      if (!nzchar(naturaleza)) next
+      patron <- if (identical(naturaleza, "proporcion")) {
         list(type = "PERCENT", pattern = "0.0%")
+      } else if (identical(naturaleza, "texto")) {
+        list(type = "TEXT", pattern = "@")
       } else {
         list(type = "NUMBER", pattern = "#,##0")
       }
@@ -293,7 +333,10 @@
   requests <- list()
   num <- .maaf_numeros(rows, ncol(m))
   for (tabla in .maaf_tablas(m)) {
-    n_cols_tabla <- length(AULAS_AVANCE_CABECERAS[[tabla$clave]])
+    # De la hoja y no de la constante: la tabla publicada puede ser más
+    # estrecha que su vocabulario (`.maaf_cabecera_de()`).
+    n_cols_tabla <- length(.maaf_cabecera_de(tabla, m))
+    if (n_cols_tabla < 2L) next
     traspuesta <- identical(tabla$clave, "general")
     columnas <- if (traspuesta) 2:n_cols_tabla else seq_len(n_cols_tabla)[-1L]
     for (k in columnas) {
@@ -412,9 +455,10 @@
   requests <- list()
   num <- .maaf_numeros(rows, ncol(m))
   for (tabla in .maaf_tablas(m)) {
-    cabecera <- AULAS_AVANCE_CABECERAS[[tabla$clave]]
+    cabecera <- .maaf_cabecera_de(tabla, m)
     traspuesta <- identical(tabla$clave, "general")
     n_cols_tabla <- length(cabecera)
+    if (!n_cols_tabla) next
     rotulos <- if (traspuesta) m[tabla$desde:tabla$hasta, 1L] else cabecera
     for (k in seq_along(rotulos)) {
       if (!traspuesta && k == 1L) next
@@ -505,7 +549,7 @@
 # ni nota (esas traen una sola celda con contenido).
 .maaf_es_fila_de_datos <- function(celdas_fila) {
   primera <- celdas_fila[[1L]]
-  !(primera %in% .maaf_TITULOS_BLOQUE) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+  !(primera %in% .maaf_titulos_bloque()) && !(primera %in% .maaf_CABECERAS_TABLA) &&
     sum(nzchar(celdas_fila)) >= 2L
 }
 
@@ -564,7 +608,7 @@
   requests <- list()
   for (t in .maaf_tablas(m)) {
     cab <- m[t$cabecera, ]
-    n <- length(AULAS_AVANCE_CABECERAS[[t$clave]] %||% character(0))
+    n <- length(.maaf_cabecera_de(t, m))
     if (n < 2L) next
     bloques <- vapply(seq_len(min(n, length(cab))), function(j) {
       .maaf_bloque_de_columna(cab[[j]])
@@ -660,7 +704,7 @@
   con_texto <- which(nzchar(celdas_fila))
   if (length(con_texto) != 1L || con_texto != 1L) return(FALSE)
   primera <- celdas_fila[[1L]]
-  !(primera %in% .maaf_TITULOS_BLOQUE) && !(primera %in% .maaf_CABECERAS_TABLA) &&
+  !(primera %in% .maaf_titulos_bloque()) && !(primera %in% .maaf_CABECERAS_TABLA) &&
     nchar(primera, type = "chars") > .maaf_NOTA_DETECTAR_CHARS
 }
 
@@ -691,6 +735,31 @@
     ))
     lineas <- max(1L, ceiling(nchar(m[i, 1L], type = "chars") / chars_por_linea))
     requests[[length(requests) + 1L]] <- .maaf_alto_fila(sheet_id, i, 21L * lineas + 4L)
+  }
+  # **Y el alto de las demás filas se REASIENTA al de una fila normal.**
+  #
+  # Lo que no se reasienta, se hereda: Google conserva el alto de la fila aunque
+  # su contenido cambie. Al retirarse las notas didácticas y moverse los bloques,
+  # las filas 17, 27, 30 y 31 de «Avance de campo» quedaron a cuatro veces lo
+  # normal y VACÍAS — el alto de la nota que ya no está.
+  #
+  # Se excluyen las que sí piden alto propio y lo piden en otra pasada: los
+  # títulos de bloque, las cabeceras de tabla (que bajan de línea) y las notas de
+  # arriba. Pisarlas aquí las aplastaría.
+  altos <- vapply(requests, function(r) {
+    d <- r$updateDimensionProperties
+    if (is.null(d)) NA_integer_ else as.integer(d$range$startIndex + 1L)
+  }, integer(1))
+  propios <- altos[!is.na(altos)]
+  for (i in seq_len(n_filas)) {
+    if (i %in% propios) next
+    # Las cabeceras de tabla piden su alto en otra pasada —bajan de línea— y
+    # pisarlas aquí las aplastaría.
+    if (nzchar(.calac_tabla_de_cabecera(m[i, ]))) next
+    # El título de bloque también se reasienta: es una de las filas que quedaron
+    # a cuatro veces lo normal por heredar el alto de la nota que tenía debajo.
+    alto <- if (m[i, 1L] %in% .maaf_titulos_bloque()) .MAAF_ALTO_TITULO else .MAAF_ALTO_NORMAL
+    requests[[length(requests) + 1L]] <- .maaf_alto_fila(sheet_id, i, alto)
   }
   requests
 }

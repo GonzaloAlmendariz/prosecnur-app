@@ -2211,7 +2211,11 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # Su hermana por NIVEL (fase 4 del plan del eje declarable). Condicional por
   # partida doble: sin `declared_level_var` declarada y sin padrón no hay dos
   # lados que cruzar, y una hoja vacía diría «todo coincide».
-  aulas_libro_hoja_control_nivel(wb, responses, padron, cfg = cfg)
+  aulas_libro_hoja_control_nivel(
+    wb, responses, padron, cfg = cfg,
+    # Su tabla «Dónde se pierde» sale del mismo bloque que las cifras del eje.
+    avance_cuota = monitoreo_aulas_avance_cuota_del_plan(
+      plan_completo, responses, cfg, padron = padron))
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
   # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde

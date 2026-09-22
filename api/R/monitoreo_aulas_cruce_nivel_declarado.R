@@ -250,8 +250,58 @@ monitoreo_aulas_cruce_nivel_declarado <- function(responses, padron = list(), cf
 # Sheets la reconozcan sin caso especial.
 
 .MCND_HOJA <- "Control de nivel"
-.MCND_BLOQUES <- c("MATRIZ DE CONSISTENCIA", "DISCREPANCIAS, UNA POR UNA",
-                   "RESPUESTAS SIN NIVEL")
+# **La hoja se rehizo el 2026-09-22.** Gonzalo: «siento que la hoja de control
+# de nivel curricular está muy críptica y las tablas no dan información muy
+# útil, o los encabezados son difíciles de interpretar; ojo, no es agregar notas
+# AI slop, es que sea un mejor reporte». Contestaba preguntas de MOTOR y no la
+# del coordinador, que es «¿dónde pierdo el 25 % y qué puedo hacer?».
+#
+# Lo que se fue, y por qué:
+#
+#   · **la matriz 6×6 padrón × declarado y las ~48 discrepancias una por una.**
+#     El hallazgo entero cabe en una línea —más de la mitad declara un ciclo
+#     distinto al que el padrón le asigna— y eso es lo que justifica medir por
+#     el padrón. Cincuenta y cinco filas para decirlo no se leen;
+#   · **`FILA EN LA BASE`.** Un número de fila no permite actuar: nadie puede
+#     hacer nada con «fila 36». Lo que sí permitiría —código de alumno y aula—
+#     no puede salir: el código es dato personal y esta hoja se comparte (hay un
+#     test que lo fija). Así que la lista se va entera y su conteo vive, por
+#     aula, en la primera tabla;
+#   · **`MOTIVO DEL MOTOR`** con valores `codigo_no_en_padron` /
+#     `sin_codigo_declarado`: vocabulario interno filtrado a una hoja que lee el
+#     equipo de campo.
+#
+# Lo que entra es la tabla que separa **lo estructural de lo recuperable**: las
+# que quedan fuera del universo son población —ese curso tiene alumnos de un
+# ciclo que el estudio no mide y no hay nada que arreglar— mientras las de
+# código sí se recuperan preguntando. La hoja anterior las mezclaba bajo un
+# «Sin dato por donde empezar».
+.MCND_BLOQUES <- c("EFECTIVIDAD POR AULA", "ACUERDO CON EL CICLO DECLARADO")
+
+# **El vocabulario es el del diseño muestral del estudio.** Gonzalo: «cuidado
+# con el uso de jergas para explicar estos términos, es una investigación
+# formal». Sale de la hoja «7 Cierre 50 aulas» y de las tasas del marco
+# (`tasa_asistencia_aula`, `tasa_respuesta_aula`, `tasa_validez_aula`,
+# `tasa_efectividad_aula`), que declaran la cadena asistencia × respuesta ×
+# validez → efectividad.
+#
+# El orden de lectura es el de la cadena: cuántos elegibles puso el diseño,
+# cuántos cuestionarios se aplicaron, cuántos son entrevistas efectivas y qué
+# tasa da eso. Después, lo que no es efectiva, en columnas SEPARADAS: los casos
+# fuera del universo no son pérdida —no pertenecen a la población medida ni
+# entran al denominador— y los no resueltos sí se recuperan preguntando.
+#
+# **«Elegibles sin entrevista efectiva» no se desglosa**, y no es un olvido: se
+# reparte entre inasistencia, no respuesta e invalidez, y con lo que hoy se
+# registra esas tres no son separables. Una columna que fingiera distinguirlas
+# inventaría un dato que el operativo no tiene.
+.MCND_CAB_EFECTIVIDAD <- c(
+  "AULA", "ELEGIBLES", "CUESTIONARIOS APLICADOS", "ENTREVISTAS EFECTIVAS",
+  "TASA DE EFECTIVIDAD", "ELEGIBLES SIN ENTREVISTA EFECTIVA",
+  "CASOS FUERA DEL UNIVERSO", "SIN CÓDIGO DECLARADO",
+  "CÓDIGO NO VERIFICABLE CONTRA EL PADRÓN", "CASOS DUPLICADOS")
+.MCND_CAB_ACUERDO <- c("COMPARABLES", "COINCIDEN CON EL PADRÓN",
+                       "DECLARAN OTRO CICLO", "% QUE DECLARA OTRO CICLO")
 
 #' Las filas de la hoja «Control de nivel», tipadas.
 #'
@@ -265,92 +315,85 @@ monitoreo_aulas_cruce_nivel_declarado <- function(responses, padron = list(), cf
 #'   filas `{tipo, celdas}`.
 #' @keywords internal
 aulas_libro_filas_control_nivel <- function(responses = NULL, padron = list(),
-                                            cfg = list()) {
+                                            cfg = list(), avance_cuota = NULL) {
   o <- monitoreo_aulas_cruce_nivel_declarado(responses, padron, cfg)
   if (!isTRUE(o$ok) || !o$comparables) return(NULL)
 
   filas <- list()
-  poner <- function(tipo, celdas) {
-    filas[[length(filas) + 1L]] <<- list(tipo = tipo, celdas = .alp_celdas(tipo, celdas))
+  poner <- function(tipo, celdas, proporciones = logical(0)) {
+    filas[[length(filas) + 1L]] <<- list(
+      tipo = tipo, celdas = .alp_celdas(tipo, celdas, proporciones))
   }
+  # Qué celdas de la tabla de efectividad son una proporción, POR RÓTULO y nunca
+  # por posición: insertar una columna no puede mover el redondeo a la de al
+  # lado. Sin esto, 0,597 se publica como 0,6.
+  prop_efectividad <- .MCND_CAB_EFECTIVIDAD %in% "TASA DE EFECTIVIDAD"
   pct <- function(n, d) if (d > 0) sprintf("%.1f %%", 100 * n / d) else ""
 
   poner("titulo", "CONTROL DE NIVEL")
   poner("nota", "")
 
-  poner("bloque", .MCND_BLOQUES[[1]])
-  poner("nota", paste(
-    "Cada fila es un nivel del padrón y cada columna lo que esas personas",
-    "declararon. La diagonal es el acuerdo; «Otros» tiene columna propia y no",
-    "se confunde con no haber contestado."))
-  declarados <- sort(unique(unlist(lapply(o$matriz, function(f)
-    vapply(f$celdas, function(c) c$declarado, character(1))), use.names = FALSE)))
-  # «Otros» al final, siempre: es la opción de escape y leerla entre los ciclos
-  # la haría parecer uno más.
-  declarados <- c(setdiff(declarados, "Otros"), intersect("Otros", declarados))
-  poner("cabecera", c("NIVEL DEL PADRÓN", toupper(declarados), "COMPARABLES",
-                      "COINCIDEN", "% ACUERDO"))
-  for (f in o$matriz) {
-    de_la_fila <- vapply(f$celdas, function(c) c$declarado, character(1))
-    cuentas <- vapply(declarados, function(b) {
-      i <- which(de_la_fila == b)
-      if (length(i)) as.character(f$celdas[[i[[1]]]]$n) else ""
-    }, character(1), USE.NAMES = FALSE)
-    suyo <- o$por_nivel[[which(vapply(o$por_nivel, function(x) x$nivel,
-                                      character(1)) == f$nivel_padron)[[1]]]]
-    poner("dato", c(f$nivel_padron, cuentas, suyo$comparables, suyo$coinciden,
-                    pct(suyo$coinciden, suyo$comparables)))
+  # --- 1. EFECTIVIDAD POR AULA ----------------------------------------------
+  #
+  # Una fila por aula, de menor a mayor efectividad, y un TOTAL que cuadra con
+  # sus partes. Sale de `monitoreo_aulas_casos_por_aula.R`, que reparte los
+  # cuestionarios en disposiciones disjuntas sobre las MISMAS máscaras que
+  # cuentan la cuota: aquí no se vuelve a cruzar nada.
+  casos <- (avance_cuota %||% list())$casos
+  num <- function(x) if (is.finite(suppressWarnings(as.numeric(x)))) {
+    format(round(as.numeric(x)), scientific = FALSE, trim = TRUE)
+  } else ""
+  # La tasa viaja como NÚMERO entre 0 y 1, no como texto: es lo que permite que
+  # la celda lleve formato de porcentaje y que se pueda ordenar y comparar.
+  tasa <- function(ef, el) {
+    v <- monitoreo_aulas_tasa_efectividad(ef, el)
+    if (is.finite(v)) format(round(v, 4L), scientific = FALSE, trim = TRUE) else ""
   }
-  poner("dato", c("TOTAL", rep("", length(declarados)), o$comparables, o$coinciden,
-                  pct(o$coinciden, o$comparables)))
-
-  if (length(o$pares)) {
-    poner("nota", "")
-    poner("bloque", .MCND_BLOQUES[[2]])
-    poner("nota", paste(
-      "La FILA es la de la base de respuestas, que es con lo que se busca. El",
-      "código no se escribe aquí: es dato personal y esta hoja se comparte."))
-    poner("cabecera", c("FILA EN LA BASE", "NIVEL DEL PADRÓN", "CICLO DECLARADO",
-                        "SE DECLARÓ FUERA"))
-    for (x in o$pares) {
-      poner("dato", c(x$fila, x$nivel_padron, x$declarado,
-                      if (isTRUE(x$es_otros)) "sí" else ""))
+  # Los elegibles del aula menos sus entrevistas efectivas. Nunca negativo: un
+  # aula puede recibir más cuestionarios que elegibles —contesta gente de otro
+  # ciclo— y «−3 elegibles sin entrevista» no significa nada.
+  pendientes <- function(ef, el) {
+    e <- suppressWarnings(as.numeric(el)); f <- suppressWarnings(as.numeric(ef))
+    if (!is.finite(e) || !is.finite(f)) "" else num(max(0, e - f))
+  }
+  if (is.data.frame(casos) && nrow(casos)) {
+    poner("bloque", .MCND_BLOQUES[[1]])
+    poner("cabecera", .MCND_CAB_EFECTIVIDAD)
+    for (i in seq_len(nrow(casos))) {
+      r <- casos[i, , drop = FALSE]
+      poner("dato", c(as.character(r$codigo), num(r$elegibles), num(r$aplicados),
+                      num(r$efectivas), tasa(r$efectivas, r$elegibles),
+                      pendientes(r$efectivas, r$elegibles),
+                      num(r$fuera_universo), num(r$sin_codigo),
+                      num(r$no_verificable), num(r$duplicados)),
+            proporciones = prop_efectividad)
     }
+    t <- monitoreo_aulas_casos_total(casos)
+    poner("dato", c("TOTAL", num(t$elegibles), num(t$aplicados), num(t$efectivas),
+                    tasa(t$efectivas, t$elegibles),
+                    pendientes(t$efectivas, t$elegibles),
+                    num(t$fuera_universo), num(t$sin_codigo),
+                    num(t$no_verificable), num(t$duplicados)),
+          proporciones = prop_efectividad)
+    poner("nota", "")
   }
 
-  sn <- o$sin_nivel
-  if (isTRUE((sn$total %||% 0L) > 0L)) {
-    poner("nota", "")
-    poner("bloque", .MCND_BLOQUES[[3]])
-    poner("nota", paste(
-      "Respuestas válidas cuyo código no resolvió contra el padrón, así que no",
-      "cuentan para ninguna celda. Se desglosan por lo que se puede HACER con",
-      "cada grupo: las que SÍ declararon ciclo son las que vale la pena revisar",
-      "—hay persona y hay dato, lo que falla es el código—."))
-    poner("cabecera", c("GRUPO", "RESPUESTAS", "QUÉ HACER"))
-    poner("dato", c("Con ciclo declarado", sn$con_ciclo_declarado,
-                    "Revisar el código en la base"))
-    poner("dato", c("Sin ciclo declarado", sn$sin_ciclo_declarado,
-                    "Sin dato por donde empezar"))
-    poner("dato", c("Se declaró fuera del estudio", sn$se_declaro_fuera,
-                    "Fuera de universo declarado: no falta nada"))
-    poner("dato", c("TOTAL", sn$total, ""))
-    if (length(sn$por_motivo)) {
-      poner("nota", "")
-      poner("cabecera", c("MOTIVO DEL MOTOR", "RESPUESTAS"))
-      for (nm in names(sn$por_motivo)) {
-        poner("dato", c(gsub("_", " ", nm), as.character(sn$por_motivo[[nm]])))
-      }
-    }
-  }
+  # --- 2. ACUERDO CON EL CICLO DECLARADO -------------------------------------
+  #
+  # Una sola fila. Es lo que justifica medir por el padrón y no por lo que el
+  # alumno declara, y no necesita una matriz de seis por seis para decirlo.
+  poner("bloque", .MCND_BLOQUES[[2]])
+  poner("cabecera", .MCND_CAB_ACUERDO)
+  poner("dato", c(as.character(o$comparables), as.character(o$coinciden),
+                  as.character(o$discrepan), pct(o$discrepan, o$comparables)))
   filas
 }
 
 #' Los valores de la hoja, para el publicador de Sheets.
 #' @keywords internal
 aulas_libro_valores_control_nivel <- function(responses = NULL, padron = list(),
-                                              cfg = list()) {
-  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg)
+                                              cfg = list(), avance_cuota = NULL) {
+  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg, avance_cuota)
   if (is.null(filas)) return(NULL)
   lapply(filas, function(f) as.list(f$celdas))
 }
@@ -358,8 +401,8 @@ aulas_libro_valores_control_nivel <- function(responses = NULL, padron = list(),
 #' Escribe la hoja «Control de nivel» sobre el workbook del libro.
 #' @keywords internal
 aulas_libro_hoja_control_nivel <- function(wb, responses = NULL, padron = list(),
-                                           cfg = list()) {
-  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg)
+                                           cfg = list(), avance_cuota = NULL) {
+  filas <- aulas_libro_filas_control_nivel(responses, padron, cfg, avance_cuota)
   if (is.null(filas)) return(invisible(FALSE))
   hoja <- .MCND_HOJA
   openxlsx::addWorksheet(wb, hoja)
@@ -404,7 +447,7 @@ aulas_libro_control_nivel_formato_requests <- function(sheet_id, rows) {
   n_cols <- max(1L, max(vapply(rows, function(r) length(r %||% list()), integer(1))))
   requests <- list()
   poner <- function(req) requests[[length(requests) + 1L]] <<- req
-  cabeceras <- c("NIVEL DEL PADRÓN", "FILA EN LA BASE", "GRUPO", "MOTIVO DEL MOTOR")
+  cabeceras <- c(.MCND_CAB_EFECTIVIDAD[[1]], .MCND_CAB_ACUERDO[[1]])
   for (i in seq_along(rows)) {
     celdas <- trimws(as.character(unlist(rows[[i]] %||% list(), use.names = FALSE)))
     primera <- if (length(celdas)) celdas[[1L]] else ""

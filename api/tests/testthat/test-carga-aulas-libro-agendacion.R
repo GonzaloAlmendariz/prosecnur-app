@@ -481,8 +481,27 @@ test_that("las notas didácticas de las cuatro tablas se fueron, y su registro n
                   "Semanas de lunes a sábado", "la tabla dinámica hecha a mano")) {
     expect_false(any(grepl(frase, textos, fixed = TRUE)), info = frase)
   }
-  # Y el corte ya no arrastra la procedencia: el renderer ni siquiera acepta la
-  # marca de sincronización.
-  expect_false("actualizado" %in% names(formals(aulas_libro_hoja_agendacion)))
+  # Y el corte ya no arrastra la prosa de la procedencia: sólo el sello.
   expect_false(any(grepl("datos de plataforma actualizados", textos, fixed = TRUE)))
+})
+
+test_that("el corte de agendación lleva el mismo sello de hora que «Avance de campo»", {
+  # Gonzalo, 2026-09-22: «al título de la fecha de actualización también le
+  # falta la hora de actualización», con el mismo formato en las dos hojas.
+  ag <- aulas_libro_agendacion(list(.calan_u("CH 1", estado = "agendada", fecha = "2026-09-11")))
+  withr::with_envvar(c(TZ = "America/Lima"), {
+    # **El sello va con su fecha entera en esta hoja**, y no abreviado a la
+    # hora: el día del corte es la última AGENDADA —«11/09», sin año y a menudo
+    # en el futuro—, así que no hay «mismo día» contra el que abreviar.
+    expect_identical(
+      as.character(aulas_libro_hoja_agendacion(ag, "2026-09-11T14:05:00Z")[[2]][[1]]),
+      "Agendado hasta el 11/09 \u00b7 11/09/2026 09:05")
+  })
+  # Sin marca, nada: la portada no se inventa una hora.
+  expect_identical(as.character(aulas_libro_hoja_agendacion(ag)[[2]][[1]]),
+                   "Agendado hasta el 11/09")
+  # Y sale del ESTADO, no del reloj: dos generaciones del mismo estado escriben
+  # la misma celda y el motor batch+hash no reescribe la pestaña.
+  expect_identical(aulas_libro_hoja_agendacion(ag, "2026-09-11T14:05:00Z")[[2]][[1]],
+                   aulas_libro_hoja_agendacion(ag, "2026-09-11T14:05:00Z")[[2]][[1]])
 })

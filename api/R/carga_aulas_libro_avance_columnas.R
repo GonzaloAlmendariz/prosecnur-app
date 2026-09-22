@@ -97,12 +97,42 @@ AULAS_AVANCE_CABECERAS <- list(
     # que se lleva contra ella y a la diferencia, y el juego se repite tal cual
     # en hombres y en mujeres: el ojo compara en horizontal sin contar columnas.
     "Muestra",
-    "Efectivas esperadas", "Efectivas obtenidas", "Diferencia de efectivas",
+    # **CADA COLUMNA NOMBRA SU BASE** (Gonzalo, 2026-09-22, sobre la hoja
+    # publicada: «esto sigue mintiendo»). Se llamaba «Efectivas obtenidas» y
+    # contaba TODOS los cuestionarios aplicados en un aula, mientras el bloque
+    # del eje —dos tablas más arriba, en el mismo documento— decía «86 de 400»
+    # contando sólo las que caen en una celda de la cuota. 114 contra 86, los dos
+    # rótulos casi iguales, ninguno diciendo sobre qué contaba, y la diferencia
+    # pintada en VERDE: quien abría la hoja entendía que iba doce puntos sobrado
+    # cuando iba por debajo.
+    #
+    # **El vocabulario es el del diseño muestral del estudio**, no uno inventado
+    # (Gonzalo: «cuidado con el uso de jergas para explicar estos términos, es
+    # una investigación formal»): cuestionarios aplicados, entrevistas
+    # efectivas, casos fuera del universo, casos no resueltos. La cadena que el
+    # marco declara es asistencia × respuesta × validez → efectividad.
+    #
+    # **Las tres disposiciones que no son entrevista efectiva van en columnas
+    # distintas y nunca bajo un rótulo común.** Los casos fuera del universo no
+    # son pérdida —no pertenecen a la población medida y no entran en el
+    # denominador de la efectividad—; los no resueltos sí se recuperan
+    # preguntando; y un duplicado es una persona del universo que contestó dos
+    # veces, que no es ninguna de las dos cosas. Juntarlos invita a sumar cosas
+    # que no se suman, y además deja la fila sin cuadrar con sus partes.
+    #
+    # Las tres del medio sólo existen cuando el eje se atribuye por PERSONA: con
+    # el eje en el aula todo cuestionario de un aula aplicada es una entrevista
+    # efectiva de su celda y no hay disposición que repartir
+    # (`carga_aulas_libro_avance_declaradas.R`).
+    "Efectivas esperadas",
+    "Cuestionarios aplicados", "Entrevistas efectivas",
+    "Casos fuera del universo", "Casos no resueltos", "Casos duplicados",
+    "Diferencia de efectivas",
     "Muestra hombres",
-    "Efectivas esperadas hombres", "Efectivas obtenidas hombres",
+    "Efectivas esperadas hombres", "Cuestionarios aplicados hombres",
     "Diferencia de efectivas hombres",
     "Muestra mujeres",
-    "Efectivas esperadas mujeres", "Efectivas obtenidas mujeres",
+    "Efectivas esperadas mujeres", "Cuestionarios aplicados mujeres",
     "Diferencia de efectivas mujeres",
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",
@@ -240,7 +270,13 @@ AULAS_AVANCE_PROPORCIONES <- list(
     "Tasa de rendimiento de la facultad esperada",
     "Tasa de rendimiento de la facultad obtenida",
     "Diferencia de tasa"
-  )
+  ),
+  # «Cobertura» (`carga_aulas_libro_avance_cobertura.R`) es UNA cabecera para N
+  # tablas —una por dimensión descriptiva— así que no entra en
+  # `AULAS_AVANCE_CABECERAS`, que es un mapa 1:1. Sus proporciones sí viven
+  # aquí: es lo que hace que los dos renderers y el formateador de Sheets le den
+  # formato de porcentaje sin saber nada de este bloque.
+  cobertura = c("% de la población", "% de lo alcanzado")
 )
 
 #' Rótulos que son una DIFERENCIA con signo: verde si es a favor, rojo si no.
@@ -295,6 +331,61 @@ AULAS_AVANCE_FALTAN_SOBREMUESTRA <- c(
   "Faltantes hombres sobremuestra", "Faltantes mujeres sobremuestra"
 )
 
+#' Los rótulos cuya celda es TEXTO: ni conteo ni proporción.
+#'
+#' Se declaran porque la naturaleza de una columna no puede inferirse de sus
+#' valores. La versión anterior lo hacía —«una columna sin ninguna cifra
+#' publicada es de texto»— y con eso **una columna sin formato propio se queda
+#' con el que tuviera esa celda en la publicación anterior**: el 2026-09-22 la
+#' hoja salió con «Casos fuera del universo 27» pintado «2700,0 %» y la tasa
+#' esperada 0,6651 pintada «1», porque las tablas se movieron de sitio al ganar
+#' columnas y bloques, y Google conserva el formato de la celda que había
+#' debajo. Los valores eran correctos y la hoja mentía igual.
+#'
+#' La primera columna se declara con su rótulo del vocabulario; el satélite del
+#' eje puede publicarla como «Nivel» o «Carrera» y
+#' [.calac_naturaleza()] lo resuelve.
+#' @keywords internal
+AULAS_AVANCE_TEXTO <- list(
+  general = "Indicadores",
+  facultad = "Facultad",
+  rendimiento = "Facultad",
+  aplicador = c("Facultad", "Aplicador"),
+  diario = c("Facultad", "Día", "Día de la semana"),
+  cobertura = "Categoría"
+)
+
+#' La naturaleza declarada de un rótulo en SU tabla.
+#'
+#' @param rotulo el rótulo publicado.
+#' @param tabla la clave de la tabla.
+#' @return `"texto"`, `"proporcion"`, `"conteo"` o `""` cuando el rótulo no
+#'   pertenece al vocabulario de esa tabla — y entonces no se le inventa un
+#'   formato: se publica sin tocar y hay un test que lo caza antes.
+#' @keywords internal
+.calac_naturaleza <- function(rotulo, tabla) {
+  r <- trimws(as.character(rotulo %||% "")[1])
+  t <- as.character(tabla %||% "")[1]
+  if (!nzchar(r) || !nzchar(t)) return("")
+  texto <- AULAS_AVANCE_TEXTO[[t]] %||% character(0)
+  # La primera celda puede venir con la palabra del eje del estudio.
+  if (r %in% texto) return("texto")
+  if (length(texto) && identical(texto[[1]], .CALAE_CELDA_POR_DEFECTO) &&
+      r %in% .calae_primeras_celdas()) {
+    return("texto")
+  }
+  if (.calac_es_proporcion(r, t)) return("proporcion")
+  universo <- if (identical(t, AULAS_COBERTURA_CLAVE)) {
+    AULAS_COBERTURA_CABECERAS
+  } else if (identical(t, "general")) {
+    c(AULAS_AVANCE_CABECERAS$general, AULAS_AVANCE_FILAS_GENERAL)
+  } else {
+    AULAS_AVANCE_CABECERAS[[t]] %||% character(0)
+  }
+  if (r %in% universo) return("conteo")
+  ""
+}
+
 #' ¿Este rótulo es una proporción EN ESTA TABLA?
 #'
 #' Sin `tabla` la respuesta es «en alguna lo es», que sirve para heurísticas de
@@ -335,5 +426,45 @@ AULAS_AVANCE_FALTAN_SOBREMUESTRA <- c(
       if (identical(celdas, variante)) return(nombre)
     }
   }
-  ""
+  # «Cobertura»: una cabecera para las N tablas del bloque. No está en
+  # `AULAS_AVANCE_CABECERAS` —ese mapa es 1:1— así que se compara aparte.
+  if (identical(celdas, AULAS_COBERTURA_CABECERAS)) return(AULAS_COBERTURA_CLAVE)
+  # **Y las cabeceras RECORTADAS.**
+  #
+  # Desde que las columnas se derivan de lo que el estudio declara
+  # (`carga_aulas_libro_avance_declaradas.R`), un estudio sin sobremuestra y sin
+  # cuota de sexo publica cinco de las veintitrés de «Avance por facultad», doce
+  # de las dieciocho del rendimiento y dos de las cuatro del general. Ninguna
+  # comparación literal las reconoce, y este reverso es el que decide si una
+  # fila es cabecera: sin él la tabla se queda **sin banda, sin anchos y sin
+  # color, en silencio** — el mismo fallo mudo que el satélite del eje vino a
+  # evitar, por la otra puerta.
+  .calac_recorte_de(celdas)
+}
+
+# A qué tabla pertenece una cabecera RECORTADA, o `""`.
+#
+# Se acepta como recorte lo que es subconjunto EN ORDEN de una constante, con la
+# primera celda en cualquiera de las grafías de su eje. **Y sólo si encaja en
+# UNA**: ante dos candidatas devuelve `""` y la tabla se queda sin formato, que
+# es lo que ya pasaba antes de esto. Heredar el formato de la tabla equivocada
+# —un porcentaje sobre un conteo, «18800,0 %»— es estrictamente peor que no
+# tener formato.
+.calac_recorte_de <- function(celdas) {
+  if (length(celdas) < 2L) return("")
+  candidatas <- character(0)
+  for (nombre in names(AULAS_AVANCE_CABECERAS)) {
+    base <- AULAS_AVANCE_CABECERAS[[nombre]]
+    if (length(celdas) >= length(base)) next
+    primeras <- if (identical(as.character(base[[1]]), .CALAE_CELDA_POR_DEFECTO)) {
+      .calae_primeras_celdas()
+    } else base[[1]]
+    if (!(celdas[[1]] %in% primeras)) next
+    resto <- celdas[-1]
+    if (!all(resto %in% base[-1])) next
+    # En ORDEN: las posiciones que ocupan en la constante tienen que crecer.
+    if (is.unsorted(match(resto, base[-1]), strictly = TRUE)) next
+    candidatas <- c(candidatas, nombre)
+  }
+  if (length(candidatas) == 1L) candidatas else ""
 }

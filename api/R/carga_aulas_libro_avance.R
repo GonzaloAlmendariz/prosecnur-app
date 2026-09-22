@@ -85,16 +85,10 @@
   # rótulo original.** Es la separación entera del satélite del eje: `es_pct()`
   # y los ordenadores del motor siguen viendo «Facultad», y sólo la fila que un
   # humano lee cambia. Sin eje declarado esto devuelve `nombres` tal cual.
-  cabecera <- nombres
-  if (length(cabecera) && !is.null(eje)) {
-    del_eje <- aulas_avance_cabeceras_eje(clave, eje)
-    # Se sustituye SÓLO la primera celda, y sólo si la cabecera de esa tabla es
-    # la misma que la constante: una tabla que ya no calza no se retoca a medias.
-    if (length(del_eje) == length(cabecera) &&
-        identical(as.character(cabecera[-1]), as.character(del_eje[-1]))) {
-      cabecera[[1]] <- del_eje[[1]]
-    }
-  }
+  # Se sustituye SÓLO la primera celda, y sobre la cabecera que la tabla trae de
+  # verdad: desde que las columnas se derivan de lo que el estudio declara, ésa
+  # puede ser un subconjunto de la constante.
+  cabecera <- aulas_avance_cabecera_con_eje(nombres, clave, eje)
   c(list(as.list(cabecera)), filas)
 }
 
@@ -106,12 +100,15 @@
 #' @param fecha `Date` del corte, inyectada por quien publica. `NULL` deriva el
 #'   corte del propio modelo (el último día del avance diario); sin diario la
 #'   celda del corte declara la causa. Nunca se consulta el reloj aquí.
+#' @param actualizado marca ISO de la última sincronización
+#'   (`monitoreo_snapshot$synced_at`), para el sello de hora del corte. Sale del
+#'   ESTADO y no del reloj: ver `.cai_sello_corte()`.
 #' @return lista de filas; cada fila es una lista de celdas que pueden ser texto
 #'   o NÚMERO. No es un data.frame a propósito: un data.frame de caracteres no
 #'   puede llevar los dos tipos, y el tipo es justo lo que hace posible el
 #'   formato de porcentaje y el color por valor.
 #' @export
-aulas_libro_hoja_avance <- function(ind, fecha = NULL,
+aulas_libro_hoja_avance <- function(ind, fecha = NULL, actualizado = "",
                                     # La declaración del eje de cuotas, sólo
                                     # para la PALABRA de la primera columna.
                                     # NULL = «Facultad», que es lo que era.
@@ -131,8 +128,12 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL,
   }
   fecha <- if (is.null(fecha)) as.Date(NA) else suppressWarnings(as.Date(fecha[[1]]))
   corte <- if (length(fecha) == 1L && !is.na(fecha)) {
-    paste("Al", format(fecha, "%d/%m/%Y"))
+    # El día del corte y, pegada, la hora del último sincronizado. Nada más: ver
+    # `.cai_sello_corte()`.
+    .cai_sello_corte(paste("Al", format(fecha, "%d/%m/%Y")), actualizado, fecha)
   } else {
+    # Sin fecha de corte no hay a qué pegarle la hora: una hora suelta encima de
+    # una hoja que declara no tener corte no sitúa nada.
     "Sin fecha de corte: el avance diario aun no trae respuestas de plataforma fechadas."
   }
 
@@ -151,8 +152,11 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL,
   # Los cinco se escriben con la misma rutina para que ninguno se quede sin su
   # vacío declarado ni sin su cabecera reconocible por el formateador.
   bloque <- function(clave, tabla, nota_arriba = NULL,
-                     vacio = NULL, con_total = FALSE, traspuesta = FALSE) {
-    poner(AULAS_AVANCE_TITULOS[[clave]])
+                     vacio = NULL, con_total = FALSE, traspuesta = FALSE,
+                     titulo = NULL) {
+    # `titulo` sólo lo usa «Cobertura»: una tabla por dimensión, un título por
+    # tabla. Las cinco dictadas lo sacan del vocabulario.
+    poner(titulo %||% aulas_avance_titulos_eje(clave, eje))
     if (!is.data.frame(tabla) || !nrow(tabla)) {
       if (!is.null(vacio)) poner(vacio)
       poner("")
@@ -201,6 +205,11 @@ aulas_libro_hoja_avance <- function(ind, fecha = NULL,
     vacio = "El estudio todavía no publica cuotas por facultad, así que no hay contra qué medir el avance.",
     con_total = TRUE
   )
+
+  # --- 2b. COBERTURA ----------------------------------------------------------
+  for (cob in (ind$cobertura %||% list())) {
+    bloque(AULAS_COBERTURA_CLAVE, cob$tabla, titulo = cob$titulo)
+  }
 
   # --- 3. RENDIMIENTO POR FACULTAD --------------------------------------------
   bloque(

@@ -62,8 +62,14 @@ test_that("viajan las CINCO tablas, con la cabecera del vocabulario", {
                    names(AULAS_AVANCE_CABECERAS))
   for (clave in names(AULAS_AVANCE_CABECERAS)) {
     t <- .maat_de(res, clave)
-    expect_identical(as.character(unlist(t$cabecera)), AULAS_AVANCE_CABECERAS[[clave]],
-                     info = sprintf("cabecera de «%s»", clave))
+    # Subconjunto EN ORDEN, no igualdad: las columnas se derivan de lo que el
+    # estudio declara y el vocabulario sigue siendo la única fuente de los
+    # rótulos y de su orden.
+    cab <- as.character(unlist(t$cabecera))
+    expect_true(all(cab %in% AULAS_AVANCE_CABECERAS[[clave]]),
+                info = sprintf("cabecera de «%s»", clave))
+    expect_false(is.unsorted(match(cab, AULAS_AVANCE_CABECERAS[[clave]]), strictly = TRUE),
+                 info = sprintf("orden de «%s»", clave))
     expect_identical(t$titulo, unname(AULAS_AVANCE_TITULOS[[clave]]))
   }
 })
@@ -149,12 +155,15 @@ test_that("«Avance general» viaja declarada como traspuesta, con su tipo por f
 })
 
 test_that("la portada trae el corte PELADO, y la tabla por facultad su fila Total", {
-  # El corte es el día y nada más: el sufijo «· datos de plataforma actualizados
-  # a las HH:MM · escrito con N aulas con parte de campo» se retiró con las
-  # notas didácticas (Gonzalo, 2026-09-22). La hora de sincronización sigue
-  # viajando aparte, en `res$actualizado`, para quien la quiera.
+  # El corte es el día y su HORA, y nada más: la prosa que los acompañaba
+  # —«datos de plataforma actualizados», «escrito con N aulas con parte de
+  # campo»— se retiró con las notas didácticas (2026-09-22) y la hora volvió al
+  # día siguiente, sola («al título de la fecha de actualización también le
+  # falta la hora de actualización»).
   res <- monitoreo_aulas_avance_tablas(.maat_sesion())
-  expect_match(res$corte, "^Al [0-9]{2}/[0-9]{2}/[0-9]{4}$")
+  expect_match(res$corte, "^Al [0-9]{2}/[0-9]{2}/[0-9]{4}( \u00b7 [0-9/: ]+)?$")
+  expect_false(grepl("actualizados", res$corte, fixed = TRUE))
+  expect_false(grepl("parte de campo", res$corte, fixed = TRUE))
   expect_match(res$titular, "^Efectivas sobre la cuota:")
   fac <- .maat_de(res, "facultad")
   expect_identical(as.character(fac$total[[1]]), "Total")

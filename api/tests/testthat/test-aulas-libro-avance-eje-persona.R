@@ -150,24 +150,43 @@ test_that("la muestra, el avance y los faltantes son los de la celda", {
 
 # --- 3. Raya y no cero en las cuatro columnas de aulas ------------------------
 
-test_that("las cuatro columnas de aulas van a NA, no a cero", {
+test_that("las cuatro columnas de aulas NO SE PINTAN, ni a cero ni a raya", {
+  # Gonzalo lo dictó en dos pasos el mismo día. Primero: a raya en vez de a
+  # cero, porque el cero se leía como un operativo que no arrancó. Y al ver la
+  # hoja publicada: «todavía hay campos vacíos» — una raya PERMANENTE es la
+  # regla del slop aplicada a la geometría. Un aula no pertenece a un nivel, así
+  # que la columna no existe.
   t <- .alep_tabla()
   for (col in c("Aulas aplicadas", "Aulas planificadas originalmente",
                 "Aulas proyectadas al cierre", "Aulas sobre el plan")) {
-    v <- suppressWarnings(as.numeric(t[[col]]))
-    expect_true(all(is.na(v)), info = col)
+    expect_false(col %in% names(t), info = col)
   }
-  # Y la fila «Total» tampoco las inventa: una columna sin ningún dato es NA.
-  total <- .calaf_fila_total(t)
-  expect_true(is.na(as.numeric(total$`Aulas aplicadas`)))
-  expect_true(is.na(as.numeric(total$`Aulas planificadas originalmente`)))
+  # Y la fila «Total» resume lo que hay, no la constante.
+  expect_identical(names(.calaf_fila_total(t)), names(t))
 })
 
-test_that("las columnas siguen siendo las del contrato, y en su orden", {
+test_that("las columnas son las que la declaración implica, en el orden del vocabulario", {
   # `.calaf_exigir_cabecera()` ya rompería dentro de la función; esto lo fija
-  # desde fuera para que no se pueda «arreglar» el bug quitando columnas.
+  # desde fuera para que no se pueda «arreglar» el bug quitando columnas a mano.
+  #
+  # CCSS no declara sobremuestra (`meta_diseno`/`meta_operativa` vacías), ni
+  # cuota por sexo (sus celdas traen `facultad`, `faculty_key`, `cuota`, `tau`),
+  # ni un eje que pertenezca al aula: se queda con el corte que Gonzalo pidió
+  # —efectivas, muestra, avance y faltantes— y nada más.
   t <- .alep_tabla()
-  expect_identical(names(t), AULAS_AVANCE_CABECERAS$facultad)
+  expect_identical(names(t), c("Facultad", "Efectivas", "Avance muestra",
+                               "Muestra", "Faltantes muestra"))
+  # Que es exactamente lo que la declaración del estudio implica, derivado por
+  # la misma función que lo decide en producción.
+  decl <- prosecnurapp:::.calacd_declaracion(
+    .alep_cfg()$design_targets, por_aula = FALSE, con_sexo_observado = FALSE)
+  expect_identical(names(t),
+                   prosecnurapp:::aulas_avance_columnas_declaradas("facultad", decl))
+  # Y siguen siendo rótulos del vocabulario, en su orden: lo que cambia es
+  # cuántos, nunca cuáles ni en qué orden.
+  expect_true(all(names(t) %in% AULAS_AVANCE_CABECERAS$facultad))
+  expect_false(is.unsorted(match(names(t), AULAS_AVANCE_CABECERAS$facultad),
+                           strictly = TRUE))
 })
 
 test_that("la raya no trae explicación colgada: la tabla no publica ninguna nota", {
@@ -183,8 +202,15 @@ test_that("la raya no trae explicación colgada: la tabla no publica ninguna not
   filas <- aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-22"),
                                    eje = monitoreo_aulas_eje(cfg))
   primera <- vapply(filas, function(f) as.character(f[[1]] %||% ""), character(1))
-  i <- which(primera == AULAS_AVANCE_TITULOS[["facultad"]])
+  # El título nombra el EJE, no «facultad»: sus filas son niveles.
+  expect_identical(prosecnurapp:::aulas_avance_titulos_eje("facultad", monitoreo_aulas_eje(cfg)),
+                   "Avance por nivel")
+  i <- which(primera == "Avance por nivel")
   expect_length(i, 1L)
+  expect_false(any(primera == AULAS_AVANCE_TITULOS[["facultad"]]))
+  # Y «Rendimiento por facultad» NO se renombra: sus filas salen de `u$faculty`,
+  # que con el eje por persona sigue siendo la facultad de verdad.
+  expect_true(any(primera == AULAS_AVANCE_TITULOS[["rendimiento"]]))
   # Justo debajo del título va la CABECERA de la tabla, no una nota —y con la
   # palabra del eje, que es lo que el satélite de cabeceras sustituye.
   expect_identical(primera[[i + 1L]], "Nivel")

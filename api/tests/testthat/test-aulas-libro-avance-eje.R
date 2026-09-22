@@ -81,10 +81,14 @@ test_that("la fila de cabecera EMITIDA lleva la palabra del eje", {
   names(tabla) <- c("Facultad", "Efectivas")
   sin_eje <- .cala_tabla_filas(tabla, "facultad")
   expect_identical(as.character(sin_eje[[1]][[1]]), "Facultad")
-  # Con el eje en nivel la cabecera cambia... pero SOLO si la cola calza con la
-  # constante: una tabla a medias no se retoca.
+  # **Y con el eje en nivel SÍ cambia, aunque la tabla no traiga la cabecera
+  # entera.** La referencia dejó de ser la constante y pasó a ser la cabecera
+  # que la tabla trae de verdad (`aulas_avance_cabecera_con_eje()`): desde que
+  # las columnas se derivan de lo que el estudio declara, la cabecera COMPLETA
+  # es el caso raro, no el normal, y exigirla dejaba «Facultad» rotulando una
+  # columna de niveles — que es justo lo que el satélite existe para quitar.
   con_eje <- .cala_tabla_filas(tabla, "facultad", eje = .calae_eje("nivel"))
-  expect_identical(as.character(con_eje[[1]][[1]]), "Facultad")
+  expect_identical(as.character(con_eje[[1]][[1]]), "Nivel")
 })
 
 test_that("y con la cabecera completa si la sustituye", {

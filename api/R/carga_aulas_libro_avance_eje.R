@@ -51,8 +51,28 @@
 #' acto por llevar un `@export` que no correspondía.
 #' @keywords internal
 aulas_avance_cabeceras_eje <- function(clave, eje = NULL) {
-  base <- AULAS_AVANCE_CABECERAS[[as.character(clave)[1]]]
-  if (is.null(base) || !length(base)) return(character(0))
+  aulas_avance_cabecera_con_eje(AULAS_AVANCE_CABECERAS[[as.character(clave)[1]]],
+                                clave, eje)
+}
+
+#' Lo mismo, sobre la cabecera que una tabla trae DE VERDAD.
+#'
+#' Desde que las columnas se derivan de lo que el estudio declara
+#' (`carga_aulas_libro_avance_declaradas.R`), la cabecera publicada puede ser un
+#' subconjunto de la constante. La versión anterior comparaba longitudes contra
+#' `AULAS_AVANCE_CABECERAS` y con un subconjunto no casaba: la hoja salía con
+#' «Facultad» en la primera celda de una tabla cuyas filas son niveles, que es
+#' justo el rótulo mentiroso que el satélite existe para quitar. Aquí la
+#' referencia es la cabecera real.
+#'
+#' @param cabecera los rótulos que la tabla trae.
+#' @param clave la clave de la tabla.
+#' @param eje la declaración del eje.
+#' @return la cabecera, con su primera celda sustituida cuando procede.
+#' @keywords internal
+aulas_avance_cabecera_con_eje <- function(cabecera, clave, eje = NULL) {
+  base <- as.character(cabecera %||% character(0))
+  if (!length(base)) return(character(0))
   etiqueta <- .monitoreo_scalar((eje %||% list())[["etiqueta"]] %||% "", "")
   if (!nzchar(etiqueta)) return(base)
   # La primera celda de esta tabla no es la del eje: nada que sustituir.
@@ -112,4 +132,71 @@ aulas_avance_cabeceras_eje <- function(clave, eje = NULL) {
   if (is.null(base) || !length(base)) return(list())
   if (!identical(as.character(base[[1]]), .CALAE_CELDA_POR_DEFECTO)) return(list(base))
   lapply(.calae_primeras_celdas(), function(celda) c(celda, base[-1]))
+}
+
+# --- El TÍTULO del bloque, por el mismo criterio que su cabecera -------------
+#
+# El bloque salía rotulado «Avance por facultad» con cuatro NIVELES dentro. Es
+# el mismo rótulo mentiroso que este repo ya arregló una vez («el encabezado
+# decía "Facultad" encima de una columna de carreras»), y aquí era peor porque
+# la cabecera de la primera columna YA decía «Nivel» desde la fase 5: el título
+# y su propia cabecera se contradecían a dos renglones de distancia.
+#
+# Se sustituye por la MISMA regla que la cabecera (`.calae_filas_del_eje()`) y
+# no por una paralela. Si las dos se separaran, una hoja podría salir con título
+# «Avance por nivel» sobre una columna rotulada «Facultad», que es exactamente
+# el defecto de origen con los papeles cambiados.
+#
+# Sólo se toca la cola «… por facultad»: «Producción por aplicador» reparte por
+# PERSONA que aplica y «Avance general» / «Avance diario» no nombran ninguna
+# dimensión, así que ninguno de los tres califica y ninguno se retoca.
+.CALAE_TITULO_SUFIJO <- " por facultad"
+
+#' El título de bloque de una tabla del avance, con la palabra del eje.
+#'
+#' @param clave la clave de la tabla.
+#' @param eje la declaración del eje (`avance_cuota$eje` o
+#'   [monitoreo_aulas_eje()]). Sin ella, o con el eje en facultad, devuelve la
+#'   constante **idéntica**.
+#' @return el título.
+#' @keywords internal
+aulas_avance_titulos_eje <- function(clave, eje = NULL) {
+  clave <- as.character(clave)[1]
+  base <- unname(AULAS_AVANCE_TITULOS[[clave]])
+  if (is.null(base) || !length(base) || !nzchar(base)) return(character(0))
+  etiqueta <- .monitoreo_scalar((eje %||% list())[["etiqueta"]] %||% "", "")
+  if (!nzchar(etiqueta) || identical(etiqueta, .CALAE_CELDA_POR_DEFECTO)) return(base)
+  if (!endsWith(base, .CALAE_TITULO_SUFIJO)) return(base)
+  # Con `atribucion = "persona"` sólo la tabla de cuotas reparte por el eje: las
+  # otras tres agrupan AULAS y su fila sigue saliendo de `u$faculty`.
+  if (!.calae_filas_del_eje(clave, eje)) return(base)
+  paste0(substr(base, 1L, nchar(base) - nchar(.CALAE_TITULO_SUFIJO)),
+         " por ", tolower(etiqueta))
+}
+
+#' Todos los títulos de bloque que una hoja del avance puede traer.
+#'
+#' Lo que el reverso del Sheets tiene que reconocer, por el mismo motivo que
+#' `.calae_primeras_celdas()`: el formateador identifica los bloques por su
+#' título para darles su banda, para saber dónde acaba una tabla y para no
+#' confundir un título con una nota. Un documento escrito con el eje en nivel
+#' trae «Avance por nivel» donde la constante dice «Avance por facultad», y sin
+#' esta lista **la hoja pierde su banda sin que nada falle**.
+#'
+#' Es una FUNCIÓN y no una constante a propósito: `api/DESCRIPTION` no tiene
+#' `Collate:`, los ficheros colacionan alfabéticamente y `.MONITOREO_AULAS_EJES`
+#' vive en `monitoreo_aulas_eje.R`, que carga después de este archivo y después
+#' del formateador. Una constante evaluada al cargar no lo encontraría.
+#' @keywords internal
+.calae_titulos_posibles <- function() {
+  etiquetas <- vapply(.MONITOREO_AULAS_EJES, function(e) {
+    .monitoreo_scalar(e[["etiqueta"]] %||% "", "")
+  }, character(1), USE.NAMES = FALSE)
+  etiquetas <- tolower(etiquetas[nzchar(etiquetas)])
+  base <- unname(AULAS_AVANCE_TITULOS)
+  variantes <- unlist(lapply(base, function(t) {
+    if (!endsWith(t, .CALAE_TITULO_SUFIJO)) return(t)
+    paste0(substr(t, 1L, nchar(t) - nchar(.CALAE_TITULO_SUFIJO)), " por ", etiquetas)
+  }), use.names = FALSE)
+  unique(c(base, variantes))
 }

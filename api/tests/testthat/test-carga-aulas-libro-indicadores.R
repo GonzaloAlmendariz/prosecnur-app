@@ -250,7 +250,13 @@ test_that("el rendimiento por facultad separa «no se ha ido» de «rinde por de
   )
   ind <- aulas_libro_indicadores(plan, efectivas = c(`CH 1` = 12, `EX 1` = 8))
   r <- ind$rendimiento
-  expect_identical(names(r), AULAS_AVANCE_CABECERAS$rendimiento)
+  # Este fixture no declara cuotas, así que la tabla sale recortada a lo que
+  # sostiene (`carga_aulas_libro_avance_declaradas.R`): sus columnas son un
+  # subconjunto EN ORDEN del vocabulario, y las de meta no están.
+  expect_true(all(names(r) %in% AULAS_AVANCE_CABECERAS$rendimiento))
+  expect_false(is.unsorted(match(names(r), AULAS_AVANCE_CABECERAS$rendimiento),
+                           strictly = TRUE))
+  expect_false("Muestra" %in% names(r))
   expect_equal(r[["Aulas planificadas originalmente"]], 2L)   # los titulares
   expect_equal(r[["Aulas aplicadas"]], 2L)      # CH 1 y EX 1 tienen efectivas
   expect_equal(r[["Aulas adicionales solicitadas hasta el momento"]], 1L)

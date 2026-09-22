@@ -217,24 +217,31 @@ test_that("sin cruce posible la hoja NO se escribe: una hoja vacia diria que tod
     .mcnd_resp("20201234", "1"), .mcnd_padron(list()), cfg))
 })
 
-test_that("la hoja trae la matriz, las discrepancias y la bolsa desglosada", {
+test_that("la hoja se rehizo: informa la efectividad, no la mecánica del motor", {
+  # Gonzalo, 2026-09-22: «siento que la hoja de control de nivel curricular está
+  # muy críptica y las tablas no dan información muy útil, o los encabezados son
+  # difíciles de interpretar; ojo, no es agregar notas AI slop, es que sea un
+  # mejor reporte». Contestaba preguntas de motor —una matriz 6×6, cuarenta y
+  # ocho discrepancias una por una, un `MOTIVO DEL MOTOR`— y ninguna de las que
+  # el coordinador tiene delante.
+  #
+  # El acuerdo con lo declarado se queda, porque es lo que justifica medir por
+  # el padrón; lo que cambia es que cabe en una fila en vez de en cincuenta y
+  # cinco. La tabla por aula necesita el bloque de cuota y tiene su propia
+  # suite (`test-aulas-libro-casos-por-aula.R`).
   pad <- .mcnd_padron(list("20201234" = 6L, "20201235" = 6L, "20201236" = 7L))
   filas <- aulas_libro_filas_control_nivel(
     .mcnd_resp(c("20201234", "20201235", "20201236", "20990000"),
                c("1", "2", "2", "1")), pad, .mcnd_cfg())
   primeras <- vapply(filas, function(f) as.character(unlist(f$celdas)[[1]]), character(1))
   expect_identical(primeras[[1]], "CONTROL DE NIVEL")
-  expect_true("MATRIZ DE CONSISTENCIA" %in% primeras)
-  expect_true("DISCREPANCIAS, UNA POR UNA" %in% primeras)
-  expect_true("RESPUESTAS SIN NIVEL" %in% primeras)
-  # «Otros» al FINAL de las columnas de la matriz, no entre los ciclos: es la
-  # opcion de escape y leerla entre ellos la haria parecer uno mas.
-  cab <- filas[[which(primeras == "NIVEL DEL PADRÓN")[[1]]]]$celdas
-  expect_identical(as.character(cab)[[1]], "NIVEL DEL PADRÓN")
-  # Y la hoja NO lleva ya las notas didácticas que la encabezaban (Gonzalo,
-  # 2026-09-22: «son ai slop para mí»): ni la que explicaba qué se cruza contra
-  # qué, ni la de «es un control, no una reatribución». Los tres bloques de
-  # arriba son lo que la hoja dice de sí misma.
+  expect_true("ACUERDO CON EL CICLO DECLARADO" %in% primeras)
+  for (fuera in c("MATRIZ DE CONSISTENCIA", "DISCREPANCIAS, UNA POR UNA",
+                  "RESPUESTAS SIN NIVEL", "NIVEL DEL PADRÓN", "FILA EN LA BASE",
+                  "MOTIVO DEL MOTOR")) {
+    expect_false(fuera %in% primeras, info = fuera)
+  }
+  # Y sigue sin las notas didácticas que la encabezaban.
   notas <- paste(unlist(lapply(filas, function(f) as.character(unlist(f$celdas)))), collapse = " ")
   expect_false(grepl("NO cambia ningún conteo", notas, fixed = TRUE))
   expect_false(grepl("El nivel de la PERSONA", notas, fixed = TRUE))
