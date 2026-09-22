@@ -507,9 +507,11 @@ aulas_libro_agendacion <- function(unidades, partes = list(), efectivas = NULL,
 #' se deriva del último día agendado del propio modelo.
 #'
 #' @param ag el modelo de `aulas_libro_agendacion()`.
+#' @param actualizado marca ISO de la última sincronización, para el sello de
+#'   hora del corte (`.cai_sello_corte()`). Sale del estado, no del reloj.
 #' @return lista de filas de celdas.
 #' @export
-aulas_libro_hoja_agendacion <- function(ag) {
+aulas_libro_hoja_agendacion <- function(ag, actualizado = "") {
   ag <- if (is.list(ag)) ag else list()
   filas <- list()
   poner <- function(...) {
@@ -522,7 +524,14 @@ aulas_libro_hoja_agendacion <- function(ag) {
   dias <- if (is.data.frame(ag$dia) && nrow(ag$dia)) as.character(ag$dia[["Día"]]) else character(0)
   dias <- dias[!is.na(dias) & nzchar(dias)]
   corte <- if (length(dias)) {
-    sprintf("Agendado hasta el %s", utils::tail(dias, 1L))
+    ultimo <- utils::tail(dias, 1L)
+    # Mismo sello y mismo separador que «Avance de campo», con una diferencia
+    # que viene del dato: el día de esta portada es la última fecha AGENDADA
+    # —que suele estar en el futuro— y llega como «11/09», sin año. No hay
+    # «mismo día» contra el que abreviar, así que el sello va entero
+    # (`fecha = NULL`): «· 09:05» debajo de «Agendado hasta el 25/09» no diría
+    # de qué día es esa hora.
+    .cai_sello_corte(sprintf("Agendado hasta el %s", ultimo), actualizado)
   } else {
     "Todavía no hay ninguna aula con fecha agendada."
   }

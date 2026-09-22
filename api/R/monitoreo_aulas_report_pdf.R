@@ -46,6 +46,11 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   efectivas <- monitoreo_aulas_efectivas_por_aula(plan, data, aulas_cfg)
   validas <- .monitoreo_aulas_valid_response(data, aulas_cfg)
 
+  # El bloque de avance contra la cuota, UNA vez: lo consumen la tabla por celda
+  # del eje y el avance diario, y calcularlo dos veces daría dos lecturas del
+  # mismo cruce.
+  bloque_cuota <- monitoreo_aulas_avance_cuota_del_plan(plan, data, aulas_cfg, padron = padron)
+
   # UNA sola fuente del contenido: la misma función que escribe la hoja del
   # libro. No se recalcula aquí.
   facultades <- .calaf_avance_por_facultad(
@@ -57,7 +62,7 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
     # Y el avance contra la cuota, por la misma razón: con el eje declarable las
     # celdas del diseño pueden no ser facultades y sus cifras salen de ahí. Ver
     # `monitoreo_aulas_avance_cuota_libro.R`.
-    avance_cuota = monitoreo_aulas_avance_cuota_del_plan(plan, data, aulas_cfg, padron = padron)
+    avance_cuota = bloque_cuota
   )
 
   # Sin cuotas del diseño no hay avance que informar a un cliente: se dice, no
@@ -73,7 +78,12 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   # las de rendimiento no cruzan a un documento de cliente.
   diario <- tryCatch(
     .calad_avance_diario(plan, responses = data, validas = validas,
-                         cuotas = aulas_cfg$design_targets, cfg = aulas_cfg),
+                         cuotas = aulas_cfg$design_targets, cfg = aulas_cfg,
+                         # La misma máscara que usa la hoja: el PDF de cliente no
+                         # puede contar cuestionarios donde el libro cuenta
+                         # entrevistas efectivas.
+                         efectivas_resp = attr((bloque_cuota %||% list())$casos,
+                                               "efectiva", exact = TRUE)),
     error = function(e) NULL
   )
   ritmo <- monitoreo_aulas_ritmo_de_avance(diario, facultades)

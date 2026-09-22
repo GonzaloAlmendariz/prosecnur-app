@@ -128,13 +128,16 @@
   # número plausible y falso, que es lo que los ADR 0086/0088 existen para
   # impedir. Las cifras salen del bloque que ya hizo ese cruce —uno solo—.
   celdas_eje <- .maacl_celdas_por_clave(avance_cuota)
-  # **Y las cuatro columnas de AULAS van a raya, no a cero** (decisión de
-  # Gonzalo, 2026-09-22). Un aula no pertenece a un nivel: su nivel es el MODAL
-  # de sus alumnos, que el marco calculó para dimensionar. «Aulas aplicadas» o
-  # «Aulas planificadas originalmente» por nivel no es un cero, es una pregunta
-  # sin respuesta, y el cero se leía como un operativo que no arrancó. Las
-  # columnas se quedan en el contrato (`AULAS_AVANCE_CABECERAS$facultad`) y los
-  # renderers pintan su «—», sin nota que lo acompañe: la tabla se explica sola.
+  # **Y las cuatro columnas de AULAS no se pintan.** Un aula no pertenece a un
+  # nivel: su nivel es el MODAL de sus alumnos, que el marco calculó para
+  # dimensionar. «Aulas aplicadas» por nivel no es un cero, es una pregunta sin
+  # respuesta. Gonzalo lo dictó en dos pasos el mismo día: primero a raya en vez
+  # de a cero, y al ver la hoja publicada —«todavía hay campos vacíos»— fuera
+  # del todo. Una raya PERMANENTE es la regla del slop aplicada a la geometría.
+  #
+  # La exclusión la hace la declaración de abajo (`decl$aulas`), en un solo
+  # sitio y con el mismo mecanismo que la sobremuestra y el sexo; aquí sólo se
+  # decide si el eje pertenece o no al aula.
   del_bloque <- !is.null(celdas_eje)
 
   # Índice del plan: código operativo -> facultad, y si el aula se aplicó.
@@ -218,6 +221,16 @@
   }
   con_reparto <- length(sexo_aula) > 0L
 
+  # **Lo que el estudio DECLARA decide qué columnas existen.** Una raya
+  # permanente es la regla del slop aplicada a la geometría: si el diseño no
+  # publica sobremuestra, ni reparte cuota por sexo, ni el eje pertenece al
+  # aula, esas columnas no se reservan — se van. La regla vive en
+  # `carga_aulas_libro_avance_declaradas.R` y es la MISMA para los dos renderers
+  # y para la pantalla, porque los tres leen las columnas que esta tabla trae.
+  decl <- .calacd_declaracion(cuotas, por_aula = !del_bloque,
+                              con_sexo_observado = con_reparto)
+  columnas <- aulas_avance_columnas_declaradas("facultad", decl)
+
   filas <- lapply(seq_along(facs), function(i) {
     f <- facs[[i]]
     k <- .cai_txt(f$faculty_key %||% .cm_criterios_fac_key(.cai_txt(f$facultad)))
@@ -281,22 +294,21 @@
       Facultad = .cai_txt(f$facultad),
       Efectivas = conseguidas,
       `Avance muestra` = avance(conseguidas, cuota),
-      `Aulas aplicadas` = if (del_bloque) NA_real_ else sum(idx & apl),
-      `Aulas planificadas originalmente` = if (del_bloque) NA_real_ else sum(idx & rol == "titular"),
+      # Las cuatro se calculan siempre y el recorte de arriba decide si se
+      # publican: una sola regla, en un solo sitio.
+      `Aulas aplicadas` = sum(idx & apl),
+      `Aulas planificadas originalmente` = sum(idx & rol == "titular"),
       # **Aplicadas más las que tienen fecha y todavía no se han aplicado.** Un
       # aula ya aplicada conserva su fecha, así que sumar las dos listas sin
       # descontar la intersección la contaría dos veces y la proyección saldría
       # por encima del plan en cuanto el operativo avanzara.
-      `Aulas proyectadas al cierre` = if (del_bloque) NA_real_ else {
-        sum(idx & apl) + sum(idx & con_fecha & !apl)
-      },
+      `Aulas proyectadas al cierre` = sum(idx & apl) + sum(idx & con_fecha & !apl),
       # La resta, con su signo. Positivo: cerrará con más aulas de las que el
       # sorteo le puso —refuerzo—. Negativo: quedan aulas del plan que nadie ha
       # agendado. Cero no es «no pasa nada»: es que lo agendado cubre el plan
       # exactamente, que es lo normal en una facultad al día.
-      `Aulas sobre el plan` = if (del_bloque) NA_real_ else {
-        (sum(idx & apl) + sum(idx & con_fecha & !apl)) - sum(idx & rol == "titular")
-      },
+      `Aulas sobre el plan` = (sum(idx & apl) + sum(idx & con_fecha & !apl)) -
+        sum(idx & rol == "titular"),
       `Efectivas hombres` = unname(sx[["M"]]),
       `Avance muestra hombres` = avance(unname(sx[["M"]]), cuota_m),
       `Efectivas mujeres` = unname(sx[["F"]]),
@@ -319,7 +331,10 @@
     )
     # El contrato es el vocabulario, no esta lista literal: si las dos se
     # separan, falla aquí y no tres renderers más abajo pintando en silencio.
-    .calaf_exigir_cabecera(fila)
+    # Desde el 2026-09-22 lo esperado no es la constante entera sino lo que la
+    # declaración del estudio implica: sigue siendo un guard, de la REGLA y no
+    # de un literal.
+    .calaf_exigir_cabecera(fila[, columnas, drop = FALSE], columnas)
   })
   out <- do.call(rbind, filas)
   # Por lo que FALTA y no alfabético: la facultad que peor va abre la tabla, que
@@ -330,11 +345,10 @@
 # El guard del párrafo de arriba. Una tabla que se sale del vocabulario declarado
 # rompe AQUÍ, con el nombre de la columna que sobra o falta, en vez de llegar
 # entera al Sheets con una columna sin formato y sin color.
-.calaf_exigir_cabecera <- function(fila) {
-  esperado <- AULAS_AVANCE_CABECERAS$facultad
+.calaf_exigir_cabecera <- function(fila, esperado = AULAS_AVANCE_CABECERAS$facultad) {
   if (!identical(names(fila), esperado)) {
     stop(sprintf(
-      ".calaf_avance_por_facultad(): las columnas no son las de AULAS_AVANCE_CABECERAS$facultad. Sobran: %s. Faltan: %s.",
+      ".calaf_avance_por_facultad(): las columnas no son las que declara el estudio. Sobran: %s. Faltan: %s.",
       paste(setdiff(names(fila), esperado), collapse = ", ") %||% "",
       paste(setdiff(esperado, names(fila)), collapse = ", ") %||% ""
     ), call. = FALSE)

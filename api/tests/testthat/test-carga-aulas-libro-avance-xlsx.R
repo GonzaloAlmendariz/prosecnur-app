@@ -151,7 +151,8 @@ test_that("S3: con otra geometría (sin facultades ni partes) las bandas siguen 
   # aplicadores (el guard de `aulas_libro_escribir_indicadores`; el Sheets, en
   # cambio, declara su vacío — asimetría anotada en el loop, no es de S3). La
   # hoja queda a cuatro columnas (el diario) y las bandas que quedan la cubren.
-  h <- .calax_hoja(.calax_modelo_minimo())
+  ind <- .calax_modelo_minimo()
+  h <- .calax_hoja(ind)
   # Sin cuotas la tabla por facultad no existe, así que el ancho lo fija la más
   # ancha de las que quedan. Se DERIVA del vocabulario, no se cuenta a mano: una
   # columna nueva no puede romper el pin — y eso es justo lo que pasó el
@@ -161,8 +162,15 @@ test_that("S3: con otra geometría (sin facultades ni partes) las bandas siguen 
   # que la ausencia de la otra se comprueba con una columna que sólo ella tiene.
   expect_true(is.na(.calax_fila_de(h$celdas, "Avance por facultad")))
   expect_false(any(as.character(unlist(h$celdas)) == "Efectivas mujeres", na.rm = TRUE))
-  sin_cuotas <- setdiff(names(AULAS_AVANCE_CABECERAS), "facultad")
-  expect_identical(h$n_cols, max(lengths(AULAS_AVANCE_CABECERAS[sin_cuotas])))
+  # El ancho sale de las tablas que el modelo REALMENTE trae: sin cuotas no hay
+  # tabla por facultad, y las que quedan salen recortadas a lo que el estudio
+  # declara (`aulas_avance_columnas_declaradas()`), así que contar la constante
+  # entera pediría columnas que la hoja no escribe.
+  anchos <- vapply(unname(AULAS_AVANCE_CAMPOS), function(campo) {
+    t <- ind[[campo]]
+    if (is.data.frame(t) && nrow(t)) ncol(t) else 0L
+  }, integer(1))
+  expect_identical(h$n_cols, max(anchos))
   for (titulo in c("Avance general", "Avance diario")) {
     fila <- .calax_fila_de(h$celdas, titulo)
     expect_false(is.na(fila), info = sprintf("la hoja perdió el título «%s»", titulo))
@@ -248,13 +256,13 @@ test_that("S4: en el xlsx, la celda sin dato de una tabla sale «—» y las cif
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   celdas <- openxlsx::read.xlsx(path, sheet = "Avance de campo", colNames = FALSE,
                                 skipEmptyRows = FALSE, skipEmptyCols = FALSE)
-  # Facultades: sin variable de sexo, «Efectivas mujeres» se declara (la
-  # columna se llamaba «Conseguidas mujeres» hasta el dictado del 2026-09-08).
+  # **Sin variable de sexo la columna ya no está**: lo que el estudio no
+  # declara no reserva sitio (2026-09-22). El «—» se sigue probando donde el
+  # hueco es de un dato que puede llegar —la tasa esperada de una facultad sin
+  # τ declarada, en «Rendimiento por facultad»— que es lo que este test asienta.
   cab_f <- .calax_fila_de(celdas, "Facultad")
-  col_muj <- which(as.character(celdas[cab_f, ]) == "Efectivas mujeres")
+  expect_false(any(as.character(celdas[cab_f, ]) == "Efectivas mujeres", na.rm = TRUE))
   fila_l <- .calax_fila_de(celdas, "Letras")
-  expect_identical(as.character(celdas[fila_l, col_muj]), "\u2014")
-  expect_identical(.calax_tipo_celda(path, fila_l, col_muj), "s")
   # Y una cifra de la misma fila sigue siendo NÚMERO, no texto: el «—» no
   # convierte la tabla entera en cadenas.
   col_ef <- which(as.character(celdas[cab_f, ]) == "Efectivas")

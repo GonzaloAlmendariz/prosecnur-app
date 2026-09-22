@@ -89,8 +89,9 @@ test_that("A4: sin reparto por sexo en el diseño, los dos restan el neto", {
   r <- .par_ambas(.par_dt(F = NULL))
   expect_identical(as.numeric(r$tablero$brecha), 1)
   expect_identical(as.numeric(r$libro$`Faltantes muestra`), 1)
-  # Sin celdas no hay faltante por sexo que declarar.
-  expect_true(is.na(r$libro$`Faltantes mujeres muestra`))
+  # Sin celdas no hay faltante por sexo que declarar — ni columna donde
+  # declararlo: lo que el diseño no reparte no reserva sitio.
+  expect_false("Faltantes mujeres muestra" %in% names(r$libro))
 })
 
 # =============================================================================

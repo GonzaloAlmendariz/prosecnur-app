@@ -67,17 +67,24 @@
 #
 # Se reusa `.cala_celda_num()` en vez de una conversión propia: redondea igual
 # que el resto del libro, y dos formas de redondear es el defecto de fondo.
-.alp_celdas <- function(tipo, celdas) {
+# `proporciones` marca, POR POSICIÓN, qué celdas de la fila son una proporción.
+# `.cala_celda_num()` redondea a dos decimales lo que es conteo y a cuatro lo
+# que es proporción, y sin esta marca una tasa de efectividad de 0,597 salía
+# publicada como 0,6: la cifra que el diseño cita, perdida en el redondeo de un
+# conteo. Por defecto va vacío y ninguna hoja existente cambia.
+.alp_celdas <- function(tipo, celdas, proporciones = logical(0)) {
   celdas <- as.list(celdas)
   # Las que NO son dato vuelven como VECTOR de caracteres, que es la forma que
   # tenían: convertirlas en lista cambiaba el tipo de las cabeceras y rompía a
   # quien las compara con un `c("TRAMO", ...)`. Sólo las de dato necesitan ser
   # lista, porque mezclan texto y número.
   if (!identical(tipo, "dato")) return(as.character(unlist(celdas)))
-  lapply(celdas, function(v) {
+  lapply(seq_along(celdas), function(j) {
+    v <- celdas[[j]]
     txt <- trimws(as.character(v %||% "")[1])
     x <- suppressWarnings(as.numeric(txt))
-    if (nzchar(txt) && length(x) == 1L && is.finite(x)) .cala_celda_num(txt) else as.character(v)
+    if (!nzchar(txt) || length(x) != 1L || !is.finite(x)) return(as.character(v))
+    .cala_celda_num(txt, proporcion = isTRUE(proporciones[j]))
   })
 }
 

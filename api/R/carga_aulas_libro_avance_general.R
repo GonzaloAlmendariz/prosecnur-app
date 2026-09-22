@@ -104,12 +104,33 @@
     "Aulas planificadas originalmente" = solo_total(aulas$planificadas)
   )
 
-  filas <- lapply(AULAS_AVANCE_FILAS_GENERAL, function(etiqueta) {
+  # **Este bloque se recorta con la MISMA declaración que la tabla de la que
+  # deriva, y la lee de ella.** Una raya permanente es la regla del slop
+  # aplicada a la geometría (Gonzalo, 2026-09-22: «todavía hay campos vacíos»):
+  # sin sobremuestra en el diseño sobran tres FILAS, y sin cuota ni observación
+  # por sexo sobran dos COLUMNAS enteras.
+  #
+  # No hace falta pasarle la declaración: `fac` ya trae exactamente las columnas
+  # que el estudio sostiene (`aulas_avance_columnas_declaradas()`), así que
+  # preguntarle a ella es preguntar a la misma fuente — y no puede separarse de
+  # la tabla que resume, que es de lo que este archivo entero trata.
+  hay <- function(col) col %in% names(fac %||% list())
+  con_sobremuestra <- hay("Sobremuestra")
+  con_sexo <- hay("Efectivas hombres") || hay("Muestra hombres")
+  etiquetas <- AULAS_AVANCE_FILAS_GENERAL
+  if (!con_sobremuestra) {
+    etiquetas <- setdiff(etiquetas, c("Sobremuestra", "Avance sobremuestra",
+                                      "Faltantes para la sobremuestra"))
+  }
+  cabecera <- AULAS_AVANCE_CABECERAS$general
+  if (!con_sexo) cabecera <- setdiff(cabecera, c("Hombres", "Mujeres"))
+
+  filas <- lapply(etiquetas, function(etiqueta) {
     v <- valores[[etiqueta]]
     out <- data.frame(etiqueta, v[[1]], v[[2]], v[[3]],
                       stringsAsFactors = FALSE)
     names(out) <- AULAS_AVANCE_CABECERAS$general
-    out
+    out[, cabecera, drop = FALSE]
   })
   do.call(rbind, filas)
 }

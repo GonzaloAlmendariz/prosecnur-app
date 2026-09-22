@@ -72,17 +72,27 @@
 #' @param total la fila de cierre, o `NULL`.
 #' @return lista lista para JSON, o `NULL` sin tabla.
 #' @keywords internal
-.maat_bloque <- function(clave, tabla, nota = "", total = NULL, eje = NULL) {
+.maat_bloque <- function(clave, tabla, nota = "", total = NULL, eje = NULL,
+                         # Sólo «Cobertura» lo usa: una tabla por dimensión y
+                         # por tanto un título por tabla.
+                         titulo = NULL) {
   # **La cabecera que se PINTA lleva la palabra del eje; los tipos y el semáforo
   # se deciden con el rótulo original.** Un «Nivel» en la primera columna no
   # debe cambiar cómo se formatea la segunda, así que las dos vistas de la
   # cabecera conviven a propósito y no se confunden.
-  cabecera <- AULAS_AVANCE_CABECERAS[[clave]]
-  cabecera_vista <- aulas_avance_cabeceras_eje(clave, eje)
+  # **La cabecera sale de la TABLA, no de la constante.** Desde que las columnas
+  # se derivan de lo que el estudio declara, la constante tiene veintitrés
+  # rótulos y la tabla puede traer once: recorrer la constante leía
+  # `tabla[[j]]` fuera de rango y la pantalla habría pintado columnas que el
+  # modelo ya no calcula. Sin tabla no hay de dónde derivarla y se usa la
+  # constante, que es lo que la pantalla ni siquiera dibuja (pinta su vacío).
   if (!is.data.frame(tabla) || !nrow(tabla)) {
-    return(list(clave = clave, titulo = unname(AULAS_AVANCE_TITULOS[[clave]]),
-                cabecera = as.list(cabecera_vista), filas = list(), vacio = nota))
+    return(list(clave = clave, titulo = titulo %||% aulas_avance_titulos_eje(clave, eje),
+                cabecera = as.list(aulas_avance_cabeceras_eje(clave, eje)),
+                filas = list(), vacio = nota))
   }
+  cabecera <- names(tabla)
+  cabecera_vista <- aulas_avance_cabecera_con_eje(cabecera, clave, eje)
   # «Avance general» es la única traspuesta: una fila por concepto, así que su
   # naturaleza se decide por FILA y no por columna. Viaja declarado para que la
   # pantalla no tenga que saberlo.
@@ -100,7 +110,7 @@
 
   out <- list(
     clave = clave,
-    titulo = unname(AULAS_AVANCE_TITULOS[[clave]]),
+    titulo = titulo %||% aulas_avance_titulos_eje(clave, eje),
     nota = nota,
     traspuesta = traspuesta,
     cabecera = as.list(cabecera_vista),
@@ -184,13 +194,16 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
 
   # La misma portada que la hoja, de la misma función: día del corte y hora de
   # la última sincronización, las dos derivadas del estado y no del reloj.
-  portada <- aulas_libro_hoja_avance(ind, eje = monitoreo_aulas_eje(aulas_cfg))
+  portada <- aulas_libro_hoja_avance(
+    ind,
+    actualizado = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
+    eje = monitoreo_aulas_eje(aulas_cfg))
   corte <- if (length(portada) >= 2L) as.character(portada[[2]][[1]]) else ""
 
-  notas <- .maat_notas(ind)
   # El eje del estudio, resuelto UNA vez para las cinco tablas. Sin declaración
   # es `facultad` y las cabeceras salen idénticas.
   eje <- monitoreo_aulas_eje(aulas_cfg)
+  notas <- .maat_notas(ind, eje)
   tablas <- lapply(names(AULAS_AVANCE_CABECERAS), function(clave) {
     tabla <- ind[[AULAS_AVANCE_CAMPOS[[clave]]]]
     .maat_bloque(
@@ -199,6 +212,25 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
       total = if (identical(clave, "facultad")) .calaf_fila_total(tabla) else NULL
     )
   })
+  # **«Cobertura» se intercala donde está en la hoja**: detrás del bloque del
+  # eje y delante del rendimiento. La pantalla y el Sheets salen del mismo
+  # modelo y en el mismo orden; que una enseñe la cobertura en otro sitio sería
+  # la misma divergencia que esta función existe para impedir.
+  #
+  # Su `clave` se hace ÚNICA por dimensión —`cobertura_sexo`,
+  # `cobertura_carrera`— porque la pantalla la usa de key de React y dos bloques
+  # con la misma key se pisan; el vocabulario, en cambio, las reconoce a las dos
+  # por `AULAS_COBERTURA_CLAVE`, que es lo que decide su formato.
+  cobertura <- lapply(ind$cobertura %||% list(), function(cob) {
+    bloque <- .maat_bloque(AULAS_COBERTURA_CLAVE, cob$tabla, titulo = cob$titulo)
+    bloque$clave <- paste0(AULAS_COBERTURA_CLAVE, "_", cob$clave)
+    bloque
+  })
+  if (length(cobertura)) {
+    tras_el_eje <- which(names(AULAS_AVANCE_CABECERAS) == "facultad")
+    tablas <- c(tablas[seq_len(tras_el_eje)], cobertura,
+                tablas[-seq_len(tras_el_eje)])
+  }
 
   list(
     ok = TRUE,
@@ -213,13 +245,15 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
 # declarado de una tabla sin filas (C3) y el titular de «Avance general». Se lee
 # del renderer del Sheets en vez de copiarse: dos literales gemelos en dos
 # archivos es exactamente como se separan.
-.maat_notas <- function(ind) {
-  filas <- aulas_libro_hoja_avance(ind)
-  titulos <- unname(AULAS_AVANCE_TITULOS)
+.maat_notas <- function(ind, eje = NULL) {
+  filas <- aulas_libro_hoja_avance(ind, eje = eje)
   primera <- vapply(filas, function(f) as.character(f[[1]] %||% ""), character(1))
   out <- list()
   for (clave in names(AULAS_AVANCE_TITULOS)) {
-    i <- which(primera == AULAS_AVANCE_TITULOS[[clave]])
+    # Con el MISMO eje que se usó para renderizar: si esta función buscara el
+    # título de la constante sobre una hoja escrita con otro eje, no encontraría
+    # el bloque y su vacío declarado (C3) se perdería camino a la pantalla.
+    i <- which(primera == aulas_avance_titulos_eje(clave, eje))
     if (!length(i)) next
     siguiente <- primera[[i[[1]] + 1L]]
     # La línea de debajo del título es la nota sólo si NO es la cabecera de la

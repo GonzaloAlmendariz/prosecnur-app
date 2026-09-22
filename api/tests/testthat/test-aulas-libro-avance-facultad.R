@@ -153,7 +153,12 @@ test_that("la tabla se niega a salir con columnas que no sean las del vocabulari
   # columna renombrada aquí dejaría al formateador del Sheets sin reconocerla y
   # saldría publicada sin numFmt y sin color, sin que nada avise.
   fila <- data.frame(Facultad = "X", Efectivas = 1, check.names = FALSE)
-  expect_error(prosecnurapp:::.calaf_exigir_cabecera(fila), "AULAS_AVANCE_CABECERAS")
+  expect_error(prosecnurapp:::.calaf_exigir_cabecera(fila), "no son las que declara el estudio")
+  # Y con lo esperado DERIVADO: el guard ya no compara contra un literal sino
+  # contra lo que la declaración del estudio implica, y sigue siendo un guard.
+  expect_error(prosecnurapp:::.calaf_exigir_cabecera(fila, c("Facultad", "Efectivas", "Muestra")),
+               "Faltan: Muestra")
+  expect_silent(prosecnurapp:::.calaf_exigir_cabecera(fila, c("Facultad", "Efectivas")))
 })
 
 test_that("la muestra es la CUOTA del diseño y trae su reparto por sexo", {
@@ -242,7 +247,9 @@ test_that("sin efectivas no se publica un cero: se declara NA", {
     plan, efectivas = NULL, cuotas = .lafac_cuotas(.lafac_fac("FAC1", 20)))
   expect_true(is.na(out$Efectivas))
   expect_true(is.na(out$`Faltantes muestra`))
-  expect_true(is.na(out$`Faltantes sobremuestra`))
+  # La sobremuestra ya no deja columna: este diseño no publica sus dos metas,
+  # así que no se reserva sitio para una raya permanente.
+  expect_false("Faltantes sobremuestra" %in% names(out))
 })
 
 # ---------------------------------------------------------------------------
@@ -268,8 +275,8 @@ test_that("la sobremuestra por facultad sale del ratio del diseño, no de un 1,5
   expect_true("Sobremuestra" %in% names(t))
   # 40 x 2,5 = 100. Con un 1,5 cableado saldria 60.
   expect_equal(t$Sobremuestra[[1]], 100)
-  # Sin reparto por sexo en el diseño, la sobremuestra por sexo calla.
-  expect_true(is.na(t$`Sobremuestra mujeres`[[1]]))
+  # Sin reparto por sexo en el diseño, la sobremuestra por sexo NO tiene columna.
+  expect_false("Sobremuestra mujeres" %in% names(t))
   # Y los faltantes contra ella: 100 - 10, neto porque no hay celdas.
   expect_equal(t$`Faltantes sobremuestra`[[1]], 90)
 })
@@ -280,8 +287,10 @@ test_that("sin las dos cifras del diseño la columna queda en NA y no se inventa
   # Un estudio viejo: cuotas por facultad pero sin meta_diseno/meta_operativa.
   cuotas <- list(facultades = list(list(facultad = "DERECHO", faculty_key = "derecho", cuota = 40)))
   t <- prosecnurapp:::.calaf_avance_por_facultad(unidades, c(`CH 1` = 10), cuotas)
-  expect_true(is.na(t$Sobremuestra[[1]]))
-  expect_true(is.na(t$`Faltantes sobremuestra`[[1]]))
+  # **Y desde el 2026-09-22 ni siquiera queda la columna.** Una raya permanente
+  # es la regla del slop aplicada a la geometría: lo que el estudio no declara
+  # no se reserva. La condición es la misma que hacía que el valor fuera NA.
+  expect_false(any(c("Sobremuestra", "Faltantes sobremuestra") %in% names(t)))
 })
 
 test_that("el reparto por resto mayor da enteros que suman exactamente el total", {
@@ -334,11 +343,13 @@ test_that("la fila Total suma personas y aulas, y los faltantes sin netear (ADR 
   expect_equal(total$`Sobremuestra hombres`, 14)
   # FAC1: (12-4) + (8-2) = 14; FAC2: (4-3) + (6-1) = 6.
   expect_equal(total$`Faltantes sobremuestra`, 20)
-  # Una tabla sin nada que sumar en una columna deja NA, no 0.
+  # Un estudio que no declara sexo no trae esas columnas, ni en la tabla ni en
+  # su fila Total: el Total resume lo que hay, no la constante.
   sin_sexo <- prosecnurapp:::.calaf_avance_por_facultad(
     list(.lafac_aula("A1", "FAC1", "CH 1")), efectivas = c(`CH 1` = 3),
     cuotas = .lafac_cuotas(.lafac_fac("FAC1", 20)))
-  expect_true(is.na(prosecnurapp:::.calaf_fila_total(sin_sexo)$`Efectivas mujeres`))
+  expect_false("Efectivas mujeres" %in% names(sin_sexo))
+  expect_identical(names(prosecnurapp:::.calaf_fila_total(sin_sexo)), names(sin_sexo))
   expect_null(prosecnurapp:::.calaf_fila_total(NULL))
 })
 

@@ -50,8 +50,16 @@ test_that("las cinco tablas del vocabulario existen en el modelo, con SUS column
     tabla <- ind[[campo]]
     expect_true(is.data.frame(tabla) && nrow(tabla) > 0L,
                 info = sprintf("el modelo no trae «%s» (campo `%s`)", clave, campo))
-    expect_identical(names(tabla), AULAS_AVANCE_CABECERAS[[clave]],
-                     info = sprintf("las columnas de «%s» no son las del vocabulario", clave))
+    # **Subconjunto EN ORDEN, no igualdad.** Desde el 2026-09-22 las columnas se
+    # derivan de lo que el estudio declara (`aulas_avance_columnas_declaradas()`):
+    # el vocabulario sigue siendo la única fuente de los rótulos y de su orden,
+    # y lo que cambia es cuántos de ellos sostiene cada estudio. Un rótulo que
+    # no esté en la constante, o dos en orden distinto, siguen siendo un fallo.
+    expect_true(all(names(tabla) %in% AULAS_AVANCE_CABECERAS[[clave]]),
+                info = sprintf("«%s» trae un rótulo que no está en el vocabulario", clave))
+    expect_false(is.unsorted(match(names(tabla), AULAS_AVANCE_CABECERAS[[clave]]),
+                             strictly = TRUE),
+                 info = sprintf("las columnas de «%s» no van en el orden del vocabulario", clave))
   }
 })
 
@@ -103,6 +111,10 @@ test_that("la naturaleza de un rótulo se decide POR TABLA, no en una lista plan
   for (clave in names(AULAS_AVANCE_PROPORCIONES)) {
     universo <- if (identical(clave, "general")) {
       AULAS_AVANCE_FILAS_GENERAL
+    } else if (identical(clave, AULAS_COBERTURA_CLAVE)) {
+      # «Cobertura» es UNA cabecera para N tablas, así que no vive en
+      # `AULAS_AVANCE_CABECERAS` —ese mapa es 1:1— sino en la suya.
+      AULAS_COBERTURA_CABECERAS
     } else {
       AULAS_AVANCE_CABECERAS[[clave]]
     }
@@ -223,18 +235,34 @@ test_that("una cabecera larga hace crecer su fila: WRAP reparte, no estira", {
   expect_gte(corta, 30L)
 })
 
-test_that("la portada dice el corte y NADA más: la procedencia se fue con las notas", {
-  # Gonzalo, 2026-09-22: «también quitemos las notas didácticas, son ai slop
-  # para mí». La línea llevaba pegados «· datos de plataforma actualizados a
-  # las HH:MM» y «· escrito con N aulas con parte de campo»; los dos se van y no
-  # los sustituye nada. El día del corte SÍ se queda.
+test_that("la portada dice el corte y su HORA, sin una palabra más", {
+  # Dos dictados encadenados. 2026-09-22, notas didácticas: la línea llevaba
+  # pegados «· datos de plataforma actualizados a las HH:MM» y «· escrito con N
+  # aulas con parte de campo», y los dos se fueron. Al mirar la hoja publicada:
+  # «al título de la fecha de actualización también le falta la hora de
+  # actualización». Vuelve la HORA, sola.
   ind <- .calac_ind()
-  linea <- as.character(aulas_libro_hoja_avance(ind, fecha = as.Date("2026-09-08"))[[2]][[1]])
-  expect_identical(linea, "Al 08/09/2026")
-  # Y el renderer ya no acepta la marca de sincronización: el parámetro murió
-  # con la frase que lo consumía.
-  expect_false("actualizado" %in% names(formals(aulas_libro_hoja_avance)))
-  # Sigue sin consultar el reloj en su cuerpo.
+  linea <- function(actualizado = "") {
+    as.character(aulas_libro_hoja_avance(
+      ind, fecha = as.Date("2026-09-08"), actualizado = actualizado)[[2]][[1]])
+  }
+  # La marca cae el MISMO día del corte: basta la hora, en hora local de Lima
+  # (el ISO viene en UTC — 19:16Z son las 14:16 en Lima).
+  withr::with_envvar(c(TZ = "America/Lima"), {
+    expect_identical(linea("2026-09-08T19:16:22Z"), "Al 08/09/2026 \u00b7 14:16")
+    # Otro día: la hora sola no diría de qué día es, así que va con su fecha.
+    expect_identical(linea("2026-09-07T22:05:00Z"), "Al 08/09/2026 \u00b7 07/09/2026 17:05")
+  })
+  # Sin marca, la portada no se inventa una hora.
+  expect_identical(linea(""), "Al 08/09/2026")
+  # Y ni rastro de la prosa que acompañaba al sello.
+  for (frase in c("actualizados", "parte de campo", "escrito con")) {
+    expect_false(grepl(frase, linea("2026-09-08T19:16:22Z"), fixed = TRUE), info = frase)
+  }
+  # **La propiedad que sostiene el motor batch+hash**: el sello sale del ESTADO
+  # y no del reloj, así que dos generaciones del mismo estado escriben la misma
+  # celda y la pestaña no se reescribe.
+  expect_identical(linea("2026-09-08T19:16:22Z"), linea("2026-09-08T19:16:22Z"))
   cuerpo <- paste(deparse(body(aulas_libro_hoja_avance)), collapse = " ")
   expect_false(grepl("Sys.Date|Sys.time", cuerpo))
 })
@@ -396,7 +424,7 @@ test_that("«Efectivas esperadas» significa lo mismo en las dos tablas que la p
   # Sólo CH 1 está aplicada: 60, su propia meta. La tasa de la facultad es
   # 80/200 = 40 %, que sobre sus 100 elegibles daría 40: la otra definición.
   expect_equal(ind$rendimiento[["Efectivas esperadas"]], 60)
-  expect_equal(ind$rendimiento[["Efectivas obtenidas"]], 40)
+  expect_equal(ind$rendimiento[["Cuestionarios aplicados"]], 40)
   expect_equal(ind$rendimiento[["Diferencia de efectivas"]], -20)
   # Y el avance diario dice lo mismo para el mismo día.
   lunes <- ind$diario[ind$diario[["Día"]] == "2026-09-07", ]
@@ -416,7 +444,7 @@ test_that("una facultad donde aún no se ha ido calla, en vez de decir «0 de �
   )
   r <- aulas_libro_indicadores(plan, efectivas = c(`CH 9` = 0))$rendimiento
   expect_equal(r[["Aulas aplicadas"]], 0L)
-  for (col in c("Efectivas esperadas", "Efectivas obtenidas", "Diferencia de efectivas",
+  for (col in c("Efectivas esperadas", "Cuestionarios aplicados", "Diferencia de efectivas",
                 "Tasa de rendimiento de la facultad obtenida", "Diferencia de tasa")) {
     expect_true(is.na(r[[col]]), info = col)
   }

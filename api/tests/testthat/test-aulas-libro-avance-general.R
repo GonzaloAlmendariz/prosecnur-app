@@ -143,15 +143,23 @@ test_that("el avance es una tasa por celda, no el reparto de una sola", {
   expect_setequal(pct, c("Avance muestra", "Avance sobremuestra"))
 })
 
-test_that("sin sobremuestra en el diseño sus tres filas siguen, declaradas en blanco", {
-  # Antes se omitían («tres renglones de — son ruido»), y eso valía cuando el
-  # bloque era una lista de etiquetas. En una tabla de filas dictadas, una fila
-  # que aparece y desaparece según el estudio obliga a contar renglones para
-  # saber qué se está leyendo.
+test_that("sin sobremuestra en el diseño sus tres filas NO se escriben", {
+  # Dos dictados sobre la misma pregunta, y manda el segundo. Antes se omitían;
+  # luego se escribieron siempre en blanco, porque «una fila que aparece y
+  # desaparece según el estudio obliga a contar renglones». El 2026-09-22, con
+  # la hoja de CCSS delante: «todavía hay campos vacíos». Una raya PERMANENTE
+  # —no la de un dato que aún no llegó— es la regla del slop aplicada a la
+  # geometría, y el estudio que no declara sobremuestra no la tendrá nunca.
+  #
+  # Lo que sigue sin moverse es el ORDEN: las filas que quedan son un
+  # subconjunto en orden del dictado, no una lista reordenada.
   g <- .lamet_ind(meta_operativa = NULL)$general
-  expect_identical(as.character(g[[1L]]), AULAS_AVANCE_FILAS_GENERAL)
-  expect_true(all(is.na(.lamet_fila(g, "Sobremuestra"))))
-  expect_true(is.na(.lamet_fila(g, "Avance sobremuestra")[[1]]))
+  etiquetas <- as.character(g[[1L]])
+  expect_true(all(etiquetas %in% AULAS_AVANCE_FILAS_GENERAL))
+  expect_false(is.unsorted(match(etiquetas, AULAS_AVANCE_FILAS_GENERAL), strictly = TRUE))
+  for (fila in c("Sobremuestra", "Avance sobremuestra", "Faltantes para la sobremuestra")) {
+    expect_false(fila %in% etiquetas, info = fila)
+  }
   # Y el titular tampoco inventa el porcentaje de una meta que no existe.
   d <- .lamet_fixture(meta_operativa = NULL)
   fac <- prosecnurapp:::.calaf_avance_por_facultad(

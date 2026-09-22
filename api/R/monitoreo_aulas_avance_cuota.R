@@ -572,6 +572,20 @@
   list(
     schema = "monitoreo_aulas_avance_cuota_v1",
     fuente = vig$fuente,
+    # **La disposición de los casos, aula por aula.** El bloque ya publicaba las
+    # bolsas AGREGADAS —`sin_eje`, `duplicadas`, `sin_celda`…— y con ellas no se
+    # puede contestar «en qué aula se queda la efectividad». Sale de las MISMAS
+    # máscaras, sin volver a emparejar nada: ver `monitoreo_aulas_casos_por_aula.R`.
+    # Lo consumen «Rendimiento por facultad» y la hoja «Control de nivel».
+    casos = monitoreo_aulas_casos_por_aula(
+      eje_atr, atr, plan_df,
+      claves_del_diseno = vapply(filas, function(x) {
+        .monitoreo_scalar(x$faculty_key, "")
+      }, character(1))[
+        vapply(filas, function(x) {
+          !identical(.monitoreo_scalar(x$estado, ""), "fuera_del_diseno")
+        }, logical(1))
+      ]),
     vigencia = vig$vigencia,
     motivo = vig$motivo,
     # **De qué son estas celdas.** El bloque publica `facultades` con su

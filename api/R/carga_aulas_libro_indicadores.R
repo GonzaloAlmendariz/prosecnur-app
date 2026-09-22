@@ -144,11 +144,19 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
     unidades, efectivas = efectivas, partes = partes, extras = extras,
     # Las metas y el reparto por sexo llegan de los MISMOS insumos que la tabla
     # por facultad, para que las dos tablas no puedan decir dos metas distintas.
-    cuotas = cuotas, responses = responses, cfg = cfg)
+    cuotas = cuotas, responses = responses, cfg = cfg,
+    # Y la fuga del mismo bloque: sin ella la tabla mediría contra lo recogido
+    # en bruto, que es el «+24 en verde» que Gonzalo cazó en la hoja publicada.
+    avance_cuota = avance_cuota)
   aplicadores <- .calaa_produccion_por_aplicador(
     unidades, efectivas = efectivas, partes = partes, asignados = asignados)
+  # **El avance diario cuenta ENTREVISTAS EFECTIVAS.** La máscara sale del mismo
+  # reparto de bolsas que alimenta el rendimiento (`monitoreo_aulas_casos_por_aula.R`),
+  # así que las dos tablas de la hoja no pueden contradecirse — que es lo que
+  # pasaba: −12 arriba y +21 en verde abajo.
   diario <- .calad_avance_diario(
-    unidades, responses = responses, validas = validas, cuotas = cuotas, cfg = cfg)
+    unidades, responses = responses, validas = validas, cuotas = cuotas, cfg = cfg,
+    efectivas_resp = attr((avance_cuota %||% list())$casos, "efectiva", exact = TRUE))
 
   # Las tres cifras de AULAS que preside «Avance general». No se derivan de la
   # cuota —la tabla por facultad sólo conoce las aplicadas— así que se cuentan
@@ -169,6 +177,10 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 
   list(meta = meta, diario = diario, aplicadores = aplicadores,
        facultades = facultades, rendimiento = rendimiento,
+       # **La cobertura, que el motor ya calculaba y nadie pintaba.** Sale del
+       # mismo bloque de cuota que las cifras del eje, así que no hay un segundo
+       # cruce: ver `carga_aulas_libro_avance_cobertura.R`.
+       cobertura = aulas_libro_cobertura((avance_cuota %||% list())$composicion),
        general = .calag_tabla_general(facultades, aulas_conteo))
 }
 
@@ -208,6 +220,40 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   if (is.na(marca)) marca <- suppressWarnings(as.POSIXct(x, tz = "UTC", format = "%Y-%m-%dT%H:%MZ"))
   if (is.na(marca)) return(x)
   format(marca, "%d/%m/%Y %H:%M", tz = tz)
+}
+
+# El SELLO del corte: la hora local de la última sincronización pegada a la
+# fecha, con el mismo separador en las dos hojas que llevan portada («Avance de
+# campo» y «Avance de agendación»). Gonzalo, 2026-09-22: «al título de la fecha
+# de actualización también le falta la hora de actualización».
+#
+# Es sólo el sello. La línea llevaba además «datos de plataforma actualizados» y
+# «escrito con N aulas con parte de campo», y las dos se fueron con las notas
+# didácticas; lo que queda es lo que permite saber si las cifras son de ahora o
+# de hace tres horas.
+#
+# **Sale del ESTADO (`synced_at`) y nunca del reloj**, y eso es lo que sostiene
+# el motor batch+hash: dos generaciones del mismo estado escriben la misma
+# celda, el hash no cambia y la pestaña no se reescribe —con ella se irían el
+# formato y las reglas de color de una hoja que veintidós personas tienen
+# abierta—. Un `Sys.time()` aquí la reescribiría en cada publicación.
+#
+# La hora SOLA sólo se entiende si cae en el día del corte. Cuando no —campo
+# parado el fin de semana, o una agenda que ya llega al viernes que viene— se
+# escribe la fecha entera: «· 11:52» encima de un corte de otro día no dice de
+# qué día es esa hora.
+.cai_sello_corte <- function(corte, actualizado, fecha = NULL, tz = Sys.timezone()) {
+  corte <- as.character(corte %||% "")[1]
+  marca <- .cai_marca_local(.cai_txt(actualizado), tz = tz)
+  # Lo que no es una marca ISO vuelve tal cual de `.cai_marca_local()`: sin
+  # sello legible la portada no se inventa una hora.
+  if (!grepl("^[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}$", marca)) return(corte)
+  # `as.Date()` sobre un texto que no parsea LANZA, no avisa, y aquí llegan
+  # cortes escritos de varias formas —«11/09» de la agendación no trae año—.
+  dia <- tryCatch(suppressWarnings(as.Date(fecha[1])), error = function(e) as.Date(NA))
+  mismo_dia <- length(dia) == 1L && !is.na(dia) &&
+    identical(substr(marca, 1, 10), format(dia, "%d/%m/%Y"))
+  paste0(corte, " · ", if (mismo_dia) substr(marca, 12, 16) else marca)
 }
 
 # S2 (loop estética, 2026-09-07): una NOTA es texto corrido en la columna A.
@@ -473,8 +519,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # llegar a la meta lo decide el VOCABULARIO por el nombre del rótulo
   # (`carga_aulas_libro_avance_columnas.R`), que es el mismo que lee el Sheets.
   escribir_tabla <- function(clave, tabla, nota_arriba = NULL,
-                             vacio = NULL, con_total = FALSE) {
-    titulo_bloque <- AULAS_AVANCE_TITULOS[[clave]]
+                             vacio = NULL, con_total = FALSE, titulo = NULL) {
+    # `titulo` sólo lo usa «Cobertura», que tiene una tabla por dimensión y por
+    # tanto un título por tabla; las cinco dictadas lo sacan del vocabulario.
+    titulo_bloque <- titulo %||% aulas_avance_titulos_eje(clave, eje)
     openxlsx::writeData(wb, hoja, titulo_bloque, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_hoja), gridExpand = TRUE)
     fila <<- fila + 1L
@@ -524,9 +572,8 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     # en los dos sitios ya mordió una vez (2026-09-07, con la fecha de corte y
     # el avance diario ausentes sólo en el Sheets).
     para_escribir <- tabla
-    del_eje <- aulas_avance_cabeceras_eje(clave, eje)
-    if (length(del_eje) == n_col && !identical(as.character(del_eje[[1]]), nombres[[1]]) &&
-        identical(as.character(del_eje[-1]), as.character(nombres[-1]))) {
+    del_eje <- aulas_avance_cabecera_con_eje(nombres, clave, eje)
+    if (length(del_eje) == n_col && !identical(as.character(del_eje[[1]]), nombres[[1]])) {
       names(para_escribir)[[1]] <- as.character(del_eje[[1]])
     }
     openxlsx::writeData(wb, hoja, para_escribir, startCol = 1, startRow = cabecera_en)
@@ -546,7 +593,11 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
     es_pct <- vapply(nombres, .calac_es_proporcion, logical(1), tabla = clave)
     # La primera columna de una tabla traspuesta («Avance general») son rótulos,
     # y su naturaleza se decide por FILA. En las demás, la primera es texto.
-    traspuesta <- identical(nombres, AULAS_AVANCE_CABECERAS$general)
+    # **Por la CLAVE y no por su cabecera literal**: «Avance general» pierde sus
+    # columnas de sexo cuando el estudio no lo declara, y comparar contra la
+    # constante entera la habría dejado de reconocer como traspuesta — sus diez
+    # filas se habrían formateado como columnas.
+    traspuesta <- identical(clave, "general")
     cols_datos <- seq_len(n_col)[-1L]
     if (traspuesta) {
       pct_fila <- vapply(as.character(tabla[[1L]]), .calac_es_proporcion,
@@ -655,6 +706,13 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Avance de campo",
   # el estudio cierra.
   if (is.data.frame(ind$facultades) && nrow(ind$facultades)) {
     escribir_tabla("facultad", ind$facultades, con_total = TRUE)
+  }
+
+  # --- 2b. COBERTURA ----------------------------------------------------------
+  # Va pegada al bloque del eje y antes del rendimiento: describe a quién se
+  # está alcanzando, que es la pregunta que sigue a «cuánto llevas».
+  for (cob in (ind$cobertura %||% list())) {
+    escribir_tabla(AULAS_COBERTURA_CLAVE, cob$tabla, titulo = cob$titulo)
   }
 
   # --- 3. RENDIMIENTO POR FACULTAD --------------------------------------------

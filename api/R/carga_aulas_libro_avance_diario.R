@@ -69,7 +69,20 @@
 #'   `NULL` si no hay respuestas fechadas con que armar la serie.
 #' @keywords internal
 .calad_avance_diario <- function(unidades, responses = NULL, validas = NULL,
-                                 cuotas = NULL, cfg = list()) {
+                                 cuotas = NULL, cfg = list(),
+                                 # **Qué respuestas son ENTREVISTAS EFECTIVAS**,
+                                 # por fila de `responses`. Con el eje atribuido
+                                 # a la persona, una válida recogida en un aula
+                                 # aplicada puede no serlo —quien contestó no
+                                 # pertenece a la población medida, o su código
+                                 # no se verifica—, y esta tabla las contaba
+                                 # todas: publicaba «127 efectivas · +21» en
+                                 # verde cuando eran 94 y la diferencia −12,
+                                 # contradiciendo a «Rendimiento» dos tablas más
+                                 # arriba en la misma hoja. NULL = el criterio de
+                                 # siempre, y ningún estudio con eje en el aula
+                                 # se mueve.
+                                 efectivas_resp = NULL) {
   unidades <- unidades %||% list()
   if (!length(unidades) || !is.data.frame(responses) || !nrow(responses)) return(NULL)
 
@@ -101,6 +114,11 @@
     .monitoreo_aulas_valid_response(responses, cfg)
   }
 
+  # La validez del criterio del estudio, acotada a lo que además es una
+  # entrevista efectiva de su celda cuando el estudio lo puede distinguir.
+  if (!is.null(efectivas_resp) && length(efectivas_resp) == nrow(responses)) {
+    valida <- valida & (efectivas_resp %in% TRUE)
+  }
   vivas <- valida & nzchar(dia_resp) & nzchar(trimws(as.character(aula)))
   if (!any(vivas)) return(NULL)
   dias <- sort(unique(dia_resp[vivas]))

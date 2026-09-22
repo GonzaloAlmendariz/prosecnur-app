@@ -95,6 +95,13 @@
 #' @keywords internal
 .calar_rendimiento_por_facultad <- function(unidades, efectivas = NULL, partes = list(),
                                             extras = list(), cuotas = NULL,
+                                            # El bloque de avance contra la
+                                            # cuota, sólo por su `casos`: cómo
+                                            # se disponen los cuestionarios
+                                            # aplicados en cada aula. NULL, o un
+                                            # eje por aula, dejan esta tabla
+                                            # exactamente como estaba.
+                                            avance_cuota = NULL,
                                             responses = NULL, cfg = list()) {
   unidades <- unidades %||% list()
   if (!length(unidades)) return(NULL)
@@ -136,6 +143,20 @@
     error = function(e) NULL
   )
   con_reparto <- length(sexo_aula) > 0L
+  # **La misma declaración que recorta la tabla del eje recorta ésta.** Sus
+  # columnas de meta salen de `design_targets$facultades` por clave de facultad;
+  # con el eje atribuido a la persona esas celdas son niveles y no casan nunca.
+  .calar_decl <- .calacd_declaracion(
+    cuotas,
+    por_aula = identical(
+      .monitoreo_scalar(monitoreo_aulas_eje(cfg)[["atribucion"]], "aula"), "aula"),
+    con_sexo_observado = con_reparto)
+  .calar_columnas <- aulas_avance_columnas_declaradas("rendimiento", .calar_decl)
+  # La disposición de los casos por aula, del MISMO bloque que cuenta el
+  # numerador del eje. Sólo se consume cuando la declaración dice que existe:
+  # con el eje en el aula queda en NULL y todo lo de abajo cae al camino de
+  # siempre, sin mover un número.
+  .calar_casos <- if (isTRUE(.calar_decl$casos)) (avance_cuota %||% list())$casos else NULL
   sexo_fila <- lapply(cod, function(k) {
     v <- if (con_reparto) (sexo_aula[[k]] %||% NULL) else NULL
     if (!length(v)) return(c(M = if (con_reparto) 0 else NA_real_,
@@ -178,7 +199,37 @@
     # los elegibles que pone. Constante a lo largo del operativo, y la misma
     # cifra que citan las otras dos tablas.
     esperada <- .calar_tasa_esperada(esperadas[idx], eleg[idx])
-    obtenida <- if (is.finite(ef_apl) && eleg_apl > 0) ef_apl / eleg_apl else NA_real_
+    # **LAS ENTREVISTAS EFECTIVAS, y no todo lo aplicado.** Con el eje por
+    # persona un cuestionario aplicado en un aula puede no ser una entrevista
+    # efectiva de ninguna celda —quien contestó no pertenece a la población
+    # medida, o su código no se verifica contra el padrón— y medir el
+    # rendimiento contra el bruto publicaba «+24 · 79,2 %» en verde sobre un
+    # estudio que iba por debajo. La diferencia y la tasa van contra las
+    # EFECTIVAS; sin disposición declarada las efectivas SON lo aplicado y no se
+    # mueve un número.
+    con_casos <- is.data.frame(.calar_casos) && nrow(.calar_casos) > 0L
+    disp <- if (con_casos) monitoreo_aulas_casos_total(.calar_casos, cod[aplicadas]) else NULL
+    efectivas <- if (con_casos && is.finite(ef_apl)) {
+      min(as.numeric(disp$efectivas), ef_apl)
+    } else ef_apl
+    # **Las tres NUNCA bajo un rótulo común, y cada una con su definición pura**:
+    # fuera del universo no es pérdida, no resuelto se recupera preguntando, y un
+    # duplicado es una persona del universo que contestó dos veces. Meter el
+    # duplicado en «no resueltos» —como hacía la primera versión— lo mandaba a
+    # la bolsa de lo que se arregla revisando datos, que no es lo que es.
+    #
+    # Con las tres declaradas la fila cuadra consigo misma: aplicados =
+    # efectivas + fuera del universo + no resueltos + duplicados. `sin_clasificar`
+    # no se publica porque vale 0 por contrato (`monitoreo_aulas_casos_por_aula.R`)
+    # y su test lo fija; el día que no lo valiera, esta fila dejaría de cuadrar a
+    # la vista, que es justo la señal que se quiere.
+    fuera_universo <- if (con_casos) as.numeric(disp$fuera_universo) else NA_real_
+    no_resueltos <- if (con_casos) {
+      as.numeric(disp$sin_codigo + disp$no_verificable)
+    } else NA_real_
+    duplicados <- if (con_casos) as.numeric(disp$duplicados) else NA_real_
+    # La tasa de efectividad del diseño: efectivas entre ELEGIBLES.
+    obtenida <- if (is.finite(efectivas) && eleg_apl > 0) efectivas / eleg_apl else NA_real_
     # **Lo mismo en ENCUESTAS: la suma de las metas de las aulas ya aplicadas.**
     #
     # La primera versión lo calculaba como `tasa de la facultad × elegibles de
@@ -227,8 +278,13 @@
       # como si la facultad hubiera ido y no hubiera sacado nada, y lo que pasa
       # es que todavía no ha ido: eso ya lo dice «Aulas aplicadas 0».
       esp_ent,
+      # La cadena entera, y la diferencia contra las ENTREVISTAS EFECTIVAS.
       if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl else NA_real_,
-      if (is.finite(esp_ahora) && is.finite(ef_apl)) ef_apl - round(esp_ahora) else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(efectivas)) efectivas else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(fuera_universo)) fuera_universo else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(no_resueltos)) no_resueltos else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(duplicados)) duplicados else NA_real_,
+      if (is.finite(esp_ahora) && is.finite(efectivas)) efectivas - round(esp_ahora) else NA_real_,
       meta$M,
       esp_sx$M,
       if (is.finite(esp_ahora)) obt_sx[["M"]] else NA_real_,
@@ -255,7 +311,7 @@
         length(out), length(AULAS_AVANCE_CABECERAS$rendimiento)))
     }
     names(out) <- AULAS_AVANCE_CABECERAS$rendimiento
-    out
+    out[, .calar_columnas, drop = FALSE]
   })
   out <- do.call(rbind, filas)
   # Por la brecha de tasa y de peor a mejor: la facultad que más rinde por
