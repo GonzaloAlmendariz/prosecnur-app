@@ -4989,7 +4989,7 @@ mount_monitoreo <- function(pr) {
         config_reparto = aulas_cfg,
         partes = aulas_cfg[["partes_campo"]] %||% list(),
         # El veredicto del cruce con el otro estudio, con `[[` para que sus
-        # cuatro atributos lleguen enteros: la columna los usa.
+        # seis atributos lleguen enteros: la columna usa `etiqueta` y `fechas`.
         traslape = s[["monitoreo_aulas_daa_traslape"]]
       )
       cfg <- monitoreo_aulas_distribucion_destino_set(cfg, out$spreadsheet_id,

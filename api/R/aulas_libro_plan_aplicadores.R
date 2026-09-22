@@ -307,7 +307,23 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
   texto <- paste0(toupper(substr(texto, 1L, 1L)), tolower(substr(texto, 2L, nchar(texto))))
   fecha <- busca(attr(traslape, "fechas", exact = TRUE), codigo)
   cola <- paste(c(etiqueta, fecha)[nzchar(c(etiqueta, fecha))], collapse = " ")
-  if (nzchar(cola)) paste0(texto, " \u00b7 ", cola) else texto
+  nota <- if (nzchar(cola)) paste0(texto, " \u00b7 ", cola) else texto
+  # **El traslape de DOCENTE no es el de AULA, y la fecha se lee distinto.**
+  #
+  # Aviso de Gonzalo por la sesión de HSVG2026, 2026-09-22: «si a estos tres les
+  # pones "Aula ya aplicada", tu aplicador va a leer que ese salón ya fue
+  # encuestado y no lo es: son alumnos que nunca han visto nuestra encuesta».
+  #
+  # El veredicto ya los separa —el proyecto trae las dos categorías— pero la
+  # FECHA al lado se puede leer como el día en que se aplicó ESA aula. En el
+  # traslape de docente esa fecha es el día en que el otro estudio estuvo con
+  # él en OTRO curso, o sea con otros alumnos. Se dice, y así la marca queda
+  # como lo que es: un aviso de trato con el docente, no una prohibición de
+  # entrar.
+  if (grepl("DOCENTE", v, fixed = TRUE) && nzchar(fecha)) {
+    nota <- paste0(nota, " (otro curso)")
+  }
+  nota
 }
 
 #' Las filas de la hoja que ven los aplicadores.
@@ -803,7 +819,7 @@ aulas_libro_plan_aplicadores_formato_requests <- function(sheet_id, rows, roster
                  list(desde = 11L, hasta = 12L, px = 240L),
                  # TRASLAPE: cabe «Aula ya aplicada · HSVG 17/09» entera. Es una
                  # advertencia y cortarla a media frase la volvería un adorno.
-                 list(desde = 12L, hasta = 13L, px = 230L))) {
+                 list(desde = 12L, hasta = 13L, px = 280L))) {
     poner(.mafs_dim_request(sheet_id, a$desde, a$hasta, a$px))
   }
   requests
