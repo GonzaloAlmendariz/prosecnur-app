@@ -276,3 +276,68 @@ test_that("`elegible` acota tambien el detalle, y sin desalinear la fecha", {
   expect_identical(v$alumnos[[1]]$fecha, "2026-09-21")
   expect_identical(v$alumnos[[1]]$curso_horario, "CH 26")
 })
+
+# =============================================================================
+# Un rechazo no es un fallo del cruce
+# =============================================================================
+#
+# Gonzalo, 2026-09-22: «la CH 18 creo que no es identificable porque fue un
+# rechazo, eso la tabla de acreditación ya lo sabe mostrar bien». Acreditación
+# publica DOS columnas —el estado de la RESPUESTA y el del CRUCE— porque son dos
+# preguntas: qué pasó con la encuesta, y si esa encuesta se pudo atar a alguien.
+#
+# Medido el mismo día sobre CCSS Perfil 2026-II: 3 respuestas con
+# `acepta_participar = 2` y NINGUNA con código —el formulario no se lo pide a
+# quien no acepta—. Salían como «no declararon su código», que manda a revisar
+# el formulario cuando no hay nada que revisar.
+
+test_that("quien rechazo participar no sale como que no declaro su codigo", {
+  # La cuarta y la quinta fila del fixture no resuelven; sólo la quinta rechazó.
+  consiente <- c("acepta", "acepta", "acepta", "acepta", "rechaza", "acepta", "acepta")
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(), consentimiento = consiente,
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  motivos <- stats::setNames(
+    vapply(v$sin_cruce, function(m) m$respuestas, integer(1)),
+    vapply(v$sin_cruce, function(m) m$motivo, character(1)))
+  expect_identical(unname(motivos[["rechazo_participar"]]), 1L)
+  # Y NO se cuenta además como «sin código»: los motivos sumarían más que las
+  # respuestas sin cruzar.
+  expect_false("sin_codigo_declarado" %in% names(motivos))
+  expect_identical(sum(motivos), v$total$sin_cruce)
+})
+
+test_that("el estado de la respuesta viaja aparte del estado del cruce", {
+  consiente <- c("acepta", "acepta", "acepta", "acepta", "rechaza", "acepta", "acepta")
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(), consentimiento = consiente,
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  rechazo <- Filter(function(a) identical(a$respuesta, "rechaza"), v$alumnos)
+  expect_identical(length(rechazo), 1L)
+  expect_identical(rechazo[[1]]$estado, "sin_identificar")
+  expect_identical(rechazo[[1]]$motivo_etiqueta, "Rechazó participar")
+  # Las que sí aceptaron lo dicen, y su cruce no cambia por ello.
+  aceptadas <- Filter(function(a) identical(a$respuesta, "acepta"), v$alumnos)
+  expect_identical(length(aceptadas), 6L)
+})
+
+test_that("sin columna de consentimiento NO se supone que aceptaron", {
+  # Suponerlo pintaría de verde una pregunta que nadie contestó.
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(),
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  expect_true(all(vapply(v$alumnos, function(a) identical(a$respuesta, ""), logical(1))))
+  # Y los motivos siguen siendo los del cruce, sin inventar rechazos.
+  expect_false("rechazo_participar" %in% vapply(v$sin_cruce, function(m) m$motivo, character(1)))
+})
+
+test_that("un rechazo que SI resolvio su codigo conserva su cruce", {
+  # El rechazo explica por qué no hay código; no borra un cruce que sí ocurrió.
+  consiente <- c("rechaza", "acepta", "acepta", "acepta", "acepta", "acepta", "acepta")
+  v <- monitoreo_aulas_cruce_por_carrera(
+    .mcc_resueltas(), cfg = .mcc_cfg(), consentimiento = consiente,
+    responses = .mcc_respuestas(), aulas = .mcc_aulas())
+  fila <- Filter(function(a) identical(a$respuesta, "rechaza"), v$alumnos)[[1]]
+  expect_identical(fila$estado, "identificado")
+  expect_identical(fila$motivo, "")
+})

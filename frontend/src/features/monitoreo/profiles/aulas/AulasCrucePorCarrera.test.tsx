@@ -50,7 +50,7 @@ describe("cruce de alumnos por carrera", () => {
 
   it("nombra cada motivo de no-cruce y dice dónde mirar primero", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={BLOQUE} />));
-    expect(t).toContain("Por qué 9 no se pudieron identificar");
+    expect(t).toContain("9 no se pudieron identificar");
     expect(t).toContain("No declararon su código");
     expect(t).toContain("Su código no está en el padrón");
     // La causa más cara es del estudio, no de los alumnos: se dice.
@@ -77,7 +77,8 @@ describe("cruce de alumnos por carrera", () => {
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={una} />));
     expect(t).toContain("1 respuesta sin identificar");
     expect(t).not.toContain("1 respuestas sin identificar");
-    expect(t).toContain("Por qué una no se pudo identificar");
+    expect(t).toContain("1 no se pudo identificar");
+    expect(t).not.toContain("1 no se pudieron identificar");
   });
 
   it("contiene su propio vacío cuando todavía no hay respuestas", () => {
@@ -184,6 +185,36 @@ describe("el detalle: quién respondió, cuándo y desde dónde", () => {
     const cortado: BloqueDeCruce = { ...conDetalle, truncado: true, tope: 3 };
     const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={cortado} />));
     expect(t).toContain("se enseñan las 3 últimas de 72");
+  });
+
+  it("un rechazo se lee como rechazo, no como que no declaro su codigo", () => {
+    // Gonzalo, sobre CH 18: «no es identificable porque fue un rechazo, eso la
+    // tabla de acreditación ya lo sabe mostrar bien». Son dos preguntas y van
+    // en dos columnas: qué pasó con la encuesta, y si se pudo atar a alguien.
+    const conRechazo: BloqueDeCruce = {
+      ...conDetalle,
+      alumnos: [{
+        codigo: "", carrera: "", nivel: "", sexo: "",
+        fecha: "2026-09-22", hora: "09:56", curso_horario: "CH 18",
+        respuesta: "rechaza", estado: "sin_identificar",
+        motivo: "rechazo_participar", motivo_etiqueta: "Rechazó participar",
+      }],
+    };
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conRechazo} />));
+    expect(t).toContain("Rechazó participar");
+    expect(t).not.toContain("No declararon su código · CH 18");
+  });
+
+  it("«Aceptó» se dice en voz baja y sin columna de consentimiento va un guion", () => {
+    // Suponer que aceptaron pintaría de verde lo que nadie contestó.
+    const t = texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conDetalle} />));
+    expect(t).toContain("—");
+    const conConsent: BloqueDeCruce = {
+      ...conDetalle,
+      alumnos: [{ ...conDetalle.alumnos![0], respuesta: "acepta" }],
+    };
+    expect(texto(renderToStaticMarkup(<AulasCrucePorCarrera bloque={conConsent} />)))
+      .toContain("Aceptó");
   });
 
   it("sin detalle el panel sigue entero: es un añadido, no un requisito", () => {

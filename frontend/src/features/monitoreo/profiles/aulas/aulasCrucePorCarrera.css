@@ -77,10 +77,43 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
 }
-.aulas-cxc-sincruce-rotulo {
+.aulas-cxc-motivos { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.aulas-cxc-motivos > li {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+}
+.aulas-cxc-pie { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-faint); }
+
+/* Los plegables, con la misma forma que los de `AulasSenalesPorAula`: se leen
+   unos paneles más allá y darles dos formas distintas obligaría a aprenderlas
+   dos veces. */
+.aulas-cxc-grupo > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+  padding: 2px 0;
+}
+.aulas-cxc-grupo > summary strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.aulas-cxc-grupo > summary em { font-style: normal; color: var(--pulso-text-faint); }
+.aulas-cxc-grupo[open] > summary { margin-bottom: 6px; }
+
+.aulas-cxc-rotulo {
   font-size: 12px;
   font-weight: var(--pulso-weight-heavy, 600);
   color: var(--pulso-text);
+}
+
+/* El desglose de los que no cruzaron. Caja propia y no otra fila de la lista:
+   no son una carrera más, son lo que hay que arreglar. */
+.aulas-cxc-sincruce[open] {
+  padding: 8px 12px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
 }
 .aulas-cxc-motivos { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
 .aulas-cxc-motivos > li {
@@ -93,10 +126,9 @@
 }
 .aulas-cxc-pie { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-faint); }
 
-/* El detalle: una fila por alumno, con la misma rejilla de cabecera que la
-   lista de carreras para que las dos se lean como la misma tabla partida en
-   agregado y detalle. */
-.aulas-cxc-detalle { display: grid; gap: 6px; }
+/* --- el detalle: fila por alumno ------------------------------------------ */
+
+.aulas-cxc-detalle { display: grid; gap: 8px; min-width: 0; }
 .aulas-cxc-detalle-head {
   display: flex;
   flex-wrap: wrap;
@@ -106,23 +138,143 @@
 }
 .aulas-cxc-detalle-head .aulas-cxc-pie { margin: 0; }
 
-.aulas-cxc-alumnos { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.aulas-cxc-alumnos > li {
-  display: grid;
-  grid-template-columns: 6rem minmax(9rem, 1fr) 10rem 6rem minmax(9rem, 14rem);
-  align-items: baseline;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--pulso-text-soft);
-  padding: 2px 0;
+.aulas-cxc-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
 }
-.aulas-cxc-alumnos > li:not(.aulas-cxc-cab):nth-child(even) { background: var(--pulso-surface-2); }
+.aulas-cxc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.aulas-cxc-codigo { font-variant-numeric: tabular-nums; color: var(--pulso-text); }
-.aulas-cxc-quien { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; }
-.aulas-cxc-nivel { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); }
-.aulas-cxc-cuando { font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
-.aulas-cxc-ch { font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
+/* El chip lleva su cuenta dentro; el tono sólo se enciende cuando está puesto,
+   para que la fila de filtros no compita con la tabla. */
+.aulas-cxc-filtro {
+  font: inherit;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+.aulas-cxc-filtro em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint);
+}
+.aulas-cxc-filtro[aria-pressed="true"] {
+  border-color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+.aulas-cxc-filtro[aria-pressed="true"] em { color: var(--pulso-text); }
+.aulas-cxc-filtro[aria-pressed="true"][data-tono="ok"] { border-color: var(--pulso-success-fg); color: var(--pulso-success-fg); }
+.aulas-cxc-filtro[aria-pressed="true"][data-tono="aviso"] { border-color: var(--pulso-warn-fg); color: var(--pulso-warn-fg); }
+.aulas-cxc-filtro[aria-pressed="true"][data-tono="falla"] { border-color: var(--pulso-danger-fg); color: var(--pulso-danger-fg); }
+.aulas-cxc-filtro:disabled { cursor: default; opacity: 0.5; }
+
+.aulas-cxc-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-cxc-select select {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  max-width: 14rem;
+}
+
+.aulas-cxc-buscador {
+  min-width: 0;
+  flex: 1 1 16rem;
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  padding: 4px 7px;
+}
+.aulas-cxc-buscador:focus-within {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 42%, var(--pulso-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+}
+.aulas-cxc-buscador input {
+  font: inherit;
+  font-size: 12.5px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  outline: none;
+}
+.aulas-cxc-buscador input::-webkit-search-cancel-button { display: none; }
+.aulas-cxc-buscador > button {
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  padding: 0;
+  display: inline-flex;
+  cursor: pointer;
+}
+.aulas-cxc-cuenta { margin: 0; }
+
+/* **Altura acotada con scroll propio.** Sin tope, 400 filas empujan el resto
+   de la pestaña fuera de la pantalla y el panel deja de tener marco (C2). El
+   `min()` con `100vh` es el de los vecinos: en pantallas bajas manda el
+   viewport y no una constante. */
+.aulas-cxc-scroll {
+  max-height: min(460px, calc(100vh - 430px));
+  min-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+}
+@media (max-height: 760px) {
+  .aulas-cxc-scroll { max-height: min(300px, calc(100vh - 330px)); }
+}
+
+.aulas-cxc-tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+
+/* Pegajosa contra el contenedor que scrollea, que es `.aulas-cxc-scroll`: con
+   400 filas, perder los rótulos al bajar deja cinco columnas sin nombre. */
+.aulas-cxc-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  border-bottom: 1px solid var(--pulso-border);
+  padding: 7px 10px 8px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.aulas-cxc-tabla tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 45%, transparent);
+  color: var(--pulso-text-soft);
+  vertical-align: baseline;
+}
+.aulas-cxc-tabla tbody tr:nth-child(even) > td { background: var(--pulso-surface-2); }
+.aulas-cxc-tabla tbody tr:last-child > td { border-bottom: 0; }
+
+.aulas-cxc-codigo { font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }
+.aulas-cxc-nivel { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); margin-left: 6px; }
+.aulas-cxc-cuando { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.aulas-cxc-ch { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .aulas-cxc-motivo-fila { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); }
 
 /* Tres tonos para tres estados, en el orden en que se leen sin leyenda: verde
@@ -133,9 +285,13 @@
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
+  white-space: nowrap;
   border: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
 }
+/* El neutro es el de «Aceptó»: existe, se ve, y no compite con el 3 % que
+   dice algo. */
+.aulas-cxc-pill[data-tono="neutro"] { color: var(--pulso-text-faint); border-color: var(--pulso-border); }
 .aulas-cxc-pill[data-tono="ok"] { color: var(--pulso-success-fg); border-color: var(--pulso-success-fg); }
 .aulas-cxc-pill[data-tono="aviso"] { color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
 .aulas-cxc-pill[data-tono="falla"] { color: var(--pulso-danger-fg); border-color: var(--pulso-danger-fg); }

@@ -1,5 +1,8 @@
+import { useMemo, useState } from "react";
+
 import { fmt } from "./kpisDeAulas";
 import { claseDeFacultad } from "./tonoDeFacultad";
+import { Search, XCircle } from "../../../../vendor/lucide-react";
 
 import "./aulasCrucePorCarrera.css";
 
@@ -9,13 +12,15 @@ import "./aulasCrucePorCarrera.css";
  * Gonzalo, 2026-09-22: «en validación tiene que estar el cruce por alumnos por
  * código PUCP, de la misma forma que en acreditación tenemos la lista de
  * actores y su estatus, pero no por actores —porque todos son estudiantes—
- * sino por la carrera a la que pertenecen».
+ * sino por la carrera a la que pertenecen». Después, mirándolo: «esto debe ser
+ * más específico, ¿has revisado cómo lo hace acreditación? Es bastante
+ * específico con hora y todo» · «a la tabla le falta límite de altura con
+ * scroll, buen formato, deglebables, filtros selectores».
  *
  * De este cruce depende todo el avance de un estudio cuyo eje se resuelve por
- * persona: si un código no resuelve, su respuesta no cae en ningún grupo. Hasta
- * aquí sólo se publicaba el total —«1 sin nivel»— sin decir de quiénes.
+ * persona: si un código no resuelve, su respuesta no cae en ningún grupo.
  *
- * Tres cosas que esta superficie tiene que DECIR, no sólo listar:
+ * Cuatro cosas que esta superficie tiene que DECIR, no sólo listar:
  *
  * 1. **Son personas, no respuestas.** La segunda respuesta de alguien no es
  *    alguien más: se cuenta aparte y se enseña en la carrera donde ocurrió.
@@ -24,6 +29,13 @@ import "./aulasCrucePorCarrera.css";
  *    respuesta que no cruza NO tiene carrera y va a su propio bloque.
  * 3. **Cada motivo de no-cruce se arregla en un sitio distinto**, así que el
  *    número solo no sirve para actuar: se nombran.
+ * 4. **Con el filtro puesto, la cifra que manda es la del filtro.** Un conteo
+ *    total encima de una tabla recortada es la forma más barata de leer mal.
+ *
+ * La gramática —buscador con contador, plegables `<details>`, cabecera pegajosa
+ * y zebra— es la de `AulasSenalesPorAula`, que resuelve la misma clase de
+ * lectura unos paneles más allá. El parecido es deliberado: separarlas sería
+ * empezar a tener dos tablas distintas para la misma pregunta.
  */
 
 export type FilaDeCarrera = {
@@ -45,6 +57,7 @@ export type FilaDeAlumno = {
   fecha: string;
   hora: string;
   curso_horario: string;
+  respuesta?: string;
   estado: string;
   motivo?: string;
   motivo_etiqueta?: string;
@@ -71,10 +84,27 @@ export type BloqueDeCruce = {
  * identificar. Meterlas en la misma bolsa mandaría a revisar el código de quien
  * lo escribió bien.
  */
-const ESTADOS: Record<string, { texto: string; tono: string }> = {
-  identificado: { texto: "Identificado", tono: "ok" },
-  repetida: { texto: "Ya había respondido", tono: "aviso" },
-  sin_identificar: { texto: "Sin identificar", tono: "falla" },
+const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
+  { clave: "identificado", texto: "Identificado", tono: "ok" },
+  { clave: "repetida", texto: "Ya había respondido", tono: "aviso" },
+  { clave: "sin_identificar", texto: "Sin identificar", tono: "falla" },
+];
+
+/**
+ * **El estado de la RESPUESTA, aparte del estado del cruce.** Son dos preguntas
+ * —qué pasó con la encuesta, y si se pudo atar a alguien— y acreditación las
+ * publica en dos columnas por eso mismo. Gonzalo, sobre CH 18: «no es
+ * identificable porque fue un rechazo, eso la tabla de acreditación ya lo sabe
+ * mostrar bien».
+ *
+ * «Aceptó» va en voz baja: es el 97 % de las filas y gritarlo taparía al 3 %
+ * que dice algo. Vacío se pinta como guión: el estudio no tiene columna de
+ * consentimiento y suponer que aceptaron pintaría de verde lo que nadie
+ * contestó.
+ */
+const RESPUESTAS: Record<string, { texto: string; tono: string }> = {
+  acepta: { texto: "Aceptó", tono: "neutro" },
+  rechaza: { texto: "Rechazó participar", tono: "falla" },
 };
 
 const numero = (v: unknown) => {
@@ -82,7 +112,34 @@ const numero = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** Sin acentos y en minúscula: se teclea «economia» y sale «ECONOMÍA». */
+const llave = (v: unknown) =>
+  String(v ?? "").toLocaleLowerCase("es").normalize("NFD").replace(/[̀-ͯ]/g, "");
+
 export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null | undefined }) {
+  const [estado, setEstado] = useState<string>("");
+  const [carreraEnFoco, setCarreraEnFoco] = useState<string>("");
+  const [busca, setBusca] = useState<string>("");
+
+  const alumnos = useMemo(() => bloque?.alumnos ?? [], [bloque]);
+
+  /**
+   * **Los términos se exigen TODOS**, como en el buscador vecino: teclear
+   * «economia 7» busca de esa carrera Y de ese nivel, no la unión. Con la
+   * unión, cualquier término amplio devolvería la tabla entera y el buscador
+   * dejaría de servir justo cuando hay muchas filas.
+   */
+  const visibles = useMemo(() => {
+    const terminos = llave(busca).split(/\s+/).filter(Boolean);
+    return alumnos.filter((a) => {
+      if (estado && a.estado !== estado) return false;
+      if (carreraEnFoco && a.carrera !== carreraEnFoco) return false;
+      if (!terminos.length) return true;
+      const heno = llave([a.codigo, a.carrera, a.nivel, a.curso_horario, a.motivo_etiqueta].join(" "));
+      return terminos.every((t) => heno.includes(t));
+    });
+  }, [alumnos, estado, carreraEnFoco, busca]);
+
   const total = bloque?.total;
   /**
    * C3: la superficie contiene su propio vacío, y lo CLASIFICA. «Todavía no hay
@@ -99,9 +156,10 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
 
   const carreras = bloque?.carreras ?? [];
   const motivos = bloque?.sin_cruce ?? [];
-  const alumnos = bloque?.alumnos ?? [];
   const techo = Math.max(...carreras.map((c) => numero(c.personas)), 1);
   const tasa = total.tasa == null ? null : Math.round(numero(total.tasa) * 1000) / 10;
+  const porEstado = (clave: string) => alumnos.filter((a) => a.estado === clave).length;
+  const filtrado = Boolean(estado || carreraEnFoco || busca.trim());
 
   return (
     <div className="aulas-cxc" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -131,117 +189,71 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
         </p>
       ) : null}
 
+      {/* **Plegable y abierto.** Es el resumen que contesta «a quién estamos
+          alcanzando», así que abre; y se pliega porque con la tabla de abajo
+          el panel mide dos pantallas. */}
       {carreras.length ? (
-        <ul className="aulas-cxc-lista" role="table" aria-label="Alumnos identificados en cada carrera">
-          <li role="row" className="aulas-cxc-cab">
-            <span role="columnheader">Carrera</span>
-            <span role="columnheader">Alumnos</span>
-            <span role="columnheader">Reparto de los alumnos</span>
-            <span role="columnheader">En el padrón</span>
-          </li>
-          {carreras.map((c) => {
-            const personas = numero(c.personas);
-            const poblacion = c.poblacion == null ? null : numero(c.poblacion);
-            const dup = numero(c.duplicadas);
-            return (
-              <li key={c.carrera} role="row">
-                <span role="cell">
-                  <span className={claseDeFacultad(c.carrera)}>{c.carrera}</span>
-                  {/* La repetición se enseña DONDE ocurrió: en el total sola no
-                      se puede ir a buscar. */}
-                  {dup > 0 ? (
-                    <em className="aulas-cxc-dup">
-                      {dup === 1 ? " · 1 repetida" : ` · ${fmt(dup)} repetidas`}
-                    </em>
-                  ) : null}
-                </span>
-                <span role="cell" className="aulas-cxc-num aulas-cxc-fuerte">{fmt(personas)}</span>
-                <span role="cell" className="aulas-cxc-barra">
-                  {/* Cero no dibuja un hilo de cortesía: se leería como «algo hay». */}
-                  {personas > 0 ? (
-                    <i style={{ width: `${Math.max(1.5, (100 * personas) / techo)}%` }} />
-                  ) : null}
-                </span>
-                {/* Sin población del padrón, un guion: «no lo sé» y «son cero»
-                    no son lo mismo. */}
-                <span role="cell" className="aulas-cxc-num aulas-cxc-debil">
-                  {poblacion == null ? "—" : `de ${fmt(poblacion)}`}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <details className="aulas-cxc-grupo" open>
+          <summary>
+            <strong>{fmt(carreras.length)}</strong>{" "}
+            {carreras.length === 1 ? "carrera alcanzada" : "carreras alcanzadas"}
+            <em> — cuántos de cada una y cuántos son en el padrón</em>
+          </summary>
+          <ul className="aulas-cxc-lista" role="table" aria-label="Alumnos identificados en cada carrera">
+            <li role="row" className="aulas-cxc-cab">
+              <span role="columnheader">Carrera</span>
+              <span role="columnheader">Alumnos</span>
+              <span role="columnheader">Reparto de los alumnos</span>
+              <span role="columnheader">En el padrón</span>
+            </li>
+            {carreras.map((c) => {
+              const personas = numero(c.personas);
+              const poblacion = c.poblacion == null ? null : numero(c.poblacion);
+              const dup = numero(c.duplicadas);
+              return (
+                <li key={c.carrera} role="row">
+                  <span role="cell">
+                    <span className={claseDeFacultad(c.carrera)}>{c.carrera}</span>
+                    {/* La repetición se enseña DONDE ocurrió: en el total sola
+                        no se puede ir a buscar. */}
+                    {dup > 0 ? (
+                      <em className="aulas-cxc-dup">
+                        {dup === 1 ? " · 1 repetida" : ` · ${fmt(dup)} repetidas`}
+                      </em>
+                    ) : null}
+                  </span>
+                  <span role="cell" className="aulas-cxc-num aulas-cxc-fuerte">{fmt(personas)}</span>
+                  <span role="cell" className="aulas-cxc-barra">
+                    {/* Cero no dibuja un hilo de cortesía: se leería como «algo hay». */}
+                    {personas > 0 ? (
+                      <i style={{ width: `${Math.max(1.5, (100 * personas) / techo)}%` }} />
+                    ) : null}
+                  </span>
+                  {/* Sin población del padrón, un guion: «no lo sé» y «son cero»
+                      no son lo mismo. */}
+                  <span role="cell" className="aulas-cxc-num aulas-cxc-debil">
+                    {poblacion == null ? "—" : `de ${fmt(poblacion)}`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
       ) : (
         <p className="mon-profile-muted">
           Ninguna respuesta ha cruzado todavía: abajo está por qué.
         </p>
       )}
 
-      {/* **Una fila por alumno, con hora y curso-horario.** Gonzalo, comparando
-          con la tabla de casos de plataforma de acreditación —actor/caso,
-          estado, fecha y hora, canal, cruce—: el agregado de arriba contesta
-          «cuántos» y esto contesta «quién, cuándo y desde dónde», que es con lo
-          que se va a comprobar una respuesta concreta. */}
-      {alumnos.length ? (
-        <div className="aulas-cxc-detalle">
-          <div className="aulas-cxc-detalle-head">
-            <span className="aulas-cxc-sincruce-rotulo">Quién respondió, uno por uno</span>
-            <span className="aulas-cxc-pie">
-              la más reciente primero
-              {/* El recorte se dice: en silencio haría creer que el operativo
-                  tiene las filas que se ven. */}
-              {bloque?.truncado
-                ? ` · se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
-                : null}
-            </span>
-          </div>
-          <ul className="aulas-cxc-alumnos" role="table" aria-label="Alumnos que respondieron, uno por uno">
-            <li role="row" className="aulas-cxc-cab">
-              <span role="columnheader">Código</span>
-              <span role="columnheader">Carrera y nivel</span>
-              <span role="columnheader">Fecha y hora</span>
-              <span role="columnheader">Curso-horario</span>
-              <span role="columnheader">Cruce</span>
-            </li>
-            {alumnos.map((a, i) => {
-              const estado = ESTADOS[a.estado] ?? { texto: a.estado, tono: "neutro" };
-              return (
-                <li key={`${a.codigo}-${a.fecha}-${a.hora}-${i}`} role="row">
-                  <span role="cell" className="aulas-cxc-codigo">{a.codigo || "—"}</span>
-                  <span role="cell" className="aulas-cxc-quien">
-                    {a.carrera ? <span className={claseDeFacultad(a.carrera)}>{a.carrera}</span> : null}
-                    {a.nivel ? <em className="aulas-cxc-nivel">nivel {a.nivel}</em> : null}
-                  </span>
-                  {/* Sin marca de tiempo, un guion: la fila sigue diciendo quién
-                      y de qué carrera, y lo que falta es la hora. */}
-                  <span role="cell" className="aulas-cxc-cuando">
-                    {a.fecha ? `${a.fecha} · ${a.hora || "--:--"}` : "—"}
-                  </span>
-                  <span role="cell" className="aulas-cxc-ch">{a.curso_horario || "—"}</span>
-                  <span role="cell">
-                    <span className="aulas-cxc-pill" data-tono={estado.tono}>{estado.texto}</span>
-                    {/* El motivo va pegado a SU fila: en la lista de arriba se
-                        sabe cuántas, aquí cuál. */}
-                    {a.motivo_etiqueta ? (
-                      <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
-                    ) : null}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-
+      {/* **Cerrado por defecto**: es el desglose de una cifra que ya está
+          arriba, y quien viene a arreglarlo lo abre. */}
       {motivos.length ? (
-        <div className="aulas-cxc-sincruce">
-          {/* Concuerda. «Por qué 1 no se pudieron identificar» sale en pantalla el
-              día que queda una sola, que es justo el día que se lee con calma. */}
-          <span className="aulas-cxc-sincruce-rotulo">
-            {total.sin_cruce === 1
-              ? "Por qué una no se pudo identificar"
-              : `Por qué ${fmt(total.sin_cruce)} no se pudieron identificar`}
-          </span>
+        <details className="aulas-cxc-grupo aulas-cxc-sincruce">
+          <summary>
+            <strong>{fmt(total.sin_cruce)}</strong>{" "}
+            {total.sin_cruce === 1 ? "no se pudo identificar" : "no se pudieron identificar"}
+            <em> — por qué, que es lo que dice dónde se arregla</em>
+          </summary>
           <ul className="aulas-cxc-motivos">
             {motivos.map((m) => (
               <li key={m.motivo}>
@@ -259,6 +271,160 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
             ninguno, mira la columna declarada en Fuentes y la vigencia del
             padrón antes que a los alumnos.
           </p>
+        </details>
+      ) : null}
+
+      {alumnos.length ? (
+        <div className="aulas-cxc-detalle">
+          <div className="aulas-cxc-detalle-head">
+            <span className="aulas-cxc-rotulo">Quién respondió, uno por uno</span>
+            <span className="aulas-cxc-pie">
+              la más reciente primero
+              {/* El recorte se dice: en silencio haría creer que el operativo
+                  tiene las filas que se ven. */}
+              {bloque?.truncado
+                ? ` · se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
+                : null}
+            </span>
+          </div>
+
+          {/* **Los filtros llevan su cuenta dentro.** Un chip que no dice
+              cuántas filas deja no se puede elegir sin probarlo, y con tres
+              estados probarlos todos es el trabajo que el chip venía a evitar. */}
+          <div className="aulas-cxc-filtros">
+            <div className="aulas-cxc-chips" role="group" aria-label="Filtrar por resultado del cruce">
+              <button
+                type="button" className="aulas-cxc-filtro" aria-pressed={!estado}
+                onClick={() => setEstado("")}
+              >
+                Todos <em>{fmt(alumnos.length)}</em>
+              </button>
+              {ESTADOS.map((e) => {
+                const n = porEstado(e.clave);
+                return (
+                  <button
+                    key={e.clave}
+                    type="button"
+                    className="aulas-cxc-filtro"
+                    data-tono={e.tono}
+                    aria-pressed={estado === e.clave}
+                    // Sin filas no hay nada que filtrar. El chip se queda —en
+                    // gris— para decir que esa categoría existe y vale cero:
+                    // esconderlo haría pensar que no se mide.
+                    disabled={n === 0}
+                    onClick={() => setEstado(estado === e.clave ? "" : e.clave)}
+                  >
+                    {e.texto} <em>{fmt(n)}</em>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* El selector de carrera sólo aparece con más de una: con una sola
+                es un control que no puede cambiar nada. */}
+            {carreras.length > 1 ? (
+              <label className="aulas-cxc-select">
+                <span>Carrera</span>
+                <select
+                  value={carreraEnFoco}
+                  onChange={(e) => setCarreraEnFoco(e.currentTarget.value)}
+                >
+                  <option value="">Todas</option>
+                  {carreras.map((c) => (
+                    <option key={c.carrera} value={c.carrera}>{c.carrera}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            <div className="aulas-cxc-buscador">
+              <Search size={13} aria-hidden="true" />
+              <input
+                type="search"
+                value={busca}
+                onChange={(e) => setBusca(e.currentTarget.value)}
+                placeholder="Código, carrera, nivel o curso-horario"
+                aria-label="Buscar un alumno por código, carrera, nivel o curso-horario"
+              />
+              {busca ? (
+                <button type="button" onClick={() => setBusca("")} aria-label="Limpiar la búsqueda">
+                  <XCircle size={13} />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* **Con filtro puesto manda la cifra del filtro.** Un total encima de
+              una tabla recortada es la forma más barata de leer mal. */}
+          <p className="aulas-cxc-pie aulas-cxc-cuenta">
+            {filtrado
+              ? `${fmt(visibles.length)} de ${fmt(alumnos.length)} filas`
+              : `${fmt(alumnos.length)} ${alumnos.length === 1 ? "fila" : "filas"}`}
+          </p>
+
+          {visibles.length ? (
+            <div className="aulas-cxc-scroll">
+              <table className="aulas-cxc-tabla">
+                <thead>
+                  <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Carrera y nivel</th>
+                    <th scope="col">Fecha y hora</th>
+                    <th scope="col">Curso-horario</th>
+                    <th scope="col">Respuesta</th>
+                    <th scope="col">Cruce</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibles.map((a, i) => {
+                    const e = ESTADOS.find((x) => x.clave === a.estado);
+                    return (
+                      <tr key={`${a.codigo}-${a.fecha}-${a.hora}-${i}`}>
+                        <td className="aulas-cxc-codigo">{a.codigo || "—"}</td>
+                        <td>
+                          {a.carrera ? (
+                            <span className={claseDeFacultad(a.carrera)}>{a.carrera}</span>
+                          ) : null}
+                          {a.nivel ? <em className="aulas-cxc-nivel">nivel {a.nivel}</em> : null}
+                          {!a.carrera && !a.nivel ? <span className="aulas-cxc-debil">—</span> : null}
+                        </td>
+                        {/* Sin marca de tiempo, un guion: la fila sigue diciendo
+                            quién y de qué carrera, y lo que falta es la hora. */}
+                        <td className="aulas-cxc-cuando">
+                          {a.fecha ? `${a.fecha} · ${a.hora || "--:--"}` : "—"}
+                        </td>
+                        <td className="aulas-cxc-ch">{a.curso_horario || "—"}</td>
+                        <td>
+                          {a.respuesta && RESPUESTAS[a.respuesta] ? (
+                            <span className="aulas-cxc-pill" data-tono={RESPUESTAS[a.respuesta].tono}>
+                              {RESPUESTAS[a.respuesta].texto}
+                            </span>
+                          ) : (
+                            <span className="aulas-cxc-debil">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className="aulas-cxc-pill" data-tono={e?.tono ?? "neutro"}>
+                            {e?.texto ?? a.estado}
+                          </span>
+                          {/* El motivo va pegado a SU fila: arriba se sabe
+                              cuántas, aquí cuál. */}
+                          {a.motivo_etiqueta ? (
+                            <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mon-profile-muted">
+              Ninguna fila coincide con el filtro. Se busca por código, carrera,
+              nivel y curso-horario, y todos los términos tienen que aparecer.
+            </p>
+          )}
         </div>
       ) : null}
     </div>

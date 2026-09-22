@@ -2024,6 +2024,13 @@ export type MonitoreoAulasDashboard = {
       fecha: string;
       hora: string;
       curso_horario: string;
+      /**
+       * El estado de la RESPUESTA, aparte del estado del cruce: son dos
+       * preguntas y acreditación las publica en dos columnas por eso mismo.
+       * `""` cuando el estudio no tiene columna de consentimiento —no se
+       * supone que aceptaron—.
+       */
+      respuesta?: "acepta" | "rechaza" | "" | string;
       estado: "identificado" | "repetida" | "sin_identificar" | string;
       motivo?: string;
       motivo_etiqueta?: string;
