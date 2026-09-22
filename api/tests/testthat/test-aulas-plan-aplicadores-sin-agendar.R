@@ -68,10 +68,27 @@ test_that("un titular sin agendar entra en la hoja de la semana, con la misma es
   # Y el protocolo de horas es el mismo: recojo T−30, salida T−15.
   expect_identical(.apsa_col(suyas[[1]], "EN OFICINA"), "07:30")
   expect_identical(.apsa_col(suyas[[1]], "SALE AL AULA"), "07:45")
-  # La ventana es la de la CLASE, no una aplicación de media hora: quien entra
-  # sin cita llega cuando puede dentro de ese rango.
-  expect_identical(.apsa_col(suyas[[1]], "APLICA"), "08:00 a 10:00")
+  # La ventana es la de la CLASE, y la celda lo DICE: un rango de dos horas en
+  # una columna que promete una aplicación se lee como una aplicación de dos
+  # horas. En las agendadas la hora pactada manda y ya trae el momento dentro.
+  expect_identical(.apsa_col(suyas[[1]], "APLICA"), "08:00 a 10:00 · clase")
   expect_identical(.apsa_col(suyas[[1]], "AULA"), "Z411")
+})
+
+test_that("la hora ACORDADA de una cita se respeta tal cual, con sus 30 minutos", {
+  # Es la alarma de Gonzalo, 2026-09-21: «la agenda ya pone una hora acordada,
+  # ¿por qué no se respeta esa hora?». Se respeta, y no se recalcula desde la
+  # clase: la hora pactada ya trae dentro el momento que el docente concedió
+  # —«al inicio», «en el receso», «al final»— y CH 2 lo demuestra en el
+  # proyecto real: clase de 10:00 a 13:00, momento «al final», hora 12:45.
+  plan <- list(.apsa_fila("CH 2", sesiones = "MAR 10:00-13:00",
+                          fecha = "2026-09-22", hora = "12:45 pm"))
+  fila <- .apsa_filas(plan)[[1]]
+  expect_identical(.apsa_col(fila, "APLICA"), "12:45 a 13:15")
+  expect_identical(.apsa_col(fila, "EN OFICINA"), "12:15")
+  expect_identical(.apsa_col(fila, "SALE AL AULA"), "12:30")
+  # Y no lleva la marca de clase: ésa es de las que no tienen hora acordada.
+  expect_false(grepl("clase", .apsa_col(fila, "APLICA"), fixed = TRUE))
 })
 
 test_that("se intercalan por hora con las citas del mismo día, no van pegadas al final", {
