@@ -15,6 +15,7 @@ Proyecto: `CCSSPerfil/4. Seleccion/CCSS2026_campo_MARTES_22-09.pulso` → desde 
 | 1 | La app sabe cuántos alumnos de cada nivel hay en cada curso-horario (y proyecta por nivel lo agendado) | marco: `level_composition` por aula (`calc_muestra_aulas_composicion_nivel.R`, tras el sello) → plan (`normalize_plan`) → proyector de Metas (`monitoreo_aulas_composicion_eje.R`) · CCSS: respaldo en copia nueva del `.pulso` | hecho `59be4529` — Metas proyecta por nivel y el banco busca por composición; CCSS con la composición en `CCSS2026_campo_MIERCOLES_23-09.pulso` |
 | 2 | Los Sheets quedan listos: «Traer respuestas» los lee y publica | config de aulas del `.pulso` (libro destino, agenda del equipo, Kobo) + secretos locales | verificado sin publicar: libro `1whv…` recordado, 5 pestañas se leen sin fallos, Google y Kobo (`pulsoeu`) abren |
 | 3 | La UI de Monitoreo queda lista para abrir el `.pulso` y actualizar app + Sheets desde allí | build del front (`api/inst/www`) + paquete R instalado (los jobs `callr` usan el instalado) + recorrido real | hecho — front compilado; paquete reinstalado 09:29 con `59be4529`; el `.pulso` de hoy abre en la app |
+| 4 | Distribución de aplicadores hasta el 5/10, con los 5 aplicadores alrededor de 10 aplicaciones cada uno | reparto (`monitoreo_aulas_reparto.R`) + `reparto_rango` del `.pulso` + Sheets «Distribución de aplicaciones» (`1bsx…`, una pestaña por semana) | **bloqueado** — `6be802f6` arregla la equidad (contaba 10 aplicadores para 5); rango 22/09→05/10 guardado en el `.pulso` de hoy; falta: go para publicar las pestañas nuevas y decidir si se rebalancean fijadas del equipo (Uribe 11) |
 
 ## Notas de investigación
 
@@ -57,3 +58,19 @@ Proyecto: `CCSSPerfil/4. Seleccion/CCSS2026_campo_MARTES_22-09.pulso` → desde 
   columna del titular; la cadena vive en el plan.
 - Secretos: `koboeu` y `perfil_unhcr` bloqueados (cambio de red del 08/09), pero
   CCSS usa `pulsoeu`, que abre.
+
+### Ítem 4 — notas
+- Pedido (2026-09-23): «la distribución hasta el 5 […] tratando de mantener que
+  los 5 aplicadores tengan alrededor de 10 aplicaciones».
+- Defecto encontrado: la disponibilidad guarda el nombre crudo (MAYÚSCULAS) y
+  las fijadas adoptadas del Sheets vuelven normalizadas; la equidad las tomaba
+  por aplicadores externos (10 en vez de 5). Arreglado en `6be802f6`.
+- Con el rango al 05/10, por aplicador (asignadas con fecha desde el 22/09 +
+  fijadas sin fecha): Chamorro 7+1=8 · Chávez 3+4=7 · Cruzado 5+4=9 ·
+  Simón 5+3=8 · Uribe 5+6=11. Total 43.
+- La disponibilidad NO explica a Chávez (libre salvo martes tarde): el
+  desbalance viene de las fijadas del equipo y de que después del 25/09 sólo hay
+  8 citas agendadas (28/09: 5 · 29/09: 2 · 05/10: 1). Las titulares sin fecha
+  irán, al agendarse, al aplicador con menos carga.
+- Publicar a la distribución exige el go explícito de Gonzalo (regla del
+  operativo); lo manual del equipo manda y publicar no lo pisa.
