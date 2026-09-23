@@ -1511,6 +1511,9 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
+  # La meta por aula con la τ del diseño donde la calibración no tiene dueño:
+  # la misma que ve el tablero (monitoreo_aulas_meta_del_diseno.R).
+  unidades <- monitoreo_aulas_meta_del_diseno(unidades, cfg)
   # B68: la hoja de asignación reparte sobre el plan COMPLETO —el mismo insumo
   # que la app—, y aquí abajo `unidades` se filtra para las hojas del libro.
   # Dictado 2026-09-04: «AULA UTILIZADA» sale de la cadena, asi que se anota

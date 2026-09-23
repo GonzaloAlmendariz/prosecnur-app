@@ -465,7 +465,10 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   # publicador toma el plan CRUDO de la sesión, así que el normalizador del
   # plan no lo alcanza: sin esto, una extra con parte tumba la publicación
   # entera aunque la app la vea bien. Ver `aulas_libro_anotar_cabeza_de_extras()`.
-  plan <- aulas_libro_anotar_cabeza_de_extras(plan %||% list())
+  # La meta por aula con la τ del diseño donde la calibración no tiene dueño:
+  # la misma que ve el tablero (monitoreo_aulas_meta_del_diseno.R).
+  plan <- monitoreo_aulas_meta_del_diseno(plan %||% list(), config_aulas)
+  plan <- aulas_libro_anotar_cabeza_de_extras(plan)
   # **Y la OTRA anotación del generador, que faltaba.** «AULA UTILIZADA» sale de
   # la cadena —los códigos `R n.k` que respaldan a ese titular— y la anota
   # `aulas_libro_anotar_aula_utilizada()` sobre el plan COMPLETO, antes de

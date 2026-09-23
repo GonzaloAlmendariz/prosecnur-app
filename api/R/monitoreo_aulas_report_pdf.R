@@ -42,6 +42,8 @@ build_monitoreo_aulas_report_model <- function(snapshot, cfg, include_targets = 
   if (!length(plan)) {
     stop_api(409, "E_AULAS_SIN_PLAN", "El estudio no trae plan de cursos-horario del que informar.")
   }
+  # La misma meta por aula que el tablero (monitoreo_aulas_meta_del_diseno.R).
+  plan <- monitoreo_aulas_meta_del_diseno(plan, aulas_cfg)
   data <- snapshot$data
   efectivas <- monitoreo_aulas_efectivas_por_aula(plan, data, aulas_cfg)
   validas <- .monitoreo_aulas_valid_response(data, aulas_cfg)

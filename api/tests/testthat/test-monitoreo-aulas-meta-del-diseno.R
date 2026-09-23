@@ -1,141 +1,167 @@
-test_that("la meta por aula sale de `efectivas_esperadas` del diseño, no de los elegibles", {
-  # El cálculo de muestra calcula por curso-horario cuántas efectivas espera de
-  # esa aula —elegibles x P(aplicada) x rendimiento—, y en el marco 2026 va de
-  # 5,8 a 34,8. El handoff no reconocía la columna y caía a `eligible_n`, así
-  # que la meta pasaba a ser el TOTAL de elegibles: un aula de 24 donde el
-  # diseño espera 12 tenía que traer 24. De ahí «Llegaron a su meta: 0 de 194».
-  plan <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a1",
-    eligible_n = 24, efectivas_esperadas = 12.1
-  )))
-  expect_equal(plan[[1]]$expected_valid, 12.1)
-  # El control: sin la columna del diseño, el fallback sigue siendo los
-  # elegibles —los planes viejos no se rompen— pero eso es un sustituto.
-  viejo <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a1", eligible_n = 24
-  )))
-  expect_equal(viejo[[1]]$expected_valid, 24)
-})
+# =============================================================================
+# La meta por aula sale de la τ del diseño cuando la calibración no tiene dueño
+# =============================================================================
+#
+# Decisión de Gonzalo del 2026-09-22 sobre CCSS Perfil 2026-II («la del
+# diseño»): la meta de sus aulas venía de las curvas embebidas (≈0,66) y el
+# estudio declaraba τ = 0,50. Dos paneles vecinos decían +16 y −18.
 
-test_that("la meta del diseño gana al alias de esta capa", {
-  # `efectivas_esperadas` es el nombre CANONICO —lo escribe el motor de calculo
-  # de muestra— y `expected_valid` es un alias de esta capa que aquel motor no
-  # escribe nunca. Con el alias delante, un plan externo o una edicion a mano
-  # pisaban la meta que calculo el diseño; ahora manda el diseño.
-  plan <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a1", eligible_n = 24,
-    expected_valid = 15, efectivas_esperadas = 12.1
-  )))
-  expect_equal(plan[[1]]$expected_valid, 12.1)
+.mamd_fila <- function(id, fac = "CIENCIAS SOCIALES", level = "7", el = 20,
+                       fuente = "calibracion_embebida", periodo = "",
+                       rend = 0.69, esperada = NULL) {
+  list(classroom_id = id, operational_code = paste("CH", id), label = id,
+       faculty = fac, level = level, sample_role = "titular", wave = "M1",
+       orden = 1, eligible_n = el,
+       expected_valid = esperada %||% round(el * rend, 1),
+       efectivas_esperadas = esperada %||% round(el * rend, 1),
+       tasa_efectividad_aula = rend, rendimiento_ref = rend,
+       efectividad_fuente = fuente, efectividad_periodo = periodo,
+       sample_status = "agendada")
+}
 
-  # Y sin la canonica, el alias sigue sirviendo: los planes que no vienen del
-  # calculo de muestra no se quedan sin meta.
-  externo <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a1", eligible_n = 24, expected_valid = 15
-  )))
-  expect_equal(externo[[1]]$expected_valid, 15)
-})
+.mamd_dt <- function(celdas) list(
+  schema = "monitoreo_aulas_design_targets_v1", source = "diseno",
+  facultades = lapply(names(celdas), function(k) list(
+    facultad = k, faculty_key = monitoreo_aulas_eje_key(k), cuota = 10, tau = celdas[[k]]))
+)
 
-test_that("cada aula usa SU meta, aunque el marco traiga la columna a medias", {
-  # **El defecto que esto fija.** `getn` toma la primera columna que EXISTA y su
-  # default se aplica a las filas vacias de esa columna. Con `efectivas_esperadas`
-  # delante y default 0, cualquier fila sin esperado —los reemplazos, o un plan a
-  # medio anotar— se quedaba con **meta 0**, que en un veredicto significa que el
-  # aula cumple siempre. Y el fallback tampoco la rescataba: 0 es finito.
-  plan <- monitoreo_aulas_normalize_plan(list(
-    list(operational_code = "A", classroom_id = "a", eligible_n = 24, efectivas_esperadas = 12.1),
-    list(operational_code = "B", classroom_id = "b", eligible_n = 24, expected_valid = 15),
-    list(operational_code = "C", classroom_id = "c", eligible_n = 24)
-  ))
-  expect_equal(vapply(plan, function(f) f$expected_valid, numeric(1)), c(12.1, 15, 24))
-  # Ninguna se queda en cero, que es la forma que tenia el defecto.
-  expect_false(any(vapply(plan, function(f) f$expected_valid == 0, logical(1))))
-})
+.mamd_cfg <- function(celdas, eje = NULL) {
+  c(list(design_targets = .mamd_dt(celdas)), if (!is.null(eje)) list(eje_cuota = eje))
+}
 
-test_that("la meta dice DE DONDE viene, y lo declarado por el productor manda", {
-  # `expected_valid` colapsaba tres cosas en un numero: lo que el diseño calculo
-  # para ESA aula, lo que alguien declaro a mano, y el total de elegibles cuando
-  # no habia ninguna. La pantalla decia «la meta que el calculo de muestra
-  # calculo» sobre filas que no venian de ningun diseño.
-  plan <- monitoreo_aulas_normalize_plan(list(
-    list(operational_code = "A", classroom_id = "a", eligible_n = 24, efectivas_esperadas = 12.1),
-    list(operational_code = "B", classroom_id = "b", eligible_n = 24, expected_valid = 15),
-    list(operational_code = "C", classroom_id = "c", eligible_n = 24),
-    # El calculo de muestra escribe `meta_origen` junto a `efectivas_esperadas`;
-    # lo que el productor declara no se recalcula.
-    list(operational_code = "D", classroom_id = "d", eligible_n = 30,
-         efectivas_esperadas = 9, meta_origen = "diseno")
-  ))
-  expect_identical(vapply(plan, function(f) f$meta_origen, character(1)),
-                   c("diseno", "declarada", "elegibles", "diseno"))
-})
-
-test_that("lo que el productor declara NO se recalcula", {
-  # **Este caso mato un mutante que el de arriba dejaba vivo.** Alli la fila con
-  # `meta_origen` traia ademas `efectivas_esperadas`, asi que derivar y respetar
-  # daban lo mismo y el aserto no distinguia cual estaba implementado.
-  #
-  # Aqui el productor dice «diseno» sobre una fila que llega por el alias: la
-  # derivacion diria «declarada» y lo declarado tiene que ganar. Es el caso de un
-  # handoff que renombra el campo pero conserva su procedencia.
-  plan <- monitoreo_aulas_normalize_plan(list(
-    list(operational_code = "A", classroom_id = "a", eligible_n = 24,
-         expected_valid = 12.1, meta_origen = "diseno")
-  ))
-  expect_identical(plan[[1]]$meta_origen, "diseno")
-})
-
-test_that("sin elegibles y sin meta, el origen lo dice en vez de fingir una", {
-  plan <- monitoreo_aulas_normalize_plan(list(
-    list(operational_code = "A", classroom_id = "a")
-  ))
-  expect_identical(plan[[1]]$meta_origen, "sin_meta")
-})
-
-test_that("el PORQUE de la meta viaja con ella", {
-  # Gonzalo: «el que monitorea tiene que saber por que estamos asignando esa
-  # validez a ese curso horario». Con la meta sola, la pantalla solo puede
-  # repetir un numero; con los tres factores puede decir de donde sale.
-  #
-  # `teacher_type` se conserva ENTERO: viene compuesto cuando el aula tiene dos
-  # docentes —«ORDINARIO - PRINCIPAL | CONTRATADO»— y la tasa aplicada es la del
-  # mas restrictivo. Partirlo aqui perderia el segundo.
-  plan <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a", eligible_n = 24,
-    efectivas_esperadas = 12.1, p_aplicada_ref = 0.73, rendimiento_ref = 0.69,
-    teacher_type = "DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO"
-  )))
-  f <- plan[[1]]
-  expect_equal(f$p_aplicada_ref, 0.73)
+test_that("con el eje en la persona y una τ única, la meta embebida pasa a la del diseño", {
+  plan <- list(.mamd_fila("a1", el = 24, rend = 0.69))
+  out <- monitoreo_aulas_meta_del_diseno(plan, .mamd_cfg(list("6" = 0.5, "7" = 0.5), "nivel"))
+  f <- out[[1]]
+  expect_equal(f$expected_valid, 12)
+  expect_equal(f$efectivas_esperadas, 12)
+  expect_equal(f$tasa_efectividad_aula, 0.5)
+  expect_equal(f$efectividad_tau, 0.5)
+  expect_identical(f$efectividad_fuente, "tau_global")
+  expect_identical(f$efectividad_periodo, "design_targets")
+  # Lo que habría pedido la calibración embebida queda como rastro.
   expect_equal(f$rendimiento_ref, 0.69)
-  expect_identical(f$teacher_type, "DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO")
-  # El control: sin los factores no se inventan.
-  sin <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 2", classroom_id = "b", eligible_n = 24
-  )))
-  expect_true(is.na(sin[[1]]$p_aplicada_ref))
 })
 
-test_that("el factor de facultad y la procedencia de la calibracion viajan", {
-  # Gonzalo pidio que el esperado dejara de asumir «que todas las facultades
-  # tienen la misma naturaleza», asi que desde 2026-08-20 la meta lleva un
-  # cuarto factor. Sin transportarlo, el desglose de la pantalla dejaria de
-  # cuadrar en 135 de las 197 aulas titulares del marco 2026.
-  plan <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 1", classroom_id = "a", eligible_n = 24,
-    efectivas_esperadas = 9.8, p_aplicada_ref = 0.73, rendimiento_ref = 0.69,
-    factor_facultad = 0.81, facultad_k = 26,
-    efectividad_fuente = "historico", efectividad_periodo = "2025"
-  )))
-  f <- plan[[1]]
-  expect_equal(f$factor_facultad, 0.81)
-  expect_equal(f$facultad_k, 26)
-  expect_identical(f$efectividad_fuente, "historico")
-  expect_identical(f$efectividad_periodo, "2025")
-  # El control: en las facultades sin base suficiente rige la tasa general y el
-  # campo no viene; no se inventa un 1.
-  sin <- monitoreo_aulas_normalize_plan(list(list(
-    operational_code = "CH 2", classroom_id = "b", eligible_n = 24, efectivas_esperadas = 12.1
-  )))
-  expect_true(is.na(sin[[1]]$factor_facultad))
+test_that("una calibración con dueño no se toca: HSVG corre sobre `historico`", {
+  plan <- list(.mamd_fila("a1", fac = "DERECHO", el = 30, fuente = "historico", rend = 0.57))
+  out <- monitoreo_aulas_meta_del_diseno(plan, .mamd_cfg(list("DERECHO" = 0.568)))
+  expect_identical(out, plan)
+  # Y una `tau_global` declarada en Cálculo de muestra tampoco.
+  plan2 <- list(.mamd_fila("a2", fuente = "tau_global", periodo = "", rend = 0.4))
+  expect_identical(monitoreo_aulas_meta_del_diseno(plan2, .mamd_cfg(list("7" = 0.5), "nivel")), plan2)
+})
+
+test_that("con τ distintas por nivel no se inventa una mezcla: la fila queda como estaba", {
+  plan <- list(.mamd_fila("a1"))
+  out <- monitoreo_aulas_meta_del_diseno(plan, .mamd_cfg(list("6" = 0.5, "7" = 0.6), "nivel"))
+  expect_identical(out, plan)
+})
+
+test_that("con el eje en el aula, cada fila toma la τ de SU facultad, y la que no tiene celda no cambia", {
+  plan <- list(.mamd_fila("a1", fac = "Letras", el = 10), .mamd_fila("a2", fac = "Arte", el = 10))
+  out <- monitoreo_aulas_meta_del_diseno(plan, .mamd_cfg(list("Letras" = 0.8)))
+  expect_equal(out[[1]]$expected_valid, 8)
+  expect_identical(out[[2]], plan[[2]])
+})
+
+test_that("es idempotente, y si el diseño cambia su τ la meta se re-deriva", {
+  cfg <- .mamd_cfg(list("7" = 0.5), "nivel")
+  una <- monitoreo_aulas_meta_del_diseno(list(.mamd_fila("a1", el = 20)), cfg)
+  expect_identical(monitoreo_aulas_meta_del_diseno(una, cfg), una)
+  otra <- monitoreo_aulas_meta_del_diseno(una, .mamd_cfg(list("7" = 0.6), "nivel"))
+  expect_equal(otra[[1]]$expected_valid, 12)
+})
+
+test_that("la forma data.frame da lo mismo que la forma lista", {
+  plan <- list(.mamd_fila("a1", el = 24), .mamd_fila("a2", el = 11, fuente = "historico"))
+  cfg <- .mamd_cfg(list("7" = 0.5), "nivel")
+  de_lista <- monitoreo_aulas_meta_del_diseno(plan, cfg)
+  df <- as.data.frame(do.call(rbind, lapply(plan, as.data.frame, stringsAsFactors = FALSE)))
+  de_df <- monitoreo_aulas_meta_del_diseno(df, cfg)
+  expect_equal(de_df$expected_valid, vapply(de_lista, function(f) as.numeric(f$expected_valid), 0))
+  expect_identical(de_df$efectividad_fuente, c("tau_global", "historico"))
+})
+
+test_that("en el tablero, las esperadas por sexo usan la MISMA τ que el seguimiento", {
+  # El caso de CCSS: τ del diseño 0,50 y meta embebida 0,69. Sin la regla,
+  # «Cómo le va a cada facultad» medía contra 0,69 y rotulaba «de 50 %».
+  plan <- list(c(.mamd_fila("a1", el = 10, rend = 0.69),
+                 list(operational_status = "aplicada", sex_top_1 = "Femenino", sex_top_1_n = 6,
+                      sex_top_2 = "Masculino", sex_top_2_n = 4)))
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = c(.mamd_dt(list("7" = 0.5)), list(selection_run_id = "run_1", frame_hash = "hash_1")),
+    eje_cuota = "nivel",
+    source_mapping = list(collector_var = "collectorID", sex_var = "sexo")
+  ))
+  resp <- data.frame(collectorID = rep("a1", 3), sexo = c("Femenino", "Femenino", "Masculino"),
+                     stringsAsFactors = FALSE)
+  d <- monitoreo_aulas_dashboard(cfg$plan, resp, cfg)
+  esperadas <- sum(vapply(d$efectividad_por_sexo, function(c) as.numeric(c$esperadas), 0))
+  expect_equal(esperadas, 5)
+  prev <- vapply(d$efectividad_por_sexo, function(c) as.numeric(c$tasa_prevista), 0)
+  expect_true(all(abs(prev - 0.5) < 1e-9))
+})
+
+# --- lo que cazaron el verificador y el revisor metodológico -----------------
+
+test_that("la forma data.frame sobrevive a la normalización: el alias con precedencia también cambia", {
+  # `normalize_plan` lee `efectivas_esperadas` ANTES que `expected_valid`: si el
+  # alias se quedaba atrás, la meta volvía a la embebida con la fuente diciendo
+  # «diseño».
+  plan <- list(.mamd_fila("a1", el = 24, rend = 0.69))
+  cfg <- .mamd_cfg(list("7" = 0.5), "nivel")
+  df <- as.data.frame(do.call(rbind, lapply(plan, as.data.frame, stringsAsFactors = FALSE)))
+  out <- monitoreo_aulas_meta_del_diseno(df, cfg)
+  expect_equal(out$efectivas_esperadas, out$expected_valid)
+  renorm <- monitoreo_aulas_normalize_plan(.monitoreo_aulas_records(out))[[1]]
+  expect_equal(renorm$expected_valid, 12)
+  expect_equal(renorm$tasa_efectividad_aula, 0.5)
+})
+
+test_that("con el eje en la persona, un nivel sin τ no hereda la de sus vecinos", {
+  plan <- list(.mamd_fila("a1"))
+  dt <- .mamd_dt(list("6" = 0.5, "7" = 0.5, "8" = 0.5))
+  dt$facultades[[4]] <- list(facultad = "9", faculty_key = monitoreo_aulas_eje_key("9"), cuota = 10)
+  out <- monitoreo_aulas_meta_del_diseno(plan, list(design_targets = dt, eje_cuota = "nivel"))
+  expect_identical(out, plan)
+})
+
+test_that("una fila sin elegibles legibles conserva lo que traía", {
+  plan <- list(.mamd_fila("a1", esperada = 7))
+  plan[[1]]$eligible_n <- NA
+  expect_identical(monitoreo_aulas_meta_del_diseno(plan, .mamd_cfg(list("7" = 0.5), "nivel")), plan)
+})
+
+test_that("las tablas de Avance de la app usan la MISMA meta que el libro", {
+  # Lo cazó el revisor metodológico: `monitoreo_aulas_avance_tablas()` leía el
+  # plan de la sesión sin la regla, así que la app y el Sheets —que esa función
+  # existe para igualar— volvían a enseñar dos metas.
+  plan <- list(
+    .mamd_fila("A1", fac = "Letras", el = 40, rend = 0.69),
+    .mamd_fila("A2", fac = "Derecho", el = 40, rend = 0.69)
+  )
+  plan[[1]]$operational_code <- "CH 1"; plan[[2]]$operational_code <- "CH 2"
+  cfg <- list(aulas_universitarias = list(
+    enabled = TRUE, plan = plan,
+    design_targets = list(facultades = list(
+      list(facultad = "Letras", faculty_key = monitoreo_aulas_eje_key("Letras"), cuota = 60, tau = 0.5),
+      list(facultad = "Derecho", faculty_key = monitoreo_aulas_eje_key("Derecho"), cuota = 40, tau = 0.5))),
+    source_mapping = list(collector_var = "collectorID")
+  ))
+  resp <- data.frame(collectorID = c(rep("CH 1", 12), rep("CH 2", 8)),
+                     `_submission_time` = "2026-09-07T10:30:00",
+                     check.names = FALSE, stringsAsFactors = FALSE)
+  sid <- session_create()
+  session_set(sid, "monitoreo_config", cfg)
+  session_set(sid, "monitoreo_snapshot", list(data = resp, synced_at = "2026-09-08T19:16:22Z"))
+  res <- monitoreo_aulas_avance_tablas(sid)
+  # «Rendimiento» lleva la meta por aula: 40 × 0,50 = 20 esperadas y tasa
+  # esperada 0,50 con la τ del diseño; 27,6 y 0,69 con la embebida.
+  rend <- res$tablas[[which(vapply(res$tablas, function(t) identical(t$clave, "rendimiento"), logical(1)))]]
+  cab <- as.character(unlist(rend$cabecera))
+  col <- function(nombre) vapply(rend$filas, function(f) as.numeric(f[[match(nombre, cab)]]), 0)
+  expect_equal(col("Efectivas esperadas"), c(20, 20))
+  expect_equal(col("Tasa de rendimiento de la facultad esperada"), c(0.5, 0.5))
 })
