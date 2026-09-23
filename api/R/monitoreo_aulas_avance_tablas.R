@@ -160,6 +160,9 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
              "No hay plan de aulas del que sacar el avance. Importa la selección de cálculo de muestra primero.")
   }
+  # La misma meta por aula que el libro: esta función existe para que la app y
+  # el Sheets enseñen las mismas tablas (monitoreo_aulas_meta_del_diseno.R).
+  plan <- monitoreo_aulas_meta_del_diseno(plan, aulas_cfg)
   partes <- s$monitoreo_aulas_partes_campo %||% aulas_cfg[["partes_campo"]] %||% list()
   control <- s$monitoreo_aulas_control %||% aulas_cfg[["control"]] %||% list()
   respuestas <- (s$monitoreo_snapshot %||% list())$data

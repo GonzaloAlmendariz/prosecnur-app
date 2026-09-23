@@ -2215,6 +2215,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   plan_crudo <- config[["plan"]] %||% config[["agenda"]]
   ya_normalizado <- !is.null(plan) && !is.null(plan_crudo) && identical(plan, plan_crudo)
   plan <- if (ya_normalizado) cfg[["plan"]] else plan
+  # La meta por aula con la τ del diseño donde la calibración no tiene dueño,
+  # ANTES de que nadie la lea (monitoreo_aulas_meta_del_diseno.R).
+  plan <- monitoreo_aulas_meta_del_diseno(plan %||% cfg[["plan"]], cfg)
   plan_df <- .monitoreo_aulas_df(plan %||% cfg[["plan"]], "plan")
   # El eje del estudio, resuelto UNA vez para todo el tablero. Sin declaración
   # es `facultad`, así que un estudio existente no cambia un byte.
