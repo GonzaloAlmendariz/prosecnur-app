@@ -916,3 +916,21 @@ test_that("las pestañas se crean en el orden del operativo", {
   # «Avance de agendación» sigue pegada a «Aulas Agendadas» (dictado del 09/09).
   expect_lt(match("Avance de agendación", orden), match("Base de control", orden))
 })
+
+test_that("rotulos_retenidos viaja como LISTA en el JSON, también con un solo rótulo", {
+  # CCSS, 2026-09-23: una hoja respetada retuvo UNA columna, el vector de largo
+  # 1 salió como texto (auto_unbox) y la pantalla falló con «(a ?? []).map is
+  # not a function» al traer respuestas.
+  skip_if_not_installed("digest")
+  mock <- .mapl_sheets_mock()
+  mock$seed("Aulas Agendadas", values = list(list("ID MATCH", "OLA"), list("CH 1", "x")))
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  res <- monitoreo_aulas_publicar_libro(spreadsheet_id = "sheet_libro",
+                                        plan = .libro_de_prueba(), partes = .mapl_partes())
+  for (h in res$hojas) {
+    json <- as.character(jsonlite::toJSON(h$rotulos_retenidos, auto_unbox = TRUE))
+    expect_true(startsWith(json, "["), info = paste(h$hoja, json))
+  }
+  uno <- as.character(jsonlite::toJSON(list(r = as.list("CARRERA")), auto_unbox = TRUE))
+  expect_identical(uno, '{"r":["CARRERA"]}')
+})
