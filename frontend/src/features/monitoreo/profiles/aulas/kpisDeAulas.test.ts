@@ -74,7 +74,7 @@ describe("la banda de KPIs", () => {
     expect(etiquetas("calidad")).toContain("Alertas");
     // Desde 2026-09-08 Avance abre por las metas, no por la cuota pendiente:
     // el detalle de qué falta lo lleva la tabla de la pestaña.
-    expect(etiquetas("avance")).toContain("Efectivas");
+    expect(etiquetas("avance")).toContain("Cuentan para la muestra");
     expect(etiquetas("avance")).toContain("Avance a la muestra");
     // Y NO «Cumplen»: esa palabra la usaban a la vez este KPI, el tramo
     // `cerrando` del gráfico de estado y «Meta cumplida» del de cobertura, para
@@ -165,7 +165,7 @@ describe("los siete KPIs de Avance", () => {
 
   it("son estos siete y en este orden", () => {
     expect(aulasKpis(conMetas, "avance").map((k) => k.label)).toEqual([
-      "Efectivas",
+      "Cuentan para la muestra",
       "Muestra",
       "Avance a la muestra",
       "Sobremuestra",
@@ -180,7 +180,7 @@ describe("los siete KPIs de Avance", () => {
     // Las mismas cifras medidas sobre el estado real de HSVG2026 y escritas en
     // la hoja «Avance de campo» del libro: 212 de 2 500 es 8,5 %, y de 3 750 es
     // 5,7 %. Si el KPI y la tabla discrepan, quien mira no puede saber cuál creer.
-    expect(por.Efectivas).toBe("212");
+    expect(por["Cuentan para la muestra"]).toBe("212");
     expect(por.Muestra).toBe("2,500");
     // El separador decimal se escribe como lo produzca el runner: `pctPerfil`
     // usa es-PE y el runner sin ICU degrada a punto. Lo que se pinea es la
@@ -210,7 +210,7 @@ describe("los siete KPIs de Avance", () => {
     expect(por["Avance a la muestra"]).toBe("S/D");
     expect(por.Sobremuestra).toBe("S/D");
     expect(por["Avance a la sobremuestra"]).toBe("S/D");
-    expect(por.Efectivas).toBe("0");
+    expect(por["Cuentan para la muestra"]).toBe("0");
   });
 
   it("las tres tarjetas que Gonzalo cortó no vuelven por la puerta de atrás", () => {
@@ -417,7 +417,7 @@ describe("los KPIs de Avance con una facultad en el selector", () => {
 
   it("las cifras son las de la facultad, no las del estudio", () => {
     const k = por("PSICOLOGÍA");
-    expect(k["Efectivas"].value).toBe("12");
+    expect(k["Cuentan para la muestra"].value).toBe("12");
     expect(k["Muestra"].value).toBe("75");
     expect(k["Avance a la muestra"].value).toBe("16.0 %");
     expect(k["Cursos-horario aplicados"].value).toBe("1");
@@ -426,7 +426,7 @@ describe("los KPIs de Avance con una facultad en el selector", () => {
 
   it("sin facultad puesta sigue diciendo las del estudio", () => {
     const k = Object.fromEntries(aulasKpis(tablero, "avance").map((x) => [x.label, x]));
-    expect(k["Efectivas"].value).toBe("1,063");
+    expect(k["Cuentan para la muestra"].value).toBe("1,063");
     expect(k["Muestra"].value).toBe("2,500");
     expect(k["Cursos-horario aplicados"].value).toBe("56");
   });
@@ -460,7 +460,7 @@ describe("los KPIs de Avance con una facultad en el selector", () => {
 
   it("una facultad sin fila en el bloque no hereda las cifras del estudio", () => {
     const k = por("ARQUITECTURA");
-    expect(k["Efectivas"].value).toBe("0");
+    expect(k["Cuentan para la muestra"].value).toBe("0");
     expect(k["Muestra"].value).toBe("S/D");
     expect(k["Cursos-horario aplicados"].value).toBe("0");
   });
@@ -518,9 +518,9 @@ describe("coherencia entre la banda general y la banda por facultad", () => {
   });
 
   it("«Efectivas» general es la suma de las facultades", () => {
-    const general = num(kpi("", "Efectivas")!.value);
+    const general = num(kpi("", "Cuentan para la muestra")!.value);
     const suma = ["PSICOLOGÍA", "DERECHO"]
-      .map((f) => num(kpi(f, "Efectivas")!.value))
+      .map((f) => num(kpi(f, "Cuentan para la muestra")!.value))
       .reduce((a, b) => a + b, 0);
     expect(general).toBe(suma);
   });

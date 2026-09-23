@@ -875,7 +875,11 @@ export function aulasKpis(
   const metas = metasDeAvance(dashboard, facultadEnFoco);
   return [
     {
-      label: "Efectivas",
+      // **Se llama por lo que cuenta.** Es la cifra de la cuota —efectivas de
+      // la población del diseño, identificadas y sin duplicar—, no la de las
+      // que pasan los filtros: con el eje en la persona son dos números (171 y
+      // 228 en CCSS, 2026-09-23) y llamarlos igual era la incoherencia.
+      label: "Cuentan para la muestra",
       icono: CheckCircle2,
       value: fmt(metas.efectivas),
       // **Las dos ramas nombran la fuente.** Sin eso, estas respuestas y las
@@ -884,8 +888,8 @@ export function aulasKpis(
       // aplicador al cerrar el aula.
       pista: metas.muestra
         ? `de ${fmt(metas.muestra)} de la muestra, de la plataforma`
-        : "de la plataforma, las que pasan los filtros",
-      detalle: "Respuestas que llegaron de la plataforma y pasan los filtros de validez del estudio. Es la misma cifra que preside la tabla de abajo y la hoja «Avance de campo» del libro.",
+        : "de la plataforma, las que suman a la cuota",
+      detalle: "Efectivas de la plataforma que suman a la cuota: de la población que el diseño mide, identificadas y sin duplicar. El bloque «Respuestas» explica las que no suman.",
     },
     {
       label: "Muestra",

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import { fmt, pctPerfil } from "./kpisDeAulas";
+import { AulasBolsasDelAvance } from "./AulasBolsasDelAvance";
+import type { TotalDeAvanceCuota } from "./avanceCuota";
 import type { MonitoreoAulasRespuestasCuenta } from "../../../../api/monitoreo";
 import "./aulasResumenRespuestas.css";
 
@@ -19,7 +21,7 @@ import "./aulasResumenRespuestas.css";
  * 6 % del total, que es donde el problema desaparecía de la vista.
  */
 export function AulasResumenRespuestas({
-  cuenta, sinAula, rotulo = "", grupo = "",
+  cuenta, sinAula, rotulo = "", grupo = "", enLaMuestra = null,
 }: {
   cuenta: MonitoreoAulasRespuestasCuenta | null | undefined;
   /** Respuestas sin aula identificable. Se declara; no se esconde. */
@@ -32,6 +34,17 @@ export function AulasResumenRespuestas({
    * tabla que el lector acaba de mirar. Vacío: «facultad».
    */
   grupo?: string;
+  /**
+   * **El último tramo del embudo: de las efectivas, cuántas cuentan.**
+   *
+   * Gonzalo, 2026-09-23: «la información es incoherente» — la tarjeta decía
+   * «Efectivas 171» y este bloque «228 efectivas», dos cifras con un nombre y
+   * ninguna explicación entre ellas. Las 57 del medio son de un nivel que el
+   * diseño no mide, sin identificar o duplicadas, y las nombra la misma pieza
+   * que Metas (`AulasBolsasDelAvance`). Sólo del estudio entero: las bolsas no
+   * se reparten por facultad.
+   */
+  enLaMuestra?: TotalDeAvanceCuota | null;
 }): ReactNode {
   if (!cuenta) return null;
   // Con una facultad en foco SÍ se pinta el cero: es su respuesta —«esta
@@ -113,6 +126,15 @@ export function AulasResumenRespuestas({
             </span>
           </p>
         </>
+      ) : null}
+      {enLaMuestra && !rotulo && enLaMuestra.validas < cuenta.efectivas ? (
+        <div className="aulas-resp-muestra">
+          <p className="aulas-resp-titular">
+            <strong>{fmt(enLaMuestra.validas)}</strong> de las {fmt(cuenta.efectivas)} efectivas
+            cuentan para la muestra
+          </p>
+          <AulasBolsasDelAvance total={enLaMuestra} />
+        </div>
       ) : null}
       {/* Se dice siempre que las haya: son respuestas que están en el total y
           en ninguna facultad, así que quien sume las facultades y no llegue al

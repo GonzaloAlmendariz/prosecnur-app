@@ -227,7 +227,7 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     // vuelven a ser indistinguibles—.
     // `validasKpi` se retiró el 2026-09-08 con la banda que dictó Gonzalo; la
     // tarjeta de Efectivas es ahora la primera de Avance y se escribe inline.
-    const bloque = kpis.slice(kpis.indexOf('label: "Efectivas"'));
+    const bloque = kpis.slice(kpis.indexOf('label: "Cuentan para la muestra"'));
     const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
     // Lo protegido es que la tarjeta **nombre su fuente**, no la marca concreta.
     // Decía «de Kobo»; ahora dice «de la plataforma», que además de leerse sin

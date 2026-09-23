@@ -6,6 +6,7 @@ import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasResumenPorFacultad } from "./AulasResumenPorFacultad";
 import { AulasResumenRespuestas } from "./AulasResumenRespuestas";
+import { avanceCuota } from "./avanceCuota";
 import { respuestasDeLaFacultad } from "./respuestasDeLaFacultad";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasEstadoPorRol } from "./AulasEstadoPorRol";
@@ -304,6 +305,7 @@ export function AulasPestanaResumen({
                   sinAula={respuestas?.sinAula}
                   rotulo={respuestas?.rotulo ?? ""}
                   grupo={grupoSingular}
+                  enLaMuestra={facultadEnFoco ? null : avanceCuota(dashboard.avance_cuota).total}
                 />
               </section>
             ) : null}
