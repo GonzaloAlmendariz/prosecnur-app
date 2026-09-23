@@ -321,10 +321,20 @@ test_that("conversar lee las hojas del equipo y re-publica las de la app", {
   expect_true(all(.macl_hojas_app %in% tocadas))
   expect_false(any(.macl_hojas_equipo %in% tocadas))
 
-  # Regla de dueño por sheetId: ni un request estructural sobre las del equipo.
+  # Regla de dueño por sheetId: sobre las del equipo sí puede haber requests
+  # —desde el 2026-09-12 el FORMATO viaja, por decisión de Gonzalo (fddb13d5)—,
+  # pero cada uno tiene que pasar el filtro: colores y desplegables sí,
+  # contenido jamás. Es el mismo contrato que test-monitoreo-aulas-publicar-
+  # libro.R; aquí seguía diciendo «ni un request» y llevaba en rojo desde ese día.
   estructurales <- Filter(function(r) is.null(r$addSheet), .macl_batch_requests(mock$env$calls))
-  ids_tocados <- .macl_sheet_ids_en(estructurales)
-  expect_false(any(ids_tocados %in% c(id_agendadas, id_aplicadas)))
+  del_equipo <- Filter(function(r) {
+    any(.macl_sheet_ids_en(list(r)) %in% c(id_agendadas, id_aplicadas))
+  }, estructurales)
+  expect_gt(length(del_equipo), 0L)
+  for (r in del_equipo) {
+    expect_true(prosecnurapp:::.mafr_seguro(r))
+    expect_false(grepl("userEnteredValue", paste(unlist(r), collapse = " "), fixed = TRUE))
+  }
   # Y el contenido del equipo sigue byte a byte en el remoto.
   expect_identical(mock$env$sheets[["Aulas Aplicadas (Campo)"]]$values, aplicadas_antes)
 
@@ -432,7 +442,19 @@ test_that("el segundo ciclo sin cambios no reescribe nada y cuesta pocos request
   # Y cuesta pocos requests: 5 lecturas de pestaña (las tres del libro + las
   # dos Extra de B14, que el pin de test-carga-aulas-desde-sheets.R OBLIGA a
   # pedir para que lo tecleado ahí no muera camino a la app) + el ciclo sin
-  # cambios del publicador (≤ 3, pineado en test-monitoreo-aulas-publicar-
-  # libro.R). Presupuesto subido 6→8 a conciencia el 2026-09-01 por eso.
-  expect_lte(length(segundas), 8L)
+  # cambios del publicador (≤ 5, pineado en test-monitoreo-aulas-publicar-
+  # libro.R). Presupuesto subido 6→8 a conciencia el 2026-09-01 por eso, y
+  # 8→10 al seguirle la serie al publicador: +1 el 2026-09-12 (el `batchUpdate`
+  # de formato a las hojas del equipo) y +1 el 2026-09-17 (el GET que cuenta
+  # sus reglas antes de limpiarlas, uno por documento).
+  expect_lte(length(segundas), 10L)
+  # Y ese `batchUpdate` que ahora viaja cada ciclo sólo puede pintar.
+  formato <- Filter(function(c) grepl(":batchUpdate", c$url, fixed = TRUE) &&
+                      !grepl("values:batchUpdate", c$url, fixed = TRUE), segundas)
+  for (llamada in formato) {
+    for (req in (llamada$body$requests %||% list())) {
+      expect_true(prosecnurapp:::.mafr_seguro(req))
+      expect_false(grepl("userEnteredValue", paste(unlist(req), collapse = " "), fixed = TRUE))
+    }
+  }
 })
