@@ -427,7 +427,9 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
   for (fila in plan) {
     if (!is.list(fila)) next
     fac <- .monitoreo_text_key(.monitoreo_scalar(fila$faculty %||% fila$stratum %||% "", ""))
-    if (!nzchar(fac)) next
+    # La facultad decide las celdas de facultad × sexo, no las del eje: una
+    # fila sin facultad sigue aportando por su composición por nivel, así que
+    # el descarte por facultad va DESPUÉS de esa acumulación (abajo).
     estado_op <- .monitoreo_aulas_status(fila$operational_status %||% "")
     # **Un curso-horario reemplazado no aporta ni va a aportar.**
     #
@@ -471,6 +473,16 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     # otro consumidor, y el arreglo es el mismo: plataforma primero, parte como
     # respaldo, y el estado del plan sigue valiendo cuando SI dice algo.
     aplicada <- estado_op %in% c("aplicada", "cerrada") || .mac_aplicada_de_hecho(fila)
+    agendada <- nzchar(.monitoreo_scalar(fila$scheduled_date %||% fila$fecha %||% "", ""))
+    # **Las celdas del EJE, con la composición del aula.** Con la cuota por
+    # nivel atribuida a la persona las celdas son niveles y ninguna casaba con
+    # la facultad del plan: `previsto` NA y aporte 0 en las cuatro de CCSS. El
+    # marco sabe cuántos elegibles de cada nivel tiene el aula
+    # (`level_composition`), y cada uno rinde la tasa del aula, igual que
+    # reparte el sexo `.mac_esperadas_por_sexo()`. Van a su propia clave —el
+    # nivel, sin sexo— así que una celda de facultad × sexo no las ve.
+    .mac_acumular_composicion(acc, accv, fila, aplicada, agendada)
+    if (!nzchar(fac)) next
     esp <- .mac_esperadas_por_sexo(fila)
     if (!length(esp$valores)) next
     origenes <- c(origenes, esp$origen)
@@ -484,7 +496,6 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     # como c son importantes, deben servir para mayor contexto» — o sea que la
     # pantalla necesita distinguir el techo (todo el plan en juego) de lo que
     # hay comprometido (lo agendado), y no elegir uno.
-    agendada <- nzchar(.monitoreo_scalar(fila$scheduled_date %||% fila$fecha %||% "", ""))
     for (sx in names(esp$valores)) {
       k <- paste0(fac, "|", sx, "|", if (aplicada) "ap" else "pe")
       acc[[k]] <- (acc[[k]] %||% 0) + esp$valores[[sx]]
@@ -513,6 +524,13 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
     proyeccion <- (if (is.finite(logrado)) logrado else 0) + pendiente
     pool <- suppressWarnings(as.numeric(pool_restante[[paste0(fac, "|", sx)]] %||% NA_real_)[1])
     varianza <- accv[[paste0(fac, "|", sx)]] %||% NA_real_
+    # **Una celda del eje sin la composición de TODAS sus aulas no afirma una
+    # probabilidad.** Lo que falta aporta cero en silencio; la varianza queda en
+    # NA como hace el reparto por sexo cuando le falta una tasa, y la celda
+    # publica cuántas aulas le faltan (revisión metodológica, 2026-09-23).
+    es_eje <- identical(.monitoreo_scalar(celda$grano %||% "", ""), "eje")
+    sin_comp <- if (es_eje) as.integer(acc[[.MAC_SIN_COMPOSICION]] %||% 0L) else NA_integer_
+    if (es_eje && sin_comp > 0L) varianza <- NA_real_
     estado <- .mac_estado_proyectado(cuota, proyeccion, pool)
     brecha <- .mac_brecha(cuota, proyeccion)
     cal <- .mac_calibracion(logrado, previsto)
@@ -560,6 +578,9 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
       dispersion = disp$phi,
       dispersion_n = disp$n,
       previsto_origen = origen,
+      # Cuántos cursos-horario en juego no traen su composición por nivel.
+      # Sólo en celdas del eje; `NA` en las de facultad × sexo.
+      aulas_sin_composicion = sin_comp,
       etiqueta = .mac_etiqueta_estado(estado, brecha),
       etiqueta_calibracion = .mac_etiqueta_calibracion(cal, previsto)
     )

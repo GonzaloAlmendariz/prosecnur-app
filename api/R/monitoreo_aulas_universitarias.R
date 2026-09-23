@@ -988,6 +988,10 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     sex_top_1_n = getn(c("sex_top_1_n", "n_sexo_principal", "sexo_top_1_n"), 0),
     sex_top_2 = get(c("sex_top_2", "sexo_secundario", "sexo_top_2"), ""),
     sex_top_2_n = getn(c("sex_top_2_n", "n_sexo_secundario", "sexo_top_2_n"), 0),
+    # Cuántos elegibles de cada nivel tiene el aula («6:3|7:10»), igual que los
+    # dos conteos de sexo de arriba. Sin declararla aquí la lista cerrada se la
+    # traga (calc_muestra_aulas_composicion_nivel.R).
+    level_composition = get(c("level_composition", "composicion_nivel"), ""),
     stratum = get(c("stratum", "estrato"), "global"),
     eligible_n = getn(c("eligible_n", "elegibles"), 0),
     enrolled_total = getn(c("enrolled_total", "matriculados", "total_matriculados"), 0),

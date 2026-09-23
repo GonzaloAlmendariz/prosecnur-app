@@ -430,7 +430,11 @@
       sex_top_1 = .collection_first_string(row, c("sex_top_1", "sexo_principal")),
       sex_top_1_n = .collection_first_number(row, c("sex_top_1_n", "n_sexo_principal")),
       sex_top_2 = .collection_first_string(row, c("sex_top_2", "sexo_secundario")),
-      sex_top_2_n = .collection_first_number(row, c("sex_top_2_n", "n_sexo_secundario"))
+      sex_top_2_n = .collection_first_number(row, c("sex_top_2_n", "n_sexo_secundario")),
+      # Cuántos elegibles de cada nivel tiene el aula, como los conteos de sexo
+      # (calc_muestra_aulas_composicion_nivel.R): sin esta línea el handoff se
+      # la tragaba y Metas no podía proyectar por nivel.
+      level_composition = .collection_first_string(row, c("level_composition", "composicion_nivel"))
     ),
     scheduling = list(
       wave = .collection_first_string(row, c("wave", "muestra", "sample_wave"), "M1"),
@@ -992,6 +996,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       sex_top_1_n = .collection_first_number(unit$dimensions %||% list(), "sex_top_1_n") %||% 0,
       sex_top_2 = .collection_first_string(unit$dimensions %||% list(), "sex_top_2"),
       sex_top_2_n = .collection_first_number(unit$dimensions %||% list(), "sex_top_2_n") %||% 0,
+      level_composition = .collection_first_string(unit$dimensions %||% list(), "level_composition"),
       # `planificada` es la palabra del vocabulario de Monitoreo
       # (`monitoreo_aulas_estados()`). Aqui decia "pendiente", que no esta en
       # esa lista: el plan salia del handoff con un estado que su consumidor no
