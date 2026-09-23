@@ -72,3 +72,30 @@ test_that("la fila del día en que el coordinador la cerró no se toca; sí las 
   o <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", hoy = as.Date("2026-09-23"))
   expect_identical(vapply(o$filas, function(x) x$fecha, ""), "24/09")
 })
+
+test_that("«Traer respuestas» corre el retiro con la distribución recordada, y sin ella no", {
+  llamado <- NULL
+  testthat::local_mocked_bindings(
+    monitoreo_aulas_conversar_libro = function(sid, cfg) list(conversado = FALSE, motivo = "sin_destino"),
+    .monitoreo_state_payload = function(sid, ...) list(),
+    monitoreo_aulas_retirar_cerradas_en_otras_semanas = function(id, ejecutar = FALSE, aplicadas = character(0), ...) {
+      llamado <<- list(id = id, ejecutar = ejecutar, aplicadas = aplicadas)
+      list(filas = list(list(pestana = "Semana 2", codigo = "CH 7", fecha = "29/09", cerrada_en = "x")),
+           retiradas = 1L)
+    }
+  )
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  cfg <- list(aulas_universitarias = list(
+    distribucion_sheets = list(spreadsheet_id = "doc_dist"), plan = list(), partes_campo = list()))
+  session_set(sid, "monitoreo_config", cfg)
+  out <- monitoreo_aulas_sync_payload(sid, list(synced_at = "t"), list())
+  expect_identical(llamado$id, "doc_dist")
+  expect_true(llamado$ejecutar)
+  expect_identical(out$distribucion_retiro$retiradas, 1L)
+  # Sin distribución recordada no se llama y no viaja nada.
+  llamado <- NULL
+  session_set(sid, "monitoreo_config", list(aulas_universitarias = list()))
+  out2 <- monitoreo_aulas_sync_payload(sid, list(synced_at = "t"), list())
+  expect_null(llamado)
+  expect_null(out2$distribucion_retiro)
+})

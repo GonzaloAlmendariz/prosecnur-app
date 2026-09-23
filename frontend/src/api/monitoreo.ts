@@ -6649,6 +6649,11 @@ export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
     dashboard: MonitoreoAulasDashboard;
     state: MonitoreoState;
     libro_conversacion?: MonitoreoAulasLibroConversacion;
+    /** Lo que el sync retiró de la distribución de aplicadores (ya aplicadas o cerradas). */
+    distribucion_retiro?: {
+      ok?: boolean; retiradas?: number; mensaje?: string;
+      filas?: Array<{ pestana?: string; codigo?: string; fecha?: string }> | null;
+    };
   }>(
     await apiFetch("/api/monitoreo/aulas/sync", {
       method: "POST",
