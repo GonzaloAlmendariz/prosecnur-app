@@ -3296,7 +3296,26 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # que el operativo no trata igual —la cuota se fija por facultad Y sexo, y
     # la brecha se suma celda a celda—. Ver
     # `monitoreo_aulas_efectividad_por_sexo.R`.
-    efectividad_por_sexo = attr(course_status, "efectividad_por_sexo") %||% list(),
+    #
+    # **Con la máscara de efectivas del diseño cuando existe.** El atributo de
+    # `course_status` se calcula antes que `avance_cuota` y no la tiene: con el
+    # eje en la persona contaba en el numerador a quien los elegibles no cuentan.
+    #
+    # **Sólo con el eje en la persona**, que es donde las dos poblaciones
+    # difieren. Con el eje en el aula la máscara además saca las respuestas de
+    # un aula fuera de universo cuyo padrón este motor sigue sumando a los
+    # elegibles: bajaba el numerador con el denominador intacto (lo cazó el
+    # verificador, 4 → 2 sobre 12). Ahí la cuenta de siempre ya es coherente.
+    efectividad_por_sexo = local({
+      efectiva <- attr((avance_cuota %||% list())$casos, "efectiva", exact = TRUE)
+      por_persona <- identical(
+        .monitoreo_scalar(monitoreo_aulas_eje(cfg)$atribucion, "aula"), "persona")
+      if (por_persona && is.logical(efectiva) && length(efectiva) == length(valid_response)) {
+        monitoreo_aulas_efectividad_por_sexo(
+          plan_df, responses, cfg = cfg, valid_response = valid_response,
+          response_classroom = response_classroom, efectiva = efectiva)
+      } else attr(course_status, "efectividad_por_sexo") %||% list()
+    }),
     # **Los tres desenlaces del libro, contados por separado** (2026-09-10):
     # «quiero empezar a ver la parte de reemplazos para aulas complementarias
     # (B) o aulas de refuerzo (C)». A —reemplazada por— es el titular que cae y

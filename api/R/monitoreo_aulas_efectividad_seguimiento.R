@@ -696,21 +696,29 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
     # entra aqui solo como incertidumbre de la proyeccion.
     conseguido <- .maes_toma_num_lista(conseguido_k, k, NA_real_)
     cuota <- .maes_toma_num_lista(cuota_k, k, NA_real_)
-    margen <- if (is.finite(conseguido)) {
-      .maes_margen(conseguido, el_pendientes, banda, cuota)
-    } else {
+    # **Con el eje en la persona la cuota no es de este grupo**, y decirlo
+    # «sin_cumplimiento» mandaba a buscar un dato que existe: CCSS publicaba
+    # «No se pudo leer lo conseguido de esta facultad» con 123 conseguidas bien
+    # leídas. La cuota se reparte por nivel y la facultad no tiene la suya; su
+    # cierre se lee celda por celda en `avance_cuota`, donde un nivel que sobra
+    # no cubre a otro que falta (ADR 0079).
+    sin_margen <- function(estado) {
       list(proyectado = NA_real_, optimista = NA_real_, pesimista = NA_real_,
-           restante = NA_real_, estado = "sin_cumplimiento")
+           restante = NA_real_, estado = estado)
     }
+    margen <- if (!eje_en_el_aula) {
+      sin_margen("cuota_en_otro_eje")
+    } else if (is.finite(conseguido)) {
+      .maes_margen(conseguido, el_pendientes, banda, cuota)
+    } else sin_margen("sin_cumplimiento")
     # La misma cuenta con el otro aforo: solo lo que tiene fecha. Misma funcion
     # —una sola formula del margen— y otro pendiente.
     el_agendados <- .maac_toma_num(agendados_k, k, 0)
-    margen_agendado <- if (is.finite(conseguido)) {
+    margen_agendado <- if (!eje_en_el_aula) {
+      sin_margen("cuota_en_otro_eje")
+    } else if (is.finite(conseguido)) {
       .maes_margen(conseguido, el_agendados, banda, cuota)
-    } else {
-      list(proyectado = NA_real_, optimista = NA_real_, pesimista = NA_real_,
-           restante = NA_real_, estado = "sin_cumplimiento")
-    }
+    } else sin_margen("sin_cumplimiento")
     # Las reservas cierran el hueco DEL MARGEN, no la diferencia de tau: una
     # facultad puede rendir por debajo de su tau y cerrar igual porque compro
     # colchon de sobra —medido en la seleccion 2026: margen mediano +49,2 % de
@@ -812,7 +820,7 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   # cerrar igual—. Dentro de cada nivel, por alumnos que faltan.
   peso <- vapply(filas, function(x) {
     switch(x$riesgo %||% "", riesgo_firme = 4, riesgo = 3, ajustado = 2,
-           sin_campo = 1, sin_cuota = 1, sin_cumplimiento = 1, 0)
+           sin_campo = 1, sin_cuota = 1, sin_cumplimiento = 1, cuota_en_otro_eje = 1, 0)
   }, numeric(1))
   falta <- vapply(filas, function(x) {
     v <- x$margen_restante
@@ -865,7 +873,8 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
   # los tres conteos nuevos salen 15 / 0 / 0: HSVG no cambia de conducta.
   .maes_motivo <- function(x) x$riesgo_agendado %||% x$riesgo %||% ""
   sin_campo_n <- vapply(filas, function(x) identical(.maes_motivo(x), "sin_campo"), logical(1))
-  sin_cuota_n <- vapply(filas, function(x) .maes_motivo(x) %in% c("sin_cuota", "sin_cumplimiento"),
+  sin_cuota_n <- vapply(filas, function(x) .maes_motivo(x) %in% c("sin_cuota", "sin_cumplimiento",
+                                                                   "cuota_en_otro_eje"),
                         logical(1))
   evaluadas <- !sin_campo_n & !sin_cuota_n
 
@@ -875,6 +884,9 @@ MONITOREO_AULAS_DIAS_PARA_CUBRIR <- 5L
     fuente = vig$fuente,
     vigencia = vig$vigencia,
     motivo = vig$motivo,
+    # Contra qué se mide la cuota, con la misma declaración que `avance_cuota`:
+    # la pantalla la necesita para decir DÓNDE se lee el cierre cuando no es aquí.
+    eje = monitoreo_aulas_eje_declaracion(eje_seg),
     criterio = list(
       numerador = paste0(
         "efectiva de plataforma (respuesta que pasa los filtros declarados) ",

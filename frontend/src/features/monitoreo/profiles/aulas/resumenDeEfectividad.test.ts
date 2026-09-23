@@ -317,6 +317,22 @@ describe("riesgoDeCierre: el denominador del riesgo", () => {
     expect(r.evaluadas).toBe(0);
   });
 
+  it("con la cuota en otro eje no dice «sin cuota del diseño»: dice por qué eje va", () => {
+    // CCSS Perfil 2026-II: la cuota está trazada por nivel y el bloque agrupa
+    // por facultad. «Sin cuota del diseño» era falso.
+    const r = riesgoDeCierre({
+      eje: { clave: "nivel", etiqueta: "Nivel" },
+      facultades: [{ facultad: "CIENCIAS SOCIALES", riesgo: "cuota_en_otro_eje",
+                     riesgo_agendado: "cuota_en_otro_eje" }],
+      total: { facultades: 1, facultades_evaluadas: 0, facultades_sin_campo: 0,
+               facultades_sin_cuota: 1, facultades_en_riesgo: 0, facultades_en_riesgo_agendado: 0 },
+    } as unknown as MonitoreoAulasEfectividadSeguimiento)!;
+    expect(r.frase).toContain("La cuota se reparte por nivel, no por facultad");
+    expect(r.frase).toContain("Metas");
+    expect(r.frase).not.toContain("sin cuota del diseño");
+    expect(r.frase).not.toContain("cierran su cuota");
+  });
+
   it("con algunas sin evaluar afirma SÓLO sobre lo que midió", () => {
     // Un «todas cierran» con tres grupos sin medir es la misma mentira en
     // pequeño.

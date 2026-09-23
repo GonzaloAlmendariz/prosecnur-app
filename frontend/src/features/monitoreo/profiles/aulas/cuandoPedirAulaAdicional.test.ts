@@ -89,6 +89,25 @@ describe("sin nadie a quien evaluar, no hay buenas noticias que dar", () => {
     expect(a.frase).toContain("no es que no haga falta");
   });
 
+  /**
+   * Con la cuota por NIVEL la facultad no tiene la suya, pero el diseño sí la
+   * trazó: «no hay cuota contra la que proyectar» mandaba a revisar un diseño
+   * que está bien. Se dice por qué eje va y dónde se lee.
+   */
+  it("con la cuota en otro eje dice cuál y dónde se lee, sin afirmar nada", () => {
+    const a = cuandoPedirAulaAdicional({
+      total: {},
+      eje: { clave: "nivel", etiqueta: "Nivel" },
+      facultades: [fila({ facultad: "CIENCIAS SOCIALES", riesgo: "cuota_en_otro_eje",
+                          riesgo_agendado: "cuota_en_otro_eje", aulas_aplicadas: 10, cuota: null })],
+    } as unknown as MonitoreoAulasEfectividadSeguimiento)!;
+    expect(a.sinEvaluar).toHaveLength(1);
+    expect(a.frase).toContain("La cuota se reparte por nivel");
+    expect(a.frase).toContain("Metas");
+    expect(a.frase).not.toContain("No se pudo evaluar ninguna");
+    expect(a.frase).not.toContain("Ninguna facultad necesita aula adicional");
+  });
+
   it("`sin_campo` y `sin_cuota` cuentan igual: ninguna se pudo proyectar", () => {
     const a = cuandoPedirAulaAdicional(bloque([
       fila({ facultad: "A", riesgo: "sin_campo", aulas_aplicadas: 0 }),

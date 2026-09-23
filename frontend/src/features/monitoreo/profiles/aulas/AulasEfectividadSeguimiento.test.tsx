@@ -180,6 +180,27 @@ describe("la τ del diseño contra la del campo", () => {
 
   // --- C3: dos vacíos, y se distinguen ---------------------------------------
 
+  /**
+   * CCSS Perfil 2026-II reparte su cuota por nivel y el bloque agrupa por
+   * facultad: la fila decía «Sin dato» y «No se pudo leer lo conseguido» con
+   * 123 conseguidas bien leídas. Y al arreglarlo, la frase del porqué salía dos
+   * veces seguidas —en la cabecera y en el aviso—, visto a 1440.
+   */
+  it("con la cuota en otro eje lo nombra UNA vez y la insignia dice dónde se lee", () => {
+    const html = render(bloque({
+      eje: { clave: "nivel", columna: "level", etiqueta: "Nivel", etiqueta_plural: "Niveles",
+             etiqueta_sin: "Sin nivel", atribucion: "persona", fuente_valor: "padron", motivo: "" },
+      total: { ...bloque().total, facultades: 1, facultades_evaluadas: 0, facultades_sin_cuota: 1 },
+      facultades: [fac({ facultad: "CIENCIAS SOCIALES", riesgo: "cuota_en_otro_eje",
+                         riesgo_agendado: "cuota_en_otro_eje", cuota: null })],
+    }));
+    expect(html.match(/La cuota se reparte por nivel/g) ?? []).toHaveLength(1);
+    expect(html).toContain("Cuota en Metas");
+    expect(html).toContain("Su cuota se reparte por nivel, no por facultad");
+    expect(html).not.toContain("No se pudo leer lo conseguido");
+    expect(html).not.toContain("Ninguna facultad se queda corta");
+  });
+
   it("sin bloque no finge una tabla", () => {
     expect(render(null)).toContain("todavía no publica el seguimiento");
   });

@@ -90,7 +90,7 @@ export function cuandoPedirAulaAdicional(
   // ninguna de las tres categorías de arriba y hasta hoy caían por el hueco.
   const sinEvaluar = filas.filter((f) => {
     const r = f.riesgo_agendado ?? f.riesgo;
-    return r === "sin_cuota" || r === "sin_cumplimiento" || r === "sin_campo";
+    return r === "sin_cuota" || r === "sin_cumplimiento" || r === "sin_campo" || r === "cuota_en_otro_eje";
   });
   const alumnosQueFaltan = pedirYa.reduce((n, f) => n + falta(f), 0);
 
@@ -127,6 +127,13 @@ export function cuandoPedirAulaAdicional(
         sinEvaluar.length
           ? `De las ${fmt(evaluadas)} que se pudieron evaluar, ninguna necesita aula adicional con lo que tiene agendado.`
           : "Ninguna facultad necesita aula adicional con lo que tiene agendado.",
+      );
+    } else if (sinEvaluar.every((f) => (f.riesgo_agendado ?? f.riesgo) === "cuota_en_otro_eje")) {
+      // La cuota existe, pero repartida por otro eje: decirlo «sin cuota»
+      // mandaba a revisar un diseño que sí la trazó.
+      partes.push(
+        `La cuota se reparte por ${(bloque?.eje?.etiqueta ?? "otro eje").toLowerCase()},`
+        + " no por facultad: si hace falta aula adicional se lee en Metas.",
       );
     } else {
       partes.push(

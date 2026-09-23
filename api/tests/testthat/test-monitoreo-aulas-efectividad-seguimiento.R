@@ -920,13 +920,14 @@ test_that("con el eje en la PERSONA no se inventan grupos que el plan no tiene",
 # entraban al numerador de τ mientras `eligible_n` sólo cuenta a los del diseño.
 # τ salía 75 % contra una prevista de 0,50, en el panel que decide reservas.
 
-.efs_persona <- function(codigos, collectors = rep("a1", length(codigos))) {
+.efs_persona <- function(codigos, collectors = rep("a1", length(codigos)), sexo = NULL) {
   plan <- list(
     list(classroom_id = "a1", operational_code = "CH 1", label = "a1",
          faculty = "CIENCIAS SOCIALES", level = "7",
          sample_role = "titular", wave = "M1", orden = 1,
          eligible_n = 10, expected_valid = 5, sample_status = "agendada",
-         operational_status = "aplicada"),
+         operational_status = "aplicada",
+         sex_top_1 = "Femenino", sex_top_1_n = 6, sex_top_2 = "Masculino", sex_top_2_n = 4),
     list(classroom_id = "a2", operational_code = "CH 2", label = "a2",
          faculty = "CIENCIAS SOCIALES", level = "5",
          sample_role = "titular", wave = "M1", orden = 2,
@@ -945,7 +946,8 @@ test_that("con el eje en la PERSONA no se inventan grupos que el plan no tiene",
   cfg <- monitoreo_aulas_normalize_config(list(
     enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1",
     plan = plan, design_targets = dt, eje_cuota = "nivel",
-    source_mapping = list(collector_var = "collectorID", student_code_var = "codigo")
+    source_mapping = c(list(collector_var = "collectorID", student_code_var = "codigo"),
+                       if (!is.null(sexo)) list(sex_var = "sexo"))
   ))
   padron <- list(
     schema = "monitoreo_aulas_padron_v1", vigencia = "2026-09-07",
@@ -958,6 +960,7 @@ test_that("con el eje en la PERSONA no se inventan grupos que el plan no tiene",
     )
   )
   resp <- data.frame(collectorID = collectors, codigo = codigos, stringsAsFactors = FALSE)
+  if (!is.null(sexo)) resp$sexo <- sexo
   monitoreo_aulas_dashboard(cfg$plan, resp, cfg, padron = padron)
 }
 
@@ -1038,4 +1041,99 @@ test_that("con el eje en el AULA la τ sigue saliendo de su celda, y una faculta
   arte <- .efs_fila(d$efectividad_seguimiento, "Arte")
   expect_identical(arte$tau_previsto, NA_real_)
   expect_identical(arte$tau_previsto_fuente, "sin_tau_del_diseno")
+})
+
+test_that("con el eje en la PERSONA el riesgo dice que la cuota va por otro eje, no que falte un dato", {
+  # CCSS publicaba «No se pudo leer lo conseguido de esta facultad» con 123
+  # conseguidas bien leídas: la facultad no tiene cuota propia porque el diseño
+  # la reparte por nivel.
+  d <- .efs_persona(c("20190001", "20190002", "20190003"))
+  seg <- d$efectividad_seguimiento
+  f <- seg$facultades[[1]]
+  expect_identical(f$riesgo, "cuota_en_otro_eje")
+  expect_identical(f$riesgo_agendado, "cuota_en_otro_eje")
+  expect_identical(seg$total$facultades_evaluadas, 0L)
+  expect_identical(seg$total$facultades_sin_cuota, 1L)
+  # Y el bloque declara contra qué eje se mide, para que la pantalla lo nombre.
+  expect_identical(seg$eje$clave, "nivel")
+  expect_identical(seg$eje$etiqueta, "Nivel")
+})
+
+test_that("con el eje en el AULA la falta de conseguido sigue siendo `sin_cumplimiento`", {
+  plan <- list(.efs_aula("A1", "Letras", eligible = 20, orden = 1))
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 10)), .efs_dt(list(.efs_fac("Letras"))))
+  expect_false(identical(.efs_fila(d$efectividad_seguimiento, "Letras")$riesgo, "cuota_en_otro_eje"))
+  expect_identical(d$efectividad_seguimiento$eje$clave, "facultad")
+})
+
+test_that("la efectividad por sexo usa la misma población arriba y abajo", {
+  # CCSS al cierre del 2026-09-22: Mujeres 78,8 % y Hombres 74,7 % al lado de
+  # una τ de 57,8 %. Ninguna parte puede quedar por encima del todo.
+  plan <- list(list(classroom_id = "a1", operational_code = "CH 1", label = "a1",
+                    faculty = "CIENCIAS SOCIALES", level = "7", sample_role = "titular",
+                    wave = "M1", orden = 1, eligible_n = 10, expected_valid = 5,
+                    sample_status = "agendada", operational_status = "aplicada",
+                    sex_top_1 = "Femenino", sex_top_1_n = 6,
+                    sex_top_2 = "Masculino", sex_top_2_n = 4))
+  resp <- data.frame(collectorID = "a1", codigo = c("x", "y", "z"),
+                     sexo = c("Femenino", "Femenino", "Masculino"), stringsAsFactors = FALSE)
+  cfg <- list(source_mapping = list(collector_var = "collectorID", sex_var = "sexo"))
+  plan_df <- as.data.frame(do.call(rbind, lapply(plan, as.data.frame)))
+  sin <- monitoreo_aulas_efectividad_por_sexo(
+    plan_df, resp, cfg = cfg, valid_response = rep(TRUE, 3),
+    response_classroom = rep("a1", 3), aplicada = TRUE)
+  con <- monitoreo_aulas_efectividad_por_sexo(
+    plan_df, resp, cfg = cfg, valid_response = rep(TRUE, 3),
+    response_classroom = rep("a1", 3), aplicada = TRUE,
+    efectiva = c(TRUE, FALSE, TRUE))
+  f <- function(x, s) Filter(function(c) identical(c$sexo, s), x)[[1]]
+  expect_identical(f(sin, "F")$efectivas, 2L)
+  expect_identical(f(con, "F")$efectivas, 1L)
+  expect_identical(f(con, "M")$efectivas, 1L)
+  # Una máscara de otra longitud no se aplica a ciegas: conserva la cuenta.
+  otra <- monitoreo_aulas_efectividad_por_sexo(
+    plan_df, resp, cfg = cfg, valid_response = rep(TRUE, 3),
+    response_classroom = rep("a1", 3), aplicada = TRUE, efectiva = TRUE)
+  expect_identical(f(otra, "F")$efectivas, 2L)
+})
+
+test_that("en el tablero, con el eje en la persona, el sexo no suma más que la τ", {
+  d <- .efs_persona(c("20190001", "20190002", "20190003", "20190501", "20190502"),
+                    sexo = c("Femenino", "Masculino", "Femenino", "Femenino", "Masculino"))
+  por <- stats::setNames(
+    vapply(d$efectividad_por_sexo, function(c) as.integer(c$efectivas), integer(1)),
+    vapply(d$efectividad_por_sexo, function(c) as.character(c$sexo), character(1)))
+  # Del diseño: 0001 (F), 0002 (M), 0003 (F). Los dos de nivel 5 no cuentan.
+  expect_identical(unname(por[["F"]]), 2L)
+  expect_identical(unname(por[["M"]]), 1L)
+  expect_identical(sum(por), d$efectividad_seguimiento$total$efectivas)
+})
+
+test_that("con el eje en el AULA la efectividad por sexo no cambia, aun con un aula fuera de universo", {
+  # Lo cazó el verificador: la máscara del diseño también saca las respuestas
+  # de un aula virtual, cuyo padrón este motor sigue contando en los elegibles.
+  # Con el eje en el aula la cuenta de siempre es la coherente.
+  plan <- list(
+    c(.efs_aula("A1", "Letras", eligible = 6, orden = 1),
+      list(sex_top_1 = "Femenino", sex_top_1_n = 6)),
+    c(.efs_aula("A3", "Letras", eligible = 6, orden = 3),
+      list(sex_top_1 = "Femenino", sex_top_1_n = 6, replacement_reason = "virtual_no_presencial"))
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(
+    enabled = TRUE, selection_run_id = "run_1", frame_hash = "hash_1", plan = plan,
+    design_targets = .efs_dt(list(.efs_fac("Letras"))),
+    source_mapping = list(collector_var = "collectorID", sex_var = "sexo")
+  ))
+  resp <- data.frame(collectorID = c("A1", "A1", "A3", "A3"),
+                     sexo = rep("Femenino", 4), stringsAsFactors = FALSE)
+  d <- monitoreo_aulas_dashboard(cfg$plan, resp, cfg)
+  f <- Filter(function(c) identical(c$sexo, "F"), d$efectividad_por_sexo)[[1]]
+  plan_df <- as.data.frame(do.call(rbind, lapply(cfg$plan, function(u)
+    as.data.frame(u[c("classroom_id", "faculty", "stratum", "eligible_n", "sex_top_1", "sex_top_1_n")]))))
+  directo <- monitoreo_aulas_efectividad_por_sexo(
+    plan_df, resp, cfg = cfg, valid_response = rep(TRUE, 4),
+    response_classroom = resp$collectorID)
+  g <- Filter(function(c) identical(c$sexo, "F"), directo)[[1]]
+  expect_identical(f$efectivas, g$efectivas)
+  expect_identical(f$elegibles, g$elegibles)
 })

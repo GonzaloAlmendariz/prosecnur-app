@@ -128,12 +128,15 @@ const margenError = (f: MonitoreoAulasEfectividadFacultad): string | null => {
  * `sin_banda` dicen por qué NO se actúa, que es tan informativo como el rojo —y
  * es lo que impide que alguien lea un silencio como un visto bueno.
  */
-function lectura(f: MonitoreoAulasEfectividadFacultad): string {
+function lectura(f: MonitoreoAulasEfectividadFacultad, eje?: string): string {
   // Primero el MARGEN, que es lo que decide. El veredicto de la banda se añade
   // detrás porque explica el porqué, no porque mande.
   if (f.riesgo === "sin_campo") return "Todavía no tiene cursos-horario aplicados: no hay tasa con la que proyectar.";
   if (f.riesgo === "sin_cuota") return "El diseño no le trazó cuota: no hay margen que medir.";
   if (f.riesgo === "sin_cumplimiento") return "No se pudo leer lo conseguido de esta facultad.";
+  if (f.riesgo === "cuota_en_otro_eje") {
+    return `Su cuota se reparte por ${(eje ?? "otro eje").toLowerCase()}, no por facultad: el cierre se lee en Metas.`;
+  }
 
   const falta = f.margen_restante != null && f.margen_restante < 0 ? Math.round(Math.abs(f.margen_restante)) : 0;
   const porque = f.senal === "bajo" ? " Rinde por debajo de la tasa prevista para su facultad."
@@ -254,6 +257,7 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
   sin_campo: { texto: "Sin campo", tono: "neutro" },
   sin_cuota: { texto: "Sin cuota", tono: "neutro" },
   sin_cumplimiento: { texto: "Sin dato", tono: "neutro" },
+  cuota_en_otro_eje: { texto: "Cuota en Metas", tono: "neutro" },
 };
 
 /**
@@ -546,10 +550,17 @@ export function AulasEfectividadSeguimiento({
            *
            * El motor ya publicaba el denominador; faltaba mirarlo.
            */
-          <span>
-            Ninguna se pudo medir contra su cuota, así que de aquí no se puede
-            decir si cierra —no es que cierre—.
-          </span>
+          /**
+           * Y cuando la razón es que la cuota va por OTRO eje, aquí se calla:
+           * el aviso de abajo ya dice cuál es y dónde se lee, y las dos frases
+           * salían seguidas y casi idénticas (visto a 1440 sobre CCSS).
+           */
+          filas.every((f) => (f.riesgo_agendado ?? f.riesgo) === "cuota_en_otro_eje") ? null : (
+            <span>
+              Ninguna se pudo medir contra su cuota, así que de aquí no se puede
+              decir si cierra —no es que cierre—.
+            </span>
+          )
         )}
         {/* **Y qué hacer con eso** (ítems 8 y 9). Gonzalo: «la pregunta
             principal es identificar qué tan bien o mal nos está yendo respecto a
@@ -644,7 +655,7 @@ export function AulasEfectividadSeguimiento({
                         llamaba desde ningún sitio: estaba escrita, probada por
                         nadie y muerta. Va en la insignia, que es donde se mira
                         cuando la palabra sola no basta. */}
-                    <span className={`aulas-tau-chip es-${v.tono}`} title={lectura(f)}>{v.texto}</span>
+                    <span className={`aulas-tau-chip es-${v.tono}`} title={lectura(f, bloque.eje?.etiqueta)}>{v.texto}</span>
                     <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
                       enFoco={enFoco}>
                       {f.facultad}

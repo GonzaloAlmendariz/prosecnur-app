@@ -274,7 +274,19 @@ export function riesgoDeCierre(
     }
     return partes.length ? ` — ${partes.join(" y ")}.` : ".";
   };
-  const frase = evaluadas <= 0
+  /**
+   * **Cuando la cuota va por OTRO eje, no es que no se sepa: se sabe en otra
+   * parte.** CCSS reparte su cuota por nivel y este bloque agrupa aulas por
+   * facultad; «sin cuota del diseño contra la que medir» mandaba a revisar un
+   * diseño que sí la trazó. Se dice cuál es el eje y dónde se lee el cierre.
+   */
+  const filasDelBloque = bloque?.facultades ?? [];
+  const cuotaEnOtroEje = filasDelBloque.length > 0 && filasDelBloque.every(
+    (f) => (f.riesgo_agendado ?? f.riesgo) === "cuota_en_otro_eje",
+  );
+  const frase = evaluadas <= 0 && cuotaEnOtroEje
+    ? `La cuota se reparte por ${(bloque?.eje?.etiqueta ?? "otro eje").toLowerCase()}, no por facultad: si cierra se lee en Metas.`
+    : evaluadas <= 0
     ? `No se puede decir si se cierra la cuota: de ${fmt(grupos)} ${grupos === 1 ? "grupo" : "grupos"}, ninguno se pudo evaluar${porQueNoSeSabe()}`
     : enRiesgoAg
     ? `${fmt(enRiesgoAg)} ${enRiesgoAg === 1 ? "facultad no cierra" : "facultades no cierran"} su cuota con lo que tienen agendado: faltarían ${fmt(alumnosAg)} ${alumnosAg === 1 ? "alumno" : "alumnos"}.`
