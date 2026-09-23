@@ -1948,7 +1948,12 @@ export default function AulasMonitoreoPage() {
       let avisoDescarga = "";
       if (activeSources > 0) {
         try {
-          const inicio = await apiMonitoreoSync(state?.config, [], { syncMode: "advance" });
+          // **Sin config.** La de la pantalla viene RECORTADA del payload (sin
+          // plan ni tablas del marco) y el backend la guardaba tal cual: tras
+          // cada «Traer respuestas» la población de «A quién se está
+          // alcanzando» quedaba en 0 (CCSS, 2026-09-23). Aquí no hay nada que
+          // editar en ella: el backend usa la que ya tiene.
+          const inicio = await apiMonitoreoSync(undefined, [], { syncMode: "advance" });
           if (inicio?.job_id) await esperarSyncDeFuentes(inicio.job_id);
         } catch (cause) {
           avisoDescarga = cause instanceof Error ? cause.message : String(cause);
