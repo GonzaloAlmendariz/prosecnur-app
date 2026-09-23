@@ -1278,6 +1278,16 @@ export type MonitoreoAulasCandidatoDirigido = {
  */
 export type MonitoreoAulasProyeccionFila = {
   facultad: string;
+  /** Clave de la celda (facultad o valor del eje). */
+  faculty_key?: string;
+  /**
+   * La fila es de una cuota SIN sexo —celda del eje, p. ej. nivel—: los campos
+   * `_M`/`_F` llegan nulos y se pinta un solo carril (`carrilesDeLaFila`).
+   */
+  sin_sexo?: boolean;
+  /** Cursos-horario en juego sin composición por nivel (no aportan). */
+  aulas_sin_composicion?: number;
+  supuesto_nivel?: string;
   /** La meta de la combinación elegida, ya escalada por `factor_meta`. */
   meta: number;
   meta_M: number;

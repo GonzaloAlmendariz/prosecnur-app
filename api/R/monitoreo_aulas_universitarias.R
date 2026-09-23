@@ -3394,7 +3394,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # `monitoreo_aulas_payload_proyeccion.R`.
     proyeccion_metas = monitoreo_aulas_proyeccion_payload(
       .monitoreo_aulas_records(plan_df), responses = responses,
-      partes = partes_campo, cuotas = cfg[["design_targets"]], cfg = cfg
+      partes = partes_campo, cuotas = cfg[["design_targets"]], cfg = cfg,
+      avance_cuota = avance_cuota
     ),
     # **De cuántas respuestas cuentan, y por qué no cuentan las demás.** La
     # resta muda —«944 de 1 049»— metía en la misma bolsa las que no son del

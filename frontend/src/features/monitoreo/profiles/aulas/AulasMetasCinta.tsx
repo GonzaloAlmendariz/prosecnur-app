@@ -23,7 +23,12 @@ export function AulasMetasCinta({ cinta, meta }: {
   meta: MandoMeta;
 }): ReactNode {
   if (!cinta) return null;
-  const celdas: ReadonlyArray<readonly [string, number]> = [
+  // Sin sexo en la cuota, la cinta dice sólo la meta y lo que cuenta: cuatro
+  // celdas de hombres y mujeres en cero se leerían como que no hay nada.
+  const celdas: ReadonlyArray<readonly [string, number]> = cinta.sinSexo ? [
+    [meta === "sobremuestra" ? "Sobremuestra" : "Muestra", cinta.meta],
+    ["Cuentan para la muestra", cinta.obtenidas],
+  ] : [
     [meta === "sobremuestra" ? "Sobremuestra" : "Muestra", cinta.meta],
     ["Hombres", cinta.meta_M],
     ["Mujeres", cinta.meta_F],

@@ -15,6 +15,8 @@ import type {
 
 /** La cinta de arriba: la meta elegida y lo conseguido, cada una con su sexo. */
 export type CintaDeMetas = {
+  /** Todas las filas son de una cuota SIN sexo (celdas del eje, p. ej. nivel). */
+  sinSexo?: boolean;
   meta: number;
   meta_M: number;
   meta_F: number;
@@ -39,6 +41,7 @@ export function cintaDeMetas(
 ): CintaDeMetas | null {
   if (!filas || !filas.length) return null;
   return {
+    sinSexo: filas.every((f) => Boolean(f.sin_sexo)),
     meta: suma(filas, "meta"),
     meta_M: suma(filas, "meta_M"),
     meta_F: suma(filas, "meta_F"),
@@ -117,4 +120,38 @@ export function tasasQueSeApartan(
     const d = f.desvio_de_la_del_diseno;
     return typeof d === "number" && Number.isFinite(d) && Math.abs(d) > umbral;
   }).length;
+}
+
+/** Un carril de una fila de Metas: un sexo, o el total cuando la cuota no lo pide. */
+export type CarrilDeMeta = {
+  rotulo: string;
+  tono: "hombres" | "mujeres" | "total";
+  meta: number;
+  obtenidas: number;
+  proyectadas: number | null;
+};
+
+const n0 = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const nONull = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+
+/**
+ * Los carriles de una fila, en UN sitio para los cuatro bloques de Metas.
+ *
+ * Gonzalo, 2026-09-23, sobre CCSS: «la única diferencia es que esas eran por
+ * facultad y por sexo, aquí sólo serían por nivel». Una fila del eje llega con
+ * `sin_sexo` —la cuota no lo pide— y se pinta con un solo carril, «Total»; las
+ * de facultad × sexo, con sus dos de siempre. Decidirlo en cada componente era
+ * invitar a que uno pintara dos carriles vacíos.
+ */
+export function carrilesDeLaFila(f: MonitoreoAulasProyeccionFila): CarrilDeMeta[] {
+  if (f.sin_sexo) {
+    return [{ rotulo: "Total", tono: "total", meta: n0(f.meta), obtenidas: n0(f.obtenidas),
+              proyectadas: nONull(f.proyectadas) }];
+  }
+  return [
+    { rotulo: "Hombres", tono: "hombres", meta: n0(f.meta_M), obtenidas: n0(f.obtenidas_M),
+      proyectadas: nONull(f.proyectadas_M) },
+    { rotulo: "Mujeres", tono: "mujeres", meta: n0(f.meta_F), obtenidas: n0(f.obtenidas_F),
+      proyectadas: nONull(f.proyectadas_F) },
+  ];
 }
