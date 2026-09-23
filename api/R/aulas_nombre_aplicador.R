@@ -66,3 +66,45 @@ aulas_nombre_aplicador <- function(crudo) {
   if (!length(partes)) return("")
   paste(vapply(partes, .ana_bloque, character(1)), collapse = ", ")
 }
+
+#' La clave de COMPARACIÓN de un nombre de aplicador.
+#'
+#' El nombre crudo sigue siendo la identidad (arriba); pero una fijada adoptada
+#' del Sheets de distribución vuelve con el nombre ya escrito para mostrar
+#' —«Chamorro Rodriguez, Rosa Alejandrina»— y la disponibilidad lo guarda crudo
+#' —«CHAMORRO RODRIGUEZ, ROSA ALEJANDRINA»—. Compararlos tal cual partía a cada
+#' aplicador en dos dentro del reparto (medido en CCSS el 2026-09-23: la
+#' equidad listaba diez aplicadores para cinco personas). La clave es el nombre
+#' normalizado, sin mayúsculas ni tildes.
+#' @keywords internal
+.ana_clave <- function(x) {
+  n <- vapply(as.character(x), aulas_nombre_aplicador, character(1), USE.NAMES = FALSE)
+  # En macOS `iconv` translitera «á» como «'a» y «ñ» como «~n»: lo que no es
+  # letra, coma o espacio se descarta DESPUÉS de transliterar.
+  k <- gsub("[^a-z, ]", "", tolower(iconv(n, from = "UTF-8", to = "ASCII//TRANSLIT", sub = "")))
+  # Un nombre que no se pudo transliterar (NA) o sin letras no es una clave:
+  # dos vacíos no son la misma persona.
+  k[is.na(k)] <- ""
+  trimws(k)
+}
+
+#' Las fijadas, con su aplicador escrito como lo tiene la oferta.
+#'
+#' Una fijada cuyo nombre casa (por `.ana_clave`) con un aplicador de la oferta
+#' pasa a llevar el nombre de la oferta; una que no casa con ninguno se deja
+#' como viene —es un externo y el reparto ya sabe tratarlo—.
+#'
+#' @param fij lista nombrada código → aplicador.
+#' @param nombres los nombres de la oferta.
+#' @keywords internal
+.marep_fijadas_a_la_oferta <- function(fij, nombres) {
+  if (!length(fij) || !length(nombres)) return(fij)
+  claves <- .ana_clave(nombres)
+  for (cod in names(fij)) {
+    k <- .ana_clave(fij[[cod]])
+    if (!nzchar(k)) next
+    i <- match(k, claves)
+    if (!is.na(i)) fij[[cod]] <- nombres[[i]]
+  }
+  fij
+}

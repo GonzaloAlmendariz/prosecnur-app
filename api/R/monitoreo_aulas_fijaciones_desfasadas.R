@@ -57,7 +57,9 @@ monitoreo_aulas_fijaciones_desfasadas <- function(guardadas = list(), en_la_hoja
     g <- .mafd_nombre(guardadas[[cod]])
     h <- .mafd_nombre(en_la_hoja[[cod]])
     if (!nzchar(g) || !nzchar(h)) next
-    if (identical(aulas_nombre_aplicador(g), aulas_nombre_aplicador(h))) next
+    # Misma clave que resuelve las fijadas contra la oferta: sin mayúsculas ni
+    # tildes, para que «JESÚS» y «Jesus» no se lean como un cambio.
+    if (identical(.ana_clave(g), .ana_clave(h))) next
     cambiadas[[length(cambiadas) + 1L]] <- list(
       curso_horario = cod, guardado = g, en_la_hoja = h
     )
