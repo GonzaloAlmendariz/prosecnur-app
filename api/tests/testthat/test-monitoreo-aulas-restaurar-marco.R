@@ -45,3 +45,22 @@ test_that("pasa por el normalizador: la población sobrevive al merge del sync",
   expect_true(is.data.frame(out$quotas$category_profiles))
   expect_identical(nrow(out$quotas$category_profiles), 1L)
 })
+
+test_that("un proyecto YA guardado sin el marco lo recupera del marco y la selección de Cálculo", {
+  # CCSS, 2026-09-23 12:12: guardado después del recorte, sin config anterior
+  # de la que restaurar; «257 de 0 de la población» en la app y en el Sheets.
+  anterior <- .mrm_config()
+  roto <- monitoreo_aulas_estado_payload(anterior)
+  frame <- list(category_profiles = anterior$quotas$category_profiles,
+                population_cross_profiles = anterior$quotas$sex_by_faculty)
+  selection <- list(diagnostics = list(profile_distributions = anterior$quotas$profile_distributions),
+                    representativity = anterior$representativity)
+  out <- .monitoreo_aulas_reponer_marco_de_calc(roto, frame, selection)
+  expect_identical(out[["quotas"]][["category_profiles"]], anterior$quotas$category_profiles)
+  expect_identical(out[["quotas"]][["sex_by_faculty"]], anterior$quotas$sex_by_faculty)
+  expect_identical(out[["representativity"]], anterior$representativity)
+  expect_true("quotas$category_profiles" %in% attr(out, "repuesto"))
+  # Uno sano no se toca.
+  sano <- .monitoreo_aulas_reponer_marco_de_calc(anterior, frame, selection)
+  expect_length(attr(sano, "repuesto"), 0L)
+})
