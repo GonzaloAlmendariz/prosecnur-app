@@ -585,6 +585,9 @@ monitoreo_aulas_default_config <- function() {
 # que no llega se conserva; sin previo, el default de siempre.
 monitoreo_aulas_normalize_config <- function(config = list(), previous = list()) {
   if (is.null(config) || !is.list(config)) config <- list()
+  # Lo que el payload del estado recortó no se pierde si la pantalla lo
+  # devuelve (monitoreo_aulas_restaurar_marco.R).
+  config <- .monitoreo_aulas_restaurar_marco(config, previous)
   defaults <- monitoreo_aulas_default_config()
   prev_mapping <- if (is.list(previous)) (previous[["source_mapping"]] %||% list()) else list()
   if (is.list(prev_mapping) && length(prev_mapping)) {
