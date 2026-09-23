@@ -28,7 +28,8 @@
 #'   que es lo que distingue «no llega» de «no se sabe».
 #' @export
 monitoreo_aulas_proyeccion_payload <- function(plan, responses = NULL, partes = list(),
-                                               cuotas = list(), cfg = list()) {
+                                               cuotas = list(), cfg = list(),
+                                               avance_cuota = NULL) {
   plan <- plan %||% list()
   if (!length(plan)) return(NULL)
   if (!length((cuotas %||% list())$facultades %||% list())) return(NULL)
@@ -36,13 +37,23 @@ monitoreo_aulas_proyeccion_payload <- function(plan, responses = NULL, partes = 
                  error = function(e) NULL)
   efs <- tryCatch(monitoreo_aulas_efectivas_por_sexo(plan, responses, cfg),
                   error = function(e) NULL)
+  # Con la cuota atribuida a la PERSONA las celdas son del eje (nivel) y no
+  # casan con ninguna facultad del plan: las filas salen por celda
+  # (monitoreo_aulas_proyeccion_metas_eje.R).
+  por_eje <- identical(.monitoreo_scalar(monitoreo_aulas_eje(cfg)$atribucion, "aula"), "persona")
   salida <- list()
   for (meta in c("muestra", "sobremuestra")) {
     for (tasa in c("diseno", "obtenida")) {
       salida[[paste(meta, tasa, sep = "_")]] <- tryCatch(
-        monitoreo_aulas_proyeccion_metas(plan, efectivas = ef, efectivas_sexo = efs,
-                                         partes = partes, cuotas = cuotas, cfg = cfg,
-                                         tasa = tasa, meta = meta),
+        if (por_eje) {
+          monitoreo_aulas_proyeccion_metas_eje(plan, avance_cuota = avance_cuota, efectivas = ef,
+                                               partes = partes, cuotas = cuotas, cfg = cfg,
+                                               tasa = tasa, meta = meta)
+        } else {
+          monitoreo_aulas_proyeccion_metas(plan, efectivas = ef, efectivas_sexo = efs,
+                                           partes = partes, cuotas = cuotas, cfg = cfg,
+                                           tasa = tasa, meta = meta)
+        },
         error = function(e) list()
       )
     }

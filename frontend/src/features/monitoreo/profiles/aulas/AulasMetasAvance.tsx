@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { fmt, pctPerfil } from "./kpisDeAulas";
 import { claseDeFacultad } from "./tonoDeFacultad";
-import { aulasPorFacultad, filasAlfabeticas } from "./metasDeLaPestana";
+import { carrilesDeLaFila, aulasPorFacultad, filasAlfabeticas } from "./metasDeLaPestana";
 import type {
   MonitoreoAulasPorFacultad,
   MonitoreoAulasProyeccionFila,
@@ -74,11 +74,11 @@ export function AulasMetasAvance({ filas, aulas , eje}: {
         </colgroup>
         <thead>
           <tr>
-            <th className="es-izq">Facultad</th>
+            <th className="es-izq">{etiquetaDelEje(eje)}</th>
             <th className="es-izq" />
             <th className="es-izq">Avance</th>
             <th>%</th>
-            <th>Efectivas</th>
+            <th>{orden.every((f) => f.sin_sexo) ? "Cuentan" : "Efectivas"}</th>
             <th>Meta</th>
             <th>Faltan</th>
             <th>Aulas aplicadas</th>
@@ -86,11 +86,14 @@ export function AulasMetasAvance({ filas, aulas , eje}: {
           </tr>
         </thead>
         {orden.map((f) => {
-          const a = porFacultad.get(f.facultad);
-          const carriles = [
-            ["Hombres", "hombres", f.obtenidas_M, f.meta_M],
-            ["Mujeres", "mujeres", f.obtenidas_F, f.meta_F],
-          ] as const;
+          // Una fila del eje (nivel) no está en `aulas_por_facultad`: sus
+          // aplicados los trae la propia fila —cursos-horario con alumnos de ese
+          // nivel— y las planificadas no tienen equivalente por nivel («—»).
+          const a = f.sin_sexo
+            ? { aplicadas: Number(f.aulas_aplicadas) || 0, planificadas: Number.NaN }
+            : porFacultad.get(f.facultad);
+          const carriles = carrilesDeLaFila(f).map(
+            (c) => [c.rotulo, c.tono, c.obtenidas, c.meta] as const);
           return (
             <tbody key={f.facultad}>
               <tr className="es-facultad">
@@ -100,7 +103,7 @@ export function AulasMetasAvance({ filas, aulas , eje}: {
                 {/* Sin dato de aulas se escribe «—» y no un cero: una facultad
                     sin aulas planificadas no existe, y el cero lo afirmaría. */}
                 <td className="es-num">{a ? fmt(a.aplicadas) : "—"}</td>
-                <td className="es-num">{a ? fmt(a.planificadas) : "—"}</td>
+                <td className="es-num">{a && Number.isFinite(a.planificadas) ? fmt(a.planificadas) : "—"}</td>
               </tr>
               {carriles.map(([sexo, tono, obtenidas, meta]) => {
                 const faltan = Math.max(0, meta - obtenidas);

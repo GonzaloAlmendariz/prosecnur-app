@@ -29,7 +29,7 @@ describe("la cinta suma las facultades, no lee un total aparte", () => {
       fila({ meta: 100, meta_M: 40, meta_F: 60, obtenidas: 30, obtenidas_M: 10, obtenidas_F: 20 }),
       fila({ facultad: "LETRAS", meta: 50, meta_M: 20, meta_F: 30, obtenidas: 5, obtenidas_M: 2, obtenidas_F: 3 }),
     ]);
-    expect(c).toEqual({ meta: 150, meta_M: 60, meta_F: 90, obtenidas: 35, obtenidas_M: 12, obtenidas_F: 23 });
+    expect(c).toEqual({ sinSexo: false, meta: 150, meta_M: 60, meta_F: 90, obtenidas: 35, obtenidas_M: 12, obtenidas_F: 23 });
   });
 
   it("sin filas no hay cinta que pintar, y se dice con null", () => {

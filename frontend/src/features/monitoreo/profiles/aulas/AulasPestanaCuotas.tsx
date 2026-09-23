@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { AulasBolsasDelAvance } from "./AulasBolsasDelAvance";
 import { AulasComposicionReferencial } from "./AulasComposicionReferencial";
-import { etiquetaDelEje } from "./etiquetaDelEje";
+import { etiquetaDelEje, etiquetaPluralDelEje } from "./etiquetaDelEje";
 import { AulasMetasAvance } from "./AulasMetasAvance";
 import { AulasMetasBarras } from "./AulasMetasBarras";
 import { AulasMetasCinta } from "./AulasMetasCinta";
@@ -149,6 +149,13 @@ export function AulasPestanaCuotas({
   // denominador—, y dos copias de la misma regla divergen tarde o temprano.
   const hayPanelDeSexo = Boolean(proyeccion || (facultadEnFoco && proyeccionDelEstudio?.length));
   const avisoDelEje = String(dashboard.avance_cuota?.aviso_eje ?? "").trim();
+  // **Los títulos hablan del eje de la cuota.** Con filas por nivel (sin sexo)
+  // «Metas por facultad y sexo» nombraba lo que la pestaña ya no enseña
+  // (Gonzalo, 2026-09-23: «aquí sólo serían por nivel»).
+  const ejeDeMetas = dashboard.avance_cuota?.eje ?? undefined;
+  const metasSinSexo = Boolean(cinta?.sinSexo);
+  const grupoDeMetas = metasSinSexo && ejeDeMetas ? etiquetaDelEje(ejeDeMetas).toLocaleLowerCase("es") : "facultad";
+  const gruposDeMetas = metasSinSexo && ejeDeMetas ? etiquetaPluralDelEje(ejeDeMetas).toLocaleLowerCase("es") : "facultades";
   return (
     <>
       {/* **Los cinco bloques del boceto del 2026-09-09**, en su orden dictado:
@@ -175,7 +182,7 @@ export function AulasPestanaCuotas({
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            <h3>Metas por facultad y sexo</h3>
+            <h3>{metasSinSexo ? `Metas por ${grupoDeMetas}` : "Metas por facultad y sexo"}</h3>
             {/* **La procedencia del denominador viaja con el bloque que lo
                 usa.** Venía del panel «Cumplimiento de la cuota del estudio»,
                 retirado en esta misma poda: era lo único suyo que no dice
@@ -188,7 +195,7 @@ export function AulasPestanaCuotas({
                 ? `${alcance.noLlegan ? "no llega" : "llega"} con lo que ya tiene agendado · `
                 : null}
               {alcance && !facultadEnFoco
-                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} facultades llegan con lo que ya tienen agendado · `
+                ? `${fmt(alcance.total - alcance.noLlegan)} de ${fmt(alcance.total)} ${gruposDeMetas} llegan con lo que ya tienen agendado · `
                 : null}
               {cuotaDiseno.procedencia.chip}
             </span>
@@ -213,16 +220,18 @@ export function AulasPestanaCuotas({
           <AulasMetasCinta cinta={cinta} meta={meta} />
 
           <div className="mon-profile-panel-head">
-            <h4>Avance por facultad y sexo</h4>
-            <span>efectivas conseguidas contra la cuota de cada sexo</span>
+            <h4>{metasSinSexo ? `Avance por ${grupoDeMetas}` : "Avance por facultad y sexo"}</h4>
+            <span>{metasSinSexo
+              ? `lo que cuenta para la muestra contra la cuota de cada ${grupoDeMetas}`
+              : "efectivas conseguidas contra la cuota de cada sexo"}</span>
           </div>
-          <AulasMetasAvance filas={proyeccion} aulas={dashboard.aulas_por_facultad} />
+          <AulasMetasAvance filas={proyeccion} aulas={dashboard.aulas_por_facultad} eje={dashboard.avance_cuota?.eje ?? undefined} />
 
           <div className="mon-profile-panel-head">
-            <h4>Metas por facultad</h4>
+            <h4>{`Metas por ${grupoDeMetas}`}</h4>
             <span>todas en la misma escala: el alto compara el tamaño del trabajo</span>
           </div>
-          <AulasMetasBarras filas={proyeccion} />
+          <AulasMetasBarras filas={proyeccion} eje={dashboard.avance_cuota?.eje ?? undefined} />
 
           <div className="mon-profile-panel-head">
             <h4>Metas y aulas</h4>
@@ -237,7 +246,7 @@ export function AulasPestanaCuotas({
             valor={tasa}
             onCambio={setTasa}
           />
-          <AulasMetasYAulas filas={proyeccion} />
+          <AulasMetasYAulas filas={proyeccion} eje={dashboard.avance_cuota?.eje ?? undefined} />
 
           {/* El pie: los supuestos salen del DATO —el motor los emite con cada
               fila— y el respaldo de la tasa obtenida se enseña como material,

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
 import { claseDeFacultad } from "./tonoDeFacultad";
-import { filasAlfabeticas } from "./metasDeLaPestana";
+import { carrilesDeLaFila, filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
 import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
@@ -77,10 +77,8 @@ export function AulasMetasYAulas({ filas , eje}: {
               de columnas, que es lo que mantiene alineadas las cifras de todas
               las facultades. */}
           {orden.map((f) => {
-            const carriles = [
-              ["Hombres", "hombres", f.meta_M, f.obtenidas_M, f.proyectadas_M],
-              ["Mujeres", "mujeres", f.meta_F, f.obtenidas_F, f.proyectadas_F],
-            ] as const;
+            const carriles = carrilesDeLaFila(f).map(
+              (c) => [c.rotulo, c.tono, c.meta, c.obtenidas, c.proyectadas] as const);
             // **El techo NO puede depender del escenario.** Lo aplicado y la
             // meta son los mismos con la tasa del diseño y con la obtenida; lo
             // único que cambia entre las dos es la proyección. Si el techo se
@@ -94,7 +92,7 @@ export function AulasMetasYAulas({ filas , eje}: {
             // proyectado se recorta contra el borde cuando lo desborda: ver una
             // barra tocar el final dice «se pasa» sin mentir sobre el resto.
             const techo = Math.max(
-              f.meta_M, f.meta_F, f.obtenidas_M, f.obtenidas_F, 1,
+              ...carriles.map(([, , meta, obtenidas]) => Math.max(meta, obtenidas)), 1,
             ) * 1.04;
             const ancho = (v: number | null) =>
               `${Math.max(0, Math.min(100, (100 * (v ?? 0)) / techo))}%`;
@@ -128,7 +126,10 @@ export function AulasMetasYAulas({ filas , eje}: {
                           <i className="es-aplicado" data-sexo={tono} style={{ width: ancho(obtenidas) }} />
                           <i
                             className="es-proyectado"
-                            style={{ left: ancho(obtenidas), width: ancho(proyectadas) }}
+                            // Recortado contra el borde: lo que se pasa del techo
+                            // se dibujaba fuera del carril y la celda desbordaba.
+                            style={{ left: ancho(obtenidas),
+                                     width: ancho(Math.min(proyectadas ?? 0, Math.max(0, techo - obtenidas))) }}
                           />
                           <i className="es-meta" style={{ left: ancho(meta) }} />
                         </div>

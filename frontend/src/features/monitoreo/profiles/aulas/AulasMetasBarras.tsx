@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fmt } from "./kpisDeAulas";
-import { filasAlfabeticas } from "./metasDeLaPestana";
+import { carrilesDeLaFila, filasAlfabeticas } from "./metasDeLaPestana";
 import type { MonitoreoAulasProyeccionFila } from "../../../../api/monitoreo";
 import "./aulasMetas.css";
 import { etiquetaDeValorEnGrafico, etiquetaDelEje, type EjeDeclarado } from "./etiquetaDelEje";
@@ -150,7 +150,7 @@ export function AulasMetasBarras({ filas , eje}: {
   // es la que tiene que caber entera, y una escala sobre lo logrado recortaría
   // justo la facultad que más pide.
   const techo = Math.max(
-    ...orden.map((f) => Math.max(f.meta_M, f.meta_F, f.obtenidas_M, f.obtenidas_F)),
+    ...orden.map((f) => Math.max(...carrilesDeLaFila(f).map((c) => Math.max(c.meta, c.obtenidas)))),
     1,
   ) * 1.08;
 
@@ -197,8 +197,14 @@ export function AulasMetasBarras({ filas , eje}: {
   return (
     <div className="aulas-metas-scroll">
       <p className="aulas-metas-leyenda">
-        <span><i className="aulas-metas-swatch" data-sexo="hombres" />Hombres</span>
-        <span><i className="aulas-metas-swatch" data-sexo="mujeres" />Mujeres</span>
+        {orden.every((f) => f.sin_sexo) ? (
+          <span><i className="aulas-metas-swatch" data-sexo="total" />Cuentan para la muestra</span>
+        ) : (
+          <>
+            <span><i className="aulas-metas-swatch" data-sexo="hombres" />Hombres</span>
+            <span><i className="aulas-metas-swatch" data-sexo="mujeres" />Mujeres</span>
+          </>
+        )}
         <span><i className="aulas-metas-swatch" data-tramo="meta-contorno" />Meta</span>
       </p>
       {/* **Ocupa el ancho del panel.** Iba con `width` en píxeles y en pantallas
@@ -211,7 +217,9 @@ export function AulasMetasBarras({ filas , eje}: {
         preserveAspectRatio="xMinYMid meet"
         style={{ minWidth: `${ancho}px` }}
         role="img"
-        aria-label="Meta y conseguido de cada facultad, por sexo, en la misma escala"
+        aria-label={orden.every((f) => f.sin_sexo)
+          ? "Meta y lo que cuenta de cada grupo, en la misma escala"
+          : "Meta y conseguido de cada facultad, por sexo, en la misma escala"}
       >
         {bandas.map((banda, r) => (
           <g key={`banda-${r}`}>
@@ -234,11 +242,12 @@ export function AulasMetasBarras({ filas , eje}: {
             })}
             {banda.map((f, i) => {
               const centro = MARGEN.izq + sangria + (i + 0.5) * grupo;
-              const x0 = centro - (2 * barra + hueco) / 2;
-              const carriles = [
-                [f.meta_M, f.obtenidas_M, 0, "hombres"],
-                [f.meta_F, f.obtenidas_F, barra + hueco, "mujeres"],
-              ] as const;
+              // Uno o dos carriles según la fila (`carrilesDeLaFila`): una cuota
+              // por nivel no tiene sexo y pinta una sola barra, centrada.
+              const deLaFila = carrilesDeLaFila(f);
+              const x0 = centro - (deLaFila.length * barra + (deLaFila.length - 1) * hueco) / 2;
+              const carriles = deLaFila.map(
+                (c, k) => [c.meta, c.obtenidas, k * (barra + hueco), c.tono] as const);
               // **Horizontal y repartido en líneas, no en diagonal.** Él: «las
               // etiquetas del eje x pueden tener wrap y tener mayor contracción
               // para que no estén dispuestas de forma diagonal». Un nombre a 45°
@@ -260,7 +269,7 @@ export function AulasMetasBarras({ filas , eje}: {
                         className="aulas-metas-barra-logro" data-sexo={tono}
                       >
                         <title>
-                          {`${etiquetaDeValorEnGrafico(f.facultad, eje)} · ${tono === "hombres" ? "Hombres" : "Mujeres"}: `}
+                          {`${etiquetaDeValorEnGrafico(f.facultad, eje)} · ${tono === "hombres" ? "Hombres" : tono === "mujeres" ? "Mujeres" : "Total"}: `}
                           {fmt(Math.round(obtenidas))} de {fmt(Math.round(meta))}
                         </title>
                       </rect>
