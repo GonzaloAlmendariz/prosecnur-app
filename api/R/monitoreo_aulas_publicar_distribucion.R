@@ -87,11 +87,16 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
     leidas[[hoja]]
   }
   remoto_previo <- valores_de(hoja_previa)
+  # Los estados de TODO el documento, para que un aula cerrada en una semana no
+  # reaparezca en las siguientes (aulas_libro_plan_aplicadores.R).
+  estados_documento <- unlist(lapply(titulos_remotos, function(t) {
+    aulas_distribucion_estados_publicados(valores_de(t))
+  }), use.names = TRUE)
   filas <- aulas_libro_filas_plan_aplicadores(
     plan %||% list(), disponibilidad, cfg = config_reparto,
     partes = partes %||% list(), efectivas = efectivas,
     estados_previos = aulas_distribucion_estados_publicados(remoto_previo),
-    traslape = traslape
+    traslape = traslape, estados_documento = estados_documento
   )
   if (is.null(filas)) {
     stop_api(
@@ -156,7 +161,7 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
         plan %||% list(), disponibilidad, cfg = config_reparto, rep = trozo,
         partes = partes %||% list(), efectivas = efectivas,
         estados_previos = aulas_distribucion_estados_publicados(remoto),
-        traslape = traslape
+        traslape = traslape, estados_documento = estados_documento
       )
       if (is.null(filas_semana) || length(filas_semana) < 2L) next
       if (escritas > 0L) {
