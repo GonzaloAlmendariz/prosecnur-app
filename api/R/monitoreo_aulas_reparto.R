@@ -233,6 +233,10 @@ monitoreo_aulas_reparto <- function(plan = list(), disponibilidad = list(),
     cod <- trimws(nm)
     if (nzchar(cod) && !is.na(v) && nzchar(v)) fij[[cod]] <- v
   }
+  # El nombre fijado se resuelve contra la OFERTA (aulas_nombre_aplicador.R):
+  # la fijada adoptada del Sheets vuelve escrita para mostrar y la oferta la
+  # guarda cruda, y sin esto cada aplicador contaba dos veces en la equidad.
+  fij <- .marep_fijadas_a_la_oferta(fij, nombres)
 
   # Las citas pactadas (ventana confirmada con fecha) y las pendientes del
   # día (todo lo demás CON fecha: tentativas y sin_ventana — el vocabulario
