@@ -160,6 +160,14 @@ monitoreo_aulas_reparto_por_semana <- function(rep, inicio) {
   if (!nzchar(nombre)) return(heredada)
   if (nombre %in% titulos) return(nombre)
   if (!nzchar(heredada) || !length(fechas_cortas)) return(nombre)
+  # **Una pestaña de OTRA semana no hereda.** La herencia existe para el
+  # documento de una sola hoja («Plan del día»). Medido en CCSS el 2026-09-23:
+  # el equipo escribió UNA fila del 28/09 en «Semana 1» y con ella la semana del
+  # 28/09 entera se resolvía a «Semana 1», que estaba respetada, y no se
+  # publicaba: siete citas fuera del documento que leen los aplicadores.
+  if (grepl("^Semana [0-9]+$", trimws(heredada)) && !identical(trimws(heredada), nombre)) {
+    return(nombre)
+  }
   v <- tryCatch(valores_de(heredada), error = function(e) list())
   if (length(v) < 2L) return(nombre)
   cab <- as.character(unlist(v[[1L]], use.names = FALSE))
