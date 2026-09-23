@@ -56,6 +56,7 @@ import { AulasSeccionFuentes } from "./AulasSeccionFuentes";
 import { AulasSeccionCalidad } from "./AulasSeccionCalidad";
 import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
 import { avisoConversacion } from "./avisoConversacion";
+import { fraseDelRetiro } from "./retiroDeLaDistribucion";
 import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
@@ -1985,7 +1986,15 @@ export default function AulasMonitoreoPage() {
       // «actualiza la data de la app pero ya no actualiza el Sheets», sin
       // ningún error en pantalla. Ver `avisoDelSync.ts`.
       const elegido = avisoDelSync(conversacion, result.state?.aviso_fuentes_vacias);
-      if (elegido) setAviso(elegido);
+      // Y lo que se retiró de la distribución de aplicadores, junto al aviso
+      // que ya hay o solo; un fallo de esa limpieza pide atención.
+      const retiro = fraseDelRetiro(result.distribucion_retiro);
+      if (elegido && retiro) {
+        setAviso({ texto: `${elegido.texto} ${retiro.texto}`,
+                   tono: retiro.tono === "atencion" ? "atencion" : elegido.tono });
+      } else if (elegido || retiro) {
+        setAviso((elegido ?? retiro)!);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
