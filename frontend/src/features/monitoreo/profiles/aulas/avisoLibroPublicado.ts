@@ -26,7 +26,7 @@ export type HojaDelLibroPublicada = {
    * Los rótulos que el motor produce y esa hoja NO tiene. Sólo los trae una
    * `respetada`: es lo que la protección del equipo deja fuera.
    */
-  rotulos_retenidos?: string[] | null;
+  rotulos_retenidos?: string[] | string | null;
 };
 
 /**
@@ -42,8 +42,21 @@ export type HojaDelLibroPublicada = {
  * Se nombran hasta tres y se cuenta el resto: la cabecera entera de «Aulas
  * Agendadas» son decenas de rótulos y un aviso que los enumera todos no se lee.
  */
-function conRetenidos(rotulos: string[] | null | undefined): string {
-  const limpios = (rotulos ?? []).map((r) => String(r ?? "").trim()).filter(Boolean);
+/**
+ * Una lista del payload, aunque llegue como texto suelto.
+ *
+ * R serializa un vector de largo 1 como escalar: la primera vez que una hoja
+ * retuvo UNA sola columna, `.map` sobre el texto tumbó el aviso del sync entero
+ * —«(a ?? []).map is not a function», CCSS 2026-09-23—.
+ */
+function comoLista(x: unknown): unknown[] {
+  if (Array.isArray(x)) return x;
+  if (x == null || x === "") return [];
+  return [x];
+}
+
+function conRetenidos(rotulos: string[] | string | null | undefined): string {
+  const limpios = comoLista(rotulos).map((r) => String(r ?? "").trim()).filter(Boolean);
   if (!limpios.length) return "";
   const cabeza = limpios.slice(0, 3).map((r) => `«${r}»`).join(", ");
   const resto = limpios.length - Math.min(3, limpios.length);
@@ -144,7 +157,7 @@ export type AdopcionDeLaDistribucion = {
   error?: string;
   hoja?: string;
   /** Todas las pestañas de las que se adoptó, una por semana. */
-  hojas?: string[] | null;
+  hojas?: string[] | string | null;
   adoptadas?: number;
 };
 
@@ -156,7 +169,7 @@ export type AdopcionDeLaDistribucion = {
  * que las diecinueve personas ya tienen leída.
  */
 function dondeSeAdoptó(ad: AdopcionDeLaDistribucion): string {
-  const hojas = (ad.hojas ?? []).map((h) => String(h).trim()).filter(Boolean);
+  const hojas = comoLista(ad.hojas).map((h) => String(h).trim()).filter(Boolean);
   if (hojas.length > 1) {
     return `${hojas.slice(0, -1).map((h) => `«${h}»`).join(", ")} y «${hojas[hojas.length - 1]}»`;
   }

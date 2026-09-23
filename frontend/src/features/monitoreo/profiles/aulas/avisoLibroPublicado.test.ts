@@ -39,6 +39,15 @@ describe("avisoLibroPublicado", () => {
     expect(texto).not.toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo, no la app; no le llegó");
   });
 
+  it("un solo rótulo retenido llega como TEXTO desde R y el aviso no revienta", () => {
+    // CCSS, 2026-09-23: «(a ?? []).map is not a function» al traer respuestas.
+    // El test de arriba lo escribía como lista, que no es lo que manda R.
+    const texto = avisoLibroPublicado({
+      hojas: [{ hoja: "Aulas Agendadas", accion: "respetada", filas: 45, rotulos_retenidos: "CARRERA" }],
+    } as never).texto;
+    expect(texto).toContain("no le llegó «CARRERA»");
+  });
+
   it("con muchos rótulos retenidos nombra tres y cuenta el resto", () => {
     // La cabecera entera son decenas de rótulos: un aviso que los enumera todos
     // no se lee, y un aviso que no se lee no avisa.

@@ -983,7 +983,11 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
       filas = filas[[hoja]],
       # Sólo una hoja `respetada` puede retener algo; en las demás va vacío y el
       # consumidor no tiene que saber cuál es cuál.
-      rotulos_retenidos = as.character(retenidas[[hoja]] %||% character(0))
+      # **Lista, siempre.** Un vector de largo 1 viaja como TEXTO en el JSON
+      # (auto_unbox) y la pantalla hacía `.map` sobre él: «(a ?? []).map is not
+      # a function» al primer «Traer respuestas» con UNA columna retenida
+      # (CCSS, 2026-09-23).
+      rotulos_retenidos = as.list(as.character(retenidas[[hoja]] %||% character(0)))
     ))
   )
 }
