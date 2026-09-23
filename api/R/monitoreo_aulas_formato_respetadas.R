@@ -212,8 +212,10 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
                                                        geometria = list(),
                                                        tab_map = list(),
                                                        con_daa = FALSE,
-                                                       remotas = NULL) {
-  vacio <- list(hojas = character(0), requests = 0L, descartados = 0L, error = "")
+                                                       remotas = NULL,
+                                                       huellas_previas = list()) {
+  vacio <- list(hojas = character(0), requests = 0L, descartados = 0L, error = "",
+                huellas = list())
   # `remotas` es el nombre que tenía el parámetro cuando la geometría siempre
   # venía de lo remoto. Se acepta para no romper a quien ya lo pasa por nombre.
   if (is.null(geometria) || !length(geometria)) geometria <- remotas %||% list()
@@ -223,6 +225,17 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
   requests <- list()
   tocadas <- character(0)
   descartados <- 0L
+  # **Sólo si cambió.** Se reenviaba el formato entero —unos cien requests y una
+  # lectura de reglas— en CADA «Traer respuestas», aunque la hoja fuera la misma
+  # (lo cazó el presupuesto del segundo ciclo en test-monitoreo-aulas-
+  # conversar.R: 10 requests contra 8). Mismo criterio que el motor ya aplica a
+  # las hojas de la app: si lo que se enviaría es idéntico a lo último enviado,
+  # no se pide nada. Una hoja cuya geometría cambió da otra huella y se pinta.
+  huellas <- list()
+  huella_de <- function(x) {
+    if (!requireNamespace("digest", quietly = TRUE)) return("")
+    digest::digest(x, algo = "sha256")
+  }
   # Una sola lectura para todo el documento, y PEREZOSA: si ninguna hoja llega a
   # necesitar formato —sin `sheetId` conocido, sin filas— no se emite ni una
   # petición. Había un test que lo fijaba y tenía razón: preguntar «cuántas
@@ -248,6 +261,10 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
     if (!length(filas)) next
     brutos <- tryCatch(.malp_formato_requests(sheet_id, hoja, filas, con_daa = con_daa),
                        error = function(e) list())
+    huella <- huella_de(list(sheet_id, brutos))
+    huellas[[hoja]] <- huella
+    previa <- .monitoreo_scalar((huellas_previas %||% list())[[hoja]] %||% "", "")
+    if (nzchar(huella) && identical(huella, previa)) next
     # Primero se quitan las que ya tiene: si no, cada publicación deja otra
     # copia de las mismas reglas encima.
     brutos <- c(.mafr_borrar_reglas(sheet_id, previas_de(sheet_id)), brutos)
@@ -258,7 +275,8 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
     tocadas <- c(tocadas, hoja)
   }
   if (!length(requests)) {
-    return(list(hojas = character(0), requests = 0L, descartados = descartados, error = ""))
+    return(list(hojas = character(0), requests = 0L, descartados = descartados, error = "",
+                huellas = huellas))
   }
   err <- ""
   tryCatch(
@@ -270,9 +288,10 @@ monitoreo_aulas_formato_a_hojas_del_equipo <- function(spreadsheet_id, hojas,
   # Un fallo aquí NO tumba la publicación: la hoja del equipo sigue como estaba
   # y lo único que se pierde es el color. Se nombra para que no sea un silencio.
   if (nzchar(err)) {
+    # Sin huellas: lo que no llegó se reintenta la próxima vez.
     return(list(hojas = character(0), requests = length(requests),
-                descartados = descartados, error = err))
+                descartados = descartados, error = err, huellas = list()))
   }
   list(hojas = tocadas, requests = length(requests),
-       descartados = descartados, error = "")
+       descartados = descartados, error = "", huellas = huellas)
 }

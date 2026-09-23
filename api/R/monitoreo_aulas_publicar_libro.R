@@ -952,7 +952,9 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
   })
   formato_equipo <- monitoreo_aulas_formato_a_hojas_del_equipo(
     id, del_equipo, geometria = geometria, tab_map = tab_map,
-    con_daa = con_daa)
+    con_daa = con_daa,
+    # Lo último que se envió: si no cambió, no se reenvía (formato_respetadas).
+    huellas_previas = ((config_aulas %||% list())[["libro_publicado"]] %||% list())[["formato_equipo_huellas"]] %||% list())
 
   list(
     ok = TRUE,
@@ -1187,7 +1189,11 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
       publicado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       synced_at = .monitoreo_scalar((s$monitoreo_snapshot %||% list())$synced_at, ""),
       hojas = length(publicado$hojas %||% list()),
-      partes = length(s$monitoreo_aulas_partes_campo %||% list())
+      partes = length(s$monitoreo_aulas_partes_campo %||% list()),
+      # Las huellas del formato que llegó a las hojas del equipo: la próxima
+      # publicación no lo reenvía si no cambió.
+      formato_equipo_huellas = (publicado$formato_equipo %||% list())$huellas %||%
+        (aulas_cfg[["libro_publicado"]] %||% list())[["formato_equipo_huellas"]] %||% list()
     )
     cfg[["aulas_universitarias"]] <- monitoreo_aulas_normalize_config(aulas_cfg)
     .monitoreo_store_config(sid, cfg, rebuild_dashboard = FALSE)

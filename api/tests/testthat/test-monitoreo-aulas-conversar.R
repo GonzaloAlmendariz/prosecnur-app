@@ -321,10 +321,20 @@ test_that("conversar lee las hojas del equipo y re-publica las de la app", {
   expect_true(all(.macl_hojas_app %in% tocadas))
   expect_false(any(.macl_hojas_equipo %in% tocadas))
 
-  # Regla de dueño por sheetId: ni un request estructural sobre las del equipo.
+  # Regla de dueño por sheetId: sobre las del equipo sólo FORMATO.
+  #
+  # Decía «ni un request estructural» y quedó vieja el 2026-09-12, cuando
+  # Gonzalo decidió que el formato —colores, desplegables— sí viaje a esas dos
+  # hojas y los valores nunca (monitoreo_aulas_formato_respetadas.R). El test
+  # siguió exigiendo cero y estuvo en rojo desde entonces. Lo que protege la
+  # regla de dueño es que no se escriba CONTENIDO: cada request que toca una
+  # hoja del equipo tiene que pasar el mismo filtro de formato que el código.
   estructurales <- Filter(function(r) is.null(r$addSheet), .macl_batch_requests(mock$env$calls))
-  ids_tocados <- .macl_sheet_ids_en(estructurales)
-  expect_false(any(ids_tocados %in% c(id_agendadas, id_aplicadas)))
+  del_equipo <- Filter(function(r) any(.macl_sheet_ids_en(r) %in% c(id_agendadas, id_aplicadas)),
+                       estructurales)
+  expect_identical(length(monitoreo_aulas_formato_seguro(del_equipo)), length(del_equipo))
+  prohibidos <- vapply(del_equipo, function(r) names(r)[1] %in% .mafr_PROHIBIDOS, logical(1))
+  expect_false(any(prohibidos))
   # Y el contenido del equipo sigue byte a byte en el remoto.
   expect_identical(mock$env$sheets[["Aulas Aplicadas (Campo)"]]$values, aplicadas_antes)
 

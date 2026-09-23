@@ -237,3 +237,29 @@ test_that("`remotas` sigue valiendo como alias de la geometria", {
   expect_identical(por_alias$requests, por_nombre$requests)
   expect_identical(por_alias$hojas, "Aulas Agendadas")
 })
+
+test_that("sin cambios desde lo último enviado, el formato del equipo no se reenvía", {
+  # Se reenviaban ~100 requests y una lectura de reglas en CADA «Traer
+  # respuestas» (presupuesto del segundo ciclo: 10 contra 8, 2026-09-23).
+  skip_if_not_installed("digest")
+  llamadas <- 0L
+  testthat::local_mocked_bindings(
+    .monitoreo_google_api = function(...) { llamadas <<- llamadas + 1L; list(sheets = list()) }
+  )
+  geo <- list(`Aulas Agendadas` = list(list("ID MATCH", "OLA"), list("CH 1", "x")))
+  tabs <- list(`Aulas Agendadas` = list(sheet_id = 101L))
+  uno <- monitoreo_aulas_formato_a_hojas_del_equipo("doc", "Aulas Agendadas", geometria = geo, tab_map = tabs)
+  expect_true(llamadas > 0L)
+  expect_true(nzchar(uno$huellas[["Aulas Agendadas"]]))
+  antes <- llamadas
+  dos <- monitoreo_aulas_formato_a_hojas_del_equipo("doc", "Aulas Agendadas", geometria = geo,
+                                                   tab_map = tabs, huellas_previas = uno$huellas)
+  expect_identical(llamadas, antes)
+  expect_identical(dos$requests, 0L)
+  # Otra geometría: otra huella, y se vuelve a pintar.
+  geo2 <- list(`Aulas Agendadas` = c(geo[[1]], list(list("CH 2", "y"))))
+  tres <- monitoreo_aulas_formato_a_hojas_del_equipo("doc", "Aulas Agendadas", geometria = geo2,
+                                                    tab_map = tabs, huellas_previas = uno$huellas)
+  expect_true(llamadas > antes)
+  expect_false(identical(tres$huellas[["Aulas Agendadas"]], uno$huellas[["Aulas Agendadas"]]))
+})
