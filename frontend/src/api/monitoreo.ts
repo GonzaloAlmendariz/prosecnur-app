@@ -1101,6 +1101,12 @@ export type MonitoreoAulasEfectividadFacultad = {
   faculty_key: string;
   /** La τ que el diseño supuso. `null` cuando no trazó esta facultad. */
   tau_previsto: number | null;
+  /**
+   * De dónde sale la τ prevista: su celda del diseño, la τ única del diseño
+   * (eje en la persona) o por qué no hay. Opcional: payloads viejos no la traen.
+   */
+  tau_previsto_fuente?: "celda_del_diseno" | "uniforme_del_diseno" | "diseno_con_tau_distintas"
+    | "sin_tau_del_diseno" | string;
   /** Efectivas de plataforma / elegibles de las aulas aplicadas. */
   tau_observado: number | null;
   /** Extremos de la banda al 95 %. `null` con menos de dos aulas aplicadas. */
@@ -1130,7 +1136,12 @@ export type MonitoreoAulasEfectividadFacultad = {
    * Una facultad puede rendir bajo su τ y estar `holgado`: en la selección 2026
    * el margen mediano es +49,2 % de la cuota.
    */
-  riesgo: "holgado" | "ajustado" | "riesgo" | "riesgo_firme" | "sin_campo" | "sin_cuota" | "sin_cumplimiento";
+  riesgo: "holgado" | "ajustado" | "riesgo" | "riesgo_firme" | "sin_campo" | "sin_cuota" | "sin_cumplimiento"
+    /**
+     * La cuota se reparte por otro eje (nivel) y este grupo no tiene la suya:
+     * su cierre se lee celda por celda en `avance_cuota`, no aquí.
+     */
+    | "cuota_en_otro_eje";
   /** La cuota de alumnos del diseño para esta facultad. */
   cuota: number | null;
   /** Válidas de plataforma ya conseguidas. Sale de `avance_cuota`, no se recalcula. */
@@ -1352,6 +1363,8 @@ export type MonitoreoAulasEfectividadSeguimiento = {
   fuente: "design_targets" | "plan_expected";
   vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
   motivo: string;
+  /** Contra qué se mide la cuota; la misma declaración que `avance_cuota.eje`. */
+  eje?: MonitoreoAulasAvanceCuota["eje"];
   criterio: {
     numerador: string;
     denominador: string;

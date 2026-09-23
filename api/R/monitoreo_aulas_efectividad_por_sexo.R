@@ -51,6 +51,9 @@
 #'
 #'   `NULL` cae a `application_state` para quien la tenga, pero el llamador de
 #'   dentro del motor pasa el vector explicito.
+#' @param efectiva lógico por fila de `responses`: cuáles son entrevistas
+#'   efectivas DEL DISEÑO (el atributo `efectiva` de `avance_cuota$casos`).
+#'   `NULL` —o de otra longitud— conserva la cuenta de siempre.
 #' @return lista de celdas `facultad x sexo` con elegibles, esperadas,
 #'   efectivas, las dos tasas y la diferencia en PERSONAS.
 #' @export
@@ -58,7 +61,8 @@ monitoreo_aulas_efectividad_por_sexo <- function(plan_df, responses = data.frame
                                                  cfg = list(),
                                                  valid_response = logical(0),
                                                  response_classroom = character(0),
-                                                 aplicada = NULL) {
+                                                 aplicada = NULL,
+                                                 efectiva = NULL) {
   if (!is.data.frame(plan_df) || !nrow(plan_df)) return(list())
 
   # **Sin `aplicada`, se deduce de las RESPUESTAS y no de una columna de estado.**
@@ -145,6 +149,16 @@ monitoreo_aulas_efectividad_por_sexo <- function(plan_df, responses = data.frame
     # aula que el plan aun no da por aplicada compararia dos universos.
     de_aplicada <- !is.na(atr$fila) & aplicada[pmax(1L, atr$fila)]
     keep <- atr$valid & nzchar(facultad) & sexo_key %in% c("F", "M") & de_aplicada
+    # **Y sólo las de la población que miden los elegibles.** `sex_top_*_n`
+    # cuenta a la población del diseño; con el eje en la persona el aula entera
+    # contesta y el diseño mide un subconjunto. Medido sobre CCSS Perfil 2026-II
+    # al cierre del 2026-09-22: elegibles 118 + 95 = 213 del diseño contra
+    # efectivas 93 + 71 = 164 del aula entera, y la fila publicaba Mujeres
+    # 78,8 % y Hombres 74,7 % al lado de una τ de 57,8 %. Ninguna de las dos
+    # partes puede quedar por encima del todo.
+    if (is.logical(efectiva) && length(efectiva) == length(keep)) {
+      keep <- keep & efectiva %in% TRUE
+    }
     if (any(keep)) {
       fk <- .cm_criterios_fac_key(facultad[keep])
       sk <- sexo_key[keep]
