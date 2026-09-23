@@ -188,5 +188,10 @@ monitoreo_aulas_sync_payload <- function(sid, snapshot, dashboard, saved_project
     saved_project = isTRUE(saved_project)
   )
   if (con_destino) payload[["libro_conversacion"]] <- conversacion
+  # La distribución de los aplicadores deja de listar lo que ya se cerró —en el
+  # Sheets o por respuestas en la plataforma— (monitoreo_aulas_distribucion_
+  # retirar_cerradas.R). Total: un fallo aquí no tumba el sync.
+  retiro <- monitoreo_aulas_retirar_cerradas_en_sesion(sid, session_get(sid)$monitoreo_config %||% cfg)
+  if (!is.null(retiro)) payload[["distribucion_retiro"]] <- retiro
   payload
 }
