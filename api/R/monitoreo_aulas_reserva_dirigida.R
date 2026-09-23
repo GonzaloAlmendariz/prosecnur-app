@@ -164,7 +164,8 @@ MONITOREO_AULAS_RESERVA_DIRIGIDA_SCHEMA <- "monitoreo_aulas_reserva_dirigida_v1"
 #' @export
 monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo = "F",
                                              tasa_aula = NULL, ya_medidos = character(0),
-                                             tope = 5L, eje = NULL, grano = "") {
+                                             tope = 5L, eje = NULL, grano = "",
+                                             factor = 1) {
   if (!is.list(eje) || !length(eje)) eje <- monitoreo_aulas_eje(list())
   # **La columna del banco la dice el eje.** Buscaba `a$faculty` siempre, así
   # que con la cuota por nivel comparaba «6» contra «CIENCIAS SOCIALES» y no
@@ -173,6 +174,7 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
   fac <- .maac_eje_key(facultad, eje)
   if (identical(fac, paste0("sin_", .monitoreo_scalar(eje[["clave"]], "facultad")))) fac <- ""
   sin_sexo <- identical(.monitoreo_scalar(grano, ""), "eje")
+  por_persona <- identical(.monitoreo_scalar(eje[["atribucion"]], "aula"), "persona")
   # La celda llega con su etiqueta ("Femenino", "Mujer", "F"); aquí se reduce a
   # la clave del diseño. Sin clave no se adivina: se devuelve vacío, porque
   # inventar a qué sexo pertenece un candidato es peor que no proponerlo.
@@ -187,12 +189,26 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
     # esta celda. La clave se saca con `.maac_eje_key`, la misma que usó
     # `avance_cuota` para armar las celdas: dos normalizadores distintos sobre
     # los dos lados de la comparación es como se fabrica un cero mudo.
-    if (!identical(.maac_eje_key(a[[columna]] %||% "", eje), fac)) next
-    ap <- .mard_aporte(a, sexo, ya_medidos, sin_sexo = sin_sexo)
+    #
+    # **Con el eje en la persona, la composición del aula manda sobre su moda**
+    # (monitoreo_aulas_composicion_eje.R): un aula de nivel modal 8 con alumnos
+    # de 9 sí cierra la celda del 9. Sin composición, la regla de siempre.
+    ap_comp <- if (sin_sexo && por_persona) .mard_aporte_composicion(a, fac, eje, ya_medidos) else NULL
+    if (is.null(ap_comp) && !identical(.maac_eje_key(a[[columna]] %||% "", eje), fac)) next
+    ap <- ap_comp %||% .mard_aporte(a, sexo, ya_medidos, sin_sexo = sin_sexo)
     if (ap$netos <= 0) next
     elig <- suppressWarnings(as.numeric(.monitoreo_scalar(a$eligible_n %||% 0, 0))[1])
     if (!is.finite(elig) || elig <= 0) elig <- ap$elegibles
-    tasa <- suppressWarnings(as.numeric(tasa_aula(elig))[1])
+    # **Si la meta del aula ya es la del DISEÑO, su tasa también.** Con la τ
+    # del diseño decidida (monitoreo_aulas_meta_del_diseno.R), estimar el
+    # aporte del candidato con la curva embebida reabría las dos varas en el
+    # único panel que dice a qué aula ir. Se corrige por el mismo factor de
+    # campo que la celda publica.
+    tasa_propia <- suppressWarnings(as.numeric(.monitoreo_scalar(a$tasa_efectividad_aula %||% NA, NA))[1])
+    tasa <- if (identical(.monitoreo_scalar(a$efectividad_fuente %||% "", ""), "tau_global") &&
+                is.finite(tasa_propia) && tasa_propia > 0) {
+      min(1, tasa_propia * (if (is.finite(factor) && factor > 0) factor else 1))
+    } else suppressWarnings(as.numeric(tasa_aula(elig))[1])
     if (!is.finite(tasa) || tasa <= 0) next
     filas[[length(filas) + 1L]] <- list(
       classroom_id = .monitoreo_scalar(a$classroom_id %||% a$operational_code %||% "", ""),
@@ -290,7 +306,8 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
       pool = banco, facultad = .monitoreo_scalar(c1$faculty %||% "", ""),
       sexo = .monitoreo_scalar(c1$sex %||% "F", "F"),
       tasa_aula = tasa_de_la_celda,
-      ya_medidos = ya_medidos, tope = tope, eje = eje, grano = grano
+      ya_medidos = ya_medidos, tope = tope, eje = eje, grano = grano,
+      factor = if (is.finite(factor) && factor > 0) factor else 1
     )
     aporte <- if (length(cand)) sum(vapply(cand, function(x) x$aporte_esperado, numeric(1))) else 0
     brecha <- suppressWarnings(as.integer(.monitoreo_scalar(c1$brecha %||% 0, 0))[1])

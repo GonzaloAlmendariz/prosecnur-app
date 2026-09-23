@@ -1591,7 +1591,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las columnas son derivadas y referenciales; moverian la firma en vano e
   # invalidarian artefactos acreditados (calc_muestra_aulas_efectividad.R).
   frame_hash_estable <- .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters))
-  aula_frame <- .cm_aulas_efectividad_anotar(aula_frame, calibracion = .cm_efectividad_calibracion(cfg))
+  aula_frame <- .cm_aulas_composicion_anotar(.cm_aulas_efectividad_anotar(aula_frame, calibracion = .cm_efectividad_calibracion(cfg)), classroom_id, student_id, level, eligible_row)
 
   out <- list(
     schema = "calc_muestra_aulas_frame_v1",
@@ -4541,7 +4541,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     # ajusta por su tamano y la de la facultad es la que dimensiono la muestra.
     # Publicar solo una obligaba a cada consumidor a reconstruir la otra.
     "tasa_facultad", "esperadas_facultad",
-    "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
+    "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n", "level_composition",
     "stratum", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
     "nonresponse_adjustment_flag", "poststratification_flag", "weight_warning",

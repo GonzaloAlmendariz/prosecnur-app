@@ -516,7 +516,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
     "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
     "factor_facultad", "facultad_k", "tasa_efectividad_aula",
-    "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
+    "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n", "level_composition",
     "stratum", "historical_sample_label", "operation_status", "field_status",
     "scheduled_date", "scheduled_time", "applied_date", "applied_time",
     "total_sent", "was_used_in_field", "used_as_replacement",
