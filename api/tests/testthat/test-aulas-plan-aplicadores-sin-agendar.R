@@ -383,3 +383,15 @@ test_that("la columna sólo habla de lo CONSUMADO, no de lo que está en el plan
   # palabra entera: «PLAYA» no es un veredicto consumado.
   expect_identical(.alpa_traslape_nota(.apsa_tr(c(`CH 1` = "AULA DE PLAYA EN HSVG")), "CH 1"), "")
 })
+
+test_that("cerrada en OTRA pestaña del documento, tampoco vuelve", {
+  # CCSS, 2026-09-23: el coordinador cerró CH 42, CH 7… en «Semana 1» y la
+  # semana 2 y la 3 las volvían a listar «POR APLICAR SIN AGENDACIÓN» porque
+  # cada pestaña sólo miraba sus propios estados.
+  otra <- stats::setNames("APLICADA SIN AGENDACIÓN", paste("CH 7", "24/09", sep = "\r"))
+  filas <- aulas_libro_filas_plan_aplicadores(
+    .APSA_PLAN, .apsa_disp(), estados_previos = character(0), estados_documento = otra)
+  expect_false("CH 7" %in% .apsa_codigos(filas[-1L]))
+  # Sin ese estado en ninguna pestaña, sigue.
+  expect_true("CH 7" %in% .apsa_codigos(.apsa_filas(.APSA_PLAN, character(0))))
+})

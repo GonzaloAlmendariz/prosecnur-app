@@ -351,7 +351,11 @@ MONITOREO_AULAS_ESTADOS_DISTRIBUCION <- c(
 aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(), rep = NULL,
                                               partes = list(), efectivas = NULL,
                                               estados_previos = character(0),
-                                              traslape = NULL) {
+                                              traslape = NULL,
+                                              # Los estados de TODAS las pestañas del
+                                              # documento: un aula cerrada en la
+                                              # semana 1 no se siembra en la 2.
+                                              estados_documento = character(0)) {
   if (is.null(disponibilidad) || !length(disponibilidad)) return(NULL)
   cfg <- if (is.list(cfg)) cfg else list()
   # S7: el tablero ya tiene el reparto calculado y lo pasa; sin él se calcula
@@ -483,7 +487,13 @@ aulas_libro_filas_plan_aplicadores <- function(plan, disponibilidad, cfg = list(
       # Aplicada, rechazada o reagendada: se cierra y no vuelve la semana que
       # viene. Se mira lo PUBLICADO, que es donde el coordinador la cerró, y la
       # evidencia del propio operativo.
-      if (.alpa_cerrada_en_publicado(estados_previos, cod)) next
+      # **En cualquier pestaña, no sólo en ésta.** El coordinador la cierra en
+      # la semana en que la aplicó; mirando sólo la pestaña que se publica,
+      # la semana 2 y la 3 la volvían a listar «POR APLICAR SIN AGENDACIÓN».
+      # Medido en CCSS el 2026-09-23: 12 filas en la semana 2 y 17 en la 3 de
+      # aulas ya cerradas en la semana 1.
+      if (.alpa_cerrada_en_publicado(estados_previos, cod) ||
+          .alpa_cerrada_en_publicado(estados_documento, cod)) next
       aplicada <- isTRUE(aplicadas[[cod]] %||% FALSE)
       deducido <- .alpa_estado_sin_agendar(u, aplicada)
       if (deducido %in% .ALPA_TERMINALES) next
