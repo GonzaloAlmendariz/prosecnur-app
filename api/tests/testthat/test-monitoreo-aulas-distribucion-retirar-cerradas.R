@@ -28,14 +28,47 @@ test_that("sólo se retiran filas de la app, de aulas cerradas en otra pestaña"
     .cads_valores_de_pestana = function(id, hoja) pestanas[[hoja]],
     .monitoreo_sheets_batch_update = function(id, requests) { enviados <<- requests; list() }
   )
-  seco <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", ejecutar = FALSE)
+  seco <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", ejecutar = FALSE, hoy = as.Date("2026-09-23"))
   expect_length(seco$filas, 1L)
   expect_identical(seco$filas[[1]]$codigo, "CH 7")
   expect_identical(seco$filas[[1]]$fila, 2L)
   expect_null(enviados)
-  hecho <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", ejecutar = TRUE)
+  hecho <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", ejecutar = TRUE, hoy = as.Date("2026-09-23"))
   expect_identical(hecho$retiradas, 1L)
   r <- enviados[[1]]$deleteDimension$range
   expect_identical(r$sheetId, 22)
   expect_identical(c(r$startIndex, r$endIndex), c(1L, 2L))
+})
+
+test_that("un aula con respuestas en la plataforma sale de los días siguientes, no del de hoy", {
+  # «¿Y si le doy a actualizar en dos horas y ya se aplicaron sin agenda otras
+  # aulas, éstas se van también?» (Gonzalo, 2026-09-23). Sí, pero la fila del
+  # día se queda: es donde el coordinador anota «APLICADA SIN AGENDACIÓN».
+  s1 <- .marc_hoja(list(
+    .marc_fila("", "23/09", "CH 5", "POR APLICAR SIN AGENDACIÓN"),   # hoy: se queda
+    .marc_fila("", "25/09", "CH 5", "POR APLICAR SIN AGENDACIÓN"))) # después: sale
+  testthat::local_mocked_bindings(
+    .monitoreo_sheets_metadata = function(id) list(sheets = list(
+      list(properties = list(title = "Semana 1", sheetId = 11)))),
+    .cads_valores_de_pestana = function(id, hoja) s1,
+    .monitoreo_sheets_batch_update = function(id, requests) list()
+  )
+  o <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", aplicadas = "CH 5", hoy = as.Date("2026-09-23"))
+  expect_length(o$filas, 1L)
+  expect_identical(o$filas[[1]]$fecha, "25/09")
+})
+
+test_that("la fila del día en que el coordinador la cerró no se toca; sí las posteriores", {
+  s1 <- .marc_hoja(list(
+    .marc_fila("", "22/09", "CH 7", "APLICADA SIN AGENDACIÓN"),
+    .marc_fila("", "22/09", "CH 7", "POR APLICAR SIN AGENDACIÓN"),   # mismo día: se queda
+    .marc_fila("", "24/09", "CH 7", "POR APLICAR SIN AGENDACIÓN")))  # después: sale
+  testthat::local_mocked_bindings(
+    .monitoreo_sheets_metadata = function(id) list(sheets = list(
+      list(properties = list(title = "Semana 1", sheetId = 11)))),
+    .cads_valores_de_pestana = function(id, hoja) s1,
+    .monitoreo_sheets_batch_update = function(id, requests) list()
+  )
+  o <- monitoreo_aulas_retirar_cerradas_en_otras_semanas("x", hoy = as.Date("2026-09-23"))
+  expect_identical(vapply(o$filas, function(x) x$fecha, ""), "24/09")
 })

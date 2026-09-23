@@ -89,7 +89,11 @@ monitoreo_aulas_publicar_distribucion <- function(spreadsheet_id,
   remoto_previo <- valores_de(hoja_previa)
   # Los estados de TODO el documento, para que un aula cerrada en una semana no
   # reaparezca en las siguientes (aulas_libro_plan_aplicadores.R).
-  estados_documento <- unlist(lapply(titulos_remotos, function(t) {
+  # Sólo las pestañas de SEMANA: este publicador también escribe «Plan del día»
+  # en el libro del operativo, y leer ahí todas las pestañas tocaba las hojas
+  # del equipo y rompía el presupuesto de requests de la conversación.
+  semanas_remotas <- titulos_remotos[grepl("^Semana [0-9]+$", trimws(titulos_remotos))]
+  estados_documento <- unlist(lapply(semanas_remotas, function(t) {
     aulas_distribucion_estados_publicados(valores_de(t))
   }), use.names = TRUE)
   filas <- aulas_libro_filas_plan_aplicadores(
