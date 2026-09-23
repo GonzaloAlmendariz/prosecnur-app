@@ -45,3 +45,53 @@
   }
   config
 }
+
+#' Repone las tablas del marco de un proyecto que ya se guardó sin ellas.
+#'
+#' La restauración de arriba necesita la config anterior; un `.pulso` guardado
+#' DESPUÉS del recorte ya no la tiene (CCSS, 2026-09-23: el proyecto de las
+#' 12:12 abrió con «257 de 0 de la población» en la app y en la hoja
+#' «Cobertura» del libro). Pero esas tablas no son datos del monitoreo: el
+#' traspaso desde Cálculo de muestra las arma con el marco y la selección
+#' (`monitoreo_aulas_from_calc`), y los dos viajan en el mismo proyecto. Se
+#' reponen desde ahí, sólo donde llegaron recortadas.
+#'
+#' @param au config de aulas.
+#' @param frame `calc_muestra_aulas_frame` de la sesión.
+#' @param selection `calc_muestra_aulas_selection` de la sesión.
+#' @return `au` con lo recortado repuesto; `attr(, "repuesto")` dice qué.
+#' @keywords internal
+.monitoreo_aulas_reponer_marco_de_calc <- function(au, frame = NULL, selection = NULL) {
+  if (!is.list(au)) return(au)
+  recortada <- function(bloque, k) is.list(bloque) && !is.null(bloque[[paste0(k, "_n")]]) && is.null(bloque[[k]])
+  repuesto <- character(0)
+  q <- au[["quotas"]]
+  fuentes <- list(
+    category_profiles = if (is.list(frame)) frame[["category_profiles"]] else NULL,
+    sex_by_faculty = if (is.list(frame)) (frame[["population_cross_profiles"]] %||% frame[["cross_profiles"]]) else NULL,
+    profile_distributions = if (is.list(selection))
+      (selection[["diagnostics"]][["profile_distributions"]] %||% selection[["representativity"]][["profile_distributions"]]) else NULL
+  )
+  for (k in names(fuentes)) {
+    if (recortada(q, k) && !is.null(fuentes[[k]])) {
+      q[[k]] <- fuentes[[k]]
+      q[[paste0(k, "_n")]] <- NULL
+      repuesto <- c(repuesto, paste0("quotas$", k))
+    }
+  }
+  au[["quotas"]] <- q
+  rep_sel <- if (is.list(selection)) selection[["representativity"]] else NULL
+  if (is.list(rep_sel)) {
+    if (any(vapply(.MONITOREO_AULAS_LISTAS_DEL_MARCO, function(k) recortada(au[["representativity"]], k), logical(1)))) {
+      au[["representativity"]] <- rep_sel
+      repuesto <- c(repuesto, "representativity")
+    }
+    m <- au[["methodology"]]
+    if (is.list(m) && any(vapply(.MONITOREO_AULAS_LISTAS_DEL_MARCO, function(k) recortada(m[["representativity"]], k), logical(1)))) {
+      au[["methodology"]][["representativity"]] <- rep_sel
+      repuesto <- c(repuesto, "methodology$representativity")
+    }
+  }
+  attr(au, "repuesto") <- repuesto
+  au
+}
