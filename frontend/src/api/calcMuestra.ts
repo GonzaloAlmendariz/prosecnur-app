@@ -440,6 +440,8 @@ export type CalcMuestraParametros = {
    *  (reunión Ramiro 2026-07-15). Espejo del `resumenEstAula` del Recorrido;
    *  default del backend: "media". */
   estadistico_conglomerado?: "media" | "mediana" | "min_media_mediana";
+  /** Reparto del n entre estratos (estratificado); default del motor: proporcional. */
+  asignacion?: "proporcional" | "neyman";
 };
 
 export type CalcMuestraMeta = {
@@ -528,6 +530,18 @@ export type CalcMuestraCuotaMatriz = {
   regla?: string;
 };
 
+/**
+ * Corrección declarada de un parámetro fuera de rango: el motor no rechaza el
+ * valor —bloquearía el guardado del estudio— pero dice qué llegó y qué usó
+ * (p. ej. e = 3 → 0.05). Viaja en el componente y en su resultado.
+ */
+export type CalcMuestraAvisoParametro = {
+  param: string;
+  recibido: number;
+  usado: number;
+  texto: string;
+};
+
 export type CalcMuestraResultado = {
   n_bruto?: number;
   n_teorico: number | null;
@@ -565,6 +579,17 @@ export type CalcMuestraResultado = {
   /** Payload crítico raw; solo el normalizador I19 acredita la variante ready. */
   distribucion_universitaria?: unknown;
   cuotas_matriz?: CalcMuestraCuotaMatriz[];
+  /** Correcciones de parámetros aplicadas en este cálculo. */
+  avisos_parametros?: CalcMuestraAvisoParametro[];
+  /** Estratificado con fórmula por estrato (p por estrato o Neyman). */
+  asignacion?: "proporcional" | "neyman";
+  formula_n?: "proporcional_por_estrato" | "neyman";
+  /**
+   * Memoria sustituida (técnicas de elementos): data.frame serializado como
+   * filas `{paso, formula, sustitucion, resultado}`. Payload crudo; se lee con
+   * `normalizeCalcMuestraMemoriaCalculo` de `calcMuestraGeneral.ts`.
+   */
+  memoria_calculo?: unknown;
 };
 
 export type CalcMuestraActorCategoria =
@@ -612,6 +637,8 @@ export type CalcMuestraComponente = {
   parametros: CalcMuestraParametros;
   meta: CalcMuestraMeta;
   inferencia_acreditacion?: CalcMuestraInferenciaAcreditacion;
+  /** Parámetros que el motor corrigió por estar fuera de rango. */
+  avisos_parametros?: CalcMuestraAvisoParametro[];
   resultado?: CalcMuestraResultado | null;
 };
 

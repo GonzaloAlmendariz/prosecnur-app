@@ -61,6 +61,11 @@ const TECNICAS_DE_ELEMENTOS: ReadonlySet<CalcMuestraTecnica> = new Set<CalcMuest
   "sistematico",
 ]);
 
+/** La técnica se resuelve con la cadena de elementos y trae memoria sustituida. */
+export function esTecnicaDeElementos(tecnica: CalcMuestraTecnica | undefined): boolean {
+  return tecnica != null && TECNICAS_DE_ELEMENTOS.has(tecnica);
+}
+
 /** Probabilísticas que el sorteo de elementos no cubre (se sortean por etapas o en otra parte). */
 const PROBABILISTICAS_FUERA_DEL_SORTEO: ReadonlySet<string> = new Set([
   "prob_conglomerado_multietapico",

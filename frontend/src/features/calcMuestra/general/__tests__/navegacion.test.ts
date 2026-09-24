@@ -42,7 +42,9 @@ describe("Muestra general › Selección", () => {
     const rail = fuente.slice(fuente.indexOf("function railSectionsForDesk"), fuente.indexOf("function tecnicaLabel"));
     const general = rail.slice(rail.indexOf('desk === "marco_disponible"'), rail.indexOf('desk === "acreditacion"'));
     expect(general.match(/id: "(\w+)"/g)).toEqual(['id: "marco"', 'id: "metodo"', 'id: "seleccion"', 'id: "resultados"']);
-    expect(fuente).toContain('selectedSection === "seleccion" && <SeleccionGeneral');
+    expect(fuente).toContain("<MesaGeneral");
+    const mesa = fs.readFileSync(path.join(__dirname, "..", "MesaGeneral.tsx"), "utf8");
+    expect(mesa).toContain('selectedSection === "seleccion" && <SeleccionGeneral');
     const seleccion = fs.readFileSync(path.join(__dirname, "..", "SeleccionGeneral.tsx"), "utf8");
     expect(seleccion).toContain('"cmv2-section-general-seleccion"');
   });
@@ -73,7 +75,9 @@ describe("Acreditación › Selección (E5)", () => {
     const acreditacion = rail.slice(rail.indexOf('desk === "acreditacion"'), rail.indexOf('desk === "territorial_handoff"'));
     expect(acreditacion.match(/id: "(\w+)"/g)).toEqual(['id: "actores"', 'id: "contexto"', 'id: "seleccion"', 'id: "resultados"']);
     expect(acreditacion).toContain('targetId: "cmv2-section-acreditacion-seleccion"');
-    expect(fuente).toContain('selectedSection === "seleccion" && <SeleccionActores componentes={estudio.componentes} />');
+    expect(fuente).toContain("<MesaAcreditacion");
+    const mesa = fs.readFileSync(path.join(__dirname, "..", "MesaAcreditacion.tsx"), "utf8");
+    expect(mesa).toContain('selectedSection === "seleccion" && <SeleccionActores componentes={estudio.componentes} />');
     const seccion = fs.readFileSync(path.join(__dirname, "..", "SeleccionActores.tsx"), "utf8");
     expect(seccion).toContain('id="cmv2-section-acreditacion-seleccion"');
   });
