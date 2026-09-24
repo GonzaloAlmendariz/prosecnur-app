@@ -121,6 +121,9 @@ arquitectura canónica.
 
 ### Planes de dominio y mejora
 
+- [GOAL de Cálculo de muestra con paridad de aulas](qa/goal-calc-muestra-paridad-aulas-2026-09-23.md):
+  loop de septiembre 2026 — tablero E0–E10, lo que cambió y las decisiones
+  pendientes de Gonzalo.
 - [Research metodológico del motor general de Cálculo de muestra](qa/research-calc-muestra-robustez-2026-09-23.md):
   28 reglas contra Cochran, Kish, Lohr y Tillé con lo que hacía el motor
   (loop de septiembre 2026); con su [Monte Carlo del sorteo](qa/montecarlo-muestra-general-2026-09-24.md)
