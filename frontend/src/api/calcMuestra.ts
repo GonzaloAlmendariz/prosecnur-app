@@ -441,8 +441,15 @@ export type CalcMuestraParametros = {
    *  default del backend: "media". */
   estadistico_conglomerado?: "media" | "mediana" | "min_media_mediana";
   /** Reparto del n entre estratos (estratificado); default del motor: proporcional. */
-  asignacion?: "proporcional" | "neyman";
+  asignacion?: CalcMuestraAsignacion;
+  /** Qué se estima (MAS, sistemático, estratificado); default del motor: proporción. */
+  tipo_indicador?: "proporcion" | "media";
+  /** Coeficiente de variación esperado, sólo para medias; default del motor: 1. */
+  cv?: number;
 };
+
+/** Asignación entre estratos: proporcional, Neyman o potencia (Bankier). */
+export type CalcMuestraAsignacion = "proporcional" | "neyman" | "potencia";
 
 export type CalcMuestraMeta = {
   tipo: "objetivo" | "cuota" | "cobertura" | "contractual";
@@ -581,9 +588,9 @@ export type CalcMuestraResultado = {
   cuotas_matriz?: CalcMuestraCuotaMatriz[];
   /** Correcciones de parámetros aplicadas en este cálculo. */
   avisos_parametros?: CalcMuestraAvisoParametro[];
-  /** Estratificado con fórmula por estrato (p por estrato o Neyman). */
-  asignacion?: "proporcional" | "neyman";
-  formula_n?: "proporcional_por_estrato" | "neyman";
+  /** Estratificado con fórmula por estrato (p por estrato, Neyman o potencia). */
+  asignacion?: CalcMuestraAsignacion;
+  formula_n?: "proporcional_por_estrato" | "neyman" | "potencia";
   /**
    * Memoria sustituida (técnicas de elementos): data.frame serializado como
    * filas `{paso, formula, sustitucion, resultado}`. Payload crudo; se lee con

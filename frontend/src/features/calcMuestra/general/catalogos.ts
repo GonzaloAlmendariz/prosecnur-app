@@ -4,6 +4,7 @@
  * la página los importa para su chrome.
  */
 import type {
+  CalcMuestraAsignacion,
   CalcMuestraCanalRecojo,
   CalcMuestraComponente,
   CalcMuestraTecnica,
@@ -28,7 +29,7 @@ export const METODOS_CLASICOS: Array<{
   producto: CalcMuestraWorkspaceProducto;
 }> = [
   { id: "prob_aleatorio_simple", label: "Probabilístico clásico", marco: "Marco enumerable con unidades individuales", producto: "muestra_probabilistica" },
-  { id: "prob_estratificado", label: "Estratificado proporcional", marco: "Marco por capas o variables de control", producto: "muestra_probabilistica" },
+  { id: "prob_estratificado", label: "Estratificado", marco: "Marco por capas o variables de control", producto: "muestra_probabilistica" },
   { id: "prob_estratificado_independiente", label: "Dominios independientes", marco: "Cada dominio calcula su propio n con margen y p propios", producto: "muestra_probabilistica" },
   { id: "sistematico", label: "Sistemático", marco: "Marco ordenado con arranque aleatorio", producto: "muestra_probabilistica" },
   { id: "prob_conglomerado_multietapico", label: "Por conglomerados", marco: "Unidades agrupadas: cursos-horario, sedes, servicios, manzanas", producto: "muestra_probabilistica" },
@@ -45,6 +46,38 @@ export function tecnicaLabel(tecnica: CalcMuestraTecnica) {
       listado_externo_meta_fija: "Flujo legacy",
     } as Partial<Record<CalcMuestraTecnica, string>>)[tecnica] ??
     tecnica;
+}
+
+/**
+ * La técnica tal como se calculó. El estratificado reparte el n entre estratos
+ * de forma proporcional, por Neyman o por potencia; su nombre solo no dice
+ * cuál, así que lleva la asignación: la del resultado si ya se calculó, si no
+ * la declarada.
+ */
+export function tecnicaCalculadaLabel(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros" | "resultado">): string {
+  const base = tecnicaLabel(comp.tecnica);
+  if (comp.tecnica !== "prob_estratificado") return base;
+  return `${base} · ${ETIQUETA_ASIGNACION[asignacionEstratificada(comp)]}`;
+}
+
+/** La asignación en el nombre de la técnica: «Estratificado · Neyman». */
+export const ETIQUETA_ASIGNACION: Record<CalcMuestraAsignacion, string> = {
+  proporcional: "proporcional",
+  neyman: "Neyman",
+  potencia: "potencia",
+};
+
+const ASIGNACION_DE_FORMULA: Record<NonNullable<NonNullable<CalcMuestraComponente["resultado"]>["formula_n"]>, CalcMuestraAsignacion> = {
+  proporcional_por_estrato: "proporcional",
+  neyman: "neyman",
+  potencia: "potencia",
+};
+
+/** Asignación entre estratos: la del resultado manda; si no, la declarada; por defecto, proporcional. */
+export function asignacionEstratificada(comp: Pick<CalcMuestraComponente, "parametros" | "resultado">): CalcMuestraAsignacion {
+  const r = comp.resultado;
+  const candidata = r?.asignacion ?? (r?.formula_n ? ASIGNACION_DE_FORMULA[r.formula_n] : undefined) ?? comp.parametros?.asignacion;
+  return candidata && candidata in ETIQUETA_ASIGNACION ? candidata : "proporcional";
 }
 
 export function productoLabel(producto: CalcMuestraWorkspaceProducto) {

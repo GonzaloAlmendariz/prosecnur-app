@@ -20,6 +20,7 @@ import {
   type CalcMuestraGeneralMetodo,
   type CalcMuestraGeneralUnidad,
 } from "../../../api/calcMuestraGeneral";
+import { proponerColumnas } from "./propuestaColumnas";
 
 // ---------------------------------------------------------------------------
 // Error del motor, listo para pintar
@@ -105,6 +106,8 @@ export type ArchivoMarcoEstado = {
   archivo: ArchivoMarco | null;
   hoja: string;
   columnas: ColumnasElegidas;
+  /** Lo que se propuso por el nombre de cada columna; el formulario lo señala. */
+  propuestas: ColumnasElegidas;
   error: ErrorGeneral | null;
 };
 
@@ -125,23 +128,23 @@ export const ARCHIVO_MARCO_INICIAL: ArchivoMarcoEstado = {
   archivo: null,
   hoja: "",
   columnas: { id: "", estrato: "", tamano: "" },
+  propuestas: { id: "", estrato: "", tamano: "" },
   error: null,
 };
-
-const COLUMNAS_VACIAS: ColumnasElegidas = { id: "", estrato: "", tamano: "" };
 
 export function columnasDeHoja(archivo: ArchivoMarco | null, hoja: string): string[] {
   if (!archivo) return [];
   return archivo.hojas.find((h) => h.nombre === hoja)?.columnas ?? archivo.hojas[0]?.columnas ?? [];
 }
 
-/**
- * Sólo se propone la columna de id, y sólo si el nombre lo dice. Estrato y
- * tamaño cambian el diseño: se eligen a mano.
- */
+/** La columna de id que se propone por su nombre (ver `proponerColumnas`). */
 export function sugerirColumnaId(columnas: readonly string[]): string {
-  const patron = /^(id|codigo|código|cod|dni|clave)$|^(id|cod|codigo|código)[_\s.-]|[_\s.-](id|codigo|código)$/i;
-  return columnas.find((c) => patron.test(c.trim())) ?? "";
+  return proponerColumnas(columnas).id;
+}
+
+function conPropuesta(columnas: readonly string[]): Pick<ArchivoMarcoEstado, "columnas" | "propuestas"> {
+  const propuestas = proponerColumnas(columnas);
+  return { columnas: { ...propuestas }, propuestas };
 }
 
 export function archivoMarcoReducer(estado: ArchivoMarcoEstado, accion: ArchivoMarcoAccion): ArchivoMarcoEstado {
@@ -160,7 +163,7 @@ export function archivoMarcoReducer(estado: ArchivoMarcoEstado, accion: ArchivoM
         editando: true,
         archivo: accion.archivo,
         hoja: accion.hoja,
-        columnas: { ...COLUMNAS_VACIAS, id: sugerirColumnaId(columnas) },
+        ...conPropuesta(columnas),
         error: null,
       };
     }
@@ -169,7 +172,7 @@ export function archivoMarcoReducer(estado: ArchivoMarcoEstado, accion: ArchivoM
       return {
         ...estado,
         hoja: accion.hoja,
-        columnas: { ...COLUMNAS_VACIAS, id: sugerirColumnaId(columnas) },
+        ...conPropuesta(columnas),
         error: null,
       };
     }

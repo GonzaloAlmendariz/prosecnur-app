@@ -64,6 +64,8 @@ const ETIQUETA_OPCION: Record<string, string> = {
   min_media_mediana: "Menor de media y mediana",
   proporcional: "Proporcional",
   neyman: "Neyman",
+  potencia: "Potencia",
+  proporcion: "Proporción",
 };
 
 /** Las opciones del campo: las del motor o, si no las declara, las conocidas. */
@@ -79,11 +81,81 @@ export function valorDeOpcion(parametros: CalcMuestraParametros, param: CalcMues
   return typeof valor === "string" && opciones.some((o) => o.valor === valor) ? valor : opciones[0]?.valor ?? "";
 }
 
+// ---------------------------------------------------------------------------
+// Qué se estima: proporción o media
+// ---------------------------------------------------------------------------
+
+export type TipoIndicador = "proporcion" | "media";
+
+/** El indicador vigente; sin valor guardado, la proporción (el default del motor). */
+export function tipoIndicadorDe(parametros: CalcMuestraParametros): TipoIndicador {
+  return parametros.tipo_indicador === "media" ? "media" : "proporcion";
+}
+
+/**
+ * Los parámetros que se pintan. El catálogo declara `p` y `cv` porque los dos
+ * existen para la técnica, pero cada uno sólo mueve el n con su indicador:
+ * con una proporción se pinta `p`; con una media, `cv`. «Qué se estima» va
+ * primero porque decide el resto.
+ */
+export function parametrosVisibles(
+  parametros: readonly CalcMuestraParametroDeTecnica[],
+  valores: CalcMuestraParametros,
+): CalcMuestraParametroDeTecnica[] {
+  const indicador = parametros.find((p) => p.clave === "tipo_indicador");
+  const oculta = indicador && tipoIndicadorDe(valores) === "media" ? "p" : "cv";
+  const resto = parametros.filter((p) => p.clave !== "tipo_indicador" && p.clave !== oculta);
+  return indicador ? [indicador, ...resto] : resto;
+}
+
+export const AYUDA_MARGEN_MEDIA = "Relativo a la media: 0,05 = ±5 % de la media.";
+
+/** La ayuda del motor, salvo el margen de una media, que es relativo. */
+export function ayudaDeParametro(param: CalcMuestraParametroDeTecnica, valores: CalcMuestraParametros): string {
+  if (param.clave === "e" && tipoIndicadorDe(valores) === "media") return AYUDA_MARGEN_MEDIA;
+  return param.ayuda;
+}
+
+/** Rango aceptado por el motor, cuando lo tiene. */
+export function limitesDe(clave: string): { min: number; max?: number } {
+  if (clave === "cv") return { min: 0.01, max: 10 };
+  return { min: 0 };
+}
+
+/** Default del motor que se muestra como placeholder mientras no haya valor guardado. */
+export function placeholderDe(clave: string): string | undefined {
+  return clave === "cv" ? "1" : undefined;
+}
+
+const CLAVES_PARAMETRO: ReadonlySet<string> = new Set<keyof CalcMuestraParametros>([
+  "z", "p", "e", "deff", "tau", "oversample_pct", "tasa_contacto", "tasa_elegibilidad", "tasa_respuesta",
+  "cobertura_objetivo", "promedio_conglomerado", "n_minimo_estrato", "tope_operativo", "estadistico_conglomerado",
+  "asignacion", "tipo_indicador", "cv",
+]);
+
+/** El patch de `parametros` que escribe un campo; `null` si la clave no es un parámetro conocido. */
+export function patchDeParametro(clave: string, valor: number | string): Partial<CalcMuestraParametros> | null {
+  if (!CLAVES_PARAMETRO.has(clave)) return null;
+  return Object.fromEntries([[clave, valor]]) as Partial<CalcMuestraParametros>;
+}
+
+/** Técnicas cuyo catálogo declara `tipo_indicador`. */
+const TECNICAS_CON_INDICADOR: ReadonlySet<string> = new Set(["prob_aleatorio_simple", "sistematico", "prob_estratificado"]);
+
+/**
+ * Cómo se lee la precisión alcanzada en Resultados: en una media el error es
+ * relativo, así que no son puntos sino un porcentaje de la media.
+ */
+export function precisionEnPalabras(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros">, valor: string): string {
+  if (valor === "—" || tipoIndicadorDe(comp.parametros) !== "media") return valor;
+  return TECNICAS_CON_INDICADOR.has(comp.tecnica) ? `±${valor} de la media` : valor;
+}
+
 /** Paso del campo numérico: fino donde el valor es chico, entero donde cuenta casos. */
 export function pasoDe(clave: string): number {
   if (clave === "e") return 0.005;
   if (clave === "p") return 0.01;
-  if (clave === "deff") return 0.1;
+  if (clave === "deff" || clave === "cv") return 0.1;
   if (ENTEROS.has(clave)) return 1;
   return 0.05;
 }
@@ -131,6 +203,7 @@ export function neymanSinPPorEstrato(comp: Pick<CalcMuestraComponente, "parametr
 export function lineaDeAsignacion(comp: Pick<CalcMuestraComponente, "resultado">): string | null {
   const formula = comp.resultado?.formula_n;
   if (formula === "neyman") return "Reparto entre estratos: Neyman · n calculado por estrato.";
+  if (formula === "potencia") return "Reparto entre estratos: potencia (Bankier) · n calculado por estrato.";
   if (formula === "proporcional_por_estrato") return "Reparto entre estratos: proporcional · n calculado con la p de cada estrato.";
   return null;
 }

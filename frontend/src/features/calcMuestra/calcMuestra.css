@@ -3454,10 +3454,12 @@
 }
 
 .cmv2-frame-grid--routes {
-  flex: 1 1 auto;
+  /* Mide su contenido (el scroll es de .cmv2-main): así 1fr iguala las filas
+   * partidas sin estirar la fila única hasta el fondo del hub (C2). */
+  flex: 0 0 auto;
   height: auto;
   min-height: 0;
-  grid-auto-rows: minmax(386px, auto);
+  grid-auto-rows: minmax(386px, 1fr);
   align-content: flex-start;
 }
 
@@ -3516,6 +3518,8 @@
 .cmv2-card-answers small {
   display: block;
   min-width: 0;
+  /* La tarjeta es un <button>: sin esto hereda nowrap y el detalle se corta. */
+  white-space: normal;
   overflow-wrap: break-word;
 }
 

@@ -42,13 +42,15 @@ const CATALOGO_RAW = {
         { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0,05 = ±5 puntos." },
         { clave: "tasa_respuesta", rotulo: "Tasa de respuesta", ayuda: "El n a campo es el n de completas dividido por esta tasa." },
         { clave: "oversample_pct", rotulo: "Sobremuestra", ayuda: "Reserva adicional sobre los casos a abordar." },
+        { clave: "tipo_indicador", rotulo: "Qué se estima", ayuda: "Una proporción usa p; una media, el coeficiente de variación.", tipo: "opciones", opciones: ["proporcion", "media"] },
+        { clave: "cv", rotulo: "Coeficiente de variación esperado", ayuda: "Sólo para medias: desviación estándar / media.", tipo: "numero" },
       ],
     },
     {
       tecnica: "prob_estratificado",
       parametros: [
         { clave: "e", rotulo: "Margen de error", ayuda: "Como proporción: 0,05 = ±5 puntos.", tipo: "numero" },
-        { clave: "asignacion", rotulo: "Asignación entre estratos", ayuda: "Proporcional o Neyman.", tipo: "opciones", opciones: ["proporcional", "neyman"] },
+        { clave: "asignacion", rotulo: "Asignación entre estratos", ayuda: "Proporcional, Neyman o potencia.", tipo: "opciones", opciones: ["proporcional", "neyman", "potencia"] },
       ],
     },
     {
@@ -81,7 +83,7 @@ function conRouter(node: JSX.Element, url = "/calc-muestra?modo=marco-disponible
 
 describe("contrato del motor", () => {
   it("el catálogo se lee por técnica y en el orden del motor", () => {
-    expect(CATALOGO.prob_aleatorio_simple.map((p) => p.clave)).toEqual(["z", "p", "e", "tasa_respuesta", "oversample_pct"]);
+    expect(CATALOGO.prob_aleatorio_simple.map((p) => p.clave)).toEqual(["z", "p", "e", "tasa_respuesta", "oversample_pct", "tipo_indicador", "cv"]);
     expect(normalizeCalcMuestraCatalogoParametros({ ok: true })).toBeNull();
   });
 
@@ -111,7 +113,8 @@ describe("G2 · Método pinta sólo lo que la técnica consume", () => {
 
   it("un MAS no muestra deff, cobertura ni piso por celda", () => {
     const html = vista(comp());
-    expect(html.match(/data-param="/g)).toHaveLength(5);
+    // Los cinco de siempre más «Qué se estima»; cv se oculta con una proporción.
+    expect(html.match(/data-param="/g)).toHaveLength(6);
     expect(html).toContain("Proporción esperada");
     expect(html).not.toContain('data-param="deff"');
     expect(html).not.toContain('data-param="cobertura_objetivo"');
@@ -141,10 +144,11 @@ describe("G2 · Método pinta sólo lo que la técnica consume", () => {
   });
 
   it("un parámetro de opciones del motor se elige de una lista", () => {
-    expect(CATALOGO.prob_estratificado[1]).toMatchObject({ tipo: "opciones", opciones: ["proporcional", "neyman"] });
+    expect(CATALOGO.prob_estratificado[1]).toMatchObject({ tipo: "opciones", opciones: ["proporcional", "neyman", "potencia"] });
     expect(CATALOGO.prob_aleatorio_simple[0]).toMatchObject({ tipo: "numero", opciones: [] });
     const html = vista(comp({ tecnica: "prob_estratificado" }));
     expect(html).toContain('<option value="neyman">Neyman</option>');
+    expect(html).toContain('<option value="potencia">Potencia</option>');
     expect(html).toContain('<option value="proporcional" selected="">Proporcional</option>');
   });
 
@@ -208,9 +212,12 @@ describe("memoria de cálculo visible en Método", () => {
     expect(html).toContain("561");
   });
 
-  it("un resultado viejo sin memoria pide recalcular; sin cálculo, calcular", () => {
+  it("un resultado sin memoria pide calcular sin afirmar cuándo se calculó; sin cálculo, calcular", () => {
     const viejo = comp({ resultado: { n_objetivo: 357 } as unknown as CalcMuestraComponente["resultado"] });
-    expect(conRouter(<MemoriaCalculoGeneral comp={viejo} calculando={false} onCalcular={() => {}} />)).toContain("Recalcular");
+    const html = conRouter(<MemoriaCalculoGeneral comp={viejo} calculando={false} onCalcular={() => {}} />);
+    expect(html).toContain("Recalcular");
+    expect(html).toContain("Calcula para ver la fórmula con estos parámetros.");
+    expect(html).not.toContain("Se calculó antes");
     expect(conRouter(<MemoriaCalculoGeneral comp={comp()} calculando={false} onCalcular={() => {}} />)).toContain("Aún no hay cálculo");
   });
 

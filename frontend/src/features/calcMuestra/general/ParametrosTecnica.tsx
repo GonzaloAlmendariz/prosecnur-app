@@ -10,30 +10,24 @@ import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import type { ComponentePatch } from "../sharedCore";
 import {
   avisosVigentes,
+  ayudaDeParametro,
   formatearZ,
+  limitesDe,
   neymanSinPPorEstrato,
   nivelDeZ,
   NIVELES_CONFIANZA,
   opcionesDe,
   parametrosDeTecnica,
+  parametrosVisibles,
   pasoDe,
+  patchDeParametro,
+  placeholderDe,
   tipoDeCampo,
   valorDeOpcion,
   valorNumerico,
 } from "./modeloParametros";
 import { useCatalogoParametros, type EstadoCatalogo } from "./useCatalogoParametros";
 import "./general.css";
-
-const CLAVES_PARAMETRO: ReadonlySet<string> = new Set<keyof CalcMuestraParametros>([
-  "z", "p", "e", "deff", "tau", "oversample_pct", "tasa_contacto", "tasa_elegibilidad", "tasa_respuesta",
-  "cobertura_objetivo", "promedio_conglomerado", "n_minimo_estrato", "tope_operativo", "estadistico_conglomerado",
-  "asignacion",
-]);
-
-function patchDe(clave: string, valor: number | string): Partial<CalcMuestraParametros> | null {
-  if (!CLAVES_PARAMETRO.has(clave)) return null;
-  return Object.fromEntries([[clave, valor]]) as Partial<CalcMuestraParametros>;
-}
 
 /**
  * Método › Parámetros (G2): sólo los que la técnica del componente consume,
@@ -54,7 +48,7 @@ export function ParametrosTecnica({
       estado={estado}
       onReintentar={reintentar}
       onParametro={(clave, valor) => {
-        const parametros = patchDe(clave, valor);
+        const parametros = patchDeParametro(clave, valor);
         if (parametros) onComponente(comp.id, { parametros });
       }}
     />
@@ -84,7 +78,8 @@ export function ParametrosTecnicaVista({
       </div>
     );
   }
-  const parametros = parametrosDeTecnica(estado.catalogo, comp.tecnica);
+  const declarados = parametrosDeTecnica(estado.catalogo, comp.tecnica);
+  const parametros = declarados ? parametrosVisibles(declarados, comp.parametros) : null;
   if (!parametros || parametros.length === 0) {
     return <p className="cmg-nota">Esta técnica no usa parámetros de cálculo en esta mesa.</p>;
   }
@@ -113,7 +108,7 @@ export function ParametrosTecnicaVista({
   );
 }
 
-function CampoParametro({
+export function CampoParametro({
   compId,
   nota,
   param,
@@ -137,7 +132,8 @@ function CampoParametro({
   const valor = valorNumerico(parametros, param.clave);
 
   let control: JSX.Element;
-  let ayuda = param.ayuda;
+  let ayuda = ayudaDeParametro(param, parametros);
+  const limites = limitesDe(param.clave);
   if (tipo === "confianza") {
     const nivel = nivelDeZ(valor);
     // Un z fuera de los tres niveles (fijado por un preset) se conserva como opción.
@@ -160,8 +156,10 @@ function CampoParametro({
       <input
         id={id}
         type="number"
-        min={0}
+        min={limites.min}
+        max={limites.max}
         step={pasoDe(param.clave)}
+        placeholder={placeholderDe(param.clave)}
         value={valor == null ? "" : String(valor)}
         aria-describedby={describedBy}
         aria-invalid={aviso ? true : undefined}

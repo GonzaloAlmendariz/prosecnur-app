@@ -186,7 +186,10 @@ export function ArchivoMarcoGeneral({ componente }: { componente: CalcMuestraCom
                           <option key={c} value={c}>{c}</option>
                         ))}
                       </select>
-                      <small id={`cmg-ayuda-${rol}`}>{ayuda}</small>
+                      <small id={`cmg-ayuda-${rol}`}>
+                        {ayuda}
+                        {estado.propuestas[rol] !== "" && estado.columnas[rol] === estado.propuestas[rol] && " Propuesta por el nombre de la columna."}
+                      </small>
                     </div>
                   ))}
                 </div>

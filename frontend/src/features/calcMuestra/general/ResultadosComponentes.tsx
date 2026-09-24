@@ -5,8 +5,8 @@ import { EmptyState } from "../../../components/States";
 import { criterioSalida } from "../criterioSalida";
 import { presentResultadoPrecision } from "../resultadoPrecision";
 import { fmtInt } from "../sharedCore";
-import { productoLabel, tecnicaLabel, tecnicaProducto } from "./catalogos";
-import { avisosDelResultado } from "./modeloParametros";
+import { productoLabel, tecnicaCalculadaLabel, tecnicaProducto } from "./catalogos";
+import { avisosDelResultado, precisionEnPalabras } from "./modeloParametros";
 import { hayResultado, vacioDeResultados, type ModoMesa } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import { useIrASeccionGeneral } from "./useMuestraGeneral";
@@ -107,14 +107,14 @@ export function ResultadosComponentes({
                     <tr key={comp.id}>
                       <td>
                         <strong>{comp.actor}</strong>
-                        <small>{tecnicaLabel(comp.tecnica)}</small>
+                        <small>{tecnicaCalculadaLabel(comp)}</small>
                       </td>
                       <td><ProductBadge producto={tecnicaProducto(comp)} /></td>
                       <td>{fmtInt(comp.marco.marco_validado)}</td>
                       <td>{fmtInt(r?.n_objetivo)}</td>
                       <td>{fmtInt(r?.n_operativo)}</td>
                       <td>
-                        {precision.value}
+                        {precisionEnPalabras(comp, precision.value)}
                         {precision.note && <small>{precision.note}</small>}
                       </td>
                       <td className="cmv2-note-cell">{criterioSalida(comp)}</td>
