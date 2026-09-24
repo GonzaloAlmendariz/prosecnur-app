@@ -39,7 +39,7 @@ test_that("el estratificado de una media usa la fórmula global con el CV aunque
   comp$marco$estratos <- list(list(label = "A", N = 600L, p_facultad = .1), list(label = "B", N = 400L, p_facultad = .5))
   r <- calc_muestra_calcular_componente(calc_muestra_normalize_componente(comp))
   expect_identical(as.integer(r$n_teorico), 607L)
-  expect_null(r$formula_n)
+  expect_identical(r$formula_n, "media_global")
 })
 
 test_that("Monte Carlo: con n = 607 la media de una población lognormal (CV≈1) queda dentro de ±5 % ~95 %", {

@@ -16,7 +16,8 @@
   e = "margen de error (e)", deff = "efecto de diseño (deff)",
   tasa_respuesta = "tasa de respuesta", oversample_pct = "sobremuestra",
   tasa_contacto = "tasa de contacto", tasa_elegibilidad = "tasa de elegibilidad",
-  cobertura_objetivo = "cobertura objetivo"
+  cobertura_objetivo = "cobertura objetivo",
+  cv = "coeficiente de variación (CV)"
 )
 
 .cm_aviso_parametro_texto <- function(param, recibido, usado) {

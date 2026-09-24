@@ -174,7 +174,7 @@ for (c in estudio$componentes) {
       stringsAsFactors = FALSE, check.names = FALSE
     )
   }))
-  print(tabla_pulso(df, caption = "Cuota proporcional al N de cada estrato"))
+  print(tabla_pulso(df, caption = "Cuota de cada estrato (según la asignación declarada)"))
   cat("\n\n")
 }
 ```
