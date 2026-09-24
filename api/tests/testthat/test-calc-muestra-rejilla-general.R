@@ -163,3 +163,22 @@ test_that("B4: el estratificado rotula censo y piso por estrato y avisa el piso 
                          estratos = .rejilla_estratos(c(1000L, 1000L, 1000L)))
   expect_match(chico$advertencia, "no cabe")
 })
+
+# --- H07 · deff por defecto en diseños de elementos -------------------------
+
+test_that("H07: el estratificado de elementos no inventa deff 1.5 cuando no se declaró", {
+  comp <- .rejilla_comp(tecnica = "prob_estratificado", N = 10000L,
+                        estratos = .rejilla_estratos(c(6000L, 4000L)))
+  comp$parametros$deff <- NULL
+  r <- calc_muestra_calcular_componente(comp)
+  expect_identical(as.integer(r$n_teorico), 370L)
+})
+
+test_that("H07: las técnicas de aulas conservan el deff 1.5 por defecto", {
+  for (tec in c("prob_conglomerado_multietapico", "prob_estratificado_independiente")) {
+    comp <- calc_muestra_normalize_componente(list(actor = "a", actor_id = "a", tecnica = tec))
+    expect_identical(comp$parametros$deff, 1.5, info = tec)
+  }
+  comp <- calc_muestra_normalize_componente(list(actor = "a", actor_id = "a", tecnica = "prob_aleatorio_simple"))
+  expect_identical(comp$parametros$deff, 1)
+})
