@@ -71,8 +71,14 @@ funcionaron) · Neyman dejaba estratos vacíos.
 ## Decisiones pendientes de Gonzalo
 
 1. **Reparto en aulas** (research H01): llevar el mayor resto también a aulas
-   (cambia cifras de corridas nuevas; se mediría el delta en hsvg2026) o
-   dejarlo sólo en el motor general. Mientras tanto: sólo general.
+   o dejarlo sólo en el motor general. Mientras tanto: sólo general.
+   **Delta medido (2026-09-24) sobre hsvg2026:** sustituyendo el reparto de
+   aulas por el mayor resto, los dos componentes, sus 15 estratos, las aulas
+   por estrato y la distribución por facultad y sexo salen **idénticos** (la
+   única diferencia es el sello `computed_at`); el reparto se llama 31 veces
+   en ese cálculo. Adoptarlo no movería este estudio: sólo evitaría los casos
+   patológicos (suma que no cierra, estrato mayor en cero) en marcos futuros.
+   Script: `scratchpad/p1_delta_aulas.R` y `p1_delta_dist.R` del loop.
 2. **Ratificar el ADR 0090**, sobre todo las reservas como réplicas liberadas
    por lote en vez de reemplazos por puntaje.
 3. **Reglas del cuadro maestro de acreditación** (research H16–H18): el salto
