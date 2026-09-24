@@ -39,6 +39,7 @@ patrón y no cambia sus cifras.
 | E8 | Monte Carlo a escala | ☑ | insesgado; error ≤ e 94,8–98,1 %; IC95 93,4–99,5 % |
 | E9 | Regresión de aulas | ☑ | [hsvg2026 idéntico](regresion-aulas-hsvg2026-2026-09-24.md) |
 | E10 | Traspaso territorial | ☑ | la mesa Territorial deriva a Hojas de ruta |
+| E11 | Paridad estética y de accesibilidad con aulas | ☑ | [checklist](checklist-calc-muestra-paridad-visual-2026-09-24.md) V1–V17 (V5, V10 ◐); QA visual 3 rondas, ronda 3 `ok=true` geometría 0 |
 
 ## Qué cambió para el usuario
 
