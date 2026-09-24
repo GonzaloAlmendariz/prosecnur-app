@@ -161,6 +161,12 @@
       if (grepl("refuerzo|extra", origen)) "refuerzo" else "reemplazo"
     return(list(clase = clase, fuente = "declarada", detalle = df$activation_origin[i]))
   }
+  # **«REFUERZO AGENDADO» lo teclea el equipo**: es una declaración, con su
+  # letra, aunque la app no la haya marcado (2026-09-24).
+  if (identical(monitoreo_aulas_estado_muestra(df$sample_status[i]), "refuerzo_agendado")) {
+    return(list(clase = "refuerzo", fuente = "declarada",
+                detalle = "el libro lo marca REFUERZO AGENDADO"))
+  }
   fuente <- if (nzchar(origen)) "sellada" else "reconstruida"
   if (identical(df$sample_role[i], "extra_reserve_pool")) {
     # Un extra no pertenece a ninguna cadena, así que A queda descartado; entre
@@ -734,8 +740,10 @@ monitoreo_aulas_sellar_procedencia <- function(plan = list(), ahora = NULL,
     pr <- .marf_procedencia(df, e, i)
     # Sólo lo que NO es un reemplazo por rechazo. Sellar un reemplazo
     # convertiría en decisión deliberada lo que fue la cadena haciendo su
-    # trabajo, y sellar una letra que no consta sería inventarla.
-    if (!identical(pr$clase, "adicional")) next
+    # trabajo, y sellar una letra que no consta sería inventarla. La excepción
+    # es «REFUERZO AGENDADO»: ahí la letra SÍ consta, la tecleó el equipo.
+    declarado <- identical(pr$fuente, "declarada") && identical(pr$clase, "refuerzo")
+    if (!identical(pr$clase, "adicional") && !declarado) next
     # Las DOS claves en orden, no una u otra: el normalizador INVENTA un
     # `operational_code` cuando la fila no lo trae —una reserva sin código sale
     # como `R 2.1`—, así que un fallback por «está vacío» no se dispara nunca y
@@ -748,7 +756,7 @@ monitoreo_aulas_sellar_procedencia <- function(plan = list(), ahora = NULL,
       if (!is.null(k)) break
     }
     if (is.null(k) || is.na(k)) next
-    filas[[k]]$activation_origin <- .MARF_ORIGEN_INFERIDO
+    filas[[k]]$activation_origin <- if (declarado) "refuerzo" else .MARF_ORIGEN_INFERIDO
     filas[[k]]$activation_reason <- pr$detalle
     if (!nzchar(.monitoreo_scalar(filas[[k]]$activated_at, ""))) {
       filas[[k]]$activated_at <- ahora

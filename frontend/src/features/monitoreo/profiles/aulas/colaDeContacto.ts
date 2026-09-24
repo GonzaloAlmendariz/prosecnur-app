@@ -2,6 +2,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 // La misma lista que libera una cadena de reemplazo: llamar a un aula que
 // ya se aplicó —parcial incluida— es el mismo trabajo perdido en las dos.
 import { ESTADOS_QUE_LIBERAN, cadenaPropia, sigueDormida } from "./candidatosDeReemplazo";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * A quién hay que llamar, y cuánto ha costado agendar.
@@ -79,8 +80,7 @@ function mediana(xs: number[]): number | null {
 
 /** Ya tiene cita: no entra en la cola. «Reagendada» también la tiene. */
 function tieneCita(fila: MonitoreoAulasPlanRow): boolean {
-  const s = texto(fila.sample_status).toLowerCase();
-  return s.startsWith("agendada") || s.startsWith("reagendada");
+  return esMuestraAgendada(fila.sample_status);
 }
 
 export function colaDeContacto(

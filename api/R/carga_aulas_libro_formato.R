@@ -38,7 +38,7 @@
 # agenda lee un aviso de error donde hay una instruccion.
 AULAS_LIBRO_STATUS_MUESTRA_BASE <- c(
   "SIN CONTACTAR", "EN CONTACTO", "AGENDADA", "REAGENDADA", "RECHAZO",
-  "REFUERZO POR CONTACTAR"
+  "REFUERZO POR CONTACTAR", "REFUERZO AGENDADO"
 )
 
 # **Un color por ESLABON, y de una paleta que se VE distinta (B18).**

@@ -205,7 +205,7 @@ AULAS_AGENDACION_TITULOS <- c(
     # **Agendada es estado Y fecha.** Un `AGENDADA` sin fecha no se puede poner
     # en ningún día ni en ninguna semana, y contarlo como agendada haría que la
     # tabla por facultad y la del día no cuadraran entre sí.
-    agendada = estado %in% c("agendada", "reagendada") & nzchar(fecha),
+    agendada = estado %in% c("agendada", "reagendada", "refuerzo_agendado") & nzchar(fecha),
     aplicada = tryCatch(
       monitoreo_aulas_aula_aplicada(u, partes = partes, efectivas = efectivas),
       error = function(e) rep(FALSE, n)

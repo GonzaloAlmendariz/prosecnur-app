@@ -67,7 +67,7 @@
 #' confirmado. Es el filtro que en el 08/09 dejó fuera catorce candidatas y
 #' entrar sólo a seis.
 #' @keywords internal
-.madm_AGENDADOS <- c("agendada", "reagendada")
+.madm_AGENDADOS <- c("agendada", "reagendada", "refuerzo_agendado")
 
 #' Los minutos de una hora escrita, o `NA` si no se deja leer.
 #'

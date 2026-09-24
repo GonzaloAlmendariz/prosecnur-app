@@ -26,12 +26,13 @@ function estadosDelMotor(): string[] {
 }
 
 describe("cada estado de muestra del motor tiene su acción", () => {
-  it("la lista del motor se lee y trae los ocho del vocabulario", () => {
+  it("la lista del motor se lee y trae los nueve del vocabulario", () => {
     // Cinco tecleables (D-B13, poda del dueño 2026-09-01), dos derivados que
-    // siguen leyéndose de libros vivos, y el que la APP escribe.
+    // siguen leyéndose de libros vivos, el que la APP escribe y su paso
+    // siguiente, «REFUERZO AGENDADO» (2026-09-24).
     expect(estadosDelMotor()).toEqual(
       ["sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
-       "en_reserva", "reemplazada", "refuerzo_por_contactar"],
+       "en_reserva", "reemplazada", "refuerzo_por_contactar", "refuerzo_agendado"],
     );
   });
 
@@ -56,7 +57,7 @@ describe("cada estado de muestra del motor tiene su acción", () => {
   it("«agendada» y «reagendada» sin fecha piden cerrar la fecha, no volver a llamar", () => {
     // La distinción que el comentario defiende: decir «llamar» a quien ya
     // contestó sería empezar de cero un trabajo que ya avanzó.
-    for (const estado of ["agendada", "reagendada"]) {
+    for (const estado of ["agendada", "reagendada", "refuerzo_agendado", "REFUERZO AGENDADO"]) {
       expect(queTocaConCadaAula({ sample_status: estado } as never, CORTE), estado).toBe("Cerrar fecha");
     }
   });

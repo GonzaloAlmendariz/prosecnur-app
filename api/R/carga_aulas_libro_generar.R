@@ -474,7 +474,8 @@ aulas_libro_hoja_agendadas <- function(unidades, traslape_daa = NULL) {
   conocidos <- c(agendada = "AGENDADA", reagendada = "REAGENDADA",
                  en_contacto = "EN CONTACTO", rechazo = "RECHAZO",
                  reemplazada = "REEMPLAZADA", sin_contactar = "SIN CONTACTAR",
-                 refuerzo_por_contactar = "REFUERZO POR CONTACTAR")
+                 refuerzo_por_contactar = "REFUERZO POR CONTACTAR",
+                 refuerzo_agendado = "REFUERZO AGENDADO")
   # `conocidos[[v]]` con un nombre que no esta REVIENTA («subscript out of
   # bounds») en vez de dar NULL: se pregunta por los nombres.
   if (v %in% names(conocidos)) return(unname(conocidos[[v]]))
@@ -1391,7 +1392,7 @@ aulas_libro_anotar_cabeza_de_extras <- function(unidades) {
   # `sample_status` es el que teclea el equipo en la hoja; «AGENDADA» ahí
   # también dice que esa reserva entró.
   muestra <- toupper(.calg_txt(u$sample_status))
-  nzchar(muestra) && grepl("AGENDADA|APLICADA", muestra, fixed = FALSE)
+  nzchar(muestra) && grepl("AGENDAD[AO]|APLICADA", muestra, fixed = FALSE)
 }
 
 #' Anota en cada TITULAR que reserva ocupo su lugar.

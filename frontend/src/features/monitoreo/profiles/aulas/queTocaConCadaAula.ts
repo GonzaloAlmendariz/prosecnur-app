@@ -1,3 +1,4 @@
+import { esMuestraAgendada } from "./muestraAgendada";
 // queTocaConCadaAula.ts — la columna que dice qué hacer.
 //
 // Patrón 7 del catálogo: la tabla «Detalle por facultad» de Cálculo termina en
@@ -68,7 +69,7 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   if (!fecha) {
     // Contactada pero sin fecha cerrada: es el caso que más se atasca, y decir
     // «llamar» otra vez sería empezar de cero un trabajo que ya avanzó.
-    if (estado === "agendada" || estado === "reagendada") return "Cerrar fecha";
+    if (esMuestraAgendada(estado)) return "Cerrar fecha";
     // En contacto ya avanzo (llamadas hechas, sin acuerdo): insistir, no
     // empezar de cero (B13b).
     if (estado === "en_contacto") return "Volver a llamar";

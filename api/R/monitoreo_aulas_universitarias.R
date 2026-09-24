@@ -19,7 +19,7 @@ monitoreo_aulas_estados <- function() {
 # de reemplazos los escribe) y los libros vivos v3 los traen tecleados.
 monitoreo_aulas_estados_muestra <- function() {
   c("sin_contactar", "en_contacto", "agendada", "reagendada", "rechazo",
-    "en_reserva", "reemplazada", "refuerzo_por_contactar")
+    "en_reserva", "reemplazada", "refuerzo_por_contactar", "refuerzo_agendado")
 }
 
 # Estados de la APLICACION, tal como los escribe el parte de campo.
@@ -101,6 +101,12 @@ monitoreo_aulas_estado_muestra <- function(x) {
   # es el estado de los titulares que nunca se tocaron, y lo que el agendador
   # necesita ver es SU cola: lo que la app le acaba de poner por delante.
   if (startsWith(key, "refuerzo por contactar")) return("refuerzo_por_contactar")
+  # **Y «REFUERZO AGENDADO», su paso siguiente.** Gonzalo, 2026-09-24: «sería
+  # bueno tenerla como agendada como refuerzo». Al pasar a AGENDADA el refuerzo
+  # perdía el morado en la hoja y el agendador ya no lo distinguía; con estado
+  # propio cuenta como agendado en todo —aforo, proyección, ritmo— y sigue
+  # diciendo por qué entró. «Agendado/agendada» se aceptan las dos.
+  if (startsWith(key, "refuerzo agendad")) return("refuerzo_agendado")
   out <- switch(gsub(" ", "_", key, fixed = TRUE),
     agendada = "agendada",
     reagendada = "reagendada",

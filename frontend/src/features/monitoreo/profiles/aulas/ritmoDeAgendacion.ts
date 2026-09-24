@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * El ritmo diario de la agendación: cuántas citas se pactan por jornada y qué
@@ -45,10 +46,7 @@ const texto = (v: unknown): string =>
   typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
 
 /** Mismo criterio que la cola: agendada o reagendada = tiene cita. */
-const tieneCita = (fila: MonitoreoAulasPlanRow): boolean => {
-  const s = texto(fila.sample_status).toLowerCase();
-  return s.startsWith("agendada") || s.startsWith("reagendada");
-};
+const tieneCita = (fila: MonitoreoAulasPlanRow): boolean => esMuestraAgendada(fila.sample_status);
 
 /** ISO estricto, como `leerFecha`: cualquier otra forma no es una jornada. */
 const fechaISO = (v: unknown): string => {

@@ -45,7 +45,9 @@
 # pregunta equivocada. «Cuántos teclea el equipo» y «qué ofrece el desplegable»
 # son dos preguntas, y desde que existe un estado que la app escribe sola ya no
 # tienen la misma respuesta.
-.b13b_LISTA <- c(.b13b_CINCO, "REFUERZO POR CONTACTAR")
+# Más los dos que marcan un refuerzo: el que escribe la app y su paso siguiente,
+# «REFUERZO AGENDADO», que teclea el agendador (2026-09-24).
+.b13b_LISTA <- c(.b13b_CINCO, "REFUERZO POR CONTACTAR", "REFUERZO AGENDADO")
 
 .b13b_SLUG <- c(
   "SIN CONTACTAR" = "sin_contactar",

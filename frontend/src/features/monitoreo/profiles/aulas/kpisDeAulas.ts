@@ -45,6 +45,7 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
 import { agendamiento } from "./agendamiento";
 import { historiaDeCadena } from "./historiaDeCadena";
+import { esMuestraAgendada } from "./muestraAgendada";
 
 /**
  * La banda de KPIs del perfil de cursos-horario, **una por sección**.
@@ -673,17 +674,11 @@ export function aulasKpis(
       const op = String(f.operational_status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
       return op === "agendada" || op === "aplicada" || op === "cerrada";
     };
-    const conCita = declaran.filter((f) => {
-      const s = String(f.sample_status ?? "").trim().toLowerCase();
-      return s.startsWith("agendada") || s.startsWith("reagendada") || conAgenda(f);
-    }).length;
+    const conCita = declaran.filter((f) => esMuestraAgendada(f.sample_status) || conAgenda(f)).length;
     // Las que tienen cita en el operativo y la muestra aún no lo dice: es un
     // dato que hay que corregir, y se declara en vez de esconderse detrás del
     // recuento ya arreglado.
-    const muestraDesfasada = declaran.filter((f) => {
-      const s = String(f.sample_status ?? "").trim().toLowerCase();
-      return !s.startsWith("agendada") && !s.startsWith("reagendada") && conAgenda(f);
-    }).length;
+    const muestraDesfasada = declaran.filter((f) => !esMuestraAgendada(f.sample_status) && conAgenda(f)).length;
     const sinCita = declaran.length === enLista.length ? declaran.length - conCita : 0;
     return [
       planKpi(dashboard),
