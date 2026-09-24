@@ -80,27 +80,31 @@ hecho o la muestra continua que porpones».
    por estrato y la distribución por facultad y sexo salían idénticos (31
    llamadas al reparto).
 2. **ADR 0090 ratificado**, reservas por lote incluidas.
-3. **Cuadro maestro de acreditación → acuerdo previo.** El documento de PULSO
-   «Selección de muestras de actores» (marzo 2026) fija:
-   - estudiantes con N ≥ 3001 en aulas: muestra estadística de **1 800** (72
-     aulas × 25). El motor recalculaba con ±2,5 % y deff 2 (1 519 con
-     N = 3001), y de ahí salía el salto. Ahora aplica los 1 800 y la curva es
-     continua:
+3. **Cuadro maestro de acreditación → corte por precisión**
+   ([ADR 0091](../adrs/0091-el-cuadro-de-acreditacion-corta-por-precision.md)).
+   Primero se aplicó el acuerdo previo (documento PULSO de marzo 2026: 1 800
+   fijos para estudiantes con N ≥ 3001), pero un n fijo degrada el margen con
+   N (±3,1 % con 20 000). Gonzalo, después: «Para el tres mejor haz lo que
+   estadísticamente sea más válido, no me hagas mucho caso sobre lo que te
+   dije». Regla final: censo mientras la muestra a la precisión canónica
+   pediría ≥ 60 %; desde ahí, el n de esa precisión.
 
-     | Estudiantes (aula/QR) | técnica | completas | a campo | margen (deff 2) |
-     |---|---|---|---|---|
-     | N = 3.000 | cobertura censal 60 % | 1.800 | 3.000 | — |
-     | N = 3.001 | conglomerado | 1.800 | 2.700 | ±2,1 % |
-     | N = 5.000 | conglomerado | 1.800 | 2.700 | ±2,6 % |
-     | N = 20.000 | conglomerado | 1.800 | 2.700 | ±3,1 % |
+   | Estudiantes (aula/QR) | técnica | completas | a campo | margen |
+   |---|---|---|---|---|
+   | N = 2.000 | cobertura censal 60 % | 1.200 | 2.000 | — |
+   | N = 2.052 | conglomerado | 1.231 | 1.847 | ±2,5 % |
+   | N = 3.000 / 3.001 | conglomerado | 1.519 / 1.519 | 2.279 | ±2,5 % |
+   | N = 20.000 | conglomerado | 2.665 | 3.998 | ±2,5 % |
 
-     (El documento cita ±1,5 % y ±1,8 % para N = 3.000 y 5.000: son sin
-     efecto de diseño. El motor publica el margen con el deff 2 del
-     conglomerado.)
-   - docentes con N ≥ 251: cuotas de 150 (el 60 % de 250 y 50 por
-     dedicación). Se conserva; 250 → 251 da 150 y 150, sin salto.
-   - Que la inferencia sobrescriba la técnica elegida (H16) **no tiene
-     acuerdo previo** documentado: queda como está.
+   | Docentes | técnica | completas | a campo | margen |
+   |---|---|---|---|---|
+   | N = 250 | cobertura censal 60 % | 150 | 250 | — |
+   | N = 259 | MAS | 155 | 259 | ±5 % |
+   | N = 1.000 | MAS | 278 | 464 | ±5 % |
+
+   Muestra monótona, salto ≤ 1 entre N y N + 1, un único cambio de técnica.
+   H16 (la inferencia fija la técnica) queda: la mesa no ofrece selector y
+   rotula el origen. Egresados sigue con la regla del documento.
 
 ## Abierto
 

@@ -506,8 +506,11 @@ test_that("backtesting acreditación reproduce decisiones por actor", {
 
   expect_equal(by_id$administrativos$tecnica, "intencion_censal")
   expect_equal(by_id$administrativos$resultado$n_objetivo, 40L)
-  expect_equal(by_id$docentes$tecnica, "no_prob_cuotas")
-  expect_equal(by_id$docentes$resultado$n_objetivo, 150L)
+  # ADR 0091: con N = 280 una muestra a ±5 % pide menos del 60 %, así que se
+  # sortea (antes: 150 cuotas sin margen desde N ≥ 251).
+  expect_equal(by_id$docentes$tecnica, "prob_aleatorio_simple")
+  expect_equal(by_id$docentes$resultado$n_objetivo,
+               calc_n_muestra(N = 280, p = 0.5, z = 1.96, e = 0.05, deff = 1))
   expect_equal(by_id$estudiantes$tecnica, "prob_conglomerado_multietapico")
   expect_gt(by_id$estudiantes$resultado$n_objetivo, 0L)
   expect_equal(by_id$egresados$tecnica, "intencion_censal")
