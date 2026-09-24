@@ -1397,12 +1397,12 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   grid::grid.text("PULSO PUCP", x = grid::unit(x, "npc"), y = grid::unit(y, "npc"),
                   just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = pulso_pdf_tokens()$navy))
+                  gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = .form_pdf_tokens()$navy))
   invisible(FALSE)
 }
 
 .form_pdf_header <- function(model, page_no) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   .form_pdf_draw_logo(0.052, 0.962, width_npc = 0.115)
   if (!identical(model$show_header_title, FALSE)) {
     .form_pdf_text(toupper(model$title), 0.190, 0.976, 0.480, chars = 62, fontsize = 8.4,
@@ -1419,7 +1419,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_footer <- function(model, page_no) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   grid::grid.lines(x = grid::unit(c(0.052, 0.930), "npc"), y = grid::unit(0.056, "npc"),
                    gp = grid::gpar(col = tk$line, lwd = 0.7))
   grid::grid.text(as.character(page_no), x = grid::unit(0.052, "npc"), y = grid::unit(0.034, "npc"),
@@ -1432,14 +1432,19 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_band <- function(title, x, y, w, chars, kicker = "") {
-  # Banda navy fina; titulo en blanco CENTRADO (sin kicker "SECCION N").
-  tk <- pulso_pdf_tokens()
+  # Banda de seccion: caja GRIS con borde y titulo NEGRO centrado.
+  # Antes era navy solido con el titulo en blanco. En monocromo ese relleno cae a
+  # negro puro: 100% de tinta a todo el ancho por ejemplar, peor que el navy
+  # (88%), y el texto reversado es lo primero que se empasta al fotocopiar. El
+  # relleno no sale del token de acento sino del de banda, como en el renderer
+  # Word.
+  tk <- .form_pdf_tokens()
   lines <- .form_pdf_wrap(toupper(title), chars)
   if (!length(lines)) return(y)
   band_h <- length(lines) * 0.0138 + 0.011
-  .form_pdf_rect(x, y, w, band_h, fill = tk$navy, col = NA, lwd = 0)
+  .form_pdf_rect(x, y, w, band_h, fill = tk$tbl_header, col = tk$ink, lwd = 0.6)
   .form_pdf_text(paste(lines, collapse = "\n"), x, y - 0.0088, w,
-                 chars = chars, fontsize = 8.5, fontface = "bold", col = "white",
+                 chars = chars, fontsize = 8.5, fontface = "bold", col = tk$ink,
                  align = "center", line_h = 0.0138)
   y - band_h
 }
@@ -1463,7 +1468,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 # roundrect ni glyph). Tinte navy tenue para diferenciarlo del cuerpo.
 .form_pdf_draw_opening <- function(text, x, y, w, chars_factor = 112) {
   if (!nzchar(text %||% "")) return(y)
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cw <- max(20L, floor((w - 0.012) * chars_factor))
   lines <- .form_pdf_wrap(text, cw)
   if (!length(lines)) return(y)
@@ -1473,7 +1478,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_cover <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cx <- x + w / 2
   y <- y - 0.018
   lines <- .form_pdf_wrap(block$title, 46)
@@ -1493,7 +1498,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   if (nzchar(block$body %||% "")) {
     y <- .form_pdf_text(block$body, x + 0.008, y, w - 0.016, chars = 122,
-                        fontsize = 8.1, align = "justify", col = pulso_pdf_tokens()$ink, line_h = 0.012)
+                        fontsize = 8.1, align = "justify", col = .form_pdf_tokens()$ink, line_h = 0.012)
   }
   y - 0.012
 }
@@ -1509,7 +1514,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   if (nzchar(block$hint %||% "")) {
     y <- .form_pdf_text(block$hint, x + 0.008, y - 0.006, w - 0.016, chars = 112,
-                        fontsize = 7.5, fontface = "italic", col = pulso_pdf_tokens()$soft, line_h = 0.012)
+                        fontsize = 7.5, fontface = "italic", col = .form_pdf_tokens()$soft, line_h = 0.012)
   }
   y - 0.008
 }
@@ -1569,7 +1574,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
 .form_pdf_draw_options <- function(options, x, y, w, multiple = FALSE) {
   if (!length(options)) return(y)
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   cm <- .form_pdf_options_code_mark(options, multiple)
   code_visible <- cm$code_visible
   show_code <- cm$show_code
@@ -1626,7 +1631,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_question <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   chars_lbl <- if (isTRUE(block$full_width)) 118 else 54
   if (nzchar(block$opening_condition %||% "")) {
     y <- .form_pdf_draw_opening(block$opening_condition, x, y, w,
@@ -1836,7 +1841,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 }
 
 .form_pdf_draw_matrix <- function(block, x, y, w) {
-  tk <- pulso_pdf_tokens()
+  tk <- .form_pdf_tokens()
   if (nzchar(block$opening_condition %||% "")) {
     y <- .form_pdf_draw_opening(block$opening_condition, x, y, w)
     y <- y - 0.002
@@ -2100,7 +2105,7 @@ formulario_pdf_render <- function(model, output_file) {
       grid::grid.lines(
         x = grid::unit(c(0.5, 0.5), "npc"),
         y = grid::unit(c(bottom_y, divider_top), "npc"),
-        gp = grid::gpar(col = pulso_pdf_tokens()$faint, lwd = 0.5)
+        gp = grid::gpar(col = .form_pdf_tokens()$faint, lwd = 0.5)
       )
     }
     divider_top <<- NA_real_
