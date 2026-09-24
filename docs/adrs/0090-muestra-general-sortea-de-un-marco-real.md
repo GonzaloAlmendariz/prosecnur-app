@@ -1,11 +1,12 @@
 # ADR 0090 — Muestra general sortea de un marco real
 
-- **Estado**: Propuesto
+- **Estado**: Aceptado
 - **Implementación**: Implementada — motor ca737075e, rutas f2a0560c7/137675006, entrega 3d529cbe0, acreditación d33f75d4d, front e37d3d174/22e3c641c, reporte a0105280b
 - **Ámbito**: Cálculo de muestra, modos `marco-disponible` y `acreditacion` ·
   archivo nuevo `api/R/calc_muestra_general_sorteo.R` · rutas nuevas
   `/api/calc-muestra/general/*` · sección nueva «Selección» en el modo general
-- **Fecha**: 2026-09-24
+- **Fecha**: 2026-09-24 · **Ratificado**: 2026-09-24 (Gonzalo, incluida la
+  cláusula 5 de reservas por lote)
 - **Origen**: loop de Cálculo de muestra (encargo de Gonzalo, 2026-09-23). Vara
   aprobada: «Cada modo calcula un n que cuadra con la fórmula de referencia,
   sortea unidades de un marco real con semilla reproducible, publica π y pesos,
@@ -140,8 +141,7 @@ redondeo** (`digits = NA`): el serializador global deja 4 decimales y una π de
 
 ## Notas
 
-- La ratificación queda en manos de Gonzalo: está implementado bajo
-  «Propuesto». Lo que más necesita su decisión es la cláusula 5 (reservas como
+- Ratificado por Gonzalo el 2026-09-24, incluida la cláusula 5 (reservas como
   réplicas por lote y no reemplazos por puntaje, como en aulas).
 - `/state` publica sólo el resumen de las corridas, porque el serializador
   global redondea a 4 decimales; el listado sale por `/general/corrida`.
