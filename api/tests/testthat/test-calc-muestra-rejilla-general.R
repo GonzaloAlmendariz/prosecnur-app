@@ -352,3 +352,24 @@ test_that("H19: la cobertura censal habla de sesgo de no respuesta, no de TCL", 
   expect_match(r$advertencia, "sesgo de no respuesta")
   expect_match(r$advertencia, "50 %", fixed = TRUE)
 })
+
+test_that("H24: la asignación de potencia queda entre Neyman y la proporcional (215, a mano 214.05)", {
+  r <- calc_muestra_calcular_componente(.e3_comp("potencia"))
+  expect_identical(as.integer(r$n_teorico), 215L)
+  expect_identical(r$formula_n, "potencia")
+  expect_match(r$memoria_calculo$paso[[2]], "potencia", fixed = TRUE)
+})
+
+test_that("H24: la potencia protege al estrato chico frente a la proporcional", {
+  est <- list(list(label = "Grande", N = 9000L, p_facultad = .3), list(label = "Chico", N = 1000L, p_facultad = .3))
+  mk <- function(a) calc_muestra_calcular_componente(calc_muestra_normalize_componente(.rejilla_comp(
+    tecnica = "prob_estratificado", N = 10000L, estratos = est, meta = list(valor = 400L),
+    parametros = list(asignacion = a))))
+  prop <- mk("proporcional"); pot <- mk("potencia")
+  chico <- function(r) r$distribucion_estratos[[2]]
+  expect_identical(chico(prop)$n, 40L)
+  expect_gt(chico(pot)$n, 90L)
+  # Y su precisión propia mejora con la potencia (usa SU p, no la global).
+  expect_lt(chico(pot)$precision_e, chico(prop)$precision_e)
+  expect_equal(chico(pot)$precision_e, calc_e_desde_n_muestra(n = chico(pot)$n, N = 1000, p = .3, z = 1.96, deff = 1))
+})

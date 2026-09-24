@@ -50,8 +50,8 @@
   cv = list(rotulo = "Coeficiente de variación esperado",
             ayuda = "Sólo para medias: desviación estándar / media. Sin estimación previa, 1 es conservador para variables sesgadas como el ingreso."),
   asignacion = list(rotulo = "Asignación entre estratos",
-                    ayuda = "Proporcional reparte según el tamaño del estrato; Neyman, según tamaño × variabilidad (necesita la proporción esperada de cada estrato) y da menos error con el mismo n.",
-                    tipo = "opciones", opciones = c("proporcional", "neyman"))
+                    ayuda = "Proporcional reparte según el tamaño del estrato; Neyman, según tamaño × variabilidad (da el menor error total); potencia, según √tamaño × variabilidad (protege a los estratos chicos si también se reportan por separado).",
+                    tipo = "opciones", opciones = c("proporcional", "neyman", "potencia"))
 )
 
 #' Parámetros que consume una técnica, con rótulo y ayuda.

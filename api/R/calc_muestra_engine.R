@@ -1782,7 +1782,7 @@ calc_muestra_calcular_componente <- function(comp) {
     # global: es el que el diseño de verdad logra con esos n_h.
     base_result$precision_alcanzada <- .cm_general_error_estratificado(as.integer(cuotas), estratos, par)
     base_result$asignacion <- par$asignacion
-    base_result$formula_n <- if (identical(par$asignacion, "neyman")) "neyman" else "proporcional_por_estrato"
+    base_result$formula_n <- switch(par$asignacion, neyman = "neyman", potencia = "potencia", "proporcional_por_estrato")
     # Un piso aleja el reparto del óptimo: el n de la fórmula ya no garantiza
     # el margen, y eso se dice con la cifra (Monte Carlo del verificador:
     # piso 40 con e = .035 dejaba ±.0364).
@@ -1808,8 +1808,10 @@ calc_muestra_calcular_componente <- function(comp) {
       N           = e$N,
       n           = n_i,
       n_campo     = as.integer(cuotas_campo[[i]]),
+      # Con la fórmula por estrato, la precisión del estrato usa SU p.
       precision_e = if (n_i > 0L) calc_e_desde_n_muestra(
-        n = n_i, N = e$N, p = par$p, z = par$z, deff = par$deff
+        n = n_i, N = e$N, z = par$z, deff = par$deff,
+        p = if (por_estrato && !is.null(e$p_facultad) && !is.na(e$p_facultad)) e$p_facultad else par$p
       ) else NA_real_,
       regla       = if (n_i >= e$N) "censo_estrato"
                     else if (piso > 0L && n_i <= piso && !isTRUE(attr(cuotas, "piso_incumplible"))) sprintf("piso_%d", piso)
@@ -1827,11 +1829,15 @@ calc_muestra_calcular_componente <- function(comp) {
   aviso_vacios <- if (sin_casos > 0L) sprintf(
     "%d de %d estratos quedan sin casos: su población no entra al sorteo ni a la estimación. Sube n (o la meta) para cubrirlos.",
     sin_casos, length(pesos)) else NULL
-  if (isTRUE(attr(cuotas, "piso_incumplible")) && identical(base_result$asignacion, "neyman")) {
-    aviso_piso <- sub("proporcional sin piso", "sin piso (asignación de Neyman)", aviso_piso, fixed = TRUE)
+  if (isTRUE(attr(cuotas, "piso_incumplible")) && !is.null(base_result$asignacion) &&
+      !identical(base_result$asignacion, "proporcional")) {
+    nombre <- if (identical(base_result$asignacion, "neyman")) "de Neyman" else "de potencia"
+    aviso_piso <- sub("proporcional sin piso", sprintf("sin piso (asignación %s)", nombre), aviso_piso, fixed = TRUE)
   }
   cierre <- if (identical(base_result$asignacion, "neyman")) {
     "Muestreo estratificado con asignación de Neyman: el margen de error formal corresponde al diseño probabilístico documentado."
+  } else if (identical(base_result$asignacion, "potencia")) {
+    "Muestreo estratificado con asignación de potencia (Bankier): protege a los estratos chicos a costa de un poco de precisión global."
   } else {
     "Muestreo estratificado proporcional: el margen de error formal corresponde al diseño probabilístico documentado."
   }
