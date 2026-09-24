@@ -35,7 +35,7 @@ patrón y no cambia sus cifras.
 | E4 | Sorteo en Muestra general | ☑ | [ADR 0090](../adrs/0090-muestra-general-sortea-de-un-marco-real.md) (propuesto) |
 | E5 | Sorteo por actor en Acreditación | ☑ | modalidad por técnica (probabilística / censo / sin π) |
 | E6 | Entrega | ☑ | XLSX con memoria sustituida; reporte con memoria y sorteo |
-| E7 | Intuitividad | ◐ | recorrido real de usuario nuevo hecho; fricciones F-a/c/d/e/f en curso |
+| E7 | Intuitividad | ☑ | recorrido real de usuario nuevo de punta a punta; fricciones F-a…F-g cerradas |
 | E8 | Monte Carlo a escala | ☑ | insesgado; error ≤ e 94,8–98,1 %; IC95 93,4–99,5 % |
 | E9 | Regresión de aulas | ☑ | [hsvg2026 idéntico](regresion-aulas-hsvg2026-2026-09-24.md) |
 | E10 | Traspaso territorial | ☑ | la mesa Territorial deriva a Hojas de ruta |
@@ -52,6 +52,10 @@ patrón y no cambia sus cifras.
 - El estratificado usa la proporción de cada estrato y ofrece Neyman: en un
   marco de 5.000 con p .1/.3/.5/.7 el n baja de 537 a 407.
 - Acreditación sortea por actor desde su propia sección.
+- Se puede dimensionar para una media (ingreso, horas) con error relativo y
+  el coeficiente de variación, y el estratificado ofrece la asignación de
+  potencia (Bankier) para proteger a los estratos chicos.
+- La entrega dice cómo estimar la varianza según el método de sorteo.
 - Libro XLSX (Corrida, Memoria, Estratos, Listado) y reporte con la memoria y
   el sorteo.
 
@@ -78,12 +82,11 @@ funcionaron) · Neyman dejaba estratos vacíos.
 
 ## Abierto
 
-- Fricciones de UI del recorrido real: F-a (tarjetas del selector truncadas),
-  F-c (id no propuesto para «codigo»), F-d (texto de memoria engañoso), F-e
-  (ficha «MAS» en un estratificado Neyman), F-f («Estratificado
-  proporcional» con Neyman).
-- Research sin tocar: H21 (n para medias y error relativo), H24 (asignación de
-  potencia), H25–H28 (bajos). H27 no aplica: el recomendador no tiene
-  consumidor en la UI.
+- Research: todo cerrado o descartado con motivo. H21 (medias), H24
+  (potencia) y H28 (varianza) implementados; H25 y H26 no aplican (el sorteo
+  aísla su RNG; la inflación de cuotas ya sigue la regla común); H27 no
+  aplica (el recomendador no tiene consumidor en la UI).
+- Menor: en una media la tabla de estratos todavía ofrece la columna de p
+  (el motor la ignora en ese caso).
 - Tareas aparte: π a 4 decimales en rutas de aulas; test del respaldo
   multipart de monitoreo.
