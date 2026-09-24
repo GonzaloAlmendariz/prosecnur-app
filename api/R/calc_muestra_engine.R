@@ -1154,7 +1154,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # las de aulas para que un .pulso viejo no cambie su n, y las censales y
     # de cuotas porque la inferencia de acreditación reconoce «no declarado»
     # comparando contra ese 1.5 (`fill_default`): con 1 el estudiante de
-    # N ≥ 3001 perdía su deff canónico 2 y bajaba de 1904 a 1176.
+    # N ≥ 3001 perdía su deff canónico 2 y su margen publicado se achicaba
+    # (el n ya no depende del deff: son los 1 800 del cuadro maestro).
     deff              = calc_num(par$deff,
                                  if (tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) 1 else .CM_DEFAULTS_PARAMS$deff,
                                  min = 1, max = 10),
