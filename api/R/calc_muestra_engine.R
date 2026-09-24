@@ -815,7 +815,9 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     marco             = marco_normalizado,
     parametros        = parametros_norm,
     # Correcciones declaradas: qué valor llegó fuera de rango y cuál se usó.
-    avisos_parametros = .cm_general_avisos_parametros(comp$parametros, parametros_norm,
+    # Contra `parametros_in`: lo que la inferencia de acreditación completó
+    # no llegó fuera de rango, lo puso el cuadro maestro.
+    avisos_parametros = .cm_general_avisos_parametros(parametros_in, parametros_norm,
                                                       comp$avisos_parametros),
     meta              = .cm_normalize_meta(meta_in),
     inferencia_acreditacion = inferencia,
@@ -1125,6 +1127,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
   Filter(Negate(is.null), out)
 }
 
+.CM_TECNICAS_DE_ELEMENTOS <- c("prob_aleatorio_simple", "prob_estratificado", "sistematico")
+
 .cm_normalize_parametros <- function(par, tecnica) {
   if (is.null(par) || !is.list(par)) par <- list()
   list(
@@ -1132,15 +1136,15 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     # p en (0, 1) abierto: con 0 o 1 la varianza es cero y n sale 0 (H20).
     p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 1e-6, max = 1 - 1e-6),
     e                 = calc_num(par$e, .CM_DEFAULTS_PARAMS$e, min = 0.001, max = 0.5),
-    # El deff 1.5 por defecto es de las técnicas de aulas (conglomerado y
-    # dominios independientes; un .pulso viejo sin deff no debe cambiar su n).
     # En un diseño de elementos —MAS, estratificado, sistemático— el deff de
     # referencia es 1: heredar 1.5 inflaba 370 a 545 con N=10.000 sin que nadie
-    # lo hubiera declarado (research H07).
+    # lo hubiera declarado (research H07). Las demás técnicas conservan 1.5:
+    # las de aulas para que un .pulso viejo no cambie su n, y las censales y
+    # de cuotas porque la inferencia de acreditación reconoce «no declarado»
+    # comparando contra ese 1.5 (`fill_default`): con 1 el estudiante de
+    # N ≥ 3001 perdía su deff canónico 2 y bajaba de 1904 a 1176.
     deff              = calc_num(par$deff,
-                                 if (tecnica %in% c("prob_conglomerado_multietapico",
-                                                    "prob_estratificado_independiente"))
-                                   .CM_DEFAULTS_PARAMS$deff else 1,
+                                 if (tecnica %in% .CM_TECNICAS_DE_ELEMENTOS) 1 else .CM_DEFAULTS_PARAMS$deff,
                                  min = 1, max = 10),
     tau               = calc_num(par$tau, .CM_DEFAULTS_PARAMS$tau, min = 0, max = 1),
     oversample_pct    = calc_num(par$oversample_pct, .CM_DEFAULTS_PARAMS$oversample_pct,
@@ -1686,7 +1690,13 @@ calc_muestra_calcular_componente <- function(comp) {
 
   n_teorico <- calc_n_muestra(N = N, p = par$p, z = par$z, e = par$e, deff = par$deff)
   n_objetivo <- .cm_aplicar_ajuste_objetivo(n_teorico, comp)
-  campo <- .cm_general_inflar_operativo(n_objetivo, par, N)
+  # Los dominios independientes de aulas caen aquí cuando no traen estratos;
+  # su n a campo lo gobierna el motor de aulas, no esta inflación.
+  campo <- if (identical(comp$tecnica, "prob_estratificado_independiente")) {
+    .cm_general_inflar_operativo(n_objetivo, list(tasa_respuesta = 1, oversample_pct = par$oversample_pct), NA)
+  } else {
+    .cm_general_inflar_operativo(n_objetivo, par, N)
+  }
   precision_alcanzada <- calc_e_desde_n_muestra(
     n = n_objetivo, N = N, p = par$p, z = par$z, deff = par$deff
   )

@@ -222,3 +222,37 @@ test_that("B6: un parámetro válido no genera avisos", {
   expect_length(comp$avisos_parametros, 0L)
 })
 
+
+# --- Regresiones que encontró el verificador de E2 (2026-09-24) ------------
+
+test_that("V1: el reparto no desborda enteros con marcos de millones", {
+  expect_identical(as.integer(.cm_general_reparto(2401L, c(2000000L, 1000000L))), c(1601L, 800L))
+  x <- .cm_general_reparto(1537L, c(9000000L, 4000000L, 250000L), piso = 30L)
+  expect_identical(sum(as.integer(x)), 1537L)
+})
+
+test_that("V2: acreditación de estudiantes con N ≥ 3001 conserva el deff canónico 2", {
+  comp <- .cm_iniciar_acreditacion()$componentes[[3]]
+  comp$marco$marco_validado <- 5000L
+  comp$marco$universo_bruto <- 5000L
+  comp$marco$marco_contactable <- 5000L
+  comp$marco$estado <- "validado"
+  comp <- calc_muestra_normalize_componente(comp)
+  expect_identical(comp$tecnica, "prob_conglomerado_multietapico")
+  expect_identical(comp$parametros$deff, 2)
+  expect_identical(as.integer(calc_muestra_calcular_componente(comp)$n_objetivo), 1904L)
+})
+
+test_that("V3: lo que completa la inferencia de acreditación no se declara fuera de rango", {
+  comp <- .cm_iniciar_acreditacion()$componentes[[3]]
+  comp$marco$marco_validado <- 5000L
+  comp$marco$estado <- "validado"
+  comp <- calc_muestra_normalize_componente(comp)
+  expect_length(comp$avisos_parametros, 0L)
+})
+
+test_that("V4: el estratificado independiente de aulas sin estratos no cambia su n a campo", {
+  r <- .rejilla_calc(tecnica = "prob_estratificado_independiente", N = 5000L,
+                     parametros = list(tasa_respuesta = 0.6))
+  expect_identical(as.integer(r$n_operativo), as.integer(r$n_objetivo))
+})

@@ -27,11 +27,14 @@
   if (H == 0L) return(integer())
   N_h <- as.integer(pmax(0L, N_h))
   n_total <- as.integer(max(0L, n_total))
+  # Las cuotas crudas se calculan en double: n·N_h pasa de 2^31 con marcos de
+  # millones y el producto de dos enteros de R desborda a NA.
+  N_dbl <- as.numeric(N_h)
   piso <- as.integer(max(0L, piso %||% 0L))
-  if (n_total == 0L || sum(N_h) == 0L) return(rep(0L, H))
-  if (n_total >= sum(N_h)) return(N_h)
+  if (n_total == 0L || sum(N_dbl) == 0) return(rep(0L, H))
+  if (n_total >= sum(N_dbl)) return(N_h)
 
-  piso_incumplible <- piso > 0L && sum(pmin(piso, N_h)) > n_total
+  piso_incumplible <- piso > 0L && sum(pmin(as.numeric(piso), N_dbl)) > n_total
   if (piso_incumplible) piso <- 0L
 
   n_h <- rep(0L, H)
@@ -40,7 +43,7 @@
     libres <- which(!fijo)
     resto <- n_total - sum(n_h[fijo])
     if (!length(libres) || resto <= 0L) break
-    crudo <- resto * N_h[libres] / sum(N_h[libres])
+    crudo <- as.numeric(resto) * N_dbl[libres] / sum(N_dbl[libres])
     censo <- crudo >= N_h[libres]
     bajo_piso <- !censo & piso > 0L & crudo < piso
     if (!any(censo | bajo_piso)) break
@@ -52,7 +55,7 @@
   libres <- which(!fijo)
   resto <- n_total - sum(n_h[fijo])
   if (length(libres) && resto > 0L) {
-    crudo <- resto * N_h[libres] / sum(N_h[libres])
+    crudo <- as.numeric(resto) * N_dbl[libres] / sum(N_dbl[libres])
     base <- floor(crudo)
     faltan <- as.integer(resto - sum(base))
     if (faltan > 0L) {
