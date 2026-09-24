@@ -86,8 +86,13 @@ export function SalidasCoincidenciaTab({
     >
       {/* Tres grupos rotulados (revamp 2026-08-19): el método, el resultado y
           el detalle. Antes las seis tarjetas iban apiladas al mismo nivel y la
-          página no tenía dónde apoyar la vista. */}
-      <div className="cmv2-coincidencia-grupo" aria-label="El método" data-qa-geometry-member>
+          página no tenía dónde apoyar la vista.
+          C1 (E12 · A5): «El método» declara su geometría porque apila las
+          tarjetas de criterios (la general quedaba sin declarar). Los otros
+          dos siguen como miembros de la sección: declarados como grupos,
+          medían como capacidad ociosa el interlineado y el borde de su
+          última tarjeta (3.8 y 11 px) y dejaban el gate en rojo. */}
+      <div className="cmv2-coincidencia-grupo" aria-label="El método" data-qa-geometry-group="calc-muestra/salidas-coincidencia-metodo" data-qa-geometry-contract="intrinsic">
         <h3 className="cmv2-coincidencia-rotulo">El método, contra el estudio anterior</h3>
         <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
         {/* Los criterios del MARCO, que son los que deciden qué aulas entran.

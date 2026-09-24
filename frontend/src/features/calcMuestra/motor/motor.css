@@ -68,7 +68,8 @@
 }
 
 .rec-cabecera-perfil[data-fuente="proyecto"] {
-  color: var(--pulso-accent-green);
+  /* El verde de acento daba ≈3:1 sobre su tinte; el de éxito pasa AA. */
+  color: var(--pulso-success-fg);
   background: color-mix(in srgb, var(--pulso-accent-green) 8%, transparent);
   border-color: color-mix(in srgb, var(--pulso-accent-green) 35%, transparent);
 }
@@ -1963,9 +1964,14 @@
     gap: 2px;
   }
 
+  /* Una fila con TODAS las cifras, sean cuantas sean: con `repeat(6, …)` y
+   * ocho cifras la banda se partía en 6 + 2 con celdas huérfanas (QA de
+   * aulas, 2026-09-24). */
   .rec-resumen,
   .rec-resumen[class] {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
   }
 
   .rec-resumen .rec-resumen-item {

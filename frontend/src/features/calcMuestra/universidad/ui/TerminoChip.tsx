@@ -14,6 +14,7 @@ export function TerminoChip({
   valor,
   children,
   triggerClassName = "cmv2-uni-term",
+  chipSinGlosario = false,
 }: {
   /** Prefijo del término en el GLOSARIO del corpus (ej. "deff", "salto k"). */
   termino: string;
@@ -22,9 +23,20 @@ export function TerminoChip({
   children?: ReactNode;
   /** Clase del trigger; por defecto el chip subrayado inline. */
   triggerClassName?: string;
+  /**
+   * Si el glosario no resuelve el término, conservar la clase del trigger en
+   * vez de caer a texto desnudo. Lo pide la fila de chips de una fórmula: un
+   * chip suelto sin marco rompe la fila (E12 · A3, «p 0.3» sin estilo). En el
+   * texto corrido no aplica: un subrayado sin popover promete lo que no hay.
+   */
+  chipSinGlosario?: boolean;
 }) {
   const entry = GLOSARIO.find((g) => g.termino.toLowerCase().startsWith(termino.toLowerCase()));
-  if (!entry) return <>{children ?? termino}</>;
+  if (!entry) {
+    return chipSinGlosario
+      ? <span className={triggerClassName}>{children ?? termino}</span>
+      : <>{children ?? termino}</>;
+  }
   return (
     <Popover
       openOn="hover"

@@ -61,6 +61,7 @@ export function FormulaLatex({
               termino={term.termino}
               valor={term.value}
               triggerClassName="cmv2-uni-formula-term"
+              chipSinGlosario
             >
               <code>{term.symbol}</code>
               {term.value != null && <strong>{term.value}</strong>}

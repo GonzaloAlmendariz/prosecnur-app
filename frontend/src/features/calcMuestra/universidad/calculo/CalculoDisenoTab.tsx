@@ -178,7 +178,7 @@ export function CalculoDisenoTab({
             terms={[
               { symbol: "N", termino: "marco muestral", value: N > 0 ? fmtInt(N) : "—" },
               { symbol: "z", termino: "nivel de confianza", value: fmtDecimal(zT, 2) },
-              { symbol: "p", termino: "proporción esperada", value: fmtDecimal(pT, 2) },
+              { symbol: "p", termino: "p (proporción", value: fmtDecimal(pT, 2) },
               { symbol: "e", termino: "margen de error", value: `±${fmtDecimal(eT * 100, 1)}%` },
               { symbol: "deff", termino: "deff", value: fmtDecimal(deffT, 2) },
             ]}
@@ -195,7 +195,12 @@ export function CalculoDisenoTab({
       </section>
 
       <section className="cmv2-calc-supuestos-panel">
-        <div className="cmv2-calc-supuestos cmv2-uni-stagger">
+        {/* C1 (E12 · A5): los cuatro supuestos se apilan con alto propio. */}
+        <div
+          className="cmv2-calc-supuestos cmv2-uni-stagger"
+          data-qa-geometry-group="calc-muestra/calculo-supuestos"
+          data-qa-geometry-contract="intrinsic"
+        >
           <SupuestoFila
             id="confianza"
             titulo="Confianza y precisión"

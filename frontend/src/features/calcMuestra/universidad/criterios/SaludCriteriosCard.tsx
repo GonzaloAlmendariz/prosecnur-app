@@ -120,7 +120,13 @@ export function SaludCriteriosCard({ salud }: { salud: CalcMuestraSaludCriterios
           después de corregir el mapeo.
         </span>
       </header>
-      <ul className="cmv2-salud-lista">
+      {/* C1 (E12 · A5): una fila por criterio roto, cada una con su texto;
+          el alto es propio de cada fila, no igual. */}
+      <ul
+        className="cmv2-salud-lista"
+        data-qa-geometry-group="calc-muestra/salud-criterios"
+        data-qa-geometry-contract="intrinsic"
+      >
         {conProblema.map((f) => (
           <FilaCriterio key={f.criterion_id} fila={f} />
         ))}
