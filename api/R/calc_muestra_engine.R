@@ -1283,6 +1283,16 @@ calc_muestra_calcular_componente <- function(comp) {
   )
 
   resultado$inferencia <- inferencia
+  # Una meta menor que el n que exige el margen manda, pero se dice (H12): el
+  # diseño no alcanza el error declarado y el resultado publica cuál alcanza.
+  if (comp$tecnica %in% .CM_TECNICAS_DE_ELEMENTOS &&
+      !is.na(resultado$n_teorico %||% NA) && !is.na(resultado$n_objetivo %||% NA) &&
+      resultado$n_objetivo < resultado$n_teorico) {
+    resultado$advertencia <- paste(c(sprintf(
+      "La meta declarada (%d) es menor que el n que exige el margen (%d): el error alcanzado es ±%.1f puntos, no ±%.1f.",
+      as.integer(resultado$n_objetivo), as.integer(resultado$n_teorico),
+      100 * (resultado$precision_alcanzada %||% NA), 100 * comp$parametros$e), resultado$advertencia), collapse = " ")
+  }
   if (length(comp$avisos_parametros)) {
     resultado$avisos_parametros <- comp$avisos_parametros
     resultado$advertencia <- paste(c(
@@ -1968,8 +1978,11 @@ calc_muestra_calcular_componente <- function(comp) {
   res <- .cm_calc_mas(comp, inferencia)
   N <- comp$marco$marco_validado
   n <- res$n_objetivo %||% 0L
-  intervalo <- if (!is.na(n) && n > 0L && N > 0L) floor(N / n) else NA_integer_
-  res$intervalo_sistematico <- as.integer(intervalo)
+  # Intervalo fraccional k = N/n (research H11): con floor(N/n) un N=1000 y
+  # n=300 daba k=3 y la vuelta al marco sacaba 333 o 334 unidades. El sorteo
+  # (calc_muestra_general_sortear) usa este k con arranque U(0, k].
+  intervalo <- if (!is.na(n) && n > 0L && N > 0L) N / n else NA_real_
+  res$intervalo_sistematico <- as.numeric(intervalo)
   res$advertencia <- paste(
     res$advertencia %||% "",
     "Muestreo sistemático: requiere marco ordenado y arranque aleatorio documentado."

@@ -328,3 +328,18 @@ test_that("E3: el sorteo sortea el reparto de Neyman que publicó el cálculo", 
   expect_identical(sel$corrida$estratos$n_h, campo)
   expect_equal(sel$corrida$estratos$pi, campo / c(3000, 2000))
 })
+
+test_that("H11: el sistemático publica el intervalo fraccional N/n", {
+  r <- .rejilla_calc(tecnica = "sistematico", N = 1000L, parametros = list(e = .0474))
+  expect_equal(r$intervalo_sistematico, 1000 / r$n_objetivo)
+  expect_false(r$intervalo_sistematico == floor(r$intervalo_sistematico))
+})
+
+test_that("H12: una meta menor que el n requerido se declara con el error que sí alcanza", {
+  r <- .rejilla_calc(N = 5000L, meta = list(valor = 150L))
+  expect_identical(as.integer(r$n_objetivo), 150L)
+  expect_identical(as.integer(r$n_teorico), 357L)
+  expect_match(r$advertencia, "La meta declarada (150) es menor que el n que exige el margen (357)", fixed = TRUE)
+  mayor <- .rejilla_calc(N = 5000L, meta = list(valor = 500L))
+  expect_false(grepl("es menor que el n", mayor$advertencia %||% ""))
+})
