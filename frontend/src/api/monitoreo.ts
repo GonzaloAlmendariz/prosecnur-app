@@ -1710,9 +1710,22 @@ export type MonitoreoAulasReparto = {
 
 /** El estado de aplicación repartido por rol; la forma del libro. */
 export type MonitoreoAulasRolYEstado = {
+  /**
+   * Los códigos de lo que pide una acción hoy. `aplicado_sin_agenda` y
+   * `agendado_vencido` faltan cuando el plan no trae la fecha agendada.
+   */
+  acciones?: {
+    aplicado_sin_agenda?: string[] | null;
+    agendado_vencido?: string[] | null;
+    sin_agendar?: string[];
+    rechazado?: string[];
+  };
+  /** `aplicado_sin_agenda` ⊂ `aplicado` y `agendado_vencido` ⊂ `agendado`. */
   titulares?: { total?: number; aplicado?: number; agendado?: number;
-                sin_agendar?: number; rechazado?: number; reemplazado?: number };
-  reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number };
+                sin_agendar?: number; rechazado?: number; reemplazado?: number;
+                aplicado_sin_agenda?: number | null; agendado_vencido?: number | null };
+  reemplazos?: { total?: number; utilizado?: number; en_cadena?: number; al_aire?: number;
+                 utilizado_sin_agenda?: number | null };
   banco?: { total?: number; utilizado?: number; disponible?: number };
 };
 

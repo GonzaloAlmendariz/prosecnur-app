@@ -126,16 +126,18 @@ export function desenlacesDelLibro(
   const enCurso = tipos.reduce((n, t) => n + t.enCurso, 0);
   const declarados = tipos.reduce((n, t) => n + t.declarados, 0);
 
+  // **Dicho como se habla.** La versión anterior —«1 que el campo ya vive y el
+  // libro todavía no dice: el verbo se teclea al aplicar»— era la explicación
+  // del mecanismo, no la lectura; Gonzalo, 2026-09-24: «no es muy amigable».
+  const sinAnotar = enCurso;
   const frase = total === 0
     ? "Ningún curso-horario ha necesitado reemplazo, complemento ni refuerzo todavía."
-    : [
-        `${fmt(total)} ${total === 1 ? "curso-horario ha necesitado" : "cursos-horario han necesitado"} relevo`,
-        declarados && enCurso
-          ? `${fmt(declarados)} ${declarados === 1 ? "declarado" : "declarados"} en el libro y ${fmt(enCurso)} que el campo ya vive y el libro todavía no dice.`
-          : enCurso
-            ? `${fmt(enCurso)} que el campo ya vive y el libro todavía no dice: el verbo se teclea al aplicar.`
-            : "todos declarados en el libro.",
-      ].join(": ");
+    : `${fmt(total)} ${total === 1 ? "curso-horario necesitó" : "cursos-horario necesitaron"} relevo. ` + (
+        sinAnotar
+          ? `${declarados ? `${fmt(declarados)} ${declarados === 1 ? "está anotado" : "están anotados"} en el libro y ` : ""}`
+            + `${fmt(sinAnotar)} todavía no ${sinAnotar === 1 ? "está anotado" : "están anotados"}: el libro lo registra al aplicar.`
+          : "Todos están anotados en el libro."
+      );
 
   return {
     tipos,

@@ -61,8 +61,8 @@ describe("los tres desenlaces del libro", () => {
 
   it("separa lo que el libro declara de lo que el campo ya vive", () => {
     const html = pinta();
-    expect(html).toContain("el campo ya vive y el libro todavía no dice");
-    expect(html).toContain("sin declarar");
+    expect(html).toContain("todavía no están anotados");
+    expect(html).toContain("sin anotar");
   });
 
   it("con una facultad puesta cuenta los suyos", () => {

@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { fmt } from "./kpisDeAulas";
-import { estadoPorRol, sinColocar, type GrupoDeRol, type TramoDeRol } from "./estadoPorRol";
+import {
+  accionesDeHoy, estadoPorRol, sinColocar, type AccionDeHoy, type GrupoDeRol, type TramoDeRol,
+} from "./estadoPorRol";
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 import "./aulasEstadoPorRol.css";
 
@@ -33,30 +35,67 @@ const TONOS: Record<TramoDeRol["tono"], string> = {
   apagado: "var(--pulso-border)",
 };
 
+/** El rayado dice «el registro va por detrás» sin cambiar de color. */
+function fondo(tono: TramoDeRol["tono"], rayado?: boolean): string {
+  const c = TONOS[tono];
+  return rayado
+    ? `repeating-linear-gradient(135deg, ${c} 0 5px, color-mix(in srgb, ${c} 45%, var(--pulso-surface)) 5px 9px)`
+    : c;
+}
+
+/** Hasta ocho códigos a la vista; el resto, contado. */
+const VISIBLES = 8;
+
+function Accion({ accion }: { accion: AccionDeHoy }): ReactNode {
+  const extra = accion.codigos.length - VISIBLES;
+  return (
+    <li className="aulas-epr-accion">
+      <i style={{ background: fondo(accion.tono, accion.rayado) }} aria-hidden="true" />
+      <p>
+        <span><strong>{fmt(accion.codigos.length)}</strong> {accion.titulo}</span>
+        <em>{accion.hacer}</em>
+      </p>
+      <span className="aulas-epr-codigos">
+        {accion.codigos.slice(0, VISIBLES).map((c) => <b key={c}>{c}</b>)}
+        {extra > 0 ? <span>y {fmt(extra)} más</span> : null}
+      </span>
+    </li>
+  );
+}
+
 function Grupo({ grupo }: { grupo: GrupoDeRol }): ReactNode {
   const huerfanos = sinColocar(grupo);
   const tramos = grupo.tramos.filter((t) => t.aulas > 0);
   return (
     <li className="aulas-epr-grupo">
       <p className="aulas-epr-cabeza">
-        <strong>{fmt(grupo.total)}</strong> {grupo.etiqueta}
+        <strong>{fmt(grupo.total)}</strong>
+        <span>{grupo.etiqueta}</span>
         <em>{grupo.nota}</em>
       </p>
       {grupo.total > 0 ? (
         <span className="aulas-epr-barra" role="img"
           aria-label={`${grupo.etiqueta}: ${tramos.map((t) => `${t.etiqueta} ${t.aulas}`).join(", ")}`}>
-          {tramos.map((t) => (
-            <i key={t.clave}
-              style={{ width: `${(100 * t.aulas) / grupo.total}%`, background: TONOS[t.tono] }} />
-          ))}
+          {tramos.map((t) => {
+            const ancho = (100 * t.aulas) / grupo.total;
+            return (
+              <i key={t.clave} title={`${fmt(t.aulas)} ${t.etiqueta.toLowerCase()}: ${t.detalle}`}
+                data-oscuro={t.tono === "apagado" ? undefined : ""}
+                style={{ width: `${ancho}%`, background: fondo(t.tono, t.rayado) }}>
+                {/* La cifra dentro del tramo cuando cabe: se lee sin ir a la
+                    leyenda, que es lo que hacía pesado este panel. */}
+                {ancho >= 7 ? fmt(t.aulas) : null}
+              </i>
+            );
+          })}
         </span>
       ) : null}
       <ul className="aulas-epr-leyenda">
         {tramos.map((t) => (
-          <li key={t.clave}>
-            <i style={{ background: TONOS[t.tono] }} />
+          // El detalle al alcance del cursor: la leyenda nombra, no explica.
+          <li key={t.clave} title={t.detalle}>
+            <i style={{ background: fondo(t.tono, t.rayado) }} />
             <span><strong>{fmt(t.aulas)}</strong> {t.etiqueta}</span>
-            <em>{t.detalle}</em>
           </li>
         ))}
         {/* **Lo que no cae en ninguna rama se DICE.** El motor ya comprueba en su
@@ -64,10 +103,10 @@ function Grupo({ grupo }: { grupo: GrupoDeRol }): ReactNode {
             venir de una versión distinta de la que dibuja, y una lista cerrada
             que se traga lo que no reconoce es el defecto más caro de este perfil. */}
         {huerfanos > 0 ? (
-          <li className="es-sin-colocar">
+          <li className="es-sin-colocar"
+            title="el motor los cuenta en el total y no en ningún estado: hay una versión por medio">
             <i style={{ background: COLOR_RESULTADO.revision }} />
             <span><strong>{fmt(huerfanos)}</strong> sin clasificar</span>
-            <em>el motor los cuenta en el total y no en ningún estado: hay una versión por medio</em>
           </li>
         ) : null}
       </ul>
@@ -94,8 +133,19 @@ export function AulasEstadoPorRol({ dashboard, facultadEnFoco }: {
       </p>
     );
   }
+  const acciones = accionesDeHoy(dashboard, facultadEnFoco);
   return (
     <div className="aulas-epr" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* **Primero lo que pide trabajo hoy**, con nombre y apellido; después la
+          forma del conjunto. Sin nada pendiente se dice, que también es dato. */}
+      {acciones.length ? (
+        <ul className="aulas-epr-acciones" aria-label="Qué hacer hoy">
+          {acciones.map((a) => <Accion key={a.clave} accion={a} />)}
+        </ul>
+      ) : Array.isArray(dashboard?.course_status_rol_y_estado?.acciones?.aplicado_sin_agenda) ? (
+        // Sólo con la fecha publicada se puede afirmar que no falta nada.
+        <p className="aulas-epr-al-dia">Nada pendiente: cada titular tiene fecha, aplicación o relevo.</p>
+      ) : null}
       <ul className="aulas-epr-grupos">
         {grupos.map((g) => <Grupo key={g.clave} grupo={g} />)}
       </ul>
