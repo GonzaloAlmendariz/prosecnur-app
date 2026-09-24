@@ -10,9 +10,9 @@ defectos propios de aulas vistos en la baseline visual y la deuda menor de E11.
 
 | # | Ítem | Dónde vive | Dueño | Estado |
 |---|---|---|---|---|
-| G1 | Egresados con la regla por precisión del ADR 0091: censo (cobertura mínima 50 %) mientras un MAS a ±5 % pediría ≥ 50 % de la base (hasta N ≈ 385); desde ahí MAS a ±5 % con respuesta 50 %, control por año de egreso. Muestra monótona, salto ≤ 1, un único cambio de técnica | `api/R/calc_muestra_acreditacion_cuadro.R`, `.cm_inferir_acreditacion` | backend-r | ☐ |
-| G2 | Metas heredadas de egresados (clamp(50 % N, 30, 150) sin `origen`) se tratan como del cuadro | `.cm_cuadro_meta_legado` | backend-r | ☐ |
-| G3 | ADR 0091 ampliado a egresados; copys C-C30/C-C31; research; tablero | `docs/` | lead | ☐ |
+| G1 | Egresados con la regla por precisión del ADR 0091: censo (cobertura mínima 50 %) mientras un MAS a ±5 % pediría ≥ 50 % de la base (hasta N ≈ 385); desde ahí MAS a ±5 % con respuesta 50 %, control por año de egreso. Muestra monótona, salto ≤ 1, un único cambio de técnica | `api/R/calc_muestra_acreditacion_cuadro.R`, `.cm_inferir_acreditacion` | backend-r | ☑ backend-r: censo hasta 385, MAS desde 386 (193/193); 5 000 → 357, 714 a campo; mutantes caen |
+| G2 | Metas heredadas de egresados (clamp(50 % N, 30, 150) sin `origen`) se tratan como del cuadro | `.cm_cuadro_meta_legado` | backend-r | ☑ 150 sin origen con N ≥ 301 → del cuadro |
+| G3 | ADR 0091 ampliado a egresados; copys C-C30/C-C31; research; tablero | `docs/` | lead | ☑ ADR 0091 ampliado, índice, copys C-C30/C-C31; además el origen y el respaldo siguen a la técnica nueva cuando el cuadro la cambia |
 | A1 | «Guardando…» persistente con sólo abrir un proyecto de aulas | por diagnosticar (universidad/**, autosave) | frontend-react | ☐ |
 | A2 | KPIs «—» con «calculado con una versión anterior» al abrir | por diagnosticar | frontend-react | ☐ |
 | A3 | Chip `p 0.3` sin estilo | universidad/** | frontend-react | ☐ |

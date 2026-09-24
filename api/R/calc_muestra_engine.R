@@ -202,8 +202,9 @@
   tasa_elegibilidad = 0.9,
   tasa_respuesta = 0.6,
   cobertura_objetivo = 0.50,
-  # Defaults canónicos PULSO PUCP para conveniencia estratificada (egresados
-  # telefónicos de acreditación, documento Marzo 2026):
+  # Defaults canónicos PULSO PUCP para conveniencia estratificada (documento
+  # Marzo 2026; los egresados de acreditación ya no caen aquí desde el ADR
+  # 0091, que los lleva a censo o MAS por precisión):
   #   - cobertura_objetivo = 0.50 (50% de cobertura por carrera)
   #   - n_minimo_estrato   = 30   (mínimo TCL para análisis válido)
   #   - tope_operativo     = 150  (cap por eficiencia/costos sobre N>300)
@@ -804,6 +805,8 @@ calc_muestra_normalize_componente <- function(comp = list()) {
   }
 
   parametros_norm <- .cm_normalize_parametros(parametros_in, tecnica)
+  tecnica_cambio <- !is.null(inferencia$tecnica) && nzchar(calc_str(comp$tecnica, "")) &&
+    !identical(calc_str(comp$tecnica, ""), tecnica)
 
   list(
     id                = calc_str(comp$id, .cm_random_id()),
@@ -813,10 +816,15 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     canal_recojo      = canal_recojo,
     tecnica           = tecnica,
     naturaleza        = .CM_NATURALEZAS_POR_TECNICA[[tecnica]],
-    origen_tamano     = calc_enum(comp$origen_tamano, .CM_ORIGENES_TAMANO,
-                                  .cm_origen_default_para(tecnica)),
-    nivel_respaldo    = calc_enum(comp$nivel_respaldo, .CM_NIVELES_RESPALDO,
-                                  .cm_respaldo_default_para(tecnica)),
+    # Si el cuadro de acreditación cambió la técnica guardada (ADR 0091:
+    # docentes y egresados de cuotas/conveniencia a MAS), el origen y el
+    # respaldo guardados describen la técnica vieja: se toman los de la nueva.
+    origen_tamano     = if (tecnica_cambio) .cm_origen_default_para(tecnica)
+                        else calc_enum(comp$origen_tamano, .CM_ORIGENES_TAMANO,
+                                       .cm_origen_default_para(tecnica)),
+    nivel_respaldo    = if (tecnica_cambio) .cm_respaldo_default_para(tecnica)
+                        else calc_enum(comp$nivel_respaldo, .CM_NIVELES_RESPALDO,
+                                       .cm_respaldo_default_para(tecnica)),
     marco             = marco_normalizado,
     parametros        = parametros_norm,
     # Correcciones declaradas: qué valor llegó fuera de rango y cuál se usó.
@@ -936,30 +944,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       justificacion = "Estudiantes: intención censal con cobertura mínima 60%, porque la muestra por aulas a ±2.5% pediría al menos ese 60% (o no hay marco de cursos-horario que sortear)."
     ))
   }
-  if (actor == "egresados") {
-    if (N <= 300L) {
-      return(list(
-        tecnica = "intencion_censal",
-        minimo_cobertura = 0.50,
-        regla = "intencion_censal_50_si_N_<=_300",
-        justificacion = "Egresados con N ≤ 300: intención censal con cobertura mínima 50%."
-      ))
-    }
-    # Para N ≥ 301: regla canónica clamp(N×50%, 30, 150).
-    # Si hay estratos por carrera, se aplica por carrera (sumar cuotas).
-    # Si no hay estratos, se aplica al N total como meta directa.
-    cuota_directa <- max(min(as.integer(ceiling(N * 0.50)), 150L), 30L)
-    if (cuota_directa > N) cuota_directa <- as.integer(N)
-    return(list(
-      tecnica = "no_prob_conveniencia",
-      minimo_cobertura = 0.50,
-      piso_n_minimo = 30L,
-      tope_operativo = 150L,
-      minimo_n = cuota_directa,  # se usa como meta.valor cuando no hay estratos
-      regla = "clamp_50pct_30_150_si_N_>=_301",
-      justificacion = "Egresados con N ≥ 301: conveniencia con regla canónica clamp(N×50%, 30, 150). Si hay estratos por carrera, aplica por carrera y suma. Si no hay estratos, aplica al N total."
-    ))
-  }
+  # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
+  if (actor == "egresados") return(.cm_cuadro_inferir_egresados(N))
   # Actores cualitativos o sin clasificación: no inferir.
   list(tecnica = NULL, regla = "sin_inferencia",
        justificacion = "Actor cualitativo o sin clasificación canónica.")
