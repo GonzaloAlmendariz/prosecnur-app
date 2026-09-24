@@ -784,7 +784,9 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       }
       if (!is.null(inferencia$minimo_cuota)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_cuota)
-        meta_in <- fill_default(meta_in, "variable_control", inferencia$variable_control %||% "")
+      }
+      if (!is.null(inferencia$variable_control)) {
+        meta_in <- fill_default(meta_in, "variable_control", inferencia$variable_control)
       }
       if (!is.null(inferencia$minimo_n)) {
         meta_in <- fill_default(meta_in, "valor", inferencia$minimo_n)
@@ -875,10 +877,6 @@ calc_muestra_componentes_sin <- function(componentes, id) {
 # Cuadro maestro de inferencia para acreditaciones PUCP (compendio §4.1)
 # ---------------------------------------------------------------------------
 
-# Muestra de estudiantes con N ≥ 3001 en aulas: documento PULSO «Selección de
-# muestras de actores», marzo 2026.
-.CM_ACREDITACION_ESTUDIANTES_N_FIJO <- 1800L
-
 #' Infiere técnica y mínimo a cumplir según actor × canal × N.
 #'
 #' Aplica el cuadro maestro canónico de PULSO PUCP Marzo 2026. Devuelve
@@ -895,49 +893,44 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     ))
   }
   if (actor == "docentes") {
-    if (N <= 250L) {
+    # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
+    if (.cm_cuadro_conviene_censo(N, .CM_CUADRO_DOCENTES)) {
       return(list(
         tecnica = "intencion_censal",
-        minimo_cobertura = 0.60,
-        regla = "intencion_censal_60_si_N_<=_250",
-        justificacion = "Docentes con N ≤ 250: intención censal con cobertura mínima 60%."
+        minimo_cobertura = .CM_CUADRO_COBERTURA_CENSAL,
+        variable_control = "dedicacion_docente",
+        regla = "intencion_censal_60_mientras_mas_pida_60",
+        justificacion = "Docentes: intención censal con cobertura mínima 60%, porque una muestra aleatoria a ±5% pediría al menos ese 60% de la nómina."
       ))
     }
     return(list(
-      tecnica = "no_prob_cuotas",
-      minimo_cuota = 150L,
+      tecnica = "prob_aleatorio_simple",
+      # La no respuesta ya se cubre con la tasa (60 %): sin sobremuestra
+      # encima, que la inflaría dos veces.
+      params_canonicos = c(.CM_CUADRO_DOCENTES, list(tasa_respuesta = .CM_CUADRO_COBERTURA_CENSAL,
+                                                     oversample_pct = 0)),
       variable_control = "dedicacion_docente",
-      regla = "cuotas_min_150_si_N_>=_251",
-      justificacion = "Docentes con N ≥ 251: cuotas no aleatorias, mínimo 150 con control por dedicación docente."
+      regla = "mas_e5_si_censo_pide_mas_que_la_muestra",
+      justificacion = "Docentes: muestra aleatoria de la nómina a ±5% (95% de confianza, p = 0.5), estratificada por dedicación si el marco la trae, con la respuesta inflada al 60% de cobertura observada. Da margen de error, cosa que 150 cuotas no daban."
     ))
   }
   if (actor == "estudiantes") {
-    if (canal == "aula_qr" && N >= 3001L) {
-      # El documento de PULSO «Selección de muestras de actores» (marzo 2026)
-      # fija para N ≥ 3001 una muestra estadística de 1 800 estudiantes (72
-      # aulas de 25): el corte 3000–3001 existe para que esos 1 800 sean el
-      # 60 % de la base, y el margen de error varía con N. El motor
-      # recalculaba el n con ±2,5 % y deff 2 (1 519 con N = 3001): al cruzar
-      # el corte la población crecía y la muestra BAJABA de 1 800 a 1 519.
-      # Con los 1 800 del acuerdo la curva es continua (decisión de Gonzalo,
-      # 2026-09-24, P3 del loop de Cálculo de muestra). El e declarado queda
-      # como referencia; el margen publicado sale de los 1 800 con el deff.
+    if (canal == "aula_qr" && !.cm_cuadro_conviene_censo(N, .CM_CUADRO_ESTUDIANTES_AULA)) {
+      # Corte por precisión, no por N fijo: calc_muestra_acreditacion_cuadro.R.
       return(list(
         tecnica = "prob_conglomerado_multietapico",
-        params_canonicos = list(z = 1.96, p = 0.5, e = 0.025, deff = 2.0,
-                                oversample_pct = 0.50, tasa_respuesta = 0.70,
-                                promedio_conglomerado = 25, tau = 0.50),
-        minimo_n = .CM_ACREDITACION_ESTUDIANTES_N_FIJO,
-        aulas_referencia = 72L,
-        regla = "conglomerados_n1800_si_aula_y_N_>=_3001",
-        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados por cursos-horario estratificados por ciclo, con la muestra estadística de 1 800 estudiantes del documento PULSO de marzo 2026 (72 aulas × 25; 95% de confianza, p = 0.5). El margen de error se deriva de los 1 800 y del efecto de diseño; sobremuestra 50%."
+        params_canonicos = c(.CM_CUADRO_ESTUDIANTES_AULA,
+                             list(oversample_pct = 0.50, tasa_respuesta = 0.70,
+                                  promedio_conglomerado = 25, tau = 0.50)),
+        regla = "conglomerados_e25_deff2_si_censo_pide_mas_que_la_muestra",
+        justificacion = "Estudiantes con marco de cursos-horario: conglomerados por aulas a ±2.5% (95% de confianza, p = 0.5, deff 2), sobremuestra 50%. Se sortea porque intentar el censo con cobertura mínima de 60% pediría más encuestas que la muestra."
       ))
     }
     return(list(
       tecnica = "intencion_censal",
       minimo_cobertura = 0.60,
-      regla = "intencion_censal_60_si_N_<=_3000",
-      justificacion = "Estudiantes con N ≤ 3000 (o sin marco de cursos-horario): intención censal con cobertura mínima 60%."
+      regla = "intencion_censal_60_mientras_mas_pida_60",
+      justificacion = "Estudiantes: intención censal con cobertura mínima 60%, porque la muestra por aulas a ±2.5% pediría al menos ese 60% (o no hay marco de cursos-horario que sortear)."
     ))
   }
   if (actor == "egresados") {
