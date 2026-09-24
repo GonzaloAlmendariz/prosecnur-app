@@ -48,3 +48,11 @@ test_that("cada parámetro declarado tiene rótulo y ayuda", {
   }
   expect_false("deff" %in% .CM_PARAMETROS_POR_TECNICA$prob_aleatorio_simple)
 })
+
+test_that("la asignación del estratificado se declara como opciones proporcional/neyman", {
+  ps <- calc_muestra_parametros_tecnica("prob_estratificado")$parametros
+  a <- Filter(function(p) identical(p$clave, "asignacion"), ps)[[1]]
+  expect_identical(a$tipo, "opciones")
+  expect_identical(unlist(a$opciones), c("proporcional", "neyman"))
+  expect_true(all(vapply(Filter(function(p) p$clave != "asignacion", ps), `[[`, "", "tipo") == "numero"))
+})

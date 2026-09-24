@@ -14,7 +14,8 @@
 .CM_PARAMETROS_POR_TECNICA <- list(
   prob_aleatorio_simple = c("z", "p", "e", "tasa_respuesta", "oversample_pct"),
   sistematico = c("z", "p", "e", "tasa_respuesta", "oversample_pct"),
-  prob_estratificado = c("z", "p", "e", "deff", "tasa_respuesta", "oversample_pct", "n_minimo_estrato"),
+  prob_estratificado = c("z", "p", "e", "deff", "tasa_respuesta", "oversample_pct", "n_minimo_estrato",
+                         "asignacion"),
   intencion_censal = c("cobertura_objetivo", "tasa_respuesta"),
   barrido = c("cobertura_objetivo", "tau", "oversample_pct"),
   no_prob_cuotas = c("tasa_respuesta", "oversample_pct"),
@@ -41,15 +42,22 @@
   tasa_contacto = list(rotulo = "Tasa de contacto", ayuda = "Fracción del listado que se logra contactar."),
   tasa_elegibilidad = list(rotulo = "Tasa de elegibilidad", ayuda = "Fracción de contactados que cumple el perfil."),
   promedio_conglomerado = list(rotulo = "Tamaño medio del conglomerado", ayuda = "Personas por unidad de conglomerado."),
-  estadistico_conglomerado = list(rotulo = "Estadístico del conglomerado", ayuda = "Media, mediana o el menor de ambos.")
+  estadistico_conglomerado = list(rotulo = "Estadístico del conglomerado", ayuda = "Media, mediana o el menor de ambos.",
+                                  tipo = "opciones", opciones = c("media", "mediana", "min_media_mediana")),
+  asignacion = list(rotulo = "Asignación entre estratos",
+                    ayuda = "Proporcional reparte según el tamaño del estrato; Neyman, según tamaño × variabilidad (necesita la proporción esperada de cada estrato) y da menos error con el mismo n.",
+                    tipo = "opciones", opciones = c("proporcional", "neyman"))
 )
 
 #' Parámetros que consume una técnica, con rótulo y ayuda.
-#' @return list(tecnica, parametros = list(list(clave, rotulo, ayuda), ...)).
+#' @return list(tecnica, parametros = list(list(clave, rotulo, ayuda, tipo,
+#'   opciones?), ...)); tipo = "numero" | "opciones".
 calc_muestra_parametros_tecnica <- function(tecnica) {
   claves <- .CM_PARAMETROS_POR_TECNICA[[tecnica]] %||% character(0)
   list(tecnica = tecnica, parametros = lapply(claves, function(k) {
     d <- .CM_PARAMETROS_DESCRIPCION[[k]] %||% list(rotulo = k, ayuda = "")
-    list(clave = k, rotulo = d$rotulo, ayuda = d$ayuda)
+    out <- list(clave = k, rotulo = d$rotulo, ayuda = d$ayuda, tipo = d$tipo %||% "numero")
+    if (!is.null(d$opciones)) out$opciones <- as.list(d$opciones)
+    out
   }))
 }

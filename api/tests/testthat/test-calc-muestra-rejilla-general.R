@@ -267,3 +267,64 @@ test_that("E3: el reparto acepta pesos distintos de N_h (Neyman: N_h·S_h) con t
   # Todos los pesos en cero: cae al tamaño, no divide por cero.
   expect_identical(sum(as.integer(.cm_general_reparto(50L, c(100L, 300L), pesos = c(0, 0)))), 50L)
 })
+
+# --- E3 · estratificado por estrato (Cochran 5.25/5.26) ----------------------
+
+.e3_comp <- function(asignacion = "proporcional", p_h = c(.1, .5), N_h = c(3000L, 2000L)) {
+  est <- lapply(seq_along(N_h), function(i) {
+    e <- list(label = LETTERS[i], N = N_h[[i]])
+    if (!is.na(p_h[[i]])) e$p_facultad <- p_h[[i]]
+    e
+  })
+  .rejilla_comp(tecnica = "prob_estratificado", N = sum(N_h), estratos = est,
+                parametros = list(asignacion = asignacion))
+}
+
+test_that("E3: sin p por estrato ni Neyman, el estratificado no cambia (357 como siempre)", {
+  r <- calc_muestra_calcular_componente(.e3_comp(p_h = c(NA, NA)))
+  expect_identical(as.integer(r$n_teorico), 357L)
+  expect_null(r$asignacion)
+})
+
+test_that("E3: con p por estrato, n = ΣW_h S_h² / (V + ΣW_h S_h²/N) = 226 (a mano 225.95)", {
+  r <- calc_muestra_calcular_componente(.e3_comp())
+  expect_identical(as.integer(r$n_teorico), 226L)
+  expect_identical(r$formula_n, "proporcional_por_estrato")
+  ns <- vapply(r$distribucion_estratos, `[[`, integer(1), "n")
+  expect_identical(ns, c(136L, 90L))
+  # Error con la asignación efectiva: 1.96·√(.36·.09·(1−136/3000)/136 + .16·.25·(1−90/2000)/90) ≈ 0.0500.
+  expect_equal(r$precision_alcanzada, 0.05004, tolerance = 1e-3)
+})
+
+test_that("E3: Neyman da n = (ΣW_h S_h)² / (V + ΣW_h S_h²/N) = 212 y reparte ∝ N_h S_h (100/112)", {
+  r <- calc_muestra_calcular_componente(.e3_comp("neyman"))
+  expect_identical(as.integer(r$n_teorico), 212L)
+  expect_identical(vapply(r$distribucion_estratos, `[[`, integer(1), "n"), c(100L, 112L))
+  expect_identical(r$asignacion, "neyman")
+})
+
+test_that("E3: a igual n, Neyman no tiene más error que la proporcional", {
+  comp_p <- .e3_comp(); comp_n <- .e3_comp("neyman")
+  comp_p$meta <- list(valor = 300L); comp_n$meta <- list(valor = 300L)
+  rp <- calc_muestra_calcular_componente(comp_p); rn <- calc_muestra_calcular_componente(comp_n)
+  expect_identical(as.integer(rp$n_objetivo), 300L)
+  expect_lte(rn$precision_alcanzada, rp$precision_alcanzada)
+})
+
+test_that("E3: el sorteo sortea el reparto de Neyman que publicó el cálculo", {
+  set.seed(5)
+  marco <- data.frame(id = sprintf("U%05d", 1:5000), est = rep(c("A", "B"), c(3000, 2000)))
+  comp <- calc_muestra_normalize_componente(.e3_comp("neyman"))
+  est <- calc_muestra_normalize_estudio(list(componentes = list(comp)))
+  cid <- est$componentes[[1]]$id
+  dec <- calc_muestra_general_declarar_marco(est, NULL, cid, marco, "f1", columnas = list(id = "id", estrato = "est"))
+  # Declarar el marco reescribe los N_h pero conserva la p que ya tenía cada estrato.
+  i <- 1L
+  expect_identical(vapply(dec$estudio$componentes[[i]]$marco$estratos, function(e) e$p_facultad, numeric(1)), c(.1, .5))
+  res <- calc_muestra_calcular_componente(dec$estudio$componentes[[i]])
+  dec$estudio$componentes[[i]]$resultado <- res
+  sel <- calc_muestra_general_seleccionar(dec$estudio, dec$estado, cid, marco, semilla = 2L)
+  campo <- vapply(res$distribucion_estratos, `[[`, integer(1), "n_campo")
+  expect_identical(sel$corrida$estratos$n_h, campo)
+  expect_equal(sel$corrida$estratos$pi, campo / c(3000, 2000))
+})
