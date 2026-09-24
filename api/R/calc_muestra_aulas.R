@@ -148,17 +148,7 @@
   idx <- match(cand_key, nms_key, nomatch = 0L)
   idx <- idx[idx > 0L]
   if (length(idx)) return(nms[[idx[[1]]]])
-  for (cand in cand_key[nzchar(cand_key)]) {
-    reverse_hit <- vapply(
-      nms_key,
-      function(nm) nzchar(nm) && !.cm_aulas_par_prohibido(nm, cand) && grepl(nm, cand, fixed = TRUE),
-      logical(1)
-    )
-    hit <- which(grepl(cand, nms_key, fixed = TRUE) | reverse_hit)
-    hit <- hit[nzchar(nms_key[hit])]
-    if (length(hit)) return(nms[[hit[[1]]]])
-  }
-  ""
+  .cm_aulas_col_por_subcadena(nms, nms_key, cand_key)
 }
 
 .cm_aulas_values <- function(df, col, default = "") {
@@ -247,7 +237,7 @@
     # Ojo con `actividad`, que ya estaba: ACTIVIDAD es un VALOR de esta
     # columna, no un nombre de columna.
     session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad", "tipo_curso", "tipo_de_curso", "tipo de curso", "desctipocurso", "desc_tipo_curso", "descripcion_tipo_curso"),
-    teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
+    teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "nombre_docente", "docente", "profesor", "profesora"),
     teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"), teacher_phone = c("teacher_phone", "telefdocente", "telefono_docente", "telefono de docente", "celular_docente", "telefono"),
     teacher_type = c("teacher_type", "tipo_docente", "tipo_de_docente", "tipo de docente", "categoria_docente", "categoría docente", "condicion_docente", "regimen_docente"),
     faculty = c(
@@ -278,7 +268,7 @@
     # `condition` es la condición DEL ESTUDIANTE (REGULAR/REINCORPORACION/...).
     # "condicion_del_curso" NO va aquí: es su propio rol (condicion_curso). Con
     # ambas columnas presentes la clave exacta "condicion" ganaría igual, pero
-    # una base que solo trae "Condición del curso" secuestraría este rol.
+    # una base que solo trae "Condición del curso" lo secuestraba (UNSA 2026-09-24): lo impide `.cm_aulas_par_prohibido_directo()`.
     condition = c("condition", "condicion_matricula", "condicion", "estado_matricula", "situacion"),
     # Condición DEL CURSO (obligatorio/electivo/...); criterio propio, distinto
     # de la condición del estudiante. Resolución SOLO por clave exacta en la
