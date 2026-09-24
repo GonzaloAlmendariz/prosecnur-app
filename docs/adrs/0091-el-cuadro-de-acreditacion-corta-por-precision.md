@@ -42,6 +42,7 @@ punto se sortea con el n de esa precisión:
 |---|---|---|---|
 | Estudiantes (aulas) | ±2,5 %, 95 %, p = 0,5, deff 2 | N = 2 050 | conglomerados, sobremuestra 50 % |
 | Docentes | ±5 %, 95 %, p = 0,5, deff 1 | N = 258 | MAS (estratificado por dedicación si el marco la trae), respuesta inflada al 60 % |
+| Egresados (ampliación del 2026-09-24) | ±5 %, 95 %, p = 0,5, deff 1; cobertura mínima 50 % | N = 386 | MAS controlado por ciclo de egreso, respuesta inflada al 50 % |
 
 La comparación usa la fracción sin redondear, n/N = n0/(N − 1 + n0), que
 decrece estrictamente con N: hay un único punto de cambio, y en él censo y
@@ -49,8 +50,9 @@ muestra piden lo mismo. La muestra crece con N sin saltos (a lo más una
 unidad entre N y N + 1) y, del lado probabilístico, el margen publicado es
 siempre el declarado.
 
-Se conservan del documento: las coberturas mínimas (60 %), la dedicación
-docente como variable de control, administrativos y egresados sin cambios.
+Se conservan del documento: las coberturas mínimas (60 %; 50 % en egresados),
+la dedicación docente y el ciclo de egreso como variables de control, y
+administrativos sin cambios.
 Una meta que el usuario declare sigue mandando sobre la del cuadro.
 
 ## Consecuencias
@@ -62,6 +64,8 @@ Una meta que el usuario declare sigue mandando sobre la del cuadro.
 | Estudiantes N = 20 000 | 1 800 (±3,1 %) | 2 665 (±2,5 %) |
 | Docentes N = 400 | 150 cuotas, sin margen | 197 (±5 %), 329 a campo |
 | Docentes N = 1 000 | 150 cuotas, sin margen | 278 (±5 %), 464 a campo |
+| Egresados N = 1 000 | 150 por conveniencia, sin margen | 278 (±5 %), 556 a campo |
+| Egresados N = 5 000 | 150 por conveniencia, sin margen | 357 (±5 %), 714 a campo |
 
 - Entre 2 052 y 3 000 estudiantes el censo al 60 % pedía más completas que la
   muestra que sí da margen; ahora se sortea.
@@ -71,8 +75,13 @@ Una meta que el usuario declare sigue mandando sobre la del cuadro.
 - Queda sin cambios que la inferencia fije la técnica (H16): la mesa de
   Acreditación no ofrece selector de técnica y rotula su origen («Cuadro
   maestro» y su justificación).
-- Egresados sigue con la regla del documento (clamp(50 % N, 30, 150),
-  conveniencia): la misma lógica le aplicaría, pero no entró en esta decisión.
+- Egresados entró el mismo día, con Gonzalo aprobando llevarle la misma
+  regla («Validos todo»): hasta N = 385 censo al 50 %; desde 386, MAS a ±5 %
+  (193 y 193 en el cruce). El clamp(50 % N, 30, 150) de conveniencia ya no se
+  aplica a egresados de acreditación.
+- Un componente guardado cuya técnica cambia por el cuadro toma el origen
+  del tamaño y el nivel de respaldo de la técnica nueva (no los de cuotas o
+  conveniencia).
 
 ## La meta del cuadro no es la del usuario
 
@@ -82,7 +91,8 @@ regla anterior seguía pidiendo 150 docentes aunque hoy toque una muestra a
 ±5 % (un MAS rotulado ±5 % con ±6,3 % real). Por eso `meta.origen`:
 `cuadro` se recalcula siempre, `usuario` manda. Un componente sin origen cuya
 meta coincide con lo que escribía la regla anterior (150 docentes con
-N ≥ 251; 1 800 estudiantes en aulas con N ≥ 3 001) se trata como del cuadro.
+N ≥ 251; 1 800 estudiantes en aulas con N ≥ 3 001; 150 egresados con
+N ≥ 301) se trata como del cuadro.
 
 ## Cumplimiento
 

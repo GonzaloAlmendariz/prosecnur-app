@@ -22,6 +22,11 @@
 # ±5 %. La respuesta se infla con la cobertura mínima observada (60 %).
 .CM_CUADRO_DOCENTES <- list(z = 1.96, p = 0.5, e = 0.05, deff = 1)
 .CM_CUADRO_COBERTURA_CENSAL <- 0.60
+# Egresados (canal telefónico u otro): MAS de la base a ±5 %, respuesta
+# esperada 50 % (la cobertura mínima del documento). El primer N que se
+# sortea es 386; antes, clamp(50 % N, 30, 150) por conveniencia, sin margen.
+.CM_CUADRO_EGRESADOS <- list(z = 1.96, p = 0.5, e = 0.05, deff = 1)
+.CM_CUADRO_COBERTURA_EGRESADOS <- 0.50
 
 #' TRUE si intentar el censo pide a lo más lo que pediría la muestra: el n de
 #' la precisión dada alcanza la cobertura mínima de N.
@@ -35,6 +40,30 @@
   if (!is.finite(N) || N <= 1) return(TRUE)
   n0 <- precision$z^2 * precision$p * (1 - precision$p) * precision$deff / precision$e^2
   n0 / (N - 1 + n0) >= cobertura
+}
+
+#' Egresados: censo con cobertura mínima 50 % mientras un MAS a ±5 % pediría
+#' al menos ese 50 % de la base; desde ahí, el MAS. El ciclo de egreso es la
+#' variable de control (el nombre que ya usa el monitoreo de acreditación).
+.cm_cuadro_inferir_egresados <- function(N) {
+  if (.cm_cuadro_conviene_censo(N, .CM_CUADRO_EGRESADOS, .CM_CUADRO_COBERTURA_EGRESADOS)) {
+    return(list(
+      tecnica = "intencion_censal",
+      minimo_cobertura = .CM_CUADRO_COBERTURA_EGRESADOS,
+      variable_control = "ciclo_egreso",
+      regla = "intencion_censal_50_mientras_mas_pida_50",
+      justificacion = "Egresados: intención censal con cobertura mínima 50%, porque una muestra aleatoria a ±5% pediría al menos ese 50% de la base."
+    ))
+  }
+  list(
+    tecnica = "prob_aleatorio_simple",
+    # La no respuesta ya se cubre con la tasa (50 %): sin sobremuestra encima.
+    params_canonicos = c(.CM_CUADRO_EGRESADOS, list(tasa_respuesta = .CM_CUADRO_COBERTURA_EGRESADOS,
+                                                    oversample_pct = 0)),
+    variable_control = "ciclo_egreso",
+    regla = "mas_e5_si_censo_pide_mas_que_la_muestra",
+    justificacion = "Egresados: muestra aleatoria de la base a ±5% (95% de confianza, p = 0.5), controlada por ciclo de egreso, con la respuesta inflada al 50% de cobertura esperada. Da margen de error, cosa que la conveniencia no daba."
+  )
 }
 
 # --- La meta que escribe el cuadro no es la meta del usuario ----------------
@@ -52,6 +81,9 @@
 .cm_cuadro_meta_legado <- function(actor, canal, N) {
   if (identical(actor, "docentes") && N >= 251L) return(150L)
   if (identical(actor, "estudiantes") && identical(canal, "aula_qr") && N >= 3001L) return(1800L)
+  # Egresados N ≥ 301: max(min(ceiling(N × 50 %), 150), 30), tope N. Desde 301
+  # el 50 % ya pasa de 150, así que el valor escrito era siempre 150.
+  if (identical(actor, "egresados") && N >= 301L) return(150L)
   NA_integer_
 }
 
