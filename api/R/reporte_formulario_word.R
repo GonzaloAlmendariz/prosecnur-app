@@ -47,7 +47,9 @@
 
 # Ancho util aproximado de una carta con margenes por defecto de officer (pulg).
 # officer emite A4 (11906 x 16838 twips) con margenes de 1417: 9072 twips utiles.
-.FORM_WORD_USABLE_IN <- 6.3
+# Ancho util = A4 (11 906 twips) menos los margenes de 680 por lado = 10 546
+# twips = 7,32 in. La referencia mide 10 549: la diferencia son 3 twips, 0,05 mm.
+.FORM_WORD_USABLE_IN <- (11906 - 680 * 2) / 1440
 # Separacion entre columnas cuando un tramo va a dos columnas. 425 twips es el
 # valor del instrumento de referencia (<w:cols w:num="2" w:sep="1" w:space="425"/>).
 .FORM_WORD_COL_SPACE_TWIPS <- 425
@@ -699,6 +701,16 @@
   officer::prop_section(
     type = type,
     section_columns = cols,
+    # Margenes de la referencia (twips -> pulgadas): left/right 680, top 420,
+    # bottom 700, header 397, footer 250. La plantilla de officer traia 1417
+    # (2,5 cm) por lado y dejaba 9 072 twips utiles frente a los 10 549 del
+    # instrumento: un 15 % menos de caja. Un formulario en papel no es un
+    # documento de oficina — la densidad ES la funcion, y ese 15 % es lo que
+    # separaba nuestras tablas de las suyas.
+    page_margins = officer::page_mar(
+      top = 420 / 1440, bottom = 700 / 1440,
+      left = 680 / 1440, right = 680 / 1440,
+      header = 397 / 1440, footer = 250 / 1440, gutter = 0),
     # `furniture$header` es una LISTA de bloques (rotulo, casillas, logo), asi
     # que se despliega con do.call: `block_list(lista)` la anidaria como un
     # solo bloque.
