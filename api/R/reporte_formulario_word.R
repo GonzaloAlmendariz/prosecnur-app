@@ -73,11 +73,11 @@
 .form_word_par <- function(doc, text, size = .FORM_WORD_SZ, bold = FALSE, italic = FALSE,
                            color = .FORM_WORD_INK, align = "left", shade = NULL,
                            space_after = 4, space_before = 0,
-                           keep_with_next = FALSE) {
+                           keep_with_next = FALSE, borde = NULL) {
   txt <- .form_pdf_clean_text(text %||% "")
   fp_t <- officer::fp_text(font.size = size, bold = bold, italic = italic,
                            color = color, font.family = .FORM_WORD_FONT)
-  fp_p <- officer::fp_par(
+  args <- list(
     text.align = align,
     shading.color = if (!is.null(shade)) shade else "transparent",
     padding.top = (if (!is.null(shade)) 3 else 0) + space_before,
@@ -85,6 +85,18 @@
     padding.left = if (!is.null(shade)) 6 else 0,
     keep_with_next = isTRUE(keep_with_next)
   )
+  # Borde de la caja (banda de seccion). Solo se pasan los argumentos cuando hay
+  # borde, para no declarar uno de ancho cero que no significa nada. (Ojo: officer
+  # emite `w:pBdr` en casi todos los parrafos por su cuenta, tambien sin esto --
+  # medido 102 antes y despues del cambio; no lo atribuyas a esta rama.)
+  # `space = 0` SI es deliberado: el borde de un parrafo se dibuja `space` PUNTOS
+  # por fuera del texto, asi que con un valor > 0 la banda sobresale de la tabla
+  # que encabeza.
+  if (!is.null(borde)) {
+    args$border.top <- borde; args$border.bottom <- borde
+    args$border.left <- borde; args$border.right <- borde
+  }
+  fp_p <- do.call(officer::fp_par, args)
   officer::body_add_fpar(doc, officer::fpar(officer::ftext(txt, prop = fp_t), fp_p = fp_p))
 }
 
@@ -352,6 +364,24 @@
 # Bloque `paper` enmarcado -> flextable 1x1 con borde negro. El titulo va como
 # primer chunk (bold, mayusculas) y el cuerpo debajo, en la MISMA celda,
 # para que el marco abarque a los dos.
+# Caja de escritura: tabla 1x1 vacia con borde y alto fijo. La referencia NO usa
+# guiones bajos para que el encuestador escriba, usa una celda: los guiones se
+# corren al escribir encima y, con una tipografia estrecha, una tira fija de 60
+# ya no cabe en una columna -- envuelve y deja un guion suelto en la linea de
+# abajo. Una celda no depende del ancho de la fuente ni de la columna.
+.form_word_caja_vacia <- function(usable = .FORM_WORD_USABLE_IN, alto = 0.3) {
+  ft <- flextable::flextable(data.frame(cell = "", stringsAsFactors = FALSE))
+  ft <- flextable::delete_part(ft, part = "header")
+  ft <- flextable::width(ft, j = "cell", width = usable)
+  ft <- flextable::height(ft, height = alto, part = "body")
+  ft <- flextable::hrule(ft, rule = "exact", part = "body")
+  ft <- flextable::border_remove(ft)
+  ft <- flextable::border_outer(
+    ft, border = officer::fp_border(color = .FORM_WORD_LINE, width = 0.5), part = "body")
+  flextable::set_table_properties(ft, layout = "fixed",
+                                  opts_word = list(split = FALSE))
+}
+
 .form_word_paper_flextable <- function(block, usable = .FORM_WORD_USABLE_IN) {
   title <- .form_pdf_clean_text(block$title %||% "")
   body  <- .form_pdf_clean_text(block$body %||% "")
@@ -613,6 +643,7 @@ formulario_word_render <- function(model, output_file) {
         if (nzchar(block$title %||% "")) {
           doc <- .form_word_par(doc, toupper(block$title), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
                                 shade = .FORM_WORD_BAND, space_before = 4, space_after = 2,
+                                borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
                                 keep_with_next = nzchar(block$body %||% ""))
         }
         if (nzchar(block$body %||% "")) {
@@ -627,6 +658,7 @@ formulario_word_render <- function(model, output_file) {
       # La banda de sección no se queda sola al pie: arrastra lo que sigue.
       doc <- .form_word_par(doc, toupper(ttl), size = .FORM_WORD_SZ, bold = TRUE, color = .FORM_WORD_INK,
                             shade = .FORM_WORD_BAND, align = "center", space_after = 4,
+                            borde = officer::fp_border(color = .FORM_WORD_INK, width = 0.5, style = "solid"),
                             keep_with_next = TRUE)
       if (nzchar(block$hint %||% "")) {
         doc <- .form_word_par(doc, block$hint, size = .FORM_WORD_SZ_MIN, italic = TRUE, color = .FORM_WORD_INK,
@@ -678,9 +710,15 @@ formulario_word_render <- function(model, output_file) {
             doc <- .form_word_blank(doc)
           }
         } else if (isTRUE(block$coded_list)) {
-          doc <- .form_word_par(doc, "Código: ______", size = .FORM_WORD_SZ_MIN, color = .FORM_WORD_INK, space_after = 6)
+          doc <- .form_word_par(doc, "Código:", size = .FORM_WORD_SZ_MIN,
+                                color = .FORM_WORD_INK, space_after = 1)
+          doc <- flextable::body_add_flextable(
+            doc, .form_word_caja_vacia(usable = min(0.9, usable), alto = 0.26), align = "left")
+          doc <- .form_word_blank(doc)
         } else if ((block$type %||% "") %in% c("text", "integer", "decimal", "date", "time", "datetime")) {
-          doc <- .form_word_par(doc, strrep("_", 60), size = .FORM_WORD_SZ_MIN, color = .FORM_WORD_INK, space_after = 6)
+          doc <- flextable::body_add_flextable(
+            doc, .form_word_caja_vacia(usable = usable), align = "left")
+          doc <- .form_word_blank(doc)
         }
       }
     }
