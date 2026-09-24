@@ -1,7 +1,7 @@
 # ADR 0090 — Muestra general sortea de un marco real
 
 - **Estado**: Propuesto
-- **Implementación**: Pendiente
+- **Implementación**: Implementada — motor ca737075e, rutas f2a0560c7/137675006, entrega 3d529cbe0, acreditación d33f75d4d, front e37d3d174/22e3c641c, reporte a0105280b
 - **Ámbito**: Cálculo de muestra, modos `marco-disponible` y `acreditacion` ·
   archivo nuevo `api/R/calc_muestra_general_sorteo.R` · rutas nuevas
   `/api/calc-muestra/general/*` · sección nueva «Selección» en el modo general
@@ -97,7 +97,7 @@ Entrega: listado XLSX con una hoja de metadatos de la corrida (E6).
 
 | Ruta | Body | Respuesta |
 |---|---|---|
-| `POST /api/calc-muestra/general/marco` | `{componente_id, file_id, hoja?, columnas: {id, estrato?, tamano?}}` | `{ok, marco: {N, estratos: [{clave, N_h}], validacion: {duplicados, vacios, tamanos_invalidos}, marco_hash}, componente}` |
+| `POST /api/calc-muestra/general/marco` | `{componente_id, file_id, hoja?, columnas: {id, estrato?, tamano?}}` | `{ok, marco: {file_id, hoja, columnas, marco_hash, N, estratos: [{clave, N_h}], declarado_at}, componente, estudio}`. Un marco inválido (ids vacíos o repetidos, estrato vacío, tamaño inválido para PPS) responde 400 `E_CALC_MUESTRA_GENERAL_MARCO` con los ids en `details`: no se declara a medias. |
 | `POST /api/calc-muestra/general/seleccionar` | `{componente_id, metodo, semilla?, orden_por?, reservas_por_estrato?}` | `{ok, corrida: {run_id, semilla, rng_kind, r_version, metodo, marco_hash, config_hash, n_titulares, n_reservas}, estratos: [{clave, N_h, n_h, pi}], unidades: [...]}` |
 | `GET /api/calc-muestra/general/corrida` | `?componente_id` | la corrida vigente completa, para rehidratar al reabrir |
 | `GET /api/calc-muestra/state` (existente) | — | gana `general: {marcos, corridas sin unidades}` |
@@ -120,3 +120,29 @@ redondeo** (`digits = NA`): el serializador global deja 4 decimales y una π de
 - Queda abierto: cubo balanceado reproducible, sorteo multietápico (el
   territorial vive en Hojas de ruta) y la calibración de pesos posterior al
   campo.
+
+## Cumplimiento
+
+- `api/tests/testthat/test-calc-muestra-general-sorteo.R`: reproducibilidad
+  (archivo barajado, estratos ausentes, RNG global intacto), π por estrato y
+  por unidad, PPS con certezas, reservas, ids numéricos sin notación
+  científica, estrato vacío como error y Monte Carlo de frecuencia de
+  inclusión contra π (dos mutantes caen).
+- `test-calc-muestra-general-marco.R`: rutas por HTTP, ida y vuelta por el
+  `.pulso`, 409 del marco cambiado, π sin redondear en el wire y n a campo por
+  estrato igual al del sorteo.
+- `test-calc-muestra-general-acreditacion.R`: modalidad por técnica del actor.
+- `test-calc-muestra-general-entrega.R` y `test-reporte-calc-muestra-sustento.R`:
+  memoria sustituida, libro XLSX y reporte Quarto.
+- `docs/qa/montecarlo-muestra-general-2026-09-24.md` y
+  `docs/qa/regresion-aulas-hsvg2026-2026-09-24.md`: validación a escala y
+  aulas idéntico end-to-end.
+
+## Notas
+
+- La ratificación queda en manos de Gonzalo: está implementado bajo
+  «Propuesto». Lo que más necesita su decisión es la cláusula 5 (reservas como
+  réplicas por lote y no reemplazos por puntaje, como en aulas).
+- `/state` publica sólo el resumen de las corridas, porque el serializador
+  global redondea a 4 decimales; el listado sale por `/general/corrida`.
+
