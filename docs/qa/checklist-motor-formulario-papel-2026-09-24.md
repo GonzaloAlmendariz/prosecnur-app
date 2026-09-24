@@ -26,13 +26,13 @@ dos renderers, o se declara explícitamente como exclusiva de uno.
 | 1 | **Dos columnas por secciones**, el salto de calidad más grande | modelo + ambos renderers | **cerrado** |
 | 2 | **Decidir el corte por ancho medido**, no por ojo | modelo | **cerrado con reserva** — ver §2 |
 | 3 | **Una matriz no se parte entre páginas** (`cantSplit` + `keepNext`) | renderer Word | **cerrado** |
-| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | replanteado; test en curso |
+| 4 | **Gate por holgura al pie**, no por conteo de páginas | test / QA | **cerrado, replanteado** — ver §4 |
 | 5 | **Consentimiento como tabla 1×1 con bordes** | renderer Word | **cerrado** |
 | 6 | **Una sola numeración**: el número lo pone quien numera | modelo | **cerrado** |
 | 7 | **El número va en la matriz, no en el enunciado previo** | modelo | **cerrado** (el conteo, en el 14) |
 | 8 | **Segunda persona consistente** en los enunciados generados | — | **descartado** — ver §8 |
 | 9 | **El pie sobrevive en la última página** (`titlePg`) | renderer Word | **cerrado** |
-| 10 | **Verificador OOXML del artefacto** | test | en curso |
+| 10 | **Verificador OOXML del artefacto** | test | **cerrado** |
 | 11 | **`clean_text` borra `*` y backticks de las categorías** | modelo + ambos renderers | **cerrado** — ver §11 |
 | 12 | **El renderer Word ignora `columns` desde siempre** | renderer Word | **bloqueado** — decide Gonzalo |
 | 13 | **Las cabeceras de matriz parten palabras** | ambos renderers | pendiente — ver §13 |
@@ -146,7 +146,24 @@ es herramienta local de QA, no gate. En local, `soffice` vive en
 `/Applications/LibreOffice.app/Contents/MacOS/soffice` (el del `PATH` está roto, exit 127).
 
 Cuidado con el verde por ausencia: si el gate se salta cuando falta `pdftotext`, quitar
-`poppler-utils` del workflow lo apagaría en silencio.
+`poppler-utils` del workflow lo apagaría en silencio. **Resuelto**: el guard se salta en
+local sin poppler, pero **falla** cuando `CI` está definido.
+
+**Implementado así**, con las dos trampas medidas antes de elegir el método:
+
+- Buscar la etiqueta de cabecera como **cadena contigua no encuentra nada**: `pdftotext`
+  devuelve las celdas envueltas e intercaladas con las vecinas
+  (`"Totalmente En Indiferente De Totalmente / en desacuerdo …"`). Habría dado verde por
+  ausencia. Se ancla por palabra (la más larga de cada etiqueta, ≥5 caracteres) y se exige
+  intersección de páginas no vacía entre las anclas de escala y los ítems.
+- Una palabra derramada **no aparece «un poco fuera»**: el borde de la página la recorta y
+  `pdftotext` devuelve media palabra (`DERRA` por `DERRAMADA`).
+- El gate mide el **marco de página**, no la columna del cuerpo: la cabecera y el pie viven
+  fuera de la caja de texto a propósito, y exigirles la caja del cuerpo sería un falso
+  positivo garantizado.
+
+Fuera de alcance, dicho para que no se confunda con cobertura: no mide que una palabra
+invada la **columna vecina**, y el de matriz vale mientras la matriz quepa en una página.
 
 ## 5. Consentimiento como tabla 1×1 con bordes
 
