@@ -135,7 +135,7 @@ export function composicionReferencial(
    */
   if (String(comp.fuente ?? "") === "sin_padron") {
     return {
-      vacio: "Este estudio no cruza las respuestas con un padrón (no hay padrón cargado o el formulario no pide el código del estudiante), así que no se puede describir a quién se está alcanzando por sexo y carrera.",
+      vacio: "Este estudio no cruza las respuestas con un padrón (su cuota va por curso-horario, o le falta el padrón o el código del estudiante), así que no se puede describir a quién se está alcanzando por sexo y carrera.",
       personas, dimensiones: [],
     };
   }

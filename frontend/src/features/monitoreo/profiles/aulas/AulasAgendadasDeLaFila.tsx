@@ -82,12 +82,12 @@ export function AulasAgendadasDeLaFila({ total, agendadas }: {
           </tr>
         </thead>
         <tbody>
-          {agendadas.map((a) => {
+          {agendadas.map((a, i) => {
             // Una fecha que ya pasó sin respuestas se sigue proyectando: se
             // marca, porque es la que hay que confirmar hoy.
             const vencida = /^\d{4}-\d{2}-\d{2}$/.test(a.fecha) && a.fecha < hoy;
             return (
-              <tr key={a.codigo} className={vencida ? "es-vencida" : undefined}>
+              <tr key={`${a.codigo}-${i}`} className={vencida ? "es-vencida" : undefined}>
                 <td className="es-cuando">
                   <b>{diaCorto(a.fecha)}</b>
                   {a.hora ? <span>{a.hora}</span> : null}
