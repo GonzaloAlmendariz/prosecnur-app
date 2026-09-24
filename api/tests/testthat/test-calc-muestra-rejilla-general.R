@@ -240,7 +240,12 @@ test_that("V2: acreditación de estudiantes con N ≥ 3001 conserva el deff can�
   comp <- calc_muestra_normalize_componente(comp)
   expect_identical(comp$tecnica, "prob_conglomerado_multietapico")
   expect_identical(comp$parametros$deff, 2)
-  expect_identical(as.integer(calc_muestra_calcular_componente(comp)$n_objetivo), 1904L)
+  # El n es la muestra fija de 1 800 del documento PULSO de marzo 2026 (P3,
+  # 2026-09-24); el deff 2 se ve en el margen publicado.
+  r <- calc_muestra_calcular_componente(comp)
+  expect_identical(as.integer(r$n_objetivo), 1800L)
+  expect_equal(r$precision_alcanzada,
+               calc_e_desde_n_muestra(n = 1800, N = 5000, p = 0.5, z = 1.96, deff = 2))
 })
 
 test_that("V3: lo que completa la inferencia de acreditación no se declara fuera de rango", {
