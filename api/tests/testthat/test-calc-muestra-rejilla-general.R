@@ -182,3 +182,43 @@ test_that("H07: las técnicas de aulas conservan el deff 1.5 por defecto", {
   comp <- calc_muestra_normalize_componente(list(actor = "a", actor_id = "a", tecnica = "prob_aleatorio_simple"))
   expect_identical(comp$parametros$deff, 1)
 })
+
+# --- B6 · entradas fuera de rango (H04, H20) --------------------------------
+# La mesa guarda el estudio entero, así que un valor fuera de rango no se
+# rechaza: se corrige y la corrección queda declarada en el componente y en el
+# resultado. Lo que el research pedía evitar es que se corrija EN SILENCIO.
+
+test_that("B6-36: e = 3 se corrige a 0.05 y se declara con la pista del porcentaje", {
+  comp <- calc_muestra_normalize_componente(.rejilla_comp(parametros = list(e = 3)))
+  avisos <- comp$avisos_parametros
+  expect_length(avisos, 1L)
+  expect_identical(avisos[[1]]$param, "e")
+  expect_identical(avisos[[1]]$recibido, 3)
+  expect_identical(avisos[[1]]$usado, 0.05)
+  expect_match(avisos[[1]]$texto, "escribe 0.03", fixed = TRUE)
+  r <- calc_muestra_calcular_componente(comp)
+  expect_match(r$advertencia, "fuera de rango en margen de error")
+  expect_length(r$avisos_parametros, 1L)
+})
+
+test_that("B6-37: p = 0 ya no da n = 0: se usa 0.5 y se declara", {
+  r <- .rejilla_calc(parametros = list(p = 0))
+  expect_identical(as.integer(r$n_teorico), 278L)
+  expect_match(r$advertencia, "varianza es cero")
+})
+
+test_that("B6: el aviso vive mientras el valor siga siendo el corregido", {
+  c1 <- calc_muestra_normalize_componente(.rejilla_comp(parametros = list(e = 3, deff = 0.8)))
+  expect_setequal(vapply(c1$avisos_parametros, `[[`, character(1), "param"), c("e", "deff"))
+  c2 <- calc_muestra_normalize_componente(c1)
+  expect_length(c2$avisos_parametros, 2L)
+  c2$parametros$e <- 0.03
+  c3 <- calc_muestra_normalize_componente(c2)
+  expect_identical(vapply(c3$avisos_parametros, `[[`, character(1), "param"), "deff")
+})
+
+test_that("B6: un parámetro válido no genera avisos", {
+  comp <- calc_muestra_normalize_componente(.rejilla_comp())
+  expect_length(comp$avisos_parametros, 0L)
+})
+
