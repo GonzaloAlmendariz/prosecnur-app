@@ -357,9 +357,12 @@ export type OpcionMetodo = {
 
 export function opcionesMetodo(marco: CalcMuestraGeneralMarco | null): OpcionMetodo[] {
   const sinTamano = !marco?.columnas.tamano;
+  // Con estratos declarados el sorteo es dentro de cada estrato: la π es la
+  // del estrato (n_h/N_h), no la del marco entero.
+  const pi = marco?.columnas.estrato ? "π = n_h/N_h en cada estrato." : "π = n/N.";
   return [
-    { id: "mas", label: "MAS", detalle: "Aleatorio simple sin reemplazo. π = n/N.", motivoDeshabilitado: null },
-    { id: "sistematico", label: "Sistemático", detalle: "Intervalo fraccional sobre el marco ordenado. π = n/N.", motivoDeshabilitado: null },
+    { id: "mas", label: "MAS", detalle: `Aleatorio simple sin reemplazo. ${pi}`, motivoDeshabilitado: null },
+    { id: "sistematico", label: "Sistemático", detalle: `Intervalo fraccional sobre el marco ordenado. ${pi}`, motivoDeshabilitado: null },
     {
       id: "pps",
       label: "PPS",
