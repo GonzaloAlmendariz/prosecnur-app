@@ -38,7 +38,14 @@ calc_muestra_general_memoria <- function(comp, resultado) {
   estratos <- comp$marco$estratos %||% list()
   por_estrato <- identical(comp$tecnica, "prob_estratificado") &&
     .cm_general_estratificado_por_estrato(estratos, par)
-  filas <- if (por_estrato) .cm_general_memoria_por_estrato(comp, resultado, estratos, par, N)
+  media <- .cm_general_es_media(par)
+  if (media) {
+    cv <- as.numeric(par$cv)
+    n0 <- z^2 * cv^2 * deff / e^2
+    n_fpc <- if (is.finite(N) && N > 0) n0 / (1 + (n0 - 1) / N) else n0
+  }
+  filas <- if (por_estrato && !media) .cm_general_memoria_por_estrato(comp, resultado, estratos, par, N)
+           else if (media) .cm_general_memoria_media(resultado, z, cv, deff, e, N, n0, n_fpc, base, rr, os)
            else list(
     list("Tamaño sin corrección (Cochran)",
          "n0 = z² · p · (1 − p) · deff / e²",
@@ -73,7 +80,7 @@ calc_muestra_general_memoria <- function(comp, resultado) {
          sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
-  if (por_estrato) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
+  if (por_estrato && !media) filas <- c(filas, .cm_general_memoria_campo(resultado, base, os, rr, N))
   data.frame(
     paso = vapply(filas, `[[`, "", 1L),
     formula = vapply(filas, `[[`, "", 2L),
@@ -249,6 +256,36 @@ calc_muestra_general_exportar_workbook <- function(corrida, marco, comp, resulta
          "e = z · √(Σ W_h² S_h² (1 − n_h / N_h) / n_h), con el reparto efectivo",
          sprintf("con n = %s repartidos entre %s estratos", as.integer(resultado$n_objetivo),
                  length(resultado$distribucion_estratos %||% list())),
+         .cm_general_num(resultado$precision_alcanzada, 4L))
+  )
+}
+
+# Memoria de una media con error relativo (H21).
+.cm_general_memoria_media <- function(resultado, z, cv, deff, r, N, n0, n_fpc, base, rr, os) {
+  list(
+    list("Tamaño sin corrección (media, error relativo)",
+         "n0 = z² · CV² · deff / r²",
+         sprintf("%s² · %s² · %s / %s²", .cm_general_num(z), .cm_general_num(cv), .cm_general_num(deff), .cm_general_num(r)),
+         .cm_general_num(n0, 6L)),
+    list("Corrección por población finita",
+         "n = n0 / (1 + (n0 − 1) / N)",
+         sprintf("%s / (1 + (%s − 1) / %s)", .cm_general_num(n0, 6L), .cm_general_num(n0, 6L), .cm_general_num(N, 10L)),
+         sprintf("%s → %s", .cm_general_num(n_fpc, 6L), as.integer(resultado$n_teorico))),
+    list("Encuestas completas objetivo",
+         "n objetivo = n (o la meta declarada, si la hay)",
+         sprintf("%s", as.integer(resultado$n_teorico)),
+         as.character(as.integer(resultado$n_objetivo))),
+    list("Casos a abordar por no respuesta",
+         "⌈n objetivo / tasa de respuesta⌉",
+         sprintf("⌈%s / %s⌉", as.integer(resultado$n_objetivo), .cm_general_num(rr)),
+         as.character(as.integer(base))),
+    list("n a campo",
+         "mín(casos a abordar + ⌈casos · sobremuestra⌉, N)",
+         .cm_general_sustitucion_campo(base, os, N),
+         as.character(as.integer(resultado$n_operativo))),
+    list("Error relativo alcanzado",
+         "r = z · CV · √(deff · (N − n) / (n (N − 1)))",
+         sprintf("con n = %s y N = %s", as.integer(resultado$n_objetivo), .cm_general_num(N, 10L)),
          .cm_general_num(resultado$precision_alcanzada, 4L))
   )
 }

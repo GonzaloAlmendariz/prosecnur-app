@@ -60,7 +60,10 @@ test_that("la asignación del estratificado se declara como opciones proporciona
   a <- Filter(function(p) identical(p$clave, "asignacion"), ps)[[1]]
   expect_identical(a$tipo, "opciones")
   expect_identical(unlist(a$opciones), c("proporcional", "neyman"))
-  expect_true(all(vapply(Filter(function(p) p$clave != "asignacion", ps), `[[`, "", "tipo") == "numero"))
+  # Las únicas opciones del estratificado son la asignación y qué se estima
+  # (proporción o media, H21); el resto son números.
+  opciones <- vapply(Filter(function(p) identical(p$tipo, "opciones"), ps), `[[`, "", "clave")
+  expect_setequal(opciones, c("asignacion", "tipo_indicador"))
 })
 
 test_that("HTTP: /api/calc-muestra/tecnicas/parametros publica el catálogo", {
