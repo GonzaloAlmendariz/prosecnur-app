@@ -549,6 +549,9 @@ monitoreo_aulas_candidatos_refuerzo <- function(plan = list(), responses = NULL,
   if (!any(libre)) {
     return(vacio("no queda ninguna reserva ni extra sin usar: los refuerzos tendrían que salir de un marco nuevo."))
   }
+  # Un docente que ya rechazó otro curso-horario no se propone (Stefano,
+  # 2026-09-24: R 5.1, del mismo docente que rechazó CH 17).
+  libre <- libre & !.madr_docente_rechazo(df$teacher, monitoreo_aulas_docentes_que_rechazaron(df))
   caben <- .marf_techo_caben(df, e, cfg)
 
   out <- list()

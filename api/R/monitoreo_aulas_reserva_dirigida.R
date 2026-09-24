@@ -273,6 +273,9 @@ monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
       "extra_reserve_pool"
     )
   }, plan)
+  # Sin los del docente que ya rechazó otro curso-horario (2026-09-24).
+  rechazaron <- monitoreo_aulas_docentes_que_rechazaron(plan)
+  banco <- Filter(function(f) !.madr_docente_rechazo(.monitoreo_scalar(f$teacher, ""), rechazaron), banco)
   if (!length(banco)) return(list())
   en_deficit <- Filter(function(c1) {
     is.list(c1) && .monitoreo_scalar(c1$estado %||% "", "") %in%
