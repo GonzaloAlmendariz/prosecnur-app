@@ -200,3 +200,14 @@ describe("técnicas que no se sortean", () => {
     expect(e.error).toBe(error);
   });
 });
+
+describe("opcionesMetodo · π según haya estratos", () => {
+  it("con estrato declarado la π es la del estrato; sin estrato, la del marco", async () => {
+    const { opcionesMetodo } = await import("../modelo");
+    const base = { file_id: "f", hoja: "", marco_hash: "h", N: 10, estratos: [], declarado_at: "" };
+    const con = opcionesMetodo({ ...base, columnas: { id: "id", estrato: "zona", tamano: "" } } as never);
+    const sin = opcionesMetodo({ ...base, columnas: { id: "id", estrato: "", tamano: "" } } as never);
+    expect(con[0].detalle).toContain("n_h/N_h");
+    expect(sin[0].detalle).toContain("π = n/N");
+  });
+});
