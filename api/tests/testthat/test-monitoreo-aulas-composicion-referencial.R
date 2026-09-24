@@ -127,3 +127,17 @@ test_that("el tablero pasa el cruce configurado: eje persona con padrón y códi
   expect_false(nzchar(.maea_aviso_de_config(padron, cfg)))
   expect_true(nzchar(.maea_aviso_de_config(list(), cfg)))
 })
+
+test_that("el tablero cablea el cruce configurado de punta a punta", {
+  plan <- data.frame(operational_code = "CH 1", faculty = "DERECHO", eligible_n = 30,
+                     stringsAsFactors = FALSE)
+  padron <- list(filas = list(list(codigo = "20201", nivel = "6", sexo = "F")))
+  fuente <- function(eje_cuota, code_var, pad) {
+    cfg <- list(aulas_universitarias = list(eje_cuota = eje_cuota),
+                source_mapping = list(student_code_var = code_var))
+    .monitoreo_aulas_avance_cuota(plan, plan, data.frame(), cfg, padron = pad)$composicion$fuente
+  }
+  expect_identical(fuente("nivel", "codigo", padron), "sin_cruce")
+  expect_identical(fuente("nivel", "codigo", NULL), "sin_padron")
+  expect_identical(fuente("facultad", "codigo", padron), "sin_padron")
+})
