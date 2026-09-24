@@ -5055,7 +5055,7 @@ mount_monitoreo <- function(pr) {
         ((cfg$aulas_universitarias %||% list())$plan %||% list())
       # `aplicar = FALSE` es el ENSAYO: dice que celdas se pintarian sin tocar
       # una sola. Es lo que deja mirar antes de escribir en la hoja de otro.
-      aplicar <- !identical(.monitoreo_scalar(body$aplicar %||% TRUE, TRUE), FALSE)
+      aplicar <- .mapm_aplicar_del_cuerpo(body)
       out <- monitoreo_aulas_publicar_marcas(destino, plan, aplicar = aplicar)
       list(ok = TRUE, escritas = out$escritas, respetadas = out$respetadas,
            sin_fila = as.list(out$sin_fila), por_hoja = out$por_hoja,
