@@ -24,6 +24,13 @@
   margin-top: 10px;
 }
 
+/* AD8-E15 · C3: el acto reparte con `gap`; el margen inferior propio de la
+   última tarjeta (14 px en .cmv2-sexo-card) quedaba como hueco interior al pie
+   del acto 3 y el gate lo medía como capacity-drift. */
+.cmv2-solidez-acto > :last-child {
+  margin-bottom: 0;
+}
+
 .cmv2-solidez-kicker {
   font-size: 10.5px;
   font-weight: var(--pulso-weight-semibold, 600);

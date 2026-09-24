@@ -44,6 +44,7 @@ import { distribucionDe, inventarioVariables } from "./exploradorBasesModel";
 import { nombreDeColumna } from "./exploradorBasesNombres";
 import { etiquetaDeValor } from "./exploradorBasesValores";
 import { fuentesExplorables, type FuenteExplorable } from "./exploradorBasesFuentes";
+import { exploradorListo } from "./exploradorReadiness";
 import "./exploradorBases.css";
 
 /** Forma común de una columna, venga del archivo (R) o del marco (cliente). */
@@ -308,7 +309,7 @@ export function ExploradorBasesTab({
 
   if (!fuentes.length) {
     return (
-      <section className="cmv2-expb" data-audit-ready="false" aria-label="Explorador de bases">
+      <section className="cmv2-expb" data-audit-ready="true" aria-label="Explorador de bases">
         <div className="cmv2-expb-vacio-marco">
           <EmptyState
             icon={<Compass size={22} aria-hidden="true" />}
@@ -323,7 +324,7 @@ export function ExploradorBasesTab({
   return (
     <section
       className="cmv2-expb"
-      data-audit-ready={columnas.length ? "true" : "false"}
+      data-audit-ready={exploradorListo({ fuenteTipo: fuente?.tipo ?? null, cargando, tienePerfil: perfil != null, error }) ? "true" : "false"}
       data-qa-geometry-group="calc-muestra/explorador-bases"
       data-qa-geometry-contract="intrinsic"
       aria-label="Explorador de bases"

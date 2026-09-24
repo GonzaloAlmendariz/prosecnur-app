@@ -16,6 +16,8 @@ import { Shuffle, TriangleAlert } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasSelection, CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
+import { ExplicacionBloque, ExplicacionPlegable } from "../ui";
+import { veredictoRerandomizacion } from "./rerandomizacionVeredicto";
 import "./rerandomizacion.css";
 
 const pct = (v: number | null | undefined, d = 1) =>
@@ -35,7 +37,8 @@ export function AulasRerandomizacionTab({
   const rr = config.rerandomizacion;
   const criterio = rr?.criterio ?? null;
   const corrida = selection?.rerandomizacion ?? null;
-  const agotado = corrida?.agotado === true;
+  const agotado = corrida?.aplicada === true && corrida.agotado === true;
+  const veredicto = veredictoRerandomizacion(corrida, { activa: rr?.activa === true, hayCriterio: criterio != null });
 
   const cambiar = (patch: Partial<NonNullable<CalcMuestraWorkspaceAulasConfig["rerandomizacion"]>>) => {
     if (!onConfig || !rr) return;
@@ -48,27 +51,52 @@ export function AulasRerandomizacionTab({
       data-qa-geometry-group="calc-muestra/aulas-rerandomizacion"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-panel cmv2-rr-intro" data-qa-geometry-member>
+      <section className="cmv2-panel cmv2-rr-veredicto" data-qa-geometry-member>
         <div className="cmv2-subhead">
-          <strong>Sortear una vez, o sortear hasta que sirva</strong>
-          <small>y por qué no es lo mismo que quedarse con el mejor</small>
+          <strong>Qué pasó en la última corrida</strong>
+          <small>la evidencia, no sólo el resultado</small>
         </div>
-        <p>
-          Un sorteo balanceado no garantiza que <b>todas</b> las celdas de facultad × sexo
-          alcancen su cuota. En el diseño de 2026 sólo la mitad de los sorteos las cerraba,
-          así que la muestra que se usó no fue la primera: fue una elegida entre cincuenta.
-        </p>
-        <p>
-          Eso se puede hacer de dos maneras que se ven iguales y no lo son.{" "}
-          <b>Quedarse con la mejor de cien</b> es optimizar: las probabilidades de que cada
-          aula entrara dejan de poder calcularse. <b>Aceptar o rechazar contra un criterio
-          fijado antes de sortear</b> es otra cosa: el conjunto de muestras aceptables no
-          depende del sorteo, así que lo que sale sigue siendo un diseño.
-        </p>
-        <p className="cmv2-rr-nota">
-          Esta pantalla hace lo segundo. Lo primero sigue disponible como motor
-          «pool controlado», con su advertencia.
-        </p>
+        {/* El ADR lo hace obligatorio: entregar el mejor fingiendo que pasó es
+            lo que convierte esto en optimización disfrazada. Por eso el
+            agotamiento es el veredicto, no una nota al pie. */}
+        <AvisoModulo
+          tone={veredicto.tono}
+          icon={agotado ? TriangleAlert : undefined}
+          role={agotado ? "alert" : "status"}
+        >
+          {veredicto.titulo}
+          {agotado && corrida ? (
+            <>
+              {" "}Cobertura mínima {num(corrida.cobertura_minima)}. O se sube el tope, o el criterio pide
+              más de lo que el marco puede dar.
+            </>
+          ) : null}
+        </AvisoModulo>
+        {corrida?.aplicada ? (
+          <>
+            <dl className="cmv2-rr-cifras">
+              <div><dt>Sorteos hechos</dt><dd>{fmtInt(corrida.sorteos)}</dd></div>
+              <div><dt>Pasaron el criterio</dt><dd>{fmtInt(corrida.aceptados)}</dd></div>
+              <div>
+                <dt>Tasa de aceptación</dt>
+                <dd>{pct(corrida.tasa_aceptacion)}</dd>
+              </div>
+              <div><dt>Cobertura mínima</dt><dd>{num(corrida.cobertura_minima)}</dd></div>
+            </dl>
+            {/* La tasa no es telemetría: es lo que dice si el criterio es sensato. */}
+            <small className="cmv2-rr-nota">
+              La tasa de aceptación es parte del diseño, no una estadística de proceso: una
+              tasa alta dice que el criterio se cumple casi solo; una muy baja, que pide
+              más de lo que el marco da y que lo que hay que revisar es el diseño, no
+              seguir sorteando.
+            </small>
+          </>
+        ) : rr?.activa !== true ? (
+          <small className="cmv2-rr-nota">
+            Es el comportamiento de siempre y no tiene nada de malo; sólo que entonces no hay
+            tasa de aceptación que reportar.
+          </small>
+        ) : null}
       </section>
 
       {!criterio ? (
@@ -121,49 +149,35 @@ export function AulasRerandomizacionTab({
         </section>
       )}
 
-      <section className="cmv2-panel" data-qa-geometry-member>
-        <div className="cmv2-subhead">
-          <strong>Qué pasó en la última corrida</strong>
-          <small>la evidencia, no sólo el resultado</small>
-        </div>
-        {!corrida?.aplicada ? (
-          <p className="cmv2-rr-nota">
-            La corrida vigente no rerandomizó: salió el primer sorteo. Es el
-            comportamiento de siempre y no tiene nada de malo — sólo que entonces no hay
-            tasa de aceptación que reportar.
+
+      {/* Abierta: en aulas no se pliega nada (ADR 0057). Va después del
+          veredicto y del criterio, y reparte sus bloques en el ancho. */}
+      <ExplicacionPlegable
+        titulo="Sortear una vez, o sortear hasta que sirva"
+        resumen="y por qué no es lo mismo que quedarse con el mejor"
+        defaultOpen
+      >
+        <ExplicacionBloque titulo="Por qué hace falta">
+          <p>
+            Un sorteo balanceado no garantiza que <b>todas</b> las celdas de facultad × sexo
+            alcancen su cuota. En el diseño de 2026 sólo la mitad de los sorteos las cerraba,
+            así que la muestra que se usó no fue la primera: fue una elegida entre cincuenta.
           </p>
-        ) : (
-          <>
-            {/* El ADR lo hace obligatorio: entregar el mejor fingiendo que pasó es
-                lo que convierte esto en optimización disfrazada. */}
-            {agotado && (
-              <AvisoModulo tone="warn" role="alert">
-                <TriangleAlert size={14} aria-hidden="true" /> Se agotaron los{" "}
-                {fmtInt(corrida.sorteos)} sorteos <b>sin que ninguno pasara el criterio</b>.
-                Lo que se entrega es el mejor de los que no pasaron, con cobertura mínima{" "}
-                {num(corrida.cobertura_minima)}. O se sube el tope, o el criterio pide más
-                de lo que el marco puede dar.
-              </AvisoModulo>
-            )}
-            <dl className="cmv2-rr-cifras">
-              <div><dt>Sorteos hechos</dt><dd>{fmtInt(corrida.sorteos)}</dd></div>
-              <div><dt>Pasaron el criterio</dt><dd>{fmtInt(corrida.aceptados)}</dd></div>
-              <div>
-                <dt>Tasa de aceptación</dt>
-                <dd>{pct(corrida.tasa_aceptacion)}</dd>
-              </div>
-              <div><dt>Cobertura mínima</dt><dd>{num(corrida.cobertura_minima)}</dd></div>
-            </dl>
-            {/* La tasa no es telemetría: es lo que dice si el criterio es sensato. */}
-            <small className="cmv2-rr-nota">
-              La tasa de aceptación es parte del diseño, no una estadística de proceso: una
-              tasa alta dice que el criterio se cumple casi solo; una muy baja, que pide
-              más de lo que el marco da y que lo que hay que revisar es el diseño, no
-              seguir sorteando.
-            </small>
-          </>
-        )}
-      </section>
+        </ExplicacionBloque>
+        <ExplicacionBloque titulo="Rerandomizar no es optimizar">
+          <p>
+            Eso se puede hacer de dos maneras que se ven iguales y no lo son.{" "}
+            <b>Quedarse con la mejor de cien</b> es optimizar: las probabilidades de que cada
+            aula entrara dejan de poder calcularse. <b>Aceptar o rechazar contra un criterio
+            fijado antes de sortear</b> es otra cosa: el conjunto de muestras aceptables no
+            depende del sorteo, así que lo que sale sigue siendo un diseño.
+          </p>
+          <p>
+            Esta pantalla hace lo segundo. Lo primero sigue disponible como motor
+            «pool controlado», con su advertencia.
+          </p>
+        </ExplicacionBloque>
+      </ExplicacionPlegable>
     </div>
   );
 }

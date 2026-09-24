@@ -555,7 +555,7 @@ describe("superficie I18b de criterios", () => {
         />,
       );
       expect(html, card.cardId).toContain('role="img"');
-      expect(html, card.cardId).toContain("Total recalculado por R");
+      expect(html, card.cardId).toContain("Total del marco");
       expect(html, card.cardId).toContain("Qué queda después de cada criterio");
       expect(html, card.cardId).toContain('data-match-level="exacta"');
       expect(html, card.cardId).toContain(`data-card-id="${card.cardId}"`);

@@ -28,6 +28,7 @@ import {
   resolveAulasStageNotice,
   type AulasNavigate,
 } from "../aulas/aulasSurfaceState";
+import { ROTULO_RESERVAS_TOTALES } from "../aulas/rotulosReservas";
 
 export function SalidasMonitoreoTab({
   model,
@@ -146,7 +147,7 @@ export function SalidasMonitoreoTab({
         metrics={[
           { label: "Agenda", value: selectionReady ? `${fmtInt(m1Rows.length + reservasTotal)} cursos-horario` : "pendiente", tone: selectionReady ? "ready" : "warning" },
           { label: "Titulares", value: m1Rows.length ? fmtInt(m1Rows.length) : "pendiente", tone: m1Rows.length ? "ready" : "warning" },
-          { label: "Reservas", value: reservasTotal ? fmtInt(reservasTotal) : "sin reservas", tone: reservasTotal ? "ready" : "neutral" },
+          { label: ROTULO_RESERVAS_TOTALES, value: reservasTotal ? fmtInt(reservasTotal) : "sin reservas", tone: reservasTotal ? "ready" : "neutral" },
           { label: "Siguiente", value: selectionReady ? "Fichas QR" : "seleccionar cursos-horario", tone: selectionReady ? "current" : "warning" },
         ]}
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo" }}

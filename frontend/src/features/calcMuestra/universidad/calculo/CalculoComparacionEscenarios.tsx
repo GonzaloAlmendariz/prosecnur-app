@@ -92,12 +92,12 @@ function ComparisonState({
   const copy = state.kind === "empty"
     ? {
         title: "Aún no hay dos propuestas calculadas",
-        hint: "Calcula P1 y P2 para publicar una comparación común desde R.",
+        hint: "Calcula P1 y P2 para compararlas.",
         icon: <Database size={20} aria-hidden="true" />,
       }
     : state.kind === "legacy"
       ? {
-          title: "Estas propuestas usan el contrato anterior",
+          title: "Estas propuestas son de una versión anterior de la app",
           hint: "Recalcula ambas propuestas antes de leer alcance o carga operativa.",
           icon: <RefreshCw size={20} aria-hidden="true" />,
         }
@@ -108,7 +108,7 @@ function ComparisonState({
             icon: <RefreshCw size={20} aria-hidden="true" />,
           }
         : {
-            title: "R no pudo acreditar esta comparación",
+            title: "No se pudo verificar esta comparación",
             hint: "Corrige la incompatibilidad y recalcula las dos propuestas. No se muestra información parcial.",
             icon: <TriangleAlert size={20} aria-hidden="true" />,
           };
@@ -225,7 +225,7 @@ export function CalculoComparacionEscenarios({
           <p>¿Cómo cambian el alcance estadístico y la carga operativa entre las dos propuestas?</p>
         </div>
         <span className="cmv2-compare-owner">
-          <GitCompareArrows size={15} aria-hidden="true" /> comparación acreditada por R
+          <GitCompareArrows size={15} aria-hidden="true" /> comparación verificada
         </span>
       </header>
 

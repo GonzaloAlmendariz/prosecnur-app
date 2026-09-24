@@ -11,6 +11,7 @@ import {
   classroomMethodLabel,
   classroomProbabilitySourceLabel,
 } from "./classroomLabels";
+import { ROTULO_RESERVAS_TOTALES } from "./rotulosReservas";
 
 export function ClassroomOperationalHandoffPanel({
   selection,
@@ -38,7 +39,7 @@ export function ClassroomOperationalHandoffPanel({
         summary="El cálculo de muestra de cursos-horario produce titulares, reservas, pesos y códigos. El generador QR/PDF convierte esa agenda en fichas y el monitoreo de cursos-horario registra aplicación, caídas y reemplazos."
         metrics={[
           { label: "Titulares", value: fmtInt(titulares), tone: titulares ? "ready" : "warning" },
-          { label: "Reservas", value: fmtInt(reservas + reservaExtra), tone: reservas || reservaExtra ? "ready" : "neutral" },
+          { label: ROTULO_RESERVAS_TOTALES, value: fmtInt(reservas + reservaExtra), tone: reservas || reservaExtra ? "ready" : "neutral" },
           { label: "Sugerencias", value: fmtInt(sugerencias), tone: sugerencias ? "current" : "neutral" },
         ]}
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo de cursos-horario" }}

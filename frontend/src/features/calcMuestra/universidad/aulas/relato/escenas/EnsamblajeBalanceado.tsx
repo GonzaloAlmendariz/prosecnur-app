@@ -90,7 +90,7 @@ export function EnsamblajeBalanceado({
     <section className="cmv2-relato-balance" aria-label="Balance del ensamblaje: composición marco vs muestra">
       <div className="cmv2-relato-cifras">
         <RelatoCifra
-          label="Calidad representativa (motor R)"
+          label="Calidad representativa"
           valor={balance.score == null ? "—" : `${balance.score}`}
           detalle="cifra oficial del balance"
           realce

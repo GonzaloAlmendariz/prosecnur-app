@@ -65,6 +65,7 @@ import {
   CriteriosRadiografiaConsola,
   useCriteriosRadiografiaInline,
 } from "../marco/CriteriosRadiografiaConsola";
+import { avisoEvidenciaCriterios } from "./evidenciaCriteriosTexto";
 import "./criterios.css";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
@@ -506,7 +507,7 @@ export function CriteriosMarcoTab({
           ) : null}
           {showAlumno && alumno.length > 0 && radiografiaInline.invalid.length ? (
             <div className="cmv2-crc-contract-alert" role="alert">
-              Evidencia I18b inválida u obsoleta: {radiografiaInline.invalid.join(", ")}. React no sustituye esos datos con cálculos locales.
+              {avisoEvidenciaCriterios(radiografiaInline.invalid)}
             </div>
           ) : null}
           {showAlumno && alumno.length > 0 && (

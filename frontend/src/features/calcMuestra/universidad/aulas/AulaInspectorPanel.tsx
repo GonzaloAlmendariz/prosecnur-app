@@ -163,7 +163,7 @@ export function AulaInspectorPanel({
 
         <footer className="cmv2-aulas-inspector-procedencia">
           <BadgeMotor estado="validado" />
-          <span>Cifras leídas de la selección de la calculadora (motor R), sin recálculos en la interfaz.</span>
+          <span>Cifras de la selección calculada, tal como salieron del sorteo.</span>
         </footer>
       </div>
     </aside>

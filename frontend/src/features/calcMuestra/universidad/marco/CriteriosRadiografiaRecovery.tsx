@@ -52,9 +52,9 @@ export function CriteriosRadiografiaRecovery({
           <>
             <h3 id={`cmv2-crc-recovery-title-${scope}`}>Este marco conserva datos, pero aún no publica su detalle analítico</h3>
             <p>
-              El frame guardado no incluye el contrato que publica {sujeto} por facultad: se construyó antes de
-              esta capacidad. Actualízalo con el motor R para ver sus distribuciones y denominadores reales;
-              esta pantalla no los reemplaza con ceros ni cálculos locales.
+              El marco guardado no incluye el detalle de {sujeto} por facultad: se construyó con una versión
+              anterior. Reconstrúyelo para ver sus distribuciones y denominadores reales; mientras tanto no se
+              muestran ceros ni cifras aproximadas.
             </p>
           </>
         )}

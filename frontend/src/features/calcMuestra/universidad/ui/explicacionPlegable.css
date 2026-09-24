@@ -1,0 +1,88 @@
+/* ExplicacionPlegable (AD7-E15): la prosa de método va después del resultado,
+   plegada, y al abrirse usa el ancho en columnas. Misma piel que el resto de
+   paneles del escritorio universitario. */
+.cmv2-uni-explica {
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+}
+
+.cmv2-uni-explica > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: inherit;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+  user-select: none;
+  transition: background-color var(--motion-dur-fast, 120ms) var(--cmv2-ease-out, ease-out);
+}
+
+.cmv2-uni-explica > summary::-webkit-details-marker { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .cmv2-uni-explica > summary:hover {
+    background-color: color-mix(in srgb, var(--cmv2-accent-soft) 55%, transparent);
+  }
+}
+
+.cmv2-uni-explica > summary:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+}
+
+.cmv2-uni-explica[open] > summary { border-radius: 12px 12px 0 0; }
+
+.cmv2-uni-explica-titulo { font-weight: var(--pulso-weight-semibold); }
+
+.cmv2-uni-explica-resumen {
+  min-width: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+.cmv2-uni-explica-chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--pulso-text-muted);
+  transition: transform 200ms var(--cmv2-ease-in-out, ease-in-out);
+}
+
+.cmv2-uni-explica[open] .cmv2-uni-explica-chevron { transform: rotate(180deg); }
+
+/* Columnas que se reparten el ancho; bajo ~720 px caen a una sola. */
+.cmv2-uni-explica-cuerpo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--pulso-space-3) var(--pulso-space-5);
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-uni-explica-bloque > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-bottom: var(--pulso-space-1);
+}
+
+.cmv2-uni-explica-bloque > header strong { font-size: 12.5px; color: var(--pulso-text); }
+.cmv2-uni-explica-bloque > header small { font-size: 11px; color: var(--pulso-text-muted); }
+
+.cmv2-uni-explica-bloque p {
+  margin: 0 0 var(--pulso-space-1);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-uni-explica-bloque > :last-child { margin-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-uni-explica > summary,
+  .cmv2-uni-explica-chevron { transition: none; }
+}

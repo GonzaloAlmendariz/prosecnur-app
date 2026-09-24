@@ -196,7 +196,7 @@ export function ReferenciaAsistenciaCard({
           {sizeRows.length > 0 ? (
             <section className="cmv2-ref-asist-gradient" data-qa-geometry-member>
               <header>
-                <small>Dato del engine R</small>
+                <small>Dato observado</small>
                 <strong>Gradiente observado por tamaño</strong>
               </header>
               <div className="cmv2-ref-asist-gradient-grid">
