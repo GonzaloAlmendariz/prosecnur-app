@@ -798,6 +798,8 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     }
   }
 
+  parametros_norm <- .cm_normalize_parametros(parametros_in, tecnica)
+
   list(
     id                = calc_str(comp$id, .cm_random_id()),
     actor             = calc_str(comp$actor, "Componente"),
@@ -811,7 +813,10 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     nivel_respaldo    = calc_enum(comp$nivel_respaldo, .CM_NIVELES_RESPALDO,
                                   .cm_respaldo_default_para(tecnica)),
     marco             = marco_normalizado,
-    parametros        = .cm_normalize_parametros(parametros_in, tecnica),
+    parametros        = parametros_norm,
+    # Correcciones declaradas: qué valor llegó fuera de rango y cuál se usó.
+    avisos_parametros = .cm_general_avisos_parametros(comp$parametros, parametros_norm,
+                                                      comp$avisos_parametros),
     meta              = .cm_normalize_meta(meta_in),
     inferencia_acreditacion = inferencia,
     # Opaco, lo escribe calcular(). El único retoque es el repair del carrier
@@ -1124,7 +1129,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
   if (is.null(par) || !is.list(par)) par <- list()
   list(
     z                 = calc_num(par$z, .CM_DEFAULTS_PARAMS$z, min = 0.5, max = 5),
-    p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 0, max = 1),
+    # p en (0, 1) abierto: con 0 o 1 la varianza es cero y n sale 0 (H20).
+    p                 = calc_num(par$p, .CM_DEFAULTS_PARAMS$p, min = 1e-6, max = 1 - 1e-6),
     e                 = calc_num(par$e, .CM_DEFAULTS_PARAMS$e, min = 0.001, max = 0.5),
     # El deff 1.5 por defecto es de las técnicas de aulas (conglomerado y
     # dominios independientes; un .pulso viejo sin deff no debe cambiar su n).
@@ -1270,6 +1276,13 @@ calc_muestra_calcular_componente <- function(comp) {
   )
 
   resultado$inferencia <- inferencia
+  if (length(comp$avisos_parametros)) {
+    resultado$avisos_parametros <- comp$avisos_parametros
+    resultado$advertencia <- paste(c(
+      vapply(comp$avisos_parametros, `[[`, character(1), "texto"),
+      resultado$advertencia
+    ), collapse = " ")
+  }
   resultado$computado_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
   resultado$tecnica <- comp$tecnica
   resultado
