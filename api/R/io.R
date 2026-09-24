@@ -76,14 +76,21 @@ get_file <- function(sid, file_id) {
   meta
 }
 
+# webutils::parse_multipart recibe el boundary, no el Content-Type: llamarlo
+# con `content_type =` fallaba siempre, y los dos respaldos que lo usaban
+# nunca llegaron a funcionar (encontrado el 2026-09-24).
+.multipart_boundary <- function(ctype) {
+  b <- sub('.*boundary="?([^";]+)"?.*', "\\1", ctype)
+  if (identical(b, ctype)) "" else b
+}
+
 parse_multipart_upload <- function(req) {
   body <- req$bodyRaw
   ctype <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   if (!grepl("multipart/form-data", ctype, fixed = TRUE)) {
     stop_api(400, "E_NOT_MULTIPART", "Expected multipart/form-data body")
   }
-  parsed <- webutils::parse_multipart(body, content_type = ctype)
-  parsed
+  webutils::parse_multipart(body, .multipart_boundary(ctype))
 }
 
 # Multipart text fields arrive inconsistently in plumber (as character, list, or
@@ -100,7 +107,7 @@ parse_multipart_upload <- function(req) {
   body <- req$bodyRaw
   ctype <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
   if (!grepl("multipart/form-data", ctype, fixed = TRUE) || is.null(body)) return("")
-  parts <- tryCatch(webutils::parse_multipart(body, content_type = ctype), error = function(e) NULL)
+  parts <- tryCatch(webutils::parse_multipart(body, .multipart_boundary(ctype)), error = function(e) NULL)
   raw_val <- parts[[field_name]]
   if (is.null(raw_val)) return("")
   if (is.raw(raw_val)) return(rawToChar(raw_val))
